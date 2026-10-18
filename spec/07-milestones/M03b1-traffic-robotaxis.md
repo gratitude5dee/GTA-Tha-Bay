@@ -67,7 +67,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - AC-2 Given the excerpt with 50 agents and its signal programs When 36,000 ticks (600 s) run in `canonical` Then no agent crosses a stop line while its movement's aspect is red, or amber when it could stop at 3.5 m/s², and no junction claim is held longer than 20 s — proof: `pnpm check:unit -- packages/world`
 - AC-3 Given `setBlackout(true, 'test')` and 20 seeds When a robotaxi reaches a dark junction Then every stall lasts between 4 and 9 s, ambient agents treat the junction as an all-way stop with no deadlock, and a robotaxi never exceeds 0.95 × the edge limit — proof: `pnpm check:unit -- packages/world`
 - AC-4 Given a stationary pedestrian dummy in lane When a robotaxi approaches at 14 m/s Then `autoYield` stops it without contact — proof: `pnpm check:unit -- packages/world`
-- AC-5 Given each flat tier and the `canonical` profile When spawning runs around a moving player Then:
+- AC-5 Given each flat tier and the `canonical` profile When spawning runs around a moving player Then all of these hold:
   - spawns lie at 0.6–1.0 × `R_amb`, never inside the forward cone closer than 0.9 × `R_amb`;
   - despawns happen beyond 1.25 × `R_amb`;
   - the active count equals `activeSlots` for the tier, hour and weather (canonical = `mobile-low` factors);
