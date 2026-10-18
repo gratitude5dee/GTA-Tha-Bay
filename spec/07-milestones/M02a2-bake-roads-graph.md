@@ -1,0 +1,82 @@
+# M02a2 — bake-roads-graph
+
+## Goal
+After this session the bake produces a drivable, walkable city. Stages S5–S10 run between terrain and packing: the directed road graph with classes, one-way rules and layers (S5), merged junctions with movements, conflicts, restrictions and signal programs (S6), road grading into the shared heightfield with bridge slabs and tunnel hoods (S7, so S4 buildings now sit on the graded grid), the pedestrian graph (S8), the seven tag types and the spawn tables (S9), and the landmark seeds, POI table and transit nodes (S10). The always-resident topology asset `map_data/sf-graph.v1` is written. `pnpm map:verify` runs the S14 gates on a finished bake, and `pnpm map:landmarks`, `pnpm map:pois` and `pnpm map:resolve` exist for authors. The offline areas (`civic-excerpt`, `synth`) gain roads, so CI can prove graph connectivity and routes; the real `sf` gates (hero edges, landmark snapping to OSM) are proven on the operator's bake.
+
+## Requirements
+- R-MAP-01: the real street grid (OSM geometry, DataSF `3psu-pn9h` names, classes and one-way), hills graded into drivable roads, bridges as slabs and portals, landmarks seeded at their real places.
+- R-MAP-04: signal programs, sidewalks and crossings, spawn capacities and density profiles that the living city (M03b1, M03b2) consumes.
+
+## Depends on
+- **M02a1:** `tools/map` areas, S0/S2/S3/S4/S13 stages, `raw.lock`, gates, `map:build`, `map:pack`, the synth generator.
+- Contracts: C08 1.0 (`02-world-contracts.md` §1–§5: `RoadEdge`, `Junction`, `SignalProgram`, PED, TAGS, SPAWN sections, limits of rule 20).
+
+## Scope in
+- **Pipeline order** (`02-world-bake.md` §1): S0 → S2 → S3 → S5 → S6 → S7 → S4 → S8 → S9 → S10 → S13 → S14. `--stage` accepts `roads,junctions,grading,ped,tags,places`.
+- **S5 roads** (`02-world-living.md` §1.1–§1.3; `config/world/roadclass.json`): drivable `highway` classes only, excluded DataSF layers (`PAPER*`, `PSEUDO`, `PRIVATE`, `STREETS_PEDESTRI`, `UPROW`); DataSF `classcode` overrides the OSM class on `cnn`-matched segments; OSM `lanes`, `maxspeed` override defaults; `widthM` formula; parking sides. One-way: test both orientations of DataSF F/T against OSM on matched segments, adopt the one with higher agreement, fail S5 if neither exceeds 90 %; DataSF wins on matched active `STREETS` segments. Layers give an `i8` level; crossings without a shared node never connect. Ids per C08 rules 8–9.
+- **S6 junctions** (§1.4–§1.6): merge nodes within 25 m of one intersection (≤ 8 approaches); controls (`Signal`, `AllWayStop`, `MinorStop`, `Yield`, `Roundabout`, `DeadEnd`); `type=restriction` removes movements; U-turns only at dead ends; turn classes; connector curves with exact ops; conflicts within 2 m, ≤ 12 per movement. Signal programs: phases by heading (4-way 2, 3-way 2, 5+ 3), green 20 s, amber 3 s, all-red 1 s, Arterial through 28 s with 16 s cross, `cycleTicks = Σ(green + amber + clear) × 60`, `offsetTicks = hash(junctionId) mod cycleTicks`, pedestrian walk = parallel green minus 5 s.
+- **S7 grading** (`02-world-bake.md` §4 S7 rules 1–6; `config/world/bridges.json` with Golden Gate deck 67 m, Bay Bridge 58 m, generic overpass terrain + 5.5 m × layer): class-order processing, 24 m moving average, 40 % slope clamp, smoothstep blend, slabs 4 m × 1.0 m with steps ≤ 0.16 m, tunnel corridors lowered and covered by hoods. Sloped deck strips stay deferred (DL-104; proposal P2).
+- **S8 pedestrian graph:** sidewalks derived from road width on both sides where OSM has no `sidewalk=no`, crossings at junction approaches (`movement` = the parallel straight movement), paths and plaza lattices; per-tile largest component ≥ 85 % (warning).
+- **S9 tags and spawn** (§4 S9 table and formulas): `hidingSpots`, `pursuitBreakers` (from `content/world/pursuit-breakers.json`, snapped ≤ 12 m), `chokePoints`, `jumpZones` (≤ 3 per chunk), `portals` (GGB north at 37.8263, −122.4793; Bay Bridge east at the Yerba Buena Island mouth; Ferry Building; `county-line` per drivable edge leaving the neighbourhood union), `shoreNodes` every 40 m, `teleportNodes`. Spawn: `trafficSlots`, `pedSlots`, parked slots at 7 m pitch, 15 % empty by hash, capped at 256, ordered by hash so a prefix is a thinning. Profiles from `content/world/districts.json` (10 districts + `outer` + `stage` + 41 neighbourhood slugs, `02-world-bake.md` §8).
+- **S10 places:** `content/world/landmarks.json` with the 37 seeds of §7 (id, lat/lng, class, district, role, `replaces` footprint ids filled by the bake, `arrival` pose computed on ground ≥ 3 m from water and prisms; on `synth` a landmark that falls in synthetic water gets no arrival pose and a warning); landmark proxies set `proxyOf = index + 1` in `l0` BUILDING records (S4 rule 6). `content/world/pois.json` with ≥ 150 seeds (`02-world-bake.md` §9: 37 landmark POIs, 8 transit stations, 41 neighbourhood hubs, ≈ 20 parks and plazas, ≈ 45 fictional businesses and anonymous homes), each bound to a ped node ≤ 25 m. Transit nodes: the five Muni Metro station positions of fact N4 plus authored BART and Caltrain seeds (snapped; U-W5); `content/world/cablecars.json` street chains checked within 6 m (U-W6). `content/world/teleports.json` (sandbox list = the 37 landmarks).
+- **`map_data/sf-graph.v1`:** nodes, edges (from, to, length, class, flags, layer), no geometry; layout chosen here and written as a comment at the top of `packages/shared/src/world/graph-codec.ts` (pure `encodeGraph`/`decodeGraph`), listed in the PR as a C08 clarification proposal (like M01f's layout notes). Packed by `map:pack` as `map_data/sf-graph.v1`.
+- **Gates and tools:**
+  - `map:verify [-- --bake <id> | --area <id>]` runs every S14 gate on a finished bake (latest bake of the area by default; with no bake it prints `SKIP map:verify: no bake in dist/world` and exits 0): SCC ≥ 98 % of drivable edges, no `lanes = 0`, every signal junction has a program with ≥ 2 phases, a route from the City Hall edge to every portal, edges per chunk ≤ 600, out-degree ≤ 8, max road grade ≤ 40 %, ≥ 98 % of OSM signal nodes within 25 m of a junction, chunk limits of rule 20, world-index counts (landmarks ≥ 25, POIs ≥ 150), and, for `sf` only, the hero edges of §1.8 drivable and connected. Writes the gate table into `bake-report.json`.
+  - `map:landmarks [-- --bake <id> | --area <id>]`: schema, unique ids `lm.<slug>`, classes, districts, lat/lng ↔ ENU agreement with the §7 table within 1 m; with an `sf` bake, each landmark within 120 m of its OSM feature (a failing seed is corrected from OSM in `landmarks.json`, never waived).
+  - `map:pois [-- --bake <id> | --area <id>]`: schema, counts by kind, unique ids, fictional business names (shared matcher of `names:lint`), no EAS address as a home; with an `sf` bake, the id prefix equals the neighbourhood slug of the point and each POI binds to a ped node ≤ 25 m (warnings on `synth`).
+  - `map:resolve -- --lat <y> --lng <x> [--area <id>]`: prints edge id, `s`, distance and chunk key.
+- **Synth and excerpt roads:** the synth generator (M02a1) adds OSM-shaped highways on a grid with arterial spines, signals at arterial crossings, one layered overpass and one short tunnel (so slabs and hoods are exercised), DataSF-shaped street rows with `cnn` and `oneway`, and county-line portals at its land edges; per-area gate parameters disable the `sf`-only gates.
+- `nightly.yml`: `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`.
+
+## Scope out
+- Runtime graph services, A*, `WorldResolver`, district grid, POI runtime: M02c1. Traffic and pedestrian brains: M03b1, M03b2. Landmark meshes: M02d1–M02d2. S11 LOD packs: M02b1. Map packs and geocoder (`sf-map.v1`, `sf-geocode.v1`): M02c2.
+- Overpass and Nominatim are not called by the bake (seeds are committed; corrections are manual edits).
+
+## Deliverables
+- `tools/map/src/stages/{s5-roads.ts, s6-junctions.ts, s6-signals.ts, s7-grading.ts, s8-ped.ts, s9-tags.ts, s9-spawn.ts, s10-places.ts}`, `tools/map/src/graph/{scc.ts, route.ts}` (bake-side), `tools/map/src/verify/{verify.ts, landmarks.ts, pois.ts}`, `tools/map/src/resolve.ts`, `tools/map/src/sources/synth.ts` (extended), `tools/map/src/cli.ts` (extended).
+- `packages/shared/src/world/graph-codec.ts`, `packages/shared/test/world.graph-codec.spec.ts`.
+- `tools/map/schemas/{landmarks.schema.json, pois.schema.json, districts.schema.json, roadclass.schema.json, bridges.schema.json}`.
+- `config/world/{roadclass.json, bridges.json}`; `content/world/{landmarks.json, pois.json, districts.json, pursuit-breakers.json, cablecars.json, teleports.json}` (data).
+- `tools/map/test/{stage.roads.spec.ts, stage.junctions.spec.ts, stage.grading.spec.ts, stage.ped.spec.ts, stage.spawn.spec.ts, verify.spec.ts, places.spec.ts}`; `tests/fixtures/map/civic-excerpt/` gains streets rows and OSM highways.
+- `.github/workflows/nightly.yml` (one step).
+- Root scripts: **`map:verify`**, **`map:landmarks`**, **`map:pois`**, **`map:resolve`**.
+- ≈ 30 code files; content JSON is data.
+
+## Interfaces
+- C08 1.0 unchanged; `graph-codec.ts` is a new pure helper with a documented layout (clarification proposal, not a shape change).
+- Tool APIs (not contracts): `verifyBake(bakeId): GateResult[]`, `resolveLatLng(bake, lat, lng)`.
+
+## Acceptance criteria
+- AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
+- AC-2 Given table-driven road fixtures When the stage tests run Then classes, lanes, widths and parking follow `roadclass.json`; the one-way orientation with 92 % agreement is adopted and an 85 % case fails S5; nodes 20 m apart on one intersection merge and 30 m apart do not; a `no_left_turn` relation removes exactly that movement; a 4-way signal gets 2 phases with `cycleTicks` 2,880 and an Arterial through phase 28 s; graded slopes never exceed 40 %; slab steps are ≤ 0.16 m; a parked-slot list for a lower tier is a prefix of the higher one — proof: `pnpm check:unit -- tools/map`
+- AC-3 Given the `civic-excerpt` area When all stages run twice from scratch Then every output, including `sf-graph.v1`, is byte-identical and every gate passes — proof: `pnpm map:build -- --area civic-excerpt --repro`
+- AC-4 Given a fresh `synth` bake When `map:verify` runs Then the largest strongly connected component holds ≥ 98 % of drivable edges, every portal is reachable from the City Hall edge, every signal junction has ≥ 2 phases, no chunk exceeds 600 edges, no node has out-degree > 8, and the world index lists ≥ 25 landmarks and ≥ 150 POIs — proof: `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`
+- AC-5 Given the committed seeds When the place validators run without a bake Then the 37 landmark ids, classes and districts match `02-world-bake.md` §7, every lat/lng converts to its listed ENU within 1 m, POI counts per kind are met, ids are unique and every business name passes the name matcher — proof: `pnpm map:landmarks && pnpm map:pois && pnpm names:lint`
+- AC-6 Given a `civic-excerpt` bake When City Hall's coordinates are resolved Then the tool prints an edge id, a distance ≤ 25 m and chunk `9/256/256` — proof: `pnpm map:build -- --area civic-excerpt && pnpm map:resolve -- --lat 37.7793 --lng -122.4193 --area civic-excerpt`
+- AC-7 Given `sf-graph.v1` from a `synth` bake When it is decoded Then its edge and node counts equal the sums over all `p0` packs, lengths agree with segment lengths within 0.1 m, and it re-encodes byte-identically — proof: `pnpm check:unit -- packages/shared tools/map`
+- AC-8 Given an operator workstation with the M02a1 `sf` snapshot When the full `sf` bake and the three validators run Then `map:verify` passes including the hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde), `map:landmarks` places all 37 within 120 m of their OSM features after any seed corrections, `map:pois` binds every POI, and the run records U-W5, U-W6, U-W9 and the bake time in `docs/bake-runs/M02a2/notes.json` — proof: manual: operator workstation, `pnpm map:build -- --area sf --repro`, `pnpm map:verify -- --area sf`, `pnpm map:landmarks -- --area sf`, `pnpm map:pois -- --area sf`, then commit corrected seeds and the notes file
+
+## Test plan
+- **Unit** (`pnpm check:unit -- tools/map packages/shared`): `tools/map/stage.roads`, `stage.junctions`, `stage.grading`, `stage.ped`, `stage.spawn`, `verify.gates`, `places.validate`; `shared/world.graph-codec`.
+- **Bake:** `ci.yml` `content` runs AC-3; nightly runs AC-4.
+- **IP:** `pnpm names:lint` and `pnpm provenance:check` over `content/world` (`ci/ip.world`).
+- **Operator:** AC-8 on the real city.
+
+## Demo script
+1. `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`: the gate table prints.
+2. `pnpm map:resolve -- --lat 37.7793 --lng -122.4193 --area synth`.
+3. Change one POI name to a real chain's name in a scratch branch, run `pnpm map:pois`, see the failure, revert.
+
+## Effort
+1 Builder session; about 30 code files; risk **medium**. Junction merging with movements and conflicts is the main time sink; grading with slabs and hoods is second.
+
+## Risks & fallbacks
+- **One-way agreement below 90 % on real data:** the S5 gate fails by design; report the measured agreement and the worst segments; do not lower the threshold without an Architect decision.
+- **Tunnel hoods collide wrong** (R-S02-01): short tunnels become open cuts (corridor without hood), long ones stay; the drive tests come in M03a1.
+- **SCC below 98 % on `sf`** from OSM gaps: print the disconnected components with `cnn`s; fix only via `config/world/roadclass.json` exclusions or authored connector edges in `content/world/`, each listed in the report.
+
+## Notes for the Builder
+- Read first: `02-world-bake.md` §4, §7–§9; `02-world-living.md` §1, §7; `02-world-contracts.md` §1 (rules 8–15, 20), §4 (EDGE, JUNCTION, PED, TAGS, SPAWN sections).
+- Sim-facing values are integers in packs (ticks, dm, 1/256 turns). `hash()` here is `fnv32` from `@dv/shared` so the runtime can recompute offsets.
+- Real names in `pois.json` are public place names only; businesses are fictional. Never store an EAS address as a home.
+- Secrets: none. Branch `m02a2-bake-roads-graph`.

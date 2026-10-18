@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./platform": "./src/platform/c13.ts"
+    "./platform": "./src/platform/c13.ts",
+    "./schemas/*": "./schemas/*"
   }
 }

@@ -11,6 +11,15 @@ test.describe('shell', () => {
     await expect(page).toHaveTitle(DISPLAY_NAME);
     expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
 
+    // M00a: a same-origin fetch of the Worker API works under COEP and the response is isolated.
+    const health = await page.evaluate(async () => {
+      const res = await fetch('/api/v1/health');
+      return { status: res.status, coep: res.headers.get('cross-origin-embedder-policy'), body: (await res.json()) as { ok: boolean } };
+    });
+    expect(health.status).toBe(200);
+    expect(health.coep).toBe('require-corp');
+    expect(health.body.ok).toBe(true);
+
     const probe = await runGpuProbe(page);
     expect(probe.error).toBeNull();
     if (testInfo.project.name === 'chromium-webgpu') {

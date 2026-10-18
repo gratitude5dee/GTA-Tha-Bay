@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/telemetry/names.schema.json",
+  "title": "C16 1.1 per-name telemetry props (M00a subset)",
+  "description": "One $defs entry per client telemetry name that has a schema. Names without an entry are dropped at ingest until their emitter milestone adds one. services/edge reads the 'properties' order for blob and double placement: string props go to blobs, number and boolean props to doubles, both in the order listed here.",
+  "$defs": {
+    "app.start": {
+      "type": "object",
+      "properties": {
+        "nav": { "type": "string", "maxLength": 32 },
+        "coi": { "type": "boolean" },
+        "store": { "enum": ["opfs", "memory"] },
+        "backend": { "enum": ["webgpu", "webgl2"] },
+        "tier": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["nav", "coi", "store", "backend", "tier"],
+      "additionalProperties": false
+    },
+    "app.ready": {
+      "type": "object",
+      "properties": {
+        "nav": { "enum": ["navigate", "reload", "back_forward"] },
+        "bootMs": { "type": "number" },
+        "phaseShellMs": { "type": "number" },
+        "phaseWorldMs": { "type": "number" }
+      },
+      "required": ["bootMs", "phaseShellMs", "phaseWorldMs", "nav"],
+      "additionalProperties": false
+    },
+    "app.hidden": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "app.cold_resume": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "app.abnormal_exit": {
+      "type": "object",
+      "properties": {
+        "prevSid": { "type": "string", "maxLength": 64 },
+        "scene": { "type": "string", "maxLength": 64 },
+        "mode": { "type": "string", "maxLength": 64 },
+        "chunkKey": { "type": "string", "maxLength": 64 },
+        "cause": { "enum": ["jetsam", "gpu_lost", "hang", "unknown"] },
+        "lastBeatAgoMs": { "type": "number" },
+        "memEstMB": { "type": "number" },
+        "gpuEstMB": { "type": "number" }
+      },
+      "required": ["prevSid", "lastBeatAgoMs", "scene", "mode", "chunkKey", "memEstMB", "gpuEstMB"],
+      "additionalProperties": false
+    },
+    "err.js": {
+      "type": "object",
+      "properties": {
+        "fp": { "type": "string", "maxLength": 16 },
+        "msg": { "type": "string", "maxLength": 128 },
+        "top": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["fp", "msg", "top"],
+      "additionalProperties": false
+    },
+    "err.promise": {
+      "type": "object",
+      "properties": {
+        "fp": { "type": "string", "maxLength": 16 },
+        "msg": { "type": "string", "maxLength": 128 },
+        "top": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["fp", "msg"],
+      "additionalProperties": false
+    },
+    "err.gpu": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "maxLength": 32 },
+        "msg": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["msg"],
+      "additionalProperties": false
+    },
+    "perf.minute": {
+      "type": "object",
+      "properties": {
+        "fpsP50": { "type": "number" },
+        "fpsP5": { "type": "number" },
+        "frameP95Ms": { "type": "number" },
+        "drawCalls": { "type": "number" },
+        "tris": { "type": "number" },
+        "texMBEst": { "type": "number" },
+        "gpuMBEst": { "type": "number" },
+        "memEstMB": { "type": "number" }
+      },
+      "required": ["fpsP50", "fpsP5", "frameP95Ms", "drawCalls", "tris", "texMBEst", "gpuMBEst", "memEstMB"],
+      "additionalProperties": false
+    },
+    "tier.decision": {
+      "type": "object",
+      "properties": {
+        "tier": { "type": "string", "maxLength": 32 },
+        "source": { "type": "string", "maxLength": 32 },
+        "benchP90Ms": { "type": "number" }
+      },
+      "required": ["tier", "source"],
+      "additionalProperties": false
+    },
+    "storage.persist": {
+      "type": "object",
+      "properties": {
+        "granted": { "type": "boolean" }
+      },
+      "required": ["granted"],
+      "additionalProperties": false
+    },
+    "pwa.install": {
+      "type": "object",
+      "properties": {
+        "evt": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["evt"],
+      "additionalProperties": false
+    },
+    "ui.page": {
+      "type": "object",
+      "properties": {
+        "page": { "type": "string", "maxLength": 32 },
+        "ms": { "type": "number" }
+      },
+      "required": ["page", "ms"],
+      "additionalProperties": false
+    }
+  }
+}

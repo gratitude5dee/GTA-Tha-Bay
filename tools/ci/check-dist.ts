@@ -142,6 +142,16 @@ async function checkHeaders(base: string): Promise<void> {
   const account = await get(base, '/account/');
   expect(account.headers.get('cross-origin-embedder-policy') === null, '/account/ has no COEP', `got ${account.headers.get('cross-origin-embedder-policy') ?? ''}`);
   expect(account.headers.get('cross-origin-opener-policy') === null, '/account/ has no COOP', `got ${account.headers.get('cross-origin-opener-policy') ?? ''}`);
+
+  // M00a: Worker responses carry the isolation headers in code, not through _headers.
+  const health = await get(base, '/api/v1/health');
+  expect(health.status === 200, '/api/v1/health status 200', `got ${health.status}`);
+  for (const [name, want] of ISOLATION) {
+    const got = health.headers.get(name);
+    expect(got?.toLowerCase() === want, `/api/v1/health ${name}: ${want}`, `got ${got ?? 'absent'}`);
+  }
+  const rid = health.headers.get('x-request-id') ?? '';
+  expect(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(rid), '/api/v1/health X-Request-Id is a UUIDv7', `got ${rid || 'absent'}`);
 }
 
 // ---------------------------------------------------------------------------------------------
