@@ -68,4 +68,4 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 ## Notes for the Builder
 - Read first: `02-world-bake.md` §7 (table, rules 1–7); `02-world-contracts.md` rule 12; `05-assets.md` §4.1–§4.3; M01d's `asset.json` layout and `assets:seed --check`.
 - Model only architecture at the scale of the §7 roles; use the §7 coordinates and the M02a2 arrival poses; never read or trace photographs (rule 7).
-- Secrets: none. Branch `m02d1-landmarks-kit-and-heroes`.
+- No generative AI anywhere in this milestone: zero fal spend (DL-OWN-01). Secrets: none. Branch `m02d1-landmarks-kit-and-heroes`.

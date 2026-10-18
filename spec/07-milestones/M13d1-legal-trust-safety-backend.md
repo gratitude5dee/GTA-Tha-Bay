@@ -1,15 +1,15 @@
 # M13d1 — legal-trust-safety-backend
 
 ## Goal
-The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown requests, NCMEC report records, evidence objects and our own hash banks. C12 route 42 takes DMCA notices, counter-notices and NCII (TAKE IT DOWN) requests from anywhere, including blocked regions. A facially valid NCII request disables access to its target at intake. The request starts a 48-hour statutory clock that the 5-minute SLA pager watches (page at intake, re-page at 24 h and 36 h, escalate at 40 h), and a copy sweep disables known identical copies. Route 43 serves every queue with role rules. Route 44 records NCMEC cases (CyberTipline web form until API credentials exist) and serves evidence only after an `audit_log` row is written. Route 45 manages hash banks, which M13c2's stage 4 now reads. DMCA removals feed revocations and strikes, three strikes ban publishing, and counter-notices restore on schedule. The `legal-evidence` bucket and its retention locks exist. When these ACs pass on staging, `ugc.publish` may be turned on in production (DL-151).
+The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown, NCMEC, evidence and hash-bank tables. Route 42 takes DMCA notices, counter-notices and NCII requests from anywhere. A valid NCII request disables its target at intake, starts the 48-hour clock watched by a 5-minute SLA pager, and sweeps identical copies. Route 43 serves every queue, route 44 records NCMEC cases and audits each evidence read before streaming, and route 45 manages the hash banks that M13c2's stage 4 reads. DMCA removals feed revocations and strikes; counter-notices restore on schedule. The `legal-evidence` bucket and retention locks exist. When these ACs pass on staging, `ugc.publish` may be turned on in production (DL-151).
 
 ## Requirements
-- R-IP-03: the DMCA agent and takedown flow, the NCII duty, evidence preservation, and a moderation queue for every report category.
-- R-MOD-03: forum and published UGC get the legal and moderation backstop that public visibility needs.
+- R-IP-03: DMCA and NCII flows, evidence preservation, a queue for every report category.
+- R-MOD-03: the legal backstop that public forum and UGC visibility needs.
 
 ## Depends on
 - **M13b1**: report policy and thresholds, forum objects, `P2_REVIEW` cases, migration 00071.
-- Uses through the run order: M06b1/M06b2 (migration 0004 moderation tables, `uploads`, image hashes), M13c2 (`HashBankPort`, revocation entries, publish states), M12a1 (staff JWTs and `staff_roles`), M05b1 (`/_test/run-scheduled`, cron wiring).
+- Uses through the run order: M06b1/M06b2 (0004 tables, `uploads`, image hashes), M13c2 (`HashBankPort`, revocations), M12a1 (staff JWTs), M05b1 (`/_test/run-scheduled`).
 - Contracts: C12 1.1.0 (routes 41–45, 47; `ReportCategory`, `ModSubject`; `09-backend-db.md` §3.4, §4, §7), C16 1.1.0 (server metrics only), C14 1.0.0 (`RevokedRes.reason`).
 
 ## Scope in
@@ -18,37 +18,32 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
   - `ncmec_report` (`preserve_until` generated as `submitted_at + 1 year`), `evidence_object` and `hash_bank_entry`, as [research/gap-trust-safety-tooling.md §6.8];
   - all server-only (RLS on, no policies); ids are UUIDv7 from the Worker.
 - `services/edge/src/legal/intake.ts`: route 42 `POST /legal/dmca`, `/legal/counter-notice`, `/legal/ncii` (pub, worldwide, geo-exempt since M00a; `RL_LEGAL` 5 per 60 s per netHash, except that NCII is never refused below 1 per minute) → 202 `{requestId}`.
-  - Each body carries the statutory elements as fields: identification of the work or image, the target URLs or ids, contact, the good-faith and accuracy statements, and the signature. Missing elements → `bad_request` naming the field. Free-form extras go to `requester jsonb`. Counsel's final wording is M13d2's and Q-23's.
+  - Bodies carry the statutory elements as fields (work or image, target URLs or ids, contact, good-faith and accuracy statements, signature); a missing one → `bad_request` naming it; extras go to `requester jsonb`. Counsel wording: M13d2, Q-23.
   - NCII, if facially valid:
     - target disabled at once: forum post `held`, experience and mod version `unlisted_pending_review`, NPC soul `unpublished_pending_review`, and every public object moved from `ugc-public` to `ugc-quarantine/other/`;
     - `statutory_due_at = received_at + 48 h`;
     - a `P0_NCII` case, a page, and a copy-sweep job.
   - DMCA: a `P1_LEGAL` case (internal target 24 h). Counter-notice: linked to its takedown, it schedules a restore 10–14 business days out (10 used) unless staff record a court-action notice.
-- `services/edge/src/legal/sweep.ts`: the copy sweep. Content keys are SHA-256 addressed (`img/<sha256>.<ext>`, `ugc/published/<sha256>.zip`). The sweep finds every row referencing the target's hashes (forum attachments, mod archives, experience thumbnails, NPC images; PDQ near-duplicates where M06b2 stored PDQ signals), disables each the same way, and writes `copies_found` and `copy_sweep_job`. It runs on the `UGC_SCAN` queue, kind `copy_sweep`.
+- `services/edge/src/legal/sweep.ts` (`UGC_SCAN` kind `copy_sweep`): content keys are SHA-256 addressed, so the sweep finds every row referencing the target's hashes (forum attachments, mod archives, experience thumbnails, NPC images; PDQ near-duplicates where M06b2 stored them), disables each, and writes `copies_found` and `copy_sweep_job`.
 - `services/edge/src/ops/sla-pager.ts`: a cron every 5 minutes.
   - Pages: P0 cases unassigned for more than 15 minutes; NCII at intake, 24 h and 36 h; escalation to `admin` at 40 h; any queue past `sla_due_at`.
   - One page per (case, threshold), recorded in `audit_log` (action `page`) and as an AE point. When `ALERT_WEBHOOK_URL` is set it also posts there (the formal sink arrives with M14b1).
   - No email provider exists in v1. `requester_notified_at` is set when the trust lead records the notice through a case decision whose `user_notice_template` is set, and the NCII pager keeps paging until it is.
 - `services/edge/src/admin/cases.ts`: route 43 for all queues (`P0_CSAM`, `P0_NCII`, `P1_SAFETY`, `P1_LEGAL`, `P2_REVIEW`, `P3_REVIEW`, `APPEAL`).
-  - P0 decisions need `mod:trust_lead`.
-  - An `APPEAL` case cannot be decided by the reviewer of the original decision.
-  - Actions follow the `moderation_decision.action` enum.
-  - `remove` on a takedown target writes a revocation (reason `dmca` for `P1_LEGAL` DMCA cases). A takedown `remove` adds a `strike` to the uploader's `enforcement_action`. A third strike within 12 months adds `publish_ban`.
+  - P0 decisions need `mod:trust_lead`; an `APPEAL` cannot be decided by the original reviewer; actions follow the `moderation_decision.action` enum.
+  - A takedown `remove` writes a revocation (reason `dmca` for DMCA cases) and a `strike`; a third strike within 12 months adds `publish_ban`.
 - `services/edge/src/admin/{ncmec,evidence}.ts`: route 44.
-  - `POST /admin/cases/:id/ncmec` (`mod:trust_lead`) creates an `ncmec_report` (`environment` `test` outside prod; status `draft`). It copies the original and context files to `legal-evidence/ncmec/<reportId>/` with `evidence_object` rows. A later call with `cybertip_report_id` (entered after the CyberTipline web form) sets `submitted`.
-  - `GET /admin/evidence/:id` (`mod:trust_lead`) inserts the `audit_log` row first and streams only after the insert commits. A failed insert → `internal` with no body bytes.
+  - `POST /admin/cases/:id/ncmec` (`mod:trust_lead`) creates an `ncmec_report` (`environment` `test` outside prod, status `draft`) and copies original and context files to `legal-evidence/ncmec/<reportId>/` with `evidence_object` rows; a later call with `cybertip_report_id` (from the CyberTipline web form) sets `submitted`.
+  - `GET /admin/evidence/:id` (`mod:trust_lead`) streams only after its `audit_log` insert commits; a failed insert → `internal`, no bytes.
 - `services/edge/src/admin/{hash-banks,takedowns}.ts`: route 45.
-  - `POST /admin/hash-banks/:bank` takes banks `removed_takedown`, `rejected_real_person`, `roster_press`, `ncii_request` and `hash_type` `sha256`, `pdq` or `md5`. A `remove` decision on NCII or DMCA adds the target's hashes to `ncii_request` or `removed_takedown` automatically.
-  - `GET /admin/takedowns` lists requests with both clocks.
-  - `HashBankPort` (M13c2) now reads `hash_bank_entry`.
+  - `POST /admin/hash-banks/:bank` (banks `removed_takedown`, `rejected_real_person`, `roster_press`, `ncii_request`; `hash_type` `sha256|pdq|md5`); an NCII or DMCA `remove` adds the target's hashes automatically. `GET /admin/takedowns` lists requests with both clocks. M13c2's `HashBankPort` now reads `hash_bank_entry`.
 - Restore cron (daily): counter-notices past their date without a court-action note restore the target (`restored_at`, state back, revocation removed) and record the decision.
-- Buckets: `legal-evidence-<env>` with no public route, plus lock rules. Prefixes `ncmec/` get 400 days and `legal_hold/` is indefinite; on `ugc-quarantine-<env>`, `csam/` gets 400 days and `other/` 90 days. The `EVIDENCE` binding goes in `wrangler.jsonc` and under `previews`. `pnpm deploy:bootstrap` gains idempotent bucket creation and lock rules. The operator runs it before this branch deploys, because a binding to a missing bucket fails the deploy.
+- Buckets: `legal-evidence-<env>` (no public route; locks `ncmec/` 400 days, `legal_hold/` indefinite) and locks on `ugc-quarantine-<env>` (`csam/` 400 days, `other/` 90 days). `EVIDENCE` binding in `wrangler.jsonc` and `previews`. `pnpm deploy:bootstrap` creates buckets and locks idempotently; the operator runs it before this branch deploys (a binding to a missing bucket fails the deploy).
 
 ## Scope out
 - Legal forms and pages → M13d2 (counsel text, Q-23).
 - PhotoDNA, the HMA container and the CyberTipline API: wait for Q-16 approvals (`PHOTODNA_KEY`, `NCMEC_API_CREDENTIALS`). Until then the defaults are own banks with SHA-256 (PDQ where present) and the web form.
-- Email to requesters: no provider in v1; listed for the Architect.
-- Appeal filing by creators: C12 1.1 has no appeal route. Cases enter `APPEAL` by staff action only, and a route is listed as a proposal.
+- Requester email (no provider in v1) and a creator appeal-filing route (none in C12 1.1; staff open `APPEAL` cases): listed for the Architect.
 - Alert sink route 56, guardrails, and the formal pager wiring → M14b1.
 
 ## Deliverables
@@ -79,29 +74,25 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 - AC-12 Given this branch merged to `main` When `deploy.yml` deploys staging Then smoke passes and `POST /api/v1/legal/dmca` with an empty body answers `bad_request` (not `feature_disabled`) — proof: manual: desktop browser and terminal, `curl -X POST <staging-url>/api/v1/legal/dmca -d '{}'`; then `pnpm check:smoke -- <staging-url>`
 
 ## Test plan
-- DB: `legal_server_only.sql`; `pnpm check:db`, `pnpm check:db:types`.
-- Workers: `legal-intake`, `ncii-clock`, `copy-sweep`, `dmca-flow`, `evidence-audit`, `ncmec-record`, `hash-banks`, `cases-queues`, `report-threshold` (mocked clock, R2 stubs with ordered-call recording, InMemoryDataPort); `pnpm check:workers -- legal-intake` and the other suite names above.
-- Static: `pnpm check:prod-routes`, `pnpm check:secrets`.
-- Operator and deploy: AC-11 and AC-12.
+- DB: `legal_server_only.sql` (`pnpm check:db`, `pnpm check:db:types`). Workers: the nine suites named in the ACs (mocked clock, R2 stubs that record call order, InMemoryDataPort). Static: `pnpm check:prod-routes`, `pnpm check:secrets`. Operator and deploy: AC-11, AC-12.
 
 ## Demo script
-1. `pnpm dev`; post an NCII request for a seeded forum image; see the post vanish and a `P0_NCII` case appear.
-2. Call `/api/v1/_test/run-scheduled` with the clock advanced 24 h; read the page in `audit_log`.
-3. As trust lead, record the requester notice; advance to 40 h; no further page.
-4. File a DMCA notice for a seeded mod; decide `remove`; route 53 lists it.
-5. Fetch an evidence object as trust lead; read the audit row written first.
-6. After the ACs pass on staging and Q-16's DMCA agent designation exists, an admin may set `ugc.publish` through route 47 in production. Record that step in `spec/11-decision-log.md`.
+1. `pnpm dev`; post an NCII request for a seeded forum image; the post vanishes and a `P0_NCII` case appears.
+2. Advance the clock 24 h and call `/api/v1/_test/run-scheduled`; read the page in `audit_log`. Record the requester notice; at 40 h no further page.
+3. File a DMCA notice for a seeded mod; decide `remove`; route 53 lists it.
+4. Fetch an evidence object as trust lead; the audit row is written first.
+5. After the ACs pass on staging and Q-16's DMCA agent designation exists, an admin may set `ugc.publish` through route 47 in production; record it in `spec/11-decision-log.md`.
 
 ## Effort
-1 session; ≈ 36 files; risk **high**. Statutory clocks, ordering guarantees (audit before stream) and the many disable paths must all be exact.
+1 session; ≈ 36 files; risk **high**: statutory clocks, audit-before-stream ordering and many disable paths.
 
 ## Risks & fallbacks
 - **Bucket-lock command**: lock rules are a documented R2 feature [research/gap-trust-safety-tooling.md Verified facts], but the wrangler subcommand is not in the ledger. If the pinned wrangler lacks it, `bootstrap` prints the exact rule set and stops with `MANUAL:`. The operator applies the rules, and the Builder records how.
 - **Migration order**: `0008` must sort after `00071`/`00072`. If the staging dry run lists anything other than `0008_legal.sql` as pending, stop before merge and report (see M13b1).
 - **PDQ hashes absent**: the sweep uses SHA-256 only, `copies_found` counts exact copies, and a Builder note lists near-duplicate coverage as pending Q-16 (HMA).
-- **Cron drift on Workers** (5-minute granularity): thresholds are computed from stored timestamps, never from cron counts, so a late tick pages late but exactly once.
+- **Cron drift**: thresholds come from stored timestamps, never cron counts, so a late tick pages late but once.
 
 ## Notes for the Builder
-- Read first: `09-backend.md` §3.4; `09-backend-db.md` §3.4, §4, §7; `09-backend-ops.md` §3.1 (`legal` class), §4 (T&S alerts); [research/gap-trust-safety-tooling.md §6.5–§6.8]; `12-modding-publish.md` C§3.4; `spec/05-api-and-realtime.md` §3 rows 41–45; F-066 (48 h rule).
+- Read first: `09-backend.md` §3.4; `09-backend-db.md` §3.4, §4, §7; `09-backend-ops.md` §3.1, §4; [research/gap-trust-safety-tooling.md §6.5–§6.8]; `12-modding-publish.md` C§3.4; `spec/05-api-and-realtime.md` §3 rows 41–45; F-066.
 - Remove first, review after, for NCII. Never forward a CSAM item to another vendor. Never log request bodies.
 - Branch `m13d1-legal-trust-safety-backend`.

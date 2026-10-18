@@ -82,4 +82,4 @@ After this session the game streams a whole baked city instead of the four-chunk
 - Read first: `02-world.md` §3, §5; `02-world-contracts.md` §1, §4; `02-world-maps.md` §4.3; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5.
 - Assert counts and cadence, never SwiftShader frame times (08 §1 rule 3).
 - Keep `packages/world/src/sim/**` free of `three` and DOM; the mesher lives in `src/client/chunks/` but imports nothing from `three` so it can run in the worker.
-- Secrets: none. Branch `m02b1-streaming-lod`.
+- Secrets: none. AC-11 needs the desktop reference device (Q-13) and the operator's `sf` bake (M02a1 AC-9); without them the AC stays open and the report says "Blocked on: Q-13". Branch `m02b1-streaming-lod`.

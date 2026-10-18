@@ -27,9 +27,9 @@ After this session missions are data. `packages/shared` holds the complete C09 m
 - Hooks (§C8): real path calls `startChild`; stub path when the descriptor is missing or `comingSoon`, `startChild` returns false, the opponent is killed with scope `fighter`, or `?hooks=stub`; the stub path emits `unlockOnFirstEncounter` with `{kind: 'mission', ref: '<missionId>:<hookId>'}`.
 - Beats in this milestone: `beat` with a `director` ref holds one fixed shot (C04 `CameraDirective` `cinematic`) for the script's `durationSec` and applies end marks; `?beats=instant` completes in one tick; the full director and `cut.request` arrive in M05a2 and M05b2.
 - `talk` objective: offers its outcomes through `mode.story.talk`; under `?talk=scripted` (and in Node) it applies `TalkDef.default` with `path: 'scripted'`; results enter as `StoryCommand` `talk.result` and are recorded.
-- Story mode (`src/mode.ts`): C06 descriptor `story` (`unlock: null`, `tile.order: 1`, `saveSlot: 'story:auto'`), `GameModeSim` hosting one `MissionRuntime`, `GameModeUI` mounting the debug overlay in QA builds.
+- Story mode (`src/mode.ts`): replaces the sim of M04a2's built-in `story` descriptor (`unlock: null`, order 1, `saveSlot: 'story:auto'`) with a `GameModeSim` that keeps M04a2's free roam when no mission is active and hosts one `MissionRuntime`; `GameModeUI` mounts the debug overlay in QA builds.
 - Debug (`src/debug/`, QA only): URL flags `?mission`, `?stage`, `?seed`, `?hooks`, `?talk`, `?beats` through the S11 `QaFlags` parser; overlay (threads with op path and wait reason, objectives with live predicate values, cast, flags, clock, last 50 events; pause, step tick, skip stage, force pass/fail); `window.__dvBridge.mission` = `{state(), step(ticks), jump(stage), events(since), predicate(path)}`.
-- Engine services: if M04a2 left `SimScheduler` or `ZoneService` as stubs, implement them in `packages/engine/src/sim/script/` (threads in `threadId` order, 100 m spatial hash, callbacks in ascending handle order).
+- Engine services replacing M04a2's `NotYetAvailable` stubs for `scheduler`, `zones` and `timeline` (`packages/engine/src/sim/script/`): `SimScheduler` (threads in `threadId` order, `opsBudgetPerTick` 2000), `ZoneService` (100 m spatial hash, callbacks in ascending handle order), `TimelineRecorder` (`emit`, entity tracks every 2 ticks, `external`; in-memory buffer; the `.dvtl` export format lands in M05a2).
 - Content: `content/missions/m.dev.sample/{mission.ts, lines.en.json}` in the gray-box fixture (`tests/fixtures/world/civic-graybox`): act 0, every objective kind except `escape` and `defeat` (Act 1 covers those, `03-story-narrative.md` §B4), including `collect`, `wait`, a `talk` with two outcomes and a `mode` hook to `racing` whose stub is `wait 5`.
 
 ## Scope out
@@ -41,7 +41,7 @@ After this session missions are data. `packages/shared` holds the complete C09 m
 - `packages/modes/story/{package.json, tsconfig.json, README.md}`; `src/{index.ts, mode.ts}`; `src/authoring/{index.ts, helpers.ts}`; `src/compiler/{index.ts, validate.ts, lint.ts, resolve.ts}`; `src/vm/{runtime.ts, ops.ts, predicates.ts, objectives.ts, tasks.ts, checkpoint.ts, hooks.ts}`; `src/debug/{overlay.tsx, bridge.ts}`.
 - `packages/modes/story/test/{compiler.test.ts, vm-ops.test.ts, predicates.test.ts, checkpoint.test.ts, hooks.test.ts, resolve.test.ts}`, `test/fixtures/bad/*.ts` (one per error code).
 - `tools/ci/missions/build.ts`, root script `missions:build`; `content/missions/m.dev.sample/*`; generated `assets/src/data/{mission.m.dev.sample, story.index, lines.0.en}/*` and lock entries.
-- `packages/engine/src/sim/script/{scheduler.ts, zones.ts}` only if M04a2 did not ship them.
+- `packages/engine/src/sim/script/{scheduler.ts, zones.ts, timeline.ts}`, `packages/engine/test/script.test.ts`, `ModeContext` binding in `packages/engine/src/sim/modes/context.ts`.
 - `tests/e2e/mission-debug.spec.ts` (tag `@mission-debug`).
 
 ## Interfaces
@@ -73,7 +73,7 @@ After this session missions are data. `packages/shared` holds the complete C09 m
 4. Console: `__dvBridge.mission.jump(5)`, then force fail and retry from the overlay.
 
 ## Effort
-1 session; ≈ 38 files; risk medium (VM size; C08 snap inside the load budget, U-S03-8, resolved behind a fade by design).
+1 session; ≈ 40 files; risk medium (VM size; C08 snap inside the load budget, U-S03-8, resolved behind a fade by design).
 
 ## Risks & fallbacks
 - File budget: move the debug overlay to M05a2 and keep `__dvBridge.mission` here; AC-10 then asserts the bridge only. Say so in the report.

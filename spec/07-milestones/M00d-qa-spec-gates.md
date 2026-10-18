@@ -11,14 +11,14 @@ After this half-session the specification polices itself in CI. A C15 lint parse
 - **M00:** `tools/ci/run.ts` (`args()`), `ci.yml`, `preview.yml`, `tools/ci/deploy.ts`, vitest workspace with `tools/ci/test/`.
 - **M01c:** `perf:verify`, `perf:checklist`, `tools/ci/schemas/perf-report.v1.json`, `tools/ci/fixtures/perf/{ok,over}.json`, checklists `tools/ci/checklists/M01c-*.json`.
 - Present from block A (it runs first, `_PLAN.md` §1): M00b's `nightly.yml` (cron `17 10 * * *`) and `ip` job. If `nightly.yml` is missing, create it with the M00b steps first.
-- Contracts: C15 1.0 (`prompt-pack/03-SPEC-TEMPLATE.md` §C; 06 v1.1 §4.2). The C15 1.1 shapes in `spec/domains/13-qa.md` §4 are a **proposal** (13-qa calls it "proposed"); this milestone implements them as the lint's internal model only, because every rule is additive and accepts every 1.0 file. C13 1.1 (`PerfReport`, `DeviceChecklist`) is used unchanged.
+- Contracts: C15 1.1 as accepted by the Architect in DL-214 (`spec/domains/13-qa.md` §4; additive over the 1.0 format of `prompt-pack/03-SPEC-TEMPLATE.md` §C, which the 06 v1.1 §4.2 index still lists as 1.0). This milestone delivers the accepted shapes; it changes nothing in them. C13 1.1 (`PerfReport`, `DeviceChecklist`) is used unchanged.
 
 ## Scope in
-- **`packages/shared/src/contracts/c15-milestone.ts`:** the TypeScript of `13-qa.md` §4.1 (`MILESTONE_ID_RE`, `MILESTONE_HEADINGS`, `OracleKind`, `Evidence`, `CommandProof`, `ManualProof`, `AcceptanceCriterion`, `MilestoneDoc`) with one deliberate difference: `export const C15_VERSION = '1.0.0'` and a comment `// 1.1.0 proposed in spec/domains/13-qa.md §4; the Architect bumps this constant when 06 accepts it`. Pure, no IO, under the C02 lint.
+- **`packages/shared/src/contracts/c15-milestone.ts`:** the TypeScript of `13-qa.md` §4.1 (`MILESTONE_ID_RE`, `MILESTONE_HEADINGS`, `OracleKind`, `Evidence`, `CommandProof`, `ManualProof`, `AcceptanceCriterion`, `MilestoneDoc`) verbatim, including `C15_VERSION = '1.1.0'` (DL-214). Pure, no IO, under the C02 lint.
 - **`tools/ci/milestone-lint.ts`:** parser plus rules L1–L8 of `13-qa.md` §4.3 and the inference table of §4.2.
   - The status of each file comes from the table in `spec/07-milestones/README.md`. Files whose status is READY, IN PROGRESS, DONE or frozen are **enforced** (any L1–L7 error fails). PENDING files are **reported** (errors become warnings with the rule id), because other authors are still writing them. L7's "files > 35" and L8 are warnings for every file.
   - L5 registry = every script name in `spec/08-test-and-ci.md` §6 (parsed from the backticks of its table) ∪ the 06 §5 script list ∪ every script a milestone **at or before this file in `_PLAN.md` §1 order** declares in its `## Deliverables` (bold names, `Root scripts` lines and `pnpm --filter <pkg> <script>` package scripts). Arguments after the script name are not checked.
-  - L6 reads contract versions from the 06 §4.2 table; a version that differs is accepted only when the same line says "proposed".
+  - L6 reads contract versions from the 06 §4.2 table plus the accepted bumps recorded in the decision log (today only C15 1.1, DL-214, kept as a constant `ACCEPTED_BUMPS` until the 06 index row changes); any other differing version is accepted only when the same line says "proposed".
   - Output: `tests/reports/milestones.json` (`{file, status, enforced, errors[], warnings[]}` per file) and one line per finding `<file>:<line> <rule> <message>`.
 - **`tools/ci/trace.ts`** (`13-qa.md` §2.6): parses `## Requirements` and AC proofs of every milestone file plus the `**R**` fields of `_PLAN-1/2/3.md`, joins the 06 §2 R-ID list, and writes `tests/reports/trace.json` and `trace.md` (`| R-ID | spec sections | milestones | tests (names) | status |`, 03-SPEC-TEMPLATE §G). Status per row: `covered` (a READY or later milestone proves it with an automatable oracle), `planned` (only `_PLAN` rows or PENDING files), `device-only`, `empty`. With `--strict` (used by `release.yml` in M14b3) any `empty` row, or a `device-only` row whose domain §9 names an automatable test, fails; without it the report is written and pending rows are marked, never failed.
 - **`tools/ci/spec-files.ts`** (`13-qa.md` §3.8): checks the 03-SPEC-TEMPLATE §A files exist, every `spec/**/*.md` is ≤ 6,000 words, every `spec/99` U-row names a default and a verifying milestone present in `_PLAN.md`, and the kickoff `<milestones>` list matches `_PLAN.md` §1. It writes `tests/reports/spec-files.json`; it fails only with `--strict` (M14b3), because the Wave 5 integration files are still landing.
@@ -47,7 +47,7 @@ After this half-session the specification polices itself in CI. A C15 lint parse
 - ≈ 17 code files; fixtures and workflow edits are data.
 
 ## Interfaces
-- C15 1.0 unchanged; `c15-milestone.ts` carries the 13-qa §4.1 model with `C15_VERSION = '1.0.0'` (proposal noted). No other contract change.
+- C15 1.1 (DL-214) delivered verbatim in `c15-milestone.ts`; no shape change. No other contract change.
 - New tooling APIs (not contracts): `lintMilestones(dir, opts)`, `buildTrace(opts)`, `checkSpecFiles(opts)`, `guard(paths, labels)`.
 
 ## Acceptance criteria

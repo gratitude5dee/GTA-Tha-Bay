@@ -76,7 +76,7 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 - AC-8 Given a `DV_WORLD=synth` QA build When `/qa/world-hash.html` runs both scenarios Then Chromium and WebKit report hashes equal to both Node goldens — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-hash && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash`
 - AC-9 Given `downtown-rush` with peds on When the CPU-side perf run executes on each flat tier Then ped and traffic instance totals, near-LOD skinned counts and render objects stay within C13 `CrowdLimits` and the tier rows — proof: `DV_WORLD=synth pnpm check:perf -- --scenario downtown-rush --fail`
 - AC-10 Given the shipped strings When the IP gates run Then no real transit brand appears in `content/world`, `config/world` or UI catalogs, and every new mesh or texture has a provenance record — proof: `pnpm names:lint && pnpm ip:strings && pnpm provenance:check`
-- AC-11 Given the branch When the build, dist verifier and preview deploy run Then they pass and the deployed app shows pedestrians and transit — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-11 Given the branch When the build, dist verifier and preview deploy run Then they pass, no `qa/world-hash` page ships, the gray-box boot still works, and the Preview passes its header checks — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- packages/world`): `world/ped.crossing`, `ped.fsm`, `ped.avoidance` (with the XR head fixture), `density.prefix`, `transit.counts`, `transit.fares`, `peds.determinism`; M03b1's traffic tests stay green.

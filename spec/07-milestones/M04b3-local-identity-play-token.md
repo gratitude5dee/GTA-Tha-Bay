@@ -23,7 +23,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 - `PlayTokenClient` (`packages/identity/src/play-token-client.ts`): `authHeader()` returns `null` unless `ageBracket === '18p'` and `BootConfig.region === 'ok'` (when a boot config was obtained); signs `"pt-req|" + pid + "|" + ts` (ECDSA P-256 SHA-256, raw r‖s, base64url), POSTs `PlayTokenReq`, caches the token in memory until `exp − 5 min`; any non-2xx or network error returns `null` and blocks retries for 60 s. Every genAI-backed caller treats `null` as "use the offline path" (C12 §2.2 client rule).
 - Route 5 (`services/edge/src/id/playtoken.ts`, `mint` and `verify` only): Ajv body check; `|now − ts| ≤ 120 s`; signature verified with WebCrypto against the posted JWK; `age !== '18p'` → `403 age_blocked`; claims `{v:1, pid, dkt, age:'18p', iat, exp: iat + 86,400,000, kid}`; `tok = "pt1." + b64url(claims) + "." + b64url(HMAC-SHA256)`; player route, so geo-gated (451 outside `GEO_ALLOW`). Secret format (Builder decision, logged): `PLAY_TOKEN_HMAC = "<kid>:<base64url 32 bytes>"`, optional `PLAY_TOKEN_HMAC_PREV` for verification only.
 - `packages/net`: `package.json` (`@dv/net`, imports only `@dv/shared`), `src/cloud-sync.ts` with the internal port `CloudSync { readonly kind: 'null' | 'http'; status(): 'off' | 'idle' | 'syncing' | 'error'; syncNow(): Promise<{ pushed: number; pulled: number }>; onStatus(cb): () => void }` and `NullCloudSync` (status `off`, never fetches). Not a contract; M12a1 adds `HttpCloudSync`.
-- Wiring: the shell constructs one `LocalIdentity` at boot (before the title screen, never blocking it) and passes it to the M04b1 age gate and profile chip, replacing any M04b1 placeholder; a bracket M04b1 stored elsewhere is migrated into `dv-identity` once. QA builds expose `window.__dvBridge.identity` = `{ state(), authHeader() }`.
+- Wiring: the shell constructs one `LocalIdentity` at boot (before the title screen, never blocking it) and rebinds M04b1's `AgeAttestationPort` to `IdentityService.attestAge` and feeds the profile chip; a bracket M04b1 stored in `UiPrefs.age` is migrated into `dv-identity` once and then read only from there. QA builds expose `window.__dvBridge.identity` = `{ state(), authHeader() }`.
 
 ## Scope out
 - TOFU key binding, `/me` export and forget server side, per-net 50/day token cap (`PlayerQuotaDO`): M06a1.
@@ -76,7 +76,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 ## Risks & fallbacks
 - `fake-indexeddb` cannot store a `CryptoKey` (structured clone in Node): keep the key in a `Map` behind the same `store.ts` interface for Node tests only, and prove persistence of the real key in the `@offline` e2e by reading `__dvBridge.identity.state()` across a reload. Log a Builder decision.
 - WebCrypto `sign` output format differs between engines: the client always converts to raw r‖s (64 bytes) before base64url and the Worker verifies raw; the unit test covers a DER-shaped input and rejects it.
-- M04b1 left no placeholder identity: wire `LocalIdentity` directly where the age gate commits its answer; note it in the report.
+- M04b1's `AgeAttestationPort` has a different shape than expected: adapt at the port boundary in `apps/web/src/identity.ts`, never in `IdentityService`; note it in the report.
 
 ## Notes for the Builder
 - Read first: `09-backend-contracts.md` §2.2–§2.5, `09-backend-contracts-1.1.md` §2, `09-backend.md` §2.4 and §3.5, `spec/05-api-and-realtime.md` §2–§3 (route 5, P0 proof), `10-ui-pages.md` §2 (age gate outcome).

@@ -77,18 +77,13 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 - AC-11 Given this branch's PR When the Preview deploys Then smoke passes and `POST /api/v1/id/device-code` returns a `DeviceCodeRes` — proof: manual: desktop browser and terminal, `curl -X POST <preview-url>/api/v1/id/device-code`; then `pnpm check:smoke -- <preview-url>`
 
 ## Test plan
-- DB: `server_only.sql` (device codes); `pnpm check:db`, `pnpm check:db:types`.
-- Workers: `device-code`, `device-code-approve`, `openai-link` (mocked clock, InMemoryDataPort, fake OIDC provider, KV stub); `pnpm check:workers -- device-code`, `pnpm check:workers -- openai-link`.
-- E2E: `@link` on `chromium-webgl2` (API through Playwright route fixtures for the approve call; isolation asserted on the page).
-- Static: `pnpm check:prod-routes`, `pnpm check:secrets -- apps/web/dist`.
-- Operator: provider-ladder spike (AC-10).
+- DB `server_only.sql`; Workers `device-code`, `device-code-approve`, `openai-link` (mocked clock, InMemoryDataPort, fake OIDC provider, KV stub); E2E `@link` with route fixtures; static `pnpm check:prod-routes`, `pnpm check:secrets -- apps/web/dist`; operator spike (AC-10).
 
 ## Demo script
-1. `pnpm dev`; `curl -X POST localhost:8788/api/v1/id/device-code`; note `user_code`.
-2. Poll `/api/v1/id/device-token` with the `device_code`; read `authorization_pending`.
-3. In the game with a QA `linked` profile, open Profile › Approve a device code, enter the code, Approve.
-4. Poll again; receive the token; decode it and read `aud` and `scp`.
-5. Repeat with a `device` profile; the page explains linking instead.
+1. `pnpm dev`; `curl -X POST localhost:8788/api/v1/id/device-code`; poll `/api/v1/id/device-token`: `authorization_pending`.
+2. With a QA `linked` profile, Profile › Approve a device code; enter the code.
+3. Poll again; decode the token's `aud` and `scp`.
+4. With a `device` profile the page explains linking instead.
 
 ## Effort
 0.8 session; ≈ 24 files; risk **medium**. RFC 8628 timing rules and the token typing workaround need care.
