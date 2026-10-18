@@ -1,0 +1,98 @@
+{
+  "schema": "vendor-terms-index/1",
+  "entries": [
+    {
+      "id": "fal-tos",
+      "title": "fal Terms of Service",
+      "url": "https://fal.ai/legal/terms-of-service",
+      "path": "docs/legal/vendor-terms/fal-tos-2026-10-18.md",
+      "sha256": "b542ea7944493318cd88f40a5be9b666f1401f68cc08ee945d3ab9b5a4434b53",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "fal-aup",
+      "title": "fal Acceptable Use Policy",
+      "url": "https://fal.ai/legal/acceptable-use-policy",
+      "path": "docs/legal/vendor-terms/fal-aup-2026-10-18.md",
+      "sha256": "a9869fc7cd6f91985966d89bed83c1e38f90482e7f11e9657a8a5253328bb2ef",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "fal-api-services",
+      "title": "fal API Services Terms",
+      "url": "https://fal.ai/legal/api-services",
+      "path": "docs/legal/vendor-terms/fal-api-services-2026-10-18.md",
+      "sha256": "c2f9534e2775b16aed9bf12d5c87a76b582a56fd669cbc4f590e12de44a69308",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "minimax-h3-license",
+      "title": "MiniMax H3 Community License",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/raw/main/LICENSE",
+      "path": "docs/legal/vendor-terms/minimax-h3-license-2026-10-18.md",
+      "sha256": "b1b1e5202d5bfbb1796fbfcd6b423780ef103a8679e81dfd9a0513f308732c11",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "minimax-h3-qa",
+      "title": "MiniMax H3 licence Q&A",
+      "url": null,
+      "path": "docs/legal/vendor-terms/minimax-h3-qa-2026-10-18.md",
+      "sha256": null,
+      "checked_at": "2026-10-18",
+      "status": "pending-manual",
+      "note": "no URL in the research; save the text by hand"
+    },
+    {
+      "id": "minimax-platform-tos",
+      "title": "MiniMax Open Platform Terms of Service",
+      "url": "https://platform.minimax.io/protocol/terms-of-service",
+      "path": "docs/legal/vendor-terms/minimax-platform-tos-2026-10-18.md",
+      "sha256": null,
+      "checked_at": "2026-10-18",
+      "status": "pending-manual",
+      "note": "page returned 0 characters of text (renders only with JavaScript?); save the text by hand"
+    },
+    {
+      "id": "gemini-api-terms",
+      "title": "Gemini API Additional Terms of Service",
+      "url": "https://ai.google.dev/gemini-api/terms",
+      "path": "docs/legal/vendor-terms/gemini-api-terms-2026-10-18.md",
+      "sha256": "6c3fdedae1f4afc6b63025b504bde1f6362637d9d4c078849e6f52786b480dd2",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "ltx-license",
+      "title": "LTX-2 licence (LICENSE-2_x)",
+      "url": "https://raw.githubusercontent.com/Lightricks/LTX-2/main/LICENSE-2_x",
+      "path": "docs/legal/vendor-terms/ltx-license-2026-10-18.md",
+      "sha256": "6325b6843cea5d83fc291d95c31f72662cd7d60bcac04b73fdcc13fe2bfdc3cc",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "elevenlabs-music",
+      "title": "ElevenLabs Eleven Music model-specific terms",
+      "url": "https://elevenlabs.io/eleven-music-model-specific-terms",
+      "path": "docs/legal/vendor-terms/elevenlabs-music-2026-10-18.md",
+      "sha256": "d9ed545b71dc4ebaf22d045a5ca84b0fe0aeb43aa575f5e469122b31f7ad934d",
+      "checked_at": "2026-10-18",
+      "status": "fetched"
+    },
+    {
+      "id": "openai-usage-policies",
+      "title": "OpenAI usage policies",
+      "url": "https://openai.com/policies/usage-policies/",
+      "path": "docs/legal/vendor-terms/openai-usage-policies-2026-10-18.md",
+      "sha256": null,
+      "checked_at": "2026-10-18",
+      "status": "pending-manual",
+      "note": "fetch failed: HTTP 403; curl exit 22; save the text by hand"
+    }
+  ]
+}

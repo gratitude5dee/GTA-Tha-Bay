@@ -1,0 +1,36 @@
+{
+  "schema": "license-allowlist/1",
+  "record": [
+    "LicenseRef-DeeVerse-Owned",
+    "CC0-1.0",
+    "CC-BY-4.0",
+    "OFL-1.1",
+    "MIT",
+    "Apache-2.0",
+    "ODbL-1.0",
+    "PDDL-1.0",
+    "LicenseRef-Vendor-*"
+  ],
+  "dependency": {
+    "prod": [
+      "MIT",
+      "Apache-2.0",
+      "ISC",
+      "BSD-2-Clause",
+      "BSD-3-Clause",
+      "0BSD",
+      "CC0-1.0"
+    ],
+    "devOnly": [
+      "MPL-2.0"
+    ]
+  },
+  "exceptions": [
+    {
+      "package": "bitecs",
+      "license": "MPL-2.0",
+      "scope": "prod",
+      "reason": "used unmodified, file-level copyleft"
+    }
+  ]
+}

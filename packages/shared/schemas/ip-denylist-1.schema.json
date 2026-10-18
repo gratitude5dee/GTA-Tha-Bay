@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ip-denylist-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "terms",
+    "words",
+    "patterns",
+    "nameRegex",
+    "extensions",
+    "wasmNameNeedles",
+    "faceDetectorTerms",
+    "datHeaderTerms",
+    "exceptions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ip-denylist/1"
+    },
+    "terms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "words": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "regex",
+          "flags"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "regex": {
+            "type": "string"
+          },
+          "flags": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "nameRegex": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regex",
+        "flags"
+      ],
+      "properties": {
+        "regex": {
+          "type": "string"
+        },
+        "flags": {
+          "type": "string"
+        }
+      }
+    },
+    "extensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\.[a-z0-9]+$"
+      }
+    },
+    "wasmNameNeedles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "faceDetectorTerms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "datHeaderTerms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "match",
+          "reason"
+        ],
+        "properties": {
+          "match": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

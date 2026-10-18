@@ -1,0 +1,40 @@
+name: nightly
+
+# Nightly checks that must not block pull requests (M00b):
+#  - genai:liveness: every fal endpoint in config/genai-endpoints.json against fal's public registry, no key.
+#    A failure here is an issue to read, not a PR failure.
+#  - legal:snapshot --verify: stored vendor-terms hashes against docs/legal/vendor-terms/index.json (offline).
+#  - ScanCode Toolkit and `reuse lint`: reported only, and only when installed (their versions are not in the ledger).
+
+on:
+  schedule:
+    - cron: '17 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Actions are pinned by commit SHA, same pins as ci.yml.
+jobs:
+  nightly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Endpoint liveness
+        run: pnpm genai:liveness
+      - name: Vendor-terms hashes
+        run: pnpm legal:snapshot -- --verify
+      - name: Optional licence reports (report only)
+        continue-on-error: true
+        run: |
+          if command -v scancode >/dev/null 2>&1; then scancode --license --copyright --json-pp scancode-report.json .; else echo "scancode not installed: skipped"; fi
+          if command -v reuse >/dev/null 2>&1; then reuse lint || true; else echo "reuse not installed: skipped"; fi

@@ -1,0 +1,440 @@
+{
+  "schema": "genai-endpoints/1",
+  "checkedAt": "2026-10-18",
+  "endpoints": {
+    "openai/gpt-image-2.5/sunburst/edit": {
+      "id": "openai/gpt-image-2.5/sunburst/edit",
+      "vendor": "fal",
+      "role": "sheet",
+      "status": "active",
+      "price": {
+        "usd": 0.05529,
+        "per": "image",
+        "checkedAt": "2026-10-18",
+        "note": "2560x1440 high [F-044]; also the keyframe endpoint at 1920x1080 ($0.0396)"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "google/nano-banana-2.1/edit": {
+      "id": "google/nano-banana-2.1/edit",
+      "vendor": "fal",
+      "role": "sheet_lean",
+      "status": "active",
+      "price": {
+        "usd": 0.063,
+        "per": "image",
+        "checkedAt": "2026-10-18",
+        "note": "2K"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "meshy/v7.1/multi-image-to-3d": {
+      "id": "meshy/v7.1/multi-image-to-3d",
+      "vendor": "fal",
+      "role": "mesh",
+      "status": "active",
+      "price": {
+        "usd": 1.2,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "textured [F-045]"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d": {
+      "id": "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+      "vendor": "fal",
+      "role": "mesh_alt",
+      "status": "active",
+      "price": {
+        "usd": 0.375,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "base; +$0.15 per PBR, multi-view or custom face count option"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/meshy/rigging/multi-animation": {
+      "id": "fal-ai/meshy/rigging/multi-animation",
+      "vendor": "fal",
+      "role": "rig",
+      "status": "active",
+      "price": {
+        "usd": 0.2,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "plus $0.12 per animation clip [F-045]"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/minimax/speech-2.8-turbo": {
+      "id": "fal-ai/minimax/speech-2.8-turbo",
+      "vendor": "fal",
+      "role": "tts_draft",
+      "status": "active",
+      "price": {
+        "usd": 0.06,
+        "per": "1k_chars",
+        "checkedAt": "2026-10-18",
+        "note": "[F-046]"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/minimax/speech-2.8-hd": {
+      "id": "fal-ai/minimax/speech-2.8-hd",
+      "vendor": "fal",
+      "role": "tts_final",
+      "status": "active",
+      "price": {
+        "usd": 0.1,
+        "per": "1k_chars",
+        "checkedAt": "2026-10-18",
+        "note": "[F-046]"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/minimax/voice-design": {
+      "id": "fal-ai/minimax/voice-design",
+      "vendor": "fal",
+      "role": "voice_design",
+      "status": "active",
+      "price": {
+        "usd": 3.0,
+        "per": "voice",
+        "checkedAt": "2026-10-18"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "fal-ai/minimax/voice-clone": {
+      "id": "fal-ai/minimax/voice-clone",
+      "vendor": "fal",
+      "role": "voice_clone",
+      "status": "active",
+      "price": {
+        "usd": 1.5,
+        "per": "voice",
+        "checkedAt": "2026-10-18"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
+    "elevenlabs/tts/eleven-v4": {
+      "id": "elevenlabs/tts/eleven-v4",
+      "vendor": "fal",
+      "role": "tts_hero",
+      "status": "pending",
+      "price": {
+        "usd": 0.08,
+        "per": "1k_chars",
+        "checkedAt": "2026-10-18",
+        "note": "pending until hero voices are confirmed (Q-12)"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/elevenlabs-music-2026-10-18.md"
+    },
+    "claude-haiku-5-5": {
+      "id": "claude-haiku-5-5",
+      "vendor": "anthropic",
+      "role": "vision_qa",
+      "status": "active",
+      "price": {
+        "usd": 0.1,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "USD per MTok input; $0.50 per MTok output [F-034]"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "none"
+    }
+  },
+  "videoProviders": {
+    "h3.partner": {
+      "key": "h3.partner",
+      "endpoints": {
+        "i2v": "minimax/h3/image-to-video",
+        "ref2v": "minimax/h3/reference-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "pending",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.0,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "h3.maxTurbo": {
+      "key": "h3.maxTurbo",
+      "endpoints": {
+        "i2v": "minimax/h3-max-turbo/image-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "blocked",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.04,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "h3.max": {
+      "key": "h3.max",
+      "endpoints": {
+        "i2v": "minimax/h3-max/image-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "blocked",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.0,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "ltx25.fast": {
+      "key": "ltx25.fast",
+      "endpoints": {
+        "i2v": "lightricks/ltx-2.5/image-to-video/fast"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "pending",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.0,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "gemini.omniFlash11": {
+      "key": "gemini.omniFlash11",
+      "endpoints": {
+        "ref2v": "google/gemini-omni-flash/v1.1/reference-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "pending",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "forbidden",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.0,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    }
+  },
+  "banned": [
+    {
+      "id": "minimax/h3-max/recast",
+      "match": "exact",
+      "reason": "recast edits a person in existing footage"
+    },
+    {
+      "id": "face-swap",
+      "match": "prefix",
+      "reason": "any endpoint with face-swap in its id, matched anywhere in the id"
+    },
+    {
+      "id": "bytedance/seedance-2.5/image-to-video",
+      "match": "exact",
+      "reason": "not licence-cleared for this product"
+    },
+    {
+      "id": "fal-ai/veo3",
+      "match": "prefix",
+      "reason": "deprecated"
+    }
+  ],
+  "defaults": {
+    "videoProvider": "h3.partner",
+    "videoFallbackOrder": [
+      "ltx25.fast",
+      "gemini.omniFlash11"
+    ]
+  }
+}

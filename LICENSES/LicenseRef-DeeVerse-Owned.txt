@@ -1,0 +1,10 @@
+Dee-Verse owned material (placeholder licence text)
+
+Copyright 2026 Dee-Verse contributors. All rights reserved.
+
+This identifier marks first-party material of the Dee-Verse project. The repository
+licence has not been chosen yet (open question Q-08); until the owner decides, nothing
+in this repository is licensed for reuse outside the project.
+
+Third-party material keeps its own licence and is recorded in assets/provenance/ or in
+the dependency manifest.

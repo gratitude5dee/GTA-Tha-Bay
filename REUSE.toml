@@ -1,0 +1,27 @@
+version = 1
+
+# First-party coverage for license:scan (tools/ci/license-scan.ts) and `reuse lint`.
+# LicenseRef-DeeVerse-Owned is a placeholder until the owner picks the repository licence (Q-08).
+# `*` matches within a directory, `**` across directories (REUSE specification).
+
+[[annotations]]
+path = [
+  "*",
+  ".github/**",
+  ".claude/**",
+  "apps/**",
+  "assets/**",
+  "config/**",
+  "content/**",
+  "docs/**",
+  "packages/**",
+  "prompt-pack/**",
+  "research/**",
+  "services/**",
+  "spec/**",
+  "tests/**",
+  "tools/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dee-Verse contributors"
+SPDX-License-Identifier = "LicenseRef-DeeVerse-Owned"

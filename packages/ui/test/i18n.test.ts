@@ -48,8 +48,8 @@ describe('i18n catalog', () => {
 
   it('the display name arrives through the {brand} placeholder', () => {
     expect(catalogs.en['title.name']).toBe('{brand}');
-    expect(t('title.name')).toBe('Dee-Verse: Tha Bay');
-    expect(t('boot.loading')).toBe('Loading Dee-Verse: Tha Bay');
+    expect(t('title.name')).toBe(DISPLAY_NAME);
+    expect(t('boot.loading')).toBe(`Loading ${DISPLAY_NAME}`);
   });
 
   it('reports missing keys and returns the key', () => {

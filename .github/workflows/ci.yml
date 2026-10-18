@@ -131,3 +131,34 @@ jobs:
           path: playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  # IP, provenance and likeness gates on the built dist (M00b). Required for merge once the operator marks `ip`
+  # in branch protection. The real-side name list is the optional secret DV_NAMES_REAL_JSON; absent on forks.
+  ip:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - run: pnpm provenance:check -- --emit-credits
+      - run: pnpm ip:signatures
+      - run: pnpm ip:extensions
+      - run: pnpm ip:strings
+      - run: pnpm license:scan
+      - run: pnpm names:lint
+        env:
+          DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      - run: pnpm likeness:gate
+      - run: pnpm check:assets
