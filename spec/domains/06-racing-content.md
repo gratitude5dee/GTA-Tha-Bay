@@ -120,11 +120,11 @@ Applied by multiplying the base `HandlingProfile` at spawn; the replay header re
 | `sf.circuit.embarcadero-vanness` | circuit | D5 | B | Embarcadero → Bay St → Van Ness loop, 3 laps, ~3.5 km | dusk · clear | off | VS race 2; side streets closed | M07a |
 | `sf.downhill.twin-peaks-mission` | downhill | D9→D2 | C | Twin Peaks → Mission via Market and Clipper, ~5 km | day · clear | off | VS race 3; jump zones | M07a |
 | `sf.pursuit.bayview-escape` | pursuit | D3→D1 | D | start heat 2, evade | day · karl-fog | on (2→3) | story hook, Premise A mission A3 | M07a |
-| `sf.hillclimb.filbert-hyde` | hillclimb | D6 | C | Russian Hill, Filbert (31.5 %) and Hyde, ~1.3 km | day | off | Premise A mission A7 vs `solenne-skip` test car | M07b |
+| `sf.hillclimb.filbert-hyde` | hillclimb | D6 | C | Russian Hill, Filbert (31.5 %) and Hyde, ~1.3 km | day | off | S03 mission `m.a2.02` vs `solenne-skip` test car | M07b |
 | `sf.sideshow.bayview-ring` | sideshow | D3 | D, C | ring zone at a baked intersection, 90 s score then escape | dusk | heat 2 at T+60 s | `xr: none`; owner flag Q-GD-06 | M07b |
-| `sf.robotaxirush.soma-haight` | robotaxiRush | D1→D8 | R | deliver one fare without infractions, ~6 km | day | robotaxi witnesses | Premise A mission A8 | M07b |
+| `sf.robotaxirush.soma-haight` | robotaxiRush | D1→D8 | R | deliver one fare without infractions, ~6 km | day | robotaxi witnesses | S03 mission `m.a2.03` | M07b |
 | `sf.checkpoint.park-dusk` | checkpoint | D8 | B | Golden Gate Park drives, tollbooth gates | dusk | off | leftover time carries | M07b |
-| `sf.speedtrap.great-highway-night` | speedtrap | D8 | A | 6 camera gates, sum of kph | night · karl-fog | off | | M07b |
+| `sf.speedtrap.great-highway-night` | speedtrap | D8 | A | 6 camera gates, sum of kph | night · karl-fog | off | S03 mission `m.a3.03` | M07b |
 | `sf.drift.bayview-yard` | drift | D3 | C | 4 drift zones in the industrial blocks | dusk | off | `xr: none` | M07b |
 | `sf.pursuit.embarcadero-heat3` | pursuit | D5 | A | start heat 3, evade | night | on (3→5) | spikes at piers, heli | M07b |
 | `sf.pursuit.soma-viaducts` | pursuit | D1 | B | start heat 2, survive 180 s | day | on (2→4) | hiding spots under viaducts | M07b |

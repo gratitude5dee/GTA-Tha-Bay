@@ -125,7 +125,7 @@ export interface Platform {
 export function createPlatform(opts: { canvas: HTMLCanvasElement; qa: QaFlags }): Promise<Platform>;
 ```
 
-## 4. Data — contract C13 v1.0.0
+## 4. Data — contract C13 v1.1.0
 
 ### 4.1 Identifiers, ladders, variant resolution
 

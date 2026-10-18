@@ -187,6 +187,8 @@ Cross-field rules the schema cannot express are validator functions with codes (
 // packages/shared/src/contracts/c14-modapi.ts
 import type { ModId, ModPermission } from './c14-mod';
 import type { CinematicShot } from './c04-camera';
+import type { HeatLevel } from './engine-pursuit';
+import type { WeatherPreset } from './engine-world';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [k: string]: JsonValue };
 
 export type AnchorVec3 = readonly [x: number, y: number, z: number];   // metres; origin = anchor on the ground; +X east, +Y up, −Z north; |x|,|z| ≤ radius
@@ -200,15 +202,15 @@ export interface ModTime { readonly tick: number; readonly simMs: number }      
 export interface ModSnapshot {                       // delivered with every script tick; the only way a script reads the world
   tick: number; simMs: number;
   player: { pos: AnchorVec3; yaw: number; speedMps: number; onFoot: boolean; vehicle?: string /* prefab id */; insideRadius: boolean };
-  clock: { hour: number; weather: string };          // WorldClockApi.env() subset
-  heat: number;                                      // 0..5, read-only
+  clock: { hour: number; weather: WeatherPreset };   // WorldClockApi.env() subset
+  heat: HeatLevel;                                   // 0..6 (6 = scripted finale), read-only
   mine: { ref: ModEntityRef; pos: AnchorVec3 }[];    // ≤ 64 nearest mod-owned entities
 }
 export type ModEvent =
   | { t: 'zone.enter'; zone: string } | { t: 'zone.exit'; zone: string }
   | { t: 'interact'; ref: ModEntityRef }
   | { t: 'vehicle.enter'; prefab: string } | { t: 'vehicle.exit'; prefab: string }
-  | { t: 'heat'; level: number } | { t: 'hour'; hour: number } | { t: 'weather'; preset: string }
+  | { t: 'heat'; level: number } | { t: 'hour'; hour: number } | { t: 'weather'; preset: WeatherPreset }
   | { t: 'mission.end'; id: string; outcome: 'win' | 'lose' | 'quit' }
   | { t: 'ui'; msg: JsonValue } | { t: 'exp.enter' } | { t: 'exp.exit' };
 

@@ -157,7 +157,7 @@ Types are C12 and live in `packages/shared/src/api/budget.ts` (pure), so S05's `
 export type Vendor = 'anthropic' | 'fal' | 'elevenlabs' | 'workers_ai' | 'openai_moderation';
 export type GovLevel = 0 | 1 | 2 | 3;           // L1 ≥ 70 %: Sonnet→Haiku · L2 ≥ 85 %: voice→T1 · L3 ≥ 100 %: genAI off (cache hits still served)
 export interface PlayerQuota {                  // PlayerQuotaDO RPC
-  reserve(r: { kind: 'turn' | 'voice_line' | 'builder_job' | 'upload' | 'post' | 'report'; npcId?: string; estMicros: number }):
+  reserve(r: { kind: 'turn' | 'voice_line' | 'builder_text' | 'builder_job' | 'upload' | 'post' | 'report'; npcId?: string; estMicros: number }):   // 'builder_text' from C12 1.1 (09-backend-contracts-1.1.md §2, DL-119)
     Promise<{ ok: true; reservationId: string } | { ok: false; reason: 'quota' | 'cost_cap' | 'per_npc' }>;
   settle(reservationId: string, actualMicros: number): Promise<void>;   // also enqueues to SPEND queue
   usage(): Promise<Record<string, number>>;

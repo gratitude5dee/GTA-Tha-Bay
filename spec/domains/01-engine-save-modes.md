@@ -186,7 +186,7 @@ export interface ModeRequirements {
 }
 export interface GameModeDescriptor {
   id: GameModeId; version: number;
-  titleKey: string; tile: { art: string /* C07 AssetRef `<kind>/<id>` */; order: number };
+  titleKey: string; tile: { art: string /* C07 AssetRef, first-party modes use `ui/mode-<GameModeId>` */; order: number /* unique: story 1, racing 2, fighter 3, tycoon 4; mods ≥ 100 (DL-167) */ };
   status: 'available' | 'comingSoon';               // A-06 stubs register as comingSoon
   unlock: UnlockEventId | null;                     // null = always available (story, sandbox)
   standalone: boolean;                              // has a main-menu tile

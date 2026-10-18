@@ -1,11 +1,11 @@
 # 06 — Racing (S06)
 
-> Wave 3 domain spec, 2026-10-18, author S06 (`claude-sonnet-5-5`). Reads `06-SHARED-CONTEXT.md` v1.0 (frozen), `spec/.waves234-notes.md`, `spec/03` v1, `spec/11-decision-log.md`, `spec/02-architecture.md` v0 and the Wave 1 specs of S01, S05, S09, S11. This spec has three parts:
+> Wave 3 domain spec, 2026-10-18, author S06 (`claude-sonnet-5-5`). Reads `06-SHARED-CONTEXT.md` v1.1 (frozen), `spec/.waves234-notes.md`, `spec/03` v1.1, `spec/11-decision-log.md`, `spec/02-architecture.md` v0.5 and the Wave 1 specs of S01, S05, S09, S11. This spec has three parts:
 > - **this file**: scope, checklist, design, components, runtime, platforms, facts, milestones, tests, open questions;
 > - `spec/domains/06-racing-data.md`: §4 Data — all TypeScript, schemas, configs, save slice, wire shapes;
 > - `spec/domains/06-racing-content.md`: garage, handling presets in port-contract form, events, ladder, audio and art needs.
 >
-> Numbers are design starting values owned by this project unless a citation follows. Where a contract belongs to a concurrent owner (C08 S02, C09 S03, C14 S12) the 06 v1.0 sketch is used exactly and each use is an assumption `A-S06-n` (§10).
+> Numbers are design starting values owned by this project unless a citation follows. Where a contract belongs to a concurrent owner (C08 S02, C09 S03, C14 S12) the contract as finalized in 06 v1.1 is used exactly; each Wave 3 assumption is recorded as `A-S06-n` (§10).
 
 ## 1. Scope and R-IDs
 
@@ -46,7 +46,7 @@
 | 25 | XR driving rules (cockpit, comfort, diorama chase) | designed | §6 | M11b2 |
 | 26 | Unlocks and progression: Rep, classes, ladder, garage, upgrades, purse | designed | §2.13, data 4.4 | M07a, M07b |
 | 27 | Save slice and garage migration | designed | data 4.4 | M07a |
-| 28 | Story hooks (Premise A missions A3, A7, A8) | designed, assumption | §2.13 | M07a, M07b |
+| 28 | Story hooks (S03 missions m.a1.03, m.a2.02, m.a2.03, m.a3.03) | designed, assumption | §2.13 | M07a, M07b |
 | 29 | Multiplayer notes: activity lobby, referee, speed caps, async ghosts, no car-car collision | designed | §2.14 | M12c |
 | 30 | Vehicle mods clamp to class envelopes | designed | data 4.1 | M13a |
 | 31 | Telemetry names | designed | data 4.5 | M07a |
@@ -196,7 +196,7 @@ A replay is `(seed, RaceDef, vehicle, handlingRev, upgrades, assists, difficulty
 
 ### 2.13 Unlocks and progression
 
-First `racing` encounter (C09 hook) emits `unlock.racing`; `core.firstEncounters` records it; the tile leaves `comingSoon` (A-06). Standalone Racing offers free events whose district unlock or class gate is met. **Rep** (levels 1–20, thresholds in `config/racing.json`) unlocks classes at levels 3/7/11/15; **Tha Bay 10** (content C.6) gates cars and districts; purse by class and place (1.0, 0.6, 0.35, 0.2, 0.1 of the class purse), medals at par × 1.25/1.12/1.04, first-time medal bonus ×1.0/1.25/1.5/2.0. Upgrades and livery are bought with the racing purse. Premise A hooks: A3 → `sf.pursuit.bayview-escape` (M07a; later chained after the sideshow ring), A7 → `sf.hillclimb.filbert-hyde`, A8 → `sf.robotaxirush.soma-haight`; embedded runs use the `local` profile, track ghosts, no leaderboard.
+First `racing` encounter (C09 hook) emits `unlock.racing`; `core.firstEncounters` records it; the tile leaves `comingSoon` (A-06). Standalone Racing offers free events whose district unlock or class gate is met. **Rep** (levels 1–20, thresholds in `config/racing.json`) unlocks classes at levels 3/7/11/15; **Tha Bay 10** (content C.6) gates cars and districts; purse by class and place (1.0, 0.6, 0.35, 0.2, 0.1 of the class purse), medals at par × 1.25/1.12/1.04, first-time medal bonus ×1.0/1.25/1.5/2.0. Upgrades and livery are bought with the racing purse. Premise A hooks (S03 mission → `RaceId` = `defId`, no params; DL-157): `m.a1.03` → `sf.pursuit.bayview-escape` (M07a; later chained after the sideshow ring), `m.a2.02` → `sf.hillclimb.filbert-hyde`, `m.a2.03` → `sf.robotaxirush.soma-haight`, `m.a3.03` → `sf.speedtrap.great-highway-night`; embedded runs use the `local` profile, track ghosts, no leaderboard.
 
 ### 2.14 Multiplayer notes (R-ROLL-02; implemented M12c)
 
@@ -294,7 +294,7 @@ XR driving (M11b2) follows `11-platform-xr.md` §5.3: seated cockpit with the ve
 | Milestone | S06 share | Delivered | Stubbed first / later | Sessions (S06 share) |
 |---|---|---|---|---|
 | **M03a** vehicles-interaction-prefabs (with S01) | handling model v1 | `packages/shared/src/vehicle/` (`stepHandling`, `damage`, envelopes), schemas, presets for the 6 story vehicles + police cruiser + ambient robotaxi, oracle lines (0–100, braking, skidpad, Filbert, crest jump), U-RAC-1 spike decides wheel-force path | nitro, quirks, assists beyond steer assist, replay all stubbed | 0.5 |
-| **M07a** racing core (R-MODE-02, R-MODE-05, R-IP-01) — 2 sessions | session 1: mode package, descriptor and unlock registration, referee/gates, director, player car (6 cars, one per class), nitro, damage, HUD vm, `race-def` schemas, `map:races compile` for 1 race, bot; session 2: AI drivers, rubber-band, validator V1–V15 and par, 3 VS races + `sf.pursuit.bayview-escape`, replay codec, ghost tracks, exact re-sim proof, `RacingSlice`, story hook A3, `config/pursuit.race.json` v1, telemetry | roadster hop, robotaxi quirks, visuals beyond mid, photo, ladder as stubs | 2 |
+| **M07a** racing core (R-MODE-02, R-MODE-05, R-IP-01) — 2 sessions | session 1: mode package, descriptor and unlock registration, referee/gates, director, player car (6 cars, one per class), nitro, damage, HUD vm, `race-def` schemas, `map:races compile` for 1 race, bot; session 2: AI drivers, rubber-band, validator V1–V15 and par, 3 VS races + `sf.pursuit.bayview-escape`, replay codec, ghost tracks, exact re-sim proof, `RacingSlice`, story hook `m.a1.03`, `config/pursuit.race.json` v1, telemetry | roadster hop, robotaxi quirks, visuals beyond mid, photo, ladder as stubs | 2 |
 | **M07b** racing content (R-MODE-02) — 2 sessions | session 1: remaining 7 kinds, 16 more events, hop and robotaxi quirks, roadblocks/spikes in races, ladder, progression, remaining cars; session 2: upgrades/garage view-models, replay director and scrub, photo mode, `desktop-ultra` visual pass, audio wiring, econ-sim racing section | MP and XR | 2 |
 | M11a | perf scenarios `race-sprint`, `race-pursuit-heat4`; flags for SSR/motion blur calibrated | – | 0.2 |
 | M11b2 | XR driving rules, hands wheel, vignette, diorama chase | – | 0.3 |
@@ -331,14 +331,14 @@ Every row serves R-MODE-02; M07a is the VS-Racing gate [research/gamedesign-deco
 
 **Open questions (defaults applied):** Q-S06-01 Premise B/C hook ids (S03; default reuse of catalog events). Q-S06-02 Sideshow event acceptable (Q-GD-06; default yes, police response built in, `xr: none`). Q-S06-03 Trademark knock-out of makes, models and rival handles before M14b (counsel; default placeholders). Q-S06-04 Whether leaderboards need exact re-simulation at launch (default no, DN-S06-03).
 
-**Assumptions about concurrent owners (use the 06 v1.0 sketch exactly):**
+**Assumptions about concurrent owners (Wave 3; the owners' 06 v1.1 contracts are used exactly):**
 - **A-S06-1 (C08, S02):** `RoadGraph` offers edge ids stable per `worldBake`, edge attributes (width, lanes, grade, speed, one-way, layer), point-to-edge projection, A* with one-way rules, ENU gate placement, and chunk tags `jumpZones`, `pursuitBreakers`, `chokePoints`, `hidingSpots`; `config/world.bounds.json`.
 - **A-S06-2 (C08):** event traffic `off|light|normal` maps to 0 / 0.35 / 1.0 of the cell `densityCap`.
 - **A-S06-3 (S01):** the vehicle wrapper calls `stepHandling` and applies `WheelForce` impulses (CCP-3).
-- **A-S06-4 (C09, S03):** a hook calls `ModeContext.startChild('racing', { defId: <RaceId>, params })` and receives `ModeResult`; hook ids are S03's.
+- **A-S06-4 (C09, S03; DL-157):** a hook calls `startChild('racing', { defId: <RaceId>, seed })`, no `params`, and receives `ModeResult`; hook ids are S03's, mapped in §2.13.
 - **A-S06-5 (S02):** ambient robotaxi brains import `quirks.ts`; A-S06-8: signal state (dark signals in a blackout) is readable from S02 components 256–511.
 - **A-S06-6 (S10):** consumes `RaceHudVm` and garage/results/replay view-models, draws heat meter and nitro with the colorblind-safe palettes; no 5-star HUD (R-NAME-5).
-- **A-S06-7 (S01):** a standalone mode has no `EconomyApi` backing, so racing keeps `purseCents` itself.
+- **A-S06-7 (S01, DL-167):** standalone sessions cannot write `StorySlice.wallet` (C05 rule 3), so racing keeps `purseCents` in `mode:racing`.
 
 **Contract change proposals (details in the return block):** CCP-1 C06 `standaloneProfile`; CCP-2 C06 `PursuitProfile.configRef` and `setRouteHint`; CCP-3 engine vehicle readout and wheel-force application; CCP-4 C07 vehicle node additions; CCP-5 C13 `PostNode` additions; CCP-6 C12 route 21 types; CCP-7 C16 names; CCP-8 `net.speedcaps.json` rows; CCP-9 C03 `xr:both:wheel`; CCP-10 C04 `diorama` origin; CCP-11 S11 perf scenarios; CCP-12 ADR for `AnimStateId` 128–159.
 

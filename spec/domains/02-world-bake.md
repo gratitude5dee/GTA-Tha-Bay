@@ -122,10 +122,10 @@ Spawn capacities (peak, per chunk): `trafficSlots = min(255, round(Σ lengthKm �
 | `sf-graph.v1` | `map_data/sf-graph.v1` | topology, always resident | ≈ 1 MB |
 | `world-index` | `data/world-index` | JSON | ≤ 300 KB |
 | `district-grid.v1` | `data/district-grid.v1` | 64 m cells, `u8` neighbourhood index | ≈ 55 KB |
-| `anchor-mask.v1` | `data/anchor-mask-v1` (private) | 8 m cells, 2-bit classes, RLE | ≤ 400 KB |
+| `anchor-mask.v1` | `data/anchor-mask.v1` (private; file `anchor-mask.v1.bin`) | 8 m cells, 2-bit classes, RLE | ≤ 400 KB |
 | `attribution.world.json`, `bake-report.json` | repo / CI artifact | counts, gates, sizes | small |
 
-`p0`/`l0` packs exist only for tiles that intersect SF land, piers or bridge decks inside `play`; water-only tiles have none and show the water plane; `l1`/`l2` cover the `stream` box. Every pack gets one C07 `ProvenanceRecord` (`origin: derived`, licence `ODbL-1.0`, `parents` = source stamps, attribution strings from §2); the SPDX strings go to S05's licence allowlist (UNVERIFIED spelling, proposal P5). Storage and reads are cheap: roughly 150–250 MB of packs at R2 $0.015/GB-month, and even 24 M uncached reads a month cost about $8.64 at $0.36 per million Class B operations, with egress free [F-023; counts are estimates].
+`p0`/`l0` packs exist only for tiles that intersect SF land, piers or bridge decks inside `play`; water-only tiles have none and show the water plane; `l1`/`l2` cover the `stream` box. Every pack gets one C07 `ProvenanceRecord` (`origin: derived`, licence `ODbL-1.0`, `derived_from` = the source stamps' `sha256`s, each stamp with its own `open_data` record per C07 1.1 §14, attribution strings from §2); the SPDX strings go to S05's licence allowlist (UNVERIFIED spelling, proposal P5). Storage and reads are cheap: roughly 150–250 MB of packs at R2 $0.015/GB-month, and even 24 M uncached reads a month cost about $8.64 at $0.36 per million Class B operations, with egress free [F-023; counts are estimates].
 
 ## 6. Stylized generation versus 3D Tiles, per tier
 

@@ -178,7 +178,7 @@ export interface CommunityNpc { npcId: NpcId; soulVersion: number; name: string;
 
    Appeals go to the `APPEAL` queue (≤ 7 d, a different reviewer) [research/gap-trust-safety-tooling.md §6.5].
 5. **After publishing:**
-   - the report button sits on the dialogue panel and the community card (route 41; target kind `npc_draft` with the source draft id until `npc_soul` is a `ModSubject`, see proposals);
+   - the report button sits on the dialogue panel and the community card (route 41; target kind `npc_soul` with the published soul id, a `ModSubject` since C12 1.1, `09-backend-contracts-1.1.md`);
    - 3 distinct reporters or 1 `mod:trust_lead` → `unpublished_pending_review`;
    - the roster kill-switch works on `u_…` ids.
 6. **Where published user NPCs appear.** In the community list, and in experiences their owner publishes (S12, C17). Never in another player's story world.
@@ -205,7 +205,7 @@ export interface CommunityNpc { npcId: NpcId; soulVersion: number; name: string;
   - a PR touching a soul, block A, the turn schema, model ids or routing → live runs for the affected souls;
   - weekly full live run;
   - model pin change → full run.
-- **Output:** `reports/npc-evals/<run>/<npcId>.json` plus a PR summary.
+- **Output:** `tests/reports/npc-evals/<run>/<npcId>.json` (CI artifact) plus a PR summary.
 - **Command:** `pnpm npc:eval -- --soul <id|all> --suite redteam|golden|probes|all --replay|--live`.
 
 ## C7. Cost per conversation and fit to G3

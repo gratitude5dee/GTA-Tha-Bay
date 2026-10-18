@@ -1,10 +1,10 @@
 # 08 — Business Tycoon (S08): scope, simulation loop, company model, UI, saves, milestones
 
-> S08, Wave 3, 2026-10-18, against `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen) and `spec/.waves234-notes.md`. Three files: **this one** (A), `08-tycoon-finance.md` (B: cap table, SAFE and priced-round math with test vectors, waterfall, term-sheet envelope, VC negotiation and C10 integration) and `08-tycoon-events.md` (C: shared event engine, catalog, balance tool). Section numbers follow `prompt-pack/03-SPEC-TEMPLATE.md` §B; parts B and C carry the detail for §§2–5 of their topics. Numbers marked *design* are our starting values, tuned at M09a2 against the bands of part C §8.
+> S08, Wave 3, 2026-10-18, against `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen) and `spec/.waves234-notes.md`. Three files: **this one** (A), `08-tycoon-finance.md` (B: cap table, SAFE and priced-round math with test vectors, waterfall, term-sheet envelope, VC negotiation and C10 integration) and `08-tycoon-events.md` (C: shared event engine, catalog, balance tool). Section numbers follow `prompt-pack/03-SPEC-TEMPLATE.md` §B; parts B and C carry the detail for §§2–5 of their topics. Numbers marked *design* are our starting values, tuned at M09a2 against the bands of part C §8.
 
 ## 1. Scope and R-IDs
 
-**Owns:** the Business Tycoon mode (`GameModeId 'tycoon'`): a deterministic weekly founder-versus-VC simulation (idea, MVP, rounds, hiring, scale, exit or failure), its UI, its save slice, its balance tooling. **Owns no contract.** **Honors:** C05 (slot `mode:tycoon`), C06 (`GameModeDescriptor`, `GameModeSim`, `ModeContext`), C10 (VC dialogue, sketch of 06 §4.4). Also uses C02 determinism rules, C03 `tycoon` input context, C07 `AssetRef`, C13 tiers, C16 telemetry registry.
+**Owns:** the Business Tycoon mode (`GameModeId 'tycoon'`): a deterministic weekly founder-versus-VC simulation (idea, MVP, rounds, hiring, scale, exit or failure), its UI, its save slice, its balance tooling. **Owns no contract.** **Honors:** C05 (slot `mode:tycoon`), C06 (`GameModeDescriptor`, `GameModeSim`, `ModeContext`), C10 (VC dialogue, 1.0.0). Also uses C02 determinism rules, C03 `tycoon` input context, C07 `AssetRef`, C13 tiers, C16 telemetry registry.
 
 | R-ID | Statement (short) | Where |
 |---|---|---|
@@ -86,7 +86,7 @@ flowchart LR
 // packages/modes/tycoon/src/descriptor.ts
 export const tycoonDescriptor: GameModeDescriptor = {
   id: 'tycoon', version: 1, titleKey: 'mode.tycoon.title',
-  tile: { art: 'ui/mode-tile-tycoon', order: 3 },
+  tile: { art: 'ui/mode-tycoon', order: 4 },
   status: 'available',                      // 'comingSoon' stub until M09a2 (A-06)
   unlock: 'unlock.tycoon', standalone: true, embeddable: true,
   requires: { simProfile: 'any', world: 'none', physics: false, xr: 'seated',
@@ -274,7 +274,7 @@ Seats, `founderControl`, quarterly targets and the ousting vote live in part B �
 
 ### 5.11 Score, rewards and story integration
 `score = floor(founderPayoutCents/100,000) + 25·retainedEmployees + 50·legacyTags` (tags from choices marked `legacy`, max 10). `founderPayout` comes from the waterfall at the exit value (B §6); `unicorn`/`ipo` use the valuation at that moment as the exit value. Best scores per tier are kept in the slice.
-- **Unlock (R-MODE-05).** Story Act 2's FiDi pitch (S03) embeds `startChild('tycoon', {defId:'mini8w'})` with `unlockOnFirstEncounter: unlock.tycoon` (C06 rule 5). The story's `stub` objective (scripted dialogue choice) is used until M09b2 and whenever the mode is unavailable. The mini-run returns `win`/`lose` and no rewards of its own.
+- **Unlock (R-MODE-05).** Story `m.a2.01` (hook `tycoon.a2.curbshare`) embeds `startChild('tycoon', {defId:'mini8w'})`, no params, with `unlockOnFirstEncounter: unlock.tycoon` (C06 rule 5); `mini8w` is the only story preset (DL-157). The story's `stub` objective (scripted dialogue choice) is used until M09b2 and whenever the mode is unavailable. The mini-run returns `win`/`lose` and no rewards of its own.
 - **Dividends (capped).** A winning standalone full run (the embedded mini-run keeps no slice) adds `dividendEarnedCents += min(1,000,000, floor(founderPayoutCents·0.0002))` to the slice (cap $10,000 per run). Standalone sessions cannot write the story slice (C05 rule 3), so crediting the wallet is the story's job: on story entry S03 credits `min(unclaimed, cap)` through `EconomyApi.credit(..., idemKey 'tycoon.div:<n>')`, where unclaimed is `modes.tycoon.dividendEarnedCents − StorySlice.flags['tycoon.divClaimedCents']`, and the C06 rule "≤ $10,000 per in-game week" is enforced by summing `ledgerSince` entries tagged `tycoon.dividend` over the last 1,209,600 ticks (DN-S08-04). No premium currency, no purchase path (D-30).
 
 ### 5.12 UI (S10 shell; R-ENG-04)
@@ -336,7 +336,7 @@ XR is `immersive-vr` only in v1; the desk scene follows `11-platform-xr.md` §5.
 | **M09a1** `tycoon-core-finance` | 1 | M01a (detmath, rng), M04a (modes, saves) | `@dv/shared/tycoon` types, `setupFromSeed`, `stepWeek`, company/product/market/hiring/board/win/score, replay and `verifyRun`, finance (cap table, SAFE, priced round, waterfall, envelope math, vectors), `TycoonModeSim` adapter with a QA text panel, slice + schema + golden file | events = empty list; negotiation = automatic envelope midpoint (`startRaise` + `accept`); one sector; descriptor `status: comingSoon` |
 | **M09a2** `tycoon-events-balance` | 1 | M09a1 | shared event engine, 30 events, trend deck of 8, bots (median, aggressive, frugal, random), `tools/ci/tycoon-sim`, bands, baseline, self-test fixtures, CI jobs, `status: available` behind `?unlockAll=1` in non-production builds | **VS-Tycoon = end of M09a2** (gamedesign §5.15): one sector tuned, 30 events, SAFE + seed + Series A, hiring, win/lose, harness green, deterministic replay |
 | **M09b1** `tycoon-ui` | 1 | M09a2, M04b (menus, `UiSurface` from S10) | dashboard, cap table, hiring, roadmap, inbox, board, summary, branch replay, 2 more sectors, 30 more events, accessibility, mobile layout, XR panels (desk), perf record | pitch room still a flat card with the deterministic offer |
-| **M09b2** `tycoon-vc-story` | 1 | M09b1, M06a (dialogue proxy), M05a (mission IR hook) | 12 VC souls consumption (content from S04), `TycoonPitchController`, clamp, fallback, questions bank, pitch room (3D with 2D fallback), mini-run preset, `unlock.tycoon`, story hook definition `tycoon.mini8w`, dividend counter, telemetry names, hardcore flag | live dialogue flag default on only after M06a measures TTFT |
+| **M09b2** `tycoon-vc-story` | 1 | M09b1, M06a (dialogue proxy), M05a (mission IR hook) | 12 VC souls consumption (content from S04), `TycoonPitchController`, clamp, fallback, questions bank, pitch room (3D with 2D fallback), mini-run preset, `unlock.tycoon`, story hook `tycoon.a2.curbshare` → preset `mini8w`, dividend counter, telemetry names, hardcore flag | live dialogue flag default on only after M06a measures TTFT |
 | **M12e** `mode-leaderboards` (with S06) | 0.5 (S08 share) | M12c | `tycoon.daily.<yyyymmdd>` board (C12 board grammar, DL-092) and the route 21 validator registered for prefix `tycoon.` calling `verifyRun` | core API exists from M09a1 |
 | **M05e1** (S03, DL-133) | — | M09a2 | `EventHost<BusinessState>` wiring of story businesses | fixture proves engine at M09a2 |
 

@@ -1,6 +1,6 @@
 # 07 — Fighter (S07), part C: roster, stages, cutscenes, assets, progression
 
-> S07, Wave 3, 2026-10-18. Part of `spec/domains/07-fighter.md`. Core rules are in `07-fighter-core.md` (`FC#`), pose mode in `07-fighter-pose.md` (`FP#`). Honors 06 v1.0 (C05, C06, C07, C09 fixed lines, C10, C13), `spec/03` D-18, D-19, D-20, D-29, D-30, `research/legal-ip-likeness.md`. Section ids `FX1…FX11`. No real person is named in this repository file: slots are tied to subject classes by pointing at rows of `research/legal-ip-likeness.md` §3.3; real names live only in the server-side `NameRegistry` (R-IP-02, `names:lint`).
+> S07, Wave 3, 2026-10-18. Part of `spec/domains/07-fighter.md`. Core rules are in `07-fighter-core.md` (`FC#`), pose mode in `07-fighter-pose.md` (`FP#`). Honors 06 v1.1 (C05, C06, C07, C09 fixed lines, C10, C13), `spec/03` D-18, D-19, D-20, D-29, D-30, `research/legal-ip-likeness.md`. Section ids `FX1…FX11`. No real person is named in this repository file: slots are tied to subject classes by pointing at rows of `research/legal-ip-likeness.md` §3.3; real names live only in the server-side `NameRegistry` (R-IP-02, `names:lint`).
 
 ## FX1 Roster: archetype slots ↔ characters ↔ tiers
 
@@ -9,7 +9,7 @@ The per-character research layer (`research/characters/<slug>/…`) is not in th
 ```ts
 // content/fighter/roster.json  (JSON Schema: packages/shared/src/fight/schema/roster.v1.schema.json)
 export interface RosterEntry {
-  slot: SlotId; kit: string;                                    // content/fighter/kits/<kit>.json
+  slot: FighterSlotId; kit: string;                                    // content/fighter/kits/<kit>.json
   fighterId: FighterId; soulVersion: number;                    // soul id = C07 slug; integer (C10 fixed)
   expectedTier: 'consented' | 'parody' | 'fictionalized' | 'original';   // CI: must equal the compiled soul's tier
   assets: { model: AssetRef; animBase: AssetRef; animMoves: AssetRef; portrait: AssetRef; voice?: AssetRef };   // C07 `<kind>/<id>` (DL-053)
@@ -120,11 +120,11 @@ export interface StageDef {
 
 | Stage | Landmark (open-data geometry, original art) | Notes | Milestone |
 |---|---|---|---|
-| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout A5 | M08a (gray box), M08b |
+| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout `bout.a5` (S03 `m.a1.05`) | M08a (gray box), M08b |
 | `ferry_plaza` | Ferry Building plaza and clock tower | ferries and water in depth | M08b |
 | `dolores_slope` | Dolores Park slope | the stage floor is flat; the slope is backdrop | M08b |
 | `bayview_cranes` | Bayview shipyard under the cranes | industrial, night default | M08b |
-| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout A11 | M08b |
+| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout `bout.a11` (S03 `m.a2.08`) | M08b |
 | `mission_bay_court` | Mission Bay arena analogue, fictional venue name | `arena_court`; basketball-domain fighters excluded | M08b |
 | `lombard_switchbacks`, `coit_top`, `ggpark_bandshell`, `twin_peaks_night` | backlog | Lombard needs camera tilt | M10+ |
 
@@ -201,11 +201,11 @@ The announcer is an original synthetic voice, never a real person's clone. Gray-
 ## FX8 Progression, unlocks, story hooks (R-MODE-05)
 
 1. **Descriptor** (C06): `id 'fighter'`, `unlock 'unlock.fighter'`, `standalone: true`, `embeddable: true`, `requires {simProfile:'any', world:'stage', physics:false, xr:'seated', inputContexts:['fighter','menu','cutscene'], network:'optional'}`, `saveSlot 'mode:fighter'`, `sliceSchema 1`. It registers as `comingSoon` until M08a (A-06).
-2. **Unlocks.** `unlock.fighter` is emitted by the first story fight (mission A5, Premise A). Each roster fighter has `unlock.fighter.<slot lowercased>` with `grants.fighters: [fighterId]`. Initial selectable set: `PLAYER_FIGHTER` and the A5 opponent. Beating a roster fighter in the Arcade ladder, or in a story bout, emits that fighter's unlock; ladder order is data (`content/fighter/arcade.json`). Costumes unlock by `fighterXp` levels (cosmetic only; no stat changes).
-3. **Story hook.** C09 `mode({mode:'fighter', defId:'bout.a5', stub})` starts a child through `ModeContext.startChild`. Premise A ships two bouts: `bout.a5` (Powell & Market, `RAP_NEW_WAVE`, level Normal) and `bout.a11` (`alcatraz_yard`, `ATH_POWER_BACK`, level Hard). Premises B and C bouts are data added when those premises ship. The stub (scripted brawl) stays as the C09 fallback.
+2. **Unlocks.** `unlock.fighter` is emitted by the first story fight (S03 mission `m.a1.05`, Premise A). Each roster fighter has `unlock.fighter.<slot lowercased>` with `grants.fighters: [fighterId]`. Initial selectable set: `PLAYER_FIGHTER` and the `bout.a5` opponent. Beating a roster fighter in the Arcade ladder, or in a story bout, emits that fighter's unlock; ladder order is data (`content/fighter/arcade.json`). Costumes unlock by `fighterXp` levels (cosmetic only; no stat changes).
+3. **Story hook.** A C09 `ModeHook {mode:'fighter', defId:'bout.a5', params:{kind:'story'}, stub}` starts a child through `ModeContext.startChild`; `params` is `FighterEnterParams` (07-fighter §3) and the `BoutDef` supplies opponent, stage, CPU level and rules (DL-157). Bout ids are opaque S07 ids. Premise A ships three bouts: `bout.a5` (S03 `m.a1.05` `fight.a1.turntable`; Powell & Market, `RAP_NEW_WAVE`, level Normal, M08a2), `bout.a11` (S03 `m.a2.08` `fight.a2.showcase`; `alcatraz_yard`, `ATH_POWER_BACK`, level Hard, M08b2) and `bout.a3-final` (S03 `m.a3.04` `fight.a3.final`; `mission_bay_court`, `RAP_LYRICIST`, level Hard, M08b2). Premises B and C bouts are data added when those premises ship. The stub (scripted brawl) stays as the C09 fallback.
 
 ```ts
-export interface BoutDef { id: string; p1: 'player' | SlotId; p2: SlotId; stage: StageId; cpu: 0 | 1 | 2 | 3;
+export interface BoutDef { id: string; p1: 'player' | FighterSlotId; p2: FighterSlotId; stage: StageId; cpu: 0 | 1 | 2 | 3;
   rules: Partial<FightRules>; exhibition: true; reward: { cashCents: number; streetCred: number; xp: number } }
 ```
 4. **Result.** `ModeResult {outcome:'win'|'lose', data:{streetCred, rounds, durationSec}, rewards:{cashCents}}`; ModeHost applies cash through `EconomyApi` with key `mode:fighter:<seed>:<tick>`; Story applies `streetCred` from `data` (assumption on S03). Losing a bout never fails the mission by itself; the mission script decides. `autoBlockStoryFights` (C05 accessibility) sets `FighterLoadout.autoBlock` for story bouts.

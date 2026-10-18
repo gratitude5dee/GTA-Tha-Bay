@@ -1,6 +1,6 @@
 # 01 — Core Engine & Game Logic (S01)
 
-> Wave 1 domain spec, 2026-10-18, author S01 (`claude-opus-5-5`). Reads `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`) and `spec/03-decisions-and-facts.md` v1. This spec has three parts:
+> Wave 1 domain spec, 2026-10-18, author S01 (`claude-opus-5-5`). Reads `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`) and `spec/03-decisions-and-facts.md` v1.1. This spec has three parts:
 > - **this file**: scope, design, runtime, platforms, facts, milestones, tests and open questions;
 > - `spec/domains/01-engine-contracts.md`: C01 ECS, C02 GameLoop (with the determinism rules), C03 Input, C04 CameraRig, and the physics/animation/audio service interfaces;
 > - `spec/domains/01-engine-save-modes.md`: C05 SaveGame, C06 GameMode + unlock registry, PursuitDirector, clock/weather, interaction, prefabs, A-02 mission hooks, economy and melee cores.
@@ -11,7 +11,7 @@
 
 **R-IDs covered:** R-PLAT-03 (WASM physics, tier hooks), R-PLAT-04 (fp/tp cameras), R-MAP-04 (time-of-day and weather core), R-MODE-01 (wanted/police core, interaction, economy core), R-ENG-04 (input remapping core). **Supports:** R-PLAT-02 (XR rig, M11b), R-PLAT-05/R-ENG-02 (sim budgets), R-MODE-05 (unlocks), R-ROLL-02 (prediction hooks, M12).
 
-**Contracts owned:** C01, C02, C03, C04, C05, C06 (all v1.0.0). **Honored:** C13 (S11; read-only use of tier and budgets from `research/INDEX.md` and `research/stack-rendering-platform.md`). **Consumed as sketches (assumptions in the return block):** C07 asset ids, C08 chunk collision and tags, C09 zones and mode hooks, C11 `IN` frame, C14 ModAPI subset, C16 telemetry.
+**Contracts owned:** C01 (1.0.0), C02–C06 (1.1.0). **Honored:** C13 (S11; read-only use of tier and budgets from `research/INDEX.md` and `research/stack-rendering-platform.md`). **Consumed (final in 06 v1.1):** C07 asset ids, C08 chunk collision and tags, C09 zones and mode hooks, C11 `IN` frame, C14 ModAPI subset, C16 telemetry.
 
 ### 1.1 Checklist (35 items)
 
@@ -102,7 +102,7 @@ graph LR
 
 ### 2.2 Frame and tick
 
-Per render frame the main thread runs `Input → NetIn → Sim(hand-off) → Anim → Audio → Render → NetOut`.
+Per render frame: `Input → NetIn → Sim(hand-off) → Anim → Audio → Render → NetOut` (`NetIn`/`NetOut` in `sim.worker`, the rest on the main thread; DL-071).
 - Input polls the binders, applies look to the camera and writes the input block.
 - The hand-off posts a `FrameSignal`.
 - The worker wakes, accumulates time, runs 0–9 ticks through the ten `SimStage`s and publishes a snapshot plus `alpha`.

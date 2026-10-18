@@ -264,7 +264,7 @@ export interface SnapRequest { at: LatLng | { landmark: LandmarkId }; snap: 'gro
 export interface WorldResolver {
   readonly bake: string;
   toEnu(ll: LatLng): [number, number, number];
-  landmark(id: LandmarkId): { enu: [number, number, number]; chunkKey: string } | null;
+  landmark(id: LandmarkId): { enu: [number, number, number]; chunkKey: ChunkKey } | null;
   snap(p: SnapRequest): { pos: [number, number, number]; yaw: number; distM: number } | null;   // null when > 25 m from a valid target
   route(via: LatLng[]): number[] | null;                                  // edge ids, A* between consecutive points
 }

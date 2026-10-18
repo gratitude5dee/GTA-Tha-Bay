@@ -238,7 +238,7 @@ sequenceDiagram
   W-->>C: ready + manifestUrl | pending | absent | failed | blocked
 ```
 
-- **Stage plates.** `pnpm assets:plates` renders the first shot of each ref's DirectorScript (headless `chromium-webgpu`, `?beats=plate`, actors hidden) from our own SF bake at 1920×1080. The tool lives in `tools/assets` (S03 spec, S05 tooling), stores plates in PRIVATE `plates/<sha256>.png` and writes a provenance record with origin `first_party_generated`. Plates anchor keyframes to the accurate SF geometry (the intent of Recipe P [research/genai-pipeline-fal.md §2.1]). Because the plate is the fallback's first frame, the poster-to-video handoff matches the in-engine scene.
+- **Stage plates.** `pnpm assets:plates` renders the first shot of each ref's DirectorScript (headless `chromium-webgpu`, `?beats=plate`, actors hidden) from our own SF bake at 1920×1080. The tool lives in `tools/assets` (S03 spec, S05 tooling), stores plates in PRIVATE `plates/<sha256>.png` and writes a provenance record with origin `derived` (tool `assets:plates`, `derived_from` = the rendered `world_pack` sha256s; C07 1.1, DL-161). Plates anchor keyframes to the accurate SF geometry (the intent of Recipe P [research/genai-pipeline-fal.md §2.1]). Because the plate is the fallback's first frame, the poster-to-video handoff matches the in-engine scene.
 - **Generation is internal-only** (D-19; [research/gap-video-model-licence-clearance.md §8] decision 3). The public game has no path to fal, and route 27 never starts generation for a key that is outside `cutscene_catalog` [`09-backend.md` §2.2]. A miss plays the fallback.
 - **Budget per request:** `budgetUsdMicros = shots × durationS × providerUsdPerS × 1.5 + keyframes × 39,600` (Sunburst 1920×1080 high, $0.0396 [`05-assets.md` §4.5]). The program cap and daily alarms are S05/S09's (`config/guardrails.yaml`; SP-09 alarm on more than 20 uncached generations a day).
 - **Gates before live calls:** ADR-GENAI-01 G1–G5. Until a provider is `cleared`, `previs` jobs only, and CI fails any release index that references `previs/` [research/gap-video-model-licence-clearance.md §8].
@@ -280,7 +280,7 @@ sequenceDiagram
 ## D7. Player and the sim protocol
 
 **Protocol (story and every other mode):**
-1. The sim's `beat` op (or a mode's equivalent) emits the sim event `{t: 'cut.request', s: refId(s), n: playId}` and **arms** the DirectorScript: actors go to their start marks, the first shot is published, the mission clock is paused, the input context switches to `cutscene`, and `lockPlayerToggle` is set.
+1. The sim's `beat` op (or a mode's equivalent) emits the sim event `{t: 'cut.request', s: refIds, n: playNo}` and **arms** the DirectorScript: actors go to their start marks, the first shot is published, the mission clock is paused, the input context switches to `cutscene`, and `lockPlayerToggle` is set. Encoding (DL-160): `n` is a u32 play counter the sim allocates per session; the string `playId` used by `CutscenePlayer.prepare/play/playSequence` and by `UiCommand 'cutscene.state'` is `String(n)` (decimal, no padding); `s` holds the `CutsceneRefId`s comma-joined in play order (ref ids never contain `,`), and a `playSequence` item with `ref: null` is an empty field.
 2. On the main thread, `CutscenePlayer.prepare` resolves each ref:
    - the index entry, discarding it when it is suppressed by `RosterFlags` or when the setting is off;
    - route 27 status;

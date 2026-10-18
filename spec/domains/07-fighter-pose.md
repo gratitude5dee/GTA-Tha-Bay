@@ -1,6 +1,6 @@
 # 07 — Fighter (S07), part D: pose-control mode
 
-> S07, Wave 3, 2026-10-18. Part of `spec/domains/07-fighter.md`. Core rules: `07-fighter-core.md` (`FC#`); content: `07-fighter-content.md` (`FX#`). Covers R-MODE-03 (optional full-body pose control) and R-IP-04 (camera and pose data stay on device). Honors 06 v1.0 C03 (`PoseActionEvent`, `DeviceKind 'pose'`, rule 8), C05 (`privacy`), C13, C16, `spec/03` D-24 and D-30, `prompt-pack/01` constraint 22. Section ids `FP1…FP11`. Numbers marked † are starting values tuned on recorded fixtures and devices (M08c); they are budgets and thresholds, not facts about an external system.
+> S07, Wave 3, 2026-10-18. Part of `spec/domains/07-fighter.md`. Core rules: `07-fighter-core.md` (`FC#`); content: `07-fighter-content.md` (`FX#`). Covers R-MODE-03 (optional full-body pose control) and R-IP-04 (camera and pose data stay on device). Honors 06 v1.1 C03 (`PoseActionEvent`, `DeviceKind 'pose'`, rule 8), C05 (`privacy`), C13, C16, `spec/03` D-24 and D-30, `prompt-pack/01` constraint 22. Section ids `FP1…FP11`. Numbers marked † are starting values tuned on recorded fixtures and devices (M08c); they are budgets and thresholds, not facts about an external system.
 
 ## FP1 Rules (binding)
 

@@ -105,7 +105,7 @@ export type UpgradeSlot = 'engine' | 'tires' | 'brakes' | 'suspension' | 'weight
 export interface VehicleInstance {
   id: string;                                                              // 32-hex; StableKey `veh:<id>`
   defId: string;                                                           // PrefabDef id, e.g. 'vehicle.aurelian-sorrel'
-  upgrades: Partial<Record<UpgradeSlot, 0 | 1 | 2 | 3>>; livery: { assetRef: string /* C07 AssetRef livery/…|texture/… */; hue: number; plate: string /* ≤ 7 chars, A–Z 0–9 */ };
+  upgrades: Partial<Record<UpgradeSlot, 0 | 1 | 2 | 3>>; livery: { assetRef: string /* C07 AssetRef texture/<id> (no livery kind, DL-162) */; hue: number; plate: string /* ≤ 7 chars, A–Z 0–9 */ };
   damage: DamageState; odometerKm: number; acquired: number /* epoch ms */; source: 'bought' | 'reward' | 'loaner' | 'mod';
 }
 export type Difficulty = 'easy' | 'normal' | 'hard';
@@ -232,7 +232,7 @@ export const RACING_SLICE_MAX_BYTES = 1_572_864;
 | `unlock.racing` | first `racing` mode encounter (C09 hook, Act 1 mission 3 in every premise; `core.firstEncounters`) | menu tile `racing`; starter garage (D class loaner set) |
 | `unlock.racing.class.c`, `.b`, `.a`, `.s` | Rep levels 3, 7, 11, 15 | vehicles of that class become buyable; events with that `classLimit` open |
 | `unlock.racing.ladder.<n>` (n = 10 … 1) | beating rival n | `vehicles: [reward car]`, `districts: [district]` |
-| `unlock.racing.robotaxi` | Robotaxi Rush A8 (story) or ladder rival 5 | `vehicles: ['vehicle.halcyon-cormorant']` jailbroken variant |
+| `unlock.racing.robotaxi` | Robotaxi Rush `m.a2.03` (story) or ladder rival 5 | `vehicles: ['vehicle.halcyon-cormorant']` jailbroken variant |
 | `unlock.racing.event.<raceId>` | story hook completion | the event as a free event |
 
 ## 4.5 Components, anim states, SimEvents, telemetry (C01, C04, C16)
@@ -254,7 +254,7 @@ Component ids 1024–1279 (owner S06; hashed = included in `stateHash`):
 
 SimEvents emitted: `race.countdown`, `race.go`, `race.gate`, `race.lap`, `race.finish`, `race.dnf`, `race.wrongway`, `race.respawn`, `veh.impact` (n = vNormal×10), `veh.totaled`, `veh.nitro`, `veh.hop`, `veh.shift`, `drift.chain`, `pursuit.evaded`, `pursuit.busted` (the last two are S01's, listed because the mode listens to them).
 
-Telemetry names proposed to S09 (C16 closed registry; props ≤ 16, no free text, no positions): `racing.start {raceKind, class, tier, profile}`, `racing.finish {raceKind, outcome, durBucket, place, medals}`, `racing.pursuit_end {heatMax, outcome, durBucket}`, `racing.photo {tier}`, `racing.replay_view {mode: 'exact'|'track'}`, `racing.verify_fail {reason}`.
+Telemetry names proposed to S09 (C16 closed registry; props ≤ 16, no free text, no positions): `racing.start {raceKind, class, profile}`, `racing.finish {raceKind, outcome, durBucket, place, medals}`, `racing.pursuit_end {heatMax, outcome, durBucket}`, `racing.photo {}` (no props; `tier` always comes from the C16 envelope, DL-166), `racing.replay_view {mode: 'exact'|'track'}`, `racing.verify_fail {reason}`.
 
 ## 4.6 Config files (all JSON Schema validated in CI; hot-reload in `VITE_DV_QA` builds)
 

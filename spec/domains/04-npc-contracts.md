@@ -25,7 +25,7 @@ export type SoulVersion = number;           // integer ≥ 1 (fixed)
 export type SoulTier = Exclude<LikenessTier, 'original'>;          // 'consented' | 'parody' | 'fictionalized'
 export type LikenessBasis = 'real_person' | 'original';
 export type { PoiId, DistrictId } from '../world/c08';   // C08 owns both id spaces (DL-077): ^poi\.[a-z0-9.-]{3,64}$ and ^[a-z0-9-]{2,32}$
-import type { PoiId, DistrictId } from '../world/c08';
+import type { PoiId, DistrictId, ChunkKey } from '../world/c08';
 /** Tier used on assets (C07 LikenessSummary) and in the C09 cutscene key: 'original' for invented characters, else the soul tier (DL-083). */
 export const assetTier = (s: { basis: LikenessBasis; tier: SoulTier }): LikenessTier => (s.basis === 'original' ? 'original' : s.tier);
 export type ConsentScope = 'name' | 'likeness_stylized' | 'likeness_realistic' | 'voice_designed' | 'voice_clone'
@@ -162,7 +162,7 @@ export type PlayerIntent = 'greet' | 'smalltalk' | 'ask_mission' | 'accept' | 'd
 export interface NPCDialogueContext {      // client-built from sim state; enums and numbers only, so no free text reaches the prompt
   schema: 1;
   clockT: number;                          // C06 WorldClockState.t (integer half-seconds)
-  chunkKey: string;                        // C08 'z/x/y'
+  chunkKey: ChunkKey;                      // C08 'z/x/y'
   poiId: PoiId | null;
   mode: 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | 'experience';
   missionId: string | null; missionStep: string | null;    // C09 ids; for a C09 talk objective missionStep = TalkDef.id and the fallback knot is mission_<missionId>_<talkId> with '.' and '-' → '_' (DL-085)
@@ -212,7 +212,7 @@ export type DialogueEvent =
 export type IntentTrigger = 'block_boundary' | 'player_near' | 'encounter_ended' | 'world_event' | 'mission_state';
 export interface NPCIntentRequest {
   npcId: NpcId; soulVersion: SoulVersion; trigger: IntentTrigger;
-  situation: { clockT: number; chunkKey: string; poiId: PoiId | null; activeBlock: number /* index into schedule */;
+  situation: { clockT: number; chunkKey: ChunkKey; poiId: PoiId | null; activeBlock: number /* index into schedule */;
                nearby: { key: StableKey; kind: 'player' | 'npc' | 'vehicle'; distM: number }[] /* ≤ 8 */;
                events: NearbyEvent[]; relation: { trust: number; met: boolean } };
 }

@@ -1,6 +1,6 @@
 # 12 — Modding & UGC (S12)
 
-> Wave 4 domain spec, 2026-10-18, Claude Sonnet 5.5 (S12). Reads `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1 (D-05, D-26, D-30), `spec/11-decision-log.md` (DL-047, DL-048), `spec/02-architecture.md` §4.6, and the Wave 1 specs for C05/C06 (S01), C07 (S05), C12 (S09), C13 (S11). Three files, read in order:
+> Wave 4 domain spec, 2026-10-18, Claude Sonnet 5.5 (S12). Reads `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1.1 (D-05, D-26, D-30), `spec/11-decision-log.md` (DL-047, DL-048), `spec/02-architecture.md` §4.6, and the Wave 1 specs for C05/C06 (S01), C07 (S05), C12 (S09), C13 (S11). Three files, read in order:
 > 1. **this file** — checklist, scope, design, components, runtime, platforms, facts, milestones, tests, open questions;
 > 2. `12-modding-contracts.md` — **C14** (`ModManifest`, `ModAPI`, sandbox protocols) and **C17** (`ExperienceDescriptor`) as TypeScript and JSON Schema, install records, limits;
 > 3. `12-modding-publish.md` — agent workflow (`AGENTS.md`, skills, knowledge base, `dv` CLI, `thabay-mcp`), ChatGPT and device-code flows, publish pipeline and moderation, experiences on the map, forum, store, versioning.
@@ -245,7 +245,7 @@ stateDiagram-v2
   Exiting --> [*]: flush mod:id, despawn ModOwned, restore previous mode
 ```
 
-`ExperienceMode` is a `GameModeSim` with id `exp:<experienceId>`, `standalone: false`, `requires: {world:'city', physics:true, xr:'seated', network:'none'}`. On `enter` it computes the anchor's world ENU position and ground height from C08, spawns the scene around it through `PrefabService`/`ZoneService`, and teleports the player to `entryRules.start` unless the player is already inside the radius. The experience's own rules are its script and C09 missions; `ctx.rules.finish(outcome)` ends the session with a C06 `ModeResult` and **no rewards**: mods cannot credit the economy, unlock content or touch `core` (the sandbox boundary, gamedesign P-8). C09 IR from a mod is validated with the `mod` operation profile (assumption on S03: no `economy`, `unlock`, `storyFlag` or `loadMode` ops).
+`ExperienceMode` is a `GameModeSim` with id `exp:<experienceId>`, `standalone: false`, `requires: {world:'city', physics:true, xr:'seated', network:'none'}`. On `enter` it computes the anchor's world ENU position and ground height from C08, spawns the scene around it through `PrefabService`/`ZoneService`, and teleports the player to `entryRules.start` unless the player is already inside the radius. The experience's own rules are its script and C09 missions; `ctx.rules.finish(outcome)` ends the session with a C06 `ModeResult` and **no rewards**: mods cannot credit the economy, unlock content or touch `core` (the sandbox boundary, gamedesign P-8). C09 IR from a mod is validated with the `mod` operation profile (C09 `mod` profile, DL-084: rejects `give`, `rewards`, `unlocks`, `unlockOnFirstEncounter`, `flag` ops on story keys and `mode` hooks).
 
 ### 5.4 Budgets per tier (S12; calibrate in M13a3/M13a4 on device, recorded not asserted)
 

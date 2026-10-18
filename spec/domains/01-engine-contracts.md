@@ -232,7 +232,7 @@ export interface BootPayload { strings: string[]; prefabs: unknown[]; config: Re
 6. Ambient density in `canonical` is the `mobile-low` cap regardless of device; the cross-browser hash test, mission autoplay CI, race ghosts and server checks run `canonical`.
 7. Presentation (animation, camera smoothing, audio, VFX, sun direction) never feeds back into sim state.
 
-## C03 — `InputAction` map (owner S01; consumers: S06, S07, S10, S11, S12)
+## C03 — `InputAction` map (owner S01; consumers: S03, S06, S07, S10, S11, S12)
 
 ```ts
 // packages/shared/src/contracts/c03-input.ts
@@ -302,8 +302,7 @@ export interface ControlsSettings {
   invertY: boolean;
   deadzones: { stickInner: number; stickOuter: number; trigger: number };
   touch: { layout: string /* layout id */; tiltSteer: boolean; stickRadiusPx: number; opacity: number };
-  fighterScheme: 'classic' | 'simple';
-}
+}                                         // 1.1 adds optional fighterScheme (end of file, DL-095)
 
 export interface Binder {
   readonly device: DeviceKind;
@@ -341,7 +340,7 @@ export interface PoseActionEvent { action: ActionId; captureTs: number; confiden
 9. Every `SimButton` and `ClientAction` is remappable on every device except `client.Pause`, which always keeps its default binding in addition to any override (R-ENG-04).
 10. Defaults per device and context are the gamedesign §6 matrix, stored as JSON in `config/input/`; touch defaults use stick radius 58 px, knob 26 px, sprint beyond 1.35× radius, look gain 3.0, tilt-steer dead zone 10°/full 45°, min hold 120 ms [research/repos-webport.md §3.6].
 
-## C04 — `CameraRig` (owner S01; consumers: S02, S03, S06, S07, S11)
+## C04 — `CameraRig` (owner S01; consumers: S02, S03, S06, S07, S08, S09, S11)
 
 ```ts
 // packages/shared/src/contracts/c04-camera.ts
@@ -501,7 +500,7 @@ export interface ControlsSettings { /* 1.0 fields */ fighterScheme?: 'classic' |
 /** QA-only (VITE_DV_QA builds and headless CI): writes player-0 InputFrames in sim.worker for the C09 autoplayer and S06/S07/S08 bots. */
 export interface BotInput { frame(tick: number): InputFrame; readonly device: 'bot' }
 ```
-In `InputContextId 'fighter'` the `SimButton` bits are re-read through a normative alias table (Attack=LP, Ability=MP, FightHeavy=HP, Sprint=LK, Nitro=MK, Horn=HK, Special=SP, FightAssist=AS, Handbrake=HY, Block=BL, Emote=TA, Interact=DA); no new bits, labels per context (S07 `07-fighter-core.md` FC5). `BotInput` is never bundled into production builds (`check:bundle`).
+In `InputContextId 'fighter'` the `SimButton` bits are re-read through a normative alias table (Attack=LP, Ability=MP, FightHeavy=HP, Sprint=LK, Nitro=MK, Horn=HK, Special=SP, FightAssist=AS, Handbrake=HY, Block=BL, Emote=TA, Interact=DA); no new bits, labels per context (S07 `07-fighter-core.md` FC5). `BotInput` is never bundled into production builds (`check:bundle`). In `InputContextId 'photo'` the shutter is `sim.Interact` (the S03 photo objective and the autoplayer read its `pressed` bit); `client.PhotoShutter` stays the UI screenshot action and never enters the sim (DL-159).
 
 ```ts
 // c04-camera.ts — 1.1

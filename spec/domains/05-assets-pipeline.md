@@ -234,11 +234,12 @@ Additive, accepted from Wave 2–4 return blocks (`spec/11-decision-log.md` DL-0
 nodes: { body: string; wheels: [string, string, string, string]; steer?: string[]; lights?: string[]; collider?: string;
          cockpit?: string; steeringWheel?: string; anchors?: { driver?: string; hood?: string };
          exhaust?: string[]; thrusters?: string[]; sirens?: string[] }   // plus optional vertex attribute _dent (shader damage, no extra render object)
-// InputFile.role (GenJob inputs) and ProvenanceRecord inputs accept 'plate' with origin 'first_party_generated' (S03 stage plates)
+// InputFile.role (GenJob inputs) accepts 'plate' with InputFile.origin 'first_party_generated' (S03 stage plates); generator.input_refs may cite it.
+// The plate's own ProvenanceRecord uses origin 'derived' (tool 'assets:plates', derived_from = the world_pack sha256s rendered), DL-161
 // vision_qa schema adds weapon_present: boolean and photoreal: boolean; for cutscene clips (S03 §D8) weapon_present, photoreal or any gore value other than 'none' fails the clip
 ```
 - **Prompt templates.** `check:assets` verifies each cutscene template's `keyframePin` against `config/genai-endpoints.json` (S03 §D3.3).
-- **World data (S02).** `config/license-allowlist.json` adds `ODbL-1.0` and `PDDL-1.0` (SPDX strings UNVERIFIED, S02 register); every `world_pack` and `map_data` asset has one `ProvenanceRecord` whose `parents` are the C08 `SourceStamp` ids; `world_pack` ships variant `default` only.
+- **World data (S02).** `config/license-allowlist.json` adds `ODbL-1.0` and `PDDL-1.0` (SPDX strings UNVERIFIED, S02 register); every `world_pack` and `map_data` asset has one `ProvenanceRecord` with `origin: 'derived'`, `tool` = the bake tool and `derived_from` = the `sha256` of each C08 `SourceStamp` it read; each `SourceStamp` has its own `origin: 'open_data'` record (`source {url, dataset_id: stamp.id, retrieved: stamp.retrievedAt}`, `license`, `attribution`), so the chain resolves without a new field (DL-161); `world_pack` ships variant `default` only.
 - **Character tiers (S04).** An asset's `likeness.tier` is C10 `assetTier(soul)`: `original` when the soul basis is original, else the soul tier; the same value enters the C09 cache key (DL-083). NPC data assets are `data/npc-roster`, `data/ink.<id>`, `data/barks.<id>`.
 - **Creator kit (S10, M04b2).** S05 delivers `character/pc-<slot>-<id>`, `portrait/pc-<slot>-<id>` and `ui/menu-backdrop` as ordinary catalog assets.
 - **Mod assets (S12).** Mod files never enter the catalog. `asset.worker` gets an `AssetSource` hook (C13 1.1) that resolves `<kind>/mod.<sha256[0:12]>` from OPFS `dv/mods/blobs/<sha256>`; their `ProvenanceRecord`s are unchanged (`executor: 'cli'`, `env: 'production'`).

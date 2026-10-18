@@ -9,7 +9,7 @@
 | Contract file | `packages/shared/src/contracts/c09-mission.ts` exports `C09_VERSION = '1.0.0'` and every type in §C3 (pure, no IO) |
 | JSON Schema | `packages/shared/schemas/mission-ir-1.schema.json` (draft 2020-12), generated from §C3 by S09's generator (`tools/ci/gen-api-schemas.ts`, library pinned by S13) plus the hand-written bounds of §C4; validated with Ajv, as S09 does for API bodies |
 | Source | `content/missions/<missionId>/mission.ts` (TypeScript builder), `lines.<lang>.json` (spoken and printed text), optional `director/<beat>.ts` (in-engine sequences) |
-| Compiled IR | C07 asset `data/mission.<missionId>` (`schema: 'mission-ir/1'`), plus `data/story.index` (one row per mission) and `data/lines.<act>.<lang>`; all go through the C07 catalog and provenance (`first_party_authored`) |
+| Compiled IR | C07 asset `data/mission.<missionId>` (`schema: 'mission-ir/1'`), plus `data/story.index` (one row per mission) and `data/lines.<act>.<lang>`; all go through the C07 catalog and provenance (`ProvenanceRecord.origin: 'authored'`) |
 | `MissionId` | `^m\.[a-z0-9][a-z0-9.-]{1,80}$` (80 so that a 41-character C14 `ModId` fits, DL-080); story missions are `m.a<act>.<nn>` (`m.a1.03`); mod missions are `m.mod.<modId>.<name>` |
 | Persistent entities | C01 `StableKey` `mis:<missionId>:<castName>`; `EntityId` never appears in IR, saves or checkpoints |
 | Components | story range 512–767 (C01): `MissionCast` 512 (mission id + cast name, interned), `ObjectiveMarker` 513, `CutsceneActor` 514, `DirectorTarget` 515 |
@@ -51,9 +51,9 @@ export type CastName = string;                     // ^[a-z][a-z0-9_]{0,31}$
 export type ZoneName = string;                     // same pattern
 export type { LandmarkId } from '../world/c08';    // C08 owns the id space (S02, DL-077)
 export type MissionDistrictId = 'd1' | 'd2' | 'd3' | 'd4' | 'd5' | 'd6' | 'd7' | 'd8' | 'd9' | 'd10';   // gameplay districts, a subset of C08 DistrictId
-export type LatLngTuple = [lat: number, lng: number];   // WGS84 in authored data only (06 §4.3); the compiler converts to C08 LatLngTuple {lat, lng} for WorldResolver
+export type LatLngTuple = [lat: number, lng: number];   // WGS84 in authored data only (06 §4.3); the compiler converts to C08 `LatLng` {lat, lng} (c08-api.ts) for WorldResolver
 export type RosterSlot = 'RAP_HYPHY_ELDER' | 'RAP_LYRICIST' | 'RAP_NEW_WAVE' | 'RAP_COLLECTIVE' | 'TECH_VISIONARY'
-  | 'TECH_HACKER' | 'TECH_VC' | 'ATH_SHOOTER' | 'ATH_POWER_BACK' | 'INFLUENCER';
+  | 'TECH_HACKER' | 'TECH_VC' | 'ATH_SHOOTER' | 'ATH_POWER_BACK' | 'INFLUENCER';   // the one roster-slot type; S07 FighterSlotId = RosterSlot | 'PLAYER_FIGHTER' (DL-163)
 export type CastRole = 'ally' | 'mentor' | 'rival' | 'host' | 'opponent' | 'cameo' | 'antagonist' | 'civilian' | 'unit';
 export type Who = 'player' | 'playerVehicle' | CastName;
 type HeatLevel = import('./engine-pursuit').HeatLevel;
@@ -264,7 +264,7 @@ Compiler errors carry a JSON Pointer and a code: `E_SCHEMA`, `E_REF_CAST`, `E_RE
 1. The objective spawns a conversation through `@dv/npc` (S04) with C10 `NPCDialogueRequest {npcId, encounterId?, soulVersion, turn: {intent, text?}, context, maxTokens}` exactly as C10 defines it (owner wins, DL-085): `context.mode = 'story'`, `context.missionId = <missionId>`, `context.missionStep = <talkId>`; `turn.intent` is the player's C10 `PlayerIntent` (`ask_mission` on open); deal ids a `TalkUnlock` waits for go in `context.offers.dealIds`. Outcome ids and labels are not sent: the model only produces C10 `effects`, which gate outcomes.
 2. The conversation UI (S10 surface, S04 client) always shows the outcome choices as buttons once at least one turn has completed or immediately offline. The player's choice decides the outcome; NPC `effects` only **gate** outcomes (`TalkUnlock`: e.g. `bribe` appears only after `effects.action = 'offer_deal'`, `charm` only at `trust ≥ 20`). So the LLM never decides mission flow on its own, and every outcome is reachable by explicit choice once its gate holds.
 3. Offline, on quota or budget (`quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable`), on SSE `fallback`, or after `maxTurns`, the NPC's ink knot `mission_<missionId>_<talkId>` (S04 C10 `InkKnot`; `.` and `-` in both ids become `_`, e.g. `mission_m_a1_02_haggle`) plays and offers the same outcome choices; ink lines alone must complete every mission (CI check, S04's requirement [research/ai-npc-runtime.md §2.8]).
-4. The result enters the sim as a command `{t: 'mode.cmd', mode: 'story', name: 'talk.result', args: {talkId, outcome, turns, path: 'llm' | 'ink'}}` (C06 1.1 `UiCommand` `mode.cmd`), is recorded, applies `flags`/`trust`, and jumps to the outcome's `stage`.
+4. The result enters the sim as a command `{t: 'mode.cmd', mode: 'story', name: 'talk.result', args: {talkId, outcome, turns, path: 'llm' | 'ink' | 'scripted'}}` (C06 1.1 `UiCommand` `mode.cmd`), is recorded, applies `flags`/`trust`, and jumps to the outcome's `stage`.
 5. Autoplay and CI use `TalkDef.default` with `path: 'scripted'`; no network call is made.
 
 Relationship effects persist in `StorySlice.npcRelations[soulId].trust` (clamped −100…100) and `met`. Mission state reaches the NPC only through `context` (C10 history is server-held, so the client never forges prior turns).
@@ -275,7 +275,7 @@ A `mode` objective runs its `ModeHook`:
 1. Look up the C06 descriptor. The **stub path** is used when the descriptor is missing or `comingSoon` (A-06), when `ModeContext.startChild(...)` returns false (profile mismatch, C06 rule 2), when RosterFlags kill the hook's opponent with scope `fighter`, or under `?hooks=stub` (QA).
 2. **Real path:** `startChild(hook.mode, {defId, params, seed: hash32(seed, hook.id, attempt)})`; the story is `Suspended`; on `mode.childExit` the result `outcome` is checked against `passOn`; failure retries the hook (`retry: 'hook'`) or the checkpoint. ModeHost emits `unlockOnFirstEncounter` on first entry (C06 rule 5).
 3. **Stub path:** the VM runs `hook.stub` as a normal objective and **itself** calls `ctx.unlocks.emit(unlockOnFirstEncounter, {kind: 'mission', ref: '<missionId>:<hookId>'})`, so the unlock is recorded even while the mode is `comingSoon`; the tile becomes playable as soon as a build ships the mode (C06 rule 6).
-4. Hook parameter shapes the story sends (assumptions on S06/S07/S08 defs, Part A §10): racing `{raceId}`; fighter `{opponent: soulId, stage: stageId, rounds: 1 | 3, difficulty: 'easy' | 'normal', playerFighter: true}`; tycoon `{scenarioId, weeks}`. Results return in `ModeResult.data`; rewards flow through the child mode's `EconomyApi` idempotency key and are not paid twice by the mission.
+4. `defId` and `params` are the mode owner's types (06 §4.1 rule 6, DL-092, DL-157); the story adds none: racing `defId` = S06 `RaceId` (`06-racing-data.md` §4.1), no `params`; fighter `defId` = S07 `BoutDef.id` `bout.<id>` (`07-fighter-content.md` FX8.3), `params` = S07 `FighterEnterParams` `{kind: 'story'}` (opponent, stage, CPU level and rules come from the `BoutDef`); tycoon `defId` = S08 `RunSetup.preset` (`mini8w` only, `08-tycoon.md` §5.8), no `params`. The hook map (ModeHook.id → owner defId) is Part B §B4/§B6. Results return in `ModeResult.data`; rewards flow through the child mode's `EconomyApi` idempotency key and are not paid twice by the mission.
 
 Unlock ids the story emits are listed in Part B §B7; their `UnlockDef`s live in `config/unlocks.json` (S01 registry file) with `source: 'base'`.
 
@@ -291,7 +291,7 @@ Unlock ids the story emits are listed in Part B §B7; their `UnlockDef`s live in
 | `chase` | intercept: aim at the target's position predicted 1.5 s ahead |
 | `escape`, `survive` | drive away from the last-known position toward the nearest C08 `hidingSpots`/`pursuitBreakers` tag outside the search circle; idle in the hiding spot until `heat = 0` |
 | `talk` | use `TalkDef.default`; never calls the network |
-| `photo` | goto the nearest vantage within `maxDistM` with line of sight; aim; press `sim.Camera` |
+| `photo` | goto the nearest vantage within `maxDistM` with line of sight; aim; press `sim.Interact` (the `photo` context shutter, C03 1.1) |
 | `stealth` | follow `autoplayPath` at walk speed |
 | `defeat` | open-world melee bot through `CombatApi` (S07 frame data) |
 | `score` | scripted donut/drift input pattern from `config/autoplay/score.json` |
@@ -324,5 +324,5 @@ Mods ship missions as data-tier content (C14 kind `experience`; closed permissio
 3. **Cast limits:** only `original`-basis souls (first-party originals or the mod's own NPCs passed through moderation); first-party parody or fictionalized NPCs cannot be cast [research/legal-ip-likeness.md L3].
 4. **No generation:** mod beats are DirectorScripts only (in-engine); `cutscene` refs and prompt templates are rejected for mods in v1 (no user generation, G3).
 5. **Visual editor** (S12 builds, in the sandbox overlay): place zones on the map (circle, polygon, landmark pick, route by clicking along roads), place cast with snap modes, edit the stage and objective lists with schema-driven forms, record DirectorScript shots by capturing the free-camera pose, run *Test with bot* (autoplayer) and *Preview* (simulate once, scrub), show lint errors at their JSON Pointer, and export IR JSON plus `lines.<lang>.json`.
-6. **Agent-friendly docs:** the schema, one example mission per objective kind under `examples/mods/mission-pack/`, and the `mod-missions` skill [research/repos-modding.md §5].
+6. **Agent-friendly docs:** the schema, one example mission per objective kind under `packages/mod-sdk/examples/mods/mission-pack/`, and the `mod-missions` skill [research/repos-modding.md §5].
 7. **Caps:** the §C4 bounds plus ≤ 8 missions per mod (C14 `data.missions` cap; C14 owner wins, DL-084) and the 2,000 ops/thread/tick budget; a mod mission that breaks budget or lint is disabled for the session with a toast (story saves untouched).

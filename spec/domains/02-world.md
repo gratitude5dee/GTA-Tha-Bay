@@ -1,6 +1,6 @@
 # 02 — World & Map (S02)
 
-> S02, Wave 2, 2026-10-18. Format: `prompt-pack/03-SPEC-TEMPLATE.md` §B. Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` (D-14…D-17, D-25, A-05), `spec/11-decision-log.md` (DL-049, DL-057), `spec/02-architecture.md` §4.2, and the Wave 1 domain specs. **This spec is split into five files**; read this one first.
+> S02, Wave 2, 2026-10-18. Format: `prompt-pack/03-SPEC-TEMPLATE.md` §B. Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` (D-14…D-17, D-25, A-05), `spec/11-decision-log.md` (DL-049, DL-057), `spec/02-architecture.md` §4.2, and the Wave 1 domain specs. **This spec is split into five files**; read this one first.
 > - `02-world.md` (this file): scope and checklist, design, components, runtime, platforms, facts, milestones, tests, open questions.
 > - `02-world-contracts.md`: **C08 v1.0.0** TypeScript, service interfaces, binary pack format, bounds and index schemas.
 > - `02-world-bake.md`: `tools/map` pipeline with dataset ids and outputs, sources and licences, stylization per tier, 37 landmarks with coordinates, districts, POIs.
@@ -226,7 +226,7 @@ Vegetation and lamps are one instanced draw each; furniture is a `BatchedMesh` c
 
 ### 5.7 Telemetry
 
-Proposed C16 name `world.stream` (client): `tier`, `residentL0`, `missCount`, `uploadP95Ms`, `bytesMB`, sampled 10 %, one per minute with `perf.minute`; pack failures use the existing `err.asset`. No coordinate finer than a `z=9` chunk key is sent.
+C16 1.1 name `world.stream` (client; `tier` comes from the envelope): `residentL0`, `missCount`, `uploadP95Ms`, `bytesMB`, sampled 10 %, one per minute with `perf.minute`; pack failures use the existing `err.asset`. No coordinate finer than a `z=9` chunk key is sent.
 
 ## 6. Platform notes
 
@@ -368,4 +368,4 @@ Risks (early signal → mitigation).
 
 Decisions needed (also in the return block): DN-S02-01 landmark authoring route; DN-S02-02 transit brand names; DN-S02-03 imagery default; DN-S02-04 tunnel strategy (recommend carved hoods); DN-S02-05 batch route stays out of v1; DN-S02-06 add `ModeContext.world` (P1).
 
-Contract change proposals (return block): P1 `ModeContext.world: WorldApi` (C06 1.1); P2 sloped `strips` in `StaticShapeSet` (S01); P3 landmark layer sits outside the six-object chunk rule (06 §4.4 clarification); P4 C16 name `world.stream`; P5 licence allowlist `ODbL-1.0` and `PDDL-1.0`, one `ProvenanceRecord` per pack with `parents`; P6 optional C12 batch route (conditional); P7 S11 QA flags `?hour=`, `?weather=`; P8 S10 `UiBridge` map view-model patch and `AreaBanner` key `nhood.<slug>`.
+Contract change proposals (return block): P1 `ModeContext.world: WorldApi` (C06 1.1); P2 sloped `strips` in `StaticShapeSet` (S01); P3 landmark layer sits outside the six-object chunk rule (06 §4.4 clarification); P4 C16 name `world.stream`; P5 licence allowlist `ODbL-1.0` and `PDDL-1.0`, one `ProvenanceRecord` per pack (`derived_from` = source-stamp sha256s, DL-161); P6 optional C12 batch route (conditional); P7 S11 QA flags `?hour=`, `?weather=`; P8 S10 `UiBridge` map view-model patch and `AreaBanner` key `nhood.<slug>`.

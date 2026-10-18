@@ -20,7 +20,7 @@ flowchart LR
     end
     SIM["sim.worker<br/>ECS (C01), GameLoop (C02), Rapier, ModeHost (C06),<br/>world sim: graphs, traffic, peds (C08), mission VM (C09),<br/>NPC brains (C10), mode cores, ModHost (C14),<br/>SaveService (C05), net client (C11)"]
     ASSET["asset.worker<br/>fetchRetry, WorldPackStore (OPFS), l0 mesher,<br/>decode (C07, C13), ModInstaller + mod AssetSource"]
-    POSE["pose.worker (lazy)<br/>MediaPipe Pose Landmarker lite (S07)"]
+    POSE["pose.worker (lazy)<br/>MediaPipe Pose Landmarker lite/full (S07)"]
     MODW["mod.worker (lazy)<br/>QuickJS-wasm, one runtime per script mod (C14)"]
     IDB[("IndexedDB dv-saves, dv-packs, dv-platform,<br/>dv-identity, dv-mods, dv-ui")]
     OPFS[("OPFS dv/packs, dv/mods")]
@@ -96,7 +96,7 @@ packages/
   identity/           @dv/identity — IdentityService: LocalIdentity (P0), DeviceIdentity (P1), OpenAI and Thirdweb adapters (S09)
   npc/                @dv/npc — NpcRuntime (dialogue client, ink runner, TTS player, lip-sync), brain systems (schedule, utility, BT, barks), executor, evals (S04)
   ui/                 @dv/ui — shell state machine, Preact kit, ScreenDef with DomScreen/CanvasScreen, pages, HUD, phone, creator, i18n, a11y, UiSurface for XR panels (S10)
-  mod-sdk/            @dv/mod-sdk — defineMod, ModAPI types, schemas, builders re-exported from story authoring, workspace template, agent docs (S12; published per Q-22)
+  mod-sdk/            @dv/mod-sdk — defineMod, ModAPI types, schemas, builders re-exported from story authoring, workspace template, `examples/mods/*`, agent docs (S12; published per Q-22)
   modes/story/        @dv/mode-story — authoring builder, compiler, mission VM, director, autoplayer, debug; CutscenePlayer lives in engine/client/cutscene (S03)
   modes/racing/       @dv/mode-racing — race director, AI drivers, pursuit profile, replay/ghosts, photo mode (S06)
   modes/fighter/      @dv/mode-fighter — fight mode adapter, CPU, frame-locked clip player, pose client, pose.worker (S07)
@@ -118,7 +118,7 @@ content/              authored data: prompt templates, missions, cutscene places
 content-private/      private mount (Q-25): real-derived souls, research layer, production NPC rails; never published
 assets/               assets.lock.json, provenance/<sha2>/<sha256>.json, prefabs/<id>.json
 supabase/             migrations/0001…0009, tests/*.sql (pgTAP)
-tests/                cross-package e2e, staging, load and ops suites
+tests/                cross-package e2e, staging, load and ops suites; `tests/reports/` CI artifacts (gitignored)
 docs/                 decisions/ (ADRs), legal/ (vendor terms and licence snapshots)
 ```
 
@@ -133,7 +133,7 @@ Dependency direction: `apps → services/packages`; every package may import `@d
 | Main thread | DOM UI (Preact), input capture, XR session and Canvas panels, rendering (incl. menu scene), camera, animation, audio, `CutscenePlayer`, map views, `PoseClient`, telemetry client | sim state mutation | `01-engine.md` §2.1; `11-platform.md` §2; `10-ui.md` §2.3 |
 | `sim.worker` | ECS, physics, world sim (graphs, traffic, peds), AI and NPC brains, pursuit, modes, mission VM and director, `ModHost`, saves, net socket (M12) | DOM, `three`, GPU | C01, C02, C08; `01-engine.md` §2.1, §2.12 |
 | `asset.worker` | fetch lanes, OPFS pack store, SHA-256 verify, decode, `l0` chunk meshing, minimap tile raster, mod installer and `AssetSource` | game logic | `11-platform-pwa.md` §5; C07; `02-world.md` §2.2 |
-| `pose.worker` (lazy, classic worker) | MediaPipe Pose Landmarker lite 1.1.1, filters, gesture FSM; emits gestures only | uploading or storing frames | spec/03 D-24; R-IP-04; `07-fighter-pose.md` FP2 |
+| `pose.worker` (lazy, classic worker) | MediaPipe Pose Landmarker 1.1.1 (lite on mobile, full on desktop when within budget, DL-164), filters, gesture FSM; emits gestures only; files under `/pose/`, runtime-cached by the service worker (`11-platform-pwa.md` §4) | uploading or storing frames | spec/03 D-24; R-IP-04; `07-fighter-pose.md` FP2 |
 | `mod.worker` (lazy) | QuickJS-wasm runtimes, one per script mod, deadlines and memory limits | DOM, network, clocks, rendering | C14; `12-modding.md` §2.2–2.3 |
 | UI-mod iframe | `sandbox="allow-scripts"` `srcdoc` document, opaque origin, MessagePort only; declarative panel in XR | network, storage, SharedArrayBuffer | C14; `12-modding.md` §2.5 (R-S11-05) |
 | Service worker | shell precache, `/asset-catalog.json`, cutscene "keep offline" cache | world packs, glTF, KTX2, audio banks | `11-platform-pwa.md` §4 |

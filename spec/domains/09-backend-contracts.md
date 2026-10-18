@@ -238,7 +238,7 @@ Normative rules:
 
 ---
 
-## 2. C12 — API surface, identity, DataPort (1.0.0)
+## 2. C12 — API surface, identity, DataPort (1.0.0; 1.1 in `09-backend-contracts-1.1.md`)
 
 Consumers: S10 (all UI calls), S12 (UGC, publish, device-code), S04 (dialogue, builder, memory), S03/S05 (cutscenes, jobs), S06 (leaderboards), S13 (tests). Route semantics owned by other domains are marked; S09 owns transport, auth, limits, errors and storage.
 
@@ -481,7 +481,7 @@ Row types are generated from the database (`packages/shared/src/db.gen.ts`, Part
 
 ---
 
-## 3. C16 — `TelemetryEvent` (1.0.0)
+## 3. C16 — `TelemetryEvent` (1.0.0; 1.1 in `09-backend-contracts-1.1.md`)
 
 Consumers: every package that emits events (S01, S02, S03, S04, S06–S08, S10, S11, S12); S13 dashboards and release gates. Design from [research/gap-observability-cost-guardrails.md Rec 1].
 

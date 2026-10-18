@@ -1,6 +1,6 @@
 # Domain 03 — Story, Missions & Cutscenes (S03)
 
-> Wave 2 · v1.0 · 2026-10-18 · author S03 (`claude-opus-5-5`). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.0 (frozen)**, `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1, `spec/02-architecture.md` v0, `spec/11-decision-log.md` (DL-001…DL-076), `spec/99-open-questions.md`, and the Wave 1 specs (`01-engine*`, `05-assets*`, `09-backend*`, `11-platform*`).
+> Wave 2 · v1.0 · 2026-10-18 · author S03 (`claude-opus-5-5`). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.1 (frozen)**, `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1.1, `spec/02-architecture.md` v0.5, `spec/11-decision-log.md` (DL-001…DL-076), `spec/99-open-questions.md`, and the Wave 1 specs (`01-engine*`, `05-assets*`, `09-backend*`, `11-platform*`).
 >
 > **Parts:**
 > - **A** (this file): template §1–§3 and §5–§10, the overview of §4, platform notes, milestones, tests and open items.
@@ -21,7 +21,7 @@
 | R-CUT-03 | every ref has a DirectorScript fallback; the player falls back on 11 triggers; the mission never waits on generation | D §D6–D7; C §C5 `E_NO_FALLBACK` |
 | Supporting | R-ENG-03 (prewarm, cache-first), R-ENG-04 (subtitles, `timerScale`, skippable), R-IP-01/02 (prompt hygiene, depiction lint), R-NPC-05 (missions complete on ink alone), R-MAP-03 (mission markers via `data/story.index`), R-PLAT-04 (camera toggle locked in cutscenes) | C §C7, §C11; D §D4, §D7 |
 
-**Contracts.** Owns **C09** (finalized as v1.0.0: Part C §C3 and Part D §D2). Honors C01 (`StableKey mis:`, component range 512–767), C05 (`StorySlice`, opaque checkpoint), C06 (`ModeContext`, `SimScheduler`, `ZoneService`, `TimelineRecorder`, `UnlockApi`, `startChild`), C07 (`AssetRef`, `LikenessTier`, provenance, GenJob), C10 (06 v1.0 sketch; assumptions in §10). Reads C04 (`CinematicShot`, `CameraDirective`), C08 (sketch), C12 (route 27/28, `CutsceneStatus`, `RosterFlags`), C13 (`PreparedClip` consumer `XrMediaHost`, tiers), C16 (telemetry names).
+**Contracts.** Owns **C09** (finalized as v1.0.0: Part C §C3 and Part D §D2). Honors C01 (`StableKey mis:`, component range 512–767), C05 (`StorySlice`, opaque checkpoint), C06 (`ModeContext`, `SimScheduler`, `ZoneService`, `TimelineRecorder`, `UnlockApi`, `startChild`), C07 (`AssetRef`, `LikenessTier`, provenance, GenJob), C10 (1.0.0; assumptions resolved in §10). Reads C04 (`CinematicShot`, `CameraDirective`), C08 (1.0.0), C12 (route 27/28, `CutsceneStatus`, `RosterFlags`), C13 (`PreparedClip` consumer `XrMediaHost`, tiers), C16 (telemetry names).
 
 **C09 consumers:**
 - S05: request, manifest and the index build.
@@ -235,7 +235,7 @@ stateDiagram-v2
 | Generated clip host | DOM overlay; `v1080` when present on ≥ 1440 px screens | DOM overlay from the unlocked pool; `v540` on data saver or < 4 Mbps; Wake Lock | media quad layer at 72 Hz; texture fallback | `VideoFrameTexture` via WebCodecs |
 | In-engine fallback | director cuts | director cuts; reduced motion respected | fixed vantage, no cuts, 300 ms fades | same as Quest; hands-only skip (pinch) |
 | Talk choices | buttons and keys | large touch buttons, safe areas | world-locked panel, ray select | panel, pinch select |
-| Photo objective | `sim.Camera` with crosshair | camera button on the touch overlay | controller ray as viewfinder | pinch frame gesture (S11 binding) |
+| Photo objective | `sim.Interact` in the `photo` input context (C03 1.1, DL-159) with crosshair | camera button on the touch overlay | controller ray as viewfinder | pinch frame gesture (S11 binding) |
 | Timers | `timerScale` | same | same; no time-pressure stealth in XR (+50 % stealth budget) | same as Quest |
 | Debugger | full overlay | overlay collapsible; bridge for automation | off (DOM unavailable in XR); bridge only | off |
 | Prefetch | 3 refs | ≤ 2 refs | 2 refs | 2 refs |
@@ -327,7 +327,7 @@ R-ID → milestones:
 **Decisions needed** (recommendations applied as defaults):
 - **DN-S03-01.** The tycoon unlock sits in the Act 2 opener (m.a2.01), not in Act 1. This matches S08's input [research/gamedesign-decomposition.md §5.11]. Act 1 still exercises the racing and fighter hooks.
 - **DN-S03-02.** Generated clips never show the protagonist, user NPCs or real-person story cast.
-- **DN-S03-03.** New milestone ids M05e1/M05e2 (Act 2) and M05f1/M05f2 (Act 3) inside the M05 story family, scheduled after M09b and M10b.
+- **DN-S03-03.** New milestone ids M05e1/M05e2 (Act 2) and M05f1/M05f2 (Act 3) inside the M05 story family, scheduled per DL-115: M05e1/e2 after M07a2, M08b2 and M09b2; M05f1/f2 after M05e2 and M10b.
 - **DN-S03-04.** Story dialogue is always in-engine. Generated clips use `engine` audio by default.
 - **DN-S03-05.** Owner arranges a community sensitivity read of the D3/D4 missions before the M05c2 release (gate in `content/story/sensitivity.json`).
 - **DN-S03-06.** Script names: `missions:*` family and `check:missions` (06 §5 addition).
@@ -346,6 +346,6 @@ R-ID → milestones:
 | A-C04-1 | **Accepted** as C04 1.1 (DL-096) |
 | A-S05-1 | **Accepted** as C07 1.1 (DL-099) |
 | A-C16-1 | **Accepted** as C16 1.1 (DL-103) |
-| A-HOOK-1 | **Resolved (DL-092): the mode owner owns `ModeHook.defId` and its params.** Racing `defId` = S06 `RaceId` (e.g. `sf.pursuit.bayview-escape`); fighter `defId` = S07 bout id (`bout.a5`, `bout.a11`); tycoon `defId` = S08 `mini8w` with `params {scenarioId, weeks}`; `MoveDef.cutsceneBrief` stays S07's |
+| A-HOOK-1 | **Resolved (DL-092): the mode owner owns `ModeHook.defId` and its params.** Racing `defId` = S06 `RaceId` (e.g. `sf.pursuit.bayview-escape`); fighter `defId` = S07 `bout.<id>` (`bout.a5`, `bout.a11`, `bout.a3-final`) with `params` = S07 `FighterEnterParams {kind:'story'}`; tycoon `defId` = S08 preset `mini8w`, no params; map of hook ids to defIds in Part B §B4/§B6 (DL-157); `MoveDef.cutsceneBrief` stays S07's |
 
 **Open questions:** Q-03 and Q-14 (provider clearance and programme cap) decide whether M05c2 ships generated Act 1 clips or a fallback-only Act 1; both paths are fully specified. Q-19 (character research layer) affects only the roster-slot souls, which stand-ins cover.

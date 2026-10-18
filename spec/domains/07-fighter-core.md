@@ -24,8 +24,7 @@ export interface Aabb2 { x: U; y: U; w: U; h: U }
 export type Guard = 'high' | 'mid' | 'low' | 'overhead' | 'unblockable' | 'throw';
 export type SchemeId = 'classic' | 'simple' | 'pose';
 export type MoveKind = 'normal' | 'command' | 'air' | 'special' | 'super' | 'throw' | 'auto' | 'shutdown' | 'taunt';
-export type SlotId = 'RAP_HYPHY_ELDER' | 'RAP_LYRICIST' | 'RAP_NEW_WAVE' | 'RAP_COLLECTIVE' | 'TECH_VISIONARY' | 'TECH_HACKER'
-  | 'TECH_VC' | 'ATH_SHOOTER' | 'ATH_POWER_BACK' | 'INFLUENCER' | 'PLAYER_FIGHTER';   // USER_NPC uses template kits (FX1)
+export type FighterSlotId = RosterSlot | 'PLAYER_FIGHTER';   // RosterSlot = C09 contracts/c09-mission.ts (the one roster-slot type, shared with S03; DL-163); not C05 SlotId; USER_NPC uses template kits (FX1)
 export type FighterId = string;                                 // soul id = C07 asset slug; PLAYER_FIGHTER = 'player'
 
 export interface HitDef {
@@ -76,7 +75,7 @@ export interface ProjectileDef {
   summon?: { moveSet: string; hypeCost: number };               // 'summon' (crew assist): scripted move list
 }
 export interface FighterDef {                                   // a KIT: frame data bound to a slot, not to a person
-  slot: SlotId; kit: string; archetype: string;
+  slot: FighterSlotId; kit: string; archetype: string;
   health: number;                                               // default 10,000
   walk: { f: U; b: U }; dash: { f: { frames: number; dist: U }; b: { frames: number; dist: U } };
   jump: { pre: number; v0: U; gravity: U; vxF: U; vxB: U; land: number };
@@ -101,7 +100,7 @@ export type InputPattern =                                      // parsed once a
   | { t: 'chord'; buttons: number };
 
 /** Content-compiled, immutable per build: its SHA-256 (canonicalize + sha256Hex, C09 helpers) is `frameDataHash`. */
-export interface FrameDataPack { v: typeof FIGHT_DATA_VERSION; kits: Record<SlotId, FighterDef>; tuning: FightTuning; hash: string }
+export interface FrameDataPack { v: typeof FIGHT_DATA_VERSION; kits: Record<FighterSlotId, FighterDef>; tuning: FightTuning; hash: string }
 ```
 
 ```ts
@@ -137,7 +136,7 @@ export interface FightSim {
   hash(buf: Int32Array): [number, number];                      // FNV-1a-64 lanes via Math.imul over every word except presentation counters
   snapshot(buf: Int32Array): Int32Array; restore(buf: Int32Array, snap: Int32Array): void;
 }
-export interface FighterLoadout { slot: SlotId; fighterId: FighterId; scheme: SchemeId; autoBlock?: boolean; costume: number }
+export interface FighterLoadout { slot: FighterSlotId; fighterId: FighterId; scheme: SchemeId; autoBlock?: boolean; costume: number }
 export interface FightRules {
   roundsToWin: 1 | 2 | 3; timerFrames: number | 0;             // 0 = infinite (Versus, Training)
   simpleDmgPct: number;                                         // 80 default
@@ -173,7 +172,7 @@ export interface FighterSlice {
   arcade: Record<FighterId, { cleared: boolean; bestTimeSec?: number; bestDifficulty?: 0 | 1 | 2 | 3 }>;
   settings: { scheme: 'classic' | 'simple'; inputDisplay: boolean; difficulty: 0 | 1 | 2 | 3; cinematics: 'off' | 'first' | 'always';
               seenReveal: Record<FighterId, boolean>; hybridPose: boolean };
-  lastLoadout: { slot: SlotId; costume: number } | null;
+  lastLoadout: { slot: FighterSlotId; costume: number } | null;
 }
 ```
 Pose calibration is **not** in this slice (FP4: device-local store).

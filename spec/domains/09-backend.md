@@ -1,8 +1,8 @@
 # 09 — Backend, Data & Multiplayer (S09)
 
-> Wave 1 domain spec, 2026-10-18, Claude Opus 5.5 (S09). Reads 06-SHARED-CONTEXT v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1 (D-01…D-30, A-01…A-10, G1–G3). Four files, read in order:
+> Wave 1 domain spec, 2026-10-18, Claude Opus 5.5 (S09). Reads 06-SHARED-CONTEXT v1.1 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1.1 (D-01…D-30, A-01…A-10, G1–G3). Four files, read in order:
 > 1. **this file** — scope, design, components, runtime, platforms, facts, milestones, tests, open questions;
-> 2. `09-backend-contracts.md` — C11 (1.0.0, wire protocol 2), C12 (1.0.0), C16 (1.0.0) TypeScript;
+> 2. `09-backend-contracts.md` — C11 (1.0.0, wire protocol 2), C12 (1.1.0), C16 (1.1.0) TypeScript (1.1 additions in `09-backend-contracts-1.1.md`);
 > 3. `09-backend-db.md` — Postgres schema, RLS, R2/KV/DO storage, retention, migrations;
 > 4. `09-backend-ops.md` — Workers config, environments, CI/CD, abuse controls, observability, cost guardrails, secrets.
 

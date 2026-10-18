@@ -1,6 +1,6 @@
 # 08 — Business Tycoon, part B: cap table, SAFE and priced-round math, waterfall, term sheets, VC negotiation
 
-> S08, Wave 3, 2026-10-18. Part of `spec/domains/08-tycoon.md` (part A: scope, sim loop, company model; part C: `08-tycoon-events.md`). Consumes 06 v1.0 C05, C06, C10 and the C10 sketch of 06 §4.4. Numbers marked *design* are our own starting values, tuned at M09a2 against the balance bands (part C §8); numbers marked *verified* cite the ledger. Nothing here is legal or investment advice: this is a game ruleset (D-30, 06 §3 "no real-money or token economy").
+> S08, Wave 3, 2026-10-18. Part of `spec/domains/08-tycoon.md` (part A: scope, sim loop, company model; part C: `08-tycoon-events.md`). Consumes 06 v1.1 C05, C06 (1.1.0) and C10 (1.0.0). Numbers marked *design* are our own starting values, tuned at M09a2 against the balance bands (part C §8); numbers marked *verified* cite the ledger. Nothing here is legal or investment advice: this is a game ruleset (D-30, 06 §3 "no real-money or token economy").
 
 ## 1. Scope
 This part owns: money and share arithmetic, `CapTable` and its operations, post-money SAFE conversion, priced rounds with option-pool shuffle, the liquidation waterfall, the deterministic term-sheet envelope, the negotiation state machine, the VC roster, and the dialogue integration with C10 (clamp, fallback, quotas). R-IDs: R-MODE-04 (cap-table math, AI-NPC investors), R-NPC-04 and R-NPC-05 (likeness tiers, proxy dialogue), R-ENG-03 (turn cost control), R-IP-01 (fictional companies).

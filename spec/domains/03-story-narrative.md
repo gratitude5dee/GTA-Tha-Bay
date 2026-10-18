@@ -56,15 +56,15 @@ Order and gates: 01 → 02 → 03. From there:
 - 10 needs 06 and 09, and 11 needs 06;
 - 12 needs 10 and 11.
 
-Heat values are `heatPolicy` start/max. Seconds are the autoplay `expectedSec` band. Rewards are paid once per mission (idempotency key `mis:<id>:reward`).
+Mode hook cells read (`ModeHook.id`, owner `defId`) (§C8 item 4, DL-157). Heat values are `heatPolicy` start/max. Seconds are the autoplay `expectedSec` band. Rewards are paid once per mission (idempotency key `mis:<id>:reward`).
 
 | # / id | Title · district · start | Stages (objective kinds) | Heat | Mode hook / unlock | Cast | Beats | Band (s) | Reward |
 |---|---|---|---|---|---|---|---|---|
 | 01 `m.a1.01` | Jump Start · D3 · auto after the creator | goto Yard gate on foot → enterVehicle tow truck → goto a stalled robotaxi on 3rd St (clock locked 06:00, `karl-fog`) → deliver it to the Yard (`fragile` 0.5) | 0/0 | `unlock.district.d3`; safehouse `sh.yard`; tow truck to garage | odessa, tavi | gen `dawn` intro; in-engine outro "the pod" | 240–600 | $500 |
 | 02 `m.a1.02` | Surge Pricing · D1→D2 · phone `x_ramos` | goto 4th & King pickup (stopped) → deliver the fare to the 24th St BART plaza within 240 s, racing a robotaxi's ETA → escape (heat set to 1, checkpoint) → goto Yard | 0/2 | `unlock.district.d1`, `.d2` | `ama_osei` (fictional fare) | in-engine | 300–720 | $1,200 · cred 20 |
-| 03 `m.a1.03` | Sideshow Sunday · D3 · marker at the Yard, 18:00–23:00 · tags `sideshow` | follow Tavi to an industrial lot → score drift 3,000 in 90 s → raid beat → **mode** racing `race.a1.sideshow-escape` (stub: escape at heat 2, then goto Yard in 240 s) | 2/3 | **`unlock.racing`** (first encounter) | tavi | gen `raid` | 300–780 | $1,500 · cred 40 |
+| 03 `m.a1.03` | Sideshow Sunday · D3 · marker at the Yard, 18:00–23:00 · tags `sideshow` | follow Tavi to an industrial lot → score drift 3,000 in 90 s → raid beat → **mode** racing (`race.a1.sideshow-escape`, `sf.pursuit.bayview-escape`) (stub: escape at heat 2, then goto Yard in 240 s) | 2/3 | **`unlock.racing`** (first encounter) | tavi | gen `raid` | 300–780 | $1,500 · cred 40 |
 | 04 `m.a1.04` | Curb Appeal · D1 · phone odessa | goto the launch-party line (lawful) → talk `INFLUENCER` (`selfie` / `pass`) → talk door host (`charm` gated on NPC mood, `bribe` $300, `refuse`) → stealth to the exec floor (detect budget 3 inside, 2 via the service door) → photo the curb-map screen → keynote beat → goto exit | 0/1 | — | INFLUENCER, `door_host`, corwin (beat), dana | gen `keynote` | 360–900 | $2,000 · clout 30 |
-| 05 `m.a1.05` | Turntable Battle · D4/D6 Powell & Market · phone `saint_static` | goto the turntable plaza → ring beat → talk `RAP_HYPHY_ELDER` host (`sign_up`) → **mode** fighter `fight.a1.turntable` {opponent `RAP_NEW_WAVE`, stage `powell_turntable`, rounds 1, easy}, pass on win or lose (stub: defeat `chorus_sparrer`, non-lethal) → in-engine outro | 0/0 | **`unlock.fighter`** (first encounter); `unlock.fighter.rap_new_wave` on pass | saint, hyphy host, new-wave opponent | gen `ring` | 240–600 | $1,000 (+$1,000 win) · cred 30 |
+| 05 `m.a1.05` | Turntable Battle · D4/D6 Powell & Market · phone `saint_static` | goto the turntable plaza → ring beat → talk `RAP_HYPHY_ELDER` host (`sign_up`) → **mode** fighter (`fight.a1.turntable`, `bout.a5`: `RAP_NEW_WAVE` at `powell_turntable`, CPU Normal, rules from the S07 `BoutDef`), pass on win or lose (stub: defeat `chorus_sparrer`, non-lethal) → in-engine outro | 0/0 | **`unlock.fighter`** (first encounter); `unlock.fighter.rap_new_wave` on pass | saint, hyphy host, new-wave opponent | gen `ring` | 240–600 | $1,000 (+$1,000 win) · cred 30 |
 | 06 `m.a1.06` | Signal Boost · D2 · phone saint | goto a Mission warehouse → follow and protect the Chorus van (band 10–60 m, lose 20 s, min health 0.4) to Bernal Heights → escape (patrol sweep, heat 2) → antenna beat | 0/3 | — | saint, Chorus crew | gen `antenna` | 360–900 | $2,500 |
 | 07 `m.a1.07` | Hacker House · D4 (Hayes Valley) · phone odessa · `sensitivity-read` | goto the Victorian → talk `patch` (`trust`: hand over the pod / `doubt`: keep it, flag) → stealth across Alamo Square past Halcyon drones (budget 3) → deliver Patch to Civic Center | 0/1 | `unlock.district.d4` | patch, dana (radio) | in-engine | 300–780 | $2,000 · clout 40 |
 | 08 `m.a1.08` | Dead Pixels · D3→D1 · marker at the Yard, 21:00–04:00 | wait for the mapping car → follow it (15–90 m, lose 25 s) to its SoMa depot → photo the depot gate → chase a second mapping car (catch 6 m, hold 3 s: plant Patch's dongle) → escape | 0/2 | — | patch (radio) | gen `scanner` | 360–960 | $3,000 |
@@ -102,25 +102,25 @@ That makes 9 refs and 102 s: 4 × 8 s + 5 × 14 s. The "LOT 1" screen text in th
 
 | id | Title · district | Core (objective kinds) | Hook | Gen refs |
 |---|---|---|---|---|
-| `m.a2.01` | Seed Round · D5 FiDi | talk whitney; **mode** tycoon `tycoon.a2.curbshare` {scenario `curbshare-coop`, 8 weeks} (stub: three-choice talk) | **`unlock.tycoon`** | `fidi` (establish) |
-| `m.a2.02` | Hill Climb · D6 Russian Hill | **mode** racing `race.a2.hill-climb` against the *Vanta* roadster prototype (stub: goto summit in time) | `unlock.vehicle.vanta_roadster` | `roadster` (beat) |
-| `m.a2.03` | Jailbreak · D4 · tags `jailbreak` | protect patch; **mode** racing `race.a2.robotaxi-rush` (stub: chase 3 locked robotaxis) | — | `release` (beat) |
+| `m.a2.01` | Seed Round · D5 FiDi | talk whitney; **mode** tycoon (`tycoon.a2.curbshare`, `mini8w`): the co-op's dispatch-software seed round as S08's fixed 8-week SAFE preset, pass on win or lose (stub: three-choice talk whose outcomes set the same flag); on `modeResult(tycoon.a2.curbshare, ['win'])` set flag `coop_success = true` | **`unlock.tycoon`** | `fidi` (establish) |
+| `m.a2.02` | Hill Climb · D6 Russian Hill | **mode** racing (`race.a2.hill-climb`, `sf.hillclimb.filbert-hyde`) against the Solenne Skip roadster test car (`vehicle.solenne-skip`, S06) (stub: goto summit in time) | `unlock.racing.event.sf.hillclimb.filbert-hyde` (S06) | `roadster` (beat) |
+| `m.a2.03` | Jailbreak · D4 · tags `jailbreak` | protect patch; **mode** racing (`race.a2.robotaxi-rush`, `sf.robotaxirush.soma-haight`) (stub: chase 3 locked robotaxis) | `unlock.racing.robotaxi` (S06) | `release` (beat) |
 | `m.a2.04` | Karl · D8 Golden Gate Park / Ocean Beach | stealth in fog, follow a mapping van to a hidden data trailer | `unlock.district.d8` | `fogbank` (establish) |
 | `m.a2.05` | Tower · D9 Twin Peaks | protect + survive: defend the Chorus broadcast from drones | `unlock.district.d9` | `broadcast` (beat) |
 | `m.a2.06` | Cable Pull · D6 Chinatown / North Beach | talk `RAP_LYRICIST` (mentor, café); follow a courier along a cable-car line; photo at Coit Tower | `unlock.district.d6` | `cablecar` (establish) |
 | `m.a2.07` | Pier Pressure · D5 Embarcadero | talk chain at the Ferry Building; photo the ledger; escape at heat 3 | `unlock.district.d5` | `ledger` (beat) |
-| `m.a2.08` | Showcase · Alcatraz stage | boat crossing beat; **mode** fighter `fight.a2.showcase` vs `ATH_POWER_BACK` | `unlock.fighter.ath_power_back` | `crossing` (establish) |
+| `m.a2.08` | Showcase · Alcatraz stage | boat crossing beat; **mode** fighter (`fight.a2.showcase`, `bout.a11`: `ATH_POWER_BACK` at `alcatraz_yard`, CPU Hard) | `unlock.fighter.ath_power_back` | `crossing` (establish) |
 
 **Act 3 "Exit Event"** (6 missions). The board vote, the gala, the hearing and the finale on the Bay Bridge west span to Yerba Buena Island. That is the portal hook to the M15+ East Bay expansion.
 
 | id | Title · district | Core | Hook | Gen refs |
 |---|---|---|---|---|
-| `m.a3.01` | Board Games · D5 | **mode** tycoon `tycoon.a3.board-vote` (stub: talk chain) | — | `boardroom` (beat) |
+| `m.a3.01` | Board Games · D5 | talk chain at the board vote (no mode hook: S08 defines no board-vote preset in v1, DL-157) | — | `boardroom` (beat) |
 | `m.a3.02` | Glass House · D7 Pacific Heights | talk + stealth at Hale's gala; photo the server map | `unlock.district.d7` | `gala` (establish), `server` (beat) |
-| `m.a3.03` | Great Highway · D8 | **mode** racing `race.a3.great-highway` night speed trap vs Curb Ops drivers | — | `speedtrap` (beat) |
-| `m.a3.04` | Chorus Final · D1 arena | **mode** fighter `fight.a3.final` vs `RAP_LYRICIST` | `unlock.fighter.rap_lyricist` | `arena` (beat) |
+| `m.a3.03` | Great Highway · D8 | **mode** racing (`race.a3.great-highway`, `sf.speedtrap.great-highway-night`) night speed trap vs Curb Ops drivers | — | `speedtrap` (beat) |
+| `m.a3.04` | Chorus Final · D1 arena | **mode** fighter (`fight.a3.final`, `bout.a3-final`: `RAP_LYRICIST` at `mission_bay_court`, CPU Hard) | `unlock.fighter.rap_lyricist` | `arena` (beat) |
 | `m.a3.05` | The Hearing · D4 City Hall · `sensitivity-read` | protect Imani's route; talk chain; outcome uses `hearing_support` | — | `vote` (beat) |
-| `m.a3.06` | Exit Event · D5→D10 | protect the broadcast; heat 5, then scripted 6 along the Embarcadero onto the Bay Bridge west span to Yerba Buena Island; portal closes behind | `unlock.district.d10` | `bridge` (beat), `dawn` (establish), `ending.coop` / `ending.yard` (beats, chosen by flag `coop_success` from the tycoon results) |
+| `m.a3.06` | Exit Event · D5→D10 | protect the broadcast; heat 5, then scripted 6 along the Embarcadero onto the Bay Bridge west span to Yerba Buena Island; portal closes behind | `unlock.district.d10` | `bridge` (beat), `dawn` (establish), `ending.coop` / `ending.yard` (beats, chosen by flag `coop_success`, set in `m.a2.01` from the `mini8w` result) |
 
 Acts 2–3 generated refs: 18 (8 + 10), of which 6 establish × 8 s and 12 beats × 14 s = 216 s (Part D §D9, priority 4). Acts 2–3 add $70k–$110k of rewards in total (design band; balanced by the economy harness `tools/ci/econ-sim`, owner S01, with story and racing sections from S03 and S06).
 
@@ -133,7 +133,7 @@ Acts 2–3 generated refs: 18 (8 + 10), of which 6 establish × 8 s and 12 beats
 | `unlock.tycoon` | first tycoon hook: m.a2.01 | `menuTile: 'tycoon'` | Act 2 opener, consistent with S08's research input [research/gamedesign-decomposition.md §5.11] |
 | `unlock.fighter.rap_new_wave`, `.ath_power_back`, `.rap_lyricist` | mission pass (m.a1.05, m.a2.08, m.a3.04) | `fighters: [<resolved soul id>]` | a killed slot grants its stand-in |
 | `unlock.district.d1` … `d10` | first pass of a mission in that district | `districts: ['dN']` | racing free roam and Jobs-app filters |
-| `unlock.vehicle.vanta_roadster` | m.a2.02 pass | `vehicles: ['vehicle.vanta_roadster']` | S06 prefab |
+| `unlock.racing.event.sf.hillclimb.filbert-hyde`, `unlock.racing.robotaxi` | m.a2.02, m.a2.03 pass | S06 `UnlockDef`s (`06-racing-data.md` §4.4) | registered by S06, not in the story's `config/unlocks.json` rows |
 
 The ids are lowercase and sorted in `CoreSlice.unlocks`. Their `UnlockDef`s are added to `config/unlocks.json` in M05c1 (racing, fighter, districts) and M05e (tycoon and the rest). Main-menu tiles, toasts and the NEW badge are S10's flow (`10-ui.md` §5, item 3). A-06 still applies: a mode whose milestone has not shipped shows `comingSoon` even when unlocked.
 

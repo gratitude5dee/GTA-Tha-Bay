@@ -48,7 +48,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 - **Assigned:** R-NPC-02 (character pipeline), R-IP-01 (provenance manifest and CI check), R-ENG-03 (nothing generates without a cache check; quotas and budget alarms), R-CUT-01 (storage and generation jobs: stages inside `GenJobWorkflow`; S03 owns request, cache key and playback).
 - **Enforced here for others:** R-NPC-04 and R-IP-02 (tier gates at every stage, kill-switch purge), R-CUT-03 (generation never blocks play).
 - **Deferred:** the player-triggered half of R-NPC-03 (generation step) to M13c; the NPC-builder text path is S04's.
-- **Owns:** C07. **Honors:** C13 (tier ids, `VARIANT_FALLBACK`, budgets). **Consumes by sketch:** C09 (S03), C10 (S04), C12 (S09). Assumptions are in `contract_change_proposals` at the end of Part B.
+- **Owns:** C07. **Honors:** C13 (tier ids, `VARIANT_FALLBACK`, budgets). **Consumes (final in 06 v1.1):** C09 (S03), C10 (S04), C12 (S09). Assumptions are in `contract_change_proposals` at the end of Part B.
 - **Consumers of C07:** S02 (world packs, props, map-data provenance), S03 (cutscene assets, keyframes), S04 (character, voice, mouth atlas), S06 (vehicles), S07 (fighter models, clips), S11 (loader, cache, tier selection), S12 (mod assets reuse `ProvenanceRecord`).
 
 ## 2. Design
@@ -130,7 +130,7 @@ export type AssetKind =
   | 'map_data' | 'world_pack' | 'data';
 export type AssetId = string;                            // /^[a-z0-9][a-z0-9._-]{1,62}$/
 export type AssetRef = `${AssetKind}/${AssetId}`;
-import type { QualityTierId } from '../platform/c13';   // C13 v1.0.0 (S11): desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
+import type { QualityTierId } from '../platform/c13';   // C13 v1.1.0 (S11): desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
 export type VariantId = QualityTierId | 'default';
 
 export type Origin = 'generated' | 'authored' | 'licensed' | 'open_data' | 'derived';

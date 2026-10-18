@@ -1,6 +1,6 @@
 # 09 — Backend, Data & Multiplayer · Part 3: persisted data (DB schema, RLS, R2, KV, DO storage, retention, migrations)
 
-> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, storage half). C12 1.0.0 owns this schema. Database: Supabase Pro, region `us-west-1`, Postgres + RLS + pgvector (spec/03 D-02) [research/stack-cloudflare-backend.md §2]. Staging is a separate Supabase project (Free tier is acceptable; a nightly keep-alive query prevents the 7-day pause [research/gap-ci-cd-release-assets.md §3]).
+> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, storage half). C12 1.1.0 owns this schema (1.1 additions: `09-backend-contracts-1.1.md`). Database: Supabase Pro, region `us-west-1`, Postgres + RLS + pgvector (spec/03 D-02) [research/stack-cloudflare-backend.md §2]. Staging is a separate Supabase project (Free tier is acceptable; a nightly keep-alive query prevents the 7-day pause [research/gap-ci-cd-release-assets.md §3]).
 
 ## 1. Rules
 1. Every user-owned row keys on `profile_id uuid` (UUIDv7 minted on the device in P0, never a provider subject). Provider subjects appear only in `identities` [research/auth-ugc-input-maps.md §1.4].
@@ -366,7 +366,7 @@ KV is eventually consistent (≥ 60 s) and allows 1 write/s per key [research/st
 | `RoomDO` (rooms) | `room:<worldVer>:sf:<n>` | `checkpoint(id=1, tick, blob)`, `schedule(at, kind, payload)` | < 1 MB |
 | `DirectoryDO` (rooms) | `dir:<worldVer>:sf` | `rooms(room_id, occupancy, cap, created_at, last_report)`, `invites(code, room_id, exp)` | < 1 MB |
 | `PresenceDO` (rooms) | `pres:<hash(pid)%64>` | none (socket attachments only) | — |
-| `EncounterDO` (web) | `enc:<pid>:<npcId>:<ulid>` | `turns(i, role, content, usage, at)`, `meta(k, v)` | ≤ 20 turns |
+| `EncounterDO` (web) | `enc:<pid>:<npcId>:<encounterId>` (`encounterId` UUIDv7, C12 1.1: `09-backend-contracts-1.1.md` §3) | `turns(i, role, content, usage, at)`, `meta(k, v)` | ≤ 20 turns |
 | `PlayerQuotaDO` (web) | `q:p:<pid>` and `q:n:<netHash>` | `counters(day, kind, npc_id, n)`, `reservations(id, kind, est_micros, at)` | daily rollover |
 | `BudgetGovernorDO` (web) | `gov:<env>` (singleton) | `ledger(ts, vendor, model, kind, usd_micros, settled, request_id, job_id)`, `ceilings(vendor, daily_micros)` | 35 d kept, nightly export |
 | `CutsceneJobDO` (web) | `cut:<cacheKey>` | `state(k, v)` (`absent|pending|ready|failed`, workflow id, attempts) | tiny |

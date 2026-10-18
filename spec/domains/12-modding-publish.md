@@ -6,7 +6,7 @@
 
 The goal is that a coding agent that has never seen this game can scaffold, test, validate and package a mod from the repository alone. Patterns come from universal-modder (instruction topology, mirrored skills, one CLI, knowledge base, oracles) re-expressed for this game [research/repos-modding.md §2, §6]; no code is copied (constraint 3 of INDEX §4).
 
-### 1.1 Workspace layout (`dv init`; the same tree is `packages/mod-sdk/templates/workspace/`)
+### 1.1 Workspace layout (`dv init`; the same tree is `packages/mod-sdk/templates/workspace/`; these are creator-workspace paths, not monorepo root directories)
 
 ```
 AGENTS.md                      canonical, ≤ 24,576 bytes
@@ -50,7 +50,7 @@ Inside the monorepo the same kit lives in `packages/mod-sdk/`; Codex concatenate
 | Command | Does |
 |---|---|
 | `dv init [dir]` | create the workspace above |
-| `dv mod new <kind> [--tier]` | scaffold from `examples/mods/*` with a `MODLOG.md` journal |
+| `dv mod new <kind> [--tier]` | scaffold from `packages/mod-sdk/examples/mods/*` (shipped inside the SDK) with a `MODLOG.md` journal |
 | `dv mod dev [--host url] [--mock]` | watch, rebuild, hot-reload (§1.5) |
 | `dv mod test [--mock] [--prove-oracle]` | run scenarios (§1.7), write `evidence.json` |
 | `dv mod check` | the shared validator (B§7 `ModCheckResult`) plus `ModBudgetReport`; non-zero on errors |

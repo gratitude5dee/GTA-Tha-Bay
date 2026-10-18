@@ -1,6 +1,6 @@
 # Domain 04 — AI NPCs & NPC Builder (S04), Part A: scope, design, runtime
 
-> S04, Wave 2, 2026-10-18. Three parts: **Part A** this file; **Part B** `spec/domains/04-npc-contracts.md` (C10 TypeScript, soul JSON Schema, roster, prompt blocks, lints); **Part C** `spec/domains/04-npc-builder.md` (agency and barks, NPC builder, moderation queue, evaluation harness, cost). Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1 (D-21, D-22, D-23, D-28, D-29, D-30), `spec/11-decision-log.md`, `spec/02-architecture.md` §4.4, Wave 1 specs `01-engine*`, `05-assets*`, `09-backend*`, `11-platform*`. Facts cite `[research/<file>.md]` or `F-NNN` (`research/INDEX.md` §2).
+> S04, Wave 2, 2026-10-18. Three parts: **Part A** this file; **Part B** `spec/domains/04-npc-contracts.md` (C10 TypeScript, soul JSON Schema, roster, prompt blocks, lints); **Part C** `spec/domains/04-npc-builder.md` (agency and barks, NPC builder, moderation queue, evaluation harness, cost). Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen), `spec/.waves234-notes.md`, `spec/03-decisions-and-facts.md` v1.1 (D-21, D-22, D-23, D-28, D-29, D-30), `spec/11-decision-log.md`, `spec/02-architecture.md` §4.4, Wave 1 specs `01-engine*`, `05-assets*`, `09-backend*`, `11-platform*`. Facts cite `[research/<file>.md]` or `F-NNN` (`research/INDEX.md` §2).
 
 ## 1. Scope and R-IDs
 
@@ -376,7 +376,7 @@ Proposed session splits of the register's M06a/M06b plus a roster-content scope.
   - viseme mapper; BT and utility determinism (same seed → same trace); bark cooldowns.
 - **Workers** (`pnpm check:workers -- npc`): `npc-talk-happy` (recorded upstream fixture; event order `meta→line.delta→line.done→effects→done`), `npc-talk-timeout` (fixture delays 5 s → `fallback timeout` at 4 s ± 0.2 s), `npc-talk-refusal`, `npc-talk-invalid-json`, `npc-talk-killed` (pre-stream 410 and mid-stream `fallback killed`), `npc-talk-soulversion` (409), `npc-talk-quota` (151st turn → 429 `quota_exhausted`), `npc-talk-governor` (L1 routes the hero to Haiku; L3 → 503), `npc-prompt-cache-order` (request body: system[0] block A with ttl 1h, system[1] exact prompt bytes, history equals the DO transcript, no sampling params, `thinking` per model), `npc-output-namelint`, `npc-memory-scrub`, `npc-intent-throttle`, `npc-tts-gating`.
 - **E2E:** `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc` (talk with mocked SSE, AI badge visible, subtitles, report button) and `--grep @npc-offline` (network blocked → ink lines, mission completes).
-- **Staging (real API, cents):** `pnpm test:staging -- npc-cache` (turn 2 has `cache_read_input_tokens > 0`; writes TTFT to `reports/npc/ttft.json`).
+- **Staging (real API, cents):** `pnpm test:staging -- npc-cache` (turn 2 has `cache_read_input_tokens > 0`; writes TTFT to `tests/reports/npc/ttft.json`, a CI artifact).
 - **Static:** `pnpm check:secrets -- apps/web/dist` (no key pattern in the bundle).
 - **Evals:** `pnpm npc:eval -- --replay` (deterministic, CI) and weekly plus per-change `--live` (Part C §C6).
 - **Perf:** `pnpm check:perf -- --scenario npc-mission-crowd` (brain budget per tier).
