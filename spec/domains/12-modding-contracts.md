@@ -148,7 +148,7 @@ export interface ModArchiveRef { modId: ModId; version: SemVer; archiveSha256: S
       "properties": { "originalWork": { "const": true }, "noRealPeople": { "const": true }, "noThirdPartyGameAssets": { "const": true }, "noSecrets": { "const": true } } },
     "multiplayer": { "const": false } },
   "allOf": [
-    { "if": { "properties": { "tier": { "const": "data" } } }, "then": { "not": { "required": ["entry","ui"] } } },
+    { "if": { "properties": { "tier": { "const": "data" } } }, "then": { "not": { "anyOf": [ { "required": ["entry"] }, { "required": ["ui"] } ] } } },
     { "if": { "properties": { "tier": { "const": "script" } } }, "then": { "required": ["entry"], "not": { "required": ["ui"] } } },
     { "if": { "properties": { "tier": { "const": "ui" } } }, "then": { "required": ["ui"] } },
     { "if": { "properties": { "kind": { "const": "experience" } } }, "then": { "properties": { "data": { "required": ["experience"] } } } },

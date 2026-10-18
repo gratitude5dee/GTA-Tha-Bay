@@ -248,6 +248,7 @@ Rules: title 3–120 characters; body 1–10,000, a Markdown subset rendered thr
 ## C§8 Acceptance seeds
 
 Wave 5 writes the C15 files from these seeds. None holds an UNVERIFIED item; a device run is a recording, not an assertion. Commands are `pnpm` scripts; `check:*` names follow 06 §5.
+
 - **M13a1** Two `dv mod pack` runs give one SHA-256 (`check:unit -- packages/shared/src/mod pack-deterministic`). A 40-manifest corpus (valid, unknown permission, missing provenance, `.rpf` entry, secret, over cap) gives identical verdicts in the Node CLI and the Worker harness (`check-parity`).
 - **M13a2** An install killed at each of six steps leaves the old or the new version and no unreferenced blob (`install-atomic`); install then uninstall restores the snapshot byte for byte (`uninstall-byte-equal`); a revoked version is refused (`revoked`).
 - **M13a3** A sandbox session with a mod sends `modsActive: true` and a staging room closes it 4007, false after `unloadAll('room')` (`check:workers -- mods-4007`); the fixture experience spawns only inside its radius and exit restores the prior mode (`check:e2e -- --project=chromium-webgl2 --grep @mods-exp`); a 1.1 MiB KV write is rejected without touching other slots (`mod-save-caps`).

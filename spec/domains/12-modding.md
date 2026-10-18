@@ -69,7 +69,7 @@ S12 owns the player-made content layer: what a mod is, how it is authored with a
 1. **Capabilities, not globals.** A mod sees only the `ModContext` namespaces its manifest `permissions[]` grant (B§3). It has no network, DOM, clock, `Math.random`, other-mod access or storage outside its own `mod:<id>` slot.
 2. **Lowest tier that works.** Data first (no code), script when behaviour is needed, UI only for panels. Higher tiers get stricter review and tighter budgets.
 3. **Mods never run in Story or in a room.** The loader refuses outside `sandbox` and `exp:*` sessions, and `modsActive()` is false in every room session (§2.4).
-4. **One validator, two places.** `dv mod check` (Node) and the publish Queue consumer (Worker) run the same pure functions from `@dv/shared` (`packages/shared/src/mod/check/`); a fixture corpus asserts identical verdicts. Server-only stages (classifiers, hash banks, real-name lint, anchor geodata) are additive.
+4. **One validator, two places.** `dv mod check` (Node) and the publish Queue consumer (Worker) run the same pure functions from `@dv/shared` (`packages/shared/src/mod/check/`), which call S05's provenance and IP gate cores as the fixed C14 line requires (`tools/ci` wraps them; the cores must be Worker-safe, an assumption on S05); a fixture corpus asserts identical verdicts. Server-only stages (classifiers, hash banks, real-name lint, anchor geodata) are additive.
 5. **Content-addressed.** The archive SHA-256 is the publish key (`ugc/published/<sha256>.zip`); installed files are blobs named by their SHA-256; the same hash joins the C07 `ProvenanceRecord`.
 6. **Private until approved.** Nothing a creator makes is visible to another player before automated checks pass and a human approves (INDEX §4 rule 17).
 7. **Anchor-relative space.** Mod coordinates are metres in the experience frame (origin at the anchor on the ground, +X east, +Y up, −Z north, as 06 §4.3). The host converts to world ENU, so a rebake moves content with the terrain and the radius check is a distance test.
@@ -102,13 +102,13 @@ flowchart LR
   MHOST <-- "MessagePort, ModMsg v1, 10 Hz" --> QJS
   MHOST <-- "MessagePort via main" --> UIH
   INST --- IDB
-  CLI[dv CLI + thabay-mcp on the creator machine] -- "127.0.0.1 WS + token (dev only)" --> MHOST
-  CLI -- "routes 34-37 (device token)" --> WEB
   subgraph CF[Cloudflare + Supabase]
     WEB[tha-bay-web: routes 35-37, ModScanPipeline] --> Q[[UGC_SCAN queue]]
     Q --> R2[(R2 ugc-staging / ugc-public / ugc-quarantine)]
     WEB --> PG[(Postgres 0007: mods, mod_versions, experiences, forum_*)]
   end
+  CLI[dv CLI + thabay-mcp on the creator machine] -- "127.0.0.1 WS + token (dev only)" --> MHOST
+  CLI -- "routes 34-37 (device token)" --> WEB
   INST -- "GET archive by sha256" --> R2
   EXI -- "route 37 by chunk" --> WEB
 ```
@@ -285,7 +285,7 @@ Mod props are instanced per asset, so "render objects" counts distinct assets pl
 | Storage and memory | OPFS blobs; quota per S11 | OPFS under the ≤ 60 % quota [F-010]; WebContent kill near 2,048 MB [F-009], so runtimes and textures are in `MemoryBudget` | draw budget < 200 [F-013] | per S11 |
 | Local mods | behind toggle | behind toggle (file picker) | hidden | hidden |
 
-XR: no DOM iframe in `immersive-vr`; `ui` mods use `xrPanel` through S10 `UiSurface` or are hidden; `camera.playCinematic` is refused in XR unless the shot has no camera translation (S12 rule, pending S11 comfort review in `11-platform-xr.md` §5.3).
+Input: mods never read raw input; they receive interaction events (C06 `InteractionApi`), so keyboard, pad, touch and XR grab or pinch behave alike. XR: no DOM iframe in `immersive-vr`; `ui` mods use `xrPanel` through S10 `UiSurface` or are hidden; `camera.playCinematic` is refused in XR unless the shot has no camera translation (S12 rule, pending S11 comfort review in `11-platform-xr.md` §5.3).
 
 ## 7. Verified facts used
 
