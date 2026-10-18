@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { BootConfig } from '@dv/shared';
 import { parseFlags } from '../src/routes/boot.ts';
+import pointer from '../src/generated/asset-catalog.json' with { type: 'json' };
 import { call } from './helpers.ts';
 
 describe('GET /api/v1/boot', () => {
@@ -12,7 +13,8 @@ describe('GET /api/v1/boot', () => {
     expect(Object.keys(body).sort()).toEqual(['assetCatalog', 'build', 'flags', 'gov', 'hosts', 'minClientBuild', 'region'].sort());
     expect(body.region).toBe('ok');
     expect(body.gov).toBe(0);
-    expect(body.assetCatalog).toBe('');
+    expect(body.assetCatalog).toBe(pointer.key);
+    expect(body.assetCatalog).toMatch(/^manifests\/assets-[0-9a-f]{64}\.json$/);
     expect(Object.keys(body.hosts).sort()).toEqual(['api', 'id', 'media', 'rt', 'ugc']);
     expect('modsUi' in body.hosts).toBe(false);
     const flags = Object.entries(body.flags);

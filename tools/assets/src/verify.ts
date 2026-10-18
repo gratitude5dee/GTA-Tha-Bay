@@ -10,7 +10,7 @@ import { AssetError, resolveVariant, type AssetManifest, type AssetVariant, type
 import { TIER_FIDELITY } from '../../../packages/shared/src/assets/fidelity.ts';
 import { finding, type GateFinding } from '../../../packages/shared/src/assets/gates/types.ts';
 import type { QualityTierId } from '../../../packages/shared/src/platform/c13.ts';
-import { readJson } from '../../ci/lib/common.ts';
+import { readJson, toolsRoot } from '../../ci/lib/common.ts';
 import { buildCatalogFrom, lockGitStamp, type CatalogBuild, type GitStamp } from './catalog.ts';
 import { LOCK_PATH, isReleased, readLock, recordMap, sameHashes, variantHashes, type AssetLock } from './lock.ts';
 import { GATE, loadSpecs, type LoadedSpec } from './spec.ts';
@@ -72,7 +72,7 @@ function budgetFindings(root: string, specs: readonly LoadedSpec[]): GateFinding
   const file = 'config/asset-budgets.json';
   const abs = path.join(root, file);
   if (!existsSync(abs)) return [finding(GATE, file, 'config-missing', 'file does not exist')];
-  const validate = new Ajv2020({ allErrors: true, strict: false }).compile(readJson(path.join(root, 'tools/ci/schemas/asset-budgets.v1.json')));
+  const validate = new Ajv2020({ allErrors: true, strict: false }).compile(readJson(path.join(toolsRoot, 'tools/ci/schemas/asset-budgets.v1.json')));
   const cfg = readJson<{ rows: BudgetRow[] }>(abs);
   if (!validate(cfg)) {
     for (const e of validate.errors ?? []) out.push(finding(GATE, file, 'schema', `${e.instancePath || '/'} ${e.message ?? 'invalid'}`));
