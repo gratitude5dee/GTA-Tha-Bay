@@ -1,0 +1,9 @@
+{
+  "kind": "data",
+  "id": "asset-smoke",
+  "variants": { "default": "assets/src/data/asset-smoke/smoke.json" },
+  "deps": [],
+  "tags": ["smoke"],
+  "status": "active",
+  "visibility": "public"
+}

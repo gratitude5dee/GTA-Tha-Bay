@@ -7,3 +7,4 @@ playwright-report
 .spike
 *.tsbuildinfo
 .claude/worktrees/
+dist/assets/

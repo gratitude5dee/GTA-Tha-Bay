@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "3304f103316e302ec07b3d01163315a99dbb72933291ccefa043f91801b74b7c",
+  "paths": [
+    "assets/src/data/asset-smoke/smoke.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-18T00:00:00Z"
+}

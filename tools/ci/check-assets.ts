@@ -1,7 +1,8 @@
 /**
  * check:assets (the M00b part). Schemas of every config/*.json that M00b adds and of all provenance records,
  * registry invariants (banned list, voice_clone tiers, no cleared video provider, terms snapshots indexed),
- * ship-set file size (25 MiB) and world-pack size (4 MiB). Catalog, lock-file and fidelity rules land in M01d.
+ * ship-set file size (25 MiB) and world-pack size (4 MiB). M01d adds the catalog, lock-file, fidelity, dependency,
+ * budget and pointer rules (tools/assets/src/verify.ts).
  *
  *   tsx tools/ci/check-assets.ts [--root <dir>] [--dist <dir>]
  */
@@ -14,6 +15,7 @@ import { registryFindings } from '../../packages/shared/src/genai/registry.ts';
 import { args } from './run.ts';
 import { defaultDist, isMain, listDist, loadConfigs, loadRecords, MIB, readJson, report, schemaValidator, toolsRoot } from './lib/common.ts';
 import { isShipFile } from './provenance-check.ts';
+import { assetGateFindings, pointerFindings, type VerifyOptions } from '../assets/src/verify.ts';
 
 const GATE = 'check:assets';
 const SHIP_LIMIT = 25 * MIB;
@@ -29,7 +31,7 @@ const CONFIG_SCHEMAS: [file: string, schema: string][] = [
 
 interface TermsIndex { entries: { id: string; path: string | null }[] }
 
-export function runCheckAssets(opts: { root: string; dist: string }): { findings: GateFinding[]; scanned: number } {
+export function runCheckAssets(opts: { root: string; dist: string; verify?: VerifyOptions }): { findings: GateFinding[]; scanned: number } {
   const findings: GateFinding[] = [];
   let scanned = 0;
   for (const [file, schema] of CONFIG_SCHEMAS) {
@@ -77,6 +79,9 @@ export function runCheckAssets(opts: { root: string; dist: string }): { findings
     const size = statSync(path.join(opts.dist, rel)).size;
     if (size > SHIP_LIMIT) findings.push(finding(GATE, rel, 'file-too-large', `${size} bytes exceeds 25 MiB`));
   }
+  const gate = assetGateFindings(opts.root, opts.verify);
+  findings.push(...gate.findings, ...pointerFindings(opts.root));
+  scanned += gate.scanned;
   return { findings, scanned };
 }
 
@@ -86,7 +91,6 @@ function main(): void {
   const dist = path.resolve(values.dist ?? defaultDist(root));
   if (!existsSync(dist)) console.log(`${GATE}: note: ${dist} does not exist, ship-set size check skipped`);
   const { findings, scanned } = runCheckAssets({ root, dist });
-  console.log('check:assets: catalog, lock-file and fidelity rules: pending: lands in M01d');
   process.exit(report(GATE, findings, scanned));
 }
 
