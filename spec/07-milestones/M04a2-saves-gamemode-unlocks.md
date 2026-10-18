@@ -49,7 +49,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
   - `racing`, `fighter`, `tycoon`: `status: 'comingSoon'`, tile orders 2/3/4, unlocks `unlock.racing`, `unlock.fighter`, `unlock.tycoon`, art `ui/mode-<id>`, `standalone` and `embeddable` true.
 
   The mode milestones (M07a1, M08a2, M09a1) replace the stubs.
-- **EconomyApi** (`economy.ts`): `balance`, `credit`, `debit` and `ledgerSince`, idempotent by key. The wallet is `StorySlice.wallet.cashCents`. The tycoon-dividend cap is $10,000 per in-game week via `weekdayOf` week windows. It binds M03c's `WalletPort` and M03b2's `FareSink`.
+- **EconomyApi** (`economy.ts`): `balance`, `credit`, `debit` and `ledgerSince`, idempotent by key. The wallet is `StorySlice.wallet.cashCents`. The tycoon-dividend cap is $10,000 per in-game week via `weekdayOf` week windows. It binds M03c's `WalletPort` and M03b2's `FareSink` (both earlier in the `_PLAN.md` run order, though not listed as direct dependencies there).
 - **Autosave policy** (C05 rule 4): mission pass, safehouse, mode exit, unlock, every 300 s of free roam at heat 0 with no mission, and `hidden` with the same eligibility. Never during a pursuit or a mission (except its checkpoint).
 - **Controls remap persistence:** `UiCommand save.settings` with `controls` → `settings` slice → on load `InputRouter.setOverrides`. `client.Pause` keeps its default binding (C03 rule 9).
 - **UI bridge:**

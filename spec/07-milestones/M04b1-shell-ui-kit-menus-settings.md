@@ -92,7 +92,7 @@ The player can:
 - AC-11 Given each settings row When its control changes Then profile-scoped rows produce one `save.settings` command after 500 ms, device-scoped rows write `PlatformSettings` or `UiPrefs`, each row shows its scope badge, and a profile created under `prefers-reduced-motion: reduce` starts with `reducedMotion: true` — proof: `pnpm check:unit -- packages/ui`
 - AC-12 Given every registered `ScreenDef` When it renders through `DomScreen` and `CanvasScreen` Then the flattened focusable lists are identical — proof: `pnpm check:unit -- packages/ui`
 - AC-13 Given the production build When bundle budgets run Then the shell entry chunk is ≤ 120 KiB gzip, pages are separate lazy chunks, and no file exceeds the precache cap — proof: `pnpm build && pnpm check:bundle`
-- AC-14 Given the branch When the dist verifier and the preview deploy run Then they pass, and the deployed app opens on Title with the age screen on first launch — proof: `pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-14 Given the branch When the dist verifier and the preview deploy run Then they pass, and the deployed app opens on Title with the age screen on first launch — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- packages/ui`): `ui-shell`, `ui-screen-parity`, `ui-i18n`, `age-gate`, `modes-tiles`, `saves-ui`, `settings-bind`.

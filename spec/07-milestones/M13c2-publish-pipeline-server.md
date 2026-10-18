@@ -4,9 +4,9 @@
 Publishing a mod or experience version works end to end on the server. Route 36 takes a version from the CLI token (M13c1) or a P2 browser JWT, records the attestation and enqueues a scan. `ModScanPipeline` runs the sixteen stages of `12-modding-publish.md` C§3.1: the local stages with the same shared validators as `dv mod check`, then hash banks first, server strings, classifiers, anchor rules and human review. The C§3.2 state machine moves versions and placements, reviewers decide through route 43, and archives are promoted or quarantined. Route 37 POST adds placements with server-computed anchors. A rebake Workflow re-validates placements, and removals feed route 53's revocation list. While `ugc.publish` is false (production, until M13d1) an approved version stays private to its owner.
 
 ## Requirements
-- R-MOD-03: moderation of everything published. Approval of experiences opens their forum thread.
-- R-MOD-04: published experiences get validated anchors and become map markers only when `published ∧ public`.
-- R-IP-03: hash-first scanning, quarantine, human review, and revocation reaching installed copies.
+- R-MOD-03: everything published is moderated; approval opens the forum thread.
+- R-MOD-04: validated anchors; map markers only when `published ∧ public`.
+- R-IP-03: hash-first scanning, quarantine, human review, revocation of installed copies.
 
 ## Depends on
 - **M13c1**: CLI token (`aud: 'tha-bay-cli'`, `scp: ['mods:publish']`), the `linked` tier rule, `audit_log` writes for identity actions.
@@ -45,8 +45,8 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - `services/pipeline/rebake/workflow.ts` (`RebakeRevalidationWorkflow`). A daily cron starts it for placements whose `world_version` differs from the current `bakeId`; it re-runs stage 14 and `compat.world`, then sets `needs_update` (pin removed) or updates `world_version`. Workflow binding in `wrangler.jsonc` (not a DO class); Previews have no own Workflows, so steps are tested directly.
 
 ## Scope out
-- Legal takedowns (DMCA, NCII) driving `remove`, the appeals queue, own hash-bank management (route 45) and the `hash_bank_entry` table → M13d1. Here `HashBankPort` reads a fixture bank in tests, and in deployments an empty bank until M13d1.
-- Malware hygiene container (ClamAV) and server-side `gltf-validator`/`ktx validate`: not built. They are listed for the Architect.
+- Legal takedowns, the appeals queue, route 45 and `hash_bank_entry` → M13d1 (until then `HashBankPort` is a fixture bank in tests and empty when deployed).
+- ClamAV hygiene container and server-side `gltf-validator`/`ktx validate`: not built; listed for the Architect.
 - Author yank: C12 1.1 has no yank route. Listed as a proposal.
 - `dv mod publish` and `dv login` → M13c3. Flipping `ugc.publish` in production → after M13d1 (DL-151).
 
@@ -95,7 +95,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - **`ugc.<domain>` cache** (Q-15 open): no custom domain means no cache, so removal is a delete; purge joins with the domain.
 
 ## Notes for the Builder
-- Read first: `12-modding-publish.md` C§3 (stages, states, provenance, takedown), C§4, C§7; `12-modding-contracts.md` B§6–B§7; `12-modding.md` §2.1 (principle 4), §5.5; `09-backend.md` §3.4; `09-backend-db.md` §3.4, §3.7, §4; `spec/05-api-and-realtime.md` §3 rows 34–37, 43, 53.
+- Read first: `12-modding-publish.md` C§3, C§4, C§7; `12-modding-contracts.md` B§6–B§7; `12-modding.md` §2.1, §5.5; `09-backend.md` §3.4; `09-backend-db.md` §3.4, §3.7, §4; `spec/05-api-and-realtime.md` §3 rows 34–37, 43, 53.
 - Order is load-bearing: stage 4 runs before any vendor sees an image.
 - Run order puts M13a2 (tables `mods`, `mod_versions`, `experiences`), M13a3 (route 37 GET) and M13b2 (mask, `ensureLinkedThread`) before this milestone. Stop and report if any is missing.
 - Branch `m13c2-publish-pipeline-server`.
