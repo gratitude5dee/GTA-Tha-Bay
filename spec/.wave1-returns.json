@@ -1,0 +1,698 @@
+[
+ {
+  "domain": "S01",
+  "spec_path": "spec/domains/01-engine.md,spec/domains/01-engine-contracts.md,spec/domains/01-engine-save-modes.md",
+  "words": 14989,
+  "contracts_finalized": [
+   "C01",
+   "C02",
+   "C03",
+   "C04",
+   "C05",
+   "C06"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C05",
+    "change": "Replace the single-blob sketch with per-slot SaveRecord rows (core, settings, story:auto/1/2/3, sandbox, mode:*, mod:*), each with its own schema version, generation and checksum. SaveGame becomes an assembled read model. missionsDone[] becomes missions{state,bestSec,medals}, and npcRelations moves into the story slice.",
+    "why": "Atomic per-slice writes, LWW cloud sync per slot (S09) and the Grand-V Story/Sandbox namespace separation need independent records; a single checksum over one blob cannot support them."
+   },
+   {
+    "contract": "C11",
+    "change": "Widen IN `buttons` from u16 to u32 (+2 B); InputFrame carries 19 SimButton bits today. The `tick` field stays u32 and the input quantization matches IN exactly.",
+    "why": "Bits 16\u201318 (Respray, Emote, PhoneQuick) and future sim actions do not fit in u16; S01 ordered the bits so the first 16 are the net-critical set in the meantime."
+   },
+   {
+    "contract": "C08",
+    "change": "Assumed chunk fields: collision {heightfield, building prisms}; tags {hidingSpots, pursuitBreakers, chokePoints, jumpZones, portals, shoreNodes}; road graph usable by A* for police dispatch; ambient spawn tables keyed by (cellKey, slot) with per-tier densityCap so lower tiers run a prefix of slots.",
+    "why": "The physics working set, PursuitDirector, swim respawn and cross-tier/cross-client ambient determinism (DO-owned traffic from seed) depend on these."
+   },
+   {
+    "contract": "C13",
+    "change": "Assumed TierProfile exposes physicsRadiusM, ambientCaps {cars, peds}, animBands, audioVoices and ragdollCap. S01 proposes Quest 150 m and Vision Pro 200 m physics radii plus the animation, voice and ragdoll values in 01-engine.md \u00a76 for S11 to confirm.",
+    "why": "The research budgets give physics radius only for desktop and mobile tiers, and give no animation-band or voice figures."
+   },
+   {
+    "contract": "C09",
+    "change": "Mission IR resolves lat/lng and landmark zones to ENU ZoneShape at load. Interpreter threads run on SimScheduler (2,000 ops per thread per tick). Mode hooks call ModeContext.startChild. A hook whose mode requires the canonical profile under a local parent falls back to its stub. Mission checkpoints are {schema, data} owned by S03.",
+    "why": "Keeps A-02 hooks deterministic and lets the C05 story slice store S03 checkpoints opaquely."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "D-S01-01",
+    "question": "Load one Rapier build per session (restart sim.worker to switch profiles) or ship both builds and switch live?",
+    "recommendation": "One build per session; switch only at top-level mode entry behind the loading screen; measure restart cost in M01a (Q-ENG-01)."
+   },
+   {
+    "id": "D-S01-02",
+    "question": "Should free-roam story also use deterministic-compat so every session is cross-browser reproducible?",
+    "recommendation": "No, keep D-12 (simd-compat for local play); revisit if M03a shows deterministic-compat within 10% tick cost."
+   },
+   {
+    "id": "D-S01-03",
+    "question": "Save size caps.",
+    "recommendation": "2 MiB per slot record, 16 MiB per profile, 64 profiles, names 1\u201380 chars, keep 2 generations per slot."
+   },
+   {
+    "id": "D-S01-04",
+    "question": "In-game clock rate.",
+    "recommendation": "30 game seconds per real second (48-minute day), tunable in config/clock.json."
+   },
+   {
+    "id": "D-S01-05",
+    "question": "Run the multiplayer socket in sim.worker or on the main thread?",
+    "recommendation": "sim.worker, with a main-thread MessagePort relay fallback if iOS workers lack WebSocket (decide in M12a)."
+   },
+   {
+    "id": "D-S01-06",
+    "question": "XR player body in v1.",
+    "recommendation": "Hands only with forearm IK; full-body IK via a post-M11b ADR."
+   },
+   {
+    "id": "D-S01-07",
+    "question": "Skateboard/scooter controller (Q-MOD-06).",
+    "recommendation": "Out of v1."
+   }
+  ],
+  "unverified": [
+   "Math.sqrt bit-identical across JS engines (detmath.sqrt must not delegate until M01a vectors pass)",
+   "Relative tick cost of rapier3d-deterministic-compat vs simd-compat",
+   "Rapier wasm running inside a Cloudflare Durable Object (M12b server physics)",
+   "WebSocket availability inside a dedicated worker on iOS Safari",
+   "Quest A/B/X/Y button indices in the xr-standard mapping",
+   "Rapier debug-render API for the physics wireframe",
+   "Meshy rig bone names (retarget map to dv-humanoid-v1)",
+   "iOS PWA background suspension timing",
+   "IndexedDB commit durability under iOS WebContent jetsam (protocol designed to be safe either way)"
+  ],
+  "risks": [
+   "M01a scope is dense: determinism across Node, Chromium and WebKit with the deterministic Rapier build may need a second session",
+   "Main-thread animation and audio plus rendering on iPhone may exceed the frame budget at 200 ambient agents; mitigated by animation LOD bands and tier caps",
+   "The profile switch (sim.worker restart) may be slow on mobile because the Rapier wasm and colliders reload",
+   "Floating-origin rebase every 1 km at racing speeds may cause collider-rebuild hitches; at most one chunk of statics per tick",
+   "Snapshot interpolation adds one tick of latency, which may feel soft in the fighter (S07 may need a direct path)",
+   "Save capability rules (sandbox never writes story) must be enforced in SaveService, or sandbox cheats leak into story",
+   "Tier-prefix ambient slots depend on S02 adopting (cellKey, slot) spawn tables; without them, cross-client ambient determinism breaks"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M01a",
+    "slug": "loop-ecs-detmath-physics",
+    "sessions": 2
+   },
+   {
+    "id": "M01b",
+    "slug": "controller-cameras-touch",
+    "sessions": 2
+   },
+   {
+    "id": "M03a",
+    "slug": "vehicles-interaction-prefabs",
+    "sessions": 1
+   },
+   {
+    "id": "M03c",
+    "slug": "pursuit-director",
+    "sessions": 1
+   },
+   {
+    "id": "M04a",
+    "slug": "saves-gamemode-unlocks",
+    "sessions": 2
+   }
+  ],
+  "r_ids_covered": [
+   "R-PLAT-03",
+   "R-PLAT-04",
+   "R-MAP-04",
+   "R-MODE-01",
+   "R-ENG-04",
+   "R-MODE-05"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-PLAT-02",
+    "to": "M11b"
+   },
+   {
+    "id": "R-PLAT-05",
+    "to": "M11a"
+   },
+   {
+    "id": "R-ROLL-02",
+    "to": "M12a"
+   }
+  ]
+ },
+ {
+  "domain": "S11",
+  "spec_path": "spec/domains/11-platform.md,spec/domains/11-platform-xr.md,spec/domains/11-platform-pwa.md,spec/domains/11-platform-perf.md",
+  "words": 13356,
+  "contracts_finalized": [
+   "C13"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C13",
+    "change": "Replace the 06 v0.95 sketch with C13 v1.0.0 (spec/domains/11-platform.md section 4): QualityTierId = desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro (research names xr-standalone/xr-pro renamed per the brief); budgets in render objects; per-pass XR values; FLAT_LADDER, FLAT_TIER_OF, VARIANT_FALLBACK, DeviceProfile, TierDecision, QualityService.",
+    "why": "Brief requires six tiers; D-09 budgets in render objects; S05 already imports these ids."
+   },
+   {
+    "contract": "C07",
+    "change": "Variants keyed by QualityTierId with C13 VARIANT_FALLBACK; every asset must resolve for all six tiers (check:assets); each pack/variant carries SHA-256 hash (OPFS store verifies on write) and a kind; KTX2 variants are resolution classes, not GPU formats.",
+    "why": "WorldPackStore is content-addressed; S05 05-assets.md already assumes this."
+   },
+   {
+    "contract": "C02",
+    "change": "FrameSignal is sent on every main-thread rAF or XR frame even when FramePacer skips the draw (30 fps tiers); add SimServices.xrPoses reading the seqlocked XrPoseBlock (part B 4.3).",
+    "why": "XR poses exist only on the Window; sim.worker needs them for wheel grab, punches and teleport validity."
+   },
+   {
+    "contract": "C03",
+    "change": "The three XR Binders (xr-controller, xr-hand, xr-transient) are thin readers over S11's XrInputRouter per-frame cache and never sample XRFrame themselves; Quest face-button indices come from config/xr-input-profiles.json captured on device.",
+    "why": "XRFrame is valid only inside the frame callback; routing must be by XRInputSource identity."
+   },
+   {
+    "contract": "C04",
+    "change": "Replace QualityTierRef (old tier names, level) with QualityTierId; XRRigParams.session 'immersive-ar' not available in v1; answer to rule 3: reversedDepthBuffer on all tiers, RendererHost.depthPolicy published, rig raises near to max(near, far/20000) when 'standard'; XR mode exposes only a dolly (no shake, no camera collision push, head-in-geometry fades).",
+    "why": "Consistency with C13 and XR comfort rules; immersive-ar on visionOS is UNVERIFIED."
+   },
+   {
+    "contract": "C05",
+    "change": "Embed PlatformSettings (v1: tierOverride, compatibilityMode, fpsCap, renderScale, foveation, dataSaver, xr: XrComfortSettings) under settings.platform; TierDecision stays in IndexedDB, not in the save.",
+    "why": "R-UI-02 settings page needs persisted platform choices; tier decisions are per-device."
+   },
+   {
+    "contract": "C16",
+    "change": "Add events tier.decision{tier,source,benchP90Ms} and storage.persist{granted}; app.start props nav, coi, store, backend, tier; deviceClass values iphone|ipad|android|desktop|quest|avp already match C13 DeviceClass.",
+    "why": "Client telemetry and abnormal-exit demotion need them."
+   },
+   {
+    "contract": "C08",
+    "change": "Chunks stay within 6 render objects, one BundleGroup per chunk, static = true; optional teleportNodes[] per chunk for XR on stairs and steep hills; far-field representation per tier (impostor ring 80 km desktop, skyline cards otherwise).",
+    "why": "D-09, D-15, XR locomotion on SF hills."
+   },
+   {
+    "contract": "C09",
+    "change": "CutscenePlayer reuses S11 FirstGestureUnlock (pool of 3 video elements, AudioContext) and XrMediaHost implementations (Quest media layer, Vision Pro VideoFrameTexture, texture fallback); DOM-overlay hosts pause the render loop.",
+    "why": "D-20 platform side."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S11-01",
+    "question": "Who flips webgpu.mobile in config/platform-flags.json and on what evidence?",
+    "recommendation": "Flip only after the M01c iPhone 15 Home Screen run passes (30 min, no jetsam, p90 inside budget); re-validate in M11a; until then mobile tiers use the WebGL2 backend."
+   },
+   {
+    "id": "DN-S11-02",
+    "question": "Is a postMessage fallback transport required in v1 when crossOriginIsolated is false?",
+    "recommendation": "Yes, minimal single-switch transport without perf guarantees, so the game degrades instead of failing."
+   },
+   {
+    "id": "DN-S11-03",
+    "question": "How is XR UI rendered (DOM cannot appear in XR)?",
+    "recommendation": "Canvas 2D panels through a shared UiSurface from S10, drawn to quad layers on Quest and textured planes on Vision Pro."
+   },
+   {
+    "id": "DN-S11-04",
+    "question": "Split M01b and add an asset-worker milestone?",
+    "recommendation": "Split M01b into M01b (controller, cameras, touch) and M01c (device spike, RendererHost, tier selection, perf HUD, heartbeat); add M02a2 (asset.worker + OPFS WorldPackStore) before M02b; give the cutscene-playback spike an id before M05b."
+   },
+   {
+    "id": "DN-S11-05",
+    "question": "Auto-promotion to desktop-ultra?",
+    "recommendation": "Only on WebGPU with a non-fallback adapter and benchmark p90 <= 8.35 ms at desktop settings, otherwise manual; ultra and other dagger numbers are extrapolations to calibrate in M11a."
+   },
+   {
+    "id": "DN-S11-06",
+    "question": "Support level for PC VR / Quest Link?",
+    "recommendation": "Best effort on the xr-quest profile, not in acceptance."
+   },
+   {
+    "id": "DN-S11-07",
+    "question": "Request hand-tracking at XR entry on Vision Pro?",
+    "recommendation": "Yes as an optional feature at entry (single permission prompt); denial leaves gaze-and-pinch."
+   },
+   {
+    "id": "Q-S11-01",
+    "question": "Which physical test devices exist (iPhone 15, iPhone 16/17, Quest 3 and 3S, Vision Pro, Windows laptop and discrete-GPU desktop)?",
+    "recommendation": "Owner confirms the minimum set iPhone 15 + iPhone 16/17 + Quest 3 + Vision Pro; mark desktop-ultra and weak-desktop calibration unverified if Windows hardware is unavailable."
+   }
+  ],
+  "unverified": [
+   "iOS Home Screen vs Safari-tab WebGPU parity",
+   "GPU-process jetsam limit and whether the 2,048 MB WebContent kill applies to every iPhone",
+   "ProMotion rAF above 60 Hz in Safari/standalone",
+   "iOS background suspension timing and post-jetsam behaviour (reload vs blank, navigation type, localStorage durability)",
+   "GPUDevice.lost firing before a GPU-process kill",
+   "adapter.info content on Safari",
+   "Safari timestamp-query support",
+   "takram atmosphere with three r186",
+   "visionOS user-agent string",
+   "Vision Pro default framebuffer size, achievable refresh rate, foveation, WebGPU-vs-WebGL XR cost, rate control",
+   "immersive-ar on visionOS and PS VR2 controllers as WebXR inputs",
+   "Quest Browser flag names, non-XR WebGPU default, A/B/X/Y button indices",
+   "XRSession visibilitychange semantics on Quest and Vision Pro",
+   "renderer.info.render.drawCalls behaviour with BundleGroup on the WebGPU backend",
+   "navigator.standalone for Home Screen detection",
+   "OPFS 7-day eviction and cross-tab sync-handle behaviour",
+   "Low Power Mode effects on video and frame rate",
+   "iPhone RAM sizes",
+   "SwiftShader WebGPU recipe on a real GitHub runner (until M00 gpu-probe.json)",
+   "desktop-ultra and other dagger-marked budget numbers, comfort constants and gesture thresholds (S11 starting values)"
+  ],
+  "risks": [
+   "WebGPURenderer per-object CPU overhead (three #30560) and extra GL calls on the WebGL2 backend can break the 150-object mobile and Quest budgets",
+   "iPhone WebContent/GPU-process kills with no crash signal; only heartbeat inference",
+   "Mobile WebGPU may stay gated off if M01c finds Home Screen parity or stability problems",
+   "Vision Pro renders two non-multiview passes and Quest native WebGPU XR stays flag-gated",
+   "Cross-origin isolation regressions via service worker, Worker responses, third-party widgets or mod UI iframes under COEP require-corp",
+   "OPFS eviction, multi-tab handle contention and quota on iOS",
+   "SwiftShader CI gives false confidence for frame time and tile-GPU behaviour",
+   "Quest video-texture freeze and Vision Pro media handling are unverified until device tests",
+   "Physical device availability gates M01c, M11a and M11b acceptance",
+   "Budget numbers beyond the research (desktop-ultra, media, physics radius) are extrapolations"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M00",
+    "slug": "pwa-shell-headers",
+    "sessions": 0.5
+   },
+   {
+    "id": "M01c",
+    "slug": "device-spike-renderer-host",
+    "sessions": 1
+   },
+   {
+    "id": "M02a2",
+    "slug": "asset-worker-opfs-store",
+    "sessions": 1
+   },
+   {
+    "id": "M11a",
+    "slug": "iphone-hardening-governor",
+    "sessions": 2
+   },
+   {
+    "id": "M11b",
+    "slug": "webxr-port",
+    "sessions": 2
+   }
+  ],
+  "r_ids_covered": [
+   "R-PLAT-01",
+   "R-PLAT-02",
+   "R-PLAT-03",
+   "R-PLAT-05",
+   "R-ENG-02"
+  ],
+  "r_ids_deferred": []
+ },
+ {
+  "domain": "S05",
+  "spec_path": "spec/domains/05-assets.md,spec/domains/05-assets-pipeline.md",
+  "words": 10506,
+  "contracts_finalized": [
+   "C07"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C07/06",
+    "change": "Final shape per 05-assets.md 4.2: variants stay keyed by C13 tier id plus 'default'; url becomes key (origin from config); hash becomes sha256; provenance is a summary pointing to a record; object key rule <root>/<variant>.<hash12>.<ext>; public character parts model|rig|anim|portrait|mouth_atlas, sheets private under PRIVATE sheets/<slug>/",
+    "why": "Content-hashed keys give immutable caching and rename-proof manifests; prefix purge needs enumerable character roots; sheets must not be public"
+   },
+   {
+    "contract": "C09",
+    "change": "CutsceneManifest gains characters[{id,soulVersion,tier}] and a licence block; originals in PRIVATE cutscenes-orig/<key>/; add a release-time cutscene-index (CutsceneRef to key); endpoint re-pin is a reviewed PR",
+    "why": "Kill-switch purge index (mirrors S09 cutscenes.char_ids); A-03 includes endpoint updated_at so an upstream edit would otherwise orphan every shipped clip"
+   },
+   {
+    "contract": "C10",
+    "change": "Compiled soul exposes tier, soulVersion, visual_brief (text-only), standIn, moves (Meshy action ids), heightM, voice.design_prompt; assets.* are AssetRef strings (assets.rig = rig/bay_rig_v1); add assets.anim; character id equals asset slug",
+    "why": "Job router must take tier from the soul and build prompts without photographs"
+   },
+   {
+    "contract": "C12",
+    "change": "Reuse routes 28/29/46 and ks:* KV keys; add migration 0004_assets.sql (gen_run, gen_job unique job_key, asset_index, bark_index, budget_program), genai_ledger.kind += 'asset', Container binding TRANSCODER, kill route starts KillPurgeWorkflow, FAL_MODE=mock maps to MockExecutor",
+    "why": "Pipeline persistence, one-off $1,000 program cap (G3) and purge need these"
+   },
+   {
+    "contract": "C13",
+    "change": "No change; S05 asks that config/tier-budgets.json stay importable by check:assets and that xr-quest keeps falling back to mobile and xr-visionpro to desktop",
+    "why": "Per-asset budgets are derived through TIER_FIDELITY"
+   },
+   {
+    "contract": "C14",
+    "change": "ModManifest.assets[] provenance reuses ProvenanceRecord; dv mod check imports tools/ci validators",
+    "why": "One validator for first-party and mod assets"
+   },
+   {
+    "contract": "A-01/D-18",
+    "change": "Shared genAI helpers in packages/shared/src/genai (no packages/genai-core); transcoder image in services/pipeline/transcoder; legal snapshots in docs/legal; config/genai-endpoints.json also hosts the ADR-GENAI-01 video provider entries; gate scripts named provenance:check, ip:*, license:scan, names:lint, likeness:gate with check:* aliases",
+    "why": "Fits the A-01 layout and keeps one registry file"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S05-1",
+    "question": "Split M00 into M00a bootstrap, M00b ip-provenance-gates and M00c genai-spike, and add M01c assets-publish?",
+    "recommendation": "Yes; the single M00 session cannot hold bootstrap, all IP gates and a paid spike"
+   },
+   {
+    "id": "DN-S05-2",
+    "question": "Fal one-off cap of $1,000 versus fallback video providers: LTX-2.5 with 12 fighters costs about $1,082 and Gemini about $1,093 including 25 percent experiments",
+    "recommendation": "Keep $1,000 for H3 partner; if a fallback becomes default, cut to 8 fighters (about $975) or raise the cap to $1,250"
+   },
+   {
+    "id": "DN-S05-3",
+    "question": "Drop the fictionalized face-similarity check from genai-pipeline-fal 6.1?",
+    "recommendation": "Yes; it is biometric and contradicts trust-safety rec 9; use the H1 human checklist"
+   },
+   {
+    "id": "DN-S05-4",
+    "question": "Roster generation runs CLI-first with a staff key and the Workflow only for cutscenes and later on-demand jobs; who holds the production FAL_KEY?",
+    "recommendation": "CLI-first; art lead holds the key locally, CI and the Worker get a separately scoped key"
+   },
+   {
+    "id": "DN-S05-5",
+    "question": "Vehicle sourcing: accept CC0 or authored low-poly for traffic and police, and generated body plus mandatory Blender pass only for race and hero cars?",
+    "recommendation": "Yes; measure Blender time in M03a before budgeting more"
+   }
+  ],
+  "unverified": [
+   "U1 Meshy bone names, finger/jaw/face data and animation-clip licence",
+   "U2 whether Meshy honours image_urls order",
+   "U3 fal CDN Content-Length and result retrieval with X-Fal-Store-IO:0",
+   "U4 C2PA presence on fal API outputs for every chosen endpoint",
+   "U5 Workers streaming SHA-256 (DigestStream) and Workflows waitForEvent max timeout",
+   "U6 wrangler containers/workflows config keys",
+   "U7 GPT-image cost of extra input images (0.01 assumed)",
+   "U8 Sunburst and Nano Banana refusals on real-person edits",
+   "U9 Rhubarb licence",
+   "U10 CC0 catalogue terms (Poly Haven, ambientCG, Kenney, Quaternius, Freesound)",
+   "U11 ElevenLabs SFX endpoint terms and price",
+   "U12 R2 tag-based cache purge",
+   "U13 XUASTC compatibility with three's transcoder",
+   "U14 iOS decode of Ogg Opus via decodeAudioData",
+   "U15 pinned C2PA signing tool and version",
+   "H3 US licence (ADR-GENAI-01 gate)",
+   "art-lead time per character (20-40 min estimate)"
+  ],
+  "risks": [
+   "H3 family never clears for US use; mitigated by registry-driven provider switch and in-engine fallback",
+   "Meshy rig names or quality differ from Mixamo style; mitigated by M00c probe, alias table and human gate H4",
+   "Generated vehicles unusable without heavy Blender work",
+   "Prefix-purge or cache lag exceeds 24 h; mitigated by 404 probe and drill",
+   "Endpoint churn or re-pin invalidates cutscene keys; mitigated by pinned updated_at and cutscene-index",
+   "fal concurrency 2 slows the roster batch; buy credit before the overnight run",
+   "Terms drift on vendor licences; weekly terms-watch flips provider to pending",
+   "Fallback provider pushes programme over the $1,000 cap",
+   "Lock-file PR review becomes a bottleneck at roster scale",
+   "Mouth-atlas decal positioning on auto-rigged meshes",
+   "Opus on iOS may force AAC for barks"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M00b",
+    "slug": "ip-provenance-gates",
+    "sessions": 1
+   },
+   {
+    "id": "M00c",
+    "slug": "genai-spike",
+    "sessions": 1
+   },
+   {
+    "id": "M01c",
+    "slug": "assets-publish",
+    "sessions": 1
+   },
+   {
+    "id": "M05b",
+    "slug": "genjob-workflow-mock (shared with S03)",
+    "sessions": 2
+   },
+   {
+    "id": "M08a",
+    "slug": "retarget-bake",
+    "sessions": 1
+   },
+   {
+    "id": "M10a",
+    "slug": "roster-pipeline",
+    "sessions": 2
+   },
+   {
+    "id": "M10b",
+    "slug": "qa-gates-kill-drill",
+    "sessions": 1
+   }
+  ],
+  "r_ids_covered": [
+   "R-NPC-02",
+   "R-IP-01",
+   "R-ENG-03",
+   "R-CUT-01",
+   "R-NPC-04",
+   "R-IP-02"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-NPC-03",
+    "to": "M13c"
+   }
+  ]
+ },
+ {
+  "domain": "S09",
+  "spec_path": "spec/domains/09-backend.md,spec/domains/09-backend-contracts.md,spec/domains/09-backend-db.md,spec/domains/09-backend-ops.md",
+  "words": 19129,
+  "contracts_finalized": [
+   "C11",
+   "C12",
+   "C16"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C10",
+    "change": "Remove client-supplied history[] from NPCDialogueRequest; add encounterId and soulVersion; history is held server-side in EncounterDO; response is SSE events meta, line.delta, line.done, effects, fallback, done",
+    "why": "Client history lets players forge assistant turns (jailbreak); D-21 already places history in EncounterDO [research/ai-npc-runtime.md \u00a72.1]"
+   },
+   {
+    "contract": "C09",
+    "change": "CutsceneAsset readiness = R2 cutscenes/<key>/manifest.json written last (directory layout), not cutscenes/<sha256>.mp4; CutsceneJobDO.ensure() checks the manifest",
+    "why": "Transcode/captions/qa stages produce several files; manifest-last is the atomic ready signal [research/gap-cutscene-delivery-playback.md \u00a77.1]"
+   },
+   {
+    "contract": "C05",
+    "change": "SaveGame must carry saveProfileId (32-hex), namespace 'story'|'sandbox', slot id, client mtime (ms), schema version, and sha256 checksum; inline size \u2264 256 KiB (larger goes to R2 blob)",
+    "why": "Cloud sync uses optimistic versions, tombstones and Grand-V save-profile rules (\u2264 64 profiles) [research/repos-grand-v.md (d)]"
+   },
+   {
+    "contract": "C11",
+    "change": "The 06 v0.95 uniform envelope {t, seq, tick, payload} is replaced by per-type binary layouts (IN/SNAP/EV/ACK/BYE/ACT/CHAT) with a 1-byte type; JSON only for welcome/handoff/notice/kick; snapshot rate fixed at 20 Hz",
+    "why": "Binary per-type frames keep IN at ~44 B and SNAP at 28 B per entity; a uniform envelope wastes bytes at 20 Hz [research/stack-cloudflare-backend.md \u00a74.5]; A-04 fixes 20 Hz"
+   },
+   {
+    "contract": "C17",
+    "change": "ExperienceDescriptor.anchor must carry both {lat,lng} and chunkKey; radius \u2264 250 m; moderation/visibility fields are server-owned and read-only to clients",
+    "why": "Map queries index by chunk key; anchor rules check lat/lng against SF land, right-of-way and parcels [research/auth-ugc-input-maps.md \u00a73.4]"
+   },
+   {
+    "contract": "C14",
+    "change": "Assumption: the mod runtime exposes modsActive(): boolean so the room client can send it in rooms/assign; publish validation requires a closed permissions[] enum and a provenance block",
+    "why": "Mods are disabled in multiplayer (D-26, close 4007); the publish scanner fails closed on unknown permissions [research/gap-trust-safety-tooling.md \u00a74.2]"
+   },
+   {
+    "contract": "C01",
+    "change": "Assumption: C02 netIn/netOut phases run where the sim tick counter and the local input buffer are available (sim.worker per D-08); C03 provides a \u226416-bit wire button bitset table owned by S01; S01 owns an AnimStateId (u8) registry",
+    "why": "C11 IN samples and SNAP anim fields reference them"
+   },
+   {
+    "contract": "C08",
+    "change": "Assumption: S02 publishes config/world.bounds.json (SF ENU bounding box) and the z/x/y chunk key format used in telemetry and experience queries",
+    "why": "C11 pose validation and C16 coarse location both need them"
+   },
+   {
+    "contract": "C13",
+    "change": "Assumption: tier names 'mobile'|'desktop'|'xr-standalone'|'xr-pro' are final; C16 envelope.tier uses them",
+    "why": "Telemetry segmentation and release gates"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "Q-BE-01",
+    "question": "Issuer host: id.<domain> custom domain vs path issuer on the app origin",
+    "recommendation": "id.<domain> on the web Worker"
+   },
+   {
+    "id": "Q-BE-02",
+    "question": "Rooms on cross-origin rt.<domain> (CORS + cross-origin WebSocket) vs same-origin zone route <domain>/rt/*",
+    "recommendation": "rt.<domain>; switch to the zone route only if the M12b spike shows COEP blocks the socket"
+   },
+   {
+    "id": "Q-BE-03",
+    "question": "Introduce Supabase at M05d (new data-spine milestone) or stay Cloudflare-only until M12a",
+    "recommendation": "M05d; Pro for prod at first public launch (backups, no pausing), Free for staging with keep-alive"
+   },
+   {
+    "id": "Q-BE-04",
+    "question": "May P1 'device' tier post in the forum before P2 links exist (M13c)?",
+    "recommendation": "Yes for forum posts with account age \u2265 72 h and 18+ attestation; publishing NPCs/experiences/mods stays 'linked' only"
+   },
+   {
+    "id": "Q-BE-05",
+    "question": "Turnstile at P1 registration (verification API not researched)",
+    "recommendation": "Use Turnstile; verify official docs at M12a start; fallback = per-net registration caps"
+   },
+   {
+    "id": "Q-BE-06",
+    "question": "Cloud save conflict policy",
+    "recommendation": "Keep both copies (local renamed slot~conflict-<ts>) and let the player choose"
+   },
+   {
+    "id": "Q-BE-07",
+    "question": "Owner actions before M06b/M13d: NCMEC ESP registration, PhotoDNA application, Tech Coalition Pathways, DMCA agent designation, Cloudflare CSAM-tool support ticket",
+    "recommendation": "File all before M06b; until approved, photographic uploads stay private-only and CSAM reports use the CyberTipline web form"
+   },
+   {
+    "id": "Q-BE-08",
+    "question": "Production/staging domain names, Cloudflare zone plan, GitHub repo visibility and plan (prod approvals)",
+    "recommendation": "Dedicated zone on Cloudflare; tag-only prod deploys by an allowlisted actor until a Team org or public repo"
+   },
+   {
+    "id": "Q-BE-09",
+    "question": "New milestone IDs M05d (data spine), M12c (rooms hardening), M13d (legal + trust & safety)",
+    "recommendation": "Adopt; each fits one or two sessions and keeps M12b and M13b within one-session scope"
+   }
+  ],
+  "unverified": [
+   "U1 cross-origin WebSocket from a COEP require-corp page to rt.<domain>",
+   "U2 Turnstile server verification API and widget under COEP",
+   "U3 wrangler@4.151.1 JSON keys for workflows, analytics_engine_datasets, analytics, ratelimits, observability, previews",
+   "U4 DO WebSocket send backpressure; whether WS messages count toward ~1,000 req/s",
+   "U5 DO in-memory limit (128 MB assumed)",
+   "U6 Workflow create with an existing id (single-flight relies on CutsceneJobDO)",
+   "U7 Hyperdrive reach to Supabase (not used by default)",
+   "U9 Cloudflare CSAM Scanning Tool coverage of R2 custom-domain responses",
+   "U10 Cache-Tag purge for R2 objects (prefix purge used)",
+   "U11 NCMEC CyberTipline API credential process",
+   "U12 PhotoDNA approval timing",
+   "U13 whether limits.cpu_ms applies to Workflow steps and queue consumers in the same Worker",
+   "U14 whether every hibernated WS message emits a Workers Logs invocation log",
+   "U15 Custom Alerts billing and rule limits",
+   "U16 full-page redirect sign-in inside an iOS Home Screen web app",
+   "U17 AI Gateway known-pricing catalog includes claude-haiku-5-5 / claude-sonnet-5-5",
+   "U18 Anthropic Console minimum workspace spend limit",
+   "U19 fal auto-recharge and locked-account HTTP status",
+   "U20 wrangler deployments status --json field names",
+   "U21 whether DO restarts on deploy are scoped to the deploying script"
+  ],
+  "risks": [
+   "TCP head-of-line stalls on lossy mobile networks (no unreliable channel to DOs); mitigated by latest-wins snapshots, \u2264250 ms extrapolation, 10 Hz mobile input",
+   "Single-thread DO ceiling (~500\u20131,000 events/s) caps rooms at 16\u201332 players; district sharding is post-M12c",
+   "Every rooms deploy disconnects all players; drain window + resume tokens required",
+   "Own-issuer security burden (key rotation, refresh reuse, device-key theft)",
+   "Unsampled RoomDO logs could cost \u2248 $200+/room-month after 2026-12-01; rooms Worker must keep invocation_logs off",
+   "fal has no vendor spend cap; only the governor reserve and prepaid balance stop spend",
+   "Moderation staffing and SLA clocks (48 h NCII, CSAM reporting) are people costs, not API costs",
+   "Workers Previews are open beta and do not run queue consumers, crons or own Workflows; test-only routes needed",
+   "Version skew during gradual deploys (hashed assets 404) without the version-affinity Transform Rule",
+   "P0 quota farming by minting many device keys; bounded by per-net caps and the global governor"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M00",
+    "slug": "bootstrap-ci-pwa-on-workers",
+    "sessions": 1
+   },
+   {
+    "id": "M04b",
+    "slug": "local-saves-identity-menus",
+    "sessions": 1
+   },
+   {
+    "id": "M05b",
+    "slug": "cutscene-infra-mock-provider",
+    "sessions": 1
+   },
+   {
+    "id": "M05d",
+    "slug": "data-spine-supabase",
+    "sessions": 1
+   },
+   {
+    "id": "M06a",
+    "slug": "npc-dialogue-proxy-quotas",
+    "sessions": 1
+   },
+   {
+    "id": "M06b",
+    "slug": "npc-builder-moderation-backend",
+    "sessions": 1
+   },
+   {
+    "id": "M12a",
+    "slug": "p1-identity-cloud-saves",
+    "sessions": 1
+   },
+   {
+    "id": "M12b",
+    "slug": "rooms-core-protocol-v2",
+    "sessions": 2
+   },
+   {
+    "id": "M12c",
+    "slug": "rooms-hardening-presence-loadtest",
+    "sessions": 2
+   },
+   {
+    "id": "M13b",
+    "slug": "forum-reports-backend",
+    "sessions": 1
+   },
+   {
+    "id": "M13c",
+    "slug": "device-code-publish-login",
+    "sessions": 1
+   },
+   {
+    "id": "M13d",
+    "slug": "legal-trust-safety-backend",
+    "sessions": 1
+   },
+   {
+    "id": "M14a",
+    "slug": "thirdweb-siwe-link",
+    "sessions": 1
+   },
+   {
+    "id": "M14b",
+    "slug": "launch-hardening-guardrails",
+    "sessions": 2
+   }
+  ],
+  "r_ids_covered": [
+   "R-PLAT-01",
+   "R-ROLL-01",
+   "R-ROLL-02",
+   "R-AUTH-01",
+   "R-AUTH-02",
+   "R-IP-03",
+   "R-ENG-03"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-AUTH-03",
+    "to": "M13c"
+   },
+   {
+    "id": "R-MOD-03",
+    "to": "M13b"
+   }
+  ]
+ }
+]

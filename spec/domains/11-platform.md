@@ -285,7 +285,7 @@ export interface QualityService {
 |---|---|---|---|---|
 | desktop-ultra | webgpu | false | stable | Chrome 113+ and Safari 26 ship WebGPU; needs a real adapter, else the tier demotes to `desktop` [research/stack-rendering-platform.md §2] |
 | desktop | webgpu | false | stable | automatic WebGL2 fallback in the same renderer [F-002] |
-| mobile, mobile-low | webgl2 until M01c passes, then webgpu | false | **device-spike-gated** | Safari 26 ships WebGPU on iOS [F-004], but Home Screen parity and GPU-process limits are `UNVERIFIED` [F-009, F-012]. Gate: `config/platform-flags.json` key `webgpu.mobile` flips to `true` only when the M01c iPhone run passes (30 min, no jetsam, p90 inside budget). Re-validated in M11a. |
+| mobile, mobile-low | webgl2 until M01c passes, then webgpu | false | **device-spike-gated** | Safari 26 ships WebGPU on iOS [F-004], but Home Screen parity and GPU-process limits are `UNVERIFIED` [F-009, F-012]. `config/platform-flags.json` key `webgpu.mobile` flips to `true` only after the M01c iPhone run passes (30 min, no jetsam, p90 inside budget); re-validated in M11a. |
 | xr-quest | webgl2 | **true** | stable | native WebGPU XR is flag-gated on Quest Browser [F-005]; WebGL2 backend gives multiview and layers |
 | xr-visionpro | webgpu | false | stable | native WebGPU XR ships in Safari 26.2; fallback via `setupWebGLXRFallback` [F-003, F-005] |
 
@@ -444,7 +444,7 @@ Signals: EMA of frame ms (α = 0.06) and p90 over 120 frames; in XR, `XRFrame` d
 
 ### 5.6 Memory budget (P-11)
 
-`MemoryBudget` sums `renderer.info.memory` (textures, geometries, total), every wasm `memory.buffer.byteLength`, `asset.worker` caches, SAB blocks and the media estimate. Safari exposes neither `deviceMemory` nor `measureUserAgentSpecificMemory`, so the accounted figure is what we control; unaccounted JS objects consume the remainder of the 2,048 MB WebContent allowance, which is why the `mobile` accounted cap is 600 MB. At 85 % of any cap: evict LRU chunks and textures, raise `textureMipBias`, emit `onMemoryPressure('soft')`. At 95 %: drop the streaming radius one step and emit `'hard'`. `memEstMB` feeds the heartbeat. [F-009; research/stack-rendering-platform.md §3.3]
+`MemoryBudget` sums `renderer.info.memory` (textures, geometries, total), every wasm `memory.buffer.byteLength`, `asset.worker` caches, SAB blocks and the media estimate. Safari exposes neither `deviceMemory` nor `measureUserAgentSpecificMemory`; unaccounted JS objects consume the rest of the 2,048 MB WebContent allowance, hence the 600 MB `mobile` accounted cap. At 85 % of any cap: evict LRU chunks and textures, raise `textureMipBias`, emit `onMemoryPressure('soft')`. At 95 %: drop the streaming radius one step and emit `'hard'`. `memEstMB` feeds the heartbeat. [F-009; research/stack-rendering-platform.md §3.3]
 
 ### 5.7 Warm-up and reveal gate (P-13)
 
@@ -495,7 +495,6 @@ Rows from `research/INDEX.md` §2 and `research/stack-rendering-platform.md`, ch
 | F-009 F-012 | iPhone 17 Pro WebContent killed at ActiveHard 2048 MB; WebKit 303203 GPU-process leak | developer.apple.com/forums/thread/823061 · bugs.webkit.org/show_bug.cgi?id=303203 |
 | F-010 F-011 | quota ≤ 60 % disk and `persist()` heuristic; iPhone lacks fullscreen, orientation lock, vibrate, Pointer Lock, `beforeinstallprompt`, COEP `credentialless` | webkit.org/blog/14403 · BCD 8.1.6 |
 | F-013 F-062 F-064 | Quest 3 72 Hz min, < 200 draw calls, < 1.5 M triangles; IWER 2.6.0 runs three XR; `GPUDevice.lost` from iOS 26 | developers.meta.com device-optimization-comparison · gap-ci-cd §4 · caniuse mdn-api_gpudevice_lost |
-| SRP | Budgets table, detection §6.3, governor §6.4 are engineering recommendations, not vendor limits | research/stack-rendering-platform.md |
 | S11-F1 | r186 `renderer.info`: `render.drawCalls`, `render.frameCalls`, `render.triangles`, `memory.texturesSize`, `memory.geometries`, `memory.total`; `autoReset` with manual `reset()` | unpkg.com/three@0.186.1/src/renderers/common/Info.js |
 | S11-F2 | `Renderer.onDeviceLost` gets `{api, message, reason, originalEvent}`; WebGPU backend skips `reason: 'destroyed'`; options `forceWebGL`, `multiview`, `outputBufferType` | unpkg.com/three@0.186.1 `Renderer.js`, `WebGPUBackend.js`, `WebGPURenderer.js` |
 | S11-F5 | `WebGPURenderer` option `reversedDepthBuffer`; the WebGL backend enables it only with `EXT_clip_control`, otherwise warns and uses default depth | unpkg.com/three@0.186.1/src/renderers/webgl-fallback/WebGLBackend.js |
@@ -517,7 +516,6 @@ R-ID to milestones: R-PLAT-01 → M00, M02a2, M04a, M11a · R-PLAT-02 → M00 (I
 | **Cutscene spike** (before M05b, Architect assigns id) | `FirstGestureUnlock`, video pool, wake lock, media budget, flat DOM host; gap-cutscene §7.7 device matrix | XR hosts | M11b |
 | **M11a** iPhone hardening (2 sessions) | two-way governor, `MemoryBudget` enforcement, `FramePacer`, budgets as tests (`check:perf` fail mode nightly, `perf:verify` on device JSON), offline relaunch, SW safe-point updates, 30-min soak, abnormal-exit demotion, iOS quirk pass, ultra calibration | — | — |
 | **M11b** WebXR port (2 sessions) | b1: Part B §3–§5.5 (session, swap, locomotion, comfort, input, panels, IWER e2e); b2: per-mode XR rules (S06 S07 S08), XR cutscene hosts, Quest/Vision Pro checklists and perf pass | — | post-v1 AR |
-| M14b | alert wiring with S09 (A03 abnormal-exit KPI) | — | — |
 
 ## 9. Tests
 
@@ -525,7 +523,7 @@ Projects, flags, device matrix and checklists are in `11-platform-perf.md` §9; 
 
 ## 10. Open questions, unverified, decisions
 
-**Decisions for the Architect** (also in the return block): DN-S11-01 mobile WebGPU gate criteria (recommend the M01c rule in §4.3) · DN-S11-02 postMessage transport required in v1 when isolation is missing (recommend minimal yes: single transport switch, no perf guarantee) · DN-S11-03 XR UI technique (recommend Canvas2D panels via a shared `UiSurface` from S10) · DN-S11-04 split M01b into M01b and M01c; add M02a2 · DN-S11-05 `desktop-ultra` auto-promotion rule (recommend §5.3) · DN-S11-06 PC VR support level (recommend best effort, unaccepted).
+**Decisions for the Architect** (full text in the return block): DN-S11-01 mobile WebGPU gate (§4.3) · DN-S11-02 postMessage transport when isolation is missing (recommend minimal yes) · DN-S11-03 XR UI technique (Canvas2D panels via S10's `UiSurface`) · DN-S11-04 split M01b into M01b and M01c, add M02a2 · DN-S11-05 `desktop-ultra` promotion rule (§5.3) · DN-S11-06 PC VR level (best effort, unaccepted).
 
 **Alignment with Wave 1 peers** (`01-engine-contracts.md`, `05-assets.md`): S05 already keys C07 variants by C13 ids with `VARIANT_FALLBACK`. S01's `QualityTierRef` (old tier names) must become `QualityTierId`; S01's `XRRigParams.session: 'immersive-ar'` is not available in v1; XR poses reach the sim through a new `SimServices.xrPoses`; `FrameSignal` is sent every rAF even when `FramePacer` skips the draw. Other assumptions: C05 embeds `settings.platform`; C08 chunks respect the per-chunk object budget.
 
