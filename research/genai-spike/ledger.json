@@ -1,0 +1,6 @@
+{
+  "schema": "spike-ledger/1",
+  "capMicros": 10000000,
+  "totalMicros": 0,
+  "entries": []
+}
