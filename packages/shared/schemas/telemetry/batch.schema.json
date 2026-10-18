@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/telemetry/batch.schema.json",
+  "title": "C16 1.1 TelemetryBatch envelope and limits",
+  "description": "Envelope and per-event shape. Props are validated per name against names.schema.json. Size limits (body at most 65536 bytes) are enforced by the Worker before parsing.",
+  "type": "object",
+  "properties": {
+    "v": { "const": 1 },
+    "build": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "seq0": { "type": "integer", "minimum": 0 },
+    "env": {
+      "type": "object",
+      "properties": {
+        "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
+        "deviceClass": { "enum": ["desktop", "iphone", "ipad", "android", "quest", "avp", "unknown"] },
+        "osMajor": { "type": "integer", "minimum": 0, "maximum": 999 },
+        "displayMode": { "enum": ["standalone", "tab", "xr"] },
+        "backend": { "enum": ["webgpu", "webgl2"] }
+      },
+      "required": ["tier", "deviceClass", "osMajor", "displayMode", "backend"],
+      "additionalProperties": false
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "ts": { "type": "number" },
+          "sessionId": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "props": {
+            "type": "object",
+            "maxProperties": 16,
+            "additionalProperties": { "type": ["string", "number", "boolean"] }
+          }
+        },
+        "required": ["name", "ts", "sessionId", "props"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["v", "build", "seq0", "env", "events"],
+  "additionalProperties": false
+}

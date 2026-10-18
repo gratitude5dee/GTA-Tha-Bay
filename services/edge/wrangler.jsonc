@@ -1,26 +1,94 @@
-// tha-bay-web: assets-only Worker in M00 (no `main`; the Worker script and /api/v1/* arrive in M00a).
+// tha-bay-web: static assets plus /api/v1/* (M00a). Navigation stays on the asset path (run_worker_first covers /api/* only).
 // Never touch, rename or deploy over a Worker whose name does not start with tha-bay-.
+// Bindings, vars and define are not inherited by env.staging or previews and are repeated on purpose.
+// Keys marked (dagger) in the spec were checked with `wrangler deploy --dry-run` on wrangler 4.151.1: see spec/03 and spec/99 U-BE-3.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "tha-bay-web",
+  "main": "src/index.ts",
   "compatibility_date": "2026-10-18",
   "assets": {
     "directory": "../../apps/web/dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   },
   // No custom domain until Q-15 is answered.
   "workers_dev": true,
+  "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 0.25, "invocation_logs": true },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  },
+  // src/routes/test.ts is imported only inside `if (__DV_TEST_ROUTES__)`, so the prod bundle drops it.
+  "define": { "__DV_TEST_ROUTES__": "false" },
+  "vars": {
+    "ENVIRONMENT": "prod",
+    "GEO_ALLOW": "US",
+    "BUILD_ID": "dev",
+    "MIN_CLIENT_BUILD": "0",
+    "HOST_API": "https://tha-bay-web.workers.dev",
+    "HOST_RT": "https://tha-bay-rooms.workers.dev",
+    "HOST_ID": "https://tha-bay-web.workers.dev",
+    "HOST_MEDIA": "https://tha-bay-media.workers.dev",
+    "HOST_UGC": "https://tha-bay-ugc.workers.dev",
+    "FLAGS_JSON": "{}",
+    "FAL_MODE": "live"
+  },
+  "secrets": { "required": [] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
+      "main": "src/index.ts",
       "workers_dev": true,
       "preview_urls": true,
       "assets": {
         "directory": "../../apps/web/dist",
-        "not_found_handling": "single-page-application"
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*"]
+      },
+      "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+      "observability": {
+        "enabled": true,
+        "logs": { "enabled": true, "head_sampling_rate": 1.0, "invocation_logs": true },
+        "traces": { "enabled": true, "head_sampling_rate": 1.0 }
+      },
+      "define": { "__DV_TEST_ROUTES__": "true" },
+      "secrets": { "required": [] },
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "GEO_ALLOW": "US",
+        "BUILD_ID": "dev",
+        "MIN_CLIENT_BUILD": "0",
+        "HOST_API": "https://tha-bay-web-staging.workers.dev",
+        "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
+        "HOST_ID": "https://tha-bay-web-staging.workers.dev",
+        "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+        "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
+        "FLAGS_JSON": "{}",
+        "FAL_MODE": "mock"
       }
     }
   },
-  // Required by `wrangler preview`. Bindings are not inherited and must be repeated here when added (M00a+).
-  "previews": {}
+  // Required by `wrangler preview`. Bindings are not inherited and are repeated here.
+  // `previews.assets` is rejected by wrangler 4.151.1 ("Unexpected fields found in previews field"); assets come from the --env staging config.
+  "previews": {
+    "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+    "define": { "__DV_TEST_ROUTES__": "true" },
+    "vars": {
+      "ENVIRONMENT": "preview",
+      "GEO_ALLOW": "US",
+      "BUILD_ID": "dev",
+      "MIN_CLIENT_BUILD": "0",
+      "HOST_API": "https://tha-bay-web-staging.workers.dev",
+      "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
+      "HOST_ID": "https://tha-bay-web-staging.workers.dev",
+      "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+      "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
+      "FLAGS_JSON": "{}",
+      "FAL_MODE": "mock"
+    }
+  }
 }
