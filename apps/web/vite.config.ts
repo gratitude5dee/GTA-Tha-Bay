@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { BRAND } from '../../config/brand.ts';
@@ -13,6 +14,16 @@ const ISOLATION_HEADERS = {
 
 // '1' for dev, test and preview builds; production builds leave it unset and QA code is dropped.
 const QA = process.env.VITE_DV_QA === '1';
+
+const here = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
+
+// Each Rapier build is its own chunk (it embeds about 3 MB of wasm as base64). The names let the service worker
+// precache the simd-compat chunk and leave the deterministic-compat chunk to load on demand (M01a2).
+function chunkName(chunk: { moduleIds: string[]; name: string }): string {
+  if (chunk.moduleIds.some((id) => id.includes('rapier3d-deterministic-compat'))) return 'assets/rapier-deterministic-[hash].js';
+  if (chunk.moduleIds.some((id) => id.includes('rapier3d-simd-compat'))) return 'assets/rapier-simd-[hash].js';
+  return 'assets/[name]-[hash].js';
+}
 
 function brandInHtml(): Plugin {
   const values: Record<string, string> = {
@@ -43,6 +54,8 @@ export default defineConfig({
         rollupFormat: 'iife',
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm}'],
+        // The deterministic-compat build loads on demand (canonical sessions only); QA pages are never precached.
+        globIgnores: ['**/rapier-deterministic-*.js', 'qa/**'],
       },
       manifest: {
         id: '/',
@@ -69,5 +82,14 @@ export default defineConfig({
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { headers: ISOLATION_HEADERS, proxy: { '/api': 'http://localhost:8788' } },
   preview: { headers: ISOLATION_HEADERS },
-  build: { outDir: 'dist', emptyOutDir: true },
+  worker: { format: 'es', rollupOptions: { output: { chunkFileNames: chunkName } } },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    rollupOptions: {
+      // The determinism page exists only in QA builds (VITE_DV_QA=1).
+      input: { main: here('index.html'), ...(QA ? { 'qa/determinism': here('qa/determinism.html') } : {}) },
+      output: { chunkFileNames: chunkName },
+    },
+  },
 });

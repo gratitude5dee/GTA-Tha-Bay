@@ -1,5 +1,7 @@
 import { collectDiagnosticSignals, formatDiagnostics, parseQaFlags } from '@dv/engine';
-import { mountShell } from '@dv/ui';
+import { bootEngine } from '@dv/engine/client/boot';
+import { mountShell, t } from '@dv/ui';
+import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
 
 const BUILD = import.meta.env.VITE_DV_QA === '1' ? 'qa' : 'prod';
@@ -18,6 +20,32 @@ mountShell(root, {
   update,
   initialPath: location.pathname,
 });
+
+// The engine: sim.worker with one Rapier build, the transport, and the debug cube view in the page corner.
+// Skipped on the unsupported screen. The GPU probe and the XR emulation page drive their own renderer, so the
+// engine runs without a view there.
+if (!flags.unsupported && typeof Worker !== 'undefined') {
+  const host = document.createElement('div');
+  host.id = 'dv-engine';
+  document.body.append(host);
+  bootEngine({
+    container: host,
+    qa: import.meta.env.VITE_DV_QA === '1',
+    flags,
+    ...(flags.profile ? { profile: flags.profile } : {}),
+    labels: { recovering: t('engine.recovering') },
+    headless: flags.xrEmulate !== null || flags.probe !== null,
+  })
+    .then(async (engine) => {
+      // QA builds only: window.__dvBridge.engine. The literal comparison lets production builds drop the branch.
+      if (import.meta.env.VITE_DV_QA === '1') {
+        const { installEngineBridge } = await import('@dv/engine/client/debug/bridge');
+        installEngineBridge(engine);
+        document.documentElement.dataset.dvEngine = 'ready';
+      }
+    })
+    .catch((error: unknown) => console.error('engine failed to start', error));
+}
 
 // QA builds only: the GPU and XR probe and window.__dvBridge. The literal comparison lets production
 // builds drop the whole branch, including three and the IWER emulator.

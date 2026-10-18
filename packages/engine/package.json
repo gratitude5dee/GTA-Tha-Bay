@@ -9,13 +9,17 @@
     "./headless": "./src/headless/index.ts",
     "./platform": "./src/platform/index.ts",
     "./platform/probe": "./src/platform/probe.ts",
-    "./platform/renderer-host": "./src/platform/renderer-host.ts"
+    "./platform/renderer-host": "./src/platform/renderer-host.ts",
+    "./client/boot": "./src/client/boot/boot-engine.ts",
+    "./client/debug/bridge": "./src/client/debug/bridge.ts",
+    "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts"
   },
   "scripts": {
     "test": "vitest run",
     "test:lint-bans": "vitest run test/lint.bans.spec.ts",
     "test:headless": "vitest run test/headless.noDom.spec.ts",
-    "test:determinism": "vitest run test/determinism.node.spec.ts"
+    "test:determinism": "vitest run test/determinism.node.spec.ts",
+    "bench:physics": "tsx bench/physics-builds.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d-deterministic-compat": "0.21.0",

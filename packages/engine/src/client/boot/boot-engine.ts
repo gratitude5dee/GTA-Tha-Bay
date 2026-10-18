@@ -1,5 +1,6 @@
 import type { BootPayload, FrameSignal, LoopStats, QualityTierId, SimConfig, SimProfile } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
+import { spawnSimWorker } from './spawn-worker.ts';
 import { physicsDropConfig, PHYSICS_DROP } from '../../sim/scenarios/physics-drop.ts';
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
@@ -92,14 +93,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let backend: EngineObservation['backend'] = 'none';
   const view = new SnapshotView();
 
-  const spawn =
-    opts.spawn ??
-    ((): WorkerLike =>
-      new Worker(new URL('../../workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike);
+  const spawn = opts.spawn ?? spawnSimWorker;
 
   const host: SimHostImpl = new SimHostImpl({
     spawn,
-    sab: canUseSab(),
+    sab: canUseSab() && opts.flags.transport !== 'postMessage',
     qa: opts.qa,
     readyTimeoutMs: 60_000,
     timeoutAfter: rejectAfter,
@@ -241,8 +239,8 @@ async function createView(opts: BootEngineOptions, onFrame: (nowMs: number) => v
   const sun = new three.DirectionalLight(0xffffff, 2.2);
   sun.position.set(30, 60, 20);
   scene.add(sun);
-  camera.position.set(0, 26, 52);
-  camera.lookAt(0, 2, 8);
+  camera.position.set(0, 17, 40);
+  camera.lookAt(0, 1, 12);
 
   const resize = (): void => {
     const w = Math.max(1, canvas.clientWidth);

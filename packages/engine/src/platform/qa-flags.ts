@@ -1,4 +1,4 @@
-import type { QualityTierId } from '@dv/shared';
+import type { QualityTierId, SimProfile } from '@dv/shared';
 
 /**
  * The single parser for QA URL flags (11-platform-perf.md section 4).
@@ -17,6 +17,10 @@ export interface QaFlags {
   readonly probe: 'gpu' | null;
   /** ?unsupported=1 shows the unsupported screen. */
   readonly unsupported: boolean;
+  /** ?profile=canonical|local picks the sim profile (M01a2). */
+  readonly profile: SimProfile | null;
+  /** ?transport=pm forces the postMessage transport even when the page is cross-origin isolated (M01a2). */
+  readonly transport: 'postMessage' | null;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -26,6 +30,8 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   xrEmulate: null,
   probe: null,
   unsupported: false,
+  profile: null,
+  transport: null,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -52,5 +58,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     xrEmulate: q.get('xr-emulate') === 'quest3' ? 'quest3' : null,
     probe: q.get('probe') === 'gpu' ? 'gpu' : null,
     unsupported: q.get('unsupported') === '1',
+    profile: q.get('profile') === 'canonical' ? 'canonical' : q.get('profile') === 'local' ? 'local' : null,
+    transport: q.get('transport') === 'pm' ? 'postMessage' : null,
   };
 }
