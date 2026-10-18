@@ -66,7 +66,8 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_DV_QA': JSON.stringify(QA ? '1' : '0'),
   },
-  server: { headers: ISOLATION_HEADERS },
+  // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
+  server: { headers: ISOLATION_HEADERS, proxy: { '/api': 'http://localhost:8788' } },
   preview: { headers: ISOLATION_HEADERS },
   build: { outDir: 'dist', emptyOutDir: true },
 });

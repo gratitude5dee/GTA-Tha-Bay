@@ -2,7 +2,8 @@
  * Cloudflare deploys for the tha-bay-web Worker.
  *
  *   tsx tools/ci/deploy.ts preview   [--name <preview-name>]   Workers Preview of the staging Worker
- *   tsx tools/ci/deploy.ts prod      [--env staging]           wrangler deploy (M00a replaces this with versions + smoke)
+ *   tsx tools/ci/deploy.ts prod      [--env staging] [--dry-run] [--url <u>] [--do-lifecycle]
+ *                                                              versions upload -> 0 % -> smoke -> 100 % -> rollback on failure
  *   tsx tools/ci/deploy.ts bootstrap                           first deploy of tha-bay-web-staging and tha-bay-web (operator, Admin token)
  *
  * Without CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID every mode prints a SKIP line and exits 0;
@@ -11,9 +12,11 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { planProd, readTextIfExists, runProd, type Exec, type ProdOptions } from './deploy-prod.ts';
 import { args, repoRoot } from './run.ts';
 
 export const PREVIEW_URL_FILE = 'test-results/preview-url.txt';
@@ -166,17 +169,83 @@ function preview(name: string): number {
   return 0;
 }
 
-function prod(extra: string[]): number {
-  ensureDist();
-  return wrangler(['deploy', ...extra]).status;
+function git(gitArgs: string[]): string {
+  return spawnSync('git', gitArgs, { cwd: repoRoot, encoding: 'utf8' }).stdout.trim();
 }
+
+/** Options for the versions-based deploy; exported so tests and --dry-run share them. */
+export function prodOptions(env: NodeJS.ProcessEnv, values: { env?: string | undefined; url?: string | undefined; 'do-lifecycle'?: boolean | undefined }): ProdOptions {
+  const tmp = env['RUNNER_TEMP'] ?? os.tmpdir();
+  const sha = (env['GITHUB_SHA'] ?? git(['rev-parse', 'HEAD']) ?? '').slice(0, 12) || 'local';
+  const title = (git(['log', '-1', '--pretty=%s']) || 'manual deploy').slice(0, 100);
+  const workerName = values.env === 'staging' ? 'tha-bay-web-staging' : 'tha-bay-web';
+  return {
+    env: values.env,
+    workerName,
+    sha12: sha,
+    title,
+    secretsFile: path.join(tmp, 'secrets.json'),
+    url: values.url ?? env['SMOKE_URL'],
+    doLifecycle: Boolean(values['do-lifecycle']) || env['DV_DO_LIFECYCLE'] === '1',
+    outputFile: path.join(tmp, 'wrangler-output.ndjson'),
+  };
+}
+
+function summary(line: string): void {
+  const file = process.env['GITHUB_STEP_SUMMARY'];
+  if (file) writeFileSync(file, `${line}\n`, { flag: 'a' });
+}
+
+function prod(o: ProdOptions): number {
+  const exec: Exec = (cmd, extraEnv) => {
+    const [bin, ...rest] = cmd;
+    const res = spawnSync(bin!, rest, {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: { ...process.env, ...extraEnv },
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    process.stdout.write(res.stdout);
+    process.stderr.write(res.stderr);
+    return { status: res.status ?? 1, out: `${res.stdout}${res.stderr}` };
+  };
+  const result = runProd(o, {
+    exec,
+    build: () => spawnSync('pnpm', ['build'], { cwd: repoRoot, stdio: 'inherit' }).status ?? 1,
+    writeSecrets: (file) => {
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, '{}\n', { mode: 0o600 });
+    },
+    readOutputFile: readTextIfExists,
+    configUrl: () => {
+      const cfg = JSON.parse(stripJsonc(readFileSync(WRANGLER_CONFIG, 'utf8'))) as {
+        vars?: Record<string, string>;
+        env?: Record<string, { vars?: Record<string, string> }>;
+      };
+      return (o.env ? cfg.env?.[o.env]?.vars?.['HOST_API'] : cfg.vars?.['HOST_API']) ?? 'http://localhost:8788';
+    },
+    log: (line) => console.log(`deploy:prod ${line}`),
+  });
+  console.log(`deploy:prod ${result.code === 0 ? 'ok' : 'FAILED'}: ${result.message}`);
+  if (result.newVersion) summary(`**${o.workerName}** version \`${result.newVersion}\` (${o.sha12}): ${result.message}`);
+  if (result.rolledBack) console.log(`deploy:prod rolled back to ${result.oldVersion}`);
+  return result.code;
+}
+
+/** Printed after bootstrap: the routes block to add to wrangler.jsonc once Q-15 names the domain (09-backend-ops.md section 1.2). */
+const CUSTOM_DOMAIN_NOTE = `deploy:bootstrap: no custom domain yet (Q-15). Once the domain is chosen, add to the top-level config
+and set workers_dev to false there:
+  "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ]
+and replace the HOST_* vars (they hold workers.dev placeholders). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
 
 function bootstrap(): number {
   ensureDist();
   console.log('deploy:bootstrap: first deploy of tha-bay-web-staging, then tha-bay-web (idempotent)');
   const staging = wrangler(['deploy', '--env', 'staging']);
   if (staging.status !== 0) return staging.status;
-  return wrangler(['deploy']).status;
+  const prodDeploy = wrangler(['deploy']);
+  if (prodDeploy.status === 0) console.log(CUSTOM_DOMAIN_NOTE);
+  return prodDeploy.status;
 }
 
 export function main(argv: string[], env: NodeJS.ProcessEnv): number {
@@ -185,7 +254,25 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
     console.error('usage: deploy.ts <preview|prod|bootstrap> [--name <n>] [--env staging]');
     return 2;
   }
-  const { values } = parseArgs({ args: rest, options: { name: { type: 'string' }, env: { type: 'string' } }, allowPositionals: true });
+  const { values } = parseArgs({
+    args: rest,
+    options: {
+      name: { type: 'string' },
+      env: { type: 'string' },
+      'dry-run': { type: 'boolean' },
+      url: { type: 'string' },
+      'do-lifecycle': { type: 'boolean' },
+    },
+    allowPositionals: true,
+  });
+
+  if (mode === 'prod' && values['dry-run']) {
+    assertOwnWorkers();
+    const o = prodOptions(env, values);
+    console.log(`deploy:prod --dry-run (${o.workerName}); no network, nothing is executed`);
+    for (const line of planProd(o)) console.log(line);
+    return 0;
+  }
 
   if (!hasCredentials(env)) {
     if (mode === 'preview') rmSync(path.join(repoRoot, PREVIEW_URL_FILE), { force: true });
@@ -194,7 +281,7 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
   }
   assertOwnWorkers();
   if (mode === 'preview') return preview(previewName(env, values.name));
-  if (mode === 'prod') return prod(values.env ? ['--env', values.env] : []);
+  if (mode === 'prod') return prod(prodOptions(env, values));
   return bootstrap();
 }
 

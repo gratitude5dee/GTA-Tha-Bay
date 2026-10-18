@@ -4,9 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "pnpm@12.14.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "VITE_DV_QA=1 pnpm --filter @dv/ui run tokens && VITE_DV_QA=1 pnpm --filter @dv/web exec vite",
+    "dev": "tsx tools/ci/dev.ts",
+    "dev:web": "VITE_DV_QA=1 pnpm --filter @dv/ui run tokens && VITE_DV_QA=1 pnpm --filter @dv/web exec vite",
     "build": "pnpm --filter @dv/ui run tokens && pnpm --filter @dv/web exec vite build && tsx tools/ci/check-dist.ts icons",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.sw.json --noEmit && tsc -p services/edge/tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -16,6 +19,11 @@
     "check:perf": "echo pending: lands in M01c",
     "check:assets": "echo pending: lands in M00b",
     "check:workers": "tsx tools/ci/check-workers.ts",
+    "check:secrets": "tsx tools/ci/check-secrets.ts",
+    "check:prod-routes": "tsx tools/ci/check-prod-routes.ts",
+    "check:do-migrations": "tsx tools/ci/check-do-migrations.ts",
+    "check:smoke": "tsx tools/ci/check-smoke.ts",
+    "dev:edge": "pnpm --filter @dv/edge exec wrangler dev --port 8788",
     "check:headers": "tsx tools/ci/check-dist.ts headers",
     "check:coi": "tsx tools/ci/check-dist.ts coi",
     "check:bundle": "tsx tools/ci/check-dist.ts bundle",
@@ -27,6 +35,7 @@
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "@types/node": "^22.0.0",
+    "ajv": "^8.20.0",
     "eslint": "^10.13.0",
     "tsx": "^4.0.0",
     "typescript": "6.0.3",
