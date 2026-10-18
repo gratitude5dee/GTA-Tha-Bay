@@ -15,10 +15,10 @@ precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 // The precached index.html keeps the COOP/COEP headers it was installed with. The API and the
-// non-isolated account area are never answered from the shell.
+// non-isolated account area and the QA pages (QA builds only) are never answered from the shell.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-    denylist: [/^\/api\//, /^\/account\//],
+    denylist: [/^\/api\//, /^\/account\//, /^\/qa\//],
   }),
 );
 

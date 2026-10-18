@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/physics.schema.json",
+  "title": "config/physics.json",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": { "groupBit": { "type": "integer", "minimum": 1, "maximum": 32768 } },
+  "required": ["schema", "gravity", "solverIterations", "rebaseDistanceM", "defaultFriction", "defaultRestitution", "groups"],
+  "properties": {
+    "schema": { "const": 1 },
+    "gravity": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "solverIterations": { "type": "integer", "minimum": 1, "maximum": 32 },
+    "rebaseDistanceM": { "type": "number", "exclusiveMinimum": 0 },
+    "defaultFriction": { "type": "number", "minimum": 0 },
+    "defaultRestitution": { "type": "number", "minimum": 0, "maximum": 1 },
+    "groups": {
+      "type": "object",
+      "description": "Collision group name to a single bit (1 << n, n in 0..15). Rapier interaction groups use 16 membership and 16 filter bits.",
+      "required": ["static", "dynamic", "character", "vehicle", "kinematic", "sensor"],
+      "additionalProperties": false,
+      "properties": {
+        "static": { "$ref": "#/$defs/groupBit" },
+        "dynamic": { "$ref": "#/$defs/groupBit" },
+        "character": { "$ref": "#/$defs/groupBit" },
+        "vehicle": { "$ref": "#/$defs/groupBit" },
+        "kinematic": { "$ref": "#/$defs/groupBit" },
+        "sensor": { "$ref": "#/$defs/groupBit" }
+      }
+    }
+  }
+}

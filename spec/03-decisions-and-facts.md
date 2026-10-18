@@ -68,6 +68,18 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 ## 5. Verified facts
 The ledger is `research/INDEX.md` §2 (F-001 … F-067, all checked 2026-10-18); this file does not copy it, so there is one place to correct a fact. Domain specs cite `[research/<file>.md]` or `F-NNN`. §6 lists, per milestone, the ledger rows its scope and acceptance criteria rely on. Newly verified facts are added to `research/INDEX.md` §2 with URL and date; items that could not be verified are `UNVERIFIED` and listed in `spec/99-open-questions.md`.
 
+### Builder-verified facts
+
+Checked against the published packages and by running them; no URL beyond the package itself.
+
+| Date | Fact | Source | Used by |
+|---|---|---|---|
+| 2026-10-18 | `@dimforge/rapier3d-simd-compat@0.21.0` and `@dimforge/rapier3d-deterministic-compat@0.21.0` export the same API from `dist/rapier.mjs` (default export `RAPIER`); `await RAPIER.init()` takes no arguments; `RAPIER.version()` is `0.21.0`. The embedded wasm makes the minified chunks 4.62 MB (simd) and 4.37 MB (deterministic). | typings in `dist/*.d.ts`, `vite build` output | M01a2 |
+| 2026-10-18 | `ColliderDesc.heightfield(nrows, ncols, heights, scale)` takes `(nrows + 1) x (ncols + 1)` samples in column-major order; columns run along X, rows along Z; the collider is centred on its translation and `scale` is the full extent. | ray casts against a ramp in `packages/engine/test/physics.backend.spec.ts` | M01a2, M02a1 |
+| 2026-10-18 | `RigidBody.handle` and `Collider.handle` are bit-cast f64 values (the first body is `0`, the first collider `5e-324`), not small integers. `World.takeSnapshot()` returns bytes and `World.restoreSnapshot(bytes)` is static and returns a new `World` with the same handles; re-running from a restored snapshot reproduces the original hash exactly (ECS, RNG and Rapier). | `physics.snapshot.spec.ts` | M01a2, M04a |
+| 2026-10-18 | On the same input in Node 22, `simd-compat` and `deterministic-compat` give different state hashes for the `physics-drop` scenario; two runs of either build agree. The `deterministic-compat` hash is identical in Node 22, Chromium (Playwright 1.64.1) and WebKit 2370 on Linux. | `determinism.node.spec.ts`, `tests/e2e/determinism.spec.ts` | M01a2, U-ENG-1 |
+| 2026-10-18 | `Atomics.waitAsync` is in the runtime (Node 22, Chromium, WebKit) but not in the TypeScript `ES2023` lib: call it through a structural cast. Playwright WebKit on Linux is cross-origin isolated and uses the SAB transport. | `sab-transport.ts`, `tests/e2e/boot.spec.ts` | M01a2 |
+
 ## 6. Facts each milestone relies on
 Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-notes.md` item 5). A split family appears as one row naming its parts (`1`, `2`, `3` digit suffixes; M11b2's second part is M11b4; M14b has three parts per DL-212); the row applies to every part (DL-206). "F rows" are `research/INDEX.md` §2 rows, so the number is the row id there. Where a domain keeps its own local fact (for example F-S12-01 in `12-modding.md` §7), the row names it. **Recorded, not asserted** lists UNVERIFIED items from `spec/99-open-questions.md` that a device run or spike writes down as checklist output; no acceptance criterion may assert them (C15). A milestone author who adds or drops a dependency edits the row in the same pull request.
 

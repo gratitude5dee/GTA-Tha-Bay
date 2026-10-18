@@ -34,6 +34,8 @@ export class RendererHost {
   frames = 0;
   /** Frames rendered while an XR session was presenting. */
   xrFrames = 0;
+  /** Runs at the start of every frame, before the render call (M01a2: the engine hand-off and the snapshot view). */
+  frameHook: ((timeMs: number) => void) | null = null;
 
   private constructor(renderer: WebGPURenderer, backend: RenderBackend) {
     this.renderer = renderer;
@@ -61,7 +63,8 @@ export class RendererHost {
   }
 
   private startLoop(): void {
-    this.renderer.setAnimationLoop(() => {
+    this.renderer.setAnimationLoop((time: number) => {
+      this.frameHook?.(time);
       this.frames += 1;
       if (this.renderer.xr.isPresenting) this.xrFrames += 1;
       this.renderer.render(this.scene, this.camera);

@@ -23,5 +23,6 @@
   "legal.doc.contact": "Contact",
   "update.ready": "A new version is ready.",
   "update.apply": "Update now",
-  "update.later": "Later"
+  "update.later": "Later",
+  "engine.recovering": "Recovering…"
 }

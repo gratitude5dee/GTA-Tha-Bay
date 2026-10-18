@@ -1,0 +1,29 @@
+/* The debug cube view and the recovery banner (M01a2). Corner-sized so the shell pages keep their layout. */
+.dv-engine-canvas {
+  position: fixed;
+  inset-block-end: max(16px, env(safe-area-inset-bottom));
+  inset-inline-end: max(16px, env(safe-area-inset-right));
+  inline-size: min(40vw, 360px);
+  block-size: min(22.5vw, 202px);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dv-engine-banner {
+  position: fixed;
+  inset-block-start: max(16px, env(safe-area-inset-top));
+  inset-inline: 16px;
+  margin-inline: auto;
+  inline-size: fit-content;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.78);
+  color: #fff;
+  font: 600 14px/1.4 system-ui, sans-serif;
+  z-index: 2;
+}
+
+.dv-engine-banner[hidden] {
+  display: none;
+}

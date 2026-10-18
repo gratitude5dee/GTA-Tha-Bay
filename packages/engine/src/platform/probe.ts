@@ -1,4 +1,5 @@
 import type { RenderBackend } from '@dv/shared';
+import type { EngineBridge } from '../client/debug/bridge.ts';
 import type { QaFlags } from './qa-flags.ts';
 import { RendererHost, THREE_REVISION } from './renderer-host.ts';
 
@@ -47,7 +48,7 @@ export interface PlatformBridge {
 
 declare global {
   interface Window {
-    __dvBridge?: { platform?: PlatformBridge };
+    __dvBridge?: { platform?: PlatformBridge; engine?: EngineBridge };
   }
 }
 
