@@ -7,5 +7,9 @@
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts",
     "./schemas/*": "./schemas/*"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "vectors:write": "tsx scripts/write-vectors.ts"
   }
 }

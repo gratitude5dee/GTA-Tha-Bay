@@ -230,6 +230,9 @@ importers:
       '@dv/shared':
         specifier: workspace:*
         version: link:../shared
+      bitecs:
+        specifier: 0.4.0
+        version: 0.4.0
       three:
         specifier: 0.186.1
         version: 0.186.1
@@ -1760,6 +1763,9 @@ packages:
     resolution: {integrity: sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+
+  bitecs@0.4.0:
+    resolution: {integrity: sha512-ho6Zop/L79DRTnBAfakPpGPuX7y0+lAjX06CpaAW+5tnAc7BH3L3RlSrWAXAqwnQGDZ10GsoxaxyTTsddlun3g==}
 
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
@@ -4567,6 +4573,8 @@ snapshots:
   balanced-match@4.0.4: {}
 
   baseline-browser-mapping@2.11.29: {}
+
+  bitecs@0.4.0: {}
 
   blake3-wasm@2.1.5: {}
 
