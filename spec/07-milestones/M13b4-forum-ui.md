@@ -42,7 +42,7 @@ The main menu's **Community** gains a working **Forum**. Players browse boards, 
 ## Scope out
 - Moderator console and case views (staff tools use route 43 directly) → M13d1 and later.
 - Legal forms behind `/legal/dmca` → M13d2. Until it lands, the link opens the M00 legal stub.
-- "My creations" (mod versions, placements, appeals): not in this register row. It is listed for the Architect.
+- "My creations" (mod versions, placements, appeals): post-v1 (DL-240); in v1 authors follow their versions through `dv mod status` and the store page.
 - Markdown rendering: not in v1.
 
 ## Deliverables

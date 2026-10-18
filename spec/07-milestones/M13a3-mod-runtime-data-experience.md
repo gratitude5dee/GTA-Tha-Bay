@@ -17,7 +17,8 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 ## Depends on
 - **M13a2**: registry, installer, `canLoad`, mod `AssetSource`, migration 0007.
 - **M02c2**: in-engine map and minimap, C08 `MapApi.setBlip` (`BlipKind 'experience'`), phone Map app.
-- **M12b1**: rooms Worker, room client, `AssignReq`, close codes. The M12c1 refusal hook is also in place (run order).
+- **M12b1**: rooms Worker, room client, `AssignReq`, close codes.
+- **M12c1**: the server-side mods refusal hook (close 4007) that `mods-4007` exercises (DL-219).
 - Contracts: C14 1.0 (`ModHost`, `ModSessionInfo`, `LoadedMod`, `ModFault`, `ModErrorCode`), C17 1.0, C06 1.1 (`GameModeId` `exp:${string}`, `InteractKind.Experience`, C06 rule 3 Story↔experience switch, `PrefabService`, `ZoneService`, `MapApi` via `ModeContext.world`), C05 1.1 (`mod:<ModId>` slot; an `exp:` session writes only its own slot; reason `modeExit`), C01 1.0 (mod range 2048–4095), C11 1.0 (close 4007), C12 1.1 (route 37 GET), C08 1.0 (`chunkKeyOf`, resolver lat/lng→ENU, ground query), C16 1.1 (`mod.session`, `exp.enter`, `exp.exit`).
 
 ## Scope in
@@ -118,5 +119,5 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 ## Notes for the Builder
 - Read first: `12-modding.md` §2.1, §2.4, §5.3, §5.4, §5.5; `12-modding-contracts.md` B§3 (rules), B§4, B§5 (shims, save slot, session types), B§6; `12-modding-publish.md` C§4 (markers, entry); `01-engine-save-modes.md` C05/C06 1.1 rules 3; `02-world-contracts.md` (`MapApi`, `BlipKind`).
 - Sim code under `packages/engine/src/sim/**` obeys the C02 bans. Mod sessions use the `local` profile.
-- `_PLAN.md` names `packages/engine/src/client/mods/host` and `packages/modes/experience` as outputs. This file follows the S12 component table (`packages/engine/src/sim/mods/`), because `ModHost` runs in `sim.worker` and ADR-0001 has no `modes/experience` package.
+- Paths follow the S12 component table (`packages/engine/src/sim/mods/` for `ModHost`, which runs in `sim.worker`; `packages/engine/src/client/mods/` for the client half); ADR-0001 has no `modes/experience` package (`_PLAN-3.md` aligned, DL-220).
 - Branch `m13a3-mod-runtime-data-experience`.

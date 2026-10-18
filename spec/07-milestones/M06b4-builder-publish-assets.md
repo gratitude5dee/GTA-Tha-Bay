@@ -10,7 +10,8 @@ A linked 18+ player can ask for a custom 3D look for a private NPC draft through
 ## Depends on
 - **M13c2**: route 43 decision handling across subjects, `audit_log` on staff writes, `P3_REVIEW` cases, the `linked` publishing rule and P2 tokens.
 - **M06b3**: NPC builder pages (step 8 "Look", step 9 "Submit"), `@npc-builder` e2e.
-- Uses through the run order: M06b1/M06b2 (route 33, drafts, submit, community list), M05b1 (`BudgetGovernorDO` with `budget_program` = 100,000,000 micros, `MockFalPort`, `check:pipeline`), M10a1 (`assets:gen` plan, run and gate, Lean recipe, human gates, publish).
+- **M10a1**: `assets:gen` plan, run and gate, Lean recipe, human gates, publish (DL-219).
+- Uses through the run order: M06b1/M06b2 (route 33, drafts, submit, community list), M05b1 (`BudgetGovernorDO` with `budget_program` = 100,000,000 micros, `MockFalPort`, `check:pipeline`).
 - Contracts: C10 1.0.0 (`c10-npc-builder.ts`: `DraftView.jobs`, `JobAccepted`; soul `assets`), C07 1.1.0 (`GenJob`, `jobKey`, `GateCode`, `ProvenanceRecord`, `assetTier`), C12 1.1.0 (route 33 `assets`, route 43, `ModSubject 'npc_asset'`, `PlayerQuota`).
 
 ## Scope in

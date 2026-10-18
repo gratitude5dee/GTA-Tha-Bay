@@ -35,5 +35,9 @@ One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). 
 | [0028](ADR-0028-fight-room-transport.md) | Fight-room transport and rollback | proposed, deferred | DL-104 |
 | [0029](ADR-0029-authoritative-server-physics.md) | Authoritative server physics | proposed, deferred | A-04 gate |
 | [0030](ADR-0030-ui-mod-l1-host.md) | UI-mod L1 network-origin host | proposed, conditional | DL-104, DL-146 |
+| 0031 | Vehicle wheel-force path (`ADR-0031-vehicle-wheel-force-path.md`, written by M03a2) | reserved | DL-104, DL-242 |
+| 0032 | Multi-area world: per-area bakes, home `bakeId`, disjoint area cores (`ADR-0032-multi-area-world.md`, written by M15a) | reserved | DL-242 |
 
 Rules: a status change or amendment edits the ADR and adds a DL entry; a contract-shape change still goes through the Architect (`prompt-pack/06-SHARED-CONTEXT.md` §4.1).
+
+Reserved numbers (DL-242): a milestone that writes an ADR uses the number reserved for it here; a new ADR takes the next number after the last reserved one and adds its row in the same pull request.

@@ -9,7 +9,7 @@ Multiplayer gets its own server-side economy and passes its load gate. When this
 
 ## Depends on
 - M12c1 (resume, checkpoints, drain, presence, invites, `ACT`, kick, staff checks in the rooms Worker).
-- Contracts: C11 1.0 (`CHAT`, `EV Chat`, `EV Feed`, `NET.CAP_MAX`, `CHAT_MAX_CHARS`), C12 1.1 (routes 20 and 21, `DataPort.progress`, `DataPort.leaderboards`, `09-backend-db.md` §3.6).
+- Contracts: C11 1.0 (`CHAT`, `EV Chat`, `EV Feed`, `NET.CAP_MAX`, `CHAT_MAX_CHARS`), C12 1.2 (routes 20 and 21 with `ProgressDelta` and `LeaderboardSubmit`, `DataPort.progress`, `DataPort.leaderboards`; `09-backend-contracts-1.2.md` §1–§2, DL-223; `09-backend-db.md` §3.6).
 
 ## Scope in
 - Migration `0006_online.sql` exactly as `09-backend-db.md` §3.6; all three tables server-only (RLS on, no policies); pgTAP `supabase/tests/online.sql`.
@@ -17,7 +17,8 @@ Multiplayer gets its own server-side economy and passes its load gate. When this
 - Rooms side `services/rooms/src/progress/commit.ts`: `commitProgress(slot, kind, delta)` posts route 20 over HTTPS (never a binding), retries from the DO `schedule` table with the same key (1 s, 5 s, 30 s, 5 min); used by mode activities from M12e and exercised here by tests.
 - Route 21 transport (DL-183): `GET /api/v1/leaderboards/:board` from KV `lb:<board>` (30 s) falling back to `DataPort.leaderboards.top`; `POST …/submit` (J1, ⓘ, body ≤ 16 KiB) through a validator registry keyed by board prefix that is empty in this milestone, so every POST is `feature_disabled`; board ids must match `^(racing|fighter|tycoon)\.[a-z0-9.-]{1,96}$`.
 - Chat (C11 `CHAT`, default off): the rooms Worker reads the sender's `profiles.flags.chatOptIn` at join and passes it to the DO; frames from a sender who has not opted in are dropped with `EV Feed {key:'chat.off'}`; text over 280 characters is a strike; accepted text passes `names:lint` aliases and OpenAI `omni-moderation-latest` text before fan-out; a pass sends `EV Chat` only to opted-in recipients in the sender's interest set; a flag, an upstream error or a missing key holds the line and sends the sender `EV Feed {key:'chat.held'}`.
-- `rooms.capMax`: `RoomDO` uses `NET.CAP_MAX` (32) only when the KV flag `rooms.capMax` is on, else `CAP` (16). The ops runbook sets the flag (route 47) only after a passing 16-bot report is committed (`09-backend.md` §8 M12c AC-2).
+- Chat report evidence (DL-239): the `RoomDO` keeps the last 200 accepted lines with their `EV` sequence numbers for 15 minutes in memory (never logged). Route 41 with `target {kind: 'chat_turn', id: '<roomId>:<evSeq>'}` makes the web Worker fetch that line from the rooms Worker over `INTERNAL_HMAC` (internal path `POST rt:/_internal/chat-line`, not a public route) and store `{text, senderProfileId, ts}` in `moderation_case.subject_snapshot`; a line no longer held is stored as `{expired: true}` with the reporter's note. Retention follows `user_report` (`09-backend-db.md` §7).
+- `rooms.capMax`: `RoomDO` uses `NET.CAP_MAX` (32) only when the KV flag `rooms.capMax` is on, else `CAP` (16). The flag stays off in v1: raising the cap to 32 needs a passing 32-bot run (`pnpm load:rooms -- --bots 32 --minutes 30`), which is post-v1 operations; the 16-bot gate below only proves CAP 16 (DL-239).
 - Metrics: `room.tick` to Analytics Engine every 200 ticks (p50, p99, sockets, bytes out per player); a non-production route `GET /api/v1/_test/rooms/:roomId/stats` on the rooms Worker returns the tick histogram and overload counters; a non-production route `POST /api/v1/_test/load-identities {count}` on the web Worker mints synthetic P1 JWTs for load profiles and requires an `ops` staff JWT.
 - Load bots (`13-qa.md` §3.10): Node script on `@dv/net` (the real codec); each bot gets a JWT, assigns, opens the socket with its ticket, sends `IN` at 20 Hz along random legal walking paths inside `config/world.bounds.json`, `ACK` every 250 ms, `ping` every 20 s. Options `--bots <n> --minutes <m> [--shard i/n] [--target staging|local]`; `--target local` starts both Workers like the Playwright `webServer`. Output `tests/reports/load/rooms-<yyyymmdd>-<shard>.json` with tick p50/p99, overload errors (DO `overloaded`, 1013 closes, rate or strike closes, corrections), downstream bytes per player per second, and RTT; exit non-zero when tick p99 > 10 ms or any overload error occurs.
 
@@ -28,13 +29,13 @@ Multiplayer gets its own server-side economy and passes its load gate. When this
 - `supabase/migrations/0006_online.sql`, `supabase/tests/online.sql`, regenerated `packages/shared/src/db.gen.ts`.
 - `services/edge/src/progress/route.ts`, `services/edge/src/leaderboards/{route.ts, registry.ts}`, `services/edge/src/data/supabase/{progress.ts, leaderboards.ts}` (+ in-memory port additions), `services/edge/src/_test/load-identities.ts`.
 - `services/rooms/src/progress/commit.ts`, `services/rooms/src/chat/{chat.ts, moderate.ts}`, `services/rooms/src/metrics.ts`, `services/rooms/src/_test/stats.ts`; edits to `RoomDO.ts` (cap flag, chat, metrics).
-- `services/edge/test/{progress-commit, leaderboards}.test.ts`; `services/rooms/test/{rooms-progress, rooms-chat, rooms-capmax}.test.ts`.
+- `services/edge/test/{progress-commit, leaderboards}.test.ts`; `services/rooms/test/{rooms-progress, rooms-chat, rooms-capmax, rooms-chat-report}.test.ts`.
 - `tests/load/{rooms.ts, bot.ts, report.ts}`, `tests/load/test/bot.test.ts`; root script **`load:rooms`**; `tests/reports/load/` (committed reports).
 - `tools/ci/check-prod-routes.ts` covers both new `_test` routes.
 - Secrets: `INTERNAL_HMAC` (both Workers; declared in M12b1), `OPENAI_MODERATION_API_KEY` (rooms Worker), `CI_STAFF_DEVICE_JWK` (load runs). Absent: `load:rooms` prints `SKIP load:rooms: CI_STAFF_DEVICE_JWK not set` and exits 0 for `--target staging`; chat fails closed.
 
 ## Interfaces
-- C11 1.0 and C12 1.1 consumed as frozen. `ProgressDelta` is named by C12 (`DataPort.progress.commit`, route 20) but has no published shape: if `packages/shared/src/api/v1.ts` lacks it, define `{ pid: string; roomId: string; kind: string; delta: { cash: number; rep: number } }` (the `progress_commits` columns, cash in integer cents) and list it in the PR as a proposal for the Architect.
+- C11 1.0 consumed as frozen. C12 1.2 (DL-223) publishes `ProgressDelta` as `{pid, roomId, kind: 'activity' | 'race', delta: {cash /* cents */, rep}}` (the `progress_commits` columns) and `LeaderboardSubmit`; copy them verbatim into `packages/shared/src/api/v1.ts`.
 - No other contract change.
 
 ## Acceptance criteria
@@ -49,12 +50,13 @@ Multiplayer gets its own server-side economy and passes its load gate. When this
 - AC-9 Given no `CI_STAFF_DEVICE_JWK` When the staging load test is started Then it prints its SKIP line and exits 0 — proof: `env -u CI_STAFF_DEVICE_JWK pnpm load:rooms -- --bots 16 --minutes 30`
 - AC-10 Given staging with both Workers deployed and 8 bots on a GitHub-hosted runner plus 8 on the operator machine When they run 30 minutes in one room Then both shard reports show tick p99 ≤ 10 ms and zero overload errors, and the committed reports record downstream KB/s per player and RTT (this run records U-BE-4, U-BE-14, U-QA-3, U-QA-4 and U-ADR-02) — proof: `pnpm load:rooms -- --bots 16 --minutes 30 --shard 1/2` and `pnpm load:rooms -- --bots 16 --minutes 30 --shard 2/2`
 - AC-11 Given the branch When both Previews deploy and the production bundles are checked Then both deploy and neither `_test` route exists in production — proof: `pnpm check:prod-routes && pnpm deploy:preview && pnpm deploy:preview -- --worker rooms`
+- AC-12 Given an accepted chat line and a second line older than 15 minutes When a player reports each through route 41 with subject `chat_turn` Then the first case's `subject_snapshot` holds the line text, the sender's profile id and the time, the second holds `expired: true` with the reporter's note, and no chat text appears in any log line — proof: `pnpm check:workers -- rooms-chat-report`
 
 ## Test plan
 - DB: `supabase/tests/online.sql` (`pnpm check:db`).
 - Workers runtime: `progress-commit`, `leaderboards` (edge); `rooms-progress`, `rooms-chat`, `rooms-capmax` (rooms); moderation and the web endpoint stubbed with recorded responses.
 - Unit: `tests/load/test/bot.test.ts` (vitest globs must include `tests/load/test`).
-- Load: local smoke (AC-8) in CI is optional; the staging gate (AC-10) runs on dispatch and before `rooms.capMax` changes.
+- Load: local smoke (AC-8) in CI is optional; the staging gate (AC-10) runs on dispatch; it proves CAP 16 only (the 32-player cap needs its own 32-bot run, DL-239).
 
 ## Demo script
 1. `pnpm check:db`; inspect the three tables in the local studio.

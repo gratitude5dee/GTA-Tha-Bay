@@ -9,12 +9,12 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 - R-CUT-02: four story-beat refs (`roadster`, `release`, `fogbank`, `broadcast`). Each has an in-engine fallback and none is generated in v1 (DL-173).
 
 ## Depends on
-- **M05c2** (Act 1 slice, sensitivity gate, `@story` e2e harness, index). **M07a2** (racing mode, story hook path, `RacingSlice`). **M08b2** (fighter story hooks, needed by M05e2). **M09b2** (`m.a2.01`, `unlock.tycoon`, flag `coop_success`).
+- **M05c2** (Act 1 slice, sensitivity gate, `@story` e2e harness, index). **M07a2** (racing mode, story hook path, `RacingSlice`). **M07b1** (the race kinds and events behind the hooks of `m.a2.02` and `m.a2.03`; DL-219). **M08b2** (fighter story hooks). **M09b2** (`m.a2.01`, `unlock.tycoon`, flag `coop_success`).
 - Also used: M05a1 (`missions:build`, VM), M05a2 (`check:missions`, autoplayer, director), M05b2 (`CutsceneRef`, index builder), M04d (`check:balance`), M06a2 (`npc:lint`), M09a2 (event engine `packages/shared/src/events`, `both`-scope catalog), M04b2 (phone Bank app).
-- Contracts: C09 1.0.0, C06 1.1.0, C05 1.1.0, C10 1.0.0, C08 1.0.0, C02 1.1.0 (`ctrU32`), C16 1.1.0 (mission names).
+- Contracts: C09 1.0.0, C06 1.1.0, C05 1.2.0 (`StorySlice.property.businesses[].state`, DL-225), C10 1.0.0, C08 1.0.0, C02 1.1.0 (`ctrU32`), C16 1.1.0 (mission names).
 
 ## Scope in
-- **Location of sources.** `_PLAN.md` says `content/story/act2/<missionId>/` (where M09b2 put `m.a2.01`); `03-story-missions.md` §C1 says `content/missions/<missionId>/`. Use the directory `missions:build` already scans for Act 1. Act-level data (`cast.json`, `sensitivity.json`, `businesses.json`) stays in `content/story/`.
+- **Location of sources.** Mission sources live in `content/missions/<missionId>/` (`03-story-missions.md` §C1; M09b2 put `m.a2.01` there; DL-220). Act-level data (`cast.json`, `sensitivity.json`, `businesses.json`) stays in `content/story/`.
 - **Mission graph** (authored gates, `requires`): `m.a2.02` and `m.a2.03` need `m.a2.01`; `m.a2.04` needs `m.a2.03`; `m.a2.05` needs `m.a2.04`. M05e2 continues from `m.a2.05` and `m.a2.02`.
 - **Missions** (`03-story-narrative.md` §B6; hook ids and defIds from DL-157; every id is a `LocKey` or `LineId`):
 
@@ -37,7 +37,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
   - Weekly profit = footfall × ticket × `arpuMul` − base cost × `burnMul`, paid via `EconomyApi` (key `biz:<id>:<week>`), capped at $2,000 per business-week; 0 while `officeClosed`.
   - Data: `content/story/businesses.json` defines `biz.taqueria`, `biz.record_shop` and `biz.coworking` (price, footfall, ticket, base cost, a C08 POI anchor `poi.<nhood>.<name>` that `missions:build` resolves, `LocKey`); design values checked by M05e2's econ section. Buying happens in the phone Bank app's Businesses section after `m.a2.01`.
   - Events: view model `phone.businesses` (inbox with choices) plus an `info` toast; never a pause or modal. A choice returns as `mode.cmd` `{mode: 'story', name: 'biz.choose', args: {businessId, iid, choiceId}}`; past the 2-week deadline it auto-resolves.
-  - **Persistence.** Without changing C05, `property.businesses` keeps `{id, level}` and the rest of the state is canonical JSON in the string flag `StorySlice.flags['biz.<id>']`, at most 2 KiB per business. Log a Builder decision and propose C05 1.2 `businesses[].state?` to the Architect.
+  - **Persistence (C05 1.2, DL-225).** `property.businesses[]` keeps `{id, level, state}`; `state` is the business's canonical JSON, at most 2,048 bytes. Update `c05-save.ts` to the 1.2 shape of `01-engine-save-modes.md` "C05 1.2 addition" (`C05_VERSION = '1.2.0'`), let `story.v1.schema.json` accept the optional member, and refresh the story golden through the `golden-update` procedure. Mission predicates never read business state.
 
 ## Scope out
 - `m.a2.06`–`08`, the Act 2 econ section and the act transition: M05e2. Act 3: M05f1, M05f2.
@@ -49,7 +49,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 ## Deliverables
 - 4 mission folders (`mission.ts`, `lines.en.json`, `director/<beat>.ts`): 12 files.
 - Ink knots added to `content/npcs/{tavi_okafor,patch,saint_static}/*.ink` (3 edits). `content/story/cast.json` and `content/story/sensitivity.json` rows (`m.a2.03` tagged, read pending). `content/story/businesses.json`. `config/unlocks.json` (2 defs).
-- `packages/modes/story/src/business/{state.ts, host.ts, weekly.ts, persist.ts, vm.ts}` and the `biz.choose` command handler. The Bank Businesses section is a small view in `packages/ui/src/phone/` on the M04b2 kit.
+- `packages/modes/story/src/business/{state.ts, host.ts, weekly.ts, persist.ts, vm.ts}` and the `biz.choose` command handler; `packages/shared/src/contracts/c05-save.ts` (1.2 member and version) and `packages/engine/src/sim/save/schema/story.v1.schema.json` (optional `state`). The Bank Businesses section is a small view in `packages/ui/src/phone/` on the M04b2 kit.
 - `tools/ci/check-missions.ts` gains `--hooks`.
 - Tests:
   - `packages/modes/story/test/{business.host.test.ts, business.persist.test.ts, act2.part1.test.ts}`;
@@ -60,7 +60,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 ## Interfaces
 - C09 1.0.0 exactly. The missions use only §C3 ops and predicates. `ModeHook.defId` values are S06 `RaceId`s with no `params` (DL-092, DL-157).
 - C06 1.1.0: `startChild`, `UnlockApi`, `EconomyApi`, `WorldClockApi`, `UiBridge.patch('phone.businesses', …)`, `UiCommand` `mode.cmd`.
-- C05 1.1.0 shapes are unchanged: business state rides `StorySlice.flags`, and a proposed C05 1.2 field goes to the Architect.
+- C05 1.2.0: the additive `StorySlice.property.businesses[].state?` (DL-225) is written here first; every 1.1 record still loads.
 - `EventHost<S>`/`EventEngine<S>` come from `packages/shared/src/events/types.ts` (M09a2) and are imported, not copied.
 
 ## Acceptance criteria
@@ -69,7 +69,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 - AC-3 Given every hook forced to its stub When Act 2 autoplays Then all five missions still pass on 3 seeds and the same four unlocks are recorded — proof: `pnpm check:missions -- --act 2 --hooks stub`
 - AC-4 Given the depiction, name and ink rules When the lint fixtures and content checks run Then a fixture that adds a roster slot to `m.a2.03` fails with `E_DEPICTION`, a D4 fixture without `sensitivity-read` fails, and the shipped Act 2 text passes `names:lint` and ink compilation — proof: `pnpm check:unit -- packages/modes/story/test/act2.part1.test.ts && pnpm names:lint && pnpm npc:lint`
 - AC-5 Given a fixture business host and the `both`-scope catalog When 1,000 seeded business-years run twice Then the event logs and final states are identical, no `tycoon`-scope def fires, the no-op effects leave the state unchanged, weekly payouts never exceed 200,000 cents, `officeClosed` weeks pay 0, and replaying from `(seed, choices)` equals the live run — proof: `pnpm check:unit -- packages/modes/story/test/business.host.test.ts`
-- AC-6 Given a bought business with an open inbox item When the state is persisted and restored Then `StorySlice.flags['biz.<id>']` is ≤ 2,048 bytes of canonical JSON, the restore round-trips byte-identically, an event emits `phone.businesses` and an `info` toast but no `pause` or `openApp` command, and an item past its 2-week deadline auto-resolves with `defaultChoiceId` — proof: `pnpm check:unit -- packages/modes/story/test/business.persist.test.ts`
+- AC-6 Given a bought business with an open inbox item When the state is persisted and restored Then `StorySlice.property.businesses[i].state` is ≤ 2,048 bytes of canonical JSON, the restore round-trips byte-identically, an event emits `phone.businesses` and an `info` toast but no `pause` or `openApp` command, and an item past its 2-week deadline auto-resolves with `defaultChoiceId` — proof: `pnpm check:unit -- packages/modes/story/test/business.persist.test.ts`
 - AC-7 Given a QA build at `?mission=m.a2.04&seed=1&hooks=stub&talk=scripted&beats=fallback` When the in-browser bot plays the mission Then it reaches `passed`, the `fogbank` beat reports `cutscene.state` `fallback` and then `done`, subtitles were shown, and the unlock toast for `unlock.district.d8` appears — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @story-act2`
 - AC-8 Given the branch When typecheck, lint, the unit suite, the build and the preview deploy run Then all pass and the deployed app still boots to the title — proof: `pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build && pnpm deploy:preview`
 
@@ -89,7 +89,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 
 ## Risks & fallbacks
 - **Race defs missing.** The two races are M07b1 content (run order #51, not a listed dependency). If absent, `startChild` returns false and the stub runs; AC-2 then fails only on its unlock line: report "Blocked on M07b1", keep AC-3 green.
-- **Phone surface.** Feed and Messages are `comingSoon` (M04b2), so items go to Bank › Businesses (Builder decision).
+- **Phone surface.** Feed and Messages are `comingSoon` (M04b2), so items go to Bank › Businesses (DL-238; `08-tycoon-events.md` §7 amended).
 - **Flag size.** If one business exceeds 2 KiB, trim `EventState.counts` to the keys the validator needs and cap `active` at 8 effects.
 - **Overrun.** Missions and AC-1–AC-4 first; business persistence and UI (AC-6) are the cut line, the host (AC-5) stays.
 

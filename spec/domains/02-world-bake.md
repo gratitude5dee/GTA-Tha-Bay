@@ -58,7 +58,7 @@ pnpm map:webtiles                                   # sf.pmtiles for web surface
 ```
 
 1. **Layout.** `tools/map/src/{cli.ts, sources/, stages/, pack/, verify/, landmarks/, fixtures/}`; schemas in `tools/map/schemas/`; configs in `config/world/`; content in `content/world/`; raw cache `.cache/map/` and outputs `dist/world/<bakeId>/` (both git-ignored).
-2. **Reproducibility.** `raw.lock.json` stores each source's URL, retrieval date, SHA-256 and row count. DataSF refreshes daily, so a bake pins its raw snapshot; `map:fetch --archive` uploads it to the PRIVATE bucket. `bakeId` = SHA-256 of canonical JSON `{rawHashes, toolVersion, configHashes}`.
+2. **Reproducibility.** `raw.lock.json` stores each source's URL, retrieval date, SHA-256 and row count. DataSF refreshes daily, so a bake pins its raw snapshot; `map:fetch --archive` uploads it to the PRIVATE bucket. `bakeId` = SHA-256 of canonical JSON `{sourceHashes, toolVersion, configHashes}` (C08 rule 16).
 3. **Determinism.** Same inputs give byte-identical packs: sorted ids, no timestamps in packs, stage seeds from `sha256(bakeId + stageId)`, no `Math.random`. CI runs `--area civic-excerpt` twice and compares pack hashes.
 4. **Cache.** Each stage caches under `.cache/map/stages/<id>/<sha256(code version + inputs + config)>`; `--force` ignores it.
 5. **Budgets (targets).** `--area sf` ≤ 25 min on the CI runner; `--area civic-excerpt` ≤ 20 s. UNVERIFIED until M02a2 measures them.

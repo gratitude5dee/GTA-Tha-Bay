@@ -49,14 +49,14 @@ Afterwards one schema-checked `config/guardrails.yaml` drives the Worker, the ga
 ## Deliverables
 - `config/guardrails.yaml`, `config/guardrails.schema.json`, `tools/ci/guardrails-build.ts`, `tools/ci/test/guardrails-config.test.ts`, `services/edge/src/ops/guardrails.gen.json` (generated).
 - `services/edge/src/ops/{alerts-eval.ts, recon.ts, vendor-errors.ts, dash.ts, index.ts}`, `services/edge/src/alerts/sink.ts`. Edits: router (routes 56, 57, `/_test/alerts`), `BudgetGovernorDO` (SP-01 posts, adopt-vendor-total), route 47 handler (`forceLevel`), the M06a3 Anthropic client (mapping, retry rule), and `services/edge/wrangler.jsonc` (crons `*/5 * * * *` and `* * * * *` in `env.staging` and production only; `ANALYTICS_SQL` binding repeated under `previews` per F-061).
-- `packages/shared/src/api/ops.ts` (`AlertReq`, `DashName`, `DashRes`).
+- `packages/shared/src/api/ops.ts` (`AlertReq`, `DashName`, `DashRes` verbatim from C12 1.2; `KickReq`/`KickRes` already there from M12c1).
 - `services/edge/test/{guardrails-t1-levels, guardrails-t2-cache-first, guardrails-t3-vendor-errors, guardrails-t7-killswitch, guardrails-t8-abuse, guardrails-recon, guardrails-sink, guardrails-dash}.test.ts` and fixtures `services/edge/test/fixtures/vendor/*.json` (the two verified Anthropic error bodies; recon samples).
 - `tools/ops/suites/guardrails.ts`, `tools/ops/suites/guardrails/{t1,t2,t3,t7,t8,t9}.ts`; `tools/ops/{guardrails-plan.ts, drift.ts}`, `tools/ops/test/drift.test.ts`.
 - ≈ 38 files.
 
 ## Interfaces
 - C12 1.1 as frozen (`BudgetGovernor.forceLevel`, `PlayerQuota.reserve`, `GovLevel`, `budget_offline`, `upstream_unavailable`); C16 1.1 names unchanged.
-- Routes 56 and 57 are staff and ops routes added in `spec/05-api-and-realtime.md` (DL-182, DL-185). Their DTOs live in `packages/shared/src/api/ops.ts`, not in a contract file.
+- Routes 56 and 57 are staff and ops routes added in `spec/05-api-and-realtime.md` (DL-182, DL-185) and typed by C12 1.2 (`09-backend-contracts-1.2.md` §1–§2, DL-223) in the contract file `packages/shared/src/api/ops.ts`.
 - No contract change.
 
 ## Acceptance criteria

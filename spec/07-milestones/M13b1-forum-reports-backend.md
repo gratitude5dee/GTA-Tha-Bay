@@ -1,7 +1,7 @@
 # M13b1 — forum-reports-backend
 
 ## Goal
-The forum has a backend. A new migration adds the forum tables of `09-backend-db.md` §3.7 (boards, threads, posts, votes) with RLS, the counter trigger (thread and post scores, post counts, experience `rating_sum`/`rating_count`) and the six seed boards. `tha-bay-web` serves C12 routes 38–40: thread lists with `sort` and title search `q`, posts with `since` polling, votes. The posting rules apply: tier `device` or higher, registered ≥ 72 h ago, bracket `18p`, `RL_FORUM`, quotas and the 30-second spacing. Post text is moderated after posting, and a `review` verdict holds the post. Report route 41 (M06b2) now covers forum posts, forum attachments, experiences and mod versions: three distinct reporters (or one `mod:trust_lead`) unlist the target and open a `P2_REVIEW` case. The flag `forum.enabled` gates every route. Pages come in M13b4, and experience and mod links come in M13b2.
+The forum has a backend. It runs on the forum objects that M13a2's migration 0007 already created (`09-backend-db.md` §3.7: boards, threads, posts, votes with RLS, the counter triggers for thread and post scores, post counts and experience `rating_sum`/`rating_count`, and the six seed boards; DL-228). `tha-bay-web` serves C12 routes 38–40: thread lists with `sort` and title search `q`, posts with `since` polling, votes. The posting rules apply: tier `device` or higher, registered ≥ 72 h ago, bracket `18p`, `RL_FORUM`, quotas and the 30-second spacing. Post text is moderated after posting, and a `review` verdict holds the post. Report route 41 (M06b2) now covers forum posts, forum attachments, experiences and mod versions: three distinct reporters (or one `mod:trust_lead`) unlist the target and open a `P2_REVIEW` case. The flag `forum.enabled` gates every route. Pages come in M13b4, and experience and mod links come in M13b2.
 
 ## Requirements
 - R-MOD-03: forum backend for discussing and voting on experiences and mods. Reports unlist forum content and published UGC.
@@ -10,13 +10,11 @@ The forum has a backend. A new migration adds the forum tables of `09-backend-db
 ## Depends on
 - **M05d**: Supabase projects, migrations 0001–0002, `DataPort` and `InMemoryDataPort`, `check:db`, `check:db:types`, `db:push` in `deploy.yml`.
 - **M06b1**: migration 0004 (`moderation_item`, `moderation_case`, `user_report`, `enforcement_action`, `uploads`), the text-moderation module (`names:lint`, OpenAI omni, Haiku classifier) and route 43 for `P2_REVIEW`.
+- **M13a2**: migration 0007 with every forum object (tables, GIN `tsv` index, RLS policies, the two forum triggers, board seed rows; DL-228).
 - Contracts: C12 1.1.0 (`09-backend-contracts.md` §2.4 rows 38–41, §2.5 `ReportReq`, §2.6 `DataPort.forum`; `09-backend-contracts-1.1.md` §1 and §3), C17 1.0.0 (`rating`), C16 1.1.0.
 
 ## Scope in
-- Migration `supabase/migrations/00071_forum.sql`. M13a2 created and applied `0007_ugc_forum.sql`, and an applied migration file is never edited. Read 0007 first. 00071 adds only the §3.7 forum objects that 0007 lacks: tables, indexes (including the GIN `tsv` index from DL-190), RLS and the policies `ft_public_read`, `fp_public_read`, `ft_author_insert`, `fp_author_insert`, `fv_self`. It also adds:
-  - the trigger `forum_votes_apply`, which keeps `forum_threads.score`, `forum_posts.score` and `experiences.rating_sum`/`rating_count` in step on insert, update and delete of a vote. `up = (count + sum) / 2` stays derivable (C17);
-  - the trigger `forum_posts_count`, which keeps `post_count` and `last_post_at`;
-  - seed rows for `announcements` (`min_tier 'staff'`), `experiences`, `mods`, `field-notes`, `help` and `general` (`device`), as in `12-modding-publish.md` C§5.
+- **No migration (DL-228).** M13a2's `0007_ugc_forum.sql` already holds every §3.7 forum object: the tables, the GIN `tsv` index (DL-190), RLS and the policies `ft_public_read`, `fp_public_read`, `ft_author_insert`, `fp_author_insert`, `fv_self`, the triggers `forum_votes_apply` (thread and post `score`, `experiences.rating_sum`/`rating_count`; `up = (count + sum) / 2` stays derivable, C17) and `forum_posts_count` (`post_count`, `last_post_at`), and the board seed rows. Read 0007 first. If an object is missing or wrong, stop and report: an applied migration is never edited, and the Architect assigns a fix-forward migration number.
 - `packages/shared/src/mod/forum.ts` (pure): `FORUM_BOARDS` (ids, title keys, `minTier`, linked object; must equal the seed), `FORUM_LIMITS` (title 3–120, body 1–10,000, attachments ≤ 4, 30 s spacing, 20 per day under 7 days and 100 after, `q` 3–80), `validateFieldNote(body)` (C§5 sections) and `hotScore` (unused by routes; `sort` is `new|top` per DL-190).
 - `packages/shared/src/api/v1.ts`: forum DTOs `ForumThreadDto`, `ForumPostDto`, `CreateThreadReq`, `CreatePostReq`, `VoteReq`, as `spec/05-api-and-realtime.md` §3 row 38 assigns to this milestone. `C12_VERSION` stays `'1.1.0'`.
 - `services/edge/src/forum/`: routes 38–40 and the `ForumStore` half of `DataPort` (one method per route, `09-backend-contracts.md` §2.6), in `data/supabase` (user path with the caller's JWT for writes and votes) and in `InMemoryDataPort` (same semantics as the triggers).
@@ -53,7 +51,7 @@ The forum has a backend. A new migration adds the forum tables of `09-backend-db
 - Legal intake, all-queue case tooling and the SLA pager → M13d1.
 
 ## Deliverables
-- `supabase/migrations/00071_forum.sql`; pgTAP `supabase/tests/rls_forum.sql` (anon reads visible only; `local` cannot insert; author-only insert; vote self-policy) and `supabase/tests/forum_counters.sql` (vote and post triggers, experience rating, seed equals `FORUM_BOARDS`).
+- pgTAP `supabase/tests/rls_forum.sql` (anon reads visible only; `local` cannot insert; author-only insert; vote self-policy) and `supabase/tests/forum_counters.sql` (vote and post triggers, experience rating, seed equals `FORUM_BOARDS`).
 - `packages/shared/src/mod/forum.ts`, `packages/shared/src/mod/forum.test.ts` (field-note fixtures, limits, board ids); `packages/shared/src/db.gen.ts` regenerated.
 - `packages/shared/src/api/v1.ts` (forum DTOs).
 - `services/edge/src/forum/{routes,threads,posts,votes,rules,moderation}.ts`; `services/edge/src/data/supabase/forum.ts`; `InMemoryDataPort` forum store; `services/edge/src/ugc/report-policy.ts` (route 41 handler updated); `services/edge/src/router.ts` (rows 38–40).
@@ -67,7 +65,7 @@ The forum has a backend. A new migration adds the forum tables of `09-backend-db
 - No contract change. Forum boards are a shared constant, not a route.
 
 ## Acceptance criteria
-- AC-1 Given a fresh local database with migrations 0001–0007 and 00071 When the pgTAP suites run Then `anon` reads only `visible`/`locked` threads and `visible` posts, a `local`-tier JWT cannot insert a thread, a `device` JWT inserts only with its own `author_profile_id`, a vote changes the target's `score` (and `rating_sum`/`rating_count` for an experience) and deleting it restores them, and the seeded board rows equal `FORUM_BOARDS` — proof: `pnpm check:db`
+- AC-1 Given a fresh local database with migrations 0001–0007 When the pgTAP suites run Then `anon` reads only `visible`/`locked` threads and `visible` posts, a `local`-tier JWT cannot insert a thread, a `device` JWT inserts only with its own `author_profile_id`, a vote changes the target's `score` (and `rating_sum`/`rating_count` for an experience) and deleting it restores them, and the seeded board rows equal `FORUM_BOARDS` — proof: `pnpm check:db`
 - AC-2 Given the migration When types are regenerated Then `packages/shared/src/db.gen.ts` has no diff — proof: `pnpm check:db:types`
 - AC-3 Given profiles of tier `local`, of tier `device` registered 71 h ago, of tier `device` registered 73 h ago with bracket `18p`, and of tier `device` with a `publish_ban` When each posts a thread to `general` Then the answers are `tier_required`, `forbidden` with `details.reason = 'account_age'` and a `retryAfterMs`, 201, and `forbidden` — proof: `pnpm check:workers -- forum-post-rules`
 - AC-4 Given a 73-hour-old profile under 7 days old When it posts twice within 30 s and then 21 times across a day (clock mocked) Then the second post is `rate_limited` with `retryAfterMs` ≤ 30,000, and post 21 is `rate_limited` — proof: `pnpm check:workers -- forum-post-rules`
@@ -98,13 +96,13 @@ The forum has a backend. A new migration adds the forum tables of `09-backend-db
 1 session; ≈ 30 files; risk **medium**. The most work is in the rules matrix and in keeping `InMemoryDataPort` faithful to the triggers.
 
 ## Risks & fallbacks
-- **Migration file name.** `00071` sorts between `0007` and `0008` as text. If `supabase db push --dry-run` against staging (printed by `db:push` in `deploy.yml`) does not list 00071 as the only pending file, stop before merge, record the CLI behaviour in `spec/03`, and report it. Never edit `0007_ugc_forum.sql` after it has been applied.
+- **Forum object missing from 0007.** Stop before merge and report it (DL-228); never edit the applied file and never add an out-of-sequence migration name.
 - **The user-path JWT is refused by RLS on staging** (TPA misconfigured): writes fall back to the service path, the Worker checks `author_profile_id = ctx.profileId` itself, and a Builder decision is logged. pgTAP still proves the policies.
 - **The moderation vendor is down**: posts stay `visible` after the synchronous checks. The message is retried by the queue, and the report path still unlists.
 
 ## Notes for the Builder
 - Read first: `09-backend-db.md` §3.7 and §8; `09-backend-contracts.md` §2.4 rows 38–41, §2.5, §2.6; `09-backend-ops.md` §3.1; `12-modding-publish.md` C§5; `spec/05-api-and-realtime.md` §3 rows 38–41; DL-190.
-- Run order puts M13a2 (migration 0007: `mods`, `experiences`) before this milestone. The forum foreign keys need those tables. If 0007 is missing, stop and report.
+- M13a2 is a direct dependency (migration 0007 with the mod, experience and forum objects). If 0007 is missing, stop and report.
 - Order of work: migration and pgTAP → `forum.ts` → DTOs → store (Supabase and in-memory) → routes and rules → moderation consumer → report policy → tests → wrangler binding.
 - User text is stored as given and returned as text. Rendering rules (no HTML) belong to M13b4.
 - Branch `m13b1-forum-reports-backend`.

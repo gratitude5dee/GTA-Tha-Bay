@@ -141,7 +141,7 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 | `license:scan` | ScanCode Toolkit + `reuse lint` | GPL/AGPL/LGPL in the client bundle without an ADR; missing SPDX header; unknown licence | M00b |
 | `names:lint` | `tools/ci/names-lint.ts` | real-side NameRegistry string in client code, content, provenance or prompt templates; display name distance < 0.4. Real-side list is a CI secret; forks run display-side only | M00b |
 | `likeness:gate` | `tools/ci/likeness-gate.ts` | schema conditionals (A§4.3), missing `standIn`, `consented` without an unexpired scope in `config/consent-index.json` (ids, scopes, `term_end`; exported by S04), face-detector model URLs (`face_detector`, `FaceLandmarker`, `face_landmark`) anywhere | M00b |
-| `check:c2pa` | `tools/ci/check-c2pa.ts` | shipped cutscene without `orig.mp4` anchor, re-signed rendition, or `aiGenerated` flag | M05b |
+| `check:c2pa` | `tools/ci/check-c2pa.ts` | shipped cutscene without `orig.mp4` anchor, re-signed rendition, or `aiGenerated` flag | M05b1 |
 | `ip:history` | `tools/ci/ip-scan.ts --history` | any hit over full git history before the repo is public | M14b |
 | `genai:liveness` | `tools/assets/genai-liveness.ts` | nightly, no key: id missing, `status ≠ active`, `license_type ≠ commercial`, `updated_at ≠ pinnedUpdatedAt` (issue, not failure of PRs) | M00b |
 | `genai:price` | same, keyed | monthly: list price differs from registry by > 5 % | M00c |
@@ -178,7 +178,7 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
 | Spike (M00c) | $10 | 13 steps: one test character, three shots, four provider clips | $4.36 |
-| Characters (M10a, M10b) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
+| Characters (M10a1, M10a2) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
 | Cutscenes (M05c3, M10b) | $40 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
 | Buffer | $8 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172); at most one voice design or three vehicle bodies, only with owner sign-off | $0 planned |
 | **Total** | **$100** | | **≈ $84 planned** |
@@ -187,9 +187,9 @@ Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS
 
 The ledger enforces the cap: `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms at 50 / 80 / 100 % ($50 / $80 / $100), hard stop at 100 %. The fal prepaid balance is topped up in tranches that never exceed the remaining cap, with auto-recharge off; `FAL_MODE=mock` is the dev and CI default; every paid job needs `--live` and prints a dry-run estimate first. R2 storage for all generated media is about 1 GB (S05 estimate, inside the free tier, F-023); transcode ≈ $0.001 per clip.
 
-## 12. Roster batch runbook (M10a canary, M10b full)
+## 12. Roster batch runbook (M10a1 canary, M10a2 full)
 
-CLI surface (`tools/assets`, implemented at M10a; names are the contract):
+CLI surface (`tools/assets`; `assets:gen prewarm` at M05c3, the rest at M10a1; names are the contract):
 
 ```
 pnpm genai:liveness                                     # registry vs public fal registry
@@ -211,10 +211,10 @@ Steps:
 
 1. **Preconditions.** `genai:liveness` green; vendor snapshots current (`genai:terms-watch` green); registry prices checked within 30 days; fal prepaid balance ≥ `plan` estimate with cumulative top-ups ≤ $100 (DL-OWN-01); concurrency stays at fal's default 2 (F-047), so batches run two jobs at a time; roster tiers and `visual_brief` text exist for each slug; ADR-GENAI-01 state noted in the plan header.
 2. **Plan.** `assets:gen plan` for the batch; refuse any slug whose gate verdicts are not all `ok`; review the estimate.
-3. **Canary (M10a):** two characters end to end (one `parody`, one `fictionalized`); expected spend ≈ $7.3; all A and H gates; `assets:verify`; publish; confirm the provenance PR passes `provenance:check` and `likeness:gate`.
+3. **Canary (M10a1):** two originals while Q-19 is open (`canary-mc` on a Standard fighter slot and the first Lean Act 1 cast entry; one `parody` and one `fictionalized` character once the research layer exists; DL-234); expected spend ≈ $4.7; all A and H gates; `assets:verify`; publish; confirm the provenance PR passes `provenance:check` and `likeness:gate`.
 4. **Batch.** Run stages 2–5 for the remaining slugs in groups sized to the concurrency limit; stop at H1, H3, H4. Humans decide in batches; unattended runs never cross a human gate.
 5. **Optimize and verify** locally (stages 6–7); failures return to H4 or stage 4 with the rejected candidate kept.
-6. **Publish** per slug; merge lock PRs after H5; run `pnpm assets:build` to produce the immutable catalog and pointer.
+6. **Publish** per slug; merge lock PRs after H5; run `pnpm assets:catalog` (M01d) to produce the immutable catalog and pointer (DL-230).
 7. **Idempotence check.** Re-run `plan`: it must list zero outstanding jobs and `run` must make zero `FalPort` calls (M10b AC).
 8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $40 cutscene line (`03-story-cutscenes.md` §D9.1).
 9. **Close-out:** reconcile spend with the fal dashboard, record cost per slug from `genai_ledger` (`job_id` = `jobKey`), snapshot the registry.

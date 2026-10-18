@@ -294,11 +294,11 @@ XR driving (M11b2) follows `11-platform-xr.md` §5.3: seated cockpit with the ve
 | Milestone | S06 share | Delivered | Stubbed first / later | Sessions (S06 share) |
 |---|---|---|---|---|
 | **M03a** vehicles-interaction-prefabs (with S01) | handling model v1 | `packages/shared/src/vehicle/` (`stepHandling`, `damage`, envelopes), schemas, presets for the 6 story vehicles + police cruiser + ambient robotaxi, oracle lines (0–100, braking, skidpad, Filbert, crest jump), U-RAC-1 spike decides wheel-force path | nitro, quirks, assists beyond steer assist, replay all stubbed | 0.5 |
-| **M07a** racing core (R-MODE-02, R-MODE-05, R-IP-01) — 2 sessions | session 1: mode package, descriptor and unlock registration, referee/gates, director, player car (6 cars, one per class), nitro, damage, HUD vm, `race-def` schemas, `map:races compile` for 1 race, bot; session 2: AI drivers, rubber-band, validator V1–V15 and par, 3 VS races + `sf.pursuit.bayview-escape`, replay codec, ghost tracks, exact re-sim proof, `RacingSlice`, story hook `m.a1.03`, `config/pursuit.race.json` v1, telemetry | roadster hop, robotaxi quirks, visuals beyond mid, photo, ladder as stubs | 2 |
-| **M07b** racing content (R-MODE-02) — 2 sessions | session 1: remaining 7 kinds, 16 more events, hop and robotaxi quirks, roadblocks/spikes in races, ladder, progression, remaining cars; session 2: upgrades/garage view-models, replay director and scrub, photo mode, `desktop-ultra` visual pass, audio wiring, econ-sim racing section | MP and XR | 2 |
+| **M07a** racing core (R-MODE-02, R-MODE-05, R-IP-01) — 2 sessions | session 1: mode package, descriptor and unlock registration, referee/gates, director, player car (6 cars, one per class), nitro, damage, HUD vm, `race-def` schemas, `map:races compile|validate`, bot; session 2: AI drivers, rubber-band, V12 and par, 3 VS races + `sf.pursuit.bayview-escape`, replay codec, ghost tracks, exact re-sim proof, `RacingSlice`, story hook `m.a1.03`, `config/pursuit.race.json` v1, telemetry | roadster hop, robotaxi quirks, visuals beyond mid, photo, ladder as stubs | 2 |
+| **M07b** racing content (R-MODE-02) — 2 sessions | session 1: remaining 6 kinds + pursuit `survive`, 16 more events, hop and robotaxi quirks, roadblocks/spikes in races, ladder, progression, remaining cars; session 2: upgrades/garage view-models, replay director and scrub, photo mode, `desktop-ultra` visual pass, audio wiring, econ-sim racing section | MP and XR | 2 |
 | M11a | perf scenarios `race-sprint`, `race-pursuit-heat4`; flags for SSR/motion blur calibrated | – | 0.2 |
 | M11b2 | XR driving rules, hands wheel, vignette, diorama chase | – | 0.3 |
-| M12c | `RoomDO` referee, `RaceActivityData`, route 21 plausibility validator, speed caps | exact verifier post-M12c | 0.5 |
+| M12e | `RoomDO` referee, `RaceActivityData`, route 21 plausibility validator (DL-183), speed caps | exact verifier post-v1 | 0.5 |
 | M13a | vehicle-mod envelope validator hook | – | 0.2 |
 | M14b | names:lint / knock-out result applied (DN-S06-02) | – | 0.1 |
 
@@ -321,7 +321,7 @@ Every row serves R-MODE-02; M07a is the VS-Racing gate [research/gamedesign-deco
 13. `map:races par` (bot finishes the 3 VS races within ±15 % of `parSec`, `canonical`) — `pnpm map:races par -- --check`
 14. `racing/bot.pursuit` (bot completes `sf.pursuit.bayview-escape` by evade; separate fixture busts) — `pnpm --filter @dv/mode-racing test`
 15. `racing/save.slice` (schema, golden files, byte cap eviction, garage schema) — `pnpm --filter @dv/engine test:save`
-16. `e2e/racing-vs` (menu → race → results → ghost on retry, desktop) — `pnpm check:e2e -- --project=chromium-webgpu --grep @racing-vs`
+16. `e2e/racing-vs` (menu → race → results → ghost on retry, desktop) — `pnpm check:e2e -- --project=chromium-webgl2 --grep @racing-vs`
 17. `e2e/racing-touch` (iPhone viewport: pedals, wheel, nitro, reset) — `pnpm check:e2e -- --project=webkit-webgl2 --grep @racing-touch`
 18. `perf/race-sprint` (render objects ≤ tier budget with 5 rivals, p95 frame within S11 thresholds) — `pnpm check:perf -- --scenario race-sprint`
 19. `racing/names.lint` (no real brand or Rockstar make in shipped strings; `ip:strings`, `names:lint`) — `pnpm check:assets`

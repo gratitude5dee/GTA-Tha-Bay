@@ -9,11 +9,11 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
 - R-ROLL-02: leaderboards and room activities run on Durable Objects plus Postgres (`leaderboard_scores`, migration 0006).
 
 ## Depends on
-- **M12c2**: migration 0006 (`leaderboard_scores`), route 20, load bots. Per DL-183, the M12c family also ships route 21's transport and the empty registry (GET works; POST to an unregistered prefix → `feature_disabled`).
+- **M12c2**: migration 0006 (`leaderboard_scores`), route 20, load bots. Per DL-183, M12c2 also ships route 21's transport and the empty registry (GET works; POST to an unregistered prefix → `feature_disabled`).
 - **M07b1**: race catalog, compiled `RaceDef`s, `refereeStep`, replay codec and ghosts from M07a1–M07a2.
 - **M09a2**: tycoon sim, `setupFromSeed`, `replay`, `verifyRun`, golden runs and balance bands.
 - R-ROLL-01: this milestone runs after M05c2 is shipped and tested on staging.
-- Contracts: C12 1.1 (route 21: board pattern `^(racing|fighter|tycoon)\.[a-z0-9.-]{1,96}$`, body ≤ 16 KiB, validator registry by prefix; `ScoreSubmit` and `ScoreRow` as S06's types in `06-racing-data.md` §4.3; `DataPort.leaderboards`), C11 1.0 (`ActKind.JoinActivity`/`LeaveActivity`, `EvKind.Activity` data ≤ 768 B, `validated` authority, speed caps), C16 1.1 (`racing.verify_fail`, server-only). Mode-owned shapes: `RaceActivityData` (`06-racing-data.md` §4.7), `RunSetup`, `ChoiceRecord`, `RunResult` (`08-tycoon.md` §3.3, §4.3–§4.5).
+- Contracts: C12 1.2 (route 21: board pattern `^(racing|fighter|tycoon)\.[a-z0-9.-]{1,96}$`, body ≤ 16 KiB, validator registry by prefix; `LeaderboardSubmit` = `ScoreSubmit` | `TycoonDailySubmit` (`09-backend-contracts-1.2.md` §2, DL-223); `ScoreRow` as S06's type in `06-racing-data.md` §4.3; `DataPort.leaderboards`; `ProgressDelta` kind `race`), C11 1.0 (`ActKind.JoinActivity`/`LeaveActivity`, `EvKind.Activity` data ≤ 768 B, `validated` authority, speed caps), C16 1.1 (`racing.verify_fail`, server-only). Mode-owned shapes: `RaceActivityData` (`06-racing-data.md` §4.7), `RunSetup`, `ChoiceRecord`, `RunResult` (`08-tycoon.md` §3.3, §4.3–§4.5).
 
 ## Scope in
 - **Validator registry** (`services/edge/src/leaderboards/registry.ts`):
@@ -34,10 +34,7 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
   - `dailySetup(yyyymmdd, content)` = `setupFromSeed(dailySeed, {preset: 'daily'})` with the build's `contentVersion` and `balanceVersion`;
   - `encodeDailyRun` and `decodeDailyRun` turn `{setup, choices, claimed}` into canonical JSON bytes.
   - The validator accepts a board date only if it is today or yesterday in UTC (server clock), requires `setup` to equal `dailySetup`, and calls `verifyRun`. Result `ok` → a row with `value = claimed.score`, `verified: true`, `verifier: 'tycoon.verifyRun/1'`; `mismatch` or `contentVersion` → rejected with that reason.
-- **Body for `tycoon.` boards:** C12 types the route 21 body as S06's `ScoreSubmit`. Tycoon therefore uses the same envelope:
-  - `board`, `value` (= claimed score), `buildId`, `replayB64` (the encoded daily run) and `replaySha256` carry data;
-  - the racing-only fields must be empty: `raceId: ''`, `raceVersion: 0`, `worldBake: ''`, `vehicleDef: ''`, `handlingRev: 0`, `gateTicks: []`.
-  - This keeps C12 unchanged. A per-prefix body type is proposed to the Architect in the report.
+- **Body for `tycoon.` boards:** C12 1.2 `TycoonDailySubmit` (`09-backend-contracts-1.2.md` §2, DL-223): `board`, `value` (= claimed score), `buildId`, `runB64` (the encoded daily run) and `runSha256`. The registry rejects a body whose variant does not match its prefix with `bad_request`. Copy `TycoonDailySubmit` and `LeaderboardSubmit` verbatim if M12c2 did not.
 - **Client:**
   - `packages/modes/tycoon/src/daily.ts` adds a "Daily challenge" entry (flag `tycoon.daily`) that starts `dailySetup(todayUtc)`, submits on run end and shows the top 20 through the kit list.
   - Racing's existing submit path (M07a2) now receives `accepted`/`rejected` and shows the board's top 20 on the results screen.
@@ -63,7 +60,7 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
 
 ## Interfaces
 - C12 1.1 route 21 and `DataPort.leaderboards` are used unchanged. C11 1.0 `ACT`, `EV Activity` and close codes are unchanged. `RaceActivityData` is S06's mode-owned payload.
-- **Proposed (Architect, not implemented):** a per-prefix route 21 body type (`ScoreSubmit | TycoonDailySubmit`) in a C12 minor bump; a `race` variant of route 20's `ProgressDelta` if M12c2 has none.
+- C12 1.2 (DL-223) already holds the per-prefix route 21 body and the `race` kind of route 20's `ProgressDelta`; no proposal remains.
 - No contract change.
 
 ## Acceptance criteria
@@ -98,9 +95,9 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
 1 session; ≈ 30 hand-written files. Risk medium: route 21 transport assumptions (DL-183), Worker CPU for tycoon replays, and RoomDO activity plumbing from M12c1.
 
 ## Risks & fallbacks
-- M12c2 shipped no route 21 transport (its `_PLAN` row names only route 20 and 0006): add the GET and submit handlers here, exactly per `spec/05-api-and-realtime.md` route 21 (KV `lb:<board>` 30 s, `feature_disabled` for unregistered prefixes), and log a Builder decision.
+- If M12c2 shipped no route 21 transport (its file and `_PLAN-3.md` row include it since DL-219/DL-183): add the GET and submit handlers here, exactly per `spec/05-api-and-realtime.md` route 21 (KV `lb:<board>` 30 s, `feature_disabled` for unregistered prefixes), and log a Builder decision.
 - Tycoon `verifyRun` exceeds the Worker CPU limit for long runs: cap the daily preset at the weeks M09a2's balance file allows, and reject bodies with more `ChoiceRecord`s than the 16 KiB envelope holds. If a real run still times out in `wrangler dev`, move the check to a `JOBS` queue consumer (row pending → verified) and report the change.
-- Route 20 `ProgressDelta` (M12c2) has no race variant: record the result in `EV Activity` only, commit no reward, and report the gap. Multiplayer purses are not needed for the Multiplayer checkpoint.
+- Race rewards go through route 20 with `ProgressDelta.kind = 'race'` (C12 1.2). If the purse table is not ready, record the result in `EV Activity` only and commit no reward; multiplayer purses are not needed for the Multiplayer checkpoint.
 - The compiled race index is too large for the rooms bundle: bundle only sprint and circuit races, which is what the activity needs.
 
 ## Notes for the Builder

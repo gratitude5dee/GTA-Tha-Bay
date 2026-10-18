@@ -147,7 +147,7 @@ Lint bans and detmath are in C02. AI "think" runs at 30 Hz on every tier (`AI_DI
 - The kinematic controller moves the capsule by collision queries, not by the world step, so M12 reconciliation can re-run the local player's last N ticks without stepping the world (§2.13; exact Rapier call confirmed in M01b).
 
 **Vehicles.**
-- Rapier `DynamicRayCastVehicleController` (four wheel rays) plus a custom lateral-grip curve, driven by S06's `HandlingProfile`.
+- Own ray-cast vehicle (`castRay`, `applyImpulse`; DL-104; U-RAC-1 in M03a2) on S06's `HandlingProfile`.
 - The world steps with 2 substeps whenever a player vehicle exceeds 100 km/h, for stability on hill crests [research/gamedesign-decomposition.md §3.3].
 - Each handling preset is authored with the port-contract table: name, value, units, meaning, source, mechanism, conversion, oracle, tolerance. An empty "meaning" cell blocks implementation [research/repos-modding.md §7.3].
 

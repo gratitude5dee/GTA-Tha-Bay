@@ -24,7 +24,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 | 9 | Component ids 2048–4095 as host shims; mod entities session-local | D B§5; M13a3 | C01 |
 | 10 | Per-tier mod budgets and install-time "supported here" check | D §5.4; M13a1, M13a3 | F-013 |
 | 11 | Agent dev loop: `dv` CLI, mock host, QA host, hot reload on 127.0.0.1 with token | D C§1; M13a6 | [repos-modding.md §5.5] |
-| 12 | Modder `AGENTS.md` ≤ 24 KiB; `CLAUDE.md`/`GEMINI.md` import it; size check | D C§1; M13a6 | F-060 |
+| 12 | Modder `AGENTS.md` ≤ 19,456 bytes, root + kit ≤ 32 KiB (DL-208); `CLAUDE.md`/`GEMINI.md` import it; size check | D C§1; M13a6 | F-060 |
 | 13 | Skills authored once, mirrored as real copies, `check:skills`; SessionStart PATH hook; MCP configs | D C§1; M13a6 | [repos-modding.md rec 2–3] |
 | 14 | Knowledge base, `dv kb`, field-note template | D C§1; M13a6 | [repos-modding.md §2.6] |
 | 15 | Oracle discipline, `--prove-oracle`, evidence levels | D C§1; M13a6 | [repos-modding.md rec 6–7] |
@@ -341,7 +341,7 @@ Ids follow `spec/00-plan.md`; digit suffixes are the session splits proposed her
 | E2E | `@mods-exp`, `@mods-ui-isolation`, `@mods-offline` (installed mod runs with `/boot` down) | `pnpm check:e2e -- --grep "@mods"` |
 | Perf | `mod-hostile`, `mod-scene-budget` | `pnpm check:perf -- --scenario mod-hostile` |
 | CI | `check:skills`, `check:agents`, `check:mods` (examples build, `--help` smoke of every `dv` group, KB check) | `pnpm check:skills && pnpm check:agents && pnpm check:mods` |
-| Device | `mod-script`, `mods-ui` checklists (U1, U2) | `pnpm perf:checklist -- mod-script` |
+| Device | `mod-script`, `mods-ui` checklists (U1, U2) | `pnpm perf:checklist -- tools/ci/checklists/M13a4-iphone15.json` |
 
 ## 10. Open questions
 

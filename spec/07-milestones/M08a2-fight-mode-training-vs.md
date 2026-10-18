@@ -30,7 +30,7 @@ After this session Culture Wars is a playable mode and the **VS-Fighter** checkp
 
 ## Scope out
 - Kits 3–8, full CPU habits, roster loader with tiers, `fighter:balance`, `check:fighter`: M08b1. Stages 2–6, cutscene hooks, Cinematic presentation, Arcade, Move Gallery, kill-switch remap: M08b2. Pose: M08c1–M08c2. XR: M11b2.
-- Open-world `CombatApi` over the shared core (listed under M08a2 in `07-fighter.md` §8 but not in the `_PLAN` row): stays the M05c1 stub; reported to the Architect.
+- Open-world `CombatApi` over the shared fight core: not in v1. Open-world melee keeps M05c1's S01 core; a rebase onto `packages/shared/src/fight` is post-v1 (DL-236; `07-fighter.md` §8 amended).
 
 ## Deliverables
 - `packages/modes/fighter/src/{index.ts, anim-states.ts}`; `src/sim/{mode.ts, match.ts, mirror.ts, camera.ts, slice.ts, bouts.ts, cpu/{perception.ts, decide.ts, macro.ts, levels.ts}}`; `src/ui/{index.ts, hud.ts, training.ts, presenter.ts, graybox.ts}`; `src/qa/{bridge.ts, cpu-driver.ts}`.
@@ -39,7 +39,7 @@ After this session Culture Wars is a playable mode and the **VS-Fighter** checkp
 - `packages/modes/fighter/package.json` script **`fighter:bench`**; `packages/modes/fighter/scripts/bench.ts`.
 - `packages/modes/fighter/test/{schemes.spec.ts, cpu.spec.ts, camera.spec.ts, slice.spec.ts, descriptor.spec.ts}`; `tests/golden/saves/fighter/slice.v1.json`.
 - `tests/e2e/{fighter-hash.spec.ts (@fighter-hash), fighter-touch.spec.ts (@fighter-touch), fighter-training.spec.ts (@fighter-training)}`; `@fighter-hash` entries in `tests/e2e/det/suites.ts`; `tools/ci/mutants/fighter/{frame-off-by-one,rng-swap}.ts`.
-- `tests/perf/paths/fight-stage.json` (scripted CPU-vs-CPU round for the `fight-stage` scenario).
+- `config/perf/paths/fight-stage.json` (scripted CPU-vs-CPU round for the `fight-stage` scenario).
 
 ## Interfaces
 - Implements C06 1.1 descriptor, `GameModeSim`, `GameModeUI`; C04 1.1 `CameraDirective {mode:'cinematic', shot:{kind:'side'}}` and the 160–207 block; C03 1.1 `ControlsSettings.fighterScheme` and the fighter alias table; C05 1.1 `mode:fighter`; C09 1.0 hook `defId 'bout.a5'`, `params {kind:'story'}` (DL-157). No contract change.
