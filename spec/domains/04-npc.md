@@ -83,7 +83,7 @@ flowchart LR
 2. **One output schema for every NPC and model** (`npc-turn-1.0`), so a schema never splits the cache; per-NPC limits live in block B text and in the executor.
 3. **The Worker builds every prompt.** The client sends enums and ids only (`NPCDialogueContext`) plus ≤ 280 characters of player text. Scene text is rendered from fixed templates, so nothing the client controls can become an instruction.
 4. **History is server-held and byte-identical.** `EncounterDO` stores the exact rendered user message and the exact assistant JSON text. Replaying them unchanged keeps the cache warm and makes forged history impossible (DL-046).
-5. **Actions are proposals.** `packages/npc/src/executor` accepts an `action` only if the soul's roles allow it, `action_arg` is one of `context.offers`, and the cooldown has passed. Everything else becomes `none`.
+5. **Actions are proposals.** `validateTurn` (`packages/shared/src/npc/executor.ts`, pure so `services/*` can import it; DL-234) accepts an `action` only if the soul's roles allow it, `action_arg` is one of `context.offers`, and the cooldown has passed. Everything else becomes `none`.
 6. **Pre-stream errors are JSON, in-stream failures are `fallback`.** The client treats both as "play ink" per the C12 client rule.
 7. **No LLM in the sim.** Brains run deterministically in `sim.worker` at the C02 AI rate. Hero intents arrive as recorded external inputs, never re-queried in replays.
 8. **Filler peds never call a model** (D-21). Named NPCs speak through the LLM only inside an encounter. Ambient lines are baked barks.
@@ -103,7 +103,7 @@ flowchart LR
 | `tools/soul/` (Node; scripts `npc:*`) | `normalize` (research → soul.md draft, Sonnet structured output, human review), `summarize`, `lint`, `compile`, `build` (bundle, R2 upload, `souls/index.json`), `consent-index`, `llm-schema`, `bake-barks` (Batch API), `eval` | CLI |
 | `packages/npc/src/client/` | `DialogueClient` (SSE, partial-JSON `line` scanner, fallback), `InkRunner` (inkjs), `TtsPlayer`, `LipSyncDriver`, `Interaction` handler for `InteractKind.Talk` | `NpcRuntime` |
 | `packages/npc/src/brain/` | ECS systems in `sim.worker`: `ScheduleSystem`, `UtilitySystem`, `BtSystem`, `NpcLodSystem`, `BarkSystem`; BT node library (~400 lines, in-house) | components 768–775 |
-| `packages/npc/src/executor/` | validates `effects` (actions, affinity clamp, memory limits) | `validateTurn` |
+| `packages/shared/src/npc/executor.ts` (re-exported by `packages/npc`) | validates `effects` (actions, affinity clamp, memory limits) | `validateTurn` |
 | `packages/npc/evals/` | golden and red-team suites, judge rubric, replay fixtures | Part C §C6 |
 | `services/edge/src/npc/` (S04 code inside S09's Worker) | `DialogueService` (route 31), `IntentService` (32), `BuilderService` (33), `PromptAssembler`, `ModelRouter`, `TtsRouter`, `MemoryService`, `SummarizeConsumer`, `SafetyFilter` | below |
 | `content/npcs/`, `content-private/npcs/` | souls, ink, bark pools, roster | data |

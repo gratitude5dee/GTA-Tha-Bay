@@ -34,7 +34,7 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
 - **Settings in XR.** Settings › Comfort renders as a world panel that edits every `XrComfortSettings` field within its ranges. Settings › Controls › VR shows the XR bindings read-only; capture-based remap is M11b2's.
 - **Flat-only pages (DL-142).** Creator, NPC builder, forum, experiences and mods, legal, help, account, and the age and terms screens are not rendered in XR. Navigating to one shows an exit panel, "This page needs the flat screen. Exit VR?", with Exit and Stay.
 - **Motion.** Camera shake, FOV effects and animated panel motion are off in XR. Fades are ≤ 300 ms, and 0 with reduced motion.
-- **Device rows (not run here).** Legibility at 1.2 m, ray and pinch selection, wrist glance, the comfort card, the exit panel, Enter VR from a click and the hand-tracking denial card are proposed for the next XR device pass; M11b4 owns its own checklists, and adding these rows there is reported to the Architect.
+- **Device rows (not run here).** Legibility at 1.2 m, ray and pinch selection, wrist glance, the comfort card, the exit panel, Enter VR from a click and the hand-tracking denial card run as rows of M11b4's `M11b4-{quest3,visionpro}` checklists (DL-229).
 
 ## Scope out
 - Racing, fighter and tycoon XR panels, and the XR remap capture (M11b2, M11b4).
@@ -79,7 +79,7 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
 - **Unit:** `xr-surface`, `xr-anchors` (`pnpm check:unit -- packages/ui`).
 - **E2E (`xr-quest3`):** `@xr-panel`, `@xr-enter`, `@xr-wrist`, `@xr-comfort-card`, `@xr-flat-only`; M11b1's `@xr-*` specs stay green. `@xr-enter` also runs on `chromium-webgl2`.
 - **Flat regressions:** `@ui-menus`, `@ui-a11y`.
-- **Device:** none in this milestone (`_PLAN-2.md` row: gate none); the UI rows are a proposal for the next XR device pass.
+- **Device:** none in this milestone (`_PLAN-2.md` row: gate none); the UI rows run in M11b4's device pass (DL-229).
 
 ## Demo script
 1. `pnpm check:e2e:xr` passes.

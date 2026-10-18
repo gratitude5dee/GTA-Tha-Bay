@@ -30,7 +30,7 @@ The P1 features of M12a1 become usable from the shell. After this session, `Iden
 - `packages/identity/src/device/attest-age.ts` (queue + POST), `packages/identity/test/attest-age.test.ts`.
 - `packages/ui/src/pages/account/{register.tsx, index.ts}`; `apps/web/account/register.html` (non-isolated entry) and its Vite input.
 - `packages/ui/src/pages/saves/{conflict-dialog.tsx, conflict-banner.tsx, cloud-chip.tsx}`; edits to `packages/ui/src/pages/saves/saves.tsx` and `packages/ui/src/pages/profile/profile.tsx` (account section, forget flow).
-- `packages/ui/src/shell/api-error.ts` (new rows), `packages/ui/src/i18n/en.json` (new keys).
+- `packages/ui/src/shell/api-error.ts` (new rows), `content/ui/i18n/en.json` (new keys).
 - `packages/ui/test/{cloud-chip.test.ts, conflict-dialog.test.ts, api-error.test.ts}`.
 - `tests/e2e/{age-gate.spec.ts (extend, @ui-age), saves-ui.spec.ts (extend, @ui-saves), account.spec.ts (@ui-account)}`; `tests/e2e/setup/dev-keys.ts` (Playwright global setup).
 - `tools/ci/check-dist.ts`: the header table gains `/account/register` (no COEP) beside `/account/`.

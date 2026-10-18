@@ -11,10 +11,10 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 ## Depends on
 - **M02c1** (graph-services-teleports): `RoadGraphQuery`, junction runtime and `signal()`, `TrafficControl` in `packages/world/src/sim/traffic/control.ts` (blackout from M02b2's hashed resource, `setDensity`, `closeEdges`, `release`), `WorldQuery`, `WorldApi` wiring and the QA bridge.
 - **M03a1** (vehicles-interaction-prefabs): prefabs `vehicle.{compact,sedan,rideshare,van,truck,pickup}`, `police.cruiser`, `robotaxi.default`; the vehicle system with `stepHandling`; `packages/shared/src/vehicle/quirks.ts`.
+- **M02b2** (weather-time): blackout resource, `config/world/density.json` with `lampPitchM` (DL-219).
 - Through those:
   - M02a2: graph, junctions, signal programs, spawn capacities and density profiles, `synth` roads;
   - M02b1: `@dv/world` sim/client split, `DV_WORLD=synth` QA builds, scenario registration in `tests/perf/`;
-  - M02b2: blackout resource, `config/world/density.json` with `lampPitchM`;
   - M01c: perf runner, checklists.
 - Contracts: C08 1.0.0, C01 1.0.0 (`amb:` keys), C02 1.1.0, C13 1.1.0 (`CrowdLimits`, `PerfScenario`).
 
@@ -32,7 +32,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - **Witness hook:** writes component 263 and emits `SimEvent {t: 'world.witness', s: <InfractionKind>, n: <reportAtTick>}` with the witness kind. M03c subscribes; until then events are counted only.
 - Rendering (`packages/world/src/client/traffic/`, §2.6): one `InstancedMesh` per archetype (box cars, stub first), colour and head/tail/hazard light state as instance attributes, distance throttling, two-box far LOD beyond 150 m, totals within C13 `CrowdLimits`.
 - **Determinism scenario `traffic-synth`:** 10,000 `canonical` ticks, seed 0xC0FFEE, on the `synth` bake. Node golden; a QA page `apps/web/qa/world-hash.html` (QA builds only) runs it in `sim.worker` from the same packs served under `/media-local/` and publishes checkpoints on `__dvBridge.world.qa`.
-- Perf scenario `downtown-rush`: path `content/world/paths/downtown-rush.json` (ENU path through SoMa and FiDi at 17:00 weekday, `density: 'nominal'`), registered in `tests/perf/`. Device checklist `tools/ci/checklists/M03b1-iphone15.json`.
+- Perf scenario `downtown-rush`: path `config/perf/paths/downtown-rush.json` (ENU path through SoMa and FiDi at 17:00 weekday, `density: 'nominal'`), registered in `tests/perf/`. Device checklist `tools/ci/checklists/M03b1-iphone15.json`.
 
 ## Scope out
 - Pedestrians, crossings, transit, aircraft, the robotaxi fare and Ride: M03b2.
@@ -47,7 +47,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - `packages/world/test/{traffic.idm.spec.ts, traffic.signals.spec.ts, traffic.junction.spec.ts, robotaxi.blackout.spec.ts, density.spawn.spec.ts, traffic.promotion.spec.ts, witness.spec.ts, traffic.determinism.spec.ts}`, `packages/world/test/golden/traffic-synth.json`.
 - `apps/web/qa/world-hash.html`, `apps/web/src/qa/world-hash.ts`; `verify-dist.mjs` also rejects `world-hash`.
 - `tests/e2e/world-hash.spec.ts` (`@world-hash`).
-- `content/world/paths/downtown-rush.json`, its entry in `tests/perf/`, `tools/ci/checklists/M03b1-iphone15.json`.
+- `config/perf/paths/downtown-rush.json`, its entry in `tests/perf/`, `tools/ci/checklists/M03b1-iphone15.json`.
 - About 33 files.
 
 ## Interfaces

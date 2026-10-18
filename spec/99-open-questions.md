@@ -34,7 +34,7 @@ Each row names the default the spec uses until the item is verified and the mile
 | U-ENG-1 | `Math.sqrt` bit-identical across JS engines | `detmath.sqrt` never delegates | M01a vectors |
 | U-ENG-2 | Tick cost of `deterministic-compat` vs `simd-compat` | `simd-compat` for local play (D-12) | M01a, M03a |
 | U-ENG-3 | Rapier wasm inside a Durable Object | kinematic validation only on the server | M12b spike |
-| U-ENG-4 | WebSocket in a dedicated worker on iOS Safari | main-thread `MessagePort` relay fallback | M12a |
+| U-ENG-4 | WebSocket in a dedicated worker on iOS Safari | main-thread `MessagePort` relay fallback (chosen by feature detection) | M14b3 iPhone pass records it (only an iPhone can; DL-239) |
 | U-ENG-5 | Quest A/B/X/Y indices in `xr-standard` | no required action only on a face button; `config/xr-input-profiles.json` entries start `null` | M01c, M11b device pass |
 | U-ENG-6 | Rapier debug-render API | draw own shapes from `BodyDesc` | M03a |
 | U-ENG-7 | Meshy rig bone names (also U-AST-1) | alias table written from the probe | M00c |
@@ -89,7 +89,7 @@ Each row names the default the spec uses until the item is verified and the mile
 ### 2.4 Backend (S09, `09-backend.md` §7)
 | ID | Item | Default while unverified | Verified in |
 |---|---|---|---|
-| U-BE-1 | Cross-origin WebSocket from a COEP `require-corp` page to `rt.<domain>` | keep `rt.`; zone-route fallback (Q-BE-02) | M12b AC-1 |
+| U-BE-1 | Cross-origin WebSocket from a COEP `require-corp` page to `rt.<domain>` | keep `rt.`; zone-route fallback (Q-BE-02) | M12b2 (AC-9 staging run records it; DL-239) |
 | U-BE-2 | Turnstile verification API and widget under COEP | per-net registration caps | M12a start |
 | U-BE-3 | `wrangler@4.151.1` keys for workflows, AE, analytics, ratelimits, observability, previews | marked † in config; schema check | M00 |
 | U-BE-4 | DO WebSocket `send` backpressure; WS messages vs ~1,000 req/s | CAP 16; slow-receiver degrade | M12c load test |
@@ -150,3 +150,10 @@ Each domain lists its items with the default it uses and the verifying milestone
 |---|---|---|---|
 | U-ADR-01 | Supabase Auth GitHub provider (`supabase-oauth`) beside our Third-Party Auth issuer on one project; and whether OpenAI grants the website sign-in program (`AUTH_OPENAI_WEB`) | Public publishing waits for M14a; staging and private-to-owner publishing meanwhile (ADR-0018, DL-207) | M13c1 |
 | U-ADR-02 | Input-to-input latency of a Durable Object relay for 60 Hz fight input | No online fighter; ADR-0028 stays `proposed` and C11 is unchanged (DL-204) | M12c load test |
+
+## 6. Wave 5 additions — milestone reconciliation (`spec/11-decision-log-2.md` DL-218…DL-244)
+
+| ID | Item | Default while unverified | Verified in |
+|---|---|---|---|
+| U-REC-1 | VP9 decode of the fixture clips in Playwright's Chromium and WebKit builds (codec support is not in the ledger) | fixtures are VP9 with a canvas-source fallback; AC commands are unchanged (DL-232) | M04c (records it) |
+| U-REC-2 | Chromium actually delivering a crash report from a real crash to the `crash-reporting` group of route 4 (the group and `body.reason` values are research-backed) | the endpoint is declared and unit-tested; delivery is a device observation | M11a2 desktop pass (records it; DL-224) |

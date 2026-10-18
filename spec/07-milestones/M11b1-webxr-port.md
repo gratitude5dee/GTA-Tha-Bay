@@ -8,8 +8,8 @@ After this session the game is a WebXR port, not an XR smoke test. A gesture-bou
 - R-ENG-04: XR comfort baseline: teleport and snap 30° by default, vignette only while moving, quantized velocity, seated mode, dominant hand, no head-locked UI and no camera shake.
 
 ## Depends on
-- **M01c** (`RendererHost` with `installXrFallback` stub, `classifyDevice` with Quest and Vision Pro rules, XR tiers' `XrTierConfig`, `perf:verify`, `perf:checklist`). **M04b2** (`UiSurface` skeleton with an IWER test panel, wrist and phone registry).
-- Also used: M00 (`xr-quest3` project, IWER 2.6.0, `enterForTest`), M01b2 (XR smoke button, `xr` camera mode, `FrameSignal` per XR frame), M04a1 (C05 `ProfileSettings.xr` and the `XrComfortSettings` type file), M11a1 (governor `xr: true` rule and the next-entry framebuffer scale request).
+- **M01c** (`RendererHost` with `installXrFallback` stub, `classifyDevice` with Quest and Vision Pro rules, XR tiers' `XrTierConfig`, `perf:verify`, `perf:checklist`). **M04b2** (`UiSurface` skeleton with an IWER test panel, wrist and phone registry). **M11a1** (governor `xr: true` rule and the next-entry framebuffer scale request; DL-219).
+- Also used: M00 (`xr-quest3` project, IWER 2.6.0, `enterForTest`), M01b2 (XR smoke button, `xr` camera mode, `FrameSignal` per XR frame), M04a1 (C05 `ProfileSettings.xr` and the `XrComfortSettings` type file).
 - Contracts: C13 1.1.0 (`XrTierConfig`, `XrComfortSettings`, `XrPanels` with registration, `RendererHost.installXrFallback`), C03 1.1.0 (`DeviceKind` `xr-controller` / `xr-hand` / `xr-transient`, control ids), C04 1.1.0 (`XRRigParams`, `CameraMode 'xr'`), C02 1.1.0 (`FrameSignal`, `SimServices.xrPoses`), C16 1.1.0 (`xr.session`).
 
 ## Scope in
@@ -37,7 +37,7 @@ After this session the game is a WebXR port, not an XR smoke test. A gesture-bou
 - **`XrPanels` base.** `add`, `remove` and `setVisible` per C13 1.1. Quest uses `renderer.xr.createQuadLayer` or `createCylinderLayer` with a `rendercall` blit [S11-F4], and falls back to a scene plane when `layers` is not granted. Vision Pro uses `CanvasTexture` planes. Ray picking feeds `onRay(hit, pressed, hand)`, and head-locked anchors do not exist (by type).
 - **Device entry:** M01b2's QA "Enter VR (smoke)" button now calls `enter()`; the player-facing button is M11b3's.
 - **Perf.** Scenario `xr-walk` (`config/perf/paths/xr-walk.json`, Civic Center loop, 120 s). `check:perf` runs it on `xr-quest3` against `xr-quest`, and with `?tier=xr-visionpro` on `chromium-webgl2` per view pass (`viewPasses: 2`).
-- **Device checklists** `tools/ci/checklists/M11b-{quest,visionpro}.json`: enter/exit, refresh (Quest), comfort defaults, hill teleport, 120 s `xr-walk`, face-button indices (Quest), hand-tracking accepted and denied (Vision Pro); outputs in `docs/device-runs/M11b/<device>/`.
+- **Device checklists** `tools/ci/checklists/M11b1-{quest3,visionpro}.json`: enter/exit, refresh (Quest), comfort defaults, hill teleport, 120 s `xr-walk`, face-button indices (Quest), hand-tracking accepted and denied (Vision Pro); outputs in `docs/device-runs/M11b1/<device>/`.
 
 ## Scope out
 - In-headset UI: the Enter/Exit VR button, wrist panel, comfort card and XR settings pages (M11b3).
@@ -50,7 +50,7 @@ After this session the game is a WebXR port, not an XR smoke test. A gesture-bou
 - `config/xr-input-profiles.json`, `config/xr-gestures.json`, `config/perf/paths/xr-walk.json`, and the `tools/ci/perf-check.ts` edit for `xr-walk`.
 - `packages/engine/test/platform/xr/{gesture.spec.ts, swap.spec.ts, pose-block.spec.ts, comfort.spec.ts, refresh.spec.ts}`.
 - `tests/e2e/xr/{xr-session.spec.ts, xr-input.spec.ts, xr-comfort.spec.ts, xr-panels-base.spec.ts}` (tags `@xr` plus `@xr-session`, `@xr-input`, `@xr-comfort`, `@xr-panels-base`).
-- `tools/ci/checklists/M11b-{quest,visionpro}.json`; `docs/device-runs/M11b/` (operator output).
+- `tools/ci/checklists/M11b1-{quest3,visionpro}.json`; `docs/device-runs/M11b1/` (operator output).
 - About 34 files.
 
 ## Interfaces
@@ -73,8 +73,8 @@ After this session the game is a WebXR port, not an XR smoke test. A gesture-bou
 - AC-7 Given a mock session whose `supportedFrameRates` includes 90 When p90 frame time drops below 9 ms Then the target rate rises from 72 to 90, and it returns to 72 when p90 rises above the `xr-quest` budget × 1.15 — proof: `pnpm check:unit -- packages/engine/test/platform/xr`
 - AC-8 Given a test panel registered through `XrPanels.add` on `xr-quest3` When a simulated controller ray hits it and the trigger is pressed Then `onRay` receives the hit `{u, v}` with `pressed: true` and the panel reports its backing kind (quad layer or scene plane) — proof: `pnpm check:e2e -- --project=xr-quest3 --grep @xr-panels-base`
 - AC-9 Given the QA build When `xr-walk` runs on `xr-quest3` and with `?tier=xr-visionpro` on `chromium-webgl2` Then the reports validate and render objects and triangles per view pass are within the `xr-quest` and `xr-visionpro` budgets — proof: `pnpm check:perf -- --scenario xr-walk`
-- AC-10 Given a Quest 3 or 3S on the preview URL When the operator follows the checklist Then `perf:verify` passes at `xr-quest` with the XR frame rule, and the run records U-ENG-5 (face-button indices), U-PLT-12 and U-PLT-13 in `notes.json` — proof: manual: Quest 3, steps of `pnpm perf:checklist -- tools/ci/checklists/M11b-quest.json`, then `pnpm perf:verify -- docs/device-runs/M11b/quest/perf.json --tier xr-quest --checklist tools/ci/checklists/M11b-quest.json`
-- AC-11 Given a Vision Pro on visionOS 26.2 or later When the operator follows the checklist Then `perf:verify` passes at `xr-visionpro` per view pass, and the run records which backend presented (native or the swap), U-PLT-10, and both the accepted and denied hand-tracking paths — proof: manual: Vision Pro, steps of `pnpm perf:checklist -- tools/ci/checklists/M11b-visionpro.json`, then `pnpm perf:verify -- docs/device-runs/M11b/visionpro/perf.json --tier xr-visionpro --checklist tools/ci/checklists/M11b-visionpro.json`
+- AC-10 Given a Quest 3 or 3S on the preview URL When the operator follows the checklist Then `perf:verify` passes at `xr-quest` with the XR frame rule, and the run records U-ENG-5 (face-button indices), U-PLT-12 and U-PLT-13 in `notes.json` — proof: manual: Quest 3, steps of `pnpm perf:checklist -- tools/ci/checklists/M11b1-quest3.json`, then `pnpm perf:verify -- docs/device-runs/M11b1/quest3/perf.json --tier xr-quest --checklist tools/ci/checklists/M11b1-quest3.json`
+- AC-11 Given a Vision Pro on visionOS 26.2 or later When the operator follows the checklist Then `perf:verify` passes at `xr-visionpro` per view pass, and the run records which backend presented (native or the swap), U-PLT-10, and both the accepted and denied hand-tracking paths — proof: manual: Vision Pro, steps of `pnpm perf:checklist -- tools/ci/checklists/M11b1-visionpro.json`, then `pnpm perf:verify -- docs/device-runs/M11b1/visionpro/perf.json --tier xr-visionpro --checklist tools/ci/checklists/M11b1-visionpro.json`
 - AC-12 Given the branch When the production build, dist verification and the preview deploy run Then all pass and the production bundle contains neither IWER nor `enterForTest` — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
 ## Test plan

@@ -11,7 +11,7 @@ A player can talk to an NPC, and the conversation never blocks the game. Route 3
 ## Depends on
 - **M06a1** (npc-backend-spine): play-token verification, `PlayerQuotaDO`, `EncounterDO`, the SSE transport, the roster flags, `ks:*` and `gov:level`.
 - **M06a2** (soul-contract-compiler): C10 types, compiled souls and `souls/index.json`, `renderScene`, `scrubPii`, `splitSentences`, the `npc-turn-1.0` schema, `data/ink.<id>`, `data/npc-roster`.
-- Contracts: C10 1.0 (§B2.4, §B7), C12 1.1 (route 31, `ApiError` codes, `PlayerQuota`, `BudgetGovernor`), C16 1.1 (`npc.turn.client`, `npc.encounter.client`), C05 1.1 (`ProfileSettings.npc.aiDialogue`).
+- Contracts: C10 1.1 (§B2.4 incl. the 1.1 `meta.data.safety?`, §B7; DL-226), C12 1.1 (route 31, `ApiError` codes, `PlayerQuota`, `BudgetGovernor`), C16 1.1 (`npc.turn.client`, `npc.encounter.client`), C05 1.1 (`ProfileSettings.npc.aiDialogue`).
 
 ## Scope in
 - **`DialogueService`** (`services/edge/src/npc/dialogue.ts`) follows `04-npc.md` §5.1 steps 1–10. Memory retrieval (step 4) is a no-op hook until M06a4. Pre-stream errors are C12 `ApiError` JSON: `bad_request`, `unauthorized`, `age_blocked`, `not_found`, `conflict {reason}`, `rate_limited`, `quota_exhausted`, `budget_offline`, `feature_disabled`, `kill_switched`, `moderation_blocked`, `upstream_unavailable`.
@@ -30,7 +30,7 @@ A player can talk to an NPC, and the conversation never blocks the game. Route 3
 - **Safety:**
   - `SafetyFilter.pre` (§5.4.1): NFC, strip tags and controls, remove PII and flag it, slur list → `moderation_blocked`, self-harm list → `endConversation` forced. The lists live in `packages/shared/src/npc/safety-lists.ts` so the client can reuse them.
   - Output checks (§5.4.4): word limit + 5, truncated at a sentence; the NameRegistry check from the M00b library, where a failure → `fallback {moderation, knot:'deflect'}`.
-  - Async moderation of player text is wired as an interface that logs `moderation: lands in M06b1`.
+  - Async moderation of player text is wired as an interface that logs `moderation: lands in M06b1`. `EncounterDO` keeps a `pendingSafety` flag that the interface can set; the next turn's `meta` carries `safety: 'crisis'` and clears it (C10 1.1, DL-226).
 - **Executor** `validateTurn` in `packages/shared/src/npc/executor.ts` (pure, because `services/*` may import only `@dv/shared`; `packages/npc` re-exports it): `affinity_delta` clamped ±10, ≤ 2 memory writes of ≤ 240 chars, `action_arg ∈ offers`, `attack` and `call_police` only for `volatile` or `police` in `story` mode, `end_conversation` honoured.
 - **Settlement:** actual micros are computed from `usage` at F-034 prices for the model and passed to `PlayerQuota.settle`. A `genai.cost` point is written.
 - **Client (`packages/npc/src/client`):** `DialogueClient` uses `fetch` with a streamed reader (not `EventSource`); `NpcRuntime` (`talk`, `playKnot`, `refreshFlags` on start, mode entry, every 10 min and after `kill_switched`; `endEncounter`). On `fallback`, a network error, `/boot` failure or any of the four offline codes (`quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable`), it continues with `InkRunner` from the returned knot, or `greeting`/`smalltalk` by intent, with no error UI. The `ProfileSettings.npc.aiDialogue = false` setting means ink only. Telemetry: `npc.turn.client {ttftMs, fallback, reason?}` per turn and `npc.encounter.client` on close.
@@ -40,7 +40,7 @@ A player can talk to an NPC, and the conversation never blocks the game. Route 3
 
 ## Scope out
 - Memory retrieval and writes, summaries, TTS, lip-sync and evals: M06a4. Real dialogue panel UI, likeness card and report button: M06a5. Intents (route 32): M06c. Builder preview and private user NPCs: M06b1.
-- Async moderation and the crisis card signal from moderation: M06b1 (moderation store) and M06a5 (card from the client-side list).
+- Async moderation itself: M06b1 (it sets `pendingSafety`). The crisis card UI: M06a5.
 
 ## Deliverables
 - `services/edge/src/npc/{dialogue.ts, prompt.ts, router.ts, upstream.ts, upstream-fixture.ts, scanner.ts, safety.ts, settle.ts}`, `services/edge/src/routes/npc-talk.ts`.
@@ -53,10 +53,10 @@ A player can talk to an NPC, and the conversation never blocks the game. Route 3
 - About 38 files.
 
 ## Interfaces
-- C10 1.0: `NPCDialogueRequest`, `DialogueEvent`, `FallbackReason`, `InkKnot`, `NpcRuntime` (client surface from `04-npc.md` §3). Shapes are copied.
+- C10 1.1: `NPCDialogueRequest`, `DialogueEvent` (with `meta.data.safety?`), `FallbackReason`, `InkKnot`, `NpcRuntime` (client surface from `04-npc.md` §3). Shapes are copied; this milestone sets `C10_VERSION = '1.1.0'`.
 - C12 1.1: route 31 and its error set.
 - C16 1.1: `npc.turn.client`, `npc.encounter.client`, `genai.cost`.
-- Proposal, not implemented: C10 has no event that tells the client to show the crisis card after asynchronous moderation (`04-npc.md` §5.4.2). Report it to the Architect.
+- The crisis signal after asynchronous moderation (`04-npc.md` §5.4.2) is the additive C10 1.1 `meta.data.safety?: 'crisis'` (the proposal accepted in DL-226).
 
 ## Acceptance criteria
 - AC-1 Given the recorded happy fixture When a P0 client posts a turn to `npc_test` Then the events arrive in the order `meta`, `line.delta`+, `line.done`, `effects`, `done`; `meta.disclosure.aiCharacter` is true; and `done.costMicros` equals the price of the fixture's `usage` — proof: `pnpm check:workers -- npc-talk-happy`

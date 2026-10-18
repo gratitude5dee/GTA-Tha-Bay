@@ -124,11 +124,11 @@ Package `packages/world` (`@dv/world`): `src/sim/**` runs under the C02 lint; `s
 | `packages/shared/src/world/{c08,c08-api,terrain,pack-codec}.ts` | C08 types, grid functions, `sampleHeight`, `decodeP0`, `signalAspect`, `activeSlots` | contracts part | `detmath` |
 | `packages/world/src/sim/streaming/` | `ChunkStore` (interest, priority, lifecycle), statics feed to `PhysicsBackend.addChunkStatics` | `ChunkStore`, `StreamingPlan` | C13, `asset.worker` |
 | `packages/world/src/sim/graph/` | adjacency, A*, junction runtime, `RoadGraphQuery` | `RoadGraphQuery` | `decodeP0` |
-| `packages/world/src/sim/ambient/` | traffic, parked, robotaxi, pedestrian, transit, boat brains; witness | systems in `AI`/`Rules` | C01, C02, graph |
-| `packages/world/src/sim/api/` | `WorldQuery`, `TeleportApi`, `PlaceIndex`, `WorldResolver`, `TrafficControl`, `MapApi` | `WorldApi` | all of the above |
+| `packages/world/src/sim/{traffic,peds,transit}/` | traffic, parked, robotaxi, pedestrian, transit, boat brains; witness | systems in `AI`/`Rules` | C01, C02, graph |
+| `packages/world/src/sim/{api,map}/` (`TrafficControl` in `sim/traffic/`) | `WorldQuery`, `TeleportApi`, `PlaceIndex`, `WorldResolver`, `TrafficControl`, `MapApi` | `WorldApi` | all of the above |
 | `packages/world/src/client/chunks/` | worker mesher, `ChunkRenderer`, `ChunkUploadGate`, cover masks, `LandmarkLayer` | — | three, C13 |
 | `packages/world/src/client/sky/` | `TimecycFile`, `SkyUniforms`, dome, fog, rain, night lights, `AtmosphereAdapter` | — | three, `EnvState` |
-| `packages/world/src/client/crowd/` | instanced vehicle and pedestrian renderers, near-LOD skinned peds | — | three, C04 |
+| `packages/world/src/client/{traffic,peds}/` | instanced vehicle and pedestrian renderers, near-LOD skinned peds | — | three, C04 |
 | `packages/world/src/client/map/` | `MinimapView`, `FullMapView`, tile cache, raster jobs | maps §2 | canvas |
 | `packages/world/src/client/backdrop/` | far ring, massing, cards | — | three |
 | `tools/map/` | bake, fixtures, geocoder, `resolve`, verify | CLI (bake §3) | Node 24 |
@@ -151,7 +151,7 @@ export interface ChunkStore {
 - **Types owned:** the C08 contract and its service interfaces (contracts part), `TimecycFile`, `SkyUniforms`, `MinimapView`, `FullMapView` (living §6, maps §2).
 - **Persisted data:** none of its own. Saves carry `worldBake` (C05) and ENU positions; sandbox saved positions and teleport history live in the C05 sandbox slice (S01/S10).
 - **Config** (`config/world/`): `streaming.json`, `density.json`, `mesher.json`, `roadclass.json`, `bridges.json`, `timecyc.json`, `transit.json`, `sources.json`, validated by JSON Schema in CI; `config/world.bounds.json` is shared with S09.
-- **Content** (`content/world/`): `landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`, and camera paths `paths/walk-civic-center.json`, `paths/route-ferry-ocean-beach.json` (Ferry Building to Ocean Beach, M02b1 AC), `paths/downtown-rush.json` for S11's `PerfScenario` ids.
+- **Content** (`content/world/`): `landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`; camera paths for S11's `PerfScenario` ids live in `config/perf/paths/` (`walk-civic-center`, `route-ferry-ocean-beach` Ferry Building to Ocean Beach for the M02b1 AC, `downtown-rush`; DL-221).
 - **Flags:** `BootConfig.flags` keys `world.cards`, `world.rain`, `world.atmosphere` (all default on) allow a remote downgrade without a deploy; QA bridge `window.__dvBridge.world` (QA builds only) exposes `teleport(id)`, `setHour`, `setWeather`, `density(kind, mult)`, `blackout(on)`, `chunks()`.
 - **Streaming table** (`config/world/streaming.json`, starting values †; radii in metres):
 

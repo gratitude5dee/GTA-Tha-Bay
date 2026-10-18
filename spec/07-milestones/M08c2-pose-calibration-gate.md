@@ -87,6 +87,7 @@ After this session optional full-body pose control in Culture Wars can be turned
 - **Fake camera shows no person:** e2e asserts privacy and lifecycle only; calibration success is proven on fixtures (AC-1).
 
 ## Notes for the Builder
+- MediaPipe model files (U-FGT-3, DL-236): the device runs need the real `lite` and `full` `.task` models. Before AC-14/AC-15 the operator obtains them from the vendor's published model card, vendors them with `pnpm assets:pose-vendor -- --from <dir>` (M08c1; size and SHA-256 are pinned in `config/pose-assets.json`) and records the source URL and date in `spec/03`. CI never downloads them.
 - Read first: `07-fighter-pose.md` FP1, FP4–FP7, FP9–FP10; `11-platform-pwa.md` §11; `01-engine-contracts.md` C03 rule 8 and 1.1 section; `10-ui-pages.md` §2.
 - Hybrid is in scope because `setPoseHybrid` is already in C03 1.1 (FP6's "until accepted" is stale).
 - Order: store and gate → capability → calibration on fixtures → session → UI → e2e → perf path → checklists.

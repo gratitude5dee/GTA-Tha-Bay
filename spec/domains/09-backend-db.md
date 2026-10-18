@@ -21,7 +21,7 @@ Files `supabase/migrations/<NNNN>_<name>.sql`, applied with `supabase db push` f
 | `0004_moderation.sql` | enums, `moderation_item`, `moderation_signal`, `moderation_case`, `moderation_decision`, `user_report`, `enforcement_action`, `uploads`, `npc_draft`, `npc_soul` | M06b |
 | `0005_saves.sql` | `save_profiles`, `save_records`, `unlocks` | M12a |
 | `0006_online.sql` | `progress_wallet`, `progress_commits`, `leaderboard_scores` | M12c |
-| `0007_ugc_forum.sql` | `mods`, `mod_versions`, `experiences`, `forum_boards`, `forum_threads`, `forum_posts`, `forum_votes`, `device_codes` | M13a (mods/experiences, S12), M13b (forum) |
+| `0007_ugc_forum.sql` | `mods`, `mod_versions`, `experiences`, `forum_boards`, `forum_threads`, `forum_posts`, `forum_votes`, `device_codes` | M13a2 ships the whole file; M13b1 and M13c1 use its forum and device-code objects (DL-228) |
 | `0008_legal.sql` | `takedown_request`, `ncmec_report`, `evidence_object`, `hash_bank_entry` | M13d |
 | `0009_link.sql` | `merge_requests`, `siwe_nonces` | M14a |
 
@@ -400,6 +400,8 @@ KV is eventually consistent (≥ 60 s) and allows 1 write/s per key [research/st
 | Save tombstones (`save_records.deleted_at`, `save_profiles.deleted_at`) | 180 d (C05 `SAVE_LIMITS.tombstoneRetentionDays`; DL-195) | 03:30 with the stub-profile sweep |
 
 Sources: D-22, [research/legal-ip-likeness.md §8 P6], [research/gap-trust-safety-tooling.md §6.6]. `GET /me/export` builds a ZIP of every row and R2 object keyed by the profile (JSON per table) within 24 h and returns a 7-day presigned link.
+
+**Restore drill (DL-241).** Retention above says how long rows live; recovery is proven by M14b2's `restore-drill` suite (`tools/ops/suites/restore-drill.ts`): restore a staging dump into the local stack and re-run the RLS and contract checks, with `pg_dump`/`psql` as the fallback path when the Supabase CLI command shape differs.
 
 ## 8. Generated types and DB tests
 - `pnpm check:db`: `supabase db start` → `supabase db lint --level error --fail-on error` → `supabase test db` (pgTAP in `supabase/tests/*.sql`) [research/gap-ci-cd-release-assets.md §3].

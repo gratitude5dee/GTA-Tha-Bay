@@ -8,7 +8,7 @@ Rooms survive real networks and deploys. When this session ends, a dropped socke
 
 ## Depends on
 - M12b2 (interest, validation, `RoomClient`, engine net phases, `@mp` e2e).
-- Contracts: C11 1.0 (`09-backend-contracts.md` §1.5–§1.7: `EV Resume`, `ActResult`, `VehicleSpawn`, `VehicleOwner`, `Notice`, close 4004/4005/4007/4008), C12 1.1 (routes 25, 26, 48; routes 54 and 55 added by DL-186 and DL-187 in `spec/05-api-and-realtime.md` §3).
+- Contracts: C11 1.0 (`09-backend-contracts.md` §1.5–§1.7: `EV Resume`, `ActResult`, `VehicleSpawn`, `VehicleOwner`, `Notice`, close 4004/4005/4007/4008), C12 1.2 (routes 25, 26, 48; routes 54 and 55 with `PresenceTicketRes`, `KickReq`, `KickRes` of `09-backend-contracts-1.2.md` §2, DL-223; this milestone sets `C12_VERSION = '1.2.0'`).
 
 ## Scope in
 - Ghosts and resume (`spec/05-api-and-realtime.md` §4.4, DL-188): on close without `BYE` the slot becomes a ghost for `RESUME_TTL_MS` (counts toward cap); `EV Resume` refreshes the token every 30 s; the client reconnects with jitter (250 ms → 4 s), refreshes its JWT when it expires within 60 s, calls route 23 (the directory returns the seat's room and a fresh ticket) and opens `…/ws?v=2&build=B&ticket=T&resume=<rs1>`; ≤ 15 s → `welcome {resumed:true}` plus events after the last acknowledged `evSeq` (≤ 256 kept 15 s); 15–60 s → `welcome {resumed:true}` without replay; token expired or slot reaped → close 4005, fresh join.
@@ -35,7 +35,7 @@ Rooms survive real networks and deploys. When this session ends, a dropped socke
 - Rooms Worker secret `SUPABASE_SECRET_KEY` (staff-role checks and ban lookups); CI secret `CI_STAFF_DEVICE_JWK` (from M12a1). Absent: `rooms:drain` prints `SKIP rooms:drain: CI_STAFF_DEVICE_JWK not set` and exits 0; staff routes answer `unauthorized`.
 
 ## Interfaces
-- C11 1.0 and C12 1.1 consumed as frozen. `PresenceFrame` lives outside C11 per DL-186; routes 54 and 55 follow `spec/05-api-and-realtime.md` §3 and DL-186/DL-187.
+- C11 1.0 consumed as frozen; C12 1.2 types for routes 54 and 55 (`09-backend-contracts-1.2.md`), semantics per `spec/05-api-and-realtime.md` §3 and DL-186/DL-187. `PresenceFrame` lives outside C11 per DL-186.
 - No contract change.
 
 ## Acceptance criteria

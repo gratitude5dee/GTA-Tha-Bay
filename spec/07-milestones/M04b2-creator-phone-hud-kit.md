@@ -132,5 +132,5 @@ After this session a new player can make a character and play with a real HUD on
 - Read first: `10-ui-pages.md` §2.8, §2.10 (garage), §2.14 (help), §4.1–§4.2, §4.4; `10-ui-hud-xr.md` §2.9–§2.14, §5, §9; `10-ui.md` §3.3–§3.4; `11-platform-xr.md` §4.4, §5.5 for `XrPanels`.
 - Facts: F-004 and F-011 (Home Screen web apps; no fullscreen, orientation lock, vibration or install prompt on iPhone). WCAG 2.2 values are the S10 citations in `10-ui-hud-xr.md` §2.13.
 - Order of work: schemas and codec, creator, HUD grid and widgets, pause and phone, touch and editor, onboarding, help and garage, host, `UiSurface`, accessibility checks, e2e, checklist.
-- The checklist is `M04b2-iphone15.json` (C15 naming), not `10-ui-pages.md` §9's `M04b-iphone.json`.
+- The checklist is `M04b2-iphone15.json` (C15 naming; `10-ui-pages.md` §9 now uses the same name, DL-221).
 - Owner gate: Q-13 (an iPhone 15 for AC-12; without it the AC is listed under "Blocked on"). Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend.

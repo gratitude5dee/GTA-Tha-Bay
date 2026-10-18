@@ -33,7 +33,7 @@ After this half session the wheel-force path of the shared handling model is dec
 
   Otherwise keep `castray`. A tie keeps `castray`.
 - `packages/shared/src/vehicle/wheel-path.ts` exports `SELECTED_WHEEL_PATH: 'castray' | 'controller'`. The vehicle system reads it and the losing implementation is deleted. Its harness result stays in the ADR and the JSON.
-- The ADR `docs/decisions/ADR-<next free number>-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; expected number 0031). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a DL entry in `spec/11-decision-log-2.md` under "Builder decisions".
+- The ADR `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; number reserved in `docs/decisions/README.md`, DL-242). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a DL entry in `spec/11-decision-log-2.md` under "Builder decisions".
 
 ## Scope out
 - Any edit of `c06-modes.ts` or other contract files: the Architect decides the 1.2 bump.
@@ -48,7 +48,7 @@ After this half session the wheel-force path of the shared handling model is dec
 - `packages/shared/src/vehicle/wheel-path.ts` (`SELECTED_WHEEL_PATH`).
 - `packages/engine/test/wheel-spike.spec.ts`, `packages/engine/test/wheel-spike.adr.spec.ts` (the ADR's `Decision:` line equals `SELECTED_WHEEL_PATH` and the JSON's `selected`).
 - `packages/engine/package.json` script **`test:wheel-spike`** (`vitest run test/wheel-spike`). `pnpm check:unit` includes it, so check the vitest workspace globs.
-- `docs/decisions/ADR-<n>-vehicle-wheel-force-path.md`, a row in `docs/decisions/README.md`, `spec/11-decision-log-2.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
+- `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-2.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
 - About 10 files.
 
 ## Interfaces
@@ -91,5 +91,5 @@ After this half session the wheel-force path of the shared handling model is dec
 - Order of work: seam and moved castray code (AC-1 green), harness, controller adapter, run, ADR, delete the loser, ADR test.
 - Write the decision rule into the ADR draft before the first matrix run.
 - Tick-cost numbers are Node, informational and machine-dependent. Never write them into an acceptance criterion or a budget; the ADR quotes them with the machine description.
-- ADR numbering: take the next free number in `docs/decisions/README.md` at execution time. The test finds the file by the glob `ADR-*-vehicle-wheel-force-path.md`.
+- ADR numbering: 0031 is reserved for this ADR (DL-242). The test still finds the file by the glob `ADR-*-vehicle-wheel-force-path.md`.
 - Secrets: none for code. `pnpm deploy:preview` needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Without them it prints the SKIP line and exits 0 locally; CI runs it. No genAI spend.

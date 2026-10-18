@@ -197,7 +197,7 @@ Designed now, not deferred. Sources: C03 rule 9, C05 `ProfileSettings`, C13 `XrC
 8. `coach-mark.e2e` — WebKit with a Safari-tab user agent and `display-mode: browser` shows the card once; standalone emulation does not; dismissal persists; `localStorage` failure does not throw. `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-coach`
 9. `xr-panel.spec.ts @xr` — IWER (`xr-quest3`): a `ScreenDef` panel is created at `uiDistanceM`, a simulated ray press activates a button, a panel never uses a head-locked anchor (type test), computed text height ≥ 1.5° at 1.2 m, redraw only on change. `pnpm check:e2e:xr`
 10. `ugc-surface.spec.ts` — every component tagged `UgcSurface` contains `ReportButton`. `pnpm check:unit -- packages/ui`
-11. Device checklists (manual; `tools/ci/checklists/M11b1-ui-quest.json`, `…-visionpro.json`): panels legible at 1.2 m, ray and pinch selection, wrist glance, comfort card, exit prompt, Enter VR from a click, hand-tracking denial card.
+11. Device checklists (manual; rows in `tools/ci/checklists/M11b4-{quest3,visionpro}.json`, the per-mode XR pass after M11b3 exists; DL-229): panels legible at 1.2 m, ray and pinch selection, wrist glance, comfort card, exit prompt, Enter VR from a click, hand-tracking denial card.
 
 ## 10. Open questions
 

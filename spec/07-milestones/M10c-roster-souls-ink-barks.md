@@ -28,7 +28,9 @@ Act 1 still passes the mission autoplayer with AI dialogue off.
 
 ## Depends on
 - **M10a2**: published character assets and `assets.*` refs for the Act 1 cast (Lean bodies) and fighters.
-- **M06a4**: `TtsPlayer`, `LipSyncDriver`, `config/voice-catalog.json`, t1 Workers AI Aura, `npc:eval`. The run order also places M06a2 (`tools/soul`, `npc:lint/build/consent-index`, ink scaffolds), M06c (`BarkSystem`, archetype pools) and M05c2 (Act 1 missions, `check:missions -- --act 1`) before this milestone.
+- **M06a4**: `TtsPlayer`, `LipSyncDriver`, `config/voice-catalog.json`, t1 Workers AI Aura, `npc:eval`.
+- **M06c**: `BarkSystem`, archetype pools. **M05c2**: Act 1 missions and `check:missions -- --act 1` (DL-219).
+- Through those: M06a2 (`tools/soul`, `npc:lint/build/consent-index`, ink scaffolds).
 - Contracts: C10 1.0 (`soul/1.0` frontmatter, compiled outputs, ink knots, voice tiers, roster manifest), C07 1.1 (`data/ink.<id>`, `data/barks.<id>`, `audio_bark` with `cues`, provenance `voice_mode: synthetic`).
 
 ## Scope in

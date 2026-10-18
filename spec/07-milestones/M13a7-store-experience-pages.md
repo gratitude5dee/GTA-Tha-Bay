@@ -51,7 +51,7 @@ Players can browse, install and manage mods, and find experiences, from the main
 - **Telemetry:** `ui.page` for `mods` and `experiences` (existing name).
 
 ## Scope out
-- Forum threads and ratings links: M13b2 and M13b4. Publishing and "My creations": M13c2 and M13c3. `installs30d` roll-up: M14b.
+- Forum threads and ratings links: M13b2 and M13b4. Publishing: M13c2 and M13c3; "My creations" is post-v1 (DL-240). `installs30d` roll-up: M14b.
 - Vehicle mods in standalone racing (`GameModeDescriptor.modSurface`): not v1.
 - Measured top-speed and 0–100 checks for vehicle mods, and PI bands: post-v1 (needs a headless oracle run on the server).
 - Final a11y audit and translations: M14c.
@@ -70,7 +70,7 @@ Players can browse, install and manage mods, and find experiences, from the main
 
 ## Interfaces
 - C14 1.0 DTOs and records, and C17 1.0 cards, are read-only in the UI; moderation and visibility are never written by the client. S06 `CLASS_ENVELOPE` is consumed unchanged.
-- **Note for the Architect:** `12-modding-contracts.md` B§4 says vehicle data is "clamped to the class limits", while D-S06-08 and `_PLAN.md` say it is rejected. This milestone rejects, because a silent clamp would change the creator's car.
+- Vehicle data outside the class envelope is rejected, never clamped (D-S06-08; `12-modding-contracts.md` B§4 amended, DL-240), because a silent clamp would change the creator's car.
 - No contract change.
 
 ## Acceptance criteria

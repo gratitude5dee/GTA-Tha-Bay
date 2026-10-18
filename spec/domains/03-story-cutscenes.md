@@ -84,6 +84,7 @@ export interface CutsceneManifest {              // R2 cutscenes/<key>/manifest.
     c2pa: 'valid' | 'valid-untrusted' | 'absent' | 'invalid'; resigned: boolean; aiGenerated: true };
   degraded?: true;
 }
+// HTMLVideoElement below resolves through the type-only shim packages/shared/src/contracts/dom-media.d.ts (no DOM lib in @dv/shared; DL-232)
 export interface PreparedClip {                 // 06 §4.4 fixed minimum (DL-061) + S03 fields
   key: string;
   source: { kind: 'element'; video: HTMLVideoElement } | { kind: 'decoder'; url: string; codec: string };
@@ -335,7 +336,7 @@ Sources: [research/gap-cutscene-delivery-playback.md §7.6].
 
 **Subtitles and labels.**
 - Cues come from the ref (VTT `subs.<lang>.vtt` is produced from the same cues by S05's `subs` step) and render through S10's subtitle layer. They are on by default for cutscenes (R-ENG-04).
-- Generated clips show the "AI-generated" chip for 2 s at start and in the pause menu, plus `licence.uiCredit` in credits (S10; [research/gap-video-model-licence-clearance.md §6]).
+- Generated clips show the "AI-generated" chip for the whole clip (`10-ui-hud-xr.md` §2 item 3; DL-232) and in the pause menu, plus `licence.uiCredit` in credits (S10; [research/gap-video-model-licence-clearance.md §6]).
 - Every cutscene is skippable by key, button, tap or pinch.
 
 ## D8. QA and moderation of generated clips

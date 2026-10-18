@@ -43,7 +43,7 @@ A creator, or their coding agent, can publish from the terminal with a human in 
 ## Scope out
 - Flow B (`dv studio` with ChatGPT plan usage) and flow D (ChatGPT plugin): only after an ADR (DL-148).
 - npm publication of `@dv/cli` and `@dv/mod-sdk`: waits for Q-22. By default both ship as tarballs (`pnpm --filter <pkg> pack`) attached to the release by M14b3's release job. `license` is MIT and `files` is set, with no `publishConfig` until the owner confirms.
-- The `supabase-oauth` link UI: waits for the route proposal from M13c1.
+- The `supabase-oauth` link UI: not in v1 (DL-240).
 
 ## Deliverables
 - `tools/cli/src/publish/{login,logout,client,publish,attest,credentials,index}.ts`; `tools/cli/src/mcp/tools/mod-publish.ts` (edit); tests `tools/cli/test/{login,publish,dry-run,credentials,mcp-publish}.test.ts` with a fake HTTP server.

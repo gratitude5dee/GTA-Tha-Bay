@@ -43,8 +43,8 @@ Publishing (route 36) does not exist yet, so CI and staging use fixture rows and
   - `archiveUrl` is built from `BootConfig.hosts.ugc`;
   - `installs30d` reads 0 until the nightly roll-up (M14b).
 - **Migration** `supabase/migrations/0007_ugc_forum.sql`:
-  - the complete §3.7 file of `09-backend-db.md`: `mods`, `mod_versions`, `experiences`, `forum_boards`, `forum_threads`, `forum_posts`, `forum_votes`, `device_codes`, with checks, indexes, RLS, policies and the forum counter trigger;
-  - a migration is applied once and never edited, so the whole file lands here; M13b1 and M13c1 add routes only (reported to the Architect);
+  - the complete §3.7 file of `09-backend-db.md`: `mods`, `mod_versions`, `experiences`, `forum_boards`, `forum_threads`, `forum_posts`, `forum_votes`, `device_codes`, with checks, indexes (incl. the GIN `tsv` title index of DL-190), RLS, the forum policies (`ft_public_read`, `fp_public_read`, `ft_author_insert`, `fp_author_insert`, `fv_self`), the triggers `forum_votes_apply` (thread and post `score`, `experiences.rating_sum`/`rating_count`) and `forum_posts_count` (`post_count`, `last_post_at`), and the board seed rows of `12-modding-publish.md` C§5;
+  - a migration is applied once and never edited, so the whole file lands here; M13b1 and M13c1 add routes only and ship no migration (DL-228);
   - pgTAP tests in `supabase/tests/0007_ugc_forum.test.sql`; `packages/shared/src/db.gen.ts` regenerated.
 - **QA bridge** `__dvBridge.mods` (QA builds only): `installFixture(name)`, `uninstall(id, deleteData)`, `registry()`, `opfsSnapshot()`.
 - **Telemetry:** `mod.install {result, source, tier}` and `mod.uninstall {deleteData}`, with `mod` = first 8 hex of SHA-256(ModId); schemas in `packages/shared/schemas/telemetry/`.

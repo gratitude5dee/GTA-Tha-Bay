@@ -10,11 +10,12 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 ## Depends on
 - **M12a1**: ES256 issuer and JWKS, `TokenRes`, refresh rotation and reuse revocation (route 8), staff scopes, `HttpCloudSync`, `DeviceIdentity`, the hourly expiry cron.
 - **M04b1**: shell, kit, page registry, Profile page.
-- Contracts: C12 1.1.0 (routes 8, 10, 11; `DeviceCodeRes`, `DeviceTokenReq`, `TokenRes`, `IdentityStateDTO`, `AccessClaims`, `ProviderId`, `Tier`; `09-backend-contracts-1.1.md` §1 route 10 amendment; `DataPort.identity.deviceCode`, `.link`), C16 1.1.0.
-- Decision records: ADR-0018 (publish identity before M14a), ADR-0019, DL-145, DL-189 (`/link` stays isolated; provider redirects land on `/account/*`), DL-207.
+- **M13a2**: the `device_codes` table in migration 0007 (DL-228).
+- Contracts: C12 1.2.0 (routes 8, 10, 11; `DeviceCodeRes`, `DeviceTokenReq`, `TokenRes`, `IdentityStateDTO`, `AccessClaims` with the CLI audience and `CliScope` of `09-backend-contracts-1.2.md` §2, `ProviderId`, `Tier`; `09-backend-contracts-1.1.md` §1 route 10 amendment; `DataPort.identity.deviceCode`, `.link`), C16 1.1.0.
+- Decision records: ADR-0018 (publish identity before the Thirdweb link), ADR-0019, DL-145, DL-189 (`/link` stays isolated; provider redirects land on `/account/*`), DL-207.
 
 ## Scope in
-- Migration `supabase/migrations/00072_device_codes.sql`. It creates `device_codes` exactly as `09-backend-db.md` §3.7, server-only with RLS and no policies, but only if M13a2's `0007_ugc_forum.sql` lacks it. Read 0007 first. If 0007 already has the table, ship no migration and say so in the PR.
+- No migration (DL-228): `device_codes` is in M13a2's `0007_ugc_forum.sql` exactly as `09-backend-db.md` §3.7 (server-only, RLS, no policies). Read 0007 first; if the table is missing or wrong, stop and report.
 - `services/edge/src/id/device-code.ts` (route 10):
   - `POST /id/device-code` (pub, `RL_AUTH`) returns `DeviceCodeRes`:
     - `device_code`: 32 random bytes, base64url, stored only as its SHA-256;
@@ -28,7 +29,7 @@ A creator's CLI can get a publish token without any browser integration. `dv log
     - On success it returns `TokenRes`: the CLI JWT (claims as `AccessClaims` with `aud: 'tha-bay-cli'`, `scp: ['mods:publish']`, `tier: 'linked'`, TTL 1 h, no PII) and a refresh token in a new family marked as a CLI family.
   - `POST /id/device-code/approve` (J1) `{user_code}` → 204. It requires tier `linked` (`tier_required`), bracket `18p` (`age_blocked`), no `publish_ban` (`forbidden`), and a live, unused code (`not_found`). There are at most 3 approvals per profile per hour (`rate_limited` with `retryAfterMs`). The approval is written to `audit_log`.
 - Route 8: refreshing a CLI family returns CLI-shaped tokens. Reuse revokes the family (M12a1 logic, unchanged).
-- Token typing: `AccessClaims` fixes `aud: 'tha-bay'` and types `scp` as `StaffScope[]`, which does not include `'mods:publish'`. The CLI claims are therefore a local type in `services/edge/src/id/cli-claims.ts`. A proposal for an additive C12 type goes in the PR report. The contract is not edited.
+- Token typing: C12 1.2 widens `AccessClaims` (`aud: 'tha-bay' | 'tha-bay-cli'`, `scp?: (StaffScope | CliScope)[]`, `CliScope = 'mods:publish'`; `09-backend-contracts-1.2.md` §2, DL-223). Copy the 1.2 lines into `packages/shared/src/identity.ts`; the issuer mints CLI tokens with `aud: 'tha-bay-cli'` and exactly `scp: ['mods:publish']`, and never mixes CLI and staff scopes.
 - `services/edge/src/id/openai.ts` (route 11, flag `auth.openaiWeb`, default false):
   - `GET /id/openai/start` (J1) returns `{authorizeUrl}` with PKCE S256, `state` and `nonce`. The state record `{pid, verifier, nonce, exp}` sits in KV `FLAGS` under `oidc:<state>` with a 600 s TTL. This is not an atomic switch, and the provider's one-time code bounds replay.
   - `GET /id/openai/callback` (J1; the `/account/callback` page forwards `code` and `state` with `fetch` and the Bearer token, DL-189) exchanges the code at the discovered token endpoint. It verifies the ID token's `iss`, `aud`, `exp` and `nonce` against the issuer's JWKS, links `identities(provider 'openai', subject)` through `DataPort.identity.link`, raises the tier to `linked`, discards the ID token, and returns `IdentityStateDTO`.
@@ -41,17 +42,17 @@ A creator's CLI can get a publish token without any browser integration. `dv log
   - Error keys: expired, wrong code, rate limit with countdown, banned.
 - The Profile page's Account section gains "Approve a device code" → `/link`.
 - Hourly cron: delete `device_codes` rows past `expires_at` (retention table, `09-backend-db.md` §7).
-- **Provider-ladder spike** (operator, staging): check through the Supabase Management API whether the GitHub provider can be enabled on the staging project beside the registered Third-Party Auth issuer. Record the result. If it works, the link step still needs a server route that C12 1.1 lacks, so the Builder writes a proposal for an additive route and does not build one.
+- **Provider-ladder spike** (operator, staging): check through the Supabase Management API whether the GitHub provider can be enabled on the staging project beside the registered Third-Party Auth issuer. Record the result. If it works, the link step still needs a server route that v1 does not add (DL-240): record the result for the Architect, who adds the route as a C12 minor bump only if a post-v1 milestone needs it.
 
 ## Scope out
 - `dv login`, `dv logout`, `dv mod publish`, the client `openai` adapter and `/account/callback` → M13c3.
 - Accepting the CLI token on route 36 → M13c2.
-- The `supabase-oauth` (GitHub) link implementation: blocked on the route proposal above. Until then ADR-0018 step 3 applies: publishing works on staging and stays private-to-owner, and public publishing waits for M14a or the proposal.
+- The `supabase-oauth` (GitHub) link implementation: not in v1 (DL-240, U-ADR-01). ADR-0018 step 3 applies: publishing works on staging and stays private-to-owner, and public publishing waits for M14a.
 - Thirdweb SIWE and merges → M14a.
 
 ## Deliverables
-- `supabase/migrations/00072_device_codes.sql` (conditional, see above); `supabase/tests/server_only.sql` extended with `device_codes`; `packages/shared/src/db.gen.ts` regenerated.
-- `services/edge/src/id/{device-code,cli-claims,openai}.ts`; `services/edge/src/data/supabase/device-codes.ts` and the in-memory `DeviceCodeStore`; router rows 10–11; cron hook.
+- `supabase/tests/server_only.sql` extended with `device_codes`; `packages/shared/src/db.gen.ts` regenerated.
+- `services/edge/src/id/{device-code,openai}.ts`; `services/edge/src/data/supabase/device-codes.ts` and the in-memory `DeviceCodeStore`; router rows 10–11; cron hook.
 - `services/edge/test/{device-code,device-code-approve,openai-link}.test.ts`; a fake OIDC provider fixture (local ES256 JWKS) in `services/edge/test/fixtures/oidc/`.
 - `packages/ui/src/pages/link/{LinkPage,CodeField,ProviderList}.tsx`, Profile page edit, `en` strings, `tests/e2e/link.spec.ts` (`@link`).
 - `services/edge/wrangler.jsonc`: vars `OPENAI_OIDC_ISSUER`, `OPENAI_OIDC_CLIENT_ID` (empty), repeated under `previews`.
@@ -60,7 +61,7 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 
 ## Interfaces
 - C12 1.1: routes 10 and 11 as tabled and amended (approve only for `linked`). `DeviceCodeRes`, `DeviceTokenReq` and `TokenRes` are used as typed. RFC 8628 error bodies on the token endpoint, as the contract comment states.
-- Proposals (not implemented): a CLI claims type with `aud: 'tha-bay-cli'` and scope `'mods:publish'`; a server route for linking `supabase-oauth`; a feature flag for that provider (ADR-0018 calls it flag-gated, `FeatureFlag` has no member for it).
+- Resolved: C12 1.2 types the CLI claims (DL-223). Not in v1: a server route and a `FeatureFlag` member for linking `supabase-oauth` (DL-240; ADR-0018 fallback applies).
 - No contract change.
 
 ## Acceptance criteria
@@ -92,7 +93,6 @@ A creator's CLI can get a publish token without any browser integration. `dv log
 - **OIDC library choice.** `jose` is named by `12-modding-publish.md` C§2 but not pinned in the ledger. Take the resolved version and record it in `spec/03`. If it fails in the Workers runtime, verify ES256 with WebCrypto directly (the issuer code from M12a1 already does).
 - **KV state not yet visible at the callback** (eventual consistency): the callback retries the read once after 1 s. If it is still missing → `bad_request` "start again". Route 11 is dark, so this cannot affect players.
 - **Spike shows GitHub cannot coexist with TPA**: ADR-0018 step 3 applies (staging and private-to-owner publishing; public publishing at M14a). Record it, and no code changes follow.
-- **The CLI-claims typing proposal is rejected**: the local type stays, and route 36 (M13c2) checks `aud` and `scp` by value.
 
 ## Notes for the Builder
 - Read first: `12-modding-publish.md` C§2; `09-backend-contracts.md` §2.3–§2.5 (identity, rows 8–11, `DeviceCodeRes`); `09-backend-contracts-1.1.md` §1; `spec/05-api-and-realtime.md` §2; ADR-0018, ADR-0019; RFC 8628 §3.2–§3.5 for the polling rules (standard, no vendor fact).

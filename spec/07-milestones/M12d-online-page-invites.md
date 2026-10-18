@@ -24,7 +24,7 @@ Players reach multiplayer through a real **Play online** page instead of the M04
 - **Chat panel** (`packages/ui/src/pages/online/chat.tsx`).
   - Hidden unless the device-scoped `UiPrefs.chat` is true. It defaults to false and is set under Settings → Privacy as "Text chat (online)".
   - The composer caps input at `NET.CHAT_MAX_CHARS` and sends `Frame.CHAT` through the room client. Incoming `EvKind.Chat` lines are rendered as text nodes only, with the sender's name from `EvKind.Joined`.
-  - Every line has the kit `ReportButton` (route 41, subject `chat_turn`). The panel holds 100 lines and drops the oldest.
+  - Every line has the kit `ReportButton` (route 41, `target {kind: 'chat_turn', id: '<roomId>:<evSeq>'}` from the line's `EV` sequence number; M12c2 snapshots the line server-side, DL-239). The panel holds 100 lines and drops the oldest.
   - Moderation before fan-out is server work (M12c2); the panel shows no unmoderated echo of the player's own line.
 - **Nameplates:**
   - `packages/ui/src/hud/nameplates.ts` holds a pure selection function: ≤ 15 plates within 40 m of the camera, nearest first, hidden while a cutscene plays and while an XR session is presenting.
@@ -38,13 +38,13 @@ Players reach multiplayer through a real **Play online** page instead of the M04
 - Friend list and friend presence: Q-29 (no v1 milestone).
 - Chat moderation, strikes and rate limits on the server: M12c2.
 - Online activities UI (race lobby): M12e uses `EV Activity`. Online fighter: ADR-0028, not v1.
-- XR nameplates and the XR invite field: not in v1 (text entry is flat-only, DL-142). Reported to the Architect.
+- XR nameplates and the XR online page: not in v1. The online page is a flat page and text entry is flat-only (DL-142); nameplates hide while an XR session presents (DL-229).
 - a11y audit and translations: M14c.
 
 ## Deliverables
 - `packages/ui/src/pages/online/{index.tsx, online-service.ts, join.tsx, invite.tsx, presence.tsx, chat.tsx, close-codes.ts, gate.ts, fake.ts}`.
 - `packages/ui/src/hud/{nameplates.ts, NameplateLayer.tsx}`. The `hud.nameplates` publisher goes in `packages/engine/src/net/nameplates.ts`, next to the M12b2 net view.
-- `packages/ui/src/i18n/en.json`: keys `online.*`, `online.close.<code>` for every code in the table, `settings.privacy.chat`, `nameplate.*`.
+- `content/ui/i18n/en.json`: keys `online.*`, `online.close.<code>` for every code in the table, `settings.privacy.chat`, `nameplate.*`.
 - `packages/ui/src/settings/privacy.tsx`: the chat toggle. `UiPrefs` gains `chat: boolean` (S10 data, `10-ui-pages.md` §4.3; not a contract).
 - If needed: `packages/net/src/invites.ts` gains the shared `INVITE_CODE_RE`.
 - Tests:
