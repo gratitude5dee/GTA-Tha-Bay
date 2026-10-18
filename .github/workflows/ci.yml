@@ -71,6 +71,8 @@ jobs:
       # Production build first: it must contain no QA bridge and no IWER emulator.
       - run: pnpm build
       - run: pnpm check:bundle -- --forbid-qa
+      # M01a2: no qa/ page, no bot-input module, no __dvBridge, simd-compat precached, deterministic-compat on demand.
+      - run: pnpm --filter @dv/web verify:dist
       - run: pnpm check:prod-routes
       - run: pnpm check:secrets -- apps/web/dist
       # QA build: what e2e and previews run.
@@ -88,8 +90,9 @@ jobs:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    # chromium-webgl2 is required in M00; the other three become required in the milestone that first depends on them.
-    continue-on-error: ${{ matrix.project != 'chromium-webgl2' }}
+    # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
+    # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
+    continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
     strategy:
       fail-fast: false
       matrix:
