@@ -191,7 +191,7 @@ Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (o
 |---|---|---|---|
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub (environments `preview`, `staging`, `production`); shell locally | Workers deploy, previews (Workers Editor scope) | M00 |
 | `DV_NAMES_REAL_JSON` | GitHub, CI only | real-side name registry for `names:lint` | M00b |
-| `FAL_KEY` | operator / art lead only (Q-17); never CI | spike and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M10a1 |
+| `FAL_KEY` | operator / art lead only (Q-17); Worker secret for the production pipeline (M05c3); never CI | spike, live prewarm and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M05c3, M10a1 |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub env `staging`/`production` (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub env | `db:push`, `auth:tpa`, staging tests | M05d |
 | `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`) | dialogue; `test:staging -- npc-cache` | M06a3 |

@@ -57,7 +57,7 @@
 
 ### M01e · asset-worker-opfs-store — 1 · risk M · S11
 - **Goal:** `asset.worker`, `WorldPackStore` on OPFS with hash check, eviction, `persist()`, `fetchRetry` lanes.
-- **R** R-PLAT-01/03 · **Dep** M01d, M01c, M00a, M00, M01a2 · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset`, `packages/engine/src/platform/packs` · **C** C13 1.1, C07 1.1
+- **R** R-PLAT-01/03 · **Dep** M01d, M01c, M00a, M00, M01a2 · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset.worker.ts`, `packages/engine/src/assets/store` (as the frozen file; DL-247) · **C** C13 1.1, C07 1.1
 - **Gate** none · **Proof** `pack-store.spec.ts` in Chromium and WebKit (`11-platform-pwa.md` §10 test 5); `pnpm check:unit -- packages/engine`
 
 ### M01f · world-graybox-fixture-codec — 0.5 · risk L · S02

@@ -34,7 +34,7 @@ After this session optional full-body pose control in Culture Wars can be turned
 - `packages/modes/fighter/src/pose/{calibration.ts, capability.ts, calibration-store.ts, gate.ts, session.ts, hybrid.ts}`. Extend `client.ts` and `binder.ts` from M08c1 without changing their exports.
 - `packages/modes/fighter/src/ui/pose/{ConsentCard.tsx, CalibrationView.tsx, CameraIndicator.tsx, PoseSetupPanel.tsx}` (Preact, rendered through the mode's `UiBridge` screens).
 - `packages/engine/src/platform/storage/dv-platform.ts`: add store `pose-calibration` in an upgrade step, and export `deleteByProfile` and `deleteAll` helpers.
-- `packages/ui/src/settings/privacy.tsx` ("Delete camera data"; `cameraFeatures` off deletes records), `packages/ui/src/i18n/en-US/pose.json`.
+- `packages/ui/src/settings/privacy.tsx` ("Delete camera data"; `cameraFeatures` off deletes records), `content/ui/i18n/en.json` keys `pose.*` (DL-222, DL-247).
 - `packages/modes/fighter/fixtures/pose/calibration/{good-desktop.json, good-phone.json, too-far.json, dark.json, two-people.json, freeze.json}`: landmark JSON produced with the M08c1 generator. No image or video files.
 - Tests: `packages/modes/fighter/test/pose/{calibration,capability,gate,hybrid,session,store}.spec.ts`; `tests/e2e/fighter/{pose-privacy,pose-gate}.spec.ts` (tags `@fighter @pose`, `@pose-gate`; Chromium `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` via `test.use`).
 - `packages/modes/fighter/perf/fight-stage-pose.ts`, registered in the C13 scenario registry.

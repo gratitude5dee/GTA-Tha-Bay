@@ -430,7 +430,7 @@ export const weekdayOf = (t: number): 0 | 1 | 2 | 3 | 4 | 5 | 6 => (Math.floor(t
 
 ## C05 1.2 addition (Architect, Wave 5 milestone reconciliation, 2026-10-18)
 
-Additive minor bump (`spec/11-decision-log-2.md` DL-225): story businesses (DL-133, `08-tycoon-events.md` §7) keep their `EventHost<BusinessState>` state in the property list, not in `StorySlice.flags`, so mission predicates never read business internals.
+Additive minor bump (`spec/11-decision-log-3.md` DL-225): story businesses (DL-133, `08-tycoon-events.md` §7) keep their `EventHost<BusinessState>` state in the property list, not in `StorySlice.flags`, so mission predicates never read business internals.
 
 ```ts
 // c05-save.ts — 1.2
