@@ -99,7 +99,7 @@ The C13 `WorldPackStore` is complete: pinning, LRU eviction under a soft cap, `g
 - AC-9 Given M01b2's gray-box loader When the home page loads twice Then the first load fetches both fixture packs once, and the second boots the block with `stats().network` 0 and `observe()` showing 4 chunks. If M01b2 has not landed, this AC is skipped, and the report says so — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @pack-graybox`
 - AC-10 Given a production build When the dist verifier runs Then there is no `media-local/` and no `__dvBridge.assets` — proof: `pnpm build && pnpm --filter @dv/web verify:dist`
 - AC-11 Given an iPhone 15 Home Screen app on the preview URL When the operator loads the home page, closes the app from the app switcher and relaunches Then `has()` is true for both fixture packs without network, and `notes.json` records `open()`, `persist()` and `estimate()` for Home Screen and Safari tab — proof: manual: iPhone 15; open `/?perf=1`, use HUD "Export" before and after the relaunch; commit `docs/device-spike/M01e/iphone15/notes.json`
-- AC-12 Given the branch When the preview deploys Then isolation holds with the worker running — proof: `pnpm deploy:preview && pnpm check:coi -- <preview-url>`
+- AC-12 Given the branch When the preview deploys Then isolation holds with the worker running — proof: `pnpm deploy:preview && pnpm check:coi -- --from test-results/preview-url.txt`
 
 ## Test plan
 - **Unit (Node, memory ports):** `store.rules`, `fetch-retry`, `lanes`, `catalog-client`. Run with `pnpm check:unit`.

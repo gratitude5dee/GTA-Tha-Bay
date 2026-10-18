@@ -10,7 +10,7 @@ A repeatable, budget-capped CLI spike (`pnpm genai:spike`) that drives one origi
 - R-NPC-04, R-IP-02: only an original character (`likeness.tier: original`); no real names or photos are sent, except the optional self-photo refusal probe below.
 
 ## Depends on
-M00b (`config/genai-endpoints.json`, registry types, banned list, `check:secrets` patterns from M00a if present). Contracts: C07 1.1 (`EndpointEntry`, `GenJob`/`GateCode` vocabulary from `05-assets.md` §4.5–§4.6).
+M00b (`config/genai-endpoints.json`, registry types, banned list); M00a (`check:secrets` and its patterns, used by AC-8). Contracts: C07 1.1 (`EndpointEntry`, `GenJob`/`GateCode` vocabulary from `05-assets.md` §4.5–§4.6).
 
 ## Scope in
 - `tools/assets/genai-spike.ts` with modes `--plan` (offline), `--run [--only <ids>] [--keep]`, `--verify` (offline).

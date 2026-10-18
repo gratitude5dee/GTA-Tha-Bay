@@ -70,7 +70,7 @@ After this session the repository has the release half of C07. Asset specs go in
 - `tools/assets/src/{spec.ts, catalog.ts, lock.ts, verify.ts, publish.ts, uploader-rclone.ts, uploader-dir.ts, seed.ts, cli.ts}`, `tools/assets/test/{catalog.spec.ts, lock.spec.ts, publish.spec.ts}`.
 - `tools/ci/check-assets.ts` (extended), `tools/ci/provenance-check.ts` (lock variants), `tools/ci/test/assets-gates.spec.ts`.
 - `assets/src/data/asset-smoke/{asset.json, smoke.json}`, `assets/src/texture/asset-smoke/{asset.json, d.png, m.png, l.png}`, `assets/src/world_pack/{p0-64-64,l0-64-64}/asset.json`, `assets/assets.lock.json`, the new provenance records, `config/asset-budgets.json` + `tools/ci/schemas/asset-budgets.v1.json`.
-- `apps/web/public/asset-catalog.json`, `services/edge/src/generated/asset-catalog.json`, `services/edge/src/routes/boot.ts` (read pointer), `services/edge/test/boot.test.ts` (extended).
+- `apps/web/public/asset-catalog.json`, `services/edge/src/generated/asset-catalog.json`, `services/edge/src/routes/boot.ts` (read pointer), `services/edge/test/boot.test.ts` (extended), `apps/web/test/precache.test.ts` (reads `dist/sw.js` and its injected precache manifest; AC-10).
 - `docs/runbooks/r2-media.md`; `.gitignore` adds `dist/assets/`.
 - Root scripts: **`assets:catalog`**, **`assets:lock`**, **`assets:verify`**, **`assets:publish`**, **`assets:seed`** (re-writes the smoke PNGs; `--check` compares hashes).
 - ≈ 30 files.
@@ -92,7 +92,7 @@ After this session the repository has the release half of C07. Asset specs go in
 - AC-9 Given the committed pointer When `GET /api/v1/boot` runs Then `assetCatalog` equals the pointer's `key` and `Cache-Control` is `no-store` — proof: `pnpm check:workers -- boot`
 - AC-10 Given a QA build When the precache manifest is read Then `dist/asset-catalog.json` equals the committed pointer and the service worker precaches it (DL-042) — proof: `pnpm build && pnpm check:unit -- apps/web`
 - AC-11 Given the runbook done and the secrets and rclone present When the operator runs `assets:publish -- --env staging` twice Then the first run uploads every blob and the manifest with verification passing, and the second reports `uploaded 0` — proof: manual: operator shell with `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_ACCOUNT_ID`; run `pnpm assets:publish -- --env staging` twice; paste both summaries into the PR
-- AC-12 Given the branch When the preview deploys Then headers and isolation are unchanged — proof: `pnpm deploy:preview && pnpm check:headers -- <preview-url>`
+- AC-12 Given the branch When the preview deploys Then headers and isolation are unchanged — proof: `pnpm deploy:preview && pnpm check:headers -- --from test-results/preview-url.txt`
 
 ## Test plan
 - **Unit:** `assets.resolve` (exhaustive subsets × tiers), `catalog` (determinism, keys, `rev`, root-record walk), `lock` (approved fields, changed-only rewrite), `publish` (fake runner argv, failure ordering, `dir:` target), `assets-gates` (each negative fixture). Command: `pnpm check:unit`.
