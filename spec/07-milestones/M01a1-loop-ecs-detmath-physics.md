@@ -48,10 +48,10 @@ After this session the repository has the pure, deterministic core of the engine
 - `packages/shared/test/{detmath.vectors.spec.ts, rng.streams.spec.ts, hash.fnv.spec.ts, hash.sha256.spec.ts, json.canonical.spec.ts}`.
 - `packages/shared/test/golden/{detmath.v1.json, rng.v1.json, ctr.v1.json, fnv.v1.json}`. Doubles are stored as 16-hex-digit IEEE-754 bit strings.
 - `packages/shared/scripts/write-vectors.ts` and the package script **`vectors:write`** (`pnpm --filter @dv/shared vectors:write`). It refuses to overwrite a golden file unless `--force` is passed.
-- `packages/shared/package.json` script **`test`** (`vitest run`).
+- `packages/shared/package.json` script **`test`** (`tsx ../../tools/ci/run.ts vitest run --dir packages/shared`).
 - `packages/engine/package.json`:
   - dependency `bitecs@0.4.0`;
-  - scripts **`test`**, **`test:lint-bans`**, **`test:headless`**, **`test:determinism`**, each a `vitest run` over the matching spec files. `pnpm check:unit` must also run them; check the M00 vitest workspace globs.
+  - scripts **`test`**, **`test:lint-bans`**, **`test:headless`**, **`test:determinism`**, each `tsx ../../tools/ci/run.ts vitest run` with `--dir packages/engine` (`test`) or the matching spec file paths from the repo root (`test:*`). `run.ts` drops the `--` that pnpm passes through and runs Vitest from the repo root, so `pnpm --filter @dv/engine test -- physics.backend` runs only the matching spec; a plain `vitest run` script would ignore that filter (M00). `pnpm check:unit` must also run them; check the M00 vitest workspace globs.
 - `packages/engine/tsconfig.json` and `packages/engine/tsconfig.sim.json` (`include: src/sim/**`, `lib: ["ES2023"]`, `types: []`). Append `tsc -p packages/engine/tsconfig.sim.json --noEmit` to the explicit `pnpm typecheck` chain (M00); `tsc -p` does not check project references.
 - `packages/engine/src/sim/ecs/{world.ts, allocator.ts, strings.ts, commands.ts, registry.ts, components.ts}`.
 - `packages/engine/src/sim/loop/{sim-core.ts, scheduler.ts, state-hash.ts, stats.ts}` and `packages/engine/src/sim/services.ts`.

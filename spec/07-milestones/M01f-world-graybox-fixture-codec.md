@@ -78,7 +78,7 @@ M01b2 consumes the fixture (it runs after this milestone), and M01d catalogs it.
 - `tools/map/src/{cli.ts, pack/encode.ts, fixtures/graybox.ts}`, `tools/map/schemas/world-bounds.schema.json`, `tools/map/test/{pack.roundtrip.spec.ts, fixture.spec.ts, bounds.spec.ts}`.
 - `tests/fixtures/world/civic-graybox/{p0-64-64.pack, l0-64-64.pack, hashes.json, README.md}` (the README holds the layout table above and a regenerate note).
 - `config/world.bounds.json`; two provenance records under `assets/provenance/`.
-- Only if M01d is already merged (`assets/assets.lock.json` exists without `world_pack` entries): `assets/src/world_pack/{p0-64-64,l0-64-64}/asset.json` (M01d's `AssetSpec` format, variant `default`, pointing at the fixture), the two lock entries from `pnpm assets:lock -- --approved-by <handle>`, and the two committed pointer copies refreshed with `pnpm assets:publish -- --env staging --target dir:dist/media-tmp`. If M01d is not merged yet, M01d adds them (its Depends on, M01f soft) (DL-256).
+- Only if M01d is already merged (`assets/assets.lock.json` exists without `world_pack` entries): `assets/src/world_pack/{p0-64-64,l0-64-64}/asset.json` (M01d's `AssetSpec` format, variant `default`, pointing at the fixture), the two lock entries from `pnpm assets:lock -- --approved-by <handle>`, and the two committed pointer copies refreshed with `pnpm assets:publish -- --env staging --target dir:dist/media-tmp`. If M01d is not merged yet, M01d adds them (its Depends on, M01f soft) (DL-290).
 - Root script **`map:fixture`** (= `pnpm --filter <tools/map package> exec tsx src/cli.ts fixture`). `check:unit` covers `tools/map/test`.
 - ≈ 22 files.
 

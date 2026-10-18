@@ -5,7 +5,7 @@
 ## 0. Rules
 1. **Ids.** Every id of the register in `spec/00-plan.md` is kept. Splits use DL-037 (letter = scope, digit = session split; split rows keep the scope's slug): M04a → M04a1/M04a2, M10a → M10a1/M10a2, M11a → M11a1/M11a2, M11b2 keeps its id and gains **M11b4** (M11b3 exists), M12b → M12b1/M12b2, M12c → M12c1/M12c2, M14b → M14b1/M14b2/M14b3. M01a and M01b were already split (M01a1/M01a2, M01b1/M01b2). New QA scopes: **M00d** `qa-spec-gates`, **M04d** `qa-harness-bots-goldens`.
 2. **Size.** One Sonnet 5.5 session per file: ≈ 2–4 h of agentic work, ≲ 40 hand-written files, one PR, app deployable at the end. Rows below 1 session stay separate files.
-3. **Order.** The table in §1 is the run order. Block A is the READY fast-track list, kept exactly; its forward dependencies are resolved by `README.md`: **M01f runs before M01b2 and M01e** (DL-256). Every other row appears after all of its dependencies.
+3. **Order.** The table in §1 is the run order. Block A is the READY fast-track list, kept exactly; its forward dependencies are resolved by `README.md`: **M01f runs before M01b2 and M01e** (DL-290). Every other row appears after all of its dependencies.
 4. **R-ROLL-01.** No rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. **R-AUTH-02.** M14a (Thirdweb) is the last v1 milestone; Bay expansion (M15) follows it.
 5. **Spend (DL-OWN-01).** fal total ≤ $100: M00c ≤ $10; M10a1+M10a2 ≤ $42; cutscenes ≤ $40 (M05c3 ≤ $16 and M10b ≤ $24, DN-S13-02); $8 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
@@ -59,7 +59,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 42 | M06a1 | npc-backend-spine | 1 | D | M05d, M04b3 |
 | 43 | M06a2 | soul-contract-compiler | 1 | D | M00b, M01d |
 | 44 | M06a3 | dialogue-proxy | 1 | D | M06a1, M06a2 |
-| 45 | M06a4 | memory-voice-lipsync | 1 | D | M06a3 |
+| 45 | M06a4 | memory-voice-lipsync | 1 | D | M06a3, M04b2 |
 | 46 | M06a5 | dialogue-panel-ui | 0.3 | D | M06a3, M04b2 |
 | 47 | M06c | npc-agency-barks | 1 | D | M06a3, M03b2 |
 | 48 | M06b1 | builder-text-private | 1 | D | M06a3 |
@@ -88,7 +88,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 71 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2 |
 | 72 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
 | 73 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1 |
-| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1 |
+| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5 |
 | 75 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
 | 76 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
 | 77 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
@@ -337,6 +337,7 @@ flowchart LR
   M06a1 --> M06a3
   M06a2 --> M06a3
   M06a3 --> M06a4
+  M04b2 --> M06a4
   M06a3 --> M06a5
   M04b2 --> M06a5
   M06a3 --> M06c
@@ -384,6 +385,7 @@ flowchart LR
   M11a1 --> M11a2
   M11a1 --> M11b1
   M11b1 --> M11b3
+  M06a5 --> M11b3
   M07b2 --> M11b2
   M08b2 --> M11b2
   M11b3 --> M11b2
@@ -454,7 +456,6 @@ flowchart LR
   M13a7 --> M14b3
   M13b3 --> M14b3
   M08c2 --> M14b3
-  M06a5 --> M14b3
   M02d2 --> M14b3
   M14b3 --> M14a
   M14a --> M15a

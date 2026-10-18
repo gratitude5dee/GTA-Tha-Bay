@@ -26,7 +26,7 @@ After this session a new player can make a character and play with a real HUD on
   - catalog loader;
   - `AppearanceV1` encoder and decoder with golden vectors;
   - `CreatorStage` on the shared canvas through the menu scene. Parts without a `model` render as M01b2 mannequin variants (height, build, palette tints), the stub first;
-  - tabs Body, Face, Hair, Outfit, Voice (id plus pitch; the Preview button stays disabled with a hint until M10c ships the creator voice clips, DL-258), Style, Name;
+  - tabs Body, Face, Hair, Outfit, Voice (id plus pitch; the Preview button stays disabled with a hint until M06a4 adds the creator voice clips, DL-292), Style, Name;
   - Randomize, Reset, Undo/Redo (20 steps), Done → `save.avatar`.
 
   Content: `content/ui/creator/{catalog.json, defaults.json}` with the §2.8 counts as catalog rows. Card art is an authored SVG sprite (`assets/creator-kit/`) with provenance. **No fal or other genAI:** `customLook` stays reserved (DL-175, DL-OWN-01).
@@ -41,7 +41,7 @@ After this session a new player can make a character and play with a real HUD on
   - Help;
   - Sandbox (shell with the M03c heat toggles and M02b/M02c/M03b sections that exist; only in sandbox);
   - Ride: a destination list from `TeleportApi.candidates('fast-travel')` plus "Call robotaxi"; a pick starts M03b2's Ride path (`packages/world/src/sim/transit/ride.ts`, `TeleportApi.request('fast-travel', …)`), and a refusal shows its `messageKey` with the player unmoved;
-  - Messages as `comingSoon` until M05c1 fills it; Camera and Feed as `comingSoon` (post-v1, `01-product.md` §12; DL-258).
+  - Messages as `comingSoon` until M05c2 fills it; Camera and Feed as `comingSoon` (post-v1, `01-product.md` §12; DL-292).
 
   In single player both overlays pause the sim.
 - **Touch** (§2.9): four shipped layouts (`config/input/touch/*.json`); the touch layer (rules 1–5); the editor (rule 6, saving `custom:n` into `UiPrefs`); the tilt toggle with explainer, falling back to the stick.

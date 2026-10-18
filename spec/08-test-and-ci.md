@@ -176,7 +176,7 @@ Weekly (`23 9 * * 1`): `pnpm genai:terms-watch` (M14b3; a changed snapshot flips
 | `deploy:preview`, `deploy:prod [-- --env staging] [-- --worker rooms] [-- --gradual]`, `deploy:bootstrap` | deploy modes of `tools/ci/deploy.ts` | M00, M00a, M12b1, M12a1 |
 | `ip:history`, `ip:similarity`, `genai:terms-watch` | full-history scan; clean-room clone check (Zone R); terms snapshots | M14b3 |
 
-Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (or the named `check:*`) also runs it.
+Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (or the named `check:*`) also runs it. A package script that takes arguments goes through `tools/ci/run.ts` like a root script (`test` = `tsx <rel>/tools/ci/run.ts vitest run --dir packages/<pkg>`; M01a1), because a plain `vitest run` ignores the filter after pnpm's `--`.
 
 ## 7. Deploy and publish details
 - **Workers.** `tha-bay-web` (+ `-staging`) from M00; `tha-bay-rooms` (+ `-staging`) from M12b1. First creation of each Worker is `pnpm deploy:bootstrap` by the operator with an Admin token; `versions upload` cannot create a Worker [research/gap-ci-cd-release-assets.md §1.4].

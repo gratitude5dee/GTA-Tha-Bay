@@ -69,7 +69,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 42 | M06a1 | npc-backend-spine | 1 | M05d, M04b3 | READY | `M06a1-npc-backend-spine.md` |
 | 43 | M06a2 | soul-contract-compiler | 1 | M00b, M01d | READY | `M06a2-soul-contract-compiler.md` |
 | 44 | M06a3 | dialogue-proxy | 1 | M06a1, M06a2 | READY | `M06a3-dialogue-proxy.md` |
-| 45 | M06a4 | memory-voice-lipsync | 1 | M06a3 | READY | `M06a4-memory-voice-lipsync.md` |
+| 45 | M06a4 | memory-voice-lipsync | 1 | M06a3, M04b2 | READY | `M06a4-memory-voice-lipsync.md` |
 | 46 | M06a5 | dialogue-panel-ui | 0.3 | M06a3, M04b2 | READY | `M06a5-dialogue-panel-ui.md` |
 | 47 | M06c | npc-agency-barks | 1 | M06a3, M03b2 | READY | `M06c-npc-agency-barks.md` |
 | 48 | M06b1 | builder-text-private | 1 | M06a3 | READY | `M06b1-builder-text-private.md` |
@@ -98,7 +98,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 71 | M11a1 | iphone-hardening-governor | 1 | M02b1, M03b1, M07a2 | READY | `M11a1-iphone-hardening-governor.md` |
 | 72 | M11a2 | iphone-hardening-governor | 1 | M11a1 | READY | `M11a2-iphone-hardening-governor.md` |
 | 73 | M11b1 | webxr-port | 1 | M01c, M04b2, M11a1 | READY | `M11b1-webxr-port.md` |
-| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | M11b1 | READY | `M11b3-xr-ui-panels-comfort.md` |
+| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | M11b1, M06a5 | READY | `M11b3-xr-ui-panels-comfort.md` |
 | 75 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b1, M07b2, M08b2, M11b3 | READY | `M11b2-per-mode-xr-and-xr-cutscenes.md` |
 | 76 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b2, M09b1, M05b2 | READY | `M11b4-per-mode-xr-and-xr-cutscenes.md` |
 | 77 | M12a1 | p1-identity-cloud-saves | 1 | M05d, M04b3, M06a1 | READY | `M12a1-p1-identity-cloud-saves.md` |

@@ -120,7 +120,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 42. M06a1 · npc-backend-spine · 1 · M05d, M04b3 · `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY`
 43. M06a2 · soul-contract-compiler · 1 · M00b, M01d · Q-19, Q-25 (real roster waits; originals only)
 44. M06a3 · dialogue-proxy · 1 · M06a1, M06a2 · `ANTHROPIC_API_KEY` (workspace `npc-runtime`), AI Gateway `gw-dialogue`
-45. M06a4 · memory-voice-lipsync · 1 · M06a3 · Q-20 (t2 voices off)
+45. M06a4 · memory-voice-lipsync · 1 · M06a3, M04b2 · Q-20 (t2 voices off)
 46. M06a5 · dialogue-panel-ui · 0.3 · M06a3, M04b2 · none
 47. M06c · npc-agency-barks · 1 · M06a3, M03b2 · none
 48. M06b1 · builder-text-private · 1 · M06a3 · `OPENAI_MODERATION_API_KEY`; Anthropic workspace `npc-builder`

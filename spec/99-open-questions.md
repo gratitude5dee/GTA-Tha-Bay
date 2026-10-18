@@ -42,6 +42,8 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | Q-34 | Budget for cloud real devices (BrowserStack or similar)? (Q-CI-07) | owner | none; Q-13 devices only; cloud devices optional for Safari-tab regressions (WebGPU, WebXR, Home Screen there UNVERIFIED [research/gap-ci-cd-release-assets.md §4.3]) | none | 2026-10-18 |
 | Q-35 | Use Overture buildings for expansion areas? (Q-MAP-06) | owner | OSM; M15a records a time-boxed comparison; an importer only on override | none (M15a–M15g on OSM) | 2026-10-18 |
 | Q-36 | When do `USER_NPC` fighters arrive? (Q-S07-5) | owner | post-v1, no milestone | none | 2026-10-18 |
+| Q-37 | Is VS-Story (Act 1, M05c2 proven on staging) enough to open the R-ROLL-01 multiplayer gate, or must Acts 2–3 (M05f2) land first? | owner | Act 1 anchor (`_PLAN.md` §0 rule 4; `check:rollout`, M00d; `spec/01-product.md` §11) | M12b1 start under parallel Builders (DL-246); "whole story first" adds M05f2 to M12b1 Depends on (+6 sessions on the critical path) | 2026-10-18 |
+| Q-38 | ADR-0018 narrows R-MOD-02 and R-AUTH-03: accept GitHub (`supabase-oauth`) as the interim publish identity? Accept no ChatGPT-assisted path for players without a local agent in v1 (the M13b3 creator has no AI)? Or schedule the no-agent ChatGPT Studio (flow B) as a post-M13 milestone? | owner | (a) and (b): GitHub interim beside the dark `AUTH_OPENAI_WEB` flag; flow B post-v1, no milestone; R-MOD-02 `blocked (Q-38)` in the matrix until answered | public publishing identity in M13c1, M13c3; a flow B milestone only on (c) | 2026-10-18 |
 
 ## 2. UNVERIFIED facts
 
@@ -182,7 +184,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-MOD-3 | renderer-process separation of sandboxed same-site frames | UI mods | M13a5 AC-9 notes | L2 panels first; `mods.ui` off | none |
 | U-MOD-4 | Chrome Local Network Access gates WebSockets to 127.0.0.1 | `dv mod dev` | M13a6 R&F; M14b3 | local `pnpm dev` path | none |
 | U-MOD-5 | `@dv` npm scope available | Q-22 | M13c3 (npm step) | tarballs | none |
-| U-MOD-6 | ChatGPT plan usage covers a local Studio calling our API | flow A | M13a6 | flow A documented, no program | none |
+| U-MOD-6 | ChatGPT plan usage covers a local Studio calling our API | flow A | M13a6 | flow A documented, no program; flow B scheduling is Q-38 | none |
 | U-MOD-7 | Ajv runtime codegen in Workers | validators | M13a1 | build-time standalone code | none |
 | U-MOD-8 | incremental SHA-256 beside `sha256Hex` | archive scan | M13c2 R&F | stream entries; `review` above measured size | none |
 | U-MOD-9 | `gltf-validator`, `ktx validate` in a Worker | publish scan | M13c2 | scan Container | none |

@@ -73,7 +73,7 @@ The multiplayer server exists and can be deployed. When this session ends, `pack
 - File budget: if over 40, move `rooms-directory` into `rooms-tick` and keep the clock in M12b2.
 
 ## Notes for the Builder
-- Precondition (R-ROLL-01): before creating the branch, confirm M05c2 is DONE in `spec/07-milestones/README.md` and `pnpm check:smoke -- <staging url>` passes; otherwise stop and report.
+- Precondition (R-ROLL-01, `_PLAN.md` §0 rule 4): before creating the branch, run `pnpm check:rollout -- --branch m12b1-rooms-core-protocol-v2` (M00d). It passes only when README shows M05c2 DONE and `docs/staging-runs/M05c2/report.json` records every M05c2 AC as passing on staging. CI runs the same check on this branch. If it fails, stop and report. The anchor is VS-Story (Act 1), not Acts 2–3 (`spec/01-product.md` §11; Q-37).
 - Read first: `09-backend-contracts.md` §1; `09-backend.md` §3.1, §5.1–§5.2; `09-backend-ops.md` §1.1–§1.2, §2, §3; `spec/05-api-and-realtime.md` §1.1, §4.1–§4.3; ADR-0004; DL-186–DL-188.
 - `services/*` import only `@dv/shared` and `@dv/net`; the rooms Worker never binds to the web Worker.
 - Never `setAlarm` per tick; clear the interval when the last socket leaves. Strip query strings (tickets) from every log line.
