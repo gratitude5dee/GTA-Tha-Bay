@@ -1,0 +1,319 @@
+{
+  "$comment": "Mirrors the normative table in spec/domains/11-platform.md 4.5 (C13 1.1.0). Values marked with a dagger there are S11 extrapolations to calibrate in M11a. distantAnimHz is not in the table; Builder decision BD-M00-03. maxChunkUploadBytes uses 2 MiB for the \"2 MB\" cells.",
+  "c13": "1.1.0",
+  "tiers": {
+    "desktop-ultra": {
+      "frame": {
+        "targetFps": 60,
+        "maxFps": 120,
+        "minFps": 45,
+        "frameBudgetMs": 16.7
+      },
+      "render": {
+        "maxRenderObjects": 900,
+        "maxGpuDrawCmds": 3500,
+        "maxTriangles": 6000000,
+        "maxPixelsMP": 3.7,
+        "dprCap": 2,
+        "viewPasses": 1
+      },
+      "memory": {
+        "maxTextureMB": 1500,
+        "maxGpuResourceMB": 3000,
+        "maxAccountedHeapMB": 2000,
+        "maxWebContentMB": null,
+        "maxMediaMB": 256,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 2400,
+        "alwaysVisibleRadiusM": 3200,
+        "buildingDrawDistanceM": 8200,
+        "altitudeBoostM": 2800,
+        "farField": {
+          "kind": "impostor-ring",
+          "km": 80
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": null,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 800,
+        "maxPedInstances": 600
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 400,
+        "distantAnimHz": 60
+      },
+      "boot": {
+        "warmBootToPlayableS": 8,
+        "coldBootDownloadMB": 60
+      }
+    },
+    "desktop": {
+      "frame": {
+        "targetFps": 60,
+        "maxFps": 60,
+        "minFps": 30,
+        "frameBudgetMs": 16.7
+      },
+      "render": {
+        "maxRenderObjects": 600,
+        "maxGpuDrawCmds": 2500,
+        "maxTriangles": 4000000,
+        "maxPixelsMP": 2.56,
+        "dprCap": 1.5,
+        "viewPasses": 1
+      },
+      "memory": {
+        "maxTextureMB": 1000,
+        "maxGpuResourceMB": 2000,
+        "maxAccountedHeapMB": 1500,
+        "maxWebContentMB": null,
+        "maxMediaMB": 128,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 1800,
+        "alwaysVisibleRadiusM": 2800,
+        "buildingDrawDistanceM": 8200,
+        "altitudeBoostM": 2800,
+        "farField": {
+          "kind": "impostor-ring",
+          "km": 80
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": null,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 540,
+        "maxPedInstances": 400
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 400,
+        "distantAnimHz": 60
+      },
+      "boot": {
+        "warmBootToPlayableS": 8,
+        "coldBootDownloadMB": 60
+      }
+    },
+    "mobile": {
+      "frame": {
+        "targetFps": 60,
+        "maxFps": 60,
+        "minFps": 30,
+        "frameBudgetMs": 16.7
+      },
+      "render": {
+        "maxRenderObjects": 150,
+        "maxGpuDrawCmds": 500,
+        "maxTriangles": 1000000,
+        "maxPixelsMP": 1.2,
+        "dprCap": 1.25,
+        "viewPasses": 1
+      },
+      "memory": {
+        "maxTextureMB": 350,
+        "maxGpuResourceMB": 600,
+        "maxAccountedHeapMB": 600,
+        "maxWebContentMB": 1200,
+        "maxMediaMB": 64,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 600,
+        "alwaysVisibleRadiusM": null,
+        "buildingDrawDistanceM": 2500,
+        "altitudeBoostM": 0,
+        "farField": {
+          "kind": "skyline-cards",
+          "km": 20
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": null,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 200,
+        "maxPedInstances": 150
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 200,
+        "distantAnimHz": 30
+      },
+      "boot": {
+        "warmBootToPlayableS": 12,
+        "coldBootDownloadMB": 40
+      }
+    },
+    "mobile-low": {
+      "frame": {
+        "targetFps": 30,
+        "maxFps": 30,
+        "minFps": 24,
+        "frameBudgetMs": 33.3
+      },
+      "render": {
+        "maxRenderObjects": 100,
+        "maxGpuDrawCmds": 300,
+        "maxTriangles": 600000,
+        "maxPixelsMP": 0.8,
+        "dprCap": 1.25,
+        "viewPasses": 1
+      },
+      "memory": {
+        "maxTextureMB": 250,
+        "maxGpuResourceMB": 400,
+        "maxAccountedHeapMB": 450,
+        "maxWebContentMB": 900,
+        "maxMediaMB": 64,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 400,
+        "alwaysVisibleRadiusM": null,
+        "buildingDrawDistanceM": 1500,
+        "altitudeBoostM": 0,
+        "farField": {
+          "kind": "skyline-cards",
+          "km": 10
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": 2097152,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 120,
+        "maxPedInstances": 80
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 150,
+        "distantAnimHz": 30
+      },
+      "boot": {
+        "warmBootToPlayableS": 15,
+        "coldBootDownloadMB": 30
+      }
+    },
+    "xr-quest": {
+      "frame": {
+        "targetFps": 72,
+        "maxFps": 90,
+        "minFps": 72,
+        "frameBudgetMs": 13.9,
+        "promoteWhenP90MsBelow": 9
+      },
+      "render": {
+        "maxRenderObjects": 150,
+        "maxGpuDrawCmds": 300,
+        "maxTriangles": 750000,
+        "maxPixelsMP": null,
+        "dprCap": null,
+        "viewPasses": 1
+      },
+      "memory": {
+        "maxTextureMB": 400,
+        "maxGpuResourceMB": 700,
+        "maxAccountedHeapMB": 700,
+        "maxWebContentMB": null,
+        "maxMediaMB": 64,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 400,
+        "alwaysVisibleRadiusM": null,
+        "buildingDrawDistanceM": 1500,
+        "altitudeBoostM": 0,
+        "farField": {
+          "kind": "skyline-cards",
+          "km": 10
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": 2097152,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 120,
+        "maxPedInstances": 80
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 150,
+        "distantAnimHz": 30
+      },
+      "boot": {
+        "warmBootToPlayableS": 12,
+        "coldBootDownloadMB": 40
+      }
+    },
+    "xr-visionpro": {
+      "frame": {
+        "targetFps": 90,
+        "maxFps": 90,
+        "minFps": 90,
+        "frameBudgetMs": 11.1
+      },
+      "render": {
+        "maxRenderObjects": 200,
+        "maxGpuDrawCmds": 300,
+        "maxTriangles": 1500000,
+        "maxPixelsMP": null,
+        "dprCap": null,
+        "viewPasses": 2
+      },
+      "memory": {
+        "maxTextureMB": 800,
+        "maxGpuResourceMB": 1500,
+        "maxAccountedHeapMB": 1000,
+        "maxWebContentMB": null,
+        "maxMediaMB": 96,
+        "softPct": 85,
+        "hardPct": 95
+      },
+      "world": {
+        "streamingRadiusM": 800,
+        "alwaysVisibleRadiusM": null,
+        "buildingDrawDistanceM": 3000,
+        "altitudeBoostM": 0,
+        "farField": {
+          "kind": "skyline-cards",
+          "km": 20
+        },
+        "maxChunkUploadsPerFrame": 1,
+        "maxChunkUploadBytes": null,
+        "maxRenderObjectsPerChunk": 6
+      },
+      "crowd": {
+        "maxTrafficInstances": 300,
+        "maxPedInstances": 200
+      },
+      "sim": {
+        "simHz": 60,
+        "aiHz": 30,
+        "physicsRadiusM": 300,
+        "distantAnimHz": 60
+      },
+      "boot": {
+        "warmBootToPlayableS": 10,
+        "coldBootDownloadMB": 60
+      }
+    }
+  }
+}
