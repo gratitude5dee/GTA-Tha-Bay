@@ -6,5 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "vectors:write": "tsx scripts/write-vectors.ts"
   }
 }

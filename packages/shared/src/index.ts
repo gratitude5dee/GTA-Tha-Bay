@@ -1,2 +1,7 @@
+export * from './contracts/index.ts';
+export * from './detmath.ts';
+export * from './rng.ts';
+export * from './hash.ts';
+export * from './json.ts';
 export * from './platform/c13.ts';
 export * from './platform/pwa-update.ts';
