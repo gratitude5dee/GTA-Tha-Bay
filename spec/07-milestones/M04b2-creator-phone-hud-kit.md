@@ -47,7 +47,8 @@ After this session a new player can make a character and play with a real HUD on
 - **Onboarding** (§2.11 rules 1–4 and 8): tips, coach mark, Chromium install chip, rotate overlay, welcome-back line.
 - **Help page** (schema §4.4, stale-translation fallback, error-kind deep links) and the **garage frame** (§2.10).
 - **`GameModeUI` host:** mount with `{root, vm, send}`, unmount; a crashing mount shows "This screen failed — return to menu" and reports `err.js`.
-- **`UiSurface` skeleton:** `panel(screen, {anchor: 'world', pixelsPerMetre: 1024})` into S11 `XrPanels` with `CanvasScreen`, dirty-flag redraw, ray press. A test panel exists under IWER only.
+- **`ReportButton`** kit component (report dialog stub until M13b1; `copyright` opens `/legal/dmca`) and the `ugc-surface` lint test: every component tagged `UgcSurface` renders it (M06a5 relies on both).
+- **`UiSurface` skeleton:** `panel(screen, {anchor, pixelsPerMetre: 1024})` for every `XrPanel['anchor']` (tested with `world`) into S11 `XrPanels` with `CanvasScreen`, dirty-flag redraw, ray press. A test panel exists under IWER only.
 - **Accessibility first pass:** `config/ui/palettes.json` with four HUD palettes; a CVD separation check (algorithm chosen and recorded in `spec/11-decision-log-2.md`); the flash-limit check; reduced-motion rules 5 and 8 on the pages of M04b1 and M04b2.
 - Device checklist `tools/ci/checklists/M04b2-iphone15.json`.
 
@@ -66,7 +67,7 @@ After this session a new player can make a character and play with a real HUD on
 - `packages/ui/src/onboarding/{tips.ts, coach-mark.tsx, rotate.tsx}`; `content/ui/hints.json`.
 - `packages/ui/src/pages/{garage.tsx, help.tsx}`; `content/ui/help/troubleshooting.json`.
 - `packages/ui/src/host/mode-ui-host.ts`; `packages/ui/src/screen/xr.ts`; `config/ui/palettes.json`.
-- `packages/ui/test/{creator.spec.ts, touch-layout.spec.ts, hud-status.spec.ts, phone.spec.ts, help.spec.ts, host-garage.spec.ts}`.
+- `packages/ui/test/{creator.spec.ts, touch-layout.spec.ts, hud-status.spec.ts, phone.spec.ts, help.spec.ts, host-garage.spec.ts, ugc-surface.spec.ts}`.
 - `tests/e2e/ui/{creator.spec.ts, touch.spec.ts, hud.spec.ts}` (tags `@creator`, `@ui-touch`, `@ui-coach`, `@ui-pause`, `@ui-motion`, `@ui-hud`); `tests/e2e/xr/xr-panel.spec.ts` (`@xr`).
 - `tools/ci/checklists/M04b2-iphone15.json`.
 - About 37 files (JSON content and layouts are data).
@@ -97,7 +98,8 @@ After this session a new player can make a character and play with a real HUD on
   - a throwing mount shows the failure panel and one `err.js`;
   - garage cards render from partial `VehicleInstance` objects and the empty state;
   - every error-page kind maps to an existing help topic;
-  - a stale translation falls back to English.
+  - a stale translation falls back to English;
+  - every `UgcSurface` component renders `ReportButton`.
   — proof: `pnpm check:unit -- packages/ui`
 - AC-11 Given `xr-quest3` with IWER When a test `ScreenDef` panel is created through `UiSurface` Then it sits at the default 1.2 m distance with a `world` anchor, a simulated ray press activates its button, text height is ≥ 1.5° of visual angle at 1.2 m, and it redraws only after a view-model change — proof: `pnpm check:e2e:xr`
 - AC-12 Given an iPhone 15 When the operator follows the checklist (Safari tab coach mark, Add to Home Screen, safe areas, name entry with the OS keyboard, 5 min of touch play at `?perf=1&tier=mobile-low`, rotate overlay) Then `perf.json` and `notes.json` are committed under `docs/device-runs/M04b2/iphone15/` and pass at `mobile-low` — proof: manual: iPhone 15, steps of `pnpm perf:checklist -- tools/ci/checklists/M04b2-iphone15.json`, then `pnpm perf:verify -- docs/device-runs/M04b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M04b2-iphone15.json`

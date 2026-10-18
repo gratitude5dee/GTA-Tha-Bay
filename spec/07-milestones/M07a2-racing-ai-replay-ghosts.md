@@ -20,16 +20,17 @@ After this session racing is playable from the main menu and from the story, and
 - Content: the circuit (3 laps, closures), the downhill (jump zones) and the pursuit event (start heat 2, max heat 3, success `evade`); opponents per C.5.
 - `config/pursuit.race.json` v1 with `unitSpeedOfPlayerTop`, `catchUp`, `bounty`, `evade`; `roadblock` and `spikes` blocks are absent until M07b1, so race pursuits use no race-planned blocks. Binder over `PursuitApi.setProfile({kind:'race', …})`.
 - Replay (`06-racing-data.md` §4.3): `ReplayHeaderV1`, `encodeReplay`/`decodeReplay`, `REPLAY_LIMITS`, `ReplayRecorder`, viewer that re-simulates from inputs and falls back to track playback with `racing.verify_fail` on any header mismatch.
+- Leaderboard client side: `buildScoreSubmit` (route 21 `ScoreSubmit` with `replaySha256`) and a `LeaderboardPort` with a null adapter; the transport arrives in M12c and the validator in M12e (DL-183).
 - Ghosts: `GhostEntry`, kinematic puppet entities (component 1029, no physics body), best per event.
 - `RacingSlice` (schema 1, `RACING_SLICE_MAX_BYTES`, eviction order oldest ghosts, then tracks of events not played in 60 days), golden save files, purse and Rep rewards (D-S06-04).
 - Story hook: `m.a1.03` hook defId `sf.pursuit.bayview-escape`, no params (DL-157); embedded runs use the parent's profile, track ghosts and no records; descriptor status `available`.
-- Telemetry `racing.pursuit_end`, `racing.replay_view`, `racing.verify_fail`.
+- Telemetry `racing.pursuit_end`, `racing.replay_view`, `racing.verify_fail` with their prop schemas under `packages/shared/schemas/telemetry/`.
 - Driver `racing.pursuit` (drive the route to a C08 `hidingSpots` tag and wait out the cooldown); `racing.line` and `racing.pursuit` serve as the child-mode bots the autoplayer uses under `hooks: 'bot'`, chosen by race kind; det suite extended to a 3-car race; two replay mutants.
 
 ## Scope out
 - Roadblocks and spikes in races, the other six race kinds, ladder, quirks and hop, remaining cars: M07b1.
 - Replay director and scrub, photo mode, garage and upgrades, econ-sim racing section, intro refs: M07b2.
-- Perf scenarios `race-sprint`, `race-pursuit-heat4`: M11a1. Leaderboard submit and route 21 validator: M12e.
+- Perf scenarios `race-sprint`, `race-pursuit-heat4`: M11a1. Sending submissions and the route 21 validator: M12c/M12e.
 
 ## Deliverables
 - `packages/modes/racing/src/sim/{ai-driver.ts, speed-profile.ts, rubber-band.ts, lod.ts, pursuit-binder.ts, recorder.ts, ghosts.ts, results.ts}`; `src/sim/slice.ts`; `src/replay/viewer.ts`; `src/qa/pursuit-bot.ts`.
@@ -38,11 +39,12 @@ After this session racing is playable from the main menu and from the story, and
 - `content/races/{sf.circuit.embarcadero-vanness, sf.downhill.twin-peaks-mission, sf.pursuit.bayview-escape}/{source.json, race.json}`; `par` fields filled for all four races.
 - `config/pursuit.race.json`, `config/schemas/pursuit-race.schema.json`.
 - `tools/map/src/race/par.ts`; extra fixtures `tools/map/test/fixtures/races/V{2,4,7,12}.source.json`.
-- `tests/golden/saves/racing/slice.v1.json`; `tests/golden/racing/race3.vs-circuit.json`; `tools/ci/mutants/racing/{replay-tick-skip,handling-rev-ignored}.ts`.
+- `tests/golden/saves/racing/slice.v1.json`; `tests/golden/racing/{race3.vs-circuit.json, vs-circuit.dvreplay}` (trace and the replay M12e reuses); `packages/modes/racing/src/leaderboard.ts`; `tools/ci/mutants/racing/{replay-tick-skip,handling-rev-ignored}.ts`.
 - `tests/e2e/racing-vs.spec.ts` (`@racing-vs`); the 3-car `RunSpec` in `tests/e2e/det/suites.ts` (`@racing-det`).
 - Story hook wiring in `packages/modes/racing/src/index.ts` (status `available`); hook row for `m.a1.03` only if M05c1 left the defId unset.
 
 ## Interfaces
+- `ScoreSubmit` is built but not sent (null port) until route 21 exists.
 - Consumes C06 1.1 `PursuitApi` (`setProfile`, `configRef`, `setRouteHint`), `standaloneProfile: 'canonical'` (DL-121) and `ModeResult`; writes C05 1.1 slot `mode:racing` only through `ctx.save.request`; C09 1.0 `ModeHook` with `defId` = `RaceId` (DL-157); C16 1.1 names above.
 - No contract change. `ScoreSubmit` (route 21) stays unused until M12e.
 
@@ -51,7 +53,7 @@ After this session racing is playable from the main menu and from the story, and
 - AC-2 Given a fixture racing line with a hairpin When the speed profile is built Then no sample exceeds the grip limit √(μ·g/|κ|), braking satisfies v_i² ≤ v_{i+1}² + 2·a·ds, rubber-band never moves target speed or power by more than 8 %, is constant over the last 15 % of the route and is 1.0 in time trials — proof: `pnpm --filter @dv/mode-racing test -- ai`
 - AC-3 Given the four committed races and one broken fixture per rule V1–V15 When validate runs Then the races pass and each fixture fails with exactly its rule id — proof: `pnpm map:races validate && pnpm check:unit -- tools/map`
 - AC-4 Given the three VS races When the par bot runs in the canonical profile Then each finish time is within ±15 % of `parSec` and reproduces `parBotHash` — proof: `pnpm map:races par -- --check`
-- AC-5 Given a 90 s recorded lap When it is encoded and decoded Then the round trip is lossless, inputs ≤ 12,288 B, track ≤ 16,384 B, and a header with another `handlingRev`, `buildId` or `worldBake` is flagged as a mismatch — proof: `pnpm --filter @dv/mode-racing test -- replay.codec`
+- AC-5 Given a 90 s recorded lap When it is encoded and decoded Then the round trip is lossless, inputs ≤ 12,288 B, track ≤ 16,384 B, a header with another `handlingRev`, `buildId` or `worldBake` is flagged as a mismatch, and `buildScoreSubmit` sets `replaySha256` to the SHA-256 of the replay bytes — proof: `pnpm --filter @dv/mode-racing test -- replay.codec`
 - AC-6 Given a 3-car circuit race (line bot plus two AI rivals, seed 0xC0FFEE, at least 10,000 ticks) When it is recorded and re-simulated from inputs Then `finishTick`, every `gateTicks` entry and `endHash` are equal, and a mismatched header plays the track and emits `racing.verify_fail` — proof: `pnpm --filter @dv/mode-racing test -- replay.exact`
 - AC-7 Given a saved ghost When it plays beside a live run Then its position stays within 5 cm of the recorded samples, it owns no physics body, and the live run's hash equals a run without the ghost — proof: `pnpm --filter @dv/mode-racing test -- ghost`
 - AC-8 Given the 3-car `RunSpec` When it runs in Node, Chromium and WebKit Then the three `StateHashTrace`s are equal — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @racing-det && pnpm check:e2e -- --project=webkit-webgl2 --grep @racing-det`
