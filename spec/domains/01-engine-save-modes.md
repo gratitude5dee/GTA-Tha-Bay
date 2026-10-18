@@ -125,7 +125,7 @@ export interface SaveService {
   /** Cloud sync hooks for S09 (M12+): dirty records and tombstones since a cursor. */
   changesSince(id: ProfileId, cursor: number): Promise<{ records: SaveRecord[]; tombstones: Tombstone[]; cursor: number }>;
 }
-type JsonObject = { [k: string]: JsonValue }; type JsonValue = null | boolean | number | string | JsonValue[] | JsonObject;
+export type JsonObject = { [k: string]: JsonValue }; export type JsonValue = null | boolean | number | string | JsonValue[] | JsonObject;   // exported: C09, C14 and ui-bridge import them (DL-194)
 type WeatherPreset = import('./engine-world').WeatherPreset;
 type UnlockEventId = import('./c06-modes').UnlockEventId; type GameModeId = import('./c06-modes').GameModeId;
 type ControlsSettings = import('./c03-input').ControlsSettings;

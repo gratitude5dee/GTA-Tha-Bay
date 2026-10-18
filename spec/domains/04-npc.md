@@ -10,7 +10,7 @@
 | R-ID | How this domain serves it | Where |
 |---|---|---|
 | R-NPC-01 | `soul/1.0` schema, compiler, roster manifest and bundle; the roster is data and loads when the research layer arrives (Q-19) | B2–B5, §3, §8 |
-| R-NPC-03 | builder: backstory → soul via Sonnet structured output; images → text descriptions → S05 pipeline (M13c); preview chat; publish through moderation | Part C |
+| R-NPC-03 | builder: backstory → soul via Sonnet structured output; images → text descriptions → creator-kit body in v1 (custom 3D only through an owner-approved queue, DL-OWN-01); preview chat; publish through moderation | Part C |
 | R-NPC-04 | tiers in frontmatter with schema conditionals; voice tier gating; live kill-switch handling; stand-ins | B4, §5.7, §5.10 |
 | R-NPC-05 | Worker proxy, cache-ordered prompt, quotas and governor levels, ink fallback lines, rails | §5.1–5.5 |
 | R-IP-02 | consent scopes in the soul, `config/consent-index.json` export, kill-switch effects by scope | B2.2, B9, §5.10 |
@@ -47,7 +47,7 @@
 | 24 | NPC builder UX flow and state machine | designed C1 |
 | 25 | Builder API (route 33 sub-paths), limits and quotas | designed C3 |
 | 26 | Builder moderation: attestation, layered real-person detection, images become text only, review queue `P2_REVIEW`, reports | designed C5 |
-| 27 | Builder asset generation (S05 Lean, 18+ and P2, fal ToS) [F-042] | deferred to M13c |
+| 27 | Builder asset generation (S05 Lean, 18+ and P2, fal ToS) [F-042] | not in v1 (DL-OWN-01): creator-kit body; owner-approved staff queue only |
 | 28 | In-character evaluation harness (golden + red-team suites, judge rubric, gates) | designed C6 |
 | 29 | Cost per conversation and per MAU within G3 | designed C7 |
 | 30 | Multiplayer: shared agency in the room DO, `EV NpcBusy` | deferred to M12c (S09) |
@@ -362,7 +362,7 @@ Proposed session splits of the register's M06a/M06b plus a roster-content scope.
 | **M06b1** builder-text-private | route 33 drafts, text moderation, soul generation, preview chat, probes, private use, limits | images and submit return `tier_required` | M06a3, S09 M06b slice | 1 |
 | **M06b2** builder-images-review | attach route-34 images, image moderation chain, text descriptions, attestation, submit (P2), case decisions, community list, reports | P2 exercised with test-issuer tokens until M13c | M06b1, M12a | 1 |
 | **M10c** roster-souls-ink-barks (with S05 M10a) | normalize research souls when supplied, human review, ink for Act 1 NPCs, baked barks, voice designs, consent-index export | canary only if Q-19 is still open | M06a2, M10a | 1 |
-| **M13c** (+0.5) builder-assets | `assets` sub-route → S05 Lean GenJob (P2, 18+), publish flow end to end | — | M13c (S09/S12), M06b2 | 0.5 |
+| **M13c** (+0.5) builder-assets | `assets` sub-route → owner-approved Lean queue run by staff `assets:gen`, counted against the fal buffer, no public GenJob (DL-OWN-01), publish flow end to end | — | M13c (S09/S12), M06b2 | 0.5 |
 
 **R-ID mapping:** R-NPC-01 → M06a2, M10c. R-NPC-03 → M06b1, M06b2, M13c. R-NPC-04 → M06a2 (schema), M06a3 (kill handling), M06a4 (voice gating). R-NPC-05 → M06a3, M06a4. R-IP-02 → M06a2 (consent index), M06a3, M10c.
 

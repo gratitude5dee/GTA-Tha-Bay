@@ -113,6 +113,7 @@ alter table age_assurance enable row level security; -- server-only
 Age rules follow [research/gap-trust-safety-tooling.md §6.8, §7.5]: effective bracket = lowest of declared and signal; v1 requests no signal (AB 1856 request bar) and ships only the `none` provider.
 
 ### 3.2 GenAI index, ledger, telemetry rollup (0002)
+DDL for the S05 pipeline tables of the same migration (`gen_run`, `gen_job`, `asset_index`, `bark_index`, `budget_program`): `spec/04-data-models-db.md` §3.2a (DL-198).
 ```sql
 create table cutscene_catalog (                     -- keys our own mission/fight/race scripts may request (C09); loaded from the release cutscene-index (CutsceneRef → key) built by tools/assets in CI (S05/S03)
   cache_key text primary key, template_id text not null, template_ver int not null,
@@ -173,7 +174,8 @@ create table npc_memory (
   expires_at timestamptz not null default now() + interval '180 days'   -- reset to +180 d on access
 );
 create index npc_memory_pair on npc_memory (profile_id, npc_id, created_at desc);   -- exact scan per pair, no ANN index
--- match_npc_memories(p_profile, p_npc, q halfvec(1024), now_gt, k default 6): as research/ai-npc-runtime.md §4.2 (0.5 relevance + 0.3 importance + 0.2 recency)
+-- match_npc_memories(p_profile, p_npc, q halfvec(1024), now_gt, k default 6): as research/ai-npc-runtime.md §4.2 (0.5 relevance + 0.3 importance + 0.2 recency);
+-- recency scale 518400 game half-seconds (72 game hours on the C06 clock), not 72*3600 (C12 1.1 §3, DL-058)
 create table encounter_transcripts (                -- index of R2 objects written by EncounterDO on close
   encounter_id text primary key, profile_id uuid not null references profiles(id) on delete cascade,
   npc_id text not null, r2_key text not null, turns smallint not null, usd_micros bigint not null,
@@ -244,7 +246,7 @@ create table save_records (
   data jsonb,                                       -- inline when bytes ≤ 262144
   blob_key text,                                    -- saves/<profile>/<saveProfile>/<slot>/<version>.bin in R2
   save_version int not null,                        -- C05 SaveRecord.schema, for the server-side NEWER_SCHEMA refusal
-  deleted_at timestamptz,                           -- tombstone, kept 90 d
+  deleted_at timestamptz,                           -- tombstone, kept 180 d (C05 SAVE_LIMITS.tombstoneRetentionDays, DL-195)
   primary key (profile_id, save_profile_id, slot),
   foreign key (profile_id, save_profile_id) references save_profiles(profile_id, id) on delete cascade,
   check ((data is null) <> (blob_key is null) or deleted_at is not null)
@@ -285,22 +287,28 @@ create index on leaderboard_scores (board, value) where verified;
 create table mods (id uuid primary key, owner_profile_id uuid not null references profiles(id), slug text unique not null,
   kind text not null check (kind in ('experience','vehicle','character','rules')), name text not null,
   visibility text not null default 'private' check (visibility in ('private','unlisted','public')),
-  remix_allowed boolean not null default false, created_at timestamptz not null default now(), removed_at timestamptz);
+  remix_allowed boolean not null default false, created_at timestamptz not null default now(), removed_at timestamptz);   -- slug = C14 ModId; DTOs never expose id
 create table mod_versions (mod_id uuid not null references mods(id), version text not null,   -- semver
   manifest jsonb not null, archive_sha256 text not null, archive_key text not null,          -- ugc/published/<sha256>.zip
-  moderation_item_id uuid not null, state text not null, created_at timestamptz not null default now(),
+  moderation_item_id uuid not null, created_at timestamptz not null default now(),
+  state text not null check (state in ('scanning','rejected','needs_review','published','unlisted_pending_review','yanked','removed')),   -- C14 ModVersionState (C12 1.1 §3)
   primary key (mod_id, version));
 create table experiences (id uuid primary key, mod_id uuid not null references mods(id), mod_version text not null,
   chunk_key text not null, lat double precision not null, lng double precision not null, radius_m real not null check (radius_m <= 250),
   descriptor jsonb not null, rating_sum int not null default 0, rating_count int not null default 0,
-  moderation_state text not null default 'needs_review', visibility text not null default 'private',
+  moderation_state text not null default 'needs_review' check (moderation_state in ('needs_review','published','rejected','needs_update','unlisted_pending_review','removed')),   -- C17 ExperienceModeration
+  visibility text not null default 'private' check (visibility in ('private','unlisted','public')),   -- C17 ExperienceVisibility
+  world_version text check (world_version ~ '^[0-9a-f]{64}$'),   -- C17 worldVersion = C08 bakeId (C12 1.1 §3)
+  mod_sha256 text check (mod_sha256 ~ '^[0-9a-f]{64}$'),         -- C17 modSha256
   created_at timestamptz not null default now());
 create index on experiences (chunk_key) where visibility = 'public' and moderation_state = 'published';
 
-create table forum_boards (id text primary key, title text not null, sort smallint not null, min_tier text not null default 'device');
+create table forum_boards (id text primary key, title text not null, sort smallint not null,
+  min_tier text not null default 'device' check (min_tier in ('local','device','linked','staff')));   -- 'staff' per C12 1.1 §3
 create table forum_threads (id uuid primary key, board_id text not null references forum_boards(id),
   author_profile_id uuid not null references profiles(id), title text not null check (char_length(title) between 3 and 120),
-  experience_id uuid references experiences(id), state text not null default 'visible' check (state in ('visible','held','removed','locked')),
+  experience_id uuid references experiences(id), mod_id uuid references mods(id),   -- mod_id: C12 1.1 §3 (mod discussion threads)
+  state text not null default 'visible' check (state in ('visible','held','removed','locked')),
   score int not null default 0, post_count int not null default 0, last_post_at timestamptz not null default now(),
   tsv tsvector generated always as (to_tsvector('english', title)) stored, created_at timestamptz not null default now());
 create index on forum_threads (board_id, last_post_at desc); create index on forum_threads using gin (tsv);
@@ -389,6 +397,7 @@ KV is eventually consistent (≥ 60 s) and allows 1 write/s per key [research/st
 | `refresh_tokens`, `device_codes`, `siwe_nonces`, `idempotency_keys` | at expiry (+24 h for idempotency) | hourly |
 | `telemetry_daily` | 25 months | monthly |
 | `genai_ledger` | 3 y | yearly |
+| Save tombstones (`save_records.deleted_at`, `save_profiles.deleted_at`) | 180 d (C05 `SAVE_LIMITS.tombstoneRetentionDays`; DL-195) | 03:30 with the stub-profile sweep |
 
 Sources: D-22, [research/legal-ip-likeness.md §8 P6], [research/gap-trust-safety-tooling.md §6.6]. `GET /me/export` builds a ZIP of every row and R2 object keyed by the profile (JSON per table) within 24 h and returns a 7-day presigned link.
 

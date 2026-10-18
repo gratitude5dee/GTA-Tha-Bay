@@ -1,5 +1,7 @@
 # 11 — Decision log (living, dated)
 
+> **Continued in `spec/11-decision-log-2.md` (DL-171 onward).** This file is at its size cap.
+
 > Every contract change, conflict resolution and settled open decision, newest block last. Rule (master prompt `<orchestration>`): the contract owner wins unless the dissent exposes a real defect; then the owner's spec is fixed too. Decisions that are the owner's call go to `spec/99-open-questions.md` instead. ADRs (`docs/decisions/`) are written in Wave 5 and cite these entries.
 
 ## 2026-10-18 — Wave 1 contract reconciliation (Architect)

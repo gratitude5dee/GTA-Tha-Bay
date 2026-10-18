@@ -1,6 +1,14 @@
 # 04 — SONNET 5.5 KICKOFF · the Builder prompt, milestone protocol, and CLAUDE.md template
 
-> Operator notes: run `claude-sonnet-5-5` in Claude Code inside the repo, one milestone per session, `output_config.effort = "medium"` for routine milestones and `"high"` for M01/M02/M05/M06/M12. Adaptive thinking on (default). The Architect customizes the `<milestones>` block before handoff. Paste the `<builder_prompt>` block as the first message of each session, replacing `<<MILESTONE>>`.
+> Operator notes: run `claude-sonnet-5-5` in Claude Code inside the repo, one milestone per session, `output_config.effort = "medium"` for routine milestones and `"high"` for M01/M02/M05/M06/M12. Adaptive thinking on (default). The Architect customizes the `<milestones>` block before handoff. Paste the `<builder_prompt>` block as the first message of each session, replacing `<<MILESTONE>>` with the milestone file's stem (e.g. `M00-bootstrap-ci-pwa-on-workers`).
+
+## Operator prerequisites (do these once, before the first Builder session)
+- **Cloudflare account on Workers Paid** ($5/month; static-asset requests free, ≤ 25 MiB per file; F-018 in `research/INDEX.md`). Needed from M00.
+- **Cloudflare API token** (account token with an expiry): Workers Scripts: Edit (Workers, Previews, Durable Object classes), Workers R2 Storage: Edit, Workers KV Storage: Edit, Durable Objects: Edit where the token UI lists it separately; add Zone › Workers Routes: Edit only once a custom domain exists (Q-15). Plus the **Account ID**.
+- **GitHub repository secrets** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; repository variable `DEPLOY_ALLOWED_ACTORS` (M00a); after M00b, branch protection requiring the `ci.yml` jobs `static`, `unit`, `build`, `e2e (chromium-webgl2)` and `ip`. Do not also connect Workers Builds (double deploys).
+- **Optional `FAL_KEY`** for M00c: a non-production key with an allowed-model list and ≥ $20 prepaid fal credit (Q-17). Without it the live spike is skipped with a recorded reason.
+- **Not needed yet:** Supabase (first used in M05d), Anthropic key (M06a), a custom domain (previews and staging run on `workers.dev` until Q-15 is answered). Devices for M01c per Q-13.
+- **Workstation:** Node 22 LTS, pnpm (version pinned in `package.json`), git; `pnpm exec playwright install --with-deps chromium webkit`.
 
 <builder_prompt version="1.0" project="dee-verse-gta-tha-bay">
 
@@ -50,45 +58,26 @@ Next: the next milestone id and anything it must know
 </report>
 
 <milestones>
-<<FILLED BY THE ARCHITECT: ordered list M00…M##, one line each: id · slug · sessions estimate · depends on · gate (none / needs secret X / needs operator decision G#)>>
+READY milestones, in order (id · slug · sessions · depends on · gate):
+1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
+2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
+3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
+4. M00c · genai-spike · 1 · M00b · optional secret `FAL_KEY` + fal credit; absent → live run skipped with a recorded reason
+5. M01a1 · loop-ecs-detmath-physics, session 1 · 1 · M00 · none
+6. M01a2 · loop-ecs-detmath-physics, session 2 · 1 · M01a1 · none
+7. M01b1 · controller-cameras-touch, session 1 · 1 · M01a2 · none
+8. M01b2 · controller-cameras-touch, session 2 · 1 · M01b1, M01f · none
+9. M01c · device-spike-renderer-host · 1 · M01b2 · operator device run (Q-13)
+10. M01d · assets-publish · 1 · M00b · live publish needs `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; fixtures-only without
+11. M01e · asset-worker-opfs-store · 1 · M01d · none
+12. M01f · world-graybox-fixture-codec · 0.5 · M01a1 · none
+Run them in this order, except that a milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2). Each file's Depends on section is authoritative over this list; slugs of split milestones are in their file names.
+M02 onward: milestone files are being written; stop after the last READY milestone and report.
 </milestones>
 
 </builder_prompt>
 
 ---
 
-## CLAUDE.md template (the Architect fills the commands and layout; keep < 200 lines)
-
-```markdown
-# <DISPLAY_NAME> — builder notes
-
-## What this is
-Original browser open-world game set in an accurate San Francisco. Three.js/WebGPU PWA on Cloudflare; WebXR port; AI NPCs; generated cutscenes; modding. Single-player first.
-
-## Read first
-@spec/00-plan.md · @spec/07-milestones/<current>.md · ADRs in docs/decisions/
-
-## Commands
-pnpm i · pnpm dev · pnpm build · pnpm test · pnpm typecheck · pnpm lint · pnpm perf · pnpm e2e · pnpm deploy:preview · pnpm deploy:prod · pnpm assets:build · pnpm map:build
-
-## Layout
-apps/web — PWA shell · packages/engine — ECS, loop, physics, cameras, input · packages/world — SF streaming, roads, traffic · packages/modes/* — story, racing, fighter, tycoon · packages/npc — souls, dialogue, builder · packages/ui — menus, HUD, creator, settings · packages/net — client netcode · packages/mod-sdk — typed mod API + sandbox · services/edge — Workers, Durable Objects, R2, DB access · services/pipeline — fal jobs, cutscene cache · tools/* — CLIs
-
-## Conventions
-TypeScript strict; ECS rules (no component holds a reference to another entity's object; systems are pure over components); asset keys `assets/<kind>/<id>/<variant>`; cutscene keys sha256; conventional commits; branch per milestone; no GUI-only steps; display name only from config/brand.ts.
-
-## Verification rule
-Run a real check that exercises your change before reporting it done (tests, typecheck, build, or the changed command). A check that failed to start does not count.
-
-## Facts
-spec/03-decisions-and-facts.md is the only source for external-system facts. Never invent endpoints. Stop on UNVERIFIED.
-
-## Secrets
-FAL_KEY · ANTHROPIC_API_KEY · SUPABASE_* or CONVEX_* · THIRDWEB_* · OPENAI_* — via `wrangler secret` / `.dev.vars`; never committed.
-
-## Gotchas
-WebGPU → WebGL2 fallback path; iOS PWA storage quota and eviction; COOP/COEP for SharedArrayBuffer; XR session only from a user gesture; DO hibernation and alarms; fal queue + webhook, copy outputs to R2.
-
-## How to add
-a mission → packages/modes/story/missions + schema · an NPC → research/characters/<slug>/soul.md + pipeline job · a vehicle → packages/world/vehicles + manifest · a mode → GameMode contract (C06) · a mod → packages/mod-sdk/README.md
-```
+## CLAUDE.md
+The repository's `CLAUDE.md` (and its agent-neutral twin `AGENTS.md`) replaced the template that stood here on 2026-10-18. Keep both under 200 lines; `AGENTS.md` under 24 KiB.

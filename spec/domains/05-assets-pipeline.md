@@ -15,7 +15,7 @@ Tiers: **Standard** (default roster), **Lean** (cheap drafts, user NPCs later), 
 | 3b | `portrait` | CLI | `portrait` → Sunburst edit | 1024², `num_images` 2, input = front crop | A2 → H2 | skip (use crop) |
 | 3c | `mouth_atlas` | CLI | `portrait` → Sunburst edit | 1024², 3×3 grid of nine mouth shapes (Rhubarb A–H, X) in the character's style on flat background; sliced to nine 341 px cells | A1 → H2 | skip (jaw only) |
 | 4 | `mesh` | CLI or Workflow | `mesh` → `meshy/v7.1/multi-image-to-3d` | `pose_mode: t-pose`; `target_polycount` 30,000 (hero, fighter) / 12,000 (named NPC); `topology: triangle`; `should_remesh: true`; `enable_pbr: true`; `symmetry_mode: auto`; `enable_rigging: false`; `enable_animation: false`; `texture_prompt` ≤ 600 chars (linted). Two candidates (two requests) | A3, A2 on turntable → H3 | `tripo3d/h3.1/multiview-to-3d` standard textures × 2 |
-| 5 | `rig` | CLI or Workflow | `rig` → `fal-ai/meshy/rigging/multi-animation` | `model_url` = presigned GET of the chosen GLB; `height_meters` from soul; `animation_action_ids` = [0 Idle, 30 Casual_Walk, 16 RunFast, 466 Regular_Jump, 178 Hit_Reaction] plus soul `moves` ids (e.g. 96, 206, 138, 187, 403) | A4 → H4 | `fal-ai/meshy/rigging` (walk/run included) |
+| 5 | `rig` | CLI or Workflow | `rig` → `fal-ai/meshy/rigging/multi-animation` | `model_url` = presigned GET of the chosen GLB; `height_meters` from soul; `animation_action_ids` = [0 Idle, 30 Casual_Walk, 16 RunFast, 466 Regular_Jump, 178 Hit_Reaction] plus soul `moves` ids (e.g. 96, 206, 138, 187, 403) only when the buffer funds them ($0.12 each, DL-OWN-01) | A4 → H4 | `fal-ai/meshy/rigging` (walk/run included) |
 | 6 | `retarget` | local | — | Only for foreign clips (authored fighter moves, Hunyuan Motion); §4 | A5 | n/a |
 | 7 | `optimize` | local | — | §3: hi/mid/lo GLBs, animation stripped to `anim` assets, KTX2, meshopt | A6, A7 | same |
 | 8 | `publish` | local | — | hashes, provenance chain, rclone upload, HEAD verify, lock PR, `credits` | A8 → H5 | same |
@@ -75,6 +75,8 @@ Fidelity maps to C13 tiers through `TIER_FIDELITY` (A§4.2): `hi` for `desktop`,
 | Heroes (≤ 3, 18+) | runtime ElevenLabs Flash designed voices (S04); baked lines via `tts_hero` | `designed` |
 | `consented` clone | `fal-ai/minimax/voice-clone` ($1.50) only with scope `voice_clone` and an unexpired record; ElevenLabs talent PVC is shared by the talent, not generated here | `consented_clone` / `licensed` |
 
+**DL-OWN-01 (v1):** the `voice_design` and `tts_final` rows above are not funded by the $100 fal cap. Named NPCs, the announcer, police radio and tycoon VCs use Workers AI Aura or MeloTTS (`synthetic`, runtime tier t1, Cloudflare billing); at most one designed voice may be bought from the buffer with owner sign-off.
+
 The `style_prompt` and design prompt never name or describe a real person, accent imitation or cadence (Midler/Waits rule); `lintPrompt` enforces it. Baked audio is keyed `audio/barks/<sha256(voiceId|model|text)>.opus`, normalised to −16 LUFS, −1.5 dBTP, 48 kHz stereo (cutscene audio recipe, [research/gap-cutscene-delivery-playback.md §1.2]). Container choice (Ogg Opus per [research/ai-npc-runtime.md] vs AAC `.m4a`) is fixed by an iOS decode test in M00c (U14); the key rule is unchanged. Lip-sync: Rhubarb Lip Sync offline on each baked line → JSON cues stored as an `audio_bark` `cues` asset; mouth atlas decal (nine cells + JSON cell map) plus `mouthAnchor` set at H4; blend shapes for heroes are deferred (NPC-R8). Voice IDs are `voice` assets: a JSON file `{vendor, voiceId, endpointKey, mode}` with its own provenance record.
 
 ## 6. Cutscene job stages (R-CUT-01; S03 owns request, key and playback)
@@ -104,11 +106,11 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 |---|---|---|---|
 | Hero and named characters | generated (§1) | R-NPC-02 | H1–H5 |
 | Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with generated outfit textures | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
-| Race and hero cars (~20) | Sunburst text-to-image concept (2 candidates) → Meshy single-mesh body → mandatory Blender pass → `gltf-transform` | AI output is one fused mesh; wheels must rotate | H6, M03a/M07a |
+| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; the Sunburst concept → Meshy body → Blender route ($2.48 per body) is buffer-only, at most three bodies (DL-OWN-01) | AI output is one fused mesh; wheels must rotate | H6, M03a/M07a |
 | Traffic (10) and police (6) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
 | Props, barriers, cones, street furniture | verified CC0 or authored; no AI meshes | clean topology, cheap | licence check |
 | Landmarks (≥ 25) | hand-authored over open-data massing (A-05, S02) | accuracy | S02 |
-| Facade, ground, PBR sets | verified CC0 sets, or generated seamless tiles after a tile test | | A2 on tiles |
+| Facade, ground, PBR sets | verified CC0 sets; generated seamless tiles only from the buffer, after a tile test | | A2 on tiles |
 | Murals and signage decals | original generated or authored art, vision-checked for text and logos | constraint 15 | H6 |
 | Sky, HDRI | procedural `skycycle` (S02) or CC0 HDRI | | |
 | UI, icons, fonts | authored; fonts OFL-1.1 | | S10 |
@@ -118,7 +120,7 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 ## 8. Music and SFX policy
 
 1. **Music is commissioned originals** (Q-11). Contract: work-for-hire agreement in `docs/legal/licenses/`, stems delivered; `origin: authored`, `license: LicenseRef-DeeVerse-Owned`; human composition or human arrangement and lyrics (AI-only output is likely uncopyrightable) [research/legal-ip-likeness.md §4]. Master loudness −16 LUFS integrated, −1.5 dBTP **(S05)**; loops declared in `extras.loop`.
-2. **AI-assisted music is placeholder only** and never in a public build: tagged `placeholder`, `generator.env: previs`; CI fails a release that references one. Allowed vendor for placeholders: `elevenlabs/music/v2.5` ($0.60/min) only while the studio is an "Indie Game" (< $500k lifetime game revenue and < $1M entity game revenue in the last fiscal year); the record stores `plan`; S13 owns the revenue alarm. `minimax/music-3` and `google/lyria-3.5` have an UNVERIFIED licence chain and are not callable. Udio is unusable; Suno needs a fresh terms check.
+2. **AI-assisted music is placeholder only** and never in a public build: tagged `placeholder`, `generator.env: previs`; CI fails a release that references one. Allowed vendor for placeholders: `elevenlabs/music/v2.5` ($0.60/min) only while the studio is an "Indie Game" (placeholder generation is paid from the spike or buffer line, DL-OWN-01) (< $500k lifetime game revenue and < $1M entity game revenue in the last fiscal year); the record stores `plan`; S13 owns the revenue alarm. `minimax/music-3` and `google/lyria-3.5` have an UNVERIFIED licence chain and are not callable. Udio is unusable; Suno needs a fresh terms check.
 3. **Prompts** are genre briefs (tempo, instrumentation, era, regional slang); "hyphy-inspired" is allowed. `lintPrompt` blocks artist, song, label and station names and "sounds like". No samples, interpolation or vocal-timbre matching; AI vocals use designed voices only. A `consented` artist's recordings need a separate sync licence.
 4. **Radio** stations are fictional; real Bay Area call signs and DJ names go in `config/ip-denylist.json` (list UNVERIFIED; S05 maintains it from owner input).
 5. **SFX** order: authored or recorded originals; then CC0 or CC-BY-4.0 per-file with a licence snapshot; then generated with `fal-ai/elevenlabs/sound-effects/v2`, registry status `pending` (price and terms UNVERIFIED, U11) and usable in public builds only after its terms snapshot is reviewed and the entry is `active`.
@@ -169,19 +171,21 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 | Vehicle body (generated) | 2 concepts × $0.04116 + 2 meshes × $1.20 | **$2.48** + human Blender time |
 | Keyframe | Sunburst 1920×1080 high | $0.0396 |
 | 15 s cutscene (3 shots, 1.5×) | Turbo $1.06 · H3 partner $1.35 · H3 Max ref $1.80 · LTX $2.18 · Gemini $2.25 | |
-| Video set, 100 story (2,250 s) + 222 fighter (1,665 s) = 3,915 s | H3 partner $234.9 · Turbo $156.6 · LTX (6 s minimum, 4,248 s) $382.3 · Gemini 720p $391.5 | |
+| Full video set as first planned (100 story + 222 fighter clips = 3,915 s; superseded by DL-OWN-01, not a v1 plan) | H3 partner $234.9 · Turbo $156.6 · LTX (6 s minimum, 4,248 s) $382.3 · Gemini 720p $391.5 | |
 
-**One-off fal programme against G3 ($1,000):** 60 Standard characters $220.0 + 24 voices $108.0 + 36 vehicle bodies $89.4 + keyframes for 100 cutscenes $15.8 + props and textures allowance $50.0 = $483.2 before video.
+**One-off fal programme (DL-OWN-01: hard cap USD 100 total; replaces the $1,000 programme of G3; DL-171).** Unit prices above are list prices; v1 spend is limited by these lines, not by what the pipeline could generate.
 
-| Default video provider | Video | Subtotal | +25 % experiments | vs $1,000 |
-|---|---|---|---|---|
-| `h3.partner` | $234.9 | $718.1 | **$897.6** | within, margin $102 |
-| `h3.maxTurbo` (if cleared) | $156.6 | $639.8 | $799.7 | within |
-| `ltx25.fast`, 12 fighters | $382.3 | $865.5 | $1,081.9 | **over by $82** |
-| `ltx25.fast`, 8 fighters (116 clips) | $296.5 | $779.6 | $974.5 | within |
-| `gemini.omniFlash11`, 12 fighters | $391.5 | $874.7 | $1,093.4 | **over by $93** |
+| Line | Cap | Content | Estimate |
+|---|---|---|---|
+| Spike (M00c) | $10 | 13 steps: one test character, three shots, four provider clips | $4.36 |
+| Characters (M10a, M10b) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
+| Cutscenes (M05c3, M10b) | $40 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
+| Buffer | $8 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172); at most one voice design or three vehicle bodies, only with owner sign-off | $0 planned |
+| **Total** | **$100** | | **≈ $84 planned** |
 
-Alarms at $500 / $800 / $1,000; hard stop at 100 %. R2 storage for all generated media is about 2–7 GB (inside the 10 GB-month free tier, F-023); transcode ≈ $0.50 per full regeneration of 322 clips. Recurring generation spend in public play is $0 because nothing public can call fal.
+Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated vehicle bodies, generated props and textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
+
+The ledger enforces the cap: `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms at 50 / 80 / 100 % ($50 / $80 / $100), hard stop at 100 %. The fal prepaid balance is topped up in tranches that never exceed the remaining cap, with auto-recharge off; `FAL_MODE=mock` is the dev and CI default; every paid job needs `--live` and prints a dry-run estimate first. R2 storage for all generated media is about 1 GB (S05 estimate, inside the free tier, F-023); transcode ≈ $0.001 per clip.
 
 ## 12. Roster batch runbook (M10a canary, M10b full)
 
@@ -201,16 +205,18 @@ pnpm assets:gen prewarm --release <tag>                        # cutscene keys; 
 pnpm assets:kill        --npc <id> --scope all --ticket <id> --stage   # staging drill only
 ```
 
+Paid commands (`assets:gen run`, `assets:gen prewarm`) take `--live`; without it they print the dry-run estimate and exit, and `FAL_MODE=mock` is the default (DL-OWN-01).
+
 Steps:
 
-1. **Preconditions.** `genai:liveness` green; vendor snapshots current (`genai:terms-watch` green); registry prices checked within 30 days; fal credit ≥ 1.25 × `plan` estimate; fal concurrency raised from 2 to ≥ 10 by prepaid credit before the overnight batch (default limit is 2, F-047); roster tiers and `visual_brief` text exist for each slug; ADR-GENAI-01 state noted in the plan header.
+1. **Preconditions.** `genai:liveness` green; vendor snapshots current (`genai:terms-watch` green); registry prices checked within 30 days; fal prepaid balance ≥ `plan` estimate with cumulative top-ups ≤ $100 (DL-OWN-01); concurrency stays at fal's default 2 (F-047), so batches run two jobs at a time; roster tiers and `visual_brief` text exist for each slug; ADR-GENAI-01 state noted in the plan header.
 2. **Plan.** `assets:gen plan` for the batch; refuse any slug whose gate verdicts are not all `ok`; review the estimate.
 3. **Canary (M10a):** two characters end to end (one `parody`, one `fictionalized`); expected spend ≈ $7.3; all A and H gates; `assets:verify`; publish; confirm the provenance PR passes `provenance:check` and `likeness:gate`.
 4. **Batch.** Run stages 2–5 for the remaining slugs in groups sized to the concurrency limit; stop at H1, H3, H4. Humans decide in batches; unattended runs never cross a human gate.
 5. **Optimize and verify** locally (stages 6–7); failures return to H4 or stage 4 with the rejected candidate kept.
 6. **Publish** per slug; merge lock PRs after H5; run `pnpm assets:build` to produce the immutable catalog and pointer.
 7. **Idempotence check.** Re-run `plan`: it must list zero outstanding jobs and `run` must make zero `FalPort` calls (M10b AC).
-8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`.
+8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $40 cutscene line (`03-story-cutscenes.md` §D9.1).
 9. **Close-out:** reconcile spend with the fal dashboard, record cost per slug from `genai_ledger` (`job_id` = `jobKey`), snapshot the registry.
 10. **Rollback:** a rejected character is `killed` through §10 in staging, then re-run from stage 2 with a new seed; old candidates stay in `work/` for audit.
 

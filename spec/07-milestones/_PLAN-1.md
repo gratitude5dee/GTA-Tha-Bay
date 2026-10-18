@@ -1,0 +1,216 @@
+# Milestone plan — part 1: fast-track, foundations, story spine (blocks A–C)
+
+> S13 · 2026-10-18 · rows for `_PLAN.md` (order, graph, checkpoints). Field legend: **Goal** (≤ 2 lines) · **R** R-IDs · **Dep** direct dependencies · **Read** domain spec sections · **Out** top-level deliverable paths · **C** contracts @version · **Gate** secrets, paid accounts, owner questions, licence ADRs · **Proof** 2–4 key AC proofs · risk L/M/H. Sessions per row; "S##" names the owning domain(s). Paths of spec files are relative to `spec/domains/` unless they start with `spec/`.
+
+## Block A — fast-track (READY files; ids, slugs and order fixed; run order per `spec/07-milestones/README.md`)
+
+### M00 · bootstrap-ci-pwa-on-workers — 1 · risk M · S11, S13, S10
+- **Goal:** pnpm monorepo with every canonical script, installable cross-origin-isolated PWA shell on an assets-only Worker, UI shell stubs, GPU/XR probe, Playwright projects, CI and per-PR Preview.
+- **R** R-PLAT-01/02/03, R-ROLL-01, R-ENG-01/02, R-IP-01, R-UI-03 · **Dep** — · **Read** file `M00-bootstrap-ci-pwa-on-workers.md` (its Notes list the sections)
+- **Out** root config, `apps/web`, `packages/{shared,engine,ui}`, `services/edge/wrangler.jsonc`, `tools/ci`, `tests/e2e`, `.github/workflows/{ci,preview}.yml` · **C** C13 1.1, C15 1.0
+- **Gate** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, Workers Paid (operator) · **Proof** `pnpm install --frozen-lockfile && pnpm lint && pnpm typecheck && pnpm check:unit && pnpm build`; `pnpm check:coi -- http://localhost:8788`; `pnpm check:e2e -- --project=xr-quest3`; manual Preview comment
+
+### M00a · edge-api-skeleton — 0.8 · risk M · S09
+- **Goal:** the Worker script: `/api/v1/*` with isolation headers in code, `ApiError`, geo-gate, routes 1–3, gradual-capable `deploy:prod`, `deploy.yml`.
+- **R** R-PLAT-01, R-ROLL-01, R-ENG-01 · **Dep** M00 · **Read** file `M00a-edge-api-skeleton.md` · **Out** `services/edge/src`, `tools/ci/deploy.ts`, `.github/workflows/deploy.yml` · **C** C12 1.1, C16 1.1
+- **Gate** same secrets; repo variable `DEPLOY_ALLOWED_ACTORS` · **Proof** `pnpm check:workers -- geo-gate`; `pnpm check:prod-routes`; `pnpm deploy:prod -- --env staging --dry-run`
+
+### M00b · ip-provenance-gates — 1 · risk M · S05
+- **Goal:** CI refuses unprovenanced files, foreign game formats and strings, copyleft in the bundle, real names and likeness violations; vendor-terms snapshots; `nightly.yml`.
+- **R** R-IP-01/02, R-NPC-04, R-ENG-01 · **Dep** M00 · **Read** file `M00b-ip-provenance-gates.md` · **Out** `tools/ci/{provenance-check,ip-scan,names-lint,likeness-gate}.ts`, `config/*.json`, `docs/legal/vendor-terms/` · **C** C07 1.1, C13 1.1
+- **Gate** `DV_NAMES_REAL_JSON` (CI only, optional) · **Proof** `pnpm provenance:check`; `pnpm ip:signatures`; `pnpm names:lint`; `pnpm genai:liveness`
+
+### M00c · genai-spike — 1 · risk M · S05
+- **Goal:** budget-capped CLI spike (≤ $10, DL-OWN-01) through sheet → mesh → rig and three cutscene shots; records the U-items it can.
+- **R** R-NPC-02, R-CUT-01, R-ENG-03 · **Dep** M00b · **Read** file `M00c-genai-spike.md` · **Out** `tools/assets/spike/`, `research/genai-spike-results.md` · **C** C07 1.1
+- **Gate** `FAL_KEY` (previs, operator, Q-17), ≥ $10 prepaid · **Proof** `pnpm genai:spike -- --plan`; `env -u FAL_KEY pnpm genai:spike -- --run`; `pnpm genai:spike -- --verify`
+
+### M01a1 · loop-ecs-detmath-physics — 1 · risk M · S01
+- **Goal:** pure deterministic core in Node: C01–C03 files, detmath, RNG streams, hashing, canonical JSON, ECS, `SimCore`, headless host, lint bans.
+- **R** R-PLAT-03, R-ENG-01 · **Dep** M00 · **Read** file `M01a1-…md` · **Out** `packages/shared/src/{contracts,detmath,rng,hash,json}`, `packages/engine/src/sim` · **C** C01 1.0, C02 1.1, C03 1.1
+- **Gate** none · **Proof** `pnpm check:unit` (detmath golden bits, RNG streams, FNV/SHA vectors); ESLint banned fixtures; `ecs-churn` twice equal
+
+### M01a2 · loop-ecs-detmath-physics — 1 · risk H · S01
+- **Goal:** the core runs in `sim.worker` with Rapier (both builds), SAB or `postMessage` transport, determinism page equal in Chromium and WebKit.
+- **R** R-PLAT-03 · **Dep** M01a1 · **Read** file `M01a2-…md` · **Out** `packages/engine/src/{workers,physics}`, `apps/web/src/qa/` · **C** C01, C02 1.1, C03 1.1
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism`; `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+
+### M01b1 · controller-cameras-touch — 1 · risk M · S01
+- **Goal:** desktop on-foot controller (kbm, pad), third/first-person camera without clipping, input router.
+- **R** R-PLAT-04, R-ENG-04 · **Dep** M01a2 · **Read** file `M01b1-…md` · **Out** `packages/engine/src/{client/input,client/camera,sim/control}` · **C** C03 1.1, C04 1.1 (created)
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test -- input`; `walk-drop` 10,000-tick golden; camera 100-pose sweep
+
+### M01b2 · controller-cameras-touch — 1 · risk M · S01 (runs after M01f)
+- **Goal:** deployed gray-box Civic Center block, touch on iPhone Home Screen, mannequin animation, audio buses, IWER smoke, debug HUD.
+- **R** R-PLAT-01/02/04, R-ENG-04 · **Dep** M01b1, M01f · **Read** file `M01b2-…md` · **Out** `packages/engine/src/client/{anim,audio,input/touch}` · **C** C04 1.1, C08 1.0 (read), C13 1.1
+- **Gate** device availability (Q-13) · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @touch`; `pnpm check:e2e -- --project=xr-quest3`; manual iPhone 15 and Quest checklists (AC-11, AC-12)
+
+### M01c · device-spike-renderer-host — 1 · risk H · S11
+- **Goal:** C13 platform core: device classification, benchmarked tier, `RendererHost` with fallback and recovery, perf tooling (`check:perf`, `perf:verify`, `perf:checklist`), device spike.
+- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M00, M01a2 · **Read** file `M01c-device-spike-renderer-host.md` · **Out** `packages/engine/src/platform`, `config/tier-budgets.json`, `tools/ci/checklists/M01c-*.json`, `docs/device-spike/M01c/` · **C** C13 1.1
+- **Gate** Q-13 devices · **Proof** `pnpm check:perf -- --fail`; `pnpm perf:verify -- tools/ci/fixtures/perf/over.json --tier mobile-low` (fails); manual M01c checklists
+
+### M01d · assets-publish — 1 · risk M · S05
+- **Goal:** catalog builder, `assets:verify/publish/lock`, credits, `resolveVariant`, rclone upload with HEAD verify, `assets.yml`.
+- **R** R-IP-01, R-PLAT-03 · **Dep** M00b · **Read** file `M01d-assets-publish.md`; `05-assets.md` §4 · **Out** `tools/assets`, `assets/{lock,provenance}`, `.github/workflows/assets.yml` · **C** C07 1.1
+- **Gate** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; buckets in `config/cloudflare.resources.json` · **Proof** `pnpm check:assets`; `pnpm assets:verify`; dry-run publish
+
+### M01e · asset-worker-opfs-store — 1 · risk M · S11
+- **Goal:** `asset.worker`, `WorldPackStore` on OPFS with hash check, eviction, `persist()`, `fetchRetry` lanes.
+- **R** R-PLAT-01/03 · **Dep** M01d, M01c · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset`, `packages/engine/src/platform/packs` · **C** C13 1.1, C07 1.1
+- **Gate** none · **Proof** `pack-store.spec.ts` in Chromium and WebKit (`11-platform-pwa.md` §10 test 5); `pnpm check:unit -- packages/engine`
+
+### M01f · world-graybox-fixture-codec — 0.5 · risk L · S02
+- **Goal:** C08 types, terrain helpers and `DVWP` pack codec with the 4-chunk Civic Center gray-box fixture.
+- **R** R-MAP-01 · **Dep** M01a1 · **Read** file `M01f-…md`; `02-world-contracts.md` §2, §4 · **Out** `packages/shared/src/world`, `tools/map/src/fixtures`, `tests/fixtures/world/civic-graybox` · **C** C08 1.0
+- **Gate** none · **Proof** `pnpm --filter @dv/shared test -- world`; `pnpm map:fixture graybox --check`
+
+## Block B — foundations
+
+### M00d · qa-spec-gates — 0.5 · risk L · S13 (new)
+- **Goal:** C15 1.1 lint and the traceability report run in CI; `check:agents`; device-run verification job; nightly det suites and perf fail mode.
+- **R** R-ENG-01, R-ENG-02 · **Dep** M00, M01c · **Read** `13-qa.md` §2.3, §2.6, §3.8, §4; `spec/08-test-and-ci.md` §5.1, §5.5
+- **Out** `packages/shared/src/contracts/c15-milestone.ts`, `tools/ci/{milestone-lint,trace,check-agents}.ts`, `tools/ci/test/`, `.github/workflows/{ci,nightly}.yml`, `tests/reports/` · **C** C15 1.1 (proposed)
+- **Gate** none · **Proof** `pnpm check:unit -- tools/ci` (READY files pass, four bad fixtures fail, `trace.json` written); `pnpm check:agents`; `pnpm perf:verify -- tools/ci/fixtures/perf/ok.json --tier mobile-low`
+
+### M02a1 · bake-core — 1 · risk M · S02
+- **Goal:** `tools/map` S0 fetch, terrain, water and landuse, buildings, pack writer, world index, attribution, gates; SF packs without roads.
+- **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
+- **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (count within ±5 % of 176,777, packs ≤ 4 MiB, identical rerun); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
+
+### M02a2 · bake-roads-graph — 1 · risk M · S02
+- **Goal:** stages S5–S10: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds.
+- **R** R-MAP-01/04 · **Dep** M02a1 · **Read** `02-world-bake.md` §4, §9; `02-world-living.md` §1, §7 · **Out** `tools/map/src/stages`, `content/world/{pois,landmarks}` · **C** C08 1.0
+- **Gate** none · **Proof** `pnpm map:verify` (SCC ≥ 98 % of drivable edges, City Hall → every portal, ≥ 2 phases per signal); `pnpm map:landmarks`
+
+### M02b1 · streaming-lod — 1 · risk H · S02 (+S11)
+- **Goal:** `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, upload gate, L1/L2, backdrop ring and skyline cards; scenarios `walk-civic-center`, `route-ferry-ocean-beach`.
+- **R** R-MAP-01/02, R-PLAT-03, R-ENG-02 · **Dep** M02a2, M01c, M01e · **Read** `02-world.md` §5; `02-world-contracts.md` §4; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5 · **Out** `packages/world/src/{stream,render}`, `tests/perf/paths` · **C** C08 1.0, C13 1.1
+- **Gate** none · **Proof** `pnpm check:perf -- --scenario route-ferry-ocean-beach` (≤ 1 upload/frame, objects ≤ tier on webgl2 and webkit); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-boot-size`; `pnpm check:unit -- packages/world`
+
+### M02b2 · weather-time — 1 · risk M · S02 (+S01)
+- **Goal:** time-of-day cycle, dome sky, fog bank, rain, night lights, per-tier matrix, presets, blackout look on the S01 clock.
+- **R** R-MAP-04 · **Dep** M02b1 · **Read** `02-world-living.md` §6; `01-engine-save-modes.md` "Time-of-day and weather clock" · **Out** `packages/world/src/sky` · **C** C06 1.1 (`WorldClockApi`), C13 1.1
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-sky`; manual `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`)
+
+### M02c1 · graph-services-teleports — 1 · risk M · S02
+- **Goal:** `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, districts, POI table, `WorldApi` wiring.
+- **R** R-MAP-01/03 · **Dep** M02a2, M02b1 · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §5; `02-world.md` §3 · **Out** `packages/world/src/{graph,query,places}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)
+- **Gate** none · **Proof** `pnpm check:unit -- packages/world` (A* equal in Node; `snap` rejects > 25 m); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-teleport` (10 landmarks within 0.2 m or precondition message)
+
+### M02d1 · landmarks-kit-and-heroes — 1 · risk M · S02
+- **Goal:** landmark recipe kit, 12 hero/major original glTFs, `LandmarkLayer`, proxy swap.
+- **R** R-MAP-01, R-IP-01 · **Dep** M02b1 · **Read** `02-world-bake.md` §7; `05-assets.md` §4 · **Out** `assets/landmarks`, `packages/world/src/landmarks` · **C** C07 1.1, C08 1.0
+- **Gate** human art time · **Proof** `pnpm check:assets` (per-fidelity triangle budgets); `pnpm provenance:check`; `pnpm check:unit -- tools/map`
+
+### M02d2 · landmarks-rest-and-swap — 1 · risk M · S02
+- **Goal:** the remaining 25 landmarks and the skyline set; 37 `building/lm.*` assets in the catalog.
+- **R** R-MAP-01/02 · **Dep** M02d1 · **Read** `02-world-bake.md` §7 · **Out** `assets/landmarks` · **C** C07 1.1
+- **Gate** human art time · **Proof** `pnpm check:assets` (37 refs, provenance); `pnpm check:perf -- --scenario route-ferry-ocean-beach` (swap without a frame over budget on the CPU-side meter)
+
+### M03a1 · vehicles-interaction-prefabs — 1 · risk M · S01 (+S06 handling v1)
+- **Goal:** vehicle controller and enter/exit, prefabs, interaction v1, ragdoll-lite, lines recorder, inspector; shared handling model, 8 presets and oracle lines.
+- **R** R-MODE-01/02, R-PLAT-04 · **Dep** M01b2, M02c1 · **Read** `01-engine-save-modes.md` "Interaction system", "Entity prefabs"; `06-racing-data.md` §4.1; `06-racing-content.md` C.2–C.3 · **Out** `packages/shared/src/vehicle`, `packages/engine/src/sim/vehicle`, `assets/prefabs` · **C** C06 1.1, C07 1.1 (vehicle anchors), C03 1.1
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:lines` (filbert identical over 3 runs; C.3 oracles); `pnpm --filter @dv/shared test` (`vehicle.powerCurve`, `vehicle.envelope`)
+
+### M03a2 · handling-model-wheel-spike — 0.5 · risk M · S06 (+S01)
+- **Goal:** decide the wheel-force path (U-RAC-1) on oracle lines; write the C06 1.2 wheel-readout proposal and ADR (DL-104).
+- **R** R-MODE-02 · **Dep** M03a1 · **Read** `06-racing.md` §2; `06-racing-content.md` C.3 · **Out** `packages/shared/src/vehicle`, `docs/decisions/` · **C** C06 1.1 (1.2 proposed via Architect)
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:lines` on both paths; the run records U-RAC-1 in the ADR
+
+### M03b1 · traffic-robotaxis — 1 · risk H · S02
+- **Goal:** traffic agents (IDM, junction protocol, signals), parked cars, robotaxis, blackout, density model, promotion; `downtown-rush`.
+- **R** R-MAP-04 · **Dep** M02c1, M03a1 · **Read** `02-world-living.md` §1–§3, §7–§8 · **Out** `packages/world/src/traffic` · **C** C08 1.0, C01 1.0 (`amb:` keys)
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash` (10,000 ticks equal in Node, Chromium, WebKit); `pnpm check:unit -- packages/world` (no red-light entry in 600 s; robotaxi holds 4–9 s in 20 seeds); `pnpm check:perf -- --scenario downtown-rush`; manual `M03b1-iphone15`
+
+### M03b2 · peds-transit — 1 · risk M · S02
+- **Goal:** pedestrians (FSM, crossings, crowds, LOD), stations, buses, cable cars, ferries, aircraft as set dressing.
+- **R** R-MAP-04 · **Dep** M03b1 · **Read** `02-world-living.md` §4–§5, §7 · **Out** `packages/world/src/{peds,transit}` · **C** C08 1.0
+- **Gate** none · **Proof** `pnpm check:unit -- packages/world` (`ped.crossing`; `density.prefix`: `mobile-low` agents ⊂ desktop at the same `(cell, slot)`)
+
+### M03c · pursuit-director — 1 · risk M · S01
+- **Goal:** pursuit director, dispatcher, police behaviours (follow, PIT, box-in, roadblocks, spikes, heli LOS), arrest, `config/pursuit.json`, sandbox heat toggles.
+- **R** R-MODE-01/02 · **Dep** M03a1, M03b1 · **Read** `01-engine-save-modes.md` "PursuitDirector core"; `06-racing-content.md` C.11 · **Out** `packages/engine/src/sim/pursuit`, `config/pursuit.json` · **C** C06 1.1 (`PursuitApi`)
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:pursuit` (bot reaches heat 3 from scripted infractions and escapes through cooldown)
+
+### M04a1 · saves-gamemode-unlocks — 1 · risk M · S01 (split 1 of 2)
+- **Goal:** `SaveService`: profiles, slices, two-phase atomic writes, caps, tombstones, migrations, export/import on IndexedDB `dv-saves`.
+- **R** R-MODE-01, R-MODE-05, R-PLAT-01 · **Dep** M01b2 · **Read** `01-engine-save-modes.md` §C05 and "C05 1.1 and C06 1.1 additions" · **Out** `packages/engine/src/sim/save`, `tests/golden/saves` · **C** C05 1.1
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:save` (caps, CAS conflict, tombstones, golden migrations); `pnpm check:e2e -- --project=chromium-webgl2 --grep @save-kill`
+
+### M04a2 · saves-gamemode-unlocks — 1 · risk M · S01 (split 2 of 2)
+- **Goal:** `ModeHost` and `ModeContext`, unlock registry with `comingSoon` stubs, controls-remap persistence, economy wallet, clock and interaction scoring.
+- **R** R-MODE-05, R-ENG-04, R-MODE-01 · **Dep** M04a1 · **Read** `01-engine-save-modes.md` §C06, "Economy and combat cores", 1.1 section; `10-ui.md` §3.3 · **Out** `packages/engine/src/sim/modes`, `packages/shared/src/contracts/c06-modes.ts` · **C** C06 1.1, C05 1.1
+- **Gate** none · **Proof** `pnpm --filter @dv/engine test:modes` (depth ≤ 2, idempotent first-encounter unlock); `pnpm --filter @dv/engine test` (`economy.idempotent`, `clock`)
+
+### M04b1 · shell-ui-kit-menus-settings — 1 · risk M · S10
+- **Goal:** shell, kit, focus navigation, i18n, age gate (every under-18 bracket blocked), terms, main menu, saves and profiles (New Game = new profile), settings pages.
+- **R** R-UI-02/03, R-ENG-04, R-MODE-05, R-IP-04 · **Dep** M04a2 · **Read** `10-ui.md` §2–§3; `10-ui-pages.md` §2, §4 · **Out** `packages/ui/src/{shell,kit,pages}` · **C** C06 1.1 (`UiBridge`), C05 1.1, C13 1.1 (`PlatformSettings`)
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-menus`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y` (zero critical or serious); `pnpm check:i18n`
+
+### M04b2 · creator-phone-hud-kit — 1 · risk M · S10 (+S05 creator kit)
+- **Goal:** character creator with `PlayerAvatar` / `AppearanceV1`, **`avatar.v1` and wardrobe-item schemas in `packages/shared/schemas/ui/` (gap 11)**, new-game flow, phone and pause, HUD and story HUD, touch layouts, coach mark, help, garage frame, `UiSurface` skeleton.
+- **R** R-UI-01/03, R-ENG-04, R-PLAT-01 · **Dep** M04b1 · **Read** `10-ui-pages.md` §2 (creator), §4.1; `10-ui-hud-xr.md` §2 · **Out** `packages/ui/src/{creator,hud,phone,touch}`, `packages/shared/schemas/ui/`, `assets/creator-kit` · **C** C05 1.1 (`CoreSlice.avatar`), C06 1.1, C07 1.1
+- **Gate** none · **Proof** `pnpm check:unit -- packages/ui` (`AppearanceV1` ≤ 512 B golden vectors; schema fallback); `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-touch`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @creator`
+
+### M02c2 · maps — 1 · risk M · S02 (+S10)
+- **Goal:** map data bake, minimap, full map, blips, GPS route, address search, attribution screen data.
+- **R** R-MAP-03 · **Dep** M02c1, M04b2 · **Read** `02-world-maps.md` §1–§3, §6; `10-ui-hud-xr.md` §2 · **Out** `packages/world/src/map`, `tools/map/src/stages/s12` · **C** C08 1.0
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
+
+### M04b3 · local-identity-play-token — 0.5 · risk L · S09
+- **Goal:** `IdentityService` with the local adapter (UUIDv7 profile, device key), `NullCloudSync`; single-player never needs an account.
+- **R** R-AUTH-01/02, R-ROLL-01 · **Dep** M00a, M04b1 · **Read** `09-backend-contracts.md` §2 (identity); `09-backend.md` §3 · **Out** `packages/identity` · **C** C12 1.1 (`IdentityService`)
+- **Gate** none · **Proof** `pnpm check:unit -- packages/identity`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @offline` (`/boot` down → single-player starts)
+
+### M04c · cutscene-playback-spike — 1 · risk M · S11 (+S03 fixtures, S10 overlay)
+- **Goal:** `FirstGestureUnlock` and video pool, wake lock, media budget, flat DOM host, fixture `CutsceneManifest`s, `CutsceneOverlay` (skip, subtitles, AI chip).
+- **R** R-CUT-03, R-PLAT-01, R-ENG-04 · **Dep** M01c, M04b1 · **Read** `11-platform-pwa.md` §7; `03-story-cutscenes.md` §D2, §D7; `10-ui-hud-xr.md` §2 · **Out** `packages/engine/src/platform/media`, `packages/ui/src/cutscene`, `tests/fixtures/cutscenes` · **C** C09 1.0, C13 1.1
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @cutscene` (plays after gesture, subtitles, skip); manual `M04c-{iphone15,quest3}` (records U-PLT-17)
+
+### M04d · qa-harness-bots-goldens — 1 · risk M · S13 (+S01 econ-sim) (new)
+- **Goal:** `CanonicalRunner`, `BotDriver` registry with driver `lines`, golden store and update guard, det suite registry, mutants, verifier lock, **`tools/ci/econ-sim` (gap 11)**.
+- **R** R-ENG-01/02, R-MODE-01 · **Dep** M04a2, M03a1, M00d · **Read** `13-qa.md` §3.1–§3.6, §3.9; `01-engine-contracts.md` C03 1.1 section · **Out** `packages/engine/src/qa`, `tests/{golden,e2e/det}`, `tools/ci/{mutants,econ-sim}`, `config/econ-bands.json` · **C** C02 1.1, C03 1.1, C06 1.1 (`EconomyApi`)
+- **Gate** none · **Proof** `pnpm check:unit -- packages/engine/src/qa tools/ci` (equal traces; mutants fail; lock guard); `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism`; `pnpm check:balance -- --suite econ` (self-test fixture fails)
+
+## Block C — story spine (VS-Story)
+
+### M05a1 · mission-ir-vm — 1 · risk M · S03
+- **Goal:** mission IR types and schema, authoring builder and compiler (`missions:build`), resolver over C08, VM, predicates, objectives, checkpoints, fail/retry, debugger, `m.dev.sample`.
+- **R** R-MODE-01 · **Dep** M04a2, M02c1 · **Read** `03-story-missions.md` §C1–§C8, §C10; `03-story.md` §5 · **Out** `packages/modes/story`, `packages/shared/src/contracts/c09-mission.ts`, `packages/shared/schemas/mission-ir-1.schema.json` · **C** C09 1.0, C06 1.1, C08 1.0
+- **Gate** none · **Proof** `pnpm check:unit -- packages/modes/story/test/compiler.test.ts`; `pnpm missions:build`
+
+### M05a2 · autoplayer-director-preview — 1 · risk M · S03
+- **Goal:** story autoplayer (`story.autoplayer` driver), `check:missions`, timeline export and scrub preview (`missions:preview`), in-engine director (auto, `DirectorScript`, LOS, hill rule, XR vantage data).
+- **R** R-MODE-01, R-CUT-03 · **Dep** M05a1, M04d · **Read** `03-story-missions.md` §C9–§C10; `03-story-cutscenes.md` §D6 · **Out** `packages/modes/story/src/{autoplay,director}` · **C** C09 1.0, C04 1.1, C03 1.1
+- **Gate** none · **Proof** `pnpm check:missions -- --mission m.dev.sample` (3 seeds twice, equal end hashes inside `expectedSec`); `pnpm check:unit -- packages/modes/story` (`director-los`)
+
+### M05b1 · cutscene-infra-mock — 1 · risk H · S09, S05
+- **Goal:** `CutsceneJobDO`, `FalGateDO`, minimal `BudgetGovernorDO` with `budget_program` = 100,000,000 micros (DL-OWN-01), `GenJobWorkflow` + `MockFalPort`, routes 27–29 and 49, media/private buckets; DO tag `web-v1` in its own PR.
+- **R** R-CUT-01, R-ENG-03, R-NPC-02 · **Dep** M00a, M00c, M01d · **Read** `09-backend.md` §8; `09-backend-ops.md` §1.2, §5; `05-assets-pipeline.md` §6, §9; `03-story-cutscenes.md` §D5 · **Out** `services/edge/src/{cutscenes,budget}`, `services/pipeline` · **C** C09 1.0, C12 1.1, C07 1.1
+- **Gate** `OPS_TOKEN`; `FAL_MODE=mock`; live fal only after ADR-GENAI-01 `cleared` · **Proof** `pnpm check:workers -- cutscene-singleflight`; `pnpm check:workers -- genjob-poll-fallback`; `pnpm check:workers -- budget-cache-first`; `pnpm check:pipeline`
+
+### M05b2 · cutscene-player-index — 1 · risk M · S03
+- **Goal:** `cutsceneKey` and vectors, index builder (`assets:cutscene-index`), templates and prompt lint, `CutscenePlayer` flat hosts, triggers, subtitles, AI chip, `beat` op.
+- **R** R-CUT-01/02/03 · **Dep** M05b1, M04c, M05a1 · **Read** `03-story-cutscenes.md` §D2–§D4, §D7 · **Out** `packages/shared/src/genai/cutscene-key.ts`, `packages/modes/story/src/cutscene`, `tools/assets/cutscene-index` · **C** C09 1.0, C13 1.1
+- **Gate** none · **Proof** `pnpm check:unit -- packages/shared/test/cutscene-key.test.ts`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene` (status `absent` → fallback within 2.5 s, mission resumes)
+
+### M05c1 · act1-missions-1-6 — 1 · risk M · S03 (+S01 melee stub, S10 story HUD)
+- **Goal:** Act 1 cast and stand-ins (original souls), missions `m.a1.01`–`06` with lines and director scripts, unlock defs, stub hooks (DL-157 ids), Yard safehouse, shops, basic melee via `CombatApi` stub, econ-sim Act 1 section.
+- **R** R-MODE-01/05, R-MAP-01 · **Dep** M05a2, M05b2, M03c, M04b2, M02c2 · **Read** `03-story-narrative.md` §B1–§B4, §B7–§B8; `03-story-missions.md` §C7–§C8, §C11 · **Out** `content/story/act1`, `packages/modes/story/src/missions` · **C** C09 1.0, C06 1.1, C10 1.0 (talk fields)
+- **Gate** none · **Proof** `pnpm check:missions -- --act 1` (missions 1–6 on 3 seeds); `pnpm check:unit -- packages/modes/story` (`depiction-lint`); `pnpm check:balance -- --suite econ`
+
+### M05c2 · act1-vertical-slice — 1 · risk M · S03 · **VS-Story**
+- **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing, fighter and tycoon reachable through stubs; deployed and tested on staging (R-ROLL-01 anchor).
+- **R** R-MODE-01/05, R-CUT-02, R-ROLL-01 · **Dep** M05c1, M03b2 · **Read** `03-story-narrative.md` §B4–§B5; `03-story.md` §8–§9 · **Out** `content/story/act1`, `content/story/sensitivity.json` · **C** C09 1.0, C05 1.1
+- **Gate** Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
+
+### M05d · data-spine-supabase — 1 · risk M · S09
+- **Goal:** Supabase staging and production projects, migrations 0001–0002, `DataPort` + `InMemoryDataPort`, `db:push` in deploy, cutscene index and ledger export, staging keep-alive.
+- **R** R-ROLL-02, R-ENG-03 · **Dep** M05b1 · **Read** `09-backend-db.md` §1–§3, §8; `09-backend-ops.md` §1.3, §2 · **Out** `supabase/`, `packages/shared/src/{data-port,db.gen}.ts` · **C** C12 1.1
+- **Gate** Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY` · **Proof** `pnpm check:db && pnpm check:db:types`; `pnpm check:unit -- packages/shared` (DataPort contract on the in-memory port)
+
+### M05c3 · act1-prewarm — 0.5 · risk M · S05
+- **Goal:** prewarm Act 1 cutscenes through a `cleared` provider within ≤ $16 of the $40 cutscene cap (DN-S13-02); otherwise ship fallback-only; C2PA re-sign.
+- **R** R-CUT-01, R-ENG-03 · **Dep** M05c2, M05d · **Read** `05-assets-pipeline.md` §6, §11–§12; `03-story-cutscenes.md` §D9 · **Out** `assets/cutscenes` index entries · **C** C09 1.0, C07 1.1
+- **Gate** ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), prepaid balance ≤ cap · **Proof** `pnpm check:pipeline` (mock prewarm: second run 0 calls); `pnpm check:c2pa`; manual operator `pnpm assets:gen prewarm --release <tag>` with ledger ≤ 16,000,000 micros

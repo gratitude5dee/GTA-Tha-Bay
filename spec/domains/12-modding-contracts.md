@@ -189,7 +189,7 @@ import type { ModId, ModPermission } from './c14-mod';
 import type { CinematicShot } from './c04-camera';
 import type { HeatLevel } from './engine-pursuit';
 import type { WeatherPreset } from './engine-world';
-export type JsonValue = null | boolean | number | string | JsonValue[] | { [k: string]: JsonValue };
+import type { JsonValue } from './c05-save'; export type { JsonValue };   // C05 owns the JSON value type; re-exported unchanged for the SDK (DL-194)
 
 export type AnchorVec3 = readonly [x: number, y: number, z: number];   // metres; origin = anchor on the ground; +X east, +Y up, −Z north; |x|,|z| ≤ radius
 export type ModEntityRef = number & { readonly __brand: 'ModEntityRef' };   // session-local, opaque, never an EntityHandle

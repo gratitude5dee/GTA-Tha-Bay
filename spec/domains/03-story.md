@@ -348,4 +348,4 @@ R-ID → milestones:
 | A-C16-1 | **Accepted** as C16 1.1 (DL-103) |
 | A-HOOK-1 | **Resolved (DL-092): the mode owner owns `ModeHook.defId` and its params.** Racing `defId` = S06 `RaceId` (e.g. `sf.pursuit.bayview-escape`); fighter `defId` = S07 `bout.<id>` (`bout.a5`, `bout.a11`, `bout.a3-final`) with `params` = S07 `FighterEnterParams {kind:'story'}`; tycoon `defId` = S08 preset `mini8w`, no params; map of hook ids to defIds in Part B §B4/§B6 (DL-157); `MoveDef.cutsceneBrief` stays S07's |
 
-**Open questions:** Q-03 and Q-14 (provider clearance and programme cap) decide whether M05c2 ships generated Act 1 clips or a fallback-only Act 1; both paths are fully specified. Q-19 (character research layer) affects only the roster-slot souls, which stand-ins cover.
+**Open questions:** Q-03 (provider clearance; the programme cap is fixed at USD 100, DL-OWN-01) decides whether M05c2 ships generated Act 1 clips or a fallback-only Act 1; both paths are fully specified. Q-19 (character research layer) affects only the roster-slot souls, which stand-ins cover.

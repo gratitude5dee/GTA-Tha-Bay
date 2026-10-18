@@ -6,7 +6,7 @@
 **Phases by identity tier (D-30, C12):**
 - **P0 (no sign-in):** text builder. Basics, backstory, soul generation, voice pick, preview chat. The NPC is private: only its owner can talk to it, in their own world.
 - **P1:** adds up to 6 reference images (route 34 is P1). Images only ever become text descriptions.
-- **P2 (linked, 18+, M13c):** adds the Lean 3D look (S05) and submit-to-publish. Publishing needs P2 because a published NPC is player-triggered generation plus public UGC, which need an accountable account [F-042; research/ai-npc-runtime.md §6.1].
+- **P2 (linked, 18+, M13c):** adds submit-to-publish. The Lean 3D look is not a player feature in v1 (DL-OWN-01: no player-triggered fal). Publishing needs P2 because a published NPC is public UGC, which needs an accountable account [F-042; research/ai-npc-runtime.md §6.1].
 
 **Screens** (S10 builds them; order and content are fixed here):
 1. **Basics.** Name (2–40), pitch (≤ 280), archetype, home district (SF only), tags.
@@ -18,7 +18,7 @@
 7. **Reference images (P1).** Up to 6, with crop and a user-drawn blur rectangle (no face detector). The screen shows the text description that will be used instead of the image.
 8. **Look.**
    - Before M13c: a body preset from S10's character-creator presets (R-UI-01); `assets.model` points to that preset's `character/<preset>` asset.
-   - From M13c (P2): S05 Lean generation driven only by text.
+   - From M13c (P2): the same preset, or a Lean look produced by an owner-approved staff queue (S05 text-only inputs; counted against the fal buffer; DL-OWN-01). No player-triggered generation.
 9. **Submit (P2).** Opens a review case; status is shown on the draft.
 
 ```mermaid
@@ -56,7 +56,7 @@ stateDiagram-v2
 | Preview turns | 20 per draft per day | 20 per draft per day |
 | Images per draft | 0 (P0) / 6 (P1) | 6 |
 | Published NPCs | — | 5 |
-| Look generations | 0 | S09 `builder_job` quota: 3 per day, Lean 1 per day |
+| Look generations | 0 | 0 in v1 (S09 `builder_job` quota 0, DL-OWN-01) |
 
 ## C2. Builder data (DDL is S09's migration 0004; semantics here)
 - **`npc_draft`:**
@@ -84,7 +84,7 @@ stateDiagram-v2
 | `POST /drafts/:id/soul` | P0 | ugc | → 202 `JobAccepted` (soul generation, §C4) |
 | `POST /drafts/:id/preview` | P0 | talk | `{turn, context?}` → SSE `DialogueEvent` (Part B §B2.4), workspace `npc-builder` |
 | `POST /drafts/:id/images` | P1 | ugc | `AttachImagesReq` (committed route-34 uploads, purpose `npc_image`) → 202 |
-| `POST /drafts/:id/assets` | P2 (M13c) | ugc | → 202 (S05 Lean `GenJob`, text inputs only) |
+| `POST /drafts/:id/assets` | P2 (M13c) | ugc | → 202 (queues an owner-approved staff request, not a `GenJob`; text inputs only; DL-OWN-01) |
 | `POST /drafts/:id/submit` ⓘ | P2 | ugc | → `SubmitRes` (opens a `P2_REVIEW` case) |
 | `GET /community?cursor&district` · `GET /community/:npcId` | pub | api | → `{items: CommunityNpc[], next?}` · `CommunityNpc` |
 
@@ -253,7 +253,7 @@ export interface CommunityNpc { npcId: NpcId; soulVersion: number; name: string;
 - **Builder:** ≈ $0.07 per NPC text path; ≤ $0.12 per P0 profile per day (two generations). The `npc-builder` workspace limit (0.2 × monthly) is the backstop.
 - **Hero share bound:** roster rule R4 allows at most 8 Sonnet heroes.
 - **Evals:** about $0.08 per soul per full suite, so the weekly full run of 60 souls is about $21/month. With per-change runs, the total stays under the `ci-evals` $50/month limit.
-- **One-off roster (60 NPCs):** normalization ≈ $5, barks through Batch ≈ $9, ink/bark TTS pre-render ≈ $30 on Aura-1 [research/ai-npc-runtime.md §7.1]. fal voice designs are in S05's programme.
+- **One-off roster (60 NPCs):** normalization ≈ $5, barks through Batch ≈ $9, ink/bark TTS pre-render ≈ $30 on Aura-1 [research/ai-npc-runtime.md §7.1]. fal voice designs are not funded in v1 (DL-OWN-01); baked lines use Aura or MeloTTS. Only 8 Standard and 12 Lean roster entries get custom 3D bodies; every other roster NPC uses a creator-kit body.
 - **ElevenLabs plan fees** are not in the per-line prices: Pro at $99/month would consume the whole voice ceiling (DN-S04-02).
 
 ## C8. Agency (named NPCs) and intents

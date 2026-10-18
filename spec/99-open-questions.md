@@ -7,7 +7,7 @@
 | Q | Question | Default applied (2026-10-18) | Blocks | Source |
 |---|---|---|---|---|
 | Q-13 | Which physical test devices exist? | iPhone 15 + iPhone 16/17 + Quest 3 + Vision Pro (visionOS 26.2+) + an Apple Silicon Mac; Windows integrated and discrete GPUs are optional; without them `desktop-ultra` and weak-desktop calibration stay marked unverified | device acceptance of M01c, M04c, M11a, M11b (CI parts proceed) | Q-S11-01, `11-platform-perf.md` §6 |
-| Q-14 | One-off fal production cap ($1,000, G3) if a fallback video provider becomes the default | Keep $1,000. With `h3.partner` the programme is ≈ $898 including 25 % experiments; if `ltx25.fast` or `gemini.omniFlash11` becomes the default, produce 8 fighters (≈ $975) instead of 12; raising the cap to $1,250 needs the owner | M05c prewarm, fighter cutscenes (M08), M10a batch | DN-S05-2, Q-S05-03, `05-assets-pipeline.md` §11 |
+| Q-14 | Raise the USD 100 fal cap (DL-OWN-01) if a video provider clears and more generated clips are wanted? (replaces the $1,000 question) | No: the cap is final. Generation follows the priority list in `03-story-cutscenes.md` §D9.1 and stops at the $40 cutscene line; every other hook plays in-engine. A raise is a `programCapUsdMicros` change in `config/guardrails.yaml` and a prewarm re-run, only on the owner's word | M05c3 Act 1 prewarm, M10b fighter prewarm | DL-OWN-01, DL-176 |
 | Q-15 | Production and staging domains, Cloudflare zone plan, GitHub visibility and plan | One dedicated zone for `<domain>` with `id.`, `rt.`, `media.`, `ugc.` and `-staging` twins; prod deploys only from tags by an allowlisted actor until a Team org or a public repo exists | M00 `deploy:bootstrap` custom domains (previews work on `workers.dev`), M12a issuer host | Q-BE-08, `09-backend-ops.md` §1.3 |
 | Q-16 | Owner filings: NCMEC ESP registration, PhotoDNA application, Tech Coalition Pathways, DMCA agent designation, Cloudflare CSAM-tool support ticket | File before M06b; until approved, photographic uploads stay private-only and CSAM reports go through the CyberTipline web form | public visibility of photo UGC (M06b), completion of M13d | Q-BE-07, `09-backend.md` §3.4 |
 | Q-17 | Who holds the production staff `FAL_KEY`? | The art lead holds the staff key locally (CLI-first); CI and the Worker get separately scoped keys with allowed-model lists | M00c spike, M10a batch | DN-S05-4, Q-S05-02 |
@@ -19,6 +19,10 @@
 | Q-23 | Counsel review list before public launch: (a) trademark knock-out of placeholder vehicle makes, rival handles and fictional transit operators; (b) whether device-local normalised body proportions (pose calibration) are biometric data; (c) the tycoon "simulation, not financial advice" disclaimer; (d) default-on telemetry with a first-run notice for US players | (a) ship placeholders through `names:lint`, rename is a data commit; (b) calibration stays device-local, opt-in "remember", deletable; (c) disclaimer in the pitch room; (d) default on (DL-140) | M14b public launch (development proceeds) | DN-S06-02, Q-S07-2, DL-106, DL-127, DL-140, S08 risks |
 | Q-24 | Is fighter animation authored by a human art lead (≈ 45 shared base clips + 12–16 signature clips per fighter, ≈ 160 Blender tasks)? | Yes in principle: M08a ships generic library clips; signatures follow through M10a; without art-lead time v1 ships library moves only | animation quality in M08b1/M10a | S07-D1, `07-fighter-content.md` FX7 |
 | Q-25 | Create the private content repository mounted at `content-private/` (real-derived souls, research layer, production rails) and grant CI read access | Until it exists only original souls and the rules example build; real-roster content waits as for Q-19 | real-roster content in M10c; production rails before M14b | DN-S04-01, DL-118 |
+| Q-26 | How should the $8 fal buffer be spent if the baseline stays under budget: one designed announcer voice ($4.50), up to three generated hero-car bodies ($2.48 each), extra Meshy move clips ($0.12 each), or custom 3D for a user NPC through the owner-approved queue ($1.05 each)? | Unspent. The announcer uses Workers AI Aura or MeloTTS, cars are authored or CC0, builder looks are creator-kit presets. Any buffer spend needs the owner's written word and a ledger entry | none (M10a canary, M07 art, M13c queue proceed without it) | DL-OWN-01, DL-171, DL-175 |
+| Q-27 | Which 12 roster entries get Lean custom 3D bodies (the 8 Standard models are the 8 v1 fighters)? | The ten named, on-screen Act 1 fictional cast (`odessa_calloway`, `tavi_okafor`, `corwin_hale`, `dana_voss`, `patch`, `saint_static`, `chorus_sparrer`, `imani_hart`, `whitney_arlo`, `sgt_bell`) plus two Act 2–3 cast members chosen when `assets:gen plan --roster` runs; everyone else uses creator-kit bodies | M10a plan | DL-OWN-01, `03-story-narrative.md` §B2 |
+| Q-28 | Hold the $500/month recurring ceiling (G3) as MAU grows, or accept the scaling rule (+ $0.25 per MAU above 1k, a config change)? On the default mix the $100 voice line binds first at about 1,350 MAU and the Anthropic line at about 2,800 MAU (`spec/10-cost-model.md` §3) | Hold $500. The governor degrades at 70 / 85 / 100 % (Sonnet to Haiku, voice to t1, genAI off); cache hits and ink lines stay free. Revisit before 1,000 MAU | M14b launch alarms, post-launch capacity | G3, D-28, `spec/10-cost-model.md` |
+| Q-29 | Friend graph for presence: S10 plans "presence of friends" (M12c) but C12 1.1 has no friend relation, route or table; should v1 add one? | No: v1 presence carries the player's own status and server notices; invites travel as 6-character codes (route 25); the online page shows no friend list | friend list and invite push in M12c/M12d (everything else in M12b–M12d is unaffected) | DL-186, `spec/05-api-and-realtime.md` §4.7 |
 
 ## 2. UNVERIFIED register — Wave 1
 
@@ -106,6 +110,14 @@ Each row names the default the spec uses until the item is verified and the mile
 | U-BE-20 | `wrangler deployments status --json` field names | deploy script parses defensively | M00 |
 | U-BE-21 | DO restarts scoped to the deploying script | split Workers anyway (costs nothing if false) | M12c |
 
+### 2.5 Assets, cost and risk (Wave 5, `06-asset-pipeline.md`, `10-cost-model.md`)
+| ID | Item | Default while unverified | Verified in |
+|---|---|---|---|
+| U-COST-1 | fal minimum top-up, the account lock threshold, and whether the last dollars of a tranche are spendable under a $100 total (extends U-BE-19) | tranches sized to the next phase; the $8 buffer absorbs an unusable remainder; auto-recharge off | M00c |
+| U-COST-2 | fal concurrency stays at the default 2 while total spend is at most $100 (limits rise with paid invoices over 4 weeks, amounts unknown) | batches of two jobs; 20 character runs fit one overnight session | M10a |
+| U-COST-3 | whether fal bills refused or errored requests | assume billed; the ledger settles from `billing-events` and the loss comes out of the buffer | M00c, M05b |
+| U-COST-4 | per-MAU usage assumptions (4 play-hours, 90 NPC turns, 50 % of lines voiced) and the $25/h human-review rate behind `10-cost-model.md` | research proposals [research/ai-npc-runtime.md §7.2, research/gap-trust-safety-tooling.md §8]; re-measure from telemetry after launch | M14b, post-launch |
+
 ## 3. UNVERIFIED register — Waves 2–4 (index; Wave 5 merges the rows into §2 format)
 
 Each domain lists its items with the default it uses and the verifying milestone in its own spec; no item appears in an acceptance criterion. Counts from `spec/.waves234-returns.json`.
@@ -121,3 +133,20 @@ Each domain lists its items with the default it uses and the verifying milestone
 | S10 UI | 15 | `10-ui.md` §10 | Turnstile under COEP (M12a); OS age signals (2027); system keyboard in XR (flat-only, DL-142); Preact cost (M04b1) |
 | S12 modding | 12 (U1…U12) | `12-modding.md` §10 | QuickJS cost on iPhone/Quest (M13a4); srcdoc iframe under COEP (M13a5); `@dv` npm scope (Q-22); Supabase GitHub OAuth beside TPA (M13c1, DL-145) |
 
+## 4. Wave 5 additions — network surface (`spec/05-api-and-realtime.md`)
+
+| ID | Item | Default while unverified | Verified in |
+|---|---|---|---|
+| U-API-1 | Full CSP directive set (`'wasm-unsafe-eval'`, `worker-src blob:`, `report-to`) on Safari 26, Quest Browser and visionOS Safari; the mod UI `srcdoc` frame under this CSP and COEP (also S12 U2) | CSP ships Report-Only from M05b1 and becomes enforcing at M14b only after a clean report period; the mod frame keeps its own `<meta>` CSP | M05b1 (Report-Only run on staging), M13a5 (frame), M14b (enforce) |
+
+
+## 5. Wave 5 additions — decisions and ADRs (`docs/decisions/`)
+
+| Q | Question | Default applied (2026-10-18) | Blocks | Source |
+|---|---|---|---|---|
+| Q-30 | Send the written clearance questions of ADR-GENAI-01 (`research/gap-video-model-licence-clearance.md` §9) to fal and MiniMax, and file MiniMax's excluded-territory request (`platform.minimax.io/h3-license`)? Who sends them and who stores the answers under `docs/legal/`? | Not sent. No video provider is `cleared`; production calls stay blocked, the pipeline runs on mocks and the `previs` environment, and cutscene hooks play the in-engine fallback (a fallback-only M05c2 release) | live production video calls (M05b1 live mode, M05c3 prewarm, M08b2 and M10b clip generation); development and CI are unaffected | ADR-GENAI-01 gate G1, Q-03 |
+
+| ID | Item | Default while unverified | Verified in |
+|---|---|---|---|
+| U-ADR-01 | Supabase Auth GitHub provider (`supabase-oauth`) beside our Third-Party Auth issuer on one project; and whether OpenAI grants the website sign-in program (`AUTH_OPENAI_WEB`) | Public publishing waits for M14a; staging and private-to-owner publishing meanwhile (ADR-0018, DL-207) | M13c1 |
+| U-ADR-02 | Input-to-input latency of a Durable Object relay for 60 Hz fight input | No online fighter; ADR-0028 stays `proposed` and C11 is unchanged (DL-204) | M12c load test |

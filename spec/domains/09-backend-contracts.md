@@ -246,7 +246,7 @@ Consumers: S10 (all UI calls), S12 (UGC, publish, device-code), S04 (dialogue, b
 | Host | Worker | Headers | Serves |
 |---|---|---|---|
 | `<domain>` (app origin) | `tha-bay-web` (`services/edge`) | COOP `same-origin`, COEP `require-corp`, CORP `same-origin` on assets (`_headers`) **and** on every Worker response | SPA, `/api/v1/*` |
-| `<domain>/account/*`, `/link` | same | **no** COOP/COEP: `_headers` rules `! Cross-Origin-Opener-Policy` / `! Cross-Origin-Embedder-Policy` for these paths (the `!` removal syntax is verified [research/stack-cloudflare-backend.md §1.2]) and the Worker omits them | account pages (full-page provider redirects) |
+| `<domain>/account/*` (`/link` stays isolated, DL-189) | same | **no** COOP/COEP: `_headers` rules `! Cross-Origin-Opener-Policy` / `! Cross-Origin-Embedder-Policy` for these paths (the `!` removal syntax is verified [research/stack-cloudflare-backend.md §1.2]) and the Worker omits them | account pages (full-page provider redirects) |
 | `id.<domain>` | `tha-bay-web` (custom domain, host-routed) | CORS `*` on discovery/JWKS | OIDC issuer |
 | `rt.<domain>` | `tha-bay-rooms` (`services/rooms`) | CORS allow app origin, credentials none | `/api/v1/rooms/*`, `/api/v1/presence/*`, WS |
 | `media.<domain>` | R2 custom domain | bucket CORS GET/HEAD from app origin | world packs, cutscenes, audio |

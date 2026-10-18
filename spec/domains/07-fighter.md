@@ -191,7 +191,7 @@ All rows checked 2026-10-18 (ledger ids from `research/INDEX.md` §2 where they 
 | SF6 control types Classic / Modern; Modern specials do 20 % less damage; Drive Gauge six segments with Burnout | `https://game.capcom.com/manual/SF6/en/ps5/page/2/3`; `https://esports.gg/guides/street-fighter-6/do-modern-controls-do-less-damage-in-sf6`; `https://esports.gg/news/street-fighter/street-fighter-6-drive-system-explained-how-does-it-work` [research/gamedesign-decomposition.md verified facts] | FC5.4, FC7 |
 | GGPO is MIT-licensed, builds on Windows only | `https://github.com/pond3r/ggpo` [research/gamedesign-decomposition.md] | FC12 |
 | JavaScript `Math` results are implementation-dependent across engines | `https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math` [research/gamedesign-decomposition.md] | FC1.4 |
-| H3 Max reference-to-video: ≤ 9 images, 4,096 reference tokens free, $0.08/s at 768P; fighter clip set N=8 (116 clips) about $70, N=12 (222) about $133 at list price with retakes | F-040; `https://fal.ai/models/minimax/h3-max/reference-to-video/llms.txt` [research/genai-pipeline-fal.md] | FX6.3 |
+| H3 Max reference-to-video: ≤ 9 images, 4,096 reference tokens free, $0.08/s at 768P; full fighter clip set N=8 (116 clips) about $70, N=12 (222) about $133 at list price with retakes; not affordable under the USD 100 cap, v1 generates the DL-OWN-01 subset (FX6.3) | F-040; `https://fal.ai/models/minimax/h3-max/reference-to-video/llms.txt` [research/genai-pipeline-fal.md] | FX6.3 |
 | Gapless composed intros via (Managed)MediaSource; ManagedMediaSource on iOS 17.1+; pool of 3 unlocked `<video>` elements; Low Power Mode needs a gesture for any video; 64 MB media budget; Wake Lock works in Home Screen apps since iOS 18.4 | F-063; [research/gap-cutscene-delivery-playback.md §3, §7.4, §7.5] | FX6.4, FP10 |
 | Tier rules: living people `parody` with altered name, no catchphrases or marks, not shown in their fame domain, never in marketing; deceased and company founders `fictionalized`; kill-switch ≤ 60 s with stand-ins; no sound-alike or voice clones | [research/legal-ip-likeness.md §3.2, §3.3, L1, L3, L4]; D-29 | FX1, FX4 |
 | Meshy library clips, retarget with `SkeletonUtils.retargetClip` offline | F-045; [research/genai-pipeline-fal.md]; [spec/domains/05-assets-pipeline.md §4] | FX7 |
@@ -253,7 +253,7 @@ Other milestones S07 depends on or feeds: M01a (detmath vectors, lint), M04a (`c
 
 ## 10. Open questions, assumptions, proposals
 
-**Open questions (S07):** Q-S07-1 to Q-S07-4 in FP11; Q-S07-5 `USER_NPC` fighters: when, after M13c (recommend a post-v1 slot). Roster content waits on Q-19; Q-14 sets 8 versus 12 fighters if a fallback video provider becomes default.
+**Open questions (S07):** Q-S07-1 to Q-S07-4 in FP11; Q-S07-5 `USER_NPC` fighters: when, after M13c (recommend a post-v1 slot). Roster content waits on Q-19. Fighters are fixed at 8 for v1 (DL-OWN-01, DL-174); Q-14 is closed.
 
 **Assumptions on concurrent owners** (resolved by the Architect in 06 v1.1, 2026-10-18: all accepted as stated except where noted; DL-081, DL-086, DL-091, DL-093, DL-095, DL-098, DL-102):
 - S01 (accepted, C03 1.1 `ControlsSettings.fighterScheme?: 'classic' | 'simple'`): `ControlsSettings.fighterScheme` selects between two binding files per device (`…fighter-classic.json`, `…fighter-simple.json`); fighter-context labels come from a labels file (S10); `InputRouter` can supply `frame(1)` from a second gamepad for local Versus (keyboard second player is out of v1).

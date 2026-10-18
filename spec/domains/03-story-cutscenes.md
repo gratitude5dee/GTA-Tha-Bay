@@ -310,7 +310,7 @@ Both paths leave identical mission state.
 
 Generated audio cannot be disabled at the provider [research/gap-cutscene-delivery-playback.md §1.1], so `engine` is the default.
 
-**Fallback triggers.** Every trigger emits telemetry `cutscene.play {key8, cached, fallback: true, reason}` (C16).
+**Fallback triggers.** Every trigger emits telemetry `cutscene.play {key8, cached, fallback: true, path: 'fallback', trigger}` (C16 1.1: the `FallbackTrigger` goes in `trigger`, never in `reason`; DL-193).
 
 | Trigger | Detection | Action |
 |---|---|---|
@@ -354,7 +354,7 @@ Clips are internal assets. Nothing generated is visible to players until it pass
 
 ## D9. Prewarm lists, counts and cost
 
-Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls.
+Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls. **DL-OWN-01:** the lists below are index refs, each with an in-engine fallback. The owner's USD 100 fal cap leaves $40 for video, so generation covers only the subset in §D9.1 and every other ref plays its DirectorScript.
 
 | P | List | Refs (clips) | Seconds | Milestone |
 |---|---|---|---|---|
@@ -387,4 +387,21 @@ The player fighter and user NPCs are in-engine only (§D1).
 | `ltx25.fast` $0.09/s (720p) | $168.21 | $269.73 | same | [research/genai-pipeline-fal.md §A] |
 | `gemini.omniFlash11` $0.10/s (720p) | $186.90 | $299.70 | same | [research/genai-pipeline-fal.md §A] |
 
-These totals stay below S05's planned video line ($234.9 on `h3.partner`, $382.3 on LTX [`05-assets-pipeline.md` §11]). Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). If LTX or Gemini becomes the default, N = 8 stays inside Q-14's $1,000 programme.
+These are list-price totals for generating every ref. They do not fit the $40 cutscene line (DL-OWN-01), so v1 generates the §D9.1 subset. Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). N = 12 is not generated in v1.
+
+### D9.1 v1 generation line (DL-OWN-01, DL-173)
+
+The cutscene line is $40 of the owner's USD 100 fal cap (spike $10, characters $42, buffer $8). `pnpm assets:gen prewarm` walks the groups below in order and stops before the running estimate would pass **$38**; the last $2 is headroom for rerolls beyond the 1.5× allowance (§D8 retakes). Estimate per clip = shots × seconds × provider $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K keyframes; recipe R clips carry no keyframe. Prices are the §D9 list prices.
+
+| Group | Content | Recipe | `h3.partner` | `ltx25.fast` | `gemini.omniFlash11` |
+|---|---|---|---|---|---|
+| G1 | the 9 Act 1 refs (§B5; 102 s) | K | $10.01 | $14.60 | $16.13 |
+| G2 | fighter finishers: 8 `fight.shutdown` + 8 `fight.super` (Showstopper only; 8 s each) | K | $12.47 | $18.23 | $20.15 |
+| G3 | fighter face-offs, in the order of `content/fighter/cutscenes.json` | R (K on LTX) | 21 clips, $15.12 | 4 clips, $4.56 | 1 clip, $1.20 |
+| | **Generated** | | **46 clips, 398 s, $37.60** | 29 clips, 262 s, $37.39 | 26 clips, 238 s, $37.48 |
+
+If `h3.maxTurbo` clears (ADR-GENAI-01), G1–G3 complete (all 28 face-offs) and G4 adds the 8 specials and 8 endings: 69 clips, 582 s, about $37.7.
+
+**Stays in-engine in v1** (DirectorScript with subtitles, R-CUT-03): Acts 2–3 story refs (18), racing intros (12), fight walk-ins (48), L2 supers (8), signature specials (8) and endings (8) unless G4 applies, and the face-offs beyond the funded ones. At the `h3.partner` baseline that is 46 generated refs of 155 (30 %) and 109 in-engine. A composed fight intro `[walkin A, walkin B, faceoff]` therefore mixes in-engine walk-ins with a generated face-off through `playSequence` per-item fallback (DL-081). The protagonist, user NPCs and every `PLAYER_FIGHTER` segment stay in-engine (§D1).
+
+Sheets: the finishers and face-offs need approved Standard sheet crops of the eight fighters; the Act 1 cast (Corwin, Dana, Tavi, Imani, Whitney) needs Lean sheet crops. If the provider is not `cleared` when M05c3 runs, no money is spent and Act 1 ships fallback-only (fully playable).

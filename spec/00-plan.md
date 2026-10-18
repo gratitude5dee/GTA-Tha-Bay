@@ -54,7 +54,7 @@ Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice cei
 | M00 | bootstrap-ci-pwa-on-workers (+ UI shell skeleton) | S11, S13, S10 | 1 |
 | M00a | edge-api-skeleton | S09 | 0.8 |
 | M00b | ip-provenance-gates | S05 | 1 |
-| M00c | genai-spike (≤ $40) | S05 | 1 |
+| M00c | genai-spike (≤ $10) | S05 | 1 |
 | M01a | loop-ecs-detmath-physics | S01 | 1–2 **>1, Wave 5 splits** |
 | M01b | controller-cameras-touch | S01 | 1–2 **>1, Wave 5 splits** |
 | M01c | device-spike-renderer-host | S11 | 1 |

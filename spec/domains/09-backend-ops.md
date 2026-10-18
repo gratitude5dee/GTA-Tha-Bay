@@ -137,7 +137,7 @@ Backend-owned alerts (starting thresholds; S13 finalizes; research ids S01–S09
 ## 5. Cost guardrails (spec/03 D-28, G3)
 
 ### 5.1 Ceilings (G3, applied 2026-10-18)
-Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100 (≈ $3.33/day), moderation $25 (≈ $0.83/day), buffer $25. One-off production fal credit $1,000. Public fal spend $0 (generation internal-only) [research/INDEX.md §7]. All values live in `config/guardrails.yaml`, the single source read by the governor, the quota DO and the nightly drift check.
+Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100 (≈ $3.33/day), moderation $25 (≈ $0.83/day), buffer $25. One-off production fal credit: hard cap $100 total (owner, DL-OWN-01; supersedes $1,000). Public fal spend $0 (generation internal-only) [research/INDEX.md §7]. All values live in `config/guardrails.yaml`, the single source read by the governor, the quota DO and the nightly drift check.
 
 ### 5.2 Per-player quotas (`PlayerQuotaDO`, day = UTC)
 | Quota | P0 `local` / P1 `device` | P2/P3 `linked` (18+) |
@@ -146,7 +146,7 @@ Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100
 | Turns per NPC | 40 | 40 |
 | Voiced lines | 60 | 200 |
 | Cost cap | $0.05 | $0.15 |
-| NPC builder jobs (fal-backed) | 0 | 3 (Lean build 1/day) |
+| NPC builder jobs (fal-backed) | 0 | 0 in v1 (DL-OWN-01: no player-triggered fal; was 3, Lean build 1/day) |
 | User cutscene generation | 0 | 0 |
 Source [research/INDEX.md §7], [research/gap-observability-cost-guardrails.md Rec 2.3]. Per-net caps (`q:n:*`) are 4× the P0 row.
 

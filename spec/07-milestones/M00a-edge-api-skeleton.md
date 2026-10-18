@@ -43,7 +43,7 @@ M00. Contracts: C12 1.1 (`09-backend-contracts.md` §2.1, §2.2, §2.4 rows 1–
 - `.github/workflows/deploy.yml`: `push: main` → `pnpm deploy:prod -- --env staging`; `push: tags: ['v*']` or `workflow_dispatch` → production only when `github.actor` is in repo variable `DEPLOY_ALLOWED_ACTORS` (private personal repos cannot enforce environment reviewers, research §6); version id to the job summary.
 - `.github/workflows/ci.yml`: `static` adds `pnpm check:secrets`, `pnpm check:do-migrations`; `unit` runs `pnpm check:workers`; `build` adds `pnpm check:prod-routes` and `pnpm check:secrets -- apps/web/dist`.
 - Root scripts: `check:workers [-- <suite>]` (real now), `check:secrets [-- <dir>]`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `dev:edge`.
-- Pins: `@cloudflare/vitest-pool-workers`, `@cloudflare/workers-types`, `ajv` are not in the ledger (UNVERIFIED): take the resolved version, record it in `spec/03` §5.
+- Pins: `@cloudflare/workers-types@5.20261018.1` [research/stack-cloudflare-backend.md]; `@cloudflare/vitest-pool-workers` and `ajv` are not in research (UNVERIFIED): take the resolved version, record it in `spec/03`.
 - Secrets: none new. `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as in M00; repo variable `DEPLOY_ALLOWED_ACTORS`. Absent token → `deploy:*` SKIP exit 0 locally; in `deploy.yml` a missing secret fails the job (a silent production skip would hide a broken pipeline).
 
 ## Interfaces
@@ -83,7 +83,7 @@ M00. Contracts: C12 1.1 (`09-backend-contracts.md` §2.1, §2.2, §2.4 rows 1–
 ## Risks & fallbacks
 - The Workers Vitest pool cannot load this config (UNVERIFIED pairing): call the exported `fetch` handler from plain Node Vitest with a fake `env` (AE stub, vars) and a `cf` object; log a Builder decision; AC proofs keep the same command.
 - `wrangler deployments status --json` fields differ (U-BE-20): fall back to `wrangler versions list --json` and take the newest version at 100 %; if neither parses, stop before `versions deploy` and fail the job (never deploy without a rollback target).
-- A † key is rejected by `wrangler@4.151.1`: remove the key, keep the behaviour default, record it in `spec/03` §5 and `spec/99` U-BE-3.
+- A † key is rejected by `wrangler@4.151.1`: remove the key, keep the behaviour default, record it in `spec/03` and `spec/99` U-BE-3.
 - AE is unavailable in Previews: the binding is redeclared under `previews`; if Previews still reject it, `/t` returns 204 and drops events when `env.AE` is undefined (telemetry is never on the player's critical path).
 
 ## Notes for the Builder

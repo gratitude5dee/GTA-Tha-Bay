@@ -17,7 +17,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 | 7 | `GenJobWorkflow` stages for every job kind; ports so one step module runs in Workers, CLI and tests | D §3, §5 | D-19 |
 | 8 | fal mechanics: queue submit, headers, ED25519 webhook verify, poll fallback, concurrency gate | D §5 | F-047 |
 | 9 | Retry classes and non-retryable refusals | D §5.2 | [genai-pipeline-fal.md §4.1] |
-| 10 | Budget ledger, G3 $1,000 one-off cap with 50/80/100 % alarms, cache hits never blocked | D §5.3 | G3, D-28, F-048 |
+| 10 | Budget ledger, $100 one-off fal cap (DL-OWN-01, replaces G3's $1,000) with 50/80/100 % alarms, cache hits never blocked | D §5.3 | G3, D-28, F-048 |
 | 11 | Character pipeline: tier check → style bible → sheet → crops → mesh → rig → retarget → optimize → publish, with endpoints | D Pt B §1 | D-18, R-NPC-02 |
 | 12 | Automated QA gates and explicit human gates | D Pt B §2 | [genai-pipeline-fal.md §3.1] |
 | 13 | Likeness gate at every stage; no face refs for non-consented; prompt linter; consent revalidation | D §5.4 | D-29, R-NPC-04 |
@@ -34,12 +34,12 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 | 24 | CI gates `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`, `check:c2pa`, `ip:history` | D Pt B §9; M00b | INDEX §4.4 |
 | 25 | Asset lock file as the release gate; mock, previs and placeholder outputs cannot ship | D §4.3, Pt B §9 | ADR-GENAI-01 |
 | 26 | Kill-switch purge workflow (live ≤ 60 s, public purge ≤ 24 h), stand-ins, drill | D §5.5, Pt B §10; M10b | D-29 |
-| 27 | Cost per asset and v1 programme against the $1,000 cap | D Pt B §11 | F-044…F-046 |
+| 27 | Cost per asset and v1 programme against the $100 cap (DL-OWN-01) | D Pt B §11 | F-044…F-046 |
 | 28 | Roster batch runbook, idempotent re-run | D Pt B §12; M10a | R-NPC-02 |
 | 29 | Platform differences desktop / mobile / Quest 3 / Vision Pro | D §6 | C13 |
 | 30 | Mock provider with recorded fixtures | D §3; M05b | A-09 |
 | 31 | Vendor terms snapshots and weekly terms-watch | D Pt B §9; M00b, M14b | [gap-video…md §6] |
-| 32 | Player-triggered generation (NPC builder) | M13c (needs 18+, P2+) | D-30, F-042 |
+| 32 | Player-triggered generation (NPC builder) | not built in v1 (DL-OWN-01); owner-approved staff queue only; 18+ and P2+ if ever opened | D-30, F-042 |
 | 33 | Self-hosting H3 weights, `recast`, face-swap, non-consented voice clone | X banned in registry | [legal-ip-likeness.md] |
 | 34 | EU/UK AI-label compliance | X v1 is US-only (A-10) | [legal-ip-likeness.md §8] |
 
@@ -47,7 +47,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 
 - **Assigned:** R-NPC-02 (character pipeline), R-IP-01 (provenance manifest and CI check), R-ENG-03 (nothing generates without a cache check; quotas and budget alarms), R-CUT-01 (storage and generation jobs: stages inside `GenJobWorkflow`; S03 owns request, cache key and playback).
 - **Enforced here for others:** R-NPC-04 and R-IP-02 (tier gates at every stage, kill-switch purge), R-CUT-03 (generation never blocks play).
-- **Deferred:** the player-triggered half of R-NPC-03 (generation step) to M13c; the NPC-builder text path is S04's.
+- **Deferred:** the player-triggered half of R-NPC-03 (generation step) is not built in v1 (DL-OWN-01; custom 3D only through an owner-approved staff queue counted against the cap); the NPC-builder text path is S04's.
 - **Owns:** C07. **Honors:** C13 (tier ids, `VARIANT_FALLBACK`, budgets). **Consumes (final in 06 v1.1):** C09 (S03), C10 (S04), C12 (S09). Assumptions are in `contract_change_proposals` at the end of Part B.
 - **Consumers of C07:** S02 (world packs, props, map-data provenance), S03 (cutscene assets, keyframes), S04 (character, voice, mouth atlas), S06 (vehicles), S07 (fighter models, clips), S11 (loader, cache, tier selection), S12 (mod assets reuse `ProvenanceRecord`).
 
@@ -337,7 +337,7 @@ export declare function assertStageAllowed(job: GenJob, stage: string, ports: Ge
 
 ### 4.7 Config and flags
 
-`GENAI_ENV` (`production|previs|test`; `FAL_MODE=mock` from S09's vars forces `MockExecutor` and `test`), `MEDIA_ORIGIN`, feature flag `GEN_PUBLIC=false` (compile-time constant; the player-triggered path does not exist in v1). Caps and thresholds are not env vars: they live in `config/guardrails.yaml` under `genai:`: `falConcurrency` (default 2), money caps in integer USD micros `runCapUsdMicros` (default per-run `budgetUsdMicros`), `programCapUsdMicros` (1,000,000,000 = $1,000, G3) and `alarms` (0.5, 0.8, 1.0) (06 §5, DL-068). Secrets: `FAL_KEY`, `ANTHROPIC_API_KEY` (vision QA), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` [research/stack-cloudflare-backend.md §7].
+`GENAI_ENV` (`production|previs|test`; `FAL_MODE=mock` from S09's vars forces `MockExecutor` and `test`), `MEDIA_ORIGIN`, feature flag `GEN_PUBLIC=false` (compile-time constant; the player-triggered path does not exist in v1). Caps and thresholds are not env vars: they live in `config/guardrails.yaml` under `genai:`: `falConcurrency` (default 2), money caps in integer USD micros `runCapUsdMicros` (default per-run `budgetUsdMicros`), `programCapUsdMicros` (100,000,000 = $100, G3 as amended by DL-OWN-01; DL-171) and `alarms` (0.5, 0.8, 1.0) (06 §5, DL-068). Secrets: `FAL_KEY`, `ANTHROPIC_API_KEY` (vision QA), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` [research/stack-cloudflare-backend.md §7].
 
 ## 5. Runtime behavior
 
@@ -381,7 +381,7 @@ stateDiagram-v2
 
 ### 5.3 Budget
 
-`BudgetPort` reserves and settles through S09's `BudgetGovernorDO` (vendor `fal`) and lands in `genai_ledger` (migration 0002; kind `asset` added, `job_id` = `jobKey`). Estimate = registry price × units; fal exposes no spend cap and locks the account below a balance threshold (F-048), so our ledger is the cap: per-run `budgetUsdMicros`, a one-off program cap of $1,000 (G3; `config/guardrails.yaml` `genai.programCapUsdMicros` is the source; the `budget_program` row in migration 0002 is a mirror written at deploy and checked by the nightly drift check) with alerts at 50/80/100 %, hard stop at 100 % until the owner raises it. Weekly reconcile against the fal dashboard (manual; per-request billing retrieval UNVERIFIED).
+`BudgetPort` reserves and settles through S09's `BudgetGovernorDO` (vendor `fal`) and lands in `genai_ledger` (migration 0002; kind `asset` added, `job_id` = `jobKey`). Estimate = registry price × units; fal exposes no spend cap and locks the account below a balance threshold (F-048), so our ledger is the cap: per-run `budgetUsdMicros`, a one-off program cap of $100 (G3 as amended by DL-OWN-01, DL-171; `config/guardrails.yaml` `genai.programCapUsdMicros` is the source; the `budget_program` row in migration 0002 is a mirror written at deploy and checked by the nightly drift check) with alerts at 50/80/100 %, hard stop at 100 % until the owner raises it. Weekly reconcile against the fal dashboard (manual; per-request billing retrieval UNVERIFIED).
 
 ### 5.4 Likeness gate (D-29, constraint 7)
 
@@ -437,7 +437,7 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 | Milestone | S05 slice | Stubbed first | Sessions |
 |---|---|---|---|
 | **M00b** (new, split of M00) `ip-provenance-gates` | schema, `provenance:check`, `ip:signatures/extensions/strings`, `license:scan`, `names:lint` (display side), `likeness:gate` unit rules, `config/*.json`, vendor-terms snapshots, bad-fixture tests | `ip:similarity` (separate runner, S13), real-side names (secret) | 1 |
-| **M00c** (new) `genai-spike` | ≤ $40 spend: one Standard character, three cutscene shots, four provider clips; probe bone names, C2PA, codecs, refusal behaviour; results to `research/`; resolves U1–U4, U8 | none | 1 |
+| **M00c** (new) `genai-spike` | ≤ $10 spend (DL-OWN-01): one Standard character, three cutscene shots, four provider clips; probe bone names, C2PA, codecs, refusal behaviour; results to `research/`; resolves U1–U4, U8 | none | 1 |
 | **M01d** (new) `assets-publish` | catalog builder, `assets:verify/publish/lock`, `credits`, `resolveVariant`, rclone upload with HEAD verify | no generated assets yet; fixtures only | 1 |
 | **M05b** | `GenJobWorkflow`, ports, `MockExecutor`, webhook verify, `FalGateDO`, ledger, cutscene steps with container stub | live fal calls blocked until ADR-GENAI-01 `cleared` | 1–2 (shared with S03) |
 | **M05c** | Act 1 cutscene prewarm via the registry's cleared provider; `check:c2pa` | n/a | 0.5 |
@@ -445,7 +445,7 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 | **M10a** | roster automation (`assets:gen`), QA gates, two validated characters | voices via presets | 2 |
 | **M10b** | gates hardening, batch prewarm idempotence, kill drill | none | 1 |
 | **M11a** | asset budgets as perf tests | none | 0.5 |
-| **M13a/c** | mod validator reuses `ProvenanceRecord`; player-triggered generation behind 18+ and P2 | text-only builder before | 1 |
+| **M13a/c** | mod validator reuses `ProvenanceRecord`; no player-triggered generation in v1 (DL-OWN-01) | text-only builder, creator-kit bodies | 1 |
 | **M14b** | `ip:history` before public, terms-watch green, counsel sign-off | none | 0.5 |
 
 R-ID map: R-NPC-02 → M05b (mock), M08a, M10a–b. R-IP-01 → M00b, M01d, M14b. R-ENG-03 → M00c, M05b, M10b (ledger, cache check, idempotent prewarm). R-CUT-01 → M05b, M05c. R-NPC-04 and R-IP-02 (enforcement) → M00b (gate rules), M10b (kill drill).
@@ -460,4 +460,4 @@ R-ID map: R-NPC-02 → M05b (mock), M08a, M10a–b. R-IP-01 → M00b, M01d, M14b
 
 ## 10. Open questions
 
-Q-S05-01 Written H3 clearance (fal, MiniMax) status — blocks `cleared` for H3 providers; default assumed `pending`, LTX-2.5 fast as production fallback (Q-03). Q-S05-02 Who holds the production `FAL_KEY` and its scopes (art lead machine vs CI secret vs Worker secret). Q-S05-03 Whether 12 fighters or 8 are produced if a fallback provider becomes default (budget, Part B §11). Q-S05-04 Human art-lead time per character and per vehicle (measure in M00c/M03). Q-S05-05 Counsel reading of "internal business use" for roster generation (fal ToS §4(a)).
+Q-S05-01 Written H3 clearance (fal, MiniMax) status — blocks `cleared` for H3 providers; default assumed `pending`, LTX-2.5 fast as production fallback (Q-03). Q-S05-02 Who holds the production `FAL_KEY` and its scopes (art lead machine vs CI secret vs Worker secret). Q-S05-03 (closed by DL-OWN-01, DL-171) 8 fighters are produced; the 12-fighter target is post-v1. Q-S05-04 Human art-lead time per character and per vehicle (measure in M00c/M03). Q-S05-05 Counsel reading of "internal business use" for roster generation (fal ToS §4(a)).
