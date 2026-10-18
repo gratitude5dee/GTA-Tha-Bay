@@ -29,7 +29,7 @@ After this session Culture Wars is content-complete for v1, with in-engine prese
 
 ## Scope out
 - Generating or prewarming any clip, sheets, `assets:gen prewarm`: M10b (≤ $24 of the $40 cutscene line, DN-S13-02), gated by ADR-GENAI-01 and `FAL_KEY` (Q-17).
-- Real models and signature clips: M10a1–M10a2. Kill drill end to end: M10b. Backlog stages: post-M10. XR panel playback: M11b2.
+- Real models and signature clips: M10a1–M10a2. Kill drill end to end: M10b. Backlog stages: post-M10. Fighter XR rules and panels: M11b2; XR cutscene playback (hosts, vantage, subtitle plane): M11b4 (DL-229).
 
 ## Deliverables
 - `content/fighter/stages/{ferry_plaza,dolores_slope,bayview_cranes,alcatraz_yard,mission_bay_court}.json`; gray-box stage assets and provenance.
@@ -37,7 +37,7 @@ After this session Culture Wars is content-complete for v1, with in-engine prese
 - `packages/modes/fighter/src/sim/{cutscenes.ts, cinematic.ts, arcade.ts, killswitch.ts}`; `src/ui/{intro.ts, gallery.ts, cards.ts, a11y.ts}`; `src/directors/*.ts` (stage2d fallbacks).
 - `tools/assets/cutscene-index` reads `content/fighter/cutscenes.json`; `check:assets` fallback rule.
 - `packages/modes/fighter/test/{cinematic.spec.ts, arcade.spec.ts, bouts.spec.ts, a11y.spec.ts, killswitch.spec.ts}`.
-- `tests/e2e/{fighter-cutscene.spec.ts (@fighter-cutscene), fighter-kill.spec.ts (@fighter-kill)}`; `tests/perf/paths/fight-stage.json` extended to cycle the six stages.
+- `tests/e2e/{fighter-cutscene.spec.ts (@fighter-cutscene), fighter-kill.spec.ts (@fighter-kill)}`; `config/perf/paths/fight-stage.json` extended to cycle the six stages.
 
 ## Interfaces
 - Uses C09 1.0 exactly: ref ids `cut.fight.*` (owner S03), `CutsceneKeyInput` with characters sorted, `playSequence` items `{ref | null, fallback}`; C06 1.1 `cutscene.state` with `item`; C12 1.1 `RosterFlags` read-only; C13 1.1 `evictByTag`; C16 1.1 `cutscene.play {key8, cached, fallback, path, trigger}`. No contract change.

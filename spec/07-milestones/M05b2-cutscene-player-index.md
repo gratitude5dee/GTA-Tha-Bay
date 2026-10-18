@@ -9,7 +9,8 @@ After this session a story beat can ask for a cutscene and always get one. `cuts
 - R-CUT-03: eleven fallback triggers; the mission never waits on generation.
 
 ## Depends on
-- M05b1 (route 27, catalog file, `CutsceneJobDO`, mock pipeline, `assets:gen prewarm`), M04c (C09 cutscene types, video pool, DOM host, overlay, fixtures), M05a1 (VM, `beat` op, compiler). Through M05a1's chain the director of M05a2 is available in run order; if it is not, the fallback holds a single shot (M05a1 behaviour).
+- M05b1 (route 27, catalog file, `CutsceneJobDO`, mock pipeline, `assets:gen prewarm`), M04c (C09 cutscene types, video pool, DOM host, overlay, fixtures), M05a1 (VM, `beat` op, compiler).
+- If M05a2 has already landed (run order), its director drives the fallback; otherwise the fallback holds a single shot (M05a1 behaviour).
 - Contracts: C09 1.0 (§D2–§D4, §D7), C13 1.1 (`FirstGestureUnlock.acquireVideo`, `PlatformSettings.dataSaver`, `MemoryBudget`), C06 1.1 (`UiCommand 'cutscene.state'`, `SimEvent`), C12 1.1 (`CutsceneStatus`, `RosterFlags`), C16 1.1 (`cutscene.play` props, DL-193), C05 1.1 (`ProfileSettings.cutscenes`).
 
 ## Scope in

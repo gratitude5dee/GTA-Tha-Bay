@@ -42,6 +42,8 @@
     "names:brand": "tsx tools/ci/names-lint.ts --brand",
     "likeness:gate": "tsx tools/ci/likeness-gate.ts",
     "genai:liveness": "tsx tools/assets/genai-liveness.ts",
+    "genai:spike": "tsx tools/assets/genai-spike.ts",
+    "genai:price": "tsx tools/assets/genai-price.ts",
     "legal:snapshot": "tsx tools/ci/terms-snapshot.ts",
     "check:provenance": "pnpm provenance:check",
     "check:ip": "pnpm ip:all",
@@ -50,10 +52,13 @@
     "check:likeness": "pnpm likeness:gate"
   },
   "devDependencies": {
+    "@gltf-transform/core": "4.5.1",
     "@playwright/test": "1.64.1",
     "@types/node": "^22.0.0",
+    "@types/pngjs": "^6.0.5",
     "ajv": "^8.20.0",
     "eslint": "^10.13.0",
+    "pngjs": "^7.0.0",
     "tsx": "^4.0.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.2",

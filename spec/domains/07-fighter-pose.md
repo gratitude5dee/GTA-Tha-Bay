@@ -143,7 +143,7 @@ export interface PoseCalibration {          // dimensionless; no raw measurement
 
 ## FP6 Fallbacks, hybrid mode, failures
 
-- **Instant return.** Any touch, key or pad input switches the active device away from pose (C03 rule 8). **Hybrid mode** (stick/keys for movement, pose for strikes and guard) needs that rule relaxed: proposal to S01, `InputRouter.setPoseHybrid(boolean)`, additive C03 1.1; until accepted, v1 ships exclusive-only and hybrid is hidden (`FighterSlice.settings.hybridPose` stays false).
+- **Instant return.** Any touch, key or pad input switches the active device away from pose (C03 rule 8). **Hybrid mode** (stick/keys for movement, pose for strikes and guard) relaxes that rule through `InputRouter.setPoseHybrid(boolean)` (already in C03 1.1, DL-128); M08c2 ships it behind `FighterSlice.settings.hybridPose` (default false; DL-236).
 - **Presence.** Presence < 0.5 for 1 s, or camera FPS < 15 → sim pauses (`paused` via the existing pause path), overlay "Move into frame"; one tap returns to touch/pad. Pause is immediate; the round clock does not run.
 
 | Failure | Detection | Response |
@@ -168,7 +168,7 @@ export interface PoseCalibration {          // dimensionless; no raw measurement
 6. **Indicator.** A DOM status element "Camera on" with a Stop button is visible whenever tracks are live; tracks stop on pause, blur, hide, mode exit and when the setting is turned off.
 7. **Telemetry.** Aggregates only: existing `pose.calibrate {ok, ms, delegate}` and `pose.session {durationS, camFpsP50, latencyEstP95Ms, level, endReason}` (C16 1.1, DL-103). No landmarks, no timings per frame.
 8. **No face landmarks.** CI greps the dependency tree and `/pose/` for `face_landmarker` and the Face Landmarker task name; `license:scan` fails on AGPL packages or weights.
-9. **Fixtures.** Only landmark JSON and synthetic data are committed; `check:privacy-fixtures` fails if any image or video file exists under `packages/modes/fighter/fixtures/`. Local `.webm` clips for the pipeline test mode are git-ignored.
+9. **Fixtures.** Only landmark JSON and synthetic data are committed; a `check:unit` test (`fighter/pose.privacy-fixtures`, DL-236) fails if any image or video file exists under `packages/modes/fighter/fixtures/`. Local `.webm` clips for the pipeline test mode are git-ignored.
 
 ## FP8 Packaging, provenance, licence
 
@@ -184,7 +184,7 @@ export interface PoseCalibration {          // dimensionless; no raw measurement
 | T-P4 | Network, storage and header assertions (FP7.1–7.5) | `pnpm check:e2e -- --project=chromium-webgl2 --grep @pose` |
 | T-P5 | Static bundle check and licence scan | `pnpm check:bundle`, `pnpm license:scan` |
 | T-P6 | Capability decision table on synthetic bench inputs (`full`/`assisted`/`unavailable`) | `check:unit` |
-| T-P7 | Device latency run (iPhone 15 or newest available, desktop webcam): 60 s session, report p50/p95 `est95` and measured spot check, delegate chosen, camera FPS, thermal note | `pnpm perf:checklist -- fight-pose` (manual) |
+| T-P7 | Device latency run (iPhone 15 or newest available, desktop webcam): 60 s session, report p50/p95 `est95` and measured spot check, delegate chosen, camera FPS, thermal note | `pnpm perf:checklist -- tools/ci/checklists/M08c2-iphone15.json` and `M08c2-webcam.json` (manual) |
 
 The synthetic fixture generator `tools/ci/pose-fixtures/gen.ts` poses the `bay_rig_v1` mannequin from the shared base clips, projects joints through a virtual camera into 33-landmark arrays with image and world coordinates, and adds noise (σ 0.004 normalised†, 2 % dropout†) at 30 fps. Recorded fixtures are landmark JSON from team members under a release (no video kept).
 

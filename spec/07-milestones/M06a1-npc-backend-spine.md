@@ -45,7 +45,7 @@ The web Worker carries the backend that NPC dialogue runs on, though no model is
 - C12 1.1: routes 5 (verification and TOFU), 14, 30, 46, 47; `PlayTokenClaims`, `RosterFlags`, `KillScope`, `PlayerQuota`, `DataPort.npcMemory` and `roster`; migration 0003. Shapes copied.
 - C10 1.0: `DialogueEvent` (writer side only), `MemoryWrite`, `MemoryHit`, `SummaryPatch` types imported.
 - C16 1.1: `quota.block` (server-only).
-- `check:do-migrations` (M00a) must label the lifecycle PR. If its rules reject the skeleton export lines that `09-backend-ops.md` §1.2 allows, and M05b1 did not already fix this, extend its allowlist to "DO class files plus their export lines" with a fixture, and log a Builder decision.
+- `check:do-migrations` must label the lifecycle PR. M05b1 widened it to accept DO class files plus their export lines (DL-233), so the `web-v2` PR passes as written.
 
 ## Acceptance criteria
 - AC-1 Given a pid whose first token was signed by key K1 When the first server write arrives Then a `device_keys` row binds K1's thumbprint; a later token request for the same pid signed by K2 gets 403; a token signed with `PLAY_TOKEN_HMAC_PREV` still verifies inside the 24 h window and fails after it — proof: `pnpm check:workers -- play-token`

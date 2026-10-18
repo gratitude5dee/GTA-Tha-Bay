@@ -6,7 +6,7 @@
 
 | Field | Value |
 |---|---|
-| Owner · version | S04 · `C10_VERSION = '1.0.0'`; frontmatter format `soul/1.0` |
+| Owner · version | S04 · `C10_VERSION = '1.1.0'` (1.1: `meta.data.safety?`, DL-226); frontmatter format `soul/1.0` |
 | Source paths | `packages/shared/src/contracts/c10-npc.ts`, `contracts/c10-npc-builder.ts`; schemas `packages/shared/schemas/npc/*.json`; generated validators `packages/shared/src/npc/validators.gen.ts` (`pnpm npc:schemas`) |
 | Defined in | `04-npc-contracts.md` §B1–§B5, §B7; `04-npc-builder.md` §C3 |
 | Created in | M06a2 (types, schemas, soul compiler); M06a3 (dialogue proxy); M06b1 (builder API) |
@@ -20,7 +20,7 @@ Identifiers and enums:
 // packages/shared/src/contracts/c10-npc.ts
 import type { AssetRef, LikenessTier } from '../assets/c07';
 import type { StableKey } from './c01-ecs';
-export const C10_VERSION = '1.0.0' as const;
+export const C10_VERSION = '1.1.0' as const;   // 1.1: additive meta.data.safety? (DL-226)
 
 export type NpcId = string;                 // /^[a-z][a-z0-9_-]{2,47}$/ (B1 rule 4)
 export type SoulVersion = number;           // integer ≥ 1 (fixed)
@@ -200,7 +200,8 @@ export type FallbackReason = 'timeout' | 'refusal' | 'upstream' | 'invalid_outpu
 export type DialogueEvent =
   | { event: 'meta'; data: { encounterId: string; turnIndex: number; npcId: NpcId; soulVersion: SoulVersion;
         model: ModelTier; voice: VoiceTier /* effective tier for this turn */; turnsLeft: number;
-        disclosure: { aiCharacter: true; disclaimer: SoulLikeness['disclaimer'] }; gov: 0 | 1 | 2 | 3 } }
+        disclosure: { aiCharacter: true; disclaimer: SoulLikeness['disclaimer'] }; gov: 0 | 1 | 2 | 3;
+        safety?: 'crisis' /* 1.1: next turn after an async self-harm/intent hit */ } }
   | { event: 'line.delta'; data: { seq: number; text?: string; audio?: AudioChunk } }
   | { event: 'line.done'; data: { text: string; words: number } }
   | { event: 'effects'; data: { action?: { kind: NpcAction; arg: string | null }; mood?: Emotion; memoryWrite?: { count: number };

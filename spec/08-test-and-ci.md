@@ -55,13 +55,15 @@ Sources: `11-platform-perf.md` §6; [research/stack-rendering-platform.md rec 18
 |---|---|---|
 | M01b2 | AC-11 iPhone, AC-12 Quest (in-file manual steps) | 5 min touch play at `mobile-low`; Quest `immersive-vr` 60 s |
 | M01c | `M01c-{iphone15,iphone16,quest3,visionpro,mac}` | 10-min `graybox-walk`, memory bomb, `persist()`, `DeviceSignals` capture (outputs under `docs/device-spike/M01c/`) |
-| M02b2, M03b1 | `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`), `M03b1-iphone15` (`downtown-rush` ≥ 30 fps) | frame formula §4.3 |
+| M02b1 | `M02b1-mac` (`route-ferry-ocean-beach` on the operator's `sf` bake) | frame formula §4.3, cold download |
+| M02b2, M03b1 | `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`), `M03b1-iphone15` (`downtown-rush` ≥ 30 fps on an operator-built `DV_WORLD=synth` Preview, because Preview builds stay world-less; DL-235) | frame formula §4.3 |
+| M04b2 | `M04b2-iphone15` (creator, HUD, touch layouts, coach mark) | frame formula §4.3 |
 | M04c | `M04c-{iphone15,quest3}` | gap-cutscene §7.7 matrix: gesture unlock, Low Power Mode, wake lock |
 | M05c2 | `M05c2-{iphone15,mac}` | Act 1 missions 1–3 playable; `story-chase` |
 | M07b2 | `M07b2-iphone15` | landscape race at 30 fps; photo save path; tilt opt-in |
 | M08c2 | `M08c2-{iphone15,webcam}` | 60 s pose run: p50/p95 latency, delegate, FPS, capability level (`unavailable` is a valid outcome) |
-| M11a1–a2 | `M11a-{iphone15,iphone16,mac,desktopB,desktopC}` | `mobile` and `mobile-low` budgets, 30-min soak, offline relaunch, Low Power Mode, thermals |
-| M11b1–b4 | `M11b-{quest,visionpro}`, per-mode rows | enter/exit, refresh, p50/p95, comfort defaults, 15 s cutscene with subtitles, face-button indices |
+| M11a2 | `M11a2-{iphone15,iphone16,mac,desktopB,desktopC}` | `mobile` and `mobile-low` budgets, 30-min soak, offline relaunch, Low Power Mode, thermals |
+| M11b1, M11b4 | `M11b1-{quest3,visionpro}`; `M11b4-{quest3,visionpro}` with the per-mode rows and the S10 XR UI rows (DL-229) | enter/exit, refresh, p50/p95, comfort defaults, 15 s cutscene with subtitles, face-button indices |
 | M13a4, M13a5 | `M13a4-iphone15` (`mod-script`), `M13a5-{iphone15,quest3}` (`mods-ui`) | flag stays off until the run passes (DL-146, DL-147) |
 | M14b3 | `M14b3-<every device in §3.2>` | release pass: all scenarios of §4.1 at each device's tier |
 
@@ -79,7 +81,7 @@ Results go to `docs/device-runs/<M##>/<device>/{perf.json,notes.json}` (M01c kee
 | `downtown-rush` | S02 · M03b1 | webgl2 | agent counts ≤ tier `Traffic / peds` | M03b1, M11a |
 | `story-chase` | S03 · M05c2 | webgl2, webkit | counts, media MB | M05c2 |
 | `npc-mission-crowd` | S04 · M06c | webgl2 | brain budget per tier (S04 §9) | M11a |
-| `race-sprint`, `race-pursuit-heat4` | S06 · M11a1 | webgl2, webkit | counts with 5 rivals | M11a |
+| `race-sprint`, `race-pursuit-heat4` | S06 · M11a1 | webgl2, webkit | counts with the tier's rival cap (`06-racing.md` §6.2; DL-237) | M11a2 |
 | `fight-stage` / `fight-stage-pose` | S07 · M08a2 / M08c2 | webgl2, webkit | counts; `fighter:bench` step p99 ≤ 0.10 ms (Node) | M08c2, M11b2 |
 | `xr-walk` | S11 · M11b1 | `xr-quest3`; `?tier=xr-visionpro` per pass on webgl2 | counts per view pass | M11b1 |
 | `mod-scene-budget`, `mod-hostile` | S12 · M13a3, M13a4 | webgl2 | scene-op caps, worker budgets | M13a4 |
@@ -113,7 +115,7 @@ Common: `runs-on: ubuntu-24.04`; actions pinned by SHA; `permissions: contents: 
 
 | Job | Steps (exact commands) | Lands / required from |
 |---|---|---|
-| `static` | `pnpm lint` · `pnpm typecheck` · `pnpm check:secrets` · `pnpm check:do-migrations` · `pnpm check:api` · `pnpm check:telemetry` · `pnpm check:i18n` · `pnpm check:agents` · `pnpm check:skills` | M00 (lint, typecheck); M00a (secrets, do-migrations, api, telemetry); M04b1 (i18n); M00d (agents); M13a6 (skills) |
+| `static` | `pnpm lint` · `pnpm typecheck` · `pnpm check:secrets` · `pnpm check:do-migrations` · `pnpm check:api` · `pnpm check:telemetry` · `pnpm check:i18n` · `pnpm check:agents` · `pnpm check:skills` | M00 (lint, typecheck); M00a (secrets, do-migrations; widened by M05b1); M00d (agents, telemetry); M05d (api); M04b1 (i18n); M13a6 (skills) (DL-230) |
 | `unit` | `pnpm check:unit` · `pnpm check:workers` · `pnpm check:pipeline` | M00; M00a; M05b1 |
 | `content` | `pnpm map:fixture graybox --check` · `pnpm check:missions` · `pnpm check:balance` · `pnpm check:fighter` · `pnpm map:races validate` · `pnpm check:mods` · `pnpm npc:lint` · `pnpm npc:eval -- --replay` | M01f; M05a2; M04d (econ), M09a2 (tycoon); M08b1; M07a1; M13a6; M06a2; M06a4 |
 | `build` | `VITE_DV_QA=1 pnpm build` · `pnpm check:bundle` · upload `apps/web/dist` (3 days) | M00 |
@@ -137,7 +139,7 @@ Required for merge: `static`, `unit`, `content`, `build`, `prod-build`, `ip`, `e
 4. `post`: `pnpm check:headers -- <env url>`; production also runs `pnpm test:staging -- smoke` against staging hosts first (M05d+).
 
 ### 5.4 `assets.yml` — `push: main` with paths `assets/**`, `tools/assets/**`, `content/**/assets/**`, plus `workflow_dispatch` (`env`) (M01d)
-`build`: install KTX-Software 4.4.2 (`.deb` with SHA-1 check) → `pnpm assets:build` → `pnpm assets:verify`. `publish` (environment `<env>`): rclone 1.75.2 configured from `RCLONE_CONFIG_R2_*` env (no file) → `pnpm assets:publish -- --env <env>` (one `rclone copy --ignore-existing --fast-list --transfers 32 --s3-no-check-bucket` per content class with per-class `Content-Type` and `Cache-Control: public, max-age=31536000, immutable`; HEAD-verify; immutable manifest last) → PR that bumps the pointer in the Worker's static assets. `purge` only on overwrite or kill (prefix purge, `CF_API_TOKEN_CACHE`, from M10b). Never `Content-Encoding: gzip` uploads [research/gap-ci-cd-release-assets.md §2].
+`build`: install KTX-Software 4.4.2 (`.deb` with SHA-1 check) → `pnpm assets:catalog` → `pnpm assets:verify` (M01d's catalog builder; DL-230). `publish` (environment `<env>`): rclone 1.75.2 configured from `RCLONE_CONFIG_R2_*` env (no file) → `pnpm assets:publish -- --env <env>` (one `rclone copy --ignore-existing --fast-list --transfers 32 --s3-no-check-bucket` per content class with per-class `Content-Type` and `Cache-Control: public, max-age=31536000, immutable`; HEAD-verify; immutable manifest last) → PR that bumps the pointer in the Worker's static assets. `purge` only on overwrite or kill (prefix purge, `CF_API_TOKEN_CACHE`, from M10b). Never `Content-Encoding: gzip` uploads [research/gap-ci-cd-release-assets.md §2].
 
 ### 5.5 `nightly.yml` — cron `17 10 * * *` UTC + `workflow_dispatch` (created by M00b, extended by M00d)
 `pnpm genai:liveness` (M00b) · full e2e matrix including `@quarantine` · det suites in both engines: `pnpm check:e2e -- --project=chromium-webgl2 --grep "@determinism|@racing-det|@fighter-hash|@world-hash|@tycoon-det"` and the same on `webkit-webgl2` · `pnpm check:perf -- --fail` · `pnpm map:verify` (M02a2, full bake gates) · `pnpm check:balance` · staging keep-alive `pnpm test:staging -- keepalive` (M05d) · stale Preview sweep `pnpm deploy:preview -- --sweep-closed` (M00d) · media header audit `pnpm check:headers -- https://media-staging.<domain>/<sample>` (M01d) · guardrails `pnpm test:ops -- --suite guardrails-nightly` (T4–T6, T9; M14b2) · `macos-probe` on `macos-15`, `continue-on-error: true`, informational (U-QA-7).
@@ -154,12 +156,12 @@ Weekly (`23 9 * * 1`): `pnpm genai:terms-watch` (M14b3; a changed snapshot flips
 |---|---|---|
 | `dev`, `build`, `lint`, `typecheck` | Vite + `wrangler dev` (QA on); tokens → Vite → Worker dry run; ESLint (C02 bans, no-GLSL); `tsc --noEmit` | M00 |
 | `check:unit [-- <paths>]`, `check:e2e [-- …]`, `check:e2e:xr`, `check:bundle`, `check:headers -- <url>`, `check:coi -- <url>` | Vitest; Playwright; XR project; bundle and asset-count budgets; header and isolation checks | M00 |
-| `check:workers [-- <suite>]`, `check:secrets [-- <dir>]`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `check:api`, `check:telemetry` | Workers Vitest pool; secret patterns (`cfat_`, `cfut_`, `cfk_`, `sbp_`, `sb_secret_`, `sk-ant-`, fal); no `/_test/` in prod; DO-lifecycle isolation and label; deployed smoke; API schema drift; telemetry privacy and registry | M00a (api, telemetry grow per emitter) |
+| `check:workers [-- <suite>]`, `check:secrets [-- <dir>]`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `check:api`, `check:telemetry` | Workers Vitest pool; secret patterns (`cfat_`, `cfut_`, `cfk_`, `sbp_`, `sb_secret_`, `sk-ant-`, fal); no `/_test/` in prod; DO-lifecycle isolation and label; deployed smoke; API schema drift; telemetry privacy and registry | M00a; `check:telemetry` M00d, `check:api` M05d (both scoped out of M00a; DL-230) |
 | `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `names:brand`, `likeness:gate`, `check:assets`, `genai:liveness` | IP and provenance gates (`05-assets-pipeline.md` §9) | M00b |
 | `genai:spike`, `genai:price` | budget-capped spike (≤ $10, DL-OWN-01); price drift | M00c |
 | `check:perf [-- --scenario <id>] [-- --fail]`, `perf:verify`, `perf:checklist` | CPU-side budgets; device report judge; checklist printer | M01c |
-| `assets:*`, `check:c2pa` | build, verify, lock, publish, credits; C2PA on shipped clips | M01d; M05b1 |
-| `map:fixture`, `map:build`, `map:verify`, `map:landmarks`, `map:races` | world fixture, bake, gates, landmark seeds and recipes, race compile/validate/par | M01f, M02a1–a2 (`map:landmarks` seeds in M02a2, recipes M02d1), M07a1 |
+| `assets:*`, `check:c2pa` | catalog, verify, lock, publish, seed, credits (M01d); `assets:cutscene-index` (M05b2); `assets:gen` with `prewarm` (M05c3), `plan`/`run`/`gate`/`ledger` (M10a1); `assets:optimize`, `assets:retarget` (M10a1); `assets:pose-vendor` (M08c1); C2PA on shipped clips (M05b1) | DL-230 |
+| `map:fixture`, `map:build`, `map:verify`, `map:landmarks`, `map:races`, `map:fetch`, `map:pack`, `map:pois`, `map:geocode`, `map:resolve`, `map:webtiles` | world fixture, bake, gates, landmark seeds and recipes, race compile/validate/par; bake sub-steps of `02-world-bake.md` §3; geocoder; web tiles | M01f, M02a1 (`map:fetch`, `map:pack`), M02a2 (`map:verify`, `map:pois`, `map:resolve`, `map:landmarks` seeds; recipes M02d1), M02c2 (`map:geocode`), M07a1, M13b2 (`map:webtiles`); `map:diff` of `02-world-bake.md` §3 is post-v1 (DL-230) |
 | `check:agents`, `check:skills` | instruction-file sizes; skills mirror equality | M00d; M13a6 |
 | `check:balance [-- --suite econ\|tycoon]`, `tycoon:sim`, `tycoon:baseline` | Monte-Carlo bands | M04d (econ), M09a2 |
 | `missions:build`, `missions:preview`, `check:missions [-- --mission <id> \| --act <n>]` | mission IR compiler, preview, autoplayer gate | M05a1, M05a2 |
@@ -192,10 +194,12 @@ Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (o
 | `FAL_KEY` | operator / art lead only (Q-17); never CI | spike and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M10a1 |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub env `staging`/`production` (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub env | `db:push`, `auth:tpa`, staging tests | M05d |
-| `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`); GitHub secret for `ci-evals` | dialogue; weekly live evals; `test:staging -- npc-cache` | M06a3 |
+| `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`) | dialogue; `test:staging -- npc-cache` | M06a3 |
+| `ANTHROPIC_BUILDER_KEY` | Worker secret (workspace `npc-builder`) | builder soul generation and preview (`09-backend-contracts-1.1.md` §3; DL-231) | M06b1 |
+| `ANTHROPIC_EVALS_KEY` | GitHub secret (workspace `ci-evals`) | weekly `npc:eval -- --live` (DL-231) | M06a4 |
 | `CF_API_TOKEN_CACHE` | GitHub env `production` | prefix purge on kill or overwrite | M10b |
 | `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL` | Worker secrets | recon cron, guardrail config checks, alert sink | M14b1 |
-| Worker secrets `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET` · `SUPABASE_SECRET_KEY` · `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET` · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` · `OPENAI_MODERATION_API_KEY` · `ELEVENLABS_API_KEY` · `OPS_TOKEN` · `OPENAI_OIDC_CLIENT_SECRET` · `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | `wrangler versions upload --secrets-file` from GitHub env secrets; `.dev.vars` locally | per `09-backend-ops.md` §6 | M06a1 · M05d · M12a1 · M12b1 · M06b1 · M06a4 (t2 off) · M05b1 (removed M12a1) · M13c1 (flagged) · M13d1 |
+| Worker secrets `PLAY_TOKEN_HMAC` (from M04b3, route 5 mint; DL-231), `QUOTA_NET_SALT_SECRET` · `SUPABASE_SECRET_KEY` · `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET` · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` · `OPENAI_MODERATION_API_KEY` · `ELEVENLABS_API_KEY` · `OPS_TOKEN` · `OPENAI_OIDC_CLIENT_SECRET` · `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | `wrangler versions upload --secrets-file` from GitHub env secrets; `.dev.vars` locally | per `09-backend-ops.md` §6 | M06a1 · M05d · M12a1 · M12b1 · M06b1 · M06a4 (t2 off) · M05b1 (removed M12a1) · M13c1 (flagged) · M13d1 |
 
 Repo variable (not secret): `DEPLOY_ALLOWED_ACTORS` (M00a). Name conflicts resolved here (DN-S13-03): the moderation key is `OPENAI_MODERATION_API_KEY` (CLAUDE.md wins over `09-backend-ops.md` §6), and the deploy token is `CLOUDFLARE_API_TOKEN` (ops' `CF_API_TOKEN_DEPLOY` is that token); `CF_API_TOKEN_CACHE` is the only extra Cloudflare token.
 

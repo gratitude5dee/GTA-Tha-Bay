@@ -154,7 +154,7 @@ Premise B and C hooks reuse these events (B3 candlelight sideshow = `sf.sideshow
 | sideshow | free in ring | drift score inside ring zone; police heat 2 at T+60 s | escape (cooldown) after the score window | bust |
 | robotaxiRush | rolling | fare ticks down; each infraction −5 %; robotaxi witnesses report | deliver | fare 0 %, bust |
 
-## C.6 Tha Bay 10 ladder (rival ids `rival.<handle>`; all `original` likeness, portrait only, Lean tier ≈ $1.05 each [research/genai-pipeline-fal.md via spec/03 §6]; barks are text plus Aura t1 TTS)
+## C.6 Tha Bay 10 ladder (rival ids `rival.<handle>`; all `original` likeness, authored silhouette portraits with no fal spend, DL-OWN-01 and DL-237; barks are text plus Aura t1 TTS)
 
 | Rank | Handle | Specialty | Showdown event | Class | Rep level | Reward car | Unlocks |
 |---|---|---|---|---|---|---|---|
@@ -188,7 +188,7 @@ Rival driver `skill` per rank: 0.30 (10) up to 0.95 (1) in steps of ≈ 0.07 on 
 
 ## C.8 Art needs (S05 sourcing, H6 vehicle QA)
 
-15 drivable vehicles (C.1), 3 police presets' visuals (S01/S05), 10 rival portraits, barrier and cone prop sets (CC0 or authored), gate arches and markers (instanced, one render object), skid decals, nitro flame and exhaust billboards, thruster nozzles, spark and smoke sprites. Vehicle node contract: S05's names are accepted unchanged and extended with `cockpit` (interior group, hi/mid only), `steering_wheel`, `anchor_driver`, `anchor_hood`, `exhaust_l|r`, `thruster_fl|fr|rl|rr` (roadster only), `siren_l|r` (police), and a vertex attribute `_dent` (0..1 dent weight) for the damage shader (proposal CCP-4).
+15 drivable vehicles (C.1), 3 police presets' visuals (S01/S05), 10 authored rival silhouettes, barrier and cone prop sets (CC0 or authored), gate arches and markers (instanced, one render object), skid decals, nitro flame and exhaust billboards, thruster nozzles, spark and smoke sprites. Vehicle node contract: S05's names are accepted unchanged and extended with `cockpit` (interior group, hi/mid only), `steering_wheel`, `anchor_driver`, `anchor_hood`, `exhaust_l|r`, `thruster_fl|fr|rl|rr` (roadster only), `siren_l|r` (police), and a vertex attribute `_dent` (0..1 dent weight) for the damage shader (proposal CCP-4).
 
 ## C.9 Controls per platform (amends gamedesign §6: no Ctrl/Cmd/Alt chords, because browsers do not let pages intercept shortcuts such as tab close)
 

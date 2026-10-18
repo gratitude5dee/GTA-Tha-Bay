@@ -40,10 +40,10 @@ The backend gets its database. Supabase staging and production projects exist an
 - `services/edge/wrangler.jsonc`: `SUPABASE_URL` var per env and under `previews`, `secrets.required` adds `SUPABASE_SECRET_KEY`, cron `10 3 * * *` if absent.
 - `tools/ci/{check-db.ts, check-db-types.ts, db-push.ts, test-staging.ts}`, `tools/ci/test/db-scripts.test.ts` (migration lint fixtures, push plan), `tests/staging/{vitest.config.ts, keepalive.test.ts, smoke.test.ts}`, `apps/web/test/no-supabase.test.ts` (greps `dist` for `supabase-js`, `sb_secret_`, the project ref).
 - `config/supabase.projects.json` (`{staging: {ref, url}, prod: {ref, url}}`; refs are not secrets).
-- Root scripts: **`check:db`**, **`check:db:types`**, **`db:push`**, **`test:staging`**.
+- Root scripts: **`check:db`**, **`check:db:types`**, **`db:push`**, **`test:staging`**, **`check:api`** (`tools/ci/check-api.ts` with `tools/ci/test/check-api.test.ts`: regenerates `packages/shared/schemas/api/*.schema.json` from the route DTOs in `packages/shared/src/api/v1.ts` and fails on drift, `09-backend-ops.md` §2; the TypeScript-to-JSON-Schema generator is the version pnpm resolves, recorded in `spec/03`; M00a scoped it out, DL-230).
 - `.github/workflows/ci.yml` job `db` (paths `supabase/**`, `packages/shared/src/db*`, `packages/shared/src/data-port*`); `deploy.yml` job `migrate` before `web`; `nightly.yml` step `pnpm test:staging -- keepalive`.
 - `docs/runbooks/supabase.md`: project creation, keys, restore, pause recovery.
-- About 34 files.
+- About 36 files.
 
 ## Interfaces
 - C12 1.1: `DataPort`, `Ctx`, row types re-exported from `db.gen.ts`, migrations 0001–0002. Shapes are copied. The store interfaces are filled in by the "one method per route" rule. Any wider change is a proposal to the Architect in the PR, not an edit.
@@ -77,7 +77,7 @@ The backend gets its database. Supabase staging and production projects exist an
 5. Merge to `main`; open the `deploy` run; `migrate` precedes `web`; then run `pnpm test:staging -- keepalive`.
 
 ## Effort
-1 Builder session; about 34 files; risk **medium** (local-stack startup time in CI, keeping the generated types stable).
+1 Builder session; about 36 files; risk **medium** (local-stack startup time in CI, keeping the generated types stable).
 
 ## Risks & fallbacks
 - **Docker missing locally:** `check:db` prints `SKIP check:db: docker not available` and exits 0 outside CI. The `db` job on `ubuntu-24.04` has Docker and is required. Say in the report which checks were skipped.

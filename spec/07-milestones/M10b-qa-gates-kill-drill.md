@@ -53,6 +53,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   - The provider is the first `cleared` one by the A-08 selection rule. With none cleared the run prints `refused: ENDPOINT_NOT_CLEARED`, spends zero, and every ref keeps its fallback.
   - Outputs are re-signed (C2PA) and pass `check:c2pa`.
 - **Idempotence suite.** A mock prewarm of the story and fighter refs, run twice, makes zero `FalPort` calls the second time. A roster `run` after M10a2 also makes zero calls.
+- **Act 1 prewarm re-run (operator step, DL-232).** Once M10a2's Act 1 Lean sheets are approved, the operator re-runs M05c3's `pnpm assets:gen prewarm --release <tag> --live` under the same gate (a `cleared` provider) with `--cap-micros` = 16,000,000 minus the Act 1 spend already in the ledger; ready keys are skipped. The result goes into the drill report; no AC asserts live spend.
 
 ## Scope out
 - Production rails, alerting and guardrail suites T1–T9: M14b1–M14b3.

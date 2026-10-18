@@ -427,3 +427,15 @@ export const weekdayOf = (t: number): 0 | 1 | 2 | 3 | 4 | 5 | 6 => (Math.floor(t
 - **C06 rule 2, profiles.** A descriptor with `requires.simProfile: 'any'` embeds under the parent's profile; its top-level entry uses `standaloneProfile` (racing: `canonical`, so ghosts, replays and leaderboard runs are exact).
 - **ModeHost stats.** On a fighter win ModeHost increments `core.stats.fightsWon`; `ModeResult.data` may carry mode-specific rewards that the parent (Story) applies itself (S07).
 - **Engine vehicle readout.** S06's per-wheel contact readout and `applyWheelForces` path (CCP-3) is fixed by S01 and S06 in M03a2 after the U-RAC-1 spike and lands as an additive C06 1.2 member; until then S06 builds its own `castRay` + impulse vehicle (DL-104).
+
+## C05 1.2 addition (Architect, Wave 5 milestone reconciliation, 2026-10-18)
+
+Additive minor bump (`spec/11-decision-log-2.md` DL-225): story businesses (DL-133, `08-tycoon-events.md` §7) keep their `EventHost<BusinessState>` state in the property list, not in `StorySlice.flags`, so mission predicates never read business internals.
+
+```ts
+// c05-save.ts — 1.2
+export interface StorySlice {                          // 1.1 fields unchanged except this optional member:
+  property: { safehouses: string[]; businesses: { id: string; level: number; state?: JsonObject /* S03 business state, canonical JSON ≤ 2,048 bytes */ }[] };
+}
+```
+Rules: an absent `state` means the business's default state at its `level`; `story.v1.schema.json` accepts the optional member without a schema-number change (the field is optional and pre-launch builds never read records written by a later build); the bytes count inside the 2 MiB record cap; M05e1 writes the field first and sets `C05_VERSION = '1.2.0'`. Every 1.1 record loads unchanged.

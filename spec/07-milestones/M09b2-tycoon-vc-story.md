@@ -13,7 +13,8 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 - **M09b1**: the views and pitch card, the VM, the three sectors.
 - **M06a3**: `DialogueClient`, `InkRunner`, route 31 SSE, the executor's `offer_deal` check against `offers.dealIds`, recorded-fixture mode.
 - **M05a1**: the mission IR, the builder, `missions:build` and C09 mode hooks.
-- The run order also places M05a2 (`check:missions`), M06a2 (`npc:*`, roster) and M06a5 (dialogue panel) before this milestone.
+- **M05a2**: `check:missions` for the AC proofs (DL-219).
+- Through M06a3: M06a2 (`npc:*`, roster).
 - Contracts: C10 1.0 (`NPCDialogueContext.tycoon.deals`, tycoon intents `pitch|answer|ask_more|counter|close`, `DialogueEvent`, `Emotion`), C09 1.0 (`ModeHook`, stub path, `unlockOnFirstEncounter`), C06 1.1 (`startChild`, `EconomyApi.credit` with idempotency key, `ledgerSince`), C12 1.1 (route 31, `ApiError` codes, `RosterFlags`), C16 1.1 (`tycoon.run_end`, `tycoon.round`, `tycoon.negotiation`).
 
 ## Scope in
@@ -23,7 +24,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 - **VC roster:** the 12 B §10 slugs as originals in `content/npcs/vc-*/soul.md` (`fictionalized`, `pipeline: none`, `tycoon` and `stats.tycoon` blocks, Sonnet only for the two heroes (R4), t1 Aura voices per Q-20/DL-OWN-01, `standIn` null), roster entries, and one shared ink `content/npcs/vc-common/vc.ink` (`greeting`, `smalltalk`, `busy`, `deflect`, `farewell`, `pitch_*`). Bodies and portraits are creator-kit presets (DL-175, DL-180): no fal spend.
 - **Pitch room:** descriptor v2 (`world: 'stage'`). Desktop: procedural gray-box `prop/stage-pitch-room` (authored) plus a creator-kit NPC prefab `npc:<vcSlug>`, fixed cinematic camera. `mobile-low` or a stage load failure: the 2D card. Both show "AI investor · fictional game", the `meta.disclosure` badge, subtitles and "In-game terms are a simulation, not financial or legal advice". Optional free text goes through the S04 classifier (blocked = `evasive`) and is hidden unless the bracket is `18p` (U-TYC-5 default).
 - **Mini-run** `mini8w` (`08-tycoon.md` §5.8): `miniWin`/`miniLose`, no score or history. Policy `autoFounder` = `median` plus a scripted pitch (BotDriver `tycoon.autoFounder`).
-- **Story** `content/story/act2/m.a2.01.ts` (§B6): talk with `whitney_arlo`; hook `tycoon.a2.curbshare` → `startChild('tycoon', {defId: 'mini8w'})` with `unlockOnFirstEncounter: 'unlock.tycoon'`; pass on win or lose; win sets `coop_success`; stub = a three-choice talk setting the same flag.
+- **Story** `content/missions/m.a2.01/mission.ts` with `lines.en.json` (`03-story-missions.md` §C1; §B6): talk with `whitney_arlo`; hook `tycoon.a2.curbshare` → `startChild('tycoon', {defId: 'mini8w'})` with `unlockOnFirstEncounter: 'unlock.tycoon'`; pass on win or lose; win sets `coop_success`; stub = a three-choice talk setting the same flag.
 - **Dividends:** `+= min(1,000,000, floor(founderPayoutCents·0.0002))` per winning standalone full run; on story entry the story credits `min(unclaimed, cap)` via `EconomyApi.credit(…, idemKey 'tycoon.div:<n>')` against `StorySlice.flags['tycoon.divClaimedCents']`, with the $10,000-per-game-week rule checked by `ledgerSince` over 1,209,600 game half-seconds (DN-S08-04).
 - **Hardcore** (events ×1.5, cheques ×0.8) after the first `ramen` win. **Telemetry:** `tycoon.run_end`, `tycoon.round`, `tycoon.negotiation` (numeric and enum props).
 
@@ -46,7 +47,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
   - `content/npcs/vc-common/vc.ink`;
   - edit `content/npcs/roster.json`;
   - `content/tycoon/{questions.json, vc-lines.json}`;
-  - `content/story/act2/m.a2.01.ts`;
+  - `content/missions/m.a2.01/{mission.ts, lines.en.json}`;
   - edit `config/unlocks.json` if `unlock.tycoon` lacks `source: 'base'`;
   - `assets/src/prop/stage-pitch-room/asset.json`.
 - `tests/e2e/tycoon/{tycoon-pitch.spec.ts, tycoon-story.spec.ts}`.
@@ -99,7 +100,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 
 ## Notes for the Builder
 - Read first: `08-tycoon-finance.md` §8–§11; `08-tycoon.md` §3.1, §5.8, §5.11, §5.14–§5.15; `03-story-missions.md` §C7–§C9; `03-story-narrative.md` §B6 (`m.a2.01` row); `04-npc-contracts.md` B2.2, B2.4, B3, B5, B8.
-- **Path.** Souls live in `content/npcs/` (the 04-npc-contracts §B5 path). `_PLAN-2.md` writes `content/npc/vc`, which is the same intent.
+- **Paths.** Souls live in `content/npcs/` (04-npc-contracts §B5) and mission sources in `content/missions/<id>/` (DL-220).
 - **Secrets.**
   - `ANTHROPIC_API_KEY` (Worker secret, workspace `npc-runtime`; CI for lint L4 token counts). Absent: SKIP; all ACs run on recorded fixtures.
   - Q-23(c): the disclaimer text needs counsel sign-off before launch only.

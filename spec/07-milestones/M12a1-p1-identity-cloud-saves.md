@@ -9,7 +9,7 @@ Players can move from P0 (local profile and play token) to P1 (`device` tier) an
 - R-IP-04: only bracket `18p` obtains a token; under-18 brackets are blocked server-side too (DL-139).
 
 ## Depends on
-- M05d (Supabase projects, migrations 0001–0002, `DataPort`, in-memory port, `check:db`, `check:db:types`, `db:push`, `test:staging`), M04b3 (`IdentityService` local adapter, device key in `dv-identity`, `NullCloudSync`, play-token mint route 5).
+- M05d (Supabase projects, migrations 0001–0002, `DataPort`, in-memory port, `check:db`, `check:db:types`, `db:push`, `test:staging`), M04b3 (`IdentityService` local adapter, device key in `dv-identity`, `NullCloudSync`, play-token mint route 5), M06a1 (`PlayerQuotaDO`, the trust-on-first-use key binding, route 14; DL-219).
 - Contracts: C12 1.1 (`09-backend-contracts.md` §2.2–§2.6, `09-backend-contracts-1.1.md` §2), C05 1.1 (`01-engine-save-modes.md` rules 6 and 10, `SaveService.changesSince`).
 
 ## Scope in

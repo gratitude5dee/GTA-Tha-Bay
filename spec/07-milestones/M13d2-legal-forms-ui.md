@@ -54,7 +54,7 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 ## Deliverables
 - `content/legal/{terms,privacy,dmca,counter-notice,ncii,ugc,ai-disclosure,repeat-infringer,contact}.json`, `content/legal/forms.json`, `config/legal.json`.
 - `packages/ui/src/pages/legal/{LegalPage.tsx, LegalForm.tsx, fields.ts, submit.ts, legal-doc.schema.json, legal-forms.schema.json, index.ts}` (replaces the M00 stubs; the route stays `/legal/:doc`).
-- `packages/ui/src/kit/NciiNotice.tsx`. Edits to `UgcSurface`, Title and Main footers, `BlockedPage` links, the report dialog redirect handling, the `PageDef` registry entry for `legal`, and `packages/ui/src/i18n/en.json`.
+- `packages/ui/src/kit/NciiNotice.tsx`. Edits to `UgcSurface`, Title and Main footers, `BlockedPage` links, the report dialog redirect handling, the `PageDef` registry entry for `legal`, and `content/ui/i18n/en.json`.
 - `packages/ui/test/{legal-docs.spec.ts, legal-form.spec.ts, ncii-notice.spec.ts}`; extend `ugc-surface.spec.ts` (requires `NciiNotice`).
 - `tests/e2e/legal.spec.ts` (tag `@ui-legal`), using Playwright `page.route` for route 42 and capturing request bodies.
 - No new root script. ≈ 24 files.

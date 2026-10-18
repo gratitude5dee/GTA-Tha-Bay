@@ -25,7 +25,7 @@ After this session every mode has one way to prove it is deterministic and corre
 - `check:bundle` gains a forbidden-identifier scan: production chunks (`pnpm build` without `VITE_DV_QA`) contain no `CanonicalRunner`, `BotDriver` or `registerBot`.
 
 ## Scope out
-- Mode drivers and their mutants: `story.autoplayer` (M05a2), `racing.line` (M07a1), `fighter.cpu`/`fighter.script` (M08a1–a2), `tycoon.<policy>` (M09a2).
+- Mode drivers and their mutants: `story.autoplayer` (M05a2), `racing.line` (M07a1), `fighter.cpu`/`fighter.script` (M08a2; DL-236), `tycoon.<policy>` (M09a2).
 - Tycoon bands B1–B12 and `tycoon:sim`: M09a2. Room load bots: M12c2. C15 lint and trace: M00d (done).
 
 ## Deliverables

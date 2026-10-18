@@ -2,6 +2,28 @@
   "schema": "genai-endpoints/1",
   "checkedAt": "2026-10-18",
   "endpoints": {
+    "openai/gpt-image-2.5/sunburst/text-to-image": {
+      "id": "openai/gpt-image-2.5/sunburst/text-to-image",
+      "vendor": "fal",
+      "role": "style_bible",
+      "status": "pending",
+      "price": {
+        "usd": 0.2,
+        "per": "image",
+        "checkedAt": "2026-10-18",
+        "note": "not in ledger; conservative estimate for 2560x1440 high until the M00c spike reads the invoice"
+      },
+      "pinnedUpdatedAt": null,
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md"
+    },
     "openai/gpt-image-2.5/sunburst/edit": {
       "id": "openai/gpt-image-2.5/sunburst/edit",
       "vendor": "fal",
@@ -162,7 +184,7 @@
       "role": "voice_design",
       "status": "active",
       "price": {
-        "usd": 3.0,
+        "usd": 3,
         "per": "voice",
         "checkedAt": "2026-10-18"
       },
@@ -270,7 +292,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0.0,
+        "usdPerS": 0,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -311,7 +333,8 @@
     "h3.max": {
       "key": "h3.max",
       "endpoints": {
-        "i2v": "minimax/h3-max/image-to-video"
+        "i2v": "minimax/h3-max/image-to-video",
+        "ref2v": "minimax/h3-max/reference-to-video"
       },
       "caps": {
         "minS": 6,
@@ -336,7 +359,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0.0,
+        "usdPerS": 0,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -369,7 +392,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0.0,
+        "usdPerS": 0,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -402,7 +425,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0.0,
+        "usdPerS": 0,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }

@@ -1,0 +1,1 @@
+{"request_id":"REQ","status_url":"https://queue.fal.run/ENDPOINT/requests/REQ/status","response_url":"https://queue.fal.run/ENDPOINT/requests/REQ","cancel_url":"https://queue.fal.run/ENDPOINT/requests/REQ/cancel","queue_position":0}
