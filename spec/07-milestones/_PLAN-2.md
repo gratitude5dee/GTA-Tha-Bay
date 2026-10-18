@@ -1,0 +1,182 @@
+# Milestone plan — part 2: modes and NPC runtime, roster, Acts 2–3, hardening, XR (blocks D–E)
+
+> S13 · 2026-10-18 · same field legend as `_PLAN-1.md`. Block E ends at the single-player launchable point (`_PLAN.md` §4).
+
+## Block D — modes and NPC runtime (VS-Racing, VS-Fighter, VS-Tycoon)
+
+### M06a1 · npc-backend-spine — 1 · risk M · S09 (+S04)
+- **Goal:** play token (route 5, TOFU), `PlayerQuotaDO`, `EncounterDO`, SSE transport with 4 s timeout, migration 0003, roster flags, kill and flag routes (46, 47), `/me` export and forget (14), retention crons; DO tag `web-v2` alone.
+- **R** R-NPC-04/05, R-AUTH-01, R-IP-02 · **Dep** M05d, M04b3 · **Read** `09-backend.md` §8; `09-backend-contracts.md` §2.4 rows 5, 14, 30, 46, 47; `09-backend-db.md` §3 (0003), §7; `09-backend-ops.md` §3, §5.2 · **Out** `services/edge/src/{npc,quota,id}`, `supabase/migrations/0003_npc.sql` · **C** C12 1.1, C10 1.0
+- **Gate** `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY` · **Proof** `pnpm check:workers -- quota-turns`; `pnpm check:workers -- killswitch`; `pnpm check:db && pnpm check:workers -- forget`
+
+### M06a2 · soul-contract-compiler — 1 · risk L · S04
+- **Goal:** C10 types and schemas, validators, `tools/soul` lint/compile/build, roster manifest, original test souls (`npc_test`, canary, stand-ins), ink scaffolds, consent-index export.
+- **R** R-NPC-01/04, R-IP-02 · **Dep** M00b, M01d · **Read** `04-npc-contracts.md` B1–B9 · **Out** `packages/shared/src/npc`, `packages/shared/schemas/npc`, `tools/soul`, `content/npc` · **C** C10 1.0, C07 1.1
+- **Gate** Q-19, Q-25 (real roster waits; originals only) · **Proof** `pnpm npc:lint` (L1–L14 bad fixtures fail); `pnpm check:unit -- packages/shared/src/npc` (compile twice → identical sha256); `pnpm likeness:gate`
+
+### M06a3 · dialogue-proxy — 1 · risk M · S04, S09
+- **Goal:** server dialogue (`PromptAssembler`, `ModelRouter`, safety filter, executor), client `DialogueClient` + `InkRunner`, offline fallback, recorded-fixture mode, cache and TTFT staging probes, disclosure hooks.
+- **R** R-NPC-05, R-AUTH-01 · **Dep** M06a1, M06a2 · **Read** `04-npc.md` §5; `04-npc-contracts.md` B7; `09-backend-ops.md` §5.3 · **Out** `services/edge/src/npc/dialogue`, `packages/npc/src/{client,ink}` · **C** C10 1.0, C12 1.1
+- **Gate** `ANTHROPIC_API_KEY` (workspace `npc-runtime`), AI Gateway `gw-dialogue` · **Proof** `pnpm check:workers -- npc` (event order, 4 s ± 0.2 fallback, refusal, killed, quota, governor, prompt-cache order); `pnpm check:secrets -- apps/web/dist`; `pnpm test:staging -- npc-cache` (turn 2 reads cache; TTFT recorded, not asserted)
+
+### M06a4 · memory-voice-lipsync — 1 · risk M · S04
+- **Goal:** `MemoryService` and summarizer, t1 TTS (Workers AI Aura), `TtsPlayer`, `LipSyncDriver`, voice catalog, eval harness, route 52.
+- **R** R-NPC-04/05, R-ENG-04 · **Dep** M06a3 · **Read** `04-npc.md` §5.6–§5.8; `04-npc-builder.md` C6 · **Out** `packages/npc/src/{tts,lipsync}`, `packages/npc/evals`, `services/edge/src/npc/memory` · **C** C10 1.0, C12 1.1
+- **Gate** Q-20 (t2 voices off) · **Proof** `pnpm check:workers -- npc-tts-gating`; `pnpm npc:eval -- --replay`; `pnpm check:unit -- packages/npc` (viseme mapper; 36-case voice tier matrix)
+
+### M06a5 · dialogue-panel-ui — 0.3 · risk L · S10
+- **Goal:** dialogue bubble, choices, safety card, AI badge, likeness card, report button.
+- **R** R-NPC-05, R-IP-03, R-ENG-04 · **Dep** M06a3, M04b2 · **Read** `10-ui-hud-xr.md` §2 (dialogue); `04-npc.md` §5 (disclosure) · **Out** `packages/ui/src/dialogue` · **C** C06 1.1 (`UiBridge`)
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc` (mocked SSE, badge, subtitles, report); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-offline`
+
+### M06c · npc-agency-barks — 1 · risk M · S04
+- **Goal:** named-NPC brains and LOD, `whereIs`, intents (route 32), Talk handler, `BarkSystem`, archetype pools; scenario `npc-mission-crowd`.
+- **R** R-NPC-01, R-MAP-04 · **Dep** M06a3, M03b2 · **Read** `04-npc-builder.md` C8–C9; `04-npc.md` §5 · **Out** `packages/npc/src/{brains,barks}` · **C** C10 1.0, C06 1.1 (`ModeContext.npc`)
+- **Gate** none · **Proof** `pnpm check:unit -- packages/npc` (same seed → same trace; bark cooldowns; schedule across midnight); `pnpm check:workers -- npc-intent-throttle`; `pnpm check:perf -- --scenario npc-mission-crowd`
+
+### M06b1 · builder-text-private — 1 · risk M · S04 (+S09 moderation base)
+- **Goal:** NPC builder drafts (route 33), text moderation, soul generation, preview chat, private use, limits; migration 0004, reports (41), NPC case queue (43).
+- **R** R-NPC-03, R-IP-03 · **Dep** M06a3 · **Read** `04-npc-builder.md` C1–C5, C7, C10; `09-backend-db.md` §3 (0004) · **Out** `services/edge/src/npc-builder`, `supabase/migrations/0004_moderation.sql` · **C** C10 1.0 (builder), C12 1.1
+- **Gate** `OPENAI_MODERATION_API_KEY`; Anthropic workspace `npc-builder` · **Proof** `pnpm check:workers -- npc-builder` (limits, states, moderation order, real-person alias, submit tier); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
+
+### M07a1 · racing-core-director-car — 1 · risk M · S06
+- **Goal:** racing mode package, descriptor and unlock, referee and gates, race director, six player cars, nitro, damage, HUD view-model, race schemas, `map:races` compile, `racing.line` bot.
+- **R** R-MODE-02/05, R-IP-01 · **Dep** M03a2, M04a2, M04d, M02c1 · **Read** `06-racing.md` §2; `06-racing-data.md` §4.1–§4.2, §4.5–§4.7; `06-racing-content.md` C.1–C.3, C.9 · **Out** `packages/modes/racing`, `content/races`, `config/racing/*.json` · **C** C06 1.1, C04 1.1 (anim 128–159), C03 1.1
+- **Gate** none · **Proof** `pnpm --filter @dv/mode-racing test` (`referee.gates`, `damage.formula`); `pnpm map:races validate`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @racing-touch`
+
+### M07a2 · racing-ai-replay-ghosts — 1 · risk M · S06 · **VS-Racing**
+- **Goal:** AI drivers and rubber-band, validator V1–V15 and par, 3 VS races + `sf.pursuit.bayview-escape`, replay codec, ghosts, exact re-sim, `RacingSlice`, story hook (DL-157), `config/pursuit.race.json`.
+- **R** R-MODE-02/05 · **Dep** M07a1, M03c, M05c1 · **Read** `06-racing-data.md` §4.2–§4.4; `06-racing-content.md` C.5, C.11–C.12 · **Out** `packages/modes/racing/src/{ai,replay}`, `content/races` · **C** C06 1.1, C05 1.1 (`mode:racing`)
+- **Gate** none · **Proof** `pnpm map:races par -- --check` (±15 % of `parSec`); `pnpm check:e2e -- --project=webkit-webgl2 --grep @racing-det`; `pnpm --filter @dv/mode-racing test` (`replay.exact`, `ghost.track`, `bot.pursuit`); `pnpm check:e2e -- --project=chromium-webgl2 --grep @racing-vs`
+
+### M07b1 · racing-content-events-ladder — 1 · risk M · S06
+- **Goal:** remaining seven race kinds, 16 more SF events, roadster hop and robotaxi quirks, roadblocks and spikes in races, the ladder with original rivals, progression, remaining cars.
+- **R** R-MODE-02, R-MAP-01, R-IP-01 · **Dep** M07a2, M03b2 · **Read** `06-racing-content.md` C.4–C.6, C.11 · **Out** `content/races`, `packages/modes/racing/src/quirks` · **C** C06 1.1, C07 1.1
+- **Gate** none · **Proof** `pnpm map:races validate`; `pnpm --filter @dv/mode-racing test` (`quirk.stall` holds 4–9 s over 20 seeds); `pnpm names:lint`
+
+### M07b2 · racing-garage-replay-photo-visuals — 1 · risk M · S06
+- **Goal:** garage and upgrades, replay director and scrub, photo mode, `desktop-ultra` look, audio wiring, econ-sim racing section, **`RaceDef.intro` flag and `cut.race.intro.<raceId>` refs with in-engine fallback (gap 11, R-CUT-02 SHOULD)**.
+- **R** R-MODE-02, R-CUT-02/03 · **Dep** M07b1, M05b2 · **Read** `06-racing-data.md` §4.2, §4.4; `06-racing-content.md` C.7, C.10; `03-story-cutscenes.md` §D4 · **Out** `packages/modes/racing/src/{garage,photo}`, `content/races/*/race.json` · **C** C09 1.0 (`CutsceneRef`), C13 1.1 (`PostNode`)
+- **Gate** none · **Proof** `pnpm map:races validate` (every intro ref resolves and has a fallback); `pnpm check:balance -- --suite econ`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene`; manual `M07b2-iphone15`
+
+### M08a1 · fight-core-sim-data — 1 · risk M · S07
+- **Goal:** pure fighter core (`packages/shared/src/fight`, FC2–FC9), schemas, reference kit, input buffer, hash, replay, motion parser, `fighter:lint`, `fighter:replay`, golden vectors, `fighter.script` bot.
+- **R** R-MODE-03 · **Dep** M01a1 · **Read** `07-fighter-core.md` FC1–FC9, FC11; `07-fighter-content.md` FX3 · **Out** `packages/shared/src/fight`, `packages/modes/fighter/golden` · **C** C02 1.1, C03 1.1 (fighter aliases)
+- **Gate** none · **Proof** `pnpm --filter @dv/mode-fighter fighter:replay -- golden/vs-001.dvfight`; `pnpm check:unit -- packages/shared/src/fight` (motion parser; zero allocations per tick)
+
+### M08a2 · fight-mode-training-vs — 1 · risk M · S07 · **VS-Fighter**
+- **Goal:** `FighterMode`, camera, gray-box fighters, frame-locked clips, HUD, Classic and Simple schemes on kbm/pad/touch, Training, stage `powell_turntable`, CPU Easy/Hard, slice, unlock, story hook, `fight-stage`.
+- **R** R-MODE-03/05, R-ENG-04 · **Dep** M08a1, M04a2, M04b2, M04d, M05c1 · **Read** `07-fighter.md` §2; `07-fighter-core.md` FC3–FC8, FC10; `07-fighter-content.md` FX8–FX9 · **Out** `packages/modes/fighter` · **C** C06 1.1, C04 1.1 (anim 160–207), C05 1.1
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @fighter-hash` (and `chromium-webgl2`); `pnpm check:e2e -- --project=webkit-webgl2 --grep @fighter-touch`; `pnpm --filter @dv/mode-fighter fighter:bench` (step p99 ≤ 0.10 ms)
+
+### M08b1 · fight-roster-kits-ai — 1 · risk M · S07
+- **Goal:** eight kits, full CPU, roster loader, tier and fame-domain gates, `fighter:balance`, name hygiene, `check:fighter`.
+- **R** R-MODE-03, R-NPC-04, R-IP-02 · **Dep** M08a2, M06a2 · **Read** `07-fighter-content.md` FX1–FX2, FX4, FX11; `07-fighter-core.md` FC10 · **Out** `content/fighter/kits`, `packages/modes/fighter/src/cpu` · **C** C10 1.0 (fighter stats), C07 1.1
+- **Gate** Q-24 (library clips until art-lead signatures) · **Proof** `pnpm --filter @dv/mode-fighter fighter:balance -- --bouts 1000` (28 pairs within 35–65 %); `pnpm check:fighter`; `pnpm likeness:gate`
+
+### M08b2 · fight-stages-cutscenes-arcade — 1 · risk M · S07
+- **Goal:** five more SF stages, cutscene hooks and refs with composed intros (`playSequence`), Cinematic phase, Arcade ladder, kill-switch remap, Move Gallery, accessibility pass.
+- **R** R-MODE-03, R-CUT-02/03, R-NPC-04 · **Dep** M08b1, M05b2 · **Read** `07-fighter-content.md` FX5–FX6, FX9 · **Out** `content/fighter/{stages,cutscenes.json}` · **C** C09 1.0
+- **Gate** none (real clips wait for M10b) · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @fighter-cutscene`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @fighter-kill`; `pnpm assets:cutscene-index -- --count fighter` (116 for N = 8, S = 6)
+
+### M08c1 · pose-pipeline-classifier — 1 · risk H · S07
+- **Goal:** `pose.worker` pipeline on MediaPipe Pose Landmarker (lite mobile, full desktop within budget), vendoring script, binder, gesture FSM, filters, synthetic fixtures, classifier harness.
+- **R** R-MODE-03, R-IP-04 · **Dep** M08a2 · **Read** `07-fighter-pose.md` FP1–FP3, FP5, FP7–FP8 · **Out** `packages/modes/fighter/src/pose`, `apps/web/public/pose/` · **C** C03 1.1 (`PoseActionEvent`)
+- **Gate** none · **Proof** `pnpm --filter @dv/mode-fighter fighter:pose-fixtures` (≥ 90 % overall, ≥ 85 % per gesture, ≤ 1 false positive per idle minute); `pnpm check:unit -- packages/modes/fighter` (worker network allow-list)
+
+### M08c2 · pose-calibration-gate — 1 · risk H · S07
+- **Goal:** calibration flow and device-local store, capability decision, consent gate, `Permissions-Policy: camera=(self)`, privacy tests, device runs, `fight-stage-pose`.
+- **R** R-MODE-03, R-IP-04 · **Dep** M08c1 · **Read** `07-fighter-pose.md` FP4, FP6, FP7, FP9–FP10; `11-platform-pwa.md` §11 · **Out** `packages/modes/fighter/src/pose/calibration`, `tools/ci/checklists/M08c2-*.json` · **C** C13 1.1 (`dv-platform` store)
+- **Gate** Q-23(b) counsel before launch only · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @pose` (no body over 4 KB, no image MIME); `pnpm check:headers -- http://localhost:8788`; manual `M08c2-{iphone15,webcam}` (records latency; `unavailable` is valid)
+
+### M09a1 · tycoon-core-finance — 1 · risk L · S08
+- **Goal:** pure tycoon core and finance (cap table, SAFE, priced round, waterfall, envelope), replay and `verifyRun`, `TycoonModeSim` with a QA panel, slice and golden.
+- **R** R-MODE-04 · **Dep** M01a1, M04a2 · **Read** `08-tycoon.md` §4–§5; `08-tycoon-finance.md` §2–§9, §13 · **Out** `packages/shared/src/tycoon`, `packages/modes/tycoon` · **C** C06 1.1, C05 1.1
+- **Gate** none · **Proof** `pnpm check:unit -- packages/shared/src/tycoon/finance` (TV-1…TV-11, WF-1…WF-7 exact); `pnpm lint` (T-03 fixture); `pnpm check:e2e -- --project=webkit-webgl2 --grep @tycoon-det`
+
+### M09a2 · tycoon-events-balance — 1 · risk M · S08 · **VS-Tycoon**
+- **Goal:** shared event engine, 30 events, trend deck, four bot policies, `tools/ci/tycoon-sim`, bands and baseline, self-test fixtures; mode available behind `?unlockAll=1` in QA builds.
+- **R** R-MODE-04/05 · **Dep** M09a1, M04d · **Read** `08-tycoon-events.md` §1–§9 · **Out** `packages/shared/src/events`, `tools/ci/tycoon-sim`, `content/tycoon/events` · **C** C06 1.1
+- **Gate** none · **Proof** `pnpm check:balance` (B1–B12 at 2,000 runs per policy; four self-tests fail); `pnpm check:unit -- packages/shared/src/events` (200 replays equal live)
+
+### M09b1 · tycoon-ui — 1 · risk M · S08
+- **Goal:** dashboard, cap table, hiring, roadmap, inbox, board, summary, branch replay, two more sectors and 30 more events, accessibility, mobile layout, XR desk panels.
+- **R** R-MODE-04, R-ENG-04, R-UI-03 · **Dep** M09a2, M04b2 · **Read** `08-tycoon.md` §5–§6 · **Out** `packages/modes/tycoon/src/ui` · **C** C06 1.1 (`UiBridge`)
+- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @tycoon-a11y`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @tycoon-save` (week 40 resumes with an identical hash)
+
+### M09b2 · tycoon-vc-story — 1 · risk M · S08 (+S03 `m.a2.01`)
+- **Goal:** 12 fictional VC souls, pitch controller with clamp and offline fallback, pitch room (3D with 2D fallback), `mini8w` preset, `unlock.tycoon`, story hook and `m.a2.01`, dividend counter, disclaimer.
+- **R** R-MODE-04/05, R-NPC-05 · **Dep** M09b1, M06a3, M05a1 · **Read** `08-tycoon-finance.md` §8–§11; `03-story-missions.md` §C8 · **Out** `packages/modes/tycoon/src/pitch`, `content/npc/vc`, `content/story/act2/m.a2.01` · **C** C10 1.0 (`tycoon.deals`), C09 1.0
+- **Gate** Q-23(c) disclaimer text before launch · **Proof** `pnpm check:unit -- packages/modes/tycoon` (T-08 parse and clamp); `pnpm check:missions -- --mission m.a2.01` (T-10: `miniWin` within 8 weeks, unlock once)
+
+## Block E — roster, Acts 2–3, hardening, XR (single-player launchable)
+
+### M10a1 · roster-pipeline — 1 · risk H · S05 (split 1 of 2)
+- **Goal:** `assets:gen` automation (plan, run, gate, optimize, retarget, verify, publish), QA gates A3–A8 and human gates, canary of two characters (≈ $7.3 of the $42 roster cap).
+- **R** R-NPC-02/04, R-IP-02, R-ENG-03 · **Dep** M05b1, M06a2, M01d · **Read** `05-assets-pipeline.md` §1–§5, §11–§12; `05-assets.md` §4.5–§4.6 · **Out** `tools/assets/gen`, `services/pipeline/steps` · **C** C07 1.1, C10 1.0
+- **Gate** `FAL_KEY` (operator), prepaid ≤ cap, Q-17; Q-19/Q-25 for real-derived slugs · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero vendor calls); `pnpm check:pipeline`; `pnpm provenance:check && pnpm likeness:gate` on the canary publish PR
+
+### M10a2 · roster-pipeline — 1 · risk H · S05, S07 (split 2 of 2)
+- **Goal:** batch inside DL-OWN-01 (≤ 8 Standard heroes, ≤ 12 Lean; others creator-kit or stand-ins), retarget to `bay_rig_v1`, S07 signature clips, publish and lock.
+- **R** R-NPC-01/02, R-MODE-03 · **Dep** M10a1, M08b1 · **Read** `05-assets-pipeline.md` §4, §12; `07-fighter-content.md` FX7 · **Out** `assets/characters`, `assets/lock`, `assets/provenance` · **C** C07 1.1, C04 1.1
+- **Gate** as M10a1; Q-24 · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero outstanding jobs); `pnpm check:assets`; `pnpm check:fighter` (every slot resolves on six tiers); manual ledger ≤ 42,000,000 micros
+
+### M10b · qa-gates-kill-drill — 1 · risk M · S05 (+fighter prewarm)
+- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill, fighter intro/finisher prewarm ≤ $24 (DN-S13-02) via a `cleared` provider.
+- **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` · **C** C07 1.1, C12 1.1 (route 46)
+- **Gate** `CF_API_TOKEN_CACHE`; ADR-GENAI-01 `cleared` for paid prewarm · **Proof** `pnpm check:e2e -- --grep @kill-drill`; `pnpm test:ops -- --suite kill-drill`; `pnpm check:pipeline` (second prewarm: zero calls)
+
+### M10c · roster-souls-ink-barks — 1 · risk M · S04
+- **Goal:** normalize supplied research souls with human review, ink for Act 1 NPCs, baked barks, voice designs, consent-index export.
+- **R** R-NPC-01, R-IP-02 · **Dep** M10a2, M06a4 · **Read** `04-npc-contracts.md` B5–B6, B8; `04-npc.md` §5.7 · **Out** `content/npc`, `content-private/` (mount) · **C** C10 1.0
+- **Gate** Q-19, Q-25 (canary only while open), Q-20 · **Proof** `pnpm npc:lint`; `pnpm likeness:gate`; `pnpm check:missions -- --act 1`
+
+### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)
+- **Goal:** `m.a2.02`–`05`, refs and unlock defs; story businesses on `EventHost<BusinessState>` (DL-133).
+- **R** R-MODE-01/05, R-CUT-02 · **Dep** M05c2, M07a2, M08b2, M09b2 · **Read** `03-story-narrative.md` §B6–§B7; `08-tycoon-events.md` §7 · **Out** `content/story/act2` · **C** C09 1.0, C06 1.1
+- **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 2`
+
+### M05e2 · story-act2-part2 — 1 · risk M · S03
+- **Goal:** `m.a2.06`–`08`, Act 2 refs, econ-sim Act 2 section.
+- **R** R-MODE-01, R-CUT-02 · **Dep** M05e1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act2` · **C** C09 1.0
+- **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 2`; `pnpm check:balance -- --suite econ`
+
+### M05f1 · story-act3-part1 — 1 · risk M · S03
+- **Goal:** `m.a3.01`–`03` with refs.
+- **R** R-MODE-01, R-CUT-02 · **Dep** M05e2, M10b · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act3` · **C** C09 1.0
+- **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 3`
+
+### M05f2 · story-act3-finale — 1 · risk M · S03
+- **Goal:** `m.a3.04`–`06`, finale and endings, portal close, credits; econ-sim Acts 2–3 band ($70k–$110k added rewards).
+- **R** R-MODE-01, R-CUT-02/03 · **Dep** M05f1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act3` · **C** C09 1.0, C05 1.1
+- **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 3`; `pnpm check:balance -- --suite econ`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @story`
+
+### M11a1 · iphone-hardening-governor — 1 · risk M · S11 (+S06 scenarios) (split 1 of 2)
+- **Goal:** two-way governor, `MemoryBudget` enforcement, `FramePacer`, nightly `check:perf -- --fail` required, `race-sprint` and `race-pursuit-heat4`, route 4 crash reports.
+- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M02b1, M03b1, M07a2 · **Read** `11-platform.md` §4.5, §5; `11-platform-perf.md` §5, §9 · **Out** `packages/engine/src/platform/{governor,memory}`, `tests/perf/paths` · **C** C13 1.1, C12 1.1 (route 4)
+- **Gate** none · **Proof** `pnpm check:unit -- packages/engine/src/platform` (governor, memory budget, frame pacer specs); `pnpm check:perf -- --fail`; `pnpm check:perf -- --scenario race-sprint`
+
+### M11a2 · iphone-hardening-governor — 1 · risk H · S11 (split 2 of 2)
+- **Goal:** offline relaunch, safe-point SW updates, abnormal-exit demotion, iOS quirk pass, desktop-ultra calibration, 30-minute soak and the M11a device passes.
+- **R** R-PLAT-01/05, R-ENG-02 · **Dep** M11a1 · **Read** `11-platform-pwa.md` §4, §6, §9–§10 · **Out** `apps/web/src/sw.ts`, `packages/engine/src/platform/heartbeat`, `tools/ci/checklists/M11a-*.json` · **C** C13 1.1, C16 1.1
+- **Gate** Q-13 devices · **Proof** `offline-relaunch.spec.ts` via `pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-relaunch`; manual `M11a-{iphone15,iphone16,mac}` then `pnpm perf:verify`
+
+### M11b1 · webxr-port — 1 · risk H · S11
+- **Goal:** XR session and renderer swap, locomotion, comfort, XR input, panel base, IWER e2e, `xr-walk`.
+- **R** R-PLAT-02, R-ENG-04 · **Dep** M01c, M04b2 · **Read** `11-platform-xr.md` §2–§5 · **Out** `packages/engine/src/platform/xr` · **C** C13 1.1 (`XrPanels`, `XrComfortSettings`), C04 1.1
+- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (session, input routing, comfort); `pnpm check:unit -- packages/engine/src/platform` (gesture rule); manual `M11b-{quest,visionpro}`
+
+### M11b3 · xr-ui-panels-comfort — 0.8 · risk M · S10
+- **Goal:** `UiSurface` on Quest layers and Vision Pro planes, Enter/Exit VR button, wrist panel, comfort settings in XR, flat-only text entry (DL-142).
+- **R** R-PLAT-02, R-UI-02, R-ENG-04 · **Dep** M11b1 · **Read** `10-ui-hud-xr.md` §2, §6 · **Out** `packages/ui/src/xr` · **C** C13 1.1 (`XrPanels`)
+- **Gate** none · **Proof** `pnpm check:e2e:xr` (Enter VR calls `enter()` synchronously in the click handler)
+
+### M11b2 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S06, S07, S10 (split 1 of 2)
+- **Goal:** racing XR (driving rules, hands wheel, vignette, diorama chase) and fighter XR (FX10) with their panels.
+- **R** R-PLAT-02, R-MODE-02/03 · **Dep** M11b1, M07b2, M08b2 · **Read** `11-platform-xr.md` §5.3; `06-racing.md` §6; `07-fighter-content.md` FX10 · **Out** `packages/modes/{racing,fighter}/src/xr` · **C** C03 1.1 (`xr:both:wheel`), C04 1.1 (`vantage`)
+- **Gate** none · **Proof** `pnpm check:e2e:xr` (racing and fighter `@xr` specs)
+
+### M11b4 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S08, S03 (split 2 of 2, new digit)
+- **Goal:** tycoon XR desk and pitch card, XR cutscene hosts (`XrMediaHost`, fixed vantage, subtitle plane), per-mode Quest and Vision Pro checklists and perf pass.
+- **R** R-PLAT-02, R-CUT-03, R-MODE-04 · **Dep** M11b2, M09b1, M05b2 · **Read** `11-platform-xr.md` §5.3, §9; `03-story-cutscenes.md` §D7 · **Out** `packages/modes/tycoon/src/xr`, `packages/modes/story/src/cutscene/xr` · **C** C09 1.0, C13 1.1 (`XrMediaHost`)
+- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (`@tycoon-xr`, XR cutscene fallback); manual `M11b-{quest,visionpro}` per-mode rows (15 s clip with subtitles) then `pnpm perf:verify`

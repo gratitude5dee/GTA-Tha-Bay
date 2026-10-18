@@ -2,6 +2,27 @@
 
 > **Continued in `spec/11-decision-log-2.md` (DL-171 onward).** This file is at its size cap.
 
+## Index by topic
+Entries below are unchanged; this index only finds them. DL-171 onward is in `spec/11-decision-log-2.md` (blocks by author and date). ADRs: `docs/decisions/README.md`.
+
+| Topic | Entries |
+|---|---|
+| Layout, scripts, ids, versions | DL-009, 035–038, 050, 054–056, 074–077, 117, 132, 155, 156, 165, 169, 170 |
+| Engine, sim, determinism, input, saves (C01–C06) | DL-002, 004–008, 029–031, 033, 057, 058, 066, 069–071, 094–098, 158, 159, 167; D-S01-01…07 |
+| Platform, tiers, PWA, XR, telemetry (C13, C16) | DL-001, 003, 024–028, 032, 034, 042, 064, 065, 102, 103, 142–144, 164, 166, 168; DN-S11-01…07 |
+| Assets, genAI, provenance (C07) | DL-016–021, 023, 039–041, 053, 059, 061, 067, 068, 072, 073, 099, 161; DN-S05; DL-OWN-01; part 2: DL-171–181, 202 |
+| Backend, API, identity, data (C11, C12) | DL-005, 014, 015, 021, 043, 044, 060, 062, 063, 075, 100, 101, 145, 148, 151; Q-BE; part 2: DL-182–199 |
+| Netcode and rooms | DL-010, 011, 013, 052, 071, 122; part 2: DL-183–188, 204 |
+| World and maps (C08) | DL-049, 077–079, 105–112, 162; part 2: DL-201 |
+| Story, missions, cutscenes (C09) | DL-045, 051, 061, 072, 073, 080–085, 113–117, 157, 159–161, 163 |
+| NPCs, souls, dialogue (C10) | DL-022, 046, 083, 085–088, 118–120, 131 |
+| Racing, fighter, tycoon | racing DL-121–125; fighter DL-081, 126–130, 163, 164; tycoon DL-087, 131–138 |
+| UI, audience, privacy | DL-119, 139–144, 167, 168; part 2: DL-196, 205 |
+| Modding and UGC (C14, C17) | DL-047, 048, 084, 088–090, 098, 145–154; part 2: DL-207 |
+| Owner decisions and cost | DL-OWN-01, DL-OWN-02, DL-139, 140; part 2: DL-171–181 |
+| Animation ids and workers | DL-012, 091, 152; part 2: DL-203 |
+| ADR set and facts per milestone | part 2: DL-200–207 |
+
 > Every contract change, conflict resolution and settled open decision, newest block last. Rule (master prompt `<orchestration>`): the contract owner wins unless the dissent exposes a real defect; then the owner's spec is fixed too. Decisions that are the owner's call go to `spec/99-open-questions.md` instead. ADRs (`docs/decisions/`) are written in Wave 5 and cite these entries.
 
 ## 2026-10-18 — Wave 1 contract reconciliation (Architect)
