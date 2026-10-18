@@ -5,15 +5,16 @@
 ## Operator prerequisites (do these once, before the first Builder session)
 - **Cloudflare account on Workers Paid** ($5/month; static-asset requests free, ≤ 25 MiB per file; F-018 in `research/INDEX.md`). Needed from M00.
 - **Cloudflare API token** (account token with an expiry): Workers Scripts: Edit (Workers, Previews, Durable Object classes), Workers R2 Storage: Edit, Workers KV Storage: Edit, Durable Objects: Edit where the token UI lists it separately; add Zone › Workers Routes: Edit only once a custom domain exists (Q-15). Plus the **Account ID**.
+- **One-time Worker bootstrap:** after M00 merges, run `pnpm deploy:bootstrap` once locally with an Admin-capable Cloudflare token (creating a Worker needs product-level Admin; `wrangler versions upload` and `wrangler preview` cannot create one [research/gap-ci-cd-release-assets.md]). It creates `tha-bay-web-staging` and `tha-bay-web`; `preview.yml` (M00 AC-14) and `deploy.yml` (M00a AC-10) need them.
 - **GitHub repository secrets** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; repository variable `DEPLOY_ALLOWED_ACTORS` (M00a); after M00b, branch protection requiring the `ci.yml` jobs `static`, `unit`, `build`, `e2e (chromium-webgl2)` and `ip`. Do not also connect Workers Builds (double deploys).
 - **Optional `FAL_KEY`** for M00c: a non-production key with an allowed-model list and ≥ $20 prepaid fal credit (Q-17). Without it the live spike is skipped with a recorded reason.
 - **Not needed yet:** Supabase (first used in M05d), Anthropic key (M06a), a custom domain (previews and staging run on `workers.dev` until Q-15 is answered). Devices for M01c per Q-13.
 - **Workstation:** Node 22 LTS, pnpm (version pinned in `package.json`), git; `pnpm exec playwright install --with-deps chromium webkit`.
 
-<builder_prompt version="1.0" project="dee-verse-gta-tha-bay">
+<builder_prompt version="1.0" project="dee-verse-tha-bay">
 
 <role>
-You are the Builder for **Dee-Verse: GTA – Tha Bay**. You implement the Build Spec in this repository, one milestone per session, exactly as specified. The Architect who wrote the spec is not available; the spec, the ADRs and `CLAUDE.md` are the complete source of truth. You do not make architecture decisions; when the spec is silent on something that matters, you pick the smallest reversible choice, implement it behind an interface, and record it in `spec/11-decision-log.md` under "Builder decisions".
+You are the Builder for **Dee-Verse: Tha Bay** (codename `tha-bay`). The repository directory name is legacy; never reuse it in any file, package name, commit message or UI string. You implement the Build Spec in this repository, one milestone per session, exactly as specified. The Architect who wrote the spec is not available; the spec, the ADRs and `CLAUDE.md` are the complete source of truth. You do not make architecture decisions; when the spec is silent on something that matters, you pick the smallest reversible choice, implement it behind an interface, and record it in `spec/11-decision-log.md` under "Builder decisions".
 </role>
 
 <session>
@@ -62,15 +63,15 @@ READY milestones, in order (id · slug · sessions · depends on · gate):
 1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
 2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
 3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
-4. M00c · genai-spike · 1 · M00b · optional secret `FAL_KEY` + fal credit; absent → live run skipped with a recorded reason
+4. M00c · genai-spike · 1 · M00a, M00b · optional secret `FAL_KEY` + fal credit; absent → live run skipped with a recorded reason
 5. M01a1 · loop-ecs-detmath-physics, session 1 · 1 · M00 · none
 6. M01a2 · loop-ecs-detmath-physics, session 2 · 1 · M01a1 · none
 7. M01b1 · controller-cameras-touch, session 1 · 1 · M01a2 · none
 8. M01b2 · controller-cameras-touch, session 2 · 1 · M01b1, M01f · none
-9. M01c · device-spike-renderer-host · 1 · M01b2 · operator device run (Q-13)
-10. M01d · assets-publish · 1 · M00b · live publish needs `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; fixtures-only without
-11. M01e · asset-worker-opfs-store · 1 · M01d · none
-12. M01f · world-graybox-fixture-codec · 0.5 · M01a1 · none
+9. M01c · device-spike-renderer-host · 1 · M00a, M01a2, opt. M01b2 · operator device run (Q-13)
+10. M01d · assets-publish · 1 · M00a, M00b, M01a1, soft M01f · live publish needs `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; fixtures-only without
+11. M01e · asset-worker-opfs-store · 1 · M00a, M01a2, M01c, M01d, opt. M01b2 · none
+12. M01f · world-graybox-fixture-codec · 0.5 · M00b, M01a1 · none
 Run them in this order, except that a milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2). Each file's Depends on section is authoritative over this list; slugs of split milestones are in their file names.
 M02 onward: milestone files are being written; stop after the last READY milestone and report.
 </milestones>

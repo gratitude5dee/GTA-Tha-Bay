@@ -17,7 +17,8 @@ Then the current milestone file `spec/07-milestones/<ID>-*.md` (the kickoff name
 - `pnpm check:e2e -- --project=<chromium-webgpu|chromium-webgl2|webkit-webgl2|xr-quest3> [--grep @tag]`
 - `pnpm check:perf [-- --scenario <id>]` · `pnpm check:workers [-- <suite>]` · `pnpm check:assets`
 - `pnpm deploy:preview` (Workers Preview of the staging Worker) · `pnpm deploy:prod [-- --env staging]`
-- Milestone scripts are listed under each milestone's Deliverables. M00–M00c add: `check:headers -- <url>`, `check:coi -- <url>`, `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later: `assets:*` (M01d), `map:fixture` (M01f), `map:build` (M02a1), `missions:build` (M05a1), `npc:*` (M06a2).
+- Arguments: `pnpm <script> -- <args>` works for every script. Tools run through `tools/ci/run.ts <tool>`, which drops one leading `--` (pnpm passes it through); in-house scripts parse argv with its `args()` helper.
+- Milestone scripts are listed under each milestone's Deliverables. M00–M00c add: `check:headers -- <url> | --serve <url> | --from <file>`, `check:coi` (same forms), `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later: `assets:*` (M01d), `map:fixture` (M01f), `map:build` (M02a1), `missions:build` (M05a1), `npc:*` (M06a2).
 - Not-yet-implemented `check:*` scripts print `pending: lands in <milestone>` and exit 0.
 
 ## Repo layout
@@ -39,7 +40,7 @@ Then the current milestone file `spec/07-milestones/<ID>-*.md` (the kickoff name
 
 ## Conventions
 - TypeScript strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Vanilla three, no React Three Fiber; Preact for DOM UI only.
-- C02 determinism lint in sim code (`packages/shared/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`): no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`/`performance.now`/timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Seeded `xoshiro128**` streams only.
+- C02 determinism lint in sim code (`packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded): no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`/`performance.now`/timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Seeded `xoshiro128**` streams only.
 - `@dv/shared` imports nothing else and does no IO. `services/*` import only `@dv/shared` and `@dv/net`.
 - Persistent identity is a C01 `StableKey` (`player:`, `veh:`, `npc:`, `amb:<cell>:<slot>`, `mis:`, `pfb:`); `EntityId` never leaves a session.
 - Every cross-domain asset reference is a C07 `AssetRef` `'<kind>/<id>'`; object keys `<root>/<variant>.<sha256[0:12]>.<ext>`.

@@ -30,7 +30,7 @@ Run from the repository root (pnpm workspaces, Node 22 LTS).
 | `pnpm deploy:preview` | Workers Preview of the staging Worker for the current branch or PR |
 | `pnpm deploy:prod [-- --env staging]` | versions upload, 0 % smoke, 100 %, rollback on failure (from M00a) |
 
-Milestone-specific scripts are listed in each milestone's Deliverables. The M00 family adds `check:headers -- <url>`, `check:coi -- <url>`, `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later: `assets:*` (M01d), `map:fixture` (M01f), `map:build` (M02a1), `missions:build` (M05a1), `npc:*` (M06a2), `dv` CLI for mods (M13a). A `check:*` script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
+Milestone-specific scripts are listed in each milestone's Deliverables. Arguments: `pnpm <script> -- <args>` works for every script; tools run through `tools/ci/run.ts <tool>`, which drops the one leading `--` that pnpm passes through, and in-house scripts parse argv with its `args()` helper. The M00 family adds `check:headers -- <url> | --serve <url> | --from <file>`, `check:coi` (same forms), `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later: `assets:*` (M01d), `map:fixture` (M01f), `map:build` (M02a1), `missions:build` (M05a1), `npc:*` (M06a2), `dv` CLI for mods (M13a). A `check:*` script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
 
 ## Repository layout
 - `apps/web` — PWA shell: Vite entry, service worker, `_headers`, page routes
@@ -54,7 +54,7 @@ Milestone-specific scripts are listed in each milestone's Deliverables. The M00 
 
 ## Conventions
 - TypeScript strict, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Vanilla three; no React Three Fiber; Preact for DOM UI only.
-- Determinism rules (contract C02) in sim code — `packages/shared/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
+- Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
 - `@dv/shared` imports no other package and does no IO. `services/*` import only `@dv/shared` and `@dv/net`. Packages never import apps.
 - Persistent identity is a C01 `StableKey` (`player:`, `veh:`, `npc:`, `amb:<cell>:<slot>`, `mis:`, `pfb:`); the dense `EntityId` never leaves a session.
 - Asset references are C07 `AssetRef` strings `'<kind>/<id>'`; stored objects use `<root>/<variant>.<sha256[0:12]>.<ext>`.
