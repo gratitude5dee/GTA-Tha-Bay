@@ -1,6 +1,6 @@
 # 99 — Open questions and UNVERIFIED register (living)
 
-> Created 2026-10-18 by the Architect at Wave 1 reconciliation. Q-01–Q-12 (owner defaults from Phase 0) live in `spec/00-plan.md`; new owner questions start at Q-13. Every default below is applied now so the run continues unattended; the owner overrides with `/architect fix: <what>`. No UNVERIFIED item may appear in an acceptance criterion; where a device run must record one, the criterion is the recording. Wave 5 merges the Wave 2–4 lists into this file.
+> Created 2026-10-18 by the Architect at Wave 1 reconciliation; Q-20…Q-25 and §3 added at the Waves 2–4 reconciliation (same day, `spec/11-decision-log.md` §D). Q-01–Q-12 (owner defaults from Phase 0) live in `spec/00-plan.md`; new owner questions start at Q-13. Every default below is applied now so the run continues unattended; the owner overrides with `/architect fix: <what>`. No UNVERIFIED item may appear in an acceptance criterion; where a device run must record one, the criterion is the recording. Wave 5 merges the Wave 2–4 lists into this file.
 
 ## 1. Owner questions (genuinely the owner's call)
 
@@ -13,6 +13,12 @@
 | Q-17 | Who holds the production staff `FAL_KEY`? | The art lead holds the staff key locally (CLI-first); CI and the Worker get separately scoped keys with allowed-model lists | M00c spike, M10a batch | DN-S05-4, Q-S05-02 |
 | Q-18 | Counsel reading of fal ToS §4(a) "internal business use" for roster generation | Proceed with internal-only generation (D-19); counsel sign-off is a launch gate | M14b public launch (not development) | Q-S05-05, F-042 |
 | Q-19 | The per-character research layer (`research/characters/<slug>/soul.md` + `refs/`) is not in the repository | S04 defines the soul schema, validator and roster manifest; the roster loads when supplied; development uses original test characters (`npc_test` and one `fictionalized` canary) | hero NPC content in M06a; real-roster runs of M10a (the canary runs without it) | `spec/00-plan.md` "Inputs found at start" |
+| Q-20 | Raise the $100/month voice ceiling (G3) to cover an ElevenLabs plan fee so ≤ 3 heroes can use t2 voices? | No: heroes launch on t1 (Workers AI Aura); `ks:tts:elevenlabs` stays on (t2 off); t2 needs linked 18+ accounts when enabled | hero voice quality in M06a4 and M10c (not functionality) | DN-S04-02, `04-npc.md` §5.7 |
+| Q-21 | Who runs the community sensitivity read of the D3 (Bayview–Hunters Point) and D4 (Tenderloin, Civic Center) missions? | The owner arranges it; CI and dev proceed, and the M05c2 **release** stays gated until `content/story/sensitivity.json` records a read for each tagged mission version | public release of Act 1 (M05c2 release step, M05e/M05f releases) | DN-S03-05, `03-story-narrative.md` §B3 |
+| Q-22 | Publish `@dv/mod-sdk` and `@dv/cli` to npm under MIT, under which scope? (ties to Q-15 repo visibility) | Plan MIT and npm publication at M13c3 if the `@dv` scope is available (U5); until the owner confirms, ship both as tarballs on the release page | the publish step of M13a6/M13c3 only | DN-S12-04, `12-modding.md` §10 |
+| Q-23 | Counsel review list before public launch: (a) trademark knock-out of placeholder vehicle makes, rival handles and fictional transit operators; (b) whether device-local normalised body proportions (pose calibration) are biometric data; (c) the tycoon "simulation, not financial advice" disclaimer; (d) default-on telemetry with a first-run notice for US players | (a) ship placeholders through `names:lint`, rename is a data commit; (b) calibration stays device-local, opt-in "remember", deletable; (c) disclaimer in the pitch room; (d) default on (DL-140) | M14b public launch (development proceeds) | DN-S06-02, Q-S07-2, DL-106, DL-127, DL-140, S08 risks |
+| Q-24 | Is fighter animation authored by a human art lead (≈ 45 shared base clips + 12–16 signature clips per fighter, ≈ 160 Blender tasks)? | Yes in principle: M08a ships generic library clips; signatures follow through M10a; without art-lead time v1 ships library moves only | animation quality in M08b1/M10a | S07-D1, `07-fighter-content.md` FX7 |
+| Q-25 | Create the private content repository mounted at `content-private/` (real-derived souls, research layer, production rails) and grant CI read access | Until it exists only original souls and the rules example build; real-roster content waits as for Q-19 | real-roster content in M10c; production rails before M14b | DN-S04-01, DL-118 |
 
 ## 2. UNVERIFIED register — Wave 1
 
@@ -99,3 +105,19 @@ Each row names the default the spec uses until the item is verified and the mile
 | U-BE-19 | fal auto-recharge; locked-account HTTP status | recharge off, small prepaid balance, governor reserve | M05b, M14b |
 | U-BE-20 | `wrangler deployments status --json` field names | deploy script parses defensively | M00 |
 | U-BE-21 | DO restarts scoped to the deploying script | split Workers anyway (costs nothing if false) | M12c |
+
+## 3. UNVERIFIED register — Waves 2–4 (index; Wave 5 merges the rows into §2 format)
+
+Each domain lists its items with the default it uses and the verifying milestone in its own spec; no item appears in an acceptance criterion. Counts from `spec/.waves234-returns.json`.
+
+| Domain | Items | Listed in | Highest-impact items (default) |
+|---|---|---|---|
+| S02 world | 14 | `02-world.md` §10 | Geofabrik/Overpass routes (pinned raw snapshot); SPDX `ODbL-1.0`/`PDDL-1.0` strings; per-pack GET speed without a batch route (M02b1 measures); bake and meshing budgets † |
+| S03 story | 8 (U-S03-1…8) | `03-story.md` §7 | keyframe identity across clips (M00c, M08b2); Safari MSE gaps and Low Power Mode video (M04c); C08 route snap inside the load budget (M05a1) |
+| S04 NPC | 12 (U-NPC-01…12) | `04-npc.md` §7 | Haiku TTFT and unbuffered SSE through AI Gateway (M06a3); structured-output streaming; ElevenLabs plan terms (Q-20) |
+| S06 racing | 8 (U-RAC-1…8) | `06-racing.md` §7 | Rapier per-wheel contact and impulses (M03a2 spike); deterministic tick cost; SSR/motion-blur cost (M11a) |
+| S07 fighter | 11 | `07-fighter.md` §7, `07-fighter-pose.md` FP11 | PoseLandmarker latency on iPhone (M08c2 device gate); classic-worker packaging under Vite 8; biometric reading (Q-23) |
+| S08 tycoon | 5 (U-TYC-1…5) | `08-tycoon.md` §7 | Carta dilution figure (design target only); Haiku TTFT (M06a3); U-TYC-5 resolved by DL-139 |
+| S10 UI | 15 | `10-ui.md` §10 | Turnstile under COEP (M12a); OS age signals (2027); system keyboard in XR (flat-only, DL-142); Preact cost (M04b1) |
+| S12 modding | 12 (U1…U12) | `12-modding.md` §10 | QuickJS cost on iPhone/Quest (M13a4); srcdoc iframe under COEP (M13a5); `@dv` npm scope (Q-22); Supabase GitHub OAuth beside TPA (M13c1, DL-145) |
+

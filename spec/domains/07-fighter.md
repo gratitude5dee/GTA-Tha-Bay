@@ -255,14 +255,14 @@ Other milestones S07 depends on or feeds: M01a (detmath vectors, lint), M04a (`c
 
 **Open questions (S07):** Q-S07-1 to Q-S07-4 in FP11; Q-S07-5 `USER_NPC` fighters: when, after M13c (recommend a post-v1 slot). Roster content waits on Q-19; Q-14 sets 8 versus 12 fighters if a fallback video provider becomes default.
 
-**Assumptions on concurrent owners (use 06 v1.0 sketches exactly; listed for the Architect):**
-- S01: `ControlsSettings.fighterScheme` selects between two binding files per device (`…fighter-classic.json`, `…fighter-simple.json`); fighter-context labels come from a labels file (S10); `InputRouter` can supply `frame(1)` from a second gamepad for local Versus (keyboard second player is out of v1).
-- S01/S02: `world: 'stage'` means no C08 chunk streaming; the stage is a C07 `prop` bundle loaded through `ModeContext.assets`.
-- S03: `CutscenePlayer.playSequence(items: {ref: CutsceneRef | null; fallback: DirectorScript}[])` with per-item fallback; the release `cutscene-index` includes the fight refs of `content/fighter/cutscenes.json`; story applies `ModeResult.data.streetCred`; ModeHost increments `core.stats.fightsWon` on a fighter win.
-- S04: compiled souls expose `tier`, `fame_domain`, `standIn`, `rails`; `turn.intent` accepts `fight.pre` and `fight.post`.
+**Assumptions on concurrent owners** (resolved by the Architect in 06 v1.1, 2026-10-18: all accepted as stated except where noted; DL-081, DL-086, DL-091, DL-093, DL-095, DL-098, DL-102):
+- S01 (accepted, C03 1.1 `ControlsSettings.fighterScheme?: 'classic' | 'simple'`): `ControlsSettings.fighterScheme` selects between two binding files per device (`…fighter-classic.json`, `…fighter-simple.json`); fighter-context labels come from a labels file (S10); `InputRouter` can supply `frame(1)` from a second gamepad for local Versus (keyboard second player is out of v1).
+- S01/S02 (accepted, C06 1.1 comment): `world: 'stage'` means no C08 chunk streaming; the stage is a C07 `prop` bundle loaded through `ModeContext.assets`.
+- S03 (accepted as C09 1.0.0 `playSequence(playId, items: {ref: CutsceneRefId | null; fallback: string /* DirectorScript id */}[])`, DL-081): per-item fallback; the release `cutscene-index` includes the fight refs of `content/fighter/cutscenes.json`; story applies `ModeResult.data.streetCred`; ModeHost increments `core.stats.fightsWon` on a fighter win.
+- S04 (accepted with changes): `CompiledSoulPublic` exposes `tier`, `fameDomain`, `standIn` (rails stay server-only in `CompiledSoul`); C10 `PlayerIntent` adds `fight_pre` and `fight_post` (DL-086).
 - S05: `assets:retarget` output `anim/<slug>.moves`; `cutscene-index` accepts `content/fighter/cutscenes.json`; no new `AssetKind` is needed (stages are `prop`).
 - S10: `UiSurface` panels, settings page entries for the fighter scheme, pose setup and "Delete camera data", the neutral age screen output used by FP1.5.
-- S11: `_headers` camera policy and CSP (FP7.1); `dv-platform` store `pose-calibration` (FP4); `PerfScenario` ids `fight-stage` (exists) and `fight-stage-pose`.
+- S11 (accepted, C13 1.1, DL-102; CSP corrected by DL-093): `_headers` camera policy and CSP (FP7.1); `dv-platform` store `pose-calibration` (FP4); `PerfScenario` ids `fight-stage` (exists) and `fight-stage-pose`.
 
 **Contract change proposals** are in the return block: C03 (additive 1.1: `setPoseHybrid`, fighter-context alias table), C11 (`ActKind.FightInput`), C16 (`fight.end`, `pose.session`), C13 (headers, store, scenario), C09 (`playSequence`), plus the `AnimStateId` block assignment (S06 128–159, S07 160–207, S08 208–255) for an ADR.
 

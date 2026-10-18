@@ -1,6 +1,6 @@
 # 01 — Engine contracts, part 2: C05 SaveGame · C06 GameMode + unlocks · PursuitDirector · clock · interaction · prefabs · mission hooks
 
-> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md`. Contracts **v1.0.0**, freezing into `06` v1.0. Types live in `packages/shared/src/contracts/`; services in `packages/engine/src/sim/`. Part 1 (C01–C04) is `spec/domains/01-engine-contracts.md`.
+> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md`. Contracts **C05 1.1.0, C06 1.1.0** (06 v1.1; 1.1 section at the end of this file). Types live in `packages/shared/src/contracts/`; services in `packages/engine/src/sim/`. Part 1 (C01–C04) is `spec/domains/01-engine-contracts.md`.
 
 ## C05 — `SaveGame` (owner S01; consumers: S09 cloud sync, S10 menus, S03/S06/S07/S08 slices)
 
@@ -8,7 +8,7 @@ Profile rules translate Grand-V's save-profile logic: 32-hex ids, named profiles
 
 ```ts
 // packages/shared/src/contracts/c05-save.ts
-export const C05_VERSION = '1.0.0' as const;
+export const C05_VERSION = '1.1.0' as const;   // 1.1: additive fields in "C05 1.1 and C06 1.1 additions" at the end of this file
 export type ProfileId = string & { readonly __brand: 'ProfileId' };   // /^[0-9a-f]{32}$/
 export type SliceKind = 'core' | 'settings' | 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | 'mod';
 export type SlotId =
@@ -172,13 +172,13 @@ The 06 sketch `{ id, unlockEvent, enter(ctx), exit(), tick(dt), ui(), saveSlice(
 
 ```ts
 // packages/shared/src/contracts/c06-modes.ts
-export const C06_VERSION = '1.0.0' as const;
+export const C06_VERSION = '1.1.0' as const;   // 1.1: additive members in "C05 1.1 and C06 1.1 additions" at the end of this file
 export type GameModeId = 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | `exp:${string}`;
 export type UnlockEventId = `unlock.${string}`;     // unlock.racing, unlock.fighter.rap_lyricist, unlock.district.d6
 
 export interface ModeRequirements {
   simProfile: 'local' | 'canonical' | 'any';
-  world: 'city' | 'stage' | 'none';                 // city = streamed SF (C08); stage = one arena chunk
+  world: 'city' | 'stage' | 'none';                 // city = streamed SF (C08); stage = a mode-loaded diorama of C07 prop assets via ModeContext.assets, no C08 streaming (C06 1.1)
   physics: boolean;
   xr: 'full' | 'seated' | 'panel' | 'none';
   inputContexts: InputContextId[];
@@ -380,3 +380,50 @@ export interface CombatApi { // open-world melee; frame data and move sets are S
 }
 ```
 **Rules:** money is integer cents; credits/debits are idempotent by key; tycoon dividends into the story wallet cap at $10,000 per in-game week [research/gamedesign-decomposition.md §2.9]. Open-world melee resolves capsule hitboxes from S07 frame data at 60 Hz in `Rules`; knockouts are non-lethal (`Health.ko`), and assault reports an infraction.
+
+## C05 1.1 and C06 1.1 additions (Architect, second reconciliation, 2026-10-18)
+
+Additive minor bumps accepted from Wave 2–4 return blocks (`spec/11-decision-log.md` DL-097, DL-098). Old records and modes stay valid; every new field is optional or a new union member. Shapes are normative here; the file paths are unchanged.
+
+```ts
+// c05-save.ts — 1.1
+export type SaveReason = /* 1.0 members */ | 'checkpoint';          // C09 stage checkpoint (S03)
+export interface ProfileSettings {                                    // 1.0 fields unchanged, plus:
+  npc?: { voice: 'all' | 'heroes' | 'off'; aiDialogue: boolean };    // S04; absent = tier defaults (desktop/XR 'all', mobile 'heroes'), aiDialogue true
+  cutscenes?: { generated: boolean; audio: 'generated' | 'engine' }; // S03; absent = {generated: true, audio: 'engine'}
+}
+// ControlsSettings.touch.layout may name a device-scoped 'custom:<n>' layout; a missing layout falls back to 'default-right' (S10).
+// CoreSlice.avatar is validated by S10's packages/shared/schemas/ui/avatar.v1.schema.json (S10 owns it; with the wardrobe-item schema in @dv/shared for the mod SDK).
+
+// c06-modes.ts — 1.1
+import type { UiBridge, ViewModelSource, UiCommand, VmKey, VmPatch } from './ui-bridge';   // shapes: 10-ui.md §3.3 (+ 'cutscene.state')
+import type { WorldApi } from '../world/c08-api';                                           // C08 (S02)
+export interface GameModeDescriptor {                                 // 1.0 fields unchanged, plus:
+  standaloneProfile?: 'local' | 'canonical';                          // top-level (menu) entry profile when requires.simProfile is 'any' (S06 CCP-1)
+  modSurface?: { kinds: ('experience' | 'vehicle' | 'character' | 'rules')[] };   // C14 kinds this mode accepts; absent = none (S12)
+}
+export interface GameModeUI {                                         // 1.0 members unchanged, plus (S10):
+  summary?(slice: JsonObject | null): { lines: { label: string /* LocKey */; value: string }[] };   // mode tile and saves page
+  settingsPanel?(): unknown /* S10 ScreenDef */; assists?: { id: string; label: string /* LocKey */ }[];
+}
+export interface ModeContext {                                        // 1.0 members unchanged, plus:
+  readonly world: WorldApi;                                           // C08 graph, traffic, map, teleport, query, places, resolver (S02 P1)
+  readonly npc: {                                                     // filtered S04 runtime for missions and mods (sim side)
+    whereIs(npcId: string): { pos: [number, number, number]; activity: string } | null;
+    isKilled(npcId: string, scope: 'all' | 'spawn' | 'fighter' | 'cutscene' | 'voice' | 'marketing' | 'ugc'): boolean;
+    playKnot(npcId: string, knot: string /* C10 InkKnot */, playId: string): void;   // lines arrive as hud.subtitle patches; completion as SimEvent 'npc.knot.done'
+  };
+}
+export interface PursuitProfile { /* 1.0 fields */ configRef?: string /* e.g. 'config/pursuit.race.json' (S06 CCP-2) */ }
+export interface PursuitApi { /* 1.0 members */ setRouteHint(edgeIds: readonly number[] | null): void /* predicted race route for roadblocks */ }
+export interface TimelineRecorder { /* 1.0 members */ external(e: { src: 'talk' | 'intent' | 'cutscene' | 'mode'; tick: Tick; data: JsonObject }): void }   // recorded async inputs, replayed without re-querying (S04)
+/** engine-world.ts: pure weekday of the C06 clock; t in half-seconds, 172,800 per game day, t = 0 is Monday 00:00 (S04). */
+export const weekdayOf = (t: number): 0 | 1 | 2 | 3 | 4 | 5 | 6 => (Math.floor(t / 172800) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
+```
+
+**Rule changes (1.1):**
+- **C05 rule 3, capabilities.** Add: an `exp:<experienceId>` top-level session may write only `mod:<its ModId>` and read `settings`; it never writes `core`, `story:*`, `sandbox` or `mode:*` (S12). Unlock emission is therefore impossible from an experience (C09 `mod` profile, DL-084).
+- **C06 rule 3, Story ↔ experience switch.** Entering `exp:<id>` from Story is a top-level mode switch at a safe point: ModeHost saves `story:auto` with reason `modeExit`, starts `exp:<id>`, and on exit reloads `story:auto` at the saved position. The marker prompt is disabled during a mission or a pursuit (S12, DN-S12-11).
+- **C06 rule 2, profiles.** A descriptor with `requires.simProfile: 'any'` embeds under the parent's profile; its top-level entry uses `standaloneProfile` (racing: `canonical`, so ghosts, replays and leaderboard runs are exact).
+- **ModeHost stats.** On a fighter win ModeHost increments `core.stats.fightsWon`; `ModeResult.data` may carry mode-specific rewards that the parent (Story) applies itself (S07).
+- **Engine vehicle readout.** S06's per-wheel contact readout and `applyWheelForces` path (CCP-3) is fixed by S01 and S06 in M03a2 after the U-RAC-1 spike and lands as an additive C06 1.2 member; until then S06 builds its own `castRay` + impulse vehicle (DL-104).

@@ -1,6 +1,6 @@
 # 12 — Modding & UGC, Part B: contracts C14 and C17, protocols, install records, limits
 
-> S12, Wave 4, 2026-10-18. Part of `spec/domains/12-modding.md` (§4 Data). Contracts are **v1.0.0** once the Architect accepts the return block; the 06 §4.4 sketches are kept exactly and *(fixed)* lines are marked. Types live in `packages/shared/src/contracts/` (C14: `c14-mod.ts`, `c14-modapi.ts`; C17: `c17-experience.ts`) so `@dv/mod-sdk`, `services/edge`, `tools/cli` and the engine import them without importing an implementation. `AssetKind`, `AssetRef`, `ProvenanceRecord` are C07; `QualityTierId` is C13; `SlotId` is C05; `WeatherPreset` and `CinematicShot` are from C06/C04. Assumptions on concurrent specs are listed in the return block.
+> S12, Wave 4, 2026-10-18. Part of `spec/domains/12-modding.md` (§4 Data). Contracts are **v1.0.0**, accepted by the Architect in 06 v1.1 (2026-10-18) with the finalization edits DL-089 (`compat.world`, `uses.npcs`) and DL-090 (C17 `worldVersion`/`modSha256` in 1.0.0, `ChunkKey`, `nhood`); the 06 §4.4 sketches are kept exactly and *(fixed)* lines are marked. Types live in `packages/shared/src/contracts/` (C14: `c14-mod.ts`, `c14-modapi.ts`; C17: `c17-experience.ts`) so `@dv/mod-sdk`, `services/edge`, `tools/cli` and the engine import them without importing an implementation. `AssetKind`, `AssetRef`, `ProvenanceRecord` are C07; `QualityTierId` is C13; `SlotId` is C05; `WeatherPreset` and `CinematicShot` are from C06/C04. Assumptions on concurrent specs are listed in the return block.
 
 ## B§1 C14 — `ModManifest`
 
@@ -46,7 +46,7 @@ export interface ModProvenance {
 }
 export interface ModCompat {
   api: string;                                        // semver range satisfied by MODAPI_VERSION, e.g. "^1.0.0"
-  world?: string[];                                   // accepted C05 `worldBake` prefixes, e.g. ["sf@2026"]
+  world?: string[];                                   // accepted C08 bakeIds (= C05 `worldBake`, 64-hex) or ≥ 12-hex prefixes; absent = any bake, subject to anchor re-validation on rebake (DL-089)
   game?: string;                                      // semver range of the app version
 }
 export interface ModUiSpec {
@@ -138,10 +138,10 @@ export interface ModArchiveRef { modId: ModId; version: SemVer; archiveSha256: S
     "assets": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/asset" } },
     "uses": { "type": "object", "additionalProperties": false, "properties": {
       "assets": { "type": "array", "maxItems": 64, "items": { "type": "string", "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._-]{1,62}$" } },
-      "npcs": { "type": "array", "maxItems": 4, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,62}$" } } } },
+      "npcs": { "type": "array", "maxItems": 4, "items": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{2,47}$" } } } },
     "provenance": { "$ref": "#/$defs/modProvenance" },
     "compat": { "type": "object", "additionalProperties": false, "required": ["api"],
-      "properties": { "api": { "type": "string" }, "world": { "type": "array", "items": { "type": "string" }, "maxItems": 8 }, "game": { "type": "string" } } },
+      "properties": { "api": { "type": "string" }, "world": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-f]{12,64}$" }, "maxItems": 8 }, "game": { "type": "string" } } },
     "contentWarnings": { "type": "array", "uniqueItems": true, "items": { "enum": ["flashing","loud","crude-humor","mild-violence"] } },
     "storage": { "type": "object", "additionalProperties": false, "properties": { "schema": { "type": "integer", "minimum": 1 } } },
     "declarations": { "type": "object", "additionalProperties": false, "required": ["originalWork","noRealPeople","noThirdPartyGameAssets","noSecrets"],
@@ -328,7 +328,7 @@ export type UiMsg = { v: 1; t: 'hello'; modId: ModId } | { v: 1; t: 'msg'; d: Js
 
 **Host shims** (C01 range 2048–4095, owner S12; scalars only; none is `hashed`, because mod sessions are not canonical): 2048 `ModOwned {mod u16, serial u32, kind u8}` (snapshot `render`), 2049 `ModMarker {icon u8, label u32 str}` (`render`), 2050 `ModZoneRef {zone u32 str}` (`none`); 2051–2111 reserved for host shims; 2112–4095 reserved for data-declared components (deferred, not v1). Mod entities are created with `pfb:<prefabId>:<serial>` keys and are never persisted; persistence is the `mod:<id>` slot only.
 
-**Mod save slot.** `SaveRecord` with `kind:'mod'`, `slot:'mod:<ModId>'` (the C05 slot regex already accepts `ModId`), `schema` = `manifest.storage.schema` (default 1), `data` = `{ kv: Record<string, JsonValue>; meta: { modVersion: SemVer; lastSessionAt: number } }`. `kv` canonical JSON ≤ 1 MiB (half the 2 MiB record cap, so metadata and growth fit). The host flushes at session end and every 60 s when dirty, through `SaveService.write(slot, data, reason)` with reason `modeExit` or `interval`. Capability: `sandbox` sessions may write `mod:*` (C05 rule 3, unchanged); an `exp:` session may write only its own mod's slot (proposal on rule 3). A `storage.schema` bump calls `migrate(from, to, kv)` once; a throw keeps the old record and disables the mod for the session.
+**Mod save slot.** `SaveRecord` with `kind:'mod'`, `slot:'mod:<ModId>'` (the C05 slot regex already accepts `ModId`), `schema` = `manifest.storage.schema` (default 1), `data` = `{ kv: Record<string, JsonValue>; meta: { modVersion: SemVer; lastSessionAt: number } }`. `kv` canonical JSON ≤ 1 MiB (half the 2 MiB record cap, so metadata and growth fit). The host flushes at session end and every 60 s when dirty, through `SaveService.write(slot, data, reason)` with reason `modeExit` or `interval`. Capability: `sandbox` sessions may write `mod:*` (C05 rule 3, unchanged); an `exp:` session may write only its own mod's slot (C05 1.1 rule 3, DL-097). A `storage.schema` bump calls `migrate(from, to, kv)` once; a throw keeps the old record and disables the mod for the session.
 
 **Session and load types.**
 
@@ -369,11 +369,12 @@ import type { ModId, SemVer, Sha256, ModContentWarning } from './c14-mod';
 import type { AnchorVec3 } from './c14-modapi';
 import type { WeatherPreset } from './engine-world';
 import type { QualityTierId } from '../platform/c13';
+import type { ChunkKey, DistrictId } from '../world/c08';
 
 export const C17_VERSION = '1.0.0' as const;
 export type ExperienceModeration = 'needs_review' | 'published' | 'rejected' | 'needs_update' | 'unlisted_pending_review' | 'removed';
 export type ExperienceVisibility = 'private' | 'unlisted' | 'public';          // owner-only | link only | on the map
-export interface ExperienceAnchor { lat: number; lng: number; chunkKey: string /* C08 'z/x/y', computed by the server */ }   // (fixed: both present)
+export interface ExperienceAnchor { lat: number; lng: number; chunkKey: ChunkKey /* z=9 key, server computes C08 chunkKeyOf(lat, lng) */ }   // (fixed: both present)
 export interface ExperienceEntryRules {
   entry: 'on_foot' | 'in_vehicle' | 'either'; start: AnchorVec3; hours?: [number, number]; weather?: WeatherPreset;
 }
@@ -386,13 +387,14 @@ export interface ExperienceDescriptor {
   rating: { sum: number; count: number };      // sum of ±1 votes and number of votes; up = (count+sum)/2
   moderation: ExperienceModeration;            // server-owned, read-only to clients (fixed)
   visibility: ExperienceVisibility;            // server-owned, read-only to clients (fixed)
-  worldVersion?: string; modSha256?: Sha256;   // additive in 1.1.0 (proposal): pin to the baked world and archive for rebake re-validation
+  worldVersion?: string; modSha256?: Sha256;   // part of 1.0.0 (DL-090): worldVersion = C08 bakeId the anchor was validated against; archive pin for rebake re-validation
 }
 /** Route 37 list/detail item: descriptor plus display data read from the pinned version's `dv-exp/1` and manifest. */
 export interface ExperienceCard extends ExperienceDescriptor {
   title: string; summary: string; tags: string[]; author: { id: string; display: string };
   thumbUrl?: string;                           // https://ugc.<host>/thumb/<sha256>.webp
   contentWarnings: ModContentWarning[]; tiersOk: QualityTierId[]; aiAssisted: boolean; updatedAt: number;
+  nhood: DistrictId;                           // C08 neighbourhood slug of the anchor (server-computed); S10 shows LocKey nhood.<slug> (DL-090)
 }
 ```
 
@@ -416,7 +418,7 @@ export interface ModVersionsRes { modId: ModId; version: SemVer; state: 'scannin
 export interface RevokedRes { items: { modId: ModId; version?: SemVer; reason: 'dmca' | 'policy' | 'security'; at: number }[]; next?: string }
 ```
 
-Route 35 query adds `sort` (`new|top|installed`), `tier` (a `QualityTierId` filter on `tiersOk`) and `limit` (additive proposal); route 36 returns 202 `ModVersionsRes` and is idempotent per `(modId, version)` (a changed archive under a published version is `409 conflict`); route 37 `GET` takes `chunk=<z/x/y>` (comma list ≤ 9 keys) or `bbox=minLng,minLat,maxLng,maxLat` and returns only `moderation:'published' ∧ visibility:'public'` for anonymous callers, plus the caller's own placements with their states; route 37 `POST` body `{modId, modVersion, anchor:{lat,lng}, radius, entryRules, visibility}` (a later placement of an already published version).
+Route 35 query adds `sort` (`new|top|installed`), `tier` (a `QualityTierId` filter on `tiersOk`) and `limit` (C12 1.1, `09-backend-contracts-1.1.md` §1); route 36 returns 202 `ModVersionsRes` and is idempotent per `(modId, version)` (a changed archive under a published version is `409 conflict`); route 37 `GET` takes `chunk=<z/x/y>` (comma list ≤ 9 keys) or `bbox=minLng,minLat,maxLng,maxLat` and returns only `moderation:'published' ∧ visibility:'public'` for anonymous callers, plus the caller's own placements with their states; route 37 `POST` body `{modId, modVersion, anchor:{lat,lng}, radius, entryRules, visibility}` (a later placement of an already published version).
 
 ```ts
 export type ModCheckCode =

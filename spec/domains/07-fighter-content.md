@@ -65,7 +65,7 @@ Reserve kits: `RAP_COLLECTIVE` calls crew assists (`summon`, Hype cost); `TECH_V
 | "Stiff Arm" | Collar Toss | football term; no pads, helmets, numbers or jerseys |
 | "Chat votes" | Poll | generic |
 
-`fighter:lint` checks every `MoveDef.tags`, `nameKey` text and prop id against `config/fame-domains.json` (domain → forbidden keywords, e.g. `rap_performance`: mic, song, lyric, verse, beat, track, perform, concert, stage light; `basketball`: hoop, dunk, court, jersey, three-pointer; `football`: tackle, pads, helmet, endzone, jersey; `streaming`: stream, subscribe, viewer, donate). A kit tagged with a keyword of its slot's soul `fame_domain` fails the build (legal L3 `fame_domain` check).
+`fighter:lint` checks every `MoveDef.tags`, `nameKey` text and prop id against `config/fame-domains.json` (domain → forbidden keywords, e.g. `rap_performance`: mic, song, lyric, verse, beat, track, perform, concert, stage light; `basketball`: hoop, dunk, court, jersey, three-pointer; `football`: tackle, pads, helmet, endzone, jersey; `streaming`: stream, subscribe, viewer, donate). A kit tagged with a keyword of its slot's soul `fameDomain` (C10 `CompiledSoulPublic.fameDomain`) fails the build (legal L3 fame-domain check).
 
 ## FX3 Reference kit: PLAYER_FIGHTER (VS-Fighter content, M08a)
 
@@ -90,7 +90,7 @@ Showstopper, Shutdown and Taunt for the reference kit are authored in M08b (dama
 
 ## FX4 Likeness, depiction and kill-switch enforcement (R-IP-02, R-NPC-04, D-29, D-30)
 
-1. **Tier source.** The tier is read from the compiled soul at load, never from fighter data. `roster.json` carries `expectedTier`; CI (`likeness:gate` extension) fails on mismatch, on a missing `standIn`, and on a `parody` soul whose `fame_domain` matches a kit tag or a stage tag.
+1. **Tier source.** The tier is read from the compiled soul at load, never from fighter data. `roster.json` carries `expectedTier`; CI (`likeness:gate` extension) fails on mismatch, on a missing `standIn`, and on a `parody` soul whose `fameDomain` (C10) matches a kit tag or a stage tag.
 2. **Fame-domain exclusion.** `config/fame-domains.json` also lists forbidden fighter × stage pairs: a `basketball` fighter cannot select or be assigned `mission_bay_court` (stage tag `arena_court`); selection UI hides the pair and Arcade ladder generation skips it.
 3. **`parody` presentation.** Altered name, text-derived stylized model, no tattoos, jerseys, numbers or logos, no catchphrases. The character-select card and the first-appearance card show "Parody. Not affiliated with or endorsed by any real person."; `fictionalized` shows "Fictional character."; the "AI character" badge appears wherever generated speech is shown (legal L1, NPC rec 14).
 4. **No marketing.** Select-screen art, portraits and cutscene posters are excluded from share/OG images (`marketing_allowed = false` for every non-`consented` soul); photo mode in the fighter is off.
@@ -147,19 +147,19 @@ Shadows follow the tier (`blob` on `mobile-low` and Quest). Hit sparks and proje
 
 | Hook (R-CUT-02) | Template | `CutsceneRef` | Subjects | Count (N=8, S=6) |
 |---|---|---|---|---|
-| fight intro, part 1 | `fight.walkin@1` | `fight.walkin/<fighterId>/<stageId>` | one fighter on one stage | N×S = 48 |
-| fight intro, part 2 | `fight.faceoff@1` | `fight.faceoff/<idA>+<idB>` (ids sorted) | a pair, stage-neutral backdrop | N(N−1)/2 = 28 |
-| special move | `fight.special@1` | `fight.special/<fighterId>/<moveId>` | signature special, victim-agnostic | N = 8 |
-| super | `fight.super@1` | `fight.super/<fighterId>/<moveId>` | L2 and Showstopper | 2N = 16 |
-| finisher | `fight.shutdown@1` | `fight.shutdown/<fighterId>` | victim-agnostic | N = 8 |
-| fight ending | `fight.ending@1` | `fight.ending/<fighterId>` | the winner | N = 8 |
+| fight intro, part 1 | `fight.walkin@1` | `cut.fight.walkin.<fighterId>.<stageId>` | one fighter on one stage | N×S = 48 |
+| fight intro, part 2 | `fight.faceoff@1` | `cut.fight.faceoff.<idA>.<idB>` (ids sorted) | a pair, stage-neutral backdrop | N(N−1)/2 = 28 |
+| special move | `fight.special@1` | `cut.fight.special.<fighterId>.<moveId>` | signature special, victim-agnostic | N = 8 |
+| super | `fight.super@1` | `cut.fight.super.<fighterId>.<moveId>` | L2 and Showstopper | 2N = 16 |
+| finisher | `fight.shutdown@1` | `cut.fight.shutdown.<fighterId>.<moveId>` | victim-agnostic | N = 8 |
+| fight ending | `fight.ending@1` | `cut.fight.ending.<fighterId>` | the winner | N = 8 |
 | **Total** | | | | **116** |
 
 Scaling [research/gamedesign-decomposition.md §4.5]: N=10, S=6 → 155; N=12, S=8 → 222. A pair-by-stage intro (168 or 528 clips) is rejected. Specials, supers and shutdowns are victim-agnostic; the victim appears only in an in-engine reaction cut after the clip.
 
-**FX6.2 Key inputs** (A-03; `canonicalize` + `sha256Hex` from `packages/shared`, computed by `tools/assets cutscene-index`): `{ templateId@ver, characters: [{id, soulVersion, likenessTier}] sorted by id, move?: moveId@ver, stage?: stageId@ver, style: 'bay-cel@2', endpointId@pinnedUpdatedAt, seed, inputHashes }`. `inputHashes` are SHA-256 of the reference crops and the stage plate, never URLs. Licence status is not in the key. A soul-version, tier, stage, move or endpoint change makes a new key; old keys are garbage-collected, never overwritten.
+**FX6.2 Key inputs** are exactly C09 `CutsceneKeyInput` (A-03; `cutsceneKey` in `packages/shared/src/genai/cutscene-key.ts`, computed by `tools/assets cutscene-index`): `{ template, characters: [{id, soulVersion, likenessTier}] sorted by id, move: moveId@ver | null, stage: stageId@ver | null, style: 'bay-cel@1' (S05's current style bible), endpoint: endpointId@pinnedUpdatedAt, seed, inputHashes }`; ref ids use the C09 `CutsceneRefId` grammar (`cut.fight.*`, owner S03). `inputHashes` are SHA-256 of the reference crops and the stage plate, never URLs. Licence status is not in the key. A soul-version, tier, stage, move or endpoint change makes a new key; old keys are garbage-collected, never overwritten.
 
-**FX6.3 Generation recipe.** Walk-ins and face-offs use the registry's reference-to-video entry (`minimax/h3-max/reference-to-video` by registry key, ≤ 4 square crops from the approved first-party sheet, 768P, 5 s, `prompt_expansion_mode: disabled`, fixed seed) [research/genai-pipeline-fal.md Recipe R, F-040]; specials, supers, shutdowns and endings use the keyframe-first recipe. Both are gated by `config/genai-endpoints.json`: while ADR-GENAI-01 is open the production default is the registry fallback (Q-03). Cost: N=8 is 116 clips, about $70 at the Ref2V list price with 1.5× retakes [research/genai-pipeline-fal.md Fighter clip set]. On the `ltx25.fast` fallback (6 s minimum) the whole v1 video set with 8 fighters is $296.5 including the story set, inside the G3 cap; with 12 fighters it goes over the cap, which is Q-14 [spec/domains/05-assets-pipeline.md §11]. Prompts never contain real names, franchises, artists or "in the style of"; presets are non-photoreal for every non-`consented` character.
+**FX6.3 Generation recipe.** Walk-ins and face-offs use the registry's reference-to-video entry (`minimax/h3-max/reference-to-video` by registry key, ≤ 4 square crops from the approved first-party sheet, 768P, 6 s (C09 `ShotPlan.durationS` minimum; the cost below was quoted at 5 s and is recomputed in M08b2), `prompt_expansion_mode: disabled`, fixed seed) [research/genai-pipeline-fal.md Recipe R, F-040]; specials, supers, shutdowns and endings use the keyframe-first recipe. Both are gated by `config/genai-endpoints.json`: while ADR-GENAI-01 is open the production default is the registry fallback (Q-03). Cost: N=8 is 116 clips, about $70 at the Ref2V list price with 1.5× retakes [research/genai-pipeline-fal.md Fighter clip set]. On the `ltx25.fast` fallback (6 s minimum) the whole v1 video set with 8 fighters is $296.5 including the story set, inside the G3 cap; with 12 fighters it goes over the cap, which is Q-14 [spec/domains/05-assets-pipeline.md §11]. Prompts never contain real names, franchises, artists or "in the style of"; presets are non-photoreal for every non-`consented` character.
 
 **FX6.4 Intro playback** (R-CUT-03). After stage confirm the mode calls `CutscenePlayer.playSequence([{ref, fallback}…])` with the three segments `[walkin(A), walkin(B), faceoff(A,B)]` (assumption on S03, hub §10). `PLAYER_FIGHTER` has no clips, so its segments and every pair segment containing it use the in-engine director fallback (1.6 s side-view walk-in with a name card; 2 s face-off); clips therefore play only in roster-versus-roster bouts (Versus, Arcade as a roster fighter, exhibition attract). At stage confirm the mode prefetches all ready clips into memory (the S03 rule: `v540` on `mobile`, `v768` elsewhere, ≈ 1–3 MB and 3–8 MB per clip [research/gap-cutscene-delivery-playback.md §7.5]); the `Load` phase waits at most 1.5 s for prefetched clips, 2.5 s otherwise, then falls back per segment (F1–F10). Any attack button skips. The match never waits for generation.
 
@@ -169,7 +169,7 @@ Scaling [research/gamedesign-decomposition.md §4.5]: N=10, S=6 → 155; N=12, S
 
 ## FX7 Animation, audio and assets
 
-**AnimStateId block (proposal; Architect assigns by ADR).** S06 128–159, **S07 160–207**, S08 208–255. Network `anim` is the u8 state; the move being played is `FighterView.move` plus frame.
+**AnimStateId block (assigned, C04 1.1, DL-091; ADR in Wave 5).** S06 128–159, **S07 160–207**, S08 208–255. Network `anim` is the u8 state; the move being played is `FighterView.move` plus frame.
 
 | Ids | States |
 |---|---|

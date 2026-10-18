@@ -1,6 +1,6 @@
 # Domain 03 — Story, Missions & Cutscenes (S03), Part C: C09 MissionScript
 
-> Wave 2 · v1.0 · 2026-10-18 · author S03. Continues `03-story.md` (Part A). This part carries template §4 (data) and §5 (runtime) for missions: authoring API, JSON IR and schema, compiler, interpreter, dialogue hooks, mode hooks and unlocks, autoplayer, debugger, content lint and the mission-editor needs for modders. Cutscene types are in Part D (`03-story-cutscenes.md`); story content is in Part B (`03-story-narrative.md`). Requirements: R-MODE-01, R-MODE-05, R-CUT-03 (mission side), R-ENG-04, R-NPC-05 (offline completion), R-IP-02. Binding: A-02, C06 mission hooks (`01-engine-save-modes.md` "Mission and mode hooks"), gamedesign R-DSL 1–12 [research/gamedesign-decomposition.md §2.6].
+> Wave 2 · v1.0 · 2026-10-18 · author S03. C09 accepted at 1.0.0 in 06 v1.1 (Architect, DL-077, DL-080…DL-085). Continues `03-story.md` (Part A). This part carries template §4 (data) and §5 (runtime) for missions: authoring API, JSON IR and schema, compiler, interpreter, dialogue hooks, mode hooks and unlocks, autoplayer, debugger, content lint and the mission-editor needs for modders. Cutscene types are in Part D (`03-story-cutscenes.md`); story content is in Part B (`03-story-narrative.md`). Requirements: R-MODE-01, R-MODE-05, R-CUT-03 (mission side), R-ENG-04, R-NPC-05 (offline completion), R-IP-02. Binding: A-02, C06 mission hooks (`01-engine-save-modes.md` "Mission and mode hooks"), gamedesign R-DSL 1–12 [research/gamedesign-decomposition.md §2.6].
 
 ## C1. Files, ids and versions
 
@@ -10,7 +10,7 @@
 | JSON Schema | `packages/shared/schemas/mission-ir-1.schema.json` (draft 2020-12), generated from §C3 by S09's generator (`tools/ci/gen-api-schemas.ts`, library pinned by S13) plus the hand-written bounds of §C4; validated with Ajv, as S09 does for API bodies |
 | Source | `content/missions/<missionId>/mission.ts` (TypeScript builder), `lines.<lang>.json` (spoken and printed text), optional `director/<beat>.ts` (in-engine sequences) |
 | Compiled IR | C07 asset `data/mission.<missionId>` (`schema: 'mission-ir/1'`), plus `data/story.index` (one row per mission) and `data/lines.<act>.<lang>`; all go through the C07 catalog and provenance (`first_party_authored`) |
-| `MissionId` | `^m\.[a-z0-9][a-z0-9.-]{1,40}$`; story missions are `m.a<act>.<nn>` (`m.a1.03`); mod missions are `m.mod.<modId>.<name>` |
+| `MissionId` | `^m\.[a-z0-9][a-z0-9.-]{1,80}$` (80 so that a 41-character C14 `ModId` fits, DL-080); story missions are `m.a<act>.<nn>` (`m.a1.03`); mod missions are `m.mod.<modId>.<name>` |
 | Persistent entities | C01 `StableKey` `mis:<missionId>:<castName>`; `EntityId` never appears in IR, saves or checkpoints |
 | Components | story range 512–767 (C01): `MissionCast` 512 (mission id + cast name, interned), `ObjectiveMarker` 513, `CutsceneActor` 514, `DirectorTarget` 515 |
 | Versions | `mission.version` (integer, +1 per content change) and `worldBake` (C08 bake hash at compile time); checkpoints carry both |
@@ -49,9 +49,9 @@ export type LocKey = string;                       // ^[a-z0-9_.-]{1,96}$; resol
 export type LineId = `line.${string}`;             // key into lines.<lang>.json; every line has subtitle text
 export type CastName = string;                     // ^[a-z][a-z0-9_]{0,31}$
 export type ZoneName = string;                     // same pattern
-export type LandmarkId = `lm.${string}`;           // C08 landmark registry (S02)
-export type DistrictId = 'd1' | 'd2' | 'd3' | 'd4' | 'd5' | 'd6' | 'd7' | 'd8' | 'd9' | 'd10';
-export type LatLng = [lat: number, lng: number];   // WGS84 in authored data only (06 §4.3); resolved to ENU at load
+export type { LandmarkId } from '../world/c08';    // C08 owns the id space (S02, DL-077)
+export type MissionDistrictId = 'd1' | 'd2' | 'd3' | 'd4' | 'd5' | 'd6' | 'd7' | 'd8' | 'd9' | 'd10';   // gameplay districts, a subset of C08 DistrictId
+export type LatLngTuple = [lat: number, lng: number];   // WGS84 in authored data only (06 §4.3); the compiler converts to C08 LatLngTuple {lat, lng} for WorldResolver
 export type RosterSlot = 'RAP_HYPHY_ELDER' | 'RAP_LYRICIST' | 'RAP_NEW_WAVE' | 'RAP_COLLECTIVE' | 'TECH_VISIONARY'
   | 'TECH_HACKER' | 'TECH_VC' | 'ATH_SHOOTER' | 'ATH_POWER_BACK' | 'INFLUENCER';
 export type CastRole = 'ally' | 'mentor' | 'rival' | 'host' | 'opponent' | 'cameo' | 'antagonist' | 'civilian' | 'unit';
@@ -65,7 +65,7 @@ export interface MissionIR {
   schema: 'mission-ir/1';
   id: MissionId; version: number; worldBake: string; act: 1 | 2 | 3 | 0;   // 0 = mod / experience mission
   premise: 'hella-valuation' | 'mod';
-  title: LocKey; district: DistrictId; tags: string[];
+  title: LocKey; district: MissionDistrictId; tags: string[];
   giver: { npc: CastName } | { phone: string /* soul id */ } | { world: true };
   requires: Pred[];                                 // all must hold for 'available'
   start: Trigger;
@@ -90,7 +90,7 @@ export type Trigger =
   | { k: 'auto'; when: Pred }                                             // chained, e.g. after the previous mission
   | { k: 'mode'; mode: 'sandbox' | `exp:${string}` };                     // mod/experience missions only
 
-export interface Placement { at: LatLng | { landmark: LandmarkId }; yawDeg?: number; snap: 'ground' | 'road' | 'sidewalk' | 'none'; y?: number }
+export interface Placement { at: LatLngTuple | { landmark: LandmarkId }; yawDeg?: number; snap: 'ground' | 'road' | 'sidewalk' | 'none'; y?: number }
 
 export type CastDef =
   | { k: 'npc'; who: { soul: string } | { slot: RosterSlot }; role: CastRole; spawn?: Placement; prefab?: string; spawnAt?: 'start' | 'manual' }
@@ -99,10 +99,10 @@ export type CastDef =
   | { k: 'unit'; prefab: `police.${string}`; spawn: Placement; spawnAt?: 'start' | 'manual' };   // named police unit
 
 export type ZoneDef =
-  | { k: 'circle'; at: LatLng; r: number }                                // r 2–2,000 m
-  | { k: 'poly'; ring: LatLng[]; yMin?: number; yMax?: number }           // 3–64 points
+  | { k: 'circle'; at: LatLngTuple; r: number }                                // r 2–2,000 m
+  | { k: 'poly'; ring: LatLngTuple[]; yMin?: number; yMax?: number }           // 3–64 points
   | { k: 'landmark'; id: LandmarkId; r?: number }
-  | { k: 'route'; via: LatLng[]; widthM: number }                         // snapped to C08 road edges at load → ZoneShape 'edges'
+  | { k: 'route'; via: LatLngTuple[]; widthM: number }                         // snapped to C08 road edges at load → ZoneShape 'edges'
   | { k: 'cast'; cast: CastName; r: number };                             // moving circle; evaluated by the VM as a distance test, never registered with ZoneService
 
 export interface StageDef {
@@ -127,7 +127,7 @@ export type ObjectiveDef = { id: string; text: LocKey; optional?: boolean; marke
   | { k: 'protect'; target: CastName; minHealth: number; sec?: number; untilZone?: ZoneName }
   | { k: 'talk'; talk: TalkDef }
   | { k: 'photo'; subject: CastName | LandmarkId; framing?: 'any' | 'wide' | 'selfie'; maxDistM?: number }
-  | { k: 'stealth'; zone: ZoneName; detectBudget: number; autoplayPath: LatLng[] }
+  | { k: 'stealth'; zone: ZoneName; detectBudget: number; autoplayPath: LatLngTuple[] }
   | { k: 'defeat'; targets: CastName[]; nonLethal: true }
   | { k: 'score'; metric: 'drift' | 'airtime' | 'nearMiss'; target: number; withinSec: number }
   | { k: 'wait'; sec: number }
@@ -212,7 +212,7 @@ export interface MissionCheckpointV1 {               // stored opaque as StorySl
   walletDeltaCents: number;                         // credited mid-mission via idempotent 'give', restored on retry
 }
 export type MissionPhase = 'available' | 'starting' | 'intro' | 'stage' | 'outro' | 'passed' | 'failed' | 'aborted';
-export interface MissionIndexRow { id: MissionId; act: number; district: DistrictId; title: LocKey; giver: MissionIR['giver'];
+export interface MissionIndexRow { id: MissionId; act: number; district: MissionDistrictId; title: LocKey; giver: MissionIR['giver'];
   requires: Pred[]; start: Trigger; asset: `data/mission.${string}`; version: number; tags: string[] }
 ```
 
@@ -234,7 +234,7 @@ Compiler errors carry a JSON Pointer and a code: `E_SCHEMA`, `E_REF_CAST`, `E_RE
 ## C5. Compiler and load-time resolution
 
 1. **Build** (`pnpm missions:build [--mission <id>]`, `tools/ci` wrapper over `packages/modes/story/src/compiler`): run the builder, validate against the schema, lint (§C11), check every `LineId` exists in `lines.en.json`, check every `BeatRef` resolves to a CutsceneRef with a fallback or to a DirectorScript (`E_NO_FALLBACK`), emit `data/mission.<id>`, `data/story.index`, `data/lines.<act>.<lang>`, and `content/audio-needs/story.json` (lines needing TTS, per speaker soul, for S04/S05).
-2. **Load** (in `sim.worker`, when the mission becomes `starting`): resolve `LatLng` → ENU with the C08 frame; `landmark` → registry position; `route.via` → C08 road-graph edges with A* between consecutive points → `ZoneShape {k:'edges', edgeIds, widthM}`; snap placements (`road` = nearest drivable edge lane, `sidewalk` = nearest ped-graph node, `ground` = heightfield). Register zones with `ZoneService.define('mis:<id>:<zone>', shape)`.
+2. **Load** (in `sim.worker`, when the mission becomes `starting`): resolve `LatLngTuple` → C08 `LatLng` → ENU with the C08 frame and C08 `WorldResolver` (`toEnu`, `landmark`, `snap`, `route`); `landmark` → registry position; `route.via` → C08 road-graph edges with A* between consecutive points → `ZoneShape {k:'edges', edgeIds, widthM}`; snap placements (`road` = nearest drivable edge lane, `sidewalk` = nearest ped-graph node, `ground` = heightfield). Register zones with `ZoneService.define('mis:<id>:<zone>', shape)`.
 3. **World-bake drift (R-DSL-12).** If `worldBake` differs from the loaded bake, resolution is re-run; any reference that fails to resolve (snap distance > 25 m, unsnappable route, missing landmark) disables the mission with `E_REF_*` shown in the Jobs app and in telemetry `mission.fail` (`reason: 'unresolved'`). A saved `activeMission` whose `version` or `worldBake` no longer matches is dropped and the mission restarts from `available` (never a broken checkpoint).
 4. **Cast resolution.** `{slot}` resolves through `content/story/cast.json` (slot → roster soul id) and the live C12 `RosterFlags`: a killed character (scope `spawn` or `all`) or an unsupplied roster (Q-19) uses the soul's `standIn` (C10). `{soul}` resolves to the compiled soul; its tier is read from the soul, never from the IR.
 
@@ -248,7 +248,7 @@ Compiler errors carry a JSON Pointer and a code: `E_SCHEMA`, `E_REF_CAST`, `E_RE
 
 **Objective threads.** An objective thread evaluates its completion predicate each tick (zones via `ZoneService`, heat via `PursuitApi.state()`, health and vehicles via `EcsApi` reads), publishes `hud.mission` (title, objective text, timer, assist hint; S10 key) and the marker, and finishes `done` or `failed`. `join: 'all'` completes when all non-optional objectives are done; `'any'` on the first; `'sequence'` reveals objectives one by one. `follow` fails when the target is farther than `band[1]` for `loseAfterSec`; `stealth` fails when detections exceed `detectBudget` (detection events come from S04 NPC perception and S01 pursuit witnesses); `deliver` with `fragile` fails when the carried entity's damage exceeds the value.
 
-**Stage transitions.** Completing a stage runs `onComplete`, then the next stage (`next`, a talk outcome's `stage`, or the following index); entering runs `onEnter` and, if `checkpoint`, writes a `MissionCheckpointV1` into `StorySlice.activeMission` and requests a save (`SaveReason 'interval'` until a `checkpoint` reason exists; see Part A §10). `pass` (explicit or end of the last stage) → outro beat → rewards → `StorySlice.missions[id].state = 'passed'`, `bestSec`, `medals` → unlocks → `ctx.save.request('missionPass')` → `markSafePoint('mission-end')` through S10's shell.
+**Stage transitions.** Completing a stage runs `onComplete`, then the next stage (`next`, a talk outcome's `stage`, or the following index); entering runs `onEnter` and, if `checkpoint`, writes a `MissionCheckpointV1` into `StorySlice.activeMission` and requests a save with C05 1.1 `SaveReason 'checkpoint'` (DL-097). `pass` (explicit or end of the last stage) → outro beat → rewards → `StorySlice.missions[id].state = 'passed'`, `bestSec`, `medals` → unlocks → `ctx.save.request('missionPass')` → `markSafePoint('mission-end')` through S10's shell.
 
 **Fail rules.** All `fail[]` predicates and the built-in `busted` (when `heatPolicy.maxHeat > 0`) are checked every tick after objectives. On fail: show `reason`, despawn mission cast, restore ambient and clock locks, then offer *Retry* (from the last checkpoint: restore player pose/vehicle/health, cast states, flags, wallet delta and RNG; restart that stage's threads from their first op) or *Quit* (`available`). `retry: 'start'` restarts from stage 0. Bust consequences (fine, impound strike) come from S01's PursuitDirector; the mission only fails.
 
@@ -261,10 +261,10 @@ Compiler errors carry a JSON Pointer and a code: `E_SCHEMA`, `E_REF_CAST`, `E_RE
 **`say`** (scripted line): the VM patches `hud.subtitle` `{speaker, text, startMs, endMs}` and asks `AudioService` for the pre-rendered line (`audio_bark`/`voice` assets produced from `content/audio-needs/story.json` by S04/S05 per the speaker's voice tier); missing audio means text only. Duration = audio length, else `max(1.5 s, 0.06 s × characters)`. A killed speaker (scope `voice`) is text only; scope `spawn` swaps in the stand-in's lines.
 
 **`talk`** (AI conversation with a structured result; R-DSL-7):
-1. The objective spawns a conversation through `@dv/npc` (S04) with C10 `NPCDialogueRequest {npcId, encounterId?, soulVersion, turn: {intent, text?}, context, maxTokens}`. `turn.intent` = `mission:<missionId>:<talkId>`; `context` carries `{mission: {id, stage, talkId, goal: intent LocKey text, outcomes: [{id, label}]}, scene: {district, hour, heat}}` (assumption A-C10-1, Part A §10).
+1. The objective spawns a conversation through `@dv/npc` (S04) with C10 `NPCDialogueRequest {npcId, encounterId?, soulVersion, turn: {intent, text?}, context, maxTokens}` exactly as C10 defines it (owner wins, DL-085): `context.mode = 'story'`, `context.missionId = <missionId>`, `context.missionStep = <talkId>`; `turn.intent` is the player's C10 `PlayerIntent` (`ask_mission` on open); deal ids a `TalkUnlock` waits for go in `context.offers.dealIds`. Outcome ids and labels are not sent: the model only produces C10 `effects`, which gate outcomes.
 2. The conversation UI (S10 surface, S04 client) always shows the outcome choices as buttons once at least one turn has completed or immediately offline. The player's choice decides the outcome; NPC `effects` only **gate** outcomes (`TalkUnlock`: e.g. `bribe` appears only after `effects.action = 'offer_deal'`, `charm` only at `trust ≥ 20`). So the LLM never decides mission flow on its own, and every outcome is reachable by explicit choice once its gate holds.
-3. Offline, on quota or budget (`quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable`), on SSE `fallback`, or after `maxTurns`, the NPC's ink knot `mission_<missionId>_<talkId>` (S04) plays and offers the same outcome choices; ink lines alone must complete every mission (CI check, S04's requirement [research/ai-npc-runtime.md §2.8]).
-4. The result enters the sim as a command `{t: 'mode.cmd', mode: 'story', name: 'talk.result', args: {talkId, outcome, turns, path: 'llm' | 'ink'}}` (S10's proposed `UiCommand`), is recorded, applies `flags`/`trust`, and jumps to the outcome's `stage`.
+3. Offline, on quota or budget (`quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable`), on SSE `fallback`, or after `maxTurns`, the NPC's ink knot `mission_<missionId>_<talkId>` (S04 C10 `InkKnot`; `.` and `-` in both ids become `_`, e.g. `mission_m_a1_02_haggle`) plays and offers the same outcome choices; ink lines alone must complete every mission (CI check, S04's requirement [research/ai-npc-runtime.md §2.8]).
+4. The result enters the sim as a command `{t: 'mode.cmd', mode: 'story', name: 'talk.result', args: {talkId, outcome, turns, path: 'llm' | 'ink'}}` (C06 1.1 `UiCommand` `mode.cmd`), is recorded, applies `flags`/`trust`, and jumps to the outcome's `stage`.
 5. Autoplay and CI use `TalkDef.default` with `path: 'scripted'`; no network call is made.
 
 Relationship effects persist in `StorySlice.npcRelations[soulId].trust` (clamped −100…100) and `met`. Mission state reaches the NPC only through `context` (C10 history is server-held, so the client never forges prior turns).
@@ -320,9 +320,9 @@ Run by `missions:build`, `check:missions` and `dv mod check`:
 
 Mods ship missions as data-tier content (C14 kind `experience`; closed permission `mission.register`, assumption A-C14-1). Requirements S03 places on the mod SDK and editor:
 1. **Same pipeline:** the SDK exports the §C2 builder, the §C3 types and the schema; `dv mission new|build|check|autoplay|preview` wrap `missions:build` and the headless autoplayer, so a modder's agent gets the identical error codes and an autoplay verdict locally.
-2. **Sandbox only:** mod missions run under `exp:<id>` or sandbox (`Trigger k:'mode'`), never in story slots; ids `m.mod.<modId>.*`; unlocks only `unlock.mod.<modId>.*` (`UnlockDef.source 'mod:<id>'`); rewards credit the mod's `mod:<id>` slot economy, never the story wallet.
+2. **Sandbox only:** mod missions run under `exp:<id>` or sandbox (`Trigger k:'mode'`), never in story slots; ids `m.mod.<modId>.*`. The IR validation profile `mod` rejects `give`, `rewards`, `unlocks`, `unlockOnFirstEncounter`, `flag` ops on story keys and `mode` hooks: an `exp:` session may write only `mod:<modId>` (C05 1.1 rule 3), so mod state lives in C14 `storage` only (DL-084; `UnlockDef.source 'mod:<id>'` stays reserved).
 3. **Cast limits:** only `original`-basis souls (first-party originals or the mod's own NPCs passed through moderation); first-party parody or fictionalized NPCs cannot be cast [research/legal-ip-likeness.md L3].
 4. **No generation:** mod beats are DirectorScripts only (in-engine); `cutscene` refs and prompt templates are rejected for mods in v1 (no user generation, G3).
 5. **Visual editor** (S12 builds, in the sandbox overlay): place zones on the map (circle, polygon, landmark pick, route by clicking along roads), place cast with snap modes, edit the stage and objective lists with schema-driven forms, record DirectorScript shots by capturing the free-camera pose, run *Test with bot* (autoplayer) and *Preview* (simulate once, scrub), show lint errors at their JSON Pointer, and export IR JSON plus `lines.<lang>.json`.
 6. **Agent-friendly docs:** the schema, one example mission per objective kind under `examples/mods/mission-pack/`, and the `mod-missions` skill [research/repos-modding.md §5].
-7. **Caps:** the §C4 bounds plus ≤ 4 missions per mod in v1 and the 2,000 ops/thread/tick budget; a mod mission that breaks budget or lint is disabled for the session with a toast (story saves untouched).
+7. **Caps:** the §C4 bounds plus ≤ 8 missions per mod (C14 `data.missions` cap; C14 owner wins, DL-084) and the 2,000 ops/thread/tick budget; a mod mission that breaks budget or lint is disabled for the session with a toast (story saves untouched).

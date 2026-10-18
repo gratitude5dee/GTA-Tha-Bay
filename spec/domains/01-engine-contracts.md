@@ -1,6 +1,6 @@
 # 01 — Engine contracts, part 1: C01 ECS · C02 GameLoop · C03 Input · C04 CameraRig · engine service interfaces
 
-> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md` (§3 Components, §4 Data). Shared context `06` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`). Contracts here are **v1.0.0** and freeze into `06` v1.0. Types live in `packages/shared/src/contracts/` so consumers (`net`, `ui`, `modes/*`, `mod-sdk`) import them without importing the engine. Part 2 (C05 SaveGame, C06 GameMode, PursuitDirector, clock, interaction, prefabs) is `spec/domains/01-engine-save-modes.md`.
+> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md` (§3 Components, §4 Data). Shared context `06` v1.1 (frozen). Contracts here: **C01 1.0.0; C02, C03, C04 1.1.0** (1.1 section at the end of this file). Types live in `packages/shared/src/contracts/` so consumers (`net`, `ui`, `modes/*`, `mod-sdk`) import them without importing the engine. Part 2 (C05 SaveGame, C06 GameMode, PursuitDirector, clock, interaction, prefabs) is `spec/domains/01-engine-save-modes.md`.
 
 Conventions in every block: `u8/i16/…` comments give the wire or SAB width; "sim" means code that runs inside `sim.worker` or the headless host; all sim numbers that cross a determinism boundary are integers or exactly representable doubles produced by `detmath`.
 
@@ -127,7 +127,7 @@ export interface EcsApi {
 
 ```ts
 // packages/shared/src/contracts/c02-loop.ts
-export const C02_VERSION = '1.0.0' as const;
+export const C02_VERSION = '1.1.0' as const;   // 1.1: rule 3 clarification (stateless counter hash), see the 1.1 section at the end
 export const SIM_HZ = 60;
 export const SIM_DT = 1 / 60;            // seconds; the only dt sim code may use
 export const MAX_FRAME_DT = 0.15;        // accumulator clamp [research/repos-modding.md §3.4]
@@ -236,7 +236,7 @@ export interface BootPayload { strings: string[]; prefabs: unknown[]; config: Re
 
 ```ts
 // packages/shared/src/contracts/c03-input.ts
-export const C03_VERSION = '1.0.0' as const;
+export const C03_VERSION = '1.1.0' as const;   // 1.1: 'bot' device, BotInput, xr:both:wheel, setPoseHybrid, fighterScheme (end of file)
 
 /** Digital sim actions = bit index in InputFrame.buttons (u32). Bits 0–15 are the net set carried in
  *  C11's u16 `IN.buttons` (frozen in 06 v1.0); bits ≥ 16 never travel in IN (rooms use ACT frames). */
@@ -337,7 +337,7 @@ export interface PoseActionEvent { action: ActionId; captureTs: number; confiden
 5. Desktop look uses Pointer Lock with `unadjustedMovement: true`; iPhone has no Pointer Lock, so touch uses `touch:dragR` [research/stack-rendering-platform.md §2, F-011].
 6. Gamepads use the W3C standard mapping; XR controllers the `xr-standard` mapping; Quest A/B/X/Y indices are UNVERIFIED, so defaults never put a required action only on a face button [research/gamedesign-decomposition.md §6].
 7. XR input is routed by `event.inputSource`, never by array index; Vision Pro transient inputs are empty until a pinch [research/stack-rendering-platform.md §4.3]. The `xr-controller`, `xr-hand` and `xr-transient` binders are thin readers over S11's `XrInputRouter` per-frame cache and never sample `XRFrame` themselves; face-button indices come from `config/xr-input-profiles.json` (S11 Part B §5.4).
-8. The last device that produced input becomes `active` (UI glyphs). Any touch, key or pad input disables the pose binder until re-enabled [research/auth-ugc-input-maps.md §4.7].
+8. The last device that produced input becomes `active` (UI glyphs). Any touch, key or pad input disables the pose binder until re-enabled [research/auth-ugc-input-maps.md §4.7], unless `InputRouter.setPoseHybrid(true)` is in effect (C03 1.1): then pose drives strikes and guard while stick or keys drive movement.
 9. Every `SimButton` and `ClientAction` is remappable on every device except `client.Pause`, which always keeps its default binding in addition to any override (R-ENG-04).
 10. Defaults per device and context are the gamedesign §6 matrix, stored as JSON in `config/input/`; touch defaults use stick radius 58 px, knob 26 px, sprint beyond 1.35× radius, look gain 3.0, tilt-steer dead zone 10°/full 45°, min hold 120 ms [research/repos-webport.md §3.6].
 
@@ -345,7 +345,7 @@ export interface PoseActionEvent { action: ActionId; captureTs: number; confiden
 
 ```ts
 // packages/shared/src/contracts/c04-camera.ts
-export const C04_VERSION = '1.0.0' as const;
+export const C04_VERSION = '1.1.0' as const;   // 1.1: XRRigParams.vantage, origin 'diorama', AnimStateId mode blocks (end of file)
 export type CameraMode = 'fp' | 'tp' | 'cinematic' | 'xr';
 export type VehicleView = 'chase-near' | 'chase-mid' | 'chase-far' | 'hood' | 'cockpit';
 export type Vec3 = [number, number, number];
@@ -485,3 +485,29 @@ export interface AudioService {
   suspend(): void; resume(): void;               // visibilitychange
 }
 ```
+
+## C02 1.1, C03 1.1 and C04 1.1 additions (Architect, second reconciliation, 2026-10-18)
+
+Additive minor bumps accepted from Wave 2–4 return blocks (`spec/11-decision-log.md` DL-091, DL-094…DL-096). Nothing in 1.0 changes meaning.
+
+**C02 1.1, determinism rule 3 (clarification, S08).** A stateless counter-based hash `ctrU32(seed: number, stream: string, counter: number): number` = `splitmix32((seed ^ fnv32(stream)) + Math.imul(counter, 0x9E3779B1))` (S08's definition, `08-tycoon-events.md` §3; golden vectors in the M01a cross-browser job) is allowed in sim code. It keeps no state, so it is not a private generator and needs nothing in checkpoints or hashes; tycoon event rolls, hiring draws and board votes use it so that adding content does not shift other draws.
+
+```ts
+// c03-input.ts — 1.1 (appended union members keep the u8 DeviceKind index of 1.0 values stable)
+export type DeviceKind = 'kbm' | 'gamepad' | 'touch' | 'xr-controller' | 'xr-hand' | 'xr-transient' | 'pose' | 'bot';
+export type ControlId = /* 1.0 members */ | 'xr:both:wheel';    // analog −1..1 from S11 HandFeatures two-hand wheel (S06)
+export interface InputRouter { /* 1.0 members */ setPoseHybrid(on: boolean): void }   // S07 hybrid pose (rule 8)
+export interface ControlsSettings { /* 1.0 fields */ fighterScheme?: 'classic' | 'simple' }   // selects config/input/<device>.fighter-<scheme>.json (S07)
+/** QA-only (VITE_DV_QA builds and headless CI): writes player-0 InputFrames in sim.worker for the C09 autoplayer and S06/S07/S08 bots. */
+export interface BotInput { frame(tick: number): InputFrame; readonly device: 'bot' }
+```
+In `InputContextId 'fighter'` the `SimButton` bits are re-read through a normative alias table (Attack=LP, Ability=MP, FightHeavy=HP, Sprint=LK, Nitro=MK, Horn=HK, Special=SP, FightAssist=AS, Handbrake=HY, Block=BL, Emote=TA, Interact=DA); no new bits, labels per context (S07 `07-fighter-core.md` FC5). `BotInput` is never bundled into production builds (`check:bundle`).
+
+```ts
+// c04-camera.ts — 1.1
+export interface XRRigParams {                                     // 1.0 fields unchanged, plus:
+  origin: 'feet' | 'seat' | 'arena' | 'desk' | 'diorama';         // diorama = tabletop third-person chase view (XrComfortSettings.chaseView, S06)
+  vantage?: { pos: Vec3; yaw: number };                           // fixed XR viewpoint for in-engine cutscene fallbacks (S03), no cuts (rule 5)
+}
+```
+**`AnimStateId` mode blocks (ADR in Wave 5 cites DL-091):** 128–159 racing (S06: vehicle states 128–136, driver states 144–148), 160–207 fighter (S07; move states are played by S07's frame-locked clip player, the SNAP id only selects the state family), 208–255 tycoon (S08 claims 224–231, unused in v1). 0–22 engine and 23–127 S01 reserve are unchanged.

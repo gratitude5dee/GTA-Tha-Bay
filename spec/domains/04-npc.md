@@ -194,7 +194,7 @@ Rules: at most 4 breakpoints, 1 h entries before 5 m entries; caching is per wor
 | hero (`roles.hero && modelTier = sonnet`) | `claude-sonnet-5-5` | `thinking:{type:'between_tools'}`, `output_config:{effort:'low', format}`, `max_tokens` ≤ 512, `betas:['server-side-fallback-2026-07-01']`, `fallbacks:'default'` [research/ai-npc-runtime.md §2.2] |
 | encounter summary (queue) | `claude-haiku-5-5` | adaptive thinking, effort `low`, `max_tokens` 1,024, format `npc-summary-1.0` |
 
-- **Tycoon negotiations** use the same routes. S08's deterministic engine decides terms, and `context.tycoon` carries them; the model only voices them (research open question 10, recommendation adopted).
+- **Tycoon negotiations** use the same routes. S08's deterministic engine decides terms, and `context.tycoon` carries them; the model voices them or picks one sim-computed `deals` id (DL-087).
 - **Governor (D-28):**
   - L1 (≥ 70 %) or `ks:anthropic:sonnet` → heroes route to Haiku with the same blocks (separate cache entry).
   - L2 (≥ 85 %) or `ks:tts:elevenlabs` → voice capped at `t1`; `ks:tts:all` → `text`.
@@ -256,7 +256,7 @@ Rules: at most 4 breakpoints, 1 h entries before 5 m entries; caching is per wor
   - The client applies `effects.affinityDelta` to it; `npc_relationship.affinity` only flavors the summary.
 
 ### 5.7 Voice and lip-sync (D-23)
-**Effective tier** = min of: the soul's `voice.tier`; the player setting (`all` → as soul, `heroes` → `text` unless `roles.hero`, `off` → `text`; defaults desktop and XR `all`, mobile `heroes`; stored in the proposed C05 `ProfileSettings.npc`, defaults when absent); governor and switches (§5.3); kill scope `voice` → `text`; quota → `text` when `voice_line` is exhausted; `t2` additionally requires identity tier `linked` (P2+, 18+, D-30), otherwise `t1`; `t3` requires `consented` with `voice_clone` (schema) and an unexpired consent in `config/consent-index.json`.
+**Effective tier** = min of: the soul's `voice.tier`; the player setting (`all` → as soul, `heroes` → `text` unless `roles.hero`, `off` → `text`; defaults desktop and XR `all`, mobile `heroes`; stored in C05 1.1 `ProfileSettings.npc`, defaults when absent); governor and switches (§5.3); kill scope `voice` → `text`; quota → `text` when `voice_line` is exhausted; `t2` additionally requires identity tier `linked` (P2+, 18+, D-30), otherwise `t1`; `t3` requires `consented` with `voice_clone` (schema) and an unexpired consent in `config/consent-index.json`.
 
 | Tier | Engine (from `config/voice-catalog.json`) | Path | Price per 110-char line |
 |---|---|---|---|

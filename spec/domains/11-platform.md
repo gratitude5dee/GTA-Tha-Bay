@@ -1,6 +1,6 @@
 # S11 — Platform, Performance, XR & PWA (part A: core, C13)
 
-> Wave 1 · v0.1 · 2026-10-18 · author: s11-platform · shared context 06 v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) · decisions spec/03 v1 · C13 version proposed for freeze: **1.0.0**
+> Wave 1 · v0.1 · 2026-10-18 · author: s11-platform · shared context 06 v1.1 (frozen) · decisions spec/03 v1 · C13 **1.1.0** (1.1 additions: `11-platform-pwa.md` §11)
 > Parts: A `11-platform.md` (this file: scope, checklist, C13, budgets, renderer, detection, governor, milestones) · B `11-platform-xr.md` (XR session, comfort, input, XR cutscene hosts) · C `11-platform-pwa.md` (headers, manifest, service worker, OPFS cache, iOS quirks, telemetry client, WASM policy) · D `11-platform-perf.md` (perf harness, Playwright projects, device matrix, checklists).
 > Section numbers follow 03-SPEC-TEMPLATE §B; parts B, C and D reuse §3–§9 for their own topics and carry their own fact rows. All unverified items are collected in §10 of this file.
 
@@ -131,7 +131,7 @@ export function createPlatform(opts: { canvas: HTMLCanvasElement; qa: QaFlags })
 
 ```ts
 // packages/shared/src/platform/c13.ts
-export const C13_VERSION = '1.0.0' as const;            // semver; breaking change = major + 06 contract bump
+export const C13_VERSION = '1.1.0' as const;            // semver; 1.1 additions: 11-platform-pwa.md §11
 
 export type QualityTierId =
   | 'desktop-ultra' | 'desktop' | 'mobile' | 'mobile-low' | 'xr-quest' | 'xr-visionpro';

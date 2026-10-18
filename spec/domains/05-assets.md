@@ -1,6 +1,6 @@
 # Domain 05 — Asset Pipeline (S05), Part A: contract C07, design, runtime
 
-> Wave 1 · v0.1 · 2026-10-18 · reads `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`) and `spec/03-decisions-and-facts.md` v1. Part B (`spec/domains/05-assets-pipeline.md`) holds stage tables, kits, audio policy, CI gate specs, costs and the roster runbook; this file holds everything another domain must code against. Citations `[research/<file>.md]` or F-NNN (research/INDEX.md §2). Numbers marked **(S05)** are design values, not vendor facts.
+> Wave 1 · v0.1 · 2026-10-18 · reads `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (frozen; C07 1.1.0, additions in Part B §14) and `spec/03-decisions-and-facts.md` v1. Part B (`spec/domains/05-assets-pipeline.md`) holds stage tables, kits, audio policy, CI gate specs, costs and the roster runbook; this file holds everything another domain must code against. Citations `[research/<file>.md]` or F-NNN (research/INDEX.md §2). Numbers marked **(S05)** are design values, not vendor facts.
 
 ## 0. Checklist (seed expanded)
 
@@ -121,7 +121,7 @@ Ports (all injected): `FalPort` (submit/status/result/cancel), `BlobPort` (get/p
 ### 4.2 C07 TypeScript (`packages/shared/src/assets/c07.ts`)
 
 ```ts
-export const C07_VERSION = '1.0.0' as const;            // bump with 06; additive = minor
+export const C07_VERSION = '1.1.0' as const;            // bump with 06; additive = minor; 1.1 additions: 05-assets-pipeline.md §14
 
 export type AssetKind =
   | 'character' | 'character_sheet' | 'rig' | 'anim' | 'portrait' | 'mouth_atlas'

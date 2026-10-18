@@ -1,6 +1,6 @@
 # 02 — World & Map, part 2: C08 contract (`WorldChunk` + `RoadGraph` + spawn tables)
 
-> S02, Wave 2, 2026-10-18. Part of `spec/domains/02-world.md` (scope, design, runtime, platforms, facts, milestones, tests). Bake pipeline, landmarks and districts: `02-world-bake.md`. Road-graph semantics, traffic, pedestrians, transit, weather: `02-world-living.md`. Maps, teleports, attribution, expansion: `02-world-maps.md`. Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` v1.0 §4.3–4.4 (frozen; every *(fixed)* line is honored), `spec/.waves234-notes.md` item 9, DL-049. **C08 is finalized here at v1.0.0.** Consumers: S01 (statics, pursuit, clock), S03 (`WorldResolver`, zones), S04 (POIs, ped routes), S06 (edges, tags, closures), S09 (`world.bounds.json`), S10 (map views), S11 (packs, budgets), S12 (anchors, map markers, `world.find_place`).
+> S02, Wave 2, 2026-10-18. Part of `spec/domains/02-world.md` (scope, design, runtime, platforms, facts, milestones, tests). Bake pipeline, landmarks and districts: `02-world-bake.md`. Road-graph semantics, traffic, pedestrians, transit, weather: `02-world-living.md`. Maps, teleports, attribution, expansion: `02-world-maps.md`. Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` v1.0 §4.3–4.4 (frozen; every *(fixed)* line is honored), `spec/.waves234-notes.md` item 9, DL-049. **C08 is finalized here at v1.0.0** and accepted by the Architect in 06 v1.1 (second reconciliation, DL-077…DL-079: single owner of the id types, `toStaticShapeSet`, `chunkKeyOf`, P3 accepted, P1 = C06 1.1 `ModeContext.world`). Consumers: S01 (statics, pursuit, clock), S03 (`WorldResolver`, zones), S04 (POIs, ped routes), S06 (edges, tags, closures), S09 (`world.bounds.json`), S10 (map views), S11 (packs, budgets), S12 (anchors, map markers, `world.find_place`).
 
 ## 1. Rules
 
@@ -10,7 +10,7 @@
 4. **Packs.** World data ships as C07 assets of kind `world_pack`, each ≤ 4 MiB, variant `default` only (no tier variants), AssetId `<family>-<x>-<y>` where `x,y` are the host-level indices: `p0` (sim data) and `l0` (render data) at the `z=7` tile of their 16 chunks, `l1` at the `z=5` block, `l2` at the `z=3` region. Examples: `world_pack/p0-64-64`, `world_pack/l1-16-16`. Backdrop packs are named `far-bay-*` (§4.3 of the maps part).
 5. **Tier independence of the sim.** `p0` bytes are identical for every tier: the heightfield, prisms, slabs, hoods, graphs, tags and spawn tables decide physics and AI, so the `canonical` profile (C02) is reproducible on every device. Tier differences live in `l0`/`l1`/`l2` mesher profiles and in C13 budgets, never in `p0`.
 6. **Heightfield.** One 65 × 65 `Int16` grid (0.1 m units, 4 m posts at `z=9`) per chunk, shared by physics and render; adjacent chunks duplicate their edge posts exactly. Render meshes use every 1st, 2nd or 4th post (desktop, mobile, mobile-low) so vertices lie on the physics surface. Roads are graded into the grid at bake, so a lane surface is the physics surface.
-7. **Static collision.** `StaticShapeSet` (C01 service) = the heightfield + `prisms` (buildings, ≤ 1.0 m ring simplification) + `slabs` (bridge, viaduct and overpass decks, ≤ 4 m long, 1.0 m thick, flat-topped steps ≤ 0.16 m) + `hoods` (tunnel covers over carved corridors). Slabs and hoods use the prism format. Proposal P2 replaces slab steps with sloped strips.
+7. **Static collision.** `StaticShapeSet` (C01 service) = the heightfield + `prisms` (buildings, ≤ 1.0 m ring simplification) + `slabs` (bridge, viaduct and overpass decks, ≤ 4 m long, 1.0 m thick, flat-topped steps ≤ 0.16 m) + `hoods` (tunnel covers over carved corridors). Slabs and hoods use the prism format. The pure `toStaticShapeSet(c: SimChunk)` in `pack-codec.ts` builds the C01 `StaticShapeSet` that `PhysicsBackend.addChunkStatics` takes: `heightfield = {nx: 65, nz: 65, cell: cellM, heights: dm × 0.1 as Float32Array, at: [originX, 0, originZ]}` and `prisms = prisms ‖ slabs ‖ hoods` (DL-078). Proposal P2 (sloped strips) is deferred until the M02a2 drive tests (DL-104).
 8. **Edge ids.** `EdgeId`, `NodeId`, `SegId` are u32, global for one bake, assigned in Morton order of the owning chunk then by local index. They are stable only per `bakeId`. Authors store lat/lng and call `resolve`/`WorldResolver`; C09 and S06 compile ids per bake and re-resolve on mismatch (S03 R-DSL-12, S06 5 % length rule).
 9. **Edge ownership.** An edge belongs to the chunk that contains its `from` node. Its segment geometry is stored once, with the lower-id direction. Cross-chunk edges are visible once both chunks are resident; the always-resident topology asset `map_data/sf-graph.v1` (nodes, edges, lengths, classes, flags, no geometry) serves long routes.
 10. **Lanes.** Right-hand traffic. Lane 0 is the rightmost lane of a directed edge. Lateral offset from the segment centreline, positive to the travel direction's right: two-way `medianM/2 + (lane + 0.5) × laneWidthM`; one-way `(lane + 0.5 − lanes/2) × laneWidthM`. Parked cars sit at `widthM/2 − 1.15 m` on `parkingSides` (2.3 m parking lane assumed).
@@ -22,7 +22,7 @@
 16. **`worldBake`.** C05 `worldBake` equals `WorldIndex.bakeId`: the 64-hex SHA-256 of canonical JSON of `{sourceHashes, toolVersion, configHashes}`. A save from another bake snaps to the nearest safehouse (DL-057).
 17. **Purity.** `packages/shared/src/world/**` and `packages/world/src/sim/**` obey the C02 lint: no `Math.random`, `Date`, transcendental `Math.*`, `three`, DOM. Trigonometry uses `detmath`.
 18. **Pack decode.** `decodeP0(buf: ArrayBuffer): SimChunk[]` is pure and synchronous (`packages/shared/src/world/pack-codec.ts`, with the encoder in `tools/map`), so the sim worker, the headless host and tests use one codec. `l0` decoding and meshing run in `asset.worker`.
-19. **Ids.** Landmarks `lm.<slug>` (AssetRef `building/lm.<slug>`), POIs `poi.<nhoodSlug>.<name>`, districts `d1…d10`, `outer`, `stage`, and 41 neighbourhood slugs (lower-case, `/` and spaces to `-`; `Financial District/South Beach` → `financial-district-south-beach`). All match `^[a-z0-9.-]{2,64}$`.
+19. **Ids.** Landmarks `lm.<slug>` (AssetRef `building/lm.<slug>`), POIs `poi.<nhoodSlug>.<name>`, districts `d1…d10`, `outer`, `stage`, and 41 neighbourhood slugs (lower-case, `/` and spaces to `-`; `Financial District/South Beach` → `financial-district-south-beach`). All match `^[a-z0-9.-]{2,64}$`. C08 is the single owner of `LatLng` (in `c08-api.ts`), `ChunkKey`, `LandmarkId`, `PoiId` and `DistrictId` (in `c08.ts`); C09, C10, C14/C17 and S06 import these types and never redeclare them under the same name (DL-077).
 20. **Limits.** A chunk holds ≤ 1,500 buildings, ≤ 600 road edges, ≤ 1,500 ped edges, ≤ 24 tag records per type. The bake fails otherwise and splits nothing: the limits are gates.
 
 ## 2. C08 TypeScript
@@ -55,6 +55,8 @@ export function chunkKeyAt(z: ChunkZ, x: number, zEnu: number): ChunkKey {
   const e = CHUNK_EDGE_M[z];
   return `${z}/${Math.floor((x - GRID_MIN_M) / e)}/${Math.floor((zEnu - GRID_MIN_M) / e)}`;
 }
+/** Pure: the z=9 chunk key of an authored or anchor position (C17 anchors, route 37, CLI and server anchor checks; DL-079). */
+export const chunkKeyOf = (lat: number, lng: number): ChunkKey => { const p = enuFromLatLng(lat, lng); return chunkKeyAt(9, p.x, p.z); };
 export function parseChunkKey(k: string): { z: ChunkZ; x: number; y: number } | null {
   const m = /^(9|7|5|3)\/(\d{1,3})\/(\d{1,3})$/.exec(k);
   return m ? { z: Number(m[1]) as ChunkZ, x: Number(m[2]), y: Number(m[3]) } : null;
@@ -201,10 +203,10 @@ export interface WorldBounds {                // config/world.bounds.json (read 
 
 ## 3. Service interfaces (`packages/shared/src/world/c08-api.ts`)
 
-Implemented in `packages/world` (sim half in `src/sim/**`, client half in `src/client/**`). They reach modes as `ModeContext.world` under proposal P1; until C06 is bumped, `packages/engine/src/sim/world/` exposes the same object to S01-owned code (pursuit A*, clock) and to tests.
+Implemented in `packages/world` (sim half in `src/sim/**`, client half in `src/client/**`). They reach modes as `ModeContext.world: WorldApi` (C06 1.1, accepted P1, DL-098); `packages/engine/src/sim/world/` exposes the same object to S01-owned code (pursuit A*, clock) and to tests.
 
 ```ts
-// packages/shared/src/world/c08-api.ts — service interfaces implemented in packages/world (sim half) and exposed as ModeContext.world (proposal P1).
+// packages/shared/src/world/c08-api.ts — service interfaces implemented in packages/world (sim half) and exposed as ModeContext.world (C06 1.1).
 import type { ChunkKey, EdgeId, NodeId, Aspect, LandmarkId, LandmarkRecord, PoiId, PoiRecord } from './c08';
 
 export interface EdgePos { edge: EdgeId; s: number /* m along the directed edge */; lane: number }

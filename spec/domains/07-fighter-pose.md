@@ -160,13 +160,13 @@ export interface PoseCalibration {          // dimensionless; no raw measurement
 
 ## FP7 Privacy enforcement (R-IP-04)
 
-1. **Headers.** `Permissions-Policy: camera=(self)` on app documents (default `camera=()` elsewhere); CSP `connect-src` allow-lists only the app origin (which serves `/api/v1`) and `media.<domain>` (assumption on S11 `_headers`, hub §10; `check:headers` asserts both).
+1. **Headers.** `Permissions-Policy: camera=(self)` on app documents (default `camera=()` elsewhere); CSP `connect-src` allow-lists only `'self'` (which serves `/api/v1` and `/pose/`) and the `BootConfig.hosts` origins (`media.`, `ugc.`, `rt.`, `id.`); no third-party origin is ever listed, so nothing can carry a frame off-device (C13 1.1, DL-093; `check:headers` asserts both).
 2. **Messages.** Worker messages carry landmarks and gestures, never pixels; preview landmarks flow only while a calibration or self-view overlay is open.
 3. **Network assertion (e2e, `@fighter @pose`).** Playwright intercepts every request during a pose session and asserts: no body larger than 4 KB, no image/video MIME, no `blob:` or `data:` upload, and no request to any host outside the allow-list.
 4. **Static check.** `check:bundle` fails if the `pose.worker` bundle references `fetch`, `XMLHttpRequest`, `WebSocket` or `sendBeacon` other than a same-origin GET of `/pose/**` (an allow-listed loader call site).
 5. **Storage assertion.** A test lists IndexedDB, Cache Storage and OPFS after a session and finds no image data and no landmarks.
 6. **Indicator.** A DOM status element "Camera on" with a Stop button is visible whenever tracks are live; tracks stop on pause, blur, hide, mode exit and when the setting is turned off.
-7. **Telemetry.** Aggregates only: existing `pose.calibrate {ok, ms, delegate}` and the proposed `pose.session {durationS, camFpsP50, latencyEstP95Ms, level, endReason}` (propose to S09, FX8). No landmarks, no timings per frame.
+7. **Telemetry.** Aggregates only: existing `pose.calibrate {ok, ms, delegate}` and `pose.session {durationS, camFpsP50, latencyEstP95Ms, level, endReason}` (C16 1.1, DL-103). No landmarks, no timings per frame.
 8. **No face landmarks.** CI greps the dependency tree and `/pose/` for `face_landmarker` and the Face Landmarker task name; `license:scan` fails on AGPL packages or weights.
 9. **Fixtures.** Only landmark JSON and synthetic data are committed; `check:privacy-fixtures` fails if any image or video file exists under `packages/modes/fighter/fixtures/`. Local `.webm` clips for the pipeline test mode are git-ignored.
 

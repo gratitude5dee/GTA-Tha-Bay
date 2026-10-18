@@ -119,18 +119,18 @@ Authoring coordinates are lat/lng and landmark ids (design pillar P-1); compiled
 // packages/shared/src/racing/race-def.ts
 export type RaceKind = 'sprint' | 'circuit' | 'checkpoint' | 'speedtrap' | 'downhill' | 'hillclimb' | 'drift' | 'pursuit' | 'sideshow' | 'robotaxiRush';
 export type RaceId = string;                                               // /^sf\.[a-z]+\.[a-z0-9-]{3,40}$/
-export type LatLng = { lat: number; lng: number } | { landmark: string };  // landmark ids come from S02's landmark table
-export type DistrictId = 'D1' | 'D2' | 'D3' | 'D4' | 'D5' | 'D6' | 'D7' | 'D8' | 'D9' | 'D10';
+import type { LandmarkId, DistrictId } from '../world/c08'; import type { LatLng } from '../world/c08-api';   // C08 owns these (DL-077); districts are lower-case 'd1'…'d10' (DL-111)
+export type RacePoint = LatLng | { landmark: LandmarkId };
 
 /** content/races/<id>/source.json — what the author writes. */
 export interface RaceSource {
   schema: 1; id: RaceId; version: number; kind: RaceKind; titleKey: string; district: DistrictId;
-  waypoints: LatLng[];                                                     // ≥ 2; snapped to drivable edges ≤ 25 m
-  via?: LatLng[];                                                          // forced pass-through points between waypoints
+  waypoints: RacePoint[];                                                     // ≥ 2; snapped to drivable edges ≤ 25 m
+  via?: RacePoint[];                                                          // forced pass-through points between waypoints
   laps?: number; closedLoop?: boolean;
-  gateOverrides?: { at: LatLng; widthM?: number; timeBonusSec?: number; speedCam?: boolean; remove?: boolean }[];
-  closures?: { at: LatLng; propSet: 'barrier-line' | 'cones-line' | 'construction' }[];
-  zones?: { id: string; ring: LatLng[]; kind: 'drift' | 'sideshow' | 'finish' }[];   // drift scoring and sideshow ring areas
+  gateOverrides?: { at: RacePoint; widthM?: number; timeBonusSec?: number; speedCam?: boolean; remove?: boolean }[];
+  closures?: { at: RacePoint; propSet: 'barrier-line' | 'cones-line' | 'construction' }[];
+  zones?: { id: string; ring: RacePoint[]; kind: 'drift' | 'sideshow' | 'finish' }[];   // drift scoring and sideshow ring areas
   hour?: number; weather?: WeatherPreset;                                  // WeatherPreset = engine-world.ts
   traffic: 'off' | 'light' | 'normal'; peds: 'sidewalk';
   opponents: { driverId: string; vehicleDef: string; skill: number }[];    // skill 0..1, ≤ 7
@@ -146,7 +146,7 @@ export type ScriptedBlock = { atS: number /* route metres */; kind: 'roadblock2'
 /** content/races/<id>/race.json — compiled, committed, hash-pinned. Runtime loads this. */
 export interface RaceDef extends Omit<RaceSource, 'waypoints' | 'via' | 'gateOverrides' | 'closures' | 'zones'> {
   worldBake: string;                                                       // C08 bake hash; mismatch → re-snap or CI fail (5 % length rule)
-  waypoints: LatLng[];                                                     // kept for re-snap
+  waypoints: RacePoint[];                                                     // kept for re-snap
   route: { edgeIds: number[]; dir: 1 | -1 }[];                             // C08 RoadGraph edges, ordered
   routeLenM: number; elevation: { s: number; y: number }[];                // every 25 m, for HUD and validator
   gates: GateDef[]; closures: { s: number; lat: number; lng: number; propSet: string }[];

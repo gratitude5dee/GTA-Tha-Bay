@@ -1,90 +1,161 @@
 # 00 — Plan and status (living)
 
-Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.0, frozen 2026-10-18** after Wave 1 reconciliation (was v0.95). Binding decisions: `spec/03-decisions-and-facts.md` v0, plus `spec/11-decision-log.md` (DL-001…DL-050). Architecture: `spec/02-architecture.md` v0. Open questions: `spec/99-open-questions.md`.
+Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.1, frozen, all 17 contracts final** (2026-10-18, after the Waves 2–4 reconciliation; v1.0 was the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v1 plus `spec/11-decision-log.md` (DL-001…DL-156). Architecture: `spec/02-architecture.md` v0.5. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
 
 ## Phase status
 | Phase | Subagents | Status | Output |
 |---|---|---|---|
-| 0 Ingest + research | S00 × 8 dimensions, completeness critic, S00 × 5 gap reports, S00 INDEX | **done** 2026-10-18 | 13 new reports + `research/INDEX.md` (30 decisions, F-ledger, constraints, milestones, costs) |
-| 1 Contracts | S01 engine · S09 backend · S11 platform · S05 assets | **done** 2026-10-18 | `spec/domains/01-engine*.md` (3 files), `09-backend*.md` (4), `11-platform*.md` (4), `05-assets*.md` (2); reconciliation → 06 **v1.0 frozen**, `spec/02-architecture.md` v0, `spec/11-decision-log.md`, `spec/99-open-questions.md` |
-| 2 World + content | S02 world · S03 story · S04 NPC | ready (contracts frozen; may run concurrently with 3–4) | `spec/domains/02,03,04`; finalize C08, C09, C10 inside the 06 §4.4 sketches |
-| 3 Modes | S06 racing · S07 fighter · S08 tycoon | ready | `spec/domains/06,07,08` |
-| 4 Shell + UGC | S10 UI · S12 modding | ready | `spec/domains/10,12`; finalize C14, C17 inside the sketches |
-| 5 Integration | S13 + integration authors | pending | `spec/01–12, 99`, milestones, ADRs, CLAUDE.md, AGENTS.md, kickoff |
+| 0 Ingest + research | S00 × 8 dimensions, completeness critic, S00 × 5 gap reports, S00 INDEX | **done** 2026-10-18 | 13 reports + `research/INDEX.md` |
+| 1 Contracts | S01 engine · S09 backend · S11 platform · S05 assets | **done** 2026-10-18 | `spec/domains/01*`, `05*`, `09*`, `11*`; 06 v1.0 frozen; DL-001…DL-076 |
+| 2 World + content | S02 world · S03 story · S04 NPC | **done** 2026-10-18 | `spec/domains/02-world*.md` (5 files), `03-story*.md` (4), `04-npc*.md` (3); C08, C09, C10 final |
+| 3 Modes | S06 racing · S07 fighter · S08 tycoon | **done** 2026-10-18 | `spec/domains/06-racing*.md` (3), `07-fighter*.md` (4), `08-tycoon*.md` (3) |
+| 4 Shell + UGC | S10 UI · S12 modding | **done** 2026-10-18 | `spec/domains/10-ui*.md` (3), `12-modding*.md` (3); C14, C17 final |
+| Reconciliation 2 | Architect | **done** 2026-10-18 | 06 **v1.1**; DL-077…DL-156; Q-20…Q-25; register below; `02-architecture.md` v0.5 |
+| 5 Integration | S13 + integration authors | **next** | `spec/01–12, 99`, milestone files (C15), ADRs, CLAUDE.md, AGENTS.md, kickoff |
 | Verification | critics: executability · factual · scope | pending | critic log below |
 
 ## Inputs found at start
 - Present: `prompt-pack/` (pack v1), `research/` repo analyses (webport, world, grand-v), Anthropic model facts, Claude Code deployment, prompting guidance, owner updates.
-- Missing: the eight stack/design research reports (S00 is producing them) and **`research/characters/<slug>/soul.md` + refs** (the per-character research layer the brief says exists was not provided to this repo). Handling: S04 defines the soul.md schema, a validator and a roster manifest; the roster is data and is loaded when supplied (Q-19 in `spec/99-open-questions.md`).
+- Missing: **`research/characters/<slug>/soul.md` + refs** (the per-character research layer). S04 defined the soul schema, validator and roster manifest; the roster loads when supplied (Q-19), from the private `content-private/` mount (Q-25).
 
 ## Gated decisions (asked once; proceeding on defaults because this run is unattended)
 | ID | Question | Default applied | Date |
 |---|---|---|---|
-| G1 | Supabase vs Convex | **Supabase Pro `us-west-1`**; Durable Objects for rooms and presence; Convex documented alternative (switch cost 5–7 sessions) — spec/03 D-02 | 2026-10-18 |
-| G2 | Likeness tier per named real person | living people `parody`; Mac Dre and founders of real companies `fictionalized`; `consented` only with a consent record — spec/03 D-29 | 2026-10-18 |
-| G3 | GenAI monthly ceiling and per-player quotas | $500/month recurring ($350 Anthropic, $100 voice, $25 moderation, $25 buffer); $1,000 one-off fal production credit; quotas and governor per research/INDEX §7 | 2026-10-18 |
+| G1 | Supabase vs Convex | **Supabase Pro `us-west-1`**; Durable Objects for rooms and presence; Convex documented alternative — spec/03 D-02 | 2026-10-18 |
+| G2 | Likeness tier per named real person | living people `parody`; Mac Dre and founders of real companies `fictionalized`; `consented` only with a consent record — D-29 | 2026-10-18 |
+| G3 | GenAI monthly ceiling and per-player quotas | $500/month ($350 Anthropic, $100 voice, $25 moderation, $25 buffer); $1,000 one-off fal production credit | 2026-10-18 |
 
 ## Owner decisions applied as defaults (override with `/architect fix: <what>`)
 | Q | Question | Default | Why |
 |---|---|---|---|
-| Q-01 | Public title | "Dee-Verse: Tha Bay" (no "GTA" shipped) | Take-Two holds live GTA marks; product titles get no parody shield [research/legal-ip-likeness.md] |
-| Q-02 | Terms eligibility | 18+ terms, 17+ content | fal and Anthropic end-user terms [research/gap-trust-safety-tooling.md] |
-| Q-03 | MiniMax H3 not cleared in time | fallback chain in `config/genai-endpoints.json` | H3 licence excludes the US [research/gap-video-model-licence-clearance.md] |
+| Q-01 | Public title | "Dee-Verse: Tha Bay" (no "GTA" shipped) | live GTA marks [research/legal-ip-likeness.md] |
+| Q-02 | Terms eligibility | 18+ terms, 17+ content; every under-18 bracket blocked in v1 (DL-139) | vendor end-user terms [research/gap-trust-safety-tooling.md] |
+| Q-03 | MiniMax H3 not cleared in time | fallback chain in `config/genai-endpoints.json` | US licence gap [research/gap-video-model-licence-clearance.md] |
 | Q-06 | Content tone | no firearms or gore; sideshows allowed | likeness and rating risk [research/gamedesign-decomposition.md] |
-| Q-07 | Campaign premise | *Hella Valuation* (Premise A) | SF-only Act 1 [research/gamedesign-decomposition.md] |
+| Q-07 | Campaign premise | *Hella Valuation* (Premise A) | SF-only Act 1 |
 | Q-10 | Device floor | iPhone 15 at `mobile-low` 30 fps; Quest 3/3S; Vision Pro on visionOS 26.2+ | [research/stack-rendering-platform.md] |
-| Q-11 | Music | commissioned originals; no artist recordings | sync licensing [research/legal-ip-likeness.md] |
-| Q-12 | Hero voices | Aura tier; ElevenLabs Flash for ≤ 3 heroes, 18+ only; no real-voice clones | vendor policies [research/ai-npc-runtime.md] |
+| Q-11 | Music | commissioned originals only | sync licensing |
+| Q-12 | Hero voices | Aura tier; ElevenLabs Flash for ≤ 3 heroes only if Q-20 raises the voice ceiling; no real-voice clones | vendor policies |
 
-Wave 1 added owner questions Q-13…Q-19 (devices, fal cap vs fallback provider, domains, T&S filings, `FAL_KEY` holder, counsel reading, missing character research layer) with defaults in `spec/99-open-questions.md`.
+Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice ceiling, sensitivity read, npm publication, counsel list, animation staffing, private content repo) carry defaults in `spec/99-open-questions.md`.
 
-## Wave 1 result (2026-10-18)
-- **Frozen at 1.0:** C01–C06 (S01), C07 (S05), C11, C12, C16 (S09), C13 (S11), C15 (format). **Sketches aligned, owner finalizes:** C08, C09, C10 (Wave 2), C14, C17 (Wave 4). No new contract ids; Wave 1 interfaces were folded into C06, C07, C12 and C13 (06 §4.1 rule 5).
-- **Reconciliation:** 50 conflicts resolved (DL-001…DL-050) with minimal edits in all 13 domain files. 25 of the 29 Wave 1 `decisions_needed` settled; the other 4 (Q-S11-01, DN-S05-2, Q-BE-07, Q-BE-08) moved to the owner, and DN-S05-4 was settled as a policy with its named holder moved. Owner questions are Q-13…Q-19 in `spec/99`, and 66 UNVERIFIED items are registered there with defaults.
-- **Re-run notes:** no re-run needed. All four specs are complete, carry return blocks, and contradicted a contract only where the decision log fixed it.
-  - Size watch: `01-engine.md` (≈ 5,990 words) and `11-platform.md` (≈ 5,970) sit at the 6,000-word cap. Any further amendment must move a section into the existing part files.
-  - Milestones estimated at ≥ 2 sessions must be split by a digit suffix in Wave 5 (C15): M01a, M01b, M04a, M05b, M10a, M11a, M11b, M12b, M12c, M14b. M00 (≈ 1.5 sessions) may split off an `M00a` edge-API skeleton.
-- **Wave 2–4 briefs must cite:** 06 v1.0 §4.2–4.4 and §5 (names, scripts, storage, units), the decision log, and `spec/02-architecture.md` §7.
+## Waves 2–4 result (2026-10-18)
+- **All 17 contracts are final** (06 v1.1). Finalized by their owners and accepted with Architect edits: C08 (S02), C09 (S03), C10 (S04), C14 and C17 (S12), all 1.0.0. Additive minor bumps: C02, C03, C04, C05, C06, C07, C12, C13, C16 → 1.1; C01, C11, C15 unchanged. No breaking change, so no major bump.
+- **Reconciliation:** 17 contract conflicts resolved (DL-077…DL-093), 11 contract-bump or deferral rows (DL-094…DL-104), 50 `decisions_needed` settled (DL-105…DL-154), five moved to the owner and one owner action opened (Q-20…Q-25). Notable: one owner per id type (C08 `LatLng`, `ChunkKey`, places; C10 `NpcId`; C14 `ModId`); `playSequence` for mixed fight intros; mission talk uses existing C10 fields; tycoon numbers are sim-computed `deals`; `AnimStateId` 128–159 racing, 160–207 fighter, 208–255 tycoon; under-18 blocked; New Game = new save profile; XR text entry flat-only; telemetry default on.
+- **Re-run notes:** none needed. All eight domains returned complete specs with return blocks; contradictions were fixed by minimal edits in the domain files.
+- **Size watch:** `01-engine.md`, `11-platform.md`, `09-backend-contracts.md` and `spec/11-decision-log.md` sit at the 6,000-word cap. 1.1 additions went to part files (`09-backend-contracts-1.1.md`, `11-platform-pwa.md` §11, ends of `01-engine-contracts.md` and `01-engine-save-modes.md`, `05-assets-pipeline.md` §14). Wave 5 continues the decision log in a new part file.
+- **UNVERIFIED:** Wave 2–4 items (85) are indexed in `spec/99-open-questions.md` §3; Wave 5 merges them into §2 rows.
 
-## Milestone register (after Wave 1; ids per DL-037; final files in Wave 5)
-| ID | Slug | Domains | Est. sessions |
+## Milestone register (after Waves 2–4; ids per DL-037: letter = scope, digit = session split; final files in Wave 5)
+103 milestones: 96 for v1 (≈ 96 sessions) plus 7 Bay-expansion milestones (≈ 12 sessions, post-v1). A family id without its digit (for example M12a or M13b) names the whole scope in older text.
+
+| ID | Slug | Domains | Sessions |
 |---|---|---|---|
-| M00 | bootstrap-ci-pwa-on-workers | S09, S11, S13 | 1.5 |
+| M00 | bootstrap-ci-pwa-on-workers (+ UI shell skeleton) | S11, S13, S10 | 1 |
+| M00a | edge-api-skeleton | S09 | 0.8 |
 | M00b | ip-provenance-gates | S05 | 1 |
 | M00c | genai-spike (≤ $40) | S05 | 1 |
-| M01a | loop-ecs-detmath-physics | S01 | 1–2 |
-| M01b | controller-cameras-touch | S01 | 1–2 |
+| M01a | loop-ecs-detmath-physics | S01 | 1–2 **>1, Wave 5 splits** |
+| M01b | controller-cameras-touch | S01 | 1–2 **>1, Wave 5 splits** |
 | M01c | device-spike-renderer-host | S11 | 1 |
-| M01d | assets-publish (catalog, lock, publish CLI) | S05 | 1 |
+| M01d | assets-publish | S05 | 1 |
 | M01e | asset-worker-opfs-store | S11 | 1 |
-| M02a–c | SF bake · streaming/LOD/weather · graphs, maps, teleports | S02 (+ S01, S11) | Wave 2 |
-| M03a | vehicles-interaction-prefabs | S01 (+ S06 handling) | 1 |
-| M03b | traffic-peds | S02 (+ S01) | Wave 2 |
+| M01f | world-graybox-fixture-codec | S02 | 0.5 |
+| M02a1 | bake-core | S02 | 1 |
+| M02a2 | bake-roads-graph | S02 | 1 |
+| M02b1 | streaming-lod | S02 (+S11) | 1 |
+| M02b2 | weather-time | S02 (+S01) | 1 |
+| M02c1 | graph-services-teleports | S02 | 1 |
+| M02c2 | maps | S02 (+S10) | 1 |
+| M02d1 | landmarks-kit-and-heroes | S02 | 1 |
+| M02d2 | landmarks-rest-and-swap | S02 | 1 |
+| M03a1 | vehicles-interaction-prefabs | S01 | 1 |
+| M03a2 | handling-model-wheel-spike (U-RAC-1, C06 1.2 readout) | S06 (+S01) | 0.5 |
+| M03b1 | traffic-robotaxis | S02 | 1 |
+| M03b2 | peds-transit | S02 | 1 |
 | M03c | pursuit-director | S01 | 1 |
-| M04a | saves-gamemode-unlocks | S01 | 1–2 |
-| M04b | menus-identity-creator | S10, S09 | Wave 4 (+ 0.5 S09) |
-| M04c | cutscene-playback-spike | S11, S03 | 1 |
-| M05a | mission-ir-autoplayer-director | S03 (+ S01) | Wave 2 |
-| M05b | cutscene-pipeline-mock | S09, S05, S03 | 1–2 |
-| M05c | act1-vertical-slice | S03 | Wave 2 |
+| M04a | saves-gamemode-unlocks | S01 | 1–2 **>1, Wave 5 splits** |
+| M04b1 | shell-ui-kit-menus-settings | S10 | 1 |
+| M04b2 | creator-phone-hud-kit | S10 (+S05 creator kit) | 1 |
+| M04b3 | local-identity-play-token | S09 | 0.5 |
+| M04c | cutscene-playback-spike (+ S03 fixtures, S10 overlay) | S11, S03, S10 | 1 |
+| M05a1 | mission-ir-vm | S03 | 1 |
+| M05a2 | autoplayer-director-preview | S03 | 1 |
+| M05b1 | cutscene-infra-mock | S09, S05 | 1 |
+| M05b2 | cutscene-player-index | S03 | 1 |
+| M05c1 | act1-missions-1-6 | S03 | 1 |
+| M05c2 | act1-vertical-slice (release gated by Q-21) | S03 | 1 |
+| M05c3 | act1-prewarm | S05 | 0.5 |
 | M05d | data-spine-supabase | S09 | 1 |
-| M06a / M06b | npc-dialogue-proxy-quotas / npc-builder-moderation | S04, S09 (+ S10) | 1 + Wave 2 each |
-| M07a–b | racing | S06 | Wave 3 |
-| M08a–c | fighter (+ S05 retarget bake), roster, pose | S07 | Wave 3 |
-| M09a–b | tycoon | S08 | Wave 3 |
-| M10a / M10b | roster-pipeline / qa-gates-kill-drill | S05 | 2 / 1 |
-| M11a | iphone-hardening-governor | S11 | 2 |
-| M11b1 / M11b2 | webxr-port / per-mode XR + XR cutscenes | S11 (+ S06–S08) | 1 / 1 |
-| M12a | p1-identity-cloud-saves | S09 | 1 |
-| M12b | rooms-core-protocol-v2 | S09 (+ S01) | 2 |
-| M12c | rooms-hardening-presence-loadtest | S09 | 2 |
-| M13a | mod-sdk-experiences | S12 | Wave 4 |
-| M13b | forum-reports-backend | S09 (+ S10) | 1 |
-| M13c | device-code-publish-login | S12, S09 | 0.5 + Wave 4 |
-| M13d | legal-trust-safety-backend | S09 | 1 |
-| M14a | thirdweb-siwe-link | S09 | 1 |
-| M14b | launch-hardening-guardrails | S09, S05, S13 | 2 |
-| M15+ | bay-districts | S02 | later |
+| M05e1 | story-act2-part1 (+ story-business event host) | S03 (+S08) | 1 |
+| M05e2 | story-act2-part2 | S03 | 1 |
+| M05f1 | story-act3-part1 | S03 | 1 |
+| M05f2 | story-act3-finale | S03 | 1 |
+| M06a1 | npc-backend-spine | S09 (+S04) | 1 |
+| M06a2 | soul-contract-compiler | S04 | 1 |
+| M06a3 | dialogue-proxy | S04, S09 | 1 |
+| M06a4 | memory-voice-lipsync (+ route 52) | S04 | 1 |
+| M06a5 | dialogue-panel-ui | S10 | 0.3 |
+| M06b1 | builder-text-private | S04 | 1 |
+| M06b2 | builder-images-review | S04, S09 | 1 |
+| M06b3 | npc-builder-ui | S10 | 1 |
+| M06b4 | builder-publish-assets (after M13c2) | S04 (+S05) | 0.5 |
+| M06c | npc-agency-barks | S04 | 1 |
+| M07a1 | racing-core-director-car | S06 | 1 |
+| M07a2 | racing-ai-replay-ghosts | S06 | 1 |
+| M07b1 | racing-content-events-ladder | S06 | 1 |
+| M07b2 | racing-garage-replay-photo-visuals | S06 | 1 |
+| M08a1 | fight-core-sim-data | S07 | 1 |
+| M08a2 | fight-mode-training-vs | S07 | 1 |
+| M08b1 | fight-roster-kits-ai | S07 | 1 |
+| M08b2 | fight-stages-cutscenes-arcade | S07 | 1 |
+| M08c1 | pose-pipeline-classifier | S07 | 1 |
+| M08c2 | pose-calibration-gate | S07 | 1 |
+| M09a1 | tycoon-core-finance | S08 | 1 |
+| M09a2 | tycoon-events-balance | S08 | 1 |
+| M09b1 | tycoon-ui | S08 | 1 |
+| M09b2 | tycoon-vc-story | S08 | 1 |
+| M10a | roster-pipeline (+ S07 signature clips) | S05, S07 | 2 **>1, Wave 5 splits** |
+| M10b | qa-gates-kill-drill (+ fighter prewarm) | S05 | 1 |
+| M10c | roster-souls-ink-barks | S04 | 1 |
+| M11a | iphone-hardening-governor (+ race scenarios) | S11 (+S06) | 2 **>1, Wave 5 splits** |
+| M11b1 | webxr-port | S11 | 1 |
+| M11b2 | per-mode-xr-and-xr-cutscenes | S11, S03, S06, S07, S08 | ≈1.3 **>1, Wave 5 splits** |
+| M11b3 | xr-ui-panels-comfort | S10 | 0.8 |
+| M12a1 | p1-identity-cloud-saves | S09 | 1 |
+| M12a2 | age-register-cloud-save-ui | S10 | 0.5 |
+| M12b | rooms-core-protocol-v2 | S09 (+S01) | 2 **>1, Wave 5 splits** |
+| M12c | rooms-hardening-presence-loadtest | S09 | 2 **>1, Wave 5 splits** |
+| M12d | online-page-invites | S10 | 0.3 |
+| M12e | mode-leaderboards (route 21 validators) | S06, S08 | 1 |
+| M13a1 | mod-sdk-manifest-validators | S12 | 1 |
+| M13a2 | mod-installer-store-client (+ route 53) | S12 (+S09) | 1 |
+| M13a3 | mod-runtime-data-experience | S12 | 1 |
+| M13a4 | mod-script-sandbox | S12 | 1 |
+| M13a5 | mod-ui-tier | S12 | 1 |
+| M13a6 | mod-agent-kit | S12 | 1 |
+| M13a7 | store-experience-pages + vehicle-mod envelope | S10, S06 | 0.7 |
+| M13b1 | forum-reports-backend | S09 | 1 |
+| M13b2 | forum-ugc-links + web tiles, anchor mask | S12, S02 | 0.8 |
+| M13b3 | creator-place-mode | S12 (+S10) | 1 |
+| M13b4 | forum-ui | S10 | 1 |
+| M13c1 | device-code-publish-login (+ /link page) | S09, S10 | 0.8 |
+| M13c2 | publish-pipeline-server | S12 | 1 |
+| M13c3 | publish-cli-link | S12 | 1 |
+| M13d1 | legal-trust-safety-backend | S09 | 1 |
+| M13d2 | legal-forms-ui | S10 | 0.3 |
+| M14a | thirdweb-siwe-link | S09 (+S10) | 1 |
+| M14b | launch-hardening-guardrails (+ name knock-out applied) | S09, S05, S13 (+S06) | 2 **>1, Wave 5 splits** |
+| M14c | a11y-audit-i18n-gate | S10 | 0.5 |
+| M15a | bay-expansion-framework | S02 | 2 **>1 (post-v1)** |
+| M15b | oakland-core | S02 | 2 **>1 (post-v1)** |
+| M15c | berkeley-richmond | S02 | 1.5 **>1 (post-v1)** |
+| M15d | marin-gateway | S02 | 1 |
+| M15e | peninsula-north | S02 | 1.5 **>1 (post-v1)** |
+| M15f | peninsula-vc-row | S02 | 2 **>1 (post-v1)** |
+| M15g | south-bay-san-jose | S02 | 2 **>1 (post-v1)** |
+
+**Above one session:** M01a, M01b, M04a, M10a, M11a, M11b2, M12b, M12c, M14b (Wave 5 splits them with digit suffixes, C15), and the post-v1 M15a/b/c/e/f/g. **Ordering anchors:** R-ROLL-01 single-player first: no rooms milestone (M12b onward) starts before the hosted story slice M05c2 is shipped and tested on Cloudflare; A-06 vertical slice = M05c2 with racing, fighter and tycoon reachable through stubs; VS-Racing = M07a2, VS-Fighter = M08a2, VS-Tycoon = M09a2.
 
 ## Critic log
 | Date | Lens | Blocking | Major | Minor | Notes |

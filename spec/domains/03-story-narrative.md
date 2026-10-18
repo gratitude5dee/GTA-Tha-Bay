@@ -122,7 +122,7 @@ That makes 9 refs and 102 s: 4 × 8 s + 5 × 14 s. The "LOT 1" screen text in th
 | `m.a3.05` | The Hearing · D4 City Hall · `sensitivity-read` | protect Imani's route; talk chain; outcome uses `hearing_support` | — | `vote` (beat) |
 | `m.a3.06` | Exit Event · D5→D10 | protect the broadcast; heat 5, then scripted 6 along the Embarcadero onto the Bay Bridge west span to Yerba Buena Island; portal closes behind | `unlock.district.d10` | `bridge` (beat), `dawn` (establish), `ending.coop` / `ending.yard` (beats, chosen by flag `coop_success` from the tycoon results) |
 
-Acts 2–3 generated refs: 18 (8 + 10), of which 6 establish × 8 s and 12 beats × 14 s = 216 s (Part D §D9, priority 4). Acts 2–3 add $70k–$110k of rewards in total (design band; balanced by S01's `tools/econ-sim`).
+Acts 2–3 generated refs: 18 (8 + 10), of which 6 establish × 8 s and 12 beats × 14 s = 216 s (Part D §D9, priority 4). Acts 2–3 add $70k–$110k of rewards in total (design band; balanced by the economy harness `tools/ci/econ-sim`, owner S01, with story and racing sections from S03 and S06).
 
 ## B7. Unlock events (R-MODE-05)
 

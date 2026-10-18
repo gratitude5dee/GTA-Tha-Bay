@@ -1,6 +1,6 @@
 # Domain 04 — AI NPCs & NPC Builder (S04), Part B: C10 contract, soul schema, roster, prompt blocks
 
-> S04, Wave 2, 2026-10-18. Part B of three: Part A `spec/domains/04-npc.md` (scope, design, runtime, platform, milestones, tests), Part B this file (normative types and schemas), Part C `spec/domains/04-npc-builder.md` (builder, moderation, evaluation harness, cost). Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.0 §4.4 C10 sketch, `spec/.waves234-notes.md` item 11, `spec/03-decisions-and-facts.md` D-21…D-23, D-28…D-30, `spec/11-decision-log.md` DL-022, DL-039, DL-046, DL-053, DL-058. R-IDs: R-NPC-01, R-NPC-04, R-NPC-05, R-IP-02.
+> S04, Wave 2, 2026-10-18; C10 1.0.0 accepted in 06 v1.1 with the Architect's finalization edits DL-077, DL-083, DL-085…DL-088 (ids from C08, `assetTier`, mode intents, `context.tycoon.deals`, `ugcCameo`). Part B of three: Part A `spec/domains/04-npc.md` (scope, design, runtime, platform, milestones, tests), Part B this file (normative types and schemas), Part C `spec/domains/04-npc-builder.md` (builder, moderation, evaluation harness, cost). Binding: `prompt-pack/06-SHARED-CONTEXT.md` v1.1 (C10 row; was the v1.0 §4.4 sketch), `spec/.waves234-notes.md` item 11, `spec/03-decisions-and-facts.md` D-21…D-23, D-28…D-30, `spec/11-decision-log.md` DL-022, DL-039, DL-046, DL-053, DL-058. R-IDs: R-NPC-01, R-NPC-04, R-NPC-05, R-IP-02.
 
 ## B1. C10 rules (1.0.0)
 
@@ -24,8 +24,10 @@ export type NpcId = string;                 // /^[a-z][a-z0-9_-]{2,47}$/ (B1 rul
 export type SoulVersion = number;           // integer ≥ 1 (fixed)
 export type SoulTier = Exclude<LikenessTier, 'original'>;          // 'consented' | 'parody' | 'fictionalized'
 export type LikenessBasis = 'real_person' | 'original';
-export type PoiId = string;                 // /^poi\.[a-z0-9.-]{3,64}$/  S02 POI table (assumption, C08 proposal)
-export type DistrictId = string;            // /^[a-z0-9-]{2,32}$/      S02 district ids
+export type { PoiId, DistrictId } from '../world/c08';   // C08 owns both id spaces (DL-077): ^poi\.[a-z0-9.-]{3,64}$ and ^[a-z0-9-]{2,32}$
+import type { PoiId, DistrictId } from '../world/c08';
+/** Tier used on assets (C07 LikenessSummary) and in the C09 cutscene key: 'original' for invented characters, else the soul tier (DL-083). */
+export const assetTier = (s: { basis: LikenessBasis; tier: SoulTier }): LikenessTier => (s.basis === 'original' ? 'original' : s.tier);
 export type ConsentScope = 'name' | 'likeness_stylized' | 'likeness_realistic' | 'voice_designed' | 'voice_clone'
   | 'biography' | 'catchphrases' | 'marketing' | 'merchandise' | 'ugc_remix' | 'cutscene';   // research/legal-ip-likeness.md L2
 export type VoiceTier = 'text' | 't1' | 't2' | 't3';             // D-23
@@ -120,6 +122,7 @@ export interface CompiledSoulPublic {
   name: string; shortBio: string; archetype: Archetype; tags: string[];
   tier: SoulTier; basis: LikenessBasis; disclaimer: SoulLikeness['disclaimer']; fameDomain: string[];
   marketingAllowed: boolean;               // basis original, or consented with scope 'marketing' (legal L2); S10/S13 marketing reads only these
+  ugcCameo: boolean;                       // C14 npc.cameo may place this NPC; compiler default false for tier 'parody', true otherwise (DN-S12-07, DL-088)
   standIn: AssetRef | null; heightM: number; moves: number[]; roles: SoulFrontmatter['roles'];
   locations: SoulFrontmatter['locations']; schedule: ScheduleBlock[]; goals: string[];
   voice: { tier: VoiceTier; voiceRef: AssetRef | null; speed: number };
@@ -153,19 +156,25 @@ export interface NpcRosterBundle { schema: 'npc-roster-bundle/1'; rosterVersion:
 ### B2.4 Dialogue (route 31, SSE)
 ```ts
 export type PlayerIntent = 'greet' | 'smalltalk' | 'ask_mission' | 'accept' | 'decline' | 'trade' | 'compliment'
-  | 'insult' | 'threaten' | 'farewell' | `ask_about_npc:${string}` | `ask_about_place:${string}`;   // arg = NpcId | PoiId
+  | 'insult' | 'threaten' | 'farewell' | `ask_about_npc:${string}` | `ask_about_place:${string}`   // arg = NpcId | PoiId
+  | 'pitch' | 'answer' | 'ask_more' | 'counter' | 'close'   // only with context.mode 'tycoon' (S08 meeting moves, DL-086)
+  | 'fight_pre' | 'fight_post';                            // only with context.mode 'fighter' (S07 trash talk, DL-086)
 export interface NPCDialogueContext {      // client-built from sim state; enums and numbers only, so no free text reaches the prompt
   schema: 1;
   clockT: number;                          // C06 WorldClockState.t (integer half-seconds)
   chunkKey: string;                        // C08 'z/x/y'
   poiId: PoiId | null;
   mode: 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | 'experience';
-  missionId: string | null; missionStep: string | null;    // C09 ids
+  missionId: string | null; missionStep: string | null;    // C09 ids; for a C09 talk objective missionStep = TalkDef.id and the fallback knot is mission_<missionId>_<talkId> with '.' and '-' → '_' (DL-085)
   player: { heat: 0 | 1 | 2 | 3 | 4 | 5 | 6; inVehicle: boolean; health: 'ok' | 'hurt' | 'down'; streetCred: number; techClout: number };
   relation: { trust: number /* C05 StorySlice.npcRelations[id].trust, −100..100 */; met: boolean };
   events: NearbyEvent[];                   // ≤ 5, newest first
   offers: { missionIds: string[]; raceIds: string[]; dealIds: string[] };   // the only valid action_arg values
-  tycoon: { roundId: string; offerCents: number; valuationCents: number; stance: 'open' | 'firm' | 'walk' } | null;  // S08 engine output; the LLM only voices it
+  tycoon: {                                // S08 engine output (DL-087); the sim decides every number, the LLM voices it or picks one of `deals`
+    roundId: string; stance: 'open' | 'firm' | 'walk'; week: number; mood: number /* 0..100 */;
+    sector: string; arrBand: 0 | 1 | 2 | 3 | 4; growthBand: 0 | 1 | 2 | 3 | 4; runwayBand: 0 | 1 | 2 | 3 | 4; weakestMetric: string;
+    deals: { id: string; amountCents: number; preMoneyCents: number; poolBp: number; boardSeat: boolean; liq: '1x' | '1.5x' | '2x' }[];   // ≤ 3, inside S08's envelope; ids repeat in offers.dealIds
+  } | null;
   voice: 'off' | 'auto';
   locale: 'en-US';                         // v1
 }
@@ -457,7 +466,7 @@ the character's word limit. Propose actions only from the offers listed in the s
 ```
 <scene t="<clockT>" hour="HH:MM" weekday="<wd>" chunk="<chunkKey>" poi="<poiId|none>" mode="<mode>" mission="<id|none>" step="<id|none>"
  heat="<0-6>" vehicle="<bool>" health="<ok|hurt|down>" trust="<trust>" met="<bool>" events="<e1,e2,…>"
- offers="mission:<ids>;race:<ids>;deal:<ids>" tycoon="<none|round=…;offer_cents=…;valuation_cents=…;stance=…>"/>
+ offers="mission:<ids>;race:<ids>;deal:<ids>" tycoon="<none|round=…;stance=…;week=…;mood=…;sector=…;bands=arr,growth,runway;weak=…;deals=id:amount_cents:pre_cents:pool_bp:board:liq,…>"/>
 <memory summary="<≤150 tokens of npc_relationship.summary>"><m k="promise">…</m>…(≤ 6)</memory>
 <player intent="<intent|none>">… player text, NFC, ≤ 280 chars, control and tag characters stripped …</player>
 ```

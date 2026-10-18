@@ -185,3 +185,30 @@ export interface Telemetry {
 8. `heartbeat.spec.ts`: state machine, `cold_resume` not counted, two abnormal exits demote one rung, Diagnostics off sends nothing.
 9. `telemetry-privacy.spec.ts`: payload keys and lengths within limits; no IP, UA or profile id.
 10. Device (iPhone 15, 16/17; Home Screen and Safari tab): `crossOriginIsolated`; `persist()` and `estimate()` recorded; rotate overlay; coach mark; audio after gesture; memory-bomb outcome recorded in `device-notes.json`; 30-minute soak with no tab reload (M11a).
+
+## 11. C13 1.1 additions (Architect, second reconciliation, 2026-10-18)
+
+Additive members accepted from Wave 2–4 return blocks (`spec/11-decision-log.md` DL-093, DL-102). They live here because `11-platform.md` is at the 6,000-word cap. Owner S11; nothing in 1.0 changes meaning.
+
+```ts
+// RendererHost (11-platform.md §5.8) gains (S10 previews; one canvas, never a second WebGL context on iPhone):
+setMenuScene(scene: THREE.Group, camera: THREE.PerspectiveCamera): void;   // rendered on the shared canvas only while ModeHost is Idle
+clearMenuScene(): void;
+// XrPanels (11-platform-xr.md §3) registration surface used by S10 UiSurface (DN-S11-03):
+export interface XrPanels {
+  add(panel: XrPanel, placement: { anchor: XrPanel['anchor']; distanceM?: number; yawDeg?: number; heightM?: number }): void;
+  remove(id: string): void; setVisible(id: string, on: boolean): void;
+}
+// FirstGestureUnlock (§7) exposes its pool of three unlocked <video> elements (S03 CutscenePlayer):
+acquireVideo(): HTMLVideoElement | null; releaseVideo(v: HTMLVideoElement): void;
+// PostNode adds desktop-only nodes (S06 photo mode and desktop-ultra look); allowed only in optionalPost of 'desktop-ultra' and 'desktop':
+export type PostNode = 'gtao-half' | 'bloom' | 'smaa' | 'traa' | 'fxaa' | 'fsr1' | 'tonemap' | 'motionblur' | 'ssr' | 'dof' | 'lut';
+// PlatformSettings (v stays 1; optional section, S12): developer loop for mods, never a URL flag
+dev?: { mod: { enabled: boolean; port: number } };
+// asset.worker AssetSource hook (S12): resolves '<kind>/mod.<sha256[0:12]>' refs from OPFS dv/mods/blobs/<sha256>; catalog refs are unchanged
+export interface AssetSource { matches(ref: AssetRef): boolean; open(ref: AssetRef): Promise<{ bytes: ArrayBuffer; sha256: string; contentType: string } | null> }
+```
+- **`PerfScenario.id`** adds `race-sprint`, `race-pursuit-heat4` (S06), `fight-stage-pose` (S07), `story-chase` (S03), `npc-mission-crowd` (S04), `mod-hostile` and `mod-scene-budget` (S12); each path file is owned by the named domain's milestone. Costs of `ssr` and `motionblur` on r186 are UNVERIFIED (U-RAC-6) and calibrated in M11a.
+- **`QaFlags`** (the single parser, `11-platform-perf.md` §4) also carries `?hour=`, `?weather=` (passed to `WorldClockApi`, S02) and `?hooks=stub|bot`, `?talk=scripted`, `?beats=video|fallback|instant|plate` (S03), QA builds only.
+- **Headers (S07, `check:headers`).** App documents send `Permissions-Policy: camera=(self)` (default `camera=()` elsewhere). CSP `connect-src` lists `'self'` plus the `BootConfig.hosts` origins (`media.`, `ugc.`, `rt.`, `id.`) and nothing else (DL-093). Pose assets are served same-origin under `/pose/`.
+- **Pose calibration store.** IndexedDB `dv-platform` gains object store `pose-calibration`, keyed `[saveProfileId, cameraKey]`, device-scoped, never synced or exported, deletable from Settings (S07 FP4).

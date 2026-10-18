@@ -148,13 +148,7 @@ flowchart LR
 export interface CompileError { code: 'E_SCHEMA' | 'E_REF_CAST' | 'E_REF_ZONE' | 'E_REF_LINE' | 'E_REF_LANDMARK' | 'E_OUT_OF_BOUNDS'
   | 'E_ROUTE_UNSNAPPABLE' | 'E_DEPICTION' | 'E_NAME' | 'E_NO_FALLBACK' | 'E_HOOK_STUB' | 'E_UNREACHABLE_STAGE' | 'E_BUDGET'; pointer: string; message: string }
 export declare function compileMission(ir: MissionIR, env: CompileEnv): { ir: MissionIR; errors: CompileError[]; audioNeeds: LineId[] };
-export interface WorldResolver {                     // implemented over C08 data (S02); assumption A-C08-1
-  readonly bake: string;
-  toEnu(ll: LatLng): [number, number, number];
-  landmark(id: LandmarkId): { enu: [number, number, number]; chunkKey: string } | null;
-  snap(p: Placement): { pos: [number, number, number]; yaw: number; distM: number } | null;
-  route(via: LatLng[]): number[] | null;             // road-graph edge ids
-}
+import type { WorldResolver, LatLng, SnapRequest } from '@dv/shared/world/c08-api';   // C08 owns it (DL-078); the compiler maps LatLngTuple → LatLng and Placement → SnapRequest
 export declare function resolveMission(ir: MissionIR, w: WorldResolver): ResolvedMission | { errors: CompileError[] };
 export type StoryCommand =
   | { name: 'mission.start'; id: MissionId } | { name: 'mission.retry' } | { name: 'mission.quit' }
@@ -342,16 +336,16 @@ R-ID → milestones:
 
 | ID | Assumption |
 |---|---|
-| A-C10-1 | C10 `NPCDialogueRequest.context` accepts `mission {id, stage, talkId, goal, outcomes[]}`, and `turn.intent` accepts `mission:<id>:<talkId>`. Proposed: `effects.outcome?` restricted to the offered ids |
-| A-C08-1 | S02 provides a landmark registry (`lm.*` → ENU and chunk key), placement snapping, `route(via)` → edge ids, district polygons `d1…d10` and the tags `hidingSpots`/`pursuitBreakers` |
-| A-C03-1 | A QA-only `BotInput` source can write player-0 `InputFrame`s in `sim.worker`, also needed by S06/S07 bots (proposed `DeviceKind 'bot'`) |
-| A-C06-1 | S10's proposed `UiCommand` `mode.cmd` carries `talk.result` and `cut.state`. Proposed: a dedicated `{t: 'cutscene.state'}` variant so fighter and racing use one path |
-| A-C13-1 | `FirstGestureUnlock` exposes `acquireVideo(): HTMLVideoElement \| null` and `releaseVideo(v)` over its pool of three |
-| A-C14-1 | C14 `permissions[]` includes `mission.register`; mod missions use kind `experience` |
-| A-C05-1 | `SaveReason` gains `'checkpoint'`. `ProfileSettings` gains `cutscenes: {generated: boolean; audio: 'generated' \| 'engine'}`; until then, checkpoints save with `'interval'` and the boot flag governs |
-| A-C04-1 | `XRRigParams` gains `vantage?: {pos: Vec3; yaw: number}` for XR fixed-vantage beats |
-| A-S05-1 | Vision QA schema adds `weapon_present`, `gore`, `photoreal`. The `InputFile` role `plate` (`first_party_generated`) is accepted |
-| A-C16-1 | `mission.start/fail/complete` props `{mid, stage, reason?, sec, attempt}`. New name `unlock.emit {id}`. `cutscene.play` gains `path` and `trigger` |
-| A-HOOK-1 | Mode def ids and params: S06 `race.<id>` `{raceId}`; S07 `fight.<id>` `{opponent, stage, rounds, difficulty, playerFighter}` and `MoveDef.cutsceneBrief`; S08 `tycoon.<id>` `{scenarioId, weeks}` |
+| A-C10-1 | **Resolved (DL-085):** C10 unchanged for mission talk; `context.missionId`/`missionStep = talkId`, player intents from C10 `PlayerIntent`, `effects` gate outcomes; `effects.outcome` rejected |
+| A-C08-1 | **Resolved:** C08 `WorldResolver`, `LandmarkRecord`, `DistrictRecord` and tags provide all of it (`02-world-contracts.md` §2–3) |
+| A-C03-1 | **Accepted** as C03 1.1 (`DeviceKind 'bot'`, QA-only `BotInput`, DL-095) |
+| A-C06-1 | **Accepted** as C06 1.1 `UiCommand {t:'cutscene.state', playId, item?, state, trigger?, outcome?}`; `talk.result` stays a `mode.cmd` (DL-098) |
+| A-C13-1 | **Accepted** as C13 1.1 (DL-102) |
+| A-C14-1 | **Confirmed** by C14 1.0.0 (`mission.register`, kind `experience`); mod profile per DL-084 |
+| A-C05-1 | **Accepted** as C05 1.1 (`SaveReason 'checkpoint'`, `ProfileSettings.cutscenes?`, DL-097) |
+| A-C04-1 | **Accepted** as C04 1.1 (DL-096) |
+| A-S05-1 | **Accepted** as C07 1.1 (DL-099) |
+| A-C16-1 | **Accepted** as C16 1.1 (DL-103) |
+| A-HOOK-1 | **Resolved (DL-092): the mode owner owns `ModeHook.defId` and its params.** Racing `defId` = S06 `RaceId` (e.g. `sf.pursuit.bayview-escape`); fighter `defId` = S07 bout id (`bout.a5`, `bout.a11`); tycoon `defId` = S08 `mini8w` with `params {scenarioId, weeks}`; `MoveDef.cutsceneBrief` stays S07's |
 
 **Open questions:** Q-03 and Q-14 (provider clearance and programme cap) decide whether M05c2 ships generated Act 1 clips or a fallback-only Act 1; both paths are fully specified. Q-19 (character research layer) affects only the roster-slot souls, which stand-ins cover.

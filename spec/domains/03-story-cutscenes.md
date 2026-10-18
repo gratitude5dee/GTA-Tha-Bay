@@ -14,7 +14,8 @@
 
 ```ts
 // packages/shared/src/contracts/c09-cutscene.ts  (C09_VERSION re-exported from c09-mission.ts)
-import type { LineId, CastName, LatLng, LandmarkId } from './c09-mission';
+import type { LineId, CastName, LatLngTuple } from './c09-mission';
+import type { LandmarkId } from '../world/c08';
 type LikenessTier = import('../assets/c07').LikenessTier;      // consented | parody | fictionalized | original (C07)
 type AssetRef = import('../assets/c07').AssetRef;
 
@@ -73,7 +74,7 @@ export interface CutsceneManifest {              // R2 cutscenes/<key>/manifest.
   schema: 'cutscene-asset/1'; key: string; recipe: 'cut@1';
   fps: 24; frames: number; width: number; height: number;
   renditions: Partial<Record<'v540' | 'v768' | 'v1080' | 'p720', Rendition>>;  // p720 only with degraded: true
-  audio?: { file: 'a.m4a'; lufs: number; speechDetected: boolean; approvedBy?: string };
+  audio?: { file: 'a.m4a'; lufs: number; speechDetected: boolean; approvedBy?: string };   // optional: absent when the ref's audio is 'engine' (06 v1.1 C09 line, DL-082)
   poster: 'poster.webp'; last: 'last.webp'; subs: Record<string /* BCP 47 */, string /* subs.<lang>.vtt */>;
   shots: { shotId: string; startFrame: number; frames: number }[];
   characters: { id: string; soulVersion: number; tier: LikenessTier }[];
@@ -99,13 +100,16 @@ export interface CutscenePlayer {               // packages/engine/src/client/cu
   /** Resolve refs via the index, roster flags and route 27; fetch manifests; pick host and rendition; never throws. */
   prepare(playId: string, refs: CutsceneRefId[]): Promise<{ clips: PreparedClip[] } | { fallback: FallbackTrigger }>;
   play(playId: string, clips: PreparedClip[]): Promise<CutsceneOutcome>;
+  /** Mixed sequences (fight intros, DL-081): items play back to back; an item whose ref is null, suppressed or not ready plays its
+   *  DirectorScript in-engine; the sim is told per item through UiCommand {t:'cutscene.state', playId, item, state}. Never throws. */
+  playSequence(playId: string, items: { ref: CutsceneRefId | null; fallback: string /* DirectorScript id */ }[]): Promise<CutsceneOutcome[]>;
   skip(playId: string): void;
   prefetch(refs: CutsceneRefId[]): void;        // manifest, poster, audio; ≤ 2 ahead on mobile tiers
 }
 
 export interface DirectorScript {               // content/missions/<id>/director/<beat>.ts → data/director.<id>; also S06/S07 sequences
   schema: 'director/1'; id: string; durationSec: number; seed: number;
-  marks: Record<string, { at: LatLng | { landmark: LandmarkId } | { local: [number, number, number] }; yawDeg: number }>;
+  marks: Record<string, { at: LatLngTuple | { landmark: LandmarkId } | { local: [number, number, number] }; yawDeg: number }>;
   actors: { who: CastName | 'player' | `soul:${string}`; start: string; end: string; prefab?: string }[];
   shots: DirectorShot[];                        // sorted by atSec; first shot at 0
   actions: { atSec: number; who: string; do: 'moveTo' | 'runTo' | 'driveTo' | 'anim' | 'look' | 'enter' | 'exit'; arg: string }[];
@@ -283,7 +287,7 @@ sequenceDiagram
    - `manifest.json`;
    - host and rendition.
    Meanwhile `poster.webp` (or, if none, the armed in-engine frame) covers the screen.
-3. Within 2.5 s of the request (1.5 s if the clip was prefetched), the player answers `{t: 'mode.cmd', mode, name: 'cut.state', args: {playId, state: 'video' | 'fallback', trigger?}}`, using S10's proposed `UiCommand`.
+3. Within 2.5 s of the request (1.5 s if the clip was prefetched), the player answers C06 1.1 `UiCommand` `{t: 'cutscene.state', playId, item?, state: 'video' | 'fallback', trigger?}` (DL-081; `item` is the index inside a `playSequence`).
    - On `video`, the host pauses the sim while the overlay covers the screen [`11-platform-pwa.md` §7].
    - On `fallback`, the sim runs the DirectorScript.
 4. On the end, a skip or a mid-play failure, the player sends `state: 'done'` with the `CutsceneOutcome`. The sim places actors at end marks, restores camera and input, and resumes the mission clock. Mid-play failure: hold `last.webp`, then finish with the remainder of the DirectorScript from the matching cue.
@@ -338,7 +342,7 @@ Sources: [research/gap-cutscene-delivery-playback.md §7.6].
 
 Clips are internal assets. Nothing generated is visible to players until it passes these gates:
 1. **S05 automated QA** (frames, black or frozen, loudness, C2PA state) and the Whisper speech check. Speech holds the clip for review [`05-assets-pipeline.md` §6].
-2. **Vision QA** (Haiku image semantics) on `poster.webp`, `last.webp` and one middle frame: `apparent_minor`, `logos_or_jerseys`, `text_in_image`, and the S03 additions `weapon_present`, `gore`, `photoreal` (proposal to S05). Any hit fails the clip.
+2. **Vision QA** (Haiku image semantics) on `poster.webp`, `last.webp` and one middle frame: `apparent_minor`, `logos_or_jerseys`, `text_in_image`, and the S03 additions `weapon_present`, `gore`, `photoreal` (C07 1.1, DL-099). Any hit fails the clip.
 3. **Human review**, recorded with reviewer and time in the provenance record. The reviewer checks:
    - identity matches the approved sheet;
    - no protagonist look-alike;
@@ -355,32 +359,32 @@ Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm
 | P | List | Refs (clips) | Seconds | Milestone |
 |---|---|---|---|---|
 | 1 | Act 1 story (Part B §B5) | 9 | 102 | M05c2 |
-| 2 | fighter set, frozen v1 roster N = 8, stages S = 6 | 116 | 816 | M08b (keys), M10b (prewarm) |
-| 2′ | fighter set at N = 12, S = 8 (after M10) | 222 | 1,560 | M10b |
+| 2 | fighter set, frozen v1 roster N = 8, stages S = 6 | 116 | 832 | M08b2 (keys), M10b (prewarm) |
+| 2′ | fighter set at N = 12, S = 8 (after M10) | 222 | 1,584 | M10b |
 | 3 | racing intros (12 events with `intro: true`, S06) | 12 | 96 | M07b |
 | 4 | Acts 2–3 story (Part B §B6) | 18 | 216 | M05e, M05f |
 
-**Fighter breakdown.**
+**Fighter breakdown** (clip counts per character are S07's content, `07-fighter-content.md` FX6.1; ref ids, keys and durations follow this contract; DL-092 owner rule).
 
 | Clip type | N = 8, S = 6 | N = 12, S = 8 |
 |---|---|---|
 | walk-ins (N×S × 6 s) | 48 | 96 |
 | face-offs (N(N−1)/2 × 8 s) | 28 | 66 |
-| specials (2 per character × 6 s) | 16 | 24 |
-| supers (1 per character × 8 s) | 8 | 12 |
+| specials (1 per character × 6 s) | 8 | 12 |
+| supers (2 per character, L2 and Showstopper, × 8 s) | 16 | 24 |
 | shutdowns (1 per character × 8 s) | 8 | 12 |
 | endings (1 per character × 10 s) | 8 | 12 |
-| **Total** | **116 clips, 816 s** | **222 clips, 1,560 s** |
+| **Total** | **116 clips, 832 s** | **222 clips, 1,584 s** |
 
 The player fighter and user NPCs are in-engine only (§D1).
 
-**Totals.** v1 at N = 8: 155 clips, 1,230 s. At N = 12: 261 clips, 1,974 s. With 1.5× retakes that is 1,845 s and 2,961 s generated. Keyframes: one per shot, with story beats at 2 shots: 172 and 278 shots, × 1.5 = 258 and 417 keyframes at $0.0396.
+**Totals.** v1 at N = 8: 155 clips, 1,246 s. At N = 12: 261 clips, 1,998 s. With 1.5× retakes that is 1,869 s and 2,997 s generated. Keyframes: one per shot, with story beats at 2 shots: 172 and 278 shots, × 1.5 = 258 and 417 keyframes at $0.0396.
 
 | Provider (list price) | N = 8 video | N = 12 video | Keyframes N = 8 / N = 12 | Source |
 |---|---|---|---|---|
-| `h3.partner` $0.06/s (768p) | $110.70 | $177.66 | $10.22 / $16.51 | F-040 |
-| `h3.maxTurbo` $0.04/s (768p) | $73.80 | $118.44 | same | F-039 |
-| `ltx25.fast` $0.09/s (720p) | $166.05 | $266.49 | same | [research/genai-pipeline-fal.md §A] |
-| `gemini.omniFlash11` $0.10/s (720p) | $184.50 | $296.10 | same | [research/genai-pipeline-fal.md §A] |
+| `h3.partner` $0.06/s (768p) | $112.14 | $179.82 | $10.22 / $16.51 | F-040 |
+| `h3.maxTurbo` $0.04/s (768p) | $74.76 | $119.88 | same | F-039 |
+| `ltx25.fast` $0.09/s (720p) | $168.21 | $269.73 | same | [research/genai-pipeline-fal.md §A] |
+| `gemini.omniFlash11` $0.10/s (720p) | $186.90 | $299.70 | same | [research/genai-pipeline-fal.md §A] |
 
 These totals stay below S05's planned video line ($234.9 on `h3.partner`, $382.3 on LTX [`05-assets-pipeline.md` §11]). Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). If LTX or Gemini becomes the default, N = 8 stays inside Q-14's $1,000 programme.

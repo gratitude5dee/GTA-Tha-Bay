@@ -224,3 +224,22 @@ Steps:
 - **C14 (S12):** `ModManifest.assets[]` provenance uses `ProvenanceRecord`; `dv mod check` imports `tools/ci` validators.
 - **A-01:** shared genAI helpers live in `packages/shared/src/genai/` (no `packages/genai-core`); the transcoder image lives in `services/pipeline/transcoder/`; legal snapshots live in `docs/legal/` (the `ip:strings` allowlist names `docs/legal/` and `docs/research/`); `config/genai-endpoints.json` also hosts the ADR-GENAI-01 video provider entries (replaces `config/genai/video-providers.json`).
 - **S13:** canonical gate script names are `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate` with `check:*` aliases.
+
+## 14. C07 1.1 additions (Architect, second reconciliation, 2026-10-18)
+
+Additive, accepted from Wave 2–4 return blocks (`spec/11-decision-log.md` DL-099). Shapes in `packages/shared/src/assets/c07.ts` and `provenance.ts`; nothing in 1.0 changes meaning.
+
+```ts
+// KindExtras 'vehicle' — nodes gains optional anchors (S06 CCP-4)
+nodes: { body: string; wheels: [string, string, string, string]; steer?: string[]; lights?: string[]; collider?: string;
+         cockpit?: string; steeringWheel?: string; anchors?: { driver?: string; hood?: string };
+         exhaust?: string[]; thrusters?: string[]; sirens?: string[] }   // plus optional vertex attribute _dent (shader damage, no extra render object)
+// InputFile.role (GenJob inputs) and ProvenanceRecord inputs accept 'plate' with origin 'first_party_generated' (S03 stage plates)
+// vision_qa schema adds weapon_present: boolean and photoreal: boolean; for cutscene clips (S03 §D8) weapon_present, photoreal or any gore value other than 'none' fails the clip
+```
+- **Prompt templates.** `check:assets` verifies each cutscene template's `keyframePin` against `config/genai-endpoints.json` (S03 §D3.3).
+- **World data (S02).** `config/license-allowlist.json` adds `ODbL-1.0` and `PDDL-1.0` (SPDX strings UNVERIFIED, S02 register); every `world_pack` and `map_data` asset has one `ProvenanceRecord` whose `parents` are the C08 `SourceStamp` ids; `world_pack` ships variant `default` only.
+- **Character tiers (S04).** An asset's `likeness.tier` is C10 `assetTier(soul)`: `original` when the soul basis is original, else the soul tier; the same value enters the C09 cache key (DL-083). NPC data assets are `data/npc-roster`, `data/ink.<id>`, `data/barks.<id>`.
+- **Creator kit (S10, M04b2).** S05 delivers `character/pc-<slot>-<id>`, `portrait/pc-<slot>-<id>` and `ui/menu-backdrop` as ordinary catalog assets.
+- **Mod assets (S12).** Mod files never enter the catalog. `asset.worker` gets an `AssetSource` hook (C13 1.1) that resolves `<kind>/mod.<sha256[0:12]>` from OPFS `dv/mods/blobs/<sha256>`; their `ProvenanceRecord`s are unchanged (`executor: 'cli'`, `env: 'production'`).
+- **Gate cores.** The provenance, IP-string and licence validators are pure and Worker-safe in `packages/shared/src/assets/gates/`; `tools/ci` and the S12 Queue consumer both wrap them, so `dv mod check` and the server run the same code.

@@ -106,7 +106,7 @@ M09b2 bumps `version` to 2 and `world` to `'stage'` when the 3D pitch room lands
 | `packages/shared/src/tycoon/finance/**` | part B |
 | `packages/shared/src/events/**`, `packages/shared/src/tycoon/events/**` | part C |
 | `packages/modes/tycoon/src/sim/TycoonModeSim.ts` | C06 adapter: `enter/tick/exit/saveSlice/onEvent`, week pacing, command queue, snapshots |
-| `packages/modes/tycoon/src/dialogue/TycoonPitchController.ts` | builds `TycoonDialogueContext`, calls the `@dv/npc` client, parses `effects`, posts `vcSpoke` |
+| `packages/modes/tycoon/src/dialogue/TycoonPitchController.ts` | builds C10 `context.tycoon` (≤ 3 sim `deals`, DL-087), calls `@dv/npc`, maps `effects`, posts `vcSpoke` |
 | `packages/modes/tycoon/src/ui/**` | views (§5.12); XR panels via S10 `UiSurface` |
 | `content/tycoon/{sectors,theses,archetypes,questions,vc-lines}.json`, `content/tycoon/events/*.json` | authored data |
 | `config/tycoon.balance.json`, `config/tycoon.bands.json` | constants and CI bands |
@@ -337,8 +337,8 @@ XR is `immersive-vr` only in v1; the desk scene follows `11-platform-xr.md` §5.
 | **M09a2** `tycoon-events-balance` | 1 | M09a1 | shared event engine, 30 events, trend deck of 8, bots (median, aggressive, frugal, random), `tools/ci/tycoon-sim`, bands, baseline, self-test fixtures, CI jobs, `status: available` behind `?unlockAll=1` in non-production builds | **VS-Tycoon = end of M09a2** (gamedesign §5.15): one sector tuned, 30 events, SAFE + seed + Series A, hiring, win/lose, harness green, deterministic replay |
 | **M09b1** `tycoon-ui` | 1 | M09a2, M04b (menus, `UiSurface` from S10) | dashboard, cap table, hiring, roadmap, inbox, board, summary, branch replay, 2 more sectors, 30 more events, accessibility, mobile layout, XR panels (desk), perf record | pitch room still a flat card with the deterministic offer |
 | **M09b2** `tycoon-vc-story` | 1 | M09b1, M06a (dialogue proxy), M05a (mission IR hook) | 12 VC souls consumption (content from S04), `TycoonPitchController`, clamp, fallback, questions bank, pitch room (3D with 2D fallback), mini-run preset, `unlock.tycoon`, story hook definition `tycoon.mini8w`, dividend counter, telemetry names, hardcore flag | live dialogue flag default on only after M06a measures TTFT |
-| M12c (extra) | — | M12c | `tycoon:daily:<yyyymmdd>` board and Worker validator calling `verifyRun` | core API exists from M09a1 |
-| S03 Act 2 businesses milestone (DN-S08-03) | — | M09a2 | `EventHost<BusinessState>` wiring | fixture proves engine at M09a2 |
+| **M12e** `mode-leaderboards` (with S06) | 0.5 (S08 share) | M12c | `tycoon.daily.<yyyymmdd>` board (C12 board grammar, DL-092) and the route 21 validator registered for prefix `tycoon.` calling `verifyRun` | core API exists from M09a1 |
+| **M05e1** (S03, DL-133) | — | M09a2 | `EventHost<BusinessState>` wiring of story businesses | fixture proves engine at M09a2 |
 
 **Acceptance statements (become AC in the Wave 5 milestone files; each has an oracle):**
 - T-01 (M09a1) Given TV-1…TV-11 and WF-1…WF-7 When `pnpm check:unit -- packages/shared/src/tycoon/finance` Then all expected values match exactly.
@@ -348,7 +348,7 @@ XR is `immersive-vr` only in v1; the desk scene follows `11-platform-xr.md` §5.
 - T-05 (M09a2) Given 200 random runs When replayed from `(setup, choices)` Then every result and hash equals the live one.
 - T-06 (M09b1) Given a slice saved at week 40 When the tab is killed and reloaded Then the run resumes at week 40 with an identical hash and no lost command.
 - T-07 (M09b1) Given each view When `pnpm check:e2e -- --project=chromium-webgl2 --grep @tycoon-a11y` runs Then zero critical a11y violations and every chart has a table view.
-- T-08 (M09b2) Given a fixture VC response proposing terms outside the envelope When the pitch controller posts `vcSpoke` Then the sim clamps every out-of-range field, records `clamped`, and the accepted round equals the clamped terms (`dialogue.clamp.spec.ts`).
+- T-08 (M09b2) Given a fixture VC response whose `offer_deal` arg is not in `offers.dealIds`, and a forged `vcSpoke` proposal outside the envelope When the pitch controller and the sim apply them Then the first maps to `pass` and the second is clamped field by field with `clamped` recorded (`dialogue.parse.spec.ts`, `dialogue.clamp.spec.ts`).
 - T-09 (M09b2) Given `quota_exhausted`, a 4 s timeout and a kill-switched VC When a meeting runs Then the offline midpoint offer appears and the round can close.
 - T-10 (M09b2) Given the story Act 2 hook with the `autoFounder` bot and a fixed seed When the mission autoplayer runs Then the mini-run ends `miniWin` within 8 weeks and `unlock.tycoon` is emitted exactly once.
 - T-11 (M09b2) Given the `webkit-webgl2` and `xr-quest3` (IWER) projects When the dashboard, cap table and pitch card open Then they render, take input, and no control needs hover.

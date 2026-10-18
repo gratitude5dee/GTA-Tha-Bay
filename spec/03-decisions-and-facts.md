@@ -14,7 +14,7 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 | D-05 | ChatGPT modding = bring-your-own agent (Codex CLI with Sign in with ChatGPT) + RFC 8628 device-code publish login; website SIWC behind a flag; never vendor the Noncommercial DevKit | INDEX §1.5 |
 | D-06 | Rooms = `RoomDO` per instance + `DirectoryDO` + `PresenceDO` (Hibernation API); 50 ms tick only while connected; cap 16; 5 s checkpoints; resume tokens; protocol v2 from the Grand-V relay; binary frames; 150 m / 300 m interest | INDEX §1.6 |
 | D-07 | One `WebGPURenderer` (`three@0.186.1`), TSL-only materials; WebGL2 guaranteed path (auto-fallback, `?gl=1`); Quest XR on the WebGL2 backend with multiview; Vision Pro native WebGPU XR with WebGL2 fallback | INDEX §1.7 |
-| D-08 | Main-thread rendering in v1 with `sim.worker` + `asset.worker`; no render worker (XR is Window-only) | INDEX §1.8 |
+| D-08 | Main-thread rendering in v1 with `sim.worker` + `asset.worker`; no render worker (XR is Window-only). Amended 2026-10-18 (DL-152): two lazy, non-rendering workers, `pose.worker` (S07) and `mod.worker` (S12) | INDEX §1.8 |
 | D-09 | Budgets in render objects (issue #30560): `BundleGroup` per chunk, static, instancing; mobile ≤ 150 objects / ≤ 1.0 M tris | INDEX §1.9 |
 | D-10 | No `postprocessing`, no `n8ao`; TSL `RenderPipeline` nodes; `DirectRenderPipeline` in XR; `PCFShadowMap` | INDEX §1.10 |
 | D-11 | Vanilla three + TypeScript; no React Three Fiber | INDEX §1.11 |
@@ -36,7 +36,7 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 | D-27 | CI/CD: GitHub Actions; per-PR Workers previews; versioned uploads → smoke → gradual rollout; Playwright projects `chromium-webgpu`, `chromium-webgl2`, `webkit-webgl2`, `xr-quest3` (IWER); IP gates from M00 | INDEX §1.27 |
 | D-28 | Cost controls: `PlayerQuotaDO` + `BudgetGovernorDO` (70/85/100 %); AI Gateway limits; vendor caps; kill switches never block cache hits | INDEX §1.28 |
 | D-29 | Likeness: living people `parody`; deceased (Mac Dre) and founders of real companies `fictionalized`; `consented` needs a `consent_record`; kill-switch ≤ 60 s with stand-ins | INDEX §1.29 |
-| D-30 | Audience: 18+ terms of service with 17+-rated content (`TEEN_MODE=false`); under-13 blocked; no firearms, gore or real-person crimes; player-triggered generation and premium voice need 18+ attestation and P2+ | INDEX §1.30, Q-02 |
+| D-30 | Audience: 18+ terms of service with 17+-rated content (`TEEN_MODE=false`); under-13 blocked, and in v1 every under-18 bracket is blocked (DL-139); no firearms, gore or real-person crimes; player-triggered media generation and premium voice need 18+ attestation and P2+ (builder text: DL-119) | INDEX §1.30, Q-02 |
 
 ## 2. Architect decisions (delegated to the Architect; ADRs written in Wave 5)
 

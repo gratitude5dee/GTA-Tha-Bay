@@ -1,6 +1,6 @@
 # 09 — Backend, Data & Multiplayer · Part 2: owned contracts (C11, C12, C16)
 
-> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, contract half). Honors 06-SHARED-CONTEXT v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1. These contracts freeze into 06 v1.0. Versions: **C11 1.0.0** (wire `PROTOCOL_VERSION` 2, the relay-protocol lineage; frozen in 06 v1.0), **C12 1.0.0**, **C16 1.0.0**. Semver rule for all three: patch = docs only; minor = additive (new optional field, new enum member a consumer may ignore, new route); major = anything else, and needs an ADR plus a one-release overlap (a deploy can run two Worker versions at once [research/gap-ci-cd-release-assets.md]).
+> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, contract half). Honors 06-SHARED-CONTEXT v1.1 (frozen) and spec/03 v1. Versions: **C11 1.0.0** (wire `PROTOCOL_VERSION` 2, the relay-protocol lineage), **C12 1.1.0**, **C16 1.1.0** (1.1 additions: `09-backend-contracts-1.1.md`). Semver rule for all three: patch = docs only; minor = additive (new optional field, new enum member a consumer may ignore, new route); major = anything else, and needs an ADR plus a one-release overlap (a deploy can run two Worker versions at once [research/gap-ci-cd-release-assets.md]).
 
 Files the Builder creates (types only, no logic here):
 
@@ -257,7 +257,7 @@ Conventions: JSON bodies (`application/json`), SSE for dialogue; request header 
 ### 2.2 Errors
 ```ts
 // packages/shared/src/api/v1.ts
-export const C12_VERSION = '1.0.0' as const;
+export const C12_VERSION = '1.1.0' as const;
 export type ApiErrorCode =
   | 'bad_request' | 'unauthorized' | 'forbidden' | 'not_found' | 'conflict' | 'gone'
   | 'payload_too_large' | 'unsupported_media_type' | 'rate_limited' | 'quota_exhausted'
@@ -487,7 +487,7 @@ Consumers: every package that emits events (S01, S02, S03, S04, S06–S08, S10, 
 
 ```ts
 // packages/shared/src/telemetry.ts
-export const C16_VERSION = '1.0.0' as const;
+export const C16_VERSION = '1.1.0' as const;
 export interface TelemetryEvent {
   name: TelemetryName;                               // registry below; unknown names are dropped at ingest
   ts: number;                                        // client epoch ms
