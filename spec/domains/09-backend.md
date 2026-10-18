@@ -1,8 +1,8 @@
 # 09 — Backend, Data & Multiplayer (S09)
 
-> Wave 1 domain spec, 2026-10-18, Claude Opus 5.5 (S09). Reads 06-SHARED-CONTEXT v0.95 and spec/03 v0 (D-01…D-30, A-01…A-10, G1–G3). Four files, read in order:
+> Wave 1 domain spec, 2026-10-18, Claude Opus 5.5 (S09). Reads 06-SHARED-CONTEXT v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1 (D-01…D-30, A-01…A-10, G1–G3). Four files, read in order:
 > 1. **this file** — scope, design, components, runtime, platforms, facts, milestones, tests, open questions;
-> 2. `09-backend-contracts.md` — C11 (2.0.0), C12 (1.0.0), C16 (1.0.0) TypeScript;
+> 2. `09-backend-contracts.md` — C11 (1.0.0, wire protocol 2), C12 (1.0.0), C16 (1.0.0) TypeScript;
 > 3. `09-backend-db.md` — Postgres schema, RLS, R2/KV/DO storage, retention, migrations;
 > 4. `09-backend-ops.md` — Workers config, environments, CI/CD, abuse controls, observability, cost guardrails, secrets.
 
@@ -22,7 +22,7 @@ S09 owns the Cloudflare edge (Workers, Durable Objects, R2, KV, Queues, Workflow
 
 Supporting (owned elsewhere, infrastructure here): R-CUT-01/03 (`CutsceneJobDO`, `GenJobWorkflow`), R-NPC-04/R-IP-02 (kill-switch storage and propagation), R-NPC-05 (dialogue proxy transport, `EncounterDO`, quotas), R-AUTH-03 (device-code login), R-MOD-03/R-MOD-04 (forum and experience storage), R-IP-04 (telemetry carries no camera or pose data), R-UI-02 (privacy toggles honoured at ingest).
 
-Contracts: **owns** C11, C12, C16 (Part 2). **Honors** C05 (SaveGame payload is opaque JSON to the server), C09 (cutscene cache key and `cutscenes/<key>/manifest.json` readiness), C10 (dialogue request/response bodies, with the history change proposed in the return block), C14 (mod manifest validated at publish; mods disabled in rooms). Also reads C01/C02 (sim tick), C08 (ENU frame, chunk keys, world bounds), C13 (tier names in telemetry), C17 (experience anchors).
+Contracts: **owns** C11, C12, C16 (Part 2). **Honors** C05 (the sync unit is one `SaveRecord` per C05 `SlotId`; its `data` is opaque JSON to the server), C09 (cutscene cache key and `cutscenes/<key>/manifest.json` readiness), C10 (dialogue request/response bodies, with the history change proposed in the return block), C14 (mod manifest validated at publish; mods disabled in rooms). Also reads C01/C02 (sim tick), C08 (ENU frame, chunk keys, world bounds), C13 (tier names in telemetry), C17 (experience anchors).
 
 ### 1.1 Checklist (expanded from the brief; every item has a disposition)
 | # | Item | Disposition |
@@ -40,7 +40,7 @@ Contracts: **owns** C11, C12, C16 (Part 2). **Honors** C05 (SaveGame payload is 
 | 11 | `IdentityService` isolation so Thirdweb is one adapter (R-AUTH-02) | designed, M04b |
 | 12 | DataPort rule: no supabase-js in the client; all data via `/api/v1` (D-02) | designed, M05d |
 | 13 | Complete schema, RLS, pgTAP tests, generated types | designed, M05d→M14a |
-| 14 | Saves: local IndexedDB with Grand-V rules first; cloud sync with optimistic versions and tombstones later [research/repos-grand-v.md (d)] | local M04b; cloud deferred to M12a |
+| 14 | Saves: local IndexedDB with Grand-V rules first; cloud sync with optimistic versions and tombstones later [research/repos-grand-v.md (d)] | local: S01 `SaveService` M04a (DL-006); cloud M12a |
 | 15 | RoomDO: Hibernation API, 50 ms `setInterval` tick only while active, AFK stop, 5 s checkpoints, alarm GC (D-06) | designed, M12b |
 | 16 | Protocol v2: binary frames, close codes, tickets, resume tokens | designed, M12b / M12c |
 | 17 | Interest management: 64 m grid, 150/300 m, hysteresis, priority bands | designed, M12b |
@@ -69,7 +69,7 @@ Contracts: **owns** C11, C12, C16 (Part 2). **Honors** C05 (SaveGame payload is 
 ```mermaid
 flowchart LR
   subgraph Browser["PWA (apps/web)"]
-    UI[UI + game] --- ID[packages/identity] --- NET[packages/net C11] --- TEL[telemetry.ts C16]
+    UI[UI + game] --- ID[packages/identity] --- NET[packages/net C11] --- TEL[platform telemetry client C16]
     IDB[(IndexedDB saves + device key)]
   end
   UI -- static assets --> WEB
@@ -167,7 +167,7 @@ Shared simulation code for validation lives in `packages/net/src/validate.ts` (p
 ```ts
 // services/edge/src/npc/EncounterDO.ts (transport and storage only; prompt and schema are S04's)
 export interface EncounterDO {
-  begin(t: { profileId: string; npcId: string; soulVersion: string; turn: unknown /* C10 player turn */ }):
+  begin(t: { profileId: string; npcId: string; soulVersion: number; turn: unknown /* C10 player turn */ }):
     Promise<{ ok: true; turnIndex: number; history: unknown[] } | { ok: false; reason: 'busy' | 'turn_cap' | 'cadence' | 'killed' }>;
   complete(turnIndex: number, assistant: unknown, usage: { inTok: number; outTok: number; cacheRead: number; cacheWrite: number }): Promise<void>;
   abort(turnIndex: number, reason: 'timeout' | 'refusal' | 'upstream' | 'client_gone'): Promise<void>;
@@ -178,25 +178,16 @@ export interface EncounterDO {
 
 ### 3.3 Generation infrastructure (`services/pipeline`, compiled into the web Worker)
 ```ts
-export interface GenJob {
-  jobId: string; kind: 'cutscene' | 'character_sheet' | 'mesh' | 'rig' | 'tts';
-  cacheKey: string; endpointKey: string;           // resolved through config/genai-endpoints.json (D-18)
-  input: unknown; estimateUsdMicros: number; requestedBy: 'catalog' | 'staff' | 'ci' | 'builder';
-}
-export interface FalProvider {                     // LiveFalProvider (queue API) | MockFalProvider (FAL_MODE=mock)
-  submit(endpointId: string, input: unknown, webhookUrl: string): Promise<{ requestId: string }>;
-  status(endpointId: string, requestId: string): Promise<'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'>;
-  result(endpointId: string, requestId: string): Promise<{ files: { url: string; contentType: string }[]; raw: unknown }>;
-}
-export interface GenStage { name: string; run(ctx: GenStageCtx): Promise<void> }   // S05 supplies stages per kind (transcode, captions, qa-gate, publish)
+// GenJob, FalPort (LiveFalPort | MockFalPort; FAL_MODE=mock selects MockExecutor), Step<I,O> and GenPorts are S05's C07 types
+// (spec/domains/05-assets.md §3, §4.6; packages/shared/src/genai/types.ts, services/pipeline). S09 hosts and binds them.
 export interface CutsceneJob {                     // CutsceneJobDO RPC, instance = cut:<cacheKey>
-  ensure(spec: GenJob, opts: { allowGenerate: boolean }): Promise<CutsceneStatus>;
+  ensure(job: GenJob, opts: { allowGenerate: boolean }): Promise<CutsceneStatus>;
   complete(r: { manifestKey: string; costUsdMicros: number }): Promise<void>;
   fail(err: string): Promise<void>;
 }
-export interface FalGate { acquire(jobId: string, ttlMs: number): Promise<boolean>; release(jobId: string): Promise<void> }
+export interface FalGate { acquire(jobId: string, ttlMs: number): Promise<boolean>; release(jobId: string): Promise<void> } // class FalGateDO in services/pipeline/src/do/ (S05), bound by tha-bay-web
 ```
-`GenJobWorkflow.run` steps, each a `step.do` with 3 retries and exponential backoff: `cache-check` (R2 HEAD of the target, `cutscenes/<key>/manifest.json` for cutscenes) → `reserve` (`BudgetGovernor.reserve('fal', est)`; refusal ends the job `failed:budget`) → `gate` (`FalGate.acquire`, sleep 30 s between tries, ≤ 20 min) → `submit` (webhook `/api/v1/hooks/fal?wf=<instanceId>`) → `step.waitForEvent('fal-done', 20 min)` → on timeout `poll` (status every 30 s ≤ 60 min, because webhook retries can stop ≈ 6 min after completion for results ≥ 10 KB [research/genai-pipeline-fal.md §2]) → S05 stages → `record` (`cutscenes` row, `CutsceneJob.complete`) → `settle` (fal billing event by `request_id` → `BudgetGovernor.settle`) → `release` (always runs). The webhook route verifies the ED25519 signature, calls `instance.sendEvent`, and answers 2xx within 15 s. `MockFalProvider` returns an in-house fixture clip and posts a webhook signed with a test key served at `/api/v1/_test/fal-jwks` (non-prod only).
+`GenJobWorkflow` (class in `services/pipeline/src/workflow.ts`, S05) runs the stage order of `spec/domains/05-assets.md` §5.1 (gate → cache-check → budget-reserve → acquire → submit → wait → poll → copy → process → qa → re-gate → record), with S05's retry classes (§5.2). S09 supplies what the steps call: `BudgetGovernor.reserve/settle` (settle from the fal billing event by `request_id`), `FalGate.acquire/release` (release always runs; ≤ 20 min of 30 s retries), the webhook route `/api/v1/hooks/fal?wf=<instanceId>` (verifies the ED25519 signature, calls `instance.sendEvent`, answers 2xx within 15 s), and `step.waitForEvent('fal-done', 20 min)` with the poll fallback, needed because webhook retries can stop ≈ 6 min after completion for results ≥ 10 KB [research/genai-pipeline-fal.md §2]. `MockFalPort` returns an in-house fixture clip and posts a webhook signed with a test key served at `/api/v1/_test/fal-jwks` (non-prod only).
 
 ### 3.4 Moderation and legal (backend half of R-IP-03)
 - Upload path: `POST /ugc/uploads` → presigned PUT to `ugc-staging/incoming/<uploadId>` (15 min, fixed Content-Type) → `POST …/commit` (HEAD size check) → `UGC_SCAN` queue → stages in order **hash first** (SHA-256, PDQ, PhotoDNA when approved), then classifiers, then human review → publish copies to `ugc-public/img/<sha256>.<ext>` [research/gap-trust-safety-tooling.md §6.3].
@@ -208,12 +199,12 @@ export interface FalGate { acquire(jobId: string, ttlMs: number): Promise<boolea
 
 ### 3.5 Client-side pieces S09 specifies
 - `packages/identity` (C12 §2.3): `LocalIdentity` (M04b), `DeviceIdentity` (M12a), adapters later.
-- `packages/shared/src/save-store.ts`: `SaveStore` port used by S01/S10 save code. M04b ships `IdbSaveStore` (one IndexedDB transaction writes the record and its index entry, so a killed tab keeps the last complete save; ≤ 64 save profiles; names 1–80 chars; per-slot tombstones with mtime; "last save status" readable for the home screen [research/repos-grand-v.md (d)]) and `NullCloudSync`; M12a adds `HttpCloudSync` against routes 16–19.
+- Saves: S01's `SaveService` (C05, `packages/engine/src/sim/save/`, IndexedDB `dv-saves`, M04a) is the only local save store; it already applies the Grand-V rules [research/repos-grand-v.md (d)]. S09 supplies the `CloudSync` port in `packages/net/src/cloud-sync.ts`: `NullCloudSync` (M04b) and `HttpCloudSync` (M12a, routes 16–19, 50, 51), which reads `SaveService.changesSince` and syncs one `SaveRecord` per C05 `SlotId`.
 - `packages/net`: codec, clock/interpolation, `RoomClient` (`connect(assign)`, `send(input)`, `onSnapshot`, `onEvent`, reconnect + resume).
-- `apps/web/src/telemetry.ts` (≈ 1 KB gz): queue, scrub, heartbeat (`localStorage['tb.hb']`), `sendBeacon` flush on `visibilitychange→hidden` and `pagehide` [research/gap-observability-cost-guardrails.md §2.2].
+- Telemetry client: S11's `packages/engine/src/platform/telemetry/` (≈ 1 KB gz: queue, scrub, heartbeat `localStorage['dv.hb']`, `sendBeacon` flush on `visibilitychange→hidden` and `pagehide`) implements C16; it lives in a package so engine, UI and shell emit through one instance [research/gap-observability-cost-guardrails.md §2.2].
 
 ## 4. Data
-All owned types are in Part 2 (`09-backend-contracts.md`); all persisted data, flags and retention are in Part 3 (`09-backend-db.md`). Feature flags (`FeatureFlag` in C12 §2.5) are read from KV `flags:features` at `/boot`; kill switches `ks:*` and `gov:level` in Part 3 §5. Configuration files S09 introduces: `ops/guardrails.yaml` (every cap, ceiling, alert threshold and key policy), `config/net.speedcaps.json`, `config/geo.json` (`GEO_ALLOW`), `config/rate-limits.json` (Part 4 §3.1).
+All owned types are in Part 2 (`09-backend-contracts.md`); all persisted data, flags and retention are in Part 3 (`09-backend-db.md`). Feature flags (`FeatureFlag` in C12 §2.5) are read from KV `flags:features` at `/boot`; kill switches `ks:*` and `gov:level` in Part 3 §5. Configuration files S09 introduces: `config/guardrails.yaml` (every cap, ceiling, alert threshold and key policy), `config/net.speedcaps.json`, `config/geo.json` (`GEO_ALLOW`), `config/rate-limits.json` (Part 4 §3.1).
 
 ## 5. Runtime behavior
 
@@ -280,7 +271,7 @@ Server tick (50 ms): drain inputs → validate poses → resolve `ACT` in arriva
 | [research/gap-observability-cost-guardrails.md §3] | Anthropic workspace limit → 400; tier cap → 429 `enforced_spend_limit_reached` without `retry-after` | error mapping |
 | [research/gap-trust-safety-tooling.md §1.3] | 2258A: report "as soon as reasonably possible", preserve 1 year | CSAM path |
 | [research/legal-ip-likeness.md §5.1] | DMCA agent $6, expires after 3 years; restore 10–14 business days | DMCA path |
-| [research/repos-grand-v.md (b), (d)] | relay vocabulary, token bucket, coalescing, 1013/1008; save-profile rules | C11, SaveStore |
+| [research/repos-grand-v.md (b), (d)] | relay vocabulary, token bucket, coalescing, 1013/1008; save-profile rules | C11, C05 cloud sync |
 | [research/repos-webport.md §3.7] | muguet clock offset/jitter/delay 45–300 ms, extrapolate ≤ 250 ms | C11 §1.8 |
 
 **UNVERIFIED (listed for spec/99; none appears in an acceptance criterion):** U1 cross-origin WebSocket from a COEP `require-corp` page to `rt.<domain>` (M12b spike; fallback Q-BE-02); U2 Turnstile server verification API and widget under COEP (M12a spike before the AC); U3 `wrangler@4.151.1` keys for workflows, AE, `analytics`, `ratelimits`, `observability`, `previews` (M00); U4 DO `send` backpressure and whether WS messages count toward the ~1,000 req/s limit (M12c load test); U5 DO memory limit; U6 duplicate Workflow id behavior (single-flight relies on the DO); U7 Hyperdrive reach to Supabase (not used); U9 Cloudflare CSAM tool coverage of R2 custom domains (support ticket in M13d); U10 Cache-Tag purge on R2 (prefix purge used); U11 NCMEC API credential process (web form until then); U12 PhotoDNA approval timing; U13 whether `limits.cpu_ms` applies to Workflow steps and queue consumers of the same Worker; U14 whether every hibernated WS message emits an invocation log (rooms sampled at 0.001 regardless); U15 Custom Alerts billing and rule limits; U16 redirect sign-in inside an iOS Home Screen app; U17 AI Gateway pricing catalog coverage of `claude-haiku-5-5`/`claude-sonnet-5-5`; U18 Anthropic minimum workspace limit; U19 fal auto-recharge and locked-account status code; U20 `wrangler deployments status --json` field names; U21 whether DO restarts are scoped to the deploying script (A-01's premise; the split costs nothing if false).
@@ -291,8 +282,8 @@ Backend share of each milestone; sessions are Sonnet 5.5 sessions for the S09 pa
 | Milestone | S09 scope in | Stubbed first / later | Sessions |
 |---|---|---|---|
 | **M00** bootstrap | `tha-bay-web` with assets, `_headers`, isolation headers in code, `/health`, `/boot`, `/t` → AE, geo-gate; ci/preview/deploy workflows; `deploy:bootstrap`; version-affinity rule; `check:workers`, `check:prod-routes`, `check:secrets`, `check:do-migrations` | `/boot` flags from vars, no KV yet | 1 (of M00's 2) |
-| **M04b** saves + menus | `LocalIdentity`, `IdbSaveStore`, `NullCloudSync` | cloud sync deferred to M12a | 0.5 |
-| **M05b** cutscene infra | `CutsceneJobDO`, `FalGateDO`, minimal `BudgetGovernorDO` (reserve/settle/level), `GenJobWorkflow` skeleton with S05 stage hooks, `MockFalProvider`, webhook route, `/cutscenes/:key`, prewarm route (`OPS_TOKEN` until staff JWTs in M12a), `media`/`private` buckets, `_test` routes | `cutscene_catalog` read from a static JSON until M05d | 1 |
+| **M04b** menus + identity | `LocalIdentity`, `NullCloudSync` (local saves are S01's `SaveService`, M04a) | cloud sync deferred to M12a | 0.5 |
+| **M05b** cutscene infra | `CutsceneJobDO`, `FalGateDO`, minimal `BudgetGovernorDO` (reserve/settle/level), S05's `GenJobWorkflow` and `MockFalPort` bound into the web Worker, webhook route, `/cutscenes/:key`, prewarm route (`OPS_TOKEN` until staff JWTs in M12a), `media`/`private` buckets, `_test` routes | `cutscene_catalog` read from a static JSON until M05d | 1 |
 | **M05d** data spine (new) | Supabase staging/prod projects, migrations 0001–0002, DataPort + `InMemoryDataPort`, `check:db`, `check:db:types`, `db:push` in deploy, cutscene index + ledger export | — | 1 |
 | **M06a** dialogue proxy (with S04) | play token + TOFU, `PlayerQuotaDO`, `EncounterDO`, SSE transport + 4 s timeout, memory store (0003), roster flags + kill route + `ks:*`, `/me` export/forget, retention crons | AI Gateway layer-2 rules and vendor caps arrive in M14b | 1 |
 | **M06b** builder moderation (with S04/S10) | uploads presign/commit, `UGC_SCAN` queue, 0004, case API for `P2_REVIEW`, report route | hash banks/legal later (M13d) | 1 |
@@ -303,7 +294,7 @@ Backend share of each milestone; sessions are Sonnet 5.5 sessions for the S09 pa
 | **M13c** (S12 owns) | device-code endpoints, mod-version publish route, `AUTH_OPENAI_WEB` flagged flow | — | 0.5 |
 | **M13d** legal + trust & safety (new) | DMCA/counter-notice/NCII intake, 0008, SLA pager, NCMEC case records + evidence reads, own hash banks + copy sweep | PhotoDNA/HMA when approved | 1 |
 | **M14a** Thirdweb link | 0009, SIWE nonce/verify, merge requests | gated on Growth plan | 1 |
-| **M14b** launch hardening | `ops/guardrails.yaml`, layers 1–2, recon cron, alert wiring, synthetic spend tests T1–T9, gradual rollout default, backup restore drill | — | 2 |
+| **M14b** launch hardening | `config/guardrails.yaml`, layers 1–2, recon cron, alert wiring, synthetic spend tests T1–T9, gradual rollout default, backup restore drill | — | 2 |
 
 R-ID → milestones: R-PLAT-01 M00 · R-ROLL-01 M00, M04b, M05b (no account on any single-player path) · R-ROLL-02 M12b, M12c · R-AUTH-01 M04b, M06a, M12a · R-AUTH-02 M04b, M14a · R-IP-03 M06b, M13b, M13d · R-ENG-03 M05b, M06a, M14b.
 

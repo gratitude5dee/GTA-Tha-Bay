@@ -1,18 +1,18 @@
 # 09 — Backend, Data & Multiplayer · Part 2: owned contracts (C11, C12, C16)
 
-> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, contract half). Honors 06-SHARED-CONTEXT v0.95 and spec/03 v0. These contracts freeze into 06 v1.0. Versions: **C11 2.0.0**, **C12 1.0.0**, **C16 1.0.0**. Semver rule for all three: patch = docs only; minor = additive (new optional field, new enum member a consumer may ignore, new route); major = anything else, and needs an ADR plus a one-release overlap (a deploy can run two Worker versions at once [research/gap-ci-cd-release-assets.md]).
+> S09, Wave 1, 2026-10-18. Part of `spec/domains/09-backend.md` (§4 Data, contract half). Honors 06-SHARED-CONTEXT v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1. These contracts freeze into 06 v1.0. Versions: **C11 1.0.0** (wire `PROTOCOL_VERSION` 2, the relay-protocol lineage; frozen in 06 v1.0), **C12 1.0.0**, **C16 1.0.0**. Semver rule for all three: patch = docs only; minor = additive (new optional field, new enum member a consumer may ignore, new route); major = anything else, and needs an ADR plus a one-release overlap (a deploy can run two Worker versions at once [research/gap-ci-cd-release-assets.md]).
 
 Files the Builder creates (types only, no logic here):
 
 | Contract | File | Runtime validation |
 |---|---|---|
 | C11 | `packages/net/src/protocol/v2.ts`, `packages/net/src/protocol/codec.ts` (encode/decode, pure TS) | decoder bounds-checks every field; fuzz test |
-| C12 | `packages/shared/src/api/v1.ts`, `packages/shared/src/data-port.ts`, `packages/identity/src/types.ts` | `packages/shared/schemas/api/*.schema.json` (Ajv; generated from the TS by `tools/ci/gen-api-schemas.ts`, generator library pinned by S13) on every request body |
+| C12 | `packages/shared/src/api/v1.ts`, `packages/shared/src/api/budget.ts`, `packages/shared/src/data-port.ts`, `packages/shared/src/identity.ts` (re-exported by `@dv/identity`; DL-055) | `packages/shared/schemas/api/*.schema.json` (Ajv; generated from the TS by `tools/ci/gen-api-schemas.ts`, generator library pinned by S13) on every request body |
 | C16 | `packages/shared/src/telemetry.ts`, `packages/shared/schemas/telemetry/*.schema.json` | ingest Worker validates per event name |
 
 ---
 
-## 1. C11 — `NetMessage`, room protocol v2, authority (2.0.0)
+## 1. C11 — `NetMessage`, room protocol v2, authority (1.0.0)
 
 Consumers: S01 (`netIn`/`netOut` phases of C02, prediction), S02 (ENU coordinates, chunk keys), S06/S07/S08 (mode events in rooms), S10 (room UI, invites), S13 (load test).
 
@@ -30,7 +30,7 @@ Consumers: S01 (`netIn`/`netOut` phases of C02, prediction), S02 (ENU coordinate
 ```ts
 // packages/net/src/protocol/v2.ts
 export const PROTOCOL_VERSION = 2 as const;
-export const C11_VERSION = '2.0.0' as const;
+export const C11_VERSION = '1.0.0' as const;   // contract version; PROTOCOL_VERSION is the wire number
 
 export const NET = {
   SERVER_HZ: 20, TICK_MS: 50, CLIENT_SIM_HZ: 60,           // A-04, C02
@@ -93,9 +93,9 @@ export interface InSample {          // 12 B, one per 50 ms server tick
   moveX: number; moveY: number;      // i8 ×2  −127..127
   yaw: number;                       // u16
   pitch: number;                     // i16
-  buttons: number;                   // u16  bitset of C03 Action (S01 owns bit assignment table)
+  buttons: number;                   // u16  C03 SimButton bits 0–15 (S01 owns the table; bits ≥ 16 are never sent)
   throttle: number; steer: number;   // i8 ×2
-  brake: number;                     // u8   0..255
+  brake: number;                     // u8   0..127 (= C03 InputFrame.brake, so prediction replays match)
   _pad: 0;                           // u8
 }
 export interface InPose {            // 16 B, present when flags.HAS_POSE (always in `validated` rooms)
@@ -123,7 +123,7 @@ export interface SnapEntity {        // 28 B
   x: number; y: number; z: number;   // f32 ×3
   yaw: number;                       // u16
   vx: number; vy: number; vz: number;// i16 ×3 cm/s
-  anim: number;                      // u8   AnimStateId (S01 registry)
+  anim: number;                      // u8   AnimStateId (S01 registry, 01-engine-contracts.md)
   seat: number;                      // u8   0xFF none
   vehicleSlot: number;               // u16  0xFFFF none
 }
@@ -149,17 +149,17 @@ export enum EvKind {
   Notice = 14, NpcBusy = 15, Correction = 16,
 }
 export interface EvPayloads {
-  [EvKind.Joined]: { slot: number; sid: string; name: string; look: string /* base64 AppearanceV1 ≤ 512 B, from C05 character */ };
+  [EvKind.Joined]: { slot: number; sid: string; name: string; look: string /* base64 AppearanceV1 ≤ 512 B: S10's versioned binary encoding of C05 CoreSlice.avatar (PlayerAvatar); fixed obligation on S10, 06 §4.3 */ };
   [EvKind.Left]: { slot: number; reason: 'quit' | 'timeout' | 'kicked' | 'handoff' };
   [EvKind.Appearance]: { slot: number; look: string };
-  [EvKind.VehicleSpawn]: { vehicleSlot: number; modelId: string; seed: number; x: number; y: number; z: number; yaw: number };
+  [EvKind.VehicleSpawn]: { vehicleSlot: number; prefabId: string /* C06 PrefabDef id, kind 'vehicle' */; seed: number; x: number; y: number; z: number; yaw: number };
   [EvKind.VehicleOwner]: { vehicleSlot: number; ownerSlot: number | null };
   [EvKind.ActResult]: { actSeq: number; ok: boolean; reason?: 'occupied' | 'too_far' | 'cooldown' | 'invalid' };
   [EvKind.Hit]: { from: number; to: number; kind: 'melee' | 'vehicle' | 'fall'; amount: number };   // no firearms (D-30)
   [EvKind.Feed]: { key: string; params: Record<string, string | number> };                     // i18n key, never free text
   [EvKind.Activity]: { instanceId: number; modeId: string; state: 'open' | 'countdown' | 'running' | 'finished'; data: unknown /* mode-owned, ≤ 768 B */ };
   [EvKind.Chat]: { slot: number; msgId: number; text: string };
-  [EvKind.World]: { tod: number /* game minutes 0..1439 */; weather: string; trafficSeed: number };
+  [EvKind.World]: { clockT: number /* C06 WorldClockState.t, integer game half-seconds since day 0 */; weather: WeatherPreset /* S01 engine-world.ts */; trafficSeed: number };
   [EvKind.Resume]: { token: string; exp: number };
   [EvKind.TeleportGrant]: { x: number; y: number; z: number; yaw: number; reason: 'spawn' | 'fast_travel' | 'activity' };
   [EvKind.Notice]: { kind: 'drain' | 'maintenance' | 'cap_change'; at: number };
@@ -276,14 +276,15 @@ export const HTTP_FOR: Record<ApiErrorCode, number> = {
 ```
 Client rule: every genAI-backed call treats `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable` and network failure as "use the offline fallback" (R-CUT-03, R-NPC-05); none is shown as an error dialog.
 
-### 2.3 Identity (`packages/identity`)
+### 2.3 Identity (types in `packages/shared/src/identity.ts`, implementations in `packages/identity`)
+The types below are pure and live in `@dv/shared` so `DataPort`, `Ctx` and `services/edge` (issuer, `AccessClaims`) use them without importing `@dv/identity`; `@dv/identity` re-exports them and holds only the client implementations (DL-055).
 ```ts
-// packages/identity/src/types.ts
+// packages/shared/src/identity.ts
 export type ProviderId = 'device' | 'openai' | 'thirdweb' | 'supabase-oauth';
 export type Tier = 'local' | 'device' | 'linked';         // P0 | P1 | P2/P3 (D-04)
 export type AgeBracket = 'u13' | '13_15' | '16_17' | '18p';
 export interface IdentityState {
-  profileId: string;                   // UUIDv7 minted on device at first launch; never a provider subject
+  profileId: string;                   // UUIDv7 minted on device at first launch; never a provider subject; not the C05 save ProfileId (one identity holds ≤ 64 save profiles)
   tier: Tier;
   ageBracket: AgeBracket | null;       // from the neutral age screen (S10); only '18p' may use online features (D-30)
   providers: { id: ProviderId; display?: string; linkedAt: number }[];
@@ -301,7 +302,7 @@ export interface IdentityService {
   onChange(cb: (s: IdentityState) => void): () => void;
 }
 ```
-Implementations: `LocalIdentity` (M04b: profile id + non-extractable ECDSA P-256 device key in IndexedDB), `DeviceIdentity` (M12a), provider adapters `openai.ts` (M13c, flag `AUTH_OPENAI_WEB=false`), `thirdweb.ts` (M14a, lazy-loaded on `/account/*`) [research/auth-ugc-input-maps.md §1.4, §2.4].
+Implementations: `LocalIdentity` (M04b: identity profile id + non-extractable ECDSA P-256 device key in IndexedDB `dv-identity`, store `identity`, key `current`; DL-075), `DeviceIdentity` (M12a), provider adapters `openai.ts` (M13c, flag `AUTH_OPENAI_WEB=false`), `thirdweb.ts` (M14a, lazy-loaded on `/account/*`) [research/auth-ugc-input-maps.md §1.4, §2.4].
 
 **Token formats**
 ```ts
@@ -349,8 +350,8 @@ Phase = minimum identity: `pub` (no auth), `P0` (play token or JWT), `P1` (JWT t
 | 14 | `GET /api/v1/me`, `GET /api/v1/me/export`, `DELETE /api/v1/me` | P0 | api | S09 | M06a |
 | 15 | `POST /api/v1/me/age` (bracket only) | P0 | auth | S09/S10 | M12a |
 | 16 | `GET /api/v1/saves/sync?since=` → `SaveSyncRes` | P1 | api | S09 (C05 payload S01) | M12a |
-| 17 | `PUT /api/v1/saves/:saveProfileId/:ns/:slot` (`If-Match: <version>`) ⓘ | P1 | api | S09 | M12a |
-| 18 | `DELETE /api/v1/saves/:saveProfileId/:ns/:slot` (tombstone) | P1 | api | S09 | M12a |
+| 17 | `PUT /api/v1/saves/:saveProfileId/:slot` (`:slot` = C05 `SlotId`, percent-encoded; `If-Match: <version>`) ⓘ | P1 | api | S09 | M12a |
+| 18 | `DELETE /api/v1/saves/:saveProfileId/:slot` (tombstone) | P1 | api | S09 | M12a |
 | 19 | `POST /api/v1/saves/blob-url` → presigned PUT (> 256 KiB) | P1 | ugc | S09 | M12a |
 | 20 | `POST /api/v1/progress/commit` ⓘ (rooms Worker or edge, service-auth) | internal | — | S09 | M12c |
 | 21 | `GET /api/v1/leaderboards/:board`, `POST /api/v1/leaderboards/:board/submit` ⓘ | pub / P1 | api | S06 (validator) | M12c |
@@ -378,10 +379,12 @@ Phase = minimum identity: `pub` (no auth), `P0` (play token or JWT), `P1` (JWT t
 | 43 | `GET /api/v1/admin/cases?queue&status`, `POST /api/v1/admin/cases/:id/decision` ⓘ | staff:mod:review | — | S09 | M06b (NPC queue), M13d (all) |
 | 44 | `POST /api/v1/admin/cases/:id/ncmec`, `GET /api/v1/admin/evidence/:id` | staff:mod:trust_lead | — | S09 | M13d |
 | 45 | `POST /api/v1/admin/hash-banks/:bank`, `GET /api/v1/admin/takedowns` | staff:mod:trust_lead | — | S09 | M13d |
-| 46 | `POST /api/v1/admin/roster/:npcId/kill` `{scope[], reason, ticketId}` | staff:admin | — | S09 (R-NPC-04) | M06a |
+| 46 | `POST /api/v1/admin/roster/:npcId/kill` `{scope[], reason, ticketId}` | staff:admin | — | S09 (R-NPC-04); starts S05 `KillPurgeWorkflow` | M06a |
 | 47 | `PUT /api/v1/admin/flags/:flag` (`ks:*`, `rooms.*`) | staff:admin | — | S09 | M06a |
 | 48 | `POST /api/v1/_ops/rooms/drain` | staff:ops | — | S09 | M12c |
 | 49 | `/api/v1/_test/*` (run-scheduled, drain-queue, spend) | staging/preview only; build check proves absent in prod | — | S09 | M05b |
+| 50 | `PUT /api/v1/saves/:saveProfileId` `SaveProfileUpsert` (create or rename; C05 `ProfileMeta.name`, `createdAt`) ⓘ; must precede route 17 for a new save profile (FK) | P1 | api | S09 (C05 payload S01) | M12a |
+| 51 | `DELETE /api/v1/saves/:saveProfileId` (tombstone the save profile and all its slots; C05 `Tombstone{slot:'*'}`) | P1 | api | S09 | M12a |
 
 ### 2.5 Request and response types (selected; the remainder follow the same file)
 ```ts
@@ -389,7 +392,7 @@ export interface BootConfig {
   build: string; minClientBuild: string;
   region: 'ok' | 'blocked';                     // blocked → online features hidden; offline single-player still runs from cache
   hosts: { api: string; rt: string; id: string; media: string; ugc: string };
-  worldManifest: string;                         // pointer shipped in the Worker's static assets [research/gap-ci-cd-release-assets.md §2.2]
+  assetCatalog: string;                          // key of the current C07 AssetCatalog (manifests/assets-<sha256>.json); the C07 CatalogPointer ships as /asset-catalog.json in the Worker's static assets [research/gap-ci-cd-release-assets.md §2.2]
   flags: Record<FeatureFlag, boolean>;
   gov: 0 | 1 | 2 | 3;                            // BudgetGovernor level (D-28)
 }
@@ -408,20 +411,21 @@ export interface DeviceCodeRes { device_code: string; user_code: string /* 8 cha
 export interface DeviceTokenReq { device_code: string; grant_type: 'urn:ietf:params:oauth:grant-type:device_code' }
 // errors per RFC 8628: authorization_pending | slow_down | access_denied | expired_token
 
-/** Cloud saves (M12a). Payload is a C05 SaveGame owned by S01; S09 treats it as opaque JSON ≤ 256 KiB inline. */
-export type SaveNamespace = 'story' | 'sandbox';
+/** Cloud saves (M12a). Sync unit = one C05 SaveRecord (S01) per (saveProfileId, SlotId); S09 treats `data` as opaque JSON ≤ 256 KiB inline. */
 export interface CloudSaveRecord {
-  saveProfileId: string;            // 32-hex (UUID without dashes), ≤ 64 per profile [research/repos-grand-v.md (d)]
-  ns: SaveNamespace; slot: string;  // 'auto' | 'quick' | 's01'..'s10'
-  version: number;                  // server-assigned monotonic per (profile, saveProfile, ns, slot)
-  updatedAt: number;                // client mtime round-tripped
-  sha256: string; bytes: number;
-  data?: unknown;                   // inline SaveGame when bytes ≤ 262,144
-  blobUrl?: string;                 // presigned GET (15 min) when stored in R2
+  saveProfileId: string;            // C05 ProfileId: 32-hex, ≤ 64 per identity profile [research/repos-grand-v.md (d)]
+  slot: SlotId;                     // C05 SlotId verbatim: core | settings | sandbox | story:auto|1|2|3 | mode:<id> | mod:<id>
+  kind: SliceKind; schema: number;  // copied from the SaveRecord; a schema newer than the build is refused (NEWER_SCHEMA)
+  version: number;                  // server-assigned monotonic per (profile, saveProfile, slot)
+  updatedAt: number;                // SaveRecord.savedAt (client ms) round-tripped
+  sha256: string; bytes: number;    // computed by the Worker over the uploaded bytes; C05's fnv1a64 `checksum` stays inside the record
+  data?: unknown;                   // the C05 SaveRecord when bytes ≤ 262,144
+  blobUrl?: string;                 // presigned GET (15 min) when stored in R2 (records ≤ 2 MiB, C05 SAVE_LIMITS)
   deletedAt?: number;               // tombstone
 }
-export interface SaveSyncRes { profiles: { id: string; name: string; createdAt: number }[]; records: CloudSaveRecord[]; cursor: string }
-// PUT conflict: 409 {error:{code:'conflict', details:{server: CloudSaveRecord}}}; the client keeps both (local copy renamed `slot~conflict-<ts>`).
+export interface SaveProfileUpsert { name: string /* 1–80, NFC, unique per identity */; createdAt: number /* C05 ProfileMeta.createdAt, ms */ }   // route 50 (DL-063)
+export interface SaveSyncRes { profiles: { id: string; name: string; createdAt: number; updatedAt: number; deletedAt?: number }[]; records: CloudSaveRecord[]; cursor: string }
+// PUT conflict: 409 {error:{code:'conflict', details:{server: CloudSaveRecord}}}; the client stores the server copy in the dv-saves `conflicts` store and the player picks (C05 rule 10).
 
 export interface AssignReq { district: 'sf'; inviteCode?: string; modsActive: boolean }
 export interface AssignRes { roomId: string; wsUrl: string; ticket: string; ticketExp: number; build: string }
@@ -446,7 +450,7 @@ export interface UploadRes { uploadId: string; putUrl: string; expiresAt: number
 ```
 Dialogue transport (`/npc/:npcId/talk`, body and event payloads owned by S04/C10): `text/event-stream`, events `meta`, `line.delta`, `line.done`, `effects`, `fallback`, `done`; first `line.delta` must arrive within 4 s or the Worker sends `fallback{reason:'timeout'}` and closes [research/ai-npc-runtime.md §2.7].
 
-### 2.6 DataPort (server side, `packages/shared/src/data-port.ts`)
+### 2.6 DataPort (server side, `packages/shared/src/data-port.ts`; `Tier`, `ProviderId`, `StaffScope` from `packages/shared/src/identity.ts`)
 One implementation `services/edge/src/data/supabase/*` (rooms Worker imports the same package) plus `InMemoryDataPort` for tests. No supabase-js anywhere in `apps/web` (D-02; the client auth module needs none because our issuer replaces Supabase Auth).
 ```ts
 export interface Ctx { profileId: string | null; tier: Tier; jwt?: string; requestId: string; staff?: StaffScope[] }
@@ -459,12 +463,14 @@ export interface DataPort {
               link(ctx: Ctx, provider: ProviderId, subject: string): Promise<'linked' | { mergeRequestId: string }>;
               deviceCode: DeviceCodeStore };
   saves: { sync(ctx: Ctx, since?: string): Promise<SaveSyncRes>;
+           putProfile(ctx: Ctx, saveProfileId: string, p: SaveProfileUpsert): Promise<void>;   // route 50
+           deleteProfile(ctx: Ctx, saveProfileId: string): Promise<void>;                     // route 51
            put(ctx: Ctx, rec: CloudSaveRecord, ifMatch: number | null): Promise<CloudSaveRecord | { conflict: CloudSaveRecord }>;
            tombstone(ctx: Ctx, id: SaveKey, ifMatch: number): Promise<void> };
   progress: { commit(pid: string, key: string, delta: ProgressDelta): Promise<'applied' | 'duplicate'> };
   leaderboards: { top(board: string, n: number): Promise<ScoreRow[]>; submit(ctx: Ctx, s: ScoreSubmit): Promise<'accepted' | 'rejected'> };
   npcMemory: { relationship(pid: string, npcId: string): Promise<RelationshipRow | null>;
-               topK(pid: string, npcId: string, q: Float32Array, gameTime: number, k?: number): Promise<MemoryHit[]>;
+               topK(pid: string, npcId: string, q: Float32Array, gameTime: number /* C06 clock half-seconds */, k?: number): Promise<MemoryHit[]>;
                write(pid: string, npcId: string, m: MemoryWrite[]): Promise<void>;
                applySummary(pid: string, npcId: string, s: SummaryPatch): Promise<void> };
   cutscenes: { record(row: CutsceneRow): Promise<void>; inCatalog(key: string): Promise<boolean> };
@@ -493,8 +499,8 @@ export interface TelemetryBatch {
   env: TelemetryEnvelope; events: TelemetryEvent[];  // ≤ 50 events, body ≤ 64 KiB
 }
 export interface TelemetryEnvelope {
-  tier: 'mobile' | 'desktop' | 'xr-standalone' | 'xr-pro';      // C13
-  deviceClass: 'iphone' | 'ipad' | 'android' | 'desktop' | 'quest' | 'avp';
+  tier: QualityTierId;                                          // C13: desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
+  deviceClass: DeviceClass;                                     // C13: desktop | iphone | ipad | android | quest | avp | unknown
   osMajor: number; displayMode: 'standalone' | 'tab' | 'xr'; backend: 'webgpu' | 'webgl2';
 }
 export type TelemetryName =
@@ -504,7 +510,7 @@ export type TelemetryName =
   | 'net.ws' | 'net.api'
   | 'mode.enter' | 'mode.exit' | 'mission.start' | 'mission.fail' | 'mission.complete'
   | 'cutscene.play' | 'npc.turn.client'
-  | 'xr.session' | 'settings.tier_override' | 'pose.calibrate'
+  | 'xr.session' | 'settings.tier_override' | 'tier.decision' | 'storage.persist' | 'pose.calibrate' | 'err.sim'
   // server-only (written by Workers/DOs, never accepted from clients):
   | 'genai.cost' | 'quota.block' | 'genjob.state' | 'room.tick' | 'room.hours' | 'budget.level' | 'recon.drift'
   | 'auth.event' | 'mod.case';
@@ -513,9 +519,13 @@ Required props per name (excerpt; the full JSON Schemas live in `packages/shared
 
 | Name | Props (all required unless `?`) | Sampling |
 |---|---|---|
+| `app.start` | `nav`, `coi`, `store: 'opfs'|'memory'`, `backend`, `tier` (S11) | 100 % |
+| `tier.decision` | `tier`, `source` (C13 `TierDecisionSource`), `benchP90Ms?` (S11) | 100 % |
+| `storage.persist` | `granted` (S11) | 100 % |
+| `err.sim` | `cause: 'error'|'stall'`, `tick` (S01 `sim.worker` crash) | 100 % |
 | `app.ready` | `bootMs`, `phaseShellMs`, `phaseWorldMs`, `nav: 'navigate'|'reload'|'back_forward'` | 100 % |
 | `app.abnormal_exit` | `prevSid`, `lastBeatAgoMs`, `scene`, `mode`, `chunkKey`, `memEstMB`, `gpuEstMB`, `cause: 'jetsam'|'gpu_lost'|'hang'|'unknown'` (server classifies) | 100 % |
-| `perf.minute` | `fpsP50`, `fpsP5`, `frameP95Ms`, `drawCalls`, `tris`, `texMBEst`, `memEstMB` | mobile/XR 100 %, desktop 25 % |
+| `perf.minute` | `fpsP50`, `fpsP5`, `frameP95Ms`, `drawCalls`, `tris`, `texMBEst`, `gpuMBEst`, `memEstMB` | mobile/XR 100 %, desktop 25 % |
 | `err.js` | `fp` (message+top-frame hash), `msg` (scrubbed ≤ 128), `top` (file:line:col) | 100 %, ≤ 5 per fp per session |
 | `net.ws` | `evt: 'open'|'close'|'resume'|'correction'`, `code?`, `rttMs?` | 100 % |
 | `cutscene.play` | `key8` (first 8 hex), `cached`, `fallback`, `reason?` | 100 % |

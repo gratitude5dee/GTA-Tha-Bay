@@ -64,7 +64,7 @@ export interface SaveGame {
 }
 
 export interface CoreSlice {                          // schema 1
-  avatar: JsonObject;                                 // S10 PlayerAvatar, validated by S10's schema
+  avatar: JsonObject;                                 // S10 PlayerAvatar, validated by S10's schema; S10 also defines AppearanceV1 (binary, ≤ 512 B) for C11 EV Joined/Appearance
   unlocks: UnlockEventId[];                           // sorted, unique
   firstEncounters: Partial<Record<GameModeId, number>>; // ms epoch of first encounter
   garage: JsonObject[];                               // S06 VehicleInstance[]; shared by story + racing
@@ -84,26 +84,26 @@ export interface StorySlice {                         // schema 1 (gamedesign §
   npcRelations: Record<string /* NpcId */, { trust: number; met: boolean }>;
   world: { clockT: number; weather: WeatherPreset; seed: number };
   rng: Record<string, [number, number, number, number]>; // xoshiro states of story streams
-  position: { lat: number; lng: number; heading: number; vehicle?: string; safehouse?: string };
+  position: { x: number; y: number; z: number; yaw: number /* ENU f64 metres + radians (06 §4.3), valid for the record's worldBake; on a worldBake mismatch the loader snaps to the nearest safehouse */; vehicle?: string; safehouse?: string };
 }
 
 export interface SandboxSlice {                       // schema 1; never read by story
   toggles: Record<string, boolean | number>;          // sandbox.player.godMode, sandbox.world.density …
-  savedPositions: { name: string; lat: number; lng: number; heading: number }[];
+  savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[];
   clock: { hour: number; paused: boolean; syncSystemTime: boolean };
   weather: WeatherPreset;
   presets: JsonObject[];                              // M13 JSON presets (≤ 512 ops each)
 }
 
-export interface ProfileSettings {                    // schema 1; device-level graphics live with S11
+export interface ProfileSettings {                    // schema 1; device-level graphics and telemetry consent live with S11 (IndexedDB dv-platform), never here
   controls: ControlsSettings;                         // C03
   audio: Record<'master' | 'music' | 'sfx' | 'ambience' | 'voice' | 'radio' | 'ui' | 'cutscene', number>;
   subtitles: { on: boolean; size: 'm' | 'l' | 'xl'; background: boolean; speakerNames: boolean };
   camera: { defaultMode: 'fp' | 'tp'; fovDeg: number; shoulder: 'right' | 'left'; shake: boolean };
   accessibility: { reducedMotion: boolean; hudPalette: 'default' | 'deutan' | 'protan' | 'tritan'; timerScale: 1 | 1.25 | 1.5 | 2; autoBlockStoryFights: boolean; pauseOnTycoonEvents: boolean };
-  xr: { snapDeg: 30 | 45; smoothLocomotion: boolean; vignette: number; seated: boolean; heightCalibM: number };
+  xr: XrComfortSettings & { heightCalibM: number };   // S11 type (11-platform-xr.md §4.2); a player preference, synced with the profile
   language: string;                                   // BCP 47
-  privacy: { telemetry: boolean; cameraFeatures: boolean; parentalConsent: boolean };
+  privacy: { cameraFeatures: boolean; parentalConsent: boolean };   // telemetry consent is device-scoped (S11 PlatformSettings.telemetryConsent): events fire before a profile loads
 }
 
 export type SaveReason = 'missionPass' | 'safehouse' | 'modeExit' | 'interval' | 'hidden' | 'manual' | 'settings' | 'unlock' | 'import' | 'migration';
@@ -129,21 +129,22 @@ type JsonObject = { [k: string]: JsonValue }; type JsonValue = null | boolean | 
 type WeatherPreset = import('./engine-world').WeatherPreset;
 type UnlockEventId = import('./c06-modes').UnlockEventId; type GameModeId = import('./c06-modes').GameModeId;
 type ControlsSettings = import('./c03-input').ControlsSettings;
+type XrComfortSettings = import('../platform/xr-comfort').XrComfortSettings;
 ```
 
-**IndexedDB layout** (`dv-saves`, version 1): stores `profiles` (key `id`), `records` (key `[profileId, slot, gen]`), `pointers` (key `[profileId, slot]`), `tombstones` (key `[profileId, slot, deletedAt]`), `meta` (deviceId, cursor). `SaveService` runs in `sim.worker` (slice data is there); the main thread opens the same DB read-only for the home-screen status line.
+**IndexedDB layout** (`dv-saves`, version 1): stores `profiles` (key `id`), `records` (key `[profileId, slot, gen]`), `pointers` (key `[profileId, slot]`), `tombstones` (key `[profileId, slot, deletedAt]`), `conflicts` (key `[profileId, slot, serverVersion]`: cloud copies awaiting the player's choice, rule 10), `meta` (deviceId, cursor). `SaveService` runs in `sim.worker` (slice data is there); the main thread opens the same DB read-only for the home-screen status line.
 
 **Rules (numbered, testable):**
 1. **Atomic write.** (a) canonicalize `data` (sorted keys, finite numbers, no `undefined`) and compute `bytes` and `checksum`; (b) reject above `recordMaxBytes` (`TOO_LARGE`) or if the profile total would exceed `profileMaxBytes`; (c) transaction 1 puts the record at `gen = pointer.gen + 1`; (d) a new read verifies the checksum; (e) transaction 2 moves the pointer only if `pointer.gen` is unchanged (else `CONFLICT`); (f) records older than `keepGenerations` are deleted afterwards. A tab killed at any step leaves the pointer on the last good record; orphan records are swept on boot.
 2. **Load.** Read the pointer's record; on checksum mismatch fall back to the previous generation and report `CHECKSUM` in `lastSave`; never mutate a record while reading it.
 3. **Namespaces.** A session's `SaveCapability` limits writable slots: story → `core, settings, story:*`; sandbox → `settings, sandbox, mod:*`; standalone mode → `core, settings, mode:<id>`. Any other write returns `NOT_ALLOWED`. Sandbox actions can never change story or core (gamedesign P-8).
-4. **Autosave** on mission pass, safehouse save, mode exit, unlock, every 300 s of free roam when heat = 0 and no mission is active, and on `visibilitychange → hidden` when the same eligibility holds. Never mid-pursuit, never mid-mission except the mission's own checkpoint.
+4. **Autosave** on mission pass, safehouse save, mode exit, unlock, every 300 s of free roam when heat = 0 and no mission is active, and on `visibilitychange → hidden` when the same eligibility holds (the main thread sends C02 `SimControlMessage {t:'save.request', reason:'hidden'}`, handled outside ticks, C02 rule 9). Never mid-pursuit, never mid-mission except the mission's own checkpoint.
 5. **Migrations.** Each slice kind has `schema` n and ordered pure functions `migrate[kind][n](data) → data@n+1`. A record with a schema newer than the build loads read-only with `NEWER_SCHEMA`. A failed migration leaves the stored record untouched and loads the previous generation. Golden files `packages/engine/src/sim/save/__golden__/<kind>/v<n>.json` exist for every schema and run in CI.
 6. **Tombstones.** Deleting a slot or profile writes a `Tombstone`; restore/import never resurrects a tombstoned slot newer than the incoming record; tombstones expire after 180 days and only after S09 reports them synced.
 7. **Profiles.** ≤ 64; names 1–80 chars, unique; ids are 32 lowercase hex from 16 random bytes (`crypto.getRandomValues` is fine here: not sim code). The first launch creates one profile named by the player (R-UI-03 flow, S10).
 8. **Import/undo.** Import validates every record against JSON Schema, then writes new generations and stores the previous `gen` per slot in `importedFrom.undoGen`; `undoImport` moves pointers back.
 9. **Multi-tab.** The pointer compare-and-swap detects a second writer; the losing tab shows "This profile is open in another tab" and becomes read-only.
-10. **Cloud sync (M12+, S09).** Last-writer-wins per slot using `{deviceId, savedAt, playtimeSec}`; on conflict the UI shows both and the player picks [research/gamedesign-decomposition.md §7.4].
+10. **Cloud sync (M12a, S09).** The sync unit is one `SaveRecord` per `SlotId` (C12 routes 16–19; save profiles created, renamed and tombstoned via routes 50–51; server `version` per slot). A 409 stores the server copy in `conflicts`; the UI shows both (`savedAt`, `playtimeSec`, device) and the player picks; nothing is overwritten silently [research/gamedesign-decomposition.md §7.4].
 
 **JSON Schema** (2020-12) for the runtime-validated envelope; slice schemas live in `packages/engine/src/sim/save/schema/<kind>.v<n>.schema.json` and are checked against the golden files.
 
@@ -185,7 +186,7 @@ export interface ModeRequirements {
 }
 export interface GameModeDescriptor {
   id: GameModeId; version: number;
-  titleKey: string; tile: { art: string /* C07 AssetId */; order: number };
+  titleKey: string; tile: { art: string /* C07 AssetRef `<kind>/<id>` */; order: number };
   status: 'available' | 'comingSoon';               // A-06 stubs register as comingSoon
   unlock: UnlockEventId | null;                     // null = always available (story, sandbox)
   standalone: boolean;                              // has a main-menu tile
@@ -230,9 +231,9 @@ export interface ModeContext {
   readonly input: { frame(player?: number): InputFrame; push(c: InputContextId): void; pop(c: InputContextId): void };
   readonly unlocks: UnlockApi; readonly economy: EconomyApi; readonly combat: CombatApi;
   readonly events: SimEventBus; readonly ui: UiBridge;
-  readonly assets: { request(ids: string[], prio: 'now' | 'soon'): void; ready(ids: string[]): boolean };
+  readonly assets: { request(refs: AssetRef[] /* C07 */, prio: 'now' | 'soon'): void; ready(refs: AssetRef[]): boolean };
   readonly save: { request(reason: SaveReason): void };
-  readonly telemetry: { emit(name: string, props: Record<string, string | number | boolean>): void }; // C16
+  readonly telemetry: { emit(name: TelemetryName, props: Record<string, string | number | boolean>): void }; // C16 closed registry (packages/shared/src/telemetry.ts); a mode needing a new name proposes it to S09 (contract_change_proposals) before emitting it; unknown names are dropped at ingest
   readonly net: null | { slot: number; peers(): number[] };  // C11; null in single player
   /** Start a child mode (embedding). Resolves via onEvent({t:'mode.childExit'}). */
   startChild(id: GameModeId, args: Omit<ModeEnterArgs, 'origin'>): boolean;
@@ -248,6 +249,8 @@ export interface UnlockApi {
   list(): UnlockEventId[];
 }
 export interface UnlockRegistry extends UnlockApi { register(defs: UnlockDef[]): void; defs(): UnlockDef[]; onUnlocked(cb: (d: UnlockDef) => void): () => void }
+type AssetRef = import('../assets/c07').AssetRef;        // `<kind>/<id>` (C07, 05-assets.md §4.1)
+type TelemetryName = import('../telemetry').TelemetryName; // C16 closed registry (09-backend-contracts.md §3)
 ```
 
 **ModeHost rules:**
@@ -335,7 +338,7 @@ export interface InteractionApi { register(h: InteractionHandler): void; current
 export type PrefabKind = 'player' | 'vehicle' | 'ped' | 'prop' | 'pickup' | 'police' | 'robotaxi' | 'portal' | 'marker' | 'trigger';
 export interface PrefabDef {                          // assets/prefabs/<id>.json, JSON Schema validated at build and mod load
   id: string; kind: PrefabKind; version: number; nameKey?: string; // NameRegistry key; never a raw brand
-  render: { asset: string /* C07 */; variants?: number; anim?: string /* AnimGraphDef id */ };
+  render: { asset: string /* C07 AssetRef `<kind>/<id>` */; variants?: number; anim?: string /* AnimGraphDef id */ };
   physics: { body: BodyDesc['kind']; shape: BodyDesc['shape']; dims: number[]; massKg?: number; groups: string[] } | null;
   components: Record<string /* ComponentDef name */, Record<string, number | string>>;
   vehicle?: { handling: string /* S06 HandlingProfile id */; seats: number; wheels: WheelDesc[]; quirks?: string[] };

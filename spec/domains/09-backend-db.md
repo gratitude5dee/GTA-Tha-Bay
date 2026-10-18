@@ -16,7 +16,7 @@ Files `supabase/migrations/<NNNN>_<name>.sql`, applied with `supabase db push` f
 | File | Tables | Milestone |
 |---|---|---|
 | `0001_core.sql` | schema `app`, helpers, `profiles`, `device_keys`, `identities`, `refresh_tokens`, `staff_roles`, `idempotency_keys`, `audit_log`, `age_assurance` | M05d |
-| `0002_genai.sql` | `cutscene_catalog`, `cutscenes`, `genai_ledger`, `budget_daily`, `telemetry_daily` | M05d |
+| `0002_genai.sql` | `cutscene_catalog`, `cutscenes`, `genai_ledger` (kind includes `asset`), `budget_daily`, `telemetry_daily`; S05 pipeline tables `gen_run`, `gen_job` (`job_key` unique), `asset_index` (`ref, sha256, status, tags text[]`), `bark_index` (`voice_id, key`), `budget_program` (`vendor, cap_usd_micros, alarms`) | M05d |
 | `0003_npc.sql` | `vector` extension, `npc_relationship`, `npc_memory`, `match_npc_memories()`, `encounter_transcripts`, `roster_flag`, `likeness_subject`, `consent_record`, `consent_event` | M06a |
 | `0004_moderation.sql` | enums, `moderation_item`, `moderation_signal`, `moderation_case`, `moderation_decision`, `user_report`, `enforcement_action`, `uploads`, `npc_draft`, `npc_soul` | M06b |
 | `0005_saves.sql` | `save_profiles`, `save_records`, `unlocks` | M12a |
@@ -114,7 +114,7 @@ Age rules follow [research/gap-trust-safety-tooling.md §6.8, §7.5]: effective 
 
 ### 3.2 GenAI index, ledger, telemetry rollup (0002)
 ```sql
-create table cutscene_catalog (                     -- keys our own mission/fight/race scripts may request (C09); built by tools/cutscenes in CI
+create table cutscene_catalog (                     -- keys our own mission/fight/race scripts may request (C09); loaded from the release cutscene-index (CutsceneRef → key) built by tools/assets in CI (S05/S03)
   cache_key text primary key, template_id text not null, template_ver int not null,
   characters text[] not null, source text not null, -- 'mission:<id>' | 'fight:<a>:<b>' | …
   priority smallint not null default 5, added_at timestamptz not null default now()
@@ -131,7 +131,7 @@ create table cutscenes (
 create index on cutscenes using gin (char_ids);
 create table genai_ledger (                         -- nightly export of BudgetGovernorDO; kept 3 years
   id bigint generated always as identity primary key, ts timestamptz not null,
-  vendor text not null, model text not null, kind text not null,   -- dialogue|summary|builder|cutscene|tts|moderation|embedding
+  vendor text not null, model text not null, kind text not null,   -- dialogue|summary|builder|cutscene|tts|moderation|embedding|asset
   usd_micros bigint not null, settled boolean not null, request_id text, job_id text, env text not null
 );
 create index on genai_ledger (ts); create index on genai_ledger (vendor, ts);
@@ -157,7 +157,7 @@ create table npc_relationship (
   trust smallint not null default 0 check (trust between -100 and 100),
   flags jsonb not null default '{}', encounters int not null default 0,
   summary text not null default '' check (char_length(summary) <= 1200),
-  soul_version text not null, last_seen_at timestamptz not null default now(),
+  soul_version int not null, last_seen_at timestamptz not null default now(),
   primary key (profile_id, npc_id)
 );
 create table npc_memory (
@@ -167,7 +167,7 @@ create table npc_memory (
   kind text not null check (kind in ('player_fact','promise','event','preference','rumor','reflection')),
   text text not null check (char_length(text) <= 240),          -- model-paraphrased, PII-scrubbed; never raw player text
   importance smallint not null check (importance between 1 and 10),
-  game_time bigint not null, source text not null check (source in ('dialogue','mission','world','summary')),
+  game_time bigint not null /* C06 WorldClockState.t, integer game half-seconds */, source text not null check (source in ('dialogue','mission','world','summary')),
   embedding halfvec(1024) not null,                              -- bge-m3 (D-22)
   created_at timestamptz not null default now(), last_accessed_at timestamptz,
   expires_at timestamptz not null default now() + interval '180 days'   -- reset to +180 d on access
@@ -231,28 +231,29 @@ create table save_profiles (                        -- Grand-V save-profile rule
   id text not null check (id ~ '^[0-9a-f]{32}$'),
   profile_id uuid not null references profiles(id) on delete cascade,
   name text not null check (char_length(name) between 1 and 80),
-  created_at timestamptz not null, deleted_at timestamptz,
+  created_at timestamptz not null, updated_at timestamptz not null default now(), deleted_at timestamptz,   -- written by C12 routes 50/51
   primary key (profile_id, id), unique (profile_id, name)
 );
 create table save_records (
   profile_id uuid not null, save_profile_id text not null,
-  ns text not null check (ns in ('story','sandbox')),
-  slot text not null check (slot ~ '^(auto|quick|s(0[1-9]|10))$'),
+  slot text not null check (slot ~ '^(core|settings|sandbox|story:(auto|1|2|3)|mode:(racing|fighter|tycoon)|mod:[a-z0-9][a-z0-9._-]{0,63})$'),   -- C05 SlotId
+  kind text not null,                               -- C05 SliceKind
   version bigint not null,                          -- server-assigned, +1 per accepted write
   client_updated_at timestamptz not null, server_updated_at timestamptz not null default now(),
-  sha256 text not null, bytes int not null check (bytes <= 8388608),
+  sha256 text not null, bytes int not null check (bytes <= 2097152),   -- C05 recordMaxBytes
   data jsonb,                                       -- inline when bytes ≤ 262144
-  blob_key text,                                    -- saves/<profile>/<saveProfile>/<ns>/<slot>/<version>.bin in R2
-  save_version int not null,                        -- C05 SaveGame.version (schema), for server-side migration refusal
+  blob_key text,                                    -- saves/<profile>/<saveProfile>/<slot>/<version>.bin in R2
+  save_version int not null,                        -- C05 SaveRecord.schema, for the server-side NEWER_SCHEMA refusal
   deleted_at timestamptz,                           -- tombstone, kept 90 d
-  primary key (profile_id, save_profile_id, ns, slot),
+  primary key (profile_id, save_profile_id, slot),
   foreign key (profile_id, save_profile_id) references save_profiles(profile_id, id) on delete cascade,
   check ((data is null) <> (blob_key is null) or deleted_at is not null)
 );
 create index on save_records (profile_id, server_updated_at);
 create table unlocks (                              -- union of unlock events across devices (R-MODE-05); the save stays authoritative for SP
-  profile_id uuid not null references profiles(id) on delete cascade, mode text not null,
-  unlocked_at timestamptz not null, source text not null, primary key (profile_id, mode)
+  profile_id uuid not null references profiles(id) on delete cascade,
+  unlock_id text not null check (unlock_id ~ '^unlock\.[a-z0-9._-]{1,96}$'),   -- C06 UnlockEventId (unlock.racing, unlock.fighter.<id>, unlock.district.<id>), C05 CoreSlice.unlocks
+  unlocked_at timestamptz not null, source text not null, primary key (profile_id, unlock_id)
 );
 alter table save_profiles enable row level security; alter table save_records enable row level security; alter table unlocks enable row level security;
 create policy sp_self on save_profiles for all to authenticated using (profile_id = app.pid()) with check (profile_id = app.pid());
@@ -338,8 +339,8 @@ Merge rule: the player chooses the surviving profile; save profiles from both ar
 ## 4. R2 buckets and key layout
 | Bucket | Public route | Keys | Lifecycle |
 |---|---|---|---|
-| `tha-bay-media-<env>` | `media.<domain>` (Cache Rule "eligible", Smart Tiered Cache) | `world/packs/…`, `assets/<kind>/<id>/<variant>.<ext>` (C07), `manifests/world-<sha256>.json`, `cutscenes/<key>/{manifest.json, v*.mp4, poster.webp, a.m4a, subs.vtt}` (C09), `audio/barks/<sha256>.opus`, `souls/<id>/<ver>/soul.prompt.txt` | immutable; GC after N releases |
-| `tha-bay-private-<env>` | none (binding only) | `cutscenes-orig/<key>/orig.mp4`, `transcripts/<encounterId>.jsonl`, `saves/<profile>/…`, `exports/<profile>/<ts>.zip`, `audit/<yyyy-mm-dd>.jsonl` | transcripts 30 d; exports 7 d; saves until deleted |
+| `tha-bay-media-<env>` | `media.<domain>` (Cache Rule "eligible", Smart Tiered Cache) | C07 content-hashed keys `<root>/<variant>.<sha256[0:12]>.<ext>` under roots `assets/<kind>/<id>/` (world packs are kind `world_pack`) and `characters/<slug>/<part>/`; `manifests/assets-<sha256>.json` (C07 catalog); `cutscenes/<key>/{manifest.json, v540·v768·v1080 .mp4, a.m4a, poster.webp, last.webp, subs.<lang>.vtt}` (C09; manifest written last); `audio/barks/<sha256>.opus` | immutable; GC after N releases |
+| `tha-bay-private-<env>` | none (binding only) | `souls/<id>/<ver>/soul.prompt.txt` (prompt rails are never public), S05 pipeline prefixes `work/`, `sheets/`, `quarantine/`, `previs/`, `provenance/` (`05-assets.md` §4.4), `cutscenes-orig/<key>/orig.mp4`, `transcripts/<encounterId>.jsonl`, `saves/<profile>/…`, `exports/<profile>/<ts>.zip`, `audit/<yyyy-mm-dd>.jsonl` | transcripts 30 d; exports 7 d; saves until deleted |
 | `ugc-staging-<env>` | none | `incoming/<uploadId>` (presigned PUT, 15 min, fixed Content-Type) | delete 7 d after terminal decision |
 | `ugc-public-<env>` | `ugc.<domain>` (cache rule on `/img/*`, `/thumb/*`, `/tex/*`; `r2.dev` off) | `img/<sha256>.<ext>`, `ugc/published/<sha256>.zip` | until unpublished, then prefix purge |
 | `ugc-quarantine-<env>` | none; role `mod:trust_lead` | `csam/…` (bucket lock 400 d), `other/…` (90 d) | lock rules |

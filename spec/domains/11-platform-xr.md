@@ -74,7 +74,7 @@ export interface XrSessionController {
 
 Sources: [research/stack-rendering-platform.md §4.1, §4.2, §4.5; research/gap-cutscene-delivery-playback.md §5]. Framebuffer scale can only be set before a session. Quest starts at 72 Hz and requests 90 when p90 < 9 ms and `supportedFrameRates` includes 90. Vision Pro rate control is `UNVERIFIED` and not assumed.
 
-### 4.2 Comfort settings (embedded in `PlatformSettings.xr`)
+### 4.2 Comfort settings (`packages/shared/src/platform/xr-comfort.ts`; persisted in C05 `ProfileSettings.xr`, persistence owner S01)
 
 ```ts
 export interface XrComfortSettings {
@@ -140,7 +140,7 @@ export interface XrMediaHost {
   setSubtitle(text: string | null): void;
 }
 ```
-`PreparedClip` comes from C09 (06 v0.95 sketch). `Binder`, `DeviceKind`, `ControlId` and `RawInputState` come from S01's C03 (`01-engine-contracts.md`).
+`PreparedClip` is exported by S03 in C09; its minimum shape is a fixed line in the 06 v1.0 C09 sketch (§4.4, DL-061): `{ key, source: {kind:'element', video: HTMLVideoElement} | {kind:'decoder', url: string, codec: string}, width, height, durationMs, cues: {startMs, endMs, text}[], degraded }`. `Binder`, `DeviceKind`, `ControlId` and `RawInputState` come from S01's C03 (`01-engine-contracts.md`).
 
 ## 5. Runtime behavior
 

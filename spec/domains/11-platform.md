@@ -1,6 +1,6 @@
 # S11 — Platform, Performance, XR & PWA (part A: core, C13)
 
-> Wave 1 · v0.1 · 2026-10-18 · author: s11-platform · shared context 06 v0.95 · decisions spec/03 v0 · C13 version proposed for freeze: **1.0.0**
+> Wave 1 · v0.1 · 2026-10-18 · author: s11-platform · shared context 06 v1.0 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) · decisions spec/03 v1 · C13 version proposed for freeze: **1.0.0**
 > Parts: A `11-platform.md` (this file: scope, checklist, C13, budgets, renderer, detection, governor, milestones) · B `11-platform-xr.md` (XR session, comfort, input, XR cutscene hosts) · C `11-platform-pwa.md` (headers, manifest, service worker, OPFS cache, iOS quirks, telemetry client, WASM policy) · D `11-platform-perf.md` (perf harness, Playwright projects, device matrix, checklists).
 > Section numbers follow 03-SPEC-TEMPLATE §B; parts B, C and D reuse §3–§9 for their own topics and carry their own fact rows. All unverified items are collected in §10 of this file.
 
@@ -18,7 +18,7 @@
 
 Secondary (supplied, owned elsewhere): R-ENG-04 (XR comfort options, reduced-motion hook), R-UI-02 (`PlatformSettings` schema, §4.6).
 
-**Contracts.** Owns **C13** (final TypeScript in §4; consumers S01, S02, S05, plus S10 settings, S09 telemetry). Honors **C01** (platform code holds no `EntityId`; XR poses travel in a singleton typed-array block, Part B §4) and **C07** (variants resolved through `VARIANT_FALLBACK`; pack hashes verified on write). Consumes sketches of C02, C03, C04, C05, C08, C16 from 06 v0.95; assumptions are in §10.
+**Contracts.** Owns **C13** (final TypeScript in §4; consumers S01, S02, S05, plus S10 settings, S09 telemetry). Honors **C01** (platform code holds no `EntityId`; XR poses travel in a singleton typed-array block, Part B §4) and **C07** (variants resolved through `VARIANT_FALLBACK`; pack hashes verified on write). Consumes C02, C03, C04, C05, C16 (frozen in 06 v1.0) and the C08 sketch (06 v1.0 §4.4); assumptions are in §10.
 
 **Out of scope for v1:** native apps (constraint 1); render worker (XR is Window-only) [D-08]; React Three Fiber [D-11]; `immersive-ar` passthrough (visionOS support `UNVERIFIED`; post-M11b); PC VR and Quest Link as accepted targets (best effort on the `xr-quest` profile); Android XR, Pico; iPhone 120 Hz; Web Push.
 
@@ -45,9 +45,9 @@ Secondary (supplied, owned elsewhere): R-ENG-04 (XR comfort options, reduced-mot
 | P-17 | WASM policy | Part C §8 | R-PLAT-03 |
 | P-18 | PWA manifest and install UX | Part C §3 · M00, M04a | R-PLAT-01 |
 | P-19 | Service worker, safe-point updates | Part C §4 · M00 | R-PLAT-01 |
-| P-20 | OPFS world-pack store, fetch layer, storage UI | Part C §5 · M02a2 | R-PLAT-01 |
+| P-20 | OPFS world-pack store, fetch layer, storage UI | Part C §5 · M01e | R-PLAT-01 |
 | P-21 | iOS quirks and lifecycle | Part C §6 · M01c, M11a | R-PLAT-01 |
-| P-22 | Cutscene playback, platform side (D-20) | Part C §7 · Part B §5.6 · cutscene spike | R-CUT-03 support |
+| P-22 | Cutscene playback, platform side (D-20) | Part C §7 · Part B §5.6 · M04c cutscene spike | R-CUT-03 support |
 | P-23 | XR session lifecycle, gesture rule, renderer swap and re-warm | Part B §5.1 · M11b1 | R-PLAT-02 |
 | P-24 | XR render config per headset | Part B §4.1 | R-PLAT-02 R-PLAT-05 |
 | P-25 | XR locomotion and comfort, per-mode rules | Part B §5.3 · M11b | R-PLAT-02 |
@@ -199,7 +199,7 @@ export interface WorldLimits {
   maxRenderObjectsPerChunk: 6;
 }
 export interface CrowdLimits { maxTrafficInstances: number; maxPedInstances: number }
-export interface SimLimits { simHz: 60; aiHz: 30 | 60; physicsRadiusM: number; distantAnimHz: 30 | 60 }
+export interface SimLimits { simHz: 60; aiHz: 30 /* fixed on every tier by C02 AI_DIVISOR (cross-tier ambient determinism) */; physicsRadiusM: number; distantAnimHz: 30 | 60 }
 export interface BootLimits { warmBootToPlayableS: number; coldBootDownloadMB: number }
 export interface TierBudget {
   frame: FrameTargets; render: RenderLimits; memory: MemoryLimits;
@@ -328,7 +328,7 @@ Flat tiers count one view. XR values are **per view-pass**; Vision Pro has `view
 | Far field | impostor ring 80 km | impostor ring 80 km | skyline cards 20 km | skyline cards 10 km | skyline cards 10 km | skyline cards 20 km |
 | Chunk upload bytes/frame | — | — | — | 2 MB | 2 MB | — |
 | Traffic / peds | 800† / 600† | 540 / 400 | 200 / 150 | 120 / 80 | 120 / 80 | 300 / 200 |
-| AI Hz / physics radius m | 60 / 400 | 60 / 400 | 30 / 200 | 30 / 150 | 60 / 150† | 60 / 300† |
+| AI Hz (C02, all tiers) / physics radius m | 30 / 400 | 30 / 400 | 30 / 200 | 30 / 150 | 30 / 150† | 30 / 300† |
 | Warm boot to playable s | 8 | 8 | 12 | 15 | 12 | 10 |
 | Cold download, first district MB | 60 | 60 | 40 | 30 | 40 | 60 |
 
@@ -371,22 +371,22 @@ export interface BenchmarkResult {
   frames: number; durationMs: number; medianMs: number; p90Ms: number; passed: boolean;
 }
 export interface TierDecision {
-  v: 1; tier: QualityTierId; source: TierDecisionSource; decidedAt: string; // ISO
+  v: 1; tier: QualityTierId; source: TierDecisionSource; decidedAt: number; // epoch ms (06 §4.3)
   build: string; uaHash: string; adapterHash: string; c13: typeof C13_VERSION;
   benchmark?: BenchmarkResult;
 }
 ```
-JSON Schema (runtime-validated when read from IndexedDB `tb-platform/tier-decision`; mismatch means ignore and re-run the benchmark):
+JSON Schema (runtime-validated when read from IndexedDB `dv-platform/tier-decision`; mismatch means ignore and re-run the benchmark):
 
 ```json
 { "$id": "tier-decision.v1", "type": "object",
   "required": ["v","tier","source","decidedAt","build","uaHash","adapterHash","c13"],
   "properties": { "v": {"const": 1},
     "tier": {"enum": ["desktop-ultra","desktop","mobile","mobile-low","xr-quest","xr-visionpro"]},
-    "decidedAt": {"type":"string","format":"date-time"}, "c13": {"type":"string","pattern":"^1\\."} } }
+    "decidedAt": {"type":"integer","minimum":0}, "c13": {"type":"string","pattern":"^1\\."} } }
 ```
 
-`PlatformSettings` (slice of C05 `settings.platform`, owner of persistence S01, UI S10):
+`PlatformSettings` (device-scoped: IndexedDB `dv-platform/settings` next to `TierDecision`; never in C05, because cloud sync would carry a desktop tier override to an iPhone; UI S10):
 
 ```ts
 export interface PlatformSettings {
@@ -397,8 +397,9 @@ export interface PlatformSettings {
   renderScale: 'auto' | 0.5 | 0.65 | 0.8 | 1.0;
   foveation: 'auto' | 0 | 0.25 | 0.5 | 0.75 | 1;
   dataSaver: boolean;                         // video rendition, prefetch limits
-  xr: XrComfortSettings;                      // Part B §5
+  telemetryConsent: { diagnostics: boolean; analytics: boolean }; // C16 consent; read at boot, before any save profile loads
 }
+// XR comfort is a player preference and lives in C05: ProfileSettings.xr = XrComfortSettings & { heightCalibM } (Part B §4.2).
 ```
 
 ## 5. Runtime behavior
@@ -427,7 +428,7 @@ export interface PlatformSettings {
 - **Benchmark (3 s, loading screen):** render the benchmark scene at the provisional tier's settings along a canned camera path and record median and p90 frame time. Until M02b the scene is `BenchmarkScene`, a synthetic chunk sized to 80 % of the tier's render-object and triangle budget; afterwards it is the Civic Center boot chunk. If p90 > `frameBudgetMs` × 1.1, step down one rung of `FLAT_LADDER` and repeat, at most twice. iPhone 15 therefore lands on `mobile-low` through measurement (Q-10), not a model lookup.
 - **Promotion to `desktop-ultra`:** only on WebGPU with a non-fallback adapter and benchmark p90 ≤ 0.5 × 16.7 ms at `desktop` settings (DN-S11-05), or by manual override.
 - **Persistence:** `TierDecision` in IndexedDB; re-run when `build`, `uaHash` or `adapterHash` changes, on Settings › "Re-run benchmark", or after `abnormal-exit-demotion`.
-- **Overrides:** Settings (`tierOverride`, persisted); QA builds accept `?tier=` and `?gl=1`; `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value` (weak-device emulation via `requiredLimits`), `?xr-emulate=quest3`. Production builds ignore URL flags.
+- **Overrides:** Settings (`tierOverride`, persisted); QA builds accept `?tier=` and `?gl=1`; `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value` (weak-device emulation via `requiredLimits`), `?xr-emulate=quest3`; the same `QaFlags` parser also carries the engine flags (`?debug`, `?seed`, `?profile`, `?mission`, `?stage`, `?unlockAll`) listed in `11-platform-perf.md` §4. Production builds ignore URL flags.
 - **Switching:** `QualityService.setTier` applies only at a safe point (loading boundary, menu, XR veil). A tier change swaps the asset variant chain, streaming radius and pools, then re-warms pipelines. The governor demotes a tier only after every knob has sat at its floor for 20 s and the next safe point arrives.
 
 ### 5.4 Frame pacing (P-12)
@@ -504,16 +505,16 @@ S11-F rows (F1 to F5) were verified by this subagent on 2026-10-18 and need ledg
 
 ## 8. Milestone mapping
 
-R-ID to milestones: R-PLAT-01 → M00, M02a2, M04a, M11a · R-PLAT-02 → M00 (IWER smoke), M01b/c (spike), M11b · R-PLAT-03 → M00, M01b/c, M11a · R-PLAT-05 → M01b/c, M11a, M11b · R-ENG-02 → M00, M01b/c, M11a.
+R-ID to milestones: R-PLAT-01 → M00, M01e, M04a, M11a · R-PLAT-02 → M00 (IWER smoke), M01b/c (spike), M11b · R-PLAT-03 → M00, M01b/c, M11a · R-PLAT-05 → M01b/c, M11a, M11b · R-ENG-02 → M00, M01b/c, M11a.
 
 | Milestone | Platform work | Stubbed first | Lands later |
 |---|---|---|---|
 | **M00** PWA shell, headers (≈ 0.5 session) | Part C §2–§4: `_headers`, manifest from `config/brand.ts`, `injectManifest` SW with update stub, `check:headers`, `check:coi` incl. SW reload; C13 types + `config/tier-budgets.json` validation; `gpu-probe.json`; Playwright projects incl. `xr-quest3` (≥ 10 XR frames); QA flag parser; lint `no-glsl-in-engine` | telemetry sink, fixed `desktop` tier, minimal RendererHost | M01c onward |
-| **M01b** device spike, proposed as its own session **M01c** (1 session) | `classifyDevice` + UA fixtures, `RendererHost`, `BenchmarkScene`, `TierSelector`, `PerfProbe` + HUD + bridge, `Heartbeat`, QA memory-bomb page, iPhone/Quest/Vision Pro spike checklists, `webgpu.mobile` decision | governor observe-only, MemoryBudget counters | M11a |
-| **M02a2** asset-worker + OPFS store (proposed, 1 session, before M02b) | `asset.worker`, `WorldPackStore`, `fetchRetry`, lanes, hash check, eviction, `persist()`, Settings storage API | UI | M04a, M11a |
+| **M01c** device spike + RendererHost (split from M01b; 1 session) | `classifyDevice` + UA fixtures, `RendererHost`, `BenchmarkScene`, `TierSelector`, `PerfProbe` + HUD + bridge, `Heartbeat`, QA memory-bomb page, iPhone/Quest/Vision Pro spike checklists, `webgpu.mobile` decision | governor observe-only, MemoryBudget counters | M11a |
+| **M01e** asset-worker + OPFS store (1 session; after M01d assets-publish, before M02b) | `asset.worker`, `WorldPackStore`, `fetchRetry`, lanes, hash check, eviction, `persist()`, Settings storage API | UI | M04a, M11a |
 | **M02b** streaming (S02) | consumes `RenderBudgetMeter`, chunk rules, `ChunkUploadGate`; adds boot-chunk benchmark and pipeline seed capture | seed capture manual | M11a |
 | **M04a** settings | `PlatformSettings` UI bindings (S10), coach mark, Settings › Storage | — | — |
-| **Cutscene spike** (before M05b, Architect assigns id) | `FirstGestureUnlock`, video pool, wake lock, media budget, flat DOM host; gap-cutscene §7.7 device matrix | XR hosts | M11b |
+| **M04c** cutscene-playback spike (before M05b) | `FirstGestureUnlock`, video pool, wake lock, media budget, flat DOM host; gap-cutscene §7.7 device matrix | XR hosts | M11b |
 | **M11a** iPhone hardening (2 sessions) | two-way governor, `MemoryBudget` enforcement, `FramePacer`, budgets as tests (`check:perf` fail mode nightly, `perf:verify` on device JSON), offline relaunch, SW safe-point updates, 30-min soak, abnormal-exit demotion, iOS quirk pass, ultra calibration | — | — |
 | **M11b** WebXR port (2 sessions) | b1: Part B §3–§5.5 (session, swap, locomotion, comfort, input, panels, IWER e2e); b2: per-mode XR rules (S06 S07 S08), XR cutscene hosts, Quest/Vision Pro checklists and perf pass | — | post-v1 AR |
 
@@ -523,8 +524,8 @@ Projects, flags, device matrix and checklists are in `11-platform-perf.md` §9; 
 
 ## 10. Open questions, unverified, decisions
 
-**Decisions for the Architect** (full text in the return block): DN-S11-01 mobile WebGPU gate (§4.3) · DN-S11-02 postMessage transport when isolation is missing (recommend minimal yes) · DN-S11-03 XR UI technique (Canvas2D panels via S10's `UiSurface`) · DN-S11-04 split M01b into M01b and M01c, add M02a2 · DN-S11-05 `desktop-ultra` promotion rule (§5.3) · DN-S11-06 PC VR level (best effort, unaccepted).
+**Decisions for the Architect** (full text in the return block): DN-S11-01 mobile WebGPU gate (§4.3) · DN-S11-02 postMessage transport when isolation is missing (recommend minimal yes) · DN-S11-03 XR UI technique (Canvas2D panels via S10's `UiSurface`) · DN-S11-04 split M01b into M01b and M01c, add M01e · DN-S11-05 `desktop-ultra` promotion rule (§5.3) · DN-S11-06 PC VR level (best effort, unaccepted).
 
-**Alignment with Wave 1 peers** (`01-engine-contracts.md`, `05-assets.md`): S05 already keys C07 variants by C13 ids with `VARIANT_FALLBACK`. S01's `QualityTierRef` (old tier names) must become `QualityTierId`; S01's `XRRigParams.session: 'immersive-ar'` is not available in v1; XR poses reach the sim through a new `SimServices.xrPoses`; `FrameSignal` is sent every rAF even when `FramePacer` skips the draw. Other assumptions: C05 embeds `settings.platform`; C08 chunks respect the per-chunk object budget.
+**Alignment with Wave 1 peers:** resolved in 06 v1.0 (`spec/11-decision-log.md`): S01 uses `QualityTierId`, `immersive-vr` only, `SimServices.xrPoses` and a `FrameSignal` on every frame; `PlatformSettings` is device-scoped; C05 `settings.xr` holds `XrComfortSettings`; AI runs at 30 Hz on every tier; C08 chunks keep the per-chunk object budget.
 
 **UNVERIFIED** (never inside an acceptance criterion; where a device run records one, the AC is the recording): iOS Home Screen vs Safari-tab WebGPU parity · GPU-process jetsam limit and whether 2,048 MB applies to every iPhone · ProMotion rAF above 60 Hz · iOS background suspension timing · post-jetsam behaviour (reload or blank, navigation type, `localStorage` durability) · `GPUDevice.lost` before a GPU-process kill · `adapter.info` on Safari · Safari `timestamp-query` · takram atmosphere with r186 · visionOS UA string · Vision Pro framebuffer size, refresh, foveation, WebGPU-vs-WebGL XR cost · `immersive-ar` on visionOS and PS VR2 controllers as WebXR inputs · Quest flag names and non-XR WebGPU default · Quest A/B/X/Y indices · XR `visibilitychange` · `info.render.drawCalls` with `BundleGroup` on the WebGPU backend (so `RenderBudgetMeter` counts render objects; `info` is authoritative only on WebGL2 projects) · `navigator.standalone` · OPFS 7-day eviction and cross-tab sync-handle behaviour · Low Power Mode · iPhone RAM · desktop-ultra and † numbers (calibration).

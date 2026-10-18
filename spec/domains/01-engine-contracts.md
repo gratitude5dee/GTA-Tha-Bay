@@ -1,6 +1,6 @@
 # 01 — Engine contracts, part 1: C01 ECS · C02 GameLoop · C03 Input · C04 CameraRig · engine service interfaces
 
-> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md` (§3 Components, §4 Data). Shared context `06` v0.95. Contracts here are **v1.0.0** and freeze into `06` v1.0. Types live in `packages/shared/src/contracts/` so consumers (`net`, `ui`, `modes/*`, `mod-sdk`) import them without importing the engine. Part 2 (C05 SaveGame, C06 GameMode, PursuitDirector, clock, interaction, prefabs) is `spec/domains/01-engine-save-modes.md`.
+> S01, Wave 1, 2026-10-18. Part of `spec/domains/01-engine.md` (§3 Components, §4 Data). Shared context `06` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`). Contracts here are **v1.0.0** and freeze into `06` v1.0. Types live in `packages/shared/src/contracts/` so consumers (`net`, `ui`, `modes/*`, `mod-sdk`) import them without importing the engine. Part 2 (C05 SaveGame, C06 GameMode, PursuitDirector, clock, interaction, prefabs) is `spec/domains/01-engine-save-modes.md`.
 
 Conventions in every block: `u8/i16/…` comments give the wire or SAB width; "sim" means code that runs inside `sim.worker` or the headless host; all sim numbers that cross a determinism boundary are integers or exactly representable doubles produced by `detmath`.
 
@@ -101,7 +101,7 @@ export interface EcsApi {
 | 11 | Seat | vehicle u32 (handle), seat i8 | yes | net |
 | 12 | Health | hp f32, max f32, ko u8, koUntilTick u32 | yes | render |
 | 13 | Anim | graph u32 (str), state u16, p0 f32, p1 f32, sinceTick u32 | no | render |
-| 14 | RenderKey | asset u32 (C07 AssetId str), variant u8, visible u8, lodBias i8 | no | render |
+| 14 | RenderKey | asset u32 (StringTable id of the full C07 `AssetRef` `<kind>/<id>`), variant u8, visible u8, lodBias i8 | no | render |
 | 15 | Interactable | kind u16, radius f32, coneDeg f32, priority i8, prompt u32 (LocKey str), flags u16, cooldown u16 | yes | none |
 | 16 | Combat | moveSet u32 (str), move u16, frame u16, hitstun u16, blockstun u16 | yes | render |
 | 17 | PoliceUnit | role u8, tactic u8, assignedTick u32, target u32 | yes | render |
@@ -119,7 +119,7 @@ export interface EcsApi {
 2. Structural changes (spawn, despawn, add, remove) go through `CommandBuffer` and apply at the end of the issuing `SimStage`, in issue order. Field writes are immediate.
 3. Components hold scalars only. Strings go through `StringTable`; references to other entities are `EntityHandle` in a `u32` field; nothing stores objects, closures or `Map`s.
 4. Systems iterate `query()` results in returned order. Code never iterates a `Map`/`Set`/object whose key order depends on non-sim input; `for…in` is banned in sim code; every `Array.prototype.sort` call passes a comparator that is total (ties broken by `EntityHandle`).
-5. Ambient agents (traffic, peds) carry `Ambient{cell, slot}` and a `StableKey` `amb:<cell>:<slot>`. Their spawn and route are a pure function of `(worldSeed, cell, slot, spawnTick)` (§C02 RNG). Tiers enable slots `0 … densityCap(tier, cell) − 1`, so a mobile client's agents are a prefix of a desktop client's (proposal to S02/S09; see `contract_change_proposals`).
+5. Ambient agents (traffic, peds) carry `Ambient{cell, slot}` and a `StableKey` `amb:<cell>:<slot>`. Their spawn and route are a pure function of `(worldSeed, cell, slot, spawnTick)` (§C02 RNG). Tiers enable slots `0 … densityCap(tier, cell) − 1`, so a mobile client's agents are a prefix of a desktop client's (accepted; fixed in the 06 v1.0 C08 sketch: spawn tables keyed by `(cellKey, slot)` with a per-tier `densityCap`, DL-049).
 6. A component id, once published, is never renumbered or reused; schema changes add a new component.
 7. Every `ComponentDef` with `hashed: true` must be serializable to bytes by its typed arrays alone (no side tables), so `stateHash` and `snapshot()` can run without component-specific code.
 
@@ -136,7 +136,8 @@ export const AI_DIVISOR = 2;             // AI "think" at 30 Hz on every tier (d
 export const NET_DIVISOR = 3;            // netOut at 20 Hz (A-04)
 export type Tick = number;               // u32, starts at 0 per sim session
 
-/** Per render frame, on the main thread, in this order. */
+/** Per render frame, in this order. Input, Sim (hand-off), Anim, Audio and Render run on the main thread; NetIn and NetOut run in
+ *  sim.worker (socket in the worker, D-S01-05): NetIn before the tick's Commands stage, NetOut after a tick where tick % NET_DIVISOR === 0 (DL-071). */
 export const enum FramePhase { Input = 0, NetIn = 1, Sim = 2, Anim = 3, Audio = 4, Render = 5, NetOut = 6 }
 
 /** Per sim tick, inside sim.worker, in this order. Systems declare one stage + an order key. */
@@ -161,12 +162,12 @@ export interface SimConfig {
   seed: number;                          // u32 world seed
   profile: SimProfile;
   physicsBuild: 'simd-compat' | 'deterministic-compat'; // derived from profile; one build per session
-  tier: QualityTierRef;                  // C13 (S11) — read for density caps and physics radius only
+  tier: QualityTierId;                   // C13 (S11) — read for crowd caps, physics radius and config/engine-tiers.json only
   worldBake: string;                     // C08 bake hash
   hashEvery: number;                     // ticks between stateHash; 0 = off
   startTick?: Tick;
 }
-export interface QualityTierRef { tier: 'mobile' | 'desktop' | 'xr-standalone' | 'xr-pro'; level: 'low' | 'medium' | 'high' | 'ultra' }
+export type QualityTierId = import('../platform/c13').QualityTierId; // desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
 
 export interface SystemDef {
   id: string;                            // 'engine.control.owner', 'world.traffic.brain', …
@@ -178,10 +179,17 @@ export interface SystemDef {
   run(ctx: SystemContext): void;
 }
 export interface SystemContext { tick: Tick; dt: typeof SIM_DT; ecs: import('./c01-ecs').EcsApi; services: SimServices }
-export interface SimServices { /* injected: rng, physics, clock, pursuit, zones, scheduler, events, … (part 2) */ readonly [name: string]: unknown }
+export interface SimServices { /* injected: rng, physics, clock, pursuit, zones, scheduler, events, … (part 2) */
+  readonly xrPoses: Readonly<Float32Array> | null; // S11 XrPoseBlock (11-platform-xr.md §4.3) via its seqlock reader; null outside XR
+  readonly [name: string]: unknown }
 
 /** Main thread → sim, once per render frame (SAB block or postMessage). */
 export interface FrameSignal { frame: number; nowMs: number; dtSec: number; paused: boolean; timeScale: 0.25 | 0.5 | 1 | 2 }
+
+/** Main thread → sim command ring messages that the worker handles outside ticks (rule 9). UI and debug commands for the
+ *  Commands stage use the same ring with other `t` values, owned by their senders. */
+export type SimControlMessage =
+  | { t: 'save.request'; reason: 'hidden' };   // LifecycleController (S11) on visibilitychange → hidden; C05 rule 4 decides eligibility
 
 export interface LoopStats { tick: Tick; ticksLastFrame: number; tickMsP50: number; tickMsP99: number; droppedSec: number; overruns: number }
 
@@ -210,11 +218,13 @@ export interface BootPayload { strings: string[]; prefabs: unknown[]; config: Re
 3. Hidden page ⇒ no rAF ⇒ no `FrameSignal` ⇒ no ticks. The sim also pauses on `paused: true` (menus, phone in story, focus loss).
 4. `timeScale ≠ 1` is allowed only in sandbox sessions and debug builds; it scales accumulated time, never `SIM_DT`.
 5. `FramePhase.Sim` on the main thread is only the hand-off (`frame(sig)`); ticks run in the worker concurrently with `Anim/Audio/Render` of the same frame.
-6. `NetIn` drains received network frames into the command ring; `NetOut` runs in the worker after the tick where `tick % NET_DIVISOR === 0` (wire format is C11, S09).
+6. `NetIn` and `NetOut` run in `sim.worker`, which owns the socket (D-S01-05; main-thread `MessagePort` relay only if iOS workers lack WebSocket). `NetIn` drains received network frames into the command ring before the Commands stage; `NetOut` runs after the tick where `tick % NET_DIVISOR === 0` (wire format is C11, S09): one `IN` sample per 50 ms; desktop and XR send each sample, mobile batches two per frame at 10 Hz (C11 `MOBILE_SEND_HZ`).
 7. `stateHash(tick)` = FNV-1a-64 (two u32 lanes, `Math.imul` only) over, in order: tick (u32), every `hashed` component store in ascending `ComponentId` for the entities of `query([Key])` in ascending `StableKey` order, then all hashed resources (RNG states, clock, weather, pursuit, economy) in fixed order. Published when `tick % hashEvery === 0`.
+8. `FrameSignal` is posted on every main-thread rAF and every XR frame callback, including frames S11's `FramePacer` does not draw (30 fps tiers), so the sim clock never depends on the render rate; in XR the main thread writes `XrPoseBlock` before posting it.
+9. `SimControlMessage`s are handled by the worker as soon as they arrive, outside ticks, so they work while the page is hidden and no `FrameSignal` flows (rule 3). `save.request` calls `SaveService` (C05) with the given reason; it writes only when C05 rule 4 eligibility holds, and the result is reported through `SaveService.onStatus` (DL-070).
 
 ### Determinism rules (part of C02; D-13, A-04)
-1. Sim code (`packages/shared/**`, `packages/engine/src/sim/**`, `packages/modes/*/src/sim/**`) must not use: `Math.random`, `Math.sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh/exp/expm1/log/log1p/log2/log10/pow/cbrt/hypot/sqrt`, the `**` operator, `Date`, `performance.now`, `crypto.getRandomValues`, `setTimeout/setInterval`, `for…in`, `Intl`, `toLocaleString`, and imports from `three` or any DOM type. Enforced by ESLint `no-restricted-properties`, `no-restricted-globals`, `no-restricted-syntax`, `no-restricted-imports` with a fixture that must fail (JS transcendentals are implementation-dependent across engines [research/gamedesign-decomposition.md §0]).
+1. Sim code (`packages/shared/**`, `packages/engine/src/sim/**`, `packages/modes/*/src/sim/**`; one exception: `packages/engine/src/sim/save/**` is async IO that runs in `sim.worker` outside ticks, may use `Date.now` and `crypto.getRandomValues`, and is reached from systems only through `ModeContext.save.request`) must not use: `Math.random`, `Math.sin/cos/tan/asin/acos/atan/atan2/sinh/cosh/tanh/exp/expm1/log/log1p/log2/log10/pow/cbrt/hypot/sqrt`, the `**` operator, `Date`, `performance.now`, `crypto.getRandomValues`, `setTimeout/setInterval`, `for…in`, `Intl`, `toLocaleString`, and imports from `three` or any DOM type. Enforced by ESLint `no-restricted-properties`, `no-restricted-globals`, `no-restricted-syntax`, `no-restricted-imports` with a fixture that must fail (JS transcendentals are implementation-dependent across engines [research/gamedesign-decomposition.md §0]).
 2. Allowed exact operations: `+ − × ÷`, `Math.abs/min/max/floor/ceil/round/trunc/sign/fround/imul/clz32`, integer bit ops. `detmath` provides `sqrt, sin, cos, atan2, exp, log, pow, hypot, lerpAngle, normalizeAngle` as polynomial/iterative implementations over those operations, with golden vectors checked in Node, Chromium and WebKit (M01a). Whether `Math.sqrt` is bit-identical across engines is UNVERIFIED, so `detmath.sqrt` must not delegate to it until the vectors pass.
 3. RNG: `xoshiro128**` (32-bit state ×4, `Math.imul`), seeded by `splitmix32(worldSeed ^ fnv32(streamName))`. Named streams: `world`, `weather`, `pursuit`, `police`, `spawn`, `ai`, `loot`, `mode:<id>`, `mission:<id>`, and per-agent streams `amb:<cell>:<slot>`. Stream states are hashed resources and are saved in checkpoints. No module keeps a private generator.
 4. Inputs reach the sim only as quantized `InputFrame`s (C03). Analog values are integers before the sim sees them.
@@ -228,8 +238,8 @@ export interface BootPayload { strings: string[]; prefabs: unknown[]; config: Re
 // packages/shared/src/contracts/c03-input.ts
 export const C03_VERSION = '1.0.0' as const;
 
-/** Digital sim actions = bit index in InputFrame.buttons (u32). Bits 0–15 are the net-relevant set
- *  that fits C11's u16 `buttons` today (see contract_change_proposals: widen to u32). */
+/** Digital sim actions = bit index in InputFrame.buttons (u32). Bits 0–15 are the net set carried in
+ *  C11's u16 `IN.buttons` (frozen in 06 v1.0); bits ≥ 16 never travel in IN (rooms use ACT frames). */
 export const enum SimButton {
   Jump = 0, Sprint = 1, Interact = 2, Enter = 3, Attack = 4, Block = 5, Special = 6, Handbrake = 7,
   Nitro = 8, Ability = 9 /* thruster hop etc. */, LookBehind = 10, Horn = 11, FightHeavy = 12,
@@ -326,7 +336,7 @@ export interface PoseActionEvent { action: ActionId; captureTs: number; confiden
 4. The kbm binder suspends while a DOM text field has focus; all bindings release on `blur` and on `visibilitychange` [research/repos-webport.md §2.7].
 5. Desktop look uses Pointer Lock with `unadjustedMovement: true`; iPhone has no Pointer Lock, so touch uses `touch:dragR` [research/stack-rendering-platform.md §2, F-011].
 6. Gamepads use the W3C standard mapping; XR controllers the `xr-standard` mapping; Quest A/B/X/Y indices are UNVERIFIED, so defaults never put a required action only on a face button [research/gamedesign-decomposition.md §6].
-7. XR input is routed by `event.inputSource`, never by array index; Vision Pro transient inputs are empty until a pinch [research/stack-rendering-platform.md §4.3].
+7. XR input is routed by `event.inputSource`, never by array index; Vision Pro transient inputs are empty until a pinch [research/stack-rendering-platform.md §4.3]. The `xr-controller`, `xr-hand` and `xr-transient` binders are thin readers over S11's `XrInputRouter` per-frame cache and never sample `XRFrame` themselves; face-button indices come from `config/xr-input-profiles.json` (S11 Part B §5.4).
 8. The last device that produced input becomes `active` (UI glyphs). Any touch, key or pad input disables the pose binder until re-enabled [research/auth-ugc-input-maps.md §4.7].
 9. Every `SimButton` and `ClientAction` is remappable on every device except `client.Pause`, which always keeps its default binding in addition to any override (R-ENG-04).
 10. Defaults per device and context are the gamedesign §6 matrix, stored as JSON in `config/input/`; touch defaults use stick radius 58 px, knob 26 px, sprint beyond 1.35× radius, look gain 3.0, tilt-steer dead zone 10°/full 45°, min hold 120 ms [research/repos-webport.md §3.6].
@@ -369,7 +379,7 @@ export interface XRRigParams {
   turn: { snapDeg: 30 | 45; smooth: boolean };
   vignette: number;                   // 0..1 strength while moving or yawing
   seated: boolean; heightCalibM: number;
-  session: 'immersive-vr' | 'immersive-ar'; // ar only for tycoon desk / fighter tabletop
+  session: 'immersive-vr' | 'immersive-ar'; // v1: 'immersive-vr' only; 'immersive-ar' reserved for a post-M11b ADR (visionOS support UNVERIFIED)
 }
 /** Published by the sim each tick (snapshot side block). The main-thread rig obeys it. */
 export interface CameraDirective {
@@ -403,9 +413,9 @@ export interface CameraRig {
 **Rules:**
 1. fp/tp toggle works on foot and in vehicles at any time except while `lockPlayerToggle` (R-PLAT-04). fp on foot = eye at head anchor (1.7 m standing); fp in vehicle = `cockpit` or `hood`.
 2. Collision is a sphere cast from the anchor to the desired camera position in `sim.worker` against static colliders and vehicles, every tick for the active follow camera; the rig pulls in immediately and eases out over `easeOutSec`. A 100-pose sweep test asserts the camera is never inside geometry (M01b).
-3. Near plane: fp 0.05 m, tp/cinematic 0.1 m; far = tier building draw distance (C13). Depth-precision technique (reversed or logarithmic depth) is S11's `RendererHost` choice; `WebGPURenderer` exposes both options [research/stack-rendering-platform.md §1.2].
+3. Near plane: fp 0.05 m, tp/cinematic 0.1 m; far = tier building draw distance (C13). Depth: S11's `RendererHost` requests `reversedDepthBuffer` on every tier and publishes `depthPolicy`; when it reports `'standard'` the rig raises near to `max(near, far / 20000)` (`11-platform.md` §5.1 step 4) [research/stack-rendering-platform.md §1.2].
 4. Cinematic shots come from S03's director (gta-sa-earth-style vocabulary, LOS validation, cut after 0.8 s occlusion) running as a sim system so scrubbing is deterministic [research/repos-world.md §3.4]; the rig only applies them.
-5. XR: camera = viewer pose; `origin` anchors the reference space to the player's feet, vehicle seat (rest frame), fighter arena or tycoon desk. No shake, no director cuts; cutscenes play on a panel or from a fixed vantage; snap turn 30° default; vignette while moving [research/stack-rendering-platform.md §4.4; research/gamedesign-decomposition.md §2.13].
+5. XR: camera = viewer pose; `origin` anchors the reference space to the player's feet, vehicle seat (rest frame), fighter arena or tycoon desk. No shake, no director cuts, no camera-collision push (head in geometry fades to black, S11 Part B §5.3); the rig exposes only the dolly; cutscenes play on a panel or from a fixed vantage; snap turn 30° default; vignette while moving [research/stack-rendering-platform.md §4.4; research/gamedesign-decomposition.md §2.13].
 6. Reduced motion: shake off, director cuts ≥ 2 s apart, fades replace whip pans.
 
 ## Engine service interfaces (not numbered contracts; consumed by S02, S03, S06, S07, S11)
@@ -438,12 +448,15 @@ export interface WheelDesc { pos: [number, number, number]; radius: number; rest
 export interface VehicleDrive { engineForce: number; brake: number; steerRad: number; handbrake: boolean }
 export interface RayHit { toi: number; normal: [number, number, number]; collider: number; entity: number /*handle*/ }
 
-// packages/engine/src/client/anim/types.ts (main thread; presentation only)
-export type SkeletonId = 'dv-humanoid-v1';
+// packages/shared/src/contracts/anim-states.ts (C04, pure; S05 tools/assets and packages/shared/src/rig import these without the engine client; DL-066)
+export type SkeletonId = 'bay_rig_v1';   // = C07 rigFamily and asset rig/bay_rig_v1; vendor aliases in packages/shared/src/rig/bay_rig_v1.json (S05)
 export const HUMANOID_BONES = ['hips', 'spine', 'chest', 'upperChest', 'neck', 'head',
   'l_shoulder', 'l_upperArm', 'l_lowerArm', 'l_hand', 'r_shoulder', 'r_upperArm', 'r_lowerArm', 'r_hand',
   'l_upperLeg', 'l_lowerLeg', 'l_foot', 'l_toes', 'r_upperLeg', 'r_lowerLeg', 'r_foot', 'r_toes'] as const;
-export interface ClipRef { asset: string /* C07 AssetId */; clip: string; speed?: number }
+// AnimStateId (below) lives in the same shared file.
+
+// packages/engine/src/client/anim/types.ts (main thread; presentation only; imports SkeletonId from @dv/shared)
+export interface ClipRef { asset: string /* C07 AssetRef `<kind>/<id>`, e.g. anim/<slug>.base */; clip: string; speed?: number }
 export interface AnimStateDef {
   id: number; name: string; loop: boolean;
   clip?: ClipRef;
@@ -453,6 +466,11 @@ export interface AnimStateDef {
 }
 export interface AnimGraphDef { id: string; skeleton: SkeletonId; states: AnimStateDef[]; ik: { feet: boolean; hands: 'off' | 'xr' } }
 export interface AnimLodBands { fullHzWithinM: number; halfHzWithinM: number; quarterHzWithinM: number } // beyond: frozen pose
+/** Network animation state (C11 SNAP `anim`, u8); declared in packages/shared/src/contracts/anim-states.ts with SkeletonId and HUMANOID_BONES, S01 owns. Each C01 Control.state
+ *  maps to one id: 0 idle, 1 walk, 2 run, 3 sprint, 4 jump, 5 fall, 6 land, 7 vault, 8 enter vehicle, 9 drive, 10 passenger,
+ *  11 exit vehicle, 12 ragdoll, 13 get up, 14 knocked out, 15 melee ready, 16 attack, 17 hitstun, 18 blockstun, 19 grappled,
+ *  20 swim, 21 emote, 22 arrested; 23–127 reserved for S01; 128–255 mode-owned (blocks assigned by ADR). */
+export type AnimStateId = number; // u8
 
 // packages/engine/src/client/audio/types.ts
 export type AudioBusId = 'master' | 'music' | 'sfx' | 'ambience' | 'voice' | 'radio' | 'ui' | 'cutscene';

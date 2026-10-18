@@ -61,9 +61,9 @@ Fidelity maps to C13 tiers through `TIER_FIDELITY` (A§4.2): `hi` for `desktop`,
 
 ## 4. Rig family and retarget
 
-- **`bay_rig_v1`** is the repo's single skeleton contract: `packages/shared/src/rig/bay_rig_v1.json` = `{ family, required: string[], parents, aliases: Record<vendorName, canonicalName>, hips, heightM }` plus a hand-checked mannequin GLB (a Meshy-rigged T-pose model kept as asset `rig/bay_rig_v1`). Meshy states Mixamo-style bone names (vendor marketing, medium confidence); the real names, finger and face data are probed in M00c (U1) and the alias table is written from that probe.
+- **`bay_rig_v1`** is the repo's single skeleton contract: `packages/shared/src/rig/bay_rig_v1.json` = `{ family, required: string[], parents, aliases: Record<vendorName, canonicalName>, hips, heightM }`, where `required` and the canonical names are S01's 22 `HUMANOID_BONES` (`01-engine-contracts.md`) plus a hand-checked mannequin GLB (a Meshy-rigged T-pose model kept as asset `rig/bay_rig_v1`). Meshy states Mixamo-style bone names (vendor marketing, medium confidence); the real names, finger and face data are probed in M00c (U1) and the alias table is written from that probe.
 - Every NPC goes through the same Meshy rigger, so clips bind by bone name in `AnimationMixer`. Hip height scales with `heightM`; foot IK for ground contact is the engine's [research/genai-pipeline-fal.md §3.3].
-- **Meshy library clips** (5 per character, from the multi-animation call) are stored as `anim/<slug>.base`. **Authored fighter moves** (60–80 per fighter, frame data from S07) are keyed once on the mannequin in Blender, exported as GLB, then baked per fighter by `assets:retarget --rig bay_rig_v1 --clips <glb> --to <slug>` using `SkeletonUtils.retargetClip(target, source, clip, { names, hip: 'Hips', fps: 30 })` in Node; output `anim/<slug>.moves` (animation-only meshopt GLB, clip name = move id). Never retarget at runtime on mobile. If S07 needs 60 fps clips, set `fps` and re-bake; the clip carries its frame count in `extras`.
+- **Meshy library clips** (5 per character, from the multi-animation call) are stored as `anim/<slug>.base`. **Authored fighter moves** (60–80 per fighter, frame data from S07) are keyed once on the mannequin in Blender, exported as GLB, then baked per fighter by `assets:retarget --rig bay_rig_v1 --clips <glb> --to <slug>` using `SkeletonUtils.retargetClip(target, source, clip, { names, hip: 'hips', fps: 30 })` (canonical bone names are S01's `HUMANOID_BONES`) in Node; output `anim/<slug>.moves` (animation-only meshopt GLB, clip name = move id). Never retarget at runtime on mobile. If S07 needs 60 fps clips, set `fps` and re-bake; the clip carries its frame count in `extras`.
 - Deferred optimisation (post-M10b): one shared clip pack on the mannequin instead of per-character copies, only if a transfer test across ten characters passes A5.
 
 ## 5. Voice and lip-sync assets (D-23)
@@ -79,7 +79,7 @@ The `style_prompt` and design prompt never name or describe a real person, accen
 
 ## 6. Cutscene job stages (R-CUT-01; S03 owns request, key and playback)
 
-`kind: cutscene_shot`, executed by `GenJobWorkflow`; `CutsceneJobDO.idFromName(key)` is the single-flight lock and its ready test is `HEAD cutscenes/<key>/manifest.json`. `<key>` is A-03 computed by S03 with the `canonicalJson`/`sha256` helpers in `packages/shared/src/genai`; here `endpointId@updatedAt` means the registry's `pinnedUpdatedAt`, `seed` is mandatory, and `inputHashes` are SHA-256 of keyframe and reference files, never URLs.
+`kind: cutscene_shot`, executed by `GenJobWorkflow`; `CutsceneJobDO.idFromName(key)` is the single-flight lock and its ready test is `HEAD cutscenes/<key>/manifest.json`. `<key>` is A-03 computed by S03 with `canonicalize` (`packages/shared/src/json.ts`, DL-009) and `sha256Hex` (`packages/shared/src/hash.ts`); the key term is `endpointId@pinnedUpdatedAt` (A-03 v1), `seed` is mandatory, and `inputHashes` are SHA-256 of keyframe and reference files, never URLs.
 
 1. `gate`: provider chosen by the A§4.5 selection rule and checked by `assertCallable` ([research/gap-video-model-licence-clearance.md §8]); production env needs `status: cleared`; tiers of `characters[]` from the request; presets `toon-pbr` for non-consented; prompt lint on the template filled with slots.
 2. `keyframes`: per shot, Sunburst edit at 1920×1080 `high` ($0.0396), inputs = style bible, approved sheet crops of the characters (first-party only for non-consented), stage plate. Reference-to-video shots (fighter face-offs) send ≤ 4 square crops instead when the provider supports it.
@@ -94,7 +94,7 @@ The `style_prompt` and design prompt never name or describe a real person, accen
 11. `publish`: write `cutscenes/<key>/manifest.json` last (S03's `CutsceneManifest`, `provenance.aiGenerated: true`, plus `licence.{gate,status,termsSnapshotSha256[],clearedBy,clearedAt}` and `characters[]` for purge).
 12. `record`: provenance records for `orig.mp4` (generated) and each rendition (derived); `gen_job` row and ledger settle.
 
-On container failure after retries, Media Transformations produces a poster and 720p progressive file with `degraded: true`. Prewarm: `pnpm assets:gen prewarm --release <tag>` computes every key from S03's `CutsceneRef` index, HEADs, and submits only misses; a second run makes zero vendor calls; CI fails a release whose refs lack both a cleared asset and an in-engine fallback.
+On container failure after retries, Media Transformations produces a poster and the rendition `p720` (720p progressive MP4) with `degraded: true` (C09 fixed line, DL-072). Prewarm: `pnpm assets:gen prewarm --release <tag>` computes every key from S03's `CutsceneRef` index, HEADs, and submits only misses; a second run makes zero vendor calls; CI fails a release whose refs lack both a cleared asset and an in-engine fallback.
 
 ## 7. Vehicles, props, environment kits: sourcing
 
@@ -131,7 +131,7 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 | Gate | Script | Fails when | Lands |
 |---|---|---|---|
 | `provenance:check` | `tools/ci/provenance-check.ts` | A§4.3 list: ship-set file without a valid record, licence off the allowlist, missing attribution, `env ≠ production`, `previs/` or `mock` references, `placeholder` tags in a release, unrooted derivation | M00b |
-| `check:assets` | `tools/ci/check-assets.ts` | C07 schema or invariant error, budget breach (§3), missing fidelity, `rev` regression, file > 25 MiB, pack > 4 MiB | M00b/M01c |
+| `check:assets` | `tools/ci/check-assets.ts` | C07 schema or invariant error, budget breach (§3), missing fidelity, `rev` regression, file > 25 MiB, pack > 4 MiB | M00b/M01d |
 | `ip:signatures` | `tools/ci/ip-scan.ts` | RPF7 `37 46 50 52`, RSC7 `52 53 43 37`, DXBC `44 58 42 43`, GXT2 `32 54 58 47`, WASM `name` section with `rage::`, OIV packages, RenderWare and IMG headers in repo or R2 upload set | M00b |
 | `ip:extensions` | same | denylisted extensions (`.rpf .ytd .ydr … .dff .txd .img .ipl .ide .col .scm .ifp`) | M00b |
 | `ip:strings` | same | `config/ip-denylist.json` hit in source, i18n, missions, soul files, prompt templates, generated-content caches (outside `docs/legal/`, `docs/research/`) | M00b |
@@ -140,10 +140,10 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 | `names:lint` | `tools/ci/names-lint.ts` | real-side NameRegistry string in client code, content, provenance or prompt templates; display name distance < 0.4. Real-side list is a CI secret; forks run display-side only | M00b |
 | `likeness:gate` | `tools/ci/likeness-gate.ts` | schema conditionals (A§4.3), missing `standIn`, `consented` without an unexpired scope in `config/consent-index.json` (ids, scopes, `term_end`; exported by S04), face-detector model URLs (`face_detector`, `FaceLandmarker`, `face_landmark`) anywhere | M00b |
 | `check:c2pa` | `tools/ci/check-c2pa.ts` | shipped cutscene without `orig.mp4` anchor, re-signed rendition, or `aiGenerated` flag | M05b |
-| `history:scan` | `tools/ci/ip-scan.ts --history` | any hit over full git history before the repo is public | M14b |
+| `ip:history` | `tools/ci/ip-scan.ts --history` | any hit over full git history before the repo is public | M14b |
 | `genai:liveness` | `tools/assets/genai-liveness.ts` | nightly, no key: id missing, `status ≠ active`, `license_type ≠ commercial`, `updated_at ≠ pinnedUpdatedAt` (issue, not failure of PRs) | M00b |
 | `genai:price` | same, keyed | monthly: list price differs from registry by > 5 % | M00c |
-| `terms:watch` | `tools/ci/terms-watch.ts` | weekly: SHA-256 of any snapshot in `docs/legal/vendor-terms/` changed → provider `cleared→pending` | M14b |
+| `genai:terms-watch` | `tools/ci/terms-watch.ts` | weekly: SHA-256 of any snapshot in `docs/legal/vendor-terms/` changed → provider `cleared→pending` | M14b |
 
 Snapshots to store at M00b: fal ToS (2026-09-08), fal AUP, fal API Services Terms, MiniMax H3 LICENSE (2026-08-02) and Q&A, MiniMax Open Platform ToS (2026-03-30), Gemini API terms (2026-04-28), LTX LICENSE-2_x, ElevenLabs music terms (2026-10-09), OpenAI usage policies (2025-10-29) [research/gap-video-model-licence-clearance.md §6, research/legal-ip-likeness.md §3.4].
 
@@ -203,7 +203,7 @@ pnpm assets:kill        --npc <id> --scope all --ticket <id> --stage   # staging
 
 Steps:
 
-1. **Preconditions.** `genai:liveness` green; vendor snapshots current (`terms:watch` green); registry prices checked within 30 days; fal credit ≥ 1.25 × `plan` estimate; fal concurrency raised from 2 to ≥ 10 by prepaid credit before the overnight batch (default limit is 2, F-047); roster tiers and `visual_brief` text exist for each slug; ADR-GENAI-01 state noted in the plan header.
+1. **Preconditions.** `genai:liveness` green; vendor snapshots current (`genai:terms-watch` green); registry prices checked within 30 days; fal credit ≥ 1.25 × `plan` estimate; fal concurrency raised from 2 to ≥ 10 by prepaid credit before the overnight batch (default limit is 2, F-047); roster tiers and `visual_brief` text exist for each slug; ADR-GENAI-01 state noted in the plan header.
 2. **Plan.** `assets:gen plan` for the batch; refuse any slug whose gate verdicts are not all `ok`; review the estimate.
 3. **Canary (M10a):** two characters end to end (one `parody`, one `fictionalized`); expected spend ≈ $7.3; all A and H gates; `assets:verify`; publish; confirm the provenance PR passes `provenance:check` and `likeness:gate`.
 4. **Batch.** Run stages 2–5 for the remaining slugs in groups sized to the concurrency limit; stop at H1, H3, H4. Humans decide in batches; unattended runs never cross a human gate.
@@ -217,9 +217,9 @@ Steps:
 ## 13. Contract change proposals, assumptions (consolidated for S13)
 
 - **06 §4 C07 / §5:** final shape per A§4.2. `variants` stays keyed by C13 tier id (06 sketch) plus `default`; `url`→`key` (origin from config); `hash`→`sha256`; `provenance` becomes a summary pointing to a record; asset key rule `<root>/<variant>.<hash12>.<ext>` (S09's key table shows the unhashed form); public character parts are `model|rig|anim|portrait|mouth_atlas`, while sheets and other candidates are private (`PRIVATE sheets/<slug>/`), a change to 06 §5's `characters/<slug>/{sheet,model,rig}`.
-- **C09 (S03):** `CutsceneManifest` gains `characters: {id, soulVersion, tier}[]` (mirrors S09's `cutscenes.char_ids`) and a `licence` block; adopt dir-per-key layout with originals in `PRIVATE cutscenes-orig/<key>/`; add a release-time `cutscene-index` mapping `CutsceneRef → key` so a deliberate endpoint re-pin (A-03 `updatedAt`) does not orphan shipped clips.
+- **C09 (S03):** `CutsceneManifest` gains `characters: {id, soulVersion, tier}[]` (mirrors S09's `cutscenes.char_ids`) and a `licence` block; adopt dir-per-key layout with originals in `PRIVATE cutscenes-orig/<key>/`; add a release-time `cutscene-index` mapping `CutsceneRef → key` so a deliberate endpoint re-pin (A-03 `pinnedUpdatedAt`, `genai:repin`) does not orphan shipped clips.
 - **C10 (S04):** compiled soul exposes `tier`, `soulVersion`, `visual_brief` (text-only appearance), `standIn`, `moves` (Meshy ids), `heightM`, `voice.design_prompt`; `assets.*` are `AssetRef` strings (`assets.rig` = `rig/bay_rig_v1`, the family asset); add `assets.anim`; character id equals asset slug.
-- **C12 (S09):** reuses routes 28 (prewarm), 29 (`/hooks/fal`, handler exported by `services/pipeline`) and 46 (kill, which must start `KillPurgeWorkflow`) and KV `ks:*`, `gov:level`, `jwks:fal` as already drafted. New: migration `0004_assets.sql` with `gen_run`, `gen_job(job_key unique)`, `asset_index(ref, sha256, status, tags text[])`, `bark_index(voice_id, key)`, `budget_program(vendor, cap_usd_micros, alarms)`; `genai_ledger.kind += 'asset'`; Container binding `TRANSCODER`; `FAL_MODE=mock` maps to `MockExecutor`. Roster generation needs no admin generate route (CLI executor).
+- **C12 (S09):** reuses routes 28 (prewarm), 29 (`/hooks/fal`, handler exported by `services/pipeline`) and 46 (kill, which must start `KillPurgeWorkflow`) and KV `ks:*`, `gov:level`, `jwks:fal` as already drafted. New, folded into S09's migration `0002_genai.sql` (M05d): `gen_run`, `gen_job(job_key unique)`, `asset_index(ref, sha256, status, tags text[])`, `bark_index(voice_id, key)`, `budget_program(vendor, cap_usd_micros, alarms)` (mirror of `config/guardrails.yaml` `genai.*`, DL-068); `genai_ledger.kind += 'asset'`; Container binding `TRANSCODER`; `FAL_MODE=mock` maps to `MockExecutor`. Roster generation needs no admin generate route (CLI executor).
 - **C13 (S11):** none beyond what 11-platform.md already exports (`QualityTierId`, `VARIANT_FALLBACK`, budgets); S05 only asks that `config/tier-budgets.json` stay importable by `check:assets` and that Quest and Vision Pro keep falling back to `mobile` and `desktop`.
 - **C14 (S12):** `ModManifest.assets[]` provenance uses `ProvenanceRecord`; `dv mod check` imports `tools/ci` validators.
 - **A-01:** shared genAI helpers live in `packages/shared/src/genai/` (no `packages/genai-core`); the transcoder image lives in `services/pipeline/transcoder/`; legal snapshots live in `docs/legal/` (the `ip:strings` allowlist names `docs/legal/` and `docs/research/`); `config/genai-endpoints.json` also hosts the ADR-GENAI-01 video provider entries (replaces `config/genai/video-providers.json`).

@@ -1,6 +1,6 @@
 # 01 — Core Engine & Game Logic (S01)
 
-> Wave 1 domain spec, 2026-10-18, author S01 (`claude-opus-5-5`). Reads `prompt-pack/06-SHARED-CONTEXT.md` v0.95 and `spec/03-decisions-and-facts.md` v0. This spec has three parts:
+> Wave 1 domain spec, 2026-10-18, author S01 (`claude-opus-5-5`). Reads `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`) and `spec/03-decisions-and-facts.md` v1. This spec has three parts:
 > - **this file**: scope, design, runtime, platforms, facts, milestones, tests and open questions;
 > - `spec/domains/01-engine-contracts.md`: C01 ECS, C02 GameLoop (with the determinism rules), C03 Input, C04 CameraRig, and the physics/animation/audio service interfaces;
 > - `spec/domains/01-engine-save-modes.md`: C05 SaveGame, C06 GameMode + unlock registry, PursuitDirector, clock/weather, interaction, prefabs, A-02 mission hooks, economy and melee cores.
@@ -50,7 +50,7 @@
 | 31 | Scripted input lines and an input recorder for regression drives [research/repos-modding.md P-SK-09] | designed | §2.11 | M03a |
 | 32 | Debug tooling: perf HUD, free cam, entity inspector, physics draw, hash display, `__dvBridge` | designed | §2.11 | M01b, M03a |
 | 33 | Headless engine (Node and Worker) for tests, bots and server checks | designed | §2.12 | M01a |
-| 34 | Netcode hooks: prediction ring, net slots, hash cadence (A-04) | deferred | §2.13 | M12a |
+| 34 | Netcode hooks: prediction ring, net slots, hash cadence (A-04) | deferred | §2.13 | M12b |
 | 35 | Tier hooks for C13 budgets: density caps, physics radius, animation bands, audio voices | designed | §6 | M01b, M11a |
 
 **Out of scope, with reasons.** Firearms (D-30). A render worker (D-08). Articulated ragdolls (Jolt has them, Rapier does not; ragdoll-lite covers v1 [research/stack-rendering-platform.md §5.1]). Skateboard controller (Q-ENG-04). Full-body XR IK (Q-ENG-05). Traffic/ped brains, road graph, sky renderer (S02); mission IR and director shots (S03); handling and race rules (S06); fighter frame data (S07).
@@ -209,7 +209,7 @@ Touch uses a floating left stick and right-half drag look (muguet numbers in C03
 
 ### 2.8 Animation (presentation only)
 
-- **Skeleton.** Characters are glTF skinned meshes retargeted at build time (S05 pipeline) to the canonical `dv-humanoid-v1` skeleton (22 bones, part 1). Meshy rig bone names are UNVERIFIED [research/INDEX.md §2], so the retarget map lives in S05's tool, never at runtime.
+- **Skeleton.** Characters are glTF skinned meshes retargeted at build time (S05 pipeline) to the canonical `bay_rig_v1` skeleton (22 `HUMANOID_BONES`, part 1; S05 owns the vendor alias table). Meshy rig bone names are UNVERIFIED [research/INDEX.md §2], so the retarget map lives in S05's tool, never at runtime.
 - **Graphs.** `AnimGraphDef` holds states with single clips, 1D blends (locomotion by speed) and 2D blends (strafe). Transitions crossfade, and the graph is driven by `Anim{state, p0, p1}` from the snapshot. Root motion is not used; the sim owns positions.
 - **LOD bands.** Mixers update at full rate near the camera, then at ½ and ¼ rate, then freeze (§6). Meta recommends updating animations at 30 Hz while rendering at 90 Hz [research/stack-rendering-platform.md §4.5].
 - **IK.** Two-bone foot IK on slopes (desktop and XR; off on `mobile-low`). In XR (M11b) the player shows hands only, with two-bone forearm IK to the grip pose.
@@ -230,16 +230,16 @@ Saves follow C05: one IndexedDB row per slot generation; write, verify, then poi
 
 ### 2.11 Debug tooling
 
-Debug tooling is in dev and preview builds, and in production only when the build flag `DV_DEBUG` is set (off by default).
+Debug tooling and URL flags exist only in `VITE_DV_QA=1` builds (dev, test, preview; S11).
 
-**URL flags** (S11 owns the renderer flags `?tier`, `?level` and `?gl=1`):
+**URL flags** (all parsed by S11's single `QaFlags` parser, which also owns `?tier` and `?gl=1`; `level` is retired, DL-001, DL-064):
 - `?perf=1` shows the HUD;
 - `?debug=1` enables the tools;
 - `?seed=`, `?profile=canonical`, `?mission=&stage=` (S03);
 - `?unlockAll=1`.
 
 **Tools:**
-- **Perf HUD:** frame ms (EMA, p90), ticks/frame, tick p50/p99, dropped s, render objects/draws/tris (`renderer.info`), memory budget, tier/backend, entities, heat.
+- **Perf HUD:** S11's `PerfHud` (`?perf=1`) with an engine sim panel: ticks/frame, tick p50/p99, dropped s, entities, heat.
 - **Free cam:** detached camera; the sim keeps running or pauses.
 - **Entity inspector:** a DOM panel that reads SAB stores and edits through the command ring, in debug or sandbox only.
 - **Physics wireframe:** collider debug draw. The Rapier debug-render API is UNVERIFIED; the fallback draws our own shapes from `BodyDesc`.
@@ -257,16 +257,16 @@ Lines replay in CI. Any real input stops playback.
 `createHeadlessSim(cfg, world)` runs the same `sim/` code in Node 24 or a Worker with no DOM and no GPU. It provides `step(n, inputs)`, `hash()`, `snapshot()`, `restore()` and `exportTimeline()`.
 - Rapier's `-compat` builds embed the wasm, so they load without fetch [research/stack-rendering-platform.md §Verified facts].
 - Users: unit and integration tests, the determinism test, S03 mission autoplay, S06 race bots, S08 harness hosting, and M12b server checks.
-- Whether Rapier wasm runs inside a Durable Object is UNVERIFIED (Q-ENG-08). Server checks fall back to kinematic bounds validation without physics, which S09's M12a plan already uses [research/stack-cloudflare-backend.md §4].
+- Whether Rapier wasm runs inside a Durable Object is UNVERIFIED (Q-ENG-08). Server checks fall back to kinematic bounds validation without physics, which S09's M12b `validated` plan already uses [research/stack-cloudflare-backend.md §4].
 - Lint enforces headlessness: `packages/engine/src/sim/**` may not import `three`, `packages/engine/src/client/**`, or DOM globals.
 
-### 2.13 Netcode hooks (A-04; implemented in M12a)
+### 2.13 Netcode hooks (A-04 v1; implemented in M12b with S09 rooms core, DL-052)
 
 - **Prediction ring.** The local player keeps a 64-tick ring of `(InputFrame, predicted Transform, Control)`. On a server snapshot with `ackSeq`, the engine re-runs the character movement queries for the unacknowledged ticks against static colliders.
 - **Corrections.** Errors above 0.3/0.8/2.0 m blend with gain 0.05/0.12/0.4 (muguet's thresholds, re-implemented) or snap on vehicle transitions [research/repos-webport.md §3.7].
 - **Identity.** Net slot ↔ `StableKey player:<slot>`.
 - **Desync detection.** `stateHash` every 60 ticks in multiplayer; every tick in fighter matches (S07).
-- **Wire.** `InputFrame` packs into the `IN` frame: `moveX`/`moveY` i8, yaw u16, pitch i16, buttons, throttle/steer/brake i8.
+- **Wire.** `InputFrame` packs into the C11 `IN` sample (`09-backend-contracts.md` §1.4; buttons = `SimButton` bits 0–15, brake 0..127).
 
 ## 3. Components
 
@@ -274,7 +274,7 @@ Lines replay in CI. Any real input stops playback.
 |---|---|---|---|
 | `packages/shared/src/detmath.ts` | exact-op math, angles, vectors | `dsqrt, dsin, dcos, datan2, dexp, dlog, dpow, lerpAngle` | — |
 | `packages/shared/src/rng.ts` | xoshiro128** streams | `Rng`, `streams(seed)` | hash |
-| `packages/shared/src/hash.ts`, `json.ts` | FNV-1a 32/64; canonical JSON | `fnv32, fnv64Hex, canonicalize` | — |
+| `packages/shared/src/hash.ts`, `json.ts` | FNV-1a 32/64; pure sync SHA-256 hex (C07/C09 keys); canonical JSON | `fnv32, fnv64Hex, sha256Hex, canonicalize` | — |
 | `packages/shared/src/contracts/*` | C01–C06 + engine types | part 1, part 2 | — |
 | `packages/engine/src/sim/ecs/` | facade over bitECS, allocator, generations, string table, registry | `EcsApi`, `defineComponent` | bitecs@0.4.0 |
 | `packages/engine/src/sim/loop/` | accumulator, stages, system scheduler, hash | `SimHost`, `SystemDef` | ecs |
@@ -303,9 +303,9 @@ Pinned versions: `bitecs@0.4.0`, `@dimforge/rapier3d-simd-compat@0.21.0`, `@dimf
 - **Types:** full TypeScript in parts 1 and 2. JSON Schema for runtime-validated data: the save envelope (part 2), and slice, prefab, pursuit and input-default schemas under `packages/engine/src/**/schema/`.
 - **Persisted data:** IndexedDB `dv-saves` (C05). Graphics tier and benchmark results are S11's; the engine stores only `deviceId`.
 - **Config files** (all JSON Schema validated in CI):
-  - `config/pursuit.json`, `config/clock.json` (rate, weather weights), `config/input/defaults.<device>.json`, `config/physics.json` (character and ragdoll constants), `config/audio.json` (buses, ducking, voice caps);
+  - `config/pursuit.json`, `config/clock.json` (rate, weather weights), `config/input/defaults.<device>.json`, `config/physics.json` (character and ragdoll constants), `config/audio.json` (buses, ducking); `config/engine-tiers.json` (anim bands, voices, ragdoll caps per C13 `QualityTierId`);
   - `config/unlocks.json` (base `UnlockDef`s), `config/modes.json` (descriptor list; code entry points are referenced by id).
-- **Feature flags:** `DV_DEBUG` (build), `engine.simProfileOverride` (QA), `engine.sabTransport` (on when isolated), `engine.ragdollCap` (per tier), `engine.unlockAll` (non-production).
+- **Feature flags:** `VITE_DV_QA` (build, S11), `engine.simProfileOverride` (QA), `engine.sabTransport` (on when isolated), `engine.ragdollCap` (per tier), `engine.unlockAll` (non-production).
 
 ## 5. Runtime behavior
 
@@ -317,9 +317,9 @@ Pinned versions: `bitecs@0.4.0`, `@dimforge/rapier3d-simd-compat@0.21.0`, `@dimf
 
 | Failure | Detection | Fallback |
 |---|---|---|
-| Not cross-origin isolated | `crossOriginIsolated === false` | `postMessage` transport (+1 copy per frame); telemetry `engine.no_isolation` |
+| Not cross-origin isolated | `crossOriginIsolated === false` | `postMessage` transport (+1 copy per frame); telemetry `app.start{coi:false}` (S11) |
 | Sim overrun (tick > budget) | accumulator hits clamp | drop time (slow motion), count `droppedSec`; perf HUD warns; governor (S11) lowers density |
-| `sim.worker` crash | `error` event / missed snapshots 2 s | show "Recovering…", restart the worker from the last save; telemetry `engine.sim_crash` |
+| `sim.worker` crash | `error` event / missed snapshots 2 s | show "Recovering…", restart the worker from the last save; telemetry `err.sim` |
 | Rapier wasm load fails | `init()` rejects | retry with jittered backoff 3× [research/repos-webport.md P7], then error screen with diagnostics |
 | IndexedDB unavailable / quota | open or put throws | in-memory session with banner "Progress cannot be saved"; `lastSave.error` set |
 | Save checksum mismatch | load verify | previous generation; status line shows the error |
@@ -334,11 +334,11 @@ Pinned versions: `bitecs@0.4.0`, `@dimforge/rapier3d-simd-compat@0.21.0`, `@dimf
 
 ## 6. Platform notes
 
-| Aspect | Desktop | iPhone `mobile` / `mobile-low` | Quest 3/3S (`xr-standalone`) | Vision Pro (`xr-pro`) |
+| Aspect | Desktop (`desktop`; `desktop-ultra` uses the C13 row) | iPhone `mobile` / `mobile-low` | Quest 3/3S (`xr-quest`) | Vision Pro (`xr-visionpro`) |
 |---|---|---|---|---|
 | Input | KBM with Pointer Lock, gamepad | touch overlay, gamepad; no Pointer Lock, no vibration [F-011] | `xr-standard` controllers, hands optional | gaze + pinch (`transient-pointer`), hands; no gamepad assumption |
 | Render vs sim | 60 fps / 60 Hz | 60 / 60 Hz (`mobile-low`: 30 fps render, sim still 60 Hz) | 72–90 Hz render, 60 Hz sim | 90 Hz render, 60 Hz sim |
-| Physics radius | 400 m | 200 m / 150 m | 150 m (design; S11 confirms) | 200 m (design; S11 confirms) |
+| Physics radius (C13 `sim.physicsRadiusM`) | 400 m | 200 m / 150 m | 150 m | 300 m |
 | Ambient caps (cars/peds) | 540 / 400 | 200 / 150; 120 / 80 | 120 / 80 | 300 / 200 |
 | Anim bands (full / ½ / ¼ within) | 40 / 80 / 150 m | 20 / 40 / 80 m; 12 / 25 / 50 m | 15 / 30 / 60 m | 25 / 50 / 100 m |
 | Audio voices | 48 | 24 / 16 | 24 | 32 |
@@ -347,7 +347,7 @@ Pinned versions: `bitecs@0.4.0`, `@dimforge/rapier3d-simd-compat@0.21.0`, `@dimf
 | Saves | IndexedDB | IndexedDB; `persist()` after story start (S11) [research/stack-rendering-platform.md §6.5] | IndexedDB | IndexedDB |
 | Haptics | gamepad rumble where supported | none on iPhone | controller haptics | none assumed |
 
-Ambient caps come from the budgets table [research/stack-rendering-platform.md, Performance budgets]; the other values are design values for S11 to reconcile in C13. XR sessions use `immersive-vr` for city play; `immersive-ar` is limited to the tycoon desk and fighter tabletop [research/gamedesign-decomposition.md §6].
+Physics radius and ambient caps come from C13 (`11-platform.md` §4.5) [research/stack-rendering-platform.md, Performance budgets]; the other rows are engine design values in `config/engine-tiers.json`. XR is `immersive-vr` only in v1 (tycoon desk and fighter tabletop included); `immersive-ar` waits for a post-M11b ADR.
 
 ## 7. Verified facts used
 
@@ -399,7 +399,7 @@ Ambient caps come from the budgets table [research/stack-rendering-platform.md, 
 | M05c | open-world melee basic (3 moves via `CombatApi` stub), shops via economy | shared core in M08a | ≤ 0.3 |
 | M08a | combat core reading S07 frame data | — | ≤ 0.3 |
 | M11a / M11b (R-PLAT-02, R-PLAT-05) | tier tuning; XR rig, XR binders, hand IK | — | ≤ 0.5 each |
-| M12a / M12b (R-ROLL-02) | prediction ring, net slots, hash cadence | — | ≤ 0.5 each |
+| M12b / M12c (R-ROLL-02) | prediction ring, net slots, hash cadence (M12b); resume and ghost handling (M12c) | — | ≤ 0.5 each |
 
 ## 9. Tests
 
@@ -408,29 +408,29 @@ Each item is test name — proof command.
 1. `shared/detmath.vectors` (golden vectors for every detmath function) — `pnpm --filter @dv/shared test`
 2. `shared/rng.streams` (stream independence, state round-trip) and `shared/hash.fnv` (frozen golden values) — same command.
 3. `engine/determinism.node` (10,000 ticks with the `canonical` profile, gray-box fixture, line `walk-drive.line.json`; two runs give identical hashes) — `pnpm --filter @dv/engine test:determinism`
-4. `e2e/determinism` (the same run in a worker page; hash equals the Node golden) — `pnpm e2e --project=chromium-webgl2 --grep @determinism` and `pnpm e2e --project=webkit-webgl2 --grep @determinism`
+4. `e2e/determinism` (the same run in a worker page; hash equals the Node golden) — `pnpm check:e2e -- --project=chromium-webgl2 --grep @determinism` and `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism`
 5. `engine/lint.bans` (ESLint over `test/fixtures/banned/*.ts` must report every banned API) — `pnpm --filter @dv/engine test:lint-bans`
 6. `engine/headless.noDom` (sim boots with `window`, `document` and `navigator.xr` undefined) — `pnpm --filter @dv/engine test:headless`
 7. `engine/loop.*` accumulator clamp: 0.5 s yields 9 ticks and 0.35 s dropped; interpolation skip rules; command-buffer ordering; stale-handle resolve — `pnpm --filter @dv/engine test`
 8. `engine/input.*` (quantization, latch of a sub-tick tap, hold/double-tap/chord, hold-to-toggle, context stack, `Pause` always bound) — same command.
 9. `engine/camera.sweep100` (100 random poses in the gray-box: camera never inside a collider) — `pnpm --filter @dv/engine test -- camera.sweep`
-10. `e2e/fp-tp` (walk 50 m, toggle fp/tp, toggle refused during a cutscene) — `pnpm e2e --project=chromium-webgl2 --grep @fp-tp`
-11. `e2e/touch` (iPhone viewport: stick moves the player, buttons fire actions) — `pnpm e2e --project=webkit-webgl2 --grep @touch`
+10. `e2e/fp-tp` (walk 50 m, toggle fp/tp, toggle refused during a cutscene) — `pnpm check:e2e -- --project=chromium-webgl2 --grep @fp-tp`
+11. `e2e/touch` (iPhone viewport: stick moves the player, buttons fire actions) — `pnpm check:e2e -- --project=webkit-webgl2 --grep @touch`
 12. `engine/lines.filbert` (M03a: scripted drive ends at an identical pose across 3 runs) — `pnpm --filter @dv/engine test:lines`
 13. `engine/pursuit.*` table loads from JSON; arrest rule; bot reaches heat 3 from scripted infractions and escapes through cooldown (M03c) — `pnpm --filter @dv/engine test:pursuit`
 14. `engine/save.*` canonical JSON and checksum; caps (`TOO_LARGE`, `PROFILE_LIMIT`, `NAME_TAKEN`); pointer CAS conflict; namespace capability (`NOT_ALLOWED`); tombstone non-resurrection; import/undo; migrations over the golden files — `pnpm --filter @dv/engine test:save`
-15. `e2e/save-kill` (close the page during a write loop; reopen; the last good generation loads and the status line is correct) — `pnpm e2e --project=chromium-webgl2 --grep @save-kill`
+15. `e2e/save-kill` (close the page during a write loop; reopen; the last good generation loads and the status line is correct) — `pnpm check:e2e -- --project=chromium-webgl2 --grep @save-kill`
 16. `engine/modes.*` ModeHost transitions; embedding depth ≤ 2; canonical-under-local refusal; first-encounter unlock is idempotent and persisted; `comingSoon` tile is locked — `pnpm --filter @dv/engine test:modes`
 17. `engine/clock`, `engine/interaction.scoring`, `engine/economy.idempotent` — `pnpm --filter @dv/engine test`
-18. `perf/graybox-walk` (tick p99 ≤ 4 ms on the desktop CI runner, reported via `__dvBridge`) — `pnpm perf --scenario graybox-walk`
+18. `perf/graybox-walk` (tick p99 ≤ 4 ms on the desktop CI runner, reported via `__dvBridge`) — `pnpm check:perf -- --scenario graybox-walk`
 
 ## 10. Open questions
 
 - **Q-ENG-01** Cost of a profile switch (`SimHost.restart` with the other Rapier build). Measure in M01a. Default: allowed only at top-level mode entry.
 - **Q-ENG-02** Can `detmath.sqrt` delegate to `Math.sqrt`? Default: no, until the M01a vectors pass on all three engines.
-- **Q-ENG-03** Net socket in `sim.worker` or on the main thread? Default: worker, with a main-thread relay over a `MessagePort` if iOS lacks worker WebSockets. Blocks M12a only.
+- **Q-ENG-03** Net socket in `sim.worker` or on the main thread? Default: worker, with a main-thread relay over a `MessagePort` if iOS lacks worker WebSockets. Blocks M12b only.
 - **Q-ENG-04** Skateboard or scooter controller (Q-MOD-06). Default: out of v1; the ownership machine reserves no family for it.
 - **Q-ENG-05** XR body presentation. Default: hands only with forearm IK. Full-body IK is a post-M11b ADR.
 - **Q-ENG-06** Game clock rate. Default: 48 real minutes per in-game day; owner may tune in `config/clock.json`.
 - **Q-ENG-07** Quest face-button indices. Default: detect by input profile at runtime; required actions never sit only on face buttons.
-- **Q-ENG-08** Rapier in Durable Objects for M12b server physics. Default: kinematic validation only.
+- **Q-ENG-08** Rapier in Durable Objects for `authoritative` server physics (post-M12c ADR, A-04 v1). Default: kinematic validation only.

@@ -17,13 +17,13 @@
 
 ```ts
 export interface PerfScenario {
-  id: string;                         // 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'fight-stage' | 'xr-walk'
+  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'fight-stage' | 'xr-walk'
   pathRef: string;                    // camera path file owned by the scenario's milestone (S02, S06, S07)
   durationS: number; warmupS: number; seed: number;
   density: 'off' | 'nominal';         // traffic and peds at the tier budget
 }
 export interface PerfReport {
-  v: 1; build: string; c13: string; createdAt: string;
+  v: 1; build: string; c13: string; createdAt: number /* epoch ms */;
   device: { class: DeviceClass; browser: string; model?: string; uaHash: string;
             adapter: AdapterSummary | null; displayMode: DisplayMode; refreshHz: number | null };
   tier: QualityTierId; backend: RenderBackend; governor: 'on' | 'off'; scenario: PerfScenario;
@@ -45,7 +45,7 @@ export interface DeviceChecklist {
 ```
 `PerfReport` is validated by JSON Schema `tools/ci/schemas/perf-report.v1.json` (required: all top-level keys above; `v` const 1; numbers non-negative). `notes.json` is free-form operator output (UA string, `persist()` result, observed behaviour after the memory bomb, button indices).
 
-QA flags (`QaFlags`, parsed only when `VITE_DV_QA=1`, i.e. dev, test and preview builds): `?tier=`, `?gl=1`, `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value`, `?xr-emulate=quest3`, `?scenario=<id>`. Production builds ignore all URL flags.
+QA flags (`QaFlags`, the single parser owned by S11, parsed only when `VITE_DV_QA=1`, i.e. dev, test and preview builds): platform `?tier=`, `?gl=1`, `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value`, `?xr-emulate=quest3`, `?scenario=<id>`; engine (S01, passed through to `sim.worker`) `?debug=1`, `?seed=`, `?profile=canonical`, `?mission=`, `?stage=`, `?unlockAll=1` (DL-064). Production builds ignore all URL flags.
 
 ## 5. Runtime: what is measured and how
 
@@ -79,7 +79,7 @@ CI runs on SwiftShader, so frame-time numbers there are never asserted. [researc
 
 | Role | Device and software | Tier | When |
 |---|---|---|---|
-| iPhone floor (Q-10) | iPhone 15, iOS 26.x then 27.x; Home Screen app and Safari tab | mobile-low (30 fps) | M01c, cutscene spike, M11a, release |
+| iPhone floor (Q-10) | iPhone 15, iOS 26.x then 27.x; Home Screen app and Safari tab | mobile-low (30 fps) | M01c, M04c cutscene spike, M11a, release |
 | iPhone primary | iPhone 16 or 17 | mobile (60 fps) | same |
 | iPhone memory probe | an iPhone with 12 GB if available (17 Pro class) | mobile | M01c, M11a |
 | Quest | Quest 3 and 3S, current Quest Browser | xr-quest (72/90) | M01c, M11b |
@@ -89,7 +89,7 @@ CI runs on SwiftShader, so frame-time numbers there are never asserted. [researc
 | Desktop C | Windows desktop with discrete GPU, Chrome | desktop-ultra | M11a |
 | CI | `ubuntu-24.04`: `chromium-webgpu` (SwiftShader), `chromium-webgl2`, `webkit-webgl2`, `xr-quest3` (IWER) | all tiers via `?tier=` | every PR |
 
-Device availability is open question Q-S11-01. Cloud devices (BrowserStack real iOS Playwright) are optional for Safari-tab regression only; WebGPU, WebXR and Home Screen mode there are undocumented. [research/gap-ci-cd-release-assets.md §4.3]
+Device availability is open question Q-13 (`spec/99-open-questions.md`; was Q-S11-01). Cloud devices (BrowserStack real iOS Playwright) are optional for Safari-tab regression only; WebGPU, WebXR and Home Screen mode there are undocumented. [research/gap-ci-cd-release-assets.md §4.3]
 
 ## 7. Facts used
 
@@ -121,7 +121,7 @@ Rules: assert on state (backend, frames, counts, hashes), not pixels; pixel gold
 9. `meter-agrees-with-info.spec.ts` and `boot-download.spec.ts` as described above.
 10. `check:perf` aggregates specs 8 to 9; `check:e2e` runs 1 to 7 on the three flat projects; `check:e2e:xr` runs the XR specs of part B.
 
-**Device passes.** `pnpm perf:checklist -- tools/ci/checklists/<M##>-<device>.json` prints the scripted steps and URLs; the operator runs them, exports `perf.json` and `notes.json` from the bridge, uploads both as release assets; `pnpm perf:verify` decides. Checklist content per milestone: M01c (iPhone, Quest, Vision Pro, desktop spike: backend actually selected, UA fixtures, `adapter.info`, 10-minute gray-box run, memory bomb, `persist()`), cutscene spike (gap report §7.7), M11a (`mobile` and `mobile-low` budgets, 30-minute soak, offline relaunch, Low Power Mode on and off, thermal observation), M11b (part B §9 item 8).
+**Device passes.** `pnpm perf:checklist -- tools/ci/checklists/<M##>-<device>.json` prints the scripted steps and URLs; the operator runs them, exports `perf.json` and `notes.json` from the bridge, uploads both as release assets; `pnpm perf:verify` decides. Checklist content per milestone: M01c (iPhone, Quest, Vision Pro, desktop spike: backend actually selected, UA fixtures, `adapter.info`, 10-minute gray-box run, memory bomb, `persist()`), M04c cutscene spike (gap report §7.7), M11a (`mobile` and `mobile-low` budgets, 30-minute soak, offline relaunch, Low Power Mode on and off, thermal observation), M11b (part B §9 item 8).
 
 **Acceptance criteria proposed to S13** (each with proof):
 - M00 AC-P1: Given a Preview URL When `pnpm check:headers -- <url>` and `pnpm check:coi -- <url>` run Then isolation headers are present and `crossOriginIsolated === true` after a SW-served reload — proof: those commands.
@@ -132,4 +132,4 @@ Rules: assert on state (backend, frames, counts, hashes), not pixels; pixel gold
 
 ## 10. Open questions
 
-Q-S11-01: which physical devices exist (iPhone 15, 16 or 17, Quest 3 and 3S, Vision Pro, Windows GPUs)? Recommendation: the owner confirms the minimum set iPhone 15 + iPhone 16/17 + Quest 3 + Vision Pro; Desktop B and C can be borrowed or skipped with `desktop-ultra` marked unverified. Q-10 floor is binding. Add `perf:verify` and `perf:checklist` to the 08-test-and-ci script table (proposal to S13).
+Q-13 (was Q-S11-01; owner question in `spec/99-open-questions.md`): which physical devices exist (iPhone 15, 16 or 17, Quest 3 and 3S, Vision Pro, Windows GPUs)? Recommendation: the owner confirms the minimum set iPhone 15 + iPhone 16/17 + Quest 3 + Vision Pro; Desktop B and C can be borrowed or skipped with `desktop-ultra` marked unverified. Q-10 floor is binding. Add `perf:verify` and `perf:checklist` to the 08-test-and-ci script table (proposal to S13).

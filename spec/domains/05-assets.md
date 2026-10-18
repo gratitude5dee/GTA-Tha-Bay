@@ -1,6 +1,6 @@
 # Domain 05 — Asset Pipeline (S05), Part A: contract C07, design, runtime
 
-> Wave 1 · v0.1 · 2026-10-18 · reads `prompt-pack/06-SHARED-CONTEXT.md` v0.95 and `spec/03-decisions-and-facts.md` v0. Part B (`spec/domains/05-assets-pipeline.md`) holds stage tables, kits, audio policy, CI gate specs, costs and the roster runbook; this file holds everything another domain must code against. Citations `[research/<file>.md]` or F-NNN (research/INDEX.md §2). Numbers marked **(S05)** are design values, not vendor facts.
+> Wave 1 · v0.1 · 2026-10-18 · reads `prompt-pack/06-SHARED-CONTEXT.md` v1.0 (frozen; drafted against v0.95, reconciled per `spec/11-decision-log.md`) and `spec/03-decisions-and-facts.md` v1. Part B (`spec/domains/05-assets-pipeline.md`) holds stage tables, kits, audio policy, CI gate specs, costs and the roster runbook; this file holds everything another domain must code against. Citations `[research/<file>.md]` or F-NNN (research/INDEX.md §2). Numbers marked **(S05)** are design values, not vendor facts.
 
 ## 0. Checklist (seed expanded)
 
@@ -31,7 +31,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 | 21 | Vehicles, props, environment kits: generated vs CC0 vs authored decision table | D Pt B §7 | A-05, constraint 15 |
 | 22 | Music and SFX policy | D Pt B §8 | Q-11 |
 | 23 | R2 buckets, layout, CORS, cache rules, prefix purge | D §4.4 | F-019, F-023 |
-| 24 | CI gates `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`, `check:c2pa`, `history:scan` | D Pt B §9; M00b | INDEX §4.4 |
+| 24 | CI gates `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`, `check:c2pa`, `ip:history` | D Pt B §9; M00b | INDEX §4.4 |
 | 25 | Asset lock file as the release gate; mock, previs and placeholder outputs cannot ship | D §4.3, Pt B §9 | ADR-GENAI-01 |
 | 26 | Kill-switch purge workflow (live ≤ 60 s, public purge ≤ 24 h), stand-ins, drill | D §5.5, Pt B §10; M10b | D-29 |
 | 27 | Cost per asset and v1 programme against the $1,000 cap | D Pt B §11 | F-044…F-046 |
@@ -96,7 +96,7 @@ flowchart LR
 |---|---|---|
 | `packages/shared/src/assets/c07.ts` | C07 types, `resolveVariant`, `objectKey`, `assetRefOf` | §4.2 |
 | `packages/shared/src/assets/provenance.ts` + `schemas/provenance-1.0.schema.json` | record types, validator | `validateRecord(r)` |
-| `packages/shared/src/genai/` | registry loader, `jobKey`, canonical JSON, prompt linter, price math | `loadRegistry`, `jobKey`, `lintPrompt` |
+| `packages/shared/src/genai/` | pure (C02 lint scope): registry parser (takes parsed JSON, no fs), `jobKey` (uses `@dv/shared` `canonicalize`), prompt linter, price math | `loadRegistry`, `jobKey`, `lintPrompt` |
 | `services/pipeline/src/steps/` | stage functions (tier-check, submit, await, fetch, probe, qa, record) | `Step<I,O>` over `GenPorts` |
 | `services/pipeline/src/workflow.ts` | `GenJobWorkflow`, `KillPurgeWorkflow` | Workflow classes |
 | `services/pipeline/src/fal.ts` | queue client, header set, `verifyFalWebhook`, `handleFalWebhook` | S09 mounts at `/api/v1/hooks/fal` |
@@ -115,7 +115,7 @@ Ports (all injected): `FalPort` (submit/status/result/cancel), `BlobPort` (get/p
 ### 4.1 Addressing and tier variants
 
 - Logical address `AssetRef = "<kind>/<id>"`. Character-family ids equal the NPC slug (anim sets: `<slug>.<name>`).
-- Physical keys are content-hashed: `<root>/<variant>.<sha256[0:12]>.<ext>`, `Cache-Control: public, max-age=31536000, immutable`, identity encoding (F-019). Roots: `characters/<slug>/<part>/` for `character→model`, `rig`, `anim`, `portrait`, `mouth_atlas`; `cutscenes/<key>/` (C09 layout, no hash suffix because `<key>` is the hash); `audio/barks/<sha256>.opus`; `assets/<kind>/<id>/` for everything else.
+- Physical keys are content-hashed: `<root>/<variant>.<sha256[0:12]>.<ext>`, `Cache-Control: public, max-age=31536000, immutable`, identity encoding (F-019). Roots: `characters/<slug>/<part>/` for `character→model`, `anim`, `portrait`, `mouth_atlas`; there is no per-character `rig` asset: the only `rig` asset is the family mannequin `rig/bay_rig_v1` at `assets/rig/bay_rig_v1/`, and per-character rigging output is the skinned `character` model (DL-067); `cutscenes/<key>/` (C09 layout, no hash suffix because `<key>` is the hash); `audio/barks/<sha256>.opus`; `assets/<kind>/<id>/` for everything else.
 - Variant keys are C13 tier ids (06 sketch; S11's `QualityTierId`), plus `default` for tier-independent assets. The pipeline builds three fidelity classes (`hi`, `mid`, `lo`) and the catalog builder stores them under `desktop`, `mobile` and `mobile-low`; `desktop-ultra`, `xr-quest` and `xr-visionpro` get their own key only when a distinct build exists. Resolution is `default` if present, else the first id in C13's `VARIANT_FALLBACK[tier]` that exists, which never steps upward (a 2,048 MB iPhone WebContent kill is the failure case, F-009): `desktop-ultra→desktop`, `xr-visionpro→desktop`, `xr-quest→mobile`, `mobile→mobile-low`. Budgets use the build-side map `TIER_FIDELITY` (§4.2).
 
 ### 4.2 C07 TypeScript (`packages/shared/src/assets/c07.ts`)
@@ -191,7 +191,7 @@ export interface AssetManifest {       // one asset; 06 sketch {id, kind, varian
 }
 
 export interface AssetCatalog {        // immutable, content-addressed: manifests/assets-<sha256>.json
-  schema: 'asset-catalog/1'; c07: typeof C07_VERSION; buildId: string; gitSha: string; createdAt: string;
+  schema: 'asset-catalog/1'; c07: typeof C07_VERSION; buildId: string; gitSha: string; createdAt: number /* epoch ms */;
   entries: Record<AssetRef, AssetManifest>;
 }
 export interface CatalogPointer {      // built into the Worker's static assets: /asset-catalog.json
@@ -235,7 +235,7 @@ export interface ProvenanceRecord {
     plan?: string;                                       // vendor plan tier when terms depend on it (music)
     terms_snapshot: { path: string; sha256: string; checked_at: string };
     licence_gate?: { gate: 'ADR-GENAI-01'; status: 'cleared' | 'pending' | 'blocked'; evidence?: string };
-    cost_usd?: number; generated_at: string;
+    cost_usd_micros?: number; generated_at: string;
     executor: 'workflow' | 'cli' | 'mock'; env: 'production' | 'previs' | 'test';
   };
   derived_from: string[];                                // parent sha256s (retopo, LODs, KTX2, transcodes)
@@ -245,7 +245,7 @@ export interface ProvenanceRecord {
   review: { gate: string; by: string; at: string; decision: 'approve' | 'reject'; note?: string }[];
   ip_checks: { signatures: 'pass' | 'n/a'; strings: 'pass' | 'n/a'; similarity: 'pass' | 'n/a'; vision?: 'pass' | 'review' };
   ai_generated: boolean; c2pa?: 'valid' | 'valid-untrusted' | 'absent' | 'invalid' | 'resigned';
-  status: 'active' | 'quarantined' | 'killed'; created_at: string;
+  status: 'active' | 'quarantined' | 'killed'; created_at: string; // all ProvenanceRecord timestamps: ISO-8601 UTC 'Z' (06 §4.3 exception, DL-059)
 }
 ```
 
@@ -324,7 +324,7 @@ export interface GenJob {
   subject: { assetRef: AssetRef; npcId?: string; soulVersion?: number };   // NO tier field (decision 4)
   params: Record<string, unknown>;       // vendor parameters; file inputs referenced by InputFile.sha256, presigned at submit
   inputs: InputFile[]; promptTemplate: `${string}@${number}`; promptSha256: string;
-  budgetUsd: number; runId?: string; requestedBy: string;
+  budgetUsdMicros: number; runId?: string; requestedBy: string;   // integer USD micros, the unit of S09's ledger
 }
 export interface JobKeyInput { kind: GenKind; endpointId: string; pinnedUpdatedAt: string | null; params: Record<string, unknown>;
   inputSha256: string[]; promptTemplate: string; promptSha256: string; soulVersion?: number; tier?: LikenessTier; recipe: string }
@@ -337,7 +337,7 @@ export declare function assertStageAllowed(job: GenJob, stage: string, ports: Ge
 
 ### 4.7 Config and flags
 
-`GENAI_ENV` (`production|previs|test`; `FAL_MODE=mock` from S09's vars forces `MockExecutor` and `test`), `FAL_CONCURRENCY` (default 2), `GENAI_RUN_CAP_USD`, `GENAI_PROGRAM_CAP_USD` (1000), `GENAI_ALARMS` (0.5,0.8,1.0), `MEDIA_ORIGIN`, feature flag `GEN_PUBLIC=false` (compile-time constant; the player-triggered path does not exist in v1). Secrets: `FAL_KEY`, `ANTHROPIC_API_KEY` (vision QA), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` [research/stack-cloudflare-backend.md §7].
+`GENAI_ENV` (`production|previs|test`; `FAL_MODE=mock` from S09's vars forces `MockExecutor` and `test`), `MEDIA_ORIGIN`, feature flag `GEN_PUBLIC=false` (compile-time constant; the player-triggered path does not exist in v1). Caps and thresholds are not env vars: they live in `config/guardrails.yaml` under `genai:`: `falConcurrency` (default 2), money caps in integer USD micros `runCapUsdMicros` (default per-run `budgetUsdMicros`), `programCapUsdMicros` (1,000,000,000 = $1,000, G3) and `alarms` (0.5, 0.8, 1.0) (06 §5, DL-068). Secrets: `FAL_KEY`, `ANTHROPIC_API_KEY` (vision QA), `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` [research/stack-cloudflare-backend.md §7].
 
 ## 5. Runtime behavior
 
@@ -376,12 +376,12 @@ stateDiagram-v2
 | Meshy rig 422 (pose estimation) | HTTP 422 | non-retryable; fall to the other mesh candidate, else human gate |
 | Webhook signature or clock skew > 300 s | verify | 401, no event |
 | Budget or program cap hit | `BudgetPort` | `refused: BUDGET`; cache hits still served |
-| Container transcode fails 3× | step error | Media Transformations degraded rendition, manifest `degraded:true` (S03 plays progressive only) |
+| Container transcode fails 3× | step error | Media Transformations degraded rendition `p720` (progressive 720p MP4) + poster, manifest `degraded:true` (S03 plays `p720` only; C09 fixed line) |
 | Vendor terms hash drift | weekly terms-watch | provider flips `cleared→pending`; production calls stop |
 
 ### 5.3 Budget
 
-`BudgetPort` reserves and settles through S09's `BudgetGovernorDO` (vendor `fal`) and lands in `genai_ledger` (migration 0002; kind `asset` added, `job_id` = `jobKey`). Estimate = registry price × units; fal exposes no spend cap and locks the account below a balance threshold (F-048), so our ledger is the cap: per-run `budgetUsd`, a one-off program cap of $1,000 (G3; row in a `budget_program` table proposed to S09) with alerts at 50/80/100 %, hard stop at 100 % until the owner raises it. Weekly reconcile against the fal dashboard (manual; per-request billing retrieval UNVERIFIED).
+`BudgetPort` reserves and settles through S09's `BudgetGovernorDO` (vendor `fal`) and lands in `genai_ledger` (migration 0002; kind `asset` added, `job_id` = `jobKey`). Estimate = registry price × units; fal exposes no spend cap and locks the account below a balance threshold (F-048), so our ledger is the cap: per-run `budgetUsdMicros`, a one-off program cap of $1,000 (G3; `config/guardrails.yaml` `genai.programCapUsdMicros` is the source; the `budget_program` row in migration 0002 is a mirror written at deploy and checked by the nightly drift check) with alerts at 50/80/100 %, hard stop at 100 % until the owner raises it. Weekly reconcile against the fal dashboard (manual; per-request billing retrieval UNVERIFIED).
 
 ### 5.4 Likeness gate (D-29, constraint 7)
 
@@ -398,7 +398,7 @@ stateDiagram-v2
 
 ### 5.5 Kill-switch purge (summary; steps in Part B §10)
 
-Trigger: `roster_flag` write (S09 admin route). Live removal ≤ 60 s is the runtime's job (KV `roster:flags`, 30 s Worker cache, `EncounterDO` broadcast, client `asset.worker` evicts OPFS blocks by tag `char:<id>`); the catalog is not rebuilt for it. S05's `KillPurgeWorkflow` then marks records `killed`, copies matching objects to `quarantine/<ticket>/`, deletes them from `MEDIA`, prefix-purges `media.<domain>/characters/<slug>/` and each affected `cutscenes/<key>/`, and writes the next catalog without them; target ≤ 24 h, verified by a probe that expects 404 and `CF-Cache-Status ≠ HIT`. Targets come from `asset_index` tags and S09's `cutscenes.char_ids`. Every real-derived character has a `standIn`, so missions and saves never block (R-CUT-03 fallback covers cutscenes).
+Trigger: `roster_flag` write (S09 admin route). Live removal ≤ 60 s is the runtime's job (KV `roster:flags`, 30 s Worker cache, `EncounterDO` broadcast, client `asset.worker` calls `WorldPackStore.evictByTag('char:<id>')` (S11 Part C §5)); the catalog is not rebuilt for it. S05's `KillPurgeWorkflow` then marks records `killed`, copies matching objects to `quarantine/<ticket>/`, deletes them from `MEDIA`, prefix-purges `media.<domain>/characters/<slug>/` and each affected `cutscenes/<key>/`, and writes the next catalog without them; target ≤ 24 h, verified by a probe that expects 404 and `CF-Cache-Status ≠ HIT`. Targets come from `asset_index` tags and S09's `cutscenes.char_ids`. Every real-derived character has a `standIn`, so missions and saves never block (R-CUT-03 fallback covers cutscenes).
 
 ## 6. Platform notes
 
@@ -438,7 +438,7 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 |---|---|---|---|
 | **M00b** (new, split of M00) `ip-provenance-gates` | schema, `provenance:check`, `ip:signatures/extensions/strings`, `license:scan`, `names:lint` (display side), `likeness:gate` unit rules, `config/*.json`, vendor-terms snapshots, bad-fixture tests | `ip:similarity` (separate runner, S13), real-side names (secret) | 1 |
 | **M00c** (new) `genai-spike` | ≤ $40 spend: one Standard character, three cutscene shots, four provider clips; probe bone names, C2PA, codecs, refusal behaviour; results to `research/`; resolves U1–U4, U8 | none | 1 |
-| **M01c** (new) `assets-publish` | catalog builder, `assets:verify/publish/lock`, `credits`, `resolveVariant`, rclone upload with HEAD verify | no generated assets yet; fixtures only | 1 |
+| **M01d** (new) `assets-publish` | catalog builder, `assets:verify/publish/lock`, `credits`, `resolveVariant`, rclone upload with HEAD verify | no generated assets yet; fixtures only | 1 |
 | **M05b** | `GenJobWorkflow`, ports, `MockExecutor`, webhook verify, `FalGateDO`, ledger, cutscene steps with container stub | live fal calls blocked until ADR-GENAI-01 `cleared` | 1–2 (shared with S03) |
 | **M05c** | Act 1 cutscene prewarm via the registry's cleared provider; `check:c2pa` | n/a | 0.5 |
 | **M08a** | retarget bake tool, fighter clip packs | hand-keyed moves from art | 1 |
@@ -446,16 +446,16 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 | **M10b** | gates hardening, batch prewarm idempotence, kill drill | none | 1 |
 | **M11a** | asset budgets as perf tests | none | 0.5 |
 | **M13a/c** | mod validator reuses `ProvenanceRecord`; player-triggered generation behind 18+ and P2 | text-only builder before | 1 |
-| **M14b** | `history:scan` before public, terms-watch green, counsel sign-off | none | 0.5 |
+| **M14b** | `ip:history` before public, terms-watch green, counsel sign-off | none | 0.5 |
 
-R-ID map: R-NPC-02 → M05b (mock), M08a, M10a–b. R-IP-01 → M00b, M01c, M14b. R-ENG-03 → M00c, M05b, M10b (ledger, cache check, idempotent prewarm). R-CUT-01 → M05b, M05c. R-NPC-04 and R-IP-02 (enforcement) → M00b (gate rules), M10b (kill drill).
+R-ID map: R-NPC-02 → M05b (mock), M08a, M10a–b. R-IP-01 → M00b, M01d, M14b. R-ENG-03 → M00c, M05b, M10b (ledger, cache check, idempotent prewarm). R-CUT-01 → M05b, M05c. R-NPC-04 and R-IP-02 (enforcement) → M00b (gate rules), M10b (kill drill).
 
 ## 9. Tests
 
-- Unit (`pnpm test`): `jobKey` stability and seed requirement; `resolveVariant` never upward; each rule in §5.4 (FACE_REF_FORBIDDEN on a `user_upload` input for `parody`; CLONE_FORBIDDEN; NAME_IN_PROMPT; CONSENT_EXPIRED; KILLED between stages); schema conditionals with 12 positive/negative fixtures; `verifyFalWebhook` with a recorded signature and with +301 s skew; budget cap refusal with cache hit still served.
-- Integration (Miniflare, `MockFalPort`): `pnpm test:pipeline` runs a character through sheet→rig with fixtures; second run makes zero `FalPort` calls; webhook lost → poll path completes.
+- Unit (`pnpm check:unit -- packages/shared services/pipeline`): `jobKey` stability and seed requirement; `resolveVariant` never upward; each rule in §5.4 (FACE_REF_FORBIDDEN on a `user_upload` input for `parody`; CLONE_FORBIDDEN; NAME_IN_PROMPT; CONSENT_EXPIRED; KILLED between stages); schema conditionals with 12 positive/negative fixtures; `verifyFalWebhook` with a recorded signature and with +301 s skew; budget cap refusal with cache hit still served.
+- Integration (Miniflare, `MockFalPort`): `pnpm check:pipeline` runs a character through sheet→rig with fixtures; second run makes zero `FalPort` calls; webhook lost → poll path completes.
 - CI gates: `pnpm provenance:check` fails on fixture `bad/no-record.glb`, `bad/env-test.json`, `bad/gpl.txt`; passes `good/`. `pnpm ip:signatures` fails on RPF7/GXT2 magic fixtures.
-- E2E (M10b): `pnpm e2e --grep kill-drill` kills `npc_test` and asserts absence from spawn tables, roster, cutscene index within two refreshes and 404 on its prefix within 24 h simulated clock.
+- E2E (M10b): `pnpm check:e2e -- --grep @kill-drill` kills `npc_test` and asserts absence from spawn tables, roster, cutscene index within two refreshes and 404 on its prefix within 24 h simulated clock.
 - Nightly: `pnpm genai:liveness` (public registry; fails on `status≠active`, missing id, `license_type≠commercial`); monthly `pnpm genai:price` (keyed).
 
 ## 10. Open questions

@@ -47,7 +47,7 @@ VitePWA({
   manifest: brandManifest(),
 })
 ```
-- **Precache (shell only):** HTML, hashed JS and CSS, fonts, icons, the self-hosted decoders (basis 527,333 B, draco 285,747 B, meshopt 29 KB) and the Rapier SIMD wasm (3,292,228 B). The Workbox default limit is 2 MiB, so the limit is 6 MiB and anything larger is not precached; `check:bundle` fails if a precached file exceeds it. [research/stack-rendering-platform.md §6.5]
+- **Precache (shell only):** HTML, hashed JS and CSS, `/asset-catalog.json` (C07 `CatalogPointer`, so an offline relaunch finds its cached catalog), fonts, icons, the self-hosted decoders (basis 527,333 B, draco 285,747 B, meshopt 29 KB) and the Rapier SIMD wasm (3,292,228 B). The Workbox default limit is 2 MiB, so the limit is 6 MiB and anything larger is not precached; `check:bundle` fails if a precached file exceeds it. [research/stack-rendering-platform.md §6.5]
 - **Runtime caches:** small immutable UI atlases and SFX on hashed URLs, `CacheFirst` with `workbox-expiration` (≈ 100 MB cap). Cutscene "Keep offline" per the gap report: full `200` CORS responses, `CacheFirst` with `RangeRequestsPlugin` (`workbox-range-requests@7.4.1`), caps 300 MB on mobile and 1 GB elsewhere, LRU by last play, never precached. [research/gap-cutscene-delivery-playback.md §7.5]
 - **Never through the SW or Cache API:** chunk packs, glTF, KTX2, audio banks (the `asset.worker` + OPFS path, §5).
 - **Navigation:** the precached `index.html` keeps the COOP/COEP headers received at install time; `/api/` and `/account/` are denied from the navigation route. `check:coi` asserts `crossOriginIsolated === true` after a service-worker-served reload.
@@ -66,15 +66,15 @@ World content is content-addressed (§5) and updates independently of the shell.
 
 ## 5. World-pack store and asset fetch layer (P-20)
 
-**Design.** Packs (≤ 4 MB typical, C07 `hash` = SHA-256) are read whole, so the store is **content-addressed, one OPFS file per pack**, rather than the append-only block store of the reference port (that suited random 3 KB reads of huge archives). A new deploy changes only the hashes that changed, so unchanged districts survive updates. All OPFS access happens in `asset.worker` with `createSyncAccessHandle` (dedicated-worker-only). [research/repos-webport.md P3, P4; F-010]
+**Design.** Packs (≤ 4 MB typical, keyed by C07 `sha256`) are read whole, so the store is **content-addressed, one OPFS file per pack**, rather than the append-only block store of the reference port (that suited random 3 KB reads of huge archives). A new deploy changes only the hashes that changed, so unchanged districts survive updates. All OPFS access happens in `asset.worker` with `createSyncAccessHandle` (dedicated-worker-only). [research/repos-webport.md P3, P4; F-010]
 
 ```
-OPFS  tb/packs/<sha256>.bin
-IDB   tb-packs / packs  { hash, bytes, kind, createdAt, lastUsedAt, pinned }
-IDB   tb-platform       { tier-decision, pipeline-seeds, ... }    saves live in tb-saves (S01), never OPFS
+OPFS  dv/packs/<sha256>.bin
+IDB   dv-packs / packs  { sha256, bytes, kind, tags, createdAt, lastUsedAt, pinned }
+IDB   dv-platform       { tier-decision, settings (PlatformSettings), pipeline-seeds, ... }    saves live in dv-saves (S01, C05), never OPFS
 ```
 ```ts
-export interface PackRef { url: string; hash: string; bytes: number; kind: 'chunk' | 'tex' | 'mesh' | 'audio' | 'data' }
+export interface PackRef { url: string /* BootConfig.hosts.media + C07 AssetVariant.key */; sha256: string /* C07 AssetVariant.sha256 */; bytes: number; kind: 'chunk' | 'tex' | 'mesh' | 'audio' | 'data'; tags?: string[] /* C07 tags, e.g. char:<npcId> */ }
 export type PackFailure = 'offline' | 'http' | 'hash-mismatch' | 'quota' | 'aborted';
 export class PackUnavailable extends Error { constructor(readonly reason: PackFailure, readonly ref: PackRef) { super(reason) } }
 export interface StorageUsage { usageMB: number; quotaMB: number; persisted: boolean | null; packsMB: number; packs: number; cutscenesMB: number }
@@ -87,6 +87,7 @@ export interface WorldPackStore {
   gc(current: ReadonlySet<string>): Promise<{ removed: number; freedMB: number }>;
   usage(): Promise<StorageUsage>;
   downloadAll(refs: readonly PackRef[], onProgress: (done: number, total: number) => void): Promise<void>;
+  evictByTag(tag: string): Promise<{ removed: number }>;   // kill-switch path (S05 §5.5): drop every pack tagged char:<npcId>
   clear(): Promise<void>;
 }
 ```
@@ -97,7 +98,7 @@ export interface WorldPackStore {
 4. *Eviction by the OS:* a missing pack is a normal miss; S02 shows "re-downloading district". Whether OPFS suffers the 7-day non-use eviction is `UNVERIFIED`, so nothing assumes persistence.
 5. *Persistence:* `navigator.storage.persist()` after the story starts or the app runs standalone for the first time; the result is logged (`storage.persist{granted}`). Settings › Storage shows `estimate()`, "Download San Francisco for offline (≈ N MB)" and "Clear downloaded data". Before `downloadAll`, require free quota ≥ 1.2 × bytes. [F-010]
 6. *No OPFS:* `memory-fallback` keeps a 48 MB LRU of packs, marks the session online-only and emits `app.start{store:'memory'}`.
-7. *Tabs:* writers retry sync-handle opens with jitter (up to 20 tries); a `BroadcastChannel('tb-instance')` shows "the game is open in another tab" and makes the second tab read-only. Cross-tab handle behaviour is `UNVERIFIED`.
+7. *Tabs:* writers retry sync-handle opens with jitter (up to 20 tries); a `BroadcastChannel('dv-instance')` shows "the game is open in another tab" and makes the second tab read-only. Cross-tab handle behaviour is `UNVERIFIED`.
 
 **Fetch layer** (one shared `fetchRetry`): `fetch(url, { cache: 'no-store', priority })` in CORS mode; up to 8 attempts on 5xx, 429 or network error before the body is consumed, delay `min(5000, 300 × 2ⁿ) × (0.5 to 1.5)` ms; an error body is never stored; an in-flight map lets a demand `get` join a speculative prefetch; objects over 4 MB (cutscenes, audio banks) use Range slices aligned to 1 MiB. Lanes: `now` up to 8, `soon` up to `LANES`, `idle` 2, with `LANES` = 16 desktop, 8 mobile and XR (starting values; reference throughput numbers were host-specific, recalibrate in M11a). Safari supports `fetch` priority from 17.2. The CI headless run emits `bootset.<mode>.json` (`PackRef[]` in first-touch order); the client prefetches it from the main menu. [research/repos-webport.md P6, P7, rec 5]
 
@@ -118,11 +119,11 @@ export interface WorldPackStore {
 | Gamepad API works, no rumble | Standard mapping; MFi and console pads. |
 | Safari tab vs Home Screen WebGPU parity | `UNVERIFIED`; M01c and M11a run both. |
 
-**Lifecycle.** `LifecycleController` handles `visibilitychange` and `pagehide`. On hidden: pause the sim, `SaveGame.flush()` (C05), set heartbeat `hidden`, flush telemetry with `sendBeacon`, release Wake Lock, suspend audio. On visible: resume `AudioContext` (show "Tap to resume" if interrupted), re-acquire Wake Lock, clamp the first `dt`, verify the GPU device is alive, re-open sockets (M12). Sources: [research/stack-rendering-platform.md §3.5; research/gap-cutscene-delivery-playback.md §3.3].
+**Lifecycle.** `LifecycleController` handles `visibilitychange` and `pagehide`. On hidden: pause the sim, post C02 `SimControlMessage {t:'save.request', reason:'hidden'}` on the command ring (`sim.worker` runs `SaveService` outside ticks, C02 rule 9; it writes only when C05 rule 4 eligibility holds), set heartbeat `hidden`, flush telemetry with `sendBeacon`, release Wake Lock, suspend audio. On visible: resume `AudioContext` (show "Tap to resume" if interrupted), re-acquire Wake Lock, clamp the first `dt`, verify the GPU device is alive, re-open sockets (M12). Sources: [research/stack-rendering-platform.md §3.5; research/gap-cutscene-delivery-playback.md §3.3].
 
 ## 7. First-gesture unlock and flat cutscene hosting (P-22)
 
-`FirstGestureUnlock` is the single handler on the title screen's first `pointerup`, `touchend` or `keydown`: create or resume the `AudioContext`, set the audio session type, and unlock a **pool of three** `<video>` elements (`muted playsinline disableRemotePlayback crossorigin="anonymous" preload="auto"`) by playing a 0.1 s same-origin blank clip then pausing. S03's `CutscenePlayer` and in-world video textures reuse the pool; cutscene video elements are never created later. Under iOS Low Power Mode any video needs a gesture, and an unlocked element keeps working with a new `src` (WebKit source reading; shipping behaviour `UNVERIFIED`, device test in the cutscene spike). [F-063; research/gap-cutscene-delivery-playback.md §3.1]
+`FirstGestureUnlock` is the single handler on the title screen's first `pointerup`, `touchend` or `keydown`: create or resume the `AudioContext`, set the audio session type, and unlock a **pool of three** `<video>` elements (`muted playsinline disableRemotePlayback crossorigin="anonymous" preload="auto"`) by playing a 0.1 s same-origin blank clip then pausing. S03's `CutscenePlayer` and in-world video textures reuse the pool; cutscene video elements are never created later. Under iOS Low Power Mode any video needs a gesture, and an unlocked element keeps working with a new `src` (WebKit source reading; shipping behaviour `UNVERIFIED`, device test in the M04c cutscene spike). [F-063; research/gap-cutscene-delivery-playback.md §3.1]
 
 Flat hosting (desktop, iPhone): a DOM `<video>` overlay above the canvas with `object-fit: contain` on black; the host stops `renderer.setAnimationLoop` and pauses the sim while it covers the screen and keeps GPU resources resident for an instant resume; Wake Lock is mandatory on mobile (muted video lets the screen sleep). Memory: ≤ 1 decoding plus ≤ 1 pre-rolled element, released with `removeAttribute('src'); load()`; the `media` line in `MemoryBudget` is 64 MB on mobile tiers. Rendition choice (`v768` or `v540` when `dataSaver` or measured throughput < 4 Mbps) is S03's rule using `PlatformSettings.dataSaver`. Fallback triggers F1 to F10 belong to S03. [research/gap-cutscene-delivery-playback.md §3, §4, §7.3]
 
@@ -151,10 +152,10 @@ export interface Telemetry {
   flush(reason: 'hidden' | 'pagehide' | 'interval'): void;
 }
 ```
-- **Abnormal exit:** at boot read `localStorage['tb.hb']` synchronously. `running` → emit `app.abnormal_exit` with the persisted context; `hidden` → `app.cold_resume` (normal on iOS, not a crash). While visible rewrite every 5 s and on scene, mode or chunk change; `hidden` and `closed` on the lifecycle events. Navigation type `reload` plus `running` is a hint only. The record is always written locally; it is **sent** only with Diagnostics consent. [research/gap-observability-cost-guardrails.md §2.2]
+- **Abnormal exit:** at boot read `localStorage['dv.hb']` synchronously. `running` → emit `app.abnormal_exit` with the persisted context; `hidden` → `app.cold_resume` (normal on iOS, not a crash). While visible rewrite every 5 s and on scene, mode or chunk change; `hidden` and `closed` on the lifecycle events. Navigation type `reload` plus `running` is a hint only. The record is always written locally; it is **sent** only with Diagnostics consent. [research/gap-observability-cost-guardrails.md §2.2]
 - **Demotion:** two `app.abnormal_exit` within 24 h on the same tier with `memEstMB` > 0.8 × (`maxAccountedHeapMB` + `maxGpuResourceMB`) lower the tier one rung (floor `mobile-low`), record `TierDecision{source:'abnormal-exit-demotion'}`, and show a one-time notice; the player can raise it in Settings. Thresholds are S11 targets.
 - **Errors:** `onerror`, `unhandledrejection` (fingerprint dedupe ≤ 5 per session), `renderer.onDeviceLost`, uncaptured GPU errors, `err.asset`. A rAF stall watchdog writes `raf.stall` to the ring after 5 s.
-- **Events emitted by S11:** `app.start{nav, coi, store, backend, tier}`, `app.ready{bootMs}`, `app.hidden`, `perf.minute{fpsP50, fpsP5, frameP95Ms, drawCalls, tris, texMBEst, gpuMBEst, memEstMB}` (100 % mobile and XR, 25 % desktop), `err.*`, `xr.session{evt, fps}`, `tier.decision{tier, source, benchP90Ms}`, `settings.tier_override`. Proposed additions to the C16 registry: `tier.decision`, `storage.persist`.
+- **Events emitted by S11:** `app.start{nav, coi, store, backend, tier}`, `app.ready{bootMs}`, `app.hidden`, `perf.minute{fpsP50, fpsP5, frameP95Ms, drawCalls, tris, texMBEst, gpuMBEst, memEstMB}` (100 % mobile and XR, 25 % desktop), `err.*`, `xr.session{evt, fps}`, `tier.decision{tier, source, benchP90Ms}`, `settings.tier_override`. `tier.decision` and `storage.persist` are in the C16 registry (DL-025).
 - **Privacy:** no IP, user agent, `profileId`, free text or finer-than-chunk position; `sessionId` is a random UUID per launch; props ≤ 16 keys, strings ≤ 128 chars; URL query strings, emails and tokens scrubbed. Desktop Chrome additionally gets Reporting-API crash reports through a `Reporting-Endpoints` header set by the edge Worker.
 
 ## 10. Facts, milestones, tests
@@ -171,7 +172,7 @@ export interface Telemetry {
 | Cloudflare: `_headers` rules and Worker-response exception; media objects need CORS; origin range fetches align to 1 MiB; Worker-generated 206 is not cached | developers.cloudflare.com/workers/static-assets/headers · /cache/reference/range-requests |
 | vite 8.3.4, vite-plugin-pwa 2.0.0, workbox 7.4.1, assets-generator 2.0.0 | registry.npmjs.org (F-016) |
 
-**Milestone detail.** *M00:* §2, §3, §4 (stub update UI), `check:headers`, `check:coi`, `check:bundle`, empty telemetry sink. *M01c:* §6 lifecycle, §7 unlock (audio only), §9 heartbeat and memory-bomb page. *M02a2:* §5 complete with CI integration test. *M04a:* coach mark, Settings › Install and Storage. *Cutscene spike:* §7 video pool, Wake Lock, flat host. *M11a:* offline relaunch, safe-point updates, demotion, 30-minute soak, lane calibration.
+**Milestone detail.** *M00:* §2, §3, §4 (stub update UI), `check:headers`, `check:coi`, `check:bundle`, empty telemetry sink. *M01c:* §6 lifecycle, §7 unlock (audio only), §9 heartbeat and memory-bomb page. *M01e:* §5 complete with CI integration test. *M04a:* coach mark, Settings › Install and Storage. *M04c cutscene spike:* §7 video pool, Wake Lock, flat host. *M11a:* offline relaunch, safe-point updates, demotion, 30-minute soak, lane calibration.
 
 **Tests.**
 1. `check:headers -- <url>`: COOP, COEP, CORP on `/`, `/assets/*.js` (immutable), `/sw.js`; `application/wasm`; `/account/` has no COEP; a Worker route carries all three.
@@ -180,7 +181,7 @@ export interface Telemetry {
 4. `sw-update.spec.ts`: new build raises `updateAvailable`; `applyNow()` refuses while unsafe; applied at a safe point; isolation still true.
 5. `pack-store.spec.ts` (Chromium, WebKit): write/read, hash mismatch rejected, orphan cleanup, pinned LRU eviction, quota error, memory fallback, dedupe of concurrent `get`, `fetchRetry` backoff against injected 503s.
 6. `offline-relaunch.spec.ts`: after warm-up and `context.setOffline(true)`, reload reaches the menu and starts single-player from pinned packs (M11a).
-7. `lifecycle.spec.ts`: `visibilitychange` to hidden flushes the save within 100 ms and sets heartbeat `hidden`.
+7. `lifecycle.spec.ts`: `visibilitychange` to hidden requests the eligible `hidden` autosave within 100 ms and sets heartbeat `hidden`.
 8. `heartbeat.spec.ts`: state machine, `cold_resume` not counted, two abnormal exits demote one rung, Diagnostics off sends nothing.
 9. `telemetry-privacy.spec.ts`: payload keys and lengths within limits; no IP, UA or profile id.
 10. Device (iPhone 15, 16/17; Home Screen and Safari tab): `crossOriginIsolated`; `persist()` and `estimate()` recorded; rotate overlay; coach mark; audio after gesture; memory-bomb outcome recorded in `device-notes.json`; 30-minute soak with no tab reload (M11a).

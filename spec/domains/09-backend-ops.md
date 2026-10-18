@@ -52,7 +52,7 @@
                    GEN_WF → deployed staging workflow, DO bindings repeated, vars.ENVIRONMENT = "preview" */ }
 }
 ```
-Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR.
+Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6).
 
 `services/rooms/wrangler.jsonc` mirrors it with: route `rt.<domain>`; DO bindings `ROOM`, `DIRECTORY`, `PRESENCE`; migration `rooms-v1` `new_sqlite_classes: ["RoomDO","DirectoryDO","PresenceDO"]` (M12b); `FLAGS` KV; `AE` dataset; `RL_ROOMS`; observability `logs.head_sampling_rate: 0.001`, `invocation_logs: false` (an unsampled busy room would ingest ≈ 830 GB of logs a month after the 2026-12-01 pricing change [research/gap-observability-cost-guardrails.md §1.3]); secrets `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`, `SUPABASE_SECRET_KEY`; vars `ID_ISSUER`, `GEO_ALLOW`, `BUILD_ID` (set by CI), `CAP` (16).
 
@@ -132,12 +132,12 @@ Design per [research/gap-observability-cost-guardrails.md Rec 1]:
 - **Alert sink**: `POST /api/v1/_ops/alerts` (HMAC `ALERT_HMAC` or Custom Alerts webhook secret) stores the alert in `audit_log` and forwards to `ALERT_WEBHOOK_URL` (chat). Custom Alerts (beta) run 1-minute SQL over AE and deliver by webhook; Budget alerts are email-only and next-day, so they are a backstop [research/gap-observability-cost-guardrails.md §1.5].
 - **Dashboards**: `/admin/dash/{client,edge,spend,pipeline,recon}` read AE through the `ANALYTICS_SQL` binding (no API token) — D1–D5.
 
-Backend-owned alerts (starting thresholds; S13 finalizes): S01 spend 50/70/85/100 % of daily ceiling; S02 ledger vs vendor drift > 10 % for 2 runs; S03 hourly spend z > 4; S04 quota bypass ≥ 1; S05 vendor cap hit; S06 fal balance < 3 days (warn) / < 1 day (page); S09 uncached cutscene generations > 20/day; A01 Worker 5xx > 1 % over 5 min; A07 `room.tick.p99Ms` > 10 ms for 5 min (warn) / > 16 ms (page); A08 room-hours/day > 2× 7-day mean; A09 queue backlog > 10k or oldest > 10 min; A10 GenJob errors > 5/h; A11 webhook signature failure ≥ 1 in 15 min; A12 telemetry 429/413 > 5 %; plus T&S: P0 case open > 15 min unassigned (page), NCII case at 24 h / 36 h / 40 h (re-page, escalate) [research/gap-trust-safety-tooling.md §6.5].
+Backend-owned alerts (starting thresholds; S13 finalizes; research ids S01–S09 renamed SP-01…SP-09 so they never read as subagent ids): SP-01 spend 50/70/85/100 % of daily ceiling; SP-02 ledger vs vendor drift > 10 % for 2 runs; SP-03 hourly spend z > 4; SP-04 quota bypass ≥ 1; SP-05 vendor cap hit; SP-06 fal balance < 3 days (warn) / < 1 day (page); SP-09 uncached cutscene generations > 20/day; A01 Worker 5xx > 1 % over 5 min; A07 `room.tick.p99Ms` > 10 ms for 5 min (warn) / > 16 ms (page); A08 room-hours/day > 2× 7-day mean; A09 queue backlog > 10k or oldest > 10 min; A10 GenJob errors > 5/h; A11 webhook signature failure ≥ 1 in 15 min; A12 telemetry 429/413 > 5 %; plus T&S: P0 case open > 15 min unassigned (page), NCII case at 24 h / 36 h / 40 h (re-page, escalate) [research/gap-trust-safety-tooling.md §6.5].
 
 ## 5. Cost guardrails (spec/03 D-28, G3)
 
 ### 5.1 Ceilings (G3, applied 2026-10-18)
-Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100 (≈ $3.33/day), moderation $25 (≈ $0.83/day), buffer $25. One-off production fal credit $1,000. Public fal spend $0 (generation internal-only) [research/INDEX.md §7]. All values live in `ops/guardrails.yaml`, the single source read by the governor, the quota DO and the nightly drift check.
+Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100 (≈ $3.33/day), moderation $25 (≈ $0.83/day), buffer $25. One-off production fal credit $1,000. Public fal spend $0 (generation internal-only) [research/INDEX.md §7]. All values live in `config/guardrails.yaml`, the single source read by the governor, the quota DO and the nightly drift check.
 
 ### 5.2 Per-player quotas (`PlayerQuotaDO`, day = UTC)
 | Quota | P0 `local` / P1 `device` | P2/P3 `linked` (18+) |
@@ -151,8 +151,9 @@ Recurring $500/month ≈ $16.50/day: Anthropic $350 (≈ $11.67/day), voice $100
 Source [research/INDEX.md §7], [research/gap-observability-cost-guardrails.md Rec 2.3]. Per-net caps (`q:n:*`) are 4× the P0 row.
 
 ### 5.3 Three layers
+Types are C12 and live in `packages/shared/src/api/budget.ts` (pure), so S05's `BudgetPort` in `services/pipeline` imports them from `@dv/shared` without importing `services/edge` (which already imports `services/pipeline`; DL-056). The DO implementations stay in `services/edge/src/budget/`.
 ```ts
-// services/edge/src/budget/types.ts
+// packages/shared/src/api/budget.ts (C12)
 export type Vendor = 'anthropic' | 'fal' | 'elevenlabs' | 'workers_ai' | 'openai_moderation';
 export type GovLevel = 0 | 1 | 2 | 3;           // L1 ≥ 70 %: Sonnet→Haiku · L2 ≥ 85 %: voice→T1 · L3 ≥ 100 %: genAI off (cache hits still served)
 export interface PlayerQuota {                  // PlayerQuotaDO RPC
@@ -171,9 +172,9 @@ export interface BudgetGovernor {               // BudgetGovernorDO RPC (singlet
 export interface SpendEvent { ts: number; vendor: Vendor; model: string; kind: string; usdMicros: number; settled: boolean; requestId?: string; jobId?: string; env: string }
 ```
 - **Layer 3 (ours, authoritative)**: quota reserve → call → settle from `usage`; governor publishes `gov:level` to KV on each transition and every 60 s; Workers read it with `cacheTtl: 30`. Rule: kill switches and budget levels never block cache hits (cached R2 cutscene, cached TTS, baked barks always served) [research/gap-observability-cost-guardrails.md Rec 2.3].
-- **Layer 2 (AI Gateway, Anthropic only)**: `gw-dialogue` with cache, Guardrails and response DLP off (they buffer SSE), Unified Billing off, `cf-aig-collect-log-payload: false`; spend rules: global daily = 1.0 × ceiling, per-`pid` metadata split $0.20/day, Sonnet 0.4 × ceiling; Dynamic Route Sonnet → Haiku [research/gap-observability-cost-guardrails.md §5, Rec 2.2]. S04 owns the request body; S09 owns gateway config in `ops/guardrails.yaml`.
+- **Layer 2 (AI Gateway, Anthropic only)**: `gw-dialogue` with cache, Guardrails and response DLP off (they buffer SSE), Unified Billing off, `cf-aig-collect-log-payload: false`; spend rules: global daily = 1.0 × ceiling, per-`pid` metadata split $0.20/day, Sonnet 0.4 × ceiling; Dynamic Route Sonnet → Haiku [research/gap-observability-cost-guardrails.md §5, Rec 2.2]. S04 owns the request body; S09 owns gateway config in `config/guardrails.yaml`.
 - **Layer 1 (vendor)**: Anthropic workspaces `npc-runtime` (1.2 × monthly ceiling), `npc-builder` (0.2×), `ci-evals` ($50), `synthetic` (minimum), Console notifications at 50/80 %; map 400 "You have reached your specified…" → `vendor_cap:anthropic` and 429 `enforced_spend_limit_reached` → no retry; fal prepaid balance ≤ 30 days of budget with per-use keys and allowed-model lists; ElevenLabs service-account keys with `character_limit` and `max_credit_limit_extension = 0` [research/gap-observability-cost-guardrails.md §3–§7].
-- **Reconciliation cron** (every 5 min): Anthropic Usage API (1-min buckets), fal `/v1/models/usage`, ElevenLabs analytics query → `recon.drift`; > 10 % for 2 runs → S02 and vendor totals become truth.
+- **Reconciliation cron** (every 5 min): Anthropic Usage API (1-min buckets), fal `/v1/models/usage`, ElevenLabs analytics query → `recon.drift`; > 10 % for 2 runs → SP-02 and vendor totals become truth.
 
 ### 5.4 Infrastructure cost (list prices; consolidate in spec/10)
 | Item | 1k MAU | 10k MAU | 100k MAU | Source |
