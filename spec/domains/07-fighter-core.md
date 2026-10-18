@@ -9,7 +9,7 @@
    `advHit = hitstun − (A + R − 1)`, `advBlock = blockstun − (A + R − 1)`.
    `onHit` and `onBlock` are therefore **derived**, never authored; `fighter:lint` recomputes them and the training-mode frame meter prints the derived value.
 3. **Notation.** Numpad, facing-relative: 5 neutral, 6 toward opponent, 4 away, 8 up, 2 down. `236` quarter-circle forward, `214` quarter-circle back, `623` forward-down-forward, `[4]6` charge back then forward. Buttons: `L M H` per limb (`LP MP HP LK MK HK`), `SP` special, `AS` assist, `HY` hype, `TA` taunt, `BL` block, `DA` dash.
-4. **Math.** Code under `packages/shared/src/fight/**` and `packages/modes/fighter/src/sim/**` is sim code under the C02 lint. Only `+ − × ÷`, `abs min max floor ceil round trunc sign imul` are used. Capsule tests compare squared distances (no `sqrt`). Sine paths read a 64-entry integer table `SINE64`. Percent maths is `trunc(value × pct / 100)`; all intermediates stay below 2^53, so doubles are exact [C02 determinism rules 1–2; research/gamedesign-decomposition.md §0, MDN claim in hub §7].
+4. **Math.** Code under `packages/shared/src/fight/**` and `packages/modes/fighter/src/sim/**` is sim code under the C02 lint. Only `+ − × ÷`, `abs min max floor ceil round trunc sign imul` are used. Capsule tests compare squared distances (no `sqrt`). Sine paths read a 64-entry integer table `SINE64`. The fight core needs no `detmath` transcendental (D-12 "fighter on detmath frame data" is met by integer frame data under the same lint). Percent maths is `trunc(value × pct / 100)`; all intermediates stay below 2^53, so doubles are exact [C02 determinism rules 1–2; research/gamedesign-decomposition.md §0, MDN claim in hub §7].
 5. **Profile.** The fighter uses no physics, so its descriptor declares `simProfile: 'any'`. This lets story embed it under a `local` parent without `SimHost.restart` (C06 ModeHost rule 2). Determinism comes from FC1.4, not from Rapier (D-12).
 6. **RNG.** The match owns two xoshiro128** states in the buffer (`fight`, `cpu`), seeded `splitmix32(seed ^ fnv32(name))` per C02 rule 3. No module keeps a private generator.
 
@@ -89,7 +89,7 @@ export interface FighterDef {                                   // a KIT: frame 
   ai: AiProfile;                                                // FC10
 }
 export interface AiProfile {
-  aggression: number; zoning: number; antiAir: number; throwRate: number; blockRate: number;   // 0..100
+  aggression: number; zoning: number; antiAir: number; throwRate: number; blockRate: number; shutdownRate: number;   // 0..100
   reaction: [number, number];                                   // frames, min and max before difficulty scaling
   habits: string[];                                             // named habit ids from content/fighter/ai/habits.json
 }
@@ -211,7 +211,7 @@ Pose calibration is **not** in this slice (FP4: device-local store).
 | `Fight` | ≤ `TIMER` | full | full | KO, time-out |
 | `Ko` | 30 at 1/3 speed | winner/loser resolve, no new hits | locked | final round → `Shutdown`, else `RoundEnd` |
 | `TimeUp` | 60 | freeze, compare health | locked | `RoundEnd` |
-| `Shutdown` | 90 window, then the finisher | victim slumped | winner: `HY` | finisher or window end → `MatchEnd` |
+| `Shutdown` | 90 window, then the finisher | victim slumped | winner: `HY` | finisher (through `Cinematic` when eligible) or window end → `MatchEnd` |
 | `Cinematic` | `CINEMATIC_HOLD` 300 fixed | counters tick only | any attack button skips | frames elapse or skip (an input, so replays match) |
 | `RoundEnd` | 120 | no | locked | next `Ready` or `MatchEnd` |
 | `MatchEnd` | 180 | no | menu | `ModeResult` |
@@ -222,7 +222,7 @@ Pose calibration is **not** in this slice (FP4: device-local store).
 
 State ids are the sim's; each maps to a presentation `AnimStateId` in the S07 block 160–207 (FX7). A transition table is generated from this list at load; data cannot add states.
 
-| Group | States (ids 0–) | Notes |
+| Group | States (enumerated in `states.ts`) | Notes |
 |---|---|---|
 | Ground neutral | `Idle`, `WalkF`, `WalkB`, `Crouch`, `CrouchDown`/`StandUp` (3 f each), `DashF`, `DashB`, `Taunt` | actionable except dash frames and taunt |
 | Air | `PreJump` (4 f, throwable), `JumpN/F/B`, `Fall`, `Land` (3 f), `AirAttack` | air blocking does not exist |
@@ -241,7 +241,7 @@ Facing swaps only while both fighters are grounded in an actionable or reaction 
 
 | FB bit | From C03 | Classic default | Simple default |
 |---|---|---|---|
-| Up / Down | `moveY > +48` or `sim.Jump` / `moveY < −48` or `sim.Crouch` | stick, d-pad, W/S | same |
+| Up / Down | `moveY > +48` (stick up) or `sim.Jump` / `moveY < −48` or `sim.Crouch` | stick, d-pad, W/S | same |
 | Left / Right | `moveX` beyond ±48 (i8 range ±127) | stick, d-pad, A/D | same |
 | LP, MP, HP | `sim.Attack`, `sim.Ability`, `sim.FightHeavy` | U I O (kbm), pad face + shoulders | **L = LP slot, H = HP slot** (J, K / pad X, Y) |
 | LK, MK, HK | `sim.Sprint`, `sim.Nitro`, `sim.Horn` | J K L (kbm) | unused |
@@ -257,10 +257,10 @@ Facing swaps only while both fighters are grounded in an actionable or reaction 
 **FC5.2 Ring and edges.** `RING = 32` entries per player, each `{dir9, buttons, tick}` packed in one i32. SOCD: left+right → neutral; up+down → up. Edges derive from consecutive entries; a press shorter than a tick is already latched by C03 rule 2.
 
 **FC5.3 Motion parser** (runs when the fighter is actionable or in a cancel window):
-1. A special triggers on tick `t` if its button set has a rising edge within `[t − BUTTON_LEEWAY, t]` and its direction sequence completed at a frame `m` with `|t − m| ≤ BUTTON_LEEWAY`, with all directions inside `MOTION_WINDOW` frames of each other (†12; 12 f is generous for a quarter-circle on a pad).
-2. Sequences accept the cheaper adjacent diagonal (236 matches 2,3,6 or 2,6; 623 matches 6,2,3 or 6,3,2,3 or 6,2,3 with the first 6 optional after a dash). `41236`, `63214`, `360` require every step; `22` and double-tap `66`/`44` use `DASH_TAP_WINDOW`.
+1. A special triggers on tick `t`, the later of the button press and the motion completion, if the button set has a rising edge at `p`, the direction sequence completed at frame `m`, `|p − m| ≤ BUTTON_LEEWAY`, and all directions fall inside `MOTION_WINDOW` frames of each other (†12 frames, generous for a quarter-circle on a pad).
+2. Sequences accept the cheaper adjacent diagonal (236 matches 2-3-6 and 2-6; 623 matches 6-2-3 and 6-3-2-3, and the first 6 is implied when the fighter dashed forward within the last 8 frames). `41236`, `63214`, `360` require every step; `22` and double-tap `66`/`44` use `DASH_TAP_WINDOW`.
 3. Charge `[4]6`/`[2]8`: back (or down) held `CHARGE_FRAMES` (45) with at most `CHARGE_GAP` (3) non-charge frames since, then the release direction with the button inside the leeway.
-4. Priority when several patterns match: super > special > command normal > normal; ties inside a class go to the more complex pattern. Simultaneous `LP+LK` is a throw; a throw and a strike pressed on the same frame resolve as a throw only if the strike has no completed cancel.
+4. Priority when several patterns match: super > special > command normal > normal; ties inside a class go to the more complex pattern. `LP+LK` pressed on the same frame is a throw, not two normals.
 5. **EX**: a special whose input carries two attack buttons of the same type (any two for Simple's `AS+SP`) and `Hype ≥ 1000`; spends 1 stock; `ex` overrides apply.
 6. `leniencyX100` scales `MOTION_WINDOW`, `BUTTON_LEEWAY`, both buffers and `DASH_TAP_WINDOW` (200 in pose mode, 150 on 30 fps render tiers, forced 100 online).
 
@@ -306,7 +306,7 @@ Simple conflicts resolve by context: `L+H` is a throw when the opponent is groun
 
 1. **Match.** Best of three by default (`roundsToWin 2`); Versus/Training allow other values and an infinite timer; Story/Arcade use the bout definition. Timer 99 s (5,940 frames). Time-out compares health integers; equal → both score a round; if that makes both reach the target, a **sudden round** follows (`SUDDEN` 1,800 frames, both at 1,000 health; first hit wins, else health compare, else more Hype, else slot 0). A double KO scores both.
 2. **KO.** `Ko` phase runs at 1/3 speed for 30 frames. If it was the **final** KO of the match, the winner scored it with a non-chip hit and `rules.shutdowns` is on, the `Shutdown` window opens for 90 frames.
-3. **Shutdown (finisher).** Winner taps `HY` inside the window. The kit's `shutdown` move runs against the `Slumped` victim: 150–200 frames of comedic, non-gore spectacle (a shockwave of speech-bubble sigils, a term-sheet blizzard, a posterizing dunk-less slam; kit-specific, FX2). No blood, no dismemberment, no weapons, no real-person-crime imagery (D-30; research §4.2 "no gore"; hub §2). The CPU taps with probability `ai.shutdownRate` from its `cpu` stream.
+3. **Shutdown (finisher).** Winner taps `HY` inside the window. The kit's `shutdown` move runs against the `Slumped` victim: 150–200 frames of comedic, non-gore spectacle (speech-bubble sigils, a term-sheet blizzard, a cartoon cushion avalanche; kit-specific, FX2). No blood, no dismemberment, no weapons, no real-person-crime imagery (D-30; research §4.2 "no gore"; hub §2). The CPU taps with probability `ai.shutdownRate` from its `cpu` stream.
 4. **Camera.** Fixed side view, auto-zoom: target x = midpoint, distance = `clamp(minD, maxD, a + b·|x0 − x1|)` with integer coefficients in the stage definition (FX5), published each tick as `CameraDirective {mode:'cinematic', shot:{kind:'side', damping, fovDeg}, reason:'mode', lockPlayerToggle:true}` (C04). Dynamic pans only for supers (45-frame freeze: dolly-in 20 frames). Reduced motion: no shake, no dolly; fades replace pans (C04 rule 6). XR: the rig exposes only the arena dolly (C04 rule 5).
 
 ## FC9 Projectiles and summons
@@ -321,7 +321,7 @@ The CPU produces a `FighterInput` per tick, so it obeys the same motion, buffer 
 2. **Decision** every 4–8 frames, scheduled on even ticks only (the C02 30 Hz AI rate, `AI_DIVISOR 2`). Candidate actions: approach, retreat, hold ground, block, jump in, anti-air, poke by range band, whiff punish, throw, projectile, special, Check, Clear, EX/super, taunt (when safe). Score = Σ weight × feature; features: distance band, opponent state (startup, active, recovery, blockstun), frame advantage from move data (**punish when `advBlock ≤ −4` and a move with `startup ≤ −advBlock` exists**), corner, own meters, projectile threat, round situation; weights come from `AiProfile` and the level.
 3. **Macro executor.** The chosen action expands to an input script (e.g. `236 + L` = `2`, `3`, `6`, then `LP` over 4 frames) with an execution-error chance that drops or delays a step.
 4. **Levels.** Easy / Normal / Hard / Brutal: reaction ×1.6 / ×1.0 / ×0.7 / ×0.45, execution error 20 / 10 / 4 / 0 %, habit variety 3 / 5 / 8 / 12 named habits, block rate −20 / 0 / +10 / +20 points. Story bouts name a level. Personality comes from `AiProfile`, seeded from soul tags by S04's compiler (no LLM in the fight loop).
-5. **Trash talk.** Pre- and post-fight lines are authored ink lines by archetype pair class; an LLM line is optional through C10 route 31 with `turn.intent` `fight.pre` or `fight.post`, quota-limited, 18+/P2 per D-30, never required, with in-memory caching per `(pair, soulVersions)`. Offline fallback is the ink line (R-NPC-05). The LLM never affects a decision.
+5. **Trash talk.** Pre- and post-fight lines are authored ink lines by archetype pair class; an LLM line is optional through C10 route 31 with `turn.intent` `fight.pre` or `fight.post`, quota-limited, available under the same eligibility as any NPC turn (C12: no token for an under-18 or offline player means the ink line), never required, with in-memory caching per `(pair, soulVersions)`. Offline fallback is the ink line (R-NPC-05). The LLM never affects a decision.
 
 ## FC11 Tuning and verification tools
 
@@ -342,6 +342,6 @@ Budgets (design targets, measured in M08a): `step` p99 ≤ 0.10 ms in Node and �
 R-MODE-03 does not require online play; the design only keeps the door open [research/gamedesign-decomposition.md §4.8].
 1. **Why feasible:** state is one ~4 KB `Int32Array`; `step` is a pure function of `(state, inputs)`; presentation events are re-derived and de-duplicated; cinematic skip is an input; no physics.
 2. **Plan:** input delay 2 frames, rollback up to 7 frames, 8-snapshot ring, per-10-frame hash exchange (a per-frame hash locally), spectators by input relay. Leniency forced to 100 %, pose disabled online, both clients verify `frameDataHash` and `FIGHT_DATA_VERSION` at join; mismatch → no match.
-3. **Transport gap (proposal to S09):** C11 `EV Activity` is reliable JSON ≤ 1 KiB and `IN` is 20 Hz, so neither carries 60 Hz fight input. Proposal: an additive `ActKind.FightInput` carrying the last 8 frames × 2 B per player redundantly each tick over the same WebSocket to a `DirectoryDO`-assigned fight instance; the DO relays and arbitrates final hashes, it does not simulate (U-ENG-3). Latency over a Durable Object relay is `UNVERIFIED`; the M12c load test measures it, and an ADR decides relay versus WebRTC (Realtime TURN pricing F-026).
+3. **Transport gap (proposal to S09):** C11 `EV Activity` is reliable JSON ≤ 1 KiB and `IN` is 20 Hz, so neither carries 60 Hz fight input. Proposal: an additive `ActKind.FightInput` carrying the last 8 frames × 2 B per player redundantly each tick over the same WebSocket to a `DirectoryDO`-assigned fight instance; the DO relays and arbitrates final hashes, it does not simulate. Latency over a Durable Object relay is `UNVERIFIED`; the M12c load test measures it, and an ADR decides relay versus WebRTC (Realtime TURN pricing F-026).
 4. **Not GGPO:** GGPO is MIT but its build targets Windows only; the loop is written in TypeScript [research/gamedesign-decomposition.md §4.8, GGPO row].
 5. **No ranked mode in v1.** If ranked arrives, Classic and Simple queues are separate (research §4.11) and pose never enters ranked.

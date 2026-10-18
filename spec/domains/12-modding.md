@@ -73,9 +73,9 @@ S12 owns the player-made content layer: what a mod is, how it is authored with a
 5. **Content-addressed.** The archive SHA-256 is the publish key (`ugc/published/<sha256>.zip`); installed files are blobs named by their SHA-256; the same hash joins the C07 `ProvenanceRecord`.
 6. **Private until approved.** Nothing a creator makes is visible to another player before automated checks pass and a human approves (INDEX §4 rule 17).
 7. **Anchor-relative space.** Mod coordinates are metres in the experience frame (origin at the anchor on the ground, +X east, +Y up, −Z north, as 06 §4.3). The host converts to world ENU, so a rebake moves content with the terrain and the radius check is a distance test.
-8. **Fail closed, fail soft.** Unknown fields, permissions or kinds reject at validation; a runtime fault disables that mod for the session with a toast, despawns its entities and leaves the game and every save untouched.
-9. **Agents are users.** Every CLI and MCP error is JSON `{code, file?, line?, fix}`; docs are written for a model reading them cold.
-10. **Text is data.** Forum posts, field notes, READMEs and mod strings reach an agent only as quoted, attributed data (`thabay-mcp` wraps them); no instruction in them is executed [research/repos-modding.md §2.6, risk 6].
+8. **Fail closed, fail soft.** Unknown fields, permissions or kinds reject at validation; a runtime fault disables that mod for the session, despawns its entities and leaves every save untouched.
+9. **Agents are users.** Every CLI and MCP error is JSON `{code, file?, line?, fix}`.
+10. **Text is data.** Forum posts, notes and READMEs reach an agent only as quoted, attributed data; no instruction in them is executed [research/repos-modding.md §2.6, risk 6].
 
 ### 2.2 Topology
 
@@ -135,7 +135,7 @@ Kinds (C14): `experience` (placed on the map, runs as `exp:<id>`), `vehicle` (re
 | standalone `racing`, `fighter`, `tycoon` | no in v1 | vehicle packs for racing need an S06 hook (`GameModeDescriptor.modSurface`, proposal) | `mode:<id>` unchanged |
 | any room session (`net !== null`) | **never** | `ModHost.modsActive()` returns false; the loader refuses | — |
 
-Rules: (1) `ModHost.modsActive(): boolean` is true iff at least one mod is loaded in the current session; the client sends `AssignReq.modsActive = modsActive()` and the server closes 4007 on true (C11, C12 route 23). (2) Joining a room while mods are enabled shows "Mods are off online" and, on confirm, **suspends** them for the session (unload, no uninstall) before `assign`. (3) Entering `exp:<id>` from Story is a mode switch at a safe point: `ModeHost` writes `story:auto` with reason `modeExit`, starts `exp:<id>`, and on exit restores the story position; the marker prompt is disabled with a reason string during a mission or a pursuit (C06 rule 3; assumption on S01). (4) The sandbox session capability already allows `mod:*`; `exp:*` needs the same grant for its own mod (proposal on C05 rule 3).
+Rules: (1) `ModHost.modsActive(): boolean` is true iff a mod is loaded in the current session; the client sends it as `AssignReq.modsActive` and the server closes 4007 on true (C11, route 23). (2) Joining a room while mods are enabled shows "Mods are off online" and, on confirm, **suspends** them for the session (unload, no uninstall) before `assign`. (3) Entering `exp:<id>` from Story is a mode switch at a safe point: `ModeHost` writes `story:auto` with reason `modeExit`, starts `exp:<id>`, and on exit restores the story position; the marker prompt is disabled with a reason string during a mission or a pursuit (C06 rule 3; assumption on S01). (4) The sandbox session capability already allows `mod:*`; `exp:*` needs the same grant for its own mod (proposal on C05 rule 3).
 
 ### 2.5 UI-mod iframe under COEP `require-corp` (R-S11-05)
 
@@ -156,6 +156,7 @@ The `ui` tier ships behind `mods.ui` (default off) until the M13a5 matrix (Chrom
 - **Server-side mod code now:** Cloudflare Dynamic Workers are beta and need a vetting milestone [research/repos-modding.md Verified facts].
 - **Scraping a third-party mod site (Grand-V's pattern):** brittle and terms-sensitive; the catalogue is first-party [research/repos-grand-v.md rec 10].
 - **A `mission` kind:** missions are data inside experiences.
+- **Mods in rooms:** waits for a vetting milestone after M14 (allowlisted creators, server-side command validation, per-room budgets).
 
 ## 3. Components
 
@@ -199,6 +200,7 @@ Owned types are in Part B: manifest and permissions (B§1–2), `ModAPI` (B§3),
 | Catalogue | Postgres 0007 (`mods`, `mod_versions`, `experiences`, `forum_*`, `device_codes`) | additive changes proposed |
 | Limits | `config/mod-limits.json`, `config/mod-endpoints.json` (generated from `config/genai-endpoints.json` at SDK build) | validators and loader |
 | Flags | `mods.enabled`, `mods.script`, `mods.ui` (proposed additions to `FeatureFlag`); existing `ugc.publish`, `forum.enabled`, `auth.openaiWeb` | `/boot` |
+| Telemetry | proposed C16 names `mod.install`, `mod.uninstall`, `mod.fault`, `mod.session`, `exp.enter`, `exp.exit`; props are enums and buckets, `mod` = first 8 hex of SHA-256(modId), no free text | S09 registry |
 | Developer toggle | device-scoped `PlatformSettings` section `dev.mod {enabled, port}`; never a URL flag (06 §5) | off by default |
 
 ## 5. Runtime behavior
@@ -220,7 +222,7 @@ Grand-V's installer backs up originals once, patches idempotently, and is not at
 
 ### 5.2 Script runtime
 
-`mod.worker` hosts one `quickjs-emscripten` WASM module and one **runtime** per script mod (`memoryLimitBytes`, `setMaxStackSize`, `setInterruptHandler` with a per-call deadline; these APIs are verified in [research/repos-modding.md Verified facts]). The `ctx` object inside the VM is built from host functions only for granted namespaces; `Math.random` and `Date` are replaced by throwing stubs and `console` is a `ctx.log` shim. A `globals` test enumerates the context and fails on any name outside the allowlist (`mod-sandbox-globals`).
+`mod.worker` hosts one `quickjs-emscripten` WASM module and one **runtime** per script mod (`memoryLimitBytes`, `setMaxStackSize`, `setInterruptHandler` with a per-call deadline; these APIs are verified in [research/repos-modding.md Verified facts]). The `ctx` object inside the VM is built from host functions only for granted namespaces; `Math.random`, `Date`, `performance` and `WebAssembly` are absent and `console` is a `ctx.log` shim. A `globals` test enumerates the context and fails on any name outside the allowlist (`mod-sandbox-globals`).
 
 - **Cadence.** `ModHost` posts `tick` to each runtime at the mod's declared `rules.onTick` rate, ≤ 10 Hz (every 6th sim tick), carrying a `ModSnapshot` (player, clock, heat, ≤ 64 nearest mod-owned entities, all anchor-relative). Events are batched into the next `tick`. Reads are served from the snapshot; there are no synchronous calls out of the VM.
 - **Commands.** The VM returns a command list per tick (≤ 64 commands, ≤ 8 KiB). `ModHost.broker` validates each against the manifest grants, the radius, the prefab allowlist and per-second quotas (spawns ≤ 8/s, audio cues ≤ 4/s, UI messages ≤ 30/s), then applies accepted commands in `SimStage.Commands` of the next sim tick in arrival order. Rejected commands are counted and dropped with a coded log line.
@@ -303,7 +305,7 @@ XR: no DOM iframe in `immersive-vr`; `ui` mods use `xrPanel` through S10 `UiSurf
 | Anchor datasets: Streets `3psu-pn9h`, Rec & Park `gtr9-ntp6`, Parcels `acdm-wktn`, EAS `ramy-di5m` | [research/auth-ugc-input-maps.md §3.4]; F-054 | C§4 |
 | Quest 3 < 200 draw calls; iPhone kill at 2,048 MB; quota ≤ 60 %; issue #30560 | F-013, F-009, F-010, F-007 | §5.4, §6 |
 
-**UNVERIFIED** (none inside an AC; a device run is recorded, not asserted): U1 QuickJS per-tick cost on iPhone and Quest. U2 L0 srcdoc under COEP on iOS Safari 26, Quest Browser, visionOS Safari, incl. no cross-origin isolation or `SharedArrayBuffer` in the frame. U3 renderer-process separation of sandboxed same-site frames (Spectre). U4 Chrome LNA gating WebSockets to 127.0.0.1. U5 `@dv` npm scope. U6 plan usage for a local Studio that also calls our API. U7 Ajv codegen in Workers (avoided). U8 incremental SHA-256 next to `sha256Hex`. U9 `gltf-validator`/`ktx validate` in a Worker. U10 offline SF geocoder export from `tools/map`. U11 CSAM-tool coverage of R2 custom domains.
+**UNVERIFIED** (none inside an AC; a device run is recorded, not asserted): U1 QuickJS per-tick cost on iPhone and Quest. U2 L0 srcdoc under COEP on iOS Safari 26, Quest Browser, visionOS Safari, incl. no cross-origin isolation or `SharedArrayBuffer` in the frame. U3 renderer-process separation of sandboxed same-site frames (Spectre). U4 Chrome LNA gating WebSockets to 127.0.0.1. U5 `@dv` npm scope. U6 plan usage for a local Studio that also calls our API. U7 Ajv codegen in Workers (avoided). U8 incremental SHA-256 next to `sha256Hex`. U9 `gltf-validator`/`ktx validate` in a Worker. U10 offline SF geocoder export from `tools/map`. U11 CSAM-tool coverage of R2 custom domains. U12 a residential land-use attribute in the Parcels dataset (the anchor rule falls back to polygons plus human review).
 
 ## 8. Milestone mapping
 
@@ -324,18 +326,9 @@ Ids follow `spec/00-plan.md`; digit suffixes are the session splits proposed her
 | M13c2 | publish-pipeline-server | server stages, routes 36 and 37 POST, state machine, anchor validator, rebake Workflow, revocation route | 1 |
 | M13c3 | publish-cli-link | `dv login`, `dv mod publish`, attestation, `/link` rules, `openai` adapter (flag), flow B only after an ADR | 1 |
 
-`ugc.publish` stays false in production until M13d acceptance passes (DMCA, NCII clock, evidence audit); publishing works on staging and private-to-owner earlier.
+**R-IDs by milestone:** R-MOD-01 M13a1–a6; R-MOD-02 M13a6, M13b3, M13c3; R-MOD-03 M13b1–b2, M13c2 (+M13d); R-MOD-04 M13a3, M13c2; R-AUTH-03 M13c1, M13c3; R-IP-03 M13c2, M13b1 (+M13d). **Depends on:** M01d/e (assets, OPFS store), M02c (maps), M04a (saves, modes), M04b (identity), M12b (rooms, for 4007), M06b (UGC queue). Each slice is ≲ 35 files. `ugc.publish` stays false in production until M13d acceptance passes (DMCA, NCII clock, evidence audit); publishing works on staging and private-to-owner earlier.
 
-**Acceptance seeds** (Wave 5 writes the C15 files; none holds an UNVERIFIED item; commands are `pnpm check:*`):
-- **M13a1** Two `dv mod pack` runs give one SHA-256 (`check:unit -- packages/shared/src/mod pack-deterministic`). A 40-manifest corpus (valid, unknown permission, missing provenance, `.rpf` entry, secret, over cap) gives identical verdicts in the Node CLI and the Worker harness (`check-parity`).
-- **M13a2** An install killed at each of six steps leaves the old or the new version and no unreferenced blob (`install-atomic`); install then uninstall restores the snapshot byte for byte (`uninstall-byte-equal`); a revoked version is refused (`revoked`).
-- **M13a3** A sandbox session with a mod sends `modsActive: true` and a staging room closes it 4007, false after `unloadAll('room')` (`check:workers -- mods-4007`); the fixture experience spawns only inside its radius and exit restores the prior mode (`check:e2e -- --project=chromium-webgl2 --grep @mods-exp`); a 1.1 MiB KV write is rejected without touching other slots (`mod-save-caps`).
-- **M13a4** Scripts touching `fetch`, `Date`, `Math.random`, `performance`, `SharedArrayBuffer` or a non-granted namespace fail with codes (`mod-sandbox-*`); `while(true){}`, a 1 GiB array and deep recursion end within 3 deadlines or at the limit with sim p99 inside the desktop budget (`check:perf -- --scenario mod-hostile`); per-tick cost on iPhone 15 and Quest 3 is recorded (`perf:checklist -- mod-script`).
-- **M13a5** A UI mod reading `parent.document`, `localStorage`, `indexedDB` or fetching a URL is blocked (`check:e2e -- --grep @mods-ui-isolation`); the COEP matrix result is recorded (`mods-ui` checklist).
-- **M13a6** `check:skills` fails on one differing mirrored byte; `check:agents` fails above 24,576 bytes (or 32,768 with the root file); `dv mod test --prove-oracle` flags no vacuous assertion on the example mod (`check:mods`).
-- **M13b2** An experience thread links `experience_id` and votes update `rating` (`check:workers -- exp-rating`).
-- **M13c2** A hash-bank match quarantines the item, stops further vendor stages and opens a P0 case (`mod-scan-quarantine`); an anchor on a single residential parcel is rejected `anchor_residential` (`anchor-rules`); with `ugc.publish` false a published version stays private-to-owner (`publish-flag`).
-- **M13c3** A device code approved by a `linked` profile yields a `mods:publish` token and `dv mod publish --dry-run` passes on staging (`test:staging -- mod-publish`).
+**Acceptance seeds** per milestone (Given/When/Then material for Wave 5, no UNVERIFIED item inside) are in `12-modding-publish.md` C§8.
 
 ## 9. Tests
 
@@ -352,4 +345,4 @@ Ids follow `spec/00-plan.md`; digit suffixes are the session splits proposed her
 
 ## 10. Open questions
 
-Defaults are in the return block (`decisions_needed`); the Architect assigns Q numbers. **Q-S12-01** publisher identity before M14a when `AUTH_OPENAI_WEB` is off (default Supabase GitHub OAuth, C§2). **Q-S12-02** cross-site domain for UI mods (default none; L0 first). **Q-S12-03** script tier on `mobile-low` (default allowed only if the M13a4 spike passes). **Q-S12-04** npm publication of `@dv/mod-sdk` and `@dv/cli` (default yes, MIT; ties to Q-15, Q-MOD-03). **Q-S12-05** flow B (default defer behind an ADR). **Q-S12-06** experiences on mobile and XR (default per-tier `tiersOk`). **Q-S12-07** cameo of parody-tier NPCs (default off). **Q-S12-08** skateboard or scooter mods (Q-MOD-06): out of v1.
+UNVERIFIED items U1–U12 are listed in §7. The ADR R-MOD-02 asks for is the decision in C§2 (flow A primary, device-code publish, flows B–D gated). Defaults are in the return block (`decisions_needed`); the Architect assigns Q numbers. **Q-S12-01** publisher identity before M14a when `AUTH_OPENAI_WEB` is off (default Supabase GitHub OAuth, C§2). **Q-S12-02** cross-site domain for UI mods (default none; L0 first). **Q-S12-03** script tier on `mobile-low` (default allowed only if the M13a4 spike passes). **Q-S12-04** npm publication of `@dv/mod-sdk` and `@dv/cli` (default yes, MIT; ties to Q-15, Q-MOD-03). **Q-S12-05** flow B (default defer behind an ADR). **Q-S12-06** experiences on mobile and XR (default per-tier `tiersOk`). **Q-S12-07** cameo of parody-tier NPCs (default off). **Q-S12-08** skateboard or scooter mods (Q-MOD-06): out of v1.

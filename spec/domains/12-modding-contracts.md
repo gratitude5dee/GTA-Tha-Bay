@@ -205,12 +205,12 @@ export interface ModSnapshot {                       // delivered with every scr
   mine: { ref: ModEntityRef; pos: AnchorVec3 }[];    // ≤ 64 nearest mod-owned entities
 }
 export type ModEvent =
-  | { t: 'zone.enter' | 'zone.exit'; zone: string }
+  | { t: 'zone.enter'; zone: string } | { t: 'zone.exit'; zone: string }
   | { t: 'interact'; ref: ModEntityRef }
-  | { t: 'vehicle.enter' | 'vehicle.exit'; prefab: string }
+  | { t: 'vehicle.enter'; prefab: string } | { t: 'vehicle.exit'; prefab: string }
   | { t: 'heat'; level: number } | { t: 'hour'; hour: number } | { t: 'weather'; preset: string }
   | { t: 'mission.end'; id: string; outcome: 'win' | 'lose' | 'quit' }
-  | { t: 'ui'; msg: JsonValue } | { t: 'exp.enter' | 'exp.exit' };
+  | { t: 'ui'; msg: JsonValue } | { t: 'exp.enter' } | { t: 'exp.exit' };
 
 export interface ModApiProps    { place(prefab: string, at: AnchorVec3, o?: { yaw?: number; scale?: number }): ModEntityRef; remove(ref: ModEntityRef): void }
 export interface ModApiSpawn    { ped(prefab: string, at: AnchorVec3, o?: { yaw?: number; behavior?: 'idle' | 'wander' | 'patrol'; path?: AnchorVec3[] }): ModEntityRef;
@@ -269,6 +269,7 @@ export declare function defineMod<P extends ModPermission = never>(def: ModDefin
 All validated by the shared validators; schema files in `packages/shared/schemas/mod/`.
 
 ```ts
+import type { WeatherPreset } from './engine-world';
 export interface ExperienceAuthored {               // data.experience, `dv-exp/1`; the placement (anchor) is NOT in the archive (C§4)
   schema: 'dv-exp/1';
   title: string /* 3–60 */; summary: string /* ≤ 280 */; tags: string[] /* ≤ 5 */;
@@ -301,3 +302,145 @@ export type PanelNode =
 ```
 Buttons deliver `{t:'ui', msg:{panel:id}}` to the script; `progress` values are set with `hud.set`.
 
+## B§5 Protocols, host shims, saves, install records
+
+**Script protocol** (`packages/shared/src/contracts/c14-protocol.ts`; every message `{v:1,…}`, schema-tested from both sides; transport is a `MessagePort` pair created by main at session start).
+
+```ts
+export type ModFaultReason = 'deadline' | 'memory' | 'stack' | 'throw' | 'protocol' | 'ui' | 'worker-died';
+export interface ScriptLimits { deadlineMs: number; memoryBytes: number; stackBytes: number; maxCmds: 64; maxCmdBytes: 8192 }
+export interface ModCommand { c: string /* 'props.place' | 'spawn.ped' | … one id per ModAPI method */; ref?: number /* VM-allocated, monotonic */; a: JsonValue[] }
+
+export type ModMsgDown =                                  // sim.worker → mod.worker
+  | { v: 1; t: 'init'; modId: ModId; source: string; granted: ModPermission[]; limits: ScriptLimits; seed: number; radius: number; lang: string;
+      storage: { schema: number; kv: Record<string, JsonValue> } }
+  | { v: 1; t: 'tick'; seq: number; snap: ModSnapshot; events: ModEvent[]; lockstep: boolean }
+  | { v: 1; t: 'shutdown' };
+export type ModMsgUp =                                    // mod.worker → sim.worker
+  | { v: 1; t: 'ready'; tickHz: number | null; events: ModEvent['t'][] }
+  | { v: 1; t: 'cmds'; seq: number; cmds: ModCommand[]; usedMs: number }
+  | { v: 1; t: 'kv'; patch: Record<string, JsonValue | null> }
+  | { v: 1; t: 'log'; level: 'debug' | 'info' | 'warn' | 'error'; msg: string }
+  | { v: 1; t: 'fault'; reason: ModFaultReason; detail?: string };
+export interface ModFault { modId: ModId; reason: ModFaultReason; detail?: string; atTick: number }
+export type UiMsg = { v: 1; t: 'hello'; modId: ModId } | { v: 1; t: 'msg'; d: JsonValue };       // iframe ↔ host over the transferred port; ≤ 4 KiB, 30/s
+```
+
+**Host shims** (C01 range 2048–4095, owner S12; scalars only; none is `hashed`, because mod sessions are not canonical): 2048 `ModOwned {mod u16, serial u32, kind u8}` (snapshot `render`), 2049 `ModMarker {icon u8, label u32 str}` (`render`), 2050 `ModZoneRef {zone u32 str}` (`none`); 2051–2111 reserved for host shims; 2112–4095 reserved for data-declared components (deferred, not v1). Mod entities are created with `pfb:<prefabId>:<serial>` keys and are never persisted; persistence is the `mod:<id>` slot only.
+
+**Mod save slot.** `SaveRecord` with `kind:'mod'`, `slot:'mod:<ModId>'` (the C05 slot regex already accepts `ModId`), `schema` = `manifest.storage.schema` (default 1), `data` = `{ kv: Record<string, JsonValue>; meta: { modVersion: SemVer; lastSessionAt: number } }`. `kv` canonical JSON ≤ 1 MiB (half the 2 MiB record cap, so metadata and growth fit). The host flushes at session end and every 60 s when dirty, through `SaveService.write(slot, data, reason)` with reason `modeExit` or `interval`. Capability: `sandbox` sessions may write `mod:*` (C05 rule 3, unchanged); an `exp:` session may write only its own mod's slot (proposal on rule 3). A `storage.schema` bump calls `migrate(from, to, kv)` once; a throw keeps the old record and disables the mod for the session.
+
+**Session and load types.**
+
+```ts
+export interface ModSessionInfo { mode: 'sandbox' | 'exp'; expId?: string; seed: number; lang: string; tier: QualityTierId;
+  anchor?: { lat: number; lng: number; enu: [number, number, number]; groundY: number }; radius: number }
+export interface LoadedMod { manifest: ModManifest; version: SemVer; files: ReadonlyMap<string, Uint8Array>; refs: ReadonlyMap<string, AssetRef> /* path → <kind>/mod.<sha12> */ }
+```
+
+**Install records** (IndexedDB `dv-mods` v1: store `installed` key `modId`; `journal` key `txId`, index `by_state`; `meta` key `k`).
+
+```ts
+export interface ModBudgetReport { tris: number; textureGpuBytes: number; entities: number; renderObjects: number; sceneOps: number;
+  scriptBytes: number; uiBytes: number; tiersOk: QualityTierId[] }
+export interface InstalledVersion { archive: { name: string; sha256: Sha256; bytes: number }; blobs: Sha256[]; manifest: ModManifest; budget: ModBudgetReport; installedAt: number }
+export interface InstalledMod {
+  modId: ModId; kind: ModKind; tier: ModTier; name: string;
+  active: SemVer; previous?: SemVer; versions: Record<SemVer, InstalledVersion>;
+  enabled: boolean; installedFrom: 'store' | 'local'; installedAt: number; updatedAt: number;
+  lastRunOk?: SemVer; revoked?: { reason: 'dmca' | 'policy' | 'security'; at: number }; loadOrder: number;
+}
+export type JournalState = 'begun' | 'staged' | 'committed' | 'aborted';
+export interface JournalEntry { txId: string; op: 'install' | 'update' | 'uninstall' | 'rollback' | 'enable' | 'disable'; modId: ModId; from?: SemVer; to?: SemVer;
+  state: JournalState; blobs?: Sha256[]; startedAt: number; endedAt?: number; error?: ModErrorCode }
+export type InstallSource = { kind: 'store'; modId: ModId; version: SemVer } | { kind: 'local'; blob: Blob; name: string };
+export type InstallStep = 'begin' | 'download' | 'verify' | 'stage' | 'commit' | 'gc';
+export interface InstallStepEvent { txId: string; step: InstallStep; done: number; total: number; line: string /* one human line for the log and toast */ }
+export type InstallResult = { ok: true; modId: ModId; version: SemVer } | { ok: false; code: ModErrorCode; fix: string };
+```
+
+OPFS layout: `dv/mods/blobs/<sha256>` (write-once, identity bytes), `dv/mods/staging/<txId>/archive`. Timestamps are epoch ms; ids UUIDv7.
+
+## B§6 C17 — `ExperienceDescriptor`
+
+```ts
+// packages/shared/src/contracts/c17-experience.ts
+import type { ModId, SemVer, Sha256, ModContentWarning } from './c14-mod';
+import type { AnchorVec3 } from './c14-modapi';
+import type { WeatherPreset } from './engine-world';
+import type { QualityTierId } from '../platform/c13';
+
+export const C17_VERSION = '1.0.0' as const;
+export type ExperienceModeration = 'needs_review' | 'published' | 'rejected' | 'needs_update' | 'unlisted_pending_review' | 'removed';
+export type ExperienceVisibility = 'private' | 'unlisted' | 'public';          // owner-only | link only | on the map
+export interface ExperienceAnchor { lat: number; lng: number; chunkKey: string /* C08 'z/x/y', computed by the server */ }   // (fixed: both present)
+export interface ExperienceEntryRules {
+  entry: 'on_foot' | 'in_vehicle' | 'either'; start: AnchorVec3; hours?: [number, number]; weather?: WeatherPreset;
+}
+export interface ExperienceDescriptor {
+  id: string;                                  // UUIDv7 of the placement (C12 ids)
+  modId: ModId; modVersion: SemVer;            // a placement pins one published version
+  anchor: ExperienceAnchor;
+  radius: number;                              // metres, 10..250 (fixed ≤ 250)
+  entryRules: ExperienceEntryRules;
+  rating: { sum: number; count: number };      // sum of ±1 votes and number of votes; up = (count+sum)/2
+  moderation: ExperienceModeration;            // server-owned, read-only to clients (fixed)
+  visibility: ExperienceVisibility;            // server-owned, read-only to clients (fixed)
+  worldVersion?: string; modSha256?: Sha256;   // additive in 1.1.0 (proposal): pin to the baked world and archive for rebake re-validation
+}
+/** Route 37 list/detail item: descriptor plus display data read from the pinned version's `dv-exp/1` and manifest. */
+export interface ExperienceCard extends ExperienceDescriptor {
+  title: string; summary: string; tags: string[]; author: { id: string; display: string };
+  thumbUrl?: string;                           // https://ugc.<host>/thumb/<sha256>.webp
+  contentWarnings: ModContentWarning[]; tiersOk: QualityTierId[]; aiAssisted: boolean; updatedAt: number;
+}
+```
+
+`radius` and `entryRules` are the *placement's* values (a placement may shrink the authored radius); `title`, `summary` and thumbnail come from the pinned version. The client builds the `exp:<id>` `GameModeId` from `id`. Ranking uses the Wilson lower bound of `up = (count + sum) / 2` out of `count`.
+
+## B§7 Route DTOs, error codes, limits
+
+Routes 35–37 follow C12 conventions (`ApiError`, cursor pagination `limit ≤ 50`, epoch ms). Types in `packages/shared/src/api/mods.ts` (S09 hosts, S12 owns the semantics). DTOs expose `mods.slug` as `ModId`; database UUIDs never leave the server.
+
+```ts
+export interface ModListItem { id: ModId; name: string; summary: string; kind: ModKind; tier: ModTier; author: { id: string; display: string };
+  latest: SemVer; installs30d: number; thread?: { id: string; score: number; posts: number }; thumbUrl?: string; aiAssisted: boolean; tiersOk: QualityTierId[]; updatedAt: number }
+export interface ModDetail extends ModListItem { versions: { version: SemVer; state: ModVersionState; at: number; changelog: string }[]; license: string; remixAllowed: boolean; credits: ModProvenance['credits']; remixOf?: ModArchiveRef }
+export type ModVersionState = 'scanning' | 'rejected' | 'needs_review' | 'published' | 'unlisted_pending_review' | 'yanked' | 'removed';
+export interface ModVersionDetail { modId: ModId; version: SemVer; state: ModVersionState; manifest: ModManifest; archiveSha256: Sha256; bytes: number;
+  archiveUrl: string /* https://ugc.<host>/ugc/published/<sha256>.zip */; budget: ModBudgetReport; evidence?: 'implemented' | 'tested' | 'seen-in-game' | 'unverified' }
+export interface ModVersionsReq { uploadId: string; manifest: ModManifest; changelog: string /* ≤ 2000 */; visibility: 'unlisted' | 'public' /* requested; applied only after approval */;
+  attestation: PublishAttestation; placement?: { lat: number; lng: number; radius: number; entryRules: ExperienceEntryRules } }
+export interface PublishAttestation { confirmedAt: number; declarations: ModDeclarations; liveHuman: true }
+export interface ModVersionsRes { modId: ModId; version: SemVer; state: 'scanning'; moderationItemId: string; experienceId?: string }
+export interface RevokedRes { items: { modId: ModId; version?: SemVer; reason: 'dmca' | 'policy' | 'security'; at: number }[]; next?: string }
+```
+
+Route 35 query adds `sort` (`new|top|installed`), `tier` (a `QualityTierId` filter on `tiersOk`) and `limit` (additive proposal); route 36 returns 202 `ModVersionsRes` and is idempotent per `(modId, version)` (a changed archive under a published version is `409 conflict`); route 37 `GET` takes `chunk=<z/x/y>` (comma list ≤ 9 keys) or `bbox=minLng,minLat,maxLng,maxLat` and returns only `moderation:'published' ∧ visibility:'public'` for anonymous callers, plus the caller's own placements with their states; route 37 `POST` body `{modId, modVersion, anchor:{lat,lng}, radius, entryRules, visibility}` (a later placement of an already published version).
+
+```ts
+export type ModCheckCode =
+  | 'envelope.zip_bomb' | 'envelope.entries' | 'envelope.path' | 'envelope.nested_archive' | 'type.banned_format' | 'type.magic_mismatch'
+  | 'schema.invalid' | 'perm.unknown' | 'perm.tier' | 'perm.missing' | 'asset.hash' | 'asset.unlisted' | 'asset.kind'
+  | 'prov.missing' | 'prov.invalid' | 'prov.licence' | 'prov.endpoint_banned' | 'likeness.tier' | 'secret.found'
+  | 'ip.signature' | 'ip.string' | 'cap.size' | 'cap.ops' | 'cap.entities' | 'cap.budget' | 'script.size' | 'script.lint'
+  | 'compat.api' | 'compat.world' | 'remix.licence' | 'anchor.outside_sf' | 'anchor.not_public_land' | 'anchor_residential' | 'anchor.address_string';
+export type ModErrorCode = ModCheckCode | 'install.hash_mismatch' | 'install.quota' | 'install.offline' | 'install.revoked' | 'install.tier_unsupported'
+  | 'load.room' | 'load.story' | 'load.flag_off' | 'publish.attestation' | 'publish.flag_off' | 'publish.rate';
+export interface ModFinding { code: ModCheckCode; severity: 'error' | 'warn' | 'review'; file?: string; line?: number; message: string; fix: string }
+export interface ModCheckResult { ok: boolean; findings: ModFinding[]; budget: ModBudgetReport; tool: { name: '@dv/shared/mod/check'; version: string } }
+```
+
+**`config/mod-limits.json`** (schema-validated, read by validators, loader and `dv`; S12 design values, calibrated in M13a1/M13a3/M13a4):
+
+```jsonc
+{ "schema": 1,
+  "archive": { "maxBytes": 134217728, "maxEntries": 2000, "maxUncompressedBytes": 536870912, "maxRatio": 100 },
+  "install": { "maxPackages": 64, "maxCombinedBytes": 536870912 },
+  "manifest": { "maxBytes": 524288, "maxAssets": 256 },
+  "script": { "maxBytes": 262144, "maxCmdsPerTick": 64, "maxCmdBytes": 8192, "maxTickHz": 10 },
+  "ui": { "maxHtmlBytes": 524288, "msgBytes": 4096, "msgPerSec": 30 },
+  "scene": { "maxOps": 512 }, "storage": { "maxBytes": 1048576, "maxKeys": 64, "maxValueBytes": 65536 },
+  "experience": { "maxRadiusM": 250, "minRadiusM": 10, "maxPlacementsPerVersion": 3 },
+  "tiers": { "desktop-ultra": { "deadlineMs": 4, "memoryBytes": 33554432, "scriptMods": 4, "entities": 96, "renderObjects": 24, "textureMB": 160, "tris": 300000 } /* … one row per C13 tier, values in main §5.4 */ } }
+```

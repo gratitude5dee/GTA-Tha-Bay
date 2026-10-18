@@ -103,7 +103,7 @@ export type ZoneDef =
   | { k: 'poly'; ring: LatLng[]; yMin?: number; yMax?: number }           // 3–64 points
   | { k: 'landmark'; id: LandmarkId; r?: number }
   | { k: 'route'; via: LatLng[]; widthM: number }                         // snapped to C08 road edges at load → ZoneShape 'edges'
-  | { k: 'cast'; cast: CastName; r: number };                             // moving circle around an entity
+  | { k: 'cast'; cast: CastName; r: number };                             // moving circle; evaluated by the VM as a distance test, never registered with ZoneService
 
 export interface StageDef {
   id: string; join: 'all' | 'any' | 'sequence';

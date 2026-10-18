@@ -160,7 +160,7 @@ export interface PoseCalibration {          // dimensionless; no raw measurement
 
 ## FP7 Privacy enforcement (R-IP-04)
 
-1. **Headers.** `Permissions-Policy: camera=(self)` on app documents (default `camera=()` elsewhere); CSP `connect-src` allow-lists the app origin, `media.<domain>` and `api` only (assumption on S11 `_headers`, hub §10; `check:headers` asserts both).
+1. **Headers.** `Permissions-Policy: camera=(self)` on app documents (default `camera=()` elsewhere); CSP `connect-src` allow-lists only the app origin (which serves `/api/v1`) and `media.<domain>` (assumption on S11 `_headers`, hub §10; `check:headers` asserts both).
 2. **Messages.** Worker messages carry landmarks and gestures, never pixels; preview landmarks flow only while a calibration or self-view overlay is open.
 3. **Network assertion (e2e, `@fighter @pose`).** Playwright intercepts every request during a pose session and asserts: no body larger than 4 KB, no image/video MIME, no `blob:` or `data:` upload, and no request to any host outside the allow-list.
 4. **Static check.** `check:bundle` fails if the `pose.worker` bundle references `fetch`, `XMLHttpRequest`, `WebSocket` or `sendBeacon` other than a same-origin GET of `/pose/**` (an allow-listed loader call site).

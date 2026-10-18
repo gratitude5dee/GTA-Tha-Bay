@@ -16,7 +16,7 @@
 | R-IP-02 | consent scopes in the soul, `config/consent-index.json` export, kill-switch effects by scope | B2.2, B9, §5.10 |
 | Supporting | R-ENG-03 (cost controls; Part C §C7), R-ENG-04 (subtitles for every spoken line), R-MAP-04 (pedestrian barks), R-IP-03 (report button on dialogue and user NPCs), R-MODE-03/04 (fighter and tycoon personas) | Part C §C9, §C7 |
 
-**Contracts.** Owns **C10** (finalized, Part B). Honors C05 (`StorySlice.npcRelations`, `ProfileSettings.audio.voice`), C07 (`AssetRef`, `LikenessTier`, `voice`/`audio_bark`/`mouth_atlas` kinds, `char:<id>` tags), C12 (routes 30–34, 41, 43, 46, `ApiError`, `RosterFlags`, `PlayerQuota`, `BudgetGovernor`, `DataPort.npcMemory`). Uses C01 (`npc:<id>` keys, component ids 768–1023), C02 (AI at 30 Hz, RNG streams), C06 (`InteractKind.Talk`, `WorldClockApi`, `TimelineRecorder`), C13 (tiers), C16 (`npc.turn.client`).
+**Contracts.** Owns **C10** (finalized, Part B). Honors C05 (`StorySlice.npcRelations`, `ProfileSettings.audio.voice` volume; NPC settings proposed as `ProfileSettings.npc`), C07 (`AssetRef`, `LikenessTier`, `voice`/`audio_bark`/`mouth_atlas` kinds, `char:<id>` tags), C12 (routes 30–34, 41, 43, 46, `ApiError`, `RosterFlags`, `PlayerQuota`, `BudgetGovernor`, `DataPort.npcMemory`). Uses C01 (`npc:<id>` keys, component ids 768–1023), C02 (AI at 30 Hz, RNG streams), C06 (`InteractKind.Talk`, `WorldClockApi`, `TimelineRecorder`), C13 (tiers), C16 (`npc.turn.client`).
 
 ### 1.1 Checklist (each item designed, deferred or out of scope)
 | # | Item | Status |
@@ -68,7 +68,7 @@ flowchart LR
   W --> Q[PlayerQuotaDO / BudgetGovernorDO]
   W --> E[EncounterDO]
   W --> KV[(KV roster:flags, ks:*, gov:level)]
-  W --> P[(PRIVATE souls/<id>/<ver>)]
+  W --> P[("PRIVATE souls/id/ver")]
   W --> DB[(Supabase npc_memory, npc_relationship)]
   W --> AIG[AI Gateway gw-dialogue → Anthropic]
   W --> WAI[Workers AI: bge-m3, aura TTS, llama-guard]
@@ -132,8 +132,8 @@ export interface NpcRuntime {
 
 // services/edge/src/npc/dialogue.ts
 export interface DialogueService { talk(req: Request, ctx: Ctx, npcId: NpcId): Promise<Response /* JSON ApiError or text/event-stream */> }
-export interface ModelRouter { route(s: CompiledSoul, gov: GovLevel, ks: KillSwitches): { model: 'claude-haiku-5-5' | 'claude-sonnet-5-5'; tier: ModelTier } }
-export interface TtsRouter { effectiveTier(s: CompiledSoul, ctx: { identity: Tier; age: AgeBracket; setting: 'auto' | 'off'; gov: GovLevel; ks: KillSwitches; killedScopes: KillScope[]; quotaOk: boolean }): VoiceTier;
+export interface ModelRouter { route(s: CompiledSoul, gov: GovLevel, ks: ReadonlySet<string>): { model: 'claude-haiku-5-5' | 'claude-sonnet-5-5'; tier: ModelTier } }
+export interface TtsRouter { effectiveTier(s: CompiledSoul, ctx: { identity: Tier; age: AgeBracket; setting: 'auto' | 'off'; gov: GovLevel; ks: ReadonlySet<string> /* active ks:* names */; killedScopes: KillScope[]; quotaOk: boolean }): VoiceTier;
   speak(tier: VoiceTier, voice: VoiceCatalogEntry, sentence: string, idx: number): AsyncIterable<AudioChunk> }
 ```
 Dependencies: `@anthropic-ai/sdk` (Worker only; it supports Workers and refuses browser use unless `dangerouslyAllowBrowser`) [research/ai-npc-runtime.md Verified facts], inkjs (MIT, with compiler) and `recast-navigation` crowd only via S02 [research/ai-npc-runtime.md §3.1]. ECS components (C01 npc range): 768 `NpcIdentity` (StringTable id), 769 `ScheduleCursor`, 770 `NpcBrain` (BT state), 771 `UtilityScores`, 772 `Talkable`, 773 `BarkEmitter`, 774 `IntentGoal`, 775 `NpcLod`.
@@ -217,8 +217,7 @@ Rules: at most 4 breakpoints, 1 h entries before 5 m entries; caching is per wor
 4. **Output checks** before `line.done`:
    - schema-valid JSON;
    - `line` ≤ `maxWordsPerLine` + 5 words (longer is truncated at a sentence boundary);
-   - `line` passes the server-side NameRegistry check. Real names and aliases from `likeness_subject` fail unless the soul is `consented` with scope `name`. A failure replaces the line with an ink `deflect` line and sends `fallback {reason:'moderation'}`.
-   - Text already streamed is replaced on the client, because `line.done` text is authoritative.
+   - `line` passes the server-side NameRegistry check (real names and aliases fail unless `consented` with scope `name`); a failure sends `fallback {reason:'moderation', knot:'deflect'}` and the client replaces any streamed text.
 5. **Executor limits:**
    - `affinity_delta` clamped to ±10;
    - `memory_writes` ≤ 2, ≤ 240 chars, importance 1–10, `scrubPii`;
@@ -250,22 +249,21 @@ Rules: at most 4 breakpoints, 1 h entries before 5 m entries; caching is per wor
   - Haiku with `npc-summary-1.0` returns `SummaryPatch`.
   - `applySummary` merges it: summary capped at 1,200 characters by re-summarizing; `encounters += 1`; affinity and trust deltas clamped ±10 per encounter.
   - Every 10th encounter per pair adds one `reflection` (importance 8).
-- **Scope v1:** pair memories and reflections only. `npc` and `world` scopes and rumors are deferred (M12c, shared world).
+- **Scope v1:** pair memories and reflections; `npc`/`world` scopes and rumors deferred to M12c.
 - **Retention and rights:** transcripts 30 d; memories 180 d after last access; relationships deleted with the profile or after 180 d inactive. Export and forget via C12 route 14 from M06a. No memory for any profile whose age bracket is not `18p` (none can obtain a play token under D-30, so this is a guard, tested).
 - **Two trust values, one truth:**
   - C05 `StorySlice.npcRelations[id].trust` (per save profile) is authoritative for gameplay and is sent in `context.relation`.
-  - The client applies `effects.affinityDelta` to it.
-  - `npc_relationship.affinity` (per identity profile) only flavors the summary.
+  - The client applies `effects.affinityDelta` to it; `npc_relationship.affinity` only flavors the summary.
 
 ### 5.7 Voice and lip-sync (D-23)
-**Effective tier** = min of: the soul's `voice.tier`; the player setting (`all` → as soul, `heroes` → `text` unless `roles.hero`, `off` → `text`; defaults desktop and XR `all`, mobile `heroes`); governor and switches (§5.3); kill scope `voice` → `text`; quota → `text` when `voice_line` is exhausted; `t2` additionally requires identity tier `linked` (P2+, 18+, D-30), otherwise `t1`; `t3` requires `consented` with `voice_clone` (schema) and an unexpired consent in `config/consent-index.json`.
+**Effective tier** = min of: the soul's `voice.tier`; the player setting (`all` → as soul, `heroes` → `text` unless `roles.hero`, `off` → `text`; defaults desktop and XR `all`, mobile `heroes`; stored in the proposed C05 `ProfileSettings.npc`, defaults when absent); governor and switches (§5.3); kill scope `voice` → `text`; quota → `text` when `voice_line` is exhausted; `t2` additionally requires identity tier `linked` (P2+, 18+, D-30), otherwise `t1`; `t3` requires `consented` with `voice_clone` (schema) and an unexpired consent in `config/consent-index.json`.
 
 | Tier | Engine (from `config/voice-catalog.json`) | Path | Price per 110-char line |
 |---|---|---|---|
 | `text` | none | subtitles only | 0 |
 | `t1` | Workers AI `@cf/deepgram/aura-1` (default) or `@cf/deepgram/aura-2-en` (`mp3`); MeloTTS only for baked lines | Worker calls per sentence; `line.delta {audio: {codec:'mp3'}}` | $0.00165 / $0.0033 [F-025; research/ai-npc-runtime.md §7.1] |
-| `t2` | ElevenLabs `eleven_flash_v2_5`, designed voices, ≤ 3 heroes (Q-12) | Worker calls `POST /v1/text-to-speech/{voice_id}/stream/with-timestamps` per sentence with `output_format: pcm_16000`; forwards `audio_base64` and `alignment` | $0.0044 [F-051] |
-| `t3` | the talent's own shared PVC or a licensed voice; never a clone we make [research/ai-npc-runtime.md §5.1] | as t2 | as t2 plus licence |
+| `t2` | ElevenLabs `eleven_flash_v2_5`, designed voices, ≤ 3 heroes (Q-12) | Worker calls `POST /v1/text-to-speech/{voice_id}/stream/with-timestamps` per sentence with output format `pcm_16000`; forwards `audio_base64` and `alignment` | $0.0044 [F-051] |
+| `t3` | runtime: the talent's own shared ElevenLabs PVC or a licensed voice (PVC cannot clone another person) [research/ai-npc-runtime.md §5.1]; baked consented clones only via S05's `voice_clone` role | as t2 | as t2 plus licence |
 | baked | any, pre-rendered to R2 (barks, ink, cutscene VO) | C07 `audio_bark` + Rhubarb `cues` | one-off |
 
 - Runtime TTS never calls fal: player-triggered fal use is barred before 18+ and P2, and its APIs may not be exposed to end users [F-042].
@@ -286,7 +284,7 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
 ### 5.10 Kill-switch and disclosure
 - **Server (≤ 60 s live, D-29):**
   - Routes 31–33 read `roster:flags` with a 30 s in-memory cache refreshed from Postgres (S09).
-  - Route 46 calls `EncounterDO.kill(npcId)` for open encounters through a per-NPC index, and in-flight streams end with `fallback {reason:'killed'}`.
+  - Route 46 triggers S09's `EncounterDO.kill` (S09 mechanism, `09-backend.md` M06a AC-4), and in-flight streams end with `fallback {reason:'killed'}`.
   - Scope effects:
     - `all`/`spawn` → `kill_switched` on talk and intent;
     - `voice` → effective tier `text`, baked lines dropped;
@@ -300,7 +298,7 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
   - (1) a persistent "AI character" badge on every dialogue surface, driven by `meta.disclosure.aiCharacter`;
   - (2) a first-launch notice (S10);
   - (3) the first time a save profile meets a non-original NPC, a card with "Parody. Not affiliated with or endorsed by any real person." (`parody`), "Fictional character." (`fictional`), or "Appears courtesy of …" (`courtesy`);
-  - (4) the credits list disclaimers. Parody NPCs never appear in marketing (`marketing_allowed` derived false) [research/legal-ip-likeness.md L1].
+  - (4) the credits list disclaimers. Parody NPCs never appear in marketing (`marketingAllowed` is false) [research/legal-ip-likeness.md L1].
 
 ### 5.11 Performance and budgets
 - **Client:** no draw calls beyond the S10 panel; lip-sync is one uniform update per frame per speaker; `InkRunner` loads lazily (< 50 KB per NPC); mp3 via `decodeAudioData`, PCM copied into an `AudioBuffer`.
@@ -316,7 +314,7 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
 | Lip-sync | mouth atlas + jaw | same | same, ≤ 1 speaker at `xr-quest` | same |
 | Audio | WebAudio after `FirstGestureUnlock` | same; PCM preferred where Ogg Opus decode is unconfirmed (S05 U14) | spatial on the voice bus | spatial |
 | Subtitles | panel + world bubble | panel | head-locked caption on the panel with comfort-safe placement (S11) | same |
-The dialogue panel never blocks XR locomotion comfort settings (C05 `XrComfortSettings`). Text input in XR is optional; every conversation is completable with intents alone.
+XR comfort settings (C05 `XrComfortSettings`) always apply; every conversation is completable with intents alone.
 
 ## 7. Verified facts used
 | Ref | Fact | Source |
@@ -359,7 +357,7 @@ Proposed session splits of the register's M06a/M06b plus a roster-content scope.
 | **M06a1** npc-backend-spine (S09's existing M06a slice) | play token, `PlayerQuotaDO`, `EncounterDO`, SSE transport, memory tables, roster flags, kill route | — | M05d | 1 (S09) |
 | **M06a2** soul-contract-compiler | C10 types, schemas, generated validators, fixtures, `tools/soul` lint/compile/build/llm-schema, roster, `npc_test` + `ro-batista` + `canary-mc` + stand-in souls, ink scaffolds, POI stub, `data/npc-roster` | research `normalize` CLI with fixtures only | M00b, M01d | 1 |
 | **M06a3** dialogue-proxy | `DialogueService`, `PromptAssembler`, `ModelRouter`, safety filter, executor, `DialogueClient` + `InkRunner`, offline fallback, recorded-fixture mode, cache and TTFT staging probes, disclosure hooks | S10 panel as a debug overlay; memory off | M06a1, M06a2 | 1 |
-| **M06a4** memory-voice-lipsync | `MemoryService`, summarize consumer, t1 `TtsRouter`, `TtsPlayer`, `LipSyncDriver`, voice catalog, eval harness (replay + nightly) | t2 behind `ks:tts:elevenlabs` on | M06a3 | 1 |
+| **M06a4** memory-voice-lipsync | `MemoryService`, summarize consumer, t1 `TtsRouter`, `TtsPlayer`, `LipSyncDriver`, voice catalog, eval harness (replay + live) | t2 behind `ks:tts:elevenlabs` on | M06a3 | 1 |
 | **M06c** npc-agency-barks | brain systems, LOD, `whereIs`, intents route 32, Talk handler, `BarkSystem`, archetype pools (placeholder lines) | real POIs after M02c (stub table before) | M01a, M03b, M06a3 | 1 |
 | **M06b1** builder-text-private | route 33 drafts, text moderation, soul generation, preview chat, probes, private use, limits | images and submit return `tier_required` | M06a3, S09 M06b slice | 1 |
 | **M06b2** builder-images-review | attach route-34 images, image moderation chain, text descriptions, attestation, submit (P2), case decisions, community list, reports | P2 exercised with test-issuer tokens until M13c | M06b1, M12a | 1 |
@@ -380,7 +378,7 @@ Proposed session splits of the register's M06a/M06b plus a roster-content scope.
 - **E2E:** `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc` (talk with mocked SSE, AI badge visible, subtitles, report button) and `--grep @npc-offline` (network blocked → ink lines, mission completes).
 - **Staging (real API, cents):** `pnpm test:staging -- npc-cache` (turn 2 has `cache_read_input_tokens > 0`; writes TTFT to `reports/npc/ttft.json`).
 - **Static:** `pnpm check:secrets -- apps/web/dist` (no key pattern in the bundle).
-- **Evals:** `pnpm npc:eval -- --replay` (deterministic, CI) and nightly `--live` (Part C §C6).
+- **Evals:** `pnpm npc:eval -- --replay` (deterministic, CI) and weekly plus per-change `--live` (Part C §C6).
 - **Perf:** `pnpm check:perf -- --scenario npc-mission-crowd` (brain budget per tier).
 
 ## 10. Open questions

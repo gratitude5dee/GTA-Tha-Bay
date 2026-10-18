@@ -135,7 +135,7 @@ Acts 2–3 generated refs: 18 (8 + 10), of which 6 establish × 8 s and 12 beats
 | `unlock.district.d1` … `d10` | first pass of a mission in that district | `districts: ['dN']` | racing free roam and Jobs-app filters |
 | `unlock.vehicle.vanta_roadster` | m.a2.02 pass | `vehicles: ['vehicle.vanta_roadster']` | S06 prefab |
 
-The ids are lowercase and sorted in `CoreSlice.unlocks`. Their `UnlockDef`s are added to `config/unlocks.json` in M05c1 (racing, fighter, districts) and M05e (tycoon and the rest). Main-menu tiles, toasts and the NEW badge are S10's flow (`10-ui.md` §5.3). A-06 still applies: a mode whose milestone has not shipped shows `comingSoon` even when unlocked.
+The ids are lowercase and sorted in `CoreSlice.unlocks`. Their `UnlockDef`s are added to `config/unlocks.json` in M05c1 (racing, fighter, districts) and M05e (tycoon and the rest). Main-menu tiles, toasts and the NEW badge are S10's flow (`10-ui.md` §5, item 3). A-06 still applies: a mode whose milestone has not shipped shows `comingSoon` even when unlocked.
 
 ## B8. Safehouses, shops and the open world in Act 1
 

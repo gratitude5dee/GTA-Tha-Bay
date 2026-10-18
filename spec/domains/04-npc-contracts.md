@@ -58,7 +58,6 @@ export interface SoulLikeness {
   consentRecordId: string | null;          // 'consent_…'; required when tier = consented
   consentScopes: ConsentScope[];
   deceased: boolean;
-  minor: false;                            // const: no minors as subjects, ever
   faceReferenceAllowed: boolean;           // = tier==='consented' && scopes ∩ {likeness_stylized, likeness_realistic} ≠ ∅ (lint L11)
   fameDomain: string[];                    // e.g. 'basketball', 'rap_performance'; S06/S07 refuse matching modes or moves for parody
   nameDistanceOk: boolean;                 // written by lint L3
@@ -74,6 +73,7 @@ export interface SoulFrontmatter {
   shortBio: string;                        // ≤ 280, shown in phone contacts
   archetype: Archetype; tags: string[];
   tier: SoulTier;                          // likeness tier (R-NPC-04)
+  minor: false;                            // const (sketch field, top level): no minors as subjects, ever; S05 refuses TIER_UNKNOWN otherwise
   likeness: SoulLikeness;
   visual_brief: string;                    // 40–1,200 chars, text-only appearance; never photographs, real names, logos, numbers
   standIn: AssetRef | null;                // 'character/<NpcId>' of an active original soul; required when basis = real_person
@@ -119,6 +119,7 @@ export interface CompiledSoulPublic {
   id: NpcId; soulVersion: SoulVersion; status: 'active' | 'retired'; origin: 'first_party' | 'user';
   name: string; shortBio: string; archetype: Archetype; tags: string[];
   tier: SoulTier; basis: LikenessBasis; disclaimer: SoulLikeness['disclaimer']; fameDomain: string[];
+  marketingAllowed: boolean;               // basis original, or consented with scope 'marketing' (legal L2); S10/S13 marketing reads only these
   standIn: AssetRef | null; heightM: number; moves: number[]; roles: SoulFrontmatter['roles'];
   locations: SoulFrontmatter['locations']; schedule: ScheduleBlock[]; goals: string[];
   voice: { tier: VoiceTier; voiceRef: AssetRef | null; speed: number };
@@ -130,7 +131,7 @@ export interface CompiledSoulPublic {
 export interface CompiledSoul extends Omit<CompiledSoulPublic, 'schema' | 'voice'> {
   schema: 'soul-compiled/1';
   voice: SoulFrontmatter['voice'];         // includes design_prompt for S05 voice_design
-  likeness: SoulLikeness; visual_brief: string;
+  minor: false; likeness: SoulLikeness; visual_brief: string;
   speech: SoulFrontmatter['speech']; rails: SoulFrontmatter['rails'];
   prompt: { key: string /* souls/<id>/<ver>/soul.prompt.txt */; sha256: string; tokens: number /* messages.count_tokens, claude-haiku-5-5 */ };
   sourceSha256: string;                    // sha256 of the soul.md bytes
@@ -267,7 +268,7 @@ export interface BarkPool { schema: 'bark-pool/1'; owner: NpcId | `archetype:${A
 
 ```json
 {"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"soul-1.0","type":"object","additionalProperties":false,
-"required":["schema","id","soulVersion","status","origin","ownerProfileId","name","shortBio","archetype","tags","tier","likeness","visual_brief","standIn","heightM","moves","roles","speech","voice","personality","knowledge","relations","locations","schedule","goals","stats","rails","dialogue","provenance"],
+"required":["schema","id","soulVersion","status","origin","ownerProfileId","name","shortBio","archetype","tags","tier","minor","likeness","visual_brief","standIn","heightM","moves","roles","speech","voice","personality","knowledge","relations","locations","schedule","goals","stats","rails","dialogue","provenance"],
 "properties":{
  "schema":{"const":"soul/1.0"},"id":{"$ref":"#/$defs/npcId"},"soulVersion":{"type":"integer","minimum":1},
  "status":{"enum":["draft","active","retired"]},"origin":{"enum":["first_party","user"]},
@@ -275,7 +276,7 @@ export interface BarkPool { schema: 'bark-pool/1'; owner: NpcId | `archetype:${A
  "name":{"type":"string","minLength":2,"maxLength":40},"shortBio":{"type":"string","maxLength":280},
  "archetype":{"enum":["rapper","founder","vc","influencer","athlete","civilian","police","vendor","official","other"]},
  "tags":{"type":"array","maxItems":16,"uniqueItems":true,"items":{"type":"string","pattern":"^[a-z0-9-]{2,32}$"}},
- "tier":{"enum":["consented","parody","fictionalized"]},"likeness":{"$ref":"#/$defs/likeness"},
+ "tier":{"enum":["consented","parody","fictionalized"]},"minor":{"const":false},"likeness":{"$ref":"#/$defs/likeness"},
  "visual_brief":{"type":"string","minLength":40,"maxLength":1200},
  "standIn":{"type":["string","null"],"pattern":"^character/[a-z][a-z0-9_-]{2,47}$"},
  "heightM":{"type":"number","minimum":1.4,"maximum":2.2},
@@ -351,11 +352,11 @@ export interface BarkPool { schema: 'bark-pool/1'; owner: NpcId | `archetype:${A
    "from":{"type":"string","pattern":"^([01][0-9]|2[0-3]):[0-5][0-9]$"},"to":{"type":"string","pattern":"^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$"},
    "activity":{"enum":["sleep","eat","work","perform","record","train","hustle","socialize","commute","shop","pitch","race","patrol","idle"]},
    "place":{"$ref":"#/$defs/poi"},"interruptible":{"type":"boolean"},"priority":{"type":"integer","minimum":0,"maximum":9}}},
- "likeness":{"type":"object","additionalProperties":false,"required":["basis","subjectId","consentRecordId","consentScopes","deceased","minor","faceReferenceAllowed","fameDomain","nameDistanceOk","disclaimer"],
+ "likeness":{"type":"object","additionalProperties":false,"required":["basis","subjectId","consentRecordId","consentScopes","deceased","faceReferenceAllowed","fameDomain","nameDistanceOk","disclaimer"],
   "properties":{"basis":{"enum":["real_person","original"]},"subjectId":{"type":["string","null"],"pattern":"^subj_[0-9a-z]{6,40}$"},
    "consentRecordId":{"type":["string","null"],"pattern":"^consent_[0-9a-z]{8,40}$"},
    "consentScopes":{"type":"array","uniqueItems":true,"items":{"enum":["name","likeness_stylized","likeness_realistic","voice_designed","voice_clone","biography","catchphrases","marketing","merchandise","ugc_remix","cutscene"]}},
-   "deceased":{"type":"boolean"},"minor":{"const":false},"faceReferenceAllowed":{"type":"boolean"},
+   "deceased":{"type":"boolean"},"faceReferenceAllowed":{"type":"boolean"},
    "fameDomain":{"type":"array","maxItems":6,"items":{"type":"string","pattern":"^[a-z_]{3,32}$"}},"nameDistanceOk":{"type":"boolean"},
    "disclaimer":{"enum":["courtesy","parody","fictional","none"]}}}}}
 ```
@@ -387,7 +388,8 @@ shortBio: "Mission District lowrider mechanic who runs the quietest street races
 archetype: civilian
 tags: [lowrider, racing, mechanic, mission]
 tier: fictionalized
-likeness: {basis: original, subjectId: null, consentRecordId: null, consentScopes: [], deceased: false, minor: false,
+minor: false
+likeness: {basis: original, subjectId: null, consentRecordId: null, consentScopes: [], deceased: false,
   faceReferenceAllowed: false, fameDomain: [], nameDistanceOk: true, disclaimer: fictional}
 visual_brief: "Woman in her forties, compact build, grease-stained navy coveralls tied at the waist, white tank top, silver hoop earrings, short black hair under a red bandana, reading glasses on a cord."
 standIn: null
@@ -413,7 +415,7 @@ goals: [race, hustle, socialize]
 stats: {}
 rails: {rating: M, forbiddenTopics: ["real-world street racing spots and how to evade police"],
   never: ["give real-world instructions for illegal racing"], deflectionStyle: "changes the subject to the player's car", mayReferenceRealEvents: false}
-dialogue: {modelTier: sonnet, maxTurnsPerEncounter: 12, ink: content/npcs/ro-batista/ro.ink, barkPool: content/npcs/ro-batista/barks.json}
+dialogue: {modelTier: sonnet, maxTurnsPerEncounter: 12, ink: content/npcs/ro-batista/ro-batista.ink, barkPool: content/npcs/ro-batista/barks.json}
 provenance: {authoredBy: design, generatedBy: {model: claude-sonnet-5-5, date: "2026-10-18"}, reviewedBy: owner, reviewedAt: "2026-10-18",
   contentSha256: "0000000000000000000000000000000000000000000000000000000000000000"}
 ---
@@ -460,7 +462,7 @@ the character's word limit. Propose actions only from the offers listed in the s
 <player intent="<intent|none>">… player text, NFC, ≤ 280 chars, control and tag characters stripped …</player>
 ```
 
-**`npc-turn-1.0.schema.json`** (`output_config.format`, identical for every NPC and model, because changing `format` invalidates the prompt cache [research/ai-npc-runtime.md §2.3]): the research `NPC_TURN_SCHEMA` verbatim — required, in this order, `line`, `emotion`, `gesture`, `action`, `action_arg`, `affinity_delta`, `memory_writes` (items `{kind, text, importance}`), `end_conversation`; enums are §B2.1 `Emotion`, `Gesture`, `NpcAction`, memory kinds minus `reflection`; no numeric or length keywords (unsupported by structured outputs) [research/ai-npc-runtime.md §2.4]. Limits are enforced by the executor (Part A §5.4). **`npc-intent-1.0.schema.json`**: `NpcIntent` with `goal`, `bark` and `until` as string enums built per request from the soul's goals and bark tags (allowed because intent calls never share the dialogue cache entry). **`npc-summary-1.0.schema.json`**: `SummaryPatch` minus `soulVersion`.
+**`npc-turn-1.0.schema.json`** (`output_config.format`, identical for every NPC and model, because changing `format` invalidates the prompt cache [research/ai-npc-runtime.md §2.3]): the research `NPC_TURN_SCHEMA` verbatim — required, in this order, `line`, `emotion`, `gesture`, `action`, `action_arg`, `affinity_delta`, `memory_writes` (items `{kind, text, importance}`), `end_conversation`; enums are §B2.1 `Emotion`, `Gesture`, `NpcAction`, memory kinds minus `reflection`; no numeric or length keywords (unsupported by structured outputs) [research/ai-npc-runtime.md §2.4]. Limits are enforced by the executor (Part A §5.4). **`npc-intent-1.0.schema.json`**: `NpcIntent` with `goal` and `bark` as string enums built from the soul's goals and bark tags. The schema is constant per soul version, so each NPC's intent cache entry stays warm; it never shares the dialogue entry, because the format differs. **`npc-summary-1.0.schema.json`**: `SummaryPatch` minus `soulVersion`.
 
 ## B8. Lints (`pnpm npc:lint`, CI-blocking; schema errors first)
 | ID | Rule |
