@@ -63,7 +63,7 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 ## 4. Gated decisions (applied as defaults on 2026-10-18; the run is unattended)
 - **G1** Supabase (D-02).
 - **G2** Living people `parody`; Mac Dre and founders of real companies `fictionalized`; consent outreach order per INDEX §7.
-- **G3** Recurring ceiling $500/month (Anthropic $350, voice $100, moderation $25, buffer $25); one-off production $1,000 fal credit; per-player quotas and governor thresholds per INDEX §7.
+- **G3** Recurring ceiling $500/month (Anthropic $350, voice $100, moderation $25, buffer $25). **fal.ai: hard cap USD 100 total** (owner decision 2026-10-18, DL-OWN-01; supersedes the earlier $1,000 one-off figure): allocation spike ≤ $10 (M00c) · characters ≤ $42 (≤ 8 Standard heroes at ≈ $3.73 + ≤ 12 Lean at ≈ $1.05) · cutscenes ≤ $40 (Turbo/fallback chain, shortest clips that work; everything else in-engine) · buffer $8; enforced by `budget_program` = 100,000,000 USD micros in BudgetGovernorDO, a prepaid fal balance with auto-recharge off, `FAL_MODE=mock` by default in dev/CI, and a `--live` flag plus dry-run cost estimate on every paid job. No player-triggered fal generation in v1: the NPC builder uses creator-kit bodies; custom 3D for user NPCs goes through an owner-approved queue that counts against the cap. Per-player quotas and governor thresholds per INDEX §7.
 
 ## 5. Verified facts
 The ledger is `research/INDEX.md` §2 (F-001 …). Domain specs cite `[research/<file>.md]` or `F-NNN`. Wave 5 copies the rows each milestone relies on into §6 of this file.

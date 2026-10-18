@@ -23,7 +23,7 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 |---|---|---|---|
 | G1 | Supabase vs Convex | **Supabase Pro `us-west-1`**; Durable Objects for rooms and presence; Convex documented alternative — spec/03 D-02 | 2026-10-18 |
 | G2 | Likeness tier per named real person | living people `parody`; Mac Dre and founders of real companies `fictionalized`; `consented` only with a consent record — D-29 | 2026-10-18 |
-| G3 | GenAI monthly ceiling and per-player quotas | $500/month ($350 Anthropic, $100 voice, $25 moderation, $25 buffer); $1,000 one-off fal production credit | 2026-10-18 |
+| G3 | GenAI monthly ceiling and per-player quotas | $500/month recurring; **fal.ai hard cap $100 total** (owner, DL-OWN-01): spike $10 · characters $42 · cutscenes $40 · buffer $8; no player-triggered fal in v1 | 2026-10-18 |
 
 ## Owner decisions applied as defaults (override with `/architect fix: <what>`)
 | Q | Question | Default | Why |

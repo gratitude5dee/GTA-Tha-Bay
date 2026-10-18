@@ -1,0 +1,15 @@
+{
+  "$comment": "Cloudflare resources created by the Architect on 2026-10-18 via the Cloudflare MCP for the owner's account (names per spec/domains/09-backend-ops.md). IDs are not secrets. Workers are not created yet: deploying needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (environment variables or GitHub repository secrets).",
+  "created": "2026-10-18",
+  "r2": {
+    "staging": { "MEDIA": "tha-bay-media-staging", "PRIVATE": "tha-bay-private-staging" },
+    "prod":    { "MEDIA": "tha-bay-media-prod",    "PRIVATE": "tha-bay-private-prod" },
+    "location": "ENAM (Cloudflare default; R2 egress is free, so location is not latency-critical)",
+    "not_yet_created": ["ugc-staging-*", "ugc-public-*", "ugc-quarantine-*", "legal-evidence-*"]
+  },
+  "kv": {
+    "staging": { "FLAGS": { "title": "tha-bay-flags-staging", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" } },
+    "prod":    { "FLAGS": { "title": "tha-bay-flags-prod",    "id": "c97c407d70c8457083bf0865b82c27fe" } }
+  },
+  "workers_planned": { "staging": ["tha-bay-web-staging", "tha-bay-rooms-staging"], "prod": ["tha-bay-web", "tha-bay-rooms"] }
+}
