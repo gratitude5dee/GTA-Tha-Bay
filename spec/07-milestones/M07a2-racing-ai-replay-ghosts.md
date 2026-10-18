@@ -41,12 +41,11 @@ After this session racing is playable from the main menu and from the story, and
 - `tools/map/src/race/par.ts`; extra fixtures `tools/map/test/fixtures/races/V{2,4,7,12}.source.json`.
 - `tests/golden/saves/racing/slice.v1.json`; `tests/golden/racing/{race3.vs-circuit.json, vs-circuit.dvreplay}` (trace and the replay M12e reuses); `packages/modes/racing/src/leaderboard.ts`; `tools/ci/mutants/racing/{replay-tick-skip,handling-rev-ignored}.ts`.
 - `tests/e2e/racing-vs.spec.ts` (`@racing-vs`); the 3-car `RunSpec` in `tests/e2e/det/suites.ts` (`@racing-det`).
-- Story hook wiring in `packages/modes/racing/src/index.ts` (status `available`); hook row for `m.a1.03` only if M05c1 left the defId unset.
+- Descriptor status `available` in `packages/modes/racing/src/index.ts`; M05c1 already names the hook defId, so no story file changes.
 
 ## Interfaces
-- `ScoreSubmit` is built but not sent (null port) until route 21 exists.
 - Consumes C06 1.1 `PursuitApi` (`setProfile`, `configRef`, `setRouteHint`), `standaloneProfile: 'canonical'` (DL-121) and `ModeResult`; writes C05 1.1 slot `mode:racing` only through `ctx.save.request`; C09 1.0 `ModeHook` with `defId` = `RaceId` (DL-157); C16 1.1 names above.
-- No contract change. `ScoreSubmit` (route 21) stays unused until M12e.
+- No contract change. `ScoreSubmit` (route 21) is built but not sent (null port) until M12c/M12e.
 
 ## Acceptance criteria
 - AC-1 Given the branch When typecheck, lint and build run Then all exit 0 — proof: `pnpm typecheck && pnpm lint && pnpm build`
@@ -80,7 +79,7 @@ After this session racing is playable from the main menu and from the story, and
 6. `pnpm check:missions -- --mission m.a1.03`: the story mission reaches the pursuit and returns.
 
 ## Effort
-1 Builder session; about 36 files (generated `race.json` excluded); risk **medium**. Exact re-simulation across engines and the pursuit bot are the hard parts.
+1 Builder session; about 38 files (generated `race.json` excluded); risk **medium**. Exact re-simulation across engines and the pursuit bot are the hard parts.
 
 ## Risks & fallbacks
 - **Independent Rapier bodies affecting each other** (U-RAC-3): ghosts are kinematic tracks, never bodies; AC-7 asserts the hash is unchanged.

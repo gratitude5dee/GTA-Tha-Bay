@@ -66,7 +66,7 @@ After this session the optional pose control for Culture Wars has a working, pri
 5. Press a key: control switches back to the keyboard at once.
 
 ## Effort
-1 Builder session; about 34 files; risk **high**. Worker packaging under Vite 8 and fixture realism are the main risks.
+1 Builder session; about 36 files; risk **high**. Worker packaging under Vite 8 and fixture realism are the main risks.
 
 ## Risks & fallbacks
 - **Classic IIFE worker cannot load `FilesetResolver` under Vite 8** (U-FGT-2): try a module worker; if neither loads, pose stays `unavailable` at runtime, the classifier and checks still ship, and the result goes to the Architect.

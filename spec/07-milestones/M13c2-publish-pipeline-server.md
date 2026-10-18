@@ -1,10 +1,7 @@
 # M13c2 — publish-pipeline-server
 
 ## Goal
-A mod or experience version can be published to the server and moderated. Route 36 accepts a version from the CLI token (M13c1) or a P2 browser JWT. It records the attestation and enqueues a `UGC_SCAN` job. `ModScanPipeline` then runs the sixteen stages of `12-modding-publish.md` C§3.1:
-- the local stages through the same shared validators that `dv mod check` uses;
-- the server stages: hash banks first, server-side strings, text and image classifiers, map-anchor rules, human review.
-Results are stored as `moderation_signal` rows. The C§3.2 state machine moves versions and placements. Reviewers decide through route 43, archives are promoted to `ugc-public`, and quarantined ones move to `ugc-quarantine`. Route 37 POST adds placements, with the server computing `chunkKey`, `nhood`, `worldVersion` and `modSha256`. A rebake Workflow re-validates placements against a new world bake. Removals feed the revocation list behind route 53. While `ugc.publish` is false, which production keeps until M13d1, an approved version stays private to its owner.
+Publishing a mod or experience version works end to end on the server. Route 36 takes a version from the CLI token (M13c1) or a P2 browser JWT, records the attestation and enqueues a scan. `ModScanPipeline` runs the sixteen stages of `12-modding-publish.md` C§3.1: the local stages with the same shared validators as `dv mod check`, then hash banks first, server strings, classifiers, anchor rules and human review. The C§3.2 state machine moves versions and placements, reviewers decide through route 43, and archives are promoted or quarantined. Route 37 POST adds placements with server-computed anchors. A rebake Workflow re-validates placements, and removals feed route 53's revocation list. While `ugc.publish` is false (production, until M13d1) an approved version stays private to its owner.
 
 ## Requirements
 - R-MOD-03: moderation of everything published. Approval of experiences opens their forum thread.
@@ -14,15 +11,12 @@ Results are stored as `moderation_signal` rows. The C§3.2 state machine moves v
 ## Depends on
 - **M13c1**: CLI token (`aud: 'tha-bay-cli'`, `scp: ['mods:publish']`), the `linked` tier rule, `audit_log` writes for identity actions.
 - **M13a1**: C14/C17 types and schemas, shared validators `packages/shared/src/mod/check/*` (envelope, allowlist, schema, permissions, secrets, IP, provenance, caps, budget report, script lint), the 40-manifest parity corpus, `ModCheckResult`.
-- **M13b1**: forum tables, report policy (3 reporters → `unlisted_pending_review`), DTOs; with M13b2's `ensureLinkedThread` and the anchor-mask reader (run order).
+- **M13b1**: forum tables, report policy, DTOs (M13b2's `ensureLinkedThread` and mask reader arrive through the run order).
 - Contracts: C14 1.0.0, C17 1.0.0, C12 1.1.0 (routes 34–37, 41, 43, 53; `ModSubject`; `09-backend-contracts-1.1.md` §1 route 36 rule), C07 1.1.0 (`ProvenanceRecord`, mod `AssetSource`), C08 1.0.0 (`chunkKeyOf`, `WorldIndex.bakeId`, `DistrictId`).
 
 ## Scope in
 - `services/edge/src/publish/route36.ts`: `POST /mods/:id/versions` ⓘ.
-  - Auth: CLI token (`aud` and `scp` checked by value) or an access JWT of tier `linked`, bracket `18p`, no `publish_ban`. Otherwise `tier_required`, `age_blocked` or `forbidden`.
-  - Limits: 5 versions per profile per day and 20 mods per profile → `rate_limited` (`details.code: 'publish.rate'`).
-  - A missing or malformed `attestation` → `bad_request` (`details.code: 'publish.attestation'`).
-  - A `ModId` owned by another profile → `forbidden`.
+  - Auth: CLI token (`aud`, `scp` checked by value) or a `linked` JWT; bracket `18p`; no `publish_ban` (else `tier_required`, `age_blocked`, `forbidden`). Limits 5 versions/day and 20 mods per profile → `rate_limited` (`publish.rate`). Bad attestation → `bad_request` (`publish.attestation`). Another profile's `ModId` → `forbidden`.
   - `uploadId` must be an `issued` upload of purpose `mod_archive` owned by the caller. The handler HEAD-checks its size, creates `mods` if new, creates `mod_versions` (`scanning`) and one `moderation_item`, enqueues `UGC_SCAN` (kind `mod_archive`), and answers 202 `ModVersionsRes`.
   - The same `(modId, version)` with the same archive SHA-256 is idempotent (same ids). A different archive → `conflict`.
   - An inline `placement` creates an `experiences` row (`needs_review`) under the same case.
@@ -31,13 +25,13 @@ Results are stored as `moderation_signal` rows. The C§3.2 state machine moves v
   - stages 1–3, 5–10: call the shared functions on a streamed archive (fflate), entry by entry, never holding the whole archive in memory;
   - stage 4: SHA-256 (and PDQ where M06b2's image chain computes it) of every image against `HashBankPort`. A match quarantines the whole archive to `ugc-quarantine/other/<item>/` (`csam/` when the bank says so), sets the version `removed`, opens a P0 case, and calls no other vendor stage;
   - stage 7 server half: real-side name strings from the PRIVATE object `config/names-real.json` (operator upload). Absent → public denylist only and a `SKIP` log;
-  - stage 11: header parsing from the shared budget report. The full validators stay CLI-side;
+  - stage 11: header parsing from the shared budget report (full validators stay CLI-side);
   - stage 12: M06b1's text chain over names, summaries, `strings`, sign texts and README;
   - stage 13: M06b2's image chain on thumbnails and photo-like textures (`real_human_visible ∧ is_photograph` blocks);
   - stage 14: anchor rules;
   - stage 15 (malware hygiene): a port that records `error: 'not_configured'` and never blocks;
   - stage 16: opens the human case, `P2_REVIEW` for experiences and `P3_REVIEW` for other mods, with `subject_snapshot` (manifest, budget report, signals, placement ring).
-  - Each stage writes one `moderation_signal` (`source` = stage id). Creators get `ModFinding`s for L stages only. Hash, classifier and quarantine outcomes show only "This was removed for policy review" plus a generic code.
+  - Each stage writes one `moderation_signal` (`source` = stage id). Creators see `ModFinding`s for L stages only, and a generic policy message for hash, classifier and quarantine outcomes.
 - Anchor rules (`services/edge/src/mods/anchor-rules.ts`, on M13b2's mask):
   1. outside bounds or water → `anchor.outside_sf`;
   2. not within 15 m of class `right_of_way` and not in class `park` → `anchor.not_public_land`;
@@ -47,9 +41,8 @@ Results are stored as `moderation_signal` rows. The C§3.2 state machine moves v
 - Route 43 decisions for subjects `mod_version` and `experience`:
   - `approve`: `published`. Visibility is the requested one if `ugc.publish` is true, else `private`. Copy the archive to `ugc-public/ugc/published/<sha256>.zip`. If the visibility is not `private`, call `ensureLinkedThread`.
   - `reject`: `rejected` (appeal window 7 days; the queue arrives in M13d1).
-  - `remove`: `removed`, deletes the public object, and adds a revocation entry (reason `policy`, `dmca` or `security` from the decision's policy code).
-- Revocation: route 53 (M13a2) lists versions in state `removed` with their reason and time.
-- `services/pipeline/rebake/workflow.ts` (`RebakeRevalidationWorkflow`). A daily cron compares each published placement's `world_version` with the current `bakeId` and starts one instance per batch. It re-runs stage 14 and the `compat.world` check. On failure the state becomes `needs_update` and the pin is removed. On success `world_version` is updated. A Workflow binding is added to `wrangler.jsonc` (not a DO class). Previews have no own Workflows, so the steps are tested directly.
+  - `remove`: `removed`, deletes the public object, adds a revocation entry that route 53 lists (reason from the policy code).
+- `services/pipeline/rebake/workflow.ts` (`RebakeRevalidationWorkflow`). A daily cron starts it for placements whose `world_version` differs from the current `bakeId`; it re-runs stage 14 and `compat.world`, then sets `needs_update` (pin removed) or updates `world_version`. Workflow binding in `wrangler.jsonc` (not a DO class); Previews have no own Workflows, so steps are tested directly.
 
 ## Scope out
 - Legal takedowns (DMCA, NCII) driving `remove`, the appeals queue, own hash-bank management (route 45) and the `hash_bank_entry` table → M13d1. Here `HashBankPort` reads a fixture bank in tests, and in deployments an empty bank until M13d1.
@@ -65,9 +58,7 @@ Results are stored as `moderation_signal` rows. The C§3.2 state machine moves v
 - Secrets: none new. `OPENAI_MODERATION_API_KEY` (M06b1) and `ANTHROPIC_API_KEY` (M06a3, classifier) are reused. Absent → stages 12–13 record `error: 'not_configured'` and route the item to human review, never to `published`; tests use recordings. `PHOTODNA_KEY` waits for Q-16 (M13d1).
 
 ## Interfaces
-- C14 1.0: `ModVersionsReq`/`Res`, `ModVersionState`, `ModCheckCode`, `ModFinding`, `PublishAttestation`, `RevokedRes`, all as typed. C17 1.0: server-owned `moderation`, `visibility`, `chunkKey`, `worldVersion`, `modSha256`.
-- C12 1.1: routes 36 and 37 POST; route 36 accepts both token kinds and enqueues the scan itself (1.1 rule); route 43 decisions; `ModSubject` values.
-- C07 1.1: provenance records are validated by the shared gate cores. C08 1.0: `chunkKeyOf`, `bakeId`.
+- C14 1.0 and C17 1.0 types as typed (server-owned `moderation`, `visibility`, `chunkKey`, `worldVersion`, `modSha256`). C12 1.1: routes 36–37 POST (route 36 takes both token kinds and enqueues the scan), route 43, `ModSubject`. C07 1.1 provenance through the shared gate cores; C08 1.0 `chunkKeyOf`, `bakeId`.
 - Proposals (not implemented): author yank route; server-side glTF/KTX validation host.
 - No contract change.
 
@@ -86,26 +77,22 @@ Results are stored as `moderation_signal` rows. The C§3.2 state machine moves v
 - AC-12 Given this branch merged to `main` When `deploy.yml` deploys staging Then smoke passes and `POST /api/v1/mods/x.y/versions` without a token answers `unauthorized` — proof: manual: desktop browser and terminal, read the deploy summary, `curl -X POST` that path on staging; then `pnpm check:smoke -- <staging-url>`
 
 ## Test plan
-- Workers: `mod-publish-route`, `mod-scan-quarantine`, `mod-scan-parity`, `anchor-rules`, `publish-flag`, `revocation-list`, `rebake-revalidation` (InMemoryDataPort, R2 stubs for the three UGC buckets, queue driven by `/_test/drain-queue` semantics, recorded vendor responses); `pnpm check:workers -- mod`, `pnpm check:workers -- anchor-rules`, `pnpm check:workers -- publish-flag`.
-- Unit: `shared/mod.publish-state`; `pnpm check:unit -- packages/shared/src/mod`.
-- Pipeline: `pnpm check:pipeline` (Workflow steps with mocks).
-- Static and deploy: `pnpm check:prod-routes`; staging smoke (AC-12).
+- Workers suites named in the ACs (InMemoryDataPort, R2 stubs for the three UGC buckets, queue drained through `/api/v1/_test/drain-queue` semantics, recorded vendor responses); unit `shared/mod.publish-state`; `pnpm check:pipeline`; `pnpm check:prod-routes`; staging smoke (AC-12).
 
 ## Demo script
-1. `pnpm dev`; with a QA `linked` profile, upload M13a1's example experience (`purpose: 'mod_archive'`) and POST route 36.
-2. Trigger the queue drain (`/api/v1/_test/drain-queue`); read the version's signals and the `P2_REVIEW` case.
-3. Approve it with a staff JWT through route 43; with `ugc.publish` false see `visibility: private`.
-4. Flip `ugc.publish` in local `FLAGS_JSON`, approve a second version: it appears in route 37 and its forum thread exists.
-5. Remove it; route 53 lists the revocation.
+1. `pnpm dev`; as a QA `linked` profile, upload M13a1's example experience and POST route 36.
+2. Drain the queue; read the signals and the `P2_REVIEW` case.
+3. Approve with a staff JWT: with `ugc.publish` false the version is `private`; with it true (local `FLAGS_JSON`) it is listed in route 37 and has a forum thread.
+4. Remove it; route 53 lists the revocation.
 
 ## Effort
-1 session; ≈ 38 files; risk **medium-high**. Fifteen stage adapters, two routes and a Workflow fill the session; the stage code is mostly glue over M13a1, M06b1, M06b2 and M13b2.
+1 session; ≈ 38 files; risk **medium-high**. Stage adapters are mostly glue over M13a1, M06b1, M06b2 and M13b2.
 
 ## Risks & fallbacks
 - **Archive size versus Worker memory and CPU** (U-BE-13 for queue consumers): stream entries and hash incrementally. If a 128 MiB fixture exceeds the limits, archives above the measured safe size get a `review` signal and wait for a human, and the Builder records the measured size. Never skip stages 1–4.
-- **PDQ unavailable in the Worker**: SHA-256 exact matching only, with PDQ left to M13d1's sweep and a Builder note. AC-1 uses SHA-256.
-- **Workflow config key rejected** by the pinned wrangler: run the revalidation as a cron-driven queue job with the same step functions, and log a Builder decision. AC-9 tests the steps directly.
-- **`ugc.<domain>` cache** (Q-15 not answered): without a custom domain nothing is cached, so removal is a delete only. Purge joins when the domain exists.
+- **PDQ unavailable in the Worker**: SHA-256 only (AC-1 uses SHA-256); PDQ waits for M13d1's sweep.
+- **Workflow config key rejected** by the pinned wrangler: run the same steps as a cron-driven queue job and log a Builder decision; AC-9 tests the steps directly.
+- **`ugc.<domain>` cache** (Q-15 open): no custom domain means no cache, so removal is a delete; purge joins with the domain.
 
 ## Notes for the Builder
 - Read first: `12-modding-publish.md` C§3 (stages, states, provenance, takedown), C§4, C§7; `12-modding-contracts.md` B§6–B§7; `12-modding.md` §2.1 (principle 4), §5.5; `09-backend.md` §3.4; `09-backend-db.md` §3.4, §3.7, §4; `spec/05-api-and-realtime.md` §3 rows 34–37, 43, 53.

@@ -20,7 +20,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - Contracts: C06 1.1.0 (`c06-modes.ts`, `ui-bridge.ts`, `engine-world.ts`, `engine-pursuit.ts`), C05 1.1.0, C03 1.1.0, C16 1.1.0 (`mode.enter`, `mode.exit`, `unlock.emit`), C08 1.0.0 (`WorldApi`), C07 1.1.0 (`AssetRef` for tile art).
 
 ## Scope in
-- **Contract files, verbatim and whole:**
+- **Contract files, verbatim and whole** (`engine-world.ts` exists from M02b2 and `engine-pursuit.ts` from M03c):
   - `c06-modes.ts` (1.0 shape plus the 1.1 additions; M04a1 may already have created it for C05's imports, in which case diff it against the spec and fix only copy errors);
   - `ui-bridge.ts` from `10-ui.md` §3.3, including `ToastKind` (DL-196) and `cutscene.state`.
 - **ModeHost** (`packages/engine/src/sim/modes/host.ts`), rules 1–8:
@@ -59,7 +59,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
   - a `UiCommand` sender over the command ring, with a dispatcher in the worker for `mode.start`, `mode.quit`, `pause`, `save.*`, `sandbox.set` and `mode.cmd`.
 
   `hud.wallet` and `hud.clock` are patched by their owners here.
-- **Clock and interaction:** wire the M02b2 clock and the M03a1 interaction system into `ModeContext`, and add the contract tests `engine/clock` and `engine/interaction.scoring`. If a rule fails, fix the S01 engine code in place.
+- **Clock and interaction:** wire the M02b2 clock (`packages/engine/src/sim/world/clock.ts`, tested by its `clock.spec.ts`) and the M03a1 interaction system into `ModeContext`, and add the contract test `engine/interaction.scoring`. If a rule fails, fix the S01 engine code in place.
 - Telemetry `mode.enter` and `mode.exit` with registry props only.
 
 ## Scope out
@@ -69,11 +69,11 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - Mod capability filtering of `ModeContext` (C14): M13a3.
 
 ## Deliverables
-- `packages/shared/src/contracts/{c06-modes.ts, ui-bridge.ts}` (verbatim; `engine-world.ts` only if M02b2 did not create it).
+- `packages/shared/src/contracts/{c06-modes.ts, ui-bridge.ts}` (verbatim).
 - `packages/engine/src/sim/modes/{host.ts, context.ts, stack.ts, unlocks.ts, economy.ts, autosave.ts, capability-bind.ts, commands.ts, stubs.ts, builtin/{story-freeroam.ts, sandbox.ts, coming-soon.ts, index.ts}, index.ts}`.
 - `packages/engine/src/sim/ui/{bridge.ts, coalesce.ts}`; `packages/engine/src/client/ui/{view-model-source.ts, command-sender.ts}`.
 - `packages/engine/src/sim/input/remap-persist.ts`.
-- `packages/engine/test/modes/{host.states.spec.ts, host.embed.spec.ts, unlocks.spec.ts, coming-soon.spec.ts, economy.spec.ts, autosave.spec.ts, remap.spec.ts, bridge.spec.ts, clock.spec.ts, interaction.scoring.spec.ts, context.spec.ts}`.
+- `packages/engine/test/modes/{host.states.spec.ts, host.embed.spec.ts, unlocks.spec.ts, coming-soon.spec.ts, economy.spec.ts, autosave.spec.ts, remap.spec.ts, bridge.spec.ts, interaction.scoring.spec.ts, context.spec.ts}`.
 - `packages/engine/package.json` script **`test:modes`** (`vitest run test/modes`), also run by `pnpm check:unit`.
 - `tests/e2e/engine/modes.spec.ts` (`@modes`).
 - About 38 files.
@@ -102,7 +102,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - AC-11 Given the branch When the standard gates, the telemetry registry check and the preview deploy run Then all pass — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm check:telemetry && pnpm build && pnpm deploy:preview`
 
 ## Test plan
-- **Unit** (`pnpm --filter @dv/engine test:modes` and `pnpm --filter @dv/engine test`, both under `pnpm check:unit`): `engine/modes.hostStates`, `modes.embed`, `modes.unlocks`, `modes.comingSoon`, `economy.idempotent`, `modes.autosave`, `modes.remap`, `ui.bridge`, `clock`, `interaction.scoring`, `modes.context`.
+- **Unit** (`pnpm --filter @dv/engine test:modes` and `pnpm --filter @dv/engine test`, both under `pnpm check:unit`): `engine/modes.hostStates`, `modes.embed`, `modes.unlocks`, `modes.comingSoon`, `economy.idempotent`, `modes.autosave`, `modes.remap`, `ui.bridge`, `interaction.scoring`, `modes.context`; M02b2's `clock` stays green.
 - **E2E:** `@modes` on `chromium-webgl2`.
 - **Static:** `pnpm check:telemetry` for the emitted names.
 
@@ -118,7 +118,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 ## Risks & fallbacks
 - **A service from an earlier milestone has a different shape than C06 expects.** Adapt in `context.ts`, never in the contract. Record the mismatch in the report.
 - **File count.** If it goes above 40, move the e2e QA helpers into the existing bridge file and merge `stack.ts` into `host.ts`. Do not drop a test.
-- **The clock implementation from M02b2 fails a contract test.** Fix it here, because it is S01 engine code, and add a decision-log line.
+- **The M02b2 clock fails a rule once wired into `ModeContext`.** Fix it here (S01 engine code) and add a decision-log line.
 
 ## Notes for the Builder
 - Read first: `01-engine-save-modes.md` §C06, "Time-of-day and weather clock", "Interaction system", "Economy and combat cores", "C05 1.1 and C06 1.1 additions"; `10-ui.md` §3.3; `01-engine.md` §2.10 and §9 tests 16–17; `docs/decisions/ADR-0006-v1-vertical-slice.md` (A-06 stubs).
