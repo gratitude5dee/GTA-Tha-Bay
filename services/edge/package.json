@@ -1,0 +1,9 @@
+{
+  "name": "@dv/edge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "devDependencies": {
+    "wrangler": "4.151.1"
+  }
+}

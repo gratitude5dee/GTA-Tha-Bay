@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+  - packages/modes/*
+  - services/*
+  - tools/*
+
+# pnpm blocks dependency build scripts unless listed here.
+allowBuilds:
+  esbuild: true
+  workerd: true
+  sharp: true
