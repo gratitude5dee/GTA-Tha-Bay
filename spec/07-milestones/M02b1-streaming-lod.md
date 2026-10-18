@@ -1,0 +1,85 @@
+# M02b1 — streaming-lod
+
+## Goal
+After this session the game streams a whole baked city instead of the four-chunk gray-box. A new package `@dv/world` holds the `ChunkStore` (interest, priority, residency, eviction) with the statics feed into physics, and the client half: the `l0` mesher running in `asset.worker`, the `ChunkRenderer` with one static `BundleGroup` of ≤ 6 objects per chunk, the `ChunkUploadGate` (≤ 1 chunk upload per frame), cover masks between levels, L1 and L2 rendering, and the backdrop (DEM ring, massing on desktop tiers, skyline cards). The bake gains stage S11 (`l1`, `l2`, `far-bay-*` packs). The perf scenarios `walk-civic-center` and `route-ferry-ocean-beach` run in CI on the offline `synth` world from M02a1–M02a2; the real `sf` world is checked on the operator's desktop reference. Telemetry `world.stream` is emitted. Facades are flat-colour and landmarks are absent (M02d1).
+
+## Requirements
+- R-MAP-01: the baked city is visible and walkable everywhere inside the `play` box.
+- R-MAP-02: the rest of the Bay renders as a low-detail backdrop (DEM ring, massing, cards).
+- R-PLAT-03: chunk meshing and pack decoding run in `asset.worker`; rendering stays on the main thread with the WebGL2 fallback path proven.
+- R-ENG-02: render objects, triangles, upload cadence and cold download per tier are checked by `check:perf` and e2e.
+
+## Depends on
+- **M02a2:** full `p0`/`l0` packs with roads, ped graph and tags, `sf-graph.v1`, `map:verify`, the `synth` area with roads.
+- **M01c:** `RendererHost`, tier selection, `RenderBudgetMeter`, scenario runner, `check:perf`, `perf:verify`, `perf:checklist`.
+- **M01e:** `asset.worker`, `WorldPackStore` (OPFS, LRU, pinning), `AssetClient`, `/media-local/` in QA builds, `injectFaults`.
+- Contracts: C08 1.0 (rules 4–6, 12–13; `decodeP0`, `decodeL0`, `toStaticShapeSet`), C13 1.1 (`TierBudget`, `WorldLimits`, `PerfScenario`, `PackRef`, `PackUnavailable`, `WorldPackStore`), C07 1.1 (`world_pack`, `texture`), C16 1.1 (`world.stream`).
+
+## Scope in
+- **Package `packages/world`** (`@dv/world`): `src/sim/**` under the C02 lint and `tsconfig.sim.json` rules, `src/client/**` may use `three`. Import direction: `@dv/world` imports `@dv/shared` and `@dv/engine` (types and registration hooks); `@dv/engine` never imports `@dv/world`. Worker entries are composed in `apps/web/src/workers/` (engine worker core + world jobs and systems); record this as a Builder decision.
+- **Streaming plan** (`config/world/streaming.json` + schema): the table of `02-world.md` §4 per tier; `r0`, `r2`, physics radius and upload bytes must equal the C13 `WorldLimits` of `config/tier-budgets.json` (unit-checked).
+- **`ChunkStore`** (`02-world.md` §3 interface, §5.2): focus = position + velocity × 4 s (headset in XR); wanted set per level by AABB-disc test ordered by `distance × dirWeight` (0.55 ahead, 0.85 side, 1.25 behind) with the focus chunk and its 8 neighbours first; requests `p0` `now`, `l0` `soon`, `l1`/`l2`/`far` `idle`; unload at 1.35 × ring radius, LRU among unpinned; memory pressure `soft` evicts L0 beyond 1.0 × ring first, then lowers density and the radius one step (`11-platform.md` §5.6). Runs in `sim.worker` at `SimStage.Streaming`; statics via `toStaticShapeSet` → `PhysicsBackend.addChunkStatics`, ≤ 1 chunk per tick; floating-origin rebase beyond 1,000 m (M01a2 backend).
+- **Mesher job** (`asset.worker`): `earcut@3.2.4` [research/repos-world.md §5] for roofs and landuse, walls with the 1.5 m foundation skirt, terrain from every 1st/2nd/4th post (desktop/mobile/mobile-low; vertices lie on the physics surface), roads from `p0` segments, trees as one instanced mesh, baked vertex AO (`aAO`). `config/world/mesher.json` profiles (80 / 60 / 40 / 18 tris per building, skip rules of `02-world-bake.md` §6). Output is transferable buffers per render object.
+- **`ChunkRenderer` + `ChunkUploadGate`:** per chunk ≤ 6 objects (`terrain`, `buildings`, `roads`, `vegetation`, `furniture` (empty), `extras` (empty)) in one `BundleGroup` with `static = true`, re-recorded only on a LOD swap; ≤ 1 chunk upload per frame on every tier and ≤ 2 MB per frame on `mobile-low` and `xr-quest`, highest priority first; visibility every 8 frames or on a camera jump > 60 m; behind-camera cull at `dot < −0.35`. TSL materials only (flat district palette colour, night window mask hook for M02b2).
+- **LOD ladder** (`02-world.md` §5.3): L1 (`z=7`) and L2 (`z=5`) from MASSING, ROADLINE, LANDUSE and HEIGHT sections; cover-mask uniforms (4 × 4 bits) that discard fragments over resident children; 8 m skirts; dithered fades over 0.5 s on desktop tiers, hard swaps on `mobile-low` and Quest; `lodBias` and `buildingDistanceScale` honoured.
+- **Bake S11** (`tools/map/src/stages/s11-lod.ts`, `s11-far.ts`): `l1` (DP 3 m, drop h < 6 m outside d1/d5, 16 m posts, road lines class ≤ 4), `l2` (massing ≥ 20 m, 64 m posts, class ≤ 2), `far-bay-dem` (z12 at 256 m posts plus land mask), `far-bay-massing` (buildings ≥ 15 m as boxes in 1 km cells), `texture/far-bay-cards` as a **placeholder atlas** (flat silhouettes in PNG, codec `png`; the rasterized cards are an art-pass item). Packs ≤ 4 MiB, reproducible.
+- **Backdrop** (`02-world-maps.md` §4.3): ring mesh to 80 km on desktop tiers and cards at 20 km (`xr-visionpro`, `mobile`) or 10 km (`mobile-low`, `xr-quest`); massing desktop only; ≤ 3 render objects; ≤ 1 upload at boot.
+- **Boot** (`02-world.md` §5.1): when the catalog holds `data/world-index`, the app boots the world (else the M01b2 gray-box path): boot set = `p0` inside physics radius + 1 chunk, `l0` inside `min(r0, one tile ring)`, `l1`/`l2` around, `far-bay-*`; a pure `bootSet(index, spawn, tier)` in `packages/world/src/sim/streaming/boot.ts`; the sim waits until spawn statics exist; the render fades in after the first `l0` upload; the boot set is pinned.
+- **Failure handling** (`02-world.md` §5.6): `PackUnavailable` → "re-downloading district" overlay, sim waits for `p0`; hash mismatch or decode throw → purge, refetch once, then the tile is `failed` (invisible wall, `err.asset`); offline with `p0` missing at spawn → blocking offline message; GPU loss → rebuild chunk GPU objects from resident meshes without refetch.
+- **QA and perf:** `__dvBridge.world.chunks()` (resident keys per level, uploads per frame, last upload bytes, failed tiles); perf paths `content/world/paths/{walk-civic-center,route-ferry-ocean-beach}.json` registered with the M01c scenario runner; telemetry `world.stream` (`residentL0`, `missCount`, `uploadP95Ms`, `bytesMB`, 10 % sample, once a minute) added to `names.schema.json`; flags `world.cards` honoured from `BootConfig.flags`.
+- **CI:** jobs that run world e2e or perf restore or build the `synth` bake (cache keyed on `tools/map/**`, `config/world/**`, `content/world/**`) and build with `DV_WORLD=synth`; Preview builds stay without a world.
+
+## Scope out
+- Landmarks and `LandmarkLayer`: M02d1. Sky, fog, night lights: M02b2. Graph services, teleports, `WorldApi`: M02c1. Traffic and pedestrians (crowd renderers): M03b1–M03b2. Facade atlas and rasterized skyline cards: art pass. CI emission of `bootset.<mode>.json` and the device calibration of meshing ms and upload sizes: M11a1.
+
+## Deliverables
+- `packages/world/{package.json, tsconfig.json, tsconfig.sim.json, README.md}`, `src/index.ts`.
+- `packages/world/src/sim/streaming/{plan.ts, chunk-store.ts, priority.ts, boot.ts, statics.ts}`.
+- `packages/world/src/client/chunks/{mesher.ts, mesher-job.ts, chunk-renderer.ts, upload-gate.ts, cover-mask.ts, materials.ts}`, `src/client/backdrop/{ring.ts, cards.ts, massing.ts}`, `src/client/world-view.ts` (boot, overlay, bridge, telemetry).
+- `apps/web/src/workers/{sim.worker.ts, asset.worker.ts}` (composition), `apps/web/src/main.ts` (world boot); `packages/engine/src/workers/asset-core.ts` (job registry hook, extracted from M01e's worker).
+- `tools/map/src/stages/{s11-lod.ts, s11-far.ts}`; `config/world/{streaming.json, mesher.json}` + schemas; `content/world/paths/{walk-civic-center,route-ferry-ocean-beach}.json`.
+- `packages/shared/schemas/telemetry/names.schema.json` (`world.stream`).
+- Tests: `packages/world/test/{streaming.priority.spec.ts, streaming.uploadgate.spec.ts, streaming.plan.spec.ts, mesher.spec.ts, statics.spec.ts, boot.spec.ts}`, `tools/map/test/stage.lod.spec.ts`, `tests/e2e/world-stream.spec.ts` (`@world-route`, `@world-boot-size`, `@world-faults`), scenario entries in `tests/perf/`.
+- `.github/workflows/ci.yml` (synth bake cache and `DV_WORLD=synth` for `e2e` and `perf`).
+- Pin: `earcut@3.2.4` [research/repos-world.md §5].
+- ≈ 38 code files; JSON paths and configs are data.
+
+## Interfaces
+- C08 1.0, C13 1.1, C07 1.1 and C16 1.1 used unchanged. `ChunkStore` and `StreamingPlan` per `02-world.md` §3 (domain interfaces, not numbered contracts). The asset-worker job registry is engine-internal.
+
+## Acceptance criteria
+- AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 and `packages/world/src/sim/**` passes the determinism lint — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
+- AC-2 Given a mock pack store and a scripted focus path When the streaming tests run Then the focus chunk and its 8 neighbours are requested first, ahead/side/behind ordering follows the weights, nothing is unloaded inside 1.35 × the ring, `soft` pressure evicts L0 beyond 1.0 × the ring first, the upload gate never releases two chunks in one frame or more than 2 MB on `mobile-low`, and every plan's `r0`, `r2`, physics radius and upload cap equal `config/tier-budgets.json` — proof: `pnpm check:unit -- packages/world`
+- AC-3 Given the gray-box fixture chunks When the mesher runs twice Then the buffers are identical, every terrain vertex lies on `sampleHeight` within 1 mm, each chunk yields ≤ 6 render objects and the per-building triangle count respects the profile of each tier — proof: `pnpm check:unit -- packages/world`
+- AC-4 Given headless Rapier and a scripted 2 km walk across `synth` chunks When statics stream in Then at most one chunk's statics are added per tick, the capsule never falls below the heightfield and a rebase at 1,000 m keeps the state hash path identical across two runs — proof: `pnpm map:build -- --area synth && pnpm check:unit -- packages/world`
+- AC-5 Given the `civic-excerpt` area When stages up to S11 run twice Then `l1`, `l2` and `far-bay-*` outputs are byte-identical and each is ≤ 4 MiB — proof: `pnpm map:build -- --area civic-excerpt --repro && pnpm check:unit -- tools/map`
+- AC-6 Given a QA build with the `synth` world When the camera follows `route-ferry-ocean-beach` at `?tier=mobile-low` and `?tier=desktop` in Chromium and WebKit Then no frame uploads more than one chunk, resident L2 coverage equals the tier `r2`, and no tile is marked failed — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-route && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-route`
+- AC-7 Given the same build When the perf scenario runs for every flat tier in fail mode Then render objects, triangles and texture/GPU MB stay within each tier's budget on `chromium-webgl2` and `webkit-webgl2` — proof: `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`
+- AC-8 Given an empty cache When the world boots at City Hall for each flat tier Then the bytes downloaded before the reveal are within the tier cold-download budget (60, 60, 40, 30 MB) — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-boot-size`
+- AC-9 Given injected faults When a `p0` pack returns a wrong hash twice, an `l0` pack is unavailable, and the spawn tile is missing offline Then the tile is marked failed with an invisible wall after one refetch, the "re-downloading district" overlay shows and clears, and the offline message blocks the session — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-faults`
+- AC-10 Given the production build When it is verified and deployed to a Preview Then `media-local` and the world bridge are absent, the gray-box boot still works and the Preview passes its header checks — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-11 Given the operator's `sf` bake on an Apple Silicon Mac in Chrome When `route-ferry-ocean-beach` runs at `?perf=1&tier=desktop` and the report is verified Then `perf:verify` passes (median, p95, frames over 50 ms, counts, cold download) and the run records U-W8 and the meshing time per chunk (U-W10) in `notes.json` — proof: manual: desktop Apple Silicon Mac (Chrome), `DV_WORLD=sf` QA build served locally, open `/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach`, export `perf.json` and `notes.json` to `docs/device-runs/M02b1/mac/`, then `pnpm perf:verify -- docs/device-runs/M02b1/mac/perf.json --tier desktop`
+
+## Test plan
+- **Unit:** `world/streaming.priority`, `streaming.uploadgate`, `streaming.plan`, `mesher.deterministic`, `statics.feed`, `boot.set`; `tools/map/stage.lod`.
+- **E2E:** `@world-route` (Chromium, WebKit), `@world-boot-size`, `@world-faults`; M01b2, M01c and M01e tags stay green.
+- **Perf:** `check:perf -- --scenario route-ferry-ocean-beach` (fail mode in AC-7), `walk-civic-center` registered for M11a.
+- **Device:** AC-11 on the desktop reference.
+
+## Demo script
+1. `pnpm map:build -- --area synth && DV_WORLD=synth pnpm dev`; open `/?perf=1&tier=mobile`; fly the free cam from the Ferry Building west; watch L0/L1/L2 counts in the perf HUD.
+2. Repeat with `?tier=desktop`: backdrop ring and massing appear beyond the city.
+
+## Effort
+1 Builder session; about 38 code files; risk **high** (mesher correctness, upload cadence, two engines). If the session runs long, ship the ring and cards and leave `far-bay-massing` behind flag `world.cards` for M11a1, and say so in the report.
+
+## Risks & fallbacks
+- **`BundleGroup` gives nothing on WebGL2** (expected, `02-world.md` §5.4): counts are what the budget binds; keep objects per chunk ≤ 6 regardless.
+- **Per-pack GETs too slow** (U-W8): lanes from M01e already parallelize; if boot exceeds budget on `sf`, record it; a batch route needs an Architect decision.
+- **`chromium-webgpu`** stays informational unless the M00 `gpu-probe.chromium-webgpu.json` artifact shows `webgpu`; then add `@world-route` to its leg and record the promotion.
+
+## Notes for the Builder
+- Read first: `02-world.md` §3, §5; `02-world-contracts.md` §1, §4; `02-world-maps.md` §4.3; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5.
+- Assert counts and cadence, never SwiftShader frame times (08 §1 rule 3).
+- Keep `packages/world/src/sim/**` free of `three` and DOM; the mesher lives in `src/client/chunks/` but imports nothing from `three` so it can run in the worker.
+- Secrets: none. AC-11 needs the desktop reference device (Q-13) and the operator's `sf` bake (M02a1 AC-9); without them the AC stays open and the report says "Blocked on: Q-13". Branch `m02b1-streaming-lod`.

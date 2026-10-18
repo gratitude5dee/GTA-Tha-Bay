@@ -69,7 +69,7 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 The ledger is `research/INDEX.md` §2 (F-001 … F-067, all checked 2026-10-18); this file does not copy it, so there is one place to correct a fact. Domain specs cite `[research/<file>.md]` or `F-NNN`. §6 lists, per milestone, the ledger rows its scope and acceptance criteria rely on. Newly verified facts are added to `research/INDEX.md` §2 with URL and date; items that could not be verified are `UNVERIFIED` and listed in `spec/99-open-questions.md`.
 
 ## 6. Facts each milestone relies on
-Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-notes.md` item 5). A split family appears as one row naming its parts with digit suffixes `1` and `2` (M11b2 splits into M11b21 and M11b22); the row applies to every part (DL-206). "F rows" are `research/INDEX.md` §2 rows, so the number is the row id there. Where a domain keeps its own local fact (for example F-S12-01 in `12-modding.md` §7), the row names it. **Recorded, not asserted** lists UNVERIFIED items from `spec/99-open-questions.md` that a device run or spike writes down as checklist output; no acceptance criterion may assert them (C15). A milestone author who adds or drops a dependency edits the row in the same pull request.
+Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-notes.md` item 5). A split family appears as one row naming its parts (`1`, `2`, `3` digit suffixes; M11b2's second part is M11b4; M14b has three parts per DL-212); the row applies to every part (DL-206). "F rows" are `research/INDEX.md` §2 rows, so the number is the row id there. Where a domain keeps its own local fact (for example F-S12-01 in `12-modding.md` §7), the row names it. **Recorded, not asserted** lists UNVERIFIED items from `spec/99-open-questions.md` that a device run or spike writes down as checklist output; no acceptance criterion may assert them (C15). A milestone author who adds or drops a dependency edits the row in the same pull request.
 
 | Milestone | F rows | What the scope and acceptance criteria rely on | Recorded, not asserted |
 |---|---|---|---|
@@ -135,7 +135,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M10c | F-025, F-046, F-051 | Workers AI and MiniMax voice prices; ElevenLabs terms | — |
 | M11a1, M11a2 | F-004, F-007, F-009, F-010, F-011, F-012, F-013, F-062, F-063, F-064 | iPhone memory, quota and eviction; render-object cost; Quest budgets; Low Power Mode; crash visibility | U-PLT-1 to U-PLT-5, U-PLT-8, U-PLT-20 |
 | M11b1 | F-002, F-003, F-005, F-006, F-013, F-062 | XR session and renderer swap; visionOS and Quest support; Window-only `navigator.xr`; IWER | U-PLT-10, U-PLT-12, U-PLT-13 |
-| M11b21, M11b22 | F-003, F-005, F-006, F-013, F-043, F-062 | per-mode XR; media layer and `VideoFrameTexture`; clip format | U-PLT-10, U-PLT-20 |
+| M11b2, M11b4 | F-003, F-005, F-006, F-013, F-043, F-062 | per-mode XR; media layer and `VideoFrameTexture`; clip format | U-PLT-10, U-PLT-20 |
 | M11b3 | F-005, F-006, F-013 | XR panels and comfort on Quest and Vision Pro | — |
 | M12a1 | F-029, F-030, F-031, F-032 | Supabase Pro limits; anonymous-sign-in limits (fallback); Custom OIDC; keys | U-BE-2, U-BE-16, U-ENG-4 |
 | M12a2 | none | UI over identity routes; no external-system fact | — |
@@ -160,7 +160,9 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M13d1 | F-065, F-066 | CSAM tooling; 48-hour removal; evidence audit | U-BE-9, U-BE-11, U-BE-12 |
 | M13d2 | F-066 | takedown forms | — |
 | M14a | F-059 | thirdweb version and Growth plan price | thirdweb free tier |
-| M14b1, M14b2 | F-027, F-028, F-034, F-037, F-041, F-042, F-048, F-052, F-067 | alert rules and billing; vendor caps; terms-watch inputs; mark knock-out | U-BE-15, U-BE-18, U-BE-19 |
+| M14b1, M14b2, M14b3 | F-027, F-028, F-034, F-037, F-041, F-042, F-048, F-052, F-067 | alert rules and billing; vendor caps; terms-watch inputs; mark knock-out | U-BE-15, U-BE-18, U-BE-19 |
+| M00d | none | C15 milestone-format lint and the trace test; repository-internal only (DL-212, DL-214) | — |
+| M04d | F-014 | QA harness: headless canonical sim, state hash, autoplayer bots, goldens; deterministic Rapier build | U-ENG-1 |
 | M14c | none | accessibility and i18n gates; no external-system fact | — |
 | M15a to M15g | F-017, F-023, F-053, F-054 | same grid, packs and OSM and DataSF sources; other counties' open data is not in the ledger and is listed when those specs are written | — |
 
