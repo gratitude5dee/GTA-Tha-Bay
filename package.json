@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "VITE_DV_QA=1 pnpm --filter @dv/ui run tokens && VITE_DV_QA=1 pnpm --filter @dv/web exec vite",
     "build": "pnpm --filter @dv/ui run tokens && pnpm --filter @dv/web exec vite build && tsx tools/ci/check-dist.ts icons",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.sw.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.sw.json --noEmit && tsc -p packages/engine/tsconfig.sim.json --noEmit",
     "lint": "eslint .",
     "check:unit": "tsx tools/ci/run.ts vitest run",
     "check:e2e": "tsx tools/ci/run.ts playwright test",

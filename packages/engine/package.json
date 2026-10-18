@@ -5,12 +5,21 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./sim": "./src/sim/index.ts",
+    "./headless": "./src/headless/index.ts",
     "./platform": "./src/platform/index.ts",
     "./platform/probe": "./src/platform/probe.ts",
     "./platform/renderer-host": "./src/platform/renderer-host.ts"
   },
+  "scripts": {
+    "test": "vitest run",
+    "test:lint-bans": "vitest run test/lint.bans.spec.ts",
+    "test:headless": "vitest run test/headless.noDom.spec.ts",
+    "test:determinism": "vitest run test/determinism.node.spec.ts"
+  },
   "dependencies": {
     "@dv/shared": "workspace:*",
+    "bitecs": "0.4.0",
     "three": "0.186.1"
   },
   "devDependencies": {
