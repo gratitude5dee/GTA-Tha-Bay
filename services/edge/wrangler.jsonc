@@ -1,0 +1,26 @@
+// tha-bay-web: assets-only Worker in M00 (no `main`; the Worker script and /api/v1/* arrive in M00a).
+// Never touch, rename or deploy over a Worker whose name does not start with tha-bay-.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tha-bay-web",
+  "compatibility_date": "2026-10-18",
+  "assets": {
+    "directory": "../../apps/web/dist",
+    "not_found_handling": "single-page-application"
+  },
+  // No custom domain until Q-15 is answered.
+  "workers_dev": true,
+  "env": {
+    "staging": {
+      "name": "tha-bay-web-staging",
+      "workers_dev": true,
+      "preview_urls": true,
+      "assets": {
+        "directory": "../../apps/web/dist",
+        "not_found_handling": "single-page-application"
+      }
+    }
+  },
+  // Required by `wrangler preview`. Bindings are not inherited and must be repeated here when added (M00a+).
+  "previews": {}
+}
