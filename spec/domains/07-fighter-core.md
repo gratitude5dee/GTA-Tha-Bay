@@ -215,7 +215,7 @@ Pose calibration is **not** in this slice (FP4: device-local store).
 | `RoundEnd` | 120 | no | locked | next `Ready` or `MatchEnd` |
 | `MatchEnd` | 180 | no | menu | `ModeResult` |
 
-`Cinematic` is entered only for clips the player may see (FX6.5). Its length is a constant, so the sim never depends on video playback: the presentation holds the last frame (`last.webp`) if the clip is shorter and cuts if longer.
+`Cinematic` is entered only for clips the player may see (FX6.5); eligibility is fixed at match start and recorded in the replay `rules`, so clip readiness never changes the sim (DL-236). Its length is a constant, so the sim never depends on video playback: the presentation holds the last frame (`last.webp`) if the clip is shorter and cuts if longer.
 
 ## FC4 Fighter states
 

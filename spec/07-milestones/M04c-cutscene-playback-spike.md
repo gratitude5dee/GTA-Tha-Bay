@@ -39,7 +39,7 @@ After this session the flat platform can play a cutscene clip the way every late
 - `tests/e2e/cutscene-spike.spec.ts` (tag `@cutscene`), `tools/ci/checklists/M04c-{iphone15,quest3}.json`.
 
 ## Interfaces
-- C09 1.0 cutscene types created verbatim; C13 1.1 `FirstGestureUnlock.acquireVideo/releaseVideo` implemented; C06 1.1 `UiCommand` used as defined. No shape change; the `dom-media.d.ts` shim is reported to the Architect.
+- C09 1.0 cutscene types created verbatim; C13 1.1 `FirstGestureUnlock.acquireVideo/releaseVideo` implemented; C06 1.1 `UiCommand` used as defined. No shape change; the type-only `dom-media.d.ts` shim is accepted (DL-232).
 
 ## Acceptance criteria
 - AC-1 Given a page with no gesture yet When `acquireVideo()` is called Then it returns `null`; after one synthetic `pointerup` the mocked `AudioContext` is `running`, `state().pool` is 3, each element carries `muted`, `playsinline`, `disableRemotePlayback`, `crossorigin="anonymous"` and `preload="auto"`, three acquires succeed, a fourth returns `null`, a release makes one available again, and a second gesture changes nothing — proof: `pnpm check:unit -- packages/engine/test/media`
@@ -76,6 +76,7 @@ After this session the flat platform can play a cutscene clip the way every late
 - An iPhone in Low Power Mode refuses even pooled playback: that is a recorded outcome (U-PLT-17), not a failure; M05b2's `not_permitted` trigger handles it.
 
 ## Notes for the Builder
+- Codec support in Playwright's Chromium and WebKit builds is not in the ledger: the `@cutscene` run records U-REC-1 (VP9 decode of the fixtures); the canvas-source fallback keeps every AC command unchanged (DL-232).
 - Read first: `11-platform-pwa.md` §6–§7 and §11; `03-story-cutscenes.md` §D2 and §D7 (hosts table, audio, subtitles); `10-ui-hud-xr.md` §2 (overlay); [research/gap-cutscene-delivery-playback.md §3, §4, §7].
 - Order: shared types and schema → fixtures script → first-gesture → budget → wake lock → DOM host → overlay → spike player and bridge → e2e → checklists.
 - The blank clip and fixtures are same-origin, so `crossorigin="anonymous"` passes COEP `require-corp` without CORP headers; keep them out of the service-worker precache except `blank.webm`.

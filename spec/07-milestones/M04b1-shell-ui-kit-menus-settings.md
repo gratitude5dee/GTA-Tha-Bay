@@ -19,14 +19,14 @@ The player can:
 
 ## Depends on
 - **M04a2** (ModeHost, unlock registry, `UiBridge`, `ViewModelSource`, `UiCommand` channel, remap persistence).
-- Through earlier milestones: M04a1 (`SaveService`, `readLastSave`), M01c (`QualityService`, `PlatformSettings` in `dv-platform`, `Benchmark`, telemetry client), M01e (`WorldPackStore` usage), M01b1 (`InputRouter`, `rebindCapture`), M00 (`packages/ui` scaffold, tokens, `BootScreen`, credits and legal stubs, `check:i18n` skeleton, `check:bundle`).
+- Through earlier milestones: M04a1 (`SaveService`, `readLastSave`), M01c (`QualityService`, `PlatformSettings` in `dv-platform`, `Benchmark`, telemetry client), M01e (`WorldPackStore` usage), M01b1 (`InputRouter`, `rebindCapture`), M00 (`packages/ui` scaffold, tokens, `BootScreen`, credits and legal stubs, the `en` catalog at `packages/ui/src/i18n/en.json`, `check:bundle`).
 - Contracts: C06 1.1.0 (`UiBridge`, `ViewModelSource`, `UiCommand`, `GameModeDescriptor`), C05 1.1.0 (`ProfileSettings`, `ProfileMeta`, `SaveErrorCode`), C13 1.1.0 (`PlatformSettings`, `XrComfortSettings`), C03 1.1.0 (`ClientAction`, `ControlsSettings`), C16 1.1.0 (`ui.page`, `ui.onboard`).
 
 ## Scope in
 - **Shell** (`packages/ui/src/shell/`): `PageDef`, `GateCtx`, `GateResult`, `ShellApi` (`10-ui.md` §3.1). The §2.4 state machine. Page registry with the §2.5 table rows for this milestone; later pages are registered with a "Coming soon" screen. History routing rules 1–4. Banners: offline, other tab, "Progress cannot be saved", not isolated. Safe points through `PwaUpdateController.markSafePoint`. `apiErrorToUi()` table (`10-ui-pages.md` §5.3).
 - **Kit**: focus groups with roving tabindex and spatial navigation from `ClientAction` `UiUp/Down/Left/Right/Accept/Back/TabPrev/TabNext`, pointer targets ≥ 44 px on touch, toasts (queue 3, `unlock` and `error` persist up to 8 s, polite live region), dialogs, confirm, the `OnScreenKeyboard` for gamepad text entry.
 - **ScreenDef**: types (§3.2), `DomScreen` (semantic HTML), `CanvasScreen` (Canvas 2D draw plus `pick`), and the parity test over every registered `ScreenDef`.
-- **i18n**: `t()`, plural and number helpers through `Intl`, the fallback chain `lang → base → en`. The catalog moves from M00's `packages/ui/src/i18n/en.json` (with the keys M02c1 added) to `content/ui/i18n/en.json`, the `10-ui.md` §2.2 location later milestones write to; M00's `src/index.tsx` components are split into the shell and pages. `check:i18n` becomes real: missing keys, unused keys, stale-hash report, and a display-name literal check.
+- **i18n**: `t()`, plural and number helpers through `Intl`, the fallback chain `lang → base → en`. The catalog moves from M00's `packages/ui/src/i18n/en.json` (with the keys M02c1 added) to `content/ui/i18n/en.json`, the `10-ui.md` §2.2 location later milestones write to; M00's `src/index.tsx` components are split into the shell and pages. Root script `check:i18n` is created here (M00 declared none; DL-230): missing keys, unused keys, stale-hash report, and a display-name literal check.
 - **Pages:**
   - Title: gesture runs `FirstGestureUnlock` (M04c owns the video pool; here the audio unlock).
   - Age and Blocked (§2.4 rules 1–4 and 7). The `AgeAttestationPort` stores the bracket in `UiPrefs.age`; M04b3 rebinds it to `IdentityService.attestAge`.
@@ -61,7 +61,7 @@ The player can:
 - `packages/ui/src/pages/settings/{index.ts, display.ts, controls.tsx, audio-access.ts, privacy-storage.ts}`.
 - `packages/ui/test/{ui-shell.spec.ts, ui-screen-parity.spec.ts, ui-i18n.spec.ts, age-gate.spec.ts, modes-tiles.spec.ts, saves-ui.spec.ts, settings-bind.spec.ts}`.
 - `tests/e2e/ui/{menus.spec.ts, age.spec.ts, a11y.spec.ts}` (tags `@ui-menus`, `@ui-age`, `@ui-saves`, `@ui-a11y`).
-- `tools/ci/check-i18n.ts` (replaces the M00 skeleton); `apps/web/src/routes.ts`.
+- `tools/ci/check-i18n.ts` and root script **`check:i18n`** (`tsx tools/ci/run.ts …`; new, DL-230); `apps/web/src/routes.ts`.
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
 - About 38 files.
 

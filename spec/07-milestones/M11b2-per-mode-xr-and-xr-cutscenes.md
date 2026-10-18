@@ -9,8 +9,8 @@ After this session racing and the fighter are playable in the headset. **Racing 
 - R-MODE-03: Culture Wars is playable in XR with the Simple scheme on controllers and hands; webcam pose is not offered in XR.
 
 ## Depends on
-- **M11b1** (session, rig, `XrInputRouter`, `HandFeatures` and its two-hand wheel value, XR binders, `XrPanels`). **M07b2** (garage and replay done, photo mode off in XR, racing visuals per tier). **M08b2** (stages, Cinematic phase, kill-switch remap, accessibility pass).
-- Also used: M11b3 (`UiSurface` world, wrist and lazy-follow panels; run order #74), M07b1 (all race kinds, `RaceDef.xr`), M08a2 (Simple scheme, fighter bindings), M04b1 (Settings › Controls).
+- **M11b1** (session, rig, `XrInputRouter`, `HandFeatures` and its two-hand wheel value, XR binders, `XrPanels`). **M07b2** (garage and replay done, photo mode off in XR, racing visuals per tier). **M08b2** (stages, Cinematic phase, kill-switch remap, accessibility pass). **M11b3** (`UiSurface` world, wrist and lazy-follow panels; DL-219).
+- Also used: M07b1 (all race kinds, `RaceDef.xr`), M08a2 (Simple scheme, fighter bindings), M04b1 (Settings › Controls).
 - Contracts: C03 1.1.0 (`xr:both:wheel`, XR control ids, `InputMap`, `ControlsSettings`), C04 1.1.0 (`XRRigParams.origin` `seat` / `arena` / `diorama`, `vantage`), C06 1.1.0 (`UiBridge`, `mode.<id>.*` keys), C13 1.1.0 (`XrComfortSettings.chaseView`, `arenaScale`, `cockpitHorizonLock`).
 
 ## Scope in

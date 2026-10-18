@@ -320,7 +320,7 @@ Acceptance criteria (backend; S13 folds them into the milestone files):
 | E2E | `tests/e2e/mp-two-clients.spec.ts` (`@mp`), `tests/e2e/offline-boot.spec.ts` (`/boot` down → single-player starts) | `pnpm check:e2e -- --grep "@mp|@offline"` |
 | Staging | `tests/staging/rls-thirdparty.test.ts` | `pnpm test:staging` |
 | Load | `tests/load/rooms.ts` WebSocket bots at 20 Hz (tool k6 or Artillery per [research/stack-cloudflare-backend.md §4.7]; S13 picks) | `pnpm load:rooms` |
-| Ops | `tests/ops/guardrails/T1…T9` | `pnpm test:ops -- --suite guardrails` |
+| Ops | `tools/ops/suites/guardrails/` T1…T9 | `pnpm test:ops -- --suite guardrails` |
 
 ## 10. Open questions (S09 proposals; the Architect assigns final Q-NN)
 - **Q-BE-01** Issuer host: `id.<domain>` (custom domain on the web Worker) vs a path issuer on the app origin. Default `id.<domain>`.

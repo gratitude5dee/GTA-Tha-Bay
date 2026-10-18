@@ -12,7 +12,8 @@ After this session the R-NPC-02 character pipeline is an automated CLI. `pnpm as
 - **M05b1**: `GenJobWorkflow`, `FalGateDO`, `BudgetGovernorDO`, `MockFalPort`, `check:pipeline`, the webhook verifier.
 - **M06a2**: the C10 compiled soul (`visual_brief`, `heightM`, `tier`, `standIn`, `moves`) and the roster manifest `content/npcs/roster.json` with its R1–R7 rules.
 - **M01d**: the catalog, `assets:verify`, `assets:publish`, `assets:lock`, `resolveVariant`, rclone upload.
-- The run order also places M00c (spike results and the Meshy bone probe) and M05c3 (`assets:gen prewarm`) before this milestone.
+- **M05c3**: the `assets:gen` entry with `prewarm`, which this milestone extends (DL-219).
+- Through M05b1: M00c (spike results and the Meshy bone probe).
 - Contracts: C07 1.1 (`GenJob`, `jobKey`, `GateCode`, `ProvenanceRecord`, `LikenessSummary`, pure gate cores, `assetTier`), C10 1.0 (compiled soul fields, roster), C04 1.1 (`bay_rig_v1`, 22 `HUMANOID_BONES`).
 
 ## Scope in

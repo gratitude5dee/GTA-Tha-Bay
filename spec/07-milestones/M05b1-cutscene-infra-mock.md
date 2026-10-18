@@ -10,10 +10,12 @@
 
 ## Depends on
 - M00a (router, `ApiError`, isolation headers, geo-gate, `_test` routes, `check:workers`, `check:prod-routes`, `check:do-migrations`, `deploy:prod`), M00c (registry `config/genai-endpoints.json`, recorded spike results), M01d (C07 catalog, `assets:*`, R2 layout, bucket config).
-- Contracts: C09 1.0 (`CutsceneManifest`; `c09-cutscene.ts` from M04c, earlier in run order, or created here verbatim if absent), C12 1.1 (routes 4, 27–29, 49; `CutsceneStatus`; `BudgetGovernor`, `SpendEvent`, `Vendor`, `GovLevel` in `packages/shared/src/api/budget.ts`), C07 1.1 (`GenJob`, `JobKeyInput`, `jobKey`, `GateCode`, provenance).
+- If M04c has already landed (it runs earlier in `_PLAN.md` §1), its `c09-cutscene.ts` is used; otherwise create the file here verbatim.
+- Contracts: C09 1.0 (`CutsceneManifest`), C12 1.1 (routes 4, 27–29, 49; `CutsceneStatus`; `BudgetGovernor`, `SpendEvent`, `Vendor`, `GovLevel` in `packages/shared/src/api/budget.ts`), C07 1.1 (`GenJob`, `JobKeyInput`, `jobKey`, `GateCode`, provenance).
 
 ## Scope in
 - **Lifecycle PR first** (label `do-lifecycle`, nothing else in it): class skeletons and exports for `CutsceneJobDO`, `FalGateDO`, `BudgetGovernorDO`; `wrangler.jsonc` `durable_objects.bindings` (`CUTSCENE_JOB`, `FAL_GATE`, `GOVERNOR`) and migration `{"tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO","FalGateDO","BudgetGovernorDO"]}`, repeated under `env.staging` and `previews`; deployed with `wrangler deploy`. The logic PR follows.
+- **`check:do-migrations` widened (DL-233):** M00a's rule fails any lifecycle diff that also touches `src/index.ts`, but `09-backend-ops.md` §1.2 puts the class skeletons and their exports in that PR. Extend `tools/ci/check-do-migrations.ts` so a `do-lifecycle` diff may add DO class files (empty skeletons) and `export { <Class> } from '…'` lines in `services/*/src/index.ts`, nothing else; M00a's AC-8 fixture (a logic edit in `src/index.ts`) still fails, and a new fixture of the allowed shape passes.
 - `packages/shared/src/api/budget.ts` (C12, `09-backend-ops.md` §5.3 verbatim) and `CutsceneStatus` in `api/v1.ts` (extend). `packages/shared/src/genai/types.ts` (C07 §4.6) and `jobKey` if M00c did not create them.
 - `services/edge/src/cutscenes/`:
   - `CutsceneJobDO` (`ensure(job, {allowGenerate})`, `complete`, `fail`): states `absent → pending → ready | failed` (`09-backend.md` §5.1); one Workflow instance per key (id `cutscene_shot-<jobKey[0:12]>-<attempt>`, `05-assets.md` §5.1), concurrent `ensure` calls share it; `failed` re-armed by alarm after 1 h, at most 3 re-arms;
@@ -42,7 +44,7 @@
 - `services/pipeline/{package.json, tsconfig.json, README.md}`, `src/{workflow.ts, fal.ts, gate.ts, ports.ts}`, `src/steps/cutscene.ts`, `src/do/FalGateDO.ts`, `src/mock/{MockFalPort.ts, MockTranscodePort.ts, MockSignPort.ts}`, `fixtures/*`.
 - `packages/shared/src/api/{budget.ts, v1.ts}`, `packages/shared/src/genai/types.ts` (if absent).
 - `services/edge/test/{cutscene-singleflight, genjob-poll-fallback, budget-cache-first, cutscene-status, cutscene-prewarm, fal-webhook-verify, governor-levels, genai-gate, reports-browser}.test.ts`.
-- `tools/ci/check-c2pa.ts`, `tools/ci/test/check-c2pa.test.ts`, `services/pipeline/fixtures/sign-fixtures.ts`, `config/guardrails.yaml`.
+- `tools/ci/check-c2pa.ts`, `tools/ci/test/check-c2pa.test.ts`, `services/pipeline/fixtures/sign-fixtures.ts`, `config/guardrails.yaml`; `tools/ci/check-do-migrations.ts` (widened) with one new fixture.
 - Root scripts `check:pipeline`, `check:c2pa`; `.github/workflows/ci.yml`; `apps/web/public/_headers`; `tools/ci/check-dist.ts` (header list).
 
 ## Interfaces

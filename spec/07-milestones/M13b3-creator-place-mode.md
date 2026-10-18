@@ -13,7 +13,7 @@ Players without a coding agent can build a data-tier experience inside the game 
 - Contracts: C14 1.0.0 (`ModManifest`, `SceneOp`, `ModScene`, `ExperienceAuthored`, `PublishAttestation`, `ModCheckResult`), C17 1.0.0 (`ExperienceEntryRules`), C06 1.1.0 (`ModeContext`, `PrefabService`, `ModeContext.world`), C05 1.1.0 (sandbox session writes), C03 1.1.0 (input contexts), C12 1.1.0 (routes 34, 36 as client).
 
 ## Scope in
-- `packages/modes/experience/src/creator/`:
+- `packages/engine/src/client/mods/creator/`:
   - `draft.ts`: the `CreatorDraft` document (`schema: 'dv-creator-draft/1'`, `id`, `modId`, `anchor {lat, lng}`, `radius`, `entry`, `start`, `title`, `summary`, `tags`, `ops: SceneOp[]`, `rev`). It is stored in IndexedDB `dv-creator` (store `drafts`; every access in try/catch with an in-memory fallback). This is a new, prefixed, device-local store and not part of C14's `dv-mods`.
   - `editor.ts` (pure core): add, move, rotate (yaw), scale (clamped 0.5–2), delete, undo and redo (≤ 50 steps). Every op must lie inside `radius` in the anchor frame (+X east, +Y up, −Z north, metres from the anchor on the ground). The 513th op is refused with `cap.ops`. Radius is clamped to 10–250. `sign` text goes into the mod's string table, with resolved text ≤ 40 characters.
   - `palette.ts`: the allowlist from `12-modding-contracts.md` B§4. It covers first-party `PrefabDef` ids of kinds `prop`, `ped` (`ped.ambient.*`), `vehicle` (`vehicle.*`, `robotaxi.default`, always `parked: true` here), `pickup` and `marker`. It never offers `police.*`, `portal.*` or `player.*`, and it adds no new assets.
@@ -35,8 +35,8 @@ Players without a coding agent can build a data-tier experience inside the game 
 - An AI assistant in the creator: a later flag (C§2 flow E).
 
 ## Deliverables
-- `packages/modes/experience/src/creator/{draft,editor,palette,placement,preview,pack,handoff,index}.ts`, `ui/{CreatorPanel,Palette,Inspector,AttestDialog}.tsx`.
-- Tests: `packages/modes/experience/src/creator/{editor,pack,handoff,palette}.test.ts`; `packages/shared/src/mod/check/scene-ops-caps.test.ts` (if M13a1 has not created it); `tests/e2e/mods-creator.spec.ts` (`@mods-creator`); fixtures under `tests/fixtures/creator/`.
+- `packages/engine/src/client/mods/creator/{draft,editor,palette,placement,preview,pack,handoff,index}.ts`, `packages/ui/src/mods/creator/{CreatorPanel,Palette,Inspector,AttestDialog}.tsx` (A-01 layout has no `packages/engine/src/client/mods/creator`; DL-220).
+- Tests: `packages/engine/src/client/mods/creator/{editor,pack,handoff,palette}.test.ts`; `packages/shared/src/mod/check/scene-ops-caps.test.ts` (if M13a1 has not created it); `tests/e2e/mods-creator.spec.ts` (`@mods-creator`); fixtures under `tests/fixtures/creator/`.
 - Edits: sandbox pause menu and phone app list (`packages/ui`), locale catalog `en`, QA bridge commands `creator.open`, `creator.placeAt(prefab, x, z)`, `creator.pack` (QA builds only).
 - Secrets: none.
 
@@ -48,19 +48,19 @@ Players without a coding agent can build a data-tier experience inside the game 
 - Engine-internal (not contracts): `CreatorDraft`, `PublishHandoff`.
 
 ## Acceptance criteria
-- AC-1 Given a draft with 512 ops When a 513th op is added in the editor core, and a 513-op scene is checked by the shared validator Then the editor refuses it with `cap.ops` and leaves the draft unchanged, and the validator reports `cap.ops` — proof: `pnpm check:unit -- packages/shared/src/mod packages/modes/experience`
-- AC-2 Given a 50 m radius When a prop is placed 50.5 m from the anchor and the radius is set to 300 and then to 5 Then the placement is refused, and the radius becomes 250 and then 10 — proof: `pnpm check:unit -- packages/modes/experience`
-- AC-3 Given the committed fixture draft When `pack.ts` builds its archive in Node and the same workspace files are packed by M13a1's CLI packer Then both archives have one SHA-256, the shared `check` returns `ok: true` with no `perm.*` finding, and the manifest's `kind` is `experience` with `tier` `data` — proof: `pnpm check:unit -- packages/modes/experience`
-- AC-4 Given the palette built from the fixture prefab registry When it is listed Then no entry starts with `police.`, `portal.` or `player.`, and every vehicle op it creates has `parked: true` — proof: `pnpm check:unit -- packages/modes/experience`
+- AC-1 Given a draft with 512 ops When a 513th op is added in the editor core, and a 513-op scene is checked by the shared validator Then the editor refuses it with `cap.ops` and leaves the draft unchanged, and the validator reports `cap.ops` — proof: `pnpm check:unit -- packages/shared/src/mod packages/engine/src/client/mods/creator`
+- AC-2 Given a 50 m radius When a prop is placed 50.5 m from the anchor and the radius is set to 300 and then to 5 Then the placement is refused, and the radius becomes 250 and then 10 — proof: `pnpm check:unit -- packages/engine/src/client/mods/creator`
+- AC-3 Given the committed fixture draft When `pack.ts` builds its archive in Node and the same workspace files are packed by M13a1's CLI packer Then both archives have one SHA-256, the shared `check` returns `ok: true` with no `perm.*` finding, and the manifest's `kind` is `experience` with `tier` `data` — proof: `pnpm check:unit -- packages/engine/src/client/mods/creator`
+- AC-4 Given the palette built from the fixture prefab registry When it is listed Then no entry starts with `police.`, `portal.` or `player.`, and every vehicle op it creates has `parked: true` — proof: `pnpm check:unit -- packages/engine/src/client/mods/creator`
 - AC-5 Given a QA build in a sandbox session on the graybox fixture When the test opens Create, places three props and a start marker, packs, installs locally and plays the preview Then `__dvBridge` reports three prop entities within 0.05 m of their draft positions converted to world ENU, `modsActive()` is true during the preview and false after exit, and after a page reload the draft lists the same four ops — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-creator`
 - AC-6 Given the iPhone-sized touch viewport When a prop is placed by tapping the ground and rotated with the inspector's touch control Then the op count is 1 and the yaw changed — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @mods-creator`
 - AC-7 Given a story session When the pause menu opens Then Create is visible, disabled, and shows its reason string — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-creator`
-- AC-8 Given mocked fetch When `BrowserPublish.publish` runs for a `device`-tier identity, for a `linked` `18p` identity, and for a `linked` identity whose route 36 answers `feature_disabled` Then the first shows the link CTA without a request, the second sends upload (`purpose: 'mod_archive'`), PUT and route 36 with an `Idempotency-Key` and `attestation.liveHuman = true` in that order, and the third shows "Publishing opens soon" — proof: `pnpm check:unit -- packages/modes/experience`
+- AC-8 Given mocked fetch When `BrowserPublish.publish` runs for a `device`-tier identity, for a `linked` `18p` identity, and for a `linked` identity whose route 36 answers `feature_disabled` Then the first shows the link CTA without a request, the second sends upload (`purpose: 'mod_archive'`), PUT and route 36 with an `Idempotency-Key` and `attestation.liveHuman = true` in that order, and the third shows "Publishing opens soon" — proof: `pnpm check:unit -- packages/engine/src/client/mods/creator`
 - AC-9 Given M13a3's experience fixture When its e2e runs Then it still passes — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-exp`
 - AC-10 Given this branch's PR When the Preview deploys Then the smoke check passes and Create opens in a sandbox session — proof: manual: desktop browser, open the Preview URL, start Sandbox, open Pause › Create; then `pnpm check:smoke -- <preview-url>`
 
 ## Test plan
-- Unit: `creator/editor` (caps, radius, undo, sign length), `creator/pack` (parity with the CLI packer, minimal permissions), `creator/palette`, `creator/handoff` (mocked fetch); `shared/mod.scene-ops-caps`; `pnpm check:unit -- packages/shared/src/mod packages/modes/experience`.
+- Unit: `creator/editor` (caps, radius, undo, sign length), `creator/pack` (parity with the CLI packer, minimal permissions), `creator/palette`, `creator/handoff` (mocked fetch); `shared/mod.scene-ops-caps`; `pnpm check:unit -- packages/shared/src/mod packages/engine/src/client/mods/creator`.
 - E2E: `@mods-creator` on `chromium-webgl2` and `webkit-webgl2`; regression `@mods-exp`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-creator`.
 - Static: `pnpm check:i18n`, `pnpm lint`, `pnpm typecheck`.
 - Deployed: Preview smoke (AC-10).

@@ -8,8 +8,9 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 - R-MOD-03: the legal backstop that public forum and UGC visibility needs.
 
 ## Depends on
-- **M13b1**: report policy and thresholds, forum objects, `P2_REVIEW` cases, migration 00071.
-- Uses through the run order: M06b1/M06b2 (0004 tables, `uploads`, image hashes), M13c2 (`HashBankPort`, revocations), M12a1 (staff JWTs), M05b1 (`/_test/run-scheduled`).
+- **M13b1**: report policy and thresholds, forum routes over M13a2's 0007 forum objects, `P2_REVIEW` cases.
+- **M06b2**: 0004 `uploads` and image hashes. **M13c2**: `HashBankPort`, revocations (DL-219).
+- Through those: M06b1 (0004 tables), M12a1 (staff JWTs), M05b1 (`/_test/run-scheduled`).
 - Contracts: C12 1.1.0 (routes 41–45, 47; `ReportCategory`, `ModSubject`; `09-backend-db.md` §3.4, §4, §7), C16 1.1.0 (server metrics only), C14 1.0.0 (`RevokedRes.reason`).
 
 ## Scope in
@@ -43,7 +44,7 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 ## Scope out
 - Legal forms and pages → M13d2 (counsel text, Q-23).
 - PhotoDNA, the HMA container and the CyberTipline API: wait for Q-16 approvals (`PHOTODNA_KEY`, `NCMEC_API_CREDENTIALS`). Until then the defaults are own banks with SHA-256 (PDQ where present) and the web form.
-- Requester email (no provider in v1) and a creator appeal-filing route (none in C12 1.1; staff open `APPEAL` cases): listed for the Architect.
+- Requester email (no provider in v1; the trust lead records the notice) and a creator appeal-filing route (none in v1; staff open `APPEAL` cases on request): DL-240.
 - Alert sink route 56, guardrails, and the formal pager wiring → M14b1.
 
 ## Deliverables
@@ -88,7 +89,7 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 
 ## Risks & fallbacks
 - **Bucket-lock command**: lock rules are a documented R2 feature [research/gap-trust-safety-tooling.md Verified facts], but the wrangler subcommand is not in the ledger. If the pinned wrangler lacks it, `bootstrap` prints the exact rule set and stops with `MANUAL:`. The operator applies the rules, and the Builder records how.
-- **Migration order**: `0008` must sort after `00071`/`00072`. If the staging dry run lists anything other than `0008_legal.sql` as pending, stop before merge and report (see M13b1).
+- **Migration order**: `0008_legal.sql` follows `0007_ugc_forum.sql` (no other files in between, DL-228). If the staging dry run lists anything other than `0008_legal.sql` as pending, stop before merge and report.
 - **PDQ hashes absent**: the sweep uses SHA-256 only, `copies_found` counts exact copies, and a Builder note lists near-duplicate coverage as pending Q-16 (HMA).
 - **Cron drift**: thresholds come from stored timestamps, never cron counts, so a late tick pages late but once.
 

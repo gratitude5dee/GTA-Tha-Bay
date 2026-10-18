@@ -98,7 +98,7 @@ export interface ModArchiveRef { modId: ModId; version: SemVer; archiveSha256: S
 | `world.markers` | `markers` | data | world markers and map blips | ≤ 16 |
 | `world.zones` | `zones` | data | trigger zones (circle, polygon) | ≤ 32 |
 | `mission.register` | `missions` | data | C09 IR under the `mod` profile | ≤ 8 missions; no economy, unlock, story-flag or mode-load ops |
-| `vehicle.register` | `vehicles` | data | vehicle prefabs and handling data (S06 schema, clamped to class limits) | ≤ 8 |
+| `vehicle.register` | `vehicles` | data | vehicle prefabs and handling data (S06 schema; outside the class envelope → rejected, D-S06-08, DL-240) | ≤ 8 |
 | `character.register` | `outfits` | data | outfits and ped skins on `bay_rig_v1` | ≤ 32; no voices, no real people |
 | `player.teleport` | `player` | script | teleport inside the radius | radius only |
 | `player.loadout` | `player` | script | grant registered item sets | no economy, no persistence outside `mod:<id>` |

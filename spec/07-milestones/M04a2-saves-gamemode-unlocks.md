@@ -10,13 +10,10 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 
 ## Depends on
 - **M04a1** (saves): `SaveService`, capabilities, the write port and `save.request`.
-- Also used (all earlier in the `_PLAN.md` run order, not direct `_PLAN` edges):
-  - M03c: `PursuitApi`, `WalletPort`;
-  - M03b2: `FareSink`;
-  - M03a1: interaction v1, prefabs;
-  - M02c1: `WorldApi`;
-  - M02b2: the S01 clock (`WorldClockApi`) and env block;
-  - M01b1/M01b2: `InputRouter`, camera directives.
+- **M03c** (pursuit-director): `PursuitApi`, `WalletPort`.
+- **M03b2** (peds-transit): `FareSink`.
+- **M02b2** (weather-time): the S01 clock (`WorldClockApi`) and env block.
+- Through those (DL-219 made these `_PLAN` edges): M03a1 (interaction v1, prefabs), M02c1 (`WorldApi`), M01b1/M01b2 (`InputRouter`, camera directives).
 - Contracts: C06 1.1.0 (`c06-modes.ts`, `ui-bridge.ts`, `engine-world.ts`, `engine-pursuit.ts`), C05 1.1.0, C03 1.1.0, C16 1.1.0 (`mode.enter`, `mode.exit`, `unlock.emit`), C08 1.0.0 (`WorldApi`), C07 1.1.0 (`AssetRef` for tile art).
 
 ## Scope in

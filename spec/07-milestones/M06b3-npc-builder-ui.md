@@ -36,7 +36,7 @@ Players can build an NPC in the shell. When this session ends, page `npcs` (`/me
 ## Deliverables
 - `packages/ui/src/pages/npc-builder/{index.tsx, list.tsx, stepper.tsx, steps/basics.tsx, steps/backstory.tsx, steps/attestation.tsx, steps/review.tsx, steps/voice.tsx, steps/preview.tsx, steps/images.tsx, steps/look.tsx, steps/submit.tsx, api.ts, sse.ts, autosave.ts, state-chip.ts, cover-tool.ts}`.
 - Page registration (`npcs`, `npcs/:id/:step`) in the shell page table; `config/ui/nav.json` item stays gated as above.
-- `packages/ui/src/i18n/en.json` keys `npcb.*`.
+- `content/ui/i18n/en.json` keys `npcb.*`.
 - `packages/ui/test/{npc-builder.spec.ts, npc-builder-sse.spec.ts, npc-builder-deps.spec.ts}`.
 - `tests/e2e/npc-builder-ui.spec.ts` (tags `@npc-builder` and `@npc-builder-ui`), `tests/e2e/fixtures/npc-builder/` (network fixtures for route 34, the R2 PUT and the linked submit path); the a11y page list gains the builder steps.
 

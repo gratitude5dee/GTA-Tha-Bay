@@ -27,7 +27,7 @@ Permissions-Policy: camera=(self)
 X-Content-Type-Options: nosniff
 Referrer-Policy: strict-origin-when-cross-origin
 ```
-Only our origins appear, so nothing can carry a camera frame off-device (R-IP-04; `check:headers` asserts the list). `/account/*` has its own allowlist (Turnstile and Thirdweb origins UNVERIFIED, U-BE-2, M12a1/M14a). The mod UI `srcdoc` frame carries its own `<meta>` CSP (`12-modding.md` §2.5). The directive set is composed here from `BootConfig.hosts`, `11-platform-pwa.md` §2, §8 and `07-fighter-pose.md` FP7.1; its browser behaviour, including the `srcdoc` frame, is UNVERIFIED (U-API-1), so it ships Report-Only at M05b1, `Permissions-Policy` at M08c1 and enforcing at M14b (DL-191). Route 4 also receives the Report-Only violations and desktop Chrome crash reports. API JSON is `no-store` except `GET /roster` (ETag) and catalogue reads; every response carries `X-Request-Id` (UUIDv7).
+Only our origins appear, so nothing can carry a camera frame off-device (R-IP-04; `check:headers` asserts the list). `/account/*` has its own allowlist (Turnstile and Thirdweb origins UNVERIFIED, U-BE-2, M12a1/M14a). The mod UI `srcdoc` frame carries its own `<meta>` CSP (`12-modding.md` §2.5). The directive set is composed here from `BootConfig.hosts`, `11-platform-pwa.md` §2, §8 and `07-fighter-pose.md` FP7.1; its browser behaviour, including the `srcdoc` frame, is UNVERIFIED (U-API-1), so it ships Report-Only at M05b1, `Permissions-Policy` at M08c1 and enforcing at M14b2 (DL-191, DL-241). Route 4 also receives the Report-Only violations and desktop Chrome crash reports. API JSON is `no-store` except `GET /roster` (ETag) and catalogue reads; every response carries `X-Request-Id` (UUIDv7).
 
 ### 1.4 Geo-gate (A-10)
 `request.cf.country ∉ GEO_ALLOW` (`config/geo.json`, `US`) → `451 region_blocked` on every `/api/v1/*` route except `/boot` (answers `region: 'blocked'`), `/legal/*` and `/.well-known/*`; routes authenticated by vendor signature, HMAC or staff scope are also exempt (20, 28, 29, 43–49, 55–57; DL-184). A missing country (local dev) counts as allowed. Rooms close 4006. Blocked clients run offline single-player from the PWA cache (R-ROLL-01).
@@ -61,7 +61,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 1 | `GET /health` | pub | → `{ok, build, env}` | never geo-gated | M00a |
 | 2 | `GET /boot` | pub | → `BootConfig` | geo-evaluated, never blocked; `no-store`; `api` | M00a |
 | 3 | `POST /t` | pub | `TelemetryBatch` → 204 | `payload_too_large` (> 64 KiB or > 50 events), `unsupported_media_type`; unknown names dropped; `tele` | M00a |
-| 4 | `POST /reports/browser` | pub | Reporting API bodies (crash, CSP violation) → 204 | `tele` | M05b1 (CSP), M11a (crash) |
+| 4 | `POST /reports/browser` | pub | Reporting API bodies (crash, CSP violation) → 204 | `tele` | M05b1 (CSP), M11a1 (crash; C16 1.2 `app.crash`, DL-224) |
 | 5 | `POST /id/play-token` | pub + device proof | `PlayTokenReq` → `PlayTokenRes` | `bad_request` (stale `ts`, bad signature), `age_blocked`; `auth`; 50 tokens/day/net | M04b3 |
 | 6 | `GET id.<domain>/.well-known/openid-configuration`, `…/jwks.json` | pub | → discovery · JWKS | CORS `*` | M12a1 |
 | 7 | `POST /id/register` | PT | `RegisterReq` → `TokenRes` | `bad_request` (Turnstile), `age_blocked`; 3 per net per day | M12a1 |
@@ -79,16 +79,16 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 19 | `POST /saves/blob-url` | J1 | `UploadReq` (`save_blob`) → `UploadRes` (≤ 2 MiB) | `ugc` | M12a1 |
 | 50 | `PUT /saves/:saveProfileId` ⓘ | J1 | `SaveProfileUpsert` → 204; precedes 17 | ≤ 64 per identity | M12a1 |
 | 51 | `DELETE /saves/:saveProfileId` | J1 | → 204 | — | M12a1 |
-| 20 | `POST /progress/commit` ⓘ | HMAC `INTERNAL_HMAC` | `ProgressDelta` → `applied` \| `duplicate` | rooms → web only | M12c |
-| 21 | `GET /leaderboards/:board`, `POST /leaderboards/:board/submit` ⓘ | pub · J1 | → `ScoreRow[]` (KV `lb:<board>` 30 s); `ScoreSubmit` → `accepted` \| `rejected` | board `^(racing\|fighter\|tycoon)\.[a-z0-9.-]{1,96}$`; body ≤ 16 KiB; validator by prefix, else `feature_disabled` (DL-183) | M12c, M12e |
+| 20 | `POST /progress/commit` ⓘ | HMAC `INTERNAL_HMAC` | `ProgressDelta` (C12 1.2, DL-223) → `applied` \| `duplicate` | rooms → web only | M12c2 |
+| 21 | `GET /leaderboards/:board`, `POST /leaderboards/:board/submit` ⓘ | pub · J1 | → `ScoreRow[]` (KV `lb:<board>` 30 s); `ScoreSubmit` → `accepted` \| `rejected` | board `^(racing\|fighter\|tycoon)\.[a-z0-9.-]{1,96}$`; body ≤ 16 KiB; validator by prefix, else `feature_disabled` (DL-183) | M12c2, M12e (body `LeaderboardSubmit`, C12 1.2) |
 | 22 | `GET rt:/rooms/:roomId` | J1 | → `{players, capacity, build}` | reserves nothing; `rooms` | M12b |
 | 23 | `POST rt:/rooms/assign` | J1 | `AssignReq` → `AssignRes` | `feature_disabled` (`mp.enabled`, `ks:rooms:new`), `forbidden` (enforcement), `age_blocked`, `tier_required`; `modsActive: true` refused (C11 rule 8, 4007); `rooms` | M12b |
 | 24 | `GET rt:/rooms/:roomId/ws?v=2&build&ticket[&resume]` | tkt | WebSocket (C11) | close codes §4.1 | M12b |
 | 25 | `POST rt:/rooms/invites` | J1 | → `{code, exp}` (6-char base32, 10 min) | `rooms` | M12c |
 | 26 | `GET rt:/presence/ws?ticket=` | tkt | `PresenceFrame` socket | — | M12c |
-| 54 | `POST rt:/presence/ticket` | J1 | → `{ticket, exp, wsUrl}` | `rooms` (DL-186) | M12c |
+| 54 | `POST rt:/presence/ticket` | J1 | → `{ticket, exp, wsUrl}` | `rooms` (DL-186) | M12c1 |
 | 48 | `POST rt:/_ops/rooms/drain` | S:ops | → `{notified}` | step `rooms:drain` | M12c |
-| 55 | `POST rt:/_ops/rooms/kick` | S:mod:review \| S:ops | `{profileId, code}` → `{kicked}` | writes `audit_log` (DL-187) | M12c |
+| 55 | `POST rt:/_ops/rooms/kick` | S:mod:review \| S:ops | `{profileId, code}` → `{kicked}` | writes `audit_log` (DL-187) | M12c1 |
 | 27 | `GET /cutscenes/:key` | pub | → `CutsceneStatus` | never starts generation outside `cutscene_catalog`; kill scope → `blocked`; `api` | M05b1 |
 | 28 | `POST /admin/cutscenes/prewarm` | S:ops (`OPS_TOKEN` until M12a1) | `{keys[]}` → 202 | single-flight per key | M05b1 |
 | 29 | `POST /hooks/fal?wf=<instance>` | sig | fal webhook → 2xx ≤ 15 s | ED25519 against the fal JWKS (cache ≤ 24 h, ±300 s); failure raises A11 [research/genai-pipeline-fal.md §2] | M05b1 |
@@ -113,8 +113,8 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 43 | `GET /admin/cases?queue&status`, `POST /admin/cases/:id/decision` ⓘ | S:mod:review | cases; decision → 204 | NPC queue `P2_REVIEW` from M06b2, all queues M13d1 | M06b2, M13d1 |
 | 44 | `POST /admin/cases/:id/ncmec`, `GET /admin/evidence/:id` | S:mod:trust_lead | — | — | M13d1 |
 | 45 | `POST /admin/hash-banks/:bank`, `GET /admin/takedowns` | S:mod:trust_lead | — | — | M13d1 |
-| 56 | `POST /_ops/alerts` | HMAC `ALERT_HMAC` | alert → 204 | writes `audit_log`, forwards to `ALERT_WEBHOOK_URL` | M14b |
-| 57 | `GET /admin/dash/:name` | S:ops | AE dashboard `client\|edge\|spend\|pipeline\|recon` | reads `ANALYTICS_SQL` | M14b |
+| 56 | `POST /_ops/alerts` | HMAC `ALERT_HMAC` | alert → 204 | writes `audit_log`, forwards to `ALERT_WEBHOOK_URL` | M14b1 |
+| 57 | `GET /admin/dash/:name` | S:ops | AE dashboard `client\|edge\|spend\|pipeline\|recon` | reads `ANALYTICS_SQL` | M14b1 |
 
 **Route 33 sub-paths** (`04-npc-builder.md` §C3): `POST /drafts` ⓘ, `GET /drafts[/:id]`, `PUT /drafts/:id` (`If-Match: <rev>`), `DELETE /drafts/:id`, `POST /drafts/:id/validate|soul` (202 `JobAccepted`), `POST /drafts/:id/preview` (SSE, workspace `npc-builder`) at P0 — M06b1; `POST /drafts/:id/images` (P1), `POST /drafts/:id/submit` ⓘ (P2, `SubmitRes`), `GET /community[/:npcId]` (pub, `CommunityNpc`) — M06b2; `POST /drafts/:id/assets` (P2) — M06b4: it files a request for the owner-approved queue and starts no fal job (DL-175, DL-OWN-01).
 
@@ -127,7 +127,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | `DirectoryDO` (rooms) | `dir:<worldVer>:sf` | room assignment (first room under cap, else mint; `locationHint: "wnam"`, F-022), invites, `seats(profile_id, room_id, exp)`, drain fan-out |
 | `PresenceDO` (rooms) | `pres:<hash(pid) % 64>` | menu sockets, no storage beyond attachments |
 
-Constants (`NET`, `packages/net/src/protocol/v2.ts`): 20 Hz server, cap 16 (32 behind `rooms.capMax` after the M12c load test), `IN` ≤ 2,048 B, server frame ≤ 16,384 B, socket bucket 40 burst + 30/s, 5 strikes per 10 s → 1008, ack lag > 10 ticks → every other tick, > 40 → 1013, event replay 256 events or 15 s, resume TTL 60 s, ticket 30 s, interest 64 m grid (150 m foot, 300 m vehicle, +70 m hysteresis). Client frames are binary `IN`, `ACK`, `BYE`, `ACT`, `CHAT` plus the literal text `ping`, answered by auto-response without waking the DO [research/stack-cloudflare-backend.md §1.3]. Server frames are binary `SNAP`, `EV` and JSON `welcome`, `notice`, `kick` (`handoff` reserved). Authority is `validated` (A-04); mods are refused (4007); profile ids never reach the wire. Client reaction to close codes: 1000, 4004, 4006, 4007 stop; 4001 refresh and retry once; 4002 PWA update; 4003 re-assign; 4005 fresh join; 1001, 1006, 1013, 4008 reconnect with resume (jitter 250 ms → 4 s).
+Constants (`NET`, `packages/net/src/protocol/v2.ts`): 20 Hz server, cap 16 (32 behind `rooms.capMax` only after a 32-bot load run, post-v1; DL-239), `IN` ≤ 2,048 B, server frame ≤ 16,384 B, socket bucket 40 burst + 30/s, 5 strikes per 10 s → 1008, ack lag > 10 ticks → every other tick, > 40 → 1013, event replay 256 events or 15 s, resume TTL 60 s, ticket 30 s, interest 64 m grid (150 m foot, 300 m vehicle, +70 m hysteresis). Client frames are binary `IN`, `ACK`, `BYE`, `ACT`, `CHAT` plus the literal text `ping`, answered by auto-response without waking the DO [research/stack-cloudflare-backend.md §1.3]. Server frames are binary `SNAP`, `EV` and JSON `welcome`, `notice`, `kick` (`handoff` reserved). Authority is `validated` (A-04); mods are refused (4007); profile ids never reach the wire. Client reaction to close codes: 1000, 4004, 4006, 4007 stop; 4001 refresh and retry once; 4002 PWA update; 4003 re-assign; 4005 fresh join; 1001, 1006, 1013, 4008 reconnect with resume (jitter 250 ms → 4 s).
 
 ### 4.2 Join and welcome
 ```mermaid

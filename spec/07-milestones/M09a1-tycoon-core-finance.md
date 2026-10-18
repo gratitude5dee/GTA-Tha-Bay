@@ -18,7 +18,7 @@ The finance core passes every test vector TV-1…TV-11 and WF-1…WF-7 exactly. 
 ## Depends on
 - **M01a1**: `detmath`, `ctrU32`, `splitmix32`, `fnv32`, `Fnv64`, `canonicalize`, the determinism lint.
 - **M04a2**: `ModeHost`, `ModeContext`, the unlock registry, C06 descriptors, the save slice plumbing (C05).
-- The run order (`_PLAN.md` §1) also puts M04d before this milestone, so its det-suite registry `tests/e2e/det/suites.ts` exists for AC-9.
+- **M04d**: the det-suite registry `tests/e2e/det/suites.ts` used by AC-9 (DL-219).
 - Contracts: C02 1.1 (stateless `ctrU32` allowed), C05 1.1 (slot `mode:tycoon`, migrations, golden rule), C06 1.1 (`GameModeDescriptor`, `GameModeSim`, `UnlockDef`).
 
 ## Scope in

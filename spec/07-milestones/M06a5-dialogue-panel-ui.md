@@ -11,7 +11,7 @@ Talking to an NPC has a real interface that replaces the M06a3 debug overlay. `D
 ## Depends on
 - **M06a3** (dialogue-proxy): `NpcRuntime.talk` events, `InkRunner`, `packages/shared/src/npc/safety-lists.ts`, the QA bridge `__dvBridge.npc`.
 - **M04b2** (creator-phone-hud-kit): HUD grid, the `Subtitles` widget, kit components, `ReportButton`, the `UgcSurface` lint, touch layouts, `UiPrefs`.
-- Contracts: C06 1.1 (`UiBridge`, `VmKey` `hud.subtitle` and `sys.*`), C10 1.0 (`DialogueEvent`, `CompiledSoulPublic.disclaimer`, `PlayerIntent`), C05 1.1 (`StorySlice.npcRelations[id].met`, `ProfileSettings.npc`), C12 1.1 (`ReportReq`, `ModSubject 'chat_turn'`).
+- Contracts: C06 1.1 (`UiBridge`, `VmKey` `hud.subtitle` and `sys.*`), C10 1.1 (`DialogueEvent` incl. `meta.data.safety?`, `CompiledSoulPublic.disclaimer`, `PlayerIntent`), C05 1.1 (`StorySlice.npcRelations[id].met`, `ProfileSettings.npc`), C12 1.1 (`ReportReq`, `ModSubject 'chat_turn'`).
 
 ## Scope in
 - **`DialogueSession`** adapter (main thread) turns `NpcRuntime` events into a view state: speaker, revealed text, full text, choices, badge, fallback flag and closed flag. It opens on `sys.dialogue.open` (patched by the Talk handler from M06c, or by `__dvBridge.npc.talk` in QA builds) and closes on `done {closed:true}`, a `farewell` intent, Esc or `UiBack`.
@@ -26,7 +26,7 @@ Talking to an NPC has a real interface that replaces the M06a3 debug overlay. `D
 
 ## Scope out
 - The visible report flow and route 41: M06b2. NPC builder screens: M06b3. XR bubble and head-locked caption: M11b2/M11b3.
-- The crisis signal from asynchronous moderation (no C10 event exists; proposal raised in M06a3).
+- Producing the asynchronous crisis signal (M06b1 sets it; M06a3 carries it).
 
 ## Deliverables
 - `packages/ui/src/dialogue/{DialogueBubble.tsx, LikenessCard.tsx, SafetyCard.tsx, IntentChoices.tsx, session.ts, capabilities.ts, reveal.ts, index.ts}`, `packages/ui/src/dialogue/dialogue.css` (tokens only).
@@ -38,7 +38,7 @@ Talking to an NPC has a real interface that replaces the M06a3 debug overlay. `D
 
 ## Interfaces
 - C06 1.1 `UiBridge`: `hud.subtitle` and `sys.dialogue.open` keys (inside the existing `sys.${string}` and `hud.${string}` patterns; no shape change).
-- C10 1.0 `DialogueEvent`, `PlayerIntent`; C12 1.1 `ReportReq` (client type only).
+- C10 1.1 `DialogueEvent` (a `meta` with `safety: 'crisis'` shows the crisis card before the line, DL-226), `PlayerIntent`; C12 1.1 `ReportReq` (client type only).
 - No contract change.
 
 ## Acceptance criteria
@@ -68,7 +68,7 @@ Talking to an NPC has a real interface that replaces the M06a3 debug overlay. `D
 ## Risks & fallbacks
 - **Audio clock unavailable before the first gesture:** reveal falls back to a text-speed reveal (word every 180 ms) and the line is never hidden.
 - **Panel competes with HUD regions on small phones:** the panel takes `bc` and hides the minimap while open. Any choice beyond that is a Builder decision.
-- **No crisis signal from asynchronous moderation:** the client list covers typed text only. The gap is reported to the Architect (M06a3 proposal).
+- **Asynchronous crisis signal:** the panel shows the card on `meta.data.safety === 'crisis'` (fixture-driven here; the live signal arrives with M06b1, DL-226).
 
 ## Notes for the Builder
 - Read first: `10-ui-hud-xr.md` §2.10 (dialogue overlays) and §2.13; `04-npc.md` §5.1 (client), §5.5 and §5.10 (disclosure); `10-ui.md` §3.3 (`UiBridge`); `spec/05-api-and-realtime.md` route 41.
