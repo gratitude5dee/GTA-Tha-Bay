@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "bbe9a603cf1f5a3a0cd2551b8daf5f923b85fa63ce4b8b6e7381016c77cf25c4",
+  "paths": [
+    "apps/web/public/icon.svg"
+  ],
+  "kind": "ui",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-18T22:28:44Z"
+}
