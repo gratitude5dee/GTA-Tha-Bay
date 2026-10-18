@@ -1,0 +1,7 @@
+{
+  "prices": [
+    { "endpoint_id": "meshy/v7.1/multi-image-to-3d", "unit_price": 1.272, "unit": "generation", "currency": "USD" },
+    { "endpoint_id": "fal-ai/meshy/rigging/multi-animation", "unit_price": 0.2, "unit": "generation", "currency": "USD" },
+    { "endpoint_id": "fal-ai/minimax/speech-2.8-turbo", "unit_price": 0.06, "unit": "1000 characters", "currency": "USD" }
+  ]
+}
