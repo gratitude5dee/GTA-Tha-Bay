@@ -72,10 +72,8 @@ Players can move from P0 (local profile and play token) to P1 (`device` tier) an
 
 ## Demo script
 1. `pnpm exec tsx tools/ops/id-keys.ts` twice; paste both into `services/edge/.dev.vars`.
-2. `pnpm dev`; in the console call the QA bridge to register (Turnstile mode `none`).
-3. `curl` the issuer discovery and JWKS from the dev origin.
-4. Save in story; watch `PUT /api/v1/saves/...` in the network panel; edit the same slot from a second profile window to see a 409.
-5. `pnpm check:workers -- refresh-reuse`.
+2. `pnpm dev`; register through the QA bridge (Turnstile mode `none`); `curl` the discovery and JWKS.
+3. Save in story; watch `PUT /api/v1/saves/...`; save the same slot from a second window to see a 409.
 
 ## Effort
 1 Builder session; about 38 files; risk **high**. Key handling, Supabase Third-Party Auth on staging and the gradual-deploy path are the risks.

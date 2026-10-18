@@ -1,7 +1,7 @@
 # M07a1 — racing-core-director-car
 
 ## Goal
-After this session the repository has a racing mode that a QA build can start and finish on real San Francisco streets. `@dv/mode-racing` (`packages/modes/racing`) holds the real descriptor (still `comingSoon` to players), the race director state machine, the pure referee and gate logic in `packages/shared/src/racing/`, nitro, damage, the `RaceHudVm` publisher, six player cars (one per class) and the race schemas. `pnpm map:races compile|validate` turns an authored `source.json` into a committed, bake-pinned `race.json` for one race, `sf.sprint.ferry-ocean-beach`. The QA driver `racing.line` drives that race headless and in browsers with equal state hashes. **Split boundary (from `spec/domains/06-racing.md` §8, row M07a, and `_PLAN-2.md`):** M07a1 takes the mode package, referee, director, cars, nitro, damage, HUD view-model, schemas, compile and the line bot. M07a2 takes AI drivers, rubber-banding, validator rule V12 (par), the other two VS races, the pursuit event, replays, ghosts, `RacingSlice` and the story hook.
+After this session a QA build can start and finish a race on real San Francisco streets. `@dv/mode-racing` (`packages/modes/racing`) holds the real descriptor (still `comingSoon` to players), the race director state machine, the pure referee and gate logic in `packages/shared/src/racing/`, nitro, damage, the `RaceHudVm` publisher, six player cars (one per class) and the race schemas. `pnpm map:races compile|validate` turns an authored `source.json` into a committed, bake-pinned `race.json` for one race, `sf.sprint.ferry-ocean-beach`. The QA driver `racing.line` drives that race headless and in browsers with equal state hashes. **Split boundary (from `spec/domains/06-racing.md` §8, row M07a, and `_PLAN-2.md`):** M07a1 takes the mode package, referee, director, cars, nitro, damage, HUD view-model, schemas, compile and the line bot. M07a2 takes AI drivers, rubber-banding, validator rule V12 (par), the other two VS races, the pursuit event, replays, ghosts, `RacingSlice` and the story hook.
 
 ## Requirements
 - R-MODE-02: sprint racing on real SF streets with referee, gates, nitro and damage on Forza-style handling from M03a.
@@ -67,11 +67,9 @@ After this session the repository has a racing mode that a QA build can start an
 - AC-14 Given the branch When the unit suite and the preview deploy run Then both pass and the deployed app still boots — proof: `pnpm check:unit && pnpm deploy:preview`
 
 ## Test plan
-- **Unit:** `shared/racing.referee`; `racing/referee.gates`, `racing/damage.formula`, `racing/nitro`, `racing/director`, `racing/hud`, `racing/descriptor` (`pnpm --filter @dv/mode-racing test`); `shared/vehicle.envelope`, `shared/vehicle.powerCurve`; `tools/map/race.validate`.
-- **Lines:** `engine/lines.sorrel.*` (`pnpm --filter @dv/engine test:lines`).
-- **Bot and determinism:** `racing/line.headless` (Node), `@racing-det` (WebKit; nightly also Chromium); mutants under `pnpm check:unit -- tools/ci`.
-- **E2E:** `@racing-touch` (WebKit 844 × 390).
-- **Static:** `map:races validate`, `check:telemetry`, IP gates.
+- **Unit:** `racing/*` suites (`pnpm --filter @dv/mode-racing test`), `shared/racing.referee`, `shared/vehicle.*`, `tools/map/race.validate`; supercar lines (`test:lines`).
+- **Determinism:** `racing/line.headless` in Node, `@racing-det` in WebKit (nightly also Chromium); mutants via `pnpm check:unit -- tools/ci`.
+- **E2E and static:** `@racing-touch`; `map:races validate`, `check:telemetry`, IP gates.
 
 ## Demo script
 1. `pnpm map:races validate`: one race, all rules green.
@@ -85,14 +83,13 @@ After this session the repository has a racing mode that a QA build can start an
 
 ## Risks & fallbacks
 - **Bake availability in CI.** `map:races` and the headless run read the bake through the same loader as `pnpm map:verify` (M02a2). If a CI job lacks the bake, validate runs the `race.json`-only rules (schema, V3, V6, V8, V11, V13–V15) there and the full set nightly next to `map:verify`; record the split in "Builder decisions".
-- **Tick cost with Rapier `deterministic-compat`** (U-RAC-2) is not asserted here; M1 cars are capped per tier by `config/racing.json` `models.m1MaxActive`.
 - **Synthetic touch events in WebKit:** reuse the M01b2 fallback (dispatch `TouchEvent`s).
 - **Supercar oracle miss after tuning:** tune `tire.muLong` and the launch ramp only (C.3.1); if two passes fail, keep the data, mark the line `todo` in the golden and report it.
 
 ## Notes for the Builder
 - Read first: `06-racing.md` §2.1–§2.3, §2.8, §2.10, §5; `06-racing-data.md` §4.1–§4.2, §4.5–§4.7; `06-racing-content.md` C.1–C.3, C.9; `13-qa.md` §3.1–§3.6; ADR-0016.
-- Order: shared racing types and referee → mode package and descriptor → director → nitro and damage → cars → `map:races` → line driver → HUD vm → touch e2e → det suite and mutants.
-- Sim code under `packages/modes/racing/src/sim/**` is under the C02 lint: `detmath` only, seeded streams (`racing.*`), no timers. The bridge and UI halves are outside it.
+- Order: referee → package and descriptor → director → nitro and damage → cars → `map:races` → line driver → HUD vm → e2e → det suite and mutants.
+- Sim code under `src/sim/**` is under the C02 lint (`detmath`, seeded `racing.*` streams, no timers). Facts: F-014 (spec/03 §6).
 - Keep the descriptor `comingSoon`: a story hook reaching racing before M07a2 must take the C09 stub path.
-- Gates use C08 `LatLng` and `LandmarkId` imported from `world/c08-api` and `world/c08` (DL-077); never redeclare them.
+- Import C08 `LatLng` and `LandmarkId` from their owners (DL-077); never redeclare them.
 - Secrets: none. `pnpm deploy:preview` needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (CI); locally it prints the SKIP line. No paid account, no fal.

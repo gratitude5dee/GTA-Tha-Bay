@@ -1,7 +1,7 @@
 # M05e1 — story-act2-part1
 
 ## Goal
-After this session Act 2 "Due Diligence" can be played past its opener. Missions `m.a2.02` Hill Climb, `m.a2.03` Jailbreak, `m.a2.04` Karl and `m.a2.05` Tower exist as authored builder sources and compiled C09 IR, with English lines, ink mission knots, DirectorScript fallbacks for their four cutscene refs, and `UnlockDef`s for districts `d8` and `d9`. The two racing hooks start S06 races through `ModeContext.startChild` and fall back to their stubs. The story's buyable businesses also run the shared event engine through `EventHost<BusinessState>` (DL-133). Three businesses can be bought; each ticks once per story-week, and its events reach the phone as non-modal items. `m.a2.01` (M09b2) stays as written, and the remaining Act 2 missions arrive in M05e2.
+After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.02` Hill Climb, `m.a2.03` Jailbreak, `m.a2.04` Karl and `m.a2.05` Tower exist as builder sources and compiled C09 IR, with lines, ink knots, DirectorScript fallbacks for four refs, and `UnlockDef`s for `d8` and `d9`. The two racing hooks start S06 races and fall back to their stubs. Story businesses run the shared event engine through `EventHost<BusinessState>` (DL-133): three can be bought, each ticks once per story-week, and its events reach the phone as non-modal items. `m.a2.01` (M09b2) is unchanged; `m.a2.06`–`08` follow in M05e2.
 
 ## Requirements
 - R-MODE-01: four more story missions, each with intro, objectives, fail and success, rewards and heat policy, plus a property income loop (businesses).
@@ -14,7 +14,7 @@ After this session Act 2 "Due Diligence" can be played past its opener. Missions
 - Contracts: C09 1.0.0, C06 1.1.0, C05 1.1.0, C10 1.0.0, C08 1.0.0, C02 1.1.0 (`ctrU32`), C16 1.1.0 (mission names).
 
 ## Scope in
-- **Location of sources.** Act 2 sources go where the existing story content lives. `_PLAN.md` names `content/story/act2/<missionId>/`, which is where M09b2 put `m.a2.01`; `03-story-missions.md` §C1 names `content/missions/<missionId>/`. Use whichever directory `missions:build` already scans for Act 1, so both acts build together. Act-level data (`cast.json`, `sensitivity.json`, `businesses.json`) stays in `content/story/`.
+- **Location of sources.** `_PLAN.md` says `content/story/act2/<missionId>/` (where M09b2 put `m.a2.01`); `03-story-missions.md` §C1 says `content/missions/<missionId>/`. Use the directory `missions:build` already scans for Act 1. Act-level data (`cast.json`, `sensitivity.json`, `businesses.json`) stays in `content/story/`.
 - **Mission graph** (authored gates, `requires`): `m.a2.02` and `m.a2.03` need `m.a2.01`; `m.a2.04` needs `m.a2.03`; `m.a2.05` needs `m.a2.04`. M05e2 continues from `m.a2.05` and `m.a2.02`.
 - **Missions** (`03-story-narrative.md` §B6; hook ids and defIds from DL-157; every id is a `LocKey` or `LineId`):
 
@@ -25,19 +25,18 @@ After this session Act 2 "Due Diligence" can be played past its opener. Missions
 | `m.a2.04` Karl · D8 Golden Gate Park / Ocean Beach · phone `patch` | clock lock 22:00 with `karl-fog` → follow the mapping van (band 15–90 m, lose after 25 s) → stealth to the data trailer (detect budget 3) → photo the trailer → goto the Great Highway exit | 0/1 | on pass `unlock.district.d8` | `cut.story.m.a2.04.fogbank` (establish) | $4,000 |
 | `m.a2.05` Tower · D9 Twin Peaks · phone `saint_static` | goto the Chorus antenna → protect `antenna` (health ≥ 0.4) and survive 150 s against Halcyon drones (actor tasks; `defeat` is always `nonLethal`) → broadcast beat → goto | 0/0 | on pass `unlock.district.d9` | `cut.story.m.a2.05.broadcast` (beat) | $5,500 · cred 40 |
 
-  These four missions pay $18,000 in total. The M05e1 target is $16,000–$24,000, toward the Acts 2–3 band of $70k–$110k (§B6) that M05e2 and M05f2 enforce. Each mission's `autoplay.expectedSec` comes from a first 3-seed run: the band is [⌊0.6 × fastest⌋, ⌈1.8 × slowest⌉] and satisfies the §C4 bounds. Record the measured times in the PR.
-- **Cast.** Only fictional cast appears: `tavi_okafor`, `patch`, `saint_static`, `dana_voss` (radio), Halcyon mapping van, drones and the `vehicle.solenne-skip` test car (S06 prefab). No roster slot appears in these four missions. `m.a2.03` is a `jailbreak` and a D4 mission, so the depiction lint forbids real-derived cast there (§C11 rules 1 and 4).
+  Rewards total $18,000 (target $16,000–$24,000 toward the Acts 2–3 band of $70k–$110k, enforced by M05e2 and M05f2). `autoplay.expectedSec` = [⌊0.6 × fastest⌋, ⌈1.8 × slowest⌉] of a first 3-seed run, within the §C4 bounds; record the times in the PR.
+- **Cast.** Fictional only (`tavi_okafor`, `patch`, `saint_static`, `dana_voss` on radio, the mapping van, drones, S06's `vehicle.solenne-skip`); no roster slot. `m.a2.03` is `jailbreak` and D4, so real-derived cast is forbidden there (§C11 rules 1, 4).
 - **Talk and ink.** Each `talk` objective has `TalkDef.default`. Its knot `mission_m_a2_0N_<talkId>` is added to that NPC's ink (`content/npcs/<id>/<id>.ink`), so ink alone completes every mission (§C7 item 3).
 - **Cutscene refs.** Four `CutsceneRef`s use the `story.beat@1` and `story.establish@1` templates (§D4), with `prefetch: 'onTrigger'` and fictional cast only. Each has a DirectorScript fallback (`director/<beat>.ts`) with subtitles. They enter the cutscene index as refs and are not prewarmed (DL-173 keeps Acts 2–3 in-engine).
 - **Unlock defs.** `unlock.district.d8` and `unlock.district.d9` go into `config/unlocks.json` (`source: 'base'`, grants `districts`). The racing unlocks are S06's (M07b1) and are not redeclared.
 - **`check:missions -- --hooks stub|bot`.** Add a flag to the M05a2 runner that forces every hook to its stub (`stub`) or to the child mode's bot (`bot`). The default stays as §C9 defines it. If the mode cannot start the hook (for example an unknown `defId`), `startChild` returns false and the stub path runs (§C8 item 1).
 - **Story businesses (DL-133, `08-tycoon-events.md` §7):**
-  - `packages/modes/story/src/business/`: `BusinessState` (a story-local type, not a contract) with `id`, `level`, `week`, `tillCents`, `footfall`, `reputation`, `morale`, active modifiers and an `EventState`. A host implements `EventHost<BusinessState>` with the §7 metric mapping; `hype`, `techDebt`, `climate`, `multipleMul`, `wageMul`, staff, cap-table and `round` effects are no-ops.
-  - The weekly tick runs every 1,209,600 game half-seconds of `WorldClockApi` time, with seed `StorySlice.world.seed ^ fnv32(businessId)`. The engine sees only defs with `scope` `business` or `both`.
-  - Weekly profit = footfall × ticket × `arpuMul` − base cost × `burnMul`. It is paid through `EconomyApi` with the idempotency key `biz:<id>:<week>`, capped at $2,000 per business per week. While `officeClosed` is set, the business pays nothing.
-  - Data: `content/story/businesses.json` defines `biz.taqueria`, `biz.record_shop` and `biz.coworking`, each with a price, footfall, ticket, base cost, a C08 POI anchor (`poi.<nhood>.<name>`; `missions:build` fails if the anchor does not resolve) and a `LocKey`. These are design values; M05e2's econ section checks them.
-  - Buying happens in the phone Bank app's Businesses section once `m.a2.01` has passed.
-  - Events appear as a story-owned view model `phone.businesses` (inbox items with choices) plus an `info` toast. They never pause and never open a modal. A choice returns as `mode.cmd` `{mode: 'story', name: 'biz.choose', args: {businessId, iid, choiceId}}`, and the deadline is 2 weeks, after which the event auto-resolves.
+  - `BusinessState` (story-local, not a contract: `id`, `level`, `week`, `tillCents`, `footfall`, `reputation`, `morale`, modifiers, `EventState`) behind `EventHost<BusinessState>` with the §7 metric mapping; `hype`, `techDebt`, `climate`, `multipleMul`, `wageMul`, staff, cap-table and `round` effects are no-ops.
+  - Weekly tick every 1,209,600 game half-seconds, seed `StorySlice.world.seed ^ fnv32(businessId)`, defs with `scope` `business` or `both` only.
+  - Weekly profit = footfall × ticket × `arpuMul` − base cost × `burnMul`, paid via `EconomyApi` (key `biz:<id>:<week>`), capped at $2,000 per business-week; 0 while `officeClosed`.
+  - Data: `content/story/businesses.json` defines `biz.taqueria`, `biz.record_shop` and `biz.coworking` (price, footfall, ticket, base cost, a C08 POI anchor `poi.<nhood>.<name>` that `missions:build` resolves, `LocKey`); design values checked by M05e2's econ section. Buying happens in the phone Bank app's Businesses section after `m.a2.01`.
+  - Events: view model `phone.businesses` (inbox with choices) plus an `info` toast; never a pause or modal. A choice returns as `mode.cmd` `{mode: 'story', name: 'biz.choose', args: {businessId, iid, choiceId}}`; past the 2-week deadline it auto-resolves.
   - **Persistence.** Without changing C05, `property.businesses` keeps `{id, level}` and the rest of the state is canonical JSON in the string flag `StorySlice.flags['biz.<id>']`, at most 2 KiB per business. Log a Builder decision and propose C05 1.2 `businesses[].state?` to the Architect.
 
 ## Scope out
@@ -67,7 +66,7 @@ After this session Act 2 "Due Diligence" can be played past its opener. Missions
 ## Acceptance criteria
 - AC-1 Given the Act 2 sources When the mission compiler runs Then `m.a2.02`–`m.a2.05` validate with zero errors, each `BeatRef` resolves to a ref with a DirectorScript fallback (no `E_NO_FALLBACK`), and `data/mission.m.a2.0N` and `data/story.index` are emitted — proof: `pnpm missions:build`
 - AC-2 Given the release index When the autoplayer runs Act 2 on its 3 seeds twice under `canonical` Then `m.a2.01`–`m.a2.05` pass inside their `expectedSec`, both runs of each seed end with the same `stateHash`, and `CoreSlice.unlocks` gains `unlock.racing.event.sf.hillclimb.filbert-hyde`, `unlock.racing.robotaxi`, `unlock.district.d8` and `unlock.district.d9` — proof: `pnpm check:missions -- --act 2`
-- AC-3 Given every hook forced to its stub When Act 2 autoplays Then all five missions still pass on 3 seeds and the same four unlocks are recorded with `ref` `'<missionId>:<hookId>'` — proof: `pnpm check:missions -- --act 2 --hooks stub`
+- AC-3 Given every hook forced to its stub When Act 2 autoplays Then all five missions still pass on 3 seeds and the same four unlocks are recorded — proof: `pnpm check:missions -- --act 2 --hooks stub`
 - AC-4 Given the depiction, name and ink rules When the lint fixtures and content checks run Then a fixture that adds a roster slot to `m.a2.03` fails with `E_DEPICTION`, a D4 fixture without `sensitivity-read` fails, and the shipped Act 2 text passes `names:lint` and ink compilation — proof: `pnpm check:unit -- packages/modes/story/test/act2.part1.test.ts && pnpm names:lint && pnpm npc:lint`
 - AC-5 Given a fixture business host and the `both`-scope catalog When 1,000 seeded business-years run twice Then the event logs and final states are identical, no `tycoon`-scope def fires, the no-op effects leave the state unchanged, weekly payouts never exceed 200,000 cents, `officeClosed` weeks pay 0, and replaying from `(seed, choices)` equals the live run — proof: `pnpm check:unit -- packages/modes/story/test/business.host.test.ts`
 - AC-6 Given a bought business with an open inbox item When the state is persisted and restored Then `StorySlice.flags['biz.<id>']` is ≤ 2,048 bytes of canonical JSON, the restore round-trips byte-identically, an event emits `phone.businesses` and an `info` toast but no `pause` or `openApp` command, and an item past its 2-week deadline auto-resolves with `defaultChoiceId` — proof: `pnpm check:unit -- packages/modes/story/test/business.persist.test.ts`
@@ -75,10 +74,10 @@ After this session Act 2 "Due Diligence" can be played past its opener. Missions
 - AC-8 Given the branch When typecheck, lint, the unit suite, the build and the preview deploy run Then all pass and the deployed app still boots to the title — proof: `pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build && pnpm deploy:preview`
 
 ## Test plan
-- **Unit:** `act2.part1` (graph gates, rewards sum in $16k–$24k, lint fixtures), `business.host`, `business.persist`. Command: `pnpm check:unit -- packages/modes/story`.
-- **Bot runs:** `pnpm check:missions -- --act 2` and with `--hooks stub`. Act 1 stays green: `pnpm check:missions -- --act 1`.
-- **E2E:** `@story-act2` on `chromium-webgl2`. Run M05c2's `@story` on `webkit-webgl2` as a regression check.
-- **Content:** `pnpm missions:build`, `pnpm names:lint`, `pnpm npc:lint`, `pnpm likeness:gate`. No device test.
+- **Unit:** `act2.part1` (gates, reward sum, lint fixtures), `business.host`, `business.persist` (`pnpm check:unit -- packages/modes/story`).
+- **Bot runs:** `--act 2` with and without `--hooks stub`; `--act 1` stays green.
+- **E2E:** `@story-act2` (`chromium-webgl2`); M05c2's `@story` (`webkit-webgl2`) as regression.
+- **Content:** `missions:build`, `names:lint`, `npc:lint`, `likeness:gate`. No device test.
 
 ## Demo script
 1. `pnpm missions:build && pnpm check:missions -- --mission m.a2.02` prints the race result and the unlock.
@@ -86,17 +85,17 @@ After this session Act 2 "Due Diligence" can be played past its opener. Missions
 3. Give QA cash, buy the taqueria in Bank › Businesses, skip four weeks with the overlay clock, and see the inbox item and the payout.
 
 ## Effort
-1 Builder session; about 32 files; risk **medium**. The main time sink is authoring and tuning four missions against the autoplayer; the business host is the second.
+1 Builder session; about 32 files; risk **medium** (mission tuning against the autoplayer, then the business host).
 
 ## Risks & fallbacks
-- **Race defs not present.** `sf.hillclimb.filbert-hyde` and `sf.robotaxirush.soma-haight` are M07b1 content, and `_PLAN.md` lists only M07a2 here. Run order puts M07b1 (#51) first. If they are missing, `startChild` returns false and the stub path runs. AC-2 then fails only on its unlock line: report "Blocked on M07b1" and keep AC-3 green.
-- **Phone surface.** Feed and Messages are `comingSoon` (M04b2), so business items go to Bank › Businesses. Log a Builder decision.
+- **Race defs missing.** The two races are M07b1 content (run order #51, not a listed dependency). If absent, `startChild` returns false and the stub runs; AC-2 then fails only on its unlock line: report "Blocked on M07b1", keep AC-3 green.
+- **Phone surface.** Feed and Messages are `comingSoon` (M04b2), so items go to Bank › Businesses (Builder decision).
 - **Flag size.** If one business exceeds 2 KiB, trim `EventState.counts` to the keys the validator needs and cap `active` at 8 effects.
-- **Overrun.** Ship the four missions and AC-1 to AC-4 first. Business persistence and its UI (AC-6) are the cut line; the host and its test (AC-5) stay.
+- **Overrun.** Missions and AC-1–AC-4 first; business persistence and UI (AC-6) are the cut line, the host (AC-5) stays.
 
 ## Notes for the Builder
 - Read first: `03-story-narrative.md` §B3, §B6–§B7; `03-story-missions.md` §C2–§C9, §C11; `03-story-cutscenes.md` §D4, §D6, §D9.1; `08-tycoon-events.md` §2–§5, §7; DL-133, DL-157, DL-173.
-- **Gates.** No secrets for the code. `pnpm deploy:preview` needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; without them it prints SKIP and exits 0. Q-21: `m.a2.03` stays out of any production release until `content/story/sensitivity.json` records a read for its version (the M05c2 gate). Q-19/Q-25 do not apply because there are no roster slots here.
+- **Gates.** No code secrets; `deploy:preview` needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` (SKIP and exit 0 without them). Q-21: `m.a2.03` stays out of any production release until `content/story/sensitivity.json` records a read for its version (M05c2 gate). Q-19/Q-25: no roster slots here.
 - **fal.** No spend. CI runs `FAL_MODE=mock`; Acts 2–3 refs are fallback-only (DL-OWN-01, DL-173). Never run `assets:gen` with `--live` for these refs.
 - **Determinism.** Business rolls use `ctrU32` streams `ev:<id>` and so on. Wall time is never read, and `weekly.ts` lives under the story mode's sim path, so the C02 lint applies.
 - Branch `m05e1-story-act2-part1`.

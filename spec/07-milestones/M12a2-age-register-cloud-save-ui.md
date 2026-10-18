@@ -33,6 +33,7 @@ The P1 features of M12a1 become usable from the shell. After this session, `Iden
 - `packages/ui/src/shell/api-error.ts` (new rows), `packages/ui/src/i18n/en.json` (new keys).
 - `packages/ui/test/{cloud-chip.test.ts, conflict-dialog.test.ts, api-error.test.ts}`.
 - `tests/e2e/{age-gate.spec.ts (extend, @ui-age), saves-ui.spec.ts (extend, @ui-saves), account.spec.ts (@ui-account)}`; `tests/e2e/setup/dev-keys.ts` (Playwright global setup).
+- `tools/ci/check-dist.ts`: the header table gains `/account/register` (no COEP) beside `/account/`.
 - `.env.example` entry `VITE_TURNSTILE_SITE_KEY=` (empty). No secrets.
 
 ## Interfaces

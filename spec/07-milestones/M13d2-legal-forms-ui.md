@@ -11,7 +11,6 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 ## Depends on
 - **M13d1** (legal-trust-safety-backend): route 42 handlers, the request types and schemas it adds for the three bodies, the `legal` rate-limit class, migration 0008.
 - **M04b1** (shell-ui-kit-menus-settings): shell, kit, `PageDef` registry, `apiErrorToUi()`, i18n, `@ui-a11y` scan.
-- Earlier pieces used as they stand: M00 `/legal/*` stubs; `ReportButton` and `UgcSurface` (M04b2, M13b4); the report flow of route 41 (M06b2).
 - Contracts: C12 1.1 (route 42, `ApiError`, `HTTP_FOR`, `ReportCategory`). C16 1.1 (`ui.page` only).
 
 ## Scope in
@@ -101,6 +100,7 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 - **`termsVersion` (M04b1) lives elsewhere.** Read it from where M04b1 put it. The Terms card re-show rule is unchanged; `content/legal/terms.json` `version` must equal it, and a unit test asserts that.
 
 ## Notes for the Builder
+- Earlier deliverables used as they stand (transitive, already done): M00 `/legal/*` stubs; `ReportButton` and `UgcSurface` (M04b2, M13b4); the route 41 report flow (M06b2).
 - Read first: `10-ui-pages.md` §2.4 (blocked screen links), §2.14 (legal), §5 (`apiErrorToUi`); `10-ui-hud-xr.md` §2.10 (report button) and §2.13 (accessibility rules 7, 10, 11); `09-backend-contracts.md` §2.4 rows 41–42 and §2.5 (`ReportReq`); `spec/05-api-and-realtime.md` §1.4 (geo exemption), §5.1 (`legal` 5/60 s); `research/legal-ip-likeness.md` §5.1–§5.3.
 - Order: schemas and documents → `LegalPage` → `LegalForm` and submit → entry points (`NciiNotice`, report redirect, blocked links) → tests.
 - Never render legal or user text with `innerHTML` (lint rule `no-inner-html` from M13b4 covers `packages/ui`).

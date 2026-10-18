@@ -8,7 +8,7 @@ After this session the accessibility baseline (R-ENG-04) is audited across the w
 - R-UI-02: the settings pages, including accessibility, XR comfort, language and privacy, pass the same audit; the language page states that v1 dialogue stays English.
 
 ## Depends on
-- **M13d2** (legal pages), **M13b4** (forum), **M12d** (online page), **M06b3** (NPC builder), **M11b3** (XR panels and comfort). Together with M04b1/M04b2 (kit, `@ui-a11y`, `check:i18n`, palettes, help page), all pages in the `PageDef` registry exist by now.
+- **M13d2** (legal pages), **M13b4** (forum), **M12d** (online page), **M06b3** (NPC builder), **M11b3** (XR panels and comfort). With these, every page in the `PageDef` registry exists.
 - Contracts consumed as frozen: C05 1.1 (`ProfileSettings.accessibility`), C13 1.1 (`XrComfortSettings`, `PlatformSettings`), C12 1.1 (`AgeBracket`, `IdentityService.attestAge`). No contract is owned here.
 
 ## Scope in
@@ -88,6 +88,7 @@ After this session the accessibility baseline (R-ENG-04) is audited across the w
 - **An axe rule misfires on a canvas element** (the HUD minimap or the XR preview). Give the canvas an accessible name and a text twin, as the `table` widget already does for charts. Do not disable the rule.
 
 ## Notes for the Builder
+- Earlier deliverables used as they stand: M04b1 (`@ui-a11y` in `tests/e2e/ui/a11y.spec.ts`, `check:i18n` report, `registry.ts`) and M04b2 (palettes, CVD check, help page). Extend their files; do not fork them.
 - Read first: `10-ui.md` §2.6, §3.1, §9; `10-ui-hud-xr.md` §2.13–§2.14, §9; `10-ui-pages.md` §2.4, §2.14, §4.4, §9.
 - Facts: WCAG 2.2 SC 1.4.3, 1.4.11, 2.3.1, 2.5.8 and `@axe-core/playwright` 4.14.0 (MPL-2.0), as cited in `10-ui-hud-xr.md` §7. The colour-vision algorithm is the one M04b2 recorded. Do not switch it.
 - Order: coverage list → axe run → fixes → token checks → i18n gate → help → age provider.
