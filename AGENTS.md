@@ -7,7 +7,7 @@ An original, story-driven open-world game in an accurate San Francisco: a Three.
 Rollout: single-player first, Cloudflare only; Supabase (data spine) arrives at milestone M05d; multiplayer rooms from M12b. The rest of the Bay Area comes after v1.
 
 ## Where to start
-1. `spec/00-plan.md` — status, milestone register, owner defaults.
+1. `spec/00-plan.md` — status, milestone totals, owner defaults; the run order and dependencies are in `spec/07-milestones/_PLAN.md`.
 2. The current milestone file `spec/07-milestones/<ID>-*.md`; its "Notes for the Builder" say what else to read. File status (READY, PENDING, frozen) is in `spec/07-milestones/README.md`.
 3. `prompt-pack/06-SHARED-CONTEXT.md` — requirement ids (R-*), contracts C01–C17, conventions. `spec/02-architecture.md` — the system and package tree.
 4. One milestone per working session. The spec is the source of truth; when it is silent, choose the smallest reversible option behind an interface and record it under "Builder decisions" in `spec/11-decision-log.md`.
@@ -19,7 +19,7 @@ Run from the repository root (pnpm workspaces, Node 22 LTS).
 |---|---|
 | `pnpm install` | install the workspace (CI uses `--frozen-lockfile`) |
 | `pnpm dev` | Vite dev server plus `wrangler dev`; QA flags on |
-| `pnpm build` | UI tokens, Vite build of `apps/web`, Worker dry-run bundle |
+| `pnpm build` | UI tokens, Vite build of `apps/web`, icon check (the Worker dry-run bundle is `pnpm check:prod-routes`, from M00a) |
 | `pnpm typecheck` | TypeScript, no emit |
 | `pnpm lint` | ESLint, including the determinism and no-GLSL rules |
 | `pnpm check:unit [-- <paths>]` | Vitest unit tests |
@@ -30,7 +30,9 @@ Run from the repository root (pnpm workspaces, Node 22 LTS).
 | `pnpm deploy:preview` | Workers Preview of the staging Worker for the current branch or PR |
 | `pnpm deploy:prod [-- --env staging]` | versions upload, 0 % smoke, 100 %, rollback on failure (from M00a) |
 
-Milestone-specific scripts are listed in each milestone's Deliverables. Arguments: `pnpm <script> -- <args>` works for every script; tools run through `tools/ci/run.ts <tool>`, which drops the one leading `--` that pnpm passes through, and in-house scripts parse argv with its `args()` helper. The M00 family adds `check:headers -- <url> | --serve <url> | --from <file>`, `check:coi` (same forms), `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later: `assets:*` (M01d), `map:fixture` (M01f), `map:build` (M02a1), `missions:build` (M05a1), `npc:*` (M06a2), `dv` CLI for mods (M13a). A `check:*` script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
+Milestone-specific scripts are listed in each milestone's Deliverables. Arguments: `pnpm <script> -- <args>` works for every root script; tools run through `tools/ci/run.ts <tool>`, which drops the one leading `--` that pnpm passes through, and in-house scripts parse argv with its `args()` helper. Package-local scripts that take arguments follow the same rule: `test` and `test:*` are `tsx <relative path>/tools/ci/run.ts vitest run --dir packages/<pkg>` (or spec paths from the repository root, where `run.ts` runs the tool), so `pnpm --filter @dv/<pkg> test -- <name>` runs only the matching specs; a plain `vitest run` script would ignore the filter. The M00 family adds `check:headers -- <url> | --serve <url> | --from <file>`, `check:coi` (same forms), `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later root scripts: `check:agents`, `check:telemetry` (M00d), `perf:verify`, `perf:checklist` (M01c), `assets:*` (M01d; `assets:gen` M05c3, M10a1), `map:fixture` (M01f), `map:build`, `map:fetch`, `map:pack` (M02a1) and the other `map:*` steps (M02a2–M02c2; `map:races` M07a1, `map:webtiles` M13b2), `check:i18n` (M04b1), `check:balance` (M04d; tycoon suite M09a2), `missions:build` (M05a1), `missions:preview`, `check:missions` (M05a2), `check:pipeline`, `check:c2pa` (M05b1), `check:db`, `check:db:types`, `db:push`, `check:api`, `test:staging` (M05d), `npc:*` (M06a2, M06a4, M10c), `check:fighter` (M08b1), `tycoon:*` (M09a2), `test:ops` (M10b), `auth:tpa` (M12a1), `rooms:drain` (M12c1), `load:rooms` (M12c2), `check:mods`, `check:skills` (M13a6), `ip:history`, `ip:similarity`, `genai:terms-watch` (M14b3); the `dv` CLI for mods (`tools/cli`, M13a1, M13c3). Package-local scripts run as `pnpm --filter @dv/<pkg> <script>` (`test:*` M01a1, `bench:physics` M01a2, `fighter:*` M08a1–M08c1); full registry: `spec/08-test-and-ci.md` §6. A `check:*` script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
+
+Unit tests are named `*.test.ts` or `*.spec.ts` (either suffix) in `<package>/test/`. The root Vitest config collects `**/*.{test,spec}.{ts,tsx}` except `tests/e2e/**` and `tests/perf/**` (Playwright) and `services/*/test/**` (`check:workers`).
 
 ## Repository layout
 - `apps/web` — PWA shell: Vite entry, service worker, `_headers`, page routes
@@ -54,7 +56,7 @@ Milestone-specific scripts are listed in each milestone's Deliverables. Argument
 
 ## Conventions
 - TypeScript strict, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Vanilla three; no React Three Fiber; Preact for DOM UI only.
-- Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
+- Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/world/src/sim/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
 - `@dv/shared` imports no other package and does no IO. `services/*` import only `@dv/shared` and `@dv/net`. Packages never import apps.
 - Persistent identity is a C01 `StableKey` (`player:`, `veh:`, `npc:`, `amb:<cell>:<slot>`, `mis:`, `pfb:`); the dense `EntityId` never leaves a session.
 - Asset references are C07 `AssetRef` strings `'<kind>/<id>'`; stored objects use `<root>/<variant>.<sha256[0:12]>.<ext>`.

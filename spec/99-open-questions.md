@@ -1,159 +1,211 @@
 # 99 — Open questions and UNVERIFIED register (living)
 
-> Created 2026-10-18 by the Architect at Wave 1 reconciliation; Q-20…Q-25 and §3 added at the Waves 2–4 reconciliation (same day, `spec/11-decision-log.md` §D). Q-01–Q-12 (owner defaults from Phase 0) live in `spec/00-plan.md`; new owner questions start at Q-13. Every default below is applied now so the run continues unattended; the owner overrides with `/architect fix: <what>`. No UNVERIFIED item may appear in an acceptance criterion; where a device run must record one, the criterion is the recording. Wave 5 merges the Wave 2–4 lists into this file.
+> Consolidated 2026-10-18 by the Architect (Wave 5, DL-248) from the former §1–§6 of this file, domain specs §7/§10, `spec/.wave1-returns.json`, `spec/.waves234-returns.json` and the milestone files ("Risks & fallbacks", "Notes for the Builder"). Q-01…Q-12 (Q-01 title, Q-02 18+ terms, Q-03 provider fallback, Q-06 tone, Q-07 premise, Q-10 device floor, Q-11 music, Q-12 hero voices) are Phase 0 defaults in `spec/00-plan.md` and `research/INDEX.md` §7; only Q-08's open part is carried here. Ids are stable; merged ids live in §3 as aliases. Milestone ids are the final register (`_PLAN.md` §1). Every default is applied now; the owner overrides with `/architect fix: <what>`. Rule (C15 lint L4): no AC line contains the token UNVERIFIED, and a U-id appears in an AC only after "records" or "decides".
 
-## 1. Owner questions (genuinely the owner's call)
+## 0. Acceptance-criterion check (2026-10-18)
 
-| Q | Question | Default applied (2026-10-18) | Blocks | Source |
-|---|---|---|---|---|
-| Q-13 | Which physical test devices exist? | iPhone 15 + iPhone 16/17 + Quest 3 + Vision Pro (visionOS 26.2+) + an Apple Silicon Mac; Windows integrated and discrete GPUs are optional; without them `desktop-ultra` and weak-desktop calibration stay marked unverified | device acceptance of M01c, M04c, M11a, M11b (CI parts proceed) | Q-S11-01, `11-platform-perf.md` §6 |
-| Q-14 | Raise the USD 100 fal cap (DL-OWN-01) if a video provider clears and more generated clips are wanted? (replaces the $1,000 question) | No: the cap is final. Generation follows the priority list in `03-story-cutscenes.md` §D9.1 and stops at the $40 cutscene line; every other hook plays in-engine. A raise is a `programCapUsdMicros` change in `config/guardrails.yaml` and a prewarm re-run, only on the owner's word | M05c3 Act 1 prewarm, M10b fighter prewarm | DL-OWN-01, DL-176 |
-| Q-15 | Production and staging domains, Cloudflare zone plan, GitHub visibility and plan | One dedicated zone for `<domain>` with `id.`, `rt.`, `media.`, `ugc.` and `-staging` twins; prod deploys only from tags by an allowlisted actor until a Team org or a public repo exists | M00 `deploy:bootstrap` custom domains (previews work on `workers.dev`), M12a issuer host | Q-BE-08, `09-backend-ops.md` §1.3 |
-| Q-16 | Owner filings: NCMEC ESP registration, PhotoDNA application, Tech Coalition Pathways, DMCA agent designation, Cloudflare CSAM-tool support ticket | File before M06b; until approved, photographic uploads stay private-only and CSAM reports go through the CyberTipline web form | public visibility of photo UGC (M06b), completion of M13d | Q-BE-07, `09-backend.md` §3.4 |
-| Q-17 | Who holds the production staff `FAL_KEY`? | The art lead holds the staff key locally (CLI-first); CI and the Worker get separately scoped keys with allowed-model lists | M00c spike, M10a batch | DN-S05-4, Q-S05-02 |
-| Q-18 | Counsel reading of fal ToS §4(a) "internal business use" for roster generation | Proceed with internal-only generation (D-19); counsel sign-off is a launch gate | M14b public launch (not development) | Q-S05-05, F-042 |
-| Q-19 | The per-character research layer (`research/characters/<slug>/soul.md` + `refs/`) is not in the repository | S04 defines the soul schema, validator and roster manifest; the roster loads when supplied; development uses original test characters (`npc_test` and one `fictionalized` canary) | hero NPC content in M06a; real-roster runs of M10a (the canary runs without it) | `spec/00-plan.md` "Inputs found at start" |
-| Q-20 | Raise the $100/month voice ceiling (G3) to cover an ElevenLabs plan fee so ≤ 3 heroes can use t2 voices? | No: heroes launch on t1 (Workers AI Aura); `ks:tts:elevenlabs` stays on (t2 off); t2 needs linked 18+ accounts when enabled | hero voice quality in M06a4 and M10c (not functionality) | DN-S04-02, `04-npc.md` §5.7 |
-| Q-21 | Who runs the community sensitivity read of the D3 (Bayview–Hunters Point) and D4 (Tenderloin, Civic Center) missions? | The owner arranges it; CI and dev proceed, and the M05c2 **release** stays gated until `content/story/sensitivity.json` records a read for each tagged mission version | public release of Act 1 (M05c2 release step, M05e/M05f releases) | DN-S03-05, `03-story-narrative.md` §B3 |
-| Q-22 | Publish `@dv/mod-sdk` and `@dv/cli` to npm under MIT, under which scope? (ties to Q-15 repo visibility) | Plan MIT and npm publication at M13c3 if the `@dv` scope is available (U5); until the owner confirms, ship both as tarballs on the release page | the publish step of M13a6/M13c3 only | DN-S12-04, `12-modding.md` §10 |
-| Q-23 | Counsel review list before public launch: (a) trademark knock-out of placeholder vehicle makes, rival handles and fictional transit operators; (b) whether device-local normalised body proportions (pose calibration) are biometric data; (c) the tycoon "simulation, not financial advice" disclaimer; (d) default-on telemetry with a first-run notice for US players | (a) ship placeholders through `names:lint`, rename is a data commit; (b) calibration stays device-local, opt-in "remember", deletable; (c) disclaimer in the pitch room; (d) default on (DL-140) | M14b public launch (development proceeds) | DN-S06-02, Q-S07-2, DL-106, DL-127, DL-140, S08 risks |
-| Q-24 | Is fighter animation authored by a human art lead (≈ 45 shared base clips + 12–16 signature clips per fighter, ≈ 160 Blender tasks)? | Yes in principle: M08a ships generic library clips; signatures follow through M10a; without art-lead time v1 ships library moves only | animation quality in M08b1/M10a | S07-D1, `07-fighter-content.md` FX7 |
-| Q-25 | Create the private content repository mounted at `content-private/` (real-derived souls, research layer, production rails) and grant CI read access | Until it exists only original souls and the rules example build; real-roster content waits as for Q-19 | real-roster content in M10c; production rails before M14b | DN-S04-01, DL-118 |
-| Q-26 | How should the $8 fal buffer be spent if the baseline stays under budget: one designed announcer voice ($4.50), up to three generated hero-car bodies ($2.48 each), extra Meshy move clips ($0.12 each), or custom 3D for a user NPC through the owner-approved queue ($1.05 each)? | Unspent. The announcer uses Workers AI Aura or MeloTTS, cars are authored or CC0, builder looks are creator-kit presets. Any buffer spend needs the owner's written word and a ledger entry | none (M10a canary, M07 art, M13c queue proceed without it) | DL-OWN-01, DL-171, DL-175 |
-| Q-27 | Which 12 roster entries get Lean custom 3D bodies (the 8 Standard models are the 8 v1 fighters)? | The ten named, on-screen Act 1 fictional cast (`odessa_calloway`, `tavi_okafor`, `corwin_hale`, `dana_voss`, `patch`, `saint_static`, `chorus_sparrer`, `imani_hart`, `whitney_arlo`, `sgt_bell`) plus two Act 2–3 cast members chosen when `assets:gen plan --roster` runs; everyone else uses creator-kit bodies | M10a plan | DL-OWN-01, `03-story-narrative.md` §B2 |
-| Q-28 | Hold the $500/month recurring ceiling (G3) as MAU grows, or accept the scaling rule (+ $0.25 per MAU above 1k, a config change)? On the default mix the $100 voice line binds first at about 1,350 MAU and the Anthropic line at about 2,800 MAU (`spec/10-cost-model.md` §3) | Hold $500. The governor degrades at 70 / 85 / 100 % (Sonnet to Haiku, voice to t1, genAI off); cache hits and ink lines stay free. Revisit before 1,000 MAU | M14b launch alarms, post-launch capacity | G3, D-28, `spec/10-cost-model.md` |
-| Q-29 | Friend graph for presence: S10 plans "presence of friends" (M12c) but C12 1.1 has no friend relation, route or table; should v1 add one? | No: v1 presence carries the player's own status and server notices; invites travel as 6-character codes (route 25); the online page shows no friend list | friend list and invite push in M12c/M12d (everything else in M12b–M12d is unaffected) | DL-186, `spec/05-api-and-realtime.md` §4.7 |
+Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md` files, case-insensitive, for `UNVERIFIED`, `U-…` ids and bare `U<n>` ids. 27 AC lines in 20 files name a U-id (62 mentions); 25 already pass L4 (each id follows "records"); no AC line holds the token.
 
-## 2. UNVERIFIED register — Wave 1
-
-Each row names the default the spec uses until the item is verified and the milestone that verifies it. Source ids are the domain specs' own.
-
-### 2.1 Engine (S01, `01-engine.md` §7)
-| ID | Item | Default while unverified | Verified in |
+| # | File · AC | Finding | Action |
 |---|---|---|---|
-| U-ENG-1 | `Math.sqrt` bit-identical across JS engines | `detmath.sqrt` never delegates | M01a vectors |
-| U-ENG-2 | Tick cost of `deterministic-compat` vs `simd-compat` | `simd-compat` for local play (D-12) | M01a, M03a |
-| U-ENG-3 | Rapier wasm inside a Durable Object | kinematic validation only on the server | M12b spike |
-| U-ENG-4 | WebSocket in a dedicated worker on iOS Safari | main-thread `MessagePort` relay fallback (chosen by feature detection) | M14b3 iPhone pass records it (only an iPhone can; DL-239) |
-| U-ENG-5 | Quest A/B/X/Y indices in `xr-standard` | no required action only on a face button; `config/xr-input-profiles.json` entries start `null` | M01c, M11b device pass |
-| U-ENG-6 | Rapier debug-render API | draw own shapes from `BodyDesc` | M03a |
-| U-ENG-7 | Meshy rig bone names (also U-AST-1) | alias table written from the probe | M00c |
-| U-ENG-8 | iOS PWA background-suspension timing | pause and autosave on every `hidden` | M01c, M11a |
-| U-ENG-9 | IndexedDB commit durability under WebContent jetsam | two-phase write is safe either way | M04a `save-kill` e2e, M11a soak |
+| V-1 | M13a5 AC-6 | bare `U2` (ambiguous between S05 and S12) after "recording", not "records" | **fixed** (mechanical): "the run records the U-API-1 values …" |
+| V-2 | M13a5 AC-9 | bare `U2` after "record" | **fixed**: "… and the run records the U-API-1 values" |
+| F-1 | M00 AC-14 (frozen) | no U-id or token, but its pass depends on U-QA-8 (`_headers` on Preview URLs; expected, undocumented [research/gap-ci-cd-release-assets.md "Unverified"]) | not edited: frozen and not blocking. If AC-14 fails for this reason the Builder reports "Blocked on: U-QA-8" and the Architect moves the check to a recording in the next open milestone |
+| — | M00d AC-3 | lower-case "unverified marker" describes the lint fixture, not a fact | passes (L4 matches the upper-case token) |
 
-### 2.2 Platform (S11, `11-platform.md` §10)
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-PLT-1 | iOS Home Screen vs Safari-tab WebGPU parity | mobile tiers on WebGL2 backend (`webgpu.mobile=false`) | M01c, M11a |
-| U-PLT-2 | GPU-process jetsam limit; whether 2,048 MB WebContent kill applies to every iPhone | `mobile` accounted cap 600 MB, WebContent ceiling 1,200/900 MB | M01c memory bomb, M11a |
-| U-PLT-3 | ProMotion rAF above 60 Hz | plan 60 Hz | M11a |
-| U-PLT-4 | Post-jetsam behaviour (reload vs blank, nav type, `localStorage` durability) | heartbeat inference only | M01c, M11a |
-| U-PLT-5 | `GPUDevice.lost` before a GPU-process kill | heartbeat + abnormal-exit demotion | M11a |
-| U-PLT-6 | `adapter.info` content on Safari | benchmark decides the tier | M01c |
-| U-PLT-7 | Safari `timestamp-query` | GPU timers optional, never asserted | M01c |
-| U-PLT-8 | takram atmosphere with three r186 | removable adapter, `desktop-ultra` only | M11a |
-| U-PLT-9 | visionOS user-agent string | capability-based detection; capture fixtures | M01c |
-| U-PLT-10 | Vision Pro framebuffer size, refresh control, foveation, WebGPU-vs-WebGL XR cost | fixed scale 1.0, 90 Hz assumed, no rate control | M11b |
-| U-PLT-11 | `immersive-ar` on visionOS; PS VR2 controllers as WebXR inputs | out of v1 | post-M11b ADR |
-| U-PLT-12 | Quest Browser flag names; non-XR WebGPU default | Quest forced to WebGL2 backend | M11b |
-| U-PLT-13 | XR session `visibilitychange` semantics | pause on `hidden` and `visible-blurred` | M11b |
-| U-PLT-14 | `renderer.info.render.drawCalls` with `BundleGroup` on WebGPU | `RenderBudgetMeter` counts render objects; `info` authoritative on WebGL2 only | M01c |
-| U-PLT-15 | `navigator.standalone` for Home Screen detection | `matchMedia('(display-mode: standalone)')` first | M01c |
-| U-PLT-16 | OPFS 7-day eviction; cross-tab sync-handle behaviour | nothing assumes persistence; second tab read-only | M01e, M11a |
-| U-PLT-17 | Low Power Mode effects on video and frame rate | video needs a gesture; pool unlocked at first gesture | M04c |
-| U-PLT-18 | iPhone RAM sizes | benchmark-driven tiering | M01c |
-| U-PLT-19 | SwiftShader WebGPU recipe on a GitHub runner | `gpu-probe.json` artifact decides | M00 |
-| U-PLT-20 | † budget numbers, comfort constants, gesture thresholds | S11 starting values | M11a, M11b |
+## 1. Operator questions
 
-### 2.3 Asset pipeline (S05, `05-assets.md` §7)
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-AST-1 | Meshy bone names, finger/jaw/face data, animation-clip licence | alias table from probe; human gate H4 | M00c |
-| U-AST-2 | Meshy honours `image_urls` order | fixed crop order front, left, back, right | M00c |
-| U-AST-3 | fal CDN `Content-Length`; retrieval with `X-Fal-Store-IO: 0` | copy to R2 immediately; lifecycle header 86,400 s | M00c |
-| U-AST-4 | C2PA on fal outputs for each chosen endpoint | record state; re-sign renditions | M00c, M05b |
-| U-AST-5 | Workers streaming SHA-256 (`DigestStream`); Workflow `waitForEvent` max timeout | hash in the container / CLI; 20 min wait + poll | M05b |
-| U-AST-6 | wrangler `containers` / `workflows` config keys (also U-BE-3) | checked against the schema | M00 |
-| U-AST-7 | GPT-image cost of extra input images | $0.01 assumed | M00c |
-| U-AST-8 | Sunburst / Nano Banana refusal behaviour on real-person edits | never send real-person photos | M00c |
-| U-AST-9 | Rhubarb licence | believed MIT; licence snapshot before use | M00b |
-| U-AST-10 | CC0 catalogue terms (Poly Haven, ambientCG, Kenney, Quaternius, Freesound) | admit a pack only after a licence snapshot | M00b, M03b |
-| U-AST-11 | ElevenLabs SFX endpoint terms and price | registry `pending` | M14b terms-watch |
-| U-AST-12 | R2 tag-based cache purge (also U-BE-10) | prefix purge | M10b drill |
-| U-AST-13 | basis_universal XUASTC with three's transcoder | do not use XUASTC | M01d |
-| U-AST-14 | iOS decode of Ogg Opus via `decodeAudioData` | AAC fallback | M00c |
-| U-AST-15 | pinned C2PA signing tool and version | chosen and pinned in M05b; `check:c2pa` blocks release | M05b |
-| U-AST-16 | H3 family US licence (ADR-GENAI-01) | fallback chain; production refuses `pending` providers (Q-03) | owner / vendor |
-| U-AST-17 | art-lead time per character (20–40 min) | estimate only | M00c, M10a |
+| Q | Question | Who can answer | Default assumed | Blocked milestones (final ids) | Date |
+|---|---|---|---|---|---|
+| Q-08 | Which licence does the open-source repository use (Q-08 chose open source; world data ODbL)? | owner | `LicenseRef-DeeVerse-Owned` placeholder in `REUSE.toml` (M00b) until the owner picks | M14b3 `public-repo` step only | 2026-10-18 |
+| Q-13 | Which physical test devices exist? (was Q-S11-01) | owner | iPhone 15, iPhone 16/17, Quest 3, Vision Pro (visionOS 26.2+), Apple Silicon Mac; Windows GPUs optional, so `desktop-ultra` stays uncalibrated without them | device ACs only of M01b2, M01c, M01e, M02b1, M02b2, M03b1, M04b2, M04c, M07b2, M08c2, M11a2, M11b1, M11b4, M13a4, M13a5, M14a, M14b3, M15b (CI parts proceed) | 2026-10-18 |
+| Q-14 | Raise the USD 100 fal cap (DL-OWN-01)? | owner | **closed: no.** Generation follows `03-story-cutscenes.md` §D9.1 and stops at the $40 line; a raise is a `programCapUsdMicros` change with `ownerApproval` | none | 2026-10-18 |
+| Q-15 | Production and staging domains, zone plan, GitHub visibility and plan (was Q-BE-08, Q-CI-01/02) | owner | one zone with `id.`, `rt.`, `media.`, `ugc.` and `-staging` twins; until then `workers.dev`; prod deploys from tags by an allowlisted actor | custom-domain steps of M00a, M01d, M12a1, M12b1, M12b2, M13a2, M13c2; launch M14b3 | 2026-10-18 |
+| Q-16 | Owner filings: NCMEC ESP, PhotoDNA, Tech Coalition Pathways, DMCA agent, Cloudflare CSAM-tool ticket (was Q-BE-07) | owner | file before M06b2; photos private-only, CyberTipline web form, own hash banks | photo publishing in M06b2; PhotoDNA and NCMEC API in M13d1; agent block in M13d2; `ugc.publish` flip after M13d1 | 2026-10-18 |
+| Q-17 | Who holds the production `FAL_KEY`? (was Q-S05-02) | owner | art lead holds the staff key locally; CI and Worker keys separately scoped with allowed-model lists | live runs of M00c, M05c3, M06b4, M10a1, M10a2, M10b | 2026-10-18 |
+| Q-18 | Counsel reading of fal ToS §4(a) "internal business use" (was Q-S05-05) | counsel | internal-only generation (D-19); sign-off is a launch gate | M14b3 | 2026-10-18 |
+| Q-19 | Supply the per-character research layer (`research/characters/<slug>/`) | owner | original test souls and one `fictionalized` canary | real-roster content in M06a2, M08b1, M10a1, M10a2, M10c | 2026-10-18 |
+| Q-20 | Raise the $100/month voice line for ElevenLabs t2 (≤ 3 heroes)? (was DN-S04-02) | owner | no: t1 Aura; `ks:tts:elevenlabs` on (t2 off) | hero voice quality in M06a4, M10c | 2026-10-18 |
+| Q-21 | Who runs the community sensitivity read of D3/D4 missions? (was DN-S03-05) | owner | owner arranges it; CI and staging proceed | production release of M05c2, M05e1 (`m.a2.03`), M05f2 (`m.a3.05`); M14b3 gate | 2026-10-18 |
+| Q-22 | Publish `@dv/mod-sdk` and `@dv/cli` to npm under MIT, which scope? (was DN-S12-04, Q-S12-04, Q-MOD-03) | owner | tarballs on the release page until confirmed | npm step of M13a6 and M13c3 | 2026-10-18 |
+| Q-23 | Counsel list: (a) trademark knock-out of makes, handles, operators; (b) pose calibration as biometric data; (c) tycoon disclaimer; (d) default-on telemetry; (e) launching on or after 2027-01-01 without a verified OS age-signal provider (AB 1043; DL-285) (was DN-S06-02, Q-S06-03, Q-S07-2, U-FGT-11) | counsel | (a) placeholders via `names:lint`; (b) device-local, opt-in, deletable; (c) disclaimer in the pitch room; (d) on with first-run notice (DL-140); (e) release before 2027-01-01, otherwise gate `age-signals` blocks | M14b3 launch (text in M07b1, M08c2, M09b2, M13d2 ships as placeholder) | 2026-10-18 |
+| Q-24 | Does a human art lead author fighter animation (≈ 160 Blender tasks)? (was S07-D1) | owner | yes in principle; without art-lead time v1 ships library moves | animation quality in M08b1, M10a2 | 2026-10-18 |
+| Q-25 | Create the private `content-private/` repository and grant CI read access (was DN-S04-01) | owner | only original souls and the rules example build | real-roster content in M10a1, M10a2, M10c; production rails before M14b3 | 2026-10-18 |
+| Q-26 | How to spend the $8 fal buffer if unspent? | owner | unspent; any spend needs the owner's written word and a ledger entry | none | 2026-10-18 |
+| Q-27 | Which 12 roster entries get Lean custom 3D bodies? | owner | the ten on-screen Act 1 fictional cast plus two Act 2–3 members picked at `assets:gen plan --roster` | M10a1, M10a2 plan | 2026-10-18 |
+| Q-28 | Hold the $500/month recurring ceiling as MAU grows? | owner | hold; governor degrades at 70/85/100 %; revisit before 1,000 MAU | M14b1 alarms; post-launch | 2026-10-18 |
+| Q-29 | Add a friend graph for presence? | owner | no: own status, notices and 6-character invite codes | friend list only (no v1 milestone); M12c1, M12d unaffected | 2026-10-18 |
+| Q-30 | Send ADR-GENAI-01 clearance questions to fal and MiniMax; who stores the answers in `docs/legal/`? (also Q-03, Q-S05-01) | owner | not sent; no provider `cleared`; mocks, previs and in-engine fallbacks | live mode of M05b1, prewarm AC-9 of M05c3, M10b clip generation | 2026-10-18 |
+| Q-31 | Preview URLs public or behind Cloudflare Access? (Q-CI-03, [research/gap-ci-cd-release-assets.md "Open questions"]) | owner | public (`preview_urls: true`, M00); no Access service token | none | 2026-10-18 |
+| Q-32 | Toolchain pins `pnpm@12.14.0` and Node 22 LTS (research also asks Node 24) (Q-CI-04) | Builder (M00 records), owner may override | pins as in M00; resolved versions recorded in `spec/03` | none | 2026-10-18 |
+| Q-33 | Who approves production deploys, and who holds `CF_API_TOKEN_CACHE`? (Q-CI-06) | owner | the owner, via `DEPLOY_ALLOWED_ACTORS` (M00a); purge-only token as a GitHub secret (DL-210) | M10b purge drill, M14b3 | 2026-10-18 |
+| Q-34 | Budget for cloud real devices (BrowserStack or similar)? (Q-CI-07) | owner | none; Q-13 devices only; cloud devices optional for Safari-tab regressions (WebGPU, WebXR, Home Screen there UNVERIFIED [research/gap-ci-cd-release-assets.md §4.3]) | none | 2026-10-18 |
+| Q-35 | Use Overture buildings for expansion areas? (Q-MAP-06) | owner | OSM; M15a records a time-boxed comparison; an importer only on override | none (M15a–M15g on OSM) | 2026-10-18 |
+| Q-36 | When do `USER_NPC` fighters arrive? (Q-S07-5) | owner | post-v1, no milestone | none | 2026-10-18 |
+| Q-37 | Is VS-Story (Act 1, M05c2 proven on staging) enough to open the R-ROLL-01 multiplayer gate, or must Acts 2–3 (M05f2) land first? | owner | Act 1 anchor (`_PLAN.md` §0 rule 4; `check:rollout`, M00d; `spec/01-product.md` §11) | M12b1 start under parallel Builders (DL-246); "whole story first" adds M05f2 to M12b1 Depends on (+6 sessions on the critical path) | 2026-10-18 |
+| Q-38 | ADR-0018 narrows R-MOD-02 and R-AUTH-03: accept GitHub (`supabase-oauth`) as the interim publish identity? Accept no ChatGPT-assisted path for players without a local agent in v1 (the M13b3 creator has no AI)? Or schedule the no-agent ChatGPT Studio (flow B) as a post-M13 milestone? | owner | (a) and (b): GitHub interim beside the dark `AUTH_OPENAI_WEB` flag; flow B post-v1, no milestone; R-MOD-02 `blocked (Q-38)` in the matrix until answered | public publishing identity in M13c1, M13c3; a flow B milestone only on (c) | 2026-10-18 |
 
-### 2.4 Backend (S09, `09-backend.md` §7)
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-BE-1 | Cross-origin WebSocket from a COEP `require-corp` page to `rt.<domain>` | keep `rt.`; zone-route fallback (Q-BE-02) | M12b2 (AC-9 staging run records it; DL-239) |
-| U-BE-2 | Turnstile verification API and widget under COEP | per-net registration caps | M12a start |
-| U-BE-3 | `wrangler@4.151.1` keys for workflows, AE, analytics, ratelimits, observability, previews | marked † in config; schema check | M00 |
-| U-BE-4 | DO WebSocket `send` backpressure; WS messages vs ~1,000 req/s | CAP 16; slow-receiver degrade | M12c load test |
-| U-BE-5 | DO memory limit (128 MB assumed) | checkpoint < 1 MB | M12c |
-| U-BE-6 | Workflow create with an existing id | single-flight in `CutsceneJobDO` | M05b |
-| U-BE-7 | Hyperdrive reach to Supabase | not used | — |
-| U-BE-9 | Cloudflare CSAM tool coverage of R2 custom domains | cache rule on `ugc.`; support ticket (Q-16) | M13d |
-| U-BE-10 | Cache-Tag purge for R2 objects | prefix purge | M10b |
-| U-BE-11 | NCMEC CyberTipline API credential process | web form | M13d (Q-16) |
-| U-BE-12 | PhotoDNA approval timing | own hash banks + PDQ | M13d (Q-16) |
-| U-BE-13 | `limits.cpu_ms` for Workflow steps and queue consumers | heavy work in the container / CLI | M05b |
-| U-BE-14 | Invocation log per hibernated WS message | rooms sampling 0.001, invocation logs off | M12c |
-| U-BE-15 | Custom Alerts billing and rule limits | Budget email alerts as backstop | M14b |
-| U-BE-16 | Full-page redirect sign-in inside an iOS Home Screen app | device-code flow first | M12a, M14a device check |
-| U-BE-17 | AI Gateway pricing catalog covers `claude-haiku-5-5` / `claude-sonnet-5-5` | our ledger from `usage` is authoritative | M06a |
-| U-BE-18 | Anthropic minimum workspace spend limit | `synthetic` workspace at the minimum accepted | M14b |
-| U-BE-19 | fal auto-recharge; locked-account HTTP status | recharge off, small prepaid balance, governor reserve | M05b, M14b |
-| U-BE-20 | `wrangler deployments status --json` field names | deploy script parses defensively | M00 |
-| U-BE-21 | DO restarts scoped to the deploying script | split Workers anyway (costs nothing if false) | M12c |
+## 2. UNVERIFIED facts
 
-### 2.5 Assets, cost and risk (Wave 5, `06-asset-pipeline.md`, `10-cost-model.md`)
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-COST-1 | fal minimum top-up, the account lock threshold, and whether the last dollars of a tranche are spendable under a $100 total (extends U-BE-19) | tranches sized to the next phase; the $8 buffer absorbs an unusable remainder; auto-recharge off | M00c |
-| U-COST-2 | fal concurrency stays at the default 2 while total spend is at most $100 (limits rise with paid invoices over 4 weeks, amounts unknown) | batches of two jobs; 20 character runs fit one overnight session | M10a |
-| U-COST-3 | whether fal bills refused or errored requests | assume billed; the ledger settles from `billing-events` and the loss comes out of the buffer | M00c, M05b |
-| U-COST-4 | per-MAU usage assumptions (4 play-hours, 90 NPC turns, 50 % of lines voiced) and the $25/h human-review rate behind `10-cost-model.md` | research proposals [research/ai-npc-runtime.md §7.2, research/gap-trust-safety-tooling.md §8]; re-measure from telemetry after launch | M14b, post-launch |
+"Verified" names the milestone and AC that records the item (R&F = Risks & fallbacks, N = Notes for the Builder); a recording is never an assertion. "Blocks" lists ACs that cannot pass if the item is false; "none" means the default keeps every AC command valid.
 
-## 3. UNVERIFIED register — Waves 2–4 (index; Wave 5 merges the rows into §2 format)
+| U | Claim | Where used | Verified (milestone + AC) | Default if it fails | Blocks |
+|---|---|---|---|---|---|
+| U-ENG-1 | `Math.sqrt` bit-identical across JS engines | 01-engine §7; C02 | M01a1 AC-2 vectors | `detmath.sqrt` never delegates | none |
+| U-ENG-2 | tick cost of `deterministic-compat` vs `simd-compat`, incl. 8 M1 vehicles; restart cost (Q-ENG-01) | D-12; 06-racing §7 | M01a2 bench (Scope); M03a1 R&F; M07a1 cap | `simd-compat` locally; per-tier M1 cap | none |
+| U-ENG-3 | Rapier wasm runs in a Durable Object | ADR-0029 | M12b1 R&F (not used) | kinematic validation only | none |
+| U-ENG-4 | `WebSocket` in a dedicated worker on iOS Safari | 01-engine §2.13 | M14b3 AC-10 | main-thread `MessagePort` relay by feature detection | none |
+| U-ENG-5 | Quest A/B/X/Y indices in `xr-standard` | C03 rule 6; 06-racing-content C.9; 10-ui | M01c AC-13 (N); M11b1 AC-10; M11b4 AC-7; M14b3 AC-11 | profile entries `null`; no required action only on a face button | none |
+| U-ENG-6 | Rapier debug-render API | 01-engine §3 | M03a1 Scope | own wireframe from `BodyDesc` | none |
+| U-ENG-8 | iOS PWA background-suspension timing | 01-engine §5 | M01c AC-12; M11a2 AC-6 | pause and autosave on every `hidden` | none |
+| U-ENG-9 | IndexedDB commit durability under WebContent jetsam | C05 rule 1 | M04a1 AC-10 (Chromium only); M11a2 N | two-phase write is safe either way | none |
+| U-PLT-1 | iOS Home Screen vs Safari-tab WebGPU parity | 11-platform §4.3 | M01c AC-14; M11a2 AC-6; M14b3 AC-10 | `webgpu.mobile=false` (WebGL2 backend) | none |
+| U-PLT-2 | GPU-process jetsam limit; 2,048 MB WebContent kill on every iPhone | 11-platform §4.5 | M01c AC-12; M11a2 AC-6 | accounted cap 600 MB; ceiling 1,200/900 MB | none |
+| U-PLT-3 | ProMotion rAF above 60 Hz | 11-platform §5 | M11a2 AC-7; M14b3 AC-10 | plan 60 Hz | none |
+| U-PLT-4 | post-jetsam behaviour (reload vs blank, nav type, `localStorage`) | 11-platform-pwa | M01c AC-12; M11a2 AC-6; M14b3 AC-10 | heartbeat inference only | none |
+| U-PLT-5 | `GPUDevice.lost` fires before a GPU-process kill | 11-platform-perf | M14b3 AC-10; M11a2 N | heartbeat plus abnormal-exit demotion | none |
+| U-PLT-6 | `adapter.info` content on Safari | tier detection | M01c AC-13 | benchmark decides the tier | none |
+| U-PLT-7 | Safari `timestamp-query` | 11-platform-perf §2 | M01c AC-13 | GPU timers optional, never asserted | none |
+| U-PLT-8 | takram atmosphere works with three r186 | 02-world-living §6 | M11a2 N (desktop-ultra) | removable adapter, `desktop-ultra` only | none |
+| U-PLT-9 | visionOS user-agent string | device classifier | M01c AC-13 | capability detection; captured fixtures | none |
+| U-PLT-10 | Vision Pro framebuffer, refresh control, foveation, WebGPU-vs-WebGL XR cost | 11-platform-xr | M11b1 AC-11; M11b4 AC-8; M14b3 AC-11 | scale 1.0, 90 Hz assumed, no rate control | none |
+| U-PLT-11 | `immersive-ar` on visionOS; PS VR2 controllers as WebXR inputs | C04 rule 5 | M11b1 N (out of v1; ADR-0027) | `immersive-vr` only | none |
+| U-PLT-12 | Quest Browser flag names; non-XR WebGPU default | 11-platform-xr | M11b1 AC-10; M11b4 AC-7; M14b3 AC-11 | Quest forced to WebGL2 backend | none |
+| U-PLT-13 | XR session `visibilitychange` semantics | 11-platform-xr; 10-ui-hud-xr Pause panel | M11b1 AC-10; M11b4 AC-7/8; M14b3 AC-11 | pause on `hidden` and `visible-blurred` | none |
+| U-PLT-14 | `renderer.info.render.drawCalls` with `BundleGroup` on WebGPU | `RenderBudgetMeter` | M01c AC-13; M11a1 N | count render objects; `info` authoritative on WebGL2 | none |
+| U-PLT-15 | `navigator.standalone` for Home Screen detection | 11-platform-pwa §2 | M01c AC-12 | `matchMedia('(display-mode: standalone)')` first | none |
+| U-PLT-16 | OPFS 7-day eviction; cross-tab sync-handle behaviour | 11-platform-pwa §5 | M01e AC-11; M11a2 AC-6 | nothing assumes persistence; second tab read-only | none |
+| U-PLT-17 | Low Power Mode: video and frame rate; a pooled unlocked element plays new sources | 11-platform-pwa §6; 03-story §7 | M04c AC-8; M11a2 AC-6 | gesture-unlocked pool; "Tap to play", then fallback | none |
+| U-PLT-18 | iPhone RAM sizes | tiering | M01c AC-12 | benchmark-driven tiers | none |
+| U-PLT-19 | SwiftShader WebGPU recipe on a GitHub runner | 08-test §3 | M00 AC-8 | `chromium-webgl2` is the required project | none |
+| U-PLT-20 | † budgets, comfort constants, gesture thresholds | 11-platform §4.5 | M11a2, M11b1 calibration | S11 starting values | none |
+| U-AST-1 | Meshy bone names, finger/jaw/face data, clip licence | 05-assets §7; 04-npc lip-sync | M00c AC-9; M10a1 R&F (`--probe-bones`) | alias table from the probe; gate H4 | none |
+| U-AST-2 | Meshy honours `image_urls` order | 05-assets-pipeline §4 | M00c AC-9; M10a1 R&F | crops front, left, back, right | none |
+| U-AST-3 | fal CDN `Content-Length`; retrieval with `X-Fal-Store-IO: 0` | 05-assets-pipeline §6 | M00c AC-9 | copy to R2 at once; lifecycle 86,400 s | none |
+| U-AST-4 | C2PA present on fal outputs per endpoint | 06-asset-pipeline | M00c AC-9; M05b1 | record state; re-sign renditions | none |
+| U-AST-5 | Workers `DigestStream`; Workflow `waitForEvent` max timeout | 05-assets §5 | M05b1 | hash in container or CLI; 20 min wait plus poll | none |
+| U-AST-7 | GPT-image cost of extra input images | cost plan | M00c AC-9; M10a1 R&F | $0.01 assumed; ledger settles actuals | none |
+| U-AST-8 | Sunburst and Nano Banana refusals on real-person edits | likeness rules | M00c AC-9 (optional R1) | never send real-person photos | none |
+| U-AST-9 | Rhubarb licence (believed MIT) | lip-sync | M00b licence snapshot; M06a4 | no cues; RMS envelope | none |
+| U-AST-10 | CC0 terms (Poly Haven, ambientCG, Kenney, Quaternius, Freesound) | 06-asset-pipeline | M00b; per-pack snapshot (M03b1, M07b2) | admit a pack only after a snapshot | none |
+| U-AST-11 | ElevenLabs SFX endpoint terms and price | 06-asset-pipeline §2 | M14b3 `genai:terms-watch` | registry `pending` | none |
+| U-AST-13 | basis_universal XUASTC with three's transcoder | 05-assets §5 | M01d | not used | none |
+| U-AST-14 | iOS decodes Ogg Opus via `decodeAudioData` | barks, TTS | M00c AC-9 (container); M06a4 R&F; M10c | AAC or mp3 | none |
+| U-AST-15 | pinned C2PA signing tool and version | `check:c2pa` | M05b1 Scope (recorded in `spec/03`) | `check:c2pa` blocks release | none |
+| U-AST-16 | H3-family US licence (ADR-GENAI-01) | 03-story; 07-fighter FX6 | M05c3 AC-9 (runs only when `cleared`, Q-30) | fallback chain; in-engine clips | M05c3 AC-9 |
+| U-AST-17 | art-lead effort: 20–40 min per character; ≈ 160 fighter clip tasks | 05-assets; 07-fighter FX7 | M00c AC-9; M10a1; M10a2 R&F | estimate only; library clips (Q-24) | none |
+| U-BE-1 | cross-origin WebSocket from a COEP page to `rt.<domain>` | 09-backend §2 | M12b2 AC-9 | same-origin `/rt` (Q-BE-02 fallback) | none |
+| U-BE-2 | Turnstile verification API and widget under COEP | `/account/register` | M12a1 R&F; M12a2 R&F | verifier mode `none`, per-net caps | none |
+| U-BE-3 | `wrangler@4.151.1` keys: workflows, AE, analytics, ratelimits, observability, previews, containers | wrangler configs | M00a R&F; M05c3 Scope | drop the key, record it | none |
+| U-BE-4 | DO WebSocket `send` backpressure; WS messages vs ~1,000 req/s | rooms | M12c2 AC-10 | CAP 16; slow-receiver degrade | none |
+| U-BE-5 | DO memory limit (128 MB assumed) | rooms | M12c1 R&F; M12c2 | checkpoint < 1 MB | none |
+| U-BE-6 | Workflow create with an existing id | cutscene jobs | M05b1 R&F | single-flight in `CutsceneJobDO` | none |
+| U-BE-7 | Hyperdrive reaches Supabase | 09-backend #35 | M05d Scope out (not used) | supabase-js over HTTPS | none |
+| U-BE-9 | Cloudflare CSAM tool covers R2 custom-domain responses | UGC serving | M13d1 (ticket, Q-16) | cache rule on `ugc.` | none |
+| U-BE-10 | Cache-Tag purge for R2 objects | kill-switch | M10b R&F | prefix purge | none |
+| U-BE-11 | NCMEC CyberTipline API credential process | T&S | M13d1 (Q-16) | web form | none |
+| U-BE-12 | PhotoDNA approval timing | T&S | M13d1 (Q-16) | own hash banks plus PDQ | none |
+| U-BE-13 | `limits.cpu_ms` for Workflow steps and queue consumers | pipeline, publish | M05b1; M13c2 R&F | heavy work in container or CLI; `review` above the measured size | none |
+| U-BE-14 | invocation log per hibernated WS message | rooms logging | M12c2 AC-10 | sampling 0.001, invocation logs off | none |
+| U-BE-15 | Custom Alerts billing and rule limits | ops alerts | M14b1 Scope | own cron evaluator; Budget emails | none |
+| U-BE-16 | full-page redirect sign-in in an iOS Home Screen app | 10-ui-pages | M14a AC-10 | device code first; OTP and passkey, social hidden in standalone | none |
+| U-BE-17 | AI Gateway price catalog covers the 5.5 models | spend | M06a1 R&F | own ledger from `usage` | none |
+| U-BE-18 | Anthropic minimum workspace spend limit | guardrails | M14b1 N | `synthetic` workspace at the minimum accepted | none |
+| U-BE-19 | fal auto-recharge, locked-account status; ElevenLabs cap response | guardrails | M14b1 Scope (T3 records); M05c3 | recharge off; map to `upstream_unavailable` | none |
+| U-BE-20 | `wrangler deployments status --json` field names | `tools/ci/deploy.ts` | M00a R&F | `versions list --json`; else stop before deploy | none |
+| U-BE-21 | DO restarts scoped to the deploying script | split Workers | M12c1 AC-12 | split Workers anyway | none |
+| U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $8 buffer absorbs it; recharge off | none |
+| U-COST-2 | fal concurrency stays 2 under $100 total | batch plan | M10a1; M10a2 | batches of two | none |
+| U-COST-3 | fal bills refused or errored requests | ledger | M05c3 R&F; M00c | assume billed; loss from the buffer | none |
+| U-COST-4 | per-MAU usage and $25/h review rate | 10-cost-model | M14b1 (re-measure after launch) | research proposals | none |
+| U-COST-5 | per-request fal billing is retrievable for reconciliation | ledger | M10a2 R&F | weekly dashboard reconcile; record drift | none |
+| U-API-1 | full CSP on Safari 26, Quest Browser, visionOS; mod `srcdoc` frame under CSP and COEP (no isolation, no `SharedArrayBuffer`) | spec/05 §1.3; 12-modding §2.5 | M05b1 AC-11 (Report-Only); M13a5 AC-6, AC-9; M14b3 AC-10 | Report-Only until M14b2 enforces; frame keeps its own CSP; `mods.ui` off | none |
+| U-API-2 | Thirdweb origins needed in the `/account/*` CSP | spec/05 §1.3 | M14a AC-10 | add the observed origins by PR | none |
+| U-ADR-01 | Supabase GitHub provider beside our TPA issuer; OpenAI web sign-in grant | ADR-0018 | M13c1 AC-10 | public publishing waits for M14a | none |
+| U-ADR-02 | DO relay latency for 60 Hz fight input | ADR-0028 | M12c2 AC-10 | no online fighter; C11 unchanged | none |
+| U-REC-1 | VP9 fixture decode in Playwright Chromium and WebKit | M04c fixtures | M04c `@cutscene` run (AC-6 log) | canvas-source fallback (DL-232) | none |
+| U-REC-2 | Chromium delivers a crash report to route 4 | crash reporting | M11a2 AC-8 | endpoint unit-tested; delivery observed only | none |
+| U-W1 | Geofabrik PBF URL, `osmium` subcommands, PBF-to-GeoJSON route | 02-world-bake §2 | M02a1 AC-9 | any GeoJSON-lines route; record in `sources.json` | none |
+| U-W2 | Overpass endpoints as fallback | bake | M02a1 R&F | Geofabrik only | none |
+| U-W3 | NAIP/USGS imagery licence | bake colour | M02a1 Scope out | `--imagery` off (DL-107) | none |
+| U-W4 | map-layer and geocoder sizes beyond roads | 02-world-maps §1 | M02c2 | gates fail > 4 MiB | none |
+| U-W5 | seeds for BART 16th, 24th, Balboa Park, Caltrain, GG portal | living §5 | M02a2 AC-8 | snapped by `map:landmarks` | none |
+| U-W6 | cable-car street chains | living §5 | M02a2 AC-8 | bake checks within 6 m | none |
+| U-W7 | SPDX `ODbL-1.0`, `PDDL-1.0` in the allowlist | provenance | M00b | proposal P5 | none |
+| U-W8 | per-pack R2 GETs fast enough without a batch route | streaming | M02b1 AC-11 | measure; batch route needs an Architect decision | none |
+| U-W9 | OSM sidewalk, crossing, ferry coverage | bake | M02a2 AC-8 | derived sidewalks, authored ferries | none |
+| U-W10 | bake ≤ 25 min, meshing 12/25 ms, sky and agent ms (†) | bake; perf | M02b1 AC-11; M02b2 AC-9 | calibrate | none |
+| U-W11 | DataSF footprints omit post-2010 buildings | bake | M02a1 AC-9 | OSM gap fill ≤ 5 % | none |
+| U-W12 | Workers static assets honour `Range` for `.pmtiles` | web surfaces | M13b2 (first hosting surface; none in v1) | fetch the whole archive | none |
+| U-W13 | writer library for `sf.pmtiles` extraction | `map:webtiles` | M13b2 R&F | `--plan` only | none |
+| U-S03-1 | keyframe-first keeps identity across clips | 03-story-cutscenes §D8 | M00c AC-9; M08b2 | human review; reject pins a new seed | none |
+| U-S03-2 | providers honour "no text, no logos" | prompt hygiene | M05c2; M05c3 | vision QA `text_in_image`; screen text in-engine | none |
+| U-S03-3 | `seed`, `prompt_expansion_mode` on H3 partner and LTX | cache key | M00c AC-9 | omit unsupported params | none |
+| U-S03-4 | MSE `sequence` gaps on Safari 26.x | player | M04c AC-8 | ping-pong | none |
+| U-S03-6 | Quest video textures freeze after XR entry | XR cutscenes | M11b4 AC-7 | pre-session pool; poll `currentTime`; fallback | none |
+| U-S03-7 | `v768` first frame from R2 ≤ 2.5 s on mobile | trigger thresholds | M04c AC-8 | thresholds in `config/cutscene.json` | none |
+| U-S03-8 | C08 route snap fits the load budget in `sim.worker` | missions | M05a1 (Effort) | resolve behind a fade | none |
+| U-NPC-01 | Haiku TTFT through AI Gateway ≤ 800 ms p50, also with structured output | dialogue; tycoon pitch | M06a3 AC-12 | 4 s fallback; offline offer | none |
+| U-NPC-02 | AI Gateway passes Anthropic SSE unbuffered | dialogue | M06a3 AC-12 | unset `AIG_BASE` (direct API) | none |
+| U-NPC-03 | structured output streams token by token in the TS SDK | dialogue | M06a3 R&F | one delta; 4 s rule holds | none |
+| U-NPC-04 | token overhead of the structured-output system prompt | cost model | M06a3 | estimate in `04-npc-builder.md` C7 | none |
+| U-NPC-05 | Aura-1 encodings and streaming latency | TTS | M06a4 AC-10 | Aura-2 `mp3` | none |
+| U-NPC-06 | Sonnet 5.5 `between_tools` with structured outputs | hero routing | M06a3 R&F | heroes on Haiku | none |
+| U-NPC-07 | OpenAI moderation usable on non-OpenAI content | builder moderation | M06b1 R&F | Llama Guard only | none |
+| U-NPC-08 | ElevenLabs plan-to-character mapping and rights | t2 voices | M06a4 R&F (Q-20) | t2 off | none |
+| U-NPC-09 | Haiku voice consistency at low effort, thinking off | souls | M06a3 eval harness; M10c | Sonnet for heroes per D-21 | none |
+| U-NPC-12 | cost and limits of `messages.count_tokens` | `npc:lint` L4 | M06a2 R&F | cached per prompt hash; offline estimate | none |
+| U-RAC-1 | Rapier vehicle controller gives per-wheel contacts and takes impulses | 06-racing §2 | M03a2 AC-3 | own `castRay` + `applyImpulse` vehicle | none |
+| U-RAC-3 | independent bodies in one Rapier world do not interact in results | ghosts | M07a2 AC-7 (design) | ghosts are kinematic tracks | none |
+| U-RAC-4 | `takeSnapshot` round trip bit-exact | replay seek | M07b2 AC-3 (logs path) | re-simulate from start | none |
+| U-RAC-5 | PNG save on iPhone | photo mode | M07b2 AC-10 | press-and-hold image | none |
+| U-RAC-6 | cost of `SSRNode`, `MotionBlur`, `LightProbeGrid` at `desktop-ultra` | visuals | M07b2 R&F; M11a2 | flags off | none |
+| U-RAC-7 | device-motion permission in an iOS Home Screen app | tilt steering | M07b2 AC-10 | tilt hidden unless granted | none |
+| U-FGT-1 | PoseLandmarker latency/FPS on iPhone and desktop | pose gate | M08c2 AC-14, AC-15 | `assisted` or `unavailable` | none |
+| U-FGT-2 | tasks-vision 1.1.1 in a classic worker under Vite 8 | pose worker | M08c1 AC-8 | module worker; else `unavailable` | none |
+| U-FGT-3 | Google object path of the `.task` models | vendoring | M08c2 N (operator vendors, DL-236) | pinned size and SHA-256 | none |
+| U-FGT-4 | MediaPipe left/right labels under a mirrored stream | classifier | M08c1 AC-8 | stance and mirrored x only | none |
+| U-FGT-5 | iOS standalone camera reliability on iOS 26/27 | pose | M08c2 AC-14 | freeze detector suggests Safari | none |
+| U-FGT-6 | `captureTime` accuracy on iOS | latency | M08c2 AC-14 | 60 ms constant | none |
+| U-FGT-9 | WebXR camera access on Quest (Q-GD-08) | XR pose | M11b2 N | no pose mode in XR | none |
+| U-TYC-1 | Carta Q1 2025 Series A dilution 17.9 % | term-sheet target | M09a2 (design constant only) | target 18–20 %, band 15–24 % | none |
+| U-TYC-2 | YC two-cap example (≈ 15 %) | TV-2 | M09a1 (self-derived arithmetic) | no test depends on it | none |
+| U-TYC-4 | YC "Company Capitalization" beyond the pool sentence | SAFE conversion | M09a1 | game convention §4 | none |
+| U-UI-1 | browser shape of OS age signals (AB 1043, 2027-01-01) | `AgeSignalProvider` | M14c AC-8 (fake provider) | provider returns `null` | M14b3 gate `age-signals` for a release on or after 2027-01-01 (DL-285) |
+| U-UI-2 | system keyboard inside an immersive session | XR text entry | M11b3 N | flat-only text entry (DL-142) | none |
+| U-UI-3 | Preact 11.0.1 bundle size and iOS runtime cost | shell | M04b1 | `check:bundle` budget | none |
+| U-UI-4 | forum list `sort` values and `q` on route 38 | forum UI | M13b4 | `sort` only | none |
+| U-UI-5 | `<a download>` of `.dvsave` in iOS standalone | saves page | M11a2 iPhone run (N) | page tells the player to export from a Safari tab | none |
+| U-UI-6 | minimum text angle 1.5° and XR panel pixel/count budgets | XR panels | M11b3 N | S11 starting values | none |
+| U-UI-7 | UI frame, node-count and latency budgets (†) | 10-ui §2.7 | M04b1; M11a2 | starting values | none |
+| U-UI-8 | `visualViewport` keyboard avoidance in iOS standalone | pages | M11a2 iPhone run (N) | single column, sticky action bars | none |
+| U-UI-9 | colour-vision-deficiency simulation algorithm | palette CI | M04b2 (chosen, logged) | threshold never lowered | none |
+| U-MOD-1 | QuickJS per-tick cost on iPhone and Quest | script tier | M13a4 AC-11 | script tier off on `mobile-low` (DL-147) | none |
+| U-MOD-3 | renderer-process separation of sandboxed same-site frames | UI mods | M13a5 AC-9 notes | L2 panels first; `mods.ui` off | none |
+| U-MOD-4 | Chrome Local Network Access gates WebSockets to 127.0.0.1 | `dv mod dev` | M13a6 R&F; M14b3 | local `pnpm dev` path | none |
+| U-MOD-5 | `@dv` npm scope available | Q-22 | M13c3 (npm step) | tarballs | none |
+| U-MOD-6 | ChatGPT plan usage covers a local Studio calling our API | flow A | M13a6 | flow A documented, no program; flow B scheduling is Q-38 | none |
+| U-MOD-7 | Ajv runtime codegen in Workers | validators | M13a1 | build-time standalone code | none |
+| U-MOD-8 | incremental SHA-256 beside `sha256Hex` | archive scan | M13c2 R&F | stream entries; `review` above measured size | none |
+| U-MOD-9 | `gltf-validator`, `ktx validate` in a Worker | publish scan | M13c2 | scan Container | none |
+| U-MOD-10 | offline SF geocoder export from `tools/map` | `world.find_place` | M13b2; M13a6 | `not_available` | none |
+| U-MOD-12 | residential land-use attribute in DataSF Parcels | anchor rules | M13b2; M13c2 | polygon rule plus human review | none |
+| U-QA-3 | Node 22 global `WebSocket` without a flag | load bots | M12c2 AC-10 | `ws` package | none |
+| U-QA-4 | two load-bot locations land in distinct PoPs | load test | M12c2 AC-10 | operator machine as second site | none |
+| U-QA-5 | `ip:similarity` tool and licence | clean room | M14b3 AC-7 | SKIP; blocks `public-repo` only | none |
+| U-QA-6 | required reviewers and environment secrets on the repo's GitHub plan | prod deploys | M00a (deploy.yml) | tag-only prod, allowlisted actor | none |
+| U-QA-7 | Metal on standard macOS runners | CI | M00d nightly (informational) | no macOS project | none |
+| U-QA-8 | `_headers` applied on Preview URLs | preview checks | M00 AC-14 | `serve-dist.ts` locally; report Blocked | M00 AC-14 (F-1) |
+| U-BLD-1 | `wrangler dev` applies `_headers` locally | M00 R&F | M00 (Builder decision) | `tools/ci/serve-dist.ts` on 8788 | none |
+| U-BLD-2 | Workers Vitest pool loads M00a's config | M00a R&F | M00a | plain Node Vitest with a fake `env` | none |
+| U-BLD-3 | bitECS 0.4.0 id start and recycling order | M01a1 R&F | M01a1 | sentinel entity; own `Gen` store | none |
+| U-BLD-4 | Rapier 0.21.0 `init()` shape, heightfield order, KCC `computeColliderMovement`/`computedGrounded` | M01a2, M01b1 R&F | M01a2; M01b1 (typings) | cast-and-slide over `castSphere` | none |
+| U-BLD-5 | R2 bucket-creation and CORS command syntax | M01d R&F | M01d runbook | dashboard path | none |
+| U-BLD-6 | versions outside the ledger (`eslint`, `tsx`, `ajv`, `@cloudflare/vitest-pool-workers`, `@axe-core/playwright`) | CLAUDE.md "Facts" | M00, M00a, M04b1 record resolved versions in `spec/03` | what pnpm resolves | none |
 
-Each domain lists its items with the default it uses and the verifying milestone in its own spec; no item appears in an acceptance criterion. Counts from `spec/.waves234-returns.json`.
+## 3. Aliases and closed ids
 
-| Domain | Items | Listed in | Highest-impact items (default) |
-|---|---|---|---|
-| S02 world | 14 | `02-world.md` §10 | Geofabrik/Overpass routes (pinned raw snapshot); SPDX `ODbL-1.0`/`PDDL-1.0` strings; per-pack GET speed without a batch route (M02b1 measures); bake and meshing budgets † |
-| S03 story | 8 (U-S03-1…8) | `03-story.md` §7 | keyframe identity across clips (M00c, M08b2); Safari MSE gaps and Low Power Mode video (M04c); C08 route snap inside the load budget (M05a1) |
-| S04 NPC | 12 (U-NPC-01…12) | `04-npc.md` §7 | Haiku TTFT and unbuffered SSE through AI Gateway (M06a3); structured-output streaming; ElevenLabs plan terms (Q-20) |
-| S06 racing | 8 (U-RAC-1…8) | `06-racing.md` §7 | Rapier per-wheel contact and impulses (M03a2 spike); deterministic tick cost; SSR/motion-blur cost (M11a) |
-| S07 fighter | 11 | `07-fighter.md` §7, `07-fighter-pose.md` FP11 | PoseLandmarker latency on iPhone (M08c2 device gate); classic-worker packaging under Vite 8; biometric reading (Q-23) |
-| S08 tycoon | 5 (U-TYC-1…5) | `08-tycoon.md` §7 | Carta dilution figure (design target only); Haiku TTFT (M06a3); U-TYC-5 resolved by DL-139 |
-| S10 UI | 15 | `10-ui.md` §10 | Turnstile under COEP (M12a); OS age signals (2027); system keyboard in XR (flat-only, DL-142); Preact cost (M04b1) |
-| S12 modding | 12 (U1…U12) | `12-modding.md` §10 | QuickJS cost on iPhone/Quest (M13a4); srcdoc iframe under COEP (M13a5); `@dv` npm scope (Q-22); Supabase GitHub OAuth beside TPA (M13c1, DL-145) |
-
-## 4. Wave 5 additions — network surface (`spec/05-api-and-realtime.md`)
-
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-API-1 | Full CSP directive set (`'wasm-unsafe-eval'`, `worker-src blob:`, `report-to`) on Safari 26, Quest Browser and visionOS Safari; the mod UI `srcdoc` frame under this CSP and COEP (also S12 U2) | CSP ships Report-Only from M05b1 and becomes enforcing at M14b only after a clean report period; the mod frame keeps its own `<meta>` CSP | M05b1 (Report-Only run on staging), M13a5 (frame), M14b (enforce) |
-
-
-## 5. Wave 5 additions — decisions and ADRs (`docs/decisions/`)
-
-| Q | Question | Default applied (2026-10-18) | Blocks | Source |
-|---|---|---|---|---|
-| Q-30 | Send the written clearance questions of ADR-GENAI-01 (`research/gap-video-model-licence-clearance.md` §9) to fal and MiniMax, and file MiniMax's excluded-territory request (`platform.minimax.io/h3-license`)? Who sends them and who stores the answers under `docs/legal/`? | Not sent. No video provider is `cleared`; production calls stay blocked, the pipeline runs on mocks and the `previs` environment, and cutscene hooks play the in-engine fallback (a fallback-only M05c2 release) | live production video calls (M05b1 live mode, M05c3 prewarm, M08b2 and M10b clip generation); development and CI are unaffected | ADR-GENAI-01 gate G1, Q-03 |
-
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-ADR-01 | Supabase Auth GitHub provider (`supabase-oauth`) beside our Third-Party Auth issuer on one project; and whether OpenAI grants the website sign-in program (`AUTH_OPENAI_WEB`) | Public publishing waits for M14a; staging and private-to-owner publishing meanwhile (ADR-0018, DL-207) | M13c1 |
-| U-ADR-02 | Input-to-input latency of a Durable Object relay for 60 Hz fight input | No online fighter; ADR-0028 stays `proposed` and C11 is unchanged (DL-204) | M12c load test |
-
-## 6. Wave 5 additions — milestone reconciliation (`spec/11-decision-log-2.md` DL-218…DL-244)
-
-| ID | Item | Default while unverified | Verified in |
-|---|---|---|---|
-| U-REC-1 | VP9 decode of the fixture clips in Playwright's Chromium and WebKit builds (codec support is not in the ledger) | fixtures are VP9 with a canvas-source fallback; AC commands are unchanged (DL-232) | M04c (records it) |
-| U-REC-2 | Chromium actually delivering a crash report from a real crash to the `crash-reporting` group of route 4 (the group and `body.reason` values are research-backed) | the endpoint is declared and unit-tested; delivery is a device observation | M11a2 desktop pass (records it; DL-224) |
+- **Merged U-ids** (old → kept): U-ENG-7, U-NPC-10 → U-AST-1 · U-AST-6 → U-BE-3 · U-AST-12 → U-BE-10 · U-NPC-11 → U-AST-9 · U-RAC-2 → U-ENG-2 · U-RAC-8 → U-ENG-5 · U-S03-5 → U-PLT-17 · U-FGT-7 → U-AST-17 · U-FGT-8 → U-ADR-02 · U-FGT-10 → U-AST-16 · U-FGT-11 → Q-23(b) · U-TYC-3 → U-NPC-01 · U-QA-1 → U-PLT-19 · U-QA-2 → U-BE-20 · U-TYC-5 closed by DL-139.
+- **Bare ids:** S05 `Un` = U-AST-n and S09 `Un` = U-BE-n (U-BE-8 never existed); S12 `Un` = U-MOD-n except U2 → U-API-1 and U11 → U-BE-9. In milestone prose, bare `U7`, `U9`, `U14` in M10a1/M10c are S05; `U1`, `U4`, `U7`, `U10` in M13a1–M13a6 are S12. S02 return items 12–14 → U-W12, U-W13, U-MOD-12. S10 (`10-ui.md` §10 and return) items 1 → U-BE-2, 2 → U-BE-16, 5 → U-ENG-5, 6 → U-PLT-15, 12 → U-RAC-7, 15 → U-PLT-13; 3, 4, 7, 8, 9, 10, 11, 13, 14 → U-UI-1…9 in that order. S13 U-QA-1…8 as above. M12c2's Node `WebSocket` → U-QA-3; M01e's iOS OPFS eviction → U-PLT-16.
+- **Moved to owner questions:** Q-S11-01 → Q-13 · Q-S05-03, DN-S05-2 → Q-14 · Q-BE-08, Q-CI-01, Q-CI-02 → Q-15 · Q-BE-07 → Q-16 · Q-S05-02, DN-S05-4 → Q-17 · Q-S05-05 → Q-18 · Q-S06-03, DN-S06-02, Q-S07-2 → Q-23 · Q-S12-04, DN-S12-04, Q-MOD-03 → Q-22 · Q-S05-01 → Q-30 · Q-CI-03 → Q-31 · Q-CI-04 → Q-32 · Q-CI-06 → Q-33 · Q-CI-07 → Q-34 · Q-MAP-06 → Q-35 · Q-S07-5 → Q-36.
+- **Closed by decisions** (`spec/11-decision-log.md` §B unless named): Q-ENG-01 → U-ENG-2; Q-ENG-02 → U-ENG-1; Q-ENG-03 → U-ENG-4 (DL-052); Q-ENG-04, Q-MOD-06, Q-S12-08 out of v1 (D-S01-07); Q-ENG-05 hands-only (D-S01-06, ADR-0027); Q-ENG-06 48-minute day (D-S01-04); Q-ENG-07 → U-ENG-5; Q-ENG-08 → U-ENG-3 (ADR-0029); Q-BE-01, Q-BE-03, Q-BE-04, Q-BE-06, Q-BE-09 settled; Q-BE-02 → U-BE-1 fallback; Q-BE-05 → U-BE-2; Q-S05-04 → U-AST-17; Q-MAP-01, Q-MAP-03 DL-112; Q-MAP-02 DL-106; Q-MAP-04 DL-107; Q-MAP-05 DL-105; Q-MAP-07 → U-MOD-12; Q-MAP-08 DL-111; Q-S06-01 moot (Q-07 Premise A); Q-S06-02 DL-124; Q-S06-04 DL-122; Q-S07-1, Q-S07-3, Q-S07-4 → U-FGT-2, U-FGT-5, U-FGT-6; Q-S08-01 DL-138; Q-S12-01 DL-145 (→ U-ADR-01), Q-S12-02 DL-146, Q-S12-03 DL-147, Q-S12-05 DL-148, Q-S12-06 DL-149, Q-S12-07 DL-150; Q-GD-06, Q-GD-07 → Q-06 and DL-124; Q-GD-08 → U-FGT-9; Q-GD-09 DL-134; Q-CI-05 closed (M00a: 0 % smoke → 100 %, gradual from M12a1); every DN-S0x/DN-S1x by DL-105…DL-154 and DL-208…DL-214.

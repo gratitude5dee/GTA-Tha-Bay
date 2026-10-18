@@ -48,7 +48,7 @@ The main menu's **Community** gains a working **Forum**. Players browse boards, 
 ## Deliverables
 - `packages/ui/src/pages/forum/{BoardsPage,ThreadListPage,ThreadPage,ComposePage,PostView,VoteButtons,LinkedCard,GateNotice,api,poller,index}.tsx|ts`.
 - `packages/ui/src/pages/community/` (Forum tab wired in; the existing Coming-soon stub replaced for this tab).
-- `packages/ui/src/i18n/en/forum.json`; `PageId` additions.
+- `content/ui/i18n/en.json` keys `forum.*` (DL-222, DL-247); `PageId` additions.
 - Tests: `packages/ui/src/pages/forum/forum.spec.ts` (poller visibility, state rendering, gate mapping, `q` validation), `packages/ui/test/report-everywhere.spec.ts` (extended), `tests/e2e/ui-forum.spec.ts` (`@ui-forum`); API fixtures `tests/e2e/fixtures/forum/*.json` shaped by the M13b1 DTOs and served by Playwright route interception.
 - `eslint.config.js`: `no-inner-html` scope confirmed for `packages/ui/src/pages/forum`.
 - Secrets: none.

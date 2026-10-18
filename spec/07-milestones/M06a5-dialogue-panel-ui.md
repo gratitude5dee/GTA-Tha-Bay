@@ -22,10 +22,10 @@ Talking to an NPC has a real interface that replaces the M06a3 debug overlay. `D
 - **`LikenessCard`:** when `npcRelations[id].met` is false and `disclaimer ≠ 'none'`, show the §5.10 text for `parody`, `fictional` or `courtesy` once, before the first line. It is then marked met through the existing `talk` path; never write C05 from the UI directly.
 - **`ReportButton`** inside the panel posts `ReportReq {target:{kind:'chat_turn', id:'<encounterId>:<turnIndex>'}, category}`. It renders only when `dialogueCapabilities.reports` is true (`packages/ui/src/dialogue/capabilities.ts`, default `false`; M06b2 sets it). The `UgcSurface` lint already accepts the panel because the component is present.
 - **Subtitles:** each line (model or ink) is patched as `hud.subtitle {speaker, text, startMs, endMs}`, and each cue stays up for at least `max(1.5 s, 0.06 s × chars)`.
-- Platform: phone-sized panel layout on the bottom half and a desktop side panel. XR bubbles are out of scope (M11b2).
+- Platform: phone-sized panel layout on the bottom half and a desktop side panel. XR bubbles are out of scope (M11b3).
 
 ## Scope out
-- The visible report flow and route 41: M06b2. NPC builder screens: M06b3. XR bubble and head-locked caption: M11b2/M11b3.
+- The visible report flow and route 41: M06b2. NPC builder screens: M06b3. XR bubble: M11b3.
 - Producing the asynchronous crisis signal (M06b1 sets it; M06a3 carries it).
 
 ## Deliverables

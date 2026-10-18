@@ -24,7 +24,9 @@ After this session Act 1 is complete and hosted: the v1 vertical slice (A-06, VS
 - Save and resume e2e `tests/e2e/story-resume.spec.ts` (`@story`, `webkit-webgl2` and `chromium-webgl2`): checkpoint resume mid-mission; pass m.a1.03 under the autoplayer, reload, continue; Racing tile unlocked-and-`comingSoon`, Fighter locked until m.a1.05, Tycoon locked.
 - Econ: Act 1 section covers all 12 missions.
 - Device checklists `tools/ci/checklists/M05c2-{iphone15,mac}.json`: missions 1–3 with touch (iPhone, Home Screen, `mobile-low`) and keyboard/pad (Mac, Safari and Chrome); one beat on each path; reload resume.
-- Staging: merge triggers `deploy.yml` to `tha-bay-web-staging`; the report records the staging URL and the `check:smoke` result (R-ROLL-01 gate for M12b1).
+- Staging: merge triggers `deploy.yml` to `tha-bay-web-staging`; the report records the staging URL and the `check:smoke` result (R-ROLL-01 gate for M12b1). After the ACs pass on staging, the Builder commits `docs/staging-runs/M05c2/report.json` in the shape of M00d's `check:rollout` (every AC id with its result), which opens the rooms branches.
+- Story fast travel (R-MAP-03 "where the story allows"; DL-292) in `packages/modes/story/src/fast-travel-policy.ts`, registered as the M02c1 `TeleportPolicy` while story mode runs: a `fast-travel` request is allowed only outside a mission stage or beat, and only when the target's district (`WorldApi.query` district lookup) is in the `grants.districts` of an unlocked `UnlockDef` (`unlock.district.dN`, defined in M05c1); otherwise it returns `forbidden-in-mode` with `story.fastTravel.locked` or `story.fastTravel.inMission`. No contract change: the rule reads existing `UnlockApi` and `UnlockDef.grants.districts`.
+- Phone Messages app (`packages/ui/src/phone/messages.tsx`, replacing the M04b2 `comingSoon` tile): read-only threads per sender showing the `text` op lines of the session (sender name from the cast table, text from `lines.en.json`) and one offer per available mission whose `giver` is `{phone}`, which opens Jobs on that mission.
 
 ## Scope out
 - Paid prewarm of the nine refs (≤ $16, ADR-GENAI-01 `cleared`, `FAL_KEY`): M05c3. Ink and LLM talk: M06a3, M10c. Act 2: M05e1.
@@ -34,7 +36,8 @@ After this session Act 1 is complete and hosted: the v1 vertical slice (A-06, VS
 - `content/missions/m.a1.{07..12}/` (mission, lines, director), `content/story/act1/cutscene-refs.ts` (rest), `content/story/sensitivity.json`, `content/cutscenes/{plates.lock.json, places.json, beats.lock.json}` (entries).
 - `tools/assets/plates/{cli.ts, render.ts}`, root script `assets:plates`; `assets/src/data/cutscene-index/*` (Act 1); `services/edge/src/generated/cutscene-catalog.json`.
 - `packages/modes/story/src/compiler/sensitivity.ts`, `packages/modes/story/test/sensitivity.test.ts`; `.github/workflows/deploy.yml` (production step).
-- `tests/perf/scenarios/story-chase.ts`, `tests/e2e/story-resume.spec.ts`, `tools/ci/checklists/M05c2-{iphone15,mac}.json`, `config/econ-bands.json` (`act1` full).
+- `packages/modes/story/src/fast-travel-policy.ts`, `packages/modes/story/test/fast-travel.test.ts`; `packages/ui/src/phone/messages.tsx`, `packages/ui/test/messages.test.tsx`.
+- `tests/perf/scenarios/story-chase.ts`, `tests/e2e/story-resume.spec.ts`, `tools/ci/checklists/M05c2-{iphone15,mac}.json`, `config/econ-bands.json` (`act1` full); `docs/staging-runs/M05c2/report.json` (after the staging pass).
 
 ## Interfaces
 - C09 1.0 and C05 1.1 as defined; `story-chase` is the C13 1.1 `PerfScenario.id` registered by S03. No shape change.
@@ -50,10 +53,12 @@ After this session Act 1 is complete and hosted: the v1 vertical slice (A-06, VS
 - AC-8 Given an iPhone 15 Home Screen app on the staging URL at `mobile-low` When the operator plays missions 1–3 with touch, reloads during mission 2 and finishes Then each mission passes, the resume lands on the checkpoint, beats play with subtitles, and `perf.json` passes the judge — proof: manual: iPhone 15, steps in `tools/ci/checklists/M05c2-iphone15.json`, commit `docs/device-runs/M05c2/iphone15/`; then `pnpm perf:verify -- docs/device-runs/M05c2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M05c2-iphone15.json`
 - AC-9 Given an Apple Silicon Mac (Safari and Chrome) on the staging URL When the operator plays missions 1–3 with keyboard and a gamepad Then each passes and `notes.json` records the beat paths and any fallback triggers — proof: manual: desktop Mac, steps in `tools/ci/checklists/M05c2-mac.json`, commit `docs/device-runs/M05c2/mac/`; then `pnpm perf:verify -- docs/device-runs/M05c2/mac/perf.json --tier desktop --checklist tools/ci/checklists/M05c2-mac.json`
 - AC-10 Given the twelve missions When the name and likeness gates and the build run Then they pass and the preview deploys — proof: `pnpm names:lint && pnpm likeness:gate && pnpm build && pnpm deploy:preview`
+- AC-11 Given story mode with `unlock.district.d3` only When `fast-travel` targets a D3 node outside a mission, a D1 node, and a D3 node during an active stage Then the first lands, the second and third return `forbidden-in-mode` with `story.fastTravel.locked` and `story.fastTravel.inMission`, and the player is unmoved for both refusals — proof: `pnpm check:unit -- packages/modes/story`
+- AC-12 Given a mission run that executes one `text` op from `x_ramos` and an available `m.a1.02` with `giver: {phone: 'x_ramos'}` When the Messages app renders Then the `x_ramos` thread shows the line text and the offer, and activating the offer opens Jobs on `m.a1.02` — proof: `pnpm check:unit -- packages/ui`
 
 ## Test plan
 - Bot runs: `pnpm check:missions -- --act 1` (local bake; nightly CI), `pnpm check:balance -- --suite econ`.
-- Unit: `story/sensitivity`, index carry-over over the Act 1 refs. E2E: `@story` on `webkit-webgl2` (required) and `chromium-webgl2`.
+- Unit: `story/sensitivity`, `story/fast-travel`, `ui/messages`, index carry-over over the Act 1 refs. E2E: `@story` on `webkit-webgl2` (required) and `chromium-webgl2`.
 - Perf: `story-chase` (warn on PRs, fail nightly). Deployed: `check:smoke` on staging. Device: `M05c2-iphone15`, `M05c2-mac`.
 
 ## Demo script
@@ -64,7 +69,7 @@ After this session Act 1 is complete and hosted: the v1 vertical slice (A-06, VS
 5. `pnpm missions:build -- --release`: fails on the D3/D4 missions until the read is recorded.
 
 ## Effort
-1 session; ≈ 36 files (18 are mission, lines and director files); risk medium (bot robustness in pursuit stages; plate rendering on SwiftShader).
+1 session; ≈ 40 files (18 are mission, lines and director files); risk medium (bot robustness in pursuit stages; plate rendering on SwiftShader).
 
 ## Risks & fallbacks
 - `assets:plates` cannot render on the runner or locally (no WebGPU adapter): render on the operator's Mac with `chromium-webgpu` settings, commit only `plates.lock.json`; the index and AC-4 use the lock. If no plate exists for a ref, its `inputHashes` omit the plate and the report lists it (the key changes when a plate is added later).

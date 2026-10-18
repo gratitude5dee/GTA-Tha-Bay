@@ -21,7 +21,7 @@ After this session the M01a1 core runs inside `sim.worker` with Rapier physics, 
 ## Scope in
 - **`PhysicsBackend`**, exactly as in `01-engine-contracts.md` "Engine service interfaces", backed by `@dimforge/rapier3d-simd-compat@0.21.0` (profile `local`) or `@dimforge/rapier3d-deterministic-compat@0.21.0` (profile `canonical`). Rules:
   - the build is chosen by dynamic import, one per session;
-  - `init()` retries three times with jittered backoff, then rejects with `PhysicsInitError {attempts}`.
+  - `init()` retries three times with jittered backoff, then rejects with `PhysicsInitError {attempts}`. The factory `createRapierBackend({ profile, load, sleep, jitter })` takes the build loader, `sleep(ms)` and the jitter source `() => number` as injected functions, so the retry loop in `src/sim/physics/` uses no timer and no `Math.random` (`init()` keeps the interface signature). The browser and Node implementations of all three live in `src/host/physics/load-build.ts`; tests inject an immediate `sleep` and a fixed jitter.
   Implemented now: `init`, `origin`, `rebase`, `step`, `add/removeChunkStatics` (heightfield and prisms from `StaticShapeSet`), `createBody`, `removeBody`, `readBody`, `setKinematicTarget`, `applyImpulse`, `snapshot`/`restore` (Rapier `takeSnapshot`/`restoreSnapshot`, F-014). `character`, `vehicle`, `castRay` and `castSphere` throw `NotImplementedError` naming M01b1 (casts, character) or M03a1 (vehicle).
 - **Floating origin:**
   - ECS positions are f64 ENU and Rapier works in f32 around `origin`;
@@ -33,7 +33,7 @@ After this session the M01a1 core runs inside `sim.worker` with Rapier physics, 
   - `PhysicsPost`: read back `Transform`/`Velocity`, with f32 widened to f64 deterministically.
   `BodyRef` links ECS and Rapier.
 - **`config/physics.json`** (gravity, solver iterations, collision groups) with a JSON Schema.
-- **Transport** (`packages/engine/src/sim/transport/`):
+- **Transport** (pure buffer layouts in `packages/engine/src/sim/transport/`; the `Worker`, `MessagePort` and `Atomics.waitAsync` wiring in `packages/engine/src/host/transport/`):
   - every message is `{ v: 1, t, seq, p }`, with type guards used on both sides;
   - input block: an `Int32Array` with `Atomics.or` for pressed and released edges on main, and `Atomics.exchange` per tick in the worker, so sub-tick taps reach exactly one tick (C03 rule 2);
   - command ring (SPSC, main → worker);
@@ -41,7 +41,7 @@ After this session the M01a1 core runs inside `sim.worker` with Rapier physics, 
   - event ring (worker → main); on overflow it drops the event and counts `dropped`, never blocking;
   - wake-ups through `Atomics.notify`/`Atomics.waitAsync`;
   - `postMessage` fallback with transferable buffers and the same message types.
-- **`SimHost`** (C02) over `SimCore`: `start`, `frame`, `stepOnce`, `restart` (which terminates and respawns the worker with the other build), `stats`, `dispose`. `SimControlMessage` is handled outside ticks; `save.request` replies `{ t: 'save.result', ok: false, reason: 'not-implemented' }` until M04a.
+- **`SimHost`** (C02, `packages/engine/src/host/sim-host.ts`) over `SimCore`: `start`, `frame`, `stepOnce`, `restart` (which terminates and respawns the worker with the other build), `stats`, `dispose`. `SimControlMessage` is handled outside ticks; `save.request` replies `{ t: 'save.result', ok: false, reason: 'not-implemented' }` until M04a.
 - **`sim.worker.ts`** bootstrap and **`bootEngine()`** on the main thread:
   - isolation check and transport choice;
   - a `FrameSignal` on every rAF;
@@ -69,9 +69,9 @@ After this session the M01a1 core runs inside `sim.worker` with Rapier physics, 
 - `packages/engine/package.json`:
   - deps `@dimforge/rapier3d-simd-compat@0.21.0`, `@dimforge/rapier3d-deterministic-compat@0.21.0`, `three@0.186.1` (if M00 has not added it);
   - script **`bench:physics`** → `packages/engine/bench/physics-builds.ts`, which writes `packages/engine/bench/results/physics-builds.json`.
-- `packages/engine/src/sim/physics/{backend.ts, rapier-backend.ts, load-build.ts, origin.ts, groups.ts, systems.ts}`.
-- `packages/engine/src/sim/transport/{envelope.ts, input-block.ts, command-ring.ts, snapshot-buffer.ts, event-ring.ts, sab-transport.ts, pm-transport.ts, index.ts}`.
-- `packages/engine/src/sim/sim-host.ts`, `packages/engine/src/sim/input/bot-input.ts`, `packages/engine/src/workers/sim.worker.ts`.
+- `packages/engine/src/sim/physics/{backend.ts, rapier-backend.ts, origin.ts, groups.ts, systems.ts}`.
+- `packages/engine/src/sim/transport/{envelope.ts, input-block.ts, command-ring.ts, snapshot-buffer.ts, event-ring.ts, index.ts}`.
+- `packages/engine/src/host/{sim-host.ts, physics/load-build.ts, transport/{sab-transport.ts, pm-transport.ts}}`, `packages/engine/src/sim/input/bot-input.ts`, `packages/engine/src/workers/sim.worker.ts`.
 - `packages/engine/src/client/boot/boot-engine.ts`, `packages/engine/src/client/snapshot/{reader.ts, interpolate.ts, object-pool.ts}`, `packages/engine/src/client/debug/bridge.ts`.
 - `packages/engine/test/{physics.backend.spec.ts, physics.rebase.spec.ts, physics.snapshot.spec.ts, physics.retry.spec.ts, transport.spec.ts, interpolate.spec.ts}`, `test/fixtures/world-boxes.ts`, `test/scenarios/physics-drop.ts`, `test/golden/determinism.physics-drop.json`; extend `determinism.node.spec.ts`.
 - `config/physics.json` and `config/schemas/physics.schema.json`.
@@ -130,7 +130,7 @@ After this session the M01a1 core runs inside `sim.worker` with Rapier physics, 
   - `Atomics.waitAsync` is in Safari 16.4 and SAB needs COOP/COEP [research/repos-webport.md §6].
   - F-062: WebKit on Linux lacks `navigator.gpu`, so `webkit-webgl2` always runs WebGL2.
 - Assert `transport === 'sab'` only on Chromium projects. WebKit isolation in Playwright on Linux is not in the ledger.
-- The worker never imports `three`, so keep `src/workers/sim.worker.ts` importing only `src/sim/**`. The lint and `tsconfig.sim.json` from M01a1 apply to `src/sim/**`.
+- The worker never imports `three`, so keep `src/workers/sim.worker.ts` importing only `src/sim/**` and `src/host/**`, never `src/client/**`. The lint and `tsconfig.sim.json` from M01a1 apply to `src/sim/**`. `src/host/**` holds the IO those rules ban there (timers, `Worker`, `MessagePort`, `Atomics.waitAsync` from the ES2024 lib, jitter randomness); `packages/engine/tsconfig.json` type-checks it with `lib` ES2024 or later, and nothing under `src/sim/**` imports it.
 - Views over a `SharedArrayBuffer` survive `await`s, but rebuild them after any transport re-creation (11-platform §5.9).
 - Order of work: backend in Node → physics-drop determinism in Node → transports in Node → worker + boot → client view → QA page + e2e → `verify:dist`.
 - Secrets: none for code. `pnpm deploy:preview` uses `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` from CI (M00). Locally without them, stop at `pnpm build && pnpm --filter @dv/web verify:dist`.

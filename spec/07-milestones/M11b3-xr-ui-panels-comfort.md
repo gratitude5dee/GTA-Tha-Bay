@@ -1,15 +1,17 @@
 # M11b3 — xr-ui-panels-comfort
 
 ## Goal
-After this session the game's UI works inside the headset. S10's `UiSurface` draws `ScreenDef` pages with Canvas 2D into S11's `XrPanels`: crisp quad and cylinder layers on Quest, textured planes on Vision Pro. The anchors follow the spec: world-locked for Pause, mode select, settings, load and saves; lazy-follow for subtitles, toasts, tips and the comfort card; the non-dominant wrist for the phone home, the glance panel and Exit VR. A player-facing **Enter VR** button on the main menu and in Settings › Graphics starts the session from its click handler. The first entry shows the comfort card (locomotion, vignette, seated, height calibration). Comfort settings can be edited in XR. Pages that need text entry or the flat screen show an "Exit VR to continue" panel (DL-142). Per-mode XR panels follow in M11b2 and M11b4.
+After this session the game's UI works inside the headset. S10's `UiSurface` draws `ScreenDef` pages with Canvas 2D into S11's `XrPanels`: crisp quad and cylinder layers on Quest, textured planes on Vision Pro. The anchors follow the spec: world-locked for Pause, mode select, settings, load and saves; lazy-follow for subtitles, toasts, tips and the comfort card; the non-dominant wrist for the phone home, the glance panel and Exit VR. A player-facing **Enter VR** button on the main menu and in Settings › Graphics starts the session from its click handler. The first entry shows the comfort card (locomotion, vignette, seated, height calibration). Comfort settings can be edited in XR. NPC dialogue shows as a diegetic bubble above the speaker with intent chips, the AI badge and the safety and likeness cards. Pages that need text entry or the flat screen show an "Exit VR to continue" panel (DL-142). Per-mode XR panels follow in M11b2 and M11b4.
 
 ## Requirements
 - R-PLAT-02: the XR port gets a usable in-headset UI (menus, phone, settings, comfort) without a screen-space HUD.
 - R-UI-02: the XR comfort settings are editable in the headset as well as on the flat Settings page, and persist with the profile.
+- R-NPC-05 (XR half): AI dialogue in the headset keeps the persistent AI badge, the safety card and the likeness disclaimer [research/INDEX.md §4 rule 19], and every talk step completes with intents alone (`04-npc.md` §6).
 - R-ENG-04: comfort defaults, text of at least 1.5° of visual angle, 64 px targets, no head-locked UI, no hover dependence, and no animated motion when reduced motion is on.
 
 ## Depends on
 - **M11b1** (`XrSessionController`, the "XR armed" state, `XrPanels` with registration, ray picking, `XrInputRouter`).
+- **M06a5** (`DialogueBubble`, `IntentChoices`, `SafetyCard`, `LikenessCard`, the dialogue session and its `hud.subtitle` feed).
 - Also used: M04b1 (shell, menus, Settings pages, focus navigation, i18n, `check:i18n`), M04b2 (`UiSurface` skeleton, phone and pause registry, HUD view-model keys, wrist and glance data), M04a1 (C05 `ProfileSettings.xr`).
 - Contracts: C13 1.1.0 (`XrPanels`, `XrPanel`, `XrComfortSettings`), C06 1.1.0 (`UiBridge`, `ViewModelSource`, `UiCommand` `save.settings` and `pause`), C05 1.1.0 (`ProfileSettings.xr & {heightCalibM}`).
 
@@ -32,6 +34,10 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
   - Values are saved through `UiCommand {t:'save.settings'}`.
   - Vision Pro with hand tracking denied shows "Hand tracking is off — gaze and pinch still work".
 - **Settings in XR.** Settings › Comfort renders as a world panel that edits every `XrComfortSettings` field within its ranges. Settings › Controls › VR shows the XR bindings read-only; capture-based remap is M11b2's.
+- **NPC dialogue in XR** (`10-ui-hud-xr.md` HUD in XR: "NPC dialogue → bubble above the NPC with the AI badge"; `04-npc.md` §6):
+  - A `ScreenDef` for M06a5's `DialogueBubble`, drawn through `UiSurface` on a diegetic panel above the speaker's head (yaw-facing the player, world-placed, never head-locked). It reuses M06a5's dialogue session; nothing in the dialogue flow changes.
+  - It carries the intent chips as 64 px targets selected by ray or pinch. There is no free text in XR (DL-142). It also carries the persistent AI character badge for the whole exchange, the safety card (M06a5 trigger rules) and the first-meet `LikenessCard`.
+  - The streamed line's subtitle goes to the lazy-follow bar through `hud.subtitle`.
 - **Flat-only pages (DL-142).** Creator, NPC builder, forum, experiences and mods, legal, help, account, and the age and terms screens are not rendered in XR. Navigating to one shows an exit panel, "This page needs the flat screen. Exit VR?", with Exit and Stay.
 - **Motion.** Camera shake, FOV effects and animated panel motion are off in XR. Fades are ≤ 300 ms, and 0 with reduced motion.
 - **Device rows (not run here).** Legibility at 1.2 m, ray and pinch selection, wrist glance, the comfort card, the exit panel, Enter VR from a click and the hand-tracking denial card run as rows of M11b4's `M11b4-{quest3,visionpro}` checklists (DL-229).
@@ -39,20 +45,20 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
 ## Scope out
 - Racing, fighter and tycoon XR panels, and the XR remap capture (M11b2, M11b4).
 - The XR cutscene skip and subtitle layer under the cinema screen (M11b4, with `XrMediaHost`).
-- NPC speech bubbles in XR (the dialogue panel of M06a5 stays flat). A system keyboard in XR (flat-only, DL-142).
+- A system keyboard in XR (flat-only, DL-142).
 - Accessibility-tree support for canvas panels: a stated limitation (`10-ui-hud-xr.md` §2.13 item 11).
 
 ## Deliverables
-- `packages/ui/src/xr/{surface.ts, draw.ts, widgets.ts, anchors.ts, wrist.ts, glance.ts, comfort-card.ts, exit-panel.ts, enter-vr.tsx, routing.ts}` (10 files).
+- `packages/ui/src/xr/{surface.ts, draw.ts, widgets.ts, anchors.ts, wrist.ts, glance.ts, comfort-card.ts, exit-panel.ts, enter-vr.tsx, routing.ts, dialogue-bubble.ts}` (11 files).
 - Edits: main menu and Settings › Graphics (Enter VR), Settings › Comfort and Controls › VR (XR view), the shell router (flat-only guard).
 - `content/ui/i18n/en.json` keys.
 - `packages/ui/test/{xr-surface.test.ts, xr-anchors.test.ts}`.
-- `tests/e2e/xr/{xr-panel.spec.ts, xr-enter.spec.ts, xr-wrist.spec.ts, xr-comfort-card.spec.ts, xr-flat-only.spec.ts}` (all tagged `@xr` plus their own tag).
-- About 24 files in all.
+- `tests/e2e/xr/{xr-panel.spec.ts, xr-enter.spec.ts, xr-wrist.spec.ts, xr-comfort-card.spec.ts, xr-flat-only.spec.ts, xr-npc.spec.ts}` (all tagged `@xr` plus their own tag).
+- About 26 files in all.
 
 ## Interfaces
 - C13 1.1.0: `XrPanel` (`anchor: 'world' | 'wrist' | 'lazy-follow'`, `draw`, `onRay`), `XrPanels.add/remove/setVisible`, `XrComfortSettings`. The `XrSessionController.enter()` contract (M11b1) is called, not changed.
-- C06 1.1.0 `UiBridge` and `ViewModelSource` (`hud.map`, `hud.wallet`, `hud.mission`, `hud.subtitle`); `UiCommand` `save.settings` and `pause`.
+- C06 1.1.0 `UiBridge` and `ViewModelSource` (`hud.map`, `hud.wallet`, `hud.mission`, `hud.subtitle`) and M06a5's dialogue session (consumed as built); `UiCommand` `save.settings` and `pause`.
 - C05 1.1.0 `ProfileSettings.xr`. No contract change.
 
 ## Acceptance criteria
@@ -73,21 +79,29 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
   - reduced motion sets every fade to 0.
   — proof: `pnpm check:unit -- packages/ui`
 - AC-7 Given the new strings When the i18n report and the name gate run Then no key is missing and no catalog contains the display-name literal — proof: `pnpm check:i18n && pnpm names:lint`
-- AC-8 Given the branch When the production build, dist verification and the preview deploy run Then all pass, and the flat menus' a11y suite stays at zero critical or serious violations — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y && pnpm deploy:preview`
+- AC-8 Given `xr-quest3` with IWER, route 31 intercepted to replay M06a5's `talk-happy.sse`, and Act 1 mission `m.a1.04` at its talk step When the player opens the conversation and picks intent chips only with a controller ray Then all of these hold:
+  - the bubble panel sits above the speaker and is not head-locked;
+  - the AI character badge is visible for the whole exchange;
+  - a `hud.subtitle` cue shows on the lazy-follow bar;
+  - no free-text field exists;
+  - the talk step completes.
+  — proof: `pnpm check:e2e:xr -- --grep @xr-npc`
+- AC-9 Given the branch When the production build, dist verification and the preview deploy run Then all pass, and the flat menus' a11y suite stays at zero critical or serious violations — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y && pnpm deploy:preview`
 
 ## Test plan
 - **Unit:** `xr-surface`, `xr-anchors` (`pnpm check:unit -- packages/ui`).
-- **E2E (`xr-quest3`):** `@xr-panel`, `@xr-enter`, `@xr-wrist`, `@xr-comfort-card`, `@xr-flat-only`; M11b1's `@xr-*` specs stay green. `@xr-enter` also runs on `chromium-webgl2`.
-- **Flat regressions:** `@ui-menus`, `@ui-a11y`.
+- **E2E (`xr-quest3`):** `@xr-panel`, `@xr-enter`, `@xr-wrist`, `@xr-comfort-card`, `@xr-flat-only`, `@xr-npc`; M11b1's `@xr-*` specs stay green. `@xr-enter` also runs on `chromium-webgl2`.
+- **Flat regressions:** `@ui-menus`, `@ui-a11y`, `@npc`.
 - **Device:** none in this milestone (`_PLAN-2.md` row: gate none); the UI rows run in M11b4's device pass (DL-229).
 
 ## Demo script
 1. `pnpm check:e2e:xr` passes.
 2. On a Quest preview: Enter VR from the main menu, complete the comfort card, raise the left wrist, open Phone › Map, then Settings › Comfort, switch to Smooth, and Exit VR from the wrist.
-3. Open the creator from the pause panel and see the "needs the flat screen" panel.
+3. Talk to an NPC in free roam: pick an intent chip on the bubble above the speaker and read the subtitle on the lazy-follow bar.
+4. Open the creator from the pause panel and see the "needs the flat screen" panel.
 
 ## Effort
-0.8 Builder session; about 24 files; risk **medium**. Canvas widget drawing and ray interaction are the main work; the anchors are small.
+0.8 Builder session; about 26 files; risk **medium**. Canvas widget drawing and ray interaction are the main work; the anchors are small.
 
 ## Risks & fallbacks
 - **Text is blurry on Quest scene planes** (when layers are not granted): raise `pixelsPerMetre` for that panel to 1,536 within the 2 MP budget. Record it for the device run.

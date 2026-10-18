@@ -34,21 +34,22 @@ After this session the game streams a whole baked city instead of the four-chunk
 
 ## Deliverables
 - `packages/world/{package.json, tsconfig.json, tsconfig.sim.json, README.md}`, `src/index.ts`.
+- `config/eslint/determinism.mjs`: add `packages/world/src/sim/**` to the C02 lint globs (C02 rule 1 as amended, DL-283); root `typecheck`: append `tsc -p packages/world/tsconfig.sim.json --noEmit` to the explicit chain (M00, M01a1); lint fixture `packages/world/test/fixtures/banned/sim-bans.ts` with test `packages/world/test/lint.bans.spec.ts` (the M01a1 pattern: ESLint with the determinism config over the fixture at a `packages/world/src/sim/` path reports `Math.random`, `Date` and a `three` import).
 - `packages/world/src/sim/streaming/{plan.ts, chunk-store.ts, priority.ts, boot.ts, statics.ts}`.
 - `packages/world/src/client/chunks/{mesher.ts, mesher-job.ts, chunk-renderer.ts, upload-gate.ts, cover-mask.ts, materials.ts}`, `src/client/backdrop/{ring.ts, cards.ts, massing.ts}`, `src/client/world-view.ts` (boot, overlay, bridge, telemetry).
 - `apps/web/src/workers/{sim.worker.ts, asset.worker.ts}` (composition), `apps/web/src/main.ts` (world boot); `packages/engine/src/workers/asset-core.ts` (job registry hook, extracted from M01e's worker).
 - `tools/map/src/stages/{s11-lod.ts, s11-far.ts}`; `config/world/{streaming.json, mesher.json}` + schemas; `config/perf/paths/{walk-civic-center,route-ferry-ocean-beach}.json` (the M01c runner's directory, DL-221); `tools/ci/checklists/M02b1-mac.json` (AC-11; M00d's `perf:verify --auto` needs it for `docs/device-runs/M02b1/mac/perf.json`).
 - `packages/shared/schemas/telemetry/names.schema.json` (`world.stream`).
-- Tests: `packages/world/test/{streaming.priority.spec.ts, streaming.uploadgate.spec.ts, streaming.plan.spec.ts, mesher.spec.ts, statics.spec.ts, boot.spec.ts}`, `tools/map/test/stage.lod.spec.ts`, `tests/e2e/world-stream.spec.ts` (`@world-route`, `@world-boot-size`, `@world-faults`), scenario entries in `tests/perf/`.
+- Tests: `packages/world/test/{lint.bans.spec.ts, streaming.priority.spec.ts, streaming.uploadgate.spec.ts, streaming.plan.spec.ts, mesher.spec.ts, statics.spec.ts, boot.spec.ts}`, `tools/map/test/stage.lod.spec.ts`, `tests/e2e/world-stream.spec.ts` (`@world-route`, `@world-boot-size`, `@world-faults`), scenario entries in `tests/perf/`.
 - `.github/workflows/ci.yml` (synth bake cache and `DV_WORLD=synth` for `e2e` and `perf`).
 - Pin: `earcut@3.2.4` [research/repos-world.md §5].
-- ≈ 38 code files; JSON paths and configs are data.
+- ≈ 39 code files; JSON paths, configs and lint fixtures are data.
 
 ## Interfaces
 - C08 1.0, C13 1.1, C07 1.1 and C16 1.1 used unchanged. `ChunkStore` and `StreamingPlan` per `02-world.md` §3 (domain interfaces, not numbered contracts). The asset-worker job registry is engine-internal.
 
 ## Acceptance criteria
-- AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 and `packages/world/src/sim/**` passes the determinism lint — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
+- AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0, `packages/world/src/sim/**` is inside the determinism lint globs and passes it, the world sim tsconfig is in the `typecheck` chain, and the banned-API fixture under `packages/world` reports an error per banned API — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
 - AC-2 Given a mock pack store and a scripted focus path When the streaming tests run Then the focus chunk and its 8 neighbours are requested first, ahead/side/behind ordering follows the weights, nothing is unloaded inside 1.35 × the ring, `soft` pressure evicts L0 beyond 1.0 × the ring first, the upload gate never releases two chunks in one frame or more than 2 MB on `mobile-low`, and every plan's `r0`, `r2`, physics radius and upload cap equal `config/tier-budgets.json` — proof: `pnpm check:unit -- packages/world`
 - AC-3 Given the gray-box fixture chunks When the mesher runs twice Then the buffers are identical, every terrain vertex lies on `sampleHeight` within 1 mm, each chunk yields ≤ 6 render objects and the per-building triangle count respects the profile of each tier — proof: `pnpm check:unit -- packages/world`
 - AC-4 Given headless Rapier and a scripted 2 km walk across `synth` chunks When statics stream in Then at most one chunk's statics are added per tick, the capsule never falls below the heightfield and a rebase at 1,000 m keeps the state hash path identical across two runs — proof: `pnpm map:build -- --area synth && pnpm check:unit -- packages/world`
@@ -71,7 +72,7 @@ After this session the game streams a whole baked city instead of the four-chunk
 2. Repeat with `?tier=desktop`: backdrop ring and massing appear beyond the city.
 
 ## Effort
-1 Builder session; about 38 code files; risk **high** (mesher correctness, upload cadence, two engines). If the session runs long, ship the ring and cards and leave `far-bay-massing` behind flag `world.cards` for M11a1, and say so in the report.
+1 Builder session; about 39 code files; risk **high** (mesher correctness, upload cadence, two engines). If the session runs long, ship the ring and cards and leave `far-bay-massing` behind flag `world.cards` for M11a1, and say so in the report.
 
 ## Risks & fallbacks
 - **`BundleGroup` gives nothing on WebGL2** (expected, `02-world.md` §5.4): counts are what the budget binds; keep objects per chunk ≤ 6 regardless.

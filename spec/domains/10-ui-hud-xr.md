@@ -59,7 +59,7 @@ export interface PhoneAppDef { id: string; titleKey: LocKey; icon: string;
   screen: () => ScreenDef | Promise<{ default: PageComponent }>;   // ScreenDef = XR-capable
   xr: 'panel' | 'none'; pauses: boolean; milestone: string }
 ```
-Apps: **Map**, **Contacts/Messages** (scripted texts; NPC chat threads from M06), **Jobs** (missions, races, fights; unlocked modes appear here with their start button), **Garage** (call a car), **Ride** (robotaxi fast travel), **Camera** (photo objectives, selfie, photo mode), **Feed** (parody social feed), **Bank** (cash, property income, tycoon dividends), **Sandbox** (visible only in the sandbox), **Settings**, **Help** [research/gamedesign-decomposition.md §2.10]. Apps whose systems are not shipped register as `comingSoon` tiles (A-06 pattern).
+Apps: **Map**, **Contacts/Messages** (scripted texts; NPC chat threads from M06), **Jobs** (missions, races, fights; unlocked modes appear here with their start button), **Garage** (call a car), **Ride** (robotaxi fast travel), **Camera** (photo objectives, selfie, photo mode), **Feed** (parody social feed), **Bank** (cash, property income, tycoon dividends), **Sandbox** (visible only in the sandbox), **Settings**, **Help** [research/gamedesign-decomposition.md §2.10]. Apps whose systems are not shipped register as `comingSoon` tiles (A-06 pattern). Camera and Feed stay `comingSoon` in v1 (`01-product.md` §12, DL-292); story photo objectives use the in-world `photo` context.
 
 **Sandbox menu** (translated Grand-V checklist, no Rockstar data; disabled in story missions and rooms) [research/gamedesign-decomposition.md §7.7]. Sections and owners: *Player* (god mode, infinite stamina, super jump, never wanted, set heat 0–5, replenish; M03c/M04b2 frame), *Appearance* (change character/outfit; M04b2), *Emotes* (M06a), *Vehicles* (spawn by class D/C/B/A/S/R, owned-vehicle cap 8, repair/clean/place on ground; M03a), *Teleport* (SF landmarks, waypoint, saved positions ≤ 32; M02c), *Weather and time* (presets `clear, karl-fog, overcast, rain, smoke, golden`, hour, pause, sync system time; M02b), *World* (time scale, blackout, density; M03b), *Presets* and *Spooner* (M13), *Display* (hide HUD/radar; M07b). Every command writes `sandbox.set` toggles into the `sandbox` slice only; preconditions show status strings in the Grand-V style ("Enter a vehicle first", "Ground not loaded; player was not moved"). In XR the sandbox menu is a `ScreenDef` panel.
 
@@ -174,7 +174,7 @@ Designed now, not deferred. Sources: C03 rule 9, C05 `ProfileSettings`, C13 `XrC
 | Piece | Milestone | Stubbed first |
 |---|---|---|
 | HUD grid, shared widgets, story HUD, toasts | M04b2 | data keys fed by a fixture until M03c/M05c |
-| Phone/Pause registry and apps (Map frame, Jobs, Garage, Bank, Settings, Help, Sandbox shell) | M04b2 | Feed, Ride, Messages are `comingSoon` |
+| Phone/Pause registry and apps (Map frame, Jobs, Garage, Bank, Settings, Help, Sandbox shell) | M04b2 | Ride bound to the M03b2 Ride path; Messages `comingSoon` until M05c2; Camera and Feed `comingSoon`, post-v1 (`01-product.md` §12; DL-292) |
 | Touch layouts, editor, rotate overlay, tips, coach mark | M04b2 | |
 | `CutsceneOverlay` | M04c | in-engine fallback only until M05b |
 | Dialogue bubble, likeness card, AI badge | M06a | |

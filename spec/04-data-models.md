@@ -1,6 +1,6 @@
 # 04 — Data models (index)
 
-> Wave 5 integration (Architect), 2026-10-18. Builder-facing consolidation of every contract C01–C17 at `prompt-pack/06-SHARED-CONTEXT.md` **v1.1** (frozen, all 17 final; DL-156), the runtime JSON Schemas, the database schema, save-game versioning and the id and unit conventions. This file is the index; the contract text is split over nine part files to stay under the 6,000-word ceiling (03-SPEC-TEMPLATE §A). Every TypeScript block in the parts is copied verbatim from the owner's domain spec; the owner spec is normative and wins on any difference (06 §4.1 rule 5), and a difference found later is a defect to log in `spec/11-decision-log-2.md`, never a reason to edit a shape here. Shapes change only through the Architect (06 §4.1).
+> Wave 5 integration (Architect), 2026-10-18. Builder-facing consolidation of every contract C01–C17 at `prompt-pack/06-SHARED-CONTEXT.md` **v1.2** (frozen, all 17 final; DL-156, Reconciliation 3 DL-218…DL-244), the runtime JSON Schemas, the database schema, save-game versioning and the id and unit conventions. This file is the index; the contract text is split over nine part files to stay under the 6,000-word ceiling (03-SPEC-TEMPLATE §A). Every TypeScript block in the parts is copied verbatim from the owner's domain spec; the owner spec is normative and wins on any difference (06 §4.1 rule 5), and a difference found later is a defect to log in `spec/11-decision-log-2.md`, never a reason to edit a shape here. Shapes change only through the Architect (06 §4.1).
 
 ## 1. File map
 
@@ -19,7 +19,7 @@
 
 ## 2. Contract index
 
-`C##_VERSION` is exported by each contract file with the value below (06 §4.1 rule 2). Wire and format numbers are separate.
+`C##_VERSION` is exported by each contract file with the value below (06 v1.2 §4.2; 06 §4.1 rule 2). Where a later milestone performs a bump, the cell names it and the constant in code keeps the earlier value until that milestone lands (`09-backend-contracts-1.2.md` §4). Wire and format numbers are separate.
 
 | # | Contract | Owner | Ver | Wire / format numbers | Primary source path(s) | Part | Created in | Consumers (06 §4.2) |
 |---|---|---|---|---|---|---|---|---|
@@ -27,18 +27,18 @@
 | C02 | `GameLoop` + determinism | S01 | 1.1.0 | — | `contracts/c02-loop.ts` | 2 | M01a1 | all |
 | C03 | `InputAction` map | S01 | 1.1.0 | `InputFrame` packs into C11 `IN` | `contracts/c03-input.ts` | 2 | M01a1 (types), M01b1 | S03, S06, S07, S10, S11, S12 |
 | C04 | `CameraRig` + anim/audio types | S01 | 1.1.0 | u8 `AnimStateId` | `contracts/c04-camera.ts`, `contracts/anim-states.ts` | 2 | M01b1 | S02, S03, S06, S07, S08, S09, S11 |
-| C05 | `SaveGame` | S01 | 1.1.0 | `format 'dv-save'`, slice `schema` | `contracts/c05-save.ts` | 3 | M04a family | S03, S04, S06, S07, S08, S09, S10, S12 |
+| C05 | `SaveGame` | S01 | 1.2.0 (1.1.0 until M05e1) | `format 'dv-save'`, slice `schema` | `contracts/c05-save.ts` | 3 | M04a family | S03, S04, S06, S07, S08, S09, S10, S12 |
 | C06 | `GameMode` + unlocks + `ModeContext` services | S01 | 1.1.0 | — | `contracts/c06-modes.ts`, `engine-pursuit.ts`, `engine-world.ts`, `ui-bridge.ts` | 3 | M04a family (ModeHost); M02b2, M03a1, M03c, M04b1 | S02, S03, S04, S06, S07, S08, S10, S12 |
 | C07 | `AssetManifest` + provenance + genAI jobs | S05 | 1.1.0 | `asset/1`, `provenance/1.0`, `genjob/1` | `packages/shared/src/assets/{c07,provenance}.ts`, `genai/types.ts` | 4 | M00b, M01d | S02, S03, S04, S06, S07, S09, S10, S11, S12 |
 | C08 | `WorldChunk` + `RoadGraph` + world services | S02 | 1.0.0 | `DVWP` 1 | `packages/shared/src/world/{c08,c08-api,pack-codec}.ts`, `config/world.bounds.json` | 4 | M01f, M02a1 | S01, S03, S04, S06, S07, S09, S10, S11, S12 |
 | C09 | `MissionScript` + cutscenes | S03 | 1.0.0 | `mission-ir/1`, `cutscene-asset/1`, `cutscene-index/1`, `director/1` | `contracts/c09-mission.ts`, `c09-cutscene.ts`, `genai/cutscene-key.ts` | 5 | M04c, M05a1, M05b2 | S04, S05, S06, S07, S09, S10, S11, S12 |
-| C10 | `NPCSoul` + dialogue | S04 | 1.0.0 | `soul/1.0`, `npc-roster/1` | `contracts/c10-npc.ts`, `c10-npc-builder.ts` | 6 | M06a2, M06a3, M06b1 | S03, S05, S07, S08, S09, S10, S12 |
+| C10 | `NPCSoul` + dialogue | S04 | 1.1.0 (1.0.0 until M06a3) | `soul/1.0`, `npc-roster/1` | `contracts/c10-npc.ts`, `c10-npc-builder.ts` | 6 | M06a2, M06a3, M06b1 | S03, S05, S07, S08, S09, S10, S12 |
 | C11 | `NetMessage` + room protocol | S09 | 1.0.0 | `PROTOCOL_VERSION` 2 | `packages/net/src/protocol/{v2,codec}.ts` | 7 | M12b family | S01, S02, S06, S07, S08, S10, S12, S13 |
-| C12 | API + identity + DB | S09 | 1.1.0 | routes #1–53, migrations 0001–0009 | `packages/shared/src/api/{v1,budget,mods}.ts`, `data-port.ts`, `identity.ts`, `db.gen.ts`, `supabase/migrations/*` | 7, 10 | M00a, M04b3, M05d, M12a1 | S03, S04, S05, S06, S08, S10, S12, S13 |
+| C12 | API + identity + DB | S09 | 1.2.0 (1.1.0 until M12c1) | routes #1–57 (54–57 from 1.2), migrations 0001–0009 | `packages/shared/src/api/{v1,budget,mods}.ts`, `data-port.ts`, `identity.ts`, `db.gen.ts`, `supabase/migrations/*` | 7, 10 | M00a, M04b3, M05d, M12a1 | S03, S04, S05, S06, S08, S10, S12, S13 |
 | C13 | `QualityTier` + budgets + platform services | S11 | 1.1.0 | `tier-decision` v1, `PerfReport` v1 | `packages/shared/src/platform/{c13,xr-comfort}.ts`, `config/tier-budgets.json` | 8 | M00, M01c, M01e | S01, S02, S03, S05, S06, S07, S08, S09, S10, S12 |
 | C14 | `ModManifest` + `ModAPI` | S12 | 1.0.0 | `dv-mod/1`, `MODAPI_VERSION` 1.0.0, `ModMsg v1` | `contracts/c14-mod.ts`, `c14-modapi.ts`, `c14-protocol.ts` | 9 | M13a1 | S03, S05, S09, S10, S11 |
-| C15 | Milestone + AC format | S13 | 1.0.0 | — | none (document format, §4 below) | 1 | M00 onward | all |
-| C16 | `TelemetryEvent` | S09 | 1.1.0 | `TelemetryBatch.v` 1 | `packages/shared/src/telemetry.ts`, `schemas/telemetry/` | 7 | M00a | all emitters; S13 |
+| C15 | Milestone + AC format | S13 | 1.1.0 (DL-214) | — | none (document format, §4 below) | 1 | M00 onward | all |
+| C16 | `TelemetryEvent` | S09 | 1.2.0 (1.1.0 until M11a1) | `TelemetryBatch.v` 1 | `packages/shared/src/telemetry.ts`, `schemas/telemetry/` | 7 | M00a | all emitters; S13 |
 | C17 | `ExperienceDescriptor` | S12 | 1.0.0 | — | `contracts/c17-experience.ts` | 9 | M13a1 | S02, S09, S10 |
 
 Paths without a package prefix are under `packages/shared/src/`. One owner per id type (06 §4.1 rule 4): C08 owns `LatLng`, `ChunkKey`, `LandmarkId`, `PoiId`, `DistrictId`; C10 owns `NpcId`; C14 owns `ModId`; C06 owns `GameModeId`, `UnlockEventId`; C05 owns `SlotId`, the save `ProfileId` and (DL-194) `JsonValue`/`JsonObject`; C12 owns the identity profile id. Consumers import these and never redeclare them under the same name. Mode owners own their def ids and board ids (`ModeHook.defId`: racing `RaceId`, fighter `bout.<id>`, tycoon `mini8w`; boards `<mode>.<…>`; DL-092, DL-157).
@@ -52,11 +52,11 @@ Owner specs publish 1.0 shapes and then a "1.1 additions" block that repeats onl
 1. **Union types** (`DeviceKind`, `ControlId`, `SaveReason`, `FeatureFlag`, `PostNode`, `ModSubject`): the 1.1 line replaces the 1.0 line; appended members keep the index of every 1.0 member (C03 `InputFrame.device`).
 2. **Interfaces** (`InputRouter`, `ControlsSettings`, `XRRigParams`, `ProfileSettings`, `GameModeDescriptor`, `GameModeUI`, `ModeContext`, `PursuitProfile`, `PursuitApi`, `TimelineRecorder`, `RendererHost`, `BootConfig`, `PlayerQuota`, `IdentityService`, `PlatformSettings`, C07 `KindExtras` vehicle `nodes`): add the 1.1 members to the 1.0 declaration in the same file; a 1.1 member that redefines a 1.0 field (C04 `XRRigParams.origin`, C12 `RosterFlags.standIn`, `BootConfig.hosts`) replaces it. Do not rely on cross-file declaration merging.
 3. **New declarations** (`BotInput`, `XrPanels`, `AssetSource`, `UiBridge` family, `weekdayOf`, `ToastKind`) are added as written.
-4. The contract constant stays `'1.1.0'` (C02–C07, C12, C13, C16) and nothing in a 1.0 shape changes meaning (06 §4.1 rule 3). `pnpm typecheck` over `packages/shared` is the proof that the merge compiles.
+4. The contract constant stays `'1.1.0'` (C02–C04, C06, C07, C13; C05, C12, C16 until the 1.2 milestone named in §2, then `'1.2.0'`) and nothing in a 1.0 shape changes meaning (06 §4.1 rule 3). `pnpm typecheck` over `packages/shared` is the proof that the merge compiles.
 
 ## 4. C15 — milestone and acceptance-criteria format
 
-Owner S13, version 1.0.0, normative text `prompt-pack/03-SPEC-TEMPLATE.md` §C. C15 has no TypeScript; the heading block below is the contract, and every file in `spec/07-milestones/` uses it verbatim. Consumers: all milestone authors and every Builder session; first file M00.
+Owner S13, version 1.1.0 (DL-214; `c15-milestone.ts` and lint L1–L8 per `spec/domains/13-qa.md` §4, delivered by M00d), normative text `prompt-pack/03-SPEC-TEMPLATE.md` §C. C15 has no TypeScript; the heading block below is the contract, and every file in `spec/07-milestones/` uses it verbatim. Consumers: all milestone authors and every Builder session; first file M00.
 
 ```
 # M## — <slug>

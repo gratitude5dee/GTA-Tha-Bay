@@ -36,7 +36,7 @@ After this session the accessibility baseline (R-ENG-04) is audited across the w
   - every `ErrorPage` kind and every `apiErrorToUi()` outcome that offers Help maps to an existing topic id;
   - every `sources[].url` appears in `research/INDEX.md` §2 (checked by test);
   - topic steps are `LocKey`s.
-- **Age signals.** `AgeSignalProvider` (`packages/ui/src/pages/age/age-signal.ts`) gets the v1 `NullAgeSignalProvider`, which returns `null`. `AgeGate` consults the provider before rendering: a non-null bracket under 18 shows `BlockedPage` without the date screen. A unit test uses a fake provider; there is no real OS integration (`10-ui-pages.md` §2.4 rule 5; the API shape is unverified).
+- **Age signals.** `AgeSignalProvider` (`packages/ui/src/pages/age/age-signal.ts`) gets the v1 `NullAgeSignalProvider`, which returns `null`. `AgeGate` consults the provider before rendering: a non-null bracket under 18 shows `BlockedPage` without the date screen. A unit test uses a fake provider; there is no real OS integration (`10-ui-pages.md` §2.4 rule 5; the API shape is unverified). A release on or after 2027-01-01 needs a verified provider or counsel sign-off: M14b3 launch gate `age-signals` (DL-285).
 - **Fixes.** Whatever the audit finds, fixed in `packages/ui` with the smallest change: labels, roles, focus order, token values, target sizes.
 
 ## Scope out
