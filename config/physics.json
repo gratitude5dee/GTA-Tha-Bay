@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "gravity": [0, -9.81, 0],
+  "solverIterations": 4,
+  "rebaseDistanceM": 1000,
+  "defaultFriction": 0.7,
+  "defaultRestitution": 0.05,
+  "groups": {
+    "static": 1,
+    "dynamic": 2,
+    "character": 4,
+    "vehicle": 8,
+    "kinematic": 16,
+    "sensor": 32
+  }
+}

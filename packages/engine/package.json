@@ -18,6 +18,8 @@
     "test:determinism": "vitest run test/determinism.node.spec.ts"
   },
   "dependencies": {
+    "@dimforge/rapier3d-deterministic-compat": "0.21.0",
+    "@dimforge/rapier3d-simd-compat": "0.21.0",
     "@dv/shared": "workspace:*",
     "bitecs": "0.4.0",
     "three": "0.186.1"

@@ -1,0 +1,27 @@
+{
+  "scenario": "physics-drop",
+  "profile": "canonical",
+  "physicsBuild": "deterministic-compat",
+  "seed": 12648430,
+  "ticks": 10000,
+  "checkpointEvery": 600,
+  "checkpoints": {
+    "600": "fc37b7ebfc2394b8",
+    "1200": "43552305b30f5f80",
+    "1800": "c8233a25def12ccd",
+    "2400": "000e894e18260e83",
+    "3000": "6ae844b7e4bf4c35",
+    "3600": "e4c6bccdb4509b8c",
+    "4200": "f537e17a7497c035",
+    "4800": "ce9a7b1454257e48",
+    "5400": "eb78f388cd1fd7ec",
+    "6000": "2f13a52eedda1b08",
+    "6600": "7f4da0b1d2c0507e",
+    "7200": "a66a1966ae72f633",
+    "7800": "39f7fa9b8b060103",
+    "8400": "2852bf82867b6cea",
+    "9000": "c8555a058ccd86c2",
+    "9600": "17bbfe1e0ab106e7"
+  },
+  "final": "235bd3a46ee1ae1c"
+}

@@ -11,3 +11,7 @@ export * from './loop/scheduler.ts';
 export * from './loop/sim-core.ts';
 export * from './loop/state-hash.ts';
 export * from './loop/stats.ts';
+export * from './physics/index.ts';
+export * from './sim-factory.ts';
+export * from './fixtures/world-boxes.ts';
+export * from './scenarios/physics-drop.ts';

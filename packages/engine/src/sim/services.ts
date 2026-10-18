@@ -1,5 +1,6 @@
 import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
+import type { PhysicsSystemsBackend } from './physics/backend.ts';
 
 /**
  * Sim state that lives outside the ECS but must be hashed and checkpointed (C02 rule 7: RNG states, clock, weather,
@@ -17,10 +18,12 @@ export interface EngineServices extends SimServices {
   readonly rng: RngStreams;
   /** Player 0's quantized input for the tick about to run (C02 determinism rule 4); null when there is none. */
   input: InputFrame | null;
+  /** The physics backend once the session has one (M01a2); null in physics-free sims. */
+  physics: PhysicsSystemsBackend | null;
 }
 
 export function createSimServices(seed: number): EngineServices {
-  return { xrPoses: null, rng: new RngStreams(seed), input: null };
+  return { xrPoses: null, rng: new RngStreams(seed), input: null, physics: null };
 }
 
 /** The RNG streams as a hashed, checkpointed resource (C02 rule 3: stream states are hashed resources). */
