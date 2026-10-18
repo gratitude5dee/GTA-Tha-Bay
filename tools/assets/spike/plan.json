@@ -1,0 +1,161 @@
+{
+  "schema": "genai-spike-plan/1",
+  "capMicros": 10000000,
+  "plannedMaxMicros": 6000000,
+  "env": "previs",
+  "lifecycleHeader": "{\"expiration_duration_seconds\": 86400}",
+  "tokens": "Param strings starting with @brief:<name> are replaced by that section of briefs.md; @file:<stepId>/<name> by a data URI of a local file under .spike/out/; @files:<stepId>/<a>,<b> by an array of such URIs.",
+  "steps": [
+    {
+      "id": "C1",
+      "title": "Turnaround sheet of spike_runner",
+      "kind": "fal",
+      "registryKey": "openai/gpt-image-2.5/sunburst/text-to-image",
+      "estimateMicros": 200000,
+      "params": { "prompt": "@brief:runner_sheet", "image_size": { "width": 2560, "height": 1440 }, "quality": "high", "num_images": 1, "output_format": "png" },
+      "dependsOn": [],
+      "uItems": ["U-AST-3", "U-AST-4", "U-AST-7"]
+    },
+    {
+      "id": "C2",
+      "title": "Programmatic crops: front, left, back, right",
+      "kind": "local",
+      "registryKey": null,
+      "estimateMicros": 0,
+      "params": { "from": "C1", "panels": 4, "order": ["front", "left", "back", "right"], "square": true },
+      "dependsOn": ["C1"],
+      "uItems": ["U-AST-2"]
+    },
+    {
+      "id": "C3",
+      "title": "Mesh from four crops",
+      "kind": "fal",
+      "registryKey": "meshy/v7.1/multi-image-to-3d",
+      "estimateMicros": 1200000,
+      "params": { "image_urls": "@files:C2/front.png,left.png,back.png,right.png", "pose_mode": "t-pose", "enable_rigging": false },
+      "dependsOn": ["C2"],
+      "uItems": ["U-AST-2", "U-AST-3", "U-AST-4"]
+    },
+    {
+      "id": "C4",
+      "title": "Rig with five library clips",
+      "kind": "fal",
+      "registryKey": "fal-ai/meshy/rigging/multi-animation",
+      "estimateMicros": 800000,
+      "params": { "model_url": "@file:C3/model_glb.glb", "animation_action_ids": [0, 30, 16, 466, 178] },
+      "dependsOn": ["C3"],
+      "uItems": ["U-AST-1", "U-ENG-7", "U-AST-4"]
+    },
+    {
+      "id": "C5",
+      "title": "GLB probe: bones, clips, triangles",
+      "kind": "local",
+      "registryKey": null,
+      "estimateMicros": 0,
+      "params": { "from": "C4" },
+      "dependsOn": ["C4"],
+      "uItems": ["U-AST-1", "U-ENG-7"]
+    },
+    {
+      "id": "K1",
+      "title": "Keyframe on the stage",
+      "kind": "fal",
+      "registryKey": "openai/gpt-image-2.5/sunburst/edit",
+      "estimateMicros": 50000,
+      "params": { "prompt": "@brief:keyframe", "image_urls": "@files:C2/front.png", "image_size": { "width": 1920, "height": 1080 }, "quality": "high", "num_images": 1, "output_format": "png" },
+      "dependsOn": ["C2"],
+      "uItems": ["U-AST-7", "U-S03-1"]
+    },
+    {
+      "id": "V1",
+      "title": "Recipe K, default provider",
+      "kind": "fal",
+      "registryKey": "h3.partner#i2v",
+      "estimateMicros": 300000,
+      "params": { "prompt": "@brief:video_walk", "image_url": "@file:K1/images.0.png", "duration": 5, "resolution": "768P", "prompt_expansion_mode": "disabled", "seed": 4242 },
+      "droppable": ["seed", "prompt_expansion_mode"],
+      "dependsOn": ["K1"],
+      "uItems": ["U-AST-4", "U-S03-1", "U-S03-3"]
+    },
+    {
+      "id": "V2",
+      "title": "Recipe R, reference to video",
+      "kind": "fal",
+      "registryKey": "h3.max#ref2v",
+      "estimateMicros": 400000,
+      "params": { "prompt": "@brief:video_ref", "reference_image_urls": "@files:C2/front.png,left.png,back.png,right.png", "duration": 5, "resolution": "768P", "seed": 4242 },
+      "droppable": ["seed", "resolution"],
+      "dependsOn": ["C2"],
+      "uItems": ["U-AST-4", "U-S03-3"]
+    },
+    {
+      "id": "V3",
+      "title": "Fallback provider",
+      "kind": "fal",
+      "registryKey": "ltx25.fast#i2v",
+      "estimateMicros": 540000,
+      "params": { "prompt": "@brief:video_walk", "image_url": "@file:K1/images.0.png", "duration": 6, "resolution": "720p", "seed": 4242 },
+      "droppable": ["seed", "resolution"],
+      "dependsOn": ["K1"],
+      "uItems": ["U-AST-4", "U-S03-3"]
+    },
+    {
+      "id": "V4",
+      "title": "Provider clip, H3 Max Turbo",
+      "kind": "fal",
+      "registryKey": "h3.maxTurbo#i2v",
+      "estimateMicros": 200000,
+      "params": { "prompt": "@brief:video_walk", "image_url": "@file:K1/images.0.png", "duration": 5, "resolution": "768P", "prompt_expansion_mode": "disabled", "seed": 4242 },
+      "droppable": ["seed", "prompt_expansion_mode"],
+      "dependsOn": ["K1"],
+      "uItems": ["U-AST-4", "U-S03-1", "U-S03-3"]
+    },
+    {
+      "id": "V5",
+      "title": "Provider clip, Gemini Omni Flash",
+      "kind": "fal",
+      "registryKey": "gemini.omniFlash11#ref2v",
+      "estimateMicros": 500000,
+      "params": { "prompt": "@brief:video_walk", "image_urls": "@files:K1/images.0.png", "duration": 5, "resolution": "720p", "seed": 4242 },
+      "droppable": ["seed", "resolution"],
+      "dependsOn": ["K1"],
+      "uItems": ["U-AST-4", "U-S03-3"]
+    },
+    {
+      "id": "A1",
+      "title": "TTS line, retrievability with X-Fal-Store-IO: 0",
+      "kind": "fal",
+      "registryKey": "fal-ai/minimax/speech-2.8-turbo",
+      "estimateMicros": 20000,
+      "params": { "text": "@brief:tts_line" },
+      "storeIo0": true,
+      "dependsOn": [],
+      "uItems": ["U-AST-3", "U-AST-4", "U-AST-14"]
+    },
+    {
+      "id": "R1",
+      "title": "Refusal probe on the operator's own photo (optional)",
+      "kind": "fal",
+      "registryKey": "openai/gpt-image-2.5/sunburst/edit",
+      "alsoRegistryKeys": ["google/nano-banana-2.1/edit"],
+      "estimateMicros": 150000,
+      "params": { "prompt": "@brief:refusal_probe", "image_urls": "@selfPhoto", "quality": "low", "num_images": 1 },
+      "optional": { "env": ["DV_SPIKE_SELF_PHOTO", "DV_SPIKE_SELF_CONSENT"] },
+      "dependsOn": [],
+      "uItems": ["U-AST-8"]
+    }
+  ],
+  "uItems": [
+    { "id": "U-AST-1", "question": "Meshy bone names, finger/jaw/face bones, animation clip licence text", "needs": ["C4", "C5"] },
+    { "id": "U-ENG-7", "question": "Meshy rig bone names for the bay_rig_v1 alias table", "needs": ["C5"] },
+    { "id": "U-AST-2", "question": "Meshy honours the image_urls order (front, left, back, right)", "needs": ["C3"] },
+    { "id": "U-AST-3", "question": "fal CDN Content-Length; retrieval with X-Fal-Store-IO: 0", "needs": ["A1"] },
+    { "id": "U-AST-4", "question": "C2PA presence on outputs of each endpoint", "needs": ["C1", "C3", "V1"] },
+    { "id": "U-AST-7", "question": "Cost of extra input images (invoice line)", "needs": ["K1"], "operator": true },
+    { "id": "U-AST-8", "question": "Refusal behaviour on real-person edits", "needs": ["R1"] },
+    { "id": "U-AST-14", "question": "TTS container (the iOS decode test is a device check in M01c)", "needs": ["A1"] },
+    { "id": "U-AST-17", "question": "Art-lead minutes per character", "needs": [], "operator": true },
+    { "id": "U-S03-1", "question": "Identity across K1, V1 and V4", "needs": ["K1", "V1", "V4"], "operator": true },
+    { "id": "U-S03-3", "question": "seed and prompt_expansion_mode accepted per endpoint", "needs": ["V1", "V2", "V3", "V4", "V5"] }
+  ]
+}

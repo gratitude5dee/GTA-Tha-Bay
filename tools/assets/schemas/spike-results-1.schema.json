@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "spike-results-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "status", "reason", "env", "capMicros", "ledgerTotalMicros", "ranAt", "tools", "steps", "uItems"],
+  "properties": {
+    "schema": { "const": "spike-results/1" },
+    "status": { "enum": ["skipped", "partial", "complete"] },
+    "reason": { "type": ["string", "null"] },
+    "env": { "enum": ["production", "previs", "test"] },
+    "capMicros": { "type": "integer", "minimum": 0 },
+    "ledgerTotalMicros": { "type": "integer", "minimum": 0 },
+    "ranAt": { "type": ["string", "null"] },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ffprobe", "c2patool"],
+      "properties": { "ffprobe": { "type": "boolean" }, "c2patool": { "type": "boolean" } }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "title", "kind", "status", "reason", "registryKey", "endpointId", "registryStatus", "estimateMicros",
+          "requestId", "queueWaitMs", "runMs", "httpStatus", "errorType", "omittedParams", "acceptedParams", "storeIo0", "retrievable", "outputs", "notes"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "kind": { "enum": ["fal", "local"] },
+          "status": { "enum": ["ok", "failed", "skipped", "refused", "not_run"] },
+          "reason": { "type": ["string", "null"] },
+          "registryKey": { "type": ["string", "null"] },
+          "endpointId": { "type": ["string", "null"] },
+          "registryStatus": { "type": ["string", "null"] },
+          "estimateMicros": { "type": "integer", "minimum": 0 },
+          "requestId": { "type": ["string", "null"] },
+          "queueWaitMs": { "type": ["integer", "null"] },
+          "runMs": { "type": ["integer", "null"] },
+          "httpStatus": { "type": ["integer", "null"] },
+          "errorType": { "type": ["string", "null"] },
+          "omittedParams": { "type": "array", "items": { "type": "string" } },
+          "acceptedParams": { "type": "array", "items": { "type": "string" } },
+          "storeIo0": { "type": "boolean" },
+          "retrievable": { "type": ["boolean", "null"] },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "contentType", "fileSize", "contentLengthHeader", "sha256", "media", "c2pa"],
+              "properties": {
+                "name": { "type": "string" },
+                "contentType": { "type": ["string", "null"] },
+                "fileSize": { "type": "integer", "minimum": 0 },
+                "contentLengthHeader": { "type": ["boolean", "null"] },
+                "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                "media": { "type": ["object", "null"] },
+                "c2pa": {
+                  "type": ["object", "null"],
+                  "properties": { "present": { "type": ["boolean", "null"] }, "method": { "enum": ["c2patool", "heuristic"] }, "detail": { "type": "string" } }
+                }
+              }
+            }
+          },
+          "notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "uItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "outcome", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "outcome": { "enum": ["answered", "partly", "unanswered", "skipped"] },
+          "detail": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
