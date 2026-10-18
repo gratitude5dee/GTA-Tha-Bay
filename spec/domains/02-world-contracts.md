@@ -17,8 +17,8 @@
 11. **Signals** are pure: `signalAspect(program, tick, movement, blackout)`. No per-signal state is hashed; `blackout` is a hashed sim resource owned by `TrafficControl`.
 12. **Render objects.** Per chunk at most six: `terrain`, `buildings`, `roads`, `vegetation` (one instanced mesh), `furniture` (one batch), `extras` (set dressing from tags). One `BundleGroup`, `static = true`; re-recorded only on a LOD swap or a landmark proxy swap. Landmark glTFs are not chunk objects: they live in a separate `LandmarkLayer` with their own budget (clarification P3).
 13. **Upload.** At most one chunk upload per frame on every tier; on `mobile-low` and `xr-quest` at most 2 MB per frame (C13 `WorldLimits`). A chunk is uploaded whole.
-14. **Spawn tables.** Keyed by `(cellKey, slot)`. Slot ranges are fixed: traffic 0–255, pedestrians 256–511, parked cars 512–767, transit vehicles 768–831, boats 832–863, aircraft 864–895. A tier runs the prefix `0 … activeSlots − 1` of each range (C01 rule 5). `capacity` in the table is the `desktop-ultra` peak.
-15. **Tags** follow 06 §4.4: `hidingSpots`, `pursuitBreakers`, `chokePoints`, `jumpZones`, `portals`, `shoreNodes`, `teleportNodes`. The bake derives most of them from data; authored lists add the rest (`02-world-bake.md` §7).
+14. **Spawn tables.** Keyed by `(cellKey, slot)`. Slot ranges are fixed: traffic 0–255, pedestrians 256–511, parked cars 512–767, transit vehicles 768–831, boats 832–863, aircraft 864–895. A tier runs the prefix `0 … densityCap − 1` of each range (C01 rule 5) and the current `activeSlots` inside it. `capacity` in the table is the `desktop-ultra` peak.
+15. **Tags** follow 06 §4.4: `hidingSpots`, `pursuitBreakers`, `chokePoints`, `jumpZones`, `portals`, `shoreNodes`, `teleportNodes`. The bake derives most of them from data; authored lists add the rest (`02-world-bake.md` §4, stage S9).
 16. **`worldBake`.** C05 `worldBake` equals `WorldIndex.bakeId`: the 64-hex SHA-256 of canonical JSON of `{sourceHashes, toolVersion, configHashes}`. A save from another bake snaps to the nearest safehouse (DL-057).
 17. **Purity.** `packages/shared/src/world/**` and `packages/world/src/sim/**` obey the C02 lint: no `Math.random`, `Date`, transcendental `Math.*`, `three`, DOM. Trigonometry uses `detmath`.
 18. **Pack decode.** `decodeP0(buf: ArrayBuffer): SimChunk[]` is pure and synchronous (`packages/shared/src/world/pack-codec.ts`, with the encoder in `tools/map`), so the sim worker, the headless host and tests use one codec. `l0` decoding and meshing run in `asset.worker`.
@@ -143,9 +143,11 @@ export interface SpawnTable {
   trafficSlots: number; pedSlots: number; parked: ParkedSlot[];   // counts = capacity at 'desktop-ultra' peak
 }
 export const ambientKey = (cell: ChunkKey, slot: number) => `amb:${cell}:${slot}` as const;   // C01 StableKey
-/** Pure: active prefix length. Every factor is resolved by the caller from config/world/density.json and C13 CrowdLimits. */
+/** C01 rule 5: a tier may run slots 0 … densityCap − 1. tierFactor comes from C13 CrowdLimits (living part §7). */
+export const densityCap = (capacity: number, tierFactor: number): number => Math.min(capacity, Math.floor(capacity * tierFactor));
+/** Pure: active prefix length now. hour and weather factors come from config/world/density.json, override from TrafficControl. */
 export function activeSlots(capacity: number, tierFactor: number, hourFactor: number, weatherFactor: number, override: number): number {
-  return Math.min(capacity, Math.floor(capacity * tierFactor * hourFactor * weatherFactor * override));
+  return Math.min(densityCap(capacity, tierFactor), Math.floor(capacity * tierFactor * hourFactor * weatherFactor * override));
 }
 
 // ---- 7. Chunks ----------------------------------------------------------------------
@@ -271,11 +273,12 @@ export interface WorldApi { readonly graph: RoadGraphQuery; readonly traffic: Tr
 
 Little-endian. Coordinates inside a chunk are `i16` in 0.1 m relative to the chunk NW corner (range ±3,276 m, so a ring may overhang by metres). Heights, bases and heights of prisms are `i16`/`u16` in 0.1 m. Angles are `u8` in 1/256 turn. No timestamps and no random ordering: identical inputs give identical bytes.
 
-**Header (64 B):** `magic u32 = 0x50575644`, `version u8 = 1`, `family u8` (0 p0, 1 l0, 2 l1, 3 l2), `tileX u16`, `tileY u16`, `hostZ u8`, `chunkCount u8`, `bakeId[32]` (raw SHA-256), `dirOffset u32`, 14 B reserved. **Chunk directory:** per chunk `cx u8, cy u8` (0–3 inside the host cell), `sectionCount u16`, `offset u32`. **Section entry:** `id u8, enc u8 (0 raw), count u16, offset u32, bytes u32`.
+**Header (64 B):** `magic u32 = 0x50575644`, `version u8 = 1`, `family u8` (0 p0, 1 l0, 2 l1, 3 l2), `tileX u16`, `tileY u16`, `hostZ u8`, `chunkCount u8`, `bakeId[32]` (raw SHA-256), `dirOffset u32`, 16 B reserved. **Chunk directory:** per chunk `cx u8, cy u8` (0–3 inside the host cell), `sectionCount u16`, `offset u32`. **Section entry:** `id u8, enc u8 (0 raw), count u16, offset u32, bytes u32`.
 
 | Id | Section | Pack | Record layout |
 |---|---|---|---|
-| 1 | HEIGHT | p0, l1, l2 | `i16[65×65]`, z outer, x inner, 8,450 B |
+| 1 | HEIGHT | p0 (l0 reuses it), l1, l2 | `i16[65×65]`, z outer, x inner, 8,450 B |
+| 13 | STRINGS | p0, l0 | `u16 n, n × (u8 len, utf8)`; tag ids and names index into it |
 | 2 | PRISM | p0 | `u8 n, i16 baseDm, u16 hDm, n × (i16 dx, i16 dz)` |
 | 3 | SLAB | p0 | PRISM record + `i8 layer` |
 | 4 | HOOD | p0 | PRISM record |
@@ -315,7 +318,7 @@ Size gates (bake): any pack > 2.5 MiB warns, > 4 MiB fails. Estimated worst tile
 
 `WorldIndex` (`data/world-index`, JSON, ≤ 300 KB) validates against `tools/map/schemas/world-index.schema.json`. Required properties: `schema`, `c08`, `bakeId`, `worldSeed` (u32 = first 4 bytes of the bakeId), `areas` (one `sf` area with `status: "playable"` in v1; `ea-oakland` … `backdrop`), `tiles` (arrays of `"x-y"` host indices for which a pack exists), `landmarks` (≥ 25 in v1; 37 specified), `pois` (≥ 150), `districts` (10 + `outer` + `stage` + 41 neighbourhoods), `portals`, `transit`, `sources` (one stamp per dataset with URL, retrieval date, SHA-256, licence, attribution). Additional properties are rejected.
 
-Config files (JSON Schema in `tools/map/schemas/`, validated by `check:unit`): `config/world/streaming.json` (ring radii and caps per tier), `density.json` (profiles, hour curves, tier factors), `mesher.json` (profiles per tier), `roadclass.json` (OSM → class, lane width, speed, lanes), `timecyc.json` (§5 of the living part), `transit.json` (fares in integer cents, counts), `sources.json` (dataset ids and URLs). Authored content: `content/world/landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`, `paths/*.json` (perf camera paths).
+Config files (JSON Schema in `tools/map/schemas/`, validated by `check:unit`): `config/world/streaming.json` (ring radii and caps per tier), `density.json` (profiles, hour curves, tier factors), `mesher.json` (profiles per tier), `roadclass.json` (OSM → class, lane width, speed, lanes), `timecyc.json` (§6 of the living part), `transit.json` (fares in integer cents, counts), `sources.json` (dataset ids and URLs). Authored content: `content/world/landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`, `paths/*.json` (perf camera paths).
 
 ## 6. Who uses what
 

@@ -1,0 +1,1588 @@
+[
+ {
+  "domain": "S04",
+  "spec_path": "spec/domains/04-npc.md,spec/domains/04-npc-contracts.md,spec/domains/04-npc-builder.md",
+  "words": 14296,
+  "contracts_finalized": [
+   "C10"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C12",
+    "change": "PlayerQuota.reserve kind gains 'builder_text' (soul generation and builder preview), counted separately from the dialogue cost cap; caps P0/P1 2/day, linked 10/day",
+    "why": "a $0.06 Sonnet soul generation exceeds the $0.05 P0 daily cost cap; 'builder_job' is fal-backed and 0 for P0"
+   },
+   {
+    "contract": "C12",
+    "change": "ModSubject gains 'npc_soul' (additive)",
+    "why": "published user NPCs need a report target; until then reports use 'npc_draft' with the source draft id"
+   },
+   {
+    "contract": "C12",
+    "change": "migration 0003 match_npc_memories recency scale = 518,400 (72 game hours in C06 half-seconds) instead of 72*3600",
+    "why": "DL-058 made game_time half-seconds; the research function assumed seconds"
+   },
+   {
+    "contract": "C12",
+    "change": "EncounterDO instance key enc:<pid>:<npcId>:<encounterId> with encounterId a UUIDv7 minted by the Worker (not a ULID)",
+    "why": "C12 id rule is UUIDv7; encounterId is echoed in C10 meta"
+   },
+   {
+    "contract": "C12",
+    "change": "new route 52 DELETE /api/v1/me/npc-memory?npcId= (P0) for per-NPC or all-NPC memory forget",
+    "why": "route 14 DELETE /me is all-or-nothing; players need to reset NPC memory per NPC or on a new playthrough"
+   },
+   {
+    "contract": "C12",
+    "change": "RosterFlags.killed[id].standIn holds the C07 AssetRef character/<id> copied from the soul's standIn",
+    "why": "one meaning for stand-ins across client, roster and S05"
+   },
+   {
+    "contract": "C12",
+    "change": "S09 config adds secrets ANTHROPIC_BUILDER_KEY (npc-builder workspace), ANTHROPIC_EVALS_KEY (ci-evals), OPENAI_MODERATION_API_KEY and a Queue npc-builder",
+    "why": "per-workspace spend isolation and builder jobs per 09-backend-ops \u00a75.3"
+   },
+   {
+    "contract": "C12",
+    "change": "DataPort.npcMemory imports MemoryWrite, MemoryHit and SummaryPatch from c10-npc.ts",
+    "why": "those types were referenced but undefined; C10 now defines them"
+   },
+   {
+    "contract": "C05",
+    "change": "additive ProfileSettings.npc?: { voice: 'all'|'heroes'|'off'; aiDialogue: boolean }",
+    "why": "NPC voice and AI-dialogue settings have no home in C05; defaults apply when absent"
+   },
+   {
+    "contract": "C06",
+    "change": "additive ModeContext.npc (filtered NpcRuntime: playKnot, whereIs, isKilled), plus a TimelineRecorder external-input record kind for hero intents",
+    "why": "S03 missions and mods need NPC lines and positions without importing @dv/npc internals; replays must not re-query intents"
+   },
+   {
+    "contract": "C08",
+    "change": "S02 publishes a POI table: ids ^poi\\.[a-z0-9.-]{3,64}$, ENU position, district id, smart-object slots",
+    "why": "soul schedules and whereIs need POIs; content/npcs/poi.stub.json is used until M02c"
+   },
+   {
+    "contract": "C09",
+    "change": "cutscene key characters[].likenessTier = soul tier (consented|parody|fictionalized); original-basis souls use fictionalized",
+    "why": "C07 assets use 'original' for such characters, so the mapping must be fixed explicitly"
+   },
+   {
+    "contract": "C07",
+    "change": "asset likeness.tier = 'original' when soul basis is original, else the soul tier; data asset ids data/npc-roster, data/ink.<id>, data/barks.<id>",
+    "why": "aligns the soul tier with C07 LikenessSummary and names the NPC data assets"
+   },
+   {
+    "contract": "C16",
+    "change": "new names npc.encounter.client {turns, fallbacks, voiceTier, model}, npc.voice.client {ttfaMs, tier}, npc.builder.step {step, ok}",
+    "why": "encounter health, voice latency and builder funnel metrics without free text"
+   },
+   {
+    "contract": "C02",
+    "change": "weekday(t) = floor(t/172800) % 7 with 0 = Monday",
+    "why": "soul schedules use weekdays and WorldClockApi defines none; S01 to confirm"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S04-01",
+    "question": "Keep real-derived souls, the research layer and the production global rules block in a private content repo mounted at content-private/, with only original souls and a rules example in the public repo?",
+    "recommendation": "Yes. The repo is open source (Q-08), and DL-039 keeps prompt rails non-public. Real-person research should never be published."
+   },
+   {
+    "id": "DN-S04-02",
+    "question": "Enable ElevenLabs t2 voices for up to 3 heroes when a plan fee (Pro $99/month) would consume the whole $100 voice ceiling?",
+    "recommendation": "Launch heroes on t1 (Aura). Enable t2 only if the voice ceiling is raised by the plan fee; the switch is ks:tts:elevenlabs plus linked 18+ accounts."
+   },
+   {
+    "id": "DN-S04-03",
+    "question": "Allow anonymous (P0) players to generate souls in the NPC builder?",
+    "recommendation": "Yes, capped at 2 per day and 1 per draft per hour, billed to the npc-builder workspace through a new 'builder_text' quota kind; private use only."
+   },
+   {
+    "id": "DN-S04-04",
+    "question": "Add a per-NPC memory forget route?",
+    "recommendation": "Yes, as route 52 DELETE /api/v1/me/npc-memory?npcId=, shipped in M06a4."
+   }
+  ],
+  "unverified": [
+   "U-NPC-01 end-to-end Haiku 5.5 TTFT through AI Gateway (target <=800 ms p50)",
+   "U-NPC-02 AI Gateway passes Anthropic SSE unbuffered",
+   "U-NPC-03 structured-output responses stream token by token in the TS SDK",
+   "U-NPC-04 token overhead of the structured-output system prompt",
+   "U-NPC-05 Workers AI aura-1 output encodings and Aura streaming latency",
+   "U-NPC-06 Sonnet 5.5 between_tools combined with structured outputs",
+   "U-NPC-07 OpenAI moderation endpoint allowed on non-OpenAI content",
+   "U-NPC-08 ElevenLabs plan-to-character mapping and commercial rights per plan",
+   "U-NPC-09 Haiku 5.5 voice consistency at low effort with thinking off",
+   "U-NPC-10 Meshy jaw bone and facial data (S05 U1)",
+   "U-NPC-11 Rhubarb Lip Sync licence (S05 U9)",
+   "U-NPC-12 cost and limits of messages.count_tokens"
+  ],
+  "risks": [
+   "Dialogue feels laggy if TTFT is high or AI Gateway buffers SSE; mitigated by the 4 s ink fallback and a direct-API switch",
+   "Prompt cache misses from non-byte-stable souls multiply input cost; mitigated by the pure compiler, lint L14 and the cache-health alert",
+   "Parody NPCs make defamatory or private-life claims; mitigated by global rails, realWorldRefs caps, lint L7, output name lint, red-team gates and the kill-switch",
+   "Jailbreaks via player text or user backstories; mitigated by server-held history, untrusted wrapping, enum-only context and async moderation",
+   "Voice cost or ElevenLabs plan fees exceed the $100 voice ceiling; mitigated by t1 default, voiced-line quotas, baked barks and governor L2",
+   "NPC builder used for real-person deepfakes; mitigated by original-only attestation, images reduced to text, alias and classifier signals, and human review before publish",
+   "Haiku 5.5 is new and may drift; mitigated by pinned ids and weekly plus per-change evals",
+   "Research layer absent (Q-19) delays roster content to M10c; canary and original souls cover development",
+   "Real-person research and rails become public if the private content split (DN-S04-01) is not adopted"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M06a1",
+    "slug": "npc-backend-spine (S09 slice)",
+    "sessions": 1
+   },
+   {
+    "id": "M06a2",
+    "slug": "soul-contract-compiler",
+    "sessions": 1
+   },
+   {
+    "id": "M06a3",
+    "slug": "dialogue-proxy",
+    "sessions": 1
+   },
+   {
+    "id": "M06a4",
+    "slug": "memory-voice-lipsync",
+    "sessions": 1
+   },
+   {
+    "id": "M06c",
+    "slug": "npc-agency-barks",
+    "sessions": 1
+   },
+   {
+    "id": "M06b1",
+    "slug": "builder-text-private",
+    "sessions": 1
+   },
+   {
+    "id": "M06b2",
+    "slug": "builder-images-review",
+    "sessions": 1
+   },
+   {
+    "id": "M10c",
+    "slug": "roster-souls-ink-barks",
+    "sessions": 1
+   },
+   {
+    "id": "M13c",
+    "slug": "builder-assets (S04 add-on)",
+    "sessions": 0.5
+   }
+  ],
+  "r_ids_covered": [
+   "R-NPC-01",
+   "R-NPC-03",
+   "R-NPC-04",
+   "R-NPC-05",
+   "R-IP-02"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-NPC-03",
+    "to": "M13c"
+   }
+  ]
+ },
+ {
+  "domain": "S02",
+  "spec_path": "spec/domains/02-world.md,spec/domains/02-world-contracts.md,spec/domains/02-world-bake.md,spec/domains/02-world-living.md,spec/domains/02-world-maps.md",
+  "words": 22132,
+  "contracts_finalized": [
+   "C08"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C06",
+    "change": "P1: add ModeContext.world: WorldApi (graph, traffic, map, teleport, query, places, resolver) as a minor bump to 1.1",
+    "why": "S01 pursuit A*, S03/S06 closures, blips, teleports and place lookup need a capability surface; ModeContext is the only one"
+   },
+   {
+    "contract": "C01 engine service (StaticShapeSet)",
+    "change": "P2: add optional sloped strips (centreline, width, per-vertex y, thickness) for bridge, viaduct and ramp decks",
+    "why": "prisms have flat tops; fallback is 4 m stepped slabs with steps of at most 0.16 m"
+   },
+   {
+    "contract": "06 4.4 C08 sketch",
+    "change": "P3: clarify that the 6-render-object chunk rule covers terrain, buildings, roads, vegetation, furniture and extras, and that landmark glTFs live in a separate LandmarkLayer with their own budget",
+    "why": "landmarks would otherwise exceed 6 objects in their chunk"
+   },
+   {
+    "contract": "C16",
+    "change": "P4: add client TelemetryName world.stream {tier, residentL0, missCount, uploadP95Ms, bytesMB}, 10% sampling",
+    "why": "streaming health on devices; no finer position than a z=9 chunk key"
+   },
+   {
+    "contract": "C07 / S05",
+    "change": "P5: licence allowlist entries ODbL-1.0 and PDDL-1.0; one ProvenanceRecord per world_pack/map_data asset with parents = source stamps; variant 'default' only for world_pack",
+    "why": "packs are derived open data under ODbL"
+   },
+   {
+    "contract": "C12",
+    "change": "P6 (conditional, deferred): optional batch-range route for L1/L2 prefetch",
+    "why": "only if M02b1 measures per-pack GET overhead as a problem; not needed in v1"
+   },
+   {
+    "contract": "C13 / S11 QaFlags",
+    "change": "P7: pass ?hour= and ?weather= through to WorldClockApi in QA builds",
+    "why": "screenshot gates and QA need deterministic time and weather"
+   },
+   {
+    "contract": "S10 UiBridge",
+    "change": "P8: add a map view-model patch (player, blips, route) and AreaBanner key nhood.<slug>",
+    "why": "HUD and XR wrist consume the sim's map state"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S02-01",
+    "question": "How are the 37 landmark glTFs authored?",
+    "recommendation": "Deterministic code recipes in M02d1-d2, then a Blender art pass replacing files at the same AssetIds after M05c"
+   },
+   {
+    "id": "DN-S02-02",
+    "question": "Transit brand names in the player's view?",
+    "recommendation": "Fictional operators (Bay Rail, City Metro, City Transit, Peninsula Express, Halcyon Mobility) with factual station names"
+   },
+   {
+    "id": "DN-S02-03",
+    "question": "Sample USGS/NAIP imagery for colours?",
+    "recommendation": "Off by default (NAIP licence UNVERIFIED); palette-based colours"
+   },
+   {
+    "id": "DN-S02-04",
+    "question": "Tunnel strategy for drivable tunnels?",
+    "recommendation": "Carved corridors with hoods; fallback to open cuts or teleport pairs if the YBI, Broadway and Presidio drive tests fail"
+   },
+   {
+    "id": "DN-S02-05",
+    "question": "Add a batch-range endpoint to C12 for world streaming?",
+    "recommendation": "No for v1; packs already coalesce 16 chunks; revisit after M02b1 measurements"
+   },
+   {
+    "id": "DN-S02-06",
+    "question": "Accept P1 (ModeContext.world)?",
+    "recommendation": "Yes, minor bump of C06 before M03b1"
+   },
+   {
+    "id": "DN-S02-07",
+    "question": "DistrictId casing: S06 declares D1..D10, S02/S03/S04 use lowercase d1..d10 plus neighbourhood slugs",
+    "recommendation": "Lowercase everywhere; S06 aligns"
+   },
+   {
+    "id": "DN-S02-08",
+    "question": "Minimap default orientation and fog of war (Q-MAP-01)",
+    "recommendation": "Heading-up with a north-up toggle; no fog of war; hillshade on, contours off"
+   }
+  ],
+  "unverified": [
+   "Geofabrik NorCal PBF URL, osmium subcommands and PBF-to-GeoJSON route (egress to download.geofabrik.de was reset on 2026-10-18)",
+   "Overpass public endpoints as fallback (overpass-api.de returned no data on 2026-10-18)",
+   "NAIP/USGS imagery licence for colour sampling (default off)",
+   "Sizes of map layers other than roads and of the geocoder pack",
+   "Seed coordinates for BART 16th St, 24th St, Balboa Park, Caltrain terminus and the Golden Gate portal point (snapped by the map:landmarks gate)",
+   "Cable-car street chains (Powell-Hyde, Powell-Mason, California)",
+   "SPDX strings ODbL-1.0 and PDDL-1.0 in the licence allowlist",
+   "Per-pack GETs from the R2 custom domain being fast enough without a batch route",
+   "OSM sidewalk, crossing and ferry-route coverage in SF",
+   "All dagger budgets and targets: bake time 25 min, meshing 12/25 ms, sky GPU ms, agent AI ms",
+   "DataSF footprints omitting post-2010 buildings (OSM gap fill quality)",
+   "Workers static assets honouring Range for .pmtiles (web surfaces)",
+   "Writer library for sf.pmtiles extraction (M13b)",
+   "Parcel land-use attribute for anchor rules (S12 U12)"
+  ],
+  "risks": [
+   "R-S02-01 tunnel hoods look or collide wrong (YBI, Broadway, Presidio)",
+   "R-S02-02 iPhone memory from resident chunks plus textures",
+   "R-S02-03 DataSF refreshes daily; bake needs a pinned raw snapshot",
+   "R-S02-04 ODbL share-alike scope for baked packs",
+   "R-S02-05 drivable graph strongly connected component below 98%",
+   "R-S02-06 cross-tier ambient divergence breaks the prefix rule",
+   "R-S02-07 worker meshing CPU on weak phones",
+   "R-S02-08 BundleGroup gives no gain on the WebGL fallback, so draw commands bind",
+   "R-S02-09 landmark names or silhouettes drifting into branding",
+   "R-S02-10 volume of 37 landmark assets in M02d"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M01f",
+    "slug": "world-graybox-fixture-codec",
+    "sessions": 0.5
+   },
+   {
+    "id": "M02a1",
+    "slug": "bake-core",
+    "sessions": 1
+   },
+   {
+    "id": "M02a2",
+    "slug": "bake-roads-graph",
+    "sessions": 1
+   },
+   {
+    "id": "M02b1",
+    "slug": "streaming-lod",
+    "sessions": 1
+   },
+   {
+    "id": "M02b2",
+    "slug": "weather-time",
+    "sessions": 1
+   },
+   {
+    "id": "M02c1",
+    "slug": "graph-services-teleports",
+    "sessions": 1
+   },
+   {
+    "id": "M02c2",
+    "slug": "maps",
+    "sessions": 1
+   },
+   {
+    "id": "M02d1",
+    "slug": "landmarks-kit-and-heroes",
+    "sessions": 1
+   },
+   {
+    "id": "M02d2",
+    "slug": "landmarks-rest-and-swap",
+    "sessions": 1
+   },
+   {
+    "id": "M03b1",
+    "slug": "traffic-robotaxis",
+    "sessions": 1
+   },
+   {
+    "id": "M03b2",
+    "slug": "peds-transit",
+    "sessions": 1
+   },
+   {
+    "id": "M13b",
+    "slug": "webtiles-anchor-mask-share",
+    "sessions": 0.3
+   },
+   {
+    "id": "M15a",
+    "slug": "bay-expansion-framework",
+    "sessions": 2
+   },
+   {
+    "id": "M15b",
+    "slug": "oakland-core",
+    "sessions": 2
+   },
+   {
+    "id": "M15c",
+    "slug": "berkeley-richmond",
+    "sessions": 1.5
+   },
+   {
+    "id": "M15d",
+    "slug": "marin-gateway",
+    "sessions": 1
+   },
+   {
+    "id": "M15e",
+    "slug": "peninsula-north",
+    "sessions": 1.5
+   },
+   {
+    "id": "M15f",
+    "slug": "peninsula-vc-row",
+    "sessions": 2
+   },
+   {
+    "id": "M15g",
+    "slug": "south-bay-san-jose",
+    "sessions": 2
+   }
+  ],
+  "r_ids_covered": [
+   "R-MAP-01",
+   "R-MAP-02",
+   "R-MAP-03",
+   "R-MAP-04"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-MAP-02",
+    "to": "M15a"
+   },
+   {
+    "id": "R-MAP-03",
+    "to": "M13b"
+   }
+  ]
+ },
+ {
+  "domain": "S03",
+  "spec_path": "spec/domains/03-story.md,spec/domains/03-story-narrative.md,spec/domains/03-story-missions.md,spec/domains/03-story-cutscenes.md",
+  "words": 17419,
+  "contracts_finalized": [
+   "C09"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C10",
+    "change": "NPCDialogueRequest.context accepts mission {id, stage, talkId, goal, outcomes[{id,label}]}; turn.intent accepts 'mission:<missionId>:<talkId>'; add optional effects.outcome restricted to the offered outcome ids",
+    "why": "talk objectives need structured, gateable outcomes while the player's choice stays authoritative (03-story-missions \u00a7C7)"
+   },
+   {
+    "contract": "C06",
+    "change": "Add UiCommand variant {t:'cutscene.state', playId, state:'video'|'fallback'|'done', outcome?} alongside S10's proposed mode.cmd",
+    "why": "story, fighter and racing share one CutscenePlayer protocol; until then S03 uses mode.cmd name 'cut.state'"
+   },
+   {
+    "contract": "C03",
+    "change": "Add DeviceKind 'bot' and a QA-only sim-side BotInput writer for player-0 InputFrames",
+    "why": "mission autoplayer (and S06/S07 bots) must drive the player in headless canonical CI runs"
+   },
+   {
+    "contract": "C05",
+    "change": "SaveReason += 'checkpoint'; ProfileSettings += cutscenes {generated: boolean; audio: 'generated'|'engine'}",
+    "why": "stage checkpoints currently save as 'interval'; the player setting 'Generated cutscenes off' needs a home (R-CUT-03, R-ENG-04)"
+   },
+   {
+    "contract": "C04",
+    "change": "XRRigParams += vantage?: {pos: Vec3; yaw: number}",
+    "why": "XR in-engine cutscene fallback places the viewer at a fixed vantage without cuts (C04 rule 5)"
+   },
+   {
+    "contract": "C13",
+    "change": "FirstGestureUnlock exposes acquireVideo(): HTMLVideoElement | null and releaseVideo(v) over its pool of three",
+    "why": "CutscenePlayer must borrow unlocked elements; 11-platform-pwa \u00a77 defines the pool but not its API"
+   },
+   {
+    "contract": "C07",
+    "change": "Vision QA schema adds weapon_present, gore, photoreal; InputFile role 'plate' (first_party_generated) accepted; check:assets verifies template keyframePin against the registry",
+    "why": "generated-clip moderation (03-story-cutscenes \u00a7D8) and stage plates as keyframe inputs (\u00a7D5)"
+   },
+   {
+    "contract": "C16",
+    "change": "mission.start/fail/complete props {mid, stage, reason?, sec, attempt}; new name unlock.emit {id}; cutscene.play adds props path and trigger",
+    "why": "mission funnel, unlock and fallback-cause telemetry without free text"
+   },
+   {
+    "contract": "C08",
+    "change": "Provide a landmark registry (lm.* \u2192 ENU + chunkKey), placement snapping (ground/road/sidewalk), route(via LatLng[]) \u2192 edgeIds, district polygons d1\u2013d10, tags hidingSpots/pursuitBreakers (WorldResolver)",
+    "why": "mission IR authors in lat/lng and landmarks and resolves at load (R-DSL-12)"
+   },
+   {
+    "contract": "C14",
+    "change": "Closed permission enum includes 'mission.register'; mod missions ship as kind 'experience', ids m.mod.<modId>.*, unlocks unlock.mod.<modId>.*, original-basis cast only, DirectorScript beats only",
+    "why": "mission-editor needs for modders (03-story-missions \u00a7C12)"
+   },
+   {
+    "contract": "C09",
+    "change": "Clarify the fixed manifest line: a.m4a is optional (absent when audio policy is 'engine'); manifest adds shots[] and licence.uiCredit",
+    "why": "generated audio cannot be disabled at the provider and story clips use engine audio; shot boundaries drive cue offsets"
+   },
+   {
+    "contract": "C15",
+    "change": "06 \u00a75 scripts add missions:build, missions:preview, check:missions, assets:plates, assets:cutscene-index",
+    "why": "deterministic scripts for mission CI and the cutscene index (R-ENG-01)"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S03-01",
+    "question": "Where does the tycoon unlock sit: in Act 1 (so the vertical slice exercises all three hooks) or in the Act 2 opener?",
+    "recommendation": "Act 2 opener m.a2.01, which matches S08's research input; Act 1 still exercises the racing and fighter hooks"
+   },
+   {
+    "id": "DN-S03-02",
+    "question": "May generated clips show the protagonist, user NPCs or real-person story cast?",
+    "recommendation": "No. Generated clips are interstitials with fictional cast only; real-person characters appear in generated video only as fighters through S07 hooks"
+   },
+   {
+    "id": "DN-S03-03",
+    "question": "Which milestone ids do Acts 2\u20133 get?",
+    "recommendation": "M05e1/M05e2 (Act 2, after M07a/M08b/M09b) and M05f1/M05f2 (Act 3, after M05e2/M10b), inside the M05 story family"
+   },
+   {
+    "id": "DN-S03-04",
+    "question": "Should story dialogue be generated (lip-sync recipe) or in-engine?",
+    "recommendation": "In-engine always; generated clips default to engine audio"
+   },
+   {
+    "id": "DN-S03-05",
+    "question": "Who runs the community sensitivity read of the Bayview and Tenderloin missions before M05c2?",
+    "recommendation": "The owner arranges it; release is gated on content/story/sensitivity.json"
+   },
+   {
+    "id": "DN-S03-06",
+    "question": "Script names for mission CI",
+    "recommendation": "Add the missions:* family and check:missions to 06 \u00a75"
+   }
+  ],
+  "unverified": [
+   "U-S03-1 keyframe-first recipe keeps character identity across separate clips (M00c, M08b)",
+   "U-S03-2 providers honour 'no text, no logos' prompt clauses (M05c2)",
+   "U-S03-3 seed and prompt_expansion_mode support on minimax/h3/* partner and LTX endpoints (M00c)",
+   "U-S03-4 MSE sequence-mode gaps on Safari 26.x (M04c)",
+   "U-S03-5 pooled unlocked video element plays new sources under iOS Low Power Mode (= U-PLT-17, M04c)",
+   "U-S03-6 Quest video textures freezing after XR entry (M11b2)",
+   "U-S03-7 time to first frame of v768 from R2 on mobile within 2.5 s (M04c)",
+   "U-S03-8 C08 route snapping fits the mission load budget in sim.worker (M05a1)"
+  ],
+  "risks": [
+   "No video provider cleared by ADR-GENAI-01 before M05c2: Act 1 ships fallback-only (fully playable); generated clips follow by config and prewarm",
+   "Identity drift between composed fighter clips: human review and seed retakes add cost within the programme cap",
+   "Act 1 content volume (12 missions with lines and DirectorScripts) may exceed two sessions; DirectorScripts are kept minimal and reuse presets",
+   "Headless canonical autoplay with vehicles may be flaky; mitigated by the deterministic Rapier build, three seeds and stateHash comparison",
+   "Concurrent C08/C10/C14 finals may diverge from S03's assumptions and force adapter rework",
+   "Depiction drift by content authors (real-person roles, fame domain); mitigated by the compiler lint and human review",
+   "Sensitivity-read availability can delay the M05c2 release",
+   "Safari MSE/MMS gaps degrade fight intros to ping-pong playback"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M05a1",
+    "slug": "mission-ir-vm",
+    "sessions": 1
+   },
+   {
+    "id": "M05a2",
+    "slug": "autoplayer-director-preview",
+    "sessions": 1
+   },
+   {
+    "id": "M05b1",
+    "slug": "cutscene-infra-mock (S09/S05)",
+    "sessions": 1
+   },
+   {
+    "id": "M05b2",
+    "slug": "cutscene-player-index",
+    "sessions": 1
+   },
+   {
+    "id": "M05c1",
+    "slug": "act1-missions-1-6",
+    "sessions": 1
+   },
+   {
+    "id": "M05c2",
+    "slug": "act1-vertical-slice",
+    "sessions": 1
+   },
+   {
+    "id": "M05e1",
+    "slug": "story-act2-part1",
+    "sessions": 1
+   },
+   {
+    "id": "M05e2",
+    "slug": "story-act2-part2",
+    "sessions": 1
+   },
+   {
+    "id": "M05f1",
+    "slug": "story-act3-part1",
+    "sessions": 1
+   },
+   {
+    "id": "M05f2",
+    "slug": "story-act3-finale",
+    "sessions": 1
+   }
+  ],
+  "r_ids_covered": [
+   "R-MODE-01",
+   "R-MODE-05",
+   "R-CUT-01",
+   "R-CUT-02",
+   "R-CUT-03"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-CUT-02",
+    "to": "M08b"
+   }
+  ]
+ },
+ {
+  "domain": "S12",
+  "spec_path": "spec/domains/12-modding.md,spec/domains/12-modding-contracts.md,spec/domains/12-modding-publish.md",
+  "words": 16182,
+  "contracts_finalized": [
+   "C14",
+   "C17"
+  ],
+  "contract_change_proposals": [
+   {
+    "contract": "C05",
+    "change": "Rule 3: an `exp:<id>` top-level session may write only `mod:<its modId>` (plus read `settings`); sandbox grants unchanged.",
+    "why": "Experiences run as top-level `exp:` modes, which the capability table does not list."
+   },
+   {
+    "contract": "C06",
+    "change": "Additive `GameModeDescriptor.modSurface?: { kinds: ModKind[] }` (default none). ModeHost documents the Story to `exp:` switch: save `story:auto` with reason `modeExit`, restore on exit, disabled during a mission or pursuit.",
+    "why": "R-MOD-01 says any mode; racing vehicle packs need an opt-in hook from S06 and a defined mode switch."
+   },
+   {
+    "contract": "C07",
+    "change": "Clarification, no shape change: mod assets are not in the catalog. `asset.worker` gets an `AssetSource` hook that resolves `<kind>/mod.<sha256[0:12]>` from OPFS `dv/mods/blobs/<sha256>`. `ProvenanceRecord` is used unchanged (`executor:'cli'`, `env:'production'`).",
+    "why": "Mod assets must be valid full AssetRefs without entering the immutable catalog."
+   },
+   {
+    "contract": "C12",
+    "change": "Route 36 accepts a P2 browser JWT as well as the CLI `mods:publish` token (both need tier linked).",
+    "why": "The in-game creator needs no second login."
+   },
+   {
+    "contract": "C12",
+    "change": "Route 35 gains `sort` (new|top|installed), `tier` and `limit`; add route `GET /api/v1/mods/revoked?since=`.",
+    "why": "Store ranking and filtering, and enforcing takedowns on installed copies within 24 h."
+   },
+   {
+    "contract": "C12",
+    "change": "`BootConfig.hosts.modsUi?` (L1 UI-iframe fallback) and `FeatureFlag` additions `mods.enabled`, `mods.script`, `mods.ui`.",
+    "why": "Gate the UI and script tiers and support the fallback host."
+   },
+   {
+    "contract": "C12",
+    "change": "For `purpose:'mod_archive'`, route 36 enqueues UGC_SCAN instead of route 34 commit.",
+    "why": "The version row and the scan then share one moderation_item."
+   },
+   {
+    "contract": "C12",
+    "change": "DB 0007: add `forum_threads.mod_id`, `forum_boards.min_tier` value 'staff', `experiences.world_version`, `experiences.mod_sha256`; fix the enumerations for `mod_versions.state` (ModVersionState) and `experiences.moderation_state` (ExperienceModeration); DTOs expose `mods.slug` as ModId.",
+    "why": "Mod discussion threads, world-version pinning, and consistent state values."
+   },
+   {
+    "contract": "C12",
+    "change": "`/link` approves a device code only for a `linked` profile. Before M14a, P2 is reached via `openai` if `auth.openaiWeb` is on, else `supabase-oauth` (GitHub).",
+    "why": "Route 10 and route 36 need P2, and website SIWC is a limited trial."
+   },
+   {
+    "contract": "C17",
+    "change": "Additive 1.1.0: optional `worldVersion` and `modSha256`. The anchor is set per placement, not in the archive.",
+    "why": "Rebake re-validation and the `needs_update` state."
+   },
+   {
+    "contract": "C16",
+    "change": "New TelemetryNames: `mod.install`, `mod.uninstall`, `mod.fault`, `mod.session`, `exp.enter`, `exp.exit`. Props are enums and buckets only; `mod` = first 8 hex of SHA-256(modId).",
+    "why": "Mod health and the install-count roll-up; no free text or ids."
+   },
+   {
+    "contract": "C09",
+    "change": "IR validation profile `mod`: no economy, unlock, story-flag or mode-load ops; export the mission IR JSON Schema from `packages/shared/schemas`.",
+    "why": "Mods may register missions but must not reach Story or the economy."
+   },
+   {
+    "contract": "C10",
+    "change": "Roster flag `ugcCameo` (default false for parody-tier NPCs).",
+    "why": "`npc.cameo` must not place living-person parody NPCs in UGC by default."
+   },
+   {
+    "contract": "C08",
+    "change": "Pure `chunkKeyOf(lat,lng)` in `@dv/shared`; `tools/map` exports `anchor-mask.v1.bin` and an offline geocoder for `world.find_place`.",
+    "why": "Server and CLI anchor checks and the MCP place lookup."
+   },
+   {
+    "contract": "C07/tools-ci",
+    "change": "S05's provenance and IP gate cores must be Worker-safe and importable from `@dv/shared`; `tools/ci` wraps them. New scripts `check:mods`, `check:skills`, `check:agents`; root AGENTS.md \u2264 8 KiB.",
+    "why": "The fixed C14 line says `dv mod check` reuses the `tools/ci` validators; the Queue consumer must run the same code."
+   },
+   {
+    "contract": "S06/S10 schemas",
+    "change": "Export the HandlingProfile and wardrobe-item JSON Schemas from `@dv/shared` for the mod SDK; S10 adds a Settings > Developer page backed by device-scoped `PlatformSettings.dev.mod`.",
+    "why": "Data-tier vehicle and outfit mods validate against those schemas."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S12-01",
+    "question": "What makes a profile `linked` for publishing before M14a if `AUTH_OPENAI_WEB` stays off?",
+    "recommendation": "Supabase GitHub OAuth as `supabase-oauth`, linked on `/link`; migrate to the identity interface at M14a."
+   },
+   {
+    "id": "DN-S12-02",
+    "question": "Ship the UI tier at all, and should UI mods get a cross-site registrable domain?",
+    "recommendation": "Ship declarative panels (L2) first, srcdoc (L0) after the M13a5 matrix; no second domain in v1; flag `mods.ui` off until recorded."
+   },
+   {
+    "id": "DN-S12-03",
+    "question": "Allow the script tier on mobile-low (1 ms, 2 runtimes)?",
+    "recommendation": "Allow only if the M13a4 iPhone 15 spike passes; otherwise data-only on mobile-low."
+   },
+   {
+    "id": "DN-S12-04",
+    "question": "Publish `@dv/mod-sdk` and `@dv/cli` to npm (MIT), and what is the game repo's visibility?",
+    "recommendation": "Yes for the SDK and CLI. The repo follows Q-15; if it stays private, a flow B Studio does not qualify as open source."
+   },
+   {
+    "id": "DN-S12-05",
+    "question": "Build flow B (ChatGPT plan usage in a local Studio)?",
+    "recommendation": "Defer behind an ADR after the OpenAI interest form; flow A (Codex signed in with ChatGPT) is the supported ChatGPT path."
+   },
+   {
+    "id": "DN-S12-06",
+    "question": "Are experiences playable on mobile and XR by default?",
+    "recommendation": "Yes when the server-computed `tiersOk` includes the tier; creator evidence is shown in the listing."
+   },
+   {
+    "id": "DN-S12-07",
+    "question": "May UGC place parody-tier NPCs as cameos?",
+    "recommendation": "Off by default via S04 `ugcCameo`; fictionalized and original NPCs allowed."
+   },
+   {
+    "id": "DN-S12-08",
+    "question": "Gate public visibility of mods and experiences on M13d?",
+    "recommendation": "Yes: `ugc.publish` stays false in production until the M13d DMCA, NCII-clock and evidence-audit ACs pass; staging and private-to-owner earlier."
+   },
+   {
+    "id": "DN-S12-09",
+    "question": "Accept `mod.worker` as a third lazy worker beside D-08's sim.worker and asset.worker?",
+    "recommendation": "Yes: lazy, never renders, terminated when no script mod is loaded."
+   },
+   {
+    "id": "DN-S12-10",
+    "question": "Scope of the in-game creator for players without any agent (R-MOD-02).",
+    "recommendation": "Data-tier place mode (M13b3, 1 session). The server-side Claude assistant under the G3 quotas is a later flag."
+   },
+   {
+    "id": "DN-S12-11",
+    "question": "Is Story-to-experience a mode switch with autosave and restore?",
+    "recommendation": "Yes (S01 and S10 implement); disabled during a mission or pursuit."
+   }
+  ],
+  "unverified": [
+   "U1 QuickJS-wasm per-tick cost on iPhone and Quest (budgets are design values)",
+   "U2 L0 srcdoc sandboxed iframe under COEP require-corp on iOS Safari 26, Quest Browser and visionOS Safari, including no cross-origin isolation or SharedArrayBuffer in the frame",
+   "U3 Renderer-process separation of sandboxed same-site frames (Spectre exposure of UI mods)",
+   "U4 Chrome Local Network Access gating WebSockets to 127.0.0.1",
+   "U5 Availability of the @dv npm scope and publish rights",
+   "U6 ChatGPT plan usage permitting a local Studio that also calls our hosted API",
+   "U7 Ajv runtime codegen inside Workers (avoided by build-time compilation)",
+   "U8 An incremental SHA-256 helper next to sha256Hex in @dv/shared",
+   "U9 gltf-validator and ktx validate inside a Worker (else the scan Container)",
+   "U10 An offline SF geocoder export from tools/map for world.find_place",
+   "U11 Cloudflare CSAM-tool coverage of R2 custom domains",
+   "U12 A residential land-use attribute in the DataSF Parcels dataset"
+  ],
+  "risks": [
+   "Sandbox escape or CPU or memory abuse by mod scripts; bounded by QuickJS limits, the closed permission enum and review",
+   "UI-mod iframe under COEP or Spectre; mitigated by the L0/L1/L2 ladder, the flag, and human review of every UI publish",
+   "QuickJS-wasm too slow on mobile-low or Quest; fallback is data-only there",
+   "Publisher identity gap before M14a (website SIWC is a trial); fallback is GitHub OAuth",
+   "Moderation capacity and legal readiness: public publish depends on M13d, PhotoDNA and NCMEC filings (Q-16)",
+   "Map griefing and privacy via anchors near homes; mitigated by anchor rules, a reviewer ring and the report button",
+   "Prompt injection via KB, forum and README text read by agents; mitigated by quoted untrusted data",
+   "IP contamination: GTA-format imports or sibling-game assets; mitigated by magic-byte and extension bans and the fixed message",
+   "Likeness via mods; mitigated by the original-only tier, the photo classifier and no voice assets",
+   "World rebake invalidating overlays; mitigated by worldVersion pinning and the needs_update workflow",
+   "Takedowns not reaching offline installs; mitigated by the revocation poll, with a \u2264 24 h online gap",
+   "Supply chain through the npm SDK and CLI; pin and sign releases",
+   "Mod runtimes and textures blowing the iPhone 2,048 MB WebContent ceiling; mitigated by MemoryBudget accounting and per-tier caps",
+   "Scope growth: M13a is six sessions and may need Wave 5 re-sizing"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M13a1",
+    "slug": "mod-sdk-manifest-validators",
+    "sessions": 1
+   },
+   {
+    "id": "M13a2",
+    "slug": "mod-installer-store-client",
+    "sessions": 1
+   },
+   {
+    "id": "M13a3",
+    "slug": "mod-runtime-data-experience",
+    "sessions": 1
+   },
+   {
+    "id": "M13a4",
+    "slug": "mod-script-sandbox",
+    "sessions": 1
+   },
+   {
+    "id": "M13a5",
+    "slug": "mod-ui-tier",
+    "sessions": 1
+   },
+   {
+    "id": "M13a6",
+    "slug": "mod-agent-kit",
+    "sessions": 1
+   },
+   {
+    "id": "M13b2",
+    "slug": "forum-ugc-links",
+    "sessions": 0.5
+   },
+   {
+    "id": "M13b3",
+    "slug": "creator-place-mode",
+    "sessions": 1
+   },
+   {
+    "id": "M13c2",
+    "slug": "publish-pipeline-server",
+    "sessions": 1
+   },
+   {
+    "id": "M13c3",
+    "slug": "publish-cli-link",
+    "sessions": 1
+   }
+  ],
+  "r_ids_covered": [
+   "R-MOD-01",
+   "R-MOD-02",
+   "R-MOD-03",
+   "R-MOD-04",
+   "R-AUTH-03",
+   "R-IP-03"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-MOD-01",
+    "to": "M15+"
+   },
+   {
+    "id": "R-MOD-02",
+    "to": "M13c3"
+   }
+  ]
+ },
+ {
+  "domain": "S06",
+  "spec_path": "spec/domains/06-racing.md,spec/domains/06-racing-data.md,spec/domains/06-racing-content.md",
+  "words": 14271,
+  "contracts_finalized": [],
+  "contract_change_proposals": [
+   {
+    "contract": "C06",
+    "change": "CCP-1: add optional GameModeDescriptor.standaloneProfile?: SimProfile (or ModeEnterArgs.simProfile for top-level entry when descriptor simProfile is 'any'). Racing descriptor is simProfile 'any' (embeddable in story), standalone menu launches use 'canonical'.",
+    "why": "Exact ghost/replay/leaderboard needs the canonical profile, but a canonical-only descriptor cannot be embedded by the Act 1 racing hook (C06 rule 2). Without it the menu runs 'local', ghosts use transform tracks and exact replay is CI/headless only."
+   },
+   {
+    "contract": "C06",
+    "change": "CCP-2: PursuitProfile gains configRef?: string (loads config/pursuit.race.json) and PursuitApi gains setRouteHint(edgeIds: readonly number[] | null) for the predicted race route.",
+    "why": "Roadblocks must go on the next 3 gates of a known route; the frozen PursuitProfile has no per-profile config or route input. Fallback: authored ScriptedBlocks plus velocity-based prediction."
+   },
+   {
+    "contract": "C01-C06 engine service interfaces",
+    "change": "CCP-3: define PhysicsBackend.vehicle.read output layout (per wheel: inContact, contact point, normal, suspension length, ground-frame velocities, load) and an applyWheelForces path so the pure stepHandling output can be applied as impulses at contact points; M03a spike (U-RAC-1) picks controller-based or own castRay-based implementation.",
+    "why": "The custom tire/lateral-grip model needs per-wheel contact data and force application that the frozen vehicle.drive() surface does not expose."
+   },
+   {
+    "contract": "C07",
+    "change": "CCP-4: KindExtras vehicle.nodes additive optional fields: cockpit, steeringWheel, anchors {driver, hood}, exhaust[], thrusters[], sirens[], and vertex attribute _dent; S05 vehicle node contract otherwise accepted unchanged.",
+    "why": "Cockpit/hood and XR cockpit views, roadster thrusters, nitro/exhaust VFX anchors and shader-based dent damage without extra render objects."
+   },
+   {
+    "contract": "C13",
+    "change": "CCP-5: add PostNode members 'motionblur' | 'ssr' | 'dof' | 'lut' (optionalPost on desktop-ultra/desktop; none elsewhere).",
+    "why": "Forza-grade desktop-ultra target (VR-2, VR-3) and photo mode need nodes not in the current PostNode union."
+   },
+   {
+    "contract": "C12",
+    "change": "CCP-6: define ScoreSubmit and ScoreRow for route 21 (types in 06-racing-data.md 4.3), board id grammar racing.<raceId>.time|score, body cap 16 KiB, and v1 plausibility-only validation with verified=false rows.",
+    "why": "DataPort references ScoreSubmit/ScoreRow but they are undefined; S06 owns the validator semantics."
+   },
+   {
+    "contract": "C16",
+    "change": "CCP-7: add TelemetryNames racing.start, racing.finish, racing.pursuit_end, racing.photo, racing.replay_view, racing.verify_fail with props listed in 06-racing-data.md 4.5.",
+    "why": "Closed registry drops unknown names; modes must propose before emitting."
+   },
+   {
+    "contract": "net.speedcaps.json (S09)",
+    "change": "CCP-8: per-class rows foot 12, D 58, C 77, B 89, A 105, S 119, R 63, police 73, default 95 m/s.",
+    "why": "SPEED_CAPS[class] defaults to one vehicle value (95 m/s) which rejects class S cars with nitro and over-allows class D."
+   },
+   {
+    "contract": "C03",
+    "change": "CCP-9: additive ControlId 'xr:both:wheel' (analog -1..1 from a two-hand virtual-wheel gesture computed in S11 HandFeatures).",
+    "why": "XR hands steering needs an analog control; current gesture ControlIds are discrete."
+   },
+   {
+    "contract": "C04",
+    "change": "CCP-10: XRRigParams.origin additive 'diorama' (tabletop third-person chase view) to implement XrComfortSettings.chaseView 'diorama'.",
+    "why": "S11 comfort settings reference a diorama chase view that no C04 rig origin implements."
+   },
+   {
+    "contract": "S11 PerfScenario",
+    "change": "CCP-11: add scenario ids 'race-sprint' (canned route, 5 rivals) and 'race-pursuit-heat4'.",
+    "why": "Per-tier racing budgets must be acceptance tests (R-ENG-02)."
+   },
+   {
+    "contract": "C04 AnimStateId",
+    "change": "CCP-12: ADR in Wave 5 assigning AnimStateId block 128-159 to S06 (vehicle states 128-136, driver states 144-148).",
+    "why": "06 v1.0 says mode blocks in 128-255 are assigned by ADR."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S06-01",
+    "question": "Accept CCP-1 so standalone Racing events run the canonical sim profile?",
+    "recommendation": "Yes (additive 1.1); otherwise exact replay and leaderboard verification stay headless-only and ghosts use transform tracks."
+   },
+   {
+    "id": "DN-S06-02",
+    "question": "Trademark knock-out search and counsel review for placeholder makes (Ondine, Kestrel, Tidewater, Brackenridge, Aurelian, Solenne, Halcyon) and rival handles?",
+    "recommendation": "Ship placeholders through NameRegistry/names:lint; counsel clears before M14b; rename is a data commit."
+   },
+   {
+    "id": "DN-S06-03",
+    "question": "Leaderboard verification level at launch.",
+    "recommendation": "Plausibility checks only with verified=false rows in M12c; add a Node/Container replay re-simulation verifier after the M12c load test."
+   },
+   {
+    "id": "DN-S06-04",
+    "question": "Vision Pro without hand tracking (gaze+pinch only): support racing?",
+    "recommendation": "No; show a message requiring hands or a controller, matching fighter policy."
+   },
+   {
+    "id": "DN-S06-05",
+    "question": "Sideshow and drift events: keep in v1 (Q-GD-06) and exclude from XR?",
+    "recommendation": "Keep with built-in police response; RaceDef.xr = none for sideshow and drift."
+   },
+   {
+    "id": "DN-S06-06",
+    "question": "Racing keeps its own wallet (purse, Rep) separate from the story wallet?",
+    "recommendation": "Yes (currency firewall); garage shared via CoreSlice.garage; story rewards only through ModeResult.rewards when embedded."
+   }
+  ],
+  "unverified": [
+   "U-RAC-1 Rapier vehicle controller exposes per-wheel contact data and accepts external impulses (default: own castRay+applyImpulse vehicle; M03a spike)",
+   "U-RAC-2 deterministic-compat vs simd-compat tick cost with 8 M1 vehicles",
+   "U-RAC-3 independent bodies in one Rapier world do not affect each other's results (default: ghosts are kinematic tracks)",
+   "U-RAC-4 takeSnapshot/restoreSnapshot round-trip is bit-exact (default: scrub re-simulates from start)",
+   "U-RAC-5 PNG save on iPhone (download vs share sheet)",
+   "U-RAC-6 cost of SSRNode, MotionBlur and LightProbeGrid on r186 at desktop-ultra",
+   "U-RAC-7 iPhone device-motion permission flow for tilt steering in a Home Screen app",
+   "U-RAC-8 Quest face-button indices (U-ENG-5)"
+  ],
+  "risks": [
+   "RISK-RAC-1 arcade ray-cast feel misses the oracle lines and forces the Jolt swap",
+   "RISK-RAC-2 vehicle tick cost under deterministic-compat on mobile",
+   "RISK-RAC-3 desktop-ultra Forza-grade look exceeds budget (SSR/motion blur) on r186",
+   "RISK-RAC-4 placeholder vehicle and rival names fail trademark knock-out",
+   "RISK-RAC-5 concurrent C08 (S02) road-graph API differs from assumptions A-S06-1 (edge id stability, projection, A*)",
+   "RISK-RAC-6 car art (16 vehicles, Blender pass per H6) is the schedule bottleneck for M07a/M07b",
+   "RISK-RAC-7 sideshow content rating and legality perception (Q-GD-06)",
+   "RISK-RAC-8 XR driving comfort on Quest/Vision Pro without a device pass until M11b2"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M03a",
+    "slug": "vehicles-interaction-prefabs",
+    "sessions": 0.5
+   },
+   {
+    "id": "M07a",
+    "slug": "racing-core-ai-ghosts",
+    "sessions": 2
+   },
+   {
+    "id": "M07b",
+    "slug": "racing-content-pursuits-replay-photo",
+    "sessions": 2
+   },
+   {
+    "id": "M11a",
+    "slug": "racing-perf-scenarios",
+    "sessions": 0.2
+   },
+   {
+    "id": "M11b2",
+    "slug": "racing-xr-driving",
+    "sessions": 0.3
+   },
+   {
+    "id": "M12c",
+    "slug": "racing-mp-leaderboards",
+    "sessions": 0.5
+   },
+   {
+    "id": "M13a",
+    "slug": "vehicle-mod-envelope",
+    "sessions": 0.2
+   }
+  ],
+  "r_ids_covered": [
+   "R-MODE-02",
+   "R-MODE-05",
+   "R-IP-01",
+   "R-MAP-01",
+   "R-ENG-04",
+   "R-ENG-02",
+   "R-PLAT-05"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-PLAT-02",
+    "to": "M11b2"
+   },
+   {
+    "id": "R-ROLL-02",
+    "to": "M12c"
+   },
+   {
+    "id": "R-MOD-01",
+    "to": "M13a"
+   }
+  ]
+ },
+ {
+  "domain": "S07",
+  "spec_path": "spec/domains/07-fighter.md,spec/domains/07-fighter-core.md,spec/domains/07-fighter-content.md,spec/domains/07-fighter-pose.md",
+  "words": 18527,
+  "contracts_finalized": [],
+  "contract_change_proposals": [
+   {
+    "contract": "C03",
+    "change": "Additive 1.1: add InputRouter.setPoseHybrid(boolean) so rule 8 (any touch/key/pad input disables the pose binder) can be relaxed for an opt-in hybrid mode (pose for strikes and guard, stick/keys for movement). Also document that in InputContextId 'fighter' the SimButton bits are reinterpreted through a normative alias table (Attack=LP, Ability=MP, FightHeavy=HP, Sprint=LK, Nitro=MK, Horn=HK, Special=SP, FightAssist=AS, Handbrake=HY, Block=BL, Emote=TA, Interact=DA), with two binding files per device (fighter-classic, fighter-simple) and per-context labels.",
+    "why": "Hybrid pose is the usable mode in small rooms; the frozen rule makes it impossible. The alias table avoids new SimButton bits and keeps the 06 sketch unchanged. Fallback if rejected: exclusive-only pose in v1."
+   },
+   {
+    "contract": "C11",
+    "change": "Additive: ActKind.FightInput carrying the last 8 frames x 2 B per player redundantly each tick for a DirectoryDO-assigned fight instance; the DO relays and arbitrates final hashes only.",
+    "why": "EV Activity (reliable JSON <= 1 KiB) and IN (20 Hz) cannot carry 60 Hz rollback input. Not needed before the post-M12b fight-room ADR."
+   },
+   {
+    "contract": "C16",
+    "change": "Add TelemetryName 'fight.end' {mode, scheme, cpu, rounds, winnerSlot, durationS, pose} and 'pose.session' {durationS, camFpsP50, latencyEstP95Ms, level, endReason}. Existing names used: mode.enter, mode.exit, cutscene.play, pose.calibrate.",
+    "why": "Aggregate-only visibility of match and pose-session outcomes (R-IP-04 compliant); modes may not emit unregistered names (DL-069)."
+   },
+   {
+    "contract": "C13",
+    "change": "S11 facade/config additions: Permissions-Policy camera=(self) on app documents and CSP connect-src limited to the app origin plus media host (check:headers asserts both); IndexedDB dv-platform object store 'pose-calibration' keyed [saveProfileId, cameraKey], device-scoped, never synced or exported; PerfScenario id 'fight-stage-pose' beside the existing 'fight-stage'.",
+    "why": "R-IP-04 enforcement and device-local calibration; keeps body-proportion data out of C05 cloud sync."
+   },
+   {
+    "contract": "C09",
+    "change": "Assumption on S03: CutscenePlayer.playSequence(items: {ref: CutsceneRef | null; fallback: DirectorScript}[]) with per-item in-engine fallback; release cutscene-index includes the fight refs from content/fighter/cutscenes.json (fight.walkin/<id>/<stage>, fight.faceoff/<a>+<b>, fight.special|super/<id>/<move>, fight.shutdown/<id>, fight.ending/<id>); templates fight.*@1; story applies ModeResult.data.streetCred.",
+    "why": "Player fighter has no generated clips, so intros mix clips and in-engine segments; the 06 sketch only fixes single-clip play, key, status and PreparedClip."
+   },
+   {
+    "contract": "C10",
+    "change": "Assumption on S04: compiled soul exposes tier, fame_domain, standIn, rails; NPCDialogueRequest turn.intent accepts 'fight.pre' and 'fight.post' (optional trash-talk, offline ink fallback).",
+    "why": "Tier and fame-domain gates and kill-switch stand-ins for the fighter roster; no change to the frozen request shape."
+   },
+   {
+    "contract": "C08",
+    "change": "Assumption on S02/S01: GameModeDescriptor.requires.world='stage' means no C08 chunk streaming; stages are C07 prop bundles loaded through ModeContext.assets, referencing S02 landmark glTFs (A-05).",
+    "why": "Fighter stages are dioramas, not streamed world; avoids requiring an arena chunk kind."
+   },
+   {
+    "contract": "C06",
+    "change": "Assumption on S01: ModeHost increments core.stats.fightsWon on a fighter win and ModeResult.data may carry mode-specific rewards (streetCred) applied by Story; InputRouter supplies frame(1) from a second gamepad for local Versus (keyboard second player is out of v1).",
+    "why": "Rewards and local two-player without changing ModeContext."
+   },
+   {
+    "contract": "C04/anim",
+    "change": "AnimStateId block assignment by ADR: S06 128-159, S07 160-207, S08 208-255; fighter move states use an S07-owned frame-locked clip player (the generic AnimStateDef cannot select a clip by move id or lock time to a sim frame).",
+    "why": "06 notes say S06/S07/S08 claim blocks by ADR; frame-accurate animation must follow frame data."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "S07-D1",
+    "question": "Is fighter animation authoring budgeted as human Blender work (about 45 shared base clips plus 12-16 signature clips per fighter, about 160 authoring tasks), or limited to library moves plus a few customs?",
+    "recommendation": "Shared base set plus 12-16 signature clips per fighter; ship M08a with generic cast/attack clips for specials and add signatures through M10a."
+   },
+   {
+    "id": "S07-D2",
+    "question": "Which two additional original characters fill the 11th and 12th slots for the 12-fighter target (RAP_COLLECTIVE and TECH_VC are the reserve kits)?",
+    "recommendation": "Decide after the M08b1 balance run; add two original-basis characters in new archetypes; remains 8 if Q-14 moves to a fallback video provider."
+   },
+   {
+    "id": "S07-D3",
+    "question": "Where is pose calibration stored?",
+    "recommendation": "Decided in the spec: device-local dv-platform store, not the C05 slice, optional 'remember calibration', deletable; counsel to confirm whether normalised body proportions are biometric (Q-S07-2)."
+   },
+   {
+    "id": "S07-D4",
+    "question": "Relax C03 rule 8 for hybrid pose (setPoseHybrid)?",
+    "recommendation": "Yes, as additive C03 1.1 before M08c2; otherwise ship exclusive-only pose and hide hybrid."
+   },
+   {
+    "id": "S07-D5",
+    "question": "Default for the in-fight cinematic setting (Showstopper and Shutdown clips).",
+    "recommendation": "'first' (once per profile per fighter), 'off' for Training and online; sim hold is a fixed 300 frames so replays are unaffected."
+   },
+   {
+    "id": "S07-D6",
+    "question": "Confirm AnimStateId block split and component range use (1280-1283 used, 1284-1535 reserved).",
+    "recommendation": "S06 128-159, S07 160-207, S08 208-255 via ADR in Wave 5."
+   }
+  ],
+  "unverified": [
+   "PoseLandmarker latency/FPS on iPhone Safari (CPU and GPU delegates) and desktop browsers: M08c2 device gate",
+   "@mediapipe/tasks-vision 1.1.1 inside a classic IIFE worker under Vite 8 (module-worker use unverified)",
+   "Exact Google object path of the pose .task models (only sizes and bucket recorded; vendoring script pins size and SHA-256)",
+   "MediaPipe left/right landmark label convention under a mirrored stream (design avoids it)",
+   "iOS 26/27 standalone-PWA camera reliability (regressions reported on 17.5.1)",
+   "requestVideoFrameCallback captureTime accuracy on iOS Safari",
+   "Art-lead effort for about 160 clip-authoring tasks",
+   "Durable Object relay latency for 60 Hz fight input (post-M12b ADR)",
+   "Quest A/B/X/Y indices and WebXR camera access on Quest (no XR pose in v1)",
+   "H3-family US licence for fighter clips (ADR-GENAI-01, Q-03): in-engine intros and registry fallback until cleared",
+   "Whether locally stored normalised body-proportion thresholds count as biometric data (counsel)"
+  ],
+  "risks": [
+   "Fighting feel and balance with generated base animation (mitigation: hand-keyed key poses, training tools, CPU balance gate 35-65 percent)",
+   "Pose latency or thermal limits on iPhone make pose unavailable on some devices (mitigation: capability levels and instant fallback)",
+   "Animation authoring volume is the schedule risk for M08b/M10a",
+   "Fame-domain and parody rules (no athletes playing their sport, no rapper performance) risk generic-feeling kits",
+   "Generated clips may not ship in v1 under the licence gate, so in-engine intros must be good",
+   "30 fps render tiers quantise input (windows widened x1.5)",
+   "iOS standalone camera regressions; Low Power Mode blocks video without a gesture",
+   "Frame-data or tuning drift breaking golden replays (mitigation: frameDataHash in replay header, fighter:diff)"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M08a1",
+    "slug": "fight-core-sim-data",
+    "sessions": 1
+   },
+   {
+    "id": "M08a2",
+    "slug": "fight-mode-training-vs",
+    "sessions": 1
+   },
+   {
+    "id": "M08b1",
+    "slug": "fight-roster-kits-ai",
+    "sessions": 1
+   },
+   {
+    "id": "M08b2",
+    "slug": "fight-stages-cutscenes-arcade",
+    "sessions": 1
+   },
+   {
+    "id": "M08c1",
+    "slug": "pose-pipeline-classifier",
+    "sessions": 1
+   },
+   {
+    "id": "M08c2",
+    "slug": "pose-calibration-gate",
+    "sessions": 1
+   }
+  ],
+  "r_ids_covered": [
+   "R-MODE-03",
+   "R-IP-04",
+   "R-CUT-01",
+   "R-CUT-02",
+   "R-CUT-03",
+   "R-NPC-04",
+   "R-NPC-05",
+   "R-IP-01",
+   "R-IP-02",
+   "R-MODE-05",
+   "R-ENG-02",
+   "R-ENG-04",
+   "R-PLAT-02",
+   "R-PLAT-03",
+   "R-PLAT-05"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-ROLL-02",
+    "to": "M12c"
+   }
+  ]
+ },
+ {
+  "domain": "S10",
+  "spec_path": "spec/domains/10-ui.md,spec/domains/10-ui-pages.md,spec/domains/10-ui-hud-xr.md",
+  "words": 15959,
+  "contracts_finalized": [],
+  "contract_change_proposals": [
+   {
+    "contract": "C06",
+    "change": "Add additive 1.1 types UiBridge, ViewModelSource, VmPatch, VmKey and UiCommand (shapes in 10-ui.md \u00a73.3), plus optional GameModeUI.summary(slice), GameModeUI.settingsPanel() and GameModeUI.assists",
+    "why": "C06 references UiBridge, ViewModelSource and UiCommand but never defines them; mode owners need a fixed UI boundary and mode tiles need summaries"
+   },
+   {
+    "contract": "C12",
+    "change": "Add IdentityService.attestAge(bracket: AgeBracket): Promise<IdentityState> persisting the bracket in dv-identity before route 15 exists",
+    "why": "The P0 play token needs age '18p' (D-30) and no interface sets it; the neutral age screen needs a persistence call"
+   },
+   {
+    "contract": "C13",
+    "change": "Add RendererHost.setMenuScene(scene, camera) / clearMenuScene() that renders on the shared canvas while ModeHost is Idle",
+    "why": "Creator, garage and NPC previews must not create a second WebGL context on iPhone"
+   },
+   {
+    "contract": "C13",
+    "change": "Confirm an XrPanels registration API: add(panel: XrPanel, placement), remove(id), setVisible(id, bool) that S10 UiSurface calls",
+    "why": "DN-S11-03 makes S10 provide panels but the XrPanels registration surface is unspecified"
+   },
+   {
+    "contract": "C16",
+    "change": "Add client TelemetryNames ui.page {page, ms}, ui.onboard {step, outcome}, pwa.install {evt} with per-name schemas",
+    "why": "Onboarding drop-off and install funnel are otherwise unobservable; no free text or ids"
+   },
+   {
+    "contract": "C05",
+    "change": "Note only: CoreSlice.avatar schema owner is S10 (avatar.v1.schema.json); ControlsSettings.touch.layout may hold a device-scoped 'custom:<n>' id and falls back to default-right if absent",
+    "why": "Avatar validation ownership and touch-layout portability across devices"
+   },
+   {
+    "contract": "C07",
+    "change": "Assumption for S05: player creator kit assets exist as character/pc-<slot>-<id> and portrait/pc-<slot>-<id> plus ui/menu-backdrop",
+    "why": "Creator presets are C07 AssetRefs; no kit is defined yet"
+   },
+   {
+    "contract": "C14",
+    "change": "Assumption for S12: permissions[] values are a closed enum with a stable id usable as LocKey perm.<id>; manifest exposes name, author, kind, tier, version",
+    "why": "Mod detail page must show plain-language permissions and fail closed on unknown values"
+   },
+   {
+    "contract": "C17",
+    "change": "Assumption for S12: experience list returns rating {sum,count}, anchor neighborhood name and moderation/visibility read-only",
+    "why": "Experience browser and map marker cards"
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S10-01",
+    "question": "What do 13-17 year olds get in v1? D-30 says 18+ terms and TEEN_MODE=false, but the legal report also describes teen defaults.",
+    "recommendation": "Block every under-18 with one neutral screen in v1; keep AgeBracket in the data model so a later TEEN_MODE (offline-only, no AI memory, no UGC, camera off) needs no migration."
+   },
+   {
+    "id": "DN-S10-02",
+    "question": "Telemetry consent default: on with a first-run notice and one-tap off, or opt-in?",
+    "recommendation": "Default on with a clear first-run card, as S09 defined the toggles (US-only v1); revisit before any EU/UK launch."
+   },
+   {
+    "id": "DN-S10-03",
+    "question": "Should New Game create a new save profile instead of a new story slot in the active profile?",
+    "recommendation": "Yes: a new profile (up to 64) per playthrough, matching C05 where story:auto is overwritten by autosave; slots 1-3 stay manual saves."
+   },
+   {
+    "id": "DN-S10-04",
+    "question": "Text entry inside XR (creator name, forum, NPC builder): support an in-headset keyboard or require exiting VR?",
+    "recommendation": "Flat-only in v1 with an exit-VR panel, because a system keyboard inside an immersive session is UNVERIFIED."
+   },
+   {
+    "id": "DN-S10-05",
+    "question": "Will S11 add a menu-scene slot on RendererHost so previews share the main canvas?",
+    "recommendation": "Yes (C13 additive); otherwise previews would need a second GL context, which risks iPhone memory."
+   },
+   {
+    "id": "DN-S10-06",
+    "question": "Offer per-knob graphics overrides (shadows, draw distance, post FX) as in gamedesign 7.5?",
+    "recommendation": "No in v1: the C13 tier is the unit and the governor owns dynamic knobs; reconsider after the M11a calibration."
+   }
+  ],
+  "unverified": [
+   "Turnstile widget behaviour under COEP on /account/register (U-BE-2)",
+   "Full-page redirect sign-in inside an iOS Home Screen app (U-BE-16)",
+   "Shape of OS age signals (California AB 1043, from 2027-01-01) in browsers",
+   "System keyboard inside an immersive session on Quest and Vision Pro",
+   "XR face-button indices for remap UI (U-ENG-5)",
+   "navigator.standalone for Home Screen detection (U-PLT-15)",
+   "Preact 11.0.1 bundle size and iOS runtime cost on this build (version and licence verified only)",
+   "Forum list sort values and q search parameter (S09 route 38 states sort only)",
+   "Save-file download behaviour in an iOS standalone app for .dvsave export",
+   "Minimum comfortable text angle (1.5 deg) and panel pixel/count budgets in headsets",
+   "All UI frame, node-count and latency budgets marked as starting values",
+   "Device-motion permission for tilt steering on iOS standalone",
+   "visualViewport keyboard avoidance in iOS standalone",
+   "Colour-vision-deficiency simulation algorithm used for palette CI (chosen at M04b2)",
+   "Session visibilitychange behaviour (U-PLT-13) for the headset Pause panel"
+  ],
+  "risks": [
+   "Dual renderer (DOM and Canvas) drifts; mitigated by the single ScreenDef vocabulary and the ui-screen-parity test",
+   "M04b1 and M04b2 are near the 40-file limit; flat-only pages and XR panels are deferred to later milestones",
+   "Previews depend on an unconfirmed RendererHost menu-scene slot",
+   "Age-block bypass by clearing site data is accepted and not hard-enforceable client-side",
+   "iPhone memory: UI plus creator preview plus video overlay on mobile-low",
+   "XR canvas panels have no accessibility tree; configuration stays on flat pages",
+   "Creator kit assets (S05) and fight-style ids (S07) are assumptions until those specs land",
+   "Teen policy conflict between D-30 and the legal report is unresolved without DN-S10-01"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M00",
+    "slug": "ui-shell-skeleton (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M04b1",
+    "slug": "shell-ui-kit-menus-settings",
+    "sessions": 1
+   },
+   {
+    "id": "M04b2",
+    "slug": "creator-phone-hud-kit",
+    "sessions": 1
+   },
+   {
+    "id": "M04c",
+    "slug": "cutscene-overlay (S10 share)",
+    "sessions": 0.2
+   },
+   {
+    "id": "M06a",
+    "slug": "dialogue-ui (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M06b",
+    "slug": "npc-builder-ui (S10 share)",
+    "sessions": 1
+   },
+   {
+    "id": "M11b1",
+    "slug": "xr-panels-and-comfort-ui (S10 share)",
+    "sessions": 0.5
+   },
+   {
+    "id": "M11b2",
+    "slug": "per-mode-xr-panels (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M12a",
+    "slug": "age-register-cloud-save-ui (S10 share)",
+    "sessions": 0.5
+   },
+   {
+    "id": "M12b",
+    "slug": "online-page-invites (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M13a",
+    "slug": "experiences-mods-ui (S10 share)",
+    "sessions": 0.5
+   },
+   {
+    "id": "M13b",
+    "slug": "forum-ui (S10 share)",
+    "sessions": 1
+   },
+   {
+    "id": "M13c",
+    "slug": "device-code-approval-page (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M13d",
+    "slug": "legal-forms-ui (S10 share)",
+    "sessions": 0.3
+   },
+   {
+    "id": "M14b",
+    "slug": "a11y-audit-i18n-gate (S10 share)",
+    "sessions": 0.5
+   }
+  ],
+  "r_ids_covered": [
+   "R-UI-01",
+   "R-UI-02",
+   "R-UI-03",
+   "R-ENG-04",
+   "R-MODE-05",
+   "R-PLAT-01",
+   "R-PLAT-02",
+   "R-PLAT-04",
+   "R-NPC-03",
+   "R-MOD-03",
+   "R-MOD-04",
+   "R-IP-01",
+   "R-IP-03",
+   "R-IP-04",
+   "R-AUTH-01",
+   "R-AUTH-02",
+   "R-AUTH-03",
+   "R-MAP-03",
+   "R-CUT-01",
+   "R-CUT-03",
+   "R-ROLL-02"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-NPC-03",
+    "to": "M06b"
+   },
+   {
+    "id": "R-MOD-03",
+    "to": "M13b"
+   },
+   {
+    "id": "R-MOD-04",
+    "to": "M13a"
+   },
+   {
+    "id": "R-ROLL-02",
+    "to": "M12b"
+   },
+   {
+    "id": "R-AUTH-03",
+    "to": "M13c"
+   },
+   {
+    "id": "R-AUTH-02",
+    "to": "M14a"
+   }
+  ]
+ },
+ {
+  "domain": "S08",
+  "spec_path": "spec/domains/08-tycoon.md,spec/domains/08-tycoon-finance.md,spec/domains/08-tycoon-events.md",
+  "words": 14195,
+  "contracts_finalized": [],
+  "contract_change_proposals": [
+   {
+    "contract": "C10",
+    "change": "Assumption used: NPCDialogueRequest.context carries a typed TycoonDialogueContext (JSON <= 1.2 KiB, banded values) and a tycoon_actor soul returns effects.action='offer_deal' with action_arg as compact JSON {a,p,q,b,l,pp} (<=120 chars). Proposed additive alternative: a typed optional effects.offer field.",
+    "why": "VC term proposals must reach the sim as a recorded input that it clamps to the deterministic envelope; the sketch has no typed offer field."
+   },
+   {
+    "contract": "C12",
+    "change": "Route 21 (leaderboards): per-board validator registry so S08 supplies validators for boards tycoon:daily:<yyyymmdd> that call verifyRun(setup, choices, claimed) from @dv/shared/tycoon (M12c).",
+    "why": "The route table names S06 as the only validator; tycoon scores are verified by server re-simulation of (seed, choices)."
+   },
+   {
+    "contract": "C16",
+    "change": "Add TelemetryName entries tycoon.run_end {kind,weeks,win,tierScore}, tycoon.round {kind,clamped,dilutionBp}, tycoon.negotiation {turns,fallback,clamped}; numeric/enum props only, no free text.",
+    "why": "Mode balance and negotiation-health monitoring; unknown names are dropped at ingest."
+   },
+   {
+    "contract": "C02",
+    "change": "Clarify determinism rule 3: a stateless counter-based function ctrU32(seed, streamName, counter) built from splitmix32 and fnv32 is allowed and is not a private generator (no state to save or hash).",
+    "why": "Event rolls, hiring draws and board votes stay stable when content is added and need no saved RNG state; replay from (seed, choices) is exact."
+   },
+   {
+    "contract": "C06",
+    "change": "No change. Assumption: dividend crediting uses EconomyApi.credit with reason tag 'tycoon.dividend' and idempotency key 'tycoon.div:<n>'; the story side enforces the $10,000 per in-game week cap by summing ledgerSince entries with that tag over 1,209,600 ticks and tracks claims in StorySlice.flags['tycoon.divClaimedCents'].",
+    "why": "C05 rule 3 stops a standalone session from writing the story wallet, so S03 must claim the dividend counter held in modes.tycoon."
+   },
+   {
+    "contract": "spec/02-architecture.md",
+    "change": "Package layout amendment: the pure tycoon sim and the shared event engine live in packages/shared/src/tycoon/** and packages/shared/src/events/**, with @dv/mode-tycoon as the thin C06 adapter, UI and dialogue glue. The balance tool lives at tools/ci/tycoon-sim.",
+    "why": "services/edge may import only @dv/shared and @dv/net, and the M12c validator, the harness and the mode must run the same code."
+   },
+   {
+    "contract": "06 \u00a75 scripts",
+    "change": "Add pnpm check:balance (Monte-Carlo gate) and the alias pnpm tycoon:sim.",
+    "why": "CI gate for the tycoon balance bands."
+   },
+   {
+    "contract": "AnimStateId",
+    "change": "S08 claims block 224-231 (reserved, unused in v1 because the mode is asynchronous); ADR when shared-market rooms arrive.",
+    "why": "Wave 3 modes claim blocks in 128-255 by ADR."
+   }
+  ],
+  "decisions_needed": [
+   {
+    "id": "DN-S08-01",
+    "question": "Model routing for VC negotiation turns: ai-npc-runtime 2.2 lists Sonnet with adaptive thinking, while D-21 and gamedesign 5.5 say Haiku default and Sonnet for hero VCs.",
+    "recommendation": "Follow D-21: the deterministic engine decides terms and the model only voices them; Haiku thinking-off by default, Sonnet only for the 2 hero VCs."
+   },
+   {
+    "id": "DN-S08-02",
+    "question": "Pure tycoon core and event engine in @dv/shared (needed for the M12c server validator and the harness) instead of inside @dv/mode-tycoon.",
+    "recommendation": "Accept and amend spec/02-architecture.md section 2."
+   },
+   {
+    "id": "DN-S08-03",
+    "question": "Which milestone wires story businesses to the shared event engine (EventHost<BusinessState>)? It is not in the register.",
+    "recommendation": "S03's Act 2 businesses milestone; M09a2 proves the engine with a fixture host."
+   },
+   {
+    "id": "DN-S08-04",
+    "question": "Dividend path across C05 slots: standalone tycoon cannot write the story wallet.",
+    "recommendation": "Accept: cumulative counter in the tycoon slice, claimed by S03 via StorySlice.flags with a cap of $10,000 per run and per in-game week; no contract change."
+   },
+   {
+    "id": "DN-S08-05",
+    "question": "Ramen-profitable win requires ARR >= $1M (our change to gamedesign 5.7).",
+    "recommendation": "Accept; tunable in tycoon.balance.json."
+   },
+   {
+    "id": "DN-S08-06",
+    "question": "Leaderboard route 21 names S06 as validator owner; tycoon needs its own validator.",
+    "recommendation": "Per-board validator registry in C12 at M12c."
+   },
+   {
+    "id": "DN-S08-07",
+    "question": "M09a/M09b split into four one-session milestones (M09a1, M09a2, M09b1, M09b2) versus the register's two.",
+    "recommendation": "Adopt the digit splits; VS-Tycoon is reached at the end of M09a2."
+   },
+   {
+    "id": "Q-S08-01",
+    "question": "Hardware and mobility sectors for the already-authored political events.",
+    "recommendation": "Ship the events disabled until a matching sector exists."
+   }
+  ],
+  "unverified": [
+   "U-TYC-1 Carta Q1 2025 median Series A dilution 17.9% (page returned 403, excerpt only); used only to centre a design target of 18-20% with band 15-24%",
+   "U-TYC-2 YC SAFE user-guide two-cap example (about 15%) seen only via search summary; TV-2 is self-derived arithmetic",
+   "U-TYC-3 Haiku 5.5 time-to-first-token <= 800 ms through AI Gateway with structured output; default 4 s fallback to the offline offer; verify in M06a",
+   "U-TYC-4 YC post-money definition of Company Capitalization beyond the verified pool sentence; default is the game convention in finance part section 4",
+   "U-TYC-5 Whether free-text pitch input needs the S04 under-18 policy per profile; default buttons only without an 18+ bracket"
+  ],
+  "risks": [
+   "RISK-S08-1 Balance is knife-edge in ARPU, word-of-mouth k and CAC (throwaway prototype); mitigation is the M09a2 harness, sweeps and bands",
+   "Replay breaks when content or balance changes; mitigated by contentVersion/balanceVersion and the snapshot fallback, but leaderboard eligibility is lost for unverifiable runs",
+   "Sonnet hero-VC meetings can exhaust the anonymous $0.05 per-day budget; governor degrades to Haiku, then offline offer",
+   "Scope: 4 sessions against 2 in the register, and 30 events plus 60 cards of art",
+   "Likeness: VC roster ships as 12 fictionalized composites; parody re-skins by S04 must never gain predatory terms",
+   "Legal: a simulated SAFE and term-sheet ruleset could be read as investment advice; mitigated by disclaimer, NPC rails and counsel review at M14b",
+   "Story-business wiring of the event engine has no scheduled milestone (DN-S08-03)"
+  ],
+  "milestones_proposed": [
+   {
+    "id": "M09a1",
+    "slug": "tycoon-core-finance",
+    "sessions": 1
+   },
+   {
+    "id": "M09a2",
+    "slug": "tycoon-events-balance",
+    "sessions": 1
+   },
+   {
+    "id": "M09b1",
+    "slug": "tycoon-ui",
+    "sessions": 1
+   },
+   {
+    "id": "M09b2",
+    "slug": "tycoon-vc-story",
+    "sessions": 1
+   }
+  ],
+  "r_ids_covered": [
+   "R-MODE-04",
+   "R-MODE-05",
+   "R-NPC-04",
+   "R-NPC-05",
+   "R-PLAT-02",
+   "R-ENG-02",
+   "R-ENG-03",
+   "R-ENG-04",
+   "R-IP-01"
+  ],
+  "r_ids_deferred": [
+   {
+    "id": "R-MODE-05",
+    "to": "M09b2"
+   }
+  ]
+ }
+]
