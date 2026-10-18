@@ -22,7 +22,7 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
   - `Q-21:<missionId>@<irHash>` for every mission that M05c2's sensitivity rule tags;
   - `Q-23a` … `Q-23d`;
   - `Q-13:<device>` for each §3.2 device (Desktop B/C optional, `not-run` allowed, blocks `none`);
-  - `Q-15` (production domain and zone);
+  - `Q-15` (production domain and zone; the evidence names the public GitHub repository);
   - `nightly-3`: three consecutive green `guardrails-nightly` runs, with run URLs;
   - `restore-drill` (staging run of M14b2);
   - `csp-enforcing` (M14b2);
@@ -31,8 +31,14 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
   - `names-knockout`;
   - `terms-watch`;
   - `adr-genai-01`: informational. While no provider is `cleared`, cutscenes ship as fallback-only (Q-30); it blocks `none`.
-  - `dod` and `trace`.
+  - `dod` and `trace`;
+  - `age-signals` (`record`; `research/INDEX.md` §4 rule 21; California AB 1043 applies from 2027-01-01 [research/legal-ip-likeness.md §P4]; DL-285): blocks `release` when the release run's UTC date is on or after 2027-01-01 (before that it blocks `none`), and passes only with evidence of a verified `AgeSignalProvider` (its fact row in `spec/03`) or a counsel sign-off recorded as `Q-23e`; M14c's `NullAgeSignalProvider` alone never passes it;
+  - `repo-renamed` (`check`, blocks `public-repo`; INDEX §4 rule 1, ADR-0007, F-067): `git remote get-url origin`, the repository name in the `Q-15` evidence and every `name` in the workspace `package.json` files contain none of the franchise tokens of `config/ip-denylist.json` (case-insensitive);
+  - `odbl-offer` (`check`, blocks `release`; ADR-0021, F-053): the OSM entry of `config/attribution.world.json` carries an `offerUrl` where the derived world database and the `tools/map` bake scripts are published, and the same URL appears in the built `apps/web/dist/credits.json`;
+  - `license-chosen` (`check`, blocks `public-repo`; Q-08): `REUSE.toml` no longer uses `LicenseRef-DeeVerse-Owned` and `LICENSES/` holds the text of each licence it names.
+  The three `check` gates are computed by `tools/ci/public-repo.ts` on every run; a hand-written `pass` that the computation contradicts fails completeness (DL-252).
   The record also holds `flags: [{ flag, target, requires: gateId[] }]` for `ugc.publish` (requires M13d1's recorded pass and `Q-23a`), `mods.enabled`, `mods.script` (M13a4 device record), `mods.ui` (M13a5 device record), `mp.enabled`, `forum.enabled`, `npc.builder`, and `auth.thirdweb` (target false until M14a).
+- **`tools/ci/public-repo.ts`**: pure checks `repoRenamed({remoteUrl, repoName, packageNames, tokens})`, `odblOffer({attribution, credits})` and `licenseChosen({reuseToml, licenseFiles})`, each returning `{status, evidence}`; reads the franchise tokens from `config/ip-denylist.json` so no token is written in code. `offerUrl` is added to the OSM row of `config/world/sources.json` and copied by the M02a1 attribution generator (`tools/map`); it stays absent, and the gate `pending`, until the owner publishes the database.
 - **`tools/ci/launch-gate.ts`**.
   - **Completeness mode** (every PR, under `check:unit -- tools/ci`): schema-valid; required ids present; every `pass` has evidence and a date; Q-21 entries match current mission IR hashes.
   - **Release mode** (`DV_RELEASE_GATE=1`, used by `release.yml`): fails, naming each gate, while any gate with `blocks: 'release'` is not `pass` or `waived`. A `waived` gate needs `by` (owner) and a reason.
@@ -75,17 +81,17 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
 ## Scope out
 - Thirdweb and the post-M14a gate subset → M14a. Bay expansion → M15a.
 - Human work: counsel opinions, the sensitivity read, the knock-out search, device sessions and Zone R. They are recorded here, not produced.
-- Making the repository public: a separate owner step blocked by `ip-similarity`.
+- Making the repository public: a separate owner step blocked by `ip-similarity`, `repo-renamed` and `license-chosen`.
 
 ## Deliverables
 - `docs/legal/{launch-gates.json, launch-gates.schema.json, knockout.json}`, `config/knockout-sources.json`.
-- `tools/ci/{launch-gate.ts, ip-similarity.ts, terms-watch.ts, knockout.ts}`; `tools/ci/ip-scan.ts` (`--history`).
-- `tools/ci/test/{launch-gate, dod, ip-history, ip-similarity, terms-watch, knockout}.test.ts` and M00d's `workflows.test.ts` (extended for `release.yml`, `weekly.yml`), with fixtures (temp git repos, records, snapshots).
+- `tools/ci/{launch-gate.ts, ip-similarity.ts, terms-watch.ts, knockout.ts, public-repo.ts}`; `tools/ci/ip-scan.ts` (`--history`); the `tools/map` attribution generator (copies `offerUrl`) and `config/world/sources.json`.
+- `tools/ci/test/{launch-gate, dod, ip-history, ip-similarity, terms-watch, knockout, public-repo}.test.ts` and M00d's `workflows.test.ts` (extended for `release.yml`, `weekly.yml`), with fixtures (temp git repos, records, snapshots).
 - `tools/ops/flag-flip.ts`, `tools/ops/test/flag-flip.test.ts`.
 - `tools/ci/checklists/M14b3-*.json` (6–8 files); `docs/device-runs/M14b3/README.md`.
 - `.github/workflows/{release.yml, weekly.yml}`.
 - Root scripts `ip:history`, `ip:similarity`, `genai:terms-watch` (08 §6).
-- ≈ 34 files.
+- ≈ 38 files.
 
 ## Interfaces
 - C15 as above: the gate reads milestone files through M00d's parser. C13 1.1 `PerfReport` and `DeviceChecklist` are read by `perf:verify`. C12 1.1 route 47 is used by `flag-flip.ts`.
@@ -93,7 +99,7 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
 
 ## Acceptance criteria
 - AC-1 Given the committed `launch-gates.json` When the completeness check runs Then it is schema-valid with every required id, and fixtures that lack `Q-23c`, lack a Q-21 entry for a tagged mission, or hold a `pass` without evidence each fail naming the gap — proof: `pnpm check:unit -- tools/ci`
-- AC-2 Given release mode When fixture records are checked Then a record with `Q-23` pending fails naming `Q-23` and step `release`; a record whose only non-pass gate is `ip-similarity: not-run` passes release and reports `public-repo` blocked; an all-pass record passes — proof: `pnpm check:unit -- tools/ci`
+- AC-2 Given release mode When fixture records are checked Then a record with `Q-23` pending fails naming `Q-23` and step `release`; a record whose only pending gate is `age-signals` fails when the release date is 2027-01-02 and passes when it is 2026-12-31; a record whose only non-pass gate is `ip-similarity: not-run` passes release and reports `public-repo` blocked; an all-pass record passes — proof: `pnpm check:unit -- tools/ci`
 - AC-3 Given the spec tree When the DoD audit runs Then `tests/reports/dod.json` has rows H1–H10 with status and evidence and the trace report has zero empty rows. A fixture tree with a 6,001-word spec file fails H1, and a fixture AC that breaks lint rule L4 fails H4 — proof: `pnpm check:unit -- tools/ci`
 - AC-4 Given the repository When the history scan runs Then it exits 0. Given a temporary repository whose deleted file once held an RPF7 header When the test scans it Then the hit names that commit and path — proof: `pnpm ip:history && pnpm check:unit -- tools/ci`
 - AC-5 Given placeholder names collected from `knockout-sources.json` When the knock-out check runs with a fixture verdict `rename` whose old name still appears in `content/` Then it fails naming file and field. With the committed `knockout.json` it reports every name as `clear`, `rename` applied, or `pending` (blocking release only), and `names:lint` passes — proof: `pnpm check:unit -- tools/ci && pnpm names:lint`
@@ -104,7 +110,8 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
 - AC-10 Given iPhone 15 (`mobile-low`) and iPhone 16 or 17 (`mobile`), each as a Home Screen app, When the operator runs `M14b3-iphone15.json` and `M14b3-iphone16.json` and uploads the results Then every checklist row passes, and the run records U-PLT-1, U-PLT-3, U-PLT-4, U-PLT-5, U-API-1 and U-ENG-4 (WebSocket in a dedicated worker on iOS, DL-239) — proof: manual: iPhone 15 and iPhone 16/17, run both checklists with `pnpm perf:checklist`, then `pnpm perf:verify -- docs/device-runs/M14b3/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M14b3-iphone15.json` and the same for `iphone16` with `--tier mobile`
 - AC-11 Given Quest 3 (`xr-quest`) and Vision Pro (`xr-visionpro`) When the operator runs their checklists Then every row passes, and each run records U-ENG-5, U-PLT-10, U-PLT-12 and U-PLT-13 — proof: manual: Quest 3 and Vision Pro, run `M14b3-quest3.json` and `M14b3-visionpro.json`, then `pnpm perf:verify -- docs/device-runs/M14b3/quest3/perf.json --tier xr-quest --checklist tools/ci/checklists/M14b3-quest3.json` and the same for `visionpro` with `--tier xr-visionpro`
 - AC-12 Given the Apple Silicon Mac (Chrome and Safari) and a desktop with a webcam When the operator runs `M14b3-mac.json` and `M14b3-webcam.json` Then every row passes — proof: manual: Mac and webcam desktop, run both checklists, then `pnpm perf:verify -- docs/device-runs/M14b3/mac/perf.json --tier desktop --checklist tools/ci/checklists/M14b3-mac.json`
-- AC-13 Given the branch When unit tests and the preview deploy run Then both pass and the app is unchanged — proof: `pnpm check:unit && pnpm deploy:preview`
+- AC-13 Given fixtures for the three public-repo gates When `public-repo.ts` evaluates them Then a remote URL or package name containing a denylisted franchise token fails `repo-renamed` naming the source, an attribution without `offerUrl` or a `credits.json` without that URL leaves `odbl-offer` `pending`, and a `REUSE.toml` still naming `LicenseRef-DeeVerse-Owned` leaves `license-chosen` `pending`; clean fixtures pass all three, and in release mode a pending `odbl-offer` fails naming step `release` while pending `repo-renamed` or `license-chosen` report `public-repo` blocked — proof: `pnpm check:unit -- tools/ci`
+- AC-14 Given the branch When unit tests and the preview deploy run Then both pass and the app is unchanged — proof: `pnpm check:unit && pnpm deploy:preview`
 
 ## Test plan
 - Unit (`tools/ci`, `tools/ops`): every gate tool with passing and failing fixtures; git fixtures in a temp dir per test. Static: `ip:history`, `names:lint`, `ip:similarity`. Device: AC-10…AC-12 via the `device-runs` job. Release: `release.yml` fails while owner gates are pending, which is expected until the owner answers.
@@ -115,7 +122,7 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
 3. `pnpm exec tsx tools/ops/flag-flip.ts ugc.publish true --env production`: refused, gates named.
 
 ## Effort
-1 session; ≈ 34 files; risk **high** (owner and device dependencies; the code is low risk).
+1 session; ≈ 38 files; risk **high** (owner and device dependencies; the code is low risk).
 
 ## Risks & fallbacks
 - **Owner gates stay pending:** a correct outcome; release mode lists them. Never `waived` without an owner entry.
@@ -126,6 +133,6 @@ M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3,
 ## Notes for the Builder
 - Earlier deliverables used: M00d (milestone lint, `trace.ts`, `spec-files.ts`, `workflows.test.ts`, `perf:verify --auto`), M01c (`perf:checklist`), M00b (IP gates, terms snapshots), M05c2 (sensitivity check).
 - Read first: `13-qa-critics.md` §2; `13-qa.md` §3.7, §3.11, §8; `spec/08-test-and-ci.md` §3.2–§3.3, §4, §5.6–§5.7, §6; `05-assets-pipeline.md` §9; `spec/99-open-questions.md` Q-13…Q-30; DL-211, DL-213.
-- Facts: F-041, F-042 (terms inputs), F-067 (franchise mark), F-013 (Quest budgets). Recorded on devices, never asserted: the U-items named in AC-10…AC-11.
+- Facts: F-041, F-042 (terms inputs), F-067 (franchise mark), F-053 (ODbL share-alike for the derived database), F-013 (Quest budgets). Recorded on devices, never asserted: the U-items named in AC-10…AC-11.
 - Secrets: `DV_NAMES_REAL_JSON` (CI only; locally the real side SKIPs), `CLOUDFLARE_API_TOKEN`, `CI_STAFF_DEVICE_JWK` (release run). No fal, no paid account.
 - Branch `m14b3-launch-hardening-guardrails`.

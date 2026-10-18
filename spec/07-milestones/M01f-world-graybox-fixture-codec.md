@@ -78,6 +78,7 @@ M01b2 consumes the fixture (it runs after this milestone), and M01d catalogs it.
 - `tools/map/src/{cli.ts, pack/encode.ts, fixtures/graybox.ts}`, `tools/map/schemas/world-bounds.schema.json`, `tools/map/test/{pack.roundtrip.spec.ts, fixture.spec.ts, bounds.spec.ts}`.
 - `tests/fixtures/world/civic-graybox/{p0-64-64.pack, l0-64-64.pack, hashes.json, README.md}` (the README holds the layout table above and a regenerate note).
 - `config/world.bounds.json`; two provenance records under `assets/provenance/`.
+- Only if M01d is already merged (`assets/assets.lock.json` exists without `world_pack` entries): `assets/src/world_pack/{p0-64-64,l0-64-64}/asset.json` (M01d's `AssetSpec` format, variant `default`, pointing at the fixture), the two lock entries from `pnpm assets:lock -- --approved-by <handle>`, and the two committed pointer copies refreshed with `pnpm assets:publish -- --env staging --target dir:dist/media-tmp`. If M01d is not merged yet, M01d adds them (its Depends on, M01f soft) (DL-256).
 - Root script **`map:fixture`** (= `pnpm --filter <tools/map package> exec tsx src/cli.ts fixture`). `check:unit` covers `tools/map/test`.
 - ≈ 22 files.
 
@@ -109,6 +110,7 @@ M01b2 consumes the fixture (it runs after this milestone), and M01d catalogs it.
 - AC-8 Given `packages/shared/src/world/**` When lint runs Then the C02 determinism rules pass and the files import nothing outside `@dv/shared` — proof: `pnpm lint`
 - AC-9 Given `config/world.bounds.json` When the bounds test runs Then it validates against the schema, equals the C08 §5 values, and its `play` box contains all four fixture chunks — proof: `pnpm check:unit -- tools/map`
 - AC-10 Given the two pack records When the asset gate runs Then both are schema-valid and `active`, and each pack is ≤ 4 MiB — proof: `pnpm check:assets`
+- AC-11 Given M01d merged before this branch When the asset gates run Then `assets/assets.lock.json` holds `world_pack/p0-64-64` and `world_pack/l0-64-64` (variant `default`) whose hashes equal the fixture files, and the catalog builds. If M01d is not merged, this AC is skipped and the report says so — proof: `pnpm check:assets && pnpm assets:verify`
 
 ## Test plan
 - **Unit:** `world.grid`, `world.terrain`, `world.codec` (decode, shape set, corrupt inputs) in `@dv/shared`; `pack.roundtrip`, `fixture` (determinism plus `--check` failure), `bounds` in `tools/map`. All run under `pnpm check:unit`.

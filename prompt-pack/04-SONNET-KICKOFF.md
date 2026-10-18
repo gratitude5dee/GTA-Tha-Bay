@@ -86,7 +86,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 8. M01b2 · controller-cameras-touch · 1 · M01b1, M01f, M00 · operator device run (Q-13)
 9. M01c · device-spike-renderer-host · 1 · M00, M00a, M01a2 · operator device run (Q-13)
 10. M01d · assets-publish · 1 · M00b, M00a, M01a1 · live publish needs `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; fixtures-only without
-11. M01e · asset-worker-opfs-store · 1 · M01d, M01c, M00a, M00, M01a2 · none
+11. M01e · asset-worker-opfs-store · 1 · M01d, M01c, M00a, M00, M01a2, M01f · none
 12. M01f · world-graybox-fixture-codec · 0.5 · M01a1, M00b · none
 13. M00d · qa-spec-gates · 0.5 · M00, M01c, M00b · none
 14. M02a1 · bake-core · 1 · M01f, M01d · public OSM/DataSF downloads (F-053, F-054)

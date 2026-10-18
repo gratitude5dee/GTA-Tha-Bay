@@ -118,18 +118,19 @@ Common: `runs-on: ubuntu-24.04`; actions pinned by SHA; `permissions: contents: 
 | `static` | `pnpm lint` · `pnpm typecheck` · `pnpm check:secrets` · `pnpm check:do-migrations` · `pnpm check:api` · `pnpm check:telemetry` · `pnpm check:i18n` · `pnpm check:agents` · `pnpm check:skills` | M00 (lint, typecheck); M00a (secrets, do-migrations; widened by M05b1); M00d (agents, telemetry); M05d (api); M04b1 (i18n); M13a6 (skills) (DL-230) |
 | `unit` | `pnpm check:unit` · `pnpm check:workers` · `pnpm check:pipeline` | M00; M00a; M05b1 |
 | `content` | `pnpm map:fixture graybox --check` · `pnpm check:missions` · `pnpm check:balance` · `pnpm check:fighter` · `pnpm map:races validate` · `pnpm check:mods` · `pnpm npc:lint` · `pnpm npc:eval -- --replay` | M01f; M05a2; M04d (econ), M09a2 (tycoon); M08b1; M07a1; M13a6; M06a2; M06a4 |
-| `build` | `VITE_DV_QA=1 pnpm build` · `pnpm check:bundle` · upload `apps/web/dist` (3 days) | M00 |
-| `prod-build` | `pnpm build` · `pnpm --filter @dv/web verify:dist` · `pnpm check:prod-routes` · `pnpm check:secrets -- apps/web/dist` | M00a, M01a2 |
+| `build` | `VITE_DV_QA=1 pnpm build` · `pnpm check:bundle` · `pnpm check:prod-routes` (bundles the production Worker with `wrangler deploy --dry-run`) · `pnpm check:secrets -- apps/web/dist` · upload `apps/web/dist` (3 days) | M00; M00a (prod-routes, secrets) |
 | `ip` (needs `build`) | `pnpm provenance:check` · `pnpm ip:signatures` · `pnpm ip:extensions` · `pnpm ip:strings` · `pnpm license:scan` · `pnpm names:lint` · `pnpm likeness:gate` · `pnpm check:assets` · `pnpm check:c2pa` | M00b (required); `check:c2pa` M05b1 |
 | `e2e` (matrix, needs `build`) | `DV_SKIP_BUILD=1 pnpm check:e2e -- --project=${{ matrix.project }}`; the `xr-quest3` leg runs `pnpm check:e2e:xr`; the `chromium-webgl2` leg also runs `pnpm check:headers -- http://localhost:8788` and `pnpm check:coi -- http://localhost:8788`; upload `test-results/` | M00; required per §3.1 |
 | `db` (paths `supabase/**`, `packages/shared/src/db*`) | `pnpm check:db` · `pnpm check:db:types` | M05d |
 | `perf` | `pnpm check:perf` (warn) | M01c |
 | `device-runs` (paths `docs/device-runs/**`, `docs/device-spike/**`) | for each changed `perf.json`: `pnpm perf:verify -- <file> --tier <tier from file> --checklist tools/ci/checklists/<M##>-<device>.json` | M00d |
 
-Required for merge: `static`, `unit`, `content`, `build`, `prod-build`, `ip`, `e2e` legs per §3.1, `db` when it runs, `device-runs` when it runs. `perf` is informational on PRs.
+`pnpm --filter @dv/web verify:dist` (M01a2) runs only as that milestone's AC proof (`pnpm build && pnpm --filter @dv/web verify:dist`); no milestone adds a production-build CI job yet (DL-284).
+
+Required for merge: `static`, `unit`, `content`, `build`, `ip`, `e2e` legs per §3.1, `db` when it runs, `device-runs` when it runs. `perf` is informational on PRs.
 
 ### 5.2 `preview.yml` — on `pull_request` [opened, synchronize, reopened, closed]; same-repo PRs only
-1. `preview` (`permissions: contents: read, pull-requests: write, deployments: write`; environment `preview`): `VITE_DV_QA=1 pnpm build` → `pnpm deploy:preview` (Workers Preview `pr-<N>` of `tha-bay-web-staging`, M00) → `pnpm check:headers -- <url>` → `pnpm check:coi -- <url>` → `pnpm check:smoke -- <url>` (M00a) → PR comment with the URL. From M12b1 the rooms Worker gets its own Preview when `services/rooms/**` or `packages/net/**` changed.
+1. `preview` (`permissions: contents: read, pull-requests: write, deployments: write`; environment `preview`): `VITE_DV_QA=1 pnpm build` → `pnpm deploy:preview` (Workers Preview `pr-<N>` of `tha-bay-web-staging`, M00) → `pnpm check:headers -- --from test-results/preview-url.txt` → `pnpm check:coi -- --from test-results/preview-url.txt` → PR comment with the URL (M00). `check:smoke` runs inside `deploy:prod` (M00a), not on Previews. From M12b1 the rooms Worker gets its own Preview when `services/rooms/**` or `packages/net/**` changed.
 2. `cleanup` on `closed`: `pnpm exec wrangler preview delete --env staging --name pr-<N> --skip-confirmation`.
 
 ### 5.3 `deploy.yml` — `push: main` → staging; tag `v*` or `workflow_dispatch` by an actor in repo variable `DEPLOY_ALLOWED_ACTORS` → production (M00a)
@@ -138,7 +139,8 @@ Required for merge: `static`, `unit`, `content`, `build`, `prod-build`, `ip`, `e
 3. `web`: `pnpm deploy:prod -- --env <env>` (staging) or `pnpm deploy:prod` (production): `versions upload --tag <sha12> --secrets-file $RUNNER_TEMP/secrets.json` → `versions deploy NEW@0% OLD@100%` → `check:smoke` with `Cloudflare-Workers-Version-Overrides` → `NEW@100%`; from M12a1 production uses `-- --gradual` (10 → 50 → 100 with health polling); any failure → `wrangler rollback OLD`. A PR labelled `do-lifecycle` (by `check:do-migrations`) deploys with `wrangler deploy` alone and records a rollback floor [research/gap-ci-cd-release-assets.md §1.4].
 4. `post`: `pnpm check:headers -- <env url>`; production also runs `pnpm test:staging -- smoke` against staging hosts first (M05d+).
 
-### 5.4 `assets.yml` — `push: main` with paths `assets/**`, `tools/assets/**`, `content/**/assets/**`, plus `workflow_dispatch` (`env`) (M01d)
+### 5.4 `assets.yml` — `push: main` with paths `assets/**`, `tools/assets/**`, `content/**/assets/**`, plus `workflow_dispatch` (`env`) (no owning milestone yet; DL-284)
+M01d scopes automatic publishing out to M02a1, and M02a1 keeps it an operator step until the measured bake time fits a runner. Until a milestone adopts this workflow, the operator runs `pnpm assets:publish -- --env <env>` and `pnpm map:pack -- --target r2:<env>` locally with the same secrets; the design below applies when it lands.
 `build`: install KTX-Software 4.4.2 (`.deb` with SHA-1 check) → `pnpm assets:catalog` → `pnpm assets:verify` (M01d's catalog builder; DL-230). `publish` (environment `<env>`): rclone 1.75.2 configured from `RCLONE_CONFIG_R2_*` env (no file) → `pnpm assets:publish -- --env <env>` (one `rclone copy --ignore-existing --fast-list --transfers 32 --s3-no-check-bucket` per content class with per-class `Content-Type` and `Cache-Control: public, max-age=31536000, immutable`; HEAD-verify; immutable manifest last) → PR that bumps the pointer in the Worker's static assets. `purge` only on overwrite or kill (prefix purge, `CF_API_TOKEN_CACHE`, from M10b). Never `Content-Encoding: gzip` uploads [research/gap-ci-cd-release-assets.md §2].
 
 ### 5.5 `nightly.yml` — cron `17 10 * * *` UTC + `workflow_dispatch` (created by M00b, extended by M00d)
@@ -154,7 +156,7 @@ Weekly (`23 9 * * 1`): `pnpm genai:terms-watch` (M14b3; a changed snapshot flips
 
 | Script | Does | Lands |
 |---|---|---|
-| `dev`, `build`, `lint`, `typecheck` | Vite + `wrangler dev` (QA on); tokens → Vite → Worker dry run; ESLint (C02 bans, no-GLSL); `tsc --noEmit` | M00 |
+| `dev`, `build`, `lint`, `typecheck` | Vite + `wrangler dev` (QA on); tokens → `vite build` → icons check (the Worker dry-run bundle is `check:prod-routes`, M00a); ESLint (C02 bans, no-GLSL); `tsc --noEmit` | M00 |
 | `check:unit [-- <paths>]`, `check:e2e [-- …]`, `check:e2e:xr`, `check:bundle`, `check:headers -- <url>`, `check:coi -- <url>` | Vitest; Playwright; XR project; bundle and asset-count budgets; header and isolation checks | M00 |
 | `check:workers [-- <suite>]`, `check:secrets [-- <dir>]`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `check:api`, `check:telemetry` | Workers Vitest pool; secret patterns (`cfat_`, `cfut_`, `cfk_`, `sbp_`, `sb_secret_`, `sk-ant-`, fal); no `/_test/` in prod; DO-lifecycle isolation and label; deployed smoke; API schema drift; telemetry privacy and registry | M00a; `check:telemetry` M00d, `check:api` M05d (both scoped out of M00a; DL-230) |
 | `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `names:brand`, `likeness:gate`, `check:assets`, `genai:liveness` | IP and provenance gates (`05-assets-pipeline.md` §9) | M00b |
@@ -193,6 +195,8 @@ Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (o
 | `DV_NAMES_REAL_JSON` | GitHub, CI only | real-side name registry for `names:lint` | M00b |
 | `FAL_KEY` | operator / art lead only (Q-17); Worker secret for the production pipeline (M05c3); never CI | spike, live prewarm and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M05c3, M10a1 |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub env `staging`/`production` (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
+| `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` | operator shell only (R2 API token scoped to `tha-bay-private-{staging,prod}`; DL-287) | `map:fetch -- --archive` raw snapshot upload | M02a1 |
+| `SOCRATA_APP_TOKEN` (optional) | operator shell only | DataSF Socrata requests in `map:fetch`; absent → unauthenticated | M02a1 |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub env | `db:push`, `auth:tpa`, staging tests | M05d |
 | `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`) | dialogue; `test:staging -- npc-cache` | M06a3 |
 | `ANTHROPIC_BUILDER_KEY` | Worker secret (workspace `npc-builder`) | builder soul generation and preview (`09-backend-contracts-1.1.md` §3; DL-231) | M06b1 |
@@ -208,7 +212,7 @@ Repo variable (not secret): `DEPLOY_ALLOWED_ACTORS` (M00a). Name conflicts resol
 | Domain | Oracle | Command |
 |---|---|---|
 | S01 engine | detmath vectors; 10,000-tick state-hash traces equal in Node, Chromium, WebKit; scripted lines; save golden files; `save-kill` | `pnpm --filter @dv/engine test:determinism`, `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism`, `pnpm --filter @dv/engine test:save` |
-| S02 world | fixture byte-identity; bake gates (building count ±5 % of 176,777, graph ≥ 98 % connected); teleport and map accuracy; traffic hash cross-browser | `pnpm map:fixture graybox --check`, `pnpm map:verify`, `pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash` |
+| S02 world | fixture byte-identity; bake gates (baked buildings ≥ 98 % of the locked `ynuv-fyni` row count, DL-288; graph ≥ 98 % connected); teleport and map accuracy; traffic hash cross-browser | `pnpm map:fixture graybox --check`, `pnpm map:verify`, `pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash` |
 | S03 story | mission autoplayer on 3 seeds with equal end hashes; cutscene key vectors; fallback within 2.5 s | `pnpm check:missions`, `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene` |
 | S04 NPC | soul compile twice → equal sha256; recorded-upstream SSE order; 4 s fallback; quota; replay evals | `pnpm check:workers -- npc`, `pnpm npc:eval -- --replay` |
 | S05 assets | provenance join; bad fixtures fail; second pipeline run makes zero `FalPort` calls; kill drill | `pnpm provenance:check`, `pnpm check:pipeline`, `pnpm check:e2e -- --grep @kill-drill` |

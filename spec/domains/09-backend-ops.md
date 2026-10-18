@@ -195,6 +195,7 @@ Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at th
 | `CLOUDFLARE_API_TOKEN` (deploy token, Workers Editor scope; the role §2 called `CF_API_TOKEN_DEPLOY`), `CLOUDFLARE_ACCOUNT_ID` | GitHub environments; operator shell | M00 | token expiry set at creation |
 | `CF_API_TOKEN_CACHE` (cache purge only; the only extra Cloudflare token) | GitHub env `production` | M10b | expiry set at creation |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (bucket-scoped; rclone publish, then presigning) | GitHub envs (M01d); web (M06b2) | M01d / M06b2 | 90 d |
+| `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` (scoped to `tha-bay-private-{staging,prod}`; raw map snapshot archive, DL-287); `SOCRATA_APP_TOKEN` (optional) | operator shell | M02a1 | 90 d |
 | `PLAY_TOKEN_HMAC` (+ `_PREV`) | web | M04b3 (DL-231) | 90 d, dual-key window 24 h |
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b1 | 90 d |
 | `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT` (ES256 private JWK) | web | M12a1 | 90 d, ≥ 30 min overlap |

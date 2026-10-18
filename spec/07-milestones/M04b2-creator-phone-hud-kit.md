@@ -26,7 +26,7 @@ After this session a new player can make a character and play with a real HUD on
   - catalog loader;
   - `AppearanceV1` encoder and decoder with golden vectors;
   - `CreatorStage` on the shared canvas through the menu scene. Parts without a `model` render as M01b2 mannequin variants (height, build, palette tints), the stub first;
-  - tabs Body, Face, Hair, Outfit, Voice (id plus pitch, with preview disabled until M06a4 voices exist), Style, Name;
+  - tabs Body, Face, Hair, Outfit, Voice (id plus pitch; the Preview button stays disabled with a hint until M10c ships the creator voice clips, DL-258), Style, Name;
   - Randomize, Reset, Undo/Redo (20 steps), Done → `save.avatar`.
 
   Content: `content/ui/creator/{catalog.json, defaults.json}` with the §2.8 counts as catalog rows. Card art is an authored SVG sprite (`assets/creator-kit/`) with provenance. **No fal or other genAI:** `customLook` stays reserved (DL-175, DL-OWN-01).
@@ -40,7 +40,8 @@ After this session a new player can make a character and play with a real HUD on
   - Settings;
   - Help;
   - Sandbox (shell with the M03c heat toggles and M02b/M02c/M03b sections that exist; only in sandbox);
-  - Messages, Ride, Camera and Feed as `comingSoon`.
+  - Ride: a destination list from `TeleportApi.candidates('fast-travel')` plus "Call robotaxi"; a pick starts M03b2's Ride path (`packages/world/src/sim/transit/ride.ts`, `TeleportApi.request('fast-travel', …)`), and a refusal shows its `messageKey` with the player unmoved;
+  - Messages as `comingSoon` until M05c1 fills it; Camera and Feed as `comingSoon` (post-v1, `01-product.md` §12; DL-258).
 
   In single player both overlays pause the sim.
 - **Touch** (§2.9): four shipped layouts (`config/input/touch/*.json`); the touch layer (rules 1–5); the editor (rule 6, saving `custom:n` into `UiPrefs`); the tilt toggle with explainer, falling back to the stick.
@@ -89,7 +90,7 @@ After this session a new player can make a character and play with a real HUD on
 - AC-3 Given the four shipped layouts at 844 × 390 with iPhone safe-area insets When validated Then every widget lies inside the safe area, targets are ≥ 44 px with ≥ 8 px spacing, every `ActionId` exists, and `one-handed` reaches every required on-foot action — proof: `pnpm check:unit -- packages/ui`
 - AC-4 Given the iPhone viewport in free roam When the stick and the look zone are dragged while a button is pressed, then a `pointercancel` fires Then movement, look and the action register together, and everything is released on cancel. Portrait during play shows the rotate overlay and pauses the sim, but portrait in the menu does not. An edited layout saved as `custom:1` survives a reload — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-touch`
 - AC-5 Given every status widget and the four palettes When the HUD tests run Then each state shows an icon, shape or text besides color, switching `hudPalette` changes the semantic tokens, every semantic pair passes the recorded CVD separation threshold, and no motion token flashes more than 3 times per second — proof: `pnpm check:unit -- packages/ui`
-- AC-6 Given free roam When `client.Pause` is pressed Then Pause opens and the sim tick stops. Save is disabled away from a safehouse with its reason text. Quit asks for confirmation, writes a `modeExit` save and returns to the main menu. Phone lists Map, Jobs, Garage, Bank, Settings and Help; `comingSoon` apps are not activatable, and Sandbox appears only in the sandbox mode — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-pause`
+- AC-6 Given free roam When `client.Pause` is pressed Then Pause opens and the sim tick stops. Save is disabled away from a safehouse with its reason text. Quit asks for confirmation, writes a `modeExit` save and returns to the main menu. Phone lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Ride lists the fast-travel candidates and, at heat 1, a pick shows the refusal text with the player unmoved; `comingSoon` apps are not activatable, and Sandbox appears only in the sandbox mode — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-pause`
 - AC-7 Given `prefers-reduced-motion: reduce` When a new profile is created and the main menu, settings, creator and Pause open Then `reducedMotion` is true, no CSS animation or transition runs longer than 150 ms, and camera shake is off — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-motion`
 - AC-8 Given WebKit with a Safari-tab user agent When the main menu opens twice Then the coach mark shows once and stays dismissed after a reload. Standalone emulation never shows it, and a throwing `localStorage` does not break the page — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-coach`
 - AC-9 Given free roam on the gray-box block When the HUD runs for 60 s Then the HUD holds ≤ 300 DOM nodes, wallet, heat and prompt values appear from the view model and the snapshot side block, and a missing key renders the widget's empty state without an error — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-hud`

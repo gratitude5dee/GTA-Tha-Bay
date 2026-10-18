@@ -24,7 +24,7 @@ After this session the baked city answers questions and moves the player. `@dv/w
 - **`WorldApi` wiring** (`src/sim/api/world-api.ts`): `createWorldApi(store, index, clock)` returns `{graph, traffic, map, teleport, query, places, resolver}`; registered through the engine sim-module hook so `packages/engine/src/sim/world/` exposes it to S01 code and tests; `__dvBridge.world.teleport(id)`, `route(a, b)`, `resolve(lat, lng)` in QA builds.
 
 ## Scope out
-- Minimap, full map, blip rendering, geocoder, map attribution surfaces: M02c2. Ambient agents obeying signals: M03b1. Fare charging and story fast-travel unlocks: M04a2 and M05a1. XR comfort arcs (the kind exists; its UI is M11b1). Rooms (`EV TeleportGrant`): M12b1.
+- Minimap, full map, blip rendering, geocoder, map attribution surfaces: M02c2. Ambient agents obeying signals: M03b1. Fare charging: M04a2. Story fast-travel rules (story `TeleportPolicy`): M05c1 (DL-258). XR comfort arcs (the kind exists; its UI is M11b1). Rooms (`EV TeleportGrant`): M12b1.
 
 ## Deliverables
 - `packages/world/src/sim/graph/{adjacency.ts, astar.ts, heap.ts, query.ts, junctions.ts}`, `src/sim/traffic/control.ts`, `src/sim/map/map-api.ts`, `src/sim/api/{query.ts, teleport.ts, resolver.ts, places.ts, world-api.ts}`, `src/client/teleport-fade.ts`.

@@ -174,7 +174,7 @@ Designed now, not deferred. Sources: C03 rule 9, C05 `ProfileSettings`, C13 `XrC
 | Piece | Milestone | Stubbed first |
 |---|---|---|
 | HUD grid, shared widgets, story HUD, toasts | M04b2 | data keys fed by a fixture until M03c/M05c |
-| Phone/Pause registry and apps (Map frame, Jobs, Garage, Bank, Settings, Help, Sandbox shell) | M04b2 | Feed, Ride, Messages are `comingSoon` |
+| Phone/Pause registry and apps (Map frame, Jobs, Garage, Bank, Settings, Help, Sandbox shell) | M04b2 | Ride bound to the M03b2 Ride path; Messages `comingSoon` until M05c1; Camera and Feed `comingSoon`, post-v1 (`01-product.md` §12; DL-258) |
 | Touch layouts, editor, rotate overlay, tips, coach mark | M04b2 | |
 | `CutsceneOverlay` | M04c | in-engine fallback only until M05b |
 | Dialogue bubble, likeness card, AI badge | M06a | |

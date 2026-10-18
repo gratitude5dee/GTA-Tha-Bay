@@ -5,7 +5,7 @@
 ## 0. Rules
 1. **Ids.** Every id of the register in `spec/00-plan.md` is kept. Splits use DL-037 (letter = scope, digit = session split; split rows keep the scope's slug): M04a → M04a1/M04a2, M10a → M10a1/M10a2, M11a → M11a1/M11a2, M11b2 keeps its id and gains **M11b4** (M11b3 exists), M12b → M12b1/M12b2, M12c → M12c1/M12c2, M14b → M14b1/M14b2/M14b3. M01a and M01b were already split (M01a1/M01a2, M01b1/M01b2). New QA scopes: **M00d** `qa-spec-gates`, **M04d** `qa-harness-bots-goldens`.
 2. **Size.** One Sonnet 5.5 session per file: ≈ 2–4 h of agentic work, ≲ 40 hand-written files, one PR, app deployable at the end. Rows below 1 session stay separate files.
-3. **Order.** The table in §1 is the run order. Block A is the READY fast-track list, kept exactly; its one forward dependency is resolved by `README.md`: **M01f runs before M01b2**. Every other row appears after all of its dependencies.
+3. **Order.** The table in §1 is the run order. Block A is the READY fast-track list, kept exactly; its forward dependencies are resolved by `README.md`: **M01f runs before M01b2 and M01e** (DL-256). Every other row appears after all of its dependencies.
 4. **R-ROLL-01.** No rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. **R-AUTH-02.** M14a (Thirdweb) is the last v1 milestone; Bay expansion (M15) follows it.
 5. **Spend (DL-OWN-01).** fal total ≤ $100: M00c ≤ $10; M10a1+M10a2 ≤ $42; cutscenes ≤ $40 (M05c3 ≤ $16 and M10b ≤ $24, DN-S13-02); $8 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
@@ -25,7 +25,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 8 | M01b2 | controller-cameras-touch | 1 | A | M01b1, M01f, M00 |
 | 9 | M01c | device-spike-renderer-host | 1 | A | M00, M00a, M01a2 |
 | 10 | M01d | assets-publish | 1 | A | M00b, M00a, M01a1 |
-| 11 | M01e | asset-worker-opfs-store | 1 | A | M01d, M01c, M00a, M00, M01a2 |
+| 11 | M01e | asset-worker-opfs-store | 1 | A | M01d, M01c, M00a, M00, M01a2, M01f |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | A | M01a1, M00b |
 | 13 | M00d | qa-spec-gates | 0.5 | B | M00, M01c, M00b |
 | 14 | M02a1 | bake-core | 1 | B | M01f, M01d |
@@ -283,6 +283,7 @@ flowchart LR
   M00a --> M01d
   M01a1 --> M01d
   M01d --> M01e
+  M01f --> M01e
   M01c --> M01e
   M01a1 --> M01f
   M00b --> M01f

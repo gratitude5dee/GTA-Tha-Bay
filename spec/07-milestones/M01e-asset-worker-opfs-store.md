@@ -17,6 +17,7 @@ The C13 `WorldPackStore` is complete: pinning, LRU eviction under a soft cap, `g
 
 ## Depends on
 - **M01d:** catalog, `/asset-catalog.json` pointer, `resolveVariant`, `assets:publish --target dir:`, seed assets and the M01f packs in the lock.
+- **M01f:** the fixture packs `world_pack/p0-64-64` and `world_pack/l0-64-64` and their lock entries (written by M01d or by M01f, whichever merged second; DL-256). AC-5 and AC-9 need them.
 - **M01c:** `QualityService` (current tier), the telemetry client (`app.start.store`, `storage.persist`), the `dv-platform` store, `createPlatform`.
 - **M00a:** `GET /api/v1/boot` (`hosts.media`). **M00:** QA bridge and `verify:dist`. **M01a2:** module-worker bundling pattern.
 - Optional **M01b2:** the gray-box loader (`packages/engine/src/client/graybox/load.ts`).

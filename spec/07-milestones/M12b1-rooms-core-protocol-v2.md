@@ -29,7 +29,7 @@ The multiplayer server exists and can be deployed. When this session ends, `pack
 
 ## Deliverables
 - `packages/net/src/protocol/{v2.ts, codec.ts}`, `packages/net/src/clock.ts`, `packages/net/src/index.ts`; `packages/net/test/{codec.test.ts, codec.fuzz.test.ts, clock.test.ts}`.
-- `services/rooms/{package.json (@dv/rooms), tsconfig.json, wrangler.jsonc}`; `services/rooms/src/{index.ts, gate.ts, jwks.ts, ticket.ts, cors.ts}`; `services/rooms/src/room/{RoomDO.ts, tick.ts, slots.ts, bucket.ts}`; `services/rooms/src/directory/DirectoryDO.ts`; `services/rooms/src/presence/PresenceDO.ts` (skeleton).
+- `services/rooms/{package.json (@dv/rooms), README.md, tsconfig.json, wrangler.jsonc}`; `services/rooms/src/{index.ts, gate.ts, jwks.ts, ticket.ts, cors.ts}`; `services/rooms/src/room/{RoomDO.ts, tick.ts, slots.ts, bucket.ts}`; `services/rooms/src/directory/DirectoryDO.ts`; `services/rooms/src/presence/PresenceDO.ts` (skeleton).
 - `services/rooms/test/{rooms-build, rooms-forged-id, rooms-cap-atomic, rooms-gate, rooms-abuse, rooms-tick, rooms-directory}.test.ts`; the Workers vitest config gains the rooms project.
 - `tools/ci/deploy.ts` (`--worker rooms` for `prod`, `preview`, `bootstrap`), `tools/ci/check-prod-routes.ts` (rooms bundle), root `package.json` (`typecheck` chain), `.github/workflows/{ci,preview,deploy}.yml`.
 - Secrets (Worker, both environments): `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` (declared now, used from M12c2). Absent locally: the rooms Worker answers route 23 with `feature_disabled` and `deploy:*` print their SKIP lines.

@@ -19,7 +19,7 @@ Run from the repository root (pnpm workspaces, Node 22 LTS).
 |---|---|
 | `pnpm install` | install the workspace (CI uses `--frozen-lockfile`) |
 | `pnpm dev` | Vite dev server plus `wrangler dev`; QA flags on |
-| `pnpm build` | UI tokens, Vite build of `apps/web`, Worker dry-run bundle |
+| `pnpm build` | UI tokens, Vite build of `apps/web`, icon check (the Worker dry-run bundle is `pnpm check:prod-routes`, from M00a) |
 | `pnpm typecheck` | TypeScript, no emit |
 | `pnpm lint` | ESLint, including the determinism and no-GLSL rules |
 | `pnpm check:unit [-- <paths>]` | Vitest unit tests |
@@ -31,6 +31,8 @@ Run from the repository root (pnpm workspaces, Node 22 LTS).
 | `pnpm deploy:prod [-- --env staging]` | versions upload, 0 % smoke, 100 %, rollback on failure (from M00a) |
 
 Milestone-specific scripts are listed in each milestone's Deliverables. Arguments: `pnpm <script> -- <args>` works for every script; tools run through `tools/ci/run.ts <tool>`, which drops the one leading `--` that pnpm passes through, and in-house scripts parse argv with its `args()` helper. The M00 family adds `check:headers -- <url> | --serve <url> | --from <file>`, `check:coi` (same forms), `check:bundle`, `check:e2e:xr`, `deploy:bootstrap`, `check:secrets`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `likeness:gate`, `genai:liveness`, `genai:spike`, `genai:price`. Later root scripts: `check:agents`, `check:telemetry` (M00d), `perf:verify`, `perf:checklist` (M01c), `assets:*` (M01d; `assets:gen` M05c3, M10a1), `map:fixture` (M01f), `map:build`, `map:fetch`, `map:pack` (M02a1) and the other `map:*` steps (M02a2–M02c2; `map:races` M07a1, `map:webtiles` M13b2), `check:i18n` (M04b1), `check:balance` (M04d; tycoon suite M09a2), `missions:build` (M05a1), `missions:preview`, `check:missions` (M05a2), `check:pipeline`, `check:c2pa` (M05b1), `check:db`, `check:db:types`, `db:push`, `check:api`, `test:staging` (M05d), `npc:*` (M06a2, M06a4, M10c), `check:fighter` (M08b1), `tycoon:*` (M09a2), `test:ops` (M10b), `auth:tpa` (M12a1), `rooms:drain` (M12c1), `load:rooms` (M12c2), `check:mods`, `check:skills` (M13a6), `ip:history`, `ip:similarity`, `genai:terms-watch` (M14b3); the `dv` CLI for mods (`tools/cli`, M13a1, M13c3). Package-local scripts run as `pnpm --filter @dv/<pkg> <script>` (`test:*` M01a1, `bench:physics` M01a2, `fighter:*` M08a1–M08c1); full registry: `spec/08-test-and-ci.md` §6. A `check:*` script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
+
+Unit tests are named `*.test.ts` or `*.spec.ts` (either suffix) in `<package>/test/`. The root Vitest config collects `**/*.{test,spec}.{ts,tsx}` except `tests/e2e/**` and `tests/perf/**` (Playwright) and `services/*/test/**` (`check:workers`).
 
 ## Repository layout
 - `apps/web` — PWA shell: Vite entry, service worker, `_headers`, page routes
@@ -54,7 +56,7 @@ Milestone-specific scripts are listed in each milestone's Deliverables. Argument
 
 ## Conventions
 - TypeScript strict, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Vanilla three; no React Three Fiber; Preact for DOM UI only.
-- Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
+- Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/world/src/sim/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
 - `@dv/shared` imports no other package and does no IO. `services/*` import only `@dv/shared` and `@dv/net`. Packages never import apps.
 - Persistent identity is a C01 `StableKey` (`player:`, `veh:`, `npc:`, `amb:<cell>:<slot>`, `mis:`, `pfb:`); the dense `EntityId` never leaves a session.
 - Asset references are C07 `AssetRef` strings `'<kind>/<id>'`; stored objects use `<root>/<variant>.<sha256[0:12]>.<ext>`.

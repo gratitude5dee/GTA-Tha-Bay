@@ -14,7 +14,7 @@ The status cell's first word is the status; `· frozen (executing)` is a qualifi
 A READY file is **frozen once a Builder starts it** (the moment its branch `m<id>-<slug>` exists). Nobody edits a started file, the Architect included, except for a blocking defect, which is logged. A correction found later goes to the decision log and into the next affected milestone's file (or a new milestone), never back into the started one, so a session always works against the text it began with. Before it starts, a READY file may still be corrected (for example after a critic pass at a `_PLAN.md` §3 checkpoint); each correction is logged.
 
 ## Ordering and parallel Builders
-- The table order is the run order (`_PLAN.md` §1). A single Builder runs it top to bottom; when a file's Depends on names a milestone not yet done, that one runs first (M01f, 0.5 session, runs before M01b2).
+- The table order is the run order (`_PLAN.md` §1). A single Builder runs it top to bottom; when a file's Depends on names a milestone not yet done, that one runs first (M01f, 0.5 session, runs before M01b2 and M01e).
 - **Several Builders may run at once** (DL-246): one git worktree and one branch `m<id>-<slug>` per milestone (worktrees under `.claude/worktrees/`, git-ignored); a Builder starts a milestone only when every milestone in its Depends on is **merged** to the default branch; PRs merge in run order (a later row waits for every earlier row that is in flight), and each branch rebases on the default branch before merging. Deploys come only from the default branch (`deploy.yml`); a Preview per PR is fine.
 - R-ROLL-01: no rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. R-AUTH-02: M14a is the last v1 milestone; M15a–M15g are post-v1 (Bay expansion), one session each (DL-242).
 - Every family above one session is split into digit-suffixed ids (DL-212).
@@ -35,7 +35,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 8 | M01b2 | controller-cameras-touch | 1 | M01b1, M01f, M00 | READY · frozen (executing) | `M01b2-controller-cameras-touch.md` |
 | 9 | M01c | device-spike-renderer-host | 1 | M00, M00a, M01a2 | READY · frozen (executing) | `M01c-device-spike-renderer-host.md` |
 | 10 | M01d | assets-publish | 1 | M00b, M00a, M01a1 | READY · frozen (executing) | `M01d-assets-publish.md` |
-| 11 | M01e | asset-worker-opfs-store | 1 | M01d, M01c, M00a, M00, M01a2 | READY · frozen (executing) | `M01e-asset-worker-opfs-store.md` |
+| 11 | M01e | asset-worker-opfs-store | 1 | M01d, M01c, M00a, M00, M01a2, M01f | READY · frozen (executing) | `M01e-asset-worker-opfs-store.md` |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | M01a1, M00b | READY · frozen (executing) | `M01f-world-graybox-fixture-codec.md` |
 | 13 | M00d | qa-spec-gates | 0.5 | M00, M01c, M00b | READY | `M00d-qa-spec-gates.md` |
 | 14 | M02a1 | bake-core | 1 | M01f, M01d | READY | `M02a1-bake-core.md` |

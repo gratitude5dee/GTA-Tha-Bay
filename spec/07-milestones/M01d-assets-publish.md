@@ -13,7 +13,7 @@ After this session the repository has the release half of C07. Asset specs go in
 - **M00b:** `c07.ts` (types, `assetRefOf`, `objectKey`), `provenance.ts`, the provenance schema, `config/license-allowlist.json`, `tools/ci/provenance-check.ts`, `tools/assets/provenance-new.ts`, `check:assets` (config schemas).
 - **M00a:** `GET /api/v1/boot` with `assetCatalog: ''`; `check:workers`.
 - **M01a1:** `canonicalize`, `sha256Hex`.
-- **M01f** (soft): `tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack` and their provenance records. If absent, the catalog has no `world_pack` entries; note it in the report.
+- **M01f** (soft): `tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack` and their provenance records. If absent, the catalog has no `world_pack` entries; note it in the report. M01f then adds the two specs and lock entries when it lands (its Deliverables, AC-11; DL-256).
 - Contracts: C07 1.1 (`05-assets.md` §4.1–§4.4, `05-assets-pipeline.md` §3, §9, §14), C13 1.1 (`VARIANT_FALLBACK`), C12 1.1 (`BootConfig.assetCatalog`).
 
 ## Scope in

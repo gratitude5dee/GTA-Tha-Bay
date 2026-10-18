@@ -57,7 +57,7 @@
 
 ### M01e · asset-worker-opfs-store — 1 · risk M · S11
 - **Goal:** `asset.worker`, `WorldPackStore` on OPFS with hash check, eviction, `persist()`, `fetchRetry` lanes.
-- **R** R-PLAT-01/03 · **Dep** M01d, M01c, M00a, M00, M01a2 · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset.worker.ts`, `packages/engine/src/assets/store` (as the frozen file; DL-247) · **C** C13 1.1, C07 1.1
+- **R** R-PLAT-01/03 · **Dep** M01d, M01c, M00a, M00, M01a2, M01f · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset.worker.ts`, `packages/engine/src/assets/store` (as the frozen file; DL-247) · **C** C13 1.1, C07 1.1
 - **Gate** none · **Proof** `pack-store.spec.ts` in Chromium and WebKit (`11-platform-pwa.md` §10 test 5); `pnpm check:unit -- packages/engine`
 
 ### M01f · world-graybox-fixture-codec — 0.5 · risk L · S02
@@ -76,7 +76,7 @@
 ### M02a1 · bake-core — 1 · risk M · S02
 - **Goal:** `tools/map` S0 fetch, terrain, water and landuse, buildings, pack writer, world index, attribution, gates; SF packs without roads.
 - **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
-- **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (count within ±5 % of 176,777, packs ≤ 4 MiB, identical rerun); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
+- **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (baked buildings ≥ 98 % of the locked `ynuv-fyni` row count, packs ≤ 4 MiB, identical rerun; DL-288); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
 
 ### M02a2 · bake-roads-graph — 1 · risk M · S02
 - **Goal:** stages S5–S10: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds.

@@ -108,6 +108,7 @@ All rows checked 2026-10-18 (date column). CF = developers.cloudflare.com; BCD =
 | F-065 | CF CSAM tool scans cached content only; R2 not documented | CF /cache/reference/csam-scanning/ | 2026-10-18 | high | S12 |
 | F-066 | TAKE IT DOWN: 48 h removal; $53,088/violation | ftc.gov complying-take-it-down-act | 2026-10-18 | high | S12 |
 | F-067 | Take-Two "GTA" mark Reg. 3439237 (game software) | trademarks.justia.com/771/44/gta-77144006.html | 2026-10-18 | high | S10 |
+| F-068 | `preact` 11.0.1 is the npm `latest` dist-tag (published 2026-10-08), licence MIT | registry.npmjs.org/preact/latest | 2026-10-18 | high | S10, M00 |
 
 **Unverified / must confirm (blocking impact)**
 - US licence for H3 Max/Turbo and the governing terms for `minimax/h3/*` — blocks production cutscenes at M05b/M05c.
