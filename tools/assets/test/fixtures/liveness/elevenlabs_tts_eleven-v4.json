@@ -1,0 +1,37 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "elevenlabs/tts/eleven-v4",
+        "metadata": {
+          "display_name": "Eleven v4",
+          "category": "text-to-speech",
+          "description": "Generate expressive speech with Eleven v4 from ElevenLabs. Control delivery with audio tags, voice stability, similarity settings, and IPA pronunciation.",
+          "status": "active",
+          "tags": [
+            "audio",
+            "text-to-speech",
+            "voiceover"
+          ],
+          "updated_at": "2026-10-02T19:10:00.967Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0aac4241/SUZvoStueCW3Z6uEtzMiA.jpg",
+          "model_url": "https://fal.run/elevenlabs/tts/eleven-v4",
+          "license_type": "commercial",
+          "date": "2026-09-28T16:35:18.269Z",
+          "group": {
+            "key": "eleven-v4",
+            "label": "Eleven V4"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "stream_url": "https://fal.run/elevenlabs/tts/eleven-v4/stream",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

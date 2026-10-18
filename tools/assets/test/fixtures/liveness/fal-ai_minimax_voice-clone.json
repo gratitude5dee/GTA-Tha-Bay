@@ -1,0 +1,35 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "fal-ai/minimax/voice-clone",
+        "metadata": {
+          "display_name": "MiniMax Voice Cloning",
+          "category": "text-to-speech",
+          "description": "Clone a voice from a sample audio and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+          "status": "active",
+          "tags": [
+            "speech",
+            ""
+          ],
+          "updated_at": "2026-04-21T17:52:17.626Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://storage.googleapis.com/falserverless/web-examples/minimax-tts/minimax-tts.webp",
+          "model_url": "https://fal.run/fal-ai/minimax/voice-clone",
+          "license_type": "commercial",
+          "date": "2025-05-06T16:22:37.683Z",
+          "group": {
+            "key": "minimax-speech",
+            "label": "Voice Cloning"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

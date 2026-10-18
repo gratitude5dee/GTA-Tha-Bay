@@ -1,0 +1,38 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "google/nano-banana-2.1/edit",
+        "metadata": {
+          "display_name": "Nano Banana 2.1 Edit",
+          "category": "image-to-image",
+          "description": "Nano Banana 2.1 Edit by Google transforms reference images using text instructions, with output resolutions up to 4K and optional video or PDF context.",
+          "status": "active",
+          "tags": [
+            "image editing",
+            "image to image",
+            "photorealism",
+            "typography",
+            "text rendering"
+          ],
+          "updated_at": "2026-10-08T18:22:37.738Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0aaad14e/urvX9oiQqWKRcaZngAlID.jpg",
+          "model_url": "https://fal.run/google/nano-banana-2.1/edit",
+          "license_type": "commercial",
+          "date": "2026-10-06T15:48:52.103Z",
+          "group": {
+            "key": "nano-banana-2.1",
+            "label": "Edit"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

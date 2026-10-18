@@ -1,0 +1,33 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "fal-ai/minimax/speech-2.8-turbo",
+        "metadata": {
+          "display_name": "MiniMax Speech 2.8 [Turbo]",
+          "category": "text-to-speech",
+          "description": "Generate speech from text prompts and different voices using the MiniMax Speech-2.8 Turbo model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+          "status": "active",
+          "tags": [],
+          "updated_at": "2026-04-21T17:52:12.732Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0a8d0e23/l9QaO81QWM5lp_w3ZnahE_efa53369ffad488ba50146e6f9567df1.jpg",
+          "model_url": "https://fal.run/fal-ai/minimax/speech-2.8-turbo",
+          "license_type": "commercial",
+          "date": "2026-02-04T00:09:54.525Z",
+          "group": {
+            "key": "minimax-speech",
+            "label": "Text To Speech 2.8 Turbo"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "stream_url": "https://fal.run/fal-ai/minimax/speech-2.8-turbo/stream",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

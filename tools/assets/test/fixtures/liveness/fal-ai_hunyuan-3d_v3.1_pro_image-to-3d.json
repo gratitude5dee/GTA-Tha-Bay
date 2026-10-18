@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+        "metadata": {
+          "display_name": "Hunyuan 3D Pro Image to 3D",
+          "category": "image-to-3d",
+          "description": "Generate 3D models from images with Hunyuan 3D Pro",
+          "status": "active",
+          "tags": [
+            "3d",
+            "hunyuan",
+            "image-to-3d"
+          ],
+          "updated_at": "2026-04-28T16:47:25.903Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0a8c1eed/a9u-FinZ2o0AGqcGFlRoD_5c16e7c0e1ae412cacc53893cae95698.jpg",
+          "model_url": "https://fal.run/fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+          "license_type": "commercial",
+          "date": "2026-01-27T22:01:04.639Z",
+          "group": {
+            "key": "hunyuan-3d",
+            "label": "Hunyuan 3D Pro Image to 3D"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

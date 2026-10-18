@@ -1,0 +1,35 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "fal-ai/minimax/voice-design",
+        "metadata": {
+          "display_name": "MiniMax Voice Design",
+          "category": "text-to-speech",
+          "description": "Design a personalized voice from a text description, and generate speech from text prompts using the MiniMax model, which leverages advanced AI techniques to create high-quality text-to-speech.",
+          "status": "active",
+          "tags": [
+            "speech",
+            ""
+          ],
+          "updated_at": "2026-06-24T11:32:38.157Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0a9f922c/aV3yMfiK-rdJiNGqmfVru_lPguf8oY.png",
+          "model_url": "https://fal.run/fal-ai/minimax/voice-design",
+          "license_type": "commercial",
+          "date": "2025-07-18T21:21:52.686Z",
+          "group": {
+            "key": "minimax-speech",
+            "label": "Voice Design"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

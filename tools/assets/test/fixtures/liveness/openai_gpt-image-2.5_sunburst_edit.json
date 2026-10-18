@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "openai/gpt-image-2.5/sunburst/edit",
+        "metadata": {
+          "display_name": "GPT Image 2.5 Sunburst Edit ",
+          "category": "image-to-image",
+          "description": "Editing built for the tightest control, edits scoped precisely to the instruction, with subject and composition preserved across many rounds of revision.",
+          "status": "active",
+          "tags": [
+            "stylized",
+            "transform",
+            "editing"
+          ],
+          "updated_at": "2026-09-11T19:34:21.150Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0aa9a3b8/cSrDjg-ke-PcqgHiY_gxn.jpg",
+          "model_url": "https://fal.run/openai/gpt-image-2.5/sunburst/edit",
+          "license_type": "commercial",
+          "date": "2026-09-08T19:43:14.655Z",
+          "group": {
+            "key": "gpt-25",
+            "label": "Image Editing Sunburst"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

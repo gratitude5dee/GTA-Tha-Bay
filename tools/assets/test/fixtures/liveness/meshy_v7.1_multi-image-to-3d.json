@@ -1,0 +1,37 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "meshy/v7.1/multi-image-to-3d",
+        "metadata": {
+          "display_name": "Meshy 7.1 Multi Image to 3D",
+          "category": "image-to-3d",
+          "description": "Meshy 7.1 generates textured 3D models from one to four views of the same object, with polygon count, topology, symmetry, and optional PBR texture controls.",
+          "status": "active",
+          "tags": [
+            "3d",
+            "multi-image",
+            "textures",
+            "pbr"
+          ],
+          "updated_at": "2026-10-02T19:11:45.618Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0aab191e/ASgJ3AifwlPiIKDKJRBd1.jpg",
+          "model_url": "https://fal.run/meshy/v7.1/multi-image-to-3d",
+          "license_type": "commercial",
+          "date": "2026-09-19T21:07:49.811Z",
+          "group": {
+            "key": "meshy-v7.1",
+            "label": "Multi Image to 3D"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}

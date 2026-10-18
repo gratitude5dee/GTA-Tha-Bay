@@ -1,0 +1,96 @@
+{
+  "schema": "ip-denylist/1",
+  "terms": [
+    "rockstar",
+    "take-two",
+    "grand theft",
+    "los santos",
+    "san fierro",
+    "san andreas",
+    "liberty city",
+    "vice city",
+    "las venturas",
+    "gant bridge",
+    "rage::",
+    "joaat",
+    "scripthook",
+    "menyoo",
+    "openiv",
+    "gta5-mods",
+    "playgta5",
+    "grandv",
+    "fivem",
+    "timecyc",
+    "carrec"
+  ],
+  "words": [
+    "bravado",
+    "declasse",
+    "grotti",
+    "karin",
+    "pegassi",
+    "vapid"
+  ],
+  "patterns": [
+    {
+      "id": "franchise-acronym",
+      "regex": "\\bgta\\b",
+      "flags": "i"
+    }
+  ],
+  "nameRegex": {
+    "regex": "\\bG\\.?T\\.?A\\b|grand\\s*theft|rockstar|take-?two",
+    "flags": "i"
+  },
+  "extensions": [
+    ".rpf",
+    ".ytd",
+    ".ydr",
+    ".ydd",
+    ".yft",
+    ".ymap",
+    ".ytyp",
+    ".ybn",
+    ".ycd",
+    ".ymt",
+    ".awc",
+    ".gxt2",
+    ".fxc",
+    ".oiv",
+    ".asi",
+    ".sps",
+    ".ugc",
+    ".dff",
+    ".txd",
+    ".img",
+    ".ipl",
+    ".ide",
+    ".col",
+    ".scm",
+    ".ifp",
+    ".rrr",
+    ".dat"
+  ],
+  "wasmNameNeedles": [
+    "rage::"
+  ],
+  "faceDetectorTerms": [
+    "face_detector",
+    "FaceLandmarker",
+    "face_landmark"
+  ],
+  "datHeaderTerms": [
+    "timecyc",
+    "handling"
+  ],
+  "exceptions": [
+    {
+      "match": "Not affiliated with, endorsed by, or sponsored by Rockstar Games or Take-Two Interactive.",
+      "reason": "R-NAME-2 disclaimer"
+    },
+    {
+      "match": "timecyc-dome",
+      "reason": "C13 SkyMode value in packages/shared/src/platform/c13.ts (contract text, cannot change)"
+    }
+  ]
+}

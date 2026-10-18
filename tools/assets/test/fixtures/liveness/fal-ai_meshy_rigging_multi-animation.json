@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "fal-ai/meshy/rigging/multi-animation",
+        "metadata": {
+          "display_name": "Meshy Rigging Multi Animation",
+          "category": "3d-to-3d",
+          "description": "Meshy auto-rigs a humanoid 3D model fitting a skeleton and binding the mesh, then applies several motion presets from its animation library",
+          "status": "active",
+          "tags": [
+            "stylized",
+            "transform",
+            "3D"
+          ],
+          "updated_at": "2026-10-02T19:11:45.618Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0a9e0bf5/ZWAyCMj3wyAm8pM8Fr3Rz_9a891ce4df144559a8d9b169cca63531.jpg",
+          "model_url": "https://fal.run/fal-ai/meshy/rigging/multi-animation",
+          "license_type": "commercial",
+          "date": "2026-06-12T21:21:20.978Z",
+          "group": {
+            "key": "Meshy-rig",
+            "label": "Multi Animation"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}
