@@ -49,7 +49,12 @@
     "check:ip": "pnpm ip:all",
     "check:license": "pnpm license:scan",
     "check:names": "pnpm names:lint",
-    "check:likeness": "pnpm likeness:gate"
+    "check:likeness": "pnpm likeness:gate",
+    "assets:catalog": "tsx tools/assets/src/cli.ts catalog",
+    "assets:lock": "tsx tools/assets/src/cli.ts lock",
+    "assets:verify": "tsx tools/assets/src/cli.ts verify",
+    "assets:publish": "tsx tools/assets/src/cli.ts publish",
+    "assets:seed": "tsx tools/assets/src/cli.ts seed"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",

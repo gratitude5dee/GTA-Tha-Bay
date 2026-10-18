@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "48e5f631bc684cd4dea0f5632586cf6ec40234c9bf768bba1d603bca8f29ff89",
+  "paths": [
+    "assets/src/texture/asset-smoke/m.png"
+  ],
+  "kind": "texture",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-18T00:00:00Z"
+}

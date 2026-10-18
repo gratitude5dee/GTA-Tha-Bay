@@ -1,0 +1,36 @@
+{
+  "schema": "asset-budgets/1",
+  "note": "spec/domains/05-assets-pipeline.md section 3. Only fileBytes is enforced by check:assets (M01d); the other columns are read by M03a1 and M10a.",
+  "rows": [
+    {
+      "id": "character-hero",
+      "kind": "character",
+      "tag": "class:hero",
+      "fidelity": {
+        "hi": { "tris": 30000, "maxTexPx": 2048, "materials": 3, "gpuTexBytes": 16777216, "fileBytes": 6291456 },
+        "mid": { "tris": 12000, "maxTexPx": 1024, "materials": 2, "gpuTexBytes": 4718592, "fileBytes": 2097152 },
+        "lo": { "tris": 6000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 1048576, "fileBytes": 838860 }
+      }
+    },
+    {
+      "id": "character-npc",
+      "kind": "character",
+      "tag": "class:npc",
+      "fidelity": {
+        "hi": { "tris": 12000, "maxTexPx": 1024, "materials": 2, "gpuTexBytes": 4718592, "fileBytes": 2097152 },
+        "mid": { "tris": 6000, "maxTexPx": 512, "materials": 2, "gpuTexBytes": 1258291, "fileBytes": 838860 },
+        "lo": { "tris": 3000, "maxTexPx": 512, "materials": 1, "gpuTexBytes": 1048576, "fileBytes": 629145 }
+      }
+    },
+    {
+      "id": "vehicle-race",
+      "kind": "vehicle",
+      "tag": "class:race",
+      "fidelity": {
+        "hi": { "tris": 60000, "maxTexPx": 2048, "materials": 6, "gpuTexBytes": 25165824, "fileBytes": 8388608 },
+        "mid": { "tris": 30000, "maxTexPx": 1024, "materials": 4, "gpuTexBytes": 6291456, "fileBytes": 3145728 },
+        "lo": { "tris": 15000, "maxTexPx": 512, "materials": 2, "gpuTexBytes": 1572864, "fileBytes": 1048576 }
+      }
+    }
+  ]
+}

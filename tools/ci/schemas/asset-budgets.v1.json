@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/asset-budgets-1.json",
+  "type": "object",
+  "required": ["schema", "rows"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "asset-budgets/1" },
+    "note": { "type": "string" },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "fidelity"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "kind": { "type": "string" },
+          "tag": { "type": "string" },
+          "fidelity": {
+            "type": "object",
+            "required": ["hi", "mid", "lo"],
+            "additionalProperties": false,
+            "patternProperties": {
+              "^(hi|mid|lo)$": {
+                "type": "object",
+                "required": ["fileBytes"],
+                "additionalProperties": false,
+                "properties": {
+                  "tris": { "type": "integer", "minimum": 1 },
+                  "maxTexPx": { "type": "integer", "minimum": 1 },
+                  "materials": { "type": "integer", "minimum": 1 },
+                  "gpuTexBytes": { "type": "integer", "minimum": 1 },
+                  "fileBytes": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

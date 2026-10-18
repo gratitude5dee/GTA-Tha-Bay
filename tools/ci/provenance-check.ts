@@ -33,7 +33,8 @@ const GATE = 'provenance:check';
 
 /** Files that are code or delivery metadata: covered by license:scan, not by provenance (M00b "Ship set"). */
 const CODE_EXT = new Set(['.js', '.mjs', '.cjs', '.css', '.html', '.map']);
-const NON_SHIP_NAMES = new Set(['sw.js', 'manifest.webmanifest', '_headers', 'credits.json']);
+// asset-catalog.json is the catalog pointer: metadata validated by check:assets, not a media file (M01d).
+const NON_SHIP_NAMES = new Set(['sw.js', 'manifest.webmanifest', '_headers', 'credits.json', 'asset-catalog.json']);
 
 export function isShipFile(rel: string): boolean {
   const base = rel.split('/').pop() ?? rel;
@@ -94,6 +95,19 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
     }
   }
 
+  // Lock variants (assets/assets.lock.json) are part of the ship set: each hash needs a record (05 section 4.3).
+  const lockFile = path.join(opts.root, 'assets/assets.lock.json');
+  let shipped = ship.length;
+  if (existsSync(lockFile)) {
+    const lock = JSON.parse(readFileSync(lockFile, 'utf8')) as { entries?: Record<string, { variants?: Record<string, string> }> };
+    for (const [ref, e] of Object.entries(lock.entries ?? {})) {
+      for (const [variant, sha] of Object.entries(e.variants ?? {})) {
+        shipped++;
+        if (!bySha.has(sha)) findings.push(finding(GATE, 'assets/assets.lock.json', 'no-record', `${ref} ${variant}: no provenance record for sha256 ${sha}`));
+      }
+    }
+  }
+
   const creditsPath = path.join(opts.dist, 'credits.json');
   if (opts.emitCredits && existsSync(opts.dist)) {
     const doc = { schema: 'credits/1', attributions: collectAttributions(records).map((a) => ({ license: a.license, attribution: a.attribution })) };
@@ -102,7 +116,7 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
   if (existsSync(opts.dist)) {
     findings.push(...checkCredits(records, existsSync(creditsPath) ? readFileSync(creditsPath, 'utf8') : null));
   }
-  return { findings, scanned: ship.length, records };
+  return { findings, scanned: shipped, records };
 }
 
 function main(): void {

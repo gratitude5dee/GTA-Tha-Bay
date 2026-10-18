@@ -1,0 +1,25 @@
+{
+  "schema": "asset-lock/1",
+  "entries": {
+    "data/asset-smoke": {
+      "rev": 1,
+      "variants": {
+        "default": "3304f103316e302ec07b3d01163315a99dbb72933291ccefa043f91801b74b7c"
+      },
+      "root": "3304f103316e302ec07b3d01163315a99dbb72933291ccefa043f91801b74b7c",
+      "approved_by": "gratitude5dee",
+      "approved_at": "2026-10-18T23:14:39Z"
+    },
+    "texture/asset-smoke": {
+      "rev": 1,
+      "variants": {
+        "desktop": "b52dda7b8744444ca1d40346d0e6136e34c610dec0b37dd7df8d5a80e9c781f3",
+        "mobile": "48e5f631bc684cd4dea0f5632586cf6ec40234c9bf768bba1d603bca8f29ff89",
+        "mobile-low": "3ebd2ef1c3ecd2ed81c59df8a4f12879ee17e3efd4d11695a92b86b0bed443a5"
+      },
+      "root": "b52dda7b8744444ca1d40346d0e6136e34c610dec0b37dd7df8d5a80e9c781f3",
+      "approved_by": "gratitude5dee",
+      "approved_at": "2026-10-18T23:14:39Z"
+    }
+  }
+}

@@ -1,9 +1,8 @@
 /**
  * C07 asset contract, version 1.1.0: spec/domains/05-assets.md section 4.2, copied without changes.
- * Only assetRefOf and objectKey are implemented here (M00b); resolveVariant stays a type-only
- * declaration until M01d. Owner: S05. Change only through the Architect.
+ * assetRefOf and objectKey (M00b) and resolveVariant (M01d) are implemented here. Owner: S05. Change only through the Architect.
  */
-import type { QualityTierId } from '../platform/c13.ts';
+import { VARIANT_FALLBACK, type QualityTierId } from '../platform/c13.ts';
 
 export const C07_VERSION = '1.1.0' as const;            // bump with 06; additive = minor; 1.1 additions: 05-assets-pipeline.md §14
 
@@ -81,7 +80,26 @@ export interface CatalogPointer {      // built into the Worker's static assets:
   schema: 'asset-catalog-pointer/1'; sha256: string; key: string; bytes: number;
 }
 
-export declare function resolveVariant(m: AssetManifest, tier: QualityTierId): AssetVariant;  // default, else C13 VARIANT_FALLBACK[tier]; throws NO_VARIANT
+export type AssetErrorCode = 'NO_VARIANT';
+export class AssetError extends Error {
+  readonly code: AssetErrorCode;
+  constructor(code: AssetErrorCode, message: string) {
+    super(message);
+    this.name = 'AssetError';
+    this.code = code;
+  }
+}
+
+/** `default` if present, else the first id of VARIANT_FALLBACK[tier] present in m.variants (never steps upward); throws NO_VARIANT. */
+export function resolveVariant(m: AssetManifest, tier: QualityTierId): AssetVariant {
+  const d = m.variants.default;
+  if (d) return d;
+  for (const id of VARIANT_FALLBACK[tier]) {
+    const v = m.variants[id];
+    if (v) return v;
+  }
+  throw new AssetError('NO_VARIANT', `${m.kind}/${m.id}: no variant for tier ${tier}`);
+}
 
 const ASSET_ID_RE = /^[a-z0-9][a-z0-9._-]{1,62}$/;
 const SHA256_RE = /^[0-9a-f]{64}$/;

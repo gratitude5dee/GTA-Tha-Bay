@@ -1,6 +1,7 @@
 import type { BootConfig, FeatureFlag } from '@dv/shared';
 import { DEFAULT_FLAGS, type Env } from '../env.ts';
 import { json } from '../errors.ts';
+import pointer from '../generated/asset-catalog.json' with { type: 'json' };
 import { isRegionAllowed, requestCountry } from '../geo.ts';
 import type { Ctx } from '../router.ts';
 
@@ -21,13 +22,19 @@ export function parseFlags(raw: string): Record<FeatureFlag, boolean> {
   return flags;
 }
 
+/** The manifest key of the catalog pointer that shipped with this Worker version (assets:publish, M01d); empty when absent. */
+function catalogKey(): string {
+  const key = (pointer as { key?: unknown }).key;
+  return typeof key === 'string' ? key : '';
+}
+
 export function bootConfig(env: Env, country: string | undefined): BootConfig {
   return {
     build: env.BUILD_ID,
     minClientBuild: env.MIN_CLIENT_BUILD,
     region: isRegionAllowed(country, env) ? 'ok' : 'blocked',
     hosts: { api: env.HOST_API, rt: env.HOST_RT, id: env.HOST_ID, media: env.HOST_MEDIA, ugc: env.HOST_UGC },
-    assetCatalog: '',
+    assetCatalog: catalogKey(),
     flags: parseFlags(env.FLAGS_JSON),
     gov: 0,
   };

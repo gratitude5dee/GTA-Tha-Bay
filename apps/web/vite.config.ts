@@ -53,7 +53,8 @@ export default defineConfig({
       injectManifest: {
         rollupFormat: 'iife',
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm}'],
+        // asset-catalog.json is the catalog pointer (DL-042): it must be in the precache so a new Worker version switches content.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm}', 'asset-catalog.json'],
         // The deterministic-compat build loads on demand (canonical sessions only); QA pages are never precached.
         globIgnores: ['**/rapier-deterministic-*.js', 'qa/**'],
       },

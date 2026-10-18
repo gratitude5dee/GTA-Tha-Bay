@@ -1,0 +1,13 @@
+{
+  "kind": "texture",
+  "id": "asset-smoke",
+  "variants": {
+    "desktop": "assets/src/texture/asset-smoke/d.png",
+    "mobile": "assets/src/texture/asset-smoke/m.png",
+    "mobile-low": "assets/src/texture/asset-smoke/l.png"
+  },
+  "deps": ["data/asset-smoke"],
+  "tags": ["smoke"],
+  "status": "active",
+  "visibility": "public"
+}
