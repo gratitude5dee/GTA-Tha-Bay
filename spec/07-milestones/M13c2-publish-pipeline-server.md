@@ -9,10 +9,11 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - R-IP-03: hash-first scanning, quarantine, human review, revocation of installed copies.
 
 ## Depends on
-- **M13c1**: CLI token (`aud: 'tha-bay-cli'`, `scp: ['mods:publish']`), the `linked` tier rule, `audit_log` writes for identity actions.
+- **M13c1**: CLI token (`aud: 'tha-bay-cli'`, `scp: ['mods:publish']`, typed by C12 1.2 `AccessClaims`), the `linked` tier rule, `audit_log` writes for identity actions.
 - **M13a1**: C14/C17 types and schemas, shared validators `packages/shared/src/mod/check/*` (envelope, allowlist, schema, permissions, secrets, IP, provenance, caps, budget report, script lint), the 40-manifest parity corpus, `ModCheckResult`.
-- **M13b1**: forum tables, report policy, DTOs (M13b2's `ensureLinkedThread` and mask reader arrive through the run order).
-- Contracts: C14 1.0.0, C17 1.0.0, C12 1.1.0 (routes 34–37, 41, 43, 53; `ModSubject`; `09-backend-contracts-1.1.md` §1 route 36 rule), C07 1.1.0 (`ProvenanceRecord`, mod `AssetSource`), C08 1.0.0 (`chunkKeyOf`, `WorldIndex.bakeId`, `DistrictId`).
+- **M13b1**: forum routes over the 0007 tables, report policy, DTOs.
+- **M13b2**: `ensureLinkedThread` and the anchor-mask reader (DL-219).
+- Contracts: C14 1.0.0, C17 1.0.0, C12 1.2.0 (routes 34–37, 41, 43, 53; `ModSubject`; `09-backend-contracts-1.1.md` §1 route 36 rule), C07 1.1.0 (`ProvenanceRecord`, mod `AssetSource`), C08 1.0.0 (`chunkKeyOf`, `WorldIndex.bakeId`, `DistrictId`).
 
 ## Scope in
 - `services/edge/src/publish/route36.ts`: `POST /mods/:id/versions` ⓘ.
@@ -46,8 +47,8 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 
 ## Scope out
 - Legal takedowns, the appeals queue, route 45 and `hash_bank_entry` → M13d1 (until then `HashBankPort` is a fixture bank in tests and empty when deployed).
-- ClamAV hygiene container and server-side `gltf-validator`/`ktx validate`: not built; listed for the Architect.
-- Author yank: C12 1.1 has no yank route. Listed as a proposal.
+- ClamAV hygiene container (stage 15) and server-side `gltf-validator`/`ktx validate` (stage 11 server half): post-v1 (DL-240); v1 runs stage 11 in `dv mod check` and the shared structural validators on the server.
+- Author yank: no C12 route in v1 (DL-240); an author asks for removal on the help board and staff act through route 43.
 - `dv mod publish` and `dv login` → M13c3. Flipping `ugc.publish` in production → after M13d1 (DL-151).
 
 ## Deliverables
@@ -59,7 +60,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 
 ## Interfaces
 - C14 1.0 and C17 1.0 types as typed (server-owned `moderation`, `visibility`, `chunkKey`, `worldVersion`, `modSha256`). C12 1.1: routes 36–37 POST (route 36 takes both token kinds and enqueues the scan), route 43, `ModSubject`. C07 1.1 provenance through the shared gate cores; C08 1.0 `chunkKeyOf`, `bakeId`.
-- Proposals (not implemented): author yank route; server-side glTF/KTX validation host.
+- Not in v1 (DL-240): an author yank route; a server-side glTF/KTX validation host.
 - No contract change.
 
 ## Acceptance criteria

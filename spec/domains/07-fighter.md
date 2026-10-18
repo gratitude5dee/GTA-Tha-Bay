@@ -51,7 +51,7 @@
 | 19 | Gesture classifier and filters | designed, M08c1 | FP3 |
 | 20 | Calibration flow and device-local storage | designed, M08c2 | FP4 |
 | 21 | Latency budget per device class and capability decision | designed, M08c2 (device gate) | FP5 |
-| 22 | Pose fallbacks, hybrid mode, failure table | designed, M08c2; hybrid awaits C03 change | FP6 |
+| 22 | Pose fallbacks, hybrid mode, failure table | designed, M08c2 (hybrid via C03 1.1 `setPoseHybrid`) | FP6 |
 | 23 | Privacy and consent enforcement, tests | designed, M08c2 | FP7, FP9 |
 | 24 | Cutscene hooks, A-03 keys, prewarm counts, fallbacks | designed, M08b2 | FX6 |
 | 25 | Likeness tiers, fame-domain lint, depiction rules, kill-switch | designed, M08b1 gates, M08b2 runtime | FX4 |
@@ -118,7 +118,7 @@ flowchart LR
 
 | Module | Path | Responsibility | Depends on |
 |---|---|---|---|
-| Fight core | `packages/shared/src/fight/{types,buffer,input,step,states,hit,meters,rounds,projectiles,hash}.ts` | pure `FightSim` (FC2); also used by the engine's `CombatApi` for open-world melee | `@dv/shared` only |
+| Fight core | `packages/shared/src/fight/{types,buffer,input,step,states,hit,meters,rounds,projectiles,hash}.ts` | pure `FightSim` (FC2); open-world `CombatApi` keeps M05c1's S01 core in v1 (a rebase onto it is post-v1, DL-236) | `@dv/shared` only |
 | Mode sim | `packages/modes/fighter/src/sim/{mode,match,mirror,camera,cpu/,slice,bouts}.ts` | `GameModeSim<FighterSlice>`, phase machine, CPU driver, ECS mirror, camera directive, slice | C06 `ModeContext`, core |
 | Mode UI | `packages/modes/fighter/src/ui/{index,hud,select,training,presenter}.ts` | `GameModeUI` mount, menus, training overlays, `FrameLockedClipPlayer` | S10 `UiSurface`, `ViewModelSource` |
 | Cutscene hooks | `packages/modes/fighter/src/sim/cutscenes.ts` | refs, segment lists, `Cinematic` phase requests | C09, `@dv/shared` json/hash |
@@ -202,7 +202,7 @@ All rows checked 2026-10-18 (ledger ids from `research/INDEX.md` §2 where they 
 |---|---|---|---|
 | U-FGT-1 | PoseLandmarker latency and FPS on iPhone Safari (CPU and GPU delegates) and on desktop browsers | measured at calibration; `assisted` or `unavailable` below budget | M08c2 device run |
 | U-FGT-2 | `@mediapipe/tasks-vision` 1.1.1 inside a classic IIFE worker under Vite 8; module-worker use | classic worker | M08c1 spike |
-| U-FGT-3 | exact Google object path of the `.task` models (only sizes and the bucket are recorded) | vendoring script pins size and SHA-256 | M08c1 |
+| U-FGT-3 | exact Google object path of the `.task` models (only sizes and the bucket are recorded) | vendoring script pins size and SHA-256 | M08c1 (script), M08c2 (operator vendors before the device runs, DL-236) |
 | U-FGT-4 | MediaPipe left/right label convention under a mirrored stream | classifier uses stance and mirrored x, never labels | M08c1 fixtures |
 | U-FGT-5 | iOS standalone-PWA camera reliability on iOS 26/27 | detect freeze, suggest Safari | M08c2 (Q-13 devices) |
 | U-FGT-6 | `requestVideoFrameCallback` `captureTime` accuracy on iOS | assumed 60 ms constant | M08c2 |
@@ -219,11 +219,11 @@ Milestone ids come from `spec/00-plan.md`; the register shows M08a–c at 2, 2, 
 | Id (proposed) | Slug | Sessions | Lands | Stubbed until later |
 |---|---|---|---|---|
 | M08a1 | `fight-core-sim-data` | 1 | `packages/shared/src/fight/**` (FC2–FC9), schemas, reference kit (FX3), buffer, hash, replay, motion parser, `fighter:lint`, `fighter:replay`, golden vectors | gray-box art, HUD, CPU (a scripted dummy only) |
-| M08a2 | `fight-mode-training-vs` | 1 | `FighterMode`, ECS mirror, camera, gray-box fighters (reference kit + `RAP_NEW_WAVE`), `FrameLockedClipPlayer`, HUD via S10, Classic and Simple on kbm, pad and touch, Training mode, one stage (`powell_turntable`), CPU levels Easy and Hard, slice, unlock, story hook `bout.a5`, `CombatApi` over the shared core, retarget-tool consumption (S05) **= VS-Fighter** | cutscene hooks, other 7 kits, pose |
+| M08a2 | `fight-mode-training-vs` | 1 | `FighterMode`, ECS mirror, camera, gray-box fighters (reference kit + `RAP_NEW_WAVE`), `FrameLockedClipPlayer`, HUD via S10, Classic and Simple on kbm, pad and touch, Training mode, one stage (`powell_turntable`), CPU levels Easy and Hard, slice, unlock, story hook `bout.a5`, retarget-tool consumption (S05; open-world `CombatApi` stays on M05c1's core, DL-236) **= VS-Fighter** | cutscene hooks, other 7 kits, pose |
 | M08b1 | `fight-roster-kits-ai` | 1 | eight kits, full CPU, roster loader, tier and fame-domain gates, `fighter:balance` (35–65 % gate), name hygiene | stages 2–6, clips |
 | M08b2 | `fight-stages-cutscenes-arcade` | 1 | five more stages, hooks and refs, `cutscenes.json`, composed intros with per-segment fallback, Cinematic phase, Arcade ladder, `bout.a11`, `bout.a3-final`, kill-switch remap, Move Gallery, accessibility pass | real clips (provider gated), generated models (M10a) |
 | M08c1 | `pose-pipeline-classifier` | 1 | `pose/**` pipeline, vendoring script, binder, gesture FSM, filters, synthetic fixture generator, classifier harness | calibration UI, capability gate |
-| M08c2 | `pose-calibration-gate` | 1 | calibration flow, device-local store, capability decision, consent gate, headers, privacy tests, device runs | hybrid mode (needs C03 change) |
+| M08c2 | `pose-calibration-gate` | 1 | calibration flow, device-local store, capability decision, consent gate, headers, privacy tests, device runs | — |
 
 **R-ID mapping.** R-MODE-03: core in M08a1, mode and training in M08a2, kits and CPU in M08b1, stages, hooks and arcade in M08b2, pose in M08c1 and M08c2, XR in M11b2. R-IP-04: the worker static check and fixture rule in M08c1; network, storage, header, consent and device assertions in M08c2. R-CUT-02 and R-CUT-03: M08b2. R-NPC-04 and R-IP-02: gates in M08b1, kill-switch runtime in M08b2, drill in M10b. R-MODE-05: M08a2 (unlock), M08b2 (roster unlocks). R-ENG-02: `fight-stage` scenarios from M08a2, device budgets in M11a. R-ENG-04: M08a2 and M08b2. R-PLAT-02: M11b2.
 
@@ -248,8 +248,8 @@ Other milestones S07 depends on or feeds: M01a (detmath vectors, lint), M04a (`c
 | Determinism | golden replays in Node, Chromium, WebKit | `pnpm check:e2e -- --project=chromium-webgl2 --grep @fighter-hash`, `--project=webkit-webgl2` |
 | E2E | VS match with touch Simple; training overlay; story hook; cutscene fallback per hook; kill remap; pose privacy | `pnpm check:e2e -- --project=chromium-webgl2 --grep @fighter` |
 | Perf | `fight-stage` scenario per tier; pose variant | `pnpm check:perf -- --scenario fight-stage` |
-| Device | iPhone, Quest, Vision Pro, desktop webcam checklists | `pnpm perf:checklist -- fight-stage`, `-- fight-pose`; XR in M11b2 |
-| IP | prompt templates, names, licence, privacy fixtures | `pnpm names:lint`, `pnpm likeness:gate`, `pnpm ip:strings`, `pnpm license:scan`, `check:privacy-fixtures` |
+| Device | iPhone, Quest, Vision Pro, desktop webcam checklists | `pnpm perf:checklist -- tools/ci/checklists/<M##>-<device>.json` (M08c2, M11b2, M11b4) |
+| IP | prompt templates, names, licence, privacy fixtures | `pnpm names:lint`, `pnpm likeness:gate`, `pnpm ip:strings`, `pnpm license:scan`, the `check:unit` privacy-fixture test |
 
 ## 10. Open questions, assumptions, proposals
 

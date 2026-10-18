@@ -52,7 +52,7 @@
 | 12 | Autoplayer; `check:missions` 3 seeds under `canonical` within `expectedSec` (R-DSL-5) | designed | C §C9 | M05a2 |
 | 13 | Per-stage checkpoints stored opaque in `StorySlice.activeMission` (R-DSL-6) | designed | C §C3, §C6 | M05a1 |
 | 14 | Fail rules, retry, unconditional restore of ambient, heat and clock | designed | C §C6 | M05a1 |
-| 15 | Dialogue hooks: `say` lines with VO and subtitles; `talk` via C10, choice-gated, ink offline (R-DSL-7) | designed | C §C7 | M05c1 (ink), M06a (LLM) |
+| 15 | Dialogue hooks: `say` lines with VO and subtitles; `talk` via C10, choice-gated, ink offline (R-DSL-7) | designed | C §C7 | M05c1 (scripted choice card), M06a3 (`InkRunner`), M10c (Act 1 ink), M06a (LLM) |
 | 16 | Mode hooks with stub fallback (R-DSL-9) | designed | C §C8 | M05c1; real hooks M07a, M08b, M09b |
 | 17 | Unlock events for modes, fighters, districts, vehicles (R-MODE-05) | designed | B §B7, C §C8 | M05c1 |
 | 18 | Keys-only strings, subtitles everywhere, `timerScale`, skippable beats (R-DSL-10, R-ENG-04) | designed | C §C3, D §D7 | M05a1 |
@@ -63,7 +63,7 @@
 | 23 | Nine prompt templates, closed slot sources, prompt-hygiene lint [research/legal-ip-likeness.md constraint 14] | designed | D §D4 | M05b2 (story), M07b, M08b |
 | 24 | Request → Worker → fal → R2 → manifest path, internal-only (D-19, ADR-GENAI-01) | designed (S09/S05 infra) | D §D5 | M05b1, M05b2 |
 | 25 | Stage plates from our SF bake as keyframe inputs and poster handoff | designed | D §D5 | M05c2 |
-| 26 | `CutscenePlayer`: protocol, hosts per tier, renditions, sequences, fallback triggers, subtitles, AI label [research/gap-cutscene-delivery-playback.md §7] | designed | D §D7 | M05b2 (flat), M11b2 (XR) |
+| 26 | `CutscenePlayer`: protocol, hosts per tier, renditions, sequences, fallback triggers, subtitles, AI label [research/gap-cutscene-delivery-playback.md §7] | designed | D §D7 | M05b2 (flat), M11b4 (XR) |
 | 27 | QA and moderation of generated clips (vision QA additions, Whisper, human review) | designed | D §D8 | M05c2, M10b |
 | 28 | Prewarm lists, counts and cost per provider | designed | D §D9 | M05c2, M07b, M08b, M10b |
 | 29 | Kill-switch and licence effects on cast and clips | designed | C §C5, D §D3 | M05b2; drill M10b |
@@ -270,7 +270,7 @@ Sources: [research/gap-cutscene-delivery-playback.md §3, §5, §7.3]; S11 `11-p
 | U-S03-3 | `seed` and `prompt_expansion_mode` on `minimax/h3/*` partner and LTX endpoints | the adapter omits unsupported params; the seed stays in the key as identity; output reproducibility is never assumed | M00c |
 | U-S03-4 | MSE `sequence` gaps on Safari 26.x | ping-pong fallback | M04c |
 | U-S03-5 | A pooled unlocked element plays new sources under Low Power Mode (= U-PLT-17) | "Tap to play", then fallback | M04c |
-| U-S03-6 | Quest video textures freezing after XR entry (community reports) | create elements before `requestSession`; poll `currentTime` | M11b2 |
+| U-S03-6 | Quest video textures freezing after XR entry (community reports) | create elements before `requestSession`; poll `currentTime` | M11b4 |
 | U-S03-7 | Time to first frame of `v768` from R2 on mobile ≤ 2.5 s | trigger thresholds are config (`config/cutscene.json`) | M04c |
 | U-S03-8 | Whether a C08 route snap can be done in the sim worker within the load budget | resolve during the mission's `starting` phase behind a fade | M05a1 |
 
@@ -279,25 +279,25 @@ Sources: [research/gap-cutscene-delivery-playback.md §3, §5, §7.3]; S11 `11-p
 R-ID → milestones:
 - **R-MODE-01:** M05a1, M05a2 (mission system); M05c1, M05c2 (Act 1); M05e1/2, M05f1/2 (Acts 2–3).
 - **R-MODE-05:** M05c1 (stub-path unlocks); M07a, M08b, M09b (real hooks).
-- **R-CUT-01:** M05b1 (infra, S09/S05); M05b2 (key, index, player); M05c2 (Act 1 prewarm).
+- **R-CUT-01:** M05b1 (infra, S09/S05); M05b2 (key, index, player); M05c3 (Act 1 prewarm).
 - **R-CUT-02:** M05b2 and M05c2 (story beats); M08b and M10b (fighter hooks); M07b (racing intros, SHOULD).
-- **R-CUT-03:** M05a2 (director fallback); M05b2 (triggers); M11b2 (XR fallback).
+- **R-CUT-03:** M05a2 (director fallback); M05b2 (triggers); M11b4 (XR fallback).
 
 | Milestone | S03 scope | Stubbed first / later | Sessions |
 |---|---|---|---|
-| **M04c** cutscene-playback spike (S11 lead) | `CutsceneManifest`/`PreparedClip` types, two fixture clips with manifests, record U-S03-4/5/7 | player logic lands in M05b2 | 0.25 |
+| **M04c** cutscene-playback spike (S11 lead) | `c09-cutscene.ts` (`CutsceneManifest`/`PreparedClip`, `dom-media.d.ts` shim) and a partial `c09-mission.ts` that M05a1 completes (DL-232), two fixture clips with manifests, record U-S03-4/5/7 | player logic lands in M05b2 | 0.25 |
 | **M05a1** mission-ir-vm | types, schema, builder, compiler, `WorldResolver` over C08 (fixture resolver until M02c ships), VM, predicates, objectives (the `mode` real path as a no-op), checkpoints, fail/retry, debugger overlay and URL flags, sample `m.dev.sample` (all objective kinds), telemetry `mission.*` | the director uses a single fixed shot | 1 |
-| **M05a2** autoplayer-director-preview | autoplayer, `check:missions`, timeline export and scrub preview, director (auto, DirectorScript, LOS, hill rule, XR vantage as data), `defineDirector` | XR presentation in M11b2 | 1 |
+| **M05a2** autoplayer-director-preview | autoplayer, `check:missions`, timeline export and scrub preview, director (auto, DirectorScript, LOS, hill rule, XR vantage as data), `defineDirector` | XR presentation in M11b4 | 1 |
 | **M05b1** cutscene infra (S09/S05) | `CutsceneJobDO`, `GenJobWorkflow`, mock provider, routes 27/28 | — | (S09/S05) |
-| **M05b2** cutscene-player-index | `c09-cutscene.ts`, `cutsceneKey` and vectors, index builder (carry-over), private requests, catalog rows, story templates and prompt lint, `CutscenePlayer` flat hosts (single, MSE/MMS sequence, ping-pong), the triggers, subtitles, AI chip hook, `beat` op wiring | fixture manifests from the mock provider | 1 |
-| **M05c1** act1-missions-1-6 | cast and stand-ins (fictional souls per S04's schema), m.a1.01–06, lines (en), DirectorScripts, unlock defs, stub hooks, Yard safehouse, minimal shops | racing and fighter hooks are stubs | 1 |
-| **M05c2** act1-slice | m.a1.07–12, Act 1 refs, plates and index, P1 prewarm through a `cleared` provider (fallback-only release if none is cleared), sensitivity gate, save/resume e2e, VS-Story demo | — | 1 (+0.5 S05) |
+| **M05b2** cutscene-player-index | `cutsceneKey` and vectors, index builder (carry-over), private requests, catalog rows, story templates and prompt lint, `CutscenePlayer` flat hosts (single, MSE/MMS sequence, ping-pong), the triggers, subtitles, AI chip hook, `beat` op wiring | fixture manifests from the mock provider | 1 |
+| **M05c1** act1-missions-1-6 | cast and stand-ins (fictional souls per S04's schema), m.a1.01–06, lines (en), DirectorScripts, unlock defs, stub hooks, Yard safehouse, minimal shops | racing and fighter hooks are stubs; talk uses a scripted choice card until `InkRunner` (M06a3) and the Act 1 ink (M10c) | 1 |
+| **M05c2** act1-slice | m.a1.07–12, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, VS-Story demo; the P1 prewarm through a `cleared` provider is M05c3 (fallback-only release if none is cleared) | — | 1 (+0.7 S05 in M05c3) |
 | M06a (S04) | `talk` LLM path behind `npc.dialogue` | ink/scripted until then | — |
 | M07a / M07b (S06) | real hook for m.a1.03; `race.intro@1` refs (P3) | — | — |
 | M08b (S07) | fight refs and keys, fighter templates, `stage2d` DirectorScripts | — | — |
 | M09b (S08) | m.a2.01 authored with the tycoon hook (S03 content inside) | — | +0.5 |
 | M10b (S05) | P2 fighter prewarm; kill drill covers the index | — | — |
-| M11b2 (S11) | XR hosts, fixed vantage, subtitle plane | — | — |
+| M11b4 (S11) | XR hosts, fixed vantage, subtitle plane (DL-229) | — | — |
 | **M05e1 / M05e2** story-act2 (new) | m.a2.02–08, refs, unlock defs | after M07a, M08b, M09b | 2 |
 | **M05f1 / M05f2** story-act3 (new) | m.a3.01–06, finale, endings, portal close | after M05e2, M10b | 2 |
 | M13a / M13b (S12) | mission editor and SDK wrappers (C §C12) | — | — |
@@ -320,7 +320,7 @@ R-ID → milestones:
 | Workers / pipeline | S09 `cutscene-singleflight`, `genjob-poll-fallback`, `budget-cache-first`; S05 mock cutscene job | `pnpm check:workers -- edge`, `pnpm check:pipeline` |
 | Assets / IP | templates pinned and linted; index references no `previs/`; shipped clips re-signed | `pnpm check:assets`, `pnpm check:c2pa` |
 | Perf | scenario `story-chase` (m.a1.12 under bot) inside C13 budgets | `pnpm check:perf -- --scenario story-chase` |
-| Device | M04c checklist; M05c2 iPhone 15 and desktop demo of Act 1 missions 1–3 | `pnpm perf:checklist -- tools/ci/checklists/M05c2-iphone.json` |
+| Device | M04c checklist; M05c2 iPhone 15 and desktop demo of Act 1 missions 1–3 | `pnpm perf:checklist -- tools/ci/checklists/M05c2-iphone15.json` |
 
 ## 10. Open questions, decisions and assumptions
 

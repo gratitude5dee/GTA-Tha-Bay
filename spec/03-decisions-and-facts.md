@@ -32,7 +32,7 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 | D-23 | Voice tiers: text / Aura or MeloTTS / ElevenLabs Flash for ≤ 3 heroes / consented-only clones; mouth-atlas lip-sync | INDEX §1.23 | [ADR-0023](../docs/decisions/ADR-0023-npc-runtime.md) |
 | D-24 | Pose: MediaPipe tasks-vision 1.1.1 in a PoseWorker, on-device: lite model on mobile, full on desktop when within budget (lite otherwise; v1.1, DL-164); no YOLO (AGPL); R-MODE-03 amended | INDEX §1.24 | [ADR-0024](../docs/decisions/ADR-0024-pose-input.md) |
 | D-25 | Maps: in-engine Canvas 2D minimap/full map from `sf-map.v1.bin`; MapLibre + PMTiles only on web surfaces; no Mapbox runtime; Mapbox CLI dev-only | INDEX §1.25 | [ADR-0021](../docs/decisions/ADR-0021-world-data-and-map-stack.md) |
-| D-26 | Modding tiers: data (JSON Schema) / script (QuickJS-wasm Worker) / UI (opaque-origin iframe); disabled in multiplayer; `AGENTS.md` ≤ 24 KiB; mirrored skills with CI check; `thabay-mcp` + CLI | INDEX §1.26 | [ADR-0012](../docs/decisions/ADR-0012-modding-tiers-and-sandboxes.md) |
+| D-26 | Modding tiers: data (JSON Schema) / script (QuickJS-wasm Worker) / UI (opaque-origin iframe); disabled in multiplayer; `AGENTS.md` ≤ 24 KiB, tightened to kit ≤ 19,456 bytes with root + kit ≤ 32 KiB (DL-208); mirrored skills with CI check; `thabay-mcp` + CLI | INDEX §1.26 | [ADR-0012](../docs/decisions/ADR-0012-modding-tiers-and-sandboxes.md) |
 | D-27 | CI/CD: GitHub Actions; per-PR Workers previews; versioned uploads → smoke → gradual rollout; Playwright projects `chromium-webgpu`, `chromium-webgl2`, `webkit-webgl2`, `xr-quest3` (IWER); IP gates from M00 | INDEX §1.27 | [ADR-0025](../docs/decisions/ADR-0025-ci-cd-and-release.md) |
 | D-28 | Cost controls: `PlayerQuotaDO` + `BudgetGovernorDO` (70/85/100 %); AI Gateway limits; vendor caps; kill switches never block cache hits | INDEX §1.28 | [ADR-0015](../docs/decisions/ADR-0015-cost-controls.md) |
 | D-29 | Likeness: living people `parody`; deceased (Mac Dre) and founders of real companies `fictionalized`; `consented` needs a `consent_record`; kill-switch ≤ 60 s with stand-ins | INDEX §1.29 | [ADR-0013](../docs/decisions/ADR-0013-likeness-tiers-and-kill-switch.md) |
@@ -99,7 +99,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M04b1 | F-004, F-010, F-011 | coach mark instead of install prompt; Settings storage panel | — |
 | M04b2 | F-004, F-011 | Home Screen web apps; no fullscreen, orientation lock or vibration | — |
 | M04b3 | none | WebCrypto device key; no ledger row | — |
-| M04c | F-004, F-005, F-043, F-063 | fixture clips match H3 output format; Low Power Mode video gesture; XR media paths | U-PLT-17, U-S03-4, U-S03-5, U-S03-7 |
+| M04c | F-004, F-005, F-043, F-063 | fixture clips match H3 output format; Low Power Mode video gesture; XR media paths | U-PLT-17, U-S03-4, U-S03-5, U-S03-7, U-REC-1 |
 | M05a1, M05a2 | none | pure sim, VM and CI autoplayer; no external-system fact | — |
 | M05b1 | F-023, F-024, F-042, F-043, F-047, F-048 | `HEAD` readiness; Workflow limits; no browser-to-fal; webhook verification; no vendor cap | U-AST-5, U-AST-15, U-BE-6, U-BE-13 |
 | M05b2 | F-039, F-040, F-043, F-063 | key inputs, fixture manifests, iOS video gesture | — |
@@ -133,11 +133,11 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M10a1, M10a2 | F-017, F-042, F-044, F-045, F-046, F-047, F-048 | sheet, mesh and rig prices; webhook; glTF pipeline; cap | U-AST-1, U-AST-2, U-AST-17 |
 | M10b | F-023, F-043, F-047, F-048 | prefix purge; C2PA re-sign inputs; idempotent prewarm; cap | U-AST-12, U-BE-10 |
 | M10c | F-025, F-046, F-051 | Workers AI and MiniMax voice prices; ElevenLabs terms | — |
-| M11a1, M11a2 | F-004, F-007, F-009, F-010, F-011, F-012, F-013, F-062, F-063, F-064 | iPhone memory, quota and eviction; render-object cost; Quest budgets; Low Power Mode; crash visibility | U-PLT-1 to U-PLT-5, U-PLT-8, U-PLT-20 |
+| M11a1, M11a2 | F-004, F-007, F-009, F-010, F-011, F-012, F-013, F-062, F-063, F-064 | iPhone memory, quota and eviction; render-object cost; Quest budgets; Low Power Mode; crash visibility (Chromium `crash-reporting` group and `body.reason`, [research/gap-observability-cost-guardrails.md §2.1], DL-224) | U-PLT-1 to U-PLT-5, U-PLT-8, U-PLT-20, U-REC-2 |
 | M11b1 | F-002, F-003, F-005, F-006, F-013, F-062 | XR session and renderer swap; visionOS and Quest support; Window-only `navigator.xr`; IWER | U-PLT-10, U-PLT-12, U-PLT-13 |
 | M11b2, M11b4 | F-003, F-005, F-006, F-013, F-043, F-062 | per-mode XR; media layer and `VideoFrameTexture`; clip format | U-PLT-10, U-PLT-20 |
 | M11b3 | F-005, F-006, F-013 | XR panels and comfort on Quest and Vision Pro | — |
-| M12a1 | F-029, F-030, F-031, F-032 | Supabase Pro limits; anonymous-sign-in limits (fallback); Custom OIDC; keys | U-BE-2, U-BE-16, U-ENG-4 |
+| M12a1 | F-029, F-030, F-031, F-032 | Supabase Pro limits; anonymous-sign-in limits (fallback); Custom OIDC; keys | U-BE-2, U-BE-16 |
 | M12a2 | none | UI over identity routes; no external-system fact | — |
 | M12b1, M12b2 | F-020, F-021, F-022 | hibernating sockets, attachment size, deploy restarts; pricing; no timers while hibernating | U-BE-1, U-ENG-3, U-ENG-4 |
 | M12c1, M12c2 | F-020, F-021, F-022, F-027 | room cap and cost; resume across deploys; log volume | U-BE-4, U-BE-5, U-BE-14, U-BE-21 |
@@ -160,7 +160,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M13d1 | F-065, F-066 | CSAM tooling; 48-hour removal; evidence audit | U-BE-9, U-BE-11, U-BE-12 |
 | M13d2 | F-066 | takedown forms | — |
 | M14a | F-059 | thirdweb version and Growth plan price | thirdweb free tier |
-| M14b1, M14b2, M14b3 | F-027, F-028, F-034, F-037, F-041, F-042, F-048, F-052, F-067 | alert rules and billing; vendor caps; terms-watch inputs; mark knock-out | U-BE-15, U-BE-18, U-BE-19 |
+| M14b1, M14b2, M14b3 | F-027, F-028, F-034, F-037, F-041, F-042, F-048, F-052, F-067 | alert rules and billing; vendor caps; terms-watch inputs; mark knock-out | U-BE-15, U-BE-18, U-BE-19, U-ENG-4 (M14b3 iPhone pass, DL-239) |
 | M00d | none | C15 milestone-format lint and the trace test; repository-internal only (DL-212, DL-214) | — |
 | M04d | F-014 | QA harness: headless canonical sim, state hash, autoplayer bots, goldens; deterministic Rapier build | U-ENG-1 |
 | M14c | none | accessibility and i18n gates; no external-system fact | — |

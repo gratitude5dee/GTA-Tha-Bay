@@ -11,7 +11,7 @@
 
 ### M06a2 · soul-contract-compiler — 1 · risk L · S04
 - **Goal:** C10 types and schemas, validators, `tools/soul` lint/compile/build, roster manifest, original test souls (`npc_test`, canary, stand-ins), ink scaffolds, consent-index export.
-- **R** R-NPC-01/04, R-IP-02 · **Dep** M00b, M01d · **Read** `04-npc-contracts.md` B1–B9 · **Out** `packages/shared/src/npc`, `packages/shared/schemas/npc`, `tools/soul`, `content/npc` · **C** C10 1.0, C07 1.1
+- **R** R-NPC-01/04, R-IP-02 · **Dep** M00b, M01d · **Read** `04-npc-contracts.md` B1–B9 · **Out** `packages/shared/src/npc`, `packages/shared/schemas/npc`, `tools/soul`, `content/npcs` · **C** C10 1.0, C07 1.1
 - **Gate** Q-19, Q-25 (real roster waits; originals only) · **Proof** `pnpm npc:lint` (L1–L14 bad fixtures fail); `pnpm check:unit -- packages/shared/src/npc` (compile twice → identical sha256); `pnpm likeness:gate`
 
 ### M06a3 · dialogue-proxy — 1 · risk M · S04, S09
@@ -35,7 +35,7 @@
 - **Gate** none · **Proof** `pnpm check:unit -- packages/npc` (same seed → same trace; bark cooldowns; schedule across midnight); `pnpm check:workers -- npc-intent-throttle`; `pnpm check:perf -- --scenario npc-mission-crowd`
 
 ### M06b1 · builder-text-private — 1 · risk M · S04 (+S09 moderation base)
-- **Goal:** NPC builder drafts (route 33), text moderation, soul generation, preview chat, private use, limits; migration 0004, reports (41), NPC case queue (43).
+- **Goal:** NPC builder drafts (route 33: drafts, validate, soul, preview), text moderation, soul generation, preview chat, private use, limits; migration 0004. Reports (route 41) and the NPC case queue of route 43 land in M06b2 (DL-182, DL-234).
 - **R** R-NPC-03, R-IP-03 · **Dep** M06a3 · **Read** `04-npc-builder.md` C1–C5, C7, C10; `09-backend-db.md` §3 (0004) · **Out** `services/edge/src/npc-builder`, `supabase/migrations/0004_moderation.sql` · **C** C10 1.0 (builder), C12 1.1
 - **Gate** `OPENAI_MODERATION_API_KEY`; Anthropic workspace `npc-builder` · **Proof** `pnpm check:workers -- npc-builder` (limits, states, moderation order, real-person alias, submit tier); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
 
@@ -50,7 +50,7 @@
 - **Gate** none · **Proof** `pnpm map:races par -- --check` (±15 % of `parSec`); `pnpm check:e2e -- --project=webkit-webgl2 --grep @racing-det`; `pnpm --filter @dv/mode-racing test` (`replay.exact`, `ghost.track`, `bot.pursuit`); `pnpm check:e2e -- --project=chromium-webgl2 --grep @racing-vs`
 
 ### M07b1 · racing-content-events-ladder — 1 · risk M · S06
-- **Goal:** remaining seven race kinds, 16 more SF events, roadster hop and robotaxi quirks, roadblocks and spikes in races, the ladder with original rivals, progression, remaining cars.
+- **Goal:** the six remaining race kinds plus the pursuit `survive` success (DL-237), 16 more SF events, roadster hop and robotaxi quirks, roadblocks and spikes in races, the ladder with original rivals, progression, remaining cars.
 - **R** R-MODE-02, R-MAP-01, R-IP-01 · **Dep** M07a2, M03b2 · **Read** `06-racing-content.md` C.4–C.6, C.11 · **Out** `content/races`, `packages/modes/racing/src/quirks` · **C** C06 1.1, C07 1.1
 - **Gate** none · **Proof** `pnpm map:races validate`; `pnpm --filter @dv/mode-racing test` (`quirk.stall` holds 4–9 s over 20 seeds); `pnpm names:lint`
 
@@ -60,12 +60,12 @@
 - **Gate** none · **Proof** `pnpm map:races validate` (every intro ref resolves and has a fallback); `pnpm check:balance -- --suite econ`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene`; manual `M07b2-iphone15`
 
 ### M08a1 · fight-core-sim-data — 1 · risk M · S07
-- **Goal:** pure fighter core (`packages/shared/src/fight`, FC2–FC9), schemas, reference kit, input buffer, hash, replay, motion parser, `fighter:lint`, `fighter:replay`, golden vectors, `fighter.script` bot.
-- **R** R-MODE-03 · **Dep** M01a1 · **Read** `07-fighter-core.md` FC1–FC9, FC11; `07-fighter-content.md` FX3 · **Out** `packages/shared/src/fight`, `packages/modes/fighter/golden` · **C** C02 1.1, C03 1.1 (fighter aliases)
+- **Goal:** pure fighter core (`packages/shared/src/fight`, FC2–FC9), schemas, reference kit, input buffer, hash, replay, motion parser, `fighter:lint`, `fighter:replay`, golden vectors, the `fighter.script` input script (its M04d `BotDriver` registration and mutants land in M08a2, DL-236).
+- **R** R-MODE-03 · **Dep** M01a1, M05a1 (C09 `RosterSlot` type, DL-163) · **Read** `07-fighter-core.md` FC1–FC9, FC11; `07-fighter-content.md` FX3 · **Out** `packages/shared/src/fight`, `packages/modes/fighter/golden` · **C** C02 1.1, C03 1.1 (fighter aliases)
 - **Gate** none · **Proof** `pnpm --filter @dv/mode-fighter fighter:replay -- golden/vs-001.dvfight`; `pnpm check:unit -- packages/shared/src/fight` (motion parser; zero allocations per tick)
 
 ### M08a2 · fight-mode-training-vs — 1 · risk M · S07 · **VS-Fighter**
-- **Goal:** `FighterMode`, camera, gray-box fighters, frame-locked clips, HUD, Classic and Simple schemes on kbm/pad/touch, Training, stage `powell_turntable`, CPU Easy/Hard, slice, unlock, story hook, `fight-stage`.
+- **Goal:** `FighterMode`, camera, gray-box fighters, frame-locked clips, HUD, Classic and Simple schemes on kbm/pad/touch, Training, stage `powell_turntable`, CPU Easy/Hard, slice, unlock, story hook, `fight-stage`; `fighter.script`/`fighter.cpu` `BotDriver`s with mutants. Open-world `CombatApi` keeps the M05c1 core in v1 (DL-236).
 - **R** R-MODE-03/05, R-ENG-04 · **Dep** M08a1, M04a2, M04b2, M04d, M05c1 · **Read** `07-fighter.md` §2; `07-fighter-core.md` FC3–FC8, FC10; `07-fighter-content.md` FX8–FX9 · **Out** `packages/modes/fighter` · **C** C06 1.1, C04 1.1 (anim 160–207), C05 1.1
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=webkit-webgl2 --grep @fighter-hash` (and `chromium-webgl2`); `pnpm check:e2e -- --project=webkit-webgl2 --grep @fighter-touch`; `pnpm --filter @dv/mode-fighter fighter:bench` (step p99 ≤ 0.10 ms)
 
@@ -91,7 +91,7 @@
 
 ### M09a1 · tycoon-core-finance — 1 · risk L · S08
 - **Goal:** pure tycoon core and finance (cap table, SAFE, priced round, waterfall, envelope), replay and `verifyRun`, `TycoonModeSim` with a QA panel, slice and golden.
-- **R** R-MODE-04 · **Dep** M01a1, M04a2 · **Read** `08-tycoon.md` §4–§5; `08-tycoon-finance.md` §2–§9, §13 · **Out** `packages/shared/src/tycoon`, `packages/modes/tycoon` · **C** C06 1.1, C05 1.1
+- **R** R-MODE-04 · **Dep** M01a1, M04a2, M04d · **Read** `08-tycoon.md` §4–§5; `08-tycoon-finance.md` §2–§9, §13 · **Out** `packages/shared/src/tycoon`, `packages/modes/tycoon` · **C** C06 1.1, C05 1.1
 - **Gate** none · **Proof** `pnpm check:unit -- packages/shared/src/tycoon/finance` (TV-1…TV-11, WF-1…WF-7 exact); `pnpm lint` (T-03 fixture); `pnpm check:e2e -- --project=webkit-webgl2 --grep @tycoon-det`
 
 ### M09a2 · tycoon-events-balance — 1 · risk M · S08 · **VS-Tycoon**
@@ -106,14 +106,14 @@
 
 ### M09b2 · tycoon-vc-story — 1 · risk M · S08 (+S03 `m.a2.01`)
 - **Goal:** 12 fictional VC souls, pitch controller with clamp and offline fallback, pitch room (3D with 2D fallback), `mini8w` preset, `unlock.tycoon`, story hook and `m.a2.01`, dividend counter, disclaimer.
-- **R** R-MODE-04/05, R-NPC-05 · **Dep** M09b1, M06a3, M05a1 · **Read** `08-tycoon-finance.md` §8–§11; `03-story-missions.md` §C8 · **Out** `packages/modes/tycoon/src/pitch`, `content/npc/vc`, `content/story/act2/m.a2.01` · **C** C10 1.0 (`tycoon.deals`), C09 1.0
+- **R** R-MODE-04/05, R-NPC-05 · **Dep** M09b1, M06a3, M05a1, M05a2 · **Read** `08-tycoon-finance.md` §8–§11; `03-story-missions.md` §C8 · **Out** `packages/modes/tycoon/src/pitch`, `content/npcs/vc-*`, `content/missions/m.a2.01/` · **C** C10 1.0 (`tycoon.deals`), C09 1.0
 - **Gate** Q-23(c) disclaimer text before launch · **Proof** `pnpm check:unit -- packages/modes/tycoon` (T-08 parse and clamp); `pnpm check:missions -- --mission m.a2.01` (T-10: `miniWin` within 8 weeks, unlock once)
 
 ## Block E — roster, Acts 2–3, hardening, XR (single-player launchable)
 
 ### M10a1 · roster-pipeline — 1 · risk H · S05 (split 1 of 2)
-- **Goal:** `assets:gen` automation (plan, run, gate, optimize, retarget, verify, publish), QA gates A3–A8 and human gates, canary of two characters (≈ $7.3 of the $42 roster cap).
-- **R** R-NPC-02/04, R-IP-02, R-ENG-03 · **Dep** M05b1, M06a2, M01d · **Read** `05-assets-pipeline.md` §1–§5, §11–§12; `05-assets.md` §4.5–§4.6 · **Out** `tools/assets/gen`, `services/pipeline/steps` · **C** C07 1.1, C10 1.0
+- **Goal:** extends M05c3's `assets:gen` with `plan`, `run`, `gate`, `ledger`; `assets:optimize`, `assets:retarget`; QA gates A3–A8 and human gates; the repo fal ledger `assets/ledger/fal-spend.jsonl`; canary `canary-mc` (Standard) plus the first Lean Act 1 cast entry (≈ $4.7 of the $42 roster cap; DL-234).
+- **R** R-NPC-02/04, R-IP-02, R-ENG-03 · **Dep** M05b1, M06a2, M01d, M05c3 · **Read** `05-assets-pipeline.md` §1–§5, §11–§12; `05-assets.md` §4.5–§4.6 · **Out** `tools/assets/gen`, `services/pipeline/steps` · **C** C07 1.1, C10 1.0
 - **Gate** `FAL_KEY` (operator), prepaid ≤ cap, Q-17; Q-19/Q-25 for real-derived slugs · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero vendor calls); `pnpm check:pipeline`; `pnpm provenance:check && pnpm likeness:gate` on the canary publish PR
 
 ### M10a2 · roster-pipeline — 1 · risk H · S05, S07 (split 2 of 2)
@@ -122,49 +122,49 @@
 - **Gate** as M10a1; Q-24 · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero outstanding jobs); `pnpm check:assets`; `pnpm check:fighter` (every slot resolves on six tiers); manual ledger ≤ 42,000,000 micros
 
 ### M10b · qa-gates-kill-drill — 1 · risk M · S05 (+fighter prewarm)
-- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill, fighter intro/finisher prewarm ≤ $24 (DN-S13-02) via a `cleared` provider.
-- **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` · **C** C07 1.1, C12 1.1 (route 46)
+- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill (`KillPurgeWorkflow`, `KILL_WF`), fighter intro/finisher prewarm ≤ $24 (DN-S13-02) via a `cleared` provider, and the operator re-run of M05c3's Act 1 prewarm once the M10a2 sheets exist (DL-232).
+- **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` (runner, `suites/kill-drill`) · **C** C07 1.1, C12 1.1 (route 46)
 - **Gate** `CF_API_TOKEN_CACHE`; ADR-GENAI-01 `cleared` for paid prewarm · **Proof** `pnpm check:e2e -- --grep @kill-drill`; `pnpm test:ops -- --suite kill-drill`; `pnpm check:pipeline` (second prewarm: zero calls)
 
 ### M10c · roster-souls-ink-barks — 1 · risk M · S04
 - **Goal:** normalize supplied research souls with human review, ink for Act 1 NPCs, baked barks, voice designs, consent-index export.
-- **R** R-NPC-01, R-IP-02 · **Dep** M10a2, M06a4 · **Read** `04-npc-contracts.md` B5–B6, B8; `04-npc.md` §5.7 · **Out** `content/npc`, `content-private/` (mount) · **C** C10 1.0
+- **R** R-NPC-01, R-IP-02 · **Dep** M10a2, M06a4, M06c, M05c2 · **Read** `04-npc-contracts.md` B5–B6, B8; `04-npc.md` §5.7 · **Out** `content/npcs`, `content-private/` (mount) · **C** C10 1.1
 - **Gate** Q-19, Q-25 (canary only while open), Q-20 · **Proof** `pnpm npc:lint`; `pnpm likeness:gate`; `pnpm check:missions -- --act 1`
 
 ### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)
-- **Goal:** `m.a2.02`–`05`, refs and unlock defs; story businesses on `EventHost<BusinessState>` (DL-133).
-- **R** R-MODE-01/05, R-CUT-02 · **Dep** M05c2, M07a2, M08b2, M09b2 · **Read** `03-story-narrative.md` §B6–§B7; `08-tycoon-events.md` §7 · **Out** `content/story/act2` · **C** C09 1.0, C06 1.1
+- **Goal:** `m.a2.02`–`05`, refs and unlock defs; story businesses on `EventHost<BusinessState>` (DL-133) with their state in C05 1.2 `property.businesses[].state` (DL-225), events in the phone Bank app (DL-238).
+- **R** R-MODE-01/05, R-CUT-02 · **Dep** M05c2, M07a2, M08b2, M09b2, M07b1 (races of `m.a2.02`, `m.a2.03`, `m.a3.03`) · **Read** `03-story-narrative.md` §B6–§B7; `08-tycoon-events.md` §7 · **Out** `content/missions/m.a2.0{2..5}/`, `content/story/businesses.json` · **C** C09 1.0, C06 1.1, C05 1.2
 - **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 2`
 
 ### M05e2 · story-act2-part2 — 1 · risk M · S03
 - **Goal:** `m.a2.06`–`08`, Act 2 refs, econ-sim Act 2 section.
-- **R** R-MODE-01, R-CUT-02 · **Dep** M05e1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act2` · **C** C09 1.0
+- **R** R-MODE-01, R-CUT-02 · **Dep** M05e1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/missions/m.a2.0{6..8}/` · **C** C09 1.0
 - **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 2`; `pnpm check:balance -- --suite econ`
 
 ### M05f1 · story-act3-part1 — 1 · risk M · S03
 - **Goal:** `m.a3.01`–`03` with refs.
-- **R** R-MODE-01, R-CUT-02 · **Dep** M05e2, M10b · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act3` · **C** C09 1.0
+- **R** R-MODE-01, R-CUT-02 · **Dep** M05e2, M10b · **Read** `03-story-narrative.md` §B6 · **Out** `content/missions/m.a3.0{1..3}/` · **C** C09 1.0
 - **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 3`
 
 ### M05f2 · story-act3-finale — 1 · risk M · S03
 - **Goal:** `m.a3.04`–`06`, finale and endings, portal close, credits; econ-sim Acts 2–3 band ($70k–$110k added rewards).
-- **R** R-MODE-01, R-CUT-02/03 · **Dep** M05f1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/story/act3` · **C** C09 1.0, C05 1.1
+- **R** R-MODE-01, R-CUT-02/03 · **Dep** M05f1 · **Read** `03-story-narrative.md` §B6 · **Out** `content/missions/m.a3.0{4..6}/` · **C** C09 1.0, C05 1.1
 - **Gate** Q-21 for release · **Proof** `pnpm check:missions -- --act 3`; `pnpm check:balance -- --suite econ`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @story`
 
 ### M11a1 · iphone-hardening-governor — 1 · risk M · S11 (+S06 scenarios) (split 1 of 2)
-- **Goal:** two-way governor, `MemoryBudget` enforcement, `FramePacer`, nightly `check:perf -- --fail` required, `race-sprint` and `race-pursuit-heat4`, route 4 crash reports.
-- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M02b1, M03b1, M07a2 · **Read** `11-platform.md` §4.5, §5; `11-platform-perf.md` §5, §9 · **Out** `packages/engine/src/platform/{governor,memory}`, `tests/perf/paths` · **C** C13 1.1, C12 1.1 (route 4)
+- **Goal:** two-way governor, `MemoryBudget` enforcement, `FramePacer`, nightly `check:perf -- --fail` required, `race-sprint` and `race-pursuit-heat4`, route 4 crash reports emitted as C16 1.2 `app.crash` (DL-224).
+- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M02b1, M03b1, M07a2 · **Read** `11-platform.md` §4.5, §5; `11-platform-perf.md` §5, §9 · **Out** `packages/engine/src/platform/{governor,memory}`, `config/perf/paths` · **C** C13 1.1, C12 1.1 (route 4), C16 1.2 (`app.crash`)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/src/platform` (governor, memory budget, frame pacer specs); `pnpm check:perf -- --fail`; `pnpm check:perf -- --scenario race-sprint`
 
 ### M11a2 · iphone-hardening-governor — 1 · risk H · S11 (split 2 of 2)
-- **Goal:** offline relaunch, safe-point SW updates, abnormal-exit demotion, iOS quirk pass, desktop-ultra calibration, 30-minute soak and the M11a device passes.
-- **R** R-PLAT-01/05, R-ENG-02 · **Dep** M11a1 · **Read** `11-platform-pwa.md` §4, §6, §9–§10 · **Out** `apps/web/src/sw.ts`, `packages/engine/src/platform/heartbeat`, `tools/ci/checklists/M11a-*.json` · **C** C13 1.1, C16 1.1
-- **Gate** Q-13 devices · **Proof** `offline-relaunch.spec.ts` via `pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-relaunch`; manual `M11a-{iphone15,iphone16,mac}` then `pnpm perf:verify`
+- **Goal:** offline relaunch, safe-point SW updates, abnormal-exit demotion (completing M01c's part), iOS quirk pass, desktop-ultra calibration, 30-minute soak and the M11a2 device passes.
+- **R** R-PLAT-01/05, R-ENG-02 · **Dep** M11a1 · **Read** `11-platform-pwa.md` §4, §6, §9–§10 · **Out** `apps/web/src/sw.ts`, `packages/engine/src/platform/telemetry/heartbeat.ts` (M01c), `tools/ci/checklists/M11a2-*.json` · **C** C13 1.1, C16 1.1
+- **Gate** Q-13 devices · **Proof** `offline-relaunch.spec.ts` via `pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-relaunch`; manual `M11a2-{iphone15,iphone16,mac}` then `pnpm perf:verify`
 
 ### M11b1 · webxr-port — 1 · risk H · S11
 - **Goal:** XR session and renderer swap, locomotion, comfort, XR input, panel base, IWER e2e, `xr-walk`.
-- **R** R-PLAT-02, R-ENG-04 · **Dep** M01c, M04b2 · **Read** `11-platform-xr.md` §2–§5 · **Out** `packages/engine/src/platform/xr` · **C** C13 1.1 (`XrPanels`, `XrComfortSettings`), C04 1.1
-- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (session, input routing, comfort); `pnpm check:unit -- packages/engine/src/platform` (gesture rule); manual `M11b-{quest,visionpro}`
+- **R** R-PLAT-02, R-ENG-04 · **Dep** M01c, M04b2, M11a1 (governor XR rule) · **Read** `11-platform-xr.md` §2–§5 · **Out** `packages/engine/src/platform/xr` · **C** C13 1.1 (`XrPanels`, `XrComfortSettings`), C04 1.1
+- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (session, input routing, comfort); `pnpm check:unit -- packages/engine/src/platform` (gesture rule); manual `M11b1-{quest3,visionpro}`
 
 ### M11b3 · xr-ui-panels-comfort — 0.8 · risk M · S10
 - **Goal:** `UiSurface` on Quest layers and Vision Pro planes, Enter/Exit VR button, wrist panel, comfort settings in XR, flat-only text entry (DL-142).
@@ -172,11 +172,11 @@
 - **Gate** none · **Proof** `pnpm check:e2e:xr` (Enter VR calls `enter()` synchronously in the click handler)
 
 ### M11b2 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S06, S07, S10 (split 1 of 2)
-- **Goal:** racing XR (driving rules, hands wheel, vignette, diorama chase) and fighter XR (FX10) with their panels.
-- **R** R-PLAT-02, R-MODE-02/03 · **Dep** M11b1, M07b2, M08b2 · **Read** `11-platform-xr.md` §5.3; `06-racing.md` §6; `07-fighter-content.md` FX10 · **Out** `packages/modes/{racing,fighter}/src/xr` · **C** C03 1.1 (`xr:both:wheel`), C04 1.1 (`vantage`)
+- **Goal:** racing XR (driving rules, hands wheel, vignette, diorama chase) and fighter XR (FX10) with their panels; XR cutscenes play the in-engine fallback until M11b4 (DL-229).
+- **R** R-PLAT-02, R-MODE-02/03 · **Dep** M11b1, M07b2, M08b2, M11b3 (in-headset panels) · **Read** `11-platform-xr.md` §5.3; `06-racing.md` §6; `07-fighter-content.md` FX10 · **Out** `packages/modes/{racing,fighter}/src/xr` · **C** C03 1.1 (`xr:both:wheel`), C04 1.1 (`vantage`)
 - **Gate** none · **Proof** `pnpm check:e2e:xr` (racing and fighter `@xr` specs)
 
 ### M11b4 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S08, S03 (split 2 of 2, new digit)
-- **Goal:** tycoon XR desk and pitch card, XR cutscene hosts (`XrMediaHost`, fixed vantage, subtitle plane), per-mode Quest and Vision Pro checklists and perf pass.
-- **R** R-PLAT-02, R-CUT-03, R-MODE-04 · **Dep** M11b2, M09b1, M05b2 · **Read** `11-platform-xr.md` §5.3, §9; `03-story-cutscenes.md` §D7 · **Out** `packages/modes/tycoon/src/xr`, `packages/modes/story/src/cutscene/xr` · **C** C09 1.0, C13 1.1 (`XrMediaHost`)
-- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (`@tycoon-xr`, XR cutscene fallback); manual `M11b-{quest,visionpro}` per-mode rows (15 s clip with subtitles) then `pnpm perf:verify`
+- **Goal:** tycoon XR desk and pitch card, XR cutscene hosts for story and fighter clips (`XrMediaHost`, fixed vantage, subtitle plane), per-mode Quest and Vision Pro checklists (incl. the S10 XR UI rows of `10-ui-hud-xr.md` §9) and perf pass (DL-229).
+- **R** R-PLAT-02, R-CUT-03, R-MODE-04 · **Dep** M11b2, M09b1, M05b2 · **Read** `11-platform-xr.md` §5.3, §9; `03-story-cutscenes.md` §D7 · **Out** `packages/modes/tycoon/src/xr`, `packages/engine/src/client/cutscene/xr` (player), `packages/modes/story/src/cutscene/xr` (triggers) · **C** C09 1.0, C13 1.1 (`XrMediaHost`)
+- **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (`@tycoon-xr`, XR cutscene fallback); manual `M11b4-{quest3,visionpro}` per-mode rows (15 s clip with subtitles) then `pnpm perf:verify`

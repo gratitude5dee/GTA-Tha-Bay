@@ -202,9 +202,9 @@ A Standard character already pays for two mesh candidates; a third attempt, a re
 
 The Standard figure is S05's ($3.67, programmatic crops), not research's $3.73 (DL-172): 8 × 3.67 + 12 × 1.05 = $41.96 ≤ $42.
 
-**Program (DL-OWN-01).** Spike ≤ $10 (13 steps, $4.36 planned) · characters ≤ $42 · cutscenes ≤ $40 ($37.60 planned) · buffer $8 → about $84 planned. `BudgetPort` reserves and settles through `BudgetGovernorDO` (vendor `fal`) into `genai_ledger` (`job_id` = `jobKey`). `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms 0.5 / 0.8 / 1.0, hard stop at 100 %; the `budget_program` row mirrors it and a nightly check compares them. Every run has a `budgetUsdMicros`. The fal prepaid balance is topped up per phase, cumulative top-ups ≤ $100, auto-recharge off; fal has no spend cap and locks below a balance threshold (F-048; threshold UNVERIFIED, U-COST-1). CI never runs live fal; `run` and `prewarm` print a dry-run estimate and refuse to spend without `--live`.
+**Program (DL-OWN-01).** Spike ≤ $10 (13 steps, $4.36 planned) · characters ≤ $42 · cutscenes ≤ $40 ($37.60 planned) · buffer $8 → about $84 planned. `BudgetPort` reserves and settles through `BudgetGovernorDO` (vendor `fal`) into `genai_ledger` (`job_id` = `jobKey`). `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms 0.5 / 0.8 / 1.0, hard stop at 100 %; the `budget_program` row mirrors it and a nightly check compares them. Every run has a `budgetUsdMicros`. The fal prepaid balance is topped up per phase, cumulative top-ups ≤ $100, auto-recharge off; fal has no spend cap and locks below a balance threshold (F-048; threshold UNVERIFIED, U-COST-1). CI never runs live fal; `run` and `prewarm` print a dry-run estimate and refuse to spend without `--live`. The repo-audited spend record is `assets/ledger/fal-spend.jsonl` (M10a1: seeded from the M00c spike ledger, imports `genai_ledger` rows of Worker-run jobs; DL-234).
 
-## 12. Roster and prewarm runbook (M10a canary, M10b batch, M05c3 Act 1)
+## 12. Roster and prewarm runbook (M10a1 canary, M10a2 batch, M05c3 Act 1)
 
 ```
 pnpm genai:liveness                                          # registry vs public fal registry; must be green
@@ -221,9 +221,9 @@ pnpm assets:kill --npc <id> --scope all --ticket <id> --stage    # staging drill
 ```
 
 1. **Preconditions.** `genai:liveness` green; vendor snapshots dated within 30 days; registry prices checked within 30 days; fal balance ≥ the `plan` estimate with cumulative top-ups ≤ $100; concurrency stays at 2 (F-047), so run two jobs at a time (20 characters fit one overnight session; U-COST-2); `plan` shows no refused verdict; the ADR-GENAI-01 state is noted in the plan header.
-2. **Canary (M10a).** Two of the eight Standard slots end to end (≈ $7.34; originals `ro-batista` and `canary-mc` while Q-19 is open), all A and H gates, then `assets:verify` and `assets:publish`; the provenance PR passes `provenance:check` and `likeness:gate`. The canary is part of the $42 line, not extra.
+2. **Canary (M10a1).** `canary-mc` on one of the eight Standard fighter slots plus the first Lean Act 1 cast entry, end to end (≈ $4.72 while Q-19 is open; DL-234), all A and H gates, then `assets:verify` and `assets:publish`; the provenance PR passes `provenance:check` and `likeness:gate`. The canary is part of the $42 line, not extra.
 3. **Characters.** The other six Standard slots ($22.02), then the twelve Lean slots ($12.60). Runs stop at H1, H3 and H4; humans decide in batches; unattended runs never cross a human gate.
-4. **Optimize, verify, publish** per slug; merge lock PRs after H5; `pnpm assets:build` writes the catalog and pointer.
+4. **Optimize, verify, publish** per slug; merge lock PRs after H5; `pnpm assets:catalog` (M01d) writes the catalog and pointer (DL-230).
 5. **Idempotence (M10b).** A second `plan` lists zero outstanding jobs and `run` makes zero `FalPort` calls.
 6. **Prewarm.** M05c3 generates G1 (Act 1; needs Lean crops of the five Act 1 cast and a `cleared` provider); M10b generates G2 and G3 (needs the Standard crops). A second run makes zero vendor calls. With no `cleared` provider nothing is spent and every ref plays its DirectorScript.
 7. **Close-out.** Reconcile the ledger with the fal dashboard, record cost per slug, snapshot the registry, report the unspent buffer to the owner (Q-26).
@@ -231,7 +231,7 @@ pnpm assets:kill --npc <id> --scope all --ticket <id> --stage    # staging drill
 
 ## 13. Milestones and tests
 
-M00b registry, schemas, gates · M00c spike (≤ $10) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm · M08a retarget tool · M08b2 fighter refs · M10a roster automation, canary · M10b idempotent prewarm, kill drill · M14b `ip:history`, terms-watch, counsel.
+M00b registry, schemas, gates · M00c spike (≤ $10) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm, `assets:gen`, Transcoder Container · M08b2 fighter refs · M10a1 roster automation, retarget tool, canary, repo ledger `assets/ledger/fal-spend.jsonl` · M10a2 batch · M10b idempotent prewarm, Act 1 re-run, kill drill · M14b `ip:history`, terms-watch, counsel.
 
 ```
 pnpm check:unit -- packages/shared services/pipeline tools/assets

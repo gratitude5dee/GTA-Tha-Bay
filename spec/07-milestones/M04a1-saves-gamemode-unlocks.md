@@ -103,6 +103,6 @@ The main thread reads the last-save status line through a read-only handle. A ki
 - Read first: `01-engine-save-modes.md` §C05 and "C05 1.1 and C06 1.1 additions"; `01-engine.md` §2.10 and §9 tests 14–15; `research/repos-grand-v.md` §(d) for the profile behaviour cited there; DL-194, DL-195.
 - Facts: F-009 (WebContent killed near 2 GB, which is why recovery matters), F-010 (origin quota; `QUOTA` mapping).
 - Order of work: contract file, canonical and checksum, IDB layer, atomic write and load, caps, capabilities, profiles, tombstones, migrations and goldens, export and import, multi-tab, memory store, control message, QA page and e2e.
-- `_PLAN.md` lists `tests/golden/saves` as an output. C05 rule 5 names `packages/engine/src/sim/save/__golden__/`, and the contract text wins. Do not create both.
+- Goldens live only in `packages/engine/src/sim/save/__golden__/` (C05 rule 5; `_PLAN-1.md` aligned, DL-220).
 - `sim/save/**` is outside the determinism lint by design. Nothing in it may be imported by sim systems except through the write port.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

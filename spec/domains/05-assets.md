@@ -22,7 +22,7 @@ Disposition: **D** designed (section), **M##** deferred to a milestone, **X** ou
 | 12 | Automated QA gates and explicit human gates | D Pt B §2 | [genai-pipeline-fal.md §3.1] |
 | 13 | Likeness gate at every stage; no face refs for non-consented; prompt linter; consent revalidation | D §5.4 | D-29, R-NPC-04 |
 | 14 | Rig family `bay_rig_v1`, canonical mannequin, bone map; Meshy bone names verified in spike | D Pt B §4; M00c | UNVERIFIED |
-| 15 | Offline retarget bake (`SkeletonUtils.retargetClip`) for authored fighter moves | D Pt B §4; M08a | [genai-pipeline-fal.md §3.3] |
+| 15 | Offline retarget bake (`SkeletonUtils.retargetClip`) for authored fighter moves | D Pt B §4; M10a1 | [genai-pipeline-fal.md §3.3] |
 | 16 | Optimization: gltf-transform meshopt + KTX2, pinned tools, identity encoding, size caps | D Pt B §3 | F-017, F-019, D-17 |
 | 17 | Variants keyed by C13 tier ids, built from hi/mid/lo fidelity builds; per-asset budgets; no upward fallback | D §4.1, Pt B §3 | C13, D-09 |
 | 18 | Lip-sync assets: mouth atlas, `RigMeta`, Rhubarb cue JSON | D Pt B §5 | D-23 |
@@ -441,7 +441,7 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 | **M01d** (new) `assets-publish` | catalog builder, `assets:verify/publish/lock`, `credits`, `resolveVariant`, rclone upload with HEAD verify | no generated assets yet; fixtures only | 1 |
 | **M05b** | `GenJobWorkflow`, ports, `MockExecutor`, webhook verify, `FalGateDO`, ledger, cutscene steps with container stub | live fal calls blocked until ADR-GENAI-01 `cleared` | 1–2 (shared with S03) |
 | **M05c** | Act 1 cutscene prewarm via the registry's cleared provider; `check:c2pa` | n/a | 0.5 |
-| **M08a** | retarget bake tool, fighter clip packs | hand-keyed moves from art | 1 |
+| **M08a2** | fighter clip packs (mannequin); retarget tool in M10a1 | hand-keyed moves from art | 1 |
 | **M10a** | roster automation (`assets:gen`), QA gates, two validated characters | voices via presets | 2 |
 | **M10b** | gates hardening, batch prewarm idempotence, kill drill | none | 1 |
 | **M11a** | asset budgets as perf tests | none | 0.5 |

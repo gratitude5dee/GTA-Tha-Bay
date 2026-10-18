@@ -10,7 +10,7 @@ A P0 player can create an original NPC from text and talk to it privately. Route
 ## Depends on
 - **M06a3** (dialogue-proxy): `DialogueService` and the SSE path reused for the preview and for private talk, `PromptAssembler`, the safety lists, fixture upstream mode.
 - Through M06a1 and M06a2: `PlayerQuotaDO` (`builder_text`), `EncounterDO`, `DataPort`, migration 0003, C10 schemas, `soul-1.0.llm.schema.json`, `npc:lint` rules as a library, `compileSoul`.
-- Contracts: C10 1.0 (`04-npc-builder.md` §C3 builder types; §B2–§B4), C12 1.1 (route 33, `PlayerQuota.reserve` kind `builder_text`, `ModSubject`, `DataPort.moderation`, migration 0004), C16 1.1 (`npc.builder.step`).
+- Contracts: C10 1.1 (`04-npc-builder.md` §C3 builder types; §B2–§B4; `meta.data.safety?` for the async dialogue path), C12 1.1 (route 33, `PlayerQuota.reserve` kind `builder_text`, `ModSubject`, `DataPort.moderation`, migration 0004), C16 1.1 (`npc.builder.step`).
 
 ## Scope in
 - **Migration `0004_moderation.sql`:** `moderation_item`, `moderation_signal`, `moderation_case`, `moderation_decision`, `user_report` and `enforcement_action`, exactly as [research/gap-trust-safety-tooling.md §6.8], with Worker-minted uuid ids and `moderation_case.subject_snapshot jsonb`. The `mod_subject` enum carries the C12 1.1 `ModSubject` values. Also `uploads`, plus `npc_draft` and `npc_soul` per `04-npc-builder.md` §C2. All tables are server-only. A 180-day purge of unpublished drafts joins the 03:40 cron.
@@ -23,6 +23,7 @@ A P0 player can create an original NPC from text and talk to it privately. Route
   2. OpenAI `omni-moderation-latest`;
   3. Haiku classifier with the structured output fields listed in §C5.1;
   4. Llama Guard 3 (`@cf/meta/llama-guard-3-8b` through the `AI` binding [research/gap-trust-safety-tooling.md]) when OpenAI is unavailable or switched off in `config/npc.json`.
+- **Dialogue async moderation (`04-npc.md` §5.4.2; replaces M06a3's logging stub):** player turn text runs through the same OpenAI or Llama Guard client after the stream starts; `sexual/minors` ≥ 0.20 or Llama Guard S4 ends the encounter and opens a `P0_CSAM` case; `self-harm/intent` ≥ 0.50 sets `EncounterDO.pendingSafety`, so the next turn's `meta` carries `safety: 'crisis'` (C10 1.1, DL-226).
 - **Combination rules** (§C5.1):
   - any `block` → `rejected_auto` with reasons;
   - `sexual/minors` ≥ 0.20 or Llama Guard S4 → block plus a `P0_CSAM` case with `subject_snapshot`;
@@ -40,14 +41,14 @@ A P0 player can create an original NPC from text and talk to it privately. Route
 - Flag `npc.builder` and `ks:npc_builder` → `feature_disabled`. Telemetry `npc.builder.step {step, ok}`.
 
 ## Scope out
-- Images (route 34), `UGC_SCAN`, attestation choices beyond `original`, submit (P2), case decisions, the community list, reports (route 41) and the NPC queue of route 43: M06b2. This follows `spec/05-api-and-realtime.md` routes 41 and 43 and DL-182; the M06b1 row of `_PLAN-2.md` lists 41 and 43 here, and that conflict is reported to the Architect.
+- Images (route 34), `UGC_SCAN`, attestation choices beyond `original`, submit (P2), case decisions, the community list, reports (route 41) and the NPC queue of route 43: M06b2. This follows `spec/05-api-and-realtime.md` routes 41 and 43 and DL-182; the `_PLAN-2.md` row now agrees (DL-234).
 - Builder screens: M06b3. The owner-approved look queue: M06b4. The user NPC's 3D look stays a creator-kit preset (DL-175).
 
 ## Deliverables
 - `supabase/migrations/0004_moderation.sql`, `supabase/tests/{builder_tables.sql, server_only.sql (extended)}`, `packages/shared/src/db.gen.ts` (regenerated).
 - `packages/shared/src/data-port.ts` and `data-port.memory.ts` (moderation and draft members), `services/edge/src/data/supabase/{moderation.ts, drafts.ts}`.
 - `services/edge/src/npc-builder/{routes.ts, states.ts, limits.ts, validate.ts, moderation-openai.ts, moderation-llamaguard.ts, classifier.ts, soul-gen.ts, soul-write.ts, probes.ts, private.ts, queue.ts}`.
-- `services/edge/test/{npc-builder-limits, npc-builder-states, npc-builder-moderation-order, npc-builder-real-person, npc-builder-submit-tier, npc-builder-private-visibility, npc-builder-llm-schema, npc-builder-probes}.test.ts`, `services/edge/test/fixtures/{anthropic/builder-*.sse, openai/moderation-*.json}`.
+- `services/edge/test/{npc-builder-limits, npc-builder-states, npc-builder-moderation-order, npc-builder-real-person, npc-builder-submit-tier, npc-builder-private-visibility, npc-builder-llm-schema, npc-builder-probes, npc-async-moderation}.test.ts`, `services/edge/test/fixtures/{anthropic/builder-*.sse, openai/moderation-*.json}`.
 - `packages/shared/src/npc/soul-write.ts` (deterministic soul.md writer), `packages/shared/test/npc/soul-write.spec.ts` (golden).
 - `content/prompts/npc/builder-soul@1.md`; `config/npc.json` (moderation order switch); `config/guardrails.yaml` (`npc.builder.*`).
 - `tests/e2e/npc-builder.spec.ts` (`@npc-builder`, API-driven with Playwright `request` and the QA bridge).
@@ -72,6 +73,7 @@ A P0 player can create an original NPC from text and talk to it privately. Route
 - AC-10 Given migrations 0001–0004 When the DB checks run Then every new table is server-only, deleting a profile cascades to its drafts, and the types have no diff — proof: `pnpm check:db && pnpm check:db:types`
 - AC-11 Given a QA build in fixture mode When the e2e test creates a draft, validates it, generates a soul, previews 2 turns and talks to the private NPC through `__dvBridge.npc.talk` Then each step returns the expected state and the in-world talk streams a line with the AI badge text — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
 - AC-12 Given the production config When it is checked Then neither `ANTHROPIC_MODE` nor `MODERATION_MODE` is `fixture`, no key pattern is in the client bundle, and with `OPENAI_MODERATION_API_KEY` unset a live validation uses the Llama Guard path — proof: `pnpm check:prod-routes && pnpm check:secrets -- apps/web/dist && pnpm check:workers -- npc-builder-moderation-order`
+- AC-13 Given a dialogue encounter in fixture mode When the async moderation fixture scores a player turn `self-harm/intent` 0.6, and another encounter's turn `sexual/minors` 0.25 Then the first encounter's next `meta` event carries `safety: 'crisis'` once and later turns do not, and the second encounter is closed with one `P0_CSAM` case opened — proof: `pnpm check:workers -- npc-async-moderation`
 
 ## Test plan
 - **Workers runtime:** the eight `npc-builder-*` suites — `pnpm check:workers -- npc-builder`.

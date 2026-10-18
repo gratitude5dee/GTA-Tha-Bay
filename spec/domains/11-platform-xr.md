@@ -231,7 +231,7 @@ All run through `pnpm check:e2e:xr` (project `xr-quest3`, IWER 2.6.0 installed b
 5. `xr-comfort.spec.ts` — defaults are teleport + snap 30°; vignette > 0 while smooth-moving and 0 within 0.5 s of stopping; `reduceMotion` forces vignette ≥ low.
 6. `xr-pose-block.spec.ts` — seqlock never yields a torn read under a concurrent writer (worker).
 7. `check:perf` — the Quest cube/city scene CPU-side counts ≤ `xr-quest` budget; Vision Pro counts checked flat per pass against the per-pass budget.
-8. Device (manual, scripted checklists `tools/ci/checklists/M11b-quest.json`, `M11b-visionpro.json`): enters and exits cleanly; `isPresenting`; refresh 72/90 (Quest); p50 and p95 inside §4.5 acceptance; comfort defaults on first entry; cutscene host plays one 15 s clip with subtitles; Quest face-button indices captured; Vision Pro hand-tracking prompt accepted and denied paths.
+8. Device (manual, scripted checklists `tools/ci/checklists/M11b1-{quest3,visionpro}.json`, per-mode rows in `M11b4-{quest3,visionpro}.json` (C15 ids, DL-221)): enters and exits cleanly; `isPresenting`; refresh 72/90 (Quest); p50 and p95 inside §4.5 acceptance; comfort defaults on first entry; cutscene host plays one 15 s clip with subtitles; Quest face-button indices captured; Vision Pro hand-tracking prompt accepted and denied paths.
 
 ## 10. Open questions
 

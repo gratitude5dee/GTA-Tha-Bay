@@ -9,6 +9,7 @@ After this session the Culture Wars fighter has a pure, deterministic core that 
 
 ## Depends on
 - **M01a1** (`@dv/shared` with C01–C03 contract files, `canonicalize`, `sha256Hex`, `Fnv64`, `splitmix32`, `xoshiro128**`, `fnv32`, determinism lint, vitest).
+- **M05a1** (mission-ir-vm): the complete `c09-mission.ts` that holds `RosterSlot` (DL-163; DL-219).
 - Contracts: C02 1.1 (determinism rules, 60 Hz), C03 1.1 (`InputFrame`, fighter alias table, `BotInput`, `DeviceKind 'bot'`), C09 1.0 (type import of `RosterSlot` only).
 
 ## Scope in

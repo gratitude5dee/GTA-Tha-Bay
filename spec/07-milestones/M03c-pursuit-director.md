@@ -11,7 +11,8 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 ## Depends on
 - **M03a1** (vehicles-interaction-prefabs): vehicle system and `stepHandling`, prefabs `police.{cruiser,suv,heli}`, `prop.{barrier,spikestrip}`, the lines recorder, ragdoll-lite.
 - **M03b1** (traffic-robotaxis): `world.witness` events, the ambient pull-over reaction, `TrafficControl` use by agents.
-- Through those: M02c1 (`RoadGraphService.route`, `WorldQuery`), M02a2 (chunk tags `hidingSpots`, `pursuitBreakers`, `chokePoints`, portals). M03b2 adds ped witnesses when present; the director accepts any witness kind.
+- Through those: M02c1 (`RoadGraphService.route`, `WorldQuery`), M02a2 (chunk tags `hidingSpots`, `pursuitBreakers`, `chokePoints`, portals).
+- If M03b2 has already landed, its ped witnesses feed the director too; the director accepts any witness kind.
 - Contracts: C06 1.1.0 (`PursuitApi`, `PursuitProfile`, `HeatState`, `PursuitConfig` in `engine-pursuit.ts`), C01 1.0.0, C02 1.1.0, C08 1.0.0.
 
 ## Scope in

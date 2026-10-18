@@ -53,7 +53,7 @@ D = designed here (section). Dm = deferred to the named milestone. X = out of sc
 | 29 | Test vectors and test plan | D §9, B §7 |
 | 30 | Telemetry (no free text) | D §5.13 |
 | 31 | No real-money mechanics, disclaimers, rails | D §5.14 |
-| 32 | Daily seeded challenge and leaderboard (server re-simulation) | Dm M12c (`verifyRun` in M09a1) |
+| 32 | Daily seeded challenge and leaderboard (server re-simulation) | Dm M12e (`verifyRun` in M09a1) |
 | 33 | Shared-market rooms (players compete for one TAM) | X v1: asynchronous only (gamedesign §5.12); reconsider after M12c |
 | 34 | Pro-rata rights, other note variants, ESOP exercise detail, secondaries | X: beyond a game ruleset |
 | 35 | "What-if" fan chart of random futures | X v1: branch replay only (M09b1) |
@@ -71,7 +71,7 @@ flowchart LR
   UI -- "vcSpoke (clamped in sim)" --> MS
   MS -- "saveSlice" --> SAVE["C05 mode:tycoon"]
   BOT["tools/ci/tycoon-sim bots"] -- "Command" --> CORE
-  EDGE["services/edge validator (M12c)"] -- "verifyRun(setup, choices)" --> CORE
+  EDGE["services/edge validator (M12e)"] -- "verifyRun(setup, choices)" --> CORE
 ```
 
 **Why the core is in `@dv/shared`.** The harness, the mode and the M12c server validator must run byte-identical code, and `services/*` may import only `@dv/shared` and `@dv/net`. So `packages/shared/src/tycoon/**` and `packages/shared/src/events/**` hold the pure core and `packages/modes/tycoon` holds the thin C06 adapter, UI and dialogue glue. This differs from the one-line description of `@dv/mode-tycoon` in `spec/02-architecture.md` §2 and is proposed as an amendment (DN-S08-02).
@@ -223,7 +223,7 @@ export interface TycoonSlice {
 6. Standalone sessions write only `core`, `settings`, `mode:tycoon` (C05 rule 3), so they cannot touch the story wallet (§5.11).
 
 ### 4.7 Config
-`config/tycoon.balance.json` (schema `tycoon.balance.v1`): `sim.*` (ticks per week 1200/600/300, board interval 13), `company.*` (§5.3 weights), `hiring.*`, `finance.*` (B §8), `events.*` (C §3), `hardcore.*` (events ×1.5, VC cheque ×0.8). `balanceVersion` = first 12 hex of SHA-256 of its canonical JSON (build-time). Feature flags: `tycoon.dialogue` (default on; off = offline negotiation), `tycoon.daily` (off until M12c), `tycoon.xrDesk` (on after M11b2).
+`config/tycoon.balance.json` (schema `tycoon.balance.v1`): `sim.*` (ticks per week 1200/600/300, board interval 13), `company.*` (§5.3 weights), `hiring.*`, `finance.*` (B §8), `events.*` (C §3), `hardcore.*` (events ×1.5, VC cheque ×0.8). `balanceVersion` = first 12 hex of SHA-256 of its canonical JSON (build-time). Feature flags: `tycoon.dialogue` (default on; off = offline negotiation), `tycoon.daily` (off until M12c), `tycoon.xrDesk` (on after M11b4).
 
 ## 5. Runtime behavior
 
@@ -275,7 +275,7 @@ Seats, `founderControl`, quarterly targets and the ousting vote live in part B �
 ### 5.11 Score, rewards and story integration
 `score = floor(founderPayoutCents/100,000) + 25·retainedEmployees + 50·legacyTags` (tags from choices marked `legacy`, max 10). `founderPayout` comes from the waterfall at the exit value (B §6); `unicorn`/`ipo` use the valuation at that moment as the exit value. Best scores per tier are kept in the slice.
 - **Unlock (R-MODE-05).** Story `m.a2.01` (hook `tycoon.a2.curbshare`) embeds `startChild('tycoon', {defId:'mini8w'})`, no params, with `unlockOnFirstEncounter: unlock.tycoon` (C06 rule 5); `mini8w` is the only story preset (DL-157). The story's `stub` objective (scripted dialogue choice) is used until M09b2 and whenever the mode is unavailable. The mini-run returns `win`/`lose` and no rewards of its own.
-- **Dividends (capped).** A winning standalone full run (the embedded mini-run keeps no slice) adds `dividendEarnedCents += min(1,000,000, floor(founderPayoutCents·0.0002))` to the slice (cap $10,000 per run). Standalone sessions cannot write the story slice (C05 rule 3), so crediting the wallet is the story's job: on story entry S03 credits `min(unclaimed, cap)` through `EconomyApi.credit(..., idemKey 'tycoon.div:<n>')`, where unclaimed is `modes.tycoon.dividendEarnedCents − StorySlice.flags['tycoon.divClaimedCents']`, and the C06 rule "≤ $10,000 per in-game week" is enforced by summing `ledgerSince` entries tagged `tycoon.dividend` over the last 1,209,600 ticks (DN-S08-04). No premium currency, no purchase path (D-30).
+- **Dividends (capped).** A winning standalone full run (the embedded mini-run keeps no slice) adds `dividendEarnedCents += min(1,000,000, floor(founderPayoutCents·0.0002))` to the slice (cap $10,000 per run). Standalone sessions cannot write the story slice (C05 rule 3), so crediting the wallet is the story's job: on story entry S03 credits `min(unclaimed, cap)` through `EconomyApi.credit(..., idemKey 'tycoon.div:<n>')`, where unclaimed is `modes.tycoon.dividendEarnedCents − StorySlice.flags['tycoon.divClaimedCents']`, and the C06 rule "≤ $10,000 per in-game week" is enforced by summing `ledgerSince` entries tagged `tycoon.dividend` over the last 1,209,600 half-seconds (DN-S08-04). No premium currency, no purchase path (D-30).
 
 ### 5.12 UI (S10 shell; R-ENG-04)
 Views over `ViewModelSource`: **Dashboard** (runway gauge, MRR/users/burn charts, speed buttons), **Cap table** (pie, table, exit-value slider with live waterfall, term-sheet diff), **Hiring board** (candidates, salary and option sliders, team morale), **Roadmap and marketing** (allocation, marketing, price, office), **Event inbox** (a fictional workplace chat with choice cards), **Pitch room** (VC portrait or 3D scene, mood meter, term-sheet card, question options, optional free text, subtitles), **Board meeting**, **Run summary** (score, timeline, branch replay from a chosen week).

@@ -514,9 +514,9 @@ R-ID to milestones: R-PLAT-01 → M00, M01e, M04a, M11a · R-PLAT-02 → M00 (IW
 | **M01e** asset-worker + OPFS store (1 session; after M01d assets-publish, before M02b) | `asset.worker`, `WorldPackStore`, `fetchRetry`, lanes, hash check, eviction, `persist()`, Settings storage API | UI | M04a, M11a |
 | **M02b** streaming (S02) | consumes `RenderBudgetMeter`, chunk rules, `ChunkUploadGate`; adds boot-chunk benchmark and pipeline seed capture | seed capture manual | M11a |
 | **M04a** settings | `PlatformSettings` UI bindings (S10), coach mark, Settings › Storage | — | — |
-| **M04c** cutscene-playback spike (before M05b) | `FirstGestureUnlock`, video pool, wake lock, media budget, flat DOM host; gap-cutscene §7.7 device matrix | XR hosts | M11b |
+| **M04c** cutscene-playback spike (before M05b) | `FirstGestureUnlock`, video pool, wake lock, media budget, flat DOM host; gap-cutscene §7.7 device matrix | XR hosts | M11b4 |
 | **M11a** iPhone hardening (2 sessions) | two-way governor, `MemoryBudget` enforcement, `FramePacer`, budgets as tests (`check:perf` fail mode nightly, `perf:verify` on device JSON), offline relaunch, SW safe-point updates, 30-min soak, abnormal-exit demotion, iOS quirk pass, ultra calibration | — | — |
-| **M11b** WebXR port (2 sessions) | b1: Part B §3–§5.5 (session, swap, locomotion, comfort, input, panels, IWER e2e); b2: per-mode XR rules (S06 S07 S08), XR cutscene hosts, Quest/Vision Pro checklists and perf pass | — | post-v1 AR |
+| **M11b** WebXR port (2 sessions) | b1: Part B §3–§5.5 (session, swap, locomotion, comfort, input, panels, IWER e2e); b2 (M11b2, M11b4): racing and fighter rules; tycoon, XR cutscene hosts, checklists, perf pass | — | post-v1 AR |
 
 ## 9. Tests
 
