@@ -15,8 +15,8 @@ After this session Culture Wars is content-complete for v1, with in-engine prese
 
 ## Scope in
 - Stages (FX5): `ferry_plaza`, `dolores_slope`, `bayview_cranes`, `alcatraz_yard` (museum state, FX4.6), `mission_bay_court` (fictional venue, tag `arena_court`); gray-box dioramas `prop/stage-<id>-{day,night}` with provenance; camera coefficients; budgets at 60 % of the tier's render objects and triangles; day/night choice or seeded pick.
-- `content/fighter/cutscenes.json` (FX6.1): walk-ins 48, face-offs 28, specials 8, supers 16, shutdowns 8, endings 8 with templates `fight.*@1`, cast, stage and move versions, cues, priority, and fallbacks authored with `defineDirector` (`frame: 'stage2d'`); `content/prompts/genai/fight.*@1.md` where M05b2 left them out; `content/cutscenes/places.json` stage rows.
-- Index: `assets:cutscene-index` includes the fighter refs; `--count fighter`.
+- `content/fighter/cutscenes.json` (FX6.1): walk-ins 48, face-offs 28, specials 8, supers 16, shutdowns 8, endings 8 with templates `fight.*@1`, cast, stage and move versions, cues, priority, and fallbacks authored with `defineDirector` (`frame: 'stage2d'`); `content/prompts/genai/fight.{walkin,faceoff,special,super,shutdown,ending}@1.md` (M05b2 leaves fight templates to this milestone); `content/cutscenes/places.json` stage rows.
+- Index: `assets:cutscene-index` includes the fighter refs; option `--count <family>` (add it if M07b2 has not).
 - Composed intros (FX6.4): `playSequence([walkin A, walkin B, faceoff])` with per-item fallback; `PLAYER_FIGHTER` segments always in-engine; prefetch at stage confirm (`v540` on `mobile`, `v768` elsewhere); `Load` waits ≤ 1.5 s prefetched or ≤ 2.5 s; any attack button skips.
 - `Cinematic` presentation (FX6.5, DL-129): Showstopper and Shutdown only, setting `cinematics` default `first` (once per fighter via `seenReveal`), never in Training or online; eligibility is fixed when the match starts and recorded in the replay `rules`, so re-simulation never depends on clip readiness; last frame held if the clip is shorter.
 - Endings after `MatchEnd` in Versus and Arcade; story bouts return straight to the mission.

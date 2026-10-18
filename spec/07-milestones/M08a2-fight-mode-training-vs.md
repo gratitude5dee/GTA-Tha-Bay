@@ -24,9 +24,9 @@ After this session Culture Wars is a playable mode and the **VS-Fighter** checkp
 - Training (FC11): box overlay, frame meter with derived advantage, input display with buffer age, record/playback dummy, dummy states, reset, meter refill, damage and scaling readout, invulnerability display.
 - CPU (FC10): perception ring delayed by `reaction`, decisions every 4–8 frames on even ticks, macro executor with execution error, punish rule (`advBlock ≤ −4` with a move of `startup ≤ −advBlock`), the four-level parameter table; driver `fighter.cpu`.
 - Stage `powell_turntable` gray-box (`prop/stage-powell_turntable-day`) with `StageDef`.
-- `FighterSlice` schema 1 and golden; `unlock.fighter` in `config/unlocks.json`; `BoutDef` `content/fighter/bouts/bout.a5.json` (player vs `RAP_NEW_WAVE`, `powell_turntable`, CPU Normal, `exhibition: true`).
+- `FighterSlice` schema 1 and golden; `unlock.fighter` grants (initial selectable set: `PLAYER_FIGHTER` and the `bout.a5` opponent) on M04a2's row, keeping M05c1's `unlock.fighter.rap_new_wave`; `BoutDef` `content/fighter/bouts/bout.a5.json` (player vs `RAP_NEW_WAVE`, `powell_turntable`, CPU Normal, `exhibition: true`).
 - QA bridge `__dvBridge.fighter` (`start`, `step`, `setInputs`, `state`, `hash`, `exportReplay`, `reloadTuning`).
-- Registration of `fighter.script` and `fighter.cpu` in the M04d registry; det suite `@fighter-hash`; mutants; `fighter:bench`; `fight-stage` scenario path.
+- Registration of `fighter.script` and `fighter.cpu` through a QA-only `registerBot` import (`fighter.cpu` also plays slot 0 under `hooks: 'bot'`); det suite `@fighter-hash`; mutants; `fighter:bench`; `fight-stage` scenario path.
 
 ## Scope out
 - Kits 3–8, full CPU habits, roster loader with tiers, `fighter:balance`, `check:fighter`: M08b1. Stages 2–6, cutscene hooks, Cinematic presentation, Arcade, Move Gallery, kill-switch remap: M08b2. Pose: M08c1–M08c2. XR: M11b2.
@@ -35,7 +35,7 @@ After this session Culture Wars is a playable mode and the **VS-Fighter** checkp
 ## Deliverables
 - `packages/modes/fighter/src/{index.ts, anim-states.ts}`; `src/sim/{mode.ts, match.ts, mirror.ts, camera.ts, slice.ts, bouts.ts, cpu/{perception.ts, decide.ts, macro.ts, levels.ts}}`; `src/ui/{index.ts, hud.ts, training.ts, presenter.ts, graybox.ts}`; `src/qa/{bridge.ts, cpu-driver.ts}`.
 - `packages/shared/src/fight/projectiles.ts` (`trap`); `content/fighter/kits/rap_new_wave.json`; `content/fighter/stages/powell_turntable.json`; `content/fighter/bouts/bout.a5.json`; gray-box assets and provenance.
-- Config files listed in Scope in; `unlock.fighter` row.
+- Config files listed in Scope in; `unlock.fighter` grants.
 - `packages/modes/fighter/package.json` script **`fighter:bench`**; `packages/modes/fighter/scripts/bench.ts`.
 - `packages/modes/fighter/test/{schemes.spec.ts, cpu.spec.ts, camera.spec.ts, slice.spec.ts, descriptor.spec.ts}`; `tests/golden/saves/fighter/slice.v1.json`.
 - `tests/e2e/{fighter-hash.spec.ts (@fighter-hash), fighter-touch.spec.ts (@fighter-touch), fighter-training.spec.ts (@fighter-training)}`; `@fighter-hash` entries in `tests/e2e/det/suites.ts`; `tools/ci/mutants/fighter/{frame-off-by-one,rng-swap}.ts`.

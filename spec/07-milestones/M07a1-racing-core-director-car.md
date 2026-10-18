@@ -1,7 +1,7 @@
 # M07a1 — racing-core-director-car
 
 ## Goal
-After this session a QA build can start and finish a race on real San Francisco streets. `@dv/mode-racing` (`packages/modes/racing`) holds the real descriptor (still `comingSoon` to players), the race director state machine, the pure referee and gate logic in `packages/shared/src/racing/`, nitro, damage, the `RaceHudVm` publisher, six player cars (one per class) and the race schemas. `pnpm map:races compile|validate` turns an authored `source.json` into a committed, bake-pinned `race.json` for one race, `sf.sprint.ferry-ocean-beach`. The QA driver `racing.line` drives that race headless and in browsers with equal state hashes. **Split boundary (from `spec/domains/06-racing.md` §8, row M07a, and `_PLAN-2.md`):** M07a1 takes the mode package, referee, director, cars, nitro, damage, HUD view-model, schemas, compile and the line bot. M07a2 takes AI drivers, rubber-banding, validator rule V12 (par), the other two VS races, the pursuit event, replays, ghosts, `RacingSlice` and the story hook.
+After this session a QA build can start and finish a race on real San Francisco streets. `@dv/mode-racing` (`packages/modes/racing`) holds the real descriptor (still `comingSoon` to players), the race director state machine, the pure referee and gate logic in `packages/shared/src/racing/`, nitro, damage, the `RaceHudVm` publisher, six player cars (one per class) and the race schemas. `pnpm map:races compile|validate` turns an authored `source.json` into a committed, bake-pinned `race.json` for one race, `sf.sprint.ferry-ocean-beach`. The QA driver `racing.line` drives that race headless and in browsers with equal state hashes. **Split boundary (from `spec/domains/06-racing.md` §8, row M07a, and `_PLAN-2.md`):** M07a2 takes AI drivers, rubber-banding, rule V12 (par), the other VS races, the pursuit event, replays, ghosts, `RacingSlice` and the story hook.
 
 ## Requirements
 - R-MODE-02: sprint racing on real SF streets with referee, gates, nitro and damage on Forza-style handling from M03a.
@@ -23,7 +23,7 @@ After this session a QA build can start and finish a race on real San Francisco 
 - `RaceHudVm` published each tick through `ModeContext.ui` (C06 1.1 `UiBridge`).
 - `config/racing.json` (`RacingConfig`, schema-validated) with `tierCaps`, `race`, `nitro`, `damage`, `drift`, `models` blocks.
 - `tools/map/src/race/`: `pnpm map:races compile|validate [-- <raceId>]` with rules V1–V11 and V13–V15 (`06-racing-data.md` §4.2.1); one broken fixture per rule.
-- QA driver `racing.line` (pure pursuit on the compiled racing line, no opponents), registered in the M04d registry; det suite `@racing-det` (one car, seed 0xC0FFEE); two mutants.
+- QA driver `racing.line` (pure pursuit on the compiled racing line, no opponents), registered with `registerBot` from a QA-only import (production chunks must not contain `registerBot`, M04d); det suite `@racing-det` (one car, seed 0xC0FFEE); two mutants.
 - QA bridge `__dvBridge.racing` (`start(raceId, opts)`, `state()`, `hud()`), QA builds only.
 - Racing touch layout (pedals, steer arc, nitro, handbrake, reset, look-behind) in S10's `TouchLayout` v1 shape.
 
@@ -41,7 +41,7 @@ After this session a QA build can start and finish a race on real San Francisco 
 - `packages/modes/racing/test/{referee.gates.spec.ts, damage.formula.spec.ts, nitro.spec.ts, director.spec.ts, hud.spec.ts, descriptor.spec.ts, line.headless.spec.ts}`.
 - `content/vehicles/handling/{kestrel-quill,brackenridge-rasp,aurelian-sorrel,solenne-skip,halcyon-cormorant}.json`; `assets/prefabs/vehicle.<slug>.json` for the same five; gray-box glTFs with `assets/provenance/` records (`origin: authored`).
 - `content/races/sf.sprint.ferry-ocean-beach/{source.json, race.json}`.
-- `config/racing.json`, `config/schemas/racing.schema.json`; `unlock.racing` and `unlock.racing.class.{c,b,a,s}` rows in `config/unlocks.json`; `config/input/touch/vehicle-racing.json`.
+- `config/racing.json`, `config/schemas/racing.schema.json`; `unlock.racing.class.{c,b,a,s}` rows and the `unlock.racing` grants (starter D-class loaner set) in `config/unlocks.json` (the `unlock.racing` row itself is M04a2's); `config/input/touch/vehicle-racing.json`.
 - `tools/map/src/race/{cli.ts, snap.ts, compile.ts, validate.ts}`, `tools/map/test/race.validate.spec.ts`, `tools/map/test/fixtures/races/V*.source.json`.
 - Root script **`map:races`** (`tsx tools/ci/run.ts map-races`).
 - `tests/e2e/racing-touch.spec.ts` (`@racing-touch`); `@racing-det` entry in `tests/e2e/det/suites.ts`; `tests/golden/racing/line.ferry-ocean-beach.json`; `tools/ci/mutants/racing/{gate-order,rng-swap}.ts`.
@@ -74,7 +74,7 @@ After this session a QA build can start and finish a race on real San Francisco 
 ## Demo script
 1. `pnpm map:races validate`: one race, all rules green.
 2. `pnpm dev`, open `/?unlockAll=1&debug=1`, run `__dvBridge.racing.start('sf.sprint.ferry-ocean-beach', {vehicle: 'vehicle.aurelian-sorrel'})` in the console.
-3. Watch the 3-second countdown, drive with W/A/S/D, fire nitro with Left Shift.
+3. After the countdown, drive with W/A/S/D and fire nitro with Left Shift.
 4. Drive the wrong way: the warning appears and the car respawns.
 5. Finish: the results view-model shows time and place 1 of 1.
 
@@ -83,7 +83,6 @@ After this session a QA build can start and finish a race on real San Francisco 
 
 ## Risks & fallbacks
 - **Bake availability in CI.** `map:races` and the headless run read the bake through the same loader as `pnpm map:verify` (M02a2). If a CI job lacks the bake, validate runs the `race.json`-only rules (schema, V3, V6, V8, V11, V13–V15) there and the full set nightly next to `map:verify`; record the split in "Builder decisions".
-- **Synthetic touch events in WebKit:** reuse the M01b2 fallback (dispatch `TouchEvent`s).
 - **Supercar oracle miss after tuning:** tune `tire.muLong` and the launch ramp only (C.3.1); if two passes fail, keep the data, mark the line `todo` in the golden and report it.
 
 ## Notes for the Builder

@@ -24,7 +24,7 @@ After this session racing is playable from the main menu and from the story, and
 - `RacingSlice` (schema 1, `RACING_SLICE_MAX_BYTES`, eviction order oldest ghosts, then tracks of events not played in 60 days), golden save files, purse and Rep rewards (D-S06-04).
 - Story hook: `m.a1.03` hook defId `sf.pursuit.bayview-escape`, no params (DL-157); embedded runs use the parent's profile, track ghosts and no records; descriptor status `available`.
 - Telemetry `racing.pursuit_end`, `racing.replay_view`, `racing.verify_fail`.
-- Bot `racing/bot.pursuit` (drive the route to a C08 `hidingSpots` tag and wait out the cooldown); det suite extended to a 3-car race; two replay mutants.
+- Driver `racing.pursuit` (drive the route to a C08 `hidingSpots` tag and wait out the cooldown); `racing.line` and `racing.pursuit` serve as the child-mode bots the autoplayer uses under `hooks: 'bot'`, chosen by race kind; det suite extended to a 3-car race; two replay mutants.
 
 ## Scope out
 - Roadblocks and spikes in races, the other six race kinds, ladder, quirks and hop, remaining cars: M07b1.

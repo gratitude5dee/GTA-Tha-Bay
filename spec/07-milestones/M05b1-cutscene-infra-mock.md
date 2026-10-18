@@ -1,41 +1,41 @@
 # M05b1 — cutscene-infra-mock
 
 ## Goal
-After this session the web Worker can serve, single-flight and (in mock mode) generate cutscene clips at zero cost. `tha-bay-web` gains `CutsceneJobDO` (one per cache key, ready test = `HEAD cutscenes/<key>/manifest.json`), S05's `FalGateDO` semaphore, a minimal `BudgetGovernorDO` holding the DL-OWN-01 program cap of 100,000,000 USD micros, the S05 `GenJobWorkflow` with every cutscene stage behind ports and `MockFalPort`, routes 27 (status), 28 (prewarm, `OPS_TOKEN`), 29 (ED25519-verified fal webhook) and the non-production `_test` routes (49), and the media and private R2 bindings. The `web-v1` Durable Object migration ships alone first. `pnpm check:pipeline` proves a mock cutscene job end to end and that a second run makes zero `FalPort` calls; `pnpm check:c2pa` and a dry-run-first `pnpm assets:gen prewarm` exist; the app documents gain the Report-Only CSP. Live fal calls stay impossible until ADR-GENAI-01 is `cleared`.
+`tha-bay-web` gains `CutsceneJobDO` (one per cache key, ready test = `HEAD cutscenes/<key>/manifest.json`), S05's `FalGateDO` semaphore, a minimal `BudgetGovernorDO` holding the DL-OWN-01 program cap of 100,000,000 USD micros, the S05 `GenJobWorkflow` with every cutscene stage behind ports and `MockFalPort`, routes 27 (status), 28 (prewarm, `OPS_TOKEN`), 29 (ED25519-verified fal webhook) and the non-production `_test` routes (49), and the media and private R2 bindings. The `web-v1` Durable Object migration ships alone first. `pnpm check:pipeline` proves a mock job end to end and a zero-call second run; `pnpm check:c2pa` and a dry-run-first `pnpm assets:gen prewarm` exist; the app documents gain the Report-Only CSP. Live fal calls stay impossible until ADR-GENAI-01 is `cleared`.
 
 ## Requirements
 - R-CUT-01: request through the backend, store in R2, reuse by key, generate at most once per key.
 - R-ENG-03: cache check before any spend, program cap in integer micros, governor levels, paid runs need `--live` after a printed estimate.
-- R-NPC-02 (support): the same `GenJobWorkflow`, ports and mock serve the character pipeline in M10a1.
+- R-NPC-02 (support): the same workflow, ports and mock serve the M10a1 character pipeline.
 
 ## Depends on
 - M00a (router, `ApiError`, isolation headers, geo-gate, `_test` routes, `check:workers`, `check:prod-routes`, `check:do-migrations`, `deploy:prod`), M00c (registry `config/genai-endpoints.json`, recorded spike results), M01d (C07 catalog, `assets:*`, R2 layout, bucket config).
-- Contracts: C09 1.0 (`CutsceneManifest`, created in M04c), C12 1.1 (routes 4, 27–29, 49; `CutsceneStatus`; `BudgetGovernor`, `SpendEvent`, `Vendor`, `GovLevel` in `packages/shared/src/api/budget.ts`), C07 1.1 (`GenJob`, `JobKeyInput`, `jobKey`, `GateCode`, provenance).
+- Contracts: C09 1.0 (`CutsceneManifest`; `c09-cutscene.ts` from M04c, earlier in run order, or created here verbatim if absent), C12 1.1 (routes 4, 27–29, 49; `CutsceneStatus`; `BudgetGovernor`, `SpendEvent`, `Vendor`, `GovLevel` in `packages/shared/src/api/budget.ts`), C07 1.1 (`GenJob`, `JobKeyInput`, `jobKey`, `GateCode`, provenance).
 
 ## Scope in
 - **Lifecycle PR first** (label `do-lifecycle`, nothing else in it): class skeletons and exports for `CutsceneJobDO`, `FalGateDO`, `BudgetGovernorDO`; `wrangler.jsonc` `durable_objects.bindings` (`CUTSCENE_JOB`, `FAL_GATE`, `GOVERNOR`) and migration `{"tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO","FalGateDO","BudgetGovernorDO"]}`, repeated under `env.staging` and `previews`; deployed with `wrangler deploy`. The logic PR follows.
 - `packages/shared/src/api/budget.ts` (C12, `09-backend-ops.md` §5.3 verbatim) and `CutsceneStatus` in `api/v1.ts` (extend). `packages/shared/src/genai/types.ts` (C07 §4.6) and `jobKey` if M00c did not create them.
 - `services/edge/src/cutscenes/`:
-  - `CutsceneJobDO` (`ensure(job, {allowGenerate})`, `complete`, `fail`): states `absent → pending → ready | failed` (`09-backend.md` §5.1); one Workflow instance per key (`cut-<key[0:12]>-<attempt>`), concurrent `ensure` calls share it; `failed` re-armed by alarm after 1 h, at most 3 re-arms;
+  - `CutsceneJobDO` (`ensure(job, {allowGenerate})`, `complete`, `fail`): states `absent → pending → ready | failed` (`09-backend.md` §5.1); one Workflow instance per key (id `cutscene_shot-<jobKey[0:12]>-<attempt>`, `05-assets.md` §5.1), concurrent `ensure` calls share it; `failed` re-armed by alarm after 1 h, at most 3 re-arms;
   - route 27 `GET /api/v1/cutscenes/:key` → `CutsceneStatus`: `ready` with `manifestUrl = MEDIA_ORIGIN + /cutscenes/<key>/manifest.json`; generation allowed only when the key is in the catalog, `ks:cutscene_gen` and `ks:genai:all` are off and the governor level < 3; otherwise `absent` with `reason` (`not_in_catalog`, `kill_switched`, `budget`); a kill scope answers `blocked`;
   - route 28 `POST /api/v1/admin/cutscenes/prewarm {keys[]}` → 202; `Authorization: Bearer <OPS_TOKEN>`; geo-exempt (DL-184);
   - catalog until M05d: `services/edge/src/generated/cutscene-catalog.json` (keys only; M05b2's index builder writes it).
 - `services/edge/src/budget/BudgetGovernorDO.ts`: `level`, `reserve`, `settle` (idempotent by `jobId`), `forceLevel`; `ingest` accepts batches (dialogue path M06a3); program cap read from `config/guardrails.yaml` `genai.programCapUsdMicros` (create the file with only the `genai:` section: `programCapUsdMicros: 100000000`, `falConcurrency: 2`, `alarms: [0.5, 0.8, 1.0]`; M14b1 adds the rest); alarms at 50/80/100 % recorded as log events; L3 at 100 %; publishes `gov:level` to KV on transitions.
 - `services/pipeline` (`@dv/pipeline`, compiled into `tha-bay-web`): ports (`FalPort`, `BlobPort`, `RosterPort`, `BudgetPort`, `ClockPort`, `TranscodePort`, `SignPort`), steps for `cutscene_shot` in `05-assets-pipeline.md` §6 order (gate → cache-check → budget-reserve → acquire → keyframes → plan → submit → wait → poll → copy-orig → transcode → captions → qa-gate → resign → subs → publish (manifest last) → record), `GenJobWorkflow` (`step.waitForEvent('fal-done', 20 min)` then 12 polls from 30 s exponential), `FalGateDO` (slots = `falConcurrency`, release always runs), `verifyFalWebhook` (ED25519 against the fal JWKS, cache ≤ 24 h, ±300 s skew) and `handleFalWebhook` mounted as route 29 (2xx within 15 s, `instance.sendEvent`).
-- Mock mode (`FAL_MODE=mock`, the default in dev, CI, preview and staging): `MockFalPort` replays fixtures under `services/pipeline/fixtures/` (the M04c clips as outputs) and posts a webhook signed with a test key served at `/api/v1/_test/fal-jwks`; `MockTranscodePort` returns fixture renditions, poster, last frame; `MockSignPort` marks `resigned: true` with a test claim; captions use a fixture VTT. `GENAI_ENV` becomes `test`.
+- Mock mode (`FAL_MODE=mock`, the default in dev, CI, preview and staging): `MockFalPort` replays fixtures under `services/pipeline/fixtures/` (the M04c fixture clips as outputs; if absent, a 2 s VP9 clip made the M04c way) and posts a webhook signed with a test key served at `/api/v1/_test/fal-jwks`; `MockTranscodePort` returns fixture renditions, poster, last frame; `MockSignPort` marks `resigned: true` with a test claim; captions use a fixture VTT. `GENAI_ENV` becomes `test`.
 - Gate (`services/pipeline/src/gate.ts`): provider status from the registry; production and `FAL_MODE=live` require `cleared` (`ENDPOINT_NOT_CLEARED` otherwise, before any `FalPort` call); kill switches `ks:genai:all`, `ks:fal`, `ks:fal:<endpointId>`, `ks:cutscene_gen`; `toon-pbr` presets for non-consented cast; prompt-lint hook (the linter itself lands in M05b2; until then the step runs a stub that fails on an empty prompt).
 - `_test` routes (non-production): `run-scheduled`, `drain-queue`, `spend`, `fal-jwks`. Route 4 `POST /api/v1/reports/browser` accepts `csp-violation` bodies → 204 (crash bodies M11a).
 - Headers (DL-191): `apps/web/public/_headers` and `withIsolationHeaders` add `Content-Security-Policy-Report-Only` (spec/05 §1.3, with `<domain>` and the account id substituted at build), `Reporting-Endpoints`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`; `check:headers` asserts them.
 - `pnpm check:pipeline` (Miniflare, `MockFalPort`): one cutscene job end to end, then the same key again.
 - `pnpm check:c2pa` (`tools/ci/check-c2pa.ts`): for every manifest named by the shipped cutscene index (none until M05b2), fails without `provenance.origSha256`, without `resigned: true` on a `cleared` licence, or without `aiGenerated: true`; prints `0 shipped cutscenes` when the index is absent.
-- `pnpm assets:gen prewarm -- --requests <cutscene-requests.json> [--env staging|production] [--live]` (`tools/assets/gen/{cli.ts, prewarm.ts}`): computes `budgetUsdMicros = shots × durationS × providerUsdPerS × 1.5 + keyframes × 39,600` per request (§D5), prints the per-key and total estimate and the misses found by `HEAD`; without `--live` it makes no POST; with `--live` it needs `OPS_TOKEN` and the target URL (`SKIP assets:gen prewarm: OPS_TOKEN not set`, exit 0 when absent), refuses when estimate + settled spend exceeds the remaining cap, then POSTs route 28.
+- `pnpm assets:gen prewarm -- --requests <cutscene-requests.json> [--env staging|production] [--live]` (`tools/assets/gen/{cli.ts, prewarm.ts}`): computes `budgetUsdMicros = shots × durationS × providerUsdPerS × 1.5 + keyframes × 39,600` per request (§D5), prints the per-key and total estimate and, with `--env`, the misses found by `HEAD` (without `--env` every key counts as a miss and no request is made); without `--live` it makes no POST; with `--live` it needs `OPS_TOKEN` and the target URL (`SKIP assets:gen prewarm: OPS_TOKEN not set`, exit 0 when absent), refuses when estimate + settled spend exceeds the remaining cap, then POSTs route 28.
 - CI: `ci.yml` `unit` runs `pnpm check:pipeline`; `ip` runs `pnpm check:c2pa`.
 
 ## Scope out
 - Live fal calls (ADR-GENAI-01 `cleared`, `FAL_KEY`): first paid runs M05c3 (≤ $16), M10b (≤ $24).
-- The real Transcoder Container image (`services/pipeline/transcoder/`, `TRANSCODER` binding) and the pinned C2PA signer: before the first live run; not in this milestone (gap reported).
+- The real Transcoder Container (`services/pipeline/transcoder/`, `TRANSCODER`) and the pinned C2PA signer: needed before the first live run (gap reported).
 - `KillPurgeWorkflow` and `KILL_WF`: M10b. Supabase ledger and `cutscene_catalog` table: M05d. Staff JWTs replace `OPS_TOKEN`: M12a1.
-- Key computation, index builder, player: M05b2.
+- Keys, index builder, player: M05b2.
 
 ## Deliverables
 - `services/edge/src/cutscenes/{CutsceneJobDO.ts, routes.ts}`, `services/edge/src/budget/BudgetGovernorDO.ts`, `services/edge/src/routes/reports-browser.ts`, `services/edge/src/generated/cutscene-catalog.json`, `services/edge/wrangler.jsonc`.
@@ -75,7 +75,7 @@ After this session the web Worker can serve, single-flight and (in mock mode) ge
 3. Poll until `ready`; open the `manifestUrl`. Rerun the prewarm: `0 misses`.
 
 ## Effort
-1 session; ≈ 40 files; risk high (Workflows inside the Workers Vitest pool, DO lifecycle sequencing).
+1 session; ≈ 40 files; risk high (Workflows in the Workers Vitest pool, DO lifecycle order).
 
 ## Risks & fallbacks
 - The Workers Vitest pool cannot run a Workflow instance (record it): `check:pipeline` runs the steps through an in-process `WorkflowStep` shim and Miniflare tests only the binding and `sendEvent`. Same commands.
@@ -86,5 +86,5 @@ After this session the web Worker can serve, single-flight and (in mock mode) ge
 ## Notes for the Builder
 - Read first: `09-backend.md` §3.3, §5.1, §8; `09-backend-ops.md` §1.2, §5; `05-assets.md` §3, §4.6, §5; `05-assets-pipeline.md` §6, §9; `03-story-cutscenes.md` §D5; `spec/05-api-and-realtime.md` §1.3, §3 rows 4, 27–29, 49.
 - Secrets and gates: `OPS_TOKEN` (Worker secret, staging only until M12a1; absent → route 28 answers 401 and the CLI SKIPs). `FAL_KEY` is not used here; `FAL_MODE=mock` everywhere except production, where providers are `pending` (Q-30, ADR-GENAI-01) so the gate refuses. Never call fal from CI (DL-OWN-01).
-- Previews have no own Workflows: the preview binding points at the deployed staging `gen-job` (`09-backend-ops.md` §1.3).
+- Previews have no own Workflows: their binding points at the staging `gen-job` (`09-backend-ops.md` §1.3).
 - Spend is integer USD micros everywhere. Branches `m05b1-cutscene-infra-mock` (logic) and `m05b1-do-lifecycle` (first PR).

@@ -32,8 +32,8 @@ After this session racing is presentation-complete for v1. The garage sells and 
 ## Deliverables
 - `packages/modes/racing/src/garage/{garage-vm.ts, upgrades.ts, livery.ts, repair.ts}`; `src/replay/{director.ts, scrub.ts}`; `src/photo/{photo-controller.ts, save.ts}`; `src/client/{paint.ts, dent.ts, wheel-blur.ts, vfx-tiers.ts, audio-mixer.ts}`; `src/cutscene/intros.ts`.
 - `packages/shared/src/racing/race-def.ts` (`intro?`), schemas updated; `tools/map/src/race/validate.ts` (rule `INTRO`) and fixture `INTRO.source.json`; `tools/ci/pi-lock.ts` and `content/vehicles/pi.lock.json`.
-- `tools/assets/cutscene-index` option `--count race`.
-- `content/races/cutscenes.json`; `content/races/<id>/source.json` and `race.json` for the 12 intro events; `content/prompts/genai/race.intro@1.md` if M05b2 did not add it; `content/cutscenes/places.json` rows for the 12 grids.
+- `tools/assets/cutscene-index` option `--count <family>` (used here as `--count race`, and by M08b2 as `--count fighter`).
+- `content/races/cutscenes.json`; `content/races/<id>/source.json` and `race.json` for the 12 intro events; `content/prompts/genai/race.intro@1.md` (M05b2 leaves race templates to this milestone); `content/cutscenes/places.json` rows for the 12 grids.
 - `content/audio/needs.json` racing rows and placeholder audio with provenance; `config/econ-bands.json` racing section; `config/platform-flags.json` keys `racing.ssr`, `racing.motionBlur`; `config/racing.json` `tierCaps`, `photo`.
 - `packages/modes/racing/test/{garage.spec.ts, replay.scrub.spec.ts, replay.director.spec.ts, visuals.spec.ts, intros.spec.ts}`.
 - `tests/e2e/racing-photo.spec.ts` (`@racing-photo`); a race-intro case in the `@cutscene` suite.
