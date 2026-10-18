@@ -1,0 +1,36 @@
+{
+  "status": 200,
+  "body": {
+    "models": [
+      {
+        "endpoint_id": "openai/gpt-image-2.5/sunburst/text-to-image",
+        "metadata": {
+          "display_name": "GPT Image 2.5 Sunburst Text to Image",
+          "category": "text-to-image",
+          "description": "OpenAI's precision-focused image model, built for premium visual work, extra fidelity on intricate detail, in exchange for longer generation times.",
+          "status": "active",
+          "tags": [
+            "realism",
+            "typography",
+            "stylized"
+          ],
+          "updated_at": "2026-09-11T19:34:21.150Z",
+          "is_favorited": null,
+          "thumbnail_url": "https://v3b.fal.media/files/b/0aa9a3c6/xpKm5FzsZBuvm2Bf8xY7W.jpg",
+          "model_url": "https://fal.run/openai/gpt-image-2.5/sunburst/text-to-image",
+          "license_type": "commercial",
+          "date": "2026-09-08T19:41:24.961Z",
+          "group": {
+            "key": "gpt-25",
+            "label": "Text to Image Sunburst"
+          },
+          "highlighted": false,
+          "kind": "inference",
+          "pinned": false
+        }
+      }
+    ],
+    "next_cursor": null,
+    "has_more": false
+  }
+}
