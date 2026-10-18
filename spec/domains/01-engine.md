@@ -53,7 +53,7 @@
 | 34 | Netcode hooks: prediction ring, net slots, hash cadence (A-04) | deferred | §2.13 | M12b |
 | 35 | Tier hooks for C13 budgets: density caps, physics radius, animation bands, audio voices | designed | §6 | M01b, M11a |
 
-**Out of scope, with reasons.** Firearms (D-30). A render worker (D-08). Articulated ragdolls (Jolt has them, Rapier does not; ragdoll-lite covers v1 [research/stack-rendering-platform.md §5.1]). Skateboard controller (Q-ENG-04). Full-body XR IK (Q-ENG-05). Traffic/ped brains, road graph, sky renderer (S02); mission IR and director shots (S03); handling and race rules (S06); fighter frame data (S07).
+**Out of scope, with reasons.** Firearms (D-30). A render worker (D-08). Articulated ragdolls (Rapier lacks them; ragdoll-lite covers v1 [research/stack-rendering-platform.md §5.1]). Skateboard controller (Q-ENG-04). Full-body XR IK (Q-ENG-05). Traffic/ped brains, road graph, sky renderer (S02); mission IR and director shots (S03); handling and race rules (S06); fighter frame data (S07).
 
 ## 2. Design
 
@@ -90,7 +90,7 @@ graph LR
 
 - **Main thread** owns the DOM, input capture, the XR session, rendering, camera, animation evaluation and audio. XR forces this: `navigator.xr` is not exposed in workers (F-006), so v1 renders on the main thread (D-08).
 - **`sim.worker`** owns the world: ECS, physics, AI, pursuit, modes, missions, saves and, from M12, the room socket. It never touches the DOM.
-- **`asset.worker`** owns fetch, the OPFS block store and decoding. The engine defines its bootstrap and the request messages (`needNow`, `willNeed` with priority); S05 owns manifest resolution (C07) and S11 owns storage quotas. This is the playgta5 split: blocking work and IO are kept off the page thread [research/repos-webport.md P1, P3, P6].
+- **`asset.worker`** owns fetch, the OPFS block store and decoding. The engine defines its bootstrap and the request messages (`needNow`, `willNeed` with priority); S05 owns manifest resolution (C07) and S11 owns storage quotas. Blocking work and IO stay off the page thread [research/repos-webport.md P1, P3, P6].
 - **Transport.** When `crossOriginIsolated` is true (D-01 sets COOP/COEP), one `SharedArrayBuffer` per channel carries:
   - the input block (main writes, worker samples);
   - a command ring (main → worker: UI commands, debug edits);
@@ -108,7 +108,7 @@ Per render frame: `Input → NetIn → Sim(hand-off) → Anim → Audio → Rend
 - The worker wakes, accumulates time, runs 0–9 ticks through the ten `SimStage`s and publishes a snapshot plus `alpha`.
 - The main thread interpolates the newest pair and draws.
 
-The main thread never waits; the cost is one tick of latency, which SK8V traded for stalls that cost up to ~30 fps [research/repos-modding.md §3.4]. In XR the session rAF runs at 72 or 90 Hz over a 60 Hz sim, matching the budget "72/90 Hz render, 60 Hz sim + interpolation" [research/stack-rendering-platform.md, Performance budgets].
+The main thread never waits; the cost is one tick of latency instead of stalls of up to ~30 fps [research/repos-modding.md §3.4]. In XR the session rAF runs at 72 or 90 Hz over a 60 Hz sim, matching the budget "72/90 Hz render, 60 Hz sim + interpolation" [research/stack-rendering-platform.md, Performance budgets].
 
 ### 2.3 Determinism and the two sim profiles
 
@@ -119,7 +119,7 @@ The netcode (A-04), mission autoplay (A-02), race ghosts, fighter replays and th
 
 Exactly one Rapier build is loaded per session. A top-level mode that needs `canonical` restarts `sim.worker` behind the loading screen (C06 rule 3).
 
-Ambient agents are keyed by `(cell, slot)` with per-agent RNG streams. A low tier simply runs the first N slots, so the agents of two different tiers agree wherever they overlap (C01 rule 5). This also lets the room DO "own shared ambient traffic … clients simulate it locally from seed" [research/stack-cloudflare-backend.md §4].
+Ambient agents are keyed by `(cell, slot)` with per-agent RNG streams. A low tier runs the first N slots, so two tiers agree where they overlap (C01 rule 5). It lets the room DO "own shared ambient traffic … clients simulate it locally from seed" [research/stack-cloudflare-backend.md §4].
 
 Lint bans and detmath are in C02. AI "think" runs at 30 Hz on every tier (`AI_DIVISOR = 2`); tier changes only density and perception radius, never update rates, so the sim does not branch on tier inside a profile.
 
@@ -278,7 +278,7 @@ Lines replay in CI. Any real input stops playback.
 | `packages/shared/src/contracts/*` | C01–C06 + engine types | part 1, part 2 | — |
 | `packages/engine/src/sim/ecs/` | facade over bitECS, allocator, generations, string table, registry | `EcsApi`, `defineComponent` | bitecs@0.4.0 |
 | `packages/engine/src/sim/loop/` | accumulator, stages, system scheduler, hash | `SimHost`, `SystemDef` | ecs |
-| `packages/engine/src/sim/transport/` | SAB rings, snapshot writer, `postMessage` fallback | `SimTransport` | — |
+| `packages/engine/src/sim/transport/`; IO in `src/host/` | SAB rings, snapshot writer; `host/`: `SimHost`, transports, Rapier loader | `SimTransport` | — |
 | `packages/engine/src/sim/physics/` | Rapier wrapper, floating origin, working set | `PhysicsBackend` | rapier builds |
 | `packages/engine/src/sim/control/` | ownership machine, on-foot, vehicle, ragdoll-lite | systems | physics |
 | `packages/engine/src/sim/pursuit/` | director, dispatcher, police behaviours, arrest | `PursuitApi` | C08 graph |
@@ -388,13 +388,13 @@ Physics radius and ambient caps come from C13 (`11-platform.md` §4.5) [research
 
 | Milestone | Engine parts | Stubbed first / later | Sessions (engine share) |
 |---|---|---|---|
-| **M01a** loop, ECS, detmath, physics wrapper (R-PLAT-03) | `packages/shared` (detmath, rng, hash, json, contracts); ECS facade and registry; loop and stages; SAB + fallback transport; `sim.worker` bootstrap; Rapier wrapper with both builds and floating origin; `InputFrame` and kbm/gamepad binders; headless host; lint bans; determinism test on a fixture world (flat ground + boxes) | no rendering beyond a debug cube view; no controllers | 1 (2 if the WebKit deterministic build fights back) |
+| **M01a** loop, ECS, detmath, physics wrapper (R-PLAT-03) | `packages/shared` (detmath, rng, hash, json, contracts); ECS facade and registry; loop and stages; SAB + fallback transport; `sim.worker` bootstrap; Rapier wrapper with both builds and floating origin; `InputFrame` and kbm/gamepad binders; headless host; lint bans; determinism test on a fixture world (flat ground + boxes) | no rendering beyond a debug cube view; no controllers | 1 (2 if WebKit's deterministic build fights back) |
 | **M01b** controller, cameras, touch (R-PLAT-04, R-PLAT-03) | KCC on-foot states; ownership machine (on foot, ragdoll stub); CameraRig fp/tp with collision; touch binder; prefab registry and `player.default`; anim graph v1 (idle/walk/run blend on a placeholder rig); audio bus skeleton; perf HUD and free cam; gray-box Civic Center block (fixture from S02) | XR smoke only (S11); no vehicles | 1–2 |
 | **M02b** weather/time (R-MAP-04) | clock, weather state and env block; working set wired to C08 chunks | visuals by S02 | ≤ 0.3 |
 | **M03a** vehicles, interaction (R-MODE-01) | vehicle controller and enter/exit; vehicle/ped/prop/pickup prefabs; interaction v1; ragdoll-lite; lines and recorder; entity inspector; physics draw | handling presets from S06's first table | 1 |
 | **M03b** traffic, peds | ambient slot rules, witness hooks, per-agent RNG streams (S02 brains) | — | ≤ 0.3 |
 | **M03c** PursuitDirector (R-MODE-01) | director, dispatcher, police behaviours (follow, PIT, box-in, roadblocks, spikes, heli LOS), arrest, `config/pursuit.json`, sandbox heat toggles | racing profile values from S06 later | 1 |
-| **M04a** saves, GameMode, unlocks, remap storage (R-ENG-04, R-MODE-05, R-MODE-01 economy) | SaveService (profiles, slices, atomic, caps, tombstones, migrations, export/import); ModeHost and ModeContext; unlock registry with `comingSoon` stubs; settings persistence (controls remap); economy wallet | menus by S10 in the same milestone; split menus to M04b if > 40 files | 1–2 |
+| **M04a** saves, GameMode, unlocks, remap storage (R-ENG-04, R-MODE-05, R-MODE-01 economy) | SaveService (profiles, slices, atomic, caps, tombstones, migrations, export/import); ModeHost and ModeContext; unlock registry with `comingSoon` stubs; settings persistence (controls remap); economy wallet | menus by S10 (M04b) | 1–2 |
 | M05a | scheduler, zones, timeline recorder; cinematic directive | director shots by S03 | ≤ 0.5 |
 | M05c | open-world melee basic (3 moves via `CombatApi` stub), shops via economy | shared core in M08a | ≤ 0.3 |
 | M08a | combat core reading S07 frame data | — | ≤ 0.3 |

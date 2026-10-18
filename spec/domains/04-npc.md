@@ -313,7 +313,7 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
 | Intents | on | on at `mobile`, off at `mobile-low` | on | on |
 | Lip-sync | mouth atlas + jaw | same | same, ≤ 1 speaker at `xr-quest` | same |
 | Audio | WebAudio after `FirstGestureUnlock` | same; PCM preferred where Ogg Opus decode is unconfirmed (S05 U14) | spatial on the voice bus | spatial |
-| Subtitles | panel + world bubble | panel | head-locked caption on the panel with comfort-safe placement (S11) | same |
+| Subtitles | panel + world bubble | panel | lazy-follow caption on the panel with comfort-safe placement (S11) | same |
 XR comfort settings (C05 `XrComfortSettings`) always apply; every conversation is completable with intents alone.
 
 ## 7. Verified facts used

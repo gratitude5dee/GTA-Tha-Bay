@@ -21,7 +21,7 @@
 
 ### M06a4 · memory-voice-lipsync — 1 · risk M · S04
 - **Goal:** `MemoryService` and summarizer, t1 TTS (Workers AI Aura), `TtsPlayer`, `LipSyncDriver`, voice catalog, eval harness, route 52.
-- **R** R-NPC-04/05, R-ENG-04 · **Dep** M06a3 · **Read** `04-npc.md` §5.6–§5.8; `04-npc-builder.md` C6 · **Out** `packages/npc/src/{tts,lipsync}`, `packages/npc/evals`, `services/edge/src/npc/memory` · **C** C10 1.0, C12 1.1
+- **R** R-NPC-04/05, R-ENG-04, R-UI-01 · **Dep** M06a3, M04b2 · **Read** `04-npc.md` §5.6–§5.8; `04-npc-builder.md` C6 · **Out** `packages/npc/src/{tts,lipsync}`, `packages/npc/evals`, `services/edge/src/npc/memory` · **C** C10 1.0, C12 1.1
 - **Gate** Q-20 (t2 voices off) · **Proof** `pnpm check:workers -- npc-tts-gating`; `pnpm npc:eval -- --replay`; `pnpm check:unit -- packages/npc` (viseme mapper; 36-case voice tier matrix)
 
 ### M06a5 · dialogue-panel-ui — 0.3 · risk L · S10
@@ -167,8 +167,8 @@
 - **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (session, input routing, comfort); `pnpm check:unit -- packages/engine/src/platform` (gesture rule); manual `M11b1-{quest3,visionpro}`
 
 ### M11b3 · xr-ui-panels-comfort — 0.8 · risk M · S10
-- **Goal:** `UiSurface` on Quest layers and Vision Pro planes, Enter/Exit VR button, wrist panel, comfort settings in XR, flat-only text entry (DL-142).
-- **R** R-PLAT-02, R-UI-02, R-ENG-04 · **Dep** M11b1 · **Read** `10-ui-hud-xr.md` §2, §6 · **Out** `packages/ui/src/xr` · **C** C13 1.1 (`XrPanels`)
+- **Goal:** `UiSurface` on Quest layers and Vision Pro planes, Enter/Exit VR button, wrist panel, comfort settings in XR, the NPC dialogue bubble, flat-only text entry (DL-142).
+- **R** R-PLAT-02, R-UI-02, R-ENG-04, R-NPC-05 · **Dep** M11b1, M06a5 (XR dialogue bubble) · **Read** `10-ui-hud-xr.md` §2, §6 · **Out** `packages/ui/src/xr` · **C** C13 1.1 (`XrPanels`)
 - **Gate** none · **Proof** `pnpm check:e2e:xr` (Enter VR calls `enter()` synchronously in the click handler)
 
 ### M11b2 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S06, S07, S10 (split 1 of 2)

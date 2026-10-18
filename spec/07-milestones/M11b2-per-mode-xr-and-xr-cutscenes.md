@@ -16,6 +16,7 @@ After this session racing and the fighter are playable in the headset. **Racing 
 ## Scope in
 - **Racing XR** (`06-racing.md` §6; `06-racing-content.md` C.9; `11-platform-xr.md` §5.3):
   - **Rig.** The rig uses `origin: 'seat'`, anchored to the prefab's driver-seat node (C07 1.1 vehicle node anchors). With `cockpitHorizonLock` the view keeps world-level roll and pitch while yaw follows the car. Shake, FOV kick, nitro blur and director cuts are dropped.
+  - **Any vehicle.** The `origin: 'seat'` rig, the comfort rules of this list (horizon lock, yaw-rate vignette, no shake, FOV kick, nitro blur or director cuts) and the dash panels apply to any vehicle the player enters in story or sandbox free roam, not only in races. Story pursuits (M03c) honour `chaseView` as race pursuits do. Leaving the vehicle returns the rig to M11b1's `origin: 'feet'`.
   - **Vignette.** Strength adds `vignetteBoostPerYawRate` × yaw rate plus a lateral-acceleration term to the M11b1 formula (constants from `config/racing.json` `xr`).
   - **Event list.** `RaceDef.xr: 'none'` kinds (drift, sideshow) are hidden from the XR event list. A deep link to one shows "Not available in VR".
   - **Caps.** Rivals and police follow the Quest row (3 · 3) and the Vision Pro row (5 · 6) of §6.2.

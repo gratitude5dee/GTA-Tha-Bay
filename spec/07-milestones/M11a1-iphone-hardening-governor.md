@@ -41,7 +41,7 @@ After this session the platform adapts to the device while the game runs, and th
 
 ## Deliverables
 - `packages/engine/src/platform/governor/{governor.ts, knobs.ts, signals.ts, frame-pacer.ts}`.
-- `packages/engine/src/platform/memory/{memory-budget.ts, eviction.ts}`. The ChunkStore and WorldPackStore hooks are small edits in `packages/world/src/stream/` and `packages/engine/src/platform/` (assets).
+- `packages/engine/src/platform/memory/{memory-budget.ts, eviction.ts}`. The ChunkStore and WorldPackStore hooks are small edits in `packages/world/src/sim/streaming/` (ChunkStore, M02b1) and `packages/engine/src/assets/store/` (WorldPackStore, M01e) (DL-247).
 - Edits: `qa-flags.ts` (`?governor=off` active); the bridge (`probe.ts` / perf bridge) additions; `apps/web/src/main.ts` (start the pacer and governor after reveal).
 - `config/perf/paths/{race-sprint,race-pursuit-heat4}.json`, the scenario registration in `packages/engine/src/platform/perf/scenario-runner.ts`, and `tests/perf/race.perf.spec.ts`.
 - `services/edge/src/reports/browser.ts` (crash branch), `packages/shared/src/telemetry.ts` (`app.crash`, `C16_VERSION`), `packages/shared/schemas/telemetry/app.crash.json`, `services/edge/test/reports-crash.spec.ts` (suite `reports-crash`).

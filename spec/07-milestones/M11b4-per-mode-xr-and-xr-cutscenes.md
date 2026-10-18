@@ -4,7 +4,7 @@
 The XR port covers every mode and every cutscene path. M11b2 already did racing and fighter. When this session ends: the tycoon mode runs as a seated desk scene with world-locked panels (dashboard, cap table, inbox, pitch card) that work with trigger or pinch and need no hover. Cutscenes play in a headset through the S11 `XrMediaHost` implementations: a Quest media layer, a Vision Pro WebCodecs texture, and a plain video-texture fallback. Each runs in a paused cinema scene with a subtitle plane, 300 ms fades and skip by button or pinch. When no clip can play, the in-engine fallback runs from the fixed `xrVantage` with no cuts. Per-mode Quest and Vision Pro checklists exist, and the device pass is judged by `perf:verify`. This closes the XR rows needed at the single-player launchable point.
 
 ## Requirements
-- R-PLAT-02: per-mode XR rules (tycoon desk) and XR cutscenes complete the full XR port on Quest 3/3S and Vision Pro.
+- R-PLAT-02: per-mode XR rules (tycoon desk), a story mission played end to end in the headset, and XR cutscenes complete the full XR port on Quest 3/3S and Vision Pro.
 - R-CUT-03: every XR cutscene has a non-generated fallback (fixed-vantage director with subtitles), so XR play never blocks on video.
 - R-MODE-04: the tycoon mode is playable in XR.
 
@@ -22,7 +22,7 @@ The XR port covers every mode and every cutscene path. M11b2 already did racing 
 - Subtitle plane: Quest quad layer drawn through the r186 `createQuadLayer(…, rendercall)` from the S10 subtitle text; Vision Pro a `CanvasTexture` plane; text from the clip cues (R-ENG-04).
 - XR branch of `CutscenePlayer` in `packages/engine/src/client/cutscene/xr/` next to the flat player (C09 §D2 location, used by story and fighter clips; DL-229), with the story trigger glue in `packages/modes/story/src/cutscene/xr/triggers.ts`: it picks the host and rendition `v768`; triggers `mid_stall` (also a frozen frame for 1 s in XR) and `budget` (XR p90 > budget × 1.15 for 2 s → `v540`, then fallback) per §D7; answers `cutscene.state` within 2.5 s (1.5 s prefetched); the in-engine fallback fades 300 ms, places the viewer at `xrVantage` (C04 `vantage`), applies no cuts or camera motion, shows subtitles on the plane, and leaves the same mission state as the flat path.
 - Tycoon XR (`packages/modes/tycoon/src/xr/`): desk scene, rig `origin: 'desk'`, seated; panels dashboard, cap table, inbox and pitch card registered through `XrPanels` at `uiDistanceM`, world-locked; selection by trigger or pinch on `targetRaySpace`; no hover-only control; no locomotion; panels redraw on data change only, at most 2 texture updates per frame; free-text fields show "Exit VR to continue" (DL-142); flag `tycoon.xrDesk` turned on.
-- Checklists `tools/ci/checklists/M11b4-quest3.json` and `M11b4-visionpro.json` (C13 `DeviceChecklist`) with per-mode rows: enter and exit; story walk with teleport and snap turn; racing seated drive (M11b2 rules); fighter tabletop round; tycoon desk to pitch-card accept (gaze and pinch on Vision Pro); one 15 s cutscene with subtitles through the native host and one forced fallback (Settings › Generated cutscenes: Off, trigger `setting_off`); comfort defaults on first entry; Quest face-button capture; refresh rate; the S10 XR UI rows of `10-ui-hud-xr.md` §9 item 11 (panels, wrist menu, Enter/Exit VR, flat-only text entry; DL-229).
+- Checklists `tools/ci/checklists/M11b4-quest3.json` and `M11b4-visionpro.json` (C13 `DeviceChecklist`) with per-mode rows: enter and exit; story walk with teleport and snap turn; story drive and mission pass (enter and leave a vehicle, a pursuit, finish an Act 1 mission); story talk (intent chips on the M11b3 bubble, AI badge visible); racing seated drive (M11b2 rules); fighter tabletop round; tycoon desk to pitch-card accept (gaze and pinch on Vision Pro); one 15 s cutscene with subtitles through the native host and one forced fallback (Settings › Generated cutscenes: Off, trigger `setting_off`); comfort defaults on first entry; Quest face-button capture; refresh rate; the S10 XR UI rows of `10-ui-hud-xr.md` §9 item 11 (panels, wrist menu, Enter/Exit VR, flat-only text entry; DL-229).
 
 ## Scope out
 - `immersive-ar`, PS VR2 controllers → post-v1 ADR-0027. XR remap capture UI → M11b2 (S10). Real generated clips beyond fixtures → M05c3, M10b (fal cap DL-OWN-01; none spent here).
@@ -34,7 +34,7 @@ The XR port covers every mode and every cutscene path. M11b2 already did racing 
 - `packages/engine/src/client/cutscene/xr/{xr-player.ts, xr-fallback.ts}`, `packages/engine/test/cutscene/xr-cutscene.spec.ts`; `packages/modes/story/src/cutscene/xr/triggers.ts`.
 - `packages/modes/tycoon/src/xr/{desk-scene.ts, panels.ts, input.ts, index.ts}`; `config/tycoon.balance.json` flag `tycoon.xrDesk: true`.
 - Vendored mp4box under `packages/engine/vendor/` with its licence snapshot (passes `license:scan`).
-- `tests/e2e/xr-cutscene.spec.ts` (`@xr @xr-cutscene`), `tests/e2e/tycoon-xr.spec.ts` (`@xr @tycoon-xr`); both titles carry `@xr` so the `xr-quest3` project's `grep: /@xr/` selects them.
+- `tests/e2e/xr-cutscene.spec.ts` (`@xr @xr-cutscene`), `tests/e2e/tycoon-xr.spec.ts` (`@xr @tycoon-xr`), `tests/e2e/xr-story.spec.ts` (`@xr @xr-story`); all three titles carry `@xr` so the `xr-quest3` project's `grep: /@xr/` selects them.
 - `tools/ci/checklists/M11b4-quest3.json`, `tools/ci/checklists/M11b4-visionpro.json`.
 - `docs/device-runs/M11b4/{quest3,visionpro}/{perf.json, notes.json}` (from the device pass).
 
@@ -52,10 +52,17 @@ The XR port covers every mode and every cutscene path. M11b2 already did racing 
 - AC-7 Given a Quest 3 on the Preview build When the operator runs `M11b4-quest3` Then every row passes, the 15 s clip plays with subtitles, the forced fallback completes, and the uploaded run passes the judge; the run records U-ENG-5, U-PLT-12, U-PLT-13 and U-S03-6 in `notes.json` — proof: manual: Quest 3, Quest Browser, run `pnpm perf:checklist -- tools/ci/checklists/M11b4-quest3.json`, follow each row, save `perf.json` and `notes.json` to `docs/device-runs/M11b4/quest3/`, then `pnpm perf:verify -- docs/device-runs/M11b4/quest3/perf.json --tier xr-quest --checklist tools/ci/checklists/M11b4-quest3.json`
 - AC-8 Given a Vision Pro on visionOS 26.2+ When the operator runs `M11b4-visionpro` with gaze and pinch only Then every row passes, including the pitch-card accept and the WebCodecs clip with subtitles, and the run passes the judge; the run records U-PLT-10 and U-PLT-13 — proof: manual: Vision Pro, Safari, run `pnpm perf:checklist -- tools/ci/checklists/M11b4-visionpro.json`, follow each row, save to `docs/device-runs/M11b4/visionpro/`, then `pnpm perf:verify -- docs/device-runs/M11b4/visionpro/perf.json --tier xr-visionpro --checklist tools/ci/checklists/M11b4-visionpro.json`
 - AC-9 Given the branch When it builds, the licence scan runs and the Preview deploys Then all succeed with mp4box vendored and no runtime CDN import — proof: `pnpm build && pnpm license:scan && pnpm deploy:preview`
+- AC-10 Given `xr-quest3` with IWER, route 31 replaying M06a5's `talk-happy.sse`, and Act 1 missions `m.a1.03` (drive, pursuit, beat `cut.story.m.a1.03.raid`) and `m.a1.04` (talk step) on seed 1 When the bot plays both in the headset, with the inputs and intent picks of the flat run Then all of these hold:
+  - the rig is `seat` while in a vehicle and `feet` after leaving it;
+  - the pursuit completes;
+  - the talk step completes with intents alone;
+  - the beat plays through the XR player;
+  - both missions pass, and each mission-state hash equals the flat end hash for seed 1 (`check:missions`, M05c1 AC-3).
+  — proof: `pnpm check:e2e:xr -- --grep @xr-story`
 
 ## Test plan
 - Unit: `packages/engine/src/platform/xr/media/*.test.ts`; `packages/engine/test/cutscene/xr-cutscene.spec.ts`.
-- E2E (`xr-quest3`, IWER 2.6.0 before the renderer): `@xr-cutscene`, `@tycoon-xr`; assertions on bridge state, never pixels.
+- E2E (`xr-quest3`, IWER 2.6.0 before the renderer): `@xr-cutscene`, `@tycoon-xr`, `@xr-story`; assertions on bridge state, never pixels.
 - Device: `M11b4-quest3`, `M11b4-visionpro` judged by `perf:verify`; committing the runs triggers the `device-runs` CI job.
 
 ## Demo script
@@ -66,7 +73,7 @@ The XR port covers every mode and every cutscene path. M11b2 already did racing 
 5. On a Quest, run the `M11b4-quest3` checklist.
 
 ## Effort
-0.7 Builder session; about 30 files; risk **medium**. The Quest media layer and WebCodecs host can only be confirmed on devices; CI covers the fallback paths.
+0.7 Builder session; about 31 files; risk **medium**. The Quest media layer and WebCodecs host can only be confirmed on devices; CI covers the fallback paths.
 
 ## Risks & fallbacks
 - Quest video textures freezing after XR entry (U-S03-6): elements come from the pre-session pool and the texture host polls `currentTime`; if it still freezes on device, the checklist row fails, `mid_stall` hands over to the in-engine fallback, and the run records it.

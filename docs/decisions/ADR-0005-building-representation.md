@@ -3,7 +3,7 @@
 **Status:** accepted · **Date:** 2026-10-18 · **Decides:** spec/03 A-05 and D-15; contract C08
 
 ## Context
-R-MAP-01 asks for an accurate, recognizable San Francisco on every device from an iPhone 15 to a desktop GPU. Draw cost in three.js grows with render objects, not triangles alone (issue #30560 is open) [F-007]; Quest 3 is held to under 200 draw calls and 1.5 M triangles [F-013]. The bake reference is 176,777 building footprints (`spec/domains/02-world.md` §8, M02a1); the source is DataSF `ynuv-fyni` under PDDL [F-054], and OSM adds tags under ODbL [F-053].
+R-MAP-01 asks for an accurate, recognizable San Francisco on every device from an iPhone 15 to a desktop GPU. Draw cost in three.js grows with render objects, not triangles alone (issue #30560 is open) [F-007]; Quest 3 is held to under 200 draw calls and 1.5 M triangles [F-013]. The SF example repo's bake produced 176,777 buildings from different inputs (an informational reference, not a gate; the M02a1 gate counts against the fetched `ynuv-fyni` rows, DL-288); the source is DataSF `ynuv-fyni` under PDDL [F-054], and OSM adds tags under ODbL [F-053].
 
 ## Options considered
 1. **Google Photorealistic 3D Tiles or Mapbox tiles.** No caching, offline use or derivation; Mapbox forbids deriving data [F-055, F-056].
