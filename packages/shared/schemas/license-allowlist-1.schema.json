@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "license-allowlist-1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "record",
+    "dependency",
+    "exceptions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "license-allowlist/1"
+    },
+    "record": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prod",
+        "devOnly"
+      ],
+      "properties": {
+        "prod": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "devOnly": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "package",
+          "license",
+          "scope",
+          "reason"
+        ],
+        "properties": {
+          "package": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "scope": {
+            "enum": [
+              "prod",
+              "dev"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "adr": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

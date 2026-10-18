@@ -1,0 +1,115 @@
+/**
+ * Pure core of provenance:check (spec/domains/05-assets.md section 4.3). Structural validation against the JSON
+ * Schema is done by the CLI with Ajv; this module holds the semantic rules: licence allowlist, status, generator
+ * env, previs and mock references, placeholder tags in release mode, derivation cycles and unrooted chains,
+ * attribution coverage.
+ */
+import type { ProvenanceRecord } from '../provenance.ts';
+import { finding, type GateFinding } from './types.ts';
+import { licenseAllowed } from './license.ts';
+
+const GATE = 'provenance:check';
+
+export interface ProvenanceGateOptions {
+  /** `licenses.record` of config/license-allowlist.json (entries may end in `*`). */
+  recordLicenses: readonly string[];
+  /** Release mode: placeholder tags fail. */
+  release: boolean;
+}
+
+export function normalizeSha(ref: string): string {
+  return ref.startsWith('sha256:') ? ref.slice(7) : ref;
+}
+
+function fileOf(rec: ProvenanceRecord): string {
+  return rec.paths[0] ?? rec.sha256;
+}
+
+export function checkRecord(rec: ProvenanceRecord, opts: ProvenanceGateOptions): GateFinding[] {
+  const out: GateFinding[] = [];
+  const file = fileOf(rec);
+  const add = (rule: string, detail: string): void => {
+    out.push(finding(GATE, file, rule, detail));
+  };
+  if (!licenseAllowed(rec.license, opts.recordLicenses)) add('license-not-allowed', `licence ${rec.license} is not on the record allowlist`);
+  if (rec.status !== 'active') add('status-not-active', `status is ${rec.status}`);
+  const g = rec.generator;
+  if (g) {
+    if (g.env !== 'production') add('env-not-production', `generator.env is ${g.env}`);
+    if (g.executor === 'mock') add('mock-reference', 'generator.executor is mock');
+    for (const ref of g.input_refs ?? []) {
+      if (/(^|\/)previs\//.test(ref)) add('previs-reference', `input ref ${ref}`);
+      if (/(^|[/_.-])mock([/_.-]|$)/i.test(ref)) add('mock-reference', `input ref ${ref}`);
+    }
+  } else if (rec.origin === 'generated') {
+    add('generator-missing', 'origin generated requires a generator block');
+  }
+  for (const p of rec.paths) {
+    if (/(^|\/)previs\//.test(p)) add('previs-reference', `path ${p}`);
+    if (/(^|[/_.-])mock([/_.-]|$)/i.test(p)) add('mock-reference', `path ${p}`);
+    if (opts.release && /placeholder/i.test(p)) add('placeholder-tag', `path ${p}`);
+  }
+  if (opts.release) {
+    if (rec.attribution && /placeholder/i.test(rec.attribution)) add('placeholder-tag', 'attribution is a placeholder');
+    for (const r of rec.review) if (r.note && /placeholder/i.test(r.note)) add('placeholder-tag', `review note at ${r.at}`);
+  }
+  if (!rec.attribution && (rec.origin === 'open_data' || rec.license === 'CC-BY-4.0' || rec.license === 'ODbL-1.0')) {
+    add('attribution-missing', `${rec.origin} record under ${rec.license} needs an attribution`);
+  }
+  if (rec.origin === 'generated' && !rec.ai_generated) add('ai-flag', 'generated record must set ai_generated');
+  return out;
+}
+
+/** Cycles and unrooted chains over a set of records keyed by sha256. */
+export function checkDerivation(records: readonly ProvenanceRecord[]): GateFinding[] {
+  const bySha = new Map<string, ProvenanceRecord>();
+  for (const r of records) bySha.set(r.sha256, r);
+  const out: GateFinding[] = [];
+  const state = new Map<string, 'visiting' | 'done'>();
+  const visit = (rec: ProvenanceRecord, trail: string[]): void => {
+    const st = state.get(rec.sha256);
+    if (st === 'done') return;
+    if (st === 'visiting') {
+      out.push(finding(GATE, fileOf(rec), 'derivation-cycle', [...trail, rec.sha256].map((s) => s.slice(0, 12)).join(' -> ')));
+      return;
+    }
+    state.set(rec.sha256, 'visiting');
+    for (const raw of rec.derived_from) {
+      const parent = bySha.get(normalizeSha(raw));
+      if (!parent) {
+        out.push(finding(GATE, fileOf(rec), 'derivation-unrooted', `parent ${normalizeSha(raw).slice(0, 12)} has no record`));
+        continue;
+      }
+      visit(parent, [...trail, rec.sha256]);
+    }
+    state.set(rec.sha256, 'done');
+  };
+  for (const r of records) visit(r, []);
+  return out;
+}
+
+export interface Attribution { sha256: string; license: string; attribution: string }
+
+export function collectAttributions(records: readonly ProvenanceRecord[]): Attribution[] {
+  const out: Attribution[] = [];
+  const seen = new Set<string>();
+  for (const r of records) {
+    if (!r.attribution || r.status !== 'active') continue;
+    const key = `${r.license}\u0000${r.attribution}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ sha256: r.sha256, license: r.license, attribution: r.attribution });
+  }
+  return out;
+}
+
+/** Every attribution string must appear in credits.json text. */
+export function checkCredits(records: readonly ProvenanceRecord[], creditsText: string | null): GateFinding[] {
+  const out: GateFinding[] = [];
+  for (const a of collectAttributions(records)) {
+    if (creditsText === null || !creditsText.includes(JSON.stringify(a.attribution).slice(1, -1))) {
+      out.push(finding(GATE, 'credits.json', 'attribution-not-in-credits', `${a.license}: ${a.attribution}`));
+    }
+  }
+  return out;
+}
