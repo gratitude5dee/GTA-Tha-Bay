@@ -94,7 +94,7 @@ Expected duration and cost (rough; architect only): 2–5 hours wall-clock; 4–
 - **G3 GenAI monthly budget ceiling and per-player quotas** — default: the ceiling that keeps S00's 1k-MAU cost model under its lowest tier, with daily cutscene-generation caps and per-player dialogue rate limits.
 
 ## 7. Review the spec before starting the Builder (30–60 minutes)
-Open `spec/00-plan.md` and confirm the Definition of Done checklist is all green and the critic log shows two consecutive clean passes. Then skim: `spec/01-product.md` (traceability matrix has no empty rows), `spec/07-milestones/M00-*.md` (you can run every command in it), `spec/99-open-questions.md` (anything with a blocked milestone needs your answer), `spec/10-cost-model.md`, `CLAUDE.md` (< 200 lines, commands real). If something is wrong, do not fix it by hand: run `/architect fix: <what>` and let it update the spec and the decision log.
+Open `spec/00-plan.md` and confirm the Definition of Done checklist is all green and the critic log shows two consecutive clean passes. Then skim: `spec/01-product-trace.md` (traceability matrix has no empty rows), `spec/07-milestones/M00-*.md` (you can run every command in it), `spec/99-open-questions.md` (anything with a blocked milestone needs your answer), `spec/10-cost-model.md`, `CLAUDE.md` (< 200 lines, commands real). If something is wrong, do not fix it by hand: run `/architect fix: <what>` and let it update the spec and the decision log.
 
 ## 8. Run the Builder (one milestone per session)
 ```

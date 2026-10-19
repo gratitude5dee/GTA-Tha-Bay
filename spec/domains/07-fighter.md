@@ -206,11 +206,11 @@ All rows checked 2026-10-18 (ledger ids from `research/INDEX.md` §2 where they 
 | U-FGT-4 | MediaPipe left/right label convention under a mirrored stream | classifier uses stance and mirrored x, never labels | M08c1 fixtures |
 | U-FGT-5 | iOS standalone-PWA camera reliability on iOS 26/27 | detect freeze, suggest Safari | M08c2 (Q-13 devices) |
 | U-FGT-6 | `requestVideoFrameCallback` `captureTime` accuracy on iOS | assumed 60 ms constant | M08c2 |
-| U-FGT-7 | art-lead effort for about 160 clip authoring tasks | shared base set + 12–16 per fighter | M08a2, M10a |
-| U-FGT-8 | Durable Object relay latency for 60 Hz fight input | none in v1 | M12c |
+| U-AST-17 | art-lead effort for about 160 clip authoring tasks | shared base set + 12–16 per fighter | M08a2, M10a |
+| U-ADR-02 | Durable Object relay latency for 60 Hz fight input | none in v1 | M12c |
 | U-FGT-9 | Quest A/B/X/Y indices (U-ENG-5); WebXR camera access on Quest (Q-GD-08) | chords; no XR pose | M11b2 |
-| U-FGT-10 | H3 family US licence for the clips (ADR-GENAI-01, Q-03) | in-engine intros; fallback provider | owner |
-| U-FGT-11 | whether stored normalised body proportions are biometric data | optional, local, deletable | counsel (Q-S07-2) |
+| U-AST-16 | H3 family US licence for the clips (ADR-GENAI-01, Q-03) | in-engine intros; fallback provider | owner |
+| Q-23(b) | whether stored normalised body proportions are biometric data | optional, local, deletable | counsel (Q-S07-2) |
 
 ## 8. Milestone mapping
 

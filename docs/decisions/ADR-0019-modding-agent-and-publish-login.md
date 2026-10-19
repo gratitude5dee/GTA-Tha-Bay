@@ -25,7 +25,7 @@ R-MOD-02 wants players with a ChatGPT plan to mod without owning a coding agent.
 - (+) Players with any agent, including ChatGPT-plan Codex, can mod today; the device-code path works from any machine and any browser.
 - (+) Moving later to flow B or C changes adapters, not the publish route.
 - (−) Subscribers without an agent and without the in-game creator have no assistant until flow B or a server-side assistant exists.
-- (−) Flow C depends on OpenAI approving a limited program; the `/link` page must work with only the GitHub path (ADR-0018).
+- (−) Flow C depends on OpenAI approving a limited program; the `/link` page must work with only `openai` (dark) or Thirdweb from M14a (ADR-0018, DL-342).
 - (−) A local Studio that calls our API under plan usage is UNVERIFIED (S12 U6).
 
 ## Affected contracts and milestones

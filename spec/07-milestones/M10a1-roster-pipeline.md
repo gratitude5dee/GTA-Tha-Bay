@@ -26,6 +26,7 @@ After this session the R-NPC-02 character pipeline is an automated CLI. `pnpm as
 - **`gate --run <id> --gate H0…H5 --choose <n> --by <profile>`:** writes `review[]` and resumes.
 - **Stages and gates.**
   - Stages per `05-assets-pipeline.md` §1 (rig 422 → second mesh candidate); gates A1–A8 per §2 with a report beside each output. A1/A2 use `VisionPort` (Haiku 5.5); without `ANTHROPIC_API_KEY` it returns `held` and the human gate decides, recorded.
+  - `NAME_IN_PROMPT` (and the other prompt rules) reuse M05b2's pure `lintPrompt` from `packages/shared/src/genai/prompt-lint.ts`, with names supplied by `NamePort`; no second prompt linter (DL-550).
 - **`assets:optimize --slug`** (`05-assets-pipeline.md` §3):
   dedup/prune/weld, animations to `anim/<slug>.base`, `bay_rig_v1` bone names, hi/mid/lo with meshopt and KTX2, `extras.assetId`, hashes.
 - **`assets:retarget --rig bay_rig_v1 --clips <glb> --to <slug>`:** `SkeletonUtils.retargetClip` in Node, output `anim/<slug>.moves`, clip name = move id, frame count in `extras`. If an earlier milestone already shipped this command, extend it without changing its flags.

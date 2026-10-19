@@ -38,8 +38,8 @@ After this session the player can walk up to a car, get in, drive it through the
 - `packages/engine/src/sim/vehicle/{raycast-vehicle.ts, vehicle-system.ts, enter-exit.ts, components.ts}`, `src/sim/interaction/{interaction.ts, handlers.ts}`, `src/sim/ragdoll/ragdoll-lite.ts`, `src/sim/lines/{format.ts, recorder.ts, player.ts}`, `src/sim/prefabs/registry.ts` (vehicle and interact fields), `src/sim/world/closures.ts` (barrier props).
 - `packages/engine/src/client/vehicle/{vehicle-view.ts, anchors.ts, vehicle-camera.ts}`, `src/client/hud/prompt.ts`, `src/client/debug/{inspector.ts, physics-draw.ts}`.
 - `packages/engine/test/{vehicle.lines.spec.ts, vehicle.enter-exit.spec.ts, interaction.spec.ts, ragdoll.spec.ts, lines.format.spec.ts}`, `test/fixtures/oracle-track.ts`; `tests/e2e/vehicle.spec.ts` (`@vehicle`, `@vehicle-world`).
-- Data (not counted): 10 presets, 17 prefab JSON files, lines `packages/engine/test/lines/{accel-0-100, brake-100-0, skidpad, crest-jump, filbert, walk-drive}.line.json` with golden end hashes, input default edits.
-- `packages/engine/package.json` script **`test:lines`** (`vitest run` over the line specs; `pnpm check:unit` also runs it).
+- Data (not counted): 10 presets, 17 prefab JSON files, lines `packages/engine/test/lines/{accel-0-100, brake-100-0, skidpad, crest-jump, filbert, walk-drive}.line.json` (inputs only, no hashes), their golden end poses, state hashes and the 0–100 gear sequence in `packages/engine/test/golden/lines.json` (canonical JSON, read by `vehicle.lines.spec.ts`; inside M00d's `**/golden/**` guard; DL-549), input default edits.
+- `packages/engine/package.json` script **`test:lines`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/vehicle.lines.spec.ts packages/engine/test/lines.format.spec.ts`, spec paths from the repo root as M01a1's `test:*`; `pnpm check:unit` also runs it).
 - ≈ 37 code files.
 
 ## Interfaces
@@ -54,7 +54,7 @@ After this session the player can walk up to a car, get in, drive it through the
 - AC-6 Given three interactables at different distances, angles and priorities When candidates are scored Then the published prompt is the highest `priority × 10 − distance − angle/45` (ties by handle), nothing outside 2.5 m or 100° is offered, a `hold` prompt begins only after 30 ticks held, and `setEnabled(kind, false)` removes that kind — proof: `pnpm --filter @dv/engine test -- interaction`
 - AC-7 Given a car hitting a ped capsule When ΔV is 7 m/s Then the ped becomes dynamic for ≤ 180 ticks and gets up, the car receives the opposite impulse; at 5 m/s no ragdoll starts; with the `mobile` cap of 4 a fifth hit plays the canned fall without a body — proof: `pnpm --filter @dv/engine test -- ragdoll`
 - AC-8 Given a recorded 600-tick session When it is saved as a line and replayed Then the RLE round trip is byte-identical, the replay ends with the recorded state hash, and an injected real input stops playback on that tick — proof: `pnpm --filter @dv/engine test -- lines.format`
-- AC-9 Given a QA build with the gray-box world in Chromium When the bridge spawns `vehicle.sedan` at the junction, the player enters, plays `walk-drive.line.json`, cycles the five vehicle cameras and exits Then every step reports its expected state, the camera never sits inside a collider, the inspector lists the `Vehicle` component and the physics wireframe toggles — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @vehicle`
+- AC-9 Given a QA build with the gray-box world (no `DV_WORLD`; CI runs `@vehicle` in the `GRAYBOX_GREP` half of the e2e leg, DL-546) in Chromium When the bridge spawns `vehicle.sedan` at the junction, the player enters, plays `walk-drive.line.json`, cycles the five vehicle cameras and exits Then every step reports its expected state, the camera never sits inside a collider, the inspector lists the `Vehicle` component and the physics wireframe toggles — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @vehicle`
 - AC-10 Given a QA build with the `synth` world When a sedan spawned on the edge nearest City Hall drives a scripted route over the overpass slab and through the tunnel Then it never falls below `groundY`, stays on the deck while on the slab, exits the tunnel under its hood, and a closed edge shows barrier props at both ends — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @vehicle-world`
 - AC-11 Given the branch When the production build is verified and deployed to a Preview Then the inspector, wireframe and line recorder are absent from the production bundle and the Preview passes its header checks — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
@@ -62,7 +62,7 @@ After this session the player can walk up to a car, get in, drive it through the
 - **Unit (shared):** `vehicle.powerCurve`, `vehicle.envelope`, `vehicle.step`, `vehicle.damage` (`pnpm --filter @dv/shared test`).
 - **Integration (headless Rapier, canonical):** `engine/lines.*` incl. `lines.filbert` (`test:lines`); `vehicle.enter-exit`, `interaction`, `ragdoll`, `lines.format` (`pnpm --filter @dv/engine test`). All run inside `pnpm check:unit`.
 - **E2E:** `@vehicle` (gray-box), `@vehicle-world` (`synth`) on `chromium-webgl2`; M01b2 `@fp-tp`, `@touch` and M02 world tags stay green.
-- Golden line hashes change only through the `golden-update` label (M00d rule).
+- Golden line end hashes and the gear sequence live only in `packages/engine/test/golden/lines.json`, so M00d's `golden-guard` (`**/golden/**`) fails any change to them without the `golden-update` label; `*.line.json` files carry no expected values (DL-549).
 
 ## Demo script
 1. `pnpm dev`, open `/?debug=1`; enter the parked sedan at the gray-box junction, drive around the block, cycle cameras, exit.
@@ -73,7 +73,7 @@ After this session the player can walk up to a car, get in, drive it through the
 
 ## Risks & fallbacks
 - **Oracle windows missed after two tuning passes:** keep the failing preset's numbers, report the measured values per line, and leave the decision on the model (and on Jolt, D-S06-02) to M03a2; do not widen a window.
-- **Canonical build slow with 8 vehicles** (U-RAC-2): record tick cost per build in the report; M07a1 sets the per-tier cap.
+- **Canonical build slow with 8 vehicles** (U-ENG-2): record tick cost per build in the report; M07a1 sets the per-tier cap.
 - **Rays tunnel through 1 m slabs at speed:** cast from the wheel hub plus suspension rest length and keep the 2-substep rule; fallback a sphere cast per wheel.
 
 ## Notes for the Builder

@@ -37,7 +37,7 @@
 | C12 | API + identity + DB | S09 | 1.2.0 (1.1.0 until M12c1) | routes #1–57 (54–57 from 1.2), migrations 0001–0009 | `packages/shared/src/api/{v1,budget,mods}.ts`, `data-port.ts`, `identity.ts`, `db.gen.ts`, `supabase/migrations/*` | 7, 10 | M00a, M04b3, M05d, M12a1 | S03, S04, S05, S06, S08, S10, S12, S13 |
 | C13 | `QualityTier` + budgets + platform services | S11 | 1.1.0 | `tier-decision` v1, `PerfReport` v1 | `packages/shared/src/platform/{c13,xr-comfort}.ts`, `config/tier-budgets.json` | 8 | M00, M01c, M01e | S01, S02, S03, S05, S06, S07, S08, S09, S10, S12 |
 | C14 | `ModManifest` + `ModAPI` | S12 | 1.0.0 | `dv-mod/1`, `MODAPI_VERSION` 1.0.0, `ModMsg v1` | `contracts/c14-mod.ts`, `c14-modapi.ts`, `c14-protocol.ts` | 9 | M13a1 | S03, S05, S09, S10, S11 |
-| C15 | Milestone + AC format | S13 | 1.1.0 (DL-214) | — | none (document format, §4 below) | 1 | M00 onward | all |
+| C15 | Milestone + AC format | S13 | 1.1.0 (DL-214) | — | `contracts/c15-milestone.ts` (`spec/domains/13-qa.md` §4.1, M00d); heading format §4 below | 1 | M00 onward | all |
 | C16 | `TelemetryEvent` | S09 | 1.2.0 (1.1.0 until M11a1) | `TelemetryBatch.v` 1 | `packages/shared/src/telemetry.ts`, `schemas/telemetry/` | 7 | M00a | all emitters; S13 |
 | C17 | `ExperienceDescriptor` | S12 | 1.0.0 | — | `contracts/c17-experience.ts` | 9 | M13a1 | S02, S09, S10 |
 
@@ -56,7 +56,7 @@ Owner specs publish 1.0 shapes and then a "1.1 additions" block that repeats onl
 
 ## 4. C15 — milestone and acceptance-criteria format
 
-Owner S13, version 1.1.0 (DL-214; `c15-milestone.ts` and lint L1–L8 per `spec/domains/13-qa.md` §4, delivered by M00d), normative text `prompt-pack/03-SPEC-TEMPLATE.md` §C. C15 has no TypeScript; the heading block below is the contract, and every file in `spec/07-milestones/` uses it verbatim. Consumers: all milestone authors and every Builder session; first file M00.
+Owner S13, version 1.1.0 (DL-214), normative text `prompt-pack/03-SPEC-TEMPLATE.md` §C. C15 1.1 TypeScript: `spec/domains/13-qa.md` §4.1 (`packages/shared/src/contracts/c15-milestone.ts` with `MILESTONE_HEADINGS`, `CommandProof`, `MilestoneDoc` and `C15_VERSION = '1.1.0'`, delivered verbatim by M00d); proof grammar in §4.2; lint rules L1–L8 in §4.3. The heading block below is the document format that the TypeScript encodes, and every file in `spec/07-milestones/` uses it verbatim. Consumers: all milestone authors and every Builder session; first file M00.
 
 ```
 # M## — <slug>

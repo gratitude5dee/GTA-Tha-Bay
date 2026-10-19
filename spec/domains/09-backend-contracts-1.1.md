@@ -1,4 +1,4 @@
-# 09 — Backend contracts, part 1b: C12 1.1 and C16 1.1 additions (C11 unchanged)
+# 09 — Backend contracts, part 1b: C12 1.1 and C16 1.1 additions (C11 unchanged); §6 holds the C16 1.0 base
 
 > Architect, second contract reconciliation, 2026-10-18 (`spec/11-decision-log.md` DL-092, DL-100, DL-101, DL-103). Part of `spec/domains/09-backend.md`; extends `09-backend-contracts.md` (which is at the size cap, so additions live here). Owner of every shape below: **S09**; the semantics owner of each route stays as named. Rule (06 §4.1): additive change = minor bump. **C12 → 1.1.0, C16 → 1.1.0, C11 stays 1.0.0** (wire `PROTOCOL_VERSION` 2). Sources are the Wave 2–4 return blocks (`spec/.waves234-returns.json`). Requirements: R-NPC-03, R-NPC-05, R-MOD-01…04, R-AUTH-03, R-MODE-02, R-MODE-04, R-ENG-03, R-IP-03.
 
@@ -12,7 +12,7 @@ Route table #1–51 (`09-backend-contracts.md` §2.4) gains two rows and amends 
 | 53 | `GET /api/v1/mods/revoked?since=<ms>&cursor` → `RevokedRes` (`12-modding-contracts.md` B§7) | pub | api | S12 (takedowns reach installed copies within 24 h) | M13a2 |
 
 Amendments:
-- **Route 10** (`/link`, device-code approve): approves only for a profile of tier `linked`. Before M14a, P2 is reached through provider `openai` when flag `auth.openaiWeb` is on, otherwise through `supabase-oauth` (GitHub), both already in `ProviderId` (DN-S12-01, DL-145). Verification of Supabase GitHub OAuth beside Third-Party Auth is UNVERIFIED (M13c1).
+- **Route 10** (`/link`, device-code approve): approves only for a profile of tier `linked`. Before M14a, P2 is reached through provider `openai` when flag `auth.openaiWeb` is on; `supabase-oauth` (GitHub) stays in `ProviderId` but v1 builds no link for it (DN-S12-01, DL-145, DL-240, DL-342). Supabase GitHub OAuth beside Third-Party Auth is UNVERIFIED; M13c1 only records it.
 - **Route 21** (leaderboards): board ids match `^(racing|fighter|tycoon)\.[a-z0-9.-]{1,96}$` (`racing.<raceId>.time|score`, `tycoon.daily.<yyyymmdd>`); submit body ≤ 16 KiB, ⓘ; `ScoreSubmit`/`ScoreRow` are S06's types (`06-racing-data.md` §4.3); a **validator registry** keyed by the board prefix selects the semantics owner: `racing.` → S06 plausibility checks with rows `verified: false` in v1; `tycoon.` → S08 `verifyRun(setup, choices, claimed, content)` from `@dv/shared/tycoon` (DL-092; four arguments per `08-tycoon.md` §3.3, DL-223).
 - **Route 35** query adds `sort=new|top|installed`, `tier=<QualityTierId>` (filter on `tiersOk`) and `limit` (≤ 50).
 - **Route 36** accepts a P2 browser access JWT (tier `linked`) as well as the CLI device token with scope `mods:publish`; for `UploadReq.purpose = 'mod_archive'` it enqueues `UGC_SCAN` itself, so the version row and the scan share one `moderation_item` (route 34 commit is not called).
@@ -77,3 +77,61 @@ Consent stays device-scoped (`PlatformSettings.telemetryConsent`); both toggles 
 
 ## 5. Not accepted here
 C11 `ActKind.FightInput` (S07) waits for the post-M12b fight-room ADR; the optional batch-range route for world packs (S02 P6) is not added in v1; `BootConfig.hosts.modsUi` stays absent until an ADR needs the L1 UI-mod host (DL-104).
+
+## 6. C16 — `TelemetryEvent` 1.0 base (moved verbatim from `09-backend-contracts.md` §3, DL-341)
+
+
+Consumers: every package that emits events (S01, S02, S03, S04, S06–S08, S10, S11, S12); S13 dashboards and release gates. Design from [research/gap-observability-cost-guardrails.md Rec 1].
+
+```ts
+// packages/shared/src/telemetry.ts
+export const C16_VERSION = '1.1.0' as const;
+export interface TelemetryEvent {
+  name: TelemetryName;                               // registry below; unknown names are dropped at ingest
+  ts: number;                                        // client epoch ms
+  sessionId: string;                                 // crypto.randomUUID() per app launch; NEVER the profileId
+  props: Record<string, string | number | boolean>;  // ≤ 16 keys; strings ≤ 128 chars; per-name JSON Schema
+}
+export interface TelemetryBatch {
+  v: 1; build: string; seq0: number;                 // seq of events[0] within the session (dedupe)
+  env: TelemetryEnvelope; events: TelemetryEvent[];  // ≤ 50 events, body ≤ 64 KiB
+}
+export interface TelemetryEnvelope {
+  tier: QualityTierId;                                          // C13: desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
+  deviceClass: DeviceClass;                                     // C13: desktop | iphone | ipad | android | quest | avp | unknown
+  osMajor: number; displayMode: 'standalone' | 'tab' | 'xr'; backend: 'webgpu' | 'webgl2';
+}
+export type TelemetryName =
+  | 'app.start' | 'app.ready' | 'app.abnormal_exit' | 'app.cold_resume' | 'app.hidden'
+  | 'perf.minute'
+  | 'err.js' | 'err.promise' | 'err.gpu' | 'err.asset'
+  | 'net.ws' | 'net.api'
+  | 'mode.enter' | 'mode.exit' | 'mission.start' | 'mission.fail' | 'mission.complete'
+  | 'cutscene.play' | 'npc.turn.client'
+  | 'xr.session' | 'settings.tier_override' | 'tier.decision' | 'storage.persist' | 'pose.calibrate' | 'err.sim'
+  // server-only (written by Workers/DOs, never accepted from clients):
+  | 'genai.cost' | 'quota.block' | 'genjob.state' | 'room.tick' | 'room.hours' | 'budget.level' | 'recon.drift'
+  | 'auth.event' | 'mod.case';
+```
+Required props per name (excerpt; the full JSON Schemas live in `packages/shared/schemas/telemetry/`):
+
+| Name | Props (all required unless `?`) | Sampling |
+|---|---|---|
+| `app.start` | `nav`, `coi`, `store: 'opfs'|'memory'`, `backend`, `tier` (S11) | 100 % |
+| `tier.decision` | `tier`, `source` (C13 `TierDecisionSource`), `benchP90Ms?` (S11) | 100 % |
+| `storage.persist` | `granted` (S11) | 100 % |
+| `err.sim` | `cause: 'error'|'stall'`, `tick` (S01 `sim.worker` crash) | 100 % |
+| `app.ready` | `bootMs`, `phaseShellMs`, `phaseWorldMs`, `nav: 'navigate'|'reload'|'back_forward'` | 100 % |
+| `app.abnormal_exit` | `prevSid`, `lastBeatAgoMs`, `scene`, `mode`, `chunkKey`, `memEstMB`, `gpuEstMB`, `cause: 'jetsam'|'gpu_lost'|'hang'|'unknown'` (server classifies) | 100 % |
+| `perf.minute` | `fpsP50`, `fpsP5`, `frameP95Ms`, `drawCalls`, `tris`, `texMBEst`, `gpuMBEst`, `memEstMB` | mobile/XR 100 %, desktop 25 % |
+| `err.js` | `fp` (message+top-frame hash), `msg` (scrubbed ≤ 128), `top` (file:line:col) | 100 %, ≤ 5 per fp per session |
+| `net.ws` | `evt: 'open'|'close'|'resume'|'correction'`, `code?`, `rttMs?` | 100 % |
+| `cutscene.play` | `key8` (first 8 hex), `cached`, `fallback`, `reason?` | 100 % |
+| `npc.turn.client` | `ttftMs`, `fallback`, `reason?` | 100 % |
+| `pose.calibrate` | `ok`, `ms`, `delegate: 'cpu'|'gpu'` (aggregate only; no landmarks, R-IP-04) | 100 % |
+| `genai.cost` (server) | `vendor`, `model`, `usdMicros`, `cacheHit`, `tier` | 100 % |
+| `room.tick` (server, every 10 s per room) | `p50Ms`, `p99Ms`, `players`, `overloads` | 100 % |
+
+Privacy rules (testable, `tools/ci/check-telemetry.ts`): the ingest Worker never reads or stores `CF-Connecting-IP`, `User-Agent`, `Cookie`; server adds only `country` (from `request.cf.country`); no profileId, playerId, wallet, email, free text (chat, NPC prompts, backstories), or coordinates finer than a C08 chunk key; `scrub()` strips query strings, emails, bearer tokens and hex/base64 runs ≥ 24 chars and truncates to 512 chars. Settings → Data & privacy (S10) has "Diagnostics" and "Gameplay analytics" toggles (default on); when off, events are dropped client-side. Retention: AE 3 months (platform); nightly rollup to `telemetry_daily` (no sessionId) 25 months [research/gap-observability-cost-guardrails.md Rec 1.5].
+
+Storage mapping (Analytics Engine `writeDataPoint`): `index1 = name`; `blob1..` = envelope strings + string props in schema order; `double1..` = numeric props; ≤ 20 blobs/doubles, ≤ 250 points per invocation [research/gap-observability-cost-guardrails.md §1.4]. Queries always weight by `_sample_interval`.

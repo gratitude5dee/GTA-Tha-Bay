@@ -158,7 +158,7 @@ Shared simulation code for validation lives in `packages/net/src/validate.ts` (p
 | `src/data/supabase/*` | the only DataPort implementation | `createDataPort(env, ctx): DataPort` |
 | `src/budget/QuotaDO.ts`, `GovernorDO.ts` | Part 4 §5.3 | `PlayerQuota`, `BudgetGovernor` |
 | `src/npc/EncounterDO.ts` | server-held transcript, one turn at a time, cadence/turn caps, close after 60 s idle | below |
-| `src/flags/roster.ts` | `roster_flag` → KV, 30 s in-memory cache, `RosterFlags` ETag | `isKilled(npcId, scope): Promise<boolean>` |
+| `src/flags/roster.ts` | `roster_flag` read from Postgres with a 10 s in-memory isolate cache (KV `roster:flags` only as the fallback when that read fails; KV lags ≥ 60 s, DL-557), `RosterFlags` ETag; clients poll route 30 every 30 s while visible, so live removal ≤ 45 s | `isKilled(npcId, scope): Promise<boolean>` |
 | `src/ugc/*` | presign, commit, scan-queue consumer orchestration (stages from S12/S04) | routes 33–34, 41 |
 | `src/legal/*`, `src/admin/*` | intake, cases, decisions, evidence reads, hash banks | routes 42–47 |
 | `src/telemetry/ingest.ts` | C16 validation, scrub, AE write | route 3 |

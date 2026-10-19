@@ -10,6 +10,7 @@ After this session the baked city answers questions and moves the player. `@dv/w
 ## Depends on
 - **M02a2:** road graph sections, junctions and signal programs, ped graph, tags, landmarks with arrival poses, POIs, `sf-graph.v1` and `graph-codec.ts`, `synth` with roads.
 - **M02b1:** `ChunkStore` (residency, `needNow` requests), statics feed, world boot, `DV_WORLD=synth` CI builds.
+- **M02b2:** the hashed blackout resource (adopted by `TrafficControl`, read by `signal()`), `__dvBridge.world.blackout` (DL-348).
 - Contracts: C08 1.0 (`c08-api.ts` interfaces implemented verbatim; `signalAspect`, `chunkKeyOf`), C06 1.1 (`ModeContext.world: WorldApi`, implemented here and wired into the context later), C01 1.0 (Control states 700/701 for teleport).
 
 ## Scope in
