@@ -1,7 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { compileStringMatcher, scanText as scanBrandText, type IpDenylistConfig } from '../../../packages/shared/src/index.ts';
 import { evaluate, type Change } from '../check-do-migrations.ts';
 import { findTestRouteStrings, prodConfigProblems } from '../check-prod-routes.ts';
 import { scanDir, scanText } from '../check-secrets.ts';
@@ -258,5 +259,28 @@ describe('deploy:prod', () => {
     expect(log.some((l) => l.includes('wrangler deploy'))).toBe(true);
     expect(log.some((l) => l.includes('versions deploy'))).toBe(false);
     expect(r.oldVersion).toBe('old-1');
+  });
+});
+
+describe('ip:strings brand words (DL-664)', () => {
+  const deny = JSON.parse(readFileSync(path.join(import.meta.dirname, '..', '..', '..', 'config', 'ip-denylist.json'), 'utf8')) as IpDenylistConfig;
+  const matcher = compileStringMatcher(deny);
+  // the words come from the config, so this test never spells a brand out
+  const brands = ['waymo', 'tesla', 'transamerica', 'salesforce', 'oracle park', 'chase center'];
+
+  it('has every brand word in config/ip-denylist.json words', () => {
+    for (const w of brands) expect(deny.words).toContain(w);
+  });
+
+  it('flags each brand word as a whole word, case-insensitively, and with . and - as word boundaries', () => {
+    for (const w of brands) {
+      expect(scanBrandText(`visit the ${w} today`, matcher).length, w).toBeGreaterThan(0);
+      expect(scanBrandText(w.toUpperCase(), matcher).length, w).toBeGreaterThan(0);
+      expect(scanBrandText(`poi.sf.${w}-depot`, matcher).length, `${w} between . and -`).toBeGreaterThan(0);
+    }
+  });
+
+  it('does not flag a longer word that merely contains a brand word', () => {
+    expect(scanBrandText(`${brands[1]}ssellate ${brands[0]}ing`.replace(/\s+/g, ' '), matcher)).toEqual([]);
   });
 });
