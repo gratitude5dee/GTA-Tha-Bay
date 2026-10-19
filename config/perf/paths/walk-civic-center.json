@@ -1,0 +1,13 @@
+{
+  "$comment": "M02b1 camera path for the scenario 'walk-civic-center' (11-platform-perf.md section 4, DL-221): a street-level loop of 720 m around Civic Center Plaza, 120 s at 5 m/s (a jog, 600 m of the loop), eye height 1.7 m, seed 0xC0FFEE. ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "walk-civic-center",
+  "kind": "route",
+  "waypointsEnu": [[-90, 90], [90, 90], [90, -90], [-90, -90], [-90, 90]],
+  "speedMps": 5,
+  "eyeHeightM": 1.7,
+  "lookAheadM": 40,
+  "durationS": 120,
+  "warmupS": 5,
+  "seed": 12648430,
+  "density": "off"
+}

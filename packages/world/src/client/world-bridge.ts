@@ -1,0 +1,54 @@
+import type { ChunkKey, QualityTierId } from '@dv/shared';
+import type { Level } from '../sim/streaming/chunk-store.ts';
+import type { StreamingPlan } from '../sim/streaming/plan.ts';
+import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
+import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
+
+/**
+ * `window.__dvBridge.world` (QA builds only; 02-world.md section 4, M02b1). Reachable only through a dynamic import behind
+ * `import.meta.env.VITE_DV_QA === '1'`, so a production dist contains neither it nor the string "__dvBridge"
+ * (apps/web/scripts/verify-dist.mjs). Results are JSON-friendly.
+ */
+export interface WorldBridge {
+  /** Resident keys per level (uploaded), `bundleRerecords` per unit, upload cadence and bytes, failed tiles, cover masks. */
+  chunks(): ChunksReport;
+  /** The backdrop of the tier: ring and cards distance, massing, render objects, uploads at boot (R-MAP-02, AC-14). */
+  backdrop(): BackdropInfo;
+  /** Whether the world is revealed, when, and the bytes downloaded before the reveal (AC-8). */
+  boot(): BootReport;
+  /** The units the current focus and plan want at a level. */
+  wanted(level: Level): ChunkKey[];
+  plan(): StreamingPlan;
+  tier(): QualityTierId;
+  /** Streams around this point instead of the player; `clearFocus` returns to the player. */
+  focus(x: number, z: number, vx?: number, vz?: number): void;
+  clearFocus(): void;
+  /** Resolves when nothing is requested, queued or rebuilding for a few frames in a row. */
+  settle(timeoutMs?: number): Promise<{ settled: boolean; pending: number; queued: number }>;
+  /** Terrain height under a point from the uploaded meshes; null where none is resident. */
+  groundY(x: number, z: number): number | null;
+  /** Drops the GPU copies as a device loss would and rebuilds them from the resident meshes (one unit per frame). */
+  loseGpu(): Promise<void>;
+  /** Memory pressure response of the stream (11-platform.md 5.6). */
+  pressure(level: 'none' | 'soft' | 'hard'): void;
+}
+
+export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
+  const bridge: WorldBridge = {
+    chunks: () => view.chunks(),
+    backdrop: () => view.backdropInfo(),
+    boot: () => view.bootReport(),
+    wanted: (level) => view.wanted(level),
+    plan: () => view.store.plan,
+    tier: () => tier,
+    focus: (x, z, vx = 0, vz = 0) => view.setFocus({ x, z, vx, vz }),
+    clearFocus: () => view.setFocus(null),
+    settle: (t) => view.settle(t),
+    groundY: (x, z) => view.groundY(x, z),
+    loseGpu: () => view.renderer.onRendererReplaced(null as never, null),
+    pressure: (level) => view.store.setPressure(level),
+  };
+  const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+  w.__dvBridge = { ...w.__dvBridge, world: bridge };
+  return bridge;
+}

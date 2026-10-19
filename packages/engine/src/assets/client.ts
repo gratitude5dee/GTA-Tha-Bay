@@ -128,7 +128,7 @@ export class AssetClient {
   call<K extends OpName>(
     op: K,
     p: RpcOps[K][0],
-    o: { signal?: AbortSignal; progress?: (done: number, total: number) => void } = {},
+    o: { signal?: AbortSignal; progress?: (done: number, total: number) => void; transfer?: Transferable[] } = {},
   ): Promise<RpcOps[K][1]> {
     if (this.disposed) return Promise.reject(new Error('asset client is disposed'));
     const id = this.nextId++;
@@ -141,8 +141,13 @@ export class AssetClient {
         if (signal.aborted) onAbort();
         else signal.addEventListener('abort', onAbort, { once: true });
       }
-      this.port.postMessage({ t: 'req', id, op, p } as ToWorker);
+      this.port.postMessage({ t: 'req', id, op, p } as ToWorker, o.transfer);
     });
+  }
+
+  /** A domain job of the composed worker (M02b1: world meshing, the sim pack channel). Results come back transferred. */
+  job(name: string, args: unknown, o: { signal?: AbortSignal; transfer?: Transferable[] } = {}): Promise<unknown> {
+    return this.call('job', { name, args }, o);
   }
 
   /** Bytes of an `AssetRef` (resolved for the current tier) or of a `PackRef`. */

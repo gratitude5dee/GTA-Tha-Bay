@@ -31,6 +31,8 @@ export interface StatsResult {
   hits: number;
   retries: number;
   evictions: number;
+  /** Body bytes received from the network since the worker started. */
+  bytes: number;
 }
 
 export type CatalogStateName = 'idle' | 'loading' | 'ready' | 'invalid' | 'disabled' | 'unavailable';
@@ -55,6 +57,8 @@ export interface RpcOps {
   stats: [Record<string, never>, StatsResult];
   /** QA builds only; the worker answers `not-supported` otherwise. */
   qa: [{ name: string; args: unknown }, unknown];
+  /** A domain job registered by the composed worker (`runAssetWorker(scope, jobs)`, M02b1: the world mesher and pack channel). */
+  job: [{ name: string; args: unknown }, unknown];
 }
 export type OpName = keyof RpcOps;
 

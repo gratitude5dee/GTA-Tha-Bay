@@ -25,6 +25,8 @@ const bridge = <T>(page: Page, fn: (b: Bridge) => T | Promise<T>): Promise<T> =>
 
 test.describe('renderer host @renderer-host', () => {
   test('?tier=desktop picks the tier and the backend; ?gl=1 forces WebGL2 on the WebGPU project @renderer-host', async ({ page }, testInfo) => {
+    // On the DV_WORLD build the bridge appears after the world boot (BD-M02b1-14): about 35 s of software GL at the desktop tier.
+    test.setTimeout(120_000);
     const webgpuProject = testInfo.project.name === 'chromium-webgpu';
     await page.goto(webgpuProject ? '/?gl=1&tier=desktop' : '/?tier=desktop');
     await waitForPlatform(page);

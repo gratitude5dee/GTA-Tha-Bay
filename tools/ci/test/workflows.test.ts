@@ -91,3 +91,103 @@ describe('nightly.yml (AC-8)', () => {
     }
   });
 });
+
+/** The step blocks of one job: each from its `- ` line to the next one. */
+function stepsOf(job: string): string[] {
+  const out: string[] = [];
+  let cur: string[] | null = null;
+  for (const l of job.split('\n')) {
+    if (/^ {6}- /.test(l)) {
+      if (cur) out.push(cur.join('\n'));
+      cur = [l];
+    } else if (cur) cur.push(l);
+  }
+  if (cur) out.push(cur.join('\n'));
+  return out;
+}
+
+const grayboxGrep = readFileSync(path.join(repoRoot, 'tests', 'e2e', 'graybox-grep.txt'), 'utf8').trim();
+/** A workflow-level `env:` entry (2-space indent, before `jobs:`). */
+const topEnv = (text: string, name: string): string | undefined => new RegExp(`^ {2}${name}: '(.*)'$`, 'm').exec(text.split('\njobs:')[0] ?? '')?.[1];
+/** A job-level `env:` (4-space indent) that sets DV_SKIP_BUILD. */
+const JOB_LEVEL_SKIP = /^ {4}env:\n(?: {6}.*\n)*? {6}DV_SKIP_BUILD/m;
+
+describe('world builds in CI (M02b1 AC-12)', () => {
+  const ci = wf('ci.yml');
+  const nightly = wf('nightly.yml');
+  const ciJobs = jobsOf(ci);
+  const nightlyJobs = jobsOf(nightly);
+
+  it('both files define the same GRAYBOX_GREP, equal to the trimmed content of tests/e2e/graybox-grep.txt', () => {
+    expect(grayboxGrep).toMatch(/^@graybox\|@pack-\|@touch\|/);
+    expect(grayboxGrep.includes('\n')).toBe(false);
+    expect(topEnv(ci, 'GRAYBOX_GREP')).toBe(grayboxGrep);
+    expect(topEnv(nightly, 'GRAYBOX_GREP')).toBe(grayboxGrep);
+  });
+
+  const BAKE_CACHE = /uses: actions\/cache@[0-9a-f]{40}\n\s+with:\n\s+path: \|\n\s+\.cache\/map\n\s+dist\/world\n\s+key: world-bakes-\$\{\{ hashFiles\('tools\/map\/\*\*', 'config\/world\/\*\*', 'content\/world\/\*\*'\) \}\}/;
+  const BAKE_RUN = 'run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt';
+
+  function bakeBefore(job: string, testStep: RegExp, label: string): void {
+    const bake = job.search(BAKE_CACHE);
+    const run = job.indexOf(BAKE_RUN);
+    const test = job.search(testStep);
+    expect(bake, `${label}: cache step`).toBeGreaterThan(-1);
+    expect(run, `${label}: map:build on a miss`).toBeGreaterThan(bake);
+    expect(test, `${label}: test step`).toBeGreaterThan(run);
+    expect(job, label).toContain("if: steps.bake-cache.outputs.cache-hit != 'true'");
+  }
+
+  it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
+    bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
+    bakeBefore(ciJobs['e2e'] ?? '', /pnpm check:e2e/, 'e2e');
+    bakeBefore(ciJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
+  });
+
+  it('ci.yml e2e: the gray-box step has its own DV_SKIP_BUILD, the world step builds with DV_WORLD=synth, no job env defines DV_SKIP_BUILD', () => {
+    const text = ciJobs['e2e'] ?? '';
+    const steps = stepsOf(text);
+    const gray = steps.find((s) => s.includes('--grep "$GRAYBOX_GREP"')) ?? '';
+    const world = steps.find((s) => s.includes('--grep-invert "$GRAYBOX_GREP"')) ?? '';
+    expect(gray).toContain("DV_SKIP_BUILD: '1'");
+    expect(world).toContain('DV_WORLD: synth');
+    expect(world).toContain("DV_SKIP_BUILD: ''");
+    // The world step comes after the gray-box step and after the header checks that read the artifact.
+    expect(text.indexOf('--grep-invert')).toBeGreaterThan(text.indexOf('--grep "$GRAYBOX_GREP"'));
+    expect(text.indexOf('--grep-invert')).toBeGreaterThan(text.indexOf('pnpm check:coi'));
+    expect(text).not.toMatch(JOB_LEVEL_SKIP);
+    expect(ci.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+
+  it('ci.yml perf: DV_WORLD=synth with DV_SKIP_BUILD empty on the check:perf step, warnings only, not in the e2e legs', () => {
+    const perf = ciJobs['perf'] ?? '';
+    const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf')) ?? '';
+    expect(step).toContain('run: pnpm check:perf\n');
+    expect(step).toContain('DV_WORLD: synth');
+    expect(step).toContain("DV_SKIP_BUILD: ''");
+    expect(step).not.toContain('--fail');
+    expect(perf).not.toMatch(JOB_LEVEL_SKIP);
+    expect((ciJobs['e2e'] ?? '').split('\n').filter((l) => !l.trim().startsWith('#')).join('\n')).not.toContain('check:perf');
+  });
+
+  it('nightly.yml: bakes before the e2e, determinism and perf steps; the e2e matrix is split; determinism and perf run on DV_WORLD=synth', () => {
+    bakeBefore(nightlyJobs['e2e-full'] ?? '', /pnpm check:e2e/, 'e2e-full');
+    bakeBefore(nightlyJobs['determinism'] ?? '', /pnpm check:e2e/, 'determinism');
+    bakeBefore(nightlyJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    const e2e = stepsOf(nightlyJobs['e2e-full'] ?? '');
+    expect(e2e.some((s) => s.includes('--grep "$GRAYBOX_GREP"'))).toBe(true);
+    const world = e2e.find((s) => s.includes('--grep-invert "$GRAYBOX_GREP"')) ?? '';
+    expect(world).toContain('DV_WORLD: synth');
+    expect(world).toContain("DV_SKIP_BUILD: ''");
+    const det = stepsOf(nightlyJobs['determinism'] ?? '').find((s) => s.includes('@determinism')) ?? '';
+    expect(det).toContain('DV_WORLD: synth');
+    expect(det).toContain("DV_SKIP_BUILD: ''");
+    const perf = stepsOf(nightlyJobs['perf'] ?? '').find((s) => s.includes('check:perf')) ?? '';
+    expect(perf).toContain('pnpm check:perf -- --fail');
+    expect(perf).toContain('DV_WORLD: synth');
+    expect(perf).toContain("DV_SKIP_BUILD: ''");
+    for (const [name, block] of Object.entries(nightlyJobs)) expect(block, `nightly ${name}`).not.toMatch(JOB_LEVEL_SKIP);
+    expect(nightly.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+});

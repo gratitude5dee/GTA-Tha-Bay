@@ -1,0 +1,122 @@
+/**
+ * The sim.worker body: owns the world (ECS, physics, tick loop). It imports only `src/sim/**` (never `three` or the client).
+ *
+ * Start-up: the page posts one `init` message (config, boot payload, transport kind, the SharedArrayBuffers, optional transferred
+ * ports). The worker attaches its transport end, loads exactly one Rapier build, builds the scenario, applies the domain modules
+ * (`SimModule`, DL-651), tells the page `ready` and then waits for commands: `Atomics.waitAsync` on the SAB transport, `message`
+ * events on the postMessage fallback.
+ *
+ * A failure inside the loop is reported as a `log` event and then rethrown from a timer so the page sees a worker
+ * `error` event and runs its recovery (the "Recovering..." banner and a restart).
+ *
+ * M02b1 moved this body, unchanged, out of `sim.worker.ts` into `runSimWorker(scope, modules)`: the engine's own entry
+ * (`sim.worker.ts`) passes no modules; `apps/web/src/workers/sim.worker.ts` passes the world streaming module.
+ */
+import { SimRuntime, type SimModule, type SimRuntimeEnv } from '../sim/runtime.ts';
+import { isInitMessage, type InitMessage } from '../sim/sim-host.ts';
+import { attachSabWorker } from '../sim/transport/sab-transport.ts';
+import { attachPmWorker, type PortLike } from '../sim/transport/pm-transport.ts';
+import type { WorkerTransport } from '../sim/transport/types.ts';
+import { SaveControl, type SaveWriter } from '../sim/worker/save-control.ts';
+
+export interface WorkerScope extends PortLike {
+  addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
+  setTimeout(fn: () => void, ms: number): number;
+  postMessage(message: unknown, transfer?: ArrayBuffer[]): void;
+}
+
+/** Starts the sim worker on `scope` (the worker's global scope; tests pass a stand-in). `modules` apply to the `SimRuntime` the game boots. */
+export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]): void {
+  const sleep = (ms: number): Promise<void> => new Promise((resolve) => scope.setTimeout(resolve, ms));
+
+  let started = false;
+  let saveService: Promise<SaveWriter> | null = null;
+  scope.addEventListener('message', (ev) => {
+    if (started || !isInitMessage(ev.data)) return;
+    started = true;
+    void run(ev.data).catch((e: unknown) => fail(e));
+  });
+
+  function fail(e: unknown): void {
+    const message = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+    try {
+      scope.postMessage({ v: 1, t: 'error', seq: 0, p: { message } });
+    } catch {
+      // The page may already be gone.
+    }
+    // An uncaught error from a timer reaches the page's `error` listener on the Worker object.
+    scope.setTimeout(() => {
+      throw e instanceof Error ? e : new Error(message);
+    }, 0);
+  }
+
+  function envFor(init: InitMessage): SimRuntimeEnv {
+    const wait = new Int32Array(new SharedArrayBuffer(4));
+    return {
+      now: () => performance.now(),
+      blockFor: (ms) => void Atomics.wait(wait, 0, 0, ms),
+      qa: init.p.qa,
+      exclusive: true,
+      retry: { sleep, jitter: () => Math.random() },
+      modules,
+      ports: init.p.ports ?? {},
+    };
+  }
+
+  async function run(init: InitMessage): Promise<void> {
+    const { cfg, boot, transport: kind, sab } = init.p;
+
+    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'determinism') {
+      const { runDeterminismSuite } = await import('../sim/qa/determinism-suite.ts');
+      const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      const result = await runDeterminismSuite({
+        now: () => performance.now(),
+        retry: { sleep, jitter: () => Math.random() },
+        progress: (stage, done, total) => post('progress', { stage, done, total }),
+      });
+      post('determinism', result);
+      return;
+    }
+
+    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'save-kill') {
+      const { runSaveKill } = await import('../sim/save/qa/save-kill.ts');
+      const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      await runSaveKill(boot.config['phase'] === 'verify' ? 'verify' : 'loop', { post, sleep });
+      return;
+    }
+
+    const transport: WorkerTransport = kind === 'sab' && sab ? attachSabWorker(sab) : attachPmWorker(scope);
+    const env = envFor(init);
+    // Lines the runtime and the modules log reach the page through the event ring (`SimHostOptions.onLog`).
+    env.log = (level, message) => void transport.postEvent({ v: 1, t: 'log', seq: 0, p: { level, message } });
+    const runtime = new SimRuntime(transport, env);
+
+    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['bot'] !== undefined) {
+      const { ScriptedBotInput, parseBotScript } = await import('../sim/input/bot-input.ts');
+      runtime.bot = new ScriptedBotInput(parseBotScript(boot.config['bot']));
+    }
+
+    // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy that
+    // decides what to collect arrives with M04a2, so until then nothing is due and `save.request` answers 'not-eligible'.
+    runtime.saveControl = new SaveControl({
+      service: async () => {
+        saveService ??= (async () => {
+          const { SaveServiceImpl } = await import('../sim/save/index.ts');
+          return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
+        })();
+        return saveService;
+      },
+      collect: () => null,
+    });
+
+    await runtime.boot(cfg, boot);
+    scope.postMessage({ v: 1, t: 'ready', seq: 0, p: { physicsBuild: cfg.physicsBuild, transport: kind } });
+
+    for (;;) {
+      runtime.pump();
+      const waiting = transport.waitForCommand();
+      if (waiting) await waiting;
+      else await sleep(4);
+    }
+  }
+}

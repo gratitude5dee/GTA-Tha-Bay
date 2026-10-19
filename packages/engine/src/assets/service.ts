@@ -47,7 +47,12 @@ export interface ServiceDeps {
   /** QA handler for the `qa` op (VITE_DV_QA builds only). */
   qa?: ((svc: AssetService, name: string, args: unknown) => Promise<unknown>) | null;
   probeMs?: number;
+  /** Domain jobs by name, served by the `job` op (the composed worker of apps/web registers the world jobs; M02b1). */
+  jobs?: Readonly<Record<string, AssetJob>> | undefined;
 }
+
+/** A job handler. `args` is whatever the caller sent (it may carry transferred ports); the result's `transfer` list is detached to the caller. */
+export type AssetJob = (svc: AssetService, args: unknown, signal: AbortSignal) => Promise<{ result: unknown; transfer?: Transferable[] }>;
 
 export function memoryPorts(): Ports {
   return { files: new MemoryFileStore(), index: new MemoryIndexStore(), kind: 'memory-fallback' };
@@ -211,7 +216,8 @@ export class AssetService {
     return this.catalog.resolve(target as AssetRef, tier);
   }
 
-  private noteError(e: unknown, ref: PackRef): void {
+  /** Counts and reports (`err.asset`, at most five per reason) a failed pack read; the job handlers of the composed worker call it too. */
+  noteError(e: unknown, ref: PackRef): void {
     if (!(e instanceof PackUnavailable) || e.reason === 'aborted') return;
     const n = (this.errCounts.get(e.reason) ?? 0) + 1;
     this.errCounts.set(e.reason, n);
@@ -219,9 +225,9 @@ export class AssetService {
   }
 
   private stats(): StatsResult {
-    const f = this.fetcher?.stats ?? { network: 0, retries: 0 };
+    const f = this.fetcher?.stats ?? { network: 0, retries: 0, bytes: 0 };
     const s = this.storeValue?.stats ?? { hits: 0, evictions: 0 };
-    return { network: f.network, retries: f.retries, hits: this.base.hits + s.hits, evictions: this.base.evictions + s.evictions };
+    return { network: f.network, retries: f.retries, bytes: f.bytes, hits: this.base.hits + s.hits, evictions: this.base.evictions + s.evictions };
   }
 
   private async dispatch(msg: RpcRequest, signal: AbortSignal): Promise<{ result: unknown; transfer?: Transferable[] }> {
@@ -310,6 +316,12 @@ export class AssetService {
         const p = msg.p as RpcOps['qa'][0];
         if (!this.d.qa) throw new Error('not-supported');
         return { result: await this.d.qa(this, p.name, p.args) };
+      }
+      case 'job': {
+        const p = msg.p as RpcOps['job'][0];
+        const job = this.d.jobs?.[p.name];
+        if (!job) throw new Error(`unknown asset job: ${p.name}`);
+        return job(this, p.args, signal);
       }
       default:
         throw new Error(`unknown asset op: ${String(op)}`);

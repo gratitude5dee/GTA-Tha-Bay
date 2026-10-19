@@ -74,5 +74,7 @@
   "engine.reload": "The graphics device was lost twice. Reload to continue.",
   "engine.reload.action": "Reload",
   "engine.readonly": "The game is open in another tab. This tab can read downloaded data but will not download or change it.",
-  "engine.readonly.action": "Dismiss"
+  "engine.readonly.action": "Dismiss",
+  "world.redownload": "Re-downloading district…",
+  "world.offline": "This part of the city is not on your device and you are offline. Reconnect to continue."
 }

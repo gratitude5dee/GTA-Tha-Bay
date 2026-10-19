@@ -4,6 +4,7 @@ import {
 } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
 import { spawnSimWorker } from './spawn-worker.ts';
+import { BAKED_WORLD, bakedWorldConfig } from '../../sim/scenarios/baked-world.ts';
 import { CIVIC_GRAYBOX, civicGrayboxConfig } from '../../sim/scenarios/civic-graybox.ts';
 import { physicsDropConfig } from '../../sim/scenarios/physics-drop.ts';
 import { WALK_DROP, walkDropConfig } from '../../sim/scenarios/walk-drop.ts';
@@ -26,6 +27,7 @@ import type { SimPanel } from '../debug/sim-panel.ts';
 import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
+import type { WorldBoot } from './world-layer.ts';
 
 export interface BootEngineOptions {
   /** Where the canvas and the "Recovering..." banner go. */
@@ -53,6 +55,11 @@ export interface BootEngineOptions {
    * runs the `scenario` (default `walk-drop`).
    */
   graybox?: GrayboxPackUrls;
+  /**
+   * Boot a baked, streamed world (M02b1): the `baked-world` scenario with the spawn and the sim-module payload from `world`, and the
+   * layer drawn on the host's scene. Takes precedence over `graybox` and `scenario`.
+   */
+  world?: WorldBoot;
   /**
    * Whether the page is in play: keyboard, pointer and touch input reach the game and the touch layer shows. Off, the world
    * runs as a slow-turning backdrop behind the title. Default true; `setPlay` changes it.
@@ -179,12 +186,17 @@ function prefersReducedMotion(): boolean {
  */
 export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle> {
   const profile: SimProfile = opts.profile ?? 'local';
-  const scenario = opts.scenario ?? (opts.graybox ? CIVIC_GRAYBOX.id : DEFAULT_SCENARIO);
-  const cfg = configFor(scenario, profile, opts.tier ?? opts.flags.tier ?? 'desktop');
+  const worldBoot = opts.world ?? null;
+  const scenario = worldBoot ? BAKED_WORLD.id : (opts.scenario ?? (opts.graybox ? CIVIC_GRAYBOX.id : DEFAULT_SCENARIO));
+  const cfg = worldBoot
+    ? { ...bakedWorldConfig(profile, 60, worldBoot.bakeId), tier: opts.tier ?? opts.flags.tier ?? 'desktop' }
+    : configFor(scenario, profile, opts.tier ?? opts.flags.tier ?? 'desktop');
 
   let packs: GrayboxPacks | null = null;
   let boot: BootPayload = { strings: [], prefabs: [], config: { scenario } };
-  if (scenario === CIVIC_GRAYBOX.id) {
+  if (worldBoot) {
+    boot = { strings: [], prefabs: [], config: { ...worldBoot.config, scenario, spawn: worldBoot.spawn, spawnYaw: worldBoot.spawnYaw } };
+  } else if (scenario === CIVIC_GRAYBOX.id) {
     if (!opts.graybox) throw new Error('the civic-graybox scenario needs the pack URLs (BootEngineOptions.graybox)');
     const gb = await import('../graybox/load.ts');
     packs = await gb.fetchGrayboxPacks(opts.graybox);
@@ -218,8 +230,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let chunksLoaded = 0;
   let backend: EngineObservation['backend'] = 'none';
   const view = new SnapshotView();
+
   /** The player's view angles: applied every frame on the main thread (C03 rule 1). */
-  const look = { yaw: startYaw(scenario), pitch: 0 };
+  const look = { yaw: worldBoot ? worldBoot.spawnYaw : startYaw(scenario), pitch: 0 };
   const cleanups: (() => void)[] = [];
   const reducedMotion = prefersReducedMotion();
 
@@ -250,7 +263,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       void recover();
     },
     onLog: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info'](`sim: ${message}`),
+    ...(worldBoot?.initExtras ? { initExtras: worldBoot.initExtras } : {}),
     onSimEvents: (events) => {
+      worldBoot?.layer.onSimEvents?.(events);
       for (const e of events) {
         if (e.t === 'audio.cue' && e.s) audio?.play({ tick: e.tick, cue: e.s, bus: AUDIO_CONFIG.footstep.bus, ...(e.a !== undefined ? { entity: e.a } : {}) });
         else if (e.t === 'world.chunk') chunksLoaded = Math.max(chunksLoaded, e.n ?? 0);
@@ -339,13 +354,26 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           alpha: view.alpha,
           dtSec,
           reducedMotion,
-          drawDistanceM: tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M,
+          // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
+          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
           depthPolicy: hostScene?.depthPolicy ?? 'standard',
         });
       }
       if (xrSmoke) xrSmoke.update();
     }
     if (audio && camPos) audio.setListener([camPos.x, camPos.y, camPos.z], [0, 0, -1], [0, 1, 0]);
+    if (worldBoot && hostScene) {
+      const cam = hostScene.camera;
+      cam.updateMatrixWorld();
+      // The camera looks down its local -Z: the third column of the world matrix, negated (no three import at the top of this file).
+      const e = cam.matrixWorld.elements;
+      worldBoot.layer.frame({
+        nowMs,
+        dtSec,
+        player: view.player,
+        camera: { pos: [cam.position.x, cam.position.y, cam.position.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] },
+      });
+    }
   };
 
   let canvas: HTMLCanvasElement | null = null;
@@ -362,7 +390,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.headless || !opts.host) {
     runOnRaf();
   } else {
-    const made = await createView(opts.host, opts.container, onFrame, packs).catch((e: unknown) => {
+    const made = await createView(opts.host, opts.container, onFrame, packs, worldBoot).catch((e: unknown) => {
       console.warn('engine view unavailable, running the sim without drawing', e);
       return null;
     });
@@ -553,6 +581,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       for (const off of cleanups.splice(0)) off();
       pool?.dispose();
       world?.dispose();
+      worldBoot?.layer.dispose();
       banner.remove();
       await host.dispose();
     },
@@ -579,6 +608,7 @@ async function createView(
   container: HTMLElement,
   onFrame: (nowMs: number) => void,
   packs: GrayboxPacks | null,
+  worldBoot: WorldBoot | null,
 ): Promise<MadeView> {
   const [{ ObjectPool }, three, gb] = await Promise.all([
     import('../snapshot/object-pool.ts'),
@@ -592,9 +622,14 @@ async function createView(
   const hemi = new three.HemisphereLight(0xdbe9ff, 0x4a4f44, 1.7);
   const sun = new three.DirectionalLight(0xfff1d6, 2.4);
   sun.position.set(120, 220, 80);
-  scene.add(hemi, sun);
+  if (!worldBoot) scene.add(hemi, sun);
   let world: GrayboxWorld | null = null;
-  if (packs && gb) {
+  if (worldBoot) {
+    // The world layer owns the lights, the sky and the fog of the streamed city.
+    worldBoot.layer.attach(host);
+    camera.position.set(worldBoot.spawn[0], worldBoot.spawn[1] + 30, worldBoot.spawn[2] + 40);
+    camera.lookAt(worldBoot.spawn[0], worldBoot.spawn[1], worldBoot.spawn[2]);
+  } else if (packs && gb) {
     scene.background = new three.Color(SKY_COLOR);
     scene.fog = new three.Fog(SKY_COLOR, FOG_NEAR_M, FOG_FAR_M);
     world = new gb.GrayboxWorld(packs);
@@ -621,7 +656,7 @@ async function createView(
     world,
     stop: () => {
       host.frameHook = null;
-      scene.remove(hemi, sun);
+      if (!worldBoot) scene.remove(hemi, sun);
       if (world) {
         scene.fog = null;
         scene.background = null;

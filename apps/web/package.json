@@ -7,6 +7,7 @@
     "@dv/engine": "workspace:*",
     "@dv/shared": "workspace:*",
     "@dv/ui": "workspace:*",
+    "@dv/world": "workspace:*",
     "preact": "11.0.1"
   },
   "devDependencies": {

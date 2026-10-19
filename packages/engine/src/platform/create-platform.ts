@@ -10,7 +10,7 @@ import {
   type TierDecision,
   type TierDecisionSource,
 } from '@dv/shared';
-import type { AssetClient } from '../assets/client.ts';
+import type { AssetClient, WorkerPort } from '../assets/client.ts';
 import { startAssets } from '../assets/spawn.ts';
 import { requestPersist } from '../assets/store/persist.ts';
 import { DeviceProbe, type ProbeEnv } from './device-probe.ts';
@@ -67,6 +67,8 @@ export interface CreatePlatformOptions {
    * (`app.start` then reports `store: 'memory'`); unit tests pass a fake.
    */
   assets?: AssetClient | null;
+  /** Creates asset.worker when no client is passed: the app supplies the composed worker with the world jobs (M02b1). Default: the engine's own. */
+  spawnAssetWorker?: () => WorkerPort;
 }
 
 export interface Platform {
@@ -202,6 +204,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     o.assets !== undefined
       ? Promise.resolve(o.assets)
       : startAssets({
+          ...(o.spawnAssetWorker ? { spawn: o.spawnAssetWorker } : {}),
           init: { origin: typeof location === 'undefined' ? '' : location.origin, localMedia: import.meta.env.VITE_DV_QA === '1' ? '/media-local' : null, mobileOrXr: profile.class !== 'desktop' },
           tier: () => quality?.tier.id ?? 'mobile-low',
           onTelemetry: (name, props) => telemetry.emit(name, props),

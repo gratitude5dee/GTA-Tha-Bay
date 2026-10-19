@@ -214,6 +214,20 @@ export class CatalogClient {
     return { url: `${base}/${v.key}`, sha256: v.sha256, bytes: v.bytes, kind: packKindOf(m.kind), tags: [...m.tags] };
   }
 
+  /** `PackRef` of every active entry whose ref starts with `prefix` (for example `world_pack/p0-`), by ref, for `tier` (M02b1). */
+  refsWithPrefix(prefix: string, tier: QualityTierId): Record<string, PackRef> {
+    const out: Record<string, PackRef> = {};
+    for (const ref of Object.keys(this.catalog?.entries ?? {}).sort() as AssetRef[]) {
+      if (!ref.startsWith(prefix)) continue;
+      try {
+        out[ref] = this.resolve(ref, tier);
+      } catch {
+        // Quarantined, killed or without a variant for this tier.
+      }
+    }
+    return out;
+  }
+
   /** Every variant hash of every entry: the "current" set for `gc`. */
   allHashes(): Set<string> {
     const out = new Set<string>();

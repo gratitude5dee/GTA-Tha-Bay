@@ -13,7 +13,6 @@
   "settings.tier_override": "M14b2",
   "pose.calibrate": "M08c2",
   "err.sim": "M14b2",
-  "world.stream": "M02b1",
   "unlock.emit": "M14b2",
   "npc.encounter.client": "M06a3",
   "npc.voice.client": "M06a4",

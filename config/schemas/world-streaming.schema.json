@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-streaming.schema.json",
+  "title": "config/world/streaming.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "lookAheadS", "dirWeights", "unloadFactor", "pressureSteps", "lodBiasPerStep", "altitudeBoost", "inFlight", "retry", "tiers"],
+  "$defs": {
+    "radius": { "type": "number", "exclusiveMinimum": 0 },
+    "tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r0M", "r1M", "r2M", "altitudeBoostM", "ambientM", "physicsM", "resident", "uploadBytes"],
+      "properties": {
+        "r0M": { "$ref": "#/$defs/radius" },
+        "r1M": { "$ref": "#/$defs/radius" },
+        "r2M": { "$ref": "#/$defs/radius" },
+        "altitudeBoostM": { "type": "number", "minimum": 0 },
+        "ambientM": { "$ref": "#/$defs/radius" },
+        "physicsM": { "$ref": "#/$defs/radius" },
+        "resident": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["l0", "l1", "l2"],
+          "properties": {
+            "l0": { "type": "integer", "minimum": 1 },
+            "l1": { "type": "integer", "minimum": 1 },
+            "l2": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "uploadBytes": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "world-streaming/1" },
+    "lookAheadS": { "type": "number", "exclusiveMinimum": 0 },
+    "dirWeights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ahead", "side", "behind"],
+      "properties": {
+        "ahead": { "type": "number", "exclusiveMinimum": 0 },
+        "side": { "type": "number", "exclusiveMinimum": 0 },
+        "behind": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "unloadFactor": { "type": "number", "minimum": 1 },
+    "pressureSteps": { "type": "array", "minItems": 1, "items": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 } },
+    "lodBiasPerStep": { "type": "number", "minimum": 0 },
+    "altitudeBoost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fromAglM", "fullAglM"],
+      "properties": { "fromAglM": { "type": "number", "minimum": 0 }, "fullAglM": { "type": "number", "exclusiveMinimum": 0 } }
+    },
+    "inFlight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["p0", "l0", "l1", "l2"],
+      "properties": {
+        "p0": { "type": "integer", "minimum": 1 },
+        "l0": { "type": "integer", "minimum": 1 },
+        "l1": { "type": "integer", "minimum": 1 },
+        "l2": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["firstMs", "maxMs", "maxAttempts"],
+      "properties": {
+        "firstMs": { "type": "integer", "minimum": 1 },
+        "maxMs": { "type": "integer", "minimum": 1 },
+        "maxAttempts": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "xr-visionpro", "mobile", "mobile-low", "xr-quest"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/tier" },
+        "desktop": { "$ref": "#/$defs/tier" },
+        "xr-visionpro": { "$ref": "#/$defs/tier" },
+        "mobile": { "$ref": "#/$defs/tier" },
+        "mobile-low": { "$ref": "#/$defs/tier" },
+        "xr-quest": { "$ref": "#/$defs/tier" }
+      }
+    }
+  }
+}

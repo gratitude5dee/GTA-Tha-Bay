@@ -24,6 +24,8 @@ export interface InitMessage {
     transport: TransportKind;
     sab: SabInit | null;
     qa: boolean;
+    /** Transferred ports and other extras by name (the world pack channel, M02b1); modules read them in `onInit`. */
+    ports?: Record<string, unknown>;
   };
 }
 
@@ -49,6 +51,11 @@ export interface SimHostOptions {
   onLog?(level: 'info' | 'warn' | 'error', message: string): void;
   /** Receives every batch of sim events the worker reports (ownership transitions, audio cues, chunk loads), oldest first. */
   onSimEvents?(events: readonly SimEvent[]): void;
+  /**
+   * Called before every (re)start of the worker; the ports it returns travel in the init message (`InitMessage.p.ports`) and are
+   * transferred. The world uses it to open a fresh `MessageChannel` to asset.worker for each worker generation (M02b1).
+   */
+  initExtras?(): { ports: Record<string, unknown>; transfer: unknown[] } | Promise<{ ports: Record<string, unknown>; transfer: unknown[] }>;
 }
 
 /** No fresh snapshot for this long while frames flow means the worker is gone (01-engine.md section 5). */
@@ -132,11 +139,14 @@ export class SimHostImpl implements SimHost {
       this.fail('error', detail);
     });
 
+    const extras = this.opts.initExtras ? await this.opts.initExtras() : null;
+    if (generation !== this.generation) return;
     const init: InitMessage = {
       v: 1, t: 'init', seq: 0,
-      p: { cfg, boot, transport: transport.kind, sab, qa: this.opts.qa === true },
+      p: { cfg, boot, transport: transport.kind, sab, qa: this.opts.qa === true, ...(extras ? { ports: extras.ports } : {}) },
     };
-    worker.postMessage(init);
+    if (extras && extras.transfer.length > 0) worker.postMessage(init, extras.transfer);
+    else worker.postMessage(init);
     const timeoutMs = this.opts.readyTimeoutMs ?? 30_000;
     await (this.opts.timeoutAfter ? Promise.race([ready, this.opts.timeoutAfter(timeoutMs, 'sim worker was not ready')]) : ready);
     this.lastFreshMs = 0;

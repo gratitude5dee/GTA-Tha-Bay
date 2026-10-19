@@ -1,0 +1,29 @@
+{
+  "id": "M02b1-mac",
+  "milestone": "M02b1",
+  "device": "Apple Silicon Mac, Chrome (desktop A in the device matrix); tier desktop at 60 fps, the operator's sf bake",
+  "urlTemplate": "http://localhost:8788/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Bake the real city (pnpm map:build -- --area sf, then pnpm map:pack), build the QA bundle with the bake merged in (DV_WORLD=sf VITE_DV_QA=1 pnpm build) and serve it locally (pnpm --filter @dv/edge exec wrangler dev --port 8788)."
+    },
+    {
+      "id": "2-route",
+      "instruction": "In Chrome open http://localhost:8788/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach. The camera flies the 120 s route from the Ferry Building over Civic Center and the Sunset to Ocean Beach. When it ends tap Export and save perf.json and notes.json to docs/device-runs/M02b1/mac/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "desktop" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "3-notes",
+      "instruction": "Add to notes.json: U-W8 (what the sf bake looks like and costs at the desktop tier: render objects, triangles, GPU MB at the end of the route) and the meshing time per chunk (U-W10: the p50 and p95 of the world.mesh job in asset.worker, from the Performance panel or __dvBridge.world.chunks().uploads and the HUD)."
+    },
+    {
+      "id": "4-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02b1/mac/perf.json --tier desktop --checklist tools/ci/checklists/M02b1-mac.json: median and p95 frame time, frames over 50 ms, render and triangle counts and the cold-download figure must pass."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

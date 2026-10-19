@@ -1,5 +1,10 @@
 import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
+import type { WorkerPort } from '@dv/engine/assets/client';
+import type { WorkerLike } from '@dv/engine/sim';
+import { bootChoice } from '@dv/world/sim/boot';
+import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
+import platformFlags from '../../../config/platform-flags.json';
 import { mountShell, t, type ShellProps } from '@dv/ui';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
@@ -93,6 +98,8 @@ async function boot(): Promise<void> {
       canvas,
       flags,
       build: BUILD,
+      // The composed asset worker: the engine's pack store plus the world jobs (M02b1).
+      spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
       events: {
         unsupported: () => mountShell(root as HTMLElement, shellProps(true)),
         reloadPrompt: showReloadPrompt,
@@ -116,8 +123,25 @@ async function boot(): Promise<void> {
 
   // The GPU probe drives the host itself, so the engine runs without a view there.
   const headless = flags.probe !== null;
-  // The gray-box Civic Center block is the default world; ?world=<id> (QA) picks a test world instead.
-  const grayboxWorld = flags.world === null || flags.world === 'civic-graybox';
+  // The boot rule (M02b1, DL-668): a catalog with data/world-index boots the baked world, the gray-box Civic Center block otherwise;
+  // an explicit ?world=<id> (QA builds only) wins and boots that engine scenario on the gray-box path.
+  const choice = bootChoice(flags.world, !headless && assets !== null && (await hasWorldIndex(assets)));
+  let prepared: PreparedWorld | null = null;
+  if (choice === 'baked' && assets) {
+    try {
+      prepared = await prepareWorld({
+        assets,
+        tier: platform.quality.tier.id,
+        flags: { cards: platformFlags['world.cards'] !== false, massing: platformFlags['world.massing'] !== false },
+        labels: { redownload: t('world.redownload'), offline: t('world.offline') },
+        container,
+        emit: (name, props) => platform.telemetry.emit(name, props),
+        qa: QA,
+      });
+    } catch (error) {
+      console.error('the baked world could not be prepared', error);
+    }
+  }
   let engineRef: EngineHandle | null = null;
   // True once the player pressed Start (or ?debug=1 skipped the title): from then on Pause brings the title back and Start resumes.
   let started = flags.debug;
@@ -133,8 +157,14 @@ async function boot(): Promise<void> {
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),
     labels: { recovering: t('engine.recovering') },
+    // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles.
+    spawn: () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
     headless,
-    ...(grayboxWorld ? { graybox: { p0: grayboxP0Url, l0: grayboxL0Url } } : { scenario: flags.world as string }),
+    ...(prepared
+      ? { world: prepared.boot }
+      : choice === 'scenario'
+        ? { scenario: flags.world as string }
+        : { graybox: { p0: grayboxP0Url, l0: grayboxL0Url } }),
     play: flags.debug,
     forceTouch: flags.touch,
     // Pausing brings the title back over the world; Start resumes.
@@ -169,7 +199,8 @@ async function boot(): Promise<void> {
     if (engine) installEngineBridge(engine);
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
-    const bridge = installPlatformBridge(platform, flags);
+    const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
+    if (prepared) (await import('@dv/world/client/bridge')).installWorldBridge(prepared.view, platform.quality.tier.id);
     // ?scenario=<id> starts that perf scenario at boot (path duration).
     if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {

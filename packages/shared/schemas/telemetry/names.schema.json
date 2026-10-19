@@ -107,6 +107,17 @@
       "required": ["fpsP50", "fpsP5", "frameP95Ms", "drawCalls", "tris", "texMBEst", "gpuMBEst", "memEstMB"],
       "additionalProperties": false
     },
+    "world.stream": {
+      "type": "object",
+      "properties": {
+        "residentL0": { "type": "number" },
+        "missCount": { "type": "number" },
+        "uploadP95Ms": { "type": "number" },
+        "bytesMB": { "type": "number" }
+      },
+      "required": ["residentL0", "missCount", "uploadP95Ms", "bytesMB"],
+      "additionalProperties": false
+    },
     "tier.decision": {
       "type": "object",
       "properties": {
