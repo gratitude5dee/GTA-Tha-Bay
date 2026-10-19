@@ -13,7 +13,21 @@ test.describe('XR smoke @xr @xr-smoke', () => {
     await page.setViewportSize(SMALL_VIEWPORT);
     await page.goto('/?xr-emulate=quest3&debug=1');
     await waitForEngine(page);
-    await expect.poll(async () => (await observe(page)).world?.chunks, { timeout: 90_000 }).toBe(4);
+    // The world the page booted: a baked world reports on `__dvBridge.world` (its reveal means the boot set is resident); the
+    // gray-box block reports `observe().world.chunks === 4`. `observe().world` is always null on the baked path.
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const b = (
+              window as { __dvBridge?: { world?: { boot(): { revealed: boolean } }; engine?: { observe(): { world?: { chunks?: number } | null } } } }
+            ).__dvBridge;
+            if (b?.world) return b.world.boot().revealed;
+            return b?.engine?.observe().world?.chunks === 4;
+          }),
+        { timeout: 120_000 },
+      )
+      .toBe(true);
     await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 60_000 }).toBe(true);
 
     const button = page.locator('[data-dv-xr-smoke]');
