@@ -1,0 +1,165 @@
+{
+  "schema": "third-party-reuse/1",
+  "adr": "docs/decisions/ADR-REUSE-01-third-party-reuse.md",
+  "gatesMilestone": "spec/07-milestones/M00f-third-party-reuse-gates.md",
+  "updated": "2026-10-19",
+  "verdicts": {
+    "REUSE-WITH-ATTRIBUTION": "Files listed in allowedPaths may be vendored into third_party/<name>/ at pinnedSha by the operator or Architect and used with attribution. Empty allowedPaths means nothing is vendored yet and nothing may be used.",
+    "PATTERNS-ONLY": "Nothing is copied. The prose pattern cards already in research/ are the only bridge.",
+    "EXCLUDED": "Nothing is copied and no new patterns are drawn. Existing research/ pattern cards stand as recorded.",
+    "DEV-TOOL-ONLY": "A tool run on a developer or agent machine. Nothing it returns is committed, baked, cached or shipped."
+  },
+  "thirdPartyLicences": {
+    "code": ["MIT", "Apache-2.0"],
+    "dataOnly": ["CC-BY-4.0"],
+    "never": ["GPL-*", "AGPL-*", "LGPL-*", "NONE"],
+    "otherNeedsAdr": "any licence not listed above, ODbL-1.0 included, needs its own ADR before it is vendored",
+    "appliesTo": "each allowedPaths item's spdx, never the entry: code items take a code licence, data items a dataOnly licence (DL-508)"
+  },
+  "entryName": "REUSE-WITH-ATTRIBUTION entries only: name = the directory third_party/<name>/ and the <entry> argument of pnpm reuse:subset; the upstream repository name in lower case (DL-502, DL-617)",
+  "noticeLine": "one third_party/NOTICE line per allowedPaths item, fields separated by ' | ': <name>/<path> | <spdx> | <creator> | <licence URL> [| modified]; 'modified' present exactly when the item's modified is true; copied verbatim into third-party-licenses.txt and credits.json (DL-523, DL-617)",
+  "allowedPathItem": {
+    "path": "path under third_party/<name>/ as committed; a field subset is <upstream path>.subset.json",
+    "spdx": "SPDX id of this path; the root REUSE.toml annotates this path with the same id (DL-502)",
+    "kind": "code | data",
+    "fields": "data subsets only: explicit allowlist of factual categorical fields (category, sector and similar enumerations), each as {name, note} where note is the reviewer's short statement that the field is authored upstream and not OSM- or Nominatim-derived; never a name, description, tagline, URL, logo, person or coordinate field, nor an address, city, neighbourhood or district, location, OSM id, building id or footprint-link field, or any other geocoded field (DL-523)",
+    "modified": "true for a subset file or any changed file; its NOTICE and CC BY lines then say modified"
+  },
+  "excludedFieldPatterns": ["name", "company", "org", "title", "founder", "ceo", "person", "people", "logo", "image", "icon", "url", "website", "link", "domain", "desc", "tagline", "blurb", "summary", "about", "lat", "lon", "lng", "coord", "geo", "address", "street", "city", "neighbo", "district", "location", "place", "osm", "building", "footprint", "zip", "postal"],
+  "excludedFieldRule": "each excludedFieldPatterns item is a case-insensitive regular expression; license:scan and reuse:subset refuse an allowedPathItem fields name or a .subset.json key that any of them matches, so synonyms such as company, org, website, blurb or lat are caught. Values: each kept field is a closed enumeration of at most 32 distinct values in the subset; when DV_NAMES_REAL_JSON is set, the NameRegistry real-side matcher runs over every subset value (absent: SKIP line). Either failure drops the field (DL-648)",
+  "licenceFiles": "REUSE-WITH-ATTRIBUTION entries only: [{path, spdx}], files under third_party/<name>/ copied verbatim at pinnedSha that carry the licence grants and credit lines: the upstream LICENSE, an Apache NOTICE when present, and the file or verbatim README excerpt (<file>.excerpt.md) that grants each item licence or gives its credit line; at least one per distinct allowedPaths spdx; exempt from the allowedPaths rule; emitted verbatim into third-party-licenses.txt and THIRD_PARTY_LICENSES.txt; Builders may read them with the allowedPaths files (DL-630)",
+  "entries": [
+    {
+      "name": "sf-bay-area-ai-atlas",
+      "repo": "Kenton-GMI/SF-Bay-Area-AI-Atlas",
+      "url": "https://github.com/Kenton-GMI/SF-Bay-Area-AI-Atlas",
+      "licence": "MIT AND CC-BY-4.0",
+      "verifiedOn": "2026-10-18",
+      "verdict": "REUSE-WITH-ATTRIBUTION",
+      "allowedPaths": [],
+      "licenceFiles": [],
+      "pinnedSha": null,
+      "uses": [
+        "app/render.js (Canvas 2D renderer: cached static frame plus animated overlay) as an optional starting point for the in-engine minimap and full map, re-expressed in the ENU frame",
+        "company dataset (CC-BY-4.0), vendored only as a subset file (<path>.subset.json, kind data, spdx CC-BY-4.0, modified) holding the factual categorical fields listed in its fields allowlist (category, sector and similar enumerations; no name, description, tagline, URL, logo, person or coordinate field, and no address, city, neighbourhood or district, location, OSM id, building id, footprint-link or other geocoded field), as seed data for the Business Tycoon ai-tooling sector; every location, coordinate or building-link field is ODbL-1.0 (Nominatim geocoding and OSM footprints, research/repos-world.md §2.3) and is never vendored; the district mix comes from the project's own OSM/DataSF bake; world points of interest only after a later decision-log entry"
+      ],
+      "consumerMilestones": ["M02c2", "M09b1"],
+      "attribution": "SF-Bay-Area-AI-Atlas by Kenton-GMI, MIT License (code); company dataset CC BY 4.0: creator, licence URL https://creativecommons.org/licenses/by/4.0/ and \"modified\" when changed (credit line as given by the upstream LICENSE or README at pinnedSha, kept as a licenceFiles item)",
+      "notes": "Code MIT; map geometry ODbL; dataset CC BY 4.0 (research/repos-world.md §2; research/legal-ip-likeness.md §2.1); licence per allowedPaths item (app/render.js MIT code; dataset subset CC-BY-4.0 data). Atlas geometry is not vendored: the project's own OSM bake replaces it. Company and person names never enter third_party/ or content-private/: the operator adds the upstream dataset's company names only to the real side of the NameRegistry (DV_NAMES_REAL_JSON, never committed), each with a D-29 likeness tier (DL-615); shipped text uses invented names; logos are never vendored or shown. The vendoring PR (DL-502, DL-504) commits the dataset only through the subset tool of milestone M00f (pnpm reuse:subset); the review of app/render.js records that it holds no company names, no logo or image URLs and no coordinate tables, or the file stays out of allowedPaths. third_party/ is excluded from the names:lint source scan and is never bundled (ESLint no-restricted-imports and check:bundle, milestone M00f)."
+    },
+    {
+      "name": "universal-modder",
+      "repo": "rehan-remade/universal-modder",
+      "url": "https://github.com/rehan-remade/universal-modder",
+      "licence": "MIT",
+      "verifiedOn": "2026-10-18",
+      "verdict": "REUSE-WITH-ATTRIBUTION",
+      "allowedPaths": [],
+      "licenceFiles": [],
+      "pinnedSha": null,
+      "uses": [
+        "secret-scan pattern classes shared by its kb check and publish check (fal, Anthropic, OpenAI, GitHub, AWS, private keys) for dv kb check and a later check:secrets widening",
+        "knowledge-base layout (front matter, required sections, generated INDEX.md and index.json) and the skills layout with byte-identical mirrors",
+        "the publish-check idea (fail on secrets and .env, warn on missing credits) for the mod kit"
+      ],
+      "consumerMilestones": ["M13a6"],
+      "attribution": "universal-modder by rehan-remade, MIT License",
+      "notes": "research/repos-modding.md §2; research/legal-ip-likeness.md §2.1. Excluded even after vendoring: the third-party-game passthrough example, every skill or knowledge note about modding another publisher's game, Windows input driving and reverse-engineering material (research/repos-modding.md §2.11). The project's mod kit mods only this game."
+    },
+    {
+      "repo": "Mapbox CLI",
+      "url": "https://www.mapbox.com/blog/new-mapbox-cli-for-coding-agents",
+      "licence": "MIT",
+      "verifiedOn": "2026-10-18",
+      "verdict": "DEV-TOOL-ONLY",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [
+        "exploring the Mapbox API and docs and agent-workflow experiments, by the operator or the Architect only (never in a Builder session); no result may set, check or correct any committed coordinate, address or name (address checks use the project's own DataSF EAS/OSM bake, map:geocode); outputs are never committed, baked or cached"
+      ],
+      "consumerMilestones": [],
+      "attribution": "none required for dev-time use; any live Mapbox display would need the Mapbox logo, (c) Mapbox and (c) OpenStreetMap (Mapbox Product Terms 1.4.1)",
+      "notes": "F-056; research/repos-world.md §4. Mapbox Product Terms forbid deriving or extracting content and caching or storing Licensed Map Content. Mapbox Product Terms 1.6 forbid deriving or extracting content, data or information, whether or not the output is committed. The operator's own token stays in their shell, never committed; it is not a Builder secret. Milestone M00f's Mapbox scan (license:scan over source, content, config, provenance records and dist; provenance:check on source.url) fails any Mapbox host, style URL or token prefix that lands in the repository or the build (DL-616). D-25 stands: no Mapbox runtime (default pending owner question Q-44). Revisit trigger: a web surface needs live search or routing that the baked geocoder and PMTiles cannot give (ADR-REUSE-01)."
+    },
+    {
+      "repo": "Atharvsinh-codez/San-Francisco",
+      "url": "https://github.com/Atharvsinh-codez/San-Francisco",
+      "licence": "NONE",
+      "verifiedOn": "2026-10-18",
+      "verdict": "PATTERNS-ONLY",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [
+        "existing pattern cards only (ENU frame, keyless bake gates, per-cell building format, worker meshing, shared heightfield sampler)"
+      ],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "No licence file, so all rights reserved. Its inputs are open data (DataSF PDDL, OSM ODbL, Terrarium/USGS public domain), which the project bakes itself under those licences (D-14, ADR-0021)."
+    },
+    {
+      "repo": "becaring/SK8V",
+      "url": "https://github.com/becaring/SK8V",
+      "licence": "Apache-2.0",
+      "verifiedOn": "2026-10-18",
+      "verdict": "EXCLUDED",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "Apache-2.0 per its NOTICE, but it contains a hook layer into another publisher's game, a re-implementation lineage of a third publisher's skateboarding game, an LGPL audio decoder, and later revisions are GPL-3.0 (research/legal-ip-likeness.md §2.1). Existing physics pattern cards stand."
+    },
+    {
+      "repo": "c22dev/muguet",
+      "url": "https://github.com/c22dev/muguet",
+      "licence": "GPL-3.0-or-later",
+      "verifiedOn": "2026-10-18",
+      "verdict": "EXCLUDED",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "Copyleft, and contains material derived from another publisher's game (native tables, hook targets, shader translations, game runtime) (research/legal-ip-likeness.md §2.1; research/repos-webport.md). Existing netcode pattern card (re-implemented) stands."
+    },
+    {
+      "repo": "shadany7824/playgta5",
+      "url": "https://github.com/shadany7824/playgta5",
+      "licence": "NONE",
+      "verifiedOn": "2026-10-18",
+      "verdict": "EXCLUDED",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "No licence; scraped site code that runs another publisher's game binary and archive data (research/legal-ip-likeness.md §2.1; research/repos-webport.md)."
+    },
+    {
+      "repo": "SebasKitten/Grand-V",
+      "url": "https://github.com/SebasKitten/Grand-V",
+      "licence": "UNVERIFIED",
+      "verifiedOn": null,
+      "verdict": "EXCLUDED",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "Excluded because the engine and data are another publisher's. The upstream could not be cloned (research/owner-updates.md item 2), so its licence is not verified; the sharkpaw/Grand-V fork has no licence (verified 2026-10-18). The analysed fork was sharkpaw/Grand-V (research/repos-grand-v.md; research/legal-ip-likeness.md §2.1). Existing feature and UX pattern cards stand; the mod store never talks to its third-party mod site."
+    },
+    {
+      "repo": "atharvdubey22ug-glitch/gta-sa-earth",
+      "url": "https://github.com/atharvdubey22ug-glitch/gta-sa-earth",
+      "licence": "NONE",
+      "verifiedOn": "2026-10-18",
+      "verdict": "EXCLUDED",
+      "allowedPaths": [],
+      "pinnedSha": null,
+      "uses": [],
+      "consumerMilestones": [],
+      "attribution": "none (nothing reused)",
+      "notes": "No licence file; parsers and runtime for another publisher's game formats, rendered from the player's own game files (research/legal-ip-likeness.md §2.1; research/repos-world.md §3). Existing architecture pattern cards (mission timeline, auto-director, keyframed sky) stand."
+    }
+  ]
+}

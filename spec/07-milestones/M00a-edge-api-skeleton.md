@@ -93,4 +93,4 @@ M00. Contracts: C12 1.1 (`09-backend-contracts.md` §2.1, §2.2, §2.4 rows 1–
 - Order: shared types → headers/errors → routes → geo → telemetry → tests → CI scripts → `deploy.ts` → workflows.
 - Navigation requests skip the Worker (`run_worker_first` covers `/api/*` only), so HTML headers still come from `_headers`; Worker responses need `withIsolationHeaders`.
 - Never log request bodies or headers; logs are billed by volume from 2026-12-01 (F-027).
-- `services/edge` imports only `@dv/shared` (later `@dv/net`). Branch `m00a-edge-api-skeleton`.
+- `services/edge` imports only `@dv/shared` (later `@dv/net`); the one recorded exception, added after this milestone by M00e, is the data files `config/brand.ts`, `config/ip-denylist.json` and `config/terms.ts` (DL-514, DL-602). Branch `m00a-edge-api-skeleton`.

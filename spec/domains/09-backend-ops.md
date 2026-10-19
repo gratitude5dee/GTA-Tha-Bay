@@ -17,7 +17,7 @@
 {
   "name": "tha-bay-web", "main": "src/index.ts", "compatibility_date": "2026-10-18",
   "assets": { "directory": "../../apps/web/dist", "binding": "ASSETS",
-              "not_found_handling": "single-page-application", "run_worker_first": ["/api/*"] },
+              "not_found_handling": "single-page-application", "run_worker_first": ["/api/*", "/account"] },  // "/account" from M00e (308 to /account/); M12a1 adds "/.well-known/*"
   "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ],
   "workers_dev": false, "preview_urls": false,
   "durable_objects": { "bindings": [
@@ -38,18 +38,20 @@
   "analytics_engine_datasets": [ { "binding": "AE", "dataset": "tha_bay_telemetry" }, { "binding": "AE_SPEND", "dataset": "tha_bay_spend" } ],  // †
   "analytics": { "binding": "ANALYTICS_SQL" },                                                                           // † (Wrangler ≥ 4.145.0)
   "ai": { "binding": "AI" },
-  "ratelimits": [ /* one entry per class in §3.1, e.g. { "name": "RL_TALK", "namespace_id": "1001", "simple": { "limit": 4, "period": 10 } } */ ],  // †
+  "ratelimits": [ /* one entry per class in §3.1, e.g. { "name": "RL_TALK", "namespace_id": "1001", "simple": { "limit": 4, "period": 10 } }; M00e: RL_AUTH {10, 60}, RL_AUTH_USER {5, 60} */ ],  // †
   "triggers": { "crons": ["*/5 * * * *", "10 3 * * *", "0 * * * *"] },        // SLA pager + recon; retention; hourly expiries
   "observability": { "enabled": true, "logs": { "enabled": true, "head_sampling_rate": 0.25, "invocation_logs": true },
                      "traces": { "enabled": true, "head_sampling_rate": 0.05 }, "issues": { "enabled": true } },          // †
   "vars": { "ENVIRONMENT": "prod", "GEO_ALLOW": "US", "PUBLIC_ORIGIN": "https://<domain>", "ID_ISSUER": "https://id.<domain>",
             "RT_ORIGIN": "https://rt.<domain>", "MEDIA_ORIGIN": "https://media.<domain>", "SUPABASE_URL": "https://<ref>.supabase.co",
-            "FAL_MODE": "live", "AIG_BASE": "https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic" },
+            "FAL_MODE": "live", "AIG_BASE": "https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic",
+            "AUTH_PASSWORD_SIGNUP": "off" },  // M00e; the merged SUPABASE_ANON_KEY var stays (DL-601); LEGAL_CONTACT is added by the operator only, never as a placeholder
   "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "ID_SIGNING_JWK_CURRENT", "ID_SIGNING_JWK_NEXT",
                "INTERNAL_HMAC", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "FAL_KEY", "ANTHROPIC_API_KEY"] },             // † grows per milestone
-  "env": { "staging": { "name": "tha-bay-web-staging", "preview_urls": true, "vars": { "ENVIRONMENT": "staging", "FAL_MODE": "mock" } /* + staging bindings */ } },
+  "env": { "staging": { "name": "tha-bay-web-staging", "preview_urls": true, "vars": { "ENVIRONMENT": "staging", "FAL_MODE": "mock", "AUTH_PASSWORD_SIGNUP": "on" } /* + staging bindings */ } },
   "previews": { /* staging bindings repeated: MEDIA → tha-bay-media-staging, FLAGS → staging KV, JOBS/SPEND/UGC_SCAN producers → staging queues,
-                   GEN_WF → deployed staging workflow, DO bindings repeated, vars.ENVIRONMENT = "preview" */ }
+                   GEN_WF → deployed staging workflow, DO bindings repeated, vars.ENVIRONMENT = "preview";
+                   no SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP until M05d (M00e item 8, DL-621) */ }
 }
 ```
 Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6).
@@ -63,6 +65,8 @@ Each new migration tag ships in its own PR labelled `do-lifecycle`, containing o
 | preview (per PR) | `wrangler preview --env staging --name pr-<N>` for each changed Worker | staging project, staging buckets/queues/KV, fresh DO namespaces | `*.workers.dev` (noindex) | mock |
 | staging | `tha-bay-web-staging`, `tha-bay-rooms-staging` | Supabase staging project (Free OK, keep-alive nightly) | `staging.<domain>`, `id-staging.<domain>`, `rt-staging.<domain>`, `media-staging.<domain>` | mock by default; `synthetic` Anthropic workspace for M14b |
 | prod | `tha-bay-web`, `tha-bay-rooms` | Supabase Pro `us-west-1` | `<domain>`, `id.`, `rt.`, `media.`, `ugc.` | live |
+
+**Live state (Architect observation 2026-10-19, DL-512).** `tha-bay-web` and `tha-bay-web-staging` exist on workers.dev subdomain `gratitude-8f4` (`https://tha-bay-web[-staging].gratitude-8f4.workers.dev`); the rooms Workers come with M12b1. Supabase project `tha-bay`, ref `jwvvllhxuvwkrynmnchb`, region `us-west-1` (G1), created 2026-10-19, is the **prod** project; its plan was not observed. As merged, the staging vars point at it too, so staging sign-ups (routes 58–60, ADR-ACCT-01) land in the production user table; this is accepted until M05d's `tha-bay-staging` exists (RISK-28, DL-603). No Supabase var is removed (Q-43, DL-601); previews get none (M00e item 8), and production sign-up waits behind `AUTH_PASSWORD_SIGNUP` until M00e's checks are live. M05d records both refs in `config/supabase.projects.json`; until then they are in `config/cloudflare.resources.json`.
 
 Inside a Preview, Queue consumers, Cron Triggers and production routes do not run and Workflow bindings point at an existing Workflow; every queue/cron feature therefore has a `/api/v1/_test/*` route (compiled out of prod, proven by `check:prod-routes`) [research/gap-ci-cd-release-assets.md §1.5].
 

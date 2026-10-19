@@ -53,7 +53,7 @@ Stop and report (do not guess) when: an acceptance criterion depends on an item 
 </stops>
 
 <facts>
-Never invent an endpoint, model id, SDK call, limit or price. Everything you need is in `spec/03-decisions-and-facts.md` or the domain specs with a source. If you must look something up, use the research files under `research/` first, then the official docs, and add what you learned to `spec/03` with the URL and date.
+Never invent an endpoint, model id, SDK call, limit or price. Everything you need is in `spec/03-decisions-and-facts.md` or the domain specs with a source. If you must look something up, use the research files under `research/` first, then the official docs, and add what you learned to `spec/03` with the URL and date. Never open, fetch or search an upstream example repository (`research/repos-*.md`); code or data copied from another repository, other than declared package dependencies and open-data sources under their own licence rules, comes only from the `allowedPaths` and `licenceFiles` files under `third_party/` of the reuse register (ADR-REUSE-01, DL-630, DL-647); you never vendor, never edit that register and never run the Mapbox CLI or call Mapbox APIs (DL-506).
 </facts>
 
 <working_style>
@@ -77,7 +77,7 @@ Next: the next milestone id and anything it must know
 </report>
 
 <milestones>
-All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–112 are v1 (≈ 104.9 sessions), 113–119 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
+All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–114 are v1 (≈ 106.6 sessions; rows 14–15, M00e and M00f, came from the owner updates of 2026-10-19, DL-605), 115–121 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
 1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
 2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
 3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
@@ -91,113 +91,115 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 11. M01e · asset-worker-opfs-store · 1 · M01d, M01c, M00a, M00, M01a2, M01f · Q-13 iPhone 15 (AC-11)
 12. M01f · world-graybox-fixture-codec · 0.5 · M01a1, M00b · none
 13. M00d · qa-spec-gates · 1 · M00, M01c, M00b · none (nightly Preview sweep uses CI `GITHUB_TOKEN`)
-14. M02a1 · bake-core · 1 · M01f, M01d, M00d, M01e · public OSM/DataSF downloads (F-053, F-054); operator workstation with `osmium`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` and `R2_PRIVATE_ACCESS_KEY_ID`/`R2_PRIVATE_SECRET_ACCESS_KEY` (AC-9); optional `SOCRATA_APP_TOKEN`
-15. M02a2 · bake-roads-graph · 1 · M02a1 · none
-16. M02b1 · streaming-lod · 1 · M02a2, M01c, M01e, M01b2 · Q-13 desktop Mac plus the M02a1 `sf` bake (AC-11)
-17. M02b2 · weather-time · 1 · M02b1 · Q-13 iPhone 15 (AC-9)
-18. M02c1 · graph-services-teleports · 1 · M02a2, M02b1, M02b2 · none
-19. M02d1 · landmarks-kit-and-heroes · 1 · M02b1, M02c1 · manual desktop review (AC-9)
-20. M02d2 · landmarks-rest-and-swap · 1 · M02d1 · manual desktop review (AC-9)
-21. M03a1 · vehicles-interaction-prefabs · 1 · M01b2, M02c1 · none
-22. M03a2 · handling-model-wheel-spike · 0.5 · M03a1 · none
-23. M03b1 · traffic-robotaxis · 1 · M02c1, M03a1, M02b2 · Q-13 iPhone 15 (AC-11)
-24. M03b2 · peds-transit · 1 · M03b1 · none
-25. M03c · pursuit-director · 1 · M03a1, M03b1 · none
-26. M04a1 · saves-gamemode-unlocks · 1 · M01b2 · none
-27. M04a2 · saves-gamemode-unlocks · 1 · M04a1, M03c, M03b2, M02b2 · none
-28. M04b1 · shell-ui-kit-menus-settings · 1 · M04a2 · none
-29. M04b2 · creator-phone-hud-kit · 1 · M04b1 · Q-13 iPhone 15 (AC-12)
-30. M02c2 · maps · 1 · M02c1, M04b2 · none
-31. M04b3 · local-identity-play-token · 0.5 · M00a, M04b1 · `PLAY_TOKEN_HMAC` (Worker secret; SKIP without it, DL-231)
-32. M04c · cutscene-playback-spike · 1 · M01c, M04b1 · Q-13 iPhone 15 and Quest 3 (AC-8, AC-9)
-33. M04d · qa-harness-bots-goldens · 1 · M04a2, M03a1, M00d · none
-34. M05a1 · mission-ir-vm · 1 · M04a2, M02c1 · none
-35. M05a2 · autoplayer-director-preview · 1 · M05a1, M04d · none
-36. M05b1 · cutscene-infra-mock · 1 · M00a, M00c, M01d · `OPS_TOKEN`; `FAL_MODE=mock`; live fal only after ADR-GENAI-01 `cleared`
-37. M05b2 · cutscene-player-index · 1 · M05b1, M04c, M05a1 · none
-38. M05c1 · act1-missions-1-6 · 1 · M05a2, M05b2, M03c, M04b2, M02c2 · none
-39. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
-40. M05d · data-spine-supabase · 1 · M05b1 · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
-41. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
-42. M06a1 · npc-backend-spine · 1 · M05d, M04b3 · `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY`, `OPS_TOKEN`
-43. M06a2 · soul-contract-compiler · 1 · M00b, M01d · Q-19, Q-25 (real roster waits; originals only); optional `ANTHROPIC_API_KEY`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`
-44. M06a3 · dialogue-proxy · 1 · M06a1, M06a2 · `ANTHROPIC_API_KEY` (workspace `npc-runtime`), AI Gateway `gw-dialogue`
-45. M06a4 · memory-voice-lipsync · 1 · M06a3, M04b2 · `ANTHROPIC_API_KEY`, `ANTHROPIC_EVALS_KEY`; Q-20 (t2 voices off, `ELEVENLABS_API_KEY` optional)
-46. M06a5 · dialogue-panel-ui · 0.3 · M06a3, M04b2 · none
-47. M06c · npc-agency-barks · 1 · M06a3, M03b2 · `ANTHROPIC_API_KEY` for live intents (fixtures without)
-48. M06b1 · builder-text-private · 1 · M06a3 · `OPENAI_MODERATION_API_KEY`; `ANTHROPIC_BUILDER_KEY` (Anthropic workspace `npc-builder`)
-49. M07a1 · racing-core-director-car · 1 · M03a2, M04a2, M04d, M02c1 · none
-50. M07a2 · racing-ai-replay-ghosts · 1 · M07a1, M03c, M05c1 · none
-51. M07b1 · racing-content-events-ladder · 1 · M07a2, M03b2 · none
-52. M07b2 · racing-garage-replay-photo-visuals · 1 · M07b1, M05b2 · Q-13 iPhone 15 (AC-10)
-53. M08a1 · fight-core-sim-data · 1 · M01a1, M05a1 · none
-54. M08a2 · fight-mode-training-vs · 1 · M08a1, M04a2, M04b2, M04d, M05c1 · none
-55. M08b1 · fight-roster-kits-ai · 1 · M08a2, M06a2 · Q-24 (library clips until art-lead signatures)
-56. M08b2 · fight-stages-cutscenes-arcade · 1 · M08b1, M05b2 · none (real clips wait for M10b)
-57. M08c1 · pose-pipeline-classifier · 1 · M08a2 · none
-58. M08c2 · pose-calibration-gate · 1 · M08c1 · Q-13 iPhone 15 (AC-14); Q-23(b) counsel before launch only
-59. M09a1 · tycoon-core-finance · 1 · M01a1, M04a2, M04d · none
-60. M09a2 · tycoon-events-balance · 1 · M09a1, M04d · none
-61. M09b1 · tycoon-ui · 1 · M09a2, M04b2 · none
-62. M09b2 · tycoon-vc-story · 1 · M09b1, M06a3, M05a1, M05a2 · `ANTHROPIC_API_KEY` (fixtures without); Q-23(c) disclaimer text before launch
-63. M10a1 · roster-pipeline · 1 · M05b1, M06a2, M01d, M05c3 · `FAL_KEY` (operator), prepaid ≤ cap, Q-17; `ANTHROPIC_API_KEY` (vision QA); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (publish); Q-19/Q-25 for real-derived slugs
-64. M10a2 · roster-pipeline · 1 · M10a1, M08b1 · as M10a1; Q-24
-65. M10b · qa-gates-kill-drill · 1 · M10a2, M08b2, M06a3 · `OPS_TOKEN`, `CF_API_TOKEN_CACHE`; `FAL_KEY` (operator only); ADR-GENAI-01 `cleared` for paid prewarm
-66. M10c · roster-souls-ink-barks · 1 · M10a2, M06a4, M06c, M05c2 · Q-19, Q-25 (canary only while open), Q-20; `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`
-67. M10d1 · art-integration · 1 · M05c2, M03b2, M04b2 · Q-39 art sourcing (default: recipe fallback), Q-24
-68. M10d3 · art-integration · 1 · M10d1, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24
-69. M10d2 · art-integration · 1 · M10d1, M10d3, M02d2 · Q-39 art sourcing (default: recipes stay)
-70. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
-71. M05e2 · story-act2-part2 · 1 · M05e1 · Q-21 for release
-72. M05f1 · story-act3-part1 · 1 · M05e2, M10b · Q-21 for release
-73. M05f2 · story-act3-finale · 1 · M05f1 · Q-21 for release
-74. M10e · audio-integration · 1 · M10d2, M10c, M05f2, M07b2, M08b2, M03c, M02b2 · Q-11, Q-40 audio sourcing (default: commissioned stems when supplied, else silent music; SFX recipe fallback); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for voiced lines
-75. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2 · none
-76. M11a2 · iphone-hardening-governor · 1 · M11a1 · Q-13 devices
-77. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1 · Q-13 devices
-78. M11b3 · xr-ui-panels-comfort · 0.8 · M11b1, M06a5 · none
-79. M11b2 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b1, M07b2, M08b2, M11b3 · none
-80. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices
-81. M12a1 · p1-identity-cloud-saves · 1 · M05d, M04b3, M06a1 · Q-15 (`id.<domain>`), `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET`, `CI_STAFF_DEVICE_JWK`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`, Supabase Pro
-82. M12a2 · age-register-cloud-save-ui · 0.5 · M12a1, M04b1 · none
-83. M06b2 · builder-images-review · 1 · M06b1, M12a1, M06a5 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_BUILDER_KEY`
-84. M06b3 · npc-builder-ui · 1 · M06b2, M04b2, M06a5, M06c · none
-85. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
-86. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)
-87. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · `SUPABASE_SECRET_KEY` (rooms Worker), `CI_STAFF_DEVICE_JWK`
-88. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location; `INTERNAL_HMAC`, `OPENAI_MODERATION_API_KEY`, `CI_STAFF_DEVICE_JWK`
-89. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none
-90. M12e · mode-leaderboards · 1 · M12c2, M07b1, M09a2 · none
-91. M13a1 · mod-sdk-manifest-validators · 1 · M04a2, M01d · none
-92. M13a2 · mod-installer-store-client · 1 · M13a1, M01e, M05d · none
-93. M13a3 · mod-runtime-data-experience · 1 · M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 · none
-94. M13a4 · mod-script-sandbox · 1 · M13a3 · Q-13 device
-95. M13a5 · mod-ui-tier · 1 · M13a3 · Q-13 devices
-96. M13a6 · mod-agent-kit · 1 · M13a4, M13a5 · Q-22 (npm publication step only)
-97. M13a7 · store-experience-pages · 0.7 · M13a3, M07b2, M04b1 · none
-98. M13b1 · forum-reports-backend · 1 · M05d, M06b1, M06b2, M13a2 · none new (reuses `SUPABASE_SECRET_KEY`, `OPENAI_MODERATION_API_KEY`)
-99. M13b2 · forum-ugc-links · 0.8 · M13b1, M13a3, M02c2 · none
-100. M13b3 · creator-place-mode · 1 · M13a3, M04b2 · none
-101. M13b4 · forum-ui · 1 · M13b1, M04b1 · none
-102. M13c1 · device-code-publish-login · 0.8 · M12a1, M04b1, M13a2 · DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted; `SUPABASE_ACCESS_TOKEN` (spike)
-103. M13c2 · publish-pipeline-server · 1 · M13c1, M13a1, M13b1, M13b2 · none new (reuses `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_API_KEY`; `PHOTODNA_KEY` waits for Q-16)
-104. M13c3 · publish-cli-link · 1 · M13c2, M13a6 · Q-22 (npm step only); `CI_STAFF_DEVICE_JWK` for `test:staging`
-105. M06b4 · builder-publish-assets · 0.5 · M13c2, M06b3, M10a1 · `FAL_KEY` (operator only, Q-17); owner approval per job; `budget_program` cap
-106. M13d1 · legal-trust-safety-backend · 1 · M13b1, M06b2, M13c2 · Q-16 filings; `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` after approval
-107. M13d2 · legal-forms-ui · 0.3 · M13d1, M04b1 · Q-23 for final text
-108. M14c · a11y-audit-i18n-gate · 0.5 · M13d2, M13b4, M12d, M06b3, M11b3 · none
-109. M14b1 · launch-hardening-guardrails · 1 · M13d1, M06a4, M05b1 · `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`, `CI_STAFF_DEVICE_JWK`; Anthropic workspace `synthetic`
-110. M14b2 · launch-hardening-guardrails · 1 · M14b1, M12c2 · staging; `CI_STAFF_DEVICE_JWK`, `OPS_TOKEN`, `CF_API_TOKEN_CACHE`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; staging `ANTHROPIC_API_KEY` (workspace `synthetic`)
-111. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only)
-112. M14a · thirdweb-siwe-link · 1 · M14b3, M12a1 · Thirdweb Growth plan ($99/month, F-059) owner approval; Q-13 iPhone 15 and Mac (AC-10); `VITE_THIRDWEB_CLIENT_ID`; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` (`db:push`)
-113. M15a · bay-expansion-framework · 1 · M14a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-114. M15b · oakland-core · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`; Q-13 iPhone 15 (AC-9)
-115. M15c · berkeley-richmond · 1 · M15b · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-116. M15d · marin-gateway · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-117. M15e · peninsula-north · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-118. M15f · peninsula-vc-row · 1 · M15e · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-119. M15g · south-bay-san-jose · 1 · M15f · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-Run them in this order. A milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2); when several Builders run in parallel, "done" means merged to the default branch; each file's Depends on section is authoritative over this list, and slugs of split milestones are in their file names. Before starting, check its status in `spec/07-milestones/README.md`: if it is not READY, stop and report.
+14. M00e · owner-account-hardening · 1 · M00a, M00b, M01c · `SUPABASE_SECRET_KEY` (Worker; absent → admin routes `feature_disabled`); operator actions in the file (create `main`, production `AUTH_PASSWORD_SIGNUP`, dashboard sign-up off once U-ACCT-3 is recorded); gate: no milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts before it merges (`_PLAN.md` §0 rule 7)
+15. M00f · third-party-reuse-gates · 0.7 · M00b, M00d · none (`DV_NAMES_REAL_JSON` optional, CI); nothing is vendored before it merges (DL-607)
+16. M02a1 · bake-core · 1 · M01f, M01d, M00d, M01e · public OSM/DataSF downloads (F-053, F-054); operator workstation with `osmium`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` and `R2_PRIVATE_ACCESS_KEY_ID`/`R2_PRIVATE_SECRET_ACCESS_KEY` (AC-9); optional `SOCRATA_APP_TOKEN`
+17. M02a2 · bake-roads-graph · 1 · M02a1 · none
+18. M02b1 · streaming-lod · 1 · M02a2, M01c, M01e, M01b2 · Q-13 desktop Mac plus the M02a1 `sf` bake (AC-11)
+19. M02b2 · weather-time · 1 · M02b1 · Q-13 iPhone 15 (AC-9)
+20. M02c1 · graph-services-teleports · 1 · M02a2, M02b1, M02b2 · none
+21. M02d1 · landmarks-kit-and-heroes · 1 · M02b1, M02c1 · manual desktop review (AC-9)
+22. M02d2 · landmarks-rest-and-swap · 1 · M02d1 · manual desktop review (AC-9)
+23. M03a1 · vehicles-interaction-prefabs · 1 · M01b2, M02c1 · none
+24. M03a2 · handling-model-wheel-spike · 0.5 · M03a1 · none
+25. M03b1 · traffic-robotaxis · 1 · M02c1, M03a1, M02b2 · Q-13 iPhone 15 (AC-11)
+26. M03b2 · peds-transit · 1 · M03b1 · none
+27. M03c · pursuit-director · 1 · M03a1, M03b1 · none
+28. M04a1 · saves-gamemode-unlocks · 1 · M01b2 · none
+29. M04a2 · saves-gamemode-unlocks · 1 · M04a1, M03c, M03b2, M02b2 · none
+30. M04b1 · shell-ui-kit-menus-settings · 1 · M04a2, M00e · none
+31. M04b2 · creator-phone-hud-kit · 1 · M04b1 · Q-13 iPhone 15 (AC-12)
+32. M02c2 · maps · 1 · M02c1, M04b2 · Q-15 staging media domain `media-staging.<domain>` (AC-14 only; DL-670 part 2); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (AC-14)
+33. M04b3 · local-identity-play-token · 0.5 · M00a, M04b1 · `PLAY_TOKEN_HMAC` (Worker secret; SKIP without it, DL-231)
+34. M04c · cutscene-playback-spike · 1 · M01c, M04b1 · Q-13 iPhone 15 and Quest 3 (AC-8, AC-9)
+35. M04d · qa-harness-bots-goldens · 1 · M04a2, M03a1, M00d · none
+36. M05a1 · mission-ir-vm · 1 · M04a2, M02c1 · none
+37. M05a2 · autoplayer-director-preview · 1 · M05a1, M04d · none
+38. M05b1 · cutscene-infra-mock · 1 · M00a, M00c, M01d · `OPS_TOKEN`; `FAL_MODE=mock`; live fal only after ADR-GENAI-01 `cleared`
+39. M05b2 · cutscene-player-index · 1 · M05b1, M04c, M05a1 · none
+40. M05c1 · act1-missions-1-6 · 1 · M05a2, M05b2, M03c, M04b2, M02c2 · none
+41. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · Q-15 through M02c2 AC-14 (AC-7 to AC-9; DL-670 part 2); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
+42. M05d · data-spine-supabase · 1 · M05b1, M00e · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
+43. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
+44. M06a1 · npc-backend-spine · 1 · M05d, M04b3 · `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY`, `OPS_TOKEN`
+45. M06a2 · soul-contract-compiler · 1 · M00b, M01d · Q-19, Q-25 (real roster waits; originals only); optional `ANTHROPIC_API_KEY`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`
+46. M06a3 · dialogue-proxy · 1 · M06a1, M06a2 · `ANTHROPIC_API_KEY` (workspace `npc-runtime`), AI Gateway `gw-dialogue`
+47. M06a4 · memory-voice-lipsync · 1 · M06a3, M04b2 · `ANTHROPIC_API_KEY`, `ANTHROPIC_EVALS_KEY`; Q-20 (t2 voices off, `ELEVENLABS_API_KEY` optional)
+48. M06a5 · dialogue-panel-ui · 0.3 · M06a3, M04b2 · none
+49. M06c · npc-agency-barks · 1 · M06a3, M03b2 · `ANTHROPIC_API_KEY` for live intents (fixtures without)
+50. M06b1 · builder-text-private · 1 · M06a3 · `OPENAI_MODERATION_API_KEY`; `ANTHROPIC_BUILDER_KEY` (Anthropic workspace `npc-builder`)
+51. M07a1 · racing-core-director-car · 1 · M03a2, M04a2, M04d, M02c1 · none
+52. M07a2 · racing-ai-replay-ghosts · 1 · M07a1, M03c, M05c1 · none
+53. M07b1 · racing-content-events-ladder · 1 · M07a2, M03b2 · none
+54. M07b2 · racing-garage-replay-photo-visuals · 1 · M07b1, M05b2 · Q-13 iPhone 15 (AC-10)
+55. M08a1 · fight-core-sim-data · 1 · M01a1, M05a1 · none
+56. M08a2 · fight-mode-training-vs · 1 · M08a1, M04a2, M04b2, M04d, M05c1 · none
+57. M08b1 · fight-roster-kits-ai · 1 · M08a2, M06a2 · Q-24 (library clips until art-lead signatures)
+58. M08b2 · fight-stages-cutscenes-arcade · 1 · M08b1, M05b2 · none (real clips wait for M10b)
+59. M08c1 · pose-pipeline-classifier · 1 · M08a2 · none
+60. M08c2 · pose-calibration-gate · 1 · M08c1 · Q-13 iPhone 15 (AC-14); Q-23(b) counsel before launch only
+61. M09a1 · tycoon-core-finance · 1 · M01a1, M04a2, M04d · none
+62. M09a2 · tycoon-events-balance · 1 · M09a1, M04d · none
+63. M09b1 · tycoon-ui · 1 · M09a2, M04b2 · none
+64. M09b2 · tycoon-vc-story · 1 · M09b1, M06a3, M05a1, M05a2 · `ANTHROPIC_API_KEY` (fixtures without); Q-23(c) disclaimer text before launch
+65. M10a1 · roster-pipeline · 1 · M05b1, M06a2, M01d, M05c3 · `FAL_KEY` (operator), prepaid ≤ cap, Q-17; `ANTHROPIC_API_KEY` (vision QA); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (publish); Q-19/Q-25 for real-derived slugs
+66. M10a2 · roster-pipeline · 1 · M10a1, M08b1 · as M10a1; Q-24
+67. M10b · qa-gates-kill-drill · 1 · M10a2, M08b2, M06a3 · `OPS_TOKEN`, `CF_API_TOKEN_CACHE`; `FAL_KEY` (operator only); ADR-GENAI-01 `cleared` for paid prewarm
+68. M10c · roster-souls-ink-barks · 1 · M10a2, M06a4, M06c, M05c2 · Q-19, Q-25 (canary only while open), Q-20; `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`
+69. M10d1 · art-integration · 1 · M05c2, M03b2, M04b2 · Q-39 art sourcing (default: recipe fallback), Q-24
+70. M10d3 · art-integration · 1 · M10d1, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24
+71. M10d2 · art-integration · 1 · M10d1, M10d3, M02d2 · Q-39 art sourcing (default: recipes stay)
+72. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
+73. M05e2 · story-act2-part2 · 1 · M05e1 · Q-21 for release
+74. M05f1 · story-act3-part1 · 1 · M05e2, M10b · Q-21 for release
+75. M05f2 · story-act3-finale · 1 · M05f1 · Q-21 for release
+76. M10e · audio-integration · 1 · M10d2, M10c, M05f2, M07b2, M08b2, M03c, M02b2 · Q-11, Q-40 audio sourcing (default: commissioned stems when supplied, else silent music; SFX recipe fallback); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for voiced lines
+77. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2 · none
+78. M11a2 · iphone-hardening-governor · 1 · M11a1 · Q-13 devices
+79. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1 · Q-13 devices
+80. M11b3 · xr-ui-panels-comfort · 0.8 · M11b1, M06a5 · none
+81. M11b2 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b1, M07b2, M08b2, M11b3 · none
+82. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices
+83. M12a1 · p1-identity-cloud-saves · 1 · M05d, M04b3, M06a1 · Q-15 (`id.<domain>`), `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET`, `CI_STAFF_DEVICE_JWK`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`, Supabase Pro
+84. M12a2 · age-register-cloud-save-ui · 0.5 · M12a1, M04b1 · none
+85. M06b2 · builder-images-review · 1 · M06b1, M12a1, M06a5 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_BUILDER_KEY`
+86. M06b3 · npc-builder-ui · 1 · M06b2, M04b2, M06a5, M06c · none
+87. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
+88. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)
+89. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · `SUPABASE_SECRET_KEY` (rooms Worker), `CI_STAFF_DEVICE_JWK`
+90. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location; `INTERNAL_HMAC`, `OPENAI_MODERATION_API_KEY`, `CI_STAFF_DEVICE_JWK`
+91. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none
+92. M12e · mode-leaderboards · 1 · M12c2, M07b1, M09a2 · none
+93. M13a1 · mod-sdk-manifest-validators · 1 · M04a2, M01d, M00e · none
+94. M13a2 · mod-installer-store-client · 1 · M13a1, M01e, M05d · none
+95. M13a3 · mod-runtime-data-experience · 1 · M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 · none
+96. M13a4 · mod-script-sandbox · 1 · M13a3 · Q-13 device
+97. M13a5 · mod-ui-tier · 1 · M13a3 · Q-13 devices
+98. M13a6 · mod-agent-kit · 1 · M13a4, M13a5 · Q-22 (npm publication step only)
+99. M13a7 · store-experience-pages · 0.7 · M13a3, M07b2, M04b1 · none
+100. M13b1 · forum-reports-backend · 1 · M05d, M06b1, M06b2, M13a2 · none new (reuses `SUPABASE_SECRET_KEY`, `OPENAI_MODERATION_API_KEY`)
+101. M13b2 · forum-ugc-links · 0.8 · M13b1, M13a3, M02c2 · none
+102. M13b3 · creator-place-mode · 1 · M13a3, M04b2 · none
+103. M13b4 · forum-ui · 1 · M13b1, M04b1 · none
+104. M13c1 · device-code-publish-login · 0.8 · M12a1, M04b1, M13a2 · DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted; `SUPABASE_ACCESS_TOKEN` (spike)
+105. M13c2 · publish-pipeline-server · 1 · M13c1, M13a1, M13b1, M13b2 · none new (reuses `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_API_KEY`; `PHOTODNA_KEY` waits for Q-16)
+106. M13c3 · publish-cli-link · 1 · M13c2, M13a6 · Q-22 (npm step only); `CI_STAFF_DEVICE_JWK` for `test:staging`
+107. M06b4 · builder-publish-assets · 0.5 · M13c2, M06b3, M10a1 · `FAL_KEY` (operator only, Q-17); owner approval per job; `budget_program` cap
+108. M13d1 · legal-trust-safety-backend · 1 · M13b1, M06b2, M13c2 · Q-16 filings; `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` after approval
+109. M13d2 · legal-forms-ui · 0.3 · M13d1, M04b1 · Q-23 for final text
+110. M14c · a11y-audit-i18n-gate · 0.5 · M13d2, M13b4, M12d, M06b3, M11b3 · none
+111. M14b1 · launch-hardening-guardrails · 1 · M13d1, M06a4, M05b1 · `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`, `CI_STAFF_DEVICE_JWK`; Anthropic workspace `synthetic`
+112. M14b2 · launch-hardening-guardrails · 1 · M14b1, M12c2 · staging; `CI_STAFF_DEVICE_JWK`, `OPS_TOKEN`, `CF_API_TOKEN_CACHE`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; staging `ANTHROPIC_API_KEY` (workspace `synthetic`)
+113. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only)
+114. M14a · thirdweb-siwe-link · 1 · M14b3, M12a1 · Thirdweb Growth plan ($99/month, F-059) owner approval; Q-13 iPhone 15 and Mac (AC-10); `VITE_THIRDWEB_CLIENT_ID`; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` (`db:push`)
+115. M15a · bay-expansion-framework · 1 · M14a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+116. M15b · oakland-core · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`; Q-13 iPhone 15 (AC-9)
+117. M15c · berkeley-richmond · 1 · M15b · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+118. M15d · marin-gateway · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+119. M15e · peninsula-north · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+120. M15f · peninsula-vc-row · 1 · M15e · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+121. M15g · south-bay-san-jose · 1 · M15f · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
+Run them in this order. A milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2); when several Builders run in parallel, "done" means merged to the integration branch (`main` once the operator creates it, else `claude/build`; each PR targets it; `_PLAN.md` §0 rule 7, DL-641); each file's Depends on section is authoritative over this list, and slugs of split milestones are in their file names. Before starting, check its status in `spec/07-milestones/README.md`: if it is not READY, stop and report. M00e (row 14) is a gate: no milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts until it has merged (M05d and M13a1 name it in Depends on), and milestones already executing (M00…M01f; M05b1, started 2026-10-19, merges after it in run order) merge as before (`_PLAN.md` §0 rule 7). Order at the head of the list: M00e next (its dependencies are merged into `claude/build`); M00d is already in progress (not gated: it writes only a docs `services/edge/README.md`) and merges as before; then M00f (needs M00d). M00f (row 15) gates no milestone, but nothing is vendored into `third_party/` before it merges (`_PLAN.md` §0 rule 8). The operator actions listed in a milestone's Notes are never yours: do not perform them and do not report them as missing.
 </milestones>
 
 </builder_prompt>

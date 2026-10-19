@@ -75,6 +75,7 @@ Rooms survive real networks and deploys. When this session ends, a dropped socke
 
 ## Notes for the Builder
 - Read first: `09-backend-contracts.md` §1.5–§1.7; `09-backend.md` §3.1, §5.1, §5.3; `09-backend-db.md` §6; `spec/05-api-and-realtime.md` §4.4–§4.7; DL-184, DL-186–DL-188, DL-192.
+- `C12_VERSION`: write `'1.3.0'`, not `'1.2.0'`: C12 1.3 landed earlier in M00e (`09-backend-contracts-1.3.md` §4, DL-604); change no 1.3 shape.
 - Routes 48, 55 are exempt from the geo-gate (DL-184); staff scopes are re-checked against `staff_roles` on every call; staff writes append `audit_log`.
 - Order: checkpoint → ghosts and resume → AFK and GC → ACT → drain and deploy window → presence → invites → kick → client resume and mods guard → e2e.
 - Branch `m12c1-rooms-hardening-presence-loadtest`.

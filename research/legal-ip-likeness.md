@@ -97,6 +97,7 @@ Local repos audited: `${REPOS}` = `/tmp/claude-0/-home-user/d5596183-032b-5cac-9
 - **Spec rule:** the Sonnet kickoff (04) states "Do not open, fetch or search the example repositories. Implement from the spec and research pattern cards only."
 - The PR template carries a checkbox: "No code, data, names, constants or layouts from example repositories were consulted or copied for this change."
 - The research files may name Rockstar formats, because they are the audit record. They live in `docs/research/`, which ships no runtime code and is allowlisted only for the string denylist.
+- **Amended 2026-10-19 by ADR-REUSE-01/D-31:** files under `third_party/` listed `REUSE-WITH-ATTRIBUTION` in the register (`docs/legal/third-party-reuse.json`) may cross; everything else unchanged.
 
 ### 2.3 Asset provenance manifest (extends C07 `AssetManifest.provenance`)
 Every shipped binary or data file (`assets/**`, `public/**`, `world/**`, fonts, audio, `*.glb|ktx2|png|jpg|webp|avif|ogg|mp3|wav|opus|woff2|pmtiles|bin|json` data) must have exactly one record. A file is identified by its SHA-256 and has an SPDX-style licence.

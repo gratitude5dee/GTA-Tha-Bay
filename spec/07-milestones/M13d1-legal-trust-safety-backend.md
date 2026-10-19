@@ -95,5 +95,6 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 
 ## Notes for the Builder
 - Read first: `09-backend.md` §3.4; `09-backend-db.md` §3.4, §4, §7; `09-backend-ops.md` §3.1, §4; [research/gap-trust-safety-tooling.md §6.5–§6.8]; `12-modding-publish.md` C§3.4; `spec/05-api-and-realtime.md` §3 rows 41–45; F-066.
+- Route 66 (`GET /legal/:doc`, M00e, `services/edge/src/routes/legal.ts`) stays: replace only M00a's `POST /legal/*` placeholders with `legal/intake.ts`, keep `GET /legal/terms|privacy` answering `LegalDocRes` (M00e AC-11 stays green), and put the route 42–45 bodies in `v1.ts` as Deliverables say (DL-623).
 - Remove first, review after, for NCII. Never forward a CSAM item to another vendor. Never log request bodies.
 - Branch `m13d1-legal-trust-safety-backend`.

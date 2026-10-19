@@ -462,6 +462,7 @@ Mapbox map-load arithmetic (pricing page): first 50,000 loads free, then $5.00/1
    - It reuses world-bake data the game already streams, so it adds no download and no second WebGL context next to the WebGPU renderer.
 2. **Out-of-game web surfaces = option B.** These are the forum, experience browser, Mod Studio anchor picker, share and preview pages and the companion site. Serve `sf.pmtiles` (z0–14, ≈3.9 MB) from Workers static assets or R2 with the Protomaps style and our colour tokens. Overlay published experiences from `/api/v1/experiences?bbox=` as GeoJSON.
 3. **Mapbox:** no runtime use. The Mapbox CLI (0.3.0, MIT, `mapbox` binary, command groups `geocoder, search, static, styles, tilesets, directions, isochrone, matrix, map-match, usage, doctor, agent-skills, generate-skills, mcp`) is allowed as optional developer tooling for ETA sanity checks and style experiments. **Nothing it returns is committed.** Temporary geocoding results "are not allowed to be cached"; storing needs `permanent=true` with a card on file. Mission coordinates come from the EAS-based offline geocoder instead.
+   - **Amended 2026-10-19 by DL-506 (ADR-REUSE-01):** the Mapbox CLI is for the operator or the Architect only, never in a Builder session, and no Mapbox result sets, checks or corrects committed data (Product Terms §1.6, whether or not the output is committed); ETA and address checks use `map:geocode` and the road graph.
 
 ### 5.6 SF map pack (proposal; produced by `tools/map/bake-map.ts`, consumed by C08)
 

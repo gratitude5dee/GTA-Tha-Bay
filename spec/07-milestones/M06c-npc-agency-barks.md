@@ -51,7 +51,7 @@ Named NPCs live in the city on their own. `ScheduleSystem`, `UtilitySystem` and 
 - `services/edge/src/npc/intent.ts`, `services/edge/src/routes/npc-intent.ts`, `services/edge/test/npc-intent-throttle.test.ts`, `services/edge/test/fixtures/anthropic/intent-*.sse`.
 - `content/npcs/barks/{civilian,vendor,police,founder,rapper}.json` and `.ink` (original placeholder lines, ≤ 80 chars each, passing `names:lint`).
 - `config/npc.json` (LOD radii, caps per tier, throttles, intent TTL).
-- the `npc-mission-crowd` camera path file, placed next to the existing scenario paths (M01c runner layout), plus its scenario registration; `tests/e2e/npc-barks.spec.ts` (`@npc-barks`).
+- the `npc-mission-crowd` camera path file, placed next to the existing scenario paths (M01c runner layout), plus its scenario registration; `npc-mission-crowd` appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4); `tests/e2e/npc-barks.spec.ts` (`@npc-barks`).
 - About 36 files.
 
 ## Interfaces
