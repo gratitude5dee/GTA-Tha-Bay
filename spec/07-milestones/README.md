@@ -4,7 +4,7 @@
 
 ## Status values
 - **READY** — the file exists, follows C15, every acceptance criterion has a proof that exists by the end of that milestone, and no criterion relies on an UNVERIFIED fact. The Builder may start it once every milestone in its Depends on is merged.
-- **READY · frozen (executing)** — the twelve fast-track files (M00 … M01f). A Builder is executing M00; these files change only for a defect that blocks a Builder, and every such change is logged in the decision log (`spec/11-decision-log-2.md`, entries from DL-245).
+- **READY · frozen (executing)** — the twelve fast-track files (M00 … M01f). A Builder is executing M00; these files change only for a defect that blocks a Builder, and every such change is logged in the decision log (`spec/11-decision-log-2.md` from DL-245, continued in `spec/11-decision-log-4.md`; DL-341).
 - **PENDING** — no file yet, or the file is being rewritten. The Builder never starts a PENDING milestone. No file is PENDING at this handoff.
 - **IN PROGRESS / DONE** — set by the Builder (branch `m<id>-<slug>` exists / merged to the default branch). Record the change in this table in the milestone's PR.
 
@@ -19,7 +19,7 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - R-ROLL-01: no rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. R-AUTH-02: M14a is the last v1 milestone; M15a–M15g are post-v1 (Bay expansion), one session each (DL-242).
 - Every family above one session is split into digit-suffixed ids (DL-212).
 
-## Table (READY 115, of which 12 frozen (executing); 108 v1 milestones ≈ 100.4 sessions + 7 post-v1 = 107.4 sessions)
+## Table (READY 117, of which 12 frozen (executing); 110 v1 milestones ≈ 102.4 sessions + 7 post-v1 = 109.4 sessions; M10d1–M10d2 added by DL-390)
 
 Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…DL-244; mechanical sweep DL-244: 0 findings) and promoted to READY at the handoff (`spec/11-decision-log-2.md` DL-245). Gates (secrets, devices, owner questions) per milestone are in the kickoff list and `_PLAN-1/2/3.md`.
 
@@ -38,12 +38,12 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 11 | M01e | asset-worker-opfs-store | 1 | M01d, M01c, M00a, M00, M01a2, M01f | READY · frozen (executing) | `M01e-asset-worker-opfs-store.md` |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | M01a1, M00b | READY · frozen (executing) | `M01f-world-graybox-fixture-codec.md` |
 | 13 | M00d | qa-spec-gates | 0.5 | M00, M01c, M00b | READY | `M00d-qa-spec-gates.md` |
-| 14 | M02a1 | bake-core | 1 | M01f, M01d | READY | `M02a1-bake-core.md` |
+| 14 | M02a1 | bake-core | 1 | M01f, M01d, M00d | READY | `M02a1-bake-core.md` |
 | 15 | M02a2 | bake-roads-graph | 1 | M02a1 | READY | `M02a2-bake-roads-graph.md` |
-| 16 | M02b1 | streaming-lod | 1 | M02a2, M01c, M01e | READY | `M02b1-streaming-lod.md` |
+| 16 | M02b1 | streaming-lod | 1 | M02a2, M01c, M01e, M01b2 | READY | `M02b1-streaming-lod.md` |
 | 17 | M02b2 | weather-time | 1 | M02b1 | READY | `M02b2-weather-time.md` |
-| 18 | M02c1 | graph-services-teleports | 1 | M02a2, M02b1 | READY | `M02c1-graph-services-teleports.md` |
-| 19 | M02d1 | landmarks-kit-and-heroes | 1 | M02b1 | READY | `M02d1-landmarks-kit-and-heroes.md` |
+| 18 | M02c1 | graph-services-teleports | 1 | M02a2, M02b1, M02b2 | READY | `M02c1-graph-services-teleports.md` |
+| 19 | M02d1 | landmarks-kit-and-heroes | 1 | M02b1, M02c1 | READY | `M02d1-landmarks-kit-and-heroes.md` |
 | 20 | M02d2 | landmarks-rest-and-swap | 1 | M02d1 | READY | `M02d2-landmarks-rest-and-swap.md` |
 | 21 | M03a1 | vehicles-interaction-prefabs | 1 | M01b2, M02c1 | READY | `M03a1-vehicles-interaction-prefabs.md` |
 | 22 | M03a2 | handling-model-wheel-spike | 0.5 | M03a1 | READY | `M03a2-handling-model-wheel-spike.md` |
@@ -91,52 +91,54 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 64 | M10a2 | roster-pipeline | 1 | M10a1, M08b1 | READY | `M10a2-roster-pipeline.md` |
 | 65 | M10b | qa-gates-kill-drill | 1 | M10a2, M08b2, M06a3 | READY | `M10b-qa-gates-kill-drill.md` |
 | 66 | M10c | roster-souls-ink-barks | 1 | M10a2, M06a4, M06c, M05c2 | READY | `M10c-roster-souls-ink-barks.md` |
-| 67 | M05e1 | story-act2-part1 | 1 | M05c2, M07a2, M08b2, M09b2, M07b1 | READY | `M05e1-story-act2-part1.md` |
-| 68 | M05e2 | story-act2-part2 | 1 | M05e1 | READY | `M05e2-story-act2-part2.md` |
-| 69 | M05f1 | story-act3-part1 | 1 | M05e2, M10b | READY | `M05f1-story-act3-part1.md` |
-| 70 | M05f2 | story-act3-finale | 1 | M05f1 | READY | `M05f2-story-act3-finale.md` |
-| 71 | M11a1 | iphone-hardening-governor | 1 | M02b1, M03b1, M07a2 | READY | `M11a1-iphone-hardening-governor.md` |
-| 72 | M11a2 | iphone-hardening-governor | 1 | M11a1 | READY | `M11a2-iphone-hardening-governor.md` |
-| 73 | M11b1 | webxr-port | 1 | M01c, M04b2, M11a1 | READY | `M11b1-webxr-port.md` |
-| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | M11b1, M06a5 | READY | `M11b3-xr-ui-panels-comfort.md` |
-| 75 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b1, M07b2, M08b2, M11b3 | READY | `M11b2-per-mode-xr-and-xr-cutscenes.md` |
-| 76 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b2, M09b1, M05b2 | READY | `M11b4-per-mode-xr-and-xr-cutscenes.md` |
-| 77 | M12a1 | p1-identity-cloud-saves | 1 | M05d, M04b3, M06a1 | READY | `M12a1-p1-identity-cloud-saves.md` |
-| 78 | M12a2 | age-register-cloud-save-ui | 0.5 | M12a1, M04b1 | READY | `M12a2-age-register-cloud-save-ui.md` |
-| 79 | M06b2 | builder-images-review | 1 | M06b1, M12a1 | READY | `M06b2-builder-images-review.md` |
-| 80 | M06b3 | npc-builder-ui | 1 | M06b2, M04b2 | READY | `M06b3-npc-builder-ui.md` |
-| 81 | M12b1 | rooms-core-protocol-v2 | 1 | M12a1, M05c2, M04a2 | READY | `M12b1-rooms-core-protocol-v2.md` |
-| 82 | M12b2 | rooms-core-protocol-v2 | 1 | M12b1 | READY | `M12b2-rooms-core-protocol-v2.md` |
-| 83 | M12c1 | rooms-hardening-presence-loadtest | 1 | M12b2 | READY | `M12c1-rooms-hardening-presence-loadtest.md` |
-| 84 | M12c2 | rooms-hardening-presence-loadtest | 1 | M12c1 | READY | `M12c2-rooms-hardening-presence-loadtest.md` |
-| 85 | M12d | online-page-invites | 0.3 | M12c1, M04b1 | READY | `M12d-online-page-invites.md` |
-| 86 | M12e | mode-leaderboards | 1 | M12c2, M07b1, M09a2 | READY | `M12e-mode-leaderboards.md` |
-| 87 | M13a1 | mod-sdk-manifest-validators | 1 | M04a2, M01d | READY | `M13a1-mod-sdk-manifest-validators.md` |
-| 88 | M13a2 | mod-installer-store-client | 1 | M13a1, M01e, M05d | READY | `M13a2-mod-installer-store-client.md` |
-| 89 | M13a3 | mod-runtime-data-experience | 1 | M13a2, M02c2, M12b1, M12c1 | READY | `M13a3-mod-runtime-data-experience.md` |
-| 90 | M13a4 | mod-script-sandbox | 1 | M13a3 | READY | `M13a4-mod-script-sandbox.md` |
-| 91 | M13a5 | mod-ui-tier | 1 | M13a3 | READY | `M13a5-mod-ui-tier.md` |
-| 92 | M13a6 | mod-agent-kit | 1 | M13a4, M13a5 | READY | `M13a6-mod-agent-kit.md` |
-| 93 | M13a7 | store-experience-pages | 0.7 | M13a3, M07b2, M04b1 | READY | `M13a7-store-experience-pages.md` |
-| 94 | M13b1 | forum-reports-backend | 1 | M05d, M06b1, M13a2 | READY | `M13b1-forum-reports-backend.md` |
-| 95 | M13b2 | forum-ugc-links | 0.8 | M13b1, M13a3, M02c2 | READY | `M13b2-forum-ugc-links.md` |
-| 96 | M13b3 | creator-place-mode | 1 | M13a3, M04b2 | READY | `M13b3-creator-place-mode.md` |
-| 97 | M13b4 | forum-ui | 1 | M13b1, M04b1 | READY | `M13b4-forum-ui.md` |
-| 98 | M13c1 | device-code-publish-login | 0.8 | M12a1, M04b1, M13a2 | READY | `M13c1-device-code-publish-login.md` |
-| 99 | M13c2 | publish-pipeline-server | 1 | M13c1, M13a1, M13b1, M13b2 | READY | `M13c2-publish-pipeline-server.md` |
-| 100 | M13c3 | publish-cli-link | 1 | M13c2, M13a6 | READY | `M13c3-publish-cli-link.md` |
-| 101 | M06b4 | builder-publish-assets | 0.5 | M13c2, M06b3, M10a1 | READY | `M06b4-builder-publish-assets.md` |
-| 102 | M13d1 | legal-trust-safety-backend | 1 | M13b1, M06b2, M13c2 | READY | `M13d1-legal-trust-safety-backend.md` |
-| 103 | M13d2 | legal-forms-ui | 0.3 | M13d1, M04b1 | READY | `M13d2-legal-forms-ui.md` |
-| 104 | M14c | a11y-audit-i18n-gate | 0.5 | M13d2, M13b4, M12d, M06b3, M11b3 | READY | `M14c-a11y-audit-i18n-gate.md` |
-| 105 | M14b1 | launch-hardening-guardrails | 1 | M13d1, M06a4, M05b1 | READY | `M14b1-launch-hardening-guardrails.md` |
-| 106 | M14b2 | launch-hardening-guardrails | 1 | M14b1, M12c2 | READY | `M14b2-launch-hardening-guardrails.md` |
-| 107 | M14b3 | launch-hardening-guardrails | 1 | M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 | READY | `M14b3-launch-hardening-guardrails.md` |
-| 108 | M14a | thirdweb-siwe-link | 1 | M14b3, M12a1 | READY | `M14a-thirdweb-siwe-link.md` |
-| 109 | M15a | bay-expansion-framework | 1 | M14a | READY | `M15a-bay-expansion-framework.md` |
-| 110 | M15b | oakland-core | 1 | M15a | READY | `M15b-oakland-core.md` |
-| 111 | M15c | berkeley-richmond | 1 | M15b | READY | `M15c-berkeley-richmond.md` |
-| 112 | M15d | marin-gateway | 1 | M15a | READY | `M15d-marin-gateway.md` |
-| 113 | M15e | peninsula-north | 1 | M15a | READY | `M15e-peninsula-north.md` |
-| 114 | M15f | peninsula-vc-row | 1 | M15e | READY | `M15f-peninsula-vc-row.md` |
-| 115 | M15g | south-bay-san-jose | 1 | M15f | READY | `M15g-south-bay-san-jose.md` |
+| 67 | M10d1 | art-integration | 1 | M05c2, M03b2, M04b2 | READY | `M10d1-art-integration.md` |
+| 68 | M10d2 | art-integration | 1 | M10d1, M02d2 | READY | `M10d2-art-integration.md` |
+| 69 | M05e1 | story-act2-part1 | 1 | M05c2, M07a2, M08b2, M09b2, M07b1 | READY | `M05e1-story-act2-part1.md` |
+| 70 | M05e2 | story-act2-part2 | 1 | M05e1 | READY | `M05e2-story-act2-part2.md` |
+| 71 | M05f1 | story-act3-part1 | 1 | M05e2, M10b | READY | `M05f1-story-act3-part1.md` |
+| 72 | M05f2 | story-act3-finale | 1 | M05f1 | READY | `M05f2-story-act3-finale.md` |
+| 73 | M11a1 | iphone-hardening-governor | 1 | M02b1, M03b1, M07a2 | READY | `M11a1-iphone-hardening-governor.md` |
+| 74 | M11a2 | iphone-hardening-governor | 1 | M11a1 | READY | `M11a2-iphone-hardening-governor.md` |
+| 75 | M11b1 | webxr-port | 1 | M01c, M04b2, M11a1 | READY | `M11b1-webxr-port.md` |
+| 76 | M11b3 | xr-ui-panels-comfort | 0.8 | M11b1, M06a5 | READY | `M11b3-xr-ui-panels-comfort.md` |
+| 77 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b1, M07b2, M08b2, M11b3 | READY | `M11b2-per-mode-xr-and-xr-cutscenes.md` |
+| 78 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b2, M09b1, M05b2 | READY | `M11b4-per-mode-xr-and-xr-cutscenes.md` |
+| 79 | M12a1 | p1-identity-cloud-saves | 1 | M05d, M04b3, M06a1 | READY | `M12a1-p1-identity-cloud-saves.md` |
+| 80 | M12a2 | age-register-cloud-save-ui | 0.5 | M12a1, M04b1 | READY | `M12a2-age-register-cloud-save-ui.md` |
+| 81 | M06b2 | builder-images-review | 1 | M06b1, M12a1 | READY | `M06b2-builder-images-review.md` |
+| 82 | M06b3 | npc-builder-ui | 1 | M06b2, M04b2 | READY | `M06b3-npc-builder-ui.md` |
+| 83 | M12b1 | rooms-core-protocol-v2 | 1 | M12a1, M05c2, M04a2 | READY | `M12b1-rooms-core-protocol-v2.md` |
+| 84 | M12b2 | rooms-core-protocol-v2 | 1 | M12b1 | READY | `M12b2-rooms-core-protocol-v2.md` |
+| 85 | M12c1 | rooms-hardening-presence-loadtest | 1 | M12b2 | READY | `M12c1-rooms-hardening-presence-loadtest.md` |
+| 86 | M12c2 | rooms-hardening-presence-loadtest | 1 | M12c1 | READY | `M12c2-rooms-hardening-presence-loadtest.md` |
+| 87 | M12d | online-page-invites | 0.3 | M12c1, M04b1 | READY | `M12d-online-page-invites.md` |
+| 88 | M12e | mode-leaderboards | 1 | M12c2, M07b1, M09a2 | READY | `M12e-mode-leaderboards.md` |
+| 89 | M13a1 | mod-sdk-manifest-validators | 1 | M04a2, M01d | READY | `M13a1-mod-sdk-manifest-validators.md` |
+| 90 | M13a2 | mod-installer-store-client | 1 | M13a1, M01e, M05d | READY | `M13a2-mod-installer-store-client.md` |
+| 91 | M13a3 | mod-runtime-data-experience | 1 | M13a2, M02c2, M12b1, M12c1 | READY | `M13a3-mod-runtime-data-experience.md` |
+| 92 | M13a4 | mod-script-sandbox | 1 | M13a3 | READY | `M13a4-mod-script-sandbox.md` |
+| 93 | M13a5 | mod-ui-tier | 1 | M13a3 | READY | `M13a5-mod-ui-tier.md` |
+| 94 | M13a6 | mod-agent-kit | 1 | M13a4, M13a5 | READY | `M13a6-mod-agent-kit.md` |
+| 95 | M13a7 | store-experience-pages | 0.7 | M13a3, M07b2, M04b1 | READY | `M13a7-store-experience-pages.md` |
+| 96 | M13b1 | forum-reports-backend | 1 | M05d, M06b1, M13a2 | READY | `M13b1-forum-reports-backend.md` |
+| 97 | M13b2 | forum-ugc-links | 0.8 | M13b1, M13a3, M02c2 | READY | `M13b2-forum-ugc-links.md` |
+| 98 | M13b3 | creator-place-mode | 1 | M13a3, M04b2 | READY | `M13b3-creator-place-mode.md` |
+| 99 | M13b4 | forum-ui | 1 | M13b1, M04b1 | READY | `M13b4-forum-ui.md` |
+| 100 | M13c1 | device-code-publish-login | 0.8 | M12a1, M04b1, M13a2 | READY | `M13c1-device-code-publish-login.md` |
+| 101 | M13c2 | publish-pipeline-server | 1 | M13c1, M13a1, M13b1, M13b2 | READY | `M13c2-publish-pipeline-server.md` |
+| 102 | M13c3 | publish-cli-link | 1 | M13c2, M13a6 | READY | `M13c3-publish-cli-link.md` |
+| 103 | M06b4 | builder-publish-assets | 0.5 | M13c2, M06b3, M10a1 | READY | `M06b4-builder-publish-assets.md` |
+| 104 | M13d1 | legal-trust-safety-backend | 1 | M13b1, M06b2, M13c2 | READY | `M13d1-legal-trust-safety-backend.md` |
+| 105 | M13d2 | legal-forms-ui | 0.3 | M13d1, M04b1 | READY | `M13d2-legal-forms-ui.md` |
+| 106 | M14c | a11y-audit-i18n-gate | 0.5 | M13d2, M13b4, M12d, M06b3, M11b3 | READY | `M14c-a11y-audit-i18n-gate.md` |
+| 107 | M14b1 | launch-hardening-guardrails | 1 | M13d1, M06a4, M05b1 | READY | `M14b1-launch-hardening-guardrails.md` |
+| 108 | M14b2 | launch-hardening-guardrails | 1 | M14b1, M12c2 | READY | `M14b2-launch-hardening-guardrails.md` |
+| 109 | M14b3 | launch-hardening-guardrails | 1 | M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 | READY | `M14b3-launch-hardening-guardrails.md` |
+| 110 | M14a | thirdweb-siwe-link | 1 | M14b3, M12a1 | READY | `M14a-thirdweb-siwe-link.md` |
+| 111 | M15a | bay-expansion-framework | 1 | M14a | READY | `M15a-bay-expansion-framework.md` |
+| 112 | M15b | oakland-core | 1 | M15a | READY | `M15b-oakland-core.md` |
+| 113 | M15c | berkeley-richmond | 1 | M15b | READY | `M15c-berkeley-richmond.md` |
+| 114 | M15d | marin-gateway | 1 | M15a | READY | `M15d-marin-gateway.md` |
+| 115 | M15e | peninsula-north | 1 | M15a | READY | `M15e-peninsula-north.md` |
+| 116 | M15f | peninsula-vc-row | 1 | M15e | READY | `M15f-peninsula-vc-row.md` |
+| 117 | M15g | south-bay-san-jose | 1 | M15f | READY | `M15g-south-bay-san-jose.md` |

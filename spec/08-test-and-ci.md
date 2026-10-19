@@ -6,7 +6,7 @@
 1. Every CI step calls one root `pnpm` script; no GUI-only step anywhere (R-ENG-01). A script whose milestone has not landed prints `pending: lands in <milestone>` and exits 0.
 2. Only the script names of 06 §5 and names a milestone declares in its Deliverables (for example `names:brand`, `verify:dist`, `fighter:replay`) are used.
 3. Assertions are on state (backend, counts, hashes, objectives), never on SwiftShader frame times [research/gap-ci-cd-release-assets.md §4.1].
-4. A secret-dependent check prints `SKIP … <VAR> not set` and exits 0 locally; CI makes it required only in the workflow and environment that hold the secret.
+4. A secret-dependent check prints `SKIP … <VAR> not set` and exits 0 locally; CI makes it required only in the workflow that reads the secret.
 5. No acceptance criterion depends on an UNVERIFIED fact; a device run records such items in `notes.json` (C15 1.1 `ManualProof.records`).
 
 ## 2. Test pyramid
@@ -92,7 +92,7 @@ Results go to `docs/device-runs/<M##>/<device>/{perf.json,notes.json}` (M01c kee
 |---|---|---|---|---|---|---|
 | frameBudgetMs | 16.7 | 16.7 | 16.7 | 33.3 | 13.9 | 11.1 |
 | Render objects | 900† | 600 | 150 | 100 | 150 | 200 |
-| GPU draw cmds (WebGL2 projects) | 3,500† | 2,500 | 500 | 300 | 300 | 300 |
+| GPU draw cmds (WebGL2 projects) | 3,500† | 2,500 | 500 | 300 | 180 | 300 |
 | Triangles | 6 M† | 4 M | 1.0 M | 0.6 M | 0.75 M | 1.5 M |
 | Texture MB / GPU MB | 1,500† / 3,000† | 1,000 / 2,000 | 350 / 600 | 250 / 400 | 400 / 700 | 800 / 1,500 |
 | Accounted JS + wasm MB | 2,000† | 1,500 | 600 | 450 | 700 | 1,000 |
@@ -103,7 +103,7 @@ Results go to `docs/device-runs/<M##>/<device>/{perf.json,notes.json}` (M01c kee
 † S11 extrapolations, calibrated in M11a2 (desktop) and M11b (XR); until calibrated they run in warn mode only.
 
 ### 4.3 Modes and the device formula
-- **PR:** `pnpm check:perf` writes `test-results/perf.<project>.<tier>.json` and warns. **Nightly:** `pnpm check:perf -- --fail` fails on any count, memory or cold-download breach (M01c); required from M11a1.
+- **PR** (`ci.yml` `perf`, from M02b1): `pnpm check:perf` writes `test-results/perf.<project>.<tier>.json` and warns. **Nightly:** `pnpm check:perf -- --fail` fails on any count, memory or cold-download breach (M01c); required from M11a1.
 - **Device:** `pnpm perf:verify -- <perf.json> --tier <id> [--checklist <f>]` passes when median frame ≤ 1.05 × `frameBudgetMs`, p95 ≤ 1.5 ×, frames over 50 ms ≤ `durationS / 60` (XR: frames over 2 × budget ≤ `durationS / 60`), `errors.gpuLost == 0`, boot within the tier row, counts and memory within the tier row, and every checklist expectation holds (`11-platform-perf.md` §5).
 - **Other CPU budgets:** room tick p99 ≤ 10 ms with 16 bots for 30 min (`pnpm load:rooms -- --bots 16 --minutes 30`, M12c2); release rollout to 100 % of mobile traffic needs the A03 abnormal-exit rate ≤ 1.5 × the previous build over ≥ 500 mobile sessions [research/gap-observability-cost-guardrails.md Rec 4] (M14b2).
 
@@ -116,14 +116,18 @@ Common: `runs-on: ubuntu-24.04`; actions pinned by SHA; `permissions: contents: 
 | Job | Steps (exact commands) | Lands / required from |
 |---|---|---|
 | `static` | `pnpm lint` · `pnpm typecheck` · `pnpm check:secrets` · `pnpm check:do-migrations` · `pnpm check:api` · `pnpm check:telemetry` · `pnpm check:i18n` · `pnpm check:agents` · `pnpm check:skills` | M00 (lint, typecheck); M00a (secrets, do-migrations; widened by M05b1); M00d (agents, telemetry); M05d (api); M04b1 (i18n); M13a6 (skills) (DL-230) |
-| `unit` | `pnpm check:unit` · `pnpm check:workers` · `pnpm check:pipeline` | M00; M00a; M05b1 |
-| `content` | `pnpm map:fixture graybox --check` · `pnpm check:missions` · `pnpm check:balance` · `pnpm check:fighter` · `pnpm map:races validate` · `pnpm check:mods` · `pnpm npc:lint` · `pnpm npc:eval -- --replay` | M01f; M05a2; M04d (econ), M09a2 (tycoon); M08b1; M07a1; M13a6; M06a2; M06a4 |
-| `build` | `VITE_DV_QA=1 pnpm build` · `pnpm check:bundle` · `pnpm check:prod-routes` (bundles the production Worker with `wrangler deploy --dry-run`) · `pnpm check:secrets -- apps/web/dist` · upload `apps/web/dist` (3 days) | M00; M00a (prod-routes, secrets) |
+| `unit` | restore or build the `synth` and `civic-excerpt` bakes (`.cache/map`, `dist/world/`) · `DV_REQUIRE_BAKE=1 pnpm check:unit` · `pnpm check:workers` · `pnpm check:pipeline` | M00; M00a; M02b1 (bakes); M05b1 |
+| `content` | `pnpm map:fixture graybox --check` · `pnpm map:build -- --area civic-excerpt --repro` · `pnpm check:missions` · `pnpm check:balance` · `pnpm check:fighter` · `pnpm map:races validate` · `pnpm check:mods` · `pnpm npc:lint` · `pnpm npc:eval -- --replay` | M02a1 (job, fixture check moved from M01f's `unit` step, `civic-excerpt` bake); M05a2; M04d (econ), M09a2 (tycoon); M08b1; M07a1; M13a6; M06a2; M06a4 |
+| `build` | `VITE_DV_QA=1 pnpm build` · `DV_REQUIRE_DIST=1 pnpm check:unit -- apps/web` (M01d, DL-344) · `pnpm check:bundle` · `pnpm check:prod-routes` (bundles the production Worker with `wrangler deploy --dry-run`) · `pnpm check:secrets -- apps/web/dist` · upload `apps/web/dist` (3 days) | M00; M00a (prod-routes, secrets) |
 | `ip` (needs `build`) | `pnpm provenance:check` · `pnpm ip:signatures` · `pnpm ip:extensions` · `pnpm ip:strings` · `pnpm license:scan` · `pnpm names:lint` · `pnpm likeness:gate` · `pnpm check:assets` · `pnpm check:c2pa` | M00b (required); `check:c2pa` M05b1 |
-| `e2e` (matrix, needs `build`) | `DV_SKIP_BUILD=1 pnpm check:e2e -- --project=${{ matrix.project }}`; the `xr-quest3` leg runs `pnpm check:e2e:xr`; the `chromium-webgl2` leg also runs `pnpm check:headers -- http://localhost:8788` and `pnpm check:coi -- http://localhost:8788`; upload `test-results/` | M00; required per §3.1 |
+| `e2e` (matrix, needs `build`) | `DV_SKIP_BUILD=1 pnpm check:e2e -- --project=${{ matrix.project }}`; the `xr-quest3` leg runs `pnpm check:e2e:xr`; the `chromium-webgl2` leg also runs `pnpm check:headers -- http://localhost:8788` and `pnpm check:coi -- http://localhost:8788`; upload `test-results/`; from M02b1 each leg restores or builds the bakes and sets `DV_WORLD=synth` | M00; M02b1 (bakes); required per §3.1 |
 | `db` (paths `supabase/**`, `packages/shared/src/db*`) | `pnpm check:db` · `pnpm check:db:types` | M05d |
-| `perf` | `pnpm check:perf` (warn) | M01c |
+| `perf` | `DV_WORLD=synth pnpm check:perf` (warn); restores or builds the bakes | M02b1 (DL-346) |
 | `device-runs` (paths `docs/device-runs/**`, `docs/device-spike/**`) | for each changed `perf.json`: `pnpm perf:verify -- <file> --tier <tier from file> --checklist tools/ci/checklists/<M##>-<device>.json` | M00d |
+
+Bake-dependent unit suites (from M02b1) go through `tests/support/require-bake.ts`: without a `dist/world/<area>` bake they print `SKIP <suite>: no bake in dist/world` and pass locally; with `DV_REQUIRE_BAKE=1` (CI `unit`) a missing bake fails.
+
+Dist-dependent unit suites (M01d `apps/web/test/precache.test.ts`) follow the same rule: without `apps/web/dist/sw.js` they print `SKIP precache: apps/web/dist absent` and pass, so `pnpm check:unit && pnpm build` on a clean clone and the `unit` job (which never builds) stay green; the `build` job runs them after the build with `DV_REQUIRE_DIST=1`, where a missing `dist` fails (DL-344).
 
 `pnpm --filter @dv/web verify:dist` (M01a2) runs only as that milestone's AC proof (`pnpm build && pnpm --filter @dv/web verify:dist`); no milestone adds a production-build CI job yet (DL-284).
 
@@ -161,8 +165,8 @@ Weekly (`23 9 * * 1`): `pnpm genai:terms-watch` (M14b3; a changed snapshot flips
 | `check:workers [-- <suite>]`, `check:secrets [-- <dir>]`, `check:prod-routes`, `check:do-migrations`, `check:smoke -- <url>`, `check:api`, `check:telemetry` | Workers Vitest pool; secret patterns (`cfat_`, `cfut_`, `cfk_`, `sbp_`, `sb_secret_`, `sk-ant-`, fal); no `/_test/` in prod; DO-lifecycle isolation and label; deployed smoke; API schema drift; telemetry privacy and registry | M00a; `check:telemetry` M00d, `check:api` M05d (both scoped out of M00a; DL-230) |
 | `provenance:check`, `ip:signatures`, `ip:extensions`, `ip:strings`, `license:scan`, `names:lint`, `names:brand`, `likeness:gate`, `check:assets`, `genai:liveness` | IP and provenance gates (`05-assets-pipeline.md` §9) | M00b |
 | `genai:spike`, `genai:price` | budget-capped spike (≤ $10, DL-OWN-01); price drift | M00c |
-| `check:perf [-- --scenario <id>] [-- --fail]`, `perf:verify`, `perf:checklist` | CPU-side budgets; device report judge; checklist printer | M01c |
-| `assets:*`, `check:c2pa` | catalog, verify, lock, publish, seed, credits (M01d); `assets:cutscene-index` (M05b2); `assets:gen` with `prewarm` (M05c3), `plan`/`run`/`gate`/`ledger` (M10a1); `assets:optimize`, `assets:retarget` (M10a1); `assets:pose-vendor` (M08c1); C2PA on shipped clips (M05b1) | DL-230 |
+| `check:perf [-- --scenario <id>] [-- --fail]`, `perf:verify`, `perf:checklist` | CPU-side budgets; device report judge; checklist printer | M01c (`--scenario`: M02b1, DL-346) |
+| `assets:*`, `check:c2pa` | catalog, verify, lock, publish, seed, credits (M01d); `assets:cutscene-index` (M05b2); `assets:gen` with `prewarm` (M05c3), `plan`/`run`/`gate`/`ledger` (M10a1); `assets:optimize`, `assets:retarget` (M10a1); `assets:pose-vendor` (M08c1); `assets:final` placeholder scan (M10d2, DL-390); C2PA on shipped clips (M05b1) | DL-230 |
 | `map:fixture`, `map:build`, `map:verify`, `map:landmarks`, `map:races`, `map:fetch`, `map:pack`, `map:pois`, `map:geocode`, `map:resolve`, `map:webtiles` | world fixture, bake, gates, landmark seeds and recipes, race compile/validate/par; bake sub-steps of `02-world-bake.md` §3; geocoder; web tiles | M01f, M02a1 (`map:fetch`, `map:pack`), M02a2 (`map:verify`, `map:pois`, `map:resolve`, `map:landmarks` seeds; recipes M02d1), M02c2 (`map:geocode`), M07a1, M13b2 (`map:webtiles`); `map:diff` of `02-world-bake.md` §3 is post-v1 (DL-230) |
 | `check:agents`, `check:skills` | instruction-file sizes; skills mirror equality | M00d; M13a6 |
 | `check:balance [-- --suite econ\|tycoon]`, `tycoon:sim`, `tycoon:baseline` | Monte-Carlo bands | M04d (econ), M09a2 |
@@ -189,21 +193,23 @@ Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (o
 
 ## 8. Secrets by environment variable name (values never committed)
 
+**Store (U-QA-6 resolved):** every CI secret is a GitHub **repository** secret (as `CLAUDE.md` says). On GitHub Free, environment secrets work only in public repositories, and required reviewers and wait timers only in public repositories on Free, Pro and Team [research/gap-ci-cd-release-assets.md §1 item 9, §6, verified row "Required reviewers … environment secrets public-only on GitHub Free"]; the repository's visibility and plan are open (Q-15). Where staging and production need different values, the repository secret carries a `_STAGING` or `_PRODUCTION` suffix and the workflow maps it onto the plain name per step [same file §1.3]. Jobs keep their `environment:` keys for deployment records. Secrets move into environment scope only after Q-15 confirms a public repository or a Team/Enterprise plan; that move is an Architect DL entry.
+
 | Name | Holder | Purpose | From |
 |---|---|---|---|
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub (environments `preview`, `staging`, `production`); shell locally | Workers deploy, previews (Workers Editor scope) | M00 |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub repository secrets (§8 store rule); shell locally | Workers deploy, previews (Workers Editor scope) | M00 |
 | `DV_NAMES_REAL_JSON` | GitHub, CI only | real-side name registry for `names:lint` | M00b |
 | `FAL_KEY` | operator / art lead only (Q-17); Worker secret for the production pipeline (M05c3); never CI | spike, live prewarm and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M05c3, M10a1 |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub env `staging`/`production` (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
 | `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` | operator shell only (R2 API token scoped to `tha-bay-private-{staging,prod}`; DL-287) | `map:fetch -- --archive` raw snapshot upload | M02a1 |
 | `SOCRATA_APP_TOKEN` (optional) | operator shell only | DataSF Socrata requests in `map:fetch`; absent → unauthenticated | M02a1 |
-| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub env | `db:push`, `auth:tpa`, staging tests | M05d |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed where they differ | `db:push`, `auth:tpa`, staging tests | M05d |
 | `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`) | dialogue; `test:staging -- npc-cache` | M06a3 |
 | `ANTHROPIC_BUILDER_KEY` | Worker secret (workspace `npc-builder`) | builder soul generation and preview (`09-backend-contracts-1.1.md` §3; DL-231) | M06b1 |
 | `ANTHROPIC_EVALS_KEY` | GitHub secret (workspace `ci-evals`) | weekly `npc:eval -- --live` (DL-231) | M06a4 |
-| `CF_API_TOKEN_CACHE` | GitHub env `production` | prefix purge on kill or overwrite | M10b |
+| `CF_API_TOKEN_CACHE` | GitHub repository secret | prefix purge on kill or overwrite | M10b |
 | `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL` | Worker secrets | recon cron, guardrail config checks, alert sink | M14b1 |
-| Worker secrets `PLAY_TOKEN_HMAC` (from M04b3, route 5 mint; DL-231), `QUOTA_NET_SALT_SECRET` · `SUPABASE_SECRET_KEY` · `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET` · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` · `OPENAI_MODERATION_API_KEY` · `ELEVENLABS_API_KEY` · `OPS_TOKEN` · `OPENAI_OIDC_CLIENT_SECRET` · `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | `wrangler versions upload --secrets-file` from GitHub env secrets; `.dev.vars` locally | per `09-backend-ops.md` §6 | M06a1 · M05d · M12a1 · M12b1 · M06b1 · M06a4 (t2 off) · M05b1 (removed M12a1) · M13c1 (flagged) · M13d1 |
+| Worker secrets `PLAY_TOKEN_HMAC` (from M04b3, route 5 mint; DL-231), `QUOTA_NET_SALT_SECRET` · `SUPABASE_SECRET_KEY` · `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET` · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` · `OPENAI_MODERATION_API_KEY` · `ELEVENLABS_API_KEY` · `OPS_TOKEN` · `OPENAI_OIDC_CLIENT_SECRET` · `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | `wrangler versions upload --secrets-file` from GitHub repository secrets (§8 store rule); `.dev.vars` locally | per `09-backend-ops.md` §6 | M06a1 · M05d · M12a1 · M12b1 · M06b1 · M06a4 (t2 off) · M05b1 (removed M12a1) · M13c1 (flagged) · M13d1 |
 
 Repo variable (not secret): `DEPLOY_ALLOWED_ACTORS` (M00a). Name conflicts resolved here (DN-S13-03): the moderation key is `OPENAI_MODERATION_API_KEY` (CLAUDE.md wins over `09-backend-ops.md` §6), and the deploy token is `CLOUDFLARE_API_TOKEN` (ops' `CF_API_TOKEN_DEPLOY` is that token); `CF_API_TOKEN_CACHE` is the only extra Cloudflare token.
 
@@ -226,4 +232,4 @@ Repo variable (not secret): `DEPLOY_ALLOWED_ACTORS` (M00a). Name conflicts resol
 | S13 QA | C15 lint; trace report; mutants; verifier lock | `pnpm check:unit -- tools/ci`, `pnpm check:agents` |
 
 ## 10. Facts and UNVERIFIED
-Facts: F-013, F-016, F-061, F-062; [research/gap-ci-cd-release-assets.md §1.4, §1.5, §2, §4, §5, §6, R3]; `11-platform.md` §4.5 (budgets are engineering targets). UNVERIFIED and recorded, never asserted: U-PLT-19 (SwiftShader on the runner), U-QA-2 (`wrangler deployments status --json` fields), U-QA-3/4 (load bot client and PoPs), U-QA-5 (`ip:similarity` tool), U-QA-6 (GitHub plan features, Q-15), U-QA-7 (macOS Metal), U-QA-8 (`_headers` on Preview URLs).
+Facts: F-013, F-016, F-061, F-062; [research/gap-ci-cd-release-assets.md §1.4, §1.5, §2, §4, §5, §6, R3]; `11-platform.md` §4.5 (budgets are engineering targets). UNVERIFIED and recorded, never asserted: U-PLT-19 (SwiftShader on the runner), U-QA-2 (`wrangler deployments status --json` fields), U-QA-3/4 (load bot client and PoPs), U-QA-5 (`ip:similarity` tool), U-QA-7 (macOS Metal), U-QA-8 (`_headers` on Preview URLs).

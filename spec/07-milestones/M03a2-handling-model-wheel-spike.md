@@ -33,7 +33,7 @@ After this half session the wheel-force path of the shared handling model is dec
 
   Otherwise keep `castray`. A tie keeps `castray`.
 - `packages/shared/src/vehicle/wheel-path.ts` exports `SELECTED_WHEEL_PATH: 'castray' | 'controller'`. The vehicle system reads it and the losing implementation is deleted. Its harness result stays in the ADR and the JSON.
-- The ADR `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; number reserved in `docs/decisions/README.md`, DL-242). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a DL entry in `spec/11-decision-log-2.md` under "Builder decisions".
+- The ADR `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; number reserved in `docs/decisions/README.md`, DL-242). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a `BD-NNN` row in `spec/11-decision-log-builder.md` under "Builder decisions" (DL-341).
 
 ## Scope out
 - Any edit of `c06-modes.ts` or other contract files: the Architect decides the 1.2 bump.
@@ -48,7 +48,7 @@ After this half session the wheel-force path of the shared handling model is dec
 - `packages/shared/src/vehicle/wheel-path.ts` (`SELECTED_WHEEL_PATH`).
 - `packages/engine/test/wheel-spike.spec.ts`, `packages/engine/test/wheel-spike.adr.spec.ts` (the ADR's `Decision:` line equals `SELECTED_WHEEL_PATH` and the JSON's `selected`).
 - `packages/engine/package.json` script **`test:wheel-spike`** (`vitest run test/wheel-spike`). `pnpm check:unit` includes it, so check the vitest workspace globs.
-- `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-2.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
+- `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-builder.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
 - About 10 files.
 
 ## Interfaces

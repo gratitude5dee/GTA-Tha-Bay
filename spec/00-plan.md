@@ -1,6 +1,6 @@
 # 00 — Plan and status (living)
 
-Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-170) and `spec/11-decision-log-2.md` (DL-171…DL-217, DL-OWN-01/02, and DL-245 onward) and `spec/11-decision-log-3.md` (DL-218…DL-244). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
+Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-4.md` (DL-249 onward; split DL-341) and Builder rows in `spec/11-decision-log-builder.md` and `spec/11-decision-log-3.md` (DL-218…DL-244). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
 
 ## Phase status
 | Phase | Subagents | Status | Output |
@@ -14,7 +14,7 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 | 5 Integration | S13 + integration authors | **done** 2026-10-18 | `spec/01–12, 99`, 115 milestone files (C15), ADRs, CLAUDE.md, AGENTS.md, kickoff |
 | Reconciliation 3 | Architect | **done** 2026-10-18 | milestone-author defects resolved (`spec/.milestone-defects.md`); 06 **v1.2** (C05 1.2, C10 1.1, C12 1.2, C15 1.1, C16 1.2); DL-218…DL-244; mechanical sweep 65 → 0 findings |
 | Handoff | Architect | **done** 2026-10-18 | all 115 milestone files READY (12 fast-track frozen, M00 executing); full kickoff list; `02-architecture.md` v1; DL-245…DL-247 |
-| Verification | critics: executability · factual · scope | **next** (per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts) | critic log below |
+| Verification | critics: executability · factual · scope | **in progress (round 4)**; then per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts | critic log below |
 
 ## Inputs found at start
 - Present: `prompt-pack/` (pack v1), `research/` repo analyses (webport, world, grand-v), Anthropic model facts, Claude Code deployment, prompting guidance, owner updates.
@@ -50,7 +50,7 @@ Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice cei
 
 ## Milestones (register: `spec/07-milestones/_PLAN.md`)
 
-The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **115 milestone files, all READY** — 108 for v1 (≈ 100.4 sessions, M00 … M14a) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 107.4 sessions. Every id is one session or less (C15 L7). Critical path 26.8 sessions to M14a, 30.8 to M15g (DL-219). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
+The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **117 milestone files, all READY** — 110 for v1 (≈ 102.4 sessions, M00 … M14a; M10d1–M10d2 art integration added by DL-390) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 109.4 sessions. Every id is one session or less (C15 L7). Critical path 29.3 sessions to M14a, 33.3 to M15g (DL-219, DL-348). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
 
 ## Start the Builder
 
@@ -69,6 +69,20 @@ Operator prerequisites, the interactive alternative and `--resume` after a usage
 ## Critic log
 | Date | Lens | Blocking | Major | Minor | Notes |
 |---|---|---|---|---|---|
+| 2026-10-18 | executability | 2 | 12 | n/r | pass 1, full set; DL-249, DL-250, DL-281…DL-284, DL-287, DL-290, DL-291, DL-294, DL-297…DL-300 |
+| 2026-10-18 | factual | 1 | 3 | n/r | pass 1, full set; DL-251, DL-286, DL-288, DL-293 |
+| 2026-10-18 | scope | 1 | 6 | n/r | pass 1, full set; DL-252, DL-285, DL-289, DL-292, DL-295, DL-296, DL-301 |
+| 2026-10-19 | executability | 1 | 0 | n/r | pass 2; DL-341 |
+| 2026-10-19 | factual | 1 | 1 | n/r | pass 2; DL-340, DL-343 |
+| 2026-10-19 | scope | 0 | 1 | n/r | pass 2; DL-342 |
+| 2026-10-19 | executability | 1 | 1 | n/r | pass 3; DL-344, DL-346 |
+| 2026-10-19 | factual | 0 | 1 | n/r | pass 3; DL-345 |
+| 2026-10-19 | scope | 0 | 1 | n/r | pass 3; DL-347 |
+| 2026-10-19 | executability | 0 | 2 | n/r | pass 4, in progress; DL-348, DL-421 |
+| 2026-10-19 | factual | 0 | 0 | n/r | pass 4, in progress |
+| 2026-10-19 | scope | 0 | 5 | n/r | pass 4, in progress; DL-349, DL-350, DL-390, DL-391, DL-420 |
+
+Counts are the fixes logged in `spec/11-decision-log-4.md`, one per DL entry: "blocking" as the entry states it, every other logged fix major; the lens is the Architect's attribution where the block heading omits it. Minors were fixed in place without a DL entry (n/r: not recorded). §H.5 (two consecutive zero-blocking passes per lens) is not yet met.
 
 ## Definition of Done (03-SPEC-TEMPLATE §H)
 Not yet evaluated.

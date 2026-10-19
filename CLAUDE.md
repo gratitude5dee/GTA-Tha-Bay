@@ -52,7 +52,7 @@ Then the current milestone file `spec/07-milestones/<ID>-*.md` (the kickoff name
 - Original content only. Never open, fetch or search the example repositories named in `research/repos-*.md`.
 - Contracts C01–C17 change only through the Architect: propose in your report, never edit a contract shape.
 - Branch per milestone `m<id>-<slug>` (e.g. `m00a-edge-api-skeleton`); conventional commits (`feat(edge): …`); one PR per milestone.
-- Small reversible choices the spec leaves open: record under "Builder decisions" in `spec/11-decision-log.md`.
+- Small reversible choices the spec leaves open: record as a `BD-NNN` row under "Builder decisions" in `spec/11-decision-log-builder.md`.
 
 ## Verification rule
 Before reporting anything done, run a real check that exercises the change: the tests, the type-checker, the build, or the changed command itself. A syntax-only check, or a command that failed to start, does not count. Missing dependencies: install them with pnpm. If no real check can run here, say which one and why instead of claiming done. Every acceptance criterion's proof command is run and quoted in the report.
@@ -72,7 +72,7 @@ External-system facts come only from `spec/03-decisions-and-facts.md` and `resea
 - **iOS PWA:** no install prompt (coach mark), no fullscreen, orientation lock, vibrate or Pointer Lock; storage can be evicted (`persist()` after story start, OPFS never assumed durable); WebContent dies near 2 GB; audio and video need a user gesture; cap at 60 Hz.
 - **COOP/COEP:** `_headers` covers static assets only; every Worker response needs `withIsolationHeaders`; every cross-origin fetch is CORS with CORP; no third-party iframe inside the app; `/account/*` is the only non-isolated path; check `crossOriginIsolated` after a service-worker reload.
 - **XR:** `immersive-vr` only; `navigator.xr.requestSession` only inside a user-gesture handler (IWER tests excepted); `renderer.xr.enabled` before `init()`; XR is Window-only, so rendering stays on the main thread. Install IWER before the renderer, `forceInstall: true` on Chromium.
-- **Durable Objects:** they hibernate only without timers; every deploy restarts the deployed script's DOs and drops sockets (rooms live in their own Worker); DO class changes ship alone via `wrangler deploy` (`check:do-migrations`, label `do-lifecycle`); never `setAlarm` per tick.
+- **Durable Objects:** they hibernate only without timers; every deploy restarts DOs and drops sockets; rooms live in their own Worker (restart scope per script is UNVERIFIED, U-BE-21; M12c1 AC-12 records it); DO class changes ship alone via `wrangler deploy` (`check:do-migrations`, label `do-lifecycle`); never `setAlarm` per tick.
 - **Workers Previews:** no queue consumers, crons or own Workflows; service bindings call production; bindings are not inherited and must be repeated under `previews`.
 - **fal.ai:** queue submit + ED25519-verified webhook + polling fallback (webhook retries stop ≈ 6 min for results ≥ 10 KB); copy every output to R2 at once (CDN copies expire); never call fal from the browser; new accounts get 2 concurrent requests; no spend cap.
 - **Anthropic (Haiku/Sonnet 5.5):** no `temperature`/sampling parameters and no assistant prefill; Haiku runs with thinking disabled and effort low; Sonnet turns thinking off with `between_tools`; format control via `output_config.format`; calls go only through the Worker and AI Gateway.

@@ -37,7 +37,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 ## Scope out
 - Pedestrians, crossings, transit, aircraft, the robotaxi fare and Ride: M03b2.
 - PursuitDirector, police dispatch, and heat behaviour of `police.cruiser`: M03c (patrol cruisers here are ordinary agents).
-- Final vehicle art: the S05/S06 art pass.
+- Final vehicle art (ambient archetypes, `police.cruiser` and robotaxi liveries): M10d1 (art integration, Q-39). Until then the box cars are gray-box stand-ins, identified by `vehicle/graybox.*` AssetRefs and rows of M10d1's `config/art-placeholders.json` (no provenance field; C07 unchanged); M10d2's `assets:final` scan feeds the M14b3 `art-final` gate, which blocks `release` while one ships (DL-390).
 - Room epochs for shared traffic: M12b1. Device tuning beyond the checklist: M11a1–M11a2.
 
 ## Deliverables
@@ -103,6 +103,6 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - Facts: F-007 (instancing keeps the object count down). The December 2025 blackout behaviour is a cited design ground [research/gamedesign-decomposition.md §2.7]; the oracle is the 4–9 s rule.
 - Order of work: density config, IDM, junction, spawn, robotaxi, promotion, witness, render, golden, QA page, perf path, checklist.
 - Preview builds normally carry no world (M02b1). For AC-11 the operator builds one Preview with `pnpm map:build -- --area synth`, then `DV_WORLD=synth VITE_DV_QA=1 pnpm build`, then `pnpm deploy:preview`, and notes the URL in `notes.json`.
-- AC-3 to AC-7 run on hand-built graph fixtures inside the test files. AC-1, AC-2 and AC-8 read `dist/world/` of the named area; the vitest setup fails with a clear message when the bake is missing (the CI `content` job caches both bakes).
+- AC-3 to AC-7 run on hand-built graph fixtures inside the test files. AC-1, AC-2 and AC-8 read `dist/world/` of the named area; without the bake they skip through M02b1's `requireBake` (`SKIP <suite>: no bake in dist/world`), and fail when `DV_REQUIRE_BAKE=1` (the CI `unit` job sets it after restoring or building both bakes, M02b1).
 - Witness events go to a sink that M03c consumes. `@dv/world` never imports engine pursuit code.
 - Owner gate: Q-13 (an iPhone 15 for AC-11; without it the AC is listed under "Blocked on"). Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally, CI runs it). No genAI spend.

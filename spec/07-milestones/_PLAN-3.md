@@ -159,14 +159,14 @@
 - **Gate** staging · **Proof** `pnpm test:ops -- --suite guardrails-nightly`; `pnpm test:ops -- --suite restore-drill`; `pnpm check:telemetry`
 
 ### M14b3 · launch-hardening-guardrails — 1 · risk H · S13, S05, S06 (split 3 of 3)
-- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), flag-flip checklist, `release.yml`.
-- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
+- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390), flag-flip checklist, `release.yml`.
+- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
 - **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
 
 ### M14a · thirdweb-siwe-link — 1 · risk M · S09 (+S10) · **last v1 milestone (R-AUTH-02)**
-- **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page; re-run the release gate subset.
+- **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page, `/link` registry entry and a linked-publish proof (DL-349); re-run the release gate subset.
 - **R** R-AUTH-02/01 · **Dep** M14b3, M12a1 · **Read** `09-backend-contracts.md` §2.4 rows 12–13; `09-backend-db.md` §3 (0009) · **Out** `packages/identity/src/thirdweb`, `services/edge/src/id/siwe`, `supabase/migrations/0009_link.sql` · **C** C12 1.1
-- **Gate** Thirdweb Growth plan ($99/month, F-059) owner approval · **Proof** `pnpm check:workers -- siwe-link` (reused nonce fails; fresh nonce links without data loss); `pnpm check:unit -- packages/identity`; `pnpm test:ops -- --suite guardrails`
+- **Gate** Thirdweb Growth plan ($99/month, F-059) owner approval · **Proof** `pnpm check:workers -- siwe-link` (reused nonce fails; fresh nonce links without data loss); `pnpm check:workers -- siwe-linked-publish` (device code, route 36, NPC submit after the link); `pnpm check:unit -- packages/identity`; `pnpm test:ops -- --suite guardrails`
 
 ## Block I — Bay expansion (post-v1; each id is one session with a capped area core, no new ids, DL-242)
 

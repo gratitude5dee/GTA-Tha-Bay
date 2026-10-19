@@ -49,7 +49,7 @@ JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClien
 - **P0 proof**: the client signs `"pt-req|" + pid + "|" + ts` with its non-extractable ECDSA P-256 device key; the Worker accepts `|now − ts| ≤ 120 s`; the first server write for a `pid` binds the key thumbprint (trust on first use), and another key for that `pid` is `forbidden`.
 - **Refresh**: 32 random bytes stored as SHA-256 with a family id, rotated on every use; reuse revokes the family. `device_assertion` re-authenticates a P1 device over `"tok-req|pid|ts"`.
 - **No PII in tokens** (email, wallet address, provider subject). Only `18p` obtains a token (D-30, DL-139); `attestAge` posts route 15.
-- **Device code (route 10, RFC 8628)**: `user_code` `XXXX-XXXX`, `expires_in` 600, `interval` 5, `slow_down` +5 s; 3 codes per profile per hour; `/link` approves only for tier `linked`. Before M14a, P2 comes from `openai` (flag `auth.openaiWeb`) or `supabase-oauth` (GitHub), UNVERIFIED beside Third-Party Auth (M13c1, DL-145).
+- **Device code (route 10, RFC 8628)**: `user_code` `XXXX-XXXX`, `expires_in` 600, `interval` 5, `slow_down` +5 s; 3 codes per profile per hour; `/link` approves only for tier `linked`. Before M14a, P2 comes only from `openai` (flag `auth.openaiWeb`, dark); `supabase-oauth` (GitHub) is a spike in M13c1, not built in v1 (DL-240, DL-342).
 - **Provider redirects** (routes 11, 12) cannot carry `Authorization`: a static `/account/callback` page forwards `code` and `state` with `fetch` and the Bearer token (DL-189). Rooms never see the JWT in a URL; a 30 s ticket authorises the WebSocket (§4.2).
 
 ## 3. Route catalogue

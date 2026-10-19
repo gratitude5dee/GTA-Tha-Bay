@@ -83,7 +83,7 @@ After this session the accessibility baseline (R-ENG-04) is audited across the w
 0.5 session; ≈ 30 files, most of them small fixes; risk **low**.
 
 ## Risks & fallbacks
-- **The audit finds more than ≈ 18 files of fixes.** Fix every `critical` and `serious` finding on the main path first: title, age, main, settings, saves, legal and help. For other pages, file each remaining finding in `spec/11-decision-log.md` "Builder decisions" with its page. Report the milestone as partially done and do not mark AC-1 passed. Never downgrade a rule or exclude a page to get green.
+- **The audit finds more than ≈ 18 files of fixes.** Fix every `critical` and `serious` finding on the main path first: title, age, main, settings, saves, legal and help. For other pages, file each remaining finding in `spec/11-decision-log-builder.md` "Builder decisions" with its page. Report the milestone as partially done and do not mark AC-1 passed. Never downgrade a rule or exclude a page to get green.
 - **A page cannot be reached under mocks**, for example because it needs a live room. Render it through its component test harness in the e2e page (`/__qa/page/<id>`, QA builds only; dropped from production by the same `VITE_DV_QA` guard as `__dvBridge`) and note it.
 - **An axe rule misfires on a canvas element** (the HUD minimap or the XR preview). Give the canvas an accessible name and a text twin, as the `table` widget already does for charts. Do not disable the rule.
 

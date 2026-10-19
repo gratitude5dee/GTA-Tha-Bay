@@ -119,7 +119,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 - Read first: `05-assets-pipeline.md` §6, §10, §12; `05-assets.md` §5.4–§5.5; `07-fighter-content.md` FX4, FX6; `03-story-cutscenes.md` §D9.1; `04-npc.md` §5.10; `09-backend.md` §8 (route 46, `EncounterDO.kill`).
 - **Secrets and gates.**
   - `OPS_TOKEN`: staging admin routes.
-  - `CF_API_TOKEN_CACHE`: GitHub environment `production`, and staging for the drill.
+  - `CF_API_TOKEN_CACHE`: GitHub repository secret (`08-test-and-ci.md` §8 store rule), also used for the staging drill.
   - `FAL_KEY`: operator only; never CI.
   - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: deploys.
   - Owner gates: ADR-GENAI-01 provider clearance for any paid prewarm; DL-209 sets the $24 line, and Q-14 keeps the cap final.

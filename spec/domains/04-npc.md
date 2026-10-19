@@ -50,7 +50,7 @@
 | 27 | Builder asset generation (S05 Lean, 18+ and P2, fal ToS) [F-042] | not in v1 (DL-OWN-01): creator-kit body; owner-approved staff queue only |
 | 28 | In-character evaluation harness (golden + red-team suites, judge rubric, gates) | designed C6 |
 | 29 | Cost per conversation and per MAU within G3 | designed C7 |
-| 30 | Multiplayer: shared agency in the room DO, `EV NpcBusy` | deferred to M12c (S09) |
+| 30 | Multiplayer: shared agency in the room DO, `EV NpcBusy` | not in v1 (DL-350): rooms keep local named-NPC brains and per-player dialogue; `EvKind.NpcBusy` reserved |
 | 31 | Workers AI LLM as a resilience fallback | out of scope: ink covers outages and its rail quality is untested [research/ai-npc-runtime.md §2.9] |
 | 32 | Teen mode (child-safety prompt, choice-only dialogue) | out of scope: ToS is 18+ (Q-02, D-30) |
 | 33 | "This is me" self-likeness and consented real people in the builder | out of scope for v1: BIPA risk [research/gap-trust-safety-tooling.md §3.3] |

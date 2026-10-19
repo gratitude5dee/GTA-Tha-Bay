@@ -10,6 +10,7 @@ After this session `tools/map` is a real bake pipeline for the parts of San Fran
 ## Depends on
 - **M01f:** C08 types, `pack-codec.ts` (decoder), `tools/map` package with `encodeP0`/`encodeL0`, `map:fixture`, `config/world.bounds.json`.
 - **M01d:** C07 catalog builder, `assets:*` scripts, `uploader-dir.ts` and `uploader-rclone.ts`, `assets/assets.lock.json`, `config/asset-budgets.json`.
+- **M00d:** `tools/ci/test/workflows.test.ts` (extended by AC-10), `perf:verify --auto` and the device-run verification job (used from M02b1; DL-348).
 - Contracts: C08 1.0 (`02-world-contracts.md` §1–§5), C07 1.1 (`world_pack`, `data` kinds; world provenance per `05-assets-pipeline.md` §14, DL-161).
 
 ## Scope in
@@ -38,6 +39,7 @@ After this session `tools/map` is a real bake pipeline for the parts of San Fran
 - `config/world/{sources.json, synth.json}`, `config/attribution.world.json`.
 - `tests/fixtures/map/civic-excerpt/*` (data) and `tools/map/test/{stage.terrain.spec.ts, stage.water.spec.ts, stage.buildings.spec.ts, pack.index.spec.ts, bake.repro.spec.ts, synth.spec.ts, publish.spec.ts}`.
 - `apps/web/package.json` (QA build hook), `.gitignore` (`.cache/`, `dist/world/`).
+- `.github/workflows/ci.yml`: the required `content` job (common setup per `08-test-and-ci.md` §5; `pnpm map:fixture graybox --check`, moved here from M01f's `unit` step, then `pnpm map:build -- --area civic-excerpt --repro` with `.cache/map` restored from `actions/cache` keyed on `tools/map/**`, `config/world/**`, `content/world/**`); `tools/ci/test/workflows.test.ts` (M00d's, extended; AC-10).
 - Root scripts: **`map:fetch`**, **`map:build`**, **`map:pack`** (all through `tools/ci/run.ts` `args()`).
 - Pins (not in the ledger; take what pnpm resolves, record in `spec/03`): a PNG codec for Terrarium tiles. `osmium` is an operator tool, not a dependency.
 - ≈ 33 code files; fixtures and JSON configs are data.
@@ -56,10 +58,11 @@ After this session `tools/map` is a real bake pipeline for the parts of San Fran
 - AC-7 Given `DV_MAP_OFFLINE=1` (the same path a session without network or without `osmium` takes) When `map:fetch -- --area sf` runs Then every source prints its `SKIP map:fetch <source>: offline` line, nothing is written to `content/world/` and the command exits 0 — proof: `DV_MAP_OFFLINE=1 pnpm map:fetch -- --area sf`
 - AC-8 Given the default QA build and the production build When they are built and deployed to a Preview Then the app is unchanged (no world in the catalog unless `DV_WORLD` is set) and the Preview passes the header checks — proof: `pnpm build && pnpm deploy:preview`
 - AC-9 Given an operator workstation with network, `osmium`, the media R2 secrets and the private-bucket pair `R2_PRIVATE_ACCESS_KEY_ID` / `R2_PRIVATE_SECRET_ACCESS_KEY` When the operator fetches `sf` with `--archive`, bakes `--stage terrain,water,buildings,pack --repro`, runs `check:secrets -- dist/world`, and packs to `r2:staging` Then baked DataSF buildings ≥ 98 % of the `ynuv-fyni` row count in `raw.lock.json` before proxies (dropped ≤ 2 %); OSM supplement ≤ 5 %, each addition listed by OSM id in `bake-report.json`, every pack is ≤ 4 MiB, both runs are identical, the lock and provenance PR is opened, and the run records U-W1 (URL and osmium flags used), U-W11 (gap-fill count) and the bake time in `docs/bake-runs/M02a1/notes.json` — proof: manual: operator workstation, `pnpm map:fetch -- --area sf --archive`, `pnpm map:build -- --area sf --stage terrain,water,buildings,pack --repro`, `pnpm check:secrets -- dist/world`, `pnpm map:pack -- --target r2:staging`, then commit `content/world/raw.lock.sf.json` and the notes file
+- AC-10 Given `.github/workflows/ci.yml` When the workflow test runs Then a `content` job exists, runs `pnpm map:fixture graybox --check` and `pnpm map:build -- --area civic-excerpt --repro` with the `.cache/map` cache step, and the `unit` job no longer runs `map:fixture` — proof: `pnpm check:unit -- tools/ci`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- tools/map`): `tools/map/stage.terrain`, `stage.water`, `stage.buildings`, `pack.index`, `synth.deterministic`, `publish.dir`, `attribution`.
-- **Bake** (`ci.yml` `content` job, added here): `pnpm map:build -- --area civic-excerpt --repro`; `synth` runs where needed from M02b1, cached under `.cache/map` keyed on `tools/map/**` and `config/world/**`.
+- **Bake** (`ci.yml` `content` job, a Deliverable here, AC-10): `pnpm map:build -- --area civic-excerpt --repro`; `synth` runs where needed from M02b1, cached under `.cache/map` keyed on `tools/map/**`, `config/world/**` and `content/world/**`; M02b1 adds the same restore-or-build step to the `unit` job.
 - **Gates:** `provenance:check`, `check:assets`, `check:secrets -- dist/world`. **Operator:** AC-9 once.
 
 ## Demo script

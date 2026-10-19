@@ -95,7 +95,7 @@ A player can talk to an NPC, and the conversation never blocks the game. Route 3
 
 ## Notes for the Builder
 - Read first: `04-npc.md` §5.1–§5.5 and §5.10–§5.11; `04-npc-contracts.md` §B2.4 and §B7; `09-backend-ops.md` §5.3; `spec/05-api-and-realtime.md` §4.8.
-- **Secrets and accounts:** `ANTHROPIC_API_KEY` for the `npc-runtime` workspace (Worker secret; GitHub env secret for staging tests), and AI Gateway `gw-dialogue` created by the operator (cache, Guardrails and DLP off). Absent: fixture mode locally, `upstream_unavailable` in live mode, and `SKIP` in `test:staging`. List these under "Blocked on".
+- **Secrets and accounts:** `ANTHROPIC_API_KEY` for the `npc-runtime` workspace (Worker secret; GitHub repository secret for staging tests), and AI Gateway `gw-dialogue` created by the operator (cache, Guardrails and DLP off). Absent: fixture mode locally, `upstream_unavailable` in live mode, and `SKIP` in `test:staging`. List these under "Blocked on".
 - Never log prompts, player text or model output. Transcripts go only to `EncounterDO` and R2 PRIVATE.
 - The model never writes numbers that the game uses and never decides mission outcomes. Missions use `playKnot` only.
 - Branch `m06a3-dialogue-proxy`.

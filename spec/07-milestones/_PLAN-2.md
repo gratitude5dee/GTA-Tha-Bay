@@ -131,6 +131,16 @@
 - **R** R-NPC-01, R-IP-02 · **Dep** M10a2, M06a4, M06c, M05c2 · **Read** `04-npc-contracts.md` B5–B6, B8; `04-npc.md` §5.7 · **Out** `content/npcs`, `content-private/` (mount) · **C** C10 1.1
 - **Gate** Q-19, Q-25 (canary only while open), Q-20 · **Proof** `pnpm npc:lint`; `pnpm likeness:gate`; `pnpm check:missions -- --act 1`
 
+### M10d1 · art-integration — 1 · risk M · S05 (+S02, S10) (split 1 of 2; DL-390)
+- **Goal:** final v1 art for traffic (10), police (6) and robotaxi bodies, remaining gray-box prefab props, the ped kit (8 bodies × 20 outfits on `bay_rig_v1`) and the creator-kit `character/pc-*` and `portrait/pc-*` parts, with provenance; placeholder registry `config/art-placeholders.json`; recipe fallback when no art is supplied (Q-39).
+- **R** R-MAP-04, R-UI-01, R-IP-01, R-MODE-02 (s) · **Dep** M05c2, M03b2, M04b2 · **Read** file `M10d1-…md`; `05-assets-pipeline.md` §3, §4, §7, §14; `02-world-living.md` §2.6, §4.5; `10-ui-pages.md` §2.8 · **Out** `assets/`, `config/art-placeholders.json`, `packages/world/src/client/{traffic,peds}`, `packages/ui/src/creator` · **C** C07 1.1, C04 1.1, C13 1.1
+- **Gate** Q-39, Q-24 (defaults apply) · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `DV_WORLD=synth pnpm check:perf -- --scenario downtown-rush --fail`; `@art-city`, `@art-creator`
+
+### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (split 2 of 2; DL-390)
+- **Goal:** KTX2 facade atlas, rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
+- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d1, M02d2 · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
+- **Gate** Q-39 (default applies) · **Proof** `pnpm assets:final`; `pnpm map:landmarks -- --build --check`; `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`; `@art-skyline`, `@art-ultra`
+
 ### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)
 - **Goal:** `m.a2.02`–`05`, refs and unlock defs; story businesses on `EventHost<BusinessState>` (DL-133) with their state in C05 1.2 `property.businesses[].state` (DL-225), events in the phone Bank app (DL-238).
 - **R** R-MODE-01/05, R-CUT-02 · **Dep** M05c2, M07a2, M08b2, M09b2, M07b1 (races of `m.a2.02`, `m.a2.03`, `m.a3.03`) · **Read** `03-story-narrative.md` §B6–§B7; `08-tycoon-events.md` §7 · **Out** `content/missions/m.a2.0{2..5}/`, `content/story/businesses.json` · **C** C09 1.0, C06 1.1, C05 1.2

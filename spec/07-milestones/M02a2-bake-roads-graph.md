@@ -24,7 +24,7 @@ After this session the bake produces a drivable, walkable city. Stages S5–S10 
   - `map:verify [-- --bake <id> | --area <id>]` runs every S14 gate on a finished bake (latest bake of the area by default; with no bake it prints `SKIP map:verify: no bake in dist/world` and exits 0): SCC ≥ 98 % of drivable edges, no `lanes = 0`, every signal junction has a program with ≥ 2 phases, a route from the City Hall edge to every portal, edges per chunk ≤ 600, out-degree ≤ 8, max road grade ≤ 40 %, ≥ 98 % of OSM signal nodes within 25 m of a junction, chunk limits of rule 20, world-index counts (landmarks ≥ 25, POIs ≥ 150), and, for `sf` only, the hero edges of §1.8 drivable and connected. Writes the gate table into `bake-report.json`.
   - `map:landmarks [-- --bake <id> | --area <id>]`: schema, unique ids `lm.<slug>`, classes, districts, lat/lng ↔ ENU agreement with the §7 table within 1 m; with an `sf` bake, each landmark within 120 m of its OSM feature (a failing seed is corrected from OSM in `landmarks.json`, never waived).
   - `map:pois [-- --bake <id> | --area <id>]`: schema, counts by kind, unique ids, fictional business names (shared matcher of `names:lint`), no EAS address as a home; with an `sf` bake, the id prefix equals the neighbourhood slug of the point and each POI binds to a ped node ≤ 25 m (warnings on `synth`).
-  - `map:resolve -- --lat <y> --lng <x> [--area <id>]`: prints edge id, `s`, distance and chunk key.
+  - `map:resolve -- --lat=<y> --lng=<x> [--area <id>]`: prints edge id, `s`, distance and chunk key.
 - **Synth and excerpt roads:** the synth generator (M02a1) adds OSM-shaped highways on a grid with arterial spines, signals at arterial crossings, one layered overpass and one short tunnel (so slabs and hoods are exercised), DataSF-shaped street rows with `cnn` and `oneway`, and county-line portals at its land edges; per-area gate parameters disable the `sf`-only gates.
 - `nightly.yml`: `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`.
 
@@ -52,7 +52,7 @@ After this session the bake produces a drivable, walkable city. Stages S5–S10 
 - AC-3 Given the `civic-excerpt` area When all stages run twice from scratch Then every output, including `sf-graph.v1`, is byte-identical and every gate passes — proof: `pnpm map:build -- --area civic-excerpt --repro`
 - AC-4 Given a fresh `synth` bake When `map:verify` runs Then the largest strongly connected component holds ≥ 98 % of drivable edges, every portal is reachable from the City Hall edge, every signal junction has ≥ 2 phases, no chunk exceeds 600 edges, no node has out-degree > 8, and the world index lists ≥ 25 landmarks and ≥ 150 POIs — proof: `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`
 - AC-5 Given the committed seeds When the place validators run without a bake Then the 37 landmark ids, classes and districts match `02-world-bake.md` §7, every lat/lng converts to its listed ENU within 1 m, POI counts per kind are met, ids are unique and every business name passes the name matcher — proof: `pnpm map:landmarks && pnpm map:pois && pnpm names:lint`
-- AC-6 Given a `civic-excerpt` bake When City Hall's coordinates are resolved Then the tool prints an edge id, a distance ≤ 25 m and chunk `9/256/256` — proof: `pnpm map:build -- --area civic-excerpt && pnpm map:resolve -- --lat 37.7793 --lng -122.4193 --area civic-excerpt`
+- AC-6 Given a `civic-excerpt` bake When City Hall's coordinates are resolved Then the tool prints an edge id, a distance ≤ 25 m and chunk `9/256/256` — proof: `pnpm map:build -- --area civic-excerpt && pnpm map:resolve -- --lat=37.7793 --lng=-122.4193 --area civic-excerpt`
 - AC-7 Given `sf-graph.v1` from a `synth` bake When it is decoded Then its edge and node counts equal the sums over all `p0` packs, lengths agree with segment lengths within 0.1 m, and it re-encodes byte-identically — proof: `pnpm check:unit -- packages/shared tools/map`
 - AC-8 Given an operator workstation with the M02a1 `sf` snapshot When the full `sf` bake and the three validators run Then `map:verify` passes including the hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde), `map:landmarks` places all 37 within 120 m of their OSM features after any seed corrections, `map:pois` binds every POI, and the run records U-W5, U-W6, U-W9 and the bake time in `docs/bake-runs/M02a2/notes.json` — proof: manual: operator workstation, `pnpm map:build -- --area sf --repro`, `pnpm map:verify -- --area sf`, `pnpm map:landmarks -- --area sf`, `pnpm map:pois -- --area sf`, then commit corrected seeds and the notes file
 
@@ -64,7 +64,7 @@ After this session the bake produces a drivable, walkable city. Stages S5–S10 
 
 ## Demo script
 1. `pnpm map:build -- --area synth && pnpm map:verify -- --area synth`: the gate table prints.
-2. `pnpm map:resolve -- --lat 37.7793 --lng -122.4193 --area synth`.
+2. `pnpm map:resolve -- --lat=37.7793 --lng=-122.4193 --area synth`.
 3. Change one POI name to a real chain's name in a scratch branch, run `pnpm map:pois`, see the failure, revert.
 
 ## Effort

@@ -131,7 +131,7 @@ sequenceDiagram
   W-->>D: JWT aud tha-bay-cli, scp [mods:publish], TTL 1 h, refresh 30 d (rotating)
 ```
 
-**Who may publish.** Routes 36 and 37 `POST` need identity tier `linked` (P2), age bracket `18p`, and no `publish_ban` in `enforcement_action`. The `/link` page approves a code only for a profile that is already `linked`; otherwise it walks the player through linking a provider first: `openai` when `auth.openaiWeb` is on, else `supabase-oauth` (GitHub), which is how P2 is reachable before Thirdweb at M14a (DN-S12-01 settled, DL-145). Forum posting needs only P1 plus the Q-BE-04 age rule. The CLI token and a browser P2 JWT are both accepted on route 36 (C12 1.1), so flow E needs no second login.
+**Who may publish.** Routes 36 and 37 `POST` need identity tier `linked` (P2), age bracket `18p`, and no `publish_ban` in `enforcement_action`. The `/link` page approves a code only for a profile that is already `linked`; otherwise it walks the player through linking a provider first: `openai` when `auth.openaiWeb` is on; otherwise P2 waits for Thirdweb at M14a, since `supabase-oauth` (GitHub) is spike-only in v1 (DN-S12-01, DL-145, DL-240, DL-342). Forum posting needs only P1 plus the Q-BE-04 age rule. The CLI token and a browser P2 JWT are both accepted on route 36 (C12 1.1), so flow E needs no second login.
 
 **Rate limits (S12, with S09 `rate-limits.json`).** 5 versions per profile per day, 20 mods per profile, 10 public placements per profile, 3 device codes per profile per hour.
 
@@ -233,7 +233,7 @@ Rules: title 3–120 characters; body 1–10,000 of plain text rendered as text 
 - **Installed.** Rows with: Enabled (applies in Sandbox; the row states "Mods never run in Story"), Update available, Roll back, Remove (checkbox "also delete my saved data"), load order, last fault. Packages without a store entry show "Installed outside the store". An experience mod has Play instead of Enabled.
 - **Local import** (`.dvmod`) and **Developer** appear under Settings, behind their toggles. **Offline:** cached lists with an "offline" banner; installed mods still run.
 - **Accessibility and language.** All player-visible mod text goes through the `strings` table (`ctx.str`), so translations are data and a stale one falls back to English [research/repos-grand-v.md rec 12]. The host panel frame provides the focus trap, Escape to close, a visible mod name and author, and reduced-motion; mods may not autoplay audio and must declare `flashing` or `loud` in `contentWarnings`.
-- Counters: `installs30d` is rolled up nightly from `mod.install` telemetry; ranking never uses client-reported counts directly.
+- Counters: `installs30d` is rolled up nightly from `mod.install` telemetry (post-v1, DL-420; in v1 it reads 0 and `sort=installed` falls back to the `new` order); ranking never uses client-reported counts directly.
 
 ## C§7 Versioning and compatibility
 

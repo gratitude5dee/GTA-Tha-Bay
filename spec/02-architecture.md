@@ -1,6 +1,6 @@
 # 02 — Architecture (v1)
 
-> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 115 milestone files (DL-247). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2 (frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-2.md`, `-3.md`), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
+> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 115 milestone files (DL-247). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2 (frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-1b.md`, `-2.md`, `-3.md`, `-4.md`), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
 
 ## 1. System diagram
 
@@ -204,7 +204,7 @@ Until a domain exists (Q-15), previews and staging run on `workers.dev`. Workers
 | Supabase | Postgres, RLS, pgvector; trusts our issuer | DataPort rule | spec/03 D-02, D-03 |
 | Turnstile | P1 registration | verification API UNVERIFIED (Q-BE-05) | `09-backend.md` §10 |
 | OpenAI | device-code publish login via the player's own Codex CLI; website sign-in flagged off (`AUTH_OPENAI_WEB`); moderation endpoint for NPC-builder text (use on non-OpenAI content UNVERIFIED, U-NPC-07) | P2 | spec/03 D-05; `04-npc-builder.md` §C5 |
-| Supabase Auth GitHub provider | `supabase-oauth` path to tier `linked` before M14a (DL-145; UNVERIFIED U-ADR-01, fallback ADR-0018) | P2, flag-gated | `12-modding-publish.md` C§2 |
+| Supabase Auth GitHub provider | spike only in v1 (M13c1 AC-10; UNVERIFIED U-ADR-01); no link route or flag until a post-v1 C12 bump (DL-240, DL-342) | not built in v1 | `12-modding-publish.md` C§2 |
 | MediaPipe tasks-vision (self-hosted) | pose inference in `pose.worker` | on-device only | spec/03 D-24; `07-fighter-pose.md` FP2 |
 | Thirdweb | SIWE wallet link | P3, M14a, Growth plan | spec/03 D-04 |
 
@@ -408,7 +408,7 @@ PR → `ci.yml` (jobs `static`, `unit`, `build`, `e2e (chromium-webgl2)`, `ip`; 
 All configuration lives in `config/`, is validated by JSON Schema (`config/schemas/`, `packages/shared/schemas/`) in CI, and is never fetched from a third party at runtime.
 - Platform: `tier-budgets.json` (C13), `platform-flags.json`, `perf/paths/` (perf path JSON, DL-221), `xr-input-profiles.json`, `xr-gestures.json`.
 - Engine and modes: `engine-tiers.json`, `physics.json`, `audio.json`, `input/`, `pursuit.json`, `pursuit.race.json`, `clock.json`, `unlocks.json`, `racing.json`, `fighter.tuning.json`, `tycoon.balance.json`, `tycoon.bands.json`, `econ-bands.json`.
-- World: `world/` (sources, licences, synth, streaming, mesher, roadclass, bridges, density, timecyc, transit, areas), `world.bounds.json`, `attribution.world.json`.
+- World: `world/` (sources, licences, synth, streaming, mesher, roadclass, bridges, density, sky-keys, transit, areas), `world.bounds.json`, `attribution.world.json`.
 - Assets and IP: `genai-endpoints.json`, `asset-budgets.json`, `ip-denylist.json`, `license-allowlist.json`, `names.json`, `consent-index.json`, `pose-assets.json`.
 - NPC, UI, legal, mods: `npc.json`, `npc-goals.json`, `voice-catalog.json`, `ui/`, `legal.json`, `mod-limits.json`.
 - Network and spend: `net.speedcaps.json`, `geo.json`, `rate-limits.json`, `guardrails.yaml` (every cap, ceiling and alert threshold); `cloudflare.resources.json` and `supabase.projects.json` (resource names, no secrets).

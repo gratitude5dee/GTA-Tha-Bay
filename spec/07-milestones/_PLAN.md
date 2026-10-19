@@ -10,7 +10,7 @@
 5. **Spend (DL-OWN-01).** fal total ≤ $100: M00c ≤ $10; M10a1+M10a2 ≤ $42; cutscenes ≤ $40 (M05c3 ≤ $16 and M10b ≤ $24, DN-S13-02); $8 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
 
-## 1. Ordered index (v1: 108 milestones, ≈ 100.4 sessions; post-v1: 7 milestones, 7 sessions)
+## 1. Ordered index (v1: 110 milestones, ≈ 102.4 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
 
 | # | ID | Slug | Sessions | Block | Depends on |
@@ -28,12 +28,12 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 11 | M01e | asset-worker-opfs-store | 1 | A | M01d, M01c, M00a, M00, M01a2, M01f |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | A | M01a1, M00b |
 | 13 | M00d | qa-spec-gates | 0.5 | B | M00, M01c, M00b |
-| 14 | M02a1 | bake-core | 1 | B | M01f, M01d |
+| 14 | M02a1 | bake-core | 1 | B | M01f, M01d, M00d |
 | 15 | M02a2 | bake-roads-graph | 1 | B | M02a1 |
-| 16 | M02b1 | streaming-lod | 1 | B | M02a2, M01c, M01e |
+| 16 | M02b1 | streaming-lod | 1 | B | M02a2, M01c, M01e, M01b2 |
 | 17 | M02b2 | weather-time | 1 | B | M02b1 |
-| 18 | M02c1 | graph-services-teleports | 1 | B | M02a2, M02b1 |
-| 19 | M02d1 | landmarks-kit-and-heroes | 1 | B | M02b1 |
+| 18 | M02c1 | graph-services-teleports | 1 | B | M02a2, M02b1, M02b2 |
+| 19 | M02d1 | landmarks-kit-and-heroes | 1 | B | M02b1, M02c1 |
 | 20 | M02d2 | landmarks-rest-and-swap | 1 | B | M02d1 |
 | 21 | M03a1 | vehicles-interaction-prefabs | 1 | B | M01b2, M02c1 |
 | 22 | M03a2 | handling-model-wheel-spike | 0.5 | B | M03a1 |
@@ -81,55 +81,57 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 64 | M10a2 | roster-pipeline | 1 | E | M10a1, M08b1 |
 | 65 | M10b | qa-gates-kill-drill | 1 | E | M10a2, M08b2, M06a3 |
 | 66 | M10c | roster-souls-ink-barks | 1 | E | M10a2, M06a4, M06c, M05c2 |
-| 67 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
-| 68 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
-| 69 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
-| 70 | M05f2 | story-act3-finale | 1 | E | M05f1 |
-| 71 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2 |
-| 72 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
-| 73 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1 |
-| 74 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5 |
-| 75 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
-| 76 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
-| 77 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
-| 78 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
-| 79 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1 |
-| 80 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2 |
-| 81 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2 |
-| 82 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |
-| 83 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
-| 84 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
-| 85 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
-| 86 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
-| 87 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d |
-| 88 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
-| 89 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1 |
-| 90 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
-| 91 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
-| 92 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
-| 93 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
-| 94 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M13a2 |
-| 95 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
-| 96 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
-| 97 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
-| 98 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
-| 99 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
-| 100 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
-| 101 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
-| 102 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
-| 103 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
-| 104 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
-| 105 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
-| 106 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
-| 107 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
-| 108 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
-| 109 | M15a | bay-expansion-framework | 1 | I | M14a |
-| 110 | M15b | oakland-core | 1 | I | M15a |
-| 111 | M15c | berkeley-richmond | 1 | I | M15b |
-| 112 | M15d | marin-gateway | 1 | I | M15a |
-| 113 | M15e | peninsula-north | 1 | I | M15a |
-| 114 | M15f | peninsula-vc-row | 1 | I | M15e |
-| 115 | M15g | south-bay-san-jose | 1 | I | M15f |
+| 67 | M10d1 | art-integration | 1 | E | M05c2, M03b2, M04b2 |
+| 68 | M10d2 | art-integration | 1 | E | M10d1, M02d2 |
+| 69 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
+| 70 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
+| 71 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
+| 72 | M05f2 | story-act3-finale | 1 | E | M05f1 |
+| 73 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2 |
+| 74 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
+| 75 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1 |
+| 76 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5 |
+| 77 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
+| 78 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
+| 79 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
+| 80 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
+| 81 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1 |
+| 82 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2 |
+| 83 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2 |
+| 84 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |
+| 85 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
+| 86 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
+| 87 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
+| 88 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
+| 89 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d |
+| 90 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
+| 91 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1 |
+| 92 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
+| 93 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
+| 94 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
+| 95 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
+| 96 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M13a2 |
+| 97 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
+| 98 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
+| 99 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
+| 100 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
+| 101 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
+| 102 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
+| 103 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
+| 104 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
+| 105 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
+| 106 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
+| 107 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
+| 108 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
+| 109 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
+| 110 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
+| 111 | M15a | bay-expansion-framework | 1 | I | M14a |
+| 112 | M15b | oakland-core | 1 | I | M15a |
+| 113 | M15c | berkeley-richmond | 1 | I | M15b |
+| 114 | M15d | marin-gateway | 1 | I | M15a |
+| 115 | M15e | peninsula-north | 1 | I | M15a |
+| 116 | M15f | peninsula-vc-row | 1 | I | M15e |
+| 117 | M15g | south-bay-san-jose | 1 | I | M15f |
 
 ## 2. Dependency graph (acyclic; transitive edges removed; full edges in §1)
 
@@ -210,6 +212,8 @@ flowchart LR
     M10a2
     M10b
     M10c
+    M10d1
+    M10d2
     M05e1
     M05e2
     M05f1
@@ -291,18 +295,18 @@ flowchart LR
   M00b --> M00d
   M01f --> M02a1
   M01d --> M02a1
+  M00d --> M02a1
   M02a1 --> M02a2
   M02a2 --> M02b1
   M01e --> M02b1
+  M01b2 --> M02b1
   M02b1 --> M02b2
-  M02b1 --> M02c1
-  M02b1 --> M02d1
+  M02b2 --> M02c1
+  M02c1 --> M02d1
   M02d1 --> M02d2
-  M01b2 --> M03a1
   M02c1 --> M03a1
   M03a1 --> M03a2
   M03a1 --> M03b1
-  M02b2 --> M03b1
   M03b1 --> M03b2
   M03b1 --> M03c
   M01b2 --> M04a1
@@ -315,7 +319,6 @@ flowchart LR
   M04b1 --> M04b3
   M04b1 --> M04c
   M04a2 --> M04d
-  M00d --> M04d
   M04a2 --> M05a1
   M05a1 --> M05a2
   M04d --> M05a2
@@ -373,6 +376,9 @@ flowchart LR
   M10a2 --> M10c
   M06a4 --> M10c
   M06c --> M10c
+  M05c2 --> M10d1
+  M10d1 --> M10d2
+  M02d2 --> M10d2
   M05c2 --> M05e1
   M08b2 --> M05e1
   M09b2 --> M05e1
@@ -456,7 +462,7 @@ flowchart LR
   M13a7 --> M14b3
   M13b3 --> M14b3
   M08c2 --> M14b3
-  M02d2 --> M14b3
+  M10d2 --> M14b3
   M14b3 --> M14a
   M14a --> M15a
   M15a --> M15b
@@ -469,15 +475,15 @@ flowchart LR
 
 ## 3. Critical path and checkpoints
 
-**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01d → M02a1 → M02a2 → M02b1 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **26.8 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest); + M15a → M15e → M15f → M15g = 30.8 to the end of expansion. The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred.
+**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **29.3 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest; DL-348 added M00d → M02a1 and M02b2 → M02c1, +2.5); + M15a → M15e → M15f → M15g = 33.3 to the end of expansion. The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred.
 
 | Checkpoint | After | What must be true (proof) |
 |---|---|---|
-| **VS-Story** (A-06) | M05c2 | Act 1 (12 missions) passes `pnpm check:missions -- --act 1` on 3 seeds; resume e2e green on `webkit-webgl2`; racing, fighter and tycoon tiles reachable through stub hooks; staging deploy smoke green; iPhone 15 and Mac checklists uploaded. R-ROLL-01 gate opens here. |
+| **VS-Story** (A-06) | M05c2 | Act 1 (12 missions) passes `pnpm check:missions -- --act 1` on 3 seeds; resume e2e green on `webkit-webgl2`; racing and fighter tiles reachable through stub hooks (unlocked, `comingSoon`); tycoon tile registered and locked, because its hook is `m.a2.01` in Act 2 (M09b2; DL-391); staging deploy smoke green; iPhone 15 and Mac checklists uploaded. R-ROLL-01 gate opens here. |
 | **VS-Racing** | M07a2 | 3 VS races and the pursuit event: `pnpm map:races par -- --check`, exact replay, `@racing-det` equal in Chromium and WebKit, `@racing-vs` |
 | **VS-Fighter** | M08a2 | golden replay hashes equal in Node, Chromium, WebKit; Training frame meter; touch Simple scheme; story hook unlock once |
 | **VS-Tycoon** | M09a2 | finance vectors exact; `pnpm check:balance` bands B1–B12 with failing self-tests; 200 replays equal |
-| **Single-player launchable** | M11b4 (with M05f2, M10c, M11a2, M06c, M02d2) | every single-player R-ID green in the trace report; device passes for iPhone, Quest, Vision Pro, Mac; public release still waits for M14b3's sign-offs (Q-18, Q-21, Q-23) |
+| **Single-player launchable** | M11b4 (with M05f2, M10c, M10d2, M11a2, M06c, M02d2) | every single-player R-ID green in the trace report; device passes for iPhone, Quest, Vision Pro, Mac; public release still waits for M14b3's sign-offs (Q-18, Q-21, Q-23) |
 | **Multiplayer** | M12e | two clients on staging within 150 ms; 16-bot 30-minute load gate; leaderboards validated |
 | **UGC open** | M13d1 (+M13c2) | NCII clock, evidence audit and report threshold pass; only then may `ugc.publish` flip in production (DL-151) |
 | **Launch gate** | M14b3 | DoD H1–H10, guardrails T1–T9, release device pass, `ip:history`, sign-offs recorded |
