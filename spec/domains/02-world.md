@@ -305,7 +305,7 @@ Dependencies: M01f ← M01a; M02a1 and M02a2 ← M01f, M01d (publish); M02b1 ←
 
 Acceptance-criterion seeds (final text is written in the milestone files; none depends on an UNVERIFIED item):
 - **M01f.** `decodeP0` on the fixture returns 4 chunks with equal shared edge posts and re-encodes byte-identically (`pnpm --filter @dv/shared test -- world`); `pnpm map:fixture graybox --check` reproduces the committed hashes.
-- **M02a1.** From a cached raw snapshot, `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` yields a building count within ±5 % of 176,777, every pack ≤ 4 MiB, identical hashes on a second run, no key in `dist/world` (`check:secrets`) and an attribution file listing every source.
+- **M02a1.** From a cached raw snapshot, `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` yields baked DataSF buildings ≥ 98 % of the `ynuv-fyni` row count in `raw.lock.json` (OSM additions ≤ 5 %, listed by id; DL-288), every pack ≤ 4 MiB, identical hashes on a second run, no key in `dist/world` (`check:secrets`) and an attribution file listing every source.
 - **M02a2.** `pnpm map:verify` shows a strongly connected component ≥ 98 % of drivable edges, a route from City Hall to every portal, ≥ 2 phases at every signal junction and a passing `pnpm map:landmarks` (a failing seed is corrected from OSM, never waived).
 - **M02b1.** `pnpm check:perf -- --scenario route-ferry-ocean-beach` on the desktop reference: no frame over 50 ms, ≤ 1 upload per frame; render objects within the tier budget on `chromium-webgl2` and `webkit-webgl2`; cold download within the tier budget.
 - **M02b2.** Presets and hours switch without uniform jumps; luminance gates pass (living §6); `mobile-low` sky ≤ 0.3 ms on the reference device (manual, recorded).

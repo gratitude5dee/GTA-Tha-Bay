@@ -157,7 +157,7 @@ export interface EndpointEntry {
   vendor: 'fal' | 'workers_ai' | 'elevenlabs' | 'anthropic' | 'local';
   role: 'style_bible' | 'sheet' | 'sheet_lean' | 'keyframe' | 'portrait' | 'mesh' | 'mesh_alt' | 'rig'
       | 'tts_draft' | 'tts_final' | 'tts_hero' | 'voice_design' | 'voice_clone' | 'sfx' | 'vision_qa';
-  status: 'active' | 'pending' | 'blocked';     // blocked ⇒ callable only with env 'previs'
+  status: 'active' | 'pending' | 'blocked';     // blocked ⇒ never callable; previs may call 'pending' only
   price: { usd: number; per: 'image' | 'gen' | 'second' | 'clip' | '1k_chars' | 'voice'; note?: string; checkedAt: string };
   pinnedUpdatedAt: string | null;               // registry updated_at at last review; enters job keys
   licenseType: 'commercial';                    // liveness fails on any other value

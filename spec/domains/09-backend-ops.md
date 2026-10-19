@@ -91,7 +91,7 @@ GitHub Actions, actions pinned by SHA, `runs-on: ubuntu-24.04`, `permissions: co
 4. Version affinity: a zone Transform Rule sets `Cloudflare-Workers-Version-Key` from a cookie the Worker sets, created by the M00 bootstrap runbook through the Rulesets API, before the first split.
 5. API compatibility: `/api/v1` changes are additive; a client older than `minClientBuild` gets `build_mismatch` and runs the PWA update flow.
 
-CI auth: Cloudflare has no OIDC for CI; use account API tokens with a TTL, split `CF_API_TOKEN_DEPLOY` (Workers Editor), `CF_API_TOKEN_ASSETS` (R2), `CF_API_TOKEN_CACHE` (purge) [research/gap-ci-cd-release-assets.md §1.3]. First creation of each Worker is a one-time `pnpm deploy:bootstrap` by the operator with an Admin token (`versions upload` cannot create a Worker).
+CI auth: Cloudflare has no OIDC for CI; use account API tokens with a TTL, split by duty: `CLOUDFLARE_API_TOKEN` (deploy, Workers Editor), R2 keys for assets, `CF_API_TOKEN_CACHE` (purge) (names per §6, DL-210) [research/gap-ci-cd-release-assets.md §1.3]. First creation of each Worker is a one-time `pnpm deploy:bootstrap` by the operator with an Admin token (`versions upload` cannot create a Worker).
 
 ## 3. Abuse controls and rate limits
 
@@ -187,21 +187,30 @@ export interface SpendEvent { ts: number; vendor: Vendor; model: string; kind: s
 DO duration dominates at scale; AFK stop, empty-room GC and ack-lag kicks are the levers (A08).
 
 ## 6. Secrets (Wrangler secrets only; the DB vault is not used in v1)
-| Secret | Worker | Milestone | Rotation |
+
+Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at the handoff, DL-245; milestones per the split ids). CI and operator credentials first, then Worker secrets.
+
+| Secret | Holder / Worker | Milestone | Rotation |
 |---|---|---|---|
-| `PLAY_TOKEN_HMAC` (+ `_PREV`) | web | M06a | 90 d, dual-key window 24 h |
-| `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b | 90 d |
-| `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT` (ES256 private JWK) | web | M12a | 90 d, ≥ 30 min overlap |
-| `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` | rooms (+ web for ticket/internal) | M12b | 90 d |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (bucket-scoped, for presigning) | web | M06b | 90 d |
-| `FAL_KEY` (runtime, allowed-models list), `FAL_KEY_BILLING` | web | M05b / M14b | 90 d expiry set at creation |
-| `ANTHROPIC_API_KEY` (workspace `npc-runtime`), `ANTHROPIC_ADMIN_KEY` (Usage API) | web | M06a / M14b | 90 d |
-| `ELEVENLABS_API_KEY` (service account, `character_limit`) | web | S04 voice milestone | 90 d |
-| `OPENAI_MODERATION_KEY` | web | M06b | 90 d |
-| `TURNSTILE_SECRET` | web | M12a | yearly |
-| `OPENAI_OIDC_CLIENT_SECRET` (flag `AUTH_OPENAI_WEB`) | web | M13c (only if OpenAI grants a client) | per OpenAI |
-| `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | web | M13d (after program approval) | per program |
-| `ALERT_HMAC`, `ALERT_WEBHOOK_URL`, `QUOTA_NET_SALT_SECRET` | web | M14b / M06a | 90 d |
-| `OPS_TOKEN` (bearer for staff/CI routes before staff JWTs exist; removed in M12a) | web | M05b | 30 d |
+| `CLOUDFLARE_API_TOKEN` (deploy token, Workers Editor scope; the role §2 called `CF_API_TOKEN_DEPLOY`), `CLOUDFLARE_ACCOUNT_ID` | GitHub environments; operator shell | M00 | token expiry set at creation |
+| `CF_API_TOKEN_CACHE` (cache purge only; the only extra Cloudflare token) | GitHub env `production` | M10b | expiry set at creation |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (bucket-scoped; rclone publish, then presigning) | GitHub envs (M01d); web (M06b2) | M01d / M06b2 | 90 d |
+| `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` (scoped to `tha-bay-private-{staging,prod}`; raw map snapshot archive, DL-287); `SOCRATA_APP_TOKEN` (optional) | operator shell | M02a1 | 90 d |
+| `PLAY_TOKEN_HMAC` (+ `_PREV`) | web | M04b3 (DL-231) | 90 d, dual-key window 24 h |
+| `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b1 | 90 d |
+| `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT` (ES256 private JWK) | web | M12a1 | 90 d, ≥ 30 min overlap |
+| `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` | rooms (+ web for ticket/internal) | M12b1 | 90 d |
+| `FAL_KEY` (held per Q-17; operator CLI and the Worker's production pipeline; never CI, which runs `FAL_MODE=mock`), `FAL_KEY_BILLING` | operator (M00c, M10a1); web (M05c3); web (billing) | M00c, M05c3, M10a1 / M14b1 | 90 d expiry set at creation |
+| `ANTHROPIC_API_KEY` (workspace `npc-runtime`), `ANTHROPIC_BUILDER_KEY` (`npc-builder`), `ANTHROPIC_EVALS_KEY` (`ci-evals`, GitHub), `ANTHROPIC_ADMIN_KEY` (Usage API) | web; GitHub for evals | M06a3 / M06b1 / M06a4 / M14b1 | 90 d |
+| `ELEVENLABS_API_KEY` (service account, `character_limit`; t2 voices off until Q-20) | web | M06a4 | 90 d |
+| `OPENAI_MODERATION_API_KEY` | web | M06b1 | 90 d |
+| `TURNSTILE_SECRET` | web | M12a1 | yearly |
+| `OPENAI_OIDC_CLIENT_SECRET` (flag `AUTH_OPENAI_WEB`) | web | M13c1 (only if OpenAI grants a client) | per OpenAI |
+| `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | web | M13d1 (after program approval) | per program |
+| `ALERT_HMAC`, `ALERT_WEBHOOK_URL` / `QUOTA_NET_SALT_SECRET` | web | M14b1 / M06a1 | 90 d |
+| `OPS_TOKEN` (bearer for staff/CI routes before staff JWTs exist; removed in M12a1) | web | M05b1 | 30 d |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; `DV_NAMES_REAL_JSON` | GitHub envs (CI only) | M05d; M00b | per vendor |
+
+The §2 split into `CF_API_TOKEN_DEPLOY` / `_ASSETS` / `_CACHE` is superseded: the deploy role is `CLOUDFLARE_API_TOKEN`, R2 writes use the R2 keys, and `CF_API_TOKEN_CACHE` is the only extra token (DL-210). M00a's frozen scope-out line, which defers that split to M14b, is read with these names: the cache token arrives in M10b and no separate deploy or assets token is added (DL-245).
 
 CI writes secrets JSON to `$RUNNER_TEMP` and passes `--secrets-file` to `versions upload`, so code and secrets move together and rollback restores both; `wrangler secret put` is never used in the pipeline (it deploys immediately) [research/gap-ci-cd-release-assets.md §6]. Local dev uses `.dev.vars` (git-ignored). `CLAUDE.md` lists the names only.

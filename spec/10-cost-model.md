@@ -67,11 +67,11 @@ fal has no spend cap and locks an account below a balance threshold (F-048), so 
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 13 steps | $4.36 |
+| Spike (M00c) | $10 | 11 steps (DL-286) | $3.76 |
 | Characters (M10a, M10b) | $42 | 8 Standard fighters × $3.67 + 12 Lean × $1.05 | $41.96 |
 | Cutscenes (M05c3, M10b) | $40 | greedy priority list stopping at a $38 running estimate | $37.60 |
 | Buffer | $8 | rejects, rig 422s, extra clips; voice design or vehicle bodies only with owner sign-off (Q-26) | $0 |
-| **Total** | **$100** | | **≈ $84** |
+| **Total** | **$100** | | **≈ $83** |
 
 Not bought with fal in v1: voice designs (Workers AI Aura or MeloTTS), generated cars and props, stand-ins (authored creator-kit bodies), player-triggered NPC looks, the 12-fighter target. Non-fal one-off work for 60 souls (normalization ≈ $5, barks ≈ $9, bark TTS ≈ $30) is billed to Anthropic and Workers AI (`04-npc-builder.md` §C7).
 

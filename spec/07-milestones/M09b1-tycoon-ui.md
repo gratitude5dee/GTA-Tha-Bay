@@ -73,7 +73,7 @@ The views are accessible (every chart has a table view, keyboard, gamepad and to
   - `kit/{Chart.tsx, DataTable.tsx, TabBar.tsx}`, `settingsPanel.tsx` and `summary.ts`.
 - `packages/modes/tycoon/src/sim/`: edit `TycoonModeSim.ts` (VM publishing, branch replay entry).
 - `packages/shared/src/tycoon/replay.ts`: add `replayUntil(setup, choices, week)` for branch replay, a pure helper.
-- `content/tycoon/sectors.json` and `content/tycoon/events/*.json` (30 added); `packages/ui/src/i18n/en-US/{tycoon.json, tycoon-events.json}`; `assets/src/ui/ty-card-*/asset.json`, as one shared authored card family with per-event tint (provenance `authored`).
+- `content/tycoon/sectors.json` and `content/tycoon/events/*.json` (30 added); `content/ui/i18n/en.json` keys `tycoon.*` and `tycoon.events.*` (DL-222, DL-247); `assets/src/ui/ty-card-*/asset.json`, as one shared authored card family with per-event tint (provenance `authored`).
 - `config/tycoon.balance.json`, re-tuned. Regenerate `tests/tycoon/baseline.json` with a `balance-rebaseline:` commit line.
 - Tests:
   - `packages/modes/tycoon/test/{ui.vm.spec.ts, ui.waterfall.spec.ts, ui.redraw.spec.ts, branch.spec.ts}`;

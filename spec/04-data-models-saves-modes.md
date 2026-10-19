@@ -6,7 +6,7 @@
 
 | Field | Value |
 |---|---|
-| Owner · version | S01 · `C05_VERSION = '1.2.0'` (1.2: `property.businesses[].state?`, DL-225) |
+| Owner · version | S01 · `C05_VERSION = '1.2.0'` from M05e1; `'1.1.0'` from the M04a family until then (1.2: `property.businesses[].state?`, DL-225) |
 | Source path | `packages/shared/src/contracts/c05-save.ts`; service `packages/engine/src/sim/save/` (runs in `sim.worker`) |
 | Defined in | `01-engine-save-modes.md` §C05 (IndexedDB layout, rules 1–10, envelope JSON Schema), "C05 1.1 and C06 1.1 additions" |
 | Created in | M04a family (`SaveService`, local saves); cloud sync M12a1 |
@@ -14,7 +14,7 @@
 
 ```ts
 // packages/shared/src/contracts/c05-save.ts
-export const C05_VERSION = '1.2.0' as const;   // 1.1: additive fields in "C05 1.1 and C06 1.1 additions"; 1.2: businesses[].state? (DL-225)
+export const C05_VERSION = '1.1.0' as const;   // M04a1 writes 1.1.0 (additive fields in "C05 1.1 and C06 1.1 additions"); M05e1 sets '1.2.0' (businesses[].state?, DL-225)
 export type ProfileId = string & { readonly __brand: 'ProfileId' };   // /^[0-9a-f]{32}$/
 export type SliceKind = 'core' | 'settings' | 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | 'mod';
 export type SlotId =

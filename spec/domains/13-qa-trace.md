@@ -17,14 +17,14 @@ Corrected 2026-10-18 (DL-217): the first version took milestones only from the `
 | R-ID | Spec sections | Milestones | Tests (names) | Status |
 |---|---|---|---|---|
 | R-PLAT-01 | 11-platform §1; 11-platform-pwa §2–§6; 09-backend-ops §1; spec/02 §4.2 | M00, M00a, M01a2, M01b2, M01c, M01d, M01e, M04a1, M04b2, M04c, M11a2 | `@pwa`, `@boot`, `check:headers`, `check:coi`, `pack-store.spec`, `@offline-relaunch`, `@ui-touch`, `heartbeat` | planned |
-| R-PLAT-02 | 11-platform-xr §2–§5; 10-ui-hud-xr §2 | M00, M01b2, M01c (s), M11b1, M11b3, M11b2, M11b4 | `@xr-smoke`, `xr-session.spec`, `xr-input-routing.spec`, `xr-comfort.spec`, `@tycoon-xr`; checklists `M01c-{quest3,visionpro}`, `M11b-{quest,visionpro}` | planned |
+| R-PLAT-02 | 11-platform-xr §2–§5; 10-ui-hud-xr §2 | M00, M01b2, M01c (s), M11b1, M11b3, M11b2, M11b4 | `@xr-smoke`, `xr-session.spec`, `xr-input-routing.spec`, `xr-comfort.spec`, `@tycoon-xr`, `@xr-npc`, `@xr-story`; checklists `M01c-{quest3,visionpro}`, `M11b-{quest,visionpro}` | planned |
 | R-PLAT-03 | 11-platform §2, §4; 01-engine §2 | M00, M01a1, M01a2, M01b1, M01c, M01d, M01e, M01f (s), M02b1, M11a1 | `@probe` (`gpu-probe.json`), `renderer-host.spec`, `tier-select.spec`, `@determinism`, `control.onfoot`, `world.codec` | planned |
 | R-PLAT-04 | 01-engine-contracts C04; 01-engine §2 | M01b1, M01b2, M03a1 | `engine/camera.sweep100`, `@fp-tp`, `engine/lines.filbert` | planned |
 | R-PLAT-05 | 11-platform §4.5, §5.5; 11-platform-perf §5 | M01b2, M01c, M11a1, M11a2, M14b2, M14b3 | `governor.spec`, `frame-pacer.spec`, `perf:verify` on `M01c-iphone15` and `M11a-*`, A03 release rule | planned |
 | R-AUTH-01 | 09-backend §2; 09-backend-contracts §2; spec/05 §2 | M04b3, M06a1, M06a3, M12a1, M12a2, M14a | `@offline`, `play-token`, `refresh-reuse`, `save-conflict`, `rls-thirdparty` | planned |
 | R-AUTH-02 | 09-backend §2 (identity interface) | M04b3, M14a | `packages/identity` unit suite, `siwe-link` | planned |
 | R-AUTH-03 | 12-modding-publish C§2; 09-backend-contracts §2.4 rows 10–11 | M13c1, M13c3 | `device-code`, `@link`, `test:staging -- mod-publish` | planned |
-| R-ROLL-01 | 09-backend §1; spec/00-plan ordering anchors; _PLAN §0 rule 4 | M00, M00a, M04b3, M05c2 | `@smoke`, `check:smoke` on staging, `@story`; order check in `_PLAN.md` | planned |
+| R-ROLL-01 | 09-backend §1; spec/00-plan ordering anchors; _PLAN §0 rule 4 | M00, M00a, M00d, M04b3, M05c2 | `@smoke`, `check:smoke` on staging, `@story`; `check:rollout` (M00d) | planned |
 | R-ROLL-02 | 09-backend-contracts §1; 09-backend-db §2; spec/05 §4 | M01a1 (s), M01a2 (s), M01b1 (s), M01f (s), M05d, M12a1, M12b1, M12b2, M12c1, M12c2, M12d, M12e | `engine/determinism.node`, `rooms-*` suites, `@mp`, `load:rooms`, `check:db` | planned |
 | R-MAP-01 | 02-world §1–§2; 02-world-bake §1–§9 | M01e (s), M01f, M02a1, M02a2, M02b1, M02c1, M02d1, M02d2, M05c1, M07b1 | `shared/c08.grid`, `map:fixture --check`, `@pack-graybox`, `map:verify`, `@world-teleport`, `landmarks.verify` | planned |
 | R-MAP-02 | 02-world-maps §4, §8 | M02b1, M02d2, M15a, M15b, M15c, M15d, M15e, M15f, M15g | `@world-boot-size` (backdrop), `route-ferry-ocean-beach` | planned |
@@ -37,7 +37,7 @@ Corrected 2026-10-18 (DL-217): the first version took milestones only from the `
 | R-NPC-02 | 05-assets-pipeline §1–§5, §12; spec/06 §3, §12 | M00c, M05b1, M10a1, M10a2 | `check:pipeline` (zero calls on rerun), `assets:gen plan`, `assets:verify`, `genai:spike -- --verify` | planned |
 | R-NPC-03 | 04-npc-builder C1–C7 | M06b1, M06b2, M06b3, M06b4 | `npc-builder-*` Workers suite, `@npc-builder` | planned |
 | R-NPC-04 | 04-npc-contracts B1–B4; 05-assets §5.4; 05-assets-pipeline §10; spec/06 §9 | M00b, M00c, M01e (s), M06a1, M06a2, M06a4, M08b1, M08b2, M10a1, M10b | `likeness:gate`, `killswitch`, `store.rules` (`evictByTag`), `npc-tts-gating`, `@fighter-kill`, `@kill-drill` | planned |
-| R-NPC-05 | 04-npc §5; 09-backend-ops §3, §5; spec/02 §4.4 | M06a1, M06a3, M06a4, M06a5, M09b2, M14b1 | `npc-talk-*` (timeout 4 s, quota, governor, cache order), `@npc-offline`, `check:secrets -- apps/web/dist`, guardrails T1 | planned |
+| R-NPC-05 | 04-npc §5; 09-backend-ops §3, §5; spec/02 §4.4 | M06a1, M06a3, M06a4, M06a5, M09b2, M11b3 (s), M14b1 | `npc-talk-*` (timeout 4 s, quota, governor, cache order), `@npc-offline`, `@xr-npc`, `check:secrets -- apps/web/dist`, guardrails T1 | planned |
 | R-MODE-01 | 03-story §1–§5; 03-story-missions §C1–§C11; 01-engine-save-modes PursuitDirector | M03a1, M03c, M04a1, M04a2, M04d, M05a1, M05a2, M05c1, M05c2, M05e1, M05e2, M05f1, M05f2 | `compiler`, `vm-ops`, `check:missions` (all acts), `engine/pursuit.*`, `@save-kill` | planned |
 | R-MODE-02 | 06-racing §1–§6; 06-racing-data; 06-racing-content | M03a1, M03a2, M03c, M07a1, M07a2, M07b1, M07b2, M11b2, M12e, M13a7 | `racing/*` suite, `map:races par`, `@racing-det`, `@racing-vs`, `race-sprint` | planned |
 | R-MODE-03 | 07-fighter-core; 07-fighter-content; 07-fighter-pose | M01a1 (s), M08a1, M08a2, M08b1, M08b2, M08c1, M08c2, M10a2, M11b2 | `shared/detmath.vectors`, `fighter:replay` goldens, `@fighter-hash`, `fighter:balance`, `fighter:pose-fixtures`, `@pose` | planned |
