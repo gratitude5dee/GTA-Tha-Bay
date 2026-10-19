@@ -122,3 +122,40 @@ body {
 .dv-disclaimer {
   font-size: var(--dv-text-xs);
 }
+
+.dv-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dv-space-3);
+  inline-size: min(100%, 22rem);
+}
+
+.dv-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dv-space-1);
+  text-align: start;
+  font-size: var(--dv-text-sm);
+}
+
+.dv-input {
+  min-block-size: 44px;
+  padding-inline: var(--dv-space-3);
+  border: 1px solid var(--dv-color-text-muted);
+  border-radius: var(--dv-radius-md);
+  background: var(--dv-color-surface);
+  color: var(--dv-color-text);
+  font: inherit;
+}
+
+.dv-input:focus-visible {
+  outline: 3px solid var(--dv-color-focus);
+  outline-offset: 2px;
+}
+
+.dv-error {
+  color: var(--dv-color-text);
+  background: var(--dv-color-surface-raised);
+  padding: var(--dv-space-2) var(--dv-space-3);
+  border-radius: var(--dv-radius-md);
+}

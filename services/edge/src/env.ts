@@ -22,6 +22,14 @@ export interface Env {
   /** JSON object of FeatureFlag to boolean; unknown keys are ignored. */
   FLAGS_JSON: string;
   FAL_MODE: string;
+  /** fal.ai key (secret) — absent in staging mock mode and local dev. */
+  FAL_KEY?: string | undefined;
+  /** Supabase project URL, e.g. https://<ref>.supabase.co (var, non-secret). */
+  SUPABASE_URL?: string | undefined;
+  /** Supabase anon/publishable key (var, public by design). */
+  SUPABASE_ANON_KEY?: string | undefined;
+  /** Supabase service-role key (secret) — reserved for the M05d data spine. */
+  SUPABASE_SECRET_KEY?: string | undefined;
 }
 
 export const DEFAULT_FLAGS: Readonly<Record<FeatureFlag, boolean>> = {

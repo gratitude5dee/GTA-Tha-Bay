@@ -25,12 +25,13 @@ export const LEGAL_DOCS = [
 ] as const;
 export type LegalDoc = (typeof LEGAL_DOCS)[number];
 
-export type Route = { page: 'title' } | { page: 'credits' } | { page: 'legal'; doc: string };
+export type Route = { page: 'title' } | { page: 'credits' } | { page: 'legal'; doc: string } | { page: 'account' };
 
 /** Maps a pathname to a shell page. Unknown paths show the title (the Worker serves the SPA for every path). */
 export function routeFor(pathname: string): Route {
   const clean = pathname.replace(/\/+$/, '') || '/';
   if (clean === '/menu/credits') return { page: 'credits' };
+  if (clean === '/account' || clean === '/account/signin') return { page: 'account' };
   const m = /^\/legal\/([^/]+)$/.exec(clean);
   if (m?.[1]) return { page: 'legal', doc: m[1] };
   return { page: 'title' };
@@ -91,6 +92,7 @@ export function Title() {
         {t('title.start')}
       </button>
       <nav class="dv-nav">
+        <Link href="/account">{t('title.account')}</Link>
         <Link href="/menu/credits">{t('title.credits')}</Link>
         <Link href="/legal/terms">{t('title.legal')}</Link>
       </nav>
@@ -119,6 +121,138 @@ export function Legal(props: { doc: string }) {
       <h1>{t(titleKey)}</h1>
       <p>{known ? t('legal.pending') : ''}</p>
       <Link href="/">{t('legal.back')}</Link>
+    </main>
+  );
+}
+
+interface StoredSession {
+  user: { id: string | null; username: string | null };
+  session: { accessToken: string | null; refreshToken: string | null; expiresIn: number | null; tokenType: string | null };
+}
+
+const SESSION_KEY = 'dv-session';
+
+function readSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSession;
+    return parsed?.session?.accessToken ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Username/password account page (Supabase Auth via /api/v1/auth/*). Providers land later. */
+export function Account() {
+  const [session, setSession] = useState<StoredSession | null>(() => readSession());
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (mode: 'signup' | 'login') => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/auth/${mode}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = (await res.json()) as StoredSession & { error?: { message?: string } };
+      if (!res.ok) {
+        setError(data.error?.message ?? t('account.error.generic'));
+        return;
+      }
+      localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      setSession(data);
+    } catch {
+      setError(t('account.error.network'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    const token = session?.session.accessToken;
+    if (token) {
+      await fetch('/api/v1/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
+    localStorage.removeItem(SESSION_KEY);
+    setSession(null);
+  };
+
+  if (session) {
+    return (
+      <main class="dv-screen dv-account" data-testid="account">
+        <h1>{t('account.title')}</h1>
+        <p data-testid="account-signed-in">{t('account.signedIn', { name: session.user.username ?? '?' })}</p>
+        <div class="dv-nav">
+          <button type="button" class="dv-button" onClick={signOut} data-testid="account-signout">
+            {t('account.signOut')}
+          </button>
+          <Link href="/">{t('account.back')}</Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main class="dv-screen dv-account" data-testid="account">
+      <h1>{t('account.title')}</h1>
+      <p>{t('account.lead')}</p>
+      <form
+        class="dv-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit('login');
+        }}
+      >
+        <label class="dv-field">
+          <span>{t('account.username')}</span>
+          <input
+            class="dv-input"
+            name="username"
+            autocomplete="username"
+            autocapitalize="none"
+            required
+            minLength={3}
+            maxLength={20}
+            value={username}
+            onInput={(e) => setUsername((e.target as HTMLInputElement).value)}
+            data-testid="account-username"
+          />
+        </label>
+        <label class="dv-field">
+          <span>{t('account.password')}</span>
+          <input
+            class="dv-input"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            minLength={6}
+            value={password}
+            onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+            data-testid="account-password"
+          />
+        </label>
+        {error ? (
+          <p class="dv-error" role="alert" data-testid="account-error">
+            {error}
+          </p>
+        ) : null}
+        <div class="dv-nav">
+          <button type="submit" class="dv-button" disabled={busy} data-testid="account-login">
+            {t('account.signIn')}
+          </button>
+          <button type="button" class="dv-link" disabled={busy} onClick={() => void submit('signup')} data-testid="account-signup">
+            {t('account.create')}
+          </button>
+        </div>
+      </form>
+      <Link href="/">{t('account.back')}</Link>
     </main>
   );
 }
@@ -173,6 +307,7 @@ export interface ShellProps {
 
 function pageTitle(route: Route): string {
   if (route.page === 'credits') return `${t('credits.title')} - ${BRAND.displayName}`;
+  if (route.page === 'account') return `${t('account.title')} - ${BRAND.displayName}`;
   return BRAND.displayName;
 }
 
@@ -207,6 +342,7 @@ export function App(props: ShellProps) {
   if (props.unsupported) body = <Unsupported diagnostics={props.diagnostics()} />;
   else if (phase === 'booting') body = <BootScreen />;
   else if (route.page === 'credits') body = <Credits />;
+  else if (route.page === 'account') body = <Account />;
   else if (route.page === 'legal') body = <Legal doc={route.doc} />;
   else body = <Title />;
 
