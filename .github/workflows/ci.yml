@@ -37,6 +37,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm check:secrets
+      # M00f: ported code needs its attribution header (no-op while third_party/ is absent).
+      - run: pnpm reuse:clones
       - run: pnpm check:do-migrations
       # M00d spec gates: instruction-file sizes, C16 privacy rules, skills mirror (pending stub), R-ROLL-01 order gate.
       - run: pnpm check:agents

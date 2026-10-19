@@ -3,7 +3,7 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-import { GLSL_SYNTAX, SIM_FILES, SIM_IGNORES, determinismConfig } from './config/eslint/determinism.mjs';
+import { GLSL_SYNTAX, SIM_FILES, SIM_IGNORES, THIRD_PARTY_IMPORT_PATTERN, determinismConfig } from './config/eslint/determinism.mjs';
 
 export default defineConfig([
   globalIgnores([
@@ -14,6 +14,7 @@ export default defineConfig([
     'playwright-report/**',
     '.spike/**',
     '.claude/**',
+    'third_party/**', // vendored files are not ours to lint (ADR-REUSE-01)
     'spec/**',
     'research/**',
     'prompt-pack/**',
@@ -36,6 +37,12 @@ export default defineConfig([
     // The HTMLVideoElement shim is an intentionally empty interface that merges with lib.dom (DL-232).
     files: ['packages/shared/src/contracts/dom-media.d.ts'],
     rules: { '@typescript-eslint/no-empty-object-type': 'off' },
+  },
+  {
+    // Ported code is copied, never imported. The tools that read vendored data to write derived files may import.
+    files: ['**/*.{ts,tsx,js,mjs,cjs,mts,cts}'],
+    ignores: ['tools/{map,assets,ci,soul}/**'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [THIRD_PARTY_IMPORT_PATTERN] }] },
   },
   determinismConfig(SIM_FILES, SIM_IGNORES),
 ]);

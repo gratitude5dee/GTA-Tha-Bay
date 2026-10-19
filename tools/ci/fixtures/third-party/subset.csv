@@ -1,0 +1,4 @@
+name,url,coordinate,address,neighbourhood,osm_id,person,logo,tagline,city,building_id,footprint_link,category,sector,segment
+Fixture Co One,https://example.invalid/one,0.0 0.0,1 Example Way,Fixture Hill,node/1,Fixture Person A,logo-1.png,A fixture line,Fixtureville,B-1,fp/1,tools,infrastructure,Zorblax Quillfeather
+Fixture Co Two,https://example.invalid/two,0.0 0.0,2 Example Way,Fixture Flat,node/2,Fixture Person B,logo-2.png,Another fixture line,Fixtureville,B-2,fp/2,apps,consumer,Plain Segment
+Fixture Co Three,https://example.invalid/three,0.0 0.0,3 Example Way,Fixture Hill,node/3,Fixture Person C,logo-3.png,Third fixture line,Fixtureton,B-3,fp/3,tools,consumer,Plain Segment
