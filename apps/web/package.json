@@ -18,6 +18,7 @@
     "workbox-routing": "7.4.1"
   },
   "scripts": {
+    "media:local": "node scripts/qa-media.mjs",
     "verify:dist": "node scripts/verify-dist.mjs"
   }
 }

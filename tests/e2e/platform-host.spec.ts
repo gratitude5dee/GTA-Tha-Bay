@@ -169,7 +169,8 @@ test.describe('telemetry @telemetry', () => {
     const start = first.events[0]!;
     expect(Object.keys(start.props).sort()).toEqual(['backend', 'coi', 'nav', 'store', 'tier']);
     expect(start.props['coi']).toBe(true);
-    expect(start.props['store']).toBe('memory');
+    // M01e: app.start waits for the asset worker's open(). WebKit's ephemeral Playwright context has no OPFS (see pack-store.spec.ts).
+    expect(start.props['store']).toBe(test.info().project.name === 'webkit-webgl2' ? 'memory' : 'opfs');
     expect(['webgpu', 'webgl2']).toContain(start.props['backend']);
     expect(first.events[2]!.props['phaseWorldMs']).toBe(0);
     expect(first.env.deviceClass).toBe('desktop');
