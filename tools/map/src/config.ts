@@ -112,7 +112,15 @@ export function loadSources(file = SOURCES_PATH): SourcesConfig {
   return raw as SourcesConfig;
 }
 
-export interface DensityConfig { schema: 'world-density/1'; profiles: { name: string; perKm: number }[]; perLaneKm: Record<string, number> }
+export interface DensityConfig {
+  schema: 'world-density/1';
+  profiles: { name: string; perKm: number }[];
+  perLaneKm: Record<string, number>;
+  /** Street-lamp spacing along Arterial and Collector segments, metres (M02b2). */
+  lampPitchM?: number;
+}
+/** The lamp pitch when density.json carries none (design value 30 m). */
+export const DEFAULT_LAMP_PITCH_M = 30;
 
 function loadChecked<T>(file: string, schema: string): T {
   const raw = readJson<unknown>(file);
