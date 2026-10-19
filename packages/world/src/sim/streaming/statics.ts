@@ -60,35 +60,40 @@ export class StaticsFeeder {
    * One tick of the feed: remove the colliders that fell out of 1.35 x `physicsM`, then add the nearest chunk that is ready (or
    * failed) and has none yet. At most one add per call.
    */
-  step(store: ChunkStore<SimChunk>, focus: Focus, physicsM: number): StaticsStep {
+  step(store: ChunkStore<SimChunk>, focus: Focus, physicsM: number, also: Focus | null = null): StaticsStep {
     const removed: ChunkKey[] = [];
     for (const key of this.keys()) {
       const gone = !store.unit('p0', key);
-      if (gone || !insideRing(key, focus, physicsM, STREAMING.unloadFactor)) {
+      const keep = insideRing(key, focus, physicsM, STREAMING.unloadFactor) || (also !== null && insideRing(key, also, physicsM, STREAMING.unloadFactor));
+      if (gone || !keep) {
         this.drop(key);
         removed.push(key);
       }
     }
-    const ranked = rankUnits(9, focus, physicsM, {
-      exists: (k) => {
-        const u = store.unit('p0', k);
-        return u !== null && (u.state === 'ready' || u.state === 'failed');
-      },
-      firstRing: true,
-    });
-    for (const r of ranked) {
-      if (this.terrain.has(r.key) || this.walls.has(r.key)) continue;
-      const u = store.unit('p0', r.key);
-      if (!u) continue;
-      if (u.state === 'ready' && u.payload) {
-        this.backend.addChunkStatics(r.key, toStaticShapeSet(u.payload));
-        this.terrain.add(r.key);
-        return { added: r.key, wall: false, removed };
-      }
-      if (u.state === 'failed') {
-        this.backend.addChunkStatics(r.key, { prisms: wallPrism(r.key) });
-        this.walls.add(r.key);
-        return { added: r.key, wall: true, removed };
+    // The player's own neighbourhood first; then, while a teleport is pending, the destination's (its colliders must be there for
+    // the ground probe, and the player's are kept meanwhile).
+    for (const f of also ? [focus, also] : [focus]) {
+      const ranked = rankUnits(9, f, physicsM, {
+        exists: (k) => {
+          const u = store.unit('p0', k);
+          return u !== null && (u.state === 'ready' || u.state === 'failed');
+        },
+        firstRing: true,
+      });
+      for (const r of ranked) {
+        if (this.terrain.has(r.key) || this.walls.has(r.key)) continue;
+        const u = store.unit('p0', r.key);
+        if (!u) continue;
+        if (u.state === 'ready' && u.payload) {
+          this.backend.addChunkStatics(r.key, toStaticShapeSet(u.payload));
+          this.terrain.add(r.key);
+          return { added: r.key, wall: false, removed };
+        }
+        if (u.state === 'failed') {
+          this.backend.addChunkStatics(r.key, { prisms: wallPrism(r.key) });
+          this.walls.add(r.key);
+          return { added: r.key, wall: true, removed };
+        }
       }
     }
     return { added: null, wall: false, removed };

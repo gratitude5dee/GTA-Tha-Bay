@@ -84,6 +84,9 @@ class Lru<V> {
     this.m.set(k, v);
     while (this.m.size > this.cap) this.m.delete(this.m.keys().next().value as string);
   }
+  delete(k: string): boolean {
+    return this.m.delete(k);
+  }
   clear(): void {
     this.m.clear();
   }
@@ -167,6 +170,18 @@ export interface MeshJobArgs {
 }
 export type MeshJobResult = { mesh: UnitMesh } | { empty: true };
 
+/**
+ * Drops a failed read from its cache so a later request reads it again. A pack whose hash is wrong stays for a few seconds, so the
+ * sixteen chunks of one tile that ask for it in a row fail at once instead of fetching it sixteen times.
+ */
+const CORRUPT_MEMORY_MS = 8000;
+function forgetAfterFailure(p: Promise<unknown>, forget: () => unknown): void {
+  p.catch((e: unknown) => {
+    if (e instanceof PackUnavailable && e.reason === 'hash-mismatch') setTimeout(forget, CORRUPT_MEMORY_MS);
+    else forget();
+  });
+}
+
 async function l0Tile(svc: AssetService, tileX: number, tileY: number, tier: QualityTierId, priority: Prio, signal: AbortSignal): Promise<L0Tile> {
   const cache = cacheOf(svc);
   const id = `${tileX}-${tileY}`;
@@ -177,7 +192,7 @@ async function l0Tile(svc: AssetService, tileX: number, tileY: number, tier: Qua
       const render = await readDecoded(svc, `world_pack/l0-${id}`, tier, priority, (b) => decodeL0(b, sim), signal);
       return { sim, render };
     })();
-    p.catch(() => cache.l0.clear());
+    forgetAfterFailure(p, () => cache.l0.get(id) === p && cache.l0.delete(id));
     cache.l0.set(id, p);
   }
   return p;
@@ -200,7 +215,7 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     let p = cache.lod.get(packRef);
     if (!p) {
       p = readDecoded(svc, packRef, a.tier, priority, (b) => decodeLod(b), signal);
-      p.catch(() => cache.lod.clear());
+      forgetAfterFailure(p, () => cache.lod.get(packRef) === p && cache.lod.delete(packRef));
       cache.lod.set(packRef, p);
     }
     const unit = (await p).find((u) => u.key === a.key);

@@ -66,6 +66,12 @@ export interface ChunkStoreOptions<P> {
   retry: { firstDelay: number; maxDelay: number; maxAttempts: number };
   /** Units that share one request (a `p0` tile pack holds 16 chunks): they count once against the in-flight cap. */
   groupOf?: (level: Level, key: ChunkKey) => string;
+  /**
+   * The pack a unit is read from, for the outage bookkeeping (`unavailable`): units of one pack are down together and come back
+   * together. Defaults to `groupOf`. A page store whose units are meshed one by one from a shared tile pack sets it without
+   * changing the in-flight accounting.
+   */
+  packOf?: (level: Level, key: ChunkKey) => string;
 }
 
 type Listener = (e: { level: Level; k: ChunkKey; ev: ChunkEvent }) => void;
@@ -88,6 +94,8 @@ export class ChunkStore<P = unknown> {
   readonly stats = { requests: 0, evictions: 0, failures: 0, retries: 0 };
 
   private readonly pinned = new Set<string>();
+  /** Groups (packs) whose last try failed with a retryable reason and that no unit has loaded from since. */
+  private readonly down = new Set<string>();
   private readonly listeners = new Set<Listener>();
   private readonly o: ChunkStoreOptions<P>;
   private pressure: 'none' | 'soft' | 'hard' = 'none';
@@ -126,9 +134,13 @@ export class ChunkStore<P = unknown> {
     return this.keysIn((u) => u.state === 'ready' || u.state === 'empty', level);
   }
 
-  /** Units in the `retrying` state: the pack was unavailable and a retry is scheduled (the "re-downloading district" overlay). */
+  /**
+   * Units still waiting on a pack that was unavailable and has not come back (the "re-downloading district" overlay). A pack is down
+   * from its first failed try until any unit of it settles, so the overlay stays up through the retries and goes away when the pack
+   * arrives, not when the last unit behind it has been meshed.
+   */
   unavailable(level?: Level): ChunkKey[] {
-    return this.keysIn((u) => u.state === 'retrying', level);
+    return this.keysIn((u) => (u.state === 'retrying' || u.state === 'requested') && this.down.has(this.packKeyOf(u.level, u.key)), level);
   }
 
   private keysIn(pred: (u: Unit<P>) => boolean, level?: Level): ChunkKey[] {
@@ -155,6 +167,16 @@ export class ChunkStore<P = unknown> {
 
   pin(level: Level, keys: readonly ChunkKey[]): void {
     for (const k of keys) this.pinned.add(this.id(level, k));
+  }
+
+  /** Whether the bake has this unit (the host's `exists`). */
+  exists(level: Level, key: ChunkKey): boolean {
+    return this.o.exists(level, key);
+  }
+
+  /** Releases the pins `pin` or `preload` set on these keys. */
+  unpin(level: Level, keys: readonly ChunkKey[]): void {
+    for (const k of keys) this.pinned.delete(this.id(level, k));
   }
 
   unpinAll(): void {
@@ -251,6 +273,10 @@ export class ChunkStore<P = unknown> {
     }
   }
 
+  private packKeyOf(level: Level, key: ChunkKey): string {
+    return this.o.packOf ? this.o.packOf(level, key) : this.groupOf(level, key);
+  }
+
   private groupOf(level: Level, key: ChunkKey): string {
     return this.o.groupOf ? this.o.groupOf(level, key) : this.id(level, key);
   }
@@ -285,7 +311,9 @@ export class ChunkStore<P = unknown> {
     const u = this.units.get(this.id(level, key));
     if (!u || u.state !== 'requested') return;
     const now = this.o.now();
+    const group = this.packKeyOf(level, key);
     if (result.ok) {
+      this.down.delete(group);
       const recovered = u.attempts > 0;
       u.attempts = 0;
       u.reason = null;
@@ -303,6 +331,8 @@ export class ChunkStore<P = unknown> {
       return;
     }
     u.reason = result.reason;
+    if (result.reason === 'unavailable' || result.reason === 'offline') this.down.add(group);
+    else this.down.delete(group);
     if (result.reason === 'corrupt' || result.reason === 'decode') {
       u.state = 'failed';
       this.stats.failures++;

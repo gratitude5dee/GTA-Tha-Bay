@@ -41,6 +41,48 @@ export interface PreparedWorld {
 /** Height above the ground the player is placed at; the ownership machine settles it onto the heightfield. */
 export const SPAWN_LIFT_M = 1.5;
 
+const SPAWN_RETRY_MS = 2000;
+
+/**
+ * The spawn tile's `p0`. When it cannot be had the session is blocked (02-world.md 5.6): offline shows the offline message over the
+ * page, any other failure the "re-downloading district" message, and the fetch is tried again every two seconds (and at once when
+ * the browser reports it is back online) until it arrives; the overlay then goes away and the boot continues.
+ */
+async function getSpawnTile(assets: AssetClient, pack: string, o: PrepareWorldOptions): Promise<ArrayBuffer> {
+  let overlay: HTMLElement | null = null;
+  const show = (reason: string): void => {
+    const offline = reason === 'offline';
+    if (!overlay) {
+      overlay = o.container.ownerDocument.createElement('div');
+      overlay.setAttribute('role', 'status');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#0b0e14;color:#fff;font:600 18px system-ui,sans-serif;text-align:center;padding:24px';
+      o.container.append(overlay);
+    }
+    overlay.dataset['testid'] = offline ? 'world-offline' : 'world-redownload';
+    overlay.textContent = offline ? o.labels.offline : o.labels.redownload;
+  };
+  for (;;) {
+    try {
+      const bytes = await assets.get(pack, { priority: 'now' });
+      (overlay as HTMLElement | null)?.remove();
+      return bytes;
+    } catch (error) {
+      const reason = (error as { name?: string; reason?: string } | null)?.name === 'PackUnavailable' ? ((error as { reason?: string }).reason ?? 'unavailable') : 'unavailable';
+      if (reason === 'quota' || reason === 'aborted') throw error;
+      show(reason);
+      await new Promise<void>((resolve) => {
+        const view = o.container.ownerDocument.defaultView;
+        const done = (): void => {
+          view?.removeEventListener('online', done);
+          resolve();
+        };
+        view?.addEventListener('online', done);
+        setTimeout(done, SPAWN_RETRY_MS);
+      });
+    }
+  }
+}
+
 export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorld> {
   const { assets } = o;
   const base = (await assets.stats()).bytes;
@@ -57,10 +99,11 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
   // The spawn tile's p0: its ground height places the player.
   const spawnPack = set.p0[0];
   if (!spawnPack) throw new Error('the world index has no p0 tile under the spawn point');
-  const chunks = decodeP0(await assets.get(spawnPack, { priority: 'now' }));
+  const chunks = decodeP0(await getSpawnTile(assets, spawnPack, o));
   const ground = groundHeightAt(chunks, pose.x, pose.z) ?? 0;
-  // The rest of the critical set arrives while the engine boots; the reveal waits for the first L0 upload.
-  await Promise.all(set.critical.filter((a) => a !== spawnPack).map((a) => assets.get(a, { priority: 'now' }).catch(() => undefined)));
+  // The rest of the critical set arrives while the engine boots; the reveal waits for the first L0 upload. It is not awaited here: a
+  // pack that is unavailable is the view's to retry, with the "re-downloading district" message over the page (02-world.md 5.6).
+  void Promise.all(set.critical.filter((a) => a !== spawnPack).map((a) => assets.get(a, { priority: 'now' }).catch(() => undefined)));
 
   const refs = (await assets.job('world.refs', { prefix: 'world_pack/p0-', tier: o.tier })) as WorldSimConfig['refs'];
   const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];

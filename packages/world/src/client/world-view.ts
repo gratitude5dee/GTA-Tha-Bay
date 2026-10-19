@@ -17,7 +17,7 @@ import type { SimEvent } from '@dv/engine/sim';
 import type { WorldFrame, WorldLayer } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { WorldScenarioDriver } from '@dv/engine/platform/perf';
-import { CHUNK_EDGE_M, GRID_MIN_M, type ChunkKey, type QualityTierId, type WorldIndex } from '@dv/shared';
+import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type WorldIndex } from '@dv/shared';
 import { ChunkStore, LEVEL_Z, type FailReason, type Level, type LoadRequest } from '../sim/streaming/chunk-store.ts';
 import { STREAMING, basePlan, type StreamingPlan } from '../sim/streaming/plan.ts';
 import { rankUnits, type Focus } from '../sim/streaming/priority.ts';
@@ -176,6 +176,8 @@ export class WorldView implements WorldLayer {
       evicted: (level, key) => this.renderer.drop(level as RenderLevel, key),
       now: () => this.now(),
       retry: { firstDelay: STREAMING.retry.firstMs, maxDelay: STREAMING.retry.maxMs, maxAttempts: STREAMING.retry.maxAttempts },
+      // The 16 chunks of an l0 tile come from one pack: they are down and back together.
+      packOf: (level, key) => packRefOf(key, level as 'l0' | 'l1' | 'l2'),
     });
 
     this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });

@@ -14,6 +14,7 @@
 import { SimStage, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef } from '@dv/shared';
 import { playerSide, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
+import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
 import { STREAMING, type planFor } from './plan.ts';
 import { StaticsFeeder } from './statics.ts';
@@ -64,6 +65,9 @@ export class WorldSim {
   private readonly arrivals = new Map<number, Arrival>();
   private lastStatus = '';
   private spawnFocus: Focus;
+  /** The destination of the teleport in flight (its ground is requested and pinned until the teleport ends), else null. */
+  private teleportTo: Focus | null = null;
+  private teleportKeys: ChunkKey[] = [];
 
   constructor(
     readonly cfg: WorldSimConfig,
@@ -176,12 +180,36 @@ export class WorldSim {
     const pl = playerSide(ctx.ecs as unknown as EcsWorld);
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
     if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(focus);
-    const st = this.feeder.step(this.store, focus, this.store.plan.physicsM);
+    const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
+    const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
     if (st.added) {
       this.addedTotal++;
       this.events.push({ t: 'world.chunk', tick: ctx.tick, n: this.addedTotal, s: st.added });
     }
     this.report(ctx.tick);
+  }
+
+  /**
+   * A teleport waits for colliders at its destination (the ownership machine of M01b1), and the player's own focus is far from there.
+   * While one is pending, the `p0` chunks around the destination are requested and pinned, and the statics feed adds them after the
+   * player's own; the pins go when the teleport ends. Returns the destination focus, or null.
+   */
+  private followTeleport(services: { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } }): Focus | null {
+    const c = services.control;
+    if (!c || !c.teleportActive) {
+      if (this.teleportKeys.length > 0) this.store.unpin('p0', this.teleportKeys);
+      this.teleportKeys = [];
+      this.teleportTo = null;
+      return null;
+    }
+    if (!this.teleportTo || this.teleportTo.x !== c.teleportX || this.teleportTo.z !== c.teleportZ) {
+      if (this.teleportKeys.length > 0) this.store.unpin('p0', this.teleportKeys);
+      this.teleportTo = { x: c.teleportX, z: c.teleportZ, vx: 0, vz: 0 };
+      const ranked = rankUnits(9, this.teleportTo, this.store.plan.physicsM, { exists: (k) => this.store.exists('p0', k), firstRing: true });
+      this.teleportKeys = ranked.map((r) => r.key);
+      void this.store.preload(this.teleportKeys.map((key) => ({ level: 'p0' as const, key })));
+    }
+    return this.teleportTo;
   }
 
   /** Posts `world.status` when the unavailable, failed or ready counts changed. */
