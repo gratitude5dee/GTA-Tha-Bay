@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "35abc68a8f1817b2de9e13bfa3f4d0d14481f5f5803ec7c246babf60f8b9407e",
+  "paths": [
+    "tests/fixtures/world/civic-graybox/l0-64-64.pack"
+  ],
+  "kind": "world_pack",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:45:57Z"
+}

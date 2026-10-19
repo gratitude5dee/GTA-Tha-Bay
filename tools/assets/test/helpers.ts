@@ -1,6 +1,6 @@
 /** Test helpers: a temp copy of the repository's asset tree and a way to add synthetic assets to it. */
 import { createHash } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { AssetKind, VariantId } from '../../../packages/shared/src/assets/c07.ts';
@@ -14,7 +14,19 @@ export const STAMP = { gitSha: 'a'.repeat(40), createdAt: 1_790_000_000_000 };
 export function tempRepo(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), 'dv-assets-'));
   for (const d of ['assets', 'config', 'docs/legal']) cpSync(path.join(toolsRoot, d), path.join(root, d), { recursive: true });
+  dropFixtureAssets(root);
   return root;
+}
+
+/** The tests below assert on the M01d seed assets only: the M01f world_pack fixtures (which point outside assets/) stay out of the copy. */
+function dropFixtureAssets(root: string): void {
+  const lockFile = path.join(root, 'assets', 'assets.lock.json');
+  const lock = JSON.parse(readFileSync(lockFile, 'utf8')) as { entries: Record<string, unknown> };
+  for (const id of ['p0-64-64', 'l0-64-64']) {
+    rmSync(path.join(root, 'assets', 'src', 'world_pack', id), { recursive: true, force: true });
+    delete lock.entries[`world_pack/${id}`];
+  }
+  writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
 export function put(root: string, rel: string, data: string | Uint8Array): void {

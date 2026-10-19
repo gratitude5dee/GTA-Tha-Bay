@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/world-bounds.schema.json",
+  "title": "config/world.bounds.json (C08 section 5)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "origin", "mPerDegLat", "mPerDegLng", "play", "stream", "far", "gridMinM", "gridEdgeM"],
+  "properties": {
+    "schema": { "const": "world-bounds/1" },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lat", "lng"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lng": { "type": "number", "minimum": -180, "maximum": 180 }
+      }
+    },
+    "mPerDegLat": { "type": "number", "exclusiveMinimum": 0 },
+    "mPerDegLng": { "type": "number", "exclusiveMinimum": 0 },
+    "play": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minX", "maxX", "minZ", "maxZ", "minY", "maxY"],
+      "properties": {
+        "minX": { "type": "number" }, "maxX": { "type": "number" },
+        "minZ": { "type": "number" }, "maxZ": { "type": "number" },
+        "minY": { "type": "number" }, "maxY": { "type": "number" }
+      }
+    },
+    "stream": { "$ref": "#/$defs/box" },
+    "far": { "$ref": "#/$defs/box" },
+    "gridMinM": { "type": "integer" },
+    "gridEdgeM": { "type": "integer", "exclusiveMinimum": 0 }
+  },
+  "$defs": {
+    "box": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minX", "maxX", "minZ", "maxZ"],
+      "properties": {
+        "minX": { "type": "number" }, "maxX": { "type": "number" },
+        "minZ": { "type": "number" }, "maxZ": { "type": "number" }
+      }
+    }
+  }
+}

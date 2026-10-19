@@ -56,7 +56,8 @@
     "assets:lock": "tsx tools/assets/src/cli.ts lock",
     "assets:verify": "tsx tools/assets/src/cli.ts verify",
     "assets:publish": "tsx tools/assets/src/cli.ts publish",
-    "assets:seed": "tsx tools/assets/src/cli.ts seed"
+    "assets:seed": "tsx tools/assets/src/cli.ts seed",
+    "map:fixture": "tsx tools/map/src/cli.ts fixture"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",

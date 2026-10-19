@@ -10,3 +10,4 @@ export * from './platform/tiers.ts';
 export * from './platform/perf.ts';
 export * from './api/v1.ts';
 export * from './telemetry.ts';
+export * from './world/index.ts';

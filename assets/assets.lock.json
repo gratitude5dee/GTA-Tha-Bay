@@ -20,6 +20,24 @@
       "root": "b52dda7b8744444ca1d40346d0e6136e34c610dec0b37dd7df8d5a80e9c781f3",
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
+    },
+    "world_pack/l0-64-64": {
+      "rev": 1,
+      "variants": {
+        "default": "35abc68a8f1817b2de9e13bfa3f4d0d14481f5f5803ec7c246babf60f8b9407e"
+      },
+      "root": "35abc68a8f1817b2de9e13bfa3f4d0d14481f5f5803ec7c246babf60f8b9407e",
+      "approved_by": "m01f-builder",
+      "approved_at": "2026-10-19T00:46:02Z"
+    },
+    "world_pack/p0-64-64": {
+      "rev": 1,
+      "variants": {
+        "default": "f8101b7b18eb90ea7fdbfd1670c03a03f219d0c3ac8ae71ba1c06e9365eea5f7"
+      },
+      "root": "f8101b7b18eb90ea7fdbfd1670c03a03f219d0c3ac8ae71ba1c06e9365eea5f7",
+      "approved_by": "m01f-builder",
+      "approved_at": "2026-10-19T00:46:02Z"
     }
   }
 }

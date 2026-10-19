@@ -1,0 +1,11 @@
+{
+  "schema": "world-bounds/1",
+  "origin": { "lat": 37.7793, "lng": -122.4193 },
+  "mPerDegLat": 110992.06,
+  "mPerDegLng": 88083.39,
+  "play": { "minX": -9400, "maxX": 6200, "minZ": -6300, "maxZ": 8900, "minY": -80, "maxY": 600 },
+  "stream": { "minX": -10500, "maxX": 9500, "minZ": -11000, "maxZ": 9000 },
+  "far": { "minX": -12500, "maxX": 52000, "minZ": -23500, "maxZ": 53300 },
+  "gridMinM": -65664,
+  "gridEdgeM": 131072
+}
