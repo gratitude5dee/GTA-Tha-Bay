@@ -1,0 +1,42 @@
+{
+  "id": "M01c-iphone16",
+  "milestone": "M01c",
+  "device": "iPhone 16 or 17, iOS 26.x (or the newest release), Home Screen app; primary device: tier mobile at 60 fps",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile",
+  "steps": [
+    {
+      "id": "1-install",
+      "instruction": "Add the preview URL to the Home Screen and launch it from the icon."
+    },
+    {
+      "id": "2-open",
+      "instruction": "Open <preview>/?perf=1&tier=mobile. The HUD must show 'mobile  webgl2' (webgpu.mobile is false until the iPhone 15 run decides it). Note the refresh rate shown in notes.json rafHz after Export."
+    },
+    {
+      "id": "3-signals",
+      "instruction": "Tap Export once. Keep notes.json: signals, persist(), estimate(), UA. If a second iPhone model is available, its signals are an extra fixture, not a replacement."
+    },
+    {
+      "id": "4-walk",
+      "instruction": "Tap 'Run 10 min' on the HUD and leave the app in the foreground for 10 minutes.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 },
+        { "metric": "scenario.durationS", "op": ">=", "value": 600 }
+      ]
+    },
+    {
+      "id": "5-export",
+      "instruction": "Tap Export; save perf.json and notes.json to docs/device-spike/M01c/iphone16/."
+    },
+    {
+      "id": "6-verify",
+      "instruction": "Run: pnpm perf:verify -- docs/device-spike/M01c/iphone16/perf.json --tier mobile --checklist tools/ci/checklists/M01c-iphone16.json (60 fps: median <= 17.54 ms, p95 <= 25.05 ms). Record the numbers in docs/device-spike/M01c-report.md. A miss is a finding for M11a, not a merge blocker."
+    },
+    {
+      "id": "7-membomb",
+      "instruction": "If this phone has more RAM than the iPhone 15 (12 GB class), run <preview>/qa/memory-bomb.html as in the iPhone 15 checklist and record the total at the kill."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

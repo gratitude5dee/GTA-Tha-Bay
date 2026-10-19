@@ -1,0 +1,33 @@
+{
+  "id": "M01c-mac",
+  "milestone": "M01c",
+  "device": "Apple Silicon Mac, Chrome and Safari 26 or newer (desktop A in the device matrix); tier desktop at 60 fps",
+  "urlTemplate": "https://<preview>/?perf=1&tier=desktop",
+  "steps": [
+    {
+      "id": "1-chrome",
+      "instruction": "In Chrome open <preview>/?perf=1 (no ?tier=, so the benchmark picks the tier). Note the tier the HUD shows and the backend (expected webgpu). Tap Export and save notes.json to docs/device-spike/M01c/mac/chrome/. Copy 'signals' into tools/ci/fixtures/ua/desktop-chrome.json (synthetic false, keep expect)."
+    },
+    {
+      "id": "2-chrome-walk",
+      "instruction": "Open <preview>/?perf=1&tier=desktop and tap 'Run 10 min'. Tap Export and save perf.json to docs/device-spike/M01c/mac/chrome/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "desktop" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "3-safari",
+      "instruction": "In Safari open <preview>/?perf=1. Note the tier and the backend (WebGPU in Safari 26). Tap Export and save notes.json to docs/device-spike/M01c/mac/safari/. Copy 'signals' into tools/ci/fixtures/ua/desktop-safari.json (synthetic false, keep expect)."
+    },
+    {
+      "id": "4-gl",
+      "instruction": "In both browsers open <preview>/?perf=1&gl=1&tier=desktop: the backend must read webgl2. Record it."
+    },
+    {
+      "id": "5-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-spike/M01c/mac/chrome/perf.json --tier desktop --checklist tools/ci/checklists/M01c-mac.json and pnpm check:unit -- packages/shared (the captured fixtures must still pass AC-2). Record adapter.info (vendor, architecture, description) for both browsers in the report."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

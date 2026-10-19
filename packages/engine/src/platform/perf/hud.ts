@@ -19,6 +19,8 @@ export interface HudReading {
 export interface PerfHudOptions {
   read: () => HudReading;
   onExport: () => void;
+  /** Starts the default scenario for `durationS` seconds (the device passes run 10 and 30 minutes). */
+  onRun: (durationS: number) => void;
   parent?: HTMLElement;
   intervalMs?: number;
 }
@@ -41,9 +43,21 @@ export class PerfHud {
     btn.type = 'button';
     btn.textContent = 'Export';
     btn.id = 'dv-perf-export';
-    btn.style.cssText = 'margin-top:4px;font:inherit;padding:2px 8px';
+    btn.style.cssText = 'font:inherit;padding:2px 8px';
     btn.addEventListener('click', () => this.o.onExport());
-    root.append(this.lines, btn);
+    const bar = document.createElement('div');
+    for (const [label, seconds] of [['Run 10 min', 600], ['Run 30 min', 1800]] as const) {
+      const run = document.createElement('button');
+      run.type = 'button';
+      run.textContent = label;
+      run.id = `dv-perf-run-${seconds}`;
+      run.style.cssText = 'margin:4px 6px 0 0;font:inherit;padding:2px 8px';
+      run.addEventListener('click', () => this.o.onRun(seconds));
+      bar.append(run);
+    }
+    btn.style.margin = '4px 6px 0 0';
+    bar.append(btn);
+    root.append(this.lines, bar);
     (o.parent ?? document.body).append(root);
     this.element = root;
     this.update();

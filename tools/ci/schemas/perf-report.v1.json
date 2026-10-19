@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "perf-report.v1",
+  "$comment": "11-platform-perf.md section 4 (C13 1.1): PerfReport. All top-level keys are required, v is 1, numbers are non-negative.",
+  "title": "PerfReport v1",
+  "type": "object",
+  "required": ["v", "build", "c13", "createdAt", "device", "tier", "backend", "governor", "scenario", "frames", "counts", "memory", "dynamic", "boot", "errors"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 1 },
+    "build": { "type": "string", "minLength": 1 },
+    "c13": { "type": "string", "pattern": "^1\\." },
+    "createdAt": { "type": "integer", "minimum": 0 },
+    "device": {
+      "type": "object",
+      "required": ["class", "browser", "uaHash", "adapter", "displayMode", "refreshHz"],
+      "additionalProperties": false,
+      "properties": {
+        "class": { "enum": ["desktop", "iphone", "ipad", "android", "quest", "avp", "unknown"] },
+        "browser": { "type": "string" },
+        "model": { "type": "string" },
+        "uaHash": { "type": "string" },
+        "adapter": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["vendor", "architecture", "device", "description", "isFallbackAdapter", "maxTextureDimension2D", "maxBufferSize"],
+              "properties": {
+                "vendor": { "type": "string" },
+                "architecture": { "type": "string" },
+                "device": { "type": "string" },
+                "description": { "type": "string" },
+                "isFallbackAdapter": { "type": "boolean" },
+                "maxTextureDimension2D": { "type": "number", "minimum": 0 },
+                "maxBufferSize": { "type": "number", "minimum": 0 }
+              }
+            }
+          ]
+        },
+        "displayMode": { "enum": ["tab", "standalone", "xr"] },
+        "refreshHz": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
+    "backend": { "enum": ["webgpu", "webgl2"] },
+    "governor": { "enum": ["on", "off"] },
+    "scenario": {
+      "type": "object",
+      "required": ["id", "pathRef", "durationS", "warmupS", "seed", "density"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "pathRef": { "type": "string" },
+        "durationS": { "type": "number", "minimum": 0 },
+        "warmupS": { "type": "number", "minimum": 0 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "density": { "enum": ["off", "nominal"] }
+      }
+    },
+    "frames": {
+      "type": "object",
+      "required": ["count", "medianMs", "p95Ms", "p99Ms", "maxMs", "over50ms", "over2xBudget"],
+      "additionalProperties": false,
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "medianMs": { "type": "number", "minimum": 0 },
+        "p95Ms": { "type": "number", "minimum": 0 },
+        "p99Ms": { "type": "number", "minimum": 0 },
+        "maxMs": { "type": "number", "minimum": 0 },
+        "over50ms": { "type": "integer", "minimum": 0 },
+        "over2xBudget": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["renderObjectsMax", "renderObjectsP95", "gpuDrawCmdsMax", "trianglesMax", "texturesMB", "gpuResourcesMB"],
+      "additionalProperties": false,
+      "properties": {
+        "renderObjectsMax": { "type": "number", "minimum": 0 },
+        "renderObjectsP95": { "type": "number", "minimum": 0 },
+        "gpuDrawCmdsMax": { "type": ["number", "null"], "minimum": 0 },
+        "trianglesMax": { "type": "number", "minimum": 0 },
+        "texturesMB": { "type": "number", "minimum": 0 },
+        "gpuResourcesMB": { "type": "number", "minimum": 0 }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": ["accountedHeapMBMax", "mediaMBMax", "webContentEstMB"],
+      "additionalProperties": false,
+      "properties": {
+        "accountedHeapMBMax": { "type": "number", "minimum": 0 },
+        "mediaMBMax": { "type": "number", "minimum": 0 },
+        "webContentEstMB": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "dynamic": {
+      "type": "object",
+      "required": ["minRenderScale", "downgrades", "upgrades", "tierChanges"],
+      "additionalProperties": false,
+      "properties": {
+        "minRenderScale": { "type": "number", "minimum": 0, "maximum": 1 },
+        "downgrades": { "type": "integer", "minimum": 0 },
+        "upgrades": { "type": "integer", "minimum": 0 },
+        "tierChanges": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "boot": {
+      "type": "object",
+      "required": ["warmBootToPlayableS", "coldDownloadMB"],
+      "additionalProperties": false,
+      "properties": {
+        "warmBootToPlayableS": { "type": ["number", "null"], "minimum": 0 },
+        "coldDownloadMB": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "errors": {
+      "type": "object",
+      "required": ["gpuLost", "uncaptured", "js"],
+      "additionalProperties": false,
+      "properties": {
+        "gpuLost": { "type": "integer", "minimum": 0 },
+        "uncaptured": { "type": "integer", "minimum": 0 },
+        "js": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

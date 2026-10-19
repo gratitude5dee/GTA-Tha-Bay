@@ -57,7 +57,7 @@ export interface PlatformBridge {
   memory(): MemoryCounters;
   gpuProbe(): Promise<GpuProbeResult>;
   perf: {
-    run(id: string, opts?: { durationS?: number }): Promise<PerfReport>;
+    run(id: string, opts?: { durationS?: number; warmupS?: number }): Promise<PerfReport>;
     report(): PerfReport | null;
     /** Meter-versus-renderer.info maxima of the last run (AC-6). */
     info(): RunInfo | null;
@@ -168,6 +168,10 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
     },
   });
 
+  // Declared below; the HUD buttons call it after the bridge exists.
+  // eslint-disable-next-line prefer-const
+  let bridge: PlatformBridge;
+
   if (flags.perf) {
     const hud = new PerfHud({
       read: () => ({
@@ -180,6 +184,9 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
         governor: 'off',
         running: runner.isRunning,
       }),
+      onRun: (durationS) => {
+        void bridge.perf.run(flags.scenario ?? 'graybox-walk', { durationS }).catch((e: unknown) => console.warn('perf run failed', e));
+      },
       onExport: () => {
         void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals }).then((notes) =>
           exportReport(runner.report(), notes),
@@ -189,7 +196,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
     void hud;
   }
 
-  const bridge: PlatformBridge = {
+  bridge = {
     backend: () => (host.ready ? host.backend : null),
     tier: () => platform.quality.tier.id,
     setTier: (id) => platform.quality.setTier(id, 'url-override'),

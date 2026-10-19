@@ -4,6 +4,7 @@
  *   - no qa/ directory or page;
  *   - no bot-input module (by file name and by its error strings);
  *   - no `__dvBridge` string in any file;
+ *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
  *
@@ -47,6 +48,14 @@ export function verifyDist(dist) {
     if (s.includes('bot script must be an array of segments') || s.includes('ScriptedBotInput')) fail(`bot-input code found in ${rel(f)}`);
   }
 
+  // 2b. No memory bomb and no PerfHud (M01c): both are QA tools.
+  for (const f of files) if (/memory-bomb/.test(rel(f))) fail(`memory-bomb file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (/memory-bomb|dv\.membomb/.test(s)) fail(`memory-bomb code found in ${rel(f)}`);
+    if (s.includes('PerfHud') || s.includes('dv-perf-hud')) fail(`PerfHud code found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 
@@ -83,7 +92,7 @@ function main() {
     console.error(`verify:dist failed (${failures.length})`);
     process.exit(1);
   }
-  console.log('  ok    no qa/ page, no bot-input module, no __dvBridge string');
+  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no PerfHud, no __dvBridge string');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }

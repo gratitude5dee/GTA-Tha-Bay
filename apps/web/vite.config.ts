@@ -101,8 +101,11 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      // The determinism page exists only in QA builds (VITE_DV_QA=1).
-      input: { main: here('index.html'), ...(QA ? { 'qa/determinism': here('qa/determinism.html') } : {}) },
+      // The determinism page and the memory bomb exist only in QA builds (VITE_DV_QA=1).
+      input: {
+        main: here('index.html'),
+        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html') } : {}),
+      },
       output: { chunkFileNames: chunkName },
     },
   },

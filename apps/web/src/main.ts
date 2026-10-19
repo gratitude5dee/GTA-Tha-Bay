@@ -103,6 +103,8 @@ async function boot(): Promise<void> {
     if (engine) installEngineBridge(engine);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags);
+    // ?scenario=<id> starts that perf scenario at boot (path duration).
+    if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {
       const result = await bridge.gpuProbe();
       console.info('dv-gpu-probe', JSON.stringify(result));

@@ -30,12 +30,12 @@ export interface OrbitPath {
 export const SCENARIO_PATHS: Readonly<Record<string, OrbitPath>> = { 'graybox-walk': grayboxWalk as unknown as OrbitPath };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = { 'graybox-walk': 'config/perf/paths/graybox-walk.json' };
 
-export function scenarioOf(path: OrbitPath, durationS?: number): PerfScenario {
+export function scenarioOf(path: OrbitPath, durationS?: number, warmupS?: number): PerfScenario {
   return {
     id: path.id,
     pathRef: SCENARIO_PATH_REFS[path.id] ?? '',
     durationS: durationS ?? path.durationS,
-    warmupS: path.warmupS,
+    warmupS: warmupS ?? path.warmupS,
     seed: path.seed,
     density: path.density,
   };
@@ -93,14 +93,14 @@ export class PerfScenarioRunner {
     return this.lastInfo;
   }
 
-  async run(id: string, opts: { durationS?: number } = {}): Promise<PerfReport> {
+  async run(id: string, opts: { durationS?: number; warmupS?: number } = {}): Promise<PerfReport> {
     const path = SCENARIO_PATHS[id];
     if (!path) throw new Error(`perf: unknown scenario "${id}"`);
     if (this.running) throw new Error('perf: a scenario is already running');
     this.running = true;
     const host = this.d.host;
     const tier = this.d.tier();
-    const scenario = scenarioOf(path, opts.durationS);
+    const scenario = scenarioOf(path, opts.durationS, opts.warmupS);
     const bench = buildBenchmarkScene(tier);
     const camera: PerspectiveCamera = bench.camera;
     const canvas = host.currentCanvas;

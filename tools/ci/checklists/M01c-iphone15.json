@@ -1,0 +1,60 @@
+{
+  "id": "M01c-iphone15",
+  "milestone": "M01c",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app and Safari tab; floor device (Q-10): tier mobile-low at 30 fps",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low",
+  "steps": [
+    {
+      "id": "1-install",
+      "instruction": "In Safari open the preview URL below, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Plug the phone into the Mac and enable Safari Web Inspector for the fallback export (Develop > the phone > the app)."
+    },
+    {
+      "id": "2-open",
+      "instruction": "Open <preview>/?perf=1&tier=mobile-low from the Home Screen app (edit the start URL by launching Safari once, or use the Web Inspector console: location.href = '/?perf=1&tier=mobile-low'). The HUD at the top left must show 'mobile-low  webgl2'. Write the backend, the HUD's objects and triangles, and 'standalone' state in notes.json observations."
+    },
+    {
+      "id": "3-signals",
+      "instruction": "Tap Export once before any run. Two files download or open: notes.json holds DeviceSignals, persist() and estimate(). Copy 'signals' from notes.json into tools/ci/fixtures/ua/iphone-safari.json (set synthetic to false, keep the expect block). If the files do not download, copy the output from the Web Inspector console: JSON.stringify(__dvBridge.platform.signals())."
+    },
+    {
+      "id": "4-walk",
+      "instruction": "Tap 'Run 10 min' on the HUD (or run __dvBridge.platform.perf.run('graybox-walk', {durationS: 600}) in the Web Inspector). Keep the app in the foreground, the screen awake and Low Power Mode off. The HUD shows RUN while the scenario runs. Do not touch the phone for 10 minutes.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 },
+        { "metric": "scenario.durationS", "op": ">=", "value": 600 }
+      ]
+    },
+    {
+      "id": "5-export",
+      "instruction": "Tap Export. Save perf.json and notes.json to docs/device-spike/M01c/iphone15/. Add to notes.json observations: thermal state you felt, whether the screen dimmed, and any visible hitch."
+    },
+    {
+      "id": "6-verify",
+      "instruction": "On the Mac run: pnpm perf:verify -- docs/device-spike/M01c/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M01c-iphone15.json. It must pass (30 fps floor: median <= 34.97 ms, p95 <= 49.95 ms). Then relaunch the app: the first telemetry batch must carry no app.abnormal_exit for the walk (inspect the HUD-free network log in the Web Inspector, or confirm localStorage['dv.hb'].state is 'closed' or 'hidden' before the relaunch)."
+    },
+    {
+      "id": "7-gpu-open",
+      "instruction": "WebGPU run (decides webgpu.mobile, DN-S11-01). Close the app, then open <preview>/?perf=1&tier=mobile-low&gpu=1 from the Home Screen. The HUD must show 'mobile-low  webgpu'. If it shows webgl2, record the console message and stop here: webgpu.mobile stays false (reason: WebGPU not available in the Home Screen app).",
+      "expect": [{ "metric": "backend", "op": "==", "value": "webgpu" }]
+    },
+    {
+      "id": "8-gpu-soak",
+      "instruction": "Tap 'Run 30 min' on the HUD and leave the app in the foreground for 30 minutes (screen awake). Note any reload, white flash or tab restart in notes.json observations. A reload during the run is an abnormal exit.",
+      "expect": [
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 },
+        { "metric": "scenario.durationS", "op": ">=", "value": 1800 }
+      ]
+    },
+    {
+      "id": "9-gpu-decide",
+      "instruction": "Tap Export; save to docs/device-spike/M01c/iphone15/gpu/. Relaunch the app and read localStorage['dv.hb'] and the next boot's batch: an app.abnormal_exit anywhere in the 30 minutes means webgpu.mobile stays false. Set webgpu.mobile to true in config/platform-flags.json only if there was no abnormal exit AND the WebGPU run's p90 is inside frameBudgetMs (33.3 ms for mobile-low). Write the numbers and the decision into docs/device-spike/M01c-report.md."
+    },
+    {
+      "id": "10-membomb",
+      "instruction": "Memory bomb. Open <preview>/qa/memory-bomb.html from the Home Screen app, tap Start, and wait until the page reloads or is closed by the system (64 MB per step: ArrayBuffers, then DataTextures). Relaunch the page: 'last stored total' is the total in MB at the kill. Record it in the report. Then relaunch the game and note the heartbeat state and whether the first batch carries app.abnormal_exit."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

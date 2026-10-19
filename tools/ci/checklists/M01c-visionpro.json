@@ -1,0 +1,30 @@
+{
+  "id": "M01c-visionpro",
+  "milestone": "M01c",
+  "device": "Apple Vision Pro, visionOS 26.2 or newer, Safari; flat page only (the XR session is M11b1). Records the signals, the backend and the visionOS UA string (UNVERIFIED in the spec)",
+  "urlTemplate": "https://<preview>/?perf=1",
+  "steps": [
+    {
+      "id": "1-open",
+      "instruction": "In Safari on visionOS open <preview>/?perf=1. The HUD shows the flat tier (the XR-capable provisional tier is mobile) and the backend. Write both in notes.json observations."
+    },
+    {
+      "id": "2-signals",
+      "instruction": "Tap Export. In notes.json check userAgent (the visionOS UA string is UNVERIFIED: record it exactly), signals.hasNavigatorXr, signals.immersiveVrSupported, signals.hasXrGpuBinding, signals.maxTouchPoints and signals.adapter. If Export does not download, connect Web Inspector from the Mac and copy JSON.stringify(__dvBridge.platform.signals())."
+    },
+    {
+      "id": "3-fixture",
+      "instruction": "Copy 'signals' from notes.json into tools/ci/fixtures/ua/visionpro-safari.json (set synthetic to false, keep the expect block: class avp, headset visionpro, provisional tier mobile). If classifyDevice does not return avp for the captured signals, record which rule failed in the report as a contract proposal for 11-platform.md section 5.2; do not change the fixture's expect block."
+    },
+    {
+      "id": "4-walk",
+      "instruction": "Tap 'Run 10 min' on the HUD and keep the window in view for 10 minutes (flat page).",
+      "expect": [{ "metric": "errors.gpuLost", "op": "==", "value": 0 }]
+    },
+    {
+      "id": "5-export",
+      "instruction": "Tap Export; save to docs/device-spike/M01c/visionpro/. Record: backend selected, adapter summary, UA string, rafHz."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

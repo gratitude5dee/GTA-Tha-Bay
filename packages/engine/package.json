@@ -10,6 +10,7 @@
     "./platform": "./src/platform/index.ts",
     "./platform/probe": "./src/platform/probe.ts",
     "./platform/renderer-host": "./src/platform/renderer-host.ts",
+    "./platform/bomb-gpu": "./src/platform/perf/bomb-gpu.ts",
     "./client/boot": "./src/client/boot/boot-engine.ts",
     "./client/debug/bridge": "./src/client/debug/bridge.ts",
     "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts"
