@@ -133,17 +133,25 @@ test.describe('telemetry @telemetry', () => {
   async function capture(page: Page): Promise<{ batches: TelemetryBatch[]; bodies: string[] }> {
     const batches: TelemetryBatch[] = [];
     const bodies: string[] = [];
-    // Observe the requests rather than fulfil them: WebKit does not hand `keepalive` fetches to route handlers. The Worker
-    // answers 204 (telemetry never fails the client), so the page behaves the same either way.
-    page.on('request', (req) => {
-      if (!req.url().endsWith('/api/v1/t') || req.method() !== 'POST') return;
-      const body = req.postData() ?? '';
+    const seen = new Set<string>();
+    const take = (body: string): void => {
+      if (seen.has(body)) return;
+      seen.add(body);
       bodies.push(body);
       try {
         batches.push(JSON.parse(body) as TelemetryBatch);
       } catch {
         // Not JSON: the assertions below fail on the empty batch list.
       }
+    };
+    // Two vantage points, deduplicated by body: Chromium reports `sendBeacon` posts only to route handlers, WebKit gives
+    // `keepalive` fetches only to the request event. The Worker answers 204 either way (telemetry never fails the client).
+    await page.route('**/api/v1/t', async (route) => {
+      take(route.request().postData() ?? '');
+      await route.fulfill({ status: 204 });
+    });
+    page.on('request', (req) => {
+      if (req.url().endsWith('/api/v1/t') && req.method() === 'POST') take(req.postData() ?? '');
     });
     return { batches, bodies };
   }
