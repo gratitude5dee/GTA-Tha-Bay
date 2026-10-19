@@ -414,12 +414,12 @@ personality: {traits: [loyal, patient, competitive], values: [craft, neighborhoo
   fears: ["rent hikes"], humor: deadpan, temperament: calm}
 knowledge: {knows: [engines, "Mission street racing scene", "the player's car"], doesNotKnow: ["tech jargon"], era: present, realWorldRefs: none}
 relations: [{npc: officer-quan, kind: rival, affinity: -30, note: "keeps towing her customers"}]
-locations: {districts: [mission], home: poi.mission.24th-st.apt-ro, hangouts: [poi.mission.shop-batista, poi.mission.dolores-park]}
+locations: {districts: [mission], home: poi.mission.24th-st.apt-ro, hangouts: [poi.mission.shop-batista, poi.castro-upper-market.dolores-park]}
 schedule:
   - {days: daily, from: "00:00", to: "08:00", activity: sleep, place: poi.mission.24th-st.apt-ro, interruptible: false, priority: 9}
   - {days: weekdays, from: "08:00", to: "18:00", activity: work, place: poi.mission.shop-batista, interruptible: true, priority: 5}
   - {days: weekends, from: "08:00", to: "18:00", activity: hustle, place: poi.mission.shop-batista, interruptible: true, priority: 4}
-  - {days: daily, from: "18:00", to: "21:00", activity: socialize, place: poi.mission.dolores-park, interruptible: true, priority: 3}
+  - {days: daily, from: "18:00", to: "21:00", activity: socialize, place: poi.castro-upper-market.dolores-park, interruptible: true, priority: 3}
   - {days: daily, from: "21:00", to: "24:00", activity: race, place: poi.mission.shop-batista, interruptible: true, priority: 6}
 goals: [race, hustle, socialize]
 stats: {}
