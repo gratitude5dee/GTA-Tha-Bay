@@ -437,6 +437,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           backend: () => backend,
         });
         freeCam = new Free({ router, camera: made.camera as unknown as CameraLike });
+        // A phone has no F3: with ?debug=1 on a touch device the panel is on from the start.
+        if (opts.forceTouch || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)) panel.toggle();
         const onKey = (e: KeyboardEvent): void => {
           if (e.code !== 'F4' || e.repeat) return;
           e.preventDefault();

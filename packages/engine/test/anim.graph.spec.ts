@@ -1,5 +1,5 @@
 import { ANIM_STATE, HUMANOID_BONES } from '@dv/shared';
-import { Bone, type Object3D } from 'three/webgpu';
+import type { Bone, Object3D } from 'three/webgpu';
 import { describe, expect, it } from 'vitest';
 import { AnimGraph, clipKey, PLAYER_GRAPH } from '../src/client/anim/graph.ts';
 import { AnimLod, animBandsFor, bandFor, ENGINE_TIERS } from '../src/client/anim/lod.ts';

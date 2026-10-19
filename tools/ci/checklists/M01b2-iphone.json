@@ -1,0 +1,45 @@
+{
+  "id": "M01b2-iphone",
+  "milestone": "M01b2",
+  "device": "iPhone 15 (Q-10 floor) or an iPhone 16 or 17, iOS 26.x or newer, Home Screen web app, landscape, touch only. Floor device runs tier mobile-low at 30 fps",
+  "urlTemplate": "https://<preview>/?debug=1&tier=mobile-low",
+  "steps": [
+    {
+      "id": "1-install",
+      "instruction": "In Safari open <preview>/?debug=1&tier=mobile-low, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). With ?debug=1 the app skips the title and opens straight into the gray-box block, ready to play."
+    },
+    {
+      "id": "2-landscape",
+      "instruction": "Turn the phone to landscape. With ?debug=1 on a touch device the sim panel shows at the top left without a keyboard: fps (the median of the last 120 frames), ticks per frame, tick p50 and p99, dropped seconds, entities, transport, backend, tier and build. The backend must be webgl2 and the tier mobile-low. Take a screenshot of the panel now (side button + volume up)."
+    },
+    {
+      "id": "3-start",
+      "instruction": "The touch layer is showing: a dashed ring bottom left (the stick start), Jump bottom right, Camera above it, Pause top right. Every button must be easy to hit with a thumb.",
+      "expect": [
+        { "metric": "world.chunks", "op": "==", "value": 4 },
+        { "metric": "play", "op": "==", "value": true }
+      ]
+    },
+    {
+      "id": "4-walk",
+      "instruction": "Walk around all 12 boxes for 5 minutes with touch only: stick bottom left (push past the ring to sprint), look by dragging the right half, Jump, Camera. The ring must follow where your thumb lands. Check that stick, look, Jump and Camera each respond, that two thumbs work at once (stick and look together), and that a long press on a button opens no iOS menu and selects no text. Read the panel's fps at the start, after 2 minutes and at the end, and take a screenshot each time.",
+      "expect": [
+        { "metric": "fps.median", "op": ">=", "value": 30 },
+        { "metric": "reloads", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "5-lock",
+      "instruction": "Press Pause (top right): the title comes back over the world and the world stops. Press Pause again: play resumes. Lock and unlock the phone and switch to another app and back: the page must not reload, and the stick must not stay deflected (release-all on hidden)."
+    },
+    {
+      "id": "6-sound",
+      "instruction": "With the ringer switch off and the volume up, walk: footsteps play after the first tap (audio unlocks on the first touch). Switch to another app and back: sound resumes, and the page does not reload."
+    },
+    {
+      "id": "7-record",
+      "instruction": "Write the median fps, the lowest fps you saw, whether the phone got warm, whether the page reloaded, and any control that felt wrong into the PR description, with the panel screenshots. A median below 30 fps goes to M01c and M11a (lower the DPR cap, merge meshes further); it does not block this merge."
+    }
+  ],
+  "upload": ["notes.json"]
+}
