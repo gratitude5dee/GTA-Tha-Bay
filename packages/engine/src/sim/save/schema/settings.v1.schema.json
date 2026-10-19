@@ -1,0 +1,258 @@
+{
+  "$id": "https://dv.local/schema/save/settings.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "controls": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": 1
+        }
+      },
+      "required": [
+        "schema"
+      ]
+    },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "music": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sfx": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ambience": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "voice": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "radio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ui": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cutscene": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "master",
+        "music",
+        "sfx",
+        "ambience",
+        "voice",
+        "radio",
+        "ui",
+        "cutscene"
+      ]
+    },
+    "subtitles": {
+      "type": "object",
+      "properties": {
+        "on": {
+          "type": "boolean"
+        },
+        "size": {
+          "enum": [
+            "m",
+            "l",
+            "xl"
+          ]
+        },
+        "background": {
+          "type": "boolean"
+        },
+        "speakerNames": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "on",
+        "size",
+        "background",
+        "speakerNames"
+      ]
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "defaultMode": {
+          "enum": [
+            "fp",
+            "tp"
+          ]
+        },
+        "fovDeg": {
+          "type": "number",
+          "minimum": 30,
+          "maximum": 140
+        },
+        "shoulder": {
+          "enum": [
+            "right",
+            "left"
+          ]
+        },
+        "shake": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "defaultMode",
+        "fovDeg",
+        "shoulder",
+        "shake"
+      ]
+    },
+    "accessibility": {
+      "type": "object",
+      "properties": {
+        "reducedMotion": {
+          "type": "boolean"
+        },
+        "hudPalette": {
+          "enum": [
+            "default",
+            "deutan",
+            "protan",
+            "tritan"
+          ]
+        },
+        "timerScale": {
+          "enum": [
+            1,
+            1.25,
+            1.5,
+            2
+          ]
+        },
+        "autoBlockStoryFights": {
+          "type": "boolean"
+        },
+        "pauseOnTycoonEvents": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "reducedMotion",
+        "hudPalette",
+        "timerScale",
+        "autoBlockStoryFights",
+        "pauseOnTycoonEvents"
+      ]
+    },
+    "xr": {
+      "type": "object",
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "heightCalibM": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "v",
+        "heightCalibM"
+      ]
+    },
+    "language": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35
+    },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "cameraFeatures": {
+          "type": "boolean"
+        },
+        "parentalConsent": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "cameraFeatures",
+        "parentalConsent"
+      ]
+    },
+    "npc": {
+      "type": "object",
+      "properties": {
+        "voice": {
+          "enum": [
+            "all",
+            "heroes",
+            "off"
+          ]
+        },
+        "aiDialogue": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "voice",
+        "aiDialogue"
+      ]
+    },
+    "cutscenes": {
+      "type": "object",
+      "properties": {
+        "generated": {
+          "type": "boolean"
+        },
+        "audio": {
+          "enum": [
+            "generated",
+            "engine"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "generated",
+        "audio"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "controls",
+    "audio",
+    "subtitles",
+    "camera",
+    "accessibility",
+    "xr",
+    "language",
+    "privacy"
+  ]
+}

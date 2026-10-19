@@ -1,0 +1,22 @@
+{
+  "toggles": {
+    "sandbox.player.godMode": true,
+    "sandbox.world.density": 0.5
+  },
+  "savedPositions": [
+    {
+      "name": "City Hall",
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "yaw": 0
+    }
+  ],
+  "clock": {
+    "hour": 9.5,
+    "paused": false,
+    "syncSystemTime": false
+  },
+  "weather": "clear",
+  "presets": []
+}
