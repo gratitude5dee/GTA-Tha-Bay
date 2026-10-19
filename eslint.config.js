@@ -3,7 +3,7 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-import { GLSL_SYNTAX, SIM_FILES, SIM_IGNORES, determinismConfig } from './config/eslint/determinism.mjs';
+import { GLSL_SYNTAX, SIM_FILES, SIM_IGNORES, THIRD_PARTY_IMPORT_PATTERN, determinismConfig } from './config/eslint/determinism.mjs';
 
 export default defineConfig([
   globalIgnores([
@@ -14,6 +14,7 @@ export default defineConfig([
     'playwright-report/**',
     '.spike/**',
     '.claude/**',
+    'third_party/**', // vendored files are not ours to lint (ADR-REUSE-01)
     'spec/**',
     'research/**',
     'prompt-pack/**',
@@ -37,6 +38,12 @@ export default defineConfig([
     files: ['packages/shared/src/contracts/dom-media.d.ts'],
     rules: { '@typescript-eslint/no-empty-object-type': 'off' },
   },
+  {
+    // Ported code is copied, never imported. The tools that read vendored data to write derived files may import.
+    files: ['**/*.{ts,tsx,js,mjs,cjs,mts,cts}'],
+    ignores: ['tools/{map,assets,ci,soul}/**'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [THIRD_PARTY_IMPORT_PATTERN] }] },
+  },
   ...edgeImportRules(),
   determinismConfig(SIM_FILES, SIM_IGNORES),
 ]);
@@ -44,7 +51,8 @@ export default defineConfig([
 /**
  * services/edge/src may not import by a relative path that leaves services/edge/, except the three config files the Worker
  * reads (M00e, DL-514, DL-602, DL-644). Package imports (`@dv/*`) are not relative and are unaffected. One block per directory
- * depth, because "leaving services/edge/" is a different number of `../` at each depth. M00f merges its third_party pattern here.
+ * depth, because "leaving services/edge/" is a different number of `../` at each depth. A later flat-config block replaces the options
+ * of an earlier `no-restricted-imports`, so each block repeats the third_party pattern of M00f.
  */
 function edgeImportRules() {
   const allowed = '(?!(?:\\.\\./)*config/(?:brand\\.ts|ip-denylist\\.json|terms\\.ts)$)';
@@ -55,6 +63,7 @@ function edgeImportRules() {
         'error',
         {
           patterns: [
+            THIRD_PARTY_IMPORT_PATTERN,
             {
               regex: `^(?:\\.\\./){${depth + 1},}${allowed}`,
               message:

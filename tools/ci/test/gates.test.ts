@@ -303,7 +303,9 @@ describe('license:scan (AC-5)', () => {
     lic.exceptions.push({ package: 'copyleft-lib', license: 'LGPL-3.0-only', scope: 'prod', reason: 'dynamic link', adr: 'ADR-9999' });
     put(root, 'config/license-allowlist.json', JSON.stringify(lic));
     const res = runLicenseScan({ root, deps: [{ name: 'copyleft-lib', version: '1.0.0', license: 'LGPL-3.0-only' }] });
-    expect(res.findings).toEqual([]);
+    // M00b's dependency judgement still lets the ADR id through; the M00f rule (DL-634) refuses any GPL-family
+    // exception entry whatever ADR id it carries (BD-M00f-02).
+    expect(res.findings.map((f) => f.rule)).toEqual(['gpl-exception']);
   });
 });
 

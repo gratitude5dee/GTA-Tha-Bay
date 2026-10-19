@@ -7,6 +7,7 @@ import { BRAND } from '../../config/brand.ts';
 import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
 import { mediaLocal } from './vite/media-local.ts';
+import { moduleIds } from './vite/module-ids.ts';
 
 // The same three headers `public/_headers` sets for static assets (11-platform-pwa.md section 2),
 // applied by the dev and preview servers so crossOriginIsolated works there too. /account/* is the one exception (M00e).
@@ -83,6 +84,7 @@ export default defineConfig({
   plugins: [
     isolationHeaders(),
     brandInHtml(),
+    moduleIds(here('.'), here('../..'), true),
     // QA builds only: the same-origin mirror of the asset store (M01e).
     ...(QA ? [mediaLocal(here('.'))] : []),
     cspInHeaders(),
@@ -126,7 +128,7 @@ export default defineConfig({
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { proxy: { '/api': 'http://localhost:8788' } },
-  worker: { format: 'es', rollupOptions: { output: { chunkFileNames: chunkName } } },
+  worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false)], rollupOptions: { output: { chunkFileNames: chunkName } } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

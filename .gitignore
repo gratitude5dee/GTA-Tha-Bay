@@ -14,3 +14,6 @@ apps/web/media-local/
 tests/reports/*
 !tests/reports/README.md
 .out/
+
+# M00f build output outside dist/ (bundled module ids for check:bundle)
+apps/web/.dv-build/

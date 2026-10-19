@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx tools/ci/dev.ts",
     "dev:web": "VITE_DV_QA=1 pnpm --filter @dv/ui run tokens && VITE_DV_QA=1 pnpm --filter @dv/web exec vite",
-    "build": "pnpm --filter @dv/ui run tokens && pnpm --filter @dv/web run media:local && pnpm --filter @dv/web exec vite build && tsx tools/ci/check-dist.ts icons",
+    "build": "pnpm --filter @dv/ui run tokens && pnpm --filter @dv/web run media:local && pnpm --filter @dv/web exec vite build && tsx tools/ci/third-party-licenses.ts && tsx tools/ci/check-dist.ts icons",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p apps/web/tsconfig.sw.json --noEmit && tsc -p services/edge/tsconfig.json --noEmit && tsc -p services/pipeline/tsconfig.json --noEmit && tsc -p services/pipeline/tsconfig.node.json --noEmit && tsc -p packages/engine/tsconfig.sim.json --noEmit",
     "lint": "eslint .",
     "check:unit": "tsx tools/ci/run.ts vitest run",
@@ -42,6 +42,8 @@
     "ip:strings": "tsx tools/ci/ip-scan.ts --strings",
     "ip:all": "tsx tools/ci/ip-scan.ts --all",
     "license:scan": "tsx tools/ci/license-scan.ts",
+    "reuse:subset": "tsx tools/ci/third-party-subset.ts",
+    "reuse:clones": "tsx tools/ci/reuse-clones.ts",
     "names:lint": "tsx tools/ci/names-lint.ts",
     "names:brand": "tsx tools/ci/names-lint.ts --brand",
     "likeness:gate": "tsx tools/ci/likeness-gate.ts",

@@ -3,7 +3,7 @@
  *
  *   tsx tools/ci/check-dist.ts headers <url> | --serve <url> | --from <file>
  *   tsx tools/ci/check-dist.ts coi     <url> | --serve <url> | --from <file>
- *   tsx tools/ci/check-dist.ts bundle  [--dist <dir>] [--forbid-qa]
+ *   tsx tools/ci/check-dist.ts bundle  [--dist <dir>] [--forbid-qa] [--module-ids <file>]
  *   tsx tools/ci/check-dist.ts icons   [--dist <dir>]
  *
  * --serve <url>  runs the Playwright webServer command (or reuses a server already listening on that
@@ -16,6 +16,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { args, repoRoot } from './run.ts';
+import { checkModuleIds } from './lib/module-ids.ts';
 
 const MIB = 1024 * 1024;
 const PRECACHE_LIMIT_BYTES = 6 * MIB; // matches maximumFileSizeToCacheInBytes in apps/web/vite.config.ts
@@ -257,7 +258,7 @@ function distDir(value: string | undefined): string {
   return dir;
 }
 
-function checkBundle(dist: string, forbidQa: boolean): void {
+function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): void {
   console.log(`check:bundle ${path.relative(repoRoot, dist)}`);
   const files = listFiles(dist);
   expect(files.length <= ASSET_COUNT_LIMIT, `file count ${files.length} <= ${ASSET_COUNT_LIMIT}`, 'too many static assets');
@@ -289,6 +290,9 @@ function checkBundle(dist: string, forbidQa: boolean): void {
     expect(!hasBridge, 'production build has no __dvBridge', 'QA bridge found in a production build');
     expect(!hasIwer, 'production build has no IWER emulator', 'IWER found in a production build');
   }
+  // M00f: nothing under third_party/ may be bundled (DL-618). The build writes the module-id list.
+  const bad = checkModuleIds(repoRoot, moduleIdsFile ? path.resolve(repoRoot, moduleIdsFile) : undefined);
+  expect(bad.length === 0, 'no bundled module under third_party/', bad.join('; '));
   const total = sizes.reduce((n, s) => n + s.size, 0);
   console.log(`        ${files.length} files, ${(total / 1024).toFixed(0)} KiB`);
 }
@@ -323,11 +327,12 @@ async function main(): Promise<void> {
       from: { type: 'string' },
       dist: { type: 'string' },
       'forbid-qa': { type: 'boolean' },
+      'module-ids': { type: 'string' },
     },
   });
   const m: Mode = mode;
 
-  if (m === 'bundle') checkBundle(distDir(values.dist), values['forbid-qa'] === true);
+  if (m === 'bundle') checkBundle(distDir(values.dist), values['forbid-qa'] === true, values['module-ids']);
   else if (m === 'icons') checkIcons(distDir(values.dist));
   else {
     const run = m === 'headers' ? checkHeaders : checkCoi;
