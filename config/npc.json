@@ -1,0 +1,50 @@
+{
+  "schema": "npc-config/1",
+  "routing": {
+    "haiku": { "model": "claude-haiku-5-5", "thinking": "disabled", "effort": "low", "maxTokens": 512 },
+    "sonnet": {
+      "model": "claude-sonnet-5-5",
+      "thinking": "between_tools",
+      "effort": "low",
+      "maxTokens": 512,
+      "fallbacks": "default",
+      "beta": "server-side-fallback-2026-07-01"
+    },
+    "summary": { "model": "claude-haiku-5-5", "thinking": "adaptive", "effort": "low", "maxTokens": 1024 },
+    "tokenCount": { "model": "claude-haiku-5-5" }
+  },
+  "caps": {
+    "maxTokensClamp": 512,
+    "turnsPerEncounterDefault": 12,
+    "turnsPerEncounterMax": 20,
+    "playerTextChars": 280,
+    "sceneTokensMax": 700,
+    "blockATokensMax": 1500,
+    "blockBTokensMin": 600,
+    "blockBTokensMax": 4000,
+    "promptTokensMax": 10000,
+    "rosterSonnetMax": 8,
+    "rosterStandardMax": 8,
+    "rosterLeanMax": 12,
+    "lodABrains": { "desktop-ultra": 8, "desktop": 8, "xr-visionpro": 8, "xr-quest": 6, "mobile": 4, "mobile-low": 3 }
+  },
+  "lod": { "aRadiusM": 60, "bRadiusM": 250, "aEveryAiTicks": 3, "bEveryAiTicks": 15 },
+  "throttles": {
+    "firstTokenTimeoutMs": 4000,
+    "turnCadenceMs": 1500,
+    "talkBurst": { "requests": 4, "perSeconds": 10 },
+    "intentMinSecondsPerNpc": 60,
+    "intentMaxInFlight": 1,
+    "intentMaxPerMinute": 6,
+    "intentTriggerRadiusM": 40,
+    "intentTriggerTrust": 40,
+    "worldEventRadiusM": 150
+  },
+  "quotas": {
+    "turnsPerDay": { "p0": 150, "linked": 400 },
+    "turnsPerNpcPerDay": 40,
+    "voicedLinesPerDay": { "p0": 60, "linked": 200 },
+    "costCapMicrosPerDay": { "p0": 50000, "linked": 150000 }
+  },
+  "cacheTtls": { "promptBlockSeconds": 3600, "historySeconds": 300, "intentSeconds": 600, "promptIsolateLru": 64 }
+}

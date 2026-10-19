@@ -1,0 +1,20 @@
+{
+  "schema": "npc-poi-stub/1",
+  "note": "Stand-in for the C08 POI table until packages/world exports it (M02c1). Lint L2 reads this file when the table is absent.",
+  "pois": [
+    "poi.bayview.sound-garage",
+    "poi.hayes-valley.stoop-plaza",
+    "poi.marina.green-run",
+    "poi.mission.24th-st.apt-ro",
+    "poi.mission.dolores-park",
+    "poi.mission.shop-batista",
+    "poi.potrero-hill.test-bench",
+    "poi.potrero-hill.test-lot",
+    "poi.soma.coffee-cart-4th",
+    "poi.soma.founders-loft",
+    "poi.soma.pitch-night-hall",
+    "poi.tenderloin.noodle-counter",
+    "poi.tenderloin.studio-eleven"
+  ],
+  "districts": ["bayview", "hayes-valley", "marina", "mission", "potrero-hill", "soma", "tenderloin"]
+}

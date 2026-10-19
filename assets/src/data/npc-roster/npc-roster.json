@@ -1,0 +1,599 @@
+{
+  "schema": "npc-roster-bundle/1",
+  "rosterVersion": 1,
+  "souls": [
+    {
+      "schema": "soul-public/1",
+      "id": "canary-mc",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Canary MC",
+      "shortBio": "Tenderloin studio rat with a bright flow and a faster mouth. Battles anyone who asks nicely and a few who do not.",
+      "archetype": "rapper",
+      "tags": [
+        "rapper",
+        "fighter",
+        "tenderloin",
+        "studio"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.7,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "tenderloin",
+          "hayes-valley"
+        ],
+        "home": "poi.tenderloin.studio-eleven",
+        "hangouts": [
+          "poi.hayes-valley.stoop-plaza",
+          "poi.tenderloin.noodle-counter"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "09:00",
+          "activity": "sleep",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "09:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.tenderloin.noodle-counter",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "record",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "perform",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "perform",
+        "record",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.05
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 4,
+          "speed": 8,
+          "defense": 4,
+          "reach": 5,
+          "meterGain": 7
+        }
+      },
+      "assets": {
+        "model": "character/canary-mc",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.canary-mc",
+        "barks": null
+      },
+      "fighter": {
+        "style": "trickster",
+        "specials": [
+          {
+            "id": "canary_chirp",
+            "name": "Chirp",
+            "input": "236P",
+            "desc": "A short rhyme thrown like a dart; stuns for a beat if it lands."
+          },
+          {
+            "id": "static_burst",
+            "name": "Static Burst",
+            "input": "214K",
+            "desc": "A feedback squeal that knocks a rushing opponent back."
+          }
+        ],
+        "super": {
+          "id": "crowd_surge",
+          "name": "Crowd Surge",
+          "input": "236236P",
+          "desc": "The whole block chants back; a wide hit that builds with the meter."
+        },
+        "finisher": {
+          "id": "last_call",
+          "name": "Last Call",
+          "input": "super then P",
+          "desc": "One final line, delivered on the one."
+        },
+        "introQuote": "Sing it back.",
+        "winQuotes": [
+          "You got the first verse. I got the encore.",
+          "Write that one down."
+        ],
+        "taunts": [
+          "Two bars and you're cooked.",
+          "Is that your flow or your WiFi?"
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "npc_test",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Tester Nine",
+      "shortBio": "Test dummy with opinions. Stands in a parking lot on Potrero Hill and answers the same way every time.",
+      "archetype": "other",
+      "tags": [
+        "test",
+        "kill-drill"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "none",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.75,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": false,
+        "vendor": false,
+        "fighter": false,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "potrero-hill"
+        ],
+        "home": "poi.potrero-hill.test-lot",
+        "hangouts": [
+          "poi.potrero-hill.test-bench"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "24:00",
+          "activity": "idle",
+          "place": "poi.potrero-hill.test-lot",
+          "interruptible": true,
+          "priority": 1
+        }
+      ],
+      "goals": [
+        "test_target",
+        "idle"
+      ],
+      "voice": {
+        "tier": "text",
+        "voiceRef": null,
+        "speed": 1
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 6
+      },
+      "stats": {},
+      "assets": {
+        "model": "character/npc_test",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": null,
+        "ink": "data/ink.npc_test",
+        "barks": null
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "ro-batista",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Ro Batista",
+      "shortBio": "Mission District lowrider mechanic who runs the quietest street races in the city.",
+      "archetype": "civilian",
+      "tags": [
+        "lowrider",
+        "racing",
+        "mechanic",
+        "mission"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.63,
+      "moves": [],
+      "roles": {
+        "hero": true,
+        "questGiver": true,
+        "vendor": true,
+        "fighter": false,
+        "tycoonActor": false,
+        "racer": true
+      },
+      "locations": {
+        "districts": [
+          "mission"
+        ],
+        "home": "poi.mission.24th-st.apt-ro",
+        "hangouts": [
+          "poi.mission.shop-batista",
+          "poi.mission.dolores-park"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.mission.24th-st.apt-ro",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "weekdays",
+          "from": "08:00",
+          "to": "18:00",
+          "activity": "work",
+          "place": "poi.mission.shop-batista",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "weekends",
+          "from": "08:00",
+          "to": "18:00",
+          "activity": "hustle",
+          "place": "poi.mission.shop-batista",
+          "interruptible": true,
+          "priority": 4
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "21:00",
+          "activity": "socialize",
+          "place": "poi.mission.dolores-park",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "21:00",
+          "to": "24:00",
+          "activity": "race",
+          "place": "poi.mission.shop-batista",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "race",
+        "hustle",
+        "socialize",
+        "repair"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-luna",
+        "speed": 0.95
+      },
+      "dialogue": {
+        "modelTier": "sonnet",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {},
+      "assets": {
+        "model": "character/ro-batista",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-luna",
+        "ink": "data/ink.ro-batista",
+        "barks": null
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "standin_founder",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Penn Alder",
+      "shortBio": "Soma founder with a pitch deck for everything and a runway measured in weeks. Stands in for any real founder the game ever parodies.",
+      "archetype": "founder",
+      "tags": [
+        "founder",
+        "soma",
+        "startup",
+        "stand-in"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.8,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": false,
+        "tycoonActor": true,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "soma"
+        ],
+        "home": "poi.soma.founders-loft",
+        "hangouts": [
+          "poi.soma.pitch-night-hall",
+          "poi.soma.coffee-cart-4th"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "07:00",
+          "activity": "sleep",
+          "place": "poi.soma.founders-loft",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "07:00",
+          "to": "09:00",
+          "activity": "eat",
+          "place": "poi.soma.coffee-cart-4th",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "weekdays",
+          "from": "09:00",
+          "to": "19:00",
+          "activity": "work",
+          "place": "poi.soma.founders-loft",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "weekends",
+          "from": "09:00",
+          "to": "19:00",
+          "activity": "hustle",
+          "place": "poi.soma.coffee-cart-4th",
+          "interruptible": true,
+          "priority": 4
+        },
+        {
+          "days": "daily",
+          "from": "19:00",
+          "to": "22:00",
+          "activity": "pitch",
+          "place": "poi.soma.pitch-night-hall",
+          "interruptible": true,
+          "priority": 6
+        },
+        {
+          "days": "daily",
+          "from": "22:00",
+          "to": "24:00",
+          "activity": "work",
+          "place": "poi.soma.founders-loft",
+          "interruptible": true,
+          "priority": 4
+        }
+      ],
+      "goals": [
+        "pitch",
+        "work",
+        "close_deal",
+        "hustle"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.1
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "tycoon": {
+          "riskAppetite": 0.6,
+          "valuationBias": 0.2,
+          "checkUsd": {
+            "min": 0,
+            "max": 0
+          }
+        }
+      },
+      "assets": {
+        "model": "character/standin_founder",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.standin_founder",
+        "barks": null
+      },
+      "tycoon": {
+        "roles": [
+          "founder"
+        ],
+        "thesis": [
+          "the product sells itself once people see the demo",
+          "growth now, margins later"
+        ],
+        "negotiationStyle": "founder_friendly",
+        "redFlags": [
+          "investors who ask for a board seat in the first meeting",
+          "terms that read like a loan"
+        ],
+        "pitchHooks": [
+          "a live demo with one hand on the laptop",
+          "a chart that goes up and to the right"
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "standin_rapper",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Juno Vale",
+      "shortBio": "Bayview garage-studio rapper with a loud laugh and a quiet pen. Stands in for any real artist the game ever parodies.",
+      "archetype": "rapper",
+      "tags": [
+        "rapper",
+        "bayview",
+        "studio",
+        "stand-in"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.85,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": false,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "bayview"
+        ],
+        "home": "poi.bayview.sound-garage",
+        "hangouts": [
+          "poi.bayview.sound-garage"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "10:00",
+          "activity": "sleep",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "10:00",
+          "to": "20:00",
+          "activity": "record",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "20:00",
+          "to": "24:00",
+          "activity": "perform",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "record",
+        "perform",
+        "socialize"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 0.95
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {},
+      "assets": {
+        "model": "character/standin_rapper",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.standin_rapper",
+        "barks": null
+      }
+    }
+  ]
+}

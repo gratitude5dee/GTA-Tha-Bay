@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "ink.standin_founder",
+  "variants": {
+    "default": "assets/src/data/ink.standin_founder/ink.json"
+  },
+  "deps": [],
+  "tags": [
+    "char:standin_founder"
+  ],
+  "status": "active",
+  "visibility": "public"
+}
