@@ -172,7 +172,7 @@ export interface BudgetGovernor {               // BudgetGovernorDO RPC (singlet
 export interface SpendEvent { ts: number; vendor: Vendor; model: string; kind: string; usdMicros: number; settled: boolean; requestId?: string; jobId?: string; env: string }
 ```
 - **Layer 3 (ours, authoritative)**: quota reserve → call → settle from `usage`; governor publishes `gov:level` to KV on each transition and every 60 s; Workers read it with `cacheTtl: 30`. Rule: kill switches and budget levels never block cache hits (cached R2 cutscene, cached TTS, baked barks always served) [research/gap-observability-cost-guardrails.md Rec 2.3].
-- **Layer 2 (AI Gateway, Anthropic only)**: `gw-dialogue` with cache, Guardrails and response DLP off (they buffer SSE), Unified Billing off, `cf-aig-collect-log-payload: false`; spend rules: global daily = 1.0 × ceiling, per-`pid` metadata split $0.20/day, Sonnet 0.4 × ceiling; Dynamic Route Sonnet → Haiku [research/gap-observability-cost-guardrails.md §5, Rec 2.2]. S04 owns the request body; S09 owns gateway config in `config/guardrails.yaml`.
+- **Layer 2 (AI Gateway, Anthropic only)**: `gw-dialogue` with cache, Guardrails and response DLP off (they buffer SSE), Unified Billing off, `cf-aig-collect-log-payload: false`; every dialogue request sends `cf-aig-metadata: {pid, tier, env}` (`pid` = SHA-256 hex of the play-token `pid`; `env` = `prod|staging|synthetic`); spend rules: global daily = 1.0 × ceiling, per-`pid` metadata split $0.20/day, Sonnet 0.4 × ceiling, `env=synthetic` $0.05/day [research/gap-observability-cost-guardrails.md §5, Rec 2.2]. Every rule answers 429 and no Dynamic Route is configured (DL-545 (b)): a route would forward the Sonnet body (`between_tools`, `fallbacks`, the fallback beta) to Haiku, which must not receive `fallbacks` (F-036), and research does not show a route rewriting body fields. Instead M06a3's `ModelRouter` re-issues a 429'd Sonnet hero turn once as a Haiku request built as at L1. S04 owns the request body; S09 owns gateway config in `config/guardrails.yaml`.
 - **Layer 1 (vendor)**: Anthropic workspaces `npc-runtime` (1.2 × monthly ceiling), `npc-builder` (0.2×), `ci-evals` ($50), `synthetic` (minimum), Console notifications at 50/80 %; map 400 "You have reached your specified…" → `vendor_cap:anthropic` and 429 `enforced_spend_limit_reached` → no retry; fal prepaid balance ≤ 30 days of budget with per-use keys and allowed-model lists; ElevenLabs service-account keys with `character_limit` and `max_credit_limit_extension = 0` [research/gap-observability-cost-guardrails.md §3–§7].
 - **Reconciliation cron** (every 5 min): Anthropic Usage API (1-min buckets), fal `/v1/models/usage`, ElevenLabs analytics query → `recon.drift`; > 10 % for 2 runs → SP-02 and vendor totals become truth.
 
@@ -188,13 +188,13 @@ DO duration dominates at scale; AFK stop, empty-room GC and ack-lag kicks are th
 
 ## 6. Secrets (Wrangler secrets only; the DB vault is not used in v1)
 
-Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at the handoff, DL-245; milestones per the split ids). CI and operator credentials first, then Worker secrets.
+Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at the handoff, DL-245; milestones per the split ids). CI and operator credentials first, then Worker secrets. CI secrets are GitHub **repository** secrets (`_STAGING`/`_PRODUCTION` suffixes where values differ), because environment secrets are public-repo-only on GitHub Free and the repository's plan is open (Q-15); environment scope is allowed only after Q-15 confirms a public repository or a Team/Enterprise plan (`08-test-and-ci.md` §8 store rule) [research/gap-ci-cd-release-assets.md §1 item 9, §6].
 
 | Secret | Holder / Worker | Milestone | Rotation |
 |---|---|---|---|
-| `CLOUDFLARE_API_TOKEN` (deploy token, Workers Editor scope; the role §2 called `CF_API_TOKEN_DEPLOY`), `CLOUDFLARE_ACCOUNT_ID` | GitHub environments; operator shell | M00 | token expiry set at creation |
-| `CF_API_TOKEN_CACHE` (cache purge only; the only extra Cloudflare token) | GitHub env `production` | M10b | expiry set at creation |
-| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (bucket-scoped; rclone publish, then presigning) | GitHub envs (M01d); web (M06b2) | M01d / M06b2 | 90 d |
+| `CLOUDFLARE_API_TOKEN` (deploy token, Workers Editor scope; the role §2 called `CF_API_TOKEN_DEPLOY`), `CLOUDFLARE_ACCOUNT_ID` | GitHub repository secrets; operator shell | M00 | token expiry set at creation |
+| `CF_API_TOKEN_CACHE` (cache purge only; the only extra Cloudflare token) | GitHub repository secret | M10b | expiry set at creation |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (bucket-scoped; rclone publish, then presigning) | GitHub repository secrets (M01d); web (M06b2) | M01d / M06b2 | 90 d |
 | `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` (scoped to `tha-bay-private-{staging,prod}`; raw map snapshot archive, DL-287); `SOCRATA_APP_TOKEN` (optional) | operator shell | M02a1 | 90 d |
 | `PLAY_TOKEN_HMAC` (+ `_PREV`) | web | M04b3 (DL-231) | 90 d, dual-key window 24 h |
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b1 | 90 d |
@@ -209,7 +209,7 @@ Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at th
 | `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` | web | M13d1 (after program approval) | per program |
 | `ALERT_HMAC`, `ALERT_WEBHOOK_URL` / `QUOTA_NET_SALT_SECRET` | web | M14b1 / M06a1 | 90 d |
 | `OPS_TOKEN` (bearer for staff/CI routes before staff JWTs exist; removed in M12a1) | web | M05b1 | 30 d |
-| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; `DV_NAMES_REAL_JSON` | GitHub envs (CI only) | M05d; M00b | per vendor |
+| `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; `DV_NAMES_REAL_JSON` | GitHub repository secrets (CI only) | M05d; M00b | per vendor |
 
 The §2 split into `CF_API_TOKEN_DEPLOY` / `_ASSETS` / `_CACHE` is superseded: the deploy role is `CLOUDFLARE_API_TOKEN`, R2 writes use the R2 keys, and `CF_API_TOKEN_CACHE` is the only extra token (DL-210). M00a's frozen scope-out line, which defers that split to M14b, is read with these names: the cache token arrives in M10b and no separate deploy or assets token is added (DL-245).
 

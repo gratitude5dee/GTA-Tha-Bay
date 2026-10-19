@@ -41,6 +41,23 @@ function showReloadPrompt(): void {
   document.body.append(box);
 }
 
+/** The non-blocking notice for a second tab (M01e, 11-platform-pwa.md section 5 rule 7). */
+function showReadOnlyNotice(): void {
+  if (document.getElementById('dv-readonly-notice')) return;
+  const box = document.createElement('div');
+  box.id = 'dv-readonly-notice';
+  box.className = 'dv-engine-banner';
+  box.setAttribute('role', 'status');
+  const text = document.createElement('span');
+  text.textContent = `${t('engine.readonly')} `;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = t('engine.readonly.action');
+  button.addEventListener('click', () => box.remove());
+  box.append(text, button);
+  document.body.append(box);
+}
+
 // The platform (device probe, tier decision, renderer host, telemetry) and the engine (sim.worker, Rapier, the debug cube
 // view on the host's scene). Skipped on the unsupported screen. WebGL2 failing as well shows the unsupported page.
 async function boot(): Promise<void> {
@@ -77,6 +94,15 @@ async function boot(): Promise<void> {
     return;
   }
 
+  // A second tab never writes the pack store; say so without blocking anything.
+  const assets = platform.assets;
+  if (assets) {
+    if (assets.mode === 'read-only') showReadOnlyNotice();
+    assets.onMode((m) => {
+      if (m === 'read-only') showReadOnlyNotice();
+    });
+  }
+
   // The XR emulation page and the GPU probe drive the host themselves, so the engine runs without a view there.
   const headless = flags.xrEmulate !== null || flags.probe !== null;
   const engine = await bootEngine({
@@ -96,11 +122,13 @@ async function boot(): Promise<void> {
 
   // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
   if (import.meta.env.VITE_DV_QA === '1') {
-    const [{ installEngineBridge }, { installPlatformBridge }] = await Promise.all([
+    const [{ installEngineBridge }, { installPlatformBridge }, { installAssetsBridge }] = await Promise.all([
       import('@dv/engine/client/debug/bridge'),
       import('@dv/engine/platform/probe'),
+      import('@dv/engine/assets/bridge'),
     ]);
     if (engine) installEngineBridge(engine);
+    if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags);
     // ?scenario=<id> starts that perf scenario at boot (path duration).

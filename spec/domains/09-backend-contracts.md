@@ -163,7 +163,7 @@ export interface EvPayloads {
   [EvKind.Resume]: { token: string; exp: number };
   [EvKind.TeleportGrant]: { x: number; y: number; z: number; yaw: number; reason: 'spawn' | 'fast_travel' | 'activity' };
   [EvKind.Notice]: { kind: 'drain' | 'maintenance' | 'cap_change'; at: number };
-  [EvKind.NpcBusy]: { npcId: string; bySlot: number | null };
+  [EvKind.NpcBusy]: { npcId: string; bySlot: number | null };   // reserved: never emitted in v1 (DL-350)
   [EvKind.Correction]: { x: number; y: number; z: number; yaw: number; vehicleSlot: number | null; reason: 'speed' | 'bounds' | 'teleport' | 'vehicle' };
 }
 ```
@@ -483,57 +483,4 @@ Row types are generated from the database (`packages/shared/src/db.gen.ts`, Part
 
 ## 3. C16 — `TelemetryEvent` (1.0.0; 1.1 in `09-backend-contracts-1.1.md`)
 
-Consumers: every package that emits events (S01, S02, S03, S04, S06–S08, S10, S11, S12); S13 dashboards and release gates. Design from [research/gap-observability-cost-guardrails.md Rec 1].
-
-```ts
-// packages/shared/src/telemetry.ts
-export const C16_VERSION = '1.1.0' as const;
-export interface TelemetryEvent {
-  name: TelemetryName;                               // registry below; unknown names are dropped at ingest
-  ts: number;                                        // client epoch ms
-  sessionId: string;                                 // crypto.randomUUID() per app launch; NEVER the profileId
-  props: Record<string, string | number | boolean>;  // ≤ 16 keys; strings ≤ 128 chars; per-name JSON Schema
-}
-export interface TelemetryBatch {
-  v: 1; build: string; seq0: number;                 // seq of events[0] within the session (dedupe)
-  env: TelemetryEnvelope; events: TelemetryEvent[];  // ≤ 50 events, body ≤ 64 KiB
-}
-export interface TelemetryEnvelope {
-  tier: QualityTierId;                                          // C13: desktop-ultra | desktop | mobile | mobile-low | xr-quest | xr-visionpro
-  deviceClass: DeviceClass;                                     // C13: desktop | iphone | ipad | android | quest | avp | unknown
-  osMajor: number; displayMode: 'standalone' | 'tab' | 'xr'; backend: 'webgpu' | 'webgl2';
-}
-export type TelemetryName =
-  | 'app.start' | 'app.ready' | 'app.abnormal_exit' | 'app.cold_resume' | 'app.hidden'
-  | 'perf.minute'
-  | 'err.js' | 'err.promise' | 'err.gpu' | 'err.asset'
-  | 'net.ws' | 'net.api'
-  | 'mode.enter' | 'mode.exit' | 'mission.start' | 'mission.fail' | 'mission.complete'
-  | 'cutscene.play' | 'npc.turn.client'
-  | 'xr.session' | 'settings.tier_override' | 'tier.decision' | 'storage.persist' | 'pose.calibrate' | 'err.sim'
-  // server-only (written by Workers/DOs, never accepted from clients):
-  | 'genai.cost' | 'quota.block' | 'genjob.state' | 'room.tick' | 'room.hours' | 'budget.level' | 'recon.drift'
-  | 'auth.event' | 'mod.case';
-```
-Required props per name (excerpt; the full JSON Schemas live in `packages/shared/schemas/telemetry/`):
-
-| Name | Props (all required unless `?`) | Sampling |
-|---|---|---|
-| `app.start` | `nav`, `coi`, `store: 'opfs'|'memory'`, `backend`, `tier` (S11) | 100 % |
-| `tier.decision` | `tier`, `source` (C13 `TierDecisionSource`), `benchP90Ms?` (S11) | 100 % |
-| `storage.persist` | `granted` (S11) | 100 % |
-| `err.sim` | `cause: 'error'|'stall'`, `tick` (S01 `sim.worker` crash) | 100 % |
-| `app.ready` | `bootMs`, `phaseShellMs`, `phaseWorldMs`, `nav: 'navigate'|'reload'|'back_forward'` | 100 % |
-| `app.abnormal_exit` | `prevSid`, `lastBeatAgoMs`, `scene`, `mode`, `chunkKey`, `memEstMB`, `gpuEstMB`, `cause: 'jetsam'|'gpu_lost'|'hang'|'unknown'` (server classifies) | 100 % |
-| `perf.minute` | `fpsP50`, `fpsP5`, `frameP95Ms`, `drawCalls`, `tris`, `texMBEst`, `gpuMBEst`, `memEstMB` | mobile/XR 100 %, desktop 25 % |
-| `err.js` | `fp` (message+top-frame hash), `msg` (scrubbed ≤ 128), `top` (file:line:col) | 100 %, ≤ 5 per fp per session |
-| `net.ws` | `evt: 'open'|'close'|'resume'|'correction'`, `code?`, `rttMs?` | 100 % |
-| `cutscene.play` | `key8` (first 8 hex), `cached`, `fallback`, `reason?` | 100 % |
-| `npc.turn.client` | `ttftMs`, `fallback`, `reason?` | 100 % |
-| `pose.calibrate` | `ok`, `ms`, `delegate: 'cpu'|'gpu'` (aggregate only; no landmarks, R-IP-04) | 100 % |
-| `genai.cost` (server) | `vendor`, `model`, `usdMicros`, `cacheHit`, `tier` | 100 % |
-| `room.tick` (server, every 10 s per room) | `p50Ms`, `p99Ms`, `players`, `overloads` | 100 % |
-
-Privacy rules (testable, `tools/ci/check-telemetry.ts`): the ingest Worker never reads or stores `CF-Connecting-IP`, `User-Agent`, `Cookie`; server adds only `country` (from `request.cf.country`); no profileId, playerId, wallet, email, free text (chat, NPC prompts, backstories), or coordinates finer than a C08 chunk key; `scrub()` strips query strings, emails, bearer tokens and hex/base64 runs ≥ 24 chars and truncates to 512 chars. Settings → Data & privacy (S10) has "Diagnostics" and "Gameplay analytics" toggles (default on); when off, events are dropped client-side. Retention: AE 3 months (platform); nightly rollup to `telemetry_daily` (no sessionId) 25 months [research/gap-observability-cost-guardrails.md Rec 1.5].
-
-Storage mapping (Analytics Engine `writeDataPoint`): `index1 = name`; `blob1..` = envelope strings + string props in schema order; `double1..` = numeric props; ≤ 20 blobs/doubles, ≤ 250 points per invocation [research/gap-observability-cost-guardrails.md §1.4]. Queries always weight by `_sample_interval`.
+Moved verbatim to `09-backend-contracts-1.1.md` §6 for the 6,000-word cap (DL-341); no shape change. Every citation of "§3" of this file for C16 resolves there.

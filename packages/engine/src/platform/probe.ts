@@ -188,7 +188,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
         void bridge.perf.run(flags.scenario ?? 'graybox-walk', { durationS }).catch((e: unknown) => console.warn('perf run failed', e));
       },
       onExport: () => {
-        void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals }).then((notes) =>
+        void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals, assets: platform.assets }).then((notes) =>
           exportReport(runner.report(), notes),
         );
       },

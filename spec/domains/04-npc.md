@@ -50,7 +50,7 @@
 | 27 | Builder asset generation (S05 Lean, 18+ and P2, fal ToS) [F-042] | not in v1 (DL-OWN-01): creator-kit body; owner-approved staff queue only |
 | 28 | In-character evaluation harness (golden + red-team suites, judge rubric, gates) | designed C6 |
 | 29 | Cost per conversation and per MAU within G3 | designed C7 |
-| 30 | Multiplayer: shared agency in the room DO, `EV NpcBusy` | deferred to M12c (S09) |
+| 30 | Multiplayer: shared agency in the room DO, `EV NpcBusy` | not in v1 (DL-350): rooms keep local named-NPC brains and per-player dialogue; `EvKind.NpcBusy` reserved |
 | 31 | Workers AI LLM as a resilience fallback | out of scope: ink covers outages and its rail quality is untested [research/ai-npc-runtime.md §2.9] |
 | 32 | Teen mode (child-safety prompt, choice-only dialogue) | out of scope: ToS is 18+ (Q-02, D-30) |
 | 33 | "This is me" self-likeness and consented real people in the builder | out of scope for v1: BIPA risk [research/gap-trust-safety-tooling.md §3.3] |
@@ -168,10 +168,10 @@ sequenceDiagram
 3. **Begin** on `EncounterDO` instance `enc:<pid>:<npcId>:<encounterId>`. The Worker mints `encounterId` (UUIDv7) when absent and derives the instance from the token's profile id, so a client can never address another player's encounter. `busy` and `turn_cap` → `409 conflict`; `cadence` (turn starts < 1.5 s apart) → `rate_limited`.
 4. **Retrieve memory** (skipped when Supabase is down; the turn proceeds without it).
 5. **Call** `messages.stream` through `AIG_BASE` with the request of §5.2–5.3, then emit `meta` immediately.
-6. **Stream.** The JSON scanner emits `line.delta` text as `line` grows. Required properties are emitted first, so `line` arrives first [research/ai-npc-runtime.md §2.4]. Each completed sentence (`splitSentences`, ≥ 12 characters) goes to `TtsRouter` when the effective voice tier is not `text`, and its audio chunks follow as `line.delta {audio}`.
+6. **Stream.** The JSON scanner emits `line.delta` text as `line` grows. Required properties are emitted first, so `line` arrives first [research/ai-npc-runtime.md §2.4]. Each completed sentence (`splitSentences`, ≥ 12 characters) goes to `TtsRouter` unless the effective voice tier is `text`, and its audio chunks follow as `line.delta {audio}`.
 7. **Timeout.** No `line.delta` text within 4 s of upstream start → abort upstream, `EncounterDO.abort('timeout')`, emit `fallback {reason:'timeout', knot}` and `done`. 429/529 get one retry after `retry-after` if it fits inside the 4 s, otherwise fallback; a spend-limit 400 or `enforced_spend_limit_reached` is never retried [research/ai-npc-runtime.md §2.7; 09-backend-ops §5.3].
 8. **Finish.** Branch on `stop_reason` before reading content. `refusal` → discard the partial line, `fallback {reason:'refusal', knot:'deflect'}`. `max_tokens` or schema failure → `fallback {reason:'invalid_output'}`. Otherwise run the executor (§5.4), emit `line.done` (validated text), `effects`, `done {costMicros, turnsLeft, closed}`.
-9. **Commit.** `EncounterDO.complete` stores the pair. Aborted turns are dropped from history, so history always alternates user/assistant. `PlayerQuota.settle` uses the actual micros computed from `usage` (input, cache read, cache write, output at the model's prices). Memory writes and async moderation run in `ctx.waitUntil` (≤ 30 s) [research/ai-npc-runtime.md Verified facts].
+9. **Commit.** `EncounterDO.complete` stores the pair. Aborted turns are dropped, so history always alternates user/assistant. `PlayerQuota.settle` gets micros from `usage` (input, cache read and write, output) at F-034 prices for the response `model` (unlisted: Opus 5.5 rates; U-NPC-13). Memory writes and async moderation run in `ctx.waitUntil` (≤ 30 s) [research/ai-npc-runtime.md Verified facts].
 10. **Close.** At `maxTurnsPerEncounter` the turn message adds the system note "wrap up now", the NPC answers with `end_conversation: true`, and the DO closes. The DO alarm (60 s idle) writes the transcript to `transcripts/<encounterId>.jsonl` and enqueues `summarize` (S09).
 
 **Client.** `DialogueClient` uses `fetch` with a streamed body reader (not `EventSource`, which cannot POST). It shows text as it arrives, plays audio through `AudioService` on bus `voice` with the NPC entity as emitter, and shows subtitles for every spoken line (R-ENG-04). On `fallback`, network failure, or any of the four offline `ApiError` codes, it continues seamlessly with `InkRunner` from the returned knot (or `greeting`/`smalltalk` by intent). It records C16 `npc.turn.client {ttftMs, fallback, reason?}`.
@@ -225,7 +225,7 @@ Rules: at most 4 breakpoints, 1 h entries before 5 m entries; caching is per wor
    - `attack` and `call_police` require `temperament: volatile` or `archetype: police`, plus `context.mode = 'story'`;
    - `end_conversation` honored.
 6. **Refusals** follow §5.1 step 8. A Haiku refusal is never retried with `fallbacks` (not supported on Haiku).
-7. **Reporting:** the dialogue panel's report button sends C12 route 41 `{target:{kind:'chat_turn', id:'<encounterId>:<turnIndex>'}}`. S09 captures the last 20 turns as evidence.
+7. **Reporting:** the dialogue panel's report button sends C12 route 41 `{target:{kind:'chat_turn', id:'enc:<npcId>:<encounterId>:<turnIndex>'}}`. S09 captures the last 20 turns as evidence.
 8. **Sampling QA:** 0.1 % of turns, PII-scrubbed, go to a P3 sample queue [research/gap-trust-safety-tooling.md §6.4].
 
 ### 5.5 Offline and fallback lines (ink)
@@ -283,14 +283,14 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
 
 ### 5.10 Kill-switch and disclosure
 - **Server (≤ 60 s live, D-29):**
-  - Routes 31–33 read `roster:flags` with a 30 s in-memory cache refreshed from Postgres (S09).
+  - Routes 30–33 read `roster_flag` from Postgres, 10 s cache, KV fallback (S09, DL-557).
   - Route 46 triggers S09's `EncounterDO.kill` (S09 mechanism, `09-backend.md` M06a AC-4), and in-flight streams end with `fallback {reason:'killed'}`.
   - Scope effects:
     - `all`/`spawn` → `kill_switched` on talk and intent;
     - `voice` → effective tier `text`, baked lines dropped;
     - `ugc` → the user NPC is hidden from the community list.
 - **Client:**
-  - `NpcRuntime.refreshFlags` on app start, mode entry, every 10 minutes and after any `kill_switched` [research/legal-ip-likeness.md L4].
+  - `NpcRuntime.refreshFlags` on app start, mode entry, every 30 s while visible, on return to visible and after any `kill_switched` (DL-557) [research/legal-ip-likeness.md L4].
   - A killed NPC is replaced at its next spawn by its `standIn` soul. The stand-in has its own soul, ink and schedule, so missions and saves continue.
   - `WorldPackStore.evictByTag('char:<id>')` drops cached parts (S11).
   - The fighter roster and cutscenes honor the same flags (S07, S03).
@@ -345,8 +345,8 @@ XR comfort settings (C05 `XrComfortSettings`) always apply; every conversation i
 - U-NPC-07 whether the OpenAI moderation endpoint may be used on non-OpenAI content (fallback: Llama Guard only).
 - U-NPC-08 ElevenLabs plan-to-character mapping and commercial rights per plan.
 - U-NPC-09 dialogue quality of Haiku 5.5 at low effort with thinking off for voice consistency (the eval harness measures it).
-- U-NPC-10 Meshy jaw bone and facial data (S05 U1).
-- U-NPC-11 Rhubarb licence (S05 U9).
+- U-AST-1 Meshy jaw bone and facial data (S05 U1).
+- U-AST-9 Rhubarb licence (S05 U9).
 - U-NPC-12 cost and limits of `messages.count_tokens`.
 
 ## 8. Milestone mapping

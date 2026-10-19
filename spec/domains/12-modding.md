@@ -132,7 +132,7 @@ Kinds (C14): `experience` (placed on the map, runs as `exp:<id>`), `vehicle` (re
 | `story` and anything embedded in it | **never** | — | story, core, settings (unchanged) |
 | `sandbox` | yes | enabled `rules`, `vehicle`, `character` mods; an `experience` mod only as a preview | `settings`, `sandbox`, `mod:<id>` |
 | `exp:<experienceId>` (top-level, from a map marker or Community) | yes | that experience's mod and its declared dependencies only; user-enabled rules mods are suspended so the experience is reproducible | `mod:<id>` of the experience's mod |
-| standalone `racing`, `fighter`, `tycoon` | no in v1 | vehicle packs for racing need an S06 hook (`GameModeDescriptor.modSurface`, proposal) | `mode:<id>` unchanged |
+| standalone `racing`, `fighter`, `tycoon` | no in v1 (DL-553, owner Q-41) | `GameModeDescriptor.modSurface` exists in C06 1.1 (DL-098) but no v1 milestone implements it; per-mode packs (racing vehicles, tycoon events) wait for a post-v1 milestone | `mode:<id>` unchanged |
 | any room session (`net !== null`) | **never** | `ModHost.modsActive()` returns false; the loader refuses | — |
 
 Rules: (1) `ModHost.modsActive(): boolean` is true iff a mod is loaded in the current session; the client sends it as `AssignReq.modsActive` and the server closes 4007 on true (C11, route 23). (2) Joining a room while mods are enabled shows "Mods are off online" and, on confirm, **suspends** them for the session (unload, no uninstall) before `assign`. (3) Entering `exp:<id>` from Story is a mode switch at a safe point: `ModeHost` writes `story:auto` with reason `modeExit`, starts `exp:<id>`, and on exit restores the story position; the marker prompt is disabled with a reason string during a mission or a pursuit (C06 1.1 rule 3, DL-098). (4) The sandbox session capability already allows `mod:*`; an `exp:*` session writes only its own mod's slot (C05 1.1 rule 3, DL-097).
@@ -285,7 +285,7 @@ Mod props are instanced per asset, so "render objects" counts distinct assets pl
 | Storage and memory | OPFS blobs; quota per S11 | OPFS under the ≤ 60 % quota [F-010]; WebContent kill near 2,048 MB [F-009], so runtimes and textures are in `MemoryBudget` | draw budget < 200 [F-013] | per S11 |
 | Local mods | behind toggle | behind toggle (file picker) | hidden | hidden |
 
-Input: mods never read raw input; they receive interaction events (C06 `InteractionApi`), so keyboard, pad, touch and XR grab or pinch behave alike. XR: no DOM iframe in `immersive-vr`; `ui` mods use `xrPanel` through S10 `UiSurface` or are hidden; `camera.playCinematic` is refused in XR unless the shot has no camera translation (S12 rule, pending S11 comfort review in `11-platform-xr.md` §5.3).
+Input: mods never read raw input; they receive interaction events (C06 `InteractionApi`), so keyboard, pad, touch and XR grab or pinch behave alike. XR: no DOM iframe in `immersive-vr`; `ui` mods use `xrPanel` through S10 `UiSurface` or are hidden; `ctx.camera.play` (permission `camera.cinematic`) is refused in XR, because `11-platform-xr.md` §5.3 disables scripted cameras there; the reason reaches the mod as a host `warn` log line (M13a4, DL-534).
 
 ## 7. Verified facts used
 

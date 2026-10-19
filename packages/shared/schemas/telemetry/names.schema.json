@@ -83,6 +83,15 @@
       "required": ["msg"],
       "additionalProperties": false
     },
+    "err.asset": {
+      "type": "object",
+      "properties": {
+        "reason": { "type": "string", "maxLength": 32 },
+        "kind": { "type": "string", "maxLength": 16 }
+      },
+      "required": ["reason", "kind"],
+      "additionalProperties": false
+    },
     "perf.minute": {
       "type": "object",
       "properties": {

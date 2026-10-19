@@ -1,6 +1,6 @@
 # Architecture decision records
 
-One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). `spec/03-decisions-and-facts.md` links every D-xx and A-xx here; `spec/11-decision-log.md` and `spec/11-decision-log-2.md` hold the dated change history (DL-nnn). A superseding ADR sets the old one to `superseded` and links back.
+One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). `spec/03-decisions-and-facts.md` links every D-xx and A-xx here; `spec/11-decision-log.md` and its parts `-1b`, `-2`, `-3`, `-4` hold the dated change history (DL-nnn); Builder rows (BD-nnn) are in `spec/11-decision-log-builder.md`. A superseding ADR sets the old one to `superseded` and links back.
 
 | ADR | Title | Status | Decides |
 |---|---|---|---|

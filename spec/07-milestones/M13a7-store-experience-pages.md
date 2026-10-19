@@ -51,8 +51,8 @@ Players can browse, install and manage mods, and find experiences, from the main
 - **Telemetry:** `ui.page` for `mods` and `experiences` (existing name).
 
 ## Scope out
-- Forum threads and ratings links: M13b2 and M13b4. Publishing: M13c2 and M13c3; "My creations" is post-v1 (DL-240). `installs30d` roll-up: M14b.
-- Vehicle mods in standalone racing (`GameModeDescriptor.modSurface`): not v1.
+- Forum threads and ratings links: M13b2 and M13b4. Publishing: M13c2 and M13c3; "My creations" is post-v1 (DL-240). `installs30d` roll-up: post-v1 (DL-420).
+- Vehicle mods in standalone racing (`GameModeDescriptor.modSurface`): not v1 (DL-553, Q-41).
 - Measured top-speed and 0–100 checks for vehicle mods, and PI bands: post-v1 (needs a headless oracle run on the server).
 - Final a11y audit and translations: M14c.
 

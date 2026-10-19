@@ -15,7 +15,7 @@ v1 launches with no sign-in (R-AUTH-01), yet quotas, NPC memory, cloud saves, pu
 - **Phases (D-04).**
   - **P0 `local`** (M00–M11): device-bound profile plus an HMAC play token (`Authorization: PlayToken pt1.…`, 24 h) for quota and rate-limit identity only. The client holds a non-extractable ECDSA P-256 key in IndexedDB `dv-identity` and proves possession when asking for a token; the first server write binds the thumbprint (trust on first use).
   - **P1 `device`** (M12a1): registration with Turnstile (verification API UNVERIFIED, U-BE-2; fallback is per-network registration caps), ES256 JWT, cloud saves.
-  - **P2 `linked`** (M13c): ChatGPT or OpenAI linkage behind a flag, or a Supabase GitHub OAuth identity, solely to enable publishing (ADR-0018, ADR-0019).
+  - **P2 `linked`** (M13c): a linked identity solely to enable publishing: `openai` (ChatGPT or OpenAI linkage, dark behind a flag) or Thirdweb from M14a (ADR-0018, DL-342, ADR-0019).
   - **P3 `linked`** (M14a): Thirdweb in-app wallet via SIWE link; no `guest`, no ERC-4337; only after the Growth plan ($99/month) is paid [F-059].
 - **One interface.** `IdentityService` (`current`, `authHeader`, `register`, `link`, `unlink`, `signInOnNewDevice`, `forget`, `onChange`) is typed in `packages/shared/src/identity.ts`; `@dv/identity` holds the client adapters `local`, `device`, `openai`, `thirdweb`. Adding Thirdweb is one milestone.
 - **Fallback.** Supabase anonymous sign-in remains the documented fallback if the issuer path fails Third-Party Auth registration (`pnpm auth:tpa`, via the Management API; the setting is not in the CLI config [F-031]).

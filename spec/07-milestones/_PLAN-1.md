@@ -67,7 +67,7 @@
 
 ## Block B — foundations
 
-### M00d · qa-spec-gates — 0.5 · risk L · S13 (new)
+### M00d · qa-spec-gates — 1 · risk L · S13 (new)
 - **Goal:** C15 1.1 lint and the traceability report run in CI; `check:agents`; `check:telemetry` (C16 privacy rules and per-name schemas, DL-230); device-run verification job; nightly det suites and perf fail mode.
 - **R** R-ENG-01, R-ENG-02 · **Dep** M00, M01c, M00b · **Read** `13-qa.md` §2.3, §2.6, §3.8, §4; `spec/08-test-and-ci.md` §5.1, §5.5
 - **Out** `packages/shared/src/contracts/c15-milestone.ts`, `tools/ci/{milestone-lint,trace,check-agents,check-telemetry}.ts`, `tools/ci/test/`, `.github/workflows/{ci,nightly}.yml`, `tests/reports/` · **C** C15 1.1, C16 1.1
@@ -75,17 +75,17 @@
 
 ### M02a1 · bake-core — 1 · risk M · S02
 - **Goal:** `tools/map` S0 fetch, terrain, water and landuse, buildings, pack writer, world index, attribution, gates; SF packs without roads.
-- **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
+- **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d, M00d (`workflows.test.ts`) · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
 - **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (baked buildings ≥ 98 % of the locked `ynuv-fyni` row count, packs ≤ 4 MiB, identical rerun; DL-288); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
 
 ### M02a2 · bake-roads-graph — 1 · risk M · S02
-- **Goal:** stages S5–S10: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds.
-- **R** R-MAP-01/04 · **Dep** M02a1 · **Read** `02-world-bake.md` §4, §9; `02-world-living.md` §1, §7 · **Out** `tools/map/src/stages`, `content/world/{pois,landmarks}` · **C** C08 1.0
+- **Goal:** stages S5–S11: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds; `l1`, `l2`, `far-bay-*` packs (S11, moved from M02b1, DL-546).
+- **R** R-MAP-01/02/04 · **Dep** M02a1 · **Read** `02-world-bake.md` §4, §9; `02-world-living.md` §1, §7 · **Out** `tools/map/src/stages`, `content/world/{pois,landmarks}` · **C** C08 1.0
 - **Gate** none · **Proof** `pnpm map:verify` (SCC ≥ 98 % of drivable edges, City Hall → every portal, ≥ 2 phases per signal); `pnpm map:landmarks`
 
 ### M02b1 · streaming-lod — 1 · risk H · S02 (+S11)
-- **Goal:** `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, upload gate, L1/L2, backdrop ring and skyline cards; scenarios `walk-civic-center`, `route-ferry-ocean-beach`.
-- **R** R-MAP-01/02, R-PLAT-03, R-ENG-02 · **Dep** M02a2, M01c, M01e · **Read** `02-world.md` §5; `02-world-contracts.md` §4; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5 · **Out** `packages/world/src/{sim/streaming,client/chunks,client/backdrop}`, `config/perf/paths` (DL-221) · **C** C08 1.0, C13 1.1
+- **Goal:** `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, upload gate, L1/L2, backdrop ring and skyline cards (from M02a2's S11 packs, DL-546); scenarios `walk-civic-center`, `route-ferry-ocean-beach`; CI world builds with the gray-box tags on a no-world build, `ci.yml` and `nightly.yml` (DL-546).
+- **R** R-MAP-01/02, R-PLAT-03, R-ENG-02 · **Dep** M02a2, M01c, M01e, M01b2 (gray-box boot, debug panel) · **Read** `02-world.md` §5; `02-world-contracts.md` §4; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5 · **Out** `packages/world/src/{sim/streaming,client/chunks,client/backdrop}`, `config/perf/paths` (DL-221) · **C** C08 1.0, C13 1.1
 - **Gate** none · **Proof** `pnpm check:perf -- --scenario route-ferry-ocean-beach` (≤ 1 upload/frame, objects ≤ tier on webgl2 and webkit); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-boot-size`; `pnpm check:unit -- packages/world`
 
 ### M02b2 · weather-time — 1 · risk M · S02 (+S01)
@@ -95,12 +95,12 @@
 
 ### M02c1 · graph-services-teleports — 1 · risk M · S02
 - **Goal:** `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, districts, POI table, `WorldApi` wiring.
-- **R** R-MAP-01/03 · **Dep** M02a2, M02b1 · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §5; `02-world.md` §3 · **Out** `packages/world/src/sim/{graph,api,traffic/control.ts}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)
+- **R** R-MAP-01/03 · **Dep** M02a2, M02b1, M02b2 (blackout resource) · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §5; `02-world.md` §3 · **Out** `packages/world/src/sim/{graph,api,traffic/control.ts}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/world` (A* equal in Node; `snap` rejects > 25 m); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-teleport` (10 landmarks within 0.2 m or precondition message)
 
 ### M02d1 · landmarks-kit-and-heroes — 1 · risk M · S02
 - **Goal:** landmark recipe kit, 12 hero/major original glTFs, `LandmarkLayer`, proxy swap; `VariantStats` budgets in `check:assets` (left open by M01d, first needed here; DL-230).
-- **R** R-MAP-01, R-IP-01 · **Dep** M02b1 · **Read** `02-world-bake.md` §7; `05-assets.md` §4 · **Out** `assets/src/building/lm.*`, `tools/map/src/landmarks`, `packages/world/src/client/chunks` (`LandmarkLayer`) · **C** C07 1.1, C08 1.0
+- **R** R-MAP-01, R-IP-01 · **Dep** M02b1, M02c1 (`world.teleport`) · **Read** `02-world-bake.md` §7; `05-assets.md` §4 · **Out** `assets/src/building/lm.*`, `tools/map/src/landmarks`, `packages/world/src/client/chunks` (`LandmarkLayer`) · **C** C07 1.1, C08 1.0
 - **Gate** human art time · **Proof** `pnpm check:assets` (per-fidelity triangle budgets); `pnpm provenance:check`; `pnpm check:unit -- tools/map`
 
 ### M02d2 · landmarks-rest-and-swap — 1 · risk M · S02
@@ -201,7 +201,7 @@
 - **Gate** none · **Proof** `pnpm check:missions -- --act 1` (missions 1–6 on 3 seeds); `pnpm check:unit -- packages/modes/story` (`depiction-lint`); `pnpm check:balance -- --suite econ`
 
 ### M05c2 · act1-vertical-slice — 1 · risk M · S03 · **VS-Story**
-- **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing, fighter and tycoon reachable through stubs; deployed and tested on staging (R-ROLL-01 anchor).
+- **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing and fighter tiles reachable through stub hooks (unlocked, `comingSoon`), tycoon tile registered and locked because its hook is `m.a2.01` in Act 2 (M09b2; DL-391); deployed and tested on staging (R-ROLL-01 anchor).
 - **R** R-MODE-01/05, R-CUT-02, R-ROLL-01 · **Dep** M05c1, M03b2 · **Read** `03-story-narrative.md` §B4–§B5; `03-story.md` §8–§9 · **Out** `content/missions/m.a1.{07..12}/`, `content/story/act1/cutscene-refs.ts`, `content/story/sensitivity.json` · **C** C09 1.0, C05 1.1
 - **Gate** Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
 

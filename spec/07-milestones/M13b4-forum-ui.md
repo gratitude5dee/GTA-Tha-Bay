@@ -26,7 +26,7 @@ The main menu's **Community** gains a working **Forum**. Players browse boards, 
   - `forum.enabled` false → the Forum tab is hidden. Store tabs are unaffected.
 - Errors: `rate_limited` shows a countdown from `retryAfterMs` and re-enables Send at zero. `tier_required`, `forbidden` and `bad_request` map to message keys. No raw error text is shown.
 - States:
-  - `held`: the author sees "Waiting for review"; others see nothing.
+  - `pending` and `held`: the author sees "Waiting for review"; others see nothing.
   - `removed`: a tombstone line "Removed by moderators".
   - `locked`: no composer.
   - An empty board shows an empty state.

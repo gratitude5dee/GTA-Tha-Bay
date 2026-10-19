@@ -4,6 +4,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { BRAND } from '../../config/brand.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
+import { mediaLocal } from './vite/media-local.ts';
 
 // The same three headers `public/_headers` sets for static assets (11-platform-pwa.md section 2),
 // applied by the dev and preview servers so crossOriginIsolated works there too.
@@ -56,6 +57,8 @@ function brandInHtml(): Plugin {
 export default defineConfig({
   plugins: [
     brandInHtml(),
+    // QA builds only: the same-origin mirror of the asset store (M01e).
+    ...(QA ? [mediaLocal(here('.'))] : []),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -68,7 +71,7 @@ export default defineConfig({
         // asset-catalog.json is the catalog pointer (DL-042): it must be in the precache so a new Worker version switches content.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm}', 'asset-catalog.json'],
         // The deterministic-compat build loads on demand (canonical sessions only); QA pages are never precached.
-        globIgnores: ['**/rapier-deterministic-*.js', 'qa/**'],
+        globIgnores: ['**/rapier-deterministic-*.js', 'qa/**', 'media-local/**'],
       },
       manifest: {
         id: '/',
