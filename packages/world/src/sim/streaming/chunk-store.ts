@@ -130,6 +130,11 @@ export class ChunkStore<P = unknown> {
     return this.keysIn((u) => u.state === 'failed', level);
   }
 
+  /** Units the pack has nothing for (open sea, an unbuilt block): settled, with no mesh to draw. */
+  emptyKeys(level: Level = 'p0'): ChunkKey[] {
+    return this.keysIn((u) => u.state === 'empty', level);
+  }
+
   residentKeys(level: Level = 'p0'): ChunkKey[] {
     return this.keysIn((u) => u.state === 'ready' || u.state === 'empty', level);
   }

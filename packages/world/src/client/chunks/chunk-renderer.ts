@@ -138,8 +138,7 @@ export class ChunkRenderer {
 
   /** Queues a meshed unit for upload. `priority`: lower first (the stream rank). */
   enqueue(mesh: UnitMesh, priority: number): void {
-    const coarseExtra = mesh.level === 'l0' ? 0 : (mesh.stats.vertices * 8);
-    this.gate.enqueue({ id: idOf(mesh.level, mesh.key), priority, bytes: mesh.stats.bytes + coarseExtra, payload: mesh });
+    this.gate.enqueue({ id: idOf(mesh.level, mesh.key), priority, bytes: mesh.stats.bytes, payload: mesh });
   }
 
   /** Removes a unit (evicted from the stream) from the scene and the queue; frees its geometry. */

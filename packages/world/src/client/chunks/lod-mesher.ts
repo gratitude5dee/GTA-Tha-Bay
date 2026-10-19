@@ -93,7 +93,12 @@ function densify(pts: Float32Array, step: number): number[] {
   return out;
 }
 
-export function meshLod(unit: LodUnit, tier: QualityTierId): UnitMesh {
+/**
+ * Meshes one L1 tile or L2 block. `maxBytes` is the tier's upload cap (`mobile-low`, `xr-quest`: 2 MB per frame; null: none): when
+ * the unit is over it, the least important massing footprints (low and small first) and the minor roads are dropped until it
+ * fits, so a chunk is uploaded whole and still within the cap (C08 rule 13). The terrain is never reduced.
+ */
+export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | null = null): UnitMesh {
   const profile: MesherProfile = profileOf(tier).profile;
   const stride = profile.lodStride;
   const { originX: ox, originZ: oz, postM } = unit;
@@ -164,51 +169,96 @@ export function meshLod(unit: LodUnit, tier: QualityTierId): UnitMesh {
   }
   const objects: MeshBuffers[] = [tb.build('terrain') as MeshBuffers];
 
-  // ---- massing -----------------------------------------------------------------------------------------------------------
+  // ---- massing and roads, reduced to the byte cap when there is one -----------------------------------------------------------
   const massProfile: MesherProfile = { trisPerBuilding: MASS_TRIS, terrainStride: stride, roofs: false, parapets: false, equipment: false, skip: null, lodStride: stride };
-  const mb = new MeshBuilder();
-  let buildings = 0;
-  let maxTris = 0;
-  for (const m of unit.massing) {
-    const ring: number[] = [];
-    for (let i = 0; i < m.ring.length; i += 2) ring.push((m.ring[i] as number) - ox, (m.ring[i + 1] as number) - oz);
-    if (ring.length < 6) continue;
-    const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile);
-    buildings++;
-    if (t > maxTris) maxTris = t;
-  }
-  const mass = mb.build('massing');
-  if (mass) objects.push(mass);
+  const massOrder = unit.massing
+    .map((m, i) => {
+      let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+      for (let k = 0; k < m.ring.length; k += 2) {
+        const x = m.ring[k] as number, z = m.ring[k + 1] as number;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+      return { i, w: (m.heightDm + 100) * Math.max(1, (maxX - minX) * (maxZ - minZ)) };
+    })
+    .sort((p, q) => q.w - p.w || p.i - q.i)
+    .map((e) => e.i);
+  const roadOrder = unit.roads.map((r, i) => ({ i, cls: r.cls })).sort((p, q) => p.cls - q.cls || p.i - q.i).map((e) => e.i);
 
-  // ---- roads -------------------------------------------------------------------------------------------------------------
-  const rb = new MeshBuilder();
+  const buildMass = (keep: number): { mesh: MeshBuffers | null; buildings: number; maxTris: number } => {
+    const mb = new MeshBuilder();
+    let buildings = 0;
+    let maxTris = 0;
+    // Original order among the kept, so the unreduced mesh is the same as before.
+    const kept = massOrder.slice(0, keep).sort((p, q) => p - q);
+    for (const idx of kept) {
+      const m = unit.massing[idx] as (typeof unit.massing)[number];
+      const ring: number[] = [];
+      for (let i = 0; i < m.ring.length; i += 2) ring.push((m.ring[i] as number) - ox, (m.ring[i + 1] as number) - oz);
+      if (ring.length < 6) continue;
+      const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile);
+      buildings++;
+      if (t > maxTris) maxTris = t;
+    }
+    return { mesh: mb.build('massing'), buildings, maxTris };
+  };
+
   const lift = MESHER.lod.roadLiftM;
-  for (const r of unit.roads) {
-    const width = MESHER.lod.roadWidthM[String(r.cls)] ?? 8;
-    const local = new Float32Array(r.pts.length);
-    for (let i = 0; i < r.pts.length; i += 2) {
-      local[i] = (r.pts[i] as number) - ox;
-      local[i + 1] = (r.pts[i + 1] as number) - oz;
+  const buildRoads = (keep: number): MeshBuffers | null => {
+    const rb = new MeshBuilder();
+    for (const idx of roadOrder.slice(0, keep).sort((p, q) => p - q)) {
+      const r = unit.roads[idx] as (typeof unit.roads)[number];
+      const width = MESHER.lod.roadWidthM[String(r.cls)] ?? 8;
+      const local = new Float32Array(r.pts.length);
+      for (let i = 0; i < r.pts.length; i += 2) {
+        local[i] = (r.pts[i] as number) - ox;
+        local[i + 1] = (r.pts[i + 1] as number) - oz;
+      }
+      const dense = densify(local, step / 2);
+      const xyz = new Float32Array((dense.length / 2) * 3);
+      for (let i = 0; i < dense.length / 2; i++) {
+        const x = dense[i * 2] as number, z = dense[i * 2 + 1] as number;
+        xyz[i * 3] = x;
+        xyz[i * 3 + 1] = surfaceAt(unit.heights, stride, postM, x, z);
+        xyz[i * 3 + 2] = z;
+      }
+      addRibbon(rb, xyz, 0, 0, width, lift, roadColor(r.cls));
     }
-    const dense = densify(local, step / 2);
-    const xyz = new Float32Array((dense.length / 2) * 3);
-    for (let i = 0; i < dense.length / 2; i++) {
-      const x = dense[i * 2] as number, z = dense[i * 2 + 1] as number;
-      xyz[i * 3] = x;
-      xyz[i * 3 + 1] = surfaceAt(unit.heights, stride, postM, x, z);
-      xyz[i * 3 + 2] = z;
-    }
-    addRibbon(rb, xyz, 0, 0, width, lift, roadColor(r.cls));
-  }
-  const roads = rb.build('roads');
-  if (roads) objects.push(roads);
+    return rb.build('roads');
+  };
 
-  const stats: MeshStats = { triangles: 0, vertices: 0, buildings, skipped: 0, maxBuildingTris: maxTris, filtered: false, bytes: 0 };
+  const terrain = objects[0] as MeshBuffers;
+  const empty = new Float32Array(0);
+  // The GPU bytes of the unit: the typed arrays plus the per-vertex cover mask and cell attributes the coarse levels carry (8 B).
+  const COVER_ATTR_BYTES = 8;
+  const bytesOf = (list: readonly MeshBuffers[]): number => meshBytes(list, empty) + list.reduce((n, o) => n + (o.positions.length / 3) * COVER_ATTR_BYTES, 0);
+  const terrainBytes = bytesOf([terrain]);
+  let massKeep = unit.massing.length;
+  let roadKeep = unit.roads.length;
+  let mass = buildMass(massKeep);
+  let roads = buildRoads(roadKeep);
+  const total = (): number => bytesOf([terrain, ...(mass.mesh ? [mass.mesh] : []), ...(roads ? [roads] : [])]);
+  while (maxBytes !== null && total() > maxBytes && (massKeep > 0 || roadKeep > 0)) {
+    const used = total() - terrainBytes;
+    const scale = Math.min(0.9, Math.max(0.3, (((maxBytes - terrainBytes) / Math.max(1, used)) * 0.95)));
+    massKeep = Math.floor(massKeep * scale);
+    roadKeep = Math.floor(roadKeep * scale);
+    mass = buildMass(massKeep);
+    roads = buildRoads(roadKeep);
+  }
+  if (mass.mesh) objects.push(mass.mesh);
+  if (roads) objects.push(roads);
+  const buildings = mass.buildings;
+  const maxTris = mass.maxTris;
+
+  const stats: MeshStats = { triangles: 0, vertices: 0, buildings, skipped: unit.massing.length - buildings, maxBuildingTris: maxTris, filtered: false, bytes: 0 };
   for (const o of objects) {
     stats.triangles += o.indices.length / 3;
     stats.vertices += o.positions.length / 3;
   }
   const trees = new Float32Array(0);
-  stats.bytes = meshBytes(objects, trees);
+  stats.bytes = bytesOf(objects);
   return { level: unit.level, key: unit.key, originX: ox, originZ: oz, objects, trees, stats };
 }

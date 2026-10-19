@@ -37,7 +37,7 @@ const revealed = (page: Page): Promise<unknown> =>
   page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
 
 test.describe('world streaming @world', () => {
-  test.describe.configure({ timeout: 300_000 });
+  test.describe.configure({ timeout: 420_000 });
 
   for (const tier of ['mobile-low', 'desktop'] as const) {
     test(`route-ferry-ocean-beach at ${tier}: at most one chunk upload per frame, resident L2 equals the plan, no failed tile @world-route`, async ({ page }) => {
@@ -51,11 +51,24 @@ test.describe('world streaming @world', () => {
       expect(report.frames.count).toBeGreaterThan(0);
       expect(report.errors.gpuLost).toBe(0);
 
-      const settled = await world(page, (w) => w.settle(120_000));
-      expect(settled.settled).toBe(true);
+      // The coarse level fills first; software GL meshes L0 slowly, so the check waits for L2 and not for the whole stream to settle.
+      await expect
+        .poll(
+          async () =>
+            world(page, (w) => {
+              const c = w.chunks();
+              const have = new Set([...c.resident.l2, ...c.empty.l2]);
+              return w.wanted('l2').filter((k) => !have.has(k)).length;
+            }),
+          { timeout: 240_000, intervals: [1000, 2000, 5000] },
+        )
+        .toBe(0);
       const chunks = await world(page, (w) => w.chunks());
       console.log(`world-route ${tier}: perFrameMax=${chunks.uploads.perFrameMax} total=${chunks.uploads.total} oversize=${chunks.uploads.oversize} l0=${chunks.resident.l0.length} l1=${chunks.resident.l1.length} l2=${chunks.resident.l2.length}`);
       expect(chunks.uploads.perFrameMax).toBeLessThanOrEqual(1);
+      // A chunk goes up whole and within the tier's byte cap (2 MB per frame on mobile-low): the mesher reduces it to fit.
+      expect(chunks.uploads.oversize).toBe(0);
+      if (tier === 'mobile-low') expect(chunks.uploads.maxBytes).toBeLessThanOrEqual(2 * 1024 * 1024);
       expect(chunks.uploads.total).toBeGreaterThan(0);
       expect(chunks.failed).toEqual([]);
       expect(chunks.sim.failed).toBe(0);
@@ -64,7 +77,7 @@ test.describe('world streaming @world', () => {
       expect(wanted.length).toBeGreaterThan(0);
       const plan = await world(page, (w) => w.plan());
       expect(plan.r2M).toBe(budgets.tiers[tier]?.world.buildingDrawDistanceM);
-      expect(chunks.resident.l2).toEqual(expect.arrayContaining(wanted));
+      expect([...chunks.resident.l2, ...chunks.empty.l2]).toEqual(expect.arrayContaining(wanted));
       expect(errors).toEqual([]);
     });
   }

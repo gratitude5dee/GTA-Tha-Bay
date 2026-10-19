@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { LOD_LAND_CLASS, TERRAIN_POSTS, decodeLod, type LodUnit, type QualityTierId } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { meshLod } from '../src/client/chunks/lod-mesher.ts';
+import { basePlan } from '../src/sim/streaming/plan.ts';
 import { MESHER, profileOf } from '../src/client/chunks/mesher.ts';
 import { requireBake } from '../../../tests/support/require-bake.ts';
 
@@ -70,6 +71,20 @@ describe('decodeLod and meshLod on the synth bake', () => {
         expect(o.bounds[3]).toBeLessThanOrEqual(u.edgeM + 70);
       }
     }
+  });
+
+  it.each(TIERS)('%s: every L1 tile and L2 block of the bake meshes within the upload cap of the tier', (tier) => {
+    if (!bake) return;
+    const cap = basePlan(tier).uploadBytes;
+    let worst = 0;
+    for (const family of ['l1', 'l2'] as const) {
+      for (const u of units(bake.dir, family)) {
+        const m = meshLod(u, tier, cap);
+        worst = Math.max(worst, m.stats.bytes);
+        if (cap !== null) expect(m.stats.bytes, `${family} ${u.key} at ${tier}`).toBeLessThanOrEqual(cap);
+      }
+    }
+    console.log(`lod ${tier}: largest L1/L2 mesh ${(worst / 1e6).toFixed(2)} MB (cap ${cap === null ? 'none' : (cap / 1e6).toFixed(2) + ' MB'})`);
   });
 
   it('water is flat at the sea level and the skirt hangs 8 m below the edge', () => {

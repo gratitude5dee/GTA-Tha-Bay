@@ -62,8 +62,10 @@ export interface WorldViewOptions {
 
 export interface ChunksReport {
   resident: Record<RenderLevel, ChunkKey[]>;
-  /** Meshed (CPU) units per level, uploaded or not. */
+  /** Meshed (CPU) units per level, uploaded or not (units with nothing to draw included). */
   meshed: Record<RenderLevel, number>;
+  /** Units whose pack holds nothing to draw (open sea, an unbuilt block): settled, never uploaded. */
+  empty: Record<RenderLevel, ChunkKey[]>;
   bundleRerecords: Record<string, number>;
   uploads: { perFrameMax: number; perFrameLast: number; lastBytes: number; maxBytes: number; total: number; oversize: number; queued: number };
   failed: ChunkKey[];
@@ -82,6 +84,9 @@ export interface BootReport {
   bytesBeforeReveal: number | null;
   tier: QualityTierId;
 }
+
+/** L0 chunks this close to the focus upload before anything coarse (about the first ring of chunks). */
+const NEAR_L0_M = 400;
 
 const mapFail = (e: unknown): FailReason => {
   const err = e as { name?: string; reason?: string } | null;
@@ -267,9 +272,15 @@ export class WorldView implements WorldLayer {
       .finally(() => void this.inflight--);
   }
 
-  /** The stream rank of a unit now: lower is more urgent. */
+  /**
+   * The upload rank of a unit now: lower is more urgent. The chunks around the player come first (the reveal waits for one), then
+   * the coarse levels, so the horizon is whole before the detail fills in, and then the rest of L0 nearest first. A plain distance
+   * ordering starves L1 and L2 behind a few hundred L0 chunks when uploads are slow (software GL, a loaded phone).
+   */
   private priorityOf(key: ChunkKey, level: Level): number {
-    return this.store.distanceTo(key) * (level === 'l0' ? 1 : level === 'l1' ? 4 : 16);
+    const d = this.store.distanceTo(key);
+    if (level === 'l0') return d <= NEAR_L0_M ? d : 3000 + d;
+    return level === 'l2' ? 1000 + d / 100 : 2000 + d / 10;
   }
 
   /** A chunk that was meshed from afar (the profile's skip rule) and now lies within reach gets its small buildings. */
@@ -403,6 +414,7 @@ export class WorldView implements WorldLayer {
     return {
       resident: { l0: r.uploadedKeys('l0'), l1: r.uploadedKeys('l1'), l2: r.uploadedKeys('l2') },
       meshed: { l0: this.store.residentKeys('l0').length, l1: this.store.residentKeys('l1').length, l2: this.store.residentKeys('l2').length },
+      empty: { l0: this.store.emptyKeys('l0'), l1: this.store.emptyKeys('l1'), l2: this.store.emptyKeys('l2') },
       bundleRerecords: r.bundleRerecords(),
       uploads: {
         perFrameMax: r.maxUploadsInFrame,

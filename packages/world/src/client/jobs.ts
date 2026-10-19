@@ -220,7 +220,7 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     }
     const unit = (await p).find((u) => u.key === a.key);
     if (!unit) return { result: { empty: true } satisfies MeshJobResult };
-    m = meshLod(unit, a.tier);
+    m = meshLod(unit, a.tier, basePlan(a.tier).uploadBytes);
   }
   return { result: { mesh: m } satisfies MeshJobResult, transfer: transferListOf(m) };
 };
