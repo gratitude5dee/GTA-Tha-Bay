@@ -1,0 +1,201 @@
+{
+  "schema": "world-sources/1",
+  "note": "Open data only (R-IP-01). Google Photorealistic 3D Tiles and Mapbox are never sources (F-055, F-056); sources.schema.json and S0 both refuse their hosts (DL-676). Licence and attribution text per source feed config/attribution.world.json.",
+  "sources": [
+    {
+      "id": "datasf-footprints",
+      "kind": "socrata",
+      "dataset": "ynuv-fyni",
+      "url": "https://data.sf.gov/resource/ynuv-fyni.json",
+      "select": "sf16_bldgid,shape,hgt_mediancm,hgt_maxcm,gnd_mediancm,p2010_zmaxn88ft",
+      "geometryColumn": "shape",
+      "file": "ynuv-fyni.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco",
+      "source": "DataSF Building Footprints (ynuv-fyni)",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-streets",
+      "kind": "socrata",
+      "dataset": "3psu-pn9h",
+      "url": "https://data.sf.gov/resource/3psu-pn9h.json",
+      "select": "cnn,streetname,st_type,classcode,oneway,layer,f_node_cnn,t_node_cnn,nhood,analysis_neighborhood,active,line",
+      "geometryColumn": "line",
+      "file": "3psu-pn9h.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco",
+      "source": "DataSF Streets (3psu-pn9h); used from M02a2",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-neighborhoods",
+      "kind": "socrata",
+      "dataset": "j2bu-swwd",
+      "url": "https://data.sf.gov/resource/j2bu-swwd.json",
+      "select": "nhood,the_geom",
+      "geometryColumn": "the_geom",
+      "file": "j2bu-swwd.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco",
+      "source": "DataSF Analysis Neighborhoods (j2bu-swwd)",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-addresses",
+      "kind": "socrata",
+      "dataset": "ramy-di5m",
+      "url": "https://data.sf.gov/resource/ramy-di5m.json",
+      "select": "address,address_number,street_name,street_type,cnn,latitude,longitude,eas_baseid,nhood",
+      "geometryColumn": null,
+      "file": "ramy-di5m.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco",
+      "source": "DataSF Addresses with Units, EAS (ramy-di5m); used from M02a2",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-parks",
+      "kind": "socrata",
+      "dataset": "gtr9-ntp6",
+      "url": "https://data.sf.gov/resource/gtr9-ntp6.json",
+      "select": "property_id,property_name,propertytype,acres,shape",
+      "geometryColumn": "shape",
+      "file": "gtr9-ntp6.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco",
+      "source": "DataSF Recreation and Parks Properties (gtr9-ntp6)",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-muni-stops",
+      "kind": "socrata",
+      "dataset": "i28k-bkz6",
+      "url": "https://data.sf.gov/resource/i28k-bkz6.json",
+      "select": "stopname,stopid,latitude,longitude,shelter",
+      "geometryColumn": null,
+      "file": "i28k-bkz6.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco, SFMTA",
+      "source": "DataSF Muni Stops (i28k-bkz6); used from M02a2",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-muni-routes",
+      "kind": "socrata",
+      "dataset": "9exe-acju",
+      "url": "https://data.sf.gov/resource/9exe-acju.json",
+      "select": "route_name,lineabbr,direction,shape",
+      "geometryColumn": "shape",
+      "file": "9exe-acju.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco, SFMTA",
+      "source": "DataSF Muni Routes (9exe-acju); used from M02a2",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "datasf-trees",
+      "kind": "socrata",
+      "dataset": "tkzw-k3nq",
+      "url": "https://data.sf.gov/resource/tkzw-k3nq.json",
+      "select": "treeid,species,latitude,longitude",
+      "geometryColumn": null,
+      "file": "tkzw-k3nq.jsonl",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "attribution": "City and County of San Francisco, SF Public Works",
+      "source": "DataSF Street Tree List (tkzw-k3nq)",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "terrarium",
+      "kind": "terrarium",
+      "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+      "file": "terrarium",
+      "licence": "LicenseRef-PublicDomain-USGov",
+      "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
+      "attribution": "3DEP data courtesy of the U.S. Geological Survey",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    },
+    {
+      "id": "osm",
+      "kind": "osm",
+      "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf",
+      "file": "osm.geojsonl",
+      "licence": "ODbL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "attribution": "© OpenStreetMap contributors",
+      "source": "OpenStreetMap via Geofabrik NorCal extract and osmium",
+      "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
+    }
+  ],
+  "terrarium": {
+    "core": { "z": 15, "boxes": ["stream", "play"] },
+    "far": { "z": 12, "boxes": ["far"] }
+  },
+  "osm": {
+    "note": "U-W1 and U-W2: the Geofabrik URL and the osmium flags below are UNVERIFIED until the operator first runs them (AC-9); record what worked here. The OSM reader accepts GeoJSON lines from any route: a hand-supplied .cache/map/raw/sf/osm.geojsonl is used as is.",
+    "bboxes": {
+      "sf": { "minLat": 37.68, "minLng": -122.55, "maxLat": 37.89, "maxLng": -122.3 },
+      "backdrop": { "minLat": 37.3, "minLng": -122.6, "maxLat": 38.0, "maxLng": -121.8 }
+    },
+    "tagFilter": "nwr/highway nwr/railway nwr/route=ferry nwr/natural=coastline,water,tree nwr/leisure nwr/landuse nwr/man_made=pier nwr/building nwr/bridge nwr/tunnel n/highway=traffic_signals,stop r/type=restriction",
+    "commands": [
+      "osmium extract --bbox={sf.minLng},{sf.minLat},{sf.maxLng},{sf.maxLat} --strategy=complete_ways --overwrite -o {dir}/osm-sf.osm.pbf {pbf}",
+      "osmium tags-filter --overwrite -o {dir}/osm-sf-tags.osm.pbf {dir}/osm-sf.osm.pbf {tagFilter}",
+      "osmium export --overwrite --add-unique-id=type_id -f geojsonseq -x print_record_separator=false -o {dir}/osm.geojsonl {dir}/osm-sf-tags.osm.pbf"
+    ],
+    "backdropCommands": [
+      "osmium extract --bbox={backdrop.minLng},{backdrop.minLat},{backdrop.maxLng},{backdrop.maxLat} --strategy=simple --overwrite -o {dir}/osm-backdrop.osm.pbf {pbf}"
+    ]
+  },
+  "areas": {
+    "sf": {
+      "label": "San Francisco, the real city: network, osmium, baked and published by the operator",
+      "network": true,
+      "box": "play",
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "gates": {
+        "s0": { "minRows": { "datasf-footprints": 150000, "datasf-streets": 16000 }, "exactRows": { "datasf-neighborhoods": 41 } },
+        "s2": { "cityHallM": [10, 25], "minM": -130 },
+        "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.05 },
+        "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+      }
+    },
+    "civic-excerpt": {
+      "label": "Committed 1 km2 source excerpt around City Hall (chunks 9/254..257 on both axes): byte-reproducible bakes in CI",
+      "network": false,
+      "box": { "minX": -640, "minZ": -640, "maxX": 384, "maxZ": 384 },
+      "sources": ["datasf-footprints", "datasf-neighborhoods", "datasf-parks", "datasf-trees", "terrarium", "osm"],
+      "gates": {
+        "s0": { "minRows": { "datasf-footprints": 500 }, "exactRows": {} },
+        "s2": { "cityHallM": [10, 25], "minM": -130 },
+        "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.25 },
+        "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+      }
+    },
+    "synth": {
+      "label": "Offline seeded sources in the raw formats over the whole play box: the full-size CI world for M02b1-M02d2. Stamps are authored; QA only, never in assets.lock.json",
+      "network": false,
+      "box": "play",
+      "sources": ["datasf-footprints", "datasf-neighborhoods", "datasf-parks", "datasf-trees", "terrarium", "osm"],
+      "gates": {
+        "s0": { "minRows": { "datasf-footprints": 50000 }, "exactRows": { "datasf-neighborhoods": 41 } },
+        "s2": { "cityHallM": [10, 25], "minM": -130 },
+        "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.01 },
+        "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+      }
+    }
+  }
+}

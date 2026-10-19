@@ -1,0 +1,135 @@
+{
+  "entries": [
+    {
+      "id": "datasf-addresses",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Addresses with Units, EAS (ramy-di5m); used from M02a2",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco"
+    },
+    {
+      "id": "datasf-footprints",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Building Footprints (ynuv-fyni)",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco"
+    },
+    {
+      "id": "datasf-muni-routes",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Muni Routes (9exe-acju); used from M02a2",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco, SFMTA"
+    },
+    {
+      "id": "datasf-muni-stops",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Muni Stops (i28k-bkz6); used from M02a2",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco, SFMTA"
+    },
+    {
+      "id": "datasf-neighborhoods",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Analysis Neighborhoods (j2bu-swwd)",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco"
+    },
+    {
+      "id": "datasf-parks",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Recreation and Parks Properties (gtr9-ntp6)",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco"
+    },
+    {
+      "id": "datasf-streets",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Streets (3psu-pn9h); used from M02a2",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco"
+    },
+    {
+      "id": "datasf-trees",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF Street Tree List (tkzw-k3nq)",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco, SF Public Works"
+    },
+    {
+      "id": "osm",
+      "licence": "ODbL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "source": "OpenStreetMap via Geofabrik NorCal extract and osmium",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "© OpenStreetMap contributors"
+    },
+    {
+      "id": "terrarium",
+      "licence": "LicenseRef-PublicDomain-USGov",
+      "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "3DEP data courtesy of the U.S. Geological Survey"
+    }
+  ],
+  "schema": "attribution-world/1"
+}

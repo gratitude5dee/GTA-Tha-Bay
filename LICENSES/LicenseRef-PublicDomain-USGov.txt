@@ -1,0 +1,18 @@
+U.S. Government works in the public domain (USGS 3DEP and SRTM inside the AWS Terrain Tiles)
+
+LicenseRef-PublicDomain-USGov marks data authored or produced by the U.S. Government that is in the
+U.S. public domain. In this repository it covers the elevation data of the AWS Terrain Tiles
+(Terrarium PNG, s3://elevation-tiles-prod): USGS 3D Elevation Program (3DEP) and SRTM, tiled by
+Mapzen (a Linux Foundation project).
+
+The registry page has no licence URL. It is the citation page:
+https://registry.opendata.aws/terrain-tiles
+
+Credit text shown in the game: "3DEP data courtesy of the U.S. Geological Survey".
+Citation: "Terrain Tiles was accessed on <date> from https://registry.opendata.aws/terrain-tiles".
+
+Sources: research/repos-world.md section 4 (https://registry.opendata.aws/terrain-tiles/,
+https://github.com/tilezen/joerd/blob/master/docs/attribution.md and
+https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits, checked 2026-10-18).
+USGS-authored data is in the U.S. public domain; third-party content inside a USGS service can be
+copyrighted and is not covered by this identifier.

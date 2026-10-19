@@ -1,9 +1,12 @@
 /**
- * map CLI. M01f ships one command:
+ * map CLI.
  *
- *   tsx tools/map/src/cli.ts fixture graybox [--check] [--out <dir>] [--hashes <file>]
+ *   tsx tools/map/src/cli.ts fixture graybox [--check] [--out <dir>] [--hashes <file>]   (M01f)
+ *   tsx tools/map/src/cli.ts build [--area sf|civic-excerpt|synth] [--stage <ids>] [--force] [--repro]   (M02a1)
+ *   tsx tools/map/src/cli.ts fetch [--area sf|civic-excerpt] [--archive] [--fixture]
+ *   tsx tools/map/src/cli.ts pack [--bake <bakeId> | --area <id>] --target dir:<path>|r2:<env>
  *
- * Without --check it writes tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack and hashes.json.
+ * fixture, without --check, writes tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack and hashes.json.
  * With --check it builds both packs in memory, compares their SHA-256 with the committed hashes.json, prints
  * every differing file and exits 1 on a difference.
  */
@@ -12,7 +15,13 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { args } from '../../ci/run.ts';
 import { isMain, sha256Hex, toolsRoot } from '../../ci/lib/common.ts';
+import { runBake, runRepro, isStageId, STAGE_ORDER, type StageId } from './bake.ts';
+import { DIST_ROOT, isAreaId, loadSources } from './config.ts';
 import { encodeGraybox } from './fixtures/graybox.ts';
+import { writeAttribution } from './pack/attribution.ts';
+import { runFetch } from './stages/s0-fetch.ts';
+import { parseTarget, publishPack } from './pack/publish.ts';
+import { failed } from './verify/gates.ts';
 
 export const GRAYBOX_DIR = path.join(toolsRoot, 'tests', 'fixtures', 'world', 'civic-graybox');
 
@@ -64,9 +73,95 @@ export function runFixture(argv: readonly string[]): number {
   return 0;
 }
 
+export async function runFetchCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({
+    args: [...argv],
+    allowPositionals: true,
+    options: { area: { type: 'string', default: 'sf' }, archive: { type: 'boolean', default: false }, fixture: { type: 'boolean', default: false } },
+  });
+  if (!isAreaId(values.area)) {
+    console.error(`map:fetch: unknown area ${values.area} (sf, civic-excerpt or synth)`);
+    return 2;
+  }
+  return runFetch({ area: values.area, archive: values.archive, fixture: values.fixture });
+}
+
+/** The bake directory a bake id, an area name (its latest bake) or nothing (the latest bake) names. */
+export function resolveBake(sel: { bake?: string | undefined; area?: string | undefined }, root = DIST_ROOT): { bakeId: string; dir: string } | string {
+  let bakeId = sel.bake;
+  if (!bakeId) {
+    const f = path.join(root, sel.area ? `latest-${sel.area}.json` : 'latest.json');
+    if (!existsSync(f)) return `no ${path.basename(f)} in ${path.relative(toolsRoot, root)}; run pnpm map:build first`;
+    bakeId = (JSON.parse(readFileSync(f, 'utf8')) as { bakeId: string }).bakeId;
+  }
+  if (!/^[0-9a-f]{64}$/.test(bakeId)) return `bake id must be 64 lowercase hex characters, got ${bakeId}`;
+  const dir = path.join(root, bakeId);
+  return existsSync(path.join(dir, 'bake-report.json')) ? { bakeId, dir } : `no finished bake at ${path.relative(toolsRoot, dir)}`;
+}
+
+export async function runPackCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({
+    args: [...argv],
+    allowPositionals: true,
+    options: { bake: { type: 'string' }, area: { type: 'string' }, target: { type: 'string' } },
+  });
+  const target = values.target ? parseTarget(values.target) : null;
+  if (!target) {
+    console.error('usage: map:pack [-- --bake <bakeId> | --area <id>] --target dir:<path>|r2:staging|r2:prod');
+    return 2;
+  }
+  const sel = resolveBake({ bake: values.bake, area: values.area });
+  if (typeof sel === 'string') {
+    console.error(`map:pack: ${sel}`);
+    return 1;
+  }
+  const r = await publishPack({ bakeDir: sel.dir, target });
+  return r.code;
+}
+
+export async function runBuild(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({
+    args: [...argv],
+    allowPositionals: true,
+    options: {
+      area: { type: 'string', default: 'civic-excerpt' },
+      stage: { type: 'string' },
+      force: { type: 'boolean', default: false },
+      repro: { type: 'boolean', default: false },
+    },
+  });
+  if (!isAreaId(values.area)) {
+    console.error(`map:build: unknown area ${values.area} (sf, civic-excerpt or synth)`);
+    return 2;
+  }
+  let stages: StageId[] | undefined;
+  if (values.stage) {
+    const ids = values.stage.split(',').map((x) => x.trim()).filter(Boolean);
+    const bad = ids.filter((x) => !isStageId(x));
+    if (bad.length > 0) {
+      console.error(`map:build: unknown stage ${bad.join(', ')} (known: ${STAGE_ORDER.join(', ')})`);
+      return 2;
+    }
+    stages = ids as StageId[];
+  }
+  const cfg = loadSources();
+  if (writeAttribution(cfg)) console.log('map:build: regenerated config/attribution.world.json');
+  const opts = { area: values.area, stages, force: values.force };
+  if (values.repro) {
+    const r = await runRepro(opts);
+    return r.ok ? 0 : 1;
+  }
+  const r = await runBake(opts);
+  console.log(r.ok ? `map:build ok: bake ${r.bakeId} in ${path.relative(toolsRoot, r.outDir)}` : `map:build FAIL: ${failed(r.gates).map((g) => g.id).join(', ')}`);
+  return r.ok ? 0 : 1;
+}
+
 if (isMain(import.meta.url)) {
   const [cmd, ...rest] = args();
   if (cmd === 'fixture') process.exit(runFixture(rest));
-  console.error('usage: map <fixture> ...');
+  if (cmd === 'build') process.exit(await runBuild(rest));
+  if (cmd === 'fetch') process.exit(await runFetchCommand(rest));
+  if (cmd === 'pack') process.exit(await runPackCommand(rest));
+  console.error('usage: map <fixture|build|fetch|pack> ...');
   process.exit(2);
 }

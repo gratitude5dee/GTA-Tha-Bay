@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/bake-report.1.json",
+  "title": "dist/world/<bakeId>/bake-report.json (M02a1): counts, gates, sizes; no wall-clock values (stage times go to bake-times.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "bakeId", "area", "toolVersion", "synthetic", "sources", "counts", "terrain", "water", "buildings", "packs", "gates", "ok"],
+  "properties": {
+    "schema": { "const": "bake-report/1" },
+    "bakeId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "area": { "enum": ["sf", "civic-excerpt", "synth"] },
+    "toolVersion": { "type": "string" },
+    "synthetic": { "type": "boolean" },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "sha256", "rows"],
+        "properties": { "id": { "type": "string" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }, "rows": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chunks", "tiles", "packs", "buildings", "trees"],
+      "properties": {
+        "chunks": { "type": "integer", "minimum": 0 }, "tiles": { "type": "integer", "minimum": 0 }, "packs": { "type": "integer", "minimum": 0 },
+        "buildings": { "type": "integer", "minimum": 0 }, "trees": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "terrain": { "type": "object" },
+    "water": { "type": "object" },
+    "buildings": {
+      "type": "object",
+      "required": ["rows", "baked", "dropped", "records", "osm"],
+      "properties": {
+        "osm": {
+          "type": "object",
+          "required": ["added", "ids"],
+          "properties": { "added": { "type": "integer", "minimum": 0 }, "ids": { "type": "array", "items": { "type": "string" } } }
+        }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "bytes", "chunks"],
+        "properties": { "name": { "type": "string" }, "bytes": { "type": "integer", "minimum": 0 }, "chunks": { "type": "integer", "minimum": 1, "maximum": 16 } }
+      }
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "stage", "level", "detail"],
+        "properties": {
+          "id": { "type": "string" }, "stage": { "enum": ["S0", "S2", "S3", "S4", "S13"] }, "level": { "enum": ["pass", "fail", "warn"] }, "detail": { "type": "string" }
+        }
+      }
+    },
+    "ok": { "type": "boolean" }
+  }
+}

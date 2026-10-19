@@ -10,6 +10,10 @@ playwright-report
 dist/assets/
 apps/web/media-local/
 
+# M02a1 map bake: raw cache, stage cache and outputs
+.cache/
+dist/world/
+
 # M00d generated reports (tests/reports/README.md stays)
 tests/reports/*
 !tests/reports/README.md

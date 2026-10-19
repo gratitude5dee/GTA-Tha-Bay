@@ -1,0 +1,89 @@
+{
+  "schema": "world-synth/1",
+  "generator": "synth@1",
+  "seed": 20261018,
+  "land": { "minX": -8700, "minZ": -3000, "maxX": 3200, "maxZ": 8200 },
+  "landPads": [
+    { "id": "lm.pier-39", "kind": "strip", "x": 788, "z": -3391, "width": 160, "length": 560 },
+    { "id": "lm.fort-point", "kind": "strip", "x": -4764, "z": -3237, "width": 160, "length": 400 },
+    { "id": "lm.golden-gate-bridge", "kind": "island", "x": -5218, "z": -4491, "size": 200 },
+    { "id": "lm.alcatraz", "kind": "island", "x": -305, "z": -5263, "size": 200 },
+    { "id": "lm.bay-bridge-ybi", "kind": "island", "x": 4722, "z": -3359, "size": 200 },
+    { "id": "lm.treasure-island", "kind": "island", "x": 4306, "z": -4940, "size": 200 },
+    { "id": "lm.hunters-point-yard", "kind": "island", "x": 5218, "z": 5590, "size": 200 },
+    { "id": "lm.candlestick-point", "kind": "island", "x": 3425, "z": 6894, "size": 200 }
+  ],
+  "piers": [
+    { "id": "pier-a", "kind": "line", "x0": 3150, "z0": -1500, "x1": 3480, "z1": -1500, "width": 24 },
+    { "id": "pier-b", "kind": "line", "x0": 3150, "z0": -1100, "x1": 3400, "z1": -1100, "width": 18 },
+    { "id": "pier-c", "kind": "polygon", "minX": 3150, "minZ": -700, "maxX": 3360, "maxZ": -640 }
+  ],
+  "terrain": {
+    "landFloorM": 2,
+    "cityHallM": 17.6,
+    "hills": [
+      { "id": "twin-peaks", "x": -2492, "z": 2985, "amp": 260, "sigma": 550 },
+      { "id": "mount-davidson", "x": -2995, "z": 4555, "amp": 270, "sigma": 600 },
+      { "id": "sutro", "x": -2974, "z": 2670, "amp": 200, "sigma": 450 },
+      { "id": "nob-hill", "x": 511, "z": -1390, "amp": 90, "sigma": 400 },
+      { "id": "russian-hill", "x": 44, "z": -2531, "amp": 80, "sigma": 350 },
+      { "id": "telegraph-hill", "x": 1186, "z": -2562, "amp": 70, "sigma": 250 },
+      { "id": "bernal", "x": -170, "z": 4300, "amp": 80, "sigma": 500 },
+      { "id": "potrero", "x": 1500, "z": 2800, "amp": 70, "sigma": 450 },
+      { "id": "presidio-ridge", "x": -3800, "z": -1800, "amp": 60, "sigma": 700 }
+    ],
+    "padHillM": 12,
+    "padHillSigmaM": 50,
+    "seabedM": -12
+  },
+  "parks": [
+    { "id": "golden-gate-park", "name": "Golden Gate Park", "minX": -7900, "minZ": 700, "maxX": -3300, "maxZ": 1400 },
+    { "id": "presidio", "name": "Presidio", "minX": -4200, "minZ": -2800, "maxX": -2600, "maxZ": -1600 },
+    { "id": "dolores", "name": "Dolores Park", "minX": -800, "minZ": 2100, "maxX": -500, "maxZ": 2400 },
+    { "id": "mclaren", "name": "McLaren Park", "minX": 1000, "minZ": 6200, "maxX": 1900, "maxZ": 7000 },
+    { "id": "buena-vista", "name": "Buena Vista Park", "minX": -2500, "minZ": 1000, "maxX": -2200, "maxZ": 1300 },
+    { "id": "alamo-square", "name": "Alamo Square", "minX": -1000, "minZ": 200, "maxX": -800, "maxZ": 400 }
+  ],
+  "landuse": [
+    { "cls": "commercial", "minX": 1300, "minZ": -1900, "maxX": 2800, "maxZ": 900 },
+    { "cls": "industrial", "minX": 1500, "minZ": 4500, "maxX": 3200, "maxZ": 8000 },
+    { "cls": "residential", "minX": -8600, "minZ": -1800, "maxX": -500, "maxZ": 8000 },
+    { "cls": "grass", "minX": -4200, "minZ": -2900, "maxX": -3200, "maxZ": -2700 },
+    { "cls": "beach", "minX": -8700, "minZ": -2900, "maxX": -8640, "maxZ": 8100 },
+    { "cls": "plaza", "minX": -120, "minZ": -160, "maxX": 120, "maxZ": -40 },
+    { "cls": "cliff", "minX": -8300, "minZ": -300, "maxX": -8000, "maxZ": 100 }
+  ],
+  "buildings": {
+    "downtown": { "chunkX": [264, 265], "chunkY": [250, 253], "perChunk": 1500 },
+    "dense": { "boxes": [{ "minX": 1300, "minZ": -1900, "maxX": 2800, "maxZ": 900 }, { "minX": -1200, "minZ": -1200, "maxX": 1200, "maxZ": 1200 }], "perChunk": 150 },
+    "bulk": { "perChunk": 25 },
+    "civicSites": [
+      { "id": "city-hall", "x": 4, "z": 1, "w": 70, "d": 50, "h": 42, "tag": "townhall" },
+      { "id": "opera-house", "x": -144, "z": 84, "w": 60, "d": 40, "h": 30, "tag": "civic" },
+      { "id": "grace-cathedral", "x": 511, "z": -1390, "w": 40, "d": 70, "h": 45, "tag": "cathedral" },
+      { "id": "school-a", "x": -1500, "z": 600, "w": 50, "d": 30, "h": 12, "tag": "school" },
+      { "id": "hospital-a", "x": -2200, "z": 3500, "w": 60, "d": 40, "h": 38, "tag": "hospital" },
+      { "id": "church-a", "x": -3000, "z": 2000, "w": 20, "d": 40, "h": 14, "tag": "church" }
+    ],
+    "osmTowers": [
+      { "id": "osm-tower-a", "x": 2600, "z": -1000, "w": 40, "d": 40, "heightM": 190 },
+      { "id": "osm-tower-b", "x": 2700, "z": -1300, "w": 36, "d": 36, "heightM": 150 },
+      { "id": "osm-tower-c", "x": 1700, "z": 200, "w": 32, "d": 32, "heightM": 128 }
+    ],
+    "osmGapFill": { "count": 40, "box": { "minX": -6000, "minZ": 2000, "maxX": -3000, "maxZ": 4000 } },
+    "palette": 16
+  },
+  "trees": { "perChunk": 8 },
+  "neighbourhoods": {
+    "cols": 7,
+    "rows": 6,
+    "names": [
+      "Lincoln Park", "Seacliff", "Presidio", "Marina", "Russian Hill", "North Beach", "Financial District/South Beach",
+      "Outer Richmond", "Inner Richmond", "Presidio Heights", "Pacific Heights", "Nob Hill", "Chinatown", "South of Market",
+      "Golden Gate Park", "Lone Mountain/USF", "Western Addition", "Japantown", "Tenderloin", "Hayes Valley", "Mission Bay",
+      "Inner Sunset", "Haight Ashbury", "Castro/Upper Market", "Mission", "Potrero Hill", "Treasure Island", "Twin Peaks",
+      "Sunset/Parkside", "West of Twin Peaks", "Noe Valley", "Glen Park", "Bernal Heights", "Bayview Hunters Point", "Visitacion Valley",
+      "Lakeshore", "Oceanview/Merced/Ingleside", "Excelsior", "Outer Mission", "Portola", "McLaren Park"
+    ]
+  }
+}
