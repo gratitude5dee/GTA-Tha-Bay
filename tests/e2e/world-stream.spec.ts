@@ -98,6 +98,12 @@ test.describe('world streaming @world', () => {
   }
 
   test.describe('faults', () => {
+    // Playwright routes every request a page, a dedicated worker or a service worker makes on Chromium. On WebKit it stops seeing the
+    // asset worker's fetches once the app's service worker has activated (about two seconds into the boot): the SW's own upstream
+    // requests are not routable there, so the fourth attempt of a failing pack would go through. The faults are injected on the
+    // network path under the pack store (the layer these specs prove), so the SW is kept out of the way on every engine alike.
+    test.use({ serviceWorkers: 'block' });
+
     /** The object key the catalog gives a world pack, read the way the pack-store spec reads it. */
     async function keyOf(request: APIRequestContext, ref: string): Promise<string> {
       const get = async <T>(rel: string): Promise<T> => {
@@ -137,15 +143,23 @@ test.describe('world streaming @world', () => {
 
       await bootWorld(page, 'desktop');
       await revealed(page);
-      // Force the sim to want the east tile.
-      expect(await act(page, { t: 'debug.teleport', pos: [1400, 60, 500] })).toBe(true);
+      // Force the sim to want the east tile. The destination is above the wall (the wall is a box 600 m tall from 100 m below the
+      // sea, so its top is at 500 m): the ground probe finds the failed tile's wall and the player is put on top of it.
+      const WALL_TOP_M = 500;
+      const above: [number, number, number] = [1400, WALL_TOP_M + 20, 500];
+      await act(page, { t: 'debug.teleport', pos: above });
       await expect.poll(async () => (await world(page, (w) => w.chunks())).sim.failed, { timeout: 120_000 }).toBeGreaterThanOrEqual(1);
       expect(p0.hits()).toBeGreaterThanOrEqual(2); // the fetch and the one refetch of the store
       await expect.poll(() => l0.hits(), { timeout: 120_000 }).toBeGreaterThanOrEqual(9); // the outage ends and the l0 comes back
-      // The player does not fall through the failed tile: its wall holds the capsule at or above the tile edge.
-      await page.waitForTimeout(1500);
+      // The teleport waits for colliders for a bounded time, which a slow engine can outlast while the pack is still being refetched:
+      // ask again now that the tile has failed (a request made while one is in flight is refused, so it is repeated until accepted).
+      await expect.poll(() => act(page, { t: 'debug.teleport', pos: above }), { timeout: 120_000, intervals: [500, 1000, 2000] }).toBe(true);
+      // The player does not fall through the failed tile: its wall holds the capsule at the tile edge. The check counts sim ticks and
+      // not wall time (a software renderer ticks far slower than 60 Hz): 3 s of sim time unsupported is a fall of about 44 m.
+      const tick0 = (await observe(page)).stats.tick;
+      await expect.poll(async () => (await observe(page)).stats.tick - tick0, { timeout: 240_000, intervals: [500, 1000, 2000] }).toBeGreaterThanOrEqual(180);
       const y = (await observe(page)).player?.pos[1] ?? -1e9;
-      expect(y).toBeGreaterThan(-5);
+      expect(y).toBeGreaterThan(WALL_TOP_M - 5);
       expect(errors).toEqual([]);
     });
 
