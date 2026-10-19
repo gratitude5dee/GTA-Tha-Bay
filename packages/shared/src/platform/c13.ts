@@ -1,8 +1,8 @@
 /**
  * C13 platform contract, version 1.1.0. Sections 4.1 and 4.2 of spec/domains/11-platform.md are copied
  * without changes. The 4.6 types that QualityService refers to (DeviceSignals, DeviceProfile, TierDecision,
- * PlatformSettings) follow so the file compiles; classifyDevice is implemented in M01c, so only its type
- * is declared here (Builder decision BD-M00-04). Owner: S11. Change only through the Architect.
+ * PlatformSettings) follow so the file compiles. M01c completes section 4.6 (the 1.1 `dev?` member of PlatformSettings);
+ * classifyDevice lives in classify.ts, PerfScenario and PerfReport in perf.ts. Owner: S11. Change only through the Architect.
  */
 
 // packages/shared/src/platform/c13.ts
@@ -180,7 +180,7 @@ export interface TierDecision {
   build: string; uaHash: string; adapterHash: string; c13: typeof C13_VERSION;
   benchmark?: BenchmarkResult;
 }
-export type ClassifyDevice = (s: DeviceSignals) => DeviceProfile; // pure; no globals; implemented in M01c
+export type ClassifyDevice = (s: DeviceSignals) => DeviceProfile; // pure; no globals; implemented in classify.ts (M01c)
 
 export interface PlatformSettings {
   v: 1;
@@ -191,5 +191,7 @@ export interface PlatformSettings {
   foveation: 'auto' | 0 | 0.25 | 0.5 | 0.75 | 1;
   dataSaver: boolean;                         // video rendition, prefetch limits
   telemetryConsent: { diagnostics: boolean; analytics: boolean }; // C16 consent; read at boot, before any save profile loads
+  /** C13 1.1 (11-platform-pwa.md section 11): developer loop for mods, never a URL flag. */
+  dev?: { mod: { enabled: boolean; port: number } };
 }
 // XR comfort is a player preference and lives in C05: ProfileSettings.xr = XrComfortSettings & { heightCalibM } (Part B §4.2).

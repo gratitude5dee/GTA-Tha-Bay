@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>Memory bomb</title>
+    <style>
+      body { font: 15px/1.5 ui-monospace, monospace; margin: 16px; background: #10141c; color: #e6e9ef; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+      button { font: inherit; padding: 8px 16px; margin-right: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Memory bomb</h1>
+    <p>Allocates 64 MB per step (ArrayBuffers, then DataTextures) and writes the running total to <code>localStorage['dv.membomb']</code> before each step. On iPhone the system ends the page near its limit; relaunch this page to read the last total.</p>
+    <p><button id="start" type="button">Start</button><button id="stop" type="button">Stop</button><button id="clear" type="button">Clear total</button></p>
+    <pre id="out" data-testid="out">starting</pre>
+    <script type="module" src="/qa/memory-bomb.ts"></script>
+  </body>
+</html>

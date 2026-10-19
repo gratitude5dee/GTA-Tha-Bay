@@ -1,0 +1,25 @@
+{
+  "v": 1,
+  "build": "fixture",
+  "c13": "1.1.0",
+  "createdAt": 1800000000000,
+  "device": {
+    "class": "iphone",
+    "browser": "safari",
+    "model": "iPhone 15 (fixture, over budget)",
+    "uaHash": "0123456789abcdef",
+    "adapter": null,
+    "displayMode": "standalone",
+    "refreshHz": 60
+  },
+  "tier": "mobile-low",
+  "backend": "webgl2",
+  "governor": "off",
+  "scenario": { "id": "graybox-walk", "pathRef": "config/perf/paths/graybox-walk.json", "durationS": 600, "warmupS": 5, "seed": 12648430, "density": "off" },
+  "frames": { "count": 14000, "medianMs": 41.7, "p95Ms": 61.3, "p99Ms": 88.0, "maxMs": 410.2, "over50ms": 37, "over2xBudget": 12 },
+  "counts": { "renderObjectsMax": 131, "renderObjectsP95": 120, "gpuDrawCmdsMax": 340, "trianglesMax": 702000, "texturesMB": 301.0, "gpuResourcesMB": 118.2 },
+  "memory": { "accountedHeapMBMax": 96.4, "mediaMBMax": 0, "webContentEstMB": null },
+  "dynamic": { "minRenderScale": 1, "downgrades": 0, "upgrades": 0, "tierChanges": 0 },
+  "boot": { "warmBootToPlayableS": 21.5, "coldDownloadMB": null },
+  "errors": { "gpuLost": 1, "uncaptured": 0, "js": 0 }
+}

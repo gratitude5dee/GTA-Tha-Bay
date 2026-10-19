@@ -1,0 +1,19 @@
+{
+  "$id": "tier-decision.v1",
+  "$comment": "11-platform.md 4.6. Validated at runtime when read from IndexedDB dv-platform/tier-decision; a mismatch means ignore and re-run the benchmark.",
+  "type": "object",
+  "required": ["v", "tier", "source", "decidedAt", "build", "uaHash", "adapterHash", "c13"],
+  "properties": {
+    "v": { "const": 1 },
+    "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
+    "source": {
+      "enum": ["auto-provisional", "auto-benchmark", "user-override", "url-override", "abnormal-exit-demotion", "governor-demotion", "xr-session", "memory-pressure"]
+    },
+    "decidedAt": { "type": "integer", "minimum": 0 },
+    "build": { "type": "string" },
+    "uaHash": { "type": "string" },
+    "adapterHash": { "type": "string" },
+    "c13": { "type": "string", "pattern": "^1\\." },
+    "benchmark": { "type": "object" }
+  }
+}

@@ -1,10 +1,12 @@
-import { collectDiagnosticSignals, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { bootEngine } from '@dv/engine/client/boot';
-import { mountShell, t } from '@dv/ui';
+import { mountShell, t, type ShellProps } from '@dv/ui';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
 
-const BUILD = import.meta.env.VITE_DV_QA === '1' ? 'qa' : 'prod';
+const QA = import.meta.env.VITE_DV_QA === '1';
+// Tier decisions are re-run when the build changes (11-platform.md section 5.3); vite.config.ts sets VITE_DV_BUILD.
+const BUILD = import.meta.env.VITE_DV_BUILD ?? (QA ? 'qa' : 'prod');
 const flags = parseQaFlags(location.search);
 
 const root = document.getElementById('app');
@@ -14,59 +16,104 @@ const update = 'serviceWorker' in navigator
   ? createPwaUpdateController({ container: navigator.serviceWorker, reload: () => location.reload() })
   : null;
 
-mountShell(root, {
+const shellProps = (unsupported: boolean): ShellProps => ({
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
-  unsupported: flags.unsupported,
+  unsupported,
   update,
   initialPath: location.pathname,
 });
+mountShell(root, shellProps(flags.unsupported));
 
-// The engine: sim.worker with one Rapier build, the transport, and the debug cube view in the page corner.
-// Skipped on the unsupported screen. The GPU probe and the XR emulation page drive their own renderer, so the
-// engine runs without a view there.
-if (!flags.unsupported && typeof Worker !== 'undefined') {
-  const host = document.createElement('div');
-  host.id = 'dv-engine';
-  document.body.append(host);
-  bootEngine({
-    container: host,
-    qa: import.meta.env.VITE_DV_QA === '1',
-    flags,
-    ...(flags.profile ? { profile: flags.profile } : {}),
-    labels: { recovering: t('engine.recovering') },
-    headless: flags.xrEmulate !== null || flags.probe !== null,
-  })
-    .then(async (engine) => {
-      // QA builds only: window.__dvBridge.engine. The literal comparison lets production builds drop the branch.
-      if (import.meta.env.VITE_DV_QA === '1') {
-        const { installEngineBridge } = await import('@dv/engine/client/debug/bridge');
-        installEngineBridge(engine);
-        document.documentElement.dataset.dvEngine = 'ready';
-      }
-    })
-    .catch((error: unknown) => console.error('engine failed to start', error));
+/** The reload prompt after a second device loss (11-platform.md section 5.8). */
+function showReloadPrompt(): void {
+  if (document.getElementById('dv-reload-prompt')) return;
+  const box = document.createElement('div');
+  box.id = 'dv-reload-prompt';
+  box.className = 'dv-engine-banner';
+  box.setAttribute('role', 'alertdialog');
+  const text = document.createElement('span');
+  text.textContent = `${t('engine.reload')} `;
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = t('engine.reload.action');
+  button.addEventListener('click', () => location.reload());
+  box.append(text, button);
+  document.body.append(box);
 }
 
-// QA builds only: the GPU and XR probe and window.__dvBridge. The literal comparison lets production
-// builds drop the whole branch, including three and the IWER emulator.
-if (import.meta.env.VITE_DV_QA === '1') {
-  void import('@dv/engine/platform/probe').then(async ({ installPlatformBridge }) => {
-    const bridge = installPlatformBridge(flags, () => {
-      const canvas = document.createElement('canvas');
-      canvas.id = 'dv-probe-canvas';
-      canvas.width = 64;
-      canvas.height = 64;
-      canvas.hidden = true;
-      document.body.append(canvas);
-      return canvas;
+// The platform (device probe, tier decision, renderer host, telemetry) and the engine (sim.worker, Rapier, the debug cube
+// view on the host's scene). Skipped on the unsupported screen. WebGL2 failing as well shows the unsupported page.
+async function boot(): Promise<void> {
+  const container = document.createElement('div');
+  container.id = 'dv-engine';
+  document.body.append(container);
+  const canvas = document.createElement('canvas');
+  canvas.id = 'dv-engine-canvas';
+  canvas.className = flags.debug ? 'dv-engine-canvas dv-engine-canvas--play' : 'dv-engine-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  container.append(canvas);
+
+  // QA builds only: the IWER emulator has to exist before the device probe and the renderer. The literal comparison lets
+  // production builds drop the branch, including the emulator.
+  if (import.meta.env.VITE_DV_QA === '1' && flags.xrEmulate !== null) {
+    const { installIwer } = await import('@dv/engine/platform/probe');
+    await installIwer();
+  }
+
+  let platform;
+  try {
+    platform = await createPlatform({
+      canvas,
+      flags,
+      build: BUILD,
+      events: {
+        unsupported: () => mountShell(root as HTMLElement, shellProps(true)),
+        reloadPrompt: showReloadPrompt,
+      },
     });
+  } catch (error) {
+    console.error('platform failed to start', error);
+    mountShell(root as HTMLElement, shellProps(true));
+    return;
+  }
+
+  // The XR emulation page and the GPU probe drive the host themselves, so the engine runs without a view there.
+  const headless = flags.xrEmulate !== null || flags.probe !== null;
+  const engine = await bootEngine({
+    container,
+    qa: QA,
+    flags,
+    host: platform.host,
+    tier: platform.quality.tier.id,
+    ...(flags.profile ? { profile: flags.profile } : {}),
+    labels: { recovering: t('engine.recovering') },
+    headless,
+  }).catch((error: unknown) => {
+    console.error('engine failed to start', error);
+    return null;
+  });
+  if (engine) platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
+
+  // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
+  if (import.meta.env.VITE_DV_QA === '1') {
+    const [{ installEngineBridge }, { installPlatformBridge }] = await Promise.all([
+      import('@dv/engine/client/debug/bridge'),
+      import('@dv/engine/platform/probe'),
+    ]);
+    if (engine) installEngineBridge(engine);
+    document.documentElement.dataset.dvEngine = 'ready';
+    const bridge = installPlatformBridge(platform, flags);
+    // ?scenario=<id> starts that perf scenario at boot (path duration).
+    if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {
       const result = await bridge.gpuProbe();
       console.info('dv-gpu-probe', JSON.stringify(result));
       document.documentElement.dataset.dvProbe = 'done';
     }
-  });
+  }
 }
+
+if (!flags.unsupported && typeof Worker !== 'undefined') void boot();
 
 if (update && import.meta.env.PROD) {
   addEventListener('load', () => {

@@ -1,0 +1,33 @@
+{
+  "id": "M01c-quest3",
+  "milestone": "M01c",
+  "device": "Meta Quest 3 and 3S, current Quest Browser; flat page only (the XR session is M11b1). Records the signals, the backend and the adapter",
+  "urlTemplate": "https://<preview>/?perf=1",
+  "steps": [
+    {
+      "id": "1-open",
+      "instruction": "In Quest Browser open <preview>/?perf=1. The HUD must show a flat tier (the XR-capable provisional tier is mobile-low) and the backend. Expected backend: webgl2 (the xr-quest policy forces WebGL2). Write the backend and the HUD tier in notes.json observations."
+    },
+    {
+      "id": "2-signals",
+      "instruction": "Tap Export. In notes.json check signals.hasNavigatorXr (true), signals.immersiveVrSupported (true), signals.hasXrGpuBinding and signals.adapter (note vendor, architecture, description). If Export does not download in the headset browser, copy the output of JSON.stringify(__dvBridge.platform.signals()) from the remote DevTools console (chrome://inspect on the Mac)."
+    },
+    {
+      "id": "3-fixture",
+      "instruction": "Copy 'signals' from notes.json into tools/ci/fixtures/ua/quest-browser.json (set synthetic to false, keep the expect block: class quest, headset quest, provisional tier mobile-low). Run pnpm check:unit -- packages/shared: the fixture must still pass AC-2."
+    },
+    {
+      "id": "4-walk",
+      "instruction": "Tap 'Run 10 min' on the HUD and leave the browser window in view for 10 minutes (flat page, not an XR session).",
+      "expect": [
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "5-export",
+      "instruction": "Tap Export; save to docs/device-spike/M01c/quest3/. Record in the report: backend actually selected, adapter summary (navigator.gpu present or not on this browser), UA string, rafHz (72 or 90)."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

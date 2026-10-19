@@ -3,7 +3,8 @@ import type { QualityTierId, SimProfile } from '@dv/shared';
 /**
  * The single parser for QA URL flags (11-platform-perf.md section 4).
  * It parses nothing unless the build is a QA build (VITE_DV_QA === '1'); production builds ignore every flag.
- * M00 handles ?gl=1, ?tier=, ?xr-emulate=quest3, ?probe=gpu and ?unsupported=1.
+ * M00 handles ?gl=1, ?tier=, ?xr-emulate=quest3, ?probe=gpu and ?unsupported=1; M01c adds ?gpu=1, ?perf=1, ?governor=off
+ * (parsed, inert until M11a), ?limits= and ?scenario= (the platform flags of 11-platform-perf.md section 4).
  */
 export interface QaFlags {
   readonly enabled: boolean;
@@ -23,6 +24,16 @@ export interface QaFlags {
   readonly transport: 'postMessage' | null;
   /** ?debug=1 makes the engine canvas fill the window and take input (M01b1: the play view for the controller demo). */
   readonly debug: boolean;
+  /** ?gpu=1 forces the WebGPU backend (device spikes, QA only). */
+  readonly gpu: boolean;
+  /** ?perf=1 shows the PerfHud. */
+  readonly perf: boolean;
+  /** ?governor=off disables the runtime governor. Parsed and inert until M11a. */
+  readonly governor: 'off' | null;
+  /** ?limits=name:value lowers adapter limits for weak-device emulation. */
+  readonly limits: Readonly<Record<string, number>>;
+  /** ?scenario=<id> starts a perf scenario at boot. */
+  readonly scenario: string | null;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -35,6 +46,11 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   profile: null,
   transport: null,
   debug: false,
+  gpu: false,
+  perf: false,
+  governor: null,
+  limits: Object.freeze({}),
+  scenario: null,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -45,6 +61,20 @@ const TIER_IDS: readonly QualityTierId[] = [
   'xr-quest',
   'xr-visionpro',
 ];
+
+/** Parses `?limits=maxBufferSize:268435456,maxTextureDimension2D:4096` into name/value pairs; malformed pairs are skipped. */
+export function parseLimits(value: string | null): Readonly<Record<string, number>> {
+  const out: Record<string, number> = {};
+  if (!value) return out;
+  for (const pair of value.split(',')) {
+    const i = pair.indexOf(':');
+    if (i <= 0) continue;
+    const name = pair.slice(0, i).trim();
+    const n = Number(pair.slice(i + 1));
+    if (/^[A-Za-z0-9]+$/.test(name) && Number.isFinite(n) && n >= 0) out[name] = n;
+  }
+  return out;
+}
 
 export function isQaBuild(): boolean {
   return import.meta.env.VITE_DV_QA === '1';
@@ -64,5 +94,10 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     profile: q.get('profile') === 'canonical' ? 'canonical' : q.get('profile') === 'local' ? 'local' : null,
     transport: q.get('transport') === 'pm' ? 'postMessage' : null,
     debug: q.get('debug') === '1',
+    gpu: q.get('gpu') === '1',
+    perf: q.get('perf') === '1',
+    governor: q.get('governor') === 'off' ? 'off' : null,
+    limits: parseLimits(q.get('limits')),
+    scenario: q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null,
   };
 }

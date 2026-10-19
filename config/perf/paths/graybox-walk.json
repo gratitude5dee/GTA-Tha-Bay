@@ -1,0 +1,14 @@
+{
+  "$comment": "M01c camera path for the pre-world scenario 'graybox-walk' (11-platform-perf.md section 4, DL-065): a 60 m orbit of the ENU origin (SF City Hall), 120 s, seed 0xC0FFEE. ENU metres: +X east, +Y up, -Z north. The start phase of the orbit comes from the seed.",
+  "id": "graybox-walk",
+  "kind": "orbit",
+  "centerEnu": [0, 0, 0],
+  "radiusM": 60,
+  "heightM": 18,
+  "lookAtEnu": [0, 1, 0],
+  "periodS": 120,
+  "durationS": 120,
+  "warmupS": 5,
+  "seed": 12648430,
+  "density": "off"
+}

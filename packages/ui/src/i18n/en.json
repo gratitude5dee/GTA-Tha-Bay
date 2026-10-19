@@ -36,5 +36,7 @@
   "update.ready": "A new version is ready.",
   "update.apply": "Update now",
   "update.later": "Later",
-  "engine.recovering": "Recovering…"
+  "engine.recovering": "Recovering…",
+  "engine.reload": "The graphics device was lost twice. Reload to continue.",
+  "engine.reload.action": "Reload"
 }

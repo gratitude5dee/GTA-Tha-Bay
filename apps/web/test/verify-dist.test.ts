@@ -85,4 +85,19 @@ describe('verify:dist (AC-11)', () => {
     writeFileSync(path.join(dir, 'assets/rapier-simd-b2.js'), 'import("@dimforge/rapier3d-deterministic-compat")');
     expect(verifyDist(dir).some((m) => m.includes('mentions the deterministic build'))).toBe(true);
   });
+
+  it('fails on a memory-bomb file or code and on PerfHud code (M01c AC-11)', () => {
+    const dir = goodDist();
+    writeFileSync(path.join(dir, 'assets/memory-bomb-f6.js'), 'x');
+    expect(verifyDist(dir).some((m) => m.includes('memory-bomb file in dist'))).toBe(true);
+    const dir2 = goodDist();
+    writeFileSync(path.join(dir2, 'assets/main-a1.js'), 'localStorage.setItem("dv.membomb","64")');
+    expect(verifyDist(dir2).some((m) => m.includes('memory-bomb code found in assets/main-a1.js'))).toBe(true);
+    const dir3 = goodDist();
+    writeFileSync(path.join(dir3, 'assets/main-a1.js'), 'class PerfHud{}');
+    expect(verifyDist(dir3).some((m) => m.includes('PerfHud code found in assets/main-a1.js'))).toBe(true);
+    const dir4 = goodDist();
+    writeFileSync(path.join(dir4, 'assets/main-a1.js'), 'el.id="dv-perf-hud"');
+    expect(verifyDist(dir4).some((m) => m.includes('PerfHud code found'))).toBe(true);
+  });
 });

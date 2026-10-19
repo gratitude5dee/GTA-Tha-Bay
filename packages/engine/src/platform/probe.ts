@@ -1,12 +1,18 @@
-import type { RenderBackend } from '@dv/shared';
+import type { DeviceSignals, PerfReport, QualityTierId, RenderBackend } from '@dv/shared';
 import type { EngineBridge } from '../client/debug/bridge.ts';
+import type { Platform } from './create-platform.ts';
+import { buildNotes, exportReport } from './perf/export.ts';
+import { PerfHud } from './perf/hud.ts';
+import { RenderBudgetMeter } from './perf/meter.ts';
+import type { MemoryCounters } from './perf/probe.ts';
+import { PerfScenarioRunner, type RunInfo } from './perf/scenario-runner.ts';
 import type { QaFlags } from './qa-flags.ts';
-import { RendererHost, THREE_REVISION } from './renderer-host.ts';
+import { THREE_REVISION } from './renderer-host.ts';
 
 /**
- * QA-only GPU and XR probe. Reachable only through a dynamic import guarded by
- * `import.meta.env.VITE_DV_QA === '1'` in the app entry, so production builds contain neither this file,
- * `three`, nor the IWER emulator. Publishes `window.__dvBridge.platform` (11-platform-perf.md section 3).
+ * QA-only GPU, XR and perf bridge. Reachable only through a dynamic import guarded by `import.meta.env.VITE_DV_QA === '1'`
+ * in the app entry, so production builds contain neither this file, the PerfHud, nor the IWER emulator. Publishes
+ * `window.__dvBridge.platform` (11-platform-perf.md section 3).
  */
 export interface GpuProbeResult {
   navigatorGpu: boolean;
@@ -37,9 +43,27 @@ export interface XrState {
 }
 
 export interface PlatformBridge {
-  /** Backend of the renderer if one exists; null before the first probe. */
+  /** Backend of the renderer if one exists; null before the platform is up. */
   backend(): RenderBackend | null;
+  /** The active quality tier. */
+  tier(): QualityTierId;
+  /** Requests a tier change; resolves when applied (a safe point is open in M01c). */
+  setTier(id: QualityTierId): Promise<void>;
+  /** `reversed` or `standard` (C04 rule 3). */
+  depthPolicy(): 'reversed' | 'standard';
+  /** The raw device signals the profile was classified from. */
+  signals(): DeviceSignals;
+  /** Counters from `renderer.info.memory` plus registered wasm bytes. */
+  memory(): MemoryCounters;
   gpuProbe(): Promise<GpuProbeResult>;
+  perf: {
+    run(id: string, opts?: { durationS?: number; warmupS?: number }): Promise<PerfReport>;
+    report(): PerfReport | null;
+    /** Meter-versus-renderer.info maxima of the last run (AC-6). */
+    info(): RunInfo | null;
+    /** Live meter reading of the scene being drawn now. */
+    live(): { renderObjects: number; triangles: number };
+  };
   xr: {
     enterForTest(): Promise<void>;
     state(): XrState;
@@ -72,9 +96,11 @@ function errorMessage(e: unknown): string {
   return e instanceof Error ? `${e.name}: ${e.message}` : String(e);
 }
 
-async function readAdapter(): Promise<Pick<GpuProbeResult, 'navigatorGpu' | 'adapter' | 'vendor' | 'architecture' | 'device' | 'description' | 'isFallbackAdapter' | 'features' | 'limits'>> {
+type AdapterRead = Pick<GpuProbeResult, 'navigatorGpu' | 'adapter' | 'vendor' | 'architecture' | 'device' | 'description' | 'isFallbackAdapter' | 'features' | 'limits'>;
+
+async function readAdapter(): Promise<AdapterRead> {
   const gpu = (navigator as unknown as { gpu?: GpuLike }).gpu;
-  const empty = {
+  const empty: AdapterRead = {
     navigatorGpu: gpu !== undefined,
     adapter: false,
     vendor: null,
@@ -82,8 +108,8 @@ async function readAdapter(): Promise<Pick<GpuProbeResult, 'navigatorGpu' | 'ada
     device: null,
     description: null,
     isFallbackAdapter: null,
-    features: [] as string[],
-    limits: {} as Record<string, number>,
+    features: [],
+    limits: {},
   };
   if (!gpu) return empty;
   const a = await gpu.requestAdapter();
@@ -106,43 +132,81 @@ async function readAdapter(): Promise<Pick<GpuProbeResult, 'navigatorGpu' | 'ada
   };
 }
 
-/** Installs the IWER Quest 3 emulator. Must run before the renderer is constructed. */
-async function installIwer(): Promise<void> {
+/** Installs the IWER Quest 3 emulator. Must run before the device probe and the renderer are created. */
+export async function installIwer(): Promise<void> {
   const { XRDevice, metaQuest3 } = await import('iwer');
   const device = new XRDevice(metaQuest3);
   // forceInstall: Chromium has a native navigator.xr, which IWER otherwise leaves in place.
   device.installRuntime({ forceInstall: true });
 }
 
-export function installPlatformBridge(flags: QaFlags, canvas: () => HTMLCanvasElement): PlatformBridge {
-  let hostPromise: Promise<RendererHost> | null = null;
-  let host: RendererHost | null = null;
-  let hostError: string | null = null;
+export function installPlatformBridge(platform: Platform, flags: QaFlags): PlatformBridge {
+  const host = platform.host;
   let lastProbe: GpuProbeResult | null = null;
   let xrError: string | null = null;
   let xrMode: string | null = null;
 
-  const getHost = (): Promise<RendererHost> => {
-    hostPromise ??= (async () => {
-      if (flags.xrEmulate === 'quest3') await installIwer();
-      // The Quest policy renders XR on the WebGL2 backend (11-platform.md section 4.3).
-      const h = await RendererHost.create({
-        canvas: canvas(),
-        forceWebGL: flags.gl || flags.xrEmulate !== null,
-        xr: flags.xrEmulate !== null,
-      });
-      host = h;
-      return h;
-    })();
-    return hostPromise;
-  };
+  const runner = new PerfScenarioRunner({
+    host,
+    tier: () => platform.quality.tier,
+    profile: platform.profile,
+    build: platform.build,
+    now: () => Date.now(),
+    wasm: new Map(),
+    errors: () => ({ gpuLost: platform.errors.counts.gpuLost, uncaptured: platform.errors.counts.uncaptured, js: platform.errors.counts.js }),
+  });
 
-  const bridge: PlatformBridge = {
-    backend: () => host?.backend ?? null,
+  // Live meter: walks the scene being drawn, once per frame, while the HUD or a bridge reader needs it.
+  const liveMeter = new RenderBudgetMeter(600);
+  let live = { renderObjects: 0, triangles: 0 };
+  let liveOn = flags.perf;
+  host.addFrameListener({
+    after: () => {
+      if (!liveOn || runner.isRunning) return;
+      const a = host.active;
+      live = liveMeter.measure(a.scene, a.camera);
+    },
+  });
+
+  // Declared below; the HUD buttons call it after the bridge exists.
+  // eslint-disable-next-line prefer-const
+  let bridge: PlatformBridge;
+
+  if (flags.perf) {
+    const hud = new PerfHud({
+      read: () => ({
+        tier: platform.quality.tier.id,
+        backend: host.backend,
+        frameMs: platform.sampler.probe,
+        renderObjects: live.renderObjects,
+        triangles: live.triangles,
+        memory: platform.memory(),
+        governor: 'off',
+        running: runner.isRunning,
+      }),
+      onRun: (durationS) => {
+        void bridge.perf.run(flags.scenario ?? 'graybox-walk', { durationS }).catch((e: unknown) => console.warn('perf run failed', e));
+      },
+      onExport: () => {
+        void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals }).then((notes) =>
+          exportReport(runner.report(), notes),
+        );
+      },
+    });
+    void hud;
+  }
+
+  bridge = {
+    backend: () => (host.ready ? host.backend : null),
+    tier: () => platform.quality.tier.id,
+    setTier: (id) => platform.quality.setTier(id, 'url-override'),
+    depthPolicy: () => host.depthPolicy,
+    signals: () => platform.profile.signals,
+    memory: () => platform.memory(),
 
     async gpuProbe() {
       if (lastProbe) return lastProbe;
-      let adapterInfo: Awaited<ReturnType<typeof readAdapter>>;
+      let adapterInfo: AdapterRead;
       let error: string | null = null;
       try {
         adapterInfo = await readAdapter();
@@ -150,16 +214,9 @@ export function installPlatformBridge(flags: QaFlags, canvas: () => HTMLCanvasEl
         error = errorMessage(e);
         adapterInfo = { navigatorGpu: false, adapter: false, vendor: null, architecture: null, device: null, description: null, isFallbackAdapter: null, features: [], limits: {} };
       }
-      let backend: RenderBackend | null = null;
-      try {
-        backend = (await getHost()).backend;
-      } catch (e) {
-        hostError = errorMessage(e);
-        error = error ? `${error}; ${hostError}` : hostError;
-      }
       lastProbe = {
         ...adapterInfo,
-        backend,
+        backend: host.ready ? host.backend : null,
         threeRevision: THREE_REVISION,
         crossOriginIsolated: self.crossOriginIsolated,
         userAgent: navigator.userAgent,
@@ -168,17 +225,34 @@ export function installPlatformBridge(flags: QaFlags, canvas: () => HTMLCanvasEl
       return lastProbe;
     },
 
+    perf: {
+      run: (id, opts) => {
+        liveOn = false;
+        return runner.run(id, opts ?? {}).finally(() => {
+          liveOn = flags.perf;
+        });
+      },
+      report: () => runner.report(),
+      info: () => runner.info(),
+      live: () => {
+        if (!liveOn) {
+          const a = host.active;
+          live = liveMeter.measure(a.scene, a.camera);
+        }
+        return live;
+      },
+    },
+
     xr: {
       async enterForTest() {
         xrError = null;
         try {
-          const h = await getHost();
           const xr = (navigator as unknown as { xr?: XrSystemLike }).xr;
           if (!xr) throw new Error('navigator.xr is not available');
           // Under IWER no user gesture is needed. On real devices XR starts only from a click handler.
           const session = await xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
           xrMode = 'immersive-vr';
-          await h.renderer.xr.setSession(session as XRSession);
+          await host.renderer.xr.setSession(session as XRSession);
         } catch (e) {
           xrError = errorMessage(e);
           throw e;
@@ -187,10 +261,10 @@ export function installPlatformBridge(flags: QaFlags, canvas: () => HTMLCanvasEl
       state() {
         return {
           supported: (navigator as unknown as { xr?: unknown }).xr !== undefined,
-          isPresenting: host?.isPresenting ?? false,
-          frames: host?.xrFrames ?? 0,
+          isPresenting: host.isPresenting,
+          frames: host.xrFrames,
           sessionMode: xrMode,
-          error: xrError ?? hostError,
+          error: xrError,
         };
       },
     },

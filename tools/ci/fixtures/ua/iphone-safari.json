@@ -1,0 +1,43 @@
+{
+  "synthetic": true,
+  "note": "Synthetic fixture written from the spec rules (M01c). The captured DeviceSignals from the device run (AC-13) replace it; the file name and the expect block stay.",
+  "expect": {
+    "class": "iphone",
+    "headset": null,
+    "provisionalTier": "mobile"
+  },
+  "signals": {
+    "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1",
+    "platform": "iPhone",
+    "maxTouchPoints": 5,
+    "hardwareConcurrency": 6,
+    "deviceMemoryGB": null,
+    "screen": {
+      "w": 393,
+      "h": 852,
+      "dpr": 3
+    },
+    "displayModeStandalone": true,
+    "crossOriginIsolated": true,
+    "hasNavigatorGpu": true,
+    "hasNavigatorXr": false,
+    "hasXrGpuBinding": false,
+    "immersiveVrSupported": null,
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "common-3",
+      "device": "",
+      "description": "Apple A16 GPU",
+      "isFallbackAdapter": false,
+      "maxTextureDimension2D": 8192,
+      "maxBufferSize": 1073741824
+    },
+    "gpuFeatures": [
+      "texture-compression-astc",
+      "texture-compression-etc2"
+    ],
+    "opfs": true,
+    "storageQuotaMB": 4000,
+    "storageUsageMB": 1
+  }
+}
