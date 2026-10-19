@@ -16,10 +16,10 @@
     "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts"
   },
   "scripts": {
-    "test": "vitest run",
-    "test:lint-bans": "vitest run test/lint.bans.spec.ts",
-    "test:headless": "vitest run test/headless.noDom.spec.ts",
-    "test:determinism": "vitest run test/determinism.node.spec.ts",
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine",
+    "test:lint-bans": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine lint.bans.spec",
+    "test:headless": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine headless.noDom.spec",
+    "test:determinism": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine determinism.node.spec",
     "bench:physics": "tsx bench/physics-builds.ts"
   },
   "dependencies": {

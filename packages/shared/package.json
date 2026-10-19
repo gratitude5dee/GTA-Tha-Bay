@@ -9,7 +9,7 @@
     "./schemas/*": "./schemas/*"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
     "vectors:write": "tsx scripts/write-vectors.ts"
   }
 }

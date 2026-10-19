@@ -25,10 +25,32 @@ export function args(argv: readonly string[] = process.argv.slice(2)): string[] 
   return dropDashDash(argv);
 }
 
+function vitestArgs(list: readonly string[]): string[] {
+  return list.includes('--pkg') ? ['run', ...mapPkgFilter(list.filter((a) => a !== 'run'))] : [...list];
+}
+
 export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
+/**
+ * `--pkg <dir>` (vitest only): select the specs under `<dir>/test/`. Positional arguments become name filters
+ * inside that directory (`--pkg packages/shared detmath` runs `packages/shared/test/detmath*`); with none, the whole
+ * directory runs. Vitest filters are substring matches on the file path from the repository root, so the root
+ * config (include globs are root-relative) keeps applying. Other flags pass through untouched.
+ */
+export function mapPkgFilter(list: readonly string[]): string[] {
+  const i = list.indexOf('--pkg');
+  const dir = i >= 0 ? list[i + 1] : undefined;
+  if (i < 0 || !dir) return [...list];
+  const rest = [...list.slice(0, i), ...list.slice(i + 2)];
+  const base = `${dir.replace(/\/+$/, '')}/test/`;
+  const flags = rest.filter((a) => a.startsWith('-') && a !== '--');
+  const names = rest.filter((a) => !a.startsWith('-'));
+  return [...flags, ...(names.length ? names.map((n) => `${base}${n}`) : [base])];
+}
+
 function main(): never {
-  const [tool, ...rest] = args();
+  const [tool, ...rest0] = args();
+  const rest = tool === 'vitest' ? vitestArgs(rest0) : rest0;
   if (!tool) {
     console.error('usage: tsx tools/ci/run.ts <tool> [args...]');
     process.exit(2);
