@@ -194,7 +194,7 @@ export class AudioServiceImpl implements AudioService {
 
   setListener(p: [number, number, number], _fwd: [number, number, number], _up: [number, number, number]): void {
     const l = this.ctx?.listener;
-    if (!l) return;
+    if (!l || !Number.isFinite(p[0] + p[1] + p[2])) return;
     if (l.positionX) l.positionX.value = p[0];
     if (l.positionY) l.positionY.value = p[1];
     if (l.positionZ) l.positionZ.value = p[2];

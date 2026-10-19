@@ -84,7 +84,11 @@ export interface EngineObservation {
   /** The local player from the newest snapshot (M01b1): feet position, velocity, control state, grounded; null without one. */
   player: PlayerSide | null;
   /** The camera rig (M01b1): the mode, the sim's collision distance, and whether the last fp/tp toggle was refused. */
-  camera: { mode: string; allowedDistance: number | null; lastToggleRefused: boolean; locked: boolean; opacity: number; near: number; far: number } | null;
+  camera: {
+    mode: string; allowedDistance: number | null; lastToggleRefused: boolean; locked: boolean; opacity: number; near: number; far: number;
+    /** World position of the draw camera, ENU metres. */
+    pos: [number, number, number];
+  } | null;
   /** The gray-box block (M01b2); null for the other scenarios. */
   world: GrayboxInfo | null;
   /** The page is in play (input reaches the game, the touch layer shows). */
@@ -515,6 +519,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
               opacity: rig.playerOpacity,
               near: cam?.near ?? 0,
               far: cam?.far ?? 0,
+              pos: cam ? [cam.position.x, cam.position.y, cam.position.z] : [0, 0, 0],
             }
           : null,
         world: world ? world.info() : null,
