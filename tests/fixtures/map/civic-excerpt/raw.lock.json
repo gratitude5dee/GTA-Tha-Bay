@@ -15,7 +15,7 @@
       "id": "datasf-muni-routes",
       "url": "synth://datasf-muni-routes",
       "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "852db1bcbcef2f0ad2a27c82f423ab1009105d8946aeb37ba637ffdb81cb02f8",
+      "sha256": "595fe8df988a0148b19d3594020b5a1d997507ba58270fbaf99f86264dc350fb",
       "rows": 1,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
@@ -23,7 +23,7 @@
       "id": "datasf-muni-stops",
       "url": "synth://datasf-muni-stops",
       "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "1989d8ef95aaaf9fec4a3d5a1a768a88df96ae4d81f6f981a86036ff9acf505a",
+      "sha256": "64168c1c00895d2b989e7da60535ab708e3c8db5f26cafc0ff5fcdeb46afb987",
       "rows": 2,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
@@ -47,8 +47,8 @@
       "id": "datasf-streets",
       "url": "synth://datasf-streets",
       "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "a50ca8a06b614f6aade63b033627b83b87a4a46f06c7211edfcac6ef3a0d8e52",
-      "rows": 70,
+      "sha256": "11de58e0c578ae99ce501f12c7ccf639bb7d88d70bd0ff4b067401f8337c3724",
+      "rows": 71,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
@@ -63,8 +63,8 @@
       "id": "osm",
       "url": "synth://osm",
       "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "7f36ba30a4ad61cde65a8069404ef30b84eed001068ac1e5d75c772335ffc317",
-      "rows": 85,
+      "sha256": "ea30efc22fa39a79bd3db9b44f119a689c71cd1a7b009b3e9aa20bba0f263628",
+      "rows": 86,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
