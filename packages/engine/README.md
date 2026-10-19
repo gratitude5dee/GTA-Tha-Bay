@@ -36,7 +36,7 @@ The game engine: deterministic sim (`src/sim`), headless host (`src/headless`), 
 | `src/client/camera/rig.ts` | `CameraRigImpl`: tp/fp, lag smoothing, pull-in and 0.3 s ease-out, fp/tp toggle and its lock |
 | `src/sim/fixtures/walk-course.ts`, `src/sim/scenarios/walk-drop*.ts` | the 0.35 m and 0.5 m steps, the 10 % grade, the 50 degree bank; `walk-drop` (default page scenario) and its seeded bot |
 
-Not here yet: touch, the anim graph, free cam and the debug panel (M01b2), vehicles (M03a1), saves (M04a).
+Not here yet: vehicles (M03a1), saves (M04a). M01b2 adds the gray-box block, touch, the anim graph, the audio bus skeleton, the F3 panel, the F4 free cam and the XR smoke (below).
 
 ## Debug cube view and QA
 
@@ -45,6 +45,14 @@ Not here yet: touch, the anim graph, free cam and the debug panel (M01b2), vehic
 - M01b1 adds to `observe()`: `player { pos, vel, control, owner, grounded }` and `camera { mode, allowedDistance, lastToggleRefused, locked }`; `act()` takes `debug.teleport { pos }`, `debug.ragdoll` and `debug.camera.lock { on }`.
 - `/qa/determinism.html` (QA builds) runs the golden vectors and the 10,000-tick scenarios `physics-drop` and `walk-drop` in `sim.worker` and prints the final hashes; `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism` compares them with `test/golden/determinism.{physics-drop,walk-drop}.json`.
 - `DV_E2E_PORT=<port>` moves the Playwright web server off 8788, which parallel Builders on one machine need.
+
+## Gray-box block, touch, tools (M01b2)
+
+- The home page boots the `civic-graybox` scenario: the M01f fixture (`tests/fixtures/world/civic-graybox/`, four 256 m chunks, 12 boxes, a four-way road). The page fetches the packs, `sim.worker` decodes `p0` and adds one chunk's colliders per tick, `client/graybox/mesher.ts` draws terrain, roads and buildings (at most 6 objects per chunk). The title screen sits over the live world; Start hides it; `?debug=1` skips it. `?world=walk-drop` (QA) boots the cube course the M01b1 specs use.
+- Touch: `client/input/touch.ts` (floating stick, right-half look, buttons; Pointer Events, TouchEvents as a fallback) and `touch-overlay.ts` (the DOM layer from `config/input/touch/default-right.json`). It shows in play on touch devices, or with `?touch=1`.
+- QA tools with `?debug=1`: F3 sim panel (median fps of 120 frames, tick p50 and p99, dropped seconds), F4 free cam (WASD, Shift, Space/Q/E; the sim keeps running), and "Enter VR (smoke)" when `immersive-vr` is supported (`?xr-emulate=quest3` installs IWER). `observe()` gains `world`, `play`, `touch`, `audio`, `debug`, `xr`, `chunksLoaded` and `camera.{opacity,near,far,pos}`; the bridge has `setPlay(on)` and `endXr()`.
+- Config: `config/engine-tiers.json` (anim bands, voices, ragdolls per tier), `config/audio.json` (buses, duck, footstep), `config/input/defaults.touch.json`; schemas under `config/schemas/`.
+- Device passes: `tools/ci/checklists/M01b2-iphone.json` and `M01b2-quest3.json` (`pnpm perf:checklist -- <file>`).
 
 ## Import rules
 

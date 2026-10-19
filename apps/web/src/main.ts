@@ -92,9 +92,11 @@ async function boot(): Promise<void> {
   // The gray-box Civic Center block is the default world; ?world=<id> (QA) picks a test world instead.
   const grayboxWorld = flags.world === null || flags.world === 'civic-graybox';
   let engineRef: EngineHandle | null = null;
+  // True once the player pressed Start (or ?debug=1 skipped the title): from then on Pause brings the title back and Start resumes.
+  let started = flags.debug;
   const setPlayView = (playing: boolean): void => {
     document.documentElement.classList.toggle('dv-playing', playing);
-    if (ON_HOME || flags.debug) canvas.className = playing ? PLAY_CLASS : BACKDROP_CLASS;
+    canvas.className = playing ? PLAY_CLASS : BACKDROP_CLASS;
   };
   const engine = await bootEngine({
     container,
@@ -110,7 +112,7 @@ async function boot(): Promise<void> {
     forceTouch: flags.touch,
     // Pausing brings the title back over the world; Start resumes.
     onPausedChange: (paused) => {
-      if (ON_HOME || flags.debug) setPlayView(!paused);
+      if (started) setPlayView(!paused);
     },
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
@@ -120,15 +122,15 @@ async function boot(): Promise<void> {
   if (engine) platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
 
   // Start on the title screen: the world becomes the game.
-  if (ON_HOME) {
-    document.addEventListener('click', (e) => {
-      const hit = (e.target as Element | null)?.closest?.('[data-testid="title-start"]');
-      if (!hit || !engineRef) return;
-      engineRef.setPaused(false);
-      engineRef.setPlay(true);
-      setPlayView(true);
-    });
-  }
+  document.addEventListener('click', (e) => {
+    const hit = (e.target as Element | null)?.closest?.('[data-testid="title-start"]');
+    if (!hit || !engineRef) return;
+    started = true;
+    document.documentElement.classList.add('dv-world');
+    engineRef.setPaused(false);
+    engineRef.setPlay(true);
+    setPlayView(true);
+  });
 
   // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
   if (import.meta.env.VITE_DV_QA === '1') {
