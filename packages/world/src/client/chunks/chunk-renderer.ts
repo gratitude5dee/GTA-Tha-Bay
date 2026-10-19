@@ -9,12 +9,14 @@
  *    is "uploaded" the frame its objects join the scene; three uploads the buffers in that frame's render call.
  *  - Cover masks: an L1 tile hides the cells (4 x 4 of 256 m) whose L0 chunk is resident and has finished fading in, an L2 block the
  *    cells (4 x 4 of 1,024 m) whose L1 tile is. The mask is a vertex attribute (`aCover`), so the material never changes.
- *  - Visibility every 8 frames or on a camera jump of more than 60 m; units behind the camera (dot < -0.35) are hidden.
+ *  - Visibility every 8 frames, on a camera jump of more than 60 m or a turn of more than 6 degrees; units behind the camera (dot <
+ *    -0.35) and units outside the view frustum (with a margin) are hidden: the render-object plan of 02-world.md 5.4 counts the visible
+ *    40 % of the resident units.
  *  - GPU loss: `onRendererReplaced` hides every unit and brings them back one per frame from the meshes it still holds, without a
  *    refetch.
  */
 import {
-  BufferAttribute, BufferGeometry, Color, Group, InstancedMesh, Matrix4, Mesh, Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
+  BufferAttribute, BufferGeometry, Color, Frustum, Group, InstancedMesh, Matrix4, Mesh, Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
 import { MESHER, hexToLinear } from './mesher.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
@@ -29,6 +31,18 @@ const idOf = (level: RenderLevel, key: ChunkKey): string => `${level}:${key}`;
 export const CULL_JUMP_M = 60;
 export const CULL_EVERY_FRAMES = 8;
 export const BEHIND_DOT = -0.35;
+/** A turn of the heading that forces a visibility pass: cos 6 degrees. */
+export const CULL_TURN_COS = 0.9945;
+/** A unit's bounding sphere grows by this factor and this many metres before the frustum test (a turn between passes, a skirt). */
+const FRUSTUM_MARGIN = 1.15;
+const FRUSTUM_SLACK_M = 24;
+
+/** What `update` needs of the camera: where it is, where it looks, and (when the host has one) its view frustum. */
+export interface CullCamera {
+  pos: [number, number, number];
+  dir: [number, number, number];
+  frustum?: Frustum | null;
+}
 
 export interface RenderedUnit {
   level: RenderLevel;
@@ -126,6 +140,8 @@ export class ChunkRenderer {
   private frame = 0;
   private lastCull = -1000;
   private lastCam = new Vector3(1e9, 1e9, 1e9);
+  private lastDir: [number, number, number] = [0, 0, 0];
+  private readonly ball = new Sphere();
 
   constructor(o: ChunkRendererOptions) {
     this.o = o;
@@ -306,7 +322,7 @@ export class ChunkRenderer {
    * One frame. Releases at most one unit from the gate, brings back one unit after a GPU loss, refreshes the cover masks and runs
    * the visibility pass. Returns the unit uploaded this frame, if any.
    */
-  update(nowSec: number, cam: { pos: [number, number, number]; dir: [number, number, number] }): RenderedUnit | null {
+  update(nowSec: number, cam: CullCamera): RenderedUnit | null {
     this.frame++;
     this.o.materials.setTime(nowSec);
     this.uploadsThisFrame = 0;
@@ -352,16 +368,18 @@ export class ChunkRenderer {
 
     // Visibility: every 8 frames or on a camera jump.
     const cp = new Vector3(cam.pos[0], cam.pos[1], cam.pos[2]);
-    if (this.frame - this.lastCull >= CULL_EVERY_FRAMES || cp.distanceTo(this.lastCam) > CULL_JUMP_M) {
+    const turned = cam.dir[0] * this.lastDir[0] + cam.dir[1] * this.lastDir[1] + cam.dir[2] * this.lastDir[2] < CULL_TURN_COS;
+    if (this.frame - this.lastCull >= CULL_EVERY_FRAMES || cp.distanceTo(this.lastCam) > CULL_JUMP_M || turned) {
       this.lastCull = this.frame;
       this.lastCam.copy(cp);
+      this.lastDir = [cam.dir[0], cam.dir[1], cam.dir[2]];
       this.cullPasses++;
       this.cull(cam);
     }
     return uploaded;
   }
 
-  private cull(cam: { pos: [number, number, number]; dir: [number, number, number] }): void {
+  private cull(cam: CullCamera): void {
     for (const u of this.units.values()) {
       if (this.rebuild.includes(idOf(u.level, u.key))) continue;
       const dx = u.centre[0] - cam.pos[0], dy = u.centre[1] - cam.pos[1], dz = u.centre[2] - cam.pos[2];
@@ -373,7 +391,13 @@ export class ChunkRenderer {
       const dot = (dx * cam.dir[0] + dy * cam.dir[1] + dz * cam.dir[2]) / d;
       // A unit whose radius spans the camera's side planes stays; only clearly-behind units are hidden.
       const angleSlack = Math.min(1, u.radius / d);
-      u.group.visible = dot + angleSlack >= BEHIND_DOT;
+      let seen = dot + angleSlack >= BEHIND_DOT;
+      if (seen && cam.frustum) {
+        this.ball.center.set(u.centre[0], u.centre[1], u.centre[2]);
+        this.ball.radius = u.radius * FRUSTUM_MARGIN + FRUSTUM_SLACK_M;
+        seen = cam.frustum.intersectsSphere(this.ball);
+      }
+      u.group.visible = seen;
     }
   }
 

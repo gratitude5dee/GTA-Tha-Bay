@@ -12,7 +12,7 @@
  * invisible wall on a failed `p0` chunk; a failed render unit is simply not drawn); `p0` missing at the spawn while offline blocks
  * the session with the offline message; a lost GPU device rebuilds the objects from the meshes held here, without a refetch.
  */
-import { DirectionalLight, HemisphereLight, type PerspectiveCamera } from 'three/webgpu';
+import { DirectionalLight, Frustum, HemisphereLight, Matrix4, type PerspectiveCamera } from 'three/webgpu';
 import type { SimEvent } from '@dv/engine/sim';
 import type { WorldFrame, WorldLayer } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
@@ -195,6 +195,17 @@ export class WorldView implements WorldLayer {
     this.store.want(this.lastFocus);
   }
 
+  private readonly frustum = new Frustum();
+  private readonly viewProj = new Matrix4();
+
+  /** The draw camera's view frustum, or null before the host exists. */
+  private frustumOf(): Frustum | null {
+    const cam = this.host?.camera as PerspectiveCamera | undefined;
+    if (!cam) return null;
+    this.viewProj.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    return this.frustum.setFromProjectionMatrix(this.viewProj);
+  }
+
   frame(f: WorldFrame): void {
     if (this.disposed) return;
     this.frames++;
@@ -212,7 +223,7 @@ export class WorldView implements WorldLayer {
       this.store.want(focus, ground === null ? 0 : Math.max(0, f.camera.pos[1] - ground));
     }
     const t0 = this.now();
-    const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir });
+    const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir, frustum: this.frustumOf() });
     if (up) {
       this.commitMs.push(this.now() - t0);
       if (this.commitMs.length > 240) this.commitMs.shift();
