@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "device": "kbm",
+  "contexts": {
+    "onFoot": {
+      "axis.MoveX": [
+        { "control": "key:KeyD", "scale": 1 },
+        { "control": "key:ArrowRight", "scale": 1 },
+        { "control": "key:KeyA", "scale": -1 },
+        { "control": "key:ArrowLeft", "scale": -1 }
+      ],
+      "axis.MoveY": [
+        { "control": "key:KeyS", "scale": 1 },
+        { "control": "key:ArrowDown", "scale": 1 },
+        { "control": "key:KeyW", "scale": -1 },
+        { "control": "key:ArrowUp", "scale": -1 }
+      ],
+      "axis.LookX": [{ "control": "mouse:dx", "scale": 1 }],
+      "axis.LookY": [{ "control": "mouse:dy", "scale": 1 }],
+      "sim.Jump": [{ "control": "key:Space" }],
+      "sim.Sprint": [{ "control": "key:ShiftLeft" }, { "control": "key:ShiftRight" }],
+      "sim.Interact": [{ "control": "key:KeyE" }],
+      "sim.Enter": [{ "control": "key:KeyF" }],
+      "client.Camera": [{ "control": "key:KeyV" }],
+      "client.ShoulderSwap": [{ "control": "key:KeyC" }],
+      "client.Map": [{ "control": "key:KeyM" }],
+      "client.Phone": [{ "control": "key:Tab" }],
+      "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
+    },
+    "menu": {
+      "client.UiAccept": [{ "control": "key:Enter" }, { "control": "key:Space" }],
+      "client.UiBack": [{ "control": "key:Backspace" }],
+      "client.UiUp": [{ "control": "key:ArrowUp" }, { "control": "key:KeyW" }],
+      "client.UiDown": [{ "control": "key:ArrowDown" }, { "control": "key:KeyS" }],
+      "client.UiLeft": [{ "control": "key:ArrowLeft" }, { "control": "key:KeyA" }],
+      "client.UiRight": [{ "control": "key:ArrowRight" }, { "control": "key:KeyD" }],
+      "client.UiTabPrev": [{ "control": "key:KeyQ" }],
+      "client.UiTabNext": [{ "control": "key:KeyE" }],
+      "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
+    }
+  }
+}

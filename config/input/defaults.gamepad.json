@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "device": "gamepad",
+  "contexts": {
+    "onFoot": {
+      "axis.MoveX": [{ "control": "pad:a0" }],
+      "axis.MoveY": [{ "control": "pad:a1" }],
+      "axis.LookX": [{ "control": "pad:a2" }],
+      "axis.LookY": [{ "control": "pad:a3" }],
+      "sim.Jump": [{ "control": "pad:b0" }],
+      "sim.Sprint": [{ "control": "pad:b10" }],
+      "sim.Interact": [{ "control": "pad:b3" }],
+      "client.Camera": [{ "control": "pad:b11" }],
+      "client.Map": [{ "control": "pad:b8" }],
+      "client.Pause": [{ "control": "pad:b9" }]
+    },
+    "menu": {
+      "client.UiAccept": [{ "control": "pad:b0" }],
+      "client.UiBack": [{ "control": "pad:b1" }],
+      "client.UiUp": [{ "control": "pad:b12" }],
+      "client.UiDown": [{ "control": "pad:b13" }],
+      "client.UiLeft": [{ "control": "pad:b14" }],
+      "client.UiRight": [{ "control": "pad:b15" }],
+      "client.UiTabPrev": [{ "control": "pad:b4" }],
+      "client.UiTabNext": [{ "control": "pad:b5" }],
+      "client.Pause": [{ "control": "pad:b9" }]
+    }
+  }
+}

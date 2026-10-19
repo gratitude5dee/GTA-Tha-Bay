@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/input-map.schema.json",
+  "title": "config/input/defaults.<device>.json (C03 InputMap)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "device", "contexts"],
+  "$defs": {
+    "controlId": {
+      "type": "string",
+      "pattern": "^(key:[A-Za-z0-9]+|mouse:([0-4]|wheelUp|wheelDown|dx|dy)|pad:[ab][0-9]+|touch:stick:[LR]|touch:btn:[A-Za-z0-9_]+|touch:dragR|touch:tilt|xr:(left|right):([ab][0-9]+|gesture:[A-Za-z0-9_]+)|xr:both:wheel|xrt:pinch|xrt:pinchHold|pose:[A-Za-z0-9_]+)$"
+    },
+    "actionId": {
+      "type": "string",
+      "pattern": "^(sim\\.(Jump|Sprint|Interact|Enter|Attack|Block|Special|Handbrake|Nitro|Ability|LookBehind|Horn|FightHeavy|FightAssist|Teleport|Crouch|Respray|Emote|PhoneQuick)|client\\.(Look|Camera|ShoulderSwap|Map|Phone|Pause|SnapTurnLeft|SnapTurnRight|UiAccept|UiBack|UiUp|UiDown|UiLeft|UiRight|UiTabPrev|UiTabNext|PhotoShutter|DebugToggle)|axis\\.(MoveX|MoveY|Throttle|Brake|Steer|LookX|LookY))$"
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control"],
+      "properties": {
+        "control": { "$ref": "#/$defs/controlId" },
+        "modifiers": { "type": "array", "items": { "$ref": "#/$defs/controlId" }, "uniqueItems": true },
+        "gesture": { "enum": ["press", "hold", "doubleTap", "release"] },
+        "holdMs": { "type": "number", "exclusiveMinimum": 0 },
+        "doubleTapMs": { "type": "number", "exclusiveMinimum": 0 },
+        "scale": { "type": "number" },
+        "invert": { "type": "boolean" },
+        "deadzone": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "device": { "enum": ["kbm", "gamepad", "touch", "xr-controller", "xr-hand", "xr-transient", "pose", "bot"] },
+    "contexts": {
+      "type": "object",
+      "propertyNames": { "enum": ["onFoot", "vehicle", "fighter", "menu", "phone", "map", "cutscene", "photo", "tycoon", "xrMenu", "debug"] },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "$ref": "#/$defs/actionId" },
+        "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/binding" }, "minItems": 1 }
+      }
+    }
+  }
+}

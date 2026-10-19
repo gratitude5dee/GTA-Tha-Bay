@@ -49,7 +49,7 @@
       "additionalProperties": {
         "type": "object",
         "propertyNames": { "pattern": "^[a-z][A-Za-z0-9]*(\\.[0-9]+)?$" },
-        "additionalProperties": { "type": ["number", "string"] }
+        "additionalProperties": { "anyOf": [{ "type": "number" }, { "type": "string" }] }
       }
     },
     "vehicle": { "type": "object" },
