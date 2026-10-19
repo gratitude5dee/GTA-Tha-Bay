@@ -239,6 +239,9 @@ function checkBundle(dist: string, forbidQa: boolean): void {
       return existsSync(file) && statSync(file).size > PRECACHE_LIMIT_BYTES;
     });
     expect(tooBig.length === 0, `no precache entry over 6 MiB (${urls.length} entries)`, tooBig.join(', '));
+    // M01e: packs never go through the service worker or the Cache API (D-16); the QA mirror stays out of the precache.
+    const mirrored = urls.filter((u) => /(^|\/)media-local\//.test(u));
+    expect(mirrored.length === 0, 'media-local is not in the precache', mirrored.join(', '));
   }
 
   const js = files.filter((f) => f.endsWith('.js'));

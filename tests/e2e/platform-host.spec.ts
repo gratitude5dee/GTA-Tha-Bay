@@ -124,6 +124,10 @@ test.describe('perf meter @perf-meter', () => {
     expect(notes.userAgent).toContain('Mozilla');
     expect(notes.signals.userAgent).toBe(notes.userAgent);
     expect(notes.tier).toBe('mobile-low');
+    // M01e AC-11: the device run records what open() returned and whether the fixture packs are present.
+    const packStore = (notes as { packStore?: { store: string; has: Record<string, boolean> } }).packStore;
+    expect(packStore?.store).toBe('opfs');
+    expect(Object.keys(packStore?.has ?? {}).sort()).toEqual(['world_pack/l0-64-64', 'world_pack/p0-64-64']);
     const perf = JSON.parse(downloads.find((d) => d.name === 'perf.json')?.text ?? '{}') as PerfReport;
     expect(perf.v).toBe(1);
   });

@@ -194,3 +194,5 @@ Builders append one row per fact they verify or library version pnpm resolves ou
 
 | Item | Value | URL | Date | Milestone |
 |---|---|---|---|---|
+| OPFS in Playwright WebKit (build 2370, Linux) | In a default (ephemeral) context, `navigator.storage.getDirectory()` rejects with `UnknownError` on the main thread and in a dedicated worker; in a `launchPersistentContext` context it resolves, `createWritable` exists on the file handle, and `createSyncAccessHandle` exists in workers only. `storage.estimate()` works in both (quota about 1 GB). Observed locally, not documented by the vendor. | observed: `webkit.launch()` against the QA build, 2026-10-19 | 2026-10-19 | M01e |
+| OPFS write path per engine (M01e e2e) | Both Playwright `chromium` 1248 and `webkit` 2370 (persistent context) write packs through `createSyncAccessHandle` in the dedicated worker (`opfs write path = sync`); the `createWritable` fallback was not needed in either. | observed: `tests/e2e/pack-store.spec.ts` | 2026-10-19 | M01e |
