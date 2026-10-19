@@ -24,7 +24,7 @@ function setup() {
   return { f, g, tc, events, blackout };
 }
 
-const route = (g: RoadGraph) => g.route({ from: { edge: 0, s: 1 }, to: { edge: 5, s: 1 }, maxExpand: 1000 })!.edges;
+const route = (g: RoadGraph) => g.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 5, s: 1, lane: 0 }, maxExpand: 1000 })!.edges;
 
 describe('TrafficControl closures', () => {
   it('closes edges for planning, notifies the listeners and reopens them on release', () => {
@@ -35,7 +35,7 @@ describe('TrafficControl closures', () => {
     expect(tc.isClosed(1)).toBe(true);
     expect(route(g)).toEqual([0, 2, 4, 5]);   // the other way round
     tc.closeEdges([2], 'barrier');
-    expect(g.route({ from: { edge: 0, s: 1 }, to: { edge: 5, s: 1 }, maxExpand: 1000 })).toBeNull();   // both ways shut
+    expect(g.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 5, s: 1, lane: 0 }, maxExpand: 1000 })).toBeNull();   // both ways shut
     tc.release('barrier');
     tc.release('race');
     expect(events.filter((e) => e.by === 'race')).toEqual([{ edges: [1, 3], closed: true, by: 'race' }, { edges: [1, 3], closed: false, by: 'race' }]);

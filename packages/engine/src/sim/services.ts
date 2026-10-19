@@ -3,6 +3,7 @@ import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
 import type { WorldClock } from './world/clock.ts';
+import { createWorldHub, type WorldHub } from './world/index.ts';
 
 /**
  * Sim state that lives outside the ECS but must be hashed and checkpointed (C02 rule 7: RNG states, clock, weather,
@@ -30,6 +31,8 @@ export interface EngineServices extends SimServices {
   camera: CameraDirectiveState;
   /** The game clock and weather once the session has one (`installClock`, M02b2); null in clock-free sims. */
   clock: WorldClock | null;
+  /** The world services (M02c1): `WorldApi` and `WorldBoundsPort`, null until the world sim module registers them. */
+  readonly world: WorldHub;
 }
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
@@ -64,6 +67,7 @@ export function createSimServices(seed: number): EngineServices {
     control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0 },
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
     clock: null,
+    world: createWorldHub(),
   };
 }
 

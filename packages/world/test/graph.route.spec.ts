@@ -43,7 +43,7 @@ describe('A* route', () => {
       for (const order of ['bFirst', 'cFirst'] as const) {
         const { f, goal, via } = diamond(order);
         const g = graphOf(f, { resident: mode !== 'topology only', topology: mode !== 'resident only' });
-        const r = g.route({ from: { edge: 0, s: 10 }, to: { edge: goal, s: 20 }, maxExpand: 1000, useTopology: mode === 'topology only' });
+        const r = g.route({ from: { edge: 0, s: 10, lane: 0 }, to: { edge: goal, s: 20, lane: 0 }, maxExpand: 1000, useTopology: mode === 'topology only' });
         expect(r).not.toBeNull();
         // the lower ids sit on the first street built after the entry edge, whichever way round it lies
         expect(r!.edges).toEqual([0, ...via, goal]);
@@ -61,9 +61,9 @@ describe('A* route', () => {
       { a: 0, b: 1 }, { a: 1, b: 2, via: [0, 100, 100, 100] }, { a: 1, b: 3 }, { a: 3, b: 2 },
     ]);
     const g = graphOf(f);
-    const r = g.route({ from: { edge: 0, s: 5 }, to: { edge: f.ids[1]![0], s: 1 }, maxExpand: 1000 });
+    const r = g.route({ from: { edge: 0, s: 5, lane: 0 }, to: { edge: f.ids[1]![0], s: 1, lane: 0 }, maxExpand: 1000 });
     expect(r!.edges).toEqual([0, f.ids[1]![0]]);
-    const r2 = g.route({ from: { edge: 0, s: 5 }, to: { edge: f.ids[3]![0], s: 1 }, maxExpand: 1000 });
+    const r2 = g.route({ from: { edge: 0, s: 5, lane: 0 }, to: { edge: f.ids[3]![0], s: 1, lane: 0 }, maxExpand: 1000 });
     expect(r2!.edges).toEqual([0, f.ids[2]![0], f.ids[3]![0]]);
   });
 
@@ -79,25 +79,25 @@ describe('A* route', () => {
   it('avoids `avoid` edges, closed edges and masked classes, but not its own start and goal', () => {
     const { f, goal } = diamond('bFirst');
     const base = graphOf(f);
-    expect(base.route({ from: { edge: 0, s: 1 }, to: { edge: goal, s: 1 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
-    expect(base.route({ from: { edge: 0, s: 1 }, to: { edge: goal, s: 1 }, maxExpand: 1000, avoid: new Set([3]) })!.edges).toEqual([0, 2, 4, 5]);
+    expect(base.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: goal, s: 1, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
+    expect(base.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: goal, s: 1, lane: 0 }, maxExpand: 1000, avoid: new Set([3]) })!.edges).toEqual([0, 2, 4, 5]);
     const closed = graphOf(f, { closed: new Set([1]) });
-    expect(closed.route({ from: { edge: 0, s: 1 }, to: { edge: goal, s: 1 }, maxExpand: 1000 })!.edges).toEqual([0, 2, 4, 5]);
+    expect(closed.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: goal, s: 1, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([0, 2, 4, 5]);
     // closing the goal or the start edge does not make them unreachable
     const ends = graphOf(f, { closed: new Set([0, goal]) });
-    expect(ends.route({ from: { edge: 0, s: 1 }, to: { edge: goal, s: 1 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
+    expect(ends.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: goal, s: 1, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
     // both ways closed: no route
     const both = graphOf(f, { closed: new Set([1, 2]) });
-    expect(both.route({ from: { edge: 0, s: 1 }, to: { edge: goal, s: 1 }, maxExpand: 1000 })).toBeNull();
+    expect(both.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: goal, s: 1, lane: 0 }, maxExpand: 1000 })).toBeNull();
     // class mask: the north way is Local, the south way Arterial; arterials only
     const mixed = roads(DIAMOND_NODES, [
       { a: S, b: A, twoWay: false, cls: RoadClass.Arterial }, { a: A, b: B, twoWay: false, cls: RoadClass.Local }, { a: A, b: C, twoWay: false, cls: RoadClass.Arterial },
       { a: B, b: D, twoWay: false, cls: RoadClass.Local }, { a: C, b: D, twoWay: false, cls: RoadClass.Arterial }, { a: D, b: T, twoWay: false, cls: RoadClass.Arterial },
     ]);
     const mg = graphOf(mixed);
-    expect(mg.route({ from: { edge: 0, s: 1 }, to: { edge: 5, s: 1 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
-    expect(mg.route({ from: { edge: 0, s: 1 }, to: { edge: 5, s: 1 }, maxExpand: 1000, classMask: 1 << RoadClass.Arterial })!.edges).toEqual([0, 2, 4, 5]);
-    expect(mg.route({ from: { edge: 0, s: 1 }, to: { edge: 5, s: 1 }, maxExpand: 1000, classMask: 1 << RoadClass.Freeway })).toBeNull();
+    expect(mg.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 5, s: 1, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([0, 1, 3, 5]);
+    expect(mg.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 5, s: 1, lane: 0 }, maxExpand: 1000, classMask: 1 << RoadClass.Arterial })!.edges).toEqual([0, 2, 4, 5]);
+    expect(mg.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 5, s: 1, lane: 0 }, maxExpand: 1000, classMask: 1 << RoadClass.Freeway })).toBeNull();
   });
 
   it('drives a one-way edge the wrong way only with allowWrongWay', () => {
@@ -106,11 +106,11 @@ describe('A* route', () => {
       { a: 0, b: 1, twoWay: false }, { a: 1, b: 2, twoWay: false }, { a: 2, b: 3, twoWay: false }, { a: 3, b: 0, twoWay: false },
     ]);
     const g = graphOf(f);
-    const fwd = g.routeDetailed({ from: { edge: 1, s: 10 }, to: { edge: 0, s: 50 }, maxExpand: 1000 })!;
+    const fwd = g.routeDetailed({ from: { edge: 1, s: 10, lane: 0 }, to: { edge: 0, s: 50, lane: 0 }, maxExpand: 1000 })!;
     expect(fwd.edges).toEqual([1, 2, 3, 0]);
     expect(fwd.wrongWay).toEqual([false, false, false, false]);
     expect(fwd.lengthM).toBeCloseTo(90 + 100 + 100 + 50, 0);
-    const back = g.routeDetailed({ from: { edge: 1, s: 10 }, to: { edge: 0, s: 50 }, maxExpand: 1000, allowWrongWay: true })!;
+    const back = g.routeDetailed({ from: { edge: 1, s: 10, lane: 0 }, to: { edge: 0, s: 50, lane: 0 }, maxExpand: 1000, allowWrongWay: true })!;
     expect(back.edges).toEqual([1, 0]);
     expect(back.wrongWay).toEqual([true, true]);
     expect(back.lengthM).toBeCloseTo(10 + 50, 0);
@@ -121,7 +121,7 @@ describe('A* route', () => {
     // 0 - 1 - 2, plus 1 - 3 a short dead end; from the segment 0-1 to the segment 1-0 backwards needs a U-turn at the end of 1-2
     const f = roads([[0, 0], [100, 0], [200, 0], [100, 60]], [{ a: 0, b: 1 }, { a: 1, b: 2 }, { a: 1, b: 3 }]);
     const g = graphOf(f);
-    const r = g.route({ from: { edge: f.ids[0]![0], s: 50 }, to: { edge: f.ids[0]![1], s: 20 }, maxExpand: 1000 });
+    const r = g.route({ from: { edge: f.ids[0]![0], s: 50, lane: 0 }, to: { edge: f.ids[0]![1], s: 20, lane: 0 }, maxExpand: 1000 });
     expect(r).not.toBeNull();
     // out along 0 -> 1, into the nearer dead end (1 -> 3, 60 m; 1 -> 2 is 100 m) and back, then 1 -> 0 on the twin
     expect(r!.edges).toEqual([f.ids[0]![0], f.ids[2]![0], f.ids[2]![1], f.ids[0]![1]]);
@@ -137,10 +137,10 @@ describe('A* route', () => {
     const net = new RoadNetwork(topologyOf(f));
     net.addChunk(chunkOf(CH, f, { junctions: [j] }));
     const g = new RoadGraph(net, { tick: () => 0, blackout: () => false, closed: () => false });
-    expect(g.route({ from: { edge: westIn, s: 10 }, to: { edge: southOut, s: 10 }, maxExpand: 1000 })).toBeNull();
-    expect(g.route({ from: { edge: westIn, s: 10 }, to: { edge: southOut, s: 10 }, maxExpand: 1000, useTopology: true })!.edges).toEqual([westIn, southOut]);
-    expect(g.route({ from: { edge: westIn, s: 10 }, to: { edge: eastOut, s: 10 }, maxExpand: 1000 })!.edges).toEqual([westIn, eastOut]);
-    expect(g.route({ from: { edge: northIn, s: 10 }, to: { edge: southOut, s: 10 }, maxExpand: 1000 })!.edges).toEqual([northIn, southOut]);
+    expect(g.route({ from: { edge: westIn, s: 10, lane: 0 }, to: { edge: southOut, s: 10, lane: 0 }, maxExpand: 1000 })).toBeNull();
+    expect(g.route({ from: { edge: westIn, s: 10, lane: 0 }, to: { edge: southOut, s: 10, lane: 0 }, maxExpand: 1000, useTopology: true })!.edges).toEqual([westIn, southOut]);
+    expect(g.route({ from: { edge: westIn, s: 10, lane: 0 }, to: { edge: eastOut, s: 10, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([westIn, eastOut]);
+    expect(g.route({ from: { edge: northIn, s: 10, lane: 0 }, to: { edge: southOut, s: 10, lane: 0 }, maxExpand: 1000 })!.edges).toEqual([northIn, southOut]);
   });
 
   it('continues on the topology graph past the resident chunks', () => {
@@ -167,22 +167,22 @@ describe('A* route', () => {
     const streets: Street[] = Array.from({ length: 20 }, (_v, i) => ({ a: i, b: i + 1, twoWay: false }));
     const f = roads(nodes, streets);
     const g = graphOf(f);
-    const full = g.route({ from: { edge: 0, s: 1 }, to: { edge: 19, s: 5 }, maxExpand: 1000 })!;
+    const full = g.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 19, s: 5, lane: 0 }, maxExpand: 1000 })!;
     expect(full.complete).toBe(true);
     expect(full.edges.length).toBe(20);
-    const cut = g.route({ from: { edge: 0, s: 1 }, to: { edge: 19, s: 5 }, maxExpand: 5 })!;
+    const cut = g.route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 19, s: 5, lane: 0 }, maxExpand: 5 })!;
     expect(cut.complete).toBe(false);
     expect(cut.edges.length).toBeGreaterThan(1);
     expect(cut.edges.length).toBeLessThan(20);
     expect(cut.edges).toEqual(full.edges.slice(0, cut.edges.length));
     // an unreachable goal with enough budget is null, not incomplete
     const island = roads([[0, 0], [10, 0], [500, 0], [510, 0]], [{ a: 0, b: 1, twoWay: false }, { a: 2, b: 3, twoWay: false }]);
-    expect(graphOf(island).route({ from: { edge: 0, s: 1 }, to: { edge: 1, s: 1 }, maxExpand: 1000 })).toBeNull();
+    expect(graphOf(island).route({ from: { edge: 0, s: 1, lane: 0 }, to: { edge: 1, s: 1, lane: 0 }, maxExpand: 1000 })).toBeNull();
   });
 
   it('routes within one edge when the goal lies ahead of the start', () => {
     const f = roads([[0, 0], [100, 0]], [{ a: 0, b: 1, twoWay: false }]);
-    const r = graphOf(f).route({ from: { edge: 0, s: 20 }, to: { edge: 0, s: 70 }, maxExpand: 10 })!;
+    const r = graphOf(f).route({ from: { edge: 0, s: 20, lane: 0 }, to: { edge: 0, s: 70, lane: 0 }, maxExpand: 10 })!;
     expect(r.edges).toEqual([0]);
     expect(r.lengthM).toBeCloseTo(50, 5);
     expect(r.etaS).toBeCloseTo(5, 5);

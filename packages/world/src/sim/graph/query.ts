@@ -13,7 +13,7 @@ import {
   EdgeFlag, GRID_MIN_M, CHUNK_EDGE_M, TWO_PI, datan2, dsqrt, enuFromLatLng,
   type Aspect, type ChunkKey, type EdgeId, type EdgePos, type NodeId, type RoadEdge, type RoadGraphQuery, type Route, type RouteRequest,
 } from '@dv/shared';
-import { RoadNetwork } from './adjacency.ts';
+import type { RoadNetwork } from './adjacency.ts';
 import { Router, type RouteResult } from './astar.ts';
 import { ChordIndex, nearestOnPolyline, pointAlong, polylineLength } from './geometry.ts';
 import { JunctionRuntime, type JunctionClock } from './junctions.ts';
