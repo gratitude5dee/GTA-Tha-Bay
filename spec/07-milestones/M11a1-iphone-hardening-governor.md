@@ -43,7 +43,7 @@ After this session the platform adapts to the device while the game runs, and th
 - `packages/engine/src/platform/governor/{governor.ts, knobs.ts, signals.ts, frame-pacer.ts}`.
 - `packages/engine/src/platform/memory/{memory-budget.ts, eviction.ts}`. The ChunkStore and WorldPackStore hooks are small edits in `packages/world/src/sim/streaming/` (ChunkStore, M02b1) and `packages/engine/src/assets/store/` (WorldPackStore, M01e) (DL-247).
 - Edits: `qa-flags.ts` (`?governor=off` active); the bridge (`probe.ts` / perf bridge) additions; `apps/web/src/main.ts` (start the pacer and governor after reveal).
-- `config/perf/paths/{race-sprint,race-pursuit-heat4}.json`, the scenario registration in `packages/engine/src/platform/perf/scenario-runner.ts`, and `tests/perf/race.perf.spec.ts`.
+- `config/perf/paths/{race-sprint,race-pursuit-heat4}.json`, the scenario registration in `packages/engine/src/platform/perf/scenario-runner.ts`, and `tests/perf/race.perf.spec.ts`; both ids appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4).
 - `services/edge/src/reports/browser.ts` (crash branch), `packages/shared/src/telemetry.ts` (`app.crash`, `C16_VERSION`), `packages/shared/schemas/telemetry/app.crash.json`, `services/edge/test/reports-crash.spec.ts` (suite `reports-crash`).
 - `.github/workflows/nightly.yml` (required perf step) and `tools/ci/test/workflows.test.ts`.
 - `packages/engine/test/platform/{governor.spec.ts, memory-budget.spec.ts, frame-pacer.spec.ts}`; `tests/e2e/governor.spec.ts` (`@governor`).
@@ -81,7 +81,7 @@ After this session the platform adapts to the device while the game runs, and th
 ## Demo script
 1. `pnpm dev`, open `/?perf=1&tier=mobile`, and run `__dvBridge.platform.governor.inject(Array(180).fill(30))`. The HUD shows `renderScale` stepping down; stop injecting and watch it climb back after 10 s.
 2. Run `__dvBridge.platform.memory.injectMB(500)` and see the `soft`, then `hard`, events in the console and a smaller streaming radius.
-3. Run `pnpm check:perf -- --scenario race-pursuit-heat4` and open `test-results/perf.chromium-webgl2.mobile.json`.
+3. Run `pnpm check:perf -- --scenario race-pursuit-heat4` and open `test-results/perf.race-pursuit-heat4.chromium-webgl2.mobile.json` (reports are keyed by scenario from M02b1).
 
 ## Effort
 1 Builder session; about 24 files; risk **medium**. The governor and memory policies are well specified, so the time goes to wiring eviction into ChunkStore and making the racing scenarios deterministic in CI.

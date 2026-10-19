@@ -18,7 +18,7 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 
 ## Depends on
 - **M03b1** (traffic-robotaxis): traffic system, `SignalState`, witness sink, `traffic-synth` scenario and QA page, `downtown-rush`.
-- Through it: M02a2 (ped graph, crossing links, transit nodes, `content/world/cablecars.json` chain check, `synth` bake), M02c1 (`TeleportApi` with fares recorded but not charged, `PlaceIndex`, `config/world/transit.json` fares), M02b1 (`DV_WORLD=synth` builds), M01b2 (anim graph v1 and the procedural mannequin on `bay_rig_v1`).
+- Through it: M02a2 (ped graph, crossing links, the 8 `bay-rail` transit nodes, `data/transit-routes.v1` with Metro splines, bus patterns and stops, ferry lines, cable-car splines and air corridors (DL-664), `content/world/cablecars.json` chain check, `synth` bake, the brand `words` in `config/ip-denylist.json`), M02c1 (`TeleportApi` with fares recorded but not charged, `PlaceIndex`, `config/world/transit.json` fares), M02b1 (`DV_WORLD=synth` builds), M01b2 (anim graph v1 and the procedural mannequin on `bay_rig_v1`).
 - Contracts: C08 1.0.0, C01 1.0.0, C02 1.1.0, C04 1.1.0 (`bay_rig_v1`, engine anim states 0–22), C13 1.1.0 (`CrowdLimits`).
 
 ## Scope in
@@ -38,9 +38,9 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
   - ferries: 7 m/s;
   - airliners: decorative and not hashed.
 
-  Counts follow the §5 table per tier. Names come through `NameRegistry` keys (fictional brands); liveries are original.
+  Movers read their paths only from `data/transit-routes.v1` and station positions from `WorldIndex.transit` (DL-664); nothing is hand-placed at runtime. Counts follow the §5 table per tier. Names come through `NameRegistry` keys (fictional brands; keys never contain a real brand, e.g. `transit.bay-rail`, never `transit.bart`); liveries are original.
 - Robotaxi fare and Ride (§3.6): the robotaxi spawns ≥ 120 m away and arrives within 90 s, followed by a short in-engine cut and a teleport. The fare is 300 ¢ + 120 ¢/km and the Bay Rail fare 200 ¢ + 50 ¢ per stop (`config/world/transit.json`, created by M02c1). Both are refused at heat ≥ 1. **Payment:** the fare is computed and passed with an idempotency key. The charge is a no-op `FareSink` until M04a2 wires `EconomyApi`, and the sink records the call for tests.
-- Scenario `traffic-peds-synth` (traffic and peds on, `synth` bake) with its Node golden. The `/qa/world-hash.html` page runs both scenarios.
+- Scenario `traffic-peds-synth` (traffic and peds on, `synth` bake) with its Node golden, under M03b1's residency rule (preload and pin every `p0` within `R_amb` plus one ring before tick 0; no tick while a requested `p0` is pending; DL-678). The `/qa/world-hash.html` page runs both scenarios.
 - `downtown-rush` with peds on (`density: 'nominal'`).
 
 ## Scope out
@@ -55,12 +55,15 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 - `packages/world/src/sim/transit/{components.ts, rail.ts, metro.ts, bus.ts, cablecar.ts, ferry.ts, aircraft.ts, fares.ts, ride.ts, system.ts, index.ts}`.
 - `packages/world/src/client/{peds/instances.ts, transit/render.ts}`.
 - `config/world/transit.json` extended with counts per tier and speeds (schema from M02c1 extended).
-- `packages/world/test/{ped.crossing.spec.ts, ped.fsm.spec.ts, ped.avoidance.spec.ts, density.prefix.spec.ts, transit.counts.spec.ts, transit.fares.spec.ts, peds.determinism.spec.ts}`, `packages/world/test/golden/traffic-peds-synth.json`.
+- Gray-box prefabs in `assets/prefabs/` (procedural placeholders like M03a1's, DL-664): `vehicle.bus`, `vehicle.cablecar`, `boat.ferry`, `aircraft.airliner`, `prop.transit-entrance` (`Interactable{Transit}`).
+- `config/ip-denylist.json` `words` += `BART`, `Muni`, `Caltrain` (DL-664).
+- `packages/world/test/{ped.crossing.spec.ts, ped.fsm.spec.ts, ped.avoidance.spec.ts, density.prefix.spec.ts, transit.counts.spec.ts, transit.synth.spec.ts, transit.fares.spec.ts, peds.determinism.spec.ts}`, `packages/world/test/golden/traffic-peds-synth.json`.
 - `apps/web/src/qa/world-hash.ts` (second scenario); `tests/e2e/world-hash.spec.ts` (both scenarios).
-- About 33 files.
+- About 35 files (prefabs are data).
 
 ## Interfaces
 - C08 1.0: ped graph, crossing links with `junction` and `movement`, transit nodes, spawn ranges and `activeSlots`, `TeleportApi` (`fast-travel` kind), all consumed verbatim.
+- Tool-owned data asset `data/transit-routes.v1` (M02a2, DL-664; not a contract), read through the catalog.
 - C01 1.0: components 257, 260, 261, 264; keys `amb:<cell>:<slot>`.
 - C04 1.1: `bay_rig_v1`, engine anim states. C13 1.1: `CrowdLimits`.
 - Engine-internal: the `FareSink` port, which M04a2 binds to C06 `EconomyApi`. No contract change.
@@ -73,13 +76,14 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 - AC-5 Given each tier and a transit fixture (bus pattern, cable-car chain, ferry line, corridor) When transit spawns Then bus, cable-car, Metro, ferry and aircraft counts equal the `config/world/transit.json` row. Buses dwell 8 s at stops, cable cars move at 4.2 m/s and ferries at 7 m/s (± 0.1 m/s) — proof: `pnpm check:unit -- packages/world`
 - AC-6 Given heat 0 and a Bay Rail entrance When the player fast-travels three stops Then the teleport lands at the target station, the `FareSink` records 350 ¢ once with one idempotency key, and the same request at heat 1 is refused with the precondition key and no movement — proof: `pnpm check:unit -- packages/world`
 - AC-7 Given scenario `traffic-peds-synth` (seed 0xC0FFEE, `canonical`) When it runs 10,000 ticks twice in Node Then all checkpoints are identical and equal `traffic-peds-synth.json`, while `traffic-synth.json` from M03b1 still matches with peds off — proof: `pnpm map:build -- --area synth && pnpm check:unit -- packages/world`
-- AC-8 Given a `DV_WORLD=synth` QA build When `/qa/world-hash.html` runs both scenarios Then Chromium and WebKit report hashes equal to both Node goldens — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-hash && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash`
+- AC-8 Given a `DV_WORLD=synth` QA build When `/qa/world-hash.html` runs both scenarios Then Chromium and WebKit report hashes equal to both Node goldens, with the scenario's preload set resident and pinned before tick 0 and no tick advanced while a requested `p0` was pending (DL-678) — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-hash && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-hash`
 - AC-9 Given `downtown-rush` with peds on When the CPU-side perf run executes on each flat tier Then ped and traffic instance totals, near-LOD skinned counts and render objects stay within C13 `CrowdLimits` and the tier rows — proof: `DV_WORLD=synth pnpm check:perf -- --scenario downtown-rush --fail`
-- AC-10 Given the shipped strings When the IP gates run Then no real transit brand appears in `content/world`, `config/world` or UI catalogs, and every new mesh or texture has a provenance record — proof: `pnpm names:lint && pnpm ip:strings && pnpm provenance:check`
+- AC-10 Given the shipped strings When the IP gates run Then no real transit brand appears in `content/world`, `config/world` or UI catalogs, a temp source file containing `BART`, `Muni` or `Caltrain` (any letter case) is reported by `ip:strings` while the same words under `spec/` are not, the repository-wide `pnpm ip:strings` run made after the three words are in `words` passes with no new `exceptions` entry for `content/world` or `config/world` (the landmark is `lm.rail-terminus`, the DataSF transit sources are `sfmta-stops`/`sfmta-patterns`, and M02a1's OSM reader keeps no `name`, `network`, `operator` or `brand` tag in the fixtures; DL-664 part 2), and every new mesh or texture has a provenance record (DL-664) — proof: `pnpm check:unit -- tools/ci && pnpm names:lint && pnpm ip:strings && pnpm provenance:check`
 - AC-11 Given the branch When the build, dist verifier and preview deploy run Then they pass, no `qa/world-hash` page ships, the gray-box boot still works, and the Preview passes its header checks — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-12 Given a fresh `synth` bake and its `data/transit-routes.v1` When transit spawns from the baked routes on each tier Then the live bus, Metro, ferry and aircraft counts equal the `config/world/transit.json` row, every bus stops for 8 s at each baked stop of its pattern, every Bay Rail entrance stands at one of the 8 `bay-rail` nodes, and no mover leaves its baked path by more than 0.5 m (the suite goes through `requireBake('synth')`; cable cars are covered on `sf` by the demo; DL-664) — proof: `pnpm map:build -- --area synth && DV_REQUIRE_BAKE=1 pnpm check:unit -- packages/world`
 
 ## Test plan
-- **Unit** (`pnpm check:unit -- packages/world`): `world/ped.crossing`, `ped.fsm`, `ped.avoidance` (with the XR head fixture), `density.prefix`, `transit.counts`, `transit.fares`, `peds.determinism`; M03b1's traffic tests stay green.
+- **Unit** (`pnpm check:unit -- packages/world`): `world/ped.crossing`, `ped.fsm`, `ped.avoidance` (with the XR head fixture), `density.prefix`, `transit.counts`, `transit.synth` (bake-backed), `transit.fares`, `peds.determinism`; M03b1's traffic tests stay green.
 - **E2E:** `@world-hash` on both engines with both scenarios.
 - **Perf:** `downtown-rush` counts with peds.
 - **IP:** `names:lint`, `ip:strings`, `provenance:check`.
@@ -102,8 +106,9 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 
 ## Notes for the Builder
 - Read first: `02-world-living.md` §3.3–§3.6, §4, §5, §7, §8; `02-world.md` §8 (M03b2 seeds) and §9; `01-engine.md` §2.8 (anim graph, presentation only); M03b1's file.
-- Facts: F-007 (crowd instancing within the object budget). Station positions are M02a2's S10 transit nodes in `WorldIndex.transit` (the Muni Metro positions of fact N4 plus authored BART and Caltrain seeds snapped by `map:landmarks`, U-W5) and Muni stops come from DataSF `i28k-bkz6`, both already stamped in M02a1's `sources.json`; no BART feed or GTFS is fetched (a new source needs an Architect DL entry with its licence, source stamp and attribution row first; DL-660). The BART developer licence forbids its marks [research/auth-ugc-input-maps.md §5.2], so names come from `NameRegistry` defaults ("Bay Rail", "City Metro", "City Transit", "Bay Ferry"), checked by `names:lint`.
+- Facts: F-007 (crowd instancing within the object budget). Station positions are M02a2's S10 transit nodes in `WorldIndex.transit` (the Muni Metro positions of fact N4 plus authored BART and Caltrain seeds snapped by `map:landmarks`, U-W5) and Muni stops come from DataSF `i28k-bkz6`, both already stamped in M02a1's `sources.json`; no BART feed or GTFS is fetched (a new source needs an Architect DL entry with its licence, source stamp and attribution row first; DL-660). The BART developer licence forbids its marks [research/auth-ugc-input-maps.md §5.2], so names come from `NameRegistry` defaults ("Bay Rail", "City Metro", "City Transit", "Strait Line"; DL-664), checked by `ip:strings` against the brand `words` (`names:lint` covers real people only). `SFMTA` stays the required PDDL credit of `i28k-bkz6`/`9exe-acju` in the attribution and is not denylisted.
 - `traffic-peds-synth.json` follows M03b1's golden rule: it stores its source `bakeId`, `peds.determinism.spec.ts` fails with the regenerate message when the synth `bakeId` changes, and it is regenerated only with `DV_UPDATE_GOLDEN=1` outside CI under the `golden-update` label (DL-657).
 - Order of work: ped FSM and crossings, density prefix, avoidance with the XR fixture, witness, transit movers, fares and Ride, render, goldens, QA page, perf.
+- Brand words (DL-664): if a file merged earlier (for example a dataset label in `config/world/sources.json`) carries `BART`, `Muni` or `Caltrain` outside the string-scan path allowlist, rename it (to the dataset id or a neutral id); inside `content/world`, `config/world` and UI catalogs renaming is the only fix (AC-10), and elsewhere an exact-match `exceptions` entry with a reason is allowed; never a path exception. `.` and `-` are word boundaries for `compileStringMatcher`, so ids such as `lm.<brand>-…` match. Before adding the words, run `pnpm ip:strings` with them locally and fix every hit (DL-664 part 2).
 - The fare sink is deliberate: M04a2 replaces it with `EconomyApi.debit(cents, 'fare', idemKey)`. Keep the idempotency key format `fare:<kind>:<tick>:<from>:<to>`.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

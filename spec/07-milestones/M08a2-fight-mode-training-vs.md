@@ -39,7 +39,7 @@ After this session Culture Wars is a playable mode and the **VS-Fighter** checkp
 - `packages/modes/fighter/package.json` script **`fighter:bench`**; `packages/modes/fighter/scripts/bench.ts`.
 - `packages/modes/fighter/test/{schemes.spec.ts, cpu.spec.ts, camera.spec.ts, slice.spec.ts, descriptor.spec.ts}`; `tests/golden/saves/fighter/slice.v1.json`.
 - `tests/e2e/{fighter-hash.spec.ts (@fighter-hash), fighter-touch.spec.ts (@fighter-touch), fighter-training.spec.ts (@fighter-training)}`; `@fighter-hash` entries in `tests/e2e/det/suites.ts`; `tools/ci/mutants/fighter/{frame-off-by-one,rng-swap}.ts`.
-- `config/perf/paths/fight-stage.json` (scripted CPU-vs-CPU round for the `fight-stage` scenario).
+- `config/perf/paths/fight-stage.json` (scripted CPU-vs-CPU round for the `fight-stage` scenario); `fight-stage` appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4).
 
 ## Interfaces
 - Implements C06 1.1 descriptor, `GameModeSim`, `GameModeUI`; C04 1.1 `CameraDirective {mode:'cinematic', shot:{kind:'side'}}` and the 160–207 block; C03 1.1 `ControlsSettings.fighterScheme` and the fighter alias table; C05 1.1 `mode:fighter`; C09 1.0 hook `defId 'bout.a5'`, `params {kind:'story'}` (DL-157). No contract change.

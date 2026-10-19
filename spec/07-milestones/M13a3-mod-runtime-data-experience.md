@@ -87,7 +87,7 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 - `packages/engine/src/client/mods/{experience-index.ts, enter-flow.ts}` and `test/experience-index.spec.ts`; room-client wiring in `packages/net` (the `modsActive` source) and a confirm dialog in `packages/ui/src/pages/online/`.
 - `packages/ui/src/mods/ExperienceCard.tsx`; i18n keys `exp.*`, `prompt.exp.enter`, `mods.offline.*`.
 - `services/edge/src/mods/experiences.ts`; `services/edge/test/experiences.test.ts`; `services/rooms/test/mods-4007.test.ts`.
-- `tests/perf/scenarios/mod-scene-budget.ts`; `tests/e2e/mods-exp.spec.ts` (tags `@mods-exp`, `@mods-offline`, `@mods-character`); fixture experience `tests/fixtures/mods/cones/` (source workspace, packed in the test).
+- `tests/perf/scenarios/mod-scene-budget.ts`; `mod-scene-budget` appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4); `tests/e2e/mods-exp.spec.ts` (tags `@mods-exp`, `@mods-offline`, `@mods-character`); fixture experience `tests/fixtures/mods/cones/` (source workspace, packed in the test).
 - `packages/shared/schemas/telemetry/{mod.session, exp.enter, exp.exit}.schema.json`.
 - No new secrets or scripts.
 

@@ -68,7 +68,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
   - `mod-perm-denied.spec.ts`, `mod-cmd-flood.spec.ts`, `mod-fault-policy.spec.ts`, `mod-lockstep-det.spec.ts`, `mod-migrate.spec.ts`;
   - `mod-player.spec.ts`, `mod-camera.spec.ts` (script-tier namespaces; a fixture `mod-loadouts` file, a fake active `CameraDirective`);
   - fixture sources inline as strings, no files.
-- `tests/perf/scenarios/mod-hostile.ts`; `tests/e2e/mods-script.spec.ts` (tag `@mods-script`).
+- `tests/perf/scenarios/mod-hostile.ts`; `mod-hostile` appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4); `tests/e2e/mods-script.spec.ts` (tag `@mods-script`).
 - `tools/ci/checklists/M13a4-iphone15.json`.
 - `packages/shared/schemas/telemetry/mod.fault.schema.json` (if M13a3 did not add it).
 - Dependency `quickjs-emscripten@0.32.0` [research/repos-modding.md Verified facts]. Its WASM is loaded only inside `mod.worker`, so `check:bundle` sees it as a lazy chunk.

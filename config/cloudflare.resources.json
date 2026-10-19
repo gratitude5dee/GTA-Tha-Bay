@@ -1,5 +1,5 @@
 {
-  "$comment": "Cloudflare resources created by the Architect on 2026-10-18 via the Cloudflare MCP for the owner's account (names per spec/domains/09-backend-ops.md). IDs are not secrets. Workers are not created yet: deploying needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (environment variables or GitHub repository secrets).",
+  "$comment": "Cloudflare resources created by the Architect on 2026-10-18 via the Cloudflare MCP for the owner's account (names per spec/domains/09-backend-ops.md). IDs are not secrets. Workers are not created yet: deploying needs CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (environment variables or GitHub repository secrets). Update 2026-10-19: the two web Workers are live, see workers_live (DL-512).",
   "created": "2026-10-18",
   "r2": {
     "staging": { "MEDIA": "tha-bay-media-staging", "PRIVATE": "tha-bay-private-staging" },
@@ -11,5 +11,18 @@
     "staging": { "FLAGS": { "title": "tha-bay-flags-staging", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" } },
     "prod":    { "FLAGS": { "title": "tha-bay-flags-prod",    "id": "c97c407d70c8457083bf0865b82c27fe" } }
   },
-  "workers_planned": { "staging": ["tha-bay-web-staging", "tha-bay-rooms-staging"], "prod": ["tha-bay-web", "tha-bay-rooms"] }
+  "workers_planned": { "staging": ["tha-bay-web-staging", "tha-bay-rooms-staging"], "prod": ["tha-bay-web", "tha-bay-rooms"] },
+  "workers_dev_subdomain": "gratitude-8f4",
+  "workers_live": {
+    "$comment": "Architect observation 2026-10-19 (DL-512): created 2026-10-19 00:23Z; GET /api/v1/health answers {ok: true, build: 'dev', env} with COOP same-origin, COEP require-corp, CORP same-origin. workers.dev hosts until Q-15. The rooms Workers do not exist until M12b1.",
+    "staging": { "name": "tha-bay-web-staging", "url": "https://tha-bay-web-staging.gratitude-8f4.workers.dev", "created": "2026-10-19" },
+    "prod":    { "name": "tha-bay-web",         "url": "https://tha-bay-web.gratitude-8f4.workers.dev",         "created": "2026-10-19" }
+  },
+  "host_vars_note": "services/edge/wrangler.jsonc on claude/build after PR #1: HOST_API and HOST_ID carry the gratitude-8f4 subdomain; HOST_RT, HOST_MEDIA and HOST_UGC still read https://tha-bay-*[-staging].workers.dev without it (M00e item 12). media and ugc are R2 custom domains with no workers.dev form: placeholders until Q-15.",
+  "supabase": {
+    "$comment": "Not a Cloudflare resource; recorded beside the hosts because the Worker vars point at it (Architect observation 2026-10-19, DL-512). Refs and URLs are not secrets; no key is ever written here. M05d moves this into config/supabase.projects.json.",
+    "prod":    { "project": "tha-bay", "ref": "jwvvllhxuvwkrynmnchb", "url": "https://jwvvllhxuvwkrynmnchb.supabase.co", "region": "us-west-1", "created": "2026-10-19" },
+    "staging": null,
+    "note": "No staging project yet. Staging shares the prod project until M05d creates tha-bay-staging (accepted, RISK-28, DL-603); no Supabase var is removed (Q-43, DL-601); previews get no Supabase vars (M00e item 8); production sign-up waits behind AUTH_PASSWORD_SIGNUP until M00e's checks are live."
+  }
 }

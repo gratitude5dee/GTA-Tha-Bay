@@ -37,7 +37,7 @@ After this session optional full-body pose control in Culture Wars can be turned
 - `packages/ui/src/settings/privacy.tsx` ("Delete camera data"; `cameraFeatures` off deletes records), `content/ui/i18n/en.json` keys `pose.*` (DL-222, DL-247).
 - `packages/modes/fighter/fixtures/pose/calibration/{good-desktop.json, good-phone.json, too-far.json, dark.json, two-people.json, freeze.json}`: landmark JSON produced with the M08c1 generator. No image or video files.
 - Tests: `packages/modes/fighter/test/pose/{calibration,capability,gate,hybrid,session,store}.spec.ts`; `tests/e2e/fighter/{pose-privacy,pose-gate}.spec.ts` (tags `@fighter @pose`, `@pose-gate`; Chromium `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream` via `test.use`).
-- `packages/modes/fighter/perf/fight-stage-pose.ts`, registered in the C13 scenario registry.
+- `packages/modes/fighter/perf/fight-stage-pose.ts`, registered in the C13 scenario registry; `fight-stage-pose` appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4).
 - `tools/ci/checklists/{M08c2-iphone15.json, M08c2-webcam.json}` (C13 `DeviceChecklist`): a 60 s run reporting p50/p95 `est95`, delegate, camera FPS, level and end reason; frame budget at the device tier; `unavailable` valid.
 - `tools/ci/check-dist.ts`: extend the header mode if M08c1 did not already assert `camera=()` on `/account/*` and the `connect-src` allow-list.
 - `docs/device-runs/M08c2/{iphone15,webcam}/{perf.json,notes.json}` (operator). No new root script.
