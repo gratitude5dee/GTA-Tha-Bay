@@ -22,7 +22,7 @@
 | `solenne-skip` | Solenne Skip | S | **rocket roadster** (EV, `thrusterHop`) | AWD | 980,000 (ladder #1 reward) | **M07a** |
 | `halcyon-cormorant` | Halcyon Mobility Cormorant | R | **robotaxi** (quirks) | RWD | not for sale | **M07a** |
 
-M07a ships one car per class (bold) so the vertical slice, the hill-climb opponent and the Robotaxi Rush are playable; the other nine are art and tuning passes in M07b. Story/traffic prefabs from S01 map to handling ids `hp.compact`, `hp.sedan`, `hp.rideshare`, `hp.van`, `hp.truck`, `hp.pickup` (class D, M03a), `hp.police-cruiser`, `hp.police-suv`, `hp.police-interceptor`, `hp.robotaxi-ambient` (M03a/M03c). Police presets: cruiser 1,950 kg, 0–100 kph 7.0 s, top 210 kph; SUV (ram unit) 2,300 kg, 7.5 s, 200 kph, durability 1.6; interceptor (heat 5 only) 1,800 kg, 5.0 s, 260 kph. Their top speed is a ceiling; the pursuit speed rule in `config/pursuit.race.json` binds them to the player's speed.
+M07a ships one car per class (bold) so the vertical slice, the hill-climb opponent and the Robotaxi Rush are playable; the other nine are art and tuning passes in M07b. Both ship gray-box bodies `vehicle/graybox.<slug>`; the final bodies to the C.8 node contract for the 14 cars with prefabs land in M10d3 (DL-460). Story/traffic prefabs from S01 map to handling ids `hp.compact`, `hp.sedan`, `hp.rideshare`, `hp.van`, `hp.truck`, `hp.pickup` (class D, M03a), `hp.police-cruiser`, `hp.police-suv`, `hp.police-interceptor`, `hp.robotaxi-ambient` (M03a/M03c). Police presets: cruiser 1,950 kg, 0–100 kph 7.0 s, top 210 kph; SUV (ram unit) 2,300 kg, 7.5 s, 200 kph, durability 1.6; interceptor (heat 5 only) 1,800 kg, 5.0 s, 260 kph. Their top speed is a ceiling; the pursuit speed rule in `config/pursuit.race.json` binds them to the player's speed.
 
 ## C.2 Class envelope and oracle targets (`CLASS_ENVELOPE`; oracle = scripted line on the flat gray-box, dry, no nitro)
 
@@ -171,7 +171,7 @@ Premise B and C hooks reuse these events (B3 candlelight sideshow = `sf.sideshow
 
 Rival driver `skill` per rank: 0.30 (10) up to 0.95 (1) in steps of ≈ 0.07 on the base; difficulty adds −0.15 / 0 / +0.10. Rivals are fictional characters: never real-person-derived, never depicted in crimes beyond the genre's street racing and evasion (D-30, constraint 7).
 
-## C.7 Audio needs (rows for `content/audio/needs.json`, owner S06; sets checked by `check:assets`; music is commissioned originals only, S05 policy)
+## C.7 Audio needs (rows for `content/audio/needs.json`, owner S06; sets checked by `check:assets`; music is commissioned originals only, S05 policy; placeholders M07b2, final sets M10e, DL-500)
 
 | Set id | Content |
 |---|---|

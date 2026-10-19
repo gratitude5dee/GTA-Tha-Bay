@@ -1,15 +1,15 @@
 # M06b3 — npc-builder-ui
 
 ## Goal
-Players can build an NPC in the shell. When this session ends, page `npcs` (`/menu/npcs`, `npcs/:id/:step`) holds "My NPCs" (draft cards with state chips and limits) and a nine-step stepper over the route 33 API of M06b1 and M06b2: Basics, Backstory, Attestation, Generate and Review, Voice, Preview chat, Reference images, Look, Submit. Each step autosaves the draft. Preview chat streams SSE with a persistent AI badge. Images use route 34 with a manual cover tool and show only their text description. Look offers creator-kit body presets only, with no generation. Submit needs a `linked` profile and shows review status and notes. The page is flat-only and accessible, and every string is translated.
+Players can build an NPC in the shell. When this session ends, page `npcs` (`/menu/npcs`, `npcs/:id/:step`) holds "My NPCs" (draft cards with state chips and limits) and a nine-step stepper over the route 33 API of M06b1 and M06b2: Basics, Backstory, Attestation, Generate and Review, Voice, Preview chat, Reference images, Look, Submit. Each step autosaves the draft. Preview chat streams SSE with a persistent AI badge. Images use route 34 with a manual cover tool and show only their text description. Look offers creator-kit body presets only, with no generation. Submit needs a `linked` profile and shows review status and notes. "Use in my sandbox" places the owner's private NPC in sandbox mode, where the player talks to it in the world. The page is flat-only and accessible, and every string is translated.
 
 ## Requirements
 - R-NPC-03: the native NPC builder becomes usable end to end up to submission for review.
 - R-UI-03: the NPC Builder page implied by the main menu exists and is reachable through its gate.
 
 ## Depends on
-- M06b2 (images, submit, community, reports, review routes), M04b2 (creator presets, `MenuScene`, help, kit components).
-- Contracts: C10 1.0 (`packages/shared/src/contracts/c10-npc-builder.ts`: `DraftView`, `DraftState`, `DraftFields`, `CreateDraftReq`, `UpdateDraftReq`, `AttachImagesReq`, `JobAccepted`, `SubmitRes`, `CommunityNpc`, `Attestation`).
+- M06b2 (images, submit, community, reports, review routes), M04b2 (creator presets, `MenuScene`, help, kit components), M06a5 (dialogue panel, `sys.dialogue.open`), M06c (`InteractKind.Talk` handler).
+- Contracts: C06 1.1 (`UiCommand` `mode.cmd`, `PrefabService`), C10 1.0 (`packages/shared/src/contracts/c10-npc-builder.ts`: `DraftView`, `DraftState`, `DraftFields`, `CreateDraftReq`, `UpdateDraftReq`, `AttachImagesReq`, `JobAccepted`, `SubmitRes`, `CommunityNpc`, `Attestation`).
 
 ## Scope in
 - Gate per `10-ui.md` page table: flag `npc.builder`, online, 18+ attested; offline or flag off → `disabled`/`hidden` with the reason; in XR the "Exit VR to continue" panel (DL-142).
@@ -28,20 +28,22 @@ Players can build an NPC in the shell. When this session ends, page `npcs` (`/me
 - Errors through `apiErrorToUi()`: `rate_limited`/`quota_exhausted` show the wait from `retryAfterMs`; `moderation_blocked` shows one fixed message and the content-policy link; `tier_required` shows the call to action. Everything the player types renders as text.
 - Report button (`ReportButton`, route 41) on every published NPC card in the community list section of the page.
 - Telemetry `npc.builder.step {step, ok}` (C16 1.1).
+- "Use in my sandbox" (`10-ui-pages.md` §2 rule 4) on every own card in state `private`, `in_review` or `published`, unconditionally: it starts `sandbox` if no sandbox session runs (`mode.start {id: 'sandbox'}`), then sends `UiCommand {t: 'mode.cmd', mode: 'sandbox', name: 'npc.spawnPrivate', args: {npcId}}`. The built-in `sandbox` mode (M04a2) registers the command: it checks `npcId` against the C10 `NpcId` pattern with the `u_` prefix, spawns one `ped` prefab through `ctx.prefabs` (`PrefabService`) about 3 m ahead of the player with key `npc:<npcId>` and the draft's `appearancePreset` (`ped.ambient.a` when null), replaces any earlier private NPC, and despawns it on mode exit; nothing is written to the `story` slice. Talking uses the M06c Talk handler and the M06a5 panel, so every turn goes through route 31, which answers only the owner (`not_found` for anyone else, shown as the in-character offline line). The worker dispatcher refuses a `mode.cmd` whose mode is not running and `story` registers no such command, so private NPCs never enter the story.
 
 ## Scope out
-- Spawning a private NPC in the sandbox world from this page: shown only when the sandbox descriptor exposes the `mode.cmd` that M06b1 registered for private use; otherwise hidden and listed in the PR as a follow-up.
+- Private NPC schedules, brains or barks in the sandbox (it stands idle and talks on request).
 - Look queue requests (`POST /drafts/:id/assets`) → M06b4. Account linking pages → M13c1, M14a. Community browsing as a separate page → M13b4.
 
 ## Deliverables
 - `packages/ui/src/pages/npc-builder/{index.tsx, list.tsx, stepper.tsx, steps/basics.tsx, steps/backstory.tsx, steps/attestation.tsx, steps/review.tsx, steps/voice.tsx, steps/preview.tsx, steps/images.tsx, steps/look.tsx, steps/submit.tsx, api.ts, sse.ts, autosave.ts, state-chip.ts, cover-tool.ts}`.
+- `packages/engine/src/sim/modes/builtin/sandbox.ts` gains the `npc.spawnPrivate` command handler (M04a2 file, edited).
 - Page registration (`npcs`, `npcs/:id/:step`) in the shell page table; `config/ui/nav.json` item stays gated as above.
 - `content/ui/i18n/en.json` keys `npcb.*`.
-- `packages/ui/test/{npc-builder.spec.ts, npc-builder-sse.spec.ts, npc-builder-deps.spec.ts}`.
+- `packages/ui/test/{npc-builder.spec.ts, npc-builder-sse.spec.ts, npc-builder-deps.spec.ts}`, `packages/engine/test/sandbox-private-npc.spec.ts`.
 - `tests/e2e/npc-builder-ui.spec.ts` (tags `@npc-builder` and `@npc-builder-ui`), `tests/e2e/fixtures/npc-builder/` (network fixtures for route 34, the R2 PUT and the linked submit path); the a11y page list gains the builder steps.
 
 ## Interfaces
-- C10 1.0 builder types and C12 1.1 routes 33, 34, 41 consumed as frozen; `UiCommand` (C06 1.1) unchanged.
+- C10 1.0 builder types and C12 1.1 routes 31, 33, 34, 41 consumed as frozen; `UiCommand` (C06 1.1) unchanged: `npc.spawnPrivate` is a mode-owned `mode.cmd` name (args ≤ 512 B), and `PrefabService.spawn` is used as specified.
 - No contract change.
 
 ## Acceptance criteria
@@ -54,9 +56,10 @@ Players can build an NPC in the shell. When this session ends, page `npcs` (`/me
 - AC-7 Given every builder step When the axe scan runs Then there are zero critical or serious findings — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y`
 - AC-8 Given the catalogs When the translation check runs Then no `npcb.*` key is missing — proof: `pnpm check:i18n`
 - AC-9 Given the branch When it builds and previews Then both succeed and the earlier `@npc-builder` API suite still passes — proof: `pnpm build && pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder && pnpm deploy:preview`
+- AC-10 Given profile A's draft in `private` in recorded mode When A presses "Use in my sandbox" in My NPCs and talks to the spawned NPC, and profile B sends `npc.spawnPrivate` for A's `npcId` and talks Then A's session is `sandbox` with one entity keyed `npc:<npcId>` and the dialogue panel streams a line with the AI badge; B's route 31 request returns `not_found` and B sees only the offline line; the same command sent while only `story` runs spawns nothing — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder-ui && pnpm check:unit -- packages/engine/test/sandbox-private-npc.spec.ts`
 
 ## Test plan
-- Unit (`pnpm check:unit -- packages/ui`): `npc-builder.spec.ts` (chips, debounce, limits text, submit gate), `npc-builder-sse.spec.ts` (chunk boundaries, `fallback`, `done`), `npc-builder-deps.spec.ts` (import rule).
+- Unit (`pnpm check:unit -- packages/ui`): `npc-builder.spec.ts` (chips, debounce, limits text, submit gate), `npc-builder-sse.spec.ts` (chunk boundaries, `fallback`, `done`), `npc-builder-deps.spec.ts` (import rule); `packages/engine/test/sandbox-private-npc.spec.ts` (spawn key, one-at-a-time replace, despawn on exit, bad `npcId` refused).
 - E2E (`chromium-webgl2`): `@npc-builder-ui` against the local web server in the recorded mode that M06b1's suite uses, with network fixtures where no local service exists (R2 S3 endpoint, linked submit); `@ui-a11y`.
 - No device test; iPhone single-column layout is covered by the M14c audit.
 
@@ -66,6 +69,7 @@ Players can build an NPC in the shell. When this session ends, page `npcs` (`/me
 3. Edit a field in Review; chat three turns in Preview; watch the badge and counter.
 4. Register the device (M12a2); add two images; read their descriptions.
 5. Pick a body preset; open Submit and read the linking call to action.
+6. Back in My NPCs, press "Use in my sandbox": sandbox starts with the NPC in front of you; press Talk and chat with it.
 
 ## Effort
 1 Builder session; about 30 files; risk **medium**. Nine steps are many screens; the SSE reader and autosave conflict path need care.

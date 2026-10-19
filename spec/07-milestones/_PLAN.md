@@ -10,7 +10,7 @@
 5. **Spend (DL-OWN-01).** fal total ≤ $100: M00c ≤ $10; M10a1+M10a2 ≤ $42; cutscenes ≤ $40 (M05c3 ≤ $16 and M10b ≤ $24, DN-S13-02); $8 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
 
-## 1. Ordered index (v1: 110 milestones, ≈ 102.4 sessions; post-v1: 7 milestones, 7 sessions)
+## 1. Ordered index (v1: 112 milestones, ≈ 104.4 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
 
 | # | ID | Slug | Sessions | Block | Depends on |
@@ -82,56 +82,58 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 65 | M10b | qa-gates-kill-drill | 1 | E | M10a2, M08b2, M06a3 |
 | 66 | M10c | roster-souls-ink-barks | 1 | E | M10a2, M06a4, M06c, M05c2 |
 | 67 | M10d1 | art-integration | 1 | E | M05c2, M03b2, M04b2 |
-| 68 | M10d2 | art-integration | 1 | E | M10d1, M02d2 |
-| 69 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
-| 70 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
-| 71 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
-| 72 | M05f2 | story-act3-finale | 1 | E | M05f1 |
-| 73 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2 |
-| 74 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
-| 75 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1 |
-| 76 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5 |
-| 77 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
-| 78 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
-| 79 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
-| 80 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
-| 81 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1 |
-| 82 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2 |
-| 83 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2 |
-| 84 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |
-| 85 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
-| 86 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
-| 87 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
-| 88 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
-| 89 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d |
-| 90 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
-| 91 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1 |
-| 92 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
-| 93 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
-| 94 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
-| 95 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
-| 96 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M06b2, M13a2 |
-| 97 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
-| 98 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
-| 99 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
-| 100 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
-| 101 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
-| 102 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
-| 103 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
-| 104 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
-| 105 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
-| 106 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
-| 107 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
-| 108 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
-| 109 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
-| 110 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
-| 111 | M15a | bay-expansion-framework | 1 | I | M14a |
-| 112 | M15b | oakland-core | 1 | I | M15a |
-| 113 | M15c | berkeley-richmond | 1 | I | M15b |
-| 114 | M15d | marin-gateway | 1 | I | M15a |
-| 115 | M15e | peninsula-north | 1 | I | M15a |
-| 116 | M15f | peninsula-vc-row | 1 | I | M15e |
-| 117 | M15g | south-bay-san-jose | 1 | I | M15f |
+| 68 | M10d3 | art-integration | 1 | E | M10d1, M07b2, M08b2, M10a2 |
+| 69 | M10d2 | art-integration | 1 | E | M10d1, M10d3, M02d2 |
+| 70 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
+| 71 | M05e2 | story-act2-part2 | 1 | E | M05e1 |
+| 72 | M05f1 | story-act3-part1 | 1 | E | M05e2, M10b |
+| 73 | M05f2 | story-act3-finale | 1 | E | M05f1 |
+| 74 | M10e | audio-integration | 1 | E | M10d2, M10c, M05f2, M07b2, M08b2, M03c, M02b2 |
+| 75 | M11a1 | iphone-hardening-governor | 1 | E | M02b1, M03b1, M07a2 |
+| 76 | M11a2 | iphone-hardening-governor | 1 | E | M11a1 |
+| 77 | M11b1 | webxr-port | 1 | E | M01c, M04b2, M11a1 |
+| 78 | M11b3 | xr-ui-panels-comfort | 0.8 | E | M11b1, M06a5 |
+| 79 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b1, M07b2, M08b2, M11b3 |
+| 80 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
+| 81 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
+| 82 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
+| 83 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1 |
+| 84 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2, M06a5, M06c |
+| 85 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2 |
+| 86 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |
+| 87 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
+| 88 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
+| 89 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
+| 90 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
+| 91 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d |
+| 92 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
+| 93 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1 |
+| 94 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
+| 95 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
+| 96 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
+| 97 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
+| 98 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M06b2, M13a2 |
+| 99 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
+| 100 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
+| 101 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
+| 102 | M13c1 | device-code-publish-login | 0.8 | G | M12a1, M04b1, M13a2 |
+| 103 | M13c2 | publish-pipeline-server | 1 | G | M13c1, M13a1, M13b1, M13b2 |
+| 104 | M13c3 | publish-cli-link | 1 | G | M13c2, M13a6 |
+| 105 | M06b4 | builder-publish-assets | 0.5 | G | M13c2, M06b3, M10a1 |
+| 106 | M13d1 | legal-trust-safety-backend | 1 | G | M13b1, M06b2, M13c2 |
+| 107 | M13d2 | legal-forms-ui | 0.3 | G | M13d1, M04b1 |
+| 108 | M14c | a11y-audit-i18n-gate | 0.5 | H | M13d2, M13b4, M12d, M06b3, M11b3 |
+| 109 | M14b1 | launch-hardening-guardrails | 1 | H | M13d1, M06a4, M05b1 |
+| 110 | M14b2 | launch-hardening-guardrails | 1 | H | M14b1, M12c2 |
+| 111 | M14b3 | launch-hardening-guardrails | 1 | H | M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 |
+| 112 | M14a | thirdweb-siwe-link | 1 | H | M14b3, M12a1 |
+| 113 | M15a | bay-expansion-framework | 1 | I | M14a |
+| 114 | M15b | oakland-core | 1 | I | M15a |
+| 115 | M15c | berkeley-richmond | 1 | I | M15b |
+| 116 | M15d | marin-gateway | 1 | I | M15a |
+| 117 | M15e | peninsula-north | 1 | I | M15a |
+| 118 | M15f | peninsula-vc-row | 1 | I | M15e |
+| 119 | M15g | south-bay-san-jose | 1 | I | M15f |
 
 ## 2. Dependency graph (acyclic; transitive edges removed; full edges in §1)
 
@@ -213,11 +215,13 @@ flowchart LR
     M10b
     M10c
     M10d1
+    M10d3
     M10d2
     M05e1
     M05e2
     M05f1
     M05f2
+    M10e
     M11a1
     M11a2
     M11b1
@@ -377,8 +381,19 @@ flowchart LR
   M06a4 --> M10c
   M06c --> M10c
   M05c2 --> M10d1
-  M10d1 --> M10d2
+  M10d1 --> M10d3
+  M07b2 --> M10d3
+  M08b2 --> M10d3
+  M10a2 --> M10d3
+  M10d3 --> M10d2
   M02d2 --> M10d2
+  M10d2 --> M10e
+  M10c --> M10e
+  M05f2 --> M10e
+  M07b2 --> M10e
+  M08b2 --> M10e
+  M03c --> M10e
+  M02b2 --> M10e
   M05c2 --> M05e1
   M08b2 --> M05e1
   M09b2 --> M05e1
@@ -464,6 +479,7 @@ flowchart LR
   M13b3 --> M14b3
   M08c2 --> M14b3
   M10d2 --> M14b3
+  M10e --> M14b3
   M14b3 --> M14a
   M14a --> M15a
   M15a --> M15b
@@ -484,7 +500,7 @@ flowchart LR
 | **VS-Racing** | M07a2 | 3 VS races and the pursuit event: `pnpm map:races par -- --check`, exact replay, `@racing-det` equal in Chromium and WebKit, `@racing-vs` |
 | **VS-Fighter** | M08a2 | golden replay hashes equal in Node, Chromium, WebKit; Training frame meter; touch Simple scheme; story hook unlock once |
 | **VS-Tycoon** | M09a2 | finance vectors exact; `pnpm check:balance` bands B1–B12 with failing self-tests; 200 replays equal |
-| **Single-player launchable** | M11b4 (with M05f2, M10c, M10d2, M11a2, M06c, M02d2) | every single-player R-ID green in the trace report; device passes for iPhone, Quest, Vision Pro, Mac; public release still waits for M14b3's sign-offs (Q-18, Q-21, Q-23) |
+| **Single-player launchable** | M11b4 (with M05f2, M10c, M10d2, M10e, M11a2, M06c, M02d2) | every single-player R-ID green in the trace report; device passes for iPhone, Quest, Vision Pro, Mac; public release still waits for M14b3's sign-offs (Q-18, Q-21, Q-23) |
 | **Multiplayer** | M12e | two clients on staging within 150 ms; 16-bot 30-minute load gate; leaderboards validated |
 | **UGC open** | M13d1 (+M13c2) | NCII clock, evidence audit and report threshold pass; only then may `ugc.publish` flip in production (DL-151) |
 | **Launch gate** | M14b3 | DoD H1–H10, guardrails T1–T9, release device pass, `ip:history`, sign-offs recorded |

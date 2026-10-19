@@ -120,12 +120,12 @@ export interface StageDef {
 
 | Stage | Landmark (open-data geometry, original art) | Notes | Milestone |
 |---|---|---|---|
-| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout `bout.a5` (S03 `m.a1.05`) | M08a (gray box), M08b |
-| `ferry_plaza` | Ferry Building plaza and clock tower | ferries and water in depth | M08b |
-| `dolores_slope` | Dolores Park slope | the stage floor is flat; the slope is backdrop | M08b |
-| `bayview_cranes` | Bayview shipyard under the cranes | industrial, night default | M08b |
-| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout `bout.a11` (S03 `m.a2.08`) | M08b |
-| `mission_bay_court` | Mission Bay arena analogue, fictional venue name | `arena_court`; basketball-domain fighters excluded | M08b |
+| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout `bout.a5` (S03 `m.a1.05`) | M08a (gray box), M10d3 (final art) |
+| `ferry_plaza` | Ferry Building plaza and clock tower | ferries and water in depth | M08b (gray box), M10d3 |
+| `dolores_slope` | Dolores Park slope | the stage floor is flat; the slope is backdrop | M08b (gray box), M10d3 |
+| `bayview_cranes` | Bayview shipyard under the cranes | industrial, night default | M08b (gray box), M10d3 |
+| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout `bout.a11` (S03 `m.a2.08`) | M08b (gray box), M10d3 |
+| `mission_bay_court` | Mission Bay arena analogue, fictional venue name | `arena_court`; basketball-domain fighters excluded | M08b (gray box), M10d3 |
 | `lombard_switchbacks`, `coit_top`, `ggpark_bandshell`, `twin_peaks_night` | backlog | Lombard needs camera tilt | M10+ |
 
 All stages are SF-only (owner update 2026-10-18). Stages are C07 `prop` bundles loaded through `ModeContext.assets`; the mode declares `world: 'stage'` and does not stream a C08 chunk (assumption on S02, hub §10). No landmark name or silhouette is used as a logo, no mural or public art is reproduced, venue and team names are fictional [research/legal-ip-likeness.md §6, "Landmark marks" and "Sponsored venue names"].
@@ -188,13 +188,13 @@ Scaling [research/gamedesign-decomposition.md §4.5]: N=10, S=6 → 155; N=12, S
 
 | Asset | Kind and id | Source |
 |---|---|---|
-| model | `character/<slug>` | S05 pipeline (M10a); gray-box until then |
+| model | `character/<slug>` | S05 pipeline (M10a); gray-box `character/graybox.<slug>` until then; a slug M10a2 leaves `pending` gets the creator-kit body `character/kit.<slug>` in M10d3 (DL-460) |
 | base clips, move clips | `anim/<slug>.base`, `anim/<slug>.moves` | Meshy library, authored + retargeted |
 | portrait | `portrait/<slug>` | S05 |
 | voice, barks | `voice/<slug>`, `audio_bark/<sha256>` | S04/S05 voice tiers (D-23) |
-| stage | `prop/stage-<id>-day`, `prop/stage-<id>-night` | authored by S07/S02 over open-data massing |
+| stage | `prop/stage-<id>-day`, `prop/stage-<id>-night` | authored by S07/S02 over open-data massing, final in M10d3; gray-box stand-ins `prop/graybox.stage-<id>-day` and `-night` in M08a2/M08b2 (DL-460) |
 | sparks, props | `prop/fx-spark`, `prop/gumball-arc`, …, `texture/*` | authored |
-| FX audio | `audio_sfx/*`, `audio_music/*` | `content/audio/needs.json` rows: hit layers per strength (×3 variants), whoosh, block, Check ping, KO, announcer set, crowd reactions, six stage tracks (original only, Q-11) |
+| FX audio | `audio_sfx/*`, `audio_music/*` | `content/audio/needs.json` rows: hit layers per strength (×3 variants), whoosh, block, Check ping, KO, announcer set, crowd reactions, six stage tracks (original only, Q-11); final in M10e, stage tracks silent under the Q-40 default (DL-500) |
 
 The announcer is an original synthetic voice, never a real person's clone. Gray-box models (M08a) are procedural capsule-and-box meshes with `origin: authored`.
 

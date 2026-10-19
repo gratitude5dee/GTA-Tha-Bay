@@ -16,6 +16,9 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - Contracts: C14 1.0.0, C17 1.0.0, C12 1.2.0 (routes 34–37, 41, 43, 53; `ModSubject`; `09-backend-contracts-1.1.md` §1 route 36 rule), C07 1.1.0 (`ProvenanceRecord`, mod `AssetSource`), C08 1.0.0 (`chunkKeyOf`, `WorldIndex.bakeId`, `DistrictId`).
 
 ## Scope in
+- Route 34 purposes added to M06b2's purpose table (`services/edge/src/ugc/policy.ts`); auth for both is route 36's (CLI token with `mods:publish` or a `linked` JWT; bracket `18p`; no `publish_ban`) and both count against M06b2's `upload` quota:
+  - `mod_archive`: `application/zip` only (else `unsupported_media_type`), ≤ 128 MiB (else `payload_too_large`; `spec/05-api-and-realtime.md` §3 row 34). The upload stays `issued` and is never scanned on its own: route 36 consumes it and enqueues the scan (C12 1.1 route 36 rule), and a route 34 commit on it → `bad_request`.
+  - `experience_thumb`: `image/png|webp` (else `unsupported_media_type`), ≤ 10 MiB. Commit enqueues one `UGC_SCAN` message of kind `experience_thumb` that runs M06b2's image chain in its order (hash first; minors × sexual → `ugc-quarantine-<env>/csam/…` and a `P0_CSAM` case). C17 `thumbUrl` is set, and the image copied to `ugc-public-<env>`, only on verdict `allow`; any other verdict or a vendor error leaves `thumbUrl` absent.
 - `services/edge/src/publish/route36.ts`: `POST /mods/:id/versions` ⓘ.
   - Auth: CLI token (`aud`, `scp` checked by value) or a `linked` JWT; bracket `18p`; no `publish_ban` (else `tier_required`, `age_blocked`, `forbidden`). Limits 5 versions/day and 20 mods per profile → `rate_limited` (`publish.rate`). Bad attestation → `bad_request` (`publish.attestation`). Another profile's `ModId` → `forbidden`.
   - `uploadId` must be an `issued` upload of purpose `mod_archive` owned by the caller. The handler HEAD-checks its size, creates `mods` if new, creates `mod_versions` (`scanning`) and one `moderation_item`, enqueues `UGC_SCAN` (kind `mod_archive`), and answers 202 `ModVersionsRes`.
@@ -52,14 +55,14 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - `dv mod publish` and `dv login` → M13c3. Flipping `ugc.publish` in production → after M13d1 (DL-151).
 
 ## Deliverables
-- `services/edge/src/publish/{route36,route37,auth,limits,decisions,promote}.ts`; `services/edge/src/ugc/mod-scan/{pipeline,stream,stages-local,hash-bank,strings,text,images,hygiene,case}.ts`; `services/edge/src/mods/anchor-rules.ts`; router rows 36–37; route 43 handler extension.
+- `services/edge/src/publish/{route36,route37,auth,limits,decisions,promote,upload-purposes}.ts`; `services/edge/src/ugc/mod-scan/{pipeline,stream,stages-local,hash-bank,strings,text,images,hygiene,case}.ts`; `services/edge/src/mods/anchor-rules.ts`; router rows 36–37; route 43 handler extension.
 - `packages/shared/src/mod/publish-state.ts` with `publish-state.test.ts`.
 - `services/pipeline/rebake/{workflow,cron}.ts`; `services/edge/wrangler.jsonc` (Workflow binding, cron, repeated under `previews` where allowed).
-- `services/edge/test/{mod-publish-route,mod-scan-quarantine,mod-scan-parity,anchor-rules,publish-flag,revocation-list,rebake-revalidation}.test.ts` (`anchor-rules` extends M13b2's file); fixtures: archives built from M13a1's corpus, a fixture hash bank, a fixture mask with a residential layer, recorded classifier responses.
+- `services/edge/test/{mod-publish-route,mod-upload-purposes,mod-scan-quarantine,mod-scan-parity,anchor-rules,publish-flag,revocation-list,rebake-revalidation}.test.ts` (`anchor-rules` extends M13b2's file); fixtures: archives built from M13a1's corpus, a fixture hash bank, a fixture mask with a residential layer, recorded classifier responses.
 - Secrets: none new. `OPENAI_MODERATION_API_KEY` (M06b1) and `ANTHROPIC_API_KEY` (M06a3, classifier) are reused. Absent → stages 12–13 record `error: 'not_configured'` and route the item to human review, never to `published`; tests use recordings. `PHOTODNA_KEY` waits for Q-16 (M13d1).
 
 ## Interfaces
-- C14 1.0 and C17 1.0 types as typed (server-owned `moderation`, `visibility`, `chunkKey`, `worldVersion`, `modSha256`). C12 1.1: routes 36–37 POST (route 36 takes both token kinds and enqueues the scan), route 43, `ModSubject`. C07 1.1 provenance through the shared gate cores; C08 1.0 `chunkKeyOf`, `bakeId`.
+- C14 1.0 and C17 1.0 types as typed (server-owned `moderation`, `visibility`, `chunkKey`, `worldVersion`, `modSha256`, `thumbUrl`). C12 1.1: route 34 with `UploadReq.purpose` `mod_archive` and `experience_thumb` as already typed; routes 36–37 POST (route 36 takes both token kinds and enqueues the scan), route 43, `ModSubject`. C07 1.1 provenance through the shared gate cores; C08 1.0 `chunkKeyOf`, `bakeId`.
 - Not in v1 (DL-240): an author yank route; a server-side glTF/KTX validation host.
 - No contract change.
 
@@ -76,6 +79,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 - AC-10 Given recorded classifier fixtures returning `review` for a sign text and `block` for a thumbnail When two archives are scanned Then the first reaches `needs_review` with the stage-12 signal and a `P2_REVIEW` case, and the second is `rejected` with a policy code and no case — proof: `pnpm check:workers -- mod-scan-quarantine`
 - AC-11 Given the production build and the pipeline harness When checks run Then no `/_test/` handler exists and the mock pipeline still passes — proof: `pnpm check:prod-routes && pnpm check:pipeline`
 - AC-12 Given this branch merged to `main` When `deploy.yml` deploys staging Then smoke passes and `POST /api/v1/mods/x.y/versions` without a token answers `unauthorized` — proof: manual: desktop browser and terminal, read the deploy summary, `curl -X POST` that path on staging; then `pnpm check:smoke -- <staging-url>`
+- AC-13 Given route 34 When a `device` JWT requests a `mod_archive` upload, a CLI token requests one as `application/zip` at 129 MiB, as `image/png`, and as `application/zip` at 1 MiB and then commits it, and a `linked` JWT requests an `experience_thumb` whose recorded classifiers return minors × sexual and another returning `allow` Then the answers are `tier_required`, `payload_too_large`, `unsupported_media_type`, an `UploadRes`, and `bad_request` on the commit with no `UGC_SCAN` message; the first thumb is copied to `ugc-quarantine` with a `P0_CSAM` case and never yields a `thumbUrl`, the hash stage is logged before any classifier call, and the second yields a `ugc-public` `thumbUrl` only after the queue drains — proof: `pnpm check:workers -- mod-upload-purposes`
 
 ## Test plan
 - Workers suites named in the ACs (InMemoryDataPort, R2 stubs for the three UGC buckets, queue drained through `/api/v1/_test/drain-queue` semantics, recorded vendor responses); unit `shared/mod.publish-state`; `pnpm check:pipeline`; `pnpm check:prod-routes`; staging smoke (AC-12).

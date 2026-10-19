@@ -4,6 +4,7 @@
 After this session the guardrails are proven against real vendors every night, the database can be restored on demand, and production releases stop on their own when mobile stability regresses. **Split boundary (M14b, split 2 of 3):** M14b1 delivered the configuration, wiring and release-candidate suite. This session adds:
 - the nightly staging suite `guardrails-nightly` (T4–T6 and T9 [research/gap-observability-cost-guardrails.md Rec 3]) in `nightly.yml`, so the launch gate can require three consecutive green nights;
 - the backup restore drill `restore-drill`;
+- the quarterly staging kill-switch drill `quarterly.yml` (M10b's `kill-drill` suite; `research/INDEX.md` §4 rule 10, DL-480);
 - gradual production rollout as the default, with the A03 abnormal-exit rule deciding promotion;
 - the full C16 telemetry registry audit in `check:telemetry`;
 - the switch of the app documents' CSP from Report-Only to enforcing (DL-191).
@@ -28,6 +29,7 @@ M14b3 consumes all of this as launch-gate evidence.
   - The report goes to `tests/reports/ops/guardrails-nightly.json` (uploaded as a nightly artifact).
   - Spend per night ≤ $0.25 on the Anthropic `synthetic` workspace (Haiku prices F-034). No fal call.
 - **`nightly.yml`**: a `guardrails-nightly` job (environment `staging`) running `pnpm test:ops -- --suite guardrails-nightly`.
+- **`quarterly.yml`** (new; cron `29 9 2 1,4,7,10 *` UTC plus `workflow_dispatch`; DL-480): a `kill-drill` job (environment `staging`) running `pnpm test:ops -- --suite kill-drill` (M10b) and uploading `tests/reports/ops/kill-drill.json` as the artifact `kill-drill`. It is the recurring drill of `05-assets-pipeline.md` §10; M14b3's `kill-drill` gate reads the newest report.
 - **Restore drill** (`tools/ops/suites/restore-drill.ts`):
   - `--source fixture`: start the local Supabase stack, apply migrations 0001–0008 and a seed, dump, drop, restore, then compare per-table row counts and a SHA-256 over sorted primary keys. Run the pgTAP suite of `check:db`. Finally replay the profile deletions recorded after the dump time and assert that those profiles' rows are gone.
   - `--source staging`: dump the staging database (`SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`) and restore it into the local stack. Same checks; it records the elapsed restore time and writes `tests/reports/ops/restore-drill.json`.
@@ -57,7 +59,7 @@ M14b3 consumes all of this as launch-gate evidence.
 - `tools/ci/release-gate.ts`, `tools/ci/test/release-gate.test.ts`. `tools/ci/deploy.ts` changes: production default, `--promote`.
 - `tools/ci/check-telemetry.ts` extension, `config/telemetry-allow-unemitted.json`, `tools/ci/test/check-telemetry.test.ts` with fixtures.
 - `apps/web/public/_headers` (CSP), `tools/ci/check-dist.ts` (headers mode asserts the directive set), `tests/e2e/csp.spec.ts` (tag `@csp`).
-- `.github/workflows/{nightly.yml, deploy.yml}`, `tools/ci/test/workflows.test.ts`.
+- `.github/workflows/{nightly.yml, deploy.yml, quarterly.yml}`, `tools/ci/test/workflows.test.ts`.
 - `docs/ops/restore.md`.
 - ≈ 28 files.
 
@@ -75,7 +77,7 @@ M14b3 consumes all of this as launch-gate evidence.
 - AC-7 Given no staging credentials When the nightly suite runs Then it prints `SKIP test:ops guardrails-nightly: CLOUDFLARE_API_TOKEN/CI_STAFF_DEVICE_JWK not set` and exits 0 — proof: `env -u CLOUDFLARE_API_TOKEN -u CI_STAFF_DEVICE_JWK pnpm test:ops -- --suite guardrails-nightly`
 - AC-8 Given staging with the `synthetic` workspace and the M14b1 rules When the nightly suite runs Then T4 sees a 429 before its $0.20 hard stop (overshoot recorded), T5's alert arrives within 3 minutes, T6 raises SP-02 within 15 minutes, T9 shows no `drift` row, and the report is written — proof: `pnpm test:ops -- --suite guardrails-nightly`
 - AC-9 Given staging database credentials When the staging drill runs Then the restore completes, the checks of AC-6 pass, and the elapsed time is recorded (not asserted) — proof: `pnpm test:ops -- --suite restore-drill --source staging`
-- AC-10 Given the workflows When the workflow test parses them Then `nightly.yml` runs `pnpm test:ops -- --suite guardrails-nightly` in environment `staging`, and `deploy.yml` has an hourly schedule that runs only `pnpm deploy:prod -- --promote` — proof: `pnpm check:unit -- tools/ci`
+- AC-10 Given the workflows When the workflow test parses them Then `nightly.yml` runs `pnpm test:ops -- --suite guardrails-nightly` in environment `staging`, `deploy.yml` has an hourly schedule that runs only `pnpm deploy:prod -- --promote`, and `quarterly.yml` has a quarterly schedule plus `workflow_dispatch` and runs `pnpm test:ops -- --suite kill-drill` in environment `staging`, uploading the `kill-drill` artifact — proof: `pnpm check:unit -- tools/ci`
 - AC-11 Given the production build When the route check runs Then `/_test/gateway-ping` and `/_test/ae-write` are absent — proof: `pnpm check:prod-routes`
 - AC-12 Given the branch When unit tests and the preview deploy run Then both pass and the Preview passes `check:headers` with the enforcing CSP — proof: `pnpm check:unit && pnpm deploy:preview`
 
@@ -105,5 +107,5 @@ M14b3 consumes all of this as launch-gate evidence.
 - Read first: `09-backend-ops.md` §2 (deploy pipeline), §4 (alerts A03), §5.3; `09-backend-db.md` §7 (retention and forget); `spec/05-api-and-realtime.md` §1.3 (CSP), route 4; `research/gap-observability-cost-guardrails.md` Rec 3–4; `spec/08-test-and-ci.md` §5.3, §5.5.
 - Facts: F-027, F-028, F-034, F-037, F-061. Recorded, not asserted: U-API-1 (CSP browser behaviour; the M14b3 device pass checks it), U-BE-18.
 - Spend: Anthropic `synthetic` workspace only, ≤ $0.25 per nightly run; **no fal**.
-- Secrets (names): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CI_STAFF_DEVICE_JWK`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_ACCESS_TOKEN`; staging Worker `ANTHROPIC_API_KEY` holds the `synthetic` workspace key. Each absent secret gives a SKIP and exit 0 locally.
+- Secrets (names): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CI_STAFF_DEVICE_JWK`, `OPS_TOKEN` and `CF_API_TOKEN_CACHE` (`quarterly.yml`, as in M10b), `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_ACCESS_TOKEN`; staging Worker `ANTHROPIC_API_KEY` holds the `synthetic` workspace key. Each absent secret gives a SKIP and exit 0 locally.
 - Owner gate: the `synthetic` workspace (Console). Branch `m14b2-launch-hardening-guardrails`.

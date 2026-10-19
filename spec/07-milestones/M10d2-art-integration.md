@@ -1,7 +1,7 @@
 # M10d2 — art-integration
 
 ## Goal
-After this session the city surfaces are final v1 art and no gray-box stand-in can reach a release unnoticed. **Split boundary (M10d, split 2 of 2):** M10d1 delivered vehicles, props, the pedestrian kit, the creator-kit parts and the placeholder registry `config/art-placeholders.json`. This session ships the KTX2 facade atlas for the desktop building shader, replaces the M02b1 placeholder `texture/far-bay-cards` with cards from the software silhouette rasterizer, runs the landmark art pass at the same AssetIds where the owner supplies files, adds the `desktop-ultra` atmosphere adapter behind its removable interface and a flag, and adds `pnpm assets:final`, the scan that M14b3's `art-final` launch gate computes (DL-390).
+After this session the city surfaces are final v1 art and no gray-box stand-in can reach a release unnoticed. **Split boundary (M10d, split 3 of 3; runs after M10d3, DL-460):** M10d1 delivered ambient vehicles, props, the pedestrian kit, the creator-kit parts and the placeholder registry `config/art-placeholders.json`; M10d3 delivered the player cars, the fight stages and the fighter-model fallback. This session ships the KTX2 facade atlas for the desktop building shader, replaces the M02b1 placeholder `texture/far-bay-cards` with cards from the software silhouette rasterizer, runs the landmark art pass at the same AssetIds where the owner supplies files, adds the `desktop-ultra` atmosphere adapter behind its removable interface and a flag, and adds `pnpm assets:final`, the scan that M14b3's `art-final` launch gate computes (DL-390).
 
 ## Requirements
 - R-MAP-01: the city reads as San Francisco at every tier: facades, landmarks and the far Bay skyline are final art.
@@ -11,6 +11,7 @@ After this session the city surfaces are final v1 art and no gray-box stand-in c
 
 ## Depends on
 - **M10d1:** `config/art-placeholders.json` and its schema; the vehicle, ped and creator rows filled.
+- **M10d3:** the player-car, fight-stage and fighter-model rows filled (DL-460).
 - **M02d2:** 37 `building/lm.<slug>` recipes, `map:landmarks -- --build --check`, `LandmarkLayer` skyline set. Through it **M02b1** (bake S11 `far-bay-*`, placeholder card atlas, window-grid shader) and **M02b2** (`AtmosphereAdapter` interface; `desktop-ultra` uses the desktop path).
 - Contracts: C07 1.1, C08 1.0, C13 1.1 (`TierFeatures`, `DynamicQuality.atmosphereLevel`), unchanged.
 - Owner: Q-39 (art sourcing). The default applies when it stays open.
@@ -23,7 +24,7 @@ After this session the city surfaces are final v1 art and no gray-box stand-in c
 - **Placeholder scan** `pnpm assets:final` (`tools/assets/src/final.ts`, pure core `artFinal(input)` reused by M14b3): fails, naming file and ref, when (1) any AssetRef matching `^[a-z_]+/graybox\.` appears in `assets/prefabs/**`, `content/**`, `config/**` (the registry itself excluded) or the catalog manifest; (2) any registry entry has an empty `replacedBy` or a ref missing from the catalog; (3) any entry with `match.file` and `match.pointer` does not hold its `replacedBy` refs at that JSON pointer. `--json` prints `{ status: 'pass'|'pending', findings[] }`. Fill `replacedBy` for the `owner: 'M10d2'` rows.
 
 ## Scope out
-- Vehicles, props, peds, creator parts: M10d1. Landmark interiors and new landmarks. Device calibration of the atmosphere cost: the M14b3 release device pass (`desktop-ultra` stays `uncalibrated` without Desktop C, Q-13).
+- Vehicles, props, peds, creator parts: M10d1. Player cars, fight stages, fighter-model fallback: M10d3. Landmark interiors and new landmarks. Device calibration of the atmosphere cost: the M14b3 release device pass (`desktop-ultra` stays `uncalibrated` without Desktop C, Q-13).
 - The `art-final` launch-gate entry and its release blocking: M14b3.
 
 ## Deliverables

@@ -36,12 +36,12 @@ After this session the accessibility baseline (R-ENG-04) is audited across the w
   - every `ErrorPage` kind and every `apiErrorToUi()` outcome that offers Help maps to an existing topic id;
   - every `sources[].url` appears in `research/INDEX.md` §2 (checked by test);
   - topic steps are `LocKey`s.
-- **Age signals.** `AgeSignalProvider` (`packages/ui/src/pages/age/age-signal.ts`) gets the v1 `NullAgeSignalProvider`, which returns `null`. `AgeGate` consults the provider before rendering: a non-null bracket under 18 shows `BlockedPage` without the date screen. A unit test uses a fake provider; there is no real OS integration (`10-ui-pages.md` §2.4 rule 5; the API shape is unverified). A release on or after 2027-01-01 needs a verified provider or counsel sign-off: M14b3 launch gate `age-signals` (DL-285).
+- **Age signals.** `AgeSignalProvider` (`packages/ui/src/pages/age/age-signal.ts`) gets the v1 `NullAgeSignalProvider`, which returns `null`. `AgeGate` consults the provider before rendering: a non-null bracket under 18 shows `BlockedPage` without the date screen. A unit test uses a fake provider; there is no real OS integration (`10-ui-pages.md` §2.4 rule 5; the API shape is unverified). A release on or after 2027-01-01 needs the verified provider that M14b3's conditional **age-signal provider** slot builds; counsel sign-off `Q-23e` is only the fallback (M14b3 launch gate `age-signals`; DL-285, DL-493).
 - **Fixes.** Whatever the audit finds, fixed in `packages/ui` with the smallest change: labels, roles, focus order, token values, target sizes.
 
 ## Scope out
 - XR panel legibility and comfort on devices → M11b3 already recorded them; the release device pass is M14b3.
-- New languages or translated legal text → post-v1. Real OS age-signal integration → after the API exists (2027).
+- New languages or translated legal text → post-v1. Real OS age-signal integration → M14b3 conditional slot **age-signal provider**, which runs once U-UI-1 is verified and recorded in `spec/03` (DL-493).
 - Final launch DoD audit → M14b3.
 
 ## Deliverables

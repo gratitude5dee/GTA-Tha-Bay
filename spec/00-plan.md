@@ -1,6 +1,6 @@
 # 00 — Plan and status (living)
 
-Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-4.md` (DL-249 onward; split DL-341) and Builder rows in `spec/11-decision-log-builder.md` and `spec/11-decision-log-3.md` (DL-218…DL-244). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
+Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-4.md` (DL-249…DL-480; split DL-341), `spec/11-decision-log-5.md` (DL-500 onward) and Builder rows in `spec/11-decision-log-builder.md` and `spec/11-decision-log-3.md` (DL-218…DL-244). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
 
 ## Phase status
 | Phase | Subagents | Status | Output |
@@ -50,7 +50,7 @@ Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice cei
 
 ## Milestones (register: `spec/07-milestones/_PLAN.md`)
 
-The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **117 milestone files, all READY** — 110 for v1 (≈ 102.4 sessions, M00 … M14a; M10d1–M10d2 art integration added by DL-390) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 109.4 sessions. Every id is one session or less (C15 L7). Critical path 29.3 sessions to M14a, 33.3 to M15g (DL-219, DL-348). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
+The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **119 milestone files, all READY** — 112 for v1 (≈ 104.4 sessions, M00 … M14a; M10d1–M10d2 art integration added by DL-390, M10d3 player cars and fight stages by DL-460, M10e audio integration by DL-500) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 111.4 sessions. Every id is one session or less (C15 L7). Critical path 29.3 sessions to M14a, 33.3 to M15g (DL-219, DL-348). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
 
 ## Start the Builder
 
@@ -80,9 +80,9 @@ Operator prerequisites, the interactive alternative and `--resume` after a usage
 | 2026-10-19 | scope | 0 | 1 | n/r | pass 3; DL-347 |
 | 2026-10-19 | executability | 0 | 2 | n/r | pass 4, in progress; DL-348, DL-421 |
 | 2026-10-19 | factual | 0 | 0 | n/r | pass 4, in progress |
-| 2026-10-19 | scope | 0 | 5 | n/r | pass 4, in progress; DL-349, DL-350, DL-390, DL-391, DL-420 |
+| 2026-10-19 | scope | 0 | 6 | n/r | pass 4, in progress; DL-349, DL-350, DL-390, DL-391, DL-420, DL-500 |
 
-Counts are the fixes logged in `spec/11-decision-log-4.md`, one per DL entry: "blocking" as the entry states it, every other logged fix major; the lens is the Architect's attribution where the block heading omits it. Minors were fixed in place without a DL entry (n/r: not recorded). §H.5 (two consecutive zero-blocking passes per lens) is not yet met.
+Counts are the fixes logged in `spec/11-decision-log-4.md` and `-5.md`, one per DL entry: "blocking" as the entry states it, every other logged fix major; the lens is the Architect's attribution where the block heading omits it. Minors were fixed in place without a DL entry (n/r: not recorded). §H.5 (two consecutive zero-blocking passes per lens) is not yet met.
 
 ## Definition of Done (03-SPEC-TEMPLATE §H)
 Not yet evaluated.

@@ -75,7 +75,7 @@ Next: the next milestone id and anything it must know
 </report>
 
 <milestones>
-All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–110 are v1 (≈ 102.4 sessions), 111–117 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
+All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–112 are v1 (≈ 104.4 sessions), 113–119 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
 1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
 2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
 3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
@@ -143,56 +143,58 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 65. M10b · qa-gates-kill-drill · 1 · M10a2, M08b2, M06a3 · `CF_API_TOKEN_CACHE`; ADR-GENAI-01 `cleared` for paid prewarm
 66. M10c · roster-souls-ink-barks · 1 · M10a2, M06a4, M06c, M05c2 · Q-19, Q-25 (canary only while open), Q-20
 67. M10d1 · art-integration · 1 · M05c2, M03b2, M04b2 · Q-39 art sourcing (default: recipe fallback), Q-24
-68. M10d2 · art-integration · 1 · M10d1, M02d2 · Q-39 art sourcing (default: recipes stay)
-69. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
-70. M05e2 · story-act2-part2 · 1 · M05e1 · Q-21 for release
-71. M05f1 · story-act3-part1 · 1 · M05e2, M10b · Q-21 for release
-72. M05f2 · story-act3-finale · 1 · M05f1 · Q-21 for release
-73. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2 · none
-74. M11a2 · iphone-hardening-governor · 1 · M11a1 · Q-13 devices
-75. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1 · Q-13 devices
-76. M11b3 · xr-ui-panels-comfort · 0.8 · M11b1 · none
-77. M11b2 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b1, M07b2, M08b2, M11b3 · none
-78. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices
-79. M12a1 · p1-identity-cloud-saves · 1 · M05d, M04b3, M06a1 · Q-15 (`id.<domain>`), `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET`, Supabase Pro
-80. M12a2 · age-register-cloud-save-ui · 0.5 · M12a1, M04b1 · none
-81. M06b2 · builder-images-review · 1 · M06b1, M12a1 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`
-82. M06b3 · npc-builder-ui · 1 · M06b2, M04b2 · none
-83. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
-84. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging
-85. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · none
-86. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location
-87. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none
-88. M12e · mode-leaderboards · 1 · M12c2, M07b1, M09a2 · none
-89. M13a1 · mod-sdk-manifest-validators · 1 · M04a2, M01d · none
-90. M13a2 · mod-installer-store-client · 1 · M13a1, M01e, M05d · none
-91. M13a3 · mod-runtime-data-experience · 1 · M13a2, M02c2, M12b1, M12c1 · none
-92. M13a4 · mod-script-sandbox · 1 · M13a3 · Q-13 device
-93. M13a5 · mod-ui-tier · 1 · M13a3 · Q-13 devices
-94. M13a6 · mod-agent-kit · 1 · M13a4, M13a5 · Q-22 (npm publication step only)
-95. M13a7 · store-experience-pages · 0.7 · M13a3, M07b2, M04b1 · none
-96. M13b1 · forum-reports-backend · 1 · M05d, M06b1, M13a2 · none
-97. M13b2 · forum-ugc-links · 0.8 · M13b1, M13a3, M02c2 · none
-98. M13b3 · creator-place-mode · 1 · M13a3, M04b2 · none
-99. M13b4 · forum-ui · 1 · M13b1, M04b1 · none
-100. M13c1 · device-code-publish-login · 0.8 · M12a1, M04b1, M13a2 · DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted
-101. M13c2 · publish-pipeline-server · 1 · M13c1, M13a1, M13b1, M13b2 · none
-102. M13c3 · publish-cli-link · 1 · M13c2, M13a6 · Q-22 (npm step only)
-103. M06b4 · builder-publish-assets · 0.5 · M13c2, M06b3, M10a1 · owner approval per job; `budget_program` cap
-104. M13d1 · legal-trust-safety-backend · 1 · M13b1, M06b2, M13c2 · Q-16 filings; `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` after approval
-105. M13d2 · legal-forms-ui · 0.3 · M13d1, M04b1 · Q-23 for final text
-106. M14c · a11y-audit-i18n-gate · 0.5 · M13d2, M13b4, M12d, M06b3, M11b3 · none
-107. M14b1 · launch-hardening-guardrails · 1 · M13d1, M06a4, M05b1 · `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`; Anthropic workspace `synthetic`
-108. M14b2 · launch-hardening-guardrails · 1 · M14b1, M12c2 · staging
-109. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only)
-110. M14a · thirdweb-siwe-link · 1 · M14b3, M12a1 · Thirdweb Growth plan ($99/month, F-059) owner approval
-111. M15a · bay-expansion-framework · 1 · M14a · post-v1; per-area source licence check and attribution (R-MAP-02)
-112. M15b · oakland-core · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
-113. M15c · berkeley-richmond · 1 · M15b · post-v1; per-area source licence check and attribution (R-MAP-02)
-114. M15d · marin-gateway · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
-115. M15e · peninsula-north · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
-116. M15f · peninsula-vc-row · 1 · M15e · post-v1; per-area source licence check and attribution (R-MAP-02)
-117. M15g · south-bay-san-jose · 1 · M15f · post-v1; per-area source licence check and attribution (R-MAP-02)
+68. M10d3 · art-integration · 1 · M10d1, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24
+69. M10d2 · art-integration · 1 · M10d1, M10d3, M02d2 · Q-39 art sourcing (default: recipes stay)
+70. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
+71. M05e2 · story-act2-part2 · 1 · M05e1 · Q-21 for release
+72. M05f1 · story-act3-part1 · 1 · M05e2, M10b · Q-21 for release
+73. M05f2 · story-act3-finale · 1 · M05f1 · Q-21 for release
+74. M10e · audio-integration · 1 · M10d2, M10c, M05f2, M07b2, M08b2, M03c, M02b2 · Q-11, Q-40 audio sourcing (default: commissioned stems when supplied, else silent music; SFX recipe fallback); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for voiced lines
+75. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2 · none
+76. M11a2 · iphone-hardening-governor · 1 · M11a1 · Q-13 devices
+77. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1 · Q-13 devices
+78. M11b3 · xr-ui-panels-comfort · 0.8 · M11b1, M06a5 · none
+79. M11b2 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b1, M07b2, M08b2, M11b3 · none
+80. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices
+81. M12a1 · p1-identity-cloud-saves · 1 · M05d, M04b3, M06a1 · Q-15 (`id.<domain>`), `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET`, Supabase Pro
+82. M12a2 · age-register-cloud-save-ui · 0.5 · M12a1, M04b1 · none
+83. M06b2 · builder-images-review · 1 · M06b1, M12a1 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`
+84. M06b3 · npc-builder-ui · 1 · M06b2, M04b2 · none
+85. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
+86. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging
+87. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · none
+88. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location
+89. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none
+90. M12e · mode-leaderboards · 1 · M12c2, M07b1, M09a2 · none
+91. M13a1 · mod-sdk-manifest-validators · 1 · M04a2, M01d · none
+92. M13a2 · mod-installer-store-client · 1 · M13a1, M01e, M05d · none
+93. M13a3 · mod-runtime-data-experience · 1 · M13a2, M02c2, M12b1, M12c1 · none
+94. M13a4 · mod-script-sandbox · 1 · M13a3 · Q-13 device
+95. M13a5 · mod-ui-tier · 1 · M13a3 · Q-13 devices
+96. M13a6 · mod-agent-kit · 1 · M13a4, M13a5 · Q-22 (npm publication step only)
+97. M13a7 · store-experience-pages · 0.7 · M13a3, M07b2, M04b1 · none
+98. M13b1 · forum-reports-backend · 1 · M05d, M06b1, M06b2, M13a2 · none
+99. M13b2 · forum-ugc-links · 0.8 · M13b1, M13a3, M02c2 · none
+100. M13b3 · creator-place-mode · 1 · M13a3, M04b2 · none
+101. M13b4 · forum-ui · 1 · M13b1, M04b1 · none
+102. M13c1 · device-code-publish-login · 0.8 · M12a1, M04b1, M13a2 · DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted
+103. M13c2 · publish-pipeline-server · 1 · M13c1, M13a1, M13b1, M13b2 · none
+104. M13c3 · publish-cli-link · 1 · M13c2, M13a6 · Q-22 (npm step only)
+105. M06b4 · builder-publish-assets · 0.5 · M13c2, M06b3, M10a1 · owner approval per job; `budget_program` cap
+106. M13d1 · legal-trust-safety-backend · 1 · M13b1, M06b2, M13c2 · Q-16 filings; `NCMEC_API_CREDENTIALS`, `PHOTODNA_KEY` after approval
+107. M13d2 · legal-forms-ui · 0.3 · M13d1, M04b1 · Q-23 for final text
+108. M14c · a11y-audit-i18n-gate · 0.5 · M13d2, M13b4, M12d, M06b3, M11b3 · none
+109. M14b1 · launch-hardening-guardrails · 1 · M13d1, M06a4, M05b1 · `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`; Anthropic workspace `synthetic`
+110. M14b2 · launch-hardening-guardrails · 1 · M14b1, M12c2 · staging
+111. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only)
+112. M14a · thirdweb-siwe-link · 1 · M14b3, M12a1 · Thirdweb Growth plan ($99/month, F-059) owner approval
+113. M15a · bay-expansion-framework · 1 · M14a · post-v1; per-area source licence check and attribution (R-MAP-02)
+114. M15b · oakland-core · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
+115. M15c · berkeley-richmond · 1 · M15b · post-v1; per-area source licence check and attribution (R-MAP-02)
+116. M15d · marin-gateway · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
+117. M15e · peninsula-north · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02)
+118. M15f · peninsula-vc-row · 1 · M15e · post-v1; per-area source licence check and attribution (R-MAP-02)
+119. M15g · south-bay-san-jose · 1 · M15f · post-v1; per-area source licence check and attribution (R-MAP-02)
 Run them in this order. A milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2); when several Builders run in parallel, "done" means merged to the default branch; each file's Depends on section is authoritative over this list, and slugs of split milestones are in their file names. Before starting, check its status in `spec/07-milestones/README.md`: if it is not READY, stop and report.
 </milestones>
 

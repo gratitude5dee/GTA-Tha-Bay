@@ -21,7 +21,7 @@
 
 ### M06b3 · npc-builder-ui — 1 · risk M · S10
 - **Goal:** the NPC builder pages over the route 33 API in the step order of `04-npc-builder.md` §C1 (S04 owns the flow, DL-234): draft, generate, preview chat, private talk, submit.
-- **R** R-NPC-03, R-UI-03 · **Dep** M06b2, M04b2 · **Read** `04-npc-builder.md` C1; `10-ui-pages.md` §2 · **Out** `packages/ui/src/pages/npc-builder` · **C** C10 1.0 (builder types)
+- **R** R-NPC-03, R-UI-03 · **Dep** M06b2, M04b2, M06a5, M06c · **Read** `04-npc-builder.md` C1; `10-ui-pages.md` §2 · **Out** `packages/ui/src/pages/npc-builder` · **C** C10 1.0 (builder types)
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y`
 
 ### M12b1 · rooms-core-protocol-v2 — 1 · risk H · S09 (split 1 of 2)
@@ -154,13 +154,13 @@
 - **Gate** `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`; Anthropic workspace `synthetic` · **Proof** `pnpm test:ops -- --suite guardrails`; `pnpm check:prod-routes` (synthetic endpoints absent in production)
 
 ### M14b2 · launch-hardening-guardrails — 1 · risk M · S09 (split 2 of 3)
-- **Goal:** nightly staging suite T4–T6 plus T9 (three green nights before launch), backup restore drill, gradual rollout default with the A03 abnormal-exit release rule, enforcing CSP (DL-191, DL-241), full telemetry registry audit.
-- **R** R-ENG-03, R-PLAT-05 · **Dep** M14b1, M12c2 · **Read** `09-backend-ops.md` §2, §4; `09-backend-db.md` §7 · **Out** `tools/ops/suites/{guardrails-nightly,restore-drill}`, `apps/web/public/_headers`, `.github/workflows/nightly.yml` · **C** C16 1.2
+- **Goal:** nightly staging suite T4–T6 plus T9 (three green nights before launch), backup restore drill, quarterly staging kill-switch drill (`quarterly.yml`, DL-480), gradual rollout default with the A03 abnormal-exit release rule, enforcing CSP (DL-191, DL-241), full telemetry registry audit.
+- **R** R-ENG-03, R-PLAT-05 · **Dep** M14b1, M12c2 · **Read** `09-backend-ops.md` §2, §4; `09-backend-db.md` §7 · **Out** `tools/ops/suites/{guardrails-nightly,restore-drill}`, `apps/web/public/_headers`, `.github/workflows/{nightly,quarterly}.yml` · **C** C16 1.2
 - **Gate** staging · **Proof** `pnpm test:ops -- --suite guardrails-nightly`; `pnpm test:ops -- --suite restore-drill`; `pnpm check:telemetry`
 
 ### M14b3 · launch-hardening-guardrails — 1 · risk H · S13, S05, S06 (split 3 of 3)
-- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390), flag-flip checklist, `release.yml`.
-- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
+- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390; audio rules from M10e, DL-500), flag-flip checklist, `release.yml`.
+- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
 - **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
 
 ### M14a · thirdweb-siwe-link — 1 · risk M · S09 (+S10) · **last v1 milestone (R-AUTH-02)**
