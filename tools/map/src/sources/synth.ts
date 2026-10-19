@@ -13,6 +13,7 @@ import { GRID_MIN_M, M_PER_DEG_LAT, M_PER_DEG_LNG, ORIGIN, Rng, canonicalize, fn
 import { areaGridOf, type AreaId, type EnuBox, type SourcesConfig, type SynthConfig } from '../config.ts';
 import { writeRawLock, type RawLockFile, type RawSourceLock, RAW_LOCK_NAME } from '../raw-lock.ts';
 import { distToRing } from '../geom/rings.ts';
+import { CORRIDOR_HALF_M, generateRoads, roadGrid } from './synth-roads.ts';
 import { encodeTerrarium, latOfPy, lngOfPx, tilePath, tilesCovering, TILE_PX } from './terrarium.ts';
 
 export const SYNTH_RETRIEVED_AT = '2026-01-01T00:00:00Z';
@@ -172,6 +173,22 @@ function densityOf(cfg: SynthConfig, cx: number, cy: number): number {
 
 interface BuildOut { rows: string[]; osm: string[]; count: number }
 
+/** True when (x, z) lies within `extra` metres of a street corridor of the synth grid (buildings keep off the streets). */
+function onRoadCorridor(cfg: SynthConfig, x: number, z: number, extra: number): boolean {
+  const r = cfg.roads;
+  const g = roadGrid(cfg);
+  const i = Math.round((x - r.originX) / r.pitchM), j = Math.round((z - r.originZ) / r.pitchM);
+  const half = (c: 'arterial' | 'collector' | 'local'): number => CORRIDOR_HALF_M[c] + extra;
+  const clsOf = (kind: 'v' | 'h', idx: number): 'arterial' | 'collector' | 'local' => {
+    const a = r.arterial;
+    const m = (v: number, n: number): number => ((v % n) + n) % n;
+    if (kind === 'v' ? m(idx - a.phaseI, a.everyI) === 0 : m(idx - a.phaseJ, a.everyJ) === 0) return 'arterial';
+    return m(idx, r.collectorEvery) === 0 ? 'collector' : 'local';
+  };
+  if (i >= g.iMin && i <= g.iMax && Math.abs(x - g.vx(i)) < half(clsOf('v', i))) return true;
+  return j >= g.jMin && j <= g.jMax && Math.abs(z - g.hz(j)) < half(clsOf('h', j));
+}
+
 function footprintRow(id: string, ring: Ring, heightM: number, groundM: number, blank: boolean): string {
   const med = blank ? '' : String(Math.round(heightM * 100));
   const max = blank ? '' : String(Math.round(heightM * 105));
@@ -190,7 +207,7 @@ function genBuildings(cfg: SynthConfig, box: EnuBox): BuildOut {
       if (!inSynthLand(cfg, minX + 128, minZ + 128) && !inSynthLand(cfg, minX + 8, minZ + 8) && !inSynthLand(cfg, minX + 248, minZ + 248)) continue;
       const n = densityOf(cfg, cx, cy);
       const downtown = n === cfg.buildings.downtown.perChunk;
-      const g = downtown ? 39 : Math.max(2, Math.ceil(Math.sqrt(n * 1.6)));
+      const g = downtown ? 39 : Math.max(2, Math.ceil(Math.sqrt(n * 3)));
       const pitch = 256 / g;
       const rng = chunkRng(cfg.seed, 'bld', cx, cy);
       // Fisher-Yates over the cell list for a deterministic choice of cells.
@@ -208,6 +225,7 @@ function genBuildings(cfg: SynthConfig, box: EnuBox): BuildOut {
         if (!inBox(box, px, pz)) continue;
         if (!inSynthLand(cfg, px, pz) || distToSynthWater(cfg, px, pz) < 24) continue;
         if (inBox(hole, px, pz)) continue;
+        if (!downtown && onRoadCorridor(cfg, px, pz, pitch * 0.35 + 2)) continue;
         const idx = made++;
         const id = `${cx}${String(cy).padStart(3, '0')}.${String(idx).padStart(5, '0')}`;
         const kindRoll = rng.nextU32() % 100;
@@ -261,6 +279,14 @@ function genBuildings(cfg: SynthConfig, box: EnuBox): BuildOut {
 
 function osmPolygon(id: string, rings: Ring[], tags: Record<string, string>): string {
   return `{"type":"Feature","id":"${id}","properties":${JSON.stringify(tags)},"geometry":{"type":"Polygon","coordinates":[${rings.map(coordsOf).join(',')}]}}`;
+}
+function osmPoint(id: string, x: number, z: number, tags: Record<string, string>): string {
+  return `{"type":"Feature","id":"${id}","properties":${JSON.stringify(tags)},"geometry":{"type":"Point","coordinates":${lonLat(x, z)}}}`;
+}
+function multiLine(line: readonly number[]): string {
+  const pts: string[] = [];
+  for (let i = 0; i < line.length; i += 2) pts.push(lonLat(line[i] as number, line[i + 1] as number));
+  return `{"type":"MultiLineString","coordinates":[[${pts.join(',')}]]}`;
 }
 function osmLine(id: string, line: Ring, tags: Record<string, string>): string {
   const pts: string[] = [];
@@ -370,8 +396,33 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
     osm.push(osmPolygon(`w${wid++}`, [boxRing({ minX: p.minX + 10, minZ: p.minZ + 10, maxX: p.minX + 60, maxZ: p.minZ + 60 })], { leisure: 'pitch' }));
   }
   osm.push(...b.osm);
+
+  // roads, rails, ferry, footways and the DataSF street / Muni rows that describe them (M02a2)
+  const nb2 = cfg.neighbourhoods;
+  const cw2 = (cfg.land.maxX - cfg.land.minX) / nb2.cols, ch2 = (cfg.land.maxZ - cfg.land.minZ) / nb2.rows;
+  const hoodOf = (x: number, z: number): string => {
+    const c = Math.floor((x - cfg.land.minX) / cw2), r = Math.floor((z - cfg.land.minZ) / ch2);
+    if (c < 0 || r < 0 || c >= nb2.cols || r >= nb2.rows) return '';
+    return nb2.names[c + r * nb2.cols] ?? '';
+  };
+  const roads = generateRoads(cfg, { box, hoodOf });
+  for (const w of roads.ways) osm.push(osmLine(w.id, w.pts, w.tags));
+  for (const p of roads.points) osm.push(osmPoint(p.id, p.x, p.z, p.tags));
   writeFileSync(path.join(o.outDir, 'osm.geojsonl'), osm.length ? `${osm.join('\n')}\n` : '');
   rows['osm'] = osm.length;
+  const streetRows = roads.streets.map((s) =>
+    `{"cnn":"${s.cnn}","streetname":${JSON.stringify(s.streetname)},"st_type":"${s.st_type}","classcode":"${s.classcode}","oneway":"${s.oneway}","layer":"${s.layer}","f_node_cnn":"${s.f_node_cnn}","t_node_cnn":"${s.t_node_cnn}","nhood":${JSON.stringify(s.nhood)},"analysis_neighborhood":${JSON.stringify(s.nhood)},"active":"${s.active}","line":${multiLine(s.line)}}`);
+  writeFileSync(path.join(o.outDir, '3psu-pn9h.jsonl'), streetRows.length ? `${streetRows.join('\n')}\n` : '');
+  rows['datasf-streets'] = streetRows.length;
+  const stopRows = roads.stops.map((s) => {
+    const p = latLngFromEnu(s.x, s.z);
+    return `{"stopname":${JSON.stringify(s.stopname)},"stopid":"${s.stopid}","latitude":"${f9(p.lat)}","longitude":"${f9(p.lng)}","shelter":"${s.shelter}"}`;
+  });
+  writeFileSync(path.join(o.outDir, 'i28k-bkz6.jsonl'), stopRows.length ? `${stopRows.join('\n')}\n` : '');
+  rows['datasf-muni-stops'] = stopRows.length;
+  const patternRows = roads.patterns.map((p) => `{"route_name":${JSON.stringify(p.route_name)},"lineabbr":"${p.lineabbr}","direction":"${p.direction}","shape":${multiLine(p.line)}}`);
+  writeFileSync(path.join(o.outDir, '9exe-acju.jsonl'), patternRows.length ? `${patternRows.join('\n')}\n` : '');
+  rows['datasf-muni-routes'] = patternRows.length;
 
   // Terrarium tiles over the area box
   const tiles = tilesCovering(box, 15);

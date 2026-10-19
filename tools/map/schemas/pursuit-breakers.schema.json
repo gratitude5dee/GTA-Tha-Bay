@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/pursuit-breakers.schema.json",
+  "title": "content/world/pursuit-breakers.json (M02a2): authored pursuit breakers snapped to an edge within 12 m",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "breakers"],
+  "properties": {
+    "schema": { "const": "world-pursuit-breakers/1" },
+    "note": { "type": "string" },
+    "breakers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "prefab", "lat", "lng", "triggerRadiusM", "mission"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^pb\\.[a-z0-9.-]{2,48}$" },
+          "kind": { "enum": ["scaffold", "produce-stand", "crane-load", "cable-car", "billboard"] },
+          "prefab": { "type": "string", "pattern": "^pfb:[a-z0-9.-]{2,48}$" },
+          "lat": { "type": "number", "minimum": 37, "maximum": 38.5 },
+          "lng": { "type": "number", "minimum": -123, "maximum": -121.5 },
+          "triggerRadiusM": { "type": "number", "minimum": 3, "maximum": 60 },
+          "mission": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

@@ -7,6 +7,7 @@ import { createReadStream, existsSync, readFileSync, writeFileSync } from 'node:
 import path from 'node:path';
 import type { SourceStamp } from '../../../packages/shared/src/index.ts';
 import type { AreaId, SourcesConfig } from './config.ts';
+import { CONTENT_ATTRIBUTION, CONTENT_STAMP_ID } from './content.ts';
 
 export interface RawSourceLock {
   id: string;
@@ -60,6 +61,7 @@ export function stampsOf(lock: RawLockFile, cfg: SourcesConfig): SourceStamp[] {
   return [...lock.sources]
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .map((s) => {
+      if (s.id === CONTENT_STAMP_ID) return { id: s.id, url: s.url, retrievedAt: s.retrievedAt, sha256: s.sha256, licence: s.licence, attribution: CONTENT_ATTRIBUTION };
       const def = cfg.sources.find((d) => d.id === s.id);
       if (!def) throw new Error(`raw.lock.json names unknown source ${s.id}`);
       const generated = lock.synthetic || (lock.syntheticSources ?? []).includes(s.id);

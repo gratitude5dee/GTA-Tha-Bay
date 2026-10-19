@@ -19,7 +19,8 @@ describe('bake.repro: the civic-excerpt bakes byte-identically', () => {
     expect(Object.keys(r.first.hashes).sort()).toEqual(Object.keys(r.second.hashes).sort());
     expect(Object.keys(r.first.hashes)).toContain('bake-report.json');
     expect(Object.keys(r.first.hashes)).toContain('world-index.json');
-    expect(Object.keys(r.first.hashes).filter((k) => k.endsWith('.pack'))).toHaveLength(8);
+    expect(Object.keys(r.first.hashes).filter((k) => /^packs\/(p0|l0)-.*\.pack$/.test(k))).toHaveLength(8);
+    expect(Object.keys(r.first.hashes)).toEqual(expect.arrayContaining(['packs/sf-graph.v1.pack', 'transit-routes.json', 'packs/far-bay-dem.pack', 'packs/far-bay-massing.pack', 'packs/far-bay-cards.png']));
     expect(Object.keys(r.first.hashes)).not.toContain('bake-times.json');
     expect(r.first.gates.filter((g) => g.level === 'fail')).toEqual([]);
   }, 60_000);
@@ -30,7 +31,7 @@ describe('bake stages and the stage cache', () => {
     const o = { area: 'civic-excerpt' as const, ...roots(), log: quiet };
     await expect(runBake({ ...o, stages: ['pack'] })).rejects.toThrow(/not selected and has no cached output/);
     const lines: string[] = [];
-    await runBake({ ...o, stages: ['water', 'terrain', 'buildings'], log: (l) => lines.push(l) });
+    await runBake({ ...o, stages: ['water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'lod'], log: (l) => lines.push(l) });
     expect(lines.join('\n')).toMatch(/water: done/);
     const full = await runBake({ ...o, stages: ['pack'], log: (l) => lines.push(l) });
     expect(full.ok).toBe(true);

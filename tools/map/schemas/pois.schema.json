@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/pois.schema.json",
+  "title": "content/world/pois.json (M02a2): seed PoiRecords, 02-world-bake.md section 9",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "pois"],
+  "properties": {
+    "schema": { "const": "world-pois/1" },
+    "note": { "type": "string" },
+    "pois": {
+      "type": "array",
+      "minItems": 150,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "nameKey", "lat", "lng", "nhood", "district", "landmark", "hours"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^poi\\.[a-z0-9.-]{3,64}$" },
+          "kind": { "enum": ["home", "work", "cafe", "bar", "shop", "park", "plaza", "transit", "landmark", "venue", "street", "hub"] },
+          "nameKey": { "type": "string", "minLength": 3, "maxLength": 80 },
+          "name": { "type": "string", "minLength": 2, "maxLength": 60 },
+          "lat": { "type": "number", "minimum": 37, "maximum": 38.5 },
+          "lng": { "type": "number", "minimum": -123, "maximum": -121.5 },
+          "nhood": { "type": "string", "pattern": "^[a-z0-9-]{2,40}$" },
+          "district": { "type": "string", "pattern": "^(d([1-9]|10)|outer|stage)$" },
+          "landmark": { "type": ["string", "null"], "pattern": "^lm\\.[a-z0-9-]{2,60}$" },
+          "hours": {
+            "oneOf": [
+              { "type": "null" },
+              { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 24 } }
+            ]
+          },
+          "snap": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

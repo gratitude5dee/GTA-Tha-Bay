@@ -12,7 +12,7 @@ import {
 
 export interface PackHeaderInput { tileX: number; tileY: number; hostZ: number; bakeId: string }
 
-class Bytes {
+export class Bytes {
   private buf = new Uint8Array(256);
   private dv = new DataView(this.buf.buffer);
   length = 0;
@@ -44,19 +44,19 @@ function quant(v: number, scale: number, what: string): number {
   if (!Number.isFinite(v) || Math.abs(q - v * scale) > 0.2) throw new RangeError(`encode: ${what} ${v} is not on the ${1 / scale} grid`);
   return q;
 }
-const dmOf = (v: number, what: string): number => quant(v, 10, what);
+export const dmOf = (v: number, what: string): number => quant(v, 10, what);
 
-interface SectionOut { id: number; count: number; data: Uint8Array }
-interface ChunkOut { cx: number; cy: number; sections: SectionOut[] }
+export interface SectionOut { id: number; count: number; data: Uint8Array }
+export interface ChunkOut { cx: number; cy: number; sections: SectionOut[] }
 
-function hexBytes(hex: string): Uint8Array {
+export function hexBytes(hex: string): Uint8Array {
   if (!/^[0-9a-f]{64}$/.test(hex)) throw new RangeError('encode: bakeId must be 64 lowercase hex characters');
   const out = new Uint8Array(32);
   for (let i = 0; i < 32; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   return out;
 }
 
-function assemble(family: number, h: PackHeaderInput, chunks: ChunkOut[]): Uint8Array {
+export function assemble(family: number, h: PackHeaderInput, chunks: ChunkOut[]): Uint8Array {
   const sorted = [...chunks].sort((a, b) => a.cy - b.cy || a.cx - b.cx);
   for (let i = 1; i < sorted.length; i++) {
     const a = sorted[i - 1] as ChunkOut;

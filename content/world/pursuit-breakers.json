@@ -1,0 +1,15 @@
+{
+  "schema": "world-pursuit-breakers/1",
+  "note": "Authored pursuit breakers (02-world-bake.md section 4 S9): each is snapped to a road edge within 12 m and dropped with a warning when none is that close. Kinds follow the C08 PursuitBreaker union; prefab ids are the S06 pursuit prefabs. Positions are authored seeds (U-W5), not survey points.",
+  "breakers": [
+    { "id": "pb.nob-hill-scaffold", "kind": "scaffold", "prefab": "pfb:breaker.scaffold", "lat": 37.7925, "lng": -122.4128, "triggerRadiusM": 14, "mission": false },
+    { "id": "pb.tenderloin-scaffold", "kind": "scaffold", "prefab": "pfb:breaker.scaffold", "lat": 37.7842, "lng": -122.4117, "triggerRadiusM": 14, "mission": false },
+    { "id": "pb.chinatown-produce", "kind": "produce-stand", "prefab": "pfb:breaker.produce-stand", "lat": 37.7957, "lng": -122.4078, "triggerRadiusM": 10, "mission": false },
+    { "id": "pb.chinatown-produce-b", "kind": "produce-stand", "prefab": "pfb:breaker.produce-stand", "lat": 37.7949, "lng": -122.4064, "triggerRadiusM": 10, "mission": false },
+    { "id": "pb.soma-crane", "kind": "crane-load", "prefab": "pfb:breaker.crane-load", "lat": 37.7803, "lng": -122.3989, "triggerRadiusM": 16, "mission": false },
+    { "id": "pb.mission-bay-crane", "kind": "crane-load", "prefab": "pfb:breaker.crane-load", "lat": 37.7716, "lng": -122.3935, "triggerRadiusM": 16, "mission": false },
+    { "id": "pb.powell-turntable", "kind": "cable-car", "prefab": "pfb:breaker.cable-car", "lat": 37.7847, "lng": -122.4077, "triggerRadiusM": 12, "mission": true },
+    { "id": "pb.russian-hill-billboard", "kind": "billboard", "prefab": "pfb:breaker.billboard", "lat": 37.8004, "lng": -122.4195, "triggerRadiusM": 12, "mission": false },
+    { "id": "pb.potrero-billboard", "kind": "billboard", "prefab": "pfb:breaker.billboard", "lat": 37.7590, "lng": -122.4031, "triggerRadiusM": 12, "mission": false }
+  ]
+}

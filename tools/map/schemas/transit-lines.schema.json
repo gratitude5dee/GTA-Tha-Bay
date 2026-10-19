@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/transit-lines.schema.json",
+  "title": "content/world/transit-lines.json (M02a2, DL-664): stations, ferry fallbacks and air corridors",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stations", "ferry", "air"],
+  "$defs": {
+    "pt": {
+      "type": "object", "additionalProperties": false, "required": ["lat", "lng"],
+      "properties": { "lat": { "type": "number", "minimum": 37, "maximum": 38.5 }, "lng": { "type": "number", "minimum": -123, "maximum": -121.5 } }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-transit-lines/1" },
+    "note": { "type": "string" },
+    "stations": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "kind", "nameKey", "lat", "lng", "fastTravel"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^rail\\.[a-z0-9-]{2,32}$" },
+          "kind": { "enum": ["bay-rail", "city-metro", "rail-terminus"] },
+          "nameKey": { "type": "string", "pattern": "^transit\\.[a-z0-9.-]+$" },
+          "lat": { "type": "number", "minimum": 37, "maximum": 38.5 },
+          "lng": { "type": "number", "minimum": -123, "maximum": -121.5 },
+          "fastTravel": { "type": "boolean" }
+        }
+      }
+    },
+    "ferry": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "points"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^ferry\\.[a-z0-9-]{2,32}$" },
+          "nameKey": { "type": "string", "pattern": "^transit\\.[a-z0-9.-]+$" },
+          "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/pt" } }
+        }
+      }
+    },
+    "air": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "altitudeM", "points"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^air\\.[a-z0-9-]{2,32}$" },
+          "nameKey": { "type": "string", "pattern": "^transit\\.[a-z0-9.-]+$" },
+          "altitudeM": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 600, "maximum": 1500 } },
+          "points": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/pt" } }
+        }
+      }
+    }
+  }
+}

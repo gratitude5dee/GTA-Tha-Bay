@@ -192,7 +192,7 @@ describe('S4 on the civic-excerpt', () => {
         expect(ccwArea(ring)).toBeGreaterThanOrEqual(4 - 1e-6);
         expect(bd.heightDm).toBeGreaterThanOrEqual(35);
         expect(bd.heightDm).toBeLessThanOrEqual(3400);
-        expect(bd.proxyOf).toBe(0);
+        expect(bd.proxyOf).toBeLessThanOrEqual(37);   // landmark proxies (M02a2); S4 itself writes none
         if (bd.kind === BuildingKind.ResLow) expect(ring.length / 2).toBeLessThanOrEqual(8);
       }
     }

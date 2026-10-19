@@ -29,7 +29,13 @@
     "grotti",
     "karin",
     "pegassi",
-    "vapid"
+    "vapid",
+    "waymo",
+    "tesla",
+    "transamerica",
+    "salesforce",
+    "oracle park",
+    "chase center"
   ],
   "patterns": [
     {

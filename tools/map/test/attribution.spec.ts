@@ -49,7 +49,7 @@ describe('attribution.world.json (AC-6)', () => {
   });
 
   it('copies only the entries of an area into its bake', () => {
-    expect(attributionFor(cfg, 'civic-excerpt').entries.map((e) => e.id)).toEqual(['datasf-footprints', 'datasf-neighborhoods', 'datasf-parks', 'datasf-trees', 'osm', 'terrarium']);
+    expect(attributionFor(cfg, 'civic-excerpt').entries.map((e) => e.id)).toEqual(['datasf-footprints', 'datasf-muni-routes', 'datasf-muni-stops', 'datasf-neighborhoods', 'datasf-parks', 'datasf-streets', 'datasf-trees', 'osm', 'terrarium']);
     expect(attributionFor(cfg, 'sf').entries).toHaveLength(10);
   });
 

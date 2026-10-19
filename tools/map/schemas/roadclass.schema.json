@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/roadclass.schema.json",
+  "title": "config/world/roadclass.json (M02a2): S5 road classes and excluded DataSF layers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "classes", "osmHighway", "datasfClasscode", "parkingLaneM", "layers", "oneway", "match", "hillGradePct"],
+  "properties": {
+    "schema": { "const": "world-roadclass/1" },
+    "note": { "type": "string" },
+    "classes": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "lanes", "laneWidthM", "speedMps", "parking"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 0, "maximum": 5 },
+          "name": { "enum": ["Freeway", "Ramp", "Arterial", "Collector", "Local", "Service"] },
+          "lanes": { "type": "integer", "minimum": 1, "maximum": 6 },
+          "laneWidthM": { "type": "number", "minimum": 2, "maximum": 4.5 },
+          "speedMps": { "type": "number", "minimum": 1, "maximum": 40 },
+          "parking": { "type": "boolean" }
+        }
+      }
+    },
+    "osmHighway": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 5 } },
+    "datasfClasscode": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 5 } },
+    "excludedService": { "type": "array", "items": { "type": "string" } },
+    "excludedAccess": { "type": "array", "items": { "type": "string" } },
+    "parkingLaneM": { "type": "number", "minimum": 1, "maximum": 3 },
+    "layers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["excludedPrefixes", "excludedExact", "known"],
+      "properties": {
+        "excludedPrefixes": { "type": "array", "items": { "type": "string", "minLength": 2 } },
+        "excludedExact": { "type": "array", "items": { "type": "string", "minLength": 2 } },
+        "known": { "type": "array", "items": { "type": "string", "minLength": 2 } }
+      }
+    },
+    "oneway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minAgreement", "worstListed"],
+      "properties": { "minAgreement": { "type": "number", "minimum": 0.5, "maximum": 1 }, "worstListed": { "type": "integer", "minimum": 1 } }
+    },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sampleM", "maxDistM", "minFraction"],
+      "properties": { "sampleM": { "type": "number", "minimum": 2 }, "maxDistM": { "type": "number", "minimum": 2 }, "minFraction": { "type": "number", "minimum": 0.1, "maximum": 1 } }
+    },
+    "hillGradePct": { "type": "number", "minimum": 1, "maximum": 40 }
+  }
+}

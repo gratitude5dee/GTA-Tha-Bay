@@ -5,6 +5,10 @@
  *   tsx tools/map/src/cli.ts build [--area sf|civic-excerpt|synth] [--stage <ids>] [--force] [--repro]   (M02a1)
  *   tsx tools/map/src/cli.ts fetch [--area sf|civic-excerpt] [--archive] [--fixture]
  *   tsx tools/map/src/cli.ts pack [--bake <bakeId> | --area <id>] --target dir:<path>|r2:<env>
+ *   tsx tools/map/src/cli.ts verify [--bake <bakeId> | --area <id>]            (M02a2: the S14 gates on a finished bake)
+ *   tsx tools/map/src/cli.ts landmarks [--bake <bakeId> | --area <id>]         (M02a2)
+ *   tsx tools/map/src/cli.ts pois [--bake <bakeId> | --area <id>]              (M02a2)
+ *   tsx tools/map/src/cli.ts resolve --lat=<y> --lng=<x> [--bake <id> | --area <id>]   (M02a2)
  *
  * fixture, without --check, writes tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack and hashes.json.
  * With --check it builds both packs in memory, compares their SHA-256 with the committed hashes.json, prints
@@ -21,7 +25,13 @@ import { encodeGraybox } from './fixtures/graybox.ts';
 import { writeAttribution } from './pack/attribution.ts';
 import { runFetch } from './stages/s0-fetch.ts';
 import { parseTarget, publishPack } from './pack/publish.ts';
-import { failed } from './verify/gates.ts';
+import { failed, type GateResult } from './verify/gates.ts';
+import { verifyBakeDir } from './verify/verify.ts';
+import { validateLandmarkSeeds, validateLandmarksInBake, type Finding } from './verify/landmarks.ts';
+import { validatePoiSeeds, validatePoisInBake, countsByKind } from './verify/pois.ts';
+import { loadContentWorld } from './content.ts';
+import { resolveLatLng } from './resolve.ts';
+import { stableJson } from './util.ts';
 
 export const GRAYBOX_DIR = path.join(toolsRoot, 'tests', 'fixtures', 'world', 'civic-graybox');
 
@@ -119,6 +129,79 @@ export async function runPackCommand(argv: readonly string[]): Promise<number> {
   return r.code;
 }
 
+/** The latest bake of the selection, or null with the "no bake" case (no error: map:verify and the validators skip). */
+function selectBake(values: { bake?: string | undefined; area?: string | undefined }): { bakeId: string; dir: string; area: string } | null | string {
+  const sel = resolveBake(values);
+  if (typeof sel === 'string') {
+    if (!values.bake && /^no latest|^no finished bake/.test(sel)) return null;
+    return sel;
+  }
+  const report = JSON.parse(readFileSync(path.join(sel.dir, 'bake-report.json'), 'utf8')) as { area: string };
+  return { ...sel, area: report.area };
+}
+
+const SELECT_OPTIONS = { bake: { type: 'string' }, area: { type: 'string' } } as const;
+
+export function printFindings(tool: string, findings: readonly Finding[]): number {
+  for (const f of findings) console.log(`${f.level.toUpperCase().padEnd(4)} ${f.id}: ${f.detail}`);
+  const fails = findings.filter((f) => f.level === 'fail').length;
+  console.log(fails === 0 ? `${tool}: ok (${findings.length} findings, none failing)` : `${tool}: FAIL (${fails} failing)`);
+  return fails === 0 ? 0 : 1;
+}
+
+export async function runVerifyCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({ args: [...argv], allowPositionals: true, options: SELECT_OPTIONS });
+  const sel = selectBake(values);
+  if (sel === null) { console.log('SKIP map:verify: no bake in dist/world'); return 0; }
+  if (typeof sel === 'string') { console.error(`map:verify: ${sel}`); return 1; }
+  const gates = verifyBakeDir(sel.dir);
+  for (const g of gates) console.log(`gate ${g.level.toUpperCase().padEnd(4)} ${g.id}: ${g.detail}`);
+  // the gate table goes into bake-report.json (the S14 rows are replaced, every other row stays)
+  const file = path.join(sel.dir, 'bake-report.json');
+  const report = JSON.parse(readFileSync(file, 'utf8')) as { gates: GateResult[]; ok: boolean };
+  report.gates = [...report.gates.filter((g) => g.stage !== 'S14'), ...gates];
+  report.ok = failed(report.gates).length === 0;
+  writeFileSync(file, stableJson(report));
+  const bad = failed(gates);
+  console.log(bad.length === 0 ? `map:verify ok: bake ${sel.bakeId.slice(0, 12)} (${sel.area}), ${gates.length} S14 gates` : `map:verify FAIL: ${bad.map((g) => g.id).join(', ')}`);
+  return bad.length === 0 ? 0 : 1;
+}
+
+export async function runLandmarksCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({ args: [...argv], allowPositionals: true, options: SELECT_OPTIONS });
+  const findings = validateLandmarkSeeds();
+  const sel = selectBake(values);
+  if (typeof sel === 'string') { console.error(`map:landmarks: ${sel}`); return 1; }
+  if (sel) findings.push(...validateLandmarksInBake(sel.dir, sel.area));
+  else console.log('map:landmarks: no bake in dist/world, seeds only');
+  return printFindings('map:landmarks', findings);
+}
+
+export async function runPoisCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({ args: [...argv], allowPositionals: true, options: SELECT_OPTIONS });
+  const seeds = loadContentWorld().pois;
+  const findings = validatePoiSeeds(seeds);
+  console.log(`map:pois: ${seeds.length} seeds ${JSON.stringify(countsByKind(seeds))}`);
+  const sel = selectBake(values);
+  if (typeof sel === 'string') { console.error(`map:pois: ${sel}`); return 1; }
+  if (sel) findings.push(...validatePoisInBake(sel.dir, sel.area));
+  else console.log('map:pois: no bake in dist/world, seeds only');
+  return printFindings('map:pois', findings);
+}
+
+export async function runResolveCommand(argv: readonly string[]): Promise<number> {
+  const { values } = parseArgs({ args: [...argv], allowPositionals: true, options: { ...SELECT_OPTIONS, lat: { type: 'string' }, lng: { type: 'string' } } });
+  const lat = Number(values.lat), lng = Number(values.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) { console.error('usage: map:resolve -- --lat=<y> --lng=<x> [--area <id> | --bake <id>]'); return 2; }
+  const sel = selectBake(values);
+  if (sel === null) { console.log('SKIP map:resolve: no bake in dist/world'); return 0; }
+  if (typeof sel === 'string') { console.error(`map:resolve: ${sel}`); return 1; }
+  const r = resolveLatLng(sel.dir, lat, lng);
+  if (!r) { console.error(`map:resolve: no road within 200 m of ${lat}, ${lng} in bake ${sel.bakeId.slice(0, 12)}`); return 1; }
+  console.log(`map:resolve: edge ${r.edge} (segment ${r.seg}) s ${r.s} m distance ${r.distM} m chunk ${r.chunk} nearest point (${r.x}, ${r.z}) bake ${sel.bakeId.slice(0, 12)} ${sel.area}`);
+  return 0;
+}
+
 export async function runBuild(argv: readonly string[]): Promise<number> {
   const { values } = parseArgs({
     args: [...argv],
@@ -162,6 +245,10 @@ if (isMain(import.meta.url)) {
   if (cmd === 'build') process.exit(await runBuild(rest));
   if (cmd === 'fetch') process.exit(await runFetchCommand(rest));
   if (cmd === 'pack') process.exit(await runPackCommand(rest));
-  console.error('usage: map <fixture|build|fetch|pack> ...');
+  if (cmd === 'verify') process.exit(await runVerifyCommand(rest));
+  if (cmd === 'landmarks') process.exit(await runLandmarksCommand(rest));
+  if (cmd === 'pois') process.exit(await runPoisCommand(rest));
+  if (cmd === 'resolve') process.exit(await runResolveCommand(rest));
+  console.error('usage: map <fixture|build|fetch|pack|verify|landmarks|pois|resolve> ...');
   process.exit(2);
 }

@@ -1,6 +1,7 @@
 /**
  * preview.png: a top-down picture of a finished bake (one pixel = 8 m): ground classes shaded by the baked heightfield,
- * building footprints in grey by height, and a grid line every z=7 tile. A debugging aid and the first thing you can look at
+ * building footprints in grey by height, the road graph (arterials orange, collectors yellow, locals white, ramps and freeways red,
+ * bridge decks cyan, signal junctions as red dots, portals as magenta dots; M02a2) and a grid line every z=7 tile. A debugging aid and the first thing you can look at
  * before the streaming milestone draws the world. Deterministic: integer maths on the baked arrays.
  */
 import { PNG } from 'pngjs';
@@ -84,6 +85,28 @@ export function renderPreview(grid: AreaGrid, sims: ReadonlyMap<ChunkKey, SimChu
       const y0 = Math.floor((oy + minZ) / PREVIEW_M_PER_PX), y1 = Math.max(y0, Math.floor((oy + maxZ) / PREVIEW_M_PER_PX));
       for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) put(x, y, g, g, clamp(g + 6));
     }
+  }
+  // road graph over the buildings
+  const ROAD_RGB: Record<number, [number, number, number]> = { 0: [230, 60, 60], 1: [230, 60, 60], 2: [255, 150, 40], 3: [250, 220, 70], 4: [250, 250, 250], 5: [200, 200, 200] };
+  const line = (x0: number, y0: number, x1: number, y1: number, rgb: [number, number, number]): void => {
+    const n = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) / PREVIEW_M_PER_PX * 2));
+    for (let s = 0; s <= n; s++) put(Math.floor((x0 + ((x1 - x0) * s) / n) / PREVIEW_M_PER_PX), Math.floor((y0 + ((y1 - y0) * s) / n) / PREVIEW_M_PER_PX), rgb[0], rgb[1], rgb[2]);
+  };
+  const gridX = grid.minX, gridZ = grid.minZ;
+  const edgeBySeg = new Map<number, number>();
+  for (const c of sims.values()) for (const e of c.edges) if (!edgeBySeg.has(e.seg)) edgeBySeg.set(e.seg, e.cls);
+  for (const c of sims.values()) {
+    for (const s of c.segments) {
+      const cls = edgeBySeg.get(s.id) ?? 4;
+      const rgb = ROAD_RGB[cls] ?? [250, 250, 250];
+      for (let i = 3; i < s.pts.length; i += 3) {
+        line((s.pts[i - 3] as number) - gridX, (s.pts[i - 1] as number) - gridZ, (s.pts[i] as number) - gridX, (s.pts[i + 2] as number) - gridZ, rgb);
+      }
+    }
+  }
+  for (const c of sims.values()) {
+    for (const j of c.junctions) if (j.program) put(Math.floor((j.x - gridX) / PREVIEW_M_PER_PX), Math.floor((j.z - gridZ) / PREVIEW_M_PER_PX), 255, 20, 20);
+    for (const p of c.tags.portals) put(Math.floor((p.x - gridX) / PREVIEW_M_PER_PX), Math.floor((p.z - gridZ) / PREVIEW_M_PER_PX), 255, 0, 255);
   }
   // z=7 tile grid, one pixel wide
   const tile = cellsPerChunk * 4;
