@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.pickup",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.pickup",
+  "render": {
+    "asset": "vehicle/graybox.pickup"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      1.0,
+      0.42,
+      2.65
+    ],
+    "massKg": 2100,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.75,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.pickup",
+    "seats": 3,
+    "wheels": [
+      {
+        "pos": [
+          -0.85,
+          -0.07,
+          -1.44
+        ],
+        "radius": 0.35,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.85,
+          -0.07,
+          -1.44
+        ],
+        "radius": 0.35,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.85,
+          -0.07,
+          1.76
+        ],
+        "radius": 0.35,
+        "restM": 0.28,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.85,
+          -0.07,
+          1.76
+        ],
+        "radius": 0.35,
+        "restM": 0.28,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

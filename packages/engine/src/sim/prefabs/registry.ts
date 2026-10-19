@@ -1,6 +1,24 @@
 import { dcos, dsin, type ComponentDef, type EntityHandle, type StableKey } from '@dv/shared';
 import playerDefault from '../../../../../assets/prefabs/player.default.json';
-import { BodyRef, RenderKey, Transform } from '../ecs/components.ts';
+import vehicleCompact from '../../../../../assets/prefabs/vehicle.compact.json';
+import vehicleSedan from '../../../../../assets/prefabs/vehicle.sedan.json';
+import vehicleRideshare from '../../../../../assets/prefabs/vehicle.rideshare.json';
+import vehicleVan from '../../../../../assets/prefabs/vehicle.van.json';
+import vehicleTruck from '../../../../../assets/prefabs/vehicle.truck.json';
+import vehiclePickup from '../../../../../assets/prefabs/vehicle.pickup.json';
+import vehicleOndinePico from '../../../../../assets/prefabs/vehicle.ondine-pico.json';
+import policeCruiser from '../../../../../assets/prefabs/police.cruiser.json';
+import policeSuv from '../../../../../assets/prefabs/police.suv.json';
+import policeHeli from '../../../../../assets/prefabs/police.heli.json';
+import robotaxiDefault from '../../../../../assets/prefabs/robotaxi.default.json';
+import propCone from '../../../../../assets/prefabs/prop.cone.json';
+import propBarrier from '../../../../../assets/prefabs/prop.barrier.json';
+import propSpikestrip from '../../../../../assets/prefabs/prop.spikestrip.json';
+import propCrate from '../../../../../assets/prefabs/prop.crate.json';
+import pickupCash from '../../../../../assets/prefabs/pickup.cash.json';
+import pickupItem from '../../../../../assets/prefabs/pickup.item.json';
+import { BodyRef, Interactable, RenderKey, Transform, Vehicle } from '../ecs/components.ts';
+import { INTERACT_KIND, type InteractKindName } from '../interaction/kinds.ts';
 import type { EcsWorld, PrefabComponent } from '../ecs/world.ts';
 import type { BodyDesc, PhysicsBackend, WheelDesc } from '../physics/backend.ts';
 import { PHYSICS_CONFIG } from '../physics/config.ts';
@@ -22,11 +40,24 @@ export interface PrefabDef {
   version: number;
   nameKey?: string;
   render: { asset: string; variants?: number; anim?: string };
-  physics: { body: BodyDesc['kind']; shape: BodyDesc['shape']; dims: number[]; massKg?: number; groups: GroupName[] } | null;
+  physics: {
+    body: BodyDesc['kind'];
+    shape: BodyDesc['shape'];
+    dims: number[];
+    massKg?: number;
+    groups: GroupName[];
+    /** Metres the body centre starts above the placement point (a car's centre of gravity, a prop's half height). Capsules lift themselves. */
+    liftM?: number;
+    friction?: number;
+    restitution?: number;
+    linearDamping?: number;
+    angularDamping?: number;
+    ccd?: boolean;
+  } | null;
   /** ComponentDef name to default field values; a string value is interned. */
   components: Record<string, Record<string, number | string>>;
   vehicle?: { handling: string; seats: number; wheels: WheelDesc[]; quirks?: string[] };
-  interact?: { kind: string; radius: number; promptKey: string };
+  interact?: { kind: InteractKindName; radius: number; promptKey: string; coneDeg?: number; priority?: number; hold?: boolean };
   audio?: { set: string };
 }
 
@@ -93,8 +124,21 @@ export class PrefabRegistry implements PrefabService {
         components.push({ def: cdef, init });
         seen.add(name);
       };
-      for (const [name, values] of Object.entries(def.components)) add(name, values);
-      // A prefab with a body always has Transform and BodyRef; one with a render asset has RenderKey.
+      // `vehicle` and `interact` fill the `Vehicle` and `Interactable` components; a component listed in `components` overrides them.
+      const merged: Record<string, Record<string, number | string>> = { ...def.components };
+      if (def.vehicle) merged[Vehicle.name] = { handling: def.vehicle.handling, seats: def.vehicle.seats, ...(merged[Vehicle.name] ?? {}) };
+      if (def.interact) {
+        merged[Interactable.name] = {
+          kind: INTERACT_KIND[def.interact.kind],
+          radius: def.interact.radius,
+          coneDeg: def.interact.coneDeg ?? 100,
+          priority: def.interact.priority ?? 0,
+          prompt: def.interact.promptKey,
+          flags: def.interact.hold ? 1 : 0,
+          ...(merged[Interactable.name] ?? {}),
+        };
+      }
+      for (const [name, values] of Object.entries(merged)) add(name, values);
       if (!seen.has(Transform.name)) add(Transform.name, {});
       if (def.physics && !seen.has(BodyRef.name)) add(BodyRef.name, {});
       if (!seen.has(RenderKey.name)) add(RenderKey.name, {});
@@ -145,7 +189,7 @@ export class PrefabRegistry implements PrefabService {
 
   private bodyDesc(def: PrefabDef, at: PrefabPlacement): BodyDesc {
     const p = def.physics as NonNullable<PrefabDef['physics']>;
-    const centreLift = p.shape === 'capsule' ? (p.dims[0] as number) + (p.dims[1] as number) + PHYSICS_CONFIG.character.skinM : 0;
+    const centreLift = p.shape === 'capsule' ? (p.dims[0] as number) + (p.dims[1] as number) + PHYSICS_CONFIG.character.skinM : (p.liftM ?? 0);
     const desc: BodyDesc = {
       kind: p.body,
       shape: p.shape,
@@ -153,7 +197,13 @@ export class PrefabRegistry implements PrefabService {
       at: [at.pos[0], at.pos[1] + centreLift, at.pos[2]],
       groups: groupsFromNames(p.groups),
     };
+    if (p.shape !== 'capsule' && at.yaw !== 0) desc.rot = [0, dsin(at.yaw / 2), 0, dcos(at.yaw / 2)];
     if (p.massKg !== undefined) desc.mass = p.massKg;
+    if (p.friction !== undefined) desc.friction = p.friction;
+    if (p.restitution !== undefined) desc.restitution = p.restitution;
+    if (p.linearDamping !== undefined) desc.linearDamping = p.linearDamping;
+    if (p.angularDamping !== undefined) desc.angularDamping = p.angularDamping;
+    if (p.ccd) desc.ccd = true;
     return desc;
   }
 
@@ -180,3 +230,9 @@ export class PrefabRegistry implements PrefabService {
 
 /** The prefabs the engine ships (v1 list grows with M03a1 and later). */
 export const ENGINE_PREFABS: readonly PrefabDef[] = [playerDefault as unknown as PrefabDef];
+
+/** The vehicle, police, robotaxi, prop and pickup prefabs of M03a1 (loaded by `registerVehicleSystems`' callers; the walking scenarios stay as they were). */
+export const VEHICLE_PREFABS: readonly PrefabDef[] = [
+  vehicleCompact, vehicleSedan, vehicleRideshare, vehicleVan, vehicleTruck, vehiclePickup, vehicleOndinePico,
+  policeCruiser, policeSuv, policeHeli, robotaxiDefault, propCone, propBarrier, propSpikestrip, propCrate, pickupCash, pickupItem,
+] as unknown as PrefabDef[];

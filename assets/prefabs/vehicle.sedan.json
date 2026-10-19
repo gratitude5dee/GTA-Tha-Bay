@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.sedan",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.sedan",
+  "render": {
+    "asset": "vehicle/graybox.sedan"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.92,
+      0.42,
+      2.35
+    ],
+    "massKg": 1450,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.59,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.sedan",
+    "seats": 4,
+    "wheels": [
+      {
+        "pos": [
+          -0.775,
+          0.06,
+          -1.155
+        ],
+        "radius": 0.32,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.775,
+          0.06,
+          -1.155
+        ],
+        "radius": 0.32,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.775,
+          0.06,
+          1.595
+        ],
+        "radius": 0.32,
+        "restM": 0.28,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.775,
+          0.06,
+          1.595
+        ],
+        "radius": 0.32,
+        "restM": 0.28,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

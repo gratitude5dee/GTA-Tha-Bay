@@ -33,6 +33,8 @@ export interface EngineServices extends SimServices {
   clock: WorldClock | null;
   /** The world services (M02c1): `WorldApi` and `WorldBoundsPort`, null until the world sim module registers them. */
   readonly world: WorldHub;
+  /** Snapshot side-block providers by key (M03a1: `veh`, `prompt`). Called once per tick in the Publish stage; a null result is left out. */
+  readonly side: Map<string, () => unknown>;
 }
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
@@ -68,6 +70,7 @@ export function createSimServices(seed: number): EngineServices {
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
     clock: null,
     world: createWorldHub(),
+    side: new Map(),
   };
 }
 

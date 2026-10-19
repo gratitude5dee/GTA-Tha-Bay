@@ -1,0 +1,31 @@
+{
+  "id": "prop.spikestrip",
+  "kind": "prop",
+  "version": 1,
+  "render": {
+    "asset": "prop/graybox.spikestrip"
+  },
+  "physics": {
+    "body": "fixed",
+    "shape": "box",
+    "dims": [
+      2.0,
+      0.04,
+      0.25
+    ],
+    "groups": [
+      "sensor"
+    ],
+    "liftM": 0.04
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "BodyRef": {},
+    "RenderKey": {
+      "visible": 1
+    },
+    "Prop": {}
+  }
+}

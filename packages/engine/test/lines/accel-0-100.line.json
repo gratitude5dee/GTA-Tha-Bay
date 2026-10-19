@@ -1,0 +1,1 @@
+{"frames":[{"input":{"brake":0,"buttons":0,"camPitch":0,"camYaw":49152,"context":1,"moveX":0,"moveY":0,"steer":0,"throttle":127},"run":1500,"tick":0}],"profile":"canonical","scenario":"vehicle-oracle","seed":12648430,"start":{"pos":[0,0,0],"prefab":"vehicle.sedan","yaw":-1.5707963267948966},"v":1}

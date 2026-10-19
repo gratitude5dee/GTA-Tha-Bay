@@ -32,6 +32,12 @@
             "shape": { "enum": ["capsule", "box", "sphere", "convex"] },
             "dims": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 1 },
             "massKg": { "type": "number", "exclusiveMinimum": 0 },
+            "liftM": { "type": "number", "minimum": 0, "description": "Metres the body centre starts above the placement point." },
+            "friction": { "type": "number", "minimum": 0 },
+            "restitution": { "type": "number", "minimum": 0, "maximum": 1 },
+            "linearDamping": { "type": "number", "minimum": 0 },
+            "angularDamping": { "type": "number", "minimum": 0 },
+            "ccd": { "type": "boolean" },
             "groups": {
               "type": "array",
               "items": { "enum": ["static", "dynamic", "character", "vehicle", "kinematic", "sensor"] },
@@ -52,8 +58,41 @@
         "additionalProperties": { "anyOf": [{ "type": "number" }, { "type": "string" }] }
       }
     },
-    "vehicle": { "type": "object" },
-    "interact": { "type": "object" },
+    "vehicle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["handling", "seats", "wheels"],
+      "properties": {
+        "handling": { "type": "string", "pattern": "^hp\\.[a-z0-9]+(-[a-z0-9]+)*$", "description": "HandlingProfile id (S06)." },
+        "seats": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "wheels": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["pos", "radius", "restM", "axle"],
+            "properties": {
+              "pos": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "restM": { "type": "number", "exclusiveMinimum": 0 },
+              "axle": { "enum": ["front", "rear"] }
+            }
+          }
+        },
+        "quirks": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "interact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "radius", "promptKey"],
+      "properties": {
+        "kind": { "enum": ["EnterVehicle", "Talk", "Pickup", "Door", "Shop", "SafehouseSave", "MissionStart", "ModeEntry", "Experience", "Respray", "Transit", "Generic"] },
+        "radius": { "type": "number", "exclusiveMinimum": 0 },
+        "promptKey": { "type": "string", "minLength": 1 },
+        "coneDeg": { "type": "number", "exclusiveMinimum": 0, "maximum": 360 },
+        "priority": { "type": "integer", "minimum": -128, "maximum": 127 },
+        "hold": { "type": "boolean" }
+      }
+    },
     "audio": { "type": "object", "required": ["set"], "properties": { "set": { "type": "string" } } }
   }
 }

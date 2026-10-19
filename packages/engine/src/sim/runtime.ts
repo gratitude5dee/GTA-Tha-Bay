@@ -118,6 +118,10 @@ export class SimRuntime {
       if (cam) side['cam'] = cam;
       const pl = playerSide(sim.ecs);
       if (pl) side['pl'] = pl;
+      for (const [key, provide] of sim.services.side) {
+        const v = provide();
+        if (v !== null && v !== undefined) side[key] = v;
+      }
       return side;
     });
     sim.core.addSystem(publisher);

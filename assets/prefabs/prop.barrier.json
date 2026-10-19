@@ -1,0 +1,31 @@
+{
+  "id": "prop.barrier",
+  "kind": "prop",
+  "version": 1,
+  "render": {
+    "asset": "prop/graybox.barrier"
+  },
+  "physics": {
+    "body": "fixed",
+    "shape": "box",
+    "dims": [
+      1.2,
+      0.5,
+      0.2
+    ],
+    "groups": [
+      "dynamic"
+    ],
+    "liftM": 0.5
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "BodyRef": {},
+    "RenderKey": {
+      "visible": 1
+    },
+    "Prop": {}
+  }
+}
