@@ -1,6 +1,8 @@
 import { Rng, C13_VERSION, type DeviceProfile, type PerfReport, type PerfScenario, type QualityTier, type QualityTierId } from '@dv/shared';
 import type { Camera, Object3D, PerspectiveCamera } from 'three/webgpu';
 import grayboxWalk from '../../../../../config/perf/paths/graybox-walk.json';
+import walkCivicCenter from '../../../../../config/perf/paths/walk-civic-center.json';
+import routeFerryOceanBeach from '../../../../../config/perf/paths/route-ferry-ocean-beach.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -26,11 +28,72 @@ export interface OrbitPath {
   density: 'off' | 'nominal';
 }
 
-/** Scenario registry. Later milestones add their paths here. */
-export const SCENARIO_PATHS: Readonly<Record<string, OrbitPath>> = { 'graybox-walk': grayboxWalk as unknown as OrbitPath };
-export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = { 'graybox-walk': 'config/perf/paths/graybox-walk.json' };
+/**
+ * A world path (M02b1): the camera follows a polyline of ENU waypoints on the streamed city at `speedMps`, `eyeHeightM` above the
+ * ground, looking `lookAheadM` along the heading. The position depends on the elapsed time only (clamped at the end), so a short
+ * CI run covers the first part of the route and a 120 s device run the whole of it. Needs a world; `WorldScenarioDriver` supplies it.
+ */
+export interface RoutePath {
+  id: string;
+  kind: 'route';
+  /** [x, z] ENU metres, +X east, -Z north. */
+  waypointsEnu: [number, number][];
+  speedMps: number;
+  eyeHeightM: number;
+  lookAheadM: number;
+  durationS: number;
+  warmupS: number;
+  seed: number;
+  density: 'off' | 'nominal';
+}
+export type ScenarioPath = OrbitPath | RoutePath;
 
-export function scenarioOf(path: OrbitPath, durationS?: number, warmupS?: number): PerfScenario {
+/**
+ * The world half of a route scenario, implemented by the app over `@dv/world` (the engine never imports it): it moves the stream focus
+ * with the camera and answers the ground height. Registered with the platform bridge through `ScenarioRunnerDeps.worldDriver`.
+ */
+export interface WorldScenarioDriver {
+  /** Places the focus at the start of the path and resolves when the streaming around it is idle (bounded wait). */
+  prepare(startXz: [number, number]): Promise<void>;
+  /** Every frame, after the engine hand-off: the camera pose the runner chose. Returns the ground height under it, or null while unknown. */
+  frame(pose: { x: number; y: number; z: number; vx: number; vz: number }): { groundY: number | null };
+  /** End of the run: figures for the report. */
+  finish(): { coldDownloadMB: number | null };
+}
+
+/** Scenario registry. Later milestones add their paths here. */
+export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly 'graybox-walk': OrbitPath } = {
+  'graybox-walk': grayboxWalk as unknown as OrbitPath,
+  'walk-civic-center': walkCivicCenter as unknown as RoutePath,
+  'route-ferry-ocean-beach': routeFerryOceanBeach as unknown as RoutePath,
+};
+export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
+  'graybox-walk': 'config/perf/paths/graybox-walk.json',
+  'walk-civic-center': 'config/perf/paths/walk-civic-center.json',
+  'route-ferry-ocean-beach': 'config/perf/paths/route-ferry-ocean-beach.json',
+};
+
+/** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
+export function routePose(path: RoutePath, s: number): { x: number; z: number; tx: number; tz: number; length: number } {
+  const w = path.waypointsEnu;
+  let total = 0;
+  const cum: number[] = [0];
+  for (let i = 1; i < w.length; i++) {
+    total += Math.hypot((w[i] as [number, number])[0] - (w[i - 1] as [number, number])[0], (w[i] as [number, number])[1] - (w[i - 1] as [number, number])[1]);
+    cum.push(total);
+  }
+  const d = Math.min(Math.max(s, 0), total);
+  let i = 1;
+  while (i < w.length - 1 && (cum[i] as number) < d) i++;
+  const a = w[i - 1] as [number, number];
+  const b = w[i] as [number, number];
+  const seg = (cum[i] as number) - (cum[i - 1] as number);
+  const t = seg > 0 ? (d - (cum[i - 1] as number)) / seg : 0;
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  return { x: a[0] + (b[0] - a[0]) * t, z: a[1] + (b[1] - a[1]) * t, tx: (b[0] - a[0]) / len, tz: (b[1] - a[1]) / len, length: total };
+}
+
+export function scenarioOf(path: ScenarioPath, durationS?: number, warmupS?: number): PerfScenario {
   return {
     id: path.id,
     pathRef: SCENARIO_PATH_REFS[path.id] ?? '',
@@ -72,6 +135,8 @@ export interface ScenarioRunnerDeps {
   /** Counts of errors seen this session, for the report. */
   errors: () => { gpuLost: number; uncaptured: number; js: number };
   governor?: 'on' | 'off';
+  /** The world half of the route scenarios; null while no world is booted. */
+  worldDriver?: () => WorldScenarioDriver | null;
 }
 
 export class PerfScenarioRunner {
@@ -101,12 +166,30 @@ export class PerfScenarioRunner {
     const host = this.d.host;
     const tier = this.d.tier();
     const scenario = scenarioOf(path, opts.durationS, opts.warmupS);
-    const bench = buildBenchmarkScene(tier);
-    const camera: PerspectiveCamera = bench.camera;
+    const route = path.kind === 'route' ? path : null;
+    const orbit = path.kind === 'orbit' ? path : null;
+    const driver = route ? (this.d.worldDriver?.() ?? null) : null;
+    if (route && !driver) {
+      this.running = false;
+      throw new Error(`perf: scenario "${id}" needs the world (QA build with DV_WORLD, no ?world= flag)`);
+    }
+    const bench = orbit ? buildBenchmarkScene(tier) : null;
+    const camera: PerspectiveCamera = bench ? bench.camera : host.camera;
+    const scene: Object3D = bench ? bench.scene : host.scene;
     const canvas = host.currentCanvas;
     camera.aspect = Math.max(1, canvas.clientWidth || 640) / Math.max(1, canvas.clientHeight || 360);
     camera.updateProjectionMatrix();
-    const phase = orbitPhase(path.seed);
+    const phase = orbit ? orbitPhase(orbit.seed) : 0;
+    if (route && driver) {
+      const start = routePose(route, 0);
+      try {
+        await driver.prepare([start.x, start.z]);
+      } catch (e) {
+        this.running = false;
+        throw e;
+      }
+    }
+    let lastY = 0;
     const meter = new RenderBudgetMeter(Math.max(1000, Math.ceil(scenario.durationS * 240)));
     const probe = new PerfProbe(Math.max(1000, Math.ceil(scenario.durationS * 240)));
     const info = (host.renderer as unknown as { info: RendererInfoLike }).info;
@@ -133,15 +216,29 @@ export class PerfScenarioRunner {
           measuring = true;
           measureT0 = time;
         }
-        const [x, y, z] = orbitPosition(path, t, phase);
-        camera.position.set(x, y, z);
-        camera.lookAt(path.lookAtEnu[0], path.lookAtEnu[1], path.lookAtEnu[2]);
+        if (orbit) {
+          const [x, y, z] = orbitPosition(orbit, t, phase);
+          camera.position.set(x, y, z);
+          camera.lookAt(orbit.lookAtEnu[0], orbit.lookAtEnu[1], orbit.lookAtEnu[2]);
+        }
         if (measuring && last >= 0) probe.push(time - last);
         last = time;
       },
+      late: (time) => {
+        // Route scenarios: the engine's camera rig has run; this frame's pose is the runner's.
+        if (!route || !driver || t0 < 0) return;
+        const t = (time - t0) / 1000;
+        const here = routePose(route, route.speedMps * t);
+        const y = lastY;
+        const got = driver.frame({ x: here.x, y, z: here.z, vx: here.tx * route.speedMps, vz: here.tz * route.speedMps });
+        if (got.groundY !== null) lastY = got.groundY;
+        const eye = lastY + route.eyeHeightM;
+        camera.position.set(here.x, eye, here.z);
+        camera.lookAt(here.x + here.tx * route.lookAheadM, eye - 1, here.z + here.tz * route.lookAheadM);
+      },
       after: (time) => {
         if (!measuring) return;
-        meter.measure(bench.scene, camera);
+        meter.measure(scene, camera);
         infoTrianglesMax = Math.max(infoTrianglesMax, info.render.triangles);
         infoDrawMax = Math.max(infoDrawMax, info.render.drawCalls);
         const m = readMemory(info, this.d.wasm);
@@ -152,16 +249,19 @@ export class PerfScenarioRunner {
       },
     };
 
-    host.setMenuScene(bench.scene as Object3D, camera as Camera);
+    if (bench) host.setMenuScene(bench.scene as Object3D, camera as Camera);
     const remove = host.addFrameListener(listener);
     try {
       await finished;
     } finally {
       remove();
-      host.clearMenuScene();
-      bench.dispose();
+      if (bench) {
+        host.clearMenuScene();
+        bench.dispose();
+      }
       this.running = false;
     }
+    const worldFigures = driver ? driver.finish() : null;
 
     const budget = tier.budget.frame.frameBudgetMs;
     const frames = probe.stats(budget);
@@ -198,7 +298,7 @@ export class PerfScenarioRunner {
       },
       memory: { accountedHeapMBMax: round2(heapMax), mediaMBMax: 0, webContentEstMB: null },
       dynamic: { minRenderScale: 1, downgrades: 0, upgrades: 0, tierChanges: 0 },
-      boot: { warmBootToPlayableS: null, coldDownloadMB: null },
+      boot: { warmBootToPlayableS: null, coldDownloadMB: worldFigures?.coldDownloadMB ?? null },
       errors: this.d.errors(),
     };
     this.lastReport = report;

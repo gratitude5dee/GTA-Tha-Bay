@@ -6,6 +6,7 @@
 export const SIM_FILES = [
   'packages/shared/src/**/*.{ts,tsx}',
   'packages/engine/src/sim/**/*.{ts,tsx}',
+  'packages/world/src/sim/**/*.{ts,tsx}',
   'packages/modes/*/src/sim/**/*.{ts,tsx}',
 ];
 export const SIM_IGNORES = ['packages/engine/src/sim/save/**'];

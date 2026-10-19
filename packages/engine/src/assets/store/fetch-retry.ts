@@ -43,6 +43,8 @@ export interface FetchStats {
   network: number;
   /** Retry attempts after a failed first attempt. */
   retries: number;
+  /** Body bytes received from the network (M02b1: the cold-download figure of the boot-size check). */
+  bytes: number;
 }
 
 export function backoffMs(n: number, u: number): number {
@@ -77,7 +79,7 @@ interface InFlight {
 }
 
 export class FetchRetry {
-  readonly stats: FetchStats = { network: 0, retries: 0 };
+  readonly stats: FetchStats = { network: 0, retries: 0, bytes: 0 };
   private readonly inflight = new Map<string, InFlight>();
   private readonly fetchFn: FetchFn;
   private readonly lanes: Lanes;
@@ -199,7 +201,9 @@ export class FetchRetry {
 
   private async readBody(res: Response, signal: AbortSignal): Promise<Uint8Array> {
     try {
-      return new Uint8Array(await res.arrayBuffer());
+      const body = new Uint8Array(await res.arrayBuffer());
+      this.stats.bytes += body.byteLength;
+      return body;
     } catch {
       if (signal.aborted) throw new FetchFailure('aborted');
       throw new FetchFailure('offline');

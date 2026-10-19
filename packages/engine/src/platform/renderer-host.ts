@@ -97,6 +97,8 @@ export interface RendererHostOptions {
 export interface FrameListener {
   /** Start of a frame, before the engine hand-off and the render call. `time` is the rAF (or XR) timestamp in ms. */
   before?(time: number): void;
+  /** After the engine hand-off (`frameHook`) and before the render call: the last word on camera and scene (the world scenario driver, M02b1). */
+  late?(time: number): void;
   /** After `renderer.render()`; `renderer.info` still holds this frame's counts. */
   after?(time: number): void;
 }
@@ -402,6 +404,7 @@ export class RendererHost {
     r.info.reset();
     for (const l of this.listeners) l.before?.(time);
     this.frameHook?.(time);
+    for (const l of this.listeners) l.late?.(time);
     this.frames += 1;
     if (r.xr.isPresenting) this.xrFrames += 1;
     if (this.menu) r.render(this.menu.scene as Scene, this.menu.camera);

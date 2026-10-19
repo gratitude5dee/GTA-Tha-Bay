@@ -6,7 +6,7 @@ import type { FetchFn } from './store/fetch-retry.ts';
  * behind that flag, so production bundles do not contain it). Fault injection, cap changes, store reopen and orphan files.
  */
 interface FaultRule {
-  status: number | 'network';
+  status: number | 'network' | 'corrupt';
   times: number;
   match: string | null;
 }
@@ -32,6 +32,14 @@ function faultFetch(rules: FaultRule[], inner: FetchFn): FetchFn {
       if (r.times <= 0 || (r.match !== null && !url.includes(r.match))) continue;
       r.times--;
       if (r.status === 'network') return Promise.reject(new TypeError('Failed to fetch (injected)'));
+      // 'corrupt': the real body with its first byte flipped, so the length matches and the hash does not (M02b1 @world-faults).
+      if (r.status === 'corrupt') {
+        return inner(url, init).then(async (res) => {
+          const body = new Uint8Array(await res.arrayBuffer());
+          if (body.length > 0) body[0] = (body[0] as number) ^ 0xff;
+          return new Response(body, { status: res.status, headers: res.headers });
+        });
+      }
       return Promise.resolve(new Response(null, { status: r.status }));
     }
     return inner(url, init);
@@ -48,7 +56,7 @@ export async function handleQa(svc: AssetService, name: string, args: unknown): 
         st.installed = true;
       }
       const status = a['status'];
-      if (status !== 'network' && typeof status !== 'number') throw new Error('injectFaults: status must be a number or "network"');
+      if (status !== 'network' && status !== 'corrupt' && typeof status !== 'number') throw new Error('injectFaults: status must be a number, "network" or "corrupt"');
       const times = typeof a['times'] === 'number' ? a['times'] : 1;
       st.rules.push({ status, times, match: typeof a['match'] === 'string' ? a['match'] : null });
       return null;

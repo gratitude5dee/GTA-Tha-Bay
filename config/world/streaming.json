@@ -1,0 +1,20 @@
+{
+  "$comment": "Streaming plan of 02-world.md section 4 (M02b1). r0M, r2M, physicsM, uploadBytes and altitudeBoostM equal the C13 WorldLimits and sim.physicsRadiusM of config/tier-budgets.json (checked by packages/world/test/streaming.plan.spec.ts); r1M, ambientM and the resident caps are S02 starting values (dagger in the spec). Radii in metres.",
+  "schema": "world-streaming/1",
+  "lookAheadS": 4,
+  "dirWeights": { "ahead": 0.55, "side": 0.85, "behind": 1.25 },
+  "unloadFactor": 1.35,
+  "pressureSteps": [1, 0.85, 0.7],
+  "lodBiasPerStep": 0.15,
+  "altitudeBoost": { "fromAglM": 60, "fullAglM": 200 },
+  "inFlight": { "p0": 4, "l0": 3, "l1": 2, "l2": 2 },
+  "retry": { "firstMs": 1000, "maxMs": 30000, "maxAttempts": 8 },
+  "tiers": {
+    "desktop-ultra": { "r0M": 2400, "r1M": 5000, "r2M": 8200, "altitudeBoostM": 2800, "ambientM": 600, "physicsM": 400, "resident": { "l0": 510, "l1": 140, "l2": 25 }, "uploadBytes": null },
+    "desktop": { "r0M": 1800, "r1M": 4000, "r2M": 8200, "altitudeBoostM": 2800, "ambientM": 500, "physicsM": 400, "resident": { "l0": 290, "l1": 90, "l2": 25 }, "uploadBytes": null },
+    "xr-visionpro": { "r0M": 800, "r1M": 1800, "r2M": 3000, "altitudeBoostM": 0, "ambientM": 400, "physicsM": 300, "resident": { "l0": 60, "l1": 18, "l2": 9 }, "uploadBytes": null },
+    "mobile": { "r0M": 600, "r1M": 1400, "r2M": 2500, "altitudeBoostM": 0, "ambientM": 350, "physicsM": 200, "resident": { "l0": 32, "l1": 12, "l2": 4 }, "uploadBytes": null },
+    "mobile-low": { "r0M": 400, "r1M": 900, "r2M": 1500, "altitudeBoostM": 0, "ambientM": 250, "physicsM": 150, "resident": { "l0": 16, "l1": 6, "l2": 2 }, "uploadBytes": 2097152 },
+    "xr-quest": { "r0M": 400, "r1M": 900, "r2M": 1500, "altitudeBoostM": 0, "ambientM": 250, "physicsM": 150, "resident": { "l0": 16, "l1": 6, "l2": 2 }, "uploadBytes": 2097152 }
+  }
+}

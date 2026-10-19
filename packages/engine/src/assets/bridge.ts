@@ -13,9 +13,9 @@ export interface AssetsBridge {
   has(target: string | PackRef): Promise<boolean>;
   resolve(ref: string): Promise<PackRef>;
   usage(): ReturnType<AssetClient['usage']>;
-  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number }>;
+  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number; bytes: number }>;
   configure(o: { softCapBytes: number | null }): Promise<void>;
-  injectFaults(o: { status: number | 'network'; times: number; match?: string }): Promise<void>;
+  injectFaults(o: { status: number | 'network' | 'corrupt'; times: number; match?: string }): Promise<void>;
   clearFaults(): Promise<void>;
   reopen(o?: { force?: 'memory' }): Promise<'opfs' | 'memory-fallback'>;
   writeOrphan(sha: string): Promise<void>;

@@ -1,0 +1,13 @@
+{
+  "$comment": "M02b1 camera path for the scenario 'route-ferry-ocean-beach' (02-world.md section 4, DL-221): from the Ferry Building across Civic Center and the Sunset to Ocean Beach, about 11 km at 90 m/s (a low flight, eye 40 m above the ground) so the 120 s run covers the whole route and the streaming works at its limits. A shorter run covers the first part. Seed 0xC0FFEE. ENU metres: +X east, -Z north.",
+  "id": "route-ferry-ocean-beach",
+  "kind": "route",
+  "waypointsEnu": [[2282, -1790], [0, -40], [-3000, 600], [-7870, 2140]],
+  "speedMps": 90,
+  "eyeHeightM": 40,
+  "lookAheadM": 300,
+  "durationS": 120,
+  "warmupS": 5,
+  "seed": 12648430,
+  "density": "off"
+}

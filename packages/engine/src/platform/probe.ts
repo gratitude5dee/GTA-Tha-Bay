@@ -5,7 +5,7 @@ import { buildNotes, exportReport } from './perf/export.ts';
 import { PerfHud } from './perf/hud.ts';
 import { RenderBudgetMeter } from './perf/meter.ts';
 import type { MemoryCounters } from './perf/probe.ts';
-import { PerfScenarioRunner, type RunInfo } from './perf/scenario-runner.ts';
+import { PerfScenarioRunner, type RunInfo, type WorldScenarioDriver } from './perf/scenario-runner.ts';
 import type { QaFlags } from './qa-flags.ts';
 import { THREE_REVISION } from './renderer-host.ts';
 
@@ -186,7 +186,7 @@ function giveEmulatedLayersAFramebuffer(): void {
   });
 }
 
-export function installPlatformBridge(platform: Platform, flags: QaFlags): PlatformBridge {
+export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: { worldDriver?: () => WorldScenarioDriver | null } = {}): PlatformBridge {
   const host = platform.host;
   let lastProbe: GpuProbeResult | null = null;
   let xrError: string | null = null;
@@ -200,6 +200,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
     now: () => Date.now(),
     wasm: new Map(),
     errors: () => ({ gpuLost: platform.errors.counts.gpuLost, uncaptured: platform.errors.counts.uncaptured, js: platform.errors.counts.js }),
+    ...(opts.worldDriver ? { worldDriver: opts.worldDriver } : {}),
   });
 
   // Live meter: walks the scene being drawn, once per frame, while the HUD or a bridge reader needs it.
