@@ -17,6 +17,12 @@ export interface RawSourceLock {
   sha256: string;
   rows: number;
   licence: string;
+  /**
+   * Source osm only (DL-703): `url` above is the route that served the downloaded extract (the primary or a mirror); this
+   * records that extract (SHA-256 of the PBF bytes, the 0-based route index) while `sha256` stays the hash of the exported
+   * GeoJSON lines the bake reads.
+   */
+  extract?: { sha256: string; bytes: number; route: number };
 }
 export interface RawLockFile {
   schema: 'raw-lock/1';
