@@ -81,7 +81,7 @@ jobs:
   # M02a1: world content gates. The graybox fixture is byte-checked (moved here from the unit step), then the committed
   # civic-excerpt is baked twice with --force and every output byte is compared. `synth` runs where a job needs the full
   # world (from M02b1), restored from the same .cache/map entry.
-  content:
+  world-content:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
