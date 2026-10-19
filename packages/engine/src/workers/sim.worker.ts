@@ -13,6 +13,7 @@ import { isInitMessage, type InitMessage } from '../sim/sim-host.ts';
 import { attachSabWorker } from '../sim/transport/sab-transport.ts';
 import { attachPmWorker, type PortLike } from '../sim/transport/pm-transport.ts';
 import type { WorkerTransport } from '../sim/transport/types.ts';
+import { SaveControl, type SaveWriter } from '../sim/worker/save-control.ts';
 
 interface WorkerScope extends PortLike {
   addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
@@ -24,6 +25,7 @@ const scope = globalThis as unknown as WorkerScope;
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => scope.setTimeout(resolve, ms));
 
 let started = false;
+let saveService: Promise<SaveWriter> | null = null;
 scope.addEventListener('message', (ev) => {
   if (started || !isInitMessage(ev.data)) return;
   started = true;
@@ -69,6 +71,13 @@ async function run(init: InitMessage): Promise<void> {
     return;
   }
 
+  if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'save-kill') {
+    const { runSaveKill } = await import('../sim/save/qa/save-kill.ts');
+    const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+    await runSaveKill(boot.config['phase'] === 'verify' ? 'verify' : 'loop', { post, sleep });
+    return;
+  }
+
   const transport: WorkerTransport = kind === 'sab' && sab ? attachSabWorker(sab) : attachPmWorker(scope);
   const runtime = new SimRuntime(transport, envFor(init));
 
@@ -76,6 +85,19 @@ async function run(init: InitMessage): Promise<void> {
     const { ScriptedBotInput, parseBotScript } = await import('../sim/input/bot-input.ts');
     runtime.bot = new ScriptedBotInput(parseBotScript(boot.config['bot']));
   }
+
+  // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy that
+  // decides what to collect arrives with M04a2, so until then nothing is due and `save.request` answers 'not-eligible'.
+  runtime.saveControl = new SaveControl({
+    service: async () => {
+      saveService ??= (async () => {
+        const { SaveServiceImpl } = await import('../sim/save/index.ts');
+        return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
+      })();
+      return saveService;
+    },
+    collect: () => null,
+  });
 
   await runtime.boot(cfg, boot);
   scope.postMessage({ v: 1, t: 'ready', seq: 0, p: { physicsBuild: cfg.physicsBuild, transport: kind } });

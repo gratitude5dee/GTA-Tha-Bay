@@ -40,7 +40,7 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.tombstone (%s store)', 
     await svc.deleteSlot(p.id, 'sandbox');
     clk.advance(10);
     expect(await svc.write('sandbox', { toggles: { n: 3 } }, 'manual')).toMatchObject({ ok: true, gen: 3 });
-    expect(((await svc.load(p.id)).sandbox as { toggles: { n: number } }).toggles.n).toBe(3);
+    expect(((await svc.load(p.id)).sandbox as unknown as { toggles: { n: number } }).toggles.n).toBe(3);
   });
 
   it('tombstones older than 180 days are purged only when marked synced', async () => {

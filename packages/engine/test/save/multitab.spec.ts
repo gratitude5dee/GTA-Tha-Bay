@@ -20,7 +20,7 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.multitab (%s store)', (
     expect(await b.write('settings', { language: 'en' }, 'manual')).toMatchObject({ ok: false, error: 'CONFLICT' });
     expect(a.readOnly).toBeNull();
     expect(await a.write('sandbox', { toggles: { by: 'a2' } }, 'manual')).toMatchObject({ ok: true, gen: 2 });
-    expect(((await a.load(p.id)).sandbox as { toggles: { by: string } }).toggles.by).toBe('a2');
+    expect(((await a.load(p.id)).sandbox as unknown as { toggles: { by: string } }).toggles.by).toBe('a2');
   });
 
   it('writes started at the same moment: exactly one succeeds', async () => {
@@ -47,7 +47,7 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.multitab (%s store)', (
     expect(b.readOnly).toBe('conflict');
     const g = await b.load(p.id);
     expect(b.readOnly).toBeNull();
-    expect((g.sandbox as { toggles: { by: string } }).toggles.by).toBe('a');
+    expect((g.sandbox as unknown as { toggles: { by: string } }).toggles.by).toBe('a');
     expect(await b.write('sandbox', { toggles: { by: 'b' } }, 'manual')).toMatchObject({ ok: true, gen: 2 });
   });
 

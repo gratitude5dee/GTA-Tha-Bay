@@ -26,7 +26,7 @@ describe('engine/save.memory (IDB_UNAVAILABLE path)', () => {
     expect(svc.persistent).toBe(false);
     const p = await mkProfile(svc);
     expect(await svc.write('sandbox', { toggles: { n: 1 } }, 'manual')).toMatchObject({ ok: true, gen: 1 });
-    expect(((await svc.load(p.id)).sandbox as { toggles: { n: number } }).toggles.n).toBe(1);
+    expect(((await svc.load(p.id)).sandbox as unknown as { toggles: { n: number } }).toggles.n).toBe(1);
   });
 
   it('rules 1 to 3 hold on the memory store: kill, fallback, caps and capabilities', async () => {
@@ -42,7 +42,7 @@ describe('engine/save.memory (IDB_UNAVAILABLE path)', () => {
     await k.load(p.id);
     await expect(k.write('sandbox', { toggles: { n: 2 } }, 'manual')).rejects.toBeInstanceOf(SaveKilled);
     const after = await openSvc(store, { capability: 'sandbox', now: clk.now });
-    expect(((await after.load(p.id)).sandbox as { toggles: { n: number } }).toggles.n).toBe(1);
+    expect(((await after.load(p.id)).sandbox as unknown as { toggles: { n: number } }).toggles.n).toBe(1);
 
     // Rule 2: a corrupted pointer record falls back.
     await after.write('sandbox', { toggles: { n: 2 } }, 'manual');
@@ -50,7 +50,7 @@ describe('engine/save.memory (IDB_UNAVAILABLE path)', () => {
     await store.deleteRecord(p.id, 'sandbox', 2);
     await store.addRecord({ ...rec, checksum: '0'.repeat(16) });
     const g = await (await openSvc(store, { now: clk.now })).load(p.id);
-    expect((g.sandbox as { toggles: { n: number } }).toggles.n).toBe(1);
+    expect((g.sandbox as unknown as { toggles: { n: number } }).toggles.n).toBe(1);
     expect(g.profile.lastSave?.error).toBe('CHECKSUM');
 
     // Rule 3 and the caps.

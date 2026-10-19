@@ -1,4 +1,4 @@
-import { utf8Bytes, type FrameSignal, type LoopStats, type SimControlMessage } from '@dv/shared';
+import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage } from '@dv/shared';
 import { decodeUtf8 } from '../bytes.ts';
 import type { SimEvent } from '../events.ts';
 
@@ -50,8 +50,13 @@ export interface StatsReport {
   eventsDropped: number;
 }
 
-/** Answer to a SimControlMessage. `save.request` is not implemented until M04a. */
-export type SimControlResult = { t: 'save.result'; ok: false; reason: 'not-implemented' };
+/**
+ * Answer to a SimControlMessage. 'not-implemented' while no SaveControl is installed; 'not-eligible' when C05 rule 4
+ * says no save is due (the collector returned nothing); otherwise the C05 error code of the first failed write.
+ */
+export type SimControlResult =
+  | { t: 'save.result'; ok: true; slots: number }
+  | { t: 'save.result'; ok: false; reason: 'not-implemented' | 'not-eligible' | SaveErrorCode };
 
 export interface SnapshotFramePayload {
   tick: number;
@@ -93,6 +98,10 @@ const isInt = (x: unknown): x is number => isNum(x) && Number.isInteger(x);
 export function isEnvelope(x: unknown): x is Envelope<string, unknown> {
   return isObject(x) && x['v'] === ENVELOPE_VERSION && typeof x['t'] === 'string' && isInt(x['seq']) && 'p' in x;
 }
+
+const SAVE_RESULT_REASONS: ReadonlySet<string> = new Set([
+  'not-implemented', 'not-eligible', 'QUOTA', 'TOO_LARGE', 'CHECKSUM', 'CONFLICT', 'NEWER_SCHEMA', 'IDB_UNAVAILABLE', 'NOT_ALLOWED', 'INVALID', 'NAME_TAKEN', 'PROFILE_LIMIT',
+]);
 
 const TIME_SCALES: readonly unknown[] = [0.25, 0.5, 1, 2];
 
@@ -153,7 +162,7 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
     case 'stats':
       return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']);
     case 'ctl.result':
-      return isObject(p) && p['t'] === 'save.result' && p['ok'] === false && p['reason'] === 'not-implemented';
+      return isObject(p) && p['t'] === 'save.result' && (p['ok'] === true ? isInt(p['slots']) : p['ok'] === false && typeof p['reason'] === 'string' && SAVE_RESULT_REASONS.has(p['reason']));
     case 'log':
       return isObject(p) && (p['level'] === 'info' || p['level'] === 'warn' || p['level'] === 'error') && typeof p['message'] === 'string';
     case 'qa':

@@ -1,5 +1,6 @@
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { EngineHandle, EngineObservation } from '../boot/boot-engine.ts';
+import { createSaveBridge, type SaveBridge } from './save-bridge.ts';
 
 /**
  * `window.__dvBridge.engine` (QA builds only; 01-engine.md section 2.11): JSON-friendly observation and debug commands
@@ -18,6 +19,8 @@ export interface EngineBridge {
   setPlay(on: boolean): void;
   /** Ends the XR smoke session, if one runs. */
   endXr(): Promise<void>;
+  /** C05 SaveService on the real database: list, write, load, kill (M04a1). */
+  save: SaveBridge;
 }
 
 export function installEngineBridge(engine: EngineHandle): EngineBridge {
@@ -28,6 +31,7 @@ export function installEngineBridge(engine: EngineHandle): EngineBridge {
     setPaused: (p) => engine.setPaused(p),
     setPlay: (on) => engine.setPlay(on),
     endXr: () => engine.endXr(),
+    save: createSaveBridge(),
     get qa() {
       return engine.qaResults();
     },
@@ -42,6 +46,7 @@ export function installQaBridge(results: () => Record<string, unknown>): void {
     get qa() {
       return results();
     },
+    save: createSaveBridge(),
   };
   window.__dvBridge = { ...window.__dvBridge, engine: bridge as EngineBridge };
 }

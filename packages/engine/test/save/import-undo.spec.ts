@@ -39,7 +39,7 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.importUndo (%s store)',
     expect(await store.getPointer(dst.id, 'sandbox')).toMatchObject({ gen: 3 });
     expect(await store.getPointer(dst.id, 'mod:x')).toMatchObject({ gen: 1 });
     const g = await svc.load(dst.id);
-    expect((g.sandbox as { toggles: { n: number } }).toggles.n).toBe(2);
+    expect((g.sandbox as unknown as { toggles: { n: number } }).toggles.n).toBe(2);
     expect(g.mods['x']).toEqual({ v: 1 });
     expect((await store.getPointer(dst.id, 'settings'))?.gen).toBe(1);
 
