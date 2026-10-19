@@ -8,3 +8,4 @@ playwright-report
 *.tsbuildinfo
 .claude/worktrees/
 dist/assets/
+.out/
