@@ -308,13 +308,13 @@ create table forum_boards (id text primary key, title text not null, sort smalli
 create table forum_threads (id uuid primary key, board_id text not null references forum_boards(id),
   author_profile_id uuid not null references profiles(id), title text not null check (char_length(title) between 3 and 120),
   experience_id uuid references experiences(id), mod_id uuid references mods(id),   -- mod_id: C12 1.1 §3 (mod discussion threads)
-  state text not null default 'visible' check (state in ('visible','held','removed','locked')),
+  state text not null default 'pending' check (state in ('pending','visible','held','removed','locked')),   -- pending until forum_text allow (DL-471)
   score int not null default 0, post_count int not null default 0, last_post_at timestamptz not null default now(),
   tsv tsvector generated always as (to_tsvector('english', title)) stored, created_at timestamptz not null default now());
 create index on forum_threads (board_id, last_post_at desc); create index on forum_threads using gin (tsv);
 create table forum_posts (id uuid primary key, thread_id uuid not null references forum_threads(id),
   author_profile_id uuid not null references profiles(id), body text not null check (char_length(body) between 1 and 10000),
-  state text not null default 'visible' check (state in ('visible','held','removed')), score int not null default 0,
+  state text not null default 'pending' check (state in ('pending','visible','held','removed')), score int not null default 0,
   attachment_upload_ids uuid[] not null default '{}', edited_at timestamptz, created_at timestamptz not null default now());
 create index on forum_posts (thread_id, created_at);
 create table forum_votes (profile_id uuid not null references profiles(id) on delete cascade, target_kind text not null check (target_kind in ('thread','post','experience')),
@@ -359,7 +359,7 @@ Facts: presigned URLs work only on the S3 endpoint, not custom domains; Content-
 ## 5. KV keys (`FLAGS` namespace, bound to both Workers)
 | Key | Value | Writer | Readers (`cacheTtl`) |
 |---|---|---|---|
-| `roster:flags` | `RosterFlags` JSON | kill-switch route | dialogue, roster, cutscene routes (30 s) |
+| `roster:flags` | `RosterFlags` JSON | kill-switch route | fallback only for route 30 and `isKilled` when the Postgres `roster_flag` read fails (DL-557) |
 | `ks:<name>` | `{on, reason, by, ts, expiresAt}` — names `genai:all`, `anthropic`, `anthropic:sonnet`, `fal`, `fal:<endpointId>`, `cutscene_gen`, `npc_builder`, `tts:elevenlabs`, `tts:all`, `likeness:<npcId>`, `telemetry:verbose`, `rooms:new` | `PUT /admin/flags/:flag`, `tools/ops/ks.ts` (audited) | all genAI paths (30 s) |
 | `gov:level` | `{level: 0..3, at, byVendor}` | BudgetGovernorDO on each transition and every 60 s | all genAI paths (30 s) |
 | `flags:features` | `Record<FeatureFlag, boolean>` | admin | `/boot` (60 s) |

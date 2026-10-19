@@ -19,7 +19,7 @@ After this session all 37 landmarks of `02-world-bake.md` §7 exist as C07 `buil
 - **Catalog completeness:** `map:landmarks` (content mode) fails when any id in `landmarks.json` lacks a `building/lm.<slug>` asset or an asset lacks a landmark entry.
 
 ## Scope out
-- Blender art passes, KTX2 atlases and interiors (after M05c, same AssetIds). Night lighting of landmarks beyond the window mask (M02b2 look applies through the shared materials). XR comfort teleport nodes at landmarks (M11b1). Device calibration of `swapM` and caps (M11a1–M11a2).
+- Blender art passes and KTX2 atlases (M10d2, after M05c2, same AssetIds; DL-390); interiors. Night lighting of landmarks beyond the window mask (M02b2 look applies through the shared materials). XR comfort teleport nodes at landmarks (M11b1). Device calibration of `swapM` and caps (M11a1–M11a2).
 
 ## Deliverables
 - `tools/map/src/landmarks/<slug>.ts` × 25 (as listed), `tools/map/src/landmarks/kit/{glasshouse.ts, gantry.ts}` (shared primitives, if needed).

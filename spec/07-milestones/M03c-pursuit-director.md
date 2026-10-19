@@ -55,7 +55,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 - `packages/engine/src/sim/pursuit/{director.ts, heat.ts, search.ts, dispatch.ts, tactics/{follow.ts, pit.ts, boxin.ts, roadblock.ts, spikes.ts, heli.ts}, bust.ts, vehicle-heat.ts, ports.ts, index.ts}`.
 - `packages/engine/src/debug/pursuit-panel.ts` (QA only); bridge additions in the M01c `probe.ts` pattern.
 - `packages/engine/test/pursuit/{config.spec.ts, heat.spec.ts, search.spec.ts, dispatch.spec.ts, tactics.spec.ts, bust.spec.ts, vehicle-heat.spec.ts, bot.escape.spec.ts, determinism.spec.ts}`, `packages/engine/test/lines/pursuit-escape.line.json`, `packages/engine/test/golden/pursuit-escape.json`.
-- `packages/engine/package.json` script **`test:pursuit`** (`vitest run test/pursuit`), also run by `pnpm check:unit`.
+- `packages/engine/package.json` script **`test:pursuit`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/pursuit`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `tests/e2e/engine/pursuit.spec.ts` (`@pursuit`).
 - About 32 files.
 

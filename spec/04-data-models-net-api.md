@@ -143,7 +143,7 @@ export interface EvPayloads {
   [EvKind.Resume]: { token: string; exp: number };
   [EvKind.TeleportGrant]: { x: number; y: number; z: number; yaw: number; reason: 'spawn' | 'fast_travel' | 'activity' };
   [EvKind.Notice]: { kind: 'drain' | 'maintenance' | 'cap_change'; at: number };
-  [EvKind.NpcBusy]: { npcId: string; bySlot: number | null };
+  [EvKind.NpcBusy]: { npcId: string; bySlot: number | null };   // reserved: never emitted in v1 (DL-350)
   [EvKind.Correction]: { x: number; y: number; z: number; yaw: number; vehicleSlot: number | null; reason: 'speed' | 'bounds' | 'teleport' | 'vehicle' };
 }
 ```
