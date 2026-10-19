@@ -5,6 +5,8 @@ name: nightly
 #    A failure here is an issue to read, not a PR failure.
 #  - legal:snapshot --verify: stored vendor-terms hashes against docs/legal/vendor-terms/index.json (offline).
 #  - ScanCode Toolkit and `reuse lint`: reported only, and only when installed (their versions are not in the ledger).
+# M02b1 additions: the synth and civic-excerpt bakes are restored or built before the e2e, determinism and perf jobs; the full e2e runs
+# twice (the gray-box tags on a build without a world, the rest on DV_WORLD=synth); determinism and `check:perf -- --fail` run on DV_WORLD=synth.
 # M02a2 addition: `map:build -- --area synth` then `map:verify -- --area synth` (graph connectivity, signals, routes, limits, transit).
 # M00d additions: the full e2e matrix (including @quarantine), the cross-browser determinism suites, `check:perf -- --fail`
 # (job perf), the stale-Preview sweep and an informational macOS probe.
@@ -16,6 +18,10 @@ on:
 
 permissions:
   contents: read
+
+env:
+  # Same string as ci.yml and tests/e2e/graybox-grep.txt (M02b1, DL-546, DL-680).
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)'
 
 # Actions are pinned by commit SHA, same pins as ci.yml.
 jobs:
@@ -60,7 +66,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
+      # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
+      # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
       - run: pnpm check:perf -- --fail
+        env:
+          DV_WORLD: synth
+          DV_SKIP_BUILD: ''
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -88,9 +108,27 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm check:e2e -- --project=${{ matrix.project }}
+      # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
+      # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
+      - name: e2e, gray-box tags (build without a world)
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --pass-with-no-tests
         env:
           DV_E2E_QUARANTINE: '1'
+      - name: e2e, every other tag (DV_WORLD=synth build)
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --pass-with-no-tests
+        env:
+          DV_E2E_QUARANTINE: '1'
+          DV_WORLD: synth
+          DV_SKIP_BUILD: ''
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: failure()
         with:
@@ -118,7 +156,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium webkit
+      # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
+      # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
       - run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "@determinism|@racing-det|@fighter-hash|@world-hash|@tycoon-det"
+        env:
+          DV_WORLD: synth
+          DV_SKIP_BUILD: ''
 
   # M00d: Workers Previews of closed pull requests. SKIPs (exit 0) without Cloudflare secrets.
   sweep-previews:
