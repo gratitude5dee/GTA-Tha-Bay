@@ -122,6 +122,43 @@ describe('provenance gate (AC-2)', () => {
     expect(rules(res.findings)).toEqual(['path-not-recorded']);
   });
 
+  it('matches a C07 object key to its record by hash (the record lists the source path)', () => {
+    const root = tempRoot();
+    const bytes = randomBytes(48);
+    const h = sha(bytes);
+    put(root, `dist/assets/data/smoke/default.${h.slice(0, 12)}.json`, bytes);
+    putRecord(root, record(bytes, {}, 'assets/src/data/smoke/smoke.json'));
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('still reports a copy whose name only imitates an object key (wrong hash fragment)', () => {
+    const root = tempRoot();
+    const bytes = randomBytes(48);
+    put(root, 'dist/assets/data/smoke/default.000000000000.json', bytes);
+    putRecord(root, record(bytes, {}, 'assets/src/data/smoke/smoke.json'));
+    expect(rules(provenance(root).findings)).toEqual(['path-not-recorded']);
+  });
+
+  it('treats media-local/ as the QA-only mirror: derived catalogs and blobs need no record of their own', () => {
+    const root = tempRoot();
+    const blob = randomBytes(40);
+    const manifest = Buffer.from('{"schema":"asset-manifest/1"}');
+    put(root, `dist/media-local/assets/texture/x/desktop.${sha(blob).slice(0, 12)}.png`, blob);
+    put(root, `dist/media-local/manifests/assets-${sha(manifest)}.json`, manifest);
+    put(root, 'dist/media-local/asset-catalog.json', '{}');
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('does not extend the media-local exemption to other dist paths', () => {
+    const root = tempRoot();
+    const manifest = Buffer.from('{"schema":"asset-manifest/1"}');
+    put(root, 'dist/manifests/assets-x.json', manifest);
+    put(root, 'dist/assets/texture/x/desktop.000000000000.png', randomBytes(40));
+    const res = provenance(root);
+    expect(files(res.findings).sort()).toEqual(['assets/texture/x/desktop.000000000000.png', 'manifests/assets-x.json']);
+    expect(rules(res.findings)).toEqual(['no-record', 'no-record']);
+  });
+
   it('reports a record with a copyleft licence', () => {
     const root = tempRoot();
     const bytes = randomBytes(32);
