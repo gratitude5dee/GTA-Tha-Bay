@@ -134,6 +134,18 @@
       "licenceUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
       "attribution": "© OpenStreetMap contributors",
       "source": "OpenStreetMap via Geofabrik NorCal extract and osmium",
+      "mirrors": [
+        {
+          "url": "https://download.bbbike.org/osm/bbbike/SanFrancisco/SanFrancisco.osm.pbf",
+          "coverage": "play",
+          "note": "BBBike SF extract, box lng -122.54..-122.32, lat 37.54..37.93: covers the C08 play box, not the full stream box (spec/03 section 7)"
+        },
+        {
+          "url": "https://download.openstreetmap.fr/extracts/north-america/us-west/california.osm.pbf",
+          "coverage": "california",
+          "note": "State extract (about 1.4 GB) for coverage beyond the BBBike box (stream and far boxes)"
+        }
+      ],
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     }
   ],
@@ -147,7 +159,7 @@
     "far": { "z": 12, "boxes": ["far"] }
   },
   "osm": {
-    "note": "U-W1 and U-W2: the Geofabrik URL and the osmium flags below are UNVERIFIED until the operator first runs them (AC-9); record what worked here. The OSM reader accepts GeoJSON lines from any route: a hand-supplied .cache/map/raw/sf/osm.geojsonl is used as is.",
+    "note": "U-W1 and U-W2: the URL route and the osmium flags below are UNVERIFIED until the operator first runs them (AC-9); record what worked here. The primary Geofabrik URL is tried first and the ordered mirrors after it (DL-703); the raw lock names the URL that served the bytes. The OSM reader accepts GeoJSON lines from any route: a hand-supplied .cache/map/raw/sf/osm.geojsonl is used as is.",
     "bboxes": {
       "sf": { "minLat": 37.68, "minLng": -122.55, "maxLat": 37.89, "maxLng": -122.3 },
       "backdrop": { "minLat": 37.3, "minLng": -122.6, "maxLat": 38.0, "maxLng": -121.8 }

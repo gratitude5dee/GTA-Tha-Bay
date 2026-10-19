@@ -62,7 +62,7 @@ export interface RoadsInputs {
   streets: readonly StreetRow[];
   hoods: readonly HoodPoly[];
   cfg: RoadClassConfig;
-  /** ENU box of the area: ways with a vertex outside it are cut at the box edge (none are for synth and the excerpt). */
+  /** ENU box of the area (the chunk-aligned grid): ways with a vertex outside it are cut at the box edge (`clipWayToBox`; none are for synth and the excerpt). */
   box: Bbox;
 }
 
@@ -201,6 +201,67 @@ function lineCoords(g: Geometry): number[][][] {
   return [];
 }
 
+/** Keeps cut points strictly inside the half-open chunk grid after the 0.25 m quantisation of node positions (q025). */
+const CUT_INSET_M = 0.5;
+
+/**
+ * Cuts a way at the edges of the area box (DL-703 follow-up: the real OSM extract reaches past the `play` box, the synth and
+ * excerpt ways never do). Runs of vertices inside the box are kept, every crossing adds a vertex on the edge with a `cut:`
+ * key, and a way entirely outside disappears. Ways inside the box come back unchanged (same object).
+ */
+export function clipWayToBox(w: Way, box: Bbox): Way[] {
+  const x0 = box.minX + CUT_INSET_M, x1 = box.maxX - CUT_INSET_M, z0 = box.minZ + CUT_INSET_M, z1 = box.maxZ - CUT_INSET_M;
+  const n = w.enu.length / 2;
+  let allInside = true;
+  for (let i = 0; i < n && allInside; i++) {
+    const x = w.enu[i * 2] as number, z = w.enu[i * 2 + 1] as number;
+    allInside = x >= x0 && x <= x1 && z >= z0 && z <= z1;
+  }
+  if (allInside) return [w];
+  const out: Way[] = [];
+  let enu: number[] = [];
+  let keys: string[] = [];
+  const flush = (): void => {
+    if (keys.length >= 2) out.push({ ...w, enu, keys });
+    enu = [];
+    keys = [];
+  };
+  const cutKey = (x: number, z: number): string => `cut:${x.toFixed(3)},${z.toFixed(3)}`;
+  for (let i = 0; i + 1 < n; i++) {
+    const ax = w.enu[i * 2] as number, az = w.enu[i * 2 + 1] as number, bx = w.enu[i * 2 + 2] as number, bz = w.enu[i * 2 + 3] as number;
+    // Liang-Barsky
+    const dx = bx - ax, dz = bz - az;
+    let t0 = 0, t1 = 1;
+    let hit = true;
+    for (const [p, q] of [[-dx, ax - x0], [dx, x1 - ax], [-dz, az - z0], [dz, z1 - az]] as const) {
+      if (p === 0) { if (q < 0) { hit = false; break; } continue; }
+      const r = q / p;
+      if (p < 0) { if (r > t1) { hit = false; break; } if (r > t0) t0 = r; } else { if (r < t0) { hit = false; break; } if (r < t1) t1 = r; }
+    }
+    if (!hit || t1 <= t0) { flush(); continue; }
+    if (t0 > 0) {
+      flush();
+      const cx = ax + dx * t0, cz = az + dz * t0;
+      enu.push(cx, cz);
+      keys.push(cutKey(cx, cz));
+    } else if (keys.length === 0) {
+      enu.push(ax, az);
+      keys.push(w.keys[i] as string);
+    }
+    if (t1 < 1) {
+      const cx = ax + dx * t1, cz = az + dz * t1;
+      enu.push(cx, cz);
+      keys.push(cutKey(cx, cz));
+      flush();
+    } else {
+      enu.push(bx, bz);
+      keys.push(w.keys[i + 1] as string);
+    }
+  }
+  flush();
+  return out;
+}
+
 const vkey = (c: readonly number[]): string => `${(c[0] as number).toFixed(7)},${(c[1] as number).toFixed(7)}`;
 
 // ---- one-way orientation ----------------------------------------------------------------------------------------------
@@ -235,7 +296,7 @@ export function adoptOrientation(pairs: readonly OnewayPair[], min: number, list
 
 // ---- the stage --------------------------------------------------------------------------------------------------------
 
-interface Way {
+export interface Way {
   id: string;
   num: number;
   tags: Record<string, string>;
@@ -326,7 +387,7 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
       if (co.length < 2) continue;
       const enu: number[] = [];
       for (const p of co) { const e = enuFromLatLng(p[1] as number, p[0] as number); enu.push(e.x, e.z); }
-      ways.push({ id: f.id, num: osmNum(f.id), tags: t, keys: co.map(vkey), enu });
+      ways.push(...clipWayToBox({ id: f.id, num: osmNum(f.id), tags: t, keys: co.map(vkey), enu }, inp.box));
     }
   }
 

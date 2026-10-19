@@ -34,7 +34,10 @@ export interface SourceDef {
   attribution: string;
   source: string;
   surfaces: string[];
+  /** Ordered fallbacks tried after `url` fails (DL-703); used by source `osm`. */
+  mirrors?: OsmMirror[];
 }
+export interface OsmMirror { url: string; coverage: 'play' | 'california'; note?: string }
 export interface AreaGates {
   s0: { minRows: Record<string, number>; exactRows: Record<string, number> };
   s2: { cityHallM: [number, number]; minM: number };
