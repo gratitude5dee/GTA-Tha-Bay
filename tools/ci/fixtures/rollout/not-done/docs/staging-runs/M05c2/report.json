@@ -1,0 +1,20 @@
+{
+  "milestone": "M05c2",
+  "stagingUrl": "https://tha-bay-web-staging.example.workers.dev",
+  "versionId": "0190aaaa-0000-7000-8000-000000000000",
+  "date": "2026-10-19",
+  "acs": [
+    {
+      "id": "AC-1",
+      "result": "pass"
+    },
+    {
+      "id": "AC-2",
+      "result": "pass"
+    },
+    {
+      "id": "AC-3",
+      "result": "pass"
+    }
+  ]
+}

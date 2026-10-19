@@ -7,6 +7,10 @@
  * over50ms <= durationS / 60 (XR: over2xBudget); errors.gpuLost == 0; boot at or under its budgets; every checklist
  * expectation. One line per assertion; exit 1 when any fails. `--counts-only` keeps the counts and memory rows, the rows
  * that stay valid on a software renderer (frame times from SwiftShader are never asserted).
+ *
+ * M00d `--auto`: the tier comes from the report's `tier`, and the checklist from the path convention
+ * `.../<M##>/<device>/perf.json` -> `<checklist-dir>/<M##>-<device>.json` (`--checklist-dir`, default tools/ci/checklists).
+ * A missing checklist fails with `no checklist for <M##>-<device>`.
  */
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -153,23 +157,70 @@ export function verifyFile(file: string, o: VerifyOptions): VerifyResult {
   return { ok: lines.every((l) => l.ok), lines: out };
 }
 
+/** `.../<M##>/<device>/perf.json` -> `<M##>-<device>`; null when the path does not follow the convention. */
+export function checklistIdOf(file: string): string | null {
+  const parts = path.resolve(file).split(path.sep);
+  const device = parts[parts.length - 2];
+  const milestone = parts[parts.length - 3];
+  if (!device || !milestone || !/^M\d{2}(?:[a-z]\d?)?$/.test(milestone)) return null;
+  return `${milestone}-${device}`;
+}
+
+export interface AutoResolution {
+  tier?: QualityTierId;
+  checklistFile?: string;
+  checklistId?: string;
+  error?: string;
+}
+
+/** Resolves --auto for a report file: tier from the report, checklist from the path convention. */
+export function resolveAuto(file: string, checklistDir: string): AutoResolution {
+  let report: unknown;
+  try {
+    report = readJson(file);
+  } catch (e) {
+    return { error: `cannot read ${file} (${e instanceof Error ? e.message : String(e)})` };
+  }
+  const tier = (report as { tier?: unknown }).tier;
+  if (typeof tier !== 'string' || !TIERS.includes(tier as QualityTierId)) return { error: 'report has no valid tier' };
+  const id = checklistIdOf(file);
+  if (!id) return { error: `path ${file} does not follow .../<M##>/<device>/perf.json` };
+  const checklistFile = path.join(checklistDir, `${id}.json`);
+  if (!existsSync(checklistFile)) return { tier: tier as QualityTierId, checklistId: id, error: `no checklist for ${id}` };
+  return { tier: tier as QualityTierId, checklistFile, checklistId: id };
+}
+
 function main(): void {
   const argv = args();
   const flag = (name: string): string | undefined => {
     const i = argv.indexOf(name);
     return i >= 0 ? argv[i + 1] : undefined;
   };
-  const file = argv.find((a, i) => !a.startsWith('--') && !['--tier', '--checklist'].includes(argv[i - 1] ?? ''));
-  const tier = flag('--tier') as QualityTierId | undefined;
+  const file = argv.find((a, i) => !a.startsWith('--') && !['--tier', '--checklist', '--checklist-dir'].includes(argv[i - 1] ?? ''));
+  let tier = flag('--tier') as QualityTierId | undefined;
+  let checklistFile = flag('--checklist');
+  if (argv.includes('--auto')) {
+    if (!file || !existsSync(file)) {
+      console.error(`perf:verify: ${file ?? '<perf.json>'} not found`);
+      process.exit(2);
+    }
+    const auto = resolveAuto(file, flag('--checklist-dir') ?? path.join(toolsRoot, 'tools', 'ci', 'checklists'));
+    if (auto.error) {
+      console.error(`perf:verify --auto: ${auto.error}`);
+      process.exit(1);
+    }
+    tier = auto.tier;
+    checklistFile = auto.checklistFile;
+    console.log(`perf:verify --auto tier=${auto.tier} checklist=${auto.checklistId}.json`);
+  }
   if (!file || !tier || !TIERS.includes(tier)) {
-    console.error('usage: perf:verify -- <perf.json> --tier <desktop-ultra|desktop|mobile|mobile-low|xr-quest|xr-visionpro> [--checklist <file>] [--counts-only]');
+    console.error('usage: perf:verify -- <perf.json> (--tier <desktop-ultra|desktop|mobile|mobile-low|xr-quest|xr-visionpro> | --auto [--checklist-dir <dir>]) [--checklist <file>] [--counts-only]');
     process.exit(2);
   }
   if (!existsSync(file)) {
     console.error(`perf:verify: ${file} not found`);
     process.exit(2);
   }
-  const checklistFile = flag('--checklist');
   const checklist = checklistFile ? readJson<DeviceChecklist>(checklistFile) : undefined;
   const result = verifyFile(file, { tier, ...(checklist ? { checklist } : {}), countsOnly: argv.includes('--counts-only') });
   console.log(`perf:verify ${file} --tier ${tier}${argv.includes('--counts-only') ? ' --counts-only' : ''}`);

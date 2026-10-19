@@ -1,0 +1,32 @@
+{
+  "$defs": {
+    "app.start": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "maxLength": 32
+        }
+      },
+      "additionalProperties": false
+    },
+    "app.ready": {
+      "type": "object",
+      "properties": {
+        "bootMs": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "tier.decision": {
+      "type": "object",
+      "properties": {
+        "tier": {
+          "type": "string",
+          "maxLength": 32
+        }
+      }
+    }
+  }
+}

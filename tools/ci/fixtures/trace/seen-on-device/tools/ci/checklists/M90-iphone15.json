@@ -1,0 +1,19 @@
+{
+  "id": "M90-iphone15",
+  "milestone": "M90",
+  "device": "iPhone 15 fixture",
+  "urlTemplate": "https://<preview>/",
+  "steps": [
+    {
+      "id": "1",
+      "instruction": "fixture",
+      "expect": [
+        {
+          "metric": "errors.gpuLost",
+          "op": "==",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

@@ -142,10 +142,11 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-W11 | DataSF footprints omit post-2010 buildings | bake | M02a1 AC-9 | OSM gap fill ≤ 5 % | none |
 | U-W12 | Workers static assets honour `Range` for `.pmtiles` | web surfaces | M13b2 (first hosting surface; none in v1) | fetch the whole archive | none |
 | U-W13 | writer library for `sf.pmtiles` extraction | `map:webtiles` | M13b2 R&F | `--plan` only | none |
+| U-W14 | land mask: `natural=coastline` land clipped to the 41-polygon Analysis Neighborhoods union matches the union's area within ±3 % (design value; the `play` box also holds non-SF land, reported only) | bake S3 gate (DL-655) | M02a1 AC-9 (`notes.json`) | the Builder records the ratio and reports Blocked; the Architect sets the tolerance from it by a DL entry | M02a1 AC-9 (only if the ratio is outside ±3 %) |
 | U-S03-1 | keyframe-first keeps identity across clips | 03-story-cutscenes §D8 | M00c AC-9; M08b2 | human review; reject pins a new seed | none |
 | U-S03-2 | providers honour "no text, no logos" | prompt hygiene | M05c2; M05c3 | vision QA `text_in_image`; screen text in-engine | none |
 | U-S03-3 | `seed`, `prompt_expansion_mode` on H3 partner and LTX | cache key | M00c AC-9 | omit unsupported params | none |
-| U-S03-4 | MSE `sequence` gaps on Safari 26.x | player | M04c AC-8 | ping-pong | none |
+| U-S03-4 | MSE `sequence` gaps on Safari 26.x; on iPhone `ManagedSourceBuffer` `sequence` mode (BCD `SourceBuffer.mode` iOS: partial, iPad only) and `ManagedMediaSource` with WebM VP9 are not assumed, so the device run uses an H.264 fMP4 rendition (DL-654) | player | M04c AC-8 | ping-pong | none |
 | U-S03-6 | Quest video textures freeze after XR entry | XR cutscenes | M11b4 AC-7 | pre-session pool; poll `currentTime`; fallback | none |
 | U-S03-7 | `v768` first frame from R2 ≤ 2.5 s on mobile | trigger thresholds | M04c AC-8 | thresholds in `config/cutscene.json` | none |
 | U-S03-8 | C08 route snap fits the load budget in `sim.worker` | missions | M05a1 (Effort) | resolve behind a fade | none |
@@ -201,6 +202,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-QA-6 | resolved, not UNVERIFIED: environment secrets are public-repo-only on GitHub Free, and required reviewers public-only on Free/Pro/Team [research/gap-ci-cd-release-assets.md §1 item 9, §6, verified row https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments, 2026-10-18]; the plan itself stays Q-15 | prod deploys, CI secret store | M00a (deploy.yml) | CI secrets are repository secrets (`08-test-and-ci.md` §8); tag-only prod by an allowlisted actor | none |
 | U-QA-7 | Metal on standard macOS runners | CI | M00d nightly (informational) | no macOS project | none |
 | U-QA-8 | `_headers` applied on Preview URLs | preview checks | M00 AC-14 | `serve-dist.ts` locally; report Blocked | M00 AC-14 (F-1) |
+| U-QA-9 | a command or API that lists a Worker's Previews (research documents only `wrangler preview`, `preview delete --name`, `preview secret …` and `base-config` [research/gap-ci-cd-release-assets.md §1.5]) | nightly stale-Preview sweep | M00d R&F | sweep derives names from closed PRs (`gh pr list`) and deletes them, "not found" is success (DL-658) | none |
 | U-BLD-1 | `wrangler dev` applies `_headers` locally | M00 R&F | M00 (Builder decision) | `tools/ci/serve-dist.ts` on 8788 | none |
 | U-BLD-2 | Workers Vitest pool loads M00a's config | M00a R&F | M00a | plain Node Vitest with a fake `env` | none |
 | U-BLD-3 | bitECS 0.4.0 id start and recycling order | M01a1 R&F | M01a1 | sentinel entity; own `Gen` store | none |

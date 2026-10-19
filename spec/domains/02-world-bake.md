@@ -73,7 +73,7 @@ S1 (frame and grid) is code in `packages/shared/src/world`, not a stage.
 |---|---|---|
 | S0 fetch | Socrata paging `$order=:id&$limit=45000&$offset=…` [research/repos-world.md §1.2]; Terrarium tiles for the boxes; OSM extract | row counts: footprints ≥ 150,000, streets ≥ 16,000, neighbourhoods = 41; no Terrarium 404 |
 | S2 terrain | decode, mosaic, resample to 4 m posts (bilinear), clamp bathymetry, raise piers | City Hall height 10–25 m; min ≥ −130 m; shared edge posts equal |
-| S3 water, landuse | coastline ring assembly, water and park polygons, landuse classes | land area within ±3 % of the 41-polygon union area |
+| S3 water, landuse | coastline ring assembly, water and park polygons, landuse classes | inside the area box, `area(land ∩ union)` within ±3 % of `area(union)`, where `union` is the 41-polygon neighbourhood union (the county land mask that S9 `county-line` portals use); `area(land \ union)` (the `play` box also takes in Daly City, Colma, Brisbane and the Marin Headlands) is reported in `bake-report.json`, never gated; ±3 % is a design value calibrated at M02a1 AC-9 (U-W14; DL-655) |
 | S5 roads | drivable ways → segments, directed edges, nodes, classes (`02-world-living.md` §1) | strongly connected component ≥ 98 % of edges |
 | S6 junctions | cluster, control, movements, conflicts, signal programs | every OSM signal node within 25 m of a junction (≥ 98 %); signal junctions have ≥ 2 phases |
 | S7 grading | road surface into the heightfield, bridge slabs, tunnel hoods | max road grade ≤ 40 % |

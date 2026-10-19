@@ -151,7 +151,7 @@ Shared simulation code for validation lives in `packages/net/src/validate.ts` (p
 ### 3.2 Edge services (`services/edge`)
 | Module | Responsibility | Public interface |
 |---|---|---|
-| `src/router.ts` | route table C12 §2.4, Ajv validation, error envelope, isolation headers, geo-gate | `handle(req, env, ctx): Promise<Response>` |
+| `src/router.ts` | route table C12 §2.4, precompiled schema validation (no runtime Ajv compile, DL-694), error envelope, isolation headers, geo-gate | `handle(req, env, ctx): Promise<Response>` |
 | `src/id/issuer.ts` | discovery, JWKS (CURRENT + NEXT), sign/verify | `sign(c: AccessClaims): Promise<string>`, `verify(t: string, aud: string): Promise<AccessClaims>`, `jwks(): JsonWebKeySet` |
 | `src/id/playtoken.ts` | P0 token mint/verify, device-proof check, TOFU bind | `mint(req: PlayTokenReq): Promise<PlayTokenRes>`, `verify(tok: string): PlayTokenClaims` |
 | `src/id/devicecode.ts`, `src/id/siwe.ts`, `src/id/openai.ts` | RFC 8628; SIWE via `viem/siwe` (`parseSiweMessage`, `verifySiweMessage`); OIDC code + PKCE (flagged) [research/auth-ugc-input-maps.md §2.4, §3.3] | per routes 10–13 |

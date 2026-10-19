@@ -2,6 +2,7 @@
  * Cloudflare deploys for the tha-bay-web Worker.
  *
  *   tsx tools/ci/deploy.ts preview   [--name <preview-name>]   Workers Preview of the staging Worker
+ *   tsx tools/ci/deploy.ts preview   --sweep-closed            delete the Previews of closed PRs and their branches (nightly, M00d)
  *   tsx tools/ci/deploy.ts prod      [--env staging] [--dry-run] [--url <u>] [--do-lifecycle]
  *                                                              versions upload -> 0 % -> smoke -> 100 % -> rollback on failure
  *   tsx tools/ci/deploy.ts bootstrap                           first deploy of tha-bay-web-staging and tha-bay-web (operator, Admin token)
@@ -108,12 +109,83 @@ export function parsePreviewUrl(output: string): string | null {
   return best?.url ?? null;
 }
 
+/** The Preview name a branch run gets (`previewName` without a PR). */
+export function branchSlug(branch: string): string {
+  return branch.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'local';
+}
+
 export function previewName(env: NodeJS.ProcessEnv, explicit: string | undefined): string {
   if (explicit) return explicit;
   const pr = env['PR_NUMBER'] ?? /^refs\/pull\/(\d+)\//.exec(env['GITHUB_REF'] ?? '')?.[1];
   if (pr) return `pr-${pr}`;
   const branch = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).stdout.trim();
-  return branch.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'local';
+  return branchSlug(branch);
+}
+
+export interface SweepRunner {
+  /** `gh` with these arguments; `null` when the binary is not installed. */
+  gh(ghArgs: string[]): { status: number; out: string } | null;
+  wrangler(wranglerArgs: string[]): { status: number; out: string };
+}
+
+const NOT_FOUND = /not found|does not exist|no such preview|could not find|404/i;
+
+/**
+ * Stale-Preview sweep (M00d, DL-658). No command lists Previews (U-QA-9), so the names are derived from GitHub:
+ * every closed PR gives `pr-<N>` (a PR run) and the slug of its head branch (a branch run). "not found" counts as
+ * success; any other failure is logged and the sweep continues; it fails only when every delete failed for a reason
+ * other than "not found".
+ */
+export function sweepClosed(runner: SweepRunner, log: (line: string) => void = console.log): number {
+  const listed = runner.gh(['pr', 'list', '--state', 'closed', '--limit', '200', '--json', 'number,headRefName']);
+  if (!listed) {
+    log('SKIP deploy:preview --sweep-closed: gh not found');
+    return 0;
+  }
+  if (listed.status !== 0) {
+    log(`deploy:preview --sweep-closed: gh pr list failed (exit ${listed.status}); nothing swept`);
+    return 1;
+  }
+  let prs: { number: number; headRefName: string }[];
+  try {
+    prs = JSON.parse(listed.out) as { number: number; headRefName: string }[];
+  } catch {
+    log('deploy:preview --sweep-closed: gh output is not JSON; nothing swept');
+    return 1;
+  }
+  const names = new Set<string>();
+  for (const pr of prs) {
+    names.add(`pr-${pr.number}`);
+    if (pr.headRefName) names.add(branchSlug(pr.headRefName));
+  }
+  let deleted = 0;
+  let missing = 0;
+  let failed = 0;
+  for (const name of names) {
+    const res = runner.wrangler(['preview', 'delete', '--env', 'staging', '--name', name, '--skip-confirmation']);
+    if (res.status === 0) deleted++;
+    else if (NOT_FOUND.test(res.out)) missing++;
+    else {
+      failed++;
+      log(`deploy:preview --sweep-closed: delete ${name} failed (exit ${res.status}); continuing`);
+    }
+  }
+  log(`deploy:preview --sweep-closed: ${names.size} names, ${deleted} deleted, ${missing} not found, ${failed} failed`);
+  return names.size > 0 && failed === names.size ? 1 : 0;
+}
+
+function realRunner(): SweepRunner {
+  return {
+    gh(ghArgs) {
+      const res = spawnSync('gh', ghArgs, { cwd: repoRoot, encoding: 'utf8', env: process.env });
+      if (res.error) return null;
+      return { status: res.status ?? 1, out: res.stdout };
+    },
+    wrangler(wranglerArgs) {
+      const res = spawnSync('pnpm', ['--filter', '@dv/edge', 'exec', 'wrangler', ...wranglerArgs], { cwd: repoRoot, encoding: 'utf8', env: process.env });
+      return { status: res.status ?? 1, out: `${res.stdout}${res.stderr}` };
+    },
+  };
 }
 
 function hasCredentials(env: NodeJS.ProcessEnv): boolean {
@@ -262,6 +334,7 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
       'dry-run': { type: 'boolean' },
       url: { type: 'string' },
       'do-lifecycle': { type: 'boolean' },
+      'sweep-closed': { type: 'boolean' },
     },
     allowPositionals: true,
   });
@@ -280,6 +353,7 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
     return 0;
   }
   assertOwnWorkers();
+  if (mode === 'preview' && values['sweep-closed']) return sweepClosed(realRunner());
   if (mode === 'preview') return preview(previewName(env, values.name));
   if (mode === 'prod') return prod(prodOptions(env, values));
   return bootstrap();

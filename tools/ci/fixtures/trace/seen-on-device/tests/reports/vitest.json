@@ -1,0 +1,8 @@
+{
+  "testResults": [
+    {
+      "name": "/repo/tools/ci/test/foo.test.ts",
+      "status": "passed"
+    }
+  ]
+}

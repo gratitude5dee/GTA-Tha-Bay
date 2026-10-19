@@ -75,7 +75,7 @@
 
 ### M02a1 · bake-core — 1 · risk M · S02
 - **Goal:** `tools/map` S0 fetch, terrain, water and landuse, buildings, pack writer, world index, attribution, gates; SF packs without roads.
-- **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d, M00d (`workflows.test.ts`) · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
+- **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d, M00d (`workflows.test.ts`), M01e (`media-local.ts` plugin, QA media-local publish step, catalog client; DL-671) · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
 - **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (baked buildings ≥ 98 % of the locked `ynuv-fyni` row count, packs ≤ 4 MiB, identical rerun; DL-288); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
 
 ### M02a2 · bake-roads-graph — 1 · risk M · S02
@@ -94,8 +94,8 @@
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-sky`; manual `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`)
 
 ### M02c1 · graph-services-teleports — 1 · risk M · S02
-- **Goal:** `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, districts, POI table, `WorldApi` wiring.
-- **R** R-MAP-01/03 · **Dep** M02a2, M02b1, M02b2 (blackout resource) · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §5; `02-world.md` §3 · **Out** `packages/world/src/sim/{graph,api,traffic/control.ts}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)
+- **Goal:** `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, districts, POI table, `WorldApi` wiring; boundaries, portals and swim respawn (DL-691).
+- **R** R-MAP-01/03 · **Dep** M02a2, M02b1, M02b2 (blackout resource) · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §4.1–§4.2, §5; `02-world.md` §3 · **Out** `packages/world/src/sim/{graph,api,traffic/control.ts}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/world` (A* equal in Node; `snap` rejects > 25 m); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-teleport` (10 landmarks within 0.2 m or precondition message)
 
 ### M02d1 · landmarks-kit-and-heroes — 1 · risk M · S02

@@ -37,8 +37,8 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 10 | M01d | assets-publish | 1 | M00b, M00a, M01a1 | READY · frozen (executing) | `M01d-assets-publish.md` |
 | 11 | M01e | asset-worker-opfs-store | 1 | M01d, M01c, M00a, M00, M01a2, M01f | READY · frozen (executing) | `M01e-asset-worker-opfs-store.md` |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | M01a1, M00b | READY · frozen (executing) | `M01f-world-graybox-fixture-codec.md` |
-| 13 | M00d | qa-spec-gates | 1 | M00, M01c, M00b | READY | `M00d-qa-spec-gates.md` |
-| 14 | M02a1 | bake-core | 1 | M01f, M01d, M00d | READY | `M02a1-bake-core.md` |
+| 13 | M00d | qa-spec-gates | 1 | M00, M01c, M00b | IN PROGRESS | `M00d-qa-spec-gates.md` |
+| 14 | M02a1 | bake-core | 1 | M01f, M01d, M00d, M01e | READY | `M02a1-bake-core.md` |
 | 15 | M02a2 | bake-roads-graph | 1 | M02a1 | READY | `M02a2-bake-roads-graph.md` |
 | 16 | M02b1 | streaming-lod | 1 | M02a2, M01c, M01e, M01b2 | READY | `M02b1-streaming-lod.md` |
 | 17 | M02b2 | weather-time | 1 | M02b1 | READY | `M02b2-weather-time.md` |
