@@ -19,6 +19,7 @@ The player can:
 
 ## Depends on
 - **M04a2** (ModeHost, unlock registry, `UiBridge`, `ViewModelSource`, `UiCommand` channel, remap persistence).
+- **M00e** (`config/terms.ts` with `TERMS_VERSION`, `content/legal/{terms,privacy}.json`, route 66, the `/account/` island; DL-602).
 - Through earlier milestones: M04a1 (`SaveService`, `readLastSave`), M01b2 (`AudioService.unlock()`, DL-663), M01c (`QualityService`, `PlatformSettings` in `dv-platform`, `Benchmark`, telemetry client), M01e (`WorldPackStore` usage), M01b1 (`InputRouter`, `rebindCapture`), M00 (`packages/ui` scaffold, tokens, `BootScreen`, credits and legal stubs, the `en` catalog at `packages/ui/src/i18n/en.json`, `check:bundle`).
 - Contracts: C06 1.1.0 (`UiBridge`, `ViewModelSource`, `UiCommand`, `GameModeDescriptor`), C05 1.1.0 (`ProfileSettings`, `ProfileMeta`, `SaveErrorCode`), C13 1.1.0 (`PlatformSettings`, `XrComfortSettings`), C03 1.1.0 (`ClientAction`, `ControlsSettings`), C16 1.1.0 (`ui.page`, `ui.onboard`).
 
@@ -65,8 +66,9 @@ The player can:
 - `tools/ci/check-i18n.ts` and root script **`check:i18n`** (`tsx tools/ci/run.ts …`; new, DL-230); `apps/web/src/routes.ts`.
 - Edited for the QA play bypass (DL-650): `packages/engine/src/platform/qa-flags.ts` (`play`), `playwright.config.ts`, `playwright.perf.config.ts` (`use.storageState`), `tests/e2e/shell.spec.ts` (gate-dependent tests opt out).
 - `packages/shared/schemas/telemetry/names.schema.json` (`$defs` `ui.onboard {step, outcome}`, both strings ≤ 32 chars from the onboarding step and outcome enums; `ui.page` is M00a's) and `ui.onboard` removed from `pending.json` (DL-693; data, not counted).
+- `content/legal/terms.json` (and `privacy.json` if the shell text needs it): replace M00e's interim content with the game's pre-release terms (Terms card text, telemetry consent paragraph), keeping the `LegalDocRes` shape; bump the value of `TERMS_VERSION` in `config/terms.ts` when the text changes (DL-602).
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
-- About 40 files (35 new, `package.json`, four edits).
+- About 41 files (35 new, `package.json`, five edits; DL-650, DL-602).
 
 ## Interfaces
 - C06 1.1: `UiBridge`, `ViewModelSource`, `UiCommand` (`mode.start`, `mode.quit`, `save.*`), `GameModeDescriptor.tile`, `status`, `unlock`, `GameModeUI.summary?`. Consumed, no change.
@@ -116,7 +118,7 @@ The player can:
 6. In a new private window, enter an under-18 date: Blocked; reload: still Blocked.
 
 ## Effort
-1 Builder session; about 40 files (DL-650); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
+1 Builder session; about 41 files (DL-650, DL-602); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
 
 ## Risks & fallbacks
 - **File count.** Settings categories share files by design; add no page files.
@@ -128,4 +130,5 @@ The player can:
 - Facts: F-004, F-011 (no install prompt on iPhone; the Install row shows the coach-mark steps text), F-010 (storage usage panel). The age-gate rules are design rules from the cited research, not external API facts.
 - Order of work: shell types and machine, kit focus, ScreenDef renderers, i18n, Title/Age/Terms, the QA play bypass (keep the existing e2e suite green from here on), main, saves and New Game, modes, settings, banners, e2e, bundle.
 - No telemetry and no API call from a blocked device. The block check runs before any `/boot` fetch on relaunch.
+- **Terms version and password accounts (ADR-ACCT-01, DL-602).** `TERMS_VERSION` has one owner: `config/terms.ts`, created by M00e with interim Terms and Privacy documents in `content/legal/{terms,privacy}.json` that the Worker serves as route 66. The Terms card imports `TERMS_VERSION` from `config/terms.ts` (as `config/brand.ts` is imported for the display name) and records it per `10-ui-pages.md` §2.4 rule 7; this milestone replaces the document content and keeps the same constant, bumping its value when the text changes, which makes route 59 ask password accounts to re-accept at sign-in (M00e item 15). Add no second terms constant and do not touch `services/edge`. Keep `AgeGate` importable from an island entry without the game bundle; this milestone does not edit the `/account/` island (`apps/web/src/account/*`): M12a2 swaps its age screen for `AgeGate` (DL-640). The block lives in IndexedDB database `dv-ui` as key `ageBlocked`, mirrored to `localStorage['dv-ui-ageBlocked']` (each access in try/catch), and both the shell and the `/account/` island read it there.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate (Q-01 display name is applied from `config/brand.ts`).

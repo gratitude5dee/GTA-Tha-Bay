@@ -13,7 +13,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 - Contracts: C12 1.1 (`IdentityService` with `attestAge`, `PlayTokenReq`, `PlayTokenRes`, `PlayTokenClaims`, routes table), C05 1.1 (read only: save profiles stay S01's).
 
 ## Scope in
-- `packages/shared/src/identity.ts`: `ProviderId`, `Tier`, `AgeBracket`, `IdentityState`, `IdentityService` (+ `attestAge`), `PlayTokenClaims`, `AccessClaims`, `StaffScope` copied verbatim from `09-backend-contracts.md` §2.3 and `09-backend-contracts-1.1.md` §2; `PlayTokenReq`/`PlayTokenRes` from §2.5 into `packages/shared/src/api/v1.ts` (extend, do not change existing exports). Pure; no IO.
+- `packages/shared/src/identity.ts` (extended; created by M00e with `ProviderId` and `AgeBracket`, DL-610): keep `ProviderId` as in `09-backend-contracts-1.3.md` §2, including `'password'`, and leave every member M00e added untouched; add `Tier`, `IdentityState`, `IdentityService` (+ `attestAge`), `PlayTokenClaims`, `AccessClaims`, `StaffScope` copied verbatim from `09-backend-contracts.md` §2.3 and `09-backend-contracts-1.1.md` §2; `PlayTokenReq`/`PlayTokenRes` from §2.5 into `packages/shared/src/api/v1.ts` (extend, do not change existing exports). Pure; no IO.
 - `LocalIdentity` (`packages/identity/src/local.ts`):
   - first launch: UUIDv7 (`crypto.getRandomValues` + `Date.now()`, version nibble 7, variant `10`), `crypto.subtle.generateKey({name:'ECDSA', namedCurve:'P-256'}, false, ['sign','verify'])`, public JWK exported, thumbprint = base64url SHA-256 of `{"crv","kty","x","y"}` in lexical order (RFC 7638); stored in one IndexedDB transaction;
   - `current()` synchronous after an async `LocalIdentity.open()`; `tier: 'local'`, `providers: []`;
@@ -31,7 +31,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 - Device-code and provider links: M13c1, M14a.
 
 ## Deliverables
-- `packages/shared/src/identity.ts`, `packages/shared/src/api/v1.ts` (extended), `packages/shared/test/identity.test.ts`.
+- `packages/shared/src/identity.ts` (extended; created by M00e), `packages/shared/src/api/v1.ts` (extended), `packages/shared/test/identity.test.ts`.
 - `packages/identity/{package.json, tsconfig.json, README.md}`, `src/{index.ts, local.ts, store.ts, uuid7.ts, thumbprint.ts, play-token-client.ts}`, `test/{local.test.ts, play-token-client.test.ts}`.
 - `packages/net/{package.json, tsconfig.json, README.md}`, `src/{index.ts, cloud-sync.ts}`, `test/cloud-sync.test.ts`.
 - `services/edge/src/id/playtoken.ts`, route registration in the M00a router, `services/edge/test/play-token.test.ts`, `services/edge/.dev.vars.example` (names only). `wrangler.jsonc` `secrets.required` stays unchanged: `PLAY_TOKEN_HMAC` is not added here, because a required secret that is missing makes `deploy` and `versions upload` fail [research/gap-ci-cd-release-assets.md §0 item 4]; M06a1 adds it together with its secrets-file mapping (DL-679).
