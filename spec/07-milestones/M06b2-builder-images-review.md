@@ -26,7 +26,7 @@ The NPC builder backend gains everything after the private text builder of M06b1
 
 ## Scope out
 - Builder pages → M06b3. `assets` sub-route and owner-approved look queue → M06b4.
-- Hash banks, PhotoDNA, NCMEC reports, evidence bucket, all other queues of route 43 → M13d1. Forum and mod uploads → M13b1, M13c2.
+- Hash banks, PhotoDNA, NCMEC reports, evidence bucket, all other queues of route 43 → M13d1. Other route-34 purposes: `forum_attachment` (image chain, hidden until it passes) → M13b1; `mod_archive` (zip, ≤ 128 MiB) and `experience_thumb` (image chain) → M13c2; `save_blob` presigns through route 19 (M12a1). Until a purpose's owner lands, route 34 answers it `bad_request`.
 
 ## Deliverables
 - `services/edge/src/ugc/{uploads.ts, presign.ts, scan-consumer.ts, policy.ts, magic.ts}`; `services/edge/src/npc-builder/{images.ts, submit.ts, community.ts, review.ts}`; `services/edge/src/reports/route.ts`; `services/edge/src/moderation/{image-classifier.ts, describe.ts}` (ports with recorded-fixture implementations).

@@ -1,7 +1,7 @@
 # M13b1 — forum-reports-backend
 
 ## Goal
-The forum has a backend. It runs on the forum objects that M13a2's migration 0007 already created (`09-backend-db.md` §3.7: boards, threads, posts, votes with RLS, the counter triggers for thread and post scores, post counts and experience `rating_sum`/`rating_count`, and the six seed boards; DL-228). `tha-bay-web` serves C12 routes 38–40: thread lists with `sort` and title search `q`, posts with `since` polling, votes. The posting rules apply: tier `device` or higher, registered ≥ 72 h ago, bracket `18p`, `RL_FORUM`, quotas and the 30-second spacing. Post text is moderated after posting, and a `review` verdict holds the post. Report route 41 (M06b2) now covers forum posts, forum attachments, experiences and mod versions: three distinct reporters (or one `mod:trust_lead`) unlist the target and open a `P2_REVIEW` case. The flag `forum.enabled` gates every route. Pages come in M13b4, and experience and mod links come in M13b2.
+The forum has a backend. It runs on the forum objects that M13a2's migration 0007 already created (`09-backend-db.md` §3.7: boards, threads, posts, votes with RLS, the counter triggers for thread and post scores, post counts and experience `rating_sum`/`rating_count`, and the six seed boards; DL-228). `tha-bay-web` serves C12 routes 38–40: thread lists with `sort` and title search `q`, posts with `since` polling, votes. The posting rules apply: tier `device` or higher, registered ≥ 72 h ago, bracket `18p`, `RL_FORUM`, quotas and the 30-second spacing. Post text is moderated after posting, and a `review` verdict holds the post. Route 34 gains purpose `forum_attachment`; every attachment runs M06b2's image chain and stays hidden until it passes. Report route 41 (M06b2) now covers forum posts, forum attachments, experiences and mod versions: three distinct reporters (or one `mod:trust_lead`) unlist the target and open a `P2_REVIEW` case. The flag `forum.enabled` gates every route. Pages come in M13b4, and experience and mod links come in M13b2.
 
 ## Requirements
 - R-MOD-03: forum backend for discussing and voting on experiences and mods. Reports unlist forum content and published UGC.
@@ -9,6 +9,7 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 
 ## Depends on
 - **M05d**: Supabase projects, migrations 0001–0002, `DataPort` and `InMemoryDataPort`, `check:db`, `check:db:types`, `db:push` in `deploy.yml`.
+- **M06b2**: route 34 (presign, commit, `upload` quota), the `UGC_SCAN` image chain (magic bytes → SHA-256 → Haiku image semantics → omni image; `P0_CSAM` quarantine) and route 41.
 - **M06b1**: migration 0004 (`moderation_item`, `moderation_case`, `user_report`, `enforcement_action`, `uploads`), the text-moderation module (`names:lint`, OpenAI omni, Haiku classifier) and route 43 for `P2_REVIEW`.
 - **M13a2**: migration 0007 with every forum object (tables, GIN `tsv` index, RLS policies, the two forum triggers, board seed rows; DL-228).
 - Contracts: C12 1.1.0 (`09-backend-contracts.md` §2.4 rows 38–41, §2.5 `ReportReq`, §2.6 `DataPort.forum`; `09-backend-contracts-1.1.md` §1 and §3), C17 1.0.0 (`rating`), C16 1.1.0.
@@ -32,6 +33,10 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
   - synchronous `names:lint` (public side) and a street-address pattern on title and body. A hit stores the post `held`.
   - Otherwise the post is `visible`, and a `UGC_SCAN` message of kind `forum_text` runs M06b1's text chain. `review` → `held` plus a `P2_REVIEW` case. `block` → `removed` plus a case.
   - The first three posts with attachments from an account under 7 days old are `held` (`P3_REVIEW`).
+- Route 34 purpose `forum_attachment` (in M06b2's purpose table, `services/edge/src/ugc/policy.ts`):
+  - the posting rules above (tier, bracket, account age, `publish_ban`) apply to the upload request; `image/png|jpeg|webp` only (else `unsupported_media_type`); ≤ 10 MiB (else `payload_too_large`); M06b2's `upload` quota (20 per day device, 100 linked); ≤ `FORUM_LIMITS.attachments` (4) committed ids per post (else `bad_request`);
+  - commit enqueues one `UGC_SCAN` message of kind `forum_attachment`, which runs M06b2's image chain in its order (hash before any classifier; no description step for this purpose). Minors × sexual → copy to `ugc-quarantine-<env>/csam/…`, a `P0_CSAM` case, the attachment and its post `held`, no further vendor call. `review` → hidden plus a `P2_REVIEW` case; `block` → hidden;
+  - an attachment is visible only when its chain verdict is `allow` (C10 `Verdict`): route 39 GET omits every other attachment id for callers other than the author, and the object is copied to `ugc-public-<env>` only on `allow`. A missing moderation key or a vendor error leaves it hidden (fail closed, as M06b2).
 - Votes (route 40): `value` −1, 0 (delete) or 1; one per profile per target; self-votes → `forbidden`. Target kinds are `thread`, `post` and `experience`. An experience vote needs a `published` experience.
 - Report extension in `services/edge/src/ugc/report-policy.ts`, a table from `ModSubject` to its unlist action:
   - `forum_post` → `held`; the opening post holds its thread. There is no `forum_thread` subject, so the forum UI reports a thread through its opening post.
@@ -46,7 +51,6 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 ## Scope out
 - Forum pages, composer and report buttons in the UI → M13b4.
 - Auto-created experience and mod threads, store↔forum links, `rating` in route 37 cards → M13b2. Rating updates already happen here through the trigger.
-- Attachment upload: route 34 with purpose `forum_attachment` exists from M06b2. This milestone stores committed upload ids only.
 - Body full-text search (deferred by C§5), `hot` sort (DL-190), Realtime (polling only).
 - Legal intake, all-queue case tooling and the SLA pager → M13d1.
 
@@ -54,13 +58,13 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 - pgTAP `supabase/tests/rls_forum.sql` (anon reads visible only; `local` cannot insert; author-only insert; vote self-policy) and `supabase/tests/forum_counters.sql` (vote and post triggers, experience rating, seed equals `FORUM_BOARDS`).
 - `packages/shared/src/mod/forum.ts`, `packages/shared/src/mod/forum.test.ts` (field-note fixtures, limits, board ids); `packages/shared/src/db.gen.ts` regenerated.
 - `packages/shared/src/api/v1.ts` (forum DTOs).
-- `services/edge/src/forum/{routes,threads,posts,votes,rules,moderation}.ts`; `services/edge/src/data/supabase/forum.ts`; `InMemoryDataPort` forum store; `services/edge/src/ugc/report-policy.ts` (route 41 handler updated); `services/edge/src/router.ts` (rows 38–40).
-- `services/edge/test/`: `forum-post-rules.test.ts`, `forum-votes.test.ts`, `forum-search.test.ts`, `forum-moderation.test.ts`, `report-threshold.test.ts`.
+- `services/edge/src/forum/{routes,threads,posts,votes,rules,moderation,attachments}.ts`; `services/edge/src/data/supabase/forum.ts`; `InMemoryDataPort` forum store; `services/edge/src/ugc/report-policy.ts` (route 41 handler updated); `services/edge/src/router.ts` (rows 38–40).
+- `services/edge/test/`: `forum-post-rules.test.ts`, `forum-votes.test.ts`, `forum-search.test.ts`, `forum-moderation.test.ts`, `forum-attachment-scan.test.ts`, `report-threshold.test.ts`.
 - `services/edge/wrangler.jsonc` (`RL_FORUM`).
-- Secrets: none new. `SUPABASE_SECRET_KEY` (M05d) and `OPENAI_MODERATION_API_KEY` (M06b1) are reused. Without the moderation key, the `forum_text` consumer prints `SKIP … OPENAI_MODERATION_API_KEY not set`, leaves posts `visible` after the synchronous checks, and tests use M06b1's recorded fixtures.
+- Secrets: none new. `SUPABASE_SECRET_KEY` (M05d) and `OPENAI_MODERATION_API_KEY` (M06b1) are reused. Without the moderation key, attachments stay hidden, and the `forum_text` consumer prints `SKIP … OPENAI_MODERATION_API_KEY not set`, leaves posts `visible` after the synchronous checks, and tests use M06b1's recorded fixtures.
 
 ## Interfaces
-- C12 1.1: routes 38–41 as tabled. Forum DTOs are added to `v1.ts` where `spec/05` §3 row 38 places them, and the version does not change. `ForumStore` gets one method per route as §2.6 states. `ReportReq` and `ModSubject` are unchanged.
+- C12 1.1: routes 38–41 as tabled; route 34 with `UploadReq.purpose = 'forum_attachment'` as already typed. Forum DTOs are added to `v1.ts` where `spec/05` §3 row 38 places them, and the version does not change. `ForumStore` gets one method per route as §2.6 states. `ReportReq` and `ModSubject` are unchanged.
 - C17 1.0: `rating {sum, count}` is fed by `experiences.rating_sum`/`rating_count`. No shape change.
 - No contract change. Forum boards are a shared constant, not a route.
 
@@ -77,11 +81,12 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 - AC-10 Given a single `intimate_image` report on a post and a `copyright` report on another When filed Then the first opens a `P0_NCII` case and holds the post at once, and the second answers 409 `conflict` with `details.redirect = '/legal/dmca'` — proof: `pnpm check:workers -- report-threshold`
 - AC-11 Given `forum.enabled` false in `FLAGS_JSON` When routes 38–40 are called Then each returns `feature_disabled` and route 41 still accepts a report — proof: `pnpm check:workers -- forum-post-rules`
 - AC-12 Given this branch's PR When `preview.yml` deploys the Preview Then the smoke check passes and `GET /api/v1/forum/threads?board=general` answers JSON — proof: manual: desktop browser, open the PR's Preview URL plus `/api/v1/forum/threads?board=general`; then `pnpm check:smoke -- <preview-url>`
+- AC-13 Given a post with two committed `forum_attachment` uploads, recorded classifiers that return `allow` for the first and minors × sexual for the second, and a third upload request with `image/gif` When route 39 GET is called by another profile before the queue drains and again after it drains Then before the scan neither attachment id is listed; after it the first is listed with a `ugc-public` URL, the second is copied to `ugc-quarantine`, has a `P0_CSAM` case, is never listed and its post is `held`, the hash stage is logged before any classifier call, and the `image/gif` request is `unsupported_media_type` — proof: `pnpm check:workers -- forum-attachment-scan`
 
 ## Test plan
 - DB: `rls_forum.sql`, `forum_counters.sql`; `pnpm check:db`, `pnpm check:db:types`.
 - Unit: `shared/mod.forum` (`validateFieldNote` fixtures, `FORUM_LIMITS`, board ids); `pnpm check:unit -- packages/shared/src/mod`.
-- Workers: `forum-post-rules`, `forum-search`, `forum-votes`, `forum-moderation`, `report-threshold` (InMemoryDataPort, rate-limit and quota stubs, mocked clock); `pnpm check:workers -- forum` and `pnpm check:workers -- report-threshold`.
+- Workers: `forum-post-rules`, `forum-search`, `forum-votes`, `forum-moderation`, `forum-attachment-scan`, `report-threshold` (InMemoryDataPort, rate-limit and quota stubs, mocked clock); `pnpm check:workers -- forum` and `pnpm check:workers -- report-threshold`.
 - Static: `pnpm check:prod-routes` (no `/_test/` handlers added).
 - Deployed: Preview smoke (AC-12). Merging to `main` runs `db:push` to staging.
 
@@ -103,6 +108,6 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 ## Notes for the Builder
 - Read first: `09-backend-db.md` §3.7 and §8; `09-backend-contracts.md` §2.4 rows 38–41, §2.5, §2.6; `09-backend-ops.md` §3.1; `12-modding-publish.md` C§5; `spec/05-api-and-realtime.md` §3 rows 38–41; DL-190.
 - M13a2 is a direct dependency (migration 0007 with the mod, experience and forum objects). If 0007 is missing, stop and report.
-- Order of work: migration and pgTAP → `forum.ts` → DTOs → store (Supabase and in-memory) → routes and rules → moderation consumer → report policy → tests → wrangler binding.
+- Order of work: migration and pgTAP → `forum.ts` → DTOs → store (Supabase and in-memory) → routes and rules → moderation consumer → `forum_attachment` purpose and scan → report policy → tests → wrangler binding.
 - User text is stored as given and returned as text. Rendering rules (no HTML) belong to M13b4.
 - Branch `m13b1-forum-reports-backend`.

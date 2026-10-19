@@ -93,7 +93,7 @@
 
 ### M13b1 · forum-reports-backend — 1 · risk M · S09
 - **Goal:** routes 38–40 over the forum objects of M13a2's migration 0007 (no migration here, DL-228), votes, search, auto-unlist on reports.
-- **R** R-MOD-03, R-IP-03 · **Dep** M05d, M06b1, M13a2 · **Read** `09-backend-db.md` §3 (0007); `09-backend-contracts.md` §2.4 rows 38–41 · **Out** `services/edge/src/forum` · **C** C12 1.1
+- **R** R-MOD-03, R-IP-03 · **Dep** M05d, M06b1, M06b2, M13a2 · **Read** `09-backend-db.md` §3 (0007); `09-backend-contracts.md` §2.4 rows 38–41 · **Out** `services/edge/src/forum` · **C** C12 1.1
 - **Gate** none · **Proof** `pnpm check:workers -- report-threshold`; `pnpm check:db`
 
 ### M13b2 · forum-ugc-links — 0.8 · risk L · S12, S02

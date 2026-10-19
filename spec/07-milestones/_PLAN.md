@@ -110,7 +110,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 93 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
 | 94 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
 | 95 | M13a7 | store-experience-pages | 0.7 | G | M13a3, M07b2, M04b1 |
-| 96 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M13a2 |
+| 96 | M13b1 | forum-reports-backend | 1 | G | M05d, M06b1, M06b2, M13a2 |
 | 97 | M13b2 | forum-ugc-links | 0.8 | G | M13b1, M13a3, M02c2 |
 | 98 | M13b3 | creator-place-mode | 1 | G | M13a3, M04b2 |
 | 99 | M13b4 | forum-ui | 1 | G | M13b1, M04b1 |
@@ -424,6 +424,7 @@ flowchart LR
   M13a3 --> M13a7
   M07b2 --> M13a7
   M06b1 --> M13b1
+  M06b2 --> M13b1
   M13a2 --> M13b1
   M13b1 --> M13b2
   M13a3 --> M13b2
