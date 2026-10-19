@@ -95,6 +95,7 @@
       ],
       "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
       "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
+      "secrets": { "required": [] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "observability": {
         "enabled": true,
