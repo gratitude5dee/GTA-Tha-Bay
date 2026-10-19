@@ -121,14 +121,14 @@
       "id": "terrarium",
       "licence": "LicenseRef-PublicDomain-USGov",
       "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
-      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP, SRTM and ETOPO1 over the bake boxes; tiled by Mapzen); there is no licence URL, the registry page is the citation; credit lines from the Terrain Tiles attribution document (DL-711)",
       "surfaces": [
         "boot-splash",
         "full-map",
         "pause-credits",
         "docs-legal"
       ],
-      "text": "3DEP data courtesy of the U.S. Geological Survey. Terrain Tiles was accessed on 2026-10-19 from https://registry.opendata.aws/terrain-tiles"
+      "text": "3DEP data courtesy of the U.S. Geological Survey. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration. Terrain Tiles was accessed on 2026-10-19 from https://registry.opendata.aws/terrain-tiles"
     }
   ],
   "schema": "attribution-world/1"

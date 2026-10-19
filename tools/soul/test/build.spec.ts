@@ -147,11 +147,13 @@ describe('npc:build on the shipped souls (AC-7)', () => {
     const index = JSON.parse(readFileSync(path.join(out, 'souls/index.json'), 'utf8')) as { souls: Record<string, { soulVersion: number; promptSha256: string }> };
     expect(Object.keys(index.souls).sort()).toEqual(bundle.souls.map((s) => s.id));
     for (const [id, e] of Object.entries(index.souls)) {
-      expect(e.soulVersion).toBe(1);
-      expect(existsSync(path.join(out, 'souls', id, '1', 'soul.prompt.txt'))).toBe(true);
-      const compiled = JSON.parse(readFileSync(path.join(out, 'souls', id, '1', 'soul.compiled.json'), 'utf8')) as { prompt: { sha256: string; key: string; tokens: number }; rails: unknown };
+      // ro-batista is at 2 since its dolores-park hangout moved to the castro-upper-market id (DL-709); the others are at 1
+      const v = id === 'ro-batista' ? 2 : 1;
+      expect(e.soulVersion).toBe(v);
+      expect(existsSync(path.join(out, 'souls', id, String(v), 'soul.prompt.txt'))).toBe(true);
+      const compiled = JSON.parse(readFileSync(path.join(out, 'souls', id, String(v), 'soul.compiled.json'), 'utf8')) as { prompt: { sha256: string; key: string; tokens: number }; rails: unknown };
       expect(compiled.prompt.sha256).toBe(e.promptSha256);
-      expect(compiled.prompt.key).toBe(`souls/${id}/1/soul.prompt.txt`);
+      expect(compiled.prompt.key).toBe(`souls/${id}/${v}/soul.prompt.txt`);
       expect(compiled.prompt.tokens).toBeGreaterThanOrEqual(600);
       expect(compiled.rails).toBeDefined(); // the server view keeps the rails
     }
@@ -160,9 +162,9 @@ describe('npc:build on the shipped souls (AC-7)', () => {
   it('is repeatable: a second build gives identical private files', async () => {
     const out2 = tmp();
     await runBuild({ root: repoRoot, out: out2, writeAssets: false, env: { PATH: process.env.PATH ?? '' }, nowMs: 1760832000000, log: () => {} });
-    for (const id of ['ro-batista', 'canary-mc']) {
-      expect(readFileSync(path.join(out2, 'souls', id, '1', 'soul.prompt.txt'))).toEqual(readFileSync(path.join(out, 'souls', id, '1', 'soul.prompt.txt')));
-      expect(readFileSync(path.join(out2, 'souls', id, '1', 'soul.compiled.json'))).toEqual(readFileSync(path.join(out, 'souls', id, '1', 'soul.compiled.json')));
+    for (const [id, v] of [['ro-batista', '2'], ['canary-mc', '1']] as const) {
+      expect(readFileSync(path.join(out2, 'souls', id, v, 'soul.prompt.txt'))).toEqual(readFileSync(path.join(out, 'souls', id, v, 'soul.prompt.txt')));
+      expect(readFileSync(path.join(out2, 'souls', id, v, 'soul.compiled.json'))).toEqual(readFileSync(path.join(out, 'souls', id, v, 'soul.compiled.json')));
     }
     expect(readFileSync(path.join(out2, 'souls/index.json'))).toEqual(readFileSync(path.join(out, 'souls/index.json')));
   });

@@ -2,17 +2,20 @@
  * S10 places (02-world-bake.md sections 7 to 9): the landmark table with arrival poses, the POI table bound to pedestrian
  * nodes, the district records with density profile indices, the transit nodes, landmark proxies and the `replaces` lists.
  *
- * Landmarks come from `content/world/landmarks.json`: the position is converted from lat/lng; when an OSM feature with the
- * seed's id exists in the extract and lies within 120 m, the landmark snaps to its centroid, farther than that is a failure
- * (a seed is corrected from OSM in the file, never waived). The arrival pose is the nearest point (a pedestrian node first,
- * then a 2 m spiral) that stands on ground, at least 3 m from water and from every prism; the landmark faces it.
+ * Landmarks come from `content/world/landmarks.json`: the position is converted from lat/lng. The distance to the OSM feature
+ * with the seed's id is measured to its geometry (0 inside an area, the area export `a<2N>` / `a<2N+1>` before the line; DL-708):
+ * a seed inside stays put, one outside within 120 m snaps to the nearest point of the feature (inside an area), never to a
+ * centroid, and farther than 120 m is a failure (a seed is corrected from OSM in the file, never waived). The arrival pose is
+ * the nearest pedestrian node within 120 m that stands on ground, at least 3 m from water and from every prism; with none,
+ * on `sf` the nearest such node at any distance (its distance goes to the report), on the offline areas a 2 m spiral on the
+ * land pad; the landmark faces it.
  * The footprints a proxy replaces are the largest few whose centroid lies inside `replaceRadiusM` (hero 4, major 3, minor 2).
  */
 import {
   enuFromLatLng, latLngFromEnu, chunkKeyAt, type ChunkKey, type LandmarkRecord, type PoiRecord, type TeleportNode, type TransitNode,
   type QualityTierId, type AssetRef,
 } from '../../../../packages/shared/src/index.ts';
-import { PointGrid, yawOf } from '../geom/poly.ts';
+import { PointGrid, nearestOnPoly, yawOf } from '../geom/poly.ts';
 import { ccwArea, pointInRing, ringBbox, ringCentroid, type Bbox } from '../geom/rings.ts';
 import { type PrismIndex } from '../geom/prisms.ts';
 import type { ContentWorld, LandmarkSeed } from '../content.ts';
@@ -41,6 +44,8 @@ export interface PlacesInputs {
   chunkExists(k: ChunkKey): boolean;
   groundY(x: number, z: number): number;
   isWater(x: number, z: number): boolean;
+  /** `sf`: a landmark with no valid pedestrian node within 120 m arrives at the nearest valid one at any distance (DL-709 follow-up); other areas use a 2 m spiral on the land pads. */
+  farArrival: boolean;
 }
 
 export interface PlacesReport {
@@ -48,7 +53,11 @@ export interface PlacesReport {
   landmarksSkipped: string[];
   featureMissing: string[];
   featureTooFar: { id: string; distM: number }[];
+  /** Distance of every seed to its OSM feature's geometry (DL-708), in metres to 0.1. */
+  featureDist: { id: string; distM: number; kind: 'area' | 'line' | 'node' }[];
   noArrival: string[];
+  /** Landmarks whose arrival pose is farther than 120 m from the landmark (the nearest valid pedestrian node at any distance). */
+  arrivalFar: { id: string; distM: number; x: number; z: number }[];
   snapped: number;
   pois: number;
   poisSkipped: string[];
@@ -72,17 +81,73 @@ export interface PlacesProduct {
 
 const q1 = (v: number): number => Math.round(v * 10) / 10;
 
-/** Centroid of an OSM feature found by id (way, relation or node), or null. */
-function featureCentroid(osm: readonly OsmFeature[], id: string): { x: number; z: number } | null {
+export interface FeatureHit {
+  /** The OSM object that was measured: `a<id>` for an area export, else the object itself. */
+  id: string;
+  kind: 'area' | 'line' | 'node';
+  /** Metres from the query point to the geometry: 0 inside an area (outer ring, outside every hole). */
+  distM: number;
+  /** The query point when it is inside; else the nearest point of the feature (nudged into an area). */
+  x: number;
+  z: number;
+  inside: boolean;
+}
+
+/** Export ids that carry the area of an OSM object: `a<2N>` for way N, `a<2N+1>` for relation N (osmium `--add-unique-id=type_id`). */
+export function areaIdOf(osmId: string): string | null {
+  const m = /^([wr])(\d+)$/.exec(osmId);
+  if (!m) return null;
+  const n = Number(m[2]);
+  return `a${m[1] === 'w' ? 2 * n : 2 * n + 1}`;
+}
+
+/**
+ * Distance from (x, z) to the OSM object `osmId`, measured to its geometry (DL-708). A way or relation is measured as its area
+ * export when the extract has one, else as the line; a node as a point. Returns null when the extract holds none of them.
+ */
+export function nearestOnFeature(osm: readonly OsmFeature[], osmId: string, x: number, z: number): FeatureHit | null {
+  const areaId = areaIdOf(osmId);
+  let area: OsmFeature | undefined, other: OsmFeature | undefined;
   for (const f of osm) {
-    if (f.id !== id) continue;
-    if (f.geometry.type === 'Point') { const c = f.geometry.coordinates as number[]; const e = enuFromLatLng(c[1] as number, c[0] as number); return { x: e.x, z: e.z }; }
-    const poly = polygonsOf(f.geometry)[0];
-    if (poly) return ringCentroid(poly.outer);
-    const line = linesOf(f.geometry)[0];
-    if (line && line.length >= 2) { let sx = 0, sz = 0; for (let i = 0; i < line.length; i += 2) { sx += line[i] as number; sz += line[i + 1] as number; } return { x: sx / (line.length / 2), z: sz / (line.length / 2) }; }
+    if (areaId !== null && f.id === areaId) area = f;
+    else if (f.id === osmId) other = f;
+    if (area && other) break;
   }
-  return null;
+  const f = area ?? other;
+  if (!f) return null;
+  if (f.geometry.type === 'Point') {
+    const c = f.geometry.coordinates as number[];
+    const e = enuFromLatLng(c[1] as number, c[0] as number);
+    return { id: f.id, kind: 'node', distM: Math.hypot(e.x - x, e.z - z), x: e.x, z: e.z, inside: false };
+  }
+  const polys = polygonsOf(f.geometry);
+  if (polys.length > 0) {
+    let best = { d: Infinity, x: 0, z: 0 };
+    for (const p of polys) {
+      if (pointInRing(x, z, p.outer) && !p.holes.some((h) => pointInRing(x, z, h))) return { id: f.id, kind: 'area', distM: 0, x, z, inside: true };
+      for (const ring of [p.outer, ...p.holes]) {
+        const closed = ring.length >= 2 && (ring[0] !== ring[ring.length - 2] || ring[1] !== ring[ring.length - 1]) ? [...ring, ring[0] as number, ring[1] as number] : ring;
+        const near = nearestOnPoly(closed, x, z);
+        if (near.d < best.d) best = { d: near.d, x: near.x, z: near.z };
+      }
+    }
+    // nudge the snapped point 0.5 m into the area (the nearest boundary point lies on the edge itself)
+    let sx = best.x, sz = best.z;
+    if (best.d > 0) {
+      const ux = (best.x - x) / best.d, uz = (best.z - z) / best.d;
+      const cx = best.x + ux * 0.5, cz = best.z + uz * 0.5;
+      if (polys.some((p) => pointInRing(cx, cz, p.outer) && !p.holes.some((h) => pointInRing(cx, cz, h)))) { sx = cx; sz = cz; }
+    }
+    return { id: f.id, kind: 'area', distM: best.d, x: sx, z: sz, inside: false };
+  }
+  let best = { d: Infinity, x: 0, z: 0 };
+  for (const line of linesOf(f.geometry)) {
+    if (line.length < 4) continue;
+    const near = nearestOnPoly(line, x, z);
+    if (near.d < best.d) best = { d: near.d, x: near.x, z: near.z };
+  }
+  if (best.d === Infinity) return null;
+  return { id: f.id, kind: 'line', distM: best.d, x: best.x, z: best.z, inside: false };
 }
 
 export function hoodAt(hoods: readonly HoodPoly[], x: number, z: number): string | null {
@@ -97,7 +162,7 @@ export function hoodAt(hoods: readonly HoodPoly[], x: number, z: number): string
 export function runPlaces(inp: PlacesInputs): PlacesProduct {
   const c = inp.content;
   const report: PlacesReport = {
-    landmarks: 0, landmarksSkipped: [], featureMissing: [], featureTooFar: [], noArrival: [], snapped: 0, pois: 0, poisSkipped: [], poisUnbound: [],
+    landmarks: 0, landmarksSkipped: [], featureMissing: [], featureTooFar: [], featureDist: [], noArrival: [], arrivalFar: [], snapped: 0, pois: 0, poisSkipped: [], poisUnbound: [],
     poisHoodMismatch: [], transit: 0, proxies: 0,
   };
 
@@ -121,19 +186,28 @@ export function runPlaces(inp: PlacesInputs): PlacesProduct {
     }
     return !inp.prisms.near(x, z, 3);
   };
-  const arrivalFor = (x: number, z: number): { x: number; z: number } | null => {
-    const near = pedGrid.query(x, z, 40);
-    for (const h of near) {
+  const arrivalFor = (x: number, z: number): { x: number; z: number; farM?: number } | null => {
+    for (const h of pedGrid.query(x, z, ARRIVAL_RADIUS_M)) {
       const p = inp.ped.points[h.item] as { x: number; z: number };
       if (valid(p.x, p.z)) return { x: p.x, z: p.z };
     }
-    for (let r = 0; r <= ARRIVAL_RADIUS_M; r += 2) {
-      const n = r === 0 ? 1 : Math.max(8, Math.ceil((2 * Math.PI * r) / 2));
-      for (let k = 0; k < n; k++) {
-        const a = (k * 2 * Math.PI) / n;
-        const px = q1(x + Math.cos(a) * r), pz = q1(z + Math.sin(a) * r);
-        if (valid(px, pz)) return { x: px, z: pz };
+    if (!inp.farArrival) {
+      // the offline areas: landmarks stand on land pads that carry no sidewalks, so a 2 m spiral finds the ground
+      for (let r = 0; r <= ARRIVAL_RADIUS_M; r += 2) {
+        const n = r === 0 ? 1 : Math.max(8, Math.ceil((2 * Math.PI * r) / 2));
+        for (let k = 0; k < n; k++) {
+          const a = (k * 2 * Math.PI) / n;
+          const px = q1(x + Math.cos(a) * r), pz = q1(z + Math.sin(a) * r);
+          if (valid(px, pz)) return { x: px, z: pz };
+        }
       }
+      return null;
+    }
+    // sf: no pedestrian node within 120 m (a bridge deck over water, a closed shipyard): the nearest valid one at any distance
+    const order = inp.ped.points.map((p, i) => ({ i, d: Math.hypot(p.x - x, p.z - z) })).sort((a, b) => a.d - b.d || a.i - b.i);
+    for (const o of order) {
+      const p = inp.ped.points[o.i] as { x: number; z: number };
+      if (valid(p.x, p.z)) return { x: p.x, z: p.z, farM: o.d };
     }
     return null;
   };
@@ -164,18 +238,19 @@ export function runPlaces(inp: PlacesInputs): PlacesProduct {
     let x = e.x, z = e.z;
     if (x < inp.box.minX || x > inp.box.maxX || z < inp.box.minZ || z > inp.box.maxZ) { report.landmarksSkipped.push(s.id); continue; }
     if (/^[wrn]\d+$/.test(s.osm)) {
-      const f = featureCentroid(inp.osm, s.osm);
-      if (!f) report.featureMissing.push(s.id);
+      const hit = nearestOnFeature(inp.osm, s.osm, x, z);
+      if (!hit) report.featureMissing.push(s.id);
       else {
-        const d = Math.hypot(f.x - x, f.z - z);
-        if (d > FEATURE_SNAP_M) report.featureTooFar.push({ id: s.id, distM: Math.round(d) });
-        else { x = f.x; z = f.z; report.snapped++; }
+        report.featureDist.push({ id: s.id, distM: Math.round(hit.distM * 10) / 10, kind: hit.kind });
+        if (hit.distM > FEATURE_SNAP_M) report.featureTooFar.push({ id: s.id, distM: Math.round(hit.distM) });
+        else if (!hit.inside && hit.distM > 0) { x = hit.x; z = hit.z; report.snapped++; }   // inside stays put; outside snaps to the feature, never to a centroid
       }
     }
     x = q1(x); z = q1(z);
     if (!inp.chunkExists(chunkKeyAt(9, x, z))) { report.landmarksSkipped.push(s.id); continue; }
     const arr = arrivalFor(x, z);
     if (!arr) { report.noArrival.push(s.id); continue; }
+    if (arr.farM !== undefined) report.arrivalFar.push({ id: s.id, distM: Math.round(arr.farM), x: arr.x, z: arr.z });
     const index = landmarks.length;
     // replaced footprints
     const cand = fpGrid.query(x, z, s.replaceRadiusM).map((h) => fps[h.item] as Fp).sort((a, b) => b.area - a.area || (a.sid < b.sid ? -1 : 1)).slice(0, REPLACE_MAX[s.cls]);
@@ -225,17 +300,21 @@ export function runPlaces(inp: PlacesInputs): PlacesProduct {
     const lmark = s.landmark ? lmById.get(s.landmark) : undefined;
     if (s.landmark && !lmark) { report.poisSkipped.push(s.id); continue; }
     if (lmark) { x = lmark.x; z = lmark.z; }
+    // DL-709: the neighbourhood is tested at the anchor point (the landmark's point after S10, else the authored seed), never at a snapped node
+    const anchorX = x, anchorZ = z;
     let pedNode: number | null = null;
-    const near = pedGrid.query(x, z, s.snap ? 80 : 25)[0];
+    // a landmark POI binds to the ped node nearest its arrival pose (at most 25 m from the pose) and keeps its position at the landmark
+    const bindX = lmark ? lmark.arrival.x : x, bindZ = lmark ? lmark.arrival.z : z;
+    const near = pedGrid.query(bindX, bindZ, lmark ? 25 : s.snap ? 80 : 25)[0];
     if (near) {
       const p = inp.ped.points[near.item] as { x: number; z: number };
-      if (s.snap) { x = p.x; z = p.z; }
+      if (s.snap && !lmark) { x = p.x; z = p.z; }
       pedNode = near.item;
     } else report.poisUnbound.push(s.id);
     x = q1(x); z = q1(z);
     const key = chunkKeyAt(9, x, z);
     if (!inp.chunkExists(key)) { report.poisSkipped.push(s.id); continue; }
-    const hood = hoodAt(inp.hoods, x, z);
+    const hood = hoodAt(inp.hoods, anchorX, anchorZ);
     const nhood = hood ? slugOf(hood) : s.nhood;
     if (hood && slugOf(hood) !== s.nhood) report.poisHoodMismatch.push({ id: s.id, hood: slugOf(hood) });
     const district = nhoodToDistrict.get(nhood) ?? s.district;

@@ -1,6 +1,6 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "e439d31decdde855799d5953235050c7fd83f85f644556121c5b8682f7058369",
+  "sha256": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2",
   "paths": [
     "assets/src/data/npc-roster/npc-roster.json"
   ],
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-19T02:52:36Z"
+  "created_at": "2026-10-19T17:34:43Z"
 }

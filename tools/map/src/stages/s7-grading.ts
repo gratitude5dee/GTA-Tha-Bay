@@ -8,9 +8,16 @@
  * the lower segment id, so a post on a chunk edge gets the same value in both chunks. Freeways are processed first by that
  * tie-break (rule 1).
  *
- * Bridges and overpasses keep the terrain and add slabs (4 m long, 1.0 m thick, shortened where the grade would make a step
- * above 0.16 m, flat-topped on the 0.1 m grid). A deck rises from its abutments at most 6 % to terrain + 5.5 m x layer, or
- * to the named deck height of `config/world/bridges.json` for the Golden Gate and Bay Bridge. Tunnels run straight between
+ * Bridges and overpasses keep the terrain and add slabs (at most 4 m long, 1.0 m thick, shortened until the steepest polyline
+ * step makes tops differ by at most 0.1 m, flat-topped on the 0.1 m grid; DL-707). A deck rises from its abutments at most
+ * 6 % to terrain + 5.5 m x layer, or to the named deck height of `config/world/bridges.json` for the Golden Gate and Bay
+ * Bridge; the 6 % limit holds on every bridge and overpass segment in the node heights, the profile clamps and the polyline,
+ * so the adjacent surface roads take the rest of the climb within the 40 % clamp.
+ *
+ * The final heights are on the 0.1 m grid and meet the limits exactly: node heights are closed under the per-segment allowance
+ * `sum of floor(limit x step length x 10)` decimetres over its polyline steps (a multi-source Dijkstra that only lowers), and the
+ * polyline of each segment is clamped with the same integer allowance per step (forward and backward passes, ends pinned), so
+ * no stored step rounds past its limit. Tunnels run straight between
  * their portals; the corridor (`widthM + 3 m`) is lowered to the road height minus 0.5 m and covered by hood prisms from
  * road + 5.5 m up to the original terrain top in 20 m steps, and short ones whose cover is under 0.5 m stay open cuts.
  */
@@ -44,6 +51,8 @@ export interface GradingStats {
   maxSlabStepM: number;
   slabsDropped: number;
   postsGraded: number;
+  /** Nodes the integer closure lowered below their averaged height (DL-707). */
+  nodesLowered: number;
 }
 
 export interface GradingInputs {
@@ -127,14 +136,97 @@ function movingAverage(t: Float64Array, half: number): Float64Array {
   return out;
 }
 
+/**
+ * Integer-decimetre closure of node heights under per-segment allowances: the largest `d` below `y` with `d[b] <= d[a] + k`
+ * and `d[a] <= d[b] + k` for every link (a multi-source Dijkstra on the lower envelope, so heights are only ever lowered).
+ * Returns the new heights and the number of nodes lowered.
+ */
+export function closeNodeHeights(yDm: readonly number[], links: readonly { a: number; b: number; k: number }[]): { dm: number[]; lowered: number } {
+  const n = yDm.length;
+  const adj: { o: number; k: number }[][] = yDm.map(() => []);
+  for (const l of links) {
+    if (l.a === l.b) continue;
+    (adj[l.a] as { o: number; k: number }[]).push({ o: l.b, k: l.k });
+    (adj[l.b] as { o: number; k: number }[]).push({ o: l.a, k: l.k });
+  }
+  const dist = yDm.slice();
+  // binary min-heap of [distance, node], ties by node id so the run is deterministic
+  const heap: [number, number][] = [];
+  const less = (p: [number, number], q: [number, number]): boolean => p[0] < q[0] || (p[0] === q[0] && p[1] < q[1]);
+  const push = (e: [number, number]): void => {
+    heap.push(e);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const par = (i - 1) >> 1;
+      if (!less(heap[i] as [number, number], heap[par] as [number, number])) break;
+      [heap[i], heap[par]] = [heap[par] as [number, number], heap[i] as [number, number]];
+      i = par;
+    }
+  };
+  const pop = (): [number, number] => {
+    const top = heap[0] as [number, number];
+    const last = heap.pop() as [number, number];
+    if (heap.length > 0) {
+      heap[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1;
+        let m = i;
+        if (l < heap.length && less(heap[l] as [number, number], heap[m] as [number, number])) m = l;
+        if (r < heap.length && less(heap[r] as [number, number], heap[m] as [number, number])) m = r;
+        if (m === i) break;
+        [heap[i], heap[m]] = [heap[m] as [number, number], heap[i] as [number, number]];
+        i = m;
+      }
+    }
+    return top;
+  };
+  for (let i = 0; i < n; i++) push([dist[i] as number, i]);
+  while (heap.length > 0) {
+    const [d, u] = pop();
+    if (d > (dist[u] as number)) continue;
+    for (const { o, k } of adj[u] as { o: number; k: number }[]) {
+      if (d + k < (dist[o] as number)) { dist[o] = d + k; push([d + k, o]); }
+    }
+  }
+  let lowered = 0;
+  for (let i = 0; i < n; i++) if (dist[i] !== yDm[i]) lowered++;
+  return { dm: dist, lowered };
+}
+
+/**
+ * Integer clamp of a polyline height profile in decimetres: step `q` may change by at most `allow[q]` between points `q` and
+ * `q + 1`; both ends stay pinned and forward and backward passes alternate until nothing moves.
+ */
+export function clampPolylineDm(d: number[], allow: readonly number[]): void {
+  if (d.length < 3) return;
+  for (let it = 0; it < 200; it++) {
+    let moved = false;
+    for (let q = 1; q < d.length - 1; q++) {
+      const a = allow[q - 1] as number;
+      const v = Math.min((d[q - 1] as number) + a, Math.max((d[q - 1] as number) - a, d[q] as number));
+      if (v !== d[q]) { d[q] = v; moved = true; }
+    }
+    for (let q = d.length - 2; q >= 1; q--) {
+      const a = allow[q] as number;
+      const v = Math.min((d[q + 1] as number) + a, Math.max((d[q + 1] as number) - a, d[q] as number));
+      if (v !== d[q]) { d[q] = v; moved = true; }
+    }
+    if (!moved) break;
+  }
+}
+
 export function runGrading(inp: GradingInputs): GradingProduct {
   const cfg = inp.cfg;
   const field = new TerrainField(inp.grids);
   const maxSlope = Math.min(cfg.grade.maxPct, 39) / 100;
+  // 6 % on every bridge and overpass segment (rule 4, DL-707), the 40 % clamp elsewhere
+  const slopeOf = (s: SegB): number => (s.bridge ? cfg.overpass.maxApproachGrade : maxSlope);
+  const limitOf = (s: SegB): number => (s.bridge ? cfg.overpass.maxApproachGrade : cfg.grade.maxPct / 100);
   const segs: SegB[] = inp.segs.map((s) => ({ ...s, pts: [...s.pts], ys: [...s.ys] }));
   const nodes: NodeB[] = inp.nodes.map((n) => ({ ...n, out: [...n.out], in: [...n.in] }));
   const edges: RoadEdge[] = inp.edges.map((e) => ({ ...e }));
-  const stats: GradingStats = { maxGradePct: 0, slabs: 0, hoods: 0, tunnels: 0, openCuts: 0, overpasses: 0, namedSpans: 0, maxSlabStepM: 0, slabsDropped: 0, postsGraded: 0 };
+  const stats: GradingStats = { maxGradePct: 0, slabs: 0, hoods: 0, tunnels: 0, openCuts: 0, overpasses: 0, namedSpans: 0, maxSlabStepM: 0, slabsDropped: 0, postsGraded: 0, nodesLowered: 0 };
   const named = cfg.named.map((b) => ({ ...b, ...enuFromLatLng(b.lat, b.lng) }));
   const half = Math.max(1, Math.round(cfg.grade.smoothingM / cfg.grade.sampleM / 2));
   const g = cfg.overpass.maxApproachGrade;
@@ -184,7 +276,7 @@ export function runGrading(inp: GradingInputs): GradingProduct {
     const sm = movingAverage(p.t, half);
     for (let k = 0; k < p.n; k++) p.y[k] = sm[k] as number;
   });
-  segs.forEach((_s, i) => { const p = profs[i] as Prof; clampSlope(p.y, p.step, maxSlope); });
+  segs.forEach((s, i) => { const p = profs[i] as Prof; clampSlope(p.y, p.step, slopeOf(s)); });
 
   // 2. node heights: mean of the incident segment ends
   const endSum = new Float64Array(nodes.length), endCnt = new Int32Array(nodes.length);
@@ -205,7 +297,7 @@ export function runGrading(inp: GradingInputs): GradingProduct {
       const a = nodes[s.a] as NodeB, b = nodes[s.b] as NodeB;
       let L = 0;
       for (let q = 2; q < s.pts.length; q += 2) L += Math.hypot((s.pts[q] as number) - (s.pts[q - 2] as number), (s.pts[q + 1] as number) - (s.pts[q - 1] as number));
-      const lim = maxSlope * L * 0.98;
+      const lim = slopeOf(s) * L * 0.98;
       const diff = b.y - a.y;
       if (Math.abs(diff) > lim) {
         const e = (Math.abs(diff) - lim) / 2 + 0.01;
@@ -217,6 +309,18 @@ export function runGrading(inp: GradingInputs): GradingProduct {
     if (!changed) break;
   }
   for (const n of nodes) n.y = q10(n.y);
+  // the relaxation above is approximate: close the heights under the exact integer allowance of every segment
+  {
+    // the allowance of a segment is the sum of its per-step allowances, so a profile between two closed ends always exists
+    const links = segs.map((s) => {
+      let k = 0;
+      for (let q = 2; q < s.pts.length; q += 2) k += Math.floor(limitOf(s) * Math.hypot((s.pts[q] as number) - (s.pts[q - 2] as number), (s.pts[q + 1] as number) - (s.pts[q - 1] as number)) * 10 + 1e-9);
+      return { a: s.a, b: s.b, k };
+    });
+    const closed = closeNodeHeights(nodes.map((n) => Math.round(n.y * 10)), links);
+    nodes.forEach((n, i) => { n.y = (closed.dm[i] as number) / 10; });
+    stats.nodesLowered = closed.lowered;
+  }
 
   // 3. fade every segment to its node heights over the last 24 m, clamp again, quantise
   const fade = cfg.grade.smoothingM;
@@ -229,7 +333,7 @@ export function runGrading(inp: GradingInputs): GradingProduct {
       const sk = p.s[k] as number;
       p.y[k] = (p.y[k] as number) + dA * (1 - smooth(sk / Math.max(f, 1e-9))) + dB * (1 - smooth((L - sk) / Math.max(f, 1e-9)));
     }
-    pinnedClamp(p.y, p.s, (nodes[s.a] as NodeB).y, (nodes[s.b] as NodeB).y, maxSlope);
+    pinnedClamp(p.y, p.s, (nodes[s.a] as NodeB).y, (nodes[s.b] as NodeB).y, slopeOf(s));
     // the segment polyline (at most 20 m apart) takes the profile at its own arc lengths
     const ys: number[] = [];
     let acc = 0;
@@ -243,6 +347,14 @@ export function runGrading(inp: GradingInputs): GradingProduct {
     // pin the ends to the node heights exactly (rounded the same way)
     ys[0] = (nodes[s.a] as NodeB).y;
     ys[ys.length - 1] = (nodes[s.b] as NodeB).y;
+    if (ys.length > 2) {
+      const lim = limitOf(s);
+      const allow: number[] = [];
+      for (let q = 1; q < ys.length; q++) allow.push(Math.floor(lim * Math.hypot((s.pts[q * 2] as number) - (s.pts[q * 2 - 2] as number), (s.pts[q * 2 + 1] as number) - (s.pts[q * 2 - 1] as number)) * 10 + 1e-9));
+      const d = ys.map((v) => Math.round(v * 10));
+      clampPolylineDm(d, allow);
+      for (let q = 1; q < d.length - 1; q++) ys[q] = (d[q] as number) / 10;
+    }
     s.ys = ys;
     let len = 0, grade = 0;
     for (let q = 1; q < ys.length; q++) {
@@ -293,7 +405,13 @@ export function runGrading(inp: GradingInputs): GradingProduct {
     if (s.bridge) {
       lastTop = null;
       const gradeFrac = (s as SegB & { gradeFrac?: number }).gradeFrac ?? 0;
-      const slabLen = Math.max(0.5, Math.min(cfg.slab.lengthM, gradeFrac > 1e-6 ? 0.1 / gradeFrac : cfg.slab.lengthM));
+      // the steepest polyline step of any length decides (DL-707): consecutive stored tops differ by at most 0.1 m
+      let steepest = gradeFrac;
+      for (let q = 1; q < s.ys.length; q++) {
+        const h = Math.hypot((s.pts[q * 2] as number) - (s.pts[q * 2 - 2] as number), (s.pts[q * 2 + 1] as number) - (s.pts[q * 2 - 1] as number));
+        if (h > 1e-3) steepest = Math.max(steepest, Math.abs((s.ys[q] as number) - (s.ys[q - 1] as number)) / h);
+      }
+      const slabLen = Math.min(cfg.slab.lengthM, steepest > 1e-6 ? 0.099 / steepest : cfg.slab.lengthM);
       const n = Math.max(1, Math.ceil(L / slabLen));
       const step = L / n;
       for (let q = 0; q < n; q++) {

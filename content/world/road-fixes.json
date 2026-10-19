@@ -1,0 +1,27 @@
+{
+  "schema": "world-road-fixes/1",
+  "note": "Authored fixes for the S5 road graph (DL-706): a way kept although a filter drops it, and connectors that join a detached public street. Every entry carries a reason; an island left unfixed goes on the R-S02-05 list in docs/bake-runs/M02a2/notes.json instead.",
+  "keepWays": [
+    { "osmWay": 8919473, "name": "Van Ness Avenue", "reason": "Public street at Fort Mason that matches the PRIVATE DataSF row cnn 15101000 and was dropped with it; McDowell Rd SW (cnn 19531000) hangs off it." },
+    { "osmWay": 419755791, "name": "Van Ness Avenue", "reason": "Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000); the chain is open to traffic and links McDowell Rd SW to the grid." },
+    { "osmWay": 467982369, "name": "Van Ness Avenue", "reason": "Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 775576585, "name": "Van Ness Avenue", "reason": "Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 24007947, "name": "Van Ness Avenue", "reason": "One-way Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 26987989, "name": "Van Ness Avenue", "reason": "One-way Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 254759961, "name": "Van Ness Avenue", "reason": "One-way Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 254759962, "name": "Van Ness Avenue", "reason": "One-way Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 680783336, "name": "Van Ness Avenue", "reason": "One-way Fort Mason section of the same street, dropped through the same PRIVATE row (cnn 15101000)." },
+    { "osmWay": 8919110, "name": "The Embarcadero", "reason": "Public lane at Fisherman's Wharf (highway=residential, no access tag) dropped through the PRIVATE rows cnn 15355000 and 15357000; without it Pier 45 (w27104689) is a 6-edge island next to the main grid." },
+    { "osmWay": 23798318, "name": "Medical Center Way", "reason": "Campus road open to traffic (highway=unclassified, no access tag) dropped through the PRIVATE row cnn 15103000; without it the road next to it (w137816355) is detached." },
+    { "osmWay": 1222505189, "reason": "Treasure Island service road tagged access=private that is the only link between Clipper Cove Way / Avenue G (cnns 14254000, 14121000, 14339000) and the island grid." }
+  ],
+  "connectors": [
+    {
+      "id": "ti.avenue-n",
+      "reason": "Treasure Island Avenue N is mapped highway=construction (access=no), so it never enters the graph; it is the link between the Clipper Cove Way / Avenue G streets and the island grid. DataSF lists AVENUE N (cnn 14156000) as inactive, so this stays an authored connector.",
+      "highway": "service",
+      "name": "Avenue N",
+      "points": [{ "lat": 37.8193888, "lng": -122.3643389 }, { "lat": 37.8208319, "lng": -122.3637753 }]
+    }
+  ]
+}

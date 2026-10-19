@@ -71,8 +71,8 @@
       "id": "osm",
       "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf",
       "retrievedAt": "2026-10-19T14:30:08Z",
-      "sha256": "e931b3a81f49764e392391d138b0e5eee2dd9e614e8d841ce673220f2368b575",
-      "rows": 561182,
+      "sha256": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "rows": 561193,
       "licence": "ODbL-1.0",
       "extract": {
         "sha256": "8b3c8d0d7a4dcc76e046825c90c75c0fd90265e00a30b58c73e8064d6dea249b",

@@ -255,7 +255,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   // S5 roads
   const roads = await stage<RoadsStage>(c, 'roads', wanted.has('roads'), ms, () => {
     const streets = jsonlOrEmpty<StreetRow>(path.join(rawDir, '3psu-pn9h.jsonl'));
-    const product = runRoads({ osm: osmOf(c), streets, hoods: water.product.hoods, cfg: roadCfg, box: gridBox });
+    const product = runRoads({ osm: osmOf(c), streets, hoods: water.product.hoods, cfg: roadCfg, fixes: content.roadFixes, box: gridBox });
     return { product, gates: s5Gates(product.report, roadCfg.oneway.minAgreement) };
   });
   gates.push(...roads.gates);
@@ -332,7 +332,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   const placesStage = await stage<PlacesStage>(c, 'places', wanted.has('places'), ms, () => {
     const places = runPlaces({
       content, box: gridBox, osm: osmOf(c), buildings: buildings.product, prisms, ped: ped.product, hoods: water.product.hoods, density: densityCfg,
-      chunkExists: (k) => grading.product.grids.has(k), groundY: (x, z) => graded.heightAt(x, z) ?? 0, isWater,
+      chunkExists: (k) => grading.product.grids.has(k), groundY: (x, z) => graded.heightAt(x, z) ?? 0, isWater, farArrival: o.area === 'sf',
     });
     const net = grading.product;
     const graph = buildEdgeGraph(net.edges, junctions.product.junctions, (n) => (net.nodes[n] as { junction: number }).junction, (e) => (net.segs[e.seg] as { lengthM: number }).lengthM, (n) => (net.nodes[n] as { out: number[] }).out);
@@ -343,6 +343,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const g = s10Gates(places.report, o.area === 'sf');
     if (def.gates.s14.cablecars && tr.report.cablecarMissing.length > 0) {
       g.push({ id: 's10.cablecars', stage: 'S10', level: 'fail', detail: `cable-car chains not found in the street graph (U-W6): ${tr.report.cablecarMissing.join(', ')}` });
+    }
+    if (def.gates.s14.cablecars && tr.report.cablecarOff.length > 0) {
+      g.push({ id: 's10.cablecars-6m', stage: 'S10', level: 'fail', detail: `cable-car spline points more than 6 m from a street edge, tram rail or turntable (U-W6): ${tr.report.cablecarCheck.filter((c) => tr.report.cablecarOff.includes(c.id)).map((c) => `${c.id} ${c.worstM} m at ${c.worstAnchor}`).join(', ')}` });
     }
     return { places, transit: tr.routes, transitReport: tr.report as unknown as Record<string, unknown>, gates: g };
   });

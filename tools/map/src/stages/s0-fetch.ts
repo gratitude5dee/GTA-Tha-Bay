@@ -4,6 +4,9 @@
  * only when every source of the area was fetched. Without network, without `osmium`, or with DV_MAP_OFFLINE=1 a source
  * prints `SKIP map:fetch <source>: <reason>` and the command still exits 0.
  *
+ * The `sf` OSM extract is the bbox extract, tag-filtered, plus the objects named in the landmark seeds (`osmium getid`, merged
+ * before the export, DL-708).
+ *
  * `civic-excerpt --fixture` cuts the committed 1 km2 excerpt: DataSF rows and Terrarium tiles from the network, the OSM part
  * from the synth generator restricted to the square (the bake never calls Overpass or Nominatim), stamps marked synthetic.
  */
@@ -18,6 +21,7 @@ import {
   type AreaId, type BBox, type EnuBox, type SourcesConfig,
 } from '../config.ts';
 import { RAW_LOCK_NAME, rawLockText, readRawLock, sha256File, sha256Text, writeRawLock, type RawLockFile, type RawSourceLock } from '../raw-lock.ts';
+import { loadContentWorld } from '../content.ts';
 import { clipRingToBox } from '../geom/rings.ts';
 import { polygonsOf } from '../sources/geo.ts';
 import { ensureOsmPbf, readOsmServed, type OsmDownloader } from '../sources/osm.ts';
@@ -53,6 +57,12 @@ const skip = (log: (l: string) => void, id: string, reason: string): void => log
 /** Replaces `{name}` and `{a.b}` placeholders from a flat lookup. */
 export function fillCommand(tpl: string, vars: Record<string, string | number>): string {
   return tpl.replace(/\{([a-zA-Z.]+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+}
+
+/** The OSM ids of the landmark seeds (`w<id>`, `r<id>`, `n<id>`), one per line, for the `osmium getid` pass (DL-708). */
+export function landmarkIdsText(seeds: readonly { osm: string }[]): string {
+  const ids = [...new Set(seeds.map((s) => s.osm).filter((o) => /^[wrn]\d+$/.test(o)))].sort();
+  return `${ids.join('\n')}\n`;
 }
 
 export function osmCommands(cfg: SourcesConfig, dir: string, pbf: string, backdrop = false): string[] {
@@ -136,6 +146,8 @@ async function fetchSf(o: FetchOptions, cfg: SourcesConfig, rawDir: string, log:
           continue;
         } else {
           const got = await ensureOsmPbf(s, rawDir, { download: o.osmDownload, log });
+          // S0 merges the landmark Source ids of 02-world-bake.md section 7 into the extract: the tag filter drops some of them (DL-708)
+          writeFileSync(path.join(rawDir, 'landmark-ids.txt'), landmarkIdsText(loadContentWorld().landmarks));
           for (const cmd of [...osmCommands(cfg, rawDir, got.pbf), ...osmCommands(cfg, rawDir, got.pbf, true)]) {
             log(`map:fetch ${id}: ${cmd}`);
             const status = o.osmShell ? o.osmShell(cmd) : spawnSync(cmd, { shell: true, stdio: 'inherit' }).status;

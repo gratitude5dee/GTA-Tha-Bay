@@ -121,8 +121,8 @@
       "file": "terrarium",
       "licence": "LicenseRef-PublicDomain-USGov",
       "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
-      "attribution": "3DEP data courtesy of the U.S. Geological Survey",
-      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "attribution": "3DEP data courtesy of the U.S. Geological Survey. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP, SRTM and ETOPO1 over the bake boxes; tiled by Mapzen); there is no licence URL, the registry page is the citation; credit lines from the Terrain Tiles attribution document (DL-711)",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
@@ -168,7 +168,9 @@
     "commands": [
       "osmium extract --bbox={sf.minLng},{sf.minLat},{sf.maxLng},{sf.maxLat} --strategy=complete_ways --overwrite -o {dir}/osm-sf.osm.pbf {pbf}",
       "osmium tags-filter --overwrite -o {dir}/osm-sf-tags.osm.pbf {dir}/osm-sf.osm.pbf {tagFilter}",
-      "osmium export --overwrite --add-unique-id=type_id -f geojsonseq -x print_record_separator=false -o {dir}/osm.geojsonl {dir}/osm-sf-tags.osm.pbf"
+      "osmium getid --overwrite --add-referenced -i {dir}/landmark-ids.txt -o {dir}/osm-sf-landmarks.osm.pbf {dir}/osm-sf.osm.pbf",
+      "osmium merge --overwrite -o {dir}/osm-sf-merged.osm.pbf {dir}/osm-sf-tags.osm.pbf {dir}/osm-sf-landmarks.osm.pbf",
+      "osmium export --overwrite --add-unique-id=type_id -f geojsonseq -x print_record_separator=false -o {dir}/osm.geojsonl {dir}/osm-sf-merged.osm.pbf"
     ],
     "backdropCommands": [
       "osmium extract --bbox={backdrop.minLng},{backdrop.minLat},{backdrop.maxLng},{backdrop.maxLat} --strategy=simple --overwrite -o {dir}/osm-backdrop.osm.pbf {pbf}"

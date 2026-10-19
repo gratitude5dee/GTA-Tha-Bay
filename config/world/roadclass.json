@@ -31,5 +31,6 @@
   },
   "oneway": { "minAgreement": 0.9, "worstListed": 20 },
   "match": { "sampleM": 10, "maxDistM": 12, "minFraction": 0.6 },
-  "hillGradePct": 12
+  "hillGradePct": 12,
+  "islands": { "detachedService": true, "detachedAtClip": true }
 }

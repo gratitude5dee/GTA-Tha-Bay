@@ -234,7 +234,7 @@
     {
       "schema": "soul-public/1",
       "id": "ro-batista",
-      "soulVersion": 1,
+      "soulVersion": 2,
       "status": "active",
       "origin": "first_party",
       "name": "Ro Batista",
@@ -270,7 +270,7 @@
         "home": "poi.mission.24th-st.apt-ro",
         "hangouts": [
           "poi.mission.shop-batista",
-          "poi.mission.dolores-park"
+          "poi.castro-upper-market.dolores-park"
         ]
       },
       "schedule": [
@@ -306,7 +306,7 @@
           "from": "18:00",
           "to": "21:00",
           "activity": "socialize",
-          "place": "poi.mission.dolores-park",
+          "place": "poi.castro-upper-market.dolores-park",
           "interruptible": true,
           "priority": 3
         },

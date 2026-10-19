@@ -111,7 +111,8 @@ describe('individual rules', () => {
   });
 
   it('L14 needs a higher soulVersion after a prompt change, and accepts it once raised', async () => {
-    const md = readFileSync(path.join(repoRoot, 'content/npcs/ro-batista/soul.md'), 'utf8');
+    // the shipped soul is at version 2; the case starts from its version-1 text
+    const md = readFileSync(path.join(repoRoot, 'content/npcs/ro-batista/soul.md'), 'utf8').replace('soulVersion: 2', 'soulVersion: 1');
     const env0 = mkEnv();
     const base = await lintSoul('content/npcs/ro-batista/soul.md', md, env0);
     const compiled = base.compiled as NonNullable<typeof base.compiled>;
