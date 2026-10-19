@@ -29,6 +29,9 @@ test.describe('platform', () => {
   });
 
   test('enters immersive-vr under IWER and renders XR frames @xr', async ({ page }) => {
+    // On the DV_WORLD=synth build the page boots the streamed world next to the XR session; on a software renderer that took 20 to 27 s
+    // of the default 30 s test timeout, so the first attempt flaked. Same assertions, a budget sized for the larger boot.
+    test.setTimeout(120_000);
     await page.goto('/?xr-emulate=quest3');
     await page.waitForFunction(() => window.__dvBridge?.platform !== undefined, undefined, { timeout: 30_000 });
     await page.evaluate(() => window.__dvBridge?.platform?.xr.enterForTest());
@@ -40,7 +43,7 @@ test.describe('platform', () => {
             const s = window.__dvBridge?.platform?.xr.state();
             return s ? { isPresenting: s.isPresenting, enough: s.frames >= 10 } : null;
           }),
-        { timeout: 30_000, intervals: [250] },
+        { timeout: 90_000, intervals: [250] },
       )
       .toEqual({ isPresenting: true, enough: true });
 
