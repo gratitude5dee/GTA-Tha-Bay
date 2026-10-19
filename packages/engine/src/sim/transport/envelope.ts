@@ -33,7 +33,11 @@ export type DebugCommand =
   | { t: 'debug.weather'; w: WeatherPreset; blendSec: number }
   | { t: 'debug.clock.pause'; on: boolean }
   /** Blackout on or off for the owner `debug` (M02b2; the traffic milestone adopts the same switch). */
-  | { t: 'debug.blackout'; on: boolean };
+  | { t: 'debug.blackout'; on: boolean }
+  /** A call into the world services (M02c1): `op` names it, the answer is the qa message `world.reply.<id>`. The world module handles it. */
+  | { t: 'debug.world'; id: number; op: string; args?: Record<string, unknown> }
+  /** Scripted player input from the next tick on, ticks relative to now (BotInput segments); an empty list hands the input back (M02c1). */
+  | { t: 'debug.bot'; script: { from: number; to: number; buttons?: number; moveX?: number; moveY?: number; camYaw?: number }[] };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -138,6 +142,9 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
     case 'debug.weather': return typeof p['w'] === 'string' && WEATHER_IDS.has(p['w']) && isNum(p['blendSec']) && p['blendSec'] >= 0 && p['blendSec'] <= 86_400;
     case 'debug.clock.pause': return typeof p['on'] === 'boolean';
     case 'debug.blackout': return typeof p['on'] === 'boolean';
+    case 'debug.world': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 40 && (p['args'] === undefined || isObject(p['args']));
+    case 'debug.bot':
+      return Array.isArray(p['script']) && p['script'].length <= 64 && p['script'].every((s) => isObject(s) && isNum(s['from']) && isNum(s['to']) && (['buttons', 'moveX', 'moveY', 'camYaw'] as const).every((k) => s[k] === undefined || isNum(s[k])));
     default: return false;
   }
 }

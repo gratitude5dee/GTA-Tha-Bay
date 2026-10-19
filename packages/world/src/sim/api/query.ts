@@ -69,13 +69,20 @@ const NEIGHBOUR_REACH_M = 8;
 
 export class WorldQueryImpl implements WorldQuery {
   private readonly nhoodParent = new Map<string, string>();
+  private grid: DistrictGrid | null;
 
   constructor(
     private readonly chunks: ChunkSource,
-    private readonly grid: DistrictGrid | null,
+    grid: DistrictGrid | null,
     districts: readonly DistrictRecord[],
   ) {
+    this.grid = grid;
     for (const d of districts) if (d.kind === 'nhood' && d.parent) this.nhoodParent.set(d.id, d.parent);
+  }
+
+  /** Installs the district grid once it has loaded. */
+  setGrid(grid: DistrictGrid): void {
+    this.grid = grid;
   }
 
   private chunkAt(x: number, z: number): SimChunk | null {

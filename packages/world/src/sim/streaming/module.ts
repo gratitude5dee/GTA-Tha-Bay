@@ -11,14 +11,18 @@
  * Without `BootPayload.config.world` the module stays inert: its system returns at once and it registers no resource, so a
  * session without a world runs and hashes as a session without the module.
  */
-import { SimStage, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef } from '@dv/shared';
-import { playerSide, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { SimStage, decodeDistrictGrid, decodeGraph, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef, type WorldIndex } from '@dv/shared';
+import { playerSide, requestTeleport, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
 import { STREAMING, type planFor } from './plan.ts';
 import { StaticsFeeder } from './statics.ts';
 import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
+import { playWallPrisms } from '../api/boundaries.ts';
+import type { TeleportHost } from '../api/teleport.ts';
+import { createWorldApi, type WorldServices } from '../api/world-api.ts';
+import { runWorldDebug, type WorldDebugCommand } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
 /** The sim tick rate the retry delays (milliseconds in the config) are converted with. */
@@ -41,9 +45,11 @@ interface Pending {
   keys: Set<ChunkKey>;
   /** The sim already asked for a purge and refetch of this pack once. */
   refetched: boolean;
+  /** A pack that is not a chunk pack (the road topology, the district grid): its handler gets the bytes. */
+  aux?: (bytes: ArrayBuffer) => void;
 }
 
-type Arrival = { pend: Pending; chunks: SimChunk[] } | { pend: Pending; error: PackErrorReason | 'decode' };
+type Arrival = { pend: Pending; chunks: SimChunk[] } | { pend: Pending; raw: ArrayBuffer } | { pend: Pending; error: PackErrorReason | 'decode' };
 
 const failOf = (r: PackErrorReason | 'decode'): FailReason =>
   r === 'offline' ? 'offline' : r === 'quota' ? 'quota' : r === 'aborted' ? 'aborted' : r === 'hash-mismatch' ? 'corrupt' : r === 'decode' ? 'decode' : 'unavailable';
@@ -103,6 +109,23 @@ export class WorldSim {
     port.start?.();
   }
 
+  /** The world services once the module has built them (M02c1); null for a session that sent no world index. */
+  api: WorldServices | null = null;
+
+  /**
+   * Asks the asset worker for a pack that is not a chunk pack (`map_data/sf-graph.v1`, `data/district-grid.v1`); `fn` gets the
+   * bytes on the tick they are applied, in `seq` order with the chunk replies. Returns false when the config has no ref for it.
+   */
+  loadAux(name: string, fn: (bytes: ArrayBuffer) => void): boolean {
+    const ref = this.cfg.refs[name];
+    if (!ref) return false;
+    const pend: Pending = { seq: ++this.seq, pack: name, keys: new Set(), refetched: true, aux: fn };
+    this.bySeq.set(pend.seq, pend);
+    const msg: PackRequest = { seq: pend.seq, ref, priority: 'now' };
+    this.port.postMessage(msg);
+    return true;
+  }
+
   // ---- requests and replies -------------------------------------------------------------------------------------------
 
   private request(r: LoadRequest): void {
@@ -133,6 +156,10 @@ export class WorldSim {
     const pend = this.bySeq.get(reply.seq);
     if (!pend) return;
     if ('bytes' in reply) {
+      if (pend.aux) {
+        this.arrivals.set(reply.seq, { pend, raw: reply.bytes });
+        return;
+      }
       try {
         this.arrivals.set(reply.seq, { pend, chunks: decodeP0(reply.bytes) });
       } catch {
@@ -156,6 +183,20 @@ export class WorldSim {
       n++;
       const { pend } = a;
       if (this.byPack.get(pend.pack) === pend) this.byPack.delete(pend.pack);
+      if (pend.aux) {
+        // not a chunk pack: hand the bytes to the handler, or note that they did not come
+        if ('raw' in a) {
+          try {
+            pend.aux(a.raw);
+          } catch (e) {
+            this.log?.('warn', `world: ${pend.pack} could not be read (${e instanceof Error ? e.message : String(e)})`);
+          }
+        } else if ('error' in a) {
+          this.log?.('warn', `world: ${pend.pack} did not load (${a.error})`);
+        }
+        continue;
+      }
+      if ('raw' in a) continue;   // raw bytes answer only the requests that carry a handler
       if ('chunks' in a) {
         const byKey = new Map(a.chunks.map((c) => [c.key, c] as const));
         for (const k of pend.keys) {
@@ -182,6 +223,7 @@ export class WorldSim {
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
     if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(focus);
     const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
+    this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
     if (st.added) {
       this.addedTotal++;
@@ -257,6 +299,8 @@ export class WorldSim {
 export interface WorldStreamingModule extends SimModule {
   /** The live world sim after `onInit`, or null while the session has no world. */
   readonly state: WorldSim | null;
+  /** The world services (M02c1) once built, or null while the session has no world index. */
+  readonly api: WorldServices | null;
   /** The blackout switch (M02b2): TrafficControl adopts it unchanged; until then the QA bridge and the debug panel set it. */
   readonly blackout: Blackout;
 }
@@ -270,6 +314,8 @@ function isWorldConfig(v: unknown): v is WorldSimConfig {
 /** A fresh module instance (tests build their own; each worker generation gets one through the exported singleton). */
 export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
+  let api: WorldServices | null = null;
+  let sendQa: ((name: string, data: unknown) => void) | null = null;
   const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
@@ -278,32 +324,101 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     order: 0,
     run: (ctx) => state?.step(ctx),
   };
+  // The map patch (blips, GPS route) goes out as a sim event once a tick changed it, before the snapshot is written.
+  let events: SimEventLog | null = null;
+  const mapSystem: SystemDef = {
+    id: 'world.map',
+    owner: 'S02',
+    stage: SimStage.Publish,
+    order: 900,
+    run: (ctx) => {
+      const patch = api?.flushMap(ctx.tick);
+      if (patch && events) events.push({ t: 'world.map', tick: ctx.tick, n: patch.rev, s: JSON.stringify(patch) });
+    },
+  };
   return {
     id: 'world.streaming',
-    systems: [system],
+    systems: [system, mapSystem],
     get state() {
       return state;
     },
+    get api() {
+      return api;
+    },
     blackout,
-    side: () => (state ? blackout.side() : {}),
+    side: () => {
+      if (!state) return {};
+      const out: Record<string, unknown> = blackout.side();
+      // the fog far-plane factor near the county line (1 elsewhere; absent then)
+      if (api && api.boundaries.fog < 1) out['wf'] = Math.round(api.boundaries.fog * 1000) / 1000;
+      return out;
+    },
     onDebug(cmd: DebugCommand): void {
       if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
+      if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data));
     },
     onInit(ctx: SimModuleContext): void {
       const raw = ctx.boot.config['world'];
       state?.dispose();
+      api?.dispose();
       state = null;
+      api = null;
+      ctx.sim.services.world.api = null;
+      ctx.sim.services.world.bounds = null;
       for (const by of [...blackout.owners()]) blackout.set(false, by);
       if (!isWorldConfig(raw)) return;
       const port = ctx.ports[WORLD_PORT] as PackPort | undefined;
       if (!port) throw new Error('the world streaming module needs the pack channel port (InitMessage.p.ports.world)');
       const log = ctx.runtime.env.log;
+      events = ctx.sim.services.events;
+      sendQa = (name, data) => void ctx.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());
       ctx.sim.core.addResource(blackout.resource());
+      if (raw.index) api = installWorldServices(ctx, world, raw.index, blackout);
     },
   };
+}
+
+/**
+ * Builds the world services on the live sim (M02c1): the engine host for the teleport, the barrier colliders, the play-bounds wall,
+ * the hashed resources, the registration on `services.world`, and the two packs that arrive after the first chunks.
+ */
+function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: WorldIndex, blackout: Blackout): WorldServices {
+  const sim = ctx.sim;
+  const events = sim.services.events;
+  const host: TeleportHost = {
+    playerPos: () => {
+      const p = playerSide(sim.ecs as unknown as EcsWorld);
+      return p ? [p.pos[0], p.pos[1], p.pos[2]] : null;
+    },
+    begin: (x, y, z) => {
+      try {
+        const r = requestTeleport(sim.ecs, sim.services, sim.ecs.byKey('player:0'), [x, y, z], sim.core.tick);
+        return r.ok ? { ok: true } : { ok: false, reason: 'busy' };
+      } catch {
+        return { ok: false, reason: 'no-player' };
+      }
+    },
+    active: () => sim.services.control.teleportActive,
+    fade: (dir) => events.push({ t: 'world.teleport', tick: sim.core.tick, s: dir }),
+  };
+  const api = createWorldApi(world.store, index, { tick: () => sim.core.tick }, {
+    blackout,
+    host,
+    onBoundary: (e) => events.push({ t: 'world.boundary', tick: e.tick, s: e.s }),
+    onBarrierChange: (key) => void world.feeder.refresh(key, world.store),
+  });
+  world.api = api;
+  world.feeder.extras = (key) => api.barrierPrisms(key);
+  sim.backend.addChunkStatics('world.bounds', { prisms: Float32Array.from(playWallPrisms(api.play)) });
+  for (const r of api.resources()) sim.core.addResource(r);
+  sim.services.world.api = api;
+  sim.services.world.bounds = api.bounds;
+  world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
+  world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
+  return api;
 }
 
 /** The module `apps/web/src/workers/sim.worker.ts` composes into the sim worker. */

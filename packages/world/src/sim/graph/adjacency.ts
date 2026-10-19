@@ -34,7 +34,7 @@ export class RoadNetwork {
   /** Bumped by every residency change; caches keyed on it stay valid between changes. */
   version = 0;
 
-  private readonly topo: GraphTopology | null;
+  private topo: GraphTopology | null;
   private readonly residentEdges = new Map<EdgeId, ResidentEdge>();
   private readonly residentNodes = new Map<NodeId, RoadNode>();
   private readonly junctionById = new Map<number, Junction>();
@@ -66,6 +66,13 @@ export class RoadNetwork {
 
   constructor(topology: GraphTopology | null = null) {
     this.topo = topology;
+  }
+
+  /** Installs the topology once it has loaded (it arrives after the first chunks): the structure is rebuilt from it. */
+  setTopology(t: GraphTopology): void {
+    this.topo = t;
+    this.dirty = true;
+    this.version++;
   }
 
   get hasTopology(): boolean {

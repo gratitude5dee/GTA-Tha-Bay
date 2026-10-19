@@ -50,6 +50,11 @@ export class RoadGraph implements RoadGraphQuery {
     this.junctions = new JunctionRuntime(net, deps);
   }
 
+  /** The topology changed under the network: drop what was built from the old one. */
+  topologyChanged(): void {
+    this.chords = null;
+  }
+
   edge(id: EdgeId): Readonly<RoadEdge> | null {
     return this.net.resident(id)?.edge ?? null;
   }

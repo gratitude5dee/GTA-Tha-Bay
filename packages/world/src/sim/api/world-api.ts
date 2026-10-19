@@ -17,7 +17,7 @@ import { RoadNetwork } from '../graph/adjacency.ts';
 import { RoadGraph } from '../graph/query.ts';
 import { MapApiImpl, type MapPatch } from '../map/map-api.ts';
 import { TrafficControlImpl } from '../traffic/control.ts';
-import { BoundaryRuntime, nearestShoreNode, shoreRespawnPose, type WorldBoundaryEvent } from './boundaries.ts';
+import { BoundaryRuntime, barrierPrism, nearestShoreNode, shoreRespawnPose, type WorldBoundaryEvent } from './boundaries.ts';
 import { PlaceIndexImpl, type LabelFn } from './places.ts';
 import { PortalRuntime } from './portals.ts';
 import { WorldQueryImpl, type ChunkSource } from './query.ts';
@@ -64,6 +64,11 @@ export interface WorldServices extends WorldApi {
   readonly bounds: WorldBoundsPort;
   /** The play box of config/world.bounds.json. */
   readonly play: { minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number };
+  /** Installs `map_data/sf-graph.v1` and `data/district-grid.v1` when they arrive (after the first chunks). */
+  setTopology(t: GraphTopology): void;
+  setDistrictGrid(g: DistrictGrid): void;
+  /** Prisms of the barriers that stand in a chunk now: county-line and closed or sealed bridge portals (they go into the statics feed). */
+  barrierPrisms(key: ChunkKey): number[];
   /** One sim tick of the services that run on a clock (the teleport in flight, the boundaries). */
   step(tick: number, player: { x: number; z: number } | null): void;
   /** The map patch to publish at `SimStage.Publish`, or null. */
@@ -133,6 +138,19 @@ export function createWorldApi(store: WorldStore, index: WorldIndex, clock: { ti
     step(tick, player) {
       teleport.step(tick);
       boundaries.step(tick, player);
+    },
+    setTopology(t) {
+      net.setTopology(t);
+      graph.topologyChanged();
+    },
+    setDistrictGrid: (g) => query.setGrid(g),
+    barrierPrisms(key) {
+      const out: number[] = [];
+      for (const p of portals.list()) {
+        if (p.state === 'open' || p.kind === 'ferry' || chunkKeyAt(9, p.x, p.z) !== key) continue;
+        out.push(...barrierPrism(p));
+      }
+      return out;
     },
     flushMap: (tick) => map.flush(tick),
     resources: () => [traffic.resource(), portals.resource()],

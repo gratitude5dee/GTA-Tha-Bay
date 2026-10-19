@@ -31,6 +31,12 @@ export interface StaticsStep {
 }
 
 export class StaticsFeeder {
+  /**
+   * Extra prisms (packed like `SimChunk.prisms`) to add to a chunk's colliders when it is fed: the county-line and portal
+   * barriers of M02c1. Null or empty adds nothing.
+   */
+  extras: ((key: ChunkKey) => ArrayLike<number> | null) | null = null;
+
   /** Chunks with terrain colliders in the backend. */
   readonly terrain = new Set<ChunkKey>();
   /** Failed chunks with an invisible wall in the backend. */
@@ -45,6 +51,27 @@ export class StaticsFeeder {
 
   has(key: ChunkKey): boolean {
     return this.terrain.has(key);
+  }
+
+  /** The colliders of a chunk: its own plus the extras. */
+  private shapesOf(c: SimChunk): ReturnType<typeof toStaticShapeSet> {
+    const base = toStaticShapeSet(c);
+    const extra = this.extras?.(c.key);
+    if (!extra || extra.length === 0) return base;
+    const joined = new Float32Array(base.prisms.length + extra.length);
+    joined.set(base.prisms, 0);
+    for (let i = 0; i < extra.length; i++) joined[base.prisms.length + i] = extra[i] as number;
+    return { ...base, prisms: joined };
+  }
+
+  /** Rebuilds the colliders of a chunk that is in the backend (a portal changed state); the chunk's payload is read from `store`. */
+  refresh(key: ChunkKey, store: ChunkStore<SimChunk>): boolean {
+    if (!this.terrain.has(key)) return false;
+    const payload = store.payload(key);
+    if (!payload) return false;
+    this.backend.removeChunkStatics(key);
+    this.backend.addChunkStatics(key, this.shapesOf(payload));
+    return true;
   }
 
   /** The store evicted `key`: its colliders go at once. */
@@ -85,7 +112,7 @@ export class StaticsFeeder {
         const u = store.unit('p0', r.key);
         if (!u) continue;
         if (u.state === 'ready' && u.payload) {
-          this.backend.addChunkStatics(r.key, toStaticShapeSet(u.payload));
+          this.backend.addChunkStatics(r.key, this.shapesOf(u.payload));
           this.terrain.add(r.key);
           return { added: r.key, wall: false, removed };
         }
