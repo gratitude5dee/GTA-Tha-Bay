@@ -61,7 +61,7 @@ export class CameraRigImpl implements CameraRig {
   lastToggleRefused = false;
   /** True while the player capsule should be hidden (first person). */
   get playerHidden(): boolean {
-    return this._mode === 'fp';
+    return this._mode === 'fp' || this._mode === 'xr';
   }
 
   private readonly opts: CameraRigOptions;
@@ -81,6 +81,7 @@ export class CameraRigImpl implements CameraRig {
   private clock = 0;
   private vehicleView: VehicleView = 'chase-mid';
   private readonly listeners = new Set<(m: CameraMode) => void>();
+  private xrActive = false;
 
   private smoothed = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
   private initialized = false;
@@ -125,11 +126,32 @@ export class CameraRigImpl implements CameraRig {
   }
 
   get locked(): boolean {
-    return this.directive?.lockPlayerToggle === true;
+    return this.xrActive || this.directive?.lockPlayerToggle === true;
+  }
+
+  /**
+   * An XR session started (M01b2 smoke): `mode: 'xr'`, origin `feet`, the player toggle locked, and no push, shake or
+   * locomotion from the rig. The headset drives the camera; sim directives keep arriving but cannot change the mode until
+   * `exitXr`.
+   */
+  enterXr(): void {
+    this.xrActive = true;
+    this.lastToggleRefused = false;
+    this.setMode('xr');
+  }
+
+  /** The session ended: back to the player's own first or third person. */
+  exitXr(): void {
+    this.xrActive = false;
+    this.setMode(this.userMode);
+  }
+
+  get inXr(): boolean {
+    return this.xrActive;
   }
 
   toggleFpTp(): boolean {
-    if (this.locked || this._mode === 'cinematic' || this._mode === 'xr') {
+    if (this.xrActive || this.locked || this._mode === 'cinematic' || this._mode === 'xr') {
       this.lastToggleRefused = true;
       return false;
     }
@@ -167,6 +189,7 @@ export class CameraRigImpl implements CameraRig {
 
   apply(d: CameraDirective): void {
     this.directive = d as PublishedCamera;
+    if (this.xrActive) return;
     if (d.shake && d.shake.amp > this.shakeAmp) {
       this.shakeAmp = d.shake.amp;
       this.shakeDecay = d.shake.decayPerSec;

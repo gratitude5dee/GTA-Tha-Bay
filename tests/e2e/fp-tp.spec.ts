@@ -39,7 +39,7 @@ async function boot(page: Page): Promise<PlayerObs> {
   // The software renderer draws the full-window play view at about 6 frames a second at 720p, and the sim clamps a
   // frame to 0.15 s of ticks; a small viewport keeps it near 60 ticks a second, which the 12 s budget assumes.
   await page.setViewportSize({ width: 480, height: 270 });
-  await page.goto('/?debug=1');
+  await page.goto('/?debug=1&world=walk-drop');
   await waitForEngine(page);
   await expect.poll(async () => (await observe(page)).player != null, { timeout: 30_000 }).toBe(true);
   // The camera rig exists once the view does; give it a few frames to receive the first directive.

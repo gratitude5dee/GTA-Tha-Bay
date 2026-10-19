@@ -47,6 +47,8 @@ export interface SimHostOptions {
   /** Called when the worker raised an error or stopped producing snapshots. The caller decides whether to restart. */
   onCrash?(reason: 'error' | 'stalled', detail: string): void;
   onLog?(level: 'info' | 'warn' | 'error', message: string): void;
+  /** Receives every batch of sim events the worker reports (ownership transitions, audio cues, chunk loads), oldest first. */
+  onSimEvents?(events: readonly SimEvent[]): void;
 }
 
 /** No fresh snapshot for this long while frames flow means the worker is gone (01-engine.md section 5). */
@@ -208,6 +210,7 @@ export class SimHostImpl implements SimHost {
           this.simEvents.push(e);
           if (this.simEvents.length > 100) this.simEvents.shift();
         }
+        this.opts.onSimEvents?.(m.p.events);
         break;
       default:
         this.events.push(m);

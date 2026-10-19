@@ -88,7 +88,7 @@ describe('the gray-box sim (AC-4)', () => {
 /** Geometric normal of triangle t of a buffer set. */
 function faceNormal(m: MeshBuffers, t: number): [number, number, number] {
   const i = [m.indices[t * 3], m.indices[t * 3 + 1], m.indices[t * 3 + 2]] as [number, number, number];
-  const p = (k: number, o: number): number => m.positions[i[k] * 3 + o] as number;
+  const p = (k: number, o: number): number => m.positions[(i[k] as number) * 3 + o] as number;
   const ux = p(1, 0) - p(0, 0), uy = p(1, 1) - p(0, 1), uz = p(1, 2) - p(0, 2);
   const vx = p(2, 0) - p(0, 0), vy = p(2, 1) - p(0, 1), vz = p(2, 2) - p(0, 2);
   return [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];

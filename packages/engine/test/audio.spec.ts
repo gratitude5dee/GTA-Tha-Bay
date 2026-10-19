@@ -10,7 +10,6 @@ type Call = [kind: 'set' | 'ramp' | 'cancel', value: number, time: number];
 class FakeParam implements AudioParamLike {
   value = 1;
   calls: Call[] = [];
-  constructor(private readonly clock: { t: number }) {}
   cancelScheduledValues(t: number): void {
     this.calls.push(['cancel', 0, t]);
   }
@@ -35,19 +34,19 @@ class FakeNode {
 }
 class FakeGain extends FakeNode implements GainNodeLike {
   gain: FakeParam;
-  constructor(clock: { t: number }) {
+  constructor(_clock: { t: number }) {
     super();
-    this.gain = new FakeParam(clock);
+    this.gain = new FakeParam();
   }
 }
 class FakeBiquad extends FakeNode implements BiquadLike {
   type = 'lowpass';
   frequency: FakeParam;
   Q: FakeParam;
-  constructor(clock: { t: number }) {
+  constructor(_clock: { t: number }) {
     super();
-    this.frequency = new FakeParam(clock);
-    this.Q = new FakeParam(clock);
+    this.frequency = new FakeParam();
+    this.Q = new FakeParam();
   }
 }
 class FakeSource extends FakeNode implements BufferSourceLike {
@@ -55,9 +54,9 @@ class FakeSource extends FakeNode implements BufferSourceLike {
   playbackRate: FakeParam;
   onended: (() => void) | null = null;
   started: number[] = [];
-  constructor(clock: { t: number }) {
+  constructor(_clock: { t: number }) {
     super();
-    this.playbackRate = new FakeParam(clock);
+    this.playbackRate = new FakeParam();
   }
   start(when = 0): void {
     this.started.push(when);
