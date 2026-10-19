@@ -180,6 +180,46 @@ describe('provenance gate (AC-2)', () => {
     expect(rules(runProvenanceCheck({ root, dist: path.join(root, 'dist'), release: true }).findings)).toEqual(['placeholder-tag']);
   });
 
+  it('walks assets/world/*.lock.json: a world lock whose pack sha256 has no record fails with no-record (DL-667)', () => {
+    const root = tempRoot();
+    const pack = randomBytes(24);
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    const res = provenance(root);
+    expect(rules(res.findings)).toEqual(['no-record']);
+    expect(files(res.findings)).toEqual(['assets/world/sf.lock.json']);
+  });
+
+  it('passes a world lock whose pack and source-stamp records are present and allowlisted', () => {
+    const root = tempRoot();
+    const stamp = randomBytes(24);
+    const pack = randomBytes(24);
+    putRecord(root, record(stamp, { origin: 'open_data', license: 'PDDL-1.0', attribution: 'City and County of San Francisco', source: { url: 'https://data.sf.gov/resource/ynuv-fyni.json', dataset_id: 'ynuv-fyni', retrieved: '2026-10-19T00:00:00Z' } }, 'raw/sf/ynuv-fyni.jsonl'));
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: '© OpenStreetMap contributors', derived_from: [sha(stamp)], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'assets/world_pack/p0-1-1/default.pack'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(stamp), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('fails a world lock whose source stamp record has a licence missing from the allowlist with license-not-allowed (DL-667)', () => {
+    const root = tempRoot();
+    const stamp = randomBytes(24);
+    const pack = randomBytes(24);
+    putRecord(root, record(stamp, { origin: 'open_data', license: 'LicenseRef-Unlisted-Source', attribution: 'Somebody', source: { url: null, dataset_id: 'd', retrieved: '2026-10-19T00:00:00Z' } }, 'raw/sf/x.jsonl'));
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: '© OpenStreetMap contributors', derived_from: [sha(stamp)], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'assets/world_pack/p0-1-1/default.pack'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(stamp), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(rules(provenance(root).findings)).toEqual(['license-not-allowed']);
+  });
+
+  it('flags a world pack whose stamp record is missing (derivation-unrooted) and passes the repository own tree', () => {
+    const root = tempRoot();
+    const pack = randomBytes(24);
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: 'x', derived_from: [sha('missing stamp')], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'a'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(rules(provenance(root).findings)).toEqual(['derivation-unrooted']);
+    const dist = mkdtempSync(path.join(os.tmpdir(), 'dv-prov-dist-'));
+    expect(runProvenanceCheck({ root: toolsRoot, dist, emitCredits: true }).findings).toEqual([]);
+    rmSync(dist, { recursive: true, force: true });
+  });
+
   it('requires attributions in credits.json and can emit it', () => {
     const root = tempRoot();
     const bytes = randomBytes(32);

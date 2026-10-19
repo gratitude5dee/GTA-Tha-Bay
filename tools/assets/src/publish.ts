@@ -7,7 +7,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { CONTENT_CLASSES, contentTypeOf } from '../../../packages/shared/src/assets/content-type.ts';
 import { formatFinding } from '../../../packages/shared/src/assets/gates/types.ts';
-import { pointerText, writeCatalogDir, type Blob, type GitStamp } from './catalog.ts';
+import { lockGitStamp, pointerText, writeCatalogDir, type Blob, type CatalogBuild, type GitStamp } from './catalog.ts';
+import { mergeFragment, readFragment, type FragmentBlob } from './fragment.ts';
 import type { AssetLock } from './lock.ts';
 import { createDirUploader } from './uploader-dir.ts';
 import { createRcloneUploader, rclonePreflight, spawnRunner, type ClassFiles, type Runner, type Uploader } from './uploader-rclone.ts';
@@ -30,6 +31,8 @@ export interface PublishOptions {
   distRoot?: string | undefined;
   stamp?: GitStamp | undefined;
   baseline?: AssetLock | null | undefined;
+  /** catalog.fragment.json of a world bake (M02a1): needs a dir: target and --pointer-out. */
+  fragment?: string | undefined;
 }
 export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string }
 
@@ -63,15 +66,45 @@ export function classUnits(blobs: readonly Blob[], srcDir: string): ClassFiles[]
 export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
   const log = o.log ?? ((l: string) => console.log(l));
   const penv = o.processEnv ?? process.env;
+  if (o.fragment !== undefined) {
+    if (!o.target.startsWith('dir:')) {
+      log('assets:publish: --fragment needs a dir: target');
+      return { code: 2, uploaded: 0, total: 0 };
+    }
+    if (!o.pointerOut) {
+      log('assets:publish: --fragment needs --pointer-out (the committed pointers are never written on this path)');
+      return { code: 2, uploaded: 0, total: 0 };
+    }
+  }
   const v = verifyAssets(o.root, { baseline: o.baseline, stamp: o.stamp });
   if (v.findings.length > 0 || !v.build) {
     for (const f of v.findings) log(formatFinding(f));
     log(`assets:publish: verify FAILED (${v.findings.length} findings); nothing uploaded`);
     return { code: 1, uploaded: 0, total: 0 };
   }
-  const build = v.build;
+  let build: CatalogBuild = v.build;
+  log(`verify ok (${Object.keys(build.catalog.entries).length} assets, ${build.blobs.length} blobs, build ${build.catalog.buildId})`);
+  let fragmentBlobs: FragmentBlob[] = [];
+  if (o.fragment !== undefined) {
+    const dest = path.resolve(o.target.slice(4));
+    let merged;
+    try {
+      merged = mergeFragment(build, readFragment(path.resolve(o.fragment)), dest, o.stamp ?? lockGitStamp(o.root));
+    } catch (e) {
+      log(`assets:publish: --fragment ${o.fragment}: ${(e as Error).message}`);
+      return { code: 1, uploaded: 0, total: 0 };
+    }
+    if (!merged.build) {
+      for (const f of merged.findings) log(formatFinding(f));
+      log(`assets:publish: fragment rejected (${merged.findings.length} findings); nothing uploaded`);
+      return { code: 1, uploaded: 0, total: 0 };
+    }
+    for (const r of merged.replaced) log(`fragment replaces ${r} in this catalog (the lock entry is untouched)`);
+    log(`fragment merged: ${merged.added.length} added, ${merged.replaced.length} replaced`);
+    build = merged.build;
+    fragmentBlobs = merged.fragmentBlobs;
+  }
   const buildId = build.catalog.buildId;
-  log(`verify ok (${Object.keys(build.catalog.entries).length} assets, ${build.blobs.length} blobs, build ${buildId})`);
 
   const srcDir = writeCatalogDir(o.root, build, o.distRoot);
   const bucket = bucketOf(o.env);
@@ -120,7 +153,7 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
     return { code: 1, uploaded, total, buildId };
   }
 
-  const expected = build.blobs.map((b) => ({ key: b.key, bytes: b.bytes }));
+  const expected = [...build.blobs.map((b) => ({ key: b.key, bytes: b.bytes })), ...fragmentBlobs.map((b) => ({ key: b.key, bytes: b.bytes }))];
   const problems = uploader.verify(expected);
   if (o.target === 'r2' && penv.MEDIA_ORIGIN) {
     const head = o.head ?? defaultHead;

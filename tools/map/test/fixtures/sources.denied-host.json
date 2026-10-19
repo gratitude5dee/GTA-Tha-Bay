@@ -1,0 +1,29 @@
+{
+  "schema": "world-sources/1",
+  "note": "DL-676 fixture: a sources.json with a Mapbox URL must fail schema validation. The test builds the tile.googleapis.com variants in memory.",
+  "sources": [
+    {
+      "id": "mapbox-terrain",
+      "kind": "terrarium",
+      "url": "https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw",
+      "file": "terrarium",
+      "licence": "LicenseRef-Vendor-Mapbox",
+      "licenceUrl": "https://www.mapbox.com/legal/tos",
+      "attribution": "Mapbox",
+      "source": "must be refused",
+      "surfaces": ["pause-credits"]
+    }
+  ],
+  "terrarium": { "core": { "z": 15, "boxes": ["play"] }, "far": { "z": 12, "boxes": ["far"] } },
+  "osm": {
+    "note": "fixture",
+    "bboxes": {
+      "sf": { "minLat": 37.68, "minLng": -122.55, "maxLat": 37.89, "maxLng": -122.3 },
+      "backdrop": { "minLat": 37.3, "minLng": -122.6, "maxLat": 38.0, "maxLng": -121.8 }
+    },
+    "tagFilter": "nwr/building",
+    "commands": ["osmium version"],
+    "backdropCommands": []
+  },
+  "areas": {}
+}

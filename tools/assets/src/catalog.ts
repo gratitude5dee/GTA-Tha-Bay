@@ -96,6 +96,17 @@ function manifestOf(s: LoadedSpec, lock: AssetLock | null, bySha: ReadonlyMap<st
   return m;
 }
 
+/** buildId, catalog, manifest bytes and pointer for a set of entries (shared by the lock build and the fragment merge). */
+export function finalizeCatalog(entries: Record<AssetRef, AssetManifest>, blobs: Blob[], stamp: GitStamp): CatalogBuild {
+  const buildId = sha256Bytes(Buffer.from(canonicalize(entries))).slice(0, 16);
+  const catalog: AssetCatalog = { schema: 'asset-catalog/1', c07: C07_VERSION, buildId, gitSha: stamp.gitSha, createdAt: stamp.createdAt, entries };
+  const manifestBytes = Buffer.from(`${canonicalize(catalog)}\n`);
+  const sha256 = sha256Bytes(manifestBytes);
+  const manifestKey = `manifests/assets-${sha256}.json`;
+  const pointer: CatalogPointer = { schema: 'asset-catalog-pointer/1', sha256, key: manifestKey, bytes: manifestBytes.length };
+  return { catalog, manifestBytes, manifestKey, pointer, blobs };
+}
+
 export function buildCatalogFrom(
   specs: readonly LoadedSpec[],
   lock: AssetLock | null,
@@ -108,13 +119,7 @@ export function buildCatalogFrom(
     if (!isReleased(s)) continue;
     entries[s.ref] = manifestOf(s, lock, bySha, blobs);
   }
-  const buildId = sha256Bytes(Buffer.from(canonicalize(entries))).slice(0, 16);
-  const catalog: AssetCatalog = { schema: 'asset-catalog/1', c07: C07_VERSION, buildId, gitSha: stamp.gitSha, createdAt: stamp.createdAt, entries };
-  const manifestBytes = Buffer.from(`${canonicalize(catalog)}\n`);
-  const sha256 = sha256Bytes(manifestBytes);
-  const manifestKey = `manifests/assets-${sha256}.json`;
-  const pointer: CatalogPointer = { schema: 'asset-catalog-pointer/1', sha256, key: manifestKey, bytes: manifestBytes.length };
-  return { catalog, manifestBytes, manifestKey, pointer, blobs };
+  return finalizeCatalog(entries, blobs, stamp);
 }
 
 export function buildCatalog(root: string, stamp: GitStamp = lockGitStamp(root)): { build: CatalogBuild; problems: string[] } {

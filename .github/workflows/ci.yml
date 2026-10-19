@@ -78,6 +78,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  # M02a1: world content gates. The graybox fixture is byte-checked (moved here from the unit step), then the committed
+  # civic-excerpt is baked twice with --force and every output byte is compared. `synth` runs where a job needs the full
+  # world (from M02b1), restored from the same .cache/map entry.
+  content:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: .cache/map
+          key: map-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+          restore-keys: map-
+      - run: pnpm map:fixture graybox --check
+      - run: pnpm map:build -- --area civic-excerpt --repro
+
   # M00d: committed device reports are judged by perf:verify --auto (tier from the report, checklist from the path
   # docs/device-runs/<M##>/<device>/perf.json -> tools/ci/checklists/<M##>-<device>.json). Pull requests only; it looks
   # at the perf.json files the PR changed under docs/device-runs/** and docs/device-spike/**.
