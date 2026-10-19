@@ -177,11 +177,11 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 13 steps: one test character, three shots, four provider clips | $4.36 |
+| Spike (M00c) | $10 | 11 steps: one test character, one keyframe, three video clips (no `blocked` provider, DL-286) | $3.76 |
 | Characters (M10a1, M10a2) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
 | Cutscenes (M05c3, M10b) | $40 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
 | Buffer | $8 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172); at most one voice design or three vehicle bodies, only with owner sign-off | $0 planned |
-| **Total** | **$100** | | **≈ $84 planned** |
+| **Total** | **$100** | | **≈ $83 planned** |
 
 Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated vehicle bodies, generated props and textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
 

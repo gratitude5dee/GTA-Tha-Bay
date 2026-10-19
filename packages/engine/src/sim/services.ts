@@ -1,5 +1,6 @@
 import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
+import { SimEventLog } from './events.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
 
 /**
@@ -20,10 +21,77 @@ export interface EngineServices extends SimServices {
   input: InputFrame | null;
   /** The physics backend once the session has one (M01a2); null in physics-free sims. */
   physics: PhysicsSystemsBackend | null;
+  /** Facts for the page and other systems (ownership transitions). Drained by the host once per frame. */
+  readonly events: SimEventLog;
+  /** State of the ownership machine that does not fit the `Control` component (M01b1). */
+  readonly control: ControlShared;
+  /** Camera lock and the collision result the Publish stage puts in the snapshot side block (M01b1). */
+  camera: CameraDirectiveState;
+}
+
+/** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
+export interface ControlShared {
+  teleportActive: boolean;
+  teleportX: number;
+  teleportY: number;
+  teleportZ: number;
+}
+
+/**
+ * Camera state owned by the sim (C04 `CameraDirective`). `lockPlayerToggle` and `reason` are simulation state: hashed and
+ * checkpointed. The rest is derived by the camera collision system in the Publish stage and read by the snapshot publisher.
+ */
+export interface CameraDirectiveState {
+  lockPlayerToggle: boolean;
+  reason: 'player' | 'vehicle' | 'mission' | 'cutscene' | 'mode' | 'debug';
+  /** EntityHandle the camera follows; 0 when there is none. Derived. */
+  target: number;
+  /** Collision result along the tp offset for the right and the left shoulder, metres from the anchor. Derived. */
+  allowedRight: number;
+  allowedLeft: number;
 }
 
 export function createSimServices(seed: number): EngineServices {
-  return { xrPoses: null, rng: new RngStreams(seed), input: null, physics: null };
+  return {
+    xrPoses: null,
+    rng: new RngStreams(seed),
+    input: null,
+    physics: null,
+    events: new SimEventLog(),
+    control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0 },
+    camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
+  };
+}
+
+/** The ownership machine's shared state and the camera lock as a hashed, checkpointed resource. */
+export function controlResource(services: Pick<EngineServices, 'control' | 'camera'>): SimResource {
+  const reasons = ['player', 'vehicle', 'mission', 'cutscene', 'mode', 'debug'] as const;
+  return {
+    name: 'control',
+    hash(h) {
+      const c = services.control;
+      h.u8(c.teleportActive ? 1 : 0).f64(c.teleportX).f64(c.teleportY).f64(c.teleportZ);
+      h.u8(services.camera.lockPlayerToggle ? 1 : 0).u8(reasons.indexOf(services.camera.reason));
+    },
+    save(w) {
+      const c = services.control;
+      w.u8(c.teleportActive ? 1 : 0);
+      w.f64(c.teleportX);
+      w.f64(c.teleportY);
+      w.f64(c.teleportZ);
+      w.u8(services.camera.lockPlayerToggle ? 1 : 0);
+      w.u8(reasons.indexOf(services.camera.reason));
+    },
+    load(r) {
+      const c = services.control;
+      c.teleportActive = r.u8() !== 0;
+      c.teleportX = r.f64();
+      c.teleportY = r.f64();
+      c.teleportZ = r.f64();
+      services.camera.lockPlayerToggle = r.u8() !== 0;
+      services.camera.reason = reasons[r.u8()] ?? 'player';
+    },
+  };
 }
 
 /** The RNG streams as a hashed, checkpointed resource (C02 rule 3: stream states are hashed resources). */

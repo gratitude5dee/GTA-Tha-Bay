@@ -24,13 +24,27 @@ The game engine: deterministic sim (`src/sim`), headless host (`src/headless`), 
 | `src/client/boot/`, `src/client/snapshot/`, `src/client/debug/` | `bootEngine()`, snapshot reader, interpolation, three object pool, `window.__dvBridge.engine` (QA) |
 | `bench/physics-builds.ts` | `pnpm --filter @dv/engine bench:physics`: tick cost of both builds, writes `bench/results/physics-builds.json` |
 
-Not here yet: input binders and the character (M01b1), vehicles (M03a1), saves (M04a).
+## Contents (M01b1)
+
+| Path | What |
+|---|---|
+| `src/client/input/` | `RawInputState`, `KbmBinder` (Pointer Lock with `unadjustedMovement`, release on blur), `GamepadBinder` (W3C standard mapping only), `GestureTracker`, `InputRouterImpl` (context stack, gestures, chords, hold-to-toggle, overrides, rebind capture, look), quantization, `writeInputFrame` into the input block |
+| `config/input/defaults.{kbm,gamepad}.json` | default maps for `onFoot` and `menu` (schema `config/schemas/input-map.schema.json`) |
+| `src/sim/control/` | `onFootSystem` (PhysicsPre: speeds, hill factor, jump, KCC move), `ownershipSystem` (Control: Ready/Waiting/Entering/Active/Leaving, teleport 700/701, ragdoll stub 300/301), state ids |
+| `src/sim/camera/collision.ts` | Publish-stage sphere cast from the chest anchor for both shoulders, the `CameraDirective` the snapshot side block carries |
+| `src/sim/prefabs/`, `assets/prefabs/player.default.json` | `PrefabRegistry` (`PrefabService`), prefab JSON schema, the player prefab (`Transform` is the feet) |
+| `src/client/camera/rig.ts` | `CameraRigImpl`: tp/fp, lag smoothing, pull-in and 0.3 s ease-out, fp/tp toggle and its lock |
+| `src/sim/fixtures/walk-course.ts`, `src/sim/scenarios/walk-drop*.ts` | the 0.35 m and 0.5 m steps, the 10 % grade, the 50 degree bank; `walk-drop` (default page scenario) and its seeded bot |
+
+Not here yet: touch, the anim graph, free cam and the debug panel (M01b2), vehicles (M03a1), saves (M04a).
 
 ## Debug cube view and QA
 
 - The home page boots the engine and draws `physics-drop` in a corner canvas. QA builds (`VITE_DV_QA=1`) add `window.__dvBridge.engine`: `observe()` (tick, stats, hash, transport, physicsBuild, restarts, snapshotReuse, records), `act({ t: 'debug.crash' | 'debug.stall', ms | 'debug.rebase' })`, `step(n)`, `setPaused()`.
-- Flags (QA only): `?profile=canonical` (deterministic-compat build), `?transport=pm` (force the postMessage fallback).
-- `/qa/determinism.html` (QA builds) runs the golden vectors and the 10,000-tick scenario in `sim.worker` and prints the final hash; `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism` compares it with `test/golden/determinism.physics-drop.json`.
+- Flags (QA only): `?profile=canonical` (deterministic-compat build), `?transport=pm` (force the postMessage fallback), `?debug=1` (the canvas fills the window: click it for Pointer Lock; WASD, Shift, Space, V camera, C shoulder, Esc or P pause).
+- M01b1 adds to `observe()`: `player { pos, vel, control, owner, grounded }` and `camera { mode, allowedDistance, lastToggleRefused, locked }`; `act()` takes `debug.teleport { pos }`, `debug.ragdoll` and `debug.camera.lock { on }`.
+- `/qa/determinism.html` (QA builds) runs the golden vectors and the 10,000-tick scenarios `physics-drop` and `walk-drop` in `sim.worker` and prints the final hashes; `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism` compares them with `test/golden/determinism.{physics-drop,walk-drop}.json`.
+- `DV_E2E_PORT=<port>` moves the Playwright web server off 8788, which parallel Builders on one machine need.
 
 ## Import rules
 
@@ -45,7 +59,7 @@ Not here yet: input binders and the character (M01b1), vehicles (M03a1), saves (
 pnpm --filter @dv/engine test              # all specs (about 15 s, mostly the determinism scenario)
 pnpm --filter @dv/engine test:lint-bans    # fixtures in test/fixtures/banned/ must fail the determinism lint
 pnpm --filter @dv/engine test:headless     # sim boots without window, document, navigator.xr; snapshot/restore
-pnpm --filter @dv/engine test:determinism  # scenarios ecs-churn and physics-drop, 10,000 ticks, hashes vs test/golden/
+pnpm --filter @dv/engine test:determinism  # scenarios ecs-churn, physics-drop and walk-drop, 10,000 ticks, hashes vs test/golden/
 DV_UPDATE_GOLDEN=1 pnpm --filter @dv/engine test:determinism   # rewrite the golden files (review the diff)
 pnpm --filter @dv/engine bench:physics     # tick cost, init and restart time of both Rapier builds
 ```

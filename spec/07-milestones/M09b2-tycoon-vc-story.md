@@ -51,7 +51,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
   - edit `config/unlocks.json` if `unlock.tycoon` lacks `source: 'base'`;
   - `assets/src/prop/stage-pitch-room/asset.json`.
 - `tests/e2e/tycoon/{tycoon-pitch.spec.ts, tycoon-story.spec.ts}`.
-- `packages/ui/src/i18n/en-US/tycoon-pitch.json`.
+- `content/ui/i18n/en.json` keys `tycoon.pitch.*` (DL-222, DL-247).
 - About 39 files. The 12 souls are short originals, about 900 words each.
 
 ## Interfaces

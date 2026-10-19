@@ -1,0 +1,20 @@
+{
+  "id": "player.default",
+  "kind": "player",
+  "version": 1,
+  "render": { "asset": "prop/graybox.capsule" },
+  "physics": { "body": "kinematic", "shape": "capsule", "dims": [0.55, 0.35], "groups": ["character"] },
+  "components": {
+    "Transform": { "qw": 1 },
+    "Velocity": {},
+    "BodyRef": {},
+    "CharacterBody": { "radius": 0.35, "height": 1.8, "grounded": 1, "groundNormalY": 1 },
+    "Control": { "owner": 1, "state": 100 },
+    "PlayerControlled": { "player": 0 },
+    "Health": { "hp": 100, "max": 100 },
+    "Anim": { "state": 0 },
+    "RenderKey": { "visible": 1 },
+    "CameraAnchor": { "headY": 1.7, "chestY": 1.35 },
+    "LocalPlayer": {}
+  }
+}

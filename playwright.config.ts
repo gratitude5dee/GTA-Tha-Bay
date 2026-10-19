@@ -8,7 +8,8 @@ const SWIFTSHADER_WEBGPU = [
   '--use-vulkan=swiftshader',
 ];
 
-const PORT = 8788;
+// Parallel Builders on one machine set DV_E2E_PORT so that each run serves its own build (a reused server would be someone else's).
+const PORT = Number(process.env.DV_E2E_PORT ?? 8788);
 
 // CI downloads the build artifact first and sets DV_SKIP_BUILD=1.
 const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --port ${PORT}`;

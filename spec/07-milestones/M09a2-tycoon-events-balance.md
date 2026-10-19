@@ -33,7 +33,7 @@ After this session Business Tycoon reaches **VS-Tycoon**. The repository gains:
 - **Content:**
   - `content/tycoon/events/{business,political,natural,cultural,market}.json`: the 30 events of §6, with the system events `vc.retrade` and `fin.bridge_offer`. `pol.hardware_tariff` and `pol.permit_freeze` ship disabled (no hardware or mobility sector exists, Q-S08-01).
   - `content/tycoon/theses.json` grows to 8 cards.
-  - LocKeys for every event title, body and choice go into `packages/ui/src/i18n/en-US/tycoon-events.json`.
+  - LocKeys for every event title, body and choice go into `content/ui/i18n/en.json` under `tycoon.events.*` (DL-222, DL-247).
   - `art` refs are `ui/ty-card-<id>`; an unresolved ref is a warning until M09b1.
 - **Story reuse proof (§7):** the fixture host `tests/tycoon/fixtures/story-business.host.ts` runs the 10 `both`-scope events over 1,000 seeded business-years. Unmapped metrics are no-ops. The real wiring is M05e1.
 - **`tools/ci/tycoon-sim/`:**
@@ -64,7 +64,7 @@ After this session Business Tycoon reaches **VS-Tycoon**. The repository gains:
 - Tests, colocated:
   - `packages/shared/src/events/{events.hazard.spec.ts, events.ctr.spec.ts, events.dist.spec.ts, events.effects.spec.ts, events.chain.spec.ts, events.content.spec.ts}`;
   - `packages/shared/src/tycoon/events/{events.story-host.spec.ts, tycoon.replay200.spec.ts}`.
-- `content/tycoon/events/{business,political,natural,cultural,market}.json`; edit `content/tycoon/theses.json`; `packages/ui/src/i18n/en-US/tycoon-events.json`.
+- `content/tycoon/events/{business,political,natural,cultural,market}.json`; edit `content/tycoon/theses.json`; `content/ui/i18n/en.json` keys `tycoon.events.*`.
 - `tools/ci/tycoon-sim/{cli.ts, run.ts, policies.ts, bands.ts, report.ts, baseline.ts}`, `tools/ci/tycoon-sim/test/{balance.bands.spec.ts, balance.selftest.spec.ts, determinism.spec.ts}` and `tools/ci/tycoon-sim/fixtures/{dominant-strategy.balance.json, chain-death.events.json, easy-mode.balance.json, offer-out-of-band.bot.ts}`.
 - `config/tycoon.bands.json`, `tests/tycoon/{report.schema.json, baseline.json}`, `tests/tycoon/fixtures/story-business.host.ts`.
 - `tools/ci/check-balance.ts` (M04d): register the `tycoon` suite.

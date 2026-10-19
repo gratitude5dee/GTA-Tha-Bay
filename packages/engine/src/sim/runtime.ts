@@ -2,7 +2,9 @@ import { SimStage, type BootPayload, type BotInput, type FrameSignal, type Input
 import type { DebugCommand, StatsReport } from './transport/envelope.ts';
 import type { WorkerCommand, WorkerTransport } from './transport/types.ts';
 import type { RetryEnv } from './physics/rapier-backend.ts';
-import { snapshotPublisher } from './publish.ts';
+import { publishedCamera } from './camera/collision.ts';
+import { requestRagdoll, requestTeleport } from './control/ownership.ts';
+import { playerSide, snapshotPublisher } from './publish.ts';
 import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
 
@@ -61,7 +63,14 @@ export class SimRuntime {
         sim.services.input = frame;
       },
     });
-    const publisher = snapshotPublisher(this.transport.snapshots, sim.ecs, () => sim.backend.origin);
+    const publisher = snapshotPublisher(this.transport.snapshots, sim.ecs, () => sim.backend.origin, () => {
+      const side: Record<string, unknown> = {};
+      const cam = publishedCamera(sim.services);
+      if (cam) side['cam'] = cam;
+      const pl = playerSide(sim.ecs);
+      if (pl) side['pl'] = pl;
+      return side;
+    });
     sim.core.addSystem(publisher);
     // Publish the starting state (stamped tick 0) so the page has something to draw before the first tick.
     publisher.run({ ...sim.core.ctx, tick: sim.core.tick - 1 });
@@ -105,6 +114,7 @@ export class SimRuntime {
     this.transport.snapshots.setAlpha(r.alpha);
     this.transport.snapshots.endFrame();
     this.framesHandled++;
+    this.postSimEvents();
     if (++this.frameGroups % STATS_EVERY_FRAMES === 0) this.postStats();
   }
 
@@ -140,10 +150,36 @@ export class SimRuntime {
           for (let n = 0; n < cmd.n; n++) sim.core.stepOnce();
           this.transport.snapshots.setAlpha(this.lastAlpha);
           this.transport.snapshots.endFrame();
+          this.postSimEvents();
+        }
+        break;
+      case 'debug.teleport':
+        if (sim) this.refuse(requestTeleport(sim.ecs, sim.services, sim.ecs.byKey('player:0'), cmd.pos, sim.core.tick), 'teleport');
+        break;
+      case 'debug.ragdoll':
+        if (sim) this.refuse(requestRagdoll(sim.ecs, sim.ecs.byKey('player:0')), 'ragdoll');
+        break;
+      case 'debug.camera.lock':
+        if (sim) {
+          sim.services.camera.lockPlayerToggle = cmd.on;
+          sim.services.camera.reason = cmd.on ? 'debug' : 'player';
         }
         break;
     }
     this.postStats();
+  }
+
+  private refuse(r: { ok: true } | { ok: false; reason: string }, what: string): void {
+    if (!r.ok) this.env.log?.('warn', `debug.${what} refused: ${r.reason}`);
+  }
+
+  /** Sends the sim events gathered since the last frame to the page (ownership transitions and refusals). */
+  private postSimEvents(): void {
+    const sim = this.sim;
+    if (!sim || sim.services.events.size === 0) return;
+    const events = sim.services.events.drain();
+    this.transport.postEvent({ v: 1, t: 'events', seq: 0, p: { events } });
+    for (const e of events) if (e.t === 'control.refused' && e.s) this.env.log?.('warn', `control: ${e.s}`);
   }
 
   statsReport(): StatsReport | null {

@@ -7,10 +7,12 @@ NPCs remember the player, speak, and move their mouths. Three things change on t
 - R-NPC-05: memory gives continuity within the quotas; generated speech always has subtitles; evals check the in-character safety rails on every soul change.
 - R-NPC-04: there is no real-voice cloning (`t3` needs `consented` + `voice_clone` + an unexpired consent). A `voice` kill scope forces text, and t2 needs a linked 18+ identity.
 - R-ENG-04: subtitles for every voiced line; the voice setting (`all`, `heroes`, `off`) is honoured.
+- R-UI-01 (part): the creator's voice pick gets an audible preview.
 
 ## Depends on
 - **M06a3** (dialogue-proxy): `DialogueService`, the step-4 memory hook, `line.delta {audio}` slots, `NpcRuntime`, fixture upstream mode.
 - Through M06a1: `DataPort.npcMemory`, migration 0003, the `JOBS` queue, `encounter_transcripts`.
+- **M04b2** (creator-phone-hud-kit): the creator Voice tab, its disabled Preview button and the 8 creator `voice` part ids (DL-292).
 - Contracts: C10 1.0 (§B2.6 memory types, §B2.7 voice catalog, `AudioChunk`, `VoiceTier`), C12 1.1 (route 52, `PlayerQuota` `voice_line`), C05 1.1 (`ProfileSettings.npc.voice`, `StorySlice.npcRelations`), C04 1.1 (`AudioService` bus `voice`, `HUMANOID_BONES` jaw), C07 1.1 (`mouth_atlas`, `audio_bark`, `extras.bones.jaw`), C16 1.1 (`npc.voice.client`).
 
 ## Scope in
@@ -27,6 +29,10 @@ NPCs remember the player, speak, and move their mouths. Three things change on t
   - fixture upstream in tests.
 - **Route 52** `DELETE /me/npc-memory?npcId=` → 204 (P0 token). Without `npcId` it deletes every NPC's memory and relationship rows for the profile.
 - **`TtsRouter.effectiveTier`**: the minimum over the inputs listed in `04-npc.md` §5.7 (soul tier, setting, governor and switches, `voice` kill scope, `voice_line` quota, identity tier for t2, consent for t3). `speak(t1)` calls Workers AI Aura per sentence (≥ 12 chars, `splitSentences`) and emits `line.delta {audio:{codec:'mp3'}}` chunks. One `voice_line` reservation per `line.done`. t2 (ElevenLabs) is implemented behind `ks:tts:elevenlabs` (on by default, Q-20). With `ELEVENLABS_API_KEY` unset it is never selected.
+- **Creator voice preview** (R-UI-01; closes the M04b2 stub, DL-292):
+  - `config/creator-voices.json` maps each of the 8 creator `voice` part ids (`content/ui/creator/catalog.json`) to a t1 entry of `config/voice-catalog.json`;
+  - the staging TTS probe renders one fixed, original sample sentence per entry with `pnpm test:staging -- npc-tts --render-creator` into `audio_bark/creator-voice.<partId>` assets (asset spec, `synthetic` provenance record, lock entry); without `CLOUDFLARE_API_TOKEN` it prints `SKIP … CLOUDFLARE_API_TOKEN not set` and no clip is written;
+  - the Voice tab's Preview button plays the clip through `TtsPlayer` on bus `voice` after `FirstGestureUnlock`, with the pitch slider applied as `detune` = pitch × 300 cents (design value) and the sample line as subtitle; a part without a clip keeps the button disabled with its hint.
 - **Voice catalog** `config/voice-catalog.json`: Aura-1 default entries, with the Aura-2 `mp3` entries as fallback when the staging probe shows Aura-1 is unsuitable (U-NPC-05).
 - **Client** `TtsPlayer` (`packages/npc/src/tts`) decodes mp3 (or PCM) after `FirstGestureUnlock` and plays it on `AudioService` bus `voice` with the NPC as emitter. Subtitles always show. It emits `npc.voice.client {ttfaMs, tier}`.
 - **`LipSyncDriver`** (`packages/npc/src/lipsync`):
@@ -56,8 +62,9 @@ NPCs remember the player, speak, and move their mouths. Three things change on t
 - `packages/npc/evals/{runner.ts, checks.ts, judge.ts, recordings/, redteam/, golden/, builder-probes.yaml}`, `tools/soul/src/eval.ts`.
 - `tests/staging/npc-tts.test.ts` (suite `npc-tts`); `supabase/tests/forget_npc_memory.sql`.
 - `config/voice-catalog.json` (extended); telemetry schema `npc.voice.client`.
+- `config/creator-voices.json`, `packages/ui/src/creator/voice-preview.ts` (preview cases go into `packages/npc/test/tts-player.spec.ts`); the rendered `audio_bark/creator-voice.*` clips and their specs and records are data.
 - Root script: **`npc:eval`**. `ci.yml` `content` adds `pnpm npc:eval -- --replay`; `weekly.yml` (created here if absent; cron `23 9 * * 1`) runs `pnpm npc:eval -- --live`.
-- About 38 files.
+- About 40 files.
 
 ## Interfaces
 - C10 1.0: `MemoryWrite`, `MemoryHit`, `SummaryPatch`, `VoiceCatalogEntry`, `AudioChunk`, `VoiceTier`. Copied, not changed.
@@ -75,6 +82,7 @@ NPCs remember the player, speak, and move their mouths. Three things change on t
 - AC-8 Given the shipped recordings When `npc:eval -- --replay` runs Then every deterministic check passes and a report is written; a self-test recording whose `action_arg` is not in `offers` makes the run exit non-zero — proof: `pnpm npc:eval -- --replay && pnpm check:unit -- packages/npc/evals`
 - AC-9 Given `ANTHROPIC_EVALS_KEY` unset When a live run is requested Then it prints `SKIP npc:eval --live: ANTHROPIC_EVALS_KEY not set` and exits 0 — proof: `env -u ANTHROPIC_EVALS_KEY pnpm npc:eval -- --live --soul npc_test`
 - AC-10 Given staging with the `AI` binding When the TTS probe voices one fixed sentence with Aura-1 and Aura-2 Then the codec, byte size and latency of each are written to `tests/reports/npc/tts.json`; the run records U-NPC-05 — proof: `pnpm test:staging -- npc-tts`
+- AC-11 Given a fixture `audio_bark/creator-voice.<partId>` clip for one creator voice and none for a second When Preview is pressed for each after the first-gesture unlock with pitch 0.5 Then the first plays once on bus `voice` with `detune` 150 cents and its subtitle shows, and the second's button is disabled with its hint; every `config/creator-voices.json` value resolves to a t1 catalog entry — proof: `pnpm check:unit -- packages/npc packages/ui`
 
 ## Test plan
 - **Workers runtime:** `npc-memory-scrub`, `npc-memory-retrieve`, `npc-summarize`, `npc-forget-memory`, `npc-tts-gating` — `pnpm check:workers -- npc`.
@@ -90,7 +98,7 @@ NPCs remember the player, speak, and move their mouths. Three things change on t
 4. `curl -X DELETE` route 52 with the play token, then talk again: no memory.
 
 ## Effort
-1 Builder session; about 38 files; risk **medium** (audio timing and the Workers AI response formats).
+1 Builder session; about 40 files; risk **medium** (audio timing and the Workers AI response formats).
 
 ## Risks & fallbacks
 - **Aura-1 encoding or latency is unsuitable (U-NPC-05):** switch the catalog default to Aura-2 `mp3` (encoding verified) and record it.

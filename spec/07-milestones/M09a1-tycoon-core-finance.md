@@ -71,7 +71,7 @@ To stay under 40 files, module responsibilities are grouped. The names in `08-ty
   - `packages/shared/src/tycoon/__fixtures__/{banned-math.ts.txt, step-trace.golden.json}`.
   - Make sure the vitest workspace includes `packages/*/src/**/*.spec.ts` and that the determinism lint skips `*.spec.ts`.
 - `packages/shared/package.json` script **`test:tycoon-finance`** (`vitest run src/tycoon/finance`). `check:unit` also runs it.
-- `packages/modes/tycoon/{package.json (@dv/mode-tycoon), src/descriptor.ts, src/sim/TycoonModeSim.ts, src/sim/slice.ts, src/qa/QaPanel.tsx, test/tycoon.mode.spec.ts, test/tycoon.save.spec.ts}`.
+- `packages/modes/tycoon/{package.json (@dv/mode-tycoon), README.md, src/descriptor.ts, src/sim/TycoonModeSim.ts, src/sim/slice.ts, src/qa/QaPanel.tsx, test/tycoon.mode.spec.ts, test/tycoon.save.spec.ts}`.
 - `packages/engine/src/sim/save/migrations/tycoon.ts` and `packages/engine/src/sim/save/__golden__/tycoon/v1.json`.
 - `packages/shared/schemas/tycoon/{slice-1.schema.json, balance-1.schema.json}`.
 - `content/tycoon/{sectors.json, theses.json, archetypes.json}` and `config/tycoon.balance.json`.

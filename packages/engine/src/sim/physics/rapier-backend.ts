@@ -1,4 +1,5 @@
-import type { Collider, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
+import type { Collider, KinematicCharacterController, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
+import { dsqrt, PI } from '@dv/shared';
 import { ByteReader, ByteWriter } from '../bytes.ts';
 import {
   NotImplementedError, PhysicsInitError,
@@ -6,7 +7,7 @@ import {
   type RayHit, type StaticShapeSet, type VehicleDrive, type Vec3, type WheelDesc,
 } from './backend.ts';
 import { PHYSICS_CONFIG, type PhysicsConfig } from './config.ts';
-import { GROUPS } from './groups.ts';
+import { GROUPS, interactionGroups } from './groups.ts';
 import { loadRapierBuild, type RapierModule } from './load-build.ts';
 import { heightfieldLayout, prismPieces } from './static-shapes.ts';
 
@@ -68,6 +69,10 @@ export class RapierBackend implements PhysicsSystemsBackend {
   private readonly cfg: PhysicsConfig;
   private readonly load: (build: PhysicsBuild) => Promise<RapierModule>;
   private readonly retry: RetryEnv;
+  /** The one character controller, created on first use and rebuilt whenever the wasm world is replaced. */
+  private kcc: KinematicCharacterController | null = null;
+  /** Reused for `computedCollision`. */
+  private kccHit: ReturnType<KinematicCharacterController['computedCollision']> = null;
   /** Builds this instance asked its loader for. At most one entry, equal to `build`. */
   readonly loadedBuilds: PhysicsBuild[] = [];
 
@@ -130,6 +135,8 @@ export class RapierBackend implements PhysicsSystemsBackend {
 
   /** Frees the wasm world. */
   dispose(): void {
+    this.kcc?.free();
+    this.kcc = null;
     this.world?.free();
     this.world = null;
     this.bodies.clear();
@@ -328,13 +335,50 @@ export class RapierBackend implements PhysicsSystemsBackend {
     else rb.applyImpulse(impulse, true);
   }
 
-  // ------------------------------------------------------------------ later milestones
+  // ------------------------------------------------------------------ character controller and queries
 
+  /**
+   * Rapier `KinematicCharacterController` (M01b1). The collider moves with the body's last stepped position, so a
+   * caller sets the next kinematic target to `position + moved` and the step carries the body there. Rapier's
+   * broad phase learns about new colliders at the next `step`, so queries made before the first step see no statics.
+   */
   readonly character = {
-    move: (_id: number, _desired: [number, number, number], _o: CharMoveOpts): CharMoveResult => {
-      throw new NotImplementedError('character.move', 'M01b1');
+    move: (id: number, desired: [number, number, number], o: CharMoveOpts): CharMoveResult => {
+      const entry = this.bodies.get(id);
+      if (!entry) throw new RangeError(`unknown physics body ${id}`);
+      const collider = this.W.getCollider(entry.collider);
+      const kcc = this.controller();
+      kcc.enableAutostep(o.autostepM, this.cfg.character.autostepMinWidthM, false);
+      kcc.enableSnapToGround(o.snapToGroundM);
+      const maxSlope = (o.maxSlopeDeg * PI) / 180;
+      kcc.setMaxSlopeClimbAngle(maxSlope);
+      // A slope the character may climb is also one it may stand on.
+      kcc.setMinSlopeSlideAngle(maxSlope);
+      kcc.setSlideEnabled(o.slide);
+      kcc.computeColliderMovement(collider, { x: desired[0], y: desired[1], z: desired[2] }, undefined, GROUPS.character);
+      const m = kcc.computedMovement();
+      const grounded = kcc.computedGrounded();
+      let groundNormalY = grounded ? 1 : 0;
+      if (grounded) {
+        // The steepest-facing contact normal that points up is the floor the character stands on.
+        let best = 0;
+        for (let i = 0, n = kcc.numComputedCollisions(); i < n; i++) {
+          const hit = kcc.computedCollision(i, this.kccHit ?? undefined);
+          if (!hit) continue;
+          this.kccHit = hit;
+          const ny = hit.normal1.y;
+          if (ny > best) best = ny;
+        }
+        if (best > 0) groundNormalY = best;
+      }
+      return { moved: [m.x, m.y, m.z], grounded, groundNormalY };
     },
   };
+
+  private controller(): KinematicCharacterController {
+    if (!this.kcc) this.kcc = this.W.createCharacterController(this.cfg.character.skinM);
+    return this.kcc;
+  }
 
   readonly vehicle = {
     create: (_body: number, _wheels: WheelDesc[]): number => {
@@ -348,12 +392,34 @@ export class RapierBackend implements PhysicsSystemsBackend {
     },
   };
 
-  castRay(_o: [number, number, number], _d: [number, number, number], _max: number, _mask: number): RayHit | null {
-    throw new NotImplementedError('castRay', 'M01b1');
+  /**
+   * First hit along a ray against solid colliders. `d` need not be unit length; `toi` is in metres. `mask` is the OR
+   * of the `config/physics.json` group bits the ray may hit. `entity` is the NULL handle: statics have none.
+   */
+  castRay(o: [number, number, number], d: [number, number, number], max: number, mask: number): RayHit | null {
+    const len = dsqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    if (!(len > 0)) return null;
+    const dir = { x: d[0] / len, y: d[1] / len, z: d[2] / len };
+    const R = this.R;
+    const hit = this.W.castRayAndGetNormal(new R.Ray(this.local(o), dir), max, true, undefined, interactionGroups(0xffff, mask));
+    if (!hit) return null;
+    return { toi: hit.timeOfImpact, normal: [hit.normal.x, hit.normal.y, hit.normal.z], collider: hit.collider.handle, entity: 0 };
   }
 
-  castSphere(_o: [number, number, number], _d: [number, number, number], _r: number, _max: number, _mask: number): RayHit | null {
-    throw new NotImplementedError('castSphere', 'M01b1');
+  /**
+   * First hit of a sphere of radius `r` swept from `o` along `d` (unit length after normalizing). A sphere that starts
+   * inside a collider hits at `toi` 0. `normal` is the surface normal at the contact on the hit collider.
+   */
+  castSphere(o: [number, number, number], d: [number, number, number], r: number, max: number, mask: number): RayHit | null {
+    const len = dsqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+    if (!(len > 0)) return null;
+    const R = this.R;
+    const vel = { x: d[0] / len, y: d[1] / len, z: d[2] / len };
+    const hit = this.W.castShape(
+      this.local(o), { x: 0, y: 0, z: 0, w: 1 }, vel, new R.Ball(r), 0, max, true, undefined, interactionGroups(0xffff, mask),
+    );
+    if (!hit) return null;
+    return { toi: hit.time_of_impact, normal: [hit.normal1.x, hit.normal1.y, hit.normal1.z], collider: hit.collider.handle, entity: 0 };
   }
 
   // ------------------------------------------------------------------ snapshot
@@ -439,6 +505,8 @@ export class RapierBackend implements PhysicsSystemsBackend {
     }
     const len = r.u32();
     const rapierBytes = r.bytes(len);
+    this.kcc?.free();
+    this.kcc = null;
     this.world?.free();
     this.world = this.R.World.restoreSnapshot(rapierBytes);
     this.applyParameters(this.world);

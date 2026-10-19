@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/prefab.schema.json",
+  "title": "assets/prefabs/<id>.json (C01 entity prefab, PrefabDef)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "kind", "version", "render", "physics", "components"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9_]+)+$", "description": "Dotted lower-case id, for example player.default." },
+    "kind": { "enum": ["player", "vehicle", "ped", "prop", "pickup", "police", "robotaxi", "portal", "marker", "trigger"] },
+    "version": { "type": "integer", "minimum": 1 },
+    "nameKey": { "type": "string", "minLength": 1, "description": "NameRegistry key; never a raw brand." },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset"],
+      "properties": {
+        "asset": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*/[A-Za-z0-9._-]+$", "description": "C07 AssetRef '<kind>/<id>'." },
+        "variants": { "type": "integer", "minimum": 1, "maximum": 255 },
+        "anim": { "type": "string", "minLength": 1 }
+      }
+    },
+    "physics": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["body", "shape", "dims", "groups"],
+          "properties": {
+            "body": { "enum": ["dynamic", "kinematic", "fixed"] },
+            "shape": { "enum": ["capsule", "box", "sphere", "convex"] },
+            "dims": { "type": "array", "items": { "type": "number", "exclusiveMinimum": 0 }, "minItems": 1 },
+            "massKg": { "type": "number", "exclusiveMinimum": 0 },
+            "groups": {
+              "type": "array",
+              "items": { "enum": ["static", "dynamic", "character", "vehicle", "kinematic", "sensor"] },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        }
+      ]
+    },
+    "components": {
+      "type": "object",
+      "description": "ComponentDef name to default field values. A string value is interned in the string table.",
+      "propertyNames": { "pattern": "^[A-Z][A-Za-z0-9]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "pattern": "^[a-z][A-Za-z0-9]*(\\.[0-9]+)?$" },
+        "additionalProperties": { "anyOf": [{ "type": "number" }, { "type": "string" }] }
+      }
+    },
+    "vehicle": { "type": "object" },
+    "interact": { "type": "object" },
+    "audio": { "type": "object", "required": ["set"], "properties": { "set": { "type": "string" } } }
+  }
+}

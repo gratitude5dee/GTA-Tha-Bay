@@ -11,6 +11,7 @@ interface Golden {
 }
 
 interface Result {
+  walkDrop: { scenario: string; ticks: number; checkpoints: Record<string, string>; final: string; runMs: number };
   vectors: { total: number; mismatches: number; first: string | null; groups: Record<string, { total: number; mismatches: number }> };
   scenario: string;
   physicsBuild: string;
@@ -23,6 +24,10 @@ interface Result {
 
 const golden = JSON.parse(
   readFileSync(new URL('../../packages/engine/test/golden/determinism.physics-drop.json', import.meta.url), 'utf8'),
+) as Golden;
+
+const walkGolden = JSON.parse(
+  readFileSync(new URL('../../packages/engine/test/golden/determinism.walk-drop.json', import.meta.url), 'utf8'),
 ) as Golden;
 
 test.describe('determinism @determinism', () => {
@@ -53,5 +58,13 @@ test.describe('determinism @determinism', () => {
     expect(Object.keys(r.checkpoints)).toHaveLength(16);
     expect(r.checkpoints).toEqual(golden.checkpoints);
     expect(r.final).toBe(golden.final);
+
+    // M01b1: the walking player under the seeded bot, every checkpoint equal to the Node golden.
+    console.log(`${testInfo.project.name}: walk-drop final ${r.walkDrop.final}, run ${r.walkDrop.runMs.toFixed(0)} ms`);
+    expect(r.walkDrop.scenario).toBe(walkGolden.scenario);
+    expect(r.walkDrop.ticks).toBe(walkGolden.ticks);
+    expect(Object.keys(r.walkDrop.checkpoints)).toHaveLength(16);
+    expect(r.walkDrop.checkpoints).toEqual(walkGolden.checkpoints);
+    expect(r.walkDrop.final).toBe(walkGolden.final);
   });
 });

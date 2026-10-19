@@ -24,7 +24,7 @@ The P1 features of M12a1 become usable from the shell. After this session, `Iden
 
 ## Scope out
 - `/link`, provider link buttons (`auth.openaiWeb`, `auth.thirdweb`) → M13c1, M14a. Online page → M12d.
-- OS age signals (`AgeSignalProvider` stays `null`) → M14b. Teen mode stays off (DL-139).
+- OS age signals (`AgeSignalProvider` stays `null`) → M14c; launch gate `age-signals` → M14b3 (DL-285). Teen mode stays off (DL-139).
 
 ## Deliverables
 - `packages/identity/src/device/attest-age.ts` (queue + POST), `packages/identity/test/attest-age.test.ts`.

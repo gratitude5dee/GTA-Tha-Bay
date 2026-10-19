@@ -1,0 +1,257 @@
+import type { CameraDirective, CameraMode, CameraRig, FollowParams, VehicleView } from '@dv/shared';
+import { DEFAULT_TP_FOLLOW, tpOffsetWorld, type PublishedCamera } from '../../sim/camera/collision.ts';
+import { PHYSICS_CONFIG } from '../../sim/physics/config.ts';
+
+/** The part of a three `PerspectiveCamera` the rig drives. Structural, so the rig runs and is tested without three. */
+export interface CameraLike {
+  position: { set(x: number, y: number, z: number): unknown };
+  quaternion: { set(x: number, y: number, z: number, w: number): unknown };
+  fov: number;
+  near: number;
+  far: number;
+  updateProjectionMatrix(): void;
+}
+
+export interface CameraRigOptions {
+  camera: CameraLike;
+  /** Feet of the followed entity after snapshot interpolation, ENU metres; null when it is not in the snapshot. */
+  targetPose: (handle: number) => { x: number; y: number; z: number } | null;
+  /** The player's current view angles in radians (applied every frame, so look has no tick latency). */
+  look: () => { yaw: number; pitch: number };
+  /** Eye and chest heights above the feet. Default: config/physics.json. */
+  headY?: number;
+  chestY?: number;
+}
+
+/** First person: FOV 75 and near plane 0.05 m; third person: FOV from the follow params (65) and near 0.1 m (C04 rule 3). */
+export const FP_FOV_DEG = 75;
+export const FP_NEAR_M = 0.05;
+export const TP_NEAR_M = 0.1;
+/** A target farther than this from where the camera last looked is a teleport: the camera snaps instead of lagging. */
+const SNAP_DISTANCE_M = 8;
+/** Distances within this of the target count as reached (floating point after 18 frames of 1/60 s). */
+const REACHED_EPS = 1e-6;
+
+const HALF = 0.5;
+
+/**
+ * The main-thread camera rig (C04). It obeys the `CameraDirective` the sim publishes and draws the player's choice
+ * between first and third person, which is presentation only and never reaches the sim.
+ *
+ * Third person: the camera sits `distance` from the chest anchor along the offset direction, where the distance is the
+ * smaller of the offset length and the sim's `allowedDistance`. It pulls in at once and eases back out over
+ * `collision.easeOutSec` (0.3 s), and the anchor and view angles follow the player with the lag smoothing
+ * k = 1 - e^(-dt g), g = 9 for position and 12 for rotation. First person: the eye at the head anchor, no lag.
+ */
+export class CameraRigImpl implements CameraRig {
+  readonly camera: CameraLike;
+  /** True when the last `toggleFpTp()` was refused (lock, cinematic or XR). The QA bridge reads it. */
+  lastToggleRefused = false;
+  /** True while the player capsule should be hidden (first person). */
+  get playerHidden(): boolean {
+    return this._mode === 'fp';
+  }
+
+  private readonly opts: CameraRigOptions;
+  private readonly headY: number;
+  private readonly chestY: number;
+  private _mode: CameraMode = 'tp';
+  private userMode: 'fp' | 'tp' = 'tp';
+  private directive: PublishedCamera | null = null;
+  private shoulder: 'right' | 'left' = 'right';
+  private vehicleView: VehicleView = 'chase-mid';
+  private readonly listeners = new Set<(m: CameraMode) => void>();
+
+  private smoothed = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
+  private initialized = false;
+  private snapNext = true;
+  private distance = 0;
+  /** Metres per second while easing out; 0 when not easing. */
+  private easeRate = 0;
+  private readonly offset: [number, number, number] = [0, 0, 0];
+
+  constructor(opts: CameraRigOptions) {
+    this.opts = opts;
+    this.camera = opts.camera;
+    this.headY = opts.headY ?? PHYSICS_CONFIG.character.headY;
+    this.chestY = opts.chestY ?? PHYSICS_CONFIG.character.chestY;
+  }
+
+  get mode(): CameraMode {
+    return this._mode;
+  }
+
+  /** Distance from the anchor to the camera in third person, metres. */
+  get currentDistance(): number {
+    return this.distance;
+  }
+
+  /** Which shoulder the camera is on. */
+  get currentShoulder(): 'right' | 'left' {
+    return this.shoulder;
+  }
+
+  get locked(): boolean {
+    return this.directive?.lockPlayerToggle === true;
+  }
+
+  toggleFpTp(): boolean {
+    if (this.locked || this._mode === 'cinematic' || this._mode === 'xr') {
+      this.lastToggleRefused = true;
+      return false;
+    }
+    this.lastToggleRefused = false;
+    this.userMode = this.userMode === 'tp' ? 'fp' : 'tp';
+    this.setMode(this.userMode);
+    return true;
+  }
+
+  follow(target: number, params: Partial<FollowParams>): void {
+    const follow: FollowParams = { ...DEFAULT_TP_FOLLOW, ...params, target } as FollowParams;
+    this.apply({
+      mode: this.userMode,
+      follow,
+      lockPlayerToggle: this.locked,
+      reason: 'player',
+      ...(this.directive?.allowedDistance !== undefined ? { allowedDistance: this.directive.allowedDistance } : {}),
+    });
+  }
+
+  setVehicleView(v: VehicleView): void {
+    this.vehicleView = v;
+  }
+
+  get currentVehicleView(): VehicleView {
+    return this.vehicleView;
+  }
+
+  swapShoulder(): void {
+    this.shoulder = this.shoulder === 'right' ? 'left' : 'right';
+    // The sim's distance for the other side is a different cast; the pull-in logic picks it up on the next update.
+  }
+
+  apply(d: CameraDirective): void {
+    this.directive = d as PublishedCamera;
+    // Cinematic and XR shots replace the player's view; otherwise the player's fp/tp choice stands.
+    if (d.mode === 'cinematic' || d.mode === 'xr') this.setMode(d.mode);
+    else this.setMode(this.userMode);
+  }
+
+  update(f: { alpha: number; dtSec: number; reducedMotion: boolean; drawDistanceM: number }): void {
+    const d = this.directive;
+    const follow = d?.follow;
+    if (!d || !follow || (this._mode !== 'fp' && this._mode !== 'tp')) return;
+    const pose = this.opts.targetPose(follow.target);
+    if (!pose) return;
+    const look = this.opts.look();
+    const dt = Math.max(0, f.dtSec);
+    const fp = this._mode === 'fp';
+    const anchorY = fp || follow.anchor === 'head' ? this.headY : this.chestY;
+    const ax = pose.x;
+    const ay = pose.y + anchorY;
+    const az = pose.z;
+    const s = this.smoothed;
+
+    const jump = Math.hypot(ax - s.x, ay - s.y, az - s.z);
+    if (!this.initialized || this.snapNext || jump > SNAP_DISTANCE_M || fp) {
+      s.x = ax;
+      s.y = ay;
+      s.z = az;
+      s.yaw = look.yaw;
+      s.pitch = look.pitch;
+      this.snapNext = false;
+    } else {
+      const kPos = 1 - Math.exp(-dt * follow.lag.pos);
+      const kRot = 1 - Math.exp(-dt * follow.lag.rot);
+      s.x += (ax - s.x) * kPos;
+      s.y += (ay - s.y) * kPos;
+      s.z += (az - s.z) * kPos;
+      s.yaw += wrapAngle(look.yaw - s.yaw) * kRot;
+      s.pitch += (look.pitch - s.pitch) * kRot;
+    }
+
+    let px = s.x;
+    let py = s.y;
+    let pz = s.z;
+    if (!fp) {
+      const side = this.shoulder === 'right' ? 1 : -1;
+      tpOffsetWorld(s.yaw, s.pitch, side, this.offset, follow.offset);
+      const len = Math.hypot(this.offset[0], this.offset[1], this.offset[2]);
+      const target = Math.min(len, this.allowedFor(d, follow));
+      this.moveDistance(target, dt, follow.collision.easeOutSec, !this.initialized);
+      const k = len > 0 ? this.distance / len : 0;
+      px += this.offset[0] * k;
+      py += this.offset[1] * k;
+      pz += this.offset[2] * k;
+    } else {
+      // Coming back to third person starts from where the camera is, not from an old distance.
+      this.distance = 0;
+      this.easeRate = 0;
+    }
+    this.initialized = true;
+
+    const yaw = fp ? look.yaw : s.yaw;
+    const pitch = fp ? look.pitch : s.pitch;
+    const sy = Math.sin(yaw * HALF);
+    const cy = Math.cos(yaw * HALF);
+    const sp = Math.sin(pitch * HALF);
+    const cp = Math.cos(pitch * HALF);
+    // q = qyaw (about +Y) * qpitch (about +X)
+    const cam = this.camera;
+    cam.position.set(px, py, pz);
+    cam.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
+
+    const fov = fp ? FP_FOV_DEG : follow.fovDeg;
+    const near = fp ? FP_NEAR_M : TP_NEAR_M;
+    if (cam.fov !== fov || cam.near !== near || cam.far !== f.drawDistanceM) {
+      cam.fov = fov;
+      cam.near = near;
+      cam.far = f.drawDistanceM;
+      cam.updateProjectionMatrix();
+    }
+  }
+
+  onModeChange(cb: (m: CameraMode) => void): () => void {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  }
+
+  // ------------------------------------------------------------------ internals
+
+  private setMode(m: CameraMode): void {
+    if (m === this._mode) return;
+    this._mode = m;
+    this.snapNext = true;
+    for (const cb of this.listeners) cb(m);
+  }
+
+  /** The sim's collision result for the shoulder the camera is on. */
+  private allowedFor(d: PublishedCamera, follow: FollowParams): number {
+    const own = d.allowedDistance ?? Number.POSITIVE_INFINITY;
+    if (follow.shoulder === this.shoulder) return own;
+    return d.allowedDistanceOpposite ?? own;
+  }
+
+  /** Pull in at once; ease back out so that the whole way takes `easeOutSec`, whatever its length. */
+  private moveDistance(target: number, dt: number, easeOutSec: number, first: boolean): void {
+    if (first || target <= this.distance) {
+      this.distance = target;
+      this.easeRate = 0;
+      return;
+    }
+    if (this.easeRate === 0) this.easeRate = easeOutSec > 0 ? (target - this.distance) / easeOutSec : Number.POSITIVE_INFINITY;
+    this.distance = Math.min(target, this.distance + this.easeRate * dt);
+    if (this.distance >= target - REACHED_EPS) {
+      this.distance = target;
+      this.easeRate = 0;
+    }
+  }
+}
+
+/** Shortest signed difference of two angles, radians in (-pi, pi]. */
+function wrapAngle(a: number): number {
+  const t = (a + Math.PI) / (Math.PI * 2);
+  return (t - Math.floor(t)) * Math.PI * 2 - Math.PI;
+}

@@ -19,7 +19,7 @@ After this half session the wheel-force path of the shared handling model is dec
 - An engine-internal layout for `PhysicsBackend.vehicle.read(v, out: Float32Array)`, documented in `backend.ts`. Per wheel it holds: `inContact`, the contact point (3), the normal (3), `suspLenM`, `vLong`, `vLat` and `loadN`; 11 floats × 4 wheels. Slots the controller cannot provide are filled with `NaN` and listed as such in the spike report. The layout is not a contract. Promoting it to C06 is the ADR's proposal.
 - A probe step. Read the installed Rapier package's TypeScript declarations (the version M01a2 pinned, F-014) and list which per-wheel getters exist. The adapter calls only methods present in those declarations. Never call an undocumented name found on the web.
 - A spike harness `packages/engine/test/wheel-spike.spec.ts`. For each path (`castray`, `controller`), each build and each oracle line it runs the line 3 times in `canonical`. It records:
-  - the oracle values and pass/fail per C.3 tolerance;
+  - the oracle values and pass/fail per M03a1 AC-3/AC-4 tolerance;
   - whether the 3 final pose hashes are equal;
   - mean and p99 `PhysicsPre` + `PhysicsStep` cost per tick (Node, informational);
   - the readout completeness.
@@ -27,7 +27,7 @@ After this half session the wheel-force path of the shared handling model is dec
   It writes `test-results/wheel-spike.json`.
 - Decision rule (written into the ADR before the run, so the result cannot steer it). Choose `controller` only if all of the following hold:
   - (a) every `WheelContact` field is readable without `NaN`;
-  - (b) external forces reach the body, so the C.3 oracles pass within tolerance for `hp.aurelian-sorrel`, `hp.solenne-skip` and `hp.halcyon-cormorant`;
+  - (b) external forces reach the body, so every oracle that M03a1 AC-3 and AC-4 define for the preset (C.1 class targets, C.3.0 shared-row oracles; the Filbert climb with `hp.sedan`) passes within its tolerance for `hp.sedan`, `hp.police-cruiser` and `hp.robotaxi-ambient` (one preset each from the D, police and R envelopes; the C.3.1–C.3.3 race presets arrive only in M07a1, DL-249);
   - (c) all 3 runs give equal hashes on each build;
   - (d) mean tick cost is ≤ 1.2 × the castray path.
 
@@ -58,7 +58,7 @@ After this half session the wheel-force path of the shared handling model is dec
 
 ## Acceptance criteria
 - AC-1 Given M03a1's vehicle system When it runs behind the new `WheelPath` seam with `castray` selected Then every M03a1 oracle line still passes and the Filbert line ends at an identical pose over 3 runs — proof: `pnpm --filter @dv/engine test:lines`
-- AC-2 Given both builds When the spike harness runs each path over the five oracle lines for the three presets, 3 runs each, in `canonical` Then `test-results/wheel-spike.json` lists, per path, build, preset and line: the oracle values, the pass/fail against C.3 tolerances, the hash equality across runs, the mean and p99 tick cost, and the readout completeness. It also lists `selected` computed by the decision rule. The `castray` rows all pass and repeat exactly — proof: `pnpm --filter @dv/engine test:wheel-spike`
+- AC-2 Given both builds When the spike harness runs each path over the five oracle lines for the three presets `hp.sedan`, `hp.police-cruiser` and `hp.robotaxi-ambient`, 3 runs each, in `canonical` Then `test-results/wheel-spike.json` lists, per path, build, preset and line: the oracle values, the pass/fail against the M03a1 AC-3/AC-4 tolerances (lines without a tolerance for that preset are recorded as informational), the hash equality across runs, the mean and p99 tick cost, and the readout completeness. It also lists `selected` computed by the decision rule. The `castray` rows all pass and repeat exactly — proof: `pnpm --filter @dv/engine test:wheel-spike`
 - AC-3 Given the spike result When the ADR is written Then it records U-RAC-1 (verified or refuted, with the readout table), states the decision rule, and has a `Decision:` line equal to `SELECTED_WHEEL_PATH` and to the JSON's `selected`. The test fails if any of the three disagree — proof: `pnpm --filter @dv/engine test:wheel-spike`
 - AC-4 Given the decision When the vehicle system boots Then only the selected implementation is reachable: no import of the losing file remains, and the lint and type gates pass — proof: `pnpm lint && pnpm typecheck && pnpm --filter @dv/engine test:lines`
 - AC-5 Given the shared package When its tests run Then `vehicle.powerCurve` and `vehicle.envelope` still pass for every first-party profile — proof: `pnpm --filter @dv/shared test`

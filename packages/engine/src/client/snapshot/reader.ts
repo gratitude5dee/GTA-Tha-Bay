@@ -1,3 +1,5 @@
+import type { PublishedCamera } from '../../sim/camera/collision.ts';
+import type { PlayerSide } from '../../sim/publish.ts';
 import type { SnapshotRead } from '../../sim/transport/snapshot-buffer.ts';
 import { interpolateSnapshots, type Pose } from './interpolate.ts';
 
@@ -14,6 +16,10 @@ export class SnapshotView {
   alpha = 0;
   /** Poses that were placed without blending in the last update. */
   snapped = 0;
+  /** The camera directive the sim published with the newest snapshot (side key `cam`); null when nothing is followed. */
+  camera: PublishedCamera | null = null;
+  /** The local player (side key `pl`); null when there is none. */
+  player: PlayerSide | null = null;
 
   /** Update from the newest read. Returns false when there is nothing to draw yet. */
   update(read: SnapshotRead | null): boolean {
@@ -25,6 +31,10 @@ export class SnapshotView {
           if (typeof name === 'string') this.keys.set(Number(id), name);
         }
       }
+      const cam = read.cur.side['cam'];
+      this.camera = cam && typeof cam === 'object' ? (cam as PublishedCamera) : null;
+      const pl = read.cur.side['pl'];
+      this.player = pl && typeof pl === 'object' ? (pl as PlayerSide) : null;
     }
     this.count = interpolateSnapshots(read.prev, read.cur, read.alpha, this.poses);
     this.tick = read.cur.tick;

@@ -1,6 +1,6 @@
 # 09 — Backend contracts, part 1c: C12 1.2 and C16 1.2 additions (C11 unchanged)
 
-> Architect, Wave 5 milestone reconciliation, 2026-10-18 (`spec/11-decision-log-2.md` DL-223, DL-224). Part of `spec/domains/09-backend.md`; extends `09-backend-contracts.md` (1.0) and `09-backend-contracts-1.1.md` (1.1), which stay valid as written. Owner of every shape below: **S09**; the semantics owner of each route stays as named. Rule (06 §4.1): additive change = minor bump. **C12 → 1.2.0, C16 → 1.2.0, C11 stays 1.0.0** (wire `PROTOCOL_VERSION` 2). Sources: `spec/05-api-and-realtime.md` §3–§4 (routes 54–57, DL-182…DL-188) and the milestone-author defect reports (`spec/.milestone-defects.md`). Requirements: R-ROLL-02, R-MODE-02, R-MODE-04, R-MOD-02, R-AUTH-03, R-ENG-03, R-PLAT-05.
+> Architect, Wave 5 milestone reconciliation, 2026-10-18 (`spec/11-decision-log-3.md` DL-223, DL-224). Part of `spec/domains/09-backend.md`; extends `09-backend-contracts.md` (1.0) and `09-backend-contracts-1.1.md` (1.1), which stay valid as written. Owner of every shape below: **S09**; the semantics owner of each route stays as named. Rule (06 §4.1): additive change = minor bump. **C12 → 1.2.0, C16 → 1.2.0, C11 stays 1.0.0** (wire `PROTOCOL_VERSION` 2). Sources: `spec/05-api-and-realtime.md` §3–§4 (routes 54–57, DL-182…DL-188) and the milestone-author defect reports (`spec/.milestone-defects.md`). Requirements: R-ROLL-02, R-MODE-02, R-MODE-04, R-MOD-02, R-AUTH-03, R-ENG-03, R-PLAT-05.
 
 ## 1. C12 1.2 — routes
 

@@ -1,5 +1,5 @@
 import { SIM_DT, SimStage, type StableKey, type SystemDef } from '@dv/shared';
-import { BodyRef, LocalPlayer, Transform, Velocity } from '../ecs/components.ts';
+import { BodyRef, CharacterBody, LocalPlayer, Transform, Velocity } from '../ecs/components.ts';
 import type { EcsWorld } from '../ecs/world.ts';
 import type { SimResource } from '../services.ts';
 import type { SimCore } from '../loop/sim-core.ts';
@@ -50,10 +50,13 @@ export function physicsSystems(backend: PhysicsSystemsBackend, opts: PhysicsSyst
       }
       const bodies = ecs.store(BodyRef).body;
       const ids = ecs.query([BodyRef, Transform]);
+      const world = ecs as unknown as EcsWorld; // SimCore always runs systems against an EcsWorld
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i] as number;
         const body = bodies[id] as number;
         if (backend.bodyKind(body) !== 'kinematic') continue;
+        // A character's Transform is its feet; the on-foot controller sets the body's target itself.
+        if (world.hasId(id, CharacterBody)) continue;
         backend.setKinematicTarget(
           body,
           [tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number],
