@@ -1,11 +1,17 @@
-import { BoxGeometry, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
+import { BoxGeometry, CapsuleGeometry, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
 import type { Pose } from './interpolate.ts';
+
+export const GRAYBOX_CAPSULE = 'prop/graybox.capsule';
+const CAPSULE_RADIUS = 0.35;
+const CAPSULE_HEIGHT = 1.8;
+const CAPSULE_COLOR = 0x4aa3ff;
 
 /**
  * The debug cube view's object pool: one three Mesh per entity handle, created on first sight and removed when the
  * handle leaves the snapshot. Materials are TSL node materials (no GLSL, P-03). Geometry and material come from the
  * asset key string the sim put in the snapshot side block:
  *   dbg/box/1x1x1  dbg/platform/6x0.5x6  dbg/static/WxHxD  dbg/ground/<size>
+ * and the player's placeholder, `prop/graybox.capsule` (a procedural capsule 1.8 m tall, no file, M01b1).
  * Keys the pool does not know draw as a unit grey cube.
  */
 export interface PoolStyle {
@@ -42,6 +48,8 @@ export class ObjectPool {
   private readonly meshes = new Map<number, Mesh>();
   private readonly geometries = new Map<string, BufferGeometry>();
   private readonly materials = new Map<number, MeshStandardNodeMaterial>();
+  /** The handle whose mesh stays hidden (the player in first person). */
+  hiddenHandle: number | null = null;
   private stamp = 0;
   private readonly seen = new Map<number, number>();
 
@@ -69,7 +77,7 @@ export class ObjectPool {
       }
       mesh.position.set(p.px, p.py, p.pz);
       mesh.quaternion.set(p.qx, p.qy, p.qz, p.qw);
-      mesh.visible = (p.flags & 1) !== 0;
+      mesh.visible = (p.flags & 1) !== 0 && p.handle !== this.hiddenHandle;
       this.seen.set(p.handle, this.stamp);
     }
     for (const [handle, mesh] of this.meshes) {
@@ -96,6 +104,7 @@ export class ObjectPool {
   }
 
   private create(key: string): Mesh {
+    if (key === GRAYBOX_CAPSULE) return this.createCapsule();
     const style = parseDebugAsset(key) ?? { width: 1, height: 1, depth: 1, color: 0x9aa0a6 };
     const gKey = `${style.width}x${style.height}x${style.depth}`;
     let geometry = this.geometries.get(gKey);
@@ -107,6 +116,22 @@ export class ObjectPool {
     if (!material) {
       material = new MeshStandardNodeMaterial({ color: style.color, roughness: 0.8, metalness: 0.05 });
       this.materials.set(style.color, material);
+    }
+    return new Mesh(geometry, material);
+  }
+
+  /** The player: feet at the mesh origin, so the geometry is lifted by half its height. */
+  private createCapsule(): Mesh {
+    let geometry = this.geometries.get(GRAYBOX_CAPSULE);
+    if (!geometry) {
+      geometry = new CapsuleGeometry(CAPSULE_RADIUS, CAPSULE_HEIGHT - 2 * CAPSULE_RADIUS, 6, 12);
+      geometry.translate(0, CAPSULE_HEIGHT / 2, 0);
+      this.geometries.set(GRAYBOX_CAPSULE, geometry);
+    }
+    let material = this.materials.get(CAPSULE_COLOR);
+    if (!material) {
+      material = new MeshStandardNodeMaterial({ color: CAPSULE_COLOR, roughness: 0.6, metalness: 0.05 });
+      this.materials.set(CAPSULE_COLOR, material);
     }
     return new Mesh(geometry, material);
   }

@@ -10,6 +10,18 @@
   z-index: 1;
 }
 
+/* ?debug=1 (QA builds): the canvas is the play view, so Pointer Lock and the keyboard go to the game. */
+.dv-engine-canvas--play {
+  inset: 0;
+  inline-size: 100vw;
+  block-size: 100vh;
+  block-size: 100dvh;
+  border-radius: 0;
+  pointer-events: auto;
+  z-index: 5;
+  touch-action: none;
+}
+
 .dv-engine-banner {
   position: fixed;
   inset-block-start: max(16px, env(safe-area-inset-top));

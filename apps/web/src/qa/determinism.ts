@@ -1,7 +1,8 @@
 /**
- * QA page (built only when VITE_DV_QA=1): runs the shared golden vectors and the 10,000-tick `physics-drop` scenario
- * (canonical profile) inside sim.worker, prints the result and publishes it on `window.__dvBridge.engine.qa`.
- * The Playwright test `@determinism` compares the checkpoints with packages/engine/test/golden/determinism.physics-drop.json.
+ * QA page (built only when VITE_DV_QA=1): runs the shared golden vectors, then the 10,000-tick `physics-drop` and
+ * `walk-drop` scenarios (canonical profile) inside sim.worker, prints the result and publishes it on
+ * `window.__dvBridge.engine.qa`. The Playwright test `@determinism` compares the checkpoints with
+ * packages/engine/test/golden/determinism.physics-drop.json and determinism.walk-drop.json.
  */
 import { spawnSimWorker } from '@dv/engine/client/boot/spawn-worker';
 import { installQaBridge } from '@dv/engine/client/debug/bridge';
@@ -10,6 +11,7 @@ interface DeterminismData {
   vectors: { total: number; mismatches: number; first: string | null };
   checkpoints: Record<string, string>;
   final: string;
+  walkDrop: { checkpoints: Record<string, string>; final: string; runMs: number };
   physicsBuild: string;
   runMs: number;
   initMs: number;
@@ -39,6 +41,7 @@ worker.addEventListener('message', (ev) => {
         `physics build ${d.physicsBuild}`,
         `checkpoints ${Object.keys(d.checkpoints).length}`,
         `final hash ${d.final}`,
+        `walk-drop checkpoints ${Object.keys(d.walkDrop.checkpoints).length}, final hash ${d.walkDrop.final}, run ${d.walkDrop.runMs.toFixed(0)} ms`,
         `init ${d.initMs.toFixed(0)} ms, run ${d.runMs.toFixed(0)} ms`,
       ].join('\n'),
     );

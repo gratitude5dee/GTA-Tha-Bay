@@ -21,6 +21,8 @@ export interface QaFlags {
   readonly profile: SimProfile | null;
   /** ?transport=pm forces the postMessage transport even when the page is cross-origin isolated (M01a2). */
   readonly transport: 'postMessage' | null;
+  /** ?debug=1 makes the engine canvas fill the window and take input (M01b1: the play view for the controller demo). */
+  readonly debug: boolean;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -32,6 +34,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   unsupported: false,
   profile: null,
   transport: null,
+  debug: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -60,5 +63,6 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     unsupported: q.get('unsupported') === '1',
     profile: q.get('profile') === 'canonical' ? 'canonical' : q.get('profile') === 'local' ? 'local' : null,
     transport: q.get('transport') === 'pm' ? 'postMessage' : null,
+    debug: q.get('debug') === '1',
   };
 }
