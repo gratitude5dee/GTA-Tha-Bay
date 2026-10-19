@@ -73,6 +73,18 @@
 - **Out** `packages/shared/src/contracts/c15-milestone.ts`, `tools/ci/{milestone-lint,trace,check-agents,check-telemetry}.ts`, `tools/ci/test/`, `.github/workflows/{ci,nightly}.yml`, `tests/reports/` · **C** C15 1.1, C16 1.1
 - **Gate** none · **Proof** `pnpm check:unit -- tools/ci` (READY files pass, four bad fixtures fail, `trace.json` written); `pnpm check:agents`; `pnpm perf:verify -- tools/ci/fixtures/perf/ok.json --tier mobile-low`
 
+### M00e · owner-account-hardening — 1 · risk H · Architect (owner PR #1, DL-605)
+- **Goal:** owner password accounts conform: `TERMS_VERSION` in `config/terms.ts` with interim Terms and Privacy (route 66), 18+ and terms at sign-up and re-acceptance at sign-in stored server-side, `RL_AUTH`, cookie refresh, `/account/` island, `AUTH_PASSWORD_SIGNUP`, C12 1.3 types, routes 64–65 through the admin path.
+- **R** R-IP-04, R-AUTH-01, R-IP-01, R-PLAT-01, R-ENG-01 · **Dep** M00a, M00b, M01c (code base `claude/build` at `495a240` with owner PR #1) · **Read** file `M00e-…md`; ADR-ACCT-01; `spec/05-api-and-realtime.md` §3 routes 58–66; `09-backend-contracts-1.3.md`
+- **Out** `services/edge/src/{ratelimit.ts,routes/auth.ts,routes/legal.ts}`, `config/terms.ts`, `content/legal/{terms,privacy}.json`, `apps/web/account/`, `tests/e2e/account-password.spec.ts`, `docs/runbooks/supabase-auth.md` · **C** C12 1.3 (lands it; DL-604)
+- **Gate** `SUPABASE_SECRET_KEY` (Worker; absent → admin routes `feature_disabled`); operator actions in the file (create `main`, `LEGAL_CONTACT`, production switch, dashboard sign-up off after U-ACCT-3 is recorded) · **Proof** `pnpm check:workers -- auth`, `-- boot`, `-- legal`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @account`; `pnpm build && pnpm check:secrets -- apps/web/dist`
+
+### M00f · third-party-reuse-gates — 0.7 · risk L · Architect (ADR-REUSE-01, DL-605)
+- **Goal:** `license:scan` accepts `third_party/` only through the reuse register; licences file (`licenceFiles`) and `NOTICE` lines in `credits.json`; no GPL-family exception, dependency check of `services/*`; no import or bundle of `third_party/`; subset tool; in-repository clone check `reuse:clones`; Mapbox scan; Builder and vendoring PR-template attestations (DL-616, DL-630…DL-634). Inert until vendoring; the mechanical stop before any vendoring (DL-607).
+- **R** R-IP-01, R-ENG-01 · **Dep** M00b, M00d · **Read** file `M00f-…md`; ADR-REUSE-01; `docs/legal/third-party-reuse.json`
+- **Out** `tools/ci/{third-party-licenses,third-party-subset,reuse-clones}.ts`, `tools/ci/{license-scan,provenance-check,check-dist}.ts`, `apps/web/vite.config.ts`, `eslint.config.js`, `.github/pull_request_template.md` · **C** none
+- **Gate** none (`DV_NAMES_REAL_JSON` optional, CI); operator actions in the file (branch protection with required `static` and `ip` checks before vendoring, DL-633) · **Proof** `pnpm check:unit -- tools/ci`; `pnpm build && pnpm license:scan && pnpm check:bundle && pnpm names:lint && pnpm reuse:clones && pnpm provenance:check`
+
 ### M02a1 · bake-core — 1 · risk M · S02
 - **Goal:** `tools/map` S0 fetch, terrain, water and landuse, buildings, pack writer, world index, attribution, gates; SF packs without roads.
 - **R** R-MAP-01, R-IP-01 · **Dep** M01f, M01d, M00d (`workflows.test.ts`), M01e (`media-local.ts` plugin, QA media-local publish step, catalog client; DL-671) · **Read** `02-world-bake.md` §1–§5, §8; `02-world-contracts.md` §4–§5 · **Out** `tools/map`, `content/world`, `assets/provenance/world` · **C** C08 1.0, C07 1.1 (DL-161 provenance)
@@ -145,7 +157,7 @@
 
 ### M04b1 · shell-ui-kit-menus-settings — 1 · risk M · S10
 - **Goal:** shell, kit, focus navigation, i18n, age gate (every under-18 bracket blocked), terms, main menu, saves and profiles (New Game = new profile), settings pages.
-- **R** R-UI-02/03, R-ENG-04, R-MODE-05, R-IP-04 · **Dep** M04a2 · **Read** `10-ui.md` §2–§3; `10-ui-pages.md` §2, §4 · **Out** `packages/ui/src/{shell,kit,pages,i18n}`, `content/ui/i18n/en.json` (catalog moved from M00's `packages/ui/src/i18n/`, DL-222), root script `check:i18n` · **C** C06 1.1 (`UiBridge`), C05 1.1, C13 1.1 (`PlatformSettings`)
+- **R** R-UI-02/03, R-ENG-04, R-MODE-05, R-IP-04 · **Dep** M04a2, M00e (`config/terms.ts`, DL-602) · **Read** `10-ui.md` §2–§3; `10-ui-pages.md` §2, §4 · **Out** `packages/ui/src/{shell,kit,pages,i18n}`, `content/ui/i18n/en.json` (catalog moved from M00's `packages/ui/src/i18n/`, DL-222), root script `check:i18n` · **C** C06 1.1 (`UiBridge`), C05 1.1, C13 1.1 (`PlatformSettings`)
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-menus`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y` (zero critical or serious); `pnpm check:i18n`
 
 ### M04b2 · creator-phone-hud-kit — 1 · risk M · S10 (+S05 creator kit)
@@ -156,7 +168,7 @@
 ### M02c2 · maps — 1 · risk M · S02 (+S10)
 - **Goal:** map data bake, minimap, full map, blips, GPS route, address search, attribution screen data.
 - **R** R-MAP-03 · **Dep** M02c1, M04b2 · **Read** `02-world-maps.md` §1–§3, §6; `10-ui-hud-xr.md` §2 · **Out** `packages/world/src/{client/map,sim/map}`, `tools/map/src/stages/s12` · **C** C08 1.0
-- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
+- **Gate** Q-15 staging media domain (AC-14 staging release only; DL-670 part 2) · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
 
 ### M04b3 · local-identity-play-token — 0.5 · risk L · S09
 - **Goal:** `IdentityService` with the local adapter (UUIDv7 profile, device key), `NullCloudSync`; single-player never needs an account.
@@ -203,11 +215,11 @@
 ### M05c2 · act1-vertical-slice — 1 · risk M · S03 · **VS-Story**
 - **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing and fighter tiles reachable through stub hooks (unlocked, `comingSoon`), tycoon tile registered and locked because its hook is `m.a2.01` in Act 2 (M09b2; DL-391); deployed and tested on staging (R-ROLL-01 anchor).
 - **R** R-MODE-01/05, R-CUT-02, R-ROLL-01 · **Dep** M05c1, M03b2 · **Read** `03-story-narrative.md` §B4–§B5; `03-story.md` §8–§9 · **Out** `content/missions/m.a1.{07..12}/`, `content/story/act1/cutscene-refs.ts`, `content/story/sensitivity.json` · **C** C09 1.0, C05 1.1
-- **Gate** Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
+- **Gate** Q-15 through M02c2 AC-14 (staging `sf`, AC-7 to AC-9; DL-670 part 2); Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
 
 ### M05d · data-spine-supabase — 1 · risk M · S09
 - **Goal:** Supabase staging and production projects, migrations 0001–0002, `DataPort` + `InMemoryDataPort`, `db:push` in deploy, cutscene index and ledger export, staging keep-alive.
-- **R** R-ROLL-02, R-ENG-03 · **Dep** M05b1 · **Read** `09-backend-db.md` §1–§3, §8; `09-backend-ops.md` §1.3, §2 · **Out** `supabase/`, `packages/shared/src/{data-port,db.gen}.ts`, root script `check:api` (`tools/ci/check-api.ts`, DL-230) · **C** C12 1.1
+- **R** R-ROLL-02, R-ENG-03 · **Dep** M05b1, M00e (§0 rule 7) · **Read** `09-backend-db.md` §1–§3, §8; `09-backend-ops.md` §1.3, §2 · **Out** `supabase/`, `packages/shared/src/{data-port,db.gen}.ts`, root script `check:api` (`tools/ci/check-api.ts`, DL-230) · **C** C12 1.1
 - **Gate** Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY` · **Proof** `pnpm check:db && pnpm check:db:types`; `pnpm check:unit -- packages/shared` (DataPort contract on the in-memory port)
 
 ### M05c3 · act1-prewarm — 0.7 · risk M · S05

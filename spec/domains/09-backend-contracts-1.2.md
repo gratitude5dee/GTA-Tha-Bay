@@ -64,7 +64,7 @@ export type CliScope = 'mods:publish';
 //                                                    a 'tha-bay' token never carries 'mods:publish'
 ```
 
-Rules: `TycoonDailySubmit` and `ScoreSubmit` share the 16 KiB body cap of route 21. `ops.ts` imports nothing but `@dv/shared` types. Route 42 bodies stay module types of M13d1 (`packages/shared/src/api/legal.ts`, counsel-defined fields), not C12 shapes (DL-241).
+Rules: `TycoonDailySubmit` and `ScoreSubmit` share the 16 KiB body cap of route 21. `ops.ts` imports nothing but `@dv/shared` types. Route 42 bodies stay module types of M13d1 in `packages/shared/src/api/v1.ts` (counsel-defined fields), not C12 shapes (DL-241); `packages/shared/src/api/legal.ts` holds only route 66's `LegalDocRes` (M00e, DL-623).
 
 ## 3. C16 1.2 — telemetry names
 
@@ -75,4 +75,4 @@ Rules: `TycoonDailySubmit` and `ScoreSubmit` share the 16 KiB body cap of route 
 Chromium sends Reporting API crash reports to the `crash-reporting` endpoint group (else `default`) with `body.reason` `oom` or `unresponsive`; Safari and iOS send none, so iPhone crashes stay inferred by the heartbeat (`app.abnormal_exit`) [research/gap-observability-cost-guardrails.md §2.1 and "Verified facts" (MDN CrashReport, checked 2026-10-18)]. Privacy rules of `09-backend-contracts.md` §3 apply unchanged: the handler keeps the URL path only for its log line and writes no URL, IP or user agent into the event.
 
 ## 4. Version constants
-`C12_VERSION = '1.2.0'` is set by the first milestone that adds a 1.2 member (M12c1, routes 54–55); `C16_VERSION = '1.2.0'` by M11a1 (`app.crash`). Milestones written against 1.1 stay valid (C15 L6, DL-227).
+`C12_VERSION = '1.2.0'` is set by the first milestone that adds a 1.2 member (M12c1, routes 54–55; it writes `'1.3.0'` instead because C12 1.3 landed earlier in M00e, `09-backend-contracts-1.3.md` §4, DL-604); `C16_VERSION = '1.2.0'` by M11a1 (`app.crash`). Milestones written against 1.1 stay valid (C15 L6, DL-227).

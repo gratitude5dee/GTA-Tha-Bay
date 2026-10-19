@@ -16,7 +16,7 @@ Nothing installs or runs a mod yet; M13a2 and M13a3 consume this.
 - R-IP-01: every mod asset carries a C07 provenance record; foreign game formats, secrets and non-original likeness fail closed through S05's gate cores.
 
 ## Depends on
-- **M04a2** (C05 `SaveRecord`/`SlotId` with `mod:<ModId>`, exported `JsonValue` per DL-194; C06 1.1 types used by `ModAPI`). **M01d** (C07 `AssetKind`, `AssetRef`, `ProvenanceRecord` schema `provenance-1.0`, catalog types). M00b's pure gate cores in `packages/shared/src/assets/gates/` (provenance, IP signatures, extensions, strings, licence allowlist) are reused, not copied.
+- **M04a2** (C05 `SaveRecord`/`SlotId` with `mod:<ModId>`, exported `JsonValue` per DL-194; C06 1.1 types used by `ModAPI`). **M01d** (C07 `AssetKind`, `AssetRef`, `ProvenanceRecord` schema `provenance-1.0`, catalog types). **M00e** (ordering only: this milestone adds `services/edge/test/mod-check-parity.test.ts`, so it waits for M00e, `_PLAN.md` §0 rule 7, DL-622). M00b's pure gate cores in `packages/shared/src/assets/gates/` (provenance, IP signatures, extensions, strings, licence allowlist) are reused, not copied.
 - Contracts: C14 1.0 (`C14_VERSION` 1.0.0, `MODAPI_VERSION` 1.0.0, manifest `dv-mod/1`), C17 1.0, C07 1.1, C05 1.1, C13 1.1 (`QualityTierId`).
 
 ## Scope in

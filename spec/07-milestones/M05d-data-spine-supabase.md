@@ -11,6 +11,7 @@ The backend gets its database. Supabase staging and production projects exist an
 
 ## Depends on
 - **M05b1** (cutscene-infra-mock): `CutsceneJobDO`, `BudgetGovernorDO` ledger table, route 27 catalog check against a static JSON, `/_test/run-scheduled` (route 49), `OPS_TOKEN`.
+- **M00e** (owner-account-hardening): the `AUTH_PASSWORD_SIGNUP` switch, the preview state without Supabase vars and the `boot` suite's assertions on them (AC-6 there), which this milestone updates (`_PLAN.md` §0 rule 7; DL-621, DL-622).
 - Contracts: C12 1.1 (`09-backend-contracts.md` §2.6 `DataPort`; `09-backend-db.md` §1–§3.2, §8; `spec/04-data-models-db.md` §3.2a), C09 1.0 (`CutsceneIndex` shape read by the sync), C07 1.1 (`GenJob` fields in `gen_job`).
 
 ## Scope in
@@ -34,16 +35,16 @@ The backend gets its database. Supabase staging and production projects exist an
 - Hyperdrive: not used (U-BE-7).
 
 ## Deliverables
-- `supabase/config.toml`, `supabase/migrations/{0001_core.sql, 0002_genai.sql}`, `supabase/tests/{rls_profiles.sql, server_only.sql, audit_append_only.sql, genai_seed.sql}`.
+- `supabase/config.toml`, `supabase/migrations/{0001_core.sql, 0002_genai.sql}`, `supabase/tests/{rls_profiles.sql, server_only.sql, audit_append_only.sql, genai_seed.sql, password_user_denied.sql}`.
 - `packages/shared/src/data-port.ts`, `packages/shared/src/data-port.memory.ts`, `packages/shared/src/db.gen.ts` (generated), `packages/shared/test/data-port/{contract.ts, memory.spec.ts}`.
 - `services/edge/src/data/supabase/{index.ts, client.ts, profiles.ts, cutscenes.ts, ledger.ts}`, `services/edge/src/ops/{catalog-sync.ts, ledger-export.ts}`, cron wiring in `src/index.ts`, `services/edge/test/{catalog-sync.test.ts, ledger-export.test.ts, supabase-down.test.ts}`, `services/edge/test/db/dataport-supabase.db.test.ts` (run by `check:db`, not by `check:workers`).
-- `services/edge/wrangler.jsonc`: `SUPABASE_URL` var per env and under `previews`, `secrets.required` adds `SUPABASE_SECRET_KEY`, cron `10 3 * * *` if absent.
+- `services/edge/wrangler.jsonc`: `SUPABASE_URL` var per env and under `previews`, `secrets.required` adds `SUPABASE_SECRET_KEY`, cron `10 3 * * *` if absent; `services/edge/test/boot.test.ts` (M00e AC-6 assertions updated for `previews`, Notes).
 - `tools/ci/{check-db.ts, check-db-types.ts, db-push.ts, test-staging.ts}`, `tools/ci/test/db-scripts.test.ts` (migration lint fixtures, push plan), `tests/staging/{vitest.config.ts, keepalive.test.ts, smoke.test.ts}`, `apps/web/test/no-supabase.test.ts` (greps `dist` for `supabase-js`, `sb_secret_`, the project ref).
 - `config/supabase.projects.json` (`{staging: {ref, url}, prod: {ref, url}}`; refs are not secrets).
 - Root scripts: **`check:db`**, **`check:db:types`**, **`db:push`**, **`test:staging`**, **`check:api`** (`tools/ci/check-api.ts` with `tools/ci/test/check-api.test.ts`: regenerates `packages/shared/schemas/api/*.schema.json` from the route DTOs in `packages/shared/src/api/v1.ts` and fails on drift, `09-backend-ops.md` §2; the TypeScript-to-JSON-Schema generator is the version pnpm resolves, recorded in `spec/03`; M00a scoped it out, DL-230).
 - `.github/workflows/ci.yml` job `db` (paths `supabase/**`, `packages/shared/src/db*`, `packages/shared/src/data-port*`); `deploy.yml` job `migrate` before `web`; `nightly.yml` step `pnpm test:staging -- keepalive`.
 - `docs/runbooks/supabase.md`: project creation, keys, restore, pause recovery.
-- About 36 files.
+- About 38 files.
 
 ## Interfaces
 - C12 1.1: `DataPort`, `Ctx`, row types re-exported from `db.gen.ts`, migrations 0001–0002. Shapes are copied. The store interfaces are filled in by the "one method per route" rule. Any wider change is a proposal to the Architect in the PR, not an edit.
@@ -62,9 +63,10 @@ The backend gets its database. Supabase staging and production projects exist an
 - AC-9 Given no network When `db:push` runs with `--dry-run` Then it prints, in order, the `link`, `db push --dry-run` and `db push` commands for staging; with `SUPABASE_ACCESS_TOKEN` unset and no `--dry-run` it prints `SKIP db:push: SUPABASE_ACCESS_TOKEN not set` and exits 0 — proof: `pnpm db:push -- --env staging --dry-run && env -u SUPABASE_ACCESS_TOKEN pnpm db:push -- --env staging`
 - AC-10 Given the production build When the bundle is scanned Then it contains no `supabase-js` code, no `sb_secret_` pattern and no project ref — proof: `pnpm build && pnpm check:secrets -- apps/web/dist && pnpm check:unit -- apps/web/test/no-supabase.test.ts`
 - AC-11 Given the operator prerequisites (both projects, GitHub repository secrets) When a commit lands on `main` Then `deploy.yml` runs `migrate` (dry-run plan in the summary) before `web`, the staging smoke passes, and the keep-alive query returns — proof: manual: desktop browser, GitHub Actions › deploy › latest `main` run, read the `migrate` summary; then `pnpm test:staging -- keepalive && pnpm check:smoke -- <staging workers.dev URL>`
+- AC-12 Given the local stack and, inside the pgTAP file `password_user_denied`, one row inserted into `auth.users` with no matching `profiles` row When the file runs `set local role authenticated` and `set local request.jwt.claims` to `{"sub": <that id>, "role": "authenticated"}` Then every table returns no more rows than it does under `set local role anon`, and every insert, update and delete attempted affects 0 rows — proof: `pnpm check:db`
 
 ## Test plan
-- **DB (pgTAP + Node against the local stack):** `rls_profiles`, `server_only`, `audit_append_only`, `genai_seed`, `dataport-supabase.db` — `pnpm check:db`; types — `pnpm check:db:types`.
+- **DB (pgTAP + Node against the local stack):** `rls_profiles`, `server_only`, `audit_append_only`, `genai_seed`, `password_user_denied`, `dataport-supabase.db` — `pnpm check:db`; types — `pnpm check:db:types`.
 - **Unit:** `shared/data-port.memory` (contract suite), `tools/ci/db-scripts` (lint fixtures, push plan), `web/no-supabase` — `pnpm check:unit`.
 - **Workers runtime:** `catalog-sync`, `ledger-export`, `supabase-down` — `pnpm check:workers`.
 - **Staging:** `pnpm test:staging -- keepalive`, `pnpm test:staging -- smoke` (nightly and post-deploy).
@@ -77,7 +79,7 @@ The backend gets its database. Supabase staging and production projects exist an
 5. Merge to `main`; open the `deploy` run; `migrate` precedes `web`; then run `pnpm test:staging -- keepalive`.
 
 ## Effort
-1 Builder session; about 36 files; risk **medium** (local-stack startup time in CI, keeping the generated types stable).
+1 Builder session; about 38 files; risk **medium** (local-stack startup time in CI, keeping the generated types stable).
 
 ## Risks & fallbacks
 - **Docker missing locally:** `check:db` prints `SKIP check:db: docker not available` and exits 0 outside CI. The `db` job on `ubuntu-24.04` has Docker and is required. Say in the report which checks were skipped.
@@ -88,7 +90,8 @@ The backend gets its database. Supabase staging and production projects exist an
 
 ## Notes for the Builder
 - Read first: `09-backend-db.md` §1–§3.2 and §8; `spec/04-data-models-db.md` §3.2a; `09-backend-contracts.md` §2.6; `09-backend-ops.md` §1.3 and §2; `09-backend.md` §5.3; ADR-0008.
-- **Operator prerequisite (owner gate G1):** create the Supabase projects `tha-bay-staging` (Free is fine) and `tha-bay-prod` (Pro, `us-west-1`; F-029, F-030), write their refs and URLs into `config/supabase.projects.json`, and put `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` (GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed; `08-test-and-ci.md` §8) and `SUPABASE_SECRET_KEY` (Worker secret via `--secrets-file`) in place. Any secret missing: stub behind the variable, `SKIP … <VAR> not set`, exit 0 locally.
+- **Operator prerequisite (owner gate G1):** the production project already exists as `tha-bay` (see the next bullet); create only `tha-bay-staging` (Free is fine), confirm that `tha-bay` is on Pro (`us-west-1`; F-029, F-030), write both refs and URLs, and each project's current publishable key as `publishableKey` (publishable keys are treated as public, no rotation; DL-600), into `config/supabase.projects.json`, and put `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` (GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed; `08-test-and-ci.md` §8) and `SUPABASE_SECRET_KEY` (Worker secret via `--secrets-file`) in place. Public sign-up is turned off on a project only after U-ACCT-3 is recorded in `spec/03` §7 (M00e Operator actions step 4; DL-600). Any secret missing: stub behind the variable, `SKIP … <VAR> not set`, exit 0 locally.
+- **Live since 2026-10-19 (DL-512, ADR-ACCT-01):** the owner created project `tha-bay` (ref `jwvvllhxuvwkrynmnchb`, `us-west-1`); it is the prod project, and staging shares it until this milestone (RISK-28, DL-603). Builder: once `tha-bay-staging` is in `config/supabase.projects.json`, point the `env.staging` vars `SUPABASE_URL` and `SUPABASE_ANON_KEY` at its `url` and `publishableKey`, and give `previews` the same two vars (they had none since M00e, DL-601); keep `AUTH_PASSWORD_SIGNUP` as it is in each block, and update `services/edge/test/boot.test.ts` (M00e AC-6): `previews` now carry `SUPABASE_URL` and `SUPABASE_ANON_KEY` pointing at `tha-bay-staging` and still no `AUTH_PASSWORD_SIGNUP` (DL-621). If `publishableKey` is absent, leave the staging vars on `tha-bay`, keep previews without Supabase vars, print `SKIP staging Supabase vars: publishable key not provided` and list it under "Blocked on"; in that case the `boot` suite keeps M00e's absence assertion for `previews`. Supabase Auth already holds password users (routes 58–60): add `supabase/tests/password_user_denied.sql` (AC-12: a Supabase-native `authenticated` token reads no more rows than `anon` and writes 0 rows; DL-515), keep `apps/web/test/no-supabase.test.ts` grepping for the ref, and record in the report the project auth settings that U-ACCT-1, U-ACCT-3, U-ACCT-6 and U-ACCT-7 name (email requirement and auto-confirm, public sign-up on or off, whether user metadata stays user-writable, the dashboard sign-up switch).
 - No supabase-js in `apps/web` or any client package (D-02). `services/edge` imports `@dv/shared` and `supabase-js` only.
 - Order: migrations → pgTAP → types → `data-port.ts` and the in-memory port → Supabase port → contract run → cron jobs → scripts → workflows.
 - Never log row contents or keys. Ids are UUIDv7 minted in the Worker; times in the DB are `timestamptz`, converted to epoch ms at the port boundary.
