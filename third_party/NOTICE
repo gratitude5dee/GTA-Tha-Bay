@@ -1,0 +1,4 @@
+# Vendored third-party files (ADR-REUSE-01). One line per allowedPaths item of docs/legal/third-party-reuse.json:
+# <name>/<path> | <spdx> | <creator> | <licence URL> [| modified]
+# sf-bay-area-ai-atlas: https://github.com/Kenton-GMI/SF-Bay-Area-AI-Atlas at 06163f70b22420d2b31754821affe80f796d6c59; licence texts in third_party/sf-bay-area-ai-atlas/LICENSE and README.excerpt.md
+sf-bay-area-ai-atlas/build/companies_merged.json.subset.json | CC-BY-4.0 | SF Bay Area AI Atlas contributors (Kenton-GMI) | https://creativecommons.org/licenses/by/4.0/ | modified

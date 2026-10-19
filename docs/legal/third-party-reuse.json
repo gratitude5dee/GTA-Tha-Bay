@@ -34,18 +34,32 @@
       "repo": "Kenton-GMI/SF-Bay-Area-AI-Atlas",
       "url": "https://github.com/Kenton-GMI/SF-Bay-Area-AI-Atlas",
       "licence": "MIT AND CC-BY-4.0",
-      "verifiedOn": "2026-10-18",
+      "verifiedOn": "2026-10-19",
       "verdict": "REUSE-WITH-ATTRIBUTION",
-      "allowedPaths": [],
-      "licenceFiles": [],
-      "pinnedSha": null,
+      "allowedPaths": [
+        {
+          "path": "build/companies_merged.json.subset.json",
+          "spdx": "CC-BY-4.0",
+          "kind": "data",
+          "fields": [
+            { "name": "category", "note": "upstream-authored sector classification of each record (21 values, e.g. AI Chips, Voice AI); research taxonomy, not OSM- or Nominatim-derived" },
+            { "name": "status", "note": "upstream-authored corporate status from public reporting (5 values: independent, acquired, uncertain, relocated_out_of_bay, shut_down); not OSM- or Nominatim-derived" }
+          ],
+          "modified": true
+        }
+      ],
+      "licenceFiles": [
+        { "path": "LICENSE", "spdx": "MIT" },
+        { "path": "README.excerpt.md", "spdx": "CC-BY-4.0" }
+      ],
+      "pinnedSha": "06163f70b22420d2b31754821affe80f796d6c59",
       "uses": [
         "app/render.js (Canvas 2D renderer: cached static frame plus animated overlay) as an optional starting point for the in-engine minimap and full map, re-expressed in the ENU frame",
         "company dataset (CC-BY-4.0), vendored only as a subset file (<path>.subset.json, kind data, spdx CC-BY-4.0, modified) holding the factual categorical fields listed in its fields allowlist (category, sector and similar enumerations; no name, description, tagline, URL, logo, person or coordinate field, and no address, city, neighbourhood or district, location, OSM id, building id, footprint-link or other geocoded field), as seed data for the Business Tycoon ai-tooling sector; every location, coordinate or building-link field is ODbL-1.0 (Nominatim geocoding and OSM footprints, research/repos-world.md §2.3) and is never vendored; the district mix comes from the project's own OSM/DataSF bake; world points of interest only after a later decision-log entry"
       ],
       "consumerMilestones": ["M02c2", "M09b1"],
       "attribution": "SF-Bay-Area-AI-Atlas by Kenton-GMI, MIT License (code); company dataset CC BY 4.0: creator, licence URL https://creativecommons.org/licenses/by/4.0/ and \"modified\" when changed (credit line as given by the upstream LICENSE or README at pinnedSha, kept as a licenceFiles item)",
-      "notes": "Code MIT; map geometry ODbL; dataset CC BY 4.0 (research/repos-world.md §2; research/legal-ip-likeness.md §2.1); licence per allowedPaths item (app/render.js MIT code; dataset subset CC-BY-4.0 data). Atlas geometry is not vendored: the project's own OSM bake replaces it. Company and person names never enter third_party/ or content-private/: the operator adds the upstream dataset's company names only to the real side of the NameRegistry (DV_NAMES_REAL_JSON, never committed), each with a D-29 likeness tier (DL-615); shipped text uses invented names; logos are never vendored or shown. The vendoring PR (DL-502, DL-504) commits the dataset only through the subset tool of milestone M00f (pnpm reuse:subset); the review of app/render.js records that it holds no company names, no logo or image URLs and no coordinate tables, or the file stays out of allowedPaths. third_party/ is excluded from the names:lint source scan and is never bundled (ESLint no-restricted-imports and check:bundle, milestone M00f)."
+      "notes": "Code MIT; map geometry ODbL; dataset CC BY 4.0 (research/repos-world.md §2; research/legal-ip-likeness.md §2.1); licence per allowedPaths item (app/render.js MIT code; dataset subset CC-BY-4.0 data). Atlas geometry is not vendored: the project's own OSM bake replaces it. Company and person names never enter third_party/ or content-private/: the operator adds the upstream dataset's company names only to the real side of the NameRegistry (DV_NAMES_REAL_JSON, never committed), each with a D-29 likeness tier (DL-615); shipped text uses invented names; logos are never vendored or shown. The vendoring PR (DL-502, DL-504) commits the dataset only through the subset tool of milestone M00f (pnpm reuse:subset); the review of app/render.js records that it holds no company names, no logo or image URLs and no coordinate tables, or the file stays out of allowedPaths. third_party/ is excluded from the names:lint source scan and is never bundled (ESLint no-restricted-imports and check:bundle, milestone M00f). Vendored 2026-10-19 by the Architect at pinnedSha 06163f70b22420d2b31754821affe80f796d6c59 (upstream HEAD that day): LICENSE verbatim (MIT code grant, the CC BY 4.0 company-dataset grant and the ODbL geometry and geocoding notice) and README.excerpt.md (the README Licence section verbatim, the dataset credit line); the dataset enters only as build/companies_merged.json.subset.json, written by pnpm reuse:subset from build/companies_merged.json (134 rows, fields category and status; every name, website, address, city, location, geocode, description, funding, source and note field dropped). Review of app/render.js at pinnedSha: no company names and no logo or image URLs, but it holds a latitude/longitude waypoint table (an aircraft path, lines 400-403) of unrecorded provenance, so under DL-502 step 5 it stays out of allowedPaths and M02c2 writes its Canvas 2D map from 02-world-maps.md section 2; re-admitting a copy without that table needs its own decision-log entry."
     },
     {
       "name": "universal-modder",

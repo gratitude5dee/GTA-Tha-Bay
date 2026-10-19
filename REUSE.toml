@@ -25,3 +25,30 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Dee-Verse contributors"
 SPDX-License-Identifier = "LicenseRef-DeeVerse-Owned"
+
+# Vendored third-party files (ADR-REUSE-01, DL-502 step 6): one block per allowedPaths item with its own SPDX id,
+# the licence files of each entry, and third_party/NOTICE (ours).
+
+[[annotations]]
+path = ["third_party/NOTICE"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Dee-Verse contributors"
+SPDX-License-Identifier = "LicenseRef-DeeVerse-Owned"
+
+[[annotations]]
+path = ["third_party/sf-bay-area-ai-atlas/build/companies_merged.json.subset.json"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 SF Bay Area AI Atlas contributors"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+[[annotations]]
+path = ["third_party/sf-bay-area-ai-atlas/LICENSE"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 SF Bay Area AI Atlas contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["third_party/sf-bay-area-ai-atlas/README.excerpt.md"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 SF Bay Area AI Atlas contributors"
+SPDX-License-Identifier = "CC-BY-4.0"
