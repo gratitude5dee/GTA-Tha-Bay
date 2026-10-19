@@ -35,6 +35,8 @@ interface BodyEntry {
   handle: number;
   collider: number;
   kind: BodyKind;
+  /** The shape the body was made with, for the QA physics wireframe (not part of a snapshot; null after a restore). */
+  shape?: { shape: BodyDesc['shape']; dims: number[] };
 }
 
 interface StaticEntry {
@@ -150,6 +152,11 @@ export class RapierBackend implements VehiclePhysics {
 
   bodyKind(id: number): BodyKind | null {
     return this.bodies.get(id)?.kind ?? null;
+  }
+
+  /** The shape and dimensions a body was created with (QA physics wireframe); null for an unknown body or after a restore. */
+  bodyShape(id: number): { shape: BodyDesc['shape']; dims: number[] } | null {
+    return this.bodies.get(id)?.shape ?? null;
   }
 
   // ------------------------------------------------------------------ coordinates
@@ -276,7 +283,7 @@ export class RapierBackend implements VehiclePhysics {
     if (d.mass !== undefined && d.kind === 'dynamic') cd.setMass(d.mass);
     const collider: Collider = w.createCollider(cd, rb);
     const id = this.nextId++;
-    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind });
+    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind, shape: { shape: d.shape, dims: [...d.dims] } });
     this.bodyObjs.set(id, rb);
     return id;
   }

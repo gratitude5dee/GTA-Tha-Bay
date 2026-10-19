@@ -1,9 +1,11 @@
-import { SimStage, type BootPayload, type BotInput, type FrameSignal, type InputFrame, type SimConfig, type SystemDef } from '@dv/shared';
+import { datan2, SimStage, type BootPayload, type BotInput, type FrameSignal, type InputFrame, type SimConfig, type SimProfile, type SystemDef } from '@dv/shared';
 import type { DebugCommand, StatsReport } from './transport/envelope.ts';
 import type { WorkerCommand, WorkerTransport } from './transport/types.ts';
 import type { RetryEnv } from './physics/rapier-backend.ts';
 import { publishedCamera } from './camera/collision.ts';
 import { requestRagdoll, requestTeleport } from './control/ownership.ts';
+import { CONTROL_OWNER } from './control/states.ts';
+import { Control, LocalPlayer, Transform } from './ecs/components.ts';
 import { playerSide, snapshotPublisher } from './publish.ts';
 import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
@@ -36,6 +38,18 @@ export interface SimModule {
   side?(): Record<string, unknown>;
   /** A debug command the engine does not handle itself (QA builds only), for example `debug.blackout`. */
   onDebug?(cmd: DebugCommand): void;
+}
+
+/**
+ * QA-only input-line tools (M03a1), installed by the QA worker entry because the line player and recorder are not allowed in a
+ * production bundle. `play` builds a bot that plays `line` from `baseTick`; recording sees every frame the sim reads.
+ */
+export interface LineTools {
+  play(line: unknown, baseTick: number, probe: () => { x: number; z: number; yaw: number; inVehicle: boolean }): BotInput;
+  startRecording(meta: { scenario: string; seed: number; profile: SimProfile; pos: [number, number, number]; yaw: number; prefab?: string }): void;
+  record(frame: InputFrame): void;
+  readonly recording: boolean;
+  stopRecording(): unknown;
 }
 
 /** What the host environment lends the runtime: a clock and a blocking sleep. Sim code has neither. */
@@ -83,6 +97,10 @@ export class SimRuntime {
    * because the bot module is not allowed in a production bundle; without it `debug.bot` does nothing.
    */
   botFactory: ((script: Extract<DebugCommand, { t: 'debug.bot' }>['script'], baseTick: number) => BotInput) | null = null;
+  /** Input-line player and recorder (M03a1); set by the QA worker entry only. */
+  lineTools: LineTools | null = null;
+  /** The entity inspector and the physics-shape list (M03a1); set by the QA worker entry only. */
+  inspector: ((sim: PhysicsSim, cmd: DebugCommand, reply: (name: string, data: unknown) => void) => void) | null = null;
 
   private frameGroups = 0;
   private lastAlpha = 0;
@@ -105,7 +123,14 @@ export class SimRuntime {
     sim.core.addSystem({
       id: 'engine.input.sample', owner: 'S01', stage: SimStage.Commands, order: -1000,
       run: ({ tick }) => {
-        const frame: InputFrame = this.bot ? this.bot.frame(tick) : this.transport.sampleInput(tick);
+        let frame: InputFrame;
+        const bot = this.bot as (BotInput & { stopsOnRealInput?: boolean; stoppedAt?: number | null; frame(tick: number, real?: InputFrame): InputFrame }) | null;
+        if (bot?.stopsOnRealInput) {
+          // A line plays until the person touches a control: the real frame decides, the line hands over on that tick.
+          frame = bot.frame(tick, this.transport.sampleInput(tick));
+          if (bot.stoppedAt !== null && bot.stoppedAt !== undefined) this.bot = null;
+        } else frame = bot ? bot.frame(tick) : this.transport.sampleInput(tick);
+        if (this.lineTools?.recording) this.lineTools.record(frame);
         sim.services.input = frame;
       },
     });
@@ -255,9 +280,67 @@ export class SimRuntime {
       case 'debug.bot':
         if (sim && this.botFactory) this.bot = cmd.script.length === 0 ? null : this.botFactory(cmd.script, sim.core.tick);
         break;
+      case 'debug.spawn':
+      case 'debug.vehicle':
+        sim?.services.debug.get(cmd.t)?.(cmd, (name, data) => void this.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } }));
+        break;
+      case 'debug.line':
+        this.debugLine(cmd);
+        break;
+      case 'debug.inspect':
+      case 'debug.edit':
+      case 'debug.physics':
+        if (sim) this.inspector?.(sim, cmd, (name, data) => void this.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } }));
+        break;
     }
     for (const m of this.env.modules ?? []) m.onDebug?.(cmd);
     this.postStats();
+  }
+
+  private debugLine(cmd: Extract<DebugCommand, { t: 'debug.line' }>): void {
+    const sim = this.sim;
+    const tools = this.lineTools;
+    const reply = (data: unknown): void => void this.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name: `line.reply.${cmd.id}`, data } });
+    if (!sim || !tools || !this.cfg) {
+      reply({ ok: false, reason: 'line tools are not available in this build' });
+      return;
+    }
+    const player = (): { x: number; y: number; z: number; yaw: number; vehicle: number } => {
+      const ids = sim.ecs.query([LocalPlayer, Transform, Control]);
+      const id = (ids[0] ?? 0) as number;
+      const tr = sim.ecs.store(Transform);
+      const co = sim.ecs.store(Control);
+      const inCar = co.owner[id] === CONTROL_OWNER.Vehicle;
+      const at = inCar ? (co.target[id] as number) : id;
+      const yaw = 2 * datan2(tr.qy[at] as number, tr.qw[at] as number);
+      return { x: tr.px[at] as number, y: tr.py[at] as number, z: tr.pz[at] as number, yaw, vehicle: inCar ? at : 0 };
+    };
+    switch (cmd.op) {
+      case 'play':
+        try {
+          this.bot = tools.play(cmd.line, sim.core.tick, () => {
+            const p = player();
+            return { x: p.x, z: p.z, yaw: p.yaw, inVehicle: p.vehicle !== 0 };
+          });
+          reply({ ok: true, baseTick: sim.core.tick });
+        } catch (e) {
+          reply({ ok: false, reason: e instanceof Error ? e.message : String(e) });
+        }
+        break;
+      case 'stop':
+        this.bot = null;
+        reply({ ok: true });
+        break;
+      case 'record': {
+        const p = player();
+        tools.startRecording({ scenario: this.cfg.worldBake, seed: this.cfg.seed, profile: this.cfg.profile, pos: [p.x, p.y, p.z], yaw: p.yaw });
+        reply({ ok: true, tick: sim.core.tick });
+        break;
+      }
+      case 'save':
+        reply({ ok: true, line: tools.recording ? tools.stopRecording() : null });
+        break;
+    }
   }
 
   private refuse(r: { ok: true } | { ok: false; reason: string }, what: string): void {

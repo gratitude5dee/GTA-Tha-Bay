@@ -116,7 +116,7 @@ export function view(w: VehicleWorld): VehicleView {
   const ve = e.store(Velocity);
   const v = e.store(Vehicle);
   const dm = e.store(VehicleDamage);
-  const qx = tr.qx[id] as number; const qy = tr.qy[id] as number; const qz = tr.qz[id] as number; const qw = tr.qw[id] as number;
+  const qx = tr.qx[id] as number; const qz = tr.qz[id] as number;
   const upY = 1 - 2 * (qx * qx + qz * qz);
   const vx = ve.vx[id] as number; const vy = ve.vy[id] as number; const vz = ve.vz[id] as number;
   const speed = v.speed[id] as number;

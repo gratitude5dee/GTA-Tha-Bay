@@ -4,6 +4,29 @@ import type { PlayerSide } from '../../sim/publish.ts';
 import type { SnapshotRead } from '../../sim/transport/snapshot-buffer.ts';
 import { interpolateSnapshots, type Pose } from './interpolate.ts';
 
+/** Side key `veh`: the vehicle the local player drives. */
+export interface VehicleSide {
+  handle: number;
+  /** Signed forward speed, m/s. */
+  speed: number;
+  gear: number;
+  rpm: number;
+  handling: string;
+  pos: [number, number, number];
+  /** Control state of the driver (200 entering, 201 driving, 203 exiting). */
+  state: number;
+}
+
+/** Side key `prompt`: the interaction prompt of the local player. */
+export interface PromptSide {
+  target: number;
+  kind: number;
+  key: string;
+  hold: boolean;
+  progress: number;
+  reason?: string;
+}
+
 /**
  * Turns the transport's snapshot pair into drawable poses. It remembers the renderKey strings the worker sends in the
  * side block (`rk`: string-table id to string), so the draw code can map the 32-bit id in a record back to an asset key.
@@ -21,6 +44,10 @@ export class SnapshotView {
   camera: PublishedCamera | null = null;
   /** The local player (side key `pl`); null when there is none. */
   player: PlayerSide | null = null;
+  /** The local player's vehicle (side key `veh`, M03a1); null on foot. */
+  vehicle: VehicleSide | null = null;
+  /** The interaction prompt (side key `prompt`, M03a1); null when nothing is offered. */
+  prompt: PromptSide | null = null;
   /** The game clock and weather (side key `env`, M02b2); null before the first snapshot that carries one. */
   env: EnvState | null = null;
   /** Blackout in force (side key `bo`, set by the world module, M02b2). */
@@ -42,6 +69,10 @@ export class SnapshotView {
       this.camera = cam && typeof cam === 'object' ? (cam as PublishedCamera) : null;
       const pl = read.cur.side['pl'];
       this.player = pl && typeof pl === 'object' ? (pl as PlayerSide) : null;
+      const veh = read.cur.side['veh'];
+      this.vehicle = veh && typeof veh === 'object' ? (veh as VehicleSide) : null;
+      const prompt = read.cur.side['prompt'];
+      this.prompt = prompt && typeof prompt === 'object' ? (prompt as PromptSide) : null;
       const env = read.cur.side['env'];
       if (env && typeof env === 'object') this.env = env as EnvState;
       this.blackout = read.cur.side['bo'] === 1;

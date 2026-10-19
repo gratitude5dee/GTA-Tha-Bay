@@ -9,6 +9,7 @@ import { closureBarrierSystem } from '../world/closures.ts';
 import { LocalPlayer, Control, Vehicle, Transform } from '../ecs/components.ts';
 import { CONTROL_OWNER } from '../control/states.ts';
 import { driverSyncSystem, enterExitSystem } from './enter-exit.ts';
+import { registerVehicleDebug } from './debug.ts';
 import type { VehicleStore } from './components.ts';
 import { registerVehicleSystems, type VehicleSystems } from './vehicle-system.ts';
 
@@ -82,6 +83,7 @@ export function registerVehicleModule(
 
   core.addSystem(closureBarrierSystem({ prefabs, services: core.services }));
 
+  registerVehicleDebug({ core, backend, store, prefabs });
   core.services.side.set('veh', () => playerVehicleSide(core, store));
   core.services.side.set('prompt', () => interaction.side());
   return { systems, store, interaction, ragdoll, prefabs };

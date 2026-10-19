@@ -26,8 +26,6 @@ const ALL = [...CLASS_D, ...POLICE, ROBOTAXI];
 /** Rolling start on the 1.2 km straight for the top-speed line: metres per second along the heading. */
 const ROLLING: Record<string, number> = { 'hp.police-cruiser': 55, 'hp.police-suv': 52, 'hp.robotaxi-ambient': 28 };
 
-const KPH = 3.6;
-
 function withStart(l: LineFile, speed: number | undefined, frames?: LineFile['frames']): LineFile {
   const start: LineFile['start'] = { ...l.start };
   if (speed === undefined) delete start.speed;

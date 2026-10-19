@@ -10,9 +10,13 @@ import { physicsDropConfig } from '../../sim/scenarios/physics-drop.ts';
 import { WALK_DROP, walkDropConfig } from '../../sim/scenarios/walk-drop.ts';
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { PlayerSide } from '../../sim/publish.ts';
+import type { PromptSide, VehicleSide } from '../snapshot/reader.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
 import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
+import { CONTROL_OWNER } from '../../sim/control/states.ts';
+import { PromptOverlay } from '../hud/prompt.ts';
+import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
   GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
   type GamepadLike, type PointerLockTarget, type TouchLayout,
@@ -23,6 +27,8 @@ import { AUDIO_CONFIG, AudioServiceImpl, unlockOnFirstGesture, type AudioContext
 import type { GrayboxInfo, GrayboxPacks, GrayboxPackUrls, GrayboxWorld } from '../graybox/load.ts';
 import type { TouchOverlay } from '../input/touch-overlay.ts';
 import type { FreeCam } from '../debug/free-cam.ts';
+import type { Inspector, InspectReply } from '../debug/inspector.ts';
+import type { PhysicsDraw, PhysicsShapeInfo } from '../debug/physics-draw.ts';
 import type { SimPanel, SkyControls } from '../debug/sim-panel.ts';
 import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
@@ -108,6 +114,14 @@ export interface EngineObservation {
   xr: { supported: boolean; presenting: boolean; frames: number; sessions: number } | null;
   /** Chunks the sim has added colliders for, from the `world.chunk` events. */
   chunksLoaded: number;
+  /** The vehicle the local player drives (side key `veh`, M03a1); null on foot. */
+  vehicle: VehicleSide | null;
+  /** The interaction prompt in force (side key `prompt`); null when nothing is offered. */
+  prompt: PromptSide | null;
+  /** The vehicle camera: which of the five views, whether it drives the draw camera now, and where the last frame put it. */
+  vehicleCamera: { view: string; active: boolean; x: number; y: number; z: number; distance: number };
+  /** QA tools (M03a1): the entity inspector and the physics wireframe. */
+  tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
 }
 
 export interface EngineHandle {
@@ -126,6 +140,12 @@ export interface EngineHandle {
   setPlay(on: boolean): void;
   /** Ends the XR smoke session, if one runs. */
   endXr(): Promise<void>;
+  /** The vehicle camera (M03a1): the bridge cycles and reads it. */
+  readonly vehicleCamera: VehicleCamera;
+  /** QA tools (M03a1); null outside QA builds with `?debug=1`. */
+  readonly tools: { inspector: Inspector; physics: PhysicsDraw } | null;
+  /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
+  ask(cmd: DebugCommand, replyName: string, timeoutMs?: number): Promise<unknown>;
   dispose(): Promise<void>;
 }
 
@@ -231,6 +251,15 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let chunksLoaded = 0;
   let backend: EngineObservation['backend'] = 'none';
   const view = new SnapshotView();
+  // Vehicles (M03a1): the five cameras, the context switch, the prompt overlay, and the QA tools.
+  const vcam = new VehicleCamera();
+  let promptUi: PromptOverlay | null = null;
+  let drivingCtx = false;
+  let snapBehind = false;
+  let idleSec = 0;
+  let inspector: Inspector | null = null;
+  let physicsDraw: PhysicsDraw | null = null;
+  let physicsPoll = 0;
 
   /** The player's view angles: applied every frame on the main thread (C03 rule 1). */
   const look = { yaw: worldBoot ? worldBoot.spawnYaw : startYaw(scenario), pitch: 0 };
@@ -300,6 +329,27 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     return null;
   };
 
+  /** The pose of an entity with its orientation (the vehicle camera needs the heading). */
+  const targetFull = (handle: number): VehiclePose | null => {
+    for (let i = 0; i < view.count; i++) {
+      const p = view.poses[i];
+      if (p && p.handle === handle) return { x: p.px, y: p.py, z: p.pz, qx: p.qx, qy: p.qy, qz: p.qz, qw: p.qw };
+    }
+    return null;
+  };
+
+  /** Sends a debug command with a reply and waits for the reply (the same wait the world bridge uses). */
+  const ask = async (cmd: DebugCommand, replyName: string, timeoutMs = 8000): Promise<unknown> => {
+    if (!host.sendDebug(cmd)) return null;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (host.qaResults.has(replyName)) return host.qaResults.get(replyName);
+      await new Promise<void>((r) => setTimeout(r, 15));
+    }
+    return null;
+  };
+  let askSerial = 0;
+
   /** Resolution while the title is up is lower; play restores it. */
   const applyScale = (): void => {
     if (!hostScene || !hostScene.ready) return;
@@ -318,12 +368,24 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     lastNow = nowMs;
     panel?.frame(nowMs);
     skyControls?.sync(view.env, view.blackout);
+    // The control owner decides the input context (C03): a vehicle owner reads the `vehicle` bindings.
+    const driving = view.player?.owner === CONTROL_OWNER.Vehicle;
+    if (router && driving !== drivingCtx) {
+      drivingCtx = driving;
+      if (driving) {
+        router.push('vehicle');
+        snapBehind = true;
+        vcam.reset();
+      } else router.pop('vehicle');
+    }
     if (router) {
       const block = host.transport?.input;
       if (playing) {
         // Look first (no tick latency), then the devices into the input block the worker samples once per tick. The free cam
         // takes the look for itself and the sim gets the neutral `debug` context, so the player stands still.
+        const lookBefore = look.yaw + look.pitch * 7;
         router.applyLook(dtSec, freeCam?.active ? freeCam.look : look);
+        idleSec = Math.abs(look.yaw + look.pitch * 7 - lookBefore) > 1e-5 ? 0 : idleSec + dtSec;
         const frame = router.sample(frames, look);
         if (block) writeInputFrame(block, frame);
         overlay?.setActiveDevice(router.active);
@@ -339,29 +401,62 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
-    if (rig) {
-      const tier = hostScene?.tier ?? null;
-      if (view.camera && !freeCam?.active) rig.apply(view.camera);
-      if (pool) {
-        pool.hiddenHandle = rig.playerHidden ? (view.camera?.follow?.target ?? null) : null;
-        pool.fadeHandle = view.camera?.follow?.target ?? null;
-        pool.fadeOpacity = rig.playerOpacity;
-        const id = tier?.id;
-        if (id) pool.setLodBands(ENGINE_TIERS[id].animBands);
-      }
-      if (freeCam?.active) {
-        freeCam.update(dtSec);
-      } else {
-        rig.update({
-          alpha: view.alpha,
-          dtSec,
-          reducedMotion,
-          // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
-          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
-          depthPolicy: hostScene?.depthPolicy ?? 'standard',
+    promptUi?.update(playing ? view.prompt : null, playing ? view.vehicle : null, router?.active ?? 'kbm');
+    if (physicsDraw?.visible) {
+      physicsDraw.sync(view.poses, view.count);
+      if (++physicsPoll % 30 === 1) {
+        const id = ++askSerial;
+        void ask({ t: 'debug.physics', id }, `physics.reply.${id}`).then((r) => {
+          const list = (r as { bodies?: PhysicsShapeInfo[] } | null)?.bodies;
+          if (list) physicsDraw?.setShapes(list);
         });
       }
-      if (xrSmoke) xrSmoke.update();
+    }
+    if (rig) {
+      const tier = hostScene?.tier ?? null;
+      const vfollow = driving && view.camera?.reason === 'vehicle' ? view.camera.follow : undefined;
+      const vpose = vfollow ? targetFull(vfollow.target) : null;
+      if (vfollow && vpose && !freeCam?.active) {
+        // The vehicle cameras: chase near, mid and far, hood and cockpit (R-PLAT-04). The player's own mesh is hidden by the sim.
+        const heading = headingOf(vpose);
+        if (snapBehind) {
+          vcam.snapBehind(look, heading);
+          snapBehind = false;
+        }
+        vcam.recentre(look, heading, idleSec, dtSec);
+        vcam.update({
+          camera: rig.camera, pose: vpose, look, allowed: view.camera?.allowedDistance ?? null, dtSec, idleSec,
+          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
+        });
+        if (pool) {
+          pool.hiddenHandle = null;
+          pool.fadeHandle = null;
+          pool.fadeOpacity = 1;
+        }
+        if (xrSmoke) xrSmoke.update();
+      } else {
+        if (view.camera && !freeCam?.active) rig.apply(view.camera);
+        if (pool) {
+          pool.hiddenHandle = rig.playerHidden ? (view.camera?.follow?.target ?? null) : null;
+          pool.fadeHandle = view.camera?.follow?.target ?? null;
+          pool.fadeOpacity = rig.playerOpacity;
+          const id = tier?.id;
+          if (id) pool.setLodBands(ENGINE_TIERS[id].animBands);
+        }
+        if (freeCam?.active) {
+          freeCam.update(dtSec);
+        } else {
+          rig.update({
+            alpha: view.alpha,
+            dtSec,
+            reducedMotion,
+            // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
+            drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
+            depthPolicy: hostScene?.depthPolicy ?? 'standard',
+          });
+        }
+        if (xrSmoke) xrSmoke.update();
+      }
     }
     if (audio && camPos) audio.setListener([camPos.x, camPos.y, camPos.z], [0, 0, -1], [0, 1, 0]);
     if (worldBoot && hostScene) {
@@ -441,6 +536,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       onVisual: overlay.draw,
     });
     router = new InputRouterImpl({ binders: [kbm, pad, touchBinder] });
+    promptUi = new PromptOverlay(document.body);
+    cleanups.push(() => promptUi?.dispose());
     kbm.attach(window as unknown as BinderTarget);
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);
@@ -448,7 +545,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
     const off = router.onClientAction((action, phase) => {
       if (phase !== 'pressed') return;
-      if (action === ClientAction.Camera) rig?.toggleFpTp();
+      if (action === ClientAction.Camera) {
+        if (drivingCtx) vcam.cycle();
+        else rig?.toggleFpTp();
+      }
       else if (action === ClientAction.ShoulderSwap) rig?.swapShoulder();
       else if (action === ClientAction.Pause) {
         paused = !paused;
@@ -470,6 +570,18 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           backend: () => backend,
         });
         freeCam = new Free({ router, camera: made.camera as unknown as CameraLike });
+        // The entity inspector (F7) and the physics wireframe (F6), M03a1.
+        const [{ Inspector: Insp }, { PhysicsDraw: Draw }] = await Promise.all([import('../debug/inspector.ts'), import('../debug/physics-draw.ts')]);
+        inspector = new Insp({
+          container: document.body,
+          ask: async (cmd) => {
+            const id = ++askSerial;
+            const r = await ask({ ...cmd, id } as DebugCommand, `inspect.reply.${id}`);
+            return r as InspectReply | null;
+          },
+        });
+        physicsDraw = new Draw(opts.host!.scene);
+        cleanups.push(() => inspector?.dispose(), () => physicsDraw?.dispose());
         // The sky controls (M02b2): only a streamed world has a sky.
         if (worldBoot) {
           const layer = worldBoot.layer;
@@ -488,6 +600,16 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         // A phone has no F3: with ?debug=1 on a touch device the panel is on from the start.
         if (opts.forceTouch || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)) panel.toggle();
         const onKey = (e: KeyboardEvent): void => {
+          if (e.code === 'F6' && !e.repeat) {
+            e.preventDefault();
+            physicsDraw?.toggle();
+            return;
+          }
+          if (e.code === 'F7' && !e.repeat) {
+            e.preventDefault();
+            inspector?.toggle();
+            return;
+          }
           if (e.code !== 'F4' || e.repeat) return;
           e.preventDefault();
           const cam = made.camera as unknown as { position: { x: number; y: number; z: number } };
@@ -583,6 +705,15 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           ? { supported: true, presenting: hostScene?.isPresenting ?? false, frames: hostScene?.xrFrames ?? 0, sessions: xrSmoke?.sessions ?? 0 }
           : null,
         chunksLoaded,
+        vehicle: view.vehicle,
+        prompt: view.prompt,
+        vehicleCamera: { view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance },
+        tools: inspector && physicsDraw
+          ? {
+              inspector: inspector.visible, inspectorComponents: inspector.components, physics: physicsDraw.visible,
+              physicsBodies: physicsDraw.count, physicsShapes: physicsDraw.shapesDrawn,
+            }
+          : null,
       };
     },
     act: (cmd) => host.sendDebug(cmd),
@@ -592,6 +723,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     qaResults: () => Object.fromEntries(host.qaResults),
     setPlay,
+    vehicleCamera: vcam,
+    get tools() {
+      return inspector && physicsDraw ? { inspector, physics: physicsDraw } : null;
+    },
+    ask,
     endXr: async () => {
       await xrSmoke?.end();
     },

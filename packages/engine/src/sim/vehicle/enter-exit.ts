@@ -27,7 +27,7 @@ import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
 import { GROUP_BIT, GROUPS } from '../physics/groups.ts';
 import type { Vec3, VehiclePhysics } from '../physics/backend.ts';
 import type { EngineServices } from '../services.ts';
-import { VehicleStore, type VehicleRuntime } from './components.ts';
+import type { VehicleStore, VehicleRuntime } from './components.ts';
 import { loadPose, newPose, type BodyPose } from './raycast-vehicle.ts';
 
 export const ENTER_EXIT_ID = 'engine.vehicle.enter-exit';

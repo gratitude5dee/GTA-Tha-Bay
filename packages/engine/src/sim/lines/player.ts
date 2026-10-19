@@ -29,6 +29,8 @@ const clamp = (x: number, lo: number, hi: number): number => (x < lo ? lo : x > 
 
 export class LinePlayer implements BotInput {
   readonly device = 'bot' as const;
+  /** The runtime hands this bot the real frame of each tick and drops it once `stoppedAt` is set. */
+  readonly stopsOnRealInput = true as const;
   /** The sim tick at which a real input stopped the line, or null while it plays. */
   stoppedAt: number | null = null;
   /** True once the last run has been played. */

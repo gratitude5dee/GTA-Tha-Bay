@@ -274,9 +274,10 @@ export function vehiclePedHitSystem(ragdoll: RagdollLite, store: VehicleStore): 
         const qw = tr.qw[cid] as number;
         const fx = -2 * (qx * qz + qw * qy);
         const fz = -(1 - 2 * (qx * qx + qy * qy));
-        const front = p.wheelbaseM * (1 - p.frontWeightPct / 100) + 1.0 + 0.35;
-        const back = p.wheelbaseM * (p.frontWeightPct / 100) + 1.0 + 0.35;
-        const half = p.trackM / 2 + 0.35 + 0.2;
+        // the body reaches about 1.1 m past the axles; the capsule radius and a margin make the contact certain before Rapier stops the car
+        const front = p.wheelbaseM / 2 + 1.1 + 0.35 + 0.6;
+        const back = p.wheelbaseM / 2 + 1.1 + 0.35 + 0.6;
+        const half = p.trackM / 2 + 0.35 + 0.35;
         for (let i = 0; i < peds.length; i++) {
           const pid = peds[i] as number;
           const dx = (tr.px[pid] as number) - (tr.px[cid] as number);
