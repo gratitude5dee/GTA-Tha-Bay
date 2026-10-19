@@ -1,5 +1,5 @@
 import { env as testEnv } from 'cloudflare:test';
-import worker from '../src/index.ts';
+import worker, { createApp } from '../src/index.ts';
 import type { Env } from '../src/env.ts';
 import { UUIDV7_PATTERN } from '../src/uuidv7.ts';
 import type { TelemetryBatch, TelemetryEvent } from '@dv/shared';
@@ -20,14 +20,14 @@ export function aeStub(): { dataset: AnalyticsEngineDataset; points: Point[] } {
 
 export async function call(
   path: string,
-  init: RequestInit & { country?: string | null; env?: Partial<Env> } = {},
+  init: RequestInit & { country?: string | null; env?: Partial<Env>; app?: ReturnType<typeof createApp> } = {},
 ): Promise<Response> {
-  const { country, env: envOverride, ...rest } = init;
+  const { country, env: envOverride, app, ...rest } = init;
   const request = new Request(`https://example.test${path}`, {
     ...rest,
     ...(country ? { cf: { country } } : {}),
   } as RequestInit);
-  return worker.fetch(request, { ...(testEnv as unknown as Env), ...envOverride });
+  return (app ?? worker).fetch(request, { ...(testEnv as unknown as Env), ...envOverride });
 }
 
 export const ISOLATION = {

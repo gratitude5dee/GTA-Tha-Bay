@@ -9,14 +9,14 @@ import { buildCspReportOnly, type CspHosts } from '../packages/shared/src/platfo
 export const STAGING_CSP_HOSTS: CspHosts = {
   media: 'https://tha-bay-media-staging.workers.dev',
   ugc: 'https://tha-bay-ugc-staging.workers.dev',
-  rt: 'https://tha-bay-rooms-staging.workers.dev',
+  rt: 'https://tha-bay-rooms-staging.gratitude-8f4.workers.dev',
   id: 'https://tha-bay-web-staging.gratitude-8f4.workers.dev',
 };
 
 export const PROD_CSP_HOSTS: CspHosts = {
   media: 'https://tha-bay-media.workers.dev',
   ugc: 'https://tha-bay-ugc.workers.dev',
-  rt: 'https://tha-bay-rooms.workers.dev',
+  rt: 'https://tha-bay-rooms.gratitude-8f4.workers.dev',
   id: 'https://tha-bay-web.gratitude-8f4.workers.dev',
 };
 

@@ -1,3 +1,4 @@
+import type { AppDeps } from './deps.ts';
 import type { Env } from './env.ts';
 import { apiError } from './errors.ts';
 
@@ -6,6 +7,8 @@ export interface Ctx {
   env: Env;
   url: URL;
   requestId: string;
+  /** Injected dependencies of the account handlers (M00e). */
+  deps: AppDeps;
 }
 
 export type Handler = (ctx: Ctx) => Response | Promise<Response>;

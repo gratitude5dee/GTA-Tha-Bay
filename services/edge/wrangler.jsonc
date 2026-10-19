@@ -1,4 +1,4 @@
-// tha-bay-web: static assets plus /api/v1/* (M00a). Navigation stays on the asset path (run_worker_first covers /api/* only).
+// tha-bay-web: static assets plus /api/v1/* (M00a). Navigation stays on the asset path (run_worker_first covers /api/* and /account, which redirects to /account/; M00e).
 // Never touch, rename or deploy over a Worker whose name does not start with tha-bay-.
 // Bindings, vars and define are not inherited by env.staging or previews and are repeated on purpose.
 // Keys marked (dagger) in the spec were checked with `wrangler deploy --dry-run` on wrangler 4.151.1: see spec/03 and spec/99 U-BE-3.
@@ -11,7 +11,7 @@
     "directory": "../../apps/web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/account"]
   },
   // No custom domain until Q-15 is answered.
   "workers_dev": true,
@@ -45,17 +45,27 @@
     "BUILD_ID": "dev",
     "MIN_CLIENT_BUILD": "0",
     "HOST_API": "https://tha-bay-web.gratitude-8f4.workers.dev",
-    "HOST_RT": "https://tha-bay-rooms.workers.dev",
+    "HOST_RT": "https://tha-bay-rooms.gratitude-8f4.workers.dev",
     "HOST_ID": "https://tha-bay-web.gratitude-8f4.workers.dev",
+    // placeholder until Q-15: R2 custom domain, no workers.dev form
     "HOST_MEDIA": "https://tha-bay-media.workers.dev",
+    // placeholder until Q-15: R2 custom domain, no workers.dev form
     "HOST_UGC": "https://tha-bay-ugc.workers.dev",
     "FLAGS_JSON": "{}",
     "FAL_MODE": "live",
     // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
     // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
     "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
-    "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
+    "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
+    // Password sign-up switch (M00e, DL-601): "off" in production until the operator sets it "on" by a one-line PR.
+    // Sign-in, refresh, logout and me do not depend on it.
+    "AUTH_PASSWORD_SIGNUP": "off"
   },
+  // Rate Limiting (M00e): class auth of 09-backend-ops.md section 3.1. Namespace ids are unique per environment (BD-M00e-01).
+  "ratelimits": [
+    { "name": "RL_AUTH", "namespace_id": "7301", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } }
+  ],
   "secrets": { "required": [] },
   "env": {
     "staging": {
@@ -67,7 +77,7 @@
         "directory": "../../apps/web/dist",
         "binding": "ASSETS",
         "not_found_handling": "single-page-application",
-        "run_worker_first": ["/api/*"]
+        "run_worker_first": ["/api/*", "/account"]
       },
       // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
       "durable_objects": {
@@ -98,15 +108,23 @@
         "BUILD_ID": "dev",
         "MIN_CLIENT_BUILD": "0",
         "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-        "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
+        "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
         "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
+        // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+        // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
         "FLAGS_JSON": "{}",
         "FAL_MODE": "mock",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
-        "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
-      }
+        "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
+        // Owner testing: staging sign-up is open. Route 58 also needs LEGAL_CONTACT (operator-supplied, not set here; DL-635).
+        "AUTH_PASSWORD_SIGNUP": "on"
+      },
+      "ratelimits": [
+        { "name": "RL_AUTH", "namespace_id": "7311", "simple": { "limit": 10, "period": 60 } },
+        { "name": "RL_AUTH_USER", "namespace_id": "7312", "simple": { "limit": 5, "period": 60 } }
+      ]
     }
   },
   // Required by `wrangler preview`. Bindings are not inherited and are repeated here.
@@ -136,14 +154,19 @@
       "BUILD_ID": "dev",
       "MIN_CLIENT_BUILD": "0",
       "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-      "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
+      "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
       "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
+      // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+      // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
       "FLAGS_JSON": "{}",
-      "FAL_MODE": "mock",
-      "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
-      "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
-    }
+      "FAL_MODE": "mock"
+      // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
+    },
+    "ratelimits": [
+      { "name": "RL_AUTH", "namespace_id": "7321", "simple": { "limit": 10, "period": 60 } },
+      { "name": "RL_AUTH_USER", "namespace_id": "7322", "simple": { "limit": 5, "period": 60 } }
+    ]
   }
 }

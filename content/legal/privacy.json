@@ -1,0 +1,71 @@
+{
+  "doc": "privacy",
+  "updated": 1792368000000,
+  "counselReviewed": false,
+  "sections": [
+    {
+      "id": "status",
+      "heading": "Pre-release notice",
+      "paragraphs": [
+        "This is the interim privacy notice for the pre-release password accounts of {brand}. It has not been reviewed by counsel and will be replaced before launch."
+      ]
+    },
+    {
+      "id": "stored",
+      "heading": "What a password account stores",
+      "paragraphs": [
+        "Username.",
+        "A password hash. The password itself is never stored by us; it is checked and hashed by the sign-in provider.",
+        "An age confirmation of 18 or older (stored as the bracket 18p), the version of the terms you accepted, and the time you accepted them.",
+        "No game progress, saves, location or device data is attached to a password account."
+      ]
+    },
+    {
+      "id": "processor",
+      "heading": "Who processes it",
+      "paragraphs": [
+        "Accounts are held by Supabase Auth, which acts as our processor. Our servers talk to it on your behalf; your browser does not call it directly.",
+        "Our servers see the network address of each request only long enough to limit abuse. The address is reduced to a hashed network prefix with a daily changing salt, and the address itself is not stored or logged."
+      ]
+    },
+    {
+      "id": "tokens",
+      "heading": "Cookies and storage",
+      "paragraphs": [
+        "Signing in sets one cookie, dv-rt, that keeps you signed in for up to 30 days. It is HttpOnly, so scripts on the page cannot read it, and it is only sent to the sign-in routes of this service.",
+        "The access token stays in the memory of the account page and is gone when you close it."
+      ]
+    },
+    {
+      "id": "deletion",
+      "heading": "Deleting your account",
+      "paragraphs": [
+        "While the self-service route is available, the account page can delete your account after you type your username to confirm. The account and its stored record are removed.",
+        "Otherwise, ask for deletion at {contact}."
+      ]
+    },
+    {
+      "id": "access",
+      "heading": "Getting a copy of your data",
+      "paragraphs": [
+        "While the self-service route is available, the account page can export your username, age bracket, terms version and acceptance time.",
+        "Otherwise, ask at {contact}."
+      ]
+    },
+    {
+      "id": "requests",
+      "heading": "How we answer requests",
+      "paragraphs": [
+        "We verify a request with your username and password at the service while the self-service routes are available. If they are not, we use a manual check with you at {contact}.",
+        "We answer each request within 30 days of receiving it."
+      ]
+    },
+    {
+      "id": "contact",
+      "heading": "Contact",
+      "paragraphs": [
+        "Deletion and access requests, and any privacy question: {contact}."
+      ]
+    }
+  ]
+}
