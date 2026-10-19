@@ -32,7 +32,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - **Witness hook:** writes component 263 and emits `SimEvent {t: 'world.witness', s: <InfractionKind>, n: <reportAtTick>}` with the witness kind. M03c subscribes; until then events are counted only.
 - Rendering (`packages/world/src/client/traffic/`, §2.6): one `InstancedMesh` per archetype (box cars, stub first), colour and head/tail/hazard light state as instance attributes, distance throttling, two-box far LOD beyond 150 m, totals within C13 `CrowdLimits`.
 - **Determinism scenario `traffic-synth`:** 10,000 `canonical` ticks, seed 0xC0FFEE, on the `synth` bake. Node golden; a QA page `apps/web/qa/world-hash.html` (QA builds only) runs it in `sim.worker` from the same packs served under `/media-local/` and publishes checkpoints on `__dvBridge.world.qa`. **Residency rule (DL-678)**, part of the scenario definition and shared by every world scenario (`traffic-peds-synth`, `pursuit-escape`): before tick 0 the runner requests, receives and pins every `p0` tile within the canonical `R_amb` plus one ring of chunks around the fixed start; while running, the canonical runtime does not advance a tick while any requested `p0` is pending (it stalls, it never skips), and packs are applied only at tick boundaries in request order over M02b1's sim↔asset channel. The Node runner applies the same rule with synchronous reads, so pack arrival time never enters the hash; the runner records `stallTicks` beside the checkpoints (not hashed).
-- Perf scenario `downtown-rush`: path `config/perf/paths/downtown-rush.json` (ENU path through SoMa and FiDi at 17:00 weekday, `density: 'nominal'`), registered in `tests/perf/`. Device checklist `tools/ci/checklists/M03b1-iphone15.json`.
+- Perf scenario `downtown-rush`: path `config/perf/paths/downtown-rush.json` (ENU path through SoMa and FiDi at 17:00 weekday, `density: 'nominal'`), registered in `tests/perf/` and in `config/perf/scenarios.json`, the `check:perf` registry M02b1 reads (DL-656 part 4). Device checklist `tools/ci/checklists/M03b1-iphone15.json`.
 
 ## Scope out
 - Pedestrians, crossings, transit, aircraft, the robotaxi fare and Ride: M03b2.
@@ -47,7 +47,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - `packages/world/test/{traffic.idm.spec.ts, traffic.signals.spec.ts, traffic.junction.spec.ts, robotaxi.blackout.spec.ts, density.spawn.spec.ts, traffic.promotion.spec.ts, witness.spec.ts, traffic.determinism.spec.ts}`, `packages/world/test/golden/traffic-synth.json`.
 - `apps/web/qa/world-hash.html`, `apps/web/src/qa/world-hash.ts`; `verify-dist.mjs` also rejects `world-hash`.
 - `tests/e2e/world-hash.spec.ts` (`@world-hash`).
-- `config/perf/paths/downtown-rush.json`, its entry in `tests/perf/`, `tools/ci/checklists/M03b1-iphone15.json`.
+- `config/perf/paths/downtown-rush.json`, its entry in `tests/perf/`, `downtown-rush` appended to `config/perf/scenarios.json` (M02b1's `PERF_SCENARIOS` registry; without it `check:perf -- --scenario downtown-rush` exits non-zero and the nightly unfiltered `--fail` run skips the scenario; DL-656 part 4), `tools/ci/checklists/M03b1-iphone15.json`.
 - About 33 files.
 
 ## Interfaces

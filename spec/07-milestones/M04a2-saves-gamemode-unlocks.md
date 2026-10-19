@@ -32,7 +32,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
   - rewards through `EconomyApi` with key `mode:<id>:<seed>:<tick>`.
 
   It also handles the 1.1 rule changes: `standaloneProfile`, the Story ↔ `exp:` switch at a safe point with `story:auto` saved as `modeExit`, and `core.stats.fightsWon` on a fighter win.
-- **Session capability:** entering a top-level mode sets the M04a1 `SaveCapability` (`story`, `sandbox`, `standalone:<id>`, `exp:<id>`).
+- **Session capability:** entering a top-level mode sets the M04a1 `SaveCapability` (`story`, `sandbox`, `standalone:<id>`, `exp:<id>`). `ctx.save` and the capability reach `sim/modes/` only through M04a1's type-only `sim/save-port.ts` (`SaveWritePort`, `SaveCapability`), bound by `src/workers/save-control.ts`; nothing under `sim/modes/` imports `sim/save/**`, so the DOM-free sim program stays clean (DL-659 part 2).
 - **`ModeContext` assembly** (`context.ts`) with `rng(stream)` auto-prefixed `mode:<id>:`. Services that do not exist yet are explicit stubs that throw `NotYetAvailable` with the landing milestone in the message:
   - `zones`, `scheduler`, `timeline` → M05a1;
   - `combat` → M05c1;
@@ -44,7 +44,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - **Built-in descriptors** (`builtin/`):
   - `story`: order 1, `unlock: null`, `available`. Its sim is a minimal free roam (spawn, wallet, autosave) that M05a1 replaces with the mission VM.
   - `sandbox`: `unlock: null`, sandbox capability; toggles write the `sandbox` slice.
-  - Scenario adoption (DL-668): `sandbox` and the `story` free roam adopt the scenario the engine booted (`BootPayload.config.scenario` from `boot-engine.ts`: `walk-drop`, `physics-drop`, M01b2's gray-box walk, or the `?scenario=<id>` the QA play bypass passed, DL-650). Entering them on the booted profile calls no `SimHost.restart` and respawns nothing, so the player, bodies and camera of that scene stay as booted; rule 4's restart applies only when the requested profile differs from the running one.
+  - Scenario adoption (DL-668): `sandbox` and the `story` free roam adopt the scenario the engine booted (`BootPayload.config.scenario` from `boot-engine.ts`; DL-668 part 2): by default `civic-graybox`, M01b2's gray-box block with `player.default` at the fixture spawn; in QA builds `QaFlags.world` (`?world=<id>`, BD-M01b2-01) picks `walk-drop` or `physics-drop` instead, and on a world build M02b1's boot rule decides. `?scenario=<id>` is only M01c's perf-scenario flag (`QaFlags.scenario`): it runs a perf path on whatever scene booted and, through the QA play bypass, implies `sandbox` (DL-650); it never selects a sim scenario. Entering them on the booted profile calls no `SimHost.restart` and respawns nothing, so the player, bodies and camera of that scene stay as booted; rule 4's restart applies only when the requested profile differs from the running one.
   - `racing`, `fighter`, `tycoon`: `status: 'comingSoon'`, tile orders 2/3/4, unlocks `unlock.racing`, `unlock.fighter`, `unlock.tycoon`, art `ui/mode-<id>`, `standalone` and `embeddable` true.
 
   The mode milestones (M07a1, M08a2, M09a1) replace the stubs.
@@ -55,7 +55,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
   - sim-side `UiBridge`: patches coalesced per tick with ≤ 64 patches and ≤ 4 KiB, overflow deferred to the next tick in order;
   - `toast`, `openApp`, `closeOverlay`; the M02c1 SimEvent `{t: 'world.boundary', s: 'countyLine'}` maps to one `toast` with key `world.boundary.countyLine` (DL-681);
   - main-side `ViewModelSource` (`get`, `subscribe` with `prefix*`, `rev`);
-  - a `UiCommand` sender over the command ring, with a dispatcher in the worker for `mode.start`, `mode.quit`, `pause`, `save.*`, `sandbox.set` and `mode.cmd`.
+  - a `UiCommand` sender over the command ring, with a dispatcher in the worker for `mode.start`, `mode.quit`, `pause`, `save.*`, `sandbox.set` and `mode.cmd`; `garage.call` and `garage.favorite` get one `toast` with key `garage.notYet` and change nothing until M05c1 routes them to its garage module (DL-668 part 3).
 
   `hud.wallet` and `hud.clock` are patched by their owners here.
 - **Clock and interaction:** wire the M02b2 clock (`packages/engine/src/sim/world/clock.ts`, tested by its `clock.spec.ts`) and the M03a1 interaction system into `ModeContext`, and add the contract test `engine/interaction.scoring`. If a rule fails, fix the S01 engine code in place.
@@ -100,7 +100,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - AC-9 Given a `sandbox` session When a mode tries to write `story:auto` through `ctx.save` Then the write is `NOT_ALLOWED`, and `ModeContext` members that have not landed throw `NotYetAvailable` naming their milestone — proof: `pnpm --filter @dv/engine test:modes`
 - AC-10 Given the QA build When the e2e sends `UiCommand mode.start {id: 'sandbox'}` through the bridge, then `mode.quit` Then the bridge reports `Running` and then `Idle`, a `modeExit` save exists, and `mode.enter`/`mode.exit` events were queued with registry props only — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @modes`
 - AC-11 Given the branch When the standard gates, the telemetry registry check and the preview deploy run Then all pass — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm check:telemetry && pnpm build && pnpm deploy:preview`
-- AC-12 Given a QA build without `DV_WORLD` (no `data/world-index`; CI runs `@modes` in the `GRAYBOX_GREP` half) booted on the default scenario (DL-668) When `@modes` sends `mode.start {id: 'sandbox'}` Then the bridge reports `Running`, `SimHost.restart` was not called, the walk-drop player entity and its position at the moment of the command are unchanged one tick later, and in `context.spec.ts` the stand-in returns a fixture `groundY` for a resident gray-box point, `teleport.request` resolves `not-loaded` and `graph.route` returns `null` — proof: `pnpm --filter @dv/engine test:modes && pnpm check:e2e -- --project=chromium-webgl2 --grep @modes`
+- AC-12 Given a QA build without `DV_WORLD` (no `data/world-index`; CI runs `@modes` in the `GRAYBOX_GREP` half) booted on the default scenario (DL-668) When `@modes` sends `mode.start {id: 'sandbox'}` Then the bridge reports `Running`, `SimHost.restart` was not called, the booted `civic-graybox` player entity (`player.default`, BD-M01b2-01) and its position at the moment of the command are unchanged one tick later, and in `context.spec.ts` the stand-in returns a fixture `groundY` for a resident gray-box point, `teleport.request` resolves `not-loaded` and `graph.route` returns `null` — proof: `pnpm --filter @dv/engine test:modes && pnpm check:e2e -- --project=chromium-webgl2 --grep @modes`
 
 ## Test plan
 - **Unit** (`pnpm --filter @dv/engine test:modes` and `pnpm --filter @dv/engine test`, both under `pnpm check:unit`): `engine/modes.hostStates`, `modes.embed`, `modes.unlocks`, `modes.comingSoon`, `economy.idempotent`, `modes.autosave`, `modes.remap`, `ui.bridge`, `interaction.scoring`, `modes.context`; M02b2's `clock` stays green.
@@ -127,5 +127,6 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - Order of work: contracts, bridge and command channel, registry and host, context, unlocks, economy and port bindings, autosave, remap, clock and interaction tests, e2e.
 - The `story` free roam is a placeholder sim with no missions. Keep it under 150 lines; M05a1 replaces its `sim` import.
 - `modes.spec.ts` drives `mode.start`/`mode.quit` itself, so it opts out of M04b1's QA play bypass from the start: `test.use({ storageState: { cookies: [], origins: [] } })` and `page.goto('/?play=off')`. Both are inert until M04b1 lands; afterwards they keep the bypass from starting `sandbox` first, which C06 rule 1 would make refuse the spec's own `mode.start` as a second top-level mode (M04b1 AC-15 allows no engine-spec edit).
+- Code-branch names used here (`QaFlags.world`, `QaFlags.scenario`, the `civic-graybox` default, `BootPayload.config.scenario`) are those of `claude/build-m01b2` (98570f3) and M04a1's write port. If the merged code differs, follow the merged form after the DL-690 spec-sync check and record a `BD-NNN` row.
 - Telemetry stays local in this milestone (consent UI arrives in M04b1). `check:telemetry` validates names and props only.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

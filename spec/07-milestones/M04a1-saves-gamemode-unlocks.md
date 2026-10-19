@@ -29,7 +29,7 @@ The main thread reads the last-save status line through a read-only handle. A ki
 ## Scope in
 - `packages/shared/src/contracts/c05-save.ts` copied verbatim, with the 1.1 additions (`SaveReason 'checkpoint'`, `ProfileSettings.npc?`, `.cutscenes?`) and the exported `JsonObject`/`JsonValue` (DL-194). C05 imports types from `c06-modes.ts`, `engine-world.ts`, `c03-input.ts` and `platform/xr-comfort.ts`. Any of these not yet present (and, transitively, `ui-bridge.ts`) is created **verbatim and whole** from its owner section (types only; M04a2 implements C06). A contract file is never created partially.
 - The JSON Schema `save-record.v1.json` (C05 envelope) and slice schemas `packages/engine/src/sim/save/schema/{core,settings,story,sandbox}.v1.schema.json`. Mode slices (`racing`, `fighter`, `tycoon`) and `mod:*` are validated as `JsonObject` under the size caps until their owners add schemas.
-- `SaveService` in `packages/engine/src/sim/save/` (outside the C02 lint scope, so `Date.now` and `crypto.getRandomValues` are allowed):
+- `SaveService` in `packages/engine/src/sim/save/` (outside the C02 lint scope, so `Date.now` and `crypto.getRandomValues` are allowed; also outside the DOM-free sim program, DL-659 part 2: `packages/engine/tsconfig.sim.json` on the code branch is `lib: ["ES2023"]`, `types: []`, `include: ["src/sim/**/*.ts"]` and runs in the root `typecheck` chain, so this milestone adds `"exclude": ["src/sim/save/**"]` to it; the root `tsconfig.json`, which includes `packages/*/src` with the DOM lib, type-checks `idb.ts`, `multitab.ts` and the `crypto.getRandomValues` and `QuotaExceededError` paths):
   - IndexedDB `dv-saves` v1 with stores `profiles`, `records`, `pointers`, `tombstones`, `conflicts` (created empty; M12a1 fills it), `meta`;
   - rule 1: atomic write with orphan sweep on boot;
   - rule 2: load with fallback;
@@ -43,7 +43,7 @@ The main thread reads the last-save status line through a read-only handle. A ki
   - `onStatus`.
 - Profile and per-record caps: `recordMaxBytes` 2 MiB, `profileMaxBytes` 16 MiB, `QUOTA` mapping from `QuotaExceededError`, and a CI warning when a story golden exceeds `storyTargetBytes`.
 - `IDB_UNAVAILABLE` path: an in-memory store with the same API, and `SaveService.persistent === false` for the S10 banner (M04b1).
-- Worker plumbing: a `SimControlMessage {t: 'save.request', reason}` handler outside ticks (C02 rule 9). A command port that takes `{slot, data, reason}` writes from sim systems. A main-thread `readLastSave(profileId)` read-only helper (`packages/engine/src/client/save-status.ts`).
+- Worker plumbing: a `SimControlMessage {t: 'save.request', reason}` handler outside ticks (C02 rule 9) in `packages/engine/src/workers/save-control.ts`, beside `sim.worker.ts` and outside `src/sim/`; it is the only module that wires `SaveService` into the worker. Sim systems write through the write port: the type-only interface `SaveWritePort {write(slot, data, reason)}` in `packages/engine/src/sim/save-port.ts`, which also holds the `SaveCapability` type (re-exported by `sim/save/index.ts`); it imports only `@dv/shared` contract types, never `sim/save/**`, and `save-control.ts` implements it. No module under `src/sim/` outside `sim/save/` imports `sim/save/**`, so the sim program never pulls DOM or WebWorker types. A main-thread `readLastSave(profileId)` read-only helper (`packages/engine/src/client/save-status.ts`).
 - QA bridge `__dvBridge.engine.save.{list, write, load, kill}` (QA builds only) and QA page `apps/web/qa/save-kill.html`, which runs a write loop in `sim.worker` for the kill test.
 
 ## Scope out
@@ -56,17 +56,18 @@ The main thread reads the last-save status line through a read-only handle. A ki
 - `packages/shared/src/contracts/c05-save.ts` (plus any missing imported contract file, created verbatim and whole); `packages/shared/schemas/save-record.v1.json`.
 - `packages/engine/src/sim/save/{service.ts, idb.ts, memory-store.ts, write.ts, load.ts, capability.ts, migrate.ts, profiles.ts, tombstones.ts, export-import.ts, multitab.ts, changes.ts, canonical.ts, index.ts}`; `schema/{core,settings,story,sandbox}.v1.schema.json`.
 - Golden files `packages/engine/src/sim/save/__golden__/{core,settings,story,sandbox}/v1.json` (the C05 rule 5 path), plus `__golden__/dvsave/sample.v1.dvsave`.
-- `packages/engine/src/sim/worker/save-control.ts` (control-message handler); `packages/engine/src/client/save-status.ts`.
+- `packages/engine/src/workers/save-control.ts` (control-message handler, wired into `sim.worker.ts`); `packages/engine/src/sim/save-port.ts` (type-only `SaveWritePort` and `SaveCapability`); `packages/engine/src/client/save-status.ts`.
+- `packages/engine/tsconfig.sim.json`: `"exclude": ["src/sim/save/**"]` (DL-659 part 2), recorded as a `BD-NNN` row.
 - `packages/engine/test/save/{atomic.spec.ts, load.fallback.spec.ts, caps.spec.ts, capability.spec.ts, migrate.golden.spec.ts, tombstone.spec.ts, profiles.spec.ts, import-undo.spec.ts, multitab.spec.ts, changes.spec.ts, memory.spec.ts}`.
 - `packages/engine/package.json`: dev dependency `fake-indexeddb` (version as resolved, recorded in `spec/03`); script **`test:save`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/save`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `apps/web/qa/save-kill.html`, `apps/web/src/qa/save-kill.ts`; `verify-dist.mjs` also rejects `save-kill`.
 - `tests/e2e/engine/save-kill.spec.ts` (`@save-kill`).
-- About 37 files.
+- About 39 files.
 
 ## Interfaces
 - C05 1.1: `c05-save.ts` verbatim; `SaveService` implements the interface exactly. No shape change. A gap goes to the report as a proposal.
 - C02 1.1: `SimControlMessage {t: 'save.request'}` handled outside ticks.
-- Engine-internal (not contracts): `SaveCapability`, the write port, `readLastSave`, the memory store.
+- Engine-internal (not contracts): `SaveCapability`, the write port `SaveWritePort` (`sim/save-port.ts`), `readLastSave`, the memory store.
 
 ## Acceptance criteria
 - AC-1 Given a write When it is interrupted after each of the steps (a)–(f) of C05 rule 1 (fault injection per step) Then the next `load` returns the last good generation with a valid checksum. Orphan records are swept on boot, and at most `keepGenerations` (2) records remain per slot — proof: `pnpm --filter @dv/engine test:save`
@@ -79,7 +80,7 @@ The main thread reads the last-save status line through a read-only handle. A ki
 - AC-8 Given two service instances on the same profile When both write the same slot Then exactly one succeeds, the other gets `CONFLICT` and switches to read-only, and `onStatus` reports it — proof: `pnpm --filter @dv/engine test:save`
 - AC-9 Given IndexedDB throws on open When the service starts Then it runs on the memory store, `persistent` is false, and writes and loads still pass the rule 1–3 tests — proof: `pnpm --filter @dv/engine test:save`
 - AC-10 Given the QA build When `/qa/save-kill.html` runs a write loop and the test closes the page mid-loop, then reopens it Then the last good generation loads, its checksum is valid, and the status line read on the main thread matches it — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @save-kill`
-- AC-11 Given the branch When the standard gates, the dist verifier and the preview deploy run Then all pass, and the production `dist/` has no `save-kill` page — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-11 Given the branch When the standard gates, the dist verifier and the preview deploy run Then all pass, the DOM-free sim program (`packages/engine/tsconfig.sim.json`) lists no file under `src/sim/save/`, and the production `dist/` has no `save-kill` page — proof: `pnpm lint && pnpm typecheck && ! pnpm exec tsc -p packages/engine/tsconfig.sim.json --listFilesOnly | grep -q 'src/sim/save/' && pnpm check:unit && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
 ## Test plan
 - **Unit** (`pnpm --filter @dv/engine test:save`, under `pnpm check:unit`, with `fake-indexeddb`): `engine/save.atomic`, `save.loadFallback`, `save.caps`, `save.capability`, `save.migrateGolden`, `save.tombstone`, `save.profiles`, `save.importUndo`, `save.multitab`, `save.changes`, `save.memory`.
@@ -92,7 +93,7 @@ The main thread reads the last-save status line through a read-only handle. A ki
 4. Export the profile, import it as new, then undo.
 
 ## Effort
-1 Builder session; about 37 files; risk **medium**. IndexedDB transaction semantics and the fault-injection harness take the time.
+1 Builder session; about 39 files; risk **medium**. IndexedDB transaction semantics and the fault-injection harness take the time.
 
 ## Risks & fallbacks
 - **IndexedDB commit durability under a killed process** (U-ENG-9): the two-phase write is safe either way (C05 rule 1). Record behaviour in M11a1's soak; never assert it.
@@ -104,5 +105,5 @@ The main thread reads the last-save status line through a read-only handle. A ki
 - Facts: F-009 (WebContent killed near 2 GB, which is why recovery matters), F-010 (origin quota; `QUOTA` mapping).
 - Order of work: contract file, canonical and checksum, IDB layer, atomic write and load, caps, capabilities, profiles, tombstones, migrations and goldens, export and import, multi-tab, memory store, control message, QA page and e2e.
 - Goldens live only in `packages/engine/src/sim/save/__golden__/` (C05 rule 5; `_PLAN-1.md` aligned, DL-220).
-- `sim/save/**` is outside the determinism lint by design. Nothing in it may be imported by sim systems except through the write port.
+- `sim/save/**` is outside the determinism lint and the sim tsconfig by design (DL-659 part 2). Sim systems never import it; they reach saves only through `SaveWritePort`, and `save.request` is handled in `src/workers/save-control.ts`.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

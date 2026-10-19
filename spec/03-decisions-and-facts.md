@@ -83,8 +83,8 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M01d | F-017, F-018, F-019, F-023 | gltf-transform and KTX pins; 25 MiB per file; identity encoding for Range; R2 prices and presign | U-AST-13 |
 | M01e | F-009, F-010, F-019 | WebContent memory; origin quota and `persist()`; Range through the pack store | U-PLT-16 |
 | M01f | none | hand-authored fixture and pure codec; no external-system fact | — |
-| M02a1 | F-017, F-023, F-053, F-054, F-055, F-056 | pack format and size; R2; ODbL attribution; PDDL footprints; sources excluded (3D Tiles, Mapbox); Terrain Tiles USGS credit and citation page behind `LicenseRef-PublicDomain-USGov` [research/repos-world.md §4] (DL-672); SPDX `ODbL-1.0`, `PDDL-1.0` from M00b's merged allowlist [research/legal-ip-likeness.md §2.3] (U-W7 resolved, DL-687) | U-W1 (Geofabrik route), U-W2, U-W3, U-W11, U-W14 (DL-687) |
-| M02a2 | F-053, F-054 | OSM road tags and DataSF streets for the graph | U-W5, U-W6, U-W9 (DL-687) |
+| M02a1 | F-017, F-023, F-053, F-054, F-055, F-056 | pack format and size; R2; ODbL attribution; PDDL footprints; sources excluded (3D Tiles, Mapbox); Terrain Tiles USGS credit, citation page and dated citation sentence behind `LicenseRef-PublicDomain-USGov` [research/repos-world.md §4] (DL-672, part 2); SPDX `ODbL-1.0`, `PDDL-1.0` from M00b's merged allowlist [research/legal-ip-likeness.md §2.3] (U-W7 resolved, DL-687) | U-W1 (Geofabrik route), U-W2, U-W3, U-W11, U-W14 (DL-687), U-W16 (Terrain Tiles datasets and credits over the bake boxes; DL-672 part 2) |
+| M02a2 | F-053, F-054 | OSM road tags and DataSF streets for the graph; `3psu-pn9h` `layer` values verified 2026-10-19 (`02-world.md` §7 N2; DL-669 part 2) | U-W5, U-W6, U-W9 (DL-687) |
 | M02b1 | F-007, F-010, F-013, F-019, F-023 | render-object budgets; pack store quota; Range; Quest draw-call limit; pack download; `earcut@3.2.4` [research/repos-world.md §5]; `BundleGroup` per chunk, no gain on WebGL2 [research/stack-rendering-platform.md §1.5] (DL-687) | U-W8 (pack GET speed), U-W10 (DL-687) |
 | M02b2 | F-001 | three r186 node materials for sky and fog | U-W10 (DL-687) |
 | M02c1 | none | pure services over baked data; no external-system fact | — |
@@ -97,7 +97,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M03c | none | pure sim; no external-system fact | — |
 | M04a1, M04a2 | F-009, F-010 | killed-tab recovery; storage quota | U-ENG-9 |
 | M04b1 | F-004, F-010, F-011 | coach mark instead of install prompt; Settings storage panel | — |
-| M04b2 | F-004, F-011 | Home Screen web apps; no fullscreen, orientation lock or vibration | — |
+| M04b2 | F-004, F-011 | Home Screen web apps; no fullscreen, orientation lock or vibration | U-UI-10 (iPhone 15 landscape viewport and safe-area insets, AC-12 `notes.json`; AC-3 uses the design fixture, DL-650 part 2) |
 | M04b3 | none | WebCrypto device key; no ledger row; `secrets.required` and Preview base secrets from [research/gap-ci-cd-release-assets.md §0 item 4, §1.5] (DL-679) | — |
 | M04c | F-004, F-063 | Home Screen web apps; Low Power Mode video gesture; `ManagedMediaSource` on iOS 17.1+ only with `disableRemotePlayback`, element attributes, `cut@1` H.264 rendition `avc1.640028` [research/gap-cutscene-delivery-playback.md §2.4, §3]; `navigator.audioSession` (iOS 16.4) and Wake Lock (iOS 18.4) [research/stack-rendering-platform.md, BCD table] (DL-687) | U-PLT-17, U-S03-4, U-S03-7, U-REC-1 |
 | M05a1, M05a2 | none | pure sim, VM and CI autoplayer; no external-system fact | — |

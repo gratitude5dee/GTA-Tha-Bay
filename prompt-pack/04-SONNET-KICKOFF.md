@@ -107,7 +107,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 27. M04a2 · saves-gamemode-unlocks · 1 · M04a1, M03c, M03b2, M02b2 · none
 28. M04b1 · shell-ui-kit-menus-settings · 1 · M04a2 · none
 29. M04b2 · creator-phone-hud-kit · 1 · M04b1 · Q-13 iPhone 15 (AC-12)
-30. M02c2 · maps · 1 · M02c1, M04b2 · none
+30. M02c2 · maps · 1 · M02c1, M04b2 · Q-15 staging media domain `media-staging.<domain>` (AC-14 only; DL-670 part 2); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (AC-14)
 31. M04b3 · local-identity-play-token · 0.5 · M00a, M04b1 · `PLAY_TOKEN_HMAC` (Worker secret; SKIP without it, DL-231)
 32. M04c · cutscene-playback-spike · 1 · M01c, M04b1 · Q-13 iPhone 15 and Quest 3 (AC-8, AC-9)
 33. M04d · qa-harness-bots-goldens · 1 · M04a2, M03a1, M00d · none
@@ -116,7 +116,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 36. M05b1 · cutscene-infra-mock · 1 · M00a, M00c, M01d · `OPS_TOKEN`; `FAL_MODE=mock`; live fal only after ADR-GENAI-01 `cleared`
 37. M05b2 · cutscene-player-index · 1 · M05b1, M04c, M05a1 · none
 38. M05c1 · act1-missions-1-6 · 1 · M05a2, M05b2, M03c, M04b2, M02c2 · none
-39. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
+39. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · Q-15 through M02c2 AC-14 (AC-7 to AC-9; DL-670 part 2); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
 40. M05d · data-spine-supabase · 1 · M05b1 · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
 41. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
 42. M06a1 · npc-backend-spine · 1 · M05d, M04b3 · `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY`, `OPS_TOKEN`

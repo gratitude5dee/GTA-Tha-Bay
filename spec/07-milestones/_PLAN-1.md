@@ -156,7 +156,7 @@
 ### M02c2 · maps — 1 · risk M · S02 (+S10)
 - **Goal:** map data bake, minimap, full map, blips, GPS route, address search, attribution screen data.
 - **R** R-MAP-03 · **Dep** M02c1, M04b2 · **Read** `02-world-maps.md` §1–§3, §6; `10-ui-hud-xr.md` §2 · **Out** `packages/world/src/{client/map,sim/map}`, `tools/map/src/stages/s12` · **C** C08 1.0
-- **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
+- **Gate** Q-15 staging media domain (AC-14 staging release only; DL-670 part 2) · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
 
 ### M04b3 · local-identity-play-token — 0.5 · risk L · S09
 - **Goal:** `IdentityService` with the local adapter (UUIDv7 profile, device key), `NullCloudSync`; single-player never needs an account.
@@ -203,7 +203,7 @@
 ### M05c2 · act1-vertical-slice — 1 · risk M · S03 · **VS-Story**
 - **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing and fighter tiles reachable through stub hooks (unlocked, `comingSoon`), tycoon tile registered and locked because its hook is `m.a2.01` in Act 2 (M09b2; DL-391); deployed and tested on staging (R-ROLL-01 anchor).
 - **R** R-MODE-01/05, R-CUT-02, R-ROLL-01 · **Dep** M05c1, M03b2 · **Read** `03-story-narrative.md` §B4–§B5; `03-story.md` §8–§9 · **Out** `content/missions/m.a1.{07..12}/`, `content/story/act1/cutscene-refs.ts`, `content/story/sensitivity.json` · **C** C09 1.0, C05 1.1
-- **Gate** Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
+- **Gate** Q-15 through M02c2 AC-14 (staging `sf`, AC-7 to AC-9; DL-670 part 2); Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
 
 ### M05d · data-spine-supabase — 1 · risk M · S09
 - **Goal:** Supabase staging and production projects, migrations 0001–0002, `DataPort` + `InMemoryDataPort`, `db:push` in deploy, cutscene index and ledger export, staging keep-alive.
