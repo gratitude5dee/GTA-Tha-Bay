@@ -216,7 +216,8 @@ export class AssetService {
     return this.catalog.resolve(target as AssetRef, tier);
   }
 
-  private noteError(e: unknown, ref: PackRef): void {
+  /** Counts and reports (`err.asset`, at most five per reason) a failed pack read; the job handlers of the composed worker call it too. */
+  noteError(e: unknown, ref: PackRef): void {
     if (!(e instanceof PackUnavailable) || e.reason === 'aborted') return;
     const n = (this.errCounts.get(e.reason) ?? 0) + 1;
     this.errCounts.set(e.reason, n);

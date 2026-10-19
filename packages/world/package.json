@@ -10,6 +10,7 @@
     "./sim/module": "./src/sim/streaming/module.ts",
     "./client": "./src/client/index.ts",
     "./client/jobs": "./src/client/jobs.ts",
+    "./client/bridge": "./src/client/world-bridge.ts",
     "./client/mesher": "./src/client/chunks/mesher.ts"
   },
   "scripts": {

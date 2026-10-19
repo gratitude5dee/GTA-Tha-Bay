@@ -354,7 +354,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           alpha: view.alpha,
           dtSec,
           reducedMotion,
-          drawDistanceM: tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M,
+          // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
+          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
           depthPolicy: hostScene?.depthPolicy ?? 'standard',
         });
       }

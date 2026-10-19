@@ -49,13 +49,14 @@ describe('bootSet', () => {
     expect(desktop.critical[0]).toBe('world_pack/p0-64-64');
     expect(desktop.critical).toContain('world_pack/far-bay-dem');
     const low = bootSet(fakeIndex(), spawn, 'mobile-low');
-    expect(low.far).toEqual(['world_pack/far-bay-dem', 'texture/far-bay-cards']);
+    expect(low.far).toEqual(['texture/far-bay-cards']);
+    expect(low.critical).toContain('texture/far-bay-cards');
     expect(low.p0.length).toBeLessThanOrEqual(desktop.p0.length);
     expect(new Set(desktop.p0).size).toBe(desktop.p0.length);
   });
   it('drops massing when the flag is off and cards when the flag is off', () => {
     expect(bootSet(fakeIndex(), spawn, 'desktop', { massing: false, cards: true }).far).toEqual(['world_pack/far-bay-dem']);
-    expect(bootSet(fakeIndex(), spawn, 'mobile', { massing: true, cards: false }).far).toEqual(['world_pack/far-bay-dem']);
+    expect(bootSet(fakeIndex(), spawn, 'mobile', { massing: true, cards: false }).far).toEqual([]);
   });
   it('maps tiers to their backdrop mode (maps part 4.3)', () => {
     expect(backdropOf('desktop-ultra')).toEqual({ ring: true, ringKm: 80, cardsKm: null });

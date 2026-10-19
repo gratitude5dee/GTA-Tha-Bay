@@ -1,4 +1,6 @@
 {
-  "$comment": "Device-spike gates (11-platform.md 4.3). webgpu.mobile flips to true only after the M01c iPhone run passes (30 min, no abnormal exit, p90 inside budget); see docs/device-spike/M01c-report.md.",
-  "webgpu.mobile": false
+  "$comment": "Device-spike gates (11-platform.md 4.3). webgpu.mobile flips to true only after the M01c iPhone run passes (30 min, no abnormal exit, p90 inside budget); see docs/device-spike/M01c-report.md. World switches (M02b1, DL-698): world.cards and world.massing are build-time keys read like webgpu.mobile, never from BootConfig.flags (C12 FeatureFlag is a closed union without world.* members); a remote downgrade goes through the governor knobs only.",
+  "webgpu.mobile": false,
+  "world.cards": true,
+  "world.massing": true
 }

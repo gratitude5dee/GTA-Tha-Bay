@@ -70,9 +70,9 @@ export interface BootSet {
   l0: string[];
   l1: string[];
   l2: string[];
-  /** The backdrop packs and atlas of the tier. */
+  /** The backdrop packs of the tier: the DEM (and massing) on the desktop tiers, the card atlas elsewhere. */
   far: string[];
-  /** Packs the reveal waits for: the spawn chunk's `p0` and `l0`, and the DEM. */
+  /** Packs the reveal waits for: the spawn chunk's `p0` and `l0`, and the first backdrop pack. */
   critical: string[];
 }
 
@@ -105,12 +105,15 @@ export function bootSet(index: Pick<WorldIndex, 'tiles'>, spawn: { x: number; z:
   const l0 = uniq(l0Keys.map((k) => packAssetOf('l0', k)));
   const l1 = uniq(rankUnits(7, focus, plan.r1M, { exists: (k) => unitExists(sets, 'l1', k), lookAheadS: 0 }).map((r) => packAssetOf('l1', r.key)));
   const l2 = uniq(rankUnits(5, focus, plan.r2M, { exists: (k) => unitExists(sets, 'l2', k), lookAheadS: 0 }).map((r) => packAssetOf('l2', r.key)));
-  const far = ['world_pack/far-bay-dem'];
+  // Desktop tiers draw the DEM ring (and the massing); every other tier draws only the skyline cards.
+  const far: string[] = [];
   const b = backdropOf(tier);
-  if (b.ring && o.massing) far.push('world_pack/far-bay-massing');
-  if (!b.ring && o.cards) far.push('texture/far-bay-cards');
+  if (b.ring) {
+    far.push('world_pack/far-bay-dem');
+    if (o.massing) far.push('world_pack/far-bay-massing');
+  } else if (o.cards) far.push('texture/far-bay-cards');
   const spawnP0 = p0Keys[0] ? packAssetOf('p0', p0Keys[0]) : null;
   const spawnL0 = l0Keys[0] ? packAssetOf('l0', l0Keys[0]) : null;
-  const critical = [...(spawnP0 ? [spawnP0] : []), ...(spawnL0 ? [spawnL0] : []), 'world_pack/far-bay-dem'];
+  const critical = [...(spawnP0 ? [spawnP0] : []), ...(spawnL0 ? [spawnL0] : []), ...(far[0] ? [far[0]] : [])];
   return { p0, l0, l1, l2, far, critical: uniq(critical) };
 }
