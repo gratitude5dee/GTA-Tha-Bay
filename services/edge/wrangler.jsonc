@@ -92,7 +92,8 @@
         "traces": { "enabled": true, "head_sampling_rate": 1.0 }
       },
       "define": { "__DV_TEST_ROUTES__": "true" },
-      "secrets": { "required": [] },
+      // OPS_TOKEN gates the staff routes (28) until staff JWTs (M12a1); staging only. Required secrets ride along as inherit bindings on every deploy.
+      "secrets": { "required": ["OPS_TOKEN"] },
       "vars": {
         "ENVIRONMENT": "staging",
         "GEO_ALLOW": "US",

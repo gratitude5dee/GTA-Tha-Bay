@@ -18,7 +18,7 @@ describe('route 28 prewarm (AC-5)', () => {
   });
 
   it('answers 401 for every token when OPS_TOKEN is not configured', async () => {
-    const res = await call(path, { method: 'POST', body, headers: { Authorization: 'Bearer anything' } });
+    const res = await call(path, { method: 'POST', body, headers: { Authorization: 'Bearer anything' }, env: { OPS_TOKEN: undefined } });
     expect(res.status).toBe(401);
     const empty = await call(path, { method: 'POST', body, headers: { Authorization: 'Bearer ' }, env: { OPS_TOKEN: '' } });
     expect(empty.status).toBe(401);
