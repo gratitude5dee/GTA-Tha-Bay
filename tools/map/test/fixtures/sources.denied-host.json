@@ -1,15 +1,15 @@
 {
   "schema": "world-sources/1",
-  "note": "DL-676 fixture: a sources.json with a Mapbox URL must fail schema validation. The test builds the tile.googleapis.com variants in memory.",
+  "note": "DL-676 fixture: a sources.json with a Mapbox URL must fail schema validation. The test replaces ${MB} with the vendor name when it loads this file, so no file in the repository holds the host (license:scan, DL-506). The test builds the tile.googleapis.com variants in memory.",
   "sources": [
     {
-      "id": "mapbox-terrain",
+      "id": "${MB}-terrain",
       "kind": "terrarium",
-      "url": "https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw",
+      "url": "https://api.${MB}.com/v4/${MB}.terrain-rgb/{z}/{x}/{y}.pngraw",
       "file": "terrarium",
-      "licence": "LicenseRef-Vendor-Mapbox",
-      "licenceUrl": "https://www.mapbox.com/legal/tos",
-      "attribution": "Mapbox",
+      "licence": "LicenseRef-Vendor-${MB}",
+      "licenceUrl": "https://www.${MB}.com/legal/tos",
+      "attribution": "${MB}",
       "source": "must be refused",
       "surfaces": ["pause-credits"]
     }

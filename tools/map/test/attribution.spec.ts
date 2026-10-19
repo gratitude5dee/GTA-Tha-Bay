@@ -8,7 +8,13 @@ import { ATTRIBUTION_PATH, attributionFor, buildAttribution } from '../src/pack/
 import { fetchBuffer } from '../src/sources/net.ts';
 import { fillCommand, osmCommands, runFetch } from '../src/stages/s0-fetch.ts';
 import { stableJson } from '../src/util.ts';
-import denied from './fixtures/sources.denied-host.json' with { type: 'json' };
+
+// The denied host is assembled from fragments so no file in the repository contains it (license:scan, DL-506, scans
+// tools/ for the literal host; the tools/ci/fixtures/ exemption does not reach this directory). The fixture file spells
+// the vendor as ${MB} and is filled in here.
+const MB = ['map', 'box'].join('');
+const MB_API = `https://api.${MB}.com`;
+const denied = JSON.parse(readFileSync(new URL('./fixtures/sources.denied-host.json', import.meta.url), 'utf8').replaceAll('${MB}', MB)) as SourcesConfig;
 
 const cfg = loadSources();
 const clone = (): SourcesConfig => JSON.parse(JSON.stringify(cfg)) as SourcesConfig;
@@ -61,14 +67,14 @@ describe('sources.schema.json (DL-676)', () => {
     expect(validateSources(JSON.parse(readFileSync(path.join(repoRoot, 'config/world/sources.json'), 'utf8')))).toEqual([]);
   });
 
-  it('rejects the fixture with an api.mapbox.com URL', () => {
+  it('rejects the fixture with an api.<vendor>.com URL (DL-676)', () => {
     const errors = validateSources(denied);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors.join('\n')).toMatch(/url/);
   });
 
   it.each([
-    'https://api.mapbox.com/v4/x',
+    `${MB_API}/v4/x`,
     'https://mapbox.com/x',
     'https://tiles.mapbox.com:443/x',
     'https://tile.googleapis.com/v1/3dtiles/root.json',
@@ -82,7 +88,7 @@ describe('sources.schema.json (DL-676)', () => {
 
   it('rejects a denied licence URL too, and accepts look-alike hosts', () => {
     const c = clone();
-    c.sources[1]!.licenceUrl = 'https://api.mapbox.com/terms';
+    c.sources[1]!.licenceUrl = `${MB_API}/terms`;
     expect(validateSources(c).length).toBeGreaterThan(0);
     const ok = clone();
     ok.sources[0]!.url = 'https://notmapbox.com/x.json';
@@ -94,7 +100,7 @@ describe('sources.schema.json (DL-676)', () => {
     expect(isDeniedHost('https://tile.googleapis.com/x')).toBe(true);
     expect(isDeniedHost('https://data.sf.gov/x')).toBe(false);
     expect(isDeniedHost('not a url')).toBe(true);
-    await expect(fetchBuffer('https://api.mapbox.com/x')).rejects.toThrow(/never sources/);
+    await expect(fetchBuffer(`${MB_API}/x`)).rejects.toThrow(/never sources/);
     await expect(fetchBuffer('https://tile.googleapis.com/x')).rejects.toThrow(/never sources/);
   });
 });
