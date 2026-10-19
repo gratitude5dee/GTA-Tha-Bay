@@ -71,7 +71,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - `packages/engine/src/sim/ui/{bridge.ts, coalesce.ts}`; `packages/engine/src/client/ui/{view-model-source.ts, command-sender.ts}`.
 - `packages/engine/src/sim/input/remap-persist.ts`.
 - `packages/engine/test/modes/{host.states.spec.ts, host.embed.spec.ts, unlocks.spec.ts, coming-soon.spec.ts, economy.spec.ts, autosave.spec.ts, remap.spec.ts, bridge.spec.ts, interaction.scoring.spec.ts, context.spec.ts}`.
-- `packages/engine/package.json` script **`test:modes`** (`vitest run test/modes`), also run by `pnpm check:unit`.
+- `packages/engine/package.json` script **`test:modes`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/modes`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `tests/e2e/engine/modes.spec.ts` (`@modes`).
 - About 38 files.
 

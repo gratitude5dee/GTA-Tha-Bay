@@ -10,6 +10,7 @@
     "wrangler": "4.151.1"
   },
   "dependencies": {
+    "@dv/pipeline": "workspace:*",
     "@dv/shared": "workspace:*"
   }
 }

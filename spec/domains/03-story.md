@@ -269,7 +269,7 @@ Sources: [research/gap-cutscene-delivery-playback.md §3, §5, §7.3]; S11 `11-p
 | U-S03-2 | Providers honour "no text, no logos" | vision QA `text_in_image` gate; screen text drawn in-engine | M05c2 |
 | U-S03-3 | `seed` and `prompt_expansion_mode` on `minimax/h3/*` partner and LTX endpoints | the adapter omits unsupported params; the seed stays in the key as identity; output reproducibility is never assumed | M00c |
 | U-S03-4 | MSE `sequence` gaps on Safari 26.x | ping-pong fallback | M04c |
-| U-S03-5 | A pooled unlocked element plays new sources under Low Power Mode (= U-PLT-17) | "Tap to play", then fallback | M04c |
+| U-PLT-17 | A pooled unlocked element plays new sources under Low Power Mode | "Tap to play", then fallback | M04c |
 | U-S03-6 | Quest video textures freezing after XR entry (community reports) | create elements before `requestSession`; poll `currentTime` | M11b4 |
 | U-S03-7 | Time to first frame of `v768` from R2 on mobile ≤ 2.5 s | trigger thresholds are config (`config/cutscene.json`) | M04c |
 | U-S03-8 | Whether a C08 route snap can be done in the sim worker within the load budget | resolve during the mission's `starting` phase behind a fade | M05a1 |

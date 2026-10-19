@@ -5,7 +5,7 @@ After this session a player can link a Thirdweb in-app wallet to the profile the
 
 It ships migration 0009, routes 12–13, the `thirdweb` adapter with `/account/link`, and the `auth.thirdweb` flag (off in production until the owner approves the Growth plan and the device check passes).
 
-As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset. Once the gate is green and the flag flips, players without GitHub or ChatGPT can publish (ADR-0018 provider ladder).
+As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset. Once the gate is green and the flag flips, players can publish publicly; unless OpenAI granted the web client earlier, this is where public publishing starts (ADR-0018, DL-342). So this session also gives the `/link` provider registry a Thirdweb entry and proves that a Thirdweb-linked profile can approve a device code, publish through route 36 and submit an NPC (DL-349).
 
 ## Requirements
 - R-AUTH-02: Thirdweb is integrated last, as one adapter behind `IdentityService`, in one milestone; a lint keeps the SDK inside the adapter.
@@ -55,6 +55,7 @@ As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset
   - method buttons, progress and the result with the new tier chip;
   - the merge dialog showing the conflicts preview and a "keep which profile" choice;
   - before the full-page redirect, the `save.request{reason:'manual'}` rule of `10-ui.md` §2.5 applies.
+- **`/link` provider registry entry** (M13c1 registry, `packages/ui/src/pages/link/`): `thirdweb`, shown to tier `device` only when `auth.thirdweb` is on, routes to `/account/link` (full-page navigation after the `save.request{reason:'manual'}` rule); back on `/link` a now-`linked` profile sees the code field. With the flag off the registry is unchanged ("Publishing accounts open later" unless `openai` is on).
 - **CSP on `/account/*`**: stays Report-Only (M14b2); the Thirdweb origins seen in the device run go into `config/csp-account.json` and the account policy.
 - **Isolation lint**: `no-restricted-imports` bans `thirdweb` and `thirdweb/*` everywhere except `packages/identity/src/thirdweb/**` and the account entry. `check:bundle` asserts that no main-app chunk contains the SDK.
 - **Release subset re-run**: launch-gate check (`auth.thirdweb` row), `test:ops -- --suite guardrails`, `check:secrets -- apps/web/dist`, `license:scan` (Apache-2.0 SDK).
@@ -66,10 +67,10 @@ As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset
 
 ## Deliverables
 - `supabase/migrations/0009_link.sql`, `supabase/tests/{server_only_0009.sql, merge.sql}`, `packages/shared/src/db.gen.ts` (regenerated).
-- `services/edge/src/id/siwe/{nonce.ts, verify.ts, merge.ts, index.ts}`, the router and DataPort edits (`identity.link`, `merge`), `services/edge/test/{siwe-link.test.ts, siwe-merge.test.ts}`.
+- `services/edge/src/id/siwe/{nonce.ts, verify.ts, merge.ts, index.ts}`, the router and DataPort edits (`identity.link`, `merge`), `services/edge/test/{siwe-link.test.ts, siwe-merge.test.ts, siwe-linked-publish.test.ts}`.
 - `packages/shared/src/api/v1.ts` (new route-12/13 body types only).
 - `packages/identity/src/thirdweb/{adapter.ts, siwe-message.ts, stub-wallet.ts, index.ts}`, `packages/identity/test/thirdweb.spec.ts`.
-- `packages/ui/src/pages/account/link/{LinkPage.tsx, MergeDialog.tsx}`, `en.json` keys, `tests/e2e/account-link.spec.ts` (`@account-link`).
+- `packages/ui/src/pages/account/link/{LinkPage.tsx, MergeDialog.tsx}`, `en.json` keys, `tests/e2e/account-link.spec.ts` (`@account-link`); the `/link` provider registry entry (edit) and `tests/e2e/link.spec.ts` (`@link`, extended).
 - `config/csp-account.json`, `apps/web/public/_headers` (account rules), `eslint.config.js` (restricted imports), `tools/ci/check-dist.ts` (bundle rule), `docs/legal/launch-gates.json` (the `auth.thirdweb` row), `tools/ci/checklists/M14a-{iphone15,mac}.json`.
 - Dependencies: `thirdweb@5.122.0` (F-059); the SIWE helper package that the research recipe names, at whatever version pnpm resolves, recorded in `spec/03`.
 - ≈ 30 files.
@@ -91,12 +92,13 @@ As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset
 - AC-9 Given the M14b3 record with the `auth.thirdweb` row When the release subset runs Then the launch-gate completeness check, the guardrails suite (SKIP without staging secrets) and `license:scan` pass — proof: `pnpm check:unit -- tools/ci && pnpm test:ops -- --suite guardrails && pnpm license:scan`
 - AC-10 Given the Growth plan approved by the owner, a real client id on staging, an iPhone 15 Home Screen app and Safari on a Mac When the operator links with email and with passkey on each Then the link completes, the tier chip reads Linked, and the run records U-BE-16 (full-page redirect inside the Home Screen app) and the Thirdweb origins seen by the account CSP — proof: manual: iPhone 15 and Mac, run `tools/ci/checklists/M14a-iphone15.json` and `M14a-mac.json`, upload `docs/device-runs/M14a/<device>/notes.json`
 - AC-11 Given the branch When unit tests and the preview deploy run Then both pass and the deployed app works without any wallet — proof: `pnpm check:unit && pnpm deploy:preview`
+- AC-12 Given flag `auth.thirdweb` on, a P1 profile of bracket `18p` without a publish ban, a publishable NPC draft and the stub wallet When the profile approves a device code (route 10), registers a mod version with the resulting CLI token (route 36) and submits the draft (`POST /drafts/:id/submit`), first before and then after linking through route 12 Then before the link each call answers `tier_required`, and after it the code is approved, route 36 answers 202 with the version queued for moderation and the submit returns `SubmitRes` with a `P2_REVIEW` case; in the browser, a `device`-tier profile on `/link` sees the Thirdweb entry, which opens `/account/link`, and after linking `/link` shows the code field — proof: `pnpm check:workers -- siwe-linked-publish && pnpm check:e2e -- --project=chromium-webgl2 --grep "@account-link|@link"`
 
 ## Test plan
-- Workers: `siwe-link`, `siwe-merge` (InMemoryDataPort plus the stub wallet; fake clock for nonce expiry).
+- Workers: `siwe-link`, `siwe-merge`, `siwe-linked-publish` (InMemoryDataPort plus the stub wallet; fake clock for nonce expiry; the M13c1, M13c2 and M06b2 handlers as they stand).
 - DB: `merge.sql`, `server_only_0009.sql` (`pnpm check:db`), types diff (`pnpm check:db:types`).
 - Unit: `packages/identity` (adapter rules), `tools/ci` (lint fixture, launch-gate record).
-- E2E: `@account-link` on `chromium-webgl2` with the stub wallet; `@offline` and `@ui-menus` stay green (single-player needs no account).
+- E2E: `@account-link` and `@link` (Thirdweb registry entry) on `chromium-webgl2` with the stub wallet; `@offline` and `@ui-menus` stay green (single-player needs no account).
 - Device: AC-10 (records only).
 
 ## Demo script
@@ -114,7 +116,7 @@ As the last v1 milestone (R-AUTH-02, DL-211), it re-runs the release-gate subset
 - **The SDK pulls in Node built-ins or exceeds the account chunk budget.** Keep it in its own lazy chunk and record the size; the main entry budget is unaffected (AC-7).
 
 ## Notes for the Builder
-- Earlier deliverables used as they stand: M13c1 (`/link`, the `linked` tier rule, ADR-0018), M05d (`db:push`, `check:db`, `check:db:types`), M14b1 (`test:ops -- --suite guardrails`).
+- Earlier deliverables used as they stand: M13c1 (`/link` and its provider registry, route 10, the `linked` tier rule, ADR-0018), M13c2 (route 36), M06b2 (draft submit), M05d (`db:push`, `check:db`, `check:db:types`), M14b1 (`test:ops -- --suite guardrails`).
 - Read first: `09-backend-contracts.md` §2.3–§2.5 (identity, routes 12–13, `IdentityStateDTO`); `09-backend-db.md` §3.8, §7; `spec/05-api-and-realtime.md` §2 (P3 row, provider redirects via `/account/callback`); `research/auth-ugc-input-maps.md` §2.1–§2.4; ADR-0009, ADR-0018.
 - Facts: F-059 (`thirdweb` 5.122.0, Growth $99/month). Recorded only: U-BE-16, Thirdweb origins, a free Starter plan.
 - Secrets: none new on the server (SIWE verification is local); public build variable `VITE_THIRDWEB_CLIENT_ID`; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` for `db:push`. Paid account: Thirdweb Growth (owner approval before AC-10 and the flag flip).

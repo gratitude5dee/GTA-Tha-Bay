@@ -26,7 +26,7 @@ After this session optional full-body pose control in Culture Wars can be turned
 ## Scope out
 - Pose in XR: not in v1 (FP1.6). The XR fighter work is M11b2.
 - A learned temporal classifier: post-v1 (FP3 v2 option).
-- Counsel on stored body proportions (Q-23(b), U-FGT-11): before launch, M14b3; the FP4 default applies meanwhile.
+- Counsel on stored body proportions (Q-23(b)): before launch, M14b3; the FP4 default applies meanwhile.
 - Enforcing CSP: M14b (DL-191); here `connect-src` is asserted in whichever CSP header exists.
 - Pose budgets on more device classes and thermal soak: M11a1–a2.
 

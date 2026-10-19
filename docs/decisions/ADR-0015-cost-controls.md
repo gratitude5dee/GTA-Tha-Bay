@@ -16,7 +16,7 @@ Several vendors bill per use and some cannot be capped by the vendor. fal.ai has
 - **No player-triggered fal in v1.** The NPC builder uses creator-kit bodies; the `builder_job` quota is 0 for every tier. Custom 3D for user NPCs passes through an owner-approved staff queue counted against the buffer (DL-175; approver and policy: Q-26).
 - **Layer 3 (ours, authoritative).** `PlayerQuotaDO` and `BudgetGovernorDO`: reserve an estimate, call, settle from the vendor's `usage`. Governor levels: L1 at 70 % (heroes drop from Sonnet to Haiku), L2 at 85 % (voice drops to Workers AI tier 1), L3 at 100 % (generative features offline). Kill switches and budget levels never block cache hits: cached cutscenes, cached TTS and baked barks are always served.
 - **Per-player quotas per UTC day.** Local or device identity: 150 dialogue turns, 40 per NPC, 60 voiced lines, $0.05; linked 18+: 400 turns, 200 lines, $0.15; user cutscene generation 0.
-- **Layer 2 (AI Gateway, Anthropic only).** `gw-dialogue` with caching, Guardrails and DLP off (they buffer SSE), spend rules per day and per `pid`, dynamic route Sonnet → Haiku.
+- **Layer 2 (AI Gateway, Anthropic only).** `gw-dialogue` with caching, Guardrails and DLP off (they buffer SSE), spend rules per day and per `pid` (from the `cf-aig-metadata` header), each answering 429; the Worker re-issues a 429'd Sonnet hero turn once on Haiku (no dynamic route, DL-545 (b)).
 - **Layer 1 (vendors).** Separate Anthropic workspaces (runtime, builder, CI evals, synthetic); fal per-use keys with allowed-model lists; ElevenLabs keys with `character_limit`.
 - **Reconciliation.** A 5-minute cron compares the ledger with vendor usage APIs; drift above 10 % for two runs raises an alert and the vendor total becomes truth.
 

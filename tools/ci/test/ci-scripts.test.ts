@@ -86,6 +86,55 @@ describe('check:do-migrations', () => {
     expect(v).toMatchObject({ ok: true, lifecycle: true, label: 'do-lifecycle' });
   });
 
+  it('passes the lifecycle shape of DL-233: DO skeletons, export-from lines, a new service package', () => {
+    const skeleton = "import { DurableObject } from 'cloudflare:workers';\n\n// skeleton\nexport class FooDO extends DurableObject {}\n";
+    const v = evaluate([
+      { file: 'services/edge/wrangler.jsonc', before: config(m1), after: config(m2) },
+      { file: 'services/edge/src/foo/FooDO.ts', before: null, after: skeleton },
+      { file: 'services/pipeline/src/do/BarDO.ts', before: null, after: skeleton },
+      {
+        file: 'services/edge/src/index.ts',
+        before: "import a from 'a';\nconst x = 1;\n",
+        after: "import a from 'a';\nexport { FooDO } from './foo/FooDO.ts';\nexport { BarDO } from '@dv/pipeline';\nconst x = 1;\n",
+      },
+      { file: 'services/pipeline/package.json', before: null, after: '{ "name": "@dv/pipeline" }' },
+      {
+        file: 'services/edge/package.json',
+        before: '{ "dependencies": { "@dv/shared": "workspace:*" } }',
+        after: '{ "dependencies": { "@dv/pipeline": "workspace:*", "@dv/shared": "workspace:*" } }',
+      },
+    ]);
+    expect(v).toMatchObject({ ok: true, lifecycle: true, label: 'do-lifecycle' });
+  });
+
+  it('still fails a logic edit in src/index.ts, a DO class with a body, and a non-workspace dependency', () => {
+    const lifecycle = { file: 'services/edge/wrangler.jsonc', before: config(m1), after: config(m2) };
+    const edit = evaluate([
+      lifecycle,
+      { file: 'services/edge/src/index.ts', before: "import a from 'a';\n", after: "import a from 'a';\nexport { FooDO } from './FooDO.ts';\nrouteAll();\n" },
+    ]);
+    expect(edit.ok).toBe(false);
+    const body = evaluate([
+      lifecycle,
+      {
+        file: 'services/edge/src/FooDO.ts',
+        before: null,
+        after: "import { DurableObject } from 'cloudflare:workers';\nexport class FooDO extends DurableObject { fetch() { return new Response('x'); } }\n",
+      },
+    ]);
+    expect(body.ok).toBe(false);
+    const grown = evaluate([
+      lifecycle,
+      { file: 'services/edge/src/FooDO.ts', before: 'export class FooDO extends DurableObject {}\n', after: 'export class FooDO extends DurableObject {}\n// edit\n' },
+    ]);
+    expect(grown.ok).toBe(false);
+    const dep = evaluate([
+      lifecycle,
+      { file: 'services/edge/package.json', before: '{ "dependencies": {} }', after: '{ "dependencies": { "left-pad": "1.0.0" } }' },
+    ]);
+    expect(dep.ok).toBe(false);
+  });
+
   it('passes a change that touches no lifecycle section', () => {
     const v = evaluate([
       { file: 'services/edge/wrangler.jsonc', before: config(m1), after: config(m1, ', "workers_dev": false') },

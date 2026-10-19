@@ -131,7 +131,7 @@ sequenceDiagram
   W-->>D: JWT aud tha-bay-cli, scp [mods:publish], TTL 1 h, refresh 30 d (rotating)
 ```
 
-**Who may publish.** Routes 36 and 37 `POST` need identity tier `linked` (P2), age bracket `18p`, and no `publish_ban` in `enforcement_action`. The `/link` page approves a code only for a profile that is already `linked`; otherwise it walks the player through linking a provider first: `openai` when `auth.openaiWeb` is on, else `supabase-oauth` (GitHub), which is how P2 is reachable before Thirdweb at M14a (DN-S12-01 settled, DL-145). Forum posting needs only P1 plus the Q-BE-04 age rule. The CLI token and a browser P2 JWT are both accepted on route 36 (C12 1.1), so flow E needs no second login.
+**Who may publish.** Routes 36 and 37 `POST` need identity tier `linked` (P2), age bracket `18p`, and no `publish_ban` in `enforcement_action`. The `/link` page approves a code only for a profile that is already `linked`; otherwise it walks the player through linking a provider first: `openai` when `auth.openaiWeb` is on; otherwise P2 waits for Thirdweb at M14a, since `supabase-oauth` (GitHub) is spike-only in v1 (DN-S12-01, DL-145, DL-240, DL-342). Forum posting needs only P1 plus the Q-BE-04 age rule. The CLI token and a browser P2 JWT are both accepted on route 36 (C12 1.1), so flow E needs no second login.
 
 **Rate limits (S12, with S09 `rate-limits.json`).** 5 versions per profile per day, 20 mods per profile, 10 public placements per profile, 3 device codes per profile per hour.
 
@@ -219,7 +219,7 @@ DMCA notices and counter-notices, NCII intake (48 h), evidence preservation and 
 | `help` | Modding Help | `device` tier | — | — |
 | `general` | General | `device` tier | — | — |
 
-Rules: title 3–120 characters; body 1–10,000 of plain text rendered as text nodes in v1 (no Markdown, raw HTML, auto-links or embeds; `10-ui-pages.md` §2.11, DL-240); ≤ 4 image attachments (uploads purpose `forum_attachment`, S09 limits and the full image pipeline); one post per 30 s and 20 per day for accounts under 7 days; the first 3 image posts of a new account are held (P3); text is post-moderated (omni + Llama Guard + `names:lint` + EAS regex), `review` verdicts hold the post (`state:'held'`, P2); one vote per profile per target, no self-vote; 3 distinct reporters unlist a thread or post. `hot = (score + 1) / (hoursSinceLastPost + 2)^1.4`; `top` = score; `new` = created. Search is the title `tsv` index; body search is deferred. Clients poll `posts?since=` every 15 s while a thread is open (no Realtime, S09 rule 7).
+Rules: title 3–120 characters; body 1–10,000 of plain text rendered as text nodes in v1 (no Markdown, raw HTML, auto-links or embeds; `10-ui-pages.md` §2.11, DL-240); ≤ 4 image attachments (uploads purpose `forum_attachment`, S09 limits and the full image pipeline); one post per 30 s and 20 per day for accounts under 7 days; the first 3 image posts of a new account are held (P3); text is pre-moderated (`names:lint` + EAS regex synchronously, then omni with the Llama Guard fallback; DL-471): a post is `state:'pending'` until `allow` makes it `visible`, `review` verdicts hold it (`state:'held'`, P2), `block` removes it, and it stays `pending` while no classifier can run (fail closed); one vote per profile per target, no self-vote; 3 distinct reporters unlist a thread or post. `hot = (score + 1) / (hoursSinceLastPost + 2)^1.4`; `top` = score; `new` = created. Search is the title `tsv` index; body search is deferred. Clients poll `posts?since=` every 15 s while a thread is open (no Realtime, S09 rule 7).
 
 `validateFieldNote(body)` in `packages/shared/src/mod/forum.ts` (client form and the board's route 38 handler) requires `## Setup` (exact game and ModAPI versions), `## Tier and why`, `## Verification` with a line starting `Not verified:`, and `## Gotchas` as a numbered list of `symptom → cause → fix`. An accepted note is exported to `knowledge/mods/` by a PR from `dv kb import-note <threadId>` (manual in v1).
 
@@ -233,7 +233,7 @@ Rules: title 3–120 characters; body 1–10,000 of plain text rendered as text 
 - **Installed.** Rows with: Enabled (applies in Sandbox; the row states "Mods never run in Story"), Update available, Roll back, Remove (checkbox "also delete my saved data"), load order, last fault. Packages without a store entry show "Installed outside the store". An experience mod has Play instead of Enabled.
 - **Local import** (`.dvmod`) and **Developer** appear under Settings, behind their toggles. **Offline:** cached lists with an "offline" banner; installed mods still run.
 - **Accessibility and language.** All player-visible mod text goes through the `strings` table (`ctx.str`), so translations are data and a stale one falls back to English [research/repos-grand-v.md rec 12]. The host panel frame provides the focus trap, Escape to close, a visible mod name and author, and reduced-motion; mods may not autoplay audio and must declare `flashing` or `loud` in `contentWarnings`.
-- Counters: `installs30d` is rolled up nightly from `mod.install` telemetry; ranking never uses client-reported counts directly.
+- Counters: `installs30d` is rolled up nightly from `mod.install` telemetry (post-v1, DL-420; in v1 it reads 0 and `sort=installed` falls back to the `new` order); ranking never uses client-reported counts directly.
 
 ## C§7 Versioning and compatibility
 
