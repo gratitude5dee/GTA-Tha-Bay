@@ -1,0 +1,16 @@
+{
+  "id": "M00d-ci-fixture",
+  "milestone": "M00d",
+  "device": "CI fixture (no device): exercises perf:verify --auto only",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low",
+  "steps": [
+    {
+      "id": "1-verify",
+      "instruction": "Fixture step: judged against the committed copy of ok.json.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    }
+  ]
+}

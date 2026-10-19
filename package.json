@@ -57,7 +57,11 @@
     "assets:verify": "tsx tools/assets/src/cli.ts verify",
     "assets:publish": "tsx tools/assets/src/cli.ts publish",
     "assets:seed": "tsx tools/assets/src/cli.ts seed",
-    "map:fixture": "tsx tools/map/src/cli.ts fixture"
+    "map:fixture": "tsx tools/map/src/cli.ts fixture",
+    "check:agents": "tsx tools/ci/check-agents.ts",
+    "check:telemetry": "tsx tools/ci/check-telemetry.ts",
+    "check:rollout": "tsx tools/ci/check-rollout.ts",
+    "check:skills": "node -e \"console.log('pending: lands in M13a6')\""
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",
