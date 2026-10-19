@@ -159,3 +159,20 @@ body {
   padding: var(--dv-space-2) var(--dv-space-3);
   border-radius: var(--dv-radius-md);
 }
+
+/* Legal documents on the /account/ island (M00e): left-aligned reading text. */
+.dv-doc-wrap,
+.dv-doc {
+  max-inline-size: 38rem;
+  inline-size: 100%;
+  text-align: start;
+}
+
+.dv-doc h3 {
+  margin-block: var(--dv-space-4) var(--dv-space-2);
+  font-size: var(--dv-text-md);
+}
+
+.dv-doc p {
+  margin-block: 0 var(--dv-space-2);
+}

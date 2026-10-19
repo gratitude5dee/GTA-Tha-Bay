@@ -1,0 +1,61 @@
+{
+  "doc": "terms",
+  "updated": 1792368000000,
+  "counselReviewed": false,
+  "sections": [
+    {
+      "id": "status",
+      "heading": "Pre-release service",
+      "paragraphs": [
+        "{brand} is a pre-release service. These interim terms apply to the password accounts that exist while the game is being built. They have not been reviewed by counsel and will be replaced before launch.",
+        "The service can change, pause or reset at any time. Accounts and anything attached to them can be removed without notice during the pre-release period."
+      ]
+    },
+    {
+      "id": "eligibility",
+      "heading": "Who may use it",
+      "paragraphs": [
+        "You must be 18 or older to create an account or sign in. Creating an account or signing in means you confirm that you are 18 or older.",
+        "If you tell us you are younger than 18, the account is closed and its record is deleted."
+      ]
+    },
+    {
+      "id": "account",
+      "heading": "Your account",
+      "paragraphs": [
+        "An account is a username and a password. There is no email address and no password recovery, so keep your password safe. If you lose it, the account cannot be recovered.",
+        "Pick a username that is yours to use. Names that imitate staff, the service itself, other companies or real people are refused."
+      ]
+    },
+    {
+      "id": "conduct",
+      "heading": "How to behave",
+      "paragraphs": [
+        "Do not attack the service, try to reach accounts that are not yours, or use it to break the law.",
+        "We may close an account that does this."
+      ]
+    },
+    {
+      "id": "content",
+      "heading": "Game content",
+      "paragraphs": [
+        "The game contains mature themes and AI-generated characters, dialogue and cutscenes that can be wrong. The characters and events are fiction.",
+        "{brand} is not affiliated with, endorsed by or sponsored by any other publisher or game."
+      ]
+    },
+    {
+      "id": "liability",
+      "heading": "No warranty",
+      "paragraphs": [
+        "The pre-release service is provided as it is, without promises of availability or fitness for a purpose. To the extent the law allows, we are not liable for loss caused by its use during the pre-release period."
+      ]
+    },
+    {
+      "id": "contact",
+      "heading": "Contact",
+      "paragraphs": [
+        "Questions about these terms, and requests to delete or export your account data: {contact}."
+      ]
+    }
+  ]
+}

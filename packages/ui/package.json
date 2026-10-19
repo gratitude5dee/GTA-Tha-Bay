@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.tsx",
     "./i18n": "./src/i18n.ts",
-    "./tokens.css": "./src/kit/tokens.css"
+    "./tokens.css": "./src/kit/tokens.css",
+    "./shell.css": "./src/kit/shell.css"
   },
   "scripts": {
     "tokens": "tsx scripts/build-tokens.ts"

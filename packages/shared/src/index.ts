@@ -11,6 +11,12 @@ export * from './platform/perf.ts';
 export * from './platform/csp.ts';
 export * from './api/v1.ts';
 export * from './api/budget.ts';
+export * from './api/legal.ts';
+export * from './identity.ts';
+// M00e: the names gate and the ip string gate, which the username checks of route 58 use (DL-644).
+export { NAME_DISTANCE_THRESHOLD, normalisedDistance, normalizeName } from './assets/gates/names.ts';
+export { compileStringMatcher, scanText } from './assets/gates/ip.ts';
+export type { IpDenylistConfig, StringMatcher } from './assets/gates/ip.ts';
 export * from './genai/types.ts';
 export * from './genai/job-key.ts';
 export * from './genai/registry.ts';

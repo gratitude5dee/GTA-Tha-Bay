@@ -43,8 +43,17 @@ export interface Env {
   OPS_TOKEN?: string | undefined;
   /** Test only (compiled out of the production bundle): extra catalog keys, comma separated. */
   CUTSCENE_CATALOG_EXTRA?: string | undefined;
-  /** Supabase service-role key (secret) — reserved for the M05d data spine. */
+  /** Supabase secret key (sb_secret_..., Worker secret): the admin path of the password accounts (M00e) and the M05d data spine. */
   SUPABASE_SECRET_KEY?: string | undefined;
+  /** Password sign-up switch (M00e, DL-601): route 58 answers feature_disabled unless this is exactly "on". */
+  AUTH_PASSWORD_SIGNUP?: string | undefined;
+  /** Operator contact printed in the privacy document and required by route 58 (DL-613, DL-635). Not a secret. */
+  LEGAL_CONTACT?: string | undefined;
+  /** Optional secret that salts the daily net hash of the auth rate limit (M00e; M06a1 replaces the helper). */
+  QUOTA_NET_SALT_SECRET?: string | undefined;
+  /** Rate Limiting bindings of class auth (M00e). Absent in unit tests and local runs: no limit. */
+  RL_AUTH?: RateLimit | undefined;
+  RL_AUTH_USER?: RateLimit | undefined;
 }
 
 export const DEFAULT_FLAGS: Readonly<Record<FeatureFlag, boolean>> = {
@@ -61,4 +70,5 @@ export const DEFAULT_FLAGS: Readonly<Record<FeatureFlag, boolean>> = {
   'mods.enabled': false,
   'mods.script': false,
   'mods.ui': false,
+  'auth.password': false,
 };
