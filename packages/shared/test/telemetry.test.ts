@@ -39,7 +39,7 @@ describe('C16 telemetry schemas', () => {
   it('names.schema.json covers the 13 M00a names, all client names', () => {
     const names = Object.keys(namesSchema.$defs);
     expect(names.sort()).toEqual(
-      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.page'].sort(),
+      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.page'].sort(),
     );
     for (const n of names) expect(CLIENT_TELEMETRY_NAMES as readonly string[]).toContain(n);
   });

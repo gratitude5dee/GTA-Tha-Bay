@@ -38,5 +38,7 @@
   "update.later": "Later",
   "engine.recovering": "Recovering…",
   "engine.reload": "The graphics device was lost twice. Reload to continue.",
-  "engine.reload.action": "Reload"
+  "engine.reload.action": "Reload",
+  "engine.readonly": "The game is open in another tab. This tab can read downloaded data but will not download or change it.",
+  "engine.readonly.action": "Dismiss"
 }
