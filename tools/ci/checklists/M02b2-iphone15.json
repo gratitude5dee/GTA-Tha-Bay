@@ -1,0 +1,34 @@
+{
+  "id": "M02b2-iphone15",
+  "milestone": "M02b2",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with the synth world",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world (Preview builds carry no world and the sky mounts only on the world path, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-install",
+      "instruction": "In Safari open the Preview URL, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Open <preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1. The HUD must show 'mobile-low  webgl2'; the sky controls (hour, weather, blackout, rain, freeze) show under the sim panel because debug=1 shows the panel on a touch device."
+    },
+    {
+      "id": "3-walk",
+      "instruction": "Let the walk-civic-center scenario run to its end with the sky on. Then, in the sky controls, set the weather to karl-fog, drag the hour slider to 21:30, switch Rain on and tick Freeze, and run the scenario again (open <preview>/?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1 again if the page needs a fresh start; set the same controls). Note in notes.json observations whether the Karl fog greys out the west first, the street lamps and the lit windows read, and the rain overlay shows. When the second run ends tap Export and save perf.json and notes.json to docs/device-runs/M02b2/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "4-cost",
+      "instruction": "Sky cost (U-W10): run walk-civic-center twice more at 13:00 clear, once with the sky off (add &sky=0 to the URL) and once with it on, and write the two median frame times and their delta (on minus off, ms) into notes.json as skyCost: { offMedianMs, onMedianMs, deltaMs }. The sky's design budget on mobile-low is 0.3 ms of GPU time."
+    },
+    {
+      "id": "5-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02b2-iphone15.json: the median and p95 frame times, the frames over 50 ms and the render and triangle counts must pass at mobile-low."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

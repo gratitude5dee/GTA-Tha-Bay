@@ -1,7 +1,8 @@
-import type { ChunkKey, QualityTierId } from '@dv/shared';
+import type { ChunkKey, QualityTierId, WeatherPreset } from '@dv/shared';
 import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
+import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 
 /**
@@ -31,7 +32,24 @@ export interface WorldBridge {
   loseGpu(): Promise<void>;
   /** Memory pressure response of the stream (11-platform.md 5.6). */
   pressure(level: 'none' | 'soft' | 'hard'): void;
+  /** Sets the hour of the game day (0..24) and, by default, freezes the clock there so a readback sees a fixed sky (M02b2). */
+  setHour(h: number, freeze?: boolean): boolean;
+  /** Blends to a weather preset over `blendSec` game seconds (0 is as fast as the sim takes it). */
+  setWeather(w: WeatherPreset, blendSec?: number): boolean;
+  /** Blackout on or off for the owner `debug`. */
+  blackout(on: boolean): boolean;
+  /** Freezes or releases the clock (and with it the weather schedule). */
+  freeze(on: boolean): boolean;
+  /** Forces rain streaks on (0..255) whatever the preset says; null returns to the preset. */
+  rain(intensity: number | null): void;
+  /** The sky of the last frame: the shared uniforms, the tier configuration, the wet level, the window factor, counts. Null without a sky. */
+  sky(): SkyInfo | null;
+  /** Renders the scene into a 128 x 72 target looking `pitchDeg` up along `yawDeg` and reads back the mean and variance of its luminance. */
+  luma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample>;
 }
+
+type EngineAct = { engine?: { act(cmd: unknown): boolean } };
+const act = (cmd: unknown): boolean => ((window as unknown as { __dvBridge?: EngineAct }).__dvBridge?.engine?.act(cmd) ?? false);
 
 export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
   const bridge: WorldBridge = {
@@ -47,6 +65,13 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     groundY: (x, z) => view.groundY(x, z),
     loseGpu: () => view.renderer.onRendererReplaced(null as never, null),
     pressure: (level) => view.store.setPressure(level),
+    setHour: (h, freeze = true) => act(freeze ? { t: 'debug.hour', h, pause: true } : { t: 'debug.hour', h }),
+    setWeather: (w, blendSec = 0) => act({ t: 'debug.weather', w, blendSec }),
+    blackout: (on) => act({ t: 'debug.blackout', on }),
+    freeze: (on) => act({ t: 'debug.clock.pause', on }),
+    rain: (v) => view.sky?.setRainOverride(v),
+    sky: () => view.skyInfo(),
+    luma: (pitch, yaw, opts) => view.sampleLuma(pitch, yaw, opts),
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };

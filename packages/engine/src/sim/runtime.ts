@@ -9,6 +9,7 @@ import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
 import type { SimResource } from './services.ts';
 import type { SaveControl } from './worker/save-control.ts';
+import { installClock, type WorldClock } from './world/clock.ts';
 
 /** What `SimModule.onInit` receives: the booted sim, the session config and the ports the page transferred in the init message. */
 export interface SimModuleContext {
@@ -31,6 +32,10 @@ export interface SimModule {
   readonly systems: readonly SystemDef[];
   readonly resources?: readonly SimResource[];
   onInit?(ctx: SimModuleContext): void | Promise<void>;
+  /** Side-block entries for the snapshot of this tick (Publish stage), merged after the engine's own keys. Must be cheap and JSON-friendly. */
+  side?(): Record<string, unknown>;
+  /** A debug command the engine does not handle itself (QA builds only), for example `debug.blackout`. */
+  onDebug?(cmd: DebugCommand): void;
 }
 
 /** What the host environment lends the runtime: a clock and a blocking sleep. Sim code has neither. */
@@ -49,6 +54,8 @@ export interface SimRuntimeEnv {
   modules?: readonly SimModule[];
   /** Transferred ports and other init extras (`InitMessage.p.ports`), handed to every module's `onInit`. */
   ports?: Readonly<Record<string, unknown>>;
+  /** Install the game clock and weather (M02b2). Default true; a test that wants the bare sim passes false. */
+  clock?: boolean;
 }
 
 /** Post a stats report every this many frame groups (about 10 Hz at 60 fps). */
@@ -69,6 +76,8 @@ export class SimRuntime {
   bot: BotInput | null = null;
   /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
   saveControl: SaveControl | null = null;
+  /** The game clock once booted (M02b2); null with `env.clock === false`. */
+  clock: WorldClock | null = null;
 
   private frameGroups = 0;
   private lastAlpha = 0;
@@ -95,8 +104,11 @@ export class SimRuntime {
         sim.services.input = frame;
       },
     });
+    this.clock = this.env.clock === false ? null : installClock(sim.core);
     const publisher = snapshotPublisher(this.transport.snapshots, sim.ecs, () => sim.backend.origin, () => {
       const side: Record<string, unknown> = {};
+      if (this.clock) side['env'] = this.clock.env();
+      for (const m of this.env.modules ?? []) if (m.side) Object.assign(side, m.side());
       const cam = publishedCamera(sim.services);
       if (cam) side['cam'] = cam;
       const pl = playerSide(sim.ecs);
@@ -218,7 +230,20 @@ export class SimRuntime {
           sim.services.camera.reason = cmd.on ? 'debug' : 'player';
         }
         break;
+      case 'debug.hour':
+        this.clock?.setHour(cmd.h);
+        if (cmd.pause !== undefined) this.clock?.pause(cmd.pause);
+        break;
+      case 'debug.weather':
+        this.clock?.forceWeather(cmd.w, cmd.blendSec);
+        break;
+      case 'debug.clock.pause':
+        this.clock?.pause(cmd.on);
+        break;
+      case 'debug.blackout':
+        break;
     }
+    for (const m of this.env.modules ?? []) m.onDebug?.(cmd);
     this.postStats();
   }
 

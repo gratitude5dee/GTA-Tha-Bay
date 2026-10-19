@@ -10,7 +10,7 @@
  * In-house scripts import args() and parse its result.
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -48,8 +48,53 @@ export function mapPkgFilter(list: readonly string[]): string[] {
   return [...flags, ...(names.length ? names.map((n) => `${base}${n}`) : [base])];
 }
 
+/** The `--pkg` spec directory (`<dir>/test/`) and its positional name filters, or null without `--pkg`. */
+export function pkgSelection(list: readonly string[]): { dir: string; base: string; names: string[] } | null {
+  const i = list.indexOf('--pkg');
+  const dir = i >= 0 ? list[i + 1] : undefined;
+  if (i < 0 || !dir) return null;
+  const rest = [...list.slice(0, i), ...list.slice(i + 2)];
+  const clean = dir.replace(/\/+$/, '');
+  return { dir: clean, base: `${clean}/test/`, names: rest.filter((a) => !a.startsWith('-')) };
+}
+
+/** Repo-relative paths of the spec files (`*.{test,spec}.{ts,tsx}`) under `<root>/<dir>/test/`, recursive. */
+export function listSpecs(dir: string, root: string = repoRoot): string[] {
+  const out: string[] = [];
+  const walk = (rel: string): void => {
+    let entries;
+    try {
+      entries = readdirSync(path.join(root, rel), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const child = `${rel}/${e.name}`;
+      if (e.isDirectory()) walk(child);
+      else if (/\.(test|spec)\.tsx?$/.test(e.name)) out.push(child);
+    }
+  };
+  walk(`${dir.replace(/\/+$/, '')}/test`);
+  return out;
+}
+
+/** Names whose filter `<dir>/test/<name>` is contained in none of the spec paths (DL-674 part 2). */
+export function unmatchedNames(base: string, names: readonly string[], specs: readonly string[]): string[] {
+  return names.filter((n) => !specs.some((s) => s.includes(`${base}${n}`)));
+}
+
 function main(): never {
   const [tool, ...rest0] = args();
+  if (tool === 'vitest') {
+    const sel = pkgSelection(rest0);
+    if (sel && sel.names.length > 0) {
+      const missing = unmatchedNames(sel.base, sel.names, listSpecs(sel.dir));
+      if (missing.length > 0) {
+        for (const n of missing) console.error(`run.ts: no spec under ${sel.dir}/test matches ${n}`);
+        process.exit(1);
+      }
+    }
+  }
   const rest = tool === 'vitest' ? vitestArgs(rest0) : rest0;
   if (!tool) {
     console.error('usage: tsx tools/ci/run.ts <tool> [args...]');

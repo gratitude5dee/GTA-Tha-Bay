@@ -43,6 +43,8 @@ export interface TagsInputs {
   isLand(x: number, z: number): boolean;
   content: ContentWorld;
   bridges: BridgesConfig;
+  /** Street-lamp spacing along Arterial and Collector segments, metres (config/world/density.json `lampPitchM`, M02b2). */
+  lampPitchM: number;
 }
 
 export interface TagsReport {
@@ -54,7 +56,61 @@ export interface TagsReport {
   portalsMissing: string[];
   countyLine: number;
 }
-export interface TagsProduct { tags: Map<ChunkKey, ChunkTags>; portals: Portal[]; report: TagsReport }
+export interface TagsProduct {
+  tags: Map<ChunkKey, ChunkTags>;
+  portals: Portal[];
+  /** The `l0` LAMP records per chunk as x, z, yaw triples (yaw faces the road), sorted by x then z (M02b2). */
+  lamps: Map<ChunkKey, number[]>;
+  report: TagsReport;
+}
+
+/** Lamp poles stand this far outside the carriageway edge. */
+export const LAMP_SETBACK_M = 1.5;
+/** No lamp this close to either end of a segment (the junction mouth). */
+export const LAMP_END_CLEAR_M = 10;
+/** Segments of these classes carry lamps. */
+const LAMP_CLASSES: readonly RoadClass[] = [RoadClass.Arterial, RoadClass.Collector];
+
+/**
+ * The street-lamp records (M02b2): a lamp every `pitchM` metres on both sides of each Arterial and Collector segment that is on the
+ * ground (bridges and tunnels carry none: the LAMP record has no height, the renderer sets it on the terrain). Pure and ordered.
+ */
+export function placeLamps(inp: Pick<TagsInputs, 'segs' | 'box' | 'isLand' | 'lampPitchM'>): Map<ChunkKey, number[]> {
+  const out = new Map<ChunkKey, number[]>();
+  const pitch = inp.lampPitchM;
+  for (const s of inp.segs) {
+    if (!LAMP_CLASSES.includes(s.cls) || s.bridge || s.tunnel) continue;
+    const L = polyLength(s.pts);
+    if (L < 2 * LAMP_END_CLEAR_M) continue;
+    const span = L - 2 * LAMP_END_CLEAR_M;
+    const n = Math.floor(span / pitch) + 1;
+    // Centre the run between the two clear zones so the ends are symmetric.
+    const start = LAMP_END_CLEAR_M + (span - (n - 1) * pitch) / 2;
+    const off = s.widthM / 2 + LAMP_SETBACK_M;
+    for (let k = 0; k < n; k++) {
+      const p = pointAt3(s.pts, s.ys, start + k * pitch);
+      for (const side of [1, -1]) {
+        // The left normal of the direction (tx, tz) in ENU x/z is (tz, -tx); `side` picks the kerb.
+        const x = Math.round((p.x + side * p.tz * off) * 10) / 10;
+        const z = Math.round((p.z - side * p.tx * off) * 10) / 10;
+        if (x < inp.box.minX || x > inp.box.maxX || z < inp.box.minZ || z > inp.box.maxZ || !inp.isLand(x, z)) continue;
+        const yaw = yawOf(-side * p.tz, side * p.tx);
+        const key = chunkKeyAt(9, x, z);
+        const list = out.get(key) ?? [];
+        list.push(x, z, Math.round(yaw * 1000) / 1000);
+        out.set(key, list);
+      }
+    }
+  }
+  // Stable order: by x, then z, whatever order the segments came in.
+  for (const [key, l] of out) {
+    const recs: [number, number, number][] = [];
+    for (let i = 0; i < l.length; i += 3) recs.push([l[i] as number, l[i + 1] as number, l[i + 2] as number]);
+    recs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    out.set(key, recs.flat());
+  }
+  return new Map([...out.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+}
 
 type Rec = Record<string, unknown> & { id: string; x: number; y: number; z: number };
 
@@ -292,5 +348,7 @@ export function runTags(inp: TagsInputs): TagsProduct {
     }
     tags.set(key, out as unknown as ChunkTags);
   }
-  return { tags, portals: portals.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)), report };
+  const lamps = placeLamps(inp);
+  report.counts['lamps'] = [...lamps.values()].reduce((n, l) => n + l.length / 3, 0);
+  return { tags, portals: portals.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)), lamps, report };
 }

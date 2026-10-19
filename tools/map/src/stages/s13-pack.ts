@@ -1,6 +1,6 @@
 /**
  * S13 pack writer and world index. `p0` (sim: HEIGHT, PRISM, SLAB, HOOD, SEGMENT, NODE, EDGE, JUNCTION, PED, TAGS, SPAWN,
- * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LMREF; LAMP and FURNITURE stay empty until their milestones)
+ * GROUND) and `l0` (render: BUILDING with landmark proxies, TREE, LAMP, LMREF; FURNITURE stays empty until its milestone)
  * DVWP v1 packs per z=7 tile that holds at least one baked chunk, the S11 `l1`/`l2`/`far-bay-*` packs passed in, the
  * `map_data/sf-graph.v1` topology and `data/world-index`. The codec is M01f's; this stage only fills C08 structures.
  *
@@ -76,6 +76,8 @@ export interface PackInputs {
   hoods: ReadonlyMap<ChunkKey, number[]>;
   ped: PedProduct;
   tags: ReadonlyMap<ChunkKey, ChunkTags>;
+  /** Street-lamp records per chunk, x, z, yaw triples (S9, M02b2). */
+  lamps?: ReadonlyMap<ChunkKey, readonly number[]>;
   portals: readonly Portal[];
   spawn: ReadonlyMap<ChunkKey, SpawnTable>;
   places: PlacesProduct;
@@ -189,7 +191,7 @@ export function buildPacks(inp: PackInputs): PackOutput {
     });
     renders.set(key, {
       key, z: 9, bakeId, height, ground: g, buildings: recs, trees: Float32Array.from(treesBy.get(key) ?? []),
-      lamps: new Float32Array(0), furniture: new Float32Array(0), landmarks: inp.places.lmrefs.get(key) ?? [],
+      lamps: Float32Array.from(inp.lamps?.get(key) ?? []), furniture: new Float32Array(0), landmarks: inp.places.lmrefs.get(key) ?? [],
     });
   }
 

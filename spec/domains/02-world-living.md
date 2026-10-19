@@ -130,8 +130,8 @@ export interface AtmosphereAdapter { init(r: unknown): Promise<void>; update(env
 
 | Feature | desktop-ultra | desktop | xr-visionpro | mobile | mobile-low | xr-quest |
 |---|---|---|---|---|---|---|
-| Sky | dome + takram atmosphere (`atmosphereLevel` 2) | dome | dome | dome | dome | dome |
-| Clouds | volumetric, one layer, 0.6 scale, 2 shadow cascades | painted layer | painted layer | painted layer | gradient | gradient |
+| Sky | dome + physical day sky (M02e); takram atmosphere (`atmosphereLevel` 2, M10d2) replaces the physical sky when on | dome + physical day sky (M02e) | dome | dome | dome | dome |
+| Clouds | volumetric, one layer, 0.6 scale, 2 shadow cascades (takram on); else as desktop | painted layer + `SkyMesh` clouds under the dome blend (M02e) | painted layer | painted layer | gradient | gradient |
 | Fog | height fog node + aerial perspective | height fog node | height fog node | linear fog | linear fog | linear fog + distance fade |
 | Rain | 20 k GPU streaks, splashes | 6 k streaks | 600 world streaks near head | overlay + 800 streaks | overlay only | 600 world streaks near head, no overlay |
 | Wetness | roughness + albedo | albedo | albedo | albedo | none | none |
@@ -139,7 +139,7 @@ export interface AtmosphereAdapter { init(r: unknown): Promise<void>; update(env
 | Sky GPU budget † | 3.0 ms | 1.0 ms | 0.6 ms | 0.6 ms | 0.3 ms | 0.3 ms |
 | Governor knob | `atmosphereLevel` 2 → 0 | `atmosphereLevel` 1 → 0 | 1 → 0 | 1 → 0 | — | — |
 
-Lighting follows C13: `probe-grid` on mobile and XR with a single sky-derived probe re-baked only when the sun moves > 0.006 rad or darkness changes > 0.04, at most every 200 ms [research/repos-world.md §1.4]; baked vertex AO replaces SSAO off desktop. takram is isolated behind `AtmosphereAdapter` and removable (its WebGPU path is work-in-progress and last released 2026-05-06 [research/repos-world.md §5]). Missions lock hour and weather through `WorldClockApi.lock`. Screenshot gates (design thresholds †): clear noon sky luminance 0.45–0.85, night < 0.12, `karl-fog` lowers city luminance variance by ≥ 25 % against `clear` at the same hour [research/repos-world.md P18 `verify-visual` pattern]; CI uses baked LUTs for the ultra adapter.
+Lighting follows C13: `probe-grid` on mobile and XR with a single sky-derived probe re-baked only when the sun moves > 0.006 rad or darkness changes > 0.04, at most every 200 ms [research/repos-world.md §1.4]; baked vertex AO replaces SSAO off desktop. C13 `TierFeatures.sky` stays the coarse switch: the M02e `full` look profile adds the physical day sky (`SkyMesh` under the dome, blended by `max(uNight, keyframeWeight)`) on the desktop tiers, with no contract change (DL-704). takram is isolated behind `AtmosphereAdapter` and removable (its WebGPU path is work-in-progress and last released 2026-05-06 [research/repos-world.md §5]). Missions lock hour and weather through `WorldClockApi.lock`. Screenshot gates (design thresholds †): clear noon sky luminance 0.45–0.85, night < 0.12, `karl-fog` lowers city luminance variance by ≥ 25 % against `clear` at the same hour [research/repos-world.md P18 `verify-visual` pattern]; CI uses baked LUTs for the ultra adapter.
 
 ## 7. Spawn tables and density
 

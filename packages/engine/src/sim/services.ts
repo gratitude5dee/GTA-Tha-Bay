@@ -2,6 +2,7 @@ import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/s
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import type { WorldClock } from './world/clock.ts';
 
 /**
  * Sim state that lives outside the ECS but must be hashed and checkpointed (C02 rule 7: RNG states, clock, weather,
@@ -27,6 +28,8 @@ export interface EngineServices extends SimServices {
   readonly control: ControlShared;
   /** Camera lock and the collision result the Publish stage puts in the snapshot side block (M01b1). */
   camera: CameraDirectiveState;
+  /** The game clock and weather once the session has one (`installClock`, M02b2); null in clock-free sims. */
+  clock: WorldClock | null;
 }
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
@@ -60,6 +63,7 @@ export function createSimServices(seed: number): EngineServices {
     events: new SimEventLog(),
     control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0 },
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
+    clock: null,
   };
 }
 

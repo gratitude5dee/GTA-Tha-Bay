@@ -1,5 +1,5 @@
 import type { SimConfig } from '@dv/shared';
-import { SimRuntime } from '../src/sim/runtime.ts';
+import { SimRuntime, type SimModule } from '../src/sim/runtime.ts';
 import { isInitMessage, type WorkerLike } from '../src/sim/sim-host.ts';
 import { attachPmWorker } from '../src/sim/transport/pm-transport.ts';
 import { attachSabWorker } from '../src/sim/transport/sab-transport.ts';
@@ -21,13 +21,15 @@ export class InProcessWorker implements WorkerLike {
   private readonly error: ((e: unknown) => void)[] = [];
   private booting: Promise<void> = Promise.resolve();
 
+  constructor(private readonly modules: readonly SimModule[] = []) {}
+
   postMessage(message: unknown): void {
     if (!isInitMessage(message)) throw new Error('InProcessWorker only understands the init message');
     const { cfg, boot, sab, qa } = message.p;
     if (!sab) throw new Error('InProcessWorker needs the SAB transport');
     this.cfg = cfg;
     const transport: WorkerTransport = attachSabWorker(sab);
-    const runtime = new SimRuntime(transport, { now: () => 0, blockFor: () => {}, qa });
+    const runtime = new SimRuntime(transport, { now: () => 0, blockFor: () => {}, qa, ...(this.modules.length > 0 ? { modules: this.modules } : {}) });
     this.runtime = runtime;
     this.booting = runtime.boot(cfg, boot).then(() => this.emit({ v: 1, t: 'ready', seq: 0, p: { physicsBuild: cfg.physicsBuild, transport: 'sab' } }));
   }

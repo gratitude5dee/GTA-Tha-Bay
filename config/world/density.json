@@ -1,6 +1,6 @@
 {
   "schema": "world-density/1",
-  "note": "profiles is an ordered array whose position is the baked densityProfile index (C08 SpawnTable). Append-only: a new profile goes at the end; a removal or reorder needs an Architect DL entry and a full re-bake (DL-555). perKm is the peak pedestrians per sidewalk kilometre for the S9 pedSlots formula; the values are design values (BD-M02a2-04). Later milestones add hour curves, weather and tier factors (M03b1) and lampPitchM (M02b2).",
+  "note": "profiles is an ordered array whose position is the baked densityProfile index (C08 SpawnTable). Append-only: a new profile goes at the end; a removal or reorder needs an Architect DL entry and a full re-bake (DL-555). perKm is the peak pedestrians per sidewalk kilometre for the S9 pedSlots formula; the values are design values (BD-M02a2-04). lampPitchM (M02b2) is the street-lamp spacing along Arterial and Collector segments, metres. Later milestones add hour curves, weather and tier factors (M03b1).",
   "profiles": [
     { "name": "cbd", "perKm": 140 },
     { "name": "cbd-tech", "perKm": 110 },
@@ -15,5 +15,6 @@
     { "name": "beach", "perKm": 30 },
     { "name": "none", "perKm": 0 }
   ],
-  "perLaneKm": { "0": 25, "1": 15, "2": 30, "3": 22, "4": 8, "5": 3 }
+  "perLaneKm": { "0": 25, "1": 15, "2": 30, "3": 22, "4": 8, "5": 3 },
+  "lampPitchM": 30
 }

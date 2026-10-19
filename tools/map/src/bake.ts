@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -318,6 +318,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const tags = runTags({
       segs: grading.product.segs, edges: grading.product.edges, nodes: grading.product.nodes, ped: ped.product, osm: osmOf(c), field: graded,
       landRings: water.product.landRings, pierRings: water.product.piers, box: gridBox, inUnion, isLand, content, bridges: bridgesCfg,
+      lampPitchM: densityCfg.lampPitchM ?? DEFAULT_LAMP_PITCH_M,
     });
     const sp = runSpawn({
       segs: grading.product.segs, edges: grading.product.edges, nodes: grading.product.nodes, chunks: grading.product.grids.keys(),
@@ -368,7 +369,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     outputs = buildPacks({
       bakeId, grid, water: water.product, terrain: { ...terrain.product, grids: grading.product.grids }, buildings: buildings.product, stamps,
       segs: grading.product.segs, nodes: grading.product.nodes, edges: grading.product.edges, junctions: junctions.product.junctions,
-      slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, portals: tagStage.tags.portals, spawn: tagStage.spawn,
+      slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, lamps: tagStage.tags.lamps, portals: tagStage.tags.portals, spawn: tagStage.spawn,
       places: placesStage.places, lod: lodStage.files,
       far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
     });

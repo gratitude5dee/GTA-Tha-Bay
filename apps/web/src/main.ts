@@ -133,6 +133,13 @@ async function boot(): Promise<void> {
         assets,
         tier: platform.quality.tier.id,
         flags: { cards: platformFlags['world.cards'] !== false, massing: platformFlags['world.massing'] !== false },
+        // The sky (M02b2): world.rain (default true) and world.atmosphere (default false); ?sky=0 (QA builds) draws the world without it
+        // for the on/off cost comparison of the device checklists.
+        sky: {
+          rain: platformFlags['world.rain'] !== false,
+          atmosphere: platformFlags['world.atmosphere'] === true,
+          enabled: !(QA && new URLSearchParams(location.search).get('sky') === '0'),
+        },
         labels: { redownload: t('world.redownload'), offline: t('world.offline') },
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),
@@ -177,6 +184,12 @@ async function boot(): Promise<void> {
   });
   engineRef = engine;
   if (engine) platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
+  // The governor's atmosphereLevel knob drives the sky (M02b2): clouds, rain streak counts and decals follow it.
+  if (prepared) {
+    const view = prepared.view;
+    view.setAtmosphereLevel(platform.quality.dynamic.atmosphereLevel);
+    platform.quality.onDynamicChange((q) => view.setAtmosphereLevel(q.atmosphereLevel));
+  }
 
   // Start on the title screen: the world becomes the game.
   document.addEventListener('click', (e) => {

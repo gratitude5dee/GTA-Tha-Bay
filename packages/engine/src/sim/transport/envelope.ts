@@ -1,4 +1,4 @@
-import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage } from '@dv/shared';
+import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage, type WeatherPreset } from '@dv/shared';
 import { decodeUtf8 } from '../bytes.ts';
 import type { SimEvent } from '../events.ts';
 
@@ -26,7 +26,14 @@ export type DebugCommand =
   | { t: 'debug.teleport'; pos: [number, number, number] }
   | { t: 'debug.ragdoll' }
   /** Lock or unlock the fp/tp toggle (reason `debug`). */
-  | { t: 'debug.camera.lock'; on: boolean };
+  | { t: 'debug.camera.lock'; on: boolean }
+  /** Set the hour of the game day; `pause` also freezes the clock (and with it the weather schedule) there (M02b2). */
+  | { t: 'debug.hour'; h: number; pause?: boolean }
+  /** Blend to a weather preset over `blendSec` game seconds (M02b2). */
+  | { t: 'debug.weather'; w: WeatherPreset; blendSec: number }
+  | { t: 'debug.clock.pause'; on: boolean }
+  /** Blackout on or off for the owner `debug` (M02b2; the traffic milestone adopts the same switch). */
+  | { t: 'debug.blackout'; on: boolean };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -91,6 +98,7 @@ export function makeEnvelope<T extends string, P>(t: T, seq: number, p: P): Enve
   return { v: ENVELOPE_VERSION, t, seq, p };
 }
 
+const WEATHER_IDS: ReadonlySet<string> = new Set(['clear', 'karl-fog', 'overcast', 'rain', 'smoke', 'golden']);
 const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const isInt = (x: unknown): x is number => isNum(x) && Number.isInteger(x);
@@ -126,6 +134,10 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
     case 'debug.teleport': return Array.isArray(p['pos']) && p['pos'].length === 3 && p['pos'].every(isNum);
     case 'debug.ragdoll': return true;
     case 'debug.camera.lock': return typeof p['on'] === 'boolean';
+    case 'debug.hour': return isNum(p['h']) && (p['pause'] === undefined || typeof p['pause'] === 'boolean');
+    case 'debug.weather': return typeof p['w'] === 'string' && WEATHER_IDS.has(p['w']) && isNum(p['blendSec']) && p['blendSec'] >= 0 && p['blendSec'] <= 86_400;
+    case 'debug.clock.pause': return typeof p['on'] === 'boolean';
+    case 'debug.blackout': return typeof p['on'] === 'boolean';
     default: return false;
   }
 }

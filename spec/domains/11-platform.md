@@ -300,11 +300,11 @@ Overrides: `?gl=1` and the Settings toggle "Compatibility mode" force WebGL2 on 
 | Optional post | fsr1 | traa | bloom | none | none | none |
 | Pipeline | render-pipeline | render-pipeline | render-pipeline | render-pipeline | direct | direct |
 | Lighting | clustered | clustered | probe-grid | probe-grid | probe-grid | probe-grid |
-| Sky | dome + atmosphere adapter | dome | dome | dome | dome | dome |
+| Sky | dome + physical sky or atmosphere adapter | dome + physical sky | dome | dome | dome | dome |
 | HDR output | yes | yes | no | no | no | no |
 | MSAA | 4 | 0 | 0 | 0 | 4 (tune M11b) | 4 |
 
-Sources: [research/stack-rendering-platform.md §1.4, §1.5, §1.8, Performance budgets]; `ClusteredLighting` is desktop-only there. takram atmosphere only at `desktop-ultra` behind a removable adapter (r186 compatibility `UNVERIFIED`). Ultra shadow size and the MSAA values are S11 choices to calibrate (M11a, M11b). Chunk rule for S02: one `BundleGroup` per streamed chunk, `static = true` on baked meshes, `InstancedMesh`/`BatchedMesh` for repeated props, ≤ 6 render objects per chunk, ≤ 1 chunk upload per frame [D-09, D-15].
+Sources: [research/stack-rendering-platform.md §1.4, §1.5, §1.8, Performance budgets]; `ClusteredLighting` is desktop-only there. Physical sky: M02e, DL-704; takram: removable ultra adapter (r186 `UNVERIFIED`). Ultra shadow size and MSAA values are S11 choices, calibrated in M11a/M11b. Chunk rule for S02: one `BundleGroup` per streamed chunk, `static = true` on baked meshes, `InstancedMesh`/`BatchedMesh` for repeated props, ≤ 6 render objects per chunk, ≤ 1 chunk upload per frame [D-09, D-15].
 
 ### 4.5 Budget table (normative; mirrored in `config/tier-budgets.json`)
 

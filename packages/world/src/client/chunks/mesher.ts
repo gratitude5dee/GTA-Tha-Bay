@@ -496,7 +496,7 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     stats.vertices += obj.positions.length / 3;
   }
   stats.bytes = meshBytes(objects, trees);
-  return { level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, stats };
+  return { level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats };
 }
 
 function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: number): Float32Array {
@@ -513,6 +513,20 @@ function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: 
     trees[i * 5 + 4] = render.trees[i * 4 + 3] as number;
   }
   return trees;
+}
+
+/** The baked lamp records as local x, y, z triples, y on the terrain. */
+function lampRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: number): Float32Array {
+  if (!render || render.lamps.length < 3) return new Float32Array(0);
+  const count = Math.floor(render.lamps.length / 3);
+  const lamps = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const lx = Math.min(256, Math.max(0, (render.lamps[i * 3] as number) - ox)), lz = Math.min(256, Math.max(0, (render.lamps[i * 3 + 1] as number) - oz));
+    lamps[i * 3] = lx;
+    lamps[i * 3 + 1] = sampleHeight(sim.height, ox + lx, oz + lz);
+    lamps[i * 3 + 2] = lz;
+  }
+  return lamps;
 }
 
 /** Render objects of a chunk mesh as the renderer counts them: the mesh objects plus the instanced vegetation. */

@@ -12,12 +12,13 @@
  * session without a world runs and hashes as a session without the module.
  */
 import { SimStage, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef } from '@dv/shared';
-import { playerSide, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { playerSide, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
 import { STREAMING, type planFor } from './plan.ts';
 import { StaticsFeeder } from './statics.ts';
+import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
 import type { Focus } from './priority.ts';
 
 /** The sim tick rate the retry delays (milliseconds in the config) are converted with. */
@@ -256,6 +257,8 @@ export class WorldSim {
 export interface WorldStreamingModule extends SimModule {
   /** The live world sim after `onInit`, or null while the session has no world. */
   readonly state: WorldSim | null;
+  /** The blackout switch (M02b2): TrafficControl adopts it unchanged; until then the QA bridge and the debug panel set it. */
+  readonly blackout: Blackout;
 }
 
 function isWorldConfig(v: unknown): v is WorldSimConfig {
@@ -267,6 +270,7 @@ function isWorldConfig(v: unknown): v is WorldSimConfig {
 /** A fresh module instance (tests build their own; each worker generation gets one through the exported singleton). */
 export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
+  const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
     owner: 'S02',
@@ -280,10 +284,16 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     get state() {
       return state;
     },
+    blackout,
+    side: () => (state ? blackout.side() : {}),
+    onDebug(cmd: DebugCommand): void {
+      if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
+    },
     onInit(ctx: SimModuleContext): void {
       const raw = ctx.boot.config['world'];
       state?.dispose();
       state = null;
+      for (const by of [...blackout.owners()]) blackout.set(false, by);
       if (!isWorldConfig(raw)) return;
       const port = ctx.ports[WORLD_PORT] as PackPort | undefined;
       if (!port) throw new Error('the world streaming module needs the pack channel port (InitMessage.p.ports.world)');
@@ -291,6 +301,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());
+      ctx.sim.core.addResource(blackout.resource());
     },
   };
 }

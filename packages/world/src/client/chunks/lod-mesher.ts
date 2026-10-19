@@ -259,6 +259,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
     stats.vertices += o.positions.length / 3;
   }
   const trees = new Float32Array(0);
+  const lamps = new Float32Array(0);
   stats.bytes = bytesOf(objects);
-  return { level: unit.level, key: unit.key, originX: ox, originZ: oz, objects, trees, stats };
+  return { level: unit.level, key: unit.key, originX: ox, originZ: oz, objects, trees, lamps, stats };
 }
