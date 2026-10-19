@@ -4,5 +4,6 @@
     "lib": ["ES2023"],
     "types": ["@cloudflare/workers-types"]
   },
-  "include": ["src", "fixtures", "test"]
+  "include": ["src", "fixtures", "test"],
+  "exclude": ["fixtures/sign-fixtures.ts"]
 }

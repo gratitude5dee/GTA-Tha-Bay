@@ -24,6 +24,13 @@
     ]
   },
   "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+  // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "tha-bay-media-prod" },
+    { "binding": "PRIVATE", "bucket_name": "tha-bay-private-prod" }
+  ],
+  "kv_namespaces": [{ "binding": "FLAGS", "id": "c97c407d70c8457083bf0865b82c27fe" }],
+  "workflows": [{ "name": "gen-job", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
   "observability": {
     "enabled": true,
@@ -71,6 +78,13 @@
         ]
       },
       "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+      // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+      "r2_buckets": [
+        { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
+        { "binding": "PRIVATE", "bucket_name": "tha-bay-private-staging" }
+      ],
+      "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
+      "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "observability": {
         "enabled": true,
@@ -108,6 +122,13 @@
       ]
     },
     // previews take no `migrations` key (wrangler 4.151.1 rejects it); the DO classes migrate through the staging deploy.
+    // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+    "r2_buckets": [
+      { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
+      { "binding": "PRIVATE", "bucket_name": "tha-bay-private-staging" }
+    ],
+    "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
+    "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow", "script_name": "tha-bay-web-staging" }],
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
     "define": { "__DV_TEST_ROUTES__": "true" },
     "vars": {

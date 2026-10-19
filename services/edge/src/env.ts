@@ -7,6 +7,17 @@ declare global {
 
 export interface Env {
   ASSETS: Fetcher;
+  /** Public media bucket: cutscenes/<key>/... (immutable, manifest written last). */
+  MEDIA: R2Bucket;
+  /** Private bucket: cutscenes-orig/<key>/orig.mp4 and pipeline work files. */
+  PRIVATE: R2Bucket;
+  /** Kill switches `ks:*`, `gov:level`, `jwks:fal`, feature flags. */
+  FLAGS: KVNamespace;
+  FAL_GATE: DurableObjectNamespace;
+  GOVERNOR: DurableObjectNamespace;
+  CUTSCENE_JOB: DurableObjectNamespace;
+  /** Workflow `gen-job` (GenJobWorkflow). */
+  GEN_WF: Workflow;
   /** Analytics Engine dataset tha_bay_telemetry. Absent in a runtime that does not provide it. */
   AE?: AnalyticsEngineDataset | undefined;
   ENVIRONMENT: string;
@@ -28,6 +39,10 @@ export interface Env {
   SUPABASE_URL?: string | undefined;
   /** Supabase anon/publishable key (var, public by design). */
   SUPABASE_ANON_KEY?: string | undefined;
+  /** Bearer token for the staff routes until staff JWTs arrive (M12a1). Absent: those routes answer 401. */
+  OPS_TOKEN?: string | undefined;
+  /** Test only (compiled out of the production bundle): extra catalog keys, comma separated. */
+  CUTSCENE_CATALOG_EXTRA?: string | undefined;
   /** Supabase service-role key (secret) — reserved for the M05d data spine. */
   SUPABASE_SECRET_KEY?: string | undefined;
 }
