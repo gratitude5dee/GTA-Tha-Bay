@@ -47,6 +47,10 @@ export interface UnitMesh {
   /** L0 only: x, y, z (local) per street lamp (the baked LAMP records on the terrain, M02b2). The night lights draw them. */
   lamps: Float32Array;
   stats: MeshStats;
+  /** L0: the `proxyOf` values (landmark index + 1) of the footprints in this chunk, whether or not they are meshed. Empty at L1 and L2. */
+  proxies: number[];
+  /** L0: the subset of `proxies` left out of the meshes because a landmark model stands in their place (M02d1). */
+  masked: number[];
 }
 
 /** All the buffers of a unit mesh, for the transfer list. */

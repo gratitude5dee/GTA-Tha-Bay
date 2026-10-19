@@ -1,0 +1,15 @@
+{
+  "$comment": "LandmarkLayer (M02d1; 02-world-bake.md section 7 rules 3 and 5). resident = most landmark models resident at once; swapM = distance inside which a landmark's model replaces its baked extrusion proxies. A resident landmark is released at swapM x unloadFactor (hysteresis, BD-M02d1-02). A failed load is tried again after retryMs.",
+  "schema": "world-landmarks-runtime/1",
+  "unloadFactor": 1.05,
+  "retryMs": 30000,
+  "inFlight": 1,
+  "tiers": {
+    "desktop-ultra": { "resident": 8, "swapM": 1200 },
+    "desktop": { "resident": 8, "swapM": 1200 },
+    "xr-visionpro": { "resident": 6, "swapM": 900 },
+    "mobile": { "resident": 4, "swapM": 500 },
+    "xr-quest": { "resident": 3, "swapM": 400 },
+    "mobile-low": { "resident": 3, "swapM": 350 }
+  }
+}

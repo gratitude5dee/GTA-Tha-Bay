@@ -7,6 +7,7 @@
  *   world.refs    `PackRef` of every `world_pack/<family>-*` of the catalog, for the sim's request table.
  *   world.mesh    meshes one L0 chunk, L1 tile or L2 block and returns its buffers (transferred).
  *   world.far     the backdrop: the ring mesh, the massing instances or the card atlas bytes.
+ *   world.landmark  reads one landmark model (`building/lm.<slug>`, the tier's variant) and returns its decoded buffers (transferred; M02d1).
  */
 import { PackUnavailable, type PackRef as StorePackRef } from '@dv/engine/assets/types';
 import type { AssetJob, AssetService } from '@dv/engine/assets/service';
@@ -18,6 +19,7 @@ import type { PackErrorReason, PackReply, PackRequest } from '../sim/streaming/c
 import { basePlan } from '../sim/streaming/plan.ts';
 import { massingInstances, ringMesh } from './backdrop/far-mesh.ts';
 import { meshLod } from './chunks/lod-mesher.ts';
+import { landmarkTransferList, readLandmarkGlb, type LandmarkModelData } from './chunks/landmark-glb.ts';
 import { meshChunk } from './chunks/mesher.ts';
 import { transferListOf, type UnitMesh } from './chunks/mesh-types.ts';
 
@@ -167,6 +169,8 @@ export interface MeshJobArgs {
   /** Distance of the unit centre from the stream focus when requested (the profile's skip rule). */
   distM: number;
   priority?: Prio;
+  /** L0 only (M02d1): `proxyOf` values whose baked extrusions are left out of the mesh (a landmark model stands in their place). */
+  maskProxies?: number[];
 }
 export type MeshJobResult = { mesh: UnitMesh } | { empty: true };
 
@@ -208,7 +212,7 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     const tile = await l0Tile(svc, host.x, host.y, a.tier, priority, signal);
     const sim = tile.sim.find((c) => c.key === a.key);
     if (!sim) return { result: { empty: true } satisfies MeshJobResult };
-    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes });
+    m = meshChunk(sim, tile.render.find((c) => c.key === a.key) ?? null, { tier: a.tier, distM: a.distM, maxBytes: basePlan(a.tier).uploadBytes, maskProxies: a.maskProxies });
   } else {
     const packRef = packRefOf(a.key, a.level);
     const cache = cacheOf(svc);
@@ -223,6 +227,34 @@ const mesh: AssetJob = async (svc, raw, signal) => {
     m = meshLod(unit, a.tier, basePlan(a.tier).uploadBytes);
   }
   return { result: { mesh: m } satisfies MeshJobResult, transfer: transferListOf(m) };
+};
+
+export interface LandmarkJobArgs {
+  /** `building/lm.coit-tower` */
+  asset: string;
+  tier: QualityTierId;
+}
+export type LandmarkJobResult = { model: LandmarkModelData };
+
+const landmark: AssetJob = async (svc, raw, signal) => {
+  const a = raw as LandmarkJobArgs;
+  const bytes = await readPack(svc, a.asset, a.tier, 'soon', signal);
+  let model: LandmarkModelData;
+  try {
+    model = await readLandmarkGlb(bytes);
+  } catch {
+    // A file that does not parse: purge and fetch it once more, like a pack that does not decode.
+    const ref = svc.catalog.resolve(a.asset as never, a.tier);
+    const again = await svc.store.reportDecodeFailure(ref, signal ? { signal } : {});
+    try {
+      model = await readLandmarkGlb(again);
+    } catch (e) {
+      const err = new Error(`${a.asset}: ${e instanceof Error ? e.message : String(e)}`);
+      err.name = 'DecodeError';
+      throw err;
+    }
+  }
+  return { result: { model } satisfies LandmarkJobResult, transfer: landmarkTransferList(model) };
 };
 
 export interface FarJobArgs {
@@ -263,4 +295,5 @@ export const worldJobs: Readonly<Record<string, AssetJob>> = {
   'world.refs': refs,
   'world.mesh': mesh,
   'world.far': far,
+  'world.landmark': landmark,
 };

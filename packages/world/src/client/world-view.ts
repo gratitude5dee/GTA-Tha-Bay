@@ -25,9 +25,11 @@ import { tileSets, unitExists, type TileSets } from '../sim/streaming/boot.ts';
 import { BackdropLayer, type BackdropInfo, type JobClient } from './backdrop/backdrop-layer.ts';
 import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
-import { profileOf } from './chunks/mesher.ts';
+import { LandmarkLayer, type LandmarkSpot, type LandmarksReport } from './chunks/landmark-layer.ts';
+import { mountLandmark } from './chunks/landmark-view.ts';
+import { MESHER, profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
-import type { MeshJobArgs, MeshJobResult } from './jobs.ts';
+import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
 import { TeleportFade } from './teleport-fade.ts';
@@ -54,6 +56,8 @@ export interface WorldViewOptions {
   /** The governor's `atmosphereLevel` at boot (the tier's ceiling when absent). */
   atmosphereLevel?: number;
   spawn: { x: number; z: number };
+  /** The landmarks that have a model in the catalog (M02d1): the `LandmarkLayer` swaps their baked proxies for the glTF within the tier's swap distance. */
+  landmarks?: readonly LandmarkSpot[];
   labels: WorldViewLabels;
   /** Where the overlays go. */
   container: HTMLElement;
@@ -119,6 +123,8 @@ export class WorldView implements WorldLayer {
   renderer!: ChunkRenderer;
   backdrop!: BackdropLayer;
   materials!: WorldMaterials;
+  /** The landmark models of the world (M02d1); null when the catalog holds none. */
+  landmarks: LandmarkLayer | null = null;
   /** The sky of the world path (M02b2); set in `attach`. */
   sky: SkyView | null = null;
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
@@ -208,6 +214,27 @@ export class WorldView implements WorldLayer {
       packOf: (level, key) => packRefOf(key, level as 'l0' | 'l1' | 'l2'),
     });
 
+    const spots = this.o.landmarks ?? [];
+    if (spots.length > 0) {
+      this.landmarks = new LandmarkLayer({
+        tier: this.o.tier,
+        spots,
+        load: async (spot) => {
+          const args: LandmarkJobArgs = { asset: spot.asset, tier: this.o.tier };
+          return ((await this.o.assets.job('world.landmark', args)) as LandmarkJobResult).model;
+        },
+        mount: (spot, model, y, nowSec) => mountLandmark(host.scene, this.materials, spot, model, y, nowSec),
+        chunks: {
+          states: () => this.landmarkChunkStates(),
+          remesh: (key, mask) => this.remeshChunk(key, mask),
+          rerecords: (key) => this.renderer.rerecordsOf('l0', key),
+        },
+        groundY: (x, z) => this.groundY(x, z),
+        waterY: MESHER.lod.waterLevelM,
+        now: () => this.now(),
+      });
+    }
+
     this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });
     host.backdrop = { scene: this.backdrop.scene, camera: this.backdrop.camera };
     this.sky = new SkyView({
@@ -264,6 +291,7 @@ export class WorldView implements WorldLayer {
       if (this.commitMs.length > 240) this.commitMs.shift();
       if (!this.revealed && up.level === 'l0') this.reveal();
     }
+    this.landmarks?.update(focus, tSec);
     if (this.frames % 30 === 0) this.remeshFiltered();
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
@@ -334,6 +362,8 @@ export class WorldView implements WorldLayer {
     this.disposed = true;
     this.sky?.dispose();
     this.sky = null;
+    this.landmarks?.dispose();
+    this.landmarks = null;
     this.renderer?.dispose();
     this.backdrop?.dispose();
     this.materials?.dispose();
@@ -397,7 +427,8 @@ export class WorldView implements WorldLayer {
       if (this.store.distanceTo(key) > skip.beyondM * 0.8) continue;
       // Mark it handled first so one pass requests it once.
       mesh.stats.filtered = false;
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon' };
+      const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}) };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -406,6 +437,34 @@ export class WorldView implements WorldLayer {
         })
         .catch(() => undefined);
     }
+  }
+
+  // ---- landmarks (M02d1) ---------------------------------------------------------------------------------------------------
+
+  /** The resident L0 chunks that hold landmark proxies, with the proxies their current mesh leaves out. */
+  private landmarkChunkStates(): { key: ChunkKey; proxies: number[]; masked: number[] }[] {
+    const out: { key: ChunkKey; proxies: number[]; masked: number[] }[] = [];
+    for (const u of this.renderer.units.values()) if (u.level === 'l0' && u.mesh.proxies.length > 0) out.push({ key: u.key, proxies: u.mesh.proxies, masked: u.mesh.masked });
+    return out;
+  }
+
+  /** Meshes an uploaded chunk again with `mask` (proxy ids) left out; the new mesh goes through the upload gate ahead of everything else. */
+  private remeshChunk(key: ChunkKey, mask: number[]): void {
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    this.inflight++;
+    void this.o.assets
+      .job('world.mesh', args)
+      .then((res) => {
+        const result = res as MeshJobResult;
+        if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed) this.renderer.enqueue(result.mesh, -1);
+      })
+      .catch(() => undefined)
+      .finally(() => void this.inflight--);
+  }
+
+  /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */
+  landmarksReport(): LandmarksReport | null {
+    return this.landmarks?.report() ?? null;
   }
 
   // ---- ground height for the camera ----------------------------------------------------------------------------------------
@@ -567,7 +626,7 @@ export class WorldView implements WorldLayer {
       let quiet = 0;
       let lastFrame = this.frames;
       const poll = (): void => {
-        const idle = this.store.pending() === 0 && this.renderer.gate.size === 0 && this.renderer.rebuilding === 0 && this.inflight === 0;
+        const idle = this.store.pending() === 0 && this.renderer.gate.size === 0 && this.renderer.rebuilding === 0 && this.inflight === 0 && (this.landmarks?.idle ?? true);
         if (this.frames !== lastFrame) {
           lastFrame = this.frames;
           quiet = idle ? quiet + 1 : 0;
