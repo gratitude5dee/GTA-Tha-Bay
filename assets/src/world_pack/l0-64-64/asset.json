@@ -1,0 +1,9 @@
+{
+  "kind": "world_pack",
+  "id": "l0-64-64",
+  "variants": { "default": "tests/fixtures/world/civic-graybox/l0-64-64.pack" },
+  "deps": [],
+  "tags": ["fixture", "graybox"],
+  "status": "active",
+  "visibility": "public"
+}
