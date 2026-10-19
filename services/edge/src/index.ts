@@ -4,12 +4,18 @@ import { isGeoExempt, isRegionAllowed, requestCountry } from './geo.ts';
 import { withIsolationHeaders } from './headers.ts';
 import { dispatch, pathMatches, type Ctx, type Route } from './router.ts';
 import { handleLogin, handleLogout, handleMe, handleRefresh, handleSignup } from './routes/auth.ts';
+import { handleCutsceneStatus, handleFalHook, handlePrewarm } from './cutscenes/routes.ts';
 import { handleBoot } from './routes/boot.ts';
 import { handleGenaiStatus } from './routes/genai.ts';
 import { handleHealth } from './routes/health.ts';
 import { handleLegal } from './routes/legal.ts';
+import { handleBrowserReport } from './routes/reports-browser.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { uuidv7 } from './uuidv7.ts';
+
+export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
+export { CutsceneJobDO } from './cutscenes/CutsceneJobDO.ts';
+export { FalGateDO, GenJobWorkflow } from '@dv/pipeline';
 
 const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/health', handler: handleHealth },
@@ -22,6 +28,10 @@ const ROUTES: readonly Route[] = [
   { methods: ['POST'], path: '/api/v1/auth/logout', handler: handleLogout },
   { methods: ['GET'], path: '/api/v1/auth/me', handler: handleMe },
   { methods: ['GET'], path: '/api/v1/genai/status', handler: handleGenaiStatus },
+  { methods: ['POST'], path: '/api/v1/reports/browser', handler: handleBrowserReport },
+  { methods: ['GET'], path: '/api/v1/cutscenes', prefix: true, handler: handleCutsceneStatus },
+  { methods: ['POST'], path: '/api/v1/admin/cutscenes/prewarm', handler: handlePrewarm },
+  { methods: ['POST'], path: '/api/v1/hooks/fal', handler: handleFalHook },
 ];
 
 /** Test routes are loaded behind a build-time constant so the production bundle does not contain them. */
@@ -58,7 +68,7 @@ export default {
       // Never log request bodies or headers (F-027); the request id is enough to find the invocation.
       res = apiError('internal', 'Internal error.', requestId);
     }
-    res = withIsolationHeaders(res, url.pathname);
+    res = withIsolationHeaders(res, url.pathname, env);
     res.headers.set('X-Request-Id', requestId);
     return res;
   },

@@ -31,5 +31,10 @@ export default defineConfig([
     files: ['packages/**/*.{ts,tsx}'],
     rules: { 'no-restricted-syntax': ['error', ...GLSL_SYNTAX] },
   },
+  {
+    // The HTMLVideoElement shim is an intentionally empty interface that merges with lib.dom (DL-232).
+    files: ['packages/shared/src/contracts/dom-media.d.ts'],
+    rules: { '@typescript-eslint/no-empty-object-type': 'off' },
+  },
   determinismConfig(SIM_FILES, SIM_IGNORES),
 ]);

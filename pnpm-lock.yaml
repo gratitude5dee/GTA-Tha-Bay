@@ -272,6 +272,9 @@ importers:
 
   services/edge:
     dependencies:
+      '@dv/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       '@dv/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -288,6 +291,24 @@ importers:
       wrangler:
         specifier: 4.151.1
         version: 4.151.1(@cloudflare/workers-types@5.20261018.1)(@types/node@22.20.5)
+
+  services/pipeline:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 5.20261018.1
+        version: 5.20261018.1
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.5
+      wrangler:
+        specifier: 4.151.1
+        version: 4.151.1(@cloudflare/workers-types@5.20261018.1)(@types/node@22.20.5)
+
+  tools/map: {}
 
 packages:
 

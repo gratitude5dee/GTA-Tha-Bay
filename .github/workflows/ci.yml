@@ -66,6 +66,8 @@ jobs:
       # The JSON report is what trace.ts reads (tests/reports/); the milestone and trace reports land there too.
       - run: pnpm check:unit -- --reporter=default --reporter=json --outputFile.json=tests/reports/vitest.json
       - run: pnpm check:workers
+      # M05b1: one mock cutscene job end to end, then the same key again (0 FalPort calls). Never calls fal.
+      - run: pnpm check:pipeline
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
@@ -219,3 +221,5 @@ jobs:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
       - run: pnpm likeness:gate
       - run: pnpm check:assets
+      # M05b1: shipped generated cutscenes keep their original anchor, AI flag and re-sign (0 shipped until M05b2).
+      - run: pnpm check:c2pa

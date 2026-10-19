@@ -1,8 +1,10 @@
 import { execSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { BRAND } from '../../config/brand.ts';
+import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
 import { mediaLocal } from './vite/media-local.ts';
 
@@ -54,11 +56,25 @@ function brandInHtml(): Plugin {
   };
 }
 
+// public/_headers carries %CSP_REPORT_ONLY%; the build writes the Report-Only policy of spec/05 section 1.3 into dist/_headers (DL-191).
+function cspInHeaders(): Plugin {
+  return {
+    name: 'dv-csp-in-headers',
+    apply: 'build',
+    closeBundle() {
+      const file = here('dist/_headers');
+      if (!existsSync(file)) return;
+      writeFileSync(file, readFileSync(file, 'utf8').replaceAll('%CSP_REPORT_ONLY%', cspForBuild()));
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     brandInHtml(),
     // QA builds only: the same-origin mirror of the asset store (M01e).
     ...(QA ? [mediaLocal(here('.'))] : []),
+    cspInHeaders(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',

@@ -22,6 +22,9 @@ export function isGeoExempt(pathname: string): boolean {
   return (
     pathname === '/api/v1/health' ||
     pathname === '/api/v1/boot' ||
+    // Routes authenticated by a vendor signature or a staff token (A-10, DL-184): fal webhook (29), prewarm (28).
+    pathname === '/api/v1/hooks/fal' ||
+    pathname === '/api/v1/admin/cutscenes/prewarm' ||
     pathname === '/api/v1/legal' ||
     pathname.startsWith('/api/v1/legal/') ||
     pathname.startsWith('/.well-known/') ||

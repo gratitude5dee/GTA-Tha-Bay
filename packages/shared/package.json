@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts",
     "./assets": "./src/assets/c07.ts",
+    "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
     "./schemas/*": "./schemas/*"
   },
   "scripts": {

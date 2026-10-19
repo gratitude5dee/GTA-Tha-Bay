@@ -32,6 +32,13 @@ export type FeatureFlag =
   | 'forum.enabled' | 'ugc.publish' | 'auth.openaiWeb' | 'auth.thirdweb' | 'telemetry.verbose'
   | 'mods.enabled' | 'mods.script' | 'mods.ui';
 
+// Route 27 (spec/domains/09-backend-contracts.md section 2.5; M05b1).
+export interface CutsceneStatus {
+  key: string; state: 'ready' | 'pending' | 'absent' | 'failed' | 'blocked';
+  manifestUrl?: string;             // media.<domain>/cutscenes/<key>/manifest.json when ready (C09, S03/S05 shape)
+  reason?: 'not_in_catalog' | 'kill_switched' | 'budget' | 'region';
+}
+
 export interface BootConfig {
   build: string;
   minClientBuild: string;

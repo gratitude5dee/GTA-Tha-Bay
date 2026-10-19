@@ -15,6 +15,22 @@
   },
   // No custom domain until Q-15 is answered.
   "workers_dev": true,
+  // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
+  "durable_objects": {
+    "bindings": [
+      { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
+      { "name": "FAL_GATE", "class_name": "FalGateDO" },
+      { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+    ]
+  },
+  "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+  // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+  "r2_buckets": [
+    { "binding": "MEDIA", "bucket_name": "tha-bay-media-prod" },
+    { "binding": "PRIVATE", "bucket_name": "tha-bay-private-prod" }
+  ],
+  "kv_namespaces": [{ "binding": "FLAGS", "id": "c97c407d70c8457083bf0865b82c27fe" }],
+  "workflows": [{ "name": "gen-job", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
   "observability": {
     "enabled": true,
@@ -53,6 +69,22 @@
         "not_found_handling": "single-page-application",
         "run_worker_first": ["/api/*"]
       },
+      // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
+      "durable_objects": {
+        "bindings": [
+          { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
+          { "name": "FAL_GATE", "class_name": "FalGateDO" },
+          { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+        ]
+      },
+      "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+      // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+      "r2_buckets": [
+        { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
+        { "binding": "PRIVATE", "bucket_name": "tha-bay-private-staging" }
+      ],
+      "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
+      "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "observability": {
         "enabled": true,
@@ -60,7 +92,6 @@
         "traces": { "enabled": true, "head_sampling_rate": 1.0 }
       },
       "define": { "__DV_TEST_ROUTES__": "true" },
-      "secrets": { "required": [] },
       "vars": {
         "ENVIRONMENT": "staging",
         "GEO_ALLOW": "US",
@@ -81,6 +112,22 @@
   // Required by `wrangler preview`. Bindings are not inherited and are repeated here.
   // `previews.assets` is rejected by wrangler 4.151.1 ("Unexpected fields found in previews field"); assets come from the --env staging config.
   "previews": {
+    // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
+    "durable_objects": {
+      "bindings": [
+        { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
+        { "name": "FAL_GATE", "class_name": "FalGateDO" },
+        { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+      ]
+    },
+    // previews take no `migrations` key (wrangler 4.151.1 rejects it); the DO classes migrate through the staging deploy.
+    // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
+    "r2_buckets": [
+      { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
+      { "binding": "PRIVATE", "bucket_name": "tha-bay-private-staging" }
+    ],
+    "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
+    "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow", "script_name": "tha-bay-web-staging" }],
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
     "define": { "__DV_TEST_ROUTES__": "true" },
     "vars": {
