@@ -106,6 +106,25 @@ jobs:
           done
           exit $status
 
+  # M06a2: NPC souls (lint L1-L14) and the C10 schema drift check. Without ANTHROPIC_API_KEY the token bounds are estimates.
+  content:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm npc:schemas -- --check
+      - run: pnpm npc:lint
+        env:
+          DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 20

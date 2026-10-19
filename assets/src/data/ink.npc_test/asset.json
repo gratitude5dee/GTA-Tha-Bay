@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "ink.npc_test",
+  "variants": {
+    "default": "assets/src/data/ink.npc_test/ink.json"
+  },
+  "deps": [],
+  "tags": [
+    "char:npc_test"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

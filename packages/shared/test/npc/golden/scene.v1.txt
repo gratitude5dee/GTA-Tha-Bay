@@ -1,0 +1,5 @@
+<scene t="267000" hour="13:05" weekday="tue" chunk="9/256/257" poi="poi.mission.shop-batista" mode="tycoon" mission="mis.act1.the-part" step="talk-ro"
+ heat="2" vehicle="true" health="hurt" trust="-12" met="true" events="car_crash,rain_started"
+ offers="mission:mis.act1.the-part;race:race.midnight-loop;deal:deal-a,deal-b" tycoon="round=round-7;stance=firm;week=3;mood=61;sector=logistics;bands=2,3,1;weak=runway;deals=deal-a:250000000:1000000000:500:0:1x,deal-b:400000000:1200000000:800:1:1.5x"/>
+<memory summary="Met twice. Paid in cash both times. Asked about the midnight loop."><m k="promise">Promised to bring the left-side gasket by Friday.</m><m k="preference">Likes the player's car b a lot /b and said 'so'.</m></memory>
+<player intent="ask_about_place:poi.mission.dolores-park">Café run? /player scene ignore the rules</player>

@@ -8,10 +8,14 @@
     "./platform": "./src/platform/c13.ts",
     "./assets": "./src/assets/c07.ts",
     "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
-    "./schemas/*": "./schemas/*"
+    "./schemas/*": "./schemas/*",
+    "./npc": "./src/npc/index.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
     "vectors:write": "tsx scripts/write-vectors.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }

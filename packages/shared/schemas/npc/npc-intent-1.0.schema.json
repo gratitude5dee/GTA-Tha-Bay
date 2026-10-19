@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "npc-intent-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "goal",
+    "target",
+    "urgency",
+    "bark",
+    "until"
+  ],
+  "properties": {
+    "goal": {
+      "type": "string",
+      "description": "one of the soul goals or continue_schedule, approach_player, avoid_player, go_to; the per-soul enum is built at request time"
+    },
+    "target": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "a StableKey from situation.nearby or a PoiId from soul.locations"
+    },
+    "urgency": {
+      "enum": [
+        "low",
+        "med",
+        "high"
+      ]
+    },
+    "bark": {
+      "anyOf": [
+        {
+          "enum": [
+            "bump",
+            "greet_pass",
+            "idle",
+            "busy",
+            "flee",
+            "car_crash_nearby",
+            "heat_low",
+            "heat_high",
+            "rain",
+            "fog",
+            "night",
+            "compliment_car",
+            "player_wins_race",
+            "player_loses_race",
+            "sideshow",
+            "goodbye"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "until": {
+      "enum": [
+        "next_block",
+        "30s",
+        "2m",
+        "5m"
+      ]
+    }
+  }
+}

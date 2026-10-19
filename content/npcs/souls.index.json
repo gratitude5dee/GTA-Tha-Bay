@@ -1,0 +1,32 @@
+{
+  "schema": "souls-index/1",
+  "rosterVersion": 1,
+  "rosterSha256": "6ceef11c3f759496519d7f9fc7280ac907a4c90fda20c24523e2be1f62e873bb",
+  "souls": {
+    "canary-mc": {
+      "soulVersion": 1,
+      "promptSha256": "cda4f279a21a15df645a3af0381ea80aae78afe00452885c6b958cb25be24332",
+      "publicSha256": "1ce190fb128e485bf0106a29486f869140c01be9533fe1b980120b13e81426f3"
+    },
+    "npc_test": {
+      "soulVersion": 1,
+      "promptSha256": "1c244edb54f79dccb186b42b617e1c106458e6884b7b00575f11d34274e391d2",
+      "publicSha256": "294c04f00bcd9d37c4fc98605876cacccffdd6a8d36aff004de0c3fc03bad4cf"
+    },
+    "ro-batista": {
+      "soulVersion": 1,
+      "promptSha256": "ce5a53c0e50e8a0e6b9b7e5a95a702b3e3b5ea05d8b50f5e0bf69c7a2a37ae39",
+      "publicSha256": "5b6cc335837988864cecb6d548740d6cf197c5c4747a7935085b1fe6588b6f33"
+    },
+    "standin_founder": {
+      "soulVersion": 1,
+      "promptSha256": "798d8df41100a8dd620c6d99f20f674cbbb379681cb974804bb497efad035f58",
+      "publicSha256": "b69045be5f50a33d2704f5b806ebcf6634c51dacfe5e4f825f275ef6dd5580b5"
+    },
+    "standin_rapper": {
+      "soulVersion": 1,
+      "promptSha256": "d4d0464041990b057cebfab5645ebc8b06810552a8465e22c80a8368bcb63d89",
+      "publicSha256": "14e193485bc7cbb534e3921bde2456451f00bb84b3d76b48e9a23cf15b5651ea"
+    }
+  }
+}

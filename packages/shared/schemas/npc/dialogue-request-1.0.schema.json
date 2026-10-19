@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "dialogue-request-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "npcId",
+    "soulVersion",
+    "turn",
+    "context",
+    "maxTokens"
+  ],
+  "properties": {
+    "npcId": {
+      "$ref": "#/$defs/npcId"
+    },
+    "encounterId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "soulVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 280
+        },
+        "intent": {
+          "$ref": "#/$defs/intent"
+        }
+      }
+    },
+    "context": {
+      "$ref": "#/$defs/context"
+    },
+    "maxTokens": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096
+    }
+  },
+  "$defs": {
+    "npcId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{2,47}$"
+    },
+    "poi": {
+      "type": "string",
+      "pattern": "^poi\\.[a-z0-9.-]{3,64}$"
+    },
+    "intent": {
+      "anyOf": [
+        {
+          "enum": [
+            "greet",
+            "smalltalk",
+            "ask_mission",
+            "accept",
+            "decline",
+            "trade",
+            "compliment",
+            "insult",
+            "threaten",
+            "farewell",
+            "pitch",
+            "answer",
+            "ask_more",
+            "counter",
+            "close",
+            "fight_pre",
+            "fight_post"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^ask_about_npc:[a-z][a-z0-9_-]{2,47}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^ask_about_place:poi\\.[a-z0-9.-]{3,64}$"
+        }
+      ]
+    },
+    "band": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "clockT",
+        "chunkKey",
+        "poiId",
+        "mode",
+        "missionId",
+        "missionStep",
+        "player",
+        "relation",
+        "events",
+        "offers",
+        "tycoon",
+        "voice",
+        "locale"
+      ],
+      "properties": {
+        "schema": {
+          "const": 1
+        },
+        "clockT": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunkKey": {
+          "type": "string",
+          "pattern": "^(9|7|5|3)/[0-9]{1,3}/[0-9]{1,3}$"
+        },
+        "poiId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/poi"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "enum": [
+            "story",
+            "sandbox",
+            "racing",
+            "fighter",
+            "tycoon",
+            "experience"
+          ]
+        },
+        "missionId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "missionStep": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 64
+        },
+        "player": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "heat",
+            "inVehicle",
+            "health",
+            "streetCred",
+            "techClout"
+          ],
+          "properties": {
+            "heat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "inVehicle": {
+              "type": "boolean"
+            },
+            "health": {
+              "enum": [
+                "ok",
+                "hurt",
+                "down"
+              ]
+            },
+            "streetCred": {
+              "type": "number"
+            },
+            "techClout": {
+              "type": "number"
+            }
+          }
+        },
+        "relation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "trust",
+            "met"
+          ],
+          "properties": {
+            "trust": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "met": {
+              "type": "boolean"
+            }
+          }
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "enum": [
+              "car_crash",
+              "melee_fight",
+              "police_chase",
+              "race_finished",
+              "player_won_race",
+              "player_lost_race",
+              "sideshow",
+              "rain_started",
+              "fog_rolling_in",
+              "night_fell",
+              "mission_started",
+              "mission_failed",
+              "mission_passed"
+            ]
+          }
+        },
+        "offers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "missionIds",
+            "raceIds",
+            "dealIds"
+          ],
+          "properties": {
+            "missionIds": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            },
+            "raceIds": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            },
+            "dealIds": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            }
+          }
+        },
+        "tycoon": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "roundId",
+                "stance",
+                "week",
+                "mood",
+                "sector",
+                "arrBand",
+                "growthBand",
+                "runwayBand",
+                "weakestMetric",
+                "deals"
+              ],
+              "properties": {
+                "roundId": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "stance": {
+                  "enum": [
+                    "open",
+                    "firm",
+                    "walk"
+                  ]
+                },
+                "week": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mood": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "sector": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "arrBand": {
+                  "$ref": "#/$defs/band"
+                },
+                "growthBand": {
+                  "$ref": "#/$defs/band"
+                },
+                "runwayBand": {
+                  "$ref": "#/$defs/band"
+                },
+                "weakestMetric": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "deals": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "id",
+                      "amountCents",
+                      "preMoneyCents",
+                      "poolBp",
+                      "boardSeat",
+                      "liq"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "amountCents": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "preMoneyCents": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "poolBp": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "boardSeat": {
+                        "type": "boolean"
+                      },
+                      "liq": {
+                        "enum": [
+                          "1x",
+                          "1.5x",
+                          "2x"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "voice": {
+          "enum": [
+            "off",
+            "auto"
+          ]
+        },
+        "locale": {
+          "const": "en-US"
+        }
+      }
+    }
+  }
+}

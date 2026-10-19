@@ -1,0 +1,25 @@
+{
+  "schema": "npc-goals/1",
+  "goals": [
+    { "id": "sleep", "desc": "rest at home" },
+    { "id": "eat", "desc": "get food" },
+    { "id": "work", "desc": "do the day job" },
+    { "id": "perform", "desc": "play a set or a show" },
+    { "id": "record", "desc": "work in a studio" },
+    { "id": "train", "desc": "practice for a fight or a race" },
+    { "id": "hustle", "desc": "chase side money" },
+    { "id": "socialize", "desc": "hang out with neighbours" },
+    { "id": "commute", "desc": "travel between places" },
+    { "id": "shop", "desc": "buy or browse" },
+    { "id": "pitch", "desc": "pitch an idea or hear one" },
+    { "id": "race", "desc": "run or organise street races" },
+    { "id": "patrol", "desc": "walk a beat" },
+    { "id": "idle", "desc": "stand around" },
+    { "id": "scout_talent", "desc": "look for people worth backing" },
+    { "id": "close_deal", "desc": "push a negotiation to an end" },
+    { "id": "trash_talk", "desc": "needle a rival" },
+    { "id": "teach", "desc": "show someone how it is done" },
+    { "id": "repair", "desc": "fix a car or a machine" },
+    { "id": "test_target", "desc": "stay put for automated tests" }
+  ]
+}

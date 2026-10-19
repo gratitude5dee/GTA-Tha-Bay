@@ -1,0 +1,35 @@
+{
+  "schema": "voice-catalog/1",
+  "entries": [
+    {
+      "voiceRef": "voice/text-only",
+      "tier": "text",
+      "engine": "baked_only",
+      "model": "none",
+      "providerVoiceId": "",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-luna",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "luna",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-orion",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "orion",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    }
+  ]
+}

@@ -63,7 +63,14 @@
     "check:agents": "tsx tools/ci/check-agents.ts",
     "check:telemetry": "tsx tools/ci/check-telemetry.ts",
     "check:rollout": "tsx tools/ci/check-rollout.ts",
-    "check:skills": "node -e \"console.log('pending: lands in M13a6')\""
+    "check:skills": "node -e \"console.log('pending: lands in M13a6')\"",
+    "npc:schemas": "tsx tools/soul/src/cli.ts schemas",
+    "npc:lint": "tsx tools/soul/src/cli.ts lint",
+    "npc:compile": "tsx tools/soul/src/cli.ts compile",
+    "npc:build": "tsx tools/soul/src/cli.ts build",
+    "npc:consent-index": "tsx tools/soul/src/cli.ts consent-index",
+    "npc:summarize": "tsx tools/soul/src/cli.ts summarize",
+    "npc:normalize": "tsx tools/soul/src/cli.ts normalize"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",
@@ -72,10 +79,12 @@
     "@types/pngjs": "^6.0.5",
     "ajv": "^8.20.0",
     "eslint": "^10.13.0",
+    "inkjs": "^2.4.0",
     "pngjs": "^7.0.0",
     "tsx": "^4.0.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.2",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "yaml": "^2.9.1"
   }
 }

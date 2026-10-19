@@ -13,3 +13,4 @@ apps/web/media-local/
 # M00d generated reports (tests/reports/README.md stays)
 tests/reports/*
 !tests/reports/README.md
+.out/

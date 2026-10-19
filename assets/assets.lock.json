@@ -10,6 +10,60 @@
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
     },
+    "data/ink.canary-mc": {
+      "rev": 1,
+      "variants": {
+        "default": "dfc0c3f4e741655e13ff739fae0ca3aca4ad4ebb9cb17cd5f90890da5f096566"
+      },
+      "root": "dfc0c3f4e741655e13ff739fae0ca3aca4ad4ebb9cb17cd5f90890da5f096566",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
+    "data/ink.npc_test": {
+      "rev": 1,
+      "variants": {
+        "default": "7c111952bf768d74c221208e0722ec5f78b5bd259200140ae64d1dec58d5f32c"
+      },
+      "root": "7c111952bf768d74c221208e0722ec5f78b5bd259200140ae64d1dec58d5f32c",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
+    "data/ink.ro-batista": {
+      "rev": 1,
+      "variants": {
+        "default": "7bf206915dcd2d0770859416e895cb08a0144cfc2d1a5853f4270540061c600e"
+      },
+      "root": "7bf206915dcd2d0770859416e895cb08a0144cfc2d1a5853f4270540061c600e",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
+    "data/ink.standin_founder": {
+      "rev": 1,
+      "variants": {
+        "default": "1e6d818d7de68c836175c78098015067e48e73d92fdab7ba9877ae2e3f4a4c93"
+      },
+      "root": "1e6d818d7de68c836175c78098015067e48e73d92fdab7ba9877ae2e3f4a4c93",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
+    "data/ink.standin_rapper": {
+      "rev": 1,
+      "variants": {
+        "default": "31e98f3442d6776bb54e48311ad4205f0e4fc8cc37e1e5a3385926ab6eb7b59c"
+      },
+      "root": "31e98f3442d6776bb54e48311ad4205f0e4fc8cc37e1e5a3385926ab6eb7b59c",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
+    "data/npc-roster": {
+      "rev": 1,
+      "variants": {
+        "default": "e439d31decdde855799d5953235050c7fd83f85f644556121c5b8682f7058369"
+      },
+      "root": "e439d31decdde855799d5953235050c7fd83f85f644556121c5b8682f7058369",
+      "approved_by": "m06a2-builder",
+      "approved_at": "2026-10-19T03:03:04Z"
+    },
     "texture/asset-smoke": {
       "rev": 1,
       "variants": {
