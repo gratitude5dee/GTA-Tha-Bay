@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/clock.schema.json",
+  "title": "config/clock.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "start", "intervalGameMinutes", "defaultBlendGameMinutes", "presets", "hourBias", "night", "dark"],
+  "$defs": {
+    "preset": { "enum": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"] },
+    "curve": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "prefixItems": [{ "type": "number", "minimum": 0, "maximum": 24 }, { "type": "number", "minimum": 0, "maximum": 1 }],
+        "items": false
+      }
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["weight", "fogBankM", "rain"],
+      "properties": {
+        "weight": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "fogBankM": { "type": "number", "minimum": 0 },
+        "rain": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "clock/1" },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hour", "weather"],
+      "properties": { "hour": { "type": "number", "minimum": 0, "exclusiveMaximum": 24 }, "weather": { "$ref": "#/$defs/preset" } }
+    },
+    "intervalGameMinutes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": { "min": { "type": "integer", "minimum": 1 }, "max": { "type": "integer", "minimum": 1 } }
+    },
+    "defaultBlendGameMinutes": { "type": "integer", "minimum": 1 },
+    "presets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "properties": {
+        "clear": { "$ref": "#/$defs/row" },
+        "karl-fog": { "$ref": "#/$defs/row" },
+        "overcast": { "$ref": "#/$defs/row" },
+        "rain": { "$ref": "#/$defs/row" },
+        "smoke": { "$ref": "#/$defs/row" },
+        "golden": { "$ref": "#/$defs/row" }
+      }
+    },
+    "hourBias": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["preset", "fromHour", "toHour", "mul"],
+        "properties": {
+          "preset": { "$ref": "#/$defs/preset" },
+          "fromHour": { "type": "number", "minimum": 0, "maximum": 24 },
+          "toHour": { "type": "number", "minimum": 0, "maximum": 24 },
+          "mul": { "type": "integer", "minimum": 0, "maximum": 100 }
+        }
+      }
+    },
+    "night": { "$ref": "#/$defs/curve" },
+    "dark": { "$ref": "#/$defs/curve" }
+  }
+}

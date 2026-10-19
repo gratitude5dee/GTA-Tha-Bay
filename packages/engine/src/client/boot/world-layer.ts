@@ -1,3 +1,4 @@
+import type { EnvState } from '@dv/shared';
 import type { PlayerSide } from '../../sim/publish.ts';
 import type { SimEvent } from '../../sim/events.ts';
 import type { SimHostOptions } from '../../sim/sim-host.ts';
@@ -15,6 +16,10 @@ export interface WorldFrame {
   player: PlayerSide | null;
   /** The draw camera: world position and heading (unit vector), ENU metres. */
   camera: { pos: [number, number, number]; dir: [number, number, number] };
+  /** The game clock and weather from the newest snapshot that carried one (M02b2); null before the first. */
+  env: EnvState | null;
+  /** Blackout in force (traffic signals dark, lamps off, windows dimmed). */
+  blackout: boolean;
 }
 
 export interface WorldLayer {
@@ -24,7 +29,20 @@ export interface WorldLayer {
   frame(f: WorldFrame): void;
   /** Sim events (`world.status` and friends), oldest first. */
   onSimEvents?(events: readonly SimEvent[]): void;
+  /**
+   * QA hooks of the layer (M02b2), for the debug panel's sky controls; absent on layers without a sky. Only the panel and the
+   * QA bridge call them.
+   */
+  debug?: WorldLayerDebug;
   dispose(): void;
+}
+
+/** What the QA debug panel needs of a world layer's sky. */
+export interface WorldLayerDebug {
+  /** Forces the rain intensity (0..255) whatever the weather preset says; null returns to the preset. */
+  setRainOverride(rain: number | null): void;
+  /** The rain override in force, or null. */
+  rainOverride(): number | null;
 }
 
 export interface WorldBoot {

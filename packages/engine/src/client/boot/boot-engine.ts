@@ -23,7 +23,7 @@ import { AUDIO_CONFIG, AudioServiceImpl, unlockOnFirstGesture, type AudioContext
 import type { GrayboxInfo, GrayboxPacks, GrayboxPackUrls, GrayboxWorld } from '../graybox/load.ts';
 import type { TouchOverlay } from '../input/touch-overlay.ts';
 import type { FreeCam } from '../debug/free-cam.ts';
-import type { SimPanel } from '../debug/sim-panel.ts';
+import type { SimPanel, SkyControls } from '../debug/sim-panel.ts';
 import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
@@ -224,6 +224,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let world: GrayboxWorld | null = null;
   let hostScene: RendererHost | null = null;
   let panel: SimPanel | null = null;
+  let skyControls: SkyControls | null = null;
   let freeCam: FreeCam | null = null;
   let xrSmoke: XrSmoke | null = null;
   let xrSupported = false;
@@ -316,6 +317,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     const dtSec = lastNow < 0 ? 0 : Math.min((nowMs - lastNow) / 1000, 1);
     lastNow = nowMs;
     panel?.frame(nowMs);
+    skyControls?.sync(view.env, view.blackout);
     if (router) {
       const block = host.transport?.input;
       if (playing) {
@@ -372,6 +374,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         dtSec,
         player: view.player,
         camera: { pos: [cam.position.x, cam.position.y, cam.position.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] },
+        env: view.env,
+        blackout: view.blackout,
       });
     }
   };
@@ -455,7 +459,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     // QA builds only (the literal comparison lets production builds drop the branch): the F3 panel, the F4 free cam, the XR smoke.
     if (import.meta.env.VITE_DV_QA === '1' && opts.qa && made) {
       if (opts.flags.debug) {
-        const [{ SimPanel: Panel }, { FreeCam: Free }] = await Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts')]);
+        const [{ SimPanel: Panel, SkyControls: Sky }, { FreeCam: Free }] = await Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts')]);
         panel = new Panel({
           container: document.body,
           build: import.meta.env.VITE_DV_BUILD ?? 'qa',
@@ -465,6 +469,20 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           backend: () => backend,
         });
         freeCam = new Free({ router, camera: made.camera as unknown as CameraLike });
+        // The sky controls (M02b2): only a streamed world has a sky.
+        if (worldBoot) {
+          const layer = worldBoot.layer;
+          skyControls = new Sky({
+            container: document.body,
+            onHour: (h) => void host.sendDebug({ t: 'debug.hour', h }),
+            onWeather: (w) => void host.sendDebug({ t: 'debug.weather', w, blendSec: 0 }),
+            onBlackout: (on) => void host.sendDebug({ t: 'debug.blackout', on }),
+            onRain: (rain) => layer.debug?.setRainOverride(rain),
+            onFreeze: (on) => void host.sendDebug({ t: 'debug.clock.pause', on }),
+          });
+          panel.addCompanion(skyControls.root);
+          cleanups.push(() => skyControls?.dispose());
+        }
         // A phone has no F3: with ?debug=1 on a touch device the panel is on from the start.
         if (opts.forceTouch || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)) panel.toggle();
         const onKey = (e: KeyboardEvent): void => {
