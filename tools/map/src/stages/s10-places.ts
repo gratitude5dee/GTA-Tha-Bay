@@ -9,12 +9,12 @@
  * The footprints a proxy replaces are the largest few whose centroid lies inside `replaceRadiusM` (hero 4, major 3, minor 2).
  */
 import {
-  enuFromLatLng, latLngFromEnu, chunkKeyAt, type ChunkKey, type DistrictRecord, type LandmarkRecord, type PoiRecord, type TeleportNode, type TransitNode,
+  enuFromLatLng, latLngFromEnu, chunkKeyAt, type ChunkKey, type LandmarkRecord, type PoiRecord, type TeleportNode, type TransitNode,
   type QualityTierId, type AssetRef,
 } from '../../../../packages/shared/src/index.ts';
 import { PointGrid, yawOf } from '../geom/poly.ts';
 import { ccwArea, pointInRing, ringBbox, ringCentroid, type Bbox } from '../geom/rings.ts';
-import { PrismIndex } from '../geom/prisms.ts';
+import { type PrismIndex } from '../geom/prisms.ts';
 import type { ContentWorld, LandmarkSeed } from '../content.ts';
 import type { DensityConfig } from '../config.ts';
 import type { OsmFeature } from '../sources/geo.ts';
@@ -22,7 +22,7 @@ import { polygonsOf, linesOf } from '../sources/geo.ts';
 import type { BuildingsProduct } from './s4-buildings.ts';
 import type { HoodPoly } from './s3-water.ts';
 import type { PedProduct } from './s8-ped.ts';
-import { slugOf } from '../districts-seed.ts';
+import { districtRecords, slugOf } from '../districts-seed.ts';
 
 export const FEATURE_SNAP_M = 120;
 export const ARRIVAL_RADIUS_M = 120;
@@ -60,7 +60,7 @@ export interface PlacesReport {
 export interface PlacesProduct {
   landmarks: LandmarkRecord[];
   pois: PoiRecord[];
-  districts: DistrictRecord[];
+  districts: ReturnType<typeof districtRecords>;
   transit: TransitNode[];
   teleportNodes: Map<ChunkKey, TeleportNode[]>;
   /** footprint id to landmark index + 1 */
@@ -100,26 +100,11 @@ export function runPlaces(inp: PlacesInputs): PlacesProduct {
     landmarks: 0, landmarksSkipped: [], featureMissing: [], featureTooFar: [], noArrival: [], snapped: 0, pois: 0, poisSkipped: [], poisUnbound: [],
     poisHoodMismatch: [], transit: 0, proxies: 0,
   };
-  const names = inp.density.profiles.map((p) => p.name);
-  const profileIdx = (n: string): number => {
-    const i = names.indexOf(n);
-    if (i < 0) throw new Error(`S9: density profile "${n}" is not in config/world/density.json profiles`);
-    return i;
-  };
 
   // -- districts
-  const districts: DistrictRecord[] = [];
+  const districts = districtRecords(c, inp.density);
   const nhoodToDistrict = new Map<string, string>();
-  for (const d of c.districts.districts) {
-    const di = profileIdx(d.profile);
-    districts.push({ id: d.id, kind: 'district', parent: null, nameKey: `district.${d.id}`, tier: d.tier, nhoods: d.nhoods.map(slugOf), densityProfile: di });
-    for (const n of d.nhoods) {
-      const slug = slugOf(n);
-      nhoodToDistrict.set(slug, d.id);
-      districts.push({ id: slug, kind: 'nhood', parent: d.id, nameKey: `nhood.${slug}`, tier: d.tier, nhoods: [], densityProfile: profileIdx(c.districts.nhoodProfile?.[n] ?? d.profile) });
-    }
-  }
-  districts.sort((a, b) => (a.kind === b.kind ? (a.id < b.id ? -1 : a.id > b.id ? 1 : 0) : a.kind === 'district' ? -1 : 1));
+  for (const d of c.districts.districts) for (const n of d.nhoods) nhoodToDistrict.set(slugOf(n), d.id);
 
   // -- ped node index
   const pedGrid = new PointGrid<number>(32);

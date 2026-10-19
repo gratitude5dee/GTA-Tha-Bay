@@ -11,6 +11,7 @@ import { mapSchema } from './config.ts';
 
 export const CONTENT_DIR = path.join(toolsRoot, 'content', 'world');
 export const CONTENT_STAMP_ID = 'content-world';
+export const CONTENT_ATTRIBUTION = 'Dee-Verse authored world seeds (content/world), contributed to the ODbL database';
 /** Fixed so the stamp is reproducible: the seeds are repo content, not a download. */
 export const CONTENT_STAMP_AT = '2026-10-19T00:00:00Z';
 
@@ -91,6 +92,6 @@ export function contentRows(c: ContentWorld): number {
 export function contentStamp(dir = CONTENT_DIR): SourceStamp {
   return {
     id: CONTENT_STAMP_ID, url: 'repo://content/world', retrievedAt: CONTENT_STAMP_AT, sha256: contentWorldSha(dir), licence: 'ODbL-1.0',
-    attribution: 'Dee-Verse authored world seeds (content/world), contributed to the ODbL database',
+    attribution: CONTENT_ATTRIBUTION,
   };
 }

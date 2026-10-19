@@ -17,7 +17,7 @@ import {
 } from '../../../../packages/shared/src/index.ts';
 import { PointGrid, morton, pointAt, polyLength, resample } from '../geom/poly.ts';
 import { pointInRing, ringBbox, type Bbox } from '../geom/rings.ts';
-import { PrismIndex } from '../geom/prisms.ts';
+import { type PrismIndex } from '../geom/prisms.ts';
 import type { OsmFeature } from '../sources/geo.ts';
 import { linesOf } from '../sources/geo.ts';
 import type { LandusePoly } from './s3-water.ts';

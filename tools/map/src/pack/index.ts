@@ -12,6 +12,7 @@ import { contentTypeOf } from '../../../../packages/shared/src/assets/content-ty
 import type { ProvenanceRecord } from '../../../../packages/shared/src/assets/provenance.ts';
 import { rootRecord } from '../../../assets/src/lock.ts';
 import { TOOL_NAME, TOOL_VERSION, type SourcesConfig } from '../config.ts';
+import { CONTENT_STAMP_ID } from '../content.ts';
 import { readRawLock, type RawLockFile } from '../raw-lock.ts';
 import { cmp, stableJson, writeEnsured } from '../util.ts';
 
@@ -31,7 +32,27 @@ export interface PackedBake {
 const sha = (b: Uint8Array): string => sha256Hex(b);
 const AUTHOR = 'studio:dee-verse';
 
+/** The `content-world` stamp (DL-677): the authored seed tables, contributed to the ODbL database; its own `authored` record. */
+function contentStampRecord(s: RawLockFile['sources'][number]): ProvenanceRecord {
+  return {
+    schema: 'provenance/1.0',
+    sha256: s.sha256,
+    paths: ['content/world/*.json'],
+    kind: 'data',
+    origin: 'authored',
+    license: s.licence,
+    authors: [AUTHOR],
+    derived_from: [],
+    review: [],
+    ip_checks: { signatures: 'n/a', strings: 'n/a', similarity: 'n/a' },
+    ai_generated: false,
+    status: 'active',
+    created_at: s.retrievedAt,
+  };
+}
+
 function stampRecord(s: RawLockFile['sources'][number], cfg: SourcesConfig, area: string, synthetic: boolean): ProvenanceRecord {
+  if (s.id === CONTENT_STAMP_ID) return contentStampRecord(s);
   const def = cfg.sources.find((d) => d.id === s.id);
   if (!def) throw new Error(`unknown source ${s.id}`);
   const rec: ProvenanceRecord = {
@@ -64,12 +85,13 @@ export function packBake(bakeDir: string, cfg: SourcesConfig): PackedBake {
   const bakeId = report.bakeId;
   const area = report.area;
 
-  const stampSynthetic = (id: string): boolean => lock.synthetic || (lock.syntheticSources ?? []).includes(id);
+  const stampSynthetic = (id: string): boolean => id === CONTENT_STAMP_ID || lock.synthetic || (lock.syntheticSources ?? []).includes(id);
   const stampRecs = lock.sources.map((s) => stampRecord(s, cfg, area, stampSynthetic(s.id))).sort((a, b) => cmp(a.sha256, b.sha256));
   // derived_from[0] is the root of the summary: the OSM stamp when present (ODbL is the licence the pack is offered under).
   const ordered = [...lock.sources].sort((a, b) => (a.id === 'osm' ? -1 : b.id === 'osm' ? 1 : cmp(a.id, b.id)));
   const derivedFrom = [...new Set(ordered.map((s) => s.sha256))];
-  const allSynthetic = lock.sources.every((s) => stampSynthetic(s.id));
+  // the content-world seeds count as neither real nor synthetic: a bake whose every other source is synthetic stays synthetic
+  const allSynthetic = lock.sources.filter((s) => s.id !== CONTENT_STAMP_ID).every((s) => stampSynthetic(s.id));
   const createdAt = [...lock.sources.map((s) => s.retrievedAt)].sort().pop() as string;
   const attribution = [...new Set(lock.sources.filter((s) => !stampSynthetic(s.id)).map((s) => cfg.sources.find((d) => d.id === s.id)!.attribution))].sort().join('; ');
   const argsSha = sha256Hex(canonicalize({ bakeId, area, tool: `${TOOL_NAME}@${TOOL_VERSION}` }));
@@ -77,10 +99,13 @@ export function packBake(bakeDir: string, cfg: SourcesConfig): PackedBake {
   const files: { kind: AssetKind; id: string; abs: string; ext: string }[] = [];
   const packsDir = path.join(bakeDir, 'packs');
   for (const name of readdirSync(packsDir).sort()) {
-    const m = /^((?:p0|l0)-\d+-\d+)\.pack$/.exec(name);
+    const m = /^((?:p0|l0|l1|l2)-\d+-\d+|far-bay-dem|far-bay-massing)\.pack$/.exec(name);
     if (m) files.push({ kind: 'world_pack', id: m[1] as string, abs: path.join(packsDir, name), ext: 'pack' });
   }
+  if (existsSync(path.join(packsDir, 'far-bay-cards.png'))) files.push({ kind: 'texture', id: 'far-bay-cards', abs: path.join(packsDir, 'far-bay-cards.png'), ext: 'png' });
+  if (existsSync(path.join(packsDir, 'sf-graph.v1.pack'))) files.push({ kind: 'map_data', id: 'sf-graph.v1', abs: path.join(packsDir, 'sf-graph.v1.pack'), ext: 'pack' });
   files.push({ kind: 'data', id: 'world-index', abs: path.join(bakeDir, 'world-index.json'), ext: 'json' });
+  if (existsSync(path.join(bakeDir, 'transit-routes.json'))) files.push({ kind: 'data', id: 'transit-routes.v1', abs: path.join(bakeDir, 'transit-routes.json'), ext: 'json' });
 
   const blobs: PackBlob[] = [];
   const records: ProvenanceRecord[] = [...stampRecs];
