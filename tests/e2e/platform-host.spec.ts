@@ -214,3 +214,22 @@ test.describe('telemetry @telemetry', () => {
     await expect.poll(() => batches.flatMap((b) => b.events).some((e) => e.name === 'app.hidden'), { timeout: 15_000 }).toBe(true);
   });
 });
+
+test.describe('memory bomb @membomb', () => {
+  test('writes the running total before each 64 MB step and shows it after a relaunch @membomb', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'the bomb allocates real memory; one engine is enough in CI');
+    test.setTimeout(60_000);
+    await page.goto('/qa/memory-bomb.html');
+    await expect(page.getByTestId('out')).toContainText('last stored total: none');
+    await page.locator('#start').click();
+    await expect.poll(() => page.evaluate(() => Number(localStorage.getItem('dv.membomb') ?? '0')), { timeout: 20_000 }).toBeGreaterThanOrEqual(128);
+    await page.locator('#stop').click();
+    const stored = await page.evaluate(() => Number(localStorage.getItem('dv.membomb')));
+    expect(stored % 64).toBe(0);
+    expect(await page.evaluate(() => localStorage.getItem('dv.membomb.phase'))).toBe('arraybuffer');
+    // A relaunch (reload) shows the last stored total and the heartbeat state.
+    await page.reload();
+    await expect(page.getByTestId('out')).toContainText(`last stored total: ${stored} MB`);
+    await expect(page.getByTestId('out')).toContainText('heartbeat:');
+  });
+});

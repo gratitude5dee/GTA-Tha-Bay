@@ -121,6 +121,10 @@ jobs:
         run: |
           pnpm check:headers -- --serve http://localhost:8788
           pnpm check:coi -- --serve http://localhost:8788
+      # M01c: CPU-side budget counts on the two software-GL projects. Warnings on PRs; `--fail` runs nightly.
+      - name: Perf budget counts (warnings)
+        if: matrix.project == 'chromium-webgl2'
+        run: pnpm check:perf
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:

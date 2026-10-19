@@ -4,8 +4,9 @@ import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
- * `test-results/perf.<project>.<tier>.json`. Only counts are asserted here: SwiftShader frame times are never asserted
- * [research/gap-ci-cd-release-assets.md section 4.1]. `perf-check.ts` then runs `perf-verify --counts-only` on the reports.
+ * `test-results/perf.<project>.<tier>.json`. The budgets are judged afterwards by `perf-verify --counts-only` in perf-check.ts (a
+ * warning on PRs, a failure with `--fail`); this spec only asserts that a report was produced. SwiftShader frame times are never
+ * asserted [research/gap-ci-cd-release-assets.md section 4.1].
  */
 const budgets = JSON.parse(readFileSync('config/tier-budgets.json', 'utf8')) as { tiers: Record<QualityTierId, { render: { maxRenderObjects: number; maxTriangles: number; maxGpuDrawCmds: number } }> };
 const TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'];
@@ -14,7 +15,7 @@ const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
 
 for (const tier of TIERS) {
-  test(`${SCENARIO} at ${tier} stays inside the tier's render-object and triangle budget @perf`, async ({ page }, testInfo) => {
+  test(`${SCENARIO} at ${tier} writes its counts report @perf`, async ({ page }, testInfo) => {
     test.setTimeout(240_000);
     await page.goto(`/?tier=${tier}&perf=1`);
     await page.waitForFunction(() => (window as unknown as { __dvBridge?: { platform?: unknown } }).__dvBridge?.platform !== undefined, undefined, { timeout: 90_000 });
@@ -35,9 +36,7 @@ for (const tier of TIERS) {
     expect(report.backend).toBe('webgl2');
     expect(report.frames.count).toBeGreaterThan(0);
     expect(report.counts.renderObjectsMax).toBeGreaterThan(0);
-    expect(report.counts.renderObjectsMax).toBeLessThanOrEqual(budget.maxRenderObjects);
-    expect(report.counts.trianglesMax).toBeLessThanOrEqual(budget.maxTriangles);
-    if (report.counts.gpuDrawCmdsMax !== null) expect(report.counts.gpuDrawCmdsMax).toBeLessThanOrEqual(budgets.tiers[tier].render.maxGpuDrawCmds);
+    // The budget comparison is perf-verify --counts-only's job, so a miss is a warning in PR mode and an error with --fail.
     expect(report.errors.gpuLost).toBe(0);
   });
 }

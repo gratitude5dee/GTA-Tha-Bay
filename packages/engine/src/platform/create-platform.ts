@@ -204,6 +204,8 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     o.flags.xrEmulate !== null ? 'xr-quest' : profile.xrHeadset === 'quest' ? 'xr-quest' : profile.xrHeadset === 'visionpro' ? 'xr-visionpro' : null;
   const initTierId = xrTierId ?? early?.decision.tier ?? selector.provisional();
   const initTier = TIERS[initTierId];
+  // The record of this session starts now, so a page killed during the first-boot benchmark is still seen at the next boot.
+  heartbeat.start({ tier: initTierId, backend: 'webgl2' });
 
   const { RendererHost: HostClass } = await import('./renderer-host.ts');
   const { runSyntheticBenchmark } = await import('./benchmark.ts');
@@ -221,6 +223,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   hostRef = host;
   await host.init(initTier);
   const backend = host.backend;
+  heartbeat.patch({ backend });
 
   // Tier: the early decision, or the benchmark.
   let selection = early;
@@ -268,8 +271,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   const canvas = host.currentCanvas;
   host.resize(canvas.clientWidth || 640, canvas.clientHeight || 360);
 
-  // Heartbeat starts once the tier and backend are known.
-  heartbeat.start({ tier: decision.tier, backend });
+  heartbeat.patch({ tier: decision.tier });
   if (analysis.demoteFrom !== null && decision.source === 'abnormal-exit-demotion') heartbeat.note('demoted');
 
   // Frame sampler: the continuous frame ring for perf.minute, the HUD and the stall watchdog.
