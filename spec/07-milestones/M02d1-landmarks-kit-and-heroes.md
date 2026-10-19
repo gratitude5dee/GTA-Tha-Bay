@@ -9,6 +9,7 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 
 ## Depends on
 - **M02b1:** `ChunkRenderer`, mesher job in `asset.worker`, `BundleGroup` re-record path, `RenderBudgetMeter` scenarios, `DV_WORLD=synth` CI builds.
+- **M02c1:** `TeleportApi` and `__dvBridge.world.teleport(id)` (AC-6, AC-9; inherited by M02d2; DL-348).
 - Present from earlier milestones: M02a2's `content/world/landmarks.json` seeds with `replaces` and `arrival`, `proxyOf` in `l0` BUILDING records; M01d's catalog, lock and `check:assets`.
 - Contracts: C07 1.1 (`building` kind, tiered variants, `VariantStats`, `ProvenanceRecord`, `resolveVariant`, `TIER_FIDELITY`), C08 1.0 (rule 12: landmarks outside the chunk `BundleGroup`; LMREF section).
 
@@ -21,7 +22,7 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 - **QA:** `__dvBridge.world.landmarks()` (resident ids, fidelity, proxy-masked chunks); `config/world/landmarks-runtime.json` (caps and `swapM` per tier) with schema.
 
 ## Scope out
-- The remaining 25 landmarks and the always-resident skyline set: M02d2. Blender art passes at the same AssetIds: after M05c (DL-105, DL-201). KTX2 textures (recipes ship none). Landmark interiors and mission dressing: S03 milestones.
+- The remaining 25 landmarks and the always-resident skyline set: M02d2. Blender art passes at the same AssetIds: M10d2, after M05c2 (DL-105, DL-201, DL-390). KTX2 textures (recipes ship none). Landmark interiors and mission dressing: S03 milestones.
 
 ## Deliverables
 - `tools/map/src/landmarks/kit/{primitives.ts, spans.ts, palette.ts, fidelity.ts, gltf-writer.ts, build.ts}`.
@@ -42,10 +43,10 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 - AC-3 Given the catalog When the asset gates run Then the 12 `building/lm.*` assets each carry `desktop`, `mobile` and `mobile-low` variants within their class triangle budgets with ≤ 3 render objects at `hi` and `mid` and ≤ 2 at `lo`, and a fixture landmark 1 triangle over its `lo` budget fails the stats check — proof: `pnpm check:assets && pnpm check:unit -- tools/ci`
 - AC-4 Given the landmark sources When provenance and IP gates run Then every `.glb` has an `authored` record with licence `LicenseRef-DeeVerse-Owned`, no recipe module imports an image decoder or reads an image file (unit-checked over `tools/map/src/landmarks/**`), and names and strings pass — proof: `pnpm provenance:check && pnpm names:lint && pnpm ip:strings && pnpm check:unit -- tools/map`
 - AC-5 Given a mock asset client and a scripted camera When the layer runs per tier Then resident landmarks never exceed the tier cap, a landmark loads only inside its tier `swapM`, the farthest is evicted first, a failed load leaves the proxy meshed, and leaving `swapM` restores the proxy — proof: `pnpm check:unit -- packages/world`
-- AC-6 Given a QA build with the `synth` world at `?tier=mobile` When the bridge teleports to `lm.coit-tower` and then 2 km away Then the landmark becomes resident, the chunks that reference it report a proxy mask and exactly one `BundleGroup` re-record each, no frame uploads more than one chunk, and after the move the landmark is evicted and the proxy footprints are back — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-landmarks`
+- AC-6 Given a QA build with the `synth` world at `?tier=mobile` When the bridge teleports to `lm.coit-tower` (on land with an arrival pose in `synth`, M02a1 land pads, DL-652) and then 2 km away Then the landmark becomes resident, the chunks that reference it report a proxy mask and exactly one `BundleGroup` re-record each, no frame uploads more than one chunk, and after the move the landmark is evicted and the proxy footprints are back — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-landmarks`
 - AC-7 Given the same build When the route scenario runs for every flat tier in fail mode Then render objects and triangles, landmarks included, stay within each tier's budget — proof: `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`
 - AC-8 Given the branch When the production build is verified and deployed to a Preview Then the asset verifier accepts the 12 new entries, the build succeeds and the Preview passes its header checks — proof: `pnpm assets:verify && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
-- AC-9 Given a local QA build with the `synth` world in a desktop browser When the reviewer visits each of the 12 landmarks at `?tier=desktop` and at `?tier=mobile-low` Then each reads as its building from street level, shows no text, logo, mural or sculpture, and the review is recorded in `docs/device-runs/M02d1/desktop/notes.json` — proof: manual: desktop browser, `DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`, call `__dvBridge.world.teleport(id)` for each id, repeat at `tier=mobile-low`, write the notes file
+- AC-9 Given a local QA build with the `synth` world in a desktop browser When the reviewer visits each of the 12 landmarks at `?tier=desktop` and at `?tier=mobile-low` (every §7 landmark, Alcatraz and the bridge seeds included, has a land pad and an arrival pose in `synth`, DL-652) Then each reads as its building from street level, shows no text, logo, mural or sculpture, and the review is recorded in `docs/device-runs/M02d1/desktop/notes.json` — proof: manual: desktop browser, `DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`, call `__dvBridge.world.teleport(id)` for each id, repeat at `tier=mobile-low`, write the notes file
 
 ## Test plan
 - **Unit:** `tools/map/landmarks.kit` (primitive triangle counts, fidelity derivation, deterministic writer), `landmarks.build`; `tools/ci/assets-stats`; `world/landmarks.layer`.

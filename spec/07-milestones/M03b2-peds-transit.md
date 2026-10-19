@@ -46,7 +46,7 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 ## Scope out
 - PursuitDirector consumption of ped witnesses: M03c.
 - Phone Ride app UI and the transit map layer: M04b2 (phone frame), M02c2 (map lines).
-- Final ped bodies and outfits (8 bodies × 20 outfits): the S05 art pass. The mannequin stays until then.
+- Final ped bodies and outfits (8 bodies × 20 outfits): M10d1 (art integration, Q-39; DL-390). The mannequin stays until then.
 - Pedestrian dialogue or barks: M06c. Filler peds never call an LLM (D-21).
 - Rooms behaviour for ambient peds: M12b1.
 
@@ -102,7 +102,8 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 
 ## Notes for the Builder
 - Read first: `02-world-living.md` §3.3–§3.6, §4, §5, §7, §8; `02-world.md` §8 (M03b2 seeds) and §9; `01-engine.md` §2.8 (anim graph, presentation only); M03b1's file.
-- Facts: F-007 (crowd instancing within the object budget). Station positions come from DataSF `i28k-bkz6` and BART data, positions only. The BART developer licence forbids its marks [research/auth-ugc-input-maps.md §5.2], so names come from `NameRegistry` defaults ("Bay Rail", "City Metro", "City Transit", "Bay Ferry"), checked by `names:lint`.
+- Facts: F-007 (crowd instancing within the object budget). Station positions are M02a2's S10 transit nodes in `WorldIndex.transit` (the Muni Metro positions of fact N4 plus authored BART and Caltrain seeds snapped by `map:landmarks`, U-W5) and Muni stops come from DataSF `i28k-bkz6`, both already stamped in M02a1's `sources.json`; no BART feed or GTFS is fetched (a new source needs an Architect DL entry with its licence, source stamp and attribution row first; DL-660). The BART developer licence forbids its marks [research/auth-ugc-input-maps.md §5.2], so names come from `NameRegistry` defaults ("Bay Rail", "City Metro", "City Transit", "Bay Ferry"), checked by `names:lint`.
+- `traffic-peds-synth.json` follows M03b1's golden rule: it stores its source `bakeId`, `peds.determinism.spec.ts` fails with the regenerate message when the synth `bakeId` changes, and it is regenerated only with `DV_UPDATE_GOLDEN=1` outside CI under the `golden-update` label (DL-657).
 - Order of work: ped FSM and crossings, density prefix, avoidance with the XR fixture, witness, transit movers, fares and Ride, render, goldens, QA page, perf.
 - The fare sink is deliberate: M04a2 replaces it with `EconomyApi.debit(cents, 'fare', idemKey)`. Keep the idempotency key format `fare:<kind>:<tick>:<from>:<to>`.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

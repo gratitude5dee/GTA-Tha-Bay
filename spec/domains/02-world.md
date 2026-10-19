@@ -41,7 +41,7 @@ Status: **D** designed (milestone), **F** deferred (milestone), **X** out of sco
 | 22 | Transit set dressing: stations, Metro, buses, cable cars, ferries, aircraft | D | living §5 | M03b2 |
 | 23 | Bridges and county line as boundaries and portals | D | maps §4.1–4.2 | M02a2, M02c1 |
 | 24 | East Bay, Marin, Peninsula backdrop (ring, massing, cards) | D | maps §4.3 | M02b1 |
-| 25 | Day, night, weather per tier: timecyc, fog bank, rain, night lights, budgets | D | living §6 | M02b2 |
+| 25 | Day, night, weather per tier: sky keyframes, fog bank, rain, night lights, budgets | D | living §6 | M02b2 |
 | 26 | Minimap (Canvas 2D, tile cache, blips, banner) | D | maps §2 | M02c2 |
 | 27 | Full map, markers, GPS, search, "Coming later" silhouettes | D | maps §3 | M02c2 |
 | 28 | Teleports and fast travel with pre-streaming and precondition messages | D | maps §5 | M02c1 |
@@ -78,7 +78,7 @@ Each statement is testable and cites its source.
 8. **W-8 A lane-aware directed graph.** OSM geometry and tags, DataSF class, `oneway` and `cnn`; A* with ties by edge id [research/repos-world.md P7, rec 5].
 9. **W-9 Ambient life is cheap by construction.** Kinematic path followers keyed `(cell, slot)`; a lower tier runs a prefix; physics only on contact [research/repos-world.md P7, P8; C01 rule 5].
 10. **W-10 Signals are a pure function of the tick.** `blackout` is the only hashed switch.
-11. **W-11 Weather is S01's state, S02's look.** `timecyc` rows plus a per-tier feature matrix; takram only on `desktop-ultra` behind an adapter [research/repos-world.md P9, P10].
+11. **W-11 Weather is S01's state, S02's look.** `sky-keys` keyframe rows plus a per-tier feature matrix; takram only on `desktop-ultra` behind an adapter [research/repos-world.md P9, P10].
 12. **W-12 Maps are in-engine Canvas 2D.** `sf-map.v1.bin`; MapLibre only on web surfaces (D-25).
 13. **W-13 Teleports never move a player onto unloaded ground.**
 14. **W-14 The bake is deterministic and gated.** Same inputs, same bytes; CI fixture runs, nightly full verify.
@@ -127,7 +127,7 @@ Package `packages/world` (`@dv/world`): `src/sim/**` runs under the C02 lint; `s
 | `packages/world/src/sim/{traffic,peds,transit}/` | traffic, parked, robotaxi, pedestrian, transit, boat brains; witness | systems in `AI`/`Rules` | C01, C02, graph |
 | `packages/world/src/sim/{api,map}/` (`TrafficControl` in `sim/traffic/`) | `WorldQuery`, `TeleportApi`, `PlaceIndex`, `WorldResolver`, `TrafficControl`, `MapApi` | `WorldApi` | all of the above |
 | `packages/world/src/client/chunks/` | worker mesher, `ChunkRenderer`, `ChunkUploadGate`, cover masks, `LandmarkLayer` | — | three, C13 |
-| `packages/world/src/client/sky/` | `TimecycFile`, `SkyUniforms`, dome, fog, rain, night lights, `AtmosphereAdapter` | — | three, `EnvState` |
+| `packages/world/src/client/sky/` | `SkyKeysFile`, `SkyUniforms`, dome, fog, rain, night lights, `AtmosphereAdapter` | — | three, `EnvState` |
 | `packages/world/src/client/{traffic,peds}/` | instanced vehicle and pedestrian renderers, near-LOD skinned peds | — | three, C04 |
 | `packages/world/src/client/map/` | `MinimapView`, `FullMapView`, tile cache, raster jobs | maps §2 | canvas |
 | `packages/world/src/client/backdrop/` | far ring, massing, cards | — | three |
@@ -148,9 +148,9 @@ export interface ChunkStore {
 
 ## 4. Data
 
-- **Types owned:** the C08 contract and its service interfaces (contracts part), `TimecycFile`, `SkyUniforms`, `MinimapView`, `FullMapView` (living §6, maps §2).
+- **Types owned:** the C08 contract and its service interfaces (contracts part), `SkyKeysFile`, `SkyUniforms`, `MinimapView`, `FullMapView` (living §6, maps §2).
 - **Persisted data:** none of its own. Saves carry `worldBake` (C05) and ENU positions; sandbox saved positions and teleport history live in the C05 sandbox slice (S01/S10).
-- **Config** (`config/world/`): `streaming.json`, `density.json`, `mesher.json`, `roadclass.json`, `bridges.json`, `timecyc.json`, `transit.json`, `sources.json`, validated by JSON Schema in CI; `config/world.bounds.json` is shared with S09.
+- **Config** (`config/world/`): `streaming.json`, `density.json`, `mesher.json`, `roadclass.json`, `bridges.json`, `sky-keys.json`, `transit.json`, `sources.json`, validated by JSON Schema in CI; `config/world.bounds.json` is shared with S09.
 - **Content** (`content/world/`): `landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`; camera paths for S11's `PerfScenario` ids live in `config/perf/paths/` (`walk-civic-center`, `route-ferry-ocean-beach` Ferry Building to Ocean Beach for the M02b1 AC, `downtown-rush`; DL-221).
 - **Flags:** `BootConfig.flags` keys `world.cards`, `world.rain`, `world.atmosphere` (all default on) allow a remote downgrade without a deploy; QA bridge `window.__dvBridge.world` (QA builds only) exposes `teleport(id)`, `setHour`, `setWeather`, `density(kind, mult)`, `blackout(on)`, `chunks()`.
 - **Streaming table** (`config/world/streaming.json`, starting values †; radii in metres):
@@ -256,7 +256,7 @@ Rows copied from the ledger or the research reports. New rows (**N**) were check
 | Google 3D Tiles and Mapbox forbid caching, offline use and derivation (F-055, F-056); Overpass < 10,000 queries/day; Nominatim 1 req/s, cache | https://developers.google.com/maps/documentation/tile/policies ; https://wiki.openstreetmap.org/wiki/Overpass_API ; https://operations.osmfoundation.org/policies/nominatim/ | 2026-10-18 | W-2; bake §2 |
 | DataSF inventory (streets, 41 neighbourhoods, 224,290 base addresses, parks 255, Muni stops 3,260 and routes 135, trees); Protomaps SF z0–14 ≈ 3.9 MB gzip; roads layer 1.67 MB raw; minimap cache and budgets; OSMF game attribution | research/auth-ugc-input-maps.md §5.2, §5.3, §5.5, §5.7 | 2026-10-18 | bake; maps |
 | `BundleGroup` per chunk, ≤ 6 objects (F-007); budgets per tier; packs ≤ 4 MB via `asset.worker` and OPFS (F-010, F-019) | research/stack-rendering-platform.md §1.5, §3.2, §6.2, §6.5, Performance budgets | 2026-10-18 | §4, §5 |
-| `timecyc` keyframes, 12 uniforms, height fog, takram WIP | research/repos-world.md §3.3, P10, P11, §5 | 2026-10-18 | living §6 |
+| Sky keyframes (`sky-keys`), 12 uniforms, height fog, takram WIP | research/repos-world.md §3.3, P10, P11, §5 | 2026-10-18 | living §6 |
 | Batch-range pattern; murals, landmark marks, fictional venues and operators; blackout robotaxi behaviour, districts, BART stations, cable cars; R2 prices (F-023) | research/repos-grand-v.md rec 2; research/legal-ip-likeness.md §6; research/gamedesign-decomposition.md §2.3, §2.4, §2.7; https://developers.cloudflare.com/r2/pricing/ | 2026-10-18 | §2.3; W-15; living |
 | **N1** `ynuv-fyni` 177,023 rows; fields `sf16_bldgid`, `shape`, `hgt_mediancm`, `hgt_maxcm`, `gnd_mediancm`, `p2010_zmaxn88ft`, all typed text | https://data.sf.gov/api/views/ynuv-fyni.json ; …/resource/ynuv-fyni.json?$select=count(*) | 2026-10-18 | bake S4 |
 | **N2** `3psu-pn9h` active classcode counts 0:1,145 1:110 2:202 3:1,530 4:2,376 5:10,906 6:109; oneway B 12,434, T 1,839, F 2,105; layer values | https://data.sf.gov/resource/3psu-pn9h.json (SoQL group-by) | 2026-10-18 | living §1 |
@@ -292,8 +292,8 @@ Ids follow `spec/00-plan.md`; a digit is a session split, a new letter is a prop
 | **M02a1** bake-core | `tools/map` skeleton, S0 fetch, S2 terrain, S3 water and landuse, S4 buildings, pack writer, `world-index`, attribution, gates | no roads in packs, no landmarks | 1 |
 | **M02a2** bake-roads-graph | S5–S10: graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POIs seed, transit nodes | `content/world/*` lists minimal | 1 |
 | **M02b1** streaming-lod | `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, `ChunkUploadGate`, cover masks, L1/L2, backdrop ring/massing/cards, statics feed, perf paths, `world.stream` | flat-colour facade, no landmarks, cards from a placeholder atlas | 1 |
-| **M02b2** weather-time | `timecyc`, dome, fog bank, rain, night lights, tier matrix, presets, blackout look | no atmosphere adapter (ultra falls back to desktop sky) | 1 |
-| **M02c1** graph-services-teleports | `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, district grid, POI table, `WorldApi` wiring | landmarks as marker boxes | 1 |
+| **M02b2** weather-time | `sky-keys`, dome, fog bank, rain, night lights, tier matrix, presets, blackout look | no atmosphere adapter (ultra falls back to desktop sky) | 1 |
+| **M02c1** graph-services-teleports | `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, district grid, POI table, `WorldApi` wiring, boundaries and portals (DL-691) | landmarks as marker boxes | 1 |
 | **M02c2** maps | S12 map bake, `MinimapView`, `FullMapView`, blips, GPS, search, attribution data to S10 | geocoder without fuzzy search | 1 |
 | **M02d1 / M02d2** landmarks | recipe kit and 12 hero/major glTFs; remaining 25; `LandmarkLayer`, proxy swap, skyline set | boxes with correct footprints | 2 |
 | **M03b1** traffic | agents, IDM, junction protocol, signals, parked cars, robotaxis, blackout, density model, promotion | box cars | 1 |

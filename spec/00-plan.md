@@ -1,6 +1,6 @@
 # 00 — Plan and status (living)
 
-Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-170) and `spec/11-decision-log-2.md` (DL-171…DL-217, DL-OWN-01/02, and DL-245 onward) and `spec/11-decision-log-3.md` (DL-218…DL-244). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
+Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-3.md` (DL-218…DL-244), `spec/11-decision-log-4.md` (DL-249…DL-451; split DL-341), `spec/11-decision-log-4b.md` (DL-460…DL-493; split DL-530), `spec/11-decision-log-5.md` (DL-500 onward), `spec/11-decision-log-6.md` (DL-650…DL-654, then later blocks once part 5 is full), and Builder rows (BD-NNN) in `spec/11-decision-log-builder.md` (rows for M00 … M01f, recorded on `claude/build` before the split, in `-builder-2.md` and `-builder-3.md`). Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
 
 ## Phase status
 | Phase | Subagents | Status | Output |
@@ -14,7 +14,7 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 | 5 Integration | S13 + integration authors | **done** 2026-10-18 | `spec/01–12, 99`, 115 milestone files (C15), ADRs, CLAUDE.md, AGENTS.md, kickoff |
 | Reconciliation 3 | Architect | **done** 2026-10-18 | milestone-author defects resolved (`spec/.milestone-defects.md`); 06 **v1.2** (C05 1.2, C10 1.1, C12 1.2, C15 1.1, C16 1.2); DL-218…DL-244; mechanical sweep 65 → 0 findings |
 | Handoff | Architect | **done** 2026-10-18 | all 115 milestone files READY (12 fast-track frozen, M00 executing); full kickoff list; `02-architecture.md` v1; DL-245…DL-247 |
-| Verification | critics: executability · factual · scope | **next** (per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts) | critic log below |
+| Verification | critics: executability · factual · scope | **in progress**: rounds r1–r5 and closeout c1–c2 run, each with a fix pass; stop rule (two consecutive zero-blocking rounds, all lenses) **not reached** (c2: 3 blocking); next a full round c3; then per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts | critic log and Definition of Done below; DL-249…DL-559 |
 
 ## Inputs found at start
 - Present: `prompt-pack/` (pack v1), `research/` repo analyses (webport, world, grand-v), Anthropic model facts, Claude Code deployment, prompting guidance, owner updates.
@@ -50,7 +50,7 @@ Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice cei
 
 ## Milestones (register: `spec/07-milestones/_PLAN.md`)
 
-The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **115 milestone files, all READY** — 108 for v1 (≈ 100.4 sessions, M00 … M14a) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 107.4 sessions. Every id is one session or less (C15 L7). Critical path 26.8 sessions to M14a, 30.8 to M15g (DL-219). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
+The run order, dependencies, critical path and checkpoints are in `spec/07-milestones/_PLAN.md` §1–§3 (rows in `_PLAN-1/2/3.md`); file status is in `spec/07-milestones/README.md`; the Builder's list with gates is in `prompt-pack/04-SONNET-KICKOFF.md` `<milestones>`. Totals: **119 milestone files, all READY** — 112 for v1 (≈ 104.9 sessions, M00 … M14a; M10d1–M10d2 art integration added by DL-390, M10d3 player cars and fight stages by DL-460, M10e audio integration by DL-500) plus 7 post-v1 Bay-expansion milestones (M15a–M15g, one session each; DL-242) = 111.9 sessions. Every id is one session or less (C15 L7). Critical path 29.8 sessions to M14a, 33.8 to M15g (DL-219, DL-348, DL-552). Ordering anchors: R-ROLL-01 (no rooms milestone, M12b1 onward, before M05c2 is deployed to staging with its ACs passing); A-06 vertical slice = M05c2; VS-Racing M07a2, VS-Fighter M08a2, VS-Tycoon M09a2; launch gate M14b3; M14a (Thirdweb) last v1 milestone (R-AUTH-02).
 
 ## Start the Builder
 
@@ -64,11 +64,35 @@ claude -p "$(sed -n '/^<builder_prompt/,/^<\/builder_prompt>/p' prompt-pack/04-S
 
 Operator prerequisites, the interactive alternative and `--resume` after a usage-limit failure are in `prompt-pack/04-SONNET-KICKOFF.md`.
 
-**Parallel Builders (DL-246):** one git worktree and one branch `m<id>-<slug>` per milestone (`git worktree add .claude/worktrees/m<id>-<slug> -b m<id>-<slug>`); a milestone starts only when every milestone in its Depends on is merged to the default branch; PRs merge in run order (`_PLAN.md` §1), each rebased and re-proved first; deploys run only from the default branch.
+**Parallel Builders (DL-246):** one git worktree and one branch `m<id>-<slug>` per milestone (`git worktree add .claude/worktrees/m<id>-<slug> -b m<id>-<slug>`); a milestone starts only when every milestone in its Depends on is merged to the default branch, or, for a milestone with a row in `_PLAN.md` §4 (DL-700), when its start-after set is merged, building against the named stand-ins and re-proving the listed ACs at rebase; PRs merge in run order (`_PLAN.md` §1), each rebased and re-proved first; deploys run only from the default branch.
 
 ## Critic log
-| Date | Lens | Blocking | Major | Minor | Notes |
+One row per verification round; counts per lens as E executability · F factual · S scope (a lens absent from a cell did not run that round). Every round with findings was followed by a fix pass; fixes are logged in `spec/11-decision-log-4.md`, `-4b.md` and `-5.md`.
+
+| Round | Date | Blocking | Major | Minor | Notes |
 |---|---|---|---|---|---|
+| r1 | 2026-10-18 | E 4 · F 1 · S 1 | E 11 · F 2 · S 8 | E 13 · F 9 · S 8 | frozen-file defects (M00a AC-1, M00c `blocked` endpoints), test collection and filters, C02 lint scope, CI and secrets alignment, unowned XR dialogue and stubs, launch gates, trace matrix; DL-249…DL-301 |
+| r2 | 2026-10-19 | E 1 · F 0 · S 2 | E 5 · F 5 · S 2 | E 14 · F 13 · S 9 | contract erratum (C13 sky names), DO restart scope stated as fact, Builder-decision file and cap, pre-M14a publish identity; DL-340…DL-343 |
+| r3 | 2026-10-19 | E 0 · S 1 | E 6 · S 5 | E 12 · S 10 | build-dependent unit proof, `perf` job without a creating milestone, Quest draw budget vs F-013, Q-38 missing from the trace; DL-344…DL-347 |
+| r4 | 2026-10-19 | S 3 | S 3 | S 8 | hidden world dependencies, no final-art milestone, public UGC at launch, unowned events and roll-ups; DL-348…DL-350, DL-390, DL-391, DL-420, DL-421 |
+| r5 | 2026-10-19 | S 1 | S 6 | S 6 | player-car and fight-stage art owner, final audio owner, release-gate trace closure, launch scope, kill drill, forum moderation, age-signal provider; DL-450, DL-451, DL-460…DL-493, DL-500 |
+| c1 | 2026-10-19 | E 1 · F 0 · S 0 | E 4 · F 3 · S 4 | E 11 · F 6 · S 8 | closeout: M13a3 over the C15 L7 file limit (blocking, DL-537); row drift between kickoff, `_PLAN` and README; files over the cap and stale counts; retired U-ids; price ratios; unowned mod namespaces; silent R-ID narrowing (Q-41) |
+| c2 | 2026-10-19 | E 3 · F 0 · S 0 | E 8 · F 4 · S 3 | E 14 · F 6 · S 6 | closeout: proofs that cannot pass as written — synth world absent from the QA catalog (DL-542), M05b2 over L7 (DL-554), M00d `check:telemetry` red on the repo (DL-558); unowned paths and UI controls, unpriced fallback model, missing `spec/03` §6 rows, KV latency wording |
+
+**Stop rule not reached.** §H.5 needs two consecutive rounds with zero blocking findings across all three lenses; no round so far qualifies (r4 and r5 ran the scope lens only). The c1 and c2 fix passes (DL-530…DL-559 in `spec/11-decision-log-5.md`) have not been re-checked by a fresh round, so their fixes are unconfirmed.
 
 ## Definition of Done (03-SPEC-TEMPLATE §H)
-Not yet evaluated.
+Evaluated 2026-10-19 after closeout round c2. **Verdict: not done** — H.5 is not met, and H.1, H.6 and H.7 are partly met.
+
+| § | Item | Result | Evidence and what remains |
+|---|---|---|---|
+| H.1 | §A files exist, follow format, under the ceiling | partly met | all §A files and 31 ADRs exist; over the 6,000-word ceiling: `spec/99-open-questions.md` (≈ 6,260) and `spec/domains/08-tycoon.md` (≈ 6,000); over §A targets (not the ceiling): this file, the kickoff (≈ 2,850 vs 1,500), 37 milestone files above 2,000 words |
+| H.2 | Traceability matrix complete | met | `spec/01-product-trace.md`: 43 R-ID rows = 43 R-IDs in 06, no empty cell |
+| H.3 | Every C## has owner, TypeScript in `spec/04`, a consumer milestone | met | owners S01–S13 in 06 §contracts; C01–C17 indexed in `spec/04-data-models.md` and typed in its part files; each cited by ≥ 7 milestone files |
+| H.4 | No UNVERIFIED in any AC; all in `99` with defaults and blocks | met | no AC line holds the token (`99` §0 sweep, re-checked); 153 U rows in `99` §2 with default and blocks; residual: frozen M00 AC-14 depends on U-QA-8 (`99` §0 F-1) |
+| H.5 | Two consecutive zero-blocking passes, all three lenses | **not met** | no qualifying round; c2 had 3 blocking (executability). Remains: a full three-lens round c3 with zero blocking, then a second (c4) |
+| H.6 | `CLAUDE.md`/`AGENTS.md` < 200 lines; every command runs | partly met | 86 and 105 lines; the "commands run" proof is M00 (R-ENG-01 ACs), which is still executing |
+| H.7 | Cost model, risk register, likeness, provenance check, kill-switch present and referenced | partly met | all present; likeness, `provenance:check` and kill-switch cited by 37, 37 and 13 milestone files; the register names an owner milestone per RISK row, but no milestone file cites `spec/09` or `spec/10` by path |
+| H.8 | Kickoff customized, names M00, lists every milestone with sessions | met | `<milestones>`: 119 rows in run order with sessions, depends on, gate; row 1 is M00 |
+| H.9 | Gated decisions answered or defaulted with date | met | G1–G3 and Q-01…Q-12 above; Q-13…Q-41 defaults in `99` §1 |
+| H.10 | Final recap names the exact Builder command | met | "Start the Builder" above |

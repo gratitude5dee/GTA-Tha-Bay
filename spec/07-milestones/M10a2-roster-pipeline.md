@@ -96,8 +96,8 @@ Slots whose souls are real-derived stay `blocked:research` until Q-19 and Q-25 a
 1 Builder session plus operator time for the human gates; about 14 hand-written files; risk **high**. Vendor failures and human-gate latency set the pace. Batches of two at a time need several hours of wall-clock time.
 
 ## Risks & fallbacks
-- **Mesh or rig failures** use up the buffer. Fall back to Lean (Tripo) for the slug only with the owner's word (Q-26). Otherwise keep the gray-box or creator-kit body and list the slug as `pending` in the report.
-- **No art-lead clips** (Q-24, U-FGT-7): every fighter uses the library fallbacks. Frame data is unchanged, so the game remains correct.
+- **Mesh or rig failures** use up the buffer. Fall back to Lean (Tripo) for the slug only with the owner's word (Q-26). Otherwise keep the gray-box or creator-kit body and list the slug as `pending` in the report; a slug left on `character/graybox.<slug>` gets M10d3's creator-kit body (DL-460).
+- **No art-lead clips** (Q-24, U-AST-17): every fighter uses the library fallbacks. Frame data is unchanged, so the game remains correct.
 - **Q-19 and Q-25 stay open**: only originals are generated. The reserved line amount stays unspent and the milestone is complete for the eligible set.
 - **Ledger drift** against the dashboard (per-request billing retrieval is UNVERIFIED): record the difference, never raise the cap (Q-14 closed).
 

@@ -25,7 +25,7 @@ After this session a new player can make a character and play with a real HUD on
 - **Creator** (`packages/ui/src/creator/`), per `10-ui-pages.md` §2.8 rules 1–5:
   - catalog loader;
   - `AppearanceV1` encoder and decoder with golden vectors;
-  - `CreatorStage` on the shared canvas through the menu scene. Parts without a `model` render as M01b2 mannequin variants (height, build, palette tints), the stub first;
+  - `CreatorStage` on the shared canvas through the menu scene. Parts without a `model` render as M01b2 mannequin variants (height, build, palette tints), the stub first (the `character/pc-*` parts land in M10d1, DL-390);
   - tabs Body, Face, Hair, Outfit, Voice (id plus pitch; the Preview button stays disabled with a hint until M06a4 adds the creator voice clips, DL-292), Style, Name;
   - Randomize, Reset, Undo/Redo (20 steps), Done → `save.avatar`.
 
@@ -50,7 +50,7 @@ After this session a new player can make a character and play with a real HUD on
 - **`GameModeUI` host:** mount with `{root, vm, send}`, unmount; a crashing mount shows "This screen failed — return to menu" and reports `err.js`.
 - **`ReportButton`** kit component (report dialog stub until M13b1; `copyright` opens `/legal/dmca`) and the `ugc-surface` lint test: every component tagged `UgcSurface` renders it (M06a5 relies on both).
 - **`UiSurface` skeleton:** `panel(screen, {anchor, pixelsPerMetre: 1024})` for every `XrPanel['anchor']` (tested with `world`) into S11 `XrPanels` with `CanvasScreen`, dirty-flag redraw, ray press. A test panel exists under IWER only.
-- **Accessibility first pass:** `config/ui/palettes.json` with four HUD palettes; a CVD separation check (algorithm chosen and recorded in `spec/11-decision-log-2.md`); the flash-limit check; reduced-motion rules 5 and 8 on the pages of M04b1 and M04b2.
+- **Accessibility first pass:** `config/ui/palettes.json` with four HUD palettes; a CVD separation check (algorithm chosen and recorded as a Builder decision in `spec/11-decision-log-builder.md`); the flash-limit check; reduced-motion rules 5 and 8 on the pages of M04b1 and M04b2.
 - Device checklist `tools/ci/checklists/M04b2-iphone15.json`.
 
 ## Scope out
@@ -93,7 +93,7 @@ After this session a new player can make a character and play with a real HUD on
 - AC-6 Given free roam When `client.Pause` is pressed Then Pause opens and the sim tick stops. Save is disabled away from a safehouse with its reason text. Quit asks for confirmation, writes a `modeExit` save and returns to the main menu. Phone lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Ride lists the fast-travel candidates and, at heat 1, a pick shows the refusal text with the player unmoved; `comingSoon` apps are not activatable, and Sandbox appears only in the sandbox mode — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-pause`
 - AC-7 Given `prefers-reduced-motion: reduce` When a new profile is created and the main menu, settings, creator and Pause open Then `reducedMotion` is true, no CSS animation or transition runs longer than 150 ms, and camera shake is off — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-motion`
 - AC-8 Given WebKit with a Safari-tab user agent When the main menu opens twice Then the coach mark shows once and stays dismissed after a reload. Standalone emulation never shows it, and a throwing `localStorage` does not break the page — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-coach`
-- AC-9 Given free roam on the gray-box block When the HUD runs for 60 s Then the HUD holds ≤ 300 DOM nodes, wallet, heat and prompt values appear from the view model and the snapshot side block, and a missing key renders the widget's empty state without an error — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-hud`
+- AC-9 Given free roam on the gray-box block (a QA build without `DV_WORLD`; CI runs `@ui-hud` in the `GRAYBOX_GREP` half of the e2e leg, DL-656) When the HUD runs for 60 s Then the HUD holds ≤ 300 DOM nodes, wallet, heat and prompt values appear from the view model and the snapshot side block, and a missing key renders the widget's empty state without an error — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-hud`
 - AC-10 Given the GameModeUI host, the garage and help When their unit tests run Then all of these hold:
   - a mounting view receives `vm` and `send`;
   - a throwing mount shows the failure panel and one `err.js`;

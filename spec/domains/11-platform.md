@@ -214,7 +214,7 @@ export interface TierFeatures {
   optionalPost: readonly PostNode[];     // governor may enable when headroom exists
   pipeline: 'render-pipeline' | 'direct';// 'direct' = DirectRenderPipeline (XR)
   lighting: 'clustered' | 'probe-grid';  // probe-grid + emissive lamps, no per-lamp lights
-  sky: 'timecyc-dome' | 'timecyc-dome+atmosphere';
+  sky: 'keyframe-dome' | 'keyframe-dome+atmosphere';
   hdrOutput: boolean;                    // HalfFloat vs UnsignedByte outputBufferType
   msaaSamples: 0 | 4;
 }
@@ -316,7 +316,7 @@ Flat tiers count one view. XR values are **per view-pass**; Vision Pro has `view
 | frameBudgetMs | 16.7 | 16.7 | 16.7 | 33.3 | 13.9 | 11.1 |
 | Internal resolution (MP, DPR cap) | ≤ 3.7†, 2.0† | ≤ 2.56, 1.5 | ≤ 1.2, 1.25 | ≤ 0.8, 1.25 | scale 1.0 | scale 1.0 |
 | Render objects | 900† | 600 | 150 | 100 | 150 | 200 per pass |
-| GPU draw cmds | 3,500† | 2,500 | 500 | 300 | 300 | 300 per pass |
+| GPU draw cmds | 3,500† | 2,500 | 500 | 300 | 180 | 300 per pass |
 | Triangles | 6 M† | 4 M | 1.0 M | 0.6 M | 0.75 M | 1.5 M per pass |
 | Texture MB | 1,500† | 1,000 | 350 | 250 | 400 | 800 |
 | GPU resources MB | 3,000† | 2,000 | 600 | 400 | 700 | 1,500 |
@@ -332,7 +332,7 @@ Flat tiers count one view. XR values are **per view-pass**; Vision Pro has `view
 | Warm boot to playable s | 8 | 8 | 12 | 15 | 12 | 10 |
 | Cold download, first district MB | 60 | 60 | 40 | 30 | 40 | 60 |
 
-Sources: [research/stack-rendering-platform.md Performance budgets], D-09, D-15, F-009, F-013; Quest 3 targets are 72 Hz minimum, < 200 draw calls and < 1.5 M triangles, our budgets keep headroom for hands and UI. Quest refresh: start at 72, request 90 when p90 < 9 ms and `supportedFrameRates` includes 90.
+Sources: [research/stack-rendering-platform.md Performance budgets], D-09, D-15, F-009, F-013; Quest 3 targets are 72 Hz minimum, < 200 draw calls and < 1.5 M triangles, xr-quest keeps headroom for hands and UI (180, DL-345). Quest refresh: start at 72, request 90 when p90 < 9 ms and `supportedFrameRates` includes 90.
 
 **Frame acceptance** (device passes, over a 120 s canned route after 10 s warm-up): median frame time ≤ `frameBudgetMs` × 1.05; p95 ≤ `frameBudgetMs` × 1.5; frames over 50 ms ≤ 1 per 60 s (flat tiers); in XR, frames over 2 × budget ≤ 1 per 60 s. These thresholds are S11 targets.
 

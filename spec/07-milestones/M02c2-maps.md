@@ -55,7 +55,8 @@ S02's in-engine Canvas 2D views draw them (D-25), fed by the `MapApi` data M02c1
 - `config/eslint/` rule for `maplibre-gl`; `tools/ci/test/fixtures/lint/maplibre-import.ts` plus a case in `tools/ci/test/lint-fixtures.test.ts`.
 - `tools/map/test/stage.map.spec.ts`; `packages/world/test/{map.format.spec.ts, minimap.spec.ts, blips.spec.ts, gps.spec.ts, geocoder.spec.ts, banner.spec.ts}`.
 - `tests/e2e/world-map.spec.ts` (`@world-map`, `@world-attribution`).
-- About 34 files.
+- Regenerated world goldens `packages/world/test/golden/{traffic-synth, traffic-peds-synth, pursuit-escape}.json` (M03b1, M03b2, M03c), when the synth address rows or stage `map` change the synth `bakeId` (Notes; DL-657).
+- About 34 files (37 with the goldens, which are data).
 
 ## Interfaces
 - C08 1.0: `MapApi`, `MapBlip`, `PlaceIndex.findPlace`, `nhoodAt`, `RoadGraphQuery.route`, `TeleportApi`; consumed verbatim. The §2 view types are S02 client types, not contract members.
@@ -105,5 +106,6 @@ S02's in-engine Canvas 2D views draw them (D-25), fed by the `MapApi` data M02c1
 - Read first: `02-world-maps.md` §1–§3, §6–§7; `02-world-bake.md` §2–§3 (S12 row); `10-ui-hud-xr.md` §2.10 (map hosting); `02-world.md` §8 (M02c2 seeds) and §9; the M02a1, M02b1 and M02c1 files.
 - Facts: F-053 (OSM ODbL attribution), F-054 (EAS and DataSF are PDDL), F-056 (no Mapbox at runtime; the Mapbox CLI is dev-only and nothing it returns is committed). The 2,567 active street names come from [research/auth-ugc-input-maps.md §5.2].
 - `map:geocode --sample <n>` (seeded sample against the source rows) is part of this milestone's CLI.
+- **World goldens move with the synth bake.** Ambient spawn and RNG seed from `worldSeed` (the first 4 bytes of `bakeId`), so synth address rows and stage `map` change the goldens of M03b1, M03b2 and M03c (each fails with `world golden from bake <old>, current bake <new>`). After the synth generator change, run `pnpm map:build -- --area synth && DV_UPDATE_GOLDEN=1 pnpm check:unit -- packages/world` locally, label the PR `golden-update` with a one-line reason (M00d rule), then re-run M03b1 AC-8/AC-9, M03b2 AC-8 and M03c AC-8 proofs without the variable and quote them in the report (DL-657). Any later milestone that changes the synth `bakeId` does the same.
 - Order of work: format module, stage and gates, address sources, geocoder and CLI, raster job, minimap, full map, blips and route line, banner, UI hosting and credits, e2e.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). The `sf` run needs public downloads only. No genAI spend, no owner gate.

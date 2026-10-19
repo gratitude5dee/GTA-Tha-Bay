@@ -33,7 +33,7 @@ Only our origins appear, so nothing can carry a camera frame off-device (R-IP-04
 `request.cf.country ∉ GEO_ALLOW` (`config/geo.json`, `US`) → `451 region_blocked` on every `/api/v1/*` route except `/boot` (answers `region: 'blocked'`), `/legal/*` and `/.well-known/*`; routes authenticated by vendor signature, HMAC or staff scope are also exempt (20, 28, 29, 43–49, 55–57; DL-184). A missing country (local dev) counts as allowed. Rooms close 4006. Blocked clients run offline single-player from the PWA cache (R-ROLL-01).
 
 ### 1.5 Conventions
-JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClientBuild` → `409 build_mismatch` → PWA update flow); `Idempotency-Key` (UUIDv7) on ⓘ writes, kept 24 h; UUIDv7 ids minted in the Worker; epoch-ms times; pagination `?cursor&limit≤50` → `{items, next?}`. Bodies pass Ajv schemas generated from `packages/shared/src/api/v1.ts` (`check:api`), default cap 64 KiB. Errors are `ApiError` with `HTTP_FOR` statuses. `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable` and network failure select the offline path, never a dialog (R-CUT-03, R-NPC-05); `rate_limited` carries `retryAfterMs`.
+JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClientBuild` → `409 build_mismatch` → PWA update flow); `Idempotency-Key` (UUIDv7) on ⓘ writes, kept 24 h; UUIDv7 ids minted in the Worker; epoch-ms times; pagination `?cursor&limit≤50` → `{items, next?}`. Bodies pass the JSON Schemas generated from `packages/shared/src/api/v1.ts` (`check:api`), default cap 64 KiB; inside a Worker they run as validators precompiled at build time or hand validators (BD-M00a-02), never a runtime `ajv.compile`, which Workers refuse (spec/03 §7, DL-694). Errors are `ApiError` with `HTTP_FOR` statuses. `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable` and network failure select the offline path, never a dialog (R-CUT-03, R-NPC-05); `rate_limited` carries `retryAfterMs`.
 
 ## 2. Identity and auth phases (D-03, D-04)
 
@@ -49,7 +49,7 @@ JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClien
 - **P0 proof**: the client signs `"pt-req|" + pid + "|" + ts` with its non-extractable ECDSA P-256 device key; the Worker accepts `|now − ts| ≤ 120 s`; the first server write for a `pid` binds the key thumbprint (trust on first use), and another key for that `pid` is `forbidden`.
 - **Refresh**: 32 random bytes stored as SHA-256 with a family id, rotated on every use; reuse revokes the family. `device_assertion` re-authenticates a P1 device over `"tok-req|pid|ts"`.
 - **No PII in tokens** (email, wallet address, provider subject). Only `18p` obtains a token (D-30, DL-139); `attestAge` posts route 15.
-- **Device code (route 10, RFC 8628)**: `user_code` `XXXX-XXXX`, `expires_in` 600, `interval` 5, `slow_down` +5 s; 3 codes per profile per hour; `/link` approves only for tier `linked`. Before M14a, P2 comes from `openai` (flag `auth.openaiWeb`) or `supabase-oauth` (GitHub), UNVERIFIED beside Third-Party Auth (M13c1, DL-145).
+- **Device code (route 10, RFC 8628)**: `user_code` `XXXX-XXXX`, `expires_in` 600, `interval` 5, `slow_down` +5 s; 3 codes per profile per hour; `/link` approves only for tier `linked`. Before M14a, P2 comes only from `openai` (flag `auth.openaiWeb`, dark); `supabase-oauth` (GitHub) is a spike in M13c1, not built in v1 (DL-240, DL-342).
 - **Provider redirects** (routes 11, 12) cannot carry `Authorization`: a static `/account/callback` page forwards `code` and `state` with `fetch` and the Bearer token (DL-189). Rooms never see the JWT in a URL; a 30 s ticket authorises the WebSocket (§4.2).
 
 ## 3. Route catalogue
@@ -93,7 +93,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 28 | `POST /admin/cutscenes/prewarm` | S:ops (`OPS_TOKEN` until M12a1) | `{keys[]}` → 202 | single-flight per key | M05b1 |
 | 29 | `POST /hooks/fal?wf=<instance>` | sig | fal webhook → 2xx ≤ 15 s | ED25519 against the fal JWKS (cache ≤ 24 h, ±300 s); failure raises A11 [research/genai-pipeline-fal.md §2] | M05b1 |
 | 49 | `/_test/*` | non-prod | run-scheduled, drain-queue, spend, `fal-jwks`, `echo-country` | `check:prod-routes` proves absence in prod | M05b1 (`echo-country` M00a) |
-| 30 | `GET /roster` | pub | → `RosterFlags` (ETag, 304) | KV cache 30 s | M06a1 |
+| 30 | `GET /roster` | pub | → `RosterFlags` (ETag, 304) | Postgres, 10 s isolate cache, KV fallback; clients poll 30 s (DL-557) | M06a1 |
 | 31 | `POST /npc/:npcId/talk` | PT | `NPCDialogueRequest` → SSE `DialogueEvent` | pre-stream JSON: `not_found`, `conflict` (`busy`, `turn_cap`, `soul_version`), `quota_exhausted`, `budget_offline`, `feature_disabled`, `kill_switched`, `moderation_blocked`, `upstream_unavailable`; `talk` | M06a3 |
 | 32 | `POST /npc/:npcId/intent` | PT | `NPCIntentRequest` → `NPCIntentResponse` | `talk` | M06c |
 | 33 | `/npc-builder/…` (below) | P0–P2 | `CreateDraftReq`, `UpdateDraftReq` → `DraftView` | `tier_required`, `feature_disabled` (`npc.builder`, `ks:npc_builder`), `quota_exhausted`, `moderation_blocked`, `conflict`, `not_found` (not owner); `ugc` | M06b1, b2, b4 |
@@ -107,7 +107,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 38 | `GET /forum/threads?board&sort&q&cursor&limit`, `POST /forum/threads` ⓘ | pub · J1 (+age rule) | cursor page of thread DTOs (`v1.ts`, M13b1) | `sort` ∈ `new\|top`; `q` 3–80 chars (DL-190); `forum` | M13b1 |
 | 39 | `GET /forum/threads/:id/posts?since&cursor`, `POST …/posts` ⓘ | pub · J1 | cursor page of post DTOs | polled every 15 s while open; `forum`; 1 post/30 s; 20/day under 7 days | M13b1 |
 | 40 | `PUT /forum/votes` | J1 | `{targetKind: 'thread'\|'post'\|'experience', targetId, value: -1\|0\|1}` → 204 | `forum` | M13b1 |
-| 41 | `POST /reports` | PT | `ReportReq` → 202 | `copyright` → `conflict` with `details.redirect: '/legal/dmca'`; `report`; the dialogue-panel report button (M06a5) stays hidden until this lands | M06b2 |
+| 41 | `POST /reports` | PT | `ReportReq` → 202 | `copyright` → `conflict` with `details.redirect: '/legal/dmca'`; `report`; the dialogue-panel report button (M06a5) stays hidden until this lands; `chat_turn` ids are `enc:<npcId>:<encounterId>:<turnIndex>` (NPC dialogue, M06b2) or `room:<roomId>:<evSeq>` (room chat, M12c2), DL-543 | M06b2 |
 | 53 | `GET /mods/revoked?since=&cursor` | pub | → `RevokedRes` | polled at launch and every 6 h; takedown reaches installed copies ≤ 24 h | M13a2 |
 | 42 | `POST /legal/dmca`, `/legal/counter-notice`, `/legal/ncii` | pub, worldwide | counsel-defined forms → 202 | `legal`; `feature_disabled` placeholder since M00a | M13d1 |
 | 43 | `GET /admin/cases?queue&status`, `POST /admin/cases/:id/decision` ⓘ | S:mod:review | cases; decision → 204 | NPC queue `P2_REVIEW` from M06b2, all queues M13d1 | M06b2, M13d1 |
@@ -277,7 +277,7 @@ Daily quotas (UTC), P0/P1 → linked: dialogue turns 150 → 400 (40 per NPC); v
 
 ### 5.2 Controls by threat
 - **Wallet**: reserve-before-call in `PlayerQuotaDO`; `BudgetGovernorDO` levels 70/85/100 % (Sonnet→Haiku, voice→t1, genAI off); AI Gateway spend rules; vendor caps; `ks:*` switches. Kill switches and budget levels never block cache hits (cached cutscenes, TTS, barks).
-- **Payloads**: Ajv on every body; 64 KiB JSON default; per-purpose upload caps (§3, route 34); magic-byte checks at scan; presigned PUT 15 min with a fixed `Content-Type`.
+- **Payloads**: schema check on every body (precompiled, no runtime compile; DL-694); 64 KiB JSON default; per-purpose upload caps (§3, route 34); magic-byte checks at scan; presigned PUT 15 min with a fixed `Content-Type`.
 - **Replay**: `Idempotency-Key` on ⓘ writes (24 h); monotonic `seq` and `evSeq`; tickets 30 s; resume tokens 60 s.
 - **WebSocket**: ticket, build and geo before the DO; server-assigned ids; per-socket bucket; 5 strikes → 1008; pose validation; chat is opt-in, off by default, moderated before fan-out.
 - **Forged history**: dialogue history is server-held in `EncounterDO`; async moderation never blocks the stream.

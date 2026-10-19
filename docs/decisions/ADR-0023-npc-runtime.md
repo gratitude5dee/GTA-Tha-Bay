@@ -3,7 +3,7 @@
 **Status:** accepted · **Date:** 2026-10-18 · **Decides:** spec/03 D-21, D-22, D-23; R-NPC-05; contract C10
 
 ## Context
-Named NPCs must speak in character, remember the player, and cost little, without exposing keys or letting players steer the model out of its rails. Claude Haiku 5.5 costs $0.10/$0.50 and Sonnet 5.5 $2/$10 per million tokens; cache reads cost 10 % of input [F-034]. The minimum cacheable prefix is 512 tokens and the cache is per workspace [F-035]. Haiku runs with thinking disabled; Sonnet needs `between_tools`; neither accepts sampling parameters or assistant prefill [F-036]. AI Gateway guardrails and DLP buffer streamed responses, and its spend limits are eventually consistent [F-028]. Workers AI offers `bge-m3` embeddings at $0.012 per million tokens and Aura-1 speech at $0.015 per 1,000 characters [F-025]. ElevenLabs Flash is about 75 ms at $0.04 per 1,000 characters, clones only the speaker's own voice, and bars apps directed at minors [F-051].
+Named NPCs must speak in character, remember the player, and cost little, without exposing keys or letting players steer the model out of its rails. Claude Haiku 5.5 costs $0.10/$0.50 and Sonnet 5.5 $2/$10 per million tokens; cache reads cost $0.01/MTok on Haiku 5.5 (10 % of input) and $0.10/MTok on Sonnet 5.5 (5 % of input) [F-034]. The minimum cacheable prefix is 512 tokens and the cache is per workspace [F-035]. Haiku runs with thinking disabled; Sonnet needs `between_tools`; neither accepts sampling parameters or assistant prefill [F-036]. AI Gateway guardrails and DLP buffer streamed responses, and its spend limits are eventually consistent [F-028]. Workers AI offers `bge-m3` embeddings at $0.012 per million tokens and Aura-1 speech at $0.015 per 1,000 characters [F-025]. ElevenLabs Flash is about 75 ms at $0.04 per 1,000 characters, clones only the speaker's own voice, and bars apps directed at minors [F-051].
 
 ## Options considered
 1. **Client-held history.** Forgeable; a forged assistant turn is a jailbreak path (DL-046).
@@ -20,7 +20,7 @@ Named NPCs must speak in character, remember the player, and cost little, withou
 **Voice (D-23).** Tier 0 text only; tier 1 Workers AI Aura-1 or MeloTTS (default for heroes); tier 2 ElevenLabs Flash designed voices for at most three heroes behind `ks:tts:elevenlabs`, off unless the voice ceiling is raised (Q-20); tier 3 clones only with a `consented` record. TTS text is chosen server-side from the validated `line`. Lip-sync is a mouth-atlas driver with viseme logic ported from TalkingHead, no dependency.
 
 ## Consequences
-- (+) A Haiku turn costs about $0.00028 [research/INDEX.md §6]; cached prefix reads cost 10 % of input [F-034].
+- (+) A Haiku turn costs about $0.00028 [research/INDEX.md §6]; cached prefix reads cost $0.01/MTok on Haiku 5.5 (10 % of input) and $0.10/MTok on Sonnet 5.5 (5 % of input) [F-034].
 - (+) Every NPC works offline through ink; kills and quotas degrade, never block.
 - (−) Haiku time-to-first-token through AI Gateway and unbuffered SSE are UNVERIFIED (U-NPC series; M06a3 records them); the 4 s fallback bounds the damage.
 - (−) Tier 2 voices need a plan fee above the voice ceiling, so heroes launch on tier 1.
