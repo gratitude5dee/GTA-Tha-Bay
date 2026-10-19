@@ -43,8 +43,8 @@ describe('ci.yml (AC-8)', () => {
     expect(jobs['unit']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
   });
 
-  it('has a content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
-    const job = jobs['content'] ?? '';
+  it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
+    const job = jobs['world-content'] ?? '';
     expect(job).toContain('pnpm map:fixture graybox --check');
     expect(job).toContain('pnpm map:build -- --area civic-excerpt --repro');
     expect(job).toMatch(/uses: actions\/cache@[0-9a-f]{40}/);
