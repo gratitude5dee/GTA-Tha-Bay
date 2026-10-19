@@ -125,7 +125,7 @@ export default defineConfig({
       // The determinism page and the memory bomb exist only in QA builds (VITE_DV_QA=1).
       input: {
         main: here('index.html'),
-        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html') } : {}),
+        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html') } : {}),
       },
       output: { chunkFileNames: chunkName },
     },

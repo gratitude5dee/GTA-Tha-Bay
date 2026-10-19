@@ -7,6 +7,7 @@ import { requestRagdoll, requestTeleport } from './control/ownership.ts';
 import { playerSide, snapshotPublisher } from './publish.ts';
 import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
+import type { SaveControl } from './worker/save-control.ts';
 
 /** What the host environment lends the runtime: a clock and a blocking sleep. Sim code has neither. */
 export interface SimRuntimeEnv {
@@ -38,6 +39,8 @@ export class SimRuntime {
   framesHandled = 0;
   /** QA input source (BotInput, C03 1.1). Replaces the page's input block while set. */
   bot: BotInput | null = null;
+  /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
+  saveControl: SaveControl | null = null;
 
   private frameGroups = 0;
   private lastAlpha = 0;
@@ -104,6 +107,10 @@ export class SimRuntime {
         i++;
       }
     }
+    // Port writes and control messages are handled here, between pumps, never inside a tick (C02 rule 9).
+    if (this.saveControl && this.saveControl.pending > 0) {
+      void this.saveControl.flush().catch((e: unknown) => this.env.log?.('warn', `save flush failed: ${e instanceof Error ? e.message : String(e)}`));
+    }
     return batch.length;
   }
 
@@ -121,8 +128,18 @@ export class SimRuntime {
 
   private handleOther(m: Exclude<WorkerCommand, { t: 'frame' }>): void {
     if (m.t === 'ctl') {
-      // M04a replaces this with SaveService.
-      this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'not-implemented' } });
+      const control = this.saveControl;
+      if (!control) {
+        this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'not-implemented' } });
+        return;
+      }
+      void control.handle(m.p).then(
+        (p) => void this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p }),
+        (e: unknown) => {
+          this.env.log?.('warn', `save.request failed: ${e instanceof Error ? e.message : String(e)}`);
+          this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'IDB_UNAVAILABLE' } });
+        },
+      );
       return;
     }
     if (!this.env.qa) {

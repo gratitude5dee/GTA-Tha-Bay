@@ -1,0 +1,13 @@
+export { SaveServiceImpl, type SaveServiceOptions, type SlotInfo } from './service.ts';
+export { SaveKilled, type WriteStep, type SaveCtx } from './context.ts';
+export { canWrite, capabilityFor, isSlotId, slotKind, type SaveCapability } from './capability.ts';
+export { IdbStore, SAVE_DB_NAME, SAVE_DB_VERSION, openSaveDb, openSaveDbIfExists } from './idb.ts';
+export { MemoryStore } from './memory-store.ts';
+export { SaveStoreError, type SaveStore } from './store.ts';
+export { DEFAULT_MIGRATIONS, MigrationError, migrateData, type MigrateStep, type MigrationRegistry } from './migrate.ts';
+export { CURRENT_SCHEMA, SLICE_SCHEMAS, ENVELOPE_SCHEMA, validateEnvelope, validateSlice } from './schemas.ts';
+export { validateSchema, type JsonSchema } from './validate.ts';
+export { canonicalData, recordIsIntact, SaveInvalidData } from './canonical.ts';
+export { defaultCore, defaultSettings } from './defaults.ts';
+export type { DvSaveFile } from './export-import.ts';
+export type { ReadOnlyReason } from './multitab.ts';

@@ -1,0 +1,37 @@
+{
+  "avatar": {
+    "v": 1,
+    "name": "Golden"
+  },
+  "unlocks": [
+    "unlock.racing"
+  ],
+  "firstEncounters": {
+    "racing": 1760000000000
+  },
+  "garage": [
+    {
+      "key": "veh:golden-1",
+      "prefab": "vehicle.compact"
+    }
+  ],
+  "inventory": {
+    "items": [
+      {
+        "id": "item.keycard",
+        "qty": 1
+      }
+    ],
+    "wardrobe": [
+      "wardrobe.hoodie"
+    ]
+  },
+  "stats": {
+    "distanceKm": 12.5,
+    "pursuitsEscaped": 2,
+    "busted": 1,
+    "fightsWon": 0,
+    "racesWon": 1,
+    "playtimeSec": 3600
+  }
+}

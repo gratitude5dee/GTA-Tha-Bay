@@ -4,4 +4,6 @@
 export {};
 declare global {
   interface HTMLVideoElement {}
+  // C05 SaveService.exportProfile/importProfile name Blob (M04a1); merges with lib.dom's Blob and with @types/node's.
+  interface Blob {}
 }

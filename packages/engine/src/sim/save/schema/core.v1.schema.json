@@ -1,0 +1,113 @@
+{
+  "$id": "https://dv.local/schema/save/core.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "avatar": {
+      "type": "object"
+    },
+    "unlocks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^unlock\\..+"
+      }
+    },
+    "firstEncounters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "garage": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "qty"
+            ]
+          }
+        },
+        "wardrobe": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "wardrobe"
+      ]
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "distanceKm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pursuitsEscaped": {
+          "type": "number",
+          "minimum": 0
+        },
+        "busted": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fightsWon": {
+          "type": "number",
+          "minimum": 0
+        },
+        "racesWon": {
+          "type": "number",
+          "minimum": 0
+        },
+        "playtimeSec": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "distanceKm",
+        "pursuitsEscaped",
+        "busted",
+        "fightsWon",
+        "racesWon",
+        "playtimeSec"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "avatar",
+    "unlocks",
+    "firstEncounters",
+    "garage",
+    "inventory",
+    "stats"
+  ]
+}

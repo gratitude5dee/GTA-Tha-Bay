@@ -18,3 +18,4 @@ export { GENAI_GUARDRAILS } from './genai/guardrails.generated.ts';
 export type { AssetRef, LikenessTier } from './assets/c07.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';
+export * from './platform/xr-comfort.ts';

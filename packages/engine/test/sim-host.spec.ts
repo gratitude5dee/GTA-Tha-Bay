@@ -151,7 +151,7 @@ describe('SimHost over SimCore', () => {
     host.transport?.sendControl({ t: 'save.request', reason: 'hidden' });
     workers[0]?.pump();
     host.frame(sig(0, 10));
-    expect(host.events.some((e) => e.t === 'ctl.result' && e.p.reason === 'not-implemented')).toBe(true);
+    expect(host.events.some((e) => e.t === 'ctl.result' && e.p.ok === false && e.p.reason === 'not-implemented')).toBe(true);
     await host.dispose();
   }, 60_000);
 

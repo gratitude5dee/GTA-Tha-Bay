@@ -63,6 +63,13 @@ export function verifyDist(dist) {
     if (s.includes('dv-sim-panel') || s.includes('dvSimPanel') || s.includes('Enter VR (smoke)') || s.includes('dvXrSmoke')) fail(`QA debug tools found in ${rel(f)}`);
   }
 
+  // 2d. No save-kill QA page or worker half (M04a1).
+  for (const f of files) if (/save-kill/.test(rel(f))) fail(`save-kill file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('save-kill') || s.includes('save-verify') || s.includes('KILL_PROFILE')) fail(`save-kill QA code found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 
@@ -108,7 +115,7 @@ function main() {
     console.error(`verify:dist failed (${failures.length})`);
     process.exit(1);
   }
-  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no PerfHud, no __dvBridge string, no media-local');
+  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no PerfHud, no __dvBridge string, no media-local');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }

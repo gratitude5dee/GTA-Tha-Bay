@@ -1,0 +1,282 @@
+{
+  "$id": "https://dv.local/schema/save/story.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "premise": {
+      "enum": [
+        "hella-valuation",
+        "dark-mode",
+        "clout-index"
+      ]
+    },
+    "act": {
+      "enum": [
+        1,
+        2,
+        3
+      ]
+    },
+    "missions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "enum": [
+              "locked",
+              "available",
+              "passed"
+            ]
+          },
+          "bestSec": {
+            "type": "number",
+            "minimum": 0
+          },
+          "medals": {
+            "enum": [
+              0,
+              1,
+              2,
+              3
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "state"
+        ]
+      }
+    },
+    "activeMission": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "checkpoint": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "data": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "schema",
+                "data"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "checkpoint"
+          ]
+        }
+      ]
+    },
+    "flags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "boolean",
+          "number",
+          "string"
+        ]
+      }
+    },
+    "wallet": {
+      "type": "object",
+      "properties": {
+        "cashCents": {
+          "type": "integer"
+        },
+        "streetCred": {
+          "type": "number"
+        },
+        "techClout": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "cashCents",
+        "streetCred",
+        "techClout"
+      ]
+    },
+    "heat": {
+      "type": "object",
+      "properties": {
+        "vehicleHeat": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "impoundStrikes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "vehicleHeat",
+        "impoundStrikes"
+      ]
+    },
+    "property": {
+      "type": "object",
+      "properties": {
+        "safehouses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "businesses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "state": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "level"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "safehouses",
+        "businesses"
+      ]
+    },
+    "npcRelations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "trust": {
+            "type": "number"
+          },
+          "met": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "trust",
+          "met"
+        ]
+      }
+    },
+    "world": {
+      "type": "object",
+      "properties": {
+        "clockT": {
+          "type": "number"
+        },
+        "weather": {
+          "enum": [
+            "clear",
+            "karl-fog",
+            "overcast",
+            "rain",
+            "smoke",
+            "golden"
+          ]
+        },
+        "seed": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "clockT",
+        "weather",
+        "seed"
+      ]
+    },
+    "rng": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      }
+    },
+    "position": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        },
+        "yaw": {
+          "type": "number"
+        },
+        "vehicle": {
+          "type": "string"
+        },
+        "safehouse": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "z",
+        "yaw"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "premise",
+    "act",
+    "missions",
+    "activeMission",
+    "flags",
+    "wallet",
+    "heat",
+    "property",
+    "npcRelations",
+    "world",
+    "rng",
+    "position"
+  ]
+}

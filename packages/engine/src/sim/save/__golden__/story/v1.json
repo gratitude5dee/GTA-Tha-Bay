@@ -1,0 +1,76 @@
+{
+  "premise": "hella-valuation",
+  "act": 1,
+  "missions": {
+    "mis:m01": {
+      "state": "passed",
+      "bestSec": 212.5,
+      "medals": 2
+    },
+    "mis:m02": {
+      "state": "available"
+    }
+  },
+  "activeMission": {
+    "id": "mis:m02",
+    "checkpoint": {
+      "schema": 1,
+      "data": {
+        "stage": 2
+      }
+    }
+  },
+  "flags": {
+    "met_dee": true,
+    "phone_battery": 87,
+    "alias": "x"
+  },
+  "wallet": {
+    "cashCents": 125000,
+    "streetCred": 10,
+    "techClout": 4
+  },
+  "heat": {
+    "vehicleHeat": {
+      "veh:golden-1": 0
+    },
+    "impoundStrikes": {}
+  },
+  "property": {
+    "safehouses": [
+      "safehouse.soma"
+    ],
+    "businesses": [
+      {
+        "id": "biz.cart",
+        "level": 1
+      }
+    ]
+  },
+  "npcRelations": {
+    "npc:dee": {
+      "trust": 0.5,
+      "met": true
+    }
+  },
+  "world": {
+    "clockT": 86400,
+    "weather": "karl-fog",
+    "seed": 12345
+  },
+  "rng": {
+    "story": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "position": {
+    "x": 10.5,
+    "y": 1.2,
+    "z": -33.25,
+    "yaw": 1.5,
+    "safehouse": "safehouse.soma"
+  }
+}

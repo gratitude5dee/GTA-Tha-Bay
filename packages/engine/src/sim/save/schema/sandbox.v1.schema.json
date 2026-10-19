@@ -1,0 +1,96 @@
+{
+  "$id": "https://dv.local/schema/save/sandbox.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "toggles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "boolean",
+          "number"
+        ]
+      }
+    },
+    "savedPositions": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "z": {
+            "type": "number"
+          },
+          "yaw": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "x",
+          "y",
+          "z",
+          "yaw"
+        ]
+      }
+    },
+    "clock": {
+      "type": "object",
+      "properties": {
+        "hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 24
+        },
+        "paused": {
+          "type": "boolean"
+        },
+        "syncSystemTime": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "hour",
+        "paused",
+        "syncSystemTime"
+      ]
+    },
+    "weather": {
+      "enum": [
+        "clear",
+        "karl-fog",
+        "overcast",
+        "rain",
+        "smoke",
+        "golden"
+      ]
+    },
+    "presets": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "toggles",
+    "savedPositions",
+    "clock",
+    "weather",
+    "presets"
+  ]
+}
