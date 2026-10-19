@@ -1,0 +1,27 @@
+{
+  "scenario": "walk-drop",
+  "profile": "canonical",
+  "physicsBuild": "deterministic-compat",
+  "seed": 12648430,
+  "ticks": 10000,
+  "checkpointEvery": 600,
+  "checkpoints": {
+    "600": "96443e14f38a5e14",
+    "1200": "ab223fe593904644",
+    "1800": "8d97d7b70806342c",
+    "2400": "f27fc2225a3d21f5",
+    "3000": "a3f035218cceebde",
+    "3600": "1f8f25a65e5a46ab",
+    "4200": "3ec43e3449d7a041",
+    "4800": "525ff6772e8c4d01",
+    "5400": "405610ee771a1bdd",
+    "6000": "0496c247df60ae28",
+    "6600": "d3f3c9f09d06f22a",
+    "7200": "ed4ff620dd387c43",
+    "7800": "0164d2e2b5b572a3",
+    "8400": "4158fc39016518ce",
+    "9000": "6e5d3eea9d043410",
+    "9600": "c2c611b7bf11a5e0"
+  },
+  "final": "5444e209fdf70c56"
+}
