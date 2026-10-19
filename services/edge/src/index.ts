@@ -3,7 +3,9 @@ import { apiError } from './errors.ts';
 import { isGeoExempt, isRegionAllowed, requestCountry } from './geo.ts';
 import { withIsolationHeaders } from './headers.ts';
 import { dispatch, pathMatches, type Ctx, type Route } from './router.ts';
+import { handleLogin, handleLogout, handleMe, handleRefresh, handleSignup } from './routes/auth.ts';
 import { handleBoot } from './routes/boot.ts';
+import { handleGenaiStatus } from './routes/genai.ts';
 import { handleHealth } from './routes/health.ts';
 import { handleLegal } from './routes/legal.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
@@ -14,6 +16,12 @@ const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/boot', handler: handleBoot },
   { methods: ['POST'], path: '/api/v1/t', handler: handleTelemetry },
   { methods: '*', path: '/api/v1/legal', prefix: true, handler: handleLegal },
+  { methods: ['POST'], path: '/api/v1/auth/signup', handler: handleSignup },
+  { methods: ['POST'], path: '/api/v1/auth/login', handler: handleLogin },
+  { methods: ['POST'], path: '/api/v1/auth/refresh', handler: handleRefresh },
+  { methods: ['POST'], path: '/api/v1/auth/logout', handler: handleLogout },
+  { methods: ['GET'], path: '/api/v1/auth/me', handler: handleMe },
+  { methods: ['GET'], path: '/api/v1/genai/status', handler: handleGenaiStatus },
 ];
 
 /** Test routes are loaded behind a build-time constant so the production bundle does not contain them. */

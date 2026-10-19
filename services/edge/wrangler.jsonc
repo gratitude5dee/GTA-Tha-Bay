@@ -28,13 +28,17 @@
     "GEO_ALLOW": "US",
     "BUILD_ID": "dev",
     "MIN_CLIENT_BUILD": "0",
-    "HOST_API": "https://tha-bay-web.workers.dev",
+    "HOST_API": "https://tha-bay-web.gratitude-8f4.workers.dev",
     "HOST_RT": "https://tha-bay-rooms.workers.dev",
-    "HOST_ID": "https://tha-bay-web.workers.dev",
+    "HOST_ID": "https://tha-bay-web.gratitude-8f4.workers.dev",
     "HOST_MEDIA": "https://tha-bay-media.workers.dev",
     "HOST_UGC": "https://tha-bay-ugc.workers.dev",
     "FLAGS_JSON": "{}",
-    "FAL_MODE": "live"
+    "FAL_MODE": "live",
+    // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
+    // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
+    "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
   },
   "secrets": { "required": [] },
   "env": {
@@ -62,13 +66,15 @@
         "GEO_ALLOW": "US",
         "BUILD_ID": "dev",
         "MIN_CLIENT_BUILD": "0",
-        "HOST_API": "https://tha-bay-web-staging.workers.dev",
+        "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
         "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
-        "HOST_ID": "https://tha-bay-web-staging.workers.dev",
+        "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
         "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
         "FLAGS_JSON": "{}",
-        "FAL_MODE": "mock"
+        "FAL_MODE": "mock",
+        "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
+        "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
       }
     }
   },
@@ -82,13 +88,15 @@
       "GEO_ALLOW": "US",
       "BUILD_ID": "dev",
       "MIN_CLIENT_BUILD": "0",
-      "HOST_API": "https://tha-bay-web-staging.workers.dev",
+      "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
       "HOST_RT": "https://tha-bay-rooms-staging.workers.dev",
-      "HOST_ID": "https://tha-bay-web-staging.workers.dev",
+      "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
       "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
       "FLAGS_JSON": "{}",
-      "FAL_MODE": "mock"
+      "FAL_MODE": "mock",
+      "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
+      "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
     }
   }
 }
