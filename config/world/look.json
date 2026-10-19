@@ -1,0 +1,90 @@
+{
+  "$comment": "M02e look pass (DL-704): the procedural look of the streamed city as data. Design values tuned in the M02e session (a config edit, not code, changes them). Colours are sRGB hex strings; the materials convert them to linear. The profile per tier: full on the desktop tiers, lite on mobile, min on mobile-low, legacy (the M02b1/M02b2 materials) on both XR tiers.",
+  "schema": "world-look/1",
+  "tierProfile": {
+    "desktop-ultra": "full",
+    "desktop": "full",
+    "mobile": "lite",
+    "mobile-low": "min",
+    "xr-quest": "legacy",
+    "xr-visionpro": "legacy"
+  },
+  "postLevelCap": 2,
+  "exposureBias": {
+    "desktop-ultra": 1.0,
+    "desktop": 1.0,
+    "mobile": 1.0,
+    "mobile-low": 1.0,
+    "xr-quest": 1.0,
+    "xr-visionpro": 1.0
+  },
+  "casterRadiusM": {
+    "desktop-ultra": 700,
+    "desktop": 500,
+    "mobile": 120
+  },
+  "shadowsOff": [],
+  "facade": {
+    "ResLow": {
+      "floorM": 3.0, "groundFloorM": 3.2, "bayM": 3.2, "winW": 1.1, "winH": 1.6, "sillM": 0.9, "glassRatio": 0.3, "wallRoughness": 0.86,
+      "palette": ["#e8d7b9", "#d9c0a0", "#c6d5d9", "#d6a99c", "#b8c9a8", "#e3cf9b", "#9fb3c8", "#d5c4d8"]
+    },
+    "ResMid": {
+      "floorM": 3.0, "groundFloorM": 3.4, "bayM": 3.6, "winW": 1.4, "winH": 1.7, "sillM": 0.9, "glassRatio": 0.34, "wallRoughness": 0.84,
+      "palette": ["#cdb9a0", "#b99b82", "#a8584a", "#d8cdb8", "#8d949a", "#c4a98a"]
+    },
+    "Commercial": {
+      "floorM": 3.8, "groundFloorM": 4.6, "bayM": 4.2, "winW": 2.6, "winH": 2.2, "sillM": 0.9, "glassRatio": 0.55, "wallRoughness": 0.78,
+      "palette": ["#c9c3b8", "#b5b0a8", "#a69f93", "#d6cfc2", "#8f8a82", "#b9a58f"]
+    },
+    "Tower": {
+      "floorM": 3.9, "groundFloorM": 6.0, "bayM": 1.5, "winW": 1.3, "winH": 3.2, "sillM": 0.4, "glassRatio": 0.82, "wallRoughness": 0.55,
+      "palette": ["#7f9db3", "#6c8798", "#8aa5b8", "#5d7a8c", "#9fb0b8", "#aab2b6"]
+    },
+    "Industrial": {
+      "floorM": 5.0, "groundFloorM": 5.0, "bayM": 8.0, "winW": 4.0, "winH": 1.4, "sillM": 3.4, "glassRatio": 0.15, "wallRoughness": 0.9,
+      "palette": ["#9a958d", "#8c8a85", "#a69d8c", "#7d8084"]
+    },
+    "Civic": {
+      "floorM": 4.6, "groundFloorM": 6.0, "bayM": 5.5, "winW": 2.2, "winH": 3.2, "sillM": 0.8, "glassRatio": 0.35, "wallRoughness": 0.8,
+      "palette": ["#d9d2c2", "#cfc7b6", "#e2dccf", "#bfb8a8"]
+    }
+  },
+  "roof": {
+    "flat": { "albedo": "#8a8680", "roughness": 0.9, "pattern": "membrane" },
+    "gable": { "albedo": "#7a5a4c", "roughness": 0.82, "pattern": "shingle" },
+    "hip": { "albedo": "#6c6a66", "roughness": 0.82, "pattern": "shingle" }
+  },
+  "ground": {
+    "Grass": { "albedo": "#6f9d4f", "roughness": 0.95, "noise": 0.22 },
+    "Park": { "albedo": "#5c9449", "roughness": 0.95, "noise": 0.26 },
+    "Sand": { "albedo": "#d7c58b", "roughness": 0.97, "noise": 0.12 },
+    "Paved": { "albedo": "#9a9ea5", "roughness": 0.88, "noise": 0.1 },
+    "Dirt": { "albedo": "#8f7a5a", "roughness": 0.96, "noise": 0.2 },
+    "Rock": { "albedo": "#7b7d80", "roughness": 0.9, "noise": 0.3 },
+    "Asphalt": { "albedo": "#44474d", "roughness": 0.85, "noise": 0.14 },
+    "Sidewalk": { "albedo": "#b9bbb4", "roughness": 0.9, "noise": 0.08 },
+    "Pier": { "albedo": "#8d7456", "roughness": 0.88, "noise": 0.12 },
+    "WaterShallow": { "albedo": "#4f95c8", "roughness": 0.1, "noise": 0.0 },
+    "Water": { "albedo": "#2f6fb5", "roughness": 0.08, "noise": 0.0 },
+    "Rail": { "albedo": "#6c5e55", "roughness": 0.95, "noise": 0.22 },
+    "freeway": { "albedo": "#4a4d54", "roughness": 0.8, "noise": 0.12 },
+    "ramp": { "albedo": "#464950", "roughness": 0.8, "noise": 0.12 },
+    "arterial": { "albedo": "#3f4249", "roughness": 0.82, "noise": 0.14 },
+    "collector": { "albedo": "#3d4047", "roughness": 0.84, "noise": 0.14 },
+    "local": { "albedo": "#393c42", "roughness": 0.86, "noise": 0.15 },
+    "service": { "albedo": "#44474d", "roughness": 0.88, "noise": 0.15 }
+  },
+  "water": {
+    "deep": "#12456d",
+    "shallow": "#3f8fae",
+    "waves": [[20, 38, 0.05, 1.3], [95, 17, 0.035, 1.9], [160, 9, 0.025, 2.6], [250, 4.5, 0.015, 3.4]]
+  },
+  "sky": {
+    "turbidity": { "clear": 2.2, "karl-fog": 9, "overcast": 7, "rain": 8, "smoke": 14, "golden": 3.5 },
+    "rayleigh": { "clear": 1.6, "karl-fog": 0.6, "overcast": 0.9, "rain": 0.7, "smoke": 0.5, "golden": 2.4 },
+    "keyframeWeight": { "clear": 0.0, "karl-fog": 1.0, "overcast": 1.0, "rain": 1.0, "smoke": 1.0, "golden": 0.55 }
+  },
+  "webgl2Unsupported": [],
+  "webgl2AaFallback": {}
+}

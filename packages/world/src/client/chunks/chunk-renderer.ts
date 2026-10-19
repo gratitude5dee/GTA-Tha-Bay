@@ -62,6 +62,22 @@ export interface RenderedUnit {
   mesh: UnitMesh;
 }
 
+/**
+ * What the look pass tells the renderer (M02e): whether the meshes receive shadows, and which L0 `buildings` objects cast them.
+ * Casters are decided when a unit is committed (the stream ranks the units around the focus first, so the units near the player are
+ * the ones within the radius) and on a re-record, never by a re-record of their own.
+ */
+export interface LookRuntime {
+  /** Meshes receive shadows (a shadow map exists on this tier). */
+  receive: boolean;
+  /** Casters are in use at all. */
+  casting: boolean;
+  /** L0 `buildings` objects of units within this many metres of the focus cast. */
+  casterRadiusM: number;
+  /** The stream focus now. */
+  focus(): { x: number; z: number };
+}
+
 export interface ChunkRendererOptions {
   parent: Object3D;
   materials: WorldMaterials;
@@ -129,6 +145,8 @@ export class ChunkRenderer {
   lastUploadBytes = 0;
   totalUploads = 0;
   cullPasses = 0;
+  /** M02e: set by the look view; null leaves the legacy flags (no shadows). */
+  look: LookRuntime | null = null;
 
   private readonly o: ChunkRendererOptions;
   private readonly trees = treeGeometry();
@@ -203,12 +221,15 @@ export class ChunkRenderer {
     let triangles = 0;
     let objects = 0;
     let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-    const material = level === 'l0' ? this.o.materials.chunk : this.o.materials.coarse;
+    const cast = this.castsShadows(level, mesh);
     for (const o of mesh.objects) {
       const g = this.geometryOf(o, now, cellM);
       geometries.push(g);
-      const m = new Mesh(g, material);
+      const m = new Mesh(g, this.o.materials.materialFor(level, o.kind));
       m.name = `${id}:${o.kind}`;
+      m.userData['kind'] = o.kind;
+      m.receiveShadow = this.look?.receive ?? false;
+      m.castShadow = cast && o.kind === 'buildings';
       // The bundle replays every draw, so three's own frustum test does not run inside it; the group is culled as a whole.
       m.frustumCulled = false;
       group.add(m);
@@ -219,7 +240,9 @@ export class ChunkRenderer {
     }
     if (mesh.trees.length > 0) {
       const count = mesh.trees.length / 5;
-      const inst = new InstancedMesh(this.trees, this.o.materials.chunk, count);
+      const inst = new InstancedMesh(this.trees, this.o.materials.materialFor(level, 'vegetation'), count);
+      inst.userData['kind'] = 'vegetation';
+      inst.receiveShadow = this.look?.receive ?? false;
       const mat = new Matrix4();
       for (let i = 0; i < count; i++) {
         const s = mesh.trees[i * 5 + 3] as number;
@@ -261,6 +284,9 @@ export class ChunkRenderer {
     g.setAttribute('color', new BufferAttribute(o.colors, 3));
     g.setAttribute('aAO', new BufferAttribute(o.ao, 1));
     g.setAttribute('aBirth', new BufferAttribute(new Float32Array(n).fill(now), 1));
+    // M02e: the surface ids and the façade coordinates, uploaded normalised (unorm8, snorm16); the look materials read them.
+    g.setAttribute('surf', new BufferAttribute(o.surf, 4, true));
+    if (o.facade) g.setAttribute('facade', new BufferAttribute(o.facade, 4, true));
     if (cellM > 0) {
       g.setAttribute('aCover', new BufferAttribute(new Float32Array(n), 1));
       g.setAttribute('aCell', new BufferAttribute(new Float32Array(n).fill(cellM), 1));
@@ -270,6 +296,48 @@ export class ChunkRenderer {
     const c = new Vector3((b[0] + b[3]) / 2, (b[1] + b[4]) / 2, (b[2] + b[5]) / 2);
     g.boundingSphere = new Sphere(c, Math.sqrt((b[3] - b[0]) ** 2 + (b[4] - b[1]) ** 2 + (b[5] - b[2]) ** 2) / 2);
     return g;
+  }
+
+  /** Whether the L0 `buildings` object of a unit casts shadows: the look casts, and the unit lies within the caster radius of the focus. */
+  private castsShadows(level: RenderLevel, mesh: UnitMesh): boolean {
+    const look = this.look;
+    if (!look || !look.casting || level !== 'l0' || !(look.casterRadiusM > 0)) return false;
+    const f = look.focus();
+    const cx = mesh.originX + 128, cz = mesh.originZ + 128;
+    return Math.hypot(cx - f.x, cz - f.z) <= look.casterRadiusM + 128;
+  }
+
+  /**
+   * The look was switched (QA `setLook`) or its shadow state changed: every resident mesh takes the material and the shadow flags of
+   * the new state and its bundle is recorded again, one re-record per resident unit.
+   */
+  applyLook(): void {
+    for (const u of this.units.values()) {
+      const cast = this.castsShadows(u.level, u.mesh);
+      for (const child of u.group.children) {
+        const kind = child.userData['kind'] as MeshBuffers['kind'] | undefined;
+        if (!kind) continue;
+        const m = child as Mesh;
+        m.material = this.o.materials.materialFor(u.level, kind);
+        m.receiveShadow = this.look?.receive ?? false;
+        m.castShadow = cast && kind === 'buildings';
+      }
+      this.requestRerecord(u);
+    }
+  }
+
+  /** The shadow casters now: how many objects, and the distinct `level:kind` pairs (the look reports them; only L0 `buildings` cast). */
+  casterReport(): { count: number; kinds: string[] } {
+    const kinds = new Set<string>();
+    let count = 0;
+    for (const u of this.units.values()) {
+      for (const child of u.group.children) {
+        if (!(child as Mesh).castShadow) continue;
+        count++;
+        kinds.add(`${u.level}:${String(child.userData['kind'] ?? '?')}`);
+      }
+    }
+    return { count, kinds: [...kinds].sort() };
   }
 
   private requestRerecord(u: RenderedUnit): void {

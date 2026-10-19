@@ -12,6 +12,7 @@ import {
 } from 'three/webgpu';
 import type { QualityTier, RenderBackend } from '@dv/shared';
 import type { QaFlags } from './qa-flags.ts';
+import type { PostStack } from './post/stack.ts';
 import { PLATFORM_FLAGS } from './tier-config.ts';
 
 /**
@@ -160,6 +161,11 @@ export class RendererHost {
    * pass and the world pass clears only the depth. The scene background of the backdrop pass is the sky. Not drawn in XR (M11b1).
    */
   backdrop: { scene: Object3D; camera: Camera } | null = null;
+  /**
+   * M02e: the post stack of the look pass. When set, the flat world draws through it (its `direct` callback is `renderDirect`, the
+   * legacy path below); XR, the menu scene and a null stack keep the M01c/M02b1 path.
+   */
+  postStack: PostStack | null = null;
   /** Renderer recoveries performed this session (0 or 1; a second loss shows the reload prompt). */
   recoveries = 0;
   deviceLosses = 0;
@@ -304,6 +310,16 @@ export class RendererHost {
     };
   }
 
+  /** Shadow passes the active shadow object reports this frame (the post stack carries it; 0 without a look). Fed to `RenderBudgetMeter.measure`. */
+  get shadowPasses(): number {
+    return this.postStack?.shadowPasses ?? 0;
+  }
+
+  /** The exposure of the tone mapping (M02e: the sun state sets it; the sky keys alone drove it before). */
+  setExposure(exposure: number): void {
+    this._renderer && (this._renderer.toneMappingExposure = exposure);
+  }
+
   /** Sizes the drawing buffer under the current tier caps; the aspect ratio of both cameras follows. */
   resize(cssWidth: number, cssHeight: number, renderScale = this.lastRenderScale): void {
     this.lastCss = { w: cssWidth, h: cssHeight };
@@ -414,7 +430,15 @@ export class RendererHost {
     this.frames += 1;
     if (r.xr.isPresenting) this.xrFrames += 1;
     if (this.menu) r.render(this.menu.scene as Scene, this.menu.camera);
-    else if (this.backdrop && !r.xr.isPresenting) {
+    else if (this.postStack && !r.xr.isPresenting) this.postStack.render();
+    else this.renderDirect();
+    for (const l of this.listeners) l.after?.(time);
+  };
+
+  /** The M01c/M02b1 render: the backdrop pass, then the world pass over it (depth cleared only), tone mapping in the renderer. */
+  readonly renderDirect = (): void => {
+    const r = this.renderer;
+    if (this.backdrop && !r.xr.isPresenting) {
       r.render(this.backdrop.scene as Scene, this.backdrop.camera);
       // The world pass keeps the colour of the backdrop pass and clears the depth only.
       r.autoClearColor = false;
@@ -424,11 +448,12 @@ export class RendererHost {
         r.autoClearColor = true;
       }
     } else r.render(this.scene, this.camera);
-    for (const l of this.listeners) l.after?.(time);
   };
 
   dispose(): void {
     this.stopLoop();
+    this.postStack?.dispose();
+    this.postStack = null;
     this.owners.clear();
     this.listeners.clear();
     try {

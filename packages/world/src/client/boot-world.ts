@@ -5,7 +5,7 @@
  */
 import type { AssetClient } from '@dv/engine/assets/client';
 import type { WorldBoot } from '@dv/engine/client/boot/world-layer';
-import { decodeP0, type QualityTierId, type WorldIndex } from '@dv/shared';
+import { decodeP0, type QualityTierId, type RenderBackend, type WorldIndex } from '@dv/shared';
 import { WORLD_PORT, type WorldSimConfig } from '../sim/streaming/channel.ts';
 import { bootSet, groundHeightAt, spawnPose, type BootSet } from '../sim/streaming/boot.ts';
 import { WorldView, type WorldViewLabels } from './world-view.ts';
@@ -27,6 +27,8 @@ export interface PrepareWorldOptions {
   flags: { cards: boolean; massing: boolean };
   /** `world.rain`, `world.atmosphere` and the QA sky switch (M02b2). */
   sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
+  /** The look pass (M02e): the `world.look` flag, the browser and the backend (WebKit never bakes the environment) and the governor's `postLevel`. */
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number };
   labels: WorldViewLabels;
   container: HTMLElement;
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
@@ -120,6 +122,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     },
     flags: o.flags,
     ...(o.sky ? { sky: o.sky } : {}),
+    ...(o.look ? { look: o.look } : {}),
     spawn: { x: pose.x, z: pose.z },
     labels: o.labels,
     container: o.container,

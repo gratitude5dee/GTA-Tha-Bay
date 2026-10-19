@@ -25,6 +25,7 @@ import { SkyProbe } from './probe.ts';
 import { createRainOverlay, createRainStreaks, type RainOverlay, type RainStreaks } from './rain.ts';
 import { SKY_KEYS, evaluateSky, sunDirection } from './sky-keys.ts';
 import { skyConfigFor, type SkyConfig } from './tiers.ts';
+import type { L } from './tsl.ts';
 import type { AtmosphereAdapter, SkyInput, SkyPresetId, SkyUniforms } from './types.ts';
 
 /** The day the sky shows before the first snapshot carries an `EnvState`. */
@@ -60,6 +61,11 @@ export interface SkyViewOptions {
   /** Starts with the sky off (the `?sky=0` cost comparison of QA builds). */
   disabled?: boolean;
   now?: () => number;
+  /**
+   * M02e: the look pass. `domeBlend` is the weight of the dome over the physical sky (absent: the dome alone, as in M02b2); `after`
+   * runs once a frame after the sky wrote its lights and exposure, and may override them.
+   */
+  look?: { domeBlend: unknown; after(u: Readonly<SkyUniforms>, input: Readonly<SkyInput>, nowMs: number): void };
 }
 
 export interface SkyInfo {
@@ -132,7 +138,7 @@ export class SkyView {
     this.enabled = !o.disabled;
     this.uniforms = evaluateSky(SKY_KEYS, DEFAULT_INPUT);
 
-    this.dome = createDome(o.nodes, this.config.clouds);
+    this.dome = createDome(o.nodes, this.config.clouds, (o.look?.domeBlend ?? undefined) as L | undefined);
     o.backdrop.scene.add(this.dome);
     o.backdrop.scene.background = null;
 
@@ -262,6 +268,7 @@ export class SkyView {
     if (c.lighting === 'probe-grid') this.probe.update(u, nowMs);
     else this.bakeAmbient(u);
     this.adapter?.update(u);
+    this.o.look?.after(u, this.input, nowMs);
 
     // Rain: streak count scales with the intensity, the overlay with the tier.
     const rainK = u.uRain;

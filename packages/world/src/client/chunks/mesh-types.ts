@@ -16,6 +16,10 @@ export interface MeshBuffers {
   /** Baked vertex ambient occlusion, 1 = open, 0 = closed (`aAO`). */
   ao: Float32Array;
   indices: Uint16Array | Uint32Array;
+  /** M02e: `Uint8x4` per vertex: surface id (look/surfaces.ts), palette index, kind/roof code, flags. Uploaded normalised. */
+  surf: Uint8Array;
+  /** M02e, `buildings` only and only when the look is on: `Int16x4` per vertex, see look/surfaces.ts. Uploaded normalised. */
+  facade?: Int16Array;
   /** minX, minY, minZ, maxX, maxY, maxZ in the same local frame. */
   bounds: [number, number, number, number, number, number];
 }
@@ -61,12 +65,20 @@ export function transferListOf(m: UnitMesh): ArrayBuffer[] {
     add(o.colors);
     add(o.ao);
     add(o.indices);
+    add(o.surf);
+    if (o.facade) add(o.facade);
   }
   add(m.trees);
   add(m.lamps);
   return [...new Set(out)];
 }
 
-/** Bytes of a unit mesh on the GPU: the typed arrays, the per-vertex birth time the renderer adds (4 B) and the tree records. */
+/**
+ * Bytes of a unit mesh on the GPU: the typed arrays (`surf` and `facade` included: 4 B per vertex, and 8 B more on a building
+ * vertex), the per-vertex birth time the renderer adds (4 B) and the tree records.
+ */
 export const meshBytes = (objects: readonly MeshBuffers[], trees: Float32Array): number =>
-  objects.reduce((n, o) => n + o.positions.byteLength + o.normals.byteLength + o.colors.byteLength + o.ao.byteLength + o.indices.byteLength + (o.positions.length / 3) * 4, 0) + trees.byteLength;
+  objects.reduce(
+    (n, o) => n + o.positions.byteLength + o.normals.byteLength + o.colors.byteLength + o.ao.byteLength + o.indices.byteLength + o.surf.byteLength + (o.facade?.byteLength ?? 0) + (o.positions.length / 3) * 4,
+    0,
+  ) + trees.byteLength;

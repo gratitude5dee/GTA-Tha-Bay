@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-look.schema.json",
+  "title": "config/world/look.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "tierProfile", "postLevelCap", "exposureBias", "casterRadiusM", "shadowsOff", "facade", "roof", "ground", "water", "sky", "webgl2Unsupported", "webgl2AaFallback"],
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "tier": { "enum": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"] },
+    "profile": { "enum": ["full", "lite", "min", "legacy"] },
+    "perWeather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "properties": {
+        "clear": { "type": "number", "minimum": 0 },
+        "karl-fog": { "type": "number", "minimum": 0 },
+        "overcast": { "type": "number", "minimum": 0 },
+        "rain": { "type": "number", "minimum": 0 },
+        "smoke": { "type": "number", "minimum": 0 },
+        "golden": { "type": "number", "minimum": 0 }
+      }
+    },
+    "facadeClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["floorM", "groundFloorM", "bayM", "winW", "winH", "sillM", "glassRatio", "wallRoughness", "palette"],
+      "properties": {
+        "floorM": { "type": "number", "minimum": 2, "maximum": 8 },
+        "groundFloorM": { "type": "number", "minimum": 2, "maximum": 10 },
+        "bayM": { "type": "number", "minimum": 0.8, "maximum": 12 },
+        "winW": { "type": "number", "minimum": 0.4, "maximum": 8 },
+        "winH": { "type": "number", "minimum": 0.4, "maximum": 6 },
+        "sillM": { "type": "number", "minimum": 0, "maximum": 5 },
+        "glassRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "wallRoughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "palette": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/hex" } }
+      }
+    },
+    "roofClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["albedo", "roughness", "pattern"],
+      "properties": {
+        "albedo": { "$ref": "#/$defs/hex" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pattern": { "enum": ["membrane", "shingle"] }
+      }
+    },
+    "groundClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["albedo", "roughness", "noise"],
+      "properties": {
+        "albedo": { "$ref": "#/$defs/hex" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "noise": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "world-look/1" },
+    "tierProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/profile" },
+        "desktop": { "$ref": "#/$defs/profile" },
+        "mobile": { "$ref": "#/$defs/profile" },
+        "mobile-low": { "$ref": "#/$defs/profile" },
+        "xr-quest": { "$ref": "#/$defs/profile" },
+        "xr-visionpro": { "$ref": "#/$defs/profile" }
+      }
+    },
+    "postLevelCap": { "enum": [0, 1, 2, 3] },
+    "exposureBias": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "type": "number", "exclusiveMinimum": 0 },
+        "desktop": { "type": "number", "exclusiveMinimum": 0 },
+        "mobile": { "type": "number", "exclusiveMinimum": 0 },
+        "mobile-low": { "type": "number", "exclusiveMinimum": 0 },
+        "xr-quest": { "type": "number", "exclusiveMinimum": 0 },
+        "xr-visionpro": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "casterRadiusM": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "desktop-ultra": { "type": "number", "minimum": 0 },
+        "desktop": { "type": "number", "minimum": 0 },
+        "mobile": { "type": "number", "minimum": 0 },
+        "mobile-low": { "type": "number", "minimum": 0 },
+        "xr-quest": { "type": "number", "minimum": 0 },
+        "xr-visionpro": { "type": "number", "minimum": 0 }
+      }
+    },
+    "shadowsOff": { "type": "array", "items": { "$ref": "#/$defs/tier" }, "uniqueItems": true },
+    "facade": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ResLow", "ResMid", "Commercial", "Tower", "Industrial", "Civic"],
+      "properties": {
+        "ResLow": { "$ref": "#/$defs/facadeClass" },
+        "ResMid": { "$ref": "#/$defs/facadeClass" },
+        "Commercial": { "$ref": "#/$defs/facadeClass" },
+        "Tower": { "$ref": "#/$defs/facadeClass" },
+        "Industrial": { "$ref": "#/$defs/facadeClass" },
+        "Civic": { "$ref": "#/$defs/facadeClass" }
+      }
+    },
+    "roof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["flat", "gable", "hip"],
+      "properties": {
+        "flat": { "$ref": "#/$defs/roofClass" },
+        "gable": { "$ref": "#/$defs/roofClass" },
+        "hip": { "$ref": "#/$defs/roofClass" }
+      }
+    },
+    "ground": { "type": "object", "minProperties": 18, "additionalProperties": { "$ref": "#/$defs/groundClass" } },
+    "water": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deep", "shallow", "waves"],
+      "properties": {
+        "deep": { "$ref": "#/$defs/hex" },
+        "shallow": { "$ref": "#/$defs/hex" },
+        "waves": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } }
+        }
+      }
+    },
+    "sky": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turbidity", "rayleigh", "keyframeWeight"],
+      "properties": {
+        "turbidity": { "$ref": "#/$defs/perWeather" },
+        "rayleigh": { "$ref": "#/$defs/perWeather" },
+        "keyframeWeight": { "$ref": "#/$defs/perWeather" }
+      }
+    },
+    "webgl2Unsupported": { "type": "array", "items": { "enum": ["gtao-half", "bloom", "fsr1"] }, "uniqueItems": true },
+    "webgl2AaFallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "traa": { "enum": ["smaa", "fxaa"] },
+        "smaa": { "enum": ["fxaa"] }
+      }
+    }
+  }
+}

@@ -17,7 +17,8 @@ import type { SimEvent } from '@dv/engine/sim';
 import type { WorldFrame, WorldLayer, WorldLayerDebug } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { WorldScenarioDriver } from '@dv/engine/platform/perf';
-import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type WorldIndex } from '@dv/shared';
+import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type RenderBackend, type WorldIndex } from '@dv/shared';
+import type { PostLevel } from '@dv/engine/platform/post';
 import { ChunkStore, LEVEL_Z, type FailReason, type Level, type LoadRequest } from '../sim/streaming/chunk-store.ts';
 import { STREAMING, basePlan, type StreamingPlan } from '../sim/streaming/plan.ts';
 import { rankUnits, type Focus } from '../sim/streaming/priority.ts';
@@ -28,6 +29,8 @@ import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts
 import { profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { MeshJobArgs, MeshJobResult } from './jobs.ts';
+import { LOOK, lookProfileFor } from './look/config.ts';
+import { LookView, type LookReport } from './look/look-view.ts';
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
 
@@ -52,6 +55,8 @@ export interface WorldViewOptions {
   sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
   /** The governor's `atmosphereLevel` at boot (the tier's ceiling when absent). */
   atmosphereLevel?: number;
+  /** M02e: the look pass. Absent: the legacy materials only (the M02b1/M02b2 look). `enabled` is the `world.look` flag. */
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number };
   spawn: { x: number; z: number };
   labels: WorldViewLabels;
   /** Where the overlays go. */
@@ -118,6 +123,8 @@ export class WorldView implements WorldLayer {
   renderer!: ChunkRenderer;
   backdrop!: BackdropLayer;
   materials!: WorldMaterials;
+  /** M02e: the look pass (post stack, shadows, physical sky); null in a view built without `look`. */
+  lookView: LookView | null = null;
   /** The sky of the world path (M02b2); set in `attach`. */
   sky: SkyView | null = null;
   readonly skyNodes: SkyNodes = createSkyNodes();
@@ -169,7 +176,8 @@ export class WorldView implements WorldLayer {
     else void this.o.assets.stats().then((s) => void (this.bytesAtStart = s.bytes)).catch(() => undefined);
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
-    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes });
+    const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK } });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -201,6 +209,32 @@ export class WorldView implements WorldLayer {
 
     this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });
     host.backdrop = { scene: this.backdrop.scene, camera: this.backdrop.camera };
+    // The look pass (M02e) starts before the sky: the dome of the `full` profile is blended over the physical sky it builds.
+    if (this.o.look && profile !== 'legacy') {
+      const look = new LookView({
+        host,
+        tier: this.o.tier,
+        look: LOOK,
+        profile,
+        materials: this.materials,
+        chunks: this.renderer,
+        lights: { hemi: this.lights[0], sun: this.lights[1] },
+        backdrop: this.backdrop,
+        browser: this.o.look.browser,
+        backend: this.o.look.backend,
+        postLevel: this.o.look.postLevel as PostLevel,
+        focus: () => ({ x: this.lastFocus.x, z: this.lastFocus.z }),
+      });
+      this.lookView = look;
+      look.start();
+      host.register({
+        onRendererReplaced: (next) => {
+          look.onRendererReplaced(next);
+          return Promise.resolve();
+        },
+      });
+    }
+    const lookView = this.lookView;
     this.sky = new SkyView({
       host,
       nodes: this.skyNodes,
@@ -212,6 +246,7 @@ export class WorldView implements WorldLayer {
       lamps: () => this.collectLamps(),
       disabled: this.o.sky?.enabled === false,
       now: () => this.now(),
+      ...(lookView ? { look: { domeBlend: lookView.domeBlend, after: (u, input, nowMs) => lookView.after(u, input, nowMs) } } : {}),
     });
     void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
@@ -232,9 +267,24 @@ export class WorldView implements WorldLayer {
     return this.frustum.setFromProjectionMatrix(this.viewProj);
   }
 
-  frame(f: WorldFrame): void {
+  frame(frameIn: WorldFrame): void {
     if (this.disposed) return;
     this.frames++;
+    let f = frameIn;
+    const held = this.lookView?.shotCamera;
+    if (held && this.host) {
+      // A look shot holds the camera: the host's camera, the culling and the sky all see the shot's pose.
+      const cam = this.host.camera as PerspectiveCamera;
+      cam.position.set(held.x, held.y, held.z);
+      cam.quaternion.set(held.quat[0], held.quat[1], held.quat[2], held.quat[3]);
+      if (cam.fov !== held.fovDeg) {
+        cam.fov = held.fovDeg;
+        cam.updateProjectionMatrix();
+      }
+      cam.updateMatrixWorld();
+      const e = cam.matrixWorld.elements;
+      f = { ...frameIn, camera: { pos: [held.x, held.y, held.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] } };
+    }
     const tSec = f.nowMs / 1000;
     const camDist = f.player ? Math.hypot(f.camera.pos[0] - f.player.pos[0], f.camera.pos[2] - f.player.pos[2]) : 0;
     let focus: Focus;
@@ -258,6 +308,7 @@ export class WorldView implements WorldLayer {
     if (this.frames % 30 === 0) this.remeshFiltered();
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
+    if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
     this.updateOverlays();
     this.telemetry();
   }
@@ -310,6 +361,8 @@ export class WorldView implements WorldLayer {
 
   dispose(): void {
     this.disposed = true;
+    this.lookView?.dispose();
+    this.lookView = null;
     this.sky?.dispose();
     this.sky = null;
     this.renderer?.dispose();
@@ -513,6 +566,16 @@ export class WorldView implements WorldLayer {
       triangles: t.triangles,
       frame: this.frames,
     };
+  }
+
+  /** M02e: what the look pass is doing now (the bridge's `look()`). A view without a look reports `legacy`. */
+  lookReport(): LookReport | null {
+    return this.lookView ? this.lookView.report() : null;
+  }
+
+  /** M02e QA: the look on or off at runtime; false when the tier has none. */
+  setLook(on: boolean): boolean {
+    return this.lookView ? this.lookView.setOn(on) : !on;
   }
 
   backdropInfo(): BackdropInfo {

@@ -38,15 +38,26 @@ export function windowEmissive(n: SkyNodes, wall: L, windows: L): L {
   // Quantised first: a hash of the raw colour amplifies the float error of the interpolation into per-pixel noise.
   const key = floor(c.x.mul(91.7).add(c.y.mul(47.3)).add(c.z.mul(13.1)).mul(1000).add(0.5));
   const thr = float(WINDOW_THRESHOLD.lo).add(fract(sin(key.mul(12.9898)).mul(43758.5453)).mul(WINDOW_THRESHOLD.hi - WINDOW_THRESHOLD.lo));
-  const night = smoothstep(0.1, 0.9, n.uNight);
-  const lit = max(night, n.uWindowLit);
-  const on = step(thr, lit);
   // Not every window of a lit building: a cell hash keeps about three quarters of them on.
   const cell = floor(positionWorld.y.mul(0.28)).add(floor(positionWorld.x.add(positionWorld.z).mul(0.3)).mul(31.0));
   const some = step(0.25, fract(sin(cell.mul(12.9898)).mul(43758.5453)));
-  const blackout = float(1).sub(n.uBlackout.mul(1 - BLACKOUT_WINDOW_FACTOR));
-  return vec3(...WINDOW_COLOR).mul(windows).mul(wall).mul(on).mul(some).mul(blackout).mul(1.5);
+  return vec3(...WINDOW_COLOR).mul(windows).mul(wall).mul(buildingLit(n, thr)).mul(some).mul(1.5);
 }
+
+/**
+ * The per-building lit rule of M02b2 as a 0/1 factor times the blackout: the windows come on when the night-driven lit fraction
+ * (`smoothstep` of `uNight`, or the preset's own `windowLit`) passes the building's `threshold` (0.15 to 0.75, `windowThreshold`),
+ * and the blackout takes the glow to 0.15. The look pass (M02e) calls this with a threshold from the building's seed.
+ */
+export function buildingLit(n: SkyNodes, threshold: L): L {
+  const night = smoothstep(0.1, 0.9, n.uNight);
+  const lit = max(night, n.uWindowLit);
+  const on = step(threshold, lit);
+  return on.mul(float(1).sub(n.uBlackout.mul(1 - BLACKOUT_WINDOW_FACTOR)));
+}
+
+/** A building's threshold from a hash `h` in [0, 1): `0.15 + h x 0.6`. */
+export const windowThreshold = (h: L): L => float(WINDOW_THRESHOLD.lo).add(h.mul(WINDOW_THRESHOLD.hi - WINDOW_THRESHOLD.lo));
 
 export interface NightLightsOptions {
   nodes: SkyNodes;

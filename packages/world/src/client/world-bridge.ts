@@ -3,6 +3,7 @@ import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
+import type { LookReport } from './look/look-view.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 
 /**
@@ -46,10 +47,41 @@ export interface WorldBridge {
   sky(): SkyInfo | null;
   /** Renders the scene into a 128 x 72 target looking `pitchDeg` up along `yawDeg` and reads back the mean and variance of its luminance. */
   luma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample>;
+  /** M02e: what the look pass is doing (profile, post nodes, shadow mode and passes, casters, exposure, environment, sky, window glow). */
+  look(): LookReport | null;
+  /** QA only: the live objects, for debugging in the page (not JSON-friendly). */
+  internals(): { view: WorldView; look: unknown };
+  /** M02e: the look on or off at runtime (materials, post stack, shadows; one re-record per resident chunk). False when the tier has none. */
+  setLook(on: boolean): boolean;
+  /**
+   * M02e: applies a shot of `config/world/look-shots.json`: pauses the sim, locks the hour and weather with a zero-second blend,
+   * freezes the look clock, holds the camera, waits for `settle()` and the fade, and resolves once a frame with all of it has been
+   * presented (the spec then screenshots the canvas; no extra offscreen render). `clearShot` releases the camera and the clock.
+   */
+  shot(id: string): Promise<{ id: string; hour: number; weather: string }>;
+  clearShot(): void;
 }
 
 type EngineAct = { engine?: { act(cmd: unknown): boolean } };
 const act = (cmd: unknown): boolean => ((window as unknown as { __dvBridge?: EngineAct }).__dvBridge?.engine?.act(cmd) ?? false);
+
+const nextFrames = (n: number): Promise<void> =>
+  new Promise((resolve) => {
+    let left = n;
+    const tick = (): void => {
+      if (--left <= 0) resolve();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+const until = async (ok: () => boolean, timeoutMs: number, what: string): Promise<void> => {
+  const t0 = performance.now();
+  while (!ok()) {
+    if (performance.now() - t0 > timeoutMs) throw new Error(`look shot: timed out waiting for ${what}`);
+    await nextFrames(1);
+  }
+};
 
 export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
   const bridge: WorldBridge = {
@@ -72,6 +104,38 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     rain: (v) => view.sky?.setRainOverride(v),
     sky: () => view.skyInfo(),
     luma: (pitch, yaw, opts) => view.sampleLuma(pitch, yaw, opts),
+    look: () => view.lookReport(),
+    internals: () => ({ view, look: view.lookView }),
+    setLook: (on) => view.setLook(on),
+    shot: async (id) => {
+      const lv = view.lookView;
+      if (!lv) throw new Error('look shot: this view has no look');
+      const s = lv.holdShot(id);
+      view.setFocus({ x: s.x, z: s.z, vx: 0, vz: 0 });
+      // Pause the clock at the shot's hour and weather (the sim applies the commands on its next tick).
+      act({ t: 'debug.clock.pause', on: true });
+      bridge.setHour(s.hour, true);
+      bridge.setWeather(s.weather, 0);
+      await until(() => {
+        const k = view.skyInfo();
+        return !!k && Math.abs(k.hour - s.hour) < 0.05 && k.weather === s.weather && k.next === s.weather;
+      }, 120_000, `the sky at ${s.hour}:00 ${s.weather}`);
+      lv.freezeClock(true);
+      await view.settle(120_000);
+      // The camera stands on the ground now that the chunk under it is resident.
+      const gy = view.groundY(s.x, s.z);
+      if (gy !== null) lv.placeShot(id, gy);
+      // The dither fade (0.5 s) and a few frames with everything in place, then one more presented frame.
+      const t0 = performance.now();
+      await until(() => performance.now() - t0 > 900, 30_000, 'the fade');
+      await nextFrames(4);
+      return { id: s.id, hour: s.hour, weather: s.weather };
+    },
+    clearShot: () => {
+      view.lookView?.releaseShot();
+      view.lookView?.freezeClock(false);
+      view.setFocus(null);
+    },
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };
