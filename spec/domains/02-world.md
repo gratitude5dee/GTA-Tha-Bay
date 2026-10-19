@@ -276,7 +276,7 @@ Rows copied from the ledger or the research reports. New rows (**N**) were check
 | U-W4 | Sizes of map layers other than roads; geocoder size | gates fail > 4 MiB | M02c2 |
 | U-W5 | Seeds: BART 16th St, 24th St, Balboa Park; Caltrain terminus; Golden Gate portal point | snapped by `pnpm map:landmarks` | M02a2 |
 | U-W6 | Cable-car street chains | bake checks within 6 m | M02a2 |
-| U-W7 | SPDX strings `ODbL-1.0`, `PDDL-1.0` in the licence allowlist | proposal P5 | M00b |
+| U-W7 | SPDX strings `ODbL-1.0`, `PDDL-1.0` in the licence allowlist | proposal P5 | resolved by M00b (merged; DL-687) |
 | U-W8 | Per-pack GETs from the R2 custom domain are fast enough without a batch route | measure | M02b1 |
 | U-W9 | OSM sidewalk, crossing and ferry-route coverage in SF | derived sidewalks, authored ferry lines | M02a2 |
 | U-W10 | Bake time ≤ 25 min, meshing 12 / 25 ms, sky GPU ms, all † budgets | calibrate | M02b1–b2, M11a |

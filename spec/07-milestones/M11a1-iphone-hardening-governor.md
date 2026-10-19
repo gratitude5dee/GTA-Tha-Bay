@@ -81,7 +81,7 @@ After this session the platform adapts to the device while the game runs, and th
 ## Demo script
 1. `pnpm dev`, open `/?perf=1&tier=mobile`, and run `__dvBridge.platform.governor.inject(Array(180).fill(30))`. The HUD shows `renderScale` stepping down; stop injecting and watch it climb back after 10 s.
 2. Run `__dvBridge.platform.memory.injectMB(500)` and see the `soft`, then `hard`, events in the console and a smaller streaming radius.
-3. Run `pnpm check:perf -- --scenario race-pursuit-heat4` and open `test-results/perf.chromium-webgl2.mobile.json`.
+3. Run `pnpm check:perf -- --scenario race-pursuit-heat4` and open `test-results/perf.race-pursuit-heat4.chromium-webgl2.mobile.json` (reports are keyed by scenario from M02b1).
 
 ## Effort
 1 Builder session; about 24 files; risk **medium**. The governor and memory policies are well specified, so the time goes to wiring eviction into ChunkStore and making the racing scenarios deterministic in CI.

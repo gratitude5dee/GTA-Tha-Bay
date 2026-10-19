@@ -103,7 +103,7 @@ Results go to `docs/device-runs/<M##>/<device>/{perf.json,notes.json}` (M01c kee
 † S11 extrapolations, calibrated in M11a2 (desktop) and M11b (XR); until calibrated they run in warn mode only.
 
 ### 4.3 Modes and the device formula
-- **PR** (`ci.yml` `perf`, from M02b1): `pnpm check:perf` writes `test-results/perf.<project>.<tier>.json` and warns. **Nightly:** `pnpm check:perf -- --fail` fails on any count, memory or cold-download breach (M01c); required from M11a1.
+- **PR** (`ci.yml` `perf`, from M02b1): `pnpm check:perf` runs every registered scenario (`PERF_SCENARIOS`), writes `test-results/perf.<scenario>.<project>.<tier>.json` and warns; a missing report is a miss (M02b1). **Nightly:** `pnpm check:perf -- --fail` fails on any count, memory or cold-download breach (M01c); required from M11a1.
 - **Device:** `pnpm perf:verify -- <perf.json> --tier <id> [--checklist <f>]` passes when median frame ≤ 1.05 × `frameBudgetMs`, p95 ≤ 1.5 ×, frames over 50 ms ≤ `durationS / 60` (XR: frames over 2 × budget ≤ `durationS / 60`), `errors.gpuLost == 0`, boot within the tier row, counts and memory within the tier row, and every checklist expectation holds (`11-platform-perf.md` §5).
 - **Other CPU budgets:** room tick p99 ≤ 10 ms with 16 bots for 30 min (`pnpm load:rooms -- --bots 16 --minutes 30`, M12c2); release rollout to 100 % of mobile traffic needs the A03 abnormal-exit rate ≤ 1.5 × the previous build over ≥ 500 mobile sessions [research/gap-observability-cost-guardrails.md Rec 4] (M14b2).
 
