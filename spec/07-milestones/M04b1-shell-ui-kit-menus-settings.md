@@ -69,7 +69,7 @@ The player can:
 - `packages/shared/schemas/telemetry/names.schema.json` (`$defs` `ui.onboard {step, outcome}`, both strings ≤ 32 chars from the onboarding step and outcome enums; `ui.page` is M00a's) and `ui.onboard` removed from `pending.json` (DL-693; data, not counted).
 - `content/legal/terms.json` (and `privacy.json` if the shell text needs it): replace M00e's interim content with the game's pre-release terms (Terms card text, telemetry consent paragraph), keeping the `LegalDocRes` shape; bump the value of `TERMS_VERSION` in `config/terms.ts` when the text changes (DL-602).
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
-- About 41 files (35 new, `package.json`, five edits; DL-650, DL-602).
+- About 40 files in code (35 new, `package.json`, four code edits; the data edits `content/legal/terms.json`, the iPhone-landscape fixture and the telemetry schema are not counted, as above; DL-650, DL-602). Builder restatement (BD-CI-04): the 41 counted `terms.json` as a code edit.
 
 ## Interfaces
 - C06 1.1: `UiBridge`, `ViewModelSource`, `UiCommand` (`mode.start`, `mode.quit`, `save.*`), `GameModeDescriptor.tile`, `status`, `unlock`, `GameModeUI.summary?`. Consumed, no change.
@@ -119,7 +119,7 @@ The player can:
 6. In a new private window, enter an under-18 date: Blocked; reload: still Blocked.
 
 ## Effort
-1 Builder session; about 41 files (DL-650, DL-602); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
+1 Builder session; about 40 files in code, data files not counted (DL-650, DL-602); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
 
 ## Risks & fallbacks
 - **File count.** Settings categories share files by design; add no page files.
