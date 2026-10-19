@@ -3,6 +3,7 @@ import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
+import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 
 /**
@@ -141,5 +142,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };
+  // With ?debug=1 the teleport, GPS and world-edge controls sit under the sky controls (M02c1).
+  if (new URLSearchParams(location.search).get('debug') === '1') mountWorldControls(document.body, bridge);
   return bridge;
 }

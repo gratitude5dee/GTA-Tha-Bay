@@ -79,6 +79,32 @@ test.describe('world teleport and routes @world', () => {
     expect(fade.state).not.toBe('out');
   });
 
+  test('the debug panel lists the landmarks, Go teleports there, and Route sets a GPS route the sim plans @world-teleport', async ({ page }) => {
+    await boot(page);
+    const go = page.getByTestId('world-go');
+    await expect.poll(async () => go.locator('option').count(), { timeout: 60_000 }).toBeGreaterThanOrEqual(25);
+    await go.selectOption('lm.coit-tower');
+    // the test viewport is small (the software renderer): click through the DOM, the panel sits below the fold there
+    await page.getByTestId('world-go-button').evaluate((el) => (el as HTMLElement).click());
+    await expect(page.getByTestId('world-controls-out')).toContainText('at Coit Tower', { timeout: 120_000 });
+    const p = (await observe(page)).player!;
+    expect(Math.hypot(p.pos[0] - 1185.4, p.pos[2] + 2566.2)).toBeLessThan(40);
+    expect((await world(page, (w) => w.fade())).log.slice(-2)).toEqual(['out', 'in']);
+    // the GPS route to the ferry building: planned in the sim, published as a map patch
+    await page.getByTestId('world-gps').selectOption('lm.ferry-building');
+    await page.getByTestId('world-route-button').evaluate((el) => (el as HTMLElement).click());
+    await expect
+      .poll(async () => (await world(page, (w) => w.map()))?.route != null, { timeout: 60_000, intervals: [250, 500, 1000] })
+      .toBe(true);
+    const route = (await world(page, (w) => w.map()))!.route as { points: number[]; lengthM: number; etaS: number };
+    expect(route.points.length).toBeGreaterThan(8);
+    expect(route.lengthM).toBeGreaterThan(500);
+    expect(route.lengthM).toBeLessThan(6000);
+    await expect(page.getByTestId('world-controls-stat')).toContainText('gps ', { timeout: 5000 });
+    await page.setViewportSize({ width: 960, height: 640 });
+    await page.screenshot({ path: 'test-results/world-controls.png' });
+  });
+
   test('50 seeded routes: the page and Node compute the same edges and lengths @world-astar', async ({ page }) => {
     const latest = path.resolve('dist/world/latest-synth.json');
     test.skip(!existsSync(latest), 'no synth bake in dist/world (pnpm map:build -- --area synth)');
