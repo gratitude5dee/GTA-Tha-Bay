@@ -41,7 +41,7 @@ interface Harness {
 function harness(tier: QualityTierId, xs: number[], opts: { auto?: boolean; seaIds?: string[] } = {}): Harness {
   const spots: LandmarkSpot[] = xs.map((x, i) => ({ id: `lm.s${i}`, index: i, x, z: 0, asset: `building/lm.s${i}` }));
   const chunks = new Map<ChunkKey, { proxies: number[]; masked: number[]; rerecords: number }>();
-  spots.forEach((s, i) => chunks.set(`9/${i}/0` as ChunkKey, { proxies: [proxyIdOf(i)], masked: [], rerecords: 0 }));
+  spots.forEach((_s, i) => chunks.set(`9/${i}/0` as ChunkKey, { proxies: [proxyIdOf(i)], masked: [], rerecords: 0 }));
   const h: Harness = {
     layer: null as never, spots, clock: { ms: 1000 }, chunks, remeshes: [], mounted: [], disposed: [], loads: [], fail: new Set(), ground: { ready: true },
     commit() {

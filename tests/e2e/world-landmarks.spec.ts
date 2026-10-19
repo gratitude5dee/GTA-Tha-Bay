@@ -138,7 +138,7 @@ test.describe('landmarks @world', () => {
       const cap = tier === 'desktop' ? 8 : 3;
       for (const id of TWELVE) {
         const result = await teleport(page, id);
-        expect(result.ok, `${id}: ${String(result.reason)}`).toBe(true);
+        expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
         await expect
           .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
           .toContain(id);
