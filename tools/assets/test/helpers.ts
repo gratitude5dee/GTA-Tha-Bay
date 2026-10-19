@@ -1,6 +1,6 @@
 /** Test helpers: a temp copy of the repository's asset tree and a way to add synthetic assets to it. */
 import { createHash } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { AssetKind, VariantId } from '../../../packages/shared/src/assets/c07.ts';
@@ -18,13 +18,20 @@ export function tempRepo(): string {
   return root;
 }
 
-/** The tests below assert on the M01d seed assets only: the M01f world_pack fixtures (which point outside assets/) stay out of the copy. */
+/** The tests below assert on the M01d seed assets only: the M01f world_pack fixtures (which point outside assets/) and the M06a2 NPC data assets stay out of the copy. */
 function dropFixtureAssets(root: string): void {
   const lockFile = path.join(root, 'assets', 'assets.lock.json');
   const lock = JSON.parse(readFileSync(lockFile, 'utf8')) as { entries: Record<string, unknown> };
   for (const id of ['p0-64-64', 'l0-64-64']) {
     rmSync(path.join(root, 'assets', 'src', 'world_pack', id), { recursive: true, force: true });
     delete lock.entries[`world_pack/${id}`];
+  }
+  // M06a2: the NPC data assets (data/npc-roster, data/ink.<id>) are built by npc:build and tested in tools/soul.
+  const dataDir = path.join(root, 'assets', 'src', 'data');
+  for (const id of readdirSync(dataDir)) {
+    if (id === 'asset-smoke') continue;
+    rmSync(path.join(dataDir, id), { recursive: true, force: true });
+    delete lock.entries[`data/${id}`];
   }
   writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
