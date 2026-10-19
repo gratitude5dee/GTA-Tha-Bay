@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GROUPS, GROUP_BIT, RapierBackend } from '@dv/engine/sim';
 import {
   COUNTY_FOG_MIN, PLAY_WALL_MARGIN_M, WATER_WALL_DEPTH_M, WATER_WALL_DRY, WATER_WALL_TICKS, clampToPlayWall, countyFogFactor, waterWall,
   type ChunkKey, type Portal, type ShoreNode, type WaterWallState,
@@ -117,6 +118,53 @@ describe('play bounds wall', () => {
       expect(inside).toBe(false);
     }
   });
+});
+
+describe('play bounds wall in the physics world', () => {
+  const play = { minX: -9400, maxX: 6200, minZ: -6300, maxZ: 8900 };
+  const opts = { autostepM: 0.4, snapToGroundM: 0.5, maxSlopeDeg: 45, slide: true };
+
+  /** A capsule pushed `dx, dz` from a start inside play, in one move and in 1 m steps; returns where it ends up. */
+  async function push(from: [number, number], dx: number, dz: number, steps: number): Promise<[number, number]> {
+    const backend = new RapierBackend('deterministic-compat');
+    await backend.init();
+    backend.addChunkStatics('world.bounds', { prisms: Float32Array.from(playWallPrisms(play)) });
+    const body = backend.createBody({ kind: 'kinematic', shape: 'capsule', dims: [0.55, 0.35], at: [from[0], 0.91, from[1]], groups: GROUPS.character });
+    backend.step(1 / 60, 1);
+    let x = from[0], z = from[1];
+    for (let i = 0; i < steps; i++) {
+      const r = backend.character.move(body, [dx / steps, 0, dz / steps], opts);
+      x += r.moved[0];
+      z += r.moved[2];
+      backend.setKinematicTarget(body, [x, 0.91, z], [0, 0, 0, 1]);
+      backend.step(1 / 60, 1);
+    }
+    backend.dispose();
+    return [x, z];
+  }
+
+  it('stops a ground body pushed 60 m past play at play plus 50 m, on every side', async () => {
+    expect(GROUP_BIT.static).toBeGreaterThan(0);
+    const margin = 50 - 0.35;   // the capsule's own radius sits inside the wall
+    const [ex] = await push([play.maxX - 5, 0], 65, 0, 65);
+    expect(ex).toBeGreaterThan(play.maxX + margin - 0.25);
+    expect(ex).toBeLessThan(play.maxX + 50);
+    const [wx] = await push([play.minX + 5, 0], -65, 0, 65);
+    expect(wx).toBeLessThan(play.minX - margin + 0.25);
+    expect(wx).toBeGreaterThan(play.minX - 50);
+    const [, sz] = await push([0, play.maxZ - 5], 0, 65, 65);
+    expect(sz).toBeGreaterThan(play.maxZ + margin - 0.25);
+    expect(sz).toBeLessThan(play.maxZ + 50);
+    const [, nz] = await push([0, play.minZ + 5], 0, -65, 65);
+    expect(nz).toBeLessThan(play.minZ - margin + 0.25);
+    expect(nz).toBeGreaterThan(play.minZ - 50);
+    // one move of 65 m is stopped as well
+    const [bx] = await push([play.maxX - 5, 0], 65, 0, 1);
+    expect(bx).toBeLessThan(play.maxX + 50);
+    // inside the play box nothing is in the way
+    const [ix] = await push([0, 0], 40, 0, 40);
+    expect(ix).toBeCloseTo(40, 3);
+  }, 60_000);
 });
 
 describe('county line', () => {

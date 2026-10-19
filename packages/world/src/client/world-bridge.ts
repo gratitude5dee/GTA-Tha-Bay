@@ -1,4 +1,4 @@
-import type { ChunkKey, QualityTierId, WeatherPreset } from '@dv/shared';
+import type { ChunkKey, QualityTierId, TeleportKind, TeleportResult, WeatherPreset } from '@dv/shared';
 import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
@@ -46,10 +46,65 @@ export interface WorldBridge {
   sky(): SkyInfo | null;
   /** Renders the scene into a 128 x 72 target looking `pitchDeg` up along `yawDeg` and reads back the mean and variance of its luminance. */
   luma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample>;
+  /**
+   * The world services of the sim (M02c1): one call into `WorldApi` inside sim.worker, answered as JSON. `op` is one of `teleport`,
+   * `route`, `resolve`, `snap`, `find`, `pois`, `pedRoute`, `query`, `portals`, `portal`, `release`, `closeEdges`, `density`,
+   * `shore`, `waterWall`, `map`, `state`, `candidates` (packages/world/src/sim/api/debug.ts). Resolves null after `timeoutMs`.
+   */
+  call(op: string, args?: Record<string, unknown>, timeoutMs?: number): Promise<unknown>;
+  /** Teleports the player (kind `debug`) to a landmark id (`lm.coit-tower`), a transit node id, or a point; resolves with the result. */
+  teleport(to: string | { x: number; z: number; yaw?: number }, kind?: TeleportKind): Promise<TeleportResult | null>;
+  /**
+   * The route between two places (a landmark id, a POI id, or `{x, z}`) on the topology graph, as the sim computes it:
+   * `{edges, count, lengthM, etaS, complete, expanded}`, or null when there is none.
+   */
+  route(a: RoutePlace, b: RoutePlace, opts?: { useTopology?: boolean; allowWrongWay?: boolean; maxExpand?: number }): Promise<RouteReply | null>;
+  /** The edge and the distance along it of the road nearest to a latitude and longitude. */
+  resolve(lat: number, lng: number): Promise<{ edge: number; s: number } | null>;
+  /** The newest `world.boundary` event (`{tick, s: 'countyLine'}`) the page received, or null; `boundaryEvents()` counts them. */
+  lastBoundaryEvent(): { tick: number; s: string } | null;
+  boundaryEvents(): number;
+  /** The teleport fade: the directions asked so far (`out`, `in`) and where the veil is now. */
+  fade(): { log: ('out' | 'in')[]; state: string; opacity: number };
+  /** The newest map patch the sim published (blips and the GPS route), or null. */
+  map(): { rev: number; blips: unknown[]; route: unknown } | null;
 }
 
-type EngineAct = { engine?: { act(cmd: unknown): boolean } };
+export type RoutePlace = string | { x: number; z: number };
+export interface RouteReply {
+  edges: number[];
+  count: number;
+  lengthM: number;
+  etaS: number;
+  complete: boolean;
+  expanded: number;
+}
+
+/** `lm.coit-tower` and the other ids of the world index as the sim's `Spot` argument. */
+function spotArg(p: RoutePlace): Record<string, unknown> {
+  if (typeof p !== 'string') return { x: p.x, z: p.z };
+  if (p.startsWith('lm.')) return { landmark: p };
+  if (p.startsWith('poi.')) return { poi: p };
+  return { landmark: p };
+}
+
+type EngineAct = { engine?: { act(cmd: unknown): boolean; qa?: Record<string, unknown> } };
 const act = (cmd: unknown): boolean => ((window as unknown as { __dvBridge?: EngineAct }).__dvBridge?.engine?.act(cmd) ?? false);
+
+let callId = 0;
+/** One `debug.world` command and the wait for its qa reply `world.reply.<id>`. */
+async function call(op: string, args?: Record<string, unknown>, timeoutMs = 30_000): Promise<unknown> {
+  const id = ++callId;
+  if (!act({ t: 'debug.world', id, op, ...(args ? { args } : {}) })) return null;
+  const name = `world.reply.${id}`;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const qa = (window as unknown as { __dvBridge?: EngineAct }).__dvBridge?.engine?.qa;
+    if (qa && name in qa) return qa[name];
+    await new Promise<void>((r) => setTimeout(r, 15));
+  }
+  return null;
+}
 
 export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
   const bridge: WorldBridge = {
@@ -72,6 +127,17 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     rain: (v) => view.sky?.setRainOverride(v),
     sky: () => view.skyInfo(),
     luma: (pitch, yaw, opts) => view.sampleLuma(pitch, yaw, opts),
+    call: (op, args, timeoutMs = 30_000) => call(op, args, timeoutMs),
+    teleport: async (to, kind = 'debug') => {
+      const target = typeof to === 'string' ? (to.startsWith('lm.') ? { landmark: to } : { node: to }) : to;
+      return (await call('teleport', { ...target, kind }, 60_000)) as TeleportResult | null;
+    },
+    route: async (a, b, opts = {}) => (await call('route', { from: spotArg(a), to: spotArg(b), ...opts })) as RouteReply | null,
+    resolve: async (lat, lng) => (await call('resolve', { lat, lng })) as { edge: number; s: number } | null,
+    lastBoundaryEvent: () => view.lastBoundary,
+    boundaryEvents: () => view.boundaryCount,
+    fade: () => ({ log: [...view.fade.log], state: view.fade.state, opacity: Number(view.fade.el.style.opacity || '0') }),
+    map: () => view.lastMap,
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };

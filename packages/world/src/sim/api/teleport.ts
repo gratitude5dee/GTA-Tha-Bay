@@ -101,7 +101,7 @@ export interface TeleportDeps {
 
 type Fail = Extract<TeleportResult, { ok: false }>;
 const fail = (reason: Fail['reason'], key: string): Fail => ({ ok: false, reason, messageKey: key });
-export const MSG = {
+export const TELEPORT_MSG = {
   notLoaded: 'world.teleport.notLoaded',
   water: 'world.teleport.water',
   blocked: 'world.teleport.blocked',
@@ -184,7 +184,7 @@ export class TeleportService implements TeleportApi {
   request(kind: TeleportKind, to: TeleportTarget): Promise<TeleportResult> {
     const early = this.validate(kind, to);
     if ('ok' in early) return Promise.resolve(early);
-    if (this.job) return Promise.resolve(fail('blocked', MSG.busy));
+    if (this.job) return Promise.resolve(fail('blocked', TELEPORT_MSG.busy));
     return new Promise<TeleportResult>((resolve) => {
       const t = early.to;
       const here = parseChunkKey(chunkKeyAt(9, t.x, t.z));
@@ -207,14 +207,14 @@ export class TeleportService implements TeleportApi {
   }
 
   private validate(kind: TeleportKind, to: TeleportTarget): { to: Resolved } | Fail {
-    if (!this.policy.allowed(kind)) return fail('forbidden-in-mode', MSG.forbidden);
-    if ((kind === 'fast-travel' || kind === 'sandbox') && this.policy.heat() > 0) return fail('heat', MSG.heat);
+    if (!this.policy.allowed(kind)) return fail('forbidden-in-mode', TELEPORT_MSG.forbidden);
+    if ((kind === 'fast-travel' || kind === 'sandbox') && this.policy.heat() > 0) return fail('heat', TELEPORT_MSG.heat);
     const t = this.resolve(kind, to);
-    if (!t) return fail('blocked', MSG.unknownTarget);
+    if (!t) return fail('blocked', TELEPORT_MSG.unknownTarget);
     const p = this.d.play;
-    if (!(t.x >= p.minX && t.x <= p.maxX && t.z >= p.minZ && t.z <= p.maxZ)) return fail('out-of-bounds', MSG.outOfBounds);
+    if (!(t.x >= p.minX && t.x <= p.maxX && t.z >= p.minZ && t.z <= p.maxZ)) return fail('out-of-bounds', TELEPORT_MSG.outOfBounds);
     if (kind === 'fast-travel' && this.lastFastTravel !== null && this.d.now() - this.lastFastTravel < this.cfg.cooldown.fastTravelS * 60) {
-      return fail('cooldown', MSG.cooldown);
+      return fail('cooldown', TELEPORT_MSG.cooldown);
     }
     return { to: t };
   }
@@ -260,7 +260,7 @@ export class TeleportService implements TeleportApi {
         job.phase = 'fade';
         job.phaseStart = tick;
       } else if (tick - job.started >= PRESTREAM_TICKS) {
-        this.finish(job, fail('not-loaded', MSG.notLoaded));
+        this.finish(job, fail('not-loaded', TELEPORT_MSG.notLoaded));
       }
       return;
     }
@@ -268,7 +268,7 @@ export class TeleportService implements TeleportApi {
       if (tick - job.phaseStart < FADE_TICKS) return;
       const p = job.place as { x: number; y: number; z: number };
       const begun = this.d.host.begin(p.x, p.y, p.z, job.to.yaw);
-      if (!begun.ok) return this.finish(job, fail('blocked', MSG.busy));
+      if (!begun.ok) return this.finish(job, fail('blocked', TELEPORT_MSG.busy));
       job.phase = 'move';
       job.phaseStart = tick;
       return;
@@ -279,7 +279,7 @@ export class TeleportService implements TeleportApi {
       const p = job.place as { x: number; y: number; z: number };
       if (!at || dsqrt((at[0] - p.x) * (at[0] - p.x) + (at[2] - p.z) * (at[2] - p.z)) > ARRIVE_TOLERANCE_M) {
         this.d.host.fade('in');
-        return this.finish(job, fail('not-loaded', MSG.notLoaded));
+        return this.finish(job, fail('not-loaded', TELEPORT_MSG.notLoaded));
       }
       this.d.host.fade('in');
       this.finish(job, { ok: true, x: at[0], y: at[1], z: at[2], yaw: job.to.yaw });
@@ -287,7 +287,7 @@ export class TeleportService implements TeleportApi {
     }
     if (tick - job.phaseStart >= MOVE_TIMEOUT_TICKS) {
       this.d.host.fade('in');
-      this.finish(job, fail('not-loaded', MSG.notLoaded));
+      this.finish(job, fail('not-loaded', TELEPORT_MSG.notLoaded));
     }
   }
 
@@ -315,7 +315,7 @@ export class TeleportService implements TeleportApi {
 
   private placeFor(t: Resolved): { x: number; y: number; z: number } | Fail {
     const key = chunkKeyAt(9, t.x, t.z);
-    if (!this.d.query.chunkReady(key)) return fail('not-loaded', MSG.notLoaded);
+    if (!this.d.query.chunkReady(key)) return fail('not-loaded', TELEPORT_MSG.notLoaded);
     for (const o of OFFSETS) {
       const x = t.x + o.dx, z = t.z + o.dz;
       const y = this.validAt(x, z);
@@ -323,7 +323,7 @@ export class TeleportService implements TeleportApi {
     }
     // nothing within 40 m: say why
     const chunkEmpty = this.d.query.groundY(t.x, t.z) === null;
-    return this.d.query.isWater(t.x, t.z) || chunkEmpty ? fail('water', MSG.water) : fail('blocked', MSG.blocked);
+    return this.d.query.isWater(t.x, t.z) || chunkEmpty ? fail('water', TELEPORT_MSG.water) : fail('blocked', TELEPORT_MSG.blocked);
   }
 
   // ---- fares --------------------------------------------------------------------------------------------------------------

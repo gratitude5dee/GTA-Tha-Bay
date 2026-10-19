@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["id", "kind", "version", "render", "physics", "components"],
   "properties": {
-    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9_]+)+$", "description": "Dotted lower-case id, for example player.default." },
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z0-9_-]+)+$", "description": "Dotted lower-case id, for example player.default; a segment may hold hyphens (prop.county-barrier, M02c1)." },
     "kind": { "enum": ["player", "vehicle", "ped", "prop", "pickup", "police", "robotaxi", "portal", "marker", "trigger"] },
     "version": { "type": "integer", "minimum": 1 },
     "nameKey": { "type": "string", "minLength": 1, "description": "NameRegistry key; never a raw brand." },

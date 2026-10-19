@@ -12,7 +12,7 @@
  * session without a world runs and hashes as a session without the module.
  */
 import { SimStage, decodeDistrictGrid, decodeGraph, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef, type WorldIndex } from '@dv/shared';
-import { playerSide, requestTeleport, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { GROUP_BIT, playerSide, requestTeleport, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
@@ -22,7 +22,7 @@ import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
 import { playWallPrisms } from '../api/boundaries.ts';
 import type { TeleportHost } from '../api/teleport.ts';
 import { createWorldApi, type WorldServices } from '../api/world-api.ts';
-import { runWorldDebug, type WorldDebugCommand } from '../api/debug.ts';
+import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
 /** The sim tick rate the retry delays (milliseconds in the config) are converted with. */
@@ -316,6 +316,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
   let api: WorldServices | null = null;
   let sendQa: ((name: string, data: unknown) => void) | null = null;
+  let physics: WorldDebugPhysics | null = null;
   const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
@@ -355,7 +356,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     },
     onDebug(cmd: DebugCommand): void {
       if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
-      if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data));
+      if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), physics ?? undefined);
     },
     onInit(ctx: SimModuleContext): void {
       const raw = ctx.boot.config['world'];
@@ -372,6 +373,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       const log = ctx.runtime.env.log;
       events = ctx.sim.services.events;
       sendQa = (name, data) => void ctx.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      physics = { castRay: (o, d, max, mask) => ctx.sim.backend.castRay(o, d, max, mask), staticMask: GROUP_BIT.static };
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());

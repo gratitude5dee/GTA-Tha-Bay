@@ -56,8 +56,15 @@ function targetOf(a: Args): TeleportTarget | null {
 
 const KINDS: readonly TeleportKind[] = ['sandbox', 'fast-travel', 'xr-comfort', 'respawn', 'debug'];
 
+/** What a few ops need of the physics world (a ray against the statics, to find the play-bounds wall). */
+export interface WorldDebugPhysics {
+  castRay(origin: [number, number, number], dir: [number, number, number], max: number, mask: number): { toi: number; normal: [number, number, number] } | null;
+  /** Collision group bit of the statics. */
+  staticMask: number;
+}
+
 /** Runs one op. `reply(id, data)` is called exactly once, now or when an asynchronous op settles. */
-export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCommand, reply: (id: number, data: unknown) => void): void {
+export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCommand, reply: (id: number, data: unknown) => void, physics?: WorldDebugPhysics): void {
   const a = cmd.args ?? {};
   const done = (data: unknown): void => reply(cmd.id, data);
   switch (cmd.op) {
@@ -162,6 +169,14 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
         blips: w.map.blips().length,
         play: w.play,
       });
+    case 'ray': {
+      // a ray against the static colliders: where the first solid thing is along a direction (the play-bounds wall, a barrier)
+      const o = Array.isArray(a['from']) ? (a['from'] as number[]) : null;
+      const d = Array.isArray(a['dir']) ? (a['dir'] as number[]) : null;
+      if (!physics || !o || !d || o.length !== 3 || d.length !== 3) return done(null);
+      const hit = physics.castRay([o[0] as number, o[1] as number, o[2] as number], [d[0] as number, d[1] as number, d[2] as number], num(a['max']) ?? 500, physics.staticMask);
+      return done(hit ? { toi: hit.toi, at: [(o[0] as number) + (d[0] as number) * hit.toi, (o[1] as number) + (d[1] as number) * hit.toi, (o[2] as number) + (d[2] as number) * hit.toi], normal: hit.normal } : null);
+    }
     case 'candidates': {
       const kind = (KINDS as readonly string[]).includes(String(a['kind'])) ? (a['kind'] as TeleportKind) : 'sandbox';
       return done(w.teleport.candidates(kind));

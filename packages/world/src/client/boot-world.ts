@@ -107,9 +107,15 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
   // pack that is unavailable is the view's to retry, with the "re-downloading district" message over the page (02-world.md 5.6).
   void Promise.all(set.critical.filter((a) => a !== spawnPack).map((a) => assets.get(a, { priority: 'now' }).catch(() => undefined)));
 
-  const refs = (await assets.job('world.refs', { prefix: 'world_pack/p0-', tier: o.tier })) as WorldSimConfig['refs'];
+  const refsFor = async (prefix: string): Promise<WorldSimConfig['refs']> => (await assets.job('world.refs', { prefix, tier: o.tier })) as WorldSimConfig['refs'];
+  // The p0 tiles, plus the always-resident road topology and the district grid (M02c1), which the sim loads through the same channel.
+  const refs: WorldSimConfig['refs'] = {
+    ...(await refsFor('world_pack/p0-')),
+    ...(await refsFor('map_data/sf-graph')),
+    ...(await refsFor('data/district-grid')),
+  };
   const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];
-  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn };
+  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index };
 
   const view = new WorldView({
     tier: o.tier,
