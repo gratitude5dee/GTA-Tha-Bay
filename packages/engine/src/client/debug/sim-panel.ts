@@ -73,9 +73,9 @@ export class SimPanel {
     return this.shown;
   }
 
-  /** An element that shows and hides with the panel (the sky controls). */
-  addCompanion(el: HTMLElement): void {
-    el.hidden = !this.shown;
+  /** An element that shows and hides with the panel (the sky controls). `visible` sets how it starts (default: with the panel). */
+  addCompanion(el: HTMLElement, visible = this.shown): void {
+    el.hidden = !visible;
     this.companions.push(el);
   }
 
@@ -171,14 +171,18 @@ export class SkyControls {
 
   constructor(opts: SkyControlsOptions) {
     const doc = opts.container.ownerDocument;
+    // The root is a plain block so the `hidden` attribute works (an inline `display: grid` would override it); the grid is inside.
     const root = doc.createElement('div');
     root.className = 'dv-sky-controls';
     root.dataset['dvSkyControls'] = '';
     Object.assign(root.style, {
-      position: 'fixed', insetBlockStart: '92px', insetInlineStart: '8px', zIndex: '9', padding: '6px 8px', display: 'grid', gap: '4px',
+      position: 'fixed', insetBlockStart: '92px', insetInlineStart: '8px', zIndex: '9', padding: '6px 8px',
       font: '12px/1.35 ui-monospace, Menlo, Consolas, monospace', color: '#d8f5d0', background: 'rgb(0 0 0 / 0.7)', borderRadius: '6px',
     });
     root.hidden = true;
+    const grid = doc.createElement('div');
+    grid.style.cssText = 'display:grid;gap:4px';
+    root.append(grid);
     const row = (label: string, el: HTMLElement): void => {
       const l = doc.createElement('label');
       l.style.cssText = 'display:flex;gap:6px;align-items:center';
@@ -186,7 +190,7 @@ export class SkyControls {
       t.textContent = label;
       t.style.minWidth = '56px';
       l.append(t, el);
-      root.append(l);
+      grid.append(l);
     };
     this.hour = doc.createElement('input');
     this.hour.type = 'range';

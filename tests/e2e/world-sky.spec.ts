@@ -55,9 +55,9 @@ test.describe('world sky @world-sky', () => {
     page.on('pageerror', (e) => errors.push(e.message));
     await bootWorld(page, 'desktop');
 
-    // Sky luminance: the backdrop pass alone (the dome and the far ring), looking up and away from the sun; the city: both passes.
+    // Sky luminance: the backdrop pass alone (the dome and the far ring), looking up and away from the sun; the city: both passes from 150 m up, looking west (where the Karl bank is heaviest) over the city.
     const sky = (): Promise<{ mean: number }> => world(page, (w) => w.luma(40, 90, { passes: 'sky' }));
-    const city = (): Promise<{ mean: number; variance: number }> => world(page, (w) => w.luma(-6, 0));
+    const city = (): Promise<{ mean: number; variance: number }> => world(page, (w) => w.luma(-8, 90, { heightM: 150 }));
 
     await setSky(page, 13, 'clear');
     const noon = await sky();
@@ -115,9 +115,11 @@ test.describe('world sky @world-sky', () => {
       await expect.poll(async () => (await world(page, (w) => w.sky()))?.uniforms.uRain ?? 0, { timeout: 30_000 }).toBeGreaterThan(0.5);
       const rainy = await world(page, (w) => w.sky());
       expect(rainy?.overlay).toBe(true);
-      expect(rainy?.streaksDrawn ?? 0).toBeGreaterThan(0);
       if (tier === 'mobile-low') expect(rainy?.streaksDrawn).toBe(0);
-      else expect(rainy?.streaksDrawn).toBeLessThanOrEqual(800);
+      else {
+        expect(rainy?.streaksDrawn ?? 0).toBeGreaterThan(0);
+        expect(rainy?.streaksDrawn).toBeLessThanOrEqual(800);
+      }
       await expect.poll(async () => (await world(page, (w) => w.sky()))?.wet ?? 0, { timeout: 60_000 }).toBeGreaterThan(0.2);
       // The rain override forces rain whatever the preset: Karl fog with rain on top (the device checklist's look).
       await setSky(page, 21.5, 'karl-fog');

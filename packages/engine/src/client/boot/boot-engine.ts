@@ -480,7 +480,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
             onRain: (rain) => layer.debug?.setRainOverride(rain),
             onFreeze: (on) => void host.sendDebug({ t: 'debug.clock.pause', on }),
           });
-          panel.addCompanion(skyControls.root);
+          // The sky controls are on from the start with ?debug=1 (F3 hides them with the panel text), so the day and the weather can be seen at once.
+          panel.addCompanion(skyControls.root, true);
           cleanups.push(() => skyControls?.dispose());
         }
         // A phone has no F3: with ?debug=1 on a touch device the panel is on from the start.

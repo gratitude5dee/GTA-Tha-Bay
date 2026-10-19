@@ -35,7 +35,7 @@ const STATIC_SUN = { color: 0xfff1d6, intensity: 2.8, x: 120, y: 220, z: 80 };
 
 /** Intensity of the sun light at full strength, and of the hemisphere light per unit of ambient. */
 export const SUN_INTENSITY = 2.8;
-export const HEMI_INTENSITY = 4.5;
+export const HEMI_INTENSITY = 3.4;
 export const MOON_INTENSITY = 0.55;
 /** Wetness rises over about six seconds of rain and dries over about ninety. */
 const WET_RISE_S = 6;
@@ -99,6 +99,8 @@ export interface LumaOptions {
   passes?: 'sky' | 'all';
   /** Return the pixels too. */
   pixels?: boolean;
+  /** Lift the camera this many metres above the player's camera (a city overview for the fog gate). */
+  heightM?: number;
 }
 
 export class SkyView {
@@ -363,6 +365,7 @@ export class SkyView {
     cam.near = main.near;
     cam.far = main.far;
     cam.position.copy(main.position);
+    cam.position.y += opts.heightM ?? 0;
     const yaw = (yawDeg * Math.PI) / 180, pitch = (pitchDeg * Math.PI) / 180;
     cam.lookAt(cam.position.x - Math.sin(yaw) * Math.cos(pitch), cam.position.y + Math.sin(pitch), cam.position.z - Math.cos(yaw) * Math.cos(pitch));
     cam.updateMatrixWorld();
