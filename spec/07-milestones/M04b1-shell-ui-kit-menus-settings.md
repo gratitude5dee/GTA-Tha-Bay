@@ -56,7 +56,7 @@ The player can:
 
 ## Deliverables
 - `packages/ui/src/shell/{types.ts, machine.ts, registry.ts, gates.ts, banners.tsx, prefs.ts}`.
-- `packages/ui/src/kit/{focus.ts, overlays.tsx, widgets.tsx}`.
+- `packages/ui/src/kit/{focus.ts, widgets.tsx}` (overlays live in `widgets.tsx`, DL-702).
 - `packages/ui/src/screen/{types.ts, dom-screen.tsx, canvas-screen.ts}`.
 - `packages/ui/src/i18n/index.ts`; `content/ui/i18n/en.json`; `config/ui/nav.json`.
 - `packages/ui/src/pages/{gate.tsx, main.tsx, saves.tsx, modes.ts, system.tsx}` (gate = title, age, blocked, terms; saves = load, profile, saves, new game; system = loading, error, coming soon).
@@ -69,7 +69,7 @@ The player can:
 - `packages/shared/schemas/telemetry/names.schema.json` (`$defs` `ui.onboard {step, outcome}`, both strings ≤ 32 chars from the onboarding step and outcome enums; `ui.page` is M00a's) and `ui.onboard` removed from `pending.json` (DL-693; data, not counted).
 - `content/legal/terms.json` (and `privacy.json` if the shell text needs it): replace M00e's interim content with the game's pre-release terms (Terms card text, telemetry consent paragraph), keeping the `LegalDocRes` shape; bump the value of `TERMS_VERSION` in `config/terms.ts` when the text changes (DL-602).
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
-- About 41 files (35 new, `package.json`, five edits; DL-650, DL-602).
+- About 40 files (34 new, `package.json`, five edits; DL-650, DL-602, DL-702).
 
 ## Interfaces
 - C06 1.1: `UiBridge`, `ViewModelSource`, `UiCommand` (`mode.start`, `mode.quit`, `save.*`), `GameModeDescriptor.tile`, `status`, `unlock`, `GameModeUI.summary?`. Consumed, no change.
@@ -119,7 +119,7 @@ The player can:
 6. In a new private window, enter an under-18 date: Blocked; reload: still Blocked.
 
 ## Effort
-1 Builder session; about 41 files (DL-650, DL-602); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
+1 Builder session; about 40 files (DL-650, DL-602, DL-702); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
 
 ## Risks & fallbacks
 - **File count.** Settings categories share files by design; add no page files.
