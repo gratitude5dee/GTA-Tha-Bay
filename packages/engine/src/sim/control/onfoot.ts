@@ -58,6 +58,9 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
   const jumpV0 = dsqrt(2 * g * cfg.jumpApexM);
   const centre = capsuleCentreOffset(cfg);
   const moveOpts = { autostepM: cfg.autostepM, snapToGroundM: cfg.snapToGroundM, maxSlopeDeg: cfg.maxSlopeDeg, slide: cfg.slide };
+  // In the air the character does not auto-step: a jump (apex 1.0 m) plus a 0.4 m step would otherwise clear a 1.4 m obstacle
+  // that the vault rule says blocks. Scenarios without a vault store keep the earlier behaviour (their goldens).
+  const airMoveOpts = { ...moveOpts, autostepM: 0 };
   const desired: Vec3 = [0, 0, 0];
   const origin: Vec3 = [0, 0, 0];
   const target: Vec3 = [0, 0, 0];
@@ -227,7 +230,7 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
         desired[1] = dy;
         desired[2] = dirZ * speed * SIM_DT;
         const body = bodies[id] as number;
-        const res = backend.character.move(body, desired, moveOpts);
+        const res = backend.character.move(body, desired, vaults && !wasGrounded ? airMoveOpts : moveOpts);
 
         const newX = feetX + res.moved[0];
         const newY = feetY + res.moved[1];
