@@ -3,7 +3,7 @@
  *
  *   tsx tools/ci/deploy.ts preview   [--name <preview-name>]   Workers Preview of the staging Worker
  *   tsx tools/ci/deploy.ts preview   --sweep-closed            delete the Previews of closed PRs and their branches (nightly, M00d)
- *   tsx tools/ci/deploy.ts prod      [--env staging] [--dry-run] [--url <u>] [--do-lifecycle]
+ *   tsx tools/ci/deploy.ts prod      [--env staging] [--dry-run] [--url <u>] [--do-lifecycle | --auto-lifecycle [--base <ref>]]
  *                                                              versions upload -> 0 % -> smoke -> 100 % -> rollback on failure
  *   tsx tools/ci/deploy.ts bootstrap                           first deploy of tha-bay-web-staging and tha-bay-web (operator, Admin token)
  *
@@ -17,6 +17,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { collectChanges, evaluate } from './check-do-migrations.ts';
+import { decideDoLifecycle, type GitRun } from './deploy-decide.ts';
 import { planProd, readTextIfExists, runProd, type Exec, type ProdOptions } from './deploy-prod.ts';
 import { args, repoRoot } from './run.ts';
 
@@ -245,6 +247,41 @@ function git(gitArgs: string[]): string {
   return spawnSync('git', gitArgs, { cwd: repoRoot, encoding: 'utf8' }).stdout.trim();
 }
 
+const gitRun: GitRun = (gitArgs) => {
+  const res = spawnSync('git', [...gitArgs], { cwd: repoRoot, encoding: 'utf8' });
+  return { status: res.status ?? 1, out: res.stdout ?? '' };
+};
+
+type ProdFlags = {
+  env?: string | undefined;
+  url?: string | undefined;
+  'do-lifecycle'?: boolean | undefined;
+  'auto-lifecycle'?: boolean | undefined;
+  base?: string | undefined;
+};
+
+/**
+ * `--auto-lifecycle` (push, tag and manual runs, where no PR label exists): take the `wrangler deploy` path when the
+ * commits being deployed hold a Durable Object lifecycle change, as `check:do-migrations` judges them. `--do-lifecycle`
+ * or DV_DO_LIFECYCLE=1 (the PR-label path) still forces it without looking.
+ */
+export function resolveDoLifecycle(env: NodeJS.ProcessEnv, values: ProdFlags): boolean {
+  const decision = decideDoLifecycle(
+    {
+      explicit: Boolean(values['do-lifecycle']) || env['DV_DO_LIFECYCLE'] === '1',
+      auto: Boolean(values['auto-lifecycle']) || env['DV_AUTO_LIFECYCLE'] === '1',
+      base: values.base ?? env['DV_DEPLOY_BASE'],
+      eventBefore: env['DV_EVENT_BEFORE'],
+      refType: env['GITHUB_REF_TYPE'],
+      eventName: env['GITHUB_EVENT_NAME'],
+    },
+    gitRun,
+    (base) => evaluate(collectChanges(repoRoot, base)).lifecycle,
+  );
+  console.log(`deploy:prod lifecycle decision: ${decision.reason}`);
+  return decision.doLifecycle;
+}
+
 /** Options for the versions-based deploy; exported so tests and --dry-run share them. */
 export function prodOptions(env: NodeJS.ProcessEnv, values: { env?: string | undefined; url?: string | undefined; 'do-lifecycle'?: boolean | undefined }): ProdOptions {
   const tmp = env['RUNNER_TEMP'] ?? os.tmpdir();
@@ -334,6 +371,8 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
       'dry-run': { type: 'boolean' },
       url: { type: 'string' },
       'do-lifecycle': { type: 'boolean' },
+      'auto-lifecycle': { type: 'boolean' },
+      base: { type: 'string' },
       'sweep-closed': { type: 'boolean' },
     },
     allowPositionals: true,
@@ -341,7 +380,7 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
 
   if (mode === 'prod' && values['dry-run']) {
     assertOwnWorkers();
-    const o = prodOptions(env, values);
+    const o = prodOptions(env, { ...values, 'do-lifecycle': resolveDoLifecycle(env, values) });
     console.log(`deploy:prod --dry-run (${o.workerName}); no network, nothing is executed`);
     for (const line of planProd(o)) console.log(line);
     return 0;
@@ -355,7 +394,7 @@ export function main(argv: string[], env: NodeJS.ProcessEnv): number {
   assertOwnWorkers();
   if (mode === 'preview' && values['sweep-closed']) return sweepClosed(realRunner());
   if (mode === 'preview') return preview(previewName(env, values.name));
-  if (mode === 'prod') return prod(prodOptions(env, values));
+  if (mode === 'prod') return prod(prodOptions(env, { ...values, 'do-lifecycle': resolveDoLifecycle(env, values) }));
   return bootstrap();
 }
 
