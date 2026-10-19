@@ -191,3 +191,38 @@ describe('world builds in CI (M02b1 AC-12)', () => {
     expect(nightly.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
   });
 });
+
+describe('preview.yml bakes the synth world into the Preview build (BD-PW-01)', () => {
+  const text = wf('preview.yml');
+  const job = jobsOf(text)['preview'] ?? '';
+  const steps = stepsOf(job);
+  const build = steps.find((s) => s.includes('run: pnpm build')) ?? '';
+  const at = (needle: string): number => steps.findIndex((s) => s.includes(needle));
+
+  it('restores or bakes the synth world with the ci.yml cache key before the build', () => {
+    const cache = steps.findIndex((s) => /uses: actions\/cache@[0-9a-f]{40}/.test(s));
+    const bake = at('run: pnpm map:build -- --area synth');
+    expect(cache).toBeGreaterThan(-1);
+    expect(bake).toBeGreaterThan(cache);
+    expect(steps.indexOf(build)).toBeGreaterThan(bake);
+    expect(steps[cache]).toMatch(/path: \|\n\s+\.cache\/map\n\s+dist\/world/);
+    expect(steps[cache]).toContain("key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}");
+    expect(steps[cache]).toContain('id: bake-cache');
+    expect(steps[bake]).toContain("if: steps.bake-cache.outputs.cache-hit != 'true'");
+  });
+
+  it('builds a QA build with DV_WORLD=synth, checks the Workers limits and the world before deploying', () => {
+    expect(build).toContain("VITE_DV_QA: '1'");
+    expect(build).toContain('DV_WORLD: synth');
+    expect(at('check-dist.ts limits')).toBeGreaterThan(steps.indexOf(build));
+    expect(at('"data/world-index"')).toBeGreaterThan(steps.indexOf(build));
+    expect(at('pnpm deploy:preview')).toBeGreaterThan(at('check-dist.ts limits'));
+    expect(at('pnpm deploy:preview')).toBeGreaterThan(at('"data/world-index"'));
+  });
+
+  it('deploy.yml (staging, production) builds without DV_WORLD and without a QA build', () => {
+    const deploy = wf('deploy.yml');
+    expect(deploy).not.toContain('DV_WORLD');
+    expect(deploy).not.toContain('VITE_DV_QA');
+  });
+});

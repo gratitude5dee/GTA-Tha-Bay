@@ -40,9 +40,30 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # BD-PW-01: the Preview is a QA build WITH the offline `synth` world, so the owner sees the streamed city (open /?tier=desktop).
+      # Same restore-or-build step and key as ci.yml (M02b1), so the cache entry is shared with the CI jobs. Only this workflow:
+      # deploy.yml (staging, production) builds without DV_WORLD; the real-world release to staging is M02c2.
+      # actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
       - run: pnpm build
         env:
           VITE_DV_QA: '1'
+          DV_WORLD: synth
+      # F-018: Workers static assets allow 25 MiB per file and 20,000 files per version; fails with the offending numbers.
+      - run: pnpm exec tsx tools/ci/check-dist.ts limits
+      - name: The Preview build carries the world (media-local packs and the world index)
+        run: |
+          test -n "$(find apps/web/dist/media-local -type f -name '*.pack' -print -quit)" || { echo "::error::apps/web/dist/media-local holds no world pack; DV_WORLD=synth did not take effect"; exit 1; }
+          key=$(jq -r .key apps/web/dist/asset-catalog.json)
+          grep -q '"data/world-index"' "apps/web/dist/media-local/$key" || { echo "::error::the catalog manifest apps/web/dist/media-local/$key has no data/world-index"; exit 1; }
       - run: pnpm deploy:preview
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm check:headers -- --from test-results/preview-url.txt

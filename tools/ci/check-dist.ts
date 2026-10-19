@@ -5,25 +5,24 @@
  *   tsx tools/ci/check-dist.ts coi     <url> | --serve <url> | --from <file>
  *   tsx tools/ci/check-dist.ts bundle  [--dist <dir>] [--forbid-qa] [--module-ids <file>]
  *   tsx tools/ci/check-dist.ts icons   [--dist <dir>]
+ *   tsx tools/ci/check-dist.ts limits  [--dist <dir>]   Workers static-asset limits only (25 MiB per file, 20,000 files; F-018)
  *
  * --serve <url>  runs the Playwright webServer command (or reuses a server already listening on that
  *                port), waits for the port, checks, then stops what it started.
  * --from <file>  reads the URL from the file; prints SKIP and exits 0 when the file does not exist.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { args, repoRoot } from './run.ts';
+import { ASSET_COUNT_LIMIT, ASSET_FILE_LIMIT_BYTES, MIB, assetLimitFailures, assetStats, listFiles } from './lib/asset-limits.ts';
 import { checkModuleIds } from './lib/module-ids.ts';
 
-const MIB = 1024 * 1024;
 const PRECACHE_LIMIT_BYTES = 6 * MIB; // matches maximumFileSizeToCacheInBytes in apps/web/vite.config.ts
-const ASSET_FILE_LIMIT_BYTES = 25 * MIB; // Workers static assets, per file [F-018]
-const ASSET_COUNT_LIMIT = 20_000; // Free plan limit, enforced for both plans
 
-type Mode = 'headers' | 'coi' | 'bundle' | 'icons';
+type Mode = 'headers' | 'coi' | 'bundle' | 'icons' | 'limits';
 
 const failures: string[] = [];
 function ok(label: string): void {
@@ -239,16 +238,6 @@ async function checkCoi(base: string): Promise<void> {
 // ---------------------------------------------------------------------------------------------
 // bundle and icons (apps/web/dist)
 
-function listFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const name of readdirSync(dir)) {
-    const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) out.push(...listFiles(full));
-    else out.push(full);
-  }
-  return out;
-}
-
 function distDir(value: string | undefined): string {
   const dir = path.resolve(repoRoot, value ?? 'apps/web/dist');
   if (!existsSync(dir)) {
@@ -297,6 +286,17 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   console.log(`        ${files.length} files, ${(total / 1024).toFixed(0)} KiB`);
 }
 
+/** The Workers static-asset limits alone, with a message that names the limit (the Preview workflow's step, BD-PW-01). */
+function checkLimits(dist: string): void {
+  console.log(`check:limits ${path.relative(repoRoot, dist)}`);
+  const stats = assetStats(dist);
+  const largest = stats.largest ? `${stats.largest.file} ${(stats.largest.bytes / MIB).toFixed(2)} MiB` : 'n/a';
+  console.log(`        ${stats.files.length} files (limit ${ASSET_COUNT_LIMIT}), ${(stats.totalBytes / MIB).toFixed(1)} MiB, largest ${largest} (limit ${ASSET_FILE_LIMIT_BYTES / MIB} MiB)`);
+  const bad = assetLimitFailures(stats);
+  for (const m of bad) fail('Workers static-asset limits', m);
+  if (bad.length === 0) ok('within the Workers static-asset limits');
+}
+
 function checkIcons(dist: string): void {
   console.log(`check:icons ${path.relative(repoRoot, dist)}`);
   const manifestPath = path.join(dist, 'manifest.webmanifest');
@@ -315,8 +315,8 @@ function checkIcons(dist: string): void {
 
 async function main(): Promise<void> {
   const [mode, ...rest] = args();
-  if (mode !== 'headers' && mode !== 'coi' && mode !== 'bundle' && mode !== 'icons') {
-    console.error('usage: check-dist.ts <headers|coi|bundle|icons> [url | --serve <url> | --from <file> | --dist <dir> | --forbid-qa]');
+  if (mode !== 'headers' && mode !== 'coi' && mode !== 'bundle' && mode !== 'icons' && mode !== 'limits') {
+    console.error('usage: check-dist.ts <headers|coi|bundle|icons|limits> [url | --serve <url> | --from <file> | --dist <dir> | --forbid-qa]');
     process.exit(2);
   }
   const { values, positionals } = parseArgs({
@@ -334,6 +334,7 @@ async function main(): Promise<void> {
 
   if (m === 'bundle') checkBundle(distDir(values.dist), values['forbid-qa'] === true, values['module-ids']);
   else if (m === 'icons') checkIcons(distDir(values.dist));
+  else if (m === 'limits') checkLimits(distDir(values.dist));
   else {
     const run = m === 'headers' ? checkHeaders : checkCoi;
     if (values.from !== undefined) {
