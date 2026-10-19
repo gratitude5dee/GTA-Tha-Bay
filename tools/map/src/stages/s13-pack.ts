@@ -38,7 +38,7 @@ export function groundRaster(grid: AreaGrid, w: WaterProduct): Raster {
 }
 
 export interface PackFile { name: string; family: 'p0' | 'l0'; x: number; y: number; chunks: number; bytes: Uint8Array }
-export interface PackOutput { files: PackFile[]; index: WorldIndex }
+export interface PackOutput { files: PackFile[]; index: WorldIndex; sims: Map<ChunkKey, SimChunk>; renders: Map<ChunkKey, RenderChunk> }
 
 export interface PackInputs {
   bakeId: string;
@@ -146,5 +146,5 @@ export function buildPacks(inp: PackInputs): PackOutput {
     transit: [],
     sources: [...inp.stamps].sort((a, b) => cmp(a.id, b.id)),
   };
-  return { files, index };
+  return { files, index, sims, renders };
 }

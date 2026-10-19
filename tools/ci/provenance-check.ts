@@ -5,7 +5,7 @@
  *
  *   tsx tools/ci/provenance-check.ts [--root <dir>] [--dist <dir>] [--emit-credits] [--release]
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import {
@@ -48,6 +48,17 @@ function isRecordish(raw: unknown): boolean {
   const o = raw as Record<string, unknown>;
   return typeof o.sha256 === 'string' && /^[0-9a-f]{64}$/.test(o.sha256) && Array.isArray(o.paths) && Array.isArray(o.derived_from) &&
     Array.isArray(o.review) && typeof o.license === 'string' && typeof o.status === 'string';
+}
+
+/** assets/assets.lock.json and every assets/world/*.lock.json that exists, as repo-relative paths. */
+export function lockFiles(root: string): string[] {
+  const out: string[] = [];
+  if (existsSync(path.join(root, 'assets/assets.lock.json'))) out.push('assets/assets.lock.json');
+  const worldDir = path.join(root, 'assets/world');
+  if (existsSync(worldDir)) {
+    for (const name of readdirSync(worldDir).sort()) if (name.endsWith('.lock.json')) out.push(`assets/world/${name}`);
+  }
+  return out;
 }
 
 export interface ProvenanceCheckOptions {
@@ -95,15 +106,15 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
     }
   }
 
-  // Lock variants (assets/assets.lock.json) are part of the ship set: each hash needs a record (05 section 4.3).
-  const lockFile = path.join(opts.root, 'assets/assets.lock.json');
+  // Lock variants are part of the ship set: each hash needs a record (05 section 4.3). The main lock and every world lock
+  // (assets/world/*.lock.json, written by map:pack for the sf bake; same lock schema; DL-667) are walked the same way.
   let shipped = ship.length;
-  if (existsSync(lockFile)) {
-    const lock = JSON.parse(readFileSync(lockFile, 'utf8')) as { entries?: Record<string, { variants?: Record<string, string> }> };
+  for (const lockRel of lockFiles(opts.root)) {
+    const lock = JSON.parse(readFileSync(path.join(opts.root, lockRel), 'utf8')) as { entries?: Record<string, { variants?: Record<string, string> }> };
     for (const [ref, e] of Object.entries(lock.entries ?? {})) {
       for (const [variant, sha] of Object.entries(e.variants ?? {})) {
         shipped++;
-        if (!bySha.has(sha)) findings.push(finding(GATE, 'assets/assets.lock.json', 'no-record', `${ref} ${variant}: no provenance record for sha256 ${sha}`));
+        if (!bySha.has(sha)) findings.push(finding(GATE, lockRel, 'no-record', `${ref} ${variant}: no provenance record for sha256 ${sha}`));
       }
     }
   }

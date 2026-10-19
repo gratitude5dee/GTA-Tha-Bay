@@ -43,6 +43,17 @@ describe('ci.yml (AC-8)', () => {
     expect(jobs['unit']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
   });
 
+  it('has a content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
+    const job = jobs['content'] ?? '';
+    expect(job).toContain('pnpm map:fixture graybox --check');
+    expect(job).toContain('pnpm map:build -- --area civic-excerpt --repro');
+    expect(job).toMatch(/uses: actions\/cache@[0-9a-f]{40}/);
+    expect(job).toContain('path: .cache/map');
+    expect(job).toContain("hashFiles('tools/map/**', 'config/world/**', 'content/world/**')");
+    expect(job).toContain('pnpm install --frozen-lockfile');
+    expect(jobs['unit']).not.toContain('map:fixture');
+  });
+
   it('every job sets timeout-minutes', () => {
     for (const [name, block] of Object.entries(jobs)) expect(block, name).toMatch(/timeout-minutes: \d+/);
   });

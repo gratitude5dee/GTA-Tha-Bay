@@ -24,6 +24,7 @@ import { bakeBuildings, CHUNK_BUILDING_LIMIT, type BuildingsProduct, type Footpr
 import { buildPacks, type PackOutput } from './stages/s13-pack.ts';
 import { failed, s0Gates, s13Gates, s2Gates, s3Gates, s4Gates, type GateResult } from './verify/gates.ts';
 import { attributionFor } from './pack/attribution.ts';
+import { renderPreview } from './pack/preview.ts';
 import { cmp, stableJson } from './util.ts';
 
 export type StageId = 'fetch' | 'water' | 'terrain' | 'buildings' | 'pack';
@@ -225,6 +226,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       { name: 'world-index.json', bytes: Buffer.from(stableJson(outputs.index)) },
       { name: RAW_LOCK_NAME, bytes: Buffer.from(rawLockText(lock)) },
       { name: 'attribution.world.json', bytes: Buffer.from(stableJson(attributionFor(cfg, o.area))) },
+      { name: 'preview.png', bytes: renderPreview(grid, outputs.sims, outputs.renders) },
     ];
     gates.push(...s13Gates(outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length })), [...outputs.files.map((f) => ({ name: f.name, bytes: f.bytes })), ...extra], def.gates.s13));
 
