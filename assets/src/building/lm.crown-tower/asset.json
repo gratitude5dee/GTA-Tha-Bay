@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.crown-tower",
+  "variants": {
+    "desktop": "assets/src/building/lm.crown-tower/desktop.glb",
+    "mobile": "assets/src/building/lm.crown-tower/mobile.glb",
+    "mobile-low": "assets/src/building/lm.crown-tower/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 3246,
+      "verts": 3632,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 1052,
+      "verts": 1264,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 429,
+      "verts": 578,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

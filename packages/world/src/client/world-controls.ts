@@ -13,7 +13,7 @@
 import type { Portal, ShoreNode, TeleportResult } from '@dv/shared';
 import type { WorldBridge } from './world-bridge.ts';
 
-type Bridge = Pick<WorldBridge, 'teleport' | 'call' | 'map' | 'lastBoundaryEvent' | 'boundaryEvents'>;
+type Bridge = Pick<WorldBridge, 'teleport' | 'call' | 'map' | 'lastBoundaryEvent' | 'boundaryEvents'> & Partial<Pick<WorldBridge, 'landmarks'>>;
 
 interface Candidate {
   id: string;
@@ -124,7 +124,11 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
   const stat = doc.createElement('div');
   stat.dataset['testid'] = 'world-controls-stat';
   stat.style.cssText = 'opacity:0.8';
-  grid.append(out, stat);
+  // M02d1: the landmark models that stand in for their baked proxies right now
+  const lmStat = doc.createElement('div');
+  lmStat.dataset['testid'] = 'world-controls-landmarks';
+  lmStat.style.cssText = 'opacity:0.8';
+  grid.append(out, stat, lmStat);
 
   const byId = new Map<string, Candidate>();
   void bridge.call('candidates', { kind: 'sandbox' }).then((list) => {
@@ -146,6 +150,10 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
     const route = (m?.route ?? null) as { lengthM: number; etaS: number; complete: boolean } | null;
     const b = bridge.lastBoundaryEvent();
     stat.textContent = `${route ? `gps ${(route.lengthM / 1000).toFixed(2)} km, ${Math.max(1, Math.round(route.etaS / 60))} min${route.complete ? '' : ' (partial)'}` : 'no gps route'} | boundary events ${bridge.boundaryEvents()}${b ? ` (${b.s})` : ''}`;
+    const lm = bridge.landmarks?.() ?? null;
+    lmStat.textContent = !lm
+      ? 'landmark models: none in this world'
+      : `landmark models ${lm.resident.filter((r) => r.phase === 'shown').length}/${lm.cap} within ${lm.swapM} m: ${lm.resident.map((r) => `${r.id.slice(3)} ${r.fidelity} ${Math.round(r.distM)} m`).join(', ') || 'none in range'}`;
   }, 500);
 
   container.append(root);

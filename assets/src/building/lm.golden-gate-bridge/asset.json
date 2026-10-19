@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.golden-gate-bridge",
+  "variants": {
+    "desktop": "assets/src/building/lm.golden-gate-bridge/desktop.glb",
+    "mobile": "assets/src/building/lm.golden-gate-bridge/mobile.glb",
+    "mobile-low": "assets/src/building/lm.golden-gate-bridge/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 8156,
+      "verts": 16968,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 3792,
+      "verts": 7924,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 1108,
+      "verts": 2276,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

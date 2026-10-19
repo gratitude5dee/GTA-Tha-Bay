@@ -30,6 +30,7 @@
                   "tris": { "type": "integer", "minimum": 1 },
                   "maxTexPx": { "type": "integer", "minimum": 1 },
                   "materials": { "type": "integer", "minimum": 1 },
+                  "maxObjects": { "type": "integer", "minimum": 1 },
                   "gpuTexBytes": { "type": "integer", "minimum": 1 },
                   "fileBytes": { "type": "integer", "minimum": 1 }
                 }

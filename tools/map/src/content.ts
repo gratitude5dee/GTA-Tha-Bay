@@ -19,6 +19,8 @@ export const CONTENT_STAMP_AT = '2026-10-19T00:00:00Z';
 export interface LandmarkSeed {
   id: string; lat: number; lng: number; x: number; z: number; chunk: string; district: string; nhood: string; cls: 'hero' | 'major' | 'minor';
   osm: string; role: string; skyline: boolean; replaceRadiusM: number;
+  /** M02d1: the landmark recipe's parameters (the 12 modelled landmarks only). */
+  recipe?: Record<string, number | number[] | string>;
 }
 export interface PoiSeed {
   id: string; kind: string; nameKey: string; name?: string; lat: number; lng: number; nhood: string; district: string; landmark: string | null;

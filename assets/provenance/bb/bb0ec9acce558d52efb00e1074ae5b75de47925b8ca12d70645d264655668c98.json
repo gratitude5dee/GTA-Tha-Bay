@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "bb0ec9acce558d52efb00e1074ae5b75de47925b8ca12d70645d264655668c98",
+  "paths": [
+    "assets/src/building/lm.alcatraz/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "391a3eb56482a4f4d162b11557605e3b7eeddf71e6b9f042dd083d6ea48e5528"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

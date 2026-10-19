@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "b8df9039df6e1343d65edaee4e807094422f84dee697529c0ba397c56e6099d9",
+  "paths": [
+    "assets/src/building/lm.lombard-crooked/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "a352e39772284560439b53a6170613884a017ca693ef21dcd9c9d8f3e997d80d"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

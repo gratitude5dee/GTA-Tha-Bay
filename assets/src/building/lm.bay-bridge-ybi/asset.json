@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.bay-bridge-ybi",
+  "variants": {
+    "desktop": "assets/src/building/lm.bay-bridge-ybi/desktop.glb",
+    "mobile": "assets/src/building/lm.bay-bridge-ybi/mobile.glb",
+    "mobile-low": "assets/src/building/lm.bay-bridge-ybi/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 4144,
+      "verts": 7770,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 2060,
+      "verts": 3822,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 926,
+      "verts": 1866,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

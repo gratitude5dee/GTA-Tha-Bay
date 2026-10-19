@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "dc291648119939a2048c5560d0dd33c4a7bec15093ab3c1a7691cad3339dbeeb",
+  "paths": [
+    "assets/src/building/lm.bay-bridge-ybi/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "25e2b2a02f4a6cbb018f82453787601500caeab49d7d0c410aef97a6542e7905"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -2,6 +2,7 @@ import type { ChunkKey, QualityTierId, TeleportKind, TeleportResult, WeatherPres
 import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
+import type { LandmarksReport } from './chunks/landmark-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
@@ -69,6 +70,12 @@ export interface WorldBridge {
   fade(): { log: ('out' | 'in')[]; state: string; opacity: number };
   /** The newest map patch the sim published (blips and the GPS route), or null. */
   map(): { rev: number; blips: unknown[]; route: unknown } | null;
+  /**
+   * The landmark layer (M02d1): the tier's cap and swap distance, the resident landmark models with their fidelity, distance and the
+   * chunks that hold their proxies (masked or not, with each chunk's `bundleRerecords`), the ones that failed to load, and the objects
+   * and triangles of the mounted models. Null when the catalog holds no landmark models.
+   */
+  landmarks(): LandmarksReport | null;
 }
 
 export type RoutePlace = string | { x: number; z: number };
@@ -139,6 +146,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     boundaryEvents: () => view.boundaryCount,
     fade: () => ({ log: [...view.fade.log], state: view.fade.state, opacity: Number(view.fade.el.style.opacity || '0') }),
     map: () => view.lastMap,
+    landmarks: () => view.landmarksReport(),
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };

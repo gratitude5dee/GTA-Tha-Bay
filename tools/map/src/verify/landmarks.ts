@@ -10,6 +10,8 @@ import path from 'node:path';
 import { chunkKeyOf, enuFromLatLng, type WorldIndex } from '../../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../../ci/lib/common.ts';
 import { loadContentWorld, type LandmarkSeed } from '../content.ts';
+import { diffPlan, paramFindings, planAsset, writePlan, type AssetPlan, type BaseParams } from '../landmarks/kit/build.ts';
+import { RECIPES } from '../landmarks/index.ts';
 
 export interface Finding { level: 'fail' | 'warn'; id: string; detail: string }
 
@@ -74,4 +76,40 @@ export function validateLandmarksInBake(bakeDir: string, area: string): Finding[
   }
   for (const l of index.landmarks) if (!l.arrival) out.push({ level: 'fail', id: 'landmarks.arrival', detail: `${l.id} has no arrival pose` });
   return out;
+}
+
+/** `--build [--slug <id>] [--check]`: the landmark models (M02d1). */
+export interface LandmarkBuildResult { findings: Finding[]; plans: AssetPlan[]; written: string[] }
+
+/** The recipe id of `--slug` (`lm.coit-tower` or `coit-tower`), or null for all. */
+export const normalizeSlug = (slug: string): string => (slug.startsWith('lm.') ? slug : `lm.${slug}`);
+
+export async function buildLandmarks(opts: { root?: string; slug?: string | undefined; check: boolean }): Promise<LandmarkBuildResult> {
+  const root = opts.root ?? toolsRoot;
+  const findings: Finding[] = [];
+  const plans: AssetPlan[] = [];
+  const written: string[] = [];
+  const seeds = new Map(loadContentWorld().landmarks.map((l) => [l.id, l] as const));
+  const want = opts.slug ? normalizeSlug(opts.slug) : null;
+  if (want && !RECIPES.some((r) => r.id === want)) {
+    findings.push({ level: 'fail', id: 'landmarks.build-slug', detail: `${want} has no recipe (${RECIPES.map((r) => r.id).join(', ')})` });
+    return { findings, plans, written };
+  }
+  for (const def of RECIPES) {
+    if (want && def.id !== want) continue;
+    const seed = seeds.get(def.id);
+    if (!seed) { findings.push({ level: 'fail', id: 'landmarks.build-seed', detail: `${def.id} is not in content/world/landmarks.json` }); continue; }
+    if (!seed.recipe) { findings.push({ level: 'fail', id: 'landmarks.build-recipe', detail: `${def.id}: no recipe key in content/world/landmarks.json` }); continue; }
+    const bad = paramFindings(def, seed.recipe);
+    if (bad.length > 0) { for (const b of bad) findings.push({ level: 'fail', id: 'landmarks.build-params', detail: b }); continue; }
+    const plan = await planAsset(def, seed.recipe as unknown as BaseParams, seed.cls);
+    plans.push(plan);
+    if (opts.check) {
+      for (const d of diffPlan(root, plan)) findings.push({ level: 'fail', id: 'landmarks.build-check', detail: `${d.path} ${d.why === 'missing' ? 'is missing' : d.why === 'stale' ? 'is a stale provenance record' : 'differs from a fresh build'}` });
+    } else {
+      writePlan(root, plan);
+      written.push(plan.dir);
+    }
+  }
+  return { findings, plans, written };
 }
