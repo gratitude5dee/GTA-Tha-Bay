@@ -13,6 +13,11 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      base:
+        description: 'Commit or tag the deployed Worker was last built from (decides wrangler deploy vs versions upload for a Durable Object lifecycle change); empty = the previous v* tag, else the parent'
+        required: false
+        default: ''
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -43,14 +48,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0 # deploy:prod --auto-lifecycle diffs against the previously deployed commit
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Versions upload, 0 % smoke, 100 %, rollback on failure
-        run: pnpm deploy:prod -- --env staging
+      - name: Versions upload (wrangler deploy for a Durable Object lifecycle change), 0 % smoke, 100 %, rollback on failure
+        env:
+          DV_EVENT_BEFORE: ${{ github.event.before }}
+          DV_DEPLOY_BASE: ${{ inputs.base }}
+        run: pnpm deploy:prod -- --env staging --auto-lifecycle
 
   production:
     if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
@@ -86,11 +95,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          fetch-depth: 0 # deploy:prod --auto-lifecycle diffs against the previously deployed commit
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Versions upload, 0 % smoke, 100 %, rollback on failure
-        run: pnpm deploy:prod
+      - name: Versions upload (wrangler deploy for a Durable Object lifecycle change), 0 % smoke, 100 %, rollback on failure
+        env:
+          DV_EVENT_BEFORE: ${{ github.event.before }}
+          DV_DEPLOY_BASE: ${{ inputs.base }}
+        run: pnpm deploy:prod -- --auto-lifecycle
