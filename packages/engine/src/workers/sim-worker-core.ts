@@ -86,7 +86,10 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
     }
 
     const transport: WorkerTransport = kind === 'sab' && sab ? attachSabWorker(sab) : attachPmWorker(scope);
-    const runtime = new SimRuntime(transport, envFor(init));
+    const env = envFor(init);
+    // Lines the runtime and the modules log reach the page through the event ring (`SimHostOptions.onLog`).
+    env.log = (level, message) => void transport.postEvent({ v: 1, t: 'log', seq: 0, p: { level, message } });
+    const runtime = new SimRuntime(transport, env);
 
     if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['bot'] !== undefined) {
       const { ScriptedBotInput, parseBotScript } = await import('../sim/input/bot-input.ts');

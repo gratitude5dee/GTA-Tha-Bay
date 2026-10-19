@@ -59,8 +59,8 @@ export class BackdropLayer {
     this.scene.background = sky;
     // Haze: the ring melts into the sky at the far end.
     this.scene.fog = new Fog(sky, 12_000, 110_000);
-    const hemi = new HemisphereLight(0xdbe9ff, 0x4a4f44, 1.7);
-    const sun = new DirectionalLight(0xfff1d6, 2.4);
+    const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
+    const sun = new DirectionalLight(0xfff1d6, 2.8);
     sun.position.set(120, 220, 80);
     this.lights = [hemi, sun];
     this.scene.add(hemi, sun);

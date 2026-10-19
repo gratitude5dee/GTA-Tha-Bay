@@ -53,6 +53,8 @@ export class WorldSim {
   readonly events: SimEventLog;
   /** Cumulative chunks whose colliders were added (the `world.chunk` event value). */
   addedTotal = 0;
+  /** `seq` of every reply applied, in application order (tests check the order; at most a few hundred entries a session). */
+  readonly appliedSeqs: number[] = [];
   tick = 0;
 
   private seq = 0;
@@ -69,6 +71,7 @@ export class WorldSim {
     private readonly port: PackPort,
     backend: Pick<PhysicsSystemsBackend, 'addChunkStatics' | 'removeChunkStatics'>,
     events: SimEventLog,
+    private readonly log?: (level: 'info' | 'warn' | 'error', message: string) => void,
   ) {
     this.events = events;
     this.feeder = new StaticsFeeder(backend);
@@ -143,6 +146,7 @@ export class WorldSim {
       if (!a) return n;
       this.arrivals.delete(this.nextApply);
       this.bySeq.delete(this.nextApply);
+      this.appliedSeqs.push(this.nextApply);
       this.nextApply++;
       n++;
       const { pend } = a;
@@ -158,6 +162,7 @@ export class WorldSim {
         this.post(pend.pack, pend.keys, 'now', true);
       } else {
         const reason = failOf(a.error);
+        this.log?.('warn', `world: ${pend.pack} did not load (${a.error})`);
         for (const k of pend.keys) this.store.settle('p0', k, { ok: false, reason });
       }
     }
@@ -254,7 +259,8 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       if (!isWorldConfig(raw)) return;
       const port = ctx.ports[WORLD_PORT] as PackPort | undefined;
       if (!port) throw new Error('the world streaming module needs the pack channel port (InitMessage.p.ports.world)');
-      const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events);
+      const log = ctx.runtime.env.log;
+      const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());
     },

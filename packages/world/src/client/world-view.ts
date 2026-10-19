@@ -153,8 +153,8 @@ export class WorldView implements WorldLayer {
     this.materials = createWorldMaterials({ fadeSeconds: fade });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
-    const hemi = new HemisphereLight(0xdbe9ff, 0x4a4f44, 1.7);
-    const sun = new DirectionalLight(0xfff1d6, 2.4);
+    const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
+    const sun = new DirectionalLight(0xfff1d6, 2.8);
     sun.position.set(120, 220, 80);
     host.scene.add(hemi, sun);
     this.lights = [hemi, sun];
@@ -337,7 +337,7 @@ export class WorldView implements WorldLayer {
       el.setAttribute('role', 'status');
       el.textContent = text;
       el.style.cssText = `position:fixed;z-index:50;pointer-events:none;font:600 14px system-ui,sans-serif;color:#fff;${extra}`;
-      el.hidden = true;
+      el.style.display = 'none';
       this.o.container.append(el);
       return el;
     };
@@ -356,8 +356,8 @@ export class WorldView implements WorldLayer {
     const any = renderUnavailable + simUnavailable > 0;
     // The session is blocked when the ground under the spawn cannot be had and the device is offline.
     const blocked = simUnavailable > 0 && this.simStatus.ready === 0 && this.simStatus.reason === 'offline';
-    if (this.redownload) this.redownload.hidden = !any || blocked;
-    if (this.offline) this.offline.hidden = !blocked;
+    if (this.redownload) this.redownload.style.display = !any || blocked ? 'none' : 'block';
+    if (this.offline) this.offline.style.display = blocked ? 'flex' : 'none';
   }
 
   // ---- telemetry -----------------------------------------------------------------------------------------------------------

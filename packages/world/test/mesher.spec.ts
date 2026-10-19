@@ -119,6 +119,24 @@ describe('winding', () => {
     expect(out.bounds[4]).toBeLessThanOrEqual(19 + MESHER.roofLiftMaxM + 1e-6);
   });
 
+  it('walls point away from the building (outward normals) for either ring orientation', () => {
+    for (const ring of [[0, 0, 20, 0, 20, 10, 0, 10], [0, 10, 20, 10, 20, 0, 0, 0]]) {
+      const b = new MeshBuilder();
+      addBuilding(b, ring, 5, 8, { kind: 2, roof: 0, palette: 2, seed: 5 }, MESHER.profiles.desktop);
+      const out = b.build('buildings') as MeshBuffers;
+      let walls = 0;
+      for (let i = 0; i < out.normals.length; i += 3) {
+        const ny = out.normals[i + 1] as number;
+        if (Math.abs(ny) > 0.5) continue;
+        walls++;
+        const px = (out.positions[i] as number) - 10;
+        const pz = (out.positions[i + 2] as number) - 5;
+        expect((out.normals[i] as number) * px + (out.normals[i + 2] as number) * pz).toBeGreaterThan(0);
+      }
+      expect(walls).toBeGreaterThan(0);
+    }
+  });
+
   it('a clockwise ring is wound like a counter-clockwise one and a many-cornered ring is simplified to fit', () => {
     const cw: number[] = [];
     const ccw: number[] = [];

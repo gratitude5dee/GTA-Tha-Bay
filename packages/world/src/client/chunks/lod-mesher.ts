@@ -118,7 +118,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId): UnitMesh {
       const dry = isLand(x, z, h);
       isWater.push(!dry);
       let color: Rgb = WATER;
-      let y = Math.min(h, sea);
+      let y = sea;
       if (dry) {
         y = h;
         color = LAND;

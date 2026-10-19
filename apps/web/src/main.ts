@@ -1,6 +1,7 @@
 import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import type { WorkerPort } from '@dv/engine/assets/client';
+import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
@@ -156,6 +157,8 @@ async function boot(): Promise<void> {
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),
     labels: { recovering: t('engine.recovering') },
+    // The composed sim worker: the engine sim plus the world streaming module (M02b1, DL-651); the literal form Vite bundles.
+    spawn: () => new Worker(new URL('./workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
     headless,
     ...(prepared
       ? { world: prepared.boot }
