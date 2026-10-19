@@ -25,6 +25,13 @@
       "client.ShoulderSwap": [{ "control": "key:KeyC" }],
       "client.Map": [{ "control": "key:KeyM" }],
       "client.Phone": [{ "control": "key:Tab" }],
+      "client.DebugToggle": [{ "control": "key:F3" }],
+      "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
+    },
+    "debug": {
+      "axis.LookX": [{ "control": "mouse:dx", "scale": 1 }],
+      "axis.LookY": [{ "control": "mouse:dy", "scale": 1 }],
+      "client.DebugToggle": [{ "control": "key:F3" }],
       "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
     },
     "menu": {

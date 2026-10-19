@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/audio.schema.json",
+  "title": "config/audio.json (bus graph, duck and footstep values)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "buses", "duck", "footstep"],
+  "$defs": {
+    "busId": { "enum": ["master", "music", "sfx", "ambience", "voice", "radio", "ui", "cutscene"] },
+    "bus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gain", "parent"],
+      "properties": {
+        "gain": { "type": "number", "minimum": 0, "maximum": 2 },
+        "parent": { "anyOf": [{ "$ref": "#/$defs/busId" }, { "type": "null" }] }
+      }
+    }
+  },
+  "properties": {
+    "version": { "const": 1 },
+    "buses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["master", "music", "sfx", "ambience", "voice", "radio", "ui", "cutscene"],
+      "properties": {
+        "master": { "$ref": "#/$defs/bus" },
+        "music": { "$ref": "#/$defs/bus" },
+        "sfx": { "$ref": "#/$defs/bus" },
+        "ambience": { "$ref": "#/$defs/bus" },
+        "voice": { "$ref": "#/$defs/bus" },
+        "radio": { "$ref": "#/$defs/bus" },
+        "ui": { "$ref": "#/$defs/bus" },
+        "cutscene": { "$ref": "#/$defs/bus" }
+      }
+    },
+    "duck": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "voice": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["targets", "db", "attackMs", "releaseMs"],
+          "properties": {
+            "targets": { "type": "array", "items": { "$ref": "#/$defs/busId" }, "minItems": 1, "uniqueItems": true },
+            "db": { "type": "number", "maximum": 0 },
+            "attackMs": { "type": "number", "minimum": 0 },
+            "releaseMs": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "footstep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bus", "cue", "durationSec", "bandpassHz", "q", "peakGain", "pitchSpread"],
+      "properties": {
+        "bus": { "$ref": "#/$defs/busId" },
+        "cue": { "type": "string", "minLength": 1 },
+        "durationSec": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "bandpassHz": { "type": "number", "exclusiveMinimum": 0 },
+        "q": { "type": "number", "exclusiveMinimum": 0 },
+        "peakGain": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "pitchSpread": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

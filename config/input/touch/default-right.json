@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "id": "default-right",
+  "nameKey": "touch.layout.defaultRight",
+  "context": "onFoot",
+  "handed": "right",
+  "widgets": [
+    { "id": "move", "kind": "stick", "role": "move", "zone": { "x": 0, "y": 0, "w": 0.5, "h": 1 } },
+    { "id": "look", "kind": "lookzone", "zone": { "x": 0.5, "y": 0, "w": 0.5, "h": 1 } },
+    { "id": "jump", "kind": "button", "action": "sim.Jump", "at": { "corner": "br", "dx": 28, "dy": 36 }, "sizePx": 76, "icon": "jump", "label": "touch.jump" },
+    { "id": "camera", "kind": "button", "action": "client.Camera", "at": { "corner": "br", "dx": 124, "dy": 112 }, "sizePx": 52, "icon": "camera", "label": "touch.camera" },
+    { "id": "pause", "kind": "button", "action": "client.Pause", "at": { "corner": "tr", "dx": 16, "dy": 16 }, "sizePx": 48, "icon": "pause", "label": "touch.pause" }
+  ]
+}

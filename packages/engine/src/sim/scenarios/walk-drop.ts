@@ -64,7 +64,9 @@ export function setupWalkDrop(s: ScenarioSetup, opts: DropOptions = {}): void {
   spawnSlab(s, bankSlope, 2 * c.laneHalfWidthM, [c.featureX + c.bankLengthM / 2, bankRise / 2, c.bankLaneZ], datan2(bankRise, c.bankLengthM));
 
   // The player.
-  registerControlSystems(core, backend);
+  // No vault resource here: the goldens of this scenario (test/golden/determinism.walk-drop.json) predate M01b2 and a new
+  // resource would change the hash.
+  registerControlSystems(core, backend, { vault: false });
   const prefabs = new PrefabRegistry(ecs, backend);
   prefabs.load(ENGINE_PREFABS);
   prefabs.spawn('player.default', { pos: [...WALK_DROP.spawn], yaw: WALK_DROP.spawnYaw }, 'player:0');
