@@ -70,7 +70,7 @@ After this session the repository has the release half of C07. Asset specs go in
 - `tools/assets/src/{spec.ts, catalog.ts, lock.ts, verify.ts, publish.ts, uploader-rclone.ts, uploader-dir.ts, seed.ts, cli.ts}`, `tools/assets/test/{catalog.spec.ts, lock.spec.ts, publish.spec.ts}`.
 - `tools/ci/check-assets.ts` (extended), `tools/ci/provenance-check.ts` (lock variants), `tools/ci/test/assets-gates.spec.ts`.
 - `assets/src/data/asset-smoke/{asset.json, smoke.json}`, `assets/src/texture/asset-smoke/{asset.json, d.png, m.png, l.png}`, `assets/src/world_pack/{p0-64-64,l0-64-64}/asset.json`, `assets/assets.lock.json`, the new provenance records, `config/asset-budgets.json` + `tools/ci/schemas/asset-budgets.v1.json`.
-- `apps/web/public/asset-catalog.json`, `services/edge/src/generated/asset-catalog.json`, `services/edge/src/routes/boot.ts` (read pointer), `services/edge/test/boot.test.ts` (extended), `apps/web/test/precache.test.ts` (reads `dist/sw.js` and its injected precache manifest; AC-10).
+- `apps/web/public/asset-catalog.json`, `services/edge/src/generated/asset-catalog.json`, `services/edge/src/routes/boot.ts` (read pointer), `services/edge/test/boot.test.ts` (extended), `apps/web/test/precache.test.ts` (reads `dist/sw.js` and its injected precache manifest; AC-10; without `apps/web/dist/sw.js` it prints `SKIP precache: apps/web/dist absent` and passes, unless `DV_REQUIRE_DIST=1`, DL-344). CI `build` job: add `DV_REQUIRE_DIST=1 pnpm check:unit -- apps/web` after `pnpm build`.
 - `docs/runbooks/r2-media.md`; `.gitignore` adds `dist/assets/`.
 - Root scripts: **`assets:catalog`**, **`assets:lock`**, **`assets:verify`**, **`assets:publish`**, **`assets:seed`** (re-writes the smoke PNGs; `--check` compares hashes).
 - ≈ 30 files.

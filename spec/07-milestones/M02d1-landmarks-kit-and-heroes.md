@@ -9,6 +9,7 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 
 ## Depends on
 - **M02b1:** `ChunkRenderer`, mesher job in `asset.worker`, `BundleGroup` re-record path, `RenderBudgetMeter` scenarios, `DV_WORLD=synth` CI builds.
+- **M02c1:** `TeleportApi` and `__dvBridge.world.teleport(id)` (AC-6, AC-9; inherited by M02d2; DL-348).
 - Present from earlier milestones: M02a2's `content/world/landmarks.json` seeds with `replaces` and `arrival`, `proxyOf` in `l0` BUILDING records; M01d's catalog, lock and `check:assets`.
 - Contracts: C07 1.1 (`building` kind, tiered variants, `VariantStats`, `ProvenanceRecord`, `resolveVariant`, `TIER_FIDELITY`), C08 1.0 (rule 12: landmarks outside the chunk `BundleGroup`; LMREF section).
 
@@ -21,7 +22,7 @@ After this session San Francisco has recognisable silhouettes. A deterministic l
 - **QA:** `__dvBridge.world.landmarks()` (resident ids, fidelity, proxy-masked chunks); `config/world/landmarks-runtime.json` (caps and `swapM` per tier) with schema.
 
 ## Scope out
-- The remaining 25 landmarks and the always-resident skyline set: M02d2. Blender art passes at the same AssetIds: after M05c (DL-105, DL-201). KTX2 textures (recipes ship none). Landmark interiors and mission dressing: S03 milestones.
+- The remaining 25 landmarks and the always-resident skyline set: M02d2. Blender art passes at the same AssetIds: M10d2, after M05c2 (DL-105, DL-201, DL-390). KTX2 textures (recipes ship none). Landmark interiors and mission dressing: S03 milestones.
 
 ## Deliverables
 - `tools/map/src/landmarks/kit/{primitives.ts, spans.ts, palette.ts, fidelity.ts, gltf-writer.ts, build.ts}`.

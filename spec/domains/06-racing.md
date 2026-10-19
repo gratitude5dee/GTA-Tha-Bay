@@ -241,7 +241,7 @@ Full TypeScript, JSON Schemas and configs: **`spec/domains/06-racing-data.md`** 
 
 ### 6.1 Controls
 
-Per-platform defaults for every driving action (KBM, gamepad, iPhone touch, Quest controllers, hands) are the table in `06-racing-content.md` §C.9. Rules: no Ctrl/Cmd/Alt chords (amends gamedesign §6); only `xr-standard` indices 0, 1 and 3 on Quest (face buttons UNVERIFIED, U-RAC-8, C03 rule 6); every binding remappable except `client.Pause`; iPhone driving layout is landscape-first with S10's rotate overlay and visual/audio feedback only [F-011]; tilt steering is opt-in (U-RAC-7).
+Per-platform defaults for every driving action (KBM, gamepad, iPhone touch, Quest controllers, hands) are the table in `06-racing-content.md` §C.9. Rules: no Ctrl/Cmd/Alt chords (amends gamedesign §6); only `xr-standard` indices 0, 1 and 3 on Quest (face buttons UNVERIFIED, U-ENG-5, C03 rule 6); every binding remappable except `client.Pause`; iPhone driving layout is landscape-first with S10's rotate overlay and visual/audio feedback only [F-011]; tilt steering is opt-in (U-RAC-7).
 
 ### 6.2 Platform differences
 
@@ -281,13 +281,13 @@ XR driving (M11b2) follows `11-platform-xr.md` §5.3: seated cockpit with the ve
 | ID | Item | Default while unverified | Verified in |
 |---|---|---|---|
 | U-RAC-1 | Rapier's vehicle controller exposes per-wheel contact point/normal/suspension length and accepts external impulses | build the model on `castRay` + `applyImpulse` (own ray-cast vehicle on a dynamic body); `drive()` only for steering angles | M03a spike |
-| U-RAC-2 | tick cost of `deterministic-compat` vs `simd-compat` with 8 M1 vehicles (U-ENG-2) | M1 cap per tier; canonical keeps `mobile-low` caps | M03a, M07a |
+| U-ENG-2 | tick cost of `deterministic-compat` vs `simd-compat` with 8 M1 vehicles | M1 cap per tier; canonical keeps `mobile-low` caps | M03a, M07a |
 | U-RAC-3 | independent bodies in one Rapier world do not change each other's results | ghosts are kinematic tracks, never bodies | M07a |
 | U-RAC-4 | `takeSnapshot`/`restoreSnapshot` round-trip is bit-exact | scrub re-simulates from the start | M07b |
 | U-RAC-5 | PNG save on iPhone (download vs share sheet) | full-screen image, press and hold | M07b device check |
 | U-RAC-6 | cost of `SSRNode`, `MotionBlur`, `LightProbeGrid` on r186 at `desktop-ultra` | flags off, governor may drop | M11a |
 | U-RAC-7 | iPhone device-motion permission flow in a Home Screen app (tilt steering) | tilt hidden unless a permission request succeeds | M07a device check |
-| U-RAC-8 | Quest face-button indices (U-ENG-5) | standard indices only | M11b2 |
+| U-ENG-5 | Quest face-button indices | standard indices only | M11b2 |
 
 ## 8. Milestone mapping
 

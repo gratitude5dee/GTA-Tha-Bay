@@ -23,7 +23,7 @@ Rooms survive real networks and deploys. When this session ends, a dropped socke
 - Engine: ghost and resume handling on the client (`01-engine.md` §8 M12c row): proxies of a resumed slot keep their `player:<slot>` key; a fresh join re-keys.
 
 ## Scope out
-- Moderated chat, route 20 and migration 0006, load bots and `rooms.capMax` → M12c2. Online page, invite UI, nameplates → M12d. Friend presence → deferred (Q-29). Delta snapshots → only if M12c2 measures > 10 KB/s per player.
+- Moderated chat, route 20 and migration 0006, load bots and `rooms.capMax` → M12c2. Online page, invite UI, nameplates → M12d. Friend presence → deferred (Q-29). Delta snapshots → only if M12c2 measures > 10 KB/s per player. Shared NPC agency and `EV NpcBusy` → not in v1 (DL-350): named NPCs stay client-local in rooms, dialogue per player; `ACT Interact` never targets an NPC.
 
 ## Deliverables
 - `services/rooms/src/room/{resume.ts, checkpoint.ts, lifecycle.ts, act.ts, drain.ts}` and edits to `RoomDO.ts`, `tick.ts`, `kick.ts`.

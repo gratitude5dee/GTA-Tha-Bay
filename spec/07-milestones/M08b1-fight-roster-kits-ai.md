@@ -38,7 +38,7 @@ After this session Culture Wars has its v1 roster as data. Eight kits per `07-fi
 - `config/fame-domains.json`; `config/ip-denylist.json` additions for the FX2 research names.
 - `tools/ci/likeness-gate/roster.ts` (extension) and `tools/ci/test/likeness-roster.spec.ts`.
 - Root script **`check:fighter`** (`tsx tools/ci/run.ts check-fighter`) and `tools/ci/check-fighter.ts`; `ci.yml` `content` job step.
-- `packages/modes/fighter/golden/vs-003.dvfight`; gray-box fighter assets and provenance for the eight slots.
+- `packages/modes/fighter/golden/vs-003.dvfight`; gray-box fighter assets (models `character/graybox.<slug>`) and provenance for the eight slots.
 
 ## Interfaces
 - Reads C10 1.0 `CompiledSoulPublic` (`tier`, `fameDomain`, `standIn`) and C07 1.1 likeness blocks; never stores a tier in fighter data except `expectedTier`, which CI compares. S07-owned `RosterEntry`, `StageDef` and kit shapes as in FX1, FX2, FX5. No contract change.

@@ -33,22 +33,22 @@ After this half session the wheel-force path of the shared handling model is dec
 
   Otherwise keep `castray`. A tie keeps `castray`.
 - `packages/shared/src/vehicle/wheel-path.ts` exports `SELECTED_WHEEL_PATH: 'castray' | 'controller'`. The vehicle system reads it and the losing implementation is deleted. Its harness result stays in the ADR and the JSON.
-- The ADR `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; number reserved in `docs/decisions/README.md`, DL-242). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a DL entry in `spec/11-decision-log-2.md` under "Builder decisions".
+- The ADR `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` (§E format, ≤ 800 words; number reserved in `docs/decisions/README.md`, DL-242). It records U-RAC-1 as verified or refuted, the decision table and the C06 1.2 proposal (`PhysicsBackend.vehicle` readout layout plus `applyWheelForces(v, forces)` as an additive member). The proposal is marked `proposed`. Also add a row to `docs/decisions/README.md` and a `BD-NNN` row in `spec/11-decision-log-builder.md` under "Builder decisions" (DL-341).
 
 ## Scope out
 - Any edit of `c06-modes.ts` or other contract files: the Architect decides the 1.2 bump.
 - Tuning the presets beyond what M03a1 left: the M03a1 tuning pass owns C.3 starting values; the M07a1 feel review may retune.
 - Jolt `WheeledVehicleController` (D-S06-02 fallback). It is evaluated only if both paths fail the oracles; then this milestone stops and reports.
 - Nitro, quirks, assists beyond steer assist, damage tuning, replay (M07a1, M07a2, M07b1).
-- U-RAC-2 tick cost with 8 M1 vehicles (M07a1) and U-RAC-3/4 (M07a2, M07b2).
+- U-ENG-2 tick cost with 8 M1 vehicles (M07a1) and U-RAC-3/4 (M07a2, M07b2).
 
 ## Deliverables
 - `packages/engine/src/sim/vehicle/wheel-path.ts` (seam), `wheel-path-castray.ts` (moved code), `wheel-path-controller.ts` (deleted after the decision if it loses; its source stays in the PR history).
 - `packages/engine/src/sim/physics/backend.ts` and its Rapier implementation: the documented `vehicle.read` layout. Doc comment only: no signature change.
 - `packages/shared/src/vehicle/wheel-path.ts` (`SELECTED_WHEEL_PATH`).
 - `packages/engine/test/wheel-spike.spec.ts`, `packages/engine/test/wheel-spike.adr.spec.ts` (the ADR's `Decision:` line equals `SELECTED_WHEEL_PATH` and the JSON's `selected`).
-- `packages/engine/package.json` script **`test:wheel-spike`** (`vitest run test/wheel-spike`). `pnpm check:unit` includes it, so check the vitest workspace globs.
-- `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-2.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
+- `packages/engine/package.json` script **`test:wheel-spike`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/wheel-spike`, run from the repo root like M01a1's `test:*`, so the root `vitest.config.ts` applies). `pnpm check:unit` includes it, so check the vitest workspace globs.
+- `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-builder.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
 - About 10 files.
 
 ## Interfaces

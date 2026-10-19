@@ -3,7 +3,7 @@
 **Status:** accepted · **Date:** 2026-10-18 · **Decides:** spec/03 D-27; R-ENG-01, R-ENG-02
 
 ## Context
-Every milestone is one pull request built by an agent, so correctness must be provable by deterministic commands. The product ships to Cloudflare Workers, where each deploy restarts the deployed script's Durable Objects [F-020], previews use production resources for bindings they do not override [F-061], and Cloudflare has no CI OIDC, so tokens are long-lived credentials [research/gap-ci-cd-release-assets.md §1.3]. CI machines have no real GPU or headset: SwiftShader can run WebGPU headless, Playwright WebKit on Linux has no `navigator.gpu` or `navigator.xr`, and IWER 2.6.0 emulates Quest sessions for three.js [F-062].
+Every milestone is one pull request built by an agent, so correctness must be provable by deterministic commands. The product ships to Cloudflare Workers, where a deploy restarts Durable Objects and drops their sockets [F-020] (restart scope per script is UNVERIFIED, U-BE-21; M12c1 AC-12 records it), previews use production resources for bindings they do not override [F-061], and Cloudflare has no CI OIDC, so tokens are long-lived credentials [research/gap-ci-cd-release-assets.md §1.3]. CI machines have no real GPU or headset: SwiftShader can run WebGPU headless, Playwright WebKit on Linux has no `navigator.gpu` or `navigator.xr`, and IWER 2.6.0 emulates Quest sessions for three.js [F-062].
 
 ## Options considered
 1. **Manual deploys from a laptop.** No audit trail; no rollback discipline.
@@ -22,11 +22,11 @@ Every milestone is one pull request built by an agent, so correctness must be pr
 - **Previews.** Workers Previews have no queue consumers, crons or own Workflows, service bindings call production, and bindings are not inherited and must be repeated under `previews`; queue, cron and Workflow behaviour is tested in Workers-runtime tests and on staging.
 
 ## Consequences
-- (+) Every acceptance criterion is a command; rollbacks are one command; rooms survive web releases.
+- (+) Every acceptance criterion is a command; rollbacks are one command; rooms are expected to survive web releases if U-BE-21 holds; until then web deploys follow the rooms drain notice.
 - (+) The same scripts run locally, in agents and in CI.
 - (−) Real-device behaviour cannot gate merges; milestones with device criteria record checklist output instead.
 - (−) Long-lived tokens are a standing risk; they are scoped and rotated by the operator.
-- (−) `wrangler@4.151.1` config keys for workflows, containers, analytics and previews are UNVERIFIED (U-BE-3, U-AST-6); M00 validates them against the schema.
+- (−) `wrangler@4.151.1` config keys for workflows, containers, analytics and previews are UNVERIFIED (U-BE-3); M00 validates them against the schema.
 
 ## Affected contracts and milestones
 C13 (`PerfScenario`, `QaFlags`), C15 (proof commands), C16. M00 (workflows, projects), M00a (`deploy:prod`, `check:*`), M00b (IP job), M01d (publish), M11a (nightly perf fail mode), M12c (drain), M14b (gradual rollout default).
