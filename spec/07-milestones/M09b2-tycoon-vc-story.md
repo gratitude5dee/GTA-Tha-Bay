@@ -22,7 +22,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 - **`clampTerms(proposal, envelope)`** field by field at command time, recording `clamped: string[]` in the `ChoiceRecord`, so replay is identical everywhere.
 - **`TycoonPitchController`** (B §11): request with `mode: 'tycoon'`, banded values, no prior free text, `deals` = midpoint at `t` plus neighbours at `t ± 0.15` with ids `deal.<meetingId>.<k>` mirrored in `offers.dealIds`, `maxTokens ≤ 220`; response maps `effects.mood` by the §9 table and a listed `offer_deal` arg to that deal, anything else to `pass`. **Fallback** (midpoint offer plus a templated line from `content/tycoon/vc-lines.json`, ≥ 6 lines per intent and style): `fallback` event, `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable`, network failure, no first token in 4 s, flag `tycoon.dialogue` off. The offer card shows before any model text.
 - **VC roster:** the 12 B §10 slugs as originals in `content/npcs/vc-*/soul.md` (`fictionalized`, `pipeline: none`, `tycoon` and `stats.tycoon` blocks, Sonnet only for the two heroes (R4), t1 Aura voices per Q-20/DL-OWN-01, `standIn` null), roster entries, and one shared ink `content/npcs/vc-common/vc.ink` (`greeting`, `smalltalk`, `busy`, `deflect`, `farewell`, `pitch_*`). Bodies and portraits are creator-kit presets (DL-175, DL-180): no fal spend.
-- **Pitch room:** descriptor v2 (`world: 'stage'`). Desktop: procedural gray-box `prop/stage-pitch-room` (authored) plus a creator-kit NPC prefab `npc:<vcSlug>`, fixed cinematic camera. `mobile-low` or a stage load failure: the 2D card. Both show "AI investor · fictional game", the `meta.disclosure` badge, subtitles and "In-game terms are a simulation, not financial or legal advice". Optional free text goes through the S04 classifier (blocked = `evasive`) and is hidden unless the bracket is `18p` (U-TYC-5 default).
+- **Pitch room:** descriptor v2 (`world: 'stage'`). Desktop: procedural gray-box `prop/stage-pitch-room` (authored) plus a creator-kit NPC prefab `npc:<vcSlug>`, fixed cinematic camera. `mobile-low` or a stage load failure: the 2D card. Both show "AI investor · fictional game", the `meta.disclosure` badge, subtitles and "In-game terms are a simulation, not financial or legal advice". Optional free text goes through the S04 classifier (blocked = `evasive`) and is hidden unless the bracket is `18p` (DL-139 default).
 - **Mini-run** `mini8w` (`08-tycoon.md` §5.8): `miniWin`/`miniLose`, no score or history. Policy `autoFounder` = `median` plus a scripted pitch (BotDriver `tycoon.autoFounder`).
 - **Story** `content/missions/m.a2.01/mission.ts` with `lines.en.json` (`03-story-missions.md` §C1; §B6): talk with `whitney_arlo`; hook `tycoon.a2.curbshare` → `startChild('tycoon', {defId: 'mini8w'})` with `unlockOnFirstEncounter: 'unlock.tycoon'`; pass on win or lose; win sets `coop_success`; stub = a three-choice talk setting the same flag.
 - **Dividends:** `+= min(1,000,000, floor(founderPayoutCents·0.0002))` per winning standalone full run; on story entry the story credits `min(unclaimed, cap)` via `EconomyApi.credit(…, idemKey 'tycoon.div:<n>')` against `StorySlice.flags['tycoon.divClaimedCents']`, with the $10,000-per-game-week rule checked by `ledgerSince` over 1,209,600 game half-seconds (DN-S08-04).
@@ -80,7 +80,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 - **Bot-run:** `check:missions -- --mission m.a2.01`; `check:balance -- --suite tycoon`.
 - **E2E:** `@tycoon-pitch` (both flat projects), `@tycoon-story` (stub path and tile unlock).
 - **Static:** `npc:lint`, `likeness:gate`, `check:telemetry`, `check:secrets`.
-- **Staging (optional, records only):** with `ANTHROPIC_API_KEY` on staging, one meeting turn on the Preview records TTFT (U-TYC-3) in the PR notes. It is not an AC.
+- **Staging (optional, records only):** with `ANTHROPIC_API_KEY` on staging, one meeting turn on the Preview records TTFT (U-NPC-01) in the PR notes. It is not an AC.
 
 ## Demo script
 1. `VITE_DV_QA=1 pnpm dev`, then start a new story profile and jump to `m.a2.01` with the mission debugger.
@@ -96,7 +96,7 @@ After this session tycoon investors are AI NPCs and the story unlocks the mode. 
 ## Risks & fallbacks
 - **Souls fail lint L4 (block B ≥ 600 tokens).** Lengthen the `## Identity` and `## Example lines` sections. Token counting uses `messages.count_tokens` and needs `ANTHROPIC_API_KEY`. Without it L4 prints `SKIP … ANTHROPIC_API_KEY not set` (M06a2 behaviour), so run it once in CI where the key exists.
 - **3D room time overrun.** Ship the 2D card on all tiers and keep the stage behind the mode-local constant `ui.room3d` in `config/tycoon.balance.json` (default false; not a C12 feature flag). Record the decision.
-- **Live dialogue latency** (U-TYC-3): the offer card never waits. The `tycoon.dialogue` flag can be turned off without a release.
+- **Live dialogue latency** (U-NPC-01): the offer card never waits. The `tycoon.dialogue` flag can be turned off without a release.
 
 ## Notes for the Builder
 - Read first: `08-tycoon-finance.md` §8–§11; `08-tycoon.md` §3.1, §5.8, §5.11, §5.14–§5.15; `03-story-missions.md` §C7–§C9; `03-story-narrative.md` §B6 (`m.a2.01` row); `04-npc-contracts.md` B2.2, B2.4, B3, B5, B8.

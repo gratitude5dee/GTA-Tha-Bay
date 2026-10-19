@@ -24,7 +24,7 @@ Characters (sheet → mesh → rig) and cutscenes are generated on fal.ai, once,
 - (+) The game never blocks on a vendor; a repeated request makes zero fal calls.
 - (+) Pipeline stages are testable with `MockFalPort` and recorded fixtures (`FAL_MODE=mock`).
 - (−) No late or on-demand cutscenes; content is prewarmed before release.
-- (−) A Container transcoder and a Whisper pass add moving parts; Workflow `waitForEvent` limits and Container config keys are UNVERIFIED (U-AST-5, U-AST-6).
+- (−) A Container transcoder and a Whisper pass add moving parts; Workflow `waitForEvent` limits and Container config keys are UNVERIFIED (U-AST-5, U-BE-3).
 - (−) Safari MSE gaps and Low Power Mode video behaviour on real devices are recorded in M04c, not asserted.
 
 ## Affected contracts and milestones

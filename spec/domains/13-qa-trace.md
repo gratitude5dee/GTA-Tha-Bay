@@ -1,6 +1,6 @@
 # S13 — QA, part C: traceability method and seed matrix
 
-> Wave 5 · v1.0 · 2026-10-18 · continues `13-qa.md` §2.6. Format per 03-SPEC-TEMPLATE §G: `| R-ID | spec sections | milestones | tests (names) | status |`. This seed matrix is hand-built from the domain specs and `spec/07-milestones/_PLAN-*.md`; from M00d on, `tools/ci/trace.ts` regenerates it from the milestone files into `tests/reports/trace.md`, which `spec/01-product.md` copies.
+> Wave 5 · v1.0 · 2026-10-18 · continues `13-qa.md` §2.6. Format per 03-SPEC-TEMPLATE §G: `| R-ID | spec sections | milestones | tests (names) | status |`. This seed matrix is hand-built from the domain specs and `spec/07-milestones/_PLAN-*.md`; from M00d on, `tools/ci/trace.ts` regenerates it from the milestone files into `tests/reports/trace.md`, which `spec/01-product-trace.md` copies.
 
 ## 1. Method
 
@@ -12,7 +12,7 @@
 
 ## 2. Seed matrix (status `planned`: every row cites at least one PENDING milestone)
 
-Corrected 2026-10-18 (DL-217): the first version took milestones only from the `_PLAN-*.md` `**R**` fields and missed R-IDs that the twelve READY files cite in `## Requirements` (§1 item 1 makes the file win). Those citations and their tests are added; "(s)" marks a support or groundwork citation; the spec-section column also names the Wave 5 integration files (`spec/02`, `spec/05`, `spec/06`, `spec/10`) where they carry the design. `spec/01-product.md` §13 is the same table.
+Corrected 2026-10-18 (DL-217): the first version took milestones only from the `_PLAN-*.md` `**R**` fields and missed R-IDs that the twelve READY files cite in `## Requirements` (§1 item 1 makes the file win). Those citations and their tests are added; "(s)" marks a support or groundwork citation; the spec-section column also names the Wave 5 integration files (`spec/02`, `spec/05`, `spec/06`, `spec/10`) where they carry the design. `spec/01-product-trace.md` (§13 of the product spec, DL-531) is the same table.
 
 | R-ID | Spec sections | Milestones | Tests (names) | Status |
 |---|---|---|---|---|
@@ -51,9 +51,9 @@ Corrected 2026-10-18 (DL-217): the first version took milestones only from the `
 | R-UI-02 | 10-ui-pages §2.9; 10-ui §2 | M04b1, M11b3, M14c | `@ui-menus`, `@ui-a11y`, `check:i18n`, XR comfort panel e2e | planned |
 | R-UI-03 | 10-ui §1–§3; 10-ui-pages §2 | M00, M04b1, M04b2, M09b1, M12a2, M06b3, M12d, M13a7, M13b4, M13d2 | `@ui-shell`, `@ui-menus`, `@ui-saves`, `@ui-online`, `@ui-forum`, `@ui-legal`, `ui-screen-parity.spec` | planned |
 | R-IP-01 | 05-assets §5; 05-assets-pipeline §9; spec/06 §7 | M00, M00b, M01d, M01f, M02a1, M02d1, M07a1, M07b1, M13a1, M14b3 | `provenance:check`, `ip:signatures`, `ip:strings`, `names:lint`, `names:brand`, `ip:history`, `ip:similarity` | planned |
-| R-IP-02 | 04-npc-contracts B8; 05-assets-pipeline §10 | M00b, M00c, M01e (s), M06a1, M06a2, M08b1, M10a1, M10b, M10c, M14b3 | `likeness:gate`, `killswitch`, `store.rules` (`evictByTag`), `@kill-drill`, consent-index export | planned |
+| R-IP-02 | 04-npc-contracts B8; 05-assets-pipeline §10 | M00b, M00c, M01e (s), M06a1, M06a2, M06b2, M08b1, M10a1, M10b, M10c, M14b3 | `likeness:gate`, `killswitch`, `store.rules` (`evictByTag`), `@kill-drill`, consent-index export | planned |
 | R-IP-03 | 09-backend §3.4; 12-modding-publish C§3; spec/05 §5 | M00a (s), M06a5, M06b1, M06b2, M13b1, M13b4, M13c2, M13d1, M13d2 | `geo-gate` (legal routes exempt), `report-threshold`, `ncii-clock`, `evidence-audit`, `@ui-legal`, report button in `@npc` | planned |
-| R-IP-04 | 07-fighter-pose FP7; 10-ui-pages §2 (age); spec/03 D-30 | M04b1, M08c1, M08c2, M12a1, M12a2, M06b2 | `@pose` (no image bytes), worker network allow-list, `@ui-age` (under-18 blocked) | planned |
+| R-IP-04 | 07-fighter-pose FP7; 10-ui-pages §2 (age); spec/03 D-30 | M04b1, M08c1, M08c2, M12a1, M12a2 | `@pose` (no image bytes), worker network allow-list, `@ui-age` (under-18 blocked) | planned |
 | R-ENG-01 | 13-qa §1, §3.8; spec/08 §1, §6 | M00, M00a, M00b, M01a1, M01d, M00d, M04d, M13a6, M14b3 | C15 lint, `check:agents`, `check:skills`, M00 AC-1/AC-2, `assets-gates` | planned |
 | R-ENG-02 | 11-platform-perf §5; spec/08 §4 | M00, M01a1, M01a2, M01c, M01d, M01e, M00d, M02b1, M04d, M11a1, M11a2, M12c2, M14b3 | `check:perf -- --fail`, `perf:verify`, `perf-budget.spec`, `engine/loop.*`, `bench:physics`, `lanes`, `load:rooms` | planned |
 | R-ENG-03 | 09-backend-ops §5; 05-assets-pipeline §11; spec/10 §3–§5; DL-OWN-01 | M00a, M00b, M00c, M05b1, M05d, M05c3, M10a1, M10b, M06b4, M14b1, M14b2 | `check:prod-routes`, `genai:liveness`, `budget-cache-first`, governor levels, guardrails T1–T9, spike ledger cap | planned |

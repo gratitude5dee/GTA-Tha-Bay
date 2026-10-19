@@ -1,9 +1,9 @@
 # 11 — Decision log (living, dated)
 
-> **Split for the 6,000-word cap (DL-341):** this file keeps the index and DL-001…DL-076. DL-077…DL-170 and the owner decisions after Wave 4 (DL-OWN-01, DL-OWN-02) moved unchanged to `spec/11-decision-log-1b.md`; DL-171 onward is in `spec/11-decision-log-2.md`, `-3.md` and `-4.md`; Builder decisions are in `spec/11-decision-log-builder.md`. A citation of this file for an id it no longer holds resolves in those parts.
+> **Split for the 6,000-word cap (DL-341):** this file keeps the index and DL-001…DL-076. DL-077…DL-170 and the owner decisions after Wave 4 (DL-OWN-01, DL-OWN-02) moved unchanged to `spec/11-decision-log-1b.md`; DL-171 onward is in `spec/11-decision-log-2.md`, `-3.md`, `-4.md`, `-4b.md` and `-5.md`; Builder decisions are in `spec/11-decision-log-builder.md`. A citation of this file for an id it no longer holds resolves in those parts.
 
 ## Index by topic
-Entries below are unchanged; this index only finds them. DL-171 onward is in `spec/11-decision-log-2.md` (blocks by author and date). ADRs: `docs/decisions/README.md`.
+Entries below are unchanged; this index only finds them. DL-171 onward is in `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `-3.md` (DL-218…DL-244), `-4.md` (DL-249…DL-451), `-4b.md` (DL-460…DL-493) and `-5.md` (DL-500 onward), blocks by author and date. ADRs: `docs/decisions/README.md`.
 
 | Topic | Entries |
 |---|---|

@@ -16,8 +16,12 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 ## Scope in
 - **Documents.** `content/legal/<doc>.json` for `terms`, `privacy`, `dmca`, `counter-notice`, `ncii`, `ugc`, `ai-disclosure`, `repeat-infringer`, `contact`. Each file follows a schema `{ doc, version, updated /* YYYY-MM-DD */, counselReviewed: boolean, sections: { heading: LocKey | string, paragraphs: string[] }[] }` in `packages/ui/src/pages/legal/legal-doc.schema.json`. Paragraphs are plain text, rendered as text nodes; there is no markdown and no `innerHTML`.
   - Placeholder text is written from `research/legal-ip-likeness.md` §5.1–§5.3. It carries `counselReviewed: false` until Q-23 is answered.
-  - **Vendor flow-down (`terms` only).** `research/INDEX.md` §4 rule 11 says vendor AUPs flow into our Terms. `terms.json` therefore carries a required section `vendor-terms` and a field `vendorTerms: { vendor, snapshot: string | null, factId?: string, obligations: string[] }[]` (the schema requires it when `doc` is `terms`). There is one entry per runtime vendor. These are the distinct `vendor` values other than `local` in `config/genai-endpoints.json`, plus the dialogue vendor (`anthropic`) and the moderation vendor (`openai`). `snapshot` is the entry's `path` in M00b's `docs/legal/vendor-terms/index.json`, the same value as the registry's `termsSnapshot`. Where M00b stores no snapshot it is `null`, and `factId` names the ledger row instead (Anthropic AUP, F-038). An entry with neither is rendered as "pending review". `obligations` restates in plain text what the end user must accept. Examples are the fal ToS §2 18+ rule and AUP pass-through [F-042], and the Anthropic AUP minors-under-18 and AI-disclosure rules [F-038]. Counsel confirms the wording under Q-23.
+  - **Vendor flow-down (`terms` only).** `research/INDEX.md` §4 rule 11 says vendor AUPs flow into our Terms. `terms.json` therefore carries a required section `vendor-terms` and a field `vendorTerms: { vendor, snapshot: string | null, factId?: string, obligations: string[] }[]` (the schema requires it when `doc` is `terms`). There is one entry per runtime vendor. These are the distinct `vendor` values other than `local` in `config/genai-endpoints.json`, plus the dialogue vendor (`anthropic`) and the moderation vendor (`openai`). `snapshot` is the entry's `path` in M00b's `docs/legal/vendor-terms/index.json`, the same value as the registry's `termsSnapshot`. Where no snapshot is stored it is `null`, and `factId` names the ledger row instead. The `anthropic` entry carries both: the AUP snapshot this milestone adds (below) and `factId: 'F-038'`. An entry with neither is rendered as "pending review". `obligations` restates in plain text what the end user must accept. Examples are the fal ToS §2 18+ rule and AUP pass-through [F-042], and the Anthropic AUP minors-under-18 and AI-disclosure rules [F-038]. Counsel confirms the wording under Q-23.
   - The `dmca` and `contact` documents show the designated-agent block from `config/legal.json` (`agent: { name, address, email, phone } | null`). While the agent designation (Q-16) is pending, the block reads "Designation pending". The DMCA form still works, because route 42 does not depend on it.
+- **Vendor-terms snapshots (extends M00b).** M00b's ten snapshots lack the Anthropic AUP and any Workers AI policy. With M00b's own tool (`pnpm legal:snapshot`, `tools/ci/terms-snapshot.ts`), add to `docs/legal/vendor-terms/` and its `index.json`:
+  - the Anthropic AUP from `https://www.anthropic.com/legal/aup` [research/INDEX.md F-038; research/ai-npc-runtime.md], stored as `anthropic-aup-<date>.md` with its SHA-256;
+  - a `workers_ai` policy entry with status `pending-manual` and no file. No ledger row gives its URL (U-AST-18), so nothing is fetched; once a URL is verified and recorded in `spec/03`, the same tool fetches it and the `workers_ai` `vendorTerms` entry gets its `snapshot`.
+  - If M00b's `--verify` hard-codes the count of ten entries, change it to check the entries the index lists (a one-line change; M00b's AC-10 stays as recorded).
 - **Page.** `LegalPage` (`/legal/:doc`, `PageDef` kind `document`, gate always `open`, XR `exit`). It provides a table of contents, the version and updated date, the pending-review banner, and a "Print or save" hint. Documents are pre-rendered at build time into the lazy `legal` chunk, so they open offline after the first visit (service worker precache, under the 6 MiB cap).
 - **Forms.** One `LegalForm` component renders three field sets from `content/legal/forms.json` (schema `legal-forms.schema.json`). The starting sets are listed below. Counsel replaces the wording (Q-23); the keys match M13d1's body types.
   - **DMCA notice:** the 17 U.S.C. 512(c)(3) elements [research/legal-ip-likeness.md §5.1]:
@@ -58,7 +62,8 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 - `packages/ui/src/kit/NciiNotice.tsx`. Edits to `UgcSurface`, Title and Main footers, `BlockedPage` links, the report dialog redirect handling, the `PageDef` registry entry for `legal`, and `content/ui/i18n/en.json`.
 - `packages/ui/test/{legal-docs.spec.ts (includes the vendor flow-down check), legal-form.spec.ts, ncii-notice.spec.ts}`; extend `ugc-surface.spec.ts` (requires `NciiNotice`).
 - `tests/e2e/legal.spec.ts` (tag `@ui-legal`), using Playwright `page.route` for route 42 and capturing request bodies.
-- No new root script. ≈ 24 files.
+- `docs/legal/vendor-terms/anthropic-aup-<date>.md` and the two new `index.json` entries.
+- No new root script. ≈ 26 files.
 
 ## Interfaces
 - C12 1.1 consumed as frozen: route 42 (pub, worldwide, geo-exempt), `ApiError`/`HTTP_FOR`, route 41 `copyright` → 409 with `details.redirect`.
@@ -75,10 +80,12 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 - AC-7 Given the blocked screen (a 17-year-old date entered) When the person follows Legal → NCII Then the form opens and can be submitted — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-legal`
 - AC-8 Given the legal pages and the three forms in their empty, error and success states When the axe scan runs Then it reports zero critical or serious findings — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y`
 - AC-9 Given the branch When i18n, lint, unit tests and the preview deploy run Then all pass and the deployed `/legal/dmca` serves the new page — proof: `pnpm check:i18n && pnpm lint && pnpm check:unit && pnpm deploy:preview`
+- AC-10 Given `docs/legal/vendor-terms/index.json` When it is verified offline Then it holds an Anthropic AUP entry with a stored file whose SHA-256 matches the index, every other entry's stored file matches its hash or the entry is `pending-manual`, and the `anthropic` `vendorTerms` entry's `snapshot` equals that entry's `path` — proof: `pnpm legal:snapshot -- --verify && pnpm check:unit -- packages/ui`
 
 ## Test plan
 - Unit (`pnpm check:unit -- packages/ui`):
   - `legal-docs.spec.ts`: schema, text nodes only; `terms.json` has exactly one `vendorTerms` entry per vendor that the vendor flow-down rule lists (registry plus `anthropic` and `openai`), and every non-null `snapshot` exists in `docs/legal/vendor-terms/index.json`;
+  - snapshots: `pnpm legal:snapshot -- --verify` on the extended index (AC-10);
   - `legal-form.spec.ts`: validation table per field set, disabled-submit rules, error mapping from `ApiError`, no storage writes (spied);
   - `ncii-notice.spec.ts`;
   - `ugc-surface.spec.ts` (extended).
@@ -93,12 +100,12 @@ After this session the legal pages are real. `/legal/<doc>` renders structured, 
 5. DevTools → Application: no form values in any storage.
 
 ## Effort
-0.3–0.5 session; ≈ 24 files (10 of them small JSON documents); risk **low**.
+0.3–0.5 session; ≈ 26 files (10 of them small JSON documents); risk **low**.
 
 ## Risks & fallbacks
 - **M13d1 did not export route 42 body types, or `check:api` emits no schema for them.** Read `services/edge/src/legal` and match its accepted fields. Keep the field keys in `forms.json` only, and replace AC-2's schema check with a unit test that compares the form keys with the handler's Ajv schema file. Report the gap to the Architect as a C12 proposal; do not edit `v1.ts`.
 - **Counsel text arrives mid-session.** It is a data commit to `content/legal/*.json`. Only the `counselReviewed` flag and `version` change.
-- **A runtime vendor has no M00b snapshot and no ledger row** (for example `workers_ai`). Keep its entry with `snapshot: null` and no `factId`; the page shows it as pending review. Report it to the Architect as an addition to M00b's snapshot list. Do not invent a policy URL.
+- **A runtime vendor has no snapshot and no ledger row** (`workers_ai` until U-AST-18 is verified, or a vendor added to the registry later). Keep its entry with `snapshot: null` and no `factId`; the page shows it as pending review. Report it to the Architect. Do not invent a policy URL.
 - **`termsVersion` (M04b1) lives elsewhere.** Read it from where M04b1 put it. The Terms card re-show rule is unchanged; `content/legal/terms.json` `version` must equal it, and a unit test asserts that.
 
 ## Notes for the Builder

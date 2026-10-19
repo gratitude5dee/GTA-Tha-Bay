@@ -40,7 +40,7 @@ After this half session the wheel-force path of the shared handling model is dec
 - Tuning the presets beyond what M03a1 left: the M03a1 tuning pass owns C.3 starting values; the M07a1 feel review may retune.
 - Jolt `WheeledVehicleController` (D-S06-02 fallback). It is evaluated only if both paths fail the oracles; then this milestone stops and reports.
 - Nitro, quirks, assists beyond steer assist, damage tuning, replay (M07a1, M07a2, M07b1).
-- U-RAC-2 tick cost with 8 M1 vehicles (M07a1) and U-RAC-3/4 (M07a2, M07b2).
+- U-ENG-2 tick cost with 8 M1 vehicles (M07a1) and U-RAC-3/4 (M07a2, M07b2).
 
 ## Deliverables
 - `packages/engine/src/sim/vehicle/wheel-path.ts` (seam), `wheel-path-castray.ts` (moved code), `wheel-path-controller.ts` (deleted after the decision if it loses; its source stays in the PR history).

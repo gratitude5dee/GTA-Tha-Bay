@@ -232,4 +232,4 @@ Repo variable (not secret): `DEPLOY_ALLOWED_ACTORS` (M00a). Name conflicts resol
 | S13 QA | C15 lint; trace report; mutants; verifier lock | `pnpm check:unit -- tools/ci`, `pnpm check:agents` |
 
 ## 10. Facts and UNVERIFIED
-Facts: F-013, F-016, F-061, F-062; [research/gap-ci-cd-release-assets.md §1.4, §1.5, §2, §4, §5, §6, R3]; `11-platform.md` §4.5 (budgets are engineering targets). UNVERIFIED and recorded, never asserted: U-PLT-19 (SwiftShader on the runner), U-QA-2 (`wrangler deployments status --json` fields), U-QA-3/4 (load bot client and PoPs), U-QA-5 (`ip:similarity` tool), U-QA-7 (macOS Metal), U-QA-8 (`_headers` on Preview URLs).
+Facts: F-013, F-016, F-061, F-062; [research/gap-ci-cd-release-assets.md §1.4, §1.5, §2, §4, §5, §6, R3]; `11-platform.md` §4.5 (budgets are engineering targets). UNVERIFIED and recorded, never asserted: U-PLT-19 (SwiftShader on the runner), U-BE-20 (`wrangler deployments status --json` fields), U-QA-3/4 (load bot client and PoPs), U-QA-5 (`ip:similarity` tool), U-QA-7 (macOS Metal), U-QA-8 (`_headers` on Preview URLs).

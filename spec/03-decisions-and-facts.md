@@ -66,14 +66,14 @@ Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted
 - **G3** Recurring ceiling $500/month (Anthropic $350, voice $100, moderation $25, buffer $25). **fal.ai: hard cap USD 100 total** (owner decision 2026-10-18, DL-OWN-01; supersedes the earlier $1,000 one-off figure): allocation spike ≤ $10 (M00c) · characters ≤ $42 (≤ 8 Standard heroes at ≈ $3.67 + ≤ 12 Lean at ≈ $1.05 = $41.96; DL-172: S05 recipe with programmatic crops; research's $3.73 priced vendor crops) · cutscenes ≤ $40 (Turbo/fallback chain, shortest clips that work; everything else in-engine) · buffer $8; enforced by `budget_program` = 100,000,000 USD micros in BudgetGovernorDO, a prepaid fal balance with auto-recharge off, `FAL_MODE=mock` by default in dev/CI, and a `--live` flag plus dry-run cost estimate on every paid job. No player-triggered fal generation in v1: the NPC builder uses creator-kit bodies; custom 3D for user NPCs goes through an owner-approved queue that counts against the cap. Per-player quotas and governor thresholds per INDEX §7. Layers and thresholds: [ADR-0015](../docs/decisions/ADR-0015-cost-controls.md).
 
 ## 5. Verified facts
-The ledger is `research/INDEX.md` §2 (F-001 … F-067, all checked 2026-10-18); this file does not copy it, so there is one place to correct a fact. Domain specs cite `[research/<file>.md]` or `F-NNN`. §6 lists, per milestone, the ledger rows its scope and acceptance criteria rely on. Newly verified facts are added to `research/INDEX.md` §2 with URL and date; items that could not be verified are `UNVERIFIED` and listed in `spec/99-open-questions.md`.
+Two homes, each fact in exactly one of them (DL-556). **Research facts:** the ledger `research/INDEX.md` §2 (F-001 … F-068, checked 2026-10-18); this file does not copy it, so there is one place to correct a fact. Domain specs cite `[research/<file>.md]` or `F-NNN`. §6 lists, per milestone, the ledger rows its scope and acceptance criteria rely on. **Builder-verified facts and resolved versions:** §7 of this file, which is where `CLAUDE.md`, `AGENTS.md`, the kickoff and the milestone notes mean by "record it in `spec/03`"; a Builder never edits `research/INDEX.md`. The Architect may move a §7 row into the ledger as a new F row at a checkpoint (moved, not copied: the §7 row is replaced by a pointer to the F id). Items that could not be verified are `UNVERIFIED` and listed in `spec/99-open-questions.md`.
 
 ## 6. Facts each milestone relies on
 Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-notes.md` item 5). A split family appears as one row naming its parts (`1`, `2`, `3` digit suffixes; M11b2's second part is M11b4; M14b has three parts per DL-212); the row applies to every part (DL-206). "F rows" are `research/INDEX.md` §2 rows, so the number is the row id there. Where a domain keeps its own local fact (for example F-S12-01 in `12-modding.md` §7), the row names it. **Recorded, not asserted** lists UNVERIFIED items from `spec/99-open-questions.md` that a device run or spike writes down as checklist output; no acceptance criterion may assert them (C15). A milestone author who adds or drops a dependency edits the row in the same pull request.
 
 | Milestone | F rows | What the scope and acceptance criteria rely on | Recorded, not asserted |
 |---|---|---|---|
-| M00 | F-001, F-002, F-011, F-016, F-018, F-019, F-061, F-062 | pins; three r186 and the WebGL2 fallback probe; iPhone manifest rules; Workers Paid; headers on static assets; Previews per PR; SwiftShader, WebKit-on-Linux and IWER limits | U-PLT-19, U-BE-3, U-BE-20, U-AST-6 |
+| M00 | F-001, F-002, F-011, F-016, F-018, F-019, F-061, F-062 | pins; three r186 and the WebGL2 fallback probe; iPhone manifest rules; Workers Paid; headers on static assets; Previews per PR; SwiftShader, WebKit-on-Linux and IWER limits | U-PLT-19, U-BE-3, U-BE-20 |
 | M00a | F-018, F-019, F-027, F-061 | `/api/*` Worker-first with isolation headers in code; no request bodies logged (log billing); Preview URL echo | — |
 | M00b | F-041, F-042, F-049, F-050, F-053, F-054, F-067 | registry statuses and vendor-terms snapshots; ODbL and PDDL allowlist entries; franchise mark in `ip:strings` | U-AST-9, U-AST-10 |
 | M00c | F-017, F-039, F-040, F-041, F-042, F-043, F-044, F-045, F-046, F-047, F-048 | spike prices, codecs and C2PA probe, queue and webhook behaviour, no vendor cap | U-AST-1 to U-AST-4, U-AST-7, U-AST-8, U-AST-14 |
@@ -99,7 +99,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M04b1 | F-004, F-010, F-011 | coach mark instead of install prompt; Settings storage panel | — |
 | M04b2 | F-004, F-011 | Home Screen web apps; no fullscreen, orientation lock or vibration | — |
 | M04b3 | none | WebCrypto device key; no ledger row | — |
-| M04c | F-004, F-005, F-043, F-063 | fixture clips match H3 output format; Low Power Mode video gesture; XR media paths | U-PLT-17, U-S03-4, U-S03-5, U-S03-7, U-REC-1 |
+| M04c | F-004, F-005, F-043, F-063 | fixture clips match H3 output format; Low Power Mode video gesture; XR media paths | U-PLT-17, U-S03-4, U-S03-7, U-REC-1 |
 | M05a1, M05a2 | none | pure sim, VM and CI autoplayer; no external-system fact | — |
 | M05b1 | F-023, F-024, F-042, F-043, F-047, F-048 | `HEAD` readiness; Workflow limits; no browser-to-fal; webhook verification; no vendor cap | U-AST-5, U-AST-15, U-BE-6, U-BE-13 |
 | M05b2 | F-039, F-040, F-043, F-063 | key inputs, fixture manifests, iOS video gesture | — |
@@ -131,7 +131,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M09b1 | F-013 | XR desk panel budget | — |
 | M09b2 | F-034, F-035, F-036 | Haiku and Sonnet pitch meetings; caching; no sampling parameters | Haiku TTFT (S04) |
 | M10a1, M10a2 | F-017, F-042, F-044, F-045, F-046, F-047, F-048 | sheet, mesh and rig prices; webhook; glTF pipeline; cap | U-AST-1, U-AST-2, U-AST-17 |
-| M10b | F-023, F-043, F-047, F-048 | prefix purge; C2PA re-sign inputs; idempotent prewarm; cap | U-AST-12, U-BE-10 |
+| M10b | F-023, F-043, F-047, F-048 | prefix purge; C2PA re-sign inputs; idempotent prewarm; cap | U-BE-10 |
 | M10c | F-025, F-046, F-051 | Workers AI and MiniMax voice prices; ElevenLabs terms | — |
 | M11a1, M11a2 | F-004, F-007, F-009, F-010, F-011, F-012, F-013, F-062, F-063, F-064 | iPhone memory, quota and eviction; render-object cost; Quest budgets; Low Power Mode; crash visibility (Chromium `crash-reporting` group and `body.reason`, [research/gap-observability-cost-guardrails.md §2.1], DL-224) | U-PLT-1 to U-PLT-5, U-PLT-8, U-PLT-20, U-REC-2 |
 | M11b1 | F-002, F-003, F-005, F-006, F-013, F-062 | XR session and renderer swap; visionOS and Quest support; Window-only `navigator.xr`; IWER | U-PLT-10, U-PLT-12, U-PLT-13 |
@@ -167,3 +167,9 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M15a to M15g | F-017, F-023, F-053, F-054 | same grid, packs and OSM and DataSF sources; other counties' open data is not in the ledger and is listed when those specs are written | — |
 
 Rows that say "none" depend on no external system: their proofs are repository commands over pure code or authored data.
+
+## 7. Builder-recorded facts and resolved versions
+Builders append one row per fact they verify or library version pnpm resolves outside the ledger (CLAUDE.md "Facts and sources"; DL-556), in the same pull request as the milestone. A row never restates an F row; a fact that contradicts an F row is reported to the Architect and recorded here with the observed value, and the F row is corrected in `research/INDEX.md` by the Architect only. Versions recorded here stay out of acceptance criteria. Parallel Builders append at the end of the table and resolve merge conflicts by keeping both rows.
+
+| Item | Value | URL | Date | Milestone |
+|---|---|---|---|---|

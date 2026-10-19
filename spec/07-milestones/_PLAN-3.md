@@ -16,7 +16,7 @@
 
 ### M06b2 · builder-images-review — 1 · risk M · S04, S09
 - **Goal:** presigned uploads and commit (route 34), image moderation chain and `UGC_SCAN` queue, text descriptions, attestation, P2 submit (test-issuer tokens until M13c1), case decisions on the NPC queue of route 43, community list, reports (route 41); UGC buckets created (DL-182).
-- **R** R-NPC-03, R-IP-03/04 · **Dep** M06b1, M12a1 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
+- **R** R-NPC-03, R-IP-02/03 · **Dep** M06b1, M12a1 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
 - **Gate** Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY` · **Proof** `pnpm check:workers -- npc-builder` (images text-only, submit tier, report unpublish); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
 
 ### M06b3 · npc-builder-ui — 1 · risk M · S10
@@ -68,7 +68,7 @@
 
 ### M13a3 · mod-runtime-data-experience — 1 · risk M · S12
 - **Goal:** `ModHost`, permission broker, scene ops, ECS shims, `ExperienceMode`, `modsActive()` with room refusal 4007, mod saves, map markers, route 37 GET, `mod-scene-budget`.
-- **R** R-MOD-01/04 · **Dep** M13a2, M02c2, M12b1, M12c1 (4007 refusal hook) · **Read** `12-modding.md` §2, §5; `12-modding-contracts.md` B§3, B§5–B§6 · **Out** `packages/engine/src/{sim/mods,client/mods}` (DL-220) · **C** C14 1.0, C17 1.0, C06 1.1, C05 1.1 (`mod:<id>`)
+- **R** R-MOD-01/04 · **Dep** M13a2, M02c2, M12b1, M12c1 (4007 refusal hook), M04b2, M06a3 · **Read** `12-modding.md` §2, §5; `12-modding-contracts.md` B§3, B§5–B§6 · **Out** `packages/engine/src/{sim/mods,client/mods}` (DL-220) · **C** C14 1.0, C17 1.0, C06 1.1, C05 1.1 (`mod:<id>`)
 - **Gate** none · **Proof** `pnpm check:workers -- mods-4007`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-exp`; `pnpm check:perf -- --scenario mod-scene-budget`
 
 ### M13a4 · mod-script-sandbox — 1 · risk H · S12

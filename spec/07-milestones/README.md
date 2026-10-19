@@ -4,7 +4,7 @@
 
 ## Status values
 - **READY** — the file exists, follows C15, every acceptance criterion has a proof that exists by the end of that milestone, and no criterion relies on an UNVERIFIED fact. The Builder may start it once every milestone in its Depends on is merged.
-- **READY · frozen (executing)** — the twelve fast-track files (M00 … M01f). A Builder is executing M00; these files change only for a defect that blocks a Builder, and every such change is logged in the decision log (`spec/11-decision-log-2.md` from DL-245, continued in `spec/11-decision-log-4.md`; DL-341, and `spec/11-decision-log-5.md` from DL-500).
+- **READY · frozen (executing)** — the twelve fast-track files (M00 … M01f). A Builder is executing M00; these files change only for a defect that blocks a Builder, and every such change is logged in the decision log (`spec/11-decision-log-2.md` from DL-245, continued in `spec/11-decision-log-4.md`; DL-341, and `spec/11-decision-log-4b.md`; DL-530, and `spec/11-decision-log-5.md` from DL-500).
 - **PENDING** — no file yet, or the file is being rewritten. The Builder never starts a PENDING milestone. No file is PENDING at this handoff.
 - **IN PROGRESS / DONE** — set by the Builder (branch `m<id>-<slug>` exists / merged to the default branch). Record the change in this table in the milestone's PR.
 
@@ -19,7 +19,7 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - R-ROLL-01: no rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. R-AUTH-02: M14a is the last v1 milestone; M15a–M15g are post-v1 (Bay expansion), one session each (DL-242).
 - Every family above one session is split into digit-suffixed ids (DL-212).
 
-## Table (READY 119, of which 12 frozen (executing); 112 v1 milestones ≈ 104.4 sessions + 7 post-v1 = 111.4 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500)
+## Table (READY 119, of which 12 frozen (executing); 112 v1 milestones ≈ 104.9 sessions + 7 post-v1 = 111.9 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500)
 
 Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…DL-244; mechanical sweep DL-244: 0 findings) and promoted to READY at the handoff (`spec/11-decision-log-2.md` DL-245). Gates (secrets, devices, owner questions) per milestone are in the kickoff list and `_PLAN-1/2/3.md`.
 
@@ -37,7 +37,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 10 | M01d | assets-publish | 1 | M00b, M00a, M01a1 | READY · frozen (executing) | `M01d-assets-publish.md` |
 | 11 | M01e | asset-worker-opfs-store | 1 | M01d, M01c, M00a, M00, M01a2, M01f | READY · frozen (executing) | `M01e-asset-worker-opfs-store.md` |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | M01a1, M00b | READY · frozen (executing) | `M01f-world-graybox-fixture-codec.md` |
-| 13 | M00d | qa-spec-gates | 0.5 | M00, M01c, M00b | READY | `M00d-qa-spec-gates.md` |
+| 13 | M00d | qa-spec-gates | 1 | M00, M01c, M00b | READY | `M00d-qa-spec-gates.md` |
 | 14 | M02a1 | bake-core | 1 | M01f, M01d, M00d | READY | `M02a1-bake-core.md` |
 | 15 | M02a2 | bake-roads-graph | 1 | M02a1 | READY | `M02a2-bake-roads-graph.md` |
 | 16 | M02b1 | streaming-lod | 1 | M02a2, M01c, M01e, M01b2 | READY | `M02b1-streaming-lod.md` |
@@ -117,7 +117,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 90 | M12e | mode-leaderboards | 1 | M12c2, M07b1, M09a2 | READY | `M12e-mode-leaderboards.md` |
 | 91 | M13a1 | mod-sdk-manifest-validators | 1 | M04a2, M01d | READY | `M13a1-mod-sdk-manifest-validators.md` |
 | 92 | M13a2 | mod-installer-store-client | 1 | M13a1, M01e, M05d | READY | `M13a2-mod-installer-store-client.md` |
-| 93 | M13a3 | mod-runtime-data-experience | 1 | M13a2, M02c2, M12b1, M12c1 | READY | `M13a3-mod-runtime-data-experience.md` |
+| 93 | M13a3 | mod-runtime-data-experience | 1 | M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 | READY | `M13a3-mod-runtime-data-experience.md` |
 | 94 | M13a4 | mod-script-sandbox | 1 | M13a3 | READY | `M13a4-mod-script-sandbox.md` |
 | 95 | M13a5 | mod-ui-tier | 1 | M13a3 | READY | `M13a5-mod-ui-tier.md` |
 | 96 | M13a6 | mod-agent-kit | 1 | M13a4, M13a5 | READY | `M13a6-mod-agent-kit.md` |

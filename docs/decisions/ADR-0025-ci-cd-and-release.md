@@ -26,7 +26,7 @@ Every milestone is one pull request built by an agent, so correctness must be pr
 - (+) The same scripts run locally, in agents and in CI.
 - (−) Real-device behaviour cannot gate merges; milestones with device criteria record checklist output instead.
 - (−) Long-lived tokens are a standing risk; they are scoped and rotated by the operator.
-- (−) `wrangler@4.151.1` config keys for workflows, containers, analytics and previews are UNVERIFIED (U-BE-3, U-AST-6); M00 validates them against the schema.
+- (−) `wrangler@4.151.1` config keys for workflows, containers, analytics and previews are UNVERIFIED (U-BE-3); M00 validates them against the schema.
 
 ## Affected contracts and milestones
 C13 (`PerfScenario`, `QaFlags`), C15 (proof commands), C16. M00 (workflows, projects), M00a (`deploy:prod`, `check:*`), M00b (IP job), M01d (publish), M11a (nightly perf fail mode), M12c (drain), M14b (gradual rollout default).

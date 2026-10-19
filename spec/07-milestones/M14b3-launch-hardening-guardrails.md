@@ -20,7 +20,7 @@ M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, 
 - **`docs/legal/launch-gates.json`** with schema `docs/legal/launch-gates.schema.json`. Each gate has `{ id, kind: 'signoff'|'check'|'device'|'record', status: 'pass'|'pending'|'waived'|'not-run', evidence, by?, date?, blocks: 'release'|'public-repo'|'none' }`. Required ids:
   - `Q-18` (counsel on fal ToS §4(a));
   - `Q-21:<missionId>@<irHash>` for every mission that M05c2's sensitivity rule tags;
-  - `Q-23a` … `Q-23d`;
+  - `Q-23a` … `Q-23d`, and `Q-23f` (counsel confirms the `vendorTerms` flow-down clauses in `content/legal/terms.json`, M13d2);
   - `Q-13:<device>` for each §3.2 device (Desktop B/C optional, `not-run` allowed, blocks `none`);
   - `Q-15` (production domain and zone; the evidence names the public GitHub repository);
   - `nightly-3`: three consecutive green `guardrails-nightly` runs, with run URLs;
@@ -106,7 +106,7 @@ M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, 
 - No contract change.
 
 ## Acceptance criteria
-- AC-1 Given the committed `launch-gates.json` When the completeness check runs Then it is schema-valid with every required id, and fixtures that lack `Q-23c`, lack a Q-21 entry for a tagged mission, or hold a `pass` without evidence each fail naming the gap — proof: `pnpm check:unit -- tools/ci`
+- AC-1 Given the committed `launch-gates.json` When the completeness check runs Then it is schema-valid with every required id, and fixtures that lack `Q-23c` or `Q-23f`, lack a Q-21 entry for a tagged mission, or hold a `pass` without evidence each fail naming the gap — proof: `pnpm check:unit -- tools/ci`
 - AC-2 Given release mode When fixture records are checked Then a record with `Q-23` pending fails naming `Q-23` and step `release`; a record whose only pending gate is `age-signals` fails when the release date is 2027-01-02 and passes when it is 2026-12-31; a record whose only non-pass gate is `ip-similarity: not-run` passes release and reports `public-repo` blocked; an all-pass record passes — proof: `pnpm check:unit -- tools/ci`
 - AC-3 Given the spec tree When the DoD audit runs Then `tests/reports/dod.json` has rows H1–H10 with status and evidence and the trace report has zero empty rows. A fixture tree with a 6,001-word spec file fails H1, and a fixture AC that breaks lint rule L4 fails H4; in release mode a fixture row whose only non-DONE citing milestone is an M15 id passes as `tested` with that id marked `(post-gate)` — proof: `pnpm check:unit -- tools/ci`
 - AC-4 Given the repository When the history scan runs Then it exits 0. Given a temporary repository whose deleted file once held an RPF7 header When the test scans it Then the hit names that commit and path — proof: `pnpm ip:history && pnpm check:unit -- tools/ci`

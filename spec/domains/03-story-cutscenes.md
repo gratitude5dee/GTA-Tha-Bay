@@ -209,7 +209,7 @@ No text, no letters, no logos, no numbers on clothing.
 | `move_desc` | S07 `MoveDef.cutsceneBrief`, non-gory text |
 | `action_n`, `camera_n`, `mood` | the ref's `slots` |
 
-**Prompt hygiene lint** (`tools/ci/prompt-lint.ts`). It runs in `missions:build`, `check:assets` and `cutscene-index`, and S05's `gate` re-runs it on the filled prompt. It fails on any of:
+**Prompt hygiene lint** (pure `lintPrompt(prompt, ctx)` in `packages/shared/src/genai/prompt-lint.ts`, names passed in by the caller; DL-550). The CLI `tools/ci/prompt-lint.ts` runs it in `missions:build`, `check:assets` and `cutscene-index` (real names from `DV_NAMES_REAL_JSON` in CI), and S05's `gate` (`services/pipeline/src/gate.ts`) re-runs it on the filled prompt before any fal call, with real names from the PRIVATE R2 object `config/names-real.json` (DL-240). It fails on any of:
 1. any NameRegistry name or alias, any `config/ip-denylist.json` term (franchises, brands, teams, leagues, labels, songs, artists), "in the style of" or "by <name>" [research/legal-ip-likeness.md constraint 14];
 2. firearm, gore, killing, drug or sexual vocabulary from `config/prompt-banned.json` (D-30; MiniMax content rules [research/gap-video-model-licence-clearance.md §0]);
 3. realism tokens ("photoreal", "photorealistic", "realistic skin", camera-brand or film-stock words) in any template whose cast includes a non-`consented` character (`PHOTOREAL_FORBIDDEN`, `05-assets.md` §5.4);

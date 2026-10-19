@@ -359,7 +359,7 @@ Facts: presigned URLs work only on the S3 endpoint, not custom domains; Content-
 ## 5. KV keys (`FLAGS` namespace, bound to both Workers)
 | Key | Value | Writer | Readers (`cacheTtl`) |
 |---|---|---|---|
-| `roster:flags` | `RosterFlags` JSON | kill-switch route | dialogue, roster, cutscene routes (30 s) |
+| `roster:flags` | `RosterFlags` JSON | kill-switch route | fallback only for route 30 and `isKilled` when the Postgres `roster_flag` read fails (DL-557) |
 | `ks:<name>` | `{on, reason, by, ts, expiresAt}` — names `genai:all`, `anthropic`, `anthropic:sonnet`, `fal`, `fal:<endpointId>`, `cutscene_gen`, `npc_builder`, `tts:elevenlabs`, `tts:all`, `likeness:<npcId>`, `telemetry:verbose`, `rooms:new` | `PUT /admin/flags/:flag`, `tools/ops/ks.ts` (audited) | all genAI paths (30 s) |
 | `gov:level` | `{level: 0..3, at, byVendor}` | BudgetGovernorDO on each transition and every 60 s | all genAI paths (30 s) |
 | `flags:features` | `Record<FeatureFlag, boolean>` | admin | `/boot` (60 s) |

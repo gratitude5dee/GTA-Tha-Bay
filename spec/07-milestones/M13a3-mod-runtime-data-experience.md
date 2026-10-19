@@ -43,12 +43,12 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 - **Scene ops** (`scene.ts`): `prop`, `ped`, `vehicle` (first-party prefabs only), `marker`, `zone`, `sign` (string-table text ≤ 40 chars), `audio`, `mission`.
   - `mission` hands the IR to the M05a1 VM after validation with the C09 `mod` profile (DL-084), so economy, unlock, story-flag and mode ops are rejected.
   - Ops run through `PrefabService`/`ZoneService` with anchor-relative coordinates converted to world ENU (principle 7).
-- **Outfits** (`outfits.ts`, `character.register`, namespace `outfits`, command `outfits.register`):
+- **Outfits** (`character.ts`, `character.register`, namespace `outfits`, command `outfits.register`):
   - at load, each `data.outfits` file is validated against the S10 `wardrobe-item.v1` schema (M04b2, re-exported by the SDK): rig `bay_rig_v1` only, ≤ 32 items per mod, assets resolved through the synthesized `<kind>/mod.<sha256[0:12]>` refs, character-family likeness `original` only (re-checked, not trusted from install). A failure refuses the whole mod with `schema.invalid` and spawns nothing.
   - each item registers as `outfit.<modId>.<name>`, which the B§4 allowlist accepts as the `prefab` of a `ped` op or `spawn.ped`: the ped is a `ped.ambient` base with the items applied (ped skins).
   - in `sandbox`, the creator's outfit tab lists the enabled `character` mods' items in a "Mods" group; wearing one applies to the avatar for the session only. The choice is kept in that mod's `mod:<id>` `kv`; `CoreSlice.avatar` and `core` are never written. Unloading or disabling the mod reverts the avatar to its `core` appearance.
   - no voices: an outfit file that names a voice, bark or mouth asset fails validation.
-- **NPC cameos** (`cameo.ts`, `npc.cameo`, namespace `npcs`, command `npcs.cameo`): `cameo(npcId, at)` returns a `ModEntityRef`, or `null` and a coded log line when:
+- **NPC cameos** (`character.ts`, beside outfits, `npc.cameo`, namespace `npcs`, command `npcs.cameo`): `cameo(npcId, at)` returns a `ModEntityRef`, or `null` and a coded log line when:
   - `npcId` is not in the manifest's `uses.npcs`, not in the roster, or its `ugcCameo` is false (`parody` tier by default, Q-S12-07);
   - the NPC is killed for scope `ugc` in the current `RosterFlags` (refreshed by `NpcRuntime` on mode entry);
   - the mod already has 4 live cameos, `at` lies outside the radius (rejected, not clamped), or the spawn quota or entity cap is spent.
@@ -82,7 +82,7 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 - Mods in rooms: not v1 (06 §3).
 
 ## Deliverables
-- `packages/engine/src/sim/mods/{host.ts, broker.ts, scene.ts, outfits.ts, cameo.ts, components.ts, saves.ts, experience-mode.ts, session.ts, index.ts}` and their tests under `packages/engine/src/sim/mods/test/` (`mods-active.spec.ts`, `loader-refusals.spec.ts`, `broker.spec.ts`, `scene-ops.spec.ts`, `outfits.spec.ts`, `npc-cameo.spec.ts`, `mod-save-caps.spec.ts`, `experience-mode.spec.ts`).
+- `packages/engine/src/sim/mods/{host.ts, broker.ts, scene.ts, character.ts, components.ts, saves.ts, experience-mode.ts, index.ts}` (session types live in `host.ts`; `character.ts` holds both character namespaces, `outfits` and `npcs`) and their tests under `packages/engine/src/sim/mods/test/` (`loader-refusals.spec.ts`, which also holds the `modsActive` cases, `broker.spec.ts`, `scene-ops.spec.ts`, `outfits.spec.ts`, `npc-cameo.spec.ts`, `mod-save-caps.spec.ts`, `experience-mode.spec.ts`).
 - The "Mods" group in the creator's outfit tab (`packages/ui/src/creator/`, sandbox only); fixture character mod `tests/fixtures/mods/tee/` (two outfit items, one cameo of `npc_test`).
 - `packages/engine/src/client/mods/{experience-index.ts, enter-flow.ts}` and `test/experience-index.spec.ts`; room-client wiring in `packages/net` (the `modsActive` source) and a confirm dialog in `packages/ui/src/pages/online/`.
 - `packages/ui/src/mods/ExperienceCard.tsx`; i18n keys `exp.*`, `prompt.exp.enter`, `mods.offline.*`.
@@ -96,7 +96,7 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 - No contract change.
 
 ## Acceptance criteria
-- AC-1 Given a sandbox session When no mod is loaded, a fixture data mod is loaded, and then `unloadAll('room')` runs Then `modsActive()` is false, true, false, and the `AssignReq` built by the room client carries the same value each time — proof: `pnpm check:unit -- packages/engine/src/sim/mods/test/mods-active`
+- AC-1 Given a sandbox session When no mod is loaded, a fixture data mod is loaded, and then `unloadAll('room')` runs Then `modsActive()` is false, true, false, and the `AssignReq` built by the room client carries the same value each time — proof: `pnpm check:unit -- packages/engine/src/sim/mods/test/loader-refusals`
 - AC-2 Given the rooms Worker When a ticket's assign carries `modsActive: true` Then the socket closes with 4007; with `false` the join proceeds — proof: `pnpm check:workers -- mods-4007`
 - AC-3 Given the refusal table (Story session, room session, `mods.enabled` false, script tier, ui tier, vehicle kind, tier not in `tiersOk`, revoked) When `load` runs for each Then it returns `load.story`, `load.room`, `load.flag_off` (×4), `install.tier_unsupported`, `install.revoked`, and spawns nothing — proof: `pnpm check:unit -- packages/engine/src/sim/mods/test/loader-refusals`
 - AC-4 Given a fixture scene with a prop 400 m from a 100 m anchor, a `police.cruiser` ped op and 40 spawn ops in one tick When it runs Then the prop is placed on the radius edge, the police op is rejected with a coded log, at most 8 spawns apply per sim second, and every `ModOwned` entity lies within the radius — proof: `pnpm check:unit -- packages/engine/src/sim/mods/test/broker packages/engine/src/sim/mods/test/scene-ops`
@@ -126,12 +126,12 @@ Script and UI tiers stay refused until M13a4 and M13a5. Vehicle mods stay refuse
 5. Play online → "Mods are off online" → confirm; mods unload, then the join proceeds.
 
 ## Effort
-1 session; ≈ 43 hand-written files. Risk medium: the mode switch touches ModeHost and the save path.
+1 session; ≈ 40 hand-written files (session types in `host.ts`, outfits and cameos in one `character.ts`, `modsActive` cases in `loader-refusals.spec.ts`; C15 L7). Risk medium: the mode switch touches ModeHost and the save path.
 
 ## Risks & fallbacks
 - C08 ground height is not available for an anchor outside the resident chunks at entry: wait for the chunk through `WorldPackStore` with a 5 s timeout. On timeout, cancel the entry with a reason and keep Story untouched.
 - Fixture rows on staging: no experience is published before M13c2, so the staging map shows none. CI proves the path with the in-memory port, and the demo uses the fixture.
-- File budget: put the confirm dialog inside the existing online page; merge `session.ts` into `host.ts`; if the session runs long, `cameo.ts` may share a file with `outfits.ts`, but AC-13 and AC-14 stay in scope.
+- File budget (≤ 40, C15 L7): the confirm dialog goes inside the existing online page; the merges listed under Effort are binding, not optional. If the session runs long, AC-13 and AC-14 still stay in scope; add no file without removing one.
 
 ## Notes for the Builder
 - Read first: `12-modding.md` §2.1, §2.4, §5.3, §5.4, §5.5; `12-modding-contracts.md` B§3 (rules), B§4, B§5 (shims, save slot, session types), B§6; `12-modding-publish.md` C§4 (markers, entry); `01-engine-save-modes.md` C05/C06 1.1 rules 3; `02-world-contracts.md` (`MapApi`, `BlipKind`).

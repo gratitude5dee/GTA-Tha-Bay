@@ -1,6 +1,6 @@
 # 02 — Architecture (v1)
 
-> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 115 milestone files (DL-247). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2 (frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-1b.md`, `-2.md`, `-3.md`, `-4.md`), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
+> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 119 milestone files (DL-247; M10d1–M10d3 and M10e mapped in §2 and §7, DL-532). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2 (frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-1b.md`, `-2.md`, `-3.md`, `-4.md`), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
 
 ## 1. System diagram
 
@@ -130,7 +130,8 @@ services/
                      steps/, kill/ (KillPurgeWorkflow, M10b), rebake/ (RebakeRevalidationWorkflow, M13c2), transcoder/ (Container, M05c3)
 tools/
   map/               SF bake and map:* (src/, schemas/) (S02)
-  assets/            assets:* and genai:* CLIs: catalog, verify, lock, publish, seed, gen/, cutscene-index/, plates/, spike/, pose-vendor (S05)
+  assets/            assets:* and genai:* CLIs: catalog, verify, lock, publish, seed, gen/, cutscene-index/, plates/, spike/, pose-vendor (S05);
+                     recipes/ + import/ (final art and audio, M10d1, M10d3, M10e), final.ts (`assets:final`, M10d2, M10e), audio-qa (M10e)
   ci/                run.ts, deploy.ts, check-*.ts, milestone-lint, trace, spec-files, perf-*, release-gate, launch-gate, checklists/,
                      econ-sim/, tycoon-sim/, missions/, mutants/, fixtures/, schemas/, verifiers.lock.json (S05, S11, S13)
   cli/               @dv/cli — `dv` binary and `thabay-mcp` for modders and agents (M13a1, M13a6, M13c3)
@@ -138,7 +139,7 @@ tools/
   soul/              npc:* CLIs (M06a2, M06a4, M10c)
   fighter/           QA-only move-timeline editor; reserved by A-01, built by no v1 milestone (kits are JSON checked by fighter:lint)
 config/              brand.ts, tier-budgets.json, platform-flags.json, perf/paths/, world/, ui/, input/, schemas/, genai-endpoints.json,
-                     guardrails.yaml, cloudflare.resources.json, per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
+                     guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d3, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
 content/             authored originals: missions/<id>/, story/ (acts, cast), npcs/ (souls, ink), cutscenes/, prompts/, races/, racing/,
                      vehicles/, fighter/, tycoon/, world/, audio/, legal/, ui/ (i18n/en.json from M04b1, creator, help)
 content-private/     private mount (Q-25): real-derived souls, research layer; never published
@@ -398,7 +399,7 @@ PR → `ci.yml` (jobs `static`, `unit`, `build`, `e2e (chromium-webgl2)`, `ip`; 
 | Build | `VITE_DV_QA` (QA URL flags, `__dvBridge`, `apps/web/qa`); `GEN_PUBLIC=false`; `DV_WORLD` (`synth` or `sf`); `FAL_MODE=mock` in CI | per build | S11, S05, S02 |
 | Boot | `BootConfig.flags` from KV `flags:features` (`mp.enabled`, `npc.dialogue`, `cutscene.generated`, …), `gov` level | per release, 60 s cache | S09 |
 | Emergency | KV `ks:*` (genAI, vendor, endpoint, likeness), `gov:level`; DO paths for immediate stops | ≤ 30–60 s | S09 |
-| Roster | `roster:flags` + `EncounterDO.kill` + `KillPurgeWorkflow` | live ≤ 60 s, purge ≤ 24 h | S09, S05 |
+| Roster | `roster_flag` (Postgres, 10 s cache; KV `roster:flags` fallback) + 30 s client poll + `EncounterDO.kill` + `KillPurgeWorkflow` (DL-557) | live ≤ 60 s, purge ≤ 24 h | S09, S05 |
 | Platform | `config/platform-flags.json` (`webgpu.mobile`), `?gl=1`, Compatibility mode | per release / device | S11 |
 | Rooms | `rooms.capMax` (off in v1), `rooms:new` | per release | S09 |
 | Auth | `AUTH_OPENAI_WEB`, `supabase-oauth` path | per release | S09 |
@@ -459,6 +460,7 @@ Run order and dependencies: `spec/07-milestones/_PLAN.md` §1–§3; file status
 | NPC runtime, agency, builder | M06a1–M06c, M06b1–M06b4 |
 | Racing, fighter, pose, tycoon | M07a1–M07b2, M08a1–M08c2, M09a1–M09b2 |
 | Roster pipeline, QA gates and kill drill, roster souls | M10a1–M10c |
+| Final v1 art (ambient vehicles, peds, creator parts; player cars and fight stages; city surfaces, `assets:final`) and final audio | M10d1, M10d3, M10d2 (run order, DL-390, DL-460); M10e (DL-500) |
 | iPhone hardening, WebXR | M11a1–M11a2, M11b1–M11b4 |
 | P1 identity, rooms, online, leaderboards | M12a1–M12e |
 | Mods, forum, publish, legal | M13a1–M13d2 |

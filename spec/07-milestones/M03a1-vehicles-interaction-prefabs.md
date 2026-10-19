@@ -38,7 +38,7 @@ After this session the player can walk up to a car, get in, drive it through the
 - `packages/engine/src/sim/vehicle/{raycast-vehicle.ts, vehicle-system.ts, enter-exit.ts, components.ts}`, `src/sim/interaction/{interaction.ts, handlers.ts}`, `src/sim/ragdoll/ragdoll-lite.ts`, `src/sim/lines/{format.ts, recorder.ts, player.ts}`, `src/sim/prefabs/registry.ts` (vehicle and interact fields), `src/sim/world/closures.ts` (barrier props).
 - `packages/engine/src/client/vehicle/{vehicle-view.ts, anchors.ts, vehicle-camera.ts}`, `src/client/hud/prompt.ts`, `src/client/debug/{inspector.ts, physics-draw.ts}`.
 - `packages/engine/test/{vehicle.lines.spec.ts, vehicle.enter-exit.spec.ts, interaction.spec.ts, ragdoll.spec.ts, lines.format.spec.ts}`, `test/fixtures/oracle-track.ts`; `tests/e2e/vehicle.spec.ts` (`@vehicle`, `@vehicle-world`).
-- Data (not counted): 10 presets, 17 prefab JSON files, lines `packages/engine/test/lines/{accel-0-100, brake-100-0, skidpad, crest-jump, filbert, walk-drive}.line.json` with golden end hashes, input default edits.
+- Data (not counted): 10 presets, 17 prefab JSON files, lines `packages/engine/test/lines/{accel-0-100, brake-100-0, skidpad, crest-jump, filbert, walk-drive}.line.json` (inputs only, no hashes), their golden end poses, state hashes and the 0–100 gear sequence in `packages/engine/test/golden/lines.json` (canonical JSON, read by `vehicle.lines.spec.ts`; inside M00d's `**/golden/**` guard; DL-549), input default edits.
 - `packages/engine/package.json` script **`test:lines`** (`vitest run` over the line specs; `pnpm check:unit` also runs it).
 - ≈ 37 code files.
 
@@ -62,7 +62,7 @@ After this session the player can walk up to a car, get in, drive it through the
 - **Unit (shared):** `vehicle.powerCurve`, `vehicle.envelope`, `vehicle.step`, `vehicle.damage` (`pnpm --filter @dv/shared test`).
 - **Integration (headless Rapier, canonical):** `engine/lines.*` incl. `lines.filbert` (`test:lines`); `vehicle.enter-exit`, `interaction`, `ragdoll`, `lines.format` (`pnpm --filter @dv/engine test`). All run inside `pnpm check:unit`.
 - **E2E:** `@vehicle` (gray-box), `@vehicle-world` (`synth`) on `chromium-webgl2`; M01b2 `@fp-tp`, `@touch` and M02 world tags stay green.
-- Golden line hashes change only through the `golden-update` label (M00d rule).
+- Golden line end hashes and the gear sequence live only in `packages/engine/test/golden/lines.json`, so M00d's `golden-guard` (`**/golden/**`) fails any change to them without the `golden-update` label; `*.line.json` files carry no expected values (DL-549).
 
 ## Demo script
 1. `pnpm dev`, open `/?debug=1`; enter the parked sedan at the gray-box junction, drive around the block, cycle cameras, exit.
@@ -73,7 +73,7 @@ After this session the player can walk up to a car, get in, drive it through the
 
 ## Risks & fallbacks
 - **Oracle windows missed after two tuning passes:** keep the failing preset's numbers, report the measured values per line, and leave the decision on the model (and on Jolt, D-S06-02) to M03a2; do not widen a window.
-- **Canonical build slow with 8 vehicles** (U-RAC-2): record tick cost per build in the report; M07a1 sets the per-tier cap.
+- **Canonical build slow with 8 vehicles** (U-ENG-2): record tick cost per build in the report; M07a1 sets the per-tier cap.
 - **Rays tunnel through 1 m slabs at speed:** cast from the wheel hub plus suspension rest length and keep the 2-substep rule; fallback a sphere cast per wheel.
 
 ## Notes for the Builder

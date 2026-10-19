@@ -93,7 +93,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 28 | `POST /admin/cutscenes/prewarm` | S:ops (`OPS_TOKEN` until M12a1) | `{keys[]}` → 202 | single-flight per key | M05b1 |
 | 29 | `POST /hooks/fal?wf=<instance>` | sig | fal webhook → 2xx ≤ 15 s | ED25519 against the fal JWKS (cache ≤ 24 h, ±300 s); failure raises A11 [research/genai-pipeline-fal.md §2] | M05b1 |
 | 49 | `/_test/*` | non-prod | run-scheduled, drain-queue, spend, `fal-jwks`, `echo-country` | `check:prod-routes` proves absence in prod | M05b1 (`echo-country` M00a) |
-| 30 | `GET /roster` | pub | → `RosterFlags` (ETag, 304) | KV cache 30 s | M06a1 |
+| 30 | `GET /roster` | pub | → `RosterFlags` (ETag, 304) | Postgres, 10 s isolate cache, KV fallback; clients poll 30 s (DL-557) | M06a1 |
 | 31 | `POST /npc/:npcId/talk` | PT | `NPCDialogueRequest` → SSE `DialogueEvent` | pre-stream JSON: `not_found`, `conflict` (`busy`, `turn_cap`, `soul_version`), `quota_exhausted`, `budget_offline`, `feature_disabled`, `kill_switched`, `moderation_blocked`, `upstream_unavailable`; `talk` | M06a3 |
 | 32 | `POST /npc/:npcId/intent` | PT | `NPCIntentRequest` → `NPCIntentResponse` | `talk` | M06c |
 | 33 | `/npc-builder/…` (below) | P0–P2 | `CreateDraftReq`, `UpdateDraftReq` → `DraftView` | `tier_required`, `feature_disabled` (`npc.builder`, `ks:npc_builder`), `quota_exhausted`, `moderation_blocked`, `conflict`, `not_found` (not owner); `ugc` | M06b1, b2, b4 |

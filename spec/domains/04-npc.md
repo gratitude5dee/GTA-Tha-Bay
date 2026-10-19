@@ -283,14 +283,14 @@ Specified in Part C §C8 (agency: schedules, utility, behavior trees, AI LOD, he
 
 ### 5.10 Kill-switch and disclosure
 - **Server (≤ 60 s live, D-29):**
-  - Routes 31–33 read `roster:flags` with a 30 s in-memory cache refreshed from Postgres (S09).
+  - Routes 30–33 read `roster_flag` from Postgres, 10 s cache, KV fallback (S09, DL-557).
   - Route 46 triggers S09's `EncounterDO.kill` (S09 mechanism, `09-backend.md` M06a AC-4), and in-flight streams end with `fallback {reason:'killed'}`.
   - Scope effects:
     - `all`/`spawn` → `kill_switched` on talk and intent;
     - `voice` → effective tier `text`, baked lines dropped;
     - `ugc` → the user NPC is hidden from the community list.
 - **Client:**
-  - `NpcRuntime.refreshFlags` on app start, mode entry, every 10 minutes and after any `kill_switched` [research/legal-ip-likeness.md L4].
+  - `NpcRuntime.refreshFlags` on app start, mode entry, every 30 s while visible, on return to visible and after any `kill_switched` (DL-557) [research/legal-ip-likeness.md L4].
   - A killed NPC is replaced at its next spawn by its `standIn` soul. The stand-in has its own soul, ink and schedule, so missions and saves continue.
   - `WorldPackStore.evictByTag('char:<id>')` drops cached parts (S11).
   - The fighter roster and cutscenes honor the same flags (S07, S03).
@@ -345,8 +345,8 @@ XR comfort settings (C05 `XrComfortSettings`) always apply; every conversation i
 - U-NPC-07 whether the OpenAI moderation endpoint may be used on non-OpenAI content (fallback: Llama Guard only).
 - U-NPC-08 ElevenLabs plan-to-character mapping and commercial rights per plan.
 - U-NPC-09 dialogue quality of Haiku 5.5 at low effort with thinking off for voice consistency (the eval harness measures it).
-- U-NPC-10 Meshy jaw bone and facial data (S05 U1).
-- U-NPC-11 Rhubarb licence (S05 U9).
+- U-AST-1 Meshy jaw bone and facial data (S05 U1).
+- U-AST-9 Rhubarb licence (S05 U9).
 - U-NPC-12 cost and limits of `messages.count_tokens`.
 
 ## 8. Milestone mapping

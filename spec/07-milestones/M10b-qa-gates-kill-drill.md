@@ -38,7 +38,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   3. wait for the workflow;
   4. probe the purged prefixes;
   5. restore through the quarantine and confirm the NPC is back.
-  - The report goes to `tests/reports/ops/kill-drill.json` and carries at least `env` (`'staging'`), `ranAt` (epoch ms), `removalMs` (measured live removal), the probe results and the restore result; M14b3's `kill-drill` gate reads these fields (DL-480).
+  - The report goes to `tests/reports/ops/kill-drill.json` and carries at least `env` (`'staging'`), `ranAt` (epoch ms), `removalMs` (measured live removal), `boundMs` (analytic bound, DL-557), the probe results and the restore result; M14b3's `kill-drill` gate reads these fields (DL-480).
   - Workers Previews have no own Workflows, so this suite targets the staging Worker only.
 - **Gate hardening** (`packages/shared/src/assets/gates`, `services/pipeline/steps`):
   - one fixture per `GateCode` (13);
@@ -85,7 +85,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 ## Acceptance criteria
 - AC-1 Given a QA build with `npc_test` spawned, its cutscene ref indexed and its prefix served When the drill kills `npc_test` with scope `all` Then within two `RosterFlags` refreshes it is absent from spawn tables, the roster and the cutscene index, its stand-in spawns in its place, an in-progress talk ends with `fallback killed`, and after a simulated 24 h every purged prefix answers 404 — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @kill-drill`
 - AC-2 Given Miniflare with fixture rows When route 46 is called Then the workflow starts, copies each target to `quarantine/<ticketId>/` before deleting it from MEDIA, sends purge requests of at most 100 prefixes, writes an `audit_log` row with timestamps, and a re-run of the same ticket changes nothing — proof: `pnpm check:workers -- kill-purge`
-- AC-3 Given staging with `OPS_TOKEN` and `CF_API_TOKEN_CACHE` When the staging drill runs Then live removal is measured at 60 s or less, every probe shows 404 with `CF-Cache-Status` not `HIT`, the restore brings `npc_test` back, and `tests/reports/ops/kill-drill.json` is written with `env`, `ranAt` and `removalMs`; without the cache token the purge step is reported `skipped` and the suite exits 0 — proof: `pnpm test:ops -- --suite kill-drill`
+- AC-3 Given staging with `OPS_TOKEN` and `CF_API_TOKEN_CACHE` When the staging drill runs Then live removal is measured at 60 s or less (one location suffices because KV is off the live path, DL-557; the report also states the analytic bound `boundMs` = 10 s server cache + 30 s client poll + one request), every probe shows 404 with `CF-Cache-Status` not `HIT`, the restore brings `npc_test` back, and `tests/reports/ops/kill-drill.json` is written with `env`, `ranAt`, `removalMs` and `boundMs`; without the cache token the purge step is reported `skipped` and the suite exits 0 — proof: `pnpm test:ops -- --suite kill-drill`
 - AC-4 Given one fixture per `GateCode` When the gate suite runs Then each fixture yields exactly its code; a kill set between `mesh` and `rig` gives `aborted_killed` with nothing recorded; a consent `term_end` passing between stages gives `CONSENT_EXPIRED`; with `ks:fal` on, a new submit is refused while a cached result is still served — proof: `pnpm check:unit -- packages/shared/src/assets/gates && pnpm check:pipeline`
 - AC-5 Given mock providers and the story and fighter refs When the prewarm runs twice Then the first run submits only misses and the second makes zero `FalPort` calls; a roster `run` after the M10a2 batch also makes zero calls — proof: `pnpm check:pipeline`
 - AC-6 Given a registry where no video provider is `cleared` When the fighter prewarm runs with `--live` Then it prints `refused: ENDPOINT_NOT_CLEARED`, spends zero micros and leaves every ref on its fallback; given a mock `cleared` provider and `--cap-micros 24000000`, it walks G2 then G3 and stops before the running estimate passes the cap — proof: `pnpm check:pipeline`
@@ -112,7 +112,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 
 ## Risks & fallbacks
 - **No cleared provider** (ADR-GENAI-01 owner-gated, Q-03): the fighter prewarm spends nothing, and all 116 fighter refs play in-engine (R-CUT-03). The milestone is complete without generated clips.
-- **Tag-based purge** is UNVERIFIED (U-AST-12), so only prefix purge is used.
+- **Tag-based purge** is UNVERIFIED (U-BE-10), so only prefix purge is used.
 - **Workflow step limits** (F-024): step results carry keys and counts only, never object bodies.
 - **Staging tokens missing:** the staging AC prints `SKIP … <VAR> not set` and lists the missing names. The local e2e and Workers suites still prove the logic.
 

@@ -140,7 +140,7 @@ Merge the risk lists of every domain spec §10 and CI-R01…CI-R16, keep the top
 | QA-8 | Spend overrun on fal (no vendor cap, F-048) | M05b1 · governor `budget_program` at 50/70/85 % |
 
 ### 3.3 Open questions and UNVERIFIED (`spec/99-open-questions.md`)
-Keep Q-13…Q-25 as written. Move the Wave 2–4 index (85 items, §3) into §2 tables by domain with the same columns (ID, item, default, verified in); every "verified in" must be an id in `_PLAN.md` §1 (for example a pre-split M11b2 item goes to M11b2 or M11b4). Add U-QA-1…U-QA-8 from `13-qa.md` §7. A U-item whose verifying milestone records it on a device stays a recording (`ManualProof.records`), never an AC.
+Keep Q-13…Q-25 as written. Move the Wave 2–4 index (85 items, §3) into §2 tables by domain with the same columns (ID, item, default, verified in); every "verified in" must be an id in `_PLAN.md` §1 (for example a pre-split M11b2 item goes to M11b2 or M11b4). Add U-QA-3…U-QA-8 from `13-qa.md` §7. A U-item whose verifying milestone records it on a device stays a recording (`ManualProof.records`), never an AC.
 
 ### 3.4 `CLAUDE.md` and `AGENTS.md`
 Both stay < 200 lines (now 84 and 103); root `AGENTS.md` ≤ 16,384 bytes until M13a6 (DN-S13-01). Proposed additions, one line each: the device commands (`perf:checklist`, `perf:verify`) and content gates (`check:missions`, `check:balance`, `check:fighter`, `check:agents`) in Commands; the evidence words (`implemented`, `tested`, `seen-on-device`, `unverified`) in the Verification rule; "goldens change only with `DV_UPDATE_GOLDEN=1` locally and the `golden-update` PR label" in Conventions; "device results go to `docs/device-runs/<M##>/<device>/`" in Verification.

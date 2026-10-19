@@ -67,7 +67,7 @@
 
 ## Block B — foundations
 
-### M00d · qa-spec-gates — 0.5 · risk L · S13 (new)
+### M00d · qa-spec-gates — 1 · risk L · S13 (new)
 - **Goal:** C15 1.1 lint and the traceability report run in CI; `check:agents`; `check:telemetry` (C16 privacy rules and per-name schemas, DL-230); device-run verification job; nightly det suites and perf fail mode.
 - **R** R-ENG-01, R-ENG-02 · **Dep** M00, M01c, M00b · **Read** `13-qa.md` §2.3, §2.6, §3.8, §4; `spec/08-test-and-ci.md` §5.1, §5.5
 - **Out** `packages/shared/src/contracts/c15-milestone.ts`, `tools/ci/{milestone-lint,trace,check-agents,check-telemetry}.ts`, `tools/ci/test/`, `.github/workflows/{ci,nightly}.yml`, `tests/reports/` · **C** C15 1.1, C16 1.1

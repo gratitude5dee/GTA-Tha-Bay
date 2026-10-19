@@ -10,7 +10,7 @@
 5. **Spend (DL-OWN-01).** fal total ≤ $100: M00c ≤ $10; M10a1+M10a2 ≤ $42; cutscenes ≤ $40 (M05c3 ≤ $16 and M10b ≤ $24, DN-S13-02); $8 buffer. CI never runs live fal (`FAL_MODE=mock`); every paid run prints its estimate first and needs `--live`. No player-triggered fal in v1 (M06b4 queue is owner-approved and counts against the cap).
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
 
-## 1. Ordered index (v1: 112 milestones, ≈ 104.4 sessions; post-v1: 7 milestones, 7 sessions)
+## 1. Ordered index (v1: 112 milestones, ≈ 104.9 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
 
 | # | ID | Slug | Sessions | Block | Depends on |
@@ -27,7 +27,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 10 | M01d | assets-publish | 1 | A | M00b, M00a, M01a1 |
 | 11 | M01e | asset-worker-opfs-store | 1 | A | M01d, M01c, M00a, M00, M01a2, M01f |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | A | M01a1, M00b |
-| 13 | M00d | qa-spec-gates | 0.5 | B | M00, M01c, M00b |
+| 13 | M00d | qa-spec-gates | 1 | B | M00, M01c, M00b |
 | 14 | M02a1 | bake-core | 1 | B | M01f, M01d, M00d |
 | 15 | M02a2 | bake-roads-graph | 1 | B | M02a1 |
 | 16 | M02b1 | streaming-lod | 1 | B | M02a2, M01c, M01e, M01b2 |
@@ -107,7 +107,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 90 | M12e | mode-leaderboards | 1 | F | M12c2, M07b1, M09a2 |
 | 91 | M13a1 | mod-sdk-manifest-validators | 1 | G | M04a2, M01d |
 | 92 | M13a2 | mod-installer-store-client | 1 | G | M13a1, M01e, M05d |
-| 93 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1 |
+| 93 | M13a3 | mod-runtime-data-experience | 1 | G | M13a2, M02c2, M12b1, M12c1, M04b2, M06a3 |
 | 94 | M13a4 | mod-script-sandbox | 1 | G | M13a3 |
 | 95 | M13a5 | mod-ui-tier | 1 | G | M13a3 |
 | 96 | M13a6 | mod-agent-kit | 1 | G | M13a4, M13a5 |
@@ -432,6 +432,8 @@ flowchart LR
   M05d --> M13a2
   M13a2 --> M13a3
   M12c1 --> M13a3
+  M04b2 --> M13a3
+  M06a3 --> M13a3
   M13a3 --> M13a4
   M13a3 --> M13a5
   M13a4 --> M13a6
@@ -492,7 +494,7 @@ flowchart LR
 
 ## 3. Critical path and checkpoints
 
-**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **29.3 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest; DL-348 added M00d → M02a1 and M02b2 → M02c1, +2.5); + M15a → M15e → M15f → M15g = 33.3 to the end of expansion. The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred.
+**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **29.8 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest; DL-348 added M00d → M02a1 and M02b2 → M02c1, +2.5; DL-552 re-estimated M00d at 1, +0.5); + M15a → M15e → M15f → M15g = 33.8 to the end of expansion. The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred.
 
 | Checkpoint | After | What must be true (proof) |
 |---|---|---|

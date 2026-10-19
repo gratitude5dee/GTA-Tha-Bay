@@ -6,7 +6,7 @@ The NPC builder backend gains everything after the private text builder of M06b1
 ## Requirements
 - R-NPC-03: completes the upload and publish-through-moderation half of the native NPC builder.
 - R-IP-03: report button target (route 41), moderation queue and case decisions for NPC UGC.
-- R-IP-04: no face detection or face landmarks; images become text, are never shown to other players and are never generator inputs.
+- R-IP-02 (likeness policy per R-NPC-04): no face detection or face landmarks; images become text, are never shown to other players and are never generator inputs.
 
 ## Depends on
 - M06b1 (route 33 drafts, validate, soul, preview; migration 0004 with `uploads`, `moderation_*`, `npc_draft`, `npc_soul`; text moderation clients; queue `npc-builder`), M12a1 (ES256 JWT, staff scopes, `audit_log` writes, test keys).
