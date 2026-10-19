@@ -57,6 +57,7 @@ Sources: `11-platform-perf.md` §6; [research/stack-rendering-platform.md rec 18
 | M01c | `M01c-{iphone15,iphone16,quest3,visionpro,mac}` | 10-min `graybox-walk`, memory bomb, `persist()`, `DeviceSignals` capture (outputs under `docs/device-spike/M01c/`) |
 | M02b1 | `M02b1-mac` (`route-ferry-ocean-beach` on the operator's `sf` bake) | frame formula §4.3, cold download |
 | M02b2, M03b1 | `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`, `walk-civic-center`; DL-653), `M03b1-iphone15` (`downtown-rush` ≥ 30 fps); both on an operator-built `DV_WORLD=synth` Preview, because Preview builds stay world-less (DL-235) | frame formula §4.3 |
+| M02e | `M02e-iphone15` (`walk-civic-center` at 21:30 on an operator-built `DV_WORLD=synth` Preview, look on/off delta), `M02e-mac` (`route-ferry-ocean-beach` on the operator's `sf` bake, GPU ms per post node) (DL-704) | frame formula §4.3 |
 | M04b2 | `M04b2-iphone15` (creator, HUD, touch layouts, coach mark) | frame formula §4.3 |
 | M04c | `M04c-{iphone15,quest3}` | gap-cutscene §7.7 matrix: gesture unlock, Low Power Mode, wake lock |
 | M05c2 | `M05c2-{iphone15,mac}` | Act 1 missions 1–3 playable; `story-chase` |
