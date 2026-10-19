@@ -35,8 +35,9 @@ const WINDOW_COLOR: [number, number, number] = [1.0, 0.78, 0.45];
 export function windowEmissive(n: SkyNodes, wall: L, windows: L): L {
   const c = vertexColor(0);
   // A building-constant hash of the wall colour: the tint is a function of the record seed, so this is a function of the seed.
-  const key = c.x.mul(91.7).add(c.y.mul(47.3)).add(c.z.mul(13.1));
-  const thr = float(WINDOW_THRESHOLD.lo).add(fract(sin(key.mul(913.37)).mul(43758.5453)).mul(WINDOW_THRESHOLD.hi - WINDOW_THRESHOLD.lo));
+  // Quantised first: a hash of the raw colour amplifies the float error of the interpolation into per-pixel noise.
+  const key = floor(c.x.mul(91.7).add(c.y.mul(47.3)).add(c.z.mul(13.1)).mul(1000).add(0.5));
+  const thr = float(WINDOW_THRESHOLD.lo).add(fract(sin(key.mul(12.9898)).mul(43758.5453)).mul(WINDOW_THRESHOLD.hi - WINDOW_THRESHOLD.lo));
   const night = smoothstep(0.1, 0.9, n.uNight);
   const lit = max(night, n.uWindowLit);
   const on = step(thr, lit);

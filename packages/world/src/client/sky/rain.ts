@@ -84,7 +84,9 @@ export function createRainStreaks(n: SkyNodes, count: number, style: Exclude<Rai
   const m = new MeshBasicNodeMaterial({ transparent: true, depthWrite: false, fog: false, side: DoubleSide });
   const m2 = m as unknown as { vertexNode: unknown; colorNode: unknown; opacityNode: unknown };
   m2.vertexNode = asNode(clip);
-  const fade = float(1).sub(smoothstep(R * 0.55, R, varying(dist)));
+  const vd = varying(dist);
+  // Streaks fade out at the far edge of the box and just in front of the lens (a near streak would be a long white line).
+  const fade = float(1).sub(smoothstep(R * 0.55, R, vd)).mul(smoothstep(0.8, 3.5, vd));
   const taper = float(1).sub(c.y.mul(0.75));
   m2.colorNode = asNode(vec3(0.78, 0.85, 0.96));
   m2.opacityNode = asNode(fade.mul(taper).mul(n.uRain.mul(0.5).clamp(0, 0.5)));
