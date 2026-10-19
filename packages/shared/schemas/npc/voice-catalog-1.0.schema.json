@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "voice-catalog-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "entries"
+  ],
+  "properties": {
+    "schema": {
+      "const": "voice-catalog/1"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "voiceRef",
+          "tier",
+          "engine",
+          "model",
+          "providerVoiceId",
+          "mode",
+          "consentRecordId",
+          "allowedTiers"
+        ],
+        "properties": {
+          "voiceRef": {
+            "type": "string",
+            "pattern": "^voice/[a-z0-9][a-z0-9._-]{1,62}$"
+          },
+          "tier": {
+            "enum": [
+              "text",
+              "t1",
+              "t2",
+              "t3"
+            ]
+          },
+          "engine": {
+            "enum": [
+              "workers_ai",
+              "elevenlabs",
+              "baked_only"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "providerVoiceId": {
+            "type": "string"
+          },
+          "mode": {
+            "enum": [
+              "synthetic",
+              "designed",
+              "licensed",
+              "consented_clone"
+            ]
+          },
+          "consentRecordId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^consent_[0-9a-z]{8,40}$"
+          },
+          "allowedTiers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "consented",
+                "parody",
+                "fictionalized"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "entries": {
+          "items": {
+            "if": {
+              "required": [
+                "mode"
+              ],
+              "properties": {
+                "mode": {
+                  "enum": [
+                    "licensed",
+                    "consented_clone"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "consentRecordId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -6,10 +6,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts",
-    "./schemas/*": "./schemas/*"
+    "./schemas/*": "./schemas/*",
+    "./npc": "./src/npc/index.ts"
   },
   "scripts": {
     "test": "vitest run",
     "vectors:write": "tsx scripts/write-vectors.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }

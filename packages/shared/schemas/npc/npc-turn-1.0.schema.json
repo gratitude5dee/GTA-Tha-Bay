@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "npc-turn-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "line",
+    "emotion",
+    "gesture",
+    "action",
+    "action_arg",
+    "affinity_delta",
+    "memory_writes",
+    "end_conversation"
+  ],
+  "properties": {
+    "line": {
+      "type": "string",
+      "description": "what the NPC says, at most max_words_per_line words, no stage directions"
+    },
+    "emotion": {
+      "enum": [
+        "neutral",
+        "happy",
+        "amused",
+        "annoyed",
+        "angry",
+        "sad",
+        "scared",
+        "proud",
+        "suspicious"
+      ]
+    },
+    "gesture": {
+      "enum": [
+        "none",
+        "nod",
+        "shrug",
+        "point",
+        "laugh",
+        "wave",
+        "cross_arms",
+        "facepalm",
+        "dap",
+        "lean_in",
+        "back_off"
+      ]
+    },
+    "action": {
+      "enum": [
+        "none",
+        "offer_mission",
+        "offer_race",
+        "offer_fight",
+        "offer_deal",
+        "give_item",
+        "sell",
+        "refuse",
+        "call_police",
+        "flee",
+        "attack",
+        "follow",
+        "leave"
+      ]
+    },
+    "action_arg": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "affinity_delta": {
+      "type": "integer",
+      "description": "-10..10, server clamps"
+    },
+    "memory_writes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text",
+          "importance"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "player_fact",
+              "promise",
+              "event",
+              "preference",
+              "rumor"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "end_conversation": {
+      "type": "boolean"
+    }
+  }
+}

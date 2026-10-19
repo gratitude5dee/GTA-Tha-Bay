@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bark-pool-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "owner",
+    "voiceRef",
+    "lines"
+  ],
+  "properties": {
+    "schema": {
+      "const": "bark-pool/1"
+    },
+    "owner": {
+      "type": "string",
+      "pattern": "^([a-z][a-z0-9_-]{2,47}|archetype:(rapper|founder|vc|influencer|athlete|civilian|police|vendor|official|other))$"
+    },
+    "voiceRef": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^voice/[a-z0-9][a-z0-9._-]{1,62}$"
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "tag",
+          "text",
+          "audio",
+          "cues",
+          "weight"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,62}$"
+          },
+          "tag": {
+            "enum": [
+              "bump",
+              "greet_pass",
+              "idle",
+              "busy",
+              "flee",
+              "car_crash_nearby",
+              "heat_low",
+              "heat_high",
+              "rain",
+              "fog",
+              "night",
+              "compliment_car",
+              "player_wins_race",
+              "player_loses_race",
+              "sideshow",
+              "goodbye"
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "audio": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^audio_bark/[a-z0-9][a-z0-9._-]{1,62}$"
+          },
+          "cues": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-z_]+/[a-z0-9][a-z0-9._-]{1,62}$"
+          },
+          "weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    }
+  }
+}
