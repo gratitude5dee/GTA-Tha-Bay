@@ -15,7 +15,28 @@
       "osm": "r7261820",
       "role": "origin, boot chunk, civic missions",
       "skyline": false,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 124,
+        "depth": 52,
+        "wingH": 27,
+        "baseH": 9,
+        "mansardH": 5,
+        "podiumH": 2.2,
+        "centerW": 46,
+        "porticoProj": 9,
+        "columns": 10,
+        "endW": 26,
+        "endProj": 4,
+        "drumR": 15,
+        "drumH": 18,
+        "domeR": 13.5,
+        "domeH": 20,
+        "lanternH": 11,
+        "floors": 4
+      }
     },
     {
       "id": "lm.golden-gate-bridge",
@@ -30,7 +51,31 @@
       "osm": "R",
       "role": "north portal at 37.8263, −122.4793; race gate",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 90,
+        "anchor": "sea",
+        "mainSpan": 1280,
+        "sideSpan": 343,
+        "approach": 260,
+        "towerH": 227,
+        "deckY": 67,
+        "deckW": 27,
+        "deckThick": 7,
+        "legGap": 13.5,
+        "legW": 11,
+        "legD": 7.5,
+        "towerTaper": 0.62,
+        "portals": [0.2, 0.3, 0.42, 0.54, 0.66, 0.77, 0.87, 0.95],
+        "cableR": 0.7,
+        "cableTopY": 221,
+        "mainSag": 146,
+        "sideSag": 14,
+        "anchorY": 58,
+        "hangerEvery": 2,
+        "trussBay": 15.5,
+        "approachEndY": 38
+      }
     },
     {
       "id": "lm.bay-bridge-ybi",
@@ -45,7 +90,32 @@
       "osm": "w1011831667",
       "role": "east portal, YBI tunnel",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "sea",
+        "portalW": 78,
+        "portalH": 34,
+        "portalD": 14,
+        "deckW": 24,
+        "deckGap": 6,
+        "deckThick": 5,
+        "deckStartY": 12,
+        "deckEndY": 24,
+        "length": 900,
+        "towerY": 50,
+        "openingH": 6,
+        "towerX": 260,
+        "towerH": 160,
+        "towerLegs": 4,
+        "legPitch": 5,
+        "legR": 1.7,
+        "cableR": 0.8,
+        "cableSag": 60,
+        "westBack": 150,
+        "eastSpan": 385,
+        "pierEvery": 58
+      }
     },
     {
       "id": "lm.coit-tower",
@@ -60,7 +130,21 @@
       "osm": "w28824850",
       "role": "viewpoint, fighter stage",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "shaftR": 6.2,
+        "shaftH": 46,
+        "flutes": 12,
+        "galleryR": 7.6,
+        "galleryH": 7.5,
+        "capH": 3.2,
+        "baseW": 24,
+        "baseD": 16,
+        "baseH": 7,
+        "plazaR": 24
+      }
     },
     {
       "id": "lm.ferry-building",
@@ -75,7 +159,25 @@
       "osm": "w558731934",
       "role": "ferry portal, hub",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 200,
+        "depth": 32,
+        "hallH": 17,
+        "roofRise": 6,
+        "bays": 40,
+        "endW": 28,
+        "endH": 21,
+        "towerW": 15,
+        "towerBaseH": 22,
+        "towerShaftH": 24,
+        "clockH": 9,
+        "belfryH": 10,
+        "spireH": 12,
+        "seawall": 1
+      }
     },
     {
       "id": "lm.pyramid-tower",
@@ -90,7 +192,22 @@
       "osm": "w24222973",
       "role": "VC offices",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "baseW": 54,
+        "bodyH": 212,
+        "topW": 5,
+        "spireH": 48,
+        "bands": 36,
+        "bandH": 2.4,
+        "wingW": 9,
+        "wingD": 14,
+        "wingH": 150,
+        "podiumH": 4,
+        "plazaW": 90
+      }
     },
     {
       "id": "lm.crown-tower",
@@ -105,7 +222,23 @@
       "osm": "w431972186",
       "role": "tallest tower, Tycoon pitches",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "baseW": 56,
+        "baseD": 52,
+        "topW": 36,
+        "topD": 34,
+        "bodyH": 290,
+        "crownH": 40,
+        "fins": 24,
+        "finR": 0.7,
+        "bands": 40,
+        "round": 0.55,
+        "podiumH": 6,
+        "plazaW": 100
+      }
     },
     {
       "id": "lm.sutro-tower",
@@ -120,7 +253,24 @@
       "osm": "r3829019",
       "role": "skyline anchor",
       "skyline": true,
-      "replaceRadiusM": 70
+      "replaceRadiusM": 70,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "baseR": 42,
+        "waistR": 17,
+        "waistH": 120,
+        "topR": 8,
+        "legsH": 180,
+        "mastH": 298,
+        "panels": 12,
+        "legR": 1.9,
+        "braceR": 0.7,
+        "platforms": [96, 142, 176],
+        "platformR": 14,
+        "bandEvery": 2,
+        "footW": 7
+      }
     },
     {
       "id": "lm.palace-fine-arts",
@@ -135,7 +285,27 @@
       "osm": "w288371295",
       "role": "lagoon, photo spot",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "rotundaR": 17,
+        "rotundaH": 26,
+        "domeH": 12,
+        "terraceR": 27,
+        "terraceH": 1.4,
+        "colonnadeR": 38,
+        "colonnadeH": 14,
+        "colonnadeSpan": 3.6,
+        "colonnadeCount": 34,
+        "columnR": 0.9,
+        "wingLength": 120,
+        "wingSpacing": 34,
+        "wingCount": 22,
+        "lagoonRx": 70,
+        "lagoonRz": 48,
+        "lagoonX": 100
+      }
     },
     {
       "id": "lm.alcatraz",
@@ -150,7 +320,26 @@
       "osm": "r20197830",
       "role": "island, fighter stage",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 20,
+        "anchor": "ground",
+        "blockLength": 110,
+        "blockDepth": 30,
+        "blockH": 22,
+        "floors": 4,
+        "lightH": 16,
+        "tankR": 5.5,
+        "tankH": 7,
+        "legH": 18,
+        "chimneyH": 34,
+        "chimneyR": 2,
+        "rowCount": 3,
+        "rowLength": 46,
+        "apronRx": 150,
+        "apronRz": 70,
+        "dockLength": 60
+      }
     },
     {
       "id": "lm.twin-peaks",
@@ -165,7 +354,25 @@
       "osm": "n11778655699",
       "role": "overlook, downhill races",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "peakAx": -95,
+        "peakAz": 160,
+        "peakAH": 28,
+        "peakAR": 115,
+        "peakBx": 85,
+        "peakBz": 185,
+        "peakBH": 24,
+        "peakBR": 105,
+        "sink": 5,
+        "terraceW": 62,
+        "terraceD": 26,
+        "plazaR": 20,
+        "poles": 8,
+        "stairRun": 22
+      }
     },
     {
       "id": "lm.lombard-crooked",
@@ -180,7 +387,23 @@
       "osm": "w402111597",
       "role": "switchback block",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 150,
+        "width": 26,
+        "drop": 20,
+        "turns": 8,
+        "roadW": 4.2,
+        "swing": 9.5,
+        "sink": 3,
+        "houses": 6,
+        "houseW": 8.5,
+        "houseD": 13,
+        "houseH": 11,
+        "bedH": 0.9
+      }
     },
     {
       "id": "lm.painted-ladies",

@@ -7,6 +7,8 @@
  *   tsx tools/map/src/cli.ts pack [--bake <bakeId> | --area <id>] --target dir:<path>|r2:<env>
  *   tsx tools/map/src/cli.ts verify [--bake <bakeId> | --area <id>]            (M02a2: the S14 gates on a finished bake)
  *   tsx tools/map/src/cli.ts landmarks [--bake <bakeId> | --area <id>]         (M02a2)
+ *   tsx tools/map/src/cli.ts landmarks --build [--slug <id>] [--check]          (M02d1: the landmark models)
+ *   tsx tools/map/src/cli.ts landmarks --preview <id> [--fidelity hi|mid|lo] [--az <deg>] [--el <deg>] [--dist <m>] [--out <png>]
  *   tsx tools/map/src/cli.ts pois [--bake <bakeId> | --area <id>]              (M02a2)
  *   tsx tools/map/src/cli.ts resolve --lat=<y> --lng=<x> [--bake <id> | --area <id>]   (M02a2)
  *
@@ -27,7 +29,7 @@ import { runFetch } from './stages/s0-fetch.ts';
 import { parseTarget, publishPack } from './pack/publish.ts';
 import { failed, type GateResult } from './verify/gates.ts';
 import { verifyBakeDir } from './verify/verify.ts';
-import { validateLandmarkSeeds, validateLandmarksInBake, type Finding } from './verify/landmarks.ts';
+import { buildLandmarks, validateLandmarkSeeds, validateLandmarksInBake, type Finding } from './verify/landmarks.ts';
 import { validatePoiSeeds, validatePoisInBake, countsByKind } from './verify/pois.ts';
 import { loadContentWorld } from './content.ts';
 import { resolveLatLng } from './resolve.ts';
@@ -168,13 +170,51 @@ export async function runVerifyCommand(argv: readonly string[]): Promise<number>
 }
 
 export async function runLandmarksCommand(argv: readonly string[]): Promise<number> {
-  const { values } = parseArgs({ args: [...argv], allowPositionals: true, options: SELECT_OPTIONS });
+  const { values } = parseArgs({
+    args: [...argv],
+    allowPositionals: true,
+    options: {
+      ...SELECT_OPTIONS,
+      build: { type: 'boolean', default: false },
+      check: { type: 'boolean', default: false },
+      slug: { type: 'string' },
+      preview: { type: 'string' },
+      fidelity: { type: 'string', default: 'hi' },
+      az: { type: 'string', default: '35' },
+      el: { type: 'string', default: '18' },
+      dist: { type: 'string' },
+      out: { type: 'string' },
+    },
+  });
+  if (values.preview) return runLandmarkPreview(values.preview, values);
+  if (values.build) {
+    const r = await buildLandmarks({ slug: values.slug, check: values.check });
+    for (const p of r.plans) console.log(`map:landmarks: ${p.id} ${Object.entries(p.stats).map(([v, s]) => `${v} ${s.tris} tris ${s.primitives} objects`).join(', ')}`);
+    if (!values.check && r.written.length > 0) console.log(`map:landmarks: wrote ${r.written.length} assets; run pnpm assets:catalog and pnpm assets:lock -- --approved-by <handle>`);
+    const code = printFindings(values.check ? 'map:landmarks --build --check' : 'map:landmarks --build', r.findings);
+    return code;
+  }
   const findings = validateLandmarkSeeds();
   const sel = selectBake(values);
   if (typeof sel === 'string') { console.error(`map:landmarks: ${sel}`); return 1; }
   if (sel) findings.push(...validateLandmarksInBake(sel.dir, sel.area));
   else console.log('map:landmarks: no bake in dist/world, seeds only');
   return printFindings('map:landmarks', findings);
+}
+
+async function runLandmarkPreview(id: string, v: { fidelity: string; az: string; el: string; dist?: string | undefined; out?: string | undefined }): Promise<number> {
+  const { recipeById } = await import('./landmarks/index.ts');
+  const { renderPreview, writePreview } = await import('./landmarks/kit/preview.ts');
+  const def = recipeById(id.startsWith('lm.') ? id : `lm.${id}`);
+  const seed = loadContentWorld().landmarks.find((l) => l.id === def?.id);
+  if (!def || !seed?.recipe) { console.error(`map:landmarks --preview: no recipe for ${id}`); return 2; }
+  const f = v.fidelity === 'mid' || v.fidelity === 'lo' ? v.fidelity : 'hi';
+  const out = v.out ?? path.join(DIST_ROOT, 'landmarks', `${def.id}-${f}.png`);
+  mkdirSync(path.dirname(out), { recursive: true });
+  const dist = v.dist ? Number(v.dist) : 220;
+  writePreview(out, renderPreview(def, seed.recipe as never, f, { azimuthDeg: Number(v.az), elevationDeg: Number(v.el), distance: dist, targetY: dist * 0.12 }));
+  console.log(`map:landmarks --preview: ${path.relative(toolsRoot, out)}`);
+  return 0;
 }
 
 export async function runPoisCommand(argv: readonly string[]): Promise<number> {

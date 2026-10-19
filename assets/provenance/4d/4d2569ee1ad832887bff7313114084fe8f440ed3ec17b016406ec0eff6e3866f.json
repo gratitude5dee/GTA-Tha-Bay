@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4d2569ee1ad832887bff7313114084fe8f440ed3ec17b016406ec0eff6e3866f",
+  "paths": [
+    "assets/src/building/lm.pyramid-tower/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "bf63cc96dcd961e3e9c4c00a2ebb43ace7a2db15a2401352d2f242fc0f0e3256"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -1,6 +1,138 @@
 {
   "schema": "asset-lock/1",
   "entries": {
+    "building/lm.alcatraz": {
+      "rev": 1,
+      "variants": {
+        "desktop": "82a9ecf67be991bb4fd9e23db9942e3768671b197b3db3a256bf60b5d8a53840",
+        "mobile": "c6e620e2af0e068f509cfc0bf5e1314ea1278f3ccf97a90cc0702c79ce9b2bd8",
+        "mobile-low": "bb0ec9acce558d52efb00e1074ae5b75de47925b8ca12d70645d264655668c98"
+      },
+      "root": "82a9ecf67be991bb4fd9e23db9942e3768671b197b3db3a256bf60b5d8a53840",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.bay-bridge-ybi": {
+      "rev": 1,
+      "variants": {
+        "desktop": "156ed9741cb8aeea97cb98e94cf691916e1faf5c510f54d66e0f4aedccdd8a5e",
+        "mobile": "dc291648119939a2048c5560d0dd33c4a7bec15093ab3c1a7691cad3339dbeeb",
+        "mobile-low": "e07634e67ba09230ad86c9c3796ea3dc628885da46d37a49bd890a2a2f11bc49"
+      },
+      "root": "156ed9741cb8aeea97cb98e94cf691916e1faf5c510f54d66e0f4aedccdd8a5e",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.city-hall": {
+      "rev": 1,
+      "variants": {
+        "desktop": "33414f6f686ad53ac063e0c053861ce61f64c3aca4e4c1dd577cfab82ace6844",
+        "mobile": "ead6ee63381f35ab47bab93068a7d9c981f6b8182fd0f1a56c3997129f2c58d8",
+        "mobile-low": "54fefd35e3e265e8bba94a22062439dcd382df0a32fe3f4e0caac6fc736ca8f1"
+      },
+      "root": "33414f6f686ad53ac063e0c053861ce61f64c3aca4e4c1dd577cfab82ace6844",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.coit-tower": {
+      "rev": 1,
+      "variants": {
+        "desktop": "aded09716fab6e6f86cda24a130041af934dcbc413728d8fe04253135b42e00d",
+        "mobile": "6b2e6c713a0e73ef77029fee80bbac6dd926d6f2d9c58226f02ed020412f05aa",
+        "mobile-low": "7150a51d0b941b0613a21dc88872f3b784a39bc0a5490eba29d75f75aecee86f"
+      },
+      "root": "aded09716fab6e6f86cda24a130041af934dcbc413728d8fe04253135b42e00d",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.crown-tower": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e318191d6e0ccad35d2ce34e9e8fa4bedf8aeafd0b3f7f8fb7ca3adcfdb7a71a",
+        "mobile": "b0c6fde757a2a2586c27a2cb8a34ffc180de99281e8d1203e60177e18b14abe5",
+        "mobile-low": "82ecd56ec1777eb0e66b9fc90165e6fc6e402c9e2d15ae3bdbe3923075ef1411"
+      },
+      "root": "e318191d6e0ccad35d2ce34e9e8fa4bedf8aeafd0b3f7f8fb7ca3adcfdb7a71a",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.ferry-building": {
+      "rev": 1,
+      "variants": {
+        "desktop": "226b1af2e2362a343631fd58295f8ade186e3059007d50df35d35ab177b148f9",
+        "mobile": "044fc8310108b8a580993231bd74a8cea3b8f81e46a4fb3eaca30fded57f4f01",
+        "mobile-low": "199c16956fa592383b5ec456b254b61510f46a0629a85a876e3b356c1ffbc160"
+      },
+      "root": "226b1af2e2362a343631fd58295f8ade186e3059007d50df35d35ab177b148f9",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.golden-gate-bridge": {
+      "rev": 1,
+      "variants": {
+        "desktop": "ee0e11c176dc5b136d3add06cbf738d7d4d2b075fe898ce0d4b1a024bebc2e3f",
+        "mobile": "7032fdfa96a1b93f78d72967d26d9ae65e6893876b05911296b2cd0e5325db18",
+        "mobile-low": "71b4cd5433942f41bbdb2a56fedfef772d06c996f0c86391443da2cfd98cd251"
+      },
+      "root": "ee0e11c176dc5b136d3add06cbf738d7d4d2b075fe898ce0d4b1a024bebc2e3f",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.lombard-crooked": {
+      "rev": 1,
+      "variants": {
+        "desktop": "9bf0a3008e512864cb1ccf26bd71b90828d613dcf889f8f28920480be18ec39c",
+        "mobile": "f8034d4e1d2999b8b557885d403e6d3ef71feb778c5f77d228cc09e2851c69db",
+        "mobile-low": "b8df9039df6e1343d65edaee4e807094422f84dee697529c0ba397c56e6099d9"
+      },
+      "root": "9bf0a3008e512864cb1ccf26bd71b90828d613dcf889f8f28920480be18ec39c",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.palace-fine-arts": {
+      "rev": 1,
+      "variants": {
+        "desktop": "3d8318821106fe3a27c33dc967d8ee811b09de716685e1635d2d64308d9dcfb7",
+        "mobile": "e8e0eeee648d6b6f9d23f8da4f1ecd0003b9401d7bc3350e7f5aa57ea439cabc",
+        "mobile-low": "56829f2c578033b65441852baa045ae80c2f40e88887308a626ba497f834b9a2"
+      },
+      "root": "3d8318821106fe3a27c33dc967d8ee811b09de716685e1635d2d64308d9dcfb7",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.pyramid-tower": {
+      "rev": 1,
+      "variants": {
+        "desktop": "c8cf7270fff07d9d5ccce3965ffd7f8e77eabd35582240454907253ce094f110",
+        "mobile": "073fd76d27eb9f6a6252dcff11becf894ee1214f4275684af15c7a81ddd0ecfb",
+        "mobile-low": "4d2569ee1ad832887bff7313114084fe8f440ed3ec17b016406ec0eff6e3866f"
+      },
+      "root": "c8cf7270fff07d9d5ccce3965ffd7f8e77eabd35582240454907253ce094f110",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.sutro-tower": {
+      "rev": 1,
+      "variants": {
+        "desktop": "8c8315f7d5f30ff24ace2d6a398e93cac36badba8dd826aa80c5b97a8f4dabab",
+        "mobile": "f85ae1d77898c4aedf770691c989504805b3c5ab4b72fd04cd3ed2a6e4678c86",
+        "mobile-low": "fa8ec8e50e7a0ebff361ae7d5b4daa35ba9b559e808ead455fe5025bf0f57f82"
+      },
+      "root": "8c8315f7d5f30ff24ace2d6a398e93cac36badba8dd826aa80c5b97a8f4dabab",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.twin-peaks": {
+      "rev": 1,
+      "variants": {
+        "desktop": "a4a205479e76a3927231f9234203de96f0f6622c5e1193d2a7ea8dfc34a5c84c",
+        "mobile": "d9dc747da30292a7612ab7905c1e2297f527c04b8bcc6849d8d209d480e55252",
+        "mobile-low": "6ede12952e08114d4def71410143a53f22027acb4d6b9cd975a952c2206ffc21"
+      },
+      "root": "a4a205479e76a3927231f9234203de96f0f6622c5e1193d2a7ea8dfc34a5c84c",
+      "approved_by": "m02d1-builder",
+      "approved_at": "2026-10-19T19:59:07Z"
+    },
     "data/asset-smoke": {
       "rev": 1,
       "variants": {

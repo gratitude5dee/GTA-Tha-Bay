@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
-import { AssetError, resolveVariant, type AssetManifest, type AssetVariant, type VariantId } from '../../../packages/shared/src/assets/c07.ts';
+import { AssetError, resolveVariant, type AssetManifest, type AssetVariant, type VariantId, type VariantStats } from '../../../packages/shared/src/assets/c07.ts';
 import { TIER_FIDELITY } from '../../../packages/shared/src/assets/fidelity.ts';
 import { finding, type GateFinding } from '../../../packages/shared/src/assets/gates/types.ts';
 import type { QualityTierId } from '../../../packages/shared/src/platform/c13.ts';
@@ -65,7 +65,32 @@ function findCycle(specs: readonly LoadedSpec[]): string[] | null {
   return null;
 }
 
-interface BudgetRow { id: string; kind: string; tag?: string; fidelity: Record<'hi' | 'mid' | 'lo', { fileBytes: number }> }
+export interface BudgetColumns { fileBytes: number; tris?: number; materials?: number; maxObjects?: number; maxTexPx?: number }
+export interface BudgetRow { id: string; kind: string; tag?: string; fidelity: Record<'hi' | 'mid' | 'lo', BudgetColumns> }
+
+/**
+ * The stats columns of one budget row against the recorded `VariantStats` of one variant (M02d1): a row that lists `tris`,
+ * `maxObjects` or `materials` makes that stat mandatory in asset.json, `maxTexPx` is checked when a texture size is recorded, and
+ * a recorded value must not exceed its column.
+ */
+export function statsFindings(row: BudgetRow, ref: string, variant: VariantId, file: string, stats: VariantStats | undefined): GateFinding[] {
+  const cols = row.fidelity[TIER_FIDELITY[variant as QualityTierId]];
+  const out: GateFinding[] = [];
+  const need = (rule: string, col: 'tris' | 'maxObjects' | 'materials' | 'maxTexPx', value: number | undefined, label: string): void => {
+    const limit = cols[col];
+    if (limit === undefined) return;
+    if (value === undefined) {
+      if (col !== 'maxTexPx') out.push(finding(GATE, file, 'stats-missing', `${ref} ${variant}: the ${row.id} budget has a ${label} column and asset.json records no ${label} for this variant`));
+      return;
+    }
+    if (value > limit) out.push(finding(GATE, file, rule, `${ref} ${variant}: ${value} ${label} exceeds the ${row.id} budget of ${limit}`));
+  };
+  need('budget-tris', 'tris', stats?.tris, 'tris');
+  need('budget-objects', 'maxObjects', stats?.primitives, 'render objects');
+  need('budget-materials', 'materials', stats?.materials, 'materials');
+  need('budget-tex', 'maxTexPx', stats?.texMaxPx, 'texture px');
+  return out;
+}
 
 function budgetFindings(root: string, specs: readonly LoadedSpec[]): GateFinding[] {
   const out: GateFinding[] = [];
@@ -85,6 +110,7 @@ function budgetFindings(root: string, specs: readonly LoadedSpec[]): GateFinding
         if (f.variant === 'default') continue;
         const limit = row.fidelity[TIER_FIDELITY[f.variant]].fileBytes;
         if (f.bytes > limit) out.push(finding(GATE, f.path, 'budget-file-bytes', `${s.ref} ${f.variant}: ${f.bytes} bytes exceeds the ${row.id} budget of ${limit}`));
+        out.push(...statsFindings(row, s.ref, f.variant, f.path, s.spec.stats?.[f.variant]));
       }
     }
   }
