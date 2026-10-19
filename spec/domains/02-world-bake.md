@@ -39,7 +39,7 @@ flowchart LR
 
 Not used, with reason: Google Photorealistic 3D Tiles (no caching, offline use or derivation; Google logo required) and Mapbox tiles/GL (no deriving, caching or storing) [research/repos-world.md §4; F-055, F-056]. The Mapbox CLI may help authors sanity-check ETAs; nothing it returns is committed [research/auth-ugc-input-maps.md §5.5]. Nominatim and Overpass are build-time only, under their policies (1 req/s, custom User-Agent, cache; Overpass < 10,000 queries/day, no parallel scripts) [research/repos-world.md §4].
 
-**Attribution output.** `map:build` writes `config/attribution.world.json`: one entry per source stamp `{id, text, licence, licenceUrl, source, surfaces}`, rendered on the boot splash, the full-map corner, the pause credits and `docs/legal` (`02-world-maps.md` §6). ODbL §4.6 is met by publishing the bake scripts in the repo and the packs on `media.<domain>`, which are the derived database in a custom format [research/repos-world.md §4].
+**Attribution output.** `map:build` writes `config/attribution.world.json`: one entry per source stamp `{id, text, licence, licenceUrl, source, surfaces}`, rendered on the boot splash, the full-map corner, the pause credits and `docs/legal` (`02-world-maps.md` §6). ODbL §4.6 is met by publishing the bake scripts in the repo and the packs on `media.<domain>`, which are the derived database in a custom format [research/repos-world.md §4]; while the repo is private, M02c2's world release uploads the bake scripts and the world lock under `odbl/<bakeId>/` and names that `index.json` as `offerUrl` in the OSM attribution, and `deploy:prod` serves no world without it (DL-695). The `world_pack/*`, `data/world-index`, `data/transit-routes.v1` and `map_data/*` assets are offered as a whole under ODbL 1.0, the authored seed tables of `content/world/` (landmarks, POIs with fictional business names, districts, pursuit breakers, cable cars, teleports, transit lines) included, and every pack's provenance names an `authored` stamp for them (M02a2, DL-677).
 
 ## 3. Commands, layout, determinism
 
@@ -74,15 +74,15 @@ S1 (frame and grid) is code in `packages/shared/src/world`, not a stage.
 | S0 fetch | Socrata paging `$order=:id&$limit=45000&$offset=…` [research/repos-world.md §1.2]; Terrarium tiles for the boxes; OSM extract | row counts: footprints ≥ 150,000, streets ≥ 16,000, neighbourhoods = 41; no Terrarium 404 |
 | S2 terrain | decode, mosaic, resample to 4 m posts (bilinear), clamp bathymetry, raise piers | City Hall height 10–25 m; min ≥ −130 m; shared edge posts equal |
 | S3 water, landuse | coastline ring assembly, water and park polygons, landuse classes | inside the area box, `area(land ∩ union)` within ±3 % of `area(union)`, where `union` is the 41-polygon neighbourhood union (the county land mask that S9 `county-line` portals use); `area(land \ union)` (the `play` box also takes in Daly City, Colma, Brisbane and the Marin Headlands) is reported in `bake-report.json`, never gated; ±3 % is a design value calibrated at M02a1 AC-9 (U-W14; DL-655) |
-| S5 roads | drivable ways → segments, directed edges, nodes, classes (`02-world-living.md` §1) | strongly connected component ≥ 98 % of edges |
-| S6 junctions | cluster, control, movements, conflicts, signal programs | every OSM signal node within 25 m of a junction (≥ 98 %); signal junctions have ≥ 2 phases |
+| S5 roads | drivable ways → segments, directed edges, nodes, classes (`02-world-living.md` §1) | strongly connected component ≥ 98 % of edges (design value on `sf`, calibrated at M02a2 AC-8; U-W15) |
+| S6 junctions | cluster, control, movements, conflicts, signal programs | every OSM signal node within 25 m of a junction (≥ 98 %; design value on `sf`, calibrated at M02a2 AC-8; U-W15); signal junctions have ≥ 2 phases |
 | S7 grading | road surface into the heightfield, bridge slabs, tunnel hoods | max road grade ≤ 40 % |
 | S4 buildings | footprints → records, prisms, landmark proxies | baked DataSF buildings ≥ 98 % of the `ynuv-fyni` row count in `raw.lock.json` before proxies (dropped ≤ 2 %); OSM supplement ≤ 5 %, each addition listed by OSM id in `bake-report.json` (DL-288) |
 | S8 ped | sidewalks, crossings, paths, plaza lattices | per tile, largest component ≥ 85 % of nodes (warn) |
 | S9 tags, spawn | derive and merge authored tags; slot capacities | each chunk within the limits in contract rule 20 |
 | S10 landmarks, POIs, transit | place, snap, proxy, validate | each landmark within 120 m of its OSM feature; arrival point on ground |
 | S11 LOD, far | l1/l2 simplification, DEM ring, massing, cards | pack sizes |
-| S12 map | `sf-map.v1`, graph topology, geocoder, district grid, anchor mask | street-count equality ±0.5 % [research/auth-ugc-input-maps.md §5.8] |
+| S12 map | `sf-map.v1`, graph topology, geocoder, district grid, anchor mask | street-segment count equality ±0.5 % (active, non-`PAPER*`, `classcode` 1–5 segments with a `cnn`, against the pinned `raw.lock` snapshot; DL-675) and one-way arrows on 30 sampled segments [research/auth-ugc-input-maps.md §5.8 checks 1, 4] |
 | S13 pack, S14 verify | pack writer, index, attribution, provenance | pack ≤ 4 MiB; two identical runs |
 
 **S2 terrain.** (1) Mosaic z15 tiles covering `stream` ∪ `play` (about 21 × 21 = 441 tiles for the 20 km stream box; the SF bbox alone is 289 [research/auth-ugc-input-maps.md §5.3]); the far field uses z12 (about 11 × 11). (2) Decode with the Terrarium formula, bilinear-resample to a 4 m ENU grid. (3) Water: posts below 0 m inside the water mask are set to `min(h, −2.5)` near shore and clamped to −60 m offshore (the SF repo clamps coast noise to −2.5 m; the strait reaches −114 m [research/repos-world.md §1.2]). (4) Piers (`man_made=pier` polygons or ways with width) are raised to 3.0 m with a 1 m skirt and carry `GroundClass.Pier`. (5) The same `sampleHeight` function (pure, in `packages/shared/src/world/terrain.ts`) runs in the bake and in the browser so buildings, roads and props sit on the exact mesh [research/repos-world.md P5].
@@ -122,6 +122,7 @@ Spawn capacities (peak, per chunk): `trafficSlots = min(255, round(Σ lengthKm �
 | `sf-graph.v1` | `map_data/sf-graph.v1` | topology, always resident | ≈ 1 MB |
 | `world-index` | `data/world-index` | JSON | ≤ 300 KB |
 | `district-grid.v1` | `data/district-grid.v1` | 64 m cells, `u8` neighbourhood index | ≈ 55 KB |
+| `transit-routes.v1` | `data/transit-routes.v1` | tool-owned JSON: Metro splines, bus patterns (edge ids, stops), ferry lines, cable-car splines, 3 air corridors (M02a2 S10, DL-664) | ≤ 500 KB |
 | `anchor-mask.v1` | `data/anchor-mask.v1` (private; file `anchor-mask.v1.bin`) | 8 m cells, 2-bit classes, RLE | ≤ 400 KB |
 | `attribution.world.json`, `bake-report.json` | repo / CI artifact | counts, gates, sizes | small |
 
