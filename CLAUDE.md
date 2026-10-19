@@ -2,7 +2,7 @@
 
 ## What this is
 An original, story-driven open-world game in an accurate San Francisco: a Three.js (WebGPU, WebGL2 fallback) PWA on Cloudflare Workers, with a WebXR port, AI NPCs, generated-and-cached cutscenes and player mods.
-Single-player first on Cloudflare only; Supabase arrives at M05d; multiplayer rooms from M12b.
+Single-player first on Cloudflare only; Supabase data spine arrives at M05d (Supabase Auth live since DL-OWN-04); multiplayer rooms from M12b.
 You are the Builder: one milestone per session, exactly as its file says. The spec is the source of truth.
 
 ## Read first
@@ -49,7 +49,7 @@ Then the current milestone file `spec/07-milestones/<ID>-*.md` (the kickoff name
 - World coordinates: ENU metres from SF City Hall (+X east, +Y up, −Z north).
 - Browser storage names start with `dv-`. QA URL flags and `window.__dvBridge` exist only when `VITE_DV_QA=1`.
 - The display name comes only from `config/brand.ts` (`DISPLAY_NAME`). The franchise name in the repo's codename never appears in code, file names, packages, UI strings or builds; `ip:strings` and `names:lint` enforce it.
-- Original content only. Never open, fetch or search the example repositories named in `research/repos-*.md`.
+- Original content only: no assets, code, data, formats, names or plots from other publishers' games; no GPL/AGPL/LGPL code without an ADR; nothing from an unlicensed repo. Code or data copied from another repository (every upstream in `research/repos-*.md` included) enters only as files under `third_party/<name>/` listed in `allowedPaths` of a `REUSE-WITH-ATTRIBUTION` entry in `docs/legal/third-party-reuse.json`, keeping attribution (ADR-REUSE-01); npm dependencies follow `license:scan`, asset packs follow `spec/domains/05-assets-pipeline.md` §7. Never open, fetch or search an upstream example repository. Only the operator or the Architect vendors or edits `docs/legal/third-party-reuse.json`; Builders read only allowlisted `third_party/` files and never add or change one. Never run the Mapbox CLI or call Mapbox APIs (DL-506).
 - Contracts C01–C17 change only through the Architect: propose in your report, never edit a contract shape.
 - Branch per milestone `m<id>-<slug>` (e.g. `m00a-edge-api-skeleton`); conventional commits (`feat(edge): …`); one PR per milestone.
 - Small reversible choices the spec leaves open: record as a `BD-NNN` row under "Builder decisions" in `spec/11-decision-log-builder.md`.

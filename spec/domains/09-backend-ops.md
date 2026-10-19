@@ -64,6 +64,8 @@ Each new migration tag ships in its own PR labelled `do-lifecycle`, containing o
 | staging | `tha-bay-web-staging`, `tha-bay-rooms-staging` | Supabase staging project (Free OK, keep-alive nightly) | `staging.<domain>`, `id-staging.<domain>`, `rt-staging.<domain>`, `media-staging.<domain>` | mock by default; `synthetic` Anthropic workspace for M14b |
 | prod | `tha-bay-web`, `tha-bay-rooms` | Supabase Pro `us-west-1` | `<domain>`, `id.`, `rt.`, `media.`, `ugc.` | live |
 
+**Live state (Architect observation 2026-10-19, DL-512).** `tha-bay-web` and `tha-bay-web-staging` exist on workers.dev subdomain `gratitude-8f4` (`https://tha-bay-web[-staging].gratitude-8f4.workers.dev`); the rooms Workers come with M12b1. Supabase project `tha-bay`, ref `jwvvllhxuvwkrynmnchb`, region `us-west-1` (G1), created 2026-10-19, is the **prod** project; its plan was not observed. As merged, the staging and preview vars point at it too, so staging sign-ups (routes 58–60, ADR-ACCT-01) would land in the production user table; under the interim stop (Q-43) the operator removes the Supabase vars from prod, staging and previews until the owner-PR #1 follow-ups 1, 2, 3, 8 and 15 are deployed, and staging and previews stay unset until M05d's `tha-bay-staging` exists. M05d records both refs in `config/supabase.projects.json`; until then they are in `config/cloudflare.resources.json`.
+
 Inside a Preview, Queue consumers, Cron Triggers and production routes do not run and Workflow bindings point at an existing Workflow; every queue/cron feature therefore has a `/api/v1/_test/*` route (compiled out of prod, proven by `check:prod-routes`) [research/gap-ci-cd-release-assets.md §1.5].
 
 ## 2. CI/CD (spec/03 D-27)

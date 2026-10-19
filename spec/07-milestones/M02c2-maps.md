@@ -61,6 +61,7 @@ S02's in-engine Canvas 2D views draw them (D-25), fed by the `MapApi` data M02c1
 - C08 1.0: `MapApi`, `MapBlip`, `PlaceIndex.findPlace`, `nhoodAt`, `RoadGraphQuery.route`, `TeleportApi`; consumed verbatim. The §2 view types are S02 client types, not contract members.
 - C07 1.1: `map_data/*` assets with world provenance (1.1).
 - C06 1.1: `hud.map`, `hud.area` patches. No contract change.
+- Optional input (D-31, DL-503): `third_party/sf-bay-area-ai-atlas/` when `docs/legal/third-party-reuse.json` lists its renderer in `allowedPaths` with a `pinnedSha`. Absent by default; nothing here depends on it.
 
 ## Acceptance criteria
 - AC-1 Given the `civic-excerpt` area When stages through `map` run twice Then the three map assets are byte-identical across runs, decode through `map-format.ts`, and every street segment carries its `cnn` — proof: `pnpm map:build -- --area civic-excerpt --repro && pnpm check:unit -- tools/map`
@@ -103,7 +104,8 @@ S02's in-engine Canvas 2D views draw them (D-25), fed by the `MapApi` data M02c1
 
 ## Notes for the Builder
 - Read first: `02-world-maps.md` §1–§3, §6–§7; `02-world-bake.md` §2–§3 (S12 row); `10-ui-hud-xr.md` §2.10 (map hosting); `02-world.md` §8 (M02c2 seeds) and §9; the M02a1, M02b1 and M02c1 files.
-- Facts: F-053 (OSM ODbL attribution), F-054 (EAS and DataSF are PDDL), F-056 (no Mapbox at runtime; the Mapbox CLI is dev-only and nothing it returns is committed). The 2,567 active street names come from [research/auth-ugc-input-maps.md §5.2].
+- Facts: F-053 (OSM ODbL attribution), F-054 (EAS and DataSF are PDDL), F-056 (no Mapbox at runtime; the Mapbox CLI is for the operator or Architect only, never in a Builder session; no Mapbox result sets, checks or corrects a committed coordinate, address or name, DL-506). The 2,567 active street names come from [research/auth-ugc-input-maps.md §5.2].
 - `map:geocode --sample <n>` (seeded sample against the source rows) is part of this milestone's CLI.
 - Order of work: format module, stage and gates, address sources, geocoder and CLI, raster job, minimap, full map, blips and route line, banner, UI hosting and credits, e2e.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). The `sf` run needs public downloads only. No genAI spend, no owner gate.
+- Third-party reuse (ADR-REUSE-01): if the Atlas renderer is vendored and `spec/followups/reuse-gates.md` has merged (`tools/ci/third-party-licenses.ts` exists on your branch's base, the code branch `main` or else `claude/build`; otherwise ignore `third_party/`), you may port its cached-static-frame and near-plane clipping approach into `packages/world/src/client/map/` in the ENU frame, with an `SPDX-License-Identifier: MIT` line, the upstream copyright line from `third_party/<name>/LICENSE` verbatim and a "Portions from `third_party/<name>/<path>`" header; port algorithms only: copy no string, URL or coordinate literal from the vendored file, and never import from `third_party/`; and render the `third_party/NOTICE` entries in the credits page's "Third-party software and data" section (DL-507). The §2 view types, budgets and every AC stay as written. Atlas geometry is not used. If `third_party/` is absent, write the views from `02-world-maps.md` §2. Never open or fetch the upstream repository.

@@ -52,7 +52,7 @@ Stop and report (do not guess) when: an acceptance criterion depends on an item 
 </stops>
 
 <facts>
-Never invent an endpoint, model id, SDK call, limit or price. Everything you need is in `spec/03-decisions-and-facts.md` or the domain specs with a source. If you must look something up, use the research files under `research/` first, then the official docs, and add what you learned to `spec/03` with the URL and date.
+Never invent an endpoint, model id, SDK call, limit or price. Everything you need is in `spec/03-decisions-and-facts.md` or the domain specs with a source. If you must look something up, use the research files under `research/` first, then the official docs, and add what you learned to `spec/03` with the URL and date. Never open, fetch or search an upstream example repository (`research/repos-*.md`); third-party code or data comes only from `third_party/` files allowlisted in the reuse register (ADR-REUSE-01); you never vendor, never edit that register and never run the Mapbox CLI or call Mapbox APIs (DL-506).
 </facts>
 
 <working_style>
@@ -195,7 +195,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 117. M15e · peninsula-north · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
 118. M15f · peninsula-vc-row · 1 · M15e · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
 119. M15g · south-bay-san-jose · 1 · M15f · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
-Run them in this order. A milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2); when several Builders run in parallel, "done" means merged to the default branch; each file's Depends on section is authoritative over this list, and slugs of split milestones are in their file names. Before starting, check its status in `spec/07-milestones/README.md`: if it is not READY, stop and report.
+Run them in this order. A milestone whose Depends on names one not yet done waits for it (M01f runs before M01b2); when several Builders run in parallel, "done" means merged to the default branch; each file's Depends on section is authoritative over this list, and slugs of split milestones are in their file names. Before starting, check its status in `spec/07-milestones/README.md`: if it is not READY, stop and report. The owner PR #1 follow-ups (`spec/followups/owner-pr1.md`, no id) run next: no PR of a milestone not yet started on 2026-10-19 merges before theirs, and no milestone that touches `services/edge` starts until they have merged; milestones already executing (M00…M01f) merge as before (`_PLAN.md` §0 rule 7); they start with their own command in that file. The reuse gates (`spec/followups/reuse-gates.md`, no id) run after them and before the first vendoring PR, gate no milestone, and merge in their own slot after rebasing (`_PLAN.md` §0 rule 8); own command in that file.
 </milestones>
 
 </builder_prompt>

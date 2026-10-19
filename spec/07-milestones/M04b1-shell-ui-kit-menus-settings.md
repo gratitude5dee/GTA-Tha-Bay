@@ -62,8 +62,10 @@ The player can:
 - `packages/ui/test/{ui-shell.spec.ts, ui-screen-parity.spec.ts, ui-i18n.spec.ts, age-gate.spec.ts, modes-tiles.spec.ts, saves-ui.spec.ts, settings-bind.spec.ts}`.
 - `tests/e2e/ui/{menus.spec.ts, age.spec.ts, a11y.spec.ts}` (tags `@ui-menus`, `@ui-age`, `@ui-saves`, `@ui-a11y`).
 - `tools/ci/check-i18n.ts` and root script **`check:i18n`** (`tsx tools/ci/run.ts …`; new, DL-230); `apps/web/src/routes.ts`.
+- `packages/shared/src/legal/terms.ts` (`export const TERMS_VERSION`, exported from `@dv/shared` and re-exported by `packages/ui`; the owner password accounts note).
+- `services/edge/src/routes/auth.ts`: `CURRENT_TERMS_VERSION` becomes `TERMS_VERSION` imported from `@dv/shared` (one-line edit; owner-pr1 item 2, DL-520), which turns on the router-level terms cases of `services/edge/test/auth.test.ts`.
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
-- About 38 files.
+- About 40 files.
 
 ## Interfaces
 - C06 1.1: `UiBridge`, `ViewModelSource`, `UiCommand` (`mode.start`, `mode.quit`, `save.*`), `GameModeDescriptor.tile`, `status`, `unlock`, `GameModeUI.summary?`. Consumed, no change.
@@ -93,6 +95,7 @@ The player can:
 - AC-12 Given every registered `ScreenDef` When it renders through `DomScreen` and `CanvasScreen` Then the flattened focusable lists are identical — proof: `pnpm check:unit -- packages/ui`
 - AC-13 Given the production build When bundle budgets run Then the shell entry chunk is ≤ 120 KiB gzip, pages are separate lazy chunks, and no file exceeds the precache cap — proof: `pnpm build && pnpm check:bundle`
 - AC-14 Given the branch When the dist verifier and the preview deploy run Then they pass, and the deployed app opens on Title with the age screen on first launch — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-15 Given `TERMS_VERSION` in `@dv/shared` and route 58 with `AUTH_PASSWORD: 'on'` and a stubbed upstream When the `auth` suite runs Then its router-level terms cases run (not skipped): a missing or stale `termsVersion` answers 400 `bad_request` and `ageBracket` `13_15` answers 403 `age_blocked`, each with 0 upstream calls, and the `boot` case still passes (DL-520) — proof: `pnpm check:workers -- auth && pnpm check:workers -- boot`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- packages/ui`): `ui-shell`, `ui-screen-parity`, `ui-i18n`, `age-gate`, `modes-tiles`, `saves-ui`, `settings-bind`.
@@ -100,6 +103,7 @@ The player can:
   - `@ui-menus` on `chromium-webgl2` and `webkit-webgl2`;
   - `@ui-age`, `@ui-saves` and `@ui-a11y` on `chromium-webgl2`.
 - **Static:** `pnpm check:i18n`, `pnpm names:lint`, `pnpm check:bundle`.
+- **Workers runtime:** the existing `auth` and `boot` suites (`pnpm check:workers -- auth`, `-- boot`; AC-15).
 - **Device:** none required; M04b2's iPhone checklist covers the menus on hardware.
 
 ## Demo script
@@ -111,7 +115,7 @@ The player can:
 6. In a new private window, enter an under-18 date: Blocked; reload: still Blocked.
 
 ## Effort
-1 Builder session; about 38 files; risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
+1 Builder session; about 40 files; risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
 
 ## Risks & fallbacks
 - **File count.** Settings categories share files by design; add no page files.
@@ -123,4 +127,5 @@ The player can:
 - Facts: F-004, F-011 (no install prompt on iPhone; the Install row shows the coach-mark steps text), F-010 (storage usage panel). The age-gate rules are design rules from the cited research, not external API facts.
 - Order of work: shell types and machine, kit focus, ScreenDef renderers, i18n, Title/Age/Terms, main, saves and New Game, modes, settings, banners, e2e, bundle.
 - No telemetry and no API call from a blocked device. The block check runs before any `/boot` fetch on relaunch.
+- **Owner password accounts (ADR-ACCT-01, follow-up 2 in `spec/followups/owner-pr1.md`).** The `/account/` island's create flow uses this milestone's `AgeGate` and the same `ageBlocked` flag rather than a second age screen: keep `AgeGate` importable from an island entry without the game bundle. The current terms version is `TERMS_VERSION` in `packages/shared/src/legal/terms.ts` (`services/edge` may import only `@dv/shared` and `@dv/net`), re-exported by `packages/ui` and used by the Terms card; `age-gate.spec.ts` asserts the `packages/ui` export equals the `@dv/shared` one. The block lives in IndexedDB database `dv-ui` as key `ageBlocked`, mirrored to `localStorage['dv-ui-ageBlocked']` (each access in try/catch), and both the shell and the `/account/` island read it there. Until this lands, route 58 answers `feature_disabled` whatever `AUTH_PASSWORD` says (owner-pr1 item 2). This milestone wires the constant into `services/edge/src/routes/auth.ts` (AC-15, DL-520) and changes nothing else in `services/edge`; production stays `AUTH_PASSWORD=off` until the M13d2 owner action (Q-43).
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate (Q-01 display name is applied from `config/brand.ts`).

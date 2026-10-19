@@ -18,6 +18,8 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - **Several Builders may run at once** (DL-246): one git worktree and one branch `m<id>-<slug>` per milestone (worktrees under `.claude/worktrees/`, git-ignored); a Builder starts a milestone only when every milestone in its Depends on is **merged** to the default branch; PRs merge in run order (a later row waits for every earlier row that is in flight), and each branch rebases on the default branch before merging. Deploys come only from the default branch (`deploy.yml`); a Preview per PR is fine.
 - R-ROLL-01: no rooms milestone (M12b1 onward) starts before M05c2 is deployed to staging and its ACs pass there. R-AUTH-02: M14a is the last v1 milestone; M15a–M15g are post-v1 (Bay expansion), one session each (DL-242).
 - Every family above one session is split into digit-suffixed ids (DL-212).
+- **Runs next, not a milestone:** the owner PR #1 follow-ups, `spec/followups/owner-pr1.md` (no id, no row below; `_PLAN.md` §0 rule 7, Q-43). For milestones not yet started on 2026-10-19, no PR merges before its PR and no milestone that touches `services/edge` starts before it has merged; milestones already executing (M00…M01f) merge as before.
+- **Then, not a milestone:** the reuse gates, `spec/followups/reuse-gates.md` (no id, no row below; `_PLAN.md` §0 rule 8): after the owner PR #1 follow-ups and before the first vendoring PR; a gate for no milestone; merges in its own slot after rebasing on the default branch.
 
 ## Table (READY 119, of which 12 frozen (executing); 112 v1 milestones ≈ 104.9 sessions + 7 post-v1 = 111.9 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500)
 

@@ -36,10 +36,10 @@ The web Worker carries the backend that NPC dialogue runs on, though no model is
 - `supabase/migrations/0003_npc.sql`; `supabase/tests/{memory_match.sql, server_only.sql (extended), forget_cascade.sql}`.
 - `packages/shared/src/data-port.ts` and `data-port.memory.ts` (the `npcMemory`, `roster` and `profiles.exportAll/forget` members); `services/edge/src/data/supabase/{npc-memory.ts, roster.ts, profiles.ts}`; `packages/shared/src/db.gen.ts` (regenerated).
 - `services/edge/src/id/{playtoken.ts, tofu.ts, nethash.ts}`; `services/edge/src/budget/QuotaDO.ts`; `services/edge/src/npc/{EncounterDO.ts, sse.ts}`; `services/edge/src/flags/{roster.ts, admin.ts}`; `services/edge/src/routes/{roster.ts, me.ts, admin-roster.ts, admin-flags.ts}`; `services/edge/src/ops/{retention.ts, forget.ts, export.ts}`.
-- `services/edge/test/{play-token.test.ts, quota-turns.test.ts, encounter-server-history.test.ts, sse-transport.test.ts, killswitch.test.ts, flags-admin.test.ts, roster.test.ts, forget.test.ts, retention.test.ts}`.
+- `services/edge/test/{play-token.test.ts, quota-turns.test.ts, encounter-server-history.test.ts, sse-transport.test.ts, killswitch.test.ts, flags-admin.test.ts, roster.test.ts, forget.test.ts, retention.test.ts, signup-cap.test.ts}`; `services/edge/src/routes/auth.ts` (route 58 sign-up cap, shared `nethash.ts`).
 - `services/edge/wrangler.jsonc`: DO bindings `ENCOUNTER` and `QUOTA`, migration `web-v2`, `JOBS` and `SPEND` queue producers and consumers (create the queues through `deploy:bootstrap` if M05b1 did not), `secrets.required` adds `PLAY_TOKEN_HMAC` and `QUOTA_NET_SALT_SECRET`, crons `10 3 * * *`, `20 3 * * *`, `30 3 * * *`, all repeated under `previews` where allowed.
 - `config/guardrails.yaml` (`npc:` quota and estimate section; created here if absent), `packages/shared/schemas/telemetry/names.schema.json` (`quota.block`).
-- About 38 files.
+- About 40 files.
 
 ## Interfaces
 - C12 1.1: routes 5 (verification and TOFU), 14, 30, 46, 47; `PlayTokenClaims`, `RosterFlags`, `KillScope`, `PlayerQuota`, `DataPort.npcMemory` and `roster`; migration 0003. Shapes copied.
@@ -60,9 +60,10 @@ The web Worker carries the backend that NPC dialogue runs on, though no model is
 - AC-10 Given rows past their retention When `/_test/run-scheduled` runs `transcripts`, `memory` and `stub-profiles` Then only expired rows and objects are deleted, and fresh rows stay — proof: `pnpm check:workers -- retention`
 - AC-11 Given the production build When it is scanned Then no `/_test/` handler and no secret pattern exists — proof: `pnpm check:prod-routes && pnpm check:secrets -- apps/web/dist`
 - AC-12 Given the lifecycle PR and the logic PR When both merge to `main` Then the first is labelled `do-lifecycle` and deployed with `wrangler deploy` (rollback floor printed), the second deploys through versions, and staging smoke passes — proof: manual: desktop browser, GitHub Actions › deploy, read both run summaries; then `pnpm check:smoke -- <staging workers.dev URL>`
+- AC-13 Given `PlayerQuotaDO` and three successful route 58 sign-ups from one net on one UTC day (stubbed upstream) When a fourth arrives from the same net Then it answers 429 `rate_limited` with `retryAfterMs` to the next UTC midnight and makes 0 upstream calls, while another net still signs up — proof: `pnpm check:workers -- signup-cap`
 
 ## Test plan
-- **Workers runtime:** `play-token`, `quota-turns`, `encounter-server-history`, `sse-transport`, `killswitch`, `flags-admin`, `roster`, `forget`, `retention` — `pnpm check:workers` (each file runs alone with `-- <name>`).
+- **Workers runtime:** `play-token`, `quota-turns`, `encounter-server-history`, `sse-transport`, `killswitch`, `flags-admin`, `roster`, `forget`, `retention`, `signup-cap` — `pnpm check:workers` (each file runs alone with `-- <name>`).
 - **DB:** `memory_match`, `forget_cascade`, extended `server_only` — `pnpm check:db`; `pnpm check:db:types`.
 - **Static:** `pnpm check:prod-routes`, `pnpm check:secrets -- apps/web/dist`, `pnpm check:telemetry`.
 
@@ -73,7 +74,7 @@ The web Worker carries the backend that NPC dialogue runs on, though no model is
 4. `pnpm check:db`: `memory_match` passes.
 
 ## Effort
-1 Builder session; about 38 files; risk **medium** (two new DO classes and their lifecycle PR, mocked clocks in the Workers pool).
+1 Builder session; about 40 files; risk **medium** (two new DO classes and their lifecycle PR, mocked clocks in the Workers pool).
 
 ## Risks & fallbacks
 - **Workers pool cannot fake timers inside DOs:** inject a `Clock` into `EncounterDO`, `QuotaDO` and the transport, and drive it from tests. The proofs stay the same.
@@ -86,4 +87,5 @@ The web Worker carries the backend that NPC dialogue runs on, though no model is
 - **Secrets:** `PLAY_TOKEN_HMAC` (+ `_PREV`), `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY` (Worker, via `--secrets-file`), `OPS_TOKEN` (M05b1). If M04b3 minted with a development key, rotate to `PLAY_TOKEN_HMAC` here. Missing locally: stub in `.dev.vars` with a test value; in deploys, `SKIP … <VAR> not set` and list it.
 - Under-18 guard: no `age: '18p'` claim means no token, so nothing is stored (D-30). Add a test that a token without `18p` is refused.
 - Order: lifecycle PR → 0003 and the ports → quota → encounter → transport → roster, kill and flags → `/me` → crons → CI.
+- **Owner password accounts (ADR-ACCT-01, `spec/05` routes 58–64).** Route 58 counts sign-ups in `PlayerQuotaDO` `q:n:<netHash>` (cap 3 per net per UTC day, AC-13), and the follow-up rate-limit key helper is replaced by the shared `nethash.ts`; record U-ACCT-4 (do Supabase's own limits see only Cloudflare addresses?) in the report. Nothing links a password account to a profile before M12a1, so write no Supabase-user code in `DELETE /me` or `/me/export`; give `ops/forget.ts` and `ops/export.ts` an injectable list of per-provider credential handlers (empty here) so M12a1 can register the password one without editing them.
 - Branches `m06a1-npc-backend-spine-do` (lifecycle) and `m06a1-npc-backend-spine`.

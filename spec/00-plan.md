@@ -1,6 +1,6 @@
 # 00 — Plan and status (living)
 
-Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-3.md` (DL-218…DL-244), `spec/11-decision-log-4.md` (DL-249…DL-451; split DL-341), `spec/11-decision-log-4b.md` (DL-460…DL-493; split DL-530), `spec/11-decision-log-5.md` (DL-500 onward), and Builder rows (BD-NNN) in `spec/11-decision-log-builder.md`. Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-25).
+Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared context: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2, frozen, all 17 contracts final** (2026-10-18, after the Wave 5 milestone reconciliation; v1.1 after Waves 2–4, v1.0 the Wave 1 freeze). Binding decisions: `spec/03-decisions-and-facts.md` v2 plus `spec/11-decision-log.md` (DL-001…DL-076), `spec/11-decision-log-1b.md` (DL-077…DL-170, DL-OWN-01/02), `spec/11-decision-log-2.md` (DL-171…DL-217, DL-245…DL-248), `spec/11-decision-log-3.md` (DL-218…DL-244), `spec/11-decision-log-4.md` (DL-249…DL-451; split DL-341), `spec/11-decision-log-4b.md` (DL-460…DL-493; split DL-530), `spec/11-decision-log-5.md` (DL-500 onward; owner updates 2026-10-19: DL-OWN-03, DL-OWN-04, D-31, D-32), `spec/11-decision-log-5b.md` (DL-518…DL-524, owner-update critic fixes), and Builder rows (BD-NNN) in `spec/11-decision-log-builder.md`. Architecture: `spec/02-architecture.md` **v1**. Open questions: `spec/99-open-questions.md` (Q-13…Q-41) and `spec/99-open-questions-2.md` (Q-42 onward, U-ACCT-*).
 
 ## Phase status
 | Phase | Subagents | Status | Output |
@@ -38,6 +38,8 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 | Q-10 | Device floor | iPhone 15 at `mobile-low` 30 fps; Quest 3/3S; Vision Pro on visionOS 26.2+ | [research/stack-rendering-platform.md] |
 | Q-11 | Music | commissioned originals only | sync licensing |
 | Q-12 | Hero voices | Aura tier; ElevenLabs Flash for ≤ 3 heroes only if Q-20 raises the voice ceiling; no real-voice clones | vendor policies |
+| DL-OWN-03 | Reuse from the example repositories (2026-10-19) | narrowed to what the licences allow: register `docs/legal/third-party-reuse.json`; Atlas and a universal-modder subset vendored by operator or Architect; Mapbox CLI dev-time only pending Q-44 | ADR-REUSE-01, D-31 |
+| DL-OWN-04 | Owner-merged PR #1: password accounts on Supabase Auth (2026-10-19) | accepted as a credential beside the spine; interim stop until the follow-ups land (Q-43) | ADR-ACCT-01, D-32 |
 
 Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice ceiling, sensitivity read, npm publication, counsel list, animation staffing, private content repo) carry defaults in `spec/99-open-questions.md`.
 
@@ -63,6 +65,8 @@ claude -p "$(sed -n '/^<builder_prompt/,/^<\/builder_prompt>/p' prompt-pack/04-S
 ```
 
 Operator prerequisites, the interactive alternative and `--resume` after a usage-limit failure are in `prompt-pack/04-SONNET-KICKOFF.md`.
+
+**Next session (`_PLAN.md` §0 rule 7; milestones already executing merge as before):** the owner PR #1 follow-ups in `spec/followups/owner-pr1.md`, started with the command in that file (`--effort high`). Then the reuse gates in `spec/followups/reuse-gates.md` (`_PLAN.md` §0 rule 8: before the first vendoring PR, a gate for no milestone), started with the command in that file.
 
 **Parallel Builders (DL-246):** one git worktree and one branch `m<id>-<slug>` per milestone (`git worktree add .claude/worktrees/m<id>-<slug> -b m<id>-<slug>`); a milestone starts only when every milestone in its Depends on is merged to the default branch; PRs merge in run order (`_PLAN.md` §1), each rebased and re-proved first; deploys run only from the default branch.
 

@@ -1,6 +1,6 @@
 # Architecture decision records
 
-One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). `spec/03-decisions-and-facts.md` links every D-xx and A-xx here; `spec/11-decision-log.md` and its parts `-1b`, `-2`, `-3`, `-4` hold the dated change history (DL-nnn); Builder rows (BD-nnn) are in `spec/11-decision-log-builder.md`. A superseding ADR sets the old one to `superseded` and links back.
+One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). `spec/03-decisions-and-facts.md` links every D-xx and A-xx here; `spec/11-decision-log.md` and its parts `-1b`, `-2`, `-3`, `-4`, `-4b`, `-5` (owner updates DL-OWN-03/04 at DL-501…DL-517) hold the dated change history (DL-nnn); Builder rows (BD-nnn) are in `spec/11-decision-log-builder.md`. A superseding ADR sets the old one to `superseded` and links back.
 
 | ADR | Title | Status | Decides |
 |---|---|---|---|
@@ -12,8 +12,10 @@ One file per decision, in the `03-SPEC-TEMPLATE.md` §E format (≤ 800 words). 
 | [0006](ADR-0006-v1-vertical-slice.md) | v1 vertical slice and milestone order | accepted | A-06, A-09 |
 | [0007](ADR-0007-display-name.md) | Display name | accepted | A-07 |
 | [GENAI-01](ADR-GENAI-01-video-model-licence-gate.md) | Video model licence gate | **proposed, owner-gated** | A-08, D-18 (video) |
+| [REUSE-01](ADR-REUSE-01-third-party-reuse.md) | Third-party reuse register (`docs/legal/third-party-reuse.json`, `third_party/`) | accepted | D-31, DL-OWN-03, DL-501…DL-509 |
 | [0008](ADR-0008-supabase-over-convex.md) | Supabase over Convex | accepted | D-02, G1 |
 | [0009](ADR-0009-identity-spine.md) | Identity spine and auth phases | accepted | D-03, D-04 |
+| [ACCT-01](ADR-ACCT-01-owner-password-accounts.md) | Owner password accounts (Supabase Auth through the Worker) | accepted (owner, DL-OWN-04) | D-32, DL-510…DL-517 |
 | [0010](ADR-0010-renderer-strategy.md) | Renderer strategy | accepted | D-07, D-09, D-10, D-11 |
 | [0011](ADR-0011-physics-and-determinism.md) | Physics and determinism | accepted | D-12, D-13 |
 | [0012](ADR-0012-modding-tiers-and-sandboxes.md) | Modding tiers and sandboxes | accepted | D-26 |

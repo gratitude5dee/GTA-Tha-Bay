@@ -84,6 +84,7 @@ Flow A of ADR-0019 (bring your own agent; Codex signed in with ChatGPT) is docum
 ## Interfaces
 - C14 1.0 is used as published; `docs/CONTRACT-modapi.md` (M13a1) is linked, not changed. `DevMsg` and `dv-evidence/1` are kit-local formats (S12 design), not contracts. `PlatformSettings.dev` exists in C13 1.1 and is used unchanged.
 - No contract change.
+- Optional input (D-31, DL-505): `third_party/universal-modder/` when `docs/legal/third-party-reuse.json` lists files in `allowedPaths` with a `pinnedSha`. Absent by default; nothing here depends on it.
 
 ## Acceptance criteria
 - AC-1 Given the canonical `skills/` tree When `check:skills -- --write` has run and one byte of one mirrored `SKILL.md` is then changed in a fixture copy Then the fixture run fails naming that file, and the repository run passes with `architect` allowed as an extra — proof: `pnpm check:unit -- tools/ci/test/check-skills && pnpm check:skills`
@@ -122,5 +123,6 @@ Flow A of ADR-0019 (bring your own agent; Codex signed in with ChatGPT) is docum
 
 ## Notes for the Builder
 - Read first: `12-modding-publish.md` C§1 (all), C§2 (flow A); `12-modding.md` §2.1 principles 9–10; `13-qa.md` §3.8; `spec/11-decision-log-2.md` DL-208; `docs/decisions/ADR-0019-modding-agent-and-publish-login.md`; `spec/99-open-questions.md` Q-22.
-- Patterns come from [research/repos-modding.md §2, §6]; never open the example repositories it names.
+- Patterns come from [research/repos-modding.md §2, §6]; never open or fetch the upstream repositories it names.
+- Third-party reuse (ADR-REUSE-01, DL-505): if universal-modder files are vendored and `spec/followups/reuse-gates.md` has merged (`tools/ci/third-party-licenses.ts` exists on your branch's base, the code branch `main` or else `claude/build`; otherwise ignore `third_party/`), you may reuse its secret-scan pattern classes for `dv kb check`, its knowledge-base layout and checks, its skills layout and its publish-check idea, keeping an `SPDX-License-Identifier: MIT` line, the upstream copyright line from `third_party/<name>/LICENSE` verbatim and a "Portions from `third_party/<name>/<path>`" header on ported files (copied, never imported from `third_party/`) and listing the `third_party/NOTICE` entry on the credits page (DL-507). If a ported file ships in `tools/cli`, `packages/mod-sdk` or the kit that `dv init` copies, add the generated `THIRD_PARTY_LICENSES.txt` to that package's `files` set (reuse-gates item 1) and give each ported kit or template file the full MIT permission text or a pointer to that file beside it; `tools/cli` never imports `third_party/`. Nothing about modding another publisher's game enters the kit. If `third_party/` is absent, build from `12-modding-publish.md` C§1 and the research patterns; every AC is unchanged either way.
 - Branch `m13a6-mod-agent-kit`.

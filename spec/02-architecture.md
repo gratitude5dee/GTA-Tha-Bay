@@ -146,6 +146,7 @@ content-private/     private mount (Q-25): real-derived souls, research layer; n
 assets/              assets.lock.json, provenance/, prefabs/, src/<kind>/<id>/asset.json, creator-kit/, landmarks/, ledger/fal-spend.jsonl
 data/                world-areas/ (M15a, post-v1)
 supabase/            config.toml, migrations/0001…0009, tests/ (pgTAP)
+third_party/         vendored files of `REUSE-WITH-ATTRIBUTION` entries only and `NOTICE`; each path annotated in the root `REUSE.toml` (D-31, ADR-REUSE-01; absent until vendored)
 tests/               e2e/, perf/scenarios/, golden/, fixtures/, staging/, load/, tycoon/; reports/ (CI artifacts, git-ignored)
 docs/                decisions/ (ADRs), legal/, device-spike/, device-runs/<M##>/<device>/, runbooks/, ops/, releases/, spikes/
 .github/workflows/   ci, preview, deploy, assets, nightly, weekly, release
@@ -203,6 +204,7 @@ Until a domain exists (Q-15), previews and staging run on `workers.dev`. Workers
 | fal.ai | sheets, meshes, rigs, cutscene video; operator CLI batches and operator-run prewarm, never player-triggered in v1 | DL-OWN-01 cap $100 total; licence-gated video (ADR-GENAI-01); CI `FAL_MODE=mock` | spec/03 D-18, D-19; `05-assets.md` §2 |
 | Workers AI | Whisper captions, Aura/MeloTTS barks and voices, bge-m3 embeddings | governor | `05-assets-pipeline.md` §5–6; `04-npc.md` §5 |
 | Supabase | Postgres, RLS, pgvector; trusts our issuer | DataPort rule | spec/03 D-02, D-03 |
+| Supabase Auth (password) | username and password credential behind routes 58–62 and 64, proxied by the Worker with the publishable key; never a phase, tier or game identity; M12a1 exchanges it for our token if C12 1.3 is accepted | `auth` rate class, `18p`, interim stop Q-43 | spec/03 D-32; ADR-ACCT-01 |
 | Turnstile | P1 registration | verification API UNVERIFIED (Q-BE-05) | `09-backend.md` §10 |
 | OpenAI | device-code publish login via the player's own Codex CLI; website sign-in flagged off (`AUTH_OPENAI_WEB`); moderation endpoint for NPC-builder text (use on non-OpenAI content UNVERIFIED, U-NPC-07) | P2 | spec/03 D-05; `04-npc-builder.md` §C5 |
 | Supabase Auth GitHub provider | spike only in v1 (M13c1 AC-10; UNVERIFIED U-ADR-01); no link route or flag until a post-v1 C12 bump (DL-240, DL-342) | not built in v1 | `12-modding-publish.md` C§2 |
@@ -424,7 +426,7 @@ All configuration lives in `config/`, is validated by JSON Schema (`config/schem
 
 ### 5.6 Security boundaries (summary)
 - **Isolation:** COOP/COEP/CORP on every document and Worker response; `/account/*` is the only non-isolated path [D-01; `11-platform-pwa.md` §2]; Report-Only CSP from M05b1, enforcing from M14b2 (DL-241).
-- **Identity:** device-key-bound play token in P0, then our ES256 issuer (P1, M12a1); P2 linked accounts; P3 Thirdweb last (R-AUTH-02) [C12 §2.3].
+- **Identity:** device-key-bound play token in P0, then our ES256 issuer (P1, M12a1); P2 linked accounts; P3 Thirdweb last (R-AUTH-02) [C12 §2.3]. The owner's password credential (Supabase Auth `SB` token, D-32) opens only routes 61, 62 and 64 and no table [ADR-ACCT-01].
 - **Rooms:** server-assigned slots, pose validation, mods refused [C11].
 - **Generation:** internal-only, likeness gates at every stage, no face detector anywhere [`05-assets.md` §2, §5.4].
 

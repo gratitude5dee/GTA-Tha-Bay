@@ -74,4 +74,5 @@ The P1 features of M12a1 become usable from the shell. After this session, `Iden
 - Read first: `10-ui-pages.md` §2.4, §2.7, §5; `10-ui.md` routing rules (page table, rule 4); `09-backend-contracts-1.1.md` §2 (`attestAge`); `spec/05-api-and-realtime.md` §2.
 - Order: `attestAge` → chips and sync events → conflict dialog → register page → forget → e2e.
 - Render user text as text only. `/account/*` must not load the game bundle; keep the island small.
+- **Owner password accounts (ADR-ACCT-01).** The password UI already lives in the `/account/` island at `apps/web/account/index.html` (follow-up 10 of `spec/followups/owner-pr1.md`). Merge it into the register page's `/account/*` islands (one account surface, same pattern), keep the `/account` → `/account/` redirect, keep `tests/e2e/account-password.spec.ts` (`@account`) passing beside your new `account.spec.ts` (`@ui-account`), and keep routes 58–62 and 64 as they are.
 - Branch `m12a2-age-register-cloud-save-ui`.

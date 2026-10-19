@@ -4,7 +4,7 @@ This file is for any coding agent working in this repository (and for humans). I
 
 ## What this is
 An original, story-driven open-world game in an accurate San Francisco: a Three.js (WebGPU with automatic WebGL2 fallback) Progressive Web App on Cloudflare Workers, with a WebXR port (Meta Quest, Apple Vision Pro), AI NPCs, generated-and-cached cutscenes, three unlockable modes (racing, fighter, tycoon) and player mods.
-Rollout: single-player first, Cloudflare only; Supabase (data spine) arrives at milestone M05d; multiplayer rooms from M12b. The rest of the Bay Area comes after v1.
+Rollout: single-player first, Cloudflare only; the Supabase data spine arrives at milestone M05d (Supabase Auth is live since the owner's DL-OWN-04); multiplayer rooms from M12b. The rest of the Bay Area comes after v1.
 
 ## Where to start
 1. `spec/00-plan.md` — status, milestone totals, owner defaults; the run order and dependencies are in `spec/07-milestones/_PLAN.md`.
@@ -64,7 +64,7 @@ Unit tests are named `*.test.ts` or `*.spec.ts` (either suffix) in `<package>/te
 - World coordinates are ENU metres from San Francisco City Hall (+X east, +Y up, −Z north).
 - Browser storage names start with `dv-`. QA URL flags and `window.__dvBridge` exist only when `VITE_DV_QA=1` (dev, test, preview builds).
 - The display name comes only from `config/brand.ts` (`DISPLAY_NAME`, default "Dee-Verse: Tha Bay"). The franchise name in the repository's codename never appears in code, file names, package names, UI strings or builds; CI (`ip:strings`, `names:lint`) fails otherwise.
-- Original content only: no assets, code, data, names or plots from any other publisher's games. Never open, fetch or search the example repositories named in `research/repos-*.md`; work from the spec.
+- Original content only: no assets, code, data, formats, names or plots from any other publisher's games; no GPL, AGPL or LGPL code without an ADR; nothing from a repository without a licence. Code or data copied from another repository (every upstream named in `research/repos-*.md` included) enters only as files under `third_party/<name>/` that are listed in `allowedPaths` of an entry marked `REUSE-WITH-ATTRIBUTION` in `docs/legal/third-party-reuse.json`, with their attribution kept (`docs/decisions/ADR-REUSE-01-third-party-reuse.md`); npm dependencies follow `license:scan`, and asset packs follow `spec/domains/05-assets-pipeline.md` §7. Never open, fetch or search an upstream example repository named in `research/repos-*.md`; vendoring is done by the operator or the Architect; work from the spec and `third_party/`. Only the operator or the Architect vendors or edits `docs/legal/third-party-reuse.json`; Builders read only allowlisted `third_party/` files and never add or change one. Never run the Mapbox CLI or call Mapbox APIs (DL-506).
 - Real people appear only through the name registry and likeness tiers (`consented`, `parody`, `fictionalized`); never hard-code a real name, alias or catchphrase.
 - Contracts C01–C17 change only through the Architect: propose a change in your report; never edit a contract shape.
 - One branch per milestone, `m<id>-<slug>` (for example `m00a-edge-api-skeleton`); conventional commits (`feat(edge): …`, `fix(ui): …`); one pull request per milestone.
