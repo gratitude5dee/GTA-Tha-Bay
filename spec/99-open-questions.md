@@ -118,6 +118,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-BE-19 | fal auto-recharge, locked-account status; ElevenLabs cap response | guardrails | M14b1 Scope (T3 records); M05c3 | recharge off; map to `upstream_unavailable` | none |
 | U-BE-20 | `wrangler deployments status --json` field names | `tools/ci/deploy.ts` | M00a R&F | `versions list --json`; else stop before deploy | none |
 | U-BE-21 | DO restarts scoped to the deploying script | split Workers | M12c1 AC-12 | split Workers anyway | none |
+| U-BE-22 | `wrangler preview` validates `secrets.required` like `deploy` and `versions upload` (research verifies only those two [research/gap-ci-cd-release-assets.md §0 item 4]) | `deploy:preview` after a secret joins `secrets.required` (DL-679) | M06a1 N (first Preview with `PLAY_TOKEN_HMAC` required) | set the Preview base secret with `wrangler preview base-config secret put` before the PR | none |
 | U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $8 buffer absorbs it; recharge off | none |
 | U-COST-2 | fal concurrency stays 2 under $100 total | batch plan | M10a1; M10a2 | batches of two | none |
 | U-COST-3 | fal bills refused or errored requests | ledger | M05c3 R&F; M00c | assume billed; loss from the buffer | none |
@@ -127,7 +128,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-API-2 | Thirdweb origins needed in the `/account/*` CSP | spec/05 §1.3 | M14a AC-10 | add the observed origins by PR | none |
 | U-ADR-01 | Supabase GitHub provider beside our TPA issuer; OpenAI web sign-in grant | ADR-0018 | M13c1 AC-10 | public publishing waits for M14a | none |
 | U-ADR-02 | DO relay latency for 60 Hz fight input | ADR-0028 | M12c2 AC-10 | no online fighter; C11 unchanged | none |
-| U-REC-1 | VP9 fixture decode in Playwright Chromium and WebKit | M04c fixtures | M04c `@cutscene` run (AC-6 log) | canvas-source fallback (DL-232) | none |
+| U-REC-1 | VP9 fixture decode in Playwright Chromium and WebKit; H.264 decode in Playwright Chromium; blank-clip (`blank.mp4` / `blank.webm`) playback in the `webkit-webgl2` first-gesture unlock | M04c fixtures and unlock | M04c `@cutscene` run (AC-6 log, `test-results/codecs.<project>.json`) | canvas-source fallback for the fixtures (DL-232); a rejected blank `play()` leaves the pool acquirable with the error in `state().errors` (M04c AC-1) | none |
 | U-REC-2 | Chromium delivers a crash report to route 4 | crash reporting | M11a2 AC-8 | endpoint unit-tested; delivery observed only | none |
 | U-W1 | Geofabrik PBF URL, `osmium` subcommands, PBF-to-GeoJSON route | 02-world-bake §2 | M02a1 AC-9 | any GeoJSON-lines route; record in `sources.json` | none |
 | U-W2 | Overpass endpoints as fallback | bake | M02a1 R&F | Geofabrik only | none |
@@ -135,7 +136,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-W4 | map-layer and geocoder sizes beyond roads | 02-world-maps §1 | M02c2 | gates fail > 4 MiB | none |
 | U-W5 | seeds for BART 16th, 24th, Balboa Park, Caltrain, GG portal | living §5 | M02a2 AC-8 | snapped by `map:landmarks` | none |
 | U-W6 | cable-car street chains | living §5 | M02a2 AC-8 | bake checks within 6 m | none |
-| U-W7 | SPDX `ODbL-1.0`, `PDDL-1.0` in the allowlist | provenance | M00b | proposal P5 | none |
+| U-W7 | resolved, not UNVERIFIED: SPDX `ODbL-1.0`, `PDDL-1.0` are in the merged M00b `config/license-allowlist.json` (`record`) as the research record schema proposes [research/legal-ip-likeness.md §2.3] (DL-687) | provenance | M00b (merged) | — | none |
 | U-W8 | per-pack R2 GETs fast enough without a batch route | streaming | M02b1 AC-11 | measure; batch route needs an Architect decision | none |
 | U-W9 | OSM sidewalk, crossing, ferry coverage | bake | M02a2 AC-8 | derived sidewalks, authored ferries | none |
 | U-W10 | bake ≤ 25 min, meshing 12/25 ms, sky and agent ms (†) | bake; perf | M02b1 AC-11; M02b2 AC-9 | calibrate | none |
@@ -143,6 +144,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-W12 | Workers static assets honour `Range` for `.pmtiles` | web surfaces | M13b2 (first hosting surface; none in v1) | fetch the whole archive | none |
 | U-W13 | writer library for `sf.pmtiles` extraction | `map:webtiles` | M13b2 R&F | `--plan` only | none |
 | U-W14 | land mask: `natural=coastline` land clipped to the 41-polygon Analysis Neighborhoods union matches the union's area within ±3 % (design value; the `play` box also holds non-SF land, reported only) | bake S3 gate (DL-655) | M02a1 AC-9 (`notes.json`) | the Builder records the ratio and reports Blocked; the Architect sets the tolerance from it by a DL entry | M02a1 AC-9 (only if the ratio is outside ±3 %) |
+| U-W15 | OSM↔DataSF agreement on `sf` meets the design gates: one-way agreement > 90 % in one F/T orientation, ≥ 98 % of OSM signal nodes within 25 m of a junction, largest SCC ≥ 98 % of drivable edges (design values; research verifies only the DataSF `oneway` counts) | bake S5, S6, S14 gates (DL-669) | M02a2 AC-8 (`notes.json`) | the Builder records the three measured ratios and worst segments and reports Blocked; the Architect sets the thresholds from them by a DL entry; `synth` and `civic-excerpt` keep the design values | M02a2 AC-8 (only if a ratio misses its design value) |
 | U-S03-1 | keyframe-first keeps identity across clips | 03-story-cutscenes §D8 | M00c AC-9; M08b2 | human review; reject pins a new seed | none |
 | U-S03-2 | providers honour "no text, no logos" | prompt hygiene | M05c2; M05c3 | vision QA `text_in_image`; screen text in-engine | none |
 | U-S03-3 | `seed`, `prompt_expansion_mode` on H3 partner and LTX | cache key | M00c AC-9 | omit unsupported params | none |

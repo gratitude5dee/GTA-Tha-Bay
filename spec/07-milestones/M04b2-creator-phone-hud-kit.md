@@ -18,7 +18,7 @@ After this session a new player can make a character and play with a real HUD on
   - M01b2: procedural mannequin on `bay_rig_v1`, touch binder;
   - M01c: `RendererHost` menu scene and `XrPanels` facade;
   - M00: IWER `xr-quest3` project.
-- Contracts: C05 1.1.0 (`CoreSlice.avatar`, `ControlsSettings.touch.layout`), C06 1.1.0 (`GameModeUI`, `UiBridge`, `VmKey`), C07 1.1.0 (`AssetRef`, `VARIANT_FALLBACK`), C03 1.1.0 (`ActionId`, touch constants of rule 10), C13 1.1.0 (`XrPanels`, menu-scene members, `FirstGestureUnlock`), C04 1.1.0 (`bay_rig_v1`).
+- Contracts: C05 1.1.0 (`CoreSlice.avatar`, `ControlsSettings.touch.layout`), C06 1.1.0 (`GameModeUI`, `UiBridge`, `VmKey`), C07 1.1.0 (`AssetRef`, `VARIANT_FALLBACK`), C03 1.1.0 (`ActionId`, touch constants of rule 10), C13 1.1.0 (`XrPanels`, menu-scene members; `FirstGestureUnlock` is M04c's, DL-663), C04 1.1.0 (`bay_rig_v1`).
 
 ## Scope in
 - **Schemas** (`packages/shared/schemas/ui/`): `avatar.v1.schema.json` (`10-ui-pages.md` §4.1), `wardrobe-item.v1.schema.json` (a `CreatorPart` row with slot), `touch-layout.v1.schema.json` (`10-ui-hud-xr.md` §2.9).
@@ -69,7 +69,7 @@ After this session a new player can make a character and play with a real HUD on
 - `packages/ui/src/pages/{garage.tsx, help.tsx}`; `content/ui/help/troubleshooting.json`.
 - `packages/ui/src/host/mode-ui-host.ts`; `packages/ui/src/screen/xr.ts`; `config/ui/palettes.json`.
 - `packages/ui/test/{creator.spec.ts, touch-layout.spec.ts, hud-status.spec.ts, phone.spec.ts, help.spec.ts, host-garage.spec.ts, ugc-surface.spec.ts}`.
-- `tests/e2e/ui/{creator.spec.ts, touch.spec.ts, hud.spec.ts}` (tags `@creator`, `@ui-touch`, `@ui-coach`, `@ui-pause`, `@ui-motion`, `@ui-hud`); `tests/e2e/xr/xr-panel.spec.ts` (`@xr`).
+- `tests/e2e/ui/{creator.spec.ts, touch.spec.ts, hud.spec.ts}` (tags `@creator`, `@ui-touch`, `@ui-coach`, `@ui-pause`, `@ui-motion`, `@ui-hud`, `@ui-boundary-toast`); `tests/e2e/xr/xr-panel.spec.ts` (`@xr`).
 - `tools/ci/checklists/M04b2-iphone15.json`.
 - About 37 files (JSON content and layouts are data).
 
@@ -90,7 +90,7 @@ After this session a new player can make a character and play with a real HUD on
 - AC-3 Given the four shipped layouts at 844 × 390 with iPhone safe-area insets When validated Then every widget lies inside the safe area, targets are ≥ 44 px with ≥ 8 px spacing, every `ActionId` exists, and `one-handed` reaches every required on-foot action — proof: `pnpm check:unit -- packages/ui`
 - AC-4 Given the iPhone viewport in free roam When the stick and the look zone are dragged while a button is pressed, then a `pointercancel` fires Then movement, look and the action register together, and everything is released on cancel. Portrait during play shows the rotate overlay and pauses the sim, but portrait in the menu does not. An edited layout saved as `custom:1` survives a reload — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-touch`
 - AC-5 Given every status widget and the four palettes When the HUD tests run Then each state shows an icon, shape or text besides color, switching `hudPalette` changes the semantic tokens, every semantic pair passes the recorded CVD separation threshold, and no motion token flashes more than 3 times per second — proof: `pnpm check:unit -- packages/ui`
-- AC-6 Given free roam When `client.Pause` is pressed Then Pause opens and the sim tick stops. Save is disabled away from a safehouse with its reason text. Quit asks for confirmation, writes a `modeExit` save and returns to the main menu. Phone lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Ride lists the fast-travel candidates and, at heat 1, a pick shows the refusal text with the player unmoved; `comingSoon` apps are not activatable, and Sandbox appears only in the sandbox mode — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-pause`
+- AC-6 Given free roam When `client.Pause` is pressed Then Pause opens and the sim tick stops. Save is disabled away from a safehouse with its reason text. Quit asks for confirmation, writes a `modeExit` save and returns to the main menu. Phone lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Ride lists the fast-travel candidates and, at heat 1, a pick shows the refusal text with the player unmoved; `comingSoon` apps are not activatable, and Sandbox appears only in the sandbox mode. Ride needs the baked world (the world-less stand-in has no teleport candidates, DL-668), so the tag runs on the `synth` world, as CI's world half does — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-pause`
 - AC-7 Given `prefers-reduced-motion: reduce` When a new profile is created and the main menu, settings, creator and Pause open Then `reducedMotion` is true, no CSS animation or transition runs longer than 150 ms, and camera shake is off — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-motion`
 - AC-8 Given WebKit with a Safari-tab user agent When the main menu opens twice Then the coach mark shows once and stays dismissed after a reload. Standalone emulation never shows it, and a throwing `localStorage` does not break the page — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-coach`
 - AC-9 Given free roam on the gray-box block (a QA build without `DV_WORLD`; CI runs `@ui-hud` in the `GRAYBOX_GREP` half of the e2e leg, DL-656) When the HUD runs for 60 s Then the HUD holds ≤ 300 DOM nodes, wallet, heat and prompt values appear from the view model and the snapshot side block, and a missing key renders the widget's empty state without an error — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-hud`
@@ -105,11 +105,12 @@ After this session a new player can make a character and play with a real HUD on
 - AC-11 Given `xr-quest3` with IWER When a test `ScreenDef` panel is created through `UiSurface` Then it sits at the default 1.2 m distance with a `world` anchor, a simulated ray press activates its button, text height is ≥ 1.5° of visual angle at 1.2 m, and it redraws only after a view-model change — proof: `pnpm check:e2e:xr`
 - AC-12 Given an iPhone 15 When the operator follows the checklist (Safari tab coach mark, Add to Home Screen, safe areas, name entry with the OS keyboard, 5 min of touch play at `?perf=1&tier=mobile-low`, rotate overlay) Then `perf.json` and `notes.json` are committed under `docs/device-runs/M04b2/iphone15/` and pass at `mobile-low` — proof: manual: iPhone 15, steps of `pnpm perf:checklist -- tools/ci/checklists/M04b2-iphone15.json`, then `pnpm perf:verify -- docs/device-runs/M04b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M04b2-iphone15.json`
 - AC-13 Given the branch When the standard gates, IP gates, bundle check and preview deploy run Then all pass — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm provenance:check && pnpm check:i18n && pnpm build && pnpm check:bundle && pnpm deploy:preview`
+- AC-14 Given a QA build with the `synth` world in sandbox free roam (`?play=sandbox`) When the bridge teleports the player 100 m inside a county-line edge and bot input walks it outward Then the `world.boundary.countyLine` toast (M02c1 event, M04a2 mapping) is visible once for the approach in the M04b1 toast region with the `en.json` text (DL-681) — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-boundary-toast`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- packages/ui`): `creator`, `touch-layout`, `hud-status` (CVD and flash limit), `phone`, `help`, `host-garage`.
 - **E2E:**
-  - `@creator`, `@ui-pause`, `@ui-motion` and `@ui-hud` on `chromium-webgl2`;
+  - `@creator`, `@ui-motion` and `@ui-hud` on `chromium-webgl2`; `@ui-pause` (AC-6) and `@ui-boundary-toast` (AC-14) on `chromium-webgl2` with `DV_WORLD=synth`;
   - `@ui-touch` and `@ui-coach` on `webkit-webgl2`;
   - `@xr` panel through `pnpm check:e2e:xr`.
 - **Device:** `M04b2-iphone15` (AC-12).

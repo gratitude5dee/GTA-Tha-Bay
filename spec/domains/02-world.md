@@ -152,7 +152,7 @@ export interface ChunkStore {
 - **Persisted data:** none of its own. Saves carry `worldBake` (C05) and ENU positions; sandbox saved positions and teleport history live in the C05 sandbox slice (S01/S10).
 - **Config** (`config/world/`): `streaming.json`, `density.json`, `mesher.json`, `roadclass.json`, `bridges.json`, `sky-keys.json`, `transit.json`, `sources.json`, validated by JSON Schema in CI; `config/world.bounds.json` is shared with S09.
 - **Content** (`content/world/`): `landmarks.json`, `pois.json`, `districts.json`, `pursuit-breakers.json`, `cablecars.json`, `teleports.json`; camera paths for S11's `PerfScenario` ids live in `config/perf/paths/` (`walk-civic-center`, `route-ferry-ocean-beach` Ferry Building to Ocean Beach for the M02b1 AC, `downtown-rush`; DL-221).
-- **Flags:** `BootConfig.flags` keys `world.cards`, `world.rain`, `world.atmosphere` (all default on) allow a remote downgrade without a deploy; QA bridge `window.__dvBridge.world` (QA builds only) exposes `teleport(id)`, `setHour`, `setWeather`, `density(kind, mult)`, `blackout(on)`, `chunks()`.
+- **Flags:** `world.cards`, `world.massing`, `world.rain` (default on) and `world.atmosphere` (default off, M10d2) are build-time keys of `config/platform-flags.json`, not C12 `FeatureFlag` members (a closed union); a runtime downgrade goes through the governor knobs (`buildingDistanceScale`, `lodBias`, `atmosphereLevel`), and a remote switch without a deploy waits for an Architect C12 bump (DL-698); QA bridge `window.__dvBridge.world` (QA builds only) exposes `teleport(id)`, `setHour`, `setWeather`, `density(kind, mult)`, `blackout(on)`, `chunks()`.
 - **Streaming table** (`config/world/streaming.json`, starting values †; radii in metres):
 
 | Tier | r0 (L0) | r1 (L1) | r2 (L2 = draw distance, + boost) | ambient | physics | resident L0 / L1 / L2 | upload |
@@ -276,7 +276,7 @@ Rows copied from the ledger or the research reports. New rows (**N**) were check
 | U-W4 | Sizes of map layers other than roads; geocoder size | gates fail > 4 MiB | M02c2 |
 | U-W5 | Seeds: BART 16th St, 24th St, Balboa Park; Caltrain terminus; Golden Gate portal point | snapped by `pnpm map:landmarks` | M02a2 |
 | U-W6 | Cable-car street chains | bake checks within 6 m | M02a2 |
-| U-W7 | SPDX strings `ODbL-1.0`, `PDDL-1.0` in the licence allowlist | proposal P5 | M00b |
+| U-W7 | SPDX strings `ODbL-1.0`, `PDDL-1.0` in the licence allowlist | proposal P5 | resolved by M00b (merged; DL-687) |
 | U-W8 | Per-pack GETs from the R2 custom domain are fast enough without a batch route | measure | M02b1 |
 | U-W9 | OSM sidewalk, crossing and ferry-route coverage in SF | derived sidewalks, authored ferry lines | M02a2 |
 | U-W10 | Bake time ≤ 25 min, meshing 12 / 25 ms, sky GPU ms, all † budgets | calibrate | M02b1–b2, M11a |
