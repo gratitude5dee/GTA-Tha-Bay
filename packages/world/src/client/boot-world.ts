@@ -25,6 +25,8 @@ export interface PrepareWorldOptions {
   assets: AssetClient;
   tier: QualityTierId;
   flags: { cards: boolean; massing: boolean };
+  /** `world.rain`, `world.atmosphere` and the QA sky switch (M02b2). */
+  sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
   labels: WorldViewLabels;
   container: HTMLElement;
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
@@ -117,6 +119,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
       stats: () => assets.stats(),
     },
     flags: o.flags,
+    ...(o.sky ? { sky: o.sky } : {}),
     spawn: { x: pose.x, z: pose.z },
     labels: o.labels,
     container: o.container,

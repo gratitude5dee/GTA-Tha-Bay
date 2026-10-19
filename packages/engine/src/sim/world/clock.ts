@@ -153,14 +153,24 @@ export class WorldClock implements WorldClockApi {
     if (this.lockedBy === by) this.lockedBy = null;
   }
 
-  /** Blends to `w` over `blendSec` game seconds (at least one half-second). Ignored while a lock stands. */
+  /**
+   * Blends to `w` over `blendSec` game seconds; 0 switches at once, even on a paused clock. Ignored while a lock stands. The blend
+   * runs on the clock, so a paused clock holds it where it is.
+   */
   forceWeather(w: WeatherPreset, blendSec: number): void {
     if (this.lockedBy !== null) return;
+    if (!(blendSec > 0)) {
+      this.current = w;
+      this.next = w;
+      this.blendStartT = this.t;
+      this.changeAtT = this.t + 1;
+      return;
+    }
     // A blend past the half has effectively arrived: start the new one from there so the sky does not swing back.
     if (this.blend() * 2 > BLEND_MAX) this.current = this.next;
     this.next = w;
     this.blendStartT = this.t;
-    this.changeAtT = this.t + Math.max(1, Math.round((blendSec > 0 ? blendSec : 0) * 2));
+    this.changeAtT = this.t + Math.max(1, Math.round(blendSec * 2));
   }
 
   // ---- the tick ----------------------------------------------------------------------------------------------------------

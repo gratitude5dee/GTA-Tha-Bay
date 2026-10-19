@@ -44,6 +44,8 @@ export interface UnitMesh {
   objects: MeshBuffers[];
   /** L0 only: x, y, z (local), scale, species per tree. */
   trees: Float32Array;
+  /** L0 only: x, y, z (local) per street lamp (the baked LAMP records on the terrain, M02b2). The night lights draw them. */
+  lamps: Float32Array;
   stats: MeshStats;
 }
 
@@ -61,6 +63,7 @@ export function transferListOf(m: UnitMesh): ArrayBuffer[] {
     add(o.indices);
   }
   add(m.trees);
+  add(m.lamps);
   return [...new Set(out)];
 }
 

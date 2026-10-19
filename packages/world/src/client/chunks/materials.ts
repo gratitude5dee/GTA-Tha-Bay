@@ -1,8 +1,8 @@
 /**
  * The world's TSL node materials (P-03: no GLSL). One shared material per family, so a thousand chunk objects share a few pipelines:
  *
- *  - `chunk`  for L0 objects: vertex colour times baked AO (`aAO`), a dithered fade-in from the per-object `aBirth` time, a night
- *    window mask hook (`uNight`, M02b2 drives it; 0 now);
+ *  - `chunk`  for L0 objects: vertex colour times baked AO (`aAO`), a dithered fade-in from the per-object `aBirth` time, the lit night
+ *    windows (sky/night.ts) and the wet look of upward faces (`uWet`; desktop tiers also lose roughness), both driven by the sky;
  *  - `coarse` for L1 and L2 objects: the same, plus the cover mask `aCover` (16 bits, 4 x 4 cells of the unit): fragments over a
  *    resident child are discarded, so the finer level shows through without a seam.
  *
@@ -10,16 +10,19 @@
  * The fade is a screen-space dither over `uFadeSec` seconds (0 on the tiers that swap hard).
  */
 import {
-  attribute, clamp, dot, exp2, floor, fract, mod, positionLocal, positionWorld, normalLocal, screenCoordinate, select, sin, uniform, vec2, vec3, float, vertexColor,
+  attribute, clamp, dot, exp2, floor, fract, mod, positionLocal, positionWorld, normalLocal, screenCoordinate, select, sin, uniform, vec2, float, vertexColor,
 } from 'three/tsl';
 import { DoubleSide, FrontSide, MeshStandardNodeMaterial } from 'three/webgpu';
+import { windowEmissive } from '../sky/night.ts';
+import { createSkyNodes, type SkyNodes } from '../sky/nodes.ts';
+import { asNode, loose } from '../sky/tsl.ts';
 
 export interface WorldMaterials {
   chunk: MeshStandardNodeMaterial;
   coarse: MeshStandardNodeMaterial;
   /** Seconds, advanced by the chunk renderer each frame. */
   setTime(seconds: number): void;
-  /** Night factor 0..1 (the window mask hook for M02b2). */
+  /** Night factor 0..1 (a test hook; the sky writes the shared node every frame). */
   setNight(n: number): void;
   setFadeSeconds(s: number): void;
   dispose(): void;
@@ -27,10 +30,11 @@ export interface WorldMaterials {
 
 export const COARSE_CELLS = 4;
 
-export function createWorldMaterials(o: { fadeSeconds: number; coarseCellM?: { l1: number; l2: number } }): WorldMaterials {
+export function createWorldMaterials(o: { fadeSeconds: number; coarseCellM?: { l1: number; l2: number }; sky?: SkyNodes }): WorldMaterials {
   const uTime = uniform(0);
   const uFade = uniform(o.fadeSeconds);
-  const uNight = uniform(0);
+  // The sky's shared nodes (M02b2): the night windows, the wet look and the blackout read them. Without a sky they hold the day values.
+  const sky = o.sky ?? createSkyNodes();
 
   const aAO = attribute('aAO', 'float');
   const aBirth = attribute('aBirth', 'float');
@@ -47,12 +51,16 @@ export function createWorldMaterials(o: { fadeSeconds: number; coarseCellM?: { l
   const windows = select(fract(positionWorld.y.mul(0.28)).greaterThan(0.45), float(1), float(0)).mul(
     select(fract(positionWorld.x.add(positionWorld.z).mul(0.3)).greaterThan(0.4), float(1), float(0)),
   );
-  const emissive = vec3(1.0, 0.78, 0.45).mul(windows).mul(wall).mul(uNight).mul(1.4);
+  const emissive = asNode(windowEmissive(sky, loose(wall), loose(windows)));
+  // Wet ground and roofs: upward faces darken in the rain; the desktop tiers also lose roughness.
+  const upward = clamp(normalLocal.y.sub(0.55).mul(5), 0, 1);
+  const wetDark = float(1).sub(sky.uWet.mul(0.38).mul(upward as never) as never);
 
   const shade = aAO.mul(0.5).add(0.5);
   const base = (): MeshStandardNodeMaterial => {
     const m = new MeshStandardNodeMaterial({ roughness: 0.95, metalness: 0, side: FrontSide });
-    m.colorNode = vertexColor(0).mul(shade);
+    m.colorNode = vertexColor(0).mul(shade).mul(wetDark as never);
+    m.roughnessNode = float(0.95).sub(sky.uWet.mul(sky.uWetRough).mul(0.55).mul(upward as never) as never) as never;
     m.emissiveNode = emissive;
     m.alphaTest = 0.5;
     return m;
@@ -75,7 +83,7 @@ export function createWorldMaterials(o: { fadeSeconds: number; coarseCellM?: { l
     chunk,
     coarse,
     setTime: (s) => void (uTime.value = s),
-    setNight: (n) => void (uNight.value = n),
+    setNight: (n) => void (sky.uNight.value = n),
     setFadeSeconds: (s) => void (uFade.value = s),
     dispose: () => {
       chunk.dispose();

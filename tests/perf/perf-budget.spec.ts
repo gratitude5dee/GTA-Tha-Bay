@@ -20,6 +20,17 @@ for (const tier of TIERS) {
     await page.goto(`/?tier=${tier}&perf=1`);
     await page.waitForFunction(() => (window as unknown as { __dvBridge?: { platform?: unknown } }).__dvBridge?.platform !== undefined, undefined, { timeout: 90_000 });
 
+    // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
+    if (SCENARIO !== 'graybox-walk') {
+      await page.waitForFunction(() => (window as unknown as { __dvBridge?: { world?: unknown } }).__dvBridge?.world !== undefined, undefined, { timeout: 150_000 });
+      await page.evaluate(() => {
+        const world = (window as unknown as { __dvBridge: { world: { setHour(h: number, freeze?: boolean): boolean; setWeather(w: string, blendSec?: number): boolean; rain(v: number | null): void } } }).__dvBridge.world;
+        world.setHour(21.5, true);
+        world.setWeather('rain', 0);
+        world.rain(200);
+      });
+    }
+
     const report = (await page.evaluate(
       `window.__dvBridge.platform.perf.run(${JSON.stringify(SCENARIO)}, { durationS: ${DURATION_S}, warmupS: ${WARMUP_S} })`,
     )) as PerfReport;

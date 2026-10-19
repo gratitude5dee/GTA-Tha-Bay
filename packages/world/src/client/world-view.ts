@@ -14,7 +14,7 @@
  */
 import { DirectionalLight, Frustum, HemisphereLight, Matrix4, type PerspectiveCamera } from 'three/webgpu';
 import type { SimEvent } from '@dv/engine/sim';
-import type { WorldFrame, WorldLayer } from '@dv/engine/client/boot/world-layer';
+import type { WorldFrame, WorldLayer, WorldLayerDebug } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { WorldScenarioDriver } from '@dv/engine/platform/perf';
 import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type WorldIndex } from '@dv/shared';
@@ -28,6 +28,8 @@ import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts
 import { profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { MeshJobArgs, MeshJobResult } from './jobs.ts';
+import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
+import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -46,6 +48,10 @@ export interface WorldViewOptions {
   assets: AssetsLike;
   /** `world.cards` and `world.massing` of config/platform-flags.json. */
   flags: { cards: boolean; massing: boolean };
+  /** The sky (M02b2): `world.rain` and `world.atmosphere` of config/platform-flags.json; `enabled` false is the QA `?sky=0` comparison. Absent: rain on, atmosphere off, sky on. */
+  sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
+  /** The governor's `atmosphereLevel` at boot (the tier's ceiling when absent). */
+  atmosphereLevel?: number;
   spawn: { x: number; z: number };
   labels: WorldViewLabels;
   /** Where the overlays go. */
@@ -112,6 +118,14 @@ export class WorldView implements WorldLayer {
   renderer!: ChunkRenderer;
   backdrop!: BackdropLayer;
   materials!: WorldMaterials;
+  /** The sky of the world path (M02b2); set in `attach`. */
+  sky: SkyView | null = null;
+  readonly skyNodes: SkyNodes = createSkyNodes();
+  /** QA hooks the debug panel's sky controls use (the engine's `WorldLayer.debug`). */
+  readonly debug: WorldLayerDebug = {
+    setRainOverride: (rain) => this.sky?.setRainOverride(rain),
+    rainOverride: () => this.sky?.getRainOverride() ?? null,
+  };
 
   private readonly o: WorldViewOptions;
   private readonly sets: TileSets;
@@ -155,7 +169,7 @@ export class WorldView implements WorldLayer {
     else void this.o.assets.stats().then((s) => void (this.bytesAtStart = s.bytes)).catch(() => undefined);
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
-    this.materials = createWorldMaterials({ fadeSeconds: fade });
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -187,6 +201,18 @@ export class WorldView implements WorldLayer {
 
     this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });
     host.backdrop = { scene: this.backdrop.scene, camera: this.backdrop.camera };
+    this.sky = new SkyView({
+      host,
+      nodes: this.skyNodes,
+      tier: this.o.tier,
+      ...(this.o.atmosphereLevel !== undefined ? { atmosphereLevel: this.o.atmosphereLevel } : {}),
+      lights: { hemi: this.lights[0], sun: this.lights[1] },
+      backdrop: { scene: this.backdrop.scene, camera: this.backdrop.camera, hemi: this.backdrop.lights[0], sun: this.backdrop.lights[1] },
+      flags: { rain: this.o.sky?.rain ?? true, atmosphere: this.o.sky?.atmosphere ?? false },
+      lamps: () => this.collectLamps(),
+      disabled: this.o.sky?.enabled === false,
+      now: () => this.now(),
+    });
     void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
     this.makeOverlays();
@@ -231,6 +257,7 @@ export class WorldView implements WorldLayer {
     }
     if (this.frames % 30 === 0) this.remeshFiltered();
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
+    this.sky?.update(f);
     this.updateOverlays();
     this.telemetry();
   }
@@ -241,8 +268,50 @@ export class WorldView implements WorldLayer {
     }
   }
 
+  /** The governor moved `atmosphereLevel` (C13 `DynamicQuality`): the sky follows. */
+  setAtmosphereLevel(level: number): void {
+    this.sky?.setAtmosphereLevel(level);
+  }
+
+  /** World positions (x, y, z triples) of the street lamps of the resident L0 chunks. */
+  private collectLamps(): Float32Array {
+    if (!this.store) return new Float32Array(0);
+    const parts: Float32Array[] = [];
+    let total = 0;
+    for (const key of this.store.residentKeys('l0')) {
+      const mesh = this.store.unit('l0', key)?.payload;
+      if (!mesh || mesh.lamps.length === 0) continue;
+      const out = new Float32Array(mesh.lamps.length);
+      for (let i = 0; i < mesh.lamps.length; i += 3) {
+        out[i] = mesh.originX + (mesh.lamps[i] as number);
+        out[i + 1] = mesh.lamps[i + 1] as number;
+        out[i + 2] = mesh.originZ + (mesh.lamps[i + 2] as number);
+      }
+      parts.push(out);
+      total += out.length;
+    }
+    const all = new Float32Array(total);
+    let at = 0;
+    for (const p of parts) {
+      all.set(p, at);
+      at += p.length;
+    }
+    return all;
+  }
+
+  skyInfo(): SkyInfo | null {
+    return this.sky?.info() ?? null;
+  }
+
+  sampleLuma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample> {
+    if (!this.sky) return Promise.reject(new Error('the sky is not mounted'));
+    return this.sky.sampleLuma(pitchDeg, yawDeg, opts);
+  }
+
   dispose(): void {
     this.disposed = true;
+    this.sky?.dispose();
+    this.sky = null;
     this.renderer?.dispose();
     this.backdrop?.dispose();
     this.materials?.dispose();

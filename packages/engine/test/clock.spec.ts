@@ -138,6 +138,13 @@ describe('WorldClock time (AC-2)', () => {
     expect(c.env().rain).toBe(CLOCK_CONFIG.presets.rain.rain);
   });
 
+  it('forceWeather with 0 seconds switches at once, even on a paused clock', () => {
+    const c = clockAt0();
+    c.pause(true);
+    c.forceWeather('karl-fog', 0);
+    expect(c.env()).toMatchObject({ weather: 'karl-fog', next: 'karl-fog', blend: 0, fogBankM: CLOCK_CONFIG.presets['karl-fog'].fogBankM });
+  });
+
   it('the Karl preset raises the marine layer, the rain preset the rain', () => {
     const c = clockAt0();
     c.forceWeather('karl-fog', 2);

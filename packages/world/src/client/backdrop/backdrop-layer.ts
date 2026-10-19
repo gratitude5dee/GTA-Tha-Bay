@@ -46,7 +46,8 @@ export const BACKDROP_FAR_M = 140_000;
 export class BackdropLayer {
   readonly scene = new Scene();
   readonly camera = new PerspectiveCamera(60, 1, BACKDROP_NEAR_M, BACKDROP_FAR_M);
-  private readonly lights: [HemisphereLight, DirectionalLight];
+  /** The backdrop pass's lights: the sky drives them with the world pass's (M02b2). */
+  readonly lights: [HemisphereLight, DirectionalLight];
   private readonly meshes: (Mesh | InstancedMesh)[] = [];
   private textures: Texture[] = [];
   private bootUploads = 0;
