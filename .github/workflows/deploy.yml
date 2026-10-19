@@ -31,6 +31,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Pin the smoke target: wrangler output echoes HOST_* vars, so parsing it is nondeterministic.
+      SMOKE_URL: https://tha-bay-web-staging.gratitude-8f4.workers.dev
     steps:
       - name: Require Cloudflare secrets
         run: |
@@ -59,6 +61,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       DEPLOY_ALLOWED_ACTORS: ${{ vars.DEPLOY_ALLOWED_ACTORS }}
       ACTOR: ${{ github.actor }}
+      SMOKE_URL: https://tha-bay-web.gratitude-8f4.workers.dev
     steps:
       - name: Check the actor against DEPLOY_ALLOWED_ACTORS
         run: |
