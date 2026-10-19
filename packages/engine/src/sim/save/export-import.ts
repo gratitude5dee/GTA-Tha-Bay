@@ -132,10 +132,7 @@ export async function importReplace(ctx: SaveCtx, file: DvSaveFile, into: Profil
     undoGen[r.slot] = prev;
     imported.push(r.slot);
     bytes += rec.bytes;
-    // Keep the previous generation (the undo target) and drop what is older.
-    for (const old of await ctx.store.listRecords(into)) {
-      if (old.slot === r.slot && old.gen <= gen - SAVE_LIMITS.keepGenerations) await ctx.store.deleteRecord(into, r.slot, old.gen);
-    }
+    // Older generations are left for the boot sweep so that undo restores the stored records exactly.
   }
   await ctx.store.putProfile({ ...target, updatedAt: ctx.stamp(), importedFrom: { at: ctx.stamp(), undoGen: undoGen as Record<SlotId, number> } });
   return { result: { ok: true, gen: imported.length, bytes }, profileId: into, imported, skipped };

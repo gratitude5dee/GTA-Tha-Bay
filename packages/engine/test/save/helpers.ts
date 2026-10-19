@@ -46,3 +46,12 @@ export async function replaceRecord(store: SaveStore, rec: SaveRecord): Promise<
   await store.deleteRecord(rec.profileId, rec.slot, rec.gen);
   await store.addRecord(rec);
 }
+
+/** A valid v1 sandbox slice whose toggles carry `n`. */
+export const sandboxData = (n: number): Record<string, unknown> => ({
+  toggles: { n },
+  savedPositions: [],
+  clock: { hour: 9, paused: false, syncSystemTime: false },
+  weather: 'clear',
+  presets: [],
+});

@@ -17,7 +17,6 @@ function wrap<T>(r: IDBRequest<T>): Promise<T> {
 function done(tx: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error('IndexedDB transaction failed'));
     tx.onabort = () => reject(tx.error ?? new Error('IndexedDB transaction aborted'));
   });
 }
