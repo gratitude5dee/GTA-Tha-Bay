@@ -78,6 +78,11 @@ export class SimRuntime {
   saveControl: SaveControl | null = null;
   /** The game clock once booted (M02b2); null with `env.clock === false`. */
   clock: WorldClock | null = null;
+  /**
+   * Builds a bot from a `debug.bot` script (ticks relative to `baseTick`, the tick about to run). Set by the QA worker entry only,
+   * because the bot module is not allowed in a production bundle; without it `debug.bot` does nothing.
+   */
+  botFactory: ((script: Extract<DebugCommand, { t: 'debug.bot' }>['script'], baseTick: number) => BotInput) | null = null;
 
   private frameGroups = 0;
   private lastAlpha = 0;
@@ -241,6 +246,10 @@ export class SimRuntime {
         this.clock?.pause(cmd.on);
         break;
       case 'debug.blackout':
+      case 'debug.world':
+        break;   // the world module handles them (SimModule.onDebug)
+      case 'debug.bot':
+        if (sim && this.botFactory) this.bot = cmd.script.length === 0 ? null : this.botFactory(cmd.script, sim.core.tick);
         break;
     }
     for (const m of this.env.modules ?? []) m.onDebug?.(cmd);

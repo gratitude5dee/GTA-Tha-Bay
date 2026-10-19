@@ -30,6 +30,7 @@ import type { UnitMesh } from './chunks/mesh-types.ts';
 import type { MeshJobArgs, MeshJobResult } from './jobs.ts';
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
+import { TeleportFade } from './teleport-fade.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -120,6 +121,13 @@ export class WorldView implements WorldLayer {
   materials!: WorldMaterials;
   /** The sky of the world path (M02b2); set in `attach`. */
   sky: SkyView | null = null;
+  /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
+  readonly fade: TeleportFade;
+  /** The newest `world.boundary` event (M02c1) and how many arrived; the QA bridge reads them. */
+  lastBoundary: { tick: number; s: string } | null = null;
+  boundaryCount = 0;
+  /** The newest map patch (`world.map`, M02c1): the blips and the GPS route; M02c2 draws them. */
+  lastMap: { rev: number; blips: unknown[]; route: unknown } | null = null;
   readonly skyNodes: SkyNodes = createSkyNodes();
   /** QA hooks the debug panel's sky controls use (the engine's `WorldLayer.debug`). */
   readonly debug: WorldLayerDebug = {
@@ -154,6 +162,7 @@ export class WorldView implements WorldLayer {
     this.o = o;
     this.plan = basePlan(o.tier);
     this.sets = tileSets(o.index);
+    this.fade = new TeleportFade(o.container);
   }
 
   private now(): number {
@@ -265,6 +274,19 @@ export class WorldView implements WorldLayer {
   onSimEvents(events: readonly SimEvent[]): void {
     for (const e of events) {
       if (e.t === 'world.status') this.simStatus = { unavailable: e.n ?? 0, failed: e.a ?? 0, ready: e.b ?? 0, reason: e.s ?? 'ok' };
+      else if (e.t === 'world.teleport') {
+        if (e.s === 'out') this.fade.out();
+        else if (e.s === 'in') this.fade.in();
+      } else if (e.t === 'world.boundary') {
+        this.lastBoundary = { tick: e.tick, s: e.s ?? '' };
+        this.boundaryCount++;
+      } else if (e.t === 'world.map' && e.s) {
+        try {
+          this.lastMap = JSON.parse(e.s) as NonNullable<WorldView['lastMap']>;
+        } catch {
+          // a damaged patch is dropped; the next one replaces it
+        }
+      }
     }
   }
 
@@ -319,6 +341,7 @@ export class WorldView implements WorldLayer {
       this.host.backdrop = null;
       if (this.lights) this.host.scene.remove(...this.lights);
     }
+    this.fade.dispose();
     this.veil?.remove();
     this.redownload?.remove();
     this.offline?.remove();

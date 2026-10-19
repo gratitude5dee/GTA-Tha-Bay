@@ -1,0 +1,14 @@
+{
+  "id": "portal.baybridge",
+  "kind": "portal",
+  "version": 1,
+  "nameKey": "place.bay-bridge-ybi",
+  "render": { "asset": "prop/graybox.portal-closure" },
+  "physics": { "body": "fixed", "shape": "box", "dims": [8, 2, 0.5], "groups": ["static"] },
+  "components": {
+    "Transform": { "qw": 1 },
+    "BodyRef": {},
+    "Portal": { "portal": 0, "sealed": 0 },
+    "RenderKey": { "visible": 1 }
+  }
+}

@@ -76,5 +76,15 @@
   "engine.readonly": "The game is open in another tab. This tab can read downloaded data but will not download or change it.",
   "engine.readonly.action": "Dismiss",
   "world.redownload": "Re-downloading district…",
-  "world.offline": "This part of the city is not on your device and you are offline. Reconnect to continue."
+  "world.offline": "This part of the city is not on your device and you are offline. Reconnect to continue.",
+  "world.teleport.notLoaded": "Ground not loaded; player was not moved",
+  "world.teleport.water": "That spot is in the water",
+  "world.teleport.blocked": "No clear ground there",
+  "world.teleport.forbidden": "Not available right now",
+  "world.teleport.heat": "Not while the cops are on you",
+  "world.teleport.outOfBounds": "That is outside the city",
+  "world.teleport.cooldown": "Fast travel is cooling down",
+  "world.teleport.unknownTarget": "Unknown destination",
+  "world.teleport.busy": "A teleport is already under way",
+  "world.boundary.countyLine": "Leaving SF — coming soon"
 }

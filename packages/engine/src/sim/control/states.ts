@@ -18,6 +18,7 @@ export const CONTROL_STATE = {
   knockedOut: 302,
   teleportPending: 700,
   teleportWaiting: 701,
+  swim: 800,
 } as const;
 
 /** `Control.owner` values (the C01 field is a u8). 0 is "no owner yet". */

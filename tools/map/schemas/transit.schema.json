@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/transit.schema.json",
+  "title": "config/world/transit.json (M02c1): fast-travel fares in integer cents and the fast-travel cooldown",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "fares", "stopSpacingM", "cooldown"],
+  "properties": {
+    "schema": { "const": "world-transit/1" },
+    "note": { "type": "string" },
+    "fares": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bay-rail", "cable-car", "robotaxi", "ferry"],
+      "properties": {
+        "bay-rail": {
+          "type": "object", "additionalProperties": false, "required": ["baseCents", "perStopCents"],
+          "properties": { "baseCents": { "type": "integer", "minimum": 0 }, "perStopCents": { "type": "integer", "minimum": 0 } }
+        },
+        "cable-car": {
+          "type": "object", "additionalProperties": false, "required": ["baseCents"],
+          "properties": { "baseCents": { "type": "integer", "minimum": 0 } }
+        },
+        "robotaxi": {
+          "type": "object", "additionalProperties": false, "required": ["baseCents", "perKmCents"],
+          "properties": { "baseCents": { "type": "integer", "minimum": 0 }, "perKmCents": { "type": "integer", "minimum": 0 } }
+        },
+        "ferry": {
+          "type": "object", "additionalProperties": false, "required": ["baseCents"],
+          "properties": { "baseCents": { "type": "integer", "minimum": 0 } }
+        }
+      }
+    },
+    "stopSpacingM": { "type": "number", "exclusiveMinimum": 0 },
+    "cooldown": {
+      "type": "object", "additionalProperties": false, "required": ["fastTravelS"],
+      "properties": { "fastTravelS": { "type": "integer", "minimum": 0 } }
+    }
+  }
+}

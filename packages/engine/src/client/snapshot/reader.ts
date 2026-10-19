@@ -25,6 +25,8 @@ export class SnapshotView {
   env: EnvState | null = null;
   /** Blackout in force (side key `bo`, set by the world module, M02b2). */
   blackout = false;
+  /** Fog far-plane factor near the county line (side key `wf`, set by the world module, M02c1); 1 when absent. */
+  boundaryFog = 1;
 
   /** Update from the newest read. Returns false when there is nothing to draw yet. */
   update(read: SnapshotRead | null): boolean {
@@ -43,6 +45,8 @@ export class SnapshotView {
       const env = read.cur.side['env'];
       if (env && typeof env === 'object') this.env = env as EnvState;
       this.blackout = read.cur.side['bo'] === 1;
+      const wf = read.cur.side['wf'];
+      this.boundaryFog = typeof wf === 'number' && wf > 0 && wf <= 1 ? wf : 1;
     }
     this.count = interpolateSnapshots(read.prev, read.cur, read.alpha, this.poses);
     this.tick = read.cur.tick;
