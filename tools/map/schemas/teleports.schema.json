@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/teleports.schema.json",
+  "title": "content/world/teleports.json (M02a2): the sandbox teleport list, the 37 landmarks",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "sandbox"],
+  "properties": {
+    "schema": { "const": "world-teleports/1" },
+    "note": { "type": "string" },
+    "sandbox": { "type": "array", "minItems": 25, "uniqueItems": true, "items": { "type": "string", "pattern": "^lm\\.[a-z0-9-]{2,60}$" } }
+  }
+}

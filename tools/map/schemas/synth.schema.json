@@ -54,6 +54,7 @@
       }
     },
     "terrain": { "type": "object" },
+    "roads": { "type": "object" },
     "parks": { "type": "array", "items": { "type": "object", "required": ["id", "name", "minX", "minZ", "maxX", "maxZ"] } },
     "landuse": { "type": "array", "items": { "type": "object", "required": ["cls", "minX", "minZ", "maxX", "maxZ"] } },
     "buildings": { "type": "object" },

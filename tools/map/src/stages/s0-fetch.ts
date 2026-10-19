@@ -41,6 +41,9 @@ export interface FetchOptions {
   rowLimit?: number | undefined;
 }
 
+/** The street, Muni stop and Muni pattern sources of the excerpt are synthetic like its OSM part (no network, M02a2). */
+export const SYNTHETIC_ROAD_SOURCES = ['datasf-streets', 'datasf-muni-stops', 'datasf-muni-routes'] as const;
+
 export const nowIso = (): string => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const skip = (log: (l: string) => void, id: string, reason: string): void => log(`SKIP map:fetch ${id}: ${reason}`);
 
@@ -273,9 +276,14 @@ async function cutCivicExcerpt(o: FetchOptions, cfg: SourcesConfig, log: (l: str
   rmSync(gen, { recursive: true, force: true });
   generateSynth(loadSynth(), cfg, 'civic-excerpt', { outDir: gen, box, restricted: true });
   copyFileSync(path.join(gen, osm.file), path.join(dir, osm.file));
-  rmSync(gen, { recursive: true, force: true });
   entries.push({ id: 'osm', url: 'synth://osm', retrievedAt: nowIso(), sha256: await sha256File(path.join(dir, osm.file)), rows: countLines(path.join(dir, osm.file)), licence: 'LicenseRef-DeeVerse-Owned' });
-  const lock = mergeLock(null, 'civic-excerpt', entries, ['osm']);
+  for (const id of SYNTHETIC_ROAD_SOURCES) {
+    const s = sourceById(cfg, id);
+    copyFileSync(path.join(gen, s.file), path.join(dir, s.file));
+    entries.push({ id, url: `synth://${id}`, retrievedAt: nowIso(), sha256: await sha256File(path.join(dir, s.file)), rows: countLines(path.join(dir, s.file)), licence: 'LicenseRef-DeeVerse-Owned' });
+  }
+  rmSync(gen, { recursive: true, force: true });
+  const lock = mergeLock(null, 'civic-excerpt', entries, ['osm', ...SYNTHETIC_ROAD_SOURCES]);
   writeRawLock(path.join(dir, RAW_LOCK_NAME), lock);
   log(`map:fetch: cut the civic-excerpt into ${path.relative(toolsRoot, dir)} (${entries.map((e) => `${e.id} ${e.rows}`).join(', ')}); OSM part is synthetic`);
   return 0;

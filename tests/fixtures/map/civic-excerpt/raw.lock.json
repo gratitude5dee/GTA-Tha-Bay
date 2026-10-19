@@ -12,6 +12,22 @@
       "licence": "PDDL-1.0"
     },
     {
+      "id": "datasf-muni-routes",
+      "url": "synth://datasf-muni-routes",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "852db1bcbcef2f0ad2a27c82f423ab1009105d8946aeb37ba637ffdb81cb02f8",
+      "rows": 1,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "datasf-muni-stops",
+      "url": "synth://datasf-muni-stops",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "1989d8ef95aaaf9fec4a3d5a1a768a88df96ae4d81f6f981a86036ff9acf505a",
+      "rows": 2,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
       "id": "datasf-neighborhoods",
       "url": "https://data.sf.gov/resource/j2bu-swwd.json",
       "retrievedAt": "2026-10-19T04:29:15Z",
@@ -28,6 +44,14 @@
       "licence": "PDDL-1.0"
     },
     {
+      "id": "datasf-streets",
+      "url": "synth://datasf-streets",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "a50ca8a06b614f6aade63b033627b83b87a4a46f06c7211edfcac6ef3a0d8e52",
+      "rows": 70,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
       "id": "datasf-trees",
       "url": "https://data.sf.gov/resource/tkzw-k3nq.json",
       "retrievedAt": "2026-10-19T04:29:17Z",
@@ -38,9 +62,9 @@
     {
       "id": "osm",
       "url": "synth://osm",
-      "retrievedAt": "2026-10-19T04:29:18Z",
-      "sha256": "2ad9389072c5de3d2b52fbbea3b54475013054c33ceb4c879c68fc80bc150d77",
-      "rows": 4,
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "7f36ba30a4ad61cde65a8069404ef30b84eed001068ac1e5d75c772335ffc317",
+      "rows": 85,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
@@ -53,6 +77,9 @@
     }
   ],
   "syntheticSources": [
+    "datasf-muni-routes",
+    "datasf-muni-stops",
+    "datasf-streets",
     "osm"
   ]
 }

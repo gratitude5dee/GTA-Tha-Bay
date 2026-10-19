@@ -5,6 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "bakeId", "area", "toolVersion", "synthetic", "sources", "counts", "terrain", "water", "buildings", "packs", "gates", "ok"],
+  "$comment": "M02a2 adds the roads, junctions, grading, ped, tags, spawn, places, transit, lod and far sections and the S5 to S14 gate stages.",
   "properties": {
     "schema": { "const": "bake-report/1" },
     "bakeId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
@@ -31,6 +32,16 @@
     },
     "terrain": { "type": "object" },
     "water": { "type": "object" },
+    "roads": { "type": "object" },
+    "junctions": { "type": "object" },
+    "grading": { "type": "object" },
+    "ped": { "type": "object" },
+    "tags": { "type": "object" },
+    "spawn": { "type": "object" },
+    "places": { "type": "object" },
+    "transit": { "type": "object" },
+    "lod": { "type": "object" },
+    "far": { "type": "object" },
     "buildings": {
       "type": "object",
       "required": ["rows", "baked", "dropped", "records", "osm"],
@@ -57,7 +68,7 @@
         "type": "object",
         "required": ["id", "stage", "level", "detail"],
         "properties": {
-          "id": { "type": "string" }, "stage": { "enum": ["S0", "S2", "S3", "S4", "S13"] }, "level": { "enum": ["pass", "fail", "warn"] }, "detail": { "type": "string" }
+          "id": { "type": "string" }, "stage": { "enum": ["S0", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S13", "S14"] }, "level": { "enum": ["pass", "fail", "warn"] }, "detail": { "type": "string" }
         }
       }
     },

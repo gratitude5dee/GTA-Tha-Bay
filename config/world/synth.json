@@ -58,7 +58,7 @@
     "dense": { "boxes": [{ "minX": 1300, "minZ": -1900, "maxX": 2800, "maxZ": 900 }, { "minX": -1200, "minZ": -1200, "maxX": 1200, "maxZ": 1200 }], "perChunk": 150 },
     "bulk": { "perChunk": 25 },
     "civicSites": [
-      { "id": "city-hall", "x": 4, "z": 1, "w": 70, "d": 50, "h": 42, "tag": "townhall" },
+      { "id": "city-hall", "x": 4, "z": 1, "w": 44, "d": 30, "h": 42, "tag": "townhall" },
       { "id": "opera-house", "x": -144, "z": 84, "w": 60, "d": 40, "h": 30, "tag": "civic" },
       { "id": "grace-cathedral", "x": 511, "z": -1390, "w": 40, "d": 70, "h": 45, "tag": "cathedral" },
       { "id": "school-a", "x": -1500, "z": 600, "w": 50, "d": 30, "h": 12, "tag": "school" },
@@ -72,6 +72,33 @@
     ],
     "osmGapFill": { "count": 40, "box": { "minX": -6000, "minZ": 2000, "maxX": -3000, "maxZ": 4000 } },
     "palette": 16
+  },
+  "roads": {
+    "pitchM": 160,
+    "originX": 60,
+    "originZ": -22,
+    "marginM": 60,
+    "arterial": { "everyI": 4, "phaseI": 0, "everyJ": 4, "phaseJ": 2 },
+    "collectorEvery": 2,
+    "oneWay": { "everyI": 3, "phaseI": 1, "everyJ": 3, "phaseJ": 1 },
+    "overpass": { "i": 8, "j0": 14, "blocks": 3 },
+    "tunnel": { "j": 19, "i0": -17, "blocks": 3 },
+    "lightRail": { "i": 4, "z0": -980, "z1": 1500, "offsetM": 4 },
+    "bus": [
+      { "route": "14", "line": "v", "idx": -4, "from": -2000, "to": 3000, "stopEveryBlocks": 3 },
+      { "route": "38", "line": "h", "idx": 8, "from": -3000, "to": 2000, "stopEveryBlocks": 3 }
+    ],
+    "ferry": { "from": { "x": 788, "z": -3570 }, "to": { "x": -305, "z": -5153 } },
+    "footways": [
+      { "id": "ggp-path-a", "kind": "footway", "pts": [-7000, 800, -6600, 1000, -5800, 1200] },
+      { "id": "ggp-path-b", "kind": "footway", "pts": [-5600, 900, -4800, 1000, -4000, 900] },
+      { "id": "hill-steps", "kind": "steps", "pts": [1186, -2380, 1196, -2330] }
+    ],
+    "restrictions": [
+      { "kind": "no_left_turn", "i": 0, "j": 2, "from": "n" },
+      { "kind": "no_u_turn", "i": 4, "j": 2, "from": "w" },
+      { "kind": "only_straight_on", "i": -4, "j": 6, "from": "e" }
+    ]
   },
   "trees": { "perChunk": 8 },
   "neighbourhoods": {

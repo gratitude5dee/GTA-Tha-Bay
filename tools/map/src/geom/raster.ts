@@ -36,7 +36,7 @@ export class Raster {
   }
 
   /** Even-odd fill of the union of `rings` (each a flat [x, z, ...] ring, implicitly closed) with `value`. */
-  fillRings(rings: readonly ArrayLike<number>[], value: number): void {
+  fillRings(rings: readonly ArrayLike<number>[], value: number, guard?: (current: number) => boolean): void {
     const rows = new Map<number, number[]>();
     for (const r of rings) {
       const n = r.length / 2;
@@ -68,7 +68,7 @@ export class Raster {
         if (i0 < 0) i0 = 0;
         if (i1 > this.w - 1) i1 = this.w - 1;
         const base = j * this.w;
-        for (let i = i0; i <= i1; i++) this.data[base + i] = value;
+        for (let i = i0; i <= i1; i++) if (!guard || guard(this.data[base + i] as number)) this.data[base + i] = value;
       }
     }
   }

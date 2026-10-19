@@ -7,10 +7,13 @@ import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, sha256Hex, canonicalize, type ChunkKey, type WorldBounds } from '../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
+import { contentWorldSha } from './content.ts';
+import type { BridgesConfig } from './stages/s7-grading.ts';
+import type { RoadClassConfig } from './stages/s5-roads.ts';
 
 export const TOOL_NAME = 'tools/map';
 /** Bumped by hand when a change alters baked bytes; part of the bakeId (C08 rule 16). */
-export const TOOL_VERSION = '0.2.0';
+export const TOOL_VERSION = '0.3.0';
 export const TOOL_ID = `${TOOL_NAME}@${TOOL_VERSION}`;
 
 export type AreaId = 'sf' | 'civic-excerpt' | 'synth';
@@ -38,6 +41,7 @@ export interface AreaGates {
   s3: { landRatioTolerance: number; minRingKm2: number };
   s4: { minBakedFraction: number; maxOsmFraction: number };
   s13: { packMaxBytes: number; packWarnBytes: number };
+  s14: { sccMin: number; signalMin: number; worldIndex: boolean; transit: boolean; heroEdges: boolean; cablecars: boolean };
 }
 export interface AreaDef { label: string; network: boolean; box: 'play' | 'stream' | 'far' | EnuBox; sources: string[]; gates: AreaGates }
 export interface BBox { minLat: number; minLng: number; maxLat: number; maxLng: number }
@@ -45,6 +49,7 @@ export interface SourcesConfig {
   schema: 'world-sources/1';
   note?: string;
   sources: SourceDef[];
+  database: { licence: 'ODbL-1.0'; assets: string[]; note: string };
   terrarium: { core: { z: number; boxes: ('play' | 'stream' | 'far')[] }; far: { z: number; boxes: ('play' | 'stream' | 'far')[] } };
   osm: { note: string; bboxes: { sf: BBox; backdrop: BBox }; tagFilter: string; commands: string[]; backdropCommands: string[] };
   areas: Record<AreaId, AreaDef>;
@@ -53,6 +58,9 @@ export interface SourcesConfig {
 export const SOURCES_PATH = path.join(toolsRoot, 'config', 'world', 'sources.json');
 export const SYNTH_PATH = path.join(toolsRoot, 'config', 'world', 'synth.json');
 export const BOUNDS_PATH = path.join(toolsRoot, 'config', 'world.bounds.json');
+export const ROADCLASS_PATH = path.join(toolsRoot, 'config', 'world', 'roadclass.json');
+export const BRIDGES_PATH = path.join(toolsRoot, 'config', 'world', 'bridges.json');
+export const DENSITY_PATH = path.join(toolsRoot, 'config', 'world', 'density.json');
 export const SCHEMAS_DIR = path.join(toolsRoot, 'tools', 'map', 'schemas');
 
 const readJson = <T>(file: string): T => JSON.parse(readFileSync(file, 'utf8')) as T;
@@ -103,6 +111,18 @@ export function loadSources(file = SOURCES_PATH): SourcesConfig {
   if (errors.length > 0) throw new Error(`${path.relative(toolsRoot, file)} is invalid:\n  ${errors.join('\n  ')}`);
   return raw as SourcesConfig;
 }
+
+export interface DensityConfig { schema: 'world-density/1'; profiles: { name: string; perKm: number }[]; perLaneKm: Record<string, number> }
+
+function loadChecked<T>(file: string, schema: string): T {
+  const raw = readJson<unknown>(file);
+  const errors = mapSchema(schema)(raw);
+  if (errors.length > 0) throw new Error(`${path.relative(toolsRoot, file)} is invalid:\n  ${errors.join('\n  ')}`);
+  return raw as T;
+}
+export const loadRoadClass = (file = ROADCLASS_PATH): RoadClassConfig => loadChecked<RoadClassConfig>(file, 'roadclass');
+export const loadBridges = (file = BRIDGES_PATH): BridgesConfig => loadChecked<BridgesConfig>(file, 'bridges');
+export const loadDensity = (file = DENSITY_PATH): DensityConfig => loadChecked<DensityConfig>(file, 'density');
 
 export function loadBounds(): WorldBounds {
   return readJson<WorldBounds>(BOUNDS_PATH);
@@ -170,6 +190,25 @@ export interface SynthConfig {
   };
   trees: { perChunk: number };
   neighbourhoods: { cols: number; rows: number; names: string[] };
+  roads: SynthRoadsConfig;
+}
+
+/** The synth street grid (M02a2): global lines at originX + i * pitchM and originZ + j * pitchM. */
+export interface SynthRoadsConfig {
+  pitchM: number;
+  originX: number;
+  originZ: number;
+  marginM: number;
+  arterial: { everyI: number; phaseI: number; everyJ: number; phaseJ: number };
+  collectorEvery: number;
+  oneWay: { everyI: number; phaseI: number; everyJ: number; phaseJ: number };
+  overpass: { i: number; j0: number; blocks: number };
+  tunnel: { j: number; i0: number; blocks: number };
+  lightRail: { i: number; z0: number; z1: number; offsetM: number };
+  bus: { route: string; line: 'v' | 'h'; idx: number; from: number; to: number; stopEveryBlocks: number }[];
+  ferry: { from: { x: number; z: number }; to: { x: number; z: number } };
+  footways: { id: string; kind: 'footway' | 'steps'; pts: number[] }[];
+  restrictions: { kind: 'no_left_turn' | 'no_right_turn' | 'no_u_turn' | 'only_straight_on'; i: number; j: number; from: 'n' | 's' | 'e' | 'w' }[];
 }
 
 export function loadSynth(file = SYNTH_PATH): SynthConfig {
@@ -187,6 +226,11 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
     sources: sha256Hex(canonicalize(cfg.sources.filter((s) => def.sources.includes(s.id)))),
     terrarium: sha256Hex(canonicalize(cfg.terrarium)),
     bounds: sha256Hex(canonicalize(loadBounds())),
+    roadclass: sha256Hex(canonicalize(loadRoadClass())),
+    bridges: sha256Hex(canonicalize(loadBridges())),
+    density: sha256Hex(canonicalize(loadDensity())),
+    contentWorld: contentWorldSha(),
+    sourcesDatabase: sha256Hex(canonicalize(cfg.database)),
   };
   if (area === 'synth') out['synth'] = sha256Hex(canonicalize(loadSynth()));
   return out;

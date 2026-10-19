@@ -4,7 +4,7 @@
   "title": "config/world/sources.json (M02a1)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "sources", "terrarium", "osm", "areas"],
+  "required": ["schema", "sources", "database", "terrarium", "osm", "areas"],
   "$defs": {
     "allowedUrl": {
       "type": "string",
@@ -56,7 +56,7 @@
     "gates": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["s0", "s2", "s3", "s4", "s13"],
+      "required": ["s0", "s2", "s3", "s4", "s13", "s14"],
       "properties": {
         "s0": {
           "type": "object",
@@ -99,6 +99,19 @@
           "additionalProperties": false,
           "required": ["packMaxBytes", "packWarnBytes"],
           "properties": { "packMaxBytes": { "type": "integer", "minimum": 1 }, "packWarnBytes": { "type": "integer", "minimum": 1 } }
+        },
+        "s14": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sccMin", "signalMin", "worldIndex", "transit", "heroEdges", "cablecars"],
+          "properties": {
+            "sccMin": { "type": "number", "minimum": 0, "maximum": 1 },
+            "signalMin": { "type": "number", "minimum": 0, "maximum": 1 },
+            "worldIndex": { "type": "boolean" },
+            "transit": { "type": "boolean" },
+            "heroEdges": { "type": "boolean" },
+            "cablecars": { "type": "boolean" }
+          }
         }
       }
     },
@@ -119,6 +132,16 @@
     "schema": { "const": "world-sources/1" },
     "note": { "type": "string" },
     "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/source" } },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licence", "assets", "note"],
+      "properties": {
+        "licence": { "const": "ODbL-1.0" },
+        "assets": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 3 } },
+        "note": { "type": "string", "minLength": 10 }
+      }
+    },
     "terrarium": {
       "type": "object",
       "additionalProperties": false,

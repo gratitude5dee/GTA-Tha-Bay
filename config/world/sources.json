@@ -137,6 +137,11 @@
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     }
   ],
+  "database": {
+    "licence": "ODbL-1.0",
+    "assets": ["world_pack/*", "data/world-index", "data/transit-routes.v1", "map_data/*"],
+    "note": "The baked database is offered as a whole under ODbL 1.0. The authored seed tables of content/world (landmarks, POIs with fictional business names, districts, pursuit breakers, cable cars, teleports, transit lines) are knowingly contributed to it and stamped as source content-world in every pack's provenance (M02a2, DL-677). No proprietary data enters these assets (R-S02-04)."
+  },
   "terrarium": {
     "core": { "z": 15, "boxes": ["stream", "play"] },
     "far": { "z": 12, "boxes": ["far"] }
@@ -168,33 +173,36 @@
         "s2": { "cityHallM": [10, 25], "minM": -130 },
         "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.05 },
         "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
-        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 },
+        "s14": { "sccMin": 0.98, "signalMin": 0.98, "worldIndex": true, "transit": true, "heroEdges": true, "cablecars": true }
       }
     },
     "civic-excerpt": {
       "label": "Committed 1 km2 source excerpt around City Hall (chunks 9/254..257 on both axes): byte-reproducible bakes in CI",
       "network": false,
       "box": { "minX": -640, "minZ": -640, "maxX": 384, "maxZ": 384 },
-      "sources": ["datasf-footprints", "datasf-neighborhoods", "datasf-parks", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
       "gates": {
-        "s0": { "minRows": { "datasf-footprints": 500 }, "exactRows": {} },
+        "s0": { "minRows": { "datasf-footprints": 500, "datasf-streets": 10 }, "exactRows": {} },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
         "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.25 },
         "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
-        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 },
+        "s14": { "sccMin": 0.9, "signalMin": 0.98, "worldIndex": false, "transit": false, "heroEdges": false, "cablecars": false }
       }
     },
     "synth": {
       "label": "Offline seeded sources in the raw formats over the whole play box: the full-size CI world for M02b1-M02d2. Stamps are authored; QA only, never in assets.lock.json",
       "network": false,
       "box": "play",
-      "sources": ["datasf-footprints", "datasf-neighborhoods", "datasf-parks", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
       "gates": {
-        "s0": { "minRows": { "datasf-footprints": 50000 }, "exactRows": { "datasf-neighborhoods": 41 } },
+        "s0": { "minRows": { "datasf-footprints": 50000, "datasf-streets": 1000, "datasf-muni-stops": 6, "datasf-muni-routes": 2 }, "exactRows": { "datasf-neighborhoods": 41 } },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
         "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.01 },
         "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },
-        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 }
+        "s13": { "packMaxBytes": 4194304, "packWarnBytes": 2621440 },
+        "s14": { "sccMin": 0.98, "signalMin": 0.98, "worldIndex": true, "transit": true, "heroEdges": false, "cablecars": false }
       }
     }
   }

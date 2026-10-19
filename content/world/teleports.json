@@ -1,0 +1,12 @@
+{
+  "schema": "world-teleports/1",
+  "note": "Sandbox teleport list: the 37 landmarks, in table order of 02-world-bake.md section 7. The pose of each target is the landmark arrival pose computed by the bake.",
+  "sandbox": [
+    "lm.city-hall", "lm.golden-gate-bridge", "lm.bay-bridge-ybi", "lm.coit-tower", "lm.ferry-building", "lm.pyramid-tower", "lm.crown-tower",
+    "lm.sutro-tower", "lm.palace-fine-arts", "lm.alcatraz", "lm.twin-peaks", "lm.lombard-crooked", "lm.painted-ladies", "lm.china-basin-ballpark",
+    "lm.mission-bay-arena", "lm.pier-39", "lm.fort-point", "lm.grace-cathedral", "lm.dragon-gate", "lm.transit-center-park", "lm.hunters-point-yard",
+    "lm.mount-davidson-cross", "lm.dolores-park", "lm.haight-ashbury", "lm.flower-conservatory", "lm.park-bandshell", "lm.cliff-house", "lm.crissy-field",
+    "lm.powell-turntable", "lm.lands-end-lookout", "lm.candlestick-point", "lm.treasure-island", "lm.un-plaza", "lm.rail-terminus", "lm.peace-pagoda",
+    "lm.opera-house", "lm.saint-mary-cathedral"
+  ]
+}

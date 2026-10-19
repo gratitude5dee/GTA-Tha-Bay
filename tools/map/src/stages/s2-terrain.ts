@@ -27,7 +27,11 @@ export interface TerrainProduct {
   stats: TerrainStats;
 }
 
-export function runTerrain(grid: AreaGrid, mosaic: TerrariumMosaic, land: Raster, pier: Raster): TerrainProduct {
+/**
+ * `extra` names chunks that get a grid although they hold no land or pier post: the chunks a bridge deck crosses over open
+ * water (M02a2), so their slabs have a p0 chunk to live in. Their posts are the clamped bathymetry like every other water post.
+ */
+export function runTerrain(grid: AreaGrid, mosaic: TerrariumMosaic, land: Raster, pier: Raster, extra?: ReadonlySet<ChunkKey>): TerrainProduct {
   const grids = new Map<ChunkKey, Int16Array>();
   const n = TERRAIN_POSTS;
   const xs = new Float64Array(n);
@@ -44,7 +48,7 @@ export function runTerrain(grid: AreaGrid, mosaic: TerrariumMosaic, land: Raster
         const row = (j0 + j) * land.w + i0;
         for (let i = 0; i < n; i++) if (land.data[row + i] || pier.data[row + i]) { any = true; break; }
       }
-      if (!any) continue;
+      if (!any && !extra?.has(chunkKeyOfIndex(cx, cy))) continue;
       for (let i = 0; i < n; i++) xs[i] = GRID_MIN_M + cx * CHUNK_EDGE_M[9] + i * 4;
       for (let j = 0; j < n; j++) zs[j] = GRID_MIN_M + cy * CHUNK_EDGE_M[9] + j * 4;
       mosaic.sampleGrid(xs, zs, buf);

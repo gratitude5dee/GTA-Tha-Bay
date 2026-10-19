@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/bridges.schema.json",
+  "title": "config/world/bridges.json (M02a2): S7 grading inputs and S9 portal seeds",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "overpass", "slab", "tunnel", "grade", "named", "portals", "countyLine", "hero"],
+  "$defs": {
+    "place": {
+      "type": "object",
+      "required": ["id", "lat", "lng"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9.-]{2,48}$" },
+        "lat": { "type": "number", "minimum": 37, "maximum": 38.5 },
+        "lng": { "type": "number", "minimum": -123, "maximum": -121.5 }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-bridges/1" },
+    "note": { "type": "string" },
+    "overpass": {
+      "type": "object", "additionalProperties": false, "required": ["clearancePerLayerM", "maxApproachGrade"],
+      "properties": { "clearancePerLayerM": { "type": "number", "minimum": 3 }, "maxApproachGrade": { "type": "number", "minimum": 0.01, "maximum": 0.1 } }
+    },
+    "slab": {
+      "type": "object", "additionalProperties": false, "required": ["lengthM", "thicknessM", "maxStepM"],
+      "properties": { "lengthM": { "type": "number", "minimum": 1 }, "thicknessM": { "type": "number", "minimum": 0.2 }, "maxStepM": { "type": "number", "minimum": 0.05, "maximum": 0.3 } }
+    },
+    "tunnel": {
+      "type": "object", "additionalProperties": false, "required": ["corridorExtraM", "dropM", "hoodClearanceM", "hoodStepM", "minHoodM"],
+      "properties": {
+        "corridorExtraM": { "type": "number", "minimum": 0 },
+        "dropM": { "type": "number", "minimum": 0 },
+        "hoodClearanceM": { "type": "number", "minimum": 3 },
+        "hoodStepM": { "type": "number", "minimum": 4 },
+        "minHoodM": { "type": "number", "minimum": 0 }
+      }
+    },
+    "grade": {
+      "type": "object", "additionalProperties": false, "required": ["maxPct", "smoothingM", "sampleM", "blendM"],
+      "properties": {
+        "maxPct": { "type": "number", "minimum": 5, "maximum": 40 },
+        "smoothingM": { "type": "number", "minimum": 4 },
+        "sampleM": { "type": "number", "minimum": 1, "maximum": 8 },
+        "blendM": { "type": "number", "minimum": 0.5 }
+      }
+    },
+    "named": {
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/place" }],
+        "required": ["radiusM", "deckM"],
+        "properties": { "radiusM": { "type": "number", "minimum": 100 }, "deckM": { "type": "number", "minimum": 5 } }
+      }
+    },
+    "portals": {
+      "type": "array",
+      "items": {
+        "allOf": [{ "$ref": "#/$defs/place" }],
+        "required": ["kind", "widthM", "toArea", "snapM"],
+        "properties": {
+          "kind": { "enum": ["bridge", "ferry", "tunnel", "county-line"] },
+          "widthM": { "type": "number", "minimum": 1 },
+          "toArea": { "type": ["string", "null"] },
+          "snapM": { "type": "number", "minimum": 10 }
+        }
+      }
+    },
+    "countyLine": {
+      "type": "object", "additionalProperties": false, "required": ["widthM", "toArea"],
+      "properties": { "widthM": { "type": "number", "minimum": 1 }, "toArea": { "type": ["string", "null"] } }
+    },
+    "hero": {
+      "type": "array",
+      "items": { "allOf": [{ "$ref": "#/$defs/place" }], "required": ["maxM"], "properties": { "maxM": { "type": "number", "minimum": 10 } } }
+    }
+  }
+}
