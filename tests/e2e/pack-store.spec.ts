@@ -1,7 +1,7 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { expect, test as base, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test as base, type APIRequestContext, type BrowserContext, type Page } from '@playwright/test';
 import type { AssetsBridge } from '../../packages/engine/src/assets/bridge.ts';
 
 // M01e: the world-pack store, the asset worker and the catalog client in a real browser, against the same-origin
@@ -26,19 +26,25 @@ const P0 = 'world_pack/p0-64-64';
 const L0 = 'world_pack/l0-64-64';
 const TEX = 'texture/asset-smoke';
 const DATA = 'data/asset-smoke';
-const MIRROR = path.resolve('apps/web/media-local');
 
 interface Expected {
   sha256: string;
   bytes: number;
 }
 
-/** The catalog's own numbers for the world pack, read from the mirror on disk (not through the app). */
-function expectedFor(ref: string): Expected {
-  const pointer = JSON.parse(readFileSync(path.join(MIRROR, 'asset-catalog.json'), 'utf8')) as { key: string };
-  const catalog = JSON.parse(readFileSync(path.join(MIRROR, pointer.key), 'utf8')) as {
-    entries: Record<string, { variants: Record<string, Expected> }>;
+/**
+ * The catalog's own numbers for the world pack, read from where the served app has them: `/media-local/` on the running
+ * server (the QA build's dist copy of the mirror, not the source tree's `apps/web/media-local`, which exists only after
+ * a local QA build and is absent on CI, where e2e runs against the downloaded dist). Fetched over HTTP, not through the app.
+ */
+async function expectedFor(request: APIRequestContext, ref: string): Promise<Expected> {
+  const get = async <T>(rel: string): Promise<T> => {
+    const res = await request.get(`/media-local/${rel}`);
+    expect(res.ok(), `GET /media-local/${rel} -> ${res.status()}`).toBe(true);
+    return (await res.json()) as T;
   };
+  const pointer = await get<{ key: string }>('asset-catalog.json');
+  const catalog = await get<{ entries: Record<string, { variants: Record<string, Expected> }> }>(pointer.key);
   const v = catalog.entries[ref]?.variants['default'];
   if (!v) throw new Error(`no default variant for ${ref}`);
   return v;
@@ -50,14 +56,16 @@ async function ready(page: Page, url = '/'): Promise<void> {
 }
 
 test.describe('pack store', () => {
-  test('opens OPFS, fetches a pack once, verifies it, and serves it from the store after a reload @pack-store', async ({ app }) => {
+  // Every test loads the app at least twice (a reload, a second tab); software GL needs more than the 30 s default.
+  test.describe.configure({ timeout: 120_000 });
+  test('opens OPFS, fetches a pack once, verifies it, and serves it from the store after a reload @pack-store', async ({ app, request }) => {
     const page = await app.newPage();
     await ready(page);
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.assets.storeKind())).toBe('opfs');
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.assets.catalogState())).toBe('ready');
     expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
 
-    const want = expectedFor(P0);
+    const want = await expectedFor(request, P0);
     const got = await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.get(ref), P0);
     expect(got).toEqual({ byteLength: want.bytes, sha256: want.sha256 });
     // Record which OPFS write path this engine used (the sync access handle is the design; createWritable is the fallback).
@@ -116,11 +124,11 @@ test.describe('pack store', () => {
     expect(await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.has(ref), DATA)).toBe(false);
   });
 
-  test('evicts the least recently used unpinned pack under the soft cap, and evictByTag, clear and the memory fallback work @pack-evict', async ({ app }) => {
+  test('evicts the least recently used unpinned pack under the soft cap, and evictByTag, clear and the memory fallback work @pack-evict', async ({ app, request }) => {
     const page = await app.newPage();
     await ready(page);
-    const p0 = expectedFor(P0).bytes;
-    const l0 = expectedFor(L0).bytes;
+    const p0 = (await expectedFor(request, P0)).bytes;
+    const l0 = (await expectedFor(request, L0)).bytes;
     // Just above two packs: the third forces one eviction.
     await page.evaluate((cap) => (window as unknown as W).__dvBridge.assets.configure({ softCapBytes: cap }), p0 + l0 + 1);
     await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.pin([ref]), P0);
@@ -158,10 +166,10 @@ test.describe('pack store', () => {
     // Without OPFS the store falls back to memory and get still works.
     expect(await page.evaluate(() => (window as unknown as W).__dvBridge.assets.reopen({ force: 'memory' }))).toBe('memory-fallback');
     const viaMemory = await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.get(ref), P0);
-    expect(viaMemory.sha256).toBe(expectedFor(P0).sha256);
+    expect(viaMemory.sha256).toBe((await expectedFor(request, P0)).sha256);
   });
 
-  test('a second tab is read-only, shows the notice, and the first tab still writes @pack-tabs', async ({ app }) => {
+  test('a second tab is read-only, shows the notice, and the first tab still writes @pack-tabs', async ({ app, request }) => {
     const first = await app.newPage();
     await ready(first);
     expect(await first.evaluate(() => (window as unknown as W).__dvBridge.assets.mode())).toBe('rw');
@@ -177,7 +185,7 @@ test.describe('pack store', () => {
     // The read-only tab sees the first tab's commit but never writes: its own fetch is returned uncached.
     expect(await second.evaluate((ref) => (window as unknown as W).__dvBridge.assets.has(ref), P0)).toBe(true);
     const viaSecond = await second.evaluate((ref) => (window as unknown as W).__dvBridge.assets.get(ref), L0);
-    expect(viaSecond.byteLength).toBe(expectedFor(L0).bytes);
+    expect(viaSecond.byteLength).toBe((await expectedFor(request, L0)).bytes);
     expect(await first.evaluate((ref) => (window as unknown as W).__dvBridge.assets.has(ref), L0)).toBe(false);
   });
 

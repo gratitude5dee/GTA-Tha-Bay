@@ -39,7 +39,25 @@ const NON_SHIP_NAMES = new Set(['sw.js', 'manifest.webmanifest', '_headers', 'cr
   // M00f: delivery metadata checked by license:scan, not by a provenance record.
   'third-party-licenses.txt', 'THIRD_PARTY_LICENSES.txt']);
 
+/**
+ * `media-local/` is the QA-only same-origin copy of the M01d mirror (M01e). Production builds never ship it (M01e AC-10,
+ * `verify:dist` rejects it), its catalog, manifests and pointers are derived files verified by `check:assets` and
+ * `assets:verify` against the lock, its blobs are the lock's variants (joined by the lock walk below) and released
+ * world packs are joined by the world-lock walk (DL-667 part 2). A copy of one of these files at any other dist path
+ * is still ship set.
+ */
+export const QA_MIRROR_PREFIX = 'media-local/';
+
+const VARIANT_BASE_RE = /^(default|desktop-ultra|desktop|mobile|mobile-low|xr-quest|xr-visionpro)\.([0-9a-f]{12})\.[a-z0-9]+$/;
+
+/** True when the dist-relative path is a C07 object key (`<root>/<variant>.<sha256[0:12]>.<ext>`) whose hash fragment is `sha`'s. */
+export function isObjectKeyOf(rel: string, sha: string): boolean {
+  const m = VARIANT_BASE_RE.exec(rel.split('/').pop() ?? rel);
+  return m !== null && m[2] === sha.slice(0, 12);
+}
+
 export function isShipFile(rel: string): boolean {
+  if (rel.startsWith(QA_MIRROR_PREFIX)) return false;
   const base = rel.split('/').pop() ?? rel;
   if (NON_SHIP_NAMES.has(base)) return false;
   const dot = base.lastIndexOf('.');
@@ -140,8 +158,10 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
     const sha = sha256Hex(readFileSync(path.join(opts.dist, rel)));
     const rec = bySha.get(sha);
     if (!rec) findings.push(finding(GATE, rel, 'no-record', `no provenance record for sha256 ${sha.slice(0, 12)}`));
-    else if (!rec.paths.some((p) => p === rel || p.endsWith(`/${rel}`))) {
+    else if (!rec.paths.some((p) => p === rel || p.endsWith(`/${rel}`)) && !isObjectKeyOf(rel, sha)) {
       // Same bytes under a new name: the record's paths must resolve to this file (a copy needs its own record).
+      // A published object key is the exception: its name carries the content hash, the record is found by that
+      // hash and lists the source files, not the key (05 section 4.1).
       findings.push(finding(GATE, rel, 'path-not-recorded', `record ${sha.slice(0, 12)} lists ${rec.paths.join(', ')}, not ${rel}`));
     }
   }
