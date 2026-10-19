@@ -5,5 +5,8 @@ export * from './hash.ts';
 export * from './json.ts';
 export * from './platform/c13.ts';
 export * from './platform/pwa-update.ts';
+export * from './platform/classify.ts';
+export * from './platform/tiers.ts';
+export * from './platform/perf.ts';
 export * from './api/v1.ts';
 export * from './telemetry.ts';

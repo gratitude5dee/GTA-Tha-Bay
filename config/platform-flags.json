@@ -1,0 +1,4 @@
+{
+  "$comment": "Device-spike gates (11-platform.md 4.3). webgpu.mobile flips to true only after the M01c iPhone run passes (30 min, no abnormal exit, p90 inside budget); see docs/device-spike/M01c-report.md.",
+  "webgpu.mobile": false
+}

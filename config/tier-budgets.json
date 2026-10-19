@@ -1,8 +1,9 @@
 {
-  "$comment": "Mirrors the normative table in spec/domains/11-platform.md 4.5 (C13 1.1.0). Values marked with a dagger there are S11 extrapolations to calibrate in M11a. distantAnimHz is not in the table; Builder decision BD-M00-03. maxChunkUploadBytes uses 2 MiB for the \"2 MB\" cells.",
+  "$comment": "Mirrors the normative table in spec/domains/11-platform.md 4.5 (C13 1.1.0). Values marked with a dagger there are S11 extrapolations to calibrate in M11a. distantAnimHz is not in the table; Builder decision BD-M00-03. maxChunkUploadBytes uses 2 MiB for the \"2 MB\" cells. M01c adds family, features (4.4), backend (4.3) and xr (11-platform-xr.md 4.1) per tier; the dynamic range is derived in packages/shared/src/platform/tiers.ts. XR \"tonemap in material\" is post: [] (the direct pipeline has no post stack); Builder decision BD-M01c-02.",
   "c13": "1.1.0",
   "tiers": {
     "desktop-ultra": {
+      "family": "desktop",
       "frame": {
         "targetFps": 60,
         "maxFps": 120,
@@ -52,9 +53,38 @@
       "boot": {
         "warmBootToPlayableS": 8,
         "coldBootDownloadMB": 60
-      }
+      },
+      "features": {
+        "shadows": {
+          "mode": "csm3",
+          "mapSize": 4096,
+          "distanceM": 2000
+        },
+        "post": [
+          "gtao-half",
+          "bloom",
+          "traa",
+          "tonemap"
+        ],
+        "optionalPost": [
+          "fsr1"
+        ],
+        "pipeline": "render-pipeline",
+        "lighting": "clustered",
+        "sky": "timecyc-dome+atmosphere",
+        "hdrOutput": true,
+        "msaaSamples": 4
+      },
+      "backend": {
+        "preferred": "webgpu",
+        "forceWebGl": false,
+        "requireRealAdapter": true,
+        "gate": "stable"
+      },
+      "xr": null
     },
     "desktop": {
+      "family": "desktop",
       "frame": {
         "targetFps": 60,
         "maxFps": 60,
@@ -104,9 +134,38 @@
       "boot": {
         "warmBootToPlayableS": 8,
         "coldBootDownloadMB": 60
-      }
+      },
+      "features": {
+        "shadows": {
+          "mode": "csm3",
+          "mapSize": 2048,
+          "distanceM": 1650
+        },
+        "post": [
+          "gtao-half",
+          "bloom",
+          "smaa",
+          "tonemap"
+        ],
+        "optionalPost": [
+          "traa"
+        ],
+        "pipeline": "render-pipeline",
+        "lighting": "clustered",
+        "sky": "timecyc-dome",
+        "hdrOutput": true,
+        "msaaSamples": 0
+      },
+      "backend": {
+        "preferred": "webgpu",
+        "forceWebGl": false,
+        "requireRealAdapter": false,
+        "gate": "stable"
+      },
+      "xr": null
     },
     "mobile": {
+      "family": "mobile",
       "frame": {
         "targetFps": 60,
         "maxFps": 60,
@@ -156,9 +215,36 @@
       "boot": {
         "warmBootToPlayableS": 12,
         "coldBootDownloadMB": 40
-      }
+      },
+      "features": {
+        "shadows": {
+          "mode": "csm1",
+          "mapSize": 1024,
+          "distanceM": 150
+        },
+        "post": [
+          "fxaa",
+          "tonemap"
+        ],
+        "optionalPost": [
+          "bloom"
+        ],
+        "pipeline": "render-pipeline",
+        "lighting": "probe-grid",
+        "sky": "timecyc-dome",
+        "hdrOutput": false,
+        "msaaSamples": 0
+      },
+      "backend": {
+        "preferred": "webgpu",
+        "forceWebGl": false,
+        "requireRealAdapter": false,
+        "gate": "device-spike-gated"
+      },
+      "xr": null
     },
     "mobile-low": {
+      "family": "mobile",
       "frame": {
         "targetFps": 30,
         "maxFps": 30,
@@ -208,9 +294,33 @@
       "boot": {
         "warmBootToPlayableS": 15,
         "coldBootDownloadMB": 30
-      }
+      },
+      "features": {
+        "shadows": {
+          "mode": "blob",
+          "mapSize": 0,
+          "distanceM": 0
+        },
+        "post": [
+          "tonemap"
+        ],
+        "optionalPost": [],
+        "pipeline": "render-pipeline",
+        "lighting": "probe-grid",
+        "sky": "timecyc-dome",
+        "hdrOutput": false,
+        "msaaSamples": 0
+      },
+      "backend": {
+        "preferred": "webgpu",
+        "forceWebGl": false,
+        "requireRealAdapter": false,
+        "gate": "device-spike-gated"
+      },
+      "xr": null
     },
     "xr-quest": {
+      "family": "xr",
       "frame": {
         "targetFps": 72,
         "maxFps": 90,
@@ -261,9 +371,53 @@
       "boot": {
         "warmBootToPlayableS": 12,
         "coldBootDownloadMB": 40
+      },
+      "features": {
+        "shadows": {
+          "mode": "blob",
+          "mapSize": 0,
+          "distanceM": 0
+        },
+        "post": [],
+        "optionalPost": [],
+        "pipeline": "direct",
+        "lighting": "probe-grid",
+        "sky": "timecyc-dome",
+        "hdrOutput": false,
+        "msaaSamples": 4
+      },
+      "backend": {
+        "preferred": "webgl2",
+        "forceWebGl": true,
+        "requireRealAdapter": false,
+        "gate": "stable"
+      },
+      "xr": {
+        "headset": "quest",
+        "sessionMode": "immersive-vr",
+        "optionalFeatures": [
+          "local-floor",
+          "bounded-floor",
+          "layers",
+          "hand-tracking"
+        ],
+        "nativeWebGpuXr": "never",
+        "multiview": true,
+        "framebufferScale": 1,
+        "framebufferScaleNextEntryFloor": 0.85,
+        "foveationDefault": 1,
+        "refresh": {
+          "minHz": 72,
+          "maxHz": 90,
+          "cutsceneHz": 72,
+          "controllable": true
+        },
+        "mediaLayer": true,
+        "renderedLayers": true
       }
     },
     "xr-visionpro": {
+      "family": "xr",
       "frame": {
         "targetFps": 90,
         "maxFps": 90,
@@ -313,6 +467,49 @@
       "boot": {
         "warmBootToPlayableS": 10,
         "coldBootDownloadMB": 60
+      },
+      "features": {
+        "shadows": {
+          "mode": "csm1",
+          "mapSize": 2048,
+          "distanceM": 200
+        },
+        "post": [],
+        "optionalPost": [],
+        "pipeline": "direct",
+        "lighting": "probe-grid",
+        "sky": "timecyc-dome",
+        "hdrOutput": false,
+        "msaaSamples": 4
+      },
+      "backend": {
+        "preferred": "webgpu",
+        "forceWebGl": false,
+        "requireRealAdapter": false,
+        "gate": "stable"
+      },
+      "xr": {
+        "headset": "visionpro",
+        "sessionMode": "immersive-vr",
+        "optionalFeatures": [
+          "local-floor",
+          "bounded-floor",
+          "hand-tracking",
+          "webgpu"
+        ],
+        "nativeWebGpuXr": "preferred",
+        "multiview": false,
+        "framebufferScale": 1,
+        "framebufferScaleNextEntryFloor": 0.8,
+        "foveationDefault": 1,
+        "refresh": {
+          "minHz": 90,
+          "maxHz": 90,
+          "cutsceneHz": null,
+          "controllable": false
+        },
+        "mediaLayer": false,
+        "renderedLayers": false
       }
     }
   }

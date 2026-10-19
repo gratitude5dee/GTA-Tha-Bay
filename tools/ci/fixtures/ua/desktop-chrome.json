@@ -1,0 +1,53 @@
+{
+  "synthetic": true,
+  "note": "Synthetic fixture written from the spec rules (M01c). The captured DeviceSignals from the device run (AC-13) replace it; the file name and the expect block stay.",
+  "expect": {
+    "class": "desktop",
+    "headset": null,
+    "provisionalTier": "desktop"
+  },
+  "signals": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+    "platform": "Win32",
+    "maxTouchPoints": 0,
+    "hardwareConcurrency": 16,
+    "deviceMemoryGB": 8,
+    "screen": {
+      "w": 1920,
+      "h": 1080,
+      "dpr": 1
+    },
+    "displayModeStandalone": false,
+    "crossOriginIsolated": true,
+    "hasNavigatorGpu": true,
+    "hasNavigatorXr": true,
+    "hasXrGpuBinding": false,
+    "immersiveVrSupported": false,
+    "adapter": {
+      "vendor": "nvidia",
+      "architecture": "ampere",
+      "device": "",
+      "description": "NVIDIA GeForce RTX 3060",
+      "isFallbackAdapter": false,
+      "maxTextureDimension2D": 16384,
+      "maxBufferSize": 4294967296
+    },
+    "gpuFeatures": [
+      "depth-clip-control",
+      "texture-compression-bc",
+      "timestamp-query"
+    ],
+    "opfs": true,
+    "storageQuotaMB": 250000,
+    "storageUsageMB": 12,
+    "uaData": {
+      "brands": [
+        "Chromium",
+        "Google Chrome",
+        "Not.A/Brand"
+      ],
+      "mobile": false,
+      "platform": "Windows"
+    }
+  }
+}

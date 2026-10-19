@@ -6,6 +6,7 @@ import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
 import type { ObjectPool } from '../snapshot/object-pool.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
+import type { RendererHost } from '../../platform/renderer-host.ts';
 
 export interface BootEngineOptions {
   /** Where the canvas and the "Recovering..." banner go. */
@@ -21,6 +22,12 @@ export interface BootEngineOptions {
   spawn?: () => WorkerLike;
   /** Skip the three.js view (the sim still runs and `frame` still ticks on requestAnimationFrame). */
   headless?: boolean;
+  /**
+   * The platform's renderer host (M01c). The engine draws the snapshot on the host's scene and runs on its frame hook; the host
+   * and its canvas belong to the platform, so `dispose` detaches without stopping the loop. Without one, the engine builds none
+   * and ticks on requestAnimationFrame.
+   */
+  host?: RendererHost;
 }
 
 export interface EngineObservation {
@@ -51,6 +58,8 @@ export interface EngineHandle {
   observe(): EngineObservation;
   act(cmd: DebugCommand): boolean;
   step(n: number): boolean;
+  /** Forget the previous frame time so the next `dt` is zero (the page was hidden). */
+  resetClock(): void;
   qaResults(): Record<string, unknown>;
   dispose(): Promise<void>;
 }
@@ -136,7 +145,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   let canvas: HTMLCanvasElement | null = null;
   let stopLoop: () => void = () => {};
-  if (opts.headless) {
+  if (opts.headless || !opts.host) {
     let handle = 0;
     const tick = (t: number): void => {
       onFrame(t);
@@ -145,7 +154,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     handle = requestAnimationFrame(tick);
     stopLoop = () => cancelAnimationFrame(handle);
   } else {
-    const made = await createView(opts, onFrame).catch((e: unknown) => {
+    const made = await createView(opts.host, opts.container, onFrame).catch((e: unknown) => {
       console.warn('engine view unavailable, running the sim without drawing', e);
       return null;
     });
@@ -201,6 +210,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     act: (cmd) => host.sendDebug(cmd),
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
+    resetClock: () => {
+      lastNow = -1;
+    },
     qaResults: () => Object.fromEntries(host.qaResults),
     dispose: async () => {
       disposed = true;
@@ -219,37 +231,22 @@ interface MadeView {
   stop: () => void;
 }
 
-/** The debug cube view: a canvas in the corner of the page, drawn by the renderer host from the snapshot pool. */
-async function createView(opts: BootEngineOptions, onFrame: (nowMs: number) => void): Promise<MadeView> {
-  const [{ RendererHost }, { ObjectPool }, three] = await Promise.all([
-    import('../../platform/renderer-host.ts'),
-    import('../snapshot/object-pool.ts'),
-    import('three/webgpu'),
-  ]);
-  const canvas = document.createElement('canvas');
-  canvas.id = 'dv-engine-canvas';
-  canvas.className = 'dv-engine-canvas';
-  canvas.setAttribute('aria-hidden', 'true');
-  opts.container.append(canvas);
-  const host = await RendererHost.create({ canvas, forceWebGL: opts.flags.gl, xr: false });
+/** The debug cube view: the snapshot pool drawn on the platform host's scene. */
+async function createView(host: RendererHost, container: HTMLElement, onFrame: (nowMs: number) => void): Promise<MadeView> {
+  const [{ ObjectPool }, three] = await Promise.all([import('../snapshot/object-pool.ts'), import('three/webgpu')]);
+  const canvas = host.currentCanvas;
+  if (!canvas.isConnected) container.append(canvas);
 
-  const { scene, camera, renderer } = host;
+  const { scene, camera } = host;
   scene.background = new three.Color(0x10141c);
-  scene.add(new three.HemisphereLight(0xbfd4ff, 0x30343c, 1.6));
+  const hemi = new three.HemisphereLight(0xbfd4ff, 0x30343c, 1.6);
   const sun = new three.DirectionalLight(0xffffff, 2.2);
   sun.position.set(30, 60, 20);
-  scene.add(sun);
+  scene.add(hemi, sun);
   camera.position.set(0, 17, 40);
   camera.lookAt(0, 1, 12);
 
-  const resize = (): void => {
-    const w = Math.max(1, canvas.clientWidth);
-    const h = Math.max(1, canvas.clientHeight);
-    renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, 2));
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-  };
+  const resize = (): void => host.resize(Math.max(1, host.currentCanvas.clientWidth), Math.max(1, host.currentCanvas.clientHeight));
   resize();
   addEventListener('resize', resize);
 
@@ -261,9 +258,8 @@ async function createView(opts: BootEngineOptions, onFrame: (nowMs: number) => v
     backend: host.backend,
     stop: () => {
       host.frameHook = null;
-      renderer.setAnimationLoop(null);
       removeEventListener('resize', resize);
-      canvas.remove();
+      scene.remove(hemi, sun);
     },
   };
 }

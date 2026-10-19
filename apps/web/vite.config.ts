@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -14,6 +15,17 @@ const ISOLATION_HEADERS = {
 
 // '1' for dev, test and preview builds; production builds leave it unset and QA code is dropped.
 const QA = process.env.VITE_DV_QA === '1';
+
+// Build id for tier decisions and telemetry: VITE_DV_BUILD, the CI commit, or the local commit short sha.
+function buildId(): string {
+  const fromEnv = process.env.VITE_DV_BUILD ?? process.env.GITHUB_SHA?.slice(0, 12);
+  if (fromEnv) return fromEnv;
+  try {
+    return execSync('git rev-parse --short=12 HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'dev';
+  } catch {
+    return 'dev';
+  }
+}
 
 const here = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 
@@ -79,6 +91,7 @@ export default defineConfig({
   ],
   define: {
     'import.meta.env.VITE_DV_QA': JSON.stringify(QA ? '1' : '0'),
+    'import.meta.env.VITE_DV_BUILD': JSON.stringify(buildId()),
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { headers: ISOLATION_HEADERS, proxy: { '/api': 'http://localhost:8788' } },

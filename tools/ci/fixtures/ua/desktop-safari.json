@@ -1,0 +1,44 @@
+{
+  "synthetic": true,
+  "note": "Synthetic fixture written from the spec rules (M01c). The captured DeviceSignals from the device run (AC-13) replace it; the file name and the expect block stay.",
+  "expect": {
+    "class": "desktop",
+    "headset": null,
+    "provisionalTier": "desktop"
+  },
+  "signals": {
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+    "platform": "MacIntel",
+    "maxTouchPoints": 0,
+    "hardwareConcurrency": 10,
+    "deviceMemoryGB": null,
+    "screen": {
+      "w": 1512,
+      "h": 982,
+      "dpr": 2
+    },
+    "displayModeStandalone": false,
+    "crossOriginIsolated": true,
+    "hasNavigatorGpu": true,
+    "hasNavigatorXr": false,
+    "hasXrGpuBinding": false,
+    "immersiveVrSupported": null,
+    "adapter": {
+      "vendor": "apple",
+      "architecture": "metal-3",
+      "device": "",
+      "description": "Apple M2 Pro",
+      "isFallbackAdapter": false,
+      "maxTextureDimension2D": 16384,
+      "maxBufferSize": 4294967296
+    },
+    "gpuFeatures": [
+      "texture-compression-astc",
+      "texture-compression-bc",
+      "texture-compression-etc2"
+    ],
+    "opfs": true,
+    "storageQuotaMB": 80000,
+    "storageUsageMB": 3
+  }
+}
