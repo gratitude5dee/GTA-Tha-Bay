@@ -15,10 +15,11 @@ import type { GradingStats } from '../stages/s7-grading.ts';
 import type { PedReport } from '../stages/s8-ped.ts';
 import type { TagsReport } from '../stages/s9-tags.ts';
 import type { PlacesReport } from '../stages/s10-places.ts';
+import type { DistrictGridReport } from '../stages/s12-district-grid.ts';
 
 export interface GateResult {
   id: string;
-  stage: 'S0' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8' | 'S9' | 'S10' | 'S11' | 'S13' | 'S14';
+  stage: 'S0' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8' | 'S9' | 'S10' | 'S11' | 'S12' | 'S13' | 'S14';
   level: 'pass' | 'fail' | 'warn';
   detail: string;
   /** Numbers worth keeping in bake-report.json. */
@@ -124,6 +125,14 @@ export function s9Gates(r: TagsReport): GateResult[] {
   if (r.breakersDropped.length > 0) out.push({ id: 's9.breakers', stage: 'S9', level: 'warn', detail: `${r.breakersDropped.length} pursuit breakers more than 12 m from a road: ${r.breakersDropped.join(', ')}` });
   if (r.portalsMissing.length > 0) out.push({ id: 's9.portals', stage: 'S9', level: 'warn', detail: `portal seeds with no road within reach: ${r.portalsMissing.join(', ')}` });
   return out;
+}
+
+/** S12: the district grid names only known neighbourhoods and assigns at least one cell (every index 0 to 40 or 255 holds by construction). */
+export function s12Gates(r: DistrictGridReport): GateResult[] {
+  return [
+    row('s12.district-names', 'S12', r.unknownNames.length === 0, r.unknownNames.length === 0 ? `every neighbourhood polygon is one of the 41 Analysis Neighborhoods` : `polygons that are not one of the 41: ${r.unknownNames.join(', ')}`, { unknown: r.unknownNames.length }),
+    row('s12.district-cells', 'S12', r.assigned > 0, `${r.assigned} of ${r.cells} cells (${r.cols} x ${r.rows}) belong to ${r.nhoodsPresent} neighbourhoods`, { assigned: r.assigned, cells: r.cells, nhoods: r.nhoodsPresent }),
+  ];
 }
 
 export function s10Gates(r: PlacesReport, requireFeature: boolean): GateResult[] {

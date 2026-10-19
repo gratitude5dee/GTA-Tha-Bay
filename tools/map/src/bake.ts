@@ -34,8 +34,9 @@ import { hoodAt, runPlaces, type PlacesProduct } from './stages/s10-places.ts';
 import { runTransit, type RouteRow, type StopRow, type TransitRoutes } from './stages/s10-transit.ts';
 import { runLod } from './stages/s11-lod.ts';
 import { runFar } from './stages/s11-far.ts';
+import { districtGridBytes, runDistrictGrid, type DistrictGridProduct } from './stages/s12-district-grid.ts';
 import { buildPacks, graphBytes, type PackOutput } from './stages/s13-pack.ts';
-import { failed, s0Gates, s10Gates, s13Gates, s2Gates, s3Gates, s4Gates, s5Gates, s6Gates, s7Gates, s8Gates, s9Gates, type GateResult } from './verify/gates.ts';
+import { failed, s0Gates, s10Gates, s12Gates, s13Gates, s2Gates, s3Gates, s4Gates, s5Gates, s6Gates, s7Gates, s8Gates, s9Gates, type GateResult } from './verify/gates.ts';
 import { verifyBakeDir } from './verify/verify.ts';
 import { buildEdgeGraph } from './graph/route.ts';
 import { attributionFor } from './pack/attribution.ts';
@@ -44,8 +45,8 @@ import { PrismIndex } from './geom/prisms.ts';
 import { cmp, stableJson } from './util.ts';
 import type { SpawnTable } from '../../../packages/shared/src/index.ts';
 
-export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'lod' | 'pack';
-export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'lod', 'pack'];
+export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'district-grid' | 'lod' | 'pack';
+export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod', 'pack'];
 export const isStageId = (s: string): s is StageId => (STAGE_ORDER as readonly string[]).includes(s);
 
 export interface BakeOptions {
@@ -74,6 +75,8 @@ export interface BakeResult {
 }
 
 const TIMES_FILE = 'bake-times.json';
+/** The S12 output, next to world-index.json in the bake directory; `map:pack` ships it as `data/district-grid.v1`. */
+export const DISTRICT_GRID_FILE = 'district-grid.v1.pack';
 
 // ---- raw inputs ---------------------------------------------------------------------------------------------------
 
@@ -162,6 +165,7 @@ interface BuildingsStage { product: BuildingsProduct; gates: GateResult[] }
 interface PedStage { product: PedProduct; gates: GateResult[] }
 interface TagsStage { tags: TagsProduct; spawn: Map<ChunkKey, SpawnTable>; spawnReport: Record<string, number>; gates: GateResult[] }
 interface PlacesStage { places: PlacesProduct; transit: TransitRoutes; transitReport: Record<string, unknown>; gates: GateResult[] }
+interface DistrictStage { product: DistrictGridProduct; gates: GateResult[] }
 interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
 
 export async function runBake(o: BakeOptions): Promise<BakeResult> {
@@ -348,6 +352,13 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   });
   gates.push(...placesStage.gates);
 
+  // S12 district grid
+  const districtStage = await stage<DistrictStage>(c, 'district-grid', wanted.has('district-grid'), ms, () => {
+    const product = runDistrictGrid({ bakeId, hoods: water.product.hoods, play: loadBounds().play });
+    return { product, gates: s12Gates(product.report) };
+  });
+  gates.push(...districtStage.gates);
+
   // S11 LOD packs and the far backdrop
   const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, () => {
     const lod = runLod({
@@ -388,6 +399,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const extra = [
       { name: 'world-index.json', bytes: Buffer.from(stableJson(outputs.index)) },
       { name: 'transit-routes.json', bytes: Buffer.from(stableJson(placesStage.transit)) },
+      { name: DISTRICT_GRID_FILE, bytes: Buffer.from(districtGridBytes(districtStage.product)) },
       { name: RAW_LOCK_NAME, bytes: Buffer.from(rawLockText(bakeLock)) },
       { name: 'attribution.world.json', bytes: Buffer.from(stableJson(attributionFor(cfg, o.area))) },
       { name: 'preview.png', bytes: renderPreview(grid, outputs.sims, outputs.renders) },
@@ -425,6 +437,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       transit: placesStage.transitReport,
       lod: lodStage.report,
       far: lodStage.farReport,
+      districtGrid: districtStage.product.report,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
     };
     const writeReport = (g: GateResult[]): void => {
