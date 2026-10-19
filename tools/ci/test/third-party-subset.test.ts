@@ -30,7 +30,8 @@ describe('reuse:subset (M00f)', () => {
     const rows = JSON.parse(readFileSync(res.file, 'utf8')) as Array<Record<string, string>>;
     expect(rows.map((r) => Object.keys(r).sort())).toEqual([['category', 'sector'], ['category', 'sector'], ['category', 'sector']]);
     expect(rows.map((r) => r.category)).toEqual(['tools', 'apps', 'tools']);
-    expect(existsSync(path.join(toolsRoot, 'third_party'))).toBe(false);
+    expect(path.relative(toolsRoot, res.file).startsWith('..')).toBe(true);
+    expect(existsSync(path.join(toolsRoot, 'third_party', ENTRY, DATA_PATH))).toBe(false);
   });
 
   it('refuses every excluded column of subset.csv, naming its class', () => {

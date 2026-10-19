@@ -15,6 +15,7 @@ import { runLicenseScan } from '../license-scan.ts';
 import { runLikenessGate } from '../likeness-gate.ts';
 import { runNamesLint } from '../names-lint.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
+import { writeThirdPartyLicences } from '../third-party-licenses.ts';
 import { readJson, toolsRoot } from '../lib/common.ts';
 
 const cfg = readJson<IpDenylistConfig>(path.join(toolsRoot, 'config/ip-denylist.json'));
@@ -253,6 +254,7 @@ describe('provenance gate (AC-2)', () => {
     put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
     expect(rules(provenance(root).findings)).toEqual(['derivation-unrooted']);
     const dist = mkdtempSync(path.join(os.tmpdir(), 'dv-prov-dist-'));
+    writeThirdPartyLicences(toolsRoot, path.join(dist, 'third-party-licenses.txt')); // as pnpm build does (M00f item 1)
     expect(runProvenanceCheck({ root: toolsRoot, dist, emitCredits: true }).findings).toEqual([]);
     rmSync(dist, { recursive: true, force: true });
   });

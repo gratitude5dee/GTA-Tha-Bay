@@ -28,9 +28,9 @@ describe('reuse:clones (M00f)', () => {
     expect(scanClones(buildCase('ported-with-header').root).findings).toEqual([]);
   });
 
-  it('clean (nothing ported) passes and the repository has no third_party/', () => {
+  it('clean (nothing ported) passes and so does the repository, vendored or not', () => {
     expect(scanClones(buildCase('clean').root).findings).toEqual([]);
-    expect(scanClones(toolsRoot)).toEqual({ findings: [], scanned: 0 });
+    expect(scanClones(toolsRoot).findings).toEqual([]);
   });
 
   it('a reformatted copy with other comments still matches', () => {
