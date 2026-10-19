@@ -31,6 +31,18 @@ export const TP_NEAR_M = 0.1;
 const SNAP_DISTANCE_M = 8;
 /** Distances within this of the target count as reached (floating point after 18 frames of 1/60 s). */
 const REACHED_EPS = 1e-6;
+/** The player mesh is fully transparent when the camera is within this distance of the head (C04, 01-engine.md section 2.6). */
+export const FADE_NEAR_M = 0.6;
+/** ... and fully opaque beyond FADE_NEAR_M + this. */
+export const FADE_RANGE_M = 0.4;
+/** A shoulder swap takes this long (R-PLAT-04). */
+export const SHOULDER_SWAP_SEC = 0.25;
+/** With a standard (non-reversed) depth buffer the near plane is at least far / this (C04 rule 3). */
+export const STANDARD_DEPTH_NEAR_DIVISOR = 20000;
+/** Shake: peak positional offset per unit of directive amplitude, metres, and the two wobble rates, rad/s (presentation). */
+const SHAKE_METRES = 0.05;
+const SHAKE_RATE_A = 47;
+const SHAKE_RATE_B = 61;
 
 const HALF = 0.5;
 
@@ -59,6 +71,14 @@ export class CameraRigImpl implements CameraRig {
   private userMode: 'fp' | 'tp' = 'tp';
   private directive: PublishedCamera | null = null;
   private shoulder: 'right' | 'left' = 'right';
+  /** +1 right ... -1 left; eases to the shoulder over SHOULDER_SWAP_SEC. */
+  private blend = 1;
+  private blendFrom = 1;
+  private swapT = 1;
+  private _opacity = 1;
+  private shakeAmp = 0;
+  private shakeDecay = 0;
+  private clock = 0;
   private vehicleView: VehicleView = 'chase-mid';
   private readonly listeners = new Set<(m: CameraMode) => void>();
 
@@ -89,6 +109,19 @@ export class CameraRigImpl implements CameraRig {
   /** Which shoulder the camera is on. */
   get currentShoulder(): 'right' | 'left' {
     return this.shoulder;
+  }
+
+  /** Shoulder side as a number: 1 right, -1 left, between while a swap eases. */
+  get shoulderBlend(): number {
+    return this.blend;
+  }
+
+  /**
+   * Opacity for the followed player's mesh: 0 when the camera is within 0.6 m of the head (and in first person), rising to 1
+   * at 1.0 m. The page applies it to the mesh (`ObjectPool.setFade`).
+   */
+  get playerOpacity(): number {
+    return this._opacity;
   }
 
   get locked(): boolean {
@@ -127,17 +160,24 @@ export class CameraRigImpl implements CameraRig {
 
   swapShoulder(): void {
     this.shoulder = this.shoulder === 'right' ? 'left' : 'right';
+    this.blendFrom = this.blend;
+    this.swapT = 0;
     // The sim's distance for the other side is a different cast; the pull-in logic picks it up on the next update.
   }
 
   apply(d: CameraDirective): void {
     this.directive = d as PublishedCamera;
+    if (d.shake && d.shake.amp > this.shakeAmp) {
+      this.shakeAmp = d.shake.amp;
+      this.shakeDecay = d.shake.decayPerSec;
+    }
     // Cinematic and XR shots replace the player's view; otherwise the player's fp/tp choice stands.
     if (d.mode === 'cinematic' || d.mode === 'xr') this.setMode(d.mode);
     else this.setMode(this.userMode);
   }
 
-  update(f: { alpha: number; dtSec: number; reducedMotion: boolean; drawDistanceM: number }): void {
+  update(f: { alpha: number; dtSec: number; reducedMotion: boolean; drawDistanceM: number; depthPolicy?: 'standard' | 'reversed' }): void {
+    this.advanceBlend(Math.max(0, f.dtSec));
     const d = this.directive;
     const follow = d?.follow;
     if (!d || !follow || (this._mode !== 'fp' && this._mode !== 'tp')) return;
@@ -174,8 +214,7 @@ export class CameraRigImpl implements CameraRig {
     let py = s.y;
     let pz = s.z;
     if (!fp) {
-      const side = this.shoulder === 'right' ? 1 : -1;
-      tpOffsetWorld(s.yaw, s.pitch, side, this.offset, follow.offset);
+      tpOffsetWorld(s.yaw, s.pitch, this.blend, this.offset, follow.offset);
       const len = Math.hypot(this.offset[0], this.offset[1], this.offset[2]);
       const target = Math.min(len, this.allowedFor(d, follow));
       this.moveDistance(target, dt, follow.collision.easeOutSec, !this.initialized);
@@ -190,6 +229,24 @@ export class CameraRigImpl implements CameraRig {
     }
     this.initialized = true;
 
+    // Shake is presentation: ignored under reduced motion, in XR and in cinematic modes, and it decays by itself.
+    this.clock += dt;
+    if (f.reducedMotion) this.shakeAmp = 0;
+    if (this.shakeAmp > 0) {
+      const a = this.shakeAmp * SHAKE_METRES;
+      px += Math.sin(this.clock * SHAKE_RATE_A) * a;
+      py += Math.sin(this.clock * SHAKE_RATE_B + 1.3) * a;
+      this.shakeAmp *= Math.exp(-this.shakeDecay * dt);
+      if (this.shakeAmp < 1e-4) this.shakeAmp = 0;
+    }
+
+    // The mesh fades out as the camera comes within 0.6 m of the head.
+    const hx = pose.x;
+    const hy = pose.y + this.headY;
+    const hz = pose.z;
+    const headDist = Math.hypot(px - hx, py - hy, pz - hz);
+    this._opacity = fp ? 0 : Math.min(1, Math.max(0, (headDist - FADE_NEAR_M) / FADE_RANGE_M));
+
     const yaw = fp ? look.yaw : s.yaw;
     const pitch = fp ? look.pitch : s.pitch;
     const sy = Math.sin(yaw * HALF);
@@ -202,7 +259,9 @@ export class CameraRigImpl implements CameraRig {
     cam.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
 
     const fov = fp ? FP_FOV_DEG : follow.fovDeg;
-    const near = fp ? FP_NEAR_M : TP_NEAR_M;
+    // A standard depth buffer loses precision at range: near = max(near, far / 20000) (C04 rule 3). Reversed depth keeps it.
+    const baseNear = fp ? FP_NEAR_M : TP_NEAR_M;
+    const near = (f.depthPolicy ?? 'standard') === 'standard' ? Math.max(baseNear, f.drawDistanceM / STANDARD_DEPTH_NEAR_DIVISOR) : baseNear;
     if (cam.fov !== fov || cam.near !== near || cam.far !== f.drawDistanceM) {
       cam.fov = fov;
       cam.near = near;
@@ -219,6 +278,18 @@ export class CameraRigImpl implements CameraRig {
   }
 
   // ------------------------------------------------------------------ internals
+
+  /** Eases the shoulder side toward the chosen shoulder: smoothstep over SHOULDER_SWAP_SEC. */
+  private advanceBlend(dt: number): void {
+    const to = this.shoulder === 'right' ? 1 : -1;
+    if (this.swapT >= 1) {
+      this.blend = to;
+      return;
+    }
+    this.swapT = Math.min(1, this.swapT + dt / SHOULDER_SWAP_SEC);
+    const k = this.swapT * this.swapT * (3 - 2 * this.swapT);
+    this.blend = this.blendFrom + (to - this.blendFrom) * k;
+  }
 
   private setMode(m: CameraMode): void {
     if (m === this._mode) return;

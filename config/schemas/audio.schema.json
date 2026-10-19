@@ -18,6 +18,7 @@
     }
   },
   "properties": {
+    "$comment": { "type": "string" },
     "version": { "const": 1 },
     "buses": {
       "type": "object",

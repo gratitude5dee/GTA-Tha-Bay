@@ -29,6 +29,7 @@
     }
   },
   "properties": {
+    "$comment": { "type": "string" },
     "version": { "const": 1 },
     "tiers": {
       "type": "object",

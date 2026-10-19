@@ -17,13 +17,15 @@ export interface Pose {
   qz: number;
   qw: number;
   animState: number;
+  /** `Anim.p0` of the entity: the speed for locomotion graphs, m/s. */
+  animP0: number;
   flags: number;
   /** True when the entity was placed at the newest snapshot without blending (new, teleported or a large tick gap). */
   snapped: boolean;
 }
 
 function newPose(): Pose {
-  return { handle: 0, renderKey: 0, px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, animState: 0, flags: 0, snapped: true };
+  return { handle: 0, renderKey: 0, px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, animState: 0, animP0: 0, flags: 0, snapped: true };
 }
 
 const viewCache = new WeakMap<Uint8Array, DataView>();
@@ -104,6 +106,7 @@ export function interpolateSnapshots(prev: SnapshotFrame | null, cur: SnapshotFr
     const cqz = cv.getFloat32(o + 40, true);
     const cqw = cv.getFloat32(o + 44, true);
     pose.animState = cv.getUint16(o + 48, true);
+    pose.animP0 = cv.getFloat32(o + 52, true);
     pose.flags = cv.getUint16(o + 50, true);
     const j = pv ? prevIndex.get(pose.handle) : undefined;
     let snapped = true;
