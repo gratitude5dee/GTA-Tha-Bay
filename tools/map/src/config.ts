@@ -13,7 +13,7 @@ import type { RoadClassConfig } from './stages/s5-roads.ts';
 
 export const TOOL_NAME = 'tools/map';
 /** Bumped by hand when a change alters baked bytes; part of the bakeId (C08 rule 16). */
-export const TOOL_VERSION = '0.3.0';
+export const TOOL_VERSION = '0.3.1';
 export const TOOL_ID = `${TOOL_NAME}@${TOOL_VERSION}`;
 
 export type AreaId = 'sf' | 'civic-excerpt' | 'synth';

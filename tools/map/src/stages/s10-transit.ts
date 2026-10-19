@@ -7,7 +7,10 @@
  *             the pattern bound to (edge, s) within 25 m
  *   ferry     OSM `route=ferry` ways, else the authored lines of content/world/transit-lines.json
  *   cablecar  splines from the street-name chains of content/world/cablecars.json (each leg a path along edges of that street
- *             between its two cross streets; U-W6: a missing chain fails on `sf`, other areas skip them)
+ *             and the OSM cable rails between its two cross streets; a chain end with no node carrying both street names
+ *             resolves to the `railway=turntable` at that terminus; every resampled spline point must lie within 6 m of a
+ *             street edge, a tram rail or a turntable; U-W6, DL-710: a missing chain or a point off the network fails on `sf`,
+ *             other areas skip them)
  *   air       the 3 authored corridors
  */
 import { enuFromLatLng, type RoadEdge } from '../../../../packages/shared/src/index.ts';
@@ -36,7 +39,13 @@ export interface TransitRoutes {
 export interface TransitReport {
   metro: number; bus: number; busStops: number; ferry: number; ferrySource: 'osm' | 'authored' | 'none'; cablecar: number; air: number;
   cablecarMissing: string[]; busGaps: number; busUnbound: number;
+  /** The 6 m check of every built cable-car spline (resampled every 5 m): worst distance, its anchor OSM id and the turntables the chain ends resolved to. */
+  cablecarCheck: { id: string; points: number; worstM: number; worstAnchor: string; turntables: string[] }[];
+  /** Lines with a spline point more than 6 m from every street edge, tram rail and turntable (a bake failure on sf). */
+  cablecarOff: string[];
 }
+export const CABLE_CHECK_M = 6;
+const TURNTABLE_JOIN_M = 20;
 
 export interface TransitInputs {
   bakeId: string;
@@ -58,7 +67,7 @@ const flat = (p: readonly number[]): number[] => p.map(q1);
 const slugId = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export function runTransit(inp: TransitInputs): { routes: TransitRoutes; report: TransitReport } {
-  const report: TransitReport = { metro: 0, bus: 0, busStops: 0, ferry: 0, ferrySource: 'none', cablecar: 0, air: 0, cablecarMissing: [], busGaps: 0, busUnbound: 0 };
+  const report: TransitReport = { metro: 0, bus: 0, busStops: 0, ferry: 0, ferrySource: 'none', cablecar: 0, air: 0, cablecarMissing: [], busGaps: 0, busUnbound: 0, cablecarCheck: [], cablecarOff: [] };
   const out: TransitRoutes = { schema: 'transit-routes/1', bakeId: inp.bakeId, metro: [], bus: [], ferry: [], cablecar: [], air: [] };
   const sorted = [...inp.osm].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const inBox = (x: number, z: number): boolean => x >= inp.box.minX && x <= inp.box.maxX && z >= inp.box.minZ && z <= inp.box.maxZ;
@@ -171,84 +180,8 @@ export function runTransit(inp: TransitInputs): { routes: TransitRoutes; report:
   }
   report.ferry = out.ferry.length;
 
-  // -- cable cars
-  const namesAt = new Map<string, Set<number>>();
-  inp.segs.forEach((s, i) => {
-    const n = normalizeStreetName(s.name);
-    if (!n) return;
-    for (const node of [s.a, s.b]) {
-      const key = `${node}`;
-      const set = namesAt.get(key) ?? new Set<number>();
-      set.add(i);
-      namesAt.set(key, set);
-    }
-  });
-  const nodesWith = (street: string, cross: string): number[] => {
-    const a = normalizeStreetName(street), b = normalizeStreetName(cross);
-    const out2: number[] = [];
-    for (const n of inp.nodes) {
-      const segsHere = namesAt.get(`${n.id}`);
-      if (!segsHere) continue;
-      const names = new Set([...segsHere].map((i) => normalizeStreetName((inp.segs[i] as SegB).name)));
-      if (names.has(a) && names.has(b)) out2.push(n.id);
-    }
-    return out2;
-  };
-  const legPath = (street: string, from: number, to: number): number[] | null => {
-    // shortest path over segments named `street`, undirected
-    const sn = normalizeStreetName(street);
-    const adj = new Map<number, { seg: number; other: number }[]>();
-    inp.segs.forEach((s, i) => {
-      if (normalizeStreetName(s.name) !== sn) return;
-      (adj.get(s.a) ?? adj.set(s.a, []).get(s.a)!).push({ seg: i, other: s.b });
-      (adj.get(s.b) ?? adj.set(s.b, []).get(s.b)!).push({ seg: i, other: s.a });
-    });
-    const dist = new Map<number, number>([[from, 0]]);
-    const prev = new Map<number, { node: number; seg: number }>();
-    const queue = [from];
-    while (queue.length > 0) {
-      queue.sort((a, b) => (dist.get(a) as number) - (dist.get(b) as number) || a - b);
-      const u = queue.shift() as number;
-      if (u === to) break;
-      for (const { seg, other } of adj.get(u) ?? []) {
-        const nd = (dist.get(u) as number) + (inp.segs[seg] as SegB).lengthM;
-        if (nd < (dist.get(other) ?? Infinity)) { dist.set(other, nd); prev.set(other, { node: u, seg }); queue.push(other); }
-      }
-    }
-    if (!dist.has(to)) return null;
-    const segsOut: number[] = [];
-    for (let u = to; u !== from;) { const p = prev.get(u) as { node: number; seg: number }; segsOut.push(p.seg); u = p.node; }
-    return segsOut.reverse();
-  };
-  for (const line of inp.content.cablecars.lines) {
-    const pts: number[] = [];
-    let ok = true;
-    let at = -1;
-    for (const leg of line.legs) {
-      const starts = nodesWith(leg.street, leg.from), ends = nodesWith(leg.street, leg.to);
-      if (starts.length === 0 || ends.length === 0) { ok = false; break; }
-      let path: number[] | null = null;
-      let startNode = -1;
-      for (const s0 of at >= 0 && starts.includes(at) ? [at] : starts) {
-        for (const e0 of ends) { const p = legPath(leg.street, s0, e0); if (p && (!path || p.length < path.length)) { path = p; startNode = s0; } }
-      }
-      if (!path) { ok = false; break; }
-      // append the polylines in travel order
-      let cur = startNode;
-      for (const si of path) {
-        const s = inp.segs[si] as SegB;
-        const fwd = s.a === cur;
-        const g = fwd ? s.pts : edgeXzRev(s.pts);
-        for (let i = pts.length === 0 ? 0 : 2; i < g.length; i += 2) pts.push(g[i] as number, g[i + 1] as number);
-        cur = fwd ? s.b : s.a;
-      }
-      at = cur;
-    }
-    if (ok && polyLength(pts) > 0) {
-      out.cablecar.push({ id: line.id, nameKey: `transit.${line.id}`, points: flat(pts) });
-    } else report.cablecarMissing.push(line.id);
-  }
-  report.cablecar = out.cablecar.length;
+  // -- cable cars (U-W6, DL-710)
+  cableCars(inp, sorted, out, report);
 
   // -- air corridors
   for (const a of inp.content.transitLines.air) {
@@ -260,8 +193,264 @@ export function runTransit(inp: TransitInputs): { routes: TransitRoutes; report:
   return { routes: out, report };
 }
 
-function edgeXzRev(p: number[]): number[] {
+// ---- cable cars -----------------------------------------------------------------------------------------------------------
+
+interface CNode { x: number; z: number }
+interface CEdge { to: number; len: number; pts: number[]; src: string }
+
+/** Dijkstra over an explicit graph (a few thousand nodes: a scan for the minimum keeps the order deterministic). */
+function shortest(adj: readonly (CEdge[] | undefined)[], starts: readonly number[], ends: ReadonlySet<number>): { nodes: number[]; edges: CEdge[] } | null {
+  const dist = new Float64Array(adj.length).fill(Infinity);
+  const prev = new Int32Array(adj.length).fill(-1);
+  const prevEdge: (CEdge | null)[] = new Array(adj.length).fill(null);
+  const queue: number[] = [];
+  for (const s0 of starts) { dist[s0] = 0; queue.push(s0); }
+  const done = new Uint8Array(adj.length);
+  while (queue.length > 0) {
+    let bi = 0;
+    for (let i = 1; i < queue.length; i++) {
+      const a = queue[i] as number, b = queue[bi] as number;
+      if ((dist[a] as number) < (dist[b] as number) || ((dist[a] as number) === (dist[b] as number) && a < b)) bi = i;
+    }
+    const u = queue.splice(bi, 1)[0] as number;
+    if (done[u]) continue;
+    done[u] = 1;
+    if (ends.has(u)) {
+      const nodes: number[] = [u];
+      const edges: CEdge[] = [];
+      for (let v = u; prev[v] !== -1;) { edges.push(prevEdge[v] as CEdge); v = prev[v] as number; nodes.push(v); }
+      return { nodes: nodes.reverse(), edges: edges.reverse() };
+    }
+    for (const e of adj[u] ?? []) {
+      const nd = (dist[u] as number) + e.len;
+      if (nd < (dist[e.to] as number)) { dist[e.to] = nd; prev[e.to] = u; prevEdge[e.to] = e; queue.push(e.to); }
+    }
+  }
+  return null;
+}
+
+const revPts = (p: readonly number[]): number[] => {
   const o: number[] = [];
   for (let i = p.length - 2; i >= 0; i -= 2) o.push(p[i] as number, p[i + 1] as number);
   return o;
+};
+
+/** Nodes at which a segment named `street` meets one named `cross`. */
+function nodesWith(inp: TransitInputs, street: string, cross: string): number[] {
+  const a = normalizeStreetName(street), b = normalizeStreetName(cross);
+  const names = new Map<number, Set<string>>();
+  for (const s of inp.segs) {
+    const n = normalizeStreetName(s.name);
+    if (!n) continue;
+    for (const node of [s.a, s.b]) {
+      let set = names.get(node);
+      if (!set) names.set(node, (set = new Set()));
+      set.add(n);
+    }
+  }
+  const out: number[] = [];
+  for (const n of inp.nodes) {
+    const set = names.get(n.id);
+    if (set && set.has(a) && set.has(b)) out.push(n.id);
+  }
+  return out;
+}
+
+/**
+ * The cable-car chains (U-W6, DL-710). A leg walks the segments of its street, the OSM cable rails (`railway=tram`,
+ * `cable_tram=cable`, not in a tunnel, no sidings) joined to the street nodes they share or lie within 6 m of, and the rail
+ * ends at the turntables; a chain end with no node carrying both street names resolves to the `railway=turntable` at that
+ * terminus. Every spline point (resampled every 5 m) is then tested against the 6 m rule.
+ */
+function cableCars(inp: TransitInputs, sorted: readonly OsmFeature[], out: TransitRoutes, report: TransitReport): void {
+  if (inp.content.cablecars.lines.length === 0) return;
+  const rails: { id: string; pts: number[] }[] = [];
+  const turntables: { id: string; x: number; z: number; ring: number[] }[] = [];
+  const tramAnchors: { id: string; pts: number[] }[] = [];
+  for (const f of sorted) {
+    const t = f.tags;
+    if (t['railway'] === 'turntable') {
+      if (f.geometry.type === 'Point') {
+        const c = f.geometry.coordinates as number[];
+        const e = enuFromLatLng(c[1] as number, c[0] as number);
+        turntables.push({ id: f.id, x: e.x, z: e.z, ring: [e.x, e.z, e.x, e.z] });
+      } else if (!f.id.startsWith('a')) {
+        const line = linesOf(f.geometry)[0];
+        if (line && line.length >= 4) {
+          let sx = 0, sz = 0;
+          const n = line.length / 2;
+          for (let i = 0; i < line.length; i += 2) { sx += line[i] as number; sz += line[i + 1] as number; }
+          turntables.push({ id: f.id, x: sx / n, z: sz / n, ring: line });
+        }
+      }
+      continue;
+    }
+    if (t['railway'] !== 'tram' && t['railway'] !== 'light_rail') continue;
+    if (t['tunnel'] !== undefined && t['tunnel'] !== 'no') continue;
+    for (const [i, line] of linesOf(f.geometry).entries()) {
+      if (line.length < 4) continue;
+      const id = `${f.id}${i ? `-${i}` : ''}`;
+      tramAnchors.push({ id, pts: line });
+      if (t['cable_tram'] === 'cable' && t['service'] !== 'siding') rails.push({ id, pts: line });
+    }
+  }
+  const streetNames = new Set<string>();
+  for (const line of inp.content.cablecars.lines) for (const leg of line.legs) { streetNames.add(normalizeStreetName(leg.street)); streetNames.add(normalizeStreetName(leg.from)); streetNames.add(normalizeStreetName(leg.to)); }
+
+  const cn: CNode[] = [];
+  const keyOf = new Map<string, number>();
+  const nodeAt = (key: string, x: number, z: number): number => {
+    const h = keyOf.get(key);
+    if (h !== undefined) return h;
+    cn.push({ x, z });
+    keyOf.set(key, cn.length - 1);
+    return cn.length - 1;
+  };
+  const adj: CEdge[][] = [];
+  const link = (a: number, b: number, pts: number[], src: string): void => {
+    const len = polyLength(pts);
+    (adj[a] ??= []).push({ to: b, len, pts, src });
+    (adj[b] ??= []).push({ to: a, len, pts: revPts(pts), src });
+  };
+  const rk = (x: number, z: number): string => `r${x.toFixed(2)},${z.toFixed(2)}`;
+  const streetNode = (id: number): number => nodeAt(`s${id}`, (inp.nodes[id] as NodeB).x, (inp.nodes[id] as NodeB).z);
+
+  // joints: a street node within 6 m of a cable rail splits that rail edge at the projection and joins it
+  const candidates = new Set<number>();
+  inp.segs.forEach((sg) => { if (streetNames.has(normalizeStreetName(sg.name))) { candidates.add(sg.a); candidates.add(sg.b); } });
+  const railEdges: { rail: number; ax: number; az: number; bx: number; bz: number }[] = [];
+  rails.forEach((r, ri) => { for (let i = 2; i < r.pts.length; i += 2) railEdges.push({ rail: ri, ax: r.pts[i - 2] as number, az: r.pts[i - 1] as number, bx: r.pts[i] as number, bz: r.pts[i + 1] as number }); });
+  const edgeGrid = new PointGrid<number>(32);
+  railEdges.forEach((e, k) => { edgeGrid.add((e.ax + e.bx) / 2, (e.az + e.bz) / 2, k); });
+  const jointsOn = new Map<number, { t: number; x: number; z: number; street: number }[]>();
+  for (const id of [...candidates].sort((a, b) => a - b)) {
+    const nd = inp.nodes[id] as NodeB;
+    let best: { k: number; d: number; t: number; x: number; z: number } | null = null;
+    for (const h of edgeGrid.query(nd.x, nd.z, 60)) {
+      const e = railEdges[h.item] as (typeof railEdges)[number];
+      const dx = e.bx - e.ax, dz = e.bz - e.az;
+      const l2 = dx * dx + dz * dz;
+      let t = l2 === 0 ? 0 : ((nd.x - e.ax) * dx + (nd.z - e.az) * dz) / l2;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const px = e.ax + dx * t, pz = e.az + dz * t;
+      const d = Math.hypot(px - nd.x, pz - nd.z);
+      if (d <= CABLE_CHECK_M && (!best || d < best.d - 1e-9 || (Math.abs(d - best.d) <= 1e-9 && h.item < best.k))) best = { k: h.item, d, t, x: px, z: pz };
+    }
+    if (best) {
+      const l = jointsOn.get(best.k) ?? [];
+      l.push({ t: best.t, x: best.x, z: best.z, street: id });
+      jointsOn.set(best.k, l);
+    }
+  }
+  railEdges.forEach((e, k) => {
+    const js = (jointsOn.get(k) ?? []).sort((a, b) => a.t - b.t || a.street - b.street);
+    const src = (rails[e.rail] as { id: string }).id;
+    let px = e.ax, pz = e.az;
+    let from = nodeAt(rk(px, pz), px, pz);
+    for (const j of js) {
+      const jn = nodeAt(`j${k}:${j.street}`, j.x, j.z);
+      link(from, jn, [px, pz, j.x, j.z], src);
+      link(jn, streetNode(j.street), [j.x, j.z, (inp.nodes[j.street] as NodeB).x, (inp.nodes[j.street] as NodeB).z], 'joint');
+      px = j.x; pz = j.z; from = jn;
+    }
+    link(from, nodeAt(rk(e.bx, e.bz), e.bx, e.bz), [px, pz, e.bx, e.bz], src);
+  });
+  // a turntable centre joins every rail vertex within 20 m (the track ends a few metres short of the ring)
+  const turnNode = new Map<string, number>();
+  const railVertices = [...keyOf.entries()].filter(([key]) => key.startsWith('r'));
+  for (const tt of turntables) {
+    const tn = nodeAt(`t${tt.id}`, tt.x, tt.z);
+    turnNode.set(tt.id, tn);
+    for (const [, id] of railVertices) {
+      const n = cn[id] as CNode;
+      if (Math.hypot(n.x - tt.x, n.z - tt.z) <= TURNTABLE_JOIN_M) link(tn, id, [tt.x, tt.z, n.x, n.z], tt.id);
+    }
+  }
+  // the segments of one street are added per leg
+  const withStreet = (street: string): (CEdge[] | undefined)[] => {
+    const sn = normalizeStreetName(street);
+    const extra: [number, number, number[], string][] = [];
+    inp.segs.forEach((sg) => { if (normalizeStreetName(sg.name) === sn) extra.push([streetNode(sg.a), streetNode(sg.b), sg.pts, `w${sg.osmWay}`]); });
+    const a2: (CEdge[] | undefined)[] = [];
+    for (let i = 0; i < cn.length; i++) a2.push(adj[i] ? [...(adj[i] as CEdge[])] : []);
+    for (const [a, b, pts, src] of extra) {
+      const len = polyLength(pts);
+      (a2[a] as CEdge[]).push({ to: b, len, pts, src });
+      (a2[b] as CEdge[]).push({ to: a, len, pts: revPts(pts), src });
+    }
+    return a2;
+  };
+  const distToStreet = (name: string, x: number, z: number): number => {
+    const sn = normalizeStreetName(name);
+    let best = Infinity;
+    for (const sg of inp.segs) if (normalizeStreetName(sg.name) === sn) best = Math.min(best, nearestOnPoly(sg.pts, x, z).d);
+    return best;
+  };
+  /** The street nodes carrying both names, and the turntable at that terminus (within 250 m of both streets) when there is one. */
+  const endNodes = (street: string, cross: string): { nodes: number[]; turntable: { id: string; node: number } | null } => {
+    const found = nodesWith(inp, street, cross).map(streetNode);
+    let best: { id: string; score: number } | null = null;
+    for (const tt of turntables) {
+      const a = distToStreet(street, tt.x, tt.z), b = distToStreet(cross, tt.x, tt.z);
+      if (a > 250 || b > 250) continue;
+      const score = a + b;
+      if (!best || score < best.score - 1e-9 || (Math.abs(score - best.score) <= 1e-9 && tt.id < best.id)) best = { id: tt.id, score };
+    }
+    return { nodes: found, turntable: best && turnNode.has(best.id) ? { id: best.id, node: turnNode.get(best.id) as number } : null };
+  };
+
+  // the 6 m anchors: street edges, tram rails and turntable rings
+  const anchorGrid = new PointGrid<string>(16);
+  const addAnchor = (pts: readonly number[], id: string): void => {
+    const r = resample(pts as number[], 3);
+    for (let i = 0; i < r.length; i += 2) anchorGrid.add(r[i] as number, r[i + 1] as number, id);
+  };
+  for (const sg of inp.segs) addAnchor(sg.pts, `w${sg.osmWay}`);
+  for (const r of tramAnchors) addAnchor(r.pts, r.id);
+  for (const tt of turntables) addAnchor(tt.ring, tt.id);
+
+  for (const line of inp.content.cablecars.lines) {
+    const pts: number[] = [];
+    const usedTurntables: string[] = [];
+    let ok = true;
+    let at = -1;
+    for (const [li, leg] of line.legs.entries()) {
+      const a2 = withStreet(leg.street);
+      const s0 = endNodes(leg.street, leg.from), e0 = endNodes(leg.street, leg.to);
+      // a chain end resolves to the turntable of its terminus (the real end of the track), else to the street node carrying both names
+      const startSets: number[][] = li === 0 && s0.turntable ? [[s0.turntable.node], s0.nodes] : [s0.nodes];
+      const endSets: number[][] = li === line.legs.length - 1 && e0.turntable ? [[e0.turntable.node], e0.nodes] : [e0.nodes];
+      let res: { nodes: number[]; edges: CEdge[] } | null = null;
+      for (const ss of startSets) {
+        for (const es of endSets) {
+          if (res || ss.length === 0 || es.length === 0) continue;
+          res = shortest(a2, at >= 0 && ss.includes(at) ? [at] : ss, new Set(es));
+        }
+      }
+      if (!res) { ok = false; break; }
+      if (s0.turntable && res.nodes[0] === s0.turntable.node && !usedTurntables.includes(s0.turntable.id)) usedTurntables.push(s0.turntable.id);
+      if (e0.turntable && res.nodes[res.nodes.length - 1] === e0.turntable.node && !usedTurntables.includes(e0.turntable.id)) usedTurntables.push(e0.turntable.id);
+      for (const e of res.edges) {
+        for (let i = 0; i < e.pts.length; i += 2) {
+          const x = e.pts[i] as number, z = e.pts[i + 1] as number;
+          if (pts.length >= 2 && Math.hypot(x - (pts[pts.length - 2] as number), z - (pts[pts.length - 1] as number)) < 0.05) continue;
+          pts.push(x, z);
+        }
+      }
+      at = res.nodes[res.nodes.length - 1] as number;
+    }
+    if (!(ok && polyLength(pts) > 0)) { report.cablecarMissing.push(line.id); continue; }
+    out.cablecar.push({ id: line.id, nameKey: `transit.${line.id}`, points: flat(pts) });
+    // every resampled spline point within 6 m of a street edge, a tram rail or a turntable (anchors are sampled every 3 m)
+    const sample = resample(pts, 5);
+    let worst = 0, worstAnchor = '';
+    for (let i = 0; i < sample.length; i += 2) {
+      const hit = anchorGrid.nearest(sample[i] as number, sample[i + 1] as number, 60);
+      const d = hit ? hit.d : Infinity;
+      if (d > worst) { worst = d; worstAnchor = hit ? hit.item : 'none'; }
+    }
+    report.cablecarCheck.push({ id: line.id, points: sample.length / 2, worstM: Number.isFinite(worst) ? Math.round(worst * 10) / 10 : 9999, worstAnchor, turntables: usedTurntables });
+    if (worst > CABLE_CHECK_M) report.cablecarOff.push(line.id);
+  }
+  report.cablecar = out.cablecar.length;
 }

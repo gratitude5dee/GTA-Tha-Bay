@@ -198,7 +198,7 @@ function buildGlobal(inp: PedInputs, strideOf: (cx: number, cz: number) => numbe
     sidewalkKm += (2 * len) / 1000;
     const mid = pointAt(seg.pts, L / 2);
     const key = chunkKeyAt(9, mid.x, mid.z);
-    sidewalkM.set(key, (sidewalkM.get(key) ?? 0) + 2 * len);
+    if (seg.island !== true) sidewalkM.set(key, (sidewalkM.get(key) ?? 0) + 2 * len);   // islands get no ped slots (DL-706)
     sides.set(i, { left0: lids[0] as number, left1: lids[lids.length - 1] as number, right0: rids[0] as number, right1: rids[rids.length - 1] as number });
     // mid-block crosswalks
     for (const c of crossAt.get(i) ?? []) {

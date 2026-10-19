@@ -56,13 +56,13 @@
       "approved_at": "2026-10-19T03:03:04Z"
     },
     "data/npc-roster": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "e439d31decdde855799d5953235050c7fd83f85f644556121c5b8682f7058369"
+        "default": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2"
       },
-      "root": "e439d31decdde855799d5953235050c7fd83f85f644556121c5b8682f7058369",
-      "approved_by": "m06a2-builder",
-      "approved_at": "2026-10-19T03:03:04Z"
+      "root": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2",
+      "approved_by": "m02a2-sf-fix-builder",
+      "approved_at": "2026-10-19T17:35:08Z"
     },
     "texture/asset-smoke": {
       "rev": 1,

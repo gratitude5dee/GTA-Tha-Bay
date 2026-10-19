@@ -17,6 +17,13 @@ const MB_API = `https://api.${MB}.com`;
 const denied = JSON.parse(readFileSync(new URL('./fixtures/sources.denied-host.json', import.meta.url), 'utf8').replaceAll('${MB}', MB)) as SourcesConfig;
 
 const cfg = loadSources();
+// The three credit lines of the Terrain Tiles data over the bake boxes, in this order (DL-711): the 3DEP line, then the two lines
+// the attribution document requires verbatim for the USGS and NOAA datasets; the registry citation follows when the lock is committed.
+const TERRAIN_CREDIT = [
+  '3DEP data courtesy of the U.S. Geological Survey',
+  'United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.',
+  'Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration',
+].join('. ').replace('Survey.. ', 'Survey. ');
 const clone = (): SourcesConfig => JSON.parse(JSON.stringify(cfg)) as SourcesConfig;
 
 describe('attribution.world.json (AC-6)', () => {
@@ -35,6 +42,9 @@ describe('attribution.world.json (AC-6)', () => {
       licenceUrl: 'https://registry.opendata.aws/terrain-tiles',
     });
     expect(by.get('terrarium')!.text.startsWith('3DEP data courtesy of the U.S. Geological Survey')).toBe(true);
+    // DL-711: the credit lines the Terrain Tiles attribution document requires for the datasets behind the bake boxes
+    expect(by.get('terrarium')!.text).toContain('United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.');
+    expect(by.get('terrarium')!.text).toContain('Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration');
     for (const e of by.values()) {
       expect(Object.keys(e).sort()).toEqual(['id', 'licence', 'licenceUrl', 'source', 'surfaces', 'text']);
       expect(e.surfaces.length).toBeGreaterThan(0);
@@ -45,10 +55,10 @@ describe('attribution.world.json (AC-6)', () => {
     const lock = JSON.parse(readFileSync(path.join(repoRoot, 'content/world/raw.lock.sf.json'), 'utf8')) as { sources: { id: string; retrievedAt: string }[] };
     const date = lock.sources.find((s) => s.id === 'terrarium')!.retrievedAt.slice(0, 10);
     const withLock = buildAttribution(cfg).entries.find((e) => e.id === 'terrarium')!;
-    expect(withLock.text).toBe(`3DEP data courtesy of the U.S. Geological Survey. Terrain Tiles was accessed on ${date} from https://registry.opendata.aws/terrain-tiles`);
+    expect(withLock.text).toBe(`${TERRAIN_CREDIT}. Terrain Tiles was accessed on ${date} from https://registry.opendata.aws/terrain-tiles`);
     expect(terrariumAccessDate()).toBe(date);
     expect(terrariumAccessDate(path.join(tmpdir(), 'dv-no-such-lock.json'))).toBeNull();
-    expect(buildAttribution(cfg, null).entries.find((e) => e.id === 'terrarium')!.text).toBe('3DEP data courtesy of the U.S. Geological Survey');
+    expect(buildAttribution(cfg, null).entries.find((e) => e.id === 'terrarium')!.text).toBe(TERRAIN_CREDIT);
   });
 
   it('lists every source and no excluded one (3D Tiles, Mapbox)', () => {
@@ -132,7 +142,11 @@ describe('map:fetch', () => {
     const cmds = osmCommands(cfg, '/raw', '/raw/norcal.osm.pbf');
     expect(cmds[0]).toBe('osmium extract --bbox=-122.55,37.68,-122.3,37.89 --strategy=complete_ways --overwrite -o /raw/osm-sf.osm.pbf /raw/norcal.osm.pbf');
     expect(cmds[1]).toContain('osmium tags-filter');
-    expect(cmds[2]).toContain('osmium export');
+    // DL-708: the landmark Source ids are merged back into the tag-filtered extract before the export
+    expect(cmds[2]).toBe('osmium getid --overwrite --add-referenced -i /raw/landmark-ids.txt -o /raw/osm-sf-landmarks.osm.pbf /raw/osm-sf.osm.pbf');
+    expect(cmds[3]).toBe('osmium merge --overwrite -o /raw/osm-sf-merged.osm.pbf /raw/osm-sf-tags.osm.pbf /raw/osm-sf-landmarks.osm.pbf');
+    expect(cmds[4]).toContain('osmium export');
+    expect(cmds[4]).toContain('/raw/osm-sf-merged.osm.pbf');
     expect(cmds.join(' ')).not.toMatch(/\{[a-zA-Z.]+\}/);
     expect(osmCommands(cfg, '/raw', '/raw/n.pbf', true)[0]).toContain('--bbox=-122.6,37.3,-121.8,38');
     expect(fillCommand('a {x} {y}', { x: 1 })).toBe('a 1 {y}');

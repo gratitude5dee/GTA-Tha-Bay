@@ -1,36 +1,89 @@
 {
   "milestone": "M02a2",
-  "ac": "AC-8 (operator run on the real city; seeds NOT corrected, see blockedOn)",
+  "ac": "AC-8 (operator run on the real city), fix pass for DL-705 to DL-711 on tools/map@0.3.1; the first run is kept under \"before\"",
   "date": "2026-10-19",
-  "bakeId": "8463cd8bbf18e711030c37ff035a023755eae91f4447e0dc95810a81905cbb46",
-  "toolVersion": "tools/map@0.3.0",
+  "bakeId": "a7a692659d501f453bcee2ac9387b87c2d1a005aa923fd40e46e16cb81811687",
+  "toolVersion": "tools/map@0.3.1",
   "reproducible": "map:build -- --area sf --repro: 410 outputs byte-identical across both runs",
-  "bakeTime": "about 232 s of stage time per bake (places 102 s is the longest); 9 min 17 s wall for the two-bake repro run",
+  "bakeTime": "187 s of stage time per bake (places 80 s is the longest); the first operator run took about 232 s per bake",
   "validators": {
-    "map:verify": "FAIL: s14.scc, s14.portal-routes, s14.max-grade, s14.landmarks, s14.hero-edges",
-    "map:landmarks": "FAIL (3): crissy-field 225 m and candlestick-point 369 m from their OSM feature (limit 120 m); golden-gate-bridge has no arrival pose on ground; 15 seeds WARN feature-missing (name not found in the extract)",
-    "map:pois": "FAIL (35): 14 pois.bind (no pedestrian node within 25 m) and 21 pois.nhood (id prefix names another neighbourhood than the DataSF polygon holding the point)"
+    "map:verify": "PASS: 19 S14 gates, no failing stage gate (s14.scc 98.00 %, s14.portal-routes 73 of 73, s14.max-grade 40 %, s14.landmarks 37 of 37, s14.hero-edges, s14.transit-cablecar 3)",
+    "map:landmarks": "PASS: 0 findings; every seed measured to its OSM feature geometry (largest distance 0.6 m, lm.twin-peaks); the 35 OSM-sourced seeds are all in the extract",
+    "map:pois": "PASS: 152 seeds, 0 pois.bind and 0 pois.nhood findings"
+  },
+  "before": {
+    "note": "the first operator run on bake 8463cd8bbf18 (tools/map@0.3.0), before the Architect decisions DL-705 to DL-711",
+    "map:verify": "PASS: 19 S14 gates, no failing stage gate (s14.scc 98.00 %, s14.portal-routes 73 of 73, s14.max-grade 40 %, s14.landmarks 37 of 37, s14.hero-edges, s14.transit-cablecar 3)",
+    "map:landmarks": "PASS: 0 findings; every seed measured to its OSM feature geometry (largest distance 0.6 m, lm.twin-peaks); the 35 OSM-sourced seeds are all in the extract",
+    "map:pois": "PASS: 152 seeds, 0 pois.bind and 0 pois.nhood findings",
+    "largestScc": "93.77 % (51,304 of 54,710)",
+    "s7.grade": "45 %",
+    "s7.slab-steps": "0.20 m over 69,404 slabs",
+    "s14.portal-routes": "72 of 77 portals reachable",
+    "s14.landmarks": "36 of 37"
   },
   "U-W5": {
-    "portalsSnapped": ["portal.ggb", "portal.baybridge", "portal.ferry"],
+    "portalsSnapped": [
+      "portal.ggb",
+      "portal.baybridge",
+      "portal.ferry"
+    ],
     "portalsMissing": [],
+    "portals": "73 of 73 reachable from the City Hall edge (edge 39101); portal.cl.53251, 53918, 53969 and 53975 (the Recycle Road service fragment) are no longer generated",
     "bayRail": "s14.bay-rail PASS: 8 bay-rail transit nodes, all fastTravel",
-    "note": "the Golden Gate portal point snapped; the GG bridge landmark has no arrival pose on ground (gate s10.arrival / s14.landmarks)"
+    "stationNodes": {
+      "embarcadero-station": "n2150077198",
+      "montgomery-station": "n5015578939",
+      "powell-station": "n2150077204",
+      "civic-center-station": "n2150077196",
+      "16th-st-station": "n2150077206",
+      "24th-st-station": "n2150077208",
+      "glen-park-station": "n6133371922",
+      "balboa-park-station": "n6133371923"
+    },
+    "stationNote": "the 8 station seeds are the OSM railway=station nodes of the BART stations (positions 17 to 79 m from the N4 seeds, cross-check 150 m); prefixes: Powell and Civic Center poi.south-of-market, Glen Park poi.west-of-twin-peaks, Balboa Park poi.outer-mission, the other four unchanged",
+    "landmarkArrival": "lm.golden-gate-bridge arrives at (-5206.1, -5139.8), the nearest valid pedestrian node, 649 m from the landmark and about 75 m from portal.ggb at the Marin end; lm.hunters-point-yard arrives at (4796.2, 5671.1), 430 m away (the shipyard is access=private and has no sidewalks). All other 35 landmarks arrive within 120 m"
   },
   "U-W6": {
-    "result": "FAIL: cable-car chains cc.powell-hyde and cc.powell-mason not found in the street graph within 6 m (gate s10.cablecars)",
-    "transitCablecar": "1 cable-car spline built (at least 1 required on sf)"
+    "result": "PASS: s10.cablecars (all 3 chains found) and the 6 m check on every spline point resampled every 5 m",
+    "lines": {
+      "cc.powell-hyde": {
+        "lengthM": 3394,
+        "worstDistanceM": 2.6,
+        "worstAnchorOsm": "w197979144",
+        "turntables": [
+          "w197974389",
+          "w197979144"
+        ]
+      },
+      "cc.powell-mason": {
+        "lengthM": 2559,
+        "worstDistanceM": 2.5,
+        "worstAnchorOsm": "w197974389",
+        "turntables": [
+          "w197974389",
+          "w667569434"
+        ]
+      },
+      "cc.california": {
+        "lengthM": 2299,
+        "worstDistanceM": 1.5,
+        "worstAnchorOsm": "w144346316",
+        "turntables": []
+      }
+    },
+    "anchors": "chain ends resolved to the turntables w197974389 (Powell/Market), w667569434 (Taylor/Bay) and w197979144 (Hyde/Beach); cc.california ends at street nodes (no turntable within 250 m of both its streets); cable rails: OSM railway=tram + cable_tram=cable ways, no sidings, no tunnels"
   },
   "U-W9": {
-    "sidewalkKm": 2882.2,
-    "crosswalks": 46238,
-    "pedEdges": 817385,
+    "sidewalkKm": 2873.4,
+    "crosswalks": 46196,
+    "pedEdges": 816547,
     "tilesBelow85Percent": 59,
-    "minTileFraction": 0.131,
+    "minTileFraction": 0.095,
     "ferrySource": "osm",
     "ferryLines": 22,
-    "ferryInteriorSamplesOverWater": "11901 of 11908",
-    "gate": "s8.connectivity WARN only (59 tiles below 85 % ped connectivity, worst 13.1 %)"
+    "gate": "s8.connectivity WARN only (59 tiles below 85 % ped connectivity)",
+    "poiIds": "every renamed or reseeded POI id is listed under poiSeeds"
   },
   "U-W15": {
     "onewayAgreement": {
@@ -38,9 +91,16 @@
       "fAlong": 0.9697,
       "fAgainst": 0.0303,
       "comparable": 7007,
-      "dsfOneOsmTwo": 769,
+      "dsfOneOsmTwo": 763,
       "designValue": "> 0.90",
       "result": "PASS",
+      "dl705": {
+        "dsfAppliedToNamedTwoWayStreetsPieces": 370,
+        "osmOnewaysKept": 6224,
+        "osmOnewaysKeptAgainstDsf": 108,
+        "unnamedPiecesSkipped": 1206,
+        "otherLayerPiecesSkipped": 37
+      },
       "worstPieces": "first 20 (cnn, osmWay) pairs are in dist/world/<bakeId>/bake-report.json roads.oneway.worst"
     },
     "signalNodeMatch": {
@@ -52,35 +112,925 @@
       "unmatched": "7 nodes, ENU (2102.7,-1965.6) (2015.6,-2084.7) (2009.8,-2092.7) (2232,-1786.7) (2001.9,-830.5) (2272.3,-589.8) (2949,3720)"
     },
     "largestScc": {
-      "edgesInLargest": 51304,
-      "edges": 54710,
-      "ratio": 0.9377,
+      "edgesInLargest": 53210,
+      "edges": 54294,
+      "ratio": 0.98003,
       "designValue": ">= 0.98",
-      "result": "FAIL at the design value (recorded, not lowered, DL-669)",
-      "excludingServiceClass": "46904 of 48890 non-service edges = 0.9594, still below 0.98",
-      "byClass": "Freeway 81.2 %, Ramp 76.3 %, Arterial 95.0 %, Collector 97.1 %, Local 96.2 %, Service 75.6 % of their edges in the largest component",
-      "components": 1887,
-      "strays": "3406 edges outside the largest component: 454 edges on Treasure Island (cnn 14178001, way 52721875) plus 30 nearby (cnn 14121000, way 1512043163), most likely cut off because both one-way Bay Bridge carriageways are cut at the east edge of the area (nothing joins them after the cut; not separately proven); 1626 single-edge one-way pieces and 43 components touching the area edge; the remainder are OSM-only service roads (cnn 0) such as ways 676296608 (112 edges, 37.7453 -122.3834) and 209725945 (110 edges, 37.8358 -122.4781, at the area edge)",
-      "worstSegments": "454 edges near cnn 14178001 way 52721875; 117 near way 908635483 (37.8311 -122.5175, area edge); 112 near way 676296608; 110 near way 209725945; 36 near way 1544968992"
+      "result": "PASS at the design value (98.003 %: 53,210 edges where 53,209 are needed, a margin of one edge)",
+      "steps": {
+        "declared island drops only (905 edges leave the count)": "97.91 % (53,132 of 54,265)",
+        "plus the 8 Van Ness Avenue ways, w1222505189 and the ti.avenue-n connector": "97.98 % (53,188 of 54,282)",
+        "plus pairing every unchosen source with its nearest sink": "97.99 % (53,190 of 54,282)",
+        "plus w8919110 and w23798318": "98.00 % (53,210 of 54,294)",
+        "with no island rule and no fix (DL-705 only)": "96.31 % (53,132 of 55,170); the Architect measured 53,134"
+      },
+      "composition": "1,084 edges outside the largest SCC: 949 in the main weakly connected component (one-way stubs, service loops and dead ends that cannot be re-entered) and 135 on the 29 kept islands",
+      "withoutTheTwoPublicStreetKeeps": "97.99 % (w8919110 The Embarcadero lane and w23798318 Medical Center Way are the last two keepWays; without them 53,190 of 54,282)",
+      "vehicleNo": {
+        "question": "what treating vehicle=no|private and motor_vehicle=no|private like access does (w781122181 Powell Street)",
+        "measured": "with the rule on a copy of the extract, S5 builds 54,009 edges (285 fewer) and the largest SCC is 52,931 of 54,009 = 98.004 % against 98.003 % now; the rule was not changed"
+      }
     }
   },
+  "roads.islands": {
+    "rules": {
+      "detachedAtClip": true,
+      "detachedService": true
+    },
+    "components": 221,
+    "mainEdges": 54159,
+    "dropped": {
+      "components": 192,
+      "edges": 905,
+      "byRule": {
+        "detachedService": {
+          "components": 187,
+          "edges": 761
+        },
+        "detachedAtClip": {
+          "components": 5,
+          "edges": 144
+        }
+      },
+      "largest": [
+        {
+          "rule": "detachedService",
+          "edges": 112,
+          "at": [
+            3156,
+            3778.7
+          ],
+          "osmWays": [
+            670639291,
+            676296591,
+            676296592,
+            676296593
+          ],
+          "osmWaysTotal": 22,
+          "cnns": []
+        },
+        {
+          "rule": "detachedAtClip",
+          "edges": 110,
+          "at": [
+            -5183.8,
+            -6278.4
+          ],
+          "osmWays": [
+            12174678,
+            12175619,
+            12176260,
+            12181805
+          ],
+          "osmWaysTotal": 40,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 26,
+          "at": [
+            1941,
+            7857.2
+          ],
+          "osmWays": [
+            499112177,
+            499112178,
+            499112179,
+            499112180
+          ],
+          "osmWaysTotal": 8,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 23,
+          "at": [
+            3250.4,
+            3246.6
+          ],
+          "osmWays": [
+            676313563,
+            676313564,
+            676313565,
+            676313566
+          ],
+          "osmWaysTotal": 7,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 22,
+          "at": [
+            -4526.4,
+            -1483.1
+          ],
+          "osmWays": [
+            996990389,
+            997729312,
+            997729313,
+            997729316
+          ],
+          "osmWaysTotal": 6,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 18,
+          "at": [
+            -7309.7,
+            5126.4
+          ],
+          "osmWays": [
+            30085688,
+            55952865,
+            55952923,
+            55953350
+          ],
+          "osmWaysTotal": 9,
+          "cnns": []
+        },
+        {
+          "rule": "detachedAtClip",
+          "edges": 16,
+          "at": [
+            -5129.8,
+            -6509.2
+          ],
+          "osmWays": [
+            12174678,
+            848345035,
+            944651888,
+            1300090792
+          ],
+          "osmWaysTotal": 5,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 16,
+          "at": [
+            2329.9,
+            4415.4
+          ],
+          "osmWays": [
+            503951442,
+            503951443,
+            503951444,
+            680944622
+          ],
+          "osmWaysTotal": 4,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 14,
+          "at": [
+            3981.5,
+            3946.1
+          ],
+          "osmWays": [
+            1539940503,
+            1539940504,
+            1539940505
+          ],
+          "osmWaysTotal": 3,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 12,
+          "at": [
+            -3146.6,
+            3417.9
+          ],
+          "osmWays": [
+            265892086,
+            414241169,
+            564824639,
+            1208185043
+          ],
+          "osmWaysTotal": 5,
+          "cnns": []
+        },
+        {
+          "rule": "detachedAtClip",
+          "edges": 12,
+          "at": [
+            -9.4,
+            9053.3
+          ],
+          "osmWays": [
+            275618610,
+            475894200,
+            475894201
+          ],
+          "osmWaysTotal": 3,
+          "cnns": []
+        },
+        {
+          "rule": "detachedService",
+          "edges": 10,
+          "at": [
+            692.2,
+            8480.5
+          ],
+          "osmWays": [
+            8920543,
+            8921170,
+            1031601595,
+            1138005572
+          ],
+          "osmWaysTotal": 5,
+          "cnns": []
+        }
+      ]
+    },
+    "keptComponents": 29,
+    "keptEdges": 135,
+    "kept": [
+      {
+        "edges": 24,
+        "at": [
+          -5402,
+          7275.6
+        ],
+        "osmWays": [
+          8916387,
+          8916390,
+          104473300,
+          104486736,
+          104486737,
+          771550203
+        ],
+        "osmWaysTotal": 10,
+        "cnns": [
+          19840000,
+          19882000
+        ],
+        "datasfLayers": [
+          "PRIVATE_PARKING"
+        ],
+        "reason": "joined to the grid only through 8 parking_aisle or driveway way(s) that roadclass.json excludes (w499109226, w499109228, w499109230); 3 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w8920226, w104473298, w415460010)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 18,
+        "at": [
+          -1041.5,
+          -3048.3
+        ],
+        "osmWays": [
+          28318675,
+          28318681,
+          28318779,
+          1246410518,
+          1273625509,
+          1273625510
+        ],
+        "osmWaysTotal": 7,
+        "cnns": [
+          15199000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_FTMASON"
+        ],
+        "reason": "joined to the grid only through 16 parking_aisle or driveway way(s) that roadclass.json excludes (w28318730, w28318732, w28318792)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 14,
+        "at": [
+          2252.7,
+          4279.2
+        ],
+        "osmWays": [
+          681388721,
+          681393405,
+          1090375356,
+          1090375357
+        ],
+        "osmWaysTotal": 4,
+        "cnns": [
+          7499000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "next to 3 access=private or access=no way(s) that S5 drops (w225854648, w655511739, w680949312)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 9,
+        "at": [
+          -4966.6,
+          7305.4
+        ],
+        "osmWays": [
+          8916388,
+          8916389,
+          1300256282,
+          1300256289
+        ],
+        "osmWaysTotal": 4,
+        "cnns": [
+          19843000,
+          19885000,
+          19886000,
+          19887000
+        ],
+        "datasfLayers": [
+          "PRIVATE_PARKING"
+        ],
+        "reason": "joined to the grid only through 6 parking_aisle or driveway way(s) that roadclass.json excludes (w8915497, w499109247, w499109254); next to 1 access=private or access=no way(s) that S5 drops (w339045940); 2 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w415460934, w415461579)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 9,
+        "at": [
+          850.1,
+          5065
+        ],
+        "osmWays": [
+          780152936,
+          848000606,
+          855439709,
+          855439710
+        ],
+        "osmWaysTotal": 4,
+        "cnns": [
+          19354000
+        ],
+        "datasfLayers": [
+          "FREEWAYS"
+        ],
+        "reason": "next to 2 access=private or access=no way(s) that S5 drops (w8917575, w1089991967)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 6,
+        "at": [
+          3123.1,
+          1989.3
+        ],
+        "osmWays": [
+          499938088
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          12933000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 3 parking_aisle or driveway way(s) that roadclass.json excludes (w499938083, w499938086, w676391261); next to 1 access=private or access=no way(s) that S5 drops (w8915359)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 6,
+        "at": [
+          2744.8,
+          3439.4
+        ],
+        "osmWays": [
+          503951514,
+          503951515
+        ],
+        "osmWaysTotal": 2,
+        "cnns": [
+          12494000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "next to 1 access=private or access=no way(s) that S5 drops (w27239313); 1 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w503951516)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 6,
+        "at": [
+          -3040.6,
+          6097.1
+        ],
+        "osmWays": [
+          743727412,
+          743727413
+        ],
+        "osmWaysTotal": 2,
+        "cnns": [
+          15348000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 6 parking_aisle or driveway way(s) that roadclass.json excludes (w159026610, w159026631, w159026637)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 5,
+        "at": [
+          -2170.6,
+          -3136.4
+        ],
+        "osmWays": [
+          853993751,
+          853993752,
+          1286126662,
+          1286126663
+        ],
+        "osmWaysTotal": 4,
+        "cnns": [
+          13745000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 3 parking_aisle or driveway way(s) that roadclass.json excludes (w46273519, w562765653, w853993753)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          3776.6,
+          -5405.8
+        ],
+        "osmWays": [
+          8916045
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          14194000
+        ],
+        "datasfLayers": [
+          "STREETS_TI"
+        ],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w1473022607); next to 1 access=private or access=no way(s) that S5 drops (w8919233)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          3744.1,
+          -5378.5
+        ],
+        "osmWays": [
+          11315799
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          14193000
+        ],
+        "datasfLayers": [
+          "STREETS_TI"
+        ],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w499105903); next to 1 access=private or access=no way(s) that S5 drops (w8919233)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          938.6,
+          -2512.5
+        ],
+        "osmWays": [
+          48211085
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [],
+        "datasfLayers": [],
+        "reason": "2 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w8919586, w8919816)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          2782.9,
+          1045.9
+        ],
+        "osmWays": [
+          145486759
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [],
+        "datasfLayers": [],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w255650643)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          4626.7,
+          -3412
+        ],
+        "osmWays": [
+          198399586
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          14233000
+        ],
+        "datasfLayers": [
+          "STREETS_YBI"
+        ],
+        "reason": "joined to the grid only through 2 parking_aisle or driveway way(s) that roadclass.json excludes (w864291223, w1472754372); next to 1 access=private or access=no way(s) that S5 drops (w864291223)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -2416.7,
+          -3041.5
+        ],
+        "osmWays": [
+          369457185
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          13745000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 3 parking_aisle or driveway way(s) that roadclass.json excludes (w59161514, w59161527, w562765659); 1 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w743125605)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -7945.5,
+          409.5
+        ],
+        "osmWays": [
+          474100977
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [],
+        "datasfLayers": [],
+        "reason": "joined to the grid only through 3 parking_aisle or driveway way(s) that roadclass.json excludes (w474101012, w474101024, w474101026); 2 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w27553656, w563907987)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -3213.7,
+          -2496.2
+        ],
+        "osmWays": [
+          562765468
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          19148000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "joined to the grid only through 3 parking_aisle or driveway way(s) that roadclass.json excludes (w251507039, w562765473, w562765647); 1 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w294892294)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -4105.7,
+          -2470.1
+        ],
+        "osmWays": [
+          562765485
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          15187000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w562765488)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -4401.8,
+          -2325.8
+        ],
+        "osmWays": [
+          562765593
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          19677000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w525275856)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -7698.4,
+          1126.9
+        ],
+        "osmWays": [
+          563907954
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          12999000
+        ],
+        "datasfLayers": [
+          "PARKS"
+        ],
+        "reason": "joined to the grid only through 2 parking_aisle or driveway way(s) that roadclass.json excludes (w563907953, w563907955)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          222.8,
+          7463.9
+        ],
+        "osmWays": [
+          564751541
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          12267000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 1 parking_aisle or driveway way(s) that roadclass.json excludes (w564751538); next to 1 access=private or access=no way(s) that S5 drops (w254299137)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          164.2,
+          7445.1
+        ],
+        "osmWays": [
+          564751542
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          12267000
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 2 parking_aisle or driveway way(s) that roadclass.json excludes (w43798433, w43798441); next to 1 access=private or access=no way(s) that S5 drops (w254299137); 1 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w564751545)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -4056.8,
+          -2513.7
+        ],
+        "osmWays": [
+          805225939
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          15226000
+        ],
+        "datasfLayers": [
+          "FREEWAYS"
+        ],
+        "reason": "no OSM way within 30 m joins it to the grid (a mapped gap)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -275.7,
+          786.5
+        ],
+        "osmWays": [
+          1089032368
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          13052201
+        ],
+        "datasfLayers": [
+          "STREETS"
+        ],
+        "reason": "joined to the grid only through 4 parking_aisle or driveway way(s) that roadclass.json excludes (w564392725, w564392727, w564392728)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          1013.5,
+          4914.1
+        ],
+        "osmWays": [
+          1348212858
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          19343000
+        ],
+        "datasfLayers": [
+          "FREEWAYS"
+        ],
+        "reason": "next to 1 access=private or access=no way(s) that S5 drops (w733184941)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -4332.6,
+          -1629.5
+        ],
+        "osmWays": [
+          1389663024
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          19593000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "no OSM way within 30 m joins it to the grid (a mapped gap)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 2,
+        "at": [
+          -4989.1,
+          -3061.4
+        ],
+        "osmWays": [
+          1525327132,
+          1525327149
+        ],
+        "osmWaysTotal": 2,
+        "cnns": [
+          19866002
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "next to 3 access=private or access=no way(s) that S5 drops (w27031216, w791514279, w1525327137); 1 other drivable OSM way(s) near it are not in the graph (excluded DataSF layer such as PRIVATE or PAPER) (w1560010145)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 1,
+        "at": [
+          -3700,
+          -1037.7
+        ],
+        "osmWays": [
+          399568324
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [],
+        "datasfLayers": [],
+        "reason": "no OSM way within 30 m joins it to the grid (a mapped gap)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      },
+      {
+        "edges": 1,
+        "at": [
+          -4937.5,
+          -1199.7
+        ],
+        "osmWays": [
+          563128207
+        ],
+        "osmWaysTotal": 1,
+        "cnns": [
+          19865000
+        ],
+        "datasfLayers": [
+          "PARKS_NPS_PRESIDIO"
+        ],
+        "reason": "joined to the grid only through 2 parking_aisle or driveway way(s) that roadclass.json excludes (w563128204, w563128205)",
+        "fix": "left on the R-S02-05 fix list (not a public connection the Architect named); no slots, portal, teleport or spawn node"
+      }
+    ],
+    "fixed": {
+      "keepWays": [
+        8919110,
+        8919473,
+        23798318,
+        24007947,
+        26987989,
+        254759961,
+        254759962,
+        419755791,
+        467982369,
+        680783336,
+        775576585,
+        1222505189
+      ],
+      "connectors": [
+        "ti.avenue-n"
+      ],
+      "where": "content/world/road-fixes.json; each entry carries its reason (9 Van Ness Avenue ways at Fort Mason behind the PRIVATE row cnn 15101000 so that McDowell Rd SW joins; Treasure Island Clipper Cove Way / Avenue G through w1222505189 and the Avenue N connector; The Embarcadero lane w8919110 and Medical Center Way w23798318)"
+    },
+    "listedInReport": "dist/world/<bakeId>/bake-report.json roads.islands.list holds every dropped and kept fragment with osmWay and cnn ids"
+  },
+  "grading": {
+    "maxGradePct": 40,
+    "slabs": 37009,
+    "maxSlabStepM": 0.1,
+    "nodesLowered": 82,
+    "bridges": "353 bridge segments, none over 6 % (steepest 6.00 %); node heights are closed under the sum of per-step integer allowances (5 nodes on the Architect expectation, 82 with the 6 % bridge limit)",
+    "chunkLimits": "s14.chunk-limits PASS (most road edges in a chunk 106 of 600); s13.pack-size PASS (largest pack 1.28 MB of 4 MiB)"
+  },
+  "landmarks": {
+    "featureDistancesM": {
+      "lm.twin-peaks": 0.6,
+      "lm.painted-ladies": 0.6,
+      "lm.mount-davidson-cross": 0.6,
+      "lm.dragon-gate": 0.4,
+      "lm.haight-ashbury": 0.3,
+      "lm.powell-turntable": 0.2,
+      "lm.lombard-crooked": 0.1,
+      "lm.pier-39": 0.1
+    },
+    "crissy-field": 0,
+    "candlestick-point": 0,
+    "snapped": 8,
+    "featureMissing": [],
+    "arrivalFar": [
+      {
+        "distM": 649,
+        "id": "lm.golden-gate-bridge",
+        "x": -5206.1,
+        "z": -5139.8
+      },
+      {
+        "distM": 430,
+        "id": "lm.hunters-point-yard",
+        "x": 4796.2,
+        "z": 5671.1
+      }
+    ],
+    "extract": "S0 merges the 35 landmark OSM ids into the extract (osmium getid + merge); raw.lock.sf.json osm entry sha256 ddc5aeeb2c06..., 561,193 rows (was 561,182)"
+  },
+  "poiSeeds": {
+    "result": "pois.bind 0, pois.nhood 0 on 152 seeds",
+    "landmarkRenames": {
+      "poi.financial-district-south-beach.pyramid-tower": "poi.chinatown.pyramid-tower",
+      "poi.western-addition.painted-ladies": "poi.hayes-valley.painted-ladies",
+      "poi.south-of-market.china-basin-ballpark": "poi.mission-bay.china-basin-ballpark",
+      "poi.chinatown.dragon-gate": "poi.financial-district-south-beach.dragon-gate",
+      "poi.mission.dolores-park": "poi.castro-upper-market.dolores-park",
+      "poi.tenderloin.powell-turntable": "poi.financial-district-south-beach.powell-turntable",
+      "poi.lincoln-park.lands-end-lookout": "poi.outer-richmond.lands-end-lookout",
+      "poi.south-of-market.rail-terminus": "poi.mission-bay.rail-terminus"
+    },
+    "stationRenames": {
+      "poi.financial-district-south-beach.powell-station": "poi.south-of-market.powell-station",
+      "poi.tenderloin.civic-center-station": "poi.south-of-market.civic-center-station",
+      "poi.glen-park.glen-park-station": "poi.west-of-twin-peaks.glen-park-station",
+      "poi.oceanview-merced-ingleside.balboa-park-station": "poi.outer-mission.balboa-park-station"
+    },
+    "parkRenames": {
+      "poi.mission.dolores-park-lawn": "poi.castro-upper-market.dolores-park-lawn",
+      "poi.western-addition.alamo-square-lawn": "poi.hayes-valley.alamo-square-lawn",
+      "poi.south-of-market.yerba-buena-gardens": "poi.financial-district-south-beach.yerba-buena-gardens",
+      "poi.castro-upper-market.duboce-park": "poi.haight-ashbury.duboce-park",
+      "poi.haight-ashbury.panhandle-lawn": "poi.golden-gate-park.panhandle-lawn"
+    },
+    "hubsMoved": [
+      "north-beach",
+      "outer-mission",
+      "seacliff",
+      "sunset-parkside",
+      "tenderloin",
+      "treasure-island",
+      "glen-park",
+      "japantown",
+      "nob-hill",
+      "western-addition"
+    ],
+    "businessesMoved": [
+      "poi.north-beach.lowtide-espresso",
+      "poi.north-beach.gilded-anchor"
+    ],
+    "otherReferences": "poi.mission.dolores-park in content/npcs/poi.stub.json, content/npcs/ro-batista/soul.md (soulVersion 2) and assets/src/data/npc-roster/npc-roster.json (data/npc-roster rev 2)"
+  },
   "otherMeasured": {
-    "s7.grade": "steepest road 45 % (limit 40 %): 68 edges at 36 % or more; the 12 steepest include 1 to 2 m long edges at 45 %, 44 %, 42 % (grade measured across one 4 m terrain post step), and two ramp edges of 219 m and 27 m at 40 % near Yerba Buena Island",
-    "s7.slab-steps": "largest step between slab tops 0.20 m over 69404 slabs (limit 0.16 m)",
-    "s14.max-grade": "same 45 % edge as s7.grade",
-    "s14.portal-routes": "City Hall edge 39234 reaches 72 of 77 portals; not reachable: portal.baybridge, portal.cl.53251, portal.cl.53918, portal.cl.53969, portal.cl.53975",
-    "s14.hero-edges": "hero.bay-bridge-west-span (edge 14239) and hero.yerba-buena-tunnel (edge 14220) are outside the largest component; golden-gate main span, Lombard and Filbert pass",
-    "s14.landmarks": "36 of 37 seeds placed (at least 25 required, all 37 expected): lm.golden-gate-bridge has no arrival pose",
-    "s14.pois": "PASS: 151 POIs (at least 150); poi.presidio.golden-gate-bridge skipped",
+    "s7.grade": "steepest road 40 % (limit 40 %), 0 edges over 40 %",
+    "s7.slab-steps": "largest step between slab tops 0.10 m over 37,009 slabs (limit 0.16 m)",
+    "s14.portal-routes": "City Hall edge 39101 reaches 73 of 73 portals",
+    "s14.hero-edges": "all 5 hero edges drivable and connected, including the Bay Bridge west span and the Yerba Buena Island tunnel",
+    "s14.landmarks": "37 of 37 landmarks with an arrival pose",
+    "s14.pois": "PASS: 152 POIs (at least 150)",
     "s9.breakers WARN": "5 pursuit breakers more than 12 m from a road: pb.tenderloin-scaffold, pb.chinatown-produce, pb.mission-bay-crane, pb.powell-turntable, pb.russian-hill-billboard",
-    "s9.tag-limit WARN": "shoreNodes thinned by 2913 to the limit of 24 per chunk"
+    "s9.tag-limit WARN": "shoreNodes thinned by 2913 to the limit of 24 per chunk",
+    "s10.arrival-far WARN": "lm.golden-gate-bridge 649 m, lm.hunters-point-yard 430 m (nearest valid pedestrian node at any distance)",
+    "junctions": "S6 pairs 8 box-clip sinks with sources (clipPairs 8, none unpaired)"
   },
   "blockedOn": [
-    "U-W15 largest SCC 93.77 % against 98 % (Architect calibration by DL entry; the Bay Bridge cut at the area edge (likely) and OSM-only one-way service roads are the measured causes)",
-    "Landmark seeds crissy-field (225 m) and candlestick-point (369 m) from their OSM feature: map:landmarks compares the seeds with the section 7 table of 02-world-bake.md, so a corrected lat/lng is also a table change (Architect). Seeds not edited",
-    "35 POI seed findings (14 unbound, 21 neighbourhood-prefix): need authoring decisions (move the point or rename the id). Seeds not edited",
-    "Cable-car chains cc.powell-hyde, cc.powell-mason (U-W6)",
-    "Golden Gate bridge landmark arrival pose; Bay Bridge west span and Yerba Buena tunnel hero edges outside the largest component",
-    "Slope limits 40 % and slab step 0.16 m (design values) against 45 % and 0.20 m measured"
+    "Nothing is blocked on a gate: every M02a2 gate passes at its design value. The SCC margin is one edge (98.003 %, 53,210 of 54,294 where 53,209 are needed); two of the twelve keepWays (w8919110, w23798318) are what lift it from 97.99 % to 98.00 %, so the Architect may drop them to see the 97.99 % figure",
+    "U-W15 stays open for calibration review: the other 29 kept islands (135 edges) and 949 one-way stub edges are left in the count, on the R-S02-05 fix list above"
   ]
 }

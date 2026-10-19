@@ -4,7 +4,7 @@
  * tunnel portals), pursuitBreakers (authored, snapped to an edge within 12 m), chokePoints (bridge and tunnel mouths, ramps
  * with at most two lanes, narrow streets), jumpZones (crests with vertical curvature above 0.02 /m at speeds from 11 m/s,
  * at most three per chunk), portals (authored bridge, ferry and tunnel seeds snapped to the graph, plus one `county-line`
- * portal per drivable edge that leaves the neighbourhood union on land), shoreNodes (land-side coastline samples every
+ * portal per drivable edge that leaves the neighbourhood union on land and is not on an island, DL-706), shoreNodes (land-side coastline samples every
  * 40 m with the outward normal, piers included) and teleportNodes (XR nodes at stairs and slopes of 15 % and more; landmark
  * and transit nodes come from S10, which runs after this stage).
  * A chunk holds at most 24 records per type (contract rule 20): derived records beyond that are thinned in hash order and
@@ -204,6 +204,7 @@ export function runTags(inp: TagsInputs): TagsProduct {
   }
   inp.edges.forEach((e) => {
     const s = inp.segs[e.seg] as SegB;
+    if (s.island === true) return;   // an island gets no portal (DL-706); dropped fragments are not in the graph
     const from = inp.nodes[e.from] as NodeB, to = inp.nodes[e.to] as NodeB;
     if (!inp.inUnion(from.x, from.z) || inp.inUnion(to.x, to.z) || !inp.isLand(to.x, to.z)) return;
     // the last point of the edge inside the union
@@ -254,18 +255,25 @@ export function runTags(inp: TagsInputs): TagsProduct {
     }
   }
 
-  // -- teleport nodes: stairs and steep walkways (XR comfort)
+  // -- teleport nodes: stairs and steep walkways (XR comfort); none beside an island (DL-706)
+  const islandGrid = new PointGrid<number>(32);
+  inp.segs.forEach((s, i) => {
+    if (s.island !== true) return;
+    const L = polyLength(s.pts);
+    for (let d = 0; d <= L; d += 8) { const p = pointAt3(s.pts, s.ys, d); islandGrid.add(p.x, p.z, i); }
+  });
+  const nearIsland = (x: number, z: number): boolean => islandGrid.nearest(x, z, 14) !== null;
   for (const [key, c] of inp.ped.chunks) {
     const byId = new Map(c.nodes.map((n) => [n.id, n] as const));
     for (const n of c.nodes) {
-      if ((n.flags & PedNodeFlag.Stairs) !== 0) add('teleportNodes', { id: idAt('tp.xr', n.x, n.z), x: n.x, y: n.y, z: n.z, yaw: 0, kind: 'xr' });
+      if ((n.flags & PedNodeFlag.Stairs) !== 0 && !nearIsland(n.x, n.z)) add('teleportNodes', { id: idAt('tp.xr', n.x, n.z), x: n.x, y: n.y, z: n.z, yaw: 0, kind: 'xr' });
     }
     for (const e of c.edges) {
       if (e.kind !== PedEdgeKind.Sidewalk && e.kind !== PedEdgeKind.Path) continue;
       const a = byId.get(e.a), b = byId.get(e.b);
       if (!a || !b) continue;
       const h = Math.hypot(b.x - a.x, b.z - a.z);
-      if (h >= 4 && Math.abs(b.y - a.y) / h >= 0.15) add('teleportNodes', { id: idAt('tp.xr', a.x, a.z), x: a.x, y: a.y, z: a.z, yaw: yawOf(b.x - a.x, b.z - a.z), kind: 'xr' });
+      if (h >= 4 && Math.abs(b.y - a.y) / h >= 0.15 && !nearIsland(a.x, a.z)) add('teleportNodes', { id: idAt('tp.xr', a.x, a.z), x: a.x, y: a.y, z: a.z, yaw: yawOf(b.x - a.x, b.z - a.z), kind: 'xr' });
     }
     void key;
   }

@@ -82,10 +82,16 @@ export function s5Gates(r: RoadsReport, minAgreement: number): GateResult[] {
   const o = r.oneway;
   const out: GateResult[] = [
     row('s5.oneway', 'S5', o.ok,
-      o.comparable === 0 ? 'no matched one-way pieces to compare (DataSF F/T vs OSM)' : `DataSF F/T agreement with OSM on ${o.comparable} matched pieces: F-along ${(o.ratio1 * 100).toFixed(1)} %, F-against ${(o.ratio2 * 100).toFixed(1)} %; adopted ${o.adopted}; more than ${(minAgreement * 100).toFixed(0)} % required`,
-      { comparable: o.comparable, ratioAlong: o.ratio1, ratioAgainst: o.ratio2 }),
+      o.comparable === 0 ? 'no matched one-way pieces to compare (DataSF F/T vs OSM)' : `DataSF F/T agreement with OSM on ${o.comparable} matched pieces: F-along ${(o.ratio1 * 100).toFixed(1)} %, F-against ${(o.ratio2 * 100).toFixed(1)} %; adopted ${o.adopted}; more than ${(minAgreement * 100).toFixed(0)} % required; DataSF one-way applied to ${o.applied} named two-way STREETS pieces, ${o.osmKept} OSM one-ways kept (${o.osmKeptAgainstDsf} against DataSF), ${o.unnamedSkipped} unnamed pieces and ${o.otherLayerSkipped} other-layer pieces took none (DL-705)`,
+      { comparable: o.comparable, ratioAlong: o.ratio1, ratioAgainst: o.ratio2, applied: o.applied, osmKept: o.osmKept, osmKeptAgainstDsf: o.osmKeptAgainstDsf, unnamedSkipped: o.unnamedSkipped }),
     row('s5.edges-per-chunk', 'S5', r.maxEdgesPerChunk <= EDGE_CHUNK_LIMIT, `most edges owned by one chunk: ${r.maxEdgesPerChunk}, limit ${EDGE_CHUNK_LIMIT}`, { maxPerChunk: r.maxEdgesPerChunk }),
   ];
+  const isl = r.islands;
+  out.push({
+    id: 's5.islands', stage: 'S5', level: 'pass',
+    detail: `weakly detached fragments (DL-706): ${isl.droppedComponents} dropped by the declared rules (${isl.droppedEdges} edges), ${isl.keptComponents} kept in the graph and the SCC count (${isl.keptEdges} edges); keepWays applied ${isl.keepWaysApplied.length}, connectors ${isl.connectorsApplied.length}`,
+    values: { droppedEdges: isl.droppedEdges, keptEdges: isl.keptEdges, keptComponents: isl.keptComponents },
+  });
   if (r.unknownLayers.length > 0) out.push({ id: 's5.layers', stage: 'S5', level: 'warn', detail: `DataSF layer values not in the N2 list: ${r.unknownLayers.join(', ')}` });
   return out;
 }
@@ -132,6 +138,9 @@ export function s10Gates(r: PlacesReport, requireFeature: boolean): GateResult[]
   ];
   if (r.featureTooFar.length > 0) {
     out.push({ id: 's10.feature', stage: 'S10', level: requireFeature ? 'fail' : 'warn', detail: `landmark seeds more than 120 m from their OSM feature: ${r.featureTooFar.map((x) => `${x.id} ${x.distM} m`).join(', ')}` });
+  }
+  if (r.arrivalFar.length > 0) {
+    out.push({ id: 's10.arrival-far', stage: 'S10', level: 'warn', detail: `arrival pose farther than 120 m from the landmark (the nearest valid pedestrian node at any distance): ${r.arrivalFar.map((x) => `${x.id} ${x.distM} m at (${x.x}, ${x.z})`).join(', ')}` });
   }
   if (r.featureMissing.length > 0 && requireFeature) out.push({ id: 's10.feature-missing', stage: 'S10', level: 'warn', detail: `OSM features not in the extract: ${r.featureMissing.join(', ')}` });
   return out;

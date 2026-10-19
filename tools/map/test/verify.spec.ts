@@ -15,7 +15,8 @@ describe('S5 to S10 gate functions', () => {
   const roads = {
     layerHistogram: {}, excludedActive: 0, unknownLayers: [] as string[], osmWays: 10, pieces: 10, droppedExcluded: 0, droppedAccess: 0, matchedPieces: 10,
     unmatchedPieces: 0, classOverrides: 0, segments: 10, edges: 20, nodes: 8, maxEdgesPerChunk: 20,
-    oneway: { adopted: 'F-along' as const, agree1: 9, agree2: 0, comparable: 10, dsfOneOsmTwo: 0, ok: true, ratio1: 0.9, ratio2: 0, worst: [] },
+    oneway: { adopted: 'F-along' as const, agree1: 9, agree2: 0, comparable: 10, dsfOneOsmTwo: 0, applied: 0, osmKeptAgainstDsf: 0, osmKept: 10, unnamedSkipped: 0, otherLayerSkipped: 0, ok: true, ratio1: 0.9, ratio2: 0, worst: [] },
+    islands: { rules: { detachedService: true, detachedAtClip: true }, components: 0, mainEdges: 20, droppedComponents: 0, droppedEdges: 0, keptComponents: 0, keptEdges: 0, keepWaysApplied: [], connectorsApplied: [], list: [] },
   };
   it('fails the one-way gate when the agreement is too low and the chunk gate over 600 edges', () => {
     expect(level(s5Gates(roads as never, 0.9), 's5.oneway')).toBe('pass');
@@ -25,7 +26,7 @@ describe('S5 to S10 gate functions', () => {
   });
 
   const junctions = {
-    junctions: 40, byControl: {}, movements: 200, restrictionsApplied: 0, restrictionsUnmatched: 0, maxApproaches: 5, maxOutDegree: 4, signalNoProgram: 0, mergedClusters: 0,
+    junctions: 40, byControl: {}, movements: 200, restrictionsApplied: 0, restrictionsUnmatched: 0, maxApproaches: 5, maxOutDegree: 4, signalNoProgram: 0, mergedClusters: 0, clipPairs: 0, clipSinksUnpaired: 0,
     signalMatch: { total: 100, matched: 99, ratio: 0.99, unmatched: [] },
   };
   it('fails a signal junction without a program, a signal match under the minimum and more than 8 approaches', () => {
@@ -37,7 +38,7 @@ describe('S5 to S10 gate functions', () => {
   });
 
   it('fails a road steeper than 40 %, a slab step over 0.16 m and a slab over a missing chunk', () => {
-    const ok = { maxGradePct: 39, slabs: 100, hoods: 0, tunnels: 0, openCuts: 0, overpasses: 1, namedSpans: 0, maxSlabStepM: 0.16, slabsDropped: 0, postsGraded: 10 };
+    const ok = { maxGradePct: 39, slabs: 100, hoods: 0, tunnels: 0, openCuts: 0, overpasses: 1, namedSpans: 0, maxSlabStepM: 0.16, slabsDropped: 0, postsGraded: 10, nodesLowered: 0 };
     expect(failed(s7Gates(ok))).toEqual([]);
     expect(level(s7Gates({ ...ok, maxGradePct: 41 }), 's7.grade')).toBe('fail');
     expect(level(s7Gates({ ...ok, maxSlabStepM: 0.17 }), 's7.slab-steps')).toBe('fail');
@@ -56,7 +57,7 @@ describe('S5 to S10 gate functions', () => {
   });
 
   it('fails a landmark without an arrival pose, and a landmark far from its OSM feature only on sf', () => {
-    const places = { landmarks: 37, noArrival: [], featureTooFar: [{ id: 'lm.a', distM: 150 }], featureMissing: ['lm.b'] } as unknown as PlacesReport;
+    const places = { landmarks: 37, noArrival: [], arrivalFar: [], featureTooFar: [{ id: 'lm.a', distM: 150 }], featureMissing: ['lm.b'] } as unknown as PlacesReport;
     expect(level(s10Gates(places, false), 's10.feature')).toBe('warn');
     expect(level(s10Gates(places, true), 's10.feature')).toBe('fail');
     expect(level(s10Gates({ ...places, noArrival: ['lm.c'] } as PlacesReport, false), 's10.arrival')).toBe('fail');

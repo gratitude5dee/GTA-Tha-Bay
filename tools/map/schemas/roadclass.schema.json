@@ -4,7 +4,7 @@
   "title": "config/world/roadclass.json (M02a2): S5 road classes and excluded DataSF layers",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "classes", "osmHighway", "datasfClasscode", "parkingLaneM", "layers", "oneway", "match", "hillGradePct"],
+  "required": ["schema", "classes", "osmHighway", "datasfClasscode", "parkingLaneM", "layers", "oneway", "match", "hillGradePct", "islands"],
   "properties": {
     "schema": { "const": "world-roadclass/1" },
     "note": { "type": "string" },
@@ -53,6 +53,12 @@
       "required": ["sampleM", "maxDistM", "minFraction"],
       "properties": { "sampleM": { "type": "number", "minimum": 2 }, "maxDistM": { "type": "number", "minimum": 2 }, "minFraction": { "type": "number", "minimum": 0.1, "maximum": 1 } }
     },
-    "hillGradePct": { "type": "number", "minimum": 1, "maximum": 40 }
+    "hillGradePct": { "type": "number", "minimum": 1, "maximum": 40 },
+    "islands": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["detachedService", "detachedAtClip"],
+      "properties": { "detachedService": { "type": "boolean" }, "detachedAtClip": { "type": "boolean" } }
+    }
   }
 }

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { canonicalize, sha256Hex, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../ci/lib/common.ts';
 import { mapSchema } from './config.ts';
+import type { RoadFixes } from './stages/s5-roads.ts';
 
 export const CONTENT_DIR = path.join(toolsRoot, 'content', 'world');
 export const CONTENT_STAMP_ID = 'content-world';
@@ -43,12 +44,13 @@ export interface ContentWorld {
   cablecars: CablecarsFile;
   teleports: string[];
   transitLines: TransitLinesFile;
+  roadFixes: RoadFixes;
 }
 
 /** File name, schema name, key in the canonical JSON. */
 export const CONTENT_FILES = [
   ['landmarks.json', 'landmarks'], ['pois.json', 'pois'], ['districts.json', 'districts'], ['pursuit-breakers.json', 'pursuit-breakers'],
-  ['cablecars.json', 'cablecars'], ['teleports.json', 'teleports'], ['transit-lines.json', 'transit-lines'],
+  ['cablecars.json', 'cablecars'], ['teleports.json', 'teleports'], ['transit-lines.json', 'transit-lines'], ['road-fixes.json', 'road-fixes'],
 ] as const;
 
 const read = (dir: string, f: string): unknown => JSON.parse(readFileSync(path.join(dir, f), 'utf8'));
@@ -74,6 +76,7 @@ export function loadContentWorld(dir = CONTENT_DIR): ContentWorld {
     cablecars: raw['cablecars.json'] as CablecarsFile,
     teleports: (raw['teleports.json'] as { sandbox: string[] }).sandbox,
     transitLines: raw['transit-lines.json'] as TransitLinesFile,
+    roadFixes: raw['road-fixes.json'] as RoadFixes,
   };
 }
 
@@ -85,7 +88,7 @@ export function contentWorldSha(dir = CONTENT_DIR): string {
 }
 
 export function contentRows(c: ContentWorld): number {
-  return c.landmarks.length + c.pois.length + c.districts.districts.length + c.pursuitBreakers.length + c.cablecars.lines.length + c.transitLines.stations.length;
+  return c.landmarks.length + c.pois.length + c.districts.districts.length + c.pursuitBreakers.length + c.cablecars.lines.length + c.transitLines.stations.length + (c.roadFixes?.keepWays.length ?? 0) + (c.roadFixes?.connectors.length ?? 0);
 }
 
 /** The C08 stamp and the matching raw-lock entry for the seeds. */

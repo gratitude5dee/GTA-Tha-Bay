@@ -20,6 +20,7 @@ export const MAX_APPROACHES = 8;
 export const MAX_CONFLICTS = 12;
 export const CONFLICT_M = 2;
 export const MAX_JUNCTION_ID = 32767;
+export const CLIP_PAIR_M = 150;
 
 const CONTROL_NAMES = ['None', 'Signal', 'AllWayStop', 'MinorStop', 'Yield', 'DeadEnd', 'Roundabout'] as const;
 
@@ -33,6 +34,9 @@ export interface JunctionsReport {
   maxOutDegree: number;
   signalNoProgram: number;
   mergedClusters: number;
+  /** Box-clip sinks paired with a source (DL-705) and the sinks left without one. */
+  clipPairs: number;
+  clipSinksUnpaired: number;
   signalMatch: { total: number; matched: number; ratio: number; unmatched: { x: number; z: number }[] };
 }
 export interface JunctionsProduct { nodes: NodeB[]; junctions: Junction[]; report: JunctionsReport }
@@ -217,6 +221,55 @@ export function buildJunctions(r: RoadsProduct): JunctionsProduct {
     if (a === 0) continue;
     clusters.push(set);
   }
+  // -- box-clip ends: pair each sink with the nearest source on the same box side (DL-705)
+  const clipPair = new Map<number, number[]>();
+  let clipPairs = 0, clipSinksUnpaired = 0;
+  {
+    const sinks = cand.filter((n) => n.clip !== undefined && n.in.length > 0 && n.out.length === 0);
+    const sources = cand.filter((n) => n.clip !== undefined && n.out.length > 0 && n.in.length === 0);
+    const clusterOf = new Map<number, number>();
+    clusters.forEach((set, i) => { for (const m of set) clusterOf.set(m, i); });
+    const cp = clusters.map((_c, i) => i);
+    const cfind = (i: number): number => { while (cp[i] !== i) { cp[i] = cp[cp[i] as number] as number; i = cp[i] as number; } return i; };
+    for (const k of sinks) {
+      let best: NodeB | null = null, bd = CLIP_PAIR_M;
+      for (const o of sources) {
+        if (o.clip !== k.clip) continue;
+        const d = Math.hypot(o.x - k.x, o.z - k.z);
+        if (d < bd || (d === bd && best !== null && o.id < best.id)) { bd = d; best = o; }
+      }
+      const ci = clusterOf.get(k.id), cj = best ? clusterOf.get(best.id) : undefined;
+      if (!best || ci === undefined || cj === undefined) { clipSinksUnpaired++; continue; }
+      (clipPair.get(k.id) ?? clipPair.set(k.id, []).get(k.id)!).push(best.id);
+      clipPairs++;
+      const a = cfind(ci), b = cfind(cj);
+      if (a !== b) cp[Math.max(a, b)] = Math.min(a, b);
+    }
+    // a source that no sink chose takes its nearest sink, so the traffic of its carriageway has a way in as well
+    const taken = new Set<number>();
+    for (const l of clipPair.values()) for (const o of l) taken.add(o);
+    for (const o of sources) {
+      if (taken.has(o.id)) continue;
+      let best: NodeB | null = null, bd = CLIP_PAIR_M;
+      for (const k of sinks) {
+        if (k.clip !== o.clip) continue;
+        const d = Math.hypot(o.x - k.x, o.z - k.z);
+        if (d < bd || (d === bd && best !== null && k.id < best.id)) { bd = d; best = k; }
+      }
+      const ci = clusterOf.get(o.id), cj = best ? clusterOf.get(best.id) : undefined;
+      if (!best || ci === undefined || cj === undefined) continue;
+      (clipPair.get(best.id) ?? clipPair.set(best.id, []).get(best.id)!).push(o.id);
+      clipPairs++;
+      const a = cfind(ci), b = cfind(cj);
+      if (a !== b) cp[Math.max(a, b)] = Math.min(a, b);
+    }
+    if (clipPairs > 0) {
+      const groups = new Map<number, number[]>();
+      clusters.forEach((set, i) => { const r = cfind(i); const l = groups.get(r); if (l) l.push(...set); else groups.set(r, [...set]); });
+      clusters.length = 0;
+      for (const r of [...groups.keys()].sort((x, y) => x - y)) clusters.push((groups.get(r) as number[]).sort((x, y) => x - y));
+    }
+  }
   const centroid = (set: readonly number[]): { x: number; z: number } => {
     let sx = 0, sz = 0;
     for (const m of set) { sx += (nodes[m] as NodeB).x; sz += (nodes[m] as NodeB).z; }
@@ -266,7 +319,7 @@ export function buildJunctions(r: RoadsProduct): JunctionsProduct {
     maxApproaches = Math.max(maxApproaches, approaches.length);
 
     // -- control
-    const isDead = set.length === 1 && (deg[set[0] as number] as number) === 1;
+    const isDead = set.every((m) => (deg[m] as number) === 1);
     let control: NodeControl = NodeControl.None;
     let stopApproaches: number[] = [];
     const anySignal = mem.some((m) => m.signal);
@@ -311,7 +364,9 @@ export function buildJunctions(r: RoadsProduct): JunctionsProduct {
     };
     for (const m of mem) {
       const ins = [...m.in].sort((a, b) => a - b);
-      const outs = [...m.out].sort((a, b) => a - b);
+      const paired = new Set<number>();
+      for (const sn of clipPair.get(m.id) ?? []) for (const o of (nodes[sn] as NodeB).out) paired.add(o);
+      const outs = [...new Set([...m.out, ...paired])].sort((a, b) => a - b);
       for (const i of ins) {
         const ie = edges[i] as { twin: number };
         const ig = edgeGeom(i);
@@ -322,8 +377,9 @@ export function buildJunctions(r: RoadsProduct): JunctionsProduct {
           if (isTwin && !(isDead && deg[m.id] === 1)) continue;
           const og = edgeGeom(o);
           const oh = headingOf(og, true);
-          const turn = isTwin ? 'uturn' : turnOf([ih.tx, ih.tz], [oh.tx, oh.tz]);
-          if (turn === 'uturn' && !isTwin) continue;
+          const viaClip = paired.has(o);
+          const turn = isTwin || viaClip ? 'uturn' : turnOf([ih.tx, ih.tz], [oh.tx, oh.tz]);
+          if (turn === 'uturn' && !isTwin && !viaClip) continue;
           const lenI = polyLength(ig), lenO = polyLength(og);
           const sb = Math.min(6, 0.4 * lenI), sa = Math.min(6, 0.4 * lenO);
           const ip: [number, number] = [ih.x - ih.tx * sb, ih.z - ih.tz * sb];
@@ -378,7 +434,7 @@ export function buildJunctions(r: RoadsProduct): JunctionsProduct {
   const report: JunctionsReport = {
     junctions: junctions.length, byControl: Object.fromEntries(Object.entries(byControl).sort(([a], [b]) => (a < b ? -1 : 1))), movements: totalMovements,
     restrictionsApplied: usedRestrictions.size, restrictionsUnmatched: r.restrictions.length - usedRestrictions.size, maxApproaches, maxOutDegree: maxOut,
-    signalNoProgram, mergedClusters: merged, signalMatch: signalMatch(r.signalPoints, junctions, nodes),
+    signalNoProgram, mergedClusters: merged, clipPairs, clipSinksUnpaired, signalMatch: signalMatch(r.signalPoints, junctions, nodes),
   };
   return { nodes, junctions, report };
 }

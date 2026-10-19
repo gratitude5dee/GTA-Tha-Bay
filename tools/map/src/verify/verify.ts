@@ -95,7 +95,9 @@ export function verifyDecoded(b: DecodedBake, cfg: SourcesConfig, content?: Cont
   const segInfo = new Map<number, { cnn: number; osmWay: number }>();
   for (const c of b.sims) for (const s of c.segments) segInfo.set(s.id, { cnn: s.cnn, osmWay: s.osmWay });
   const sr = sccReport(eg, edges, (e) => segInfo.get(e.seg) ?? { cnn: 0, osmWay: 0 });
-  out.push(row('s14.scc', sr.fraction >= g14.sccMin, `largest strongly connected component holds ${sr.largest} of ${sr.edges} drivable edges (${(sr.fraction * 100).toFixed(2)} %), at least ${(g14.sccMin * 100).toFixed(0)} % required${sr.fraction < g14.sccMin ? `; strays: ${sr.stray.map((s) => `${s.edges} edges near cnn ${s.cnn} way ${s.osmWay}`).join('; ')}` : ''}`, { fraction: sr.fraction, edges: sr.edges, components: sr.components }));
+  const isl = (b.report['roads'] as { islands?: { droppedComponents: number; droppedEdges: number; keptComponents: number; keptEdges: number } } | undefined)?.islands;
+  const islNote = isl ? `; declared island drops ${isl.droppedComponents} fragments (${isl.droppedEdges} edges, outside the count), kept islands ${isl.keptComponents} (${isl.keptEdges} edges, inside it)` : '';
+  out.push(row('s14.scc', sr.fraction >= g14.sccMin, `largest strongly connected component holds ${sr.largest} of ${sr.edges} drivable edges (${(sr.fraction * 100).toFixed(2)} %), at least ${(g14.sccMin * 100).toFixed(0)} % required${islNote}${sr.fraction < g14.sccMin ? `; strays: ${sr.stray.map((s) => `${s.edges} edges near cnn ${s.cnn} way ${s.osmWay}`).join('; ')}` : ''}`, { fraction: sr.fraction, edges: sr.edges, components: sr.components }));
   const noLanes = edges.filter((e) => e.lanes === 0).length;
   out.push(row('s14.lanes', noLanes === 0, `${noLanes} edges with lanes = 0`, { noLanes }));
   const badSignals = junctions.filter((j) => j.control === 1 && (!j.program || j.program.phases.length < 2)).length;

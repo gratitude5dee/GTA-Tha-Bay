@@ -6,7 +6,14 @@
  * `classcode` and `oneway` of a matched row override the OSM values on active STREETS-type layers, and a piece whose
  * best row sits on an excluded layer (`PAPER*`, `PSEUDO`, `PRIVATE`, `STREETS_PEDESTRI`, `UPROW`) is dropped. Both
  * orientations of the DataSF F/T flag are scored against OSM on the matched one-way pieces and the better one is adopted;
- * S5 fails when neither exceeds 90 % (a design value, U-W15).
+ * S5 fails when neither exceeds 90 % (a design value, U-W15). DataSF then wins only where OSM says two-way on a matched active
+ * `STREETS` piece that has a `name`; it never reverses an OSM one-way (DL-705).
+ *
+ * Islands (DL-706): the weakly connected components that share no node with the largest one are classified by the two declared
+ * rules of `roadclass.json` `islands` (`detachedService`, `detachedAtClip`); dropped ones leave the graph, every other one stays
+ * and is marked `island` (no traffic, parked or ped slots, no portal). Both kinds are listed in `RoadsReport.islands`. A way
+ * in `content/world/road-fixes.json` `keepWays` survives the access, service and excluded-layer drops, and an authored
+ * `connectors` polyline joins the graph through nodes it shares with OSM vertices.
  *
  * Ids (C08 rule 8): NodeId, EdgeId and SegId are dense u32, assigned in Morton order of the owning chunk (the chunk of the
  * `from` node, and for a segment the chunk of its lower-id edge) and then by position, so they are stable per bake.
@@ -36,7 +43,16 @@ export interface RoadClassConfig {
   oneway: { minAgreement: number; worstListed: number };
   match: { sampleM: number; maxDistM: number; minFraction: number };
   hillGradePct: number;
+  /** The only two declared island drop rules (DL-706). */
+  islands: { detachedService: boolean; detachedAtClip: boolean };
 }
+
+/** `content/world/road-fixes.json` (DL-706): authored per-way keeps and connectors, each with a reason. */
+export interface RoadFixes {
+  keepWays: { osmWay: number; reason: string }[];
+  connectors: { id: string; reason: string; highway: string; name?: string; oneway?: 'yes' | 'no' | '-1'; points: { lat: number; lng: number }[] }[];
+}
+export const NO_ROAD_FIXES: RoadFixes = { keepWays: [], connectors: [] };
 
 export const isExcludedLayer = (layer: string, c: RoadClassConfig): boolean =>
   c.layers.excludedExact.includes(layer) || c.layers.excludedPrefixes.some((p) => layer.startsWith(p));
@@ -62,6 +78,8 @@ export interface RoadsInputs {
   streets: readonly StreetRow[];
   hoods: readonly HoodPoly[];
   cfg: RoadClassConfig;
+  /** Authored keeps and connectors (DL-706); none when absent. */
+  fixes?: RoadFixes | undefined;
   /** ENU box of the area (the chunk-aligned grid): ways with a vertex outside it are cut at the box edge (`clipWayToBox`; none are for synth and the excerpt). */
   box: Bbox;
 }
@@ -99,6 +117,8 @@ export interface SegB {
   parking: 0 | 1 | 2;
   /** OSM `sidewalk=no|none`: the pedestrian graph derives no sidewalks beside this segment. */
   noSidewalk: boolean;
+  /** Part of a weakly detached fragment that stayed in the graph (DL-706): no slots, no portal. */
+  island?: boolean;
 }
 
 export interface NodeB {
@@ -117,6 +137,8 @@ export interface NodeB {
   roundabout: boolean;
   out: number[];
   in: number[];
+  /** Box side of a `cut:` clip point (1 west, 2 east, 3 north, 4 south); absent elsewhere (DL-705). */
+  clip?: 1 | 2 | 3 | 4;
 }
 
 export interface RestrictionB { kind: string; fromWay: number; toWay: number; via: number }
@@ -130,7 +152,45 @@ export interface OnewayReport {
   adopted: 'F-along' | 'F-against';
   ok: boolean;
   dsfOneOsmTwo: number;
+  /** DataSF one-ways applied to OSM two-way, named pieces on `STREETS` (DL-705). */
+  applied: number;
+  /** Pieces whose OSM one-way was kept although the adopted DataSF direction differs. */
+  osmKeptAgainstDsf: number;
+  /** Pieces with an OSM one-way and a matched one-way row (DataSF never overrides them). */
+  osmKept: number;
+  /** Matched pieces without an OSM `name` that took no one-way from a row. */
+  unnamedSkipped: number;
+  /** Matched two-way pieces on another layer than `STREETS` that took no one-way from a row. */
+  otherLayerSkipped: number;
   worst: { cnn: number; osmWay: number }[];
+}
+
+export interface IslandRecord {
+  status: 'dropped' | 'kept';
+  rule: 'detachedService' | 'detachedAtClip' | 'none';
+  edges: number;
+  segments: number;
+  nodes: number;
+  /** Up to 12 OSM way ids and DataSF cnns of the fragment, ascending. */
+  osmWays: number[];
+  cnns: number[];
+  osmWaysTotal: number;
+  x: number;
+  z: number;
+  touchesClip: boolean;
+  insideNeighbourhoods: boolean;
+}
+export interface IslandsReport {
+  rules: { detachedService: boolean; detachedAtClip: boolean };
+  components: number;
+  mainEdges: number;
+  droppedComponents: number;
+  droppedEdges: number;
+  keptComponents: number;
+  keptEdges: number;
+  keepWaysApplied: number[];
+  connectorsApplied: string[];
+  list: IslandRecord[];
 }
 
 export interface RoadsReport {
@@ -145,6 +205,7 @@ export interface RoadsReport {
   unmatchedPieces: number;
   classOverrides: number;
   oneway: OnewayReport;
+  islands: IslandsReport;
   segments: number;
   edges: number;
   nodes: number;
@@ -291,7 +352,10 @@ export function adoptOrientation(pairs: readonly OnewayPair[], min: number, list
     .map((p) => ({ cnn: p.cnn, osmWay: p.osmWay }))
     .sort((x, y) => x.cnn - y.cnn || x.osmWay - y.osmWay)
     .slice(0, listWorst);
-  return { comparable: n, agree1: a1, agree2: a2, ratio1: r1, ratio2: r2, adopted, ok: n === 0 || best > min, dsfOneOsmTwo: 0, worst };
+  return {
+    comparable: n, agree1: a1, agree2: a2, ratio1: r1, ratio2: r2, adopted, ok: n === 0 || best > min, dsfOneOsmTwo: 0, applied: 0, osmKeptAgainstDsf: 0, osmKept: 0,
+    unnamedSkipped: 0, otherLayerSkipped: 0, worst,
+  };
 }
 
 // ---- the stage --------------------------------------------------------------------------------------------------------
@@ -351,6 +415,12 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
     }
   }
 
+  // -- authored keeps and connectors (DL-706)
+  const fixes = inp.fixes ?? NO_ROAD_FIXES;
+  const keep = new Set(fixes.keepWays.map((k) => k.osmWay));
+  const keepApplied = new Set<number>();
+  const connectorsApplied: string[] = [];
+
   // -- OSM ways and points
   const sorted = [...inp.osm].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   const ways: Way[] = [];
@@ -380,8 +450,12 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
     }
     const hw = t['highway'];
     if (hw === undefined || c.osmHighway[hw] === undefined) continue;
-    if (hw === 'service' && t['service'] !== undefined && c.excludedService.includes(t['service'])) { droppedAccess++; continue; }
-    if (t['access'] !== undefined && c.excludedAccess.includes(t['access']) && t['motor_vehicle'] !== 'yes') { droppedAccess++; continue; }
+    const wouldDrop = (hw === 'service' && t['service'] !== undefined && c.excludedService.includes(t['service']))
+      || (t['access'] !== undefined && c.excludedAccess.includes(t['access']) && t['motor_vehicle'] !== 'yes');
+    if (wouldDrop) {
+      if (!keep.has(osmNum(f.id))) { droppedAccess++; continue; }
+      keepApplied.add(osmNum(f.id));
+    }
     if (t['area'] === 'yes') continue;
     for (const co of lineCoords(f.geometry)) {
       if (co.length < 2) continue;
@@ -389,6 +463,17 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
       for (const p of co) { const e = enuFromLatLng(p[1] as number, p[0] as number); enu.push(e.x, e.z); }
       ways.push(...clipWayToBox({ id: f.id, num: osmNum(f.id), tags: t, keys: co.map(vkey), enu }, inp.box));
     }
+  }
+  for (const k of fixes.connectors) {
+    const co = k.points.map((p) => [p.lng, p.lat] as [number, number]);
+    if (co.length < 2) continue;
+    const enu: number[] = [];
+    for (const p of co) { const e = enuFromLatLng(p[1], p[0]); enu.push(e.x, e.z); }
+    const tags: Record<string, string> = { highway: k.highway };
+    if (k.name !== undefined) tags['name'] = k.name;
+    if (k.oneway !== undefined) tags['oneway'] = k.oneway;
+    ways.push(...clipWayToBox({ id: `c${k.id}`, num: 0, tags, keys: co.map(vkey), enu }, inp.box));
+    connectorsApplied.push(k.id);
   }
 
   // -- node vertices: ends, vertices shared by two ways, tagged vertices
@@ -415,6 +500,8 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
   interface Built {
     piece: Piece; cls: RoadClass; cnn: number; oneWay: -1 | 0 | 1; lanesF: number; lanesB: number; speed: number; parking: 0 | 1 | 2; dsf: 1 | -1 | 0;
     layer: number; bridge: boolean; tunnel: boolean; roundabout: boolean; name: string; highway: string; widthM: number; laneW: number; noSidewalk: boolean;
+    /** OSM one-way of the piece before any DataSF adoption; layer of the matched row ('' when unmatched). */
+    osmOw: -1 | 0 | 1; dsfLayer: string;
   }
   const built: Built[] = [];
   const pairs: OnewayPair[] = [];
@@ -449,8 +536,11 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
     const t = p.way.tags;
     const hw = t['highway'] as string;
     const name = t['name'] ?? '';
-    const m = rows.length > 0 ? matchOf(p, name) : null;
-    if (m && m.row.excluded) { droppedExcluded++; continue; }
+    let m = rows.length > 0 ? matchOf(p, name) : null;
+    if (m && m.row.excluded) {
+      // a public way lost to a non-public row comes back only through a listed `keepWays` entry, without that row's cnn (DL-706)
+      if (keep.has(p.way.num)) { keepApplied.add(p.way.num); m = null; } else { droppedExcluded++; continue; }
+    }
     let cls = c.osmHighway[hw] as RoadClass;
     let cnn = 0;
     if (m) {
@@ -468,15 +558,13 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
     else if (ov === '-1' || ov === 'reverse') ow = -1;
     else if (rbt || hw === 'motorway' || hw === 'motorway_link') ow = ov === 'no' ? 0 : 1;
     const osmOw = ow;
-    let dsfAuth = false;
     let dsf: 1 | -1 | 0 = 0;
     if (m) {
-      dsfAuth = m.row.layer.startsWith('STREETS');
       if (m.row.oneway === 'F' || m.row.oneway === 'T') {
         const rowDot = m.row.dx * ((p.pts[p.pts.length - 2] as number) - (p.pts[0] as number)) + m.row.dz * ((p.pts[p.pts.length - 1] as number) - (p.pts[1] as number));
         const along: 1 | -1 = (rowDot >= 0 ? 1 : -1) * (m.row.oneway === 'F' ? 1 : -1) as 1 | -1;
         if (osmOw !== 0) pairs.push({ cnn: m.row.cnn, osmWay: p.way.num, osmDir: osmOw, dsfDirAlong: along });
-        else if (dsfAuth) dsfOneOsmTwo++;
+        else if (m.row.layer === 'STREETS') dsfOneOsmTwo++;
         dsf = along;   // applied below, once the orientation is adopted
       }
     }
@@ -510,7 +598,7 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
     const laneW = def.laneWidthM;
     built.push({
       piece: p, cls, cnn, oneWay: ow, lanesF, lanesB, speed, parking, dsf, layer, bridge: bridgeTag, tunnel: tunnelTag, roundabout: rbt,
-      name, highway: hw, widthM: 0, laneW, noSidewalk: ['no', 'none'].includes(t['sidewalk'] ?? ''),
+      name, highway: hw, widthM: 0, laneW, noSidewalk: ['no', 'none'].includes(t['sidewalk'] ?? ''), osmOw, dsfLayer: m ? m.row.layer : '',
     });
   }
 
@@ -520,8 +608,18 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
   if (oneway.ok) {
     for (const b of built) {
       if (b.dsf === 0) continue;
-      // DataSF wins on a matched active STREETS segment, whatever OSM says
-      b.oneWay = (oneway.adopted === 'F-along' ? b.dsf : -b.dsf) as 1 | -1;
+      const dir = (oneway.adopted === 'F-along' ? b.dsf : -b.dsf) as 1 | -1;
+      // DL-705: a piece without a name takes no one-way from a row (the 12 m match may pick any street); DataSF never reverses an OSM one-way
+      if (b.name === '') { oneway.unnamedSkipped++; continue; }
+      if (b.osmOw !== 0) {
+        oneway.osmKept++;
+        if (dir !== b.oneWay) oneway.osmKeptAgainstDsf++;
+        continue;
+      }
+      // and it applies on the active `STREETS` layer only, never on FREEWAYS, STREETS_YBI, STREETS_TI and the others
+      if (b.dsfLayer !== 'STREETS') { oneway.otherLayerSkipped++; continue; }
+      b.oneWay = dir;
+      oneway.applied++;
     }
   }
 
@@ -532,8 +630,18 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
   }
 
   // -- nodes
-  const nodeIndex = new Map<string, number>();
-  const nodes: NodeB[] = [];
+  let nodeIndex = new Map<string, number>();
+  let nodes: NodeB[] = [];
+  const cx0 = inp.box.minX + CUT_INSET_M, cx1 = inp.box.maxX - CUT_INSET_M, cz0 = inp.box.minZ + CUT_INSET_M, cz1 = inp.box.maxZ - CUT_INSET_M;
+  const clipSide = (key: string, x: number, z: number): 1 | 2 | 3 | 4 | 0 => {
+    if (!key.startsWith('cut:')) return 0;
+    const tol = 0.01;
+    if (Math.abs(x - cx0) <= tol) return 1;
+    if (Math.abs(x - cx1) <= tol) return 2;
+    if (Math.abs(z - cz0) <= tol) return 3;
+    if (Math.abs(z - cz1) <= tol) return 4;
+    return 0;
+  };
   const nodeOf = (key: string, x: number, z: number, layer: number): number => {
     const have = nodeIndex.get(key);
     if (have !== undefined) {
@@ -542,9 +650,10 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
       return have;
     }
     const pt = pointTags.get(key);
+    const side = clipSide(key, x, z);
     const n: NodeB = {
       id: -1, x, z, y: 0, layer, control: NodeControl.None, junction: -1, signal: pt?.signal ?? false, stop: pt?.stop ?? false, stopAll: pt?.stopAll ?? false,
-      giveWay: pt?.giveWay ?? false, roundabout: false, out: [], in: [],
+      giveWay: pt?.giveWay ?? false, roundabout: false, out: [], in: [], ...(side !== 0 ? { clip: side } : {}),
     };
     nodes.push(n);
     nodeIndex.set(key, nodes.length - 1);
@@ -563,6 +672,88 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
       cls: b.cls, oneWay: b.oneWay, lanesF: b.lanesF, lanesB: b.lanesB, layer: b.layer, bridge: b.bridge, tunnel: b.tunnel, roundabout: b.roundabout,
       eF: -1, eB: -1, nhood: 255, highway: b.highway, speedMps: b.speed, parking: b.parking, noSidewalk: b.noSidewalk,
     });
+  }
+
+
+  // -- islands (DL-706): weakly connected components that share no node with the largest one
+  const hoodBoxes = inp.hoods.map((h) => ({ name: h.name, polys: h.polys, bbs: h.polys.map((q) => ringBbox(q.outer)) }));
+  const hoodIndex = (x: number, z: number): number => {
+    for (const h of hoodBoxes) {
+      for (let k = 0; k < h.polys.length; k++) {
+        const bb = h.bbs[k] as Bbox;
+        if (x < bb.minX || x > bb.maxX || z < bb.minZ || z > bb.maxZ) continue;
+        const q = h.polys[k] as { outer: number[]; holes: number[][] };
+        if (pointInRing(x, z, q.outer) && !q.holes.some((hole) => pointInRing(x, z, hole))) {
+          const i = NEIGHBOURHOODS_41.indexOf(h.name);
+          return i < 0 ? 255 : i;
+        }
+      }
+    }
+    return 255;
+  };
+
+  let islands: IslandsReport;
+  {
+    const par = nodes.map((_n, i) => i);
+    const find = (i: number): number => { while (par[i] !== i) { par[i] = par[par[i] as number] as number; i = par[i] as number; } return i; };
+    for (const sg of segs) { const ra = find(sg.a), rb = find(sg.b); if (ra !== rb) par[Math.max(ra, rb)] = Math.min(ra, rb); }
+    const comps = new Map<number, number[]>();
+    segs.forEach((sg, i) => { const r = find(sg.a); const l = comps.get(r); if (l) l.push(i); else comps.set(r, [i]); });
+    const edgesOf = (l: readonly number[]): number => l.reduce((n, i) => n + ((segs[i] as SegB).oneWay === 0 ? 2 : 1), 0);
+    let mainRoot = -1, mainEdges = -1;
+    for (const [r, l] of [...comps.entries()].sort((x, y) => x[0] - y[0])) { const e = edgesOf(l); if (e > mainEdges) { mainEdges = e; mainRoot = r; } }
+    const list: IslandRecord[] = [];
+    const dropSeg = new Set<number>();
+    let droppedEdges = 0, keptEdges = 0, droppedComponents = 0, keptComponents = 0;
+    for (const [r, l] of [...comps.entries()].sort((x, y) => x[0] - y[0])) {
+      if (r === mainRoot) continue;
+      const ns = new Set<number>();
+      for (const i of l) { ns.add((segs[i] as SegB).a); ns.add((segs[i] as SegB).b); }
+      const nodeList = [...ns];
+      const touchesClip = nodeList.some((n) => (nodes[n] as NodeB).clip !== undefined);
+      let inside = nodeList.some((n) => hoodIndex((nodes[n] as NodeB).x, (nodes[n] as NodeB).z) !== 255);
+      if (!inside) {
+        for (const i of l) {
+          const sg = segs[i] as SegB;
+          const mi = Math.floor(sg.pts.length / 4) * 2;
+          if (hoodIndex(sg.pts[mi] as number, sg.pts[mi + 1] as number) !== 255) { inside = true; break; }
+        }
+      }
+      const allService = l.every((i) => (segs[i] as SegB).cls === RoadClass.Service && (segs[i] as SegB).cnn === 0);
+      let rule: IslandRecord['rule'] = 'none';
+      if (c.islands.detachedService && allService) rule = 'detachedService';
+      else if (c.islands.detachedAtClip && touchesClip && !inside) rule = 'detachedAtClip';
+      const e = edgesOf(l);
+      const ways = [...new Set(l.map((i) => (segs[i] as SegB).osmWay).filter((w) => w > 0))].sort((a, b) => a - b);
+      const cnns = [...new Set(l.map((i) => (segs[i] as SegB).cnn).filter((w) => w > 0))].sort((a, b) => a - b);
+      let sx = 0, sz = 0;
+      for (const n of nodeList) { sx += (nodes[n] as NodeB).x; sz += (nodes[n] as NodeB).z; }
+      list.push({
+        status: rule === 'none' ? 'kept' : 'dropped', rule, edges: e, segments: l.length, nodes: nodeList.length, osmWays: ways.slice(0, 12), cnns: cnns.slice(0, 12), osmWaysTotal: ways.length,
+        x: Math.round((sx / nodeList.length) * 10) / 10, z: Math.round((sz / nodeList.length) * 10) / 10, touchesClip, insideNeighbourhoods: inside,
+      });
+      if (rule === 'none') { keptComponents++; keptEdges += e; for (const i of l) (segs[i] as SegB).island = true; } else { droppedComponents++; droppedEdges += e; for (const i of l) dropSeg.add(i); }
+    }
+    list.sort((a, b) => (a.status === b.status ? 0 : a.status === 'dropped' ? -1 : 1) || b.edges - a.edges || (a.osmWays[0] ?? 0) - (b.osmWays[0] ?? 0) || a.x - b.x || a.z - b.z);
+    if (dropSeg.size > 0) {
+      const keepSegs = segs.filter((_sg, i) => !dropSeg.has(i));
+      const used = new Set<number>();
+      for (const sg of keepSegs) { used.add(sg.a); used.add(sg.b); }
+      const remap = new Map<number, number>();
+      const keptNodes: NodeB[] = [];
+      nodes.forEach((n, i) => { if (used.has(i)) { remap.set(i, keptNodes.length); keptNodes.push(n); } });
+      for (const sg of keepSegs) { sg.a = remap.get(sg.a) as number; sg.b = remap.get(sg.b) as number; }
+      const newIndex = new Map<string, number>();
+      for (const [k, v] of nodeIndex) { const nv = remap.get(v); if (nv !== undefined) newIndex.set(k, nv); }
+      segs.length = 0;
+      segs.push(...keepSegs);
+      nodes = keptNodes;
+      nodeIndex = newIndex;
+    }
+    islands = {
+      rules: { detachedService: c.islands.detachedService, detachedAtClip: c.islands.detachedAtClip }, components: comps.size - 1, mainEdges: Math.max(0, mainEdges),
+      droppedComponents, droppedEdges, keptComponents, keptEdges, keepWaysApplied: [...keepApplied].sort((a, b) => a - b), connectorsApplied: connectorsApplied.slice().sort(), list,
+    };
   }
 
   // -- ids: nodes by chunk Morton order then position, edges by owner chunk of the from node, segments by lowest edge id
@@ -590,22 +781,6 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
   // node ids already follow chunk Morton order, so sorting by from-node id sorts by owner chunk then position
   const eIndex = new Map<string, number>();
   especs.forEach((e, id) => eIndex.set(`${e.seg}:${e.dir}`, id));
-  const hoodBoxes = inp.hoods.map((h) => ({ name: h.name, polys: h.polys, bbs: h.polys.map((q) => ringBbox(q.outer)) }));
-  const hoodIndex = (x: number, z: number): number => {
-    for (const h of hoodBoxes) {
-      for (let k = 0; k < h.polys.length; k++) {
-        const bb = h.bbs[k] as Bbox;
-        if (x < bb.minX || x > bb.maxX || z < bb.minZ || z > bb.maxZ) continue;
-        const q = h.polys[k] as { outer: number[]; holes: number[][] };
-        if (pointInRing(x, z, q.outer) && !q.holes.some((hole) => pointInRing(x, z, hole))) {
-          const i = NEIGHBOURHOODS_41.indexOf(h.name);
-          return i < 0 ? 255 : i;
-        }
-      }
-    }
-    return 255;
-  };
-
   const edges: RoadEdge[] = especs.map((e, id) => {
     const s = segs[e.seg] as SegB;
     const twinKey = `${e.seg}:${-e.dir}`;
@@ -668,7 +843,7 @@ export function runRoads(inp: RoadsInputs): RoadsProduct {
   const report: RoadsReport = {
     layerHistogram: Object.fromEntries(Object.entries(layerHistogram).sort(([a], [b]) => (a < b ? -1 : 1))),
     excludedActive, unknownLayers: [...unknown].sort(), osmWays: ways.length, pieces: pieces.length, droppedExcluded, droppedAccess,
-    matchedPieces: matched, unmatchedPieces: unmatched, classOverrides: overrides, oneway, segments: finalSegs.length, edges: edges.length,
+    matchedPieces: matched, unmatchedPieces: unmatched, classOverrides: overrides, oneway, islands, segments: finalSegs.length, edges: edges.length,
     nodes: finalNodes.length, maxEdgesPerChunk: maxPerChunk,
   };
   return { signalPoints, segs: finalSegs, edges, nodes: finalNodes, restrictions, report };
