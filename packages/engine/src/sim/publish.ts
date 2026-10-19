@@ -1,5 +1,5 @@
 import { SimStage, type EntityId, type SystemDef } from '@dv/shared';
-import { Anim, RenderKey, Transform } from './ecs/components.ts';
+import { Anim, CharacterBody, Control, LocalPlayer, RenderKey, Transform, Velocity } from './ecs/components.ts';
 import type { EcsWorld } from './ecs/world.ts';
 import type { SnapshotWriter } from './transport/snapshot-buffer.ts';
 import { writeRecord, type SnapshotRecord } from './transport/snapshot-buffer.ts';
@@ -14,7 +14,12 @@ export const SNAP_FLAG_VISIBLE = 1;
  * the newest tick and the one before it. The side block maps each renderKey string-table id to its string, because
  * the 64-byte record carries only the id.
  */
-export function snapshotPublisher(writer: SnapshotWriter, ecs: EcsWorld, origin?: () => readonly number[]): SystemDef {
+export function snapshotPublisher(
+  writer: SnapshotWriter,
+  ecs: EcsWorld,
+  origin?: () => readonly number[],
+  extraSide?: () => Record<string, unknown>,
+): SystemDef {
   const rec: SnapshotRecord = {
     handle: 0, renderKey: 0, px: 0, py: 0, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1,
     animState: 0, flags: 0, animP0: 0, animP1: 0, variant: 0, lod: 0,
@@ -56,8 +61,37 @@ export function snapshotPublisher(writer: SnapshotWriter, ecs: EcsWorld, origin?
           }
           return n;
         },
-        { rk: keys, ...(origin ? { origin: [...origin()] } : {}) },
+        { rk: keys, ...(origin ? { origin: [...origin()] } : {}), ...(extraSide ? extraSide() : {}) },
       );
     },
+  };
+}
+
+/** The local player as the page's bridge and HUD see it (side block key `pl`). */
+export interface PlayerSide {
+  /** Feet, ENU metres. */
+  pos: [number, number, number];
+  /** Achieved velocity, m/s. */
+  vel: [number, number, number];
+  /** Control state id (100 idle ... 701 teleport waiting). */
+  control: number;
+  owner: number;
+  grounded: boolean;
+}
+
+/** `pl` for the first entity tagged LocalPlayer, or null when there is none. */
+export function playerSide(ecs: EcsWorld): PlayerSide | null {
+  const ids = ecs.query([LocalPlayer, Transform, Control, CharacterBody, Velocity]);
+  if (ids.length === 0) return null;
+  const id = ids[0] as number;
+  const tr = ecs.store(Transform);
+  const ve = ecs.store(Velocity);
+  const co = ecs.store(Control);
+  return {
+    pos: [tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number],
+    vel: [ve.vx[id] as number, ve.vy[id] as number, ve.vz[id] as number],
+    control: co.state[id] as number,
+    owner: co.owner[id] as number,
+    grounded: (ecs.store(CharacterBody).grounded[id] as number) !== 0,
   };
 }

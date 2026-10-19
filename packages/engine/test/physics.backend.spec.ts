@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { SIM_DT } from '@dv/shared';
 import { NotImplementedError, type PhysicsBuild } from '../src/sim/physics/backend.ts';
 import { PHYSICS_CONFIG } from '../src/sim/physics/config.ts';
-import { GROUPS, interactionGroups } from '../src/sim/physics/groups.ts';
+import { GROUPS, GROUP_BIT as GROUPS_BIT, interactionGroups } from '../src/sim/physics/groups.ts';
 import { loadRapierBuild, type RapierModule } from '../src/sim/physics/load-build.ts';
 import { RapierBackend } from '../src/sim/physics/rapier-backend.ts';
 import { earClip, heightfieldLayout, prismPieces } from '../src/sim/physics/static-shapes.ts';
@@ -133,15 +133,54 @@ describe('PhysicsBackend over Rapier 0.21.0 (AC-1)', () => {
     backend.dispose();
   });
 
-  it('the not-yet-built parts throw NotImplementedError naming their milestone', async () => {
+  it('the vehicle controller is not built yet and says which milestone builds it', async () => {
     const backend = new RapierBackend('deterministic-compat');
     await backend.init();
-    expect(() => backend.character.move(1, [0, 0, 0], { autostepM: 0.4, snapToGroundM: 0.5, maxSlopeDeg: 45, slide: true })).toThrow(/M01b1/);
-    expect(() => backend.castRay([0, 0, 0], [0, -1, 0], 10, 0xffff)).toThrow(NotImplementedError);
-    expect(() => backend.castSphere([0, 0, 0], [0, -1, 0], 0.3, 10, 0xffff)).toThrow(/M01b1/);
+    expect(() => backend.vehicle.create(1, [])).toThrow(NotImplementedError);
     expect(() => backend.vehicle.create(1, [])).toThrow(/M03a1/);
     backend.dispose();
   });
+
+  for (const build of BUILDS) {
+    it(`${build}: castRay and castSphere hit the ground, report toi and normal, and respect the group mask (M01b1)`, async () => {
+      const backend = new RapierBackend(build);
+      await backend.init();
+      backend.addChunkStatics('g', { heightfield: groundHeightfield(), prisms: new Float32Array(0) });
+      backend.step(SIM_DT, 1); // the broad phase learns about new colliders at the next step
+      const ray = backend.castRay([3, 5, -4], [0, -2, 0], 20, GROUPS_BIT.static);
+      expect(ray).not.toBeNull();
+      expect(ray?.toi).toBeCloseTo(5, 4);
+      expect(ray?.normal[1]).toBeCloseTo(1, 4);
+      expect(backend.castRay([3, 5, -4], [0, -1, 0], 4, GROUPS_BIT.static)).toBeNull(); // too short
+      expect(backend.castRay([3, 5, -4], [0, -1, 0], 20, GROUPS_BIT.dynamic)).toBeNull(); // the ground is not in the mask
+      expect(backend.castRay([3, 5, -4], [0, 0, 0], 20, 0xffff)).toBeNull(); // no direction
+      const ball = backend.castSphere([3, 5, -4], [0, -1, 0], 0.25, 20, GROUPS_BIT.static);
+      expect(ball?.toi).toBeCloseTo(4.75, 4);
+      expect(backend.castSphere([3, 0.1, -4], [0, -1, 0], 0.25, 20, GROUPS_BIT.static)?.toi).toBe(0); // starts touching
+      backend.dispose();
+    });
+
+    it(`${build}: character.move reports ground contact with its normal on the ground, and moves freely in the air`, async () => {
+      const backend = new RapierBackend(build);
+      await backend.init();
+      backend.addChunkStatics('g', worldBoxesShapes());
+      const body = backend.createBody({ kind: 'kinematic', shape: 'capsule', dims: [0.55, 0.35], at: [0, 0.91, 60], groups: GROUPS.character });
+      backend.step(SIM_DT, 1);
+      const opts = { autostepM: 0.4, snapToGroundM: 0.5, maxSlopeDeg: 45, slide: true };
+      const r = backend.character.move(body, [0.1, -0.02, 0], opts);
+      expect(r.grounded).toBe(true);
+      expect(r.groundNormalY).toBeGreaterThan(0.99);
+      expect(r.moved[0]).toBeCloseTo(0.1, 4);
+      // Free fall: nothing under the capsule.
+      backend.setKinematicTarget(body, [0, 20, 60], [0, 0, 0, 1]);
+      backend.step(SIM_DT, 1);
+      const f = backend.character.move(body, [0, -0.1, 0], opts);
+      expect(f.grounded).toBe(false);
+      expect(f.moved[1]).toBeCloseTo(-0.1, 5);
+      expect(() => backend.character.move(9999, [0, 0, 0], opts)).toThrow(RangeError);
+      backend.dispose();
+    });
+  }
 
   it('using the backend before init() fails loudly', () => {
     const backend = new RapierBackend('simd-compat');

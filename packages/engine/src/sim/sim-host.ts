@@ -1,4 +1,5 @@
 import type { BootPayload, FrameSignal, LoopStats, SimConfig, SimHost } from '@dv/shared';
+import type { SimEvent } from './events.ts';
 import type { DebugCommand, FromWorkerMessage, StatsReport } from './transport/envelope.ts';
 import { createPmMain, type PortLike } from './transport/pm-transport.ts';
 import { createSabMain, type SabInit } from './transport/sab-transport.ts';
@@ -69,6 +70,8 @@ export class SimHostImpl implements SimHost {
   restarts = 0;
   crashed: string | null = null;
   readonly events: FromWorkerMessage[] = [];
+  /** The last 100 sim events (ownership transitions and refusals) the worker reported. */
+  readonly simEvents: SimEvent[] = [];
   /** Test hook: the last 50 events (stats excluded). */
   qaResults = new Map<string, unknown>();
 
@@ -199,6 +202,12 @@ export class SimHostImpl implements SimHost {
         break;
       case 'qa':
         this.qaResults.set(m.p.name, m.p.data);
+        break;
+      case 'events':
+        for (const e of m.p.events) {
+          this.simEvents.push(e);
+          if (this.simEvents.length > 100) this.simEvents.shift();
+        }
         break;
       default:
         this.events.push(m);

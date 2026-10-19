@@ -5,7 +5,7 @@
   "type": "object",
   "additionalProperties": false,
   "$defs": { "groupBit": { "type": "integer", "minimum": 1, "maximum": 32768 } },
-  "required": ["schema", "gravity", "solverIterations", "rebaseDistanceM", "defaultFriction", "defaultRestitution", "groups"],
+  "required": ["schema", "gravity", "solverIterations", "rebaseDistanceM", "defaultFriction", "defaultRestitution", "groups", "character"],
   "properties": {
     "schema": { "const": 1 },
     "gravity": {
@@ -18,6 +18,46 @@
     "rebaseDistanceM": { "type": "number", "exclusiveMinimum": 0 },
     "defaultFriction": { "type": "number", "minimum": 0 },
     "defaultRestitution": { "type": "number", "minimum": 0, "maximum": 1 },
+    "character": {
+      "type": "object",
+      "description": "On-foot character constants (M01b1): capsule, KCC settings, speeds, hill factors, jump, state timings.",
+      "additionalProperties": false,
+      "required": [
+        "radiusM", "heightM", "headY", "chestY", "skinM", "autostepM", "autostepMinWidthM", "snapToGroundM", "maxSlopeDeg", "slide",
+        "walkMps", "runMps", "sprintMps", "walkStickMax", "hillUphillMin", "hillUphillSlope", "hillDownhillMax", "hillDownhillSlope",
+        "jumpApexM", "terminalMps", "landTicks", "enterSettleTicks", "leaveSettleTicks", "groundWaitTicks", "groundProbeM",
+        "ragdollTicks", "getUpTicks"
+      ],
+      "properties": {
+        "radiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "heightM": { "type": "number", "exclusiveMinimum": 0 },
+        "headY": { "type": "number", "exclusiveMinimum": 0 },
+        "chestY": { "type": "number", "exclusiveMinimum": 0 },
+        "skinM": { "type": "number", "minimum": 0 },
+        "autostepM": { "type": "number", "minimum": 0 },
+        "autostepMinWidthM": { "type": "number", "minimum": 0 },
+        "snapToGroundM": { "type": "number", "minimum": 0 },
+        "maxSlopeDeg": { "type": "number", "exclusiveMinimum": 0, "maximum": 89 },
+        "slide": { "type": "boolean" },
+        "walkMps": { "type": "number", "exclusiveMinimum": 0 },
+        "runMps": { "type": "number", "exclusiveMinimum": 0 },
+        "sprintMps": { "type": "number", "exclusiveMinimum": 0 },
+        "walkStickMax": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "hillUphillMin": { "type": "number", "minimum": 0, "maximum": 1 },
+        "hillUphillSlope": { "type": "number", "minimum": 0 },
+        "hillDownhillMax": { "type": "number", "minimum": 1 },
+        "hillDownhillSlope": { "type": "number", "minimum": 0 },
+        "jumpApexM": { "type": "number", "exclusiveMinimum": 0 },
+        "terminalMps": { "type": "number", "exclusiveMinimum": 0 },
+        "landTicks": { "type": "integer", "minimum": 0 },
+        "enterSettleTicks": { "type": "integer", "minimum": 0 },
+        "leaveSettleTicks": { "type": "integer", "minimum": 0 },
+        "groundWaitTicks": { "type": "integer", "minimum": 1 },
+        "groundProbeM": { "type": "number", "exclusiveMinimum": 0 },
+        "ragdollTicks": { "type": "integer", "minimum": 0 },
+        "getUpTicks": { "type": "integer", "minimum": 0 }
+      }
+    },
     "groups": {
       "type": "object",
       "description": "Collision group name to a single bit (1 << n, n in 0..15). Rapier interaction groups use 16 membership and 16 filter bits.",

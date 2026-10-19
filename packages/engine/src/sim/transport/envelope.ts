@@ -1,5 +1,6 @@
 import { utf8Bytes, type FrameSignal, type LoopStats, type SimControlMessage } from '@dv/shared';
 import { decodeUtf8 } from '../bytes.ts';
+import type { SimEvent } from '../events.ts';
 
 /**
  * Every message between the main thread and sim.worker is `{ v: 1, t, seq, p }` (01-engine.md section 2.1,
@@ -20,7 +21,12 @@ export type DebugCommand =
   | { t: 'debug.crash' }
   | { t: 'debug.stall'; ms: number }
   | { t: 'debug.rebase'; to?: [number, number, number] }
-  | { t: 'debug.step'; n: number };
+  | { t: 'debug.step'; n: number }
+  /** Move the player to a point (ENU metres); the ownership machine waits for ground under it (M01b1). */
+  | { t: 'debug.teleport'; pos: [number, number, number] }
+  | { t: 'debug.ragdoll' }
+  /** Lock or unlock the fp/tp toggle (reason `debug`). */
+  | { t: 'debug.camera.lock'; on: boolean };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -73,6 +79,7 @@ export type FromWorkerMessage =
   | Envelope<'ctl.result', SimControlResult>
   | Envelope<'log', { level: 'info' | 'warn' | 'error'; message: string }>
   | Envelope<'qa', { name: string; data: unknown }>
+  | Envelope<'events', { events: SimEvent[] }>
   | Envelope<'snap', PmSnapshotPayload>;
 
 export function makeEnvelope<T extends string, P>(t: T, seq: number, p: P): Envelope<T, P> {
@@ -107,6 +114,9 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
     case 'debug.stall': return isNum(p['ms']) && p['ms'] >= 0 && p['ms'] <= 60_000;
     case 'debug.rebase': return p['to'] === undefined || (Array.isArray(p['to']) && p['to'].length === 3 && p['to'].every(isNum));
     case 'debug.step': return isInt(p['n']) && p['n'] >= 0 && p['n'] <= 100_000;
+    case 'debug.teleport': return Array.isArray(p['pos']) && p['pos'].length === 3 && p['pos'].every(isNum);
+    case 'debug.ragdoll': return true;
+    case 'debug.camera.lock': return typeof p['on'] === 'boolean';
     default: return false;
   }
 }
@@ -148,6 +158,8 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
       return isObject(p) && (p['level'] === 'info' || p['level'] === 'warn' || p['level'] === 'error') && typeof p['message'] === 'string';
     case 'qa':
       return isObject(p) && typeof p['name'] === 'string';
+    case 'events':
+      return isObject(p) && Array.isArray(p['events']) && p['events'].every((e) => isObject(e) && typeof e['t'] === 'string' && isNum(e['tick']));
     case 'snap':
       return isObject(p) && isInt(p['tick']) && isNum(p['alpha']) && isFramePayload(p['cur']) && (p['prev'] === null || isFramePayload(p['prev']));
     default:

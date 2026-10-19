@@ -19,3 +19,8 @@ export * from './publish.ts';
 export * from './transport/index.ts';
 export * from './runtime.ts';
 export * from './sim-host.ts';
+export * from './events.ts';
+export * from './control/index.ts';
+export * from './camera/collision.ts';
+export { PrefabRegistry, PrefabError, ENGINE_PREFABS, groupsFromNames } from './prefabs/registry.ts';
+export type { PrefabDef as EntityPrefabDef, PrefabKind, PrefabPlacement, PrefabService } from './prefabs/registry.ts';
