@@ -56,6 +56,8 @@ async function ready(page: Page, url = '/'): Promise<void> {
 }
 
 test.describe('pack store', () => {
+  // Every test loads the app at least twice (a reload, a second tab); software GL needs more than the 30 s default.
+  test.describe.configure({ timeout: 120_000 });
   test('opens OPFS, fetches a pack once, verifies it, and serves it from the store after a reload @pack-store', async ({ app, request }) => {
     const page = await app.newPage();
     await ready(page);
