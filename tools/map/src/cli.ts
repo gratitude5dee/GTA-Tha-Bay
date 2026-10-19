@@ -8,7 +8,7 @@
  *   tsx tools/map/src/cli.ts verify [--bake <bakeId> | --area <id>]            (M02a2: the S14 gates on a finished bake)
  *   tsx tools/map/src/cli.ts landmarks [--bake <bakeId> | --area <id>]         (M02a2)
  *   tsx tools/map/src/cli.ts landmarks --build [--slug <id>] [--check]          (M02d1: the landmark models)
- *   tsx tools/map/src/cli.ts landmarks --preview <id> [--fidelity hi|mid|lo] [--az <deg>] [--el <deg>] [--dist <m>] [--out <png>]
+ *   tsx tools/map/src/cli.ts landmarks --preview <id> [--fidelity hi|mid|lo] [--az <deg>] [--el <deg>] [--dist <m>] [--eye x,y,z --look x,y,z] [--out <png>]
  *   tsx tools/map/src/cli.ts pois [--bake <bakeId> | --area <id>]              (M02a2)
  *   tsx tools/map/src/cli.ts resolve --lat=<y> --lng=<x> [--bake <id> | --area <id>]   (M02a2)
  *
@@ -183,6 +183,8 @@ export async function runLandmarksCommand(argv: readonly string[]): Promise<numb
       az: { type: 'string', default: '35' },
       el: { type: 'string', default: '18' },
       dist: { type: 'string' },
+      eye: { type: 'string' },
+      look: { type: 'string' },
       out: { type: 'string' },
     },
   });
@@ -202,7 +204,7 @@ export async function runLandmarksCommand(argv: readonly string[]): Promise<numb
   return printFindings('map:landmarks', findings);
 }
 
-async function runLandmarkPreview(id: string, v: { fidelity: string; az: string; el: string; dist?: string | undefined; out?: string | undefined }): Promise<number> {
+async function runLandmarkPreview(id: string, v: { fidelity: string; az: string; el: string; dist?: string | undefined; out?: string | undefined; eye?: string | undefined; look?: string | undefined }): Promise<number> {
   const { recipeById } = await import('./landmarks/index.ts');
   const { renderPreview, writePreview } = await import('./landmarks/kit/preview.ts');
   const def = recipeById(id.startsWith('lm.') ? id : `lm.${id}`);
@@ -212,7 +214,14 @@ async function runLandmarkPreview(id: string, v: { fidelity: string; az: string;
   const out = v.out ?? path.join(DIST_ROOT, 'landmarks', `${def.id}-${f}.png`);
   mkdirSync(path.dirname(out), { recursive: true });
   const dist = v.dist ? Number(v.dist) : 220;
-  writePreview(out, renderPreview(def, seed.recipe as never, f, { azimuthDeg: Number(v.az), elevationDeg: Number(v.el), distance: dist, targetY: dist * 0.12 }));
+  const triple = (s: string | undefined): [number, number, number] | undefined => {
+    const t = s?.split(',').map(Number);
+    return t && t.length === 3 && t.every(Number.isFinite) ? (t as [number, number, number]) : undefined;
+  };
+  const eye = triple(v.eye), lookAt = triple(v.look);
+  writePreview(out, renderPreview(def, seed.recipe as never, f, {
+    azimuthDeg: Number(v.az), elevationDeg: Number(v.el), distance: dist, targetY: dist * 0.12, ...(eye && lookAt ? { eye, lookAt } : {}),
+  }));
   console.log(`map:landmarks --preview: ${path.relative(toolsRoot, out)}`);
   return 0;
 }

@@ -17,6 +17,9 @@ export interface PreviewCamera {
   /** Look-at height. */
   targetY: number;
   fovDeg?: number;
+  /** A street-level view: the camera stands at `eye` and looks at `lookAt` (the azimuth, elevation and distance are ignored). */
+  eye?: V3;
+  lookAt?: V3;
   width?: number;
   height?: number;
 }
@@ -46,8 +49,8 @@ export function renderPreview(def: RecipeDef<never>, params: BaseParams, f: Fide
   }
   const az = (cam.azimuthDeg * Math.PI) / 180, el = (cam.elevationDeg * Math.PI) / 180;
   // camera position on a sphere around the target, looking at it; az 0 = camera north of the target
-  const target: V3 = [0, cam.targetY, 0];
-  const eye: V3 = [target[0] + Math.sin(az) * Math.cos(el) * cam.distance, target[1] + Math.sin(el) * cam.distance, target[2] - Math.cos(az) * Math.cos(el) * cam.distance];
+  const target: V3 = cam.lookAt ?? [0, cam.targetY, 0];
+  const eye: V3 = cam.eye ?? [target[0] + Math.sin(az) * Math.cos(el) * cam.distance, target[1] + Math.sin(el) * cam.distance, target[2] - Math.cos(az) * Math.cos(el) * cam.distance];
   const fwd = norm3([target[0] - eye[0], target[1] - eye[1], target[2] - eye[2]]);
   const right = norm3(cross3(fwd, [0, 1, 0]));
   const up = cross3(right, fwd);
