@@ -107,7 +107,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 80 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b2, M09b1, M05b2 | READY | `M11b4-per-mode-xr-and-xr-cutscenes.md` |
 | 81 | M12a1 | p1-identity-cloud-saves | 1 | M05d, M04b3, M06a1 | READY | `M12a1-p1-identity-cloud-saves.md` |
 | 82 | M12a2 | age-register-cloud-save-ui | 0.5 | M12a1, M04b1 | READY | `M12a2-age-register-cloud-save-ui.md` |
-| 83 | M06b2 | builder-images-review | 1 | M06b1, M12a1 | READY | `M06b2-builder-images-review.md` |
+| 83 | M06b2 | builder-images-review | 1 | M06b1, M12a1, M06a5 | READY | `M06b2-builder-images-review.md` |
 | 84 | M06b3 | npc-builder-ui | 1 | M06b2, M04b2, M06a5, M06c | READY | `M06b3-npc-builder-ui.md` |
 | 85 | M12b1 | rooms-core-protocol-v2 | 1 | M12a1, M05c2, M04a2 | READY | `M12b1-rooms-core-protocol-v2.md` |
 | 86 | M12b2 | rooms-core-protocol-v2 | 1 | M12b1 | READY | `M12b2-rooms-core-protocol-v2.md` |

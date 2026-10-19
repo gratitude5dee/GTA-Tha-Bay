@@ -12,7 +12,7 @@ After this session the city surfaces are final v1 art and no gray-box stand-in c
 ## Depends on
 - **M10d1:** `config/art-placeholders.json` and its schema; the vehicle, ped and creator rows filled.
 - **M10d3:** the player-car, fight-stage and fighter-model rows filled (DL-460).
-- **M02d2:** 37 `building/lm.<slug>` recipes, `map:landmarks -- --build --check`, `LandmarkLayer` skyline set. Through it **M02b1** (bake S11 `far-bay-*`, placeholder card atlas, window-grid shader) and **M02b2** (`AtmosphereAdapter` interface; `desktop-ultra` uses the desktop path).
+- **M02d2:** 37 `building/lm.<slug>` recipes, `map:landmarks -- --build --check`, `LandmarkLayer` skyline set. Through it **M02a2** (bake S11 `far-bay-*`, placeholder card atlas; DL-546), **M02b1** (backdrop client, window-grid shader) and **M02b2** (`AtmosphereAdapter` interface; `desktop-ultra` uses the desktop path).
 - Contracts: C07 1.1, C08 1.0, C13 1.1 (`TierFeatures`, `DynamicQuality.atmosphereLevel`), unchanged.
 - Owner: Q-39 (art sourcing). The default applies when it stays open.
 

@@ -47,7 +47,7 @@ After this half session the wheel-force path of the shared handling model is dec
 - `packages/engine/src/sim/physics/backend.ts` and its Rapier implementation: the documented `vehicle.read` layout. Doc comment only: no signature change.
 - `packages/shared/src/vehicle/wheel-path.ts` (`SELECTED_WHEEL_PATH`).
 - `packages/engine/test/wheel-spike.spec.ts`, `packages/engine/test/wheel-spike.adr.spec.ts` (the ADR's `Decision:` line equals `SELECTED_WHEEL_PATH` and the JSON's `selected`).
-- `packages/engine/package.json` script **`test:wheel-spike`** (`vitest run test/wheel-spike`). `pnpm check:unit` includes it, so check the vitest workspace globs.
+- `packages/engine/package.json` script **`test:wheel-spike`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/wheel-spike`, run from the repo root like M01a1's `test:*`, so the root `vitest.config.ts` applies). `pnpm check:unit` includes it, so check the vitest workspace globs.
 - `docs/decisions/ADR-0031-vehicle-wheel-force-path.md`, its row in `docs/decisions/README.md` (status from reserved to accepted), `spec/11-decision-log-builder.md` (Builder decision row), and a dated note in `spec/03-decisions-and-facts.md` §6 row M03a2 stating that U-RAC-1 is resolved and pointing to the ADR.
 - About 10 files.
 

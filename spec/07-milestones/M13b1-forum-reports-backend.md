@@ -44,7 +44,7 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
   - `forum_attachment` → the attachment is hidden.
   - `experience` → `moderation_state 'unlisted_pending_review'`.
   - `mod_version` → state `unlisted_pending_review`.
-  - `profile` and `chat_turn` → case only.
+  - `profile` and `chat_turn` → case only (`chat_turn` evidence stays with its owners: `enc:` ids M06b2, `room:` ids M12c2; DL-543).
   - The threshold is 3 distinct reporters, or 1 `mod:trust_lead`. `child_safety` and `intimate_image` open P0 at the first report. `copyright` → 409 `conflict` with `details.redirect: '/legal/dmca'`.
 - `forum.enabled` false → routes 38–40 return `feature_disabled`. Route 41 stays on.
 - `services/edge/wrangler.jsonc`: `RL_FORUM` rate-limit binding (also under `previews`).

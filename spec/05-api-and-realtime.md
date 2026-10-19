@@ -107,7 +107,7 @@ Auth: `pub` none · `PT` PlayToken or any JWT (P0+) · `J1` JWT tier ≥ `device
 | 38 | `GET /forum/threads?board&sort&q&cursor&limit`, `POST /forum/threads` ⓘ | pub · J1 (+age rule) | cursor page of thread DTOs (`v1.ts`, M13b1) | `sort` ∈ `new\|top`; `q` 3–80 chars (DL-190); `forum` | M13b1 |
 | 39 | `GET /forum/threads/:id/posts?since&cursor`, `POST …/posts` ⓘ | pub · J1 | cursor page of post DTOs | polled every 15 s while open; `forum`; 1 post/30 s; 20/day under 7 days | M13b1 |
 | 40 | `PUT /forum/votes` | J1 | `{targetKind: 'thread'\|'post'\|'experience', targetId, value: -1\|0\|1}` → 204 | `forum` | M13b1 |
-| 41 | `POST /reports` | PT | `ReportReq` → 202 | `copyright` → `conflict` with `details.redirect: '/legal/dmca'`; `report`; the dialogue-panel report button (M06a5) stays hidden until this lands | M06b2 |
+| 41 | `POST /reports` | PT | `ReportReq` → 202 | `copyright` → `conflict` with `details.redirect: '/legal/dmca'`; `report`; the dialogue-panel report button (M06a5) stays hidden until this lands; `chat_turn` ids are `enc:<npcId>:<encounterId>:<turnIndex>` (NPC dialogue, M06b2) or `room:<roomId>:<evSeq>` (room chat, M12c2), DL-543 | M06b2 |
 | 53 | `GET /mods/revoked?since=&cursor` | pub | → `RevokedRes` | polled at launch and every 6 h; takedown reaches installed copies ≤ 24 h | M13a2 |
 | 42 | `POST /legal/dmca`, `/legal/counter-notice`, `/legal/ncii` | pub, worldwide | counsel-defined forms → 202 | `legal`; `feature_disabled` placeholder since M00a | M13d1 |
 | 43 | `GET /admin/cases?queue&status`, `POST /admin/cases/:id/decision` ⓘ | S:mod:review | cases; decision → 204 | NPC queue `P2_REVIEW` from M06b2, all queues M13d1 | M06b2, M13d1 |

@@ -1,6 +1,6 @@
 # 03 — Decisions and facts
 
-> v2 (Architect, Wave 5 `decisions-adrs`, 2026-10-18; v1.1 amended A-01 (DL-156) and D-24 (DL-164); v1 amended A-01, A-03 and A-04, DL-035, DL-051, DL-052). v2 adds an ADR link to every D-xx and A-xx (`docs/decisions/`, index in `docs/decisions/README.md`), clarifies A-05, A-04 and A-08 (DL-200…DL-207 in `spec/11-decision-log-2.md`) and adds §6, the facts each milestone relies on. This file is binding on every domain subagent. Where this file and the master prompt's `<decided>` list disagree, **this file wins**; the superseded items are listed in §3.
+> v2 (Architect, Wave 5 `decisions-adrs`, 2026-10-18; v1.1 amended A-01 (DL-156) and D-24 (DL-164); v1 amended A-01, A-03 and A-04, DL-035, DL-051, DL-052). v2 adds an ADR link to every D-xx and A-xx (`docs/decisions/`, index in `docs/decisions/README.md`), clarifies A-05, A-04 and A-08 (DL-200…DL-207 in `spec/11-decision-log-2.md`) and adds §6, the facts each milestone relies on (rows M10d1–M10e for the milestones of DL-390, DL-460 and DL-500 added by DL-547). This file is binding on every domain subagent. Where this file and the master prompt's `<decided>` list disagree, **this file wins**; the superseded items are listed in §3.
 
 ## 1. Adopted decisions
 Research decisions D-01…D-30 are `research/INDEX.md` §1 items 1–30, adopted as written, with the same numbering. Short form:
@@ -133,6 +133,10 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M10a1, M10a2 | F-017, F-042, F-044, F-045, F-046, F-047, F-048 | sheet, mesh and rig prices; webhook; glTF pipeline; cap | U-AST-1, U-AST-2, U-AST-17 |
 | M10b | F-023, F-043, F-047, F-048 | prefix purge; C2PA re-sign inputs; idempotent prewarm; cap | U-BE-10 |
 | M10c | F-025, F-046, F-051 | Workers AI and MiniMax voice prices; ElevenLabs terms | — |
+| M10d1 | F-017 | KTX2 and meshopt tooling for the art-pass assets (DL-390, DL-547) | U-AST-10 (CC0 catalogue terms; the licence snapshot is the evidence) |
+| M10d2 | F-017 | KTX2 facade atlas and skyline cards (DL-390, DL-547) | U-PLT-8 (takram atmosphere on r186, AC-9 record) |
+| M10d3 | F-017 | KTX2 and meshopt tooling for player cars and fight stages (DL-460, DL-547) | U-AST-10 |
+| M10e | F-018, F-025 | 25 MiB per static file; Workers AI voice render through the M10c route (DL-500, DL-547) | U-AST-10, U-AST-11 (sound-effects endpoint terms), U-AST-14 (bark container on iOS) |
 | M11a1, M11a2 | F-004, F-007, F-009, F-010, F-011, F-012, F-013, F-062, F-063, F-064 | iPhone memory, quota and eviction; render-object cost; Quest budgets; Low Power Mode; crash visibility (Chromium `crash-reporting` group and `body.reason`, [research/gap-observability-cost-guardrails.md §2.1], DL-224) | U-PLT-1 to U-PLT-5, U-PLT-8, U-PLT-20, U-REC-2 |
 | M11b1 | F-002, F-003, F-005, F-006, F-013, F-062 | XR session and renderer swap; visionOS and Quest support; Window-only `navigator.xr`; IWER | U-PLT-10, U-PLT-12, U-PLT-13 |
 | M11b2, M11b4 | F-003, F-005, F-006, F-013, F-043, F-062 | per-mode XR; media layer and `VideoFrameTexture`; clip format | U-PLT-10, U-PLT-20 |

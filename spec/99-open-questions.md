@@ -159,6 +159,7 @@ Scope: every `## Acceptance criteria` block of the 115 `spec/07-milestones/M*.md
 | U-NPC-08 | ElevenLabs plan-to-character mapping and rights | t2 voices | M06a4 R&F (Q-20) | t2 off | none |
 | U-NPC-09 | Haiku voice consistency at low effort, thinking off | souls | M06a3 eval harness; M10c | Sonnet for heroes per D-21 | none |
 | U-NPC-12 | cost and limits of `messages.count_tokens` | `npc:lint` L4 | M06a2 R&F | cached per prompt hash; offline estimate | none |
+| U-NPC-13 | Sonnet 5.5 server-side fallback target: model id in the response, price, caching, `output_config.format` and `between_tools` support (research: targets other models, routing unpublished) | hero settlement, quota, governor (DL-551) | M06a3 R&F | unlisted model charged at Opus 5.5 rates; schema failure → `invalid_output`; else drop hero `fallbacks` | none |
 | U-RAC-1 | Rapier vehicle controller gives per-wheel contacts and takes impulses | 06-racing §2 | M03a2 AC-3 | own `castRay` + `applyImpulse` vehicle | none |
 | U-RAC-3 | independent bodies in one Rapier world do not interact in results | ghosts | M07a2 AC-7 (design) | ghosts are kinematic tracks | none |
 | U-RAC-4 | `takeSnapshot` round trip bit-exact | replay seek | M07b2 AC-3 (logs path) | re-simulate from start | none |

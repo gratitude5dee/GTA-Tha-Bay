@@ -79,12 +79,12 @@
 - **Gate** public OSM/DataSF downloads (F-053, F-054) · **Proof** `pnpm map:build -- --area sf --stage terrain,water,buildings,pack` (baked buildings ≥ 98 % of the locked `ynuv-fyni` row count, packs ≤ 4 MiB, identical rerun; DL-288); `pnpm check:secrets -- dist/world`; `pnpm check:unit -- tools/map`
 
 ### M02a2 · bake-roads-graph — 1 · risk M · S02
-- **Goal:** stages S5–S10: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds.
-- **R** R-MAP-01/04 · **Dep** M02a1 · **Read** `02-world-bake.md` §4, §9; `02-world-living.md` §1, §7 · **Out** `tools/map/src/stages`, `content/world/{pois,landmarks}` · **C** C08 1.0
+- **Goal:** stages S5–S11: road graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POI and transit seeds; `l1`, `l2`, `far-bay-*` packs (S11, moved from M02b1, DL-546).
+- **R** R-MAP-01/02/04 · **Dep** M02a1 · **Read** `02-world-bake.md` §4, §9; `02-world-living.md` §1, §7 · **Out** `tools/map/src/stages`, `content/world/{pois,landmarks}` · **C** C08 1.0
 - **Gate** none · **Proof** `pnpm map:verify` (SCC ≥ 98 % of drivable edges, City Hall → every portal, ≥ 2 phases per signal); `pnpm map:landmarks`
 
 ### M02b1 · streaming-lod — 1 · risk H · S02 (+S11)
-- **Goal:** `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, upload gate, L1/L2, backdrop ring and skyline cards; scenarios `walk-civic-center`, `route-ferry-ocean-beach`.
+- **Goal:** `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, upload gate, L1/L2, backdrop ring and skyline cards (from M02a2's S11 packs, DL-546); scenarios `walk-civic-center`, `route-ferry-ocean-beach`; CI world builds with the gray-box tags on a no-world build, `ci.yml` and `nightly.yml` (DL-546).
 - **R** R-MAP-01/02, R-PLAT-03, R-ENG-02 · **Dep** M02a2, M01c, M01e, M01b2 (gray-box boot, debug panel) · **Read** `02-world.md` §5; `02-world-contracts.md` §4; `11-platform-pwa.md` §5; `11-platform-perf.md` §4–§5 · **Out** `packages/world/src/{sim/streaming,client/chunks,client/backdrop}`, `config/perf/paths` (DL-221) · **C** C08 1.0, C13 1.1
 - **Gate** none · **Proof** `pnpm check:perf -- --scenario route-ferry-ocean-beach` (≤ 1 upload/frame, objects ≤ tier on webgl2 and webkit); `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-boot-size`; `pnpm check:unit -- packages/world`
 

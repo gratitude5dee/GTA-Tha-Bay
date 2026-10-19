@@ -14,7 +14,7 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 | 5 Integration | S13 + integration authors | **done** 2026-10-18 | `spec/01–12, 99`, 115 milestone files (C15), ADRs, CLAUDE.md, AGENTS.md, kickoff |
 | Reconciliation 3 | Architect | **done** 2026-10-18 | milestone-author defects resolved (`spec/.milestone-defects.md`); 06 **v1.2** (C05 1.2, C10 1.1, C12 1.2, C15 1.1, C16 1.2); DL-218…DL-244; mechanical sweep 65 → 0 findings |
 | Handoff | Architect | **done** 2026-10-18 | all 115 milestone files READY (12 fast-track frozen, M00 executing); full kickoff list; `02-architecture.md` v1; DL-245…DL-247 |
-| Verification | critics: executability · factual · scope | **in progress (round 4)**; then per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts | critic log below |
+| Verification | critics: executability · factual · scope | **in progress**: rounds r1–r5 and closeout c1–c2 run, each with a fix pass; stop rule (two consecutive zero-blocking rounds, all lenses) **not reached** (c2: 3 blocking); next a full round c3; then per block, at the `_PLAN.md` §3 checkpoints, before each block's first milestone starts | critic log and Definition of Done below; DL-249…DL-559 |
 
 ## Inputs found at start
 - Present: `prompt-pack/` (pack v1), `research/` repo analyses (webport, world, grand-v), Anthropic model facts, Claude Code deployment, prompting guidance, owner updates.
@@ -67,22 +67,32 @@ Operator prerequisites, the interactive alternative and `--resume` after a usage
 **Parallel Builders (DL-246):** one git worktree and one branch `m<id>-<slug>` per milestone (`git worktree add .claude/worktrees/m<id>-<slug> -b m<id>-<slug>`); a milestone starts only when every milestone in its Depends on is merged to the default branch; PRs merge in run order (`_PLAN.md` §1), each rebased and re-proved first; deploys run only from the default branch.
 
 ## Critic log
-| Date | Lens | Blocking | Major | Minor | Notes |
-|---|---|---|---|---|---|
-| 2026-10-18 | executability | 2 | 12 | n/r | pass 1, full set; DL-249, DL-250, DL-281…DL-284, DL-287, DL-290, DL-291, DL-294, DL-297…DL-300 |
-| 2026-10-18 | factual | 1 | 3 | n/r | pass 1, full set; DL-251, DL-286, DL-288, DL-293 |
-| 2026-10-18 | scope | 1 | 6 | n/r | pass 1, full set; DL-252, DL-285, DL-289, DL-292, DL-295, DL-296, DL-301 |
-| 2026-10-19 | executability | 1 | 0 | n/r | pass 2; DL-341 |
-| 2026-10-19 | factual | 1 | 1 | n/r | pass 2; DL-340, DL-343 |
-| 2026-10-19 | scope | 0 | 1 | n/r | pass 2; DL-342 |
-| 2026-10-19 | executability | 1 | 1 | n/r | pass 3; DL-344, DL-346 |
-| 2026-10-19 | factual | 0 | 1 | n/r | pass 3; DL-345 |
-| 2026-10-19 | scope | 0 | 1 | n/r | pass 3; DL-347 |
-| 2026-10-19 | executability | 0 | 2 | n/r | pass 4, in progress; DL-348, DL-421 |
-| 2026-10-19 | factual | 0 | 0 | n/r | pass 4, in progress |
-| 2026-10-19 | scope | 0 | 6 | n/r | pass 4, in progress; DL-349, DL-350, DL-390, DL-391, DL-420, DL-500 |
+One row per verification round; counts per lens as E executability · F factual · S scope (a lens absent from a cell did not run that round). Every round with findings was followed by a fix pass; fixes are logged in `spec/11-decision-log-4.md`, `-4b.md` and `-5.md`.
 
-Counts are the fixes logged in `spec/11-decision-log-4.md`, `-4b.md` and `-5.md`, one per DL entry: "blocking" as the entry states it, every other logged fix major; the lens is the Architect's attribution where the block heading omits it. Minors were fixed in place without a DL entry (n/r: not recorded). §H.5 (two consecutive zero-blocking passes per lens) is not yet met.
+| Round | Date | Blocking | Major | Minor | Notes |
+|---|---|---|---|---|---|
+| r1 | 2026-10-18 | E 4 · F 1 · S 1 | E 11 · F 2 · S 8 | E 13 · F 9 · S 8 | frozen-file defects (M00a AC-1, M00c `blocked` endpoints), test collection and filters, C02 lint scope, CI and secrets alignment, unowned XR dialogue and stubs, launch gates, trace matrix; DL-249…DL-301 |
+| r2 | 2026-10-19 | E 1 · F 0 · S 2 | E 5 · F 5 · S 2 | E 14 · F 13 · S 9 | contract erratum (C13 sky names), DO restart scope stated as fact, Builder-decision file and cap, pre-M14a publish identity; DL-340…DL-343 |
+| r3 | 2026-10-19 | E 0 · S 1 | E 6 · S 5 | E 12 · S 10 | build-dependent unit proof, `perf` job without a creating milestone, Quest draw budget vs F-013, Q-38 missing from the trace; DL-344…DL-347 |
+| r4 | 2026-10-19 | S 3 | S 3 | S 8 | hidden world dependencies, no final-art milestone, public UGC at launch, unowned events and roll-ups; DL-348…DL-350, DL-390, DL-391, DL-420, DL-421 |
+| r5 | 2026-10-19 | S 1 | S 6 | S 6 | player-car and fight-stage art owner, final audio owner, release-gate trace closure, launch scope, kill drill, forum moderation, age-signal provider; DL-450, DL-451, DL-460…DL-493, DL-500 |
+| c1 | 2026-10-19 | E 1 · F 0 · S 0 | E 4 · F 3 · S 4 | E 11 · F 6 · S 8 | closeout: M13a3 over the C15 L7 file limit (blocking, DL-537); row drift between kickoff, `_PLAN` and README; files over the cap and stale counts; retired U-ids; price ratios; unowned mod namespaces; silent R-ID narrowing (Q-41) |
+| c2 | 2026-10-19 | E 3 · F 0 · S 0 | E 8 · F 4 · S 3 | E 14 · F 6 · S 6 | closeout: proofs that cannot pass as written — synth world absent from the QA catalog (DL-542), M05b2 over L7 (DL-554), M00d `check:telemetry` red on the repo (DL-558); unowned paths and UI controls, unpriced fallback model, missing `spec/03` §6 rows, KV latency wording |
+
+**Stop rule not reached.** §H.5 needs two consecutive rounds with zero blocking findings across all three lenses; no round so far qualifies (r4 and r5 ran the scope lens only). The c1 and c2 fix passes (DL-530…DL-559 in `spec/11-decision-log-5.md`) have not been re-checked by a fresh round, so their fixes are unconfirmed.
 
 ## Definition of Done (03-SPEC-TEMPLATE §H)
-Not yet evaluated.
+Evaluated 2026-10-19 after closeout round c2. **Verdict: not done** — H.5 is not met, and H.1, H.6 and H.7 are partly met.
+
+| § | Item | Result | Evidence and what remains |
+|---|---|---|---|
+| H.1 | §A files exist, follow format, under the ceiling | partly met | all §A files and 31 ADRs exist; over the 6,000-word ceiling: `spec/99-open-questions.md` (≈ 6,260) and `spec/domains/08-tycoon.md` (≈ 6,000); over §A targets (not the ceiling): this file, the kickoff (≈ 2,850 vs 1,500), 37 milestone files above 2,000 words |
+| H.2 | Traceability matrix complete | met | `spec/01-product-trace.md`: 43 R-ID rows = 43 R-IDs in 06, no empty cell |
+| H.3 | Every C## has owner, TypeScript in `spec/04`, a consumer milestone | met | owners S01–S13 in 06 §contracts; C01–C17 indexed in `spec/04-data-models.md` and typed in its part files; each cited by ≥ 7 milestone files |
+| H.4 | No UNVERIFIED in any AC; all in `99` with defaults and blocks | met | no AC line holds the token (`99` §0 sweep, re-checked); 153 U rows in `99` §2 with default and blocks; residual: frozen M00 AC-14 depends on U-QA-8 (`99` §0 F-1) |
+| H.5 | Two consecutive zero-blocking passes, all three lenses | **not met** | no qualifying round; c2 had 3 blocking (executability). Remains: a full three-lens round c3 with zero blocking, then a second (c4) |
+| H.6 | `CLAUDE.md`/`AGENTS.md` < 200 lines; every command runs | partly met | 86 and 105 lines; the "commands run" proof is M00 (R-ENG-01 ACs), which is still executing |
+| H.7 | Cost model, risk register, likeness, provenance check, kill-switch present and referenced | partly met | all present; likeness, `provenance:check` and kill-switch cited by 37, 37 and 13 milestone files; the register names an owner milestone per RISK row, but no milestone file cites `spec/09` or `spec/10` by path |
+| H.8 | Kickoff customized, names M00, lists every milestone with sessions | met | `<milestones>`: 119 rows in run order with sessions, depends on, gate; row 1 is M00 |
+| H.9 | Gated decisions answered or defaulted with date | met | G1–G3 and Q-01…Q-12 above; Q-13…Q-41 defaults in `99` §1 |
+| H.10 | Final recap names the exact Builder command | met | "Start the Builder" above |

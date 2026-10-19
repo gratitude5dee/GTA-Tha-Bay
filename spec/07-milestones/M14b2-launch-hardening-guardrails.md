@@ -42,7 +42,7 @@ M14b3 consumes all of this as launch-gate evidence.
   - `deploy.yml` gains an hourly `schedule` that runs only the promote step.
   - Staging keeps 0 % → 100 %. The thresholds live in `guardrails.yaml` under `alerts.A03`.
 - **Telemetry registry audit** (`check:telemetry`, extended):
-  - every C16 1.1 `TelemetryName` has a schema under `packages/shared/schemas/telemetry/`;
+  - every C16 1.1 `TelemetryName` has a schema under `packages/shared/schemas/telemetry/` (M00d's `pending.json` warnings become failures; the file ends empty, DL-558);
   - every name has at least one emitter call site in `packages/**` or `services/**` (static scan of the C13 `Telemetry` emit calls), except names in `config/telemetry-allow-unemitted.json`, each with a reason and an owner milestone;
   - no schema allows more than 16 props, an id-like prop, free text or a sub-chunk position (the C16 privacy rules);
   - the seeded PII fixtures of `telemetry-privacy` stay blocked.

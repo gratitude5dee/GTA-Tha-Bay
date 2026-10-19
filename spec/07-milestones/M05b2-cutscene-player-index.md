@@ -40,8 +40,8 @@ After this session a story beat can ask for a cutscene and always get one. `cuts
 ## Deliverables
 - `packages/shared/src/genai/cutscene-key.ts`, `packages/shared/test/{cutscene-key.test.ts, cutscene-key.vectors.json}`.
 - `tools/assets/cutscene-index/{cli.ts, build.ts, carry-over.ts, soul-facts.ts}`, `tools/assets/test/cutscene-index.test.ts`, root script `assets:cutscene-index`.
-- `packages/shared/src/genai/prompt-lint.ts`, `packages/shared/test/prompt-lint.test.ts`; `tools/ci/prompt-lint.ts`, `tools/ci/test/prompt-lint.test.ts`; edit `services/pipeline/src/{gate.ts, ports.ts}` (`NamePort` over PRIVATE) and `services/pipeline/test/gate.prompt-lint.test.ts`; `config/prompt-banned.json`, `config/cutscene.json`, `content/prompts/genai/{story.establish@1.md, story.beat@1.md}`, `content/cutscenes/{places.json, seeds.json, beats.lock.json}`.
-- `packages/engine/src/client/cutscene/{player.ts, resolve.ts, hosts.ts, sequence.ts, triggers.ts, audio-sync.ts}`, `packages/engine/test/cutscene/{player-triggers.test.ts, sequence.test.ts}`.
+- `packages/shared/src/genai/prompt-lint.ts`, `packages/shared/test/prompt-lint.test.ts`; `tools/ci/prompt-lint.ts` (its cases go into M00b's `tools/ci/test/gates.test.ts`, no new test file; DL-554); edit `services/pipeline/src/{gate.ts, ports.ts}` (`NamePort` over PRIVATE) and `services/pipeline/test/gate.prompt-lint.test.ts`; `config/prompt-banned.json`, `config/cutscene.json`, `content/prompts/genai/{story.establish@1.md, story.beat@1.md}`, `content/cutscenes/{places.json, seeds.json, beats.lock.json}`.
+- `packages/engine/src/client/cutscene/{player.ts, resolve.ts, hosts.ts, sequence.ts, triggers.ts, audio-sync.ts}`, `packages/engine/test/cutscene/player-triggers.test.ts` (sequence cases in a `describe('sequence')` block of the same file; DL-554).
 - `packages/modes/story/src/cutscene/{beat.ts, protocol.ts}`, `packages/modes/story/test/cutscene-protocol.test.ts`.
 - `tests/e2e/cutscene-player.spec.ts` (tag `@cutscene`), fixture ref and manifest under `tests/fixtures/cutscenes/`.
 
@@ -62,7 +62,7 @@ After this session a story beat can ask for a cutscene and always get one. `cuts
 - AC-11 Given Miniflare with a fixture `config/names-real.json` in the PRIVATE bucket When the pipeline gate receives a filled prompt containing one of its names, then a prompt containing a banned-vocabulary term, then a clean prompt, then the first prompt with the object removed Then it returns `NAME_IN_PROMPT`, then `POLICY_REFUSED` with rule 2, makes zero `FalPort` calls for both, passes the clean prompt, and without the object logs `SKIP` and still applies the public denylist — proof: `pnpm check:pipeline`
 
 ## Test plan
-- Unit: `shared/cutscene-key`, `shared/prompt-lint`, `tools/assets/cutscene-index`, `tools/ci/prompt-lint`, `engine/cutscene.player-triggers`, `engine/cutscene.sequence`, `story/cutscene-protocol`, `story/beats-lock`. `pnpm check:unit -- packages/shared packages/engine packages/modes/story tools/assets tools/ci`.
+- Unit: `shared/cutscene-key`, `shared/prompt-lint`, `tools/assets/cutscene-index`, `tools/ci/gates` (prompt-lint cases), `engine/cutscene.player-triggers` (with the sequence block), `story/cutscene-protocol`, `story/beats-lock`. `pnpm check:unit -- packages/shared packages/engine packages/modes/story tools/assets tools/ci`.
 - Pipeline: `gate.prompt-lint` (`pnpm check:pipeline`).
 - E2E: `@cutscene` on `chromium-webgl2` and `webkit-webgl2` (route mocks through Playwright; assertions on bridge state and DOM).
 - Static: `pnpm check:assets`.
@@ -74,7 +74,7 @@ After this session a story beat can ask for a cutscene and always get one. `cuts
 4. Settings › Generated cutscenes: Off → the next beat falls back with trigger `setting_off`.
 
 ## Effort
-1 session; ≈ 41 files; risk medium (MSE `sequence` on WebKit, U-S03-4, recorded by M04c; ping-pong is the fallback).
+1 session; ≈ 39 files (DL-554: the CLI cases join M00b's `gates.test.ts` and the sequence cases join `player-triggers.test.ts`, so M00d's L7 limit of 40 holds without an exception); risk medium (MSE `sequence` on WebKit, U-S03-4, recorded by M04c; ping-pong is the fallback).
 
 ## Risks & fallbacks
 - `ManagedMediaSource` behaves differently in Playwright WebKit: the WebKit AC covers single clips and fallbacks only; sequence behaviour is unit-tested with fake media and checked on the device in M05c2.

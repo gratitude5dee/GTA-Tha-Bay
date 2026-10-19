@@ -158,7 +158,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 80. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices
 81. M12a1 · p1-identity-cloud-saves · 1 · M05d, M04b3, M06a1 · Q-15 (`id.<domain>`), `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT`, `TURNSTILE_SECRET`, `CI_STAFF_DEVICE_JWK`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`, Supabase Pro
 82. M12a2 · age-register-cloud-save-ui · 0.5 · M12a1, M04b1 · none
-83. M06b2 · builder-images-review · 1 · M06b1, M12a1 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_BUILDER_KEY`
+83. M06b2 · builder-images-review · 1 · M06b1, M12a1, M06a5 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_BUILDER_KEY`
 84. M06b3 · npc-builder-ui · 1 · M06b2, M04b2, M06a5, M06c · none
 85. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
 86. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)

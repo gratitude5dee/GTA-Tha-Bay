@@ -15,9 +15,9 @@
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-age`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-saves`
 
 ### M06b2 · builder-images-review — 1 · risk M · S04, S09
-- **Goal:** presigned uploads and commit (route 34), image moderation chain and `UGC_SCAN` queue, text descriptions, attestation, P2 submit (test-issuer tokens until M13c1), case decisions on the NPC queue of route 43, community list, reports (route 41); UGC buckets created (DL-182).
-- **R** R-NPC-03, R-IP-02/03 · **Dep** M06b1, M12a1 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
-- **Gate** Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY` · **Proof** `pnpm check:workers -- npc-builder` (images text-only, submit tier, report unpublish); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
+- **Goal:** presigned uploads and commit (route 34), image moderation chain and `UGC_SCAN` queue, text descriptions, attestation, P2 submit (test-issuer tokens until M13c1), case decisions on the NPC queue of route 43, community list, reports (route 41: `npc_soul` and NPC dialogue `chat_turn`, with the panel's report button turned on, DL-543); UGC buckets created (DL-182).
+- **R** R-NPC-03, R-IP-02/03 · **Dep** M06b1, M12a1, M06a5 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
+- **Gate** Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY` · **Proof** `pnpm check:workers -- npc-builder` (images text-only, submit tier, report unpublish); `pnpm check:workers -- npc-chat-report`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-report`
 
 ### M06b3 · npc-builder-ui — 1 · risk M · S10
 - **Goal:** the NPC builder pages over the route 33 API in the step order of `04-npc-builder.md` §C1 (S04 owns the flow, DL-234): draft, generate, preview chat, private talk, submit.

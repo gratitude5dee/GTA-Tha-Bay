@@ -32,7 +32,7 @@ After this session the city has a day, a night and weather. The S01 game clock a
 - `packages/shared/src/contracts/engine-world.ts` (+ index export).
 - `packages/engine/src/sim/world/clock.ts`, `config/clock.json` + `config/schemas/clock.schema.json`, `packages/engine/test/clock.spec.ts`.
 - `packages/world/src/client/sky/{types.ts, sky-keys.ts, dome.ts, fog.ts, rain.ts, night.ts, tiers.ts, probe.ts, atmosphere.ts, sky-view.ts}`, `packages/world/src/sim/env/blackout.ts`.
-- `config/world/sky-keys.json` + `tools/map/schemas/sky-keys.schema.json`; `config/world/density.json` (`lampPitchM`; the hour curves arrive in M03b1); `tools/map/src/stages/s9-tags.ts` (lamps).
+- `config/world/sky-keys.json` + `tools/map/schemas/sky-keys.schema.json`; `config/world/density.json` and `tools/map/schemas/density.schema.json` (adds `lampPitchM` to M02a2's file; profile order unchanged; the hour curves arrive in M03b1; DL-555); `tools/map/src/stages/s9-tags.ts` (lamps).
 - `packages/world/test/{sky.keys.spec.ts, sky.continuity.spec.ts, sky.tiers.spec.ts, sky.probe.spec.ts}`, `tests/e2e/world-sky.spec.ts` (`@world-sky`).
 - `packages/engine/src/client/debug/sim-panel.ts` (sky controls), `apps/web/src/main.ts` (sky wiring), `tools/ci/checklists/M02b2-iphone15.json`.
 - ≈ 24 code files.

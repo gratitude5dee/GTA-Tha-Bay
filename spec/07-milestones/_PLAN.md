@@ -97,7 +97,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 80 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | E | M11b2, M09b1, M05b2 |
 | 81 | M12a1 | p1-identity-cloud-saves | 1 | F | M05d, M04b3, M06a1 |
 | 82 | M12a2 | age-register-cloud-save-ui | 0.5 | F | M12a1, M04b1 |
-| 83 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1 |
+| 83 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1, M06a5 |
 | 84 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2, M06a5, M06c |
 | 85 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2 |
 | 86 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |

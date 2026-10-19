@@ -11,7 +11,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 ## Depends on
 - **M02c1** (graph-services-teleports): `RoadGraphQuery`, junction runtime and `signal()`, `TrafficControl` in `packages/world/src/sim/traffic/control.ts` (blackout from M02b2's hashed resource, `setDensity`, `closeEdges`, `release`), `WorldQuery`, `WorldApi` wiring and the QA bridge.
 - **M03a1** (vehicles-interaction-prefabs): prefabs `vehicle.{compact,sedan,rideshare,van,truck,pickup}`, `police.cruiser`, `robotaxi.default`; the vehicle system with `stepHandling`; `packages/shared/src/vehicle/quirks.ts`.
-- **M02b2** (weather-time): blackout resource, `config/world/density.json` with `lampPitchM` (DL-219).
+- **M02b2** (weather-time): blackout resource, `lampPitchM` in `config/world/density.json` (DL-219); the file, its ordered `profiles` with `perKm` and the schema come from M02a2 (DL-555).
 - Through those:
   - M02a2: graph, junctions, signal programs, spawn capacities and density profiles, `synth` roads;
   - M02b1: `@dv/world` sim/client split, `DV_WORLD=synth` QA builds, scenario registration in `tests/perf/`;
@@ -24,7 +24,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
   - brain in `SimStage.AI` at 30 Hz (`AI_DIVISOR 2`), with component writes only in `AI` and `Rules`.
 - IDM car following (§2.1.1): personality 0.92–1.08 from stream `amb:<cell>:<slot>`, curve limit with `dsqrt`, grade scaling. Turn planning 40 m before the edge end with weights 0.60/0.22/0.18. Dead-end handling. Lane change within the last 40 m.
 - Junction protocol (§1.5–§1.6, §2.1.3): the stop line and amber rule, entry when the conflict set is free, the 20 s claim timeout with the lowest `StableKey` proceeding, all-way and minor stops, dark signals as all-way stops. The aspect comes from M02c1's `signal()`.
-- Spawn and despawn by tier `R_amb` (§2.2) with the forward-cone rule and stuck despawn. Density through `activeSlots` with tier, hour, weather and the `TrafficControl.setDensity` override. Hour curves and weather and tier factors are **added** to `config/world/density.json` (M02b2 created the file).
+- Spawn and despawn by tier `R_amb` (§2.2) with the forward-cone rule and stuck despawn. Density through `activeSlots` with tier, hour, weather and the `TrafficControl.setDensity` override. Hour curves and weather and tier factors are **added** to `config/world/density.json` (M02a2 created the file and the ordered `profiles`; M02b2 added `lampPitchM`); keyed by profile name, never reordering `profiles` (DL-555).
 - Simulation levels (§2.3): near kinematic bodies with tier caps; far level as data only; promotion to a dynamic vehicle (civilian preset) on ΔV ≥ 3 m/s or player entry for ≤ 8 s, then a wreck; promoted caps per tier.
 - Reactions (§2.4): an intruding entity becomes the leader; a honk cue; pull right for a siren within 40 m.
 - Archetype shares (§2.5) and parked cars (component 259, parking lanes, tier factor). Closed edges from `TrafficControl.closeEdges` are avoided at the next junction.
@@ -43,7 +43,7 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 ## Deliverables
 - `packages/world/src/sim/traffic/{components.ts, idm.ts, plan.ts, junction.ts, spawn.ts, density.ts, promote.ts, reactions.ts, robotaxi.ts, witness.ts, system.ts, index.ts}`; `control.ts` extended only where agents need hooks.
 - `packages/world/src/client/traffic/{instances.ts, lights.ts}`.
-- `config/world/density.json` (extended) and its schema `packages/shared/schemas/world/density.schema.json`.
+- `config/world/density.json` (extended) and its schema `tools/map/schemas/density.schema.json` (extended; M02a2's file, DL-555).
 - `packages/world/test/{traffic.idm.spec.ts, traffic.signals.spec.ts, traffic.junction.spec.ts, robotaxi.blackout.spec.ts, density.spawn.spec.ts, traffic.promotion.spec.ts, witness.spec.ts, traffic.determinism.spec.ts}`, `packages/world/test/golden/traffic-synth.json`.
 - `apps/web/qa/world-hash.html`, `apps/web/src/qa/world-hash.ts`; `verify-dist.mjs` also rejects `world-hash`.
 - `tests/e2e/world-hash.spec.ts` (`@world-hash`).
@@ -103,6 +103,6 @@ After this session San Francisco has traffic. Ambient cars follow the baked road
 - Facts: F-007 (instancing keeps the object count down). The December 2025 blackout behaviour is a cited design ground [research/gamedesign-decomposition.md §2.7]; the oracle is the 4–9 s rule.
 - Order of work: density config, IDM, junction, spawn, robotaxi, promotion, witness, render, golden, QA page, perf path, checklist.
 - Preview builds normally carry no world (M02b1). For AC-11 the operator builds one Preview with `pnpm map:build -- --area synth`, then `DV_WORLD=synth VITE_DV_QA=1 pnpm build`, then `pnpm deploy:preview`, and notes the URL in `notes.json`.
-- AC-3 to AC-7 run on hand-built graph fixtures inside the test files. AC-1, AC-2 and AC-8 read `dist/world/` of the named area; without the bake they skip through M02b1's `requireBake` (`SKIP <suite>: no bake in dist/world`), and fail when `DV_REQUIRE_BAKE=1` (the CI `unit` job sets it after restoring or building both bakes, M02b1).
+- AC-3 to AC-7 run on hand-built graph fixtures inside the test files. AC-1, AC-2 and AC-8 read `dist/world/` of the named area; without the bake they skip through M02a1's `requireBake` (DL-545 (a)) (`SKIP <suite>: no bake in dist/world`), and fail when `DV_REQUIRE_BAKE=1` (the CI `unit` job sets it after restoring or building both bakes, M02b1).
 - Witness events go to a sink that M03c consumes. `@dv/world` never imports engine pursuit code.
 - Owner gate: Q-13 (an iPhone 15 for AC-11; without it the AC is listed under "Blocked on"). Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally, CI runs it). No genAI spend.
