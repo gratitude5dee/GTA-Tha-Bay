@@ -33,7 +33,7 @@ Only our origins appear, so nothing can carry a camera frame off-device (R-IP-04
 `request.cf.country ∉ GEO_ALLOW` (`config/geo.json`, `US`) → `451 region_blocked` on every `/api/v1/*` route except `/boot` (answers `region: 'blocked'`), `/legal/*` and `/.well-known/*`; routes authenticated by vendor signature, HMAC or staff scope are also exempt (20, 28, 29, 43–49, 55–57; DL-184). A missing country (local dev) counts as allowed. Rooms close 4006. Blocked clients run offline single-player from the PWA cache (R-ROLL-01).
 
 ### 1.5 Conventions
-JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClientBuild` → `409 build_mismatch` → PWA update flow); `Idempotency-Key` (UUIDv7) on ⓘ writes, kept 24 h; UUIDv7 ids minted in the Worker; epoch-ms times; pagination `?cursor&limit≤50` → `{items, next?}`. Bodies pass Ajv schemas generated from `packages/shared/src/api/v1.ts` (`check:api`), default cap 64 KiB. Errors are `ApiError` with `HTTP_FOR` statuses. `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable` and network failure select the offline path, never a dialog (R-CUT-03, R-NPC-05); `rate_limited` carries `retryAfterMs`.
+JSON bodies; `X-Client-Build: <BUILD_ID>` on every request (older than `minClientBuild` → `409 build_mismatch` → PWA update flow); `Idempotency-Key` (UUIDv7) on ⓘ writes, kept 24 h; UUIDv7 ids minted in the Worker; epoch-ms times; pagination `?cursor&limit≤50` → `{items, next?}`. Bodies pass the JSON Schemas generated from `packages/shared/src/api/v1.ts` (`check:api`), default cap 64 KiB; inside a Worker they run as validators precompiled at build time or hand validators (BD-M00a-02), never a runtime `ajv.compile`, which Workers refuse (spec/03 §7, DL-694). Errors are `ApiError` with `HTTP_FOR` statuses. `quota_exhausted`, `budget_offline`, `kill_switched`, `upstream_unavailable` and network failure select the offline path, never a dialog (R-CUT-03, R-NPC-05); `rate_limited` carries `retryAfterMs`.
 
 ## 2. Identity and auth phases (D-03, D-04)
 
@@ -277,7 +277,7 @@ Daily quotas (UTC), P0/P1 → linked: dialogue turns 150 → 400 (40 per NPC); v
 
 ### 5.2 Controls by threat
 - **Wallet**: reserve-before-call in `PlayerQuotaDO`; `BudgetGovernorDO` levels 70/85/100 % (Sonnet→Haiku, voice→t1, genAI off); AI Gateway spend rules; vendor caps; `ks:*` switches. Kill switches and budget levels never block cache hits (cached cutscenes, TTS, barks).
-- **Payloads**: Ajv on every body; 64 KiB JSON default; per-purpose upload caps (§3, route 34); magic-byte checks at scan; presigned PUT 15 min with a fixed `Content-Type`.
+- **Payloads**: schema check on every body (precompiled, no runtime compile; DL-694); 64 KiB JSON default; per-purpose upload caps (§3, route 34); magic-byte checks at scan; presigned PUT 15 min with a fixed `Content-Type`.
 - **Replay**: `Idempotency-Key` on ⓘ writes (24 h); monotonic `seq` and `evSeq`; tickets 30 s; resume tokens 60 s.
 - **WebSocket**: ticket, build and geo before the DO; server-assigned ids; per-socket bucket; 5 strikes → 1008; pose validation; chat is opt-in, off by default, moderated before fan-out.
 - **Forged history**: dialogue history is server-held in `EncounterDO`; async moderation never blocks the stream.

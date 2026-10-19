@@ -23,7 +23,8 @@ After this session the city has a day, a night and weather. The S01 game clock a
 - **Lamps in the bake:** a small S9 addition writes `l0` LAMP records every 30 m on both sides of Arterial and Collector edges (design value, `config/world/density.json` key `lampPitchM`); reproducible.
 - **Blackout resource:** a sim-side hashed boolean in `packages/world/src/sim/env/blackout.ts` that `TrafficControl` (M02c1/M03b1) adopts unchanged; until then only the QA bridge and debug panel set it.
 - **QA and tools:** `__dvBridge.world.setHour(h)`, `setWeather(w)`, `blackout(on)`, `sky()` (current `SkyUniforms`); sky controls (hour, preset, blackout, rain) in the M01b2 debug panel (`?debug=1`) for device checklists; `BootConfig.flags` `world.rain` and `world.atmosphere` honoured.
-- **Checklist** `tools/ci/checklists/M02b2-iphone15.json` (C13 `DeviceChecklist`): Home Screen app on the Preview at `?perf=1&tier=mobile-low&scenario=graybox-walk`, then rain at 21:30 with Karl fog via the debug panel; upload `perf.json` and `notes.json`.
+- **Package test filter (DL-674; BD-M01b1-13):** on the code branch `@dv/engine` and `@dv/shared` `test` are still plain `vitest run`, which ignores the filter after pnpm's `--`, and the `--dir packages/<pkg>` form hides the root `include`. This milestone (the first block B proof user) changes every package `test` script to `tsx ../../tools/ci/run.ts vitest run --pkg packages/<pkg>` (for `packages/modes/<id>`, `../../../`). `run.ts --pkg <dir>` runs Vitest from the repo root with the root config: with no filter it passes `<dir>/test/`; with filters it lists the spec files under `<dir>/test/` (`*.{test,spec}.{ts,tsx}`) whose path relative to that folder contains any filter and passes exactly those paths, and with no match it exits 1 with `run.ts: no spec under <dir>/test matches <filter>`. `test:*` scripts that name spec paths stay as they are. Packages added later use the same script.
+- **Checklist** `tools/ci/checklists/M02b2-iphone15.json` (C13 `DeviceChecklist`): Home Screen app on an operator-built `DV_WORLD=synth` Preview (Preview builds stay world-less, M02b1, and the sky mounts only on the world path; DL-653) at `?perf=1&tier=mobile-low&scenario=walk-civic-center&debug=1`, then rain at 21:30 with Karl fog via the debug panel; upload `perf.json` and `notes.json`.
 
 ## Scope out
 - takram atmosphere adapter and volumetric clouds for `desktop-ultra` (stub first per `02-world.md` §8): M10d2 (art integration, DL-390); its device calibration rides the M14b3 release pass. Head- and tail-light meshes: M03b1. Mission time locks are exercised from M05a1. Lightning, snow and thunder do not exist.
@@ -35,7 +36,8 @@ After this session the city has a day, a night and weather. The S01 game clock a
 - `config/world/sky-keys.json` + `tools/map/schemas/sky-keys.schema.json`; `config/world/density.json` and `tools/map/schemas/density.schema.json` (adds `lampPitchM` to M02a2's file; profile order unchanged; the hour curves arrive in M03b1; DL-555); `tools/map/src/stages/s9-tags.ts` (lamps).
 - `packages/world/test/{sky.keys.spec.ts, sky.continuity.spec.ts, sky.tiers.spec.ts, sky.probe.spec.ts}`, `tests/e2e/world-sky.spec.ts` (`@world-sky`).
 - `packages/engine/src/client/debug/sim-panel.ts` (sky controls), `apps/web/src/main.ts` (sky wiring), `tools/ci/checklists/M02b2-iphone15.json`.
-- ≈ 24 code files.
+- `tools/ci/run.ts` (`--pkg`), `tools/ci/test/run-pkg.test.ts`, the `test` script of every `packages/**/package.json` that has one (DL-674).
+- ≈ 26 code files.
 
 ## Interfaces
 - C06 1.1 clock types created verbatim in `engine-world.ts`; `WorldClockApi` implemented by the engine. C13 1.1 and C02 1.1 used unchanged. `SkyKeysFile`, `SkyUniforms`, `AtmosphereAdapter` are S02 domain types (`02-world-living.md` §6), not numbered contracts.
@@ -49,7 +51,8 @@ After this session the city has a day, a night and weather. The S01 game clock a
 - AC-6 Given a QA build with the `synth` world on `chromium-webgl2` When the bridge sets 13:00 `clear`, 01:00 `clear`, 13:00 `karl-fog` and blackout at 22:00 Then a 128 px readback gives clear-noon sky luminance within 0.45–0.85, night below 0.12, Karl fog lowering city luminance variance by ≥ 25 % against clear, and blackout reporting `uBlackout` 1 with window factor 0.15 — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-sky`
 - AC-7 Given the sky at 21:30 with rain When the walk scenario runs for every flat tier in fail mode Then render objects and triangles stay within budget — proof: `DV_WORLD=synth pnpm check:perf -- --scenario walk-civic-center --fail`
 - AC-8 Given the branch When the production build is verified and deployed to a Preview Then it succeeds and the Preview passes its header checks — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
-- AC-9 Given an iPhone 15 Home Screen app on the Preview at `mobile-low` When the `M02b2-iphone15` checklist runs the gray-box walk with rain at 21:30 and Karl fog Then `perf:verify` passes at `mobile-low`, and the run records the sky cost (on/off frame median delta, U-W10) in `notes.json` — proof: manual: iPhone 15 (Home Screen app), `pnpm perf:checklist -- tools/ci/checklists/M02b2-iphone15.json`, follow the steps, upload `perf.json` and `notes.json` to `docs/device-runs/M02b2/iphone15/`, then `pnpm perf:verify -- docs/device-runs/M02b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02b2-iphone15.json`
+- AC-9 Given an operator Preview built with the `synth` world (Notes), opened as an iPhone 15 Home Screen app at `mobile-low` When the `M02b2-iphone15` checklist runs `walk-civic-center` with rain at 21:30 and Karl fog Then `perf:verify` passes at `mobile-low`, and the run records the sky cost (on/off frame median delta, U-W10) in `notes.json` — proof: manual: iPhone 15 (Home Screen app), operator Preview from `pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview` (URL noted in `notes.json`), `pnpm perf:checklist -- tools/ci/checklists/M02b2-iphone15.json`, follow the steps, upload `perf.json` and `notes.json` to `docs/device-runs/M02b2/iphone15/`, then `pnpm perf:verify -- docs/device-runs/M02b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M02b2-iphone15.json`
+- AC-10 Given the package `test` scripts routed through `run.ts --pkg` (DL-674) When `pnpm --filter @dv/engine test -- clock` runs Then Vitest runs from the repo root and selects only the engine spec files whose path contains `clock` (here `clock.spec.ts`), with no filter it runs every spec under `packages/engine/test/`, and an unmatched filter exits 1 naming it (`tools/ci/test/run-pkg.test.ts` asserts the selected file lists) — proof: `pnpm check:unit -- tools/ci && pnpm --filter @dv/engine test -- clock`
 
 ## Test plan
 - **Unit:** `engine/clock` (`pnpm --filter @dv/engine test -- clock`); `world/sky.keys`, `sky.continuity`, `sky.tiers`, `sky.probe` (`pnpm check:unit -- packages/world`); `tools/map/stage.tags` lamp pitch.
@@ -61,7 +64,7 @@ After this session the city has a day, a night and weather. The S01 game clock a
 2. Toggle blackout: windows dim, lamps go out.
 
 ## Effort
-1 Builder session; about 24 code files; risk **medium**. Tuning `sky-keys.json` so the luminance gates pass is the main time sink.
+1 Builder session; about 26 code files; risk **medium**. Tuning `sky-keys.json` so the luminance gates pass is the main time sink.
 
 ## Risks & fallbacks
 - **Readback luminance differs between SwiftShader runs:** compare means over a 128 × 72 target with ±0.03 tolerance; if still flaky, keep the readback gates in `@world-sky` nightly only and assert the analytic luminance of `evaluateSky` in the PR suite (log the decision).
@@ -70,4 +73,5 @@ After this session the city has a day, a night and weather. The S01 game clock a
 ## Notes for the Builder
 - Read first: `02-world-living.md` §6; `01-engine-save-modes.md` "Time-of-day and weather clock" and the 1.1 section; `01-engine.md` §2.3 (determinism) and §9 item 17.
 - The clock is sim code: no `Date`, no transcendental `Math.*`; hour math with integers and exact ops. The sky is client code: `Math.sin` is fine there.
-- Secrets: none. Device availability is Q-13. Branch `m02b2-weather-time`.
+- Preview builds normally carry no world (M02b1), so the sky never mounts there. For AC-9 the operator builds one Preview with `pnpm map:build -- --area synth`, then `DV_WORLD=synth VITE_DV_QA=1 pnpm build`, then `pnpm deploy:preview`, and notes the URL in `notes.json` (as M03b1 AC-11; DL-653).
+- Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for the AC-8 and AC-9 Preview deploys (SKIP locally). Device availability is Q-13. Branch `m02b2-weather-time`.

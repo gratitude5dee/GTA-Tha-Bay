@@ -28,7 +28,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 11 | M01e | asset-worker-opfs-store | 1 | A | M01d, M01c, M00a, M00, M01a2, M01f |
 | 12 | M01f | world-graybox-fixture-codec | 0.5 | A | M01a1, M00b |
 | 13 | M00d | qa-spec-gates | 1 | B | M00, M01c, M00b |
-| 14 | M02a1 | bake-core | 1 | B | M01f, M01d, M00d |
+| 14 | M02a1 | bake-core | 1 | B | M01f, M01d, M00d, M01e |
 | 15 | M02a2 | bake-roads-graph | 1 | B | M02a1 |
 | 16 | M02b1 | streaming-lod | 1 | B | M02a2, M01c, M01e, M01b2 |
 | 17 | M02b2 | weather-time | 1 | B | M02b1 |
@@ -300,6 +300,7 @@ flowchart LR
   M01f --> M02a1
   M01d --> M02a1
   M00d --> M02a1
+  M01e --> M02a1
   M02a1 --> M02a2
   M02a2 --> M02b1
   M01e --> M02b1
@@ -511,7 +512,47 @@ flowchart LR
 
 At every checkpoint the Architect runs the three critic lenses on the next block's milestone files (`spec/domains/13-qa-critics.md` §1) and records the result in the `spec/00-plan.md` critic log.
 
-## 4. Tails and gates at a glance
+## 4. Parallel starts (DL-700)
+
+**Rules.** Depends on (§1 and each milestone file) is unchanged and still decides merge order. Each dependency of a classified milestone is HARD (the milestone needs the merged code to build or to prove an AC) or SOFT (a stand-in is enough to build; the real dependency is needed only to re-prove). A milestone's **start-after set** is its HARD dependencies, including HARD dependencies that its Depends on omits. A milestone may START when every milestone in its start-after set is merged to `claude/build`; it builds against the stand-ins named below (a fixture, or a stub of at most 2 files, per SOFT dependency); before merge it rebases on `claude/build` with the real dependencies merged and re-runs every AC listed in the last column; every stand-in file is deleted or replaced at that rebase. A milestone that is not classified, or has no row below, starts when its whole Depends on is merged (DL-246). R-ROLL-01 and the owner gates (§5) still apply.
+
+**Classified set (2026-10-19, adversarially checked):** M02a1, M02a2, M02b1, M02b2, M02c1, M02d1, M02d2, M03a1, M03a2, M03b1, M03b2, M03c, M04a1, M04a2, M04b1, M04b2, M04c, M04d, M05a1, M05a2, M05d, M13a1. Every edge in this set is HARD, so no start-after set is smaller than its Depends on:
+
+| ID | Start after (merged) | Stand-ins until merge (fixture or ≤ 2-file stub, per soft dep) | Re-prove at merge (ACs) |
+|---|---|---|---|
+| — | none qualifies yet; a row is added only when a later classification upholds a SOFT edge | — | — |
+
+**Start-after sets larger than Depends on** (HARD edges the Depends on omits; they bind the start, not the merge order, which the §1 run order already satisfies; the milestone files are corrected at the next Architect pass, DL-701):
+
+| ID | Depends on (§1) | Start after (merged) |
+|---|---|---|
+| M02a1 | M01f, M01d, M00d, M01e (M01e added to Depends on by DL-671; row kept for the record) | M01f, M01d, M00d, **M01e** |
+| M05d | M05b1 | M05b1, **M04b3** |
+| M04b2 | M04b1 | M04b1, **M03b2** (already transitive through M04a2; no wave change) |
+
+**Earliest waves** (unlimited parallelism, one wave per milestone whatever its sessions; merged on `claude/build`: M00, M00a, M00b, M00c, M01a1, M01a2, M01b1, M01c, M01d, M01f; wave 0 = being built: M01b2, M01e, M00d, M05b1, M06a2). Before = Depends on only; after = start-after sets above.
+
+| Wave | Milestones (after) |
+|---|---|
+| 1 | M02a1, M04a1 |
+| 2 | M02a2 |
+| 3 | M02b1 |
+| 4 | M02b2 |
+| 5 | M02c1 |
+| 6 | M02d1, M03a1 |
+| 7 | M02d2, M03a2, M03b1 |
+| 8 | M03b2, M03c |
+| 9 | M04a2 |
+| 10 | M04b1, M04d, M05a1, M13a1 |
+| 11 | M04b2, M04b3, M04c, M05a2, M07a1, M08a1, M09a1 |
+| 12 | M02c2, M05b2, M05d, M09a2 |
+| 13 | M05c1, M06a1, M09b1, M13a2 |
+| 14 | M05c2, M06a3, M07a2, M08a2, M12a1 |
+| 15 | M05c3, M06a4, M06a5, M06c, M06b1, M07b1, M08b1, M08c1, M09b2, M10d1, M11a1, M12a2, M12b1, M13c1 |
+
+Before → after: M05d 1 → 12, M06a1 12 → 13, M06a3 13 → 14, M12a1 13 → 14, M13a2 11 → 13, M13c1 14 → 15, M06a4/M06a5/M06c/M06b1/M09b2/M12a2 14 → 15, M06b2 15 → 16, M06b3 16 → 17, M13b1 16 → 17, M13b4 17 → 18; every other wave is unchanged. M05c2 sits in wave 14, M14a in wave 25 and M15g in wave 29, before and after. **Critical path to M05c2:** 19.0 sessions from M00 before and after (M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2), 15.0 from today counting M00d as a full session; to M14a 29.8 (25.8 from today), unchanged. The chain to M05c2 is one milestone wide from M02a1 to M02c1 and again at M04a2, so parallel Builders shorten the calendar only beside it (M04a1 now; M03a2 and M02d1–M02d2 beside M03b1–M03c; blocks D–G after wave 10), not the path itself.
+
+## 5. Tails and gates at a glance
 - **Multiplayer and auth tail (block F):** M12a1 → M12a2; M06b2 → M06b3 (need P1/P2 identity); M12b1 → M12b2 → M12c1 → M12c2 → M12d, M12e.
 - **Modding tail (block G):** M13a1 → M13a2 → M13a3 → {M13a4, M13a5} → M13a6; M13b1 → {M13b2, M13b4, M13d1}; M13c1 → M13c2 → {M13c3, M06b4}; `mods.script`, `mods.ui` stay off until the M13a4/M13a5 device recordings pass; `ugc.publish` stays false in production until M13d1.
 - **Owner gates:** Q-13 devices (M01b2, M01c, M04c, M05c2, M08c2, M11a2, M11b1/b4, M13a4/a5, M14b3) · Q-15 domains and GitHub plan (M12a1, M14b3) · Q-16 filings (M06b2 photo visibility, M13d1) · Q-17 fal key holder (M00c, M10a1) · Q-18, Q-23 counsel (M14b3 release) · Q-19, Q-25 real roster (M06a2 originals only, M10a, M10c) · Q-20 voices (M06a4, M10c) · Q-21 sensitivity (release of M05c2, M05e, M05f) · Q-22 npm (M13a6, M13c3 publish step) · Q-24 animation staffing (M08b1, M10a2) · ADR-GENAI-01 provider clearance (paid cutscene prewarm in M05c3, M10b) · Thirdweb Growth plan (M14a) · Supabase Pro (M05d production).

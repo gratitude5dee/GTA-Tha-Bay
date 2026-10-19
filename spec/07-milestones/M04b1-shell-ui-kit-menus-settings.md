@@ -45,6 +45,7 @@ The player can:
   - Every row has a scope badge.
 - `UiPrefs` store (IndexedDB `dv-ui`, try/catch with in-memory fallback, plus the mirrored `localStorage` block key).
 - Telemetry `ui.page` and `ui.onboard` (registry props) after consent only.
+- **QA play bypass** (DL-650; QA builds only, `VITE_DV_QA=1`): the S11 `QaFlags` parser (`packages/engine/src/platform/qa-flags.ts`) gains `play: 'sandbox' | 'story' | 'off' | null` from `?play=`; with no `?play=`, the QA-only `localStorage` key `dv-qa-play` supplies it, and `?scenario=<id>` implies `sandbox` (so the device checklist URLs `?perf=1&tier=…&scenario=…` of M02b2 and M03b1 still reach play). With `sandbox` or `story` the shell records an in-memory 18+ attestation and Terms acceptance (nothing persisted to `UiPrefs` or `PlatformSettings`, telemetry consent left at its default), creates a throwaway in-memory profile, arms `FirstGestureUnlock` on the first input and sends `mode.start` for that id, so the app reaches `InMode` with no gate page; `off` or no value runs the normal flow. Production builds ignore the flag and the key. Playwright: `playwright.config.ts` and `playwright.perf.config.ts` set config-level `use.storageState` to an object whose `origins` entry for the base URL holds `dv-qa-play=sandbox`, so every existing engine spec (`boot`, `fp-tp`, `platform-host`, `perf-budget`, `@graybox`, `@touch`, `@pack-*`, `@world-*`, `@vehicle*`, `@pursuit`, `@modes`, …) keeps loading straight into play with no spec edit; specs that need the gates (`tests/e2e/ui/*`, the title, credits and legal tests of `tests/e2e/shell.spec.ts`) opt out with `test.use({ storageState: { cookies: [], origins: [] } })`.
 
 ## Scope out
 - Character creator, HUD, phone and pause, touch layouts and editor, coach mark, help page, garage frame, `UiSurface`, `GameModeUI` host: M04b2.
@@ -59,11 +60,13 @@ The player can:
 - `packages/ui/src/i18n/index.ts`; `content/ui/i18n/en.json`; `config/ui/nav.json`.
 - `packages/ui/src/pages/{gate.tsx, main.tsx, saves.tsx, modes.ts, system.tsx}` (gate = title, age, blocked, terms; saves = load, profile, saves, new game; system = loading, error, coming soon).
 - `packages/ui/src/pages/settings/{index.ts, display.ts, controls.tsx, audio-access.ts, privacy-storage.ts}`.
-- `packages/ui/test/{ui-shell.spec.ts, ui-screen-parity.spec.ts, ui-i18n.spec.ts, age-gate.spec.ts, modes-tiles.spec.ts, saves-ui.spec.ts, settings-bind.spec.ts}`.
+- `packages/ui/test/{ui-shell.spec.ts, ui-screen-parity.spec.ts, modes-tiles.spec.ts, saves-ui.spec.ts, settings-bind.spec.ts}` (`ui-shell.spec.ts` also holds the `10-ui.md` §9 `ui-i18n` cases and the `10-ui-pages.md` §9 `age-gate` unit cases, DL-650).
 - `tests/e2e/ui/{menus.spec.ts, age.spec.ts, a11y.spec.ts}` (tags `@ui-menus`, `@ui-age`, `@ui-saves`, `@ui-a11y`).
 - `tools/ci/check-i18n.ts` and root script **`check:i18n`** (`tsx tools/ci/run.ts …`; new, DL-230); `apps/web/src/routes.ts`.
+- Edited for the QA play bypass (DL-650): `packages/engine/src/platform/qa-flags.ts` (`play`), `playwright.config.ts`, `playwright.perf.config.ts` (`use.storageState`), `tests/e2e/shell.spec.ts` (gate-dependent tests opt out).
+- `packages/shared/schemas/telemetry/names.schema.json` (`$defs` `ui.onboard {step, outcome}`, both strings ≤ 32 chars from the onboarding step and outcome enums; `ui.page` is M00a's) and `ui.onboard` removed from `pending.json` (DL-693; data, not counted).
 - Dependencies: `preact` and `@axe-core/playwright` (dev), at the versions pnpm resolves, recorded in `spec/03`.
-- About 38 files.
+- About 40 files (35 new, `package.json`, four edits).
 
 ## Interfaces
 - C06 1.1: `UiBridge`, `ViewModelSource`, `UiCommand` (`mode.start`, `mode.quit`, `save.*`), `GameModeDescriptor.tile`, `status`, `unlock`, `GameModeUI.summary?`. Consumed, no change.
@@ -93,9 +96,11 @@ The player can:
 - AC-12 Given every registered `ScreenDef` When it renders through `DomScreen` and `CanvasScreen` Then the flattened focusable lists are identical — proof: `pnpm check:unit -- packages/ui`
 - AC-13 Given the production build When bundle budgets run Then the shell entry chunk is ≤ 120 KiB gzip, pages are separate lazy chunks, and no file exceeds the precache cap — proof: `pnpm build && pnpm check:bundle`
 - AC-14 Given the branch When the dist verifier and the preview deploy run Then they pass, and the deployed app opens on Title with the age screen on first launch — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
+- AC-15 Given the QA play bypass (DL-650) When the earlier suites run after the shell lands Then the full `chromium-webgl2` e2e suite passes in both `GRAYBOX_GREP` halves and `check:perf` passes with no edit to an engine spec; in `ui-shell.spec.ts` a QA build with `?play=sandbox`, with `dv-qa-play=sandbox`, or with `?scenario=<id>` reaches `InMode` with no gate page and persists no attestation, Terms acceptance or profile, `?play=off` shows Title, and a build without `VITE_DV_QA` ignores both the flag and the key — proof: `pnpm check:unit -- packages/ui && pnpm map:build -- --area synth && G='@graybox|@pack-|@touch|@vehicle( |$)' && pnpm check:e2e -- --project=chromium-webgl2 --grep "$G" && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep-invert "$G" && DV_WORLD=synth pnpm check:perf`
 
 ## Test plan
-- **Unit** (`pnpm check:unit -- packages/ui`): `ui-shell`, `ui-screen-parity`, `ui-i18n`, `age-gate`, `modes-tiles`, `saves-ui`, `settings-bind`.
+- **Unit** (`pnpm check:unit -- packages/ui`): `ui-shell` (with the i18n, age-gate and QA play cases), `ui-screen-parity`, `modes-tiles`, `saves-ui`, `settings-bind`.
+- **Regression** (AC-15): the full `chromium-webgl2` e2e suite in both `GRAYBOX_GREP` halves and `check:perf`.
 - **E2E:**
   - `@ui-menus` on `chromium-webgl2` and `webkit-webgl2`;
   - `@ui-age`, `@ui-saves` and `@ui-a11y` on `chromium-webgl2`.
@@ -111,7 +116,7 @@ The player can:
 6. In a new private window, enter an under-18 date: Blocked; reload: still Blocked.
 
 ## Effort
-1 Builder session; about 38 files; risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
+1 Builder session; about 40 files (DL-650); risk **medium**. Focus navigation and the settings breadth are the main work; keep settings as data-driven `ScreenDef`s.
 
 ## Risks & fallbacks
 - **File count.** Settings categories share files by design; add no page files.
@@ -121,6 +126,6 @@ The player can:
 ## Notes for the Builder
 - Read first: `10-ui.md` §2–§3 and §5; `10-ui-pages.md` §2.3–§2.9, §4.3, §5, §9; `01-engine-save-modes.md` §C05 (error codes, profiles); DL-139, DL-140, DL-141; `research/legal-ip-likeness.md` §5.3 (neutral age screen) as cited by S10.
 - Facts: F-004, F-011 (no install prompt on iPhone; the Install row shows the coach-mark steps text), F-010 (storage usage panel). The age-gate rules are design rules from the cited research, not external API facts.
-- Order of work: shell types and machine, kit focus, ScreenDef renderers, i18n, Title/Age/Terms, main, saves and New Game, modes, settings, banners, e2e, bundle.
+- Order of work: shell types and machine, kit focus, ScreenDef renderers, i18n, Title/Age/Terms, the QA play bypass (keep the existing e2e suite green from here on), main, saves and New Game, modes, settings, banners, e2e, bundle.
 - No telemetry and no API call from a blocked device. The block check runs before any `/boot` fetch on relaunch.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate (Q-01 display name is applied from `config/brand.ts`).

@@ -177,3 +177,4 @@ Builders append one row per fact they verify or library version pnpm resolves ou
 
 | Item | Value | URL | Date | Milestone |
 |---|---|---|---|---|
+| Workers code generation from strings (Architect-verified, DL-694) | `eval()` and `new Function(text)` inside request handling throw "Code generation from strings disallowed for this context"; only the startup phase may use them, behind `allow_eval_during_startup` (default from compatibility date 2025-06-01). Ajv's runtime `compile` therefore cannot run per request in `tha-bay-web` or `tha-bay-rooms` (observed by BD-M00a-02) | https://developers.cloudflare.com/hyperdrive/observability/troubleshooting/ ; https://developers.cloudflare.com/workers/configuration/compatibility-flags/ | 2026-10-19 | M00a, M04b3 |

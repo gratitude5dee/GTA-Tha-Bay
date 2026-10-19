@@ -293,7 +293,7 @@ Ids follow `spec/00-plan.md`; a digit is a session split, a new letter is a prop
 | **M02a2** bake-roads-graph | S5–S10: graph, junctions, signals, grading, slabs, hoods, ped graph, tags, spawn tables, `sf-graph.v1`, POIs seed, transit nodes | `content/world/*` lists minimal | 1 |
 | **M02b1** streaming-lod | `ChunkStore`, mesher in `asset.worker`, `ChunkRenderer`, `ChunkUploadGate`, cover masks, L1/L2, backdrop ring/massing/cards, statics feed, perf paths, `world.stream` | flat-colour facade, no landmarks, cards from a placeholder atlas | 1 |
 | **M02b2** weather-time | `sky-keys`, dome, fog bank, rain, night lights, tier matrix, presets, blackout look | no atmosphere adapter (ultra falls back to desktop sky) | 1 |
-| **M02c1** graph-services-teleports | `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, district grid, POI table, `WorldApi` wiring | landmarks as marker boxes | 1 |
+| **M02c1** graph-services-teleports | `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, district grid, POI table, `WorldApi` wiring, boundaries and portals (DL-691) | landmarks as marker boxes | 1 |
 | **M02c2** maps | S12 map bake, `MinimapView`, `FullMapView`, blips, GPS, search, attribution data to S10 | geocoder without fuzzy search | 1 |
 | **M02d1 / M02d2** landmarks | recipe kit and 12 hero/major glTFs; remaining 25; `LandmarkLayer`, proxy swap, skyline set | boxes with correct footprints | 2 |
 | **M03b1** traffic | agents, IDM, junction protocol, signals, parked cars, robotaxis, blackout, density model, promotion | box cars | 1 |

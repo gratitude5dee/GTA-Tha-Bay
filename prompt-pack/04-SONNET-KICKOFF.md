@@ -23,7 +23,8 @@ Flags per [research/claude-code-deployment.md §4]; use `--effort high` for M01/
 
 ## Running several Builders in parallel
 - One git worktree and one branch per milestone: `git worktree add .claude/worktrees/m<id>-<slug> -b m<id>-<slug>` (the directory is git-ignored), then run the start command inside it.
-- Start only milestones whose Depends on are all **merged** to the default branch (and, for M12b1 onward, after the R-ROLL-01 gate). Two milestones with no dependency path between them may run at once.
+- Start only milestones whose Depends on are all **merged** to the default branch (and, for M12b1 onward, after the R-ROLL-01 gate). Two milestones with no dependency path between them may run at once. Early starts (DL-700): a milestone with a row in `spec/07-milestones/_PLAN.md` §4 may start once its start-after set is merged, builds against the stand-ins named there, and re-runs the listed ACs after rebasing on the real dependencies; §4 also lists HARD dependencies some Depends on omit (M02a1 waits for M01e, M05d for M04b3).
+- **Spec sync (DL-690):** the spec is edited on `claude/architect-spec`, the code on the default branch. Before a milestone starts, and again before its PR merges, merge `spec/`, `prompt-pack/`, `CLAUDE.md` and `AGENTS.md` from `origin/claude/architect-spec` into the default branch (the Architect's text wins in every conflict there). Pre-start check: `git rev-parse origin/claude/architect-spec:spec/07-milestones/<file>` must equal `git rev-parse HEAD:spec/07-milestones/<file>` on the milestone branch; if not, merge the spec branch first. The PR body names the sync commit (`Spec sync: <sha>`).
 - Merge order = run order (`<milestones>` numbering): a PR waits until every earlier milestone that is in flight has merged; rebase on the default branch and re-run the milestone's AC proofs before merging. Shared files (root `package.json`, `.github/workflows/*.yml`, the status rows in `spec/07-milestones/README.md`) are resolved at that rebase.
 - Deploys run only from the default branch (`deploy.yml`); each PR gets its own Preview. Durable Object lifecycle PRs (label `do-lifecycle`) merge alone.
 
@@ -39,7 +40,7 @@ Read, in order: `CLAUDE.md` → `spec/00-plan.md` → the milestone file → eve
 </session>
 
 <protocol>
-1. Create branch `m##-slug` from the default branch (or continue it if it exists). Keep the app deployable at every commit.
+1. Create branch `m##-slug` from the default branch (or continue it if it exists). Before the first commit, check that this milestone file is the Architect's current text: `git fetch origin claude/architect-spec`, then compare `git rev-parse origin/claude/architect-spec:spec/07-milestones/<<MILESTONE>>.md` with `git rev-parse HEAD:spec/07-milestones/<<MILESTONE>>.md`; if they differ, merge `origin/claude/architect-spec` into the branch and re-read the file (DL-690). Keep the app deployable at every commit.
 2. Work through the Deliverables in the order the milestone's "Notes for the Builder" suggests; implement each Acceptance Criterion's proof (test or script) alongside the feature, not after.
 3. When you change code that can be run, built, or type-checked, run a real check that exercises the change before reporting it done: the project's tests, type-checker, or build, or the changed command itself. A syntax-only check, or a check command that failed to start, does not count; if all that is missing is the project's declared dependencies, install them with its own package manager unless told not to. Only if no real check can run here, say which one you did not run and why instead of reporting the change as done.
 4. Perf budgets in acceptance criteria are requirements: run the perf script named in the AC; if it fails, fix or record the gap in the report with numbers.
@@ -63,6 +64,7 @@ You are operating autonomously; the operator is not watching in real time. Proce
 ```
 ## M## report
 Status: done | partial (list what remains)
+Spec sync: <sha of the claude/architect-spec commit merged last> (DL-690)
 AC results: AC-1 pass (command + 1-line output) · AC-2 fail (why, numbers) …
 Checks run: tests / typecheck / build / perf / e2e (commands, pass/fail)
 Deployed: preview URL or "not deployed (why)"
@@ -89,7 +91,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 11. M01e · asset-worker-opfs-store · 1 · M01d, M01c, M00a, M00, M01a2, M01f · Q-13 iPhone 15 (AC-11)
 12. M01f · world-graybox-fixture-codec · 0.5 · M01a1, M00b · none
 13. M00d · qa-spec-gates · 1 · M00, M01c, M00b · none (nightly Preview sweep uses CI `GITHUB_TOKEN`)
-14. M02a1 · bake-core · 1 · M01f, M01d, M00d · public OSM/DataSF downloads (F-053, F-054); operator workstation with `osmium`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` and `R2_PRIVATE_ACCESS_KEY_ID`/`R2_PRIVATE_SECRET_ACCESS_KEY` (AC-9); optional `SOCRATA_APP_TOKEN`
+14. M02a1 · bake-core · 1 · M01f, M01d, M00d, M01e · public OSM/DataSF downloads (F-053, F-054); operator workstation with `osmium`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` and `R2_PRIVATE_ACCESS_KEY_ID`/`R2_PRIVATE_SECRET_ACCESS_KEY` (AC-9); optional `SOCRATA_APP_TOKEN`
 15. M02a2 · bake-roads-graph · 1 · M02a1 · none
 16. M02b1 · streaming-lod · 1 · M02a2, M01c, M01e, M01b2 · Q-13 desktop Mac plus the M02a1 `sf` bake (AC-11)
 17. M02b2 · weather-time · 1 · M02b1 · Q-13 iPhone 15 (AC-9)

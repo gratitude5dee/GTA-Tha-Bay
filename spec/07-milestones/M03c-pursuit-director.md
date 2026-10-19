@@ -6,7 +6,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 ## Requirements
 - R-MODE-01: the main story's wanted system: heat, police response, escape and bust.
 - R-MODE-02: the same director drives racing pursuits (M07a2) through `setProfile({kind: 'race'})`, `configRef` and `setRouteHint`. This milestone provides the API and the story defaults.
-- R-ENG-01: the pursuit gate is one deterministic command (`test:pursuit`).
+- R-ENG-01: the pursuit gates are deterministic commands (`test:pursuit` for the director; `pnpm check:unit -- packages/world/test/pursuit` for the bake-backed escape, DL-692).
 
 ## Depends on
 - **M03a1** (vehicles-interaction-prefabs): vehicle system and `stepHandling`, prefabs `police.{cruiser,suv,heli}`, `prop.{barrier,spikestrip}`, the lines recorder, ragdoll-lite.
@@ -31,7 +31,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
   - routes by A* with a re-plan every 2.5 s;
   - ambient agents within 40 m pull over for sirens (M03b1 reaction);
   - units despawn when unseen beyond 1.25 × the search radius after a clear.
-- Tactics per level from the config: follow, siren, loudspeaker (audio cue only), PIT, box-in, rolling block, `roadblock2`, `roadblockHeavy` (on the predicted route, or on `setRouteHint` edges when set), `spikes` at C08 `chokePoints` (`prop.spikestrip`; a crossed tire gets health 0, grip × 0.4 through the vehicle damage state), `heliSpotlight` (LOS from altitude), `suvRam`, `portalSeal` at heat 5 (`sealedPortals`).
+- Tactics per level from the config: follow, siren, loudspeaker (audio cue only), PIT, box-in, rolling block, `roadblock2`, `roadblockHeavy` (on the predicted route, or on `setRouteHint` edges when set), `spikes` at C08 `chokePoints` (`prop.spikestrip`; a crossed tire gets health 0, grip × 0.4 through the vehicle damage state), `heliSpotlight` (LOS from altitude), `suvRam`, `portalSeal` at heat 5 (`sealedPortals`; the director sets each portal's state through M02c1's `WorldBoundsPort.setPortalState(id, 'sealed', 'pursuit')` and releases it on clear, DL-691).
 - Bust (bust block of the config): speed < 2 m/s with ≥ 2 units within 8 m for 3 s (on foot, grappled 2 s). Then:
   - the fine is `max(minCents, cashPct × cash + heat × perHeatCents)`;
   - the impound strike count rises; at 3 strikes the vehicle is impounded;
@@ -54,7 +54,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 - `packages/shared/src/contracts/engine-pursuit.ts`; `packages/shared/schemas/pursuit.schema.json`; `config/pursuit.json`.
 - `packages/engine/src/sim/pursuit/{director.ts, heat.ts, search.ts, dispatch.ts, tactics/{follow.ts, pit.ts, boxin.ts, roadblock.ts, spikes.ts, heli.ts}, bust.ts, vehicle-heat.ts, ports.ts, index.ts}`.
 - `packages/engine/src/debug/pursuit-panel.ts` (QA only); bridge additions in the M01c `probe.ts` pattern.
-- `packages/engine/test/pursuit/{config.spec.ts, heat.spec.ts, search.spec.ts, dispatch.spec.ts, tactics.spec.ts, bust.spec.ts, vehicle-heat.spec.ts, bot.escape.spec.ts, determinism.spec.ts}`, `packages/engine/test/lines/pursuit-escape.line.json`, `packages/engine/test/golden/pursuit-escape.json`.
+- `packages/engine/test/pursuit/{config.spec.ts, heat.spec.ts, search.spec.ts, dispatch.spec.ts, tactics.spec.ts, bust.spec.ts, vehicle-heat.spec.ts}` (world-free: the director runs on a fake `WorldApi` port). The suites that need the `synth` bake live in `@dv/world`, which may import `@dv/engine` (the reverse would be a workspace cycle; DL-692): `packages/world/test/pursuit/{bot.escape.spec.ts, determinism.spec.ts, pursuit-escape.line.json}` and `packages/world/test/golden/pursuit-escape.json`, set up through `createWorldApi` and the engine sim-module hook as the worker does, skipping without a bake via M02a1's `tests/support/require-bake.ts`.
 - `packages/engine/package.json` script **`test:pursuit`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/pursuit`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `tests/e2e/engine/pursuit.spec.ts` (`@pursuit`).
 - About 32 files.
@@ -72,12 +72,12 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 - AC-5 Given a roadblock level with `setRouteHint` set to an edge list When a roadblock is placed Then it lies on a hinted edge ahead of the player. Without a hint it lies on the predicted A* route. Spikes appear only at `chokePoints` tags, and a crossed tire's health becomes 0 — proof: `pnpm --filter @dv/engine test:pursuit`
 - AC-6 Given a stopped player car with 2 units within 8 m When 3 s (180 ticks) pass Then phase becomes `busted`, the `WalletPort` is debited `max(25,000, 5 % cash + heat × 50,000)` cents once, the vehicle's impound strikes rise by one, and a third strike impounds it — proof: `pnpm --filter @dv/engine test:pursuit`
 - AC-7 Given vehicle A with heat When the player resprays A Then `vehicleHeat(A)` is 0 while player heat is unchanged. Switching to vehicle B leaves A's heat stored — proof: `pnpm --filter @dv/engine test:pursuit`
-- AC-8 Given the `synth` bake and line `pursuit-escape` When the scripted bot commits infractions to heat 3, breaks LOS and drives out of the search circle Then it escapes through cooldown to level 0 within the line's duration, and two runs give identical hashes equal to `pursuit-escape.json`, drawn only from streams `pursuit` and `police` — proof: `pnpm map:build -- --area synth && pnpm --filter @dv/engine test:pursuit`
+- AC-8 Given the `synth` bake and line `pursuit-escape` When the scripted bot commits infractions to heat 3, breaks LOS and drives out of the search circle Then it escapes through cooldown to level 0 within the line's duration, and two runs give identical hashes equal to `pursuit-escape.json`, drawn only from streams `pursuit` and `police` — proof: `pnpm map:build -- --area synth && DV_REQUIRE_BAKE=1 pnpm check:unit -- packages/world/test/pursuit`
 - AC-9 Given a `DV_WORLD=synth` QA build When the e2e calls `__dvBridge.engine.pursuit.setHeat(2)` Then at least one cruiser spawns out of view and follows within 60 s, the snapshot side block reports level 2, and `clear()` despawns the units once unseen — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @pursuit`
 - AC-10 Given the branch When the gates, dist verifier and preview deploy run Then all pass, and the production `dist/` has no pursuit debug panel — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 
 ## Test plan
-- **Unit** (`pnpm --filter @dv/engine test:pursuit`, also under `pnpm check:unit`): `engine/pursuit.config`, `pursuit.heat`, `pursuit.search`, `pursuit.dispatch`, `pursuit.tactics`, `pursuit.bust`, `pursuit.vehicleHeat`, `pursuit.bot.escape`, `pursuit.determinism`.
+- **Unit** (`pnpm --filter @dv/engine test:pursuit`, also under `pnpm check:unit`): `engine/pursuit.config`, `pursuit.heat`, `pursuit.search`, `pursuit.dispatch`, `pursuit.tactics`, `pursuit.bust`, `pursuit.vehicleHeat`; `world/pursuit.bot.escape` and `world/pursuit.determinism` on the `synth` bake (`pnpm check:unit -- packages/world/test/pursuit`, DL-692).
 - **E2E:** `@pursuit` on `chromium-webgl2`.
 - Cross-browser equality of pursuit runs is covered by M07a1/M07a2's `@racing-det` (race pursuit). This milestone adds no new det tag.
 
@@ -86,7 +86,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 2. Drive away and break line of sight: the HUD debug line shows `search`, then `cooldown`, then `clear`.
 3. Press "heat 4": spike strips appear at a choke point ahead, and the helicopter sweeps.
 4. Stop next to two cruisers: busted, and the debug log shows the fine and the strike.
-5. `pnpm --filter @dv/engine test:pursuit`: the bot escape test prints its final hash.
+5. `pnpm check:unit -- packages/world/test/pursuit`: the bot escape test prints its final hash.
 
 ## Effort
 1 Builder session; about 32 files; risk **medium**. Tactics behaviour is the largest part. Keep each tactic a small steering target on top of `stepHandling` inputs; police drive through the same vehicle system as the player.
@@ -100,7 +100,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
 - Read first: `01-engine-save-modes.md` "PursuitDirector core" and its 1.1 additions; `06-racing.md` §2.6 and `06-racing-content.md` C.11 (to see what racing will override, not to implement it); `02-world-living.md` §2.4 and §3.5 (reactions, robotaxi witness); `01-engine.md` §8 (M03c row) and §9 test 13.
 - Facts: none external (spec/03 §6 row M03c). Structure follows the documented NFS Most Wanted pattern only as design inspiration [research/gamedesign-decomposition.md §2.8]. Use no names, tactics labels or data from any other game.
 - Order of work: contract file and schema, heat and points, witness intake, search and cooldown, dispatch, tactics (follow, roadblock, spikes first), bust, vehicle heat, bot line and golden, QA panel, e2e.
-- Determinism: only streams `pursuit` and `police`; ray batches in a fixed order; the director lives under the C02 lint.
-- The director reaches the road graph and chunk tags only through the `WorldApi` that M02c1 registers through the engine sim-module hook. `@dv/engine` source never imports `@dv/world`; the pursuit test setup registers the world the same way the worker does (dev dependency in tests only).
+- Determinism: only streams `pursuit` and `police`; ray batches in a fixed order; the director lives under the C02 lint. `pursuit-escape.json` follows M03b1's golden rule (it stores its source `bakeId`; a changed synth `bakeId` fails with the regenerate message; regenerate only with `DV_UPDATE_GOLDEN=1` outside CI under `golden-update`; DL-657).
+- The director reaches the road graph and chunk tags only through the `WorldApi` that M02c1 registers through the engine sim-module hook. `@dv/engine` source and tests never import `@dv/world` (not even as a dev dependency: `@dv/world` depends on `@dv/engine`, so that would be a workspace cycle; DL-692). Engine suites use a fake `WorldApi` port; the bake-backed suites are in `packages/world/test/pursuit/`.
 - The `WalletPort` and `VehicleDamagePort` keep this milestone independent of saves and the economy. M04a2 binds them.
 - Secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for `deploy:preview` (SKIP locally). No genAI spend, no owner gate.

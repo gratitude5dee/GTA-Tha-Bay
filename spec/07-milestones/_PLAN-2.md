@@ -1,6 +1,6 @@
 # Milestone plan — part 2: modes and NPC runtime, roster, Acts 2–3, hardening, XR (blocks D–E)
 
-> S13 · 2026-10-18 · same field legend as `_PLAN-1.md`. Block E ends at the single-player launchable point (`_PLAN.md` §4).
+> S13 · 2026-10-18 · same field legend as `_PLAN-1.md`. Block E ends at the single-player launchable point (`_PLAN.md` §3).
 
 ## Block D — modes and NPC runtime (VS-Racing, VS-Fighter, VS-Tycoon)
 

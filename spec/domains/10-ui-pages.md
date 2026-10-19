@@ -232,7 +232,7 @@ See part A §8. Within M04b1: shell and kit first, then Title/Age/Terms, Main, L
 
 ## 9. Tests
 
-1. `age-gate.spec.ts` (unit + e2e `@ui-age`) — field order follows locale; no threshold text; 17-year-old date → `BlockedPage`; relaunch still blocked; no network request and no telemetry from a blocked session; 18th-birthday-today passes; invalid date allows retry. `pnpm check:unit -- packages/ui`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-age`
+1. `age-gate` (unit cases in `ui-shell.spec.ts`, DL-650; e2e `@ui-age`) — field order follows locale; no threshold text; 17-year-old date → `BlockedPage`; relaunch still blocked; no network request and no telemetry from a blocked session; 18th-birthday-today passes; invalid date allows retry. `pnpm check:unit -- packages/ui`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-age`
 2. `modes-tiles.spec.ts` — table-driven: each state in §2.6 from a fixture registry; `comingSoon` is focusable and not activatable; unlock event raises one toast and a NEW badge; `?unlockAll=1` ignored when `VITE_DV_QA` is unset. `pnpm check:unit -- packages/ui`
 3. `saves-ui.spec.ts` — every `SaveErrorCode` has a message and action; conflict dialog calls the three resolutions; second tab goes read-only. `pnpm check:unit -- packages/ui`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-saves`
 4. `creator.spec.ts` — avatar validates against the schema; unknown part falls back; `AppearanceV1` golden vectors encode/decode; length ≤ 512 B for 24 morphs; saved avatar reloads identical after reload (`@creator` e2e). `pnpm check:unit -- packages/ui`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @creator`
