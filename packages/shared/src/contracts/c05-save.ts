@@ -2,6 +2,11 @@
  * C05 SaveGame (spec/domains/01-engine-save-modes.md, 1.1.0 plus the 1.2 optional `state`). Types and constants only.
  * Copied from the owner section; see BD-M04a1-01 for the one import-path difference (c06-ids.ts).
  */
+import type { GameModeId, UnlockEventId } from './c06-ids.ts';
+import type { ControlsSettings } from './c03-input.ts';
+import type { WeatherPreset } from './engine-world.ts';
+import type { XrComfortSettings } from '../platform/xr-comfort.ts';
+
 export const C05_VERSION = '1.1.0' as const;   // 1.1: additive fields in "C05 1.1 and C06 1.1 additions" at the end of this file
 export type ProfileId = string & { readonly __brand: 'ProfileId' };   // /^[0-9a-f]{32}$/
 export type SliceKind = 'core' | 'settings' | 'story' | 'sandbox' | 'racing' | 'fighter' | 'tycoon' | 'mod';
@@ -122,7 +127,3 @@ export interface SaveService {
   changesSince(id: ProfileId, cursor: number): Promise<{ records: SaveRecord[]; tombstones: Tombstone[]; cursor: number }>;
 }
 export type JsonObject = { [k: string]: JsonValue }; export type JsonValue = null | boolean | number | string | JsonValue[] | JsonObject;   // exported: C09, C14 and ui-bridge import them (DL-194)
-type WeatherPreset = import('./engine-world.ts').WeatherPreset;
-type UnlockEventId = import('./c06-ids.ts').UnlockEventId; type GameModeId = import('./c06-ids.ts').GameModeId;
-type ControlsSettings = import('./c03-input.ts').ControlsSettings;
-type XrComfortSettings = import('../platform/xr-comfort.ts').XrComfortSettings;

@@ -5,7 +5,7 @@ import { SaveStoreError, type SaveStore } from './store.ts';
 export const SAVE_DB_NAME = 'dv-saves';
 export const SAVE_DB_VERSION = 1;
 
-const STORES = ['profiles', 'records', 'pointers', 'tombstones', 'conflicts', 'meta'] as const;
+type StoreName = 'profiles' | 'records' | 'pointers' | 'tombstones' | 'conflicts' | 'meta';
 
 function wrap<T>(r: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -84,11 +84,11 @@ export class IdbStore implements SaveStore {
   readonly persistent = true;
   constructor(private readonly db: IDBDatabase) {}
 
-  private tx(stores: readonly (typeof STORES)[number][], mode: IDBTransactionMode): IDBTransaction {
+  private tx(stores: readonly StoreName[], mode: IDBTransactionMode): IDBTransaction {
     return mode === 'readwrite' ? this.db.transaction([...stores], mode, { durability: 'strict' }) : this.db.transaction([...stores], mode);
   }
 
-  private async run<T>(stores: readonly (typeof STORES)[number][], mode: IDBTransactionMode, fn: (tx: IDBTransaction) => Promise<T>): Promise<T> {
+  private async run<T>(stores: readonly StoreName[], mode: IDBTransactionMode, fn: (tx: IDBTransaction) => Promise<T>): Promise<T> {
     try {
       const tx = this.tx(stores, mode);
       const finished = done(tx);

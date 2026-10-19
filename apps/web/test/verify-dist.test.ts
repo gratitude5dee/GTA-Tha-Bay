@@ -64,6 +64,16 @@ describe('verify:dist (AC-11)', () => {
     expect(verifyDist(dir).some((m) => m.includes('QA debug tools found'))).toBe(true);
   });
 
+  it('fails on the save-kill QA page, its file name and its strings (M04a1)', () => {
+    const dir = goodDist();
+    mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    writeFileSync(path.join(dir, 'assets/save-kill-f6.js'), 'x');
+    expect(verifyDist(dir).some((m) => m.includes('save-kill file in dist'))).toBe(true);
+    const dir2 = goodDist();
+    writeFileSync(path.join(dir2, 'assets/main-a1.js'), 'worker.post("save-verify", d)');
+    expect(verifyDist(dir2).some((m) => m.includes('save-kill QA code found in assets/main-a1.js'))).toBe(true);
+  });
+
   it('fails on a __dvBridge string in any file', () => {
     const dir = goodDist();
     writeFileSync(path.join(dir, 'index.html'), '<script>window.__dvBridge = {}</script>');

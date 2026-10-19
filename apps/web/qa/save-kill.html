@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Save kill test</title>
+    <style>
+      body { font: 14px/1.5 ui-monospace, monospace; margin: 16px; background: #10141c; color: #e6e9ef; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+      a { color: #8ab4ff; }
+    </style>
+  </head>
+  <body>
+    <h1>Save kill test</h1>
+    <p>
+      <a href="?phase=loop">?phase=loop</a> writes the sandbox slot of profile "kill-test" in sim.worker until the tab is closed;
+      <a href="?phase=verify">?phase=verify</a> loads it afterwards and compares the worker's view with the main thread's status line.
+    </p>
+    <pre id="out" data-testid="out">starting</pre>
+    <script type="module" src="/src/qa/save-kill.ts"></script>
+  </body>
+</html>
