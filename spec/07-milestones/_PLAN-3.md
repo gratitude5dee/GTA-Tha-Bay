@@ -58,7 +58,7 @@
 
 ### M13a1 · mod-sdk-manifest-validators — 1 · risk L · S12
 - **Goal:** C14/C17 types and schemas, shared validators, archive, deterministic `dv mod pack`, `dv mod check`, `ModBudgetReport`.
-- **R** R-MOD-01, R-IP-01 · **Dep** M04a2, M01d · **Read** `12-modding-contracts.md` B§1–B§4, B§6 · **Out** `packages/shared/src/mod`, `packages/mod-sdk`, `tools/cli` · **C** C14 1.0, C17 1.0, C07 1.1
+- **R** R-MOD-01, R-IP-01 · **Dep** M04a2, M01d, M00e (§0 rule 7) · **Read** `12-modding-contracts.md` B§1–B§4, B§6 · **Out** `packages/shared/src/mod`, `packages/mod-sdk`, `tools/cli` · **C** C14 1.0, C17 1.0, C07 1.1
 - **Gate** none · **Proof** `pnpm check:unit -- packages/shared/src/mod` (`pack-deterministic`, `check-parity`, `manifest-schema`, `permission-tier-matrix`)
 
 ### M13a2 · mod-installer-store-client — 1 · risk M · S12 (+S09)

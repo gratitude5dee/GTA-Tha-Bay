@@ -224,6 +224,7 @@ Repo root: `.../repos/gta-sa-earth`; one 956 KB `index.html` (minified esbuild b
 12. CI gates: copy `GATES.md` discipline — no-keys scan, baked-data counts, build, screenshot luminance, plus mission autoplay completion.
 13. In-game map: Protomaps PMTiles baked from the same OSM extract, served from Cloudflare R2 via a Worker; attribution OSM.
 14. Use the Mapbox CLI (MIT, 2026-10-08) only inside the agent toolchain for geocoding/ETA sanity checks of authored mission locations; results must not become world geometry (Mapbox §1.6).
+    - **Amended 2026-10-19 by DL-506 (ADR-REUSE-01):** superseded: the CLI is for the operator or the Architect only, never in a Builder session, and no Mapbox result sets, checks or corrects committed data; ETA and address checks use `map:geocode` and the road graph.
 
 ## 8. Risks
 

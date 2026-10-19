@@ -4,7 +4,7 @@ This file is for any coding agent working in this repository (and for humans). I
 
 ## What this is
 An original, story-driven open-world game in an accurate San Francisco: a Three.js (WebGPU with automatic WebGL2 fallback) Progressive Web App on Cloudflare Workers, with a WebXR port (Meta Quest, Apple Vision Pro), AI NPCs, generated-and-cached cutscenes, three unlockable modes (racing, fighter, tycoon) and player mods.
-Rollout: single-player first, Cloudflare only; Supabase (data spine) arrives at milestone M05d; multiplayer rooms from M12b. The rest of the Bay Area comes after v1.
+Rollout: single-player first, Cloudflare only; the Supabase data spine arrives at milestone M05d (Supabase Auth live since DL-OWN-04); multiplayer rooms from M12b. The rest of the Bay Area comes after v1.
 
 ## Where to start
 1. `spec/00-plan.md` — status, milestone totals, owner defaults; the run order and dependencies are in `spec/07-milestones/_PLAN.md`.
@@ -57,14 +57,14 @@ Unit tests are named `*.test.ts` or `*.spec.ts` (either suffix) in `<package>/te
 ## Conventions
 - TypeScript strict, including `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`. Vanilla three; no React Three Fiber; Preact for DOM UI only.
 - Determinism rules (contract C02) in sim code — `packages/shared/src/**`, `packages/engine/src/sim/**` except `sim/save/**`, `packages/world/src/sim/**`, `packages/modes/*/src/sim/**`; tests, scripts and fixtures excluded: no `Math.random`, no transcendental `Math.*` (use `detmath`), no `**`, no `Date`, `performance.now` or timers, no `crypto.getRandomValues`, no `for…in`, no `Intl`, no `three`, no DOM types. Randomness comes from seeded `xoshiro128**` streams. ESLint enforces this.
-- `@dv/shared` imports no other package and does no IO. `services/*` import only `@dv/shared` and `@dv/net`. Packages never import apps.
+- `@dv/shared` imports no other package and does no IO. `services/*` import only `@dv/shared` and `@dv/net`; one exception: `services/edge` may import `config/brand.ts`, `config/ip-denylist.json` and `config/terms.ts` (DL-514, DL-602). Packages never import apps.
 - Persistent identity is a C01 `StableKey` (`player:`, `veh:`, `npc:`, `amb:<cell>:<slot>`, `mis:`, `pfb:`); the dense `EntityId` never leaves a session.
 - Asset references are C07 `AssetRef` strings `'<kind>/<id>'`; stored objects use `<root>/<variant>.<sha256[0:12]>.<ext>`.
 - Ids are UUIDv7 minted in the Worker. Times are epoch milliseconds (ISO-8601 `Z` only in repo-audited files such as provenance records). Game money is integer cents; generative-AI spend is integer USD micros. Content and cache hashes are lowercase SHA-256 hex.
 - World coordinates are ENU metres from San Francisco City Hall (+X east, +Y up, −Z north).
 - Browser storage names start with `dv-`. QA URL flags and `window.__dvBridge` exist only when `VITE_DV_QA=1` (dev, test, preview builds).
 - The display name comes only from `config/brand.ts` (`DISPLAY_NAME`, default "Dee-Verse: Tha Bay"). The franchise name in the repository's codename never appears in code, file names, package names, UI strings or builds; CI (`ip:strings`, `names:lint`) fails otherwise.
-- Original content only: no assets, code, data, names or plots from any other publisher's games. Never open, fetch or search the example repositories named in `research/repos-*.md`; work from the spec.
+- Original content only: no assets, code, data, formats, names or plots from other publishers' games. No GPL, AGPL or LGPL code in the client bundle, `services/*` or `third_party/`, ever; a GPL or LGPL package installed only as a dev tool needs its own ADR; external programs run as separate processes that ship nothing of theirs (`git`, `osmium`, `reuse`, `ffmpeg`) need none (DL-614, DL-629). Code or data copied from another repository, other than declared package dependencies and open-data sources under their own licence rules, enters only under `third_party/`, as ADR-REUSE-01 and `docs/legal/third-party-reuse.json` say; only the operator or the Architect vendors or edits that register, and Builders read only its `allowedPaths` and `licenceFiles` files. Never open, fetch or search an upstream example repository (`research/repos-*.md`); never run the Mapbox CLI or call Mapbox APIs (DL-506).
 - Real people appear only through the name registry and likeness tiers (`consented`, `parody`, `fictionalized`); never hard-code a real name, alias or catchphrase.
 - Contracts C01–C17 change only through the Architect: propose a change in your report; never edit a contract shape.
 - One branch per milestone, `m<id>-<slug>` (for example `m00a-edge-api-skeleton`); conventional commits (`feat(edge): …`, `fix(ui): …`); one pull request per milestone.
