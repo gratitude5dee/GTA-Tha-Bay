@@ -83,12 +83,12 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M01d | F-017, F-018, F-019, F-023 | gltf-transform and KTX pins; 25 MiB per file; identity encoding for Range; R2 prices and presign | U-AST-13 |
 | M01e | F-009, F-010, F-019 | WebContent memory; origin quota and `persist()`; Range through the pack store | U-PLT-16 |
 | M01f | none | hand-authored fixture and pure codec; no external-system fact | — |
-| M02a1 | F-017, F-023, F-053, F-054, F-055, F-056 | pack format and size; R2; ODbL attribution; PDDL footprints; sources excluded (3D Tiles, Mapbox) | S02 items (Geofabrik routes, SPDX strings) |
-| M02a2 | F-053, F-054 | OSM road tags and DataSF streets for the graph | U-W5 |
-| M02b1 | F-007, F-010, F-013, F-019, F-023 | render-object budgets; pack store quota; Range; Quest draw-call limit; pack download | pack GET speed (S02) |
-| M02b2 | F-001 | three r186 node materials for sky and fog | — |
+| M02a1 | F-017, F-023, F-053, F-054, F-055, F-056 | pack format and size; R2; ODbL attribution; PDDL footprints; sources excluded (3D Tiles, Mapbox); Terrain Tiles USGS credit and citation page behind `LicenseRef-PublicDomain-USGov` [research/repos-world.md §4] (DL-672) | U-W1 (Geofabrik route), U-W2, U-W3, U-W7 (SPDX strings), U-W11, U-W14 (DL-687) |
+| M02a2 | F-053, F-054 | OSM road tags and DataSF streets for the graph | U-W5, U-W6, U-W9 (DL-687) |
+| M02b1 | F-007, F-010, F-013, F-019, F-023 | render-object budgets; pack store quota; Range; Quest draw-call limit; pack download | U-W8 (pack GET speed), U-W10 (DL-687) |
+| M02b2 | F-001 | three r186 node materials for sky and fog | U-W10 (DL-687) |
 | M02c1 | none | pure services over baked data; no external-system fact | — |
-| M02c2 | F-053, F-054, F-056 | OSM attribution; EAS addresses for geocoding; no Mapbox runtime | — |
+| M02c2 | F-053, F-054, F-055, F-056 | OSM attribution; EAS addresses for geocoding; no Mapbox runtime; no 3D Tiles import (DL-676) | U-W4 (DL-687) |
 | M02d1, M02d2 | F-007, F-017, F-053 | landmark objects inside the budget; glTF and KTX2 pipeline; OSM landmark ids | — |
 | M03a1 | F-014, F-017 | ray-cast vehicle controller; prefab asset formats | U-ENG-6 |
 | M03a2 | F-014 | Rapier per-wheel contact and impulse readout | U-RAC-1 |
@@ -99,7 +99,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M04b1 | F-004, F-010, F-011 | coach mark instead of install prompt; Settings storage panel | — |
 | M04b2 | F-004, F-011 | Home Screen web apps; no fullscreen, orientation lock or vibration | — |
 | M04b3 | none | WebCrypto device key; no ledger row | — |
-| M04c | F-004, F-005, F-043, F-063 | fixture clips match H3 output format; Low Power Mode video gesture; XR media paths | U-PLT-17, U-S03-4, U-S03-7, U-REC-1 |
+| M04c | F-004, F-063 | Home Screen web apps; Low Power Mode video gesture; `ManagedMediaSource` on iOS 17.1+ only with `disableRemotePlayback`, element attributes, `cut@1` H.264 rendition `avc1.640028` [research/gap-cutscene-delivery-playback.md §2.4, §3]; `navigator.audioSession` (iOS 16.4) and Wake Lock (iOS 18.4) [research/stack-rendering-platform.md, BCD table] (DL-687) | U-PLT-17, U-S03-4, U-S03-7, U-REC-1 |
 | M05a1, M05a2 | none | pure sim, VM and CI autoplayer; no external-system fact | — |
 | M05b1 | F-023, F-024, F-042, F-043, F-047, F-048 | `HEAD` readiness; Workflow limits; no browser-to-fal; webhook verification; no vendor cap | U-AST-5, U-AST-15, U-BE-6, U-BE-13 |
 | M05b2 | F-039, F-040, F-043, F-063 | key inputs, fixture manifests, iOS video gesture | — |
@@ -165,7 +165,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M13d2 | F-066 | takedown forms | — |
 | M14a | F-059 | thirdweb version and Growth plan price | thirdweb free tier |
 | M14b1, M14b2, M14b3 | F-027, F-028, F-034, F-037, F-041, F-042, F-048, F-052, F-067 | alert rules and billing; vendor caps; terms-watch inputs; mark knock-out | U-BE-15, U-BE-18, U-BE-19, U-ENG-4 (M14b3 iPhone pass, DL-239) |
-| M00d | none | C15 milestone-format lint and the trace test; repository-internal only (DL-212, DL-214) | — |
+| M00d | none | C15 milestone-format lint and the trace test (DL-212, DL-214); stale-Preview sweep with `gh pr list` and `wrangler preview delete --env … --name … --skip-confirmation` [research/gap-ci-cd-release-assets.md §1.5] (DL-658, DL-687) | U-QA-9 |
 | M04d | F-014 | QA harness: headless canonical sim, state hash, autoplayer bots, goldens; deterministic Rapier build | U-ENG-1 |
 | M14c | none | accessibility and i18n gates; no external-system fact | — |
 | M15a to M15g | F-017, F-023, F-053, F-054 | same grid, packs and OSM and DataSF sources; other counties' open data is not in the ledger and is listed when those specs are written | — |

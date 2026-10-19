@@ -69,7 +69,7 @@ After this session a new player can make a character and play with a real HUD on
 - `packages/ui/src/pages/{garage.tsx, help.tsx}`; `content/ui/help/troubleshooting.json`.
 - `packages/ui/src/host/mode-ui-host.ts`; `packages/ui/src/screen/xr.ts`; `config/ui/palettes.json`.
 - `packages/ui/test/{creator.spec.ts, touch-layout.spec.ts, hud-status.spec.ts, phone.spec.ts, help.spec.ts, host-garage.spec.ts, ugc-surface.spec.ts}`.
-- `tests/e2e/ui/{creator.spec.ts, touch.spec.ts, hud.spec.ts}` (tags `@creator`, `@ui-touch`, `@ui-coach`, `@ui-pause`, `@ui-motion`, `@ui-hud`); `tests/e2e/xr/xr-panel.spec.ts` (`@xr`).
+- `tests/e2e/ui/{creator.spec.ts, touch.spec.ts, hud.spec.ts}` (tags `@creator`, `@ui-touch`, `@ui-coach`, `@ui-pause`, `@ui-motion`, `@ui-hud`, `@ui-boundary-toast`); `tests/e2e/xr/xr-panel.spec.ts` (`@xr`).
 - `tools/ci/checklists/M04b2-iphone15.json`.
 - About 37 files (JSON content and layouts are data).
 
@@ -105,11 +105,12 @@ After this session a new player can make a character and play with a real HUD on
 - AC-11 Given `xr-quest3` with IWER When a test `ScreenDef` panel is created through `UiSurface` Then it sits at the default 1.2 m distance with a `world` anchor, a simulated ray press activates its button, text height is ≥ 1.5° of visual angle at 1.2 m, and it redraws only after a view-model change — proof: `pnpm check:e2e:xr`
 - AC-12 Given an iPhone 15 When the operator follows the checklist (Safari tab coach mark, Add to Home Screen, safe areas, name entry with the OS keyboard, 5 min of touch play at `?perf=1&tier=mobile-low`, rotate overlay) Then `perf.json` and `notes.json` are committed under `docs/device-runs/M04b2/iphone15/` and pass at `mobile-low` — proof: manual: iPhone 15, steps of `pnpm perf:checklist -- tools/ci/checklists/M04b2-iphone15.json`, then `pnpm perf:verify -- docs/device-runs/M04b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M04b2-iphone15.json`
 - AC-13 Given the branch When the standard gates, IP gates, bundle check and preview deploy run Then all pass — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm provenance:check && pnpm check:i18n && pnpm build && pnpm check:bundle && pnpm deploy:preview`
+- AC-14 Given a QA build with the `synth` world in sandbox free roam (`?play=sandbox`) When the bridge teleports the player 100 m inside a county-line edge and bot input walks it outward Then the `world.boundary.countyLine` toast (M02c1 event, M04a2 mapping) is visible once for the approach in the M04b1 toast region with the `en.json` text (DL-681) — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-boundary-toast`
 
 ## Test plan
 - **Unit** (`pnpm check:unit -- packages/ui`): `creator`, `touch-layout`, `hud-status` (CVD and flash limit), `phone`, `help`, `host-garage`.
 - **E2E:**
-  - `@creator`, `@ui-pause`, `@ui-motion` and `@ui-hud` on `chromium-webgl2`;
+  - `@creator`, `@ui-pause`, `@ui-motion` and `@ui-hud` on `chromium-webgl2`; `@ui-boundary-toast` on `chromium-webgl2` with `DV_WORLD=synth` (AC-14);
   - `@ui-touch` and `@ui-coach` on `webkit-webgl2`;
   - `@xr` panel through `pnpm check:e2e:xr`.
 - **Device:** `M04b2-iphone15` (AC-12).

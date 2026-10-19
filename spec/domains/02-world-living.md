@@ -17,7 +17,7 @@
 
 OSM `lanes`, `lanes:forward|backward` and `maxspeed` override the defaults. `config/world/roadclass.json` holds the table. Parking: Collector, Local and Arterial default to `parkingSides = 2` with a 2.3 m lane, 0 where OSM says `parking:lane:*=no` or the class is Freeway, Ramp, Service. `widthM = lanes × laneWidth × (one-way ? 1 : 2) + medianM + 2.3 × parkingSides`.
 
-**1.2 One-way.** OSM `oneway=yes|-1|true`, roundabouts, and DataSF `oneway` F/T. The bake tests both orientations of F/T against OSM on matched segments and adopts the one with higher agreement; if neither exceeds 90 %, S5 fails (this removes the need to assume the F/T meaning). Where DataSF says one-way and OSM says two-way on a matched active `STREETS` segment, DataSF wins. Reversible lanes are not modelled.
+**1.2 One-way.** OSM `oneway=yes|-1|true`, roundabouts, and DataSF `oneway` F/T. The bake tests both orientations of F/T against OSM on matched segments and adopts the one with higher agreement; if neither exceeds 90 % (a design value: OSM↔DataSF agreement on `sf` has not been measured, U-W15), S5 fails (this removes the need to assume the F/T meaning). Where DataSF says one-way and OSM says two-way on a matched active `STREETS` segment, DataSF wins. Reversible lanes are not modelled.
 
 **1.3 Layers.** `layer`, `bridge`, `tunnel` give an `i8` level per edge. Edges that cross without a shared node never connect; ramps connect levels through shared nodes whose `layer` is the lower level. Slabs (bridges, viaducts, overpasses) carry collision; tunnel corridors carry hoods (bake S7).
 
@@ -29,7 +29,7 @@ OSM `lanes`, `lanes:forward|backward` and `maxspeed` override the defaults. `con
 
 **1.7 Closures.** `TrafficControl.closeEdges` marks edges closed for ambient planning, spawns barrier props from the `prop.barrier` prefab at the edge ends and re-routes agents at their next junction. The caller releases by id (`release(by)`).
 
-**1.8 Gates.** Largest strongly connected component ≥ 98 % of drivable edges; no edge with `lanes = 0`; every signal junction has a program; the route City Hall → each portal exists; edges per chunk ≤ 600; max out-degree ≤ 8; hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde) are drivable and connected. Authors resolve ids by `resolve(lat, lng)` or `pnpm map:resolve`; `osmWay` and `cnn` on each segment support re-snapping after a re-bake.
+**1.8 Gates.** Largest strongly connected component ≥ 98 % of drivable edges (design value on `sf`, U-W15); no edge with `lanes = 0`; every signal junction has a program; the route City Hall → each portal exists; edges per chunk ≤ 600; max out-degree ≤ 8; hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde) are drivable and connected. Authors resolve ids by `resolve(lat, lng)` or `pnpm map:resolve`; `osmWay` and `cnn` on each segment support re-snapping after a re-bake.
 
 ## 2. Traffic
 

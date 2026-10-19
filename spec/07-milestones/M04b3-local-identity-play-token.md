@@ -36,7 +36,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 - `packages/net/{package.json, tsconfig.json, README.md}`, `src/{index.ts, cloud-sync.ts}`, `test/cloud-sync.test.ts`.
 - `services/edge/src/id/playtoken.ts`, route registration in the M00a router, `services/edge/test/play-token.test.ts`, `services/edge/.dev.vars.example` (names only), `wrangler.jsonc` `secrets.required` += `PLAY_TOKEN_HMAC` (†).
 - `apps/web/src/identity.ts` (boot wiring, QA bridge), M04b1 age-gate and chip call sites updated in `packages/ui`.
-- `tests/e2e/offline-boot.spec.ts` (tag `@offline`).
+- `tests/e2e/offline-boot.spec.ts` (tag `@offline`); it opts out of M04b1's config-level QA play bypass with `test.use({ storageState: { cookies: [], origins: [] } })` and loads without `?play=`, so Title, the age gate and Terms really show (DL-684).
 - ESLint `no-restricted-imports`: `@dv/identity` may import only `@dv/shared`; `services/**` may not import `@dv/identity`.
 - IndexedDB in Node tests: reuse the shim M04a1 chose; if none, add `fake-indexeddb` (version as pnpm resolves, recorded in `spec/03`).
 - `typecheck` chain appends `packages/identity` and `packages/net` tsconfigs.
@@ -54,7 +54,7 @@ After this session the game has a P0 identity that needs no account. `packages/i
 - AC-6 Given the Workers runtime without `PLAY_TOKEN_HMAC` When route 5 receives a valid proof Then it answers 503 `upstream_unavailable` and logs `SKIP play-token: PLAY_TOKEN_HMAC not set` once — proof: `pnpm check:workers -- play-token`
 - AC-7 Given `NullCloudSync` When `syncNow()` runs Then it resolves `{pushed: 0, pulled: 0}`, `status()` is `'off'` and `fetch` is never called — proof: `pnpm check:unit -- packages/net`
 - AC-8 Given a QA build in which Playwright aborts every request to `/api/v1/boot` and `/api/v1/id/*` When the title is clicked, the age gate is answered 18+, and New Game starts Then the in-game sim advances at least 120 ticks within 5 s (`__dvBridge.engine.observe().tick`), `__dvBridge.identity.state().tier` is `'local'`, no error dialog shows and no uncaught page error is logged — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @offline`
-- AC-9 Given the same build with network allowed When the app boots to the main menu without answering the age gate Then zero requests reach `/api/v1/id/` — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @offline`
+- AC-9 Given the same build with network allowed When the app boots past Title to the age gate and the test does not answer it Then the M04b1 age gate page is visible (a Playwright visibility assertion on its heading), and zero requests reach `/api/v1/id/` while it shows, so the check cannot pass vacuously through the QA bypass (DL-684) — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @offline`
 - AC-10 Given the workspace When lint and typecheck run and the production bundle is scanned Then `@dv/identity` imports only `@dv/shared`, no `services/**` file imports `@dv/identity`, and no secret pattern appears in `apps/web/dist` — proof: `pnpm lint && pnpm typecheck && pnpm build && pnpm check:secrets -- apps/web/dist`
 - AC-11 Given the branch When the preview deploy runs Then the app stays deployable (SKIP without Cloudflare secrets, exit 0) — proof: `pnpm build && pnpm deploy:preview`
 

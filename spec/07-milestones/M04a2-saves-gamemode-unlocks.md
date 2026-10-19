@@ -39,10 +39,12 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
   - `npc` → M06a3.
 
   `net` is `null`.
+- **`ModeContext.world` on a world-less build** (DL-668): when a `SimModule` registered the M02c1 `createWorldApi` result, `world` is that object. Otherwise (every build without `DV_WORLD`, whose catalog has no `data/world-index`, so there is no `WorldIndex`) `world` is the engine-side gray-box stand-in `world-standin.ts`, which satisfies the C08 `WorldApi` type: `query.groundY` and `query.isWater` read the M01f fixture chunks loaded by the M01b2 gray-box loader (`null` / `false` where no chunk is resident), `query.nhoodAt` returns 255 and `districtAt` `null`; `teleport.request` resolves `{ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded'}` and `candidates` is empty; `graph.route`, `graph.edge`, `graph.nearestEdge` and `graph.resolve` return `null`; `places` lists are empty and `findPlace` resolves `[]`; `map` keeps blips in memory; `traffic` records overrides and does nothing; `resolver.bake` is `'graybox'`. Engine code never imports `@dv/world` (it depends on `@dv/engine`).
 - **UnlockRegistry** (`unlocks.ts`): `register`, `defs`, `emit` (true only if new), `has`, `list` and `onUnlocked`. It writes `CoreSlice.unlocks` (sorted, unique) and `firstEncounters`, saves with reason `unlock`, emits telemetry `unlock.emit {id}`, and sends `UiBridge.toast({kind: 'unlock'})` plus `VmPatch sys.unlocks`.
 - **Built-in descriptors** (`builtin/`):
   - `story`: order 1, `unlock: null`, `available`. Its sim is a minimal free roam (spawn, wallet, autosave) that M05a1 replaces with the mission VM.
   - `sandbox`: `unlock: null`, sandbox capability; toggles write the `sandbox` slice.
+  - Scenario adoption (DL-668): `sandbox` and the `story` free roam adopt the scenario the engine booted (`BootPayload.config.scenario` from `boot-engine.ts`: `walk-drop`, `physics-drop`, M01b2's gray-box walk, or the `?scenario=<id>` the QA play bypass passed, DL-650). Entering them on the booted profile calls no `SimHost.restart` and respawns nothing, so the player, bodies and camera of that scene stay as booted; rule 4's restart applies only when the requested profile differs from the running one.
   - `racing`, `fighter`, `tycoon`: `status: 'comingSoon'`, tile orders 2/3/4, unlocks `unlock.racing`, `unlock.fighter`, `unlock.tycoon`, art `ui/mode-<id>`, `standalone` and `embeddable` true.
 
   The mode milestones (M07a1, M08a2, M09a1) replace the stubs.
@@ -51,7 +53,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - **Controls remap persistence:** `UiCommand save.settings` with `controls` → `settings` slice → on load `InputRouter.setOverrides`. `client.Pause` keeps its default binding (C03 rule 9).
 - **UI bridge:**
   - sim-side `UiBridge`: patches coalesced per tick with ≤ 64 patches and ≤ 4 KiB, overflow deferred to the next tick in order;
-  - `toast`, `openApp`, `closeOverlay`;
+  - `toast`, `openApp`, `closeOverlay`; the M02c1 SimEvent `{t: 'world.boundary', s: 'countyLine'}` maps to one `toast` with key `world.boundary.countyLine` (DL-681);
   - main-side `ViewModelSource` (`get`, `subscribe` with `prefix*`, `rev`);
   - a `UiCommand` sender over the command ring, with a dispatcher in the worker for `mode.start`, `mode.quit`, `pause`, `save.*`, `sandbox.set` and `mode.cmd`.
 
@@ -67,14 +69,14 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 
 ## Deliverables
 - `packages/shared/src/contracts/{c06-modes.ts, ui-bridge.ts}` (verbatim).
-- `packages/engine/src/sim/modes/{host.ts, context.ts, stack.ts, unlocks.ts, economy.ts, autosave.ts, capability-bind.ts, commands.ts, stubs.ts, builtin/{story-freeroam.ts, sandbox.ts, coming-soon.ts, index.ts}, index.ts}`.
+- `packages/engine/src/sim/modes/{host.ts, context.ts, world-standin.ts, stack.ts, unlocks.ts, economy.ts, autosave.ts, capability-bind.ts, commands.ts, stubs.ts, builtin/{story-freeroam.ts, sandbox.ts, coming-soon.ts, index.ts}, index.ts}`.
 - `packages/engine/src/sim/ui/{bridge.ts, coalesce.ts}`; `packages/engine/src/client/ui/{view-model-source.ts, command-sender.ts}`.
 - `packages/engine/src/sim/input/remap-persist.ts`.
 - `packages/engine/test/modes/{host.states.spec.ts, host.embed.spec.ts, unlocks.spec.ts, coming-soon.spec.ts, economy.spec.ts, autosave.spec.ts, remap.spec.ts, bridge.spec.ts, interaction.scoring.spec.ts, context.spec.ts}`.
 - `packages/engine/package.json` script **`test:modes`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/modes`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `tests/e2e/engine/modes.spec.ts` (`@modes`).
 - `packages/shared/schemas/telemetry/names.schema.json` (`$defs` for `mode.enter {mode}`, `mode.exit {mode, reason}` with `reason` the C06 `ModeExitReason` enum, `unlock.emit {id}`; `mode` and `id` registry ids as strings ≤ 64 chars, no free text) and the same three names removed from M00d's `packages/shared/schemas/telemetry/pending.json` (DL-693; data, not counted).
-- About 38 files.
+- About 39 files (DL-668 adds `world-standin.ts`).
 
 ## Interfaces
 - C06 1.1: `GameModeDescriptor`, `GameModeSim`, `GameModeUI` (type only), `ModeContext`, `UnlockRegistry`, `EconomyApi`, `UiBridge`, `ViewModelSource`, `VmPatch`, `UiCommand`, implemented exactly. No shape change; the `NotYetAvailable` stubs satisfy the types.
@@ -98,10 +100,11 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 - AC-9 Given a `sandbox` session When a mode tries to write `story:auto` through `ctx.save` Then the write is `NOT_ALLOWED`, and `ModeContext` members that have not landed throw `NotYetAvailable` naming their milestone — proof: `pnpm --filter @dv/engine test:modes`
 - AC-10 Given the QA build When the e2e sends `UiCommand mode.start {id: 'sandbox'}` through the bridge, then `mode.quit` Then the bridge reports `Running` and then `Idle`, a `modeExit` save exists, and `mode.enter`/`mode.exit` events were queued with registry props only — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @modes`
 - AC-11 Given the branch When the standard gates, the telemetry registry check and the preview deploy run Then all pass — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm check:telemetry && pnpm build && pnpm deploy:preview`
+- AC-12 Given a QA build without `DV_WORLD` (no `data/world-index`) booted on the default scenario (DL-668) When `@modes` sends `mode.start {id: 'sandbox'}` Then the bridge reports `Running`, `SimHost.restart` was not called, the walk-drop player entity and its position at the moment of the command are unchanged one tick later, and in `context.spec.ts` the stand-in returns a fixture `groundY` for a resident gray-box point, `teleport.request` resolves `not-loaded` and `graph.route` returns `null` — proof: `pnpm --filter @dv/engine test:modes && pnpm check:e2e -- --project=chromium-webgl2 --grep @modes`
 
 ## Test plan
 - **Unit** (`pnpm --filter @dv/engine test:modes` and `pnpm --filter @dv/engine test`, both under `pnpm check:unit`): `engine/modes.hostStates`, `modes.embed`, `modes.unlocks`, `modes.comingSoon`, `economy.idempotent`, `modes.autosave`, `modes.remap`, `ui.bridge`, `interaction.scoring`, `modes.context`; M02b2's `clock` stays green.
-- **E2E:** `@modes` on `chromium-webgl2`.
+- **E2E:** `@modes` on `chromium-webgl2`, on a build without `DV_WORLD` (AC-10, AC-12).
 - **Static:** `pnpm check:telemetry` for the emitted names.
 
 ## Demo script
@@ -111,7 +114,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 4. Rebind Jump in the QA console, reload: the binding persists.
 
 ## Effort
-1 Builder session; about 38 files; risk **medium**. `ModeContext` assembly touches many services; keep the stubs explicit and the tests table-driven.
+1 Builder session; about 39 files; risk **medium**. `ModeContext` assembly touches many services; keep the stubs explicit and the tests table-driven.
 
 ## Risks & fallbacks
 - **A service from an earlier milestone has a different shape than C06 expects.** Adapt in `context.ts`, never in the contract. Record the mismatch in the report.
