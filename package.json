@@ -21,6 +21,8 @@
     "perf:checklist": "tsx tools/ci/perf-checklist.ts",
     "check:assets": "tsx tools/ci/check-assets.ts",
     "check:workers": "tsx tools/ci/check-workers.ts",
+    "check:pipeline": "tsx services/pipeline/scripts/check-pipeline.ts",
+    "check:c2pa": "tsx tools/ci/check-c2pa.ts",
     "check:secrets": "tsx tools/ci/check-secrets.ts",
     "check:prod-routes": "tsx tools/ci/check-prod-routes.ts",
     "check:do-migrations": "tsx tools/ci/check-do-migrations.ts",

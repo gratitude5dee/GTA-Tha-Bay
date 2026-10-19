@@ -54,6 +54,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:unit
       - run: pnpm check:workers
+      # M05b1: one mock cutscene job end to end, then the same key again (0 FalPort calls). Never calls fal.
+      - run: pnpm check:pipeline
 
   build:
     runs-on: ubuntu-24.04
@@ -170,3 +172,5 @@ jobs:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
       - run: pnpm likeness:gate
       - run: pnpm check:assets
+      # M05b1: shipped generated cutscenes keep their original anchor, AI flag and re-sign (0 shipped until M05b2).
+      - run: pnpm check:c2pa

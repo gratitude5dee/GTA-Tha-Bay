@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023"],
-    "types": ["node"]
+    "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": ["fixtures/sign-fixtures.ts"]
+  "include": ["fixtures/sign-fixtures.ts", "scripts", "../../packages/shared/src/contracts/dom-media.d.ts"]
 }

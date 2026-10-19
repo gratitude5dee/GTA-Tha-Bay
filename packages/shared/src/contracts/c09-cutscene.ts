@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- brings the HTMLVideoElement shim into programs without the DOM lib (Worker packages)
-/// <reference path="./dom-media.d.ts" />
 // C09 cutscene types: spec/domains/03-story-cutscenes.md section D2, copied without changes (M05b1 creates the file because M04c has not landed).
 // packages/shared/src/contracts/c09-cutscene.ts  (C09_VERSION re-exported from c09-mission.ts)
 import type { LineId, CastName, LatLngTuple } from './c09-mission.ts';

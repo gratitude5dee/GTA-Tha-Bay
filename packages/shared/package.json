@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts",
+    "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
     "./schemas/*": "./schemas/*"
   },
   "scripts": {

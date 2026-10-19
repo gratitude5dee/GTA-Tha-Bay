@@ -106,6 +106,22 @@ const ISOLATION: ReadonlyArray<[string, string]> = [
   ['cross-origin-resource-policy', 'same-origin'],
 ];
 
+// M05b1 (DL-191): the Report-Only policy of spec/05 section 1.3 and its companions on app documents and Worker responses.
+const REPORT_ONLY_DIRECTIVES = ["default-src 'self'", "script-src 'self' 'wasm-unsafe-eval'", "object-src 'none'", "frame-ancestors 'none'", 'report-to csp'];
+
+function expectDocumentSecurityHeaders(res: Response, label: string): void {
+  const csp = res.headers.get('content-security-policy-report-only') ?? '';
+  expect(csp !== '', `${label} has Content-Security-Policy-Report-Only`, 'absent');
+  expect(!csp.includes('%') && !csp.includes('<'), `${label} CSP has no unsubstituted placeholder`, csp.slice(0, 80));
+  for (const d of REPORT_ONLY_DIRECTIVES) expect(csp.includes(d), `${label} CSP has ${d}`, csp.slice(0, 120));
+  const reporting = res.headers.get('reporting-endpoints');
+  expect(reporting === 'csp="/api/v1/reports/browser"', `${label} Reporting-Endpoints names route 4`, `got ${reporting ?? 'absent'}`);
+  const nosniff = res.headers.get('x-content-type-options');
+  expect(nosniff === 'nosniff', `${label} X-Content-Type-Options: nosniff`, `got ${nosniff ?? 'absent'}`);
+  const referrer = res.headers.get('referrer-policy');
+  expect(referrer === 'strict-origin-when-cross-origin', `${label} Referrer-Policy: strict-origin-when-cross-origin`, `got ${referrer ?? 'absent'}`);
+}
+
 async function get(base: string, pathname: string): Promise<Response> {
   const res = await fetch(new URL(pathname, base), { redirect: 'manual' });
   void res.body?.cancel();
@@ -129,6 +145,8 @@ async function checkHeaders(base: string): Promise<void> {
     }
   }
 
+  expectDocumentSecurityHeaders(await get(base, '/'), '/');
+
   if (hashed) {
     const res = await get(base, hashed);
     const cc = res.headers.get('cache-control');
@@ -142,6 +160,7 @@ async function checkHeaders(base: string): Promise<void> {
   const account = await get(base, '/account/');
   expect(account.headers.get('cross-origin-embedder-policy') === null, '/account/ has no COEP', `got ${account.headers.get('cross-origin-embedder-policy') ?? ''}`);
   expect(account.headers.get('cross-origin-opener-policy') === null, '/account/ has no COOP', `got ${account.headers.get('cross-origin-opener-policy') ?? ''}`);
+  expect(account.headers.get('content-security-policy-report-only') === null, '/account/ has no Report-Only CSP (its own allowlist)', 'present');
 
   // M00a: Worker responses carry the isolation headers in code, not through _headers.
   const health = await get(base, '/api/v1/health');
@@ -150,8 +169,19 @@ async function checkHeaders(base: string): Promise<void> {
     const got = health.headers.get(name);
     expect(got?.toLowerCase() === want, `/api/v1/health ${name}: ${want}`, `got ${got ?? 'absent'}`);
   }
+  expectDocumentSecurityHeaders(health, '/api/v1/health');
   const rid = health.headers.get('x-request-id') ?? '';
   expect(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(rid), '/api/v1/health X-Request-Id is a UUIDv7', `got ${rid || 'absent'}`);
+
+  // Route 4 receives the Report-Only violations: 204 for a csp-violation body (451 from outside the allowed region is not a failure here).
+  const report = await fetch(new URL('/api/v1/reports/browser', base), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/reports+json' },
+    body: JSON.stringify([{ type: 'csp-violation', url: new URL('/', base).href, body: { effectiveDirective: 'img-src', blockedURL: 'inline', documentURL: new URL('/', base).href, disposition: 'report' } }]),
+  });
+  void report.body?.cancel();
+  if (report.status === 451) console.log('SKIP route 4 check: 451 region_blocked from this location');
+  else expect(report.status === 204, 'POST /api/v1/reports/browser (csp-violation) answers 204', `got ${report.status}`);
 }
 
 // ---------------------------------------------------------------------------------------------

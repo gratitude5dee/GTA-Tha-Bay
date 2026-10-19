@@ -6,7 +6,8 @@
  * captions, qa-gate, resign, subs, publish (manifest last), record. Step results are JSON and small (F-024); bytes move
  * through BlobPort inside the step that produces them and only hashes and sizes are returned.
  */
-import { sha256Hex, type CutsceneManifest, type GateCode, type GenJob, type Rendition } from '@dv/shared';
+import { sha256Hex, type GateCode, type GenJob } from '@dv/shared';
+import type { CutsceneManifest, Rendition } from '@dv/shared/contracts/c09-cutscene';
 import { FAL_DONE_EVENT } from '../fal.ts';
 import { assertStageAllowed, type GateConfig, type GateStage } from '../gate.ts';
 import type { FalSubmission, GenPorts } from '../ports.ts';

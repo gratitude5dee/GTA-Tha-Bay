@@ -15,7 +15,6 @@ export * from './genai/types.ts';
 export * from './genai/job-key.ts';
 export * from './genai/registry.ts';
 export { GENAI_GUARDRAILS } from './genai/guardrails.generated.ts';
-export type { CutsceneManifest, Rendition } from './contracts/c09-cutscene.ts';
 export type { AssetRef, LikenessTier } from './assets/c07.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';

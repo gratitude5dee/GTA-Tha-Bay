@@ -1,6 +1,6 @@
 import { env, introspectWorkflow } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
-import type { CutsceneManifest } from '@dv/shared';
+import type { CutsceneManifest } from '@dv/shared/contracts/c09-cutscene';
 import type { JobOutcome } from '@dv/pipeline/core';
 import { bindings, fixtureOrigSha, keyOf, mockCalls, prewarm, waitForState } from './cutscene-helpers.ts';
 
