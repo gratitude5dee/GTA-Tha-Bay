@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "ink.canary-mc",
+  "variants": {
+    "default": "assets/src/data/ink.canary-mc/ink.json"
+  },
+  "deps": [],
+  "tags": [
+    "char:canary-mc"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

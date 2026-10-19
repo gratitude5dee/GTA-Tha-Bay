@@ -1,17 +1,20 @@
-import { dcos, datan2, dsin, dsqrt, normalizeAngle, SimButton, SimStage, SIM_DT, TWO_PI, type InputFrame, type SystemDef } from '@dv/shared';
+import { dcos, datan2, dsin, dsqrt, normalizeAngle, SimButton, SimStage, SIM_DT, TWO_PI, type EntityId, type InputFrame, type SystemDef } from '@dv/shared';
 import type { EngineServices } from '../services.ts';
 import { Anim, BodyRef, CharacterBody, Control, PlayerControlled, Transform, Velocity } from '../ecs/components.ts';
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
 import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
 import { GROUP_BIT } from '../physics/groups.ts';
 import { animStateOf, CONTROL_OWNER, CONTROL_STATE } from './states.ts';
+import { probeVault, vaultPoint, VAULT_TICKS, type VaultStore } from './vault.ts';
 
 export const ONFOOT_ID = 'engine.control.onfoot';
 
 export interface OnFootOptions {
   backend: PhysicsSystemsBackend;
-  /** Supplies player 0's InputFrame (`services.input`). */
-  services: Pick<EngineServices, 'input'>;
+  /** Supplies player 0's InputFrame (`services.input`); `events` receives the `foot.step` audio cues. */
+  services: Pick<EngineServices, 'input'> & Partial<Pick<EngineServices, 'events'>>;
+  /** Vaults in progress. Without a store the controller never vaults (the earlier scenarios and their goldens). */
+  vault?: VaultStore;
   /** Defaults to the `character` block of config/physics.json. */
   config?: CharacterConfig;
 }
@@ -28,6 +31,12 @@ export const YAW_UNIT = TWO_PI / 65536;
 const TURN_RATE = 12.566370614359172; // 4 pi
 
 const isAirState = (s: number): boolean => s === CONTROL_STATE.jump || s === CONTROL_STATE.fall;
+
+/** Ticks between footfalls while walking, running and sprinting (about 2.0, 3.3 and 4.3 steps a second). */
+const STEP_PERIOD_TICKS: Readonly<Record<number, number>> = {
+  [CONTROL_STATE.walk]: 30, [CONTROL_STATE.run]: 18, [CONTROL_STATE.sprint]: 14,
+};
+export const FOOT_STEP_CUE = 'foot.step';
 
 /** Vertical offset from the feet (the `Transform`) to the centre of the capsule body. */
 export function capsuleCentreOffset(cfg: CharacterConfig = PHYSICS_CONFIG.character): number {
@@ -49,10 +58,15 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
   const jumpV0 = dsqrt(2 * g * cfg.jumpApexM);
   const centre = capsuleCentreOffset(cfg);
   const moveOpts = { autostepM: cfg.autostepM, snapToGroundM: cfg.snapToGroundM, maxSlopeDeg: cfg.maxSlopeDeg, slide: cfg.slide };
+  // In the air the character does not auto-step: a jump (apex 1.0 m) plus a 0.4 m step would otherwise clear a 1.4 m obstacle
+  // that the vault rule says blocks. Scenarios without a vault store keep the earlier behaviour (their goldens).
+  const airMoveOpts = { ...moveOpts, autostepM: 0 };
   const desired: Vec3 = [0, 0, 0];
   const origin: Vec3 = [0, 0, 0];
   const target: Vec3 = [0, 0, 0];
   const down: Vec3 = [0, -1, 0];
+  const vaultAt: Vec3 = [0, 0, 0];
+  const vaults = opts.vault;
 
   return {
     id: ONFOOT_ID, owner: 'S01', stage: SimStage.PhysicsPre, order: -20,
@@ -79,6 +93,35 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
           continue;
         }
         const frame = (players[id] === 0 ? services.input : null) ?? NEUTRAL_INPUT;
+
+        // --- a vault in progress runs its scripted path and ignores the stick (a checkpoint without its plan just ends it)
+        const plan = vaults?.plans.get(id);
+        if (plan) {
+          const k = tick - plan.startTick + 1;
+          if (state === CONTROL_STATE.vault && k <= VAULT_TICKS) {
+            vaultPoint(plan, k, vaultAt);
+            const px = tr.px[id] as number;
+            const py = tr.py[id] as number;
+            const pz = tr.pz[id] as number;
+            ve.vx[id] = (vaultAt[0] - px) / SIM_DT;
+            ve.vy[id] = (vaultAt[1] - py) / SIM_DT;
+            ve.vz[id] = (vaultAt[2] - pz) / SIM_DT;
+            tr.px[id] = vaultAt[0];
+            tr.py[id] = vaultAt[1];
+            tr.pz[id] = vaultAt[2];
+            target[0] = vaultAt[0];
+            target[1] = vaultAt[1] + centre;
+            target[2] = vaultAt[2];
+            backend.setKinematicTarget(bodies[id] as number, target, IDENTITY);
+            cb.grounded[id] = k === VAULT_TICKS ? 1 : 0;
+            cb.groundNormalY[id] = k === VAULT_TICKS ? 1 : 0;
+            cb.airTicks[id] = 0;
+            if (k === VAULT_TICKS) ve.vy[id] = 0;
+            an.p0[id] = dsqrt(ve.vx[id] * ve.vx[id] + ve.vz[id] * ve.vz[id]);
+            continue;
+          }
+          vaults?.plans.delete(id);
+        }
 
         // --- wish direction, camera-relative. Forward is (-sin yaw, -cos yaw); moveY < 0 pushes forward.
         const yaw = frame.camYaw * YAW_UNIT;
@@ -147,6 +190,32 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
         // --- vertical: closed-form parabola, so the apex does not depend on the tick rate
         let vy = ve.vy[id] as number;
         const jumping = wasGrounded && (frame.pressed & (1 << SimButton.Jump)) !== 0;
+        if (jumping && vaults && (locomotion === CONTROL_STATE.run || locomotion === CONTROL_STATE.sprint)) {
+          const found = probeVault({ backend, x: feetX, y: feetY, z: feetZ, dirX, dirZ }, tick);
+          if (found) {
+            vaults.plans.set(id, found);
+            vaultPoint(found, 1, vaultAt);
+            ve.vx[id] = (vaultAt[0] - feetX) / SIM_DT;
+            ve.vy[id] = (vaultAt[1] - feetY) / SIM_DT;
+            ve.vz[id] = (vaultAt[2] - feetZ) / SIM_DT;
+            tr.px[id] = vaultAt[0];
+            tr.py[id] = vaultAt[1];
+            tr.pz[id] = vaultAt[2];
+            target[0] = vaultAt[0];
+            target[1] = vaultAt[1] + centre;
+            target[2] = vaultAt[2];
+            backend.setKinematicTarget(bodies[id] as number, target, IDENTITY);
+            cb.grounded[id] = 0;
+            cb.groundNormalY[id] = 0;
+            cb.airTicks[id] = 0;
+            co.state[id] = CONTROL_STATE.vault;
+            co.sinceTick[id] = tick;
+            an.state[id] = animStateOf(CONTROL_STATE.vault);
+            an.sinceTick[id] = tick;
+            an.p0[id] = dsqrt(ve.vx[id] * ve.vx[id] + ve.vz[id] * ve.vz[id]);
+            continue;
+          }
+        }
         if (jumping) vy = jumpV0;
         let dy = 0;
         if (jumping || !wasGrounded) {
@@ -161,7 +230,7 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
         desired[1] = dy;
         desired[2] = dirZ * speed * SIM_DT;
         const body = bodies[id] as number;
-        const res = backend.character.move(body, desired, moveOpts);
+        const res = backend.character.move(body, desired, vaults && !wasGrounded ? airMoveOpts : moveOpts);
 
         const newX = feetX + res.moved[0];
         const newY = feetY + res.moved[1];
@@ -219,6 +288,14 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
         if (next !== state) {
           co.state[id] = next;
           co.sinceTick[id] = tick;
+        }
+        // --- footfall cue: half a period after a locomotion state begins, then every period
+        const period = STEP_PERIOD_TICKS[next];
+        if (period !== undefined && grounded && services.events) {
+          const elapsed = tick - (co.sinceTick[id] as number);
+          if (elapsed > 0 && elapsed % period === period >> 1) {
+            services.events.push({ t: 'audio.cue', tick, a: ecs.handle(id as EntityId), s: FOOT_STEP_CUE, n: next });
+          }
         }
         const animState = animStateOf(next);
         if (an.state[id] !== animState) {

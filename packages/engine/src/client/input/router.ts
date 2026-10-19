@@ -6,6 +6,7 @@ import {
 import {
   DEFAULT_CONTROLS, DEFAULT_MAPS, MOUSE_RAD_PER_PX, PAD_RAD_PER_SEC, PITCH_LIMIT,
 } from './defaults.ts';
+import { TOUCH_LOOK_RAD_PER_DRAG_PX } from './touch.ts';
 import { GestureTracker } from './gestures.ts';
 import { pitchToI16, quantAxis, quantTrigger, yawToU16 } from './quantize.ts';
 import { createRawInputState } from './raw-state.ts';
@@ -181,7 +182,9 @@ export class InputRouterImpl implements InputRouter {
 
   /**
    * Applies the look bindings to `look` (radians, mutated in place) and consumes the raw look delta. Mouse: 0.0022 rad per
-   * pixel, gamepad: 3.0 rad/s at full deflection, both times the sensitivity setting; pitch is clamped to +/- 70 degrees.
+   * pixel, touch drag: 3.0 x 0.0025 rad per pixel, gamepad: 3.0 rad/s at full deflection, each times its sensitivity
+   * setting; pitch is clamped to +/- 70 degrees. The raw look delta belongs to the touch binder while touch is the last
+   * active device, and to the mouse otherwise.
    * Only the on-foot style contexts look around; elsewhere the delta is dropped.
    */
   applyLook(dtSec: number, look: { yaw: number; pitch: number }): void {
@@ -194,6 +197,7 @@ export class InputRouterImpl implements InputRouter {
     if (!actions) return;
     let yaw = 0;
     let pitch = 0;
+    const touching = this.raw.lastActiveDevice === 'touch';
     for (const a of actions) {
       if (a.kind !== 'axis') continue;
       const axis = a.name === 'LookX' ? 0 : a.name === 'LookY' ? 1 : -1;
@@ -201,7 +205,14 @@ export class InputRouterImpl implements InputRouter {
       for (const b of a.bindings) {
         const sign = b.invert ? -1 : 1;
         const scale = (b.scale ?? 1) * sign;
-        if (b.control === 'mouse:dx' || b.control === 'mouse:dy') {
+        if (b.control === 'touch:dragR') {
+          if (!touching) continue;
+          const px = axis === 0 ? dx : dy;
+          const v = px * TOUCH_LOOK_RAD_PER_DRAG_PX * this.settings.lookSensitivity.touch * scale;
+          if (axis === 0) yaw += v;
+          else pitch += v;
+        } else if (b.control === 'mouse:dx' || b.control === 'mouse:dy') {
+          if (touching) continue;
           const px = b.control === 'mouse:dx' ? dx : dy;
           const v = px * MOUSE_RAD_PER_PX * this.settings.lookSensitivity.kbm * scale;
           if (axis === 0) yaw += v;
@@ -331,6 +342,8 @@ export class InputRouterImpl implements InputRouter {
     if (b.modifiers && !b.modifiers.every((m) => (this.raw.controls.get(m) ?? 0) > 0.5)) return 0;
     if (c.startsWith('pad:a')) return this.analog(c, b.deadzone ?? this.settings.deadzones.stickInner) * scale;
     if (c.startsWith('pad:b')) return this.analog(c, b.deadzone ?? this.settings.deadzones.trigger) * scale;
+    // The touch stick writes its half-axes as analog values in 0..1 (touch.ts).
+    if (c.startsWith('touch:')) return this.analog(c, b.deadzone ?? 0) * scale;
     return (this.raw.controls.get(c) ?? 0) > 0.5 ? scale : 0;
   }
 

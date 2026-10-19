@@ -1,0 +1,34 @@
+{
+  "$comment": "MesherProfile table of 02-world-bake.md section 6 (M02b1): triangles per building (80 / 60 / 40 / 18), terrain post stride (every 1st, 2nd, 4th post), skip rules, and the flat colours of the facade-less city (district palettes arrive with M10d2). Colours are sRGB hex strings; the mesher converts them to linear vertex colours.",
+  "schema": "world-mesher/1",
+  "tierProfile": {
+    "desktop-ultra": "desktop",
+    "desktop": "desktop",
+    "xr-visionpro": "visionpro",
+    "mobile": "mobile",
+    "xr-quest": "mobile",
+    "mobile-low": "low"
+  },
+  "profiles": {
+    "desktop": { "trisPerBuilding": 80, "terrainStride": 1, "roofs": true, "parapets": true, "equipment": true, "skip": null, "lodStride": 1 },
+    "visionpro": { "trisPerBuilding": 60, "terrainStride": 1, "roofs": true, "parapets": true, "equipment": false, "skip": null, "lodStride": 1 },
+    "mobile": { "trisPerBuilding": 40, "terrainStride": 2, "roofs": true, "parapets": true, "equipment": false, "skip": { "minAreaM2": 25, "maxHeightM": null, "beyondM": 300 }, "lodStride": 2 },
+    "low": { "trisPerBuilding": 18, "terrainStride": 4, "roofs": false, "parapets": false, "equipment": false, "skip": { "minAreaM2": 40, "maxHeightM": 5, "beyondM": 250 }, "lodStride": 4 }
+  },
+  "foundationM": 1.5,
+  "parapetM": 0.5,
+  "roofLiftMaxM": 3,
+  "palette": [
+    "#d8c9a8", "#c9b79c", "#e3d5b8", "#b8a58a", "#cfc2b2", "#d9bfa3", "#c4a98a", "#e0cfae",
+    "#bfc7c2", "#a9b5b3", "#cbb3a0", "#d6b5a2", "#bba88f", "#c7cfd2", "#d3c6bd", "#b8b2a6"
+  ],
+  "kindTint": { "0": 1.0, "1": 0.97, "2": 1.03, "3": 1.08, "4": 0.9, "5": 1.1 },
+  "roofColor": "#6e6a66",
+  "ground": [
+    "#6f9d4f", "#5c9449", "#d7c58b", "#9a9ea5", "#8f7a5a", "#7b7d80", "#44474d", "#b9bbb4", "#8d7456", "#4f95c8", "#2f6fb5", "#6c5e55"
+  ],
+  "road": { "freeway": "#4a4d54", "ramp": "#464950", "arterial": "#3f4249", "local": "#393c42", "service": "#44474d" },
+  "landuse": { "residential": "#8fa87a", "commercial": "#9a9ea5", "industrial": "#8d8a85", "grass": "#6f9d4f", "park": "#5c9449", "sand": "#d7c58b", "plaza": "#b9bbb4", "rock": "#7b7d80", "water": "#2f6fb5", "land": "#9aa38c" },
+  "tree": { "trunk": "#6b4a2f", "leaves": ["#3f7f3a", "#4a8f3f", "#356f35", "#5a9a45"] },
+  "lod": { "skirtM": 8, "roadWidthM": { "0": 22, "1": 12, "2": 14, "3": 10, "4": 8 }, "roadLiftM": 0.4, "waterLevelM": -0.4, "massingRoof": "#6e6a66" }
+}

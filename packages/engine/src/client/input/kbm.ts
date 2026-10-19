@@ -28,7 +28,7 @@ export interface KbmOptions {
 }
 
 /** Keys the browser would otherwise act on while the game has the keyboard. */
-const GAME_KEYS = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+const GAME_KEYS = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F3']);
 
 /** Normalizes a wheel event to notches: 100 px, 3 lines or 1 page per notch (deltaMode 0, 1, 2). */
 export function wheelNotches(deltaY: number, deltaMode: number): number {

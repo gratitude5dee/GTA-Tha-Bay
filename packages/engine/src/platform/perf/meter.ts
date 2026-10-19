@@ -66,24 +66,28 @@ export class RenderBudgetMeter {
    * Counts one frame. `shadowPasses` is the number of shadow passes that render casters this frame (cascades x lights); each
    * shadow-casting renderable adds that many render objects.
    */
-  measure(scene: Object3D, camera: Camera, shadowPasses = 0): FrameCounts {
-    camera.updateMatrixWorld();
-    this.projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    this.frustum.setFromProjectionMatrix(this.projView);
+  measure(scene: Object3D, camera: Camera, shadowPasses = 0, extra: readonly { scene: Object3D; camera: Camera }[] = []): FrameCounts {
     let objects = 0;
     let triangles = 0;
-    const visit = (o: Object3D): void => {
-      if (!o.visible) return;
-      const r = o as Renderable;
-      // A node on another layer is not drawn, but its children may be on the camera's layers.
-      if (o.layers.test(camera.layers) && isRenderable(r) && this.inFrustum(r)) {
-        objects += 1;
-        if (shadowPasses > 0 && r.castShadow) objects += shadowPasses;
-        triangles += triangleCount(r);
-      }
-      for (const c of o.children) visit(c);
-    };
-    visit(scene);
+    // `extra` roots (the backdrop pass of M02b1) are drawn in the same frame with their own camera planes: counted with it.
+    for (const root of [{ scene, camera }, ...extra]) {
+      root.camera.updateMatrixWorld();
+      this.projView.multiplyMatrices(root.camera.projectionMatrix, root.camera.matrixWorldInverse);
+      this.frustum.setFromProjectionMatrix(this.projView);
+      const cam = root.camera;
+      const visit = (o: Object3D): void => {
+        if (!o.visible) return;
+        const r = o as Renderable;
+        // A node on another layer is not drawn, but its children may be on the camera's layers.
+        if (o.layers.test(cam.layers) && isRenderable(r) && this.inFrustum(r)) {
+          objects += 1;
+          if (shadowPasses > 0 && r.castShadow) objects += shadowPasses;
+          triangles += triangleCount(r);
+        }
+        for (const c of o.children) visit(c);
+      };
+      visit(root.scene);
+    }
     this.record(objects, triangles);
     return { renderObjects: objects, triangles };
   }

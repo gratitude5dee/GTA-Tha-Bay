@@ -2,7 +2,8 @@
   "schema": "provenance/1.0",
   "sha256": "f8101b7b18eb90ea7fdbfd1670c03a03f219d0c3ac8ae71ba1c06e9365eea5f7",
   "paths": [
-    "tests/fixtures/world/civic-graybox/p0-64-64.pack"
+    "tests/fixtures/world/civic-graybox/p0-64-64.pack",
+    "assets/p0-64-64-uqK1r0A-.pack"
   ],
   "kind": "world_pack",
   "origin": "authored",

@@ -97,6 +97,8 @@ export interface RendererHostOptions {
 export interface FrameListener {
   /** Start of a frame, before the engine hand-off and the render call. `time` is the rAF (or XR) timestamp in ms. */
   before?(time: number): void;
+  /** After the engine hand-off (`frameHook`) and before the render call: the last word on camera and scene (the world scenario driver, M02b1). */
+  late?(time: number): void;
   /** After `renderer.render()`; `renderer.info` still holds this frame's counts. */
   after?(time: number): void;
 }
@@ -152,6 +154,12 @@ export class RendererHost {
   frameHook: ((timeMs: number) => void) | null = null;
   /** The tier whose resolution caps `resize` applies. QualityService keeps it current. */
   tier: QualityTier | null = null;
+  /**
+   * A far-field pass drawn before the world, with its own camera planes (M02b1: the backdrop ring, massing and skyline cards, out
+   * to 80 km). A near plane of 0.1 m and a far plane of 80 km do not fit one standard depth buffer, so the backdrop gets its own
+   * pass and the world pass clears only the depth. The scene background of the backdrop pass is the sky. Not drawn in XR (M11b1).
+   */
+  backdrop: { scene: Object3D; camera: Camera } | null = null;
   /** Renderer recoveries performed this session (0 or 1; a second loss shows the reload prompt). */
   recoveries = 0;
   deviceLosses = 0;
@@ -402,10 +410,20 @@ export class RendererHost {
     r.info.reset();
     for (const l of this.listeners) l.before?.(time);
     this.frameHook?.(time);
+    for (const l of this.listeners) l.late?.(time);
     this.frames += 1;
     if (r.xr.isPresenting) this.xrFrames += 1;
     if (this.menu) r.render(this.menu.scene as Scene, this.menu.camera);
-    else r.render(this.scene, this.camera);
+    else if (this.backdrop && !r.xr.isPresenting) {
+      r.render(this.backdrop.scene as Scene, this.backdrop.camera);
+      // The world pass keeps the colour of the backdrop pass and clears the depth only.
+      r.autoClearColor = false;
+      try {
+        r.render(this.scene, this.camera);
+      } finally {
+        r.autoClearColor = true;
+      }
+    } else r.render(this.scene, this.camera);
     for (const l of this.listeners) l.after?.(time);
   };
 

@@ -10,6 +10,9 @@ import {
   type TierDecision,
   type TierDecisionSource,
 } from '@dv/shared';
+import type { AssetClient, WorkerPort } from '../assets/client.ts';
+import { startAssets } from '../assets/spawn.ts';
+import { requestPersist } from '../assets/store/persist.ts';
 import { DeviceProbe, type ProbeEnv } from './device-probe.ts';
 import { LifecycleController } from './lifecycle.ts';
 import { createIdbStore, type PlatformStore } from './platform-store.ts';
@@ -59,6 +62,13 @@ export interface CreatePlatformOptions {
   consent?: PlatformSettings['telemetryConsent'];
   /** Probability of keeping a desktop `perf.minute` (25 %). Tests pass a constant. */
   sample?: () => number;
+  /**
+   * The asset client (M01e). Default: start `asset.worker` and wait for the store to open. Pass `null` to run without one
+   * (`app.start` then reports `store: 'memory'`); unit tests pass a fake.
+   */
+  assets?: AssetClient | null;
+  /** Creates asset.worker when no client is passed: the app supplies the composed worker with the world jobs (M02b1). Default: the engine's own. */
+  spawnAssetWorker?: () => WorkerPort;
 }
 
 export interface Platform {
@@ -77,6 +87,8 @@ export interface Platform {
   readonly sessionId: string;
   readonly build: string;
   readonly store: PlatformStore;
+  /** The world-pack client; null when workers are unavailable or the asset worker failed to start. */
+  readonly assets: AssetClient | null;
   /** Counters from `renderer.info.memory` plus the registered wasm bytes. */
   memory(): MemoryCounters;
   /** Registers an accounted byte source (a wasm memory, a SharedArrayBuffer block). */
@@ -187,6 +199,17 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   const analysis = heartbeat.analyzePrevious();
   const errors = new ErrorReporter(telemetry);
 
+  // The asset worker starts in parallel with the tier decision and renderer; `app.start` waits for its `open()`.
+  const assetsPromise: Promise<AssetClient | null> =
+    o.assets !== undefined
+      ? Promise.resolve(o.assets)
+      : startAssets({
+          ...(o.spawnAssetWorker ? { spawn: o.spawnAssetWorker } : {}),
+          init: { origin: typeof location === 'undefined' ? '' : location.origin, localMedia: import.meta.env.VITE_DV_QA === '1' ? '/media-local' : null, mobileOrXr: profile.class !== 'desktop' },
+          tier: () => quality?.tier.id ?? 'mobile-low',
+          onTelemetry: (name, props) => telemetry.emit(name, props),
+        });
+
   const selector = new TierSelector({
     profile,
     build: o.build,
@@ -286,12 +309,13 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     after: () => sampler.after(),
   });
 
-  // Events: app.start, tier.decision, app.ready.
+  // Events: app.start, tier.decision, app.ready. `store` is what the asset worker's open() returned.
+  const assets = await assetsPromise;
   const nav = o.nav ?? navType();
   telemetry.emit('app.start', {
     nav,
     coi: profile.signals.crossOriginIsolated,
-    store: 'memory',
+    store: assets?.storeKind === 'opfs' ? 'opfs' : 'memory',
     backend,
     tier: decision.tier,
   });
@@ -300,6 +324,14 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     source: decision.source,
     ...(decision.benchmark ? { benchP90Ms: decision.benchmark.p90Ms } : {}),
   });
+  // The first standalone launch asks the browser to protect the origin's storage (once per profile; story start asks from M05a1).
+  if (profile.displayMode === 'standalone') {
+    void requestPersist('standalone', {
+      storage: typeof navigator === 'undefined' ? null : navigator.storage,
+      marker: storage,
+      emit: (name, props) => telemetry.emit(name, props),
+    });
+  }
   telemetry.emit('app.ready', { bootMs: Math.round(perfNow()), phaseShellMs: Math.round(shellMs), phaseWorldMs: 0, nav });
   telemetry.start();
   telemetry.flushSoon();
@@ -365,6 +397,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     sessionId,
     build: o.build,
     store,
+    assets,
     memory: () => readMemory(info(), bytes),
     registerBytes: (name, read) => {
       bytes.set(name, read);
@@ -378,6 +411,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
       lifecycle?.detach();
       uninstallErrors?.();
       watchdog.stop();
+      assets?.dispose();
       heartbeat.markClosed();
       heartbeat.stop();
       telemetry.flush('pagehide');

@@ -1,0 +1,6 @@
+{
+  "package": "@contentauth/c2pa-node",
+  "version": "0.9.10",
+  "license": "MIT",
+  "note": "Fixture-time signer for the mock renditions. Not a workspace dependency. Claim: trainedAlgorithmicMedia, orig.mp4 as ingredient. Recorded in spec/03 (U-AST-15)."
+}

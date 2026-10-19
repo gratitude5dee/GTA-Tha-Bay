@@ -13,6 +13,8 @@ export interface ScenarioSetup {
   readonly core: SimCore;
   readonly services: EngineServices;
   readonly backend: RapierBackend;
+  /** `BootPayload.config` of the session (pack bytes for the gray-box scenario); empty in tests that pass none. */
+  readonly boot: Readonly<Record<string, unknown>>;
 }
 
 /** A canned world for tests, benches and the debug view. */
@@ -25,6 +27,8 @@ export interface PhysicsSimOptions extends SimCoreOptions {
   ecs?: EcsWorldOptions;
   backend?: RapierBackendOptions;
   physics?: PhysicsSystemOptions;
+  /** `BootPayload.config`, handed to the scenario's setup. */
+  boot?: Readonly<Record<string, unknown>>;
   /** Called after the systems and the scenario are registered and the first commands are flushed. */
   onReady?: (s: ScenarioSetup) => void;
 }
@@ -62,7 +66,7 @@ export async function createPhysicsSim(
   services.physics = backend;
   const core = new SimCore(cfg, ecs, services, options);
   registerPhysicsSystems(core, backend, options.physics);
-  const setup: ScenarioSetup = { cfg, ecs, core, services, backend };
+  const setup: ScenarioSetup = { cfg, ecs, core, services, backend, boot: options.boot ?? {} };
   scenario?.setup(setup);
   ecs.flush();
   options.onReady?.(setup);

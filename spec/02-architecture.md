@@ -1,6 +1,6 @@
 # 02 — Architecture (v1)
 
-> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 119 milestone files (DL-247; M10d1–M10d3 and M10e mapped in §2 and §7, DL-532). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.2 (frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-1b.md`, `-2.md`, `-3.md`, `-4.md`), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
+> v1, Architect, 2026-10-18, at the Builder handoff (v0.5 followed the Waves 2–4 reconciliation, v0 Wave 1). Reconciled with every domain spec (`spec/domains/01`–`13`) and with the Deliverables paths of all 121 milestone files (M00e, M00f added by DL-605) (DL-247; M10d1–M10d3 and M10e mapped in §2 and §7, DL-532). Binding inputs: `prompt-pack/06-SHARED-CONTEXT.md` **v1.3 (C12 1.3, DL-604; frozen, all 17 contracts final)**, `spec/03-decisions-and-facts.md` v2, decisions DL-001…DL-247 (`spec/11-decision-log.md`, `-1b.md`, `-2.md`, `-3.md`, `-4.md`; later rows in the logs `spec/00-plan.md` lists), ADR-0001…ADR-0030 (`docs/decisions/`). This file shows how the parts fit and cites the owning section; it restates nothing normative. Where a milestone file and this file disagree on a path, the milestone file's Deliverables win and this file is corrected. Requirements: R-PLAT-01…05, R-ROLL-01/02, R-ENG-01…04 and the R-IDs of each flow below.
 
 ## 1. System diagram
 
@@ -26,7 +26,7 @@ flowchart LR
     OPFS[("OPFS dv/packs, dv/mods")]
   end
   subgraph CF["Cloudflare"]
-    WEB["tha-bay-web (services/edge + services/pipeline)<br/>static assets, /api/v1 routes 1–57, id.DOMAIN issuer"]
+    WEB["tha-bay-web (services/edge + services/pipeline)<br/>static assets, /api/v1 routes 1–66 (C12 1.3), id.DOMAIN issuer"]
     WDO["EncounterDO, PlayerQuotaDO, BudgetGovernorDO,<br/>CutsceneJobDO, FalGateDO"]
     WF["Workflows: GenJobWorkflow, KillPurgeWorkflow,<br/>RebakeRevalidationWorkflow; Transcoder Container"]
     QS[["Queues: jobs, spend, ugc-scan (+ npc-builder)"]]
@@ -91,7 +91,7 @@ apps/web/            PWA shell (S10, S11)
                      composing @dv/engine cores with @dv/world jobs, from M02b1), account/ (M13c3)
   public/            _headers, manifest, icons, /pose/ model + WASM files (M08c1)
   qa/                QA-only pages (determinism, save-kill, world-hash, mission-preview, cutscene-spike, memory-bomb); never in production (verify:dist)
-  account/           non-isolated /account/* pages (register.html, M12a2)
+  account/           non-isolated /account/* pages (index.html M00e; register.html M12a2)
   vite/, scripts/    QA media-local plugin (M01e), verify-dist
 packages/
   shared/            @dv/shared — pure, deterministic, no IO
@@ -138,7 +138,7 @@ tools/
   ops/               run.ts, suites/ (ops suites), kill switches, id-keys, auth-tpa, rooms-drain, flag-flip, guardrails plan, drift (S09)
   soul/              npc:* CLIs (M06a2, M06a4, M10c)
   fighter/           QA-only move-timeline editor; reserved by A-01, built by no v1 milestone (kits are JSON checked by fighter:lint)
-config/              brand.ts, tier-budgets.json, platform-flags.json, perf/paths/, world/, ui/, input/, schemas/, genai-endpoints.json,
+config/              brand.ts, terms.ts (TERMS_VERSION, M00e), tier-budgets.json, platform-flags.json, perf/paths/, world/, ui/, input/, schemas/, genai-endpoints.json,
                      guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d3, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
 content/             authored originals: missions/<id>/, story/ (acts, cast), npcs/ (souls, ink), cutscenes/, prompts/, races/, racing/,
                      vehicles/, fighter/, tycoon/, world/, audio/, legal/, ui/ (i18n/en.json from M04b1, creator, help)
@@ -146,12 +146,13 @@ content-private/     private mount (Q-25): real-derived souls, research layer; n
 assets/              assets.lock.json, provenance/, prefabs/, src/<kind>/<id>/asset.json, creator-kit/, landmarks/, ledger/fal-spend.jsonl
 data/                world-areas/ (M15a, post-v1)
 supabase/            config.toml, migrations/0001…0009, tests/ (pgTAP)
+third_party/         vendored files of `REUSE-WITH-ATTRIBUTION` entries only and `NOTICE`; each path annotated in the root `REUSE.toml` (D-31, ADR-REUSE-01; absent until vendored)
 tests/               e2e/, perf/scenarios/, golden/, fixtures/, staging/, load/, tycoon/; reports/ (CI artifacts, git-ignored)
 docs/                decisions/ (ADRs), legal/, device-spike/, device-runs/<M##>/<device>/, runbooks/, ops/, releases/, spikes/
 .github/workflows/   ci, preview, deploy, assets, nightly, weekly, release
 ```
 
-Dependency direction: `apps → services/packages`; every package may import `@dv/shared`, which imports nothing. Pure cores that the client, Worker validators and CI must run identically (tycoon `verifyRun`, racing replay checks, soul compiler and `validateTurn`, C08 codec, asset gates) live in `@dv/shared` (DL-132, DL-234). Modes reach the engine only through C06. `@dv/world` imports `@dv/engine` registration hooks and the worker entries are composed in `apps/web/src/workers/` (M02b1), so the engine never imports the world. `services/*` import only `@dv/shared` and `@dv/net`. Identity token, tier and scope types live in `packages/shared/src/identity.ts`; `@dv/identity` re-exports them and is client-only (DL-055).
+Dependency direction: `apps → services/packages`; every package may import `@dv/shared`, which imports nothing. Pure cores that the client, Worker validators and CI must run identically (tycoon `verifyRun`, racing replay checks, soul compiler and `validateTurn`, C08 codec, asset gates) live in `@dv/shared` (DL-132, DL-234). Modes reach the engine only through C06. `@dv/world` imports `@dv/engine` registration hooks and the worker entries are composed in `apps/web/src/workers/` (M02b1), so the engine never imports the world. `services/*` import only `@dv/shared` and `@dv/net`, except the data files `config/brand.ts`, `config/ip-denylist.json` and `config/terms.ts` in `services/edge` (DL-514, DL-602). Identity token, tier and scope types live in `packages/shared/src/identity.ts`; `@dv/identity` re-exports them and is client-only (DL-055).
 
 ## 3. Runtime topology
 
@@ -173,7 +174,7 @@ Transport is SharedArrayBuffer rings under cross-origin isolation, with a `postM
 
 | Deployable | Host | Contents | Deploy rule | Spec |
 |---|---|---|---|---|
-| `tha-bay-web` (`-staging`) | `<domain>`, `id.<domain>` | static assets + `_headers`, `/api/v1/*` routes 1–57 (C12 1.2), issuer, `EncounterDO` (`enc:<pid>:<npcId>:<encounterId>`), `PlayerQuotaDO`, `BudgetGovernorDO`, `CutsceneJobDO`, `FalGateDO`, Workflows, Queue consumers (`tha-bay-jobs` incl. encounter summaries, `tha-bay-spend`, `tha-bay-ugc-scan`; `npc-builder` per S04's binding proposal), crons, Transcoder Container | `versions upload --secrets-file` → 0 % smoke → 100 %, rollback on failure; DO class changes ship alone via `wrangler deploy` (label `do-lifecycle`; first: `web-v1` in M05b1) | `09-backend-ops.md` §1–2 |
+| `tha-bay-web` (`-staging`) | `<domain>`, `id.<domain>` | static assets + `_headers`, `/api/v1/*` routes 1–66 (C12 1.3), issuer, `EncounterDO` (`enc:<pid>:<npcId>:<encounterId>`), `PlayerQuotaDO`, `BudgetGovernorDO`, `CutsceneJobDO`, `FalGateDO`, Workflows, Queue consumers (`tha-bay-jobs` incl. encounter summaries, `tha-bay-spend`, `tha-bay-ugc-scan`; `npc-builder` per S04's binding proposal), crons, Transcoder Container | `versions upload --secrets-file` → 0 % smoke → 100 %, rollback on failure; DO class changes ship alone via `wrangler deploy` (label `do-lifecycle`; first: `web-v1` in M05b1) | `09-backend-ops.md` §1–2 |
 | `tha-bay-rooms` (`-staging`) | `rt.<domain>` | room REST, WebSocket upgrade gate, `RoomDO`, `DirectoryDO`, `PresenceDO`; own `deploy:bootstrap` (M12b1) | `rooms:drain` notice, then deploy in the window (M12c1) | `09-backend-ops.md` §1.1, §2 |
 | R2 custom domains | `media.<domain>`, `ugc.<domain>` | C07 assets, catalogs, cutscenes, barks; published UGC | immutable keys, prefix purge on kill (`CF_API_TOKEN_CACHE`, M10b) | `09-backend-db.md` §4; `05-assets.md` §4.4 |
 
@@ -203,6 +204,7 @@ Until a domain exists (Q-15), previews and staging run on `workers.dev`. Workers
 | fal.ai | sheets, meshes, rigs, cutscene video; operator CLI batches and operator-run prewarm, never player-triggered in v1 | DL-OWN-01 cap $100 total; licence-gated video (ADR-GENAI-01); CI `FAL_MODE=mock` | spec/03 D-18, D-19; `05-assets.md` §2 |
 | Workers AI | Whisper captions, Aura/MeloTTS barks and voices, bge-m3 embeddings | governor | `05-assets-pipeline.md` §5–6; `04-npc.md` §5 |
 | Supabase | Postgres, RLS, pgvector; trusts our issuer | DataPort rule | spec/03 D-02, D-03 |
+| Supabase Auth (password) | username and password credential behind routes 58–62, 64 and 65, proxied by the Worker with the publishable key; never a phase, tier or game identity; age and terms record written through the Worker's admin path; M12a1 exchanges it for our token (C12 1.3) | `auth` rate class, `18p` and `TERMS_VERSION`, `AUTH_PASSWORD_SIGNUP` (M00e) | spec/03 D-32; ADR-ACCT-01 |
 | Turnstile | P1 registration | verification API UNVERIFIED (Q-BE-05) | `09-backend.md` §10 |
 | OpenAI | device-code publish login via the player's own Codex CLI; website sign-in flagged off (`AUTH_OPENAI_WEB`); moderation endpoint for NPC-builder text (use on non-OpenAI content UNVERIFIED, U-NPC-07) | P2 | spec/03 D-05; `04-npc-builder.md` §C5 |
 | Supabase Auth GitHub provider | spike only in v1 (M13c1 AC-10; UNVERIFIED U-ADR-01); no link route or flag until a post-v1 C12 bump (DL-240, DL-342) | not built in v1 | `12-modding-publish.md` C§2 |
@@ -424,7 +426,7 @@ All configuration lives in `config/`, is validated by JSON Schema (`config/schem
 
 ### 5.6 Security boundaries (summary)
 - **Isolation:** COOP/COEP/CORP on every document and Worker response; `/account/*` is the only non-isolated path [D-01; `11-platform-pwa.md` §2]; Report-Only CSP from M05b1, enforcing from M14b2 (DL-241).
-- **Identity:** device-key-bound play token in P0, then our ES256 issuer (P1, M12a1); P2 linked accounts; P3 Thirdweb last (R-AUTH-02) [C12 §2.3].
+- **Identity:** device-key-bound play token in P0, then our ES256 issuer (P1, M12a1); P2 linked accounts; P3 Thirdweb last (R-AUTH-02) [C12 §2.3]. The owner's password credential (Supabase Auth `SB` token, D-32) opens only routes 61, 62, 64 and 65 and no table [ADR-ACCT-01].
 - **Rooms:** server-assigned slots, pose validation, mods refused [C11].
 - **Generation:** internal-only, likeness gates at every stage, no face detector anywhere [`05-assets.md` §2, §5.4].
 

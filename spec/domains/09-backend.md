@@ -2,7 +2,7 @@
 
 > Wave 1 domain spec, 2026-10-18, Claude Opus 5.5 (S09). Reads 06-SHARED-CONTEXT v1.1 (frozen; drafted against v0.95, reconciled per spec/11-decision-log.md) and spec/03 v1.1 (D-01…D-30, A-01…A-10, G1–G3). Four files, read in order:
 > 1. **this file** — scope, design, components, runtime, platforms, facts, milestones, tests, open questions;
-> 2. `09-backend-contracts.md` — C11 (1.0.0, wire protocol 2), C12 (1.1.0), C16 (1.1.0) TypeScript (1.1 additions in `09-backend-contracts-1.1.md`);
+> 2. `09-backend-contracts.md` — C11 (1.0.0, wire protocol 2), C12 (1.1.0), C16 (1.1.0) TypeScript (1.1 additions in `09-backend-contracts-1.1.md`, 1.2 in `09-backend-contracts-1.2.md`, 1.3 (owner password accounts, DL-604) in `09-backend-contracts-1.3.md`);
 > 3. `09-backend-db.md` — Postgres schema, RLS, R2/KV/DO storage, retention, migrations;
 > 4. `09-backend-ops.md` — Workers config, environments, CI/CD, abuse controls, observability, cost guardrails, secrets.
 
@@ -27,7 +27,7 @@ Contracts: **owns** C11, C12, C16 (Part 2). **Honors** C05 (the sync unit is one
 ### 1.1 Checklist (expanded from the brief; every item has a disposition)
 | # | Item | Disposition |
 |---|---|---|
-| 1 | Workers + static assets, SPA mode, `run_worker_first: ["/api/*"]`, navigation requests skip the Worker [research/stack-cloudflare-backend.md §1.1] | designed, M00 |
+| 1 | Workers + static assets, SPA mode, `run_worker_first: ["/api/*"]` (+ `/account` from M00e), navigation requests skip the Worker [research/stack-cloudflare-backend.md §1.1] | designed, M00 |
 | 2 | COOP/COEP/CORP in `_headers` and in code on every Worker response (`_headers` does not apply to Worker responses, F-019); `/account/*` non-isolated | designed, M00 |
 | 3 | Two Workers: `tha-bay-web` and `tha-bay-rooms` (A-01) | designed, M00 / M12b |
 | 4 | R2 buckets, `media.`/`ugc.` custom domains, identity-encoded binaries, presign on S3 endpoint only (F-023) | designed, M05b / M06b |
@@ -151,7 +151,7 @@ Shared simulation code for validation lives in `packages/net/src/validate.ts` (p
 ### 3.2 Edge services (`services/edge`)
 | Module | Responsibility | Public interface |
 |---|---|---|
-| `src/router.ts` | route table C12 §2.4, Ajv validation, error envelope, isolation headers, geo-gate | `handle(req, env, ctx): Promise<Response>` |
+| `src/router.ts` | route table C12 §2.4, precompiled schema validation (no runtime Ajv compile, DL-694), error envelope, isolation headers, geo-gate | `handle(req, env, ctx): Promise<Response>` |
 | `src/id/issuer.ts` | discovery, JWKS (CURRENT + NEXT), sign/verify | `sign(c: AccessClaims): Promise<string>`, `verify(t: string, aud: string): Promise<AccessClaims>`, `jwks(): JsonWebKeySet` |
 | `src/id/playtoken.ts` | P0 token mint/verify, device-proof check, TOFU bind | `mint(req: PlayTokenReq): Promise<PlayTokenRes>`, `verify(tok: string): PlayTokenClaims` |
 | `src/id/devicecode.ts`, `src/id/siwe.ts`, `src/id/openai.ts` | RFC 8628; SIWE via `viem/siwe` (`parseSiweMessage`, `verifySiweMessage`); OIDC code + PKCE (flagged) [research/auth-ugc-input-maps.md §2.4, §3.3] | per routes 10–13 |

@@ -1,6 +1,10 @@
 // C12 1.1 — API surface types shared by the client and services/edge.
 // Copied from spec/domains/09-backend-contracts.md sections 2.2 and 2.5 and 09-backend-contracts-1.1.md section 2.
 // Types and constants only; no IO.
+// M00e adds the C12 1.0 shapes TokenRes and IdentityStateDTO (09-backend-contracts.md section 2.5) and the 1.3 members
+// (09-backend-contracts-1.3.md section 2) without changing C12_VERSION (1.3 section 4).
+
+import type { AgeBracket } from '../identity.ts';
 
 export const C12_VERSION = '1.1.0' as const;
 
@@ -30,7 +34,15 @@ export const HTTP_FOR: Record<ApiErrorCode, number> = {
 export type FeatureFlag =
   | 'mp.enabled' | 'npc.dialogue' | 'npc.voice' | 'npc.builder' | 'cutscene.generated'
   | 'forum.enabled' | 'ugc.publish' | 'auth.openaiWeb' | 'auth.thirdweb' | 'telemetry.verbose'
-  | 'mods.enabled' | 'mods.script' | 'mods.ui';
+  | 'mods.enabled' | 'mods.script' | 'mods.ui'
+  | 'auth.password';
+
+// Route 27 (spec/domains/09-backend-contracts.md section 2.5; M05b1).
+export interface CutsceneStatus {
+  key: string; state: 'ready' | 'pending' | 'absent' | 'failed' | 'blocked';
+  manifestUrl?: string;             // media.<domain>/cutscenes/<key>/manifest.json when ready (C09, S03/S05 shape)
+  reason?: 'not_in_catalog' | 'kill_switched' | 'budget' | 'region';
+}
 
 export interface BootConfig {
   build: string;
@@ -45,3 +57,19 @@ export interface BootConfig {
   /** BudgetGovernor level (D-28). */
   gov: 0 | 1 | 2 | 3;
 }
+
+// Route 8 and the exchange routes (09-backend-contracts.md section 2.5).
+export interface TokenRes { accessToken: string; exp: number; refreshToken: string; refreshExp: number; state: IdentityStateDTO }
+export interface IdentityStateDTO { profileId: string; tier: 'local' | 'device' | 'linked'; providers: { id: string; linkedAt: number }[] }
+
+// C12 1.3 password accounts, routes 58-65 (09-backend-contracts-1.3.md section 2; ADR-ACCT-01).
+export interface PasswordUser { id: string /* Supabase user id */; username: string /* ^[a-z0-9_]{3,20}$ */ }
+export interface PasswordSession { accessToken: string /* SB */; expiresIn: number /* seconds */ }   // the refresh token travels only in the HttpOnly cookie dv-rt
+export interface SignupReq { username: string; password: string /* 8-256 chars */; ageBracket: AgeBracket; termsVersion: string }   // route 58
+export interface LoginReq { username: string; password: string; ageBracket?: AgeBracket; termsVersion?: string }                 // route 59; the optional pair is the re-acceptance
+export interface PasswordSessionRes { user: PasswordUser; session: PasswordSession }                                             // routes 58-60 before M12a1
+export type PasswordSignInRes = PasswordSessionRes | TokenRes;                                                                     // routes 58-59; TokenRes from M12a1 (discriminate on 'session' in res)
+export interface LogoutRes { ok: true }                                                                                            // route 61
+export interface PasswordMeRes { user: PasswordUser }                                                                              // route 62
+export interface PasswordExportRes { username: string; ageBracket: '18p'; termsVersion: string; acceptedAt: number; createdAt: number }   // route 65; epoch ms
+export interface TermsRequiredDetails { reason: 'terms_required'; termsVersion: string }                                         // ApiError.error.details of a 403 'forbidden' on routes 59, 60 and 65

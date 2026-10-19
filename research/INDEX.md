@@ -152,7 +152,7 @@ All rows checked 2026-10-18 (date column). CF = developers.cloudflare.com; BCD =
 
 1. No "GTA" in anything shipped; display name only from `config/brand.ts` (default "Dee-Verse: Tha Bay"); rename the repo before public.
 2. No Rockstar/Take-Two material of any kind (code, data, formats, symbols, maps, missions, characters, brands, trade dress), including anything reachable through the example repos.
-3. Clean room: builders never open the example repos; only pattern cards cross over; PRs attest.
+3. Clean room: builders never open the example repos; only pattern cards cross over; PRs attest. Amended 2026-10-19 by ADR-REUSE-01/D-31: files under `third_party/` listed `REUSE-WITH-ATTRIBUTION` in the register (`docs/legal/third-party-reuse.json`) may cross; everything else unchanged.
 4. Provenance or it doesn't ship: SHA-256, origin, SPDX licence, generator {vendor, endpoint, request_id, prompt hash, terms snapshot}, likeness; CI `provenance:check`, `ip:*`, `license:scan`, `names:lint`, `likeness:gate`.
 5. No GPL/AGPL/LGPL in the client without an ADR.
 6. Real people only via `NameRegistry`; never hard-code names, aliases, catchphrases or marks.

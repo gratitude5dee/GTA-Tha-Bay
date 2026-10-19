@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "npc-roster",
+  "variants": {
+    "default": "assets/src/data/npc-roster/npc-roster.json"
+  },
+  "deps": [],
+  "tags": [
+    "npc-roster"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -13,13 +13,26 @@
     "./platform/bomb-gpu": "./src/platform/perf/bomb-gpu.ts",
     "./client/boot": "./src/client/boot/boot-engine.ts",
     "./client/debug/bridge": "./src/client/debug/bridge.ts",
-    "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts"
+    "./client/save-status": "./src/client/save-status.ts",
+    "./save": "./src/sim/save/index.ts",
+    "./assets/bridge": "./src/assets/bridge.ts",
+    "./client/boot/spawn-worker": "./src/client/boot/spawn-worker.ts",
+    "./client/boot/world-layer": "./src/client/boot/world-layer.ts",
+    "./assets/service": "./src/assets/service.ts",
+    "./assets/client": "./src/assets/client.ts",
+    "./assets/spawn": "./src/assets/spawn.ts",
+    "./assets/types": "./src/assets/store/types.ts",
+    "./workers/asset-core": "./src/workers/asset-core.ts",
+    "./workers/sim-worker-core": "./src/workers/sim-worker-core.ts",
+    "./platform/perf": "./src/platform/perf/scenario-runner.ts",
+    "./platform/tier-config": "./src/platform/tier-config.ts"
   },
   "scripts": {
-    "test": "vitest run",
-    "test:lint-bans": "vitest run test/lint.bans.spec.ts",
-    "test:headless": "vitest run test/headless.noDom.spec.ts",
-    "test:determinism": "vitest run test/determinism.node.spec.ts",
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine",
+    "test:lint-bans": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine lint.bans.spec",
+    "test:headless": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine headless.noDom.spec",
+    "test:save": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine save/",
+    "test:determinism": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine determinism.node.spec",
     "bench:physics": "tsx bench/physics-builds.ts"
   },
   "dependencies": {
@@ -31,6 +44,7 @@
   },
   "devDependencies": {
     "@types/three": "0.186.0",
+    "fake-indexeddb": "^6.2.6",
     "iwer": "2.6.0"
   }
 }

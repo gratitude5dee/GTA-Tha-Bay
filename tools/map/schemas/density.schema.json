@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/density.schema.json",
+  "title": "config/world/density.json (M02a2, DL-555): ordered density profiles; later milestones add hour curves, tier factors and lampPitchM",
+  "type": "object",
+  "required": ["schema", "profiles"],
+  "properties": {
+    "schema": { "const": "world-density/1" },
+    "note": { "type": "string" },
+    "profiles": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 255,
+      "items": {
+        "type": "object",
+        "required": ["name", "perKm"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z-]{2,24}$" },
+          "perKm": { "type": "number", "minimum": 0, "maximum": 1000 }
+        }
+      }
+    },
+    "perLaneKm": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+    "lampPitchM": { "type": "number", "minimum": 5 },
+    "hourCurves": { "type": "object" },
+    "tierFactors": { "type": "object" },
+    "weatherFactors": { "type": "object" }
+  }
+}

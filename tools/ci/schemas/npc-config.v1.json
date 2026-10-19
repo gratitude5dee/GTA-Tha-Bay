@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/npc-config-1.json",
+  "title": "config/npc.json (04-npc-contracts.md section B9)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "routing", "caps", "lod", "throttles", "quotas", "cacheTtls"],
+  "properties": {
+    "schema": { "const": "npc-config/1" },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["haiku", "sonnet", "summary", "tokenCount"],
+      "properties": {
+        "haiku": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "thinking", "effort", "maxTokens"],
+          "properties": {
+            "model": { "const": "claude-haiku-5-5" },
+            "thinking": { "const": "disabled" },
+            "effort": { "enum": ["low", "medium", "high"] },
+            "maxTokens": { "type": "integer", "minimum": 1, "maximum": 512 }
+          }
+        },
+        "sonnet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "thinking", "effort", "maxTokens", "fallbacks", "beta"],
+          "properties": {
+            "model": { "const": "claude-sonnet-5-5" },
+            "thinking": { "const": "between_tools" },
+            "effort": { "enum": ["low", "medium", "high"] },
+            "maxTokens": { "type": "integer", "minimum": 1, "maximum": 512 },
+            "fallbacks": { "const": "default" },
+            "beta": { "type": "string", "minLength": 1 }
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "thinking", "effort", "maxTokens"],
+          "properties": {
+            "model": { "const": "claude-haiku-5-5" },
+            "thinking": { "const": "adaptive" },
+            "effort": { "enum": ["low", "medium", "high"] },
+            "maxTokens": { "type": "integer", "minimum": 1, "maximum": 4096 }
+          }
+        },
+        "tokenCount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model"],
+          "properties": { "model": { "const": "claude-haiku-5-5" } }
+        }
+      }
+    },
+    "caps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxTokensClamp", "turnsPerEncounterDefault", "turnsPerEncounterMax", "playerTextChars", "sceneTokensMax", "blockATokensMax",
+        "blockBTokensMin", "blockBTokensMax", "promptTokensMax", "rosterSonnetMax", "rosterStandardMax", "rosterLeanMax", "lodABrains"
+      ],
+      "properties": {
+        "maxTokensClamp": { "type": "integer", "minimum": 1 },
+        "turnsPerEncounterDefault": { "type": "integer", "minimum": 4, "maximum": 20 },
+        "turnsPerEncounterMax": { "type": "integer", "minimum": 4, "maximum": 20 },
+        "playerTextChars": { "type": "integer", "minimum": 1 },
+        "sceneTokensMax": { "type": "integer", "minimum": 1 },
+        "blockATokensMax": { "type": "integer", "minimum": 1 },
+        "blockBTokensMin": { "type": "integer", "minimum": 1 },
+        "blockBTokensMax": { "type": "integer", "minimum": 1 },
+        "promptTokensMax": { "type": "integer", "minimum": 1 },
+        "rosterSonnetMax": { "type": "integer", "minimum": 0 },
+        "rosterStandardMax": { "type": "integer", "minimum": 0 },
+        "rosterLeanMax": { "type": "integer", "minimum": 0 },
+        "lodABrains": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["desktop-ultra", "desktop", "xr-visionpro", "xr-quest", "mobile", "mobile-low"],
+          "properties": {
+            "desktop-ultra": { "type": "integer", "minimum": 0 },
+            "desktop": { "type": "integer", "minimum": 0 },
+            "xr-visionpro": { "type": "integer", "minimum": 0 },
+            "xr-quest": { "type": "integer", "minimum": 0 },
+            "mobile": { "type": "integer", "minimum": 0 },
+            "mobile-low": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "lod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["aRadiusM", "bRadiusM", "aEveryAiTicks", "bEveryAiTicks"],
+      "properties": {
+        "aRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "bRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "aEveryAiTicks": { "type": "integer", "minimum": 1 },
+        "bEveryAiTicks": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "throttles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "firstTokenTimeoutMs", "turnCadenceMs", "talkBurst", "intentMinSecondsPerNpc", "intentMaxInFlight", "intentMaxPerMinute",
+        "intentTriggerRadiusM", "intentTriggerTrust", "worldEventRadiusM"
+      ],
+      "properties": {
+        "firstTokenTimeoutMs": { "type": "integer", "minimum": 1 },
+        "turnCadenceMs": { "type": "integer", "minimum": 0 },
+        "talkBurst": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["requests", "perSeconds"],
+          "properties": { "requests": { "type": "integer", "minimum": 1 }, "perSeconds": { "type": "integer", "minimum": 1 } }
+        },
+        "intentMinSecondsPerNpc": { "type": "integer", "minimum": 0 },
+        "intentMaxInFlight": { "type": "integer", "minimum": 1 },
+        "intentMaxPerMinute": { "type": "integer", "minimum": 1 },
+        "intentTriggerRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "intentTriggerTrust": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "worldEventRadiusM": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "quotas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turnsPerDay", "turnsPerNpcPerDay", "voicedLinesPerDay", "costCapMicrosPerDay"],
+      "properties": {
+        "turnsPerDay": { "$ref": "#/$defs/byPhase" },
+        "turnsPerNpcPerDay": { "type": "integer", "minimum": 1 },
+        "voicedLinesPerDay": { "$ref": "#/$defs/byPhase" },
+        "costCapMicrosPerDay": { "$ref": "#/$defs/byPhase" }
+      }
+    },
+    "cacheTtls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["promptBlockSeconds", "historySeconds", "intentSeconds", "promptIsolateLru"],
+      "properties": {
+        "promptBlockSeconds": { "type": "integer", "minimum": 1 },
+        "historySeconds": { "type": "integer", "minimum": 1 },
+        "intentSeconds": { "type": "integer", "minimum": 1 },
+        "promptIsolateLru": { "type": "integer", "minimum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "byPhase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["p0", "linked"],
+      "properties": { "p0": { "type": "integer", "minimum": 0 }, "linked": { "type": "integer", "minimum": 0 } }
+    }
+  }
+}

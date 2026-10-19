@@ -1,0 +1,11 @@
+# Caps, ceilings and alarm thresholds (spec/domains/09-backend-ops.md section 5; spec/domains/05-assets.md section 4.7).
+# M05b1 creates the `genai:` section only; M14b1 adds the rest. Money is integer USD micros.
+# Source of truth for the Worker constants in packages/shared/src/genai/guardrails.generated.ts
+# (`tsx tools/ci/guardrails.ts --write`; the unit test fails when the two drift).
+genai:
+  # One-off fal program cap (DL-OWN-01): USD 100.
+  programCapUsdMicros: 100000000
+  # Concurrent fal requests a new account may run.
+  falConcurrency: 2
+  # Fractions of the program cap that raise a log alarm.
+  alarms: [0.5, 0.8, 1.0]

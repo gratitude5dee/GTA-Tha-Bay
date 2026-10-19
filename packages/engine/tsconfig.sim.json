@@ -4,5 +4,6 @@
     "lib": ["ES2023"],
     "types": []
   },
-  "include": ["src/sim/**/*.ts"]
+  "include": ["src/sim/**/*.ts", "../../packages/shared/src/contracts/dom-media.d.ts"],
+  "exclude": ["src/sim/save/**"]
 }

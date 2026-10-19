@@ -5,6 +5,7 @@
  *   - no bot-input module (by file name and by its error strings);
  *   - no `__dvBridge` string in any file;
  *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
+ *   - no media-local/ mirror and no `__dvBridge.assets` (M01e AC-10);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
  *
@@ -56,8 +57,30 @@ export function verifyDist(dist) {
     if (s.includes('PerfHud') || s.includes('dv-perf-hud')) fail(`PerfHud code found in ${rel(f)}`);
   }
 
+  // 2c. No QA tools of M01b2: the F3 panel, the free cam and the XR smoke button.
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('dv-sim-panel') || s.includes('dvSimPanel') || s.includes('Enter VR (smoke)') || s.includes('dvXrSmoke')) fail(`QA debug tools found in ${rel(f)}`);
+  }
+
+  // 2d. No save-kill QA page or worker half (M04a1).
+  for (const f of files) if (/save-kill/.test(rel(f))) fail(`save-kill file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('save-kill') || s.includes('save-verify') || s.includes('KILL_PROFILE')) fail(`save-kill QA code found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
+
+  // 3b. No media-local mirror: it is a QA-only same-origin copy of the asset store (M01e).
+  if (existsSync(path.join(dist, 'media-local'))) fail('dist/media-local exists: the QA media mirror must not ship');
+  for (const f of files) if (/(^|\/)media-local\//.test(rel(f))) fail(`media-local file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('/media-local') || s.includes('media-local/')) fail(`"media-local" found in ${rel(f)}`);
+    if (/__dvBridge[^;]{0,40}assets|bridge\.assets/.test(s)) fail(`"__dvBridge.assets" found in ${rel(f)}`);
+  }
 
   // 4. Precache: simd-compat in, deterministic-compat out; the deterministic chunk is still in dist.
   const swPath = path.join(dist, 'sw.js');
@@ -92,7 +115,7 @@ function main() {
     console.error(`verify:dist failed (${failures.length})`);
     process.exit(1);
   }
-  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no PerfHud, no __dvBridge string');
+  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no PerfHud, no __dvBridge string, no media-local');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }

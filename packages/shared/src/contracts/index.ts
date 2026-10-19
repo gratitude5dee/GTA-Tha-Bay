@@ -3,3 +3,7 @@ export * from './c02-loop.ts';
 export * from './c03-input.ts';
 export * from './c04-camera.ts';
 export * from './anim-states.ts';
+export * from './c15-milestone.ts';
+export * from './c05-save.ts';
+export * from './c06-ids.ts';
+export * from './engine-world.ts';

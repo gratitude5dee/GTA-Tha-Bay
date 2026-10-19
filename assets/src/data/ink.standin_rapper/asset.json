@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "ink.standin_rapper",
+  "variants": {
+    "default": "assets/src/data/ink.standin_rapper/ink.json"
+  },
+  "deps": [],
+  "tags": [
+    "char:standin_rapper"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

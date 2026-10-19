@@ -1,52 +1,25 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { act, fixedRateViolations, measureTicks, observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 
-interface Obs {
-  tick: number;
-  transport: 'sab' | 'postMessage' | null;
-  physicsBuild: string | null;
-  records: number;
-  restarts: number;
-  snapshotReuse: number;
-  frames: number;
-  crashed: string | null;
-  recovering: boolean;
-  backend: string;
-  hash: string | null;
-}
-
-async function waitForEngine(page: Page): Promise<void> {
-  await page.waitForSelector('html[data-dv-engine="ready"]', { state: 'attached', timeout: 60_000 });
-}
-
-const observe = (page: Page): Promise<Obs> =>
-  page.evaluate(() => {
-    const engine = (window as unknown as { __dvBridge?: { engine?: { observe(): unknown } } }).__dvBridge?.engine;
-    if (!engine) throw new Error('missing __dvBridge.engine');
-    return engine.observe();
-  }) as Promise<Obs>;
-
-const act = (page: Page, cmd: object): Promise<boolean> =>
-  page.evaluate((c) => {
-    const engine = (window as unknown as { __dvBridge?: { engine?: { act(c: object): boolean } } }).__dvBridge?.engine;
-    if (!engine) throw new Error('missing __dvBridge.engine');
-    return engine.act(c);
-  }, cmd);
+// The sim is paid by the page's frames (C02: a frame buys at most 9 ticks, 0.15 s). Software WebGPU renders the default
+// 1280x720 view at about 9 fps, right at that clamp, so these tests use the small viewport the other engine specs use
+// and judge the tick rate by the sim's own accounting (ticks plus counted dropped time) instead of a wall-clock count.
 
 test.describe('engine boot @boot', () => {
   test('boots the engine, draws the cubes, survives a stall and recovers from a crash @boot', async ({ page, browserName }, testInfo) => {
     test.setTimeout(120_000);
     const errors: string[] = [];
+    await page.setViewportSize(SMALL_VIEWPORT);
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto('/');
+    await page.goto('/?world=walk-drop');
     await waitForEngine(page);
 
-    // Records and ticks: at least 64 records, tick advancing at least 50 per second.
+    // Records and ticks: at least 64 records, the sim advancing at the fixed 60 Hz (50 a second or better unless the clamp dropped time).
     await expect.poll(async () => (await observe(page)).records, { timeout: 30_000 }).toBeGreaterThanOrEqual(64);
-    const a = await observe(page);
-    await page.waitForTimeout(1000);
+    const w = await measureTicks(page);
     const b = await observe(page);
-    console.log(`${testInfo.project.name}: transport=${String(b.transport)} build=${String(b.physicsBuild)} backend=${b.backend} ticks/s=${b.tick - a.tick} records=${b.records}`);
-    expect(b.tick - a.tick).toBeGreaterThanOrEqual(50);
+    console.log(`${testInfo.project.name}: transport=${String(b.transport)} build=${String(b.physicsBuild)} backend=${b.backend} ticks/s=${(w.ticks / w.wallSec).toFixed(1)} dropped=${w.droppedSec.toFixed(2)}s frames=${w.frames} records=${b.records}`);
+    expect(fixedRateViolations(w)).toEqual([]);
     expect(b.hash === null || /^[0-9a-f]{16}$/.test(b.hash)).toBe(true);
     if (browserName === 'chromium') {
       expect(b.transport).toBe('sab');
@@ -95,7 +68,7 @@ test.describe('engine boot @boot', () => {
         if (el && !(el as HTMLElement).hidden) (window as unknown as { __bannerSeen: boolean }).__bannerSeen = true;
       }).observe(document, { subtree: true, attributes: true, childList: true });
     });
-    await page.goto('/');
+    await page.goto('/?world=walk-drop');
     await waitForEngine(page);
     await expect.poll(async () => (await observe(page)).records, { timeout: 30_000 }).toBeGreaterThanOrEqual(64);
     await act(page, { t: 'debug.crash' });
@@ -106,14 +79,13 @@ test.describe('engine boot @boot', () => {
 
   test('the postMessage fallback transport runs the same scene and recovers from a crash @boot', async ({ page }) => {
     test.setTimeout(90_000);
-    await page.goto('/?transport=pm');
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.goto('/?transport=pm&world=walk-drop');
     await waitForEngine(page);
     await expect.poll(async () => (await observe(page)).records, { timeout: 30_000 }).toBeGreaterThanOrEqual(64);
-    const a = await observe(page);
-    expect(a.transport).toBe('postMessage');
-    await page.waitForTimeout(1000);
+    expect((await observe(page)).transport).toBe('postMessage');
+    expect(fixedRateViolations(await measureTicks(page))).toEqual([]);
     const b = await observe(page);
-    expect(b.tick - a.tick).toBeGreaterThanOrEqual(50);
     expect(b.physicsBuild).toBe('simd-compat');
     await act(page, { t: 'debug.crash' });
     await expect.poll(async () => (await observe(page)).restarts, { timeout: 5_000 }).toBe(1);

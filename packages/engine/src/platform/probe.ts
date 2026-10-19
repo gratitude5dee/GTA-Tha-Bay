@@ -5,7 +5,7 @@ import { buildNotes, exportReport } from './perf/export.ts';
 import { PerfHud } from './perf/hud.ts';
 import { RenderBudgetMeter } from './perf/meter.ts';
 import type { MemoryCounters } from './perf/probe.ts';
-import { PerfScenarioRunner, type RunInfo } from './perf/scenario-runner.ts';
+import { PerfScenarioRunner, type RunInfo, type WorldScenarioDriver } from './perf/scenario-runner.ts';
 import type { QaFlags } from './qa-flags.ts';
 import { THREE_REVISION } from './renderer-host.ts';
 
@@ -138,9 +138,55 @@ export async function installIwer(): Promise<void> {
   const device = new XRDevice(metaQuest3);
   // forceInstall: Chromium has a native navigator.xr, which IWER otherwise leaves in place.
   device.installRuntime({ forceInstall: true });
+  giveEmulatedLayersAFramebuffer();
 }
 
-export function installPlatformBridge(platform: Platform, flags: QaFlags): PlatformBridge {
+/**
+ * IWER 2.6.0's `XRWebGLLayer.framebuffer` is always null (the emulator composites nothing). three r186's WebGL backend keys a
+ * WeakMap by the layer framebuffer when it renders into the XR render target, so a null throws on every XR frame
+ * (M01b2, BD-M01b2-09). The QA emulator therefore hands each layer an offscreen framebuffer with a colour and a depth
+ * renderbuffer the size of the drawing buffer; a real headset passes its own opaque framebuffer and none of this runs.
+ */
+function giveEmulatedLayersAFramebuffer(): void {
+  const Layer = (globalThis as { XRWebGLLayer?: { prototype: object } }).XRWebGLLayer;
+  if (!Layer) return;
+  const made = new WeakMap<object, { fb: WebGLFramebuffer; w: number; h: number; color: WebGLRenderbuffer; depth: WebGLRenderbuffer }>();
+  Object.defineProperty(Layer.prototype, 'framebuffer', {
+    configurable: true,
+    get(this: { context: WebGL2RenderingContext }) {
+      const gl = this.context;
+      const w = gl.drawingBufferWidth;
+      const h = gl.drawingBufferHeight;
+      let e = made.get(this);
+      const previous = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+      const prevRb = gl.getParameter(gl.RENDERBUFFER_BINDING) as WebGLRenderbuffer | null;
+      if (!e) {
+        const fb = gl.createFramebuffer();
+        const color = gl.createRenderbuffer();
+        const depth = gl.createRenderbuffer();
+        if (!fb || !color || !depth) return null;
+        e = { fb, w: 0, h: 0, color, depth };
+        made.set(this, e);
+      }
+      if (e.w !== w || e.h !== h) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, e.fb);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, e.color);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, w, h);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, e.color);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, e.depth);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, e.depth);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, previous);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, prevRb);
+        e.w = w;
+        e.h = h;
+      }
+      return e.fb;
+    },
+  });
+}
+
+export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: { worldDriver?: () => WorldScenarioDriver | null } = {}): PlatformBridge {
   const host = platform.host;
   let lastProbe: GpuProbeResult | null = null;
   let xrError: string | null = null;
@@ -154,6 +200,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
     now: () => Date.now(),
     wasm: new Map(),
     errors: () => ({ gpuLost: platform.errors.counts.gpuLost, uncaptured: platform.errors.counts.uncaptured, js: platform.errors.counts.js }),
+    ...(opts.worldDriver ? { worldDriver: opts.worldDriver } : {}),
   });
 
   // Live meter: walks the scene being drawn, once per frame, while the HUD or a bridge reader needs it.
@@ -164,7 +211,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
     after: () => {
       if (!liveOn || runner.isRunning) return;
       const a = host.active;
-      live = liveMeter.measure(a.scene, a.camera);
+      live = liveMeter.measure(a.scene, a.camera, 0, host.backdrop && !host.menuActive ? [host.backdrop] : []);
     },
   });
 
@@ -188,7 +235,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
         void bridge.perf.run(flags.scenario ?? 'graybox-walk', { durationS }).catch((e: unknown) => console.warn('perf run failed', e));
       },
       onExport: () => {
-        void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals }).then((notes) =>
+        void buildNotes({ now: Date.now(), tier: platform.quality.tier.id, backend: host.backend, signals: platform.profile.signals, assets: platform.assets }).then((notes) =>
           exportReport(runner.report(), notes),
         );
       },
@@ -237,7 +284,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags): Platf
       live: () => {
         if (!liveOn) {
           const a = host.active;
-          live = liveMeter.measure(a.scene, a.camera);
+          live = liveMeter.measure(a.scene, a.camera, 0, host.backdrop && !host.menuActive ? [host.backdrop] : []);
         }
         return live;
       },

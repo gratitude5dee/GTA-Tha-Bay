@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7bf206915dcd2d0770859416e895cb08a0144cfc2d1a5853f4270540061c600e",
+  "paths": [
+    "assets/src/data/ink.ro-batista/ink.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T02:52:36Z"
+}

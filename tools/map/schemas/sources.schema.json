@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/world-sources.1.json",
+  "title": "config/world/sources.json (M02a1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "sources", "database", "terrarium", "osm", "areas"],
+  "$defs": {
+    "allowedUrl": {
+      "type": "string",
+      "description": "https only, no userinfo; never mapbox.com or *.mapbox.com (F-056) and never tile.googleapis.com (F-055).",
+      "pattern": "^https://(?![^/]*@)(?!(?:[^/:]*\\.)?mapbox\\.com(?:[:/]|$))(?!tile\\.googleapis\\.com(?:[:/]|$))[^/\\s]+(?:/\\S*)?$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "url", "file", "licence", "licenceUrl", "attribution", "source", "surfaces"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,40}$" },
+        "kind": { "enum": ["socrata", "terrarium", "osm"] },
+        "dataset": { "type": "string", "pattern": "^[a-z0-9]{4}-[a-z0-9]{4}$" },
+        "url": { "$ref": "#/$defs/allowedUrl" },
+        "select": { "type": "string" },
+        "geometryColumn": { "type": ["string", "null"] },
+        "file": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "licence": { "type": "string", "minLength": 3 },
+        "licenceUrl": { "$ref": "#/$defs/allowedUrl" },
+        "attribution": { "type": "string", "minLength": 3 },
+        "source": { "type": "string", "minLength": 3 },
+        "surfaces": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "tileSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["z", "boxes"],
+      "properties": {
+        "z": { "type": "integer", "minimum": 0, "maximum": 17 },
+        "boxes": { "type": "array", "minItems": 1, "items": { "enum": ["play", "stream", "far"] } }
+      }
+    },
+    "bbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minLat", "minLng", "maxLat", "maxLng"],
+      "properties": {
+        "minLat": { "type": "number" }, "minLng": { "type": "number" }, "maxLat": { "type": "number" }, "maxLng": { "type": "number" }
+      }
+    },
+    "enuBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minX", "minZ", "maxX", "maxZ"],
+      "properties": { "minX": { "type": "number" }, "minZ": { "type": "number" }, "maxX": { "type": "number" }, "maxZ": { "type": "number" } }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["s0", "s2", "s3", "s4", "s13", "s14"],
+      "properties": {
+        "s0": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minRows", "exactRows"],
+          "properties": {
+            "minRows": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+            "exactRows": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+          }
+        },
+        "s2": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cityHallM", "minM"],
+          "properties": {
+            "cityHallM": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number" } },
+            "minM": { "type": "number" }
+          }
+        },
+        "s3": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["landRatioTolerance", "minRingKm2"],
+          "properties": {
+            "landRatioTolerance": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "minRingKm2": { "type": "number", "minimum": 0 }
+          }
+        },
+        "s4": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minBakedFraction", "maxOsmFraction"],
+          "properties": {
+            "minBakedFraction": { "type": "number", "minimum": 0, "maximum": 1 },
+            "maxOsmFraction": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "s13": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["packMaxBytes", "packWarnBytes"],
+          "properties": { "packMaxBytes": { "type": "integer", "minimum": 1 }, "packWarnBytes": { "type": "integer", "minimum": 1 } }
+        },
+        "s14": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sccMin", "signalMin", "worldIndex", "transit", "heroEdges", "cablecars"],
+          "properties": {
+            "sccMin": { "type": "number", "minimum": 0, "maximum": 1 },
+            "signalMin": { "type": "number", "minimum": 0, "maximum": 1 },
+            "worldIndex": { "type": "boolean" },
+            "transit": { "type": "boolean" },
+            "heroEdges": { "type": "boolean" },
+            "cablecars": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "area": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "network", "box", "sources", "gates"],
+      "properties": {
+        "label": { "type": "string" },
+        "network": { "type": "boolean" },
+        "box": { "oneOf": [{ "enum": ["play", "stream", "far"] }, { "$ref": "#/$defs/enuBox" }] },
+        "sources": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "gates": { "$ref": "#/$defs/gates" }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": "world-sources/1" },
+    "note": { "type": "string" },
+    "sources": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/source" } },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["licence", "assets", "note"],
+      "properties": {
+        "licence": { "const": "ODbL-1.0" },
+        "assets": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 3 } },
+        "note": { "type": "string", "minLength": 10 }
+      }
+    },
+    "terrarium": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["core", "far"],
+      "properties": {
+        "core": { "$ref": "#/$defs/tileSet" },
+        "far": { "$ref": "#/$defs/tileSet" }
+      }
+    },
+    "osm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note", "bboxes", "tagFilter", "commands", "backdropCommands"],
+      "properties": {
+        "note": { "type": "string" },
+        "bboxes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sf", "backdrop"],
+          "properties": { "sf": { "$ref": "#/$defs/bbox" }, "backdrop": { "$ref": "#/$defs/bbox" } }
+        },
+        "tagFilter": { "type": "string" },
+        "commands": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "backdropCommands": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "areas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sf", "civic-excerpt", "synth"],
+      "properties": {
+        "sf": { "$ref": "#/$defs/area" },
+        "civic-excerpt": { "$ref": "#/$defs/area" },
+        "synth": { "$ref": "#/$defs/area" }
+      }
+    }
+  }
+}

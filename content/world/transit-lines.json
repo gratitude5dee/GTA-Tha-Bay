@@ -1,0 +1,69 @@
+{
+  "schema": "world-transit-lines/1",
+  "note": "Authored transit seeds (02-world-living.md section 5; DL-664): the 8 rail stations of the Bay Rail fast-travel set, the rail terminus, ferry fallbacks used when OSM has no route=ferry way, and the 3 air corridors. Design values, recorded as BD-M02a2-05. Station seeds 1 to 5 are the stop positions of fact N4 (02-world.md section 7); seeds 6 to 8 and the terminus are authored (U-W5) and snap to the nearest pedestrian node. Ids and comments in content/world name no transit system.",
+  "stations": [
+    { "id": "rail.embarcadero", "kind": "bay-rail", "nameKey": "transit.bay-rail.embarcadero", "lat": 37.7927, "lng": -122.3971, "fastTravel": true },
+    { "id": "rail.montgomery", "kind": "bay-rail", "nameKey": "transit.bay-rail.montgomery", "lat": 37.7888, "lng": -122.4021, "fastTravel": true },
+    { "id": "rail.powell", "kind": "bay-rail", "nameKey": "transit.bay-rail.powell", "lat": 37.7843, "lng": -122.4078, "fastTravel": true },
+    { "id": "rail.civic-center", "kind": "bay-rail", "nameKey": "transit.bay-rail.civic-center", "lat": 37.7792, "lng": -122.4142, "fastTravel": true },
+    { "id": "rail.glen-park", "kind": "bay-rail", "nameKey": "transit.bay-rail.glen-park", "lat": 37.7324, "lng": -122.4339, "fastTravel": true },
+    { "id": "rail.16th-st", "kind": "bay-rail", "nameKey": "transit.bay-rail.16th-st", "lat": 37.7650, "lng": -122.4195, "fastTravel": true },
+    { "id": "rail.24th-st", "kind": "bay-rail", "nameKey": "transit.bay-rail.24th-st", "lat": 37.7524, "lng": -122.4181, "fastTravel": true },
+    { "id": "rail.balboa-park", "kind": "bay-rail", "nameKey": "transit.bay-rail.balboa-park", "lat": 37.7216, "lng": -122.4474, "fastTravel": true },
+    { "id": "rail.terminus", "kind": "rail-terminus", "nameKey": "transit.rail-terminus.main", "lat": 37.7765, "lng": -122.3946, "fastTravel": false }
+  ],
+  "ferry": [
+    {
+      "id": "ferry.treasure-island",
+      "nameKey": "transit.ferry.treasure-island",
+      "points": [
+        { "lat": 37.79555, "lng": -122.3925 },
+        { "lat": 37.8030, "lng": -122.3860 },
+        { "lat": 37.8160, "lng": -122.3740 },
+        { "lat": 37.8226, "lng": -122.3703 }
+      ]
+    },
+    {
+      "id": "ferry.alcatraz",
+      "nameKey": "transit.ferry.alcatraz",
+      "points": [
+        { "lat": 37.79555, "lng": -122.3925 },
+        { "lat": 37.8090, "lng": -122.4010 },
+        { "lat": 37.8200, "lng": -122.4170 },
+        { "lat": 37.8260, "lng": -122.4220 }
+      ]
+    }
+  ],
+  "air": [
+    {
+      "id": "air.sfo-final",
+      "nameKey": "transit.air.sfo-final",
+      "altitudeM": [600, 1200],
+      "points": [
+        { "lat": 37.5900, "lng": -122.2500 },
+        { "lat": 37.6050, "lng": -122.3100 },
+        { "lat": 37.6213, "lng": -122.3790 }
+      ]
+    },
+    {
+      "id": "air.sfo-bayside",
+      "nameKey": "transit.air.sfo-bayside",
+      "altitudeM": [800, 1500],
+      "points": [
+        { "lat": 37.6213, "lng": -122.3790 },
+        { "lat": 37.7000, "lng": -122.3400 },
+        { "lat": 37.7800, "lng": -122.3000 }
+      ]
+    },
+    {
+      "id": "air.oak-approach",
+      "nameKey": "transit.air.oak-approach",
+      "altitudeM": [600, 1400],
+      "points": [
+        { "lat": 37.8100, "lng": -122.4800 },
+        { "lat": 37.7700, "lng": -122.3500 },
+        { "lat": 37.7213, "lng": -122.2208 }
+      ]
+    }
+  ]
+}

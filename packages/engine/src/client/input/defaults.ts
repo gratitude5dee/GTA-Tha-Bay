@@ -1,11 +1,13 @@
 import type { ControlsSettings, InputMap } from '@dv/shared';
 import gamepadJson from '../../../../../config/input/defaults.gamepad.json';
 import kbmJson from '../../../../../config/input/defaults.kbm.json';
+import touchJson from '../../../../../config/input/defaults.touch.json';
 
 /** config/input/defaults.<device>.json (schema: config/schemas/input-map.schema.json). */
 export const DEFAULT_KBM_MAP = kbmJson as unknown as InputMap;
 export const DEFAULT_GAMEPAD_MAP = gamepadJson as unknown as InputMap;
-export const DEFAULT_MAPS: readonly InputMap[] = Object.freeze([DEFAULT_KBM_MAP, DEFAULT_GAMEPAD_MAP]);
+export const DEFAULT_TOUCH_MAP = touchJson as unknown as InputMap;
+export const DEFAULT_MAPS: readonly InputMap[] = Object.freeze([DEFAULT_KBM_MAP, DEFAULT_GAMEPAD_MAP, DEFAULT_TOUCH_MAP]);
 
 /**
  * Controls settings before the player changes anything (persisting them is M04a). The look values are the design

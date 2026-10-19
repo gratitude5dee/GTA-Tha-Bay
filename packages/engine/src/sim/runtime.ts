@@ -1,4 +1,4 @@
-import { SimStage, type BootPayload, type BotInput, type FrameSignal, type InputFrame, type SimConfig } from '@dv/shared';
+import { SimStage, type BootPayload, type BotInput, type FrameSignal, type InputFrame, type SimConfig, type SystemDef } from '@dv/shared';
 import type { DebugCommand, StatsReport } from './transport/envelope.ts';
 import type { WorkerCommand, WorkerTransport } from './transport/types.ts';
 import type { RetryEnv } from './physics/rapier-backend.ts';
@@ -7,6 +7,31 @@ import { requestRagdoll, requestTeleport } from './control/ownership.ts';
 import { playerSide, snapshotPublisher } from './publish.ts';
 import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
+import type { SimResource } from './services.ts';
+import type { SaveControl } from './worker/save-control.ts';
+
+/** What `SimModule.onInit` receives: the booted sim, the session config and the ports the page transferred in the init message. */
+export interface SimModuleContext {
+  readonly sim: PhysicsSim;
+  readonly cfg: SimConfig;
+  readonly boot: BootPayload;
+  readonly runtime: SimRuntime;
+  /** Transferred ports and other init extras by name (`InitMessage.p.ports`); empty when the page sent none. */
+  readonly ports: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * The engine sim-module hook (DL-651). A domain package (the world streaming module of M02b1; M02c1 and M03c later) contributes
+ * systems and hashed resources to the sim worker without the engine importing it. `SimRuntime.boot` adds `resources` and `systems`
+ * in array order before the first tick, then awaits `onInit`. A module that finds nothing to do (no world in the boot payload)
+ * leaves its systems inert, so a session without its data runs and hashes as a session without the module.
+ */
+export interface SimModule {
+  readonly id: string;
+  readonly systems: readonly SystemDef[];
+  readonly resources?: readonly SimResource[];
+  onInit?(ctx: SimModuleContext): void | Promise<void>;
+}
 
 /** What the host environment lends the runtime: a clock and a blocking sleep. Sim code has neither. */
 export interface SimRuntimeEnv {
@@ -20,6 +45,10 @@ export interface SimRuntimeEnv {
   exclusive?: boolean;
   /** Reports an internal error line to the page. */
   log?: (level: 'info' | 'warn' | 'error', message: string) => void;
+  /** Domain modules (DL-651). Applied by `boot` in array order; absent means none. */
+  modules?: readonly SimModule[];
+  /** Transferred ports and other init extras (`InitMessage.p.ports`), handed to every module's `onInit`. */
+  ports?: Readonly<Record<string, unknown>>;
 }
 
 /** Post a stats report every this many frame groups (about 10 Hz at 60 fps). */
@@ -38,6 +67,8 @@ export class SimRuntime {
   framesHandled = 0;
   /** QA input source (BotInput, C03 1.1). Replaces the page's input block while set. */
   bot: BotInput | null = null;
+  /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
+  saveControl: SaveControl | null = null;
 
   private frameGroups = 0;
   private lastAlpha = 0;
@@ -53,6 +84,7 @@ export class SimRuntime {
       backend: { ...(this.env.retry ? { retry: this.env.retry } : {}), exclusive: this.env.exclusive === true },
       now: () => this.env.now(),
       debug: this.env.qa,
+      boot: boot.config,
     });
     this.sim = sim;
     this.cfg = cfg;
@@ -72,6 +104,13 @@ export class SimRuntime {
       return side;
     });
     sim.core.addSystem(publisher);
+    for (const m of this.env.modules ?? []) {
+      for (const r of m.resources ?? []) sim.core.addResource(r);
+      for (const def of m.systems) sim.core.addSystem(def);
+    }
+    for (const m of this.env.modules ?? []) {
+      await m.onInit?.({ sim, cfg, boot, runtime: this, ports: this.env.ports ?? {} });
+    }
     // Publish the starting state (stamped tick 0) so the page has something to draw before the first tick.
     publisher.run({ ...sim.core.ctx, tick: sim.core.tick - 1 });
     this.transport.snapshots.setAlpha(0);
@@ -103,6 +142,10 @@ export class SimRuntime {
         i++;
       }
     }
+    // Port writes and control messages are handled here, between pumps, never inside a tick (C02 rule 9).
+    if (this.saveControl && this.saveControl.pending > 0) {
+      void this.saveControl.flush().catch((e: unknown) => this.env.log?.('warn', `save flush failed: ${e instanceof Error ? e.message : String(e)}`));
+    }
     return batch.length;
   }
 
@@ -120,8 +163,18 @@ export class SimRuntime {
 
   private handleOther(m: Exclude<WorkerCommand, { t: 'frame' }>): void {
     if (m.t === 'ctl') {
-      // M04a replaces this with SaveService.
-      this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'not-implemented' } });
+      const control = this.saveControl;
+      if (!control) {
+        this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'not-implemented' } });
+        return;
+      }
+      void control.handle(m.p).then(
+        (p) => void this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p }),
+        (e: unknown) => {
+          this.env.log?.('warn', `save.request failed: ${e instanceof Error ? e.message : String(e)}`);
+          this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'IDB_UNAVAILABLE' } });
+        },
+      );
       return;
     }
     if (!this.env.qa) {

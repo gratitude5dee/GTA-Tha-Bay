@@ -19,7 +19,7 @@
 
 ## 2. Contract index
 
-`C##_VERSION` is exported by each contract file with the value below (06 v1.2 §4.2; 06 §4.1 rule 2). Where a later milestone performs a bump, the cell names it and the constant in code keeps the earlier value until that milestone lands (`09-backend-contracts-1.2.md` §4). Wire and format numbers are separate.
+`C##_VERSION` is exported by each contract file with the value below (06 v1.3 §4.2; 06 §4.1 rule 2). Where a later milestone performs a bump, the cell names it and the constant in code keeps the earlier value until that milestone lands (`09-backend-contracts-1.2.md` §4). Wire and format numbers are separate.
 
 | # | Contract | Owner | Ver | Wire / format numbers | Primary source path(s) | Part | Created in | Consumers (06 §4.2) |
 |---|---|---|---|---|---|---|---|---|
@@ -34,7 +34,7 @@
 | C09 | `MissionScript` + cutscenes | S03 | 1.0.0 | `mission-ir/1`, `cutscene-asset/1`, `cutscene-index/1`, `director/1` | `contracts/c09-mission.ts`, `c09-cutscene.ts`, `genai/cutscene-key.ts` | 5 | M04c, M05a1, M05b2 | S04, S05, S06, S07, S09, S10, S11, S12 |
 | C10 | `NPCSoul` + dialogue | S04 | 1.1.0 (1.0.0 until M06a3) | `soul/1.0`, `npc-roster/1` | `contracts/c10-npc.ts`, `c10-npc-builder.ts` | 6 | M06a2, M06a3, M06b1 | S03, S05, S07, S08, S09, S10, S12 |
 | C11 | `NetMessage` + room protocol | S09 | 1.0.0 | `PROTOCOL_VERSION` 2 | `packages/net/src/protocol/{v2,codec}.ts` | 7 | M12b family | S01, S02, S06, S07, S08, S10, S12, S13 |
-| C12 | API + identity + DB | S09 | 1.2.0 (1.1.0 until M12c1) | routes #1–57 (54–57 from 1.2), migrations 0001–0009 | `packages/shared/src/api/{v1,budget,mods}.ts`, `data-port.ts`, `identity.ts`, `db.gen.ts`, `supabase/migrations/*` | 7, 10 | M00a, M04b3, M05d, M12a1 | S03, S04, S05, S06, S08, S10, S12, S13 |
+| C12 | API + identity + DB | S09 | 1.3.0 (1.1.0 until M12c1; 1.3 members from M00e, DL-604) | routes #1–66 (54–57 from 1.2; 58–66 from 1.3), migrations 0001–0009 | `packages/shared/src/api/{v1,budget,mods}.ts`, `data-port.ts`, `identity.ts`, `db.gen.ts`, `supabase/migrations/*` | 7, 10 | M00a, M00e, M04b3, M05d, M12a1 | S03, S04, S05, S06, S08, S10, S12, S13 |
 | C13 | `QualityTier` + budgets + platform services | S11 | 1.1.0 | `tier-decision` v1, `PerfReport` v1 | `packages/shared/src/platform/{c13,xr-comfort}.ts`, `config/tier-budgets.json` | 8 | M00, M01c, M01e | S01, S02, S03, S05, S06, S07, S08, S09, S10, S12 |
 | C14 | `ModManifest` + `ModAPI` | S12 | 1.0.0 | `dv-mod/1`, `MODAPI_VERSION` 1.0.0, `ModMsg v1` | `contracts/c14-mod.ts`, `c14-modapi.ts`, `c14-protocol.ts` | 9 | M13a1 | S03, S05, S09, S10, S11 |
 | C15 | Milestone + AC format | S13 | 1.1.0 (DL-214) | — | `contracts/c15-milestone.ts` (`spec/domains/13-qa.md` §4.1, M00d); heading format §4 below | 1 | M00 onward | all |
@@ -52,7 +52,7 @@ Owner specs publish 1.0 shapes and then a "1.1 additions" block that repeats onl
 1. **Union types** (`DeviceKind`, `ControlId`, `SaveReason`, `FeatureFlag`, `PostNode`, `ModSubject`): the 1.1 line replaces the 1.0 line; appended members keep the index of every 1.0 member (C03 `InputFrame.device`).
 2. **Interfaces** (`InputRouter`, `ControlsSettings`, `XRRigParams`, `ProfileSettings`, `GameModeDescriptor`, `GameModeUI`, `ModeContext`, `PursuitProfile`, `PursuitApi`, `TimelineRecorder`, `RendererHost`, `BootConfig`, `PlayerQuota`, `IdentityService`, `PlatformSettings`, C07 `KindExtras` vehicle `nodes`): add the 1.1 members to the 1.0 declaration in the same file; a 1.1 member that redefines a 1.0 field (C04 `XRRigParams.origin`, C12 `RosterFlags.standIn`, `BootConfig.hosts`) replaces it. Do not rely on cross-file declaration merging.
 3. **New declarations** (`BotInput`, `XrPanels`, `AssetSource`, `UiBridge` family, `weekdayOf`, `ToastKind`) are added as written.
-4. The contract constant stays `'1.1.0'` (C02–C04, C06, C07, C13; C05, C12, C16 until the 1.2 milestone named in §2, then `'1.2.0'`) and nothing in a 1.0 shape changes meaning (06 §4.1 rule 3). `pnpm typecheck` over `packages/shared` is the proof that the merge compiles.
+4. The contract constant stays `'1.1.0'` (C02–C04, C06, C07, C13; C05, C16 until the 1.2 milestone named in §2, then `'1.2.0'`; C12: `'1.1.0'` until M12c1, then `'1.3.0'`, the 1.3 members present since M00e, `09-backend-contracts-1.3.md` §4, DL-604, DL-620) and nothing in a 1.0 shape changes meaning (06 §4.1 rule 3). `pnpm typecheck` over `packages/shared` is the proof that the merge compiles.
 
 ## 4. C15 — milestone and acceptance-criteria format
 

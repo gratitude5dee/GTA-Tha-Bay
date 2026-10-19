@@ -122,6 +122,43 @@ describe('provenance gate (AC-2)', () => {
     expect(rules(res.findings)).toEqual(['path-not-recorded']);
   });
 
+  it('matches a C07 object key to its record by hash (the record lists the source path)', () => {
+    const root = tempRoot();
+    const bytes = randomBytes(48);
+    const h = sha(bytes);
+    put(root, `dist/assets/data/smoke/default.${h.slice(0, 12)}.json`, bytes);
+    putRecord(root, record(bytes, {}, 'assets/src/data/smoke/smoke.json'));
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('still reports a copy whose name only imitates an object key (wrong hash fragment)', () => {
+    const root = tempRoot();
+    const bytes = randomBytes(48);
+    put(root, 'dist/assets/data/smoke/default.000000000000.json', bytes);
+    putRecord(root, record(bytes, {}, 'assets/src/data/smoke/smoke.json'));
+    expect(rules(provenance(root).findings)).toEqual(['path-not-recorded']);
+  });
+
+  it('treats media-local/ as the QA-only mirror: derived catalogs and blobs need no record of their own', () => {
+    const root = tempRoot();
+    const blob = randomBytes(40);
+    const manifest = Buffer.from('{"schema":"asset-manifest/1"}');
+    put(root, `dist/media-local/assets/texture/x/desktop.${sha(blob).slice(0, 12)}.png`, blob);
+    put(root, `dist/media-local/manifests/assets-${sha(manifest)}.json`, manifest);
+    put(root, 'dist/media-local/asset-catalog.json', '{}');
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('does not extend the media-local exemption to other dist paths', () => {
+    const root = tempRoot();
+    const manifest = Buffer.from('{"schema":"asset-manifest/1"}');
+    put(root, 'dist/manifests/assets-x.json', manifest);
+    put(root, 'dist/assets/texture/x/desktop.000000000000.png', randomBytes(40));
+    const res = provenance(root);
+    expect(files(res.findings).sort()).toEqual(['assets/texture/x/desktop.000000000000.png', 'manifests/assets-x.json']);
+    expect(rules(res.findings)).toEqual(['no-record', 'no-record']);
+  });
+
   it('reports a record with a copyleft licence', () => {
     const root = tempRoot();
     const bytes = randomBytes(32);
@@ -178,6 +215,46 @@ describe('provenance gate (AC-2)', () => {
     putRecord(root, record(bytes, {}, 'art/placeholder-a.png'));
     expect(provenance(root).findings).toEqual([]);
     expect(rules(runProvenanceCheck({ root, dist: path.join(root, 'dist'), release: true }).findings)).toEqual(['placeholder-tag']);
+  });
+
+  it('walks assets/world/*.lock.json: a world lock whose pack sha256 has no record fails with no-record (DL-667)', () => {
+    const root = tempRoot();
+    const pack = randomBytes(24);
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    const res = provenance(root);
+    expect(rules(res.findings)).toEqual(['no-record']);
+    expect(files(res.findings)).toEqual(['assets/world/sf.lock.json']);
+  });
+
+  it('passes a world lock whose pack and source-stamp records are present and allowlisted', () => {
+    const root = tempRoot();
+    const stamp = randomBytes(24);
+    const pack = randomBytes(24);
+    putRecord(root, record(stamp, { origin: 'open_data', license: 'PDDL-1.0', attribution: 'City and County of San Francisco', source: { url: 'https://data.sf.gov/resource/ynuv-fyni.json', dataset_id: 'ynuv-fyni', retrieved: '2026-10-19T00:00:00Z' } }, 'raw/sf/ynuv-fyni.jsonl'));
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: '© OpenStreetMap contributors', derived_from: [sha(stamp)], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'assets/world_pack/p0-1-1/default.pack'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(stamp), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(provenance(root).findings).toEqual([]);
+  });
+
+  it('fails a world lock whose source stamp record has a licence missing from the allowlist with license-not-allowed (DL-667)', () => {
+    const root = tempRoot();
+    const stamp = randomBytes(24);
+    const pack = randomBytes(24);
+    putRecord(root, record(stamp, { origin: 'open_data', license: 'LicenseRef-Unlisted-Source', attribution: 'Somebody', source: { url: null, dataset_id: 'd', retrieved: '2026-10-19T00:00:00Z' } }, 'raw/sf/x.jsonl'));
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: '© OpenStreetMap contributors', derived_from: [sha(stamp)], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'assets/world_pack/p0-1-1/default.pack'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(stamp), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(rules(provenance(root).findings)).toEqual(['license-not-allowed']);
+  });
+
+  it('flags a world pack whose stamp record is missing (derivation-unrooted) and passes the repository own tree', () => {
+    const root = tempRoot();
+    const pack = randomBytes(24);
+    putRecord(root, record(pack, { origin: 'derived', kind: 'world_pack', license: 'ODbL-1.0', attribution: 'x', derived_from: [sha('missing stamp')], tool: { name: 'tools/map', version: '0.2.0', args_sha256: sha('x') } }, 'a'));
+    put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
+    expect(rules(provenance(root).findings)).toEqual(['derivation-unrooted']);
+    const dist = mkdtempSync(path.join(os.tmpdir(), 'dv-prov-dist-'));
+    expect(runProvenanceCheck({ root: toolsRoot, dist, emitCredits: true }).findings).toEqual([]);
+    rmSync(dist, { recursive: true, force: true });
   });
 
   it('requires attributions in credits.json and can emit it', () => {
@@ -303,7 +380,9 @@ describe('license:scan (AC-5)', () => {
     lic.exceptions.push({ package: 'copyleft-lib', license: 'LGPL-3.0-only', scope: 'prod', reason: 'dynamic link', adr: 'ADR-9999' });
     put(root, 'config/license-allowlist.json', JSON.stringify(lic));
     const res = runLicenseScan({ root, deps: [{ name: 'copyleft-lib', version: '1.0.0', license: 'LGPL-3.0-only' }] });
-    expect(res.findings).toEqual([]);
+    // M00b's dependency judgement still lets the ADR id through; the M00f rule (DL-634) refuses any GPL-family
+    // exception entry whatever ADR id it carries (BD-M00f-02).
+    expect(res.findings.map((f) => f.rule)).toEqual(['gpl-exception']);
   });
 });
 

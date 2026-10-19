@@ -12,7 +12,7 @@ import type { MainTransport, TransportCounters, WorkerCommand, WorkerTransport }
  * structurally because the sim tsconfig has no DOM lib.
  */
 export interface PortLike {
-  postMessage(message: unknown, transfer?: ArrayBuffer[]): void;
+  postMessage(message: unknown, transfer?: unknown[]): void;
   addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
   removeEventListener?(type: 'message', listener: (event: { data: unknown }) => void): void;
   start?(): void;

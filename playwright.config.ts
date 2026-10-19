@@ -15,6 +15,10 @@ const PORT = Number(process.env.DV_E2E_PORT ?? 8788);
 const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --port ${PORT}`;
 const command = process.env.DV_SKIP_BUILD === '1' ? START_WORKER : `VITE_DV_QA=1 pnpm build && ${START_WORKER}`;
 
+// Tests tagged @quarantine (flaky on 3 of the last 10 main runs, 13-qa section 5) never gate; the nightly full run sets DV_E2E_QUARANTINE=1.
+const QUARANTINE = process.env.DV_E2E_QUARANTINE === '1' ? null : /@quarantine/;
+const skip = (base: RegExp | null): RegExp | RegExp[] => (base && QUARANTINE ? new RegExp(`${base.source}|${QUARANTINE.source}`) : (base ?? QUARANTINE ?? []));
+
 export default defineConfig({
   testDir: 'tests/e2e',
   // Keep test-results/ itself (gpu-probe.*.json, preview-url.txt) out of Playwright's per-run cleanup.
@@ -40,11 +44,11 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium-webgpu',
-      grepInvert: /@xr/,
+      grepInvert: skip(/@xr/),
       use: { browserName: 'chromium', launchOptions: { args: SWIFTSHADER_WEBGPU } },
     },
-    { name: 'chromium-webgl2', grepInvert: /@xr/, use: { browserName: 'chromium' } },
-    { name: 'webkit-webgl2', grepInvert: /@xr/, use: { browserName: 'webkit' } },
-    { name: 'xr-quest3', grep: /@xr/, use: { browserName: 'chromium' } },
+    { name: 'chromium-webgl2', grepInvert: skip(/@xr/), use: { browserName: 'chromium' } },
+    { name: 'webkit-webgl2', grepInvert: skip(/@xr/), use: { browserName: 'webkit' } },
+    { name: 'xr-quest3', grep: /@xr/, grepInvert: skip(null), use: { browserName: 'chromium' } },
   ],
 });

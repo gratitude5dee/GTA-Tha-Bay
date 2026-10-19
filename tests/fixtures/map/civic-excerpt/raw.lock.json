@@ -1,0 +1,85 @@
+{
+  "schema": "raw-lock/1",
+  "area": "civic-excerpt",
+  "synthetic": false,
+  "sources": [
+    {
+      "id": "datasf-footprints",
+      "url": "https://data.sf.gov/resource/ynuv-fyni.json",
+      "retrievedAt": "2026-10-19T04:29:14Z",
+      "sha256": "30f4357e33493f37d8b1760a5335be3b4152af8c0bf8ed3160caadf4848cd6f5",
+      "rows": 639,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-muni-routes",
+      "url": "synth://datasf-muni-routes",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "595fe8df988a0148b19d3594020b5a1d997507ba58270fbaf99f86264dc350fb",
+      "rows": 1,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "datasf-muni-stops",
+      "url": "synth://datasf-muni-stops",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "64168c1c00895d2b989e7da60535ab708e3c8db5f26cafc0ff5fcdeb46afb987",
+      "rows": 2,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "datasf-neighborhoods",
+      "url": "https://data.sf.gov/resource/j2bu-swwd.json",
+      "retrievedAt": "2026-10-19T04:29:15Z",
+      "sha256": "e24e97efa4aaf3c62359d6f554bd4b87d48c5dcf10847bbd87a6576d02d35df5",
+      "rows": 4,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-parks",
+      "url": "https://data.sf.gov/resource/gtr9-ntp6.json",
+      "retrievedAt": "2026-10-19T04:29:17Z",
+      "sha256": "f7552ad908e0c08da1ed2c3ec392dacc9509bda10432689b30ff59c1934f09d1",
+      "rows": 10,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-streets",
+      "url": "synth://datasf-streets",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "11de58e0c578ae99ce501f12c7ccf639bb7d88d70bd0ff4b067401f8337c3724",
+      "rows": 71,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "datasf-trees",
+      "url": "https://data.sf.gov/resource/tkzw-k3nq.json",
+      "retrievedAt": "2026-10-19T04:29:17Z",
+      "sha256": "78b850c471477ea628272ec085a54385c82f5c3ee0df3c8ebcaec9356e03d589",
+      "rows": 2267,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "osm",
+      "url": "synth://osm",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "ea30efc22fa39a79bd3db9b44f119a689c71cd1a7b009b3e9aa20bba0f263628",
+      "rows": 86,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "terrarium",
+      "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+      "retrievedAt": "2026-10-19T04:29:17Z",
+      "sha256": "5a35bd69bbeb8e7c45b59f36d34bfd6953d45bc822659dddf9d7d59fff1023fb",
+      "rows": 4,
+      "licence": "LicenseRef-PublicDomain-USGov"
+    }
+  ],
+  "syntheticSources": [
+    "datasf-muni-routes",
+    "datasf-muni-stops",
+    "datasf-streets",
+    "osm"
+  ]
+}

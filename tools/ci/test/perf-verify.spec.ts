@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { DeviceChecklist, PerfReport } from '../../../packages/shared/src/index.ts';
-import { checkReports, FLAT_TIERS, PERF_PROJECTS } from '../perf-check.ts';
+import { checkReports, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, selectScenarios } from '../perf-check.ts';
 import { checklistErrors, formatChecklist } from '../perf-checklist.ts';
 import { loadBudget, metricOf, perfReportErrors, verifyFile, verifyReport } from '../perf-verify.ts';
 import { readJson, toolsRoot } from '../lib/common.ts';
@@ -169,39 +169,60 @@ describe('perf:checklist', () => {
 });
 
 describe('check:perf aggregation (AC-8)', () => {
-  function reports(root: string, mutate: (project: string, tier: string, r: PerfReport) => void = () => {}): void {
+  function reports(root: string, mutate: (project: string, tier: string, r: PerfReport, scenario: string) => void = () => {}, scenarios: readonly string[] = PERF_SCENARIOS): void {
     mkdirSync(path.join(root, 'test-results'), { recursive: true });
-    for (const project of PERF_PROJECTS) {
-      for (const tier of FLAT_TIERS) {
-        const b = loadBudget(tier);
-        const r = readJson<PerfReport>(fx('ok.json'));
-        r.tier = tier;
-        r.counts = { ...r.counts, renderObjectsMax: Math.floor(b.render.maxRenderObjects * 0.8), trianglesMax: Math.floor(b.render.maxTriangles * 0.8) };
-        mutate(project, tier, r);
-        writeFileSync(path.join(root, 'test-results', `perf.${project}.${tier}.json`), JSON.stringify(r));
+    for (const scenario of scenarios) {
+      for (const project of PERF_PROJECTS) {
+        for (const tier of FLAT_TIERS) {
+          const b = loadBudget(tier);
+          const r = readJson<PerfReport>(fx('ok.json'));
+          r.tier = tier;
+          r.counts = { ...r.counts, renderObjectsMax: Math.floor(b.render.maxRenderObjects * 0.8), trianglesMax: Math.floor(b.render.maxTriangles * 0.8) };
+          mutate(project, tier, r, scenario);
+          writeFileSync(path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.json`), JSON.stringify(r));
+        }
       }
     }
   }
 
-  it('accepts 8 schema-valid reports with objects within each tier budget', () => {
+  it('the registered scenarios are the data file ids, and --scenario selects one of them, graybox-walk, or fails', () => {
+    expect(PERF_SCENARIOS).toEqual(['walk-civic-center', 'route-ferry-ocean-beach']);
+    expect(selectScenarios(undefined)).toEqual([...PERF_SCENARIOS]);
+    expect(selectScenarios('route-ferry-ocean-beach')).toEqual(['route-ferry-ocean-beach']);
+    expect(selectScenarios('graybox-walk')).toEqual(['graybox-walk']);
+    expect(selectScenarios('nope')).toBeNull();
+    const r = run('perf-check.ts', '--scenario', 'nope', '--skip-run');
+    expect(r.status).not.toBe(0);
+  });
+
+  it('accepts scenarios x 8 schema-valid reports with objects within each tier budget', () => {
     const root = path.join(tmp, 'ok');
     reports(root);
     const r = checkReports(root);
-    expect(r.checked).toBe(8);
+    expect(r.checked).toBe(8 * PERF_SCENARIOS.length);
     expect(r.ok).toBe(true);
   });
 
   it('flags a report over its tier budget and a missing report', () => {
     const root = path.join(tmp, 'over');
-    reports(root, (project, tier, rep) => {
-      if (project === 'webkit-webgl2' && tier === 'mobile') rep.counts.renderObjectsMax = 999;
+    reports(root, (project, tier, rep, scenario) => {
+      if (scenario === 'route-ferry-ocean-beach' && project === 'webkit-webgl2' && tier === 'mobile') rep.counts.renderObjectsMax = 999;
     });
-    rmSync(path.join(root, 'test-results', 'perf.chromium-webgl2.desktop.json'));
+    rmSync(path.join(root, 'test-results', 'perf.walk-civic-center.chromium-webgl2.desktop.json'));
     const r = checkReports(root);
     expect(r.ok).toBe(false);
     expect(r.missing).toBe(1);
     expect(r.lines.join('\n')).toContain('render objects max 999');
     expect(r.lines.join('\n')).toContain('no report at');
+  });
+
+  it('a second scenario cannot hide behind the first: a missing report of one scenario fails the check', () => {
+    const root = path.join(tmp, 'one-scenario');
+    reports(root, undefined, ['walk-civic-center']);
+    const r = checkReports(root);
+    expect(r.ok).toBe(false);
+    expect(r.missing).toBe(8);
+    expect(checkReports(root, ['walk-civic-center']).ok).toBe(true);
   });
 
   it('check:perf --skip-run with --fail exits 1 when reports are missing and 0 otherwise (warning mode)', () => {

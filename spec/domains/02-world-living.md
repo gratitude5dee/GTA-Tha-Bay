@@ -17,7 +17,7 @@
 
 OSM `lanes`, `lanes:forward|backward` and `maxspeed` override the defaults. `config/world/roadclass.json` holds the table. Parking: Collector, Local and Arterial default to `parkingSides = 2` with a 2.3 m lane, 0 where OSM says `parking:lane:*=no` or the class is Freeway, Ramp, Service. `widthM = lanes × laneWidth × (one-way ? 1 : 2) + medianM + 2.3 × parkingSides`.
 
-**1.2 One-way.** OSM `oneway=yes|-1|true`, roundabouts, and DataSF `oneway` F/T. The bake tests both orientations of F/T against OSM on matched segments and adopts the one with higher agreement; if neither exceeds 90 %, S5 fails (this removes the need to assume the F/T meaning). Where DataSF says one-way and OSM says two-way on a matched active `STREETS` segment, DataSF wins. Reversible lanes are not modelled.
+**1.2 One-way.** OSM `oneway=yes|-1|true`, roundabouts, and DataSF `oneway` F/T. The bake tests both orientations of F/T against OSM on matched segments and adopts the one with higher agreement; if neither exceeds 90 % (a design value: OSM↔DataSF agreement on `sf` has not been measured, U-W15), S5 fails (this removes the need to assume the F/T meaning). Where DataSF says one-way and OSM says two-way on a matched active `STREETS` segment, DataSF wins. Reversible lanes are not modelled.
 
 **1.3 Layers.** `layer`, `bridge`, `tunnel` give an `i8` level per edge. Edges that cross without a shared node never connect; ramps connect levels through shared nodes whose `layer` is the lower level. Slabs (bridges, viaducts, overpasses) carry collision; tunnel corridors carry hoods (bake S7).
 
@@ -29,7 +29,7 @@ OSM `lanes`, `lanes:forward|backward` and `maxspeed` override the defaults. `con
 
 **1.7 Closures.** `TrafficControl.closeEdges` marks edges closed for ambient planning, spawns barrier props from the `prop.barrier` prefab at the edge ends and re-routes agents at their next junction. The caller releases by id (`release(by)`).
 
-**1.8 Gates.** Largest strongly connected component ≥ 98 % of drivable edges; no edge with `lanes = 0`; every signal junction has a program; the route City Hall → each portal exists; edges per chunk ≤ 600; max out-degree ≤ 8; hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde) are drivable and connected. Authors resolve ids by `resolve(lat, lng)` or `pnpm map:resolve`; `osmWay` and `cnn` on each segment support re-snapping after a re-bake.
+**1.8 Gates.** Largest strongly connected component ≥ 98 % of drivable edges (design value on `sf`, U-W15); no edge with `lanes = 0`; every signal junction has a program; the route City Hall → each portal exists; edges per chunk ≤ 600; max out-degree ≤ 8; hero edges (Golden Gate main span, Bay Bridge west span, Yerba Buena Island tunnel, Lombard crooked block, Filbert at Hyde) are drivable and connected. Authors resolve ids by `resolve(lat, lng)` or `pnpm map:resolve`; `osmWay` and `cnn` on each segment support re-snapping after a re-bake.
 
 ## 2. Traffic
 
@@ -89,7 +89,7 @@ The operator is fictional ("Halcyon Mobility", `hp.halcyon-cormorant` handling i
 
 ## 5. Transit as set dressing
 
-Names in the player's view are fictional brands through `NameRegistry` (defaults: "Bay Rail" for BART, "City Metro" and "City Transit" for Muni, "Peninsula Express" for Caltrain, "Bay Ferry"); station and stop place names are factual; logos, typefaces and liveries are original [research/legal-ip-likeness.md §6]. The BART developer licence forbids BART marks in association with its data [research/auth-ugc-input-maps.md §5.2], so only positions are used.
+Names in the player's view are fictional brands through `NameRegistry` (defaults: "Bay Rail" for BART, "City Metro" and "City Transit" for Muni, "Peninsula Express" for Caltrain, "Strait Line" for ferries, DL-664); station and stop place names are factual; logos, typefaces and liveries are original [research/legal-ip-likeness.md §6]. The BART developer licence forbids BART marks in association with its data [research/auth-ugc-input-maps.md §5.2], so only positions are used.
 
 | System | Data | Content | Count (desktop / xr-visionpro / mobile / mobile-low, xr-quest) | Behaviour |
 |---|---|---|---|---|
@@ -100,7 +100,7 @@ Names in the player's view are fictional brands through `NameRegistry` (defaults
 | Ferries | OSM `route=ferry` ways, else authored lines Ferry Building ↔ Treasure Island, Alcatraz | `boat.ferry` on a water graph | 4 / 3 / 2 / 1 | 7 m/s; Ferry Building is the expansion portal |
 | Aircraft | 3 corridors (SFO and OAK approach), 600–1,500 m | `aircraft.airliner` | 5 / 4 / 2 / 1 | decorative, not hashed |
 
-Cable-car lines are authored as street-name chains and snapped: Powell–Hyde = Powell (Market → Jackson), Jackson (Powell → Hyde), Hyde (Jackson → Beach); Powell–Mason = Powell (Market → Jackson), Jackson (Powell → Mason), Mason (Jackson → Columbus), Columbus (Mason → Taylor), Taylor (Columbus → Bay); California = California (Market/Drumm → Van Ness). These chains are from memory and UNVERIFIED; the bake checks that each chain exists and that every point lies within 6 m of an OSM tram or street edge, and fails otherwise. Muni Metro includes the Central Subway opened in 2022 [research/gamedesign-decomposition.md §2.4]; subway tunnels are visible only as station entrances.
+Cable-car lines are authored as street-name chains and snapped: Powell–Hyde = Powell (Market → Jackson), Jackson (Powell → Hyde), Hyde (Jackson → Beach); Powell–Mason = Powell (Market → Jackson), Jackson (Powell → Mason), Mason (Jackson → Columbus), Columbus (Mason → Taylor), Taylor (Columbus → Bay); California = California (Market/Drumm → Van Ness). Route geometry (Metro splines, bus patterns with stops, ferry lines, cable-car splines, air corridors) is baked by M02a2 S10 into the tool-owned asset `data/transit-routes.v1`, with authored ferry fallbacks and corridors in `content/world/transit-lines.json` (DL-664). These chains are from memory and UNVERIFIED; the bake checks that each chain exists and that every point lies within 6 m of an OSM tram or street edge, and fails otherwise. Muni Metro includes the Central Subway opened in 2022 [research/gamedesign-decomposition.md §2.4]; subway tunnels are visible only as station entrances.
 
 ## 6. Weather and time per tier
 

@@ -14,7 +14,7 @@ After this session the first half of Act 1 "Jump Start" is playable and proven b
 
 ## Scope in
 - Missions `content/missions/m.a1.0{1..6}/{mission.ts, lines.en.json, director/*.ts}` exactly as the §B4 rows: start triggers, stages and objective kinds, gates (`requires`), heat start/max, hooks, cast, beats, `autoplay.expectedSec` bands, rewards (paid once, idempotency `mis:<id>:reward`) and unlocks:
-  - 01 Jump Start (D3; auto after the creator; clock locked 06:00 `karl-fog`; `deliver` with `fragile: 0.5`; grants `unlock.district.d3`, safehouse `sh.yard`, tow truck to the garage);
+  - 01 Jump Start (D3; auto after the creator; clock locked 06:00 `karl-fog`; `deliver` with `fragile: 0.5`; grants `unlock.district.d3`, safehouse `sh.yard`, tow truck to the garage through `garage.add`, below);
   - 02 Surge Pricing (D1→D2; `timeLimitSec: 240` × `timerScale`; heat set 1, checkpoint; `unlock.district.d1`, `.d2`);
   - 03 Sideshow Sunday (tag `sideshow`; marker 18:00–23:00; `score` drift 3,000 in 90 s; hook id `race.a1.sideshow-escape`, `defId` `sf.pursuit.bayview-escape`, stub = escape at heat 2 then goto the Yard in 240 s; `unlockOnFirstEncounter: 'unlock.racing'`);
   - 04 Curb Appeal (talks with `INFLUENCER` and `door_host` with the gated `charm` outcome, `bribe` $300, `refuse`; stealth budgets 3 / 2; photo of the curb-map screen; keynote beat);
@@ -25,6 +25,11 @@ After this session the first half of Act 1 "Jump Start" is playable and proven b
 - Cast `content/story/cast.json`: fictional cast of missions 1–6 (`odessa_calloway`, `tavi_okafor`, `x_ramos`, `ama_osei`, `corwin_hale`, `dana_voss`, `door_host`, `saint_static`, `chorus_sparrer`) with `{id, soulVersion: 1, basis: 'original', tier: 'fictionalized', bodyPreset}` (M10c writes their `soul.md`) (creator-kit bodies, DL-180), and the slots `INFLUENCER`, `RAP_HYPHY_ELDER`, `RAP_NEW_WAVE` → roster soul id (absent until Q-19/Q-25) and an `original` stand-in id. `SoulFactsPort` (M05b2) reads these facts until M06a2 compiles souls.
 - Unlock defs in `config/unlocks.json` (create it if absent; `source: 'base'`; loaded into M04a2's `UnlockRegistry`): `unlock.racing` (`menuTile: 'racing'`), `unlock.fighter` (`menuTile: 'fighter'`), `unlock.fighter.rap_new_wave` (`fighters: [<resolved soul id>]`, a stand-in when the roster is absent), `unlock.district.d1` … `d10`. Racing and fighter tiles stay `comingSoon` until their milestones (A-06).
 - Safehouse and shops (`packages/modes/story/src/missions/`): `sh.yard` (save point, respawn, 4 garage slots, sleep); `sh.mission_flat` purchasable for $8,000 after m.a1.06; body shop in Dogpatch (respray $500, the C06 `Respray` interaction), a clothing shop in D2 and a car lot in D1 (compact $8,000, sedan $14,000); all money through `EconomyApi` with idempotent keys; refused when funds are short.
+- **Garage** (the single owner of `CoreSlice.garage`, R-MODE-01; DL-668 part 3):
+  - `packages/shared/schemas/racing/vehicle-instance.v1.schema.json`, built field for field from `06-racing-data.md` §4.1 `VehicleInstance` (the schema `04-data-models-saves-modes.md` §163 names); M04a1's `core.v1.schema.json` `garage.items` becomes a `$ref` to it.
+  - `packages/engine/src/sim/garage/garage.ts` (under the C02 lint): `add(instance)` (idempotent by `id`, never refused, so a reward car always lands; slot totals per safehouse, 2/4/6 in `10-ui-pages.md` §2.10, are checked by the car lot before a purchase), `remove(key)` and `favorite(key)` (moves the instance to index 0: the favourite is the first entry, so `VehicleInstance` gains no field). Story rewards here and M07b1's ladder car (`ondine-nimbus`) write the garage only through this API.
+  - `garage.call {vehicleKey}`: spawns the instance's `defId` prefab, with its `damage`, on the nearest free lane at least 120 m from the player and outside the camera view, found through `WorldApi.graph` (`nearestEdge`, `laneCentre`; search radius 400 m), and toasts `garage.call.ok` with an ETA of distance ÷ 10 m/s (free in v1; 120 m, 400 m and 10 m/s are design values). It refuses with one toast and no spawn: `garage.refuse.heat` while `PursuitApi` heat ≥ 1, `garage.refuse.unknown` for a key not in the garage, `garage.refuse.noLane` when no lane qualifies, and `garage.refuse.noWorld` on the world-less `ModeContext.world` stand-in (DL-668).
+  - M04a2's worker dispatcher routes `garage.call` and `garage.favorite` to this module instead of its `NotYetAvailable` toast; M04b2's Garage app and garage frame then work unchanged.
 - Melee (`packages/engine/src/sim/combat/`, replacing M04a2's `NotYetAvailable` `combat` stub; S01 basic core until M08a1): `CombatApi` with three moves (`jab`, `shove`, `takedown`), capsule hits at 60 Hz in `SimStage.Rules`, damage into `Health`, `takedown` on a damaged target sets `Health.ko` (non-lethal), assault reports an infraction to `PursuitApi`; the autoplayer's `defeat` policy uses it.
 - Talk panel (`packages/ui/src/hud/TalkChoices.tsx`, S10): renders `mode.story.talk {talkId, npc, choices[{id, label, enabled}]}`; shows the NPC's opening line from the mission lines and the outcome buttons immediately (no LLM before M06a3, no ink before M06a3/M10c); a choice sends `UiCommand {t: 'mode.cmd', mode: 'story', name: 'talk.result', args: {talkId, outcome, turns: 0, path: 'scripted'}}`; disabled outcomes show their gate hint.
 - Economy harness section `tools/ci/econ-sim/sections/act1.ts` with bands in `config/econ-bands.json` (`act1`): income from the compiled rewards of missions 1–6, sinks from the shop table; exact totals and "no policy below 0" checks.
@@ -38,11 +43,13 @@ After this session the first half of Act 1 "Jump Start" is playable and proven b
 - `content/missions/m.a1.0{1..6}/` (mission, lines, director scripts), `content/story/act1/cutscene-refs.ts`, `content/story/cast.json`, `content/cutscenes/{places.json, beats.lock.json}` (entries), `config/unlocks.json` (rows), `config/econ-bands.json` (`act1`).
 - `packages/modes/story/src/missions/{safehouse.ts, shops.ts, index.ts}`, `packages/modes/story/test/{act1-hooks.test.ts, shops.test.ts, depiction-lint.test.ts}`.
 - `packages/engine/src/sim/combat/{combat.ts, moves.ts}`, `packages/engine/test/combat.test.ts`.
+- `packages/engine/src/sim/garage/garage.ts`, `packages/engine/test/garage.test.ts`, the M04a2 dispatcher (edited: `garage.*` routing); data: `packages/shared/schemas/racing/vehicle-instance.v1.schema.json`, `core.v1.schema.json` (`garage.items` `$ref`), garage LocKeys (DL-668 part 3).
 - `packages/ui/src/hud/TalkChoices.tsx`, `packages/ui/test/talk-choices.test.tsx`, i18n keys.
 - `tools/ci/econ-sim/sections/act1.ts`; generated mission and lines assets with lock entries; `tests/e2e/story-talk.spec.ts` (tag `@story`).
 
 ## Interfaces
 - C09 1.0, C06 1.1, C10 1.0 and C05 1.1 consumed as defined; hook `defId`s are the mode owners' ids (06 §4.1 rule 6, DL-157). No shape change.
+- C06 1.1 `UiCommand` `garage.call` and `garage.favorite` handled as written; C05 1.1 `CoreSlice.garage` elements are S06 `VehicleInstance` exactly (§4.1); the favourite is position 0, not a field. Engine API (not a contract): `garage.add`, `garage.remove`, `garage.favorite`, used by M07b1.
 
 ## Acceptance criteria
 - AC-1 Given the six missions When `missions:build` and the name gate run Then all compile with zero errors (including `E_NO_FALLBACK` and depiction lint), every `LineId` resolves, D3/D4 missions carry `sensitivity-read`, and no line trips `names:lint` — proof: `pnpm missions:build && pnpm names:lint`
@@ -55,9 +62,10 @@ After this session the first half of Act 1 "Jump Start" is playable and proven b
 - AC-8 Given a QA build at `/?mission=m.dev.sample&stage=<talk stage>&seed=1` When the talk panel appears and the player clicks the second outcome Then the panel lists the outcomes with their labels, a gated outcome is disabled with its hint, the click sends one `talk.result` with `path: 'scripted'`, and the mission jumps to that outcome's stage — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @story`
 - AC-9 Given the cast table and the likeness gate When the gate runs Then every Act 1 entry has basis `original` or a slot with an `original` stand-in, and the gate passes — proof: `pnpm likeness:gate`
 - AC-10 Given the branch When the asset gate, production build and preview deploy run Then they pass and the deployed build lists missions 1–6 in the phone Jobs app — proof: `pnpm check:assets && pnpm build && pnpm deploy:preview`
+- AC-11 Given a sandbox session on a fake `WorldApi` with a garage of two instances When `garage.call` is sent for the second at heat 0, then at heat 1, then with an unknown key, then on the world-less stand-in, and `garage.favorite` and a repeated `garage.add` follow Then the first call spawns its prefab ≥ 120 m away on a lane outside the view and toasts `garage.call.ok`, the next three toast `garage.refuse.heat`, `garage.refuse.unknown` and `garage.refuse.noWorld` and spawn nothing, the favourite moves to index 0, the repeated add leaves one entry, and every entry validates against `vehicle-instance.v1.schema.json` (DL-668 part 3) — proof: `pnpm check:unit -- packages/engine/test/garage.test.ts`
 
 ## Test plan
-- Unit: `story/depiction-lint`, `story/act1-hooks`, `story/shops`, `engine/combat`, `ui/talk-choices`. `pnpm check:unit -- packages/modes/story packages/engine packages/ui`.
+- Unit: `story/depiction-lint`, `story/act1-hooks`, `story/shops`, `engine/combat`, `engine/garage`, `ui/talk-choices`. `pnpm check:unit -- packages/modes/story packages/engine packages/ui`.
 - Bot runs: `pnpm check:missions -- --act 1` (local bake; nightly on CI per M05a2), `pnpm check:balance -- --suite econ`.
 - E2E: `@story` talk panel on `chromium-webgl2`. Static: `missions:build`, `names:lint`, `likeness:gate`, `check:assets`.
 
@@ -68,7 +76,7 @@ After this session the first half of Act 1 "Jump Start" is playable and proven b
 4. Open the phone: Jobs lists m.a1.02; Settings › Saves shows `story:auto` after the pass.
 
 ## Effort
-1 session; ≈ 40 files (18 are short mission, lines and director files); risk medium (autoplayer on real SF streets; stealth and score policies).
+1 session; about 29 code files (the six `lines.en.json`, cast, places, beats, unlock and econ JSON, the schemas and i18n keys are data, as M02a1 and M03a1 count; +3 for the garage, DL-668 part 3); risk medium (autoplayer on real SF streets; stealth and score policies).
 
 ## Risks & fallbacks
 - An `expectedSec` band from §B4 cannot hold for the bot: widen the band within §C4 bounds (max ≥ min × 1.2, ≤ 3,600 s), record the change and the measured times in the report; never weaken the pass condition.

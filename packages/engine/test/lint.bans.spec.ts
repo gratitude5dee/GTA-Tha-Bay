@@ -22,6 +22,7 @@ function makeEslint(files: string[], ignores: string[] = []): ESLint {
     cwd: repoRoot,
     overrideConfigFile: true,
     overrideConfig: [
+      { ignores: ['**/*.gen.ts'] }, // generated code (packages/shared/src/npc/validators.gen.ts) is outside the C02 lint
       { files: ['**/*.ts'], languageOptions: { parser: tseslint.parser } },
       determinismConfig(files, ignores),
     ],

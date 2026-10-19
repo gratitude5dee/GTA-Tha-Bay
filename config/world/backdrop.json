@@ -1,0 +1,17 @@
+{
+  "$comment": "Backdrop layout (02-world-maps.md section 4.3; M02b1). The atlas texture/far-bay-cards is 2048 x 1024 with 8 columns (one per cluster) and 3 rows (azimuths W, SW, NW) of 256 x 341 px cards (BD-M02a2-09). A card stands at the true bearing of its cluster, at the true distance clamped to the tier's card distance, and shows the row whose azimuth is nearest to the direction from the card to the spawn. Cluster positions are lat/lng converted with the C08 constants. The placeholder atlas has 8 of the 10 clusters of the spec; the rasterised atlas of M10d2 adds the others.",
+  "schema": "world-backdrop/1",
+  "atlas": { "cols": 8, "rows": 3, "cardPx": [256, 341], "sizePx": [2048, 1024], "azimuthsDeg": [270, 225, 315] },
+  "clusters": [
+    { "id": "oakland-downtown", "col": 0, "enu": [13045, -2786], "widthM": 4200, "heightM": 1400 },
+    { "id": "oakland-hills", "col": 1, "enu": [19317, -4517], "widthM": 6000, "heightM": 1100 },
+    { "id": "berkeley", "col": 2, "enu": [12887, -10233], "widthM": 4200, "heightM": 900 },
+    { "id": "emeryville-richmond", "col": 3, "enu": [6280, -17370], "widthM": 6000, "heightM": 900 },
+    { "id": "alameda", "col": 4, "enu": [15652, 1565], "widthM": 4000, "heightM": 700 },
+    { "id": "marin-headlands", "col": 5, "enu": [-7020, -5294], "widthM": 5000, "heightM": 800 },
+    { "id": "sausalito-tiburon", "col": 6, "enu": [-5787, -8846], "widthM": 5000, "heightM": 800 },
+    { "id": "daly-city-ridge", "col": 7, "enu": [-4483, 10145], "widthM": 6000, "heightM": 900 }
+  ],
+  "ring": { "minCardM": 3000, "seaLevelM": -0.5 },
+  "colors": { "low": "#9aa38c", "high": "#8d8a85", "water": "#2f6fb5", "massing": "#9a9ea5", "card": "#9fb1c4", "sky": "#a9c8e8" }
+}

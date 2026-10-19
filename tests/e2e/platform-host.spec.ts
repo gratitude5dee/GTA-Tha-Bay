@@ -25,6 +25,8 @@ const bridge = <T>(page: Page, fn: (b: Bridge) => T | Promise<T>): Promise<T> =>
 
 test.describe('renderer host @renderer-host', () => {
   test('?tier=desktop picks the tier and the backend; ?gl=1 forces WebGL2 on the WebGPU project @renderer-host', async ({ page }, testInfo) => {
+    // On the DV_WORLD build the bridge appears after the world boot (BD-M02b1-14): about 35 s of software GL at the desktop tier.
+    test.setTimeout(120_000);
     const webgpuProject = testInfo.project.name === 'chromium-webgpu';
     await page.goto(webgpuProject ? '/?gl=1&tier=desktop' : '/?tier=desktop');
     await waitForPlatform(page);
@@ -124,6 +126,10 @@ test.describe('perf meter @perf-meter', () => {
     expect(notes.userAgent).toContain('Mozilla');
     expect(notes.signals.userAgent).toBe(notes.userAgent);
     expect(notes.tier).toBe('mobile-low');
+    // M01e AC-11: the device run records what open() returned and whether the fixture packs are present.
+    const packStore = (notes as { packStore?: { store: string; has: Record<string, boolean> } }).packStore;
+    expect(packStore?.store).toBe('opfs');
+    expect(Object.keys(packStore?.has ?? {}).sort()).toEqual(['world_pack/l0-64-64', 'world_pack/p0-64-64']);
     const perf = JSON.parse(downloads.find((d) => d.name === 'perf.json')?.text ?? '{}') as PerfReport;
     expect(perf.v).toBe(1);
   });
@@ -169,7 +175,8 @@ test.describe('telemetry @telemetry', () => {
     const start = first.events[0]!;
     expect(Object.keys(start.props).sort()).toEqual(['backend', 'coi', 'nav', 'store', 'tier']);
     expect(start.props['coi']).toBe(true);
-    expect(start.props['store']).toBe('memory');
+    // M01e: app.start waits for the asset worker's open(). WebKit's ephemeral Playwright context has no OPFS (see pack-store.spec.ts).
+    expect(start.props['store']).toBe(test.info().project.name === 'webkit-webgl2' ? 'memory' : 'opfs');
     expect(['webgpu', 'webgl2']).toContain(start.props['backend']);
     expect(first.events[2]!.props['phaseWorldMs']).toBe(0);
     expect(first.env.deviceClass).toBe('desktop');

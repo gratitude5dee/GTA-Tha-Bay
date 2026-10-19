@@ -1,0 +1,32 @@
+{
+  "schema": "world-districts/1",
+  "note": "10 gameplay districts, outer and stage (02-world-bake.md section 8) with the 41 Analysis Neighborhoods. profile names a config/world/density.json profile; the bake turns it into the densityProfile index. nhoodProfile overrides the district profile for one neighbourhood. nhoods holds the DataSF j2bu-swwd names; ids are their lower-case slugs (/ and spaces to -).",
+  "districts": [
+    { "id": "d1", "name": "SoMa & Mission Bay", "tier": "A", "profile": "cbd-tech", "nhoods": ["South of Market", "Mission Bay"] },
+    { "id": "d2", "name": "Mission", "tier": "A", "profile": "nightlife", "nhoods": ["Mission", "Bernal Heights"] },
+    { "id": "d3", "name": "Bayview-Hunters Point", "tier": "A", "profile": "industrial", "nhoods": ["Bayview Hunters Point"] },
+    { "id": "d4", "name": "Civic Center, Tenderloin & Hayes Valley", "tier": "B", "profile": "civic-dense", "nhoods": ["Tenderloin", "Hayes Valley", "Western Addition", "Japantown"] },
+    { "id": "d5", "name": "FiDi & Embarcadero", "tier": "A", "profile": "cbd", "nhoods": ["Financial District/South Beach"] },
+    { "id": "d6", "name": "Chinatown, North Beach & the Hills", "tier": "A", "profile": "tourist-dense", "nhoods": ["Chinatown", "North Beach", "Nob Hill", "Russian Hill"] },
+    { "id": "d7", "name": "Marina, Presidio & Golden Gate approach", "tier": "B", "profile": "residential", "nhoods": ["Marina", "Presidio", "Presidio Heights", "Pacific Heights", "Seacliff"] },
+    {
+      "id": "d8", "name": "Haight, Golden Gate Park, Richmond, Sunset", "tier": "B", "profile": "residential-park",
+      "nhoods": ["Haight Ashbury", "Golden Gate Park", "Inner Richmond", "Outer Richmond", "Inner Sunset", "Sunset/Parkside", "Lone Mountain/USF", "Lincoln Park"]
+    },
+    { "id": "d9", "name": "Twin Peaks, Glen Park & the Hills", "tier": "B", "profile": "residential", "nhoods": ["Twin Peaks", "Glen Park", "West of Twin Peaks", "Noe Valley", "Castro/Upper Market"] },
+    { "id": "d10", "name": "Treasure Island", "tier": "B", "profile": "sparse", "nhoods": ["Treasure Island"] },
+    {
+      "id": "outer", "name": "Outer neighbourhoods", "tier": "C", "profile": "residential",
+      "nhoods": ["Potrero Hill", "Portola", "Visitacion Valley", "Excelsior", "Outer Mission", "Oceanview/Merced/Ingleside", "Lakeshore", "McLaren Park"]
+    },
+    { "id": "stage", "name": "Alcatraz", "tier": "stage", "profile": "none", "nhoods": [] }
+  ],
+  "nhoodProfile": {
+    "Chinatown": "tourist-dense",
+    "Lincoln Park": "sparse",
+    "McLaren Park": "sparse",
+    "Seacliff": "sparse",
+    "Presidio": "sparse",
+    "Golden Gate Park": "residential-park"
+  }
+}

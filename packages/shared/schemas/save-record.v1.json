@@ -1,0 +1,87 @@
+{
+  "$id": "https://dv.local/schema/save-record.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "kind",
+    "slot",
+    "profileId",
+    "schema",
+    "gen",
+    "savedAt",
+    "playtimeSec",
+    "deviceId",
+    "buildId",
+    "worldBake",
+    "bytes",
+    "checksum",
+    "data"
+  ],
+  "properties": {
+    "format": {
+      "const": "dv-save"
+    },
+    "kind": {
+      "enum": [
+        "core",
+        "settings",
+        "story",
+        "sandbox",
+        "racing",
+        "fighter",
+        "tycoon",
+        "mod"
+      ]
+    },
+    "slot": {
+      "type": "string",
+      "pattern": "^(core|settings|sandbox|story:(auto|1|2|3)|mode:(racing|fighter|tycoon)|mod:[a-z0-9][a-z0-9._-]{0,63})$"
+    },
+    "profileId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "schema": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "gen": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "savedAt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "playtimeSec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "deviceId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "buildId": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "worldBake": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "bytes": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 2097152
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

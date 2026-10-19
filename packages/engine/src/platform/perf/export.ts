@@ -1,4 +1,5 @@
 import type { DeviceSignals, PerfReport, QualityTierId, RenderBackend } from '@dv/shared';
+import type { AssetClient } from '../../assets/client.ts';
 
 /**
  * Export of device runs (11-platform-perf.md section 9): `perf.json` is the `PerfReport`; `notes.json` is free-form operator
@@ -23,7 +24,19 @@ export interface PerfNotes {
   observations: string[];
   /** Total of the last memory-bomb run, from `localStorage['dv.membomb']`. */
   memoryBombMB: number | null;
+  /** The world-pack store (M01e AC-11): what `open()` returned, whether the fixture packs are present, and `usage()`. */
+  packStore?: {
+    store: 'opfs' | 'memory-fallback';
+    mode: 'rw' | 'read-only';
+    has: Record<string, boolean>;
+    packs: number;
+    packsMB: number;
+    persisted: boolean | null;
+  };
 }
+
+/** The packs the M01e device run checks before and after the relaunch. */
+export const PACK_STORE_PROBE_REFS = ['world_pack/p0-64-64', 'world_pack/l0-64-64'] as const;
 
 const MB = 1024 * 1024;
 
@@ -47,6 +60,14 @@ export interface NotesInput {
   tier: QualityTierId;
   backend: RenderBackend;
   signals: DeviceSignals;
+  assets?: AssetClient | null;
+}
+
+async function packStoreNotes(assets: AssetClient): Promise<NonNullable<PerfNotes['packStore']>> {
+  const has: Record<string, boolean> = {};
+  for (const ref of PACK_STORE_PROBE_REFS) has[ref] = await assets.has(ref).catch(() => false);
+  const u = await assets.usage().catch(() => null);
+  return { store: assets.storeKind, mode: assets.mode, has, packs: u?.packs ?? 0, packsMB: u?.packsMB ?? 0, persisted: u?.persisted ?? null };
 }
 
 export async function buildNotes(input: NotesInput): Promise<PerfNotes> {
@@ -86,6 +107,7 @@ export async function buildNotes(input: NotesInput): Promise<PerfNotes> {
     signals: input.signals,
     observations: [],
     memoryBombMB: bomb,
+    ...(input.assets ? { packStore: await packStoreNotes(input.assets) } : {}),
   };
 }
 

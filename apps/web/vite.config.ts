@@ -1,12 +1,16 @@
 import { execSync } from 'node:child_process';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Connect, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { BRAND } from '../../config/brand.ts';
+import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
+import { mediaLocal } from './vite/media-local.ts';
+import { moduleIds } from './vite/module-ids.ts';
 
 // The same three headers `public/_headers` sets for static assets (11-platform-pwa.md section 2),
-// applied by the dev and preview servers so crossOriginIsolated works there too.
+// applied by the dev and preview servers so crossOriginIsolated works there too. /account/* is the one exception (M00e).
 const ISOLATION_HEADERS = {
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Embedder-Policy': 'require-corp',
@@ -37,6 +41,16 @@ function chunkName(chunk: { moduleIds: string[]; name: string }): string {
   return 'assets/[name]-[hash].js';
 }
 
+function isolationHeaders(): Plugin {
+  const apply = (server: { middlewares: Connect.Server }): void => {
+    server.middlewares.use((req, res, next) => {
+      if (!/^\/account(\/|\?|$)/.test(req.url ?? '')) for (const [k, v] of Object.entries(ISOLATION_HEADERS)) res.setHeader(k, v);
+      next();
+    });
+  };
+  return { name: 'dv-isolation-headers', configureServer: apply, configurePreviewServer: apply };
+}
+
 function brandInHtml(): Plugin {
   const values: Record<string, string> = {
     '%DISPLAY_NAME%': BRAND.displayName,
@@ -53,9 +67,27 @@ function brandInHtml(): Plugin {
   };
 }
 
+// public/_headers carries %CSP_REPORT_ONLY%; the build writes the Report-Only policy of spec/05 section 1.3 into dist/_headers (DL-191).
+function cspInHeaders(): Plugin {
+  return {
+    name: 'dv-csp-in-headers',
+    apply: 'build',
+    closeBundle() {
+      const file = here('dist/_headers');
+      if (!existsSync(file)) return;
+      writeFileSync(file, readFileSync(file, 'utf8').replaceAll('%CSP_REPORT_ONLY%', cspForBuild()));
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
+    isolationHeaders(),
     brandInHtml(),
+    moduleIds(here('.'), here('../..'), true),
+    // QA builds only: the same-origin mirror of the asset store (M01e).
+    ...(QA ? [mediaLocal(here('.'))] : []),
+    cspInHeaders(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -66,9 +98,10 @@ export default defineConfig({
         rollupFormat: 'iife',
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // asset-catalog.json is the catalog pointer (DL-042): it must be in the precache so a new Worker version switches content.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm}', 'asset-catalog.json'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm,pack}', 'asset-catalog.json'],
         // The deterministic-compat build loads on demand (canonical sessions only); QA pages are never precached.
-        globIgnores: ['**/rapier-deterministic-*.js', 'qa/**'],
+        // The /account/ island is a separate, non-isolated document: it stays out of the precache and the SPA fallback (M00e).
+        globIgnores: ['**/rapier-deterministic-*.js', 'qa/**', 'media-local/**', 'account/**', 'assets/account-*.js'],
       },
       manifest: {
         id: '/',
@@ -94,9 +127,8 @@ export default defineConfig({
     'import.meta.env.VITE_DV_BUILD': JSON.stringify(buildId()),
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
-  server: { headers: ISOLATION_HEADERS, proxy: { '/api': 'http://localhost:8788' } },
-  preview: { headers: ISOLATION_HEADERS },
-  worker: { format: 'es', rollupOptions: { output: { chunkFileNames: chunkName } } },
+  server: { proxy: { '/api': 'http://localhost:8788' } },
+  worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false)], rollupOptions: { output: { chunkFileNames: chunkName } } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
@@ -104,9 +136,14 @@ export default defineConfig({
       // The determinism page and the memory bomb exist only in QA builds (VITE_DV_QA=1).
       input: {
         main: here('index.html'),
-        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html') } : {}),
+        account: here('account/index.html'),
+        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html') } : {}),
       },
-      output: { chunkFileNames: chunkName },
+      output: {
+        chunkFileNames: chunkName,
+        // The island's entry gets its own name so the precache can leave it out (globIgnores above).
+        entryFileNames: (chunk) => (chunk.facadeModuleId?.includes('/src/account/') ? 'assets/account-[hash].js' : 'assets/[name]-[hash].js'),
+      },
     },
   },
 });

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-mesher.schema.json",
+  "title": "config/world/mesher.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "tierProfile", "profiles", "foundationM", "parapetM", "roofLiftMaxM", "palette", "kindTint", "roofColor", "ground", "road", "landuse", "tree", "lod"],
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trisPerBuilding", "terrainStride", "roofs", "parapets", "equipment", "skip", "lodStride"],
+      "properties": {
+        "trisPerBuilding": { "type": "integer", "minimum": 12, "maximum": 200 },
+        "terrainStride": { "enum": [1, 2, 4] },
+        "roofs": { "type": "boolean" },
+        "parapets": { "type": "boolean" },
+        "equipment": { "type": "boolean" },
+        "lodStride": { "enum": [1, 2, 4] },
+        "skip": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["minAreaM2", "maxHeightM", "beyondM"],
+              "properties": {
+                "minAreaM2": { "type": "number", "minimum": 0 },
+                "maxHeightM": { "type": ["number", "null"], "minimum": 0 },
+                "beyondM": { "type": "number", "minimum": 0 }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "world-mesher/1" },
+    "tierProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "xr-visionpro", "mobile", "xr-quest", "mobile-low"],
+      "patternProperties": { "^.+$": { "enum": ["desktop", "visionpro", "mobile", "low"] } }
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop", "visionpro", "mobile", "low"],
+      "properties": {
+        "desktop": { "$ref": "#/$defs/profile" },
+        "visionpro": { "$ref": "#/$defs/profile" },
+        "mobile": { "$ref": "#/$defs/profile" },
+        "low": { "$ref": "#/$defs/profile" }
+      }
+    },
+    "foundationM": { "type": "number", "minimum": 0 },
+    "parapetM": { "type": "number", "minimum": 0 },
+    "roofLiftMaxM": { "type": "number", "minimum": 0 },
+    "palette": { "type": "array", "minItems": 16, "maxItems": 64, "items": { "$ref": "#/$defs/hex" } },
+    "kindTint": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 } },
+    "roofColor": { "$ref": "#/$defs/hex" },
+    "ground": { "type": "array", "minItems": 12, "maxItems": 12, "items": { "$ref": "#/$defs/hex" } },
+    "road": { "type": "object", "additionalProperties": { "$ref": "#/$defs/hex" } },
+    "landuse": { "type": "object", "additionalProperties": { "$ref": "#/$defs/hex" } },
+    "tree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trunk", "leaves"],
+      "properties": { "trunk": { "$ref": "#/$defs/hex" }, "leaves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/hex" } } }
+    },
+    "lod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skirtM", "roadWidthM", "roadLiftM", "waterLevelM", "massingRoof"],
+      "properties": {
+        "skirtM": { "type": "number", "minimum": 0 },
+        "roadWidthM": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 } },
+        "roadLiftM": { "type": "number" },
+        "waterLevelM": { "type": "number" },
+        "massingRoof": { "$ref": "#/$defs/hex" }
+      }
+    }
+  }
+}

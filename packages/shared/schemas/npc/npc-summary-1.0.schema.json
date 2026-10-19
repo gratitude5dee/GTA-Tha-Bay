@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "npc-summary-1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "summaryUpdate",
+    "memories",
+    "affinityDelta",
+    "trustDelta",
+    "flagsPatch",
+    "reflection"
+  ],
+  "properties": {
+    "summaryUpdate": {
+      "type": "string"
+    },
+    "memories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text",
+          "importance",
+          "gameTime",
+          "source"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "player_fact",
+              "promise",
+              "event",
+              "preference",
+              "rumor",
+              "reflection"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "importance": {
+            "type": "integer"
+          },
+          "gameTime": {
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "dialogue",
+              "mission",
+              "world",
+              "summary"
+            ]
+          }
+        }
+      }
+    },
+    "affinityDelta": {
+      "type": "integer"
+    },
+    "trustDelta": {
+      "type": "integer"
+    },
+    "flagsPatch": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      }
+    },
+    "reflection": {
+      "type": "boolean"
+    }
+  }
+}

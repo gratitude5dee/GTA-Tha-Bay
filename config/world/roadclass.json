@@ -1,0 +1,35 @@
+{
+  "schema": "world-roadclass/1",
+  "note": "S5 road classes (02-world-living.md section 1.1): OSM highway and DataSF classcode to RoadClass, defaults per class, excluded DataSF layers (02-world.md section 7 N2, observed live 2026-10-19; DL-669 part 2). Speeds are multiples of 0.25 m/s (the pack stores speed/4); the spec values 24.6 and 15.6 are rounded to 24.5 and 15.5 (BD-M02a2-02).",
+  "classes": [
+    { "id": 0, "name": "Freeway", "lanes": 2, "laneWidthM": 3.6, "speedMps": 24.5, "parking": false },
+    { "id": 1, "name": "Ramp", "lanes": 1, "laneWidthM": 3.6, "speedMps": 15.5, "parking": false },
+    { "id": 2, "name": "Arterial", "lanes": 2, "laneWidthM": 3.4, "speedMps": 13.5, "parking": true },
+    { "id": 3, "name": "Collector", "lanes": 1, "laneWidthM": 3.2, "speedMps": 11.25, "parking": true },
+    { "id": 4, "name": "Local", "lanes": 1, "laneWidthM": 3.0, "speedMps": 11.25, "parking": true },
+    { "id": 5, "name": "Service", "lanes": 1, "laneWidthM": 2.8, "speedMps": 4.5, "parking": false }
+  ],
+  "osmHighway": {
+    "motorway": 0, "trunk": 0,
+    "motorway_link": 1, "trunk_link": 1, "primary_link": 1, "secondary_link": 1, "tertiary_link": 1,
+    "primary": 2, "secondary": 2,
+    "tertiary": 3,
+    "residential": 4, "unclassified": 4, "living_street": 4,
+    "service": 5
+  },
+  "datasfClasscode": { "0": 5, "1": 0, "2": 2, "3": 2, "4": 3, "5": 4, "6": 1 },
+  "excludedService": ["parking_aisle", "driveway", "drive-through", "emergency_access"],
+  "excludedAccess": ["private", "no"],
+  "parkingLaneM": 2.3,
+  "layers": {
+    "excludedPrefixes": ["PAPER"],
+    "excludedExact": ["PSEUDO", "PRIVATE", "STREETS_PEDESTRI", "UPROW"],
+    "known": [
+      "STREETS", "PARKS_NPS_PRESIDIO", "PRIVATE", "UPROW", "FREEWAYS", "PAPER_FWYS", "PARKS", "STREETS_PEDESTRI", "STREETS_TI", "PAPER_WATER",
+      "PAPER", "STREETS_YBI", "PARKS_NPS_FTMASON", "PRIVATE_PARKING", "STREETS_HUNTERSP", "PSEUDO"
+    ]
+  },
+  "oneway": { "minAgreement": 0.9, "worstListed": 20 },
+  "match": { "sampleM": 10, "maxDistM": 12, "minFraction": 0.6 },
+  "hillGradePct": 12
+}

@@ -116,11 +116,12 @@ describe('CameraRig distance: pull in at once, ease out over 0.3 s (AC-8)', () =
     expect(camera.pos[0]).toBeGreaterThan(0);
     rig.swapShoulder();
     expect(rig.currentShoulder).toBe('left');
-    rig.update(FRAME);
+    // The swap eases over 0.25 s (M01b2): 16 frames of 1/60 s are enough.
+    for (let i = 0; i < 16; i++) rig.update(FRAME);
     expect(camera.pos[0]).toBeLessThan(0);
     expect(dist()).toBeLessThanOrEqual(1.2 + 1e-9);
     rig.swapShoulder();
-    rig.update(FRAME);
+    for (let i = 0; i < 16; i++) rig.update(FRAME);
     expect(camera.pos[0]).toBeGreaterThan(0);
   });
 });

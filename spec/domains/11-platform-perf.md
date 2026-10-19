@@ -45,7 +45,7 @@ export interface DeviceChecklist {
 ```
 `PerfReport` is validated by JSON Schema `tools/ci/schemas/perf-report.v1.json` (required: all top-level keys above; `v` const 1; numbers non-negative). `notes.json` is free-form operator output (UA string, `persist()` result, observed behaviour after the memory bomb, button indices).
 
-QA flags (`QaFlags`, the single parser owned by S11, parsed only when `VITE_DV_QA=1`, i.e. dev, test and preview builds): platform `?tier=`, `?gl=1`, `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value`, `?xr-emulate=quest3`, `?scenario=<id>`; engine (S01, passed through to `sim.worker`) `?debug=1`, `?seed=`, `?profile=canonical`, `?mission=`, `?stage=`, `?unlockAll=1` (DL-064). Production builds ignore all URL flags.
+QA flags (`QaFlags`, the single parser owned by S11, parsed only when `VITE_DV_QA=1`, i.e. dev, test and preview builds): platform `?tier=`, `?gl=1`, `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value`, `?xr-emulate=quest3`, `?scenario=<id>`; engine (S01, passed through to `sim.worker`) `?debug=1`, `?seed=`, `?profile=canonical`, `?mission=`, `?stage=`, `?unlockAll=1` (DL-064); shell (S10, M04b1) `?play=sandbox|story|off` (QA play bypass: in-memory attestation, Terms and throwaway profile, then `mode.start`; read from the QA-only `localStorage` key `dv-qa-play` when the URL has no `play`; `?scenario=` implies `sandbox`; DL-650). Production builds ignore all URL flags.
 
 ## 5. Runtime: what is measured and how
 

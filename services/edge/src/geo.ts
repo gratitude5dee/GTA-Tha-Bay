@@ -18,10 +18,17 @@ export function isRegionAllowed(country: string | undefined, env: Pick<Env, 'GEO
 }
 
 /** Routes the US-only gate never blocks: boot answers with region 'blocked' instead (A-10, R-ROLL-01). */
-export function isGeoExempt(pathname: string): boolean {
+export function isGeoExempt(pathname: string, method = 'GET'): boolean {
+  const m = method.toUpperCase();
   return (
+    // Routes 64 and 65 (M00e, DL-613): a user abroad can still delete and export their password account. Route 62 (GET /auth/me) is gated.
+    (pathname === '/api/v1/auth/me' && m === 'DELETE') ||
+    (pathname === '/api/v1/auth/me/export' && (m === 'GET' || m === 'HEAD')) ||
     pathname === '/api/v1/health' ||
     pathname === '/api/v1/boot' ||
+    // Routes authenticated by a vendor signature or a staff token (A-10, DL-184): fal webhook (29), prewarm (28).
+    pathname === '/api/v1/hooks/fal' ||
+    pathname === '/api/v1/admin/cutscenes/prewarm' ||
     pathname === '/api/v1/legal' ||
     pathname.startsWith('/api/v1/legal/') ||
     pathname.startsWith('/.well-known/') ||

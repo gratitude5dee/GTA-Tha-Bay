@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1e6d818d7de68c836175c78098015067e48e73d92fdab7ba9877ae2e3f4a4c93",
+  "paths": [
+    "assets/src/data/ink.standin_founder/ink.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T02:52:36Z"
+}

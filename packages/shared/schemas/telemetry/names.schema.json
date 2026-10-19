@@ -83,6 +83,15 @@
       "required": ["msg"],
       "additionalProperties": false
     },
+    "err.asset": {
+      "type": "object",
+      "properties": {
+        "reason": { "type": "string", "maxLength": 32 },
+        "kind": { "type": "string", "maxLength": 16 }
+      },
+      "required": ["reason", "kind"],
+      "additionalProperties": false
+    },
     "perf.minute": {
       "type": "object",
       "properties": {
@@ -96,6 +105,17 @@
         "memEstMB": { "type": "number" }
       },
       "required": ["fpsP50", "fpsP5", "frameP95Ms", "drawCalls", "tris", "texMBEst", "gpuMBEst", "memEstMB"],
+      "additionalProperties": false
+    },
+    "world.stream": {
+      "type": "object",
+      "properties": {
+        "residentL0": { "type": "number" },
+        "missCount": { "type": "number" },
+        "uploadP95Ms": { "type": "number" },
+        "bytesMB": { "type": "number" }
+      },
+      "required": ["residentL0", "missCount", "uploadP95Ms", "bytesMB"],
       "additionalProperties": false
     },
     "tier.decision": {

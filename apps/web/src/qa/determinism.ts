@@ -4,7 +4,7 @@
  * `window.__dvBridge.engine.qa`. The Playwright test `@determinism` compares the checkpoints with
  * packages/engine/test/golden/determinism.physics-drop.json and determinism.walk-drop.json.
  */
-import { spawnSimWorker } from '@dv/engine/client/boot/spawn-worker';
+import type { WorkerLike } from '@dv/engine/sim';
 import { installQaBridge } from '@dv/engine/client/debug/bridge';
 
 interface DeterminismData {
@@ -25,7 +25,9 @@ function print(text: string): void {
   if (out) out.textContent = text;
 }
 
-const worker = spawnSimWorker();
+// The composed worker the game runs (the engine sim plus the world module, DL-651). Its determinism branch builds its own sims before
+// and without SimRuntime, so no module touches the checkpoints, with or without a world.
+const worker = new Worker(new URL('../workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike;
 worker.addEventListener('message', (ev) => {
   const m = ev.data as { t?: string; p?: { name: string; data: unknown } } | null;
   if (!m || m.t !== 'qa' || !m.p) return;

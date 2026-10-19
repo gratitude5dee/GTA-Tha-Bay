@@ -1,0 +1,25 @@
+{
+  "schema": "world-bridges/1",
+  "note": "S7 grading inputs (02-world-bake.md section 4 S7; rules 4 to 6) and the authored portal seeds of S9. Named decks: Golden Gate 67 m, Bay Bridge west span 58 m [research/repos-world.md section 2.2]. A bridge edge within radiusM of a named centre is a main span at deckM (approach ramps at most maxApproachGrade); any other bridge or layer > 0 edge is an overpass at terrain plus clearancePerLayerM x layer. Portal and named-deck seeds are authored; positions snap to the road graph (U-W5).",
+  "overpass": { "clearancePerLayerM": 5.5, "maxApproachGrade": 0.06 },
+  "slab": { "lengthM": 4, "thicknessM": 1, "maxStepM": 0.16 },
+  "tunnel": { "corridorExtraM": 3, "dropM": 0.5, "hoodClearanceM": 5.5, "hoodStepM": 20, "minHoodM": 0.5 },
+  "grade": { "maxPct": 40, "smoothingM": 24, "sampleM": 4, "blendM": 2 },
+  "named": [
+    { "id": "golden-gate", "lat": 37.81976, "lng": -122.47854, "radiusM": 1500, "deckM": 67 },
+    { "id": "bay-bridge-west", "lat": 37.8, "lng": -122.378, "radiusM": 1900, "deckM": 58 }
+  ],
+  "portals": [
+    { "id": "portal.ggb", "kind": "bridge", "lat": 37.8263, "lng": -122.4793, "widthM": 20, "toArea": null, "snapM": 400 },
+    { "id": "portal.baybridge", "kind": "bridge", "lat": 37.811, "lng": -122.3625, "widthM": 20, "toArea": null, "snapM": 400 },
+    { "id": "portal.ferry", "kind": "ferry", "lat": 37.79555, "lng": -122.39347, "widthM": 12, "toArea": null, "snapM": 400 }
+  ],
+  "countyLine": { "widthM": 12, "toArea": null },
+  "hero": [
+    { "id": "hero.golden-gate-main-span", "lat": 37.81976, "lng": -122.47854, "maxM": 400 },
+    { "id": "hero.bay-bridge-west-span", "lat": 37.8, "lng": -122.378, "maxM": 400 },
+    { "id": "hero.yerba-buena-tunnel", "lat": 37.8096, "lng": -122.3657, "maxM": 400 },
+    { "id": "hero.lombard-crooked", "lat": 37.8021, "lng": -122.4188, "maxM": 120 },
+    { "id": "hero.filbert-hyde", "lat": 37.8019, "lng": -122.4178, "maxM": 120 }
+  ]
+}

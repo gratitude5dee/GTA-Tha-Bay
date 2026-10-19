@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "ink.ro-batista",
+  "variants": {
+    "default": "assets/src/data/ink.ro-batista/ink.json"
+  },
+  "deps": [],
+  "tags": [
+    "char:ro-batista"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

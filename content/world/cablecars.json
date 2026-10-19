@@ -1,0 +1,30 @@
+{
+  "schema": "world-cablecars/1",
+  "note": "Cable-car lines as street-name chains (02-world-living.md section 5). The chains are from memory and UNVERIFIED (U-W6): S10 finds each leg as a path along edges named after the street between its two cross streets and fails on sf when a leg is missing or a spline point lies more than 6 m from a street edge. Other areas skip the check.",
+  "lines": [
+    {
+      "id": "cc.powell-hyde",
+      "legs": [
+        { "street": "Powell", "from": "Market", "to": "Jackson" },
+        { "street": "Jackson", "from": "Powell", "to": "Hyde" },
+        { "street": "Hyde", "from": "Jackson", "to": "Beach" }
+      ]
+    },
+    {
+      "id": "cc.powell-mason",
+      "legs": [
+        { "street": "Powell", "from": "Market", "to": "Jackson" },
+        { "street": "Jackson", "from": "Powell", "to": "Mason" },
+        { "street": "Mason", "from": "Jackson", "to": "Columbus" },
+        { "street": "Columbus", "from": "Mason", "to": "Taylor" },
+        { "street": "Taylor", "from": "Columbus", "to": "Bay" }
+      ]
+    },
+    {
+      "id": "cc.california",
+      "legs": [
+        { "street": "California", "from": "Drumm", "to": "Van Ness" }
+      ]
+    }
+  ]
+}

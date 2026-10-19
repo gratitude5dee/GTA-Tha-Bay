@@ -1,0 +1,50 @@
+{
+  "signer": {
+    "package": "@contentauth/c2pa-node",
+    "version": "0.9.10",
+    "license": "MIT",
+    "note": "Fixture-time signer for the mock renditions. Not a workspace dependency. Claim: trainedAlgorithmicMedia, orig.mp4 as ingredient. Recorded in spec/03 (U-AST-15)."
+  },
+  "claim": "trainedAlgorithmicMedia",
+  "ingredient": "orig.mp4",
+  "v768.mp4": {
+    "activeLabel": "urn:c2pa:b444ce19-2e51-46a2-8466-66acdea6971e",
+    "ingredients": 1,
+    "validation": [
+      "signingCredential.untrusted"
+    ]
+  },
+  "v540.mp4": {
+    "activeLabel": "urn:c2pa:93ad67b5-701e-483b-8e9a-694759b81884",
+    "ingredients": 1,
+    "validation": [
+      "signingCredential.untrusted"
+    ]
+  },
+  "files": {
+    "orig.mp4": {
+      "bytes": 18415,
+      "sha256": "1c32f18f95cf0075107e465b973bd32e083abeb5dac0d17ba3a674e54bffe9a4"
+    },
+    "v768.mp4": {
+      "bytes": 21133,
+      "sha256": "12f7cace84b8e041665a65145779354f2a15cbea20fd16e7eda0ecadfe94d1e9"
+    },
+    "v540.mp4": {
+      "bytes": 15856,
+      "sha256": "31484548ec4489a2081b0e36a7865569983ce40870694d53ee4f6adfe094f8de"
+    },
+    "poster.webp": {
+      "bytes": 1370,
+      "sha256": "45ded68c297c34989a23f55d9fcd7042134bed82c6c7edf3bf8106ded786e714"
+    },
+    "last.webp": {
+      "bytes": 1774,
+      "sha256": "cc7c2dec1d1f705c420cf8f2ff91d1c98f393ee7786498bab50cef94df8eb6b8"
+    },
+    "subs.en.vtt": {
+      "bytes": 61,
+      "sha256": "5f453d48a8f733bddf6b663729550db60cc583d5b04cb58264120e38083ab159"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/transit-routes.schema.json",
+  "title": "data/transit-routes.v1 (M02a2 S10, DL-664): tool-owned route geometry in ENU metres; names are NameRegistry keys",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "bakeId", "metro", "bus", "ferry", "cablecar", "air"],
+  "$defs": {
+    "points": { "type": "array", "minItems": 4, "items": { "type": "number" } },
+    "nameKey": { "type": "string", "pattern": "^transit\\.[a-z0-9.-]{2,64}$" },
+    "id": { "type": "string", "pattern": "^[a-z0-9.-]{2,64}$" },
+    "u32": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+  },
+  "properties": {
+    "schema": { "const": "transit-routes/1" },
+    "bakeId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "metro": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "points"],
+        "properties": { "id": { "$ref": "#/$defs/id" }, "nameKey": { "$ref": "#/$defs/nameKey" }, "points": { "$ref": "#/$defs/points" } }
+      }
+    },
+    "bus": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "edges", "stops"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "nameKey": { "$ref": "#/$defs/nameKey" },
+          "edges": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/u32" } },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "edge", "s"],
+              "properties": { "id": { "$ref": "#/$defs/id" }, "nameKey": { "$ref": "#/$defs/nameKey" }, "edge": { "$ref": "#/$defs/u32" }, "s": { "type": "number", "minimum": 0 } }
+            }
+          }
+        }
+      }
+    },
+    "ferry": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "source", "points"],
+        "properties": { "id": { "$ref": "#/$defs/id" }, "nameKey": { "$ref": "#/$defs/nameKey" }, "source": { "enum": ["osm", "authored"] }, "points": { "$ref": "#/$defs/points" } }
+      }
+    },
+    "cablecar": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "points"],
+        "properties": { "id": { "$ref": "#/$defs/id" }, "nameKey": { "$ref": "#/$defs/nameKey" }, "points": { "$ref": "#/$defs/points" } }
+      }
+    },
+    "air": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "nameKey", "altitudeM", "points"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "nameKey": { "$ref": "#/$defs/nameKey" },
+          "altitudeM": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 600, "maximum": 1500 } },
+          "points": { "$ref": "#/$defs/points" }
+        }
+      }
+    }
+  }
+}

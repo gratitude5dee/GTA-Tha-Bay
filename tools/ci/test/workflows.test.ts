@@ -1,0 +1,228 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { repoRoot } from '../run.ts';
+
+const wf = (name: string): string => readFileSync(path.join(repoRoot, '.github', 'workflows', name), 'utf8');
+
+/** `jobs:` children of a workflow as { name -> block text }; the files use 2-space indentation and no anchors. */
+function jobsOf(text: string): Record<string, string> {
+  const lines = text.split('\n');
+  const start = lines.findIndex((l) => l === 'jobs:');
+  const jobs: Record<string, string[]> = {};
+  let cur: string | null = null;
+  for (const l of lines.slice(start + 1)) {
+    const m = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(l);
+    if (m) {
+      cur = m[1] as string;
+      jobs[cur] = [];
+    } else if (cur) (jobs[cur] as string[]).push(l);
+  }
+  return Object.fromEntries(Object.entries(jobs).map(([k, v]) => [k, v.join('\n')]));
+}
+
+describe('ci.yml (AC-8)', () => {
+  const jobs = jobsOf(wf('ci.yml'));
+
+  it('static runs check:agents, check:telemetry, check:skills and check:rollout', () => {
+    for (const s of ['check:agents', 'check:telemetry', 'check:skills', 'check:rollout']) expect(jobs['static'], s).toContain(`pnpm ${s}`);
+  });
+
+  it('has a device-runs job filtered to docs/device-runs/** and docs/device-spike/** that judges reports with perf:verify --auto', () => {
+    const job = jobs['device-runs'];
+    expect(job).toBeDefined();
+    expect(job).toContain("'docs/device-runs/**/perf.json'");
+    expect(job).toContain("'docs/device-spike/**/perf.json'");
+    expect(job).toContain('perf:verify -- "$f" --auto');
+  });
+
+  it('unit passes DV_PR_LABELS, fetches full history for the golden guard and uploads tests/reports', () => {
+    expect(jobs['unit']).toContain("DV_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}");
+    expect(jobs['unit']).toContain('fetch-depth: 0');
+    expect(jobs['unit']).toContain('--outputFile.json=tests/reports/vitest.json');
+    expect(jobs['unit']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
+  });
+
+  it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
+    const job = jobs['world-content'] ?? '';
+    expect(job).toContain('pnpm map:fixture graybox --check');
+    expect(job).toContain('pnpm map:build -- --area civic-excerpt --repro');
+    expect(job).toMatch(/uses: actions\/cache@[0-9a-f]{40}/);
+    expect(job).toContain('path: .cache/map');
+    expect(job).toContain("hashFiles('tools/map/**', 'config/world/**', 'content/world/**')");
+    expect(job).toContain('pnpm install --frozen-lockfile');
+    expect(jobs['unit']).not.toContain('map:fixture');
+  });
+
+  it('every job sets timeout-minutes', () => {
+    for (const [name, block] of Object.entries(jobs)) expect(block, name).toMatch(/timeout-minutes: \d+/);
+  });
+});
+
+describe('nightly.yml (AC-8)', () => {
+  const text = wf('nightly.yml');
+  const jobs = jobsOf(text);
+
+  it('keeps the M00b cron', () => {
+    expect(text).toContain("cron: '17 10 * * *'");
+  });
+
+  it('runs the determinism grep on chromium-webgl2 and webkit-webgl2', () => {
+    const job = jobs['determinism'] ?? '';
+    expect(job).toContain('chromium-webgl2, webkit-webgl2');
+    expect(job).toContain('--grep "@determinism|@racing-det|@fighter-hash|@world-hash|@tycoon-det"');
+  });
+
+  it('runs the full e2e matrix with @quarantine included, check:perf -- --fail and the Preview sweep', () => {
+    expect(jobs['e2e-full']).toContain('DV_E2E_QUARANTINE');
+    expect(jobs['e2e-full']).toContain('chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3');
+    expect(jobs['perf']).toContain('pnpm check:perf -- --fail');
+    expect(jobs['sweep-previews']).toContain('pnpm deploy:preview -- --sweep-closed');
+  });
+
+  it('has the informational macos-probe job on macos-15 with continue-on-error', () => {
+    expect(jobs['macos-probe']).toContain('runs-on: macos-15');
+    expect(jobs['macos-probe']).toContain('continue-on-error: true');
+  });
+
+  it('pins every action by commit SHA', () => {
+    for (const f of ['ci.yml', 'nightly.yml']) {
+      for (const m of wf(f).matchAll(/uses:\s*(\S+)/g)) expect(m[1], `${f} ${m[1]}`).toMatch(/@[0-9a-f]{40}$/);
+    }
+  });
+});
+
+/** The step blocks of one job: each from its `- ` line to the next one. */
+function stepsOf(job: string): string[] {
+  const out: string[] = [];
+  let cur: string[] | null = null;
+  for (const l of job.split('\n')) {
+    if (/^ {6}- /.test(l)) {
+      if (cur) out.push(cur.join('\n'));
+      cur = [l];
+    } else if (cur) cur.push(l);
+  }
+  if (cur) out.push(cur.join('\n'));
+  return out;
+}
+
+const grayboxGrep = readFileSync(path.join(repoRoot, 'tests', 'e2e', 'graybox-grep.txt'), 'utf8').trim();
+/** A workflow-level `env:` entry (2-space indent, before `jobs:`). */
+const topEnv = (text: string, name: string): string | undefined => new RegExp(`^ {2}${name}: '(.*)'$`, 'm').exec(text.split('\njobs:')[0] ?? '')?.[1];
+/** A job-level `env:` (4-space indent) that sets DV_SKIP_BUILD. */
+const JOB_LEVEL_SKIP = /^ {4}env:\n(?: {6}.*\n)*? {6}DV_SKIP_BUILD/m;
+
+describe('world builds in CI (M02b1 AC-12)', () => {
+  const ci = wf('ci.yml');
+  const nightly = wf('nightly.yml');
+  const ciJobs = jobsOf(ci);
+  const nightlyJobs = jobsOf(nightly);
+
+  it('both files define the same GRAYBOX_GREP, equal to the trimmed content of tests/e2e/graybox-grep.txt', () => {
+    expect(grayboxGrep).toMatch(/^@graybox\|@pack-\|@touch\|/);
+    expect(grayboxGrep.includes('\n')).toBe(false);
+    expect(topEnv(ci, 'GRAYBOX_GREP')).toBe(grayboxGrep);
+    expect(topEnv(nightly, 'GRAYBOX_GREP')).toBe(grayboxGrep);
+  });
+
+  const BAKE_CACHE = /uses: actions\/cache@[0-9a-f]{40}\n\s+with:\n\s+path: \|\n\s+\.cache\/map\n\s+dist\/world\n\s+key: world-bakes-\$\{\{ hashFiles\('tools\/map\/\*\*', 'config\/world\/\*\*', 'content\/world\/\*\*'\) \}\}/;
+  const BAKE_RUN = 'run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt';
+
+  function bakeBefore(job: string, testStep: RegExp, label: string): void {
+    const bake = job.search(BAKE_CACHE);
+    const run = job.indexOf(BAKE_RUN);
+    const test = job.search(testStep);
+    expect(bake, `${label}: cache step`).toBeGreaterThan(-1);
+    expect(run, `${label}: map:build on a miss`).toBeGreaterThan(bake);
+    expect(test, `${label}: test step`).toBeGreaterThan(run);
+    expect(job, label).toContain("if: steps.bake-cache.outputs.cache-hit != 'true'");
+  }
+
+  it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
+    bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
+    bakeBefore(ciJobs['e2e'] ?? '', /pnpm check:e2e/, 'e2e');
+    bakeBefore(ciJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
+  });
+
+  it('ci.yml e2e: the gray-box step has its own DV_SKIP_BUILD, the world step builds with DV_WORLD=synth, no job env defines DV_SKIP_BUILD', () => {
+    const text = ciJobs['e2e'] ?? '';
+    const steps = stepsOf(text);
+    const gray = steps.find((s) => s.includes('--grep "$GRAYBOX_GREP"')) ?? '';
+    const world = steps.find((s) => s.includes('--grep-invert "$GRAYBOX_GREP"')) ?? '';
+    expect(gray).toContain("DV_SKIP_BUILD: '1'");
+    expect(world).toContain('DV_WORLD: synth');
+    expect(world).toContain("DV_SKIP_BUILD: ''");
+    // The world step comes after the gray-box step and after the header checks that read the artifact.
+    expect(text.indexOf('--grep-invert')).toBeGreaterThan(text.indexOf('--grep "$GRAYBOX_GREP"'));
+    expect(text.indexOf('--grep-invert')).toBeGreaterThan(text.indexOf('pnpm check:coi'));
+    expect(text).not.toMatch(JOB_LEVEL_SKIP);
+    expect(ci.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+
+  it('ci.yml perf: DV_WORLD=synth with DV_SKIP_BUILD empty on the check:perf step, warnings only, not in the e2e legs', () => {
+    const perf = ciJobs['perf'] ?? '';
+    const step = stepsOf(perf).find((s) => s.includes('pnpm check:perf')) ?? '';
+    expect(step).toContain('run: pnpm check:perf\n');
+    expect(step).toContain('DV_WORLD: synth');
+    expect(step).toContain("DV_SKIP_BUILD: ''");
+    expect(step).not.toContain('--fail');
+    expect(perf).not.toMatch(JOB_LEVEL_SKIP);
+    expect((ciJobs['e2e'] ?? '').split('\n').filter((l) => !l.trim().startsWith('#')).join('\n')).not.toContain('check:perf');
+  });
+
+  it('nightly.yml: bakes before the e2e, determinism and perf steps; the e2e matrix is split; determinism and perf run on DV_WORLD=synth', () => {
+    bakeBefore(nightlyJobs['e2e-full'] ?? '', /pnpm check:e2e/, 'e2e-full');
+    bakeBefore(nightlyJobs['determinism'] ?? '', /pnpm check:e2e/, 'determinism');
+    bakeBefore(nightlyJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
+    const e2e = stepsOf(nightlyJobs['e2e-full'] ?? '');
+    expect(e2e.some((s) => s.includes('--grep "$GRAYBOX_GREP"'))).toBe(true);
+    const world = e2e.find((s) => s.includes('--grep-invert "$GRAYBOX_GREP"')) ?? '';
+    expect(world).toContain('DV_WORLD: synth');
+    expect(world).toContain("DV_SKIP_BUILD: ''");
+    const det = stepsOf(nightlyJobs['determinism'] ?? '').find((s) => s.includes('@determinism')) ?? '';
+    expect(det).toContain('DV_WORLD: synth');
+    expect(det).toContain("DV_SKIP_BUILD: ''");
+    const perf = stepsOf(nightlyJobs['perf'] ?? '').find((s) => s.includes('check:perf')) ?? '';
+    expect(perf).toContain('pnpm check:perf -- --fail');
+    expect(perf).toContain('DV_WORLD: synth');
+    expect(perf).toContain("DV_SKIP_BUILD: ''");
+    for (const [name, block] of Object.entries(nightlyJobs)) expect(block, `nightly ${name}`).not.toMatch(JOB_LEVEL_SKIP);
+    expect(nightly.split('\njobs:')[0]).not.toContain('DV_SKIP_BUILD');
+  });
+});
+
+describe('preview.yml bakes the synth world into the Preview build (BD-PW-01)', () => {
+  const text = wf('preview.yml');
+  const job = jobsOf(text)['preview'] ?? '';
+  const steps = stepsOf(job);
+  const build = steps.find((s) => s.includes('run: pnpm build')) ?? '';
+  const at = (needle: string): number => steps.findIndex((s) => s.includes(needle));
+
+  it('restores or bakes the synth world with the ci.yml cache key before the build', () => {
+    const cache = steps.findIndex((s) => /uses: actions\/cache@[0-9a-f]{40}/.test(s));
+    const bake = at('run: pnpm map:build -- --area synth');
+    expect(cache).toBeGreaterThan(-1);
+    expect(bake).toBeGreaterThan(cache);
+    expect(steps.indexOf(build)).toBeGreaterThan(bake);
+    expect(steps[cache]).toMatch(/path: \|\n\s+\.cache\/map\n\s+dist\/world/);
+    expect(steps[cache]).toContain("key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}");
+    expect(steps[cache]).toContain('id: bake-cache');
+    expect(steps[bake]).toContain("if: steps.bake-cache.outputs.cache-hit != 'true'");
+  });
+
+  it('builds a QA build with DV_WORLD=synth, checks the Workers limits and the world before deploying', () => {
+    expect(build).toContain("VITE_DV_QA: '1'");
+    expect(build).toContain('DV_WORLD: synth');
+    expect(at('check-dist.ts limits')).toBeGreaterThan(steps.indexOf(build));
+    expect(at('"data/world-index"')).toBeGreaterThan(steps.indexOf(build));
+    expect(at('pnpm deploy:preview')).toBeGreaterThan(at('check-dist.ts limits'));
+    expect(at('pnpm deploy:preview')).toBeGreaterThan(at('"data/world-index"'));
+  });
+
+  it('deploy.yml (staging, production) builds without DV_WORLD and without a QA build', () => {
+    const deploy = wf('deploy.yml');
+    expect(deploy).not.toContain('DV_WORLD');
+    expect(deploy).not.toContain('VITE_DV_QA');
+  });
+});

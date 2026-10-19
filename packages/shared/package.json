@@ -6,10 +6,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./platform": "./src/platform/c13.ts",
-    "./schemas/*": "./schemas/*"
+    "./assets": "./src/assets/c07.ts",
+    "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
+    "./schemas/*": "./schemas/*",
+    "./npc": "./src/npc/index.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
     "vectors:write": "tsx scripts/write-vectors.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
   }
 }

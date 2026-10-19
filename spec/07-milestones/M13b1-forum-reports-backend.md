@@ -111,4 +111,5 @@ The forum has a backend. It runs on the forum objects that M13a2's migration 000
 - M13a2 is a direct dependency (migration 0007 with the mod, experience and forum objects). If 0007 is missing, stop and report.
 - Order of work: migration and pgTAP → `forum.ts` → DTOs → store (Supabase and in-memory) → routes and rules → moderation consumer → `forum_attachment` purpose and scan → report policy → tests → wrangler binding.
 - User text is stored as given and returned as text. Rendering rules (no HTML) belong to M13b4.
+- **Usernames stay private here (ADR-ACCT-01).** Posts carry `author_profile_id` only: add no username or author-display field to any forum DTO or table, and do not load real-side name strings in the Worker for usernames. C12 1.3 (DL-604) adds no public username display; a later proposal would, and the milestone that adds it checks usernames against the real side from the PRIVATE R2 object `config/names-real.json`, as M13c2 does (absent → public denylist only and a `SKIP` log), never from the CI secret `DV_NAMES_REAL_JSON`.
 - Branch `m13b1-forum-reports-backend`.

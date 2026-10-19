@@ -8,6 +8,7 @@ export * from './kbm.ts';
 export * from './quantize.ts';
 export * from './raw-state.ts';
 export * from './router.ts';
+export * from './touch.ts';
 
 /**
  * Writes one router frame into the input block that the worker samples once per tick. The held mask is written twice,
