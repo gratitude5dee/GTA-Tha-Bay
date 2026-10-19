@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { decodeGraph, encodeGraph } from '../../../packages/shared/src/index.ts';
+import { requireBake } from '../../../tests/support/require-bake.ts';
 import { loadSources } from '../src/config.ts';
 import type { PedReport } from '../src/stages/s8-ped.ts';
 import type { PlacesReport } from '../src/stages/s10-places.ts';
@@ -116,4 +118,25 @@ describe('S14 verify on the civic-excerpt bake', () => {
     g.graphBytes = g.graphBytes.slice(0, g.graphBytes.length - 18);   // one edge record short
     expect(() => verifyDecoded(g, loadSources())).toThrow();
   });
+});
+
+describe('sf-graph.v1 on the synth bake (AC-7; needs pnpm map:build -- --area synth)', () => {
+  const bake = requireBake('synth', 'verify.spec');
+  const run = bake ? it : it.skip;
+
+  run('has the node and edge counts of the p0 packs, lengths within 0.1 m, and re-encodes byte-identically', () => {
+    const b = loadBakeDir(bake!.dir);
+    const g = decodeGraph(b.graphBytes);
+    const edges = b.sims.flatMap((c) => c.edges).sort((a, c) => a.id - c.id);
+    const lens = new Map(b.sims.flatMap((c) => c.segments).map((s) => [s.id, s.lengthM] as const));
+    expect(g.nodes.length).toBe(b.sims.reduce((n, c) => n + c.nodes.length, 0));
+    expect(g.edges.length).toBe(edges.length);
+    expect(g.bakeId).toBe(bake!.bakeId);
+    for (const e of edges) {
+      const ge = g.edges[e.id]!;
+      expect([ge.from, ge.to]).toEqual([e.from, e.to]);
+      expect(Math.abs(ge.lengthM - lens.get(e.seg)!)).toBeLessThanOrEqual(0.1);
+    }
+    expect(Array.from(encodeGraph(g))).toEqual(Array.from(b.graphBytes));
+  }, 60_000);
 });

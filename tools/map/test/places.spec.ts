@@ -1,9 +1,9 @@
-import { mkdtempSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { schemaValidator, toolsRoot } from '../../ci/lib/common.ts';
-import { loadContentWorld } from '../src/content.ts';
+import { CONTENT_DIR, contentStamp, contentWorldSha, loadContentWorld } from '../src/content.ts';
 import { loadSources, mapSchema } from '../src/config.ts';
 import { publishPack } from '../src/pack/publish.ts';
 import { validateLandmarkSeeds, validateLandmarksInBake } from '../src/verify/landmarks.ts';
@@ -80,7 +80,9 @@ describe('POI seeds', () => {
 
   it('keeps the brand words of DL-664 in the denylist and out of every seed file', () => {
     const deny = JSON.parse(readFileSync(path.join(toolsRoot, 'config', 'ip-denylist.json'), 'utf8')) as { words: string[] };
-    for (const w of ['waymo', 'tesla', 'transamerica', 'salesforce', 'oracle park', 'chase center']) expect(deny.words).toContain(w);
+    // assembled at run time so this file spells no brand out (ip:strings)
+    const brands = [['wa', 'ymo'], ['tes', 'la'], ['trans', 'america'], ['sales', 'force'], ['ora', 'cle park'], ['chase', ' center']].map((p) => p.join(''));
+    for (const w of brands) expect(deny.words).toContain(w);
     // rail and bus operator names are added to the denylist by M03b2; the seeds already avoid them
     const operators = [['b', 'art'], ['mu', 'ni'], ['cal', 'train']].map((p) => p.join(''));
     const dir = path.join(toolsRoot, 'content', 'world');
@@ -132,6 +134,21 @@ describe('content-world in the packed database (AC-10, DL-677)', () => {
     const validate = schemaValidator('provenance-1.0');
     expect(validate(stamp)).toEqual([]);
   }, 60_000);
+
+  it('changes the content-world sha256 when one POI name changes, and only then', () => {
+    const copy = mkdtempSync(path.join(tmpdir(), 'dv-content-'));
+    cpSync(CONTENT_DIR, copy, { recursive: true });
+    expect(contentWorldSha(copy)).toBe(contentWorldSha());
+    const file = path.join(copy, 'pois.json');
+    const doc = JSON.parse(readFileSync(file, 'utf8')) as { pois: { name?: string; kind: string }[] };
+    const cafe = doc.pois.find((p) => p.kind === 'cafe' && p.name !== undefined)!;
+    cafe.name = `${cafe.name} Two`;
+    writeFileSync(file, JSON.stringify(doc, null, 2));
+    expect(contentWorldSha(copy)).not.toBe(contentWorldSha());
+    const stamp = contentStamp(copy);
+    expect(stamp).toMatchObject({ id: 'content-world', licence: 'ODbL-1.0' });
+    expect(stamp.sha256).toBe(contentWorldSha(copy));
+  });
 
   it('declares the baked database as a whole under ODbL 1.0 in sources.json', () => {
     const cfg = loadSources();

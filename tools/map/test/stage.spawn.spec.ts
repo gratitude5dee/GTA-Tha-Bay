@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RoadClass, SLOT, fnv32, type ChunkKey } from '../../../packages/shared/src/index.ts';
+import { SLOT, fnv32, type ChunkKey } from '../../../packages/shared/src/index.ts';
 import { loadDensity } from '../src/config.ts';
 import { PARKED_EMPTY_PCT, PARKED_MAX, PARKED_PITCH_M, PLAZA_CELL_M2, runSpawn } from '../src/stages/s9-spawn.ts';
 import { net, resetIds, way } from './net-fixtures.ts';
@@ -54,7 +54,6 @@ describe('S9 spawn tables', () => {
     const { spawn, report } = spawnFor([way([-120, 0, 120, 0], { highway: 'motorway', oneway: 'yes' })], { profile: 'cbd' });
     expect(density.profiles[spawn.get(CHUNK)!.densityProfile]!.name).toBe('freeway');
     expect(report.freewayChunks).toBe(1);
-    void RoadClass;
   });
 
   it('places parked slots at a 7 m pitch on both sides, 15 % empty by hash, ordered by hash, so a prefix is a thinning', () => {

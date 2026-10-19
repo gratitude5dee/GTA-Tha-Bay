@@ -10,10 +10,10 @@ import { requireBake } from '../../../tests/support/require-bake.ts';
 import { BOX, net, resetIds, way } from './net-fixtures.ts';
 
 const content = loadContentWorld();
-const shape = (pts: number[]): RouteRow['shape'] => ({
+const shape = (pts: number[]): NonNullable<RouteRow['shape']> => ({
   type: 'MultiLineString',
   coordinates: [pts.reduce<number[][]>((a, _v, i) => { if (i % 2 === 0) { const p = latLngFromEnu(pts[i] as number, pts[i + 1] as number); a.push([p.lng, p.lat]); } return a; }, [])],
-}) as RouteRow['shape'];
+}) as NonNullable<RouteRow['shape']>;
 const stopAt = (id: string, x: number, z: number): StopRow => { const p = latLngFromEnu(x, z); return { stopid: id, stopname: `Stop ${id}`, latitude: p.lat, longitude: p.lng }; };
 
 function transit(osm: ReturnType<typeof way>[], o: { routes?: RouteRow[]; stops?: StopRow[]; content?: ContentWorld; requireCablecars?: boolean } = {}) {
