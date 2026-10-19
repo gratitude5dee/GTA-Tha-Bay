@@ -1,5 +1,5 @@
 import { env as testEnv } from 'cloudflare:test';
-import worker, { createApp } from '../src/index.ts';
+import worker, { type createApp } from '../src/index.ts';
 import type { Env } from '../src/env.ts';
 import { UUIDV7_PATTERN } from '../src/uuidv7.ts';
 import type { TelemetryBatch, TelemetryEvent } from '@dv/shared';

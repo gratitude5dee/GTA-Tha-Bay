@@ -37,5 +37,32 @@ export default defineConfig([
     files: ['packages/shared/src/contracts/dom-media.d.ts'],
     rules: { '@typescript-eslint/no-empty-object-type': 'off' },
   },
+  ...edgeImportRules(),
   determinismConfig(SIM_FILES, SIM_IGNORES),
 ]);
+
+/**
+ * services/edge/src may not import by a relative path that leaves services/edge/, except the three config files the Worker
+ * reads (M00e, DL-514, DL-602, DL-644). Package imports (`@dv/*`) are not relative and are unaffected. One block per directory
+ * depth, because "leaving services/edge/" is a different number of `../` at each depth. M00f merges its third_party pattern here.
+ */
+function edgeImportRules() {
+  const allowed = '(?!(?:\\.\\./)*config/(?:brand\\.ts|ip-denylist\\.json|terms\\.ts)$)';
+  return [1, 2, 3].map((depth) => ({
+    files: [`services/edge/src/${'*/'.repeat(depth - 1)}*.ts`],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: `^(?:\\.\\./){${depth + 1},}${allowed}`,
+              message:
+                'services/edge/src may import only config/brand.ts, config/ip-denylist.json and config/terms.ts from outside services/edge/ (M00e).',
+            },
+          ],
+        },
+      ],
+    },
+  }));
+}

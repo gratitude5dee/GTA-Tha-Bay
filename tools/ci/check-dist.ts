@@ -157,7 +157,14 @@ async function checkHeaders(base: string): Promise<void> {
   const swCc = sw.headers.get('cache-control') ?? '';
   expect(!/immutable/.test(swCc), '/sw.js is not immutable', `got ${swCc}`);
 
+  // M00e: /account redirects to the island, which is the only non-isolated document.
+  const bare = await get(base, '/account');
+  expect(bare.status === 308, '/account answers 308', `got ${bare.status}`);
+  expect((bare.headers.get('location') ?? '').endsWith('/account/'), '/account Location ends in /account/', `got ${bare.headers.get('location') ?? 'absent'}`);
+  expect(bare.headers.get('cross-origin-embedder-policy') === null, '/account redirect has no COEP', `got ${bare.headers.get('cross-origin-embedder-policy') ?? ''}`);
+
   const account = await get(base, '/account/');
+  expect(account.status === 200, '/account/ status 200', `got ${account.status}`);
   expect(account.headers.get('cross-origin-embedder-policy') === null, '/account/ has no COEP', `got ${account.headers.get('cross-origin-embedder-policy') ?? ''}`);
   expect(account.headers.get('cross-origin-opener-policy') === null, '/account/ has no COOP', `got ${account.headers.get('cross-origin-opener-policy') ?? ''}`);
   expect(account.headers.get('content-security-policy-report-only') === null, '/account/ has no Report-Only CSP (its own allowlist)', 'present');
