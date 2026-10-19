@@ -44,7 +44,7 @@ describe('FetchRetry', () => {
     expect(h.delays).toHaveLength(MAX_ATTEMPTS - 1);
     us.forEach((u, n) => expect(h.delays[n]).toBeCloseTo(Math.min(5000, 300 * 2 ** n) * u, 9));
     expect(h.delays.map((d, n) => d / backoffMs(n, 1))).toEqual(us.map((u) => expect.closeTo(u, 9)));
-    expect(h.fr.stats).toEqual({ network: 1, retries: 7 });
+    expect(h.fr.stats).toEqual({ network: 1, retries: 7, bytes: 0 });
   });
 
   it('the cap is 5000 ms before jitter: attempts 6 and 7 wait 5000 x u', async () => {
@@ -70,7 +70,7 @@ describe('FetchRetry', () => {
       return Promise.resolve(ok(body));
     });
     expect(await h.fr.fetchBytes('https://m.test/a')).toEqual(body);
-    expect(h.fr.stats).toEqual({ network: 1, retries: 2 });
+    expect(h.fr.stats).toEqual({ network: 1, retries: 2, bytes: 100 });
   });
 
   it('network errors on every attempt end as offline', async () => {

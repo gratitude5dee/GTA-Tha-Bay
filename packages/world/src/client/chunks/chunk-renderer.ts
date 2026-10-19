@@ -16,7 +16,7 @@
  *    refetch.
  */
 import {
-  BufferAttribute, BufferGeometry, Color, Frustum, Group, InstancedMesh, Matrix4, Mesh, Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
+  BufferAttribute, BufferGeometry, Color, type Frustum, Group, InstancedMesh, Matrix4, Mesh, type Object3D, BundleGroup, Sphere, Vector3, type WebGPURenderer,
 } from 'three/webgpu';
 import { MESHER, hexToLinear } from './mesher.ts';
 import type { MeshBuffers, UnitMesh } from './mesh-types.ts';
