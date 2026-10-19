@@ -15,13 +15,13 @@
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-age`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-saves`
 
 ### M06b2 · builder-images-review — 1 · risk M · S04, S09
-- **Goal:** presigned uploads and commit (route 34), image moderation chain and `UGC_SCAN` queue, text descriptions, attestation, P2 submit (test-issuer tokens until M13c1), case decisions on the NPC queue of route 43, community list, reports (route 41); UGC buckets created (DL-182).
-- **R** R-NPC-03, R-IP-03/04 · **Dep** M06b1, M12a1 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
-- **Gate** Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY` · **Proof** `pnpm check:workers -- npc-builder` (images text-only, submit tier, report unpublish); `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`
+- **Goal:** presigned uploads and commit (route 34), image moderation chain and `UGC_SCAN` queue, text descriptions, attestation, P2 submit (test-issuer tokens until M13c1), case decisions on the NPC queue of route 43, community list, reports (route 41: `npc_soul` and NPC dialogue `chat_turn`, with the panel's report button turned on, DL-543); UGC buckets created (DL-182).
+- **R** R-NPC-03, R-IP-02/03 · **Dep** M06b1, M12a1, M06a5 · **Read** `04-npc-builder.md` C3, C5; `09-backend-db.md` §4 · **Out** `services/edge/src/{ugc,npc-builder}` · **C** C12 1.1, C10 1.0
+- **Gate** Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY` · **Proof** `pnpm check:workers -- npc-builder` (images text-only, submit tier, report unpublish); `pnpm check:workers -- npc-chat-report`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-report`
 
 ### M06b3 · npc-builder-ui — 1 · risk M · S10
 - **Goal:** the NPC builder pages over the route 33 API in the step order of `04-npc-builder.md` §C1 (S04 owns the flow, DL-234): draft, generate, preview chat, private talk, submit.
-- **R** R-NPC-03, R-UI-03 · **Dep** M06b2, M04b2 · **Read** `04-npc-builder.md` C1; `10-ui-pages.md` §2 · **Out** `packages/ui/src/pages/npc-builder` · **C** C10 1.0 (builder types)
+- **R** R-NPC-03, R-UI-03 · **Dep** M06b2, M04b2, M06a5, M06c · **Read** `04-npc-builder.md` C1; `10-ui-pages.md` §2 · **Out** `packages/ui/src/pages/npc-builder` · **C** C10 1.0 (builder types)
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @npc-builder`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-a11y`
 
 ### M12b1 · rooms-core-protocol-v2 — 1 · risk H · S09 (split 1 of 2)
@@ -68,7 +68,7 @@
 
 ### M13a3 · mod-runtime-data-experience — 1 · risk M · S12
 - **Goal:** `ModHost`, permission broker, scene ops, ECS shims, `ExperienceMode`, `modsActive()` with room refusal 4007, mod saves, map markers, route 37 GET, `mod-scene-budget`.
-- **R** R-MOD-01/04 · **Dep** M13a2, M02c2, M12b1, M12c1 (4007 refusal hook) · **Read** `12-modding.md` §2, §5; `12-modding-contracts.md` B§3, B§5–B§6 · **Out** `packages/engine/src/{sim/mods,client/mods}` (DL-220) · **C** C14 1.0, C17 1.0, C06 1.1, C05 1.1 (`mod:<id>`)
+- **R** R-MOD-01/04 · **Dep** M13a2, M02c2, M12b1, M12c1 (4007 refusal hook), M04b2, M06a3 · **Read** `12-modding.md` §2, §5; `12-modding-contracts.md` B§3, B§5–B§6 · **Out** `packages/engine/src/{sim/mods,client/mods}` (DL-220) · **C** C14 1.0, C17 1.0, C06 1.1, C05 1.1 (`mod:<id>`)
 - **Gate** none · **Proof** `pnpm check:workers -- mods-4007`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-exp`; `pnpm check:perf -- --scenario mod-scene-budget`
 
 ### M13a4 · mod-script-sandbox — 1 · risk H · S12
@@ -93,7 +93,7 @@
 
 ### M13b1 · forum-reports-backend — 1 · risk M · S09
 - **Goal:** routes 38–40 over the forum objects of M13a2's migration 0007 (no migration here, DL-228), votes, search, auto-unlist on reports.
-- **R** R-MOD-03, R-IP-03 · **Dep** M05d, M06b1, M13a2 · **Read** `09-backend-db.md` §3 (0007); `09-backend-contracts.md` §2.4 rows 38–41 · **Out** `services/edge/src/forum` · **C** C12 1.1
+- **R** R-MOD-03, R-IP-03 · **Dep** M05d, M06b1, M06b2, M13a2 · **Read** `09-backend-db.md` §3 (0007); `09-backend-contracts.md` §2.4 rows 38–41 · **Out** `services/edge/src/forum` · **C** C12 1.1
 - **Gate** none · **Proof** `pnpm check:workers -- report-threshold`; `pnpm check:db`
 
 ### M13b2 · forum-ugc-links — 0.8 · risk L · S12, S02
@@ -154,19 +154,19 @@
 - **Gate** `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`; Anthropic workspace `synthetic` · **Proof** `pnpm test:ops -- --suite guardrails`; `pnpm check:prod-routes` (synthetic endpoints absent in production)
 
 ### M14b2 · launch-hardening-guardrails — 1 · risk M · S09 (split 2 of 3)
-- **Goal:** nightly staging suite T4–T6 plus T9 (three green nights before launch), backup restore drill, gradual rollout default with the A03 abnormal-exit release rule, enforcing CSP (DL-191, DL-241), full telemetry registry audit.
-- **R** R-ENG-03, R-PLAT-05 · **Dep** M14b1, M12c2 · **Read** `09-backend-ops.md` §2, §4; `09-backend-db.md` §7 · **Out** `tools/ops/suites/{guardrails-nightly,restore-drill}`, `apps/web/public/_headers`, `.github/workflows/nightly.yml` · **C** C16 1.2
+- **Goal:** nightly staging suite T4–T6 plus T9 (three green nights before launch), backup restore drill, quarterly staging kill-switch drill (`quarterly.yml`, DL-480), gradual rollout default with the A03 abnormal-exit release rule, enforcing CSP (DL-191, DL-241), full telemetry registry audit.
+- **R** R-ENG-03, R-PLAT-05 · **Dep** M14b1, M12c2 · **Read** `09-backend-ops.md` §2, §4; `09-backend-db.md` §7 · **Out** `tools/ops/suites/{guardrails-nightly,restore-drill}`, `apps/web/public/_headers`, `.github/workflows/{nightly,quarterly}.yml` · **C** C16 1.2
 - **Gate** staging · **Proof** `pnpm test:ops -- --suite guardrails-nightly`; `pnpm test:ops -- --suite restore-drill`; `pnpm check:telemetry`
 
 ### M14b3 · launch-hardening-guardrails — 1 · risk H · S13, S05, S06 (split 3 of 3)
-- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), flag-flip checklist, `release.yml`.
-- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
+- **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390; audio rules from M10e, DL-500), flag-flip checklist, `release.yml`.
+- **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
 - **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
 
 ### M14a · thirdweb-siwe-link — 1 · risk M · S09 (+S10) · **last v1 milestone (R-AUTH-02)**
-- **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page; re-run the release gate subset.
+- **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page, `/link` registry entry and a linked-publish proof (DL-349); re-run the release gate subset.
 - **R** R-AUTH-02/01 · **Dep** M14b3, M12a1 · **Read** `09-backend-contracts.md` §2.4 rows 12–13; `09-backend-db.md` §3 (0009) · **Out** `packages/identity/src/thirdweb`, `services/edge/src/id/siwe`, `supabase/migrations/0009_link.sql` · **C** C12 1.1
-- **Gate** Thirdweb Growth plan ($99/month, F-059) owner approval · **Proof** `pnpm check:workers -- siwe-link` (reused nonce fails; fresh nonce links without data loss); `pnpm check:unit -- packages/identity`; `pnpm test:ops -- --suite guardrails`
+- **Gate** Thirdweb Growth plan ($99/month, F-059) owner approval · **Proof** `pnpm check:workers -- siwe-link` (reused nonce fails; fresh nonce links without data loss); `pnpm check:workers -- siwe-linked-publish` (device code, route 36, NPC submit after the link); `pnpm check:unit -- packages/identity`; `pnpm test:ops -- --suite guardrails`
 
 ## Block I — Bay expansion (post-v1; each id is one session with a capped area core, no new ids, DL-242)
 

@@ -58,7 +58,7 @@ The main thread reads the last-save status line through a read-only handle. A ki
 - Golden files `packages/engine/src/sim/save/__golden__/{core,settings,story,sandbox}/v1.json` (the C05 rule 5 path), plus `__golden__/dvsave/sample.v1.dvsave`.
 - `packages/engine/src/sim/worker/save-control.ts` (control-message handler); `packages/engine/src/client/save-status.ts`.
 - `packages/engine/test/save/{atomic.spec.ts, load.fallback.spec.ts, caps.spec.ts, capability.spec.ts, migrate.golden.spec.ts, tombstone.spec.ts, profiles.spec.ts, import-undo.spec.ts, multitab.spec.ts, changes.spec.ts, memory.spec.ts}`.
-- `packages/engine/package.json`: dev dependency `fake-indexeddb` (version as resolved, recorded in `spec/03`); script **`test:save`** (`vitest run test/save`), also run by `pnpm check:unit`.
+- `packages/engine/package.json`: dev dependency `fake-indexeddb` (version as resolved, recorded in `spec/03`); script **`test:save`** (`tsx ../../tools/ci/run.ts vitest run packages/engine/test/save`, as M01a1's `test:*`), also run by `pnpm check:unit`.
 - `apps/web/qa/save-kill.html`, `apps/web/src/qa/save-kill.ts`; `verify-dist.mjs` also rejects `save-kill`.
 - `tests/e2e/engine/save-kill.spec.ts` (`@save-kill`).
 - About 37 files.

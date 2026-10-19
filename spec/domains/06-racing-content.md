@@ -22,7 +22,7 @@
 | `solenne-skip` | Solenne Skip | S | **rocket roadster** (EV, `thrusterHop`) | AWD | 980,000 (ladder #1 reward) | **M07a** |
 | `halcyon-cormorant` | Halcyon Mobility Cormorant | R | **robotaxi** (quirks) | RWD | not for sale | **M07a** |
 
-M07a ships one car per class (bold) so the vertical slice, the hill-climb opponent and the Robotaxi Rush are playable; the other nine are art and tuning passes in M07b. Story/traffic prefabs from S01 map to handling ids `hp.compact`, `hp.sedan`, `hp.rideshare`, `hp.van`, `hp.truck`, `hp.pickup` (class D, M03a), `hp.police-cruiser`, `hp.police-suv`, `hp.police-interceptor`, `hp.robotaxi-ambient` (M03a/M03c). Police presets: cruiser 1,950 kg, 0–100 kph 7.0 s, top 210 kph; SUV (ram unit) 2,300 kg, 7.5 s, 200 kph, durability 1.6; interceptor (heat 5 only) 1,800 kg, 5.0 s, 260 kph. Their top speed is a ceiling; the pursuit speed rule in `config/pursuit.race.json` binds them to the player's speed.
+M07a ships one car per class (bold) so the vertical slice, the hill-climb opponent and the Robotaxi Rush are playable; the other eight are art and tuning passes in M07b (M07b1), and `ondine-pico` and `kestrel-gig` come from the M03a traffic kit. Both ship gray-box bodies `vehicle/graybox.<slug>`; the final bodies to the C.8 node contract for the 14 cars with prefabs land in M10d3 (DL-460). Story/traffic prefabs from S01 map to handling ids `hp.compact`, `hp.sedan`, `hp.rideshare`, `hp.van`, `hp.truck`, `hp.pickup` (class D, M03a), `hp.police-cruiser`, `hp.police-suv`, `hp.police-interceptor`, `hp.robotaxi-ambient` (M03a/M03c). Police presets: cruiser 1,950 kg, 0–100 kph 7.0 s, top 210 kph; SUV (ram unit) 2,300 kg, 7.5 s, 200 kph, durability 1.6; interceptor (heat 5 only) 1,800 kg, 5.0 s, 260 kph. Their top speed is a ceiling; the pursuit speed rule in `config/pursuit.race.json` binds them to the player's speed.
 
 ## C.2 Class envelope and oracle targets (`CLASS_ENVELOPE`; oracle = scripted line on the flat gray-box, dry, no nitro)
 
@@ -171,7 +171,7 @@ Premise B and C hooks reuse these events (B3 candlelight sideshow = `sf.sideshow
 
 Rival driver `skill` per rank: 0.30 (10) up to 0.95 (1) in steps of ≈ 0.07 on the base; difficulty adds −0.15 / 0 / +0.10. Rivals are fictional characters: never real-person-derived, never depicted in crimes beyond the genre's street racing and evasion (D-30, constraint 7).
 
-## C.7 Audio needs (rows for `content/audio/needs.json`, owner S06; sets checked by `check:assets`; music is commissioned originals only, S05 policy)
+## C.7 Audio needs (rows for `content/audio/needs.json`, owner S06; sets checked by `check:assets`; music is commissioned originals only, S05 policy; placeholders M07b2, final sets M10e, DL-500)
 
 | Set id | Content |
 |---|---|
@@ -210,7 +210,7 @@ Defaults use only `xr-standard` indices 0, 1 and 3; Quest A/B/X/Y indices are UN
 
 ## C.10 Visual target per tier
 
-"Forza-grade" is defined as eight checkable properties (VR-1 … VR-8) at `desktop-ultra`, reviewed by the owner on a canned screenshot set and gated by feature flags: **VR-1** clear-coat paint material with flake normal; **VR-2** reflections from the timecyc dome plus `LightProbeGrid` and `SSRNode` on wet road and body; **VR-3** wheel motion blur (spoke-blur shader by angular speed) and camera `MotionBlur`; **VR-4** TRAA, bloom, half-res GTAO, tone map; **VR-5** 3-cascade 4,096² shadows; **VR-6** emissive head/tail lights with bloom; **VR-7** hi-fidelity cars (60,000 tris, 2,048² textures, ≤ 6 materials) with interiors in cockpit view; **VR-8** dent/scratch damage and rain/dirt response. Post nodes exist in r186 [research/stack-rendering-platform.md §1.4]; `motionblur`, `ssr`, `dof` and `lut` are not in C13 `PostNode`, so CCP-5 adds them; until accepted they are `optionalPost` extensions behind `config/platform-flags.json`. Cost of VR-2/VR-3 on r186 is UNVERIFIED (U-RAC-6) and is calibrated in M11a with the governor allowed to drop them.
+"Forza-grade" is defined as eight checkable properties (VR-1 … VR-8) at `desktop-ultra`, reviewed by the owner on a canned screenshot set and gated by feature flags: **VR-1** clear-coat paint material with flake normal; **VR-2** reflections from the keyframe sky dome plus `LightProbeGrid` and `SSRNode` on wet road and body; **VR-3** wheel motion blur (spoke-blur shader by angular speed) and camera `MotionBlur`; **VR-4** TRAA, bloom, half-res GTAO, tone map; **VR-5** 3-cascade 4,096² shadows; **VR-6** emissive head/tail lights with bloom; **VR-7** hi-fidelity cars (60,000 tris, 2,048² textures, ≤ 6 materials) with interiors in cockpit view; **VR-8** dent/scratch damage and rain/dirt response. Post nodes exist in r186 [research/stack-rendering-platform.md §1.4]; `motionblur`, `ssr`, `dof` and `lut` are not in C13 `PostNode`, so CCP-5 adds them; until accepted they are `optionalPost` extensions behind `config/platform-flags.json`. Cost of VR-2/VR-3 on r186 is UNVERIFIED (U-RAC-6) and is calibrated in M11a with the governor allowed to drop them.
 
 | Tier | Car fidelity (C07) | Reflections / shadows | Post | Effects (`tierCaps`) |
 |---|---|---|---|---|

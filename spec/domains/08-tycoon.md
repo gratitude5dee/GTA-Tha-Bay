@@ -325,9 +325,9 @@ XR is `immersive-vr` only in v1; the desk scene follows `11-platform-xr.md` §5.
 **UNVERIFIED (also listed for `spec/99-open-questions.md`; none appears in an acceptance statement):**
 - U-TYC-1 Carta figure above (excerpt only); default: design target 18–20 %, band 15–24 %; verified by: owner, any time.
 - U-TYC-2 The YC SAFE user-guide two-cap example (the "≈ 15 %" figure) was seen only via search summary; TV-2 is self-derived arithmetic from the verified ownership rule, so no test depends on it.
-- U-TYC-3 Haiku 5.5 TTFT ≤ 800 ms through AI Gateway with structured output; default: 4 s fallback plus a visible offline offer; verified in M06a.
+- U-NPC-01 Haiku 5.5 TTFT ≤ 800 ms through AI Gateway with structured output; default: 4 s fallback plus a visible offline offer; verified in M06a.
 - U-TYC-4 The YC post-money definition of "Company Capitalization" beyond the verified pool sentence (e.g. treatment of unissued options); default: our §4 convention; counsel not needed because this is a game ruleset.
-- U-TYC-5 Whether exposing player-typed pitch text to the model needs the S04 under-18 policy per profile; default: free text off for profiles without an age bracket of 18+, buttons only.
+- Closed by DL-139: whether exposing player-typed pitch text to the model needs the S04 under-18 policy per profile; default: free text off for profiles without an age bracket of 18+, buttons only.
 
 ## 8. Milestone mapping (register ids in `spec/00-plan.md`; digit = session split)
 

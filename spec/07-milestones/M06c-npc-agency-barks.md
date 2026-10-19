@@ -41,7 +41,7 @@ Named NPCs live in the city on their own. `ScheduleSystem`, `UtilitySystem` and 
 - **Perf scenario `npc-mission-crowd`** (owned here): a seeded mission-hub path with 12 named NPCs and nominal density. `PerfReport` gains the brain-count and brain-ms readings in the existing counters block.
 
 ## Scope out
-- Baked bark audio and roster ink lines: M10c. Shared agency in rooms and `EV NpcBusy`: M12c. XR intent chips on panels: M11b2.
+- Baked bark audio and roster ink lines: M10c. Shared agency in rooms and `EV NpcBusy`: not in v1 (DL-350; rooms run named NPCs locally per client). XR intent chips on panels: M11b2.
 - Real-POI coverage for every soul is S02's (M02c1). This milestone only consumes it.
 
 ## Deliverables

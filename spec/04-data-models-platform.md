@@ -116,7 +116,7 @@ export interface TierFeatures {
   optionalPost: readonly PostNode[];     // governor may enable when headroom exists
   pipeline: 'render-pipeline' | 'direct';// 'direct' = DirectRenderPipeline (XR)
   lighting: 'clustered' | 'probe-grid';  // probe-grid + emissive lamps, no per-lamp lights
-  sky: 'timecyc-dome' | 'timecyc-dome+atmosphere';
+  sky: 'keyframe-dome' | 'keyframe-dome+atmosphere';
   hdrOutput: boolean;                    // HalfFloat vs UnsignedByte outputBufferType
   msaaSamples: 0 | 4;
 }

@@ -108,12 +108,12 @@ The clock and weather state are S01's (`WorldClockApi`, `WeatherState`, `EnvStat
 
 ```ts
 // packages/world/src/client/sky/types.ts — main thread only
-export interface TimecycRow {                 // authored per preset × key hour in config/world/timecyc.json
+export interface SkyKeysRow {                 // authored per preset × key hour in config/world/sky-keys.json
   skyTop: [number, number, number]; skyBottom: [number, number, number]; sunColor: [number, number, number]; sunSize: number;
   ambient: [number, number, number]; fogColor: [number, number, number]; fogNearM: number; fogFarM: number;
   exposure: number; cloudCover: number; windowLit: number /* 0..1 */; starAlpha: number;
 }
-export interface TimecycFile { schema: 'timecyc/1'; hours: readonly [0, 5, 6.5, 9, 13, 17, 19.5, 21.5]; presets: Record<'clear' | 'karl-fog' | 'overcast' | 'rain' | 'smoke' | 'golden', readonly TimecycRow[]> }
+export interface SkyKeysFile { schema: 'sky-keys/1'; hours: readonly [0, 5, 6.5, 9, 13, 17, 19.5, 21.5]; presets: Record<'clear' | 'karl-fog' | 'overcast' | 'rain' | 'smoke' | 'golden', readonly SkyKeysRow[]> }
 export interface SkyUniforms {                // ~12 shared uniforms, the whole mobile-tier sky [research/repos-world.md §3.3]
   uNight: number; uDark: number; uSunDir: [number, number, number]; uSunColor: [number, number, number];
   uFogColor: [number, number, number]; uFogNear: number; uFogFar: number; uSkyTop: [number, number, number]; uSkyBottom: [number, number, number];

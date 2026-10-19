@@ -5,6 +5,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 - a lazy `mod.worker` (DL-152) hosting `quickjs-emscripten` 0.32.0 with one runtime per script mod, each with a memory limit, a stack limit and an interrupt deadline per call;
 - a `ctx` object built only from host functions for the granted namespaces, and no other global;
 - the `ModMsg v1` protocol over a `MessagePort` with `ModHost`: ticks at ≤ 10 Hz carrying a `ModSnapshot`, and command lists validated by the M13a3 broker;
+- the script-tier namespaces M13a3 leaves to this milestone: `ctx.player.teleport` (permission `player.teleport`), `ctx.player.giveLoadout` (permission `player.loadout`), and `ctx.camera.play`/`release` (permission `camera.cinematic`, refused in XR with a logged reason);
 - the fault policy and worker-restart rules;
 - per-tier budgets from `config/mod-limits.json`;
 - a security suite, the `mod-hostile` perf scenario and an iPhone 15 recording of the per-tick cost.
@@ -16,7 +17,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 
 ## Depends on
 - **M13a3**: `ModHost`, broker, grants, scene and save paths, `ExperienceMode`, refusal codes.
-- Contracts: C14 1.0 (`c14-protocol.ts` `ModMsgDown`/`ModMsgUp`, `ScriptLimits`, `ModFaultReason`, `ModFault`, `ModSnapshot`, `ModEvent`, `ModContext<P>`, B§3 rules 1–7), C02 1.1 (`SimStage.Commands`, seeded streams), C05 1.1 (`mod:<id>` slot), C13 1.1 (tiers), C16 1.1 (`mod.fault`).
+- Contracts: C14 1.0 (`c14-protocol.ts` `ModMsgDown`/`ModMsgUp`, `ScriptLimits`, `ModFaultReason`, `ModFault`, `ModSnapshot`, `ModEvent`, `ModContext<P>`, B§3 rules 1–7), C02 1.1 (`SimStage.Commands`, seeded streams), C04 1.1 (`CinematicShot`, `CameraDirective` modes `cinematic` and `xr`), C05 1.1 (`mod:<id>` slot), C13 1.1 (tiers), C16 1.1 (`mod.fault`).
 - Gate: **Q-13**, an iPhone 15 for the device recording.
 
 ## Scope in
@@ -34,6 +35,11 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
   - `kv` patches go to the `mod:<id>` save path with the M13a3 caps;
   - `log` is limited to 20 lines/s and 240 chars.
   - In play, replies arrive one script tick late (asynchronous). In `lockstep: true` (tests, and `dv mod test` in M13a6) the sim waits for each reply.
+- **Script-tier namespaces** (`packages/engine/src/sim/mods/script-ns.ts`, sim code: C02 lint applies; `ctx-builder.ts` defines each method only when its permission is granted, so with only `player.loadout` `ctx.player.teleport` is `undefined`, C14 B§3 rule 2):
+  - **`player.teleport`** → `ctx.player.teleport(at)`: returns `false` in the VM, and sends nothing, when `|x|` or `|z|` exceeds `radius` (B§3 rule 3: rejected, not clamped); the broker re-checks, snaps `y` to the ground through the C08 ground query and moves the player in `SimStage.Commands`.
+  - **`player.loadout`** → `ctx.player.giveLoadout(setId)`: returns `false` for an id not in `config/mod-loadouts.json` (new, schema `packages/shared/schemas/mod/mod-loadouts.schema.json`: set id → first-party non-weapon item ids, D-30; the Builder seeds it from existing item ids and may ship it empty). Granted items are a session overlay held in the `mod:<id>` slot only: no `EconomyApi` call, never written to `core.inventory`, removed on `exp.exit` or unload.
+  - **`camera.cinematic`** → `ctx.camera.play(shots)`: returns `false`, and sends nothing, for more than 12 shots or more than 60 s in total. The broker maps `pos`, `lookAt` and `spline` from anchor-relative to ENU and `subject` from a `ModEntityRef` the mod owns (or `0`, the player) to the handle; any other `subject` is a protocol violation. It then publishes `CameraDirective { mode: 'cinematic', reason: 'mode' }` per shot. `release()`, the end of the last shot, `exp.exit` or unload restore the previous directive.
+  - **XR refusal:** while the active `CameraDirective.mode` is `xr`, the broker refuses every `camera` command, because `11-platform-xr.md` §5.3 disables scripted cameras in XR. Nothing applies, the mod's log gets one host `warn` line `camera.play refused: xr`, the refusal is recorded `{ modId, ns: 'camera', reason: 'xr' }` for `__dvBridge.mods.refusals()`, and it does not count as a protocol violation or a fault. `ModSnapshot` carries no XR field, so the VM's `play` cannot see XR and returns `true` there (DL-534).
 - **Determinism:** `ctx.rng` is xoshiro128** from the session seed and modId; `ctx.time` is sim time; `after(ms)` counts sim time. The same mod, snapshots and seed give the same command stream.
 - **Fault policy** (`fault-policy.ts`):
   - three consecutive deadline hits, one memory-limit hit, one stack overflow, 20 protocol violations in a session, or two uncaught handler exceptions within 10 s disable the mod for the session;
@@ -47,7 +53,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
   - checklist `tools/ci/checklists/M13a4-iphone15.json`: 10 min sandbox with the benign example plus a 64-command-per-tick stress mod at `mobile-low`;
   - it records per-tick `usedMs` p50 and p95, memory, `mod.worker` start time and abnormal exits (U1 recorded, not asserted);
   - results go to `docs/device-runs/M13a4/iphone15/{perf.json,notes.json}`.
-- **QA bridge:** `__dvBridge.mods.workerCount()`, `faults()`.
+- **QA bridge:** `__dvBridge.mods.workerCount()`, `faults()`, `refusals()`.
 
 ## Scope out
 - UI tier and `ui.panel`/`ui.hud`: M13a5. Mock host, `dv mod test`, examples, agent kit: M13a6.
@@ -56,10 +62,11 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 
 ## Deliverables
 - `packages/engine/src/workers/{mod.worker.ts, quickjs-host.ts, ctx-builder.ts, fault-policy.ts, mod-globals.allow.json}`.
-- `packages/engine/src/sim/mods/{script-bridge.ts, snapshot.ts, migrate.ts}`.
+- `packages/engine/src/sim/mods/{script-bridge.ts, snapshot.ts, migrate.ts, script-ns.ts}`; `config/mod-loadouts.json` and `packages/shared/schemas/mod/mod-loadouts.schema.json`.
 - Tests in `packages/engine/src/workers/test/`:
   - `mod-sandbox-globals.spec.ts`, `mod-sandbox-deadline.spec.ts`, `mod-sandbox-memory.spec.ts`, `mod-sandbox-stack.spec.ts`;
   - `mod-perm-denied.spec.ts`, `mod-cmd-flood.spec.ts`, `mod-fault-policy.spec.ts`, `mod-lockstep-det.spec.ts`, `mod-migrate.spec.ts`;
+  - `mod-player.spec.ts`, `mod-camera.spec.ts` (script-tier namespaces; a fixture `mod-loadouts` file, a fake active `CameraDirective`);
   - fixture sources inline as strings, no files.
 - `tests/perf/scenarios/mod-hostile.ts`; `tests/e2e/mods-script.spec.ts` (tag `@mods-script`).
 - `tools/ci/checklists/M13a4-iphone15.json`.
@@ -68,6 +75,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 
 ## Interfaces
 - C14 1.0 protocol messages are used verbatim, each with `v: 1` and schema-tested from both sides. `ModContext<P>` narrowing follows B§3: an absent namespace is `undefined` at run time.
+- C14 `ModApiPlayer` and `ModApiCamera` and C04 `CinematicShot` and `CameraDirective` are used verbatim. The XR refusal reaches the mod only through `log`; an additive C14 field that would let `play` return `false` in XR is proposed to the Architect (DL-534), not made here.
 - No contract change.
 
 ## Acceptance criteria
@@ -83,9 +91,12 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 - AC-10 Given a QA build with `mods.script` true When a sandbox starts without script mods, a script fixture loads, and then it unloads Then `__dvBridge.mods.workerCount()` reads 0, 1, 0; with `mods.script` false the same load is refused with `load.flag_off` — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @mods-script`
 - AC-11 Given the iPhone 15 Home Screen app on a QA Preview URL (where `mods.script` is true) When the operator runs the `M13a4-iphone15` checklist at `?tier=mobile-low` Then `perf.json` and `notes.json` are committed under `docs/device-runs/M13a4/iphone15/` with per-tick `usedMs` p50 and p95, memory and abnormal exits recorded, and `perf:verify` passes the frame budget at `mobile-low` — proof: manual: iPhone 15, steps of `pnpm perf:checklist -- tools/ci/checklists/M13a4-iphone15.json`, then `pnpm perf:verify -- docs/device-runs/M13a4/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M13a4-iphone15.json`
 - AC-12 Given the production build When it is checked Then `mods.script` is false in production and staging `FLAGS_JSON`, no `/_test/` route ships, no secret pattern is present, and the bundle budgets hold with QuickJS as a lazy chunk — proof: `pnpm build && pnpm check:prod-routes && pnpm check:secrets -- apps/web/dist && pnpm check:bundle`
+- AC-13 Given a lockstep sandbox with radius 50 and a mod granted `player.teleport` When it calls `ctx.player.teleport([10, 0, -5])` and then `ctx.player.teleport([60, 0, 0])` Then the first returns `true` and on the next tick the player stands at the anchor ENU position plus (10, −5) in x and z with `y` on the ground; the second returns `false` and no command reaches the broker; and for a mod granted only `player.loadout`, `ctx.player.teleport` is `undefined` — proof: `pnpm check:unit -- packages/engine/src/workers/test/mod-player`
+- AC-14 Given a fixture `mod-loadouts` file with one set and a mod granted `player.loadout` When it calls `giveLoadout` with that set's id and with an unknown id Then the first returns `true` and the session overlay holds the set's items, the second returns `false`; after the mod unloads the overlay is empty, no `EconomyApi` call was made, and the `core` record is byte-equal to before — proof: `pnpm check:unit -- packages/engine/src/workers/test/mod-player`
+- AC-15 Given a mod granted `camera.cinematic` When it plays two shots, then 13 shots, then calls `release()` Then the two shots publish `CameraDirective` mode `cinematic` with positions mapped from anchor-relative to ENU, the 13-shot call returns `false` with no command sent, and `release()` restores the previous directive. Given the active directive mode `xr` When the same mod plays two shots Then no `cinematic` directive is published, the mod's log holds one `warn` line naming reason `xr`, the refusal list holds `{ ns: 'camera', reason: 'xr' }`, and the mod is neither faulted nor charged a protocol violation — proof: `pnpm check:unit -- packages/engine/src/workers/test/mod-camera`
 
 ## Test plan
-- **Unit (Node; QuickJS runs in Node):** the nine sandbox specs. Command: `pnpm check:unit -- packages/engine/src/workers`.
+- **Unit (Node; QuickJS runs in Node):** the eleven sandbox specs. Command: `pnpm check:unit -- packages/engine/src/workers`.
 - **E2E:** `@mods-script` on `chromium-webgl2` (lazy worker lifecycle, flag gate).
 - **Perf:** `mod-hostile` in fail mode (state assertions only; frame times are recorded, not asserted).
 - **Device:** `M13a4-iphone15` (U1 recorded). The `device-runs` CI job runs `perf:verify` on the committed report.
@@ -98,7 +109,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 5. On the iPhone, run the checklist and commit the report.
 
 ## Effort
-1 session; ≈ 24 hand-written files. Risk high: WASM sandbox edge cases and mobile cost (U1).
+1 session; ≈ 29 hand-written files. Risk high: WASM sandbox edge cases and mobile cost (U1).
 
 ## Risks & fallbacks
 - The QuickJS interrupt handler cost raises tick time on iPhone: lower the tick rate cap for `mobile-low` in `config/mod-limits.json` (data change). If the recording still fails the frame budget, the script tier stays off on `mobile-low` (DL-147) and the report says so.
@@ -106,7 +117,7 @@ Script-tier mods run, isolated from the game. When this milestone is done the re
 - `MessagePort` transfer between two workers through main fails in WebKit: relay `ModMsg` through main (one extra hop). Lockstep tests are unaffected.
 
 ## Notes for the Builder
-- Read first: `12-modding.md` §2.3, §5.2, §5.4, §5.5; `12-modding-contracts.md` B§3, B§5; `spec/11-decision-log.md` DL-147, DL-152; ADR-0012 and ADR-0017; `spec/08-test-and-ci.md` §3.3, §4.1.
+- Read first: `12-modding.md` §2.3, §5.2, §5.4, §5.5, §6 (XR); `11-platform-xr.md` §5.3 (camera effects in XR); `12-modding-contracts.md` B§3, B§5; `spec/11-decision-log.md` DL-147, DL-152; ADR-0012 and ADR-0017; `spec/08-test-and-ci.md` §3.3, §4.1.
 - Facts: only the QuickJS APIs named in [research/repos-modding.md Verified facts]. Do not rely on any other API without reading the pinned package in `node_modules` and recording what you used.
 - Never let a mod error reach Story or `core`: every host function validates its input before acting.
 - Branch `m13a4-mod-script-sandbox`.
