@@ -41,9 +41,9 @@ export function lookAngles(camYaw: number, camPitch: number): { yaw: number; pit
 /**
  * The tp offset in world space for a view direction. The view basis: forward = (-sin yaw cos pitch, sin pitch,
  * -cos yaw cos pitch), right = (cos yaw, 0, -sin yaw), up = (sin yaw sin pitch, cos pitch, cos yaw sin pitch).
- * `side` is +1 for the right shoulder and -1 for the left. Writes into `out`.
+ * `side` is +1 for the right shoulder and -1 for the left; the page passes values in between while a swap eases. Writes into `out`.
  */
-export function tpOffsetWorld(yaw: number, pitch: number, side: 1 | -1, out: Vec3, offset: Readonly<CamVec3> = TP_OFFSET): Vec3 {
+export function tpOffsetWorld(yaw: number, pitch: number, side: number, out: Vec3, offset: Readonly<CamVec3> = TP_OFFSET): Vec3 {
   const sy = dsin(yaw);
   const cy = dcos(yaw);
   const sp = dsin(pitch);

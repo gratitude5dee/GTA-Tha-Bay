@@ -53,6 +53,7 @@ export class SimRuntime {
       backend: { ...(this.env.retry ? { retry: this.env.retry } : {}), exclusive: this.env.exclusive === true },
       now: () => this.env.now(),
       debug: this.env.qa,
+      boot: boot.config,
     });
     this.sim = sim;
     this.cfg = cfg;

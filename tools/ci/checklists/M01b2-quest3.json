@@ -1,0 +1,37 @@
+{
+  "id": "M01b2-quest3",
+  "milestone": "M01b2",
+  "device": "Meta Quest 3 or 3S, current Quest Browser. Risk retirement only: an immersive-vr session on the gray-box block (the full XR port is M11b1)",
+  "urlTemplate": "https://<preview>/?debug=1",
+  "steps": [
+    {
+      "id": "1-open",
+      "instruction": "In Quest Browser open <preview>/?debug=1. The gray-box block shows on the flat page. A blue 'Enter VR (smoke)' button appears top right (QA builds only, and only when the browser reports immersive-vr support). Note the backend and tier from the sim panel (press the Quest keyboard's F3 if one is paired, or read __dvBridge.engine.observe().backend over remote DevTools at chrome://inspect). Expected backend: webgl2 (the xr-quest policy forces WebGL2).",
+      "expect": [
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "xr.supported", "op": "==", "value": true }
+      ]
+    },
+    {
+      "id": "2-enter",
+      "instruction": "Press 'Enter VR (smoke)' with the controller trigger. The session starts. Look around for 60 seconds, turning your head and body. The block appears at 1:1 scale around your feet (the 12 boxes and the road are the size of buildings and a street, a 1.8 m mannequin would reach your height), the horizon holds still when you turn, and nothing drifts or jumps when you move your head. Note any double vision, judder or wrong scale.",
+      "expect": [
+        { "metric": "xr.presenting", "op": "==", "value": true },
+        { "metric": "camera.mode", "op": "==", "value": "xr" }
+      ]
+    },
+    {
+      "id": "3-exit",
+      "instruction": "Exit through the system menu (Meta button, then Exit). The flat page must resume without a reload: the gray-box block is still drawn, the title or play state is as you left it, and the page's tick keeps advancing (observe().tick). Press 'Enter VR (smoke)' once more: a second session starts and ends the same way.",
+      "expect": [
+        { "metric": "xr.presenting", "op": "==", "value": false },
+        { "metric": "camera.mode", "op": "==", "value": "tp" }
+      ]
+    },
+    {
+      "id": "4-record",
+      "instruction": "Write the backend actually used, the UA string, the refresh rate you saw (72 or 90 Hz), whether entering worked on the first press, and any comfort problem into the PR description. A failure here is recorded for M11b1 and does not block this merge."
+    }
+  ],
+  "upload": ["notes.json"]
+}

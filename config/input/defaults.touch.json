@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "device": "touch",
+  "contexts": {
+    "onFoot": {
+      "axis.MoveX": [
+        { "control": "touch:btn:moveRight", "scale": 1 },
+        { "control": "touch:btn:moveLeft", "scale": -1 }
+      ],
+      "axis.MoveY": [
+        { "control": "touch:btn:moveDown", "scale": 1 },
+        { "control": "touch:btn:moveUp", "scale": -1 }
+      ],
+      "axis.LookX": [{ "control": "touch:dragR", "scale": 1 }],
+      "axis.LookY": [{ "control": "touch:dragR", "scale": 1 }],
+      "sim.Jump": [{ "control": "touch:btn:jump" }],
+      "sim.Sprint": [{ "control": "touch:btn:sprint" }],
+      "client.Camera": [{ "control": "touch:btn:camera" }],
+      "client.Pause": [{ "control": "touch:btn:pause" }]
+    },
+    "menu": {
+      "client.Pause": [{ "control": "touch:btn:pause" }]
+    }
+  }
+}

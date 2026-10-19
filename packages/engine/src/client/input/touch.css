@@ -1,0 +1,87 @@
+/* The touch layer (M01b2; S10 section 2.9 rules 2 and 3). Browser gestures never fire during play. */
+.dv-touch {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.dv-touch[hidden] {
+  display: none;
+}
+
+.dv-touch-stick-hint {
+  position: absolute;
+  inset-inline-start: calc(env(safe-area-inset-left, 0px) + 56px);
+  inset-block-end: calc(env(safe-area-inset-bottom, 0px) + 48px);
+  inline-size: 116px;
+  block-size: 116px;
+  border: 2px dashed rgb(255 255 255 / 0.3);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dv-touch-stick-base,
+.dv-touch-stick-knob {
+  position: absolute;
+  inset: 0 auto auto 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dv-touch-stick-base {
+  border: 2px solid rgb(255 255 255 / 0.55);
+  background: rgb(255 255 255 / 0.1);
+}
+
+.dv-touch-stick-base.dv-touch-sprint {
+  border-color: rgb(255 214 80 / 0.9);
+}
+
+.dv-touch-stick-knob {
+  background: rgb(255 255 255 / 0.6);
+}
+
+.dv-touch-btn {
+  position: absolute;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+  border: 2px solid rgb(255 255 255 / 0.6);
+  border-radius: 50%;
+  background: rgb(20 24 32 / 0.55);
+  color: #fff;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  display: grid;
+  place-items: center;
+  transition: transform 80ms ease-out;
+}
+
+.dv-touch-btn svg {
+  inline-size: 55%;
+  block-size: 55%;
+  pointer-events: none;
+}
+
+.dv-touch-btn.dv-touch-down {
+  transform: scale(0.94);
+  background: rgb(80 140 255 / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dv-touch-btn {
+    transition: none;
+  }
+
+  .dv-touch-btn.dv-touch-down {
+    transform: none;
+  }
+}

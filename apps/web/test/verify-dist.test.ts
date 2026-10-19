@@ -56,6 +56,14 @@ describe('verify:dist (AC-11)', () => {
     expect(f.some((m) => m.includes('bot-input code found in assets/main-a1.js'))).toBe(true);
   });
 
+  it('fails on the M01b2 QA tools: the sim panel, the free cam and the XR smoke button', () => {
+    const dir = goodDist();
+    writeFileSync(path.join(dir, 'assets/main-a1.js'), 'root.className="dv-sim-panel"');
+    expect(verifyDist(dir).some((m) => m.includes('QA debug tools found in assets/main-a1.js'))).toBe(true);
+    writeFileSync(path.join(dir, 'assets/main-a1.js'), 'button.textContent="Enter VR (smoke)"');
+    expect(verifyDist(dir).some((m) => m.includes('QA debug tools found'))).toBe(true);
+  });
+
   it('fails on a __dvBridge string in any file', () => {
     const dir = goodDist();
     writeFileSync(path.join(dir, 'index.html'), '<script>window.__dvBridge = {}</script>');

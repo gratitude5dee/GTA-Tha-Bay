@@ -1,0 +1,12 @@
+{
+  "$comment": "Engine design values per tier from the table in spec/domains/01-engine.md section 6 (M01b2). desktop-ultra uses the desktop row. Physics radius and ambient caps are C13 values in config/tier-budgets.json. Where the table gives a pair for the iPhone column, the first value is mobile and the second mobile-low.",
+  "version": 1,
+  "tiers": {
+    "desktop-ultra": { "animBands": { "fullHzWithinM": 40, "halfHzWithinM": 80, "quarterHzWithinM": 150 }, "audioVoices": 48, "ragdollCap": 8, "footIk": true },
+    "desktop": { "animBands": { "fullHzWithinM": 40, "halfHzWithinM": 80, "quarterHzWithinM": 150 }, "audioVoices": 48, "ragdollCap": 8, "footIk": true },
+    "mobile": { "animBands": { "fullHzWithinM": 20, "halfHzWithinM": 40, "quarterHzWithinM": 80 }, "audioVoices": 24, "ragdollCap": 4, "footIk": true },
+    "mobile-low": { "animBands": { "fullHzWithinM": 12, "halfHzWithinM": 25, "quarterHzWithinM": 50 }, "audioVoices": 16, "ragdollCap": 2, "footIk": false },
+    "xr-quest": { "animBands": { "fullHzWithinM": 15, "halfHzWithinM": 30, "quarterHzWithinM": 60 }, "audioVoices": 24, "ragdollCap": 2, "footIk": true },
+    "xr-visionpro": { "animBands": { "fullHzWithinM": 25, "halfHzWithinM": 50, "quarterHzWithinM": 100 }, "audioVoices": 32, "ragdollCap": 2, "footIk": true }
+  }
+}

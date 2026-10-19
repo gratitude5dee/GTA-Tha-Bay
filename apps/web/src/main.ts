@@ -1,8 +1,11 @@
 import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
-import { bootEngine } from '@dv/engine/client/boot';
+import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import { mountShell, t, type ShellProps } from '@dv/ui';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
+// The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
+import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
+import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
 
 const QA = import.meta.env.VITE_DV_QA === '1';
 // Tier decisions are re-run when the build changes (11-platform.md section 5.3); vite.config.ts sets VITE_DV_BUILD.
@@ -11,6 +14,11 @@ const flags = parseQaFlags(location.search);
 
 const root = document.getElementById('app');
 if (!root) throw new Error('missing #app');
+
+// The title screen at "/" sits over the live world (M01b2); ?debug=1 (QA) goes straight to play. Other routes keep the corner view.
+const ON_HOME = location.pathname === '/';
+const PLAY_CLASS = 'dv-engine-canvas dv-engine-canvas--play';
+const BACKDROP_CLASS = 'dv-engine-canvas dv-engine-canvas--backdrop';
 
 const update = 'serviceWorker' in navigator
   ? createPwaUpdateController({ container: navigator.serviceWorker, reload: () => location.reload() })
@@ -66,7 +74,9 @@ async function boot(): Promise<void> {
   document.body.append(container);
   const canvas = document.createElement('canvas');
   canvas.id = 'dv-engine-canvas';
-  canvas.className = flags.debug ? 'dv-engine-canvas dv-engine-canvas--play' : 'dv-engine-canvas';
+  canvas.className = flags.debug ? PLAY_CLASS : ON_HOME ? BACKDROP_CLASS : 'dv-engine-canvas';
+  if (ON_HOME || flags.debug) document.documentElement.classList.add('dv-world');
+  if (flags.debug) document.documentElement.classList.add('dv-playing');
   canvas.setAttribute('aria-hidden', 'true');
   container.append(canvas);
 
@@ -103,8 +113,18 @@ async function boot(): Promise<void> {
     });
   }
 
-  // The XR emulation page and the GPU probe drive the host themselves, so the engine runs without a view there.
-  const headless = flags.xrEmulate !== null || flags.probe !== null;
+
+  // The GPU probe drives the host itself, so the engine runs without a view there.
+  const headless = flags.probe !== null;
+  // The gray-box Civic Center block is the default world; ?world=<id> (QA) picks a test world instead.
+  const grayboxWorld = flags.world === null || flags.world === 'civic-graybox';
+  let engineRef: EngineHandle | null = null;
+  // True once the player pressed Start (or ?debug=1 skipped the title): from then on Pause brings the title back and Start resumes.
+  let started = flags.debug;
+  const setPlayView = (playing: boolean): void => {
+    document.documentElement.classList.toggle('dv-playing', playing);
+    canvas.className = playing ? PLAY_CLASS : BACKDROP_CLASS;
+  };
   const engine = await bootEngine({
     container,
     qa: QA,
@@ -114,11 +134,30 @@ async function boot(): Promise<void> {
     ...(flags.profile ? { profile: flags.profile } : {}),
     labels: { recovering: t('engine.recovering') },
     headless,
+    ...(grayboxWorld ? { graybox: { p0: grayboxP0Url, l0: grayboxL0Url } } : { scenario: flags.world as string }),
+    play: flags.debug,
+    forceTouch: flags.touch,
+    // Pausing brings the title back over the world; Start resumes.
+    onPausedChange: (paused) => {
+      if (started) setPlayView(!paused);
+    },
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
     return null;
   });
+  engineRef = engine;
   if (engine) platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
+
+  // Start on the title screen: the world becomes the game.
+  document.addEventListener('click', (e) => {
+    const hit = (e.target as Element | null)?.closest?.('[data-testid="title-start"]');
+    if (!hit || !engineRef) return;
+    started = true;
+    document.documentElement.classList.add('dv-world');
+    engineRef.setPaused(false);
+    engineRef.setPlay(true);
+    setPlayView(true);
+  });
 
   // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
   if (import.meta.env.VITE_DV_QA === '1') {

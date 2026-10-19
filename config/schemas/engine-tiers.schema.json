@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/engine-tiers.schema.json",
+  "title": "config/engine-tiers.json (engine design values per quality tier, 01-engine.md section 6)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "tiers"],
+  "$defs": {
+    "tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["animBands", "audioVoices", "ragdollCap", "footIk"],
+      "properties": {
+        "animBands": {
+          "description": "Mixer update bands in metres from the camera: full rate within the first, half rate within the second, quarter rate within the third, frozen beyond.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fullHzWithinM", "halfHzWithinM", "quarterHzWithinM"],
+          "properties": {
+            "fullHzWithinM": { "type": "number", "exclusiveMinimum": 0 },
+            "halfHzWithinM": { "type": "number", "exclusiveMinimum": 0 },
+            "quarterHzWithinM": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "audioVoices": { "type": "integer", "minimum": 1 },
+        "ragdollCap": { "type": "integer", "minimum": 0 },
+        "footIk": { "type": "boolean" }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "version": { "const": 1 },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/tier" },
+        "desktop": { "$ref": "#/$defs/tier" },
+        "mobile": { "$ref": "#/$defs/tier" },
+        "mobile-low": { "$ref": "#/$defs/tier" },
+        "xr-quest": { "$ref": "#/$defs/tier" },
+        "xr-visionpro": { "$ref": "#/$defs/tier" }
+      }
+    }
+  }
+}

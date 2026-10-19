@@ -1,0 +1,26 @@
+{
+  "$comment": "Audio bus graph and the footstep synthesis values (spec/domains/01-engine.md section 2.9, M01b2). Gains are linear. The voice duck is -9 dB with an 80 ms attack and a 400 ms release.",
+  "version": 1,
+  "buses": {
+    "master": { "gain": 1, "parent": null },
+    "music": { "gain": 0.7, "parent": "master" },
+    "sfx": { "gain": 0.9, "parent": "master" },
+    "ambience": { "gain": 0.6, "parent": "master" },
+    "voice": { "gain": 1, "parent": "master" },
+    "radio": { "gain": 0.7, "parent": "master" },
+    "ui": { "gain": 0.8, "parent": "master" },
+    "cutscene": { "gain": 1, "parent": "master" }
+  },
+  "duck": {
+    "voice": { "targets": ["music", "radio"], "db": -9, "attackMs": 80, "releaseMs": 400 }
+  },
+  "footstep": {
+    "bus": "sfx",
+    "cue": "foot.step",
+    "durationSec": 0.09,
+    "bandpassHz": 900,
+    "q": 0.9,
+    "peakGain": 0.35,
+    "pitchSpread": 0.12
+  }
+}

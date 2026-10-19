@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/touch-layout.schema.json",
+  "title": "config/input/touch/<id>.json (S10 TouchLayout v1; engine-local structural type until M04b2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "nameKey", "context", "handed", "widgets"],
+  "$defs": {
+    "rect": {
+      "description": "A zone as fractions of the viewport.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "w", "h"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0, "maximum": 1 },
+        "y": { "type": "number", "minimum": 0, "maximum": 1 },
+        "w": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "h": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+      }
+    },
+    "anchor": {
+      "description": "CSS px from the safe-area corner.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["corner", "dx", "dy"],
+      "properties": {
+        "corner": { "enum": ["bl", "br", "tl", "tr"] },
+        "dx": { "type": "number", "minimum": 0 },
+        "dy": { "type": "number", "minimum": 0 }
+      }
+    },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_]+$" }
+  },
+  "properties": {
+    "v": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+(:[1-4])?$" },
+    "nameKey": { "type": "string", "minLength": 1 },
+    "context": { "enum": ["onFoot", "vehicle", "fighter"] },
+    "handed": { "enum": ["right", "left"] },
+    "widgets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "role", "zone"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "kind": { "const": "stick" },
+              "role": { "enum": ["move", "steer"] },
+              "zone": { "$ref": "#/$defs/rect" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "zone"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "kind": { "const": "lookzone" },
+              "zone": { "$ref": "#/$defs/rect" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "kind", "action", "at", "sizePx", "icon"],
+            "properties": {
+              "id": { "$ref": "#/$defs/id" },
+              "kind": { "const": "button" },
+              "action": { "type": "string", "pattern": "^(sim|client)\\.[A-Za-z]+$" },
+              "at": { "$ref": "#/$defs/anchor" },
+              "sizePx": { "type": "number", "minimum": 44, "maximum": 96 },
+              "icon": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "toggle": { "type": "boolean" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

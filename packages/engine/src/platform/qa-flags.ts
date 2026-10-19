@@ -34,6 +34,10 @@ export interface QaFlags {
   readonly limits: Readonly<Record<string, number>>;
   /** ?scenario=<id> starts a perf scenario at boot. */
   readonly scenario: string | null;
+  /** ?world=<id> picks the sim scenario the page boots instead of the gray-box block (`walk-drop`, `physics-drop`; M01b2). */
+  readonly world: string | null;
+  /** ?touch=1 shows the touch layer on any device (M01b2). */
+  readonly touch: boolean;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -51,6 +55,8 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   governor: null,
   limits: Object.freeze({}),
   scenario: null,
+  world: null,
+  touch: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -99,5 +105,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     governor: q.get('governor') === 'off' ? 'off' : null,
     limits: parseLimits(q.get('limits')),
     scenario: q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null,
+    world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
+    touch: q.get('touch') === '1',
   };
 }

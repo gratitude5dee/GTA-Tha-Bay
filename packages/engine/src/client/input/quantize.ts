@@ -7,10 +7,14 @@ const HALF_PI = Math.PI / 2;
 
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
-/** A signed axis in [-1, 1] to i8 -127..127: `Math.round(v * 127)`. */
+/**
+ * A signed axis in [-1, 1] to i8 -127..127: `round(|v| * 127)` with the sign put back, so that +v and -v quantize to
+ * the same magnitude (`Math.round` alone rounds -63.5 to -63 and 63.5 to 64; M01b2 BD-M01b2-02).
+ */
 export function quantAxis(v: number): number {
-  const q = Math.round(clamp(v, -1, 1) * 127);
-  return q === 0 ? 0 : q; // never -0
+  const c = clamp(v, -1, 1);
+  const q = Math.round(Math.abs(c) * 127);
+  return q === 0 ? 0 : c < 0 ? -q : q; // never -0
 }
 
 /** A one-sided axis (throttle, brake) in [0, 1] to 0..127. */

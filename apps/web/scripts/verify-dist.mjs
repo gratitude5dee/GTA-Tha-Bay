@@ -57,6 +57,12 @@ export function verifyDist(dist) {
     if (s.includes('PerfHud') || s.includes('dv-perf-hud')) fail(`PerfHud code found in ${rel(f)}`);
   }
 
+  // 2c. No QA tools of M01b2: the F3 panel, the free cam and the XR smoke button.
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('dv-sim-panel') || s.includes('dvSimPanel') || s.includes('Enter VR (smoke)') || s.includes('dvXrSmoke')) fail(`QA debug tools found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 

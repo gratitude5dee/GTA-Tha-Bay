@@ -37,7 +37,7 @@ test.describe('engine boot @boot', () => {
     test.setTimeout(120_000);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto('/');
+    await page.goto('/?world=walk-drop');
     await waitForEngine(page);
 
     // Records and ticks: at least 64 records, tick advancing at least 50 per second.
@@ -95,7 +95,7 @@ test.describe('engine boot @boot', () => {
         if (el && !(el as HTMLElement).hidden) (window as unknown as { __bannerSeen: boolean }).__bannerSeen = true;
       }).observe(document, { subtree: true, attributes: true, childList: true });
     });
-    await page.goto('/');
+    await page.goto('/?world=walk-drop');
     await waitForEngine(page);
     await expect.poll(async () => (await observe(page)).records, { timeout: 30_000 }).toBeGreaterThanOrEqual(64);
     await act(page, { t: 'debug.crash' });
@@ -106,7 +106,7 @@ test.describe('engine boot @boot', () => {
 
   test('the postMessage fallback transport runs the same scene and recovers from a crash @boot', async ({ page }) => {
     test.setTimeout(90_000);
-    await page.goto('/?transport=pm');
+    await page.goto('/?transport=pm&world=walk-drop');
     await waitForEngine(page);
     await expect.poll(async () => (await observe(page)).records, { timeout: 30_000 }).toBeGreaterThanOrEqual(64);
     const a = await observe(page);

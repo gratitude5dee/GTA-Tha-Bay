@@ -39,3 +39,33 @@
 .dv-engine-banner[hidden] {
   display: none;
 }
+
+/* The title screen over the live world (M01b2): the canvas fills the window behind the shell, which sits above it. */
+#app {
+  position: relative;
+  z-index: 1;
+}
+
+.dv-engine-canvas--backdrop {
+  inset: 0;
+  inline-size: 100vw;
+  block-size: 100vh;
+  block-size: 100dvh;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Pages other than the title keep an opaque background over the world. */
+html.dv-world .dv-screen {
+  background: var(--dv-color-bg);
+}
+
+html.dv-world .dv-screen.dv-title {
+  background: linear-gradient(180deg, rgb(8 12 20 / 0.1) 0%, rgb(8 12 20 / 0.35) 55%, rgb(8 12 20 / 0.7) 100%);
+}
+
+/* In play the shell is hidden; Pause brings it back. */
+html.dv-playing #app {
+  display: none;
+}

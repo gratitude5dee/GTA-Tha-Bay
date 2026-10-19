@@ -5,6 +5,8 @@ import { runGpuProbe } from './helpers.ts';
 const SIX_MIB = 6 * 1024 * 1024;
 
 test.describe('shell', () => {
+  // The title now sits over the live gray-box world, which the software renderer draws while these checks run (M01b2).
+  test.setTimeout(90_000);
   test('boots to the title screen @smoke', async ({ page }, testInfo) => {
     await page.goto('/');
     await expect(page.getByTestId('title-name')).toHaveText(DISPLAY_NAME);
