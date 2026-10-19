@@ -2,10 +2,10 @@
   "milestone": "M02a2",
   "ac": "AC-8 (operator run on the real city), fix pass for DL-705 to DL-711 on tools/map@0.3.1; the first run is kept under \"before\"",
   "date": "2026-10-19",
-  "bakeId": "a7a692659d501f453bcee2ac9387b87c2d1a005aa923fd40e46e16cb81811687",
+  "bakeId": "d5d359e87d77b546429c62a8e692b482ca480872956f40fd4ce039674b68923e",
   "toolVersion": "tools/map@0.3.1",
-  "reproducible": "map:build -- --area sf --repro: 410 outputs byte-identical across both runs",
-  "bakeTime": "187 s of stage time per bake (places 80 s is the longest); the first operator run took about 232 s per bake",
+  "reproducible": "map:build -- --area sf --repro on the merged tree: 410 outputs byte-identical across both runs (the branch before the merge with claude/build, bake a7a692659d50, gave the same gate table and 410 identical outputs)",
+  "bakeTime": "192 s of stage time per bake (places 80 s is the longest); the first operator run took about 232 s per bake",
   "validators": {
     "map:verify": "PASS: 19 S14 gates, no failing stage gate (s14.scc 98.00 %, s14.portal-routes 73 of 73, s14.max-grade 40 %, s14.landmarks 37 of 37, s14.hero-edges, s14.transit-cablecar 3)",
     "map:landmarks": "PASS: 0 findings; every seed measured to its OSM feature geometry (largest distance 0.6 m, lm.twin-peaks); the 35 OSM-sourced seeds are all in the extract",
