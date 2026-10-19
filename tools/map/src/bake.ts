@@ -239,7 +239,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       for (let i = 0; i < co.length; i++) {
         const p = enuFromLatLng((co[i] as number[])[1] as number, (co[i] as number[])[0] as number);
         const a = i === 0 ? p : enuFromLatLng((co[i - 1] as number[])[1] as number, (co[i - 1] as number[])[0] as number);
-        const n = Math.max(1, Math.ceil(Math.hypot(p.x - a.x, p.z - a.z) / 64));
+        const n = Math.max(1, Math.ceil(Math.hypot(p.x - a.x, p.z - a.z) / 8));   // a chunk corner clipped by a deck can hold less than 64 m of it
         for (let k = 0; k <= n; k++) {
           const x = a.x + ((p.x - a.x) * k) / n, z = a.z + ((p.z - a.z) * k) / n;
           if (x < box.minX || x >= box.maxX || z < box.minZ || z >= box.maxZ) continue;

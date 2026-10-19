@@ -1,0 +1,86 @@
+{
+  "milestone": "M02a2",
+  "ac": "AC-8 (operator run on the real city; seeds NOT corrected, see blockedOn)",
+  "date": "2026-10-19",
+  "bakeId": "8463cd8bbf18e711030c37ff035a023755eae91f4447e0dc95810a81905cbb46",
+  "toolVersion": "tools/map@0.3.0",
+  "reproducible": "map:build -- --area sf --repro: 410 outputs byte-identical across both runs",
+  "bakeTime": "about 232 s of stage time per bake (places 102 s is the longest); 9 min 17 s wall for the two-bake repro run",
+  "validators": {
+    "map:verify": "FAIL: s14.scc, s14.portal-routes, s14.max-grade, s14.landmarks, s14.hero-edges",
+    "map:landmarks": "FAIL (3): crissy-field 225 m and candlestick-point 369 m from their OSM feature (limit 120 m); golden-gate-bridge has no arrival pose on ground; 15 seeds WARN feature-missing (name not found in the extract)",
+    "map:pois": "FAIL (35): 14 pois.bind (no pedestrian node within 25 m) and 21 pois.nhood (id prefix names another neighbourhood than the DataSF polygon holding the point)"
+  },
+  "U-W5": {
+    "portalsSnapped": ["portal.ggb", "portal.baybridge", "portal.ferry"],
+    "portalsMissing": [],
+    "bayRail": "s14.bay-rail PASS: 8 bay-rail transit nodes, all fastTravel",
+    "note": "the Golden Gate portal point snapped; the GG bridge landmark has no arrival pose on ground (gate s10.arrival / s14.landmarks)"
+  },
+  "U-W6": {
+    "result": "FAIL: cable-car chains cc.powell-hyde and cc.powell-mason not found in the street graph within 6 m (gate s10.cablecars)",
+    "transitCablecar": "1 cable-car spline built (at least 1 required on sf)"
+  },
+  "U-W9": {
+    "sidewalkKm": 2882.2,
+    "crosswalks": 46238,
+    "pedEdges": 817385,
+    "tilesBelow85Percent": 59,
+    "minTileFraction": 0.131,
+    "ferrySource": "osm",
+    "ferryLines": 22,
+    "ferryInteriorSamplesOverWater": "11901 of 11908",
+    "gate": "s8.connectivity WARN only (59 tiles below 85 % ped connectivity, worst 13.1 %)"
+  },
+  "U-W15": {
+    "onewayAgreement": {
+      "adopted": "F-along",
+      "fAlong": 0.9697,
+      "fAgainst": 0.0303,
+      "comparable": 7007,
+      "dsfOneOsmTwo": 769,
+      "designValue": "> 0.90",
+      "result": "PASS",
+      "worstPieces": "first 20 (cnn, osmWay) pairs are in dist/world/<bakeId>/bake-report.json roads.oneway.worst"
+    },
+    "signalNodeMatch": {
+      "matched": 2294,
+      "total": 2301,
+      "ratio": 0.9969578,
+      "designValue": ">= 0.98",
+      "result": "PASS",
+      "unmatched": "7 nodes, ENU (2102.7,-1965.6) (2015.6,-2084.7) (2009.8,-2092.7) (2232,-1786.7) (2001.9,-830.5) (2272.3,-589.8) (2949,3720)"
+    },
+    "largestScc": {
+      "edgesInLargest": 51304,
+      "edges": 54710,
+      "ratio": 0.9377,
+      "designValue": ">= 0.98",
+      "result": "FAIL at the design value (recorded, not lowered, DL-669)",
+      "excludingServiceClass": "46904 of 48890 non-service edges = 0.9594, still below 0.98",
+      "byClass": "Freeway 81.2 %, Ramp 76.3 %, Arterial 95.0 %, Collector 97.1 %, Local 96.2 %, Service 75.6 % of their edges in the largest component",
+      "components": 1887,
+      "strays": "3406 edges outside the largest component: 454 edges on Treasure Island (cnn 14178001, way 52721875) plus 30 nearby (cnn 14121000, way 1512043163), most likely cut off because both one-way Bay Bridge carriageways are cut at the east edge of the area (nothing joins them after the cut; not separately proven); 1626 single-edge one-way pieces and 43 components touching the area edge; the remainder are OSM-only service roads (cnn 0) such as ways 676296608 (112 edges, 37.7453 -122.3834) and 209725945 (110 edges, 37.8358 -122.4781, at the area edge)",
+      "worstSegments": "454 edges near cnn 14178001 way 52721875; 117 near way 908635483 (37.8311 -122.5175, area edge); 112 near way 676296608; 110 near way 209725945; 36 near way 1544968992"
+    }
+  },
+  "otherMeasured": {
+    "s7.grade": "steepest road 45 % (limit 40 %): 68 edges at 36 % or more; the 12 steepest include 1 to 2 m long edges at 45 %, 44 %, 42 % (grade measured across one 4 m terrain post step), and two ramp edges of 219 m and 27 m at 40 % near Yerba Buena Island",
+    "s7.slab-steps": "largest step between slab tops 0.20 m over 69404 slabs (limit 0.16 m)",
+    "s14.max-grade": "same 45 % edge as s7.grade",
+    "s14.portal-routes": "City Hall edge 39234 reaches 72 of 77 portals; not reachable: portal.baybridge, portal.cl.53251, portal.cl.53918, portal.cl.53969, portal.cl.53975",
+    "s14.hero-edges": "hero.bay-bridge-west-span (edge 14239) and hero.yerba-buena-tunnel (edge 14220) are outside the largest component; golden-gate main span, Lombard and Filbert pass",
+    "s14.landmarks": "36 of 37 seeds placed (at least 25 required, all 37 expected): lm.golden-gate-bridge has no arrival pose",
+    "s14.pois": "PASS: 151 POIs (at least 150); poi.presidio.golden-gate-bridge skipped",
+    "s9.breakers WARN": "5 pursuit breakers more than 12 m from a road: pb.tenderloin-scaffold, pb.chinatown-produce, pb.mission-bay-crane, pb.powell-turntable, pb.russian-hill-billboard",
+    "s9.tag-limit WARN": "shoreNodes thinned by 2913 to the limit of 24 per chunk"
+  },
+  "blockedOn": [
+    "U-W15 largest SCC 93.77 % against 98 % (Architect calibration by DL entry; the Bay Bridge cut at the area edge (likely) and OSM-only one-way service roads are the measured causes)",
+    "Landmark seeds crissy-field (225 m) and candlestick-point (369 m) from their OSM feature: map:landmarks compares the seeds with the section 7 table of 02-world-bake.md, so a corrected lat/lng is also a table change (Architect). Seeds not edited",
+    "35 POI seed findings (14 unbound, 21 neighbourhood-prefix): need authoring decisions (move the point or rename the id). Seeds not edited",
+    "Cable-car chains cc.powell-hyde, cc.powell-mason (U-W6)",
+    "Golden Gate bridge landmark arrival pose; Bay Bridge west span and Yerba Buena tunnel hero edges outside the largest component",
+    "Slope limits 40 % and slab step 0.16 m (design values) against 45 % and 0.20 m measured"
+  ]
+}

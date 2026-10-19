@@ -1,0 +1,92 @@
+{
+  "schema": "raw-lock/1",
+  "area": "sf",
+  "synthetic": false,
+  "sources": [
+    {
+      "id": "datasf-addresses",
+      "url": "https://data.sf.gov/resource/ramy-di5m.json",
+      "retrievedAt": "2026-10-19T14:26:08Z",
+      "sha256": "c2635d9f4d21eb2a11c9b75e84e426256ffe47f9c65f86233e34a6aa71227e9d",
+      "rows": 388647,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-footprints",
+      "url": "https://data.sf.gov/resource/ynuv-fyni.json",
+      "retrievedAt": "2026-10-19T14:24:51Z",
+      "sha256": "83ad5a2e3205dd0e64793db567426fe9ed5964b5c0d624c6ea1d4d51b8765f3e",
+      "rows": 177023,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-muni-routes",
+      "url": "https://data.sf.gov/resource/9exe-acju.json",
+      "retrievedAt": "2026-10-19T14:26:12Z",
+      "sha256": "232c12ee880f9cb00845b8e005282b6772ab598367d95893bff5eb208a59a2ee",
+      "rows": 135,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-muni-stops",
+      "url": "https://data.sf.gov/resource/i28k-bkz6.json",
+      "retrievedAt": "2026-10-19T14:26:12Z",
+      "sha256": "501afabd1d8e3abf48b7263ec6f5b2c5413984296498272802cbbf513d7fe455",
+      "rows": 3260,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-neighborhoods",
+      "url": "https://data.sf.gov/resource/j2bu-swwd.json",
+      "retrievedAt": "2026-10-19T14:24:55Z",
+      "sha256": "7056efcc78c611fe1519d372f14af9a844a82ff82283fd0dce2553f85816c07a",
+      "rows": 41,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-parks",
+      "url": "https://data.sf.gov/resource/gtr9-ntp6.json",
+      "retrievedAt": "2026-10-19T14:26:12Z",
+      "sha256": "8599e753c52ef3071fec93a5e49789acaba46d60cd3a02254d03606dc73d3f68",
+      "rows": 255,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-streets",
+      "url": "https://data.sf.gov/resource/3psu-pn9h.json",
+      "retrievedAt": "2026-10-19T14:24:54Z",
+      "sha256": "5bb81fb6b9088fb22219326a699226db1a6209a4748e7be1269c78cd05683d86",
+      "rows": 17176,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "datasf-trees",
+      "url": "https://data.sf.gov/resource/tkzw-k3nq.json",
+      "retrievedAt": "2026-10-19T14:26:22Z",
+      "sha256": "e203d11e1519ae9059a67839976a7d83475deef11e19b98df18289fcaf7473da",
+      "rows": 144519,
+      "licence": "PDDL-1.0"
+    },
+    {
+      "id": "osm",
+      "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf",
+      "retrievedAt": "2026-10-19T14:30:08Z",
+      "sha256": "e931b3a81f49764e392391d138b0e5eee2dd9e614e8d841ce673220f2368b575",
+      "rows": 561182,
+      "licence": "ODbL-1.0",
+      "extract": {
+        "sha256": "8b3c8d0d7a4dcc76e046825c90c75c0fd90265e00a30b58c73e8064d6dea249b",
+        "bytes": 654271307,
+        "route": 0
+      }
+    },
+    {
+      "id": "terrarium",
+      "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
+      "retrievedAt": "2026-10-19T14:26:35Z",
+      "sha256": "2d39437a9fe9f2bc0eb229e04c40c12485d2a11a293c305bc5875c85af662674",
+      "rows": 561,
+      "licence": "LicenseRef-PublicDomain-USGov"
+    }
+  ]
+}

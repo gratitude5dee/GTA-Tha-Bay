@@ -128,7 +128,7 @@
         "pause-credits",
         "docs-legal"
       ],
-      "text": "3DEP data courtesy of the U.S. Geological Survey"
+      "text": "3DEP data courtesy of the U.S. Geological Survey. Terrain Tiles was accessed on 2026-10-19 from https://registry.opendata.aws/terrain-tiles"
     }
   ],
   "schema": "attribution-world/1"
