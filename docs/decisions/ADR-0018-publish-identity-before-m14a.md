@@ -31,4 +31,4 @@ Publishing mods, NPCs and experiences needs identity tier `linked` (P2): a perso
 C12 (`ProviderId`, `Tier`, routes 10–11, 36–37), C14/C17 (publisher attribution). M13c1 (device code, `/link`, GitHub spike), M13c2 (publish server), M13c3 (CLI link, `openai` adapter), M13d1 (publish gate), M14a.
 
 ## Links
-`spec/domains/12-modding-publish.md` C§2; `09-backend-contracts.md` §2.3; `spec/99-open-questions.md` U-ADR-01, Q-38; `spec/11-decision-log.md` DL-145, DL-151, DL-207, DL-240, DL-342, DL-349; ADR-0009, ADR-0019.
+`spec/domains/12-modding-publish.md` C§2; `09-backend-contracts.md` §2.3; `spec/99-open-questions.md` U-ADR-01; `spec/99-open-questions-2.md` Q-38; `spec/11-decision-log.md` DL-145, DL-151, DL-207, DL-240, DL-342, DL-349; ADR-0009, ADR-0019.

@@ -103,5 +103,6 @@ After this session the specification polices itself in CI. A C15 lint parses eve
 ## Notes for the Builder
 - Read first: `spec/domains/13-qa.md` §2.3, §2.6, §3.8, §4; `spec/08-test-and-ci.md` §5.1, §5.5, §6; `prompt-pack/03-SPEC-TEMPLATE.md` §C, §G, §H; `11-platform-perf.md` §4 (`PerfReport`, `DeviceChecklist`).
 - The README status table is the only source of a file's status; parse its rows by header name (`ID`, `Status`, `File`; other columns such as `#`, `Slug`, `Sessions`, `Depends on` are ignored), and take the first word of the status cell (`READY · frozen (executing)` is READY; DL-245). A file whose id is absent from the table is treated as PENDING.
+- `spec/99` is split into parts (`spec/99-open-questions*.md`, 2026-10-19): the U-row and Q-row checks read every part. Only `spec/07-milestones/*.md` other than `README.md` and `_PLAN*.md` are milestone files (the former owner follow-up lists are milestones M00e and M00f since DL-605).
 - Report findings about other authors' files as data in the PR body ("lint warnings on PENDING files"); never "fix" a spec file.
 - Branch `m00d-qa-spec-gates`. Secrets: none new; the sweep uses `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (CI only) and `GITHUB_TOKEN` for `gh` in the nightly job.

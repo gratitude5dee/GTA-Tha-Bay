@@ -4,20 +4,25 @@
  *     config/license-allowlist.json. Workspace packages are skipped.
  *  2. First-party licence coverage: every tracked file is covered by a REUSE.toml annotation glob or carries an
  *     SPDX-License-Identifier line.
+ *  3. (M00f) third_party/ through the register checks of ADR-REUSE-01, GPL-family exceptions, the production
+ *     dependencies of services/* and distributable packages, and the Mapbox scan.
  * ScanCode Toolkit and `reuse lint` are not blocking here (their versions are not in the ledger); the nightly job
  * runs them when installed.
  *
  *   tsx tools/ci/license-scan.ts [--root <dir>] [--no-deps]
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { judgeDependency, type DependencyPolicy } from '../../packages/shared/src/assets/gates/license.ts';
 import { looksBinary } from '../../packages/shared/src/assets/gates/ip.ts';
 import { finding, type GateFinding } from '../../packages/shared/src/assets/gates/types.ts';
+import type { NamesFile } from '../../packages/shared/src/assets/gates/names.ts';
 import { args } from './run.ts';
-import { isMain, listTree, loadConfigs, MIB, report, toolsRoot } from './lib/common.ts';
+import { isMain, listDist, listTree, loadConfigs, MIB, report, toolsRoot } from './lib/common.ts';
+import { loadRealSide } from './names-lint.ts';
+import { scanThirdParty } from './lib/third-party.ts';
 
 const GATE = 'license:scan';
 
@@ -45,8 +50,8 @@ export function parsePnpmLicenses(json: unknown): DependencyInfo[] {
   return out;
 }
 
-export function productionDependencies(root: string): DependencyInfo[] {
-  const res = spawnSync('pnpm', ['licenses', 'list', '--json', '--prod', '--filter', '@dv/web'], {
+export function productionDependencies(root: string, filter = '@dv/web'): DependencyInfo[] {
+  const res = spawnSync('pnpm', ['licenses', 'list', '--json', '--prod', '--filter', filter], {
     cwd: root,
     encoding: 'utf8',
     maxBuffer: 64 * MIB,
@@ -115,10 +120,77 @@ export function checkFirstPartyCoverage(root: string, files: readonly string[]):
   return out;
 }
 
+// ---------------------------------------------------------------------------------------------
+// M00f rules
+
+/** Package directories whose production dependencies are judged beside @dv/web: services/* and distributable packages. */
+export function distributablePackages(root: string): Array<{ dir: string; name: string }> {
+  const dirs = new Set<string>();
+  const sd = path.join(root, 'services');
+  if (existsSync(sd)) for (const n of readdirSync(sd)) dirs.add(`services/${n}`);
+  dirs.add('tools/cli');
+  dirs.add('packages/mod-sdk');
+  const out: Array<{ dir: string; name: string }> = [];
+  for (const dir of [...dirs].sort()) {
+    const file = path.join(root, dir, 'package.json');
+    if (!existsSync(file)) continue;
+    const name = (JSON.parse(readFileSync(file, 'utf8')) as { name?: string }).name;
+    if (name) out.push({ dir, name });
+  }
+  return out;
+}
+
+const GPL_FAMILY = /(^|[^A-Z])(A?GPL|LGPL)-/i;
+
+/** An exceptions entry for a GPL-family licence fails whatever ADR id it carries (DL-634). */
+export function checkGplExceptions(exceptions: readonly { package: string; license: string }[]): GateFinding[] {
+  return exceptions
+    .filter((e) => GPL_FAMILY.test(e.license) || /^(A?GPL|LGPL)$/i.test(e.license))
+    .map((e) => finding(GATE, 'config/license-allowlist.json', 'gpl-exception', `${e.package}: an exception for ${e.license} is never allowed`));
+}
+
+// Built from fragments so this file never matches its own scan.
+const MB = ['map', 'box'].join('');
+const MAPBOX_PATTERNS: Array<{ rule: string; re: RegExp }> = [
+  { rule: 'mapbox-host', re: new RegExp(`api\\.${MB}\\.com`, 'i') },
+  { rule: 'mapbox-host', re: new RegExp(`[a-z0-9-]+\\.tiles\\.${MB}\\.com`, 'i') },
+  { rule: 'mapbox-scheme', re: new RegExp(`${MB}://`, 'i') },
+  { rule: 'mapbox-token', re: new RegExp(`\\b(?:p|s|t)k\\.${['ey', 'J'].join('')}`) },
+];
+const MAPBOX_DIRS = ['apps/', 'packages/', 'services/', 'tools/', 'content/', 'config/', 'assets/provenance/'];
+
+export function scanMapbox(root: string, tree: readonly string[], dist: string | null): GateFinding[] {
+  const out: GateFinding[] = [];
+  const scan = (label: string, bytes: Buffer): void => {
+    if (looksBinary(bytes)) return;
+    const text = bytes.toString('utf8');
+    for (const p of MAPBOX_PATTERNS) {
+      const m = p.re.exec(text);
+      if (m) {
+        const line = text.slice(0, m.index).split('\n').length;
+        out.push(finding(GATE, label, p.rule, `a ${MB} reference at line ${line} is never allowed (DL-506)`));
+      }
+    }
+  };
+  for (const f of tree) {
+    if (f.startsWith('tools/ci/fixtures/') || !MAPBOX_DIRS.some((d) => f.startsWith(d)) || f.startsWith('apps/web/dist/')) continue;
+    scan(f, readFileSync(path.join(root, f)));
+  }
+  if (dist) for (const rel of listDist(dist)) scan(`dist/${rel}`, readFileSync(path.join(dist, rel)));
+  return out;
+}
+
 export interface LicenseScanOptions {
   root: string;
   /** Dependency list; read through pnpm when omitted. */
   deps?: DependencyInfo[] | undefined;
+  /** Production dependencies per services/* and distributable package name; read through pnpm when omitted. */
+  packageDeps?: Record<string, DependencyInfo[]> | undefined;
+  /** Real-side NameRegistry for the subset value rule. */
+  real?: NamesFile | null | undefined;
+  packFiles?: ((pkgDir: string) => string[]) | undefined;
+  /** Receives SKIP notes. */
+  notes?: string[] | undefined;
 }
 
 export function runLicenseScan(opts: LicenseScanOptions): { findings: GateFinding[]; scanned: number } {
@@ -127,13 +199,26 @@ export function runLicenseScan(opts: LicenseScanOptions): { findings: GateFindin
   const deps = opts.deps ?? productionDependencies(opts.root);
   const files = listTree(opts.root);
   const findings = [...judgeDependencies(deps, policy), ...checkFirstPartyCoverage(opts.root, files)];
+  findings.push(...checkGplExceptions(cfg.exceptions));
+  for (const pkg of distributablePackages(opts.root)) {
+    const list = opts.packageDeps ? (opts.packageDeps[pkg.name] ?? []) : opts.deps !== undefined ? [] : productionDependencies(opts.root, pkg.name);
+    findings.push(...judgeDependencies(list, policy).map((f) => ({ ...f, file: `${pkg.dir}: ${f.file}` })));
+  }
+  const tp = scanThirdParty(opts.root, { tree: files, real: opts.real, packFiles: opts.packFiles });
+  findings.push(...tp.findings);
+  opts.notes?.push(...tp.notes);
+  const distDir = path.join(opts.root, 'apps/web/dist');
+  findings.push(...scanMapbox(opts.root, files, existsSync(distDir) ? distDir : null));
   return { findings, scanned: deps.length + files.length };
 }
 
 function main(): void {
   const { values } = parseArgs({ args: args(), options: { root: { type: 'string' }, 'no-deps': { type: 'boolean', default: false } } });
   const root = path.resolve(values.root ?? toolsRoot);
-  const { findings, scanned } = runLicenseScan({ root, deps: values['no-deps'] ? [] : undefined });
+  const notes: string[] = [];
+  const real = loadRealSide(process.env.DV_NAMES_REAL_JSON);
+  const { findings, scanned } = runLicenseScan({ root, deps: values['no-deps'] ? [] : undefined, real, notes });
+  for (const n of notes) console.log(n);
   process.exit(report(GATE, findings, scanned));
 }
 

@@ -57,7 +57,7 @@ export function runNamesLint(opts: NamesLintOptions): { findings: GateFinding[];
   const displayName = opts.displayName ?? BRAND.displayName;
   const findings: GateFinding[] = [];
   const notes: string[] = [];
-  const tree = listTree(opts.root);
+  const tree = listTree(opts.root).filter((f) => !f.startsWith('third_party/'));
   const exceptions = cfg.denylist.exceptions.map((e) => e.match);
 
   const read = (rel: string): string | null => {
@@ -114,6 +114,7 @@ function main(): void {
   const real = values.brand ? null : loadRealSide(values['real-json'] ?? process.env.DV_NAMES_REAL_JSON);
   const res = runNamesLint({ root, dist, real, brandOnly: values.brand });
   for (const n of res.notes) console.log(n);
+  if (!real && !values.brand && existsSync(dist)) console.log('SKIP names real-side dist: DV_NAMES_REAL_JSON not set');
   process.exit(report(values.brand ? 'names:brand' : GATE, res.findings, res.scanned));
 }
 

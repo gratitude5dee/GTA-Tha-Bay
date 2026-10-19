@@ -61,7 +61,15 @@ export const GLSL_SYNTAX = [
   { selector: "TaggedTemplateExpression[tag.name='glsl']", message: 'glsl templates are not allowed: use TSL (P-03).' },
 ];
 
+// third_party/ files are copied (ported with a header), never imported (ADR-REUSE-01, M00f). Merged into every
+// no-restricted-imports entry, because a later matching flat-config object replaces the rule's options.
+export const THIRD_PARTY_IMPORT_PATTERN = {
+  group: ['**/third_party/**'],
+  message: 'third_party/ is never imported: port the file with its attribution header (ADR-REUSE-01).',
+};
+
 export const SIM_IMPORT_PATTERNS = [
+  THIRD_PARTY_IMPORT_PATTERN,
   { group: ['three', 'three/*'], message: 'three is not allowed in sim code (C02).' },
   { group: ['@dv/ui', '@dv/ui/*'], message: 'Sim code never imports the UI.' },
 ];

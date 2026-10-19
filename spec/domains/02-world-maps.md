@@ -8,7 +8,7 @@ All are C07 assets (`map_data` or `data`), identity-encoded, in the boot set aft
 
 | Asset | Content | Size gate |
 |---|---|---|
-| `map_data/sf-map.v1` (`sf-map.v1.bin`) | header (`DVMP`, version, `bakeId`, grid), string table (2,567 active street names [research/auth-ugc-input-maps.md §5.2]), 41 neighbourhood polygons (DP 5 m), labels, hillshade (32 m cells, `u8`), chunk index, records per chunk and level | ≤ 4 MiB (fail); estimate 2.5–3.5 MiB, only the road layer was measured (794 KB gzip, 1.67 MB raw [research/auth-ugc-input-maps.md §5.3]) |
+| `map_data/sf-map.v1` (`sf-map.v1.bin`) | header (`DVMP`, version, `bakeId`, grid), string table (≈ 2,567 active street names [research/auth-ugc-input-maps.md §5.2]; a size reference, never a gate, DL-675), 41 neighbourhood polygons (DP 5 m), labels, hillshade (32 m cells, `u8`), chunk index, records per chunk and level | ≤ 4 MiB (fail); estimate 2.5–3.5 MiB, only the road layer was measured (794 KB gzip, 1.67 MB raw [research/auth-ugc-input-maps.md §5.3]) |
 | `map_data/sf-map-bldg.v1` | simplified footprints (DP 1.5 m, area ≥ 40 m², tall buildings flagged by height class) | ≤ 4 MiB, loaded lazily, drawn at ≤ 1.5 m/px |
 | `map_data/sf-geocode.v1` | 224,290 base addresses `{streetId u16, number u16, suffix u8, x i16, z i16, chunk u16}` sorted by (street, number), street table, landmark, POI and neighbourhood name trie | estimate 2.2–3 MB, lazy |
 | `map_data/sf-graph.v1` | drivable topology (nodes with position, edges with from/to/length/class/flags; no geometry) for GPS and long routes | ≈ 1 MB, always resident after boot |
@@ -116,7 +116,7 @@ Rules: (1) boot splash line for 3 s; (2) the full map shows the OSM and DataSF l
 
 ## 7. Web surfaces
 
-Forum, experience browser, Mod Studio anchor picker and share pages use MapLibre GL JS 6.15.x with a self-hosted `sf.pmtiles` (Protomaps v4, z0–14, ≈ 3.9 MB gzip for the SF bbox) and the OSM credit [research/auth-ugc-input-maps.md §5.3, §5.5]. `pnpm map:webtiles` extracts the SF bbox from a pinned Protomaps daily build into our archive (writer library UNVERIFIED; scheduled with M13b; owner S02 tool, run in S10/S12's milestone). Lint rule: `maplibre-gl` may not be imported by `packages/engine`, `packages/world` or `apps/web` game code, so no second WebGL context appears on iPhone. Whether Workers static assets honour `Range` for `.pmtiles` is UNVERIFIED; the fallback fetches the whole archive.
+Forum, experience browser, Mod Studio anchor picker and share pages use MapLibre GL JS 6.15.x with a self-hosted `sf.pmtiles` (Protomaps v4, z0–14, ≈ 3.9 MB gzip for the SF bbox) and the OSM credit [research/auth-ugc-input-maps.md §5.3, §5.5]. `pnpm map:webtiles` extracts the SF bbox from a pinned Protomaps daily build into our archive (writer library UNVERIFIED; scheduled with M13b; owner S02 tool, run in S10/S12's milestone). Lint rule: `maplibre-gl` may not be imported by `packages/engine`, `packages/world` or `apps/web` game code, so no second WebGL context appears on iPhone; `mapbox-gl`, `@mapbox/mapbox-gl-*`, `3d-tiles-renderer` and `@googlemaps/*` may not be imported anywhere in `packages/*` or `apps/web` (M02c2, DL-676). Whether Workers static assets honour `Range` for `.pmtiles` is UNVERIFIED; the fallback fetches the whole archive.
 
 ## 8. Expansion plan (R-MAP-02, M15+)
 

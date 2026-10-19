@@ -266,7 +266,7 @@ JSON Schema (`schemas/provenance-1.0.schema.json`, draft 2020-12; conditionals s
   {"if":{"required":["likeness"],"properties":{"likeness":{"properties":{"tier":{"const":"consented"}}}}},"then":{"properties":{"likeness":{"required":["consent_record_id"]}}}}]}
 ```
 
-**Lock file.** `assets/assets.lock.json` lists every R2-hosted asset: `{schema:'asset-lock/1', entries:{[ref]:{rev, variants:{[id]:sha256}, root, approved_by, approved_at}}}`. `provenance:check` walks the ship set (repo static files, `dist/` assets, lock variants, S02 world packs), joins each SHA-256 to a record and fails on any miss, schema error, non-allowlisted licence, `status≠active`, `env≠production` (or `previs/` or `mock` key reference), missing attribution in `credits.json`, or `derived_from` cycles/unrooted chains.
+**Lock file.** `assets/assets.lock.json` lists every R2-hosted asset except released world areas, which use `assets/world/<area>.lock.json` with the same entry shape and are walked by `provenance:check` as part of the ship set (DL-670, DL-667): `{schema:'asset-lock/1', entries:{[ref]:{rev, variants:{[id]:sha256}, root, approved_by, approved_at}}}`. `provenance:check` walks the ship set (repo static files, `dist/` assets, lock variants, S02 world packs), joins each SHA-256 to a record and fails on any miss, schema error, non-allowlisted licence, `status≠active`, `env≠production` (or `previs/` or `mock` key reference), missing attribution in `credits.json`, or `derived_from` cycles/unrooted chains.
 
 ### 4.4 R2 layout, content types, caching
 
