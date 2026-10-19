@@ -4,7 +4,7 @@ import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
- * `test-results/perf.<project>.<tier>.json`. The budgets are judged afterwards by `perf-verify --counts-only` in perf-check.ts (a
+ * `test-results/perf.<scenario>.<project>.<tier>.json`. The budgets are judged afterwards by `perf-verify --counts-only` in perf-check.ts (a
  * warning on PRs, a failure with `--fail`); this spec only asserts that a report was produced. SwiftShader frame times are never
  * asserted [research/gap-ci-cd-release-assets.md section 4.1].
  */
@@ -25,7 +25,7 @@ for (const tier of TIERS) {
     )) as PerfReport;
 
     mkdirSync('test-results', { recursive: true });
-    const file = `test-results/perf.${testInfo.project.name}.${tier}.json`;
+    const file = `test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.json`;
     writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`);
 
     const budget = budgets.tiers[tier].render;
