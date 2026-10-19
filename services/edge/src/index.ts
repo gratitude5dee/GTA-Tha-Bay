@@ -11,6 +11,10 @@ import { handleLegal } from './routes/legal.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { uuidv7 } from './uuidv7.ts';
 
+export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
+export { CutsceneJobDO } from './cutscenes/CutsceneJobDO.ts';
+export { FalGateDO } from '@dv/pipeline';
+
 const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/health', handler: handleHealth },
   { methods: ['GET'], path: '/api/v1/boot', handler: handleBoot },

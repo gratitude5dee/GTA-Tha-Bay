@@ -6,6 +6,10 @@
  * A change to the `migrations`, `durable_objects` or `exports` section of any wrangler.jsonc must change nothing else
  * that runs (a DO class change ships alone through `wrangler deploy`, and rollback cannot cross it). Alone, it passes
  * and prints `label: do-lifecycle`. Docs, specs and tests do not count as runtime changes.
+ *
+ * DL-233: the lifecycle change may also carry what a new class needs to exist: empty DO class skeletons (new files named
+ * `*DO.ts`), `export { X } from '...'` lines added to `services/<name>/src/index.ts`, the manifests of a new service package
+ * and workspace links added to a package.json. A logic edit in `src/index.ts` still fails.
  */
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -37,6 +41,8 @@ function isWranglerConfig(file: string): boolean {
 function isNonRuntime(file: string): boolean {
   return (
     /^(spec|docs|research|prompt-pack|\.claude)\//.test(file) ||
+    // CI scripts are not deployed to a Worker, so they cannot affect a DO rollback.
+    /^tools\/ci\//.test(file) ||
     /\.(md|txt)$/.test(file) ||
     /(^|\/)test\//.test(file) ||
     /\.test\.tsx?$/.test(file) ||
@@ -47,21 +53,79 @@ function isNonRuntime(file: string): boolean {
 /** The lifecycle sections of a config (top level and each env), serialized for comparison. */
 export function lifecycleSections(text: string | null): string {
   if (text === null) return '';
-  const cfg = JSON.parse(stripJsonc(text)) as Record<string, unknown> & { env?: Record<string, Record<string, unknown>> };
+  const cfg = JSON.parse(stripJsonc(text)) as Record<string, unknown> & { env?: Record<string, Record<string, unknown>>; previews?: Record<string, unknown> };
   const pick = (o: Record<string, unknown>): Record<string, unknown> =>
     Object.fromEntries(LIFECYCLE_KEYS.filter((k) => k in o).map((k) => [k, o[k]]));
   const envs = Object.fromEntries(Object.entries(cfg.env ?? {}).map(([name, e]) => [name, pick(e)]));
-  return JSON.stringify({ top: pick(cfg), envs });
+  return JSON.stringify({ top: pick(cfg), envs, previews: cfg.previews ? pick(cfg.previews) : null });
 }
 
 /** Config text with the lifecycle sections removed, to tell whether anything else in the config changed. */
 function withoutLifecycle(text: string | null): string {
   if (text === null) return '';
-  const cfg = JSON.parse(stripJsonc(text)) as Record<string, unknown> & { env?: Record<string, Record<string, unknown>> };
+  const cfg = JSON.parse(stripJsonc(text)) as Record<string, unknown> & { env?: Record<string, Record<string, unknown>>; previews?: Record<string, unknown> };
   const strip = (o: Record<string, unknown>): Record<string, unknown> =>
     Object.fromEntries(Object.entries(o).filter(([k]) => !(LIFECYCLE_KEYS as readonly string[]).includes(k)));
-  const { env, ...top } = cfg;
-  return JSON.stringify({ top: strip(top), envs: Object.fromEntries(Object.entries(env ?? {}).map(([n, e]) => [n, strip(e)])) });
+  const { env, previews, ...top } = cfg;
+  return JSON.stringify({
+    top: strip(top),
+    envs: Object.fromEntries(Object.entries(env ?? {}).map(([n, e]) => [n, strip(e)])),
+    previews: previews ? strip(previews) : null,
+  });
+}
+
+const SKELETON_IMPORT = /^import\s+\{[\w\s,]*\}\s+from\s+'[^']+';?$/;
+const SKELETON_CLASS = /^export\s+class\s+\w+\s+extends\s+DurableObject(<[\w\s,]*>)?\s*\{\s*\}$/;
+const EXPORT_FROM = /^export\s+\{\s*[\w\s,]+\}\s+from\s+'[^']+';?$/;
+
+function stripComments(text: string): string[] {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((l) => l.replace(/\/\/.*$/, '').trim())
+    .filter((l) => l.length > 0);
+}
+
+/** A new file holding only imports and empty `export class X extends DurableObject {}` declarations. */
+export function isDoSkeleton(c: Change): boolean {
+  if (c.before !== null || c.after === null || !/DO\.ts$/.test(c.file)) return false;
+  const lines = stripComments(c.after);
+  return lines.length > 0 && lines.every((l) => SKELETON_IMPORT.test(l) || SKELETON_CLASS.test(l)) && lines.some((l) => SKELETON_CLASS.test(l));
+}
+
+/** services/<name>/src/index.ts where the only difference is added `export { X } from '...'` lines. */
+export function isExportOnlyIndexChange(c: Change): boolean {
+  if (!/^services\/[^/]+\/src\/index\.ts$/.test(c.file) || c.after === null) return false;
+  const before = c.before === null ? [] : c.before.split('\n');
+  const after = c.after.split('\n');
+  const remaining = [...after];
+  for (const line of before) {
+    const i = remaining.indexOf(line);
+    if (i < 0) return false; // a removed or edited line
+    remaining.splice(i, 1);
+  }
+  return remaining.every((l) => l.trim() === '' || EXPORT_FROM.test(l.trim()));
+}
+
+/** Manifests of a new service package, or a package.json whose only change is added workspace links. */
+export function isPackageScaffold(c: Change): boolean {
+  if (c.after === null) return false;
+  if (c.before === null) return /^services\/[^/]+\/(package\.json|tsconfig\.json)$/.test(c.file);
+  if (!/(^|\/)package\.json$/.test(c.file)) return false;
+  const a = JSON.parse(c.before) as Record<string, unknown>;
+  const b = JSON.parse(c.after) as Record<string, unknown>;
+  const sections = ['dependencies', 'devDependencies'];
+  const strip = (o: Record<string, unknown>): string => JSON.stringify(Object.fromEntries(Object.entries(o).filter(([k]) => !sections.includes(k))));
+  if (strip(a) !== strip(b)) return false;
+  return sections.every((sec) => {
+    const old = (a[sec] ?? {}) as Record<string, string>;
+    const now = (b[sec] ?? {}) as Record<string, string>;
+    return Object.keys(old).every((k) => now[k] === old[k]) && Object.entries(now).every(([k, v]) => k in old || v.startsWith('workspace:'));
+  });
+}
+
+function isLifecycleScaffold(c: Change): boolean {
+  return isDoSkeleton(c) || isExportOnlyIndexChange(c) || isPackageScaffold(c);
 }
 
 export function evaluate(changes: readonly Change[]): Verdict {
@@ -70,7 +134,7 @@ export function evaluate(changes: readonly Change[]): Verdict {
 
   const reasons: string[] = [];
   for (const c of changes) {
-    if (isNonRuntime(c.file)) continue;
+    if (isNonRuntime(c.file) || isLifecycleScaffold(c)) continue;
     if (lifecycleFiles.includes(c)) {
       if (withoutLifecycle(c.before) !== withoutLifecycle(c.after)) reasons.push(`${c.file}: changes more than migrations/durable_objects/exports`);
       continue;
