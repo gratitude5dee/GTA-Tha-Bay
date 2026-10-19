@@ -8,3 +8,7 @@ playwright-report
 *.tsbuildinfo
 .claude/worktrees/
 dist/assets/
+
+# M00d generated reports (tests/reports/README.md stays)
+tests/reports/*
+!tests/reports/README.md

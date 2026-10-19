@@ -195,10 +195,10 @@ export function openGates(qids: string[], launchGates: unknown): string[] {
 
 const norm = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-/** Device ACs of a milestone are seen when each has a passing `perf.json` (judged by `perf:verify --auto`) or a `notes.json` under docs/device-runs/<M##>/<device>/. */
+/** A milestone with device ACs is seen when each of them has a passing `perf.json` (judged by `perf:verify --auto`) or a `notes.json` under docs/device-runs/<M##>/<device>/. */
 function deviceSeen(root: string, id: string, acs: ParsedAc[], checklistDir: string): boolean {
   const dev = acs.filter((a) => a.oracle === 'device-check' || a.oracle === 'device-perf');
-  if (dev.length === 0) return true;
+  if (dev.length === 0) return false;
   const base = path.join(root, 'docs', 'device-runs', id);
   if (!existsSync(base)) return false;
   const dirs = readdirSync(base).filter((d) => statSync(path.join(base, d)).isDirectory());
@@ -319,7 +319,8 @@ export function buildTrace(opts: TraceOptions = {}): TraceResult {
       const allReady = counted.every((c) => c.hasFile && c.status !== 'PENDING');
       const allDone = counted.every((c) => c.hasFile && c.status === 'DONE');
       const green = allDone && counted.every((c) => c.acs.filter((a) => a.oracle !== 'device-check').every((a) => proofGreen(a, results)));
-      const seen = green && counted.every((c) => deviceSeen(root, c.id, c.acs, checklistDir));
+      const withDevice = counted.filter((c) => c.acs.some((a) => a.oracle === 'device-check' || a.oracle === 'device-perf'));
+      const seen = green && withDevice.length > 0 && withDevice.every((c) => deviceSeen(root, c.id, c.acs, checklistDir));
       status = seen ? 'seen-on-device' : green ? 'tested' : allReady ? 'ready' : 'planned';
       if (status === 'tested' || status === 'seen-on-device') {
         const mapped = Array.isArray(gates[rid]) ? (gates[rid] as string[]) : [];

@@ -105,8 +105,8 @@ export function checkSpecFiles(opts: SpecFilesOptions = {}): SpecFilesResult {
   // 2. Word ceiling.
   const specMd = walkMd(root, 'spec');
   for (const f of specMd) {
-    const words = wordCount(read(path.join(root, 'spec', f)));
-    if (words > MAX_SPEC_WORDS) fail('too-long', `spec/${f}`, `spec/${f} has ${words} words (limit ${MAX_SPEC_WORDS}); split it`);
+    const words = wordCount(read(path.join(root, f)));
+    if (words > MAX_SPEC_WORDS) fail('too-long', f, `${f} has ${words} words (limit ${MAX_SPEC_WORDS}); split it`);
   }
 
   // 3. spec/99 U-rows.
@@ -156,7 +156,7 @@ export function checkSpecFiles(opts: SpecFilesOptions = {}): SpecFilesResult {
   const retired = retiredUIds(spec99);
   if (retired.length > 0) {
     const statuses = parseStatusTable(read(path.join(root, 'spec', '07-milestones', 'README.md')));
-    const candidates = [...specMd.map((f) => `spec/${f}`), ...walkMd(root, 'docs/decisions').map((f) => `docs/decisions/${f}`)];
+    const candidates = [...specMd, ...walkMd(root, 'docs/decisions')];
     for (const rel of candidates) {
       if (rel === 'spec/99-open-questions.md' || /^spec\/11-decision-log[^/]*\.md$/.test(rel)) continue;
       const text = read(path.join(root, rel));
