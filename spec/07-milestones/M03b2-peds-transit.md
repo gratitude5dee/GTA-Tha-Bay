@@ -46,7 +46,7 @@ The robotaxi fare and the Ride path (`TeleportApi.request('fast-travel', …)`) 
 ## Scope out
 - PursuitDirector consumption of ped witnesses: M03c.
 - Phone Ride app UI and the transit map layer: M04b2 (phone frame), M02c2 (map lines).
-- Final ped bodies and outfits (8 bodies × 20 outfits): the S05 art pass. The mannequin stays until then.
+- Final ped bodies and outfits (8 bodies × 20 outfits): M10d1 (art integration, Q-39; DL-390). The mannequin stays until then.
 - Pedestrian dialogue or barks: M06c. Filler peds never call an LLM (D-21).
 - Rooms behaviour for ambient peds: M12b1.
 

@@ -39,7 +39,7 @@ The player can:
   - Loading, Error (kinds of §2.3).
   - "Coming soon" for Garage, Help, NPC Builder, Community, Experiences, Online.
 - **New Game** (DN-S10-03): name entry → `SaveService.createProfile` (reusing the active profile if it has no story data) → the creator placeholder step, which M04b2 replaces → `mode.start story`.
-- **Settings** (§2.9): every row in the categories Graphics, Controls (kbm and gamepad tabs; touch and VR read-only notes until M04b2/M11b2), Audio, Subtitles, NPC voices and AI dialogue, Cutscenes, Accessibility (reduced motion initialised from `prefers-reduced-motion` at profile creation), XR comfort (collapsed note unless XR-capable), Camera, Language, Data and privacy (Forget me and Export my account data are disabled with "Available after you register a device", which lands in M12a1), Install and storage, About.
+- **Settings** (§2.9): every row in the categories Graphics, Controls (kbm and gamepad tabs; touch and VR read-only notes until M04b2/M11b2), Audio, Subtitles, NPC voices and AI dialogue, Cutscenes, Accessibility (reduced motion initialised from `prefers-reduced-motion` at profile creation), XR comfort (collapsed note unless XR-capable), Camera, Language, Data and privacy (Forget me and Export my account data are disabled with "Available in a later update"; M12a2 enables them for every profile with a play token, together with Forget NPC memories on the NPC voices and AI dialogue row, DL-548), Install and storage, About.
   - Profile scope: debounced 500 ms into `save.settings`.
   - Device scope: into `PlatformSettings` or `UiPrefs`.
   - Every row has a scope badge.

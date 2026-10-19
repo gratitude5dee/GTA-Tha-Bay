@@ -106,7 +106,7 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 |---|---|---|---|
 | Hero and named characters | generated (§1) | R-NPC-02 | H1–H5 |
 | Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with generated outfit textures | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
-| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; the Sunburst concept → Meshy body → Blender route ($2.48 per body) is buffer-only, at most three bodies (DL-OWN-01) | AI output is one fused mesh; wheels must rotate | H6, M03a/M07a |
+| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; the Sunburst concept → Meshy body → Blender route ($2.48 per body) is buffer-only, at most three bodies (DL-OWN-01) | AI output is one fused mesh; wheels must rotate | H6, M10d3 (gray-box `vehicle/graybox.<slug>` in M07a1/M07b1; DL-460) |
 | Traffic (10) and police (6) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
 | Props, barriers, cones, street furniture | verified CC0 or authored; no AI meshes | clean topology, cheap | licence check |
 | Landmarks (≥ 25) | hand-authored over open-data massing (A-05, S02) | accuracy | S02 |
@@ -119,13 +119,13 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 
 ## 8. Music and SFX policy
 
-1. **Music is commissioned originals** (Q-11). Contract: work-for-hire agreement in `docs/legal/licenses/`, stems delivered; `origin: authored`, `license: LicenseRef-DeeVerse-Owned`; human composition or human arrangement and lyrics (AI-only output is likely uncopyrightable) [research/legal-ip-likeness.md §4]. Master loudness −16 LUFS integrated, −1.5 dBTP **(S05)**; loops declared in `extras.loop`.
+1. **Music is commissioned originals** (Q-11). Contract: work-for-hire agreement in `docs/legal/licenses/`, stems delivered; `origin: authored`, `license: LicenseRef-DeeVerse-Owned`; human composition or human arrangement and lyrics (AI-only output is likely uncopyrightable) [research/legal-ip-likeness.md §4]. Master loudness −16 LUFS integrated, −1.5 dBTP **(S05)**; loops declared in `extras.loop`. Stems are integrated in M10e; with none supplied, music rows stay silent (Q-40 default, DL-500).
 2. **AI-assisted music is placeholder only** and never in a public build: tagged `placeholder`, `generator.env: previs`; CI fails a release that references one. Allowed vendor for placeholders: `elevenlabs/music/v2.5` ($0.60/min) only while the studio is an "Indie Game" (placeholder generation is paid from the spike or buffer line, DL-OWN-01) (< $500k lifetime game revenue and < $1M entity game revenue in the last fiscal year); the record stores `plan`; S13 owns the revenue alarm. `minimax/music-3` and `google/lyria-3.5` have an UNVERIFIED licence chain and are not callable. Udio is unusable; Suno needs a fresh terms check.
 3. **Prompts** are genre briefs (tempo, instrumentation, era, regional slang); "hyphy-inspired" is allowed. `lintPrompt` blocks artist, song, label and station names and "sounds like". No samples, interpolation or vocal-timbre matching; AI vocals use designed voices only. A `consented` artist's recordings need a separate sync licence.
 4. **Radio** stations are fictional; real Bay Area call signs and DJ names go in `config/ip-denylist.json` (list UNVERIFIED; S05 maintains it from owner input).
 5. **SFX** order: authored or recorded originals; then CC0 or CC-BY-4.0 per-file with a licence snapshot; then generated with `fal-ai/elevenlabs/sound-effects/v2`, registry status `pending` (price and terms UNVERIFIED, U11) and usable in public builds only after its terms snapshot is reviewed and the entry is `active`.
 6. **Announcer, police scanner, crowd lines**: scripts original, designed or synthetic voices (§5), `likeness.tier: original`.
-7. Sets required by the game (engine idle, on-load, off-load, redline per class; tire squeal; impact layers; hit layers per strength; sirens per unit tier; ambience beds per district) are tracked as a checklist in `content/audio/needs.json` owned by S06/S07/S02 and checked by `check:assets`.
+7. Sets required by the game (engine idle, on-load, off-load, redline per class; tire squeal; impact layers; hit layers per strength; sirens per unit tier; ambience beds per district) are tracked as a checklist in `content/audio/needs.json` owned by S06/S07/S02 and checked by `check:assets`; M10e fills every row with final audio and adds the audio rules 4–5 to `assets:final` (DL-500).
 8. Delivery: 48 kHz; stereo music, mono SFX; container per the U14 outcome; each file ≤ 25 MiB.
 
 ## 9. CI gates (all exit non-zero on any finding; each script has a `check:*` alias for S13's runner)
@@ -155,7 +155,7 @@ Snapshots to store at M00b: fal ToS (2026-09-08), fal AUP, fal API Services Term
 
 1. Confirm the flag row. 2. Resolve targets: `asset_index` rows tagged `char:<npcId>`; cutscene keys from S09's `cutscenes.char_ids`; bark keys from `bark_index(voice_id)`. 3. Set `status: killed` on those rows and R2 custom metadata (repo records follow through the next `assets:lock --prune` PR). 4. Copy matching objects to `PRIVATE quarantine/<ticketId>/`, then delete from `MEDIA`. 5. Prefix-purge `media.<domain>/characters/<slug>/` and each affected `cutscenes/<key>/` (≤ 100 prefixes per request). 6. Build and publish the next catalog without them (ordinary release; not on the 60 s path). 7. Probe each purged URL: expect 404 and `CF-Cache-Status ≠ HIT`; write `audit_log`. 8. Scope effects: `voice` drops baked lines and TTS for that voice; `cutscene` swaps in the in-engine director fallback; `marketing` unpublishes store and OG art (S10); `ugc` unlists experiences (S12). 9. Close the ticket with timestamps.
 
-Targets: live removal ≤ 60 s (runtime path, A§5.5); public purge ≤ 24 h. Restore (consent renewed) copies back from quarantine and flips records to `active` only through a reviewed PR. **Drill:** quarterly in staging and the CI e2e in A§9; M10b is the first run.
+Targets: live removal ≤ 60 s (runtime path, A§5.5); public purge ≤ 24 h. Restore (consent renewed) copies back from quarantine and flips records to `active` only through a reviewed PR. **Drill:** quarterly in staging and the CI e2e in A§9; M10b is the first run, M14b2's `quarterly.yml` repeats it, and M14b3's `kill-drill` gate blocks a release while the last report is older than 92 days or measured removal above 60 s (DL-480).
 
 ## 11. Cost per asset and the v1 programme
 

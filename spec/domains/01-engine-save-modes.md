@@ -320,7 +320,7 @@ export interface WorldClockApi {
   forceWeather(w: WeatherPreset, blendSec: number): void;
 }
 ```
-**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time. The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's timecyc sky [research/repos-world.md rec 7].
+**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time. The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's keyframe sky [research/repos-world.md rec 7].
 
 ## Interaction system (owner S01; handlers from S03, S04, S10, S12)
 

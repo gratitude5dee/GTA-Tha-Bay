@@ -96,7 +96,7 @@ Showstopper, Shutdown and Taunt for the reference kit are authored in M08b (dama
 4. **No marketing.** Select-screen art, portraits and cutscene posters are excluded from share/OG images (`marketing_allowed = false` for every non-`consented` soul); photo mode in the fighter is off.
 5. **Depiction rules.** Bouts are framed as sport/exhibition (`BoutDef.exhibition: true` is required whenever an opponent is real-derived; CI). No blood, gore, weapons or firearms; finishers are comedic (FC8.3); no arrest, crime, drugs or sexual content; KOs are non-lethal. Trash talk stays inside the soul `rails`; no real-world references.
 6. **Alcatraz.** `alcatraz_yard` is dressed as the island's museum state (open yard, signage, no cells in frame, no uniforms, no handcuffs, no guards). A real-derived fighter on this stage must not read as a prisoner (false-light risk, [research/legal-ip-likeness.md §3.2]).
-7. **Kill-switch.** `RosterFlags.killed[fighterId].scope` containing `fighter` or `all` (C12 route 30). The client re-fetches the roster flags on app start, on mode entry, on opening character select and every 10 minutes, and takes the push path of the EncounterDO broadcast where connected; the target is live removal within 60 s [research/legal-ip-likeness.md L4]. Effects: removed from select and Arcade ladder; saved `lastLoadout` and ladder slots remap to `standIn` (same kit, original name and design, pre-generated clips none); the fighter's cutscene refs drop out of the manifest (`kill_switched` → fallback F8); `WorldPackStore.evictByTag('char:<id>')` removes local assets. A match in progress finishes, then returns to select; nothing is purged mid-round. Scope `cutscene` alone leaves the fighter playable with in-engine intros.
+7. **Kill-switch.** `RosterFlags.killed[fighterId].scope` containing `fighter` or `all` (C12 route 30). The client re-fetches the roster flags on app start, on mode entry, on opening character select and every 30 s while visible (DL-557), and takes the push path of the EncounterDO broadcast where connected; the target is live removal within 60 s [research/legal-ip-likeness.md L4]. Effects: removed from select and Arcade ladder; saved `lastLoadout` and ladder slots remap to `standIn` (same kit, original name and design, pre-generated clips none); the fighter's cutscene refs drop out of the manifest (`kill_switched` → fallback F8); `WorldPackStore.evictByTag('char:<id>')` removes local assets. A match in progress finishes, then returns to select; nothing is purged mid-round. Scope `cutscene` alone leaves the fighter playable with in-engine intros.
 8. **Stand-in clips.** Stand-ins have no pre-generated clips; they use in-engine intros until staff run a targeted prewarm (`assets:gen prewarm --fighters <id>`).
 9. **UGC.** First-party parody characters never appear in user experiences or mods [research/legal-ip-likeness.md L3, UGC row]. The frame-data pack is immutable in v1; `rules`-kind mods cannot alter it.
 
@@ -120,12 +120,12 @@ export interface StageDef {
 
 | Stage | Landmark (open-data geometry, original art) | Notes | Milestone |
 |---|---|---|---|
-| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout `bout.a5` (S03 `m.a1.05`) | M08a (gray box), M08b |
-| `ferry_plaza` | Ferry Building plaza and clock tower | ferries and water in depth | M08b |
-| `dolores_slope` | Dolores Park slope | the stage floor is flat; the slope is backdrop | M08b |
-| `bayview_cranes` | Bayview shipyard under the cranes | industrial, night default | M08b |
-| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout `bout.a11` (S03 `m.a2.08`) | M08b |
-| `mission_bay_court` | Mission Bay arena analogue, fictional venue name | `arena_court`; basketball-domain fighters excluded | M08b |
+| `powell_turntable` | Powell & Market cable-car turntable | cable car crosses the background; story bout `bout.a5` (S03 `m.a1.05`) | M08a (gray box), M10d3 (final art) |
+| `ferry_plaza` | Ferry Building plaza and clock tower | ferries and water in depth | M08b (gray box), M10d3 |
+| `dolores_slope` | Dolores Park slope | the stage floor is flat; the slope is backdrop | M08b (gray box), M10d3 |
+| `bayview_cranes` | Bayview shipyard under the cranes | industrial, night default | M08b (gray box), M10d3 |
+| `alcatraz_yard` | Alcatraz island yard | museum state (FX4.6); story bout `bout.a11` (S03 `m.a2.08`) | M08b (gray box), M10d3 |
+| `mission_bay_court` | Mission Bay arena analogue, fictional venue name | `arena_court`; basketball-domain fighters excluded | M08b (gray box), M10d3 |
 | `lombard_switchbacks`, `coit_top`, `ggpark_bandshell`, `twin_peaks_night` | backlog | Lombard needs camera tilt | M10+ |
 
 All stages are SF-only (owner update 2026-10-18). Stages are C07 `prop` bundles loaded through `ModeContext.assets`; the mode declares `world: 'stage'` and does not stream a C08 chunk (assumption on S02, hub §10). No landmark name or silhouette is used as a logo, no mural or public art is reproduced, venue and team names are fictional [research/legal-ip-likeness.md §6, "Landmark marks" and "Sponsored venue names"].
@@ -188,13 +188,13 @@ Scaling [research/gamedesign-decomposition.md §4.5]: N=10, S=6 → 155; N=12, S
 
 | Asset | Kind and id | Source |
 |---|---|---|
-| model | `character/<slug>` | S05 pipeline (M10a); gray-box until then |
+| model | `character/<slug>` | S05 pipeline (M10a); gray-box `character/graybox.<slug>` until then; a slug M10a2 leaves `pending` gets the creator-kit body `character/kit.<slug>` in M10d3 (DL-460) |
 | base clips, move clips | `anim/<slug>.base`, `anim/<slug>.moves` | Meshy library, authored + retargeted |
 | portrait | `portrait/<slug>` | S05 |
 | voice, barks | `voice/<slug>`, `audio_bark/<sha256>` | S04/S05 voice tiers (D-23) |
-| stage | `prop/stage-<id>-day`, `prop/stage-<id>-night` | authored by S07/S02 over open-data massing |
+| stage | `prop/stage-<id>-day`, `prop/stage-<id>-night` | authored by S07/S02 over open-data massing, final in M10d3; gray-box stand-ins `prop/graybox.stage-<id>-day` and `-night` in M08a2/M08b2 (DL-460) |
 | sparks, props | `prop/fx-spark`, `prop/gumball-arc`, …, `texture/*` | authored |
-| FX audio | `audio_sfx/*`, `audio_music/*` | `content/audio/needs.json` rows: hit layers per strength (×3 variants), whoosh, block, Check ping, KO, announcer set, crowd reactions, six stage tracks (original only, Q-11) |
+| FX audio | `audio_sfx/*`, `audio_music/*` | `content/audio/needs.json` rows: hit layers per strength (×3 variants), whoosh, block, Check ping, KO, announcer set, crowd reactions, six stage tracks (original only, Q-11); final in M10e, stage tracks silent under the Q-40 default (DL-500) |
 
 The announcer is an original synthetic voice, never a real person's clone. Gray-box models (M08a) are procedural capsule-and-box meshes with `origin: authored`.
 

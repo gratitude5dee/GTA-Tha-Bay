@@ -277,7 +277,7 @@ export interface CommunityNpc { npcId: NpcId; soulVersion: number; name: string;
   - `InteractKind.Talk` handler: `canInteract` fails when the NPC is killed (`spawn`), busy (another encounter or a mission lock), or the active block is non-interruptible (for example `sleep`).
   - `begin` sets the BT to `Talk`, faces the player, and opens S10's panel.
   - The sim never pauses for dialogue.
-- **Multiplayer (M12c+):** shared agency moves to the room DO; dialogue stays per player; `EV NpcBusy` marks NPCs in someone else's encounter.
+- **Multiplayer (v1 rooms, DL-350):** no shared agency; each client keeps running its named-NPC brains locally from the room's `EV World` clock, dialogue stays per player (one `EncounterDO` per `pid`), and two players may talk to one NPC at once, each in their own encounter. `EvKind.NpcBusy` is reserved and never emitted in v1; a post-v1 shared-agency design needs a C11 way to address an NPC in `ACT`.
 
 ## C9. Filler NPCs and barks (no LLM)
 - `BarkSystem` picks a line from the archetype pool (`content/npcs/barks/<archetype>.json`) or a named NPC's pool by `BarkTag`, weighted, with seeded RNG and a per-entity cooldown of 20 s (60 s for the same tag).
