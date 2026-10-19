@@ -105,6 +105,11 @@
 - **R** R-MAP-04 · **Dep** M02b1 · **Read** `02-world-living.md` §6; `01-engine-save-modes.md` "Time-of-day and weather clock" · **Out** `packages/world/src/client/sky`, `packages/world/src/sim/env` · **C** C06 1.1 (`WorldClockApi`), C13 1.1
 - **Gate** none · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-sky`; manual `M02b2-iphone15` (sky ≤ 0.3 ms at `mobile-low`)
 
+### M02e · look-pass — 1 · risk H · S02 (+S11) (owner request, DL-704)
+- **Goal:** TSL physically based materials on the existing geometry (procedural façades per building class, roofs, ground, asphalt, water waves), physically based day sky and sun on desktop tiers, exposure, and the C13 post stack (tone mapping everywhere; GTAO, bloom, SMAA/TRAA and cascaded shadows on desktop tiers); XR unchanged; screenshot goldens and a before/after image.
+- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-05 (s), R-ENG-02 · **Dep** M02b1, M02b2, M01c · **Read** `02-world-living.md` §6; `02-world-bake.md` §4, §6; `11-platform.md` §4.2–§4.5, §5.1 · **Out** `packages/world/src/client/look`, `packages/engine/src/platform/post`, `config/world/look.json` · **C** C13 1.1, C08 1.0 (read only)
+- **Gate** Q-13 iPhone 15 and Mac (AC-12, AC-13) · **Proof** `DV_WORLD=synth pnpm check:perf -- --fail`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-golden"`; `pnpm check:unit -- packages/engine packages/world`
+
 ### M02c1 · graph-services-teleports — 1 · risk M · S02
 - **Goal:** `RoadGraphService` and A*, junction runtime, `WorldQuery`, `TeleportApi`, `WorldResolver`, `PlaceIndex`, districts, POI table, `WorldApi` wiring; boundaries, portals and swim respawn (DL-691).
 - **R** R-MAP-01/03 · **Dep** M02a2, M02b1, M02b2 (blackout resource) · **Read** `02-world-contracts.md` §3; `02-world-maps.md` §4.1–§4.2, §5; `02-world.md` §3 · **Out** `packages/world/src/sim/{graph,api,traffic/control.ts}` · **C** C08 1.0, C06 1.1 (`ModeContext.world`)

@@ -10,7 +10,7 @@ After this session the platform adapts to the device while the game runs, and th
 
 ## Depends on
 - **M02b1** (`ChunkStore`, streaming radius, chunk upload gate, `walk-civic-center` and `route-ferry-ocean-beach`). **M03b1** (traffic and `downtown-rush`, crowd density hook). **M07a2** (racing AI, 3 VS races, `sf.pursuit.bayview-escape`).
-- Also used: M01c (`QualityService`, `PerfProbe`, `RenderBudgetMeter`, `PerfScenarioRunner`, `check:perf`, `perf:verify`, heartbeat), M01e (`WorldPackStore` eviction), M00b/M00d (`nightly.yml`), M05b1 (route 4 handler for CSP reports, `Reporting-Endpoints` header).
+- Also used: M01c (`QualityService`, `PerfProbe`, `RenderBudgetMeter`, `PerfScenarioRunner`, `check:perf`, `perf:verify`, heartbeat), M02e (`PostStack`, `postNodes` level semantics, `config/world/look.json` `postLevelCap`), M01e (`WorldPackStore` eviction), M00b/M00d (`nightly.yml`), M05b1 (route 4 handler for CSP reports, `Reporting-Endpoints` header).
 - Contracts: C13 1.1.0 (`QualityService`, `DynamicQuality`, `DynamicRange`, `TierDecisionSource`, `PerfScenario`), C12 1.1.0 (route 4), C16 1.2.0 (`app.crash`, DL-224), C02 1.1.0 (the fixed step is unchanged).
 
 ## Scope in
@@ -19,6 +19,7 @@ After this session the platform adapts to the device while the game runs, and th
   - Signals: EMA of frame ms (α = 0.06) and p90 over 120 frames.
   - Downgrade when p90 > budget × 1.15 for 2 s. Upgrade when p90 < budget × 0.70 for 10 s. At most one change per 5 s and one upgrade per 30 s.
   - Knob order: `renderScale` in 10 % steps → `shadowDistanceScale` → `buildingDistanceScale` → `lodBias` → `crowdDensity` → `postLevel` → `atmosphereLevel` → `textureMipBias` → `foveation` (XR) → `targetFps`. Floors and ceilings come from `QualityTier.dynamic`, and changes are published through `QualityService.onDynamicChange`.
+  - `postLevel` follows M02e's `postNodes` semantics (1 drops GTAO, 0 also drops bloom and uses FXAA, 3 adds `optionalPost`); when the governor ships, this milestone raises `look.json` `postLevelCap` from 2 to 3 (a config edit, DL-704).
   - With `xr: true` the governor never touches `renderScale` and records a "next-entry framebuffer scale" request instead (M11b1 consumes it).
   - Tier demotion only after every knob has been at its floor for 20 s, at the next safe point, via `setTier(next, 'governor-demotion')`.
   - `?governor=off` (parsed but inert since M01c) now disables it.
