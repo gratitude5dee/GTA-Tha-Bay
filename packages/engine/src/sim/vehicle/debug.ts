@@ -1,20 +1,21 @@
 /**
- * QA debug commands of the vehicle module (M03a1): `debug.spawn` and `debug.vehicle`. They are registered in
- * `services.debug` and run between ticks (C02 rule 9). Replies are `qa` messages the page's bridge waits for.
+ * QA debug commands of the vehicle module (M03a1): `debug.spawn` and `debug.vehicle`. The sim worker entry installs
+ * `vehicleQa` behind `VITE_DV_QA` (a production bundle does not contain this file); the commands run between ticks (C02 rule 9).
+ * Replies are `qa` messages the page's bridge waits for.
  */
 import { dsqrt, type EntityHandle, type EntityId, type StableKey } from '@dv/shared';
 import { Control, LocalPlayer, Transform, Vehicle, VehicleDamage } from '../ecs/components.ts';
 import type { EcsWorld } from '../ecs/world.ts';
 import type { PrefabRegistry } from '../prefabs/registry.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, phaseOf } from '../control/states.ts';
-import type { SimCore } from '../loop/sim-core.ts';
-import type { VehiclePhysics } from '../physics/backend.ts';
+import type { PhysicsSim } from '../sim-factory.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { requestEnterVehicle, requestExitVehicle, seatDriver } from './enter-exit.ts';
 import type { VehicleStore } from './components.ts';
+import type { VehiclePhysics } from '../physics/backend.ts';
 
-export interface VehicleDebugOptions {
-  core: SimCore;
+/** What the vehicle module hands the QA commands: set on `EngineServices.vehicleCtx` by `registerVehicleModule`. */
+export interface VehicleDebugContext {
   backend: VehiclePhysics;
   store: VehicleStore;
   prefabs: PrefabRegistry;
@@ -41,13 +42,17 @@ function nearestVehicle(ecs: EcsWorld, player: number): number {
   return best;
 }
 
-export function registerVehicleDebug(o: VehicleDebugOptions): void {
-  const { core, backend, store, prefabs } = o;
-  const ecs = core.ecs;
-  let serial = 0;
+let serial = 0;
 
-  core.services.debug.set('debug.spawn', (cmd: DebugCommand, reply: Reply) => {
-    if (cmd.t !== 'debug.spawn') return;
+/** Handles `debug.spawn` and `debug.vehicle`; any other command is ignored. */
+export function vehicleQa(sim: PhysicsSim, cmd: DebugCommand, reply: Reply): void {
+  const core = sim.core;
+  const ctx = sim.services.vehicleCtx;
+  if (!ctx) return;
+  const { backend, store, prefabs } = ctx;
+  const ecs = core.ecs;
+
+  if (cmd.t === 'debug.spawn') {
     try {
       const isVehicle = prefabs.has(cmd.prefab) && prefabs.def(cmd.prefab).vehicle !== undefined;
       const key = isVehicle ? (`veh:qa${serial++}` as StableKey) : undefined;
@@ -56,10 +61,10 @@ export function registerVehicleDebug(o: VehicleDebugOptions): void {
     } catch (e) {
       reply(`spawn.reply.${cmd.id}`, { ok: false, reason: e instanceof Error ? e.message : String(e) });
     }
-  });
+    return;
+  }
 
-  core.services.debug.set('debug.vehicle', (cmd: DebugCommand, reply: Reply) => {
-    if (cmd.t !== 'debug.vehicle') return;
+  if (cmd.t === 'debug.vehicle') {
     const out = (data: unknown): void => reply(`vehicle.reply.${cmd.id}`, data);
     const players = ecs.query([LocalPlayer, Control, Transform]);
     if (players.length === 0) {
@@ -113,5 +118,5 @@ export function registerVehicleDebug(o: VehicleDebugOptions): void {
         break;
       }
     }
-  });
+  }
 }

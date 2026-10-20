@@ -102,6 +102,9 @@ export class SimRuntime {
   /** The entity inspector and the physics-shape list (M03a1); set by the QA worker entry only. */
   inspector: ((sim: PhysicsSim, cmd: DebugCommand, reply: (name: string, data: unknown) => void) => void) | null = null;
 
+  /** The vehicle QA commands `debug.spawn` and `debug.vehicle` (M03a1); set by the QA worker entry only. */
+  vehicleQa: ((sim: PhysicsSim, cmd: DebugCommand, reply: (name: string, data: unknown) => void) => void) | null = null;
+
   private frameGroups = 0;
   private lastAlpha = 0;
 
@@ -282,7 +285,7 @@ export class SimRuntime {
         break;
       case 'debug.spawn':
       case 'debug.vehicle':
-        sim?.services.debug.get(cmd.t)?.(cmd, (name, data) => void this.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } }));
+        if (sim) this.vehicleQa?.(sim, cmd, (name, data) => void this.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } }));
         break;
       case 'debug.line':
         this.debugLine(cmd);

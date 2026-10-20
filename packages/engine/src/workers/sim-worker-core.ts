@@ -103,6 +103,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       const recorder = new LineRecorder();
       const { qaInspector } = await import('../sim/qa/inspector.ts');
       runtime.inspector = qaInspector;
+      runtime.vehicleQa = (await import('../sim/vehicle/debug.ts')).vehicleQa;
       runtime.lineTools = {
         play: (line, base, probe) => new LinePlayer(validateLine(line), base, probe),
         startRecording: (meta) => recorder.begin(meta),
