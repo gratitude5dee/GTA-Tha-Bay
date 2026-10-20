@@ -9,8 +9,8 @@
   ],
   "layout": "rows: noon-street, night-street; columns: before (look off), after (look on)",
   "meanAbsDifference": {
-    "noon-street": 0.22939045227144356,
-    "night-street": 0.16534878812636164
+    "noon-street": 0.2307676183127572,
+    "night-street": 0.16544724844670378
   },
-  "sha256": "f983114404a3efc1928010746902f4fa0acf9ee59560601d8d17857bc59532df"
+  "sha256": "d4549fda783328c2fc403467feb9f014818880239d5f621e47c0a394d91c2134"
 }
