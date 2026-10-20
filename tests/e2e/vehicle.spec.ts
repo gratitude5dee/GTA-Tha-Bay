@@ -224,7 +224,7 @@ async function drive(page: Page, at: { x: number; z: number }, yaw: number, thro
     type Call = (op: string, args?: Record<string, unknown>) => Promise<unknown>;
     const eng = (window as unknown as { __dvBridge: { engine: Bridge & { observe(): { vehicle: { pos: number[]; speed: number } | null } } } }).__dvBridge.engine;
     const call = (window as unknown as { __dvBridge: { world: { call: Call } } }).__dvBridge.world.call;
-    const ground = async (x: number, z: number, h?: number): Promise<number> => ((await call('query', { x, z, ...(h !== undefined ? { y: h } : {}) })) as { groundY: number | null }).groundY ?? Number.NaN;
+    const ground = async (x: number, z: number, h?: number): Promise<number> => ((await call('query', { x, z, ...(h !== undefined ? { y: h } : {}) })) as { groundY: number | null } | null)?.groundY ?? Number.NaN;   // null reply: the world did not answer in time (a slow software-rendered browser)
     const out: { x: number; y: number; z: number; speed: number; g: number; terrain: number; top: number; up: number | null }[] = [];
     const t0 = performance.now();
     let speed = 0, steer = 0;
