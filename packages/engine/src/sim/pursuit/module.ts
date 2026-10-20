@@ -13,7 +13,7 @@
  *
  * Sim code under the C02 lint.
  */
-import { SimStage, dcos, dsin, type HeatLevel, type InfractionKind, type SystemDef } from '@dv/shared';
+import { SimStage, dcos, dsin, type InfractionKind, type SystemDef } from '@dv/shared';
 import type { SimModule, SimModuleContext } from '../runtime.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { DEFAULT_PURSUIT_CONFIG } from './config.ts';
@@ -21,6 +21,7 @@ import { PursuitDirector } from './director.ts';
 import { EcsPursuitHost } from './host.ts';
 import { MemoryWallet, type WalletPort } from './ports.ts';
 import { pursuitWorldFrom } from './world-port.ts';
+import type { PursuitQaHandler } from './qa-types.ts';
 import type { PursuitConfig } from '@dv/shared';
 
 export const PURSUIT_SYSTEM_ID = 'engine.pursuit.director';
@@ -46,6 +47,8 @@ export interface PursuitModuleOptions {
 }
 
 export interface PursuitModule extends SimModule {
+  /** Installs the QA command handler (`qa.ts`); the QA worker entry does it, so a production bundle carries no QA ops. */
+  installQa(h: PursuitQaHandler): void;
   /** The director once built, else null. */
   director(): PursuitDirector | null;
   readonly wallet: WalletPort;
@@ -59,6 +62,8 @@ interface Stats {
   radius: number;
   units: number;
   seen: boolean;
+  fine: number;
+  strikes: number;
 }
 
 export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitModule {
@@ -69,6 +74,7 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
   let sendQa: ((name: string, data: unknown) => void) | null = null;
   let ambient: AmbientLike | null = null;
   let offBoard: (() => void) | null = null;
+  let qaHandler: PursuitQaHandler | null = null;
   let lastSpeedPost = -1e9;
   let tickNow = 0;
 
@@ -161,7 +167,7 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
     const d = director;
     if (!d) return null;
     const s = d.state();
-    return { level: s.level, phase: s.phase, points: Math.round(s.points), cooldown: Math.round(s.cooldown * 1000) / 1000, radius: Math.round(s.searchRadiusM), units: s.units.length, seen: d.dispatch.lastSeen };
+    return { level: s.level, phase: s.phase, points: Math.round(s.points), cooldown: Math.round(s.cooldown * 1000) / 1000, radius: Math.round(s.searchRadiusM), units: s.units.length, seen: d.dispatch.lastSeen, fine: s.phase === 'busted' ? d.lastFine : 0, strikes: s.phase === 'busted' ? d.lastStrikes : 0 };
   };
 
   const mod: PursuitModule = {
@@ -182,52 +188,12 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
       return { pursuit: s };
     },
     onDebug(cmd: DebugCommand) {
-      if (cmd.t !== 'debug.pursuit') return;
-      if (!build() || !director) {
-        sendQa?.(`pursuit.reply.${cmd.id}`, { ok: false, reason: 'no-director' });
-        return;
-      }
-      const d = director;
-      const a = cmd.args ?? {};
-      switch (cmd.op) {
-        case 'setHeat': {
-          const l = Number(a['level']);
-          if (l >= 0 && l <= 6 && Number.isInteger(l)) d.forceHeat(l as HeatLevel);
-          break;
-        }
-        case 'clear':
-          d.forceClear('qa');
-          break;
-        case 'neverWanted':
-          d.setNeverWanted(a['on'] === true);
-          break;
-        case 'scripted':
-          d.setScripted(a['on'] === true);
-          break;
-        case 'report': {
-          const k = String(a['kind'] ?? 'redLightSeen') as InfractionKind;
-          const p = host?.player();
-          if (p) d.report(k, p.pos, (a['witness'] as 'police' | 'robotaxi' | 'ped' | 'heli' | undefined) ?? 'police', Number(a['count'] ?? 1));
-          break;
-        }
-        case 'wallet':
-          if (wallet instanceof MemoryWallet && typeof a['cents'] === 'number') wallet.balance = Math.max(0, Math.floor(a['cents']));
-          break;
-        case 'state':
-          break;
-        default:
-          sendQa?.(`pursuit.reply.${cmd.id}`, { ok: false, reason: 'unknown-op' });
-          return;
-      }
-      const st = d.state();
-      sendQa?.(`pursuit.reply.${cmd.id}`, {
-        ok: true,
-        level: st.level, points: st.points, phase: st.phase, cooldown: st.cooldown, searchRadiusM: st.searchRadiusM, units: st.units.length,
-        sealedPortals: st.sealedPortals, cap: st.cap, scripted: st.scripted, neverWanted: d.neverWanted, refusals: d.refusals.length,
-        cash: wallet.cash(), busts: d.bustCount, escapes: d.escapes, tick: tickNow,
-        unitRoles: d.dispatch.units.map((u) => u.role), blocks: d.dispatch.activeBlocks.length, strips: d.dispatch.activeStrips.length,
-        spawnLog: d.dispatch.spawnLog.length,
-      });
+      if (cmd.t !== 'debug.pursuit' || !qaHandler || !sendQa) return;
+      const ok = build() && director !== null && host !== null;
+      qaHandler(ok ? { director: director as PursuitDirector, host: host as EcsPursuitHost, wallet, world: sim?.services.world.api ?? null, tick: tickNow } : null, cmd, sendQa);
+    },
+    installQa(h) {
+      qaHandler = h;
     },
   };
   void offBoard;

@@ -16,3 +16,4 @@ export * from './tactics/boxin.ts';
 export * from './tactics/roadblock.ts';
 export * from './tactics/spikes.ts';
 export * from './tactics/heli.ts';
+export type { PursuitQaContext, PursuitQaHandler } from './qa-types.ts';

@@ -4,7 +4,9 @@
  * boot payload carries a world (`BootPayload.config.world`). With the world index in that payload (M02c1) the module also builds the
  * `WorldApi` (graph, traffic, map, teleport, query, places, resolver) and registers it, with the `WorldBoundsPort`, on `services.world`.
  */
+import { createPursuitModule } from '@dv/engine/sim';
 import { runSimWorker, type WorkerScope } from '@dv/engine/workers/sim-worker-core';
 import { worldStreamingModule } from '@dv/world/sim/module';
 
-runSimWorker(self as unknown as WorkerScope, [worldStreamingModule]);
+// The pursuit director (M03c) is inert until the world services and the vehicle module exist, and unhashed until it is first touched.
+runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule()]);

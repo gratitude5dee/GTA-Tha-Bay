@@ -22,7 +22,7 @@ import { boxHeld, boxInTarget, rollingBlockTarget, suvRamTarget } from './tactic
 import { clamp, dist2, driveToward, followSpeed, forwardOf, hold, pathTarget, UNIT_MAX_SPEED, type SteerTarget } from './tactics/follow.ts';
 import { heliOrbit, heliSees, heliStep, type HeliPose } from './tactics/heli.ts';
 import { pitAllowed, pitTarget } from './tactics/pit.ts';
-import { planRoadblock, type BlockSpec, type RoadblockKind } from './tactics/roadblock.ts';
+import { blockAt, planRoadblock, type BlockSpec, type RoadblockKind } from './tactics/roadblock.ts';
 import { crossedTires, planSpikes, type StripSpec } from './tactics/spikes.ts';
 
 export const PREFAB_CRUISER = 'police.cruiser';
@@ -50,6 +50,8 @@ const DISPERSE_MAX_TICKS = 45 * TICKS_PER_SEC;
 const PROP_SIGHT_TICKS = 10 * TICKS_PER_SEC;
 const BLOCK_EVERY_TICKS = 20 * TICKS_PER_SEC;
 const BLOCK_LIFE_TICKS = 45 * TICKS_PER_SEC;
+/** A QA block or strip stays this long (90 s). */
+const QA_PROP_LIFE_TICKS = 90 * TICKS_PER_SEC;
 const SPIKE_EVERY_TICKS = 25 * TICKS_PER_SEC;
 const SPIKE_LIFE_TICKS = 60 * TICKS_PER_SEC;
 /** A unit that has not moved for this long while it should is removed if unseen (stuck against geometry). */
@@ -96,12 +98,15 @@ interface BlockRec {
   spec: BlockSpec;
   props: number[];
   born: number;
+  /** Placed by the QA panel: kept while the heat is 0, removed after `QA_PROP_LIFE_TICKS`. */
+  qa: boolean;
 }
 
 interface StripRec {
   spec: StripSpec;
   prop: number;
   born: number;
+  qa: boolean;
   /** `<vehicle id>:<tire>` already punctured. */
   hits: Set<string>;
 }
@@ -340,7 +345,7 @@ export class Dispatcher {
     if (this.lastSeen) this.lastSeenTick = tick;
     // 4. props: roadblocks and strips (placed on the way the player was last seen heading, so only while the player is, or just was, in sight)
     if (i.active) this.manageProps(i);
-    else this.dropProps();
+    else this.dropProps(tick);
     this.checkStrips(i);
 
     // 5. tactics and driving
@@ -396,7 +401,12 @@ export class Dispatcher {
   }
 
   disperseAll(tick: number): void {
-    for (const u of this.units) if (u.mode !== 'disperse') this.startDisperse(u, tick);
+    for (const u of this.units) {
+      if (u.mode === 'disperse') continue;
+      // the cruisers of a QA roadblock stay with it until it is taken down
+      if (u.mode === 'roadblock' && this.blocks.some((b) => b.id === u.blockId && b.qa)) continue;
+      this.startDisperse(u, tick);
+    }
   }
 
   private updateSight(i: StepInput): boolean {
@@ -504,7 +514,7 @@ export class Dispatcher {
       const spec = planSpikes(this.world, player, i.hint, used);
       if (spec) {
         const prop = this.host.placeProp(PREFAB_SPIKES, spec.pos, spec.yaw, `pfb:${PREFAB_SPIKES}:s${this.propSerial++}` as StableKey);
-        if (prop !== 0) this.strips.push({ spec, prop, born: tick, hits: new Set() });
+        if (prop !== 0) this.strips.push({ spec, prop, born: tick, qa: false, hits: new Set() });
       }
     }
   }
@@ -527,7 +537,7 @@ export class Dispatcher {
     return out;
   }
 
-  private placeBlock(spec: BlockSpec, free: UnitRec[], tick: number): void {
+  private placeBlock(spec: BlockSpec, free: UnitRec[], tick: number, qa = false): void {
     const id = this.blockSerial++;
     const props: number[] = [];
     for (const b of spec.barriers) {
@@ -540,7 +550,7 @@ export class Dispatcher {
       u.blockSlot = slot;
       u.tactic = spec.kind;
     });
-    this.blocks.push({ id, spec, props, born: tick });
+    this.blocks.push({ id, spec, props, born: tick, qa });
   }
 
   private removeBlock(k: number): void {
@@ -557,10 +567,43 @@ export class Dispatcher {
     this.blocks.splice(k, 1);
   }
 
-  private dropProps(): void {
-    for (let k = this.blocks.length - 1; k >= 0; k--) this.removeBlock(k);
-    for (const s of this.strips) this.host.removeProp(s.prop);
-    this.strips.length = 0;
+  private dropProps(tick: number): void {
+    for (let k = this.blocks.length - 1; k >= 0; k--) {
+      const b = this.blocks[k] as BlockRec;
+      if (!b.qa || tick - b.born > QA_PROP_LIFE_TICKS) this.removeBlock(k);
+    }
+    for (let k = this.strips.length - 1; k >= 0; k--) {
+      const s = this.strips[k] as StripRec;
+      if (!s.qa || tick - s.born > QA_PROP_LIFE_TICKS) {
+        this.host.removeProp(s.prop);
+        this.strips.splice(k, 1);
+      }
+    }
+  }
+
+  /** QA: a roadblock of `kind` (barriers and two parked cruisers) at a lane point, shown whatever the heat is. */
+  qaBlock(kind: RoadblockKind, edge: number, at: LanePoint, tick: number): boolean {
+    const spec = blockAt(kind, edge, [at.x, at.y, at.z], at.yaw);
+    const units: UnitRec[] = [];
+    for (const slot of spec.unitSlots) {
+      const key = `veh:pol${this.serial++}` as StableKey;
+      const id = this.host.spawnUnit(kind === 'roadblockHeavy' ? PREFAB_SUV : PREFAB_CRUISER, kind === 'roadblockHeavy' ? 'suv' : 'cruiser', slot.pos, slot.yaw, key);
+      if (id === 0) continue;
+      const u = this.newUnit(id, key, kind === 'roadblockHeavy' ? PREFAB_SUV : PREFAB_CRUISER, kind === 'roadblockHeavy' ? 'suv' : 'cruiser', 'roadblock', tick);
+      u.blockSlot = units.length;
+      units.push(u);
+    }
+    this.placeBlock(spec, units, tick, true);
+    return true;
+  }
+
+  /** QA: a spike strip across the lane at a lane point. */
+  qaStrip(at: LanePoint, tick: number): boolean {
+    const spec: StripSpec = { tag: `qa.${this.propSerial}`, pos: [at.x, at.y, at.z], yaw: at.yaw, halfAcrossM: 3.6 };
+    const prop = this.host.placeProp(PREFAB_SPIKES, spec.pos, spec.yaw, `pfb:${PREFAB_SPIKES}:s${this.propSerial++}` as StableKey);
+    if (prop === 0) return false;
+    this.strips.push({ spec, prop, born: tick, qa: true, hits: new Set() });
+    return true;
   }
 
   /** Marks the tires of non-police vehicles that roll over a strip. */
@@ -745,7 +788,7 @@ export class Dispatcher {
 
   /** Removes every unit and prop at once (a busted or scripted reset). */
   removeAll(): void {
-    this.dropProps();
+    this.dropProps(Infinity);
     for (const u of this.units) this.host.despawnUnit(u.id);
     this.units.length = 0;
     this.heliPoses.clear();

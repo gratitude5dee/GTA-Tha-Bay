@@ -144,9 +144,8 @@ export async function startPursuitRun(o: { bake: BakeData; line?: PursuitLine; o
   if (!seatDriver(ecs, ctx.backend, ctx.store, sim.services, player, vehicle, sim.core.tick)) throw new Error('could not seat the driver');
   await run.step(30);
 
-  const origin = { x: px, z: pz };
   const view = pursuitWorldFrom({ api, bounds: null, tags: null });
-  const plan: { pts: { x: number; z: number }[]; idx: number; at: number; goal: number } = { pts: [], idx: 0, at: -1e9, goal: 0 };
+  const plan: { pts: { x: number; z: number }[]; idx: number } = { pts: [], idx: 0 };
   const dst = { throttle: 0, brake: 0, steer: 0, handbrake: false };
   const vstate = () => {
     const vid = ecs.resolve(vehicle) as number;

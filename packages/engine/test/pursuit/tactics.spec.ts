@@ -25,7 +25,7 @@ function watched(r: ReturnType<typeof makeRig>): void {
   };
   const run = r.run.bind(r);
   r.run = (n: number): number => {
-    let end = r.tick + n;
+    const end = r.tick + n;
     while (r.tick < end) {
       keep();
       run(2);

@@ -63,6 +63,9 @@ export class PursuitDirector implements PursuitApi {
   bustCount = 0;
   /** Escapes so far. */
   escapes = 0;
+  /** The fine of the latest bust, cents, and the strikes the car had after it. */
+  lastFine = 0;
+  lastStrikes = 0;
   private hint: number[] | null = null;
   private bustedAt = -1;
   private evasionTicks = 0;
@@ -344,10 +347,12 @@ export class PursuitDirector implements PursuitApi {
       // the player cannot pay it all: the wallet is emptied
       this.deps.wallet.debit(cash, 'pursuit.bust', `bust:${this.bustCount}:partial`);
     }
+    this.lastFine = fine;
     this.deps.host.emit({ t: 'pursuit.busted', tick, n: fine });
     const key = player.vehicleKey ?? this.lastPlayerKey;
     if (key) {
       const strikes = this.vheat.strike(key);
+      this.lastStrikes = strikes;
       if (strikes >= this.cfg.impoundStrikes) {
         this.vheat.impound(key);
         this.deps.host.impound(key);
@@ -382,7 +387,7 @@ export class PursuitDirector implements PursuitApi {
     h.u8(this.profile.kind === 'story' ? 0 : 1).u8(this.profile.startHeat).u8(this.profile.maxHeat);
     h.u32(this.hint ? this.hint.length : 0);
     for (const e of this.hint ?? []) h.u32(e);
-    h.u32(this.bustCount).u32(this.escapes).f64(this.bustedAt).u32(this.evasionTicks).u32(this.surviveTicks).u8(this.neverWanted ? 1 : 0).f64(this.despawnRadius);
+    h.u32(this.lastFine).u32(this.lastStrikes).u32(this.bustCount).u32(this.escapes).f64(this.bustedAt).u32(this.evasionTicks).u32(this.surviveTicks).u8(this.neverWanted ? 1 : 0).f64(this.despawnRadius);
   }
 
   /**
