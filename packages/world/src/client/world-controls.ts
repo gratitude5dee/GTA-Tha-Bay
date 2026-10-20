@@ -7,8 +7,8 @@
  *    Clear drops it (the minimap that draws it is M02c2);
  *  - "station": the Bay Rail stations; Go teleports next to its entrance, Ride takes the line to the next station (fade, arrive, the fare
  *    in the log line), Taxi calls a robotaxi to a point 300 m east (M03b2);
- *  - "crowd": Gather puts a `crowd.attract` source where the player stands (the pedestrians within 40 m stop and film or cheer), Clear
- *    drops the sources;
+ *  - "crowd": +12 stands twelve pedestrians 8 to 40 m around the player (the skinned near figures show within 25 m), Gather puts a
+ *    `crowd.attract` source where the player stands (the pedestrians within 40 m stop and film or cheer), Clear drops the sources;
  *  - "edges": Coast puts the player 30 m inland of the south coast (walk south to swim and be put back on the shore), County
  *    puts it 100 m inside a county-line barrier (walk east to meet the barrier, the fog and the boundary event).
  *
@@ -118,6 +118,7 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
     }),
   );
   row('crowd',
+    button('+12', 'world-crowd', () => void bridge.call('crowd', { n: 12 }).then((r) => say(`${(r as { placed?: number } | null)?.placed ?? 0} pedestrians placed 8 to 40 m around you`))),
     button('Gather', 'world-gather', () => void bridge.call('attract', { atPlayer: true, by: 'qa' }).then((r) => say((r as { id?: number } | null)?.id ? 'a crowd source stands here: pedestrians within 40 m gather' : 'three crowd sources are live already'))),
     button('Clear', 'world-gather-clear', () => {
       void (async () => {

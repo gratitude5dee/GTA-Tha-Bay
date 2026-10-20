@@ -394,6 +394,45 @@ export class PedSim {
     return p;
   }
 
+  /**
+   * QA (the debug panel's crowd button): stands `n` pedestrians on the walkable edges between `rMin` and `rMax` metres of (x, z), spread
+   * over the candidates nearest first. They are not bound to a slot of the density table, so only the despawn range removes them.
+   * Returns how many were placed. The sim's own spawn pass never calls it.
+   */
+  scatter(x: number, z: number, n: number, rMin = 8, rMax = 40): number {
+    const cand: { cell: ChunkKey; a: number; b: number; len: number; d: number }[] = [];
+    for (const cell of this.cells()) {
+      const chunk = this.w.chunk(cell);
+      if (!chunk) continue;
+      const idx = pedIndexOf(chunk);
+      for (const e of idx.walk) {
+        const na = idx.nodes.get(e.a), nb = idx.nodes.get(e.b);
+        if (!na || !nb) continue;
+        const dx = (na.x + nb.x) / 2 - x, dz = (na.z + nb.z) / 2 - z;
+        const d = dsqrt(dx * dx + dz * dz);
+        if (d >= rMin && d <= rMax) cand.push({ cell, a: e.a, b: e.b, len: e.len, d });
+      }
+    }
+    cand.sort((p, q) => p.d - q.d || p.a - q.a);
+    if (cand.length === 0 || n <= 0) return 0;
+    const step = cand.length > n ? cand.length / n : 1;
+    let placed = 0;
+    for (let i = 0; i < n && Math.floor(i * step) < cand.length; i++) {
+      const c = cand[Math.floor(i * step)] as (typeof cand)[number];
+      let slot = 511;
+      while (slot > 256 && this.peds.has(ambientKey(c.cell, slot))) slot--;
+      const key = ambientKey(c.cell, slot);
+      if (this.peds.has(key)) continue;
+      const flip = (i & 1) === 1;
+      const p = this.place({
+        key, cell: c.cell, slot, epoch: 1 + this.tick, a: flip ? c.b : c.a, b: flip ? c.a : c.b, s: c.len / 2,
+        body: i % PED_BODIES, outfit: (i * 7) % PED_OUTFITS, pace: WALK_MPS + ((i % 5) - 2) * 0.08, lane: i % 2 === 0 ? 0.5 : -0.5,
+      });
+      if (p) placed++;
+    }
+    return placed;
+  }
+
   cursorValue(): number {
     return this.cursor;
   }

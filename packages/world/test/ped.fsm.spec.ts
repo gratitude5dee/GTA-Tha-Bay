@@ -233,6 +233,26 @@ describe('crowd.attract', () => {
   });
 });
 
+describe('the QA crowd', () => {
+  it('scatter stands pedestrians on the walkable edges between two radii around a point, spread, and the sim then walks them', async () => {
+    const { rig } = await lone();
+    const n = rig.sim.scatter(-25, 0, 6, 3, 40);
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThanOrEqual(6);
+    expect(rig.sim.peds.size).toBe(n);
+    for (const p of rig.sim.peds.list()) {
+      expect(Math.hypot(p.x + 25, p.z)).toBeLessThanOrEqual(45);
+      expect(p.bound).toBe(0);
+      expect(p.slot).toBeGreaterThanOrEqual(256);
+      expect(p.slot).toBeLessThanOrEqual(511);
+    }
+    rig.run(120);
+    expect(rig.sim.peds.size).toBe(n);
+    expect(rig.sim.scatter(-25, 0, 0)).toBe(0);
+    expect(rig.sim.scatter(5000, 5000, 4)).toBe(0);
+  });
+});
+
 describe('the end of the graph', () => {
   it('a dead end turns the walker round', async () => {
     const { rig } = await lone();

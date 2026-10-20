@@ -50,11 +50,17 @@ test.describe('pedestrians and transit @world', () => {
     expect(sim.peds).toBeGreaterThan(3);
     expect(sim.peds).toBeLessThanOrEqual(80);
 
-    // they walk: the sample positions change between two reads of the sim counts is not enough, so read the drawn far/near split twice
-    const first = await world(page, (w) => w.peds());
-    await page.waitForTimeout(3000);
-    const second = await world(page, (w) => w.peds());
-    expect(first && second).toBeTruthy();
+    // the QA crowd stands twelve pedestrians 8 to 40 m around the player: those within 25 m draw as skinned near figures (one render
+    // object each), the nearest first, up to the tier's cap of 6
+    const crowd = (await page.evaluate(() => (window as unknown as W).__dvBridge.world.call('crowd', { n: 12 }))) as { placed: number } | null;
+    expect(crowd?.placed ?? 0).toBeGreaterThan(3);
+    await expect
+      .poll(async () => (await world(page, (w) => w.peds()))?.near ?? 0, { timeout: 90_000, intervals: [500, 1000, 2000] })
+      .toBeGreaterThan(0);
+    const withNear = (await world(page, (w) => w.peds()))!;
+    expect(withNear.near).toBeLessThanOrEqual(6);
+    expect(withNear.instances).toBeLessThanOrEqual(80);
+    expect(withNear.objects).toBeLessThanOrEqual(8 + 6);
 
     // a crowd source at the player: at most 3 live, the fourth is refused
     const ids: number[] = [];

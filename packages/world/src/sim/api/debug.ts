@@ -212,6 +212,15 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
       const x = at ? at[0] : num(a['x']), z = at ? at[2] : num(a['z']);
       return done(x === null || z === null ? null : { id: p.sim.attract.add(x, z, str(a['by']) ?? 'debug') });
     }
+    case 'crowd': {
+      // QA: n pedestrians 8 to 40 m around the player (or at x, z), so the near level and the gathering are easy to see
+      const p = w.peds;
+      if (!p) return done(null);
+      const at = w.transit?.playerAt() ?? null;
+      const x = num(a['x']) ?? (at ? at[0] : null), z = num(a['z']) ?? (at ? at[2] : null);
+      if (x === null || z === null) return done(null);
+      return done({ placed: p.sim.scatter(x, z, Math.min(64, Math.max(0, Math.floor(num(a['n']) ?? 12))), num(a['rMin']) ?? 8, num(a['rMax']) ?? 40) });
+    }
     case 'transit': {
       const t = w.transit;
       return done(t ? { ...t.describe(), tick } : null);
