@@ -26,6 +26,16 @@ export const TRAFFIC_SYNTH = {
 } as const;
 
 /**
+ * The `traffic-peds-synth` scenario (M03b2, AC-7 and AC-8): the same run with the pedestrians and transit on. The traffic-only scenario
+ * above stays as it was and keeps its golden (peds off), so a change in the pedestrians cannot move the traffic checkpoints.
+ */
+export const TRAFFIC_PEDS_SYNTH = {
+  ...TRAFFIC_SYNTH,
+  id: 'traffic-peds-synth',
+  ambient: { peds: true, transit: true },
+} as const;
+
+/**
  * The `p0` chunk keys of the residency set of a start point: every chunk within the canonical ambient radius plus the physics ring
  * plus one chunk, and one more ring (a chunk is 256 m). Only chunks whose tile exists in the bake are listed. Ascending order.
  */

@@ -92,12 +92,17 @@ export function stepBus(m: TransitMover, r: BusRoute, limitOf: (e: number) => nu
     m.dwell = busDwellTicks(c);
     m.speed = 0;
     m.stop++;
-  }
-  if (s >= r.length) {
+  } else if (s >= r.length) {
+    // the lap ends: start again from the first edge, serving a stop that lies within the first metres
     s -= r.length;
     m.stop = 0;
-    // a stop right at the start of the pattern is served on the next lap
-    while (m.stop < r.stops.length && (r.stops[m.stop] as BusStop).s < s) m.stop++;
+    const first = r.stops[0];
+    if (first && first.s <= s) {
+      s = first.s;
+      m.dwell = busDwellTicks(c);
+      m.speed = 0;
+      m.stop = 1;
+    }
   }
   m.s = s;
 }

@@ -19,5 +19,5 @@
   "speeds": { "metroMps": 10, "cablecarMps": 4.2, "ferryMps": 7, "airMps": 75, "busFactor": 0.85, "busMaxMps": 11 },
   "dwell": { "busS": 8, "metroEndS": 10, "cablecarEndS": 8, "ferryEndS": 20 },
   "bayRailOrder": ["rail.embarcadero", "rail.montgomery", "rail.powell", "rail.civic-center", "rail.16th-st", "rail.24th-st", "rail.glen-park", "rail.balboa-park"],
-  "entrance": { "radiusM": 3, "liveM": 400 }
+  "entrance": { "radiusM": 3, "liveM": 600 }
 }

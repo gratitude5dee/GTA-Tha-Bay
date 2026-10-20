@@ -47,6 +47,15 @@ export interface AmbientTransitDeps {
   sink?: FareSink;
 }
 
+/** `groundY` throws for a point a float rounding error puts just outside its chunk (BD-M03b2-09): that point has no ground this step. */
+function safeGround(w: WorldServices, x: number, z: number): number | null {
+  try {
+    return w.query.groundY(x, z);
+  } catch {
+    return null;
+  }
+}
+
 const prefabId = (p: TransitPrefab): string => `transit.${p.id}`;
 const H = (n: number): EntityHandle => n as unknown as EntityHandle;
 
@@ -74,7 +83,7 @@ export class AmbientTransit {
     const w = deps.world;
     this.stations = bayRailStations(w.index.transit);
     this.sim = new TransitSim({
-      world: { net: w.network, graph: w.graph, groundY: (x, z) => w.query.groundY(x, z) },
+      world: { net: w.network, graph: w.graph, groundY: (x, z) => safeGround(w, x, z) },
       tier: this.tier,
     });
     this.sink = deps.sink ?? new RecordingFareSink();
@@ -329,7 +338,7 @@ export class AmbientTransit {
         continue;
       }
       if (d > live) continue;
-      const gy = this.deps.world.query.groundY(s.x, s.z);
+      const gy = safeGround(this.deps.world, s.x, s.z);
       if (gy === null) continue;
       const key = entranceKey(s.id) as StableKey;
       if (ecs.byKey(key) !== NULL_HANDLE) continue;
