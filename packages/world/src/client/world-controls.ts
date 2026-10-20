@@ -153,7 +153,7 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
     const lm = bridge.landmarks?.() ?? null;
     lmStat.textContent = !lm
       ? 'landmark models: none in this world'
-      : `landmark models ${lm.resident.filter((r) => r.phase === 'shown').length}/${lm.cap} within ${lm.swapM} m: ${lm.resident.map((r) => `${r.id.slice(3)} ${r.fidelity} ${Math.round(r.distM)} m`).join(', ') || 'none in range'}`;
+      : `landmark models ${lm.resident.filter((r) => r.phase === 'shown').length}/${lm.cap} within ${lm.swapM} m: ${lm.resident.map((r) => `${r.id.slice(3)} ${r.fidelity} ${Math.round(r.distM)} m`).join(', ') || 'none in range'} | skyline ${lm.skyline.entries.filter((e) => e.visible).length}/${lm.skyline.entries.length} drawn within ${Math.round(lm.skyline.rangeM)} m | swaps ${lm.swaps.filter((e) => e.step !== 'chunk').length}, holes ${lm.frames.holes}`;
   }, 500);
 
   container.append(root);

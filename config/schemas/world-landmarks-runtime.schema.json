@@ -4,8 +4,19 @@
   "title": "config/world/landmarks-runtime.json",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "unloadFactor", "retryMs", "inFlight", "tiers"],
+  "required": ["schema", "unloadFactor", "retryMs", "inFlight", "skyline", "tiers"],
   "$defs": {
+    "skyline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ids", "loadFactor", "mountFactor", "releaseFactor"],
+      "properties": {
+        "ids": { "type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": true, "items": { "type": "string", "pattern": "^lm\\.[a-z0-9-]{2,60}$" } },
+        "loadFactor": { "type": "number", "minimum": 1, "maximum": 4 },
+        "mountFactor": { "type": "number", "minimum": 1, "maximum": 3 },
+        "releaseFactor": { "type": "number", "minimum": 1, "maximum": 4 }
+      }
+    },
     "tier": {
       "type": "object",
       "additionalProperties": false,
@@ -22,6 +33,7 @@
     "unloadFactor": { "type": "number", "minimum": 1, "maximum": 2 },
     "retryMs": { "type": "integer", "minimum": 1000 },
     "inFlight": { "type": "integer", "minimum": 1, "maximum": 4 },
+    "skyline": { "$ref": "#/$defs/skyline" },
     "tiers": {
       "type": "object",
       "additionalProperties": false,

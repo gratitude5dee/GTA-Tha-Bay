@@ -10,8 +10,8 @@ const root = new URL('../../../assets/src/building/', import.meta.url);
 const ids = readdirSync(root).filter((n) => n.startsWith('lm.')).sort();
 
 describe('landmark glb reader', () => {
-  it('finds the twelve committed landmark assets', () => {
-    expect(ids).toHaveLength(12);
+  it('finds the 37 committed landmark assets (12 from M02d1, 25 from M02d2)', () => {
+    expect(ids).toHaveLength(37);
   });
 
   it.each(ids)('%s: all three fidelities read, with the recorded triangle counts and sane buffers', async (id) => {

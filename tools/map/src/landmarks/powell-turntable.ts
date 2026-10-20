@@ -21,8 +21,6 @@ export interface TurntableParams extends BaseParams {
   plazaW: number;
 }
 
-const G = -2;
-
 export const powellTurntable: RecipeDef<TurntableParams> = {
   id: 'lm.powell-turntable',
   defaults: {

@@ -26,8 +26,6 @@ export interface CrissyParams extends BaseParams {
   trees: number;
 }
 
-const G = -2;
-
 export const crissyField: RecipeDef<CrissyParams> = {
   id: 'lm.crissy-field',
   defaults: {

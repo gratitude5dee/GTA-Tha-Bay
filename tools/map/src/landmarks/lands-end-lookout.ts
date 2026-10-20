@@ -20,8 +20,6 @@ export interface LookoutParams extends BaseParams {
   outcrops: number;
 }
 
-const G = -2;
-
 export const landsEndLookout: RecipeDef<LookoutParams> = {
   id: 'lm.lands-end-lookout',
   defaults: {
