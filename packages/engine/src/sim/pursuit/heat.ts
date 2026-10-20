@@ -16,14 +16,18 @@ import type { Rng } from '@dv/shared';
 import type { Vec3 } from './ports.ts';
 
 export const TICKS_PER_SEC = 60;
-/** Points below the first level threshold fall by this much per second (stays inside the "no level yet" band). */
+/** Points below the first level threshold fall by this much per second (stays inside the "no level yet" band)... */
 export const SUB_LEVEL_DECAY_PER_SEC = 2;
+/** ...once no infraction has added points for this long, ticks (10 s). */
+export const SUB_LEVEL_IDLE_TICKS = 10 * 60;
 
 export class HeatModel {
   level: HeatLevel = 0;
   points = 0;
   cap: HeatLevel = 5;
   scripted = false;
+  /** Ticks since points were last added. */
+  idleTicks = 0;
 
   constructor(public cfg: PursuitConfig) {}
 
@@ -40,6 +44,7 @@ export class HeatModel {
   add(n: number): HeatLevel | null {
     if (n <= 0) return null;
     this.points += n;
+    this.idleTicks = 0;
     const earned = this.levelForPoints(this.points);
     const max = this.level === 6 ? 6 : Math.min(earned, this.cap) as HeatLevel;
     if (max > this.level) {
@@ -75,11 +80,13 @@ export class HeatModel {
   /** Points below the first threshold decay; at level 1 or more nothing decays. */
   decay(dtTicks: number): void {
     if (this.level > 0 || this.points <= 0) return;
+    this.idleTicks += dtTicks;
+    if (this.idleTicks < SUB_LEVEL_IDLE_TICKS) return;
     this.points = Math.max(0, this.points - (SUB_LEVEL_DECAY_PER_SEC * dtTicks) / TICKS_PER_SEC);
   }
 
   hash(h: Fnv64): void {
-    h.u8(this.level).f64(this.points).u8(this.cap).u8(this.scripted ? 1 : 0);
+    h.u8(this.level).f64(this.points).u8(this.cap).u8(this.scripted ? 1 : 0).u32(this.idleTicks);
   }
 }
 
