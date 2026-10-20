@@ -22,6 +22,8 @@ import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
 import { playWallPrisms } from '../api/boundaries.ts';
 import type { TeleportHost } from '../api/teleport.ts';
 import { createWorldApi, type WorldServices } from '../api/world-api.ts';
+import { AmbientTraffic } from '../traffic/system.ts';
+import { WORLD_COMPONENTS } from '../traffic/components.ts';
 import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
@@ -170,6 +172,11 @@ export class WorldSim {
     }
   }
 
+  /** Requests posted and not yet applied (the residency rule of the determinism scenarios waits for it to reach 0). */
+  pendingCount(): number {
+    return this.bySeq.size;
+  }
+
   /** Applies arrivals in `seq` order; stops at the first `seq` that has not arrived. Returns the number applied. */
   applyReplies(): number {
     let n = 0;
@@ -221,7 +228,8 @@ export class WorldSim {
     this.applyReplies();
     const pl = playerSide(ctx.ecs as unknown as EcsWorld);
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
-    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(focus);
+    // QA: the perf scenario drives the traffic (and so the residency it needs) from the camera; the statics feed keeps the player's focus
+    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(this.api?.ambient?.focusOverride ?? focus);
     const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
     this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
@@ -303,6 +311,8 @@ export interface WorldStreamingModule extends SimModule {
   readonly api: WorldServices | null;
   /** The blackout switch (M02b2): TrafficControl adopts it unchanged; until then the QA bridge and the debug panel set it. */
   readonly blackout: Blackout;
+  /** The ambient traffic (M03b1) once built, or null while the session has no world services. */
+  readonly traffic: AmbientTraffic | null;
 }
 
 function isWorldConfig(v: unknown): v is WorldSimConfig {
@@ -315,8 +325,10 @@ function isWorldConfig(v: unknown): v is WorldSimConfig {
 export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
   let api: WorldServices | null = null;
+  let traffic: AmbientTraffic | null = null;
   let sendQa: ((name: string, data: unknown) => void) | null = null;
   let physics: WorldDebugPhysics | null = null;
+  let simHash: (() => { tick: number; hash: string }) | null = null;
   const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
@@ -346,7 +358,15 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     get api() {
       return api;
     },
+    get traffic() {
+      return traffic;
+    },
     blackout,
+    // the world components exist only in a session that has a world with services (M03b1): other sessions hash as before
+    components: (boot) => {
+      const w = boot.config['world'];
+      return isWorldConfig(w) && w.index ? WORLD_COMPONENTS : [];
+    },
     side: () => {
       if (!state) return {};
       const out: Record<string, unknown> = blackout.side();
@@ -356,6 +376,8 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     },
     onDebug(cmd: DebugCommand): void {
       if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
+      // the residency rule of the determinism scenarios (DL-678): request and pin a set, apply the replies, ask the hash
+      if (state && cmd.t === 'debug.world' && runResidencyOp(state, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), simHash)) return;
       if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), physics ?? undefined);
     },
     onInit(ctx: SimModuleContext): void {
@@ -364,6 +386,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       api?.dispose();
       state = null;
       api = null;
+      traffic = null;
       ctx.sim.services.world.api = null;
       ctx.sim.services.world.bounds = null;
       for (const by of [...blackout.owners()]) blackout.set(false, by);
@@ -373,12 +396,16 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       const log = ctx.runtime.env.log;
       events = ctx.sim.services.events;
       sendQa = (name, data) => void ctx.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      simHash = () => ({ tick: ctx.sim.core.tick, hash: ctx.sim.hash() });
       physics = { castRay: (o, d, max, mask) => ctx.sim.backend.castRay(o, d, max, mask), staticMask: GROUP_BIT.static };
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());
       ctx.sim.core.addResource(blackout.resource());
-      if (raw.index) api = installWorldServices(ctx, world, raw.index, blackout);
+      if (raw.index) {
+        api = installWorldServices(ctx, world, raw.index, blackout);
+        traffic = installTraffic(ctx, world, api, raw);
+      }
     },
   };
 }
@@ -421,6 +448,49 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
   world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
   return api;
+}
+
+/**
+ * The QA ops of the residency rule, answered between ticks: `preload` requests the listed `p0` keys and pins them, `settle` applies the
+ * replies that arrived and reports what is pending and resident, `hash` reports the state hash now. Returns false for any other op.
+ */
+function runResidencyOp(world: WorldSim, cmd: WorldDebugCommand, reply: (id: number, data: unknown) => void, hash: (() => { tick: number; hash: string }) | null): boolean {
+  const a = cmd.args ?? {};
+  const keys = Array.isArray(a['keys']) ? (a['keys'] as string[]).filter((k) => typeof k === 'string') as ChunkKey[] : [];
+  switch (cmd.op) {
+    case 'preload':
+      world.store.pin('p0', keys);
+      void world.store.preload(keys.map((key) => ({ level: 'p0' as const, key })));
+      reply(cmd.id, { requested: keys.length });
+      return true;
+    case 'settle': {
+      world.applyReplies();
+      const resident = keys.filter((k) => world.store.ready(k, 'p0') || world.store.emptyKeys('p0').includes(k)).length;
+      reply(cmd.id, { pending: world.pendingCount(), resident, wanted: keys.length });
+      return true;
+    }
+    case 'hash':
+      reply(cmd.id, hash ? hash() : null);
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Builds the ambient traffic (M03b1) on the live sim: its brain system at `SimStage.AI` and its hashed resource. Skipped when the
+ * ECS has no traffic components (a session built without the world components) so a bare sim is never half-wired.
+ */
+function installTraffic(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig): AmbientTraffic | null {
+  const sim = ctx.sim;
+  if (!sim.ecs.registry.getByName('TrafficAgent')) return null;
+  const traffic = new AmbientTraffic({
+    ecs: sim.ecs, backend: sim.backend, services: sim.services, world: api, store: world.store, cfg: ctx.cfg, seed: raw.index ? raw.index.worldSeed : 0,
+  });
+  api.ambient = traffic;
+  sim.core.addSystem(traffic.system());
+  sim.core.addResource(traffic.resource());
+  return traffic;
 }
 
 /** The module `apps/web/src/workers/sim.worker.ts` composes into the sim worker. */

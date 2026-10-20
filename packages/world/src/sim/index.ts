@@ -22,3 +22,4 @@ export * from './api/query.ts';
 export * from './api/resolver.ts';
 export * from './api/teleport.ts';
 export * from './api/world-api.ts';
+export * from './traffic/index.ts';

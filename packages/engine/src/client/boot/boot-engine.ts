@@ -472,6 +472,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         env: view.env,
         blackout: view.blackout,
         boundaryFog: view.boundaryFog,
+        poses: view.poses,
+        poseCount: view.count,
+        poseKeys: view.keys,
       });
     }
   };

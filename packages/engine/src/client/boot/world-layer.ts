@@ -1,6 +1,7 @@
 import type { EnvState } from '@dv/shared';
 import type { PlayerSide } from '../../sim/publish.ts';
 import type { SimEvent } from '../../sim/events.ts';
+import type { Pose } from '../snapshot/interpolate.ts';
 import type { SimHostOptions } from '../../sim/sim-host.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
 
@@ -22,6 +23,13 @@ export interface WorldFrame {
   blackout: boolean;
   /** Fog far-plane factor near the county line (M02c1): 1 away from it, 0.4 at the line. Absent in a test frame. */
   boundaryFog?: number;
+  /**
+   * The interpolated poses of the newest snapshot (M03b1): the world's instanced traffic renderer draws the records flagged ambient
+   * (`flags & 2`). `poseKeys` maps a record's `renderKey` to its asset string. Absent in a test frame.
+   */
+  poses?: readonly Pose[];
+  poseCount?: number;
+  poseKeys?: ReadonlyMap<number, string>;
 }
 
 export interface WorldLayer {

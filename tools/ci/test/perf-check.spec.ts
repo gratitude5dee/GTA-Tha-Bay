@@ -10,13 +10,16 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { PerfReport } from '../../../packages/shared/src/index.ts';
 import { repoRoot } from '../run.ts';
-import { EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, checkReports, reportPath, selectScenarios } from '../perf-check.ts';
+import { EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, checkReports, reportPath, selectScenarios, trafficPath, verifyTraffic } from '../perf-check.ts';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-perf-check-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 const fixture = JSON.parse(readFileSync(path.join(repoRoot, 'tools', 'ci', 'fixtures', 'perf', 'ok.json'), 'utf8')) as PerfReport;
 const budgets = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { render: { maxRenderObjects: number; maxTriangles: number } }> };
+
+const crowd = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxTrafficInstances: number } }> }).tiers[tier]?.crowd.maxTrafficInstances ?? 0;
+const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 1, objectsMax: 1, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier) });
 
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });
@@ -26,6 +29,7 @@ function write(root: string, scenarios: readonly string[]): void {
         const b = budgets.tiers[tier]?.render as { maxRenderObjects: number; maxTriangles: number };
         const r: PerfReport = { ...fixture, tier, counts: { ...fixture.counts, renderObjectsMax: Math.floor(b.maxRenderObjects * 0.5), trianglesMax: Math.floor(b.maxTriangles * 0.5) } };
         writeFileSync(reportPath(root, scenario, project, tier), JSON.stringify(r));
+        if (TRAFFIC_SCENARIOS.includes(scenario)) writeFileSync(trafficPath(root, scenario, project, tier), JSON.stringify(trafficOf(tier, 0.5)));
       }
     }
   }
@@ -69,7 +73,7 @@ describe('checkReports with two scenarios (AC-12)', () => {
   it('the reports of both scenarios coexist: 2 scenarios x 2 projects x 4 tiers = 16 reports are expected and found', () => {
     const root = path.join(tmp, 'both');
     write(root, ['walk-civic-center', 'route-ferry-ocean-beach']);
-    const r = checkReports(root);
+    const r = checkReports(root, ['walk-civic-center', 'route-ferry-ocean-beach']);
     expect(r.checked).toBe(16);
     expect(r.missing).toBe(0);
     expect(r.ok).toBe(true);
@@ -79,7 +83,7 @@ describe('checkReports with two scenarios (AC-12)', () => {
     const root = path.join(tmp, 'one-gone');
     write(root, ['walk-civic-center', 'route-ferry-ocean-beach']);
     rmSync(reportPath(root, 'walk-civic-center', 'webkit-webgl2', 'mobile'));
-    const r = checkReports(root);
+    const r = checkReports(root, ['walk-civic-center', 'route-ferry-ocean-beach']);
     expect(r.checked).toBe(15);
     expect(r.missing).toBe(1);
     expect(r.ok).toBe(false);
@@ -91,5 +95,30 @@ describe('checkReports with two scenarios (AC-12)', () => {
     write(root, ['route-ferry-ocean-beach']);
     expect(checkReports(root, ['route-ferry-ocean-beach']).ok).toBe(true);
     expect(checkReports(root).ok).toBe(false);
+  });
+});
+
+describe('the traffic scenario (M03b1, AC-10)', () => {
+  it('downtown-rush is registered and is the one traffic scenario', () => {
+    expect(PERF_SCENARIOS).toContain('downtown-rush');
+    expect(TRAFFIC_SCENARIOS).toEqual(['downtown-rush']);
+  });
+
+  it('passes with traffic within each tier crowd row and fails over it, with none drawn, or with a missing traffic report', () => {
+    const root = path.join(tmp, 'traffic');
+    write(root, ['downtown-rush']);
+    expect(checkReports(root, ['downtown-rush']).ok).toBe(true);
+    const f = trafficPath(root, 'downtown-rush', 'chromium-webgl2', 'mobile-low');
+    writeFileSync(f, JSON.stringify(trafficOf('mobile-low', 1.5)));
+    expect(verifyTraffic(f, 'mobile-low').join('\n')).toContain('crowd.maxTrafficInstances');
+    expect(checkReports(root, ['downtown-rush']).ok).toBe(false);
+    writeFileSync(f, JSON.stringify({ ...trafficOf('mobile-low', 0.5), instancesMax: 0 }));
+    expect(verifyTraffic(f, 'mobile-low').join('\n')).toContain('no traffic instance');
+    writeFileSync(f, JSON.stringify({ ...trafficOf('mobile-low', 0.5), drawsMax: 20 }));
+    expect(verifyTraffic(f, 'mobile-low').join('\n')).toContain('traffic draws');
+    rmSync(f);
+    const r = checkReports(root, ['downtown-rush']);
+    expect(r.ok).toBe(false);
+    expect(r.lines.join('\n')).toContain('no traffic report at');
   });
 });

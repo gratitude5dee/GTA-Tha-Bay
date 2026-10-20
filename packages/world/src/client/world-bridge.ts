@@ -6,6 +6,7 @@ import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
+import type { TrafficInfo } from './traffic/instances.ts';
 
 /**
  * `window.__dvBridge.world` (QA builds only; 02-world.md section 4, M02b1). Reachable only through a dynamic import behind
@@ -81,6 +82,13 @@ export interface WorldBridge {
   landmarks(): LandmarksReport | null;
   /** The `landmark.swap` events so far (QA builds only; not telemetry), oldest first; empty without a landmark layer. */
   swaps(): LandmarkSwapEvent[];
+  /**
+   * The instanced traffic (M03b1): instances in use, draws, instances per archetype and the cap of the tier; null before the world is
+   * attached. `traffic.sim()` asks the sim for its own counts (agents, near bodies, promotions, honks, stalls, witness events).
+   */
+  traffic(): TrafficInfo | null;
+  /** Counts of the ambient traffic inside sim.worker (`debug.world` op `traffic`); null after `timeoutMs`. */
+  trafficSim(timeoutMs?: number): Promise<unknown>;
   /** Starts the landmark frame counters and the swap log again (a test warms the scene up, then measures a run). */
   resetLandmarkStats(): void;
 }
@@ -155,7 +163,18 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     map: () => view.lastMap,
     landmarks: () => view.landmarksReport(),
     swaps: () => view.landmarksReport()?.swaps ?? [],
+    traffic: () => view.trafficReport(),
+    trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
     resetLandmarkStats: () => view.landmarks?.resetStats(),
+  };
+  // the perf scenarios' way into the sim's traffic: fire-and-forget commands (id 0: the reply slot is overwritten, not accumulated)
+  view.trafficLink = {
+    focus: (f) => void act({ t: 'debug.world', id: 0, op: 'traffic', args: f ? { x: f.x, z: f.z, vx: f.vx, vz: f.vz } : { clearFocus: true } }),
+    density: (mult) => void act({ t: 'debug.world', id: 0, op: 'density', args: { kind: 'traffic', mult, by: 'perf' } }),
+    probe: async () => {
+      const r = (await call('traffic', undefined, 5_000)) as { agents?: number; filled?: boolean } | null;
+      return r ? { agents: Number(r.agents ?? 0), filled: r.filled === true } : null;
+    },
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };

@@ -177,6 +177,25 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
       const hit = physics.castRay([o[0] as number, o[1] as number, o[2] as number], [d[0] as number, d[1] as number, d[2] as number], num(a['max']) ?? 500, physics.staticMask);
       return done(hit ? { toi: hit.toi, at: [(o[0] as number) + (d[0] as number) * hit.toi, (o[1] as number) + (d[1] as number) * hit.toi, (o[2] as number) + (d[2] as number) * hit.toi], normal: hit.normal } : null);
     }
+    case 'traffic': {
+      // the ambient traffic (M03b1): counts, and with `focus` / `clearFocus` the point the traffic follows instead of the player
+      const t = w.ambient;
+      if (!t) return done(null);
+      const fx = num(a['x']), fz = num(a['z']);
+      if (a['clearFocus'] === true) t.focusOverride = null;
+      else if (fx !== null && fz !== null) t.focusOverride = { x: fx, z: fz, vx: num(a['vx']) ?? 0, vz: num(a['vz']) ?? 0 };
+      return done({
+        ...t.describe(), tick, tier: t.sim.tier, radius: t.sim.radius, cap: t.sim.cap(),
+        focus: t.focusOverride, stats: t.sim.stats, promoted: t.sim.promotions.count, filled: !t.sim.fill,
+      });
+    }
+    case 'infraction': {
+      const t = w.ambient;
+      const x = num(a['x']), z = num(a['z']);
+      if (!t || x === null || z === null) return done(null);
+      const id = t.board.post((str(a['kind']) ?? 'redLightSeen') as never, { x, y: num(a['y']) ?? 0, z }, str(a['actor']) ?? '', tick);
+      return done({ id });
+    }
     case 'candidates': {
       const kind = (KINDS as readonly string[]).includes(String(a['kind'])) ? (a['kind'] as TeleportKind) : 'sandbox';
       return done(w.teleport.candidates(kind));

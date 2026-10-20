@@ -33,6 +33,8 @@ import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } f
 import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
 import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
 import { TeleportFade } from './teleport-fade.ts';
+import { trafficCap } from '../sim/traffic/density.ts';
+import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -43,6 +45,16 @@ export interface WorldViewLabels {
 
 export interface AssetsLike extends JobClient {
   stats(): Promise<{ bytes: number; network: number; retries: number }>;
+}
+
+/** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
+export interface TrafficLink {
+  /** The point the traffic follows (and the sim's streaming wants), or null for the player. */
+  focus(f: { x: number; z: number; vx: number; vz: number } | null): void;
+  /** Density multiplier of the `traffic` kind, 0 to 1.5 (1 = the model's own). */
+  density(mult: number): void;
+  /** Agents alive and whether the initial fill is over; null if the sim did not answer. */
+  probe(): Promise<{ agents: number; filled: boolean } | null>;
 }
 
 export interface WorldViewOptions {
@@ -127,6 +139,8 @@ export class WorldView implements WorldLayer {
   landmarks: LandmarkLayer | null = null;
   /** The sky of the world path (M02b2); set in `attach`. */
   sky: SkyView | null = null;
+  /** The instanced ambient traffic (M03b1); set in `attach`. */
+  traffic: TrafficRenderer | null = null;
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
   /** The newest `world.boundary` event (M02c1) and how many arrived; the QA bridge reads them. */
@@ -260,6 +274,7 @@ export class WorldView implements WorldLayer {
     });
     void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
+    this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
     this.makeOverlays();
     this.lastFocus = { x: this.o.spawn.x, z: this.o.spawn.z, vx: 0, vz: 0 };
     // The first pass runs before the first frame so the spawn tile is already on its way.
@@ -306,6 +321,7 @@ export class WorldView implements WorldLayer {
     if (this.frames % 30 === 0) this.remeshFiltered();
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
     this.sky?.update(f);
+    this.traffic?.update(f, tSec);
     this.updateOverlays();
     this.telemetry();
   }
@@ -373,6 +389,8 @@ export class WorldView implements WorldLayer {
     this.disposed = true;
     this.sky?.dispose();
     this.sky = null;
+    this.traffic?.dispose();
+    this.traffic = null;
     this.landmarks?.dispose();
     this.landmarks = null;
     this.renderer?.dispose();
@@ -497,6 +515,11 @@ export class WorldView implements WorldLayer {
     const mesh = (p as PreparedRemesh & { mesh?: UnitMesh }).mesh;
     if (!mesh || this.disposed || !this.store.ready(p.key, 'l0')) return;
     this.renderer.enqueue(mesh, -1);
+  }
+
+  /** The instanced traffic's counts for the QA bridge (`__dvBridge.world.traffic()`); null before `attach`. */
+  trafficReport(): TrafficInfo | null {
+    return this.traffic?.info() ?? null;
   }
 
   /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */
@@ -706,19 +729,45 @@ export class WorldView implements WorldLayer {
     });
   }
 
+  /**
+   * QA/perf: the way into the sim's ambient traffic (set by the bridge, which owns the command channel to sim.worker): the point it
+   * follows instead of the player, its density, and a probe of its fill. Null where there is no channel.
+   */
+  trafficLink: TrafficLink | null = null;
+
   /** The route scenarios' world half (`PerfScenarioRunner`): the focus follows the camera the runner places. */
   scenarioDriver(): WorldScenarioDriver {
+    let frames = 0;
     return {
-      prepare: async (start) => {
+      prepare: async (start, opts) => {
+        const link = this.trafficLink;
+        const nominal = opts?.density === 'nominal';
         this.setFocus({ x: start[0], z: start[1], vx: 0, vz: 0 });
+        link?.density(nominal ? 1 : 0);
+        if (nominal) link?.focus({ x: start[0], z: start[1], vx: 0, vz: 0 });
         await this.settle(45_000);
+        if (nominal && link) {
+          // the sim streams the packs around the start itself; the traffic fills in once the roads there are resident
+          const until = this.now() + 60_000;
+          for (;;) {
+            const p = await link.probe();
+            if (p && p.agents > 0 && p.filled) break;
+            if (this.now() > until) break;
+            await new Promise<void>((r) => setTimeout(r, 100));
+          }
+        }
+        frames = 0;
       },
       frame: (pose) => {
         this.setFocus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
+        // a command to the sim a few times a second is enough for a focus that moves at car speed
+        if (this.trafficLink && frames++ % 8 === 0) this.trafficLink.focus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
         return { groundY: this.groundY(pose.x, pose.z) };
       },
       finish: () => {
         this.setFocus(null);
+        this.trafficLink?.focus(null);
+        this.trafficLink?.density(1);
         return { coldDownloadMB: this.bytesBeforeReveal === null ? null : Math.round((this.bytesBeforeReveal / 1_000_000) * 100) / 100 };
       },
     };

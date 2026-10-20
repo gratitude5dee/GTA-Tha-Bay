@@ -1,6 +1,6 @@
 {
   "schema": "world-density/1",
-  "note": "profiles is an ordered array whose position is the baked densityProfile index (C08 SpawnTable). Append-only: a new profile goes at the end; a removal or reorder needs an Architect DL entry and a full re-bake (DL-555). perKm is the peak pedestrians per sidewalk kilometre for the S9 pedSlots formula; the values are design values (BD-M02a2-04). lampPitchM (M02b2) is the street-lamp spacing along Arterial and Collector segments, metres. Later milestones add hour curves, weather and tier factors (M03b1).",
+  "note": "profiles is an ordered array whose position is the baked densityProfile index (C08 SpawnTable). Append-only: a new profile goes at the end; a removal or reorder needs an Architect DL entry and a full re-bake (DL-555). perKm is the peak pedestrians per sidewalk kilometre for the S9 pedSlots formula; the values are design values (BD-M02a2-04). lampPitchM (M02b2) is the street-lamp spacing along Arterial and Collector segments, metres. M03b1 added hourAnchors, hourCurves (traffic and pedestrian activity per profile, linear between the anchors, wrapping to 00:00 after 22:00), tierFactors (traffic is the tier cap over 800, pedestrians over 600, parked cars by tier; the canonical profile always reads mobile-low) and weatherFactors; all are design values (living part section 7).",
   "profiles": [
     { "name": "cbd", "perKm": 140 },
     { "name": "cbd-tech", "perKm": 110 },
@@ -16,5 +16,29 @@
     { "name": "none", "perKm": 0 }
   ],
   "perLaneKm": { "0": 25, "1": 15, "2": 30, "3": 22, "4": 8, "5": 3 },
-  "lampPitchM": 30
+  "lampPitchM": 30,
+  "hourAnchors": [0, 3, 6, 8, 12, 17, 20, 22],
+  "hourCurves": {
+    "cbd": { "traffic": [0.15, 0.05, 0.35, 1, 0.7, 1, 0.5, 0.3], "ped": [0.05, 0.02, 0.2, 0.8, 1, 0.9, 0.5, 0.2] },
+    "cbd-tech": { "traffic": [0.15, 0.05, 0.35, 1, 0.7, 1, 0.5, 0.3], "ped": [0.05, 0.02, 0.2, 0.8, 1, 0.9, 0.5, 0.2] },
+    "nightlife": { "traffic": [0.2, 0.05, 0.25, 0.7, 0.7, 0.9, 1, 0.6], "ped": [0.1, 0.03, 0.15, 0.5, 0.7, 0.9, 1, 0.7] },
+    "civic-dense": { "traffic": [0.2, 0.08, 0.3, 0.9, 0.8, 1, 0.7, 0.4], "ped": [0.1, 0.05, 0.2, 0.7, 0.9, 1, 0.8, 0.4] },
+    "tourist-dense": { "traffic": [0.15, 0.05, 0.25, 0.7, 0.9, 0.9, 0.8, 0.4], "ped": [0.05, 0.03, 0.2, 0.6, 1, 1, 0.8, 0.3] },
+    "industrial": { "traffic": [0.1, 0.05, 0.5, 1, 0.9, 0.8, 0.3, 0.15], "ped": [0.02, 0.01, 0.1, 0.4, 0.5, 0.4, 0.1, 0.05] },
+    "residential": { "traffic": [0.1, 0.03, 0.3, 0.8, 0.5, 0.8, 0.5, 0.2], "ped": [0.05, 0.02, 0.15, 0.4, 0.5, 0.6, 0.5, 0.2] },
+    "residential-park": { "traffic": [0.1, 0.03, 0.25, 0.6, 0.6, 0.7, 0.4, 0.15], "ped": [0.04, 0.02, 0.15, 0.4, 0.8, 0.8, 0.5, 0.15] },
+    "sparse": { "traffic": [0.05, 0.02, 0.1, 0.3, 0.3, 0.4, 0.2, 0.1], "ped": [0.02, 0.01, 0.05, 0.15, 0.25, 0.3, 0.2, 0.08] },
+    "freeway": { "traffic": [0.3, 0.15, 0.6, 1, 0.8, 1, 0.6, 0.4], "ped": [0, 0, 0, 0, 0, 0, 0, 0] },
+    "beach": { "traffic": [0.02, 0.01, 0.1, 0.3, 0.5, 0.5, 0.3, 0.05], "ped": [0.02, 0, 0.1, 0.3, 0.8, 0.9, 0.5, 0.1] },
+    "none": { "traffic": [0, 0, 0, 0, 0, 0, 0, 0], "ped": [0, 0, 0, 0, 0, 0, 0, 0] }
+  },
+  "tierFactors": {
+    "traffic": { "desktop-ultra": 1, "desktop": 0.675, "xr-visionpro": 0.375, "mobile": 0.25, "mobile-low": 0.15, "xr-quest": 0.15 },
+    "ped": { "desktop-ultra": 1, "desktop": 0.667, "xr-visionpro": 0.333, "mobile": 0.25, "mobile-low": 0.133, "xr-quest": 0.133 },
+    "parked": { "desktop-ultra": 1, "desktop": 0.7, "xr-visionpro": 0.5, "mobile": 0.3, "mobile-low": 0.15, "xr-quest": 0.15 }
+  },
+  "weatherFactors": {
+    "traffic": { "clear": 1, "karl-fog": 0.9, "overcast": 1, "rain": 0.85, "smoke": 0.7, "golden": 1 },
+    "ped": { "clear": 1, "karl-fog": 0.7, "overcast": 0.9, "rain": 0.5, "smoke": 0.4, "golden": 1.1 }
+  }
 }

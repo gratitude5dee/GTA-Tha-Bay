@@ -1,5 +1,5 @@
 import { SimStage, type EntityId, type SystemDef } from '@dv/shared';
-import { Anim, CharacterBody, Control, LocalPlayer, RenderKey, Transform, Vehicle, Velocity } from './ecs/components.ts';
+import { Ambient, Anim, CharacterBody, Control, LocalPlayer, RenderKey, Transform, Vehicle, Velocity } from './ecs/components.ts';
 import type { EcsWorld } from './ecs/world.ts';
 import type { SnapshotWriter } from './transport/snapshot-buffer.ts';
 import { writeRecord, type SnapshotRecord } from './transport/snapshot-buffer.ts';
@@ -7,6 +7,8 @@ import { writeRecord, type SnapshotRecord } from './transport/snapshot-buffer.ts
 export const SNAPSHOT_PUBLISH_ID = 'engine.publish.snapshot';
 /** Snapshot record `flags` bit 0: the entity is visible. */
 export const SNAP_FLAG_VISIBLE = 1;
+/** Snapshot record `flags` bit 1: an ambient entity (traffic, parked cars). The object pool leaves it to the world's instanced renderer. */
+export const SNAP_FLAG_INSTANCED = 2;
 
 /**
  * The Publish-stage system that writes the render snapshot (C02: records of entities with Transform and RenderKey,
@@ -58,7 +60,7 @@ export function snapshotPublisher(
               rec.animP0 = ve.speed[id] as number;
               rec.animP1 = (ve.steer[id] as number) / 127;
             }
-            rec.flags = (rk.visible[id] as number) !== 0 ? SNAP_FLAG_VISIBLE : 0;
+            rec.flags = ((rk.visible[id] as number) !== 0 ? SNAP_FLAG_VISIBLE : 0) | (ecs.hasId(id, Ambient) ? SNAP_FLAG_INSTANCED : 0);
             rec.variant = rk.variant[id] as number;
             rec.lod = 0;
             writeRecord(view, n, rec);
