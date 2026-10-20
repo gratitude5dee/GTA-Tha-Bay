@@ -12,8 +12,10 @@
  */
 import type { HeatLevel, InfractionKind, PursuitConfig } from '@dv/shared';
 import type { Fnv64 } from '@dv/shared';
-import type { Rng } from '@dv/shared';
 import type { Vec3 } from './ports.ts';
+
+/** What the pursuit code draws from a stream; the module hands lazy streams so an untouched director creates none (BD-M03c-03). */
+export type RngLike = { range(lo: number, hi: number): number };
 
 export const TICKS_PER_SEC = 60;
 /** Points below the first level threshold fall by this much per second (stays inside the "no level yet" band)... */
@@ -107,7 +109,7 @@ export class ReportQueue {
   private seq = 0;
 
   /** The delay in ticks a witness adds to a report; consumes one draw of stream `pursuit` for a pedestrian. */
-  delayTicks(cfg: PursuitConfig, w: ReportWitness, rng: Rng): number {
+  delayTicks(cfg: PursuitConfig, w: ReportWitness, rng: RngLike): number {
     if (w === 'robotaxi') return Math.round(cfg.witness.robotaxiDelaySec * TICKS_PER_SEC);
     if (w === 'ped') {
       const [a, b] = cfg.witness.pedDelaySec;

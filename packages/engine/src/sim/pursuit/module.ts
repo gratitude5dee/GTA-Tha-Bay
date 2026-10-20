@@ -95,7 +95,8 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
       world,
       wallet,
       damage: host,
-      rng: { pursuit: services.rng.get('pursuit'), police: services.rng.get('police') },
+      // streams are created on the first draw: a director nobody touches leaves the RNG resource (and so the state hash) as it was
+      rng: { pursuit: { range: (a, b) => services.rng.get('pursuit').range(a, b) }, police: { range: (a, b) => services.rng.get('police').range(a, b) } },
       ...(opts.loadConfig ? { loadConfig: opts.loadConfig } : {}),
     });
     director.onActivate = () => {

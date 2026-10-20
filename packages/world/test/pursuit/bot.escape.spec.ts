@@ -42,7 +42,7 @@ suite('AC-8: pursuit-escape, the bot escapes', () => {
 
   it('draws only the pursuit and police streams (besides the clock)', () => {
     if (!bake) return;
-    expect(r.rngStreams).toContain('pursuit');
+    // `pursuit` is drawn for pedestrian report delays only; the line's witness is a robotaxi, so only `police` (the spawn picks) is certain
     expect(r.rngStreams).toContain('police');
     expect(r.rngStreams.filter((s) => s !== 'pursuit' && s !== 'police' && s !== 'weather')).toEqual([]);
   });

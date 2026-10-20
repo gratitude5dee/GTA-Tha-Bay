@@ -13,13 +13,12 @@ import { NULL_HANDLE } from '@dv/shared';
 import type {
   EntityHandle, Fnv64, HeatLevel, HeatState, InfractionKind, PursuitApi, PursuitConfig, PursuitProfile, StableKey,
 } from '@dv/shared';
-import type { Rng } from '@dv/shared';
 import type { ByteReader, ByteWriter } from '../bytes.ts';
 import type { SimResource } from '../services.ts';
 import { BustModel, fineCents } from './bust.ts';
 import { hasTactic } from './config.ts';
 import { Dispatcher } from './dispatch.ts';
-import { HeatModel, ReportQueue, TICKS_PER_SEC, type ReportWitness } from './heat.ts';
+import { HeatModel, ReportQueue, TICKS_PER_SEC, type ReportWitness, type RngLike } from './heat.ts';
 import type { PlayerView, PursuitHost, PursuitWorld, Vec3, VehicleDamagePort, WalletPort } from './ports.ts';
 import { SearchModel } from './search.ts';
 import { VehicleHeat } from './vehicle-heat.ts';
@@ -37,7 +36,7 @@ export interface DirectorDeps {
   world: PursuitWorld;
   wallet: WalletPort;
   damage: VehicleDamagePort;
-  rng: { pursuit: Rng; police: Rng };
+  rng: { pursuit: RngLike; police: RngLike };
   /** Loads `PursuitProfile.configRef` (a JSON file the page ships); null when unknown. */
   loadConfig?: (ref: string) => PursuitConfig | null;
 }

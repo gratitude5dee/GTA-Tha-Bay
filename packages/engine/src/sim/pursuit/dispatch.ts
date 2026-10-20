@@ -15,8 +15,7 @@
  */
 import { dcos, dsin, dsqrt } from '@dv/shared';
 import type { Fnv64, HeatLevel, PursuitConfig, StableKey, Tactic } from '@dv/shared';
-import type { Rng } from '@dv/shared';
-import { TICKS_PER_SEC } from './heat.ts';
+import { TICKS_PER_SEC, type RngLike } from './heat.ts';
 import type { DriveInput, LanePoint, PlayerView, PursuitHost, PursuitWorld, UnitRole, UnitView, Vec3, VehicleDamagePort } from './ports.ts';
 import { boxHeld, boxInTarget, rollingBlockTarget, suvRamTarget } from './tactics/boxin.ts';
 import { clamp, dist2, driveToward, followSpeed, forwardOf, hold, pathTarget, UNIT_MAX_SPEED, type SteerTarget } from './tactics/follow.ts';
@@ -168,7 +167,7 @@ export class Dispatcher {
     public cfg: PursuitConfig,
     private readonly host: PursuitHost,
     private readonly world: PursuitWorld,
-    private readonly rng: Rng,
+    private readonly rng: RngLike,
     private readonly damage: VehicleDamagePort,
   ) {}
 
