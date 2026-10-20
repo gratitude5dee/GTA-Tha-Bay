@@ -1,4 +1,5 @@
 import type { EdgeId, Portal, ShoreNode, WorldApi } from '@dv/shared';
+import type { WorldTagsPort } from '../pursuit/ports.ts';
 
 /**
  * What the engine knows of the world's edges (M02c1, DL-691; engine-owned, not a C08 shape). The world package implements it
@@ -30,8 +31,10 @@ export interface WorldBoundsPort {
 export interface WorldHub {
   api: WorldApi | null;
   bounds: WorldBoundsPort | null;
+  /** The chunk tags (hiding spots, choke points) the pursuit director reads (M03c); null until the world module registers them. */
+  tags: WorldTagsPort | null;
 }
 
 export function createWorldHub(): WorldHub {
-  return { api: null, bounds: null };
+  return { api: null, bounds: null, tags: null };
 }

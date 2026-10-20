@@ -285,6 +285,7 @@ export class SimRuntime {
         break;
       case 'debug.blackout':
       case 'debug.world':
+      case 'debug.pursuit':
         break;   // the world module handles them (SimModule.onDebug)
       case 'debug.bot':
         if (sim && this.botFactory) this.bot = cmd.script.length === 0 ? null : this.botFactory(cmd.script, sim.core.tick);

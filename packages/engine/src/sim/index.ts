@@ -33,3 +33,4 @@ export * from './interaction/handlers.ts';
 export * from './ragdoll/ragdoll-lite.ts';
 export * from './world/closures.ts';
 export { VEHICLE_PREFABS } from './prefabs/registry.ts';
+export * from './pursuit/index.ts';

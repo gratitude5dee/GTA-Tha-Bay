@@ -1,0 +1,28 @@
+{
+  "$comment": "Pursuit director defaults (01-engine-save-modes.md 'PursuitDirector core'; M03c). Design values: the owner may tune them. Level 0 is clear, 6 is scripted only. maxUnits counts every unit of the level (cruisers, SUVs, helicopter); suv is how many of them may be SUVs. evasion is per 10 s, speedingSeen per second in sight. fines.cashPct is a percentage. Racing replaces this file through PursuitProfile.configRef (config/pursuit.race.json, M07a2).",
+  "schema": 1,
+  "levels": [
+    { "points": 0, "maxUnits": 0, "suv": 0, "heli": false, "tactics": [], "searchRadiusM": 0, "cooldownSec": 0 },
+    { "points": 100, "maxUnits": 2, "suv": 0, "heli": false, "tactics": ["follow", "siren"], "searchRadiusM": 150, "cooldownSec": 10 },
+    { "points": 300, "maxUnits": 4, "suv": 0, "heli": false, "tactics": ["follow", "siren", "loudspeaker", "pit"], "searchRadiusM": 250, "cooldownSec": 20 },
+    { "points": 700, "maxUnits": 7, "suv": 2, "heli": false, "tactics": ["follow", "siren", "loudspeaker", "pit", "boxIn", "rollingBlock", "roadblock2", "suvRam"], "searchRadiusM": 400, "cooldownSec": 35 },
+    { "points": 1500, "maxUnits": 9, "suv": 2, "heli": true, "tactics": ["follow", "siren", "loudspeaker", "pit", "boxIn", "rollingBlock", "roadblock2", "roadblockHeavy", "spikes", "heliSpotlight", "suvRam"], "searchRadiusM": 600, "cooldownSec": 50 },
+    { "points": 3000, "maxUnits": 12, "suv": 4, "heli": true, "tactics": ["follow", "siren", "loudspeaker", "pit", "boxIn", "rollingBlock", "roadblock2", "roadblockHeavy", "spikes", "heliSpotlight", "suvRam", "portalSeal"], "searchRadiusM": 900, "cooldownSec": 75 },
+    { "points": 6000, "maxUnits": 14, "suv": 5, "heli": true, "tactics": ["follow", "siren", "loudspeaker", "pit", "boxIn", "rollingBlock", "roadblock2", "roadblockHeavy", "spikes", "heliSpotlight", "suvRam", "portalSeal"], "searchRadiusM": 1200, "cooldownSec": 90 }
+  ],
+  "infractionPoints": {
+    "speedingSeen": 5,
+    "redLightSeen": 10,
+    "hitCivilianVehicle": 20,
+    "hitPoliceVehicle": 60,
+    "propertyDamage": 8,
+    "assault": 80,
+    "zoneViolation": 25,
+    "evasion": 15
+  },
+  "witness": { "robotaxiDelaySec": 2, "pedDelaySec": [3, 6], "pedReports": true },
+  "search": { "losLostSec": 2, "growMps": 5, "hidingMultiplier": 2, "losChecksPerTick": 16 },
+  "bust": { "speedMps": 2, "units": 2, "radiusM": 8, "sec": 3, "onFootGrappleSec": 2 },
+  "fines": { "minCents": 25000, "cashPct": 5, "perHeatCents": 50000 },
+  "impoundStrikes": 3
+}

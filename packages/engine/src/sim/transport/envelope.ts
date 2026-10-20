@@ -49,7 +49,9 @@ export type DebugCommand =
   /** Sets one field of one component of an entity through the command channel (QA, debug builds only); the answer is `inspect.reply.<id>`. */
   | { t: 'debug.edit'; id: number; handle: number; component: string; field: string; lane?: number; value: number }
   /** The shapes of every physics body by entity handle, for the wireframe (QA); the answer is `physics.reply.<id>`. */
-  | { t: 'debug.physics'; id: number };
+  | { t: 'debug.physics'; id: number }
+  /** The pursuit director (M03c, QA only): `setHeat {level}`, `clear`, `neverWanted {on}`, `scripted {on}`, `report {kind, witness, count}`, `wallet {cents}`, `state`; the answer is `pursuit.reply.<id>`. */
+  | { t: 'debug.pursuit'; id: number; op: string; args?: Record<string, unknown> };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -161,6 +163,7 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
       return isInt(p['id']) && typeof p['prefab'] === 'string' && p['prefab'].length <= 64 && Array.isArray(p['at']) && p['at'].length === 3 && p['at'].every(isNum) && (p['yaw'] === undefined || isNum(p['yaw']));
     case 'debug.vehicle':
       return isInt(p['id']) && typeof p['op'] === 'string' && ['enter', 'seat', 'exit', 'lock', 'unlock', 'state'].includes(p['op']) && (p['target'] === undefined || isInt(p['target']));
+    case 'debug.pursuit': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 24 && (p['args'] === undefined || isObject(p['args']));
     case 'debug.inspect': return isInt(p['id']) && (p['handle'] === undefined || isInt(p['handle']));
     case 'debug.edit':
       return isInt(p['id']) && isInt(p['handle']) && typeof p['component'] === 'string' && p['component'].length <= 40 && typeof p['field'] === 'string' && p['field'].length <= 40 && (p['lane'] === undefined || isInt(p['lane'])) && isNum(p['value']);
