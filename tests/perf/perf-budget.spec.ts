@@ -11,6 +11,8 @@ import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.
 const budgets = JSON.parse(readFileSync('config/tier-budgets.json', 'utf8')) as { tiers: Record<QualityTierId, { render: { maxRenderObjects: number; maxTriangles: number; maxGpuDrawCmds: number } }> };
 const TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'];
 const SCENARIO = process.env.DV_PERF_SCENARIO ?? 'graybox-walk';
+/** Scenarios that show the ambient traffic (M03b1): they also write a `.traffic.json` the counts check judges. */
+const TRAFFIC = new Set(['downtown-rush']);
 const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
 
@@ -20,8 +22,21 @@ for (const tier of TIERS) {
     await page.goto(`/?tier=${tier}&perf=1`);
     await page.waitForFunction(() => (window as unknown as { __dvBridge?: { platform?: unknown } }).__dvBridge?.platform !== undefined, undefined, { timeout: 90_000 });
 
-    // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
-    if (SCENARIO !== 'graybox-walk') {
+    // M03b1: the traffic scenario runs at the evening peak (17:00 on a clear weekday, the hour curve's top) with the traffic following the camera.
+    if (TRAFFIC.has(SCENARIO)) {
+      await page.waitForFunction(() => (window as unknown as { __dvBridge?: { world?: unknown } }).__dvBridge?.world !== undefined, undefined, { timeout: 150_000 });
+      await page.evaluate(() => {
+        const world = (window as unknown as { __dvBridge: { world: { setHour(h: number, freeze?: boolean): boolean; setWeather(w: string, blendSec?: number): boolean; rain(v: number | null): void } } }).__dvBridge.world;
+        world.setHour(17, true);
+        world.setWeather('clear', 0);
+        world.rain(0);
+        // samples of what the traffic costs, taken while the scenario runs
+        const w = window as unknown as { __trafficSamples?: unknown[]; __trafficTimer?: number; __dvBridge: { world: { traffic(): unknown } } };
+        w.__trafficSamples = [];
+        w.__trafficTimer = window.setInterval(() => w.__trafficSamples?.push(w.__dvBridge.world.traffic()), 250);
+      });
+    } else if (SCENARIO !== 'graybox-walk') {
+      // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
       await page.waitForFunction(() => (window as unknown as { __dvBridge?: { world?: unknown } }).__dvBridge?.world !== undefined, undefined, { timeout: 150_000 });
       await page.evaluate(() => {
         const world = (window as unknown as { __dvBridge: { world: { setHour(h: number, freeze?: boolean): boolean; setWeather(w: string, blendSec?: number): boolean; rain(v: number | null): void } } }).__dvBridge.world;
@@ -38,6 +53,20 @@ for (const tier of TIERS) {
     mkdirSync('test-results', { recursive: true });
     const file = `test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.json`;
     writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`);
+
+    if (TRAFFIC.has(SCENARIO)) {
+      const traffic = await page.evaluate(async () => {
+        const w = window as unknown as { __trafficSamples?: Array<{ instances: number; draws: number; objects: number; cap: number } | null>; __trafficTimer?: number; __dvBridge: { world: { trafficSim(ms?: number): Promise<{ agents?: number; cap?: number } | null> } } };
+        if (w.__trafficTimer !== undefined) window.clearInterval(w.__trafficTimer);
+        const samples = (w.__trafficSamples ?? []).filter((x): x is NonNullable<typeof x> => x !== null);
+        const sim = await w.__dvBridge.world.trafficSim(10_000);
+        const max = (f: (x: (typeof samples)[number]) => number): number => samples.reduce((m, x) => Math.max(m, f(x)), 0);
+        return { samples: samples.length, instancesMax: max((x) => x.instances), drawsMax: max((x) => x.draws), objectsMax: max((x) => x.objects), cap: samples[0]?.cap ?? 0, simAgents: sim?.agents ?? 0, simCap: sim?.cap ?? 0 };
+      });
+      writeFileSync(`test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.traffic.json`, `${JSON.stringify({ scenario: SCENARIO, tier, ...traffic }, null, 2)}\n`);
+      console.log(`traffic ${testInfo.project.name} ${tier}: instancesMax=${traffic.instancesMax} (cap ${traffic.cap}) draws=${traffic.drawsMax} objects=${traffic.objectsMax} simAgents=${traffic.simAgents} samples=${traffic.samples}`);
+      expect(traffic.samples).toBeGreaterThan(0);
+    }
 
     const budget = budgets.tiers[tier].render;
     console.log(

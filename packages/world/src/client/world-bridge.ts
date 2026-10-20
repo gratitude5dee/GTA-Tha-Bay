@@ -167,6 +167,15 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
     resetLandmarkStats: () => view.landmarks?.resetStats(),
   };
+  // the perf scenarios' way into the sim's traffic: fire-and-forget commands (id 0: the reply slot is overwritten, not accumulated)
+  view.trafficLink = {
+    focus: (f) => void act({ t: 'debug.world', id: 0, op: 'traffic', args: f ? { x: f.x, z: f.z, vx: f.vx, vz: f.vz } : { clearFocus: true } }),
+    density: (mult) => void act({ t: 'debug.world', id: 0, op: 'density', args: { kind: 'traffic', mult, by: 'perf' } }),
+    probe: async () => {
+      const r = (await call('traffic', undefined, 5_000)) as { agents?: number; filled?: boolean } | null;
+      return r ? { agents: Number(r.agents ?? 0), filled: r.filled === true } : null;
+    },
+  };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };
   // With ?debug=1 the teleport, GPS and world-edge controls sit under the sky controls (M02c1).

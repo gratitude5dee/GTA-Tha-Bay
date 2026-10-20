@@ -228,7 +228,8 @@ export class WorldSim {
     this.applyReplies();
     const pl = playerSide(ctx.ecs as unknown as EcsWorld);
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
-    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(focus);
+    // QA: the perf scenario drives the traffic (and so the residency it needs) from the camera; the statics feed keeps the player's focus
+    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(this.api?.ambient?.focusOverride ?? focus);
     const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
     this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);

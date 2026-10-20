@@ -47,6 +47,16 @@ export interface AssetsLike extends JobClient {
   stats(): Promise<{ bytes: number; network: number; retries: number }>;
 }
 
+/** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
+export interface TrafficLink {
+  /** The point the traffic follows (and the sim's streaming wants), or null for the player. */
+  focus(f: { x: number; z: number; vx: number; vz: number } | null): void;
+  /** Density multiplier of the `traffic` kind, 0 to 1.5 (1 = the model's own). */
+  density(mult: number): void;
+  /** Agents alive and whether the initial fill is over; null if the sim did not answer. */
+  probe(): Promise<{ agents: number; filled: boolean } | null>;
+}
+
 export interface WorldViewOptions {
   tier: QualityTierId;
   index: Pick<WorldIndex, 'bakeId' | 'tiles'>;
@@ -719,19 +729,45 @@ export class WorldView implements WorldLayer {
     });
   }
 
+  /**
+   * QA/perf: the way into the sim's ambient traffic (set by the bridge, which owns the command channel to sim.worker): the point it
+   * follows instead of the player, its density, and a probe of its fill. Null where there is no channel.
+   */
+  trafficLink: TrafficLink | null = null;
+
   /** The route scenarios' world half (`PerfScenarioRunner`): the focus follows the camera the runner places. */
   scenarioDriver(): WorldScenarioDriver {
+    let frames = 0;
     return {
-      prepare: async (start) => {
+      prepare: async (start, opts) => {
+        const link = this.trafficLink;
+        const nominal = opts?.density === 'nominal';
         this.setFocus({ x: start[0], z: start[1], vx: 0, vz: 0 });
+        link?.density(nominal ? 1 : 0);
+        if (nominal) link?.focus({ x: start[0], z: start[1], vx: 0, vz: 0 });
         await this.settle(45_000);
+        if (nominal && link) {
+          // the sim streams the packs around the start itself; the traffic fills in once the roads there are resident
+          const until = this.now() + 60_000;
+          for (;;) {
+            const p = await link.probe();
+            if (p && p.agents > 0 && p.filled) break;
+            if (this.now() > until) break;
+            await new Promise<void>((r) => setTimeout(r, 100));
+          }
+        }
+        frames = 0;
       },
       frame: (pose) => {
         this.setFocus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
+        // a command to the sim a few times a second is enough for a focus that moves at car speed
+        if (this.trafficLink && frames++ % 8 === 0) this.trafficLink.focus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
         return { groundY: this.groundY(pose.x, pose.z) };
       },
       finish: () => {
         this.setFocus(null);
+        this.trafficLink?.focus(null);
+        this.trafficLink?.density(1);
         return { coldDownloadMB: this.bytesBeforeReveal === null ? null : Math.round((this.bytesBeforeReveal / 1_000_000) * 100) / 100 };
       },
     };

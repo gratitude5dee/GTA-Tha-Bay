@@ -1,0 +1,13 @@
+{
+  "$comment": "M03b1 camera path for the scenario 'downtown-rush' (M03b1, DL-656 part 4): a drive down the centre line of the SoMa and Financial District streets (the 160 m street grid of the synth world; real names on the real map), 12 m/s, eye 2.6 m above the road, looking 50 m ahead, so ambient traffic fills the view at the evening peak (17:00, weekday; the spec sets the hour and the weather). The traffic follows the camera: the driver hands its position to the sim as the traffic focus. Nominal density, seed 0xC0FFEE. ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "downtown-rush",
+  "kind": "route",
+  "waypointsEnu": [[700, 136], [1020, 136], [1020, -504], [1660, -504]],
+  "speedMps": 12,
+  "eyeHeightM": 2.6,
+  "lookAheadM": 50,
+  "durationS": 90,
+  "warmupS": 8,
+  "seed": 12648430,
+  "density": "nominal"
+}
