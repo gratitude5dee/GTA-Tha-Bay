@@ -3,6 +3,7 @@
  * player at its wheel, 60 settle ticks, then the line. The runner returns what the oracle tests measure.
  */
 import { SIM_DT } from '@dv/shared';
+import { Transform } from '../src/sim/ecs/components.ts';
 import { LinePlayer } from '../src/sim/lines/player.ts';
 import { lineLength, type LineFile } from '../src/sim/lines/format.ts';
 import { createVehicleWorld, launch, view, type VehicleView, type VehicleWorld } from './vehicle-sim.ts';
@@ -42,7 +43,13 @@ export async function runLine(line: LineFile, opts: RunOptions = {}): Promise<Li
     launch(world, line.start.speed);
   }
   const baseTick = sim.tick;
-  const player = new LinePlayer(line, baseTick);
+  // the probe of `follow` and `waitNear`: where the vehicle is and which way it faces (yaw = 2 atan2(qy, qw), forward is (-sin, -cos))
+  const probe = (): { x: number; z: number; yaw: number; inVehicle: boolean } => {
+    const id = sim.ecs.resolve(world.vehicle) as number;
+    const tr = sim.ecs.store(Transform);
+    return { x: tr.px[id] as number, z: tr.pz[id] as number, yaw: 2 * Math.atan2(tr.qy[id] as number, tr.qw[id] as number), inVehicle: true };
+  };
+  const player = new LinePlayer(line, baseTick, probe);
   const trace: VehicleView[] = [];
   const gears: number[] = [];
   let lastGear = -99;

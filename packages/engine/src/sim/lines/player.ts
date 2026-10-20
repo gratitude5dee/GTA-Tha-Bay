@@ -126,7 +126,7 @@ export class LinePlayer implements BotInput {
         const want = datan2(-dx, -dz);
         if (p.inVehicle) {
           const err = normalizeAngle(want - p.yaw);
-          out = { ...out, steer: clamp(Math.round(err * 160), -127, 127) };
+          out = { ...out, steer: clamp(Math.round(-err * 160), -127, 127) };   // yaw grows to the left, a right steer is positive
         } else {
           let yaw = want;
           if (yaw < 0) yaw += TWO_PI;

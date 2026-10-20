@@ -174,4 +174,38 @@ describe('line format', () => {
     const seen = [0, 1, 2, 3, 4, 5, 6].map((t) => p.frame(t).throttle);
     expect(seen).toEqual([10, 10, 10, 10, 20, 30, 0]);
   });
+
+  it('follow steers a vehicle toward the point: a target on the right is a positive steer, one on the left a negative one', () => {
+    const input: LineInput = { buttons: 0, moveX: 0, moveY: 0, throttle: 50, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 };
+    const line: LineFile = {
+      v: 1, scenario: 's', seed: 1, profile: 'canonical', start: { pos: [0, 0, 0], yaw: 0 },
+      frames: encodeRuns([input]),
+      commands: [{ t: 'follow', tick: 0, x: 50, z: -50 }],
+    };
+    // the vehicle faces north (-z); the point is north-east, to its right
+    const right = new LinePlayer(line, 0, () => ({ x: 0, z: 0, yaw: 0, inVehicle: true }));
+    expect(right.frame(0).steer).toBeGreaterThan(40);
+    const left = new LinePlayer({ ...line, commands: [{ t: 'follow', tick: 0, x: -50, z: -50 }] }, 0, () => ({ x: 0, z: 0, yaw: 0, inVehicle: true }));
+    expect(left.frame(0).steer).toBeLessThan(-40);
+    // already facing the point: no steer
+    const ahead = new LinePlayer({ ...line, commands: [{ t: 'follow', tick: 0, x: 0, z: -80 }] }, 0, () => ({ x: 0, z: 0, yaw: 0, inVehicle: true }));
+    expect(ahead.frame(0).steer).toBe(0);
+  });
+
+  it('a follow line drives the sedan to the point', async () => {
+    // the sedan starts facing east on the oracle track; the point is 60 m ahead and 60 m to the south (z grows southward)
+    const input: LineInput = { buttons: 0, moveX: 0, moveY: 0, throttle: 45, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 };
+    const line: LineFile = {
+      v: 1, scenario: 'vehicle-oracle', seed: 1, profile: 'canonical', start: { pos: [0, 0, 0], yaw: -Math.PI / 2, prefab: 'vehicle.sedan' },
+      frames: encodeRuns([input, ...Array.from({ length: 599 }, () => input)]),
+      commands: [{ t: 'follow', tick: 0, x: 60, z: 60, r: 6 }],
+    };
+    const { runLine } = await import('./lines-runner.ts');
+    const r = await runLine(line);
+    const first = r.trace[0]!;
+    const last = r.trace[r.trace.length - 1]!;
+    const dist = (v: { x: number; z: number }): number => Math.hypot(v.x - 60, v.z - 60);
+    expect(dist(last)).toBeLessThan(dist(first) - 30);
+    expect(last.z).toBeGreaterThan(20);
+  });
 });
