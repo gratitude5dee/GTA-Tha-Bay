@@ -16,7 +16,7 @@
  * `DirectionalLight` cascade (reports 1). `onRendererReplaced` sets the shadow object up again, or device-loss recovery loses the
  * sun shadows.
  */
-import type { DirectionalLight, Camera, Light, Scene, WebGPURenderer } from 'three/webgpu';
+import { DirectionalLight, type Camera, type Light, type Scene, type WebGPURenderer } from 'three/webgpu';
 import { CSMShadowNode } from 'three/addons/csm/CSMShadowNode.js';
 import { SunLight } from 'three/addons/lights/SunLight.js';
 import { SunLightNode } from 'three/addons/lights/SunLightNode.js';
@@ -59,7 +59,10 @@ export class ShadowRig {
 
   private readonly o: ShadowRigOptions;
   private csm: CSMShadowNode | null = null;
-  private readonly dirLight: DirectionalLight;
+  /** The sun the sky drives; it never casts. */
+  private readonly base: DirectionalLight;
+  /** The light that casts: `base` itself never does (a three shadow node does not survive its light's `castShadow` being switched off and on), a fresh one per build does. */
+  private dirLight: DirectionalLight;
   private sunLight: SunLight | null = null;
   private lastCam = { near: 0, far: 0, aspect: 0, fov: 0 };
   private dir: [number, number, number] = [0.3, 0.8, 0.5];
@@ -67,6 +70,7 @@ export class ShadowRig {
 
   constructor(o: ShadowRigOptions) {
     this.o = o;
+    this.base = o.light;
     this.dirLight = o.light;
     this.light = o.light;
     const asked = o.disabled ? 'none' : o.shadows.mode;
@@ -122,7 +126,12 @@ export class ShadowRig {
       this.place(this.dir);
       return;
     }
-    const light = this.dirLight;
+    const base = this.base;
+    const light = new DirectionalLight(base.color.clone(), base.intensity);
+    light.position.copy(base.position);
+    scene.remove(base);
+    scene.add(light);
+    this.dirLight = light;
     light.castShadow = true;
     light.shadow.mapSize.set(size, size);
     light.shadow.bias = -0.0004;
@@ -160,8 +169,17 @@ export class ShadowRig {
       this.sunLight = null;
       if (!this.dirLight.parent) scene.add(this.dirLight);
     }
-    this.dirLight.castShadow = false;
-    this.light = this.dirLight;
+    if (this.dirLight !== this.base) {
+      const cast = this.dirLight;
+      cast.castShadow = false;
+      scene.remove(cast);
+      scene.remove(cast.target);
+      cast.dispose();
+      this.dirLight = this.base;
+      if (!this.base.parent) scene.add(this.base);
+    }
+    this.base.castShadow = false;
+    this.light = this.base;
   }
 
   /** Places the sun along `dir` (a unit vector toward the sun). The fitted cascade follows the focus; the others sit at the origin. */

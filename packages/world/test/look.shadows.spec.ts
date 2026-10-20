@@ -30,7 +30,10 @@ function rig(tier: keyof typeof TIERS, o: { order?: readonly ShadowPath[]; disab
 describe('ShadowRig: the shadow object and its cascade count', () => {
   it('desktop and desktop-ultra: CSMShadowNode with three cascades, maxFar the tier\'s shadow distance, the tier\'s map size', () => {
     for (const tier of ['desktop', 'desktop-ultra'] as const) {
-      const { r, light, renderer } = rig(tier);
+      const { r, renderer, light: sun } = rig(tier);
+      const light = r.light as DirectionalLight;
+      expect(light).not.toBe(sun);
+      expect(sun.castShadow).toBe(false);
       expect(r.mode).toBe('csm3');
       expect(r.path).toBe('csm');
       expect(r.passes).toBe(3);
@@ -45,7 +48,8 @@ describe('ShadowRig: the shadow object and its cascade count', () => {
   });
 
   it('mobile: one fitted DirectionalLight cascade of the tier\'s map size, reporting 1', () => {
-    const { r, light } = rig('mobile');
+    const { r } = rig('mobile');
+    const light = r.light as DirectionalLight;
     expect(r.mode).toBe('csm1');
     expect(r.path).toBe('fitted');
     expect(r.passes).toBe(1);
@@ -155,5 +159,23 @@ describe('ChunkRenderer: which objects cast', () => {
     const key = [...cr.units.keys()][0] as string;
     expect(key).toMatch(/^l0:/);
     void (null as unknown as ChunkKey);
+  });
+});
+
+describe('ShadowRig: off and on again', () => {
+  it('a rebuild gets a fresh casting light and gives the sun back when it is torn down (a shadow node does not survive a light that stops casting and starts again)', () => {
+    const { r, scene, light: sun } = rig('mobile');
+    const first = r.light;
+    expect(first).not.toBe(sun);
+    expect(scene.children).not.toContain(sun);
+    r.setEnabled(false);
+    expect(r.passes).toBe(0);
+    expect(scene.children).toContain(sun);
+    expect(scene.children).not.toContain(first);
+    r.setEnabled(true);
+    expect(r.path).toBe('fitted');
+    expect(r.light).not.toBe(first);
+    expect(r.light).not.toBe(sun);
+    expect(sun.castShadow).toBe(false);
   });
 });
