@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "2841ffaada587d9b483a1ccbdbc23a325e75fb9bdc3dc0231da9a99659f58d8b",
+  "paths": [
+    "assets/src/building/lm.park-bandshell/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "5484d942edfb1930486879adcea29e484cec33077f4f0b52e66d67a9be1c0222"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

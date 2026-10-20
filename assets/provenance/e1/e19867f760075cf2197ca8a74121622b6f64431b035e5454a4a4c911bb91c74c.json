@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "e19867f760075cf2197ca8a74121622b6f64431b035e5454a4a4c911bb91c74c",
+  "paths": [
+    "assets/src/building/lm.opera-house/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "ccf74084c54255dcc5c2e3c3c9d4540f3455551e432cf07409fd7f8a2f773421"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

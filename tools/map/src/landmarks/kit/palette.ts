@@ -53,6 +53,26 @@ export const COLORS = {
   flower: '#c75a7a',
   timber: '#8a6a4a',
   lamp: '#e8d9a0',
+  // painted wood, courts, fields (M02d2)
+  paintBlue: '#6f93b8',
+  paintCream: '#e9dcae',
+  paintSage: '#8fa987',
+  paintRose: '#c98f8f',
+  paintYellow: '#dcc070',
+  paintTeal: '#5f9a98',
+  paintLilac: '#9c8fb5',
+  trimWhite: '#f3efe6',
+  lawn: '#78a05a',
+  field: '#5c8a47',
+  dirt: '#b08a60',
+  seatBlue: '#3f5e86',
+  seatGreen: '#4d6d57',
+  woodDark: '#6a4f38',
+  redLacquer: '#a63a2c',
+  tileGreen: '#4f8a6a',
+  glassLight: '#a9c4d4',
+  blossom: '#e3a9bd',
+  tyre: '#2c2d30',
 } as const;
 export type ColorName = keyof typeof COLORS;
 

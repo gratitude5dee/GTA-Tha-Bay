@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.pier-39",
+  "variants": {
+    "desktop": "assets/src/building/lm.pier-39/desktop.glb",
+    "mobile": "assets/src/building/lm.pier-39/mobile.glb",
+    "mobile-low": "assets/src/building/lm.pier-39/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1122,
+      "verts": 2296,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 526,
+      "verts": 1078,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 214,
+      "verts": 424,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

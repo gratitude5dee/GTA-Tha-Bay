@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.mission-bay-arena",
+  "variants": {
+    "desktop": "assets/src/building/lm.mission-bay-arena/desktop.glb",
+    "mobile": "assets/src/building/lm.mission-bay-arena/mobile.glb",
+    "mobile-low": "assets/src/building/lm.mission-bay-arena/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2918,
+      "verts": 5158,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 1407,
+      "verts": 2507,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 418,
+      "verts": 592,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

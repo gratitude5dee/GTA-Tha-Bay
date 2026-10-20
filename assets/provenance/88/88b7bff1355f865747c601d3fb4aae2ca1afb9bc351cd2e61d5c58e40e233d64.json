@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "88b7bff1355f865747c601d3fb4aae2ca1afb9bc351cd2e61d5c58e40e233d64",
+  "paths": [
+    "assets/src/building/lm.saint-mary-cathedral/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "7c751dc59f9c1b296c61c12ca1c6f1afbd03952f725edad9a1d8a5b8ae32f4b6"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.fort-point",
+  "variants": {
+    "desktop": "assets/src/building/lm.fort-point/desktop.glb",
+    "mobile": "assets/src/building/lm.fort-point/mobile.glb",
+    "mobile-low": "assets/src/building/lm.fort-point/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 5426,
+      "verts": 10858,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 2442,
+      "verts": 4890,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 770,
+      "verts": 1540,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "6d01fa1b466bdec2312ba4cc9e4d58fdc1bf3afdca285107e4b3a6d35de3200f",
+  "paths": [
+    "assets/src/building/lm.grace-cathedral/desktop.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "b30fe120493359e8c8a4215ad693cece54602c2e74266ff3d8e6226e1165127a"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

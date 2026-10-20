@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "5c58b11d62535e0808230d142a982049d56fc82ab3e202938e367dbc1f3eb2d8",
+  "paths": [
+    "assets/src/building/lm.peace-pagoda/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "a3c8051b73cd63d5f6941b33e52f3d1dbb2a7bfff105007d7fbb839900947116"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

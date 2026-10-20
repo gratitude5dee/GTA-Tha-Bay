@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ce8728ccab4bf81a19a64a238328bebb7d6365718298b2c397aff06be4a522d7",
+  "paths": [
+    "assets/src/building/lm.mission-bay-arena/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "f30d3c29f7688076f672981fbbf0aaeb98632d415a99c4579bcfe17efc55404a"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}
