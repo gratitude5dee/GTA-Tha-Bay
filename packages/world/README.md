@@ -30,6 +30,10 @@ With the synth world running (`DV_WORLD=synth pnpm dev`), open `/?debug=1&tier=d
 
 The services (`createWorldApi` in `src/sim/api/world-api.ts`) implement the C08 interfaces over the resident `p0` chunks and the always-resident `sf-graph.v1`: A* with ties by edge id (`graph/astar.ts`), `signal()` from the pure `signalAspect`, `TrafficControl` (blackout, density, closures, owner release), `WorldQuery` (ground, water, neighbourhood and district from `data/district-grid.v1`), `WorldResolver` (`snap` within 25 m), `PlaceIndex`, `TeleportApi` (pre-stream, fade, place) and the edges: county-line barriers and fog, portals (`closed`, `open`, `sealed`), the play-bounds wall and the swim respawn. The engine reaches the edges only through `WorldBoundsPort` on `services.world` (`@dv/engine/sim`).
 
+## See the landmarks and the skyline
+
+With the synth world running (`DV_WORLD=synth pnpm dev`), open `/?debug=1&tier=desktop`: the seven far silhouettes (the Golden Gate and Bay bridges, Sutro Tower, the crown and pyramid towers, Coit Tower, the Ferry Building) stand on the horizon from City Hall as `lo` models, and the debug box reads `skyline 7/7 drawn`. Pick **lm.twin-peaks** in the landmark list and press Go for the view over the city. At `?tier=mobile-low` the draw distance is 1.5 km, so fewer of them are in range; fly the free camera toward the Ferry Building (or pick it in the list) and watch the crown and pyramid towers swap to the `mid`/`lo` model without a flicker. All 37 landmarks of `02-world-bake.md` section 7 are in the list: `lm.painted-ladies` to `lm.saint-mary-cathedral` are the 25 added by M02d2. `window.__dvBridge.world.landmarks()` reports the resident models, the skyline entries (phase, drawn or hidden and by what), the frame counters (`holes` must stay 0) and the latest swap commits; `swaps()` lists each `landmark.swap` event (frame, main-thread ms, uploads that frame). `map:landmarks -- --preview <id>` draws a recipe without a GPU.
+
 ## Scripts
 
 | Command | Does |
@@ -38,4 +42,5 @@ The services (`createWorldApi` in `src/sim/api/world-api.ts`) implement the C08 
 | `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-route` | the streaming e2e (`@world-route`, `@world-boot-size`, `@world-faults`, `@world-backdrop`) |
 | `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-sky` | the sky e2e: luminance gates, Karl fog, blackout, the tier matrix |
 | `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-teleport\|@world-astar\|@world-bounds"` | the M02c1 e2e: ten landmark teleports, 50 routes (Node against the page), the water, county-line and play-bounds edges |
+| `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-landmarks` | the landmark e2e (M02d1, M02d2): swap and restore, the 37 models at two tiers, the skyline; `--grep @world-landmarks-swap` runs the route (skyline always drawn, no hole, one upload per commit) |
 | `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail` | render-object and triangle budgets of the flight over the whole city |

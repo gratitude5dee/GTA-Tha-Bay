@@ -233,7 +233,7 @@ export class WorldView implements WorldLayer {
         },
         // The commit takes one upload slot, like a chunk: the gate never lets two through in a frame.
         queue: (task) => this.renderer.enqueueTask(task.id, task.priority, task.bytes, { run: (info) => task.run(info) }),
-        groundY: (x, z) => this.groundY(x, z),
+        groundY: (x, z, exact) => (exact ? this.groundY(x, z) : (this.groundY(x, z) ?? this.coarseGroundY(x, z))),
         waterY: MESHER.lod.waterLevelM,
         now: () => this.now(),
         // The skyline: the tier's building draw distance (the streaming r2), once the world is revealed (after the spawn p0 set).
@@ -502,6 +502,36 @@ export class WorldView implements WorldLayer {
   /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */
   landmarksReport(): LandmarksReport | null {
     return this.landmarks?.report() ?? null;
+  }
+
+  /**
+   * Terrain height under (x, z) from the coarse levels: the L1 tile (posts every 16 m or more), else the L2 block (64 m), sampled
+   * bilinearly on the regular grid that starts each terrain object (the skirt vertices follow it). Null until one is up. A far
+   * skyline landmark is placed with it before any L0 chunk is near, and moved to the exact height when the chunk arrives.
+   */
+  coarseGroundY(x: number, z: number): number | null {
+    for (const [level, zoom] of [['l1', 7], ['l2', 5]] as const) {
+      const edge = CHUNK_EDGE_M[zoom];
+      const cx = Math.floor((x - GRID_MIN_M) / edge);
+      const cy = Math.floor((z - GRID_MIN_M) / edge);
+      const u = this.store?.unit(level, `${zoom}/${cx}/${cy}` as ChunkKey);
+      const mesh = u?.state === 'ready' ? u.payload : null;
+      const t = mesh?.objects.find((o) => o.kind === 'terrain');
+      if (!mesh || !t) continue;
+      // positions = verts x verts grid + 4 (verts - 1) skirt vertices
+      const verts = Math.round(-2 + Math.sqrt(t.positions.length / 3 + 8));
+      if (verts < 2) continue;
+      const step = edge / (verts - 1);
+      const fx = Math.min(verts - 1.000001, Math.max(0, (x - mesh.originX) / step));
+      const fz = Math.min(verts - 1.000001, Math.max(0, (z - mesh.originZ) / step));
+      const i = Math.floor(fx), j = Math.floor(fz);
+      const tx = fx - i, tz = fz - j;
+      const h = (a: number, b: number): number => t.positions[(b * verts + a) * 3 + 1] as number;
+      const n0 = h(i, j) + (h(i + 1, j) - h(i, j)) * tx;
+      const n1 = h(i, j + 1) + (h(i + 1, j + 1) - h(i, j + 1)) * tx;
+      return n0 + (n1 - n0) * tz;
+    }
+    return null;
   }
 
   // ---- ground height for the camera ----------------------------------------------------------------------------------------

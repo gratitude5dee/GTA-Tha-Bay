@@ -39,6 +39,14 @@ export function mountLandmark(parent: Object3D, materials: WorldMaterials, spot:
   return {
     objects: model.primitives.length,
     triangles,
+    setHeight: (y) => {
+      group.position.y = y;
+      group.updateMatrix();
+    },
+    // a hidden group draws nothing and `RenderBudgetMeter` does not count it (the skyline instance under a full-fidelity model)
+    setVisible: (visible) => {
+      group.visible = visible;
+    },
     dispose: () => {
       parent.remove(group);
       for (const g of geometries) g.dispose();

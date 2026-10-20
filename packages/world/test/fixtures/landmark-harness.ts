@@ -27,7 +27,10 @@ export interface Harness {
   loads: string[];
   skyLoads: string[];
   fail: Set<string>;
-  ground: { ready: boolean };
+  /** The terrain under the landmarks: `ready` = any level answers (12.5 m), `exact` = the L0 chunk does too (a different height when `exactY` is set). */
+  ground: { ready: boolean; exact: boolean; exactY: number };
+  /** Height each model was placed at, and the latest `setHeight`, by key. */
+  heights: Map<string, number>;
   /** The world's first reveal (the skyline waits for it). */
   revealed: { value: boolean };
   /** The latest visibility of each mounted model by landmark id (`lm.x#sky` for the skyline instance). */
@@ -63,7 +66,7 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
   const chunks = new Map<ChunkKey, { proxies: number[]; masked: number[]; rerecords: number }>();
   spots.forEach((_s, i) => chunks.set(`9/${i}/0` as ChunkKey, { proxies: [proxyIdOf(i)], masked: [], rerecords: 0 }));
   const h: Harness = {
-    layer: null as never, spots, clock: { ms: 1000 }, chunks, remeshes: [], mounted: [], disposed: [], loads: [], skyLoads: [], fail: new Set(), ground: { ready: true },
+    layer: null as never, spots, clock: { ms: 1000 }, chunks, remeshes: [], mounted: [], disposed: [], loads: [], skyLoads: [], fail: new Set(), ground: { ready: true, exact: true, exactY: 12.5 }, heights: new Map(),
     revealed: { value: true }, visible: new Map(), queued: [], ran: [], hold: { on: false, pending: [] },
     releasePrepared() {
       this.hold.on = false;
@@ -111,15 +114,17 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
       (o.skyline ? h.skyLoads : h.loads).push(spot.id);
       return h.fail.has(spot.id) ? Promise.reject(new Error(`no model for ${spot.id}`)) : Promise.resolve(model(spot.id, opts.seaIds?.includes(spot.id) ? 'sea' : 'ground', o.skyline ? 'lo' : 'hi'));
     },
-    mount: (spot, m) => {
+    mount: (spot, m, y) => {
       // a skyline (`lo`) instance is told apart by the `#sky` suffix
       const k = m.fidelity === 'lo' ? `${spot.id}#sky` : spot.id;
       h.mounted.push(k);
       h.visible.set(k, true);
+      h.heights.set(k, y);
       const handle: LandmarkHandle = {
         objects: 3,
         triangles: 100,
         setVisible: (v) => void h.visible.set(k, v),
+        setHeight: (v) => void h.heights.set(k, v),
         dispose: () => void h.disposed.push(k),
       };
       return handle;
@@ -140,7 +145,7 @@ export function harness(tier: QualityTierId, xs: number[], opts: HarnessOpts = {
       rerecords: (key) => chunks.get(key)?.rerecords ?? 0,
     },
     queue: (task) => void h.queued.push(task),
-    groundY: () => (h.ground.ready ? 12.5 : null),
+    groundY: (_x, _z, exact) => (exact ? (h.ground.ready && h.ground.exact ? h.ground.exactY : null) : h.ground.ready ? 12.5 : null),
     waterY: 0,
     now: () => h.clock.ms,
   };

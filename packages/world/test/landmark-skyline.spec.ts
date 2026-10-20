@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChunkKey, QualityTierId } from '@dv/shared';
 import { LANDMARKS_RUNTIME } from '../src/client/chunks/landmark-layer.ts';
 import { proxyIdOf } from '../src/client/chunks/proxy-mask.ts';
+import { inSkylineRange, nextSkylineLoad, skylineRings } from '../src/client/chunks/skyline.ts';
 import { flush, harness, type Harness } from './fixtures/landmark-harness.ts';
 
 const TIERS = Object.keys(LANDMARKS_RUNTIME.tiers) as QualityTierId[];
@@ -35,6 +36,29 @@ describe('config/world/landmarks-runtime.json skyline', () => {
   it('agrees with the skyline flags of content/world/landmarks.json', () => {
     const doc = JSON.parse(readFileSync(new URL('../../../content/world/landmarks.json', import.meta.url), 'utf8')) as { landmarks: { id: string; skyline: boolean }[] };
     expect(doc.landmarks.filter((l) => l.skyline).map((l) => l.id).sort()).toEqual([...SEVEN].sort());
+  });
+});
+
+describe('skyline rings (pure)', () => {
+  const rings = skylineRings(1000, { ids: [], loadFactor: 2, mountFactor: 1.5, releaseFactor: 1.7 });
+
+  it('are factors of the draw distance', () => {
+    expect(rings).toEqual({ rangeM: 1000, loadM: 2000, mountM: 1500, releaseM: 1700 });
+  });
+
+  it('come in inside the mount ring and go out beyond the release ring: a hysteresis band between', () => {
+    expect(inSkylineRange(false, 1499, rings)).toBe(true);
+    expect(inSkylineRange(false, 1501, rings)).toBe(false);
+    expect(inSkylineRange(true, 1699, rings)).toBe(true);
+    expect(inSkylineRange(true, 1701, rings)).toBe(false);
+  });
+
+  it('pick the nearest readable landmark inside the load ring, ties by id, a failed one only after its retry time', () => {
+    const e = (id: string, distM: number, phase = 'idle', retryAt = 0): { id: string; phase: string; distM: number; retryAt: number } => ({ id, phase, distM, retryAt });
+    expect(nextSkylineLoad([e('b', 900), e('a', 900), e('c', 100, 'loading'), e('d', 2100)], rings, 0)?.id).toBe('a');
+    expect(nextSkylineLoad([e('d', 2100)], rings, 0)).toBeNull();
+    expect(nextSkylineLoad([e('f', 50, 'failed', 500)], rings, 100)).toBeNull();
+    expect(nextSkylineLoad([e('f', 50, 'failed', 500)], rings, 600)?.id).toBe('f');
   });
 });
 
@@ -112,6 +136,30 @@ describe('the staged swap commit', () => {
     expect(r.failed.map((f) => f.id)).toEqual(['lm.s0']);
     expect(h.mounted).toEqual([]);
     expect(h.chunks.get('9/0/0' as ChunkKey)?.masked).toEqual([]);
+  });
+});
+
+describe('terrain under a far landmark', () => {
+  it('a skyline landmark is placed on the coarse terrain before any L0 chunk is near and moved to the exact height when it arrives', async () => {
+    const h = skyHarness('mobile', [1500], { ids: ['lm.sutro-tower'] });
+    h.ground.exact = false;
+    await h.step(0, 30);
+    expect(h.heights.get('lm.sutro-tower#sky')).toBe(12.5);
+    h.ground.exact = true;
+    h.ground.exactY = 31;
+    await h.step(0, 40);
+    expect(h.heights.get('lm.sutro-tower#sky')).toBe(31);
+  });
+
+  it('a sea-anchored model needs no terrain and is never moved', async () => {
+    const h = harness('mobile', [1500], { auto: true, ids: ['lm.golden-gate-bridge'], seaIds: ['lm.golden-gate-bridge'], skyline: { rangeM: 2500, ids: ['lm.golden-gate-bridge'] } });
+    h.ground.ready = false;
+    await h.step(0, 30);
+    expect(h.heights.get('lm.golden-gate-bridge#sky')).toBe(0);
+    h.ground.ready = true;
+    h.ground.exactY = 40;
+    await h.step(0, 40);
+    expect(h.heights.get('lm.golden-gate-bridge#sky')).toBe(0);
   });
 });
 

@@ -64,6 +64,8 @@ export interface LandmarkHandle {
   readonly triangles: number;
   /** Shows or hides the model without freeing it (the skyline instance under a full-fidelity one). */
   setVisible?(visible: boolean): void;
+  /** Moves the model to a new ground height (the terrain it stands on was refined from a coarse level to the exact chunk). */
+  setHeight?(y: number): void;
   dispose(): void;
 }
 
@@ -113,8 +115,12 @@ export interface LandmarkDeps {
   chunks: LandmarkChunkPort;
   /** Hands a commit to the upload gate. */
   queue(task: SwapTask): void;
-  /** Terrain height under a point; null until a chunk there is up. */
-  groundY(x: number, z: number): number | null;
+  /**
+   * Terrain height under a point; null until terrain there is up. `exact` asks for the L0 chunk only; without it the coarse levels
+   * (L1 tile, L2 block) answer too, so a far skyline landmark can be placed before any L0 chunk is near it, and is moved to the exact
+   * height when the chunk arrives.
+   */
+  groundY(x: number, z: number, exact?: boolean): number | null;
   /** Height of the water: the `sea` anchor. */
   waterY: number;
   /** Milliseconds, any origin. */
@@ -158,6 +164,9 @@ interface Entry {
   prep: Prep | null;
   /** Skyline only: inside the mount ring (with hysteresis). */
   inRange: boolean;
+  /** The ground height the model was placed at, and whether that was the exact L0 height. */
+  y: number;
+  exact: boolean;
 }
 
 export interface LandmarkReportEntry {
@@ -265,7 +274,7 @@ export class LandmarkLayer {
     this.cfg = o.config ?? LANDMARKS_RUNTIME;
     this.tierRow = this.cfg.tiers[o.tier];
     const entry = (spot: LandmarkSpot, kind: 'full' | 'sky'): Entry => ({
-      kind, spot, phase: 'idle', distM: Infinity, gen: 0, model: null, handle: null, visible: false, retryAt: 0, leaveAt: 0, error: null, prep: null, inRange: false,
+      kind, spot, phase: 'idle', distM: Infinity, gen: 0, model: null, handle: null, visible: false, retryAt: 0, leaveAt: 0, error: null, prep: null, inRange: false, y: 0, exact: false,
     });
     this.slots = o.spots.map((s) => entry(s, 'full'));
     const rangeOn = (o.skylineRangeM ?? 0) > 0;
@@ -348,6 +357,7 @@ export class LandmarkLayer {
     this.maxResident = Math.max(this.maxResident, this.resident().length);
 
     if (this.frame % (this.o.reconcileEvery ?? 4) === 0) this.reconcile(now);
+    if (this.frame % 15 === 0) this.reanchor();
     if (this.o.qa) this.sampleFrame();
   }
 
@@ -484,6 +494,20 @@ export class LandmarkLayer {
     return s.model.anchor === 'sea' ? this.o.waterY : this.o.groundY(s.spot.x, s.spot.z);
   }
 
+  /** A model placed on coarse terrain moves to the exact height once the L0 chunk under it is up (checked every few frames). */
+  private reanchor(): void {
+    for (const s of [...this.slots, ...this.sky]) {
+      if (!s.handle || s.exact || !s.model || s.model.anchor === 'sea') continue;
+      const y = this.o.groundY(s.spot.x, s.spot.z, true);
+      if (y === null) continue;
+      s.exact = true;
+      if (Math.abs(y - s.y) > 0.2) {
+        s.y = y;
+        s.handle.setHeight?.(y);
+      }
+    }
+  }
+
   /** The gate released the commit: the model joins the scene, then the prepared chunk meshes are queued right behind it. */
   private commit(s: Entry, gen: number, uploads: number): void {
     const prep = s.prep;
@@ -493,6 +517,8 @@ export class LandmarkLayer {
       prep.queued = false; // the ground went away again: wait for it
       return;
     }
+    s.y = y;
+    s.exact = s.model.anchor === 'sea' || this.o.groundY(s.spot.x, s.spot.z, true) !== null;
     const t0 = this.o.now();
     try {
       s.handle = this.o.mount(s.spot, s.model, y, this.lastNowSec);
