@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "044fc8310108b8a580993231bd74a8cea3b8f81e46a4fb3eaca30fded57f4f01",
+  "paths": [
+    "assets/src/building/lm.ferry-building/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "9a1077ae29beff301b462489e2be9eda84ffc403c373a51f28904c9648a7e669"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

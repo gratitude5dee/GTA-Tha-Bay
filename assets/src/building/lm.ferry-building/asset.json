@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.ferry-building",
+  "variants": {
+    "desktop": "assets/src/building/lm.ferry-building/desktop.glb",
+    "mobile": "assets/src/building/lm.ferry-building/mobile.glb",
+    "mobile-low": "assets/src/building/lm.ferry-building/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 3910,
+      "verts": 7778,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 1582,
+      "verts": 3146,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 486,
+      "verts": 970,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -1,6 +1,6 @@
 {
   "schema": "asset-budgets/1",
-  "note": "spec/domains/05-assets-pipeline.md section 3. Only fileBytes is enforced by check:assets (M01d); the other columns are read by M03a1 and M10a.",
+  "note": "spec/domains/05-assets-pipeline.md section 3. check:assets enforces fileBytes (M01d) and, for every row that lists them, the stats columns tris, materials, maxObjects and maxTexPx against the VariantStats recorded in the asset's asset.json (M02d1). The vehicle rows other than vehicle-race are added by M10d1 and the character rows enforced by M10a1, on the same mechanism.",
   "rows": [
     {
       "id": "character-hero",
@@ -30,6 +30,36 @@
         "hi": { "tris": 60000, "maxTexPx": 2048, "materials": 6, "gpuTexBytes": 25165824, "fileBytes": 8388608 },
         "mid": { "tris": 30000, "maxTexPx": 1024, "materials": 4, "gpuTexBytes": 6291456, "fileBytes": 3145728 },
         "lo": { "tris": 15000, "maxTexPx": 512, "materials": 2, "gpuTexBytes": 1572864, "fileBytes": 1048576 }
+      }
+    },
+    {
+      "id": "landmark-hero",
+      "kind": "building",
+      "tag": "lm-class:hero",
+      "fidelity": {
+        "hi": { "tris": 30000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 2097152 },
+        "mid": { "tris": 12000, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 1048576 },
+        "lo": { "tris": 4000, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 524288 }
+      }
+    },
+    {
+      "id": "landmark-major",
+      "kind": "building",
+      "tag": "lm-class:major",
+      "fidelity": {
+        "hi": { "tris": 12000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 1048576 },
+        "mid": { "tris": 5000, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 524288 },
+        "lo": { "tris": 1800, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 262144 }
+      }
+    },
+    {
+      "id": "landmark-minor",
+      "kind": "building",
+      "tag": "lm-class:minor",
+      "fidelity": {
+        "hi": { "tris": 5000, "maxObjects": 3, "maxTexPx": 1024, "fileBytes": 524288 },
+        "mid": { "tris": 2200, "maxObjects": 3, "maxTexPx": 512, "fileBytes": 262144 },
+        "lo": { "tris": 800, "maxObjects": 2, "maxTexPx": 256, "fileBytes": 131072 }
       }
     }
   ]

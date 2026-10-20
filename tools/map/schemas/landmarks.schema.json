@@ -28,7 +28,14 @@
           "osm": { "type": "string", "pattern": "^([wrn][0-9]+|R|S)$" },
           "role": { "type": "string", "minLength": 3 },
           "skyline": { "type": "boolean" },
-          "replaceRadiusM": { "type": "number", "minimum": 10, "maximum": 150 }
+          "replaceRadiusM": { "type": "number", "minimum": 10, "maximum": 150 },
+          "recipe": {
+            "type": "object",
+            "description": "M02d1: the parameters of tools/map/src/landmarks/<slug>.ts; every recipe takes yawDeg and anchor, the rest is its own (numbers and arrays of numbers).",
+            "required": ["yawDeg", "anchor"],
+            "properties": { "yawDeg": { "type": "number" }, "anchor": { "enum": ["ground", "sea"] } },
+            "additionalProperties": { "anyOf": [{ "type": "number" }, { "type": "array", "items": { "type": "number" } }] }
+          }
         }
       }
     }

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "7150a51d0b941b0613a21dc88872f3b784a39bc0a5490eba29d75f75aecee86f",
+  "paths": [
+    "assets/src/building/lm.coit-tower/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "4d8cd435614cc08cc58a07d818b21111e9f246c24173cb8bb274a25df8eafd6f"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

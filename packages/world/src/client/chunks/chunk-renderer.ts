@@ -204,6 +204,11 @@ export class ChunkRenderer {
     return out;
   }
 
+  /** Re-record requests of one unit so far (0 before its first upload and while it has never been replaced). */
+  rerecordsOf(level: RenderLevel, key: ChunkKey): number {
+    return this.rerecords.get(idOf(level, key)) ?? 0;
+  }
+
   private commit(mesh: UnitMesh, now: number): RenderedUnit {
     const id = idOf(mesh.level, mesh.key);
     const old = this.units.get(id);

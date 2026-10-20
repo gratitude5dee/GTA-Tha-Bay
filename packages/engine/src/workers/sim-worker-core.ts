@@ -91,9 +91,11 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
     env.log = (level, message) => void transport.postEvent({ v: 1, t: 'log', seq: 0, p: { level, message } });
     const runtime = new SimRuntime(transport, env);
 
-    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['bot'] !== undefined) {
+    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa) {
       const { ScriptedBotInput, parseBotScript } = await import('../sim/input/bot-input.ts');
-      runtime.bot = new ScriptedBotInput(parseBotScript(boot.config['bot']));
+      if (boot.config['bot'] !== undefined) runtime.bot = new ScriptedBotInput(parseBotScript(boot.config['bot']));
+      // `debug.bot` (QA): a script whose ticks count from the tick it arrives on
+      runtime.botFactory = (script, base) => new ScriptedBotInput(script.map((seg) => ({ ...seg, from: seg.from + base, to: seg.to + base })));
     }
 
     // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy that

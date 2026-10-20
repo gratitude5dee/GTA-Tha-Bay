@@ -469,6 +469,11 @@ export interface MeshChunkOptions {
   distM: number;
   /** The upload cap of the tier (C13 `maxChunkUploadBytes`): a chunk over it drops its smallest buildings until it fits. */
   maxBytes?: number | null;
+  /**
+   * M02d1: `proxyOf` values (landmark index + 1) whose baked extrusions are left out because the landmark's glTF stands in their
+   * place (`proxy-mask.ts`). Empty or absent: every proxy footprint is meshed as an ordinary building.
+   */
+  maskProxies?: readonly number[] | undefined;
 }
 
 /**
@@ -486,10 +491,20 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
   const stats: MeshStats = { triangles: 0, vertices: 0, buildings: 0, skipped: 0, maxBuildingTris: 0, filtered: false, bytes: 0 };
   interface Candidate { idx: number; rec: BuildingRecord; ring: number[]; area: number; height: number }
   const candidates: Candidate[] = [];
+  const proxies = new Set<number>();
+  const masked = new Set<number>();
+  const mask = o.maskProxies && o.maskProxies.length > 0 ? new Set(o.maskProxies) : null;
   if (render && render.buildings.length > 0) {
     const skip = profile.skip && o.distM > profile.skip.beyondM ? profile.skip : null;
     if (skip) stats.filtered = true;
     render.buildings.forEach((rec, idx) => {
+      if (rec.proxyOf > 0) {
+        proxies.add(rec.proxyOf);
+        if (mask?.has(rec.proxyOf)) {
+          masked.add(rec.proxyOf);
+          return;
+        }
+      }
       const ring: number[] = [];
       for (let i = 0; i + 1 < rec.ring.length; i += 2) ring.push((rec.ring[i] as number) / 10, (rec.ring[i + 1] as number) / 10);
       if (ring.length < 6) return;
@@ -547,7 +562,11 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     stats.vertices += obj.positions.length / 3;
   }
   stats.bytes = meshBytes(objects, trees);
-  return { level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats };
+  const sorted = (set: ReadonlySet<number>): number[] => [...set].sort((a, b) => a - b);
+  return {
+    level: 'l0', key: sim.key as ChunkKey, originX: ox, originZ: oz, objects, trees, lamps: lampRecords(sim, render, ox, oz), stats,
+    proxies: sorted(proxies), masked: sorted(masked),
+  };
 }
 
 function treeRecords(sim: SimChunk, render: RenderChunk | null, ox: number, oz: number): Float32Array {

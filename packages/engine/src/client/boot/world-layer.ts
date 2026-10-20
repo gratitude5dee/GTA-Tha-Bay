@@ -20,6 +20,8 @@ export interface WorldFrame {
   env: EnvState | null;
   /** Blackout in force (traffic signals dark, lamps off, windows dimmed). */
   blackout: boolean;
+  /** Fog far-plane factor near the county line (M02c1): 1 away from it, 0.4 at the line. Absent in a test frame. */
+  boundaryFog?: number;
 }
 
 export interface WorldLayer {

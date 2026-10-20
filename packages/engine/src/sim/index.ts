@@ -17,6 +17,7 @@ export * from './fixtures/world-boxes.ts';
 export * from './scenarios/index.ts';
 export * from './publish.ts';
 export * from './world/clock.ts';
+export * from './world/index.ts';
 export * from './transport/index.ts';
 export * from './runtime.ts';
 export * from './sim-host.ts';

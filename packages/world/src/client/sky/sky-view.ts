@@ -17,6 +17,7 @@ import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { QualityTierId } from '@dv/shared';
 import { createAtmosphereAdapter } from './atmosphere.ts';
+import { applyBoundaryFog } from '../boundary-fog.ts';
 import { centreDome, createDome } from './dome.ts';
 import { createBackdropFog, createWorldFog } from './fog.ts';
 import { NightLights, BLACKOUT_WINDOW_FACTOR, headlightsOn } from './night.ts';
@@ -262,6 +263,7 @@ export class SkyView {
 
     const c = this.config;
     writeSkyNodes(this.nodes, u, { wetScale: c.wetness === 'none' ? 0 : 1, wetRough: c.wetRoughness, bankTopM: this.input.fogBankM });
+    applyBoundaryFog(this.nodes, f.boundaryFog);
     this.nodes.uTime.value = this.frozenTime ?? f.nowMs / 1000;
     const cam = this.o.host.camera as PerspectiveCamera;
     this.nodes.uCamPos.value.set(cam.position.x, cam.position.y, cam.position.z);

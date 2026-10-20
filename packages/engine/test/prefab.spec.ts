@@ -20,6 +20,18 @@ describe('JSON files validate against their schemas (AC-1)', () => {
     expect(prefabSchema(player), JSON.stringify(prefabSchema.errors)).toBe(true);
   });
 
+  it('the portal and county-barrier prefabs of M02c1 are valid prefabs', () => {
+    for (const id of ['portal.ggb', 'portal.baybridge', 'prop.county-barrier']) {
+      const def = read(`assets/prefabs/${id}.json`) as { id: string; kind: string; physics: { body: string; groups: string[] } };
+      expect(prefabSchema(def), `${id}: ${JSON.stringify(prefabSchema.errors)}`).toBe(true);
+      expect(def.id).toBe(id);
+      expect(def.physics.body).toBe('fixed');
+      expect(def.physics.groups).toEqual(['static']);
+    }
+    expect((read('assets/prefabs/portal.ggb.json') as { kind: string }).kind).toBe('portal');
+    expect((read('assets/prefabs/prop.county-barrier.json') as { kind: string }).kind).toBe('prop');
+  });
+
   it('the prefab schema rejects an unknown kind, a bad asset ref, a missing id and a body without groups', () => {
     const player = read('assets/prefabs/player.default.json') as Record<string, unknown>;
     expect(prefabSchema({ ...player, kind: 'dragon' })).toBe(false);
@@ -137,6 +149,18 @@ describe('PrefabRegistry', () => {
     const id = ecs.resolve(h) as number;
     expect(ecs.strings.get(ecs.store(RenderKey).asset[id] as number)).toBe('prop/cone');
     expect(ecs.keyOf(h)).toMatch(/^pfb:prop\.cone:/);
+  });
+
+  it('the portal prefabs spawn as fixed bodies with a Portal component', async () => {
+    const { ecs, backend, registry } = await world();
+    registry.load([read('assets/prefabs/portal.ggb.json') as PrefabDef, read('assets/prefabs/prop.county-barrier.json') as PrefabDef]);
+    const portal = registry.spawn('portal.ggb', { pos: [10, 60, -5000], yaw: 0 }, 'pfb:portal.ggb:0');
+    const barrier = registry.spawn('prop.county-barrier', { pos: [1480, 2, 6322], yaw: 0 });
+    ecs.flush();
+    expect(ecs.resolve(portal)).not.toBeNull();
+    expect(ecs.resolve(barrier)).not.toBeNull();
+    expect(backend.bodyCount).toBeGreaterThanOrEqual(2);
+    backend.dispose();
   });
 
   it('collision group names map to Rapier interaction groups', () => {

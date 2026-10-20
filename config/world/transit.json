@@ -1,0 +1,12 @@
+{
+  "schema": "world-transit/1",
+  "note": "Fast-travel fares in integer cents (02-world-maps.md section 5; design values, to be tuned with the economy in M04a2). stopSpacingM turns a straight-line distance into a stop count for the per-stop fare. cooldown is in seconds.",
+  "fares": {
+    "bay-rail": { "baseCents": 200, "perStopCents": 50 },
+    "cable-car": { "baseCents": 100 },
+    "robotaxi": { "baseCents": 300, "perKmCents": 120 },
+    "ferry": { "baseCents": 0 }
+  },
+  "stopSpacingM": 1200,
+  "cooldown": { "fastTravelS": 30 }
+}

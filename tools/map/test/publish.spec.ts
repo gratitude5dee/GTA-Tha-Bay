@@ -38,8 +38,8 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     const logs: string[] = [];
     const r = await publishPack({ bakeDir: b.outDir, target: { kind: 'dir', path: target }, cfg, log: (l) => logs.push(l) });
     expect(r.code).toBe(0);
-    // every file under packs/ (p0, l0, l1, l2, far-bay-*, sf-graph.v1) plus data/world-index and data/transit-routes.v1
-    const nBlobs = readdirSync(path.join(b.outDir, 'packs')).length + 2;
+    // every file under packs/ (p0, l0, l1, l2, far-bay-*, sf-graph.v1) plus data/world-index, data/transit-routes.v1 and data/district-grid.v1
+    const nBlobs = readdirSync(path.join(b.outDir, 'packs')).length + 3;
     expect(r.packed.blobs).toHaveLength(nBlobs);
     expect(r.packed.manifests).toHaveLength(nBlobs);
 
@@ -50,6 +50,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     expect(manifests).toContain('texture.far-bay-cards.json');
     expect(manifests).toContain('world_pack.p0-64-64.json');
     expect(manifests).toContain('data.world-index.json');
+    expect(manifests).toContain('data.district-grid.v1.json');
 
     const validate = schemaValidator('provenance-1.0');
     const records = walkFiles(path.join(b.outDir, 'provenance')).map((f) => JSON.parse(readFileSync(f, 'utf8')) as { sha256: string; origin: string; derived_from: string[] });
