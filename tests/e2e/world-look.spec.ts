@@ -95,6 +95,9 @@ test.describe('world look @world-look', () => {
       expect(noon.on).toBe(true);
       expect(noon.profile).toBe(LOOK.tierProfile[tier]);
       expect(noon.postNodes).toEqual(expectedNodes(tier, noon.backend));
+      // The debug panel (?debug=1) carries a look switch and the list of the post nodes running.
+      await expect(page.getByTestId('look-toggle')).toBeChecked();
+      await expect(page.getByTestId('look-nodes')).toContainText(noon.postNodes.join(' > '));
       const asked = (BUDGETS.tiers[tier] as { features: { shadows: { mode: string } } }).features.shadows.mode;
       const off = LOOK.shadowsOff.includes(tier);
       expect(noon.shadowMode).toBe(off ? 'none' : asked);
@@ -194,9 +197,9 @@ test.describe('look goldens @look-golden', () => {
   const update = process.env['DV_UPDATE_GOLDEN'] === '1' && !process.env['CI'];
 
   test('the manifest names the current synth bake, or fails naming both @look-golden', () => {
+    if (update) return;
     const manifest = read<{ bakeId: string }>(`${GOLDEN_DIR}/manifest.json`);
     const current = bakeIdOf();
-    if (update) return;
     expect(manifest.bakeId, `look golden from bake ${manifest.bakeId}, current bake ${current}`).toBe(current);
   });
 

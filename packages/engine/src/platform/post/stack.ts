@@ -91,7 +91,8 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
   let color: PNode = world;
   const disposables: { dispose(): void }[] = [];
 
-  for (const n of nodes) {
+  const dbgOnly = (globalThis as { __dvPostOnly?: string }).__dvPostOnly?.split(',');
+  for (const n of dbgOnly ? nodes.filter((x) => dbgOnly.includes(x)) : nodes) {
     switch (n) {
       case 'gtao-half': {
         const g = createGtao(worldPass.getTextureNode('depth'), worldPass.getTextureNode('normal'), camera);

@@ -479,6 +479,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
             onBlackout: (on) => void host.sendDebug({ t: 'debug.blackout', on }),
             onRain: (rain) => layer.debug?.setRainOverride(rain),
             onFreeze: (on) => void host.sendDebug({ t: 'debug.clock.pause', on }),
+            ...(layer.debug?.look ? { look: layer.debug.look } : {}),
           });
           // The sky controls are on from the start with ?debug=1 (F3 hides them with the panel text), so the day and the weather can be seen at once.
           panel.addCompanion(skyControls.root, true);

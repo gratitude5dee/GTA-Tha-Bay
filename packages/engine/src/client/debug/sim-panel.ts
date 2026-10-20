@@ -149,6 +149,8 @@ export interface SkyControlsOptions {
   onRain(rain: number | null): void;
   /** Freeze or release the clock. */
   onFreeze(on: boolean): void;
+  /** M02e: the look switch and the post nodes running; absent on a view without a look pass. */
+  look?: { available(): boolean; isOn(): boolean; setOn(on: boolean): boolean; nodes(): readonly string[] };
 }
 
 /** Forced rain intensity of the panel's Rain switch (the `rain` preset's own value). */
@@ -167,6 +169,9 @@ export class SkyControls {
   private readonly blackout: HTMLInputElement;
   private readonly rain: HTMLInputElement;
   private readonly freeze: HTMLInputElement;
+  private readonly lookBox: HTMLInputElement | null = null;
+  private readonly lookText: HTMLElement | null = null;
+  private readonly lookApi: SkyControlsOptions['look'];
   private dragging = false;
 
   constructor(opts: SkyControlsOptions) {
@@ -235,6 +240,19 @@ export class SkyControls {
     this.blackout = toggle('sky-blackout', 'blackout', (v) => opts.onBlackout(v));
     this.rain = toggle('sky-rain', 'rain', (v) => opts.onRain(v ? SKY_RAIN_FORCED : null));
     this.freeze = toggle('sky-freeze', 'freeze', (v) => opts.onFreeze(v));
+    this.lookApi = opts.look;
+    if (opts.look?.available()) {
+      const api = opts.look;
+      this.lookBox = toggle('look-toggle', 'look', (v) => {
+        const ok = api.setOn(v);
+        if (!ok) this.lookBox!.checked = api.isOn();
+      });
+      this.lookBox.checked = api.isOn();
+      this.lookText = doc.createElement('div');
+      this.lookText.dataset['testid'] = 'look-nodes';
+      this.lookText.style.cssText = 'opacity:0.8;max-width:200px;overflow-wrap:anywhere';
+      grid.append(this.lookText);
+    }
     opts.container.append(root);
     this.root = root;
   }
@@ -248,6 +266,11 @@ export class SkyControls {
   sync(env: EnvState | null, blackout: boolean): void {
     if (this.root.hidden) return;
     this.blackout.checked = blackout;
+    if (this.lookApi && this.lookBox && this.lookText && this.lookBox.ownerDocument.activeElement !== this.lookBox) {
+      this.lookBox.checked = this.lookApi.isOn();
+      const nodes = this.lookApi.nodes();
+      this.lookText.textContent = nodes.length > 0 ? `nodes: ${nodes.join(' > ')}` : 'nodes: none';
+    }
     if (!env || this.dragging) return;
     this.hour.value = String(env.hour);
     this.hourText.textContent = formatHour(env.hour);

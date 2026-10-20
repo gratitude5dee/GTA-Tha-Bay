@@ -132,6 +132,12 @@ export class WorldView implements WorldLayer {
   readonly debug: WorldLayerDebug = {
     setRainOverride: (rain) => this.sky?.setRainOverride(rain),
     rainOverride: () => this.sky?.getRainOverride() ?? null,
+    look: {
+      available: () => this.lookView?.available ?? false,
+      isOn: () => this.lookView?.on ?? false,
+      setOn: (on) => this.setLook(on),
+      nodes: () => this.lookView?.report().postNodes ?? [],
+    },
   };
 
   private readonly o: WorldViewOptions;

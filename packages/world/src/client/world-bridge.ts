@@ -121,10 +121,13 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
         return !!k && Math.abs(k.hour - s.hour) < 0.05 && k.weather === s.weather && k.next === s.weather;
       }, 120_000, `the sky at ${s.hour}:00 ${s.weather}`);
       lv.freezeClock(true);
-      await view.settle(120_000);
+      await view.settle(600_000);
       // The camera stands on the ground now that the chunk under it is resident.
       const gy = view.groundY(s.x, s.z);
       if (gy !== null) lv.placeShot(id, gy);
+      // The camera moved to its height: whatever that asks the streamer for (the plan, finer levels in view) must be resident too.
+      await nextFrames(2);
+      await view.settle(600_000);
       // The dither fade (0.5 s) and a few frames with everything in place, then one more presented frame.
       const t0 = performance.now();
       await until(() => performance.now() - t0 > 900, 30_000, 'the fade');
