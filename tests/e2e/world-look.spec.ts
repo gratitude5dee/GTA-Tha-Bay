@@ -159,7 +159,7 @@ test.describe('xr look @world-look', () => {
   test('the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look', async ({ page }) => {
     test.setTimeout(240_000);
     await page.setViewportSize(GOLDEN_VIEWPORT);
-    await page.goto('/?xr-emulate=quest3&debug=1');
+    await page.goto('/?tier=xr-quest&xr-emulate=quest3&debug=1');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
     const look = await world(page, (w) => w.look());
