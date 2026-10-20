@@ -103,10 +103,11 @@ test.describe('landmarks @world', () => {
     expect(palace.fidelity).toBe('mid');
     expect(palace.objects).toBeLessThanOrEqual(3);
     expect(palace.chunks.length).toBeGreaterThanOrEqual(1);
-    // one re-record request per chunk: the first upload recorded the bundle, the masked mesh replaced it once
+    // at most one re-record request per chunk: a chunk that is already up when the swap commits is replaced once by its masked mesh; a
+    // chunk that streams in after the commit arrives masked (0 re-records)
     for (const c of palace.chunks) {
       expect(c.masked, c.key).toBe(true);
-      expect(c.bundleRerecords, c.key).toBe(1);
+      expect(c.bundleRerecords, c.key).toBeLessThanOrEqual(1);
     }
     expect(up.resident.length).toBeLessThanOrEqual(up.cap);
     expect(up.maxResident).toBeLessThanOrEqual(up.cap);
@@ -132,8 +133,8 @@ test.describe('landmarks @world', () => {
       const c = w.chunks();
       return { masks: c.bundleRerecords };
     });
-    // every chunk that held a proxy of the landmark has been replaced twice: masked, then meshed back
-    for (const c of palace.chunks) expect(back.masks[`l0:${c.key}`], c.key).toBe(2);
+    // every chunk that held a proxy of the landmark has been replaced once more: meshed back
+    for (const c of palace.chunks) expect(back.masks[`l0:${c.key}`], c.key).toBe(c.bundleRerecords + 1);
 
     // 2 km from the landmark nothing of it is resident or loading
     await focusAt(at[0] + 2000, at[2]);
@@ -233,6 +234,15 @@ test.describe('landmarks @world', () => {
     await page.setViewportSize({ width: 960, height: 540 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: 'test-results/world-landmarks/skyline-default-desktop.png' });
+    await page.keyboard.press('F4');
+    await page.keyboard.down('Shift');
+    await page.keyboard.down('Space');
+    await page.waitForTimeout(1500);
+    await page.keyboard.up('Space');
+    await page.keyboard.up('Shift');
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: 'test-results/world-landmarks/skyline-city-hall-free-cam-desktop.png' });
+    await page.keyboard.press('F4');
     // and from Twin Peaks, the overlook: the whole skyline is in front of the camera
     const tp = await teleport(page, 'lm.twin-peaks');
     expect(tp.ok).toBe(true);
@@ -244,7 +254,7 @@ test.describe('landmarks @world', () => {
     await page.keyboard.press('F4');
     await page.keyboard.down('Shift');
     await page.keyboard.down('Space');
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(1500);
     await page.keyboard.up('Space');
     await page.keyboard.up('Shift');
     await page.waitForTimeout(2500);
