@@ -140,6 +140,14 @@ async function boot(): Promise<void> {
           atmosphere: platformFlags['world.atmosphere'] === true,
           enabled: !(QA && new URLSearchParams(location.search).get('sky') === '0'),
         },
+        // The look pass (M02e): `world.look` (default true) is the full rollback switch; WebKit never bakes the sky environment.
+        look: {
+          // `?look=0` (QA builds) boots with the look off, the cost and request comparison of the e2e and the device checklists.
+          enabled: platformFlags['world.look'] !== false && !(QA && new URLSearchParams(location.search).get('look') === '0'),
+          browser: platform.profile.browser,
+          backend: platform.backend,
+          postLevel: platform.quality.dynamic.postLevel,
+        },
         labels: { redownload: t('world.redownload'), offline: t('world.offline') },
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),
@@ -188,7 +196,11 @@ async function boot(): Promise<void> {
   if (prepared) {
     const view = prepared.view;
     view.setAtmosphereLevel(platform.quality.dynamic.atmosphereLevel);
-    platform.quality.onDynamicChange((q) => view.setAtmosphereLevel(q.atmosphereLevel));
+    platform.quality.onDynamicChange((q) => {
+      view.setAtmosphereLevel(q.atmosphereLevel);
+      // The governor's postLevel moves the post stack (M02e; the effective level is capped by look.json postLevelCap).
+      view.lookView?.setPostLevel(q.postLevel);
+    });
   }
 
   // Start on the title screen: the world becomes the game.

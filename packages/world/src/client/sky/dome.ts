@@ -36,7 +36,7 @@ const fbm = (p: L, octaves: number): L => {
   return sum;
 };
 
-export function createDomeMaterial(n: SkyNodes, clouds: CloudKind): MeshBasicNodeMaterial {
+export function createDomeMaterial(n: SkyNodes, clouds: CloudKind, blend?: L): MeshBasicNodeMaterial {
   const dir = normalize(positionLocal);
   const y = dir.y;
 
@@ -83,12 +83,17 @@ export function createDomeMaterial(n: SkyNodes, clouds: CloudKind): MeshBasicNod
 
   const m = new MeshBasicNodeMaterial({ side: BackSide, depthWrite: false, depthTest: false, fog: false });
   m.colorNode = asNode(col);
+  // M02e (`full` profile): the dome is blended over the physical sky with this weight (1 = the dome alone, as before).
+  if (blend) {
+    m.transparent = true;
+    (m as unknown as { opacityNode: unknown }).opacityNode = blend;
+  }
   return m;
 }
 
 /** The dome mesh. The caller keeps it centred on the camera. */
-export function createDome(n: SkyNodes, clouds: CloudKind): Mesh {
-  const mesh = new Mesh(new SphereGeometry(DOME_RADIUS_M, 40, 20), createDomeMaterial(n, clouds));
+export function createDome(n: SkyNodes, clouds: CloudKind, blend?: L): Mesh {
+  const mesh = new Mesh(new SphereGeometry(DOME_RADIUS_M, 40, 20), createDomeMaterial(n, clouds, blend));
   mesh.name = 'world.sky.dome';
   mesh.renderOrder = -1000;
   mesh.frustumCulled = false;

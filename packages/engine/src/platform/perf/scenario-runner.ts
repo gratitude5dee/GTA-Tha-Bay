@@ -241,7 +241,7 @@ export class PerfScenarioRunner {
       },
       after: (time) => {
         if (!measuring) return;
-        meter.measure(scene, camera, 0, host.backdrop && !bench ? [host.backdrop] : []);
+        meter.measure(scene, camera, bench ? 0 : host.shadowPasses, host.backdrop && !bench ? [host.backdrop] : []);
         infoTrianglesMax = Math.max(infoTrianglesMax, info.render.triangles);
         infoDrawMax = Math.max(infoDrawMax, info.render.drawCalls);
         const m = readMemory(info, this.d.wasm);

@@ -53,6 +53,15 @@ export interface WorldLayerDebug {
   setRainOverride(rain: number | null): void;
   /** The rain override in force, or null. */
   rainOverride(): number | null;
+  /** M02e: the look pass (materials, post stack, shadows) switch and its active post nodes; absent when the layer has no look. */
+  look?: {
+    /** Whether the tier has a look at all (the legacy tiers never do). */
+    available(): boolean;
+    isOn(): boolean;
+    setOn(on: boolean): boolean;
+    /** The post nodes running now, in order (empty when the look is off). */
+    nodes(): readonly string[];
+  };
 }
 
 export interface WorldBoot {

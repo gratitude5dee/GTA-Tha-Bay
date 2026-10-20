@@ -26,6 +26,7 @@ import { SkyProbe } from './probe.ts';
 import { createRainOverlay, createRainStreaks, type RainOverlay, type RainStreaks } from './rain.ts';
 import { SKY_KEYS, evaluateSky, sunDirection } from './sky-keys.ts';
 import { skyConfigFor, type SkyConfig } from './tiers.ts';
+import type { L } from './tsl.ts';
 import type { AtmosphereAdapter, SkyInput, SkyPresetId, SkyUniforms } from './types.ts';
 
 /** The day the sky shows before the first snapshot carries an `EnvState`. */
@@ -61,6 +62,11 @@ export interface SkyViewOptions {
   /** Starts with the sky off (the `?sky=0` cost comparison of QA builds). */
   disabled?: boolean;
   now?: () => number;
+  /**
+   * M02e: the look pass. `domeBlend` is the weight of the dome over the physical sky (absent: the dome alone, as in M02b2); `after`
+   * runs once a frame after the sky wrote its lights and exposure, and may override them.
+   */
+  look?: { domeBlend: unknown; after(u: Readonly<SkyUniforms>, input: Readonly<SkyInput>, nowMs: number): void };
 }
 
 export interface SkyInfo {
@@ -120,6 +126,8 @@ export class SkyView {
   private input: SkyInput = DEFAULT_INPUT;
   private wet = 0;
   private rainOverride: number | null = null;
+  /** QA (M02e `shot()`): the page time of the sky's clouds and rain, held while the look clock is frozen. */
+  private frozenTime: number | null = null;
   private lastNow = -1;
   private lastLampMs = Number.NEGATIVE_INFINITY;
   private lastPair = '';
@@ -133,7 +141,7 @@ export class SkyView {
     this.enabled = !o.disabled;
     this.uniforms = evaluateSky(SKY_KEYS, DEFAULT_INPUT);
 
-    this.dome = createDome(o.nodes, this.config.clouds);
+    this.dome = createDome(o.nodes, this.config.clouds, (o.look?.domeBlend ?? undefined) as L | undefined);
     o.backdrop.scene.add(this.dome);
     o.backdrop.scene.background = null;
 
@@ -178,6 +186,16 @@ export class SkyView {
     this.config = next;
     this.mountRain();
     this.night.setDecalCap(next.decalCap);
+  }
+
+  /** The sky dome mesh (the look's environment map draws it too, so the map matches the sky the player sees). */
+  get domeMesh(): Mesh {
+    return this.dome;
+  }
+
+  /** Holds the sky's own clock (painted clouds, rain streaks) at its current value, or releases it: stills for goldens. */
+  freezeTime(on: boolean): void {
+    this.frozenTime = on ? this.nodes.uTime.value : null;
   }
 
   /** Forces the rain intensity (0..255) whatever the weather says; null returns to the preset (QA debug panel). */
@@ -246,7 +264,7 @@ export class SkyView {
     const c = this.config;
     writeSkyNodes(this.nodes, u, { wetScale: c.wetness === 'none' ? 0 : 1, wetRough: c.wetRoughness, bankTopM: this.input.fogBankM });
     applyBoundaryFog(this.nodes, f.boundaryFog);
-    this.nodes.uTime.value = f.nowMs / 1000;
+    this.nodes.uTime.value = this.frozenTime ?? f.nowMs / 1000;
     const cam = this.o.host.camera as PerspectiveCamera;
     this.nodes.uCamPos.value.set(cam.position.x, cam.position.y, cam.position.z);
 
@@ -264,6 +282,7 @@ export class SkyView {
     if (c.lighting === 'probe-grid') this.probe.update(u, nowMs);
     else this.bakeAmbient(u);
     this.adapter?.update(u);
+    this.o.look?.after(u, this.input, nowMs);
 
     // Rain: streak count scales with the intensity, the overlay with the tier.
     const rainK = u.uRain;

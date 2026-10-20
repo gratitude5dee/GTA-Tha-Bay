@@ -1,0 +1,119 @@
+/**
+ * Look configuration (M02e, DL-704): `config/world/look.json` as typed data. S02 domain types, not a numbered contract. No `three`
+ * import: the mesher (asset.worker) reads the profile and the facade classes from here.
+ */
+import type { PostNode, QualityTierId, ShadowMode, WeatherPreset } from '@dv/shared';
+import lookJson from '../../../../../config/world/look.json';
+import flagsJson from '../../../../../config/platform-flags.json';
+
+/** `legacy` is the M02b1/M02b2 material set, unchanged. */
+export type LookProfile = 'full' | 'lite' | 'min' | 'legacy';
+
+export const FACADE_KEYS = ['ResLow', 'ResMid', 'Commercial', 'Tower', 'Industrial', 'Civic'] as const;
+export type FacadeKey = (typeof FACADE_KEYS)[number];
+
+export interface FacadeClass {
+  floorM: number;
+  groundFloorM: number;
+  bayM: number;
+  winW: number;
+  winH: number;
+  sillM: number;
+  glassRatio: number;
+  wallRoughness: number;
+  /** sRGB hex. */
+  palette: readonly string[];
+}
+
+export interface RoofClass {
+  albedo: string;
+  roughness: number;
+  pattern: 'membrane' | 'shingle';
+}
+
+export interface GroundLook {
+  albedo: string;
+  roughness: number;
+  noise: number;
+}
+
+export interface LookFile {
+  schema: 'world-look/1';
+  tierProfile: Record<QualityTierId, LookProfile>;
+  /** 2 until the M11a1 governor raises it (DL-704). */
+  postLevelCap: 0 | 1 | 2 | 3;
+  /** Multiplies `SkyUniforms.uExposure`. */
+  exposureBias: Record<QualityTierId, number>;
+  /** At most `TierFeatures.shadows.distanceM`; the casters are the L0 `buildings` objects only. */
+  casterRadiusM: Partial<Record<QualityTierId, number>>;
+  /** Fallback switch, empty by default. */
+  shadowsOff: readonly QualityTierId[];
+  facade: Record<FacadeKey, FacadeClass>;
+  roof: Record<'flat' | 'gable' | 'hip', RoofClass>;
+  /** Keyed by `GroundClass` name and road class name. */
+  ground: Record<string, GroundLook>;
+  water: { deep: string; shallow: string; waves: readonly (readonly [dirDeg: number, lengthM: number, amp: number, speed: number])[] };
+  sky: { turbidity: Record<WeatherPreset, number>; rayleigh: Record<WeatherPreset, number>; keyframeWeight: Record<WeatherPreset, number> };
+  /** `gtao-half`, `bloom` or `fsr1` when they fail on the WebGL2 backend (each with a spec/03 section 7 row). Never `tonemap` or an AA node. */
+  webgl2Unsupported: readonly PostNode[];
+  /** AA substitution on the WebGL2 backend when the node fails there (`traa` to `smaa` or `fxaa`; `smaa` to `fxaa`). */
+  webgl2AaFallback: Partial<Record<'traa' | 'smaa', 'smaa' | 'fxaa'>>;
+}
+
+export const LOOK: LookFile = lookJson as unknown as LookFile;
+
+/** `config/platform-flags.json` `world.look` (default true): false is the full rollback to the M02b1/M02b2 look. */
+export const LOOK_FLAG: boolean = (flagsJson as Record<string, unknown>)['world.look'] !== false;
+
+export const TIER_IDS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low', 'xr-quest', 'xr-visionpro'];
+
+/** The look profile of a tier; every tier is `legacy` when the `world.look` flag is off. */
+export function lookProfileFor(tier: QualityTierId, enabled: boolean = LOOK_FLAG, look: LookFile = LOOK): LookProfile {
+  return enabled ? look.tierProfile[tier] : 'legacy';
+}
+
+/** The facade class of a `BuildingKind` code (0 ResLow .. 5 Civic). */
+export function facadeKeyOf(kind: number): FacadeKey {
+  return FACADE_KEYS[kind] ?? 'ResLow';
+}
+
+export function facadeClassOf(kind: number, look: LookFile = LOOK): FacadeClass {
+  return look.facade[facadeKeyOf(kind)];
+}
+
+/** `#rrggbb` (sRGB) to linear floats. */
+export function srgbHexToLinear(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (c: number): number => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return [f(((n >> 16) & 255) / 255), f(((n >> 8) & 255) / 255), f((n & 255) / 255)];
+}
+
+const POST_NODES: readonly PostNode[] = ['gtao-half', 'bloom', 'smaa', 'traa', 'fxaa', 'fsr1', 'tonemap'];
+
+/**
+ * The structural rules the schema cannot say: every `casterRadiusM` within the tier's shadow distance, the XR tiers `legacy`,
+ * `webgl2Unsupported` never holds `tonemap` or an AA node, and the AA substitutions only go to a node that exists.
+ */
+export function lookErrors(look: LookFile, shadowDistanceM: Partial<Record<QualityTierId, number>>): string[] {
+  const errors: string[] = [];
+  if (look.schema !== 'world-look/1') errors.push(`schema must be world-look/1, got ${String(look.schema)}`);
+  for (const [tier, r] of Object.entries(look.casterRadiusM) as [QualityTierId, number][]) {
+    const max = shadowDistanceM[tier];
+    if (max === undefined) errors.push(`casterRadiusM names unknown tier ${tier}`);
+    else if (r > max) errors.push(`casterRadiusM.${tier} ${r} exceeds the tier's shadow distance ${max}`);
+  }
+  for (const n of look.webgl2Unsupported) {
+    if (n === 'tonemap' || n === 'fxaa' || n === 'smaa' || n === 'traa') errors.push(`webgl2Unsupported must not hold ${n}`);
+    if (!POST_NODES.includes(n)) errors.push(`webgl2Unsupported names unknown node ${String(n)}`);
+  }
+  if (look.webgl2AaFallback.smaa !== undefined && look.webgl2AaFallback.smaa !== 'fxaa') errors.push('webgl2AaFallback.smaa can only be fxaa');
+  for (const k of FACADE_KEYS) {
+    const c = look.facade[k];
+    if (c.winW >= c.bayM) errors.push(`facade.${k}: winW ${c.winW} must be less than bayM ${c.bayM}`);
+    if (c.winH + c.sillM >= c.floorM + 1e-6) errors.push(`facade.${k}: sill plus window height exceeds the floor`);
+  }
+  return errors;
+}
+
+/** `ShadowMode` re-exported so look modules need not reach into the contract file. */
+export type { ShadowMode };

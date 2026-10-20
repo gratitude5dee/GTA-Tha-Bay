@@ -22,6 +22,8 @@ import {
   TERRAIN_POSTS, chunkBounds, sampleHeight, type BuildingRecord, type ChunkKey, type QualityTierId, type RenderChunk, type SimChunk,
 } from '@dv/shared';
 import mesherJson from '../../../../../config/world/mesher.json';
+import { facadeClassOf, lookProfileFor } from '../look/config.ts';
+import { FLAG_PARAPET, Surf, facadeDm, groundSurf, roadSurf, roofSurf, wallSurf } from '../look/surfaces.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 
 // ---- configuration -------------------------------------------------------------------------------------------------------
@@ -89,6 +91,20 @@ export class MeshBuilder {
   readonly col: number[] = [];
   readonly ao: number[] = [];
   readonly idx: number[] = [];
+  /** M02e: surface id, palette index, kind/roof code, flags per vertex. */
+  readonly surf: number[] = [];
+  /** M02e: `Int16x4` per vertex (decimetres); only when the builder was made with `facade`. */
+  readonly fac: number[] | null;
+  private cur: [number, number, number, number] = [Surf.GroundBase + 3, 0, 0, 0];
+
+  constructor(o: { facade?: boolean } = {}) {
+    this.fac = o.facade ? [] : null;
+  }
+
+  /** The surface the next vertices belong to: id (look/surfaces.ts), palette index, kind/roof code, flags. */
+  setSurf(id: number, palette = 0, code = 0, flags = 0): void {
+    this.cur = [id, palette & 255, code & 255, flags & 255];
+  }
 
   get vertexCount(): number {
     return this.pos.length / 3;
@@ -97,11 +113,17 @@ export class MeshBuilder {
     return this.idx.length / 3;
   }
 
-  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1): number {
+  /** `fac` is the building vertex's `facade` record in decimetres (u, v, wall height, seed); zeros when absent. */
+  vertex(x: number, y: number, z: number, n: Rgb, c: Rgb, ao = 1, fac?: readonly [number, number, number, number]): number {
     this.pos.push(x, y, z);
     this.nor.push(n[0], n[1], n[2]);
     this.col.push(c[0], c[1], c[2]);
     this.ao.push(ao);
+    this.surf.push(this.cur[0], this.cur[1], this.cur[2], this.cur[3]);
+    if (this.fac) {
+      if (fac) this.fac.push(fac[0], fac[1], fac[2], fac[3]);
+      else this.fac.push(0, 0, 0, 0);
+    }
     return this.pos.length / 3 - 1;
   }
 
@@ -143,6 +165,8 @@ export class MeshBuilder {
       colors: new Float32Array(this.col),
       ao: new Float32Array(this.ao),
       indices: big ? new Uint32Array(this.idx) : new Uint16Array(this.idx),
+      surf: new Uint8Array(this.surf),
+      ...(this.fac ? { facade: new Int16Array(this.fac) } : {}),
       bounds: [minX, minY, minZ, maxX, maxY, maxZ],
     };
   }
@@ -167,6 +191,7 @@ export function terrainMesh(heights: Int16Array, ground: Uint8Array, cellM: numb
       const len = Math.sqrt(nx * nx + 1 + nz * nz);
       const cls = ground[Math.min(63, row + (stride >> 1)) * 64 + Math.min(63, col + (stride >> 1))] ?? 3;
       const color = GROUND[cls] ?? (GROUND[3] as Rgb);
+      b.setSurf(groundSurf(cls));
       b.vertex(col * cellM, h(col, row), row * cellM, [nx / len, 1 / len, nz / len], color);
     }
   }
@@ -236,7 +261,11 @@ export interface BuildingStats {
  * Meshes one building into `b` and returns its triangle count. `pts` is the footprint (local x, z pairs, counter-clockwise after
  * the call), `base` the foundation-free ground height, `height` the wall height. The count never exceeds `maxTris`.
  */
-export function addBuilding(b: MeshBuilder, ringIn: number[], base: number, height: number, rec: Pick<BuildingRecord, 'kind' | 'roof' | 'palette' | 'seed'>, profile: MesherProfile): number {
+export function addBuilding(
+  b: MeshBuilder, ringIn: number[], base: number, height: number, rec: Pick<BuildingRecord, 'kind' | 'roof' | 'palette' | 'seed'>, profile: MesherProfile,
+  /** The coarse levels draw every vertex of the footprint as one surface (the massing of an L1 or L2 unit). */
+  surfOverride?: number,
+): number {
   let ring = ringIn.slice();
   if (signedArea(ring) < 0) {
     const rev: number[] = [];
@@ -270,20 +299,35 @@ export function addBuilding(b: MeshBuilder, ringIn: number[], base: number, heig
   const eave = base + height;
   const wallTop = parapet ? eave + MESHER.parapetM : eave;
 
+  // M02e: the facade record (decimetres): u along the wall from its start, stretched to a whole number of bays so a wall ends on a
+  // pier; v above the foot of the foundation skirt (the shader subtracts `foundationM`, so the ground floor starts at the ground
+  // without a second vertex row); the wall height from the same foot (v of the top edge); the seed (BD-M02E-01).
+  const withFacade = b.fac !== null;
+  const bayM = withFacade ? facadeClassOf(rec.kind).bayM : 1;
+  const wallH = wallTop - (base - foundation);
+  const wallHdm = facadeDm(wallH);
+  const seed15 = rec.seed & 0x7fff;
+  const code = (rec.kind & 15) | ((rec.roof & 3) << 4);
+
   // Walls: outward normal (dz, 0, -dx) for a counter-clockwise ring in (x, z).
+  b.setSurf(surfOverride ?? wallSurf(rec.kind), rec.palette, code, parapet ? FLAG_PARAPET : 0);
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
     const x0 = ring[i * 2] as number, z0 = ring[i * 2 + 1] as number, x1 = ring[j * 2] as number, z1 = ring[j * 2 + 1] as number;
     const dx = x1 - x0, dz = z1 - z0;
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     const nrm: Rgb = [dz / len, 0, -dx / len];
-    const v0 = b.vertex(x0, base - foundation, z0, nrm, scale(wall, 0.72), AO_BASE);
-    const v1 = b.vertex(x1, base - foundation, z1, nrm, scale(wall, 0.72), AO_BASE);
-    const v2 = b.vertex(x1, wallTop, z1, nrm, wall, 1);
-    const v3 = b.vertex(x0, wallTop, z0, nrm, wall, 1);
+    const uEnd = facadeDm(withFacade ? Math.max(1, Math.round(len / bayM)) * bayM : len);
+    const v0 = b.vertex(x0, base - foundation, z0, nrm, scale(wall, 0.72), AO_BASE, [0, 0, wallHdm, seed15]);
+    const v1 = b.vertex(x1, base - foundation, z1, nrm, scale(wall, 0.72), AO_BASE, [uEnd, 0, wallHdm, seed15]);
+    const v2 = b.vertex(x1, wallTop, z1, nrm, wall, 1, [uEnd, wallHdm, wallHdm, seed15]);
+    const v3 = b.vertex(x0, wallTop, z0, nrm, wall, 1, [0, wallHdm, wallHdm, seed15]);
     b.tri(v0, v2, v1);
     b.tri(v0, v3, v2);
   }
+  // Roof vertices: no wall coordinates, the height above the base and the seed.
+  b.setSurf(surfOverride ?? roofSurf(pitched ? rec.roof : 0), rec.palette, code, 0);
+  const roofFac = (y: number): [number, number, number, number] => [0, facadeDm(y - (base - foundation)), wallHdm, seed15];
 
   if (pitched) {
     // Ridge along the long axis, through the midpoints of the two short edges.
@@ -323,7 +367,7 @@ export function addBuilding(b: MeshBuilder, ringIn: number[], base: number, heig
       if (nx * fx + nz * fz < 0 || (Math.abs(nx * fx + nz * fz) < 1e-9 && ny < 0)) { nx = -nx; ny = -ny; nz = -nz; }
       const l = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
       const nrm: Rgb = [nx / l, ny / l, nz / l];
-      const ids = pts.map((p) => b.vertex(p[0], p[1], p[2], nrm, roofColor, 0.95));
+      const ids = pts.map((p) => b.vertex(p[0], p[1], p[2], nrm, roofColor, 0.95, roofFac(p[1])));
       const g = (i: number, o: number): number => b.pos[(ids[i] as number) * 3 + o] as number;
       for (let k = 1; k < ids.length - 1; k++) {
         const ux = g(k, 0) - g(0, 0), uy = g(k, 1) - g(0, 1), uz = g(k, 2) - g(0, 2);
@@ -344,7 +388,7 @@ export function addBuilding(b: MeshBuilder, ringIn: number[], base: number, heig
 
   const idx = earcut(ring);
   const first = b.vertexCount;
-  for (let i = 0; i < n; i++) b.vertex(ring[i * 2] as number, eave, ring[i * 2 + 1] as number, UP, roofColor, 1);
+  for (let i = 0; i < n; i++) b.vertex(ring[i * 2] as number, eave, ring[i * 2 + 1] as number, UP, roofColor, 1, roofFac(eave));
   let emitted = 0;
   for (let i = 0; i + 2 < idx.length; i += 3) {
     b.triUp(first + (idx[i] as number), first + (idx[i + 1] as number), first + (idx[i + 2] as number), true);
@@ -358,6 +402,7 @@ export function addBuilding(b: MeshBuilder, ringIn: number[], base: number, heig
     for (let i = 0; i < n; i++) { cx += ring[i * 2] as number; cz += ring[i * 2 + 1] as number; }
     cx /= n; cz /= n;
     if (pointInRing(ring, cx, cz) && pointInRing(ring, cx + 1.6, cz + 1.2) && pointInRing(ring, cx - 1.6, cz - 1.2)) {
+      b.setSurf(surfOverride ?? Surf.Equipment, rec.palette, code, 0);
       box(b, cx, cz, eave, 2.4, 1.6, 1.8, scale(roofColor, 0.9));
     } else {
       tris -= 10;
@@ -472,8 +517,10 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
       candidates.push({ idx, rec, ring, area, height });
     });
   }
+  // M02e: the facade record rides on the building vertices unless the tier's look is `legacy`.
+  const withFacade = lookProfileFor(o.tier) !== 'legacy';
   const meshBuildings = (list: readonly Candidate[]): { built: MeshBuffers | null; maxTris: number } => {
-    const bb = new MeshBuilder();
+    const bb = new MeshBuilder({ facade: withFacade });
     let maxTris = 0;
     for (const c of list) {
       const t = addBuilding(bb, c.ring, c.rec.baseDm / 10, c.height, c.rec, profile);
@@ -501,7 +548,11 @@ export function meshChunk(sim: SimChunk, render: RenderChunk | null, o: MeshChun
     const clsOf = new Map<number, number>();
     for (const e of sim.edges) if (!clsOf.has(e.seg)) clsOf.set(e.seg, e.cls);
     const rb = new MeshBuilder();
-    for (const seg of sim.segments) addRibbon(rb, seg.pts, ox, oz, seg.widthM, ROAD_LIFT_M, roadColor(clsOf.get(seg.id) ?? 4));
+    for (const seg of sim.segments) {
+      const cls = clsOf.get(seg.id) ?? 4;
+      rb.setSurf(roadSurf(cls));
+      addRibbon(rb, seg.pts, ox, oz, seg.widthM, ROAD_LIFT_M, roadColor(cls));
+    }
     const built = rb.build('roads');
     if (built) objects.push(built);
   }

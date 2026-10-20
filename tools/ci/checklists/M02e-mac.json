@@ -1,0 +1,33 @@
+{
+  "id": "M02e-mac",
+  "milestone": "M02e",
+  "device": "Apple Silicon Mac, Chrome (desktop A in the device matrix); tier desktop at 60 fps, the operator's sf bake (QA build)",
+  "urlTemplate": "http://localhost:8788/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Bake the real city (pnpm map:build -- --area sf, then pnpm map:pack), build the QA bundle with the bake merged in (DV_WORLD=sf VITE_DV_QA=1 pnpm build) and serve it locally (pnpm --filter @dv/edge exec wrangler dev --port 8788)."
+    },
+    {
+      "id": "2-route",
+      "instruction": "In Chrome open http://localhost:8788/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach&debug=1 with the look on (the default). The camera flies the 120 s route from the Ferry Building over Civic Center and the Sunset to Ocean Beach. When it ends tap Export and save perf.json and notes.json to docs/device-runs/M02e/mac/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "desktop" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "3-node-cost",
+      "instruction": "Informational, never a pass condition (GPU timing through trackTimestamp is UNVERIFIED on Chrome for macOS and per-node attribution is not in the ledger): run walk-civic-center at 13:00 clear several times and, from the debug panel, toggle each post node and the shadow pass off in turn; if the timestamp queries resolve, record the GPU ms of each, otherwise record the CPU frame-time delta of toggling it. Write the table into notes.json as nodeCost: { gtao-half, bloom, smaa, tonemap, shadows, lookOffTotal } in milliseconds."
+    },
+    {
+      "id": "4-verdict",
+      "instruction": "Look at the real city with the look on and off (the look switch in the debug panel) at 13:00 clear, 19:00 golden and 22:00 clear and write the reviewer's verdict into notes.json as lookVerdict (one paragraph: what reads as a city now, what still reads as flat boxes). Optionally save a before/after image of the same viewpoint as docs/look/M02e-before-after-sf.png."
+    },
+    {
+      "id": "5-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M02e/mac/perf.json --tier desktop --checklist tools/ci/checklists/M02e-mac.json: median and p95 frame time, frames over 50 ms, render and triangle counts and the cold-download figure must pass."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

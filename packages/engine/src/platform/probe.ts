@@ -211,7 +211,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     after: () => {
       if (!liveOn || runner.isRunning) return;
       const a = host.active;
-      live = liveMeter.measure(a.scene, a.camera, 0, host.backdrop && !host.menuActive ? [host.backdrop] : []);
+      live = liveMeter.measure(a.scene, a.camera, host.shadowPasses, host.backdrop && !host.menuActive ? [host.backdrop] : []);
     },
   });
 
@@ -284,7 +284,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
       live: () => {
         if (!liveOn) {
           const a = host.active;
-          live = liveMeter.measure(a.scene, a.camera, 0, host.backdrop && !host.menuActive ? [host.backdrop] : []);
+          live = liveMeter.measure(a.scene, a.camera, host.shadowPasses, host.backdrop && !host.menuActive ? [host.backdrop] : []);
         }
         return live;
       },
