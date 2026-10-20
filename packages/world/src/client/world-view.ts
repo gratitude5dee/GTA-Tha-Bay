@@ -658,6 +658,16 @@ export class WorldView implements WorldLayer {
   }
 
   /** M02e: what the look pass is doing now (the bridge's `look()`). A view without a look reports `legacy`. */
+  /**
+   * QA only (M02e): stops (`true`) or restarts (`false`) the render loop. A stopped loop leaves the last presented frame on the canvas, so
+   * a capture on a slow software renderer does not wait on new frames (an element screenshot waits for the canvas to stay still).
+   */
+  holdRender(on: boolean): void {
+    if (!this.host) return;
+    if (on) this.host.stopLoop();
+    else this.host.startLoop();
+  }
+
   lookReport(): LookReport | null {
     if (this.lookView) return this.lookView.report();
     if (!this.o.look || !this.host) return null;

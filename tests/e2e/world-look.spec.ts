@@ -158,7 +158,7 @@ test.describe('world look @world-look', () => {
 test.describe('xr look @world-look', () => {
   test('the Quest tier keeps the direct pipeline and the legacy look, with no post nodes @xr @world-look', async ({ page }) => {
     test.setTimeout(240_000);
-    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.setViewportSize(GOLDEN_VIEWPORT);
     await page.goto('/?xr-emulate=quest3&debug=1');
     await waitForEngine(page);
     await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world?.boot().revealed === true, undefined, { timeout: 180_000 });
@@ -179,7 +179,7 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
-  await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke] { display: none !important }' });
+  await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   await frames(page, 2);
   const buf = await page.locator('canvas').first().screenshot();
@@ -253,7 +253,7 @@ const COMPARE_SHOTS = ['noon-street', 'night-street'] as const;
 const COMPARE_VIEWPORT = { width: 960, height: 540 } as const;
 
 test.describe('look before and after @look-compare', () => {
-  test.describe.configure({ timeout: 1_800_000 });
+  test.describe.configure({ timeout: 3_600_000 });
   test.beforeEach(({}, testInfo: TestInfo) => {
     test.skip(testInfo.project.name !== 'chromium-webgl2', 'the before/after image is chromium-webgl2 only');
   });
@@ -262,8 +262,10 @@ test.describe('look before and after @look-compare', () => {
 
   test('writes (DV_LOOK_WRITE=1) or checks the pair of docs/look @look-compare', async ({ page }, testInfo) => {
     if (write) {
-      await bootWorld(page, 'desktop', '', COMPARE_VIEWPORT);
-      await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke] { display: none !important }' });
+      // Boot and place the shot at the small size (the software renderer needs seconds per frame at 960 x 540 and the shot waits for
+      // many frames), then grow the viewport for the capture only: the aspect is 16:9 in both, so the frustum and the residents stay.
+      await bootWorld(page, 'desktop', '', GOLDEN_VIEWPORT);
+      await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
       const tiles: Rgba[] = [];
       const means: Record<string, number> = {};
       for (const id of COMPARE_SHOTS) {
@@ -271,8 +273,14 @@ test.describe('look before and after @look-compare', () => {
         for (const on of [false, true]) {
           await page.evaluate(([flag]) => (window as unknown as W).__dvBridge.world.setLook(flag as boolean), [on] as const);
           await page.evaluate((shot) => (window as unknown as W).__dvBridge.world.shot(shot), id);
-          await frames(page, 3);
+          await frames(page, 2);
+          await page.setViewportSize(COMPARE_VIEWPORT);
+          await frames(page, 2);
+          // Stop the loop so the element screenshot does not wait on new frames; the canvas keeps the last one.
+          await page.evaluate(() => (window as unknown as W).__dvBridge.world.hold(true));
           pair.push(decodePng(await page.locator('canvas').first().screenshot()));
+          await page.evaluate(() => (window as unknown as W).__dvBridge.world.hold(false));
+          await page.setViewportSize(GOLDEN_VIEWPORT);
         }
         means[id] = meanAbsDifference(pair[0] as Rgba, pair[1] as Rgba);
         tiles.push(...pair);

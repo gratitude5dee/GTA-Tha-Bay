@@ -62,6 +62,8 @@ export interface WorldBridge {
    */
   shot(id: string): Promise<{ id: string; hour: number; weather: string }>;
   clearShot(): void;
+  /** M02e QA: stops or restarts the render loop; the canvas keeps its last frame while stopped (for captures on a slow renderer). */
+  hold(on: boolean): void;
   /**
    * The world services of the sim (M02c1): one call into `WorldApi` inside sim.worker, answered as JSON. `op` is one of `teleport`,
    * `route`, `resolve`, `snap`, `find`, `pois`, `pedRoute`, `query`, `portals`, `portal`, `release`, `closeEdges`, `density`,
@@ -196,6 +198,7 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
       await nextFrames(4);
       return { id: s.id, hour: s.hour, weather: s.weather };
     },
+    hold: (on) => view.holdRender(on),
     clearShot: () => {
       view.lookView?.releaseShot();
       view.lookView?.freezeClock(false);

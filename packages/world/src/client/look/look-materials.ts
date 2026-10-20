@@ -27,6 +27,9 @@ import { roofNodes } from './roof.ts';
 import { Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
 
+/** Polygon offset factor and units of the coarse (L1, L2) look materials. */
+const COARSE_DEPTH_BIAS = -4;
+
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
 export interface LookMaterialSet {
@@ -154,6 +157,13 @@ export function createLookMaterials(o: LookMaterialOptions): LookMaterialSet {
   coarse.terrain = g1;
   coarse.roads = g1;
   coarse.massing = massing();
+  // A coarse wall and a detailed L0 wall can stand in the same place (a building whose footprint crosses a cell that is not masked
+  // yet, or a tile the L0 chunk of which is missing): the coarse surfaces are pushed back in depth so the detailed one always wins.
+  for (const m of new Set(Object.values(coarse))) {
+    m.polygonOffset = true;
+    m.polygonOffsetFactor = COARSE_DEPTH_BIAS;
+    m.polygonOffsetUnits = COARSE_DEPTH_BIAS;
+  }
   return {
     l0,
     coarse,

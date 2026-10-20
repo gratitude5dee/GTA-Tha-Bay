@@ -26,6 +26,13 @@ describe('createLookMaterials', () => {
         expect(m?.alphaTest).toBe(0.5);
         expect(m?.opacityNode).toBeTruthy();
       }
+      // The coarse surfaces sit behind a detailed L0 wall in depth (reversed depth buffer: a negative offset is farther); L0 has none.
+      for (const m of Object.values(set.coarse)) {
+        expect(m?.polygonOffset).toBe(true);
+        expect(m?.polygonOffsetFactor).toBeLessThan(0);
+        expect(m?.polygonOffsetUnits).toBeLessThan(0);
+      }
+      for (const m of Object.values(set.l0)) expect(m?.polygonOffset).toBe(false);
       set.dispose();
     });
   }
