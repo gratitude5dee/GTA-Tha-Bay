@@ -10,11 +10,14 @@ import { LocalPlayer, Control, Vehicle, Transform } from '../ecs/components.ts';
 import { CONTROL_OWNER } from '../control/states.ts';
 import { driverSyncSystem, enterExitSystem } from './enter-exit.ts';
 import type { VehicleStore } from './components.ts';
+import type { WheelPath } from './wheel-path.ts';
 import { registerVehicleSystems, type VehicleSystems } from './vehicle-system.ts';
 
 export * from './components.ts';
 export * from './presets.ts';
 export * from './raycast-vehicle.ts';
+export * from './wheel-path.ts';
+export * from './wheel-path-castray.ts';
 export * from './vehicle-system.ts';
 export * from './enter-exit.ts';
 
@@ -60,8 +63,9 @@ export function registerVehicleModule(
   core: SimCore,
   backend: VehiclePhysics,
   existing?: PrefabRegistry,
+  wheelPath?: WheelPath,
 ): VehicleModule {
-  const systems = registerVehicleSystems(core, backend);
+  const systems = registerVehicleSystems(core, backend, undefined, wheelPath);
   const store = systems.store;
   core.addSystem(enterExitSystem({ backend, services: core.services, store }));
   core.addSystem(driverSyncSystem({ backend, store }));
