@@ -1,16 +1,17 @@
 /**
- * The wheel path over Rapier's `DynamicRayCastVehicleController` (M03a2 spike candidate, ADR-0031). The controller casts the
- * rays and carries the suspension; the tyre forces of `stepHandling` reach the body as external impulses at the hubs
- * (the controller's own engine, brake and side friction are switched off: they would count the grip twice).
+ * TEST-ONLY since the ADR-0031 decision: `castray` ships and the vehicle system cannot reach this file. It stays so that
+ * `wheel-spike.spec.ts` can re-run the comparison.
+ *
+ * The wheel path over Rapier's `DynamicRayCastVehicleController` (M03a2 spike candidate). The controller casts the rays and
+ * carries the suspension; the tyre forces of `stepHandling` reach the body as external impulses at the hubs (the controller's
+ * own engine, brake and side friction are off: they would count the grip twice).
  *
  * Per-wheel data comes from `PhysicsBackend.vehicle.read`. Slots the controller cannot give are NaN (wheel-point velocity);
  * this adapter then derives vLong and vLat from the body kinematics, and counts the NaN slots for the spike report.
- *
- * Sim code under the C02 lint: detmath only.
  */
 import { dcos, dsin, dsqrt, GRAVITY, PI, type HandlingOutput, type WheelContact } from '@dv/shared';
-import { VEHICLE_READ_STRIDE, type Vec3, type VehiclePhysics, type WheelDesc } from '../physics/backend.ts';
-import { wheelAnchors, type WheelContacts, type WheelPath, type WheelVehicle } from './wheel-path.ts';
+import { VEHICLE_READ_STRIDE, type Vec3, type VehiclePhysics, type WheelDesc } from '../src/sim/physics/backend.ts';
+import { wheelAnchors, type WheelContacts, type WheelPath, type WheelVehicle } from '../src/sim/vehicle/wheel-path.ts';
 
 interface ControllerState {
   id: number;

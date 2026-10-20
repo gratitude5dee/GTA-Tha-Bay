@@ -33,6 +33,8 @@ export interface RunOptions {
   /** A wheel path other than the selected one, and a Rapier build other than `deterministic-compat` (M03a2 spike). */
   wheelPath?: (backend: VehiclePhysics) => WheelPath;
   build?: PhysicsBuild;
+  /** Receives the wall-clock milliseconds of every line tick (informational, machine dependent). */
+  tickMs?: number[];
 }
 
 export async function runLine(line: LineFile, opts: RunOptions = {}): Promise<LineRun> {
@@ -62,7 +64,9 @@ export async function runLine(line: LineFile, opts: RunOptions = {}): Promise<Li
   let lastGear = -99;
   const total = lineLength(line) + (opts.extraTicks ?? 0);
   for (let t = 0; t < total; t++) {
+    const t0 = opts.tickMs ? performance.now() : 0;
     sim.step(1, (tick) => player.frame(tick));
+    if (opts.tickMs) opts.tickMs.push(performance.now() - t0);
     const v = view(world);
     trace.push(v);
     if (v.gear !== lastGear) {
