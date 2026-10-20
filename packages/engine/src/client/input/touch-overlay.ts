@@ -8,12 +8,14 @@ import './touch.css';
 const DEFAULT_LABELS: Readonly<Record<string, string>> = {
   'touch.jump': 'Jump',
   'touch.camera': 'Camera',
+  'touch.enter': 'Enter',
   'touch.pause': 'Pause',
 };
 
 const ICONS: Readonly<Record<string, string>> = {
   jump: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l7 9h-4v7H9v-7H5z" fill="currentColor"/></svg>',
   camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4zm8 2.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" fill="currentColor"/></svg>',
+  enter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8v16h-8v-3h5V7h-5zM4 11h8V8l5 4-5 4v-3H4z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>',
 };
 

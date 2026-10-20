@@ -37,7 +37,19 @@ export type DebugCommand =
   /** A call into the world services (M02c1): `op` names it, the answer is the qa message `world.reply.<id>`. The world module handles it. */
   | { t: 'debug.world'; id: number; op: string; args?: Record<string, unknown> }
   /** Scripted player input from the next tick on, ticks relative to now (BotInput segments); an empty list hands the input back (M02c1). */
-  | { t: 'debug.bot'; script: { from: number; to: number; buttons?: number; moveX?: number; moveY?: number; camYaw?: number }[] };
+  | { t: 'debug.bot'; script: { from: number; to: number; buttons?: number; moveX?: number; moveY?: number; camYaw?: number }[] }
+  /** Spawn a prefab at a point (feet, ENU metres) facing `yaw` (radians about +Y); the answer is the qa message `spawn.reply.<id>` with the handle (M03a1). */
+  | { t: 'debug.spawn'; id: number; prefab: string; at: [number, number, number]; yaw?: number }
+  /** A vehicle operation for the local player (M03a1): enter (the interaction rule, with reach), seat (at once), exit, lock, unlock, state; the answer is `vehicle.reply.<id>`. */
+  | { t: 'debug.vehicle'; id: number; op: 'enter' | 'seat' | 'exit' | 'lock' | 'unlock' | 'state'; target?: number }
+  /** Input lines (M03a1, QA only): play a line from now, stop playback, record, or stop recording and answer with the line (`line.reply.<id>`). */
+  | { t: 'debug.line'; id: number; op: 'play' | 'stop' | 'record' | 'save'; line?: unknown }
+  /** The entity inspector (QA, M03a1): the components of an entity (default: the player's vehicle, else the player); the answer is `inspect.reply.<id>`. */
+  | { t: 'debug.inspect'; id: number; handle?: number }
+  /** Sets one field of one component of an entity through the command channel (QA, debug builds only); the answer is `inspect.reply.<id>`. */
+  | { t: 'debug.edit'; id: number; handle: number; component: string; field: string; lane?: number; value: number }
+  /** The shapes of every physics body by entity handle, for the wireframe (QA); the answer is `physics.reply.<id>`. */
+  | { t: 'debug.physics'; id: number };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -145,6 +157,16 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
     case 'debug.world': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 40 && (p['args'] === undefined || isObject(p['args']));
     case 'debug.bot':
       return Array.isArray(p['script']) && p['script'].length <= 64 && p['script'].every((s) => isObject(s) && isNum(s['from']) && isNum(s['to']) && (['buttons', 'moveX', 'moveY', 'camYaw'] as const).every((k) => s[k] === undefined || isNum(s[k])));
+    case 'debug.spawn':
+      return isInt(p['id']) && typeof p['prefab'] === 'string' && p['prefab'].length <= 64 && Array.isArray(p['at']) && p['at'].length === 3 && p['at'].every(isNum) && (p['yaw'] === undefined || isNum(p['yaw']));
+    case 'debug.vehicle':
+      return isInt(p['id']) && typeof p['op'] === 'string' && ['enter', 'seat', 'exit', 'lock', 'unlock', 'state'].includes(p['op']) && (p['target'] === undefined || isInt(p['target']));
+    case 'debug.inspect': return isInt(p['id']) && (p['handle'] === undefined || isInt(p['handle']));
+    case 'debug.edit':
+      return isInt(p['id']) && isInt(p['handle']) && typeof p['component'] === 'string' && p['component'].length <= 40 && typeof p['field'] === 'string' && p['field'].length <= 40 && (p['lane'] === undefined || isInt(p['lane'])) && isNum(p['value']);
+    case 'debug.physics': return isInt(p['id']);
+    case 'debug.line':
+      return isInt(p['id']) && typeof p['op'] === 'string' && ['play', 'stop', 'record', 'save'].includes(p['op']) && (p['line'] === undefined || isObject(p['line']));
     default: return false;
   }
 }

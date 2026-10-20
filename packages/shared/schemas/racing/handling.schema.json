@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/racing/handling.schema.json",
+  "title": "content/vehicles/handling/<id>.json (HandlingProfile, schema 1; 06-racing-data.md 4.1)",
+  "description": "One handling preset. Every row has a meaning (the port-contract rule, 06-racing-content.md C.3). CI also checks the class envelope and that the declared powerKw is within 3 % of max(T*omega).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "rev", "class", "fictionalMake", "massKg", "cgHeightM", "wheelbaseM", "trackM", "frontWeightPct",
+    "engine", "drive", "tire", "aero", "steer", "brake", "drift", "suspension", "nitro", "durability"
+  ],
+  "$defs": {
+    "pos": { "type": "number", "exclusiveMinimum": 0 },
+    "unit": { "type": "number", "minimum": 0, "maximum": 1 },
+    "quirk": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["k", "kph"], "properties": { "k": { "const": "speedGovernor" }, "kph": { "$ref": "#/$defs/pos" }, "jailbreakItem": { "type": "string", "minLength": 1 } } },
+        { "type": "object", "additionalProperties": false, "required": ["k", "radiusM"], "properties": { "k": { "const": "autoYield" }, "radiusM": { "$ref": "#/$defs/pos" } } },
+        {
+          "type": "object", "additionalProperties": false, "required": ["k", "holdSec"],
+          "properties": { "k": { "const": "stallOnDarkSignal" }, "holdSec": { "type": "array", "items": { "$ref": "#/$defs/pos" }, "minItems": 2, "maxItems": 2 } }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["k", "deltaVy", "charges", "rechargeSec", "coyoteSec"],
+          "properties": {
+            "k": { "const": "thrusterHop" }, "deltaVy": { "$ref": "#/$defs/pos" }, "charges": { "type": "integer", "minimum": 1 },
+            "rechargeSec": { "$ref": "#/$defs/pos" }, "coyoteSec": { "type": "number", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false, "required": ["k", "nitroPerSec", "minKph"],
+          "properties": { "k": { "const": "regenBraking" }, "nitroPerSec": { "$ref": "#/$defs/pos" }, "minKph": { "type": "number", "minimum": 0 } }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "schema": { "const": 1 },
+    "id": { "type": "string", "pattern": "^hp\\.[a-z0-9]+(-[a-z0-9]+)*$" },
+    "rev": { "type": "integer", "minimum": 1 },
+    "class": { "enum": ["D", "C", "B", "A", "S", "R"] },
+    "fictionalMake": { "type": "string", "minLength": 1 },
+    "massKg": { "$ref": "#/$defs/pos" },
+    "cgHeightM": { "$ref": "#/$defs/pos" },
+    "wheelbaseM": { "$ref": "#/$defs/pos" },
+    "trackM": { "$ref": "#/$defs/pos" },
+    "frontWeightPct": { "type": "number", "minimum": 30, "maximum": 70 },
+    "engine": {
+      "type": "object", "additionalProperties": false, "required": ["idleRpm", "redlineRpm", "torque", "powerKw"],
+      "properties": {
+        "idleRpm": { "type": "number", "minimum": 0 },
+        "redlineRpm": { "$ref": "#/$defs/pos" },
+        "torque": {
+          "type": "array", "minItems": 2,
+          "items": { "type": "array", "items": { "type": "number", "minimum": 0 }, "minItems": 2, "maxItems": 2 }
+        },
+        "powerKw": { "$ref": "#/$defs/pos" }
+      }
+    },
+    "drive": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type", "gears", "reverse", "finalDrive", "efficiency", "wheelRadiusM", "shiftUpPct", "shiftDownPct", "shiftTimeSec", "awdRearBias"],
+      "properties": {
+        "type": { "enum": ["FWD", "RWD", "AWD"] },
+        "gears": { "type": "array", "items": { "$ref": "#/$defs/pos" }, "minItems": 1, "maxItems": 10 },
+        "reverse": { "$ref": "#/$defs/pos" },
+        "finalDrive": { "$ref": "#/$defs/pos" },
+        "efficiency": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "wheelRadiusM": { "$ref": "#/$defs/pos" },
+        "shiftUpPct": { "$ref": "#/$defs/unit" },
+        "shiftDownPct": { "$ref": "#/$defs/unit" },
+        "shiftTimeSec": { "type": "number", "minimum": 0, "maximum": 1 },
+        "awdRearBias": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "tire": {
+      "type": "object", "additionalProperties": false,
+      "required": ["muLong", "muLat", "peakSlipDeg", "slideRatio", "slideAtX", "loadSens", "frontGrip", "rearGrip", "rollResistN"],
+      "properties": {
+        "muLong": { "$ref": "#/$defs/pos" },
+        "muLat": { "$ref": "#/$defs/pos" },
+        "peakSlipDeg": { "type": "number", "exclusiveMinimum": 0, "maximum": 20 },
+        "slideRatio": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "slideAtX": { "type": "number", "exclusiveMinimum": 1 },
+        "loadSens": { "type": "number", "minimum": 0, "maximum": 0.3 },
+        "frontGrip": { "$ref": "#/$defs/pos" },
+        "rearGrip": { "$ref": "#/$defs/pos" },
+        "rollResistN": { "type": "number", "minimum": 0 }
+      }
+    },
+    "aero": {
+      "type": "object", "additionalProperties": false, "required": ["cdA", "downforceNPerMps2"],
+      "properties": { "cdA": { "$ref": "#/$defs/pos" }, "downforceNPerMps2": { "type": "number", "minimum": 0 } }
+    },
+    "steer": {
+      "type": "object", "additionalProperties": false, "required": ["lockDeg", "speedRefMps", "minLockPct", "rateDegPerS", "assist", "selfAlign"],
+      "properties": {
+        "lockDeg": { "type": "number", "exclusiveMinimum": 0, "maximum": 60 },
+        "speedRefMps": { "$ref": "#/$defs/pos" },
+        "minLockPct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "rateDegPerS": { "$ref": "#/$defs/pos" },
+        "assist": { "$ref": "#/$defs/unit" },
+        "selfAlign": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "brake": {
+      "type": "object", "additionalProperties": false, "required": ["maxDecelG", "bias", "abs"],
+      "properties": { "maxDecelG": { "$ref": "#/$defs/pos" }, "bias": { "$ref": "#/$defs/unit" }, "abs": { "type": "boolean" } }
+    },
+    "drift": {
+      "type": "object", "additionalProperties": false, "required": ["assist", "handbrakeRearGrip", "yawDamp"],
+      "properties": { "assist": { "$ref": "#/$defs/unit" }, "handbrakeRearGrip": { "$ref": "#/$defs/unit" }, "yawDamp": { "$ref": "#/$defs/unit" } }
+    },
+    "suspension": {
+      "type": "object", "additionalProperties": false,
+      "required": ["restM", "travelM", "rideHz", "dampingRatio", "antiRoll", "landingDamp", "airPitchTrim", "airRollTrim"],
+      "properties": {
+        "restM": { "$ref": "#/$defs/pos" },
+        "travelM": { "$ref": "#/$defs/pos" },
+        "rideHz": { "$ref": "#/$defs/pos" },
+        "dampingRatio": { "$ref": "#/$defs/pos" },
+        "antiRoll": { "$ref": "#/$defs/unit" },
+        "landingDamp": { "type": "number", "minimum": 0 },
+        "airPitchTrim": { "$ref": "#/$defs/unit" },
+        "airRollTrim": { "$ref": "#/$defs/unit" }
+      }
+    },
+    "nitro": {
+      "type": "object", "additionalProperties": false,
+      "required": ["capacity", "boostKw", "drainPerSec", "minToFire", "maxOverTopPct", "refill"],
+      "properties": {
+        "capacity": { "type": "number", "minimum": 0 },
+        "boostKw": { "type": "number", "minimum": 0 },
+        "drainPerSec": { "type": "number", "minimum": 0 },
+        "minToFire": { "type": "number", "minimum": 0 },
+        "maxOverTopPct": { "type": "number", "minimum": 0 },
+        "refill": {
+          "type": "object", "additionalProperties": false, "required": ["driftPerSec", "nearMiss", "draftPerSec", "airPerSec"],
+          "properties": {
+            "driftPerSec": { "type": "number", "minimum": 0 }, "nearMiss": { "type": "number", "minimum": 0 },
+            "draftPerSec": { "type": "number", "minimum": 0 }, "airPerSec": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "durability": { "$ref": "#/$defs/pos" },
+    "quirks": { "type": "array", "items": { "$ref": "#/$defs/quirk" } }
+  }
+}

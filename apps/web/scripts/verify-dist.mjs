@@ -5,6 +5,7 @@
  *   - no bot-input module (by file name and by its error strings);
  *   - no `__dvBridge` string in any file;
  *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
+ *   - no entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11);
  *   - no media-local/ mirror and no `__dvBridge.assets` (M01e AC-10);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
@@ -68,6 +69,12 @@ export function verifyDist(dist) {
   for (const f of textFiles) {
     const s = text(f);
     if (s.includes('save-kill') || s.includes('save-verify') || s.includes('KILL_PROFILE')) fail(`save-kill QA code found in ${rel(f)}`);
+  }
+
+  // 2e. No entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11).
+  for (const f of textFiles) {
+    const s = text(f);
+    if (/inspect\.reply\.|physics\.reply\.|spawn\.reply\.|vehicle\.reply\.|veh:qa|LineRecorder|physics-draw|dv-inspector/.test(s)) fail(`QA vehicle tools found in ${rel(f)}`);
   }
 
   // 3. No __dvBridge anywhere.

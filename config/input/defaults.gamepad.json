@@ -10,6 +10,21 @@
       "sim.Jump": [{ "control": "pad:b0" }],
       "sim.Sprint": [{ "control": "pad:b10" }],
       "sim.Interact": [{ "control": "pad:b3" }],
+      "sim.Enter": [{ "control": "pad:b3" }],
+      "client.Camera": [{ "control": "pad:b11" }],
+      "client.Map": [{ "control": "pad:b8" }],
+      "client.Pause": [{ "control": "pad:b9" }]
+    },
+    "vehicle": {
+      "axis.Throttle": [{ "control": "pad:b7" }],
+      "axis.Brake": [{ "control": "pad:b6" }],
+      "axis.Steer": [{ "control": "pad:a0" }],
+      "axis.LookX": [{ "control": "pad:a2" }],
+      "axis.LookY": [{ "control": "pad:a3" }],
+      "sim.Handbrake": [{ "control": "pad:b2" }],
+      "sim.LookBehind": [{ "control": "pad:b10" }],
+      "sim.Horn": [{ "control": "pad:b0" }],
+      "sim.Enter": [{ "control": "pad:b3" }],
       "client.Camera": [{ "control": "pad:b11" }],
       "client.Map": [{ "control": "pad:b8" }],
       "client.Pause": [{ "control": "pad:b9" }]

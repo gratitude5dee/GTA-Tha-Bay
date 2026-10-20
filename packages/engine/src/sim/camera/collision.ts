@@ -1,8 +1,9 @@
 import {
   dcos, dsin, dsqrt, HALF_PI, SimStage,
-  type CameraDirective, type EntityId, type FollowParams, type SystemDef, type Vec3 as CamVec3,
+  type CameraDirective, type EntityHandle, type EntityId, type FollowParams, type SystemDef, type Vec3 as CamVec3,
 } from '@dv/shared';
 import { CameraAnchor, LocalPlayer, PlayerControlled, Transform } from '../ecs/components.ts';
+import type { EcsWorld } from '../ecs/world.ts';
 import { NEUTRAL_INPUT, YAW_UNIT } from '../control/onfoot.ts';
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
 import { GROUP_BIT } from '../physics/groups.ts';
@@ -18,7 +19,7 @@ export const PROBE_RADIUS = 0.25;
 export const CAMERA_MARGIN = 0.05;
 /** The shortest allowed distance: the camera never goes closer to the anchor than this. */
 export const MIN_ALLOWED = 0.2;
-/** What the camera collides with: static geometry (vehicles join with M03a1). */
+/** What the camera collides with: static geometry. */
 export const CAMERA_MASK = GROUP_BIT.static;
 
 /** `FollowParams` defaults for the on-foot tp camera (C04, R-PLAT-04). */
@@ -30,6 +31,25 @@ export const DEFAULT_TP_FOLLOW: Readonly<Omit<FollowParams, 'target'>> = Object.
   lag: { pos: 9, rot: 12 },
   pitchLimitsDeg: [-70, 70],
   autoRecenterSec: 0,
+  collision: { probeRadius: PROBE_RADIUS, pullInSec: 0, easeOutSec: 0.3, fadeOccludersM: 0.6 },
+} as const) as Omit<FollowParams, 'target'>;
+
+/**
+ * The vehicle chase camera (M03a1): an orbit camera around a point `VEHICLE_ANCHOR_UP` above the vehicle's centre, `VEHICLE_FAR_M`
+ * behind it along the view direction (the near and mid views are shorter along the same ray), with a little lift. The sim casts the
+ * sphere for the far view; the page shortens it for the nearer ones.
+ */
+export const VEHICLE_ANCHOR_UP = 0.9;
+export const VEHICLE_FAR_M = 11;
+export const VEHICLE_OFFSET: Readonly<CamVec3> = Object.freeze([0, 0.6, VEHICLE_FAR_M] as CamVec3) as CamVec3;
+export const VEHICLE_FOLLOW: Readonly<Omit<FollowParams, 'target'>> = Object.freeze({
+  anchor: 'root',
+  shoulder: 'right',
+  offset: [0, 0.6, VEHICLE_FAR_M],
+  fovDeg: 70,
+  lag: { pos: 9, rot: 12 },
+  pitchLimitsDeg: [-45, 30],
+  autoRecenterSec: 1.5,
   collision: { probeRadius: PROBE_RADIUS, pullInSec: 0, easeOutSec: 0.3, fadeOccludersM: 0.6 },
 } as const) as Omit<FollowParams, 'target'>;
 
@@ -93,6 +113,22 @@ export function cameraCollisionSystem(backend: PhysicsSystemsBackend, services: 
         cam.target = 0;
         return;
       }
+      if (cam.reason === 'vehicle' && cam.target !== 0) {
+        // The followed entity is the vehicle: cast the chase camera from above its centre along the player's view.
+        const vid = (ecs as unknown as EcsWorld).resolve(cam.target as EntityHandle);
+        if (vid !== null) {
+          const tr = ecs.store(Transform);
+          anchor[0] = tr.px[vid] as number;
+          anchor[1] = (tr.py[vid] as number) + VEHICLE_ANCHOR_UP;
+          anchor[2] = tr.pz[vid] as number;
+          const f = services.input ?? NEUTRAL_INPUT;
+          const look = lookAngles(f.camYaw, f.camPitch);
+          const d = allowedCameraDistance(backend, anchor, tpOffsetWorld(look.yaw, look.pitch, 0, offset, VEHICLE_OFFSET));
+          cam.allowedRight = d;
+          cam.allowedLeft = d;
+          return;
+        }
+      }
       const id = ids[0] as number;
       const tr = ecs.store(Transform);
       anchor[0] = tr.px[id] as number;
@@ -116,6 +152,16 @@ export interface PublishedCamera extends CameraDirective {
 export function publishedCamera(services: Pick<EngineServices, 'camera'>): PublishedCamera | null {
   const cam = services.camera;
   if (cam.target === 0) return null;
+  if (cam.reason === 'vehicle') {
+    return {
+      mode: 'tp',
+      follow: { ...VEHICLE_FOLLOW, target: cam.target, offset: [...VEHICLE_OFFSET] as CamVec3 },
+      allowedDistance: cam.allowedRight,
+      allowedDistanceOpposite: cam.allowedLeft,
+      lockPlayerToggle: cam.lockPlayerToggle,
+      reason: 'vehicle',
+    };
+  }
   return {
     mode: 'tp',
     follow: { ...DEFAULT_TP_FOLLOW, target: cam.target, offset: [...TP_OFFSET] as CamVec3 },

@@ -40,13 +40,13 @@ describe('config/input (AC-1)', () => {
       for (const b of bindings ?? []) if (b.control.startsWith('touch:btn:')) bound.set(b.control.slice('touch:btn:'.length), action);
     }
     const buttons = layout.widgets.filter((w) => w.kind === 'button');
-    expect(buttons.map((b) => b.id).sort()).toEqual(['camera', 'jump', 'pause']);
+    expect(buttons.map((b) => b.id).sort()).toEqual(['camera', 'enter', 'jump', 'pause']);
     for (const b of buttons) {
       if (b.kind !== 'button') continue;
       expect(b.sizePx, `${b.id} size`).toBeGreaterThanOrEqual(44);
       expect(bound.get(b.id), `${b.id} is bound to its action`).toBe(b.action);
     }
-    // The on-foot layout has Jump, Camera and Pause and nothing else with a button (no dead button).
+    // The layout has Jump, Enter (M03a1), Camera and Pause and nothing else with a button (no dead button).
     const widgetIds = new Set(buttons.map((b) => b.id));
     const reserved = new Set(['moveRight', 'moveLeft', 'moveUp', 'moveDown', 'sprint']);
     for (const id of bound.keys()) expect(widgetIds.has(id) || reserved.has(id), `binding touch:btn:${id} has no widget`).toBe(true);

@@ -96,6 +96,23 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       if (boot.config['bot'] !== undefined) runtime.bot = new ScriptedBotInput(parseBotScript(boot.config['bot']));
       // `debug.bot` (QA): a script whose ticks count from the tick it arrives on
       runtime.botFactory = (script, base) => new ScriptedBotInput(script.map((seg) => ({ ...seg, from: seg.from + base, to: seg.to + base })));
+      // `debug.line` (QA): the input-line player and recorder (M03a1)
+      const [{ LinePlayer }, { LineRecorder }, { validateLine }] = await Promise.all([
+        import('../sim/lines/player.ts'), import('../sim/lines/recorder.ts'), import('../sim/lines/format.ts'),
+      ]);
+      const recorder = new LineRecorder();
+      const { qaInspector } = await import('../sim/qa/inspector.ts');
+      runtime.inspector = qaInspector;
+      runtime.vehicleQa = (await import('../sim/vehicle/debug.ts')).vehicleQa;
+      runtime.lineTools = {
+        play: (line, base, probe) => new LinePlayer(validateLine(line), base, probe),
+        startRecording: (meta) => recorder.begin(meta),
+        record: (f) => recorder.record(f),
+        get recording() {
+          return recorder.recording;
+        },
+        stopRecording: () => recorder.end(),
+      };
     }
 
     // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy that

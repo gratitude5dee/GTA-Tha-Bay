@@ -11,6 +11,8 @@ import { SIM_DT, type SimConfig, type SimProfile } from '@dv/shared';
 import { registerControlSystems } from '../control/index.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_STATE, packPending } from '../control/states.ts';
 import { ENGINE_PREFABS, PrefabRegistry } from '../prefabs/registry.ts';
+import { registerVehicleModule } from '../vehicle/index.ts';
+import { grayboxParkedCars, parkedCarsSystem } from '../vehicle/parked.ts';
 import type { PhysicsScenario, ScenarioSetup } from '../sim-factory.ts';
 import { fixtureChunksFromP0, fixtureStaticsResource, fixtureStaticsSystem, FixtureStaticsQueue } from '../world/fixture-statics.ts';
 import { physicsDropConfig } from './physics-drop.ts';
@@ -51,6 +53,9 @@ export function setupCivicGraybox(s: ScenarioSetup, p0?: Uint8Array): void {
   // The player starts in the teleport wait (700): the ownership machine moves it to the ground once a collider is under it.
   const prefabs = new PrefabRegistry(ecs, backend);
   prefabs.load(ENGINE_PREFABS);
+  // Vehicles (M03a1): the module, and the cars parked along the street next to the spawn.
+  registerVehicleModule(core, backend, prefabs);
+  core.addSystem(parkedCarsSystem({ backend, prefabs, services, groundHintY: spawn[1], plan: () => grayboxParkedCars() }));
   prefabs.spawn('player.default', { pos: [...spawn], yaw: CIVIC_GRAYBOX.spawnYaw }, 'player:0', {
     'Control.state': CONTROL_STATE.teleportPending,
     'Control.pending': packPending(CONTROL_PHASE.Waiting, CONTROL_OWNER.OnFoot),

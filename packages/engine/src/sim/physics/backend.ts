@@ -27,6 +27,12 @@ export interface BodyDesc {
   rot?: [number, number, number, number];
   /** Rapier interaction groups: membership in the high 16 bits, filter in the low 16 (see groups.ts). */
   groups: number;
+  /** Optional collider and body tuning (M03a1; Builder addition, BD-M03a1-02). Defaults: `config/physics.json` friction and restitution, no damping, no CCD. */
+  friction?: number;
+  restitution?: number;
+  linearDamping?: number;
+  angularDamping?: number;
+  ccd?: boolean;
 }
 export interface WheelDesc { pos: [number, number, number]; radius: number; restM: number; axle: 'front' | 'rear' }
 export interface VehicleDrive { engineForce: number; brake: number; steerRad: number; handbrake: boolean }
@@ -67,6 +73,22 @@ export interface PhysicsBackend {
 export interface PhysicsSystemsBackend extends PhysicsBackend {
   bodyKind(id: number): BodyKind | null;
   readonly bodyCount: number;
+}
+
+/**
+ * Body operations of the ray-cast vehicle, the vehicle ownership machine and ragdoll-lite (M03a1; engine-internal, not a
+ * numbered contract). `RapierBackend` implements them; the vehicle systems ask for this wider type.
+ */
+export interface VehiclePhysics extends PhysicsSystemsBackend {
+  /** Moves a body and sets its orientation (x, y, z, w) without touching its velocity. */
+  setBodyPose(id: number, p: Vec3, q: [number, number, number, number]): void;
+  setBodyVelocity(id: number, lin: Vec3, ang: Vec3): void;
+  /** Adds an angular impulse (N*m*s) in world axes. */
+  applyTorqueImpulse(id: number, t: Vec3): void;
+  /** Replaces the collision groups of the body's collider (membership high 16 bits, filter low 16). */
+  setBodyGroups(id: number, groups: number): void;
+  /** Switches a body between kinematic and dynamic (ragdoll-lite). */
+  setBodyKind(id: number, kind: 'dynamic' | 'kinematic'): void;
 }
 
 /** A feature the spec assigns to a later milestone. */

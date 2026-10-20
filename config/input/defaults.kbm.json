@@ -28,6 +28,27 @@
       "client.DebugToggle": [{ "control": "key:F3" }],
       "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
     },
+    "vehicle": {
+      "axis.Throttle": [{ "control": "key:KeyW", "scale": 1 }, { "control": "key:ArrowUp", "scale": 1 }],
+      "axis.Brake": [{ "control": "key:KeyS", "scale": 1 }, { "control": "key:ArrowDown", "scale": 1 }],
+      "axis.Steer": [
+        { "control": "key:KeyD", "scale": 1 },
+        { "control": "key:ArrowRight", "scale": 1 },
+        { "control": "key:KeyA", "scale": -1 },
+        { "control": "key:ArrowLeft", "scale": -1 }
+      ],
+      "axis.LookX": [{ "control": "mouse:dx", "scale": 1 }],
+      "axis.LookY": [{ "control": "mouse:dy", "scale": 1 }],
+      "sim.Handbrake": [{ "control": "key:Space" }],
+      "sim.LookBehind": [{ "control": "key:KeyB" }],
+      "sim.Horn": [{ "control": "key:KeyH" }],
+      "sim.Enter": [{ "control": "key:KeyF" }],
+      "client.Camera": [{ "control": "key:KeyV" }],
+      "client.Map": [{ "control": "key:KeyM" }],
+      "client.Phone": [{ "control": "key:Tab" }],
+      "client.DebugToggle": [{ "control": "key:F3" }],
+      "client.Pause": [{ "control": "key:Escape" }, { "control": "key:KeyP" }]
+    },
     "debug": {
       "axis.LookX": [{ "control": "mouse:dx", "scale": 1 }],
       "axis.LookY": [{ "control": "mouse:dy", "scale": 1 }],

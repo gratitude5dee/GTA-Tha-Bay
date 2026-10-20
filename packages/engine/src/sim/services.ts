@@ -2,6 +2,7 @@ import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/s
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import type { VehicleDebugContext } from './vehicle/debug.ts';
 import type { WorldClock } from './world/clock.ts';
 import { createWorldHub, type WorldHub } from './world/index.ts';
 
@@ -33,6 +34,10 @@ export interface EngineServices extends SimServices {
   clock: WorldClock | null;
   /** The world services (M02c1): `WorldApi` and `WorldBoundsPort`, null until the world sim module registers them. */
   readonly world: WorldHub;
+  /** Snapshot side-block providers by key (M03a1: `veh`, `prompt`). Called once per tick in the Publish stage; a null result is left out. */
+  readonly side: Map<string, () => unknown>;
+  /** The vehicle module's handles for the QA commands (M03a1); set by `registerVehicleModule`, read only by `vehicleQa`. */
+  vehicleCtx: VehicleDebugContext | null;
 }
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
@@ -68,6 +73,8 @@ export function createSimServices(seed: number): EngineServices {
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
     clock: null,
     world: createWorldHub(),
+    side: new Map(),
+    vehicleCtx: null,
   };
 }
 

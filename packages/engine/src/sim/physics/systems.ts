@@ -14,6 +14,12 @@ export interface PhysicsSystemOptions {
   rebaseDistanceM?: number;
   /** 2 when any player vehicle is faster than 100 km/h (M03a1 supplies it). Default: always 1. */
   substeps?: () => 1 | 2;
+  /**
+   * Called before each physics substep with the substep length and its index (M03a1: the ray-cast vehicles apply their
+   * wheel impulses here, so a 100 km/h car steps handling at SIM_DT / 2). When set, the step system calls `backend.step`
+   * once per substep; otherwise it makes one `step(SIM_DT, substeps)` call.
+   */
+  beforeSubstep?: (dt: number, index: number, count: 1 | 2) => void;
 }
 
 export const PHYSICS_PRE_ID = 'engine.physics.pre';
@@ -66,10 +72,7 @@ export function physicsSystems(backend: PhysicsSystemsBackend, opts: PhysicsSyst
     },
   };
 
-  const step: SystemDef = {
-    id: PHYSICS_STEP_ID, owner: 'S01', stage: SimStage.PhysicsStep, order: 0,
-    run: () => backend.step(SIM_DT, opts.substeps ? opts.substeps() : 1),
-  };
+  const step = physicsStepSystem(backend, opts);
 
   const post: SystemDef = {
     id: PHYSICS_POST_ID, owner: 'S01', stage: SimStage.PhysicsPost, order: 0,
@@ -104,6 +107,28 @@ export function physicsSystems(backend: PhysicsSystemsBackend, opts: PhysicsSyst
   };
 
   return [pre, step, post];
+}
+
+/** The PhysicsStep system alone, so a module with substep needs (the vehicles) can replace the default one. */
+export function physicsStepSystem(
+  backend: Pick<PhysicsSystemsBackend, 'step'>,
+  opts: Pick<PhysicsSystemOptions, 'substeps' | 'beforeSubstep'> = {},
+): SystemDef {
+  return {
+    id: PHYSICS_STEP_ID, owner: 'S01', stage: SimStage.PhysicsStep, order: 0,
+    run: () => {
+      const n = opts.substeps ? opts.substeps() : 1;
+      const hook = opts.beforeSubstep;
+      if (!hook) {
+        backend.step(SIM_DT, n);
+        return;
+      }
+      for (let i = 0; i < n; i++) {
+        hook(SIM_DT / n, i, n);
+        backend.step(SIM_DT / n, 1);
+      }
+    },
+  };
 }
 
 export function registerPhysicsSystems(core: SimCore, backend: PhysicsSystemsBackend, opts: PhysicsSystemOptions = {}): void {

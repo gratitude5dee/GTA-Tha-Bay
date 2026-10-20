@@ -1,5 +1,5 @@
 import { SimStage, type EntityId, type SystemDef } from '@dv/shared';
-import { Anim, CharacterBody, Control, LocalPlayer, RenderKey, Transform, Velocity } from './ecs/components.ts';
+import { Anim, CharacterBody, Control, LocalPlayer, RenderKey, Transform, Vehicle, Velocity } from './ecs/components.ts';
 import type { EcsWorld } from './ecs/world.ts';
 import type { SnapshotWriter } from './transport/snapshot-buffer.ts';
 import { writeRecord, type SnapshotRecord } from './transport/snapshot-buffer.ts';
@@ -35,6 +35,7 @@ export function snapshotPublisher(
           const tr = ecs.store(Transform);
           const rk = ecs.store(RenderKey);
           const an = ecs.store(Anim);
+          const ve = ecs.store(Vehicle);
           let n = 0;
           for (let i = 0; i < ids.length && n < max; i++) {
             const id = ids[i] as number;
@@ -52,6 +53,11 @@ export function snapshotPublisher(
             rec.animState = hasAnim ? (an.state[id] as number) : 0;
             rec.animP0 = hasAnim ? (an.p0[id] as number) : 0;
             rec.animP1 = hasAnim ? (an.p1[id] as number) : 0;
+            if (ecs.hasId(id, Vehicle)) {
+              // a vehicle's render params: signed forward speed (wheel spin) and the front steer input -1..1 (wheel steer)
+              rec.animP0 = ve.speed[id] as number;
+              rec.animP1 = (ve.steer[id] as number) / 127;
+            }
             rec.flags = (rk.visible[id] as number) !== 0 ? SNAP_FLAG_VISIBLE : 0;
             rec.variant = rk.variant[id] as number;
             rec.lod = 0;

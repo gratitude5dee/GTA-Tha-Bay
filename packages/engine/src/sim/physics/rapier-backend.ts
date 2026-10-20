@@ -3,8 +3,8 @@ import { dsqrt, PI } from '@dv/shared';
 import { ByteReader, ByteWriter } from '../bytes.ts';
 import {
   NotImplementedError, PhysicsInitError,
-  type BodyDesc, type BodyKind, type CharMoveOpts, type CharMoveResult, type PhysicsBuild, type PhysicsSystemsBackend,
-  type RayHit, type StaticShapeSet, type VehicleDrive, type Vec3, type WheelDesc,
+  type BodyDesc, type BodyKind, type CharMoveOpts, type CharMoveResult, type PhysicsBuild,
+  type RayHit, type StaticShapeSet, type VehicleDrive, type VehiclePhysics, type Vec3, type WheelDesc,
 } from './backend.ts';
 import { PHYSICS_CONFIG, type PhysicsConfig } from './config.ts';
 import { GROUPS, interactionGroups } from './groups.ts';
@@ -35,6 +35,8 @@ interface BodyEntry {
   handle: number;
   collider: number;
   kind: BodyKind;
+  /** The shape the body was made with, for the QA physics wireframe (not part of a snapshot; null after a restore). */
+  shape?: { shape: BodyDesc['shape']; dims: number[] };
 }
 
 interface StaticEntry {
@@ -53,7 +55,7 @@ const KIND_BY_CODE: BodyKind[] = ['dynamic', 'kinematic', 'fixed'];
  * Body ids are the backend's own sequential integers (never reused), because Rapier's handles are opaque f64 values
  * that do not fit the ECS `BodyRef.body` u32.
  */
-export class RapierBackend implements PhysicsSystemsBackend {
+export class RapierBackend implements VehiclePhysics {
   readonly origin: Vec3 = [0, 0, 0];
   /** Times `rebase` ran. */
   rebases = 0;
@@ -150,6 +152,11 @@ export class RapierBackend implements PhysicsSystemsBackend {
 
   bodyKind(id: number): BodyKind | null {
     return this.bodies.get(id)?.kind ?? null;
+  }
+
+  /** The shape and dimensions a body was created with (QA physics wireframe); null for an unknown body or after a restore. */
+  bodyShape(id: number): { shape: BodyDesc['shape']; dims: number[] } | null {
+    return this.bodies.get(id)?.shape ?? null;
   }
 
   // ------------------------------------------------------------------ coordinates
@@ -265,13 +272,18 @@ export class RapierBackend implements PhysicsSystemsBackend {
     }
     rbDesc.setTranslation(at.x, at.y, at.z);
     if (d.rot) rbDesc.setRotation({ x: d.rot[0], y: d.rot[1], z: d.rot[2], w: d.rot[3] });
+    if (d.linearDamping !== undefined) rbDesc.setLinearDamping(d.linearDamping);
+    if (d.angularDamping !== undefined) rbDesc.setAngularDamping(d.angularDamping);
+    if (d.ccd) rbDesc.setCcdEnabled(true);
     const rb = w.createRigidBody(rbDesc);
     const cd = this.colliderDesc(d);
-    cd.setCollisionGroups(d.groups).setFriction(this.cfg.defaultFriction).setRestitution(this.cfg.defaultRestitution);
+    cd.setCollisionGroups(d.groups)
+      .setFriction(d.friction ?? this.cfg.defaultFriction)
+      .setRestitution(d.restitution ?? this.cfg.defaultRestitution);
     if (d.mass !== undefined && d.kind === 'dynamic') cd.setMass(d.mass);
     const collider: Collider = w.createCollider(cd, rb);
     const id = this.nextId++;
-    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind });
+    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind, shape: { shape: d.shape, dims: [...d.dims] } });
     this.bodyObjs.set(id, rb);
     return id;
   }
@@ -326,6 +338,36 @@ export class RapierBackend implements PhysicsSystemsBackend {
     const l = this.local(p);
     rb.setNextKinematicTranslation(l);
     rb.setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
+  }
+
+  setBodyPose(id: number, p: Vec3, q: [number, number, number, number]): void {
+    const rb = this.body(id);
+    rb.setTranslation(this.local(p), true);
+    rb.setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
+  }
+
+  setBodyVelocity(id: number, lin: Vec3, ang: Vec3): void {
+    const rb = this.body(id);
+    rb.setLinvel({ x: lin[0], y: lin[1], z: lin[2] }, true);
+    rb.setAngvel({ x: ang[0], y: ang[1], z: ang[2] }, true);
+  }
+
+  applyTorqueImpulse(id: number, t: Vec3): void {
+    this.body(id).applyTorqueImpulse({ x: t[0], y: t[1], z: t[2] }, true);
+  }
+
+  setBodyGroups(id: number, groups: number): void {
+    const e = this.bodies.get(id);
+    if (!e) throw new RangeError(`unknown physics body ${id}`);
+    this.W.getCollider(e.collider).setCollisionGroups(groups);
+  }
+
+  setBodyKind(id: number, kind: 'dynamic' | 'kinematic'): void {
+    const e = this.bodies.get(id);
+    if (!e) throw new RangeError(`unknown physics body ${id}`);
+    const R = this.R;
+    this.body(id).setBodyType(kind === 'dynamic' ? R.RigidBodyType.Dynamic : R.RigidBodyType.KinematicPositionBased, true);
+    e.kind = kind;
   }
 
   applyImpulse(id: number, j: [number, number, number], at?: [number, number, number]): void {

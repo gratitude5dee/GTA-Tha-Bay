@@ -1,6 +1,7 @@
 import { BoxGeometry, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
 import { AnimLod, ENGINE_TIERS } from '../anim/lod.ts';
 import { buildPlaceholderRig, MannequinAnimator, type PlaceholderRig } from '../anim/placeholder-rig.ts';
+import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } from '../vehicle/vehicle-view.ts';
 import type { Pose } from './interpolate.ts';
 
 export const GRAYBOX_CAPSULE = 'prop/graybox.capsule';
@@ -55,6 +56,9 @@ export class ObjectPool {
   private readonly meshes = new Map<number, Object3D>();
   private readonly avatars = new Map<number, Avatar>();
   private readonly lod = new AnimLod(ENGINE_TIERS.desktop.animBands);
+  /** Vehicles, props and pickups drawn from the gray-box kit (M03a1), by handle. */
+  private readonly things = new Map<number, DrawnThing>();
+  private readonly assets = new GrayboxAssets();
   private readonly geometries = new Map<string, BufferGeometry>();
   private readonly materials = new Map<number, MeshStandardNodeMaterial>();
   /** The handle whose mesh stays hidden (the player in first person). */
@@ -105,6 +109,10 @@ export class ObjectPool {
           const rig = buildPlaceholderRig();
           this.avatars.set(p.handle, { rig, animator: new MannequinAnimator(rig), pendingSec: 0 });
           mesh = rig.root;
+        } else if (isGrayboxThing(key)) {
+          const thing = buildGrayboxThing(this.assets, key) as DrawnThing;
+          this.things.set(p.handle, thing);
+          mesh = thing.root;
         } else {
           mesh = this.create(key);
         }
@@ -127,6 +135,8 @@ export class ObjectPool {
         }
       } else {
         mesh.visible = shown;
+        // a vehicle's forward speed and steer input ride in the record's anim params
+        this.things.get(p.handle)?.update(dtSec, p.animP0, p.animP1);
       }
       this.seen.set(p.handle, this.stamp);
     }
@@ -135,6 +145,7 @@ export class ObjectPool {
       this.scene.remove(mesh);
       this.meshes.delete(handle);
       this.seen.delete(handle);
+      this.things.delete(handle);
       this.disposeAvatar(handle);
     }
   }
@@ -143,6 +154,7 @@ export class ObjectPool {
   clear(): void {
     for (const mesh of this.meshes.values()) this.scene.remove(mesh);
     for (const handle of [...this.avatars.keys()]) this.disposeAvatar(handle);
+    this.things.clear();
     this.meshes.clear();
     this.seen.clear();
   }
@@ -153,6 +165,7 @@ export class ObjectPool {
     for (const m of this.materials.values()) m.dispose();
     this.geometries.clear();
     this.materials.clear();
+    this.assets.dispose();
   }
 
   private disposeAvatar(handle: number): void {

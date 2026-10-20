@@ -13,6 +13,11 @@ export const CONTROL_STATE = {
   fall: 111,
   land: 112,
   vault: 120,
+  vehicleEntering: 200,
+  driving: 201,
+  passenger: 202,
+  vehicleExiting: 203,
+  ejected: 204,
   ragdoll: 300,
   gettingUp: 301,
   knockedOut: 302,
@@ -62,12 +67,24 @@ export const CONTROL_REASON = {
   groundNotLoaded: 'engine.control.groundNotLoaded',
   busy: 'engine.control.busy',
   wrongOwner: 'engine.control.wrongOwner',
+  vehicleLocked: 'engine.vehicle.locked',
+  vehicleOccupied: 'engine.vehicle.occupied',
+  vehicleTooFar: 'engine.vehicle.tooFar',
+  vehicleTooFast: 'engine.vehicle.tooFast',
+  vehicleNoExit: 'engine.vehicle.noExit',
+  vehicleUnknown: 'engine.vehicle.unknown',
 } as const;
 /** English defaults for the reason keys until the i18n catalog exists (spec 2.5). */
 export const CONTROL_REASON_EN: Readonly<Record<string, string>> = {
   [CONTROL_REASON.groundNotLoaded]: 'Ground not loaded; player was not moved',
   [CONTROL_REASON.busy]: 'Not now',
   [CONTROL_REASON.wrongOwner]: 'Not available right now',
+  [CONTROL_REASON.vehicleLocked]: 'The doors are locked',
+  [CONTROL_REASON.vehicleOccupied]: 'Someone is already driving',
+  [CONTROL_REASON.vehicleTooFar]: 'Get closer to the car',
+  [CONTROL_REASON.vehicleTooFast]: 'Slow down before you get out',
+  [CONTROL_REASON.vehicleNoExit]: 'No room to get out here',
+  [CONTROL_REASON.vehicleUnknown]: 'That is not a vehicle',
 };
 
 /** Network animation state (C04 `AnimStateId`) for a control state: 100 to 0, 101 to 1, and so on. */
@@ -80,9 +97,26 @@ export function animStateOf(controlState: number): AnimStateId {
     case CONTROL_STATE.fall: return 5;
     case CONTROL_STATE.land: return 6;
     case CONTROL_STATE.vault: return 7;
+    case CONTROL_STATE.vehicleEntering: return 8;
+    case CONTROL_STATE.driving: return 9;
+    case CONTROL_STATE.passenger: return 10;
+    case CONTROL_STATE.vehicleExiting: return 11;
     case CONTROL_STATE.ragdoll: return 12;
     case CONTROL_STATE.gettingUp: return 13;
     case CONTROL_STATE.knockedOut: return 14;
     default: return 0;
+  }
+}
+
+/**
+ * The input context (C03 `InputContextId`) the page selects for a control owner: the sim never reads it, the input router
+ * does. A vehicle owner reads the `vehicle` bindings; everything the sim does not own a context for stays `onFoot`.
+ */
+export function inputContextFor(owner: number): 'onFoot' | 'vehicle' | 'fighter' | 'cutscene' {
+  switch (owner) {
+    case CONTROL_OWNER.Vehicle: return 'vehicle';
+    case CONTROL_OWNER.Fighter: return 'fighter';
+    case CONTROL_OWNER.Cutscene: return 'cutscene';
+    default: return 'onFoot';
   }
 }
