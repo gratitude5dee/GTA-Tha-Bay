@@ -22,6 +22,9 @@ import { sunState, type SunState } from './sun.ts';
 export const HEMI_LOOK = 1.6;
 const HEMI_WITH_ENV = 0.4;
 
+/** The look clock a shot freezes at, seconds: the waves of the water stand in the same phase in every capture. */
+const SHOT_LOOK_CLOCK_S = 3;
+
 /** Design values of the light rig, adjustable at runtime in QA builds (`__dvBridge.world.internals().look.tune`). */
 export interface LookTune {
   /** Multiplies the hemisphere light. */
@@ -294,9 +297,13 @@ export class LookView {
     }
   }
 
-  /** Freezes the look clock (the waves and the physical sky's clouds): goldens need still pictures. */
+  /**
+   * Freezes the look clock (the waves and the physical sky's clouds): goldens need still pictures. The clock is also set to a fixed
+   * value, so a shot shows the same waves however long the page ran before it (a golden taken in one page load must match another).
+   */
   freezeClock(on: boolean): void {
     this.clockFrozen = on;
+    if (on) this.lookClock = SHOT_LOOK_CLOCK_S;
     this.sky?.freeze(on);
     this.o.freezeSkyTime?.(on);
   }
