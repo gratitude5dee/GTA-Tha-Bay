@@ -30,13 +30,13 @@ import {
   AUTO_YIELD_RADIUS_M, PED_LATERAL_M, PED_LOOKAHEAD_M, STALL_TRIGGER_M, autoYieldAccel, robotaxiSpeedCap, rollStall,
 } from './robotaxi.ts';
 import {
-  CONE_COS, DESPAWN, SPAWN_MAX, candidateFor, cellReach, parkedPose, ringAllows, slotUnit, type Focus,
+  CONE_COS, DESPAWN, SPAWN_MAX, candidateFor, cellReach, parkedPose, ringAllows, slotUnit, type TrafficFocus,
 } from './spawn.ts';
 import {
   INFRACTION_CODE, REPORT_DELAY_TICKS, ROBOTAXI_RAYS_PER_TICK, WITNESS_RANGE_M, type Infraction, type WitnessBoard,
 } from './witness.ts';
 
-export type { Focus };
+export type { TrafficFocus };
 
 /** Sim ticks per AI step and seconds per AI step. */
 export const AI_TICKS = AI_DIVISOR;
@@ -109,7 +109,7 @@ export interface CrossInfo {
 
 export interface StepInput {
   tick: number;
-  focus: Focus;
+  focus: TrafficFocus;
   env: TrafficEnv;
   obstacles?: readonly Obstacle[];
   movers?: readonly Mover[];
@@ -145,6 +145,8 @@ export interface PlaceOptions {
   s: number;
   lane: number;
   speed?: number;
+  /** A baked slot's agent: removed when the density rules thin its slot out (the spawn pass sets it; hand-placed agents are not). */
+  bound?: boolean;
 }
 
 export interface TrafficStats {
@@ -173,7 +175,7 @@ export class TrafficSim {
   /** Set until the first population has run (and again after a jump of the focus). */
   fill: boolean;
   hooks: TrafficHooks;
-  lastFocus: Focus | null = null;
+  lastFocus: TrafficFocus | null = null;
   private cursor = 0;
   private readonly pool: Agent[][] = [];
   private byEdge = new Map<number, Agent[]>();
@@ -184,7 +186,7 @@ export class TrafficSim {
   private readonly hit: Intruder = { gap: 0, vLead: 0, closing: 0, obstacle: { id: '', kind: 'vehicle', x: 0, z: 0, vx: 0, vz: 0, halfW: 0, halfL: 0 } };
   private obstacles: readonly Obstacle[] = [];
   private sirens: readonly Siren[] = [];
-  private focus: Focus = { x: 0, z: 0, vx: 0, vz: 0 };
+  private focus: TrafficFocus = { x: 0, z: 0, vx: 0, vz: 0 };
   private env: TrafficEnv = { hour: 12, weather: 'clear' };
   private rays = 0;
   private readonly w: TrafficWorld;
@@ -511,7 +513,7 @@ export class TrafficSim {
 
   /** A U-turn at a junction waits like an all-way stop for a second. */
   private uTurnWait(a: Agent, d: Decision, dist: number): void {
-    const atLine = a.speed < 0.3 && dist < 1.5;
+    const atLine = dist < 1.5 && (a.speed < 0.3 || a.stoppedTick >= 0);
     if (!atLine) {
       d.stop = true; d.go = false; d.legit = true;
       return;
@@ -825,6 +827,7 @@ export class TrafficSim {
 
   private despawnPass(): void {
     const far = this.radius * DESPAWN;
+    const budgets = new Map<string, number>();
     for (const a of [...this.agents.list()]) {
       const d = this.dist(a.x, a.z);
       if (d > far) {
@@ -832,6 +835,19 @@ export class TrafficSim {
         continue;
       }
       if (a.isParked) continue;
+      // a slot beyond the live prefix (the hour, the weather or `setDensity` thinned it) goes as soon as nobody sees it
+      if (!a.near && a.bound !== 0) {
+        let n = budgets.get(a.cell);
+        if (n === undefined) {
+          const c = this.w.chunk(a.cell);
+          n = c ? this.trafficBudget(c) : Infinity;
+          budgets.set(a.cell, n);
+        }
+        if (a.slot >= n) {
+          this.remove(a, 'density');
+          continue;
+        }
+      }
       if (a.state === AgentState.Frozen && a.frozenSince >= 0 && this.tick - a.frozenSince >= FREEZE_TICKS) this.remove(a, 'unloaded');
       else if (a.stuckTicks >= GRIDLOCK_TICKS && !a.near) this.remove(a, 'stuck');
     }
@@ -894,7 +910,7 @@ export class TrafficSim {
     const profile = profileName(chunk.spawn.densityProfile);
     const arch = pickArchetype(slotUnit(seed, cell, slot, epoch, 3), profile);
     const color = Math.floor(slotUnit(seed, cell, slot, epoch, 4) * PALETTE.length) % PALETTE.length;
-    this.place({ key, cell, slot, epoch, arch, color, edge: c.edge, s: c.s, lane: c.lane });
+    this.place({ key, cell, slot, epoch, arch, color, edge: c.edge, s: c.s, lane: c.lane, bound: true });
     return true;
   }
 
@@ -906,6 +922,7 @@ export class TrafficSim {
     const seed = this.opts.seed;
     const a = new Agent(o.key, o.cell, o.slot, ctrSeed(seed, o.key, o.epoch));
     a.epoch = o.epoch;
+    a.bound = o.bound ? 1 : 0;
     a.arch = o.arch;
     a.kind = o.arch === ARCH.robotaxi ? AgentKind.Robotaxi : AgentKind.Traffic;
     a.color = o.color ?? 0;
@@ -966,11 +983,8 @@ export class TrafficSim {
     void want;
     cand.sort((a, b) => (a.d !== b.d ? a.d - b.d : a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     const keep = new Set<string>();
-    let budget = room < 0 ? 0 : room;
-    // parked cars already live count against the room first
-    let live = 0;
-    for (const a of this.agents.list()) if (a.isParked) live++;
-    budget += live;
+    // `room` is the cap less the traffic: the parked cars live now and the new ones share it, nearest first
+    const budget = room < 0 ? 0 : room;
     for (let i = 0; i < cand.length && keep.size < budget; i++) keep.add((cand[i] as (typeof cand)[number]).key);
     for (const a of [...this.agents.list()]) if (a.isParked && !keep.has(a.key)) this.remove(a, 'parked-out');
     let made = 0;

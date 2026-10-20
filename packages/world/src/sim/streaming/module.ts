@@ -327,6 +327,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
   let traffic: AmbientTraffic | null = null;
   let sendQa: ((name: string, data: unknown) => void) | null = null;
   let physics: WorldDebugPhysics | null = null;
+  let simHash: (() => { tick: number; hash: string }) | null = null;
   const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
@@ -374,6 +375,8 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     },
     onDebug(cmd: DebugCommand): void {
       if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
+      // the residency rule of the determinism scenarios (DL-678): request and pin a set, apply the replies, ask the hash
+      if (state && cmd.t === 'debug.world' && runResidencyOp(state, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), simHash)) return;
       if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), physics ?? undefined);
     },
     onInit(ctx: SimModuleContext): void {
@@ -392,6 +395,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       const log = ctx.runtime.env.log;
       events = ctx.sim.services.events;
       sendQa = (name, data) => void ctx.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      simHash = () => ({ tick: ctx.sim.core.tick, hash: ctx.sim.hash() });
       physics = { castRay: (o, d, max, mask) => ctx.sim.backend.castRay(o, d, max, mask), staticMask: GROUP_BIT.static };
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
@@ -443,6 +447,33 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
   world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
   return api;
+}
+
+/**
+ * The QA ops of the residency rule, answered between ticks: `preload` requests the listed `p0` keys and pins them, `settle` applies the
+ * replies that arrived and reports what is pending and resident, `hash` reports the state hash now. Returns false for any other op.
+ */
+function runResidencyOp(world: WorldSim, cmd: WorldDebugCommand, reply: (id: number, data: unknown) => void, hash: (() => { tick: number; hash: string }) | null): boolean {
+  const a = cmd.args ?? {};
+  const keys = Array.isArray(a['keys']) ? (a['keys'] as string[]).filter((k) => typeof k === 'string') as ChunkKey[] : [];
+  switch (cmd.op) {
+    case 'preload':
+      world.store.pin('p0', keys);
+      void world.store.preload(keys.map((key) => ({ level: 'p0' as const, key })));
+      reply(cmd.id, { requested: keys.length });
+      return true;
+    case 'settle': {
+      world.applyReplies();
+      const resident = keys.filter((k) => world.store.ready(k, 'p0') || world.store.emptyKeys('p0').includes(k)).length;
+      reply(cmd.id, { pending: world.pendingCount(), resident, wanted: keys.length });
+      return true;
+    }
+    case 'hash':
+      reply(cmd.id, hash ? hash() : null);
+      return true;
+    default:
+      return false;
+  }
 }
 
 /**

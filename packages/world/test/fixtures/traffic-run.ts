@@ -15,14 +15,9 @@ import { SimRuntime, attachSabWorker, bakedWorldConfig, createSabMain, type SimR
 import { groundHeightAt, spawnPose } from '../../src/sim/streaming/boot.ts';
 import { WORLD_PORT, type PackReply, type PackRequest, type WorldSimConfig } from '../../src/sim/streaming/channel.ts';
 import { createWorldStreamingModule, type WorldStreamingModule } from '../../src/sim/streaming/module.ts';
-import { STREAMING } from '../../src/sim/streaming/plan.ts';
-import { AMBIENT_RADIUS_M } from '../../src/sim/traffic/density.ts';
+import { TRAFFIC_SYNTH, preloadKeys } from '../../src/sim/traffic/scenario.ts';
 import type { BakeData } from './bake.ts';
 
-/** Height above the ground the page places the player at (`SPAWN_LIFT_M` of the world boot). */
-const SPAWN_LIFT_M = 1.5;
-
-export const TRAFFIC_SYNTH = { seed: 0xc0ffee, ticks: 10_000, every: 600 } as const;
 
 export interface TrafficRunOptions {
   bake: BakeData;
@@ -87,24 +82,6 @@ export function worldConfigOf(bake: BakeData, spawn: [number, number, number]): 
   return { bakeId: bake.bakeId, p0Tiles: bake.index.tiles.p0, refs, spawn, index: bake.index as WorldIndex };
 }
 
-/** The `p0` chunk keys inside the residency set of a start point: within `R_amb` + one chunk of it, and the streaming ring of the tier. */
-export function preloadKeys(index: WorldIndex, x: number, z: number): ChunkKey[] {
-  const tier = 'mobile-low';
-  const reach = Math.max(AMBIENT_RADIUS_M[tier], STREAMING.tiers[tier].physicsM) + 256 + 256;
-  const out: ChunkKey[] = [];
-  const have = new Set(index.tiles.p0);
-  const c0 = chunkKeyAt(9, x, z).split('/').map(Number) as [number, number, number];
-  const n = Math.ceil(reach / 256);
-  for (let j = -n; j <= n; j++) {
-    for (let i = -n; i <= n; i++) {
-      const cx = (c0[1] as number) + i, cy = (c0[2] as number) + j;
-      if (!have.has(`${Math.floor(cx / 4)}-${Math.floor(cy / 4)}`)) continue;
-      out.push(`9/${cx}/${cy}` as ChunkKey);
-    }
-  }
-  return out;
-}
-
 const turn = (): Promise<void> => new Promise((r) => setImmediate(r));
 
 export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunResult> {
@@ -119,7 +96,7 @@ export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunR
     return Math.abs(x - cx) <= 1 && Math.abs(y - cy) <= 1;
   });
   const ground = groundHeightAt(near, pose.x, pose.z) ?? 0;
-  const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];
+  const spawn: [number, number, number] = [pose.x, ground + TRAFFIC_SYNTH.spawnLiftM, pose.z];
   const world = worldConfigOf(bake, spawn);
   const loader = new Loader(bake.dir, o.order === 'shuffled', o.shuffleSeed ?? 1);
 
@@ -168,4 +145,5 @@ export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunR
   return { bakeId: bake.bakeId, seed: TRAFFIC_SYNTH.seed, ticks, checkpoints, final, stallTicks, preload: keys, agentsMax, stats };
 }
 
+export { TRAFFIC_SYNTH, preloadKeys };
 export type { SimRuntimeEnv };

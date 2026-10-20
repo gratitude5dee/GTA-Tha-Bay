@@ -84,7 +84,7 @@ export function cellReach(cell: ChunkKey, x: number, z: number): { near: number;
   return { near: dsqrt((x - nx) * (x - nx) + (z - nz) * (z - nz)), far: dsqrt((x - fx) * (x - fx) + (z - fz) * (z - fz)) };
 }
 
-export interface Focus {
+export interface TrafficFocus {
   x: number;
   z: number;
   vx: number;
@@ -95,7 +95,7 @@ export interface Focus {
  * Whether a spawn at distance `d` in direction (dx, dz) from the focus respects the ring and the forward cone. With `fill` the ring
  * is relaxed to 20 m to `R_amb` (the first population of a session or after a jump).
  */
-export function ringAllows(f: Focus, px: number, pz: number, rAmb: number, fill: boolean): boolean {
+export function ringAllows(f: TrafficFocus, px: number, pz: number, rAmb: number, fill: boolean): boolean {
   const dx = px - f.x, dz = pz - f.z;
   const d = dsqrt(dx * dx + dz * dz);
   if (fill) return d >= FILL_MIN_M && d <= rAmb * SPAWN_MAX;

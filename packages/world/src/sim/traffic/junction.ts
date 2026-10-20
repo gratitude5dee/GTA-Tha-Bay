@@ -217,7 +217,8 @@ export class JunctionBook {
     }
 
     if (rule === 'allway') {
-      const atLine = a.speed < 0.3 && dist < 1.5;
+      // at the line: at rest there, or pulling away from the rest it already made (stoppedTick stays set until the box)
+      const atLine = dist < 1.5 && (a.speed < 0.3 || a.stoppedTick >= 0);
       if (!atLine) {
         if (!(a.speed < 0.3)) a.stoppedTick = -1;
         this.hold(d, true);

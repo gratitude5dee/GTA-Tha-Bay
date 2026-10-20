@@ -23,6 +23,8 @@ export class Agent {
   arch = 0;
   color = 0;
   spawnTick = 0;
+  /** The agent fills a baked slot: the density rules (a thinned prefix, the hour) remove it. Agents placed by hand are not bound. */
+  bound = 0;
   /** The ECS entity handle once the system created one (not hashed). */
   handle = 0;
 
@@ -172,7 +174,7 @@ export class AgentSet {
 }
 
 const NUM_FIELDS = [
-  'epoch', 'kind', 'arch', 'color', 'spawnTick', 'edge', 'lane', 'nextEdge', 'turn', 'state', 'mov', 'jct', 'stoppedTick', 'claimTick',
+  'epoch', 'bound', 'kind', 'arch', 'color', 'spawnTick', 'edge', 'lane', 'nextEdge', 'turn', 'state', 'mov', 'jct', 'stoppedTick', 'claimTick',
   'stuckTicks', 'unseenTicks', 'frozenSince', 'holdUntil', 'rtJct', 'rtMode', 'fare', 'seg', 'side', 'locked', 'reportAt', 'witnessKind',
   'witnessId', 'losDone', 'stallTicks',
 ] as const;

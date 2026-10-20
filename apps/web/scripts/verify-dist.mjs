@@ -77,6 +77,13 @@ export function verifyDist(dist) {
     if (/inspect\.reply\.|physics\.reply\.|spawn\.reply\.|vehicle\.reply\.|veh:qa|LineRecorder|physics-draw|dv-inspector/.test(s)) fail(`QA vehicle tools found in ${rel(f)}`);
   }
 
+  // 2f. No world-hash QA page or its code (M03b1 AC-12): the page and the strings only it contains.
+  for (const f of files) if (/world-hash/.test(rel(f))) fail(`world-hash file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('world-hash') || s.includes('dvWorldHash') || s.includes('traffic-synth')) fail(`world-hash QA code found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 
@@ -122,7 +129,7 @@ function main() {
     console.error(`verify:dist failed (${failures.length})`);
     process.exit(1);
   }
-  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no PerfHud, no __dvBridge string, no media-local');
+  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no world-hash, no PerfHud, no __dvBridge string, no media-local');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }

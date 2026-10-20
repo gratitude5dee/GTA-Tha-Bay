@@ -21,14 +21,14 @@ import {
 } from '@dv/engine/sim';
 import type { ByteReader, ByteWriter } from '@dv/engine/sim';
 import type { WorldServices } from '../api/world-api.ts';
-import { Agent, hashAgents, loadAgents, saveAgents } from './agent.ts';
+import { type Agent, hashAgents, loadAgents, saveAgents } from './agent.ts';
 import {
   ARCHETYPES, AgentKind, AgentState, ParkedCar, RobotaxiBrain, TrafficAgent, WorldWitness, type Archetype,
 } from './components.ts';
 import { NEAR_CAP, NEAR_RADIUS_M, densityTier } from './density.ts';
 import type { Mover } from './promote.ts';
 import type { Obstacle, Siren } from './reactions.ts';
-import { AI_DT, TrafficSim, type Focus } from './sim.ts';
+import { AI_DT, TrafficSim, type TrafficFocus } from './sim.ts';
 import { WitnessBoard, INFRACTION_CODE, kindOfCode } from './witness.ts';
 import { trafficWorldOf, type TrafficChunkSource } from './world.ts';
 
@@ -74,7 +74,7 @@ export class AmbientTraffic {
   readonly sim: TrafficSim;
   readonly board: WitnessBoard;
   /** QA: the traffic follows this point instead of the player (the perf routes move the camera, not the player). */
-  focusOverride: Focus | null = null;
+  focusOverride: TrafficFocus | null = null;
   /** `world.witness` events emitted. */
   witnessEvents = 0;
   private readonly ecs: EcsWorld;
@@ -145,7 +145,7 @@ export class AmbientTraffic {
     const ecs = this.ecs;
     if (ecs.byKey(a.key as StableKey) !== NULL_HANDLE) return;
     const init: Record<string, number> = {
-      'Transform.px': a.x, 'Transform.py': a.y, 'Transform.pz': a.z,
+      'Transform.px': a.x, 'Transform.py': a.y + (ARCHETYPES[a.arch] as Archetype).lift, 'Transform.pz': a.z,
       'Transform.qy': dsin(a.yaw / 2), 'Transform.qw': dcos(a.yaw / 2),
       'Anim.state': a.lights, 'Anim.p0': a.speed, 'Anim.p1': a.color,
       'Ambient.cell': ecs.strings.intern(a.cell), 'Ambient.slot': a.slot, 'Ambient.spawnTick': a.spawnTick,
@@ -235,7 +235,7 @@ export class AmbientTraffic {
     this.wrecks.push({ handle: h, unseen: 0 });
   }
 
-  private sweepWrecks(focus: Focus): void {
+  private sweepWrecks(focus: TrafficFocus): void {
     const ctx = this.deps.services.vehicleCtx;
     if (!ctx || this.wrecks.length === 0) return;
     const tr = this.ecs.store(Transform);
@@ -276,7 +276,7 @@ export class AmbientTraffic {
     };
   }
 
-  private focus(): Focus {
+  private focus(): TrafficFocus {
     if (this.focusOverride) return this.focusOverride;
     const pl = playerSide(this.ecs);
     if (pl) return { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] };
@@ -301,7 +301,7 @@ export class AmbientTraffic {
   }
 
   /** Obstacles and movers: the vehicles and the player on foot near the focus that are not part of the traffic. */
-  private gather(focus: Focus): void {
+  private gather(focus: TrafficFocus): void {
     const ecs = this.ecs;
     this.obstacles.length = 0;
     this.movers.length = 0;
@@ -345,7 +345,7 @@ export class AmbientTraffic {
   }
 
   /** Writes the agents into the ECS and keeps the near agents' bodies. */
-  private sync(focus: Focus): void {
+  private sync(focus: TrafficFocus): void {
     const ecs = this.ecs;
     const list = this.sim.agents.list();
     const tr = ecs.store(Transform);
@@ -363,7 +363,7 @@ export class AmbientTraffic {
       const id = ecs.resolve(H(a.handle));
       if (id === null || !ecs.hasId(id, Transform)) continue;
       tr.px[id] = a.x;
-      tr.py[id] = a.y;
+      tr.py[id] = a.y + (ARCHETYPES[a.arch] as Archetype).lift;
       tr.pz[id] = a.z;
       tr.qx[id] = 0;
       tr.qy[id] = dsin(a.yaw / 2);
@@ -402,7 +402,7 @@ export class AmbientTraffic {
   }
 
   /** Kinematic boxes for the nearest agents within 80 m, up to the tier's cap; the rest lose theirs. */
-  private bodies(list: readonly Agent[], focus: Focus): void {
+  private bodies(list: readonly Agent[], focus: TrafficFocus): void {
     const ecs = this.ecs;
     const cap = NEAR_CAP[this.tier];
     const cand: { a: Agent; d: number }[] = [];

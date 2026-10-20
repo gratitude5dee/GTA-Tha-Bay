@@ -6,6 +6,7 @@ import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
+import type { TrafficInfo } from './traffic/instances.ts';
 
 /**
  * `window.__dvBridge.world` (QA builds only; 02-world.md section 4, M02b1). Reachable only through a dynamic import behind
@@ -81,6 +82,13 @@ export interface WorldBridge {
   landmarks(): LandmarksReport | null;
   /** The `landmark.swap` events so far (QA builds only; not telemetry), oldest first; empty without a landmark layer. */
   swaps(): LandmarkSwapEvent[];
+  /**
+   * The instanced traffic (M03b1): instances in use, draws, instances per archetype and the cap of the tier; null before the world is
+   * attached. `traffic.sim()` asks the sim for its own counts (agents, near bodies, promotions, honks, stalls, witness events).
+   */
+  traffic(): TrafficInfo | null;
+  /** Counts of the ambient traffic inside sim.worker (`debug.world` op `traffic`); null after `timeoutMs`. */
+  trafficSim(timeoutMs?: number): Promise<unknown>;
   /** Starts the landmark frame counters and the swap log again (a test warms the scene up, then measures a run). */
   resetLandmarkStats(): void;
 }
@@ -155,6 +163,8 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     map: () => view.lastMap,
     landmarks: () => view.landmarksReport(),
     swaps: () => view.landmarksReport()?.swaps ?? [],
+    traffic: () => view.trafficReport(),
+    trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
     resetLandmarkStats: () => view.landmarks?.resetStats(),
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
