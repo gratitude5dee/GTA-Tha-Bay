@@ -180,6 +180,12 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
   await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
+  // M03b1 integration: the ambient traffic moves between two captures, so the goldens are taken without it (its group is hidden; the goldens
+  // predate the traffic). The group is a child of the scene, so the shadow pass skips it too.
+  await page.evaluate(() => {
+    const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: { group: { visible: boolean } } | null } } } } }).__dvBridge.world.internals().view;
+    if (view.traffic) view.traffic.group.visible = false;
+  });
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   await frames(page, 2);
   const buf = await page.locator('canvas').first().screenshot();
