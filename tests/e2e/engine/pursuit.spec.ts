@@ -47,7 +47,7 @@ async function boot(page: Page): Promise<void> {
 test.describe('pursuit director @pursuit', () => {
   test.describe.configure({ timeout: 600_000 });
 
-  test('heat 2 sends a cruiser from out of view; the side block says level 2; clear sends the units away @pursuit', async ({ page }) => {
+  test('heat 2 sends a cruiser from out of view; the side block says level 2; clear sends the units away @pursuit', async ({ page }, testInfo) => {
     await boot(page);
 
     // the default QA scene shows the panel
@@ -91,6 +91,8 @@ test.describe('pursuit director @pursuit', () => {
       .toBe(true);
     expect((await simTick(page)) - t0).toBeLessThanOrEqual(60 * 60 + 600);
 
+    await testInfo.attach('heat-2', { body: await page.screenshot(), contentType: 'image/png' });
+    if (process.env['DV_PURSUIT_SHOT']) await page.screenshot({ path: process.env['DV_PURSUIT_SHOT'] });
     // the snapshot side block carries the heat
     await expect.poll(async () => (await observe(page)).pursuit?.level ?? 0, { timeout: 30_000 }).toBe(2);
     await expect(page.getByTestId('pursuit-line')).toContainText('HEAT 2');
