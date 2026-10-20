@@ -7,7 +7,8 @@ import { registerControlSystems } from '../src/sim/control/index.ts';
 import { BodyRef, Control, LocalPlayer, Transform, Vehicle, VehicleDamage, Velocity } from '../src/sim/ecs/components.ts';
 import { ENGINE_PREFABS, PrefabRegistry } from '../src/sim/prefabs/registry.ts';
 import { createPhysicsSim, type PhysicsSim } from '../src/sim/sim-factory.ts';
-import { registerVehicleModule, seatDriver, type VehicleModule } from '../src/sim/vehicle/index.ts';
+import type { VehiclePhysics } from '../src/sim/physics/backend.ts';
+import { registerVehicleModule, seatDriver, type VehicleModule, type WheelPath } from '../src/sim/vehicle/index.ts';
 import { oracleShapes } from './fixtures/oracle-track.ts';
 import { testConfig } from './helpers.ts';
 
@@ -26,6 +27,8 @@ export interface VehicleSimOptions {
   seated?: boolean;
   /** Skip the oracle statics (the caller adds its own). */
   noTrack?: boolean;
+  /** Builds a wheel path other than the selected one (the M03a2 spike harness). */
+  wheelPath?: (backend: VehiclePhysics) => WheelPath;
   /** Extra setup after the module is registered. */
   setup?: (s: { sim: PhysicsSim; mod: VehicleModule; prefabs: PrefabRegistry }) => void;
 }
@@ -57,7 +60,7 @@ export async function createVehicleWorld(opts: VehicleSimOptions = {}): Promise<
       registerControlSystems(s.core, s.backend);
       const prefabs = new PrefabRegistry(s.ecs, s.backend);
       prefabs.load(ENGINE_PREFABS);
-      const mod = registerVehicleModule(s.core, s.backend, prefabs);
+      const mod = registerVehicleModule(s.core, s.backend, prefabs, opts.wheelPath?.(s.backend));
       holder.mod = mod;
       holder.prefabs = prefabs;
       const playerAt = opts.playerAt ?? [pos[0], pos[1], pos[2] - 3];

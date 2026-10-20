@@ -1,13 +1,14 @@
-import type { Collider, KinematicCharacterController, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
+import type { Collider, DynamicRayCastVehicleController, KinematicCharacterController, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
 import { dsqrt, PI } from '@dv/shared';
 import { ByteReader, ByteWriter } from '../bytes.ts';
 import {
-  NotImplementedError, PhysicsInitError,
+  PhysicsInitError,
   type BodyDesc, type BodyKind, type CharMoveOpts, type CharMoveResult, type PhysicsBuild,
-  type RayHit, type StaticShapeSet, type VehicleDrive, type VehiclePhysics, type Vec3, type WheelDesc,
+  type RayHit, type StaticShapeSet, type VehicleDrive, type VehiclePhysics, type Vec3, type WheelDesc, type VehicleSuspensionTune,
+  VEHICLE_READ_STRIDE,
 } from './backend.ts';
 import { PHYSICS_CONFIG, type PhysicsConfig } from './config.ts';
-import { GROUPS, interactionGroups } from './groups.ts';
+import { GROUP_BIT, GROUPS, interactionGroups } from './groups.ts';
 import { loadRapierBuild, type RapierModule } from './load-build.ts';
 import { heightfieldLayout, prismPieces } from './static-shapes.ts';
 
@@ -67,6 +68,9 @@ export class RapierBackend implements VehiclePhysics {
   private nextId = 1;
   private readonly bodies = new Map<number, BodyEntry>();
   private readonly bodyObjs = new Map<number, RigidBody>();
+  /** Rapier vehicle controllers by vehicle id (the M03a2 `controller` wheel path). Not part of a snapshot. */
+  private readonly controllers = new Map<number, { ctrl: DynamicRayCastVehicleController; body: number; frontMask: boolean[] }>();
+  private nextVehicle = 1;
   private readonly statics = new Map<string, StaticEntry>();
   private readonly cfg: PhysicsConfig;
   private readonly load: (build: PhysicsBuild) => Promise<RapierModule>;
@@ -137,6 +141,7 @@ export class RapierBackend implements VehiclePhysics {
 
   /** Frees the wasm world. */
   dispose(): void {
+    this.controllers.clear();
     this.kcc?.free();
     this.kcc = null;
     this.world?.free();
@@ -203,8 +208,13 @@ export class RapierBackend implements VehiclePhysics {
 
   step(dt: number, substeps: 1 | 2): void {
     const w = this.W;
-    w.integrationParameters.dt = dt / substeps;
-    for (let i = 0; i < substeps; i++) w.step();
+    const sub = dt / substeps;
+    w.integrationParameters.dt = sub;
+    for (let i = 0; i < substeps; i++) {
+      // vehicle controllers cast their rays and push the chassis before the world integrates
+      for (const c of this.controllers.values()) c.ctrl.updateVehicle(sub, undefined, interactionGroups(0xffff, GROUP_BIT.static));
+      w.step();
+    }
     this.steps++;
   }
 
@@ -306,6 +316,11 @@ export class RapierBackend implements VehiclePhysics {
   removeBody(id: number): void {
     const e = this.bodies.get(id);
     if (!e) return;
+    for (const [vid, c] of this.controllers) {
+      if (c.body !== id) continue;
+      this.W.removeVehicleController(c.ctrl);
+      this.controllers.delete(vid);
+    }
     this.W.removeRigidBody(this.body(id));
     this.bodies.delete(id);
     this.bodyObjs.delete(id);
@@ -422,17 +437,74 @@ export class RapierBackend implements VehiclePhysics {
     return this.kcc;
   }
 
+  /**
+   * The vehicle seam over Rapier's `DynamicRayCastVehicleController` (M03a2 spike; ADR-0031). Wheel `i` is `wheels[i]`.
+   * `drive` sets the same engine force and brake on all wheels and the steering angle on the `front` wheels; `handbrake`
+   * locks the `rear` wheels. The controller itself runs inside `step`, before each world substep.
+   *
+   * `read` layout (engine-internal, not a contract): `VEHICLE_READ_STRIDE` = 11 floats per wheel, wheels in order, at
+   * `out[11 * i + slot]`:
+   *   0 inContact (1 or 0), 1..3 contact point (ENU metres), 4..6 contact normal, 7 suspLenM (hub to ground, m),
+   *   8 vLong (NaN: the controller exposes no wheel-point velocity), 9 vLat (NaN, same), 10 loadN (suspension force, N).
+   * A wheel with no ground reports inContact 0, zeros for point and normal, suspLenM = rest + travel, loadN 0.
+   */
   readonly vehicle = {
-    create: (_body: number, _wheels: WheelDesc[]): number => {
-      throw new NotImplementedError('vehicle.create', 'M03a1');
+    create: (body: number, wheels: WheelDesc[]): number => {
+      const rb = this.body(body);
+      const ctrl = this.W.createVehicleController(rb);
+      for (const w of wheels) {
+        ctrl.addWheel({ x: w.pos[0], y: w.pos[1], z: w.pos[2] }, { x: 0, y: -1, z: 0 }, { x: -1, y: 0, z: 0 }, w.restM, w.radius);
+      }
+      const id = this.nextVehicle++;
+      this.controllers.set(id, { ctrl, body, frontMask: wheels.map((w) => w.axle === 'front') });
+      return id;
     },
-    drive: (_v: number, _i: VehicleDrive): void => {
-      throw new NotImplementedError('vehicle.drive', 'M03a1');
+    drive: (v: number, i: VehicleDrive): void => {
+      const c = this.controllers.get(v);
+      if (!c) throw new RangeError(`unknown vehicle ${v}`);
+      const n = c.ctrl.numWheels();
+      for (let k = 0; k < n; k++) {
+        const front = c.frontMask[k] === true;
+        c.ctrl.setWheelEngineForce(k, i.engineForce);
+        c.ctrl.setWheelBrake(k, !front && i.handbrake ? 1e6 : i.brake);
+        c.ctrl.setWheelSteering(k, front ? i.steerRad : 0);
+      }
     },
-    read: (_v: number, _out: Float32Array): void => {
-      throw new NotImplementedError('vehicle.read', 'M03a1');
+    read: (v: number, out: Float32Array): void => {
+      const c = this.controllers.get(v);
+      if (!c) throw new RangeError(`unknown vehicle ${v}`);
+      const ctrl = c.ctrl;
+      const o = this.origin;
+      for (let k = 0, n = ctrl.numWheels(); k < n; k++) {
+        const b = k * VEHICLE_READ_STRIDE;
+        const hit = ctrl.wheelIsInContact(k);
+        out[b] = hit ? 1 : 0;
+        const pt = hit ? ctrl.wheelContactPoint(k) : null;
+        const nm = hit ? ctrl.wheelContactNormal(k) : null;
+        out[b + 1] = pt ? pt.x + o[0] : 0; out[b + 2] = pt ? pt.y + o[1] : 0; out[b + 3] = pt ? pt.z + o[2] : 0;
+        out[b + 4] = nm ? nm.x : 0; out[b + 5] = nm ? nm.y : 0; out[b + 6] = nm ? nm.z : 0;
+        out[b + 7] = hit ? (ctrl.wheelSuspensionLength(k) ?? 0) : (ctrl.wheelSuspensionRestLength(k) ?? 0) + (ctrl.wheelMaxSuspensionTravel(k) ?? 0);
+        out[b + 8] = Number.NaN;
+        out[b + 9] = Number.NaN;
+        out[b + 10] = hit ? (ctrl.wheelSuspensionForce(k) ?? 0) : 0;
+      }
     },
   };
+
+  /** Suspension and friction settings of every wheel of vehicle `v` (engine-internal, beside the `vehicle` seam). */
+  tuneVehicle(v: number, t: VehicleSuspensionTune): void {
+    const c = this.controllers.get(v);
+    if (!c) throw new RangeError(`unknown vehicle ${v}`);
+    for (let k = 0, n = c.ctrl.numWheels(); k < n; k++) {
+      c.ctrl.setWheelSuspensionStiffness(k, t.stiffness[k] as number);
+      c.ctrl.setWheelSuspensionCompression(k, t.compression[k] as number);
+      c.ctrl.setWheelSuspensionRelaxation(k, t.relaxation[k] as number);
+      c.ctrl.setWheelMaxSuspensionTravel(k, t.maxTravelM);
+      c.ctrl.setWheelMaxSuspensionForce(k, t.maxForceN);
+      c.ctrl.setWheelSideFrictionStiffness(k, t.sideFriction);
+      c.ctrl.setWheelFrictionSlip(k, t.frictionSlip);
+    }
+  }
 
   /**
    * First hit along a ray against solid colliders. `d` need not be unit length; `toi` is in metres. `mask` is the OR
@@ -547,6 +619,7 @@ export class RapierBackend implements VehiclePhysics {
     }
     const len = r.u32();
     const rapierBytes = r.bytes(len);
+    this.controllers.clear();
     this.kcc?.free();
     this.kcc = null;
     this.world?.free();

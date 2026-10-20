@@ -4,6 +4,8 @@
  */
 import { SIM_DT } from '@dv/shared';
 import { Transform } from '../src/sim/ecs/components.ts';
+import type { PhysicsBuild, VehiclePhysics } from '../src/sim/physics/backend.ts';
+import type { WheelPath } from '../src/sim/vehicle/index.ts';
 import { LinePlayer } from '../src/sim/lines/player.ts';
 import { lineLength, type LineFile } from '../src/sim/lines/format.ts';
 import { createVehicleWorld, launch, view, type VehicleView, type VehicleWorld } from './vehicle-sim.ts';
@@ -28,12 +30,17 @@ export interface RunOptions {
   /** Ticks to run after the line ends. */
   extraTicks?: number;
   keepWorld?: boolean;
+  /** A wheel path other than the selected one, and a Rapier build other than `deterministic-compat` (M03a2 spike). */
+  wheelPath?: (backend: VehiclePhysics) => WheelPath;
+  build?: PhysicsBuild;
 }
 
 export async function runLine(line: LineFile, opts: RunOptions = {}): Promise<LineRun> {
   const prefab = opts.prefab ?? line.start.prefab ?? 'vehicle.sedan';
   const world = await createVehicleWorld({
-    prefab, pos: line.start.pos, yaw: line.start.yaw, config: { seed: line.seed, profile: line.profile },
+    prefab, pos: line.start.pos, yaw: line.start.yaw,
+    config: { seed: line.seed, profile: line.profile, ...(opts.build ? { physicsBuild: opts.build } : {}) },
+    ...(opts.wheelPath ? { wheelPath: opts.wheelPath } : {}),
   });
   const sim = world.sim;
   // settle on the springs

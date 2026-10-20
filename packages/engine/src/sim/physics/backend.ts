@@ -36,6 +36,13 @@ export interface BodyDesc {
 }
 export interface WheelDesc { pos: [number, number, number]; radius: number; restM: number; axle: 'front' | 'rear' }
 export interface VehicleDrive { engineForce: number; brake: number; steerRad: number; handbrake: boolean }
+/** Floats per wheel in the `PhysicsBackend.vehicle.read` buffer (layout documented on `RapierBackend.vehicle`). */
+export const VEHICLE_READ_STRIDE = 11;
+/** Suspension and friction settings of a Rapier vehicle controller, per wheel (Rapier scales spring and damper by chassis mass). */
+export interface VehicleSuspensionTune {
+  stiffness: readonly number[]; compression: readonly number[]; relaxation: readonly number[];
+  maxTravelM: number; maxForceN: number; sideFriction: number; frictionSlip: number;
+}
 export interface RayHit { toi: number; normal: [number, number, number]; collider: number; entity: number /* handle */ }
 
 export interface PhysicsBackend {
@@ -60,6 +67,11 @@ export interface PhysicsBackend {
   vehicle: {
     create(body: number, wheels: WheelDesc[]): number;
     drive(v: number, i: VehicleDrive): void;
+    /**
+     * Per wheel, in `wheels` order, `VEHICLE_READ_STRIDE` (11) floats at `out[11 * i + slot]`: 0 inContact (1 or 0),
+     * 1..3 contact point (ENU), 4..6 normal, 7 suspLenM, 8 vLong, 9 vLat, 10 loadN. A slot the backend cannot provide is NaN
+     * (Rapier's controller gives no wheel-point velocity: 8 and 9). Engine-internal layout, not a contract (M03a2).
+     */
     read(v: number, out: Float32Array): void;
   };
   castRay(o: [number, number, number], d: [number, number, number], max: number, mask: number): RayHit | null;
@@ -89,6 +101,8 @@ export interface VehiclePhysics extends PhysicsSystemsBackend {
   setBodyGroups(id: number, groups: number): void;
   /** Switches a body between kinematic and dynamic (ragdoll-lite). */
   setBodyKind(id: number, kind: 'dynamic' | 'kinematic'): void;
+  /** Suspension settings of a controller made by `vehicle.create` (M03a2 spike; see ADR-0031). */
+  tuneVehicle(v: number, t: VehicleSuspensionTune): void;
 }
 
 /** A feature the spec assigns to a later milestone. */
