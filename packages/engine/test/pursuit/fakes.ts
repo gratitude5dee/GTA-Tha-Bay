@@ -144,6 +144,13 @@ export class FakeHost implements PursuitHost, VehicleDamagePort {
     return this.sight(a, b);
   }
 
+  /** Ground below a point: everywhere unless the test says otherwise. */
+  ground: (pos: Vec3) => boolean = () => true;
+
+  solid(pos: Vec3): boolean {
+    return this.ground(pos);
+  }
+
   groundY(): number | null {
     return 0;
   }

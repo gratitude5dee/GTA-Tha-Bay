@@ -171,6 +171,10 @@ export class EcsPursuitHost implements PursuitHost, VehicleDamagePort {
     return this.d.backend.castRay([a[0], a[1], a[2]], [dx / d, dy / d, dz / d], d - 0.4, GROUP_BIT.static) === null;
   }
 
+  solid(pos: Vec3): boolean {
+    return this.d.backend.castRay([pos[0], pos[1] + 3, pos[2]], [0, -1, 0], 60, GROUP_BIT.static) !== null;
+  }
+
   groundY(x: number, z: number): number | null {
     const api = this.d.services.world.api;
     return api ? api.query.groundY(x, z) : null;

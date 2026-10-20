@@ -80,6 +80,8 @@ export interface PursuitHost {
   fly(id: number, pos: Vec3, yaw: number): void;
   /** Static-collider line of sight between two points. */
   los(a: Vec3, b: Vec3): boolean;
+  /** Static ground below `pos` (within 60 m): false where no collider is loaded, so a body placed there would fall. */
+  solid(pos: Vec3): boolean;
   /** Ground height at (x, z), or null when the ground is not loaded. */
   groundY(x: number, z: number): number | null;
   /** Places a prop (a barrier, a strip); returns its id, or 0. */

@@ -75,3 +75,68 @@ export function followSpeed(u: UnitView, p: PlayerView): number {
   const closing = gap > 12 ? 6 : gap > 8 ? 1 : -2;
   return clamp(p.speed + closing + (gap > 80 ? 8 : 0), 0, UNIT_MAX_SPEED);
 }
+
+/** Deceleration the corner speed rule assumes, m/s^2. */
+const CORNER_DECEL = 5;
+const CORNER_WINDOW_M = 50;
+
+/** Speed a vertex with turning angle `theta` (radians) allows, as a share of `cruise`; never below 5 m/s. */
+const cornerSpeed = (theta: number, cruise: number): number => clamp(cruise * (1 - 0.8 * Math.min(1, theta / 1.2)), 5, cruise);
+
+export interface PathPoint {
+  x: number;
+  z: number;
+}
+
+export interface PathTarget extends SteerTarget {
+  /** The plan index the unit has reached. */
+  idx: number;
+}
+
+/**
+ * The target on a waypoint polyline: a point a speed-dependent distance ahead, and the speed the corners within 50 m allow (the unit
+ * brakes for a corner at `CORNER_DECEL`). `idx` advances past the points the unit has reached. Null for an empty plan.
+ */
+export function pathTarget(plan: readonly PathPoint[], idx: number, x: number, z: number, speed: number, cruise: number): PathTarget | null {
+  if (plan.length === 0) return null;
+  let i = Math.min(idx, plan.length - 1);
+  while (i < plan.length - 1 && dist2(x, z, (plan[i] as PathPoint).x, (plan[i] as PathPoint).z) < 6) i++;
+  const look = clamp(5 + 0.55 * Math.abs(speed), 7, 26);
+  let j = i;
+  while (j < plan.length - 1 && dist2(x, z, (plan[j] as PathPoint).x, (plan[j] as PathPoint).z) < look) j++;
+  // a corner inside the look-ahead is aimed at, not cut
+  for (let k = i; k < j; k++) {
+    if (turnAt(plan, k + 1) > SHARP_RAD) {
+      j = k + 1;
+      break;
+    }
+  }
+  const t = plan[j] as PathPoint;
+  // corners ahead
+  let allowed = cruise;
+  let arc = dist2(x, z, (plan[i] as PathPoint).x, (plan[i] as PathPoint).z);
+  for (let k = i; k < plan.length - 1 && arc < CORNER_WINDOW_M; k++) {
+    const a0 = plan[k] as PathPoint, b0 = plan[k + 1] as PathPoint;
+    const th = turnAt(plan, k + 1);
+    if (th > 0.05) {
+      const vc = cornerSpeed(th, cruise);
+      allowed = Math.min(allowed, dsqrt(vc * vc + 2 * CORNER_DECEL * (arc + dist2(a0.x, a0.z, b0.x, b0.z))));
+    }
+    arc += dist2(a0.x, a0.z, b0.x, b0.z);
+  }
+  return { x: t.x, z: t.z, speed: allowed, idx: i };
+}
+
+/** A turn sharper than this (radians) is a corner the unit aims at. */
+const SHARP_RAD = 0.5;
+
+/** The turning angle of the polyline at vertex `k` (0 at the ends and across zero-length steps). */
+function turnAt(plan: readonly PathPoint[], k: number): number {
+  const a = plan[k - 1], b = plan[k], c = plan[k + 1];
+  if (!a || !b || !c) return 0;
+  const ux = b.x - a.x, uz = b.z - a.z, vx = c.x - b.x, vz = c.z - b.z;
+  if (ux * ux + uz * uz < 0.25 || vx * vx + vz * vz < 0.25) return 0;
+  let th = Math.abs(datan2(vx, vz) - datan2(ux, uz));
+  if (th > Math.PI) th = 2 * Math.PI - th;
+  return th;
+}

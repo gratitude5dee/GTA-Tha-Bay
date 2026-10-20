@@ -13,6 +13,27 @@ import { FakeHost, FakeWorld, makeRig } from './fakes.ts';
 const player = (over: Partial<PlayerView> = {}): PlayerView => ({ pos: [0, 0, 0], vel: [0, 0, -20], speed: 20, yaw: 0, onFoot: false, vehicleKey: 'veh:p', grappled: false, ...over });
 const unit = (pos: [number, number, number], yaw = 0, speed = 0): UnitView => ({ id: 1, role: 'cruiser', pos, yaw, speed, vel: [0, 0, 0], ready: true, tires: [1, 1, 1, 1] });
 
+/** A unit 60 m behind the player with a clear ray keeps the player in sight, so the tactics that need a known heading are used. */
+function watched(r: ReturnType<typeof makeRig>): void {
+  r.host.sight = () => true;
+  r.run(300);
+  const u = [...r.host.units.values()].find((x) => x.role !== 'heli');
+  if (u) u.pos = [0, 0, 60];
+  const keep = (): void => {
+    const g = [...r.host.units.values()].find((x) => x.role !== 'heli');
+    if (g) g.pos = [0, 0, 60];
+  };
+  const run = r.run.bind(r);
+  r.run = (n: number): number => {
+    let end = r.tick + n;
+    while (r.tick < end) {
+      keep();
+      run(2);
+    }
+    return r.tick;
+  };
+}
+
 describe('roadblocks (AC-5)', () => {
   it('with a route hint the block lies on a hinted edge ahead of the player', () => {
     const w = new FakeWorld();
@@ -49,6 +70,7 @@ describe('roadblocks (AC-5)', () => {
     r.host.p.vel = [0, 0, -20];
     r.director.setRouteHint([ahead]);
     r.director.forceHeat(4);
+    watched(r);
     r.run(2400);
     expect(r.director.dispatch.activeBlocks.length).toBeGreaterThanOrEqual(1);
     for (const b of r.director.dispatch.activeBlocks) expect(b.edge).toBe(ahead);
@@ -96,6 +118,7 @@ describe('spike strips (AC-5)', () => {
     r.host.p.speed = 20;
     r.host.p.vel = [0, 0, -20];
     r.director.forceHeat(4);
+    watched(r);
     r.run(3000);
     const strips = r.director.dispatch.activeStrips;
     expect(strips.length).toBe(1);

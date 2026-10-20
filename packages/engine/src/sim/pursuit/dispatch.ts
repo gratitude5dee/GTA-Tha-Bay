@@ -19,7 +19,7 @@ import type { Rng } from '@dv/shared';
 import { TICKS_PER_SEC } from './heat.ts';
 import type { DriveInput, LanePoint, PlayerView, PursuitHost, PursuitWorld, UnitRole, UnitView, Vec3, VehicleDamagePort } from './ports.ts';
 import { boxHeld, boxInTarget, rollingBlockTarget, suvRamTarget } from './tactics/boxin.ts';
-import { clamp, dist2, driveToward, followSpeed, forwardOf, hold, UNIT_MAX_SPEED, type SteerTarget } from './tactics/follow.ts';
+import { clamp, dist2, driveToward, followSpeed, forwardOf, hold, pathTarget, UNIT_MAX_SPEED, type SteerTarget } from './tactics/follow.ts';
 import { heliOrbit, heliSees, heliStep, type HeliPose } from './tactics/heli.ts';
 import { pitAllowed, pitTarget } from './tactics/pit.ts';
 import { planRoadblock, type BlockSpec, type RoadblockKind } from './tactics/roadblock.ts';
@@ -46,12 +46,16 @@ const SIGHT_VALID_TICKS = 60;
 /** Cosine of the half angle of the player's view, 75 degrees. */
 const VIEW_COS = 0.2588;
 const DISPERSE_MAX_TICKS = 45 * TICKS_PER_SEC;
+/** Roadblocks and strips are placed only this long after the player was last in sight (10 s). */
+const PROP_SIGHT_TICKS = 10 * TICKS_PER_SEC;
 const BLOCK_EVERY_TICKS = 20 * TICKS_PER_SEC;
 const BLOCK_LIFE_TICKS = 45 * TICKS_PER_SEC;
 const SPIKE_EVERY_TICKS = 25 * TICKS_PER_SEC;
 const SPIKE_LIFE_TICKS = 60 * TICKS_PER_SEC;
 /** A unit that has not moved for this long while it should is removed if unseen (stuck against geometry). */
 const STUCK_TICKS = 12 * TICKS_PER_SEC;
+/** A unit over unloaded ground this long is removed (0.5 s). */
+const UNGROUNDED_TICKS = 30;
 const WAYPOINT_M = 14;
 const MAX_PLAN_POINTS = 40;
 
@@ -83,6 +87,8 @@ export interface UnitRec {
   /** Ticks the unit has hardly moved. */
   stuck: number;
   disperseSince: number;
+  /** Ticks without loaded ground below. */
+  ungrounded: number;
 }
 
 interface BlockRec {
@@ -136,6 +142,7 @@ export class Dispatcher {
   private lastSpawn = -1e9;
   private lastBlock = -1e9;
   private lastSpike = -1e9;
+  private lastSeenTick = -1e9;
   private rayCursor = 0;
   private replanCursor = 0;
   private readonly input: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: false };
@@ -149,6 +156,8 @@ export class Dispatcher {
   readonly spawnLog: { tick: number; pos: Vec3; role: UnitRole }[] = [];
   /** Tire punctures so far. */
   punctures = 0;
+  /** Units removed for driving off the loaded ground. */
+  lost = 0;
 
   constructor(
     public cfg: PursuitConfig,
@@ -186,13 +195,19 @@ export class Dispatcher {
 
   // ---- spawning --------------------------------------------------------------------------------------------------------------
 
-  private outOfView(player: PlayerView, p: Vec3): boolean {
+  /**
+   * Out of view: the player has no line of sight to the spot (a unit placed there cannot see the player either). Tries that found
+   * no such spot fall back to the weaker rule, outside the 75 degree cone of the player's heading.
+   */
+  private outOfView(player: PlayerView, p: Vec3, strict: boolean): boolean {
+    const eye: Vec3 = [player.pos[0], player.pos[1] + 1.5, player.pos[2]];
+    if (!this.host.los([p[0], p[1] + 1.5, p[2]], eye)) return true;
+    if (strict) return false;
     const dx = p[0] - player.pos[0], dz = p[2] - player.pos[2];
     const d = dsqrt(dx * dx + dz * dz);
     if (d === 0) return false;
     const [fx, fz] = forwardOf(player.yaw);
-    if ((dx * fx + dz * fz) / d < VIEW_COS) return true;
-    return !this.host.los([p[0], p[1] + 1.5, p[2]], [player.pos[0], player.pos[1] + 1.5, player.pos[2]]);
+    return (dx * fx + dz * fz) / d < VIEW_COS && d > SIGHT_M + 10;
   }
 
   /** A road lane point at least `MIN_SPAWN_M` from the player and out of view, or null. */
@@ -206,7 +221,8 @@ export class Dispatcher {
       const lp = this.world.lanePoint(road.edge, road.s);
       if (!lp) continue;
       if (dist2(lp.x, lp.z, player.pos[0], player.pos[2]) < MIN_SPAWN_M) continue;
-      if (!this.outOfView(player, [lp.x, lp.y, lp.z])) continue;
+      if (!this.host.solid([lp.x, lp.y, lp.z])) continue;
+      if (!this.outOfView(player, [lp.x, lp.y, lp.z], k < SPAWN_TRIES - 3)) continue;
       return lp;
     }
     return null;
@@ -215,7 +231,7 @@ export class Dispatcher {
   private newUnit(id: number, key: string, prefab: string, role: UnitRole, mode: UnitMode, tick: number): UnitRec {
     const u: UnitRec = {
       id, key, prefab, role, mode, tactic: 'follow', born: tick, plan: [], planIdx: 0, planTick: -1e9, goal: null,
-      blockId: -1, blockSlot: 0, boxSlot: 0, boxSince: -1, sees: false, seesTick: -1e9, stuck: 0, disperseSince: -1,
+      blockId: -1, blockSlot: 0, boxSlot: 0, boxSince: -1, sees: false, seesTick: -1e9, stuck: 0, disperseSince: -1, ungrounded: 0,
     };
     this.units.push(u);
     return u;
@@ -279,6 +295,8 @@ export class Dispatcher {
       for (const p of ep) {
         // on the first edge keep only the points ahead of the unit
         if (first && !this.ahead(v, p)) continue;
+        const last = pts[pts.length - 1];
+        if (last && dist2(last.x, last.z, p.x, p.z) < 0.5) continue;
         pts.push(p);
         if (pts.length >= MAX_PLAN_POINTS) break;
       }
@@ -293,16 +311,12 @@ export class Dispatcher {
     return (p.x - v.pos[0]) * fx + (p.z - v.pos[2]) * fz > -2;
   }
 
-  /** The target on the plan: advance past reached points, look a point or two ahead. */
+  /** The target on the plan: advance past reached points, look ahead by speed, brake for the corners. */
   private planTarget(u: UnitRec, v: UnitView, speed: number): SteerTarget | null {
-    while (u.planIdx < u.plan.length - 1) {
-      const p = u.plan[u.planIdx] as LanePoint;
-      if (dist2(v.pos[0], v.pos[2], p.x, p.z) < 11) u.planIdx++;
-      else break;
-    }
-    const p = u.plan[Math.min(u.planIdx + 1, u.plan.length - 1)];
-    if (!p) return null;
-    return { x: p.x, z: p.z, speed };
+    const t = pathTarget(u.plan, u.planIdx, v.pos[0], v.pos[2], v.speed, speed);
+    if (!t) return null;
+    u.planIdx = t.idx;
+    return t;
   }
 
   // ---- the step --------------------------------------------------------------------------------------------------------------
@@ -323,7 +337,8 @@ export class Dispatcher {
     // 3. replans, one unit per step
     this.replan(i);
 
-    // 4. props: roadblocks and strips
+    if (this.lastSeen) this.lastSeenTick = tick;
+    // 4. props: roadblocks and strips (placed on the way the player was last seen heading, so only while the player is, or just was, in sight)
     if (i.active) this.manageProps(i);
     else this.dropProps();
     this.checkStrips(i);
@@ -469,7 +484,7 @@ export class Dispatcher {
         this.strips.splice(k, 1);
       }
     }
-    if (player.onFoot || player.speed < 8) return;
+    if (player.onFoot || player.speed < 8 || tick - this.lastSeenTick > PROP_SIGHT_TICKS) return;
 
     const kinds: RoadblockKind[] = [];
     if (tactics.includes('roadblock2')) kinds.push('roadblock2');
@@ -697,6 +712,16 @@ export class Dispatcher {
         continue;
       }
       if (!v.ready) continue;
+      // a ground unit that drove out of the loaded ground would fall for ever: it leaves the street and the level calls for a new one
+      if (u.role !== 'heli') {
+        u.ungrounded = this.host.solid(v.pos) ? 0 : u.ungrounded + i.dt;
+        if (u.ungrounded > UNGROUNDED_TICKS) {
+          this.host.despawnUnit(u.id);
+          this.forget(k);
+          this.lost++;
+          continue;
+        }
+      }
       const d = dist2(v.pos[0], v.pos[2], i.player.pos[0], i.player.pos[2]);
       const seen = u.sees && i.tick - u.seesTick <= SIGHT_VALID_TICKS;
       let gone = false;
@@ -727,11 +752,11 @@ export class Dispatcher {
   }
 
   hash(h: Fnv64): void {
-    h.u32(this.serial).u32(this.blockSerial).u32(this.propSerial).f64(this.lastSpawn).f64(this.lastBlock).f64(this.lastSpike).u32(this.rayCursor).u32(this.replanCursor);
+    h.f64(this.lastSeenTick).u32(this.lost).u32(this.serial).u32(this.blockSerial).u32(this.propSerial).f64(this.lastSpawn).f64(this.lastBlock).f64(this.lastSpike).u32(this.rayCursor).u32(this.replanCursor);
     h.u32(this.units.length);
     for (const u of this.units) {
       h.u32(u.id).str(u.key).str(u.prefab).u8(u.mode === 'chase' ? 0 : u.mode === 'roadblock' ? 1 : u.mode === 'disperse' ? 2 : 3).u8(KIND_OF[u.tactic]);
-      h.f64(u.born).f64(u.planTick).u32(u.planIdx).u32(u.plan.length).u32(u.blockId >>> 0).u8(u.blockSlot).u8(u.boxSlot).f64(u.boxSince).u8(u.sees ? 1 : 0).f64(u.seesTick).u32(u.stuck).f64(u.disperseSince);
+      h.u32(u.ungrounded).f64(u.born).f64(u.planTick).u32(u.planIdx).u32(u.plan.length).u32(u.blockId >>> 0).u8(u.blockSlot).u8(u.boxSlot).f64(u.boxSince).u8(u.sees ? 1 : 0).f64(u.seesTick).u32(u.stuck).f64(u.disperseSince);
     }
     h.u32(this.blocks.length);
     for (const b of this.blocks) h.u32(b.id).u32(b.props.length).f64(b.born);

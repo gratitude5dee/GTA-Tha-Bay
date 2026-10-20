@@ -11,7 +11,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Rng, chunkKeyAt, type ChunkKey, type WorldIndex } from '@dv/shared';
-import { SimRuntime, attachSabWorker, bakedWorldConfig, createSabMain, type SimRuntimeEnv } from '@dv/engine/sim';
+import { SimRuntime, attachSabWorker, bakedWorldConfig, createSabMain, type SimModule, type SimRuntimeEnv } from '@dv/engine/sim';
 import { groundHeightAt, spawnPose } from '../../src/sim/streaming/boot.ts';
 import { WORLD_PORT, type PackReply, type PackRequest, type WorldSimConfig } from '../../src/sim/streaming/channel.ts';
 import { createWorldStreamingModule, type WorldStreamingModule } from '../../src/sim/streaming/module.ts';
@@ -28,6 +28,10 @@ export interface TrafficRunOptions {
   shuffleSeed?: number;
   /** Called after every tick with the tick that just ran. */
   onTick?: (tick: number, rt: SimRuntime, mod: WorldStreamingModule) => void;
+  /** Further sim modules composed after the world module (M03c: the pursuit module). */
+  extraModules?: SimModule[];
+  /** Overrides the scenario seed (the pursuit scenario uses its own). */
+  seed?: number;
 }
 
 export interface TrafficRunResult {
@@ -113,9 +117,9 @@ export async function startTrafficRun(o: TrafficRunOptions): Promise<TrafficRun>
   const mod = createWorldStreamingModule();
   const made = createSabMain();
   const transport = attachSabWorker(made.init);
-  const env: SimRuntimeEnv = { now: () => 0, blockFor: () => {}, qa: true, modules: [mod], ports: { [WORLD_PORT]: loader } };
+  const env: SimRuntimeEnv = { now: () => 0, blockFor: () => {}, qa: true, modules: [mod, ...(o.extraModules ?? [])], ports: { [WORLD_PORT]: loader } };
   const runtime = new SimRuntime(transport, env);
-  const cfg = { ...bakedWorldConfig('canonical', every, bake.bakeId), seed: TRAFFIC_SYNTH.seed };
+  const cfg = { ...bakedWorldConfig('canonical', every, bake.bakeId), seed: o.seed ?? TRAFFIC_SYNTH.seed };
   await runtime.boot(cfg, { strings: [], prefabs: [], config: { scenario: 'baked-world', spawn, spawnYaw: pose.yaw, world } });
   const sim = runtime.sim;
   const state = mod.state;

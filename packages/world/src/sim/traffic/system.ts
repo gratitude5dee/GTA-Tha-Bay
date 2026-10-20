@@ -75,6 +75,8 @@ export class AmbientTraffic {
   readonly board: WitnessBoard;
   /** QA: the traffic follows this point instead of the player (the perf routes move the camera, not the player). */
   focusOverride: TrafficFocus | null = null;
+  /** The sirens in range of the traffic this tick (the pursuit director sets it, M03c); none when absent. */
+  sirenSource: (() => readonly Siren[]) | null = null;
   /** `world.witness` events emitted. */
   witnessEvents = 0;
   private readonly ecs: EcsWorld;
@@ -295,7 +297,7 @@ export class AmbientTraffic {
     const focus = this.focus();
     this.applyKicks();
     this.gather(focus);
-    this.sim.step({ tick, focus, env: { hour: env.hour, weather: env.weather }, obstacles: this.obstacles, movers: this.movers, sirens: NO_SIRENS });
+    this.sim.step({ tick, focus, env: { hour: env.hour, weather: env.weather }, obstacles: this.obstacles, movers: this.movers, sirens: this.sirenSource ? this.sirenSource() : NO_SIRENS });
     this.sync(focus);
     this.sweepWrecks(focus);
   }
