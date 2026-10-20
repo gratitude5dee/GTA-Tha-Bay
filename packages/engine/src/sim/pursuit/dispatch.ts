@@ -33,6 +33,7 @@ export const PREFAB_SPIKES = 'prop.spikestrip';
 /** A spawn is at least this far from the player, metres. */
 export const MIN_SPAWN_M = 120;
 const MAX_SPAWN_M = 280;
+const SPAWN_LOG_MAX = 200;
 const SPAWN_TRIES = 10;
 /** One spawn per this many ticks. */
 export const SPAWN_GAP_TICKS = 60;
@@ -232,6 +233,12 @@ export class Dispatcher {
     return null;
   }
 
+  private logSpawn(tick: number, lp: LanePoint, role: UnitRole): void {
+    this.spawnLog.push({ tick, pos: [lp.x, lp.y, lp.z], role });
+    // the log is for tests and the QA panel: it keeps the first 200 spawns
+    if (this.spawnLog.length > SPAWN_LOG_MAX) this.spawnLog.length = SPAWN_LOG_MAX;
+  }
+
   private newUnit(id: number, key: string, prefab: string, role: UnitRole, mode: UnitMode, tick: number): UnitRec {
     const u: UnitRec = {
       id, key, prefab, role, mode, tactic: 'follow', born: tick, plan: [], planIdx: 0, planTick: -1e9, goal: null,
@@ -249,7 +256,7 @@ export class Dispatcher {
     const id = this.host.spawnUnit(prefab, role, [lp.x, y, lp.z], lp.yaw, key);
     if (id === 0) return null;
     if (role === 'heli') this.heliPoses.set(id, { pos: [lp.x, y, lp.z], yaw: lp.yaw });
-    this.spawnLog.push({ tick, pos: [lp.x, lp.y, lp.z], role });
+    this.logSpawn(tick, lp, role);
     return this.newUnit(id, key, prefab, role, 'chase', tick);
   }
 
@@ -261,7 +268,7 @@ export class Dispatcher {
     const id = this.host.spawnUnit(prefab, role, [lp.x, role === 'heli' ? lp.y + 55 : lp.y, lp.z], lp.yaw, key);
     if (id === 0) return 0;
     if (role === 'heli') this.heliPoses.set(id, { pos: [lp.x, lp.y + 55, lp.z], yaw: lp.yaw });
-    this.spawnLog.push({ tick, pos: [lp.x, lp.y, lp.z], role });
+    this.logSpawn(tick, lp, role);
     const u = this.newUnit(id, key, prefab, role, 'named', tick);
     u.goal = { x: player.pos[0], z: player.pos[2] };
     return id;
