@@ -114,8 +114,6 @@ export class AmbientTransit {
 
   private livePlayer(): [number, number, number] | null {
     const ecs = this.ecs;
-    const ids = ecs.query([Transform]);
-    void ids;
     const key = ecs.byKey('player:0' as StableKey);
     if (key === NULL_HANDLE) return null;
     const id = ecs.resolve(key);

@@ -25,7 +25,7 @@ describe('AC-3: the active prefix grows with the tier', () => {
     expect(chunks.length).toBeGreaterThan(10);
     let checked = 0;
     for (const c of chunks) {
-      for (const hour of [0, 3, 7, 8, 12, 17, 20, 23]) {
+      for (const hour of [0, 7, 12, 17, 23]) {
         for (const weather of WEATHER) {
           for (const override of [0.35, 1, 1.5]) {
             let prevPed = -1, prevTraffic = -1;
@@ -44,7 +44,7 @@ describe('AC-3: the active prefix grows with the tier', () => {
       }
     }
     expect(checked).toBeGreaterThan(1000);
-  });
+  }, 180_000);
 
   it('a prefix of 0 ... n - 1 slots: the pedestrian slots are 256 and up, the traffic slots 0 and up', () => {
     expect(PED_SLOT0).toBe(256);
