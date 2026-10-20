@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.mount-davidson-cross",
+  "variants": {
+    "desktop": "assets/src/building/lm.mount-davidson-cross/desktop.glb",
+    "mobile": "assets/src/building/lm.mount-davidson-cross/mobile.glb",
+    "mobile-low": "assets/src/building/lm.mount-davidson-cross/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1296,
+      "verts": 2528,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 617,
+      "verts": 1221,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 227,
+      "verts": 419,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

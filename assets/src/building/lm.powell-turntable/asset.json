@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.powell-turntable",
+  "variants": {
+    "desktop": "assets/src/building/lm.powell-turntable/desktop.glb",
+    "mobile": "assets/src/building/lm.powell-turntable/mobile.glb",
+    "mobile-low": "assets/src/building/lm.powell-turntable/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 494,
+      "verts": 938,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 369,
+      "verts": 713,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 293,
+      "verts": 577,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

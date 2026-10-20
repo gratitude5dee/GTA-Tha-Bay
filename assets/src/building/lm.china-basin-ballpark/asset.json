@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.china-basin-ballpark",
+  "variants": {
+    "desktop": "assets/src/building/lm.china-basin-ballpark/desktop.glb",
+    "mobile": "assets/src/building/lm.china-basin-ballpark/mobile.glb",
+    "mobile-low": "assets/src/building/lm.china-basin-ballpark/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2314,
+      "verts": 4402,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 1016,
+      "verts": 1902,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 399,
+      "verts": 757,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.lands-end-lookout",
+  "variants": {
+    "desktop": "assets/src/building/lm.lands-end-lookout/desktop.glb",
+    "mobile": "assets/src/building/lm.lands-end-lookout/mobile.glb",
+    "mobile-low": "assets/src/building/lm.lands-end-lookout/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1151,
+      "verts": 2066,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 517,
+      "verts": 945,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 277,
+      "verts": 507,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

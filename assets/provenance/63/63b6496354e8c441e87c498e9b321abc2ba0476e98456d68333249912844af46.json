@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "63b6496354e8c441e87c498e9b321abc2ba0476e98456d68333249912844af46",
+  "paths": [
+    "assets/src/building/lm.rail-terminus/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "1f8b955ef225f2a0f6fd530f750ed4940a1e02547feedb26b717a8514b27fd1d"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

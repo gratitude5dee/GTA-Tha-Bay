@@ -7,85 +7,13 @@ import { readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import type { ChunkKey, QualityTierId } from '@dv/shared';
-import { LANDMARKS_RUNTIME, LandmarkLayer, type LandmarkDeps, type LandmarkHandle, type LandmarkSpot } from '../src/client/chunks/landmark-layer.ts';
+import { LANDMARKS_RUNTIME, type LandmarkDeps } from '../src/client/chunks/landmark-layer.ts';
+import { flush, harness, model, type Harness } from './fixtures/landmark-harness.ts';
 import type { LandmarkModelData } from '../src/client/chunks/landmark-glb.ts';
 import { chunksHolding, desiredMask, proxyIdOf, sameMask, staleChunks } from '../src/client/chunks/proxy-mask.ts';
 
 const TIERS = Object.keys(LANDMARKS_RUNTIME.tiers) as QualityTierId[];
 const read = (p: string): unknown => JSON.parse(readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8'));
-
-const model = (id: string, anchor: 'ground' | 'sea' = 'ground'): LandmarkModelData => ({
-  id, fidelity: 'hi', anchor, primitives: [], triangles: 100, vertices: 200, bounds: [0, 0, 0, 1, 1, 1],
-});
-const flush = async (): Promise<void> => {
-  for (let i = 0; i < 6; i++) await Promise.resolve();
-};
-
-interface Harness {
-  layer: LandmarkLayer;
-  spots: LandmarkSpot[];
-  clock: { ms: number };
-  chunks: Map<ChunkKey, { proxies: number[]; masked: number[]; rerecords: number }>;
-  remeshes: { key: ChunkKey; mask: number[] }[];
-  mounted: string[];
-  disposed: string[];
-  loads: string[];
-  fail: Set<string>;
-  ground: { ready: boolean };
-  /** Commits every requested remesh the way the upload gate would (one re-record each). */
-  commit(): void;
-  step(x: number, frames?: number): Promise<void>;
-}
-
-/** Landmarks on a line: spot i at x = xs[i]; chunk `9/i/0` holds the proxy of landmark i. */
-function harness(tier: QualityTierId, xs: number[], opts: { auto?: boolean; seaIds?: string[] } = {}): Harness {
-  const spots: LandmarkSpot[] = xs.map((x, i) => ({ id: `lm.s${i}`, index: i, x, z: 0, asset: `building/lm.s${i}` }));
-  const chunks = new Map<ChunkKey, { proxies: number[]; masked: number[]; rerecords: number }>();
-  spots.forEach((_s, i) => chunks.set(`9/${i}/0` as ChunkKey, { proxies: [proxyIdOf(i)], masked: [], rerecords: 0 }));
-  const h: Harness = {
-    layer: null as never, spots, clock: { ms: 1000 }, chunks, remeshes: [], mounted: [], disposed: [], loads: [], fail: new Set(), ground: { ready: true },
-    commit() {
-      for (const r of this.remeshes.filter((x) => !('done' in x))) {
-        const c = chunks.get(r.key)!;
-        c.masked = [...r.mask];
-        c.rerecords++;
-        (r as { done?: boolean }).done = true;
-      }
-    },
-    async step(x, frames = 1) {
-      for (let i = 0; i < frames; i++) {
-        this.layer.update({ x, z: 0 }, this.clock.ms / 1000);
-        await flush();
-        if (opts.auto) this.commit();
-        this.clock.ms += 16;
-      }
-    },
-  };
-  const deps: LandmarkDeps = {
-    tier,
-    spots,
-    reconcileEvery: 1,
-    load: (spot) => {
-      h.loads.push(spot.id);
-      return h.fail.has(spot.id) ? Promise.reject(new Error(`no model for ${spot.id}`)) : Promise.resolve(model(spot.id, opts.seaIds?.includes(spot.id) ? 'sea' : 'ground'));
-    },
-    mount: (spot) => {
-      h.mounted.push(spot.id);
-      const handle: LandmarkHandle = { objects: 3, triangles: 100, dispose: () => void h.disposed.push(spot.id) };
-      return handle;
-    },
-    chunks: {
-      states: () => [...chunks.entries()].map(([key, c]) => ({ key, proxies: c.proxies, masked: c.masked })),
-      remesh: (key, mask) => void h.remeshes.push({ key, mask }),
-      rerecords: (key) => chunks.get(key)?.rerecords ?? 0,
-    },
-    groundY: () => (h.ground.ready ? 12.5 : null),
-    waterY: 0,
-    now: () => h.clock.ms,
-  };
-  h.layer = new LandmarkLayer(deps);
-  return h;
-}
 
 const shownIds = (h: Harness): string[] => h.layer.report().resident.filter((r) => r.phase === 'shown').map((r) => r.id).sort();
 
@@ -198,7 +126,7 @@ describe('LandmarkLayer', () => {
     h.chunks.set('9/7/7' as ChunkKey, { proxies: [proxyIdOf(0)], masked: [], rerecords: 0 });
     await h.step(0, 10);
     expect(h.remeshes.map((r) => [r.key, r.mask])).toEqual([['9/0/0', [1]], ['9/7/7', [1]]]);
-    h.commit();
+    h.settle();
     await h.step(0, 20);
     // nothing more is asked once the chunks carry the mask
     expect(h.remeshes).toHaveLength(2);
@@ -223,7 +151,7 @@ describe('LandmarkLayer', () => {
     const swap = LANDMARKS_RUNTIME.tiers.mobile.swapM;
     const h = harness('mobile', [0], { auto: false });
     await h.step(0, 10);
-    h.commit();
+    h.settle();
     await h.step(0, 5);
     expect(h.mounted).toEqual(['lm.s0']);
     expect(h.chunks.get('9/0/0' as ChunkKey)!.masked).toEqual([1]);
@@ -235,7 +163,7 @@ describe('LandmarkLayer', () => {
     expect(h.remeshes.at(-1)).toEqual({ key: '9/0/0', mask: [] });
     expect(h.layer.report().resident[0]?.phase).toBe('leaving');
     expect(h.disposed).toEqual([]);
-    h.commit();
+    h.settle();
     await h.step(swap * 1.2, 5);
     expect(h.disposed).toEqual(['lm.s0']);
     expect(h.layer.report().resident).toEqual([]);
@@ -250,7 +178,7 @@ describe('LandmarkLayer', () => {
     const swap = LANDMARKS_RUNTIME.tiers.mobile.swapM;
     const h = harness('mobile', [0], { auto: false });
     await h.step(0, 10);
-    h.commit();
+    h.settle();
     await h.step(swap * 2, 5);
     expect(h.layer.report().resident[0]?.phase).toBe('leaving');
     h.clock.ms += 3000;
@@ -262,7 +190,7 @@ describe('LandmarkLayer', () => {
     const swap = LANDMARKS_RUNTIME.tiers.mobile.swapM;
     const h = harness('mobile', [0], { auto: false });
     await h.step(0, 10);
-    h.commit();
+    h.settle();
     await h.step(swap * 1.2, 3);
     expect(h.layer.report().resident[0]?.phase).toBe('leaving');
     await h.step(swap * 0.5, 3);

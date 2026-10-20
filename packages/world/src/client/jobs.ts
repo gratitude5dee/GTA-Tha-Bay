@@ -233,18 +233,25 @@ export interface LandmarkJobArgs {
   /** `building/lm.coit-tower` */
   asset: string;
   tier: QualityTierId;
+  /** The skyline instance (M02d2): the `lo` variant whatever the tier, and its pack is pinned in the store. */
+  skyline?: boolean;
 }
+
+/** The tier whose variant the skyline reads: `mobile-low` resolves to the `lo` fidelity (`TIER_FIDELITY`). */
+export const SKYLINE_TIER: QualityTierId = 'mobile-low';
 export type LandmarkJobResult = { model: LandmarkModelData };
 
 const landmark: AssetJob = async (svc, raw, signal) => {
   const a = raw as LandmarkJobArgs;
-  const bytes = await readPack(svc, a.asset, a.tier, 'soon', signal);
+  const tier = a.skyline ? SKYLINE_TIER : a.tier;
+  const bytes = await readPack(svc, a.asset, tier, a.skyline ? 'idle' : 'soon', signal);
+  if (a.skyline) svc.pinHashes([svc.catalog.resolve(a.asset as never, tier).sha256]);
   let model: LandmarkModelData;
   try {
     model = await readLandmarkGlb(bytes);
   } catch {
     // A file that does not parse: purge and fetch it once more, like a pack that does not decode.
-    const ref = svc.catalog.resolve(a.asset as never, a.tier);
+    const ref = svc.catalog.resolve(a.asset as never, tier);
     const again = await svc.store.reportDecodeFailure(ref, signal ? { signal } : {});
     try {
       model = await readLandmarkGlb(again);

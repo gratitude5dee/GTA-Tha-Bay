@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "d708729ede9de25965d2f737b72aaf4b863930816bd8a5dec99988242cdff070",
+  "paths": [
+    "assets/src/building/lm.dragon-gate/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "fd10c815768a52901b6cf9cd66bf359e070475228e3df126c9b2f9de501fd91b"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

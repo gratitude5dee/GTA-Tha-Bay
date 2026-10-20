@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "d7029610a1869baad8ed020f98897fb0d595287bbb47b54384fb586618b7b0c5",
+  "paths": [
+    "assets/src/building/lm.flower-conservatory/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "0d9c9c89d3749b3ce509e0d23861bb9c99a537fc4dce10835f5ea27642ae7406"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

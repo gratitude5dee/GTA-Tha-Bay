@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.dolores-park",
+  "variants": {
+    "desktop": "assets/src/building/lm.dolores-park/desktop.glb",
+    "mobile": "assets/src/building/lm.dolores-park/mobile.glb",
+    "mobile-low": "assets/src/building/lm.dolores-park/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1838,
+      "verts": 3942,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 790,
+      "verts": 1690,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 254,
+      "verts": 546,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

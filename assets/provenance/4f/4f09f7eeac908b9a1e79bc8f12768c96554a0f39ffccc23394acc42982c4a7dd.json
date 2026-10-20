@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4f09f7eeac908b9a1e79bc8f12768c96554a0f39ffccc23394acc42982c4a7dd",
+  "paths": [
+    "assets/src/building/lm.cliff-house/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "b135fc0ccaae52aec67c4146126517d9b858e37a4e488d69bc30a3b1360ccd1b"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

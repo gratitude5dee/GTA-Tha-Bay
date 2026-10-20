@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.peace-pagoda",
+  "variants": {
+    "desktop": "assets/src/building/lm.peace-pagoda/desktop.glb",
+    "mobile": "assets/src/building/lm.peace-pagoda/mobile.glb",
+    "mobile-low": "assets/src/building/lm.peace-pagoda/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 804,
+      "verts": 1622,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 435,
+      "verts": 877,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 267,
+      "verts": 545,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.treasure-island",
+  "variants": {
+    "desktop": "assets/src/building/lm.treasure-island/desktop.glb",
+    "mobile": "assets/src/building/lm.treasure-island/mobile.glb",
+    "mobile-low": "assets/src/building/lm.treasure-island/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1106,
+      "verts": 2322,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 623,
+      "verts": 1283,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 383,
+      "verts": 785,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

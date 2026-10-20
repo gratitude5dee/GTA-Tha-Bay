@@ -127,6 +127,19 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     expect((await w.client.usage()).packs).toBe(0);
   });
 
+  it('pinHashes (what an asset job pins, M02d2) pins the pack like the pin RPC and survives a reopen of the store', async () => {
+    const w = await world();
+    await w.client.get(w.packRef);
+    w.svc.pinHashes([w.sha]);
+    await w.client.qa('settled');
+    expect(((await w.client.qa('rows')) as Array<{ pinned: boolean }>)[0]?.pinned).toBe(true);
+    // a rebuilt store gets the pins again
+    expect(await w.client.qa('reopen', { force: 'memory' })).toBe('memory-fallback');
+    await w.client.get(w.packRef);
+    await w.client.qa('settled');
+    expect(((await w.client.qa('rows')) as Array<{ pinned: boolean }>)[0]?.pinned).toBe(true);
+  });
+
   it('writeOrphan leaves a file without a row that reopen deletes', async () => {
     const w = await world();
     const sha = 'a'.repeat(64);

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "106c3d539b01630db449d9e8b53aa48cb17e724d12af231985cdaa48366410be",
+  "paths": [
+    "assets/src/building/lm.transit-center-park/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "a1b5c5590f1e2c5d941822d7d0348191ca939d4172f14371e468b00acd9be6d9"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -23,6 +23,28 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.candlestick-point": {
+      "rev": 1,
+      "variants": {
+        "desktop": "586ea48e30e1742676299d9d6aa0bacbf90b88599ba001c54538ed803325c00e",
+        "mobile": "d1715b4be9bd6ee7c8a11f02149623f9739d69c001098dbd269477a0bdd46937",
+        "mobile-low": "2eebe08e2cecf46e1deff714a11a7e0b6fb26162f14ab1ead4230a66b1e277ed"
+      },
+      "root": "586ea48e30e1742676299d9d6aa0bacbf90b88599ba001c54538ed803325c00e",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.china-basin-ballpark": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e79327fd32c3b67fe831cc304fcd27b76e497c979add830aff74cfd743a1319c",
+        "mobile": "659006a3ebe94b271e778d92706094be75439294e234306e4009e7ece0d8a017",
+        "mobile-low": "3b52161f1ce30504cb3c7befb70ba66fd117a29f0c93ab6ce4568215f22d5091"
+      },
+      "root": "e79327fd32c3b67fe831cc304fcd27b76e497c979add830aff74cfd743a1319c",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.city-hall": {
       "rev": 1,
       "variants": {
@@ -33,6 +55,17 @@
       "root": "33414f6f686ad53ac063e0c053861ce61f64c3aca4e4c1dd577cfab82ace6844",
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.cliff-house": {
+      "rev": 1,
+      "variants": {
+        "desktop": "b506da547a11e6ff9eabc37e82e6b67fb28c282461de639f766f04f6fa0fa0c1",
+        "mobile": "c3278165b20e5e39d36ee62a5ebe6c10d9dcaefb4a8f1091491603673280225a",
+        "mobile-low": "4f09f7eeac908b9a1e79bc8f12768c96554a0f39ffccc23394acc42982c4a7dd"
+      },
+      "root": "b506da547a11e6ff9eabc37e82e6b67fb28c282461de639f766f04f6fa0fa0c1",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
     },
     "building/lm.coit-tower": {
       "rev": 1,
@@ -45,6 +78,17 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.crissy-field": {
+      "rev": 1,
+      "variants": {
+        "desktop": "bd45883a0f6bc1b810a535e512cd0e62bfd6064a9339ab1d7ef72130a0ef8941",
+        "mobile": "1d590418dde3b411ee411315135bd167c1437793679ecbe7070442cc3387c715",
+        "mobile-low": "6c06a8b746b6d9aada5db05090cf52ef496e66f5c21a0789a2c36e17df50adb3"
+      },
+      "root": "bd45883a0f6bc1b810a535e512cd0e62bfd6064a9339ab1d7ef72130a0ef8941",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.crown-tower": {
       "rev": 1,
       "variants": {
@@ -55,6 +99,28 @@
       "root": "e318191d6e0ccad35d2ce34e9e8fa4bedf8aeafd0b3f7f8fb7ca3adcfdb7a71a",
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.dolores-park": {
+      "rev": 1,
+      "variants": {
+        "desktop": "782038e2f1bf64e323e6f65189eebcfc847598a16e2c71e156564d0f2d60a0c7",
+        "mobile": "638946776f9aa397c2cb77d3bc5813002041138f51b7b84df91df67ebc1c0894",
+        "mobile-low": "a0af42d23f0a4b501f4cfb1719fa6868bd15a6b932d4c5af231c8b8f3a716a43"
+      },
+      "root": "782038e2f1bf64e323e6f65189eebcfc847598a16e2c71e156564d0f2d60a0c7",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.dragon-gate": {
+      "rev": 1,
+      "variants": {
+        "desktop": "e3a585f8565fe233ecad3ac903b3eab16bc955d6f56132c1f590d8c8a5ca17a0",
+        "mobile": "641fe9949910d67449fb6d5e9a29a4b38fc83a81d66a8d324751a90087494e35",
+        "mobile-low": "d708729ede9de25965d2f737b72aaf4b863930816bd8a5dec99988242cdff070"
+      },
+      "root": "e3a585f8565fe233ecad3ac903b3eab16bc955d6f56132c1f590d8c8a5ca17a0",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
     },
     "building/lm.ferry-building": {
       "rev": 1,
@@ -67,6 +133,28 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.flower-conservatory": {
+      "rev": 1,
+      "variants": {
+        "desktop": "4a19d6c647277ebf5ff7e2970e858a4707c8573d51dcd6d0f7b328b7159f724e",
+        "mobile": "d7029610a1869baad8ed020f98897fb0d595287bbb47b54384fb586618b7b0c5",
+        "mobile-low": "952d814bc4332cc80167626d15e067fae1fe828ec670cf159d12d01ffd2ea695"
+      },
+      "root": "4a19d6c647277ebf5ff7e2970e858a4707c8573d51dcd6d0f7b328b7159f724e",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.fort-point": {
+      "rev": 1,
+      "variants": {
+        "desktop": "be3c1a9c39f91ae6f0a91399f1a14f3f7d4d676077440d482bca4bf386533e75",
+        "mobile": "90cb9b1817dd5cb9240ec8b93352e26b26346486830344b2d16d6f0f06c7f21b",
+        "mobile-low": "c3104405ea96e4198721e9c67bc1ee3c151da59cec46e6bad95d1d1d973a9be8"
+      },
+      "root": "be3c1a9c39f91ae6f0a91399f1a14f3f7d4d676077440d482bca4bf386533e75",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.golden-gate-bridge": {
       "rev": 1,
       "variants": {
@@ -77,6 +165,50 @@
       "root": "ee0e11c176dc5b136d3add06cbf738d7d4d2b075fe898ce0d4b1a024bebc2e3f",
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.grace-cathedral": {
+      "rev": 1,
+      "variants": {
+        "desktop": "6d01fa1b466bdec2312ba4cc9e4d58fdc1bf3afdca285107e4b3a6d35de3200f",
+        "mobile": "9fcd3b862a637ff2bf2dca21ba8762f7adb90ca52771c190d66aee027d4e031b",
+        "mobile-low": "3482904c3ce7d8724fc57db839a920c00da8f15d2b77ded46e7408406f00cb48"
+      },
+      "root": "6d01fa1b466bdec2312ba4cc9e4d58fdc1bf3afdca285107e4b3a6d35de3200f",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.haight-ashbury": {
+      "rev": 1,
+      "variants": {
+        "desktop": "3ed2c9282c08c87892b3593b6561e8a65b64aaea36311c1caaa95890c4b7b716",
+        "mobile": "25a8d1b56bfcb905f22fcab4651bf958e415c788f9a66c018ca970969ba62884",
+        "mobile-low": "d6d945331061b50ecb977986a1cdb0904332e2b5362ae3fa1561cda1098f4df4"
+      },
+      "root": "3ed2c9282c08c87892b3593b6561e8a65b64aaea36311c1caaa95890c4b7b716",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.hunters-point-yard": {
+      "rev": 1,
+      "variants": {
+        "desktop": "4cabc9857c505ea278d1d2b8de90ca7a3afa1d6eccc705830d5c7a78e3ec5609",
+        "mobile": "e993e3aabde14b7fca1127f9855c1d09b70dca4a77b72746a4cb301bf888c2a0",
+        "mobile-low": "4f617d5757b56f1136b9be00f798e60e771ba9bc0bf7a0e3e378b16bf8734494"
+      },
+      "root": "4cabc9857c505ea278d1d2b8de90ca7a3afa1d6eccc705830d5c7a78e3ec5609",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.lands-end-lookout": {
+      "rev": 1,
+      "variants": {
+        "desktop": "254b23384dd7b8a41b57c42f012acc2b23bea60e19bd7d01b637a7190c42bd2a",
+        "mobile": "09c75c0c33a7c1b40b564d7d94c42a4a29c8bd754c4192a5ba201a98c2b34fb0",
+        "mobile-low": "a208c1d701667e05a1af729e5333207e7dcf3c0f88093534bd05077e59e9fa5c"
+      },
+      "root": "254b23384dd7b8a41b57c42f012acc2b23bea60e19bd7d01b637a7190c42bd2a",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
     },
     "building/lm.lombard-crooked": {
       "rev": 1,
@@ -89,6 +221,50 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.mission-bay-arena": {
+      "rev": 1,
+      "variants": {
+        "desktop": "0239843160e76259d3339ddabfef896676e19397e410b58744b496af027073f1",
+        "mobile": "b52c24e89c0e773816ad0cb198059432d2dab834393276e89843f97614042699",
+        "mobile-low": "ce8728ccab4bf81a19a64a238328bebb7d6365718298b2c397aff06be4a522d7"
+      },
+      "root": "0239843160e76259d3339ddabfef896676e19397e410b58744b496af027073f1",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.mount-davidson-cross": {
+      "rev": 1,
+      "variants": {
+        "desktop": "3692ad0e20d2b8601cbe3efe5051e64cead214c6fb459d21535c78993a84bf07",
+        "mobile": "4ae4d091001da52eca692f05f0f9b4d67740c1eb4bc9c979d145d3dcb3178e86",
+        "mobile-low": "399488a65b33124086e1d9ef92a60cf430414b2e6d051c90bf01604d443697db"
+      },
+      "root": "3692ad0e20d2b8601cbe3efe5051e64cead214c6fb459d21535c78993a84bf07",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.opera-house": {
+      "rev": 1,
+      "variants": {
+        "desktop": "287c3125530cb56068ff72a3e437318824bce0a7df044cdc81cbbce94bdecb95",
+        "mobile": "e19867f760075cf2197ca8a74121622b6f64431b035e5454a4a4c911bb91c74c",
+        "mobile-low": "9ec20e867d71b8062f5d040855286a6e6bafabf63de76395aa396ffd6cfe4abf"
+      },
+      "root": "287c3125530cb56068ff72a3e437318824bce0a7df044cdc81cbbce94bdecb95",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.painted-ladies": {
+      "rev": 1,
+      "variants": {
+        "desktop": "942e1851f6de787ef5564e185ae199cd8ac9625c7fa9f516e42f93b939325a7c",
+        "mobile": "19fae9eb1875a6e38b57da803af44a7097ede4883633e6a4da8ce9cc46f4b97b",
+        "mobile-low": "7777587eb473744f38059a4c18c7083b67010deebc1e5453a386f35a601c6b9a"
+      },
+      "root": "942e1851f6de787ef5564e185ae199cd8ac9625c7fa9f516e42f93b939325a7c",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.palace-fine-arts": {
       "rev": 1,
       "variants": {
@@ -99,6 +275,50 @@
       "root": "3d8318821106fe3a27c33dc967d8ee811b09de716685e1635d2d64308d9dcfb7",
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.park-bandshell": {
+      "rev": 1,
+      "variants": {
+        "desktop": "43b26c2e652e0f146bb070d517e412a432cca77ad57178ba0b67ef230ebfe394",
+        "mobile": "2841ffaada587d9b483a1ccbdbc23a325e75fb9bdc3dc0231da9a99659f58d8b",
+        "mobile-low": "76c6d218fd935a657ad6616add01b6f986cb33165e8947cc94e30587a9efd60a"
+      },
+      "root": "43b26c2e652e0f146bb070d517e412a432cca77ad57178ba0b67ef230ebfe394",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.peace-pagoda": {
+      "rev": 1,
+      "variants": {
+        "desktop": "0569806f942e1b5fcd711ee186566d2bd6e748488da8f0baac624251395096f7",
+        "mobile": "d86605d27b4a52fe2d96ce64d9ad26b451d22f48dc1b4b09f81f3eef83fa4abc",
+        "mobile-low": "5c58b11d62535e0808230d142a982049d56fc82ab3e202938e367dbc1f3eb2d8"
+      },
+      "root": "0569806f942e1b5fcd711ee186566d2bd6e748488da8f0baac624251395096f7",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.pier-39": {
+      "rev": 1,
+      "variants": {
+        "desktop": "a1fed10b056999489a742f3a150bdd6ebe3994fa2e18a5310ba72f24f87e1687",
+        "mobile": "17aacb95cb818296eea3ab2f6d429c8163d49b235797c6a5feaab1208539d572",
+        "mobile-low": "c6679fb6e270cb7837f29f7b5f68a6f8cd48697c0a30412b5a8869fa4ee903fb"
+      },
+      "root": "a1fed10b056999489a742f3a150bdd6ebe3994fa2e18a5310ba72f24f87e1687",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.powell-turntable": {
+      "rev": 1,
+      "variants": {
+        "desktop": "eaaa21144511541ca05e432a940ade387e5302a8ef84cc8c43bb1a45f085f3e6",
+        "mobile": "1ad27e452bb5280a5187123a6013855c667ff722d4cdae505bc17430cd7edf60",
+        "mobile-low": "c8468b4023ca120d927d5597d718843e7357a4947c619b6f8322519ff03aade9"
+      },
+      "root": "eaaa21144511541ca05e432a940ade387e5302a8ef84cc8c43bb1a45f085f3e6",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
     },
     "building/lm.pyramid-tower": {
       "rev": 1,
@@ -111,6 +331,28 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.rail-terminus": {
+      "rev": 1,
+      "variants": {
+        "desktop": "58531c15e4dd398dd2089f37e2e02f1b295cb1834cbf1d939ca48bb75169204a",
+        "mobile": "63b6496354e8c441e87c498e9b321abc2ba0476e98456d68333249912844af46",
+        "mobile-low": "c93018d292a6927f472d1a9c435e05f439eba16f08aa0c5d603e7ad41ec7326a"
+      },
+      "root": "58531c15e4dd398dd2089f37e2e02f1b295cb1834cbf1d939ca48bb75169204a",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.saint-mary-cathedral": {
+      "rev": 1,
+      "variants": {
+        "desktop": "97a8e21417b4fd0770d2d01273412c0ffa0d5528ed8ca9330bdb94bd301cf3ad",
+        "mobile": "642a4fd29b24cf762910fd351ada0016fb3eda42e90af1be4981cf8bdaffef9e",
+        "mobile-low": "88b7bff1355f865747c601d3fb4aae2ca1afb9bc351cd2e61d5c58e40e233d64"
+      },
+      "root": "97a8e21417b4fd0770d2d01273412c0ffa0d5528ed8ca9330bdb94bd301cf3ad",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.sutro-tower": {
       "rev": 1,
       "variants": {
@@ -122,6 +364,28 @@
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
     },
+    "building/lm.transit-center-park": {
+      "rev": 1,
+      "variants": {
+        "desktop": "54bf30b6fd545e96e857d53c55d81b7fc1d40b42b38a4b0d3e595d88dd643103",
+        "mobile": "106c3d539b01630db449d9e8b53aa48cb17e724d12af231985cdaa48366410be",
+        "mobile-low": "41cca3c4a53953a6ffa19ddcd5c45256dc295496a8779a9023b80355a0acfc6c"
+      },
+      "root": "54bf30b6fd545e96e857d53c55d81b7fc1d40b42b38a4b0d3e595d88dd643103",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
+    "building/lm.treasure-island": {
+      "rev": 1,
+      "variants": {
+        "desktop": "098616f52b7e3fb3e5a72f458b2071c2c3bc8348c18d66ef0ece2f6888dcb0b5",
+        "mobile": "f0e5a24c83b2393bf5b7029370e9a2e09af869aac167fc4356a750651c5ab2b5",
+        "mobile-low": "f845cd1c6abd44d518fe385ae27bfff74b2b785f9972e0c7159db6c78669bc74"
+      },
+      "root": "098616f52b7e3fb3e5a72f458b2071c2c3bc8348c18d66ef0ece2f6888dcb0b5",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
+    },
     "building/lm.twin-peaks": {
       "rev": 1,
       "variants": {
@@ -132,6 +396,17 @@
       "root": "a4a205479e76a3927231f9234203de96f0f6622c5e1193d2a7ea8dfc34a5c84c",
       "approved_by": "m02d1-builder",
       "approved_at": "2026-10-19T19:59:07Z"
+    },
+    "building/lm.un-plaza": {
+      "rev": 1,
+      "variants": {
+        "desktop": "61b2a08ce099cefdd6faaba45877cddb700cc063dfdd45f75dc2c49dc7bd0a80",
+        "mobile": "8b83efea7dbd9696c2ee982b8ae712177299d345f2903b03ad3c3b350e4a393d",
+        "mobile-low": "21bfe663e36162ea08bea02b1aa86f68543646cc6bbb3cc15e88534ffe479c5e"
+      },
+      "root": "61b2a08ce099cefdd6faaba45877cddb700cc063dfdd45f75dc2c49dc7bd0a80",
+      "approved_by": "m02d2-builder",
+      "approved_at": "2026-10-20T00:22:12Z"
     },
     "data/asset-smoke": {
       "rev": 1,

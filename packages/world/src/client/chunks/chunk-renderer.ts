@@ -25,6 +25,12 @@ import { ChunkUploadGate } from './upload-gate.ts';
 import { CHUNK_EDGE_M, type ChunkKey } from '@dv/shared';
 
 export type RenderLevel = 'l0' | 'l1' | 'l2';
+
+/** GPU work that is not a chunk but takes a slot of the upload gate: a landmark swap commit (M02d2). */
+export interface GateTask {
+  run(info: { uploads: number }): void;
+}
+const isTask = (p: UnitMesh | GateTask): p is GateTask => typeof (p as GateTask).run === 'function';
 const idOf = (level: RenderLevel, key: ChunkKey): string => `${level}:${key}`;
 
 /** Camera jump that forces a visibility pass, metres. */
@@ -120,7 +126,7 @@ function treeGeometry(): BufferGeometry {
 
 export class ChunkRenderer {
   readonly root = new Group();
-  readonly gate: ChunkUploadGate<UnitMesh>;
+  readonly gate: ChunkUploadGate<UnitMesh | GateTask>;
   /** Uploaded units by `level:key`. */
   readonly units = new Map<string, RenderedUnit>();
   /** Uploads per frame seen so far: the frame's count and the maximum. */
@@ -146,7 +152,7 @@ export class ChunkRenderer {
   constructor(o: ChunkRendererOptions) {
     this.o = o;
     this.root.name = 'world.chunks';
-    this.gate = new ChunkUploadGate<UnitMesh>(o.uploadBytes);
+    this.gate = new ChunkUploadGate<UnitMesh | GateTask>(o.uploadBytes);
     o.parent.add(this.root);
   }
 
@@ -155,6 +161,11 @@ export class ChunkRenderer {
   /** Queues a meshed unit for upload. `priority`: lower first (the stream rank). */
   enqueue(mesh: UnitMesh, priority: number): void {
     this.gate.enqueue({ id: idOf(mesh.level, mesh.key), priority, bytes: mesh.stats.bytes, payload: mesh });
+  }
+
+  /** Queues a task that takes one upload slot: it runs in the frame the gate releases it (the landmark swap commit). */
+  enqueueTask(id: string, priority: number, bytes: number, task: GateTask): void {
+    this.gate.enqueue({ id: `task:${id}`, priority, bytes, payload: task });
   }
 
   /** Removes a unit (evicted from the stream) from the scene and the queue; frees its geometry. */
@@ -346,10 +357,12 @@ export class ChunkRenderer {
     } else {
       const item = this.gate.release(this.frame);
       if (item) {
-        uploaded = this.commit(item.payload, nowSec);
+        const payload = item.payload;
         this.uploadsThisFrame++;
         this.totalUploads++;
         this.lastUploadBytes = item.bytes;
+        if (isTask(payload)) payload.run({ uploads: this.uploadsThisFrame });
+        else uploaded = this.commit(payload, nowSec);
       }
     }
     this.maxUploadsInFrame = Math.max(this.maxUploadsInFrame, this.uploadsThisFrame);

@@ -418,7 +418,21 @@
       "osm": "n822484002",
       "role": "row-house set piece",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "houses": 7,
+        "houseW": 6.6,
+        "houseD": 15,
+        "wallH": 9.2,
+        "roofRise": 5.2,
+        "bayW": 3.4,
+        "bayProj": 1.4,
+        "streetW": 10,
+        "parkR": 52,
+        "trees": 9
+      }
     },
     {
       "id": "lm.china-basin-ballpark",
@@ -433,7 +447,25 @@
       "osm": "r7325085",
       "role": "ballpark, events",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "rx": 108,
+        "rz": 92,
+        "wallH": 26,
+        "lowerH": 9,
+        "upperH": 20,
+        "fieldRx": 66,
+        "fieldRz": 62,
+        "diamond": 27,
+        "masts": 6,
+        "mastH": 46,
+        "frontBays": 18,
+        "towerW": 12,
+        "towerH": 44,
+        "coveW": 40
+      }
     },
     {
       "id": "lm.mission-bay-arena",
@@ -448,7 +480,23 @@
       "osm": "w579646390",
       "role": "arena, events",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "rx": 66,
+        "rz": 50,
+        "podiumH": 4,
+        "glassH": 15,
+        "domeH": 15,
+        "ribs": 16,
+        "canopies": 4,
+        "canopyW": 20,
+        "plazaRx": 112,
+        "plazaRz": 92,
+        "pylonH": 38,
+        "trees": 14
+      }
     },
     {
       "id": "lm.pier-39",
@@ -463,7 +511,25 @@
       "osm": "w128240121",
       "role": "pier crowds",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 190,
+        "width": 76,
+        "deckH": 1.8,
+        "shops": 10,
+        "shopW": 15,
+        "shopD": 11,
+        "shopH": 6.5,
+        "promenade": 16,
+        "carouselR": 7,
+        "docks": 6,
+        "dockW": 5,
+        "dockL": 14,
+        "masts": 4,
+        "mastH": 17
+      }
     },
     {
       "id": "lm.fort-point",
@@ -478,7 +544,23 @@
       "osm": "r21597568",
       "role": "under the bridge approach",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "w": 58,
+        "d": 70,
+        "wallT": 9,
+        "tiers": 3,
+        "tierH": 6.4,
+        "bays": 9,
+        "openingW": 3.2,
+        "archSpan": 104,
+        "archRise": 26,
+        "archR": 1.4,
+        "seawall": 14,
+        "courtDrop": 1.2
+      }
     },
     {
       "id": "lm.grace-cathedral",
@@ -493,7 +575,25 @@
       "osm": "w32946942",
       "role": "Nob Hill",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "naveW": 20,
+        "naveL": 66,
+        "naveH": 26,
+        "roofRise": 11,
+        "aisleW": 7,
+        "aisleH": 15,
+        "transeptW": 15,
+        "transeptL": 50,
+        "towerW": 11,
+        "towerH": 44,
+        "spireH": 16,
+        "roseR": 4.6,
+        "buttresses": 8,
+        "steps": 12
+      }
     },
     {
       "id": "lm.dragon-gate",
@@ -508,7 +608,21 @@
       "osm": "n65328703",
       "role": "Chinatown gateway",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "span": 10,
+        "sideSpan": 5.6,
+        "pillarH": 9.5,
+        "pillarR": 0.55,
+        "sideH": 6.8,
+        "roofW": 12.4,
+        "roofRise": 2.6,
+        "curl": 0.9,
+        "paving": 30,
+        "footW": 2
+      }
     },
     {
       "id": "lm.transit-center-park",
@@ -523,7 +637,22 @@
       "osm": "w542375290",
       "role": "rooftop park",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 210,
+        "width": 44,
+        "blockH": 17,
+        "screenFins": 52,
+        "parkH": 1.6,
+        "trees": 16,
+        "hallL": 36,
+        "hallW": 14,
+        "coneR": 12,
+        "coneH": 34,
+        "terrace": 20
+      }
     },
     {
       "id": "lm.hunters-point-yard",
@@ -538,7 +667,26 @@
       "osm": "w1219279180",
       "role": "shipyard cranes",
       "skyline": false,
-      "replaceRadiusM": 45
+      "replaceRadiusM": 45,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "dockL": 150,
+        "dockW": 34,
+        "quayW": 22,
+        "cranes": 4,
+        "craneGauge": 12,
+        "craneH": 34,
+        "boom": 38,
+        "shedL": 120,
+        "shedW": 40,
+        "shedH": 12,
+        "shedRise": 8,
+        "hullL": 120,
+        "hullW": 24,
+        "hullH": 11,
+        "stacks": 14
+      }
     },
     {
       "id": "lm.mount-davidson-cross",
@@ -553,7 +701,22 @@
       "osm": "n358806322",
       "role": "highest point",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "crossH": 31,
+        "armSpan": 15,
+        "barW": 3.4,
+        "barD": 3.4,
+        "plinthW": 12,
+        "plinthH": 3.2,
+        "ringR": 20,
+        "moundR": 70,
+        "moundH": 6,
+        "trees": 14,
+        "treeH": 22
+      }
     },
     {
       "id": "lm.dolores-park",
@@ -568,7 +731,23 @@
       "osm": "w23871270",
       "role": "park slopes",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "w": 96,
+        "d": 118,
+        "rise": 5,
+        "palms": 12,
+        "palmH": 19,
+        "trees": 12,
+        "courtW": 18,
+        "courtD": 36,
+        "blocks": 7,
+        "hutW": 14,
+        "hutD": 8,
+        "cells": 6
+      }
     },
     {
       "id": "lm.haight-ashbury",
@@ -583,7 +762,21 @@
       "osm": "n140982670",
       "role": "corner storefronts",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "streetW": 16,
+        "blockW": 50,
+        "blockD": 15,
+        "floors": 3,
+        "floorH": 3.7,
+        "shops": 6,
+        "turretR": 3.4,
+        "bayW": 3.2,
+        "awning": 1.8,
+        "trees": 6
+      }
     },
     {
       "id": "lm.flower-conservatory",
@@ -598,7 +791,22 @@
       "osm": "w30675038",
       "role": "glasshouse",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "domeR": 8.5,
+        "drumH": 6,
+        "domeH": 11,
+        "wingL": 24,
+        "wingW": 12,
+        "wingWall": 3.6,
+        "wingRise": 4.6,
+        "ribs": 14,
+        "porchW": 9,
+        "beds": 5,
+        "lawnW": 70
+      }
     },
     {
       "id": "lm.park-bandshell",
@@ -613,7 +821,22 @@
       "osm": "w30896932",
       "role": "music shell",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "shellR": 17,
+        "shellH": 15,
+        "stageD": 16,
+        "stageH": 1.6,
+        "ovalRx": 56,
+        "ovalRz": 34,
+        "terraces": 4,
+        "ribs": 10,
+        "pergolaL": 80,
+        "columns": 14,
+        "trees": 14
+      }
     },
     {
       "id": "lm.cliff-house",
@@ -628,7 +851,22 @@
       "osm": "w168942988",
       "role": "Ocean Beach",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "w": 22,
+        "d": 52,
+        "floors": 3,
+        "floorH": 4.2,
+        "terrace": 8,
+        "cliffR": 60,
+        "cliffH": 7,
+        "stacks": 4,
+        "stackR": 8,
+        "cupolaW": 6,
+        "apron": 40
+      }
     },
     {
       "id": "lm.crissy-field",
@@ -643,7 +881,25 @@
       "osm": "w32649967",
       "role": "waterfront field",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "fieldW": 190,
+        "fieldD": 74,
+        "beachD": 20,
+        "marshRx": 36,
+        "marshRz": 14,
+        "dunes": 6,
+        "dune": 6,
+        "hutW": 12,
+        "hutD": 8,
+        "hangars": 2,
+        "hangarL": 40,
+        "jetty": 54,
+        "lightH": 11,
+        "trees": 8
+      }
     },
     {
       "id": "lm.powell-turntable",
@@ -658,7 +914,21 @@
       "osm": "n8641952045",
       "role": "cable-car turntable",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "plateR": 3.6,
+        "pitR": 5.6,
+        "railL": 22,
+        "gauge": 1,
+        "carL": 8.4,
+        "carW": 2.6,
+        "carH": 2.9,
+        "kioskW": 3.4,
+        "bollards": 12,
+        "plazaW": 34
+      }
     },
     {
       "id": "lm.lands-end-lookout",
@@ -673,7 +943,21 @@
       "osm": "w250216260",
       "role": "cliff trail",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "deckW": 16,
+        "deckD": 10,
+        "deckH": 1.1,
+        "headR": 40,
+        "headH": 9,
+        "flights": 4,
+        "flightRun": 11,
+        "benches": 4,
+        "cypress": 10,
+        "outcrops": 5
+      }
     },
     {
       "id": "lm.candlestick-point",
@@ -688,7 +972,21 @@
       "osm": "w40060675",
       "role": "sideshow lot",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "lotW": 190,
+        "lotD": 140,
+        "standR": 70,
+        "standH": 16,
+        "masts": 8,
+        "mastH": 34,
+        "marks": 5,
+        "markR": 11,
+        "barriers": 14,
+        "boothW": 4
+      }
     },
     {
       "id": "lm.treasure-island",
@@ -703,7 +1001,26 @@
       "osm": "w26767313",
       "role": "skyline view, ferry",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "wingL": 44,
+        "wingD": 15,
+        "wingH": 14,
+        "curve": 0.36,
+        "towerW": 20,
+        "towerStep": 3.4,
+        "hangarL": 120,
+        "hangarW": 44,
+        "hangarH": 12,
+        "hangarRise": 9,
+        "quayL": 70,
+        "quayW": 16,
+        "canopyL": 24,
+        "craneH": 26,
+        "palms": 8
+      }
     },
     {
       "id": "lm.un-plaza",
@@ -718,7 +1035,22 @@
       "osm": "r1735771",
       "role": "transit entrance",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 150,
+        "width": 46,
+        "rows": 2,
+        "treesPerRow": 10,
+        "basinR": 8,
+        "pergolaL": 90,
+        "columns": 14,
+        "hallL": 22,
+        "hallW": 10,
+        "flags": 8,
+        "flagH": 14
+      }
     },
     {
       "id": "lm.rail-terminus",
@@ -733,7 +1065,24 @@
       "osm": "S",
       "role": "rail terminus (id brand-free, DL-664 part 2)",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "headL": 70,
+        "headD": 18,
+        "headH": 17,
+        "bays": 9,
+        "towerW": 8,
+        "towerH": 32,
+        "shedL": 110,
+        "shedW": 40,
+        "shedWall": 8,
+        "shedRise": 8,
+        "tracks": 4,
+        "trackGap": 7.5,
+        "canopyL": 60
+      }
     },
     {
       "id": "lm.peace-pagoda",
@@ -748,7 +1097,23 @@
       "osm": "w1458363734",
       "role": "Japantown",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "plazaW": 56,
+        "baseW": 17,
+        "baseH": 3.4,
+        "tierW": 11.5,
+        "tierCount": 5,
+        "tierH": 4.6,
+        "roofRise": 2.1,
+        "curl": 0.55,
+        "overhang": 1.5,
+        "shrink": 0.82,
+        "poolW": 14,
+        "trees": 10
+      }
     },
     {
       "id": "lm.opera-house",
@@ -763,7 +1128,22 @@
       "osm": "w32865161",
       "role": "civic center",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "length": 76,
+        "depth": 34,
+        "frontH": 24,
+        "bays": 9,
+        "stageL": 50,
+        "stageD": 40,
+        "stageH": 36,
+        "pavD": 14,
+        "pavProj": 3.4,
+        "colonnade": 14,
+        "steps": 12
+      }
     },
     {
       "id": "lm.saint-mary-cathedral",
@@ -778,7 +1158,23 @@
       "osm": "r7814696",
       "role": "roof silhouette",
       "skyline": false,
-      "replaceRadiusM": 30
+      "replaceRadiusM": 30,
+      "recipe": {
+        "yawDeg": 0,
+        "anchor": "ground",
+        "plan": 74,
+        "podiumH": 3.2,
+        "roofH": 56,
+        "curve": 1.9,
+        "slices": 14,
+        "glassW": 3.2,
+        "topPlan": 3.6,
+        "towerW": 7,
+        "towerH": 30,
+        "plazaW": 130,
+        "steps": 9,
+        "trees": 8
+      }
     }
   ]
 }

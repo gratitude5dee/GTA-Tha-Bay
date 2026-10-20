@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1d590418dde3b411ee411315135bd167c1437793679ecbe7070442cc3387c715",
+  "paths": [
+    "assets/src/building/lm.crissy-field/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "70bbea1d758cfd7fb9d3430ab6af9dff790d2669a2e464a6d135bd66222081df"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

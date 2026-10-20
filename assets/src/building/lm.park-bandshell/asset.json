@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.park-bandshell",
+  "variants": {
+    "desktop": "assets/src/building/lm.park-bandshell/desktop.glb",
+    "mobile": "assets/src/building/lm.park-bandshell/mobile.glb",
+    "mobile-low": "assets/src/building/lm.park-bandshell/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2174,
+      "verts": 4136,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile": {
+      "tris": 763,
+      "verts": 1489,
+      "primitives": 1,
+      "materials": 1
+    },
+    "mobile-low": {
+      "tris": 289,
+      "verts": 567,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

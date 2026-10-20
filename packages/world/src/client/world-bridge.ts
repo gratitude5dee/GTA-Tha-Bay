@@ -2,7 +2,7 @@ import type { ChunkKey, QualityTierId, TeleportKind, TeleportResult, WeatherPres
 import type { Level } from '../sim/streaming/chunk-store.ts';
 import type { StreamingPlan } from '../sim/streaming/plan.ts';
 import type { BackdropInfo } from './backdrop/backdrop-layer.ts';
-import type { LandmarksReport } from './chunks/landmark-layer.ts';
+import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer.ts';
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
@@ -73,9 +73,16 @@ export interface WorldBridge {
   /**
    * The landmark layer (M02d1): the tier's cap and swap distance, the resident landmark models with their fidelity, distance and the
    * chunks that hold their proxies (masked or not, with each chunk's `bundleRerecords`), the ones that failed to load, and the objects
-   * and triangles of the mounted models. Null when the catalog holds no landmark models.
+   * and triangles of the mounted models. Null when the catalog holds no landmark models. M02d2 adds the skyline set (each model's
+   * phase, whether it is drawn and what hides it), the latest `landmark.swap` commits (frame, main-thread ms, uploads that frame,
+   * whether a model and the proxies are drawn after it) and the per-frame counters of holes (a proxy masked with no model drawn) and
+   * double draws.
    */
   landmarks(): LandmarksReport | null;
+  /** The `landmark.swap` events so far (QA builds only; not telemetry), oldest first; empty without a landmark layer. */
+  swaps(): LandmarkSwapEvent[];
+  /** Starts the landmark frame counters and the swap log again (a test warms the scene up, then measures a run). */
+  resetLandmarkStats(): void;
 }
 
 export type RoutePlace = string | { x: number; z: number };
@@ -147,6 +154,8 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     fade: () => ({ log: [...view.fade.log], state: view.fade.state, opacity: Number(view.fade.el.style.opacity || '0') }),
     map: () => view.lastMap,
     landmarks: () => view.landmarksReport(),
+    swaps: () => view.landmarksReport()?.swaps ?? [],
+    resetLandmarkStats: () => view.landmarks?.resetStats(),
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...w.__dvBridge, world: bridge };

@@ -25,7 +25,7 @@ import { tileSets, unitExists, type TileSets } from '../sim/streaming/boot.ts';
 import { BackdropLayer, type BackdropInfo, type JobClient } from './backdrop/backdrop-layer.ts';
 import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
-import { LandmarkLayer, type LandmarkSpot, type LandmarksReport } from './chunks/landmark-layer.ts';
+import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PreparedRemesh } from './chunks/landmark-layer.ts';
 import { mountLandmark } from './chunks/landmark-view.ts';
 import { MESHER, profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
@@ -219,19 +219,28 @@ export class WorldView implements WorldLayer {
       this.landmarks = new LandmarkLayer({
         tier: this.o.tier,
         spots,
-        load: async (spot) => {
-          const args: LandmarkJobArgs = { asset: spot.asset, tier: this.o.tier };
+        load: async (spot, opts) => {
+          const args: LandmarkJobArgs = { asset: spot.asset, tier: this.o.tier, ...(opts.skyline ? { skyline: true } : {}) };
           return ((await this.o.assets.job('world.landmark', args)) as LandmarkJobResult).model;
         },
         mount: (spot, model, y, nowSec) => mountLandmark(host.scene, this.materials, spot, model, y, nowSec),
         chunks: {
           states: () => this.landmarkChunkStates(),
+          prepare: (key, mask) => this.prepareChunk(key, mask),
+          apply: (p) => this.applyPrepared(p),
           remesh: (key, mask) => this.remeshChunk(key, mask),
           rerecords: (key) => this.renderer.rerecordsOf('l0', key),
         },
-        groundY: (x, z) => this.groundY(x, z),
+        // The commit takes one upload slot, like a chunk: the gate never lets two through in a frame.
+        queue: (task) => this.renderer.enqueueTask(task.id, task.priority, task.bytes, { run: (info) => task.run(info) }),
+        groundY: (x, z, exact) => (exact ? this.groundY(x, z) : (this.groundY(x, z) ?? this.coarseGroundY(x, z))),
         waterY: MESHER.lod.waterLevelM,
         now: () => this.now(),
+        // The skyline: the tier's building draw distance (the streaming r2), once the world is revealed (after the spawn p0 set).
+        skylineRangeM: this.plan.r2M,
+        ready: () => this.revealed,
+        frameNo: () => this.frames,
+        ...(this.o.qa ? { qa: true } : {}),
       });
     }
 
@@ -287,8 +296,10 @@ export class WorldView implements WorldLayer {
     const t0 = this.now();
     const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir, frustum: this.frustumOf() });
     if (up) {
-      this.commitMs.push(this.now() - t0);
+      const ms = this.now() - t0;
+      this.commitMs.push(ms);
       if (this.commitMs.length > 240) this.commitMs.shift();
+      if (up.level === 'l0') this.landmarks?.onChunkCommitted(up.key, ms, this.renderer.uploadsThisFrame);
       if (!this.revealed && up.level === 'l0') this.reveal();
     }
     this.landmarks?.update(focus, tSec);
@@ -388,6 +399,8 @@ export class WorldView implements WorldLayer {
       tier: this.o.tier,
       distM: this.store ? this.store.distanceTo(key) : 0,
       priority: r.priority,
+      // A chunk that streams in while a landmark model stands in its proxies' place arrives without them (no second upload, no overlap).
+      ...(level === 'l0' && this.landmarks && this.landmarks.maskList().length > 0 ? { maskProxies: this.landmarks.maskList() } : {}),
     };
     this.inflight++;
     void this.o.assets
@@ -462,9 +475,63 @@ export class WorldView implements WorldLayer {
       .finally(() => void this.inflight--);
   }
 
+  /**
+   * The first half of a landmark swap (M02d2): the chunk is meshed again in `asset.worker` with `mask` left out and the mesh is held,
+   * not uploaded. The layer queues it through the upload gate after the model it belongs to has joined the scene.
+   */
+  private prepareChunk(key: ChunkKey, mask: number[]): Promise<PreparedRemesh | null> {
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    this.inflight++;
+    return this.o.assets
+      .job('world.mesh', args)
+      .then((res): PreparedRemesh | null => {
+        const result = res as MeshJobResult;
+        return 'mesh' in result && !this.disposed ? ({ key, mask, mesh: result.mesh } as PreparedRemesh & { mesh: UnitMesh }) : null;
+      })
+      .catch(() => null)
+      .finally(() => void this.inflight--);
+  }
+
+  /** The second half: the prepared mesh goes through the upload gate (one unit per frame, the model's own commit went first). */
+  private applyPrepared(p: PreparedRemesh): void {
+    const mesh = (p as PreparedRemesh & { mesh?: UnitMesh }).mesh;
+    if (!mesh || this.disposed || !this.store.ready(p.key, 'l0')) return;
+    this.renderer.enqueue(mesh, -1);
+  }
+
   /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */
   landmarksReport(): LandmarksReport | null {
     return this.landmarks?.report() ?? null;
+  }
+
+  /**
+   * Terrain height under (x, z) from the coarse levels: the L1 tile (posts every 16 m or more), else the L2 block (64 m), sampled
+   * bilinearly on the regular grid that starts each terrain object (the skirt vertices follow it). Null until one is up. A far
+   * skyline landmark is placed with it before any L0 chunk is near, and moved to the exact height when the chunk arrives.
+   */
+  coarseGroundY(x: number, z: number): number | null {
+    for (const [level, zoom] of [['l1', 7], ['l2', 5]] as const) {
+      const edge = CHUNK_EDGE_M[zoom];
+      const cx = Math.floor((x - GRID_MIN_M) / edge);
+      const cy = Math.floor((z - GRID_MIN_M) / edge);
+      const u = this.store?.unit(level, `${zoom}/${cx}/${cy}` as ChunkKey);
+      const mesh = u?.state === 'ready' ? u.payload : null;
+      const t = mesh?.objects.find((o) => o.kind === 'terrain');
+      if (!mesh || !t) continue;
+      // positions = verts x verts grid + 4 (verts - 1) skirt vertices
+      const verts = Math.round(-2 + Math.sqrt(t.positions.length / 3 + 8));
+      if (verts < 2) continue;
+      const step = edge / (verts - 1);
+      const fx = Math.min(verts - 1.000001, Math.max(0, (x - mesh.originX) / step));
+      const fz = Math.min(verts - 1.000001, Math.max(0, (z - mesh.originZ) / step));
+      const i = Math.floor(fx), j = Math.floor(fz);
+      const tx = fx - i, tz = fz - j;
+      const h = (a: number, b: number): number => t.positions[(b * verts + a) * 3 + 1] as number;
+      const n0 = h(i, j) + (h(i + 1, j) - h(i, j)) * tx;
+      const n1 = h(i, j + 1) + (h(i + 1, j + 1) - h(i, j + 1)) * tx;
+      return n0 + (n1 - n0) * tz;
+    }
+    return null;
   }
 
   // ---- ground height for the camera ----------------------------------------------------------------------------------------
