@@ -62,7 +62,7 @@ export interface EngineBridge {
 }
 
 export function installEngineBridge(engine: EngineHandle): EngineBridge {
-  let serial = 0;
+  let serial = 1_000_000;   // apart from the inspector panel's ids, so that reply names never collide
   const ask = async (cmd: DebugCommand, reply: string): Promise<Record<string, unknown> | null> => (await engine.ask(cmd, reply)) as Record<string, unknown> | null;
   const bridge: EngineBridge = {
     spawn: async (prefab, at, yaw) => {

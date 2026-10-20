@@ -55,7 +55,11 @@ describe('handling presets', () => {
     expect(torqueAt(table, 9000)).toBe(100);
   });
 
-  it('every make is fictional (not one of the real makes the brand gate bans)', () => {
-    for (const { p } of presets) expect(p.fictionalMake.toLowerCase(), p.id).not.toMatch(/humvee|tesla|waymo|ford|toyota|honda|chevrolet|bmw|audi|mercedes/);
+  it('no make or model echoes a word of the brand denylist (DL-664)', () => {
+    const deny = JSON.parse(readFileSync(path.join(import.meta.dirname, '../../../config/ip-denylist.json'), 'utf8')) as { words: string[] };
+    for (const { p } of presets) {
+      const text = `${p.fictionalMake} ${p.id}`.toLowerCase();
+      for (const w of deny.words) expect(new RegExp(`(^|[^a-z])${w}($|[^a-z])`).test(text), `${p.id} vs ${w}`).toBe(false);
+    }
   });
 });

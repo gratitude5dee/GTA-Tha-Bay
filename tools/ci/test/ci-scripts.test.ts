@@ -266,7 +266,7 @@ describe('ip:strings brand words (DL-664)', () => {
   const deny = JSON.parse(readFileSync(path.join(import.meta.dirname, '..', '..', '..', 'config', 'ip-denylist.json'), 'utf8')) as IpDenylistConfig;
   const matcher = compileStringMatcher(deny);
   // the words come from the config, so this test never spells a brand out
-  const brands = [['wa', 'ymo'], ['tes', 'la'], ['trans', 'america'], ['sales', 'force'], ['ora', 'cle park'], ['chase', ' center']].map((p) => p.join(''));
+  const brands = [['wa', 'ymo'], ['tes', 'la'], ['trans', 'america'], ['sales', 'force'], ['ora', 'cle park'], ['chase', ' center'], ['hum', 'vee']].map((p) => p.join(''));
 
   it('has every brand word in config/ip-denylist.json words', () => {
     for (const w of brands) expect(deny.words).toContain(w);
