@@ -22,6 +22,8 @@ import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
 import { playWallPrisms } from '../api/boundaries.ts';
 import type { TeleportHost } from '../api/teleport.ts';
 import { createWorldApi, type WorldServices } from '../api/world-api.ts';
+import { AmbientTraffic } from '../traffic/system.ts';
+import { WORLD_COMPONENTS } from '../traffic/components.ts';
 import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
@@ -170,6 +172,11 @@ export class WorldSim {
     }
   }
 
+  /** Requests posted and not yet applied (the residency rule of the determinism scenarios waits for it to reach 0). */
+  pendingCount(): number {
+    return this.bySeq.size;
+  }
+
   /** Applies arrivals in `seq` order; stops at the first `seq` that has not arrived. Returns the number applied. */
   applyReplies(): number {
     let n = 0;
@@ -303,6 +310,8 @@ export interface WorldStreamingModule extends SimModule {
   readonly api: WorldServices | null;
   /** The blackout switch (M02b2): TrafficControl adopts it unchanged; until then the QA bridge and the debug panel set it. */
   readonly blackout: Blackout;
+  /** The ambient traffic (M03b1) once built, or null while the session has no world services. */
+  readonly traffic: AmbientTraffic | null;
 }
 
 function isWorldConfig(v: unknown): v is WorldSimConfig {
@@ -315,6 +324,7 @@ function isWorldConfig(v: unknown): v is WorldSimConfig {
 export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
   let api: WorldServices | null = null;
+  let traffic: AmbientTraffic | null = null;
   let sendQa: ((name: string, data: unknown) => void) | null = null;
   let physics: WorldDebugPhysics | null = null;
   const blackout = new Blackout();
@@ -346,7 +356,15 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     get api() {
       return api;
     },
+    get traffic() {
+      return traffic;
+    },
     blackout,
+    // the world components exist only in a session that has a world with services (M03b1): other sessions hash as before
+    components: (boot) => {
+      const w = boot.config['world'];
+      return isWorldConfig(w) && w.index ? WORLD_COMPONENTS : [];
+    },
     side: () => {
       if (!state) return {};
       const out: Record<string, unknown> = blackout.side();
@@ -364,6 +382,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       api?.dispose();
       state = null;
       api = null;
+      traffic = null;
       ctx.sim.services.world.api = null;
       ctx.sim.services.world.bounds = null;
       for (const by of [...blackout.owners()]) blackout.set(false, by);
@@ -378,7 +397,10 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       state = world;
       ctx.sim.core.addResource(world.resource());
       ctx.sim.core.addResource(blackout.resource());
-      if (raw.index) api = installWorldServices(ctx, world, raw.index, blackout);
+      if (raw.index) {
+        api = installWorldServices(ctx, world, raw.index, blackout);
+        traffic = installTraffic(ctx, world, api, raw);
+      }
     },
   };
 }
@@ -421,6 +443,22 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
   world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
   return api;
+}
+
+/**
+ * Builds the ambient traffic (M03b1) on the live sim: its brain system at `SimStage.AI` and its hashed resource. Skipped when the
+ * ECS has no traffic components (a session built without the world components) so a bare sim is never half-wired.
+ */
+function installTraffic(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig): AmbientTraffic | null {
+  const sim = ctx.sim;
+  if (!sim.ecs.registry.getByName('TrafficAgent')) return null;
+  const traffic = new AmbientTraffic({
+    ecs: sim.ecs, backend: sim.backend, services: sim.services, world: api, store: world.store, cfg: ctx.cfg, seed: raw.index ? raw.index.worldSeed : 0,
+  });
+  api.ambient = traffic;
+  sim.core.addSystem(traffic.system());
+  sim.core.addResource(traffic.resource());
+  return traffic;
 }
 
 /** The module `apps/web/src/workers/sim.worker.ts` composes into the sim worker. */

@@ -248,6 +248,7 @@ export class TrafficSim {
     this.lastFocus = { ...input.focus };
 
     this.indexByEdge();
+    this.refreshNear();
     const list = this.agents.list();
     this.junction.begin(this.tick, list, this.byEdge);
     for (let i = 0; i < list.length; i++) {
@@ -1004,6 +1005,15 @@ export class TrafficSim {
       this.stats.spawns++;
       this.hooks.spawned?.(a);
     }
+  }
+
+  /** The spawn rotation cursor (saved with the agents). */
+  cursorValue(): number {
+    return this.cursor;
+  }
+
+  setCursor(v: number): void {
+    this.cursor = v;
   }
 
   /** Re-derives `near` of the parked cars (they do not move). */

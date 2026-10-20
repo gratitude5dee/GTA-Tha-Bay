@@ -1,4 +1,4 @@
-import { datan2, SimStage, type BootPayload, type BotInput, type FrameSignal, type InputFrame, type SimConfig, type SimProfile, type SystemDef } from '@dv/shared';
+import { datan2, SimStage, type BootPayload, type BotInput, type ComponentDef, type FrameSignal, type InputFrame, type SimConfig, type SimProfile, type SystemDef } from '@dv/shared';
 import type { DebugCommand, StatsReport } from './transport/envelope.ts';
 import type { WorkerCommand, WorkerTransport } from './transport/types.ts';
 import type { RetryEnv } from './physics/rapier-backend.ts';
@@ -33,6 +33,12 @@ export interface SimModule {
   readonly id: string;
   readonly systems: readonly SystemDef[];
   readonly resources?: readonly SimResource[];
+  /**
+   * Components the module adds to the session's ECS (M03b1: the world components 256 to 263). The registry is fixed when the sim is
+   * built, so the runtime asks before it builds one; a module that has nothing to add for this boot payload (no world) returns none,
+   * and the session then registers, allocates and hashes exactly what a session without the module does.
+   */
+  components?(boot: BootPayload): readonly ComponentDef[];
   onInit?(ctx: SimModuleContext): void | Promise<void>;
   /** Side-block entries for the snapshot of this tick (Publish stage), merged after the engine's own keys. Must be cheap and JSON-friendly. */
   side?(): Record<string, unknown>;
@@ -115,7 +121,7 @@ export class SimRuntime {
     const scenario = scenarioById(id);
     if (!scenario) throw new Error(`unknown scenario ${id}`);
     const sim = await createPhysicsSim(cfg, scenario, {
-      ecs: { shared: this.transport.kind === 'sab' },
+      ecs: { shared: this.transport.kind === 'sab', components: (this.env.modules ?? []).flatMap((m) => m.components?.(boot) ?? []) },
       backend: { ...(this.env.retry ? { retry: this.env.retry } : {}), exclusive: this.env.exclusive === true },
       now: () => this.env.now(),
       debug: this.env.qa,

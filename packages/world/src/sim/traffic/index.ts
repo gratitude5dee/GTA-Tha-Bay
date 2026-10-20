@@ -11,3 +11,4 @@ export * from './promote.ts';
 export * from './spawn.ts';
 export * from './sim.ts';
 export * from './world.ts';
+export * from './system.ts';

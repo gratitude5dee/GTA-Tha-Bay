@@ -205,6 +205,7 @@ export function saveAgents(w: ByteWriter, agents: readonly Agent[]): void {
     w.str(a.cell);
     w.u32(a.slot);
     w.u32(a.handle);
+    w.u32(a.body);
     for (const f of NUM_FIELDS) w.f64((a as unknown as Num)[f]);
     for (const f of F64_FIELDS) w.f64((a as unknown as Num)[f]);
     for (const f of BOOL_FIELDS) w.u8((a as unknown as Flags)[f] ? 1 : 0);
@@ -223,6 +224,7 @@ export function loadAgents(r: ByteReader, into: AgentSet): void {
     const slot = r.u32();
     const a = new Agent(key, cell, slot, 0);
     a.handle = r.u32();
+    a.body = r.u32();
     for (const f of NUM_FIELDS) (a as unknown as Num)[f] = r.f64();
     for (const f of F64_FIELDS) (a as unknown as Num)[f] = r.f64();
     for (const f of BOOL_FIELDS) (a as unknown as Flags)[f] = r.u8() !== 0;

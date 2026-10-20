@@ -5,6 +5,8 @@ import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } fro
 import type { Pose } from './interpolate.ts';
 
 export const GRAYBOX_CAPSULE = 'prop/graybox.capsule';
+/** Snapshot record flag of ambient entities (`SNAP_FLAG_INSTANCED` of the publisher). */
+const AMBIENT_FLAG = 2;
 
 /**
  * The debug cube view's object pool: one three Mesh per entity handle, created on first sight and removed when the
@@ -102,6 +104,8 @@ export class ObjectPool {
     this.lod.nextFrame();
     for (let i = 0; i < count; i++) {
       const p = poses[i] as Pose;
+      // ambient entities (traffic, parked cars) are drawn instanced by the world layer, not one mesh each
+      if ((p.flags & AMBIENT_FLAG) !== 0) continue;
       let mesh = this.meshes.get(p.handle);
       if (!mesh) {
         const key = keyOf(p.renderKey) ?? '';
