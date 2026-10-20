@@ -4,7 +4,7 @@
  * 1.25 x `R_amb`, `setDensity` 0 / 0.35 / 1.0, closed edges and the cap on cars (traffic and parked together).
  */
 import { describe, expect, it } from 'vitest';
-import { RoadClass, activeSlots, type ChunkKey, type QualityTierId, type SimChunk, type WeatherPreset } from '@dv/shared';
+import { activeSlots, type ChunkKey, type QualityTierId, type SimChunk, type WeatherPreset } from '@dv/shared';
 import { AMBIENT_RADIUS_M, DENSITY, activeFor, densityTier, hourFactor, tierFactor, trafficCap, weatherFactor } from '../src/sim/traffic/density.ts';
 import { STREAMING } from '../src/sim/streaming/plan.ts';
 import { CONE_COS } from '../src/sim/traffic/spawn.ts';
@@ -241,7 +241,6 @@ describe('AC-5: closed edges and the car cap', () => {
       }
     }
     expect(counts['desktop-ultra'] as number).toBeGreaterThan(counts['mobile-low'] as number);
-    void RoadClass;
   }, 120_000);
 });
 

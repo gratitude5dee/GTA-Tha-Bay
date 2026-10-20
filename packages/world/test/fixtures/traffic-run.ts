@@ -84,9 +84,19 @@ export function worldConfigOf(bake: BakeData, spawn: [number, number, number]): 
 
 const turn = (): Promise<void> => new Promise((r) => setImmediate(r));
 
-export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunResult> {
+export interface TrafficRun {
+  runtime: SimRuntime;
+  mod: WorldStreamingModule;
+  preload: ChunkKey[];
+  /** Runs `n` ticks under the residency rule: a tick waits while a request is pending (counted in `stallTicks`). */
+  step(n: number): Promise<void>;
+  stallTicks: number;
+  dispose(): void;
+}
+
+/** Boots the scenario and holds the residency rule; the caller steps it. */
+export async function startTrafficRun(o: TrafficRunOptions): Promise<TrafficRun> {
   const { bake } = o;
-  const ticks = o.ticks ?? TRAFFIC_SYNTH.ticks;
   const every = o.every ?? TRAFFIC_SYNTH.every;
   const pose = spawnPose(bake.index);
   const chunkKey = chunkKeyAt(9, pose.x, pose.z);
@@ -123,26 +133,44 @@ export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunR
   }
   if (!(settled && state.pendingCount() === 0)) throw new Error('the preload set did not arrive');
 
+  const run: TrafficRun = {
+    runtime, mod, preload: keys, stallTicks: 0,
+    async step(n) {
+      for (let i = 0; i < n; i++) {
+        while (state.pendingCount() > 0) {
+          run.stallTicks++;
+          state.applyReplies();
+          await turn();
+        }
+        sim.core.stepOnce();
+      }
+    },
+    dispose: () => runtime.dispose(),
+  };
+  return run;
+}
+
+export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunResult> {
+  const { bake } = o;
+  const ticks = o.ticks ?? TRAFFIC_SYNTH.ticks;
+  const every = o.every ?? TRAFFIC_SYNTH.every;
+  const run = await startTrafficRun(o);
+  const sim = run.runtime.sim;
+  if (!sim) throw new Error('no sim');
   const checkpoints: Record<string, string> = {};
-  let stallTicks = 0;
   let agentsMax = 0;
   for (let i = 0; i < ticks; i++) {
-    while (state.pendingCount() > 0) {
-      stallTicks++;
-      state.applyReplies();
-      await turn();
-    }
-    sim.core.stepOnce();
+    await run.step(1);
     const t = sim.core.tick;
     if (t % every === 0 && sim.core.lastHash) checkpoints[String(t)] = sim.core.lastHash.hex;
-    const n = mod.traffic?.sim.agents.size ?? 0;
+    const n = run.mod.traffic?.sim.agents.size ?? 0;
     if (n > agentsMax) agentsMax = n;
-    o.onTick?.(t, runtime, mod);
+    o.onTick?.(t, run.runtime, run.mod);
   }
   const final = sim.hash();
-  const stats = mod.traffic ? { ...mod.traffic.sim.stats, live: mod.traffic.sim.agents.size } : {};
-  runtime.dispose();
-  return { bakeId: bake.bakeId, seed: TRAFFIC_SYNTH.seed, ticks, checkpoints, final, stallTicks, preload: keys, agentsMax, stats };
+  const stats = run.mod.traffic ? { ...run.mod.traffic.sim.stats, live: run.mod.traffic.sim.agents.size } : {};
+  run.dispose();
+  return { bakeId: bake.bakeId, seed: TRAFFIC_SYNTH.seed, ticks, checkpoints, final, stallTicks: run.stallTicks, preload: run.preload, agentsMax, stats };
 }
 
 export { TRAFFIC_SYNTH, preloadKeys };
