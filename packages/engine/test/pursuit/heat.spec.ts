@@ -88,6 +88,19 @@ describe('heat (AC-2)', () => {
     expect(r.director.state().level).toBe(0);
   });
 
+  it('setConfig replaces the thresholds of the running director (the QA hot reload)', () => {
+    const r = makeRig();
+    r.director.report('redLightSeen', AT, 'police', 6);
+    expect(r.director.state().points).toBe(60);
+    expect(r.director.state().level).toBe(0);
+    const cfg = JSON.parse(JSON.stringify(DEFAULT_PURSUIT_CONFIG)) as typeof DEFAULT_PURSUIT_CONFIG;
+    cfg.levels[1].points = 50;
+    r.director.setConfig(cfg);
+    r.director.report('redLightSeen', AT, 'police');
+    expect(r.director.state().points).toBe(70);
+    expect(r.director.state().level).toBe(1);
+  });
+
   it('the profile caps the level for a race', () => {
     const r = makeRig();
     r.director.setProfile({ kind: 'race', startHeat: 1, maxHeat: 2, success: { kind: 'evade' } });

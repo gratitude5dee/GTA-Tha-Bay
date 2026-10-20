@@ -47,6 +47,8 @@ export interface EngineBridge {
     scripted(on: boolean): Promise<Record<string, unknown> | null>;
     report(kind: string, witness?: 'police' | 'robotaxi' | 'ped' | 'heli', count?: number): Promise<Record<string, unknown> | null>;
     wallet(cents: number): Promise<Record<string, unknown> | null>;
+    /** Hot reload: replaces `config/pursuit.json` values in the running director (refused with the JSON paths of its defects). */
+    reloadConfig(config: unknown): Promise<Record<string, unknown> | null>;
     blockAhead(ahead?: number, heavy?: boolean): Promise<Record<string, unknown> | null>;
     stripAhead(ahead?: number): Promise<Record<string, unknown> | null>;
   };
@@ -101,6 +103,7 @@ export function installEngineBridge(engine: EngineHandle): EngineBridge {
       scripted: (on) => pursuitCall('scripted', { on }),
       report: (kind, witness = 'police', count = 1) => pursuitCall('report', { kind, witness, count }),
       wallet: (cents) => pursuitCall('wallet', { cents }),
+      reloadConfig: (config) => pursuitCall('config', { config }),
       blockAhead: (ahead = 45, heavy = false) => pursuitCall('blockAhead', { ahead, heavy }),
       stripAhead: (ahead = 45) => pursuitCall('stripAhead', { ahead }),
     },

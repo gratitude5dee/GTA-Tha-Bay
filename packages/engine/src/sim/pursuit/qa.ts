@@ -4,6 +4,7 @@
  * (`workers/sim-worker-core.ts`, behind `VITE_DV_QA`), so a production bundle does not contain it. Replies are `pursuit.reply.<id>`.
  */
 import { dcos, dsin, type HeatLevel, type InfractionKind } from '@dv/shared';
+import { validatePursuitConfig } from './config.ts';
 import { MemoryWallet } from './ports.ts';
 import type { PursuitQaHandler } from './qa-types.ts';
 
@@ -55,6 +56,16 @@ export const runPursuitQa: PursuitQaHandler = (cx, cmd, send) => {
           else d.dispatch.qaBlock(a['heavy'] === true ? 'roadblockHeavy' : 'roadblock2', road.edge, lp, cx.tick);
         }
       }
+      break;
+    }
+    case 'config': {
+      // the hot reload of QA builds: a new config object replaces the values at once, or is refused with the paths of its defects
+      const r = validatePursuitConfig(a['config']);
+      if (!r.ok) {
+        reply({ ok: false, reason: 'invalid-config', issues: r.issues });
+        return;
+      }
+      d.setConfig(r.config);
       break;
     }
     case 'state':
