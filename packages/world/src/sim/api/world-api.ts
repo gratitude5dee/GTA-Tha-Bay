@@ -18,6 +18,8 @@ import { RoadGraph } from '../graph/query.ts';
 import { MapApiImpl, type MapPatch } from '../map/map-api.ts';
 import { TrafficControlImpl } from '../traffic/control.ts';
 import type { AmbientTraffic } from '../traffic/system.ts';
+import type { AmbientPeds } from '../peds/system.ts';
+import type { AmbientTransit } from '../transit/system.ts';
 import { BoundaryRuntime, barrierPrism, nearestShoreNode, shoreRespawnPose, type WorldBoundaryEvent } from './boundaries.ts';
 import { PlaceIndexImpl, type LabelFn } from './places.ts';
 import { PortalRuntime } from './portals.ts';
@@ -63,6 +65,12 @@ export interface WorldServices extends WorldApi {
   readonly blackout: Blackout;
   /** The ambient traffic of the session once the sim module built it (M03b1), else null. */
   ambient: AmbientTraffic | null;
+  /** The ambient pedestrians (M03b2) once the sim module built them, else null (a session that did not ask for them). */
+  peds: AmbientPeds | null;
+  /** Transit, rides and the Bay Rail entrances (M03b2), else null. */
+  transit: AmbientTransit | null;
+  /** The world index the services were made from (M03b2: the transit stations). */
+  readonly index: WorldIndex;
   /** The port the engine reaches the world's edges through. */
   readonly bounds: WorldBoundsPort;
   /** The play box of config/world.bounds.json. */
@@ -137,7 +145,7 @@ export function createWorldApi(store: WorldStore, index: WorldIndex, clock: { ti
   };
 
   return {
-    graph, traffic, map, teleport, query, places, resolver, network: net, portals, boundaries, blackout, bounds, play, ambient: null,
+    graph, traffic, map, teleport, query, places, resolver, network: net, portals, boundaries, blackout, bounds, play, ambient: null, peds: null, transit: null, index,
     step(tick, player) {
       teleport.step(tick);
       boundaries.step(tick, player);

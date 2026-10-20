@@ -325,6 +325,18 @@ describe('ip:strings (AC-4)', () => {
     expect(new Set(files(res.findings))).toEqual(new Set(['packages/ui/src/a.ts', 'packages/ui/src/bad.ts', 'packages/ui/src/word.ts']));
   });
 
+  it('reports the real transit brand words in any letter case outside spec/, and only as whole words (M03b2 AC-10, DL-664)', () => {
+    const root = tempRoot();
+    // built from parts so this file itself passes ip:strings (the words are denylisted repo-wide)
+    const words = ['BA' + 'RT', 'Mu' + 'ni', 'Cal' + 'train', 'ba' + 'rt', 'MU' + 'NI', 'caL' + 'train'];
+    for (const w of words) put(root, `packages/ui/src/t-${w}.ts`, `export const n = '${w} line';\n`);
+    put(root, 'spec/transit.md', words.slice(0, 3).join(' ') + '\n');
+    put(root, 'packages/ui/src/fine.ts', 'export const n = ' + JSON.stringify('a municipal bartender, caltrains') + ';\n');
+    put(root, 'packages/ui/src/id.ts', 'export const id = ' + JSON.stringify('lm.rail-terminus sfmta-stops sfmta-patterns') + ';\n');
+    const res = runIpScan({ root, dist: path.join(root, 'dist'), modes: ['strings'] });
+    expect(new Set(files(res.findings))).toEqual(new Set(words.map((w) => `packages/ui/src/t-${w}.ts`)));
+  });
+
   it('skips base64 runs and data URLs in dist, but not ordinary text', () => {
     const root = tempRoot();
     const blob = randomBytes(3 * 1024 * 1024).toString('base64');

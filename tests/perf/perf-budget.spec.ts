@@ -34,6 +34,10 @@ for (const tier of TIERS) {
         const w = window as unknown as { __trafficSamples?: unknown[]; __trafficTimer?: number; __dvBridge: { world: { traffic(): unknown } } };
         w.__trafficSamples = [];
         w.__trafficTimer = window.setInterval(() => w.__trafficSamples?.push(w.__dvBridge.world.traffic()), 250);
+        // M03b2: the pedestrians and the buses (which share the traffic cap) are sampled with it
+        const x = window as unknown as { __pedSamples?: unknown[]; __pedTimer?: number; __dvBridge: { world: { peds(): unknown; transit(): unknown; traffic(): unknown } } };
+        x.__pedSamples = [];
+        x.__pedTimer = window.setInterval(() => x.__pedSamples?.push({ ped: x.__dvBridge.world.peds(), transit: x.__dvBridge.world.transit(), traffic: x.__dvBridge.world.traffic() }), 250);
       });
     } else if (SCENARIO !== 'graybox-walk') {
       // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
@@ -63,7 +67,24 @@ for (const tier of TIERS) {
         const max = (f: (x: (typeof samples)[number]) => number): number => samples.reduce((m, x) => Math.max(m, f(x)), 0);
         return { samples: samples.length, instancesMax: max((x) => x.instances), drawsMax: max((x) => x.draws), objectsMax: max((x) => x.objects), cap: samples[0]?.cap ?? 0, simAgents: sim?.agents ?? 0, simCap: sim?.cap ?? 0 };
       });
-      writeFileSync(`test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.traffic.json`, `${JSON.stringify({ scenario: SCENARIO, tier, ...traffic }, null, 2)}\n`);
+      const peds = await page.evaluate(async () => {
+        type Ped = { instances: number; near: number; draws: number; objects: number; cap: number; nearCap: number } | null;
+        type Transit = { buses: number; draws: number; objects: number } | null;
+        type Cars = { instances: number } | null;
+        const w = window as unknown as { __pedSamples?: Array<{ ped: Ped; transit: Transit; traffic: Cars }>; __pedTimer?: number; __dvBridge: { world: { pedsSim(h?: undefined, ms?: number): Promise<{ peds?: number; cap?: number } | null> } } };
+        if (w.__pedTimer !== undefined) window.clearInterval(w.__pedTimer);
+        const samples = (w.__pedSamples ?? []).filter((x) => x.ped !== null);
+        const sim = await w.__dvBridge.world.pedsSim(undefined, 10_000);
+        const max = (f: (x: (typeof samples)[number]) => number): number => samples.reduce((m, x) => Math.max(m, f(x)), 0);
+        return {
+          samples: samples.length, instancesMax: max((x) => x.ped?.instances ?? 0), nearMax: max((x) => x.ped?.near ?? 0), drawsMax: max((x) => x.ped?.draws ?? 0),
+          objectsMax: max((x) => (x.ped?.objects ?? 0) + (x.transit?.objects ?? 0)), cap: samples[0]?.ped?.cap ?? 0, nearCap: samples[0]?.ped?.nearCap ?? 0,
+          busesMax: max((x) => x.transit?.buses ?? 0), carsPlusBusesMax: max((x) => (x.traffic?.instances ?? 0) + (x.transit?.buses ?? 0)),
+          simPeds: sim?.peds ?? 0, simCap: sim?.cap ?? 0,
+        };
+      });
+      writeFileSync(`test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.traffic.json`, `${JSON.stringify({ scenario: SCENARIO, tier, ...traffic, peds }, null, 2)}\n`);
+      console.log(`peds ${testInfo.project.name} ${tier}: instancesMax=${peds.instancesMax} (cap ${peds.cap}) near=${peds.nearMax}/${peds.nearCap} draws=${peds.drawsMax} buses=${peds.busesMax} cars+buses=${peds.carsPlusBusesMax} simPeds=${peds.simPeds} samples=${peds.samples}`);
       console.log(`traffic ${testInfo.project.name} ${tier}: instancesMax=${traffic.instancesMax} (cap ${traffic.cap}) draws=${traffic.drawsMax} objects=${traffic.objectsMax} simAgents=${traffic.simAgents} samples=${traffic.samples}`);
       expect(traffic.samples).toBeGreaterThan(0);
     }

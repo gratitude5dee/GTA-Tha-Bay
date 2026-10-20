@@ -10,7 +10,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { PerfReport } from '../../../packages/shared/src/index.ts';
 import { repoRoot } from '../run.ts';
-import { EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, checkReports, reportPath, selectScenarios, trafficPath, verifyTraffic } from '../perf-check.ts';
+import { EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyPeds, verifyTraffic } from '../perf-check.ts';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-perf-check-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
@@ -19,7 +19,9 @@ const fixture = JSON.parse(readFileSync(path.join(repoRoot, 'tools', 'ci', 'fixt
 const budgets = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { render: { maxRenderObjects: number; maxTriangles: number } }> };
 
 const crowd = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxTrafficInstances: number } }> }).tiers[tier]?.crowd.maxTrafficInstances ?? 0;
-const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 1, objectsMax: 1, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier) });
+const pedCrowd = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxPedInstances: number } }> }).tiers[tier]?.crowd.maxPedInstances ?? 0;
+const pedsOf = (tier: string, share: number): Record<string, unknown> => ({ samples: 40, instancesMax: Math.floor(pedCrowd(tier) * share), nearMax: Math.floor((NEAR_PED_CAP[tier] ?? 0) * share), drawsMax: 8, objectsMax: 9, cap: pedCrowd(tier), nearCap: NEAR_PED_CAP[tier] ?? 0, busesMax: 2, carsPlusBusesMax: Math.floor(crowd(tier) * share), simPeds: Math.floor(pedCrowd(tier) * share), simCap: pedCrowd(tier) });
+const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 1, objectsMax: 1, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier), peds: pedsOf(tier, share) });
 
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });
@@ -120,5 +122,34 @@ describe('the traffic scenario (M03b1, AC-10)', () => {
     const r = checkReports(root, ['downtown-rush']);
     expect(r.ok).toBe(false);
     expect(r.lines.join('\n')).toContain('no traffic report at');
+  });
+});
+
+describe('the pedestrian half of the traffic scenario (M03b2, AC-9)', () => {
+  const put = (root: string, over: Record<string, unknown>): string => {
+    write(root, ['downtown-rush']);
+    const f = trafficPath(root, 'downtown-rush', 'chromium-webgl2', 'mobile-low');
+    writeFileSync(f, JSON.stringify({ ...trafficOf('mobile-low', 0.5), peds: { ...pedsOf('mobile-low', 0.5), ...over } }));
+    return f;
+  };
+
+  it('the near-LOD caps are the table of living part 4.5: 24, 24, 16, 12, 8, 6', () => {
+    expect(NEAR_PED_CAP).toEqual({ 'desktop-ultra': 24, desktop: 24, 'xr-visionpro': 16, mobile: 12, 'xr-quest': 8, 'mobile-low': 6 });
+  });
+
+  it('passes within the tier rows and fails over the instance cap, the near cap, the draws, with none drawn, or over the shared car cap', () => {
+    const f = put(path.join(tmp, 'peds'), {});
+    expect(verifyPeds(f, 'mobile-low')).toEqual([]);
+    expect(checkReports(path.join(tmp, 'peds'), ['downtown-rush']).ok).toBe(true);
+    expect(verifyPeds(put(path.join(tmp, 'peds2'), { instancesMax: 81 }), 'mobile-low').join('\n')).toContain('crowd.maxPedInstances');
+    expect(verifyPeds(put(path.join(tmp, 'peds3'), { nearMax: 7 }), 'mobile-low').join('\n')).toContain('near-LOD skinned');
+    expect(verifyPeds(put(path.join(tmp, 'peds4'), { instancesMax: 0 }), 'mobile-low').join('\n')).toContain('no pedestrian instance');
+    expect(verifyPeds(put(path.join(tmp, 'peds5'), { drawsMax: 15 }), 'mobile-low').join('\n')).toContain('pedestrian draws');
+    expect(verifyPeds(put(path.join(tmp, 'peds6'), { carsPlusBusesMax: 121 }), 'mobile-low').join('\n')).toContain('cars and buses');
+    expect(verifyPeds(put(path.join(tmp, 'peds7'), { simPeds: 500 }), 'mobile-low').join('\n')).toContain('sim pedestrians');
+    const noBlock = path.join(tmp, 'peds8', 'x.json');
+    mkdirSync(path.dirname(noBlock), { recursive: true });
+    writeFileSync(noBlock, JSON.stringify({ ...trafficOf('mobile-low', 0.5), peds: undefined }));
+    expect(verifyPeds(noBlock, 'mobile-low').join('\n')).toContain('no pedestrian block');
   });
 });

@@ -36,7 +36,10 @@
     "transamerica",
     "salesforce",
     "oracle park",
-    "chase center"
+    "chase center",
+    "bart",
+    "muni",
+    "caltrain"
   ],
   "patterns": [
     {

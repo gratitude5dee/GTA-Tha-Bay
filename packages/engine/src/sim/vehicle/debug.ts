@@ -12,6 +12,7 @@ import type { PhysicsSim } from '../sim-factory.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { requestEnterVehicle, requestExitVehicle, seatDriver } from './enter-exit.ts';
 import type { VehicleStore } from './components.ts';
+import type { InteractionHandler } from '../interaction/interaction.ts';
 import type { VehiclePhysics } from '../physics/backend.ts';
 
 /** What the vehicle module hands the QA commands: set on `EngineServices.vehicleCtx` by `registerVehicleModule`. */
@@ -19,6 +20,8 @@ export interface VehicleDebugContext {
   backend: VehiclePhysics;
   store: VehicleStore;
   prefabs: PrefabRegistry;
+  /** The interaction service (M03b2: the world module registers the `Transit` handler on it). */
+  interaction?: { register(h: InteractionHandler): void };
 }
 
 type Reply = (name: string, data: unknown) => void;

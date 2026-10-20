@@ -116,12 +116,15 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     ...(await refsFor('world_pack/p0-')),
     ...(await refsFor('map_data/sf-graph')),
     ...(await refsFor('data/district-grid')),
+    // M03b2: the baked transit routes (buses, Metro, ferries, cable cars, air corridors); a catalog without them just has no transit
+    ...(await refsFor('data/transit-routes').catch(() => ({}) as WorldSimConfig['refs'])),
   };
   // M02d1: the landmarks that have a model in the catalog; the layer swaps their baked proxies for the glTF near the player.
   const modelled = await refsFor('building/lm.').catch(() => ({}) as WorldSimConfig['refs']);
   const landmarks: LandmarkSpot[] = index.landmarks.flatMap((l, i) => (l.asset in modelled ? [{ id: l.id, index: i, x: l.x, z: l.z, asset: l.asset }] : []));
   const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];
-  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index };
+  // M03b2: the game page runs the pedestrians and transit; the determinism scenarios choose their own layers
+  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index, ambient: { peds: true, transit: true } };
 
   const view = new WorldView({
     tier: o.tier,

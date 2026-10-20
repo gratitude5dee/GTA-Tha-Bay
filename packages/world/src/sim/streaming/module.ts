@@ -24,6 +24,10 @@ import type { TeleportHost } from '../api/teleport.ts';
 import { createWorldApi, type WorldServices } from '../api/world-api.ts';
 import { AmbientTraffic } from '../traffic/system.ts';
 import { WORLD_COMPONENTS } from '../traffic/components.ts';
+import { AmbientPeds } from '../peds/system.ts';
+import { PED_COMPONENTS } from '../peds/components.ts';
+import { AmbientTransit } from '../transit/system.ts';
+import { TRANSIT_COMPONENTS } from '../transit/components.ts';
 import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
@@ -313,6 +317,10 @@ export interface WorldStreamingModule extends SimModule {
   readonly blackout: Blackout;
   /** The ambient traffic (M03b1) once built, or null while the session has no world services. */
   readonly traffic: AmbientTraffic | null;
+  /** The ambient pedestrians (M03b2) when the session asked for them, else null. */
+  readonly peds: AmbientPeds | null;
+  /** Transit, rides and entrances (M03b2) when the session asked for them, else null. */
+  readonly transit: AmbientTransit | null;
 }
 
 function isWorldConfig(v: unknown): v is WorldSimConfig {
@@ -326,6 +334,8 @@ export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
   let api: WorldServices | null = null;
   let traffic: AmbientTraffic | null = null;
+  let peds: AmbientPeds | null = null;
+  let transit: AmbientTransit | null = null;
   let sendQa: ((name: string, data: unknown) => void) | null = null;
   let physics: WorldDebugPhysics | null = null;
   let simHash: (() => { tick: number; hash: string }) | null = null;
@@ -361,11 +371,19 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     get traffic() {
       return traffic;
     },
+    get peds() {
+      return peds;
+    },
+    get transit() {
+      return transit;
+    },
     blackout,
     // the world components exist only in a session that has a world with services (M03b1): other sessions hash as before
     components: (boot) => {
       const w = boot.config['world'];
-      return isWorldConfig(w) && w.index ? WORLD_COMPONENTS : [];
+      return isWorldConfig(w) && w.index
+        ? [...WORLD_COMPONENTS, ...(w.ambient?.peds ? PED_COMPONENTS : []), ...(w.ambient?.transit ? TRANSIT_COMPONENTS : [])]
+        : [];
     },
     side: () => {
       if (!state) return {};
@@ -387,6 +405,8 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       state = null;
       api = null;
       traffic = null;
+      peds = null;
+      transit = null;
       ctx.sim.services.world.api = null;
       ctx.sim.services.world.bounds = null;
       for (const by of [...blackout.owners()]) blackout.set(false, by);
@@ -405,6 +425,10 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       if (raw.index) {
         api = installWorldServices(ctx, world, raw.index, blackout);
         traffic = installTraffic(ctx, world, api, raw);
+        if (traffic) {
+          peds = installPeds(ctx, world, api, raw, traffic);
+          transit = installTransit(ctx, world, api, raw, traffic);
+        }
       }
     },
   };
@@ -491,6 +515,37 @@ function installTraffic(ctx: SimModuleContext, world: WorldSim, api: WorldServic
   sim.core.addSystem(traffic.system());
   sim.core.addResource(traffic.resource());
   return traffic;
+}
+
+/**
+ * Builds the ambient pedestrians (M03b2) when the boot payload asks for them and the ECS has the `PedAgent` component: the brain
+ * system at `SimStage.AI` after the traffic, and its hashed resource.
+ */
+function installPeds(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig, traffic: AmbientTraffic): AmbientPeds | null {
+  const sim = ctx.sim;
+  if (!raw.ambient?.peds || !sim.ecs.registry.getByName('PedAgent')) return null;
+  const peds = new AmbientPeds({
+    ecs: sim.ecs, services: sim.services, world: api, store: world.store, cfg: ctx.cfg, seed: raw.index ? raw.index.worldSeed : 0, traffic,
+  });
+  api.peds = peds;
+  sim.core.addSystem(peds.system());
+  sim.core.addResource(peds.resource());
+  return peds;
+}
+
+/**
+ * Builds transit, the rides and the Bay Rail entrances (M03b2) when the boot payload asks for them: the brain system at `SimStage.AI`,
+ * its hashed resource, and the request for `data/transit-routes.v1`.
+ */
+function installTransit(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig, traffic: AmbientTraffic): AmbientTransit | null {
+  const sim = ctx.sim;
+  if (!raw.ambient?.transit || !sim.ecs.registry.getByName('TransitVehicle')) return null;
+  const transit = new AmbientTransit({ ecs: sim.ecs, services: sim.services, world: api, cfg: ctx.cfg, traffic });
+  api.transit = transit;
+  sim.core.addSystem(transit.system());
+  sim.core.addResource(transit.resource());
+  world.loadAux('data/transit-routes.v1', (b) => void transit.loadRoutes(b));
+  return transit;
 }
 
 /** The module `apps/web/src/workers/sim.worker.ts` composes into the sim worker. */

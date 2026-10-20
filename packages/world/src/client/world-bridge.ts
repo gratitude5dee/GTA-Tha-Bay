@@ -8,6 +8,8 @@ import type { LookReport } from './look/look-view.ts';
 import { mountWorldControls } from './world-controls.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 import type { TrafficInfo } from './traffic/instances.ts';
+import type { PedInfo } from './peds/instances.ts';
+import type { TransitInfo } from './transit/render.ts';
 
 /**
  * `window.__dvBridge.world` (QA builds only; 02-world.md section 4, M02b1). Reachable only through a dynamic import behind
@@ -105,6 +107,21 @@ export interface WorldBridge {
   traffic(): TrafficInfo | null;
   /** Counts of the ambient traffic inside sim.worker (`debug.world` op `traffic`); null after `timeoutMs`. */
   trafficSim(timeoutMs?: number): Promise<unknown>;
+  /** The instanced pedestrians (M03b2): far and near-LOD instances, per body, draws and the caps of the tier; null before the world is attached. */
+  peds(): PedInfo | null;
+  /** Counts of the pedestrians inside sim.worker (`debug.world` op `peds`); `head` sets the XR head pose they keep clear of. */
+  pedsSim(head?: { x: number; z: number } | null, timeoutMs?: number): Promise<unknown>;
+  /** A `crowd.attract` source at (x, z): the pedestrians within 40 m gather (3 live at most). Returns its id, or 0 when 3 are live. */
+  attract(x: number, z: number): Promise<{ id: number } | null>;
+  releaseAttract(id: number): Promise<unknown>;
+  /** Transit instances drawn per kind (buses count against the traffic cap); null before the world is attached. */
+  transit(): TransitInfo | null;
+  /** The transit counts, the fares charged so far and the robotaxi phase inside sim.worker (`debug.world` op `transit`). */
+  transitSim(timeoutMs?: number): Promise<unknown>;
+  /** Bay Rail from station `from` to station `to` (ids from the world index), resolved when the ride ends; the fare shows in `transitSim().fares`. */
+  ride(from: string, to: string): Promise<unknown>;
+  /** A robotaxi to the point (x, z): a car appears 120 m or more away, arrives, a short cut, then the teleport. */
+  rideRobotaxi(x: number, z: number): Promise<unknown>;
   /** Starts the landmark frame counters and the swap log again (a test warms the scene up, then measures a run). */
   resetLandmarkStats(): void;
 }
@@ -234,12 +251,24 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     swaps: () => view.landmarksReport()?.swaps ?? [],
     traffic: () => view.trafficReport(),
     trafficSim: (timeoutMs) => call('traffic', undefined, timeoutMs),
+    peds: () => view.pedsReport(),
+    pedsSim: (head, timeoutMs) => call('peds', head === undefined ? undefined : head === null ? { clearHead: true } : { headX: head.x, headZ: head.z }, timeoutMs),
+    attract: async (x, z) => (await call('attract', { x, z, by: 'qa' })) as { id: number } | null,
+    releaseAttract: (id) => call('attract', { release: id }),
+    transit: () => view.transitReport(),
+    transitSim: (timeoutMs) => call('transit', undefined, timeoutMs),
+    ride: (from, to) => call('ride', { from, to }, 120_000),
+    rideRobotaxi: (x, z) => call('ride', { x, z }, 180_000),
     resetLandmarkStats: () => view.landmarks?.resetStats(),
   };
   // the perf scenarios' way into the sim's traffic: fire-and-forget commands (id 0: the reply slot is overwritten, not accumulated)
   view.trafficLink = {
     focus: (f) => void act({ t: 'debug.world', id: 0, op: 'traffic', args: f ? { x: f.x, z: f.z, vx: f.vx, vz: f.vz } : { clearFocus: true } }),
-    density: (mult) => void act({ t: 'debug.world', id: 0, op: 'density', args: { kind: 'traffic', mult, by: 'perf' } }),
+    density: (mult) => {
+      void act({ t: 'debug.world', id: 0, op: 'density', args: { kind: 'traffic', mult, by: 'perf' } });
+      // M03b2: the pedestrians follow the same switch
+      void act({ t: 'debug.world', id: 0, op: 'density', args: { kind: 'ped', mult, by: 'perf' } });
+    },
     probe: async () => {
       const r = (await call('traffic', undefined, 5_000)) as { agents?: number; filled?: boolean } | null;
       return r ? { agents: Number(r.agents ?? 0), filled: r.filled === true } : null;

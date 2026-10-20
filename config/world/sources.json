@@ -73,7 +73,7 @@
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
-      "id": "datasf-muni-stops",
+      "id": "sfmta-stops",
       "kind": "socrata",
       "dataset": "i28k-bkz6",
       "url": "https://data.sf.gov/resource/i28k-bkz6.json",
@@ -83,11 +83,11 @@
       "licence": "PDDL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
       "attribution": "City and County of San Francisco, SFMTA",
-      "source": "DataSF Muni Stops (i28k-bkz6); used from M02a2",
+      "source": "DataSF SFMTA Stops (i28k-bkz6); used from M02a2",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
-      "id": "datasf-muni-routes",
+      "id": "sfmta-patterns",
       "kind": "socrata",
       "dataset": "9exe-acju",
       "url": "https://data.sf.gov/resource/9exe-acju.json",
@@ -97,7 +97,7 @@
       "licence": "PDDL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
       "attribution": "City and County of San Francisco, SFMTA",
-      "source": "DataSF Muni Routes (9exe-acju); used from M02a2",
+      "source": "DataSF SFMTA Patterns (9exe-acju); used from M02a2",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
@@ -181,7 +181,7 @@
       "label": "San Francisco, the real city: network, osmium, baked and published by the operator",
       "network": true,
       "box": "play",
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
         "s0": { "minRows": { "datasf-footprints": 150000, "datasf-streets": 16000 }, "exactRows": { "datasf-neighborhoods": 41 } },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
@@ -195,7 +195,7 @@
       "label": "Committed 1 km2 source excerpt around City Hall (chunks 9/254..257 on both axes): byte-reproducible bakes in CI",
       "network": false,
       "box": { "minX": -640, "minZ": -640, "maxX": 384, "maxZ": 384 },
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
         "s0": { "minRows": { "datasf-footprints": 500, "datasf-streets": 10 }, "exactRows": {} },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
@@ -209,9 +209,9 @@
       "label": "Offline seeded sources in the raw formats over the whole play box: the full-size CI world for M02b1-M02d2. Stamps are authored; QA only, never in assets.lock.json",
       "network": false,
       "box": "play",
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
-        "s0": { "minRows": { "datasf-footprints": 50000, "datasf-streets": 1000, "datasf-muni-stops": 6, "datasf-muni-routes": 2 }, "exactRows": { "datasf-neighborhoods": 41 } },
+        "s0": { "minRows": { "datasf-footprints": 50000, "datasf-streets": 1000, "sfmta-stops": 6, "sfmta-patterns": 2 }, "exactRows": { "datasf-neighborhoods": 41 } },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
         "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.01 },
         "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },

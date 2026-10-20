@@ -86,7 +86,7 @@ export function registerVehicleModule(
 
   core.addSystem(closureBarrierSystem({ prefabs, services: core.services }));
 
-  core.services.vehicleCtx = { backend, store, prefabs };
+  core.services.vehicleCtx = { backend, store, prefabs, interaction };
   core.services.side.set('veh', () => playerVehicleSide(core, store));
   core.services.side.set('prompt', () => interaction.side());
   return { systems, store, interaction, ragdoll, prefabs };

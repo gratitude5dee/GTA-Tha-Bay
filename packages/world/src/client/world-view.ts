@@ -38,6 +38,9 @@ import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/
 import { TeleportFade } from './teleport-fade.ts';
 import { trafficCap } from '../sim/traffic/density.ts';
 import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
+import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
+import { PedRenderer, type PedInfo } from './peds/instances.ts';
+import { TransitRenderer, type TransitInfo } from './transit/render.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -148,6 +151,10 @@ export class WorldView implements WorldLayer {
   sky: SkyView | null = null;
   /** The instanced ambient traffic (M03b1); set in `attach`. */
   traffic: TrafficRenderer | null = null;
+  /** The instanced pedestrians (M03b2); set in `attach`. */
+  peds: PedRenderer | null = null;
+  /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
+  transit: TransitRenderer | null = null;
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
   /** The newest `world.boundary` event (M02c1) and how many arrived; the QA bridge reads them. */
@@ -317,6 +324,12 @@ export class WorldView implements WorldLayer {
     void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
     this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
+    this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
+    this.transit = new TransitRenderer({
+      parent: host.scene,
+      trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
+      carsDrawn: () => this.traffic?.instances ?? 0,
+    });
     this.makeOverlays();
     this.lastFocus = { x: this.o.spawn.x, z: this.o.spawn.z, vx: 0, vz: 0 };
     // The first pass runs before the first frame so the spawn tile is already on its way.
@@ -380,6 +393,8 @@ export class WorldView implements WorldLayer {
     this.sky?.update(f);
     this.traffic?.update(f, tSec);
     if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
+    this.peds?.update(f, tSec);
+    this.transit?.update(f);
     this.updateOverlays();
     this.telemetry();
   }
@@ -451,6 +466,10 @@ export class WorldView implements WorldLayer {
     this.sky = null;
     this.traffic?.dispose();
     this.traffic = null;
+    this.peds?.dispose();
+    this.peds = null;
+    this.transit?.dispose();
+    this.transit = null;
     this.landmarks?.dispose();
     this.landmarks = null;
     this.renderer?.dispose();
@@ -580,6 +599,16 @@ export class WorldView implements WorldLayer {
   /** The instanced traffic's counts for the QA bridge (`__dvBridge.world.traffic()`); null before `attach`. */
   trafficReport(): TrafficInfo | null {
     return this.traffic?.info() ?? null;
+  }
+
+  /** The instanced pedestrians' counts for the QA bridge (`__dvBridge.world.peds()`); null before `attach`. */
+  pedsReport(): PedInfo | null {
+    return this.peds?.info() ?? null;
+  }
+
+  /** Transit instances for the QA bridge (`__dvBridge.world.transit()`); null before `attach`. */
+  transitReport(): TransitInfo | null {
+    return this.transit?.info() ?? null;
   }
 
   /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */

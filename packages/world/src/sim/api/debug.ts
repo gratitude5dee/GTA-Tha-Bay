@@ -189,6 +189,60 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
         focus: t.focusOverride, stats: t.sim.stats, promoted: t.sim.promotions.count, filled: !t.sim.fill,
       });
     }
+    case 'peds': {
+      // the ambient pedestrians (M03b2): counts, and with `head` / `clearHead` the XR head pose they keep 0.6 m clear of
+      const p = w.peds;
+      if (!p) return done(null);
+      const hx = num(a['headX']), hz = num(a['headZ']);
+      if (a['clearHead'] === true) p.headOverride = null;
+      else if (hx !== null && hz !== null) p.headOverride = { x: hx, z: hz };
+      return done({ ...p.describe(), tick, radius: p.sim.radius, cap: p.sim.cap(), filled: !p.sim.fill, stats: p.sim.stats, attract: p.sim.attract.live().length });
+    }
+    case 'attract': {
+      // a `crowd.attract` source at (x, z) for the pedestrians, or the release of one (`id`)
+      const p = w.peds;
+      if (!p) return done(null);
+      const id = num(a['release']);
+      if (id !== null) {
+        p.sim.attract.release(id);
+        return done({ released: id });
+      }
+      // `atPlayer`: at the player's place, the point the pedestrians follow
+      const at = a['atPlayer'] === true ? w.transit?.playerAt() ?? null : null;
+      const x = at ? at[0] : num(a['x']), z = at ? at[2] : num(a['z']);
+      return done(x === null || z === null ? null : { id: p.sim.attract.add(x, z, str(a['by']) ?? 'debug') });
+    }
+    case 'crowd': {
+      // QA: n pedestrians 8 to 40 m around the player (or at x, z), so the near level and the gathering are easy to see
+      const p = w.peds;
+      if (!p) return done(null);
+      const at = w.transit?.playerAt() ?? null;
+      const x = num(a['x']) ?? (at ? at[0] : null), z = num(a['z']) ?? (at ? at[2] : null);
+      if (x === null || z === null) return done(null);
+      return done({ placed: p.sim.scatter(x, z, Math.min(64, Math.max(0, Math.floor(num(a['n']) ?? 12))), num(a['rMin']) ?? 8, num(a['rMax']) ?? 40) });
+    }
+    case 'transit': {
+      const t = w.transit;
+      return done(t ? { ...t.describe(), tick } : null);
+    }
+    case 'ride': {
+      // Bay Rail from one station to another, or a robotaxi to a point
+      const t = w.transit;
+      if (!t) return done(null);
+      const from = str(a['from']);
+      const to = str(a['to']) ?? (a['next'] === true && from !== null ? t.nextStationOf(from) : null);
+      if (from !== null && to !== null) {
+        void t.ride.fastTravel(from, to).then(done);
+        return;
+      }
+      // `dx`, `dz`: a point relative to where the player stands (the QA panel's taxi button)
+      const at = t.playerAt();
+      const x = num(a['x']) ?? (at && num(a['dx']) !== null ? at[0] + (num(a['dx']) as number) : null);
+      const z = num(a['z']) ?? (at && num(a['dz']) !== null ? at[2] + (num(a['dz']) as number) : null);
+      if (x === null || z === null) return done(null);
+      void t.ride.callRobotaxi({ x, z }, 'point').then(done);
+      return;
+    }
     case 'infraction': {
       const t = w.ambient;
       const x = num(a['x']), z = num(a['z']);

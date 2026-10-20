@@ -81,7 +81,7 @@ export function verifyDist(dist) {
   for (const f of files) if (/world-hash/.test(rel(f))) fail(`world-hash file in dist: ${rel(f)}`);
   for (const f of textFiles) {
     const s = text(f);
-    if (s.includes('world-hash') || s.includes('dvWorldHash') || s.includes('traffic-synth')) fail(`world-hash QA code found in ${rel(f)}`);
+    if (s.includes('world-hash') || s.includes('dvWorldHash') || s.includes('traffic-synth') || s.includes('traffic-peds-synth')) fail(`world-hash QA code found in ${rel(f)}`);
   }
 
   // 3. No __dvBridge anywhere.

@@ -51,4 +51,9 @@ export interface WorldSimConfig {
   spawn: [number, number, number];
   /** The world index (`data/world-index`) for the world services of M02c1: landmarks, POIs, portals, transit, districts. Absent: no services. */
   index?: WorldIndex;
+  /**
+   * The ambient layers this session runs beyond the traffic (M03b2): pedestrians and transit. Absent or false: the layer is not built,
+   * its components are not registered and the session hashes as it did before (the `traffic-synth` golden runs without them).
+   */
+  ambient?: { peds?: boolean; transit?: boolean };
 }

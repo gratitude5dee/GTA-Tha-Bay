@@ -15,7 +15,7 @@ import { SimRuntime, attachSabWorker, bakedWorldConfig, createSabMain, type SimR
 import { groundHeightAt, spawnPose } from '../../src/sim/streaming/boot.ts';
 import { WORLD_PORT, type PackReply, type PackRequest, type WorldSimConfig } from '../../src/sim/streaming/channel.ts';
 import { createWorldStreamingModule, type WorldStreamingModule } from '../../src/sim/streaming/module.ts';
-import { TRAFFIC_SYNTH, preloadKeys } from '../../src/sim/traffic/scenario.ts';
+import { TRAFFIC_SYNTH, TRAFFIC_PEDS_SYNTH, preloadKeys } from '../../src/sim/traffic/scenario.ts';
 import type { BakeData } from './bake.ts';
 
 
@@ -26,6 +26,8 @@ export interface TrafficRunOptions {
   /** `shuffled` answers each request after 0 to 5 event-loop turns, drawn from a seeded stream, so replies arrive out of order. */
   order?: 'in-order' | 'shuffled';
   shuffleSeed?: number;
+  /** The ambient layers beyond the traffic (M03b2): the `traffic-peds-synth` scenario turns both on. */
+  ambient?: { peds?: boolean; transit?: boolean };
   /** Called after every tick with the tick that just ran. */
   onTick?: (tick: number, rt: SimRuntime, mod: WorldStreamingModule) => void;
 }
@@ -42,6 +44,10 @@ export interface TrafficRunResult {
   preload: ChunkKey[];
   agentsMax: number;
   stats: Record<string, unknown>;
+  /** Most pedestrians live at once (0 when the pedestrians are off). */
+  pedsMax: number;
+  /** The transit counts and the fare calls at the end of the run (null when transit is off). */
+  transit: Record<string, unknown> | null;
 }
 
 class Loader {
@@ -73,13 +79,14 @@ class Loader {
 }
 
 /** The tiles of a bake's `p0` as pack refs the loader reads from `packs/`. */
-export function worldConfigOf(bake: BakeData, spawn: [number, number, number]): WorldSimConfig {
+export function worldConfigOf(bake: BakeData, spawn: [number, number, number], ambient?: { peds?: boolean; transit?: boolean }): WorldSimConfig {
   const refs: WorldSimConfig['refs'] = {};
   const ref = (file: string): WorldSimConfig['refs'][string] => ({ url: file, sha256: '0'.repeat(64), bytes: 0, kind: 'chunk' });
   for (const t of bake.index.tiles.p0) refs[`world_pack/p0-${t}`] = ref(`p0-${t}.pack`);
   refs['map_data/sf-graph.v1'] = { ...ref('sf-graph.v1.pack'), kind: 'data' };
   refs['data/district-grid.v1'] = { ...ref('district-grid.v1.pack'), kind: 'data' };
-  return { bakeId: bake.bakeId, p0Tiles: bake.index.tiles.p0, refs, spawn, index: bake.index as WorldIndex };
+  refs['data/transit-routes.v1'] = { ...ref('transit-routes.json'), kind: 'data' };
+  return { bakeId: bake.bakeId, p0Tiles: bake.index.tiles.p0, refs, spawn, index: bake.index as WorldIndex, ...(ambient ? { ambient } : {}) };
 }
 
 const turn = (): Promise<void> => new Promise((r) => setImmediate(r));
@@ -107,7 +114,7 @@ export async function startTrafficRun(o: TrafficRunOptions): Promise<TrafficRun>
   });
   const ground = groundHeightAt(near, pose.x, pose.z) ?? 0;
   const spawn: [number, number, number] = [pose.x, ground + TRAFFIC_SYNTH.spawnLiftM, pose.z];
-  const world = worldConfigOf(bake, spawn);
+  const world = worldConfigOf(bake, spawn, o.ambient);
   const loader = new Loader(bake.dir, o.order === 'shuffled', o.shuffleSeed ?? 1);
 
   const mod = createWorldStreamingModule();
@@ -159,19 +166,23 @@ export async function runTrafficSynth(o: TrafficRunOptions): Promise<TrafficRunR
   if (!sim) throw new Error('no sim');
   const checkpoints: Record<string, string> = {};
   let agentsMax = 0;
+  let pedsMax = 0;
   for (let i = 0; i < ticks; i++) {
     await run.step(1);
     const t = sim.core.tick;
     if (t % every === 0 && sim.core.lastHash) checkpoints[String(t)] = sim.core.lastHash.hex;
     const n = run.mod.traffic?.sim.agents.size ?? 0;
     if (n > agentsMax) agentsMax = n;
+    const np = run.mod.peds?.sim.peds.size ?? 0;
+    if (np > pedsMax) pedsMax = np;
     o.onTick?.(t, run.runtime, run.mod);
   }
   const final = sim.hash();
+  const transit = run.mod.transit ? run.mod.transit.describe() : null;
   const stats = run.mod.traffic ? { ...run.mod.traffic.sim.stats, live: run.mod.traffic.sim.agents.size } : {};
   run.dispose();
-  return { bakeId: bake.bakeId, seed: TRAFFIC_SYNTH.seed, ticks, checkpoints, final, stallTicks: run.stallTicks, preload: run.preload, agentsMax, stats };
+  return { bakeId: bake.bakeId, seed: TRAFFIC_SYNTH.seed, ticks, checkpoints, final, stallTicks: run.stallTicks, preload: run.preload, agentsMax, stats, pedsMax, transit };
 }
 
-export { TRAFFIC_SYNTH, preloadKeys };
+export { TRAFFIC_SYNTH, TRAFFIC_PEDS_SYNTH, preloadKeys };
 export type { SimRuntimeEnv };

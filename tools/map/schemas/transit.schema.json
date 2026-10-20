@@ -1,40 +1,413 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tha-bay.invalid/schemas/transit.schema.json",
-  "title": "config/world/transit.json (M02c1): fast-travel fares in integer cents and the fast-travel cooldown",
+  "title": "config/world/transit.json (M02c1, M03b2): fast-travel fares in integer cents, the cooldown, and the transit counts, speeds and dwell times",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "fares", "stopSpacingM", "cooldown"],
+  "required": [
+    "schema",
+    "fares",
+    "stopSpacingM",
+    "cooldown",
+    "counts",
+    "speeds",
+    "dwell",
+    "bayRailOrder",
+    "entrance"
+  ],
   "properties": {
-    "schema": { "const": "world-transit/1" },
-    "note": { "type": "string" },
+    "schema": {
+      "const": "world-transit/1"
+    },
+    "note": {
+      "type": "string"
+    },
     "fares": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["bay-rail", "cable-car", "robotaxi", "ferry"],
+      "required": [
+        "bay-rail",
+        "cable-car",
+        "robotaxi",
+        "ferry"
+      ],
       "properties": {
         "bay-rail": {
-          "type": "object", "additionalProperties": false, "required": ["baseCents", "perStopCents"],
-          "properties": { "baseCents": { "type": "integer", "minimum": 0 }, "perStopCents": { "type": "integer", "minimum": 0 } }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "baseCents",
+            "perStopCents"
+          ],
+          "properties": {
+            "baseCents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "perStopCents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         },
         "cable-car": {
-          "type": "object", "additionalProperties": false, "required": ["baseCents"],
-          "properties": { "baseCents": { "type": "integer", "minimum": 0 } }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "baseCents"
+          ],
+          "properties": {
+            "baseCents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         },
         "robotaxi": {
-          "type": "object", "additionalProperties": false, "required": ["baseCents", "perKmCents"],
-          "properties": { "baseCents": { "type": "integer", "minimum": 0 }, "perKmCents": { "type": "integer", "minimum": 0 } }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "baseCents",
+            "perKmCents"
+          ],
+          "properties": {
+            "baseCents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "perKmCents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         },
         "ferry": {
-          "type": "object", "additionalProperties": false, "required": ["baseCents"],
-          "properties": { "baseCents": { "type": "integer", "minimum": 0 } }
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "baseCents"
+          ],
+          "properties": {
+            "baseCents": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
-    "stopSpacingM": { "type": "number", "exclusiveMinimum": 0 },
+    "stopSpacingM": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
     "cooldown": {
-      "type": "object", "additionalProperties": false, "required": ["fastTravelS"],
-      "properties": { "fastTravelS": { "type": "integer", "minimum": 0 } }
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fastTravelS"
+      ],
+      "properties": {
+        "fastTravelS": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metro",
+        "bus",
+        "cablecar",
+        "ferry",
+        "air"
+      ],
+      "properties": {
+        "metro": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop-ultra",
+            "desktop",
+            "xr-visionpro",
+            "mobile",
+            "mobile-low",
+            "xr-quest"
+          ],
+          "properties": {
+            "desktop-ultra": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile-low": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-quest": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "bus": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop-ultra",
+            "desktop",
+            "xr-visionpro",
+            "mobile",
+            "mobile-low",
+            "xr-quest"
+          ],
+          "properties": {
+            "desktop-ultra": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile-low": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-quest": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "cablecar": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop-ultra",
+            "desktop",
+            "xr-visionpro",
+            "mobile",
+            "mobile-low",
+            "xr-quest"
+          ],
+          "properties": {
+            "desktop-ultra": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile-low": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-quest": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "ferry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop-ultra",
+            "desktop",
+            "xr-visionpro",
+            "mobile",
+            "mobile-low",
+            "xr-quest"
+          ],
+          "properties": {
+            "desktop-ultra": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile-low": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-quest": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "air": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "desktop-ultra",
+            "desktop",
+            "xr-visionpro",
+            "mobile",
+            "mobile-low",
+            "xr-quest"
+          ],
+          "properties": {
+            "desktop-ultra": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "desktop": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-visionpro": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mobile-low": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "xr-quest": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "speeds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metroMps",
+        "cablecarMps",
+        "ferryMps",
+        "airMps",
+        "busFactor",
+        "busMaxMps"
+      ],
+      "properties": {
+        "metroMps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cablecarMps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ferryMps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "airMps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "busFactor": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "busMaxMps": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "dwell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "busS",
+        "metroEndS",
+        "cablecarEndS",
+        "ferryEndS"
+      ],
+      "properties": {
+        "busS": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "metroEndS": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cablecarEndS": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ferryEndS": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "bayRailOrder": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^rail\\.[a-z0-9-]+$"
+      }
+    },
+    "entrance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radiusM",
+        "liveM"
+      ],
+      "properties": {
+        "radiusM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "liveM": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
     }
   }
 }

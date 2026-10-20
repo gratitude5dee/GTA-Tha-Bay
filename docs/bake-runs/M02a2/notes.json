@@ -41,7 +41,7 @@
       "glen-park-station": "n6133371922",
       "balboa-park-station": "n6133371923"
     },
-    "stationNote": "the 8 station seeds are the OSM railway=station nodes of the BART stations (positions 17 to 79 m from the N4 seeds, cross-check 150 m); prefixes: Powell and Civic Center poi.south-of-market, Glen Park poi.west-of-twin-peaks, Balboa Park poi.outer-mission, the other four unchanged",
+    "stationNote": "the 8 station seeds are the OSM railway=station nodes of the Bay Rail stations (positions 17 to 79 m from the N4 seeds, cross-check 150 m); prefixes: Powell and Civic Center poi.south-of-market, Glen Park poi.west-of-twin-peaks, Balboa Park poi.outer-mission, the other four unchanged",
     "landmarkArrival": "lm.golden-gate-bridge arrives at (-5206.1, -5139.8), the nearest valid pedestrian node, 649 m from the landmark and about 75 m from portal.ggb at the Marin end; lm.hunters-point-yard arrives at (4796.2, 5671.1), 430 m away (the shipyard is access=private and has no sidewalks). All other 35 landmarks arrive within 120 m"
   },
   "U-W6": {
