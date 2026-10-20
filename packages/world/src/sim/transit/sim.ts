@@ -12,7 +12,7 @@ import { AI_DT } from '../traffic/sim.ts';
 import { EdgePaths } from '../traffic/plan.ts';
 import type { RoadGraph } from '../graph/query.ts';
 import { corridors, type Corridor } from './aircraft.ts';
-import { BusRoute, busPose, busRoutes, stepBus } from './bus.ts';
+import { busPose, busRoutes, stepBus, type BusRoute } from './bus.ts';
 import { cablecarEndDwell, cablecarPaths, cablecarSpeed } from './cablecar.ts';
 import { TRANSIT_CONFIG, countOf, moverKey, type MoverKind, type TransitRows } from './components.ts';
 import { FERRY_DRAFT_M, ferryEndDwell, ferryPaths, ferrySpeed } from './ferry.ts';

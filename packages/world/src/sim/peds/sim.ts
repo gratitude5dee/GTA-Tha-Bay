@@ -6,7 +6,8 @@
  * One call to `step` is one AI step (30 Hz). Pedestrians are visited in `StableKey` order and write their own state only; all
  * randomness is the pedestrian's private stream or the counter hash of its slot. Pure; C02 lint applies.
  */
-import { ambientKey, ctrU32, dsqrt, type ChunkKey, type QualityTierId, type SimChunk } from '@dv/shared';
+import { PedEdgeKind, ambientKey, ctrU32, dsqrt, type ChunkKey, type QualityTierId, type SimChunk } from '@dv/shared';
+import type { Obstacle } from '../traffic/reactions.ts';
 import type { TrafficWorld } from '../traffic/sim.ts';
 import { AI_DT } from '../traffic/sim.ts';
 import { DESPAWN, cellReach, ringAllows, type TrafficFocus } from '../traffic/spawn.ts';
@@ -65,6 +66,18 @@ function seedOf(seed: number, key: string, epoch: number): number {
   let h = (seed ^ (epoch * 0x9e3779b1)) | 0;
   for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193);
   return h >>> 0;
+}
+
+/** Half extent of the box a pedestrian on a crosswalk blocks for the cars (the crosswalk patch of a robotaxi's occupied-crosswalk rule), metres. */
+export const CROSSWALK_PATCH_HALF_M = 1.2;
+/** Half extent of an ordinary pedestrian, metres. */
+export const PED_HALF_M = 0.3;
+
+/** The `ped` obstacle of a pedestrian for the traffic: cars stop for it, a robotaxi keeps 3 m from its lane and stops at an occupied crosswalk. */
+export function pedObstacle(p: Ped): Obstacle {
+  const onCross = p.kind === PedEdgeKind.Crosswalk && p.s > 0 && p.state !== PedState.Wait;
+  const half = onCross ? CROSSWALK_PATCH_HALF_M : PED_HALF_M;
+  return { id: p.key, kind: 'ped', x: p.x, z: p.z, vx: p.hx * p.speed, vz: p.hz * p.speed, halfW: half, halfL: half };
 }
 
 export class PedSim {

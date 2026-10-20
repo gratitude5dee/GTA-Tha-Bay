@@ -352,6 +352,21 @@ export class AmbientTransit {
     this.last.entrances = this.entrances.size;
   }
 
+  /** The id of the station after `from` in line order (wrapping), or null. */
+  nextStationOf(from: string): string | null {
+    return nextStation(this.stations, from)?.id ?? null;
+  }
+
+  /** The fast-travel stations in line order. */
+  stationList(): readonly { id: string; nameKey: string; x: number; z: number }[] {
+    return this.stations;
+  }
+
+  /** The place of the player on foot or in a vehicle, or null. */
+  playerAt(): [number, number, number] | null {
+    return this.livePlayer();
+  }
+
   /** The traffic cap left for buses once the cars are counted (buses share it). */
   busBudget(): number {
     const room = trafficCap(this.tier) - this.deps.traffic.sim.agents.size;

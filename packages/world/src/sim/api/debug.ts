@@ -207,7 +207,9 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
         p.sim.attract.release(id);
         return done({ released: id });
       }
-      const x = num(a['x']), z = num(a['z']);
+      // `atPlayer`: at the player's place, the point the pedestrians follow
+      const at = a['atPlayer'] === true ? w.transit?.playerAt() ?? null : null;
+      const x = at ? at[0] : num(a['x']), z = at ? at[2] : num(a['z']);
       return done(x === null || z === null ? null : { id: p.sim.attract.add(x, z, str(a['by']) ?? 'debug') });
     }
     case 'transit': {
@@ -218,12 +220,16 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
       // Bay Rail from one station to another, or a robotaxi to a point
       const t = w.transit;
       if (!t) return done(null);
-      const from = str(a['from']), to = str(a['to']);
+      const from = str(a['from']);
+      const to = str(a['to']) ?? (a['next'] === true && from !== null ? t.nextStationOf(from) : null);
       if (from !== null && to !== null) {
         void t.ride.fastTravel(from, to).then(done);
         return;
       }
-      const x = num(a['x']), z = num(a['z']);
+      // `dx`, `dz`: a point relative to where the player stands (the QA panel's taxi button)
+      const at = t.playerAt();
+      const x = num(a['x']) ?? (at && num(a['dx']) !== null ? at[0] + (num(a['dx']) as number) : null);
+      const z = num(a['z']) ?? (at && num(a['dz']) !== null ? at[2] + (num(a['dz']) as number) : null);
       if (x === null || z === null) return done(null);
       void t.ride.callRobotaxi({ x, z }, 'point').then(done);
       return;

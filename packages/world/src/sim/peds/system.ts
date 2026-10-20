@@ -16,7 +16,6 @@ import {
 } from '@dv/shared';
 import { Ambient, Anim, LocalPlayer, RenderKey, Transform, playerSide, type EcsWorld, type EngineServices, type SimResource } from '@dv/engine/sim';
 import type { ByteReader, ByteWriter } from '@dv/engine/sim';
-import { PedEdgeKind } from '@dv/shared';
 import type { WorldServices } from '../api/world-api.ts';
 import type { AmbientTraffic } from '../traffic/system.ts';
 import type { Obstacle } from '../traffic/reactions.ts';
@@ -28,7 +27,7 @@ import type { Ped } from './agent.ts';
 import { hashPeds, loadPeds, savePeds } from './agent.ts';
 import { PED_ASSETS, PedAgent, PedState } from './components.ts';
 import type { PedVehicle } from './fsm.ts';
-import { PedSim } from './sim.ts';
+import { PedSim, pedObstacle } from './sim.ts';
 import type { SimConfig } from '@dv/shared';
 
 export const PED_BRAIN_ID = 'world.peds.brain';
@@ -211,9 +210,7 @@ export class AmbientPeds {
     for (const p of this.sim.peds.list()) {
       const dx = p.x - focus.x, dz = p.z - focus.z;
       if (dx * dx + dz * dz > r2) continue;
-      const onCross = p.kind === PedEdgeKind.Crosswalk && p.s > 0 && p.state !== PedState.Wait;
-      const half = onCross ? 1.2 : 0.3;
-      out.push({ id: p.key, kind: 'ped', x: p.x, z: p.z, vx: p.hx * p.speed, vz: p.hz * p.speed, halfW: half, halfL: half });
+      out.push(pedObstacle(p));
     }
   }
 

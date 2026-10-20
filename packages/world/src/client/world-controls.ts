@@ -5,6 +5,10 @@
  *  - "go to": the sandbox landmark list; Go teleports the player there (fade out, move, fade in);
  *  - "gps to": the same list; Route asks the sim for the GPS route from where the player stands and shows its length and time,
  *    Clear drops it (the minimap that draws it is M02c2);
+ *  - "station": the Bay Rail stations; Go teleports next to its entrance, Ride takes the line to the next station (fade, arrive, the fare
+ *    in the log line), Taxi calls a robotaxi to a point 300 m east (M03b2);
+ *  - "crowd": Gather puts a `crowd.attract` source where the player stands (the pedestrians within 40 m stop and film or cheer), Clear
+ *    drops the sources;
  *  - "edges": Coast puts the player 30 m inland of the south coast (walk south to swim and be put back on the shore), County
  *    puts it 100 m inside a county-line barrier (walk east to meet the barrier, the fog and the boundary event).
  *
@@ -13,7 +17,7 @@
 import type { Portal, ShoreNode, TeleportResult } from '@dv/shared';
 import type { WorldBridge } from './world-bridge.ts';
 
-type Bridge = Pick<WorldBridge, 'teleport' | 'call' | 'map' | 'lastBoundaryEvent' | 'boundaryEvents'> & Partial<Pick<WorldBridge, 'landmarks'>>;
+type Bridge = Pick<WorldBridge, 'teleport' | 'call' | 'map' | 'lastBoundaryEvent' | 'boundaryEvents'> & Partial<Pick<WorldBridge, 'landmarks' | 'peds' | 'transit'>>;
 
 interface Candidate {
   id: string;
@@ -95,6 +99,33 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
     }),
     button('Clear', 'world-route-clear', () => void bridge.call('map', { what: 'clearRoute' }).then(() => say('gps cleared'))),
   );
+  const stSel = select('world-station');
+  row('station', stSel,
+    button('Go', 'world-station-go', () => void go(stSel.value, stSel.selectedOptions[0]?.textContent ?? stSel.value)),
+    button('Ride', 'world-ride', () => {
+      say('riding the line to the next station');
+      void bridge.call('ride', { from: stSel.value, next: true }, 120_000).then((r) => {
+        const x = r as { ok?: boolean; cents?: number; to?: string; stops?: number; reason?: string; messageKey?: string } | null;
+        say(x === null ? 'ride: no answer' : x.ok ? `rode ${x.stops ?? 0} stop(s) to ${x.to ?? ''}: ${((x.cents ?? 0) / 100).toFixed(2)} fare` : `ride refused: ${x.reason ?? ''} (${x.messageKey ?? ''})`);
+      });
+    }),
+    button('Taxi', 'world-taxi', () => {
+      say('a robotaxi is on its way (120 m or more, within 90 s)');
+      void bridge.call('ride', { dx: 300, dz: 0 }, 180_000).then((r) => {
+        const x = r as { ok?: boolean; cents?: number; reason?: string; messageKey?: string } | null;
+        say(x === null ? 'taxi: no answer' : x.ok ? `taxi ride done: ${((x.cents ?? 0) / 100).toFixed(2)} fare` : `taxi refused: ${x.reason ?? ''} (${x.messageKey ?? ''})`);
+      });
+    }),
+  );
+  row('crowd',
+    button('Gather', 'world-gather', () => void bridge.call('attract', { atPlayer: true, by: 'qa' }).then((r) => say((r as { id?: number } | null)?.id ? 'a crowd source stands here: pedestrians within 40 m gather' : 'three crowd sources are live already'))),
+    button('Clear', 'world-gather-clear', () => {
+      void (async () => {
+        for (let id = 1; id <= 64; id++) await bridge.call('attract', { release: id });
+        say('crowd sources released');
+      })();
+    }),
+  );
   row('edges',
     button('Coast', 'world-edge-coast', () => {
       void (async () => {
@@ -128,7 +159,10 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
   const lmStat = doc.createElement('div');
   lmStat.dataset['testid'] = 'world-controls-landmarks';
   lmStat.style.cssText = 'opacity:0.8';
-  grid.append(out, stat, lmStat);
+  const crowdStat = doc.createElement('div');
+  crowdStat.dataset['testid'] = 'world-controls-crowd';
+  crowdStat.style.cssText = 'opacity:0.8';
+  grid.append(out, stat, lmStat, crowdStat);
 
   const byId = new Map<string, Candidate>();
   void bridge.call('candidates', { kind: 'sandbox' }).then((list) => {
@@ -144,12 +178,25 @@ export function mountWorldControls(container: HTMLElement, bridge: Bridge): { ro
     say(`${byId.size} landmarks; pick one and press Go`);
   });
 
+  void bridge.call('candidates', { kind: 'fast-travel' }).then((list) => {
+    for (const c of (list as Candidate[] | null) ?? []) {
+      byId.set(c.id, c);
+      const o = doc.createElement('option');
+      o.value = c.id;
+      o.textContent = label(c.nameKey);
+      stSel.append(o);
+    }
+  });
+
   // the route and the boundary event as they arrive
   const timer = setInterval(() => {
     const m = bridge.map();
     const route = (m?.route ?? null) as { lengthM: number; etaS: number; complete: boolean } | null;
     const b = bridge.lastBoundaryEvent();
     stat.textContent = `${route ? `gps ${(route.lengthM / 1000).toFixed(2)} km, ${Math.max(1, Math.round(route.etaS / 60))} min${route.complete ? '' : ' (partial)'}` : 'no gps route'} | boundary events ${bridge.boundaryEvents()}${b ? ` (${b.s})` : ''}`;
+    const pd = bridge.peds?.() ?? null;
+    const tr = bridge.transit?.() ?? null;
+    crowdStat.textContent = `pedestrians ${pd ? `${pd.instances} drawn (${pd.near} near, ${pd.far} far) of ${pd.cap}` : 'none'} | transit ${tr ? `bus ${tr.perKind.bus}, metro cars ${tr.perKind.metro}, cable ${tr.perKind.cablecar}, ferry ${tr.perKind.ferry}, air ${tr.perKind.airliner}, entrances ${tr.perKind.entrance}` : 'none'}`;
     const lm = bridge.landmarks?.() ?? null;
     lmStat.textContent = !lm
       ? 'landmark models: none in this world'
