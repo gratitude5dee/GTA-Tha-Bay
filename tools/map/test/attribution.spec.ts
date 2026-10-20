@@ -35,7 +35,7 @@ describe('attribution.world.json (AC-6)', () => {
     const by = new Map(buildAttribution(cfg).entries.map((e) => [e.id, e]));
     expect(by.get('osm')).toMatchObject({ text: '© OpenStreetMap contributors', licence: 'ODbL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/odbl/1-0/' });
     expect(by.get('datasf-footprints')).toMatchObject({ text: 'City and County of San Francisco', licence: 'PDDL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/pddl/1-0/' });
-    expect(by.get('datasf-muni-routes')!.text).toBe('City and County of San Francisco, SFMTA');
+    expect(by.get('sfmta-patterns')!.text).toBe('City and County of San Francisco, SFMTA');
     expect(by.get('datasf-trees')!.text).toBe('City and County of San Francisco, SF Public Works');
     expect(by.get('terrarium')).toMatchObject({
       licence: 'LicenseRef-PublicDomain-USGov',
@@ -69,7 +69,7 @@ describe('attribution.world.json (AC-6)', () => {
   });
 
   it('copies only the entries of an area into its bake', () => {
-    expect(attributionFor(cfg, 'civic-excerpt').entries.map((e) => e.id)).toEqual(['datasf-footprints', 'datasf-muni-routes', 'datasf-muni-stops', 'datasf-neighborhoods', 'datasf-parks', 'datasf-streets', 'datasf-trees', 'osm', 'terrarium']);
+    expect(attributionFor(cfg, 'civic-excerpt').entries.map((e) => e.id)).toEqual(['datasf-footprints', 'sfmta-patterns', 'sfmta-stops', 'datasf-neighborhoods', 'datasf-parks', 'datasf-streets', 'datasf-trees', 'osm', 'terrarium']);
     expect(attributionFor(cfg, 'sf').entries).toHaveLength(10);
   });
 

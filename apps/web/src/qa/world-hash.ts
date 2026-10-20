@@ -10,7 +10,7 @@
  */
 import { SimHostImpl, bakedWorldConfig, type WorkerLike } from '@dv/engine/sim';
 import { chunkKeyAt, decodeP0, Rng, type FrameSignal, type WorldIndex } from '@dv/shared';
-import { TRAFFIC_SYNTH, WORLD_PORT, groundHeightAt, preloadKeys, spawnPose, type PackReply, type PackRequest, type WorldSimConfig } from '@dv/world/sim';
+import { TRAFFIC_PEDS_SYNTH, TRAFFIC_SYNTH, WORLD_PORT, groundHeightAt, preloadKeys, spawnPose, type PackReply, type PackRequest, type WorldSimConfig } from '@dv/world/sim';
 
 interface CatalogEntry {
   variants: { default: { key: string; sha256: string; bytes: number } };
@@ -27,6 +27,8 @@ interface HashResult {
   stallTicks: number;
   preload: { wanted: number; resident: number; pending: number; atTick: number };
   agentsMax: number;
+  /** Most pedestrians live at once (0 in the traffic-only scenario). */
+  pedsMax: number;
   out: { requests: number; maxInFlight: number };
   runMs: number;
 }
@@ -46,7 +48,10 @@ async function json<T>(url: string): Promise<T> {
   return (await r.json()) as T;
 }
 
-async function main(): Promise<void> {
+/** One scenario of the page (DL-678): `traffic-synth` (traffic only) or `traffic-peds-synth` (pedestrians and transit on). */
+type Def = typeof TRAFFIC_SYNTH | (typeof TRAFFIC_PEDS_SYNTH & { ambient: { peds: boolean; transit: boolean } });
+
+async function runScenario(def: Def): Promise<HashResult> {
   const t0 = performance.now();
   print('reading the catalog');
   const pointer = await json<{ key: string }>('/asset-catalog.json');
@@ -67,6 +72,7 @@ async function main(): Promise<void> {
   for (const tile of index.tiles.p0) refs[`world_pack/p0-${tile}`] = packRef(`world_pack/p0-${tile}`, 'chunk');
   refs['map_data/sf-graph.v1'] = packRef('map_data/sf-graph.v1', 'data');
   refs['data/district-grid.v1'] = packRef('data/district-grid.v1', 'data');
+  if ('ambient' in def && def.ambient.transit) refs['data/transit-routes.v1'] = packRef('data/transit-routes.v1', 'data');
 
   // the fixed start: the City Hall arrival pose, on the ground of its tile
   const pose = spawnPose(index);
@@ -76,8 +82,8 @@ async function main(): Promise<void> {
   if (!tileRef) throw new Error(`no p0 tile under the start ${startKey}`);
   const tile = decodeP0(await (await fetch(tileRef.url)).arrayBuffer());
   const ground = groundHeightAt(tile, pose.x, pose.z) ?? 0;
-  const spawn: [number, number, number] = [pose.x, ground + TRAFFIC_SYNTH.spawnLiftM, pose.z];
-  const world: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index };
+  const spawn: [number, number, number] = [pose.x, ground + def.spawnLiftM, pose.z];
+  const world: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index, ...('ambient' in def ? { ambient: def.ambient } : {}) };
 
   // the pack channel: this page plays asset.worker
   let requests = 0;
@@ -107,7 +113,7 @@ async function main(): Promise<void> {
     })();
   };
 
-  const cfg = { ...bakedWorldConfig('canonical', TRAFFIC_SYNTH.every, index.bakeId), seed: TRAFFIC_SYNTH.seed };
+  const cfg = { ...bakedWorldConfig('canonical', def.every, index.bakeId), seed: def.seed };
   const host = new SimHostImpl({
     spawn: () => new Worker(new URL('../workers/sim.worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike,
     sab: false,
@@ -161,9 +167,10 @@ async function main(): Promise<void> {
   const checkpoints: Record<string, string> = {};
   let stallTicks = 0;
   let agentsMax = 0;
+  let pedsMax = 0;
   let tick = 0;
   const physicsBuild = cfg.physicsBuild;
-  while (tick < TRAFFIC_SYNTH.ticks) {
+  while (tick < def.ticks) {
     for (let guard = 0; ; guard++) {
       const s = await ask('settle', { keys });
       if ((s['pending'] as number) === 0) break;
@@ -171,37 +178,52 @@ async function main(): Promise<void> {
       if (guard > 5000) throw new Error('a pack stayed pending');
       await sleep(5);
     }
-    const n = Math.min(TRAFFIC_SYNTH.every, TRAFFIC_SYNTH.ticks - tick);
+    const n = Math.min(def.every, def.ticks - tick);
     const target = tick + n;
     host.sendDebug({ t: 'debug.step', n });
     await until(() => (host.report?.stats.tick ?? 0) >= target, `tick ${target}`, 300_000);
     tick = target;
-    if (tick % TRAFFIC_SYNTH.every === 0) {
+    if (tick % def.every === 0) {
       const h = host.report?.hash;
       if (!h || h.tick !== tick) throw new Error(`no hash for tick ${tick}`);
       checkpoints[String(tick)] = h.hex;
     }
     const t = await ask('traffic');
     agentsMax = Math.max(agentsMax, Number(t?.['agents'] ?? 0));
-    print(`tick ${tick} of ${TRAFFIC_SYNTH.ticks}, agents ${String(t?.['agents'])}`);
+    const pd = await ask('peds');
+    pedsMax = Math.max(pedsMax, Number(pd?.['peds'] ?? 0));
+    print(`tick ${tick} of ${def.ticks}, agents ${String(t?.['agents'])}`);
   }
   const fin = await ask('hash');
   const result: HashResult = {
-    scenario: TRAFFIC_SYNTH.id,
+    scenario: def.id,
     bakeId: index.bakeId,
-    seed: TRAFFIC_SYNTH.seed,
-    ticks: TRAFFIC_SYNTH.ticks,
+    seed: def.seed,
+    ticks: def.ticks,
     physicsBuild,
     checkpoints,
     final: String(fin['hash']),
     stallTicks,
     preload,
     agentsMax,
+    pedsMax,
     out: { requests, maxInFlight },
     runMs: performance.now() - t0,
   };
-  results['hash'] = result;
   print([`bake ${result.bakeId.slice(0, 12)}`, `preload ${preload.resident}/${preload.wanted} resident before tick 0`, `checkpoints ${Object.keys(checkpoints).length}`, `final ${result.final}`, `run ${result.runMs.toFixed(0)} ms`].join('\n'));
+  await host.dispose();
+  return result;
+}
+
+async function main(): Promise<void> {
+  const all: Record<string, HashResult> = {};
+  results['hashes'] = all;
+  for (const def of [TRAFFIC_SYNTH, TRAFFIC_PEDS_SYNTH] as Def[]) {
+    const r = await runScenario(def);
+    all[def.id] = r;
+    // the first scenario keeps its place for the M03b1 test
+    if (def.id === TRAFFIC_SYNTH.id) results['hash'] = r;
+  }
   document.documentElement.dataset['dvWorldHash'] = 'done';
 }
 

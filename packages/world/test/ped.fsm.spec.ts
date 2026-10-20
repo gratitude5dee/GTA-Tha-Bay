@@ -9,6 +9,7 @@ import {
 } from '../src/sim/peds/components.ts';
 import { ATTRACT_CAP } from '../src/sim/peds/attract.ts';
 import { gatherRingOf as ringOf } from '../src/sim/peds/fsm.ts';
+import type { Ped } from '../src/sim/peds/agent.ts';
 import { isPedKey } from '../src/sim/peds/witness.ts';
 import type { WitnessEvent } from '../src/sim/traffic/witness.ts';
 import { makePedRig, pedCrossing, vehicleAt } from './fixtures/peds.ts';
@@ -59,7 +60,7 @@ describe('idle at a waiting node', () => {
     const f = pedCrossing();
     // the end of the sidewalk (node 1) is a crossing node, which is flagged Waiting
     const rig = await makePedRig({ chunks: [f.chunk], focus: { x: -25, z: 0, vx: 0, vz: 0 }, initialFill: false });
-    const ps = [];
+    const ps: Ped[] = [];
     for (let i = 0; i < 40; i++) {
       const p = rig.sim.place({ key: `amb:9/256/256:${310 + i}`, cell: CELL, slot: 310 + i, a: 0, b: 1, s: 28, pace: 1.4, lane: 0 });
       if (p) ps.push(p);
@@ -209,7 +210,7 @@ describe('AC-4: witnesses', () => {
 describe('crowd.attract', () => {
   it('pedestrians within 40 m gather and film or cheer facing the source; at most 3 sources are live', async () => {
     const { rig } = await lone();
-    const ps = [];
+    const ps: Ped[] = [];
     for (let i = 0; i < 12; i++) {
       const p = rig.sim.place({ key: `amb:9/256/256:${340 + i}`, cell: CELL, slot: 340 + i, a: i % 2 === 0 ? 0 : 3, b: i % 2 === 0 ? 1 : 2, s: (i * 2) % 28, pace: 1.4, lane: 0 });
       if (p) ps.push(p);

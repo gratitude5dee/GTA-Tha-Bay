@@ -6,7 +6,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { chunkKeyAt, type ChunkKey, type QualityTierId, type SimChunk, type WeatherPreset } from '@dv/shared';
-import { PED_SLOT0, pedBudget, pedCap } from '../src/sim/peds/density.ts';
+import { NEAR_PED_CAP, PED_SLOT0, pedBudget, pedCap } from '../src/sim/peds/density.ts';
+import { NEAR_PED_CAP as PERF_NEAR } from '../../../tools/ci/perf-check.ts';
 import { DENSITY, activeFor } from '../src/sim/traffic/density.ts';
 import { loadBake } from './fixtures/bake.ts';
 import { makePedRig } from './fixtures/peds.ts';
@@ -54,6 +55,10 @@ describe('AC-3: the active prefix grows with the tier', () => {
 
   it('the caps follow the C13 rows: 80, 150, 400, 600', () => {
     expect(LADDER.map((t) => pedCap(t))).toEqual([80, 150, 400, 600]);
+  });
+
+  it('the near-LOD caps of the perf check equal the sim table', () => {
+    expect(PERF_NEAR).toEqual(NEAR_PED_CAP);
   });
 
   it('the hour curves exist for every profile that has pedestrians', () => {

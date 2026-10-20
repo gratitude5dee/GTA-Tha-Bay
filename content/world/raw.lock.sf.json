@@ -20,7 +20,7 @@
       "licence": "PDDL-1.0"
     },
     {
-      "id": "datasf-muni-routes",
+      "id": "sfmta-patterns",
       "url": "https://data.sf.gov/resource/9exe-acju.json",
       "retrievedAt": "2026-10-19T14:26:12Z",
       "sha256": "232c12ee880f9cb00845b8e005282b6772ab598367d95893bff5eb208a59a2ee",
@@ -28,7 +28,7 @@
       "licence": "PDDL-1.0"
     },
     {
-      "id": "datasf-muni-stops",
+      "id": "sfmta-stops",
       "url": "https://data.sf.gov/resource/i28k-bkz6.json",
       "retrievedAt": "2026-10-19T14:26:12Z",
       "sha256": "501afabd1d8e3abf48b7263ec6f5b2c5413984296498272802cbbf513d7fe455",

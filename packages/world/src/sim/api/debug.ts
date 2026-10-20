@@ -189,6 +189,45 @@ export function runWorldDebug(w: WorldServices, tick: number, cmd: WorldDebugCom
         focus: t.focusOverride, stats: t.sim.stats, promoted: t.sim.promotions.count, filled: !t.sim.fill,
       });
     }
+    case 'peds': {
+      // the ambient pedestrians (M03b2): counts, and with `head` / `clearHead` the XR head pose they keep 0.6 m clear of
+      const p = w.peds;
+      if (!p) return done(null);
+      const hx = num(a['headX']), hz = num(a['headZ']);
+      if (a['clearHead'] === true) p.headOverride = null;
+      else if (hx !== null && hz !== null) p.headOverride = { x: hx, z: hz };
+      return done({ ...p.describe(), tick, radius: p.sim.radius, cap: p.sim.cap(), filled: !p.sim.fill, stats: p.sim.stats, attract: p.sim.attract.live().length });
+    }
+    case 'attract': {
+      // a `crowd.attract` source at (x, z) for the pedestrians, or the release of one (`id`)
+      const p = w.peds;
+      if (!p) return done(null);
+      const id = num(a['release']);
+      if (id !== null) {
+        p.sim.attract.release(id);
+        return done({ released: id });
+      }
+      const x = num(a['x']), z = num(a['z']);
+      return done(x === null || z === null ? null : { id: p.sim.attract.add(x, z, str(a['by']) ?? 'debug') });
+    }
+    case 'transit': {
+      const t = w.transit;
+      return done(t ? { ...t.describe(), tick } : null);
+    }
+    case 'ride': {
+      // Bay Rail from one station to another, or a robotaxi to a point
+      const t = w.transit;
+      if (!t) return done(null);
+      const from = str(a['from']), to = str(a['to']);
+      if (from !== null && to !== null) {
+        void t.ride.fastTravel(from, to).then(done);
+        return;
+      }
+      const x = num(a['x']), z = num(a['z']);
+      if (x === null || z === null) return done(null);
+      void t.ride.callRobotaxi({ x, z }, 'point').then(done);
+      return;
+    }
     case 'infraction': {
       const t = w.ambient;
       const x = num(a['x']), z = num(a['z']);

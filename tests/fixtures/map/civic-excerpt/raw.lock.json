@@ -12,16 +12,16 @@
       "licence": "PDDL-1.0"
     },
     {
-      "id": "datasf-muni-routes",
-      "url": "synth://datasf-muni-routes",
+      "id": "sfmta-patterns",
+      "url": "synth://sfmta-patterns",
       "retrievedAt": "2026-10-19T07:00:00Z",
       "sha256": "595fe8df988a0148b19d3594020b5a1d997507ba58270fbaf99f86264dc350fb",
       "rows": 1,
       "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
-      "id": "datasf-muni-stops",
-      "url": "synth://datasf-muni-stops",
+      "id": "sfmta-stops",
+      "url": "synth://sfmta-stops",
       "retrievedAt": "2026-10-19T07:00:00Z",
       "sha256": "64168c1c00895d2b989e7da60535ab708e3c8db5f26cafc0ff5fcdeb46afb987",
       "rows": 2,
@@ -77,8 +77,8 @@
     }
   ],
   "syntheticSources": [
-    "datasf-muni-routes",
-    "datasf-muni-stops",
+    "sfmta-patterns",
+    "sfmta-stops",
     "datasf-streets",
     "osm"
   ]

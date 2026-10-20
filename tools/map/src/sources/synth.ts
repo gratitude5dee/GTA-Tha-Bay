@@ -397,7 +397,7 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
   }
   osm.push(...b.osm);
 
-  // roads, rails, ferry, footways and the DataSF street / Muni rows that describe them (M02a2)
+  // roads, rails, ferry, footways and the DataSF street / SFMTA rows that describe them (M02a2)
   const nb2 = cfg.neighbourhoods;
   const cw2 = (cfg.land.maxX - cfg.land.minX) / nb2.cols, ch2 = (cfg.land.maxZ - cfg.land.minZ) / nb2.rows;
   const hoodOf = (x: number, z: number): string => {
@@ -419,10 +419,10 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
     return `{"stopname":${JSON.stringify(s.stopname)},"stopid":"${s.stopid}","latitude":"${f9(p.lat)}","longitude":"${f9(p.lng)}","shelter":"${s.shelter}"}`;
   });
   writeFileSync(path.join(o.outDir, 'i28k-bkz6.jsonl'), stopRows.length ? `${stopRows.join('\n')}\n` : '');
-  rows['datasf-muni-stops'] = stopRows.length;
+  rows['sfmta-stops'] = stopRows.length;
   const patternRows = roads.patterns.map((p) => `{"route_name":${JSON.stringify(p.route_name)},"lineabbr":"${p.lineabbr}","direction":"${p.direction}","shape":${multiLine(p.line)}}`);
   writeFileSync(path.join(o.outDir, '9exe-acju.jsonl'), patternRows.length ? `${patternRows.join('\n')}\n` : '');
-  rows['datasf-muni-routes'] = patternRows.length;
+  rows['sfmta-patterns'] = patternRows.length;
 
   // Terrarium tiles over the area box
   const tiles = tilesCovering(box, 15);
