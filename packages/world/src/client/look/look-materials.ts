@@ -28,7 +28,7 @@ import { Surf } from './surfaces.ts';
 import { waterNodes } from './water.ts';
 
 /** Polygon offset factor and units of the coarse (L1, L2) look materials. */
-const COARSE_DEPTH_BIAS = -4;
+const COARSE_DEPTH_BIAS = -64;
 
 export type MaterialProfile = 'full' | 'lite' | 'min';
 
