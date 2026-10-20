@@ -21,9 +21,9 @@ const seeds = new Map(loadContentWorld().landmarks.map((l) => [l.id, l] as const
 const budgets = readJson<{ rows: BudgetRow[] }>(path.join(toolsRoot, 'config/asset-budgets.json')).rows;
 const rowFor = (cls: string): BudgetRow => budgets.find((r) => r.tag === `lm-class:${cls}`) as BudgetRow;
 
-describe('the twelve recipes', () => {
+describe('the recipes of M02d1 (the first twelve)', () => {
   it('are the first twelve landmarks of the section 7 table, in order', () => {
-    expect(RECIPES.map((r) => r.id)).toEqual(TWELVE);
+    expect(RECIPES.slice(0, 12).map((r) => r.id)).toEqual(TWELVE);
     expect(validateLandmarkSeeds().filter((f) => f.level === 'fail')).toEqual([]);
   });
 
@@ -57,11 +57,11 @@ describe('the twelve recipes', () => {
 });
 
 describe('the committed landmark files (AC-2)', () => {
-  it('rebuild byte-identically: all 36 .glb files, their asset.json stats and their provenance records', async () => {
+  it('rebuild byte-identically: all 111 .glb files (37 x 3, M02d2 adds rows 13 to 37), their asset.json stats and their provenance records', async () => {
     const r = await buildLandmarks({ check: true });
     expect(r.findings).toEqual([]);
-    expect(r.plans).toHaveLength(12);
-    expect(r.plans.flatMap((p) => p.files)).toHaveLength(36);
+    expect(r.plans).toHaveLength(37);
+    expect(r.plans.flatMap((p) => p.files)).toHaveLength(111);
   }, 120_000);
 
   it('check fails on a changed file, a missing file and a stale provenance record', async () => {
@@ -99,7 +99,7 @@ describe('provenance and IP (AC-4)', () => {
         expect(doc.ai_generated).toBe(false);
         expect(doc.tool.name).toBe('tools/map landmarks');
         expect(doc.derived_from).toEqual([]);
-        expect(doc.paths[0]).toMatch(/^assets\/src\/building\/lm\.[a-z-]+\/(desktop|mobile|mobile-low)\.glb$/);
+        expect(doc.paths[0]).toMatch(/^assets\/src\/building\/lm\.[a-z0-9-]+\/(desktop|mobile|mobile-low)\.glb$/);
       }
     }
   }, 120_000);

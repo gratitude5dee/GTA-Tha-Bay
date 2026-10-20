@@ -29,7 +29,7 @@ import { runFetch } from './stages/s0-fetch.ts';
 import { parseTarget, publishPack } from './pack/publish.ts';
 import { failed, type GateResult } from './verify/gates.ts';
 import { verifyBakeDir } from './verify/verify.ts';
-import { buildLandmarks, validateLandmarkSeeds, validateLandmarksInBake, type Finding } from './verify/landmarks.ts';
+import { buildLandmarks, validateLandmarkAssets, validateLandmarkSeeds, validateLandmarksInBake, type Finding } from './verify/landmarks.ts';
 import { validatePoiSeeds, validatePoisInBake, countsByKind } from './verify/pois.ts';
 import { loadContentWorld } from './content.ts';
 import { resolveLatLng } from './resolve.ts';
@@ -196,7 +196,7 @@ export async function runLandmarksCommand(argv: readonly string[]): Promise<numb
     const code = printFindings(values.check ? 'map:landmarks --build --check' : 'map:landmarks --build', r.findings);
     return code;
   }
-  const findings = validateLandmarkSeeds();
+  const findings = [...validateLandmarkSeeds(), ...validateLandmarkAssets()];
   const sel = selectBake(values);
   if (typeof sel === 'string') { console.error(`map:landmarks: ${sel}`); return 1; }
   if (sel) findings.push(...validateLandmarksInBake(sel.dir, sel.area));
