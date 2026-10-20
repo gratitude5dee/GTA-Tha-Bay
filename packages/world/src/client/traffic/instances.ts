@@ -1,8 +1,9 @@
 /**
  * The instanced traffic (02-world-living.md section 2.6; M03b1). Ambient cars and parked cars are snapshot records flagged ambient
- * (`flags & 2`); the object pool skips them and this renderer draws them: one `InstancedMesh` per archetype (the draws), a body colour
- * and the light bits as instance attributes, a two-box gray-box shape until the art lands (M10d1, Q-39), distance throttling of the
- * far cars' matrices, and a total that never exceeds the C13 `CrowdLimits.maxTrafficInstances` of the tier.
+ * (`flags & 2`); the object pool skips them and this renderer draws them: ONE `InstancedMesh` for every archetype (one draw, one render
+ * object whatever the mix; the archetypes differ by the scale of their instance matrix over a reference two-box car), a body colour
+ * and the light bits as instance attributes, a gray-box shape until the art lands (M10d1, Q-39), distance throttling of the far
+ * cars' matrices, and a total that never exceeds the C13 `CrowdLimits.maxTrafficInstances` of the tier.
  *
  * Slots are stable per entity handle: a car keeps its instance index while it lives, a freed slot is a zero-scale matrix, and the
  * mesh `count` is the highest slot in use. Far cars (beyond `FAR_M`) rewrite their matrix one frame in `FAR_EVERY`.
@@ -11,7 +12,7 @@ import {
   BoxGeometry, BufferAttribute, BufferGeometry, Group, InstancedBufferAttribute, InstancedMesh, MeshStandardNodeMaterial, type Object3D,
 } from 'three/webgpu';
 import type { WorldFrame } from '@dv/engine/client/boot/world-layer';
-import { ARCHETYPES, PALETTE, type Archetype } from '../../sim/traffic/components.ts';
+import { ARCH, ARCHETYPES, PALETTE, type Archetype } from '../../sim/traffic/components.ts';
 import type { SkyNodes } from '../sky/nodes.ts';
 import { asNode, attribute, float, vertexColor, vec3, type L } from '../sky/tsl.ts';
 import { lampEmissive, type LampNodes } from './lights.ts';
@@ -25,11 +26,11 @@ type Pose = NonNullable<WorldFrame['poses']>[number];
 export interface TrafficInfo {
   /** Instances in use across all archetypes. */
   instances: number;
-  /** Draw calls the meshes cost: archetypes with at least one instance. */
+  /** Draw calls the traffic costs: 1 when any car is drawn. */
   draws: number;
   /** Instances per archetype, in `ARCHETYPES` order. */
   perArchetype: number[];
-  /** Highest slot in use per archetype (the mesh count). */
+  /** Highest slot in use (the mesh count), one entry. */
   slots: number[];
   /** Matrices written in the last update. */
   written: number;
@@ -46,18 +47,6 @@ export interface TrafficRendererOptions {
   sky: SkyNodes;
   /** C13 `CrowdLimits.maxTrafficInstances` of the tier. */
   cap: number;
-}
-
-interface Layer {
-  arch: Archetype;
-  mesh: InstancedMesh;
-  lamps: LampNodes;
-  tint: InstancedBufferAttribute;
-  lights: InstancedBufferAttribute;
-  slotOf: Map<number, number>;
-  free: number[];
-  high: number;
-  live: number;
 }
 
 const COLORS = PALETTE.map((hex) => [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255] as const);
@@ -98,10 +87,23 @@ export function carGeometry(arch: Archetype): BufferGeometry {
   return geo;
 }
 
+/** The reference car the one geometry is built for (the sedan); every archetype scales it. */
+const REF = ARCHETYPES[ARCH.sedan] as Archetype;
+const SCALE = ARCHETYPES.map((a) => [a.halfWidth / REF.halfWidth, a.halfHeight / REF.halfHeight, a.halfLength / REF.halfLength] as const);
+
 export class TrafficRenderer {
   readonly group = new Group();
-  private readonly layers: Layer[] = [];
   private readonly cap: number;
+  private readonly mesh: InstancedMesh;
+  private readonly lamps: LampNodes;
+  private readonly tint: InstancedBufferAttribute;
+  private readonly lights: InstancedBufferAttribute;
+  private readonly slotOf = new Map<number, number>();
+  private readonly archOfSlot: number[] = [];
+  private readonly free: number[] = [];
+  private high = 0;
+  private live = 0;
+  private readonly liveBy: number[] = ARCHETYPES.map(() => 0);
   private frame = 0;
   private written = 0;
   private dropped = 0;
@@ -111,27 +113,23 @@ export class TrafficRenderer {
   constructor(private readonly o: TrafficRendererOptions) {
     this.cap = o.cap;
     this.group.name = 'traffic';
-    for (const arch of ARCHETYPES) {
-      const geo = carGeometry(arch);
-      const n = Math.max(1, o.cap);
-      const tint = new InstancedBufferAttribute(new Float32Array(n * 3).fill(1), 3);
-      const lights = new InstancedBufferAttribute(new Float32Array(n), 1);
-      geo.setAttribute('aTint', tint);
-      geo.setAttribute('aLights', lights);
-      const lamps = lampEmissive(o.sky, arch.halfWidth, arch.halfLength);
-      const m = new MeshStandardNodeMaterial({ roughness: 0.6, metalness: 0.15 });
-      m.colorNode = asNode((vertexColor(0) as L).mul(attribute('aTint', 'vec3') as L) as L);
-      m.emissiveNode = lamps.emissive;
-      const mesh = new InstancedMesh(geo, m, n);
-      mesh.name = `traffic.${arch.prefab}`;
-      mesh.frustumCulled = false;
-      mesh.count = 0;
-      const zero = mesh.instanceMatrix.array as Float32Array;
-      zero.fill(0);
-      this.group.add(mesh);
-      this.layers.push({ arch, mesh, lamps, tint, lights, slotOf: new Map(), free: [], high: 0, live: 0 });
-      this.archByKey.set(arch.asset, arch.id);
-    }
+    const geo = carGeometry(REF);
+    const n = Math.max(1, o.cap);
+    this.tint = new InstancedBufferAttribute(new Float32Array(n * 3).fill(1), 3);
+    this.lights = new InstancedBufferAttribute(new Float32Array(n), 1);
+    geo.setAttribute('aTint', this.tint);
+    geo.setAttribute('aLights', this.lights);
+    this.lamps = lampEmissive(o.sky, REF.halfWidth, REF.halfLength);
+    const m = new MeshStandardNodeMaterial({ roughness: 0.6, metalness: 0.15 });
+    m.colorNode = asNode((vertexColor(0) as L).mul(attribute('aTint', 'vec3') as L) as L);
+    m.emissiveNode = this.lamps.emissive;
+    this.mesh = new InstancedMesh(geo, m, n);
+    this.mesh.name = 'traffic.cars';
+    this.mesh.frustumCulled = false;
+    this.mesh.count = 0;
+    (this.mesh.instanceMatrix.array as Float32Array).fill(0);
+    this.group.add(this.mesh);
+    for (const a of ARCHETYPES) this.archByKey.set(a.asset, a.id);
     o.parent.add(this.group);
     void float;
     void vec3;
@@ -139,21 +137,19 @@ export class TrafficRenderer {
 
   /** Total instances drawn. */
   get instances(): number {
-    let n = 0;
-    for (const l of this.layers) n += l.live;
-    return n;
+    return this.live;
   }
 
   info(): TrafficInfo {
     return {
-      instances: this.instances,
-      draws: this.layers.filter((l) => l.live > 0).length,
-      perArchetype: this.layers.map((l) => l.live),
-      slots: this.layers.map((l) => l.high),
+      instances: this.live,
+      draws: this.live > 0 ? 1 : 0,
+      perArchetype: [...this.liveBy],
+      slots: [this.high],
       written: this.written,
       dropped: this.dropped,
       cap: this.cap,
-      objects: this.layers.length,
+      objects: 1,
     };
   }
 
@@ -168,89 +164,89 @@ export class TrafficRenderer {
     const poses = f.poses;
     const keys = f.poseKeys;
     const count = f.poseCount ?? 0;
-    for (const l of this.layers) l.lamps.uTime.value = timeSec;
-    if (!poses || !keys) return this.instances;
+    this.lamps.uTime.value = timeSec;
+    if (!poses || !keys) return this.live;
     this.seen.clear();
     const cx = f.camera.pos[0], cz = f.camera.pos[2];
-    let live = 0;
+    let drawn = 0;
     for (let i = 0; i < count; i++) {
       const p = poses[i] as Pose;
       if ((p.flags & 2) === 0) continue;
       const key = keys.get(p.renderKey);
       const ai = key === undefined ? undefined : this.archByKey.get(key);
       if (ai === undefined) continue;
-      if (live >= this.cap) {
+      if (drawn >= this.cap) {
         this.dropped++;
         continue;
       }
-      live++;
-      const layer = this.layers[ai] as Layer;
-      let slot = layer.slotOf.get(p.handle);
+      drawn++;
+      let slot = this.slotOf.get(p.handle);
       const fresh = slot === undefined;
       if (slot === undefined) {
-        slot = layer.free.pop() ?? layer.high++;
-        if (slot >= layer.mesh.instanceMatrix.count) {
+        slot = this.free.pop() ?? this.high++;
+        if (slot >= this.mesh.instanceMatrix.count) {
           this.dropped++;
-          layer.free.push(slot);
+          this.free.push(slot);
           continue;
         }
-        layer.slotOf.set(p.handle, slot);
-        layer.live++;
+        this.slotOf.set(p.handle, slot);
+        this.archOfSlot[slot] = ai;
+        this.liveBy[ai] = (this.liveBy[ai] as number) + 1;
+        this.live++;
       }
       this.seen.add(p.handle);
       const dx = p.px - cx, dz = p.pz - cz;
       const far = dx * dx + dz * dz > FAR_M * FAR_M;
       if (!fresh && far && (this.frame + slot) % FAR_EVERY !== 0) continue;
-      this.write(layer, slot, p, fresh);
+      this.write(slot, ai, p, fresh);
     }
     // slots whose entity left the snapshot go dark
-    for (const l of this.layers) {
-      let freed = false;
-      for (const [h, slot] of l.slotOf) {
-        if (this.seen.has(h)) continue;
-        l.slotOf.delete(h);
-        l.free.push(slot);
-        l.live--;
-        const m = l.mesh.instanceMatrix.array as Float32Array;
-        m.fill(0, slot * 16, slot * 16 + 16);
-        freed = true;
-      }
-      while (l.high > 0 && !this.slotUsed(l, l.high - 1)) {
-        l.high--;
-        const at = l.free.indexOf(l.high);
-        if (at >= 0) l.free.splice(at, 1);
-      }
-      l.mesh.count = l.high;
-      if (freed || l.live > 0) l.mesh.instanceMatrix.needsUpdate = true;
-      l.tint.needsUpdate = true;
-      l.lights.needsUpdate = true;
+    let freed = false;
+    for (const [h, slot] of this.slotOf) {
+      if (this.seen.has(h)) continue;
+      this.slotOf.delete(h);
+      this.free.push(slot);
+      this.live--;
+      const ai = this.archOfSlot[slot] as number;
+      this.liveBy[ai] = (this.liveBy[ai] as number) - 1;
+      (this.mesh.instanceMatrix.array as Float32Array).fill(0, slot * 16, slot * 16 + 16);
+      freed = true;
     }
-    return this.instances;
+    if (freed) {
+      const used = new Set(this.slotOf.values());
+      while (this.high > 0 && !used.has(this.high - 1)) {
+        this.high--;
+        const at = this.free.indexOf(this.high);
+        if (at >= 0) this.free.splice(at, 1);
+      }
+    }
+    this.mesh.visible = this.live > 0;
+    this.mesh.count = this.high;
+    if (freed || this.live > 0) this.mesh.instanceMatrix.needsUpdate = true;
+    this.tint.needsUpdate = true;
+    this.lights.needsUpdate = true;
+    return this.live;
   }
 
-  private slotUsed(l: Layer, slot: number): boolean {
-    for (const s of l.slotOf.values()) if (s === slot) return true;
-    return false;
-  }
-
-  private write(l: Layer, slot: number, p: Pose, fresh: boolean): void {
-    const m = l.mesh.instanceMatrix.array as Float32Array;
+  private write(slot: number, ai: number, p: Pose, fresh: boolean): void {
+    const m = this.mesh.instanceMatrix.array as Float32Array;
     const o = slot * 16;
     const { qx, qy, qz, qw } = p;
+    const [sx, sy, sz] = SCALE[ai] as readonly [number, number, number];
     const x2 = qx + qx, y2 = qy + qy, z2 = qz + qz;
     const xx = qx * x2, xy = qx * y2, xz = qx * z2, yy = qy * y2, yz = qy * z2, zz = qz * z2;
     const wx = qw * x2, wy = qw * y2, wz = qw * z2;
-    m[o] = 1 - (yy + zz);
-    m[o + 1] = xy + wz;
-    m[o + 2] = xz - wy;
+    m[o] = (1 - (yy + zz)) * sx;
+    m[o + 1] = (xy + wz) * sx;
+    m[o + 2] = (xz - wy) * sx;
     m[o + 3] = 0;
-    m[o + 4] = xy - wz;
-    m[o + 5] = 1 - (xx + zz);
-    m[o + 6] = yz + wx;
+    m[o + 4] = (xy - wz) * sy;
+    m[o + 5] = (1 - (xx + zz)) * sy;
+    m[o + 6] = (yz + wx) * sy;
     m[o + 7] = 0;
-    m[o + 8] = xz + wy;
-    m[o + 9] = yz - wx;
-    m[o + 10] = 1 - (xx + yy);
+    m[o + 8] = (xz + wy) * sz;
+    m[o + 9] = (yz - wx) * sz;
+    m[o + 10] = (1 - (xx + yy)) * sz;
     m[o + 11] = 0;
     m[o + 12] = p.px;
     m[o + 13] = p.py;
@@ -258,7 +254,7 @@ export class TrafficRenderer {
     m[o + 15] = 1;
     this.written++;
     // colour (animP1 holds the palette index) and the light bits (animState)
-    const t = l.tint.array as Float32Array;
+    const t = this.tint.array as Float32Array;
     if (fresh) {
       const c = COLORS[Math.round(p.animP1) % COLORS.length] ?? COLORS[0];
       if (c) {
@@ -267,16 +263,13 @@ export class TrafficRenderer {
         t[slot * 3 + 2] = toLinear(c[2]);
       }
     }
-    (l.lights.array as Float32Array)[slot] = p.animState;
+    (this.lights.array as Float32Array)[slot] = p.animState;
   }
 
   dispose(): void {
     this.o.parent.remove(this.group);
-    for (const l of this.layers) {
-      l.mesh.geometry.dispose();
-      (l.mesh.material as MeshStandardNodeMaterial).dispose();
-      l.mesh.dispose();
-    }
-    this.layers.length = 0;
+    this.mesh.geometry.dispose();
+    (this.mesh.material as MeshStandardNodeMaterial).dispose();
+    this.mesh.dispose();
   }
 }

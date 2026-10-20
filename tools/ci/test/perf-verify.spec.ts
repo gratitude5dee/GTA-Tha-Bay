@@ -182,7 +182,7 @@ describe('check:perf aggregation (AC-8)', () => {
           writeFileSync(path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.json`), JSON.stringify(r));
           if (scenario === 'downtown-rush') {
             const crowd = (loadBudget(tier) as unknown as { crowd: { maxTrafficInstances: number } }).crowd.maxTrafficInstances;
-            writeFileSync(path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.traffic.json`), JSON.stringify({ scenario, tier, samples: 40, instancesMax: Math.floor(crowd * 0.5), drawsMax: 7, objectsMax: 8, cap: crowd, simAgents: Math.floor(crowd * 0.5), simCap: crowd }));
+            writeFileSync(path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.traffic.json`), JSON.stringify({ scenario, tier, samples: 40, instancesMax: Math.floor(crowd * 0.5), drawsMax: 1, objectsMax: 1, cap: crowd, simAgents: Math.floor(crowd * 0.5), simCap: crowd }));
           }
         }
       }

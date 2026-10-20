@@ -19,7 +19,7 @@ const fixture = JSON.parse(readFileSync(path.join(repoRoot, 'tools', 'ci', 'fixt
 const budgets = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { render: { maxRenderObjects: number; maxTriangles: number } }> };
 
 const crowd = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxTrafficInstances: number } }> }).tiers[tier]?.crowd.maxTrafficInstances ?? 0;
-const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 7, objectsMax: 8, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier) });
+const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 1, objectsMax: 1, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier) });
 
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });

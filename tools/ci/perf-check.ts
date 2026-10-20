@@ -47,7 +47,7 @@ export function trafficPath(root: string, scenario: string, project: string, tie
 
 /**
  * The traffic half of a traffic scenario (M03b1, AC-10): the instances drawn stay within `crowd.maxTrafficInstances` of the tier row of
- * `config/tier-budgets.json` (C13 `CrowdLimits`), the instanced draws within the archetype meshes, and the traffic was really on
+ * `config/tier-budgets.json` (C13 `CrowdLimits`), the instanced draws within one mesh, and the traffic was really on
  * screen (at least one instance) so a build without it cannot pass. Returns the failure lines.
  */
 export function verifyTraffic(file: string, tier: QualityTierId): string[] {
@@ -59,12 +59,12 @@ export function verifyTraffic(file: string, tier: QualityTierId): string[] {
   if (t.instancesMax < 1) out.push('FAIL  no traffic instance was drawn during the run');
   if (t.instancesMax > crowd.maxTrafficInstances) out.push(`FAIL  traffic instances ${t.instancesMax} > crowd.maxTrafficInstances ${crowd.maxTrafficInstances}`);
   if (t.simAgents > crowd.maxTrafficInstances + 400) out.push(`FAIL  sim agents ${t.simAgents} are far over the instance cap ${crowd.maxTrafficInstances}`);
-  if (t.drawsMax > TRAFFIC_DRAWS_MAX) out.push(`FAIL  traffic draws ${t.drawsMax} > ${TRAFFIC_DRAWS_MAX} (one per archetype)`);
+  if (t.drawsMax > TRAFFIC_DRAWS_MAX) out.push(`FAIL  traffic draws ${t.drawsMax} > ${TRAFFIC_DRAWS_MAX} (one instanced mesh)`);
   return out;
 }
 
-/** One instanced mesh per archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
-export const TRAFFIC_DRAWS_MAX = 8;
+/** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
+export const TRAFFIC_DRAWS_MAX = 1;
 
 export interface CheckResult {
   ok: boolean;
