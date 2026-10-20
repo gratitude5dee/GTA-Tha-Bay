@@ -3,7 +3,7 @@
  * and no texture download. The hashes work on integer cell coordinates (the sine-free form), so they hold their precision at the
  * distances of a 10 km city.
  */
-import { clamp, dot, float, floor, fract, max, mix, select, smoothstep, vec2, vec3, type L } from '../sky/tsl.ts';
+import { clamp, dot, float, floor, fract, fwidth, max, mix, select, smoothstep, vec2, vec3, type L } from '../sky/tsl.ts';
 
 /** A hash of a 2D cell, in [0, 1). */
 export const hash21 = (p: L): L => {
@@ -40,6 +40,26 @@ export const fbm3 = (p: L): L =>
 
 /** A noise factor around 1: `1 + (n - 0.5) * 2 * amount`. */
 export const around1 = (n: L, amount: number): L => float(1).add(n.sub(0.5).mul(2 * amount));
+
+/**
+ * Pixel footprint in metres: how far the fragment's world position moves from one pixel to the next. The procedural patterns have no
+ * mip chain, so they fade toward their average once a pixel covers more than a cell (the analytic form of texture filtering).
+ */
+export const pixelFootprint = (worldPos: L): L => fwidth(worldPos).length();
+
+/** 1 while a band of `freq` cycles per metre is resolved by the pixel footprint `fp`, 0 once a pixel covers more than a cycle. */
+export const bandFade = (fp: L, freq: number): L => float(1).sub(smoothstep(0.3, 1.1, fp.mul(freq)));
+
+/** Value noise at `freq` cycles per metre that fades to its mean (0.5) when the pixel is larger than a cycle. */
+export const vnoiseAA = (p: L, freq: number, fp: L): L => mix(float(0.5), vnoise(p.mul(freq)), bandFade(fp, freq));
+
+/** `edgeLine` with a half width of at least one pixel, and fading out when a cell is smaller than a pixel. `cellM` is the cell size. */
+export const edgeLineAA = (x: L, w: number, cellM: number, fp: L): L => {
+  const px = fp.div(cellM);
+  const f = fract(x);
+  const d = f.min(float(1).sub(f));
+  return float(1).sub(smoothstep(0, px.max(w), d)).mul(float(1).sub(smoothstep(0.35, 0.9, px)));
+};
 
 /** A thin line: 1 on the cell edge (`fract(x)` near 0 or 1), 0 inside, `w` the half width in cell units. */
 export const edgeLine = (x: L, w: number): L => {

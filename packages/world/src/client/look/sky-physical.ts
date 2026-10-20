@@ -105,6 +105,14 @@ export class PhysicalSky {
     return sky;
   }
 
+  /**
+   * How much of the environment map the light rig uses: the physical sky's share of the picture (1 on a clear day, 0 under the dome's
+   * Karl fog or overcast, whose sky the physical model does not draw). Where the map is not used the hemisphere light carries the ambient.
+   */
+  get envShare(): number {
+    return 1 - this.domeBlend.value;
+  }
+
   get envMapInUse(): boolean {
     return this.o.envMap && this.envTexture !== null;
   }

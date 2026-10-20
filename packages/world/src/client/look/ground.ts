@@ -8,7 +8,7 @@
 import { clamp, float, mix, positionWorld, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
 import type { LookNodes } from './common.ts';
 import { srgbHexToLinear, type LookFile } from './config.ts';
-import { around1, edgeLine, fbm2, fbm3, hash21, pickColor, pickFloat, vnoise } from './noise.ts';
+import { around1, bandFade, edgeLineAA, fbm2, fbm3, hash21, pickColor, pickFloat, pixelFootprint, vnoise, vnoiseAA } from './noise.ts';
 import { GROUND_NAMES, ROAD_NAMES, Surf } from './surfaces.ts';
 
 export interface GroundOut {
@@ -48,34 +48,35 @@ export function groundNodes(look: LookFile, n: LookNodes, id: L, vertexColor: L,
   const deep = inRange(id, 10, 10).max(inRange(id, Surf.Sea, Surf.Sea));
 
   const p = vec2(positionWorld.x, positionWorld.z);
+  const fp = pixelFootprint(positionWorld).max(0.002);
   const base = mix(vertexColor, albedo, 0.55);
   const big = detail === 'full' ? fbm3 : fbm2;
 
   // Asphalt: patches of different wear, then the aggregate.
   const aspPatch = around1(big(p.mul(0.07)), 0.16);
-  const aspGrain = around1(vnoise(p.mul(7.3)), 0.07).mul(around1(vnoise(p.mul(23.1)), 0.04));
+  const aspGrain = around1(vnoiseAA(p, 7.3, fp), 0.07).mul(around1(vnoiseAA(p, 23.1, fp), 0.04));
   const aspF = aspPatch.mul(aspGrain);
 
   // Paving: slab joints every 1.5 m, each slab a little different.
   const slab = p.div(1.5);
-  const joint = edgeLine(slab.x, 0.012).max(edgeLine(slab.y, 0.012));
-  const walkF = around1(hash21(slab.floor()), 0.06).mul(float(1).sub(joint.mul(0.2))).mul(around1(vnoise(p.mul(5.7)), 0.05));
+  const joint = edgeLineAA(slab.x, 0.012, 1.5, fp).max(edgeLineAA(slab.y, 0.012, 1.5, fp));
+  const walkF = float(1).add(hash21(slab.floor()).sub(0.5).mul(0.12).mul(bandFade(fp, 0.7))).mul(float(1).sub(joint.mul(0.2))).mul(around1(vnoiseAA(p, 5.7, fp), 0.05));
 
   // Grass: a slow drift, mid-scale clumps and blades; dry patches lean yellow.
   const drift = big(p.mul(0.22));
-  const clump = vnoise(p.mul(3.1));
-  const blade = vnoise(p.mul(18));
+  const clump = vnoiseAA(p, 3.1, fp);
+  const blade = vnoiseAA(p, 18, fp);
   const grassF = float(1).add(drift.sub(0.5).mul(noiseAmt.mul(2))).mul(around1(clump, 0.09)).mul(around1(blade, 0.06));
   const dry = smoothstep(0.62, 0.85, vnoise(p.mul(0.09).add(vec2(13.1, 5.3))));
   const grassTint = mix(vec3(1, 1, 1), vec3(1.14, 1.04, 0.72), dry.mul(0.7));
 
-  const sandF = around1(vnoise(p.mul(vec2(1.1, 5.2))), 0.07).mul(around1(vnoise(p.mul(31)), 0.05));
-  const dirtF = around1(big(p.mul(0.5)), 0.2).mul(around1(vnoise(p.mul(13)), 0.1));
+  const sandF = around1(vnoiseAA(p, 5.2, fp), 0.07).mul(around1(vnoiseAA(p, 31, fp), 0.05));
+  const dirtF = around1(big(p.mul(0.5)), 0.2).mul(around1(vnoiseAA(p, 13, fp), 0.1));
   const crack = float(1).sub(float(1).sub(smoothstep(0, 0.04, vnoise(p.mul(1.7)).sub(0.5).abs())).mul(0.25));
   const rockF = around1(big(p.mul(0.45)), 0.3).mul(crack);
   const plank = p.y.div(0.19);
-  const plankF = around1(hash21(vec2(plank.floor(), p.x.div(3.2).add(hash21(vec2(plank.floor(), 3.7)).mul(5)).floor())), 0.12).mul(float(1).sub(edgeLine(plank, 0.04).mul(0.35)));
-  const railF = around1(vnoise(p.mul(14)), 0.26).mul(around1(vnoise(p.mul(4.3)), 0.1));
+  const plankF = float(1).add(hash21(vec2(plank.floor(), p.x.div(3.2).add(hash21(vec2(plank.floor(), 3.7)).mul(5)).floor())).sub(0.5).mul(0.24).mul(bandFade(fp, 5))).mul(float(1).sub(edgeLineAA(plank, 0.04, 0.19, fp).mul(0.35)));
+  const railF = around1(vnoiseAA(p, 14, fp), 0.26).mul(around1(vnoiseAA(p, 4.3, fp), 0.1));
 
   const nothing = float(1).sub(asphalt).sub(walk).sub(grass).sub(sand).sub(dirt).sub(rock).sub(pier).sub(rail);
   const detailF = float(1)

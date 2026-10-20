@@ -55,6 +55,8 @@ export interface PostStackOptions {
 }
 
 const v4 = vec4 as unknown as (...a: unknown[]) => PNode;
+/** How much of the GTAO factor is applied (1 = all of it). */
+const AO_STRENGTH = 0.6;
 
 
 /** The real pipeline: passes, composite, the nodes in the order of the list. */
@@ -71,8 +73,8 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
       return r;
     };
   }
-  const wantAo = nodes.includes('gtao-half');
   const wantTraa = nodes.includes('traa');
+  const wantAo = nodes.includes('gtao-half');
   if (wantAo && wantTraa) worldPass.setMRT(mrt({ output, normal: normalView, velocity }));
   else if (wantAo) worldPass.setMRT(mrt({ output, normal: normalView }));
   else if (wantTraa) worldPass.setMRT(mrt({ output, velocity }));
@@ -84,20 +86,12 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
   const backdropTarget = backdrop ? new RenderTarget(1, 1, { type: HalfFloatType, depthBuffer: true }) : null;
   const sky = backdropTarget ? (texture(backdropTarget.texture, screenUV) as unknown as PNode) : null;
   const size = new Vector2();
-  (globalThis as { __dvPostRT?: unknown }).__dvPostRT = { backdropTarget, renderer };
   const sceneBg = scene as unknown as { backgroundNode: unknown };
   if (sky) sceneBg.backgroundNode = v4(sky.rgb, 1);
   let color: PNode = world;
-  // QA debugging of the composite (never set outside a QA page).
-  const dbgRaw = (globalThis as { __dvPostDebug?: string }).__dvPostDebug ?? '';
-  const dbgs = dbgRaw.split(';');
-  if ((dbgs.includes('backdrop') || dbgs.includes('raw')) && sky) color = v4(sky.rgb, 1);
-  else if (dbgs.includes('world')) color = v4(world.rgb, 1);
-  else if (dbgs.includes('alpha')) color = v4(world.a, world.a, world.a, 1);
-  else if (dbgs.includes('const')) color = v4(0.2, 0.5, 0.9, 1);
   const disposables: { dispose(): void }[] = [];
 
-  for (const n of dbgs.includes('raw') ? [] : nodes.filter((x) => !dbgs.includes(`no:${x}`))) {
+  for (const n of nodes) {
     switch (n) {
       case 'gtao-half': {
         const g = createGtao(worldPass.getTextureNode('depth'), worldPass.getTextureNode('normal'), camera);
@@ -105,7 +99,10 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
         // The sky (nothing drawn by the world pass: the linear depth is at the far plane) keeps an AO of 1.
         const lin = (worldPass as unknown as { getLinearDepthNode(n?: string): PNode }).getLinearDepthNode('depth');
         const solid = lin.lessThan(0.9995);
-        const open = (select as unknown as (c: PNode, a: PNode, b: number) => PNode)(solid, g.factor.r, 1);
+        // The occlusion is softened to a multiplier of at least 0.4: the contact shading stays, and a wall seen at a grazing angle or an
+        // artefact of the half resolution depth never turns a surface black.
+        const soft = g.factor.r.mul(AO_STRENGTH).add(1 - AO_STRENGTH);
+        const open = (select as unknown as (c: PNode, a: PNode, b: number) => PNode)(solid, soft, 1);
         color = v4(color.rgb.mul(open), 1);
         break;
       }
@@ -122,7 +119,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
         color = createTonemap(color);
         break;
       case 'smaa':
-        color = dbgs.includes('swap:fxaa') ? createFxaa(color) : createSmaa(color);
+        color = createSmaa(color);
         break;
       case 'fxaa':
         color = createFxaa(color);
@@ -135,7 +132,7 @@ export const threePipeline: PipelineFactory = (ctx, nodes, opts) => {
 
   const pipeline = new RenderPipeline(renderer);
   // The list holds `tonemap`, so the output transform is part of the graph and runs once, before the display-referred AA nodes.
-  pipeline.outputColorTransform = dbgs.includes('raw') || !nodes.includes('tonemap');
+  pipeline.outputColorTransform = !nodes.includes('tonemap');
   pipeline.outputNode = color as never;
   return {
     render: () => {

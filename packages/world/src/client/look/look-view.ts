@@ -19,8 +19,21 @@ import { lookShot, shotQuaternion, type LookShot } from './shots.ts';
 import { sunState, type SunState } from './sun.ts';
 
 /** Hemisphere (ambient) intensity of the look pass; with an environment map the hemisphere only tints the ground bounce. */
-export const HEMI_LOOK = 2.1;
-const HEMI_WITH_ENV = 0.55;
+export const HEMI_LOOK = 1.6;
+const HEMI_WITH_ENV = 0.4;
+
+/** Design values of the light rig, adjustable at runtime in QA builds (`__dvBridge.world.internals().look.tune`). */
+export interface LookTune {
+  /** Multiplies the hemisphere light. */
+  hemi: number;
+  /** Multiplies the environment map's intensity. */
+  env: number;
+  /** Multiplies the sun. */
+  sun: number;
+  /** 0..1: how far the ambient colour is pulled toward grey (the sky keys are very blue). */
+  desat: number;
+}
+export const DEFAULT_TUNE: LookTune = { hemi: 1, env: 0.55, sun: 1, desat: 0.5 };
 
 export interface LookReport {
   /** `legacy` while the look is off. */
@@ -44,6 +57,8 @@ export interface LookReport {
   fallbacks: string[];
   envBakes: number;
   envBakeMs: number;
+  /** The tier's pipeline (C13): `direct` on the XR tiers, which have no post stack. */
+  pipeline: 'render-pipeline' | 'direct';
   /** The sun light: intensity and linear colour now (the moon at night). */
   sun: { intensity: number; color: [number, number, number]; moon: boolean } | null;
 }
@@ -63,6 +78,8 @@ export interface LookViewOptions {
   postLevel: PostLevel;
   /** The stream focus. */
   focus: () => { x: number; z: number };
+  /** Holds or releases the sky's own clock (the painted clouds and the rain), for stills. */
+  freezeSkyTime?: (on: boolean) => void;
 }
 
 /** A look shot being applied: the held camera and the wait for the frame. */
@@ -82,6 +99,8 @@ export class LookView {
   sky: PhysicalSky | null = null;
   /** The camera `shot()` holds, or null. */
   shotCamera: ShotCamera | null = null;
+  /** QA: live adjustment of the light rig. */
+  readonly tune: LookTune = { ...DEFAULT_TUNE };
 
   private readonly o: LookViewOptions;
   private state: SunState | null = null;
@@ -96,13 +115,13 @@ export class LookView {
     this.o = o;
     this.profile = o.profile;
     this.lastLevel = o.postLevel;
-    const self = this;
+    const receiving = (): boolean => this.on && (this.shadows?.receiving ?? false);
     this.runtime = {
       get receive(): boolean {
-        return self.on && (self.shadows?.receiving ?? false);
+        return receiving();
       },
       get casting(): boolean {
-        return self.on && (self.shadows?.receiving ?? false);
+        return receiving();
       },
       get casterRadiusM(): number {
         return o.look.casterRadiusM[o.tier] ?? 0;
@@ -218,26 +237,40 @@ export class LookView {
     this.state = st;
     const sun = lights.sun;
     const dir: [number, number, number] = st.moon ? [-u.uSunDir[0], -u.uSunDir[1], -u.uSunDir[2]] : [u.uSunDir[0], u.uSunDir[1], u.uSunDir[2]];
+    const tune = this.tune;
+    const intensity = st.intensity * tune.sun;
     sun.color.setRGB(st.color[0], st.color[1], st.color[2]);
-    sun.intensity = st.intensity;
+    sun.intensity = intensity;
     if (this.shadows) {
       this.shadows.light.color.setRGB(st.color[0], st.color[1], st.color[2]);
-      this.shadows.light.intensity = st.intensity;
+      this.shadows.light.intensity = intensity;
       this.shadows.place(dir, this.o.focus());
     } else {
       sun.position.set(dir[0] * 300, dir[1] * 300, dir[2] * 300);
     }
     backdrop.lights[1].color.copy(sun.color);
-    backdrop.lights[1].intensity = st.intensity;
+    backdrop.lights[1].intensity = intensity;
     backdrop.lights[1].position.set(dir[0] * 300, dir[1] * 300, dir[2] * 300);
     host.setExposure(st.exposure);
 
     // Ambient: the hemisphere light carries it, or only the ground bounce when the environment map does.
     const env = this.sky?.envTexture ?? null;
     host.scene.environment = env;
-    const hemiK = env ? HEMI_WITH_ENV + (1 - HEMI_WITH_ENV) * u.uNight : 1;
-    lights.hemi.intensity = HEMI_LOOK * hemiK;
-    if (env) host.scene.environmentIntensity = this.sky?.envIntensity ?? 1;
+    // With the physical sky the map carries the ambient light (the hemisphere only tints the ground bounce); under the dome (Karl
+    // fog, overcast, rain, smoke) and at night the hemisphere carries it, from the sky keys.
+    const share = env ? (this.sky?.envShare ?? 0) * (1 - u.uNight) : 0;
+    const hemiK = 1 - (1 - HEMI_WITH_ENV) * share;
+    lights.hemi.intensity = HEMI_LOOK * hemiK * tune.hemi;
+    // The keyed ambient is very blue (it stands for the whole sky): pulled toward its grey so shadows read as shade, not as blue paint.
+    const amb = u.uAmbient;
+    const lum = 0.2126 * amb[0] + 0.7152 * amb[1] + 0.0722 * amb[2];
+    const grey = (c: number): number => c + (lum - c) * tune.desat;
+    for (const h of [lights.hemi, backdrop.lights[0]]) {
+      h.color.setRGB(grey(amb[0]) * 1.1, grey(amb[1]) * 1.1, grey(amb[2]) * 1.1);
+      h.groundColor.setRGB(grey(amb[0]) * 0.45, grey(amb[1]) * 0.45, grey(amb[2]) * 0.42);
+    }
+    if (env) host.scene.environmentIntensity = (this.sky?.envIntensity ?? 1) * tune.env * share;
+    this.o.materials.lookNodes.uEnv.value = env ? Math.min(1, tune.env * share * (this.sky?.envIntensity ?? 1)) : 0;
 
     if (this.sky) {
       const cam = host.camera;
@@ -265,6 +298,7 @@ export class LookView {
   freezeClock(on: boolean): void {
     this.clockFrozen = on;
     this.sky?.freeze(on);
+    this.o.freezeSkyTime?.(on);
   }
 
   /** The device was lost or the renderer swapped: the shadow object and the sky are made again. */
@@ -313,6 +347,7 @@ export class LookView {
       backend,
       tier,
       fallbacks: [...this.fallbacks],
+      pipeline: host.tier?.features.pipeline ?? 'render-pipeline',
       envBakes: this.sky?.report().bakes ?? 0,
       envBakeMs: this.sky?.report().lastBakeMs ?? 0,
       sun: on && this.state ? { intensity: this.state.intensity, color: this.state.color, moon: this.state.moon } : null,

@@ -224,6 +224,7 @@ export class WorldView implements WorldLayer {
         backend: this.o.look.backend,
         postLevel: this.o.look.postLevel as PostLevel,
         focus: () => ({ x: this.lastFocus.x, z: this.lastFocus.z }),
+        freezeSkyTime: (on) => this.sky?.freezeTime(on),
       });
       this.lookView = look;
       look.start();
@@ -570,7 +571,15 @@ export class WorldView implements WorldLayer {
 
   /** M02e: what the look pass is doing now (the bridge's `look()`). A view without a look reports `legacy`. */
   lookReport(): LookReport | null {
-    return this.lookView ? this.lookView.report() : null;
+    if (this.lookView) return this.lookView.report();
+    if (!this.o.look || !this.host) return null;
+    // A tier without a look (the XR tiers, or `world.look` off): the legacy materials, the tier's own pipeline, nothing else.
+    return {
+      profile: 'legacy', on: false, postNodes: [], postMode: 'none', postLevel: 0, shadowMode: 'none', shadowPath: 'off', shadowPasses: 0,
+      casters: 0, casterKinds: [], exposure: this.host.ready ? this.host.renderer.toneMappingExposure : 1, envMap: false, sky: 'dome',
+      windowEmissive: 0, backend: this.o.look.backend, tier: this.o.tier, fallbacks: [], envBakes: 0, envBakeMs: 0,
+      pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
+    };
   }
 
   /** M02e QA: the look on or off at runtime; false when the tier has none. */

@@ -317,7 +317,7 @@ export class RendererHost {
 
   /** The exposure of the tone mapping (M02e: the sun state sets it; the sky keys alone drove it before). */
   setExposure(exposure: number): void {
-    this._renderer && (this._renderer.toneMappingExposure = exposure);
+    if (this._renderer) this._renderer.toneMappingExposure = exposure;
   }
 
   /** Sizes the drawing buffer under the current tier caps; the aspect ratio of both cameras follows. */

@@ -22,10 +22,12 @@ export interface LookNodes {
   uLook: U<number>;
   /** The façade material's night-emissive strength this frame, 0..1 (also reported by the bridge). */
   uWindowGlow: U<number>;
+  /** How much of the light the environment map carries this frame, 0..1: metallic glass reflects it, so it fades out with it. */
+  uEnv: U<number>;
 }
 
 export function createLookNodes(sky: SkyNodes, fadeSeconds: number): LookNodes {
-  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0) };
+  return { sky, uTime: uniform(0), uFade: uniform(fadeSeconds), uLook: uniform(0), uWindowGlow: uniform(0), uEnv: uniform(1) };
 }
 
 /** The `surf` attribute decoded: surface id (flat across a triangle), palette index, kind/roof code, flags. */

@@ -6,7 +6,7 @@
  * (multiplies), `bloom` (adds) and `traa` (temporal, still linear), then `tonemap` (the one tone mapping and the sRGB conversion of
  * the whole pipeline), then the spatial AA nodes `smaa` and `fxaa`, which need display-referred input, and `fsr1` last.
  */
-import { renderOutput } from 'three/tsl';
+import { renderOutput, screenSize, screenUV, vec2 } from 'three/tsl';
 import type { Camera, Node, Texture } from 'three/webgpu';
 import { ao } from 'three/addons/tsl/display/GTAONode.js';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
@@ -31,7 +31,7 @@ export type Fn = (...a: unknown[]) => PNode;
 
 /** Tuning of the nodes (design values, set for the city scale: metres). */
 export const POST_TUNING = {
-  gtao: { radius: 2.2, thickness: 1.2, scale: 1.0, samples: 12, resolutionScale: 0.5 },
+  gtao: { radius: 2.2, thickness: 1.2, scale: 1.0, samples: 16, resolutionScale: 0.5, blurTaps: 1.3 },
   bloom: { strength: 0.32, radius: 0.55, threshold: 1.05 },
   fsr1: { sharpness: 0.2, denoise: false },
 } as const;
@@ -50,7 +50,14 @@ export function createGtao(depth: unknown, normal: unknown, camera: Camera): Gta
   node.thickness.value = POST_TUNING.gtao.thickness;
   node.scale.value = POST_TUNING.gtao.scale;
   node.samples.value = POST_TUNING.gtao.samples;
-  return { factor: node.getTextureNode() as unknown as PNode, node: node as unknown as GtaoHandle['node'] };
+  // The AO is noisy at half resolution and 16 samples (a 5 x 5 rotation pattern): a five-tap cross blur at about a texel evens it out.
+  const tex = node.getTextureNode() as unknown as { sample(uv: unknown): PNode };
+  const texel = (vec2 as unknown as (...a: unknown[]) => PNode)(1, 1);
+  const half = (screenSize as unknown as PNode).mul(POST_TUNING.gtao.resolutionScale);
+  const step = (texel as unknown as { div(b: PNode): PNode }).div(half);
+  const at = (dx: number, dy: number): PNode => tex.sample((screenUV as unknown as PNode).add((vec2 as unknown as (...a: unknown[]) => PNode)(dx, dy).mul(step).mul(POST_TUNING.gtao.blurTaps)));
+  const blurred = at(0, 0).add(at(1, 0)).add(at(-1, 0)).add(at(0, 1)).add(at(0, -1)).mul(0.2);
+  return { factor: blurred, node: node as unknown as GtaoHandle['node'] };
 }
 
 /** `bloom`: adds the blurred highlights (lit windows, the sun glint on glass and water) to the HDR colour. */

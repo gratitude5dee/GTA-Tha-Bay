@@ -5,7 +5,7 @@
  */
 import { float, mix, positionWorld, step, vec2, vec3, smoothstep, type L } from '../sky/tsl.ts';
 import { srgbHexToLinear, type LookFile } from './config.ts';
-import { around1, edgeLine, hash11, hash21, vnoise } from './noise.ts';
+import { around1, bandFade, edgeLineAA, hash11, hash21, pixelFootprint, vnoise, vnoiseAA } from './noise.ts';
 import { Surf } from './surfaces.ts';
 
 export interface RoofOut {
@@ -32,20 +32,22 @@ export function roofNodes(look: LookFile, id: L, seed: L, detail: boolean): Roof
   const base = vec3(...flat).mul(isFlat).add(vec3(...gable).mul(isGable)).add(vec3(...hip).mul(isHip)).mul(tone);
 
   const p = positionWorld;
+  const fp = pixelFootprint(p).max(0.002);
   // Membrane: seams every 1.2 m, a slow patchiness and fine gravel.
-  const seamX = edgeLine(p.x.div(1.2), 0.025);
-  const seamZ = edgeLine(p.z.div(1.2).add(0.37), 0.025);
+  const seamX = edgeLineAA(p.x.div(1.2), 0.025, 1.2, fp);
+  const seamZ = edgeLineAA(p.z.div(1.2).add(0.37), 0.025, 1.2, fp);
   const patch = around1(vnoise(vec2(p.x.mul(0.35), p.z.mul(0.35)).add(seedI)), 0.1);
-  const gravel = detail ? around1(vnoise(vec2(p.x.mul(9), p.z.mul(9))), 0.05) : float(1);
+  const gravel = detail ? around1(vnoiseAA(vec2(p.x, p.z), 9, fp), 0.05) : float(1);
   const membrane = base.mul(patch).mul(gravel).mul(float(1).sub(seamX.max(seamZ).mul(0.09)));
 
   // Shingles: courses at constant height (0.2 m), tabs staggered along the eave, each a little different.
   const course = p.y.div(0.2);
   const row = course.floor();
-  const gap = float(1).sub(smoothstep(0, 0.14, course.sub(row)).mul(0.22));
+  const courseFade = bandFade(fp, 5);
+  const gap = float(1).sub(float(1).sub(smoothstep(0, 0.14, course.sub(row))).mul(0.22).mul(courseFade));
   const along = p.x.add(p.z).div(0.3).add(row.mul(0.5));
-  const tab = edgeLine(along, 0.035).mul(0.1);
-  const each = around1(hash21(vec2(along.floor(), row)), 0.08);
+  const tab = edgeLineAA(along, 0.035, 0.3, fp).mul(0.1);
+  const each = float(1).add(hash21(vec2(along.floor(), row)).sub(0.5).mul(0.16).mul(bandFade(fp, 3)));
   const shingle = base.mul(gap).mul(float(1).sub(tab)).mul(each).mul(patch);
 
   const roofColor = mix(membrane, shingle, isGable.add(isHip));

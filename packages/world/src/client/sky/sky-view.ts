@@ -125,6 +125,8 @@ export class SkyView {
   private input: SkyInput = DEFAULT_INPUT;
   private wet = 0;
   private rainOverride: number | null = null;
+  /** QA (M02e `shot()`): the page time of the sky's clouds and rain, held while the look clock is frozen. */
+  private frozenTime: number | null = null;
   private lastNow = -1;
   private lastLampMs = Number.NEGATIVE_INFINITY;
   private lastPair = '';
@@ -183,6 +185,16 @@ export class SkyView {
     this.config = next;
     this.mountRain();
     this.night.setDecalCap(next.decalCap);
+  }
+
+  /** The sky dome mesh (the look's environment map draws it too, so the map matches the sky the player sees). */
+  get domeMesh(): Mesh {
+    return this.dome;
+  }
+
+  /** Holds the sky's own clock (painted clouds, rain streaks) at its current value, or releases it: stills for goldens. */
+  freezeTime(on: boolean): void {
+    this.frozenTime = on ? this.nodes.uTime.value : null;
   }
 
   /** Forces the rain intensity (0..255) whatever the weather says; null returns to the preset (QA debug panel). */
@@ -250,7 +262,7 @@ export class SkyView {
 
     const c = this.config;
     writeSkyNodes(this.nodes, u, { wetScale: c.wetness === 'none' ? 0 : 1, wetRough: c.wetRoughness, bankTopM: this.input.fogBankM });
-    this.nodes.uTime.value = f.nowMs / 1000;
+    this.nodes.uTime.value = this.frozenTime ?? f.nowMs / 1000;
     const cam = this.o.host.camera as PerspectiveCamera;
     this.nodes.uCamPos.value.set(cam.position.x, cam.position.y, cam.position.z);
 

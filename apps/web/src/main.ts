@@ -142,7 +142,8 @@ async function boot(): Promise<void> {
         },
         // The look pass (M02e): `world.look` (default true) is the full rollback switch; WebKit never bakes the sky environment.
         look: {
-          enabled: platformFlags['world.look'] !== false,
+          // `?look=0` (QA builds) boots with the look off, the cost and request comparison of the e2e and the device checklists.
+          enabled: platformFlags['world.look'] !== false && !(QA && new URLSearchParams(location.search).get('look') === '0'),
           browser: platform.profile.browser,
           backend: platform.backend,
           postLevel: platform.quality.dynamic.postLevel,

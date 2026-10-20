@@ -13,10 +13,10 @@
  */
 import type { Texture } from 'three/webgpu';
 import { buildingLit, windowThreshold } from '../sky/night.ts';
-import { clamp, dot, float, fract, max, min, mix, mod, normalView, pow, positionViewDirection, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
+import { clamp, dot, float, fract, max, min, mix, mod, normalView, positionViewDirection, positionWorld, pow, select, smoothstep, step, vec2, vec3, type L } from '../sky/tsl.ts';
 import type { LookNodes } from './common.ts';
 import { FACADE_KEYS, srgbHexToLinear, type LookFile } from './config.ts';
-import { around1, hash11, hash21, pickColor, pickFloat, vnoise } from './noise.ts';
+import { around1, hash11, hash21, pickColor, pickFloat, pixelFootprint, vnoise } from './noise.ts';
 
 /** Per-class design values that are not worth a config key: the trim width around a window, metres, in `BuildingKind` order. */
 const TRIM_M = [0.18, 0.12, 0.1, 0, 0.05, 0.2] as const;
@@ -78,6 +78,10 @@ export function wallNodes(i: WallInput): WallOut {
   const trimW = pickFloat(kind, TRIM_M);
   const isTower = step(2.5, kind).mul(step(kind, 3.5));
 
+  // The pixel footprint in metres: the edges below are smoothed over it and the fine detail fades out when a pixel covers a cell.
+  const fp = pixelFootprint(positionWorld).max(0.002);
+  const detailK = float(1).sub(smoothstep(0.04, 0.22, fp));
+
   const v = fac.v.sub(i.foundationM);
   const seedI = fac.seed.mul(32767).round();
   const parapet = mod(i.flags, 2);
@@ -102,13 +106,14 @@ export function wallNodes(i: WallInput): WallOut {
   const y0 = mix(sillM, float(0.45), shopGf);
   const y1 = mix(sillM.add(winH), gfM.sub(0.5), shopGf);
   const roofBand = mix(float(0.8), float(1.1), parapet);
-  const belowBand = step(v, fac.top.sub(roofBand));
+  const belowBand = float(1).sub(smoothstep(fp.negate(), fp, v.sub(fac.top.sub(roofBand))));
 
   const ex = halfW.sub(dx);
   const ey = min(fv.sub(y0), y1.sub(fv));
   const edge = min(ex, ey);
-  const inside = step(0, edge).mul(belowBand);
-  const frame = inside.mul(step(edge, FRAME_M));
+  // Smooth over one pixel; at the coarsest the frame (7 cm) is wider than a pixel only up close.
+  const inside = smoothstep(fp.negate(), fp, edge).mul(belowBand);
+  const frame = inside.mul(float(1).sub(smoothstep(float(FRAME_M).sub(fp), float(FRAME_M).add(fp), edge)));
   const pane = inside.mul(float(1).sub(frame));
 
   // Night: the building's rule, then the window's own hash.
@@ -121,7 +126,15 @@ export function wallNodes(i: WallInput): WallOut {
   const cool = mix(warm, vec3(0.62, 0.74, 1.0), max(step(0.93, tint), isTower.mul(0.8)));
   // The window recess: the glass is darker toward its top and sides.
   const recess = float(1).sub(float(0.5).mul(float(1).sub(smoothstep(0, 0.4, y1.sub(fv))))).mul(float(1).sub(float(0.25).mul(float(1).sub(smoothstep(0, 0.3, ex)))));
-  const emissive = cool.mul(pane).mul(winOn).mul(lit).mul(2.4).mul(float(0.6).add(recess.mul(0.4)));
+  const glowAt = float(2.1);
+  const litFar = clamp(winW.mul(winH).div(bayM.mul(floorM)).mul(1.1), 0, 0.85);
+  const farGlow = smoothstep(bayM.mul(0.18), bayM.mul(0.7), fp);
+  // Far away a pixel covers many windows: the share of them that is lit, so the night facades do not crawl with single windows.
+  const emissive = mix(
+    cool.mul(pane).mul(winOn).mul(float(0.6).add(recess.mul(0.4))),
+    mix(warm, vec3(0.62, 0.74, 1.0), isTower.mul(0.8)).mul(litFar).mul(litFrac).mul(belowBand),
+    farGlow,
+  ).mul(lit).mul(glowAt);
 
   if (i.profile === 'min') {
     return { color: vec3(1, 1, 1), roughness: wallRough, metalness: float(0), emissive, glass: pane };
@@ -139,22 +152,22 @@ export function wallNodes(i: WallInput): WallOut {
 
   let d: L = float(1);
   // Lap siding on the houses, ribs on the sheds, coursing on the stone, belts between floors, a lighter cornice, a darker plinth.
-  d = d.sub(k0.mul(0.1).mul(smoothstep(0.72, 1.0, fract(v.div(0.17)))));
-  d = d.sub(k4.mul(0.13).mul(float(1).sub(smoothstep(0, 0.16, fract(fac.u.div(0.25)).sub(0.5).abs()))));
-  d = d.sub(k5.mul(0.08).mul(float(1).sub(smoothstep(0, 0.025, fract(v.div(0.55))))));
-  const belt = step(floorM.sub(0.3), fv).mul(float(1).sub(isGround));
+  d = d.sub(k0.mul(0.1).mul(detailK).mul(smoothstep(0.72, 1.0, fract(v.div(0.17)))));
+  d = d.sub(k4.mul(0.13).mul(detailK).mul(float(1).sub(smoothstep(0, 0.16, fract(fac.u.div(0.25)).sub(0.5).abs()))));
+  d = d.sub(k5.mul(0.08).mul(detailK).mul(float(1).sub(smoothstep(0, 0.025, fract(v.div(0.55))))));
+  const belt = smoothstep(floorM.sub(0.3).sub(fp), floorM.sub(0.3).add(fp), fv).mul(float(1).sub(isGround));
   d = d.add(k1.add(k2).mul(0.1).mul(belt));
-  d = d.add(notTower.mul(0.12).mul(step(fac.top.sub(roofBand), v)));
-  d = d.sub(shop.mul(0.16).mul(step(v, 0.6)));
+  d = d.add(notTower.mul(0.12).mul(smoothstep(fac.top.sub(roofBand).sub(fp), fac.top.sub(roofBand).add(fp), v)));
+  d = d.sub(shop.mul(0.16).mul(float(1).sub(smoothstep(float(0.6).sub(fp), float(0.6).add(fp), v))));
   // Pilasters between the bays of the shop fronts and the stone.
-  d = d.add(k2.add(k5).mul(0.07).mul(step(bayM.mul(0.5).sub(0.28), dx)));
+  d = d.add(k2.add(k5).mul(0.07).mul(smoothstep(bayM.mul(0.5).sub(0.28).sub(fp), bayM.mul(0.5).sub(0.28).add(fp), dx)));
 
   // Weathering: dirt at the foot, vertical streaks, a slow tonal drift across the wall.
   const base = float(1).sub(smoothstep(0, 5, v));
   const nA = i.profile === 'full' ? vnoise(vec2(fac.u.mul(1.3).add(seedI), v.mul(0.5))) : float(0.5);
   const streak = vnoise(vec2(fac.u.mul(3.1).add(seedI.mul(0.37)), v.mul(0.12)));
   d = d.mul(float(1).sub(base.mul(0.3).mul(nA.mul(0.6).add(0.4))));
-  d = d.mul(float(1).sub(smoothstep(0.55, 0.92, streak).mul(0.1)));
+  d = d.mul(float(1).sub(smoothstep(0.55, 0.92, streak).mul(0.1).mul(detailK)));
   d = d.mul(around1(vnoise(vec2(fac.u.mul(0.21).add(seedI.mul(0.9)), v.mul(0.17))), 0.07));
 
   const wall = wallPal.mul(perBuilding).mul(d);
@@ -162,9 +175,9 @@ export function wallNodes(i: WallInput): WallOut {
   const ox = dx.sub(halfW);
   const oy = max(y0.sub(fv), fv.sub(y1));
   const od = max(ox, oy);
-  const trim = step(0, od).mul(step(od, trimW)).mul(belowBand).mul(step(0.0001, trimW));
+  const trim = smoothstep(fp.negate(), fp, od).mul(float(1).sub(smoothstep(trimW.sub(fp), trimW.add(fp), od))).mul(belowBand).mul(step(0.0001, trimW));
   const trimCol = mix(wall, vec3(0.78, 0.76, 0.7), 0.7);
-  const sill = step(y0.sub(0.1), fv).mul(step(fv, y0)).mul(step(dx, halfW.add(0.1))).mul(belowBand);
+  const sill = smoothstep(y0.sub(0.1).sub(fp), y0.sub(0.1).add(fp), fv).mul(float(1).sub(smoothstep(y0.sub(fp), y0.add(fp), fv))).mul(float(1).sub(smoothstep(halfW.add(0.1).sub(fp), halfW.add(0.1).add(fp), dx))).mul(belowBand);
 
   // ---- glass ------------------------------------------------------------------------------------------------------------
   const jv = hash21(vec2(bayIdx.mul(1.37).add(seedI.mul(0.11)), floorIdx.mul(0.53)));
@@ -185,8 +198,14 @@ export function wallNodes(i: WallInput): WallOut {
   color = mix(color, trimCol, trim);
   color = mix(color, vec3(0.04, 0.04, 0.045), frame);
   color = mix(color, glassColor, pane);
-  const roughness = mix(mix(wallRough, float(0.4), frame), glassRough, pane);
-  const metalness = pane.mul(glassMetal);
+  // Far away a pixel covers many windows: the cell's average colour, so the facade does not shimmer.
+  const cover = clamp(winW.mul(winH).div(bayM.mul(floorM)).mul(1.1), 0, 0.85);
+  const average = mix(wall, glassColor, cover);
+  const farK = smoothstep(bayM.mul(0.18), bayM.mul(0.7), fp);
+  color = mix(color, average, farK);
+  const roughness = mix(mix(mix(wallRough, float(0.4), frame), glassRough, pane), mix(wallRough, glassRough, cover.mul(0.6)), farK);
+  // Metal is its reflection: with no environment map (dome sky, night) a metallic pane is black, and far away the pane is an average.
+  const metalness = pane.mul(glassMetal).mul(clamp(n.uEnv.mul(2), 0, 1)).mul(float(1).sub(farK));
   return { color, roughness, metalness, emissive, glass: pane };
 }
 

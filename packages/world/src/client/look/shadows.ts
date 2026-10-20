@@ -16,7 +16,7 @@
  * `DirectionalLight` cascade (reports 1). `onRendererReplaced` sets the shadow object up again, or device-loss recovery loses the
  * sun shadows.
  */
-import { DirectionalLight, type Camera, type Light, type Scene, type WebGPURenderer } from 'three/webgpu';
+import type { DirectionalLight, Camera, Light, Scene, WebGPURenderer } from 'three/webgpu';
 import { CSMShadowNode } from 'three/addons/csm/CSMShadowNode.js';
 import { SunLight } from 'three/addons/lights/SunLight.js';
 import { SunLightNode } from 'three/addons/lights/SunLightNode.js';
