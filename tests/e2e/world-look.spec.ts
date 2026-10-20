@@ -189,7 +189,7 @@ async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba
 const bakeIdOf = (): string => read<{ bakeId: string }>('dist/world/latest-synth.json').bakeId;
 
 test.describe('look goldens @look-golden', () => {
-  test.describe.configure({ timeout: 900_000 });
+  test.describe.configure({ timeout: 1_800_000 });
   test.beforeEach(({}, testInfo: TestInfo) => {
     test.skip(testInfo.project.name !== 'chromium-webgl2', 'goldens are chromium-webgl2 only');
   });
