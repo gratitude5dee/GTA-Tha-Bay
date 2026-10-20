@@ -54,6 +54,8 @@ const START_SPEED_SHARE = 0.7;
 const STOP_BIAS_M = 1.5;
 /** Ticks a dead end holds an agent before the U-turn (1 s). */
 const DEAD_END_TICKS = 60;
+/** Clearance a parked slot needs from a vehicle that is not traffic before it is filled, metres (BD-FIX-VW-01). */
+const SLOT_CLEAR_MARGIN_M = 0.5;
 /** Same-lane spacing under which a spawn point is rejected, metres. */
 const SPAWN_GAP_M = 14;
 /** Lane changes are made when the target lane is clear this far each way, metres. */
@@ -760,7 +762,9 @@ export class TrafficSim {
       if (!hit) continue;
       const mass = (ARCHETYPES[a.arch] as (typeof ARCHETYPES)[number]).massKg;
       const [vx, vz] = velocityAfterHit(a, mass, hit.mover);
-      this.promotions.add(a.key, this.tick);
+      // the book refuses a key it already holds (the slot spawned again within the 8 s): that agent stays in the traffic, so a key
+      // has at most one promoted vehicle and every promotion ends as a wreck (BD-FIX-VW-01)
+      if (!this.promotions.add(a.key, this.tick)) continue;
       this.agents.remove(a);
       this.stats.promotions++;
       this.hooks.promoted?.(a, vx, vz, hit);
@@ -770,8 +774,7 @@ export class TrafficSim {
   /** Promotes a named agent at once (the player entered it); false when the cap is reached or it is unknown. */
   promoteKey(key: string, vx: number, vz: number): boolean {
     const a = this.agents.get(key);
-    if (!a || !this.promotions.canPromote()) return false;
-    this.promotions.add(key, this.tick);
+    if (!a || !this.promotions.add(key, this.tick)) return false;
     this.agents.remove(a);
     this.stats.promotions++;
     const m: Mover = { id: 'player', x: a.x, z: a.z, vx, vz, hx: a.fx, hz: a.fz, halfW: 0.9, halfL: 2.3, massKg: 0 };
@@ -990,14 +993,18 @@ export class TrafficSim {
     let made = 0;
     for (const c of cand) {
       if (!keep.has(c.key) || this.agents.has(c.key) || made >= 24) continue;
+      // a slot whose car is out as a promoted vehicle stays empty until the promotion ends (BD-FIX-VW-01)
+      if (this.promotions.has(c.key)) continue;
       const slot = c.chunk.spawn.parked[c.idx] as (typeof c.chunk.spawn.parked)[number];
       if (!parkedPose(c.chunk as SimChunk, slot, p)) continue;
-      const a = new Agent(c.key, c.cell, slot.slot, ctrSeed(this.opts.seed, c.key, 1));
-      a.kind = AgentKind.Parked;
       const profile = profileName(c.chunk.spawn.densityProfile);
       const u = slotUnit(this.opts.seed, c.cell, slot.slot, 1, 3);
       let arch = pickArchetype(u, profile);
       if (arch === 3 || arch === 7) arch = 1;
+      // and a slot a vehicle stands on (the car that hit it, a wreck, the player's car) is not filled under it
+      if (this.vehicleOn(p[0] as number, p[2] as number, (ARCHETYPES[arch] as (typeof ARCHETYPES)[number]).halfLength)) continue;
+      const a = new Agent(c.key, c.cell, slot.slot, ctrSeed(this.opts.seed, c.key, 1));
+      a.kind = AgentKind.Parked;
       a.arch = arch;
       a.color = Math.floor(slotUnit(this.opts.seed, c.cell, slot.slot, 1, 4) * PALETTE.length) % PALETTE.length;
       a.seg = slot.seg;
@@ -1019,6 +1026,20 @@ export class TrafficSim {
       this.stats.spawns++;
       this.hooks.spawned?.(a);
     }
+  }
+
+  /**
+   * Whether a vehicle of this step's obstacles (not traffic: the player's car, promoted cars, wrecks) stands within reach of a car of
+   * half length `halfL` at (x, z): the two bounding circles, plus a margin, overlap.
+   */
+  private vehicleOn(x: number, z: number, halfL: number): boolean {
+    for (const o of this.obstacles) {
+      if (o.kind !== 'vehicle') continue;
+      const reach = halfL + (o.halfL > o.halfW ? o.halfL : o.halfW) + SLOT_CLEAR_MARGIN_M;
+      const dx = o.x - x, dz = o.z - z;
+      if (dx * dx + dz * dz < reach * reach) return true;
+    }
+    return false;
   }
 
   /** The spawn rotation cursor (saved with the agents). */
