@@ -171,11 +171,19 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
  *
  * A chunk that has not streamed in yet is a wall (`wallPrism`), so a car that outruns the stream waits at it. The run therefore plays
  * the line in rounds of 15 s and goes on until the car is through, instead of trusting one long throttle line.
+ *
+ * These runs check the car against the world's surfaces, not against other cars, so the streets are emptied first (BD-FIX-VW-02):
+ * the street through the tunnel is one-way westbound with a single lane on its centre line and parked cars 2.7 m either side, and the
+ * eastbound sedan (the westbound climb ends at a step no sedan mounts) would meet the M03b1 traffic head on. Right after boot the
+ * traffic and the parked cars go to density 0 (`by: 'e2e.streets'`), and after each teleport the run waits until the sim holds no agent.
  */
 type W = { __dvBridge: { world: { call(op: string, args?: Record<string, unknown>): Promise<unknown>; teleport(pt: { x: number; z: number }): Promise<TeleportResult | null> } } };
 type EB = { __dvBridge: { engine: Bridge } };
 const wcall = <T>(page: Page, op: string, args?: Record<string, unknown>): Promise<T> =>
   page.evaluate(([o, a]) => (window as unknown as W).__dvBridge.world.call(o as string, a as Record<string, unknown> | undefined), [op, args]) as Promise<T>;
+
+/** The owner of the density overrides that empty the streets (TrafficControl drops all of an owner's holds on `release`). */
+const STREETS_OWNER = 'e2e.streets';
 
 async function bootWorld(page: Page): Promise<string[]> {
   const errors: string[] = [];
@@ -186,7 +194,18 @@ async function bootWorld(page: Page): Promise<string[]> {
   await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
   await page.waitForFunction(() => (window as unknown as { __dvBridge: { world: { boot(): { revealed: boolean } } } }).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
   await expect.poll(async () => ((await wcall<{ topology?: boolean } | null>(page, 'state'))?.topology ?? false), { timeout: 120_000, intervals: [500, 1000, 2000] }).toBe(true);
+  // no ambient traffic and no parked cars from here on (the agents near the spawn go once the player has teleported away); an owner
+  // of its own, so that the barrier test's `release` of 'e2e' does not bring them back
+  for (const kind of ['traffic', 'parked']) {
+    const d = await wcall<Record<string, number> | null>(page, 'density', { kind, mult: 0, by: STREETS_OWNER });
+    expect(d?.[kind], `${kind} density`).toBe(0);
+  }
   return errors;
+}
+
+/** After a teleport: waits until the sim's ambient traffic holds no agent (traffic and parked cars at density 0, see bootWorld). */
+async function streetsClear(page: Page): Promise<void> {
+  await expect.poll(async () => (await wcall<{ agents?: number } | null>(page, 'traffic'))?.agents ?? -1, { timeout: 60_000, intervals: [250, 500, 1000] }).toBe(0);
 }
 
 const groundAt = async (page: Page, x: number, z: number, y?: number): Promise<number> =>
@@ -212,6 +231,7 @@ interface Course { lateral: 'x' | 'z'; centre: number; sign: 1 | -1; keep: boole
 async function drive(page: Page, at: { x: number; z: number }, yaw: number, throttle: number, cruise: number, course: Course): Promise<Sample[]> {
   const tp = await page.evaluate((pt) => (window as unknown as W).__dvBridge.world.teleport(pt), { x: at.x, z: at.z });
   expect(tp?.ok, JSON.stringify(tp)).toBe(true);
+  await streetsClear(page);
   // the car stands 6 m ahead of the player (a capsule inside the hull would shove it), the player is seated at once
   const cx = at.x - 6 * Math.sin(yaw), cz = at.z - 6 * Math.cos(yaw);
   const y = await groundAt(page, cx, cz);
@@ -301,6 +321,7 @@ test.describe('vehicles in the synth city @vehicle-world', () => {
     const errors = await bootWorld(page);
     const tp = await page.evaluate((pt) => (window as unknown as W).__dvBridge.world.teleport(pt), { x: 1340, z: 1700 });
     expect(tp?.ok, JSON.stringify(tp)).toBe(true);
+    await streetsClear(page);
     const route = await wcall<{ edges: number[]; count: number } | null>(page, 'route', { from: { x: 1340, z: 1640 }, to: { x: 1340, z: 1760 } });
     expect(route && route.edges.length > 0, JSON.stringify(route)).toBe(true);
     const edge = route!.edges[0] as number;
