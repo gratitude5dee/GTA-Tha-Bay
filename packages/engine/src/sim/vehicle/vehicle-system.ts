@@ -21,6 +21,7 @@ import type { EngineServices } from '../services.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, phaseOf } from '../control/states.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
 import { RaycastVehicleSim } from './raycast-vehicle.ts';
+import type { WheelPath } from './wheel-path.ts';
 
 export const VEHICLE_INPUT_ID = 'engine.vehicle.input';
 export const VEHICLE_POST_ID = 'engine.vehicle.post';
@@ -40,6 +41,8 @@ export interface VehicleSystemOptions {
   services: EngineServices;
   ecs: EcsWorld;
   store?: VehicleStore;
+  /** Replaces the selected wheel path (tests and the M03a2 spike harness only). */
+  wheelPath?: WheelPath;
 }
 
 export interface VehicleSystems {
@@ -63,7 +66,7 @@ function handlingInput(inp: VehicleInput, stalled: boolean, scratch: HandlingInp
 export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems {
   const { backend, services, ecs } = opts;
   const store = opts.store ?? new VehicleStore();
-  const sim = new RaycastVehicleSim(backend);
+  const sim = new RaycastVehicleSim(backend, opts.wheelPath);
   const scratch: HandlingInput = {
     throttle: 0, brake: 0, steer: 0, handbrake: false, nitro: false, ability: false, assist: { ...DEFAULT_ASSIST },
   };
@@ -292,8 +295,8 @@ function respawnAtShore(
  * Registers the vehicle systems: replaces the default physics step with one that steps handling per substep, adds the
  * input and post systems and the `vehicles` resource. Call after `registerPhysicsSystems` and `registerControlSystems`.
  */
-export function registerVehicleSystems(core: SimCore, backend: VehiclePhysics, store?: VehicleStore): VehicleSystems {
-  const sys = createVehicleSystems({ backend, services: core.services, ecs: core.ecs, ...(store ? { store } : {}) });
+export function registerVehicleSystems(core: SimCore, backend: VehiclePhysics, store?: VehicleStore, wheelPath?: WheelPath): VehicleSystems {
+  const sys = createVehicleSystems({ backend, services: core.services, ecs: core.ecs, ...(store ? { store } : {}), ...(wheelPath ? { wheelPath } : {}) });
   core.removeSystem(PHYSICS_STEP_ID);
   core.addSystem(physicsStepSystem(backend, { substeps: sys.substeps, beforeSubstep: sys.beforeSubstep }));
   for (const s of sys.systems) core.addSystem(s);
