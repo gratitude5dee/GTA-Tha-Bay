@@ -1,0 +1,31 @@
+{
+  "id": "vehicle.cablecar",
+  "kind": "prop",
+  "version": 1,
+  "nameKey": "transit.vehicle.cablecar",
+  "render": {
+    "asset": "vehicle/graybox.cablecar"
+  },
+  "physics": {
+    "body": "kinematic",
+    "shape": "box",
+    "dims": [
+      1.2,
+      1.4,
+      3.6
+    ],
+    "massKg": 12000,
+    "groups": [
+      "kinematic"
+    ],
+    "liftM": 1.4
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  }
+}

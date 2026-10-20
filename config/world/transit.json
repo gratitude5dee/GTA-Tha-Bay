@@ -1,6 +1,6 @@
 {
   "schema": "world-transit/1",
-  "note": "Fast-travel fares in integer cents (02-world-maps.md section 5; design values, to be tuned with the economy in M04a2). stopSpacingM turns a straight-line distance into a stop count for the per-stop fare. cooldown is in seconds.",
+  "note": "Fast-travel fares in integer cents (02-world-maps.md section 5; design values, to be tuned with the economy in M04a2). stopSpacingM turns a straight-line distance into a stop count for the per-stop fare. cooldown is in seconds. M03b2 adds the counts per tier (02-world-living.md section 5 table: desktop / xr-visionpro / mobile / mobile-low and xr-quest; desktop-ultra runs the desktop row), speeds in m/s, dwell times in seconds, the Bay Rail stop order and the entrance radii.",
   "fares": {
     "bay-rail": { "baseCents": 200, "perStopCents": 50 },
     "cable-car": { "baseCents": 100 },
@@ -8,5 +8,16 @@
     "ferry": { "baseCents": 0 }
   },
   "stopSpacingM": 1200,
-  "cooldown": { "fastTravelS": 30 }
+  "cooldown": { "fastTravelS": 30 },
+  "counts": {
+    "metro": { "desktop-ultra": 6, "desktop": 6, "xr-visionpro": 4, "mobile": 3, "mobile-low": 2, "xr-quest": 2 },
+    "bus": { "desktop-ultra": 14, "desktop": 14, "xr-visionpro": 10, "mobile": 6, "mobile-low": 3, "xr-quest": 3 },
+    "cablecar": { "desktop-ultra": 6, "desktop": 6, "xr-visionpro": 4, "mobile": 3, "mobile-low": 2, "xr-quest": 2 },
+    "ferry": { "desktop-ultra": 4, "desktop": 4, "xr-visionpro": 3, "mobile": 2, "mobile-low": 1, "xr-quest": 1 },
+    "air": { "desktop-ultra": 5, "desktop": 5, "xr-visionpro": 4, "mobile": 2, "mobile-low": 1, "xr-quest": 1 }
+  },
+  "speeds": { "metroMps": 10, "cablecarMps": 4.2, "ferryMps": 7, "airMps": 75, "busFactor": 0.85, "busMaxMps": 11 },
+  "dwell": { "busS": 8, "metroEndS": 10, "cablecarEndS": 8, "ferryEndS": 20 },
+  "bayRailOrder": ["rail.embarcadero", "rail.montgomery", "rail.powell", "rail.civic-center", "rail.16th-st", "rail.24th-st", "rail.glen-park", "rail.balboa-park"],
+  "entrance": { "radiusM": 3, "liveM": 400 }
 }

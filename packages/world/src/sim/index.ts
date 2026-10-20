@@ -23,3 +23,5 @@ export * from './api/resolver.ts';
 export * from './api/teleport.ts';
 export * from './api/world-api.ts';
 export * from './traffic/index.ts';
+export * from './peds/index.ts';
+export * from './transit/index.ts';

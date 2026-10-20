@@ -1,0 +1,36 @@
+{
+  "id": "prop.transit-entrance",
+  "kind": "prop",
+  "version": 1,
+  "nameKey": "transit.entrance",
+  "render": {
+    "asset": "prop/graybox.transit-entrance"
+  },
+  "physics": {
+    "body": "fixed",
+    "shape": "box",
+    "dims": [
+      1.6,
+      1.3,
+      1.2
+    ],
+    "groups": [
+      "static"
+    ],
+    "liftM": 1.3
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "interact": {
+    "kind": "Transit",
+    "radius": 3,
+    "promptKey": "interact.transit",
+    "coneDeg": 360
+  }
+}

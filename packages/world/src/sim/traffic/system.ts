@@ -77,6 +77,8 @@ export class AmbientTraffic {
   focusOverride: TrafficFocus | null = null;
   /** `world.witness` events emitted. */
   witnessEvents = 0;
+  /** M03b2: the pedestrians add themselves to the obstacles the traffic reacts to (set by `AmbientPeds`). */
+  extraObstacles: ((out: Obstacle[], focus: TrafficFocus) => void) | null = null;
   private readonly ecs: EcsWorld;
   private readonly deps: AmbientDeps;
   private readonly tier;
@@ -333,6 +335,7 @@ export class AmbientTraffic {
       this.movers.push({ id: key, x, z, vx: mvx, vz: mvz, hx, hz, halfW: MOVER_HALF_W, halfL: MOVER_HALF_L, massKg: MOVER_MASS });
     }
     this.lastVel = seen;
+    this.extraObstacles?.(this.obstacles, focus);
     const pids = ecs.query([LocalPlayer, Transform]);
     for (let i = 0; i < pids.length; i++) {
       const id = pids[i] as number;
@@ -341,6 +344,30 @@ export class AmbientTraffic {
       this.obstacles.push({
         id: 'player', kind: 'player', x, z, vx: hasVel(id) ? (ve.vx[id] as number) : 0, vz: hasVel(id) ? (ve.vz[id] as number) : 0, halfW: 0.35, halfL: 0.35,
       });
+    }
+  }
+
+  /**
+   * The moving vehicles within sqrt(r2) of the focus: the traffic's cars and the vehicles it does not own (the player's, wrecks).
+   * Pedestrians read them for their dodge, flee, hit and crossing rules (M03b2). Calls `fn(x, z, vx, vz, hx, hz, speed, halfW, halfL)`.
+   */
+  movingVehicles(
+    focus: TrafficFocus, r2: number,
+    fn: (x: number, z: number, vx: number, vz: number, hx: number, hz: number, speed: number, halfW: number, halfL: number) => void,
+  ): void {
+    for (const a of this.sim.agents.list()) {
+      if (a.isParked || a.speed < 0.3) continue;
+      const dx = a.x - focus.x, dz = a.z - focus.z;
+      if (dx * dx + dz * dz > r2) continue;
+      const ar = ARCHETYPES[a.arch] as Archetype;
+      fn(a.x, a.z, a.fx * a.speed, a.fz * a.speed, a.fx, a.fz, a.speed, ar.halfWidth, ar.halfLength);
+    }
+    for (const m of this.movers) {
+      const sp = dsqrt(m.vx * m.vx + m.vz * m.vz);
+      if (sp < 0.3) continue;
+      const dx = m.x - focus.x, dz = m.z - focus.z;
+      if (dx * dx + dz * dz > r2) continue;
+      fn(m.x, m.z, m.vx, m.vz, m.hx, m.hz, sp, m.halfW, m.halfL);
     }
   }
 
