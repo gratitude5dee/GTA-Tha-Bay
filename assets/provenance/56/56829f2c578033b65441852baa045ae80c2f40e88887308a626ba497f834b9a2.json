@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "56829f2c578033b65441852baa045ae80c2f40e88887308a626ba497f834b9a2",
+  "paths": [
+    "assets/src/building/lm.palace-fine-arts/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "332a53d07ec6220b8fd165ed499a5dabccb03db4115c464c153e21f7cf74c174"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

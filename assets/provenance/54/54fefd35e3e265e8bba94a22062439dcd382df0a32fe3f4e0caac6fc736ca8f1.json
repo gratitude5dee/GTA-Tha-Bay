@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "54fefd35e3e265e8bba94a22062439dcd382df0a32fe3f4e0caac6fc736ca8f1",
+  "paths": [
+    "assets/src/building/lm.city-hall/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "e318756cce95799c66aedd14e4a7c8692802d8cb309ff7dd090736b9b1c40c5a"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "f85ae1d77898c4aedf770691c989504805b3c5ab4b72fd04cd3ed2a6e4678c86",
+  "paths": [
+    "assets/src/building/lm.sutro-tower/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "eb2935a659c475b7aadc2206b5325cde5b6ebf7039ac021cf543c4335b1f0196"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

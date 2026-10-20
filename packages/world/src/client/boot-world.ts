@@ -8,6 +8,7 @@ import type { WorldBoot } from '@dv/engine/client/boot/world-layer';
 import { decodeP0, type QualityTierId, type WorldIndex } from '@dv/shared';
 import { WORLD_PORT, type WorldSimConfig } from '../sim/streaming/channel.ts';
 import { bootSet, groundHeightAt, spawnPose, type BootSet } from '../sim/streaming/boot.ts';
+import type { LandmarkSpot } from './chunks/landmark-layer.ts';
 import { WorldView, type WorldViewLabels } from './world-view.ts';
 
 /** Whether the catalog resolves `data/world-index` (the boot rule's second input). False without a catalog or a world in it. */
@@ -114,6 +115,9 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     ...(await refsFor('map_data/sf-graph')),
     ...(await refsFor('data/district-grid')),
   };
+  // M02d1: the landmarks that have a model in the catalog; the layer swaps their baked proxies for the glTF near the player.
+  const modelled = await refsFor('building/lm.').catch(() => ({}) as WorldSimConfig['refs']);
+  const landmarks: LandmarkSpot[] = index.landmarks.flatMap((l, i) => (l.asset in modelled ? [{ id: l.id, index: i, x: l.x, z: l.z, asset: l.asset }] : []));
   const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];
   const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index };
 
@@ -127,6 +131,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     flags: o.flags,
     ...(o.sky ? { sky: o.sky } : {}),
     spawn: { x: pose.x, z: pose.z },
+    landmarks,
     labels: o.labels,
     container: o.container,
     bytesBase: base,

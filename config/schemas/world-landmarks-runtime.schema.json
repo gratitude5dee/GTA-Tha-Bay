@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/world-landmarks-runtime.schema.json",
+  "title": "config/world/landmarks-runtime.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "unloadFactor", "retryMs", "inFlight", "tiers"],
+  "$defs": {
+    "tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resident", "swapM"],
+      "properties": {
+        "resident": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "swapM": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "world-landmarks-runtime/1" },
+    "unloadFactor": { "type": "number", "minimum": 1, "maximum": 2 },
+    "retryMs": { "type": "integer", "minimum": 1000 },
+    "inFlight": { "type": "integer", "minimum": 1, "maximum": 4 },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "xr-visionpro", "mobile", "xr-quest", "mobile-low"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/tier" },
+        "desktop": { "$ref": "#/$defs/tier" },
+        "xr-visionpro": { "$ref": "#/$defs/tier" },
+        "mobile": { "$ref": "#/$defs/tier" },
+        "xr-quest": { "$ref": "#/$defs/tier" },
+        "mobile-low": { "$ref": "#/$defs/tier" }
+      }
+    }
+  }
+}

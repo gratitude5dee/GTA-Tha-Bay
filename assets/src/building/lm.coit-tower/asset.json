@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.coit-tower",
+  "variants": {
+    "desktop": "assets/src/building/lm.coit-tower/desktop.glb",
+    "mobile": "assets/src/building/lm.coit-tower/mobile.glb",
+    "mobile-low": "assets/src/building/lm.coit-tower/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 918,
+      "verts": 1608,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 436,
+      "verts": 782,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 150,
+      "verts": 246,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

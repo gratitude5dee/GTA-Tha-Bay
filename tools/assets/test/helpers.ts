@@ -18,7 +18,7 @@ export function tempRepo(): string {
   return root;
 }
 
-/** The tests below assert on the M01d seed assets only: the M01f world_pack fixtures (which point outside assets/) and the M06a2 NPC data assets stay out of the copy. */
+/** The tests below assert on the M01d seed assets only: the M01f world_pack fixtures (which point outside assets/), the M06a2 NPC data assets and the M02d1 landmark models stay out of the copy. */
 function dropFixtureAssets(root: string): void {
   const lockFile = path.join(root, 'assets', 'assets.lock.json');
   const lock = JSON.parse(readFileSync(lockFile, 'utf8')) as { entries: Record<string, unknown> };
@@ -33,6 +33,10 @@ function dropFixtureAssets(root: string): void {
     rmSync(path.join(dataDir, id), { recursive: true, force: true });
     delete lock.entries[`data/${id}`];
   }
+  // M02d1: the landmark models (building/lm.<slug>) are built by map:landmarks and tested in tools/map and tools/ci (assets-stats).
+  const buildingDir = path.join(root, 'assets', 'src', 'building');
+  rmSync(buildingDir, { recursive: true, force: true });
+  for (const ref of Object.keys(lock.entries)) if (ref.startsWith('building/')) delete lock.entries[ref];
   writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
 

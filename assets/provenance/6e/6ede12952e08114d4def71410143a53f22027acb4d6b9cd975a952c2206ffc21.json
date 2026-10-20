@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "6ede12952e08114d4def71410143a53f22027acb4d6b9cd975a952c2206ffc21",
+  "paths": [
+    "assets/src/building/lm.twin-peaks/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "8c7fecab17736beca8b708a7dd6c0e73b3d76685c785ad834a1166a4fc843be1"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

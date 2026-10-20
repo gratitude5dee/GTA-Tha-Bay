@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.pyramid-tower",
+  "variants": {
+    "desktop": "assets/src/building/lm.pyramid-tower/desktop.glb",
+    "mobile": "assets/src/building/lm.pyramid-tower/mobile.glb",
+    "mobile-low": "assets/src/building/lm.pyramid-tower/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 440,
+      "verts": 880,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 260,
+      "verts": 520,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 150,
+      "verts": 300,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}
