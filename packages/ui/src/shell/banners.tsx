@@ -37,14 +37,18 @@ interface Msg { t: 'hello' | 'owner'; id: string }
 const isMsg = (x: unknown): x is Msg => typeof x === 'object' && x !== null && ((x as Msg).t === 'hello' || (x as Msg).t === 'owner') && typeof (x as Msg).id === 'string';
 
 const CLAIM_MS = 150;
+/** After hearing an owner, ask once more this much later: an old page that is unloading (a reload) has stopped answering by then. */
+const RECHECK_MS = 350;
 
 /**
- * The first tab on a profile owns it. A new tab says hello; an owner answers; a tab that hears an owner (or loses a simultaneous
- * hello on the lower id) is the other tab: read-only, Play and save actions off. No owner answer within 150 ms means this tab owns it.
+ * The first tab on a profile owns it. A new tab says hello; an owner answers. A tab that hears an owner asks again after a short wait and
+ * is the other tab only if an owner answers twice (so a page that is just being replaced by a reload does not count). A simultaneous
+ * hello is settled by the lower id. No owner answer means this tab owns it.
  */
 export class InstanceGuard {
   otherTab = false;
   private claimed = false;
+  private confirming = false;
   private timer: unknown = null;
   private readonly subs = new Set<(other: boolean) => void>();
 
@@ -68,7 +72,19 @@ export class InstanceGuard {
     ch.onmessage = (e) => {
       if (!isMsg(e.data) || e.data.id === this.id) return;
       if (e.data.t === 'owner') {
-        if (!this.claimed) this.setOther();
+        if (this.claimed || this.otherTab) return;
+        if (this.confirming) {
+          this.setOther();
+          return;
+        }
+        this.confirming = true;
+        this.after(() => {
+          if (this.otherTab) return;
+          ch.postMessage({ t: 'hello', id: this.id } satisfies Msg);
+          this.after(() => {
+            if (!this.otherTab) this.claimed = true;
+          }, CLAIM_MS);
+        }, RECHECK_MS);
       } else if (this.claimed) {
         ch.postMessage({ t: 'owner', id: this.id } satisfies Msg);
       } else if (e.data.id < this.id) {
@@ -77,7 +93,7 @@ export class InstanceGuard {
     };
     ch.postMessage({ t: 'hello', id: this.id } satisfies Msg);
     this.timer = this.after(() => {
-      if (!this.otherTab) this.claimed = true;
+      if (!this.otherTab && !this.confirming) this.claimed = true;
     }, CLAIM_MS);
   }
 
@@ -89,6 +105,7 @@ export class InstanceGuard {
 
   stop(): void {
     if (this.timer !== null) clearTimeout(this.timer as ReturnType<typeof setTimeout>);
+    if (this.channel) this.channel.onmessage = null;
     this.channel?.close();
   }
 }

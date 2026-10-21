@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { BRAND, DISPLAY_NAME } from '../../config/brand.ts';
 import { runGpuProbe } from './helpers.ts';
-import { passGates } from './ui/helpers.ts';
 
 const SIX_MIB = 6 * 1024 * 1024;
 
@@ -85,8 +84,6 @@ test.describe('shell', () => {
       expect(health.coep).toBe('require-corp');
       expect(health.body.ok).toBe(true);
 
-      // The platform boots once the age screen has passed (a fresh device boots nothing before that); go through the gates, then probe.
-      await passGates(page);
       const probe = await runGpuProbe(page);
       expect(probe.error).toBeNull();
       if (testInfo.project.name === 'chromium-webgpu') {

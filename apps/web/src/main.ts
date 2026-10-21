@@ -1,4 +1,4 @@
-import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
@@ -79,7 +79,7 @@ const shellProps = (unsupported: boolean): ShellProps => ({
     applyPendingConsent();
   },
   onGatesPassed: (phase) => {
-    if (phase === 'attested') startEngine();
+    if (phase === 'attested') attestedOpen();
     else termsAccepted();
   },
 });
@@ -150,6 +150,8 @@ async function boot(): Promise<void> {
       spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
       // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
       ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
+      // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
+      region: attestedGate.then(() => fetchBootRegion(fetch, location.origin)),
       events: {
         unsupported: () => shell.core.fire('unsupported'),
         reloadPrompt: showReloadPrompt,
@@ -277,9 +279,15 @@ async function boot(): Promise<void> {
   }
 }
 
-// The platform and the engine boot when the player may play: a bypass, or an attested adult (a returning player at once, a new one
-// as soon as the age screen passes). A blocked device boots nothing and makes no request.
+// The platform and the engine boot at page load, behind the Title, on every device that is not blocked: a blocked device boots nothing
+// and makes no request. Nothing goes to the Worker API (the region probe) until the age screen has passed, and no telemetry leaves before
+// the Terms are accepted.
 let started = false;
+let attestedOpen: () => void = () => undefined;
+const attestedGate = new Promise<void>((resolve) => {
+  attestedOpen = resolve;
+});
+if (prefs.get().age.attested === '18p' && !prefs.get().age.blocked) attestedOpen();
 let platformPort: ReturnType<typeof createPlatformPort> | null = null;
 let pendingConsent: { diagnostics: boolean; analytics: boolean } | null = null;
 const termsOk = qaPlay !== null || prefs.get().terms?.version === TERMS_VERSION;
@@ -304,8 +312,7 @@ function termsAccepted(): void {
   applyPendingConsent();
 }
 
-const attested = prefs.get().age.attested === '18p' && !prefs.get().age.blocked;
-if (qaPlay !== null || attested) startEngine();
+startEngine();
 
 if (update && import.meta.env.PROD) {
   addEventListener('load', () => {

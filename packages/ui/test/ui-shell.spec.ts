@@ -282,13 +282,31 @@ describe('other tab guard', () => {
     const [ca, cb] = pair();
     const timers: Array<() => void> = [];
     const after = (fn: () => void): unknown => timers.push(fn);
+    const flush = (): void => {
+      while (timers.length > 0) timers.shift()?.();
+    };
     const first = new InstanceGuard(ca, 'a', after);
     first.start();
-    timers.shift()?.();
+    flush();
     const second = new InstanceGuard(cb, 'b', after);
     second.start();
+    expect(second.otherTab).toBe(false); // heard one owner: it asks again before it decides
+    flush();
     expect(first.otherTab).toBe(false);
     expect(second.otherTab).toBe(true);
+  });
+  it('a page that stops answering (a reload in progress) does not make the new page the other tab', () => {
+    const [ca, cb] = pair();
+    const timers: Array<() => void> = [];
+    const after = (fn: () => void): unknown => timers.push(fn);
+    const old = new InstanceGuard(ca, 'a', after);
+    old.start();
+    while (timers.length > 0) timers.shift()?.();
+    const fresh = new InstanceGuard(cb, 'b', after);
+    fresh.start();
+    old.stop();
+    while (timers.length > 0) timers.shift()?.();
+    expect(fresh.otherTab).toBe(false);
   });
   it('a lone tab owns the profile', () => {
     const guard = new InstanceGuard(null, 'solo');

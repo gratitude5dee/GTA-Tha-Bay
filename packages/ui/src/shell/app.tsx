@@ -97,16 +97,19 @@ export function ShellApp(props: { core: ShellCore }) {
       core.gate.online = navigator.onLine !== false;
       core.touch();
     };
+    const onHide = (): void => core.guard.stop();
+    addEventListener('pagehide', onHide);
     addEventListener('popstate', onPop);
     addEventListener('online', setOnline);
     addEventListener('offline', setOnline);
     setOnline();
     const root = document.getElementById('app') ?? document.body;
-    const focus = new FocusManager({ root, onBack: () => core.back(), escapeBacks: () => core.escapeBacks() });
+    const focus = new FocusManager({ root, onBack: () => core.back(), escapeBacks: () => core.escapeBacks(), active: () => !(core.state === 'InMode' && core.frame === null) });
     // Leave Booting after the first paint.
     const boot = setTimeout(() => core.ready(), 0);
     return () => {
       clearTimeout(boot);
+      removeEventListener('pagehide', onHide);
       removeEventListener('popstate', onPop);
       removeEventListener('online', setOnline);
       removeEventListener('offline', setOnline);

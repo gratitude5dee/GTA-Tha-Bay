@@ -80,6 +80,8 @@ export interface FocusManagerOptions {
   gamepad?: () => readonly (Gamepad | null)[];
   /** Called when the last input device changes (`kbm`, `pad`, `pointer`), for glyphs and the focus ring. */
   onInputKind?: (kind: 'kbm' | 'pad' | 'pointer') => void;
+  /** False while the game has the screen (a mode runs, no shell page is up): the manager then leaves keys and pad alone. */
+  active?: () => boolean;
   /** Escape goes back unless this says the Pause key belongs to the engine (the pause menu). */
   escapeBacks?: () => boolean;
   now?: () => number;
@@ -156,6 +158,7 @@ export class FocusManager {
   }
 
   private onKey(e: KeyboardEvent): void {
+    if (this.o.active && !this.o.active()) return;
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
     this.kind('kbm');
     const active = document.activeElement;
@@ -194,7 +197,7 @@ export class FocusManager {
     if (this.disposed) return;
     const pads = this.o.gamepad ? this.o.gamepad() : typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
     const pad = [...pads].find((p) => p && p.connected !== false) ?? null;
-    if (pad) this.pad(pad);
+    if (pad && (!this.o.active || this.o.active())) this.pad(pad);
     else this.held.clear();
     this.raf = requestAnimationFrame(() => this.poll());
   }
