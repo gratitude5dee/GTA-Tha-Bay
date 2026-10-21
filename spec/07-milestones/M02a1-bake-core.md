@@ -32,7 +32,7 @@ After this session `tools/map` is a real bake pipeline for the parts of San Fran
 
 ## Scope out
 - S5–S10 (roads, junctions, grading, ped graph, tags, spawn, landmarks, POIs, transit), `map:verify`, `map:landmarks`, `map:pois`: M02a2. S11 LOD and far packs (`l1`, `l2`, `far-bay-*`): M02a2 (DL-546). S12 map packs and geocoder: M02c1 (district grid) and M02c2.
-- Automatic CI publishing of `sf` packs: the operator runs `map:pack -- --target r2:staging` (AC-9); a CI trigger waits until the measured bake time fits the runner.
+- Automatic CI publishing of `sf` packs: the operator runs `map:pack -- --target r2:staging` (AC-9); a CI trigger waits until the measured bake time fits the runner. From DL-713 (2026-10-20) the `r2:staging` upload of AC-9 is folded into M02c2 AC-14, because media buckets become publicly readable once M01d2 deploys; the AC-9 operator run records the upload as skipped.
 - Serving `sf` on staging or production (merging `assets/world/sf.lock.json` into a deployed catalog): M02c2, the first milestone with all three attribution surfaces (DL-670).
 - `--imagery` (U-W3, off by default).
 
