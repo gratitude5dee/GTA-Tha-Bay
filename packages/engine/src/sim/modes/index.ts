@@ -69,7 +69,19 @@ export interface ModesModule extends SimModule {
   collect(reason: SaveReason): { slot: SlotId; data: unknown }[] | null;
   /** The telemetry events the sim queued for the page, newest last (QA). */
   telemetryQueue(): readonly { name: string; props: Record<string, string | number | boolean> }[];
+  /** Installs the QA command handler (`qa.ts`); the QA worker entry does it, so a production bundle carries no QA ops. */
+  installQa(h: ModesQaHandler): void;
 }
+
+/** What the QA handler may touch. */
+export interface ModesQaContext {
+  host: ModeHost;
+  economy: EconomyImpl;
+  unlocks: UnlockRegistryImpl;
+  ui: SimUiBridge | null;
+  telemetry: readonly { name: string; props: Record<string, string | number | boolean> }[];
+}
+export type ModesQaHandler = (cx: ModesQaContext, cmd: Extract<DebugCommand, { t: 'debug.modes' }>, reply: (name: string, data: unknown) => void) => void;
 
 /** DL-681: the world's `{t: 'world.boundary', s: 'countyLine'}` event is one toast with the key `world.boundary.countyLine`. */
 export function boundaryToast(ui: UiBridge, e: SimEvent): boolean {
@@ -98,6 +110,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
   let slices: SessionSlices | null = null;
   let dispatch: ((cmd: UiCommand) => void) | null = null;
   let reply: ((name: string, data: unknown) => void) | null = null;
+  let qaHandler: ModesQaHandler | null = null;
   const telemetry: { name: string; props: Record<string, string | number | boolean> }[] = [];
 
   const module: ModesModule = {
@@ -323,44 +336,13 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       bridge.flushTick();
     },
 
+    installQa(h) {
+      qaHandler = h;
+    },
+
     onDebug(cmd: DebugCommand) {
-      if (cmd.t !== 'debug.modes' || !host || !economy || !unlocks || !reply) return;
-      const send = reply;
-      const answer = (data: unknown): void => send(`modes.reply.${cmd.id}`, data);
-      const a = (cmd.args ?? {}) as Record<string, unknown>;
-      switch (cmd.op) {
-        case 'list':
-          answer({ ok: true, modes: host.list() });
-          break;
-        case 'state':
-          answer({
-            ok: true,
-            host: host.observe(),
-            balance: economy.balance(),
-            ledger: economy.ledgerSize,
-            unlockAll: unlocks.unlockAll,
-            autosaves: host.autosave.log.slice(-20),
-            refusals: host.refusals,
-            telemetry: telemetry.slice(-20),
-            backlog: ui?.backlog ?? 0,
-            capability: host.observe().capability,
-          });
-          break;
-        case 'unlock':
-          answer({ ok: true, isNew: typeof a['id'] === 'string' && /^unlock\.[a-z0-9._]{1,60}$/.test(a['id']) ? unlocks.emit(a['id'] as `unlock.${string}`, { kind: 'debug', ref: 'qa' }) : false });
-          break;
-        case 'unlockAll':
-          answer({ ok: true, took: host.setUnlockAll(a['on'] !== false) });
-          break;
-        case 'credit':
-          answer({ ok: typeof a['cents'] === 'number' && typeof a['key'] === 'string' ? economy.credit(a['cents'], 'qa', a['key']) : false, balance: economy.balance() });
-          break;
-        case 'debit':
-          answer({ ok: typeof a['cents'] === 'number' && typeof a['key'] === 'string' ? economy.debit(a['cents'], 'qa', a['key']) : false, balance: economy.balance() });
-          break;
-        default:
-          answer({ ok: false, reason: `unknown op ${cmd.op}` });
-      }
+      if (cmd.t !== 'debug.modes' || !qaHandler || !host || !economy || !unlocks || !reply) return;
+      qaHandler({ host, economy, unlocks, ui, telemetry }, cmd, reply);
     },
   };
   return module;

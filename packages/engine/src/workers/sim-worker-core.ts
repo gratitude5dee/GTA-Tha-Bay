@@ -130,6 +130,8 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       runtime.inspector = qaInspector;
       runtime.vehicleQa = (await import('../sim/vehicle/debug.ts')).vehicleQa;
       // `debug.pursuit` (QA): the pursuit module's command handler (M03c)
+      // `debug.modes` (QA): the mode host's command handler (M04a2)
+      modes.installQa((await import('../sim/modes/qa.ts')).runModesQa);
       const pursuit = (env.modules ?? []).find((m) => m.id === 'engine.pursuit') as (SimModule & { installQa?(h: unknown): void }) | undefined;
       if (pursuit?.installQa) pursuit.installQa((await import('../sim/pursuit/qa.ts')).runPursuitQa);
       runtime.lineTools = {
