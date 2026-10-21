@@ -28,6 +28,7 @@ import { AmbientPeds } from '../peds/system.ts';
 import { PED_COMPONENTS } from '../peds/components.ts';
 import { AmbientTransit } from '../transit/system.ts';
 import { TRANSIT_COMPONENTS } from '../transit/components.ts';
+import { createTagsPort } from '../api/tags.ts';
 import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
@@ -409,6 +410,7 @@ export function createWorldStreamingModule(): WorldStreamingModule {
       transit = null;
       ctx.sim.services.world.api = null;
       ctx.sim.services.world.bounds = null;
+      ctx.sim.services.world.tags = null;
       for (const by of [...blackout.owners()]) blackout.set(false, by);
       if (!isWorldConfig(raw)) return;
       const port = ctx.ports[WORLD_PORT] as PackPort | undefined;
@@ -469,6 +471,7 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   for (const r of api.resources()) sim.core.addResource(r);
   sim.services.world.api = api;
   sim.services.world.bounds = api.bounds;
+  sim.services.world.tags = createTagsPort(world.store);
   world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
   world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
   return api;

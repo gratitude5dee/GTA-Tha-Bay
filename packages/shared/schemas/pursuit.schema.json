@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/pursuit.schema.json",
+  "title": "config/pursuit.json and config/pursuit.race.json (C06 PursuitConfig)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "levels", "infractionPoints", "witness", "search", "bust", "fines", "impoundStrikes"],
+  "$defs": {
+    "nonNeg": { "type": "number", "minimum": 0 },
+    "pos": { "type": "number", "exclusiveMinimum": 0 },
+    "tactic": { "enum": ["follow", "siren", "loudspeaker", "pit", "boxIn", "rollingBlock", "roadblock2", "roadblockHeavy", "spikes", "heliSpotlight", "suvRam", "portalSeal"] },
+    "level": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points", "maxUnits", "suv", "heli", "tactics", "searchRadiusM", "cooldownSec"],
+      "properties": {
+        "points": { "$ref": "#/$defs/nonNeg" },
+        "maxUnits": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "suv": { "type": "integer", "minimum": 0, "maximum": 32 },
+        "heli": { "type": "boolean" },
+        "tactics": { "type": "array", "items": { "$ref": "#/$defs/tactic" }, "uniqueItems": true },
+        "searchRadiusM": { "$ref": "#/$defs/nonNeg" },
+        "cooldownSec": { "$ref": "#/$defs/nonNeg" }
+      }
+    }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": 1 },
+    "levels": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/$defs/level" } },
+    "infractionPoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speedingSeen", "redLightSeen", "hitCivilianVehicle", "hitPoliceVehicle", "propertyDamage", "assault", "zoneViolation", "evasion"],
+      "properties": {
+        "speedingSeen": { "$ref": "#/$defs/nonNeg" },
+        "redLightSeen": { "$ref": "#/$defs/nonNeg" },
+        "hitCivilianVehicle": { "$ref": "#/$defs/nonNeg" },
+        "hitPoliceVehicle": { "$ref": "#/$defs/nonNeg" },
+        "propertyDamage": { "$ref": "#/$defs/nonNeg" },
+        "assault": { "$ref": "#/$defs/nonNeg" },
+        "zoneViolation": { "$ref": "#/$defs/nonNeg" },
+        "evasion": { "$ref": "#/$defs/nonNeg" }
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["robotaxiDelaySec", "pedDelaySec", "pedReports"],
+      "properties": {
+        "robotaxiDelaySec": { "$ref": "#/$defs/nonNeg" },
+        "pedDelaySec": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/nonNeg" } },
+        "pedReports": { "type": "boolean" }
+      }
+    },
+    "search": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["losLostSec", "growMps", "hidingMultiplier", "losChecksPerTick"],
+      "properties": {
+        "losLostSec": { "$ref": "#/$defs/nonNeg" },
+        "growMps": { "$ref": "#/$defs/nonNeg" },
+        "hidingMultiplier": { "type": "number", "minimum": 1 },
+        "losChecksPerTick": { "type": "integer", "minimum": 1, "maximum": 256 }
+      }
+    },
+    "bust": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speedMps", "units", "radiusM", "sec", "onFootGrappleSec"],
+      "properties": {
+        "speedMps": { "$ref": "#/$defs/nonNeg" },
+        "units": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "radiusM": { "$ref": "#/$defs/pos" },
+        "sec": { "$ref": "#/$defs/pos" },
+        "onFootGrappleSec": { "$ref": "#/$defs/pos" }
+      }
+    },
+    "fines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minCents", "cashPct", "perHeatCents"],
+      "properties": {
+        "minCents": { "type": "integer", "minimum": 0 },
+        "cashPct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "perHeatCents": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "impoundStrikes": { "type": "integer", "minimum": 1, "maximum": 10 }
+  }
+}

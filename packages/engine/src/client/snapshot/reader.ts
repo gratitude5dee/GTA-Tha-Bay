@@ -17,6 +17,23 @@ export interface VehicleSide {
   state: number;
 }
 
+/** Side key `pursuit` (M03c): the heat of the local player; absent while the heat is 0 and nothing is pending. */
+export interface PursuitSide {
+  level: number;
+  phase: string;
+  points: number;
+  /** 0..1 */
+  cooldown: number;
+  /** Search circle radius, metres. */
+  radius: number;
+  units: number;
+  /** A unit or the helicopter has the player in sight. */
+  seen: boolean;
+  /** While busted: the fine in cents and the strikes the car now has. */
+  fine?: number;
+  strikes?: number;
+}
+
 /** Side key `prompt`: the interaction prompt of the local player. */
 export interface PromptSide {
   target: number;
@@ -48,6 +65,8 @@ export class SnapshotView {
   vehicle: VehicleSide | null = null;
   /** The interaction prompt (side key `prompt`, M03a1); null when nothing is offered. */
   prompt: PromptSide | null = null;
+  /** The heat (side key `pursuit`, M03c); null at level 0. */
+  pursuit: PursuitSide | null = null;
   /** The game clock and weather (side key `env`, M02b2); null before the first snapshot that carries one. */
   env: EnvState | null = null;
   /** Blackout in force (side key `bo`, set by the world module, M02b2). */
@@ -73,6 +92,8 @@ export class SnapshotView {
       this.vehicle = veh && typeof veh === 'object' ? (veh as VehicleSide) : null;
       const prompt = read.cur.side['prompt'];
       this.prompt = prompt && typeof prompt === 'object' ? (prompt as PromptSide) : null;
+      const pur = read.cur.side['pursuit'];
+      this.pursuit = pur && typeof pur === 'object' ? (pur as PursuitSide) : null;
       const env = read.cur.side['env'];
       if (env && typeof env === 'object') this.env = env as EnvState;
       this.blackout = read.cur.side['bo'] === 1;

@@ -36,6 +36,22 @@ export interface EngineBridge {
   vehicle(): EngineObservation['vehicle'];
   /** `enter` (with reach and the machine's checks), `seat` (at once), `exit`, `lock`, `unlock`, or `state`; `target` is an entity handle (default: the nearest vehicle). */
   vehicleOp(op: 'enter' | 'seat' | 'exit' | 'lock' | 'unlock' | 'state', target?: number): Promise<Record<string, unknown> | null>;
+  /** The pursuit director (M03c, QA): the heat toggles of the sandbox and the director's state as the sim holds it. */
+  pursuit: {
+    /** The `pursuit` side block of the newest snapshot; null at level 0. */
+    side(): EngineObservation['pursuit'];
+    state(): Promise<Record<string, unknown> | null>;
+    setHeat(level: number): Promise<Record<string, unknown> | null>;
+    clear(): Promise<Record<string, unknown> | null>;
+    neverWanted(on: boolean): Promise<Record<string, unknown> | null>;
+    scripted(on: boolean): Promise<Record<string, unknown> | null>;
+    report(kind: string, witness?: 'police' | 'robotaxi' | 'ped' | 'heli', count?: number): Promise<Record<string, unknown> | null>;
+    wallet(cents: number): Promise<Record<string, unknown> | null>;
+    /** Hot reload: replaces `config/pursuit.json` values in the running director (refused with the JSON paths of its defects). */
+    reloadConfig(config: unknown): Promise<Record<string, unknown> | null>;
+    blockAhead(ahead?: number, heavy?: boolean): Promise<Record<string, unknown> | null>;
+    stripAhead(ahead?: number): Promise<Record<string, unknown> | null>;
+  };
   /** The five vehicle cameras (R-PLAT-04). */
   vehicleCamera: {
     views(): readonly VehicleView[];
@@ -64,6 +80,10 @@ export interface EngineBridge {
 export function installEngineBridge(engine: EngineHandle): EngineBridge {
   let serial = 1_000_000;   // apart from the inspector panel's ids, so that reply names never collide
   const ask = async (cmd: DebugCommand, reply: string): Promise<Record<string, unknown> | null> => (await engine.ask(cmd, reply)) as Record<string, unknown> | null;
+  const pursuitCall = async (op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const id = ++serial;
+    return ask({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) }, `pursuit.reply.${id}`);
+  };
   const bridge: EngineBridge = {
     spawn: async (prefab, at, yaw) => {
       const id = ++serial;
@@ -73,6 +93,19 @@ export function installEngineBridge(engine: EngineHandle): EngineBridge {
     vehicleOp: async (op, target) => {
       const id = ++serial;
       return ask({ t: 'debug.vehicle', id, op, ...(target !== undefined ? { target } : {}) }, `vehicle.reply.${id}`);
+    },
+    pursuit: {
+      side: () => engine.observe().pursuit,
+      state: () => pursuitCall('state'),
+      setHeat: (level) => pursuitCall('setHeat', { level }),
+      clear: () => pursuitCall('clear'),
+      neverWanted: (on) => pursuitCall('neverWanted', { on }),
+      scripted: (on) => pursuitCall('scripted', { on }),
+      report: (kind, witness = 'police', count = 1) => pursuitCall('report', { kind, witness, count }),
+      wallet: (cents) => pursuitCall('wallet', { cents }),
+      reloadConfig: (config) => pursuitCall('config', { config }),
+      blockAhead: (ahead = 45, heavy = false) => pursuitCall('blockAhead', { ahead, heavy }),
+      stripAhead: (ahead = 45) => pursuitCall('stripAhead', { ahead }),
     },
     vehicleCamera: {
       views: () => VEHICLE_VIEW_ORDER,

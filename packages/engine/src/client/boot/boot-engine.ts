@@ -16,6 +16,7 @@ import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import { PromptOverlay } from '../hud/prompt.ts';
+import type { PursuitSide } from '../snapshot/reader.ts';
 import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
   GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
@@ -118,6 +119,8 @@ export interface EngineObservation {
   vehicle: VehicleSide | null;
   /** The interaction prompt in force (side key `prompt`); null when nothing is offered. */
   prompt: PromptSide | null;
+  /** The heat (side key `pursuit`, M03c); null at level 0. */
+  pursuit: PursuitSide | null;
   /** The vehicle camera: which of the five views, whether it drives the draw camera now, and where the last frame put it. */
   vehicleCamera: { view: string; active: boolean; x: number; y: number; z: number; distance: number };
   /** QA tools (M03a1): the entity inspector and the physics wireframe. */
@@ -254,6 +257,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   // Vehicles (M03a1): the five cameras, the context switch, the prompt overlay, and the QA tools.
   const vcam = new VehicleCamera();
   let promptUi: PromptOverlay | null = null;
+  let pursuitUi: { update(s: PursuitSide | null): void } | null = null;
   let drivingCtx = false;
   let snapBehind = false;
   let idleSec = 0;
@@ -402,6 +406,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
     promptUi?.update(playing ? view.prompt : null, playing ? view.vehicle : null, router?.active ?? 'kbm');
+    pursuitUi?.update(view.pursuit);
     if (physicsDraw?.visible) {
       physicsDraw.sync(view.poses, view.count);
       if (++physicsPoll % 30 === 1) {
@@ -622,6 +627,21 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         window.addEventListener('keydown', onKey);
         cleanups.push(() => window.removeEventListener('keydown', onKey), () => panel?.dispose());
       }
+      // The pursuit panel (M03c) is on in every QA build, so the wanted system can be seen without ?debug=1.
+      const { PursuitPanel } = await import('../../debug/pursuit-panel.ts');
+      const pursuitAsk = (op: string, args?: Record<string, unknown>): void => {
+        const id = ++askSerial;
+        void host.sendDebug({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) });
+      };
+      const pp = new PursuitPanel({
+        container: document.body,
+        onHeat: (level) => pursuitAsk('setHeat', { level }),
+        onNeverWanted: (on) => pursuitAsk('neverWanted', { on }),
+        onBlock: () => pursuitAsk('blockAhead', { ahead: 45 }),
+        onStrip: () => pursuitAsk('stripAhead', { ahead: 45 }),
+      });
+      pursuitUi = pp;
+      cleanups.push(() => pp.dispose());
       const { installXrSmoke } = await import('../xr/smoke.ts');
       const host2 = opts.host;
       xrSmoke = await installXrSmoke({
@@ -711,6 +731,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         chunksLoaded,
         vehicle: view.vehicle,
         prompt: view.prompt,
+        pursuit: view.pursuit,
         vehicleCamera: { view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance },
         tools: inspector && physicsDraw
           ? {

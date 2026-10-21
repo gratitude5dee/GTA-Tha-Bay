@@ -74,7 +74,7 @@ export function verifyDist(dist) {
   // 2e. No entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11).
   for (const f of textFiles) {
     const s = text(f);
-    if (/inspect\.reply\.|physics\.reply\.|spawn\.reply\.|vehicle\.reply\.|veh:qa|LineRecorder|physics-draw|dv-inspector/.test(s)) fail(`QA vehicle tools found in ${rel(f)}`);
+    if (/inspect\.reply\.|physics\.reply\.|spawn\.reply\.|vehicle\.reply\.|veh:qa|LineRecorder|physics-draw|dv-inspector|pursuit\.reply\.|dv-pursuit|pursuit-panel|runPursuitQa/.test(s)) fail(`QA vehicle tools found in ${rel(f)}`);
   }
 
   // 2f. No world-hash QA page or its code (M03b1 AC-12): the page and the strings only it contains.
