@@ -51,14 +51,15 @@ async function isListening(u: URL): Promise<boolean> {
   });
 }
 
-async function webServerCommand(): Promise<{ command: string; timeout: number }> {
-  const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as {
-    default: { webServer?: { command: string; timeout?: number } | Array<{ command: string; timeout?: number }> };
-  };
+type WebServer = { command: string; timeout?: number; env?: Record<string, string> };
+
+/** The Playwright webServer command, timeout and env (the env pins the country the local Worker sees, BD-FIX-CI-02). */
+async function webServerCommand(): Promise<{ command: string; timeout: number; env: Record<string, string> }> {
+  const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as { default: { webServer?: WebServer | WebServer[] } };
   const ws = mod.default.webServer;
   const first = Array.isArray(ws) ? ws[0] : ws;
   if (!first) throw new Error('playwright.config.ts has no webServer');
-  return { command: first.command, timeout: first.timeout ?? 120_000 };
+  return { command: first.command, timeout: first.timeout ?? 120_000, env: first.env ?? {} };
 }
 
 async function withServer<T>(url: string, fn: () => Promise<T>): Promise<T> {
@@ -67,9 +68,9 @@ async function withServer<T>(url: string, fn: () => Promise<T>): Promise<T> {
     console.log(`reusing the server already listening on ${u.host}`);
     return fn();
   }
-  const { command, timeout } = await webServerCommand();
+  const { command, timeout, env } = await webServerCommand();
   console.log(`starting: ${command}`);
-  const child = spawn('sh', ['-c', command], { cwd: repoRoot, detached: true, stdio: ['ignore', 'inherit', 'inherit'] });
+  const child = spawn('sh', ['-c', command], { cwd: repoRoot, detached: true, env: { ...process.env, ...env }, stdio: ['ignore', 'inherit', 'inherit'] });
   const exited = new Promise<number | null>((resolve) => child.once('exit', (code) => resolve(code)));
   try {
     const deadline = Date.now() + timeout;

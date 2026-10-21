@@ -69,6 +69,23 @@ export interface CreatePlatformOptions {
   assets?: AssetClient | null;
   /** Creates asset.worker when no client is passed: the app supplies the composed worker with the world jobs (M02b1). Default: the engine's own. */
   spawnAssetWorker?: () => WorkerPort;
+  /**
+   * `BootConfig.region` for the telemetry gate (BD-FIX-CI-01): a blocked region never calls the gated `POST /api/v1/t`. Default: one
+   * `GET /api/v1/boot` (geo-exempt) where there is a page and `fetch`; `null` sends without waiting (unit tests).
+   */
+  region?: Promise<'ok' | 'blocked'> | null;
+}
+
+/** Reads `region` from `GET /api/v1/boot`. Anything but an explicit 'blocked' counts as 'ok' (offline, an error, an old Worker). */
+export async function fetchBootRegion(fetchFn: typeof fetch = fetch, origin = ''): Promise<'ok' | 'blocked'> {
+  try {
+    const res = await fetchFn(`${origin}/api/v1/boot`, { cache: 'no-store' });
+    if (!res.ok) return 'ok';
+    const body = (await res.json()) as { region?: unknown } | null;
+    return body?.region === 'blocked' ? 'blocked' : 'ok';
+  } catch {
+    return 'ok';
+  }
 }
 
 export interface Platform {
@@ -149,6 +166,9 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
   const sessionId = o.sessionId ?? newSessionId();
   const store = o.store ?? createIdbStore();
   const storage = o.storage === undefined ? guardedStorage() : o.storage;
+  // Asked first so that the answer is usually in before the first flush (app.ready plus 200 ms).
+  const region =
+    o.region !== undefined ? o.region : typeof location !== 'undefined' && typeof fetch === 'function' ? fetchBootRegion(fetch, location.origin) : null;
 
   // Settings (consent first: the boot events respect it).
   const settings = await store.getSettings();
@@ -176,6 +196,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     now,
     timers,
     ...(o.send ? { send: o.send } : {}),
+    ...(region ? { region } : {}),
   });
   const bytes = new Map<string, ByteSource>();
   const memEst = (): { memEstMB: number; gpuEstMB: number } => {

@@ -57,6 +57,32 @@ describe('ci.yml (AC-8)', () => {
   it('every job sets timeout-minutes', () => {
     for (const [name, block] of Object.entries(jobs)) expect(block, name).toMatch(/timeout-minutes: \d+/);
   });
+
+  // BD-FIX-CI-03: the DV_WORLD=synth step alone outlasted 30 min on chromium-webgl2 (run 39517892975); the job names and matrix are
+  // the required checks and stay as they are.
+  it('e2e keeps its job name and four-project matrix and has at least 75 minutes; nightly e2e-full at least 90', () => {
+    const minutes = (block: string | undefined): number => Number(/timeout-minutes: (\d+)/.exec(block ?? '')?.[1] ?? 0);
+    expect(minutes(jobs['e2e'])).toBeGreaterThanOrEqual(75);
+    expect(jobs['e2e']).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
+    expect(minutes(jobsOf(wf('nightly.yml'))['e2e-full'])).toBeGreaterThanOrEqual(90);
+  });
+});
+
+// BD-FIX-CI-02: the local Worker's `request.cf` comes from a file the config writes, never from the runner's egress location.
+describe('playwright.config.ts webServer country', () => {
+  it('passes CLOUDFLARE_CF_FETCH_PATH to wrangler dev, and the file names US unless DV_E2E_COUNTRY says otherwise', async () => {
+    const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as {
+      default: { webServer?: { env?: Record<string, string> } };
+      E2E_COUNTRY: string;
+      E2E_CF_PATH: string;
+    };
+    const cfPath = mod.default.webServer?.env?.['CLOUDFLARE_CF_FETCH_PATH'];
+    expect(cfPath).toBe(mod.E2E_CF_PATH);
+    expect(path.isAbsolute(cfPath ?? '')).toBe(true);
+    const cf = JSON.parse(readFileSync(cfPath ?? '', 'utf8')) as { country?: string };
+    expect(cf.country).toBe(mod.E2E_COUNTRY);
+    if (process.env.DV_E2E_COUNTRY === undefined) expect(mod.E2E_COUNTRY).toBe('US');
+  });
 });
 
 describe('nightly.yml (AC-8)', () => {

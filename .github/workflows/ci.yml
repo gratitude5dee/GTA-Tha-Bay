@@ -205,7 +205,10 @@ jobs:
   e2e:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # BD-FIX-CI-03: 75, not 30. On run 39517892975 the DV_WORLD=synth step was cancelled at 30 min on chromium-webgl2 with 46 of 77
+    # tests done (one landmark test alone takes 13.5 min on software GL; the look goldens run on this project only); about 48 min
+    # estimated end to end, plus room for one retry of the longest test.
+    timeout-minutes: 75
     # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
     # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
     continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
