@@ -88,7 +88,7 @@ After this session Act 2 "Due Diligence" plays past its opener. Missions `m.a2.0
 1 Builder session; about 32 files; risk **medium** (mission tuning against the autoplayer, then the business host).
 
 ## Risks & fallbacks
-- **Race defs missing.** The two races are M07b1 content (run order #51, not a listed dependency). If absent, `startChild` returns false and the stub runs; AC-2 then fails only on its unlock line: report "Blocked on M07b1", keep AC-3 green.
+- **Race defs missing.** The two races are M07b1 content (run order #55, not a listed dependency). If absent, `startChild` returns false and the stub runs; AC-2 then fails only on its unlock line: report "Blocked on M07b1", keep AC-3 green.
 - **Phone surface.** Feed and Messages are `comingSoon` (M04b2), so items go to Bank › Businesses (DL-238; `08-tycoon-events.md` §7 amended).
 - **Flag size.** If one business exceeds 2 KiB, trim `EventState.counts` to the keys the validator needs and cap `active` at 8 effects.
 - **Overrun.** Missions and AC-1–AC-4 first; business persistence and UI (AC-6) are the cut line, the host (AC-5) stays.
