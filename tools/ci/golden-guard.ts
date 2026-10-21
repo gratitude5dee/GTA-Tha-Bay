@@ -1,6 +1,7 @@
 /**
- * Golden-update label rule (M00d; 13-qa.md section 2.3 item 3): a change to any path matching `**\/golden/**` or
- * `**\/*.golden.json` fails unless the PR carries the label `golden-update`. The verifier lock itself is M04d.
+ * Golden-update label rule (M00d; 13-qa.md section 2.3 item 3): a change to any path matching `**\/golden/**`, `**\/__golden__/**`
+ * or `**\/*.golden.json` fails unless the PR carries the label `golden-update`. The verifier lock itself is
+ * tools/ci/verifiers-lock.ts (M04d).
  *
  *   tsx tools/ci/golden-guard.ts          (CI: GITHUB_BASE_REF set -> git diff against origin/$GITHUB_BASE_REF;
  *                                          labels from DV_PR_LABELS, a comma list)
@@ -11,10 +12,11 @@ import { repoRoot } from './run.ts';
 
 export const GOLDEN_LABEL = 'golden-update';
 
-/** True for `**\/golden/**` (any directory segment named golden) and `**\/*.golden.json`. */
+/** True for `**\/golden/**`, `**\/__golden__/**` (C05 rule 5 save goldens, DL-659) and `**\/*.golden.json`. */
 export function isGoldenPath(p: string): boolean {
   const norm = p.replace(/\\/g, '/').replace(/^\.\//, '');
-  return norm.split('/').slice(0, -1).includes('golden') || /(?:^|\/)[^/]*\.golden\.json$/.test(norm);
+  const dirs = norm.split('/').slice(0, -1);
+  return dirs.includes('golden') || dirs.includes('__golden__') || /(?:^|\/)[^/]*\.golden\.json$/.test(norm);
 }
 
 export interface GuardResult {

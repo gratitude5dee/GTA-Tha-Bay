@@ -73,3 +73,23 @@ pnpm --filter @dv/engine bench:physics     # tick cost, init and restart time of
 ```
 
 `pnpm check:unit` runs all of them through the root Vitest config.
+
+## QA harness
+
+`src/qa` is the one way every mode proves it is deterministic (M04d; `spec/domains/13-qa.md` section 3). QA builds and Node only: a production chunk holds none of it (`pnpm check:bundle`).
+
+- `RunSpec` = `{ suite, scenario, seed, profile: 'canonical', maxTicks, checkpointEvery, bot: { driver, params? } }`. `createCanonicalRunner(env).run(spec)` boots the scenario through the loader registered for `suite`, steps it with the bot's frames written as player 0's `InputFrame`, and returns a `StateHashTrace`: the FNV-1a-64 `stateHash` every `checkpointEvery` ticks and at the end. A bot that never finishes stops at `maxTicks` with outcome `timeout`.
+- Drivers: `registerBot(id, factory)` (duplicate ids throw), `getBot(id)` (an unknown id lists the registered ones). `lines` replays a `*.line.json` (`params.line`; `params.noise` adds a seeded steer offset from the `bot` RNG stream). Mode owners register `story.autoplayer`, `racing.line`, `fighter.cpu`, `tycoon.<policy>` in their milestones.
+- Loaders: suite `engine`, scenario `walk-drive` = the gray-box Civic Center block with the sedan and the player at its wheel. Its statics come from the committed bytes `tests/fixtures/world/civic-graybox/p0-64-64.pack`, hash-checked against `hashes.json`: Node reads the file (`qa/node.ts`), the determinism page gets the same bytes through a Vite `?url` import and never touches the asset catalog (so a `DV_WORLD=synth` build gives the same trace, DL-699).
+- Goldens: `tests/golden/<suite>/<name>.json`, canonical JSON, `build` normalised to `golden`. Compare with `checkGolden(trace, name)` (Node, `qa/golden.ts`).
+
+Run a spec in the browser: `/qa/determinism.html?run=<base64url RunSpec>` (QA build) runs it in `sim.worker` and publishes the trace on `__dvBridge.engine.qa.trace`; `__dvBridge.engine.qa.run(spec)` does the same for any number of specs after load. `tests/e2e/det/suites.ts` lists each det tag with its specs and goldens (or `pending: <milestone>`); `det-suites.spec.ts` compares Chromium and WebKit with the Node goldens checkpoint by checkpoint.
+
+### Golden update procedure
+
+```
+DV_UPDATE_GOLDEN=1 pnpm check:unit -- packages/engine/test/qa     # rewrites only tests/golden/engine/*.json of those runs
+tsx tools/ci/verifiers-lock.ts --write                            # refresh tools/ci/verifiers.lock.json
+```
+
+Review the diff. The pull request carries the label `golden-update` and a line `Golden-update: <one-line reason>` in its body: changing a verifier (runner, driver, det spec, econ-sim, a golden) together with the code it verifies fails `tools/ci/test/verifiers-lock.test.ts` without both. CI never runs with `DV_UPDATE_GOLDEN` set; the runner throws before it steps.

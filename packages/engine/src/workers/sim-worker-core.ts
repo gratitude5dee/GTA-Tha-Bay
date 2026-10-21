@@ -80,6 +80,18 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       return;
     }
 
+    // `?run=<RunSpec>` of the determinism page (M04d): one canonical run on sims the runner builds itself, like the branch above.
+    if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'qa-run') {
+      const { runQaSpec } = await import('../qa/browser.ts');
+      const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      try {
+        post('trace', await runQaSpec(boot.config, { sleep, jitter: () => Math.random() }));
+      } catch (e) {
+        post('trace-error', e instanceof Error ? `${e.name}: ${e.message}` : String(e));
+      }
+      return;
+    }
+
     if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'save-kill') {
       const { runSaveKill } = await import('../sim/save/qa/save-kill.ts');
       const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });

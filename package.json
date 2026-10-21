@@ -69,6 +69,7 @@
     "map:landmarks": "tsx tools/map/src/cli.ts landmarks",
     "map:pois": "tsx tools/map/src/cli.ts pois",
     "map:resolve": "tsx tools/map/src/cli.ts resolve",
+    "check:balance": "tsx tools/ci/econ-sim/index.ts",
     "check:agents": "tsx tools/ci/check-agents.ts",
     "check:telemetry": "tsx tools/ci/check-telemetry.ts",
     "check:rollout": "tsx tools/ci/check-rollout.ts",
