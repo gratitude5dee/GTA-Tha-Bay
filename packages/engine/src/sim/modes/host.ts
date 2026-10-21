@@ -146,8 +146,7 @@ export class ModeHost {
       // Story to experience at a safe point (C06 1.1 rule 3): save `story:auto`, leave story, start the experience, come back after.
       if (!(root.id === 'story' && id.startsWith('exp:'))) return this.refuse(id, 'busy');
       if (this.stack.depth > 1 || this.unsafe()) return this.refuse(id, 'unsafe');
-      this.autosave.request('modeExit');
-      this.exitEntry(root, 'quit');
+      this.exitEntry(root, 'quit');   // saves `story:auto` with reason `modeExit`
       this.returnTo = 'story';
     }
     const profile = entryProfile(desc, this.d.sessionProfile());

@@ -38,6 +38,8 @@ export interface QaFlags {
   readonly world: string | null;
   /** ?touch=1 shows the touch layer on any device (M01b2). */
   readonly touch: boolean;
+  /** ?unlockAll=1 unlocks every registered unlock in memory, never persisted (M04a2, C06 rule 6). */
+  readonly unlockAll: boolean;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -57,6 +59,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   scenario: null,
   world: null,
   touch: false,
+  unlockAll: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -107,5 +110,6 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     scenario: q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null,
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
     touch: q.get('touch') === '1',
+    unlockAll: q.get('unlockAll') === '1',
   };
 }

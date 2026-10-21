@@ -11,7 +11,7 @@
 import {
   SimStage, datan2,
   type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
-  type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiCommand, type WorldApi,
+  type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand, type WorldApi,
 } from '@dv/shared';
 import { GROUP_BIT } from '../physics/groups.ts';
 import { Control, LocalPlayer, Transform } from '../ecs/components.ts';
@@ -69,6 +69,13 @@ export interface ModesModule extends SimModule {
   collect(reason: SaveReason): { slot: SlotId; data: unknown }[] | null;
   /** The telemetry events the sim queued for the page, newest last (QA). */
   telemetryQueue(): readonly { name: string; props: Record<string, string | number | boolean> }[];
+}
+
+/** DL-681: the world's `{t: 'world.boundary', s: 'countyLine'}` event is one toast with the key `world.boundary.countyLine`. */
+export function boundaryToast(ui: UiBridge, e: SimEvent): boolean {
+  if (e.t !== 'world.boundary' || e.s !== 'countyLine') return false;
+  ui.toast({ id: 'world.boundary.countyLine', kind: 'info', text: 'world.boundary.countyLine' });
+  return true;
 }
 
 export function freshSlices(): SessionSlices {
@@ -139,6 +146,13 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       const live = slices;
       const bridge = (ui = new SimUiBridge());
       const bus = new ModeEventBus((e: SimEvent) => void services.events.push(e));
+      // Engine events the shell shows as toasts (DL-681): hook the log's `push` once, leave every event in the log.
+      const log = services.events;
+      const push = log.push.bind(log);
+      log.push = (e: SimEvent): void => {
+        push(e);
+        boundaryToast(bridge, e);
+      };
       const tick = (): number => s.core.tick;
       const noPort: SaveWritePort = { post: () => undefined };
       const control = runtime.saveControl;

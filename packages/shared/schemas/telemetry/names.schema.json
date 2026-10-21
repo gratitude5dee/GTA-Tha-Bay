@@ -152,6 +152,31 @@
       },
       "required": ["page", "ms"],
       "additionalProperties": false
+    },
+    "mode.enter": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["mode"],
+      "additionalProperties": false
+    },
+    "mode.exit": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "maxLength": 64 },
+        "reason": { "enum": ["completed", "quit", "failed", "parentExit", "error", "kill"] }
+      },
+      "required": ["mode", "reason"],
+      "additionalProperties": false
+    },
+    "unlock.emit": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id"],
+      "additionalProperties": false
     }
   }
 }

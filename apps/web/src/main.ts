@@ -182,6 +182,8 @@ async function boot(): Promise<void> {
         : { graybox: { p0: grayboxP0Url, l0: grayboxL0Url } }),
     play: flags.debug,
     forceTouch: flags.touch,
+    // The sim queues mode.enter, mode.exit and unlock.emit (M04a2); the platform client applies consent and batching.
+    onTelemetry: (name, props) => platform.telemetry.emit(name as never, props),
     // Pausing brings the title back over the world; Start resumes.
     onPausedChange: (paused) => {
       if (started) setPlayView(!paused);

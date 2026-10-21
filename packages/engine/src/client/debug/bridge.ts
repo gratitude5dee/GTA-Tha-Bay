@@ -1,4 +1,4 @@
-import type { VehicleView } from '@dv/shared';
+import type { GameModeId, JsonValue, UiCommand, VehicleView } from '@dv/shared';
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { EngineHandle, EngineObservation } from '../boot/boot-engine.ts';
 import { VEHICLE_VIEW_ORDER } from '../vehicle/vehicle-camera.ts';
@@ -52,6 +52,28 @@ export interface EngineBridge {
     blockAhead(ahead?: number, heavy?: boolean): Promise<Record<string, unknown> | null>;
     stripAhead(ahead?: number): Promise<Record<string, unknown> | null>;
   };
+  /** The mode host, the unlocks, the economy and the UI channel (M04a2, QA). */
+  modes: {
+    /** Registered modes in tile order, with `status` and whether each is unlocked. */
+    list(): Promise<Record<string, unknown> | null>;
+    /** Host state, balance, unlock flag, recent autosaves and refusals, queued telemetry. */
+    state(): Promise<Record<string, unknown> | null>;
+    /** The host state as the page's view model sees it (`Idle`, `Loading`, `Running`, ...) and the stack. */
+    mode(): { state: string; stack: { id: string; state: string }[] };
+    start(id: GameModeId): boolean;
+    quit(): boolean;
+    /** Sends any `UiCommand`. */
+    send(cmd: UiCommand): boolean;
+    /** The QA unlock helper: true in the answer when the unlock was new. */
+    unlock(id: string): Promise<Record<string, unknown> | null>;
+    unlockAll(on: boolean): Promise<Record<string, unknown> | null>;
+    credit(cents: number, key: string): Promise<Record<string, unknown> | null>;
+    debit(cents: number, key: string): Promise<Record<string, unknown> | null>;
+    /** A view model value (`hud.wallet`, `sys.unlocks`, `sys.controls`, ...). */
+    vm(key: string): JsonValue | undefined;
+    toasts(): readonly { id: string; kind: string; text: string }[];
+    telemetry(): readonly { name: string; props: Record<string, string | number | boolean> }[];
+  };
   /** The five vehicle cameras (R-PLAT-04). */
   vehicleCamera: {
     views(): readonly VehicleView[];
@@ -84,7 +106,29 @@ export function installEngineBridge(engine: EngineHandle): EngineBridge {
     const id = ++serial;
     return ask({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) }, `pursuit.reply.${id}`);
   };
+  const modesCall = async (op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const id = ++serial;
+    return ask({ t: 'debug.modes', id, op, ...(args ? { args } : {}) }, `modes.reply.${id}`);
+  };
   const bridge: EngineBridge = {
+    modes: {
+      list: () => modesCall('list'),
+      state: () => modesCall('state'),
+      mode: () => {
+        const v = engine.vm.get('sys.mode') as { state?: string; stack?: { id: string; state: string }[] } | undefined;
+        return { state: v?.state ?? 'Idle', stack: v?.stack ?? [] };
+      },
+      start: (id) => engine.sendUi({ t: 'mode.start', id }),
+      quit: () => engine.sendUi({ t: 'mode.quit' }),
+      send: (cmd) => engine.sendUi(cmd),
+      unlock: (id) => modesCall('unlock', { id }),
+      unlockAll: (on) => modesCall('unlockAll', { on }),
+      credit: (cents, key) => modesCall('credit', { cents, key }),
+      debit: (cents, key) => modesCall('debit', { cents, key }),
+      vm: (key) => engine.vm.get(key as never),
+      toasts: () => engine.toasts(),
+      telemetry: () => engine.telemetryEvents(),
+    },
     spawn: async (prefab, at, yaw) => {
       const id = ++serial;
       return (await ask({ t: 'debug.spawn', id, prefab, at, ...(yaw !== undefined ? { yaw } : {}) }, `spawn.reply.${id}`)) as SpawnReply | null;
