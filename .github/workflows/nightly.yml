@@ -92,7 +92,8 @@ jobs:
   # M00d: the full e2e matrix, including tests tagged @quarantine (they never gate pull requests).
   e2e-full:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # BD-FIX-CI-03: the pull-request e2e legs now take up to 75 min; this run adds the @quarantine tests on top.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:

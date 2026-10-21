@@ -1,7 +1,8 @@
 import { CLIENT_TELEMETRY_NAMES, TELEMETRY_LIMITS, type TelemetryBatch, type TelemetryEnvelope, type TelemetryName } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { LifecycleController } from '../../src/platform/lifecycle.ts';
-import { TelemetryClient, isDiagnostic, osMajorOf, scrub } from '../../src/platform/telemetry/client.ts';
+import { fetchBootRegion } from '../../src/platform/create-platform.ts';
+import { MAX_HELD_EVENTS, TelemetryClient, isDiagnostic, osMajorOf, scrub } from '../../src/platform/telemetry/client.ts';
 import { ErrorReporter, MAX_PER_FINGERPRINT, fingerprint, topFrameOf } from '../../src/platform/telemetry/errors.ts';
 import { FakeClock, FakeTimers } from './fakes.ts';
 
@@ -162,6 +163,73 @@ describe('interval and soon flush', () => {
     expect(sent[1]!.batch.events).toHaveLength(2);
     c.stop();
     expect(timers.intervals.size).toBe(0);
+  });
+});
+
+// BD-FIX-CI-01 (A-10, R-ROLL-01): POST /api/v1/t is geo-gated; a region that boot reports 'blocked' never calls it.
+describe('region gate', () => {
+  const settle = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+  it('a blocked region sends nothing: not the held boot batch, not the interval, not a beacon, not later events', async () => {
+    let answer!: (r: 'ok' | 'blocked') => void;
+    const { c, sent, timers } = client({ region: new Promise((r) => (answer = r)) });
+    c.emit('app.start', { nav: 'navigate', coi: true, store: 'memory', backend: 'webgl2', tier: 'mobile' });
+    c.start();
+    c.flushSoon();
+    timers.runTimeouts();
+    timers.tick(10_000);
+    expect(sent).toHaveLength(0);
+    expect(c.region).toBe('pending');
+    answer('blocked');
+    await settle();
+    expect(c.region).toBe('blocked');
+    expect(c.pending).toBe(0);
+    c.emit('app.hidden');
+    c.flush('pagehide');
+    c.flushSoon();
+    timers.runTimeouts();
+    timers.tick(10_000);
+    expect(sent).toHaveLength(0);
+    expect(c.pending).toBe(0);
+    expect(timers.intervals.size).toBe(0);
+  });
+
+  it('an ok region sends what it held, in order, then behaves as before', async () => {
+    const { c, sent } = client({ region: Promise.resolve('ok') });
+    c.emit('app.start', { nav: 'navigate', coi: true, store: 'memory', backend: 'webgl2', tier: 'mobile' });
+    c.emit('app.ready', { bootMs: 900, phaseShellMs: 120, phaseWorldMs: 0, nav: 'navigate' });
+    c.flush('interval');
+    expect(sent).toHaveLength(0);
+    await settle();
+    expect(c.region).toBe('ok');
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.batch.events.map((e) => e.name)).toEqual(['app.start', 'app.ready']);
+    c.emit('app.hidden');
+    c.flush('hidden');
+    expect(sent).toHaveLength(2);
+  });
+
+  it('a failed region answer counts as ok, and the held queue is bounded', async () => {
+    const { c, sent } = client({ region: Promise.reject(new Error('offline')) });
+    for (let i = 0; i < MAX_HELD_EVENTS + 30; i++) c.emit('app.hidden');
+    expect(c.pending).toBe(MAX_HELD_EVENTS);
+    await settle();
+    expect(c.region).toBe('ok');
+    expect(sent.reduce((n, s) => n + s.batch.events.length, 0)).toBe(MAX_HELD_EVENTS);
+  });
+
+  it('fetchBootRegion reads BootConfig.region and treats anything else as ok', async () => {
+    const reply = (status: number, body: unknown): typeof fetch => (async () => new Response(JSON.stringify(body), { status })) as typeof fetch;
+    const urls: string[] = [];
+    const spy: typeof fetch = (async (u: string) => {
+      urls.push(String(u));
+      return new Response(JSON.stringify({ region: 'blocked' }));
+    }) as typeof fetch;
+    expect(await fetchBootRegion(spy, 'http://localhost:1')).toBe('blocked');
+    expect(urls).toEqual(['http://localhost:1/api/v1/boot']);
+    expect(await fetchBootRegion(reply(200, { region: 'ok' }))).toBe('ok');
+    expect(await fetchBootRegion(reply(500, { region: 'blocked' }))).toBe('ok');
+    expect(await fetchBootRegion((async () => Promise.reject(new TypeError('offline'))) as typeof fetch)).toBe('ok');
   });
 });
 
