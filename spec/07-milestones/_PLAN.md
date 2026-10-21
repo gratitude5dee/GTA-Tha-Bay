@@ -12,7 +12,7 @@
 7. **M00e gate (2026-10-19, DL-514, DL-605, DL-622, Q-43).** M00e `owner-account-hardening` (formerly the owner PR #1 follow-up list) runs next: its dependencies M00a, M00b and M01c are merged into `claude/build` (M01c at `dae8f08`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts until M00e has merged; the only not-yet-started such milestones without a dependency path to M00e were M05d and M13a1, which now name it in Depends on (critical path unchanged, 29.8 / 33.8: both have slack), and every other one reaches M00e through M04b1 or M05d. M00d is not gated (a docs-only `services/edge/README.md`). PRs of milestones already executing (M00…M01f) merge as before and M00e rebases over them; M05b1, started on 2026-10-19 before this rule, is row 40 (row 38 before M02e, DL-704, and row 39 before M01d2, DL-713), so its PR merges after M00e in run order and rebases over it. Order: M00e next; M00d, already executing (IN PROGRESS, not gated), merges as before; then M00f (DL-648). Its file lists the operator actions (create `main`, the production `AUTH_PASSWORD_SIGNUP` switch, dashboard settings), which are never Builder work. **Integration branch:** `claude/build` until the operator creates `main` (Q-42, DL-606), then `main`; "merged" in this register and in every start-after rule means merged to that branch, and each PR targets it (DL-641).
 8. **M00f before vendoring (2026-10-19, DL-508, DL-523, DL-605, DL-607).** M00f `third-party-reuse-gates` (formerly the reuse-gates follow-up list) is a gate for no milestone; nothing is vendored into `third_party/` before it merges, and its `license:scan` rules are the mechanical stop, enforced by branch protection that makes the CI `static` and `ip` jobs required checks on the integration branch before the first vendoring PR (M00f Operator actions, DL-633). Vendoring is done by the operator or the Architect only (DL-502).
 
-## 1. Ordered index (v1: 116 milestones, ≈ 107.9 sessions; post-v1: 7 milestones, 7 sessions)
+## 1. Ordered index (v1: 116 milestones, ≈ 108.0 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
 
 | # | ID | Slug | Sessions | Block | Depends on |
@@ -45,7 +45,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 26 | M03b1 | traffic-robotaxis | 1 | B | M02c1, M03a1, M02b2 |
 | 27 | M03b2 | peds-transit | 1 | B | M03b1 |
 | 28 | M03c | pursuit-director | 1 | B | M03a1, M03b1 |
-| 29 | M01d2 | media-route | 0.3 | B | M01d, M00e |
+| 29 | M01d2 | media-route | 0.4 | B | M01d, M00e |
 | 30 | M04a1 | saves-gamemode-unlocks | 1 | B | M01b2 |
 | 31 | M04a2 | saves-gamemode-unlocks | 1 | B | M04a1, M03c, M03b2, M02b2 |
 | 32 | M04b1 | shell-ui-kit-menus-settings | 1 | B | M04a2, M00e |
@@ -176,6 +176,7 @@ flowchart LR
     M03b1
     M03b2
     M03c
+    M01d2
     M04a1
     M04a2
     M04b1
@@ -335,6 +336,9 @@ flowchart LR
   M00e --> M04b1
   M04b1 --> M04b2
   M04b2 --> M02c2
+  M01d --> M01d2
+  M00e --> M01d2
+  M01d2 --> M02c2
   M04b1 --> M04b3
   M04b1 --> M04c
   M04a2 --> M04d
@@ -514,7 +518,7 @@ flowchart LR
 
 ## 3. Critical path and checkpoints
 
-**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **29.8 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest; DL-348 added M00d → M02a1 and M02b2 → M02c1, +2.5; DL-552 re-estimated M00d at 1, +0.5); + M15a → M15e → M15f → M15g = 33.8 to the end of expansion. M00e (after M01c; before M04b1, M05d and M13a1) and M00f (a leaf after M00d) add no length: each edge from M00e has slack, and the M00e gate of §0 rule 7 delays only milestones that start after it anyway, so the path is unchanged (DL-605, DL-638). The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred.
+**Critical path** (longest dependency chain, in sessions; it matters when sessions run in parallel, a single Builder runs the §1 order): M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2 → M12b1 → M12b2 → M12c1 → M13a3 → M13b2 → M13c2 → M13d1 → M14b1 → M14b2 → M14b3 → M14a = **29.8 sessions** to the last v1 milestone (DL-219 made the hidden dependencies explicit; the rooms → mod runtime → publish → legal chain is now the longest; DL-348 added M00d → M02a1 and M02b2 → M02c1, +2.5; DL-552 re-estimated M00d at 1, +0.5); + M15a → M15e → M15f → M15g = 33.8 to the end of expansion. M00e (after M01c; before M04b1, M05d and M13a1) and M00f (a leaf after M00d) add no length: each edge from M00e has slack, and the M00e gate of §0 rule 7 delays only milestones that start after it anyway, so the path is unchanged (DL-605, DL-638). The world bake (M02a1–M02c1), the city systems that `ModeHost` wires (M03b1–M03c) and the R-ROLL-01 gate (M05c2 before M12b1) sit on it, so they are not deferred. M01d2 (row 29, DL-713) is off the critical path: its dependencies are merged and M02c2 also waits on M04b2.
 
 | Checkpoint | After | What must be true (proof) |
 |---|---|---|
@@ -554,7 +558,7 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 | Wave | Milestones (after) |
 |---|---|
 | 1 | M00e, M00f, M02a1, M04a1 |
-| 2 | M02a2 |
+| 2 | M02a2, M01d2 |
 | 3 | M02b1 |
 | 4 | M02b2 |
 | 5 | M02c1, M02e |

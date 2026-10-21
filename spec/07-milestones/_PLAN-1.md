@@ -55,10 +55,10 @@
 - **R** R-IP-01, R-PLAT-03 · **Dep** M00b, M00a, M01a1 · **Read** file `M01d-assets-publish.md`; `05-assets.md` §4 · **Out** `tools/assets`, `assets/{lock,provenance}`, `.github/workflows/assets.yml` · **C** C07 1.1
 - **Gate** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; buckets in `config/cloudflare.resources.json` · **Proof** `pnpm check:assets`; `pnpm assets:verify`; dry-run publish
 
-### M01d2 · media-route — 0.3 · risk L · S09
-- **Goal:** the app Worker serves R2 media at `/media/<key>` (Range, conditional requests, key grammar, CORS for its own hosts, isolation headers) and `HOST_MEDIA` points at it, so deployed builds load published packs without a custom domain (DL-713).
-- **R** R-PLAT-01, R-IP-01 (support) · **Dep** M01d, M00e · **Read** file `M01d2-media-route.md`; DL-713; `spec/03` §6 (R2 media through a Worker) · **Out** `services/edge/src/routes/media.ts`, `services/edge/wrangler.jsonc` (`HOST_MEDIA`), `docs/runbooks/r2-media.md` · **C** C12 1.3 (unchanged), C07 1.1
-- **Gate** none (AC-4 is a post-deploy operator check) · **Proof** `pnpm check:workers -- media boot`; `pnpm check:prod-routes && pnpm check:do-migrations`
+### M01d2 · media-route — 0.4 · risk L · S09
+- **Goal:** the app Worker serves R2 media at `/media/<key>` (dispatch before the asset fallthrough and the geo gate, `run_worker_first`, Range and conditional requests, explicit key grammar, public CORS, cross-origin CORP, `MEDIA_ROUTE` kill switch) and `HOST_MEDIA` points at it, so deployed builds load published media without a custom domain (DL-713).
+- **R** R-PLAT-01, R-IP-01 (support) · **Dep** M01d, M00e · **Read** file `M01d2-media-route.md`; DL-713; `spec/03` §6 (R2 media through a Worker) · **Out** `services/edge/src/{routes/media.ts, index.ts, headers.ts, env.ts}`, `services/edge/wrangler.jsonc`, `packages/shared/src/assets/media-key.ts`, `config/csp-hosts.ts`, `docs/runbooks/r2-media.md` · **C** C12 1.3 (unchanged), C07 1.1
+- **Gate** none (AC-5 is a post-deploy operator check) · **Proof** `pnpm check:workers -- media headers boot`; `pnpm check:unit -- packages/shared tools/ci`; `pnpm check:prod-routes`
 
 ### M01e · asset-worker-opfs-store — 1 · risk M · S11
 - **Goal:** `asset.worker`, `WorldPackStore` on OPFS with hash check, eviction, `persist()`, `fetchRetry` lanes.

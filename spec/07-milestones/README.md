@@ -22,7 +22,7 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - **Already executing: M00d** `qa-spec-gates` (row 13; branch `claude/build-m00d`, frozen since it started; its PR sets the row to IN PROGRESS; not gated by rule 7, it writes only a docs `services/edge/README.md`) merges as before (DL-648).
 - **Then: M00f** `third-party-reuse-gates` (row 15, needs M00d; formerly the reuse-gates follow-up list, DL-605; `_PLAN.md` §0 rule 8): a gate for no milestone; nothing is vendored into `third_party/` before it merges (DL-607).
 
-## Table (READY 123, of which 12 frozen (executing); 116 v1 milestones ≈ 107.9 sessions + 7 post-v1 = 114.9 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500, M00e–M00f by DL-605, M02e by DL-704, M01d2 by DL-713)
+## Table (READY 123, of which 12 frozen (executing); 116 v1 milestones ≈ 108.0 sessions + 7 post-v1 = 115.0 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500, M00e–M00f by DL-605, M02e by DL-704, M01d2 by DL-713)
 
 Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…DL-244; mechanical sweep DL-244: 0 findings) and promoted to READY at the handoff (`spec/11-decision-log-2.md` DL-245). Gates (secrets, devices, owner questions) per milestone are in the kickoff list and `_PLAN-1/2/3.md`.
 
@@ -56,7 +56,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 26 | M03b1 | traffic-robotaxis | 1 | M02c1, M03a1, M02b2 | READY | `M03b1-traffic-robotaxis.md` |
 | 27 | M03b2 | peds-transit | 1 | M03b1 | READY | `M03b2-peds-transit.md` |
 | 28 | M03c | pursuit-director | 1 | M03a1, M03b1 | READY | `M03c-pursuit-director.md` |
-| 29 | M01d2 | media-route | 0.3 | M01d, M00e | READY | `M01d2-media-route.md` |
+| 29 | M01d2 | media-route | 0.4 | M01d, M00e | READY | `M01d2-media-route.md` |
 | 30 | M04a1 | saves-gamemode-unlocks | 1 | M01b2 | READY | `M04a1-saves-gamemode-unlocks.md` |
 | 31 | M04a2 | saves-gamemode-unlocks | 1 | M04a1, M03c, M03b2, M02b2 | READY | `M04a2-saves-gamemode-unlocks.md` |
 | 32 | M04b1 | shell-ui-kit-menus-settings | 1 | M04a2, M00e | READY | `M04b1-shell-ui-kit-menus-settings.md` |

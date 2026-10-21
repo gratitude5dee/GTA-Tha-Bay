@@ -77,7 +77,7 @@ Next: the next milestone id and anything it must know
 </report>
 
 <milestones>
-All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–116 are v1 (≈ 107.9 sessions; rows 14–15, M00e and M00f, came from the owner updates of 2026-10-19, DL-605; row 20, M02e, from the owner look request, DL-704; row 29, M01d2, from the owner's media-host choice of 2026-10-20, DL-713), 117–123 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
+All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–116 are v1 (≈ 108.0 sessions; rows 14–15, M00e and M00f, came from the owner updates of 2026-10-19, DL-605; row 20, M02e, from the owner look request, DL-704; row 29, M01d2, from the owner's media-host choice of 2026-10-20, DL-713), 117–123 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
 1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
 2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
 3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
@@ -106,7 +106,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 26. M03b1 · traffic-robotaxis · 1 · M02c1, M03a1, M02b2 · Q-13 iPhone 15 (AC-11)
 27. M03b2 · peds-transit · 1 · M03b1 · none
 28. M03c · pursuit-director · 1 · M03a1, M03b1 · none
-29. M01d2 · media-route · 0.3 · M01d, M00e · none (the post-deploy check AC-4 needs a staging deploy)
+29. M01d2 · media-route · 0.4 · M01d, M00e · none (the post-deploy check AC-5 needs a staging deploy and the media R2 secrets)
 30. M04a1 · saves-gamemode-unlocks · 1 · M01b2 · none
 31. M04a2 · saves-gamemode-unlocks · 1 · M04a1, M03c, M03b2, M02b2 · none
 32. M04b1 · shell-ui-kit-menus-settings · 1 · M04a2, M00e · none
