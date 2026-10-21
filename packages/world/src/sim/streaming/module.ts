@@ -543,7 +543,7 @@ function installPeds(ctx: SimModuleContext, world: WorldSim, api: WorldServices,
 function installTransit(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig, traffic: AmbientTraffic): AmbientTransit | null {
   const sim = ctx.sim;
   if (!raw.ambient?.transit || !sim.ecs.registry.getByName('TransitVehicle')) return null;
-  const transit = new AmbientTransit({ ecs: sim.ecs, services: sim.services, world: api, cfg: ctx.cfg, traffic });
+  const transit = new AmbientTransit({ ecs: sim.ecs, services: sim.services, world: api, cfg: ctx.cfg, traffic, sink: sim.services.fareSink });
   api.transit = transit;
   sim.core.addSystem(transit.system());
   sim.core.addResource(transit.resource());

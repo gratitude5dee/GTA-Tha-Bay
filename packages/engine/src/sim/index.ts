@@ -34,3 +34,8 @@ export * from './ragdoll/ragdoll-lite.ts';
 export * from './world/closures.ts';
 export { VEHICLE_PREFABS } from './prefabs/registry.ts';
 export * from './pursuit/index.ts';
+export * from './modes/index.ts';
+export * from './ui/bridge.ts';
+export * from './ui/coalesce.ts';
+export * from './input/remap-persist.ts';
+export * from './save-port.ts';

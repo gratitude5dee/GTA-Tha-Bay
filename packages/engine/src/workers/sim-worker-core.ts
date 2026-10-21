@@ -17,7 +17,9 @@ import { isInitMessage, type InitMessage } from '../sim/sim-host.ts';
 import { attachSabWorker } from '../sim/transport/sab-transport.ts';
 import { attachPmWorker, type PortLike } from '../sim/transport/pm-transport.ts';
 import type { WorkerTransport } from '../sim/transport/types.ts';
-import { SaveControl, type SaveWriter } from '../sim/worker/save-control.ts';
+import { SaveControl } from '../sim/worker/save-control.ts';
+import { createModesModule, defaultSandbox, defaultStory, type SessionSlices } from '../sim/modes/index.ts';
+import type { SaveServiceImpl } from '../sim/save/service.ts';
 
 export interface WorkerScope extends PortLike {
   addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
@@ -30,7 +32,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
   const sleep = (ms: number): Promise<void> => new Promise((resolve) => scope.setTimeout(resolve, ms));
 
   let started = false;
-  let saveService: Promise<SaveWriter> | null = null;
+  let saveService: Promise<SaveServiceImpl> | null = null;
   scope.addEventListener('message', (ev) => {
     if (started || !isInitMessage(ev.data)) return;
     started = true;
@@ -50,7 +52,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
     }, 0);
   }
 
-  function envFor(init: InitMessage): SimRuntimeEnv {
+  function envFor(init: InitMessage, all: readonly SimModule[]): SimRuntimeEnv {
     const wait = new Int32Array(new SharedArrayBuffer(4));
     return {
       now: () => performance.now(),
@@ -58,7 +60,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       qa: init.p.qa,
       exclusive: true,
       retry: { sleep, jitter: () => Math.random() },
-      modules,
+      modules: all,
       ports: init.p.ports ?? {},
     };
   }
@@ -86,7 +88,30 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
     }
 
     const transport: WorkerTransport = kind === 'sab' && sab ? attachSabWorker(sab) : attachPmWorker(scope);
-    const env = envFor(init);
+    // The modes module (M04a2) goes last, so the world and pursuit modules it binds to have started when its `onInit` runs.
+    const openSave = (): Promise<SaveServiceImpl> =>
+      (saveService ??= (async () => {
+        const { SaveServiceImpl } = await import('../sim/save/index.ts');
+        return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
+      })());
+    const modes = createModesModule({
+      wallMs: () => Date.now(),
+      // The open profile: the first one, made if there is none (profile selection is M04b1's page).
+      loadSlices: async (): Promise<SessionSlices> => {
+        const svc = await openSave();
+        let list = await svc.listProfiles();
+        if (list.length === 0) {
+          const made = await svc.createProfile('Player 1');
+          if ('id' in made) list = [made];
+        }
+        const first = list[0];
+        if (!first) throw new Error('no profile');
+        const id = svc.activeProfile ?? first.id;
+        const game = await svc.load(id);
+        return { core: game.core, settings: game.settings, story: game.story.auto ?? defaultStory(), sandbox: game.sandbox ?? defaultSandbox() };
+      },
+    });
+    const env = envFor(init, [...modules, modes]);
     // Lines the runtime and the modules log reach the page through the event ring (`SimHostOptions.onLog`).
     env.log = (level, message) => void transport.postEvent({ v: 1, t: 'log', seq: 0, p: { level, message } });
     const runtime = new SimRuntime(transport, env);
@@ -118,17 +143,11 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       };
     }
 
-    // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy that
-    // decides what to collect arrives with M04a2, so until then nothing is due and `save.request` answers 'not-eligible'.
+    // C05: the control-message handler and write port. The SaveService opens on first use; the autosave policy of the modes
+    // module (M04a2) decides what to collect, and answers 'not-eligible' (null) when no save is due.
     runtime.saveControl = new SaveControl({
-      service: async () => {
-        saveService ??= (async () => {
-          const { SaveServiceImpl } = await import('../sim/save/index.ts');
-          return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
-        })();
-        return saveService;
-      },
-      collect: () => null,
+      service: openSave,
+      collect: (reason) => modes.collect(reason),
     });
 
     await runtime.boot(cfg, boot);

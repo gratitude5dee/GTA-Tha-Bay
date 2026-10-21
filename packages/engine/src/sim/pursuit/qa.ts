@@ -39,7 +39,17 @@ export const runPursuitQa: PursuitQaHandler = (cx, cmd, send) => {
       break;
     }
     case 'wallet':
-      if (wallet instanceof MemoryWallet && typeof a['cents'] === 'number') wallet.balance = Math.max(0, Math.floor(a['cents']));
+      if (typeof a['cents'] === 'number') {
+        const want = Math.max(0, Math.floor(a['cents']));
+        if (wallet instanceof MemoryWallet) wallet.balance = want;
+        else if ('credit' in wallet && typeof wallet.credit === 'function') {
+          // the economy is bound (M04a2): move the balance to `want` with QA-keyed entries
+          const diff = want - wallet.cash();
+          const key = `qa:wallet:${cx.tick}:${want}`;
+          if (diff > 0) wallet.credit(diff, 'qa', key);
+          else if (diff < 0) wallet.debit(-diff, 'qa', key);
+        }
+      }
       break;
     case 'blockAhead':
     case 'stripAhead': {

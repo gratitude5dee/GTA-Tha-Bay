@@ -1,4 +1,4 @@
-import type { FrameSignal, InputFrame, SimControlMessage } from '@dv/shared';
+import type { FrameSignal, InputFrame, SimControlMessage, UiCommand } from '@dv/shared';
 import { SpscRing } from './command-ring.ts';
 import {
   decodeEnvelope, encodeEnvelope, isToWorkerMessage, makeEnvelope,
@@ -46,7 +46,7 @@ class SabMain implements MainTransport {
     this.reader = new SabSnapshotReader(init.snapshots);
   }
 
-  private send(t: 'frame' | 'ctl' | 'dbg', p: FrameSignal | SimControlMessage | DebugCommand): boolean {
+  private send(t: 'frame' | 'ctl' | 'dbg' | 'ui', p: FrameSignal | SimControlMessage | DebugCommand | UiCommand): boolean {
     const ok = this.commands.push(encodeEnvelope(makeEnvelope(t, this.seq++, p)));
     if (!ok) this.counters.commandsDropped++;
     return ok;
@@ -60,6 +60,9 @@ class SabMain implements MainTransport {
   }
   sendDebug(cmd: DebugCommand): boolean {
     return this.send('dbg', cmd);
+  }
+  sendUi(cmd: UiCommand): boolean {
+    return this.send('ui', cmd);
   }
 
   readSnapshot(): SnapshotRead | null {
