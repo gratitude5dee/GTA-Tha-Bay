@@ -6,6 +6,15 @@ export function isAccountPath(pathname: string): boolean {
   return pathname === '/account' || pathname.startsWith('/account/');
 }
 
+/** Origin of HOST_MEDIA (which carries the /media path) for the CSP; a missing or malformed value falls back to the raw value, never throws. */
+export function mediaCspOrigin(hostMedia: string): string {
+  try {
+    return new URL(hostMedia).origin;
+  } catch {
+    return hostMedia;
+  }
+}
+
 /**
  * Adds COOP/COEP/CORP to a Worker response. `_headers` only covers static assets (F-019), so every response
  * the Worker produces goes through here. Paths under /account/ get no COOP/COEP.
@@ -22,11 +31,12 @@ export function withIsolationHeaders(res: Response, pathname: string, hosts?: Pi
     out.headers.set('Cross-Origin-Opener-Policy', 'same-origin');
     out.headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
     if (hosts) {
-      out.headers.set('Content-Security-Policy-Report-Only', buildCspReportOnly({ media: hosts.HOST_MEDIA, ugc: hosts.HOST_UGC, rt: hosts.HOST_RT, id: hosts.HOST_ID }));
+      out.headers.set('Content-Security-Policy-Report-Only', buildCspReportOnly({ media: mediaCspOrigin(hosts.HOST_MEDIA), ugc: hosts.HOST_UGC, rt: hosts.HOST_RT, id: hosts.HOST_ID }));
       out.headers.set('Reporting-Endpoints', REPORTING_ENDPOINTS);
     }
   }
-  out.headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+  // /media/ is public data loaded no-cors by <video>/<img> from preview hosts under COEP require-corp (M01d2, DL-713).
+  out.headers.set('Cross-Origin-Resource-Policy', pathname.startsWith('/media/') ? 'cross-origin' : 'same-origin');
   for (const [name, value] of Object.entries(BASELINE_HEADERS)) out.headers.set(name, value);
   return out;
 }

@@ -18,7 +18,7 @@
     "staging": { "name": "tha-bay-web-staging", "url": "https://tha-bay-web-staging.gratitude-8f4.workers.dev", "created": "2026-10-19" },
     "prod":    { "name": "tha-bay-web",         "url": "https://tha-bay-web.gratitude-8f4.workers.dev",         "created": "2026-10-19" }
   },
-  "host_vars_note": "services/edge/wrangler.jsonc on claude/build after PR #1: HOST_API and HOST_ID carry the gratitude-8f4 subdomain; HOST_RT, HOST_MEDIA and HOST_UGC still read https://tha-bay-*[-staging].workers.dev without it (M00e item 12). media and ugc are R2 custom domains with no workers.dev form: placeholders until Q-15.",
+  "host_vars_note": "services/edge/wrangler.jsonc on claude/build after PR #1: HOST_API and HOST_ID carry the gratitude-8f4 subdomain; HOST_RT and HOST_UGC still read https://tha-bay-rooms[-staging] and tha-bay-ugc[-staging].workers.dev without it (M00e item 12); HOST_UGC is a placeholder until Q-15. HOST_MEDIA is the Worker's own media route, <tha-bay-web[-staging] origin>/media (M01d2, DL-713); a media.<domain> replaces it after Q-15.",
   "supabase": {
     "$comment": "Not a Cloudflare resource; recorded beside the hosts because the Worker vars point at it (Architect observation 2026-10-19, DL-512). Refs and URLs are not secrets; no key is ever written here. M05d moves this into config/supabase.projects.json.",
     "prod":    { "project": "tha-bay", "ref": "jwvvllhxuvwkrynmnchb", "url": "https://jwvvllhxuvwkrynmnchb.supabase.co", "region": "us-west-1", "created": "2026-10-19" },

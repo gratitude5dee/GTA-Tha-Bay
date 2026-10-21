@@ -10,6 +10,7 @@ import { handleBoot } from './routes/boot.ts';
 import { handleGenaiStatus } from './routes/genai.ts';
 import { handleHealth } from './routes/health.ts';
 import { handleLegal } from './routes/legal.ts';
+import { handleMedia } from './routes/media.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { uuidv7 } from './uuidv7.ts';
@@ -50,6 +51,8 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
   if (url.pathname === '/account') {
     return new Response(null, { status: 308, headers: { Location: '/account/', 'Cache-Control': 'no-store' } });
   }
+  // Public R2 media (M01d2, DL-713): before the ASSETS fallthrough and the geo gate (media is geo-exempt, A-10); the handler owns its methods.
+  if (url.pathname.startsWith('/media/')) return handleMedia(request, env, url);
   if (!url.pathname.startsWith('/api/v1/') && url.pathname !== '/api/v1') {
     // run_worker_first covers /api/* only; anything else under /api/ is not a route, anything else is an asset.
     if (url.pathname.startsWith('/api/')) return apiError('not_found', 'No such route.', requestId);

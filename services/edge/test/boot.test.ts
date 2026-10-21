@@ -36,6 +36,14 @@ describe('GET /api/v1/boot', () => {
     expect(hosts.rt).toBe('https://tha-bay-rooms-staging.gratitude-8f4.workers.dev');
   });
 
+  it('hosts.media is the configured HOST_MEDIA, the Worker media route (M01d2)', async () => {
+    const res = await call('/api/v1/boot', { country: 'US', env: { HOST_MEDIA: 'https://media.example.test/media' } });
+    const { hosts } = (await res.json()) as BootConfig;
+    expect(hosts.media).toBe('https://media.example.test/media');
+    const staging = (await (await call('/api/v1/boot', { country: 'US' })).json()) as BootConfig;
+    expect(staging.hosts.media).toBe('https://tha-bay-web-staging.gratitude-8f4.workers.dev/media');
+  });
+
   it('parseFlags ignores unknown keys and bad JSON', () => {
     expect(parseFlags('{"mp.enabled":true,"nope":true}')['mp.enabled']).toBe(true);
     expect('nope' in parseFlags('{"nope":true}')).toBe(false);

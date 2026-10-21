@@ -11,7 +11,7 @@
     "directory": "../../apps/web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/account"]
+    "run_worker_first": ["/api/*", "/account", "/media/*"]
   },
   // No custom domain until Q-15 is answered.
   "workers_dev": true,
@@ -47,8 +47,10 @@
     "HOST_API": "https://tha-bay-web.gratitude-8f4.workers.dev",
     "HOST_RT": "https://tha-bay-rooms.gratitude-8f4.workers.dev",
     "HOST_ID": "https://tha-bay-web.gratitude-8f4.workers.dev",
-    // placeholder until Q-15: R2 custom domain, no workers.dev form
-    "HOST_MEDIA": "https://tha-bay-media.workers.dev",
+    // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+    "HOST_MEDIA": "https://tha-bay-web.gratitude-8f4.workers.dev/media",
+    // Kill switch of /media/*: "off" answers 503 (DL-713).
+    "MEDIA_ROUTE": "on",
     // placeholder until Q-15: R2 custom domain, no workers.dev form
     "HOST_UGC": "https://tha-bay-ugc.workers.dev",
     "FLAGS_JSON": "{}",
@@ -77,7 +79,7 @@
         "directory": "../../apps/web/dist",
         "binding": "ASSETS",
         "not_found_handling": "single-page-application",
-        "run_worker_first": ["/api/*", "/account"]
+        "run_worker_first": ["/api/*", "/account", "/media/*"]
       },
       // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
       "durable_objects": {
@@ -111,8 +113,9 @@
         "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
         "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
         "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-        // placeholder until Q-15: R2 custom domain, no workers.dev form
-        "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+        // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+        "HOST_MEDIA": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media",
+        "MEDIA_ROUTE": "on",
         // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
         "FLAGS_JSON": "{}",
@@ -157,8 +160,9 @@
       "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
       "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
       "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-      // placeholder until Q-15: R2 custom domain, no workers.dev form
-      "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+      // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+      "HOST_MEDIA": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media",
+      "MEDIA_ROUTE": "on",
       // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
       "FLAGS_JSON": "{}",
