@@ -1,4 +1,4 @@
-import { datan2, SimStage, type BootPayload, type BotInput, type ComponentDef, type FrameSignal, type InputFrame, type SimConfig, type SimProfile, type SystemDef } from '@dv/shared';
+import { datan2, SimStage, type UiCommand, type BootPayload, type BotInput, type ComponentDef, type FrameSignal, type InputFrame, type SimConfig, type SimProfile, type SystemDef } from '@dv/shared';
 import type { DebugCommand, StatsReport } from './transport/envelope.ts';
 import type { WorkerCommand, WorkerTransport } from './transport/types.ts';
 import type { RetryEnv } from './physics/rapier-backend.ts';
@@ -11,6 +11,7 @@ import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
 import type { SimResource } from './services.ts';
 import type { SaveControl } from './worker/save-control.ts';
+import type { UiOut } from './ui/bridge.ts';
 import { installClock, type WorldClock } from './world/clock.ts';
 
 /** What `SimModule.onInit` receives: the booted sim, the session config and the ports the page transferred in the init message. */
@@ -96,6 +97,9 @@ export class SimRuntime {
   bot: BotInput | null = null;
   /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
   saveControl: SaveControl | null = null;
+  /** UI channel hooks (M04a2), set by the modes module in `onInit`: a `UiCommand` is applied between ticks; the outbox is sent once per frame group. */
+  uiCommand: ((cmd: UiCommand) => void) | null = null;
+  uiOutbox: (() => UiOut | null) | null = null;
   /** The game clock once booted (M02b2); null with `env.clock === false`. */
   clock: WorldClock | null = null;
   /**
@@ -213,7 +217,14 @@ export class SimRuntime {
     this.transport.snapshots.endFrame();
     this.framesHandled++;
     this.postSimEvents();
+    this.postUi();
     if (++this.frameGroups % STATS_EVERY_FRAMES === 0) this.postStats();
+  }
+
+  /** Sends the view-model patches, toasts and overlay ops gathered since the last send (M04a2). */
+  private postUi(): void {
+    const out = this.uiOutbox?.();
+    if (out) this.transport.postEvent({ v: 1, t: 'ui', seq: 0, p: out });
   }
 
   private handleOther(m: Exclude<WorkerCommand, { t: 'frame' }>): void {
@@ -230,6 +241,15 @@ export class SimRuntime {
           this.transport.postEvent({ v: 1, t: 'ctl.result', seq: 0, p: { t: 'save.result', ok: false, reason: 'IDB_UNAVAILABLE' } });
         },
       );
+      return;
+    }
+    if (m.t === 'ui') {
+      try {
+        this.uiCommand?.(m.p);
+      } catch (e) {
+        this.env.log?.('warn', `ui command ${m.p.t} failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+      this.postUi();
       return;
     }
     if (!this.env.qa) {
@@ -286,7 +306,8 @@ export class SimRuntime {
       case 'debug.blackout':
       case 'debug.world':
       case 'debug.pursuit':
-        break;   // the world module handles them (SimModule.onDebug)
+      case 'debug.modes':
+        break;   // the world, pursuit and modes modules handle them (SimModule.onDebug)
       case 'debug.bot':
         if (sim && this.botFactory) this.bot = cmd.script.length === 0 ? null : this.botFactory(cmd.script, sim.core.tick);
         break;
@@ -304,6 +325,7 @@ export class SimRuntime {
         break;
     }
     for (const m of this.env.modules ?? []) m.onDebug?.(cmd);
+    this.postUi();
     this.postStats();
   }
 

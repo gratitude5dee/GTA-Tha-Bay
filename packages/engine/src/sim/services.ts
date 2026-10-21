@@ -1,6 +1,7 @@
 import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
+import { ForwardingFareSink } from './modes/economy.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
 import type { VehicleDebugContext } from './vehicle/debug.ts';
 import type { WorldClock } from './world/clock.ts';
@@ -38,6 +39,11 @@ export interface EngineServices extends SimServices {
   readonly side: Map<string, () => unknown>;
   /** The vehicle module's handles for the QA commands (M03a1); set by `registerVehicleModule`, read only by `vehicleQa`. */
   vehicleCtx: VehicleDebugContext | null;
+  /**
+   * The transit fare sink (M04a2): the world module hands it to the ride service when it starts, the modes module binds it to
+   * `EconomyApi` afterwards, so a fare is a debit with the ride's idempotency key.
+   */
+  readonly fareSink: ForwardingFareSink;
 }
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
@@ -75,6 +81,7 @@ export function createSimServices(seed: number): EngineServices {
     world: createWorldHub(),
     side: new Map(),
     vehicleCtx: null,
+    fareSink: new ForwardingFareSink(),
   };
 }
 

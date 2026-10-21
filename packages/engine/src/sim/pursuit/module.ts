@@ -51,7 +51,10 @@ export interface PursuitModule extends SimModule {
   installQa(h: PursuitQaHandler): void;
   /** The director once built, else null. */
   director(): PursuitDirector | null;
+  /** The wallet the director pays from now (the economy once the modes module has bound it). */
   readonly wallet: WalletPort;
+  /** Points the director's wallet at another `WalletPort` (M04a2 binds `EconomyApi`); takes effect for the next debit. */
+  bindWallet(w: WalletPort): void;
 }
 
 interface Stats {
@@ -67,7 +70,9 @@ interface Stats {
 }
 
 export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitModule {
-  const wallet = opts.wallet ?? new MemoryWallet(0);
+  let target: WalletPort = opts.wallet ?? new MemoryWallet(0);
+  // the director takes this forwarding object, so a later `bindWallet` reaches a director that was built before it
+  const wallet: WalletPort = { cash: () => target.cash(), debit: (c, r, k) => target.debit(c, r, k) };
   let sim: SimModuleContext['sim'] | null = null;
   let director: PursuitDirector | null = null;
   let host: EcsPursuitHost | null = null;
@@ -174,7 +179,12 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
   const mod: PursuitModule = {
     id: 'engine.pursuit',
     systems: [system],
-    wallet,
+    get wallet() {
+      return target;
+    },
+    bindWallet(w) {
+      target = w;
+    },
     director: () => director,
     onInit(ctx) {
       sim = ctx.sim;
@@ -191,7 +201,7 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
     onDebug(cmd: DebugCommand) {
       if (cmd.t !== 'debug.pursuit' || !qaHandler || !sendQa) return;
       const ok = build() && director !== null && host !== null;
-      qaHandler(ok ? { director: director as PursuitDirector, host: host as EcsPursuitHost, wallet, world: sim?.services.world.api ?? null, tick: tickNow } : null, cmd, sendQa);
+      qaHandler(ok ? { director: director as PursuitDirector, host: host as EcsPursuitHost, wallet: target, world: sim?.services.world.api ?? null, tick: tickNow } : null, cmd, sendQa);
     },
     installQa(h) {
       qaHandler = h;

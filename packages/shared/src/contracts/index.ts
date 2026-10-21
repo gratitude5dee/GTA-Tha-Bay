@@ -8,3 +8,5 @@ export * from './c05-save.ts';
 export * from './c06-ids.ts';
 export * from './engine-world.ts';
 export * from './engine-pursuit.ts';
+export * from './c06-modes.ts';
+export * from './ui-bridge.ts';

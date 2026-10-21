@@ -36,6 +36,7 @@
     "test:save": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine save/",
     "test:determinism": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine determinism.node.spec",
     "test:lines": "tsx ../../tools/ci/run.ts vitest run packages/engine/test/vehicle.lines.spec.ts packages/engine/test/lines.format.spec.ts",
+    "test:modes": "tsx ../../tools/ci/run.ts vitest run packages/engine/test/modes",
     "test:pursuit": "tsx ../../tools/ci/run.ts vitest run packages/engine/test/pursuit",
     "test:wheel-spike": "tsx ../../tools/ci/run.ts vitest run packages/engine/test/wheel-spike",
     "bench:physics": "tsx bench/physics-builds.ts"

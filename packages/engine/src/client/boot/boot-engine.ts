@@ -1,8 +1,11 @@
 import {
-  ClientAction, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
+  ClientAction, type ControlsSettings, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
   type SimProfile,
 } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
+import { ViewModelStore } from '../ui/view-model-source.ts';
+import { UiCommandSender } from '../ui/command-sender.ts';
+import type { ModesPanel } from '../../debug/modes-panel.ts';
 import { spawnSimWorker } from './spawn-worker.ts';
 import { BAKED_WORLD, bakedWorldConfig } from '../../sim/scenarios/baked-world.ts';
 import { CIVIC_GRAYBOX, civicGrayboxConfig } from '../../sim/scenarios/civic-graybox.ts';
@@ -76,6 +79,16 @@ export interface BootEngineOptions {
   onPausedChange?: (paused: boolean) => void;
   /** Show the touch layer on any device (`?touch=1`). */
   forceTouch?: boolean;
+  /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
+  onTelemetry?: (name: string, props: Record<string, string | number | boolean>) => void;
+}
+
+/** A toast the sim-side UiBridge raised; the shell (M04b1) draws it, the QA panel lists it. */
+export interface ToastRecord {
+  id: string;
+  kind: string;
+  text: string;
+  params?: Record<string, string | number>;
 }
 
 export interface EngineObservation {
@@ -135,6 +148,14 @@ export interface EngineHandle {
   setPaused(paused: boolean): void;
   observe(): EngineObservation;
   act(cmd: DebugCommand): boolean;
+  /** The view models the sim publishes (`hud.*`, `sys.*`, `mode.<id>.*`; M04a2). */
+  readonly vm: ViewModelStore;
+  /** Sends a `UiCommand` to the sim over the command ring. False when it could not be sent. */
+  sendUi(cmd: UiCommand): boolean;
+  /** Toasts the sim raised since the page started, oldest first (the last 50). */
+  toasts(): readonly ToastRecord[];
+  /** Telemetry events the sim queued, as the page received them (the last 50). */
+  telemetryEvents(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   step(n: number): boolean;
   /** Forget the previous frame time so the next `dt` is zero (the page was hidden). */
   resetClock(): void;
@@ -226,6 +247,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     boot = { strings: [], prefabs: [], config: gb.grayboxBootConfig(packs) };
   }
 
+  // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
+  if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
+
   const banner = document.createElement('div');
   banner.className = 'dv-engine-banner';
   banner.setAttribute('role', 'status');
@@ -286,6 +310,14 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   const spawn = opts.spawn ?? spawnSimWorker;
 
+  // The UI channel (M04a2): view models from the sim, commands to it, toasts and queued telemetry.
+  const vm = new ViewModelStore();
+  const toastLog: ToastRecord[] = [];
+  const telemetryLog: { name: string; props: Record<string, string | number | boolean> }[] = [];
+  let modesUi: ModesPanel | null = null;
+  const uiSender = new UiCommandSender(() => host.transport);
+  const withProfile = (c: SimConfig, p: SimProfile): SimConfig => ({ ...c, profile: p, physicsBuild: p === 'canonical' ? 'deterministic-compat' : 'simd-compat' });
+
   const host: SimHostImpl = new SimHostImpl({
     spawn,
     sab: canUseSab() && opts.flags.transport !== 'postMessage',
@@ -298,20 +330,62 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     onLog: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info'](`sim: ${message}`),
     ...(worldBoot?.initExtras ? { initExtras: worldBoot.initExtras } : {}),
+    onUi: (out) => {
+      vm.apply(out.patches);
+      for (const t of out.toasts) {
+        toastLog.push(t);
+        if (toastLog.length > 50) toastLog.shift();
+      }
+      modesUi?.refresh();
+    },
     onSimEvents: (events) => {
       worldBoot?.layer.onSimEvents?.(events);
       for (const e of events) {
+        if (e.t === 'telemetry' && e.s) {
+          const bar = e.s.indexOf('|');
+          try {
+            const name = e.s.slice(0, bar);
+            const props = JSON.parse(e.s.slice(bar + 1)) as Record<string, string | number | boolean>;
+            telemetryLog.push({ name, props });
+            if (telemetryLog.length > 50) telemetryLog.shift();
+            opts.onTelemetry?.(name, props);
+          } catch {
+            // a malformed line is dropped
+          }
+        } else if (e.t === 'mode.restart' && e.s) {
+          // C06 rule 3: a top-level mode of another profile restarts the sim behind loading, then starts there.
+          const [profile, then] = e.s.split('|') as [SimProfile, string];
+          void switchProfile(profile, then);
+        }
         if (e.t === 'audio.cue' && e.s) audio?.play({ tick: e.tick, cue: e.s, bus: AUDIO_CONFIG.footstep.bus, ...(e.a !== undefined ? { entity: e.a } : {}) });
         else if (e.t === 'world.chunk') chunksLoaded = Math.max(chunksLoaded, e.n ?? 0);
       }
     },
   });
 
+  async function switchProfile(profile: SimProfile, then: string): Promise<void> {
+    if (recovering || disposed) return;
+    recovering = true;
+    banner.hidden = false;
+    pool?.clear();
+    vm.reset();
+    try {
+      await host.restart(withProfile(cfg, profile));
+      host.sendUi({ t: 'mode.start', id: then as never });
+    } catch (e) {
+      console.error('profile switch failed', e);
+    } finally {
+      recovering = false;
+      banner.hidden = true;
+    }
+  }
+
   async function recover(): Promise<void> {
     if (recovering || disposed) return;
     recovering = true;
     banner.hidden = false;
     pool?.clear();
+    vm.reset();
     chunksLoaded = 0;
     try {
       await host.restart(cfg);
@@ -544,6 +618,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       onVisual: overlay.draw,
     });
     router = new InputRouterImpl({ binders: [kbm, pad, touchBinder] });
+    // Remapped controls come from the sim's settings slice as the view model `sys.controls` (also on load; R-ENG-04).
+    const applyControls = (v: unknown): void => {
+      if (v && typeof v === 'object') router?.setOverrides(v as ControlsSettings);
+    };
+    applyControls(vm.get('sys.controls'));
+    cleanups.push(vm.subscribe('sys.controls', applyControls));
     promptUi = new PromptOverlay(document.body);
     cleanups.push(() => promptUi?.dispose());
     kbm.attach(window as unknown as BinderTarget);
@@ -642,6 +722,23 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       });
       pursuitUi = pp;
       cleanups.push(() => pp.dispose());
+      // The modes panel (M04a2) is on in every QA build too: mode state, wallet, unlocks and the last toasts, with the start/quit buttons.
+      const { ModesPanel } = await import('../../debug/modes-panel.ts');
+      const modesAsk = (op: string, args?: Record<string, unknown>): void => {
+        const id = ++askSerial;
+        void host.sendDebug({ t: 'debug.modes', id, op, ...(args ? { args } : {}) });
+      };
+      modesUi = new ModesPanel({
+        container: document.body,
+        vm,
+        toasts: () => toastLog,
+        onStart: (id) => void uiSender.send({ t: 'mode.start', id }),
+        onQuit: () => void uiSender.send({ t: 'mode.quit' }),
+        onUnlock: (id) => modesAsk('unlock', { id }),
+        onCredit: (cents) => modesAsk('credit', { cents, key: `qa:panel:${++askSerial}` }),
+      });
+      const mp = modesUi;
+      cleanups.push(() => mp.dispose());
       const { installXrSmoke } = await import('../xr/smoke.ts');
       const host2 = opts.host;
       xrSmoke = await installXrSmoke({
@@ -742,6 +839,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       };
     },
     act: (cmd) => host.sendDebug(cmd),
+    vm,
+    sendUi: (cmd) => uiSender.send(cmd),
+    toasts: () => toastLog,
+    telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {
       lastNow = -1;

@@ -1,6 +1,7 @@
-import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage, type WeatherPreset } from '@dv/shared';
+import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage, type UiCommand, type WeatherPreset } from '@dv/shared';
 import { decodeUtf8 } from '../bytes.ts';
 import type { SimEvent } from '../events.ts';
+import type { UiOut } from '../ui/bridge.ts';
 
 /**
  * Every message between the main thread and sim.worker is `{ v: 1, t, seq, p }` (01-engine.md section 2.1,
@@ -51,7 +52,9 @@ export type DebugCommand =
   /** The shapes of every physics body by entity handle, for the wireframe (QA); the answer is `physics.reply.<id>`. */
   | { t: 'debug.physics'; id: number }
   /** The pursuit director (M03c, QA only): `setHeat {level}`, `clear`, `neverWanted {on}`, `scripted {on}`, `report {kind, witness, count}`, `wallet {cents}`, `state`; the answer is `pursuit.reply.<id>`. */
-  | { t: 'debug.pursuit'; id: number; op: string; args?: Record<string, unknown> };
+  | { t: 'debug.pursuit'; id: number; op: string; args?: Record<string, unknown> }
+  /** The mode host (M04a2, QA only): `list`, `state`, `unlock {id}`, `unlockAll {on}`, `credit {cents, key}`, `debit {cents, key}`; the answer is `modes.reply.<id>`. */
+  | { t: 'debug.modes'; id: number; op: string; args?: Record<string, unknown> };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -101,6 +104,8 @@ export type ToWorkerMessage =
   | Envelope<'frame', FrameSignal>
   | Envelope<'ctl', SimControlMessage>
   | Envelope<'dbg', DebugCommand>
+  /** A UI command for the Commands stage (M04a2, C06 `UiCommand`); handled between ticks like `ctl`. */
+  | Envelope<'ui', UiCommand>
   | Envelope<'input', InputState>;
 
 export type FromWorkerMessage =
@@ -110,6 +115,8 @@ export type FromWorkerMessage =
   | Envelope<'log', { level: 'info' | 'warn' | 'error'; message: string }>
   | Envelope<'qa', { name: string; data: unknown }>
   | Envelope<'events', { events: SimEvent[] }>
+  /** View-model patches, toasts and overlay ops from the sim-side UiBridge (M04a2). */
+  | Envelope<'ui', UiOut>
   | Envelope<'snap', PmSnapshotPayload>;
 
 export function makeEnvelope<T extends string, P>(t: T, seq: number, p: P): Envelope<T, P> {
@@ -142,6 +149,32 @@ export function isSimControlMessage(p: unknown): p is SimControlMessage {
   return isObject(p) && p['t'] === 'save.request' && p['reason'] === 'hidden';
 }
 
+const MODE_IDS = /^(story|sandbox|racing|fighter|tycoon|exp:[a-z0-9][a-z0-9._-]{0,63})$/;
+const SAVE_REASONS: ReadonlySet<string> = new Set(['missionPass', 'safehouse', 'modeExit', 'interval', 'hidden', 'manual', 'settings', 'unlock', 'import', 'migration', 'checkpoint']);
+
+/** Shape check of a UI command at the worker boundary; the dispatcher checks values (C06 `UiCommand`). */
+export function isUiCommand(p: unknown): p is UiCommand {
+  if (!isObject(p) || typeof p['t'] !== 'string') return false;
+  switch (p['t']) {
+    case 'mode.start': return typeof p['id'] === 'string' && MODE_IDS.test(p['id']) && (p['slot'] === undefined || typeof p['slot'] === 'string');
+    case 'mode.quit': return true;
+    case 'pause': return typeof p['on'] === 'boolean';
+    case 'save.request': return typeof p['reason'] === 'string' && SAVE_REASONS.has(p['reason']);
+    case 'save.settings': return isObject(p['data']);
+    case 'save.avatar': return isObject(p['avatar']);
+    case 'save.profile': return typeof p['op'] === 'string' && ['create', 'rename', 'delete', 'select'].includes(p['op']);
+    case 'garage.call':
+    case 'garage.favorite': return typeof p['vehicleKey'] === 'string' && p['vehicleKey'].length <= 96;
+    case 'sandbox.set': return typeof p['path'] === 'string' && p['path'].length <= 96 && (typeof p['v'] === 'boolean' || isNum(p['v']));
+    case 'sandbox.teleport': return typeof p['name'] === 'string' && p['name'].length <= 96;
+    case 'phone.waypoint': return isNum(p['x']) && isNum(p['z']);
+    case 'cutscene.skip': return true;
+    case 'cutscene.state': return typeof p['playId'] === 'string' && typeof p['state'] === 'string';
+    case 'mode.cmd': return typeof p['mode'] === 'string' && MODE_IDS.test(p['mode']) && typeof p['name'] === 'string' && p['name'].length <= 48 && (p['args'] === undefined || isObject(p['args']));
+    default: return false;
+  }
+}
+
 export function isDebugCommand(p: unknown): p is DebugCommand {
   if (!isObject(p)) return false;
   switch (p['t']) {
@@ -163,6 +196,7 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
       return isInt(p['id']) && typeof p['prefab'] === 'string' && p['prefab'].length <= 64 && Array.isArray(p['at']) && p['at'].length === 3 && p['at'].every(isNum) && (p['yaw'] === undefined || isNum(p['yaw']));
     case 'debug.vehicle':
       return isInt(p['id']) && typeof p['op'] === 'string' && ['enter', 'seat', 'exit', 'lock', 'unlock', 'state'].includes(p['op']) && (p['target'] === undefined || isInt(p['target']));
+    case 'debug.modes': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 24 && (p['args'] === undefined || isObject(p['args']));
     case 'debug.pursuit': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 24 && (p['args'] === undefined || isObject(p['args']));
     case 'debug.inspect': return isInt(p['id']) && (p['handle'] === undefined || isInt(p['handle']));
     case 'debug.edit':
@@ -184,6 +218,7 @@ export function isToWorkerMessage(x: unknown): x is ToWorkerMessage {
     case 'frame': return isFrameSignal(x.p);
     case 'ctl': return isSimControlMessage(x.p);
     case 'dbg': return isDebugCommand(x.p);
+    case 'ui': return isUiCommand(x.p);
     case 'input': return isInputState(x.p);
     default: return false;
   }
@@ -211,6 +246,8 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
       return isObject(p) && (p['level'] === 'info' || p['level'] === 'warn' || p['level'] === 'error') && typeof p['message'] === 'string';
     case 'qa':
       return isObject(p) && typeof p['name'] === 'string';
+    case 'ui':
+      return isObject(p) && Array.isArray(p['patches']) && Array.isArray(p['toasts']) && Array.isArray(p['ops']);
     case 'events':
       return isObject(p) && Array.isArray(p['events']) && p['events'].every((e) => isObject(e) && typeof e['t'] === 'string' && isNum(e['tick']));
     case 'snap':
