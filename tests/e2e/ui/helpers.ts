@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test';
  * Helpers for the shell specs (M04b1). These specs run without the QA play bypass: they opt out with an empty storage state, so the
  * Title, the age screen, the Terms card and the menus are what the page shows.
  */
-export const NO_BYPASS = { cookies: [], origins: [] } as const;
+export const NO_BYPASS: { cookies: []; origins: [] } = { cookies: [], origins: [] };
 
 /** A date `years` years before today (or the day after a birthday boundary when `dayOffset` is 1), as the three field strings. */
 export function dobYearsAgo(years: number, dayOffset = 0): { month: string; day: string; year: string } {

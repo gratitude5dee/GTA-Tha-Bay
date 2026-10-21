@@ -423,7 +423,7 @@ function ProfileCard(props: { p: ProfileMeta; ctx: ShellContext; shell: ShellApi
           {t('saves.replace')}
           <input type="file" class="dv-sr" accept=".dvsave,application/json" aria-disabled={off ? 'true' : undefined} data-testid={`replace-${p.name}`} onChange={(e) => void replaceInto((e.currentTarget as HTMLInputElement).files?.[0])} />
         </label>
-        {p.importedFrom ? <Button id={`undo-${p.id}`} label={t('saves.undo')} disabledReason={off} onPress={() => void saves.undoImport(p.id).then(result)} testId={`undo-${p.name}`} /> : null}
+        {p.importedFrom || saves.canUndo(p.id) ? <Button id={`undo-${p.id}`} label={t('saves.undo')} disabledReason={off} onPress={() => void saves.undoImport(p.id).then(result)} testId={`undo-${p.name}`} /> : null}
         <Button id={`delete-${p.id}`} style="danger" label={t('saves.delete')} disabledReason={off ?? (active ? t('saves.delete.active') : undefined)} onPress={() => void del()} testId={`delete-${p.name}`} />
       </div>
     </section>

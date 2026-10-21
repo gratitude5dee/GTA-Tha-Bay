@@ -154,7 +154,10 @@ export interface SavesPort {
   usage(id: ProfileId): Promise<number>;
   exportProfile(id: ProfileId): Promise<Blob>;
   importProfile(b: Blob, mode: 'asNew' | 'replace', into?: ProfileId): Promise<SaveResult>;
+  /** Undo the import into `id`: a replace restores the earlier saves; the profile an as-new import made is removed. */
   undoImport(id: ProfileId): Promise<SaveResult>;
+  /** True when `undoImport(id)` can run (a replace import, or the profile the last as-new import made). */
+  canUndo(id: ProfileId): boolean;
   /** The newest save of the profile, verified (the Continue line). */
   lastSave(id: ProfileId): Promise<LastSaveStatus | null>;
 }

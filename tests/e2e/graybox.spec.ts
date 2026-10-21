@@ -10,20 +10,17 @@ test.describe('gray-box Civic Center block @graybox', () => {
     await page.goto('/');
     await waitForEngine(page);
 
-    // The block is there before anyone presses Start: the title sits over the world.
+    // The block is there from the first frame. The QA play bypass (M04b1) skips the Title; the Title over the world is covered by @ui-menus.
     await expect.poll(async () => (await observe(page)).world?.chunks, { timeout: 60_000 }).toBe(4);
     const world = (await observe(page)).world;
     expect(world?.objectsPerChunk).toHaveLength(4);
     expect(world?.maxObjectsPerChunk).toBeLessThanOrEqual(6);
     expect(world?.maxObjectsPerChunk).toBeGreaterThanOrEqual(3);
-    await expect(page.getByTestId('title')).toBeVisible();
     await expect.poll(async () => (await observe(page)).chunksLoaded, { timeout: 30_000 }).toBe(4);
     await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 30_000 }).toBe(true);
-    expect((await observe(page)).play).toBe(false);
-    await page.screenshot({ path: testInfo.outputPath('graybox-title.png') });
+    await page.screenshot({ path: testInfo.outputPath('graybox-start.png') });
 
-    // Start: the title goes away and the keyboard reaches the game.
-    await page.getByTestId('title-start').click();
+    // The bypass is in play already: the keyboard reaches the game.
     await expect(page.getByTestId('title')).toBeHidden();
     expect((await observe(page)).play).toBe(true);
 

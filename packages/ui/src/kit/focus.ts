@@ -88,11 +88,13 @@ export interface FocusManagerOptions {
 const STICK = 0.6;
 const FIRST_REPEAT_MS = 400;
 const REPEAT_MS = 130;
+const REPEAT_MIN_POLLS = 8;
 
 /** Attaches the key handlers and the gamepad poll. `dispose` removes them. */
 export class FocusManager {
   private raf = 0;
-  private readonly held = new Map<string, number>();
+  /** When each held pad control was first seen (ms) and how many polls have seen it since. */
+  private readonly held = new Map<string, { at: number; polls: number }>();
   private disposed = false;
   private readonly keydown = (e: KeyboardEvent): void => this.onKey(e);
   private readonly pointer = (): void => this.kind('pointer');
@@ -217,20 +219,28 @@ export class FocusManager {
         this.held.delete(name);
         continue;
       }
-      const since = this.held.get(name);
+      const h = this.held.get(name);
       const repeats = name === 'up' || name === 'down' || name === 'left' || name === 'right';
-      if (since === undefined) {
-        this.held.set(name, now);
+      if (h === undefined) {
+        this.held.set(name, { at: now, polls: 1 });
         this.act(name);
-      } else if (repeats && now - since > FIRST_REPEAT_MS) {
-        this.held.set(name, now - FIRST_REPEAT_MS + REPEAT_MS);
-        this.act(name);
+      } else {
+        h.polls++;
+        // Auto-repeat needs a real hold: 400 ms and several polls, so one slow frame cannot turn a tap into a run.
+        if (repeats && now - h.at > FIRST_REPEAT_MS && h.polls >= REPEAT_MIN_POLLS) {
+          h.at = now - FIRST_REPEAT_MS + REPEAT_MS;
+          this.act(name);
+        }
       }
     }
   }
 
+  /** Pad actions taken so far, mirrored to `html[data-dv-pad-acts]` so a test can wait for the poll to have seen a press. */
+  private acts = 0;
+
   private act(name: string): void {
     this.kind('pad');
+    document.documentElement.dataset['dvPadActs'] = String(++this.acts);
     if (name === 'up' || name === 'down' || name === 'left' || name === 'right') this.move(name);
     else if (name === 'accept') this.accept();
     else if (name === 'back') this.o.onBack();

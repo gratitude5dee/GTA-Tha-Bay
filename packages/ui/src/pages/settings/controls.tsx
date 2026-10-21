@@ -257,9 +257,9 @@ export function ControlsPanel(props: ControlsPanelProps) {
                           class="dv-btn dv-btn-secondary dv-keycap"
                           data-fid={`bind.${g.id}.${action}.${slot}`}
                           data-testid={`bind-${g.id}-${action}-${slot}`}
-                          aria-label={t('settings.controls.rebind', { action: t(`action.${action}`) })}
                           onClick={() => void rebind(device as PadDevice, g.id, action, slot)}
                         >
+                          <span class="dv-sr">{t('settings.controls.rebind', { action: t(`action.${action}`) })}: </span>
                           {capturing === key ? t('settings.controls.press') : b ? bindingLabel(b) : t('settings.controls.unbound')}
                         </button>
                       );

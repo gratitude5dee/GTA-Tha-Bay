@@ -153,6 +153,15 @@
       "required": ["page", "ms"],
       "additionalProperties": false
     },
+    "ui.onboard": {
+      "type": "object",
+      "properties": {
+        "step": { "type": "string", "maxLength": 32 },
+        "outcome": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["step", "outcome"],
+      "additionalProperties": false
+    },
     "mode.enter": {
       "type": "object",
       "properties": {

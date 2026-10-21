@@ -20,6 +20,8 @@ export function createSavesPort(build: string): SavesPort {
   let service: Promise<SaveServiceImpl> | null = null;
   const open = (): Promise<SaveServiceImpl> => (service ??= SaveServiceImpl.open({ buildId: build }));
   let persistent = true;
+  // The profile the latest as-new import made: its undo removes it (a replace import has C05's own undo).
+  let lastAsNew: ProfileId | null = null;
   void open().then((s) => {
     persistent = s.persistent;
   });
@@ -38,8 +40,21 @@ export function createSavesPort(build: string): SavesPort {
     slots: async (id) => (await Promise.all(SLOTS.map((s) => slotInfo(id, s)))).filter((s): s is SlotSummary => s !== null),
     usage: async (id) => (await Promise.all(SLOTS.map((s) => slotInfo(id, s)))).reduce((n, s) => n + (s?.bytes ?? 0), 0),
     exportProfile: async (id) => (await open()).exportProfile(id),
-    importProfile: async (b, mode, into) => (await open()).importProfile(b, mode, into),
-    undoImport: async (id) => (await open()).undoImport(id),
+    importProfile: async (b, mode, into) => {
+      const svc = await open();
+      const r = await svc.importProfile(b, mode, into);
+      if (r.ok && mode === 'asNew') lastAsNew = svc.lastImport?.profileId ?? null;
+      return r;
+    },
+    undoImport: async (id) => {
+      const svc = await open();
+      if (id === lastAsNew) {
+        lastAsNew = null;
+        return svc.deleteProfile(id);
+      }
+      return svc.undoImport(id);
+    },
+    canUndo: (id) => id === lastAsNew,
     lastSave: async (id): Promise<LastSaveStatus | null> => (await readLastSave(id))?.status ?? null,
   };
 }

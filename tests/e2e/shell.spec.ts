@@ -1,36 +1,17 @@
 import { expect, test } from '@playwright/test';
 import { BRAND, DISPLAY_NAME } from '../../config/brand.ts';
 import { runGpuProbe } from './helpers.ts';
+import { passGates } from './ui/helpers.ts';
 
 const SIX_MIB = 6 * 1024 * 1024;
+
+// The tests that look at the Title, the credits and the legal pages opt out of the QA play bypass (M04b1, DL-650): the rest of this
+// file, and every other engine spec, loads straight into play through the config-level storage state.
+const GATES = { cookies: [], origins: [] } as { cookies: []; origins: [] };
 
 test.describe('shell', () => {
   // The title now sits over the live gray-box world, which the software renderer draws while these checks run (M01b2).
   test.setTimeout(90_000);
-  test('boots to the title screen @smoke', async ({ page }, testInfo) => {
-    await page.goto('/');
-    await expect(page.getByTestId('title-name')).toHaveText(DISPLAY_NAME);
-    await expect(page).toHaveTitle(DISPLAY_NAME);
-    expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
-
-    // M00a: a same-origin fetch of the Worker API works under COEP and the response is isolated.
-    const health = await page.evaluate(async () => {
-      const res = await fetch('/api/v1/health');
-      return { status: res.status, coep: res.headers.get('cross-origin-embedder-policy'), body: (await res.json()) as { ok: boolean } };
-    });
-    expect(health.status).toBe(200);
-    expect(health.coep).toBe('require-corp');
-    expect(health.body.ok).toBe(true);
-
-    const probe = await runGpuProbe(page);
-    expect(probe.error).toBeNull();
-    if (testInfo.project.name === 'chromium-webgpu') {
-      expect(['webgpu', 'webgl2']).toContain(probe.backend);
-    } else {
-      expect(probe.backend).toBe('webgl2');
-    }
-  });
-
   test('keeps crossOriginIsolated after a service-worker reload @coi', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
@@ -85,26 +66,57 @@ test.describe('shell', () => {
     for (const entry of precache) expect(entry.bytes, entry.url).toBeLessThanOrEqual(SIX_MIB);
   });
 
-  test('shows the unsupported screen, credits and legal stubs @ui-shell', async ({ page }) => {
-    await page.goto('/?unsupported=1');
-    await expect(page.getByTestId('unsupported')).toBeVisible();
-    await expect(page.getByTestId('diagnostics')).toContainText('dv-diag/1');
 
-    await page.goto('/menu/credits');
-    await expect(page.getByTestId('credits')).toBeVisible();
-    await expect(page.getByTestId('disclaimer')).toHaveText(BRAND.disclaimer);
+  test.describe('gates', () => {
+    test.use({ storageState: GATES });
 
-    await page.goto('/legal/terms');
-    await expect(page.getByTestId('legal')).toBeVisible();
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Terms of Service');
-    await expect(page.getByTestId('legal')).toContainText('Text pending counsel review');
+    test('boots to the title screen @smoke', async ({ page }, testInfo) => {
+      await page.goto('/');
+      await expect(page.getByTestId('title-name')).toHaveText(DISPLAY_NAME);
+      await expect(page).toHaveTitle(DISPLAY_NAME);
+      expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
 
-    // Client-side navigation from the title screen.
-    await page.goto('/');
-    await page.getByRole('link', { name: 'Credits' }).click();
-    await expect(page).toHaveURL(/\/menu\/credits$/);
-    await expect(page.getByTestId('credits')).toBeVisible();
-    await page.goBack();
-    await expect(page.getByTestId('title')).toBeVisible();
+      // M00a: a same-origin fetch of the Worker API works under COEP and the response is isolated.
+      const health = await page.evaluate(async () => {
+        const res = await fetch('/api/v1/health');
+        return { status: res.status, coep: res.headers.get('cross-origin-embedder-policy'), body: (await res.json()) as { ok: boolean } };
+      });
+      expect(health.status).toBe(200);
+      expect(health.coep).toBe('require-corp');
+      expect(health.body.ok).toBe(true);
+
+      // The platform boots once the age screen has passed (a fresh device boots nothing before that); go through the gates, then probe.
+      await passGates(page);
+      const probe = await runGpuProbe(page);
+      expect(probe.error).toBeNull();
+      if (testInfo.project.name === 'chromium-webgpu') {
+        expect(['webgpu', 'webgl2']).toContain(probe.backend);
+      } else {
+        expect(probe.backend).toBe('webgl2');
+      }
+    });
+
+    test('shows the unsupported screen, credits and legal stubs @ui-shell', async ({ page }) => {
+      await page.goto('/?unsupported=1');
+      await expect(page.getByTestId('unsupported')).toBeVisible();
+      await expect(page.getByTestId('diagnostics')).toContainText('dv-diag/1');
+
+      await page.goto('/menu/credits');
+      await expect(page.getByTestId('credits')).toBeVisible();
+      await expect(page.getByTestId('disclaimer')).toHaveText(BRAND.disclaimer);
+
+      await page.goto('/legal/terms');
+      await expect(page.getByTestId('legal')).toBeVisible();
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('Terms of Service');
+      await expect(page.getByTestId('legal')).toContainText('Text pending counsel review');
+
+      // Client-side navigation from the title screen.
+      await page.goto('/');
+      await page.getByRole('link', { name: 'Credits' }).click();
+      await expect(page).toHaveURL(/\/menu\/credits$/);
+      await expect(page.getByTestId('credits')).toBeVisible();
+      await page.goBack();
+      await expect(page.getByTestId('title')).toBeVisible();
+    });
   });
 });

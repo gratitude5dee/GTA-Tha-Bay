@@ -484,5 +484,6 @@
   "action.client.UiLeft": "UiLeft",
   "action.client.UiRight": "UiRight",
   "action.client.UiTabPrev": "UiTabPrev",
-  "action.client.UiTabNext": "UiTabNext"
+  "action.client.UiTabNext": "UiTabNext",
+  "nav.load": "Load Game"
 }

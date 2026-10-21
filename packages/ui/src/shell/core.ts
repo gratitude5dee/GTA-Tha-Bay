@@ -199,25 +199,27 @@ export class ShellCore implements ShellApi {
   }
 
   context(): ShellContext {
-    const core = this;
-    return {
+    const base = {
       props: this.props,
       prefs: this.props.prefs,
-      get engine() { return core.engine; },
-      get saves() { return core.saves; },
-      get platform() { return core.platform; },
-      get gate() { return core.gate; },
-      vm: <T extends JsonValue>(key: string) => core.engine?.vm.get(key as never) as T | undefined,
-      get settings() { return core.settings(); },
       binder: this.binder,
-      get mode() { return core.mode(); },
-      get profile() { return (core.engine?.vm.get('sys.profile') as { id: string; name: string; hasStory: boolean } | undefined) ?? null; },
-      get otherTab() { return core.guard.otherTab; },
-      get engineReady() { return core.engine !== null; },
-      sendUi: (cmd) => core.sendUi(cmd),
-      startMode: (id, slot) => core.startMode(id, slot),
-      fire: (e) => core.fire(e),
+      vm: <T extends JsonValue>(key: string) => this.engine?.vm.get(key as never) as T | undefined,
+      sendUi: (cmd: UiCommand) => this.sendUi(cmd),
+      startMode: (id: GameModeId, slot?: SlotId) => this.startMode(id, slot),
+      fire: (e: ShellEvent['t']) => this.fire(e),
     };
+    // Live values: pages read them on each render, so they are getters over the core.
+    return Object.defineProperties(base, {
+      engine: { get: () => this.engine, enumerable: true },
+      saves: { get: () => this.saves, enumerable: true },
+      platform: { get: () => this.platform, enumerable: true },
+      gate: { get: () => this.gate, enumerable: true },
+      settings: { get: () => this.settings(), enumerable: true },
+      mode: { get: () => this.mode(), enumerable: true },
+      profile: { get: () => (this.engine?.vm.get('sys.profile') as { id: string; name: string; hasStory: boolean } | undefined) ?? null, enumerable: true },
+      otherTab: { get: () => this.guard.otherTab, enumerable: true },
+      engineReady: { get: () => this.engine !== null, enumerable: true },
+    }) as unknown as ShellContext;
   }
 
   sendUi(cmd: UiCommand): boolean {

@@ -429,7 +429,6 @@ export function useAsync<T>(fn: () => Promise<T>, deps: readonly unknown[]): { d
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
   return { ...state, reload: () => setTick((n) => n + 1) };
 }

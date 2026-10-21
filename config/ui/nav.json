@@ -3,6 +3,7 @@
   "version": 1,
   "items": [
     { "id": "continue", "page": "load", "labelKey": "nav.continue" },
+    { "id": "load", "page": "load", "labelKey": "nav.load" },
     { "id": "new", "page": "new", "labelKey": "nav.new", "also": ["creator"] },
     { "id": "modes", "page": "modes", "labelKey": "nav.modes" },
     { "id": "garage", "page": "garage", "labelKey": "nav.garage" },

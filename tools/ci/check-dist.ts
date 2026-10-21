@@ -279,12 +279,15 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   // M04b1 (AC-13): the shell chunk (state machine, registry, kit, i18n and Preact) stays at 120 KiB gzip or less, and every page is a lazy chunk.
   const shellChunks = files.filter((f) => /\/assets\/shell-[^/]+\.js$/.test(f));
   const pageChunks = files.filter((f) => /\/assets\/page-[^/]+\.js$/.test(f));
-  expect(shellChunks.length === 1, 'one shell chunk', `found ${shellChunks.length}`);
-  for (const f of shellChunks) {
-    const gz = gzipSync(readFileSync(f)).length;
-    expect(gz <= SHELL_GZIP_LIMIT_BYTES, `shell chunk <= 120 KiB gzip (${(gz / 1024).toFixed(1)} KiB)`, path.relative(dist, f));
+  // A dist without any built script (the stub of the third_party test) has no shell to measure.
+  if (files.some((f) => /\/assets\/[^/]+\.js$/.test(f))) {
+    expect(shellChunks.length === 1, 'one shell chunk', `found ${shellChunks.length}`);
+    for (const f of shellChunks) {
+      const gz = gzipSync(readFileSync(f)).length;
+      expect(gz <= SHELL_GZIP_LIMIT_BYTES, `shell chunk <= 120 KiB gzip (${(gz / 1024).toFixed(1)} KiB)`, path.relative(dist, f));
+    }
+    expect(pageChunks.length >= 4, `pages are separate lazy chunks (${pageChunks.length})`, 'fewer than 4 page chunks');
   }
-  expect(pageChunks.length >= 4, `pages are separate lazy chunks (${pageChunks.length})`, 'fewer than 4 page chunks');
 
   const js = files.filter((f) => f.endsWith('.js'));
   const hasBridge = js.some((f) => readFileSync(f, 'utf8').includes('__dvBridge'));
