@@ -124,6 +124,18 @@ export class PhysicalSky {
     if (this.envSky) this.envSky.cloudSpeed.value = on ? 0 : 0.00002;
   }
 
+  /**
+   * QA readback (`sampleLuma`): the clouds' offset is `time * cloudSpeed`, so a zero speed draws them at the clock's origin whatever
+   * the page time. Returns the function that puts the speed back (BD-FIX-CI2-02).
+   */
+  pinClouds(): () => void {
+    const prev = this.mesh.cloudSpeed.value;
+    this.mesh.cloudSpeed.value = 0;
+    return () => {
+      this.mesh.cloudSpeed.value = prev;
+    };
+  }
+
   /** One frame: the preset's air, the sun, the clouds and the dome's weight. */
   update(u: Readonly<SkyUniforms>, weather: SkyPresetId, next: SkyPresetId, blend01: number, camPos: { x: number; y: number; z: number }, nowMs: number): void {
     const { look } = this.o;

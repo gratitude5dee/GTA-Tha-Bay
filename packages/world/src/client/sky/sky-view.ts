@@ -66,7 +66,12 @@ export interface SkyViewOptions {
    * M02e: the look pass. `domeBlend` is the weight of the dome over the physical sky (absent: the dome alone, as in M02b2); `after`
    * runs once a frame after the sky wrote its lights and exposure, and may override them.
    */
-  look?: { domeBlend: unknown; after(u: Readonly<SkyUniforms>, input: Readonly<SkyInput>, nowMs: number): void };
+  look?: {
+    domeBlend: unknown;
+    after(u: Readonly<SkyUniforms>, input: Readonly<SkyInput>, nowMs: number): void;
+    /** QA readback: holds the physical sky's clouds at the clock's origin and returns the release (BD-FIX-CI2-02). */
+    pinClouds?(): () => void;
+  };
 }
 
 export interface SkyInfo {
@@ -108,7 +113,21 @@ export interface LumaOptions {
   pixels?: boolean;
   /** Lift the camera this many metres above the player's camera (a city overview for the fog gate). */
   heightM?: number;
+  /**
+   * The sky clock (`uTime`, seconds: the painted clouds' drift, the stars' twinkle, the rain) the readback renders at; default
+   * `LUMA_SKY_TIME_S`. Pinned so that a readback does not depend on how long the page ran before it (BD-FIX-CI2-02).
+   */
+  skyTimeS?: number;
 }
+
+/**
+ * The sky clock a luminance readback renders at, seconds. Clouds drift with the page clock: the dome's painted layer with `uTime`, the
+ * `full` look's physical sky (which is the whole clear-day sky on `desktop`) with the renderer's `time`. Unpinned, the clear-noon sky
+ * mean of the `@world-sky` view moved between 0.43 and 0.70 over the first 15 minutes of a page, so the gate read whatever phase the
+ * boot time reached; pinned (this value for the dome, the origin for the physical sky) it reads 0.5592 on every call
+ * (BD-FIX-CI2-02). 0 is the clock's origin, not a tuned phase.
+ */
+export const LUMA_SKY_TIME_S = 0;
 
 export class SkyView {
   config: SkyConfig;
@@ -399,6 +418,16 @@ export class SkyView {
     bcam.updateProjectionMatrix();
     bcam.updateMatrixWorld();
     const prevAuto = r.autoClearColor;
+    // The readback renders both skies at a fixed cloud clock (the dome's `uTime`, the physical sky's clouds at their origin) and hands
+    // the live clock back right after the renders, before the asynchronous read (the next frame sets `uTime` anyway).
+    const liveTime = this.nodes.uTime.value;
+    this.nodes.uTime.value = opts.skyTimeS ?? LUMA_SKY_TIME_S;
+    let releaseClouds = this.o.look?.pinClouds?.() ?? null;
+    const releaseClock = (): void => {
+      this.nodes.uTime.value = liveTime;
+      releaseClouds?.();
+      releaseClouds = null;
+    };
     try {
       r.setRenderTarget(rt);
       r.render(backdrop.scene, bcam);
@@ -406,6 +435,7 @@ export class SkyView {
         r.autoClearColor = false;
         r.render(host.scene, cam);
       }
+      releaseClock();
       r.autoClearColor = prevAuto;
       r.setRenderTarget(null);
       const data = (await r.readRenderTargetPixelsAsync(rt, 0, 0, size.w, size.h)) as Uint8Array;
@@ -419,6 +449,7 @@ export class SkyView {
       const mean = sum / n;
       return { mean, variance: Math.max(0, sum2 / n - mean * mean), width: size.w, height: size.h, ...(opts.pixels ? { pixels: Array.from(data) } : {}) };
     } finally {
+      releaseClock();
       r.autoClearColor = prevAuto;
       r.setRenderTarget(null);
     }

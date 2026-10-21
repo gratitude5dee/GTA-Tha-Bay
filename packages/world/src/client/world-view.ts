@@ -319,7 +319,15 @@ export class WorldView implements WorldLayer {
       lamps: () => this.collectLamps(),
       disabled: this.o.sky?.enabled === false,
       now: () => this.now(),
-      ...(lookView ? { look: { domeBlend: lookView.domeBlend, after: (u, input, nowMs) => lookView.after(u, input, nowMs) } } : {}),
+      ...(lookView
+        ? {
+            look: {
+              domeBlend: lookView.domeBlend,
+              after: (u, input, nowMs) => lookView.after(u, input, nowMs),
+              pinClouds: () => lookView.sky?.pinClouds() ?? (() => {}),
+            },
+          }
+        : {}),
     });
     void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
