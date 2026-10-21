@@ -36,6 +36,8 @@ const here = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 // Each Rapier build is its own chunk (it embeds about 3 MB of wasm as base64). The names let the service worker
 // precache the simd-compat chunk and leave the deterministic-compat chunk to load on demand (M01a2).
 function chunkName(chunk: { moduleIds: string[]; name: string }): string {
+  // M04b1: every shell page is its own lazy chunk (`page-<name>`), apart from the shell chunk (check:bundle reads both).
+  if (chunk.moduleIds.length > 0 && chunk.moduleIds.every((id) => id.includes('/packages/ui/src/pages/'))) return 'assets/page-[name]-[hash].js';
   if (chunk.moduleIds.some((id) => id.includes('rapier3d-deterministic-compat'))) return 'assets/rapier-deterministic-[hash].js';
   if (chunk.moduleIds.some((id) => id.includes('rapier3d-simd-compat'))) return 'assets/rapier-simd-[hash].js';
   return 'assets/[name]-[hash].js';
@@ -141,6 +143,8 @@ export default defineConfig({
       },
       output: {
         chunkFileNames: chunkName,
+        // The shell (state machine, registry, kit, i18n) and Preact form one named chunk, apart from the engine boot code in the entry (M04b1, AC-13).
+        codeSplitting: { groups: [{ name: 'shell', test: /packages\/ui\/src\/(index\.tsx|shell|kit|i18n|screen)\/|node_modules\/\.pnpm\/preact@/ }] },
         // The island's entry gets its own name so the precache can leave it out (globIgnores above).
         entryFileNames: (chunk) => (chunk.facadeModuleId?.includes('/src/account/') ? 'assets/account-[hash].js' : 'assets/[name]-[hash].js'),
       },

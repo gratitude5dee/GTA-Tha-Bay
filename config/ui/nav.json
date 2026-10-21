@@ -1,0 +1,18 @@
+{
+  "$comment": "Main-menu order and targets (10-ui-pages.md section 2.5). `page` is the PageDef the item opens, `also` lists pages reached from it (profile opens saves, credits opens legal, continue opens load). Gates live on the PageDefs. Read by packages/ui/src/pages/main.tsx and by the reachability test.",
+  "version": 1,
+  "items": [
+    { "id": "continue", "page": "load", "labelKey": "nav.continue" },
+    { "id": "new", "page": "new", "labelKey": "nav.new", "also": ["creator"] },
+    { "id": "modes", "page": "modes", "labelKey": "nav.modes" },
+    { "id": "garage", "page": "garage", "labelKey": "nav.garage" },
+    { "id": "npcs", "page": "npcs", "labelKey": "nav.npcs" },
+    { "id": "community", "page": "community", "labelKey": "nav.community" },
+    { "id": "experiences", "page": "experiences", "labelKey": "nav.experiences", "also": ["mods"] },
+    { "id": "online", "page": "online", "labelKey": "nav.online" },
+    { "id": "profile", "page": "profile", "labelKey": "nav.profile", "also": ["saves"] },
+    { "id": "settings", "page": "settings", "labelKey": "nav.settings", "params": { "cat": "graphics" } },
+    { "id": "credits", "page": "credits", "labelKey": "nav.credits", "also": ["legal"] },
+    { "id": "help", "page": "help", "labelKey": "nav.help" }
+  ]
+}

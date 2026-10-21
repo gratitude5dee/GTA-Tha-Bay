@@ -24,6 +24,13 @@ export const E2E_CF_PATH = fileURLToPath(new URL(`./test-results/e2e-cf.${E2E_CO
 mkdirSync(dirname(E2E_CF_PATH), { recursive: true });
 writeFileSync(E2E_CF_PATH, `${JSON.stringify({ country: E2E_COUNTRY, colo: 'LOCAL', httpProtocol: 'HTTP/1.1', clientTcpRtt: 0 })}\n`);
 
+// The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with
+// `test.use({ storageState: { cookies: [], origins: [] } })` (the gate specs under tests/e2e/ui and the title tests of shell.spec.ts).
+export const QA_PLAY_STORAGE = {
+  cookies: [],
+  origins: [{ origin: `http://localhost:${PORT}`, localStorage: [{ name: 'dv-qa-play', value: 'sandbox' }] }],
+};
+
 // CI downloads the build artifact first and sets DV_SKIP_BUILD=1.
 const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --port ${PORT}`;
 const command = process.env.DV_SKIP_BUILD === '1' ? START_WORKER : `VITE_DV_QA=1 pnpm build && ${START_WORKER}`;
@@ -44,6 +51,7 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
+    storageState: QA_PLAY_STORAGE,
   },
   webServer: {
     command,

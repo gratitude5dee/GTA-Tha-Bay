@@ -79,9 +79,11 @@
     "npc:build": "tsx tools/soul/src/cli.ts build",
     "npc:consent-index": "tsx tools/soul/src/cli.ts consent-index",
     "npc:summarize": "tsx tools/soul/src/cli.ts summarize",
-    "npc:normalize": "tsx tools/soul/src/cli.ts normalize"
+    "npc:normalize": "tsx tools/soul/src/cli.ts normalize",
+    "check:i18n": "tsx tools/ci/check-i18n.ts"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@gltf-transform/core": "4.5.1",
     "@gltf-transform/extensions": "4.5.1",
     "@gltf-transform/functions": "4.5.1",

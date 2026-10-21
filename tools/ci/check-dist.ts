@@ -15,10 +15,14 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 import { args, repoRoot } from './run.ts';
 import { ASSET_COUNT_LIMIT, ASSET_FILE_LIMIT_BYTES, MIB, assetLimitFailures, assetStats, listFiles } from './lib/asset-limits.ts';
 import { checkModuleIds } from './lib/module-ids.ts';
+
+/** The shell chunk budget of 10-ui.md section 2.7: 120 KiB gzip. */
+const SHELL_GZIP_LIMIT_BYTES = 120 * 1024;
 
 const PRECACHE_LIMIT_BYTES = 6 * MIB; // matches maximumFileSizeToCacheInBytes in apps/web/vite.config.ts
 
@@ -271,6 +275,16 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
     const mirrored = urls.filter((u) => /(^|\/)media-local\//.test(u));
     expect(mirrored.length === 0, 'media-local is not in the precache', mirrored.join(', '));
   }
+
+  // M04b1 (AC-13): the shell chunk (state machine, registry, kit, i18n and Preact) stays at 120 KiB gzip or less, and every page is a lazy chunk.
+  const shellChunks = files.filter((f) => /\/assets\/shell-[^/]+\.js$/.test(f));
+  const pageChunks = files.filter((f) => /\/assets\/page-[^/]+\.js$/.test(f));
+  expect(shellChunks.length === 1, 'one shell chunk', `found ${shellChunks.length}`);
+  for (const f of shellChunks) {
+    const gz = gzipSync(readFileSync(f)).length;
+    expect(gz <= SHELL_GZIP_LIMIT_BYTES, `shell chunk <= 120 KiB gzip (${(gz / 1024).toFixed(1)} KiB)`, path.relative(dist, f));
+  }
+  expect(pageChunks.length >= 4, `pages are separate lazy chunks (${pageChunks.length})`, 'fewer than 4 page chunks');
 
   const js = files.filter((f) => f.endsWith('.js'));
   const hasBridge = js.some((f) => readFileSync(f, 'utf8').includes('__dvBridge'));

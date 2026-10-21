@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.tsx",
-    "./i18n": "./src/i18n.ts",
+    "./i18n": "./src/i18n/index.ts",
     "./tokens.css": "./src/kit/tokens.css",
     "./shell.css": "./src/kit/shell.css"
   },
