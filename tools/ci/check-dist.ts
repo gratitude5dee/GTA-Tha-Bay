@@ -248,6 +248,9 @@ function distDir(value: string | undefined): string {
   return dir;
 }
 
+/** Identifiers of the engine QA harness (M04d, AC-9). */
+export const QA_HARNESS_IDS = ['CanonicalRunner', 'BotDriver', 'registerBot'] as const;
+
 function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): void {
   console.log(`check:bundle ${path.relative(repoRoot, dist)}`);
   const files = listFiles(dist);
@@ -276,6 +279,11 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   const hasBridge = js.some((f) => readFileSync(f, 'utf8').includes('__dvBridge'));
   const hasIwer = js.some((f) => readFileSync(f, 'utf8').includes('installRuntime'));
   console.log(`        build kind: ${hasBridge ? 'qa' : 'production'}`);
+  // M04d: the QA harness (CanonicalRunner, BotDriver, registerBot) is in QA builds only. The names are minified away as identifiers,
+  // so the harness carries them in its error messages; a production chunk must hold none, a QA build must hold them.
+  const harness = QA_HARNESS_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+  if (hasBridge) expect(harness.length === QA_HARNESS_IDS.length, 'the QA build contains the QA harness', `missing: ${QA_HARNESS_IDS.filter((id) => !harness.includes(id)).join(', ')}`);
+  else expect(harness.length === 0, 'production chunks contain no CanonicalRunner, BotDriver or registerBot', `found: ${harness.join(', ')}`);
   if (forbidQa) {
     expect(!hasBridge, 'production build has no __dvBridge', 'QA bridge found in a production build');
     expect(!hasIwer, 'production build has no IWER emulator', 'IWER found in a production build');

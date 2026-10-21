@@ -25,14 +25,14 @@ const registry = new Map<string, BotFactory>();
 
 /** Registers a driver by id. A second registration of the same id throws. */
 export function registerBot(id: string, factory: BotFactory): void {
-  if (registry.has(id)) throw new Error(`bot driver '${id}' is already registered`);
+  if (registry.has(id)) throw new Error(`registerBot: bot driver '${id}' is already registered`);
   registry.set(id, factory);
 }
 
 /** A fresh driver for `id`. An unknown id throws with the registered ids. */
 export function getBot(id: string): BotDriver {
   const f = registry.get(id);
-  if (!f) throw new Error(`unknown bot driver '${id}'; registered: ${registeredBots().join(', ') || '(none)'}`);
+  if (!f) throw new Error(`BotDriver registry: unknown bot driver '${id}'; registered: ${registeredBots().join(', ') || '(none)'}`);
   return f();
 }
 

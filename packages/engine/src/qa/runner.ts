@@ -89,19 +89,19 @@ function defaultProcessEnv(): Readonly<Record<string, string | undefined>> {
 export function assertNoGoldenUpdateInCi(env: Readonly<Record<string, string | undefined>>): void {
   const ci = env['CI'];
   if (ci !== undefined && ci !== '' && ci !== '0' && ci !== 'false' && env['DV_UPDATE_GOLDEN'] !== undefined && env['DV_UPDATE_GOLDEN'] !== '') {
-    throw new Error('DV_UPDATE_GOLDEN is set in a CI run; goldens are updated only in a pull request labelled golden-update');
+    throw new Error('CanonicalRunner: DV_UPDATE_GOLDEN is set in a CI run; goldens are updated only in a pull request labelled golden-update');
   }
 }
 
 export function validateRunSpec(spec: RunSpec): void {
-  if (!spec || typeof spec !== 'object') throw new Error('RunSpec must be an object');
-  if (typeof spec.suite !== 'string' || spec.suite === '') throw new Error('RunSpec.suite must be a non-empty string');
-  if (typeof spec.scenario !== 'string' || spec.scenario === '') throw new Error('RunSpec.scenario must be a non-empty string');
-  if (!Number.isInteger(spec.seed) || spec.seed < 0 || spec.seed > 0xffffffff) throw new Error('RunSpec.seed must be a u32');
-  if (spec.profile !== 'canonical') throw new Error("RunSpec.profile must be 'canonical'");
-  if (!Number.isInteger(spec.maxTicks) || spec.maxTicks < 1) throw new Error('RunSpec.maxTicks must be a positive integer');
-  if (!Number.isInteger(spec.checkpointEvery) || spec.checkpointEvery < 1) throw new Error('RunSpec.checkpointEvery must be a positive integer');
-  if (!spec.bot || typeof spec.bot.driver !== 'string') throw new Error('RunSpec.bot.driver must be a string');
+  if (!spec || typeof spec !== 'object') throw new Error('CanonicalRunner: RunSpec must be an object');
+  if (typeof spec.suite !== 'string' || spec.suite === '') throw new Error('CanonicalRunner: RunSpec.suite must be a non-empty string');
+  if (typeof spec.scenario !== 'string' || spec.scenario === '') throw new Error('CanonicalRunner: RunSpec.scenario must be a non-empty string');
+  if (!Number.isInteger(spec.seed) || spec.seed < 0 || spec.seed > 0xffffffff) throw new Error('CanonicalRunner: RunSpec.seed must be a u32');
+  if (spec.profile !== 'canonical') throw new Error("CanonicalRunner: RunSpec.profile must be 'canonical'");
+  if (!Number.isInteger(spec.maxTicks) || spec.maxTicks < 1) throw new Error('CanonicalRunner: RunSpec.maxTicks must be a positive integer');
+  if (!Number.isInteger(spec.checkpointEvery) || spec.checkpointEvery < 1) throw new Error('CanonicalRunner: RunSpec.checkpointEvery must be a positive integer');
+  if (!spec.bot || typeof spec.bot.driver !== 'string') throw new Error('CanonicalRunner: RunSpec.bot.driver must be a string');
 }
 
 export function createCanonicalRunner(env: RunnerEnv = {}): CanonicalRunner {

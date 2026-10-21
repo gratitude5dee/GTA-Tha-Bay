@@ -59,6 +59,8 @@ jobs:
     env:
       # tools/ci/test/golden-guard.test.ts runs the live check over origin/$GITHUB_BASE_REF...HEAD with these labels.
       DV_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+      # M04d: tools/ci/test/verifiers-lock.test.ts reads the reason of a golden-update PR from the body (`Golden-update: <reason>` line).
+      DV_PR_REASON: ${{ github.event.pull_request.body }}
       # M02b1: world suites read the synth and civic-excerpt bakes; a missing bake fails instead of skipping (tests/support/require-bake.ts).
       DV_REQUIRE_BAKE: '1'
     steps:
@@ -169,6 +171,8 @@ jobs:
       - run: pnpm npc:lint
         env:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      # M04d: the economy bands (tycoon suite prints pending until M09a2).
+      - run: pnpm check:balance
 
   build:
     runs-on: ubuntu-24.04

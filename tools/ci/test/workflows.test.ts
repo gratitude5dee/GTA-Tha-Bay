@@ -43,6 +43,11 @@ describe('ci.yml (AC-8)', () => {
     expect(jobs['unit']).toMatch(/upload-artifact[\s\S]*path: tests\/reports/);
   });
 
+  it('unit passes DV_PR_REASON for the verifier lock and content runs check:balance (M04d)', () => {
+    expect(jobs['unit']).toContain('DV_PR_REASON: ${{ github.event.pull_request.body }}');
+    expect(jobs['content']).toContain('pnpm check:balance');
+  });
+
   it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
     const job = jobs['world-content'] ?? '';
     expect(job).toContain('pnpm map:fixture graybox --check');

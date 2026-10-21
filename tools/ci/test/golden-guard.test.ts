@@ -27,6 +27,16 @@ describe('golden-guard fixtures (AC-7)', () => {
     expect(isGoldenPath('x.golden.jsonl')).toBe(false);
   });
 
+  it('C05 rule 5 save goldens under __golden__ need golden-update (M04d, DL-659)', () => {
+    const save = 'packages/engine/src/sim/save/__golden__/core/v1.json';
+    expect(isGoldenPath(save)).toBe(true);
+    const without = guard([save], []);
+    expect(without.ok).toBe(false);
+    expect(without.goldenPaths).toEqual([save]);
+    expect(guard([save], ['golden-update']).ok).toBe(true);
+    expect(isGoldenPath('packages/engine/src/sim/save/__golden__')).toBe(false);
+  });
+
   it('reads labels from DV_PR_LABELS as a comma list', () => {
     expect(labelsFromEnv({ DV_PR_LABELS: 'a, golden-update ,b' })).toEqual(['a', 'golden-update', 'b']);
     expect(labelsFromEnv({})).toEqual([]);
