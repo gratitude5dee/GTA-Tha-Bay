@@ -18,7 +18,7 @@ cleanupOutdatedCaches();
 // non-isolated account area and the QA pages (QA builds only) are never answered from the shell.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-    denylist: [/^\/api\//, /^\/account(\/|$)/, /^\/qa\//],
+    denylist: [/^\/api\//, /^\/account(\/|$)/, /^\/qa\//, /^\/media\//],
   }),
 );
 

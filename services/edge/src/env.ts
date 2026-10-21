@@ -28,7 +28,10 @@ export interface Env {
   HOST_API: string;
   HOST_RT: string;
   HOST_ID: string;
+  /** Absolute base URL of the Worker's media route, e.g. https://<host>/media (M01d2, DL-713). */
   HOST_MEDIA: string;
+  /** Kill switch of /media/*: "off" answers 503; anything else serves (default on). */
+  MEDIA_ROUTE?: string | undefined;
   HOST_UGC: string;
   /** JSON object of FeatureFlag to boolean; unknown keys are ignored. */
   FLAGS_JSON: string;

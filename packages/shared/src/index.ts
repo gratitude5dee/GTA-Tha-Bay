@@ -22,6 +22,8 @@ export * from './genai/job-key.ts';
 export * from './genai/registry.ts';
 export { GENAI_GUARDRAILS } from './genai/guardrails.generated.ts';
 export type { AssetRef, LikenessTier } from './assets/c07.ts';
+export { isMediaKey } from './assets/media-key.ts';
+export { contentTypeOf } from './assets/content-type.ts';
 export * from './telemetry.ts';
 export * from './world/index.ts';
 export * from './platform/xr-comfort.ts';

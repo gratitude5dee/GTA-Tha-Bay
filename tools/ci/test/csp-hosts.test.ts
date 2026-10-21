@@ -15,9 +15,23 @@ const wrangler = JSON.parse(stripJsonc(readFileSync(path.join(repoRoot, 'service
   vars: Vars;
   env: { staging: { vars: Vars } };
 };
-const hosts = (v: Vars): Record<string, string> => ({ media: v.HOST_MEDIA, ugc: v.HOST_UGC, rt: v.HOST_RT, id: v.HOST_ID });
+// media is compared by origin: HOST_MEDIA carries the /media path, and a CSP source with a path matches only that path (DL-713).
+const hosts = (v: Vars): Record<string, string> => ({ media: new URL(v.HOST_MEDIA).origin, ugc: v.HOST_UGC, rt: v.HOST_RT, id: v.HOST_ID });
 
 describe('CSP hosts of the static _headers build', () => {
+  it('run_worker_first lists /media/* at the top level and in env.staging', () => {
+    const w = wrangler as unknown as { assets: { run_worker_first: string[] }; env: { staging: { assets: { run_worker_first: string[] } } } };
+    expect(w.assets.run_worker_first).toContain('/media/*');
+    expect(w.env.staging.assets.run_worker_first).toContain('/media/*');
+  });
+
+  it('HOST_MEDIA is the Worker media route and MEDIA_ROUTE is on in all three blocks', () => {
+    expect(wrangler.vars.HOST_MEDIA).toMatch(/\/media$/);
+    expect(wrangler.env.staging.vars.HOST_MEDIA).toMatch(/\/media$/);
+    const raw = readFileSync(path.join(repoRoot, 'services/edge/wrangler.jsonc'), 'utf8');
+    expect(raw.match(/"MEDIA_ROUTE": "on"/g)).toHaveLength(3);
+  });
+
   it('mirror the HOST_* vars of services/edge/wrangler.jsonc', () => {
     expect(STAGING_CSP_HOSTS).toEqual(hosts(wrangler.env.staging.vars));
     expect(PROD_CSP_HOSTS).toEqual(hosts(wrangler.vars));

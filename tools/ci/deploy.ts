@@ -345,7 +345,7 @@ function prod(o: ProdOptions): number {
 const CUSTOM_DOMAIN_NOTE = `deploy:bootstrap: no custom domain yet (Q-15). Once the domain is chosen, add to the top-level config
 and set workers_dev to false there:
   "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ]
-and replace the HOST_* vars (they hold workers.dev placeholders). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
+and replace the HOST_* vars (HOST_MEDIA is the Worker's own /media route, DL-713; HOST_UGC is still a placeholder; a media.<domain> replaces the route's value). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
 
 function bootstrap(): number {
   ensureDist();

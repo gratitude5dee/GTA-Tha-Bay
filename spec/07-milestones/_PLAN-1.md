@@ -55,6 +55,11 @@
 - **R** R-IP-01, R-PLAT-03 · **Dep** M00b, M00a, M01a1 · **Read** file `M01d-assets-publish.md`; `05-assets.md` §4 · **Out** `tools/assets`, `assets/{lock,provenance}`, `.github/workflows/assets.yml` · **C** C07 1.1
 - **Gate** `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`; buckets in `config/cloudflare.resources.json` · **Proof** `pnpm check:assets`; `pnpm assets:verify`; dry-run publish
 
+### M01d2 · media-route — 0.4 · risk L · S09
+- **Goal:** the app Worker serves R2 media at `/media/<key>` (dispatch before the asset fallthrough and the geo gate, `run_worker_first`, Range and conditional requests, explicit key grammar, public CORS, cross-origin CORP, `MEDIA_ROUTE` kill switch) and `HOST_MEDIA` points at it, so deployed builds load published media without a custom domain (DL-713).
+- **R** R-PLAT-01, R-IP-01 (support) · **Dep** M01d, M00e · **Read** file `M01d2-media-route.md`; DL-713; `spec/03` §6 (R2 media through a Worker) · **Out** `services/edge/src/{routes/media.ts, index.ts, headers.ts, env.ts}`, `services/edge/test/{media,headers}.test.ts`, `services/edge/wrangler.jsonc`, `packages/shared/src/{assets/media-key.ts, index.ts}`, `apps/web/src/sw.ts`, `config/{csp-hosts.ts, cloudflare.resources.json}`, `tools/ci/{deploy.ts, test/csp-hosts.test.ts}`, `docs/runbooks/r2-media.md` · **C** C12 1.3 (unchanged), C07 1.1
+- **Gate** none (AC-5 is a post-deploy operator check) · **Proof** `pnpm check:workers -- media headers boot`; `pnpm check:unit -- packages/shared tools/ci`; `pnpm check:prod-routes`
+
 ### M01e · asset-worker-opfs-store — 1 · risk M · S11
 - **Goal:** `asset.worker`, `WorldPackStore` on OPFS with hash check, eviction, `persist()`, `fetchRetry` lanes.
 - **R** R-PLAT-01/03 · **Dep** M01d, M01c, M00a, M00, M01a2, M01f · **Read** file `M01e-…md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/workers/asset.worker.ts`, `packages/engine/src/assets/store` (as the frozen file; DL-247) · **C** C13 1.1, C07 1.1
@@ -172,8 +177,8 @@
 
 ### M02c2 · maps — 1 · risk M · S02 (+S10)
 - **Goal:** map data bake, minimap, full map, blips, GPS route, address search, attribution screen data.
-- **R** R-MAP-03 · **Dep** M02c1, M04b2 · **Read** `02-world-maps.md` §1–§3, §6; `10-ui-hud-xr.md` §2 · **Out** `packages/world/src/{client/map,sim/map}`, `tools/map/src/stages/s12` · **C** C08 1.0
-- **Gate** Q-15 staging media domain (AC-14 staging release only; DL-670 part 2) · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
+- **R** R-MAP-03 · **Dep** M02c1, M04b2, M01d2 · **Read** `02-world-maps.md` §1–§3, §6; `10-ui-hud-xr.md` §2 · **Out** `packages/world/src/{client/map,sim/map}`, `tools/map/src/stages/s12` · **C** C08 1.0
+- **Gate** M01d2 deployed to staging and the media R2 secrets (AC-14 operator release only; DL-713) · **Proof** `pnpm check:e2e -- --project=chromium-webgl2 --grep @world-map` (5 m at 10 landmarks, banner at 20 points, 50 EAS addresses within 10 m); `--grep @world-attribution`
 
 ### M04b3 · local-identity-play-token — 0.5 · risk L · S09
 - **Goal:** `IdentityService` with the local adapter (UUIDv7 profile, device key), `NullCloudSync`; single-player never needs an account.
@@ -220,7 +225,7 @@
 ### M05c2 · act1-vertical-slice — 1 · risk M · S03 · **VS-Story**
 - **Goal:** `m.a1.07`–`12`, Act 1 refs, plates and index, sensitivity gate, save/resume e2e, `story-chase`; racing and fighter tiles reachable through stub hooks (unlocked, `comingSoon`), tycoon tile registered and locked because its hook is `m.a2.01` in Act 2 (M09b2; DL-391); deployed and tested on staging (R-ROLL-01 anchor).
 - **R** R-MODE-01/05, R-CUT-02, R-ROLL-01 · **Dep** M05c1, M03b2 · **Read** `03-story-narrative.md` §B4–§B5; `03-story.md` §8–§9 · **Out** `content/missions/m.a1.{07..12}/`, `content/story/act1/cutscene-refs.ts`, `content/story/sensitivity.json` · **C** C09 1.0, C05 1.1
-- **Gate** Q-15 through M02c2 AC-14 (staging `sf`, AC-7 to AC-9; DL-670 part 2); Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
+- **Gate** the M02c2 AC-14 staging `sf` release (AC-7 to AC-9; DL-670, DL-713); Q-21 sensitivity read (public release only) · **Proof** `pnpm check:missions -- --act 1` (12 missions, 3 seeds); `pnpm check:e2e -- --project=webkit-webgl2 --grep @story` (reload resumes with `unlock.racing`); `pnpm check:perf -- --scenario story-chase`; `pnpm check:smoke -- <staging url>`; manual `M05c2-{iphone15,mac}`
 
 ### M05d · data-spine-supabase — 1 · risk M · S09
 - **Goal:** Supabase staging and production projects, migrations 0001–0002, `DataPort` + `InMemoryDataPort`, `db:push` in deploy, cutscene index and ledger export, staging keep-alive.

@@ -8,8 +8,22 @@ Create two R2 buckets on the Workers Paid account: `tha-bay-media-staging` and `
 ## 2. CORS
 Set the bucket CORS policy on both buckets to allow `GET` and `HEAD` from the app origins only (the `workers.dev` hostnames of `tha-bay-web` and `tha-bay-web-staging`, plus `http://localhost:5173` for local QA; add the custom domain once Q-15 is answered). Allowed headers: `Range`. Expose: `Content-Length`, `Content-Range`, `ETag`. The policy format is entered in the dashboard (R2, bucket, Settings, CORS policy); its JSON spelling is UNVERIFIED here, so copy it from the dashboard's example.
 
-## 3. Public access
-Keep the `r2.dev` public URL **off**. Public reads wait for the custom domain (step 5). Before that, QA builds serve the `dir:` mirror same-origin (M01e).
+## 3. Public access: Worker media route (DL-713)
+Keep the `r2.dev` public URL **off**. Public reads go through the app Worker: `tha-bay-web` and `tha-bay-web-staging` answer `GET`, `HEAD` and `OPTIONS` on `/media/<key>` from their `MEDIA` binding (M01d2).
+
+- **Everything in a media bucket is public** from M01d2's deploy, for keys of the published grammar (`isMediaKey`). `PRIVATE` is never readable.
+- **OSM-derived objects** (any `sf` bake output) are uploaded only by the M02c2 AC-14 sequence, which uploads the ODbL offer in the same run. Never upload one by hand.
+- **Steps 2 (bucket CORS) and 5 (custom domain) are not needed** until a domain exists; the route sets `Access-Control-Allow-Origin: *` itself.
+- **Kill switch:** set the var `MEDIA_ROUTE` to `"off"` in `services/edge/wrangler.jsonc` (all three blocks) and deploy; every `/media/` request then answers 503. Rolling back to an earlier version restores its value.
+- **AC-4 checks** after a deploy (upload one non-OSM test object at an `assets/<kind>/<id>/<variant>.<hex12>.<ext>` key to `tha-bay-media-staging`, run these, then delete it; paste the output into `docs/bake-runs/M01d2/staging.txt`):
+
+```
+curl -sI https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/<key>
+curl -s -o /dev/null -w '%{http_code}\n' -r 0-9 https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/<key>
+curl -sI 'https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/..%2Fx'
+```
+
+Expected: 200 with `etag`, the stored `cache-control`, `access-control-allow-origin: *` and `cross-origin-resource-policy: cross-origin`; then `206`; then 404.
 
 ## 4. API token for the publisher
 Create an R2 API token (R2, Manage API tokens) with Object Read and Write scoped to the two media buckets only. It gives an Access Key ID and a Secret Access Key. Store them as:
