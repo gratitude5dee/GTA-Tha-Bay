@@ -10,30 +10,28 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
 ## Depends on
 - **M01d** (assets-publish): the key builders (`objectKey` in `packages/shared/src/assets/c07.ts`, the `manifests/assets-<hex64>.json` manifest keys), the stored HTTP metadata (`Cache-Control: public, max-age=31536000, immutable`, identity encoding), `contentTypeOf` (`packages/shared/src/assets/content-type.ts`), and the `MEDIA` binding and bucket names.
 - **M00e** (owner-account-hardening): `_PLAN.md` §0 rule 7, no `services/edge` milestone before it.
-- Through those:
-  - M00a: `route()`, `ROUTES` and `createApp` in `services/edge/src/index.ts`, `withIsolationHeaders` in `headers.ts`, the geo gate in `geo.ts`, `/api/v1/boot`, `check:workers`;
-  - M05b1: `CutsceneJobDO` builds manifest URLs from `HOST_MEDIA`, and `services/pipeline` writes `cutscenes/<hex64>/…`;
-  - M00e: `config/csp-hosts.ts` and `tools/ci/test/csp-hosts.test.ts`.
+- Through those: M00a (`route()`, `ROUTES` and `createApp` in `services/edge/src/index.ts`, `withIsolationHeaders` in `headers.ts`, the geo gate in `geo.ts`, `/api/v1/boot`, `check:workers`) and M00e (`config/csp-hosts.ts`, `tools/ci/test/csp-hosts.test.ts`).
+- Already merged on `claude/build`, though not a dependency: M05b1 (`CutsceneJobDO` builds manifest URLs from `HOST_MEDIA`; `services/pipeline` writes `cutscenes/<hex64>/…`). The route serves those keys; nothing in M05b1 changes.
 - Contracts: C12 1.3 (`BootConfig.hosts.media` is still an absolute URL), C07 1.1 (object keys). No contract change.
 
 ## Scope in
 - **Dispatch** (`services/edge/src/index.ts`). In `route()`, add a `/media/` branch before the `/api/v1/` guard sends the request to `ASSETS.fetch`, and before the geo gate. Media is geo-exempt, because offline single-player is never geo-blocked (R-ROLL-01, A-10). The branch calls the media handler, which also does its own method handling; the `ROUTES` method filter is not used for it, so `OPTIONS` reaches the handler. In `services/edge/wrangler.jsonc`, add `"/media/*"` to `assets.run_worker_first` at the top level and in `env.staging`. Previews take their assets block from `env.staging`. The array form disables the navigation-prefers-assets default, so a browser navigation to `/media/<key>` reaches the Worker and does not get the SPA `index.html` (spec/03 §6, DL-713).
 - **Handler** (`services/edge/src/routes/media.ts`):
-  - **`GET`.** Parse `Range` first: a single `bytes=a-b`, `bytes=a-` or `bytes=-n`. Multiple ranges, or a range that is malformed or unsatisfiable against the object's size, answer 416 with `Content-Range: bytes */<size>`. Then call `env.MEDIA.get(key, { onlyIf: request.headers, range })`.
+  - **`GET`.** When the request carries `Range`, call `env.MEDIA.head(key)` first (404 if `null`) to learn the size. Accept only a single `bytes=a-b`, `bytes=a-` or `bytes=-n`. Multiple ranges, or a range that is malformed or unsatisfiable against that size, answer 416 with `Content-Range: bytes */<size>`. Then call `env.MEDIA.get(key, { onlyIf: request.headers, range })` with the parsed `{ offset, length }` or `{ suffix }`. Without `Range`, call `get` directly.
     - `null` answers 404.
     - An object without `body` answers 304 when the request carried `If-None-Match` or `If-Modified-Since`, otherwise 412.
     - A request that carried `Range` answers 206 with `Content-Range: bytes <start>-<end>/<size>` and `Content-Length`. A suffix range computes `start = size − n`.
-    - An exception from the binding on a range answers 416, not 500.
+    - The handler catches its own errors: an exception from the binding answers 500 with the same CORS and isolation headers, never escaping to `createApp`'s generic error response.
   - **`HEAD`.** `env.MEDIA.get(key, { onlyIf: request.headers })` with the body discarded, so conditional `HEAD` answers 304 the way `GET` does, with no body.
   - **`OPTIONS`.** With `Access-Control-Request-Method: GET` or `HEAD` it answers 204 with `Access-Control-Allow-Methods: GET, HEAD, OPTIONS`, `Access-Control-Allow-Headers: Range, If-None-Match, If-Modified-Since` and `Access-Control-Max-Age: 86400`. Any other method answers 405 with `Allow: GET, HEAD, OPTIONS`.
   - **Headers on every `/media/` response, errors included:**
     - `Access-Control-Allow-Origin: *`. The data is public game data and no credentials are used, so there is no allowlist and no `Vary: Origin`.
     - `Access-Control-Expose-Headers: Content-Length, Content-Range, ETag, Accept-Ranges`.
     - `Accept-Ranges: bytes`.
-    - On hits, `writeHttpMetadata(headers)` and `etag` = `httpEtag`. When no `Content-Type` was stored, use `contentTypeOf(key)` inside try/catch, falling back to `application/octet-stream`. Never set `Content-Encoding`.
+    - On hits, `writeHttpMetadata(headers)` and `etag` = `httpEtag`. When no `Content-Type` was stored, use `contentTypeOf(<extension of the key>)` (it takes an extension, not a key, and throws on an unknown one) inside try/catch, falling back to `application/octet-stream`. Never set `Content-Encoding`.
     - `Cache-Control: no-store` on 404, 412 and 416.
   - **Kill switch.** The var `MEDIA_ROUTE` (`"on"` | `"off"`, default `"on"`) answers 503 to every `/media/` request when `"off"`. It rides with a deployed version, so a rollback or a version with `"off"` stops the route (DL-713).
-- **Key grammar.** A pure predicate `isMediaKey(key)` in `packages/shared/src/assets/media-key.ts`, with no IO and the C02 lint applying. It accepts exactly:
+- **Key grammar.** A pure predicate `isMediaKey(key)` in `packages/shared/src/assets/media-key.ts`, with no IO and the C02 lint applying. Export it, and `contentTypeOf`, from `packages/shared/src/index.ts` (the entry `services/edge` already imports); do not touch the contract file `assets/c07.ts`. It accepts exactly:
   - `assets/<kind>/<id>/<variant>.<hex12>.<ext>`
   - `characters/<slug>/<part>/<variant>.<hex12>.<ext>`
   - `audio/barks/<hex64>.<ext>`
@@ -42,11 +40,12 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
   - `odbl/<hex64>/<file>`
 
   Each segment is `[a-z0-9][a-z0-9._-]{0,127}` (the `<kind>` and `<id>` alphabets as `objectKey` emits them); `<file>` is the same pattern; `<hex12>` and `<hex64>` are lowercase hex. It rejects any segment equal to `.` or `..`, any `%`, `\`, empty segment or trailing `/`. The route takes the raw path after `/media/` without decoding it. A rejected key answers 404 before any bucket call. Only `MEDIA` is read, never `PRIVATE`.
-- **Isolation headers** (`services/edge/src/headers.ts`): `withIsolationHeaders` keeps COOP and COEP everywhere, but sets `Cross-Origin-Resource-Policy: cross-origin` for paths under `/media/`; every other path keeps `same-origin`. This lets no-cors loads (`<video>` and `<img>` of cutscene media) from version-preview and PR-preview hosts load under COEP `require-corp`.
+- **Isolation headers** (`services/edge/src/headers.ts`): derive the CSP media origin with a guard (a missing or malformed `HOST_MEDIA` falls back to the raw value and never throws, because `withIsolationHeaders` runs outside `createApp`'s try). `withIsolationHeaders` keeps COOP and COEP everywhere, but sets `Cross-Origin-Resource-Policy: cross-origin` for paths under `/media/`; every other path keeps `same-origin`. This lets no-cors loads (`<video>` and `<img>` of cutscene media) from version-preview and PR-preview hosts load under COEP `require-corp`.
 - **Hosts and CSP:**
   - `services/edge/wrangler.jsonc`: `"HOST_MEDIA": "https://tha-bay-web.gratitude-8f4.workers.dev/media"` at the top level, and `"https://tha-bay-web-staging.gratitude-8f4.workers.dev/media"` in `env.staging` and its `previews` block (the hosts `deploy.yml` smoke-tests). Add `"MEDIA_ROUTE": "on"` in the same three places.
   - The CSP media source is the **origin** of `HOST_MEDIA`: `withIsolationHeaders` passes `new URL(HOST_MEDIA).origin` to `buildCspReportOnly`, and `config/csp-hosts.ts` `STAGING_CSP_HOSTS.media` / `PROD_CSP_HOSTS.media` hold those origins.
   - `tools/ci/test/csp-hosts.test.ts` compares `media` by origin. A CSP host-source with a path and no trailing slash matches only that exact path.
+- **Service worker:** add `/^\/media\//` to the denylist of the `NavigationRoute` in `apps/web/src/sw.ts`, so an installed service worker never answers a navigation to `/media/<key>` with the app shell.
 - **Stale text:** `config/cloudflare.resources.json` `host_vars_note` and the `tools/ci/deploy.ts` bootstrap message stop calling `HOST_MEDIA` a placeholder.
 - **Runbook:** in `docs/runbooks/r2-media.md`, replace step 3's "Public reads wait for the custom domain" with a "Worker media route (DL-713)" section. The section covers:
   - every object in a media bucket is public from M01d2's deploy;
@@ -62,11 +61,11 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
 
 ## Deliverables
 - `services/edge/src/routes/media.ts`; `services/edge/src/index.ts` (the `/media/` branch in `route()`); `services/edge/src/headers.ts` (media CORP, CSP media origin); `services/edge/src/env.ts` (`MEDIA_ROUTE`); `services/edge/wrangler.jsonc` (`run_worker_first`, `HOST_MEDIA`, `MEDIA_ROUTE`).
-- `packages/shared/src/assets/media-key.ts` (exported from the assets index) and `packages/shared/test/media-key.spec.ts`.
+- `packages/shared/src/assets/media-key.ts`, `packages/shared/src/index.ts` (exports `isMediaKey`, `contentTypeOf`), `packages/shared/test/media-key.spec.ts`; `apps/web/src/sw.ts` (navigation denylist).
 - `services/edge/test/media.test.ts`; `services/edge/test/headers.test.ts` (extended).
 - `config/csp-hosts.ts`, `tools/ci/test/csp-hosts.test.ts`, `config/cloudflare.resources.json` (note), `tools/ci/deploy.ts` (message).
 - `docs/runbooks/r2-media.md`; BD rows in `spec/11-decision-log-builder.md`.
-- About 15 files.
+- About 17 files.
 
 ## Interfaces
 - C12 1.3 `BootConfig.hosts.media`: unchanged type; its value is now the route's base URL.
@@ -103,7 +102,7 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
   - `curl -s -o /dev/null -w '%{http_code}' -r 0-9 <staging-url>/media/<key>` prints 206;
   - `curl -sI <staging-url>/media/..%2Fx` answers 404
 
-  — proof: manual, after deploy: the commands with their output pasted into `docs/bake-runs/M01d2/staging.txt`. Without a deploy, or without the media R2 secrets on the operator workstation, the Builder lists AC-5 under "Blocked on". No OSM-derived object is uploaded for this check (DL-713).
+  — proof: manual: after deploy, the three commands with their output pasted into `docs/bake-runs/M01d2/staging.txt`; without a deploy or the media R2 secrets on the operator workstation, the Builder lists AC-5 under "Blocked on". No OSM-derived object is uploaded for this check (DL-713).
 
 ## Test plan
 - **Unit:** `packages/shared/test/media-key.spec.ts`; `tools/ci/test/csp-hosts.test.ts` and the `run_worker_first` case (`pnpm check:unit -- packages/shared tools/ci`).
@@ -116,7 +115,7 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
 2. After deploy: upload a test object, `curl -sI https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/<key>` shows 200 with the immutable `cache-control`, then delete the object.
 
 ## Effort
-0.4 Builder session; about 15 files; risk **low**.
+0.4 Builder session; about 17 files; risk **low**.
 
 ## Risks & fallbacks
 - **The vitest pool's local R2 treats `range` or `onlyIf` differently from production.** The route parses `Range` itself and passes `{ offset, length }` or `{ suffix }`. If `onlyIf` with request headers misbehaves locally, pass `{ etagDoesNotMatch }` parsed from `If-None-Match`, and record a BD row.
@@ -128,7 +127,7 @@ After this session the app Worker serves published R2 media itself. `tha-bay-web
   - the "R2 media through a Worker" paragraph in `spec/03-decisions-and-facts.md` §6 (binding, routing, pricing and cache facts with URLs);
   - `M01d-assets-publish.md`;
   - in `services/edge/src`: `index.ts` (`route()`, `ROUTES`, `createApp`), `headers.ts`, `geo.ts`, `env.ts`, `routes/boot.ts`;
-  - `packages/shared/src/assets/{c07.ts, content-type.ts}`;
+  - `packages/shared/src/assets/{c07.ts, content-type.ts}`, `packages/shared/src/index.ts`, `apps/web/src/sw.ts`;
   - `config/csp-hosts.ts`, `tools/ci/test/csp-hosts.test.ts`;
   - `docs/runbooks/r2-media.md`.
 - The WHATWG URL parser collapses `/media/../x` and `%2e%2e` segments before the Worker sees them, so the traversal case must be tested in `isMediaKey` and, through the route, with `..%2Fx`. The binding is bucket-scoped, so traversal cannot reach `PRIVATE` anyway; the grammar is defence in depth.

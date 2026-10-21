@@ -57,7 +57,7 @@
 
 ### M01d2 · media-route — 0.4 · risk L · S09
 - **Goal:** the app Worker serves R2 media at `/media/<key>` (dispatch before the asset fallthrough and the geo gate, `run_worker_first`, Range and conditional requests, explicit key grammar, public CORS, cross-origin CORP, `MEDIA_ROUTE` kill switch) and `HOST_MEDIA` points at it, so deployed builds load published media without a custom domain (DL-713).
-- **R** R-PLAT-01, R-IP-01 (support) · **Dep** M01d, M00e · **Read** file `M01d2-media-route.md`; DL-713; `spec/03` §6 (R2 media through a Worker) · **Out** `services/edge/src/{routes/media.ts, index.ts, headers.ts, env.ts}`, `services/edge/wrangler.jsonc`, `packages/shared/src/assets/media-key.ts`, `config/csp-hosts.ts`, `docs/runbooks/r2-media.md` · **C** C12 1.3 (unchanged), C07 1.1
+- **R** R-PLAT-01, R-IP-01 (support) · **Dep** M01d, M00e · **Read** file `M01d2-media-route.md`; DL-713; `spec/03` §6 (R2 media through a Worker) · **Out** `services/edge/src/{routes/media.ts, index.ts, headers.ts, env.ts}`, `services/edge/test/{media,headers}.test.ts`, `services/edge/wrangler.jsonc`, `packages/shared/src/{assets/media-key.ts, index.ts}`, `apps/web/src/sw.ts`, `config/{csp-hosts.ts, cloudflare.resources.json}`, `tools/ci/{deploy.ts, test/csp-hosts.test.ts}`, `docs/runbooks/r2-media.md` · **C** C12 1.3 (unchanged), C07 1.1
 - **Gate** none (AC-5 is a post-deploy operator check) · **Proof** `pnpm check:workers -- media headers boot`; `pnpm check:unit -- packages/shared tools/ci`; `pnpm check:prod-routes`
 
 ### M01e · asset-worker-opfs-store — 1 · risk M · S11
