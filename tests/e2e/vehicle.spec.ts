@@ -196,7 +196,7 @@ async function bootWorld(page: Page): Promise<string[]> {
   await expect.poll(async () => ((await wcall<{ topology?: boolean } | null>(page, 'state'))?.topology ?? false), { timeout: 120_000, intervals: [500, 1000, 2000] }).toBe(true);
   // no ambient traffic and no parked cars from here on (the agents near the spawn go once the player has teleported away); an owner
   // of its own, so that the barrier test's `release` of 'e2e' does not bring them back
-  for (const kind of ['traffic', 'parked']) {
+  for (const kind of ['traffic', 'ped', 'parked']) {
     const d = await wcall<Record<string, number> | null>(page, 'density', { kind, mult: 0, by: STREETS_OWNER });
     expect(d?.[kind], `${kind} density`).toBe(0);
   }

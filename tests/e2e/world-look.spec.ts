@@ -180,11 +180,12 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
   await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
-  // M03b1 integration: the ambient traffic moves between two captures, so the goldens are taken without it (its group is hidden; the goldens
-  // predate the traffic). The group is a child of the scene, so the shadow pass skips it too.
+  // M03b1/M03b2 integration: the ambient traffic, pedestrians and transit vehicles move between two captures, so the goldens are taken
+  // without them (their groups are hidden; the goldens predate them). The groups are children of the scene, so the shadow pass skips them too.
   await page.evaluate(() => {
-    const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: { group: { visible: boolean } } | null } } } } }).__dvBridge.world.internals().view;
-    if (view.traffic) view.traffic.group.visible = false;
+    type G = { group: { visible: boolean } } | null;
+    const view = (window as unknown as { __dvBridge: { world: { internals(): { view: { traffic: G; peds: G; transit: G } } } } }).__dvBridge.world.internals().view;
+    for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
   });
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   await frames(page, 2);
