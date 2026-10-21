@@ -45,7 +45,10 @@ test.describe('shell', () => {
 
   test('is an installable PWA @pwa', async ({ page, request, browserName }) => {
     test.skip(browserName !== 'chromium', 'manifest and precache checks run on Chromium');
-    await page.goto('/');
+    // BD-FIX-CI2-03: the manifest, the service worker and the precache do not depend on the world, so the page boots the small
+    // `walk-drop` scene (QA builds take `?world=` on a DV_WORLD build too) instead of the software-rendered synth city, which kept
+    // the main thread busy past the 90 s timeout. The manifest's own start_url is still checked to be '/'.
+    await page.goto('/?world=walk-drop');
     await expect(page.locator('link[rel="manifest"]')).toHaveCount(1);
 
     const manifest = (await (await request.get('/manifest.webmanifest')).json()) as Record<string, unknown> & {
