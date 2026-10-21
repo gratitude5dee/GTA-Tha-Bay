@@ -1,4 +1,4 @@
-import type { JsonObject, ModeContext, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
+import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
 import { applyToggle } from './builtin/sandbox.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
@@ -16,15 +16,23 @@ export interface CommandDeps {
   teleport?(x: number, y: number, z: number): boolean;
   /** The page pauses itself; the sim only learns of it (QA and later the HUD). */
   onPause?(on: boolean): void;
+  /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
+  selectProfile?(id: string): void;
 }
 
 /**
  * The worker side of the UI command channel (C06 1.1 `UiCommand`). A command is applied between ticks, as soon as it arrives, so
  * a settings page opened over a paused game still works. Handled here: `mode.start`, `mode.quit`, `pause`, `save.*` (except
- * profile management, which M04b1 owns), `sandbox.set`, `sandbox.teleport`, `phone.waypoint`, `mode.cmd`, and the cutscene
+ * profile management: the page creates, renames and deletes profiles, the sim only selects one), `sandbox.set`, `sandbox.teleport`, `phone.waypoint`, `mode.cmd`, and the cutscene
  * commands (forwarded as events for M05b2). `garage.call` and `garage.favorite` raise one `garage.notYet` toast and change nothing
  * until M05c1 routes them (DL-668 part 3).
  */
+/** `sys.settings`: the profile settings without `controls` (those ride `sys.controls`), so a long remap list cannot push the value over the 4 KiB patch limit. */
+export function settingsView(s: ProfileSettings): JsonObject {
+  const { controls: _controls, ...rest } = s;
+  return rest as unknown as JsonObject;
+}
+
 export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => void {
   const toast = (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>): void =>
     d.ui.toast({ id, kind, text, ...(params ? { params } : {}) });
@@ -48,7 +56,10 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         const s = d.slices().settings;
         const changed = applySettings(s, cmd.data);
         if (changed.includes('controls')) d.ui.patch('sys.controls', s.controls as unknown as JsonObject);
-        if (changed.length > 0) d.host.autosave.request('settings');
+        if (changed.length > 0) {
+          d.ui.patch('sys.settings', settingsView(s));
+          d.host.autosave.request('settings');
+        }
         return;
       }
       case 'save.avatar':
@@ -56,7 +67,11 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         d.host.autosave.request('manual');
         return;
       case 'save.profile':
-        toast('save.profile', 'info', 'save.profile.notYet');
+        // Create, rename and delete run on the page's SaveService (profile rows only; BD-M04b1-02). The sim handles `select`.
+        if (cmd.op === 'select' && cmd.id) {
+          if (d.host.state !== 'Idle') toast('save.profile', 'warning', 'save.profile.busy');
+          else d.selectProfile?.(cmd.id);
+        }
         return;
       case 'garage.call':
       case 'garage.favorite':

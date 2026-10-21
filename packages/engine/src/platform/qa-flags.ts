@@ -40,7 +40,16 @@ export interface QaFlags {
   readonly touch: boolean;
   /** ?unlockAll=1 unlocks every registered unlock in memory, never persisted (M04a2, C06 rule 6). */
   readonly unlockAll: boolean;
+  /**
+   * The QA play bypass (M04b1, DL-650): `sandbox` or `story` skips the age, Terms and menu pages and starts that mode at once; `off`
+   * runs the normal flow. From `?play=`, else the QA-only localStorage key `dv-qa-play`, else `sandbox` when `?scenario=` is set.
+   */
+  readonly play: QaPlay | null;
 }
+
+export type QaPlay = 'sandbox' | 'story' | 'off';
+/** The QA-only localStorage key that supplies `play` when the URL has none (Playwright's storage state sets it). */
+export const QA_PLAY_KEY = 'dv-qa-play';
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
   enabled: false,
@@ -60,6 +69,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   world: null,
   touch: false,
   unlockAll: false,
+  play: null,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -89,10 +99,24 @@ export function isQaBuild(): boolean {
   return import.meta.env.VITE_DV_QA === '1';
 }
 
-export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): QaFlags {
+function asPlay(v: string | null | undefined): QaPlay | null {
+  return v === 'sandbox' || v === 'story' || v === 'off' ? v : null;
+}
+
+/** The stored `dv-qa-play` value; storage can throw (private windows) or be absent (Node), both read as unset. */
+function storedPlay(): QaPlay | null {
+  try {
+    return asPlay(globalThis.localStorage?.getItem(QA_PLAY_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), stored: () => QaPlay | null = storedPlay): QaFlags {
   if (!enabled) return NO_QA_FLAGS;
   const q = new URLSearchParams(search);
   const tier = q.get('tier');
+  const scenario = q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null;
   return {
     enabled: true,
     gl: q.get('gl') === '1',
@@ -107,9 +131,10 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     perf: q.get('perf') === '1',
     governor: q.get('governor') === 'off' ? 'off' : null,
     limits: parseLimits(q.get('limits')),
-    scenario: q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null,
+    scenario,
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
     touch: q.get('touch') === '1',
     unlockAll: q.get('unlockAll') === '1',
+    play: asPlay(q.get('play')) ?? stored() ?? (scenario !== null ? 'sandbox' : null),
   };
 }

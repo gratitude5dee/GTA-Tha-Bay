@@ -96,19 +96,25 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       })());
     const modes = createModesModule({
       wallMs: () => Date.now(),
-      // The open profile: the first one, made if there is none (profile selection is M04b1's page).
-      loadSlices: async (): Promise<SessionSlices> => {
+      // The open profile: `profileId` when the shell selects one, else the most recently saved (made when there is none; M04b1).
+      loadSlices: async (profileId?: string): Promise<SessionSlices> => {
         const svc = await openSave();
         let list = await svc.listProfiles();
         if (list.length === 0) {
           const made = await svc.createProfile('Player 1');
           if ('id' in made) list = [made];
         }
-        const first = list[0];
-        if (!first) throw new Error('no profile');
-        const id = svc.activeProfile ?? first.id;
-        const game = await svc.load(id);
-        return { core: game.core, settings: game.settings, story: game.story.auto ?? defaultStory(), sandbox: game.sandbox ?? defaultSandbox() };
+        const recent = [...list].sort((a, b) => (b.lastSave?.at ?? b.updatedAt) - (a.lastSave?.at ?? a.updatedAt))[0];
+        const pick = (profileId ? list.find((p) => p.id === profileId) : undefined) ?? recent;
+        if (!pick) throw new Error('no profile');
+        const game = await svc.load(pick.id);
+        return {
+          core: game.core,
+          settings: game.settings,
+          story: game.story.auto ?? defaultStory(),
+          sandbox: game.sandbox ?? defaultSandbox(),
+          profile: { id: pick.id, name: game.profile.name, hasStory: game.story.auto !== undefined },
+        };
       },
     });
     const env = envFor(init, [...modules, modes]);

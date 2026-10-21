@@ -23,7 +23,7 @@ import type { ModeSaveBinding, SaveWritePort } from '../save-port.ts';
 import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
 import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory } from './builtin/index.ts';
 import { bindModeSave } from './capability-bind.ts';
-import { createCommandDispatcher } from './commands.ts';
+import { createCommandDispatcher, settingsView } from './commands.ts';
 import { ModeEventBus, ModeHost, type SessionSlices } from './host.ts';
 import { EconomyImpl, economyWallet, type ForwardingFareSink } from './economy.ts';
 import { NotYetAvailable } from './stubs.ts';
@@ -50,7 +50,7 @@ const CLOCK_PATCH_EVERY = 30;
 
 export interface ModesModuleOptions {
   /** Reads the open profile's slices; the worker takes them from the SaveService. Default: a fresh profile. */
-  loadSlices?(): Promise<SessionSlices>;
+  loadSlices?(profileId?: string): Promise<SessionSlices>;
   /** Wall-clock milliseconds (the worker passes `Date.now`; the sim has no clock of its own). */
   wallMs?(): number;
   /** Extra or replacement descriptors, registered after the built-in ones (tests, later modes). */
@@ -319,6 +319,14 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           return e ? e.ctx : null;
         },
         world: () => (services.world.api ?? standin),
+        selectProfile: (id) => {
+          void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
+            .then((next) => {
+              Object.assign(live, next);
+              publishSession();
+            })
+            .catch((e: unknown) => bridge.toast({ id: 'save.profile', kind: 'warning', text: 'save.profile.failed', params: { reason: e instanceof Error ? e.message : String(e) } }));
+        },
         teleport: (x, y, z) => {
           const r = requestTeleport(s.ecs, services, s.ecs.byKey('player:0'), [x, y, z], tick());
           return r.ok;
@@ -329,11 +337,25 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       reply = (name, data) => void runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
 
       if (ctx.boot.config['unlockAll'] === true) h.setUnlockAll(true);
-      bridge.patch('sys.controls', live.settings.controls as unknown as JsonObject);
-      unl.publish();
-      econ.publish();
-      h.publish();
-      bridge.flushTick();
+      // What the shell reads: the registered modes (tile data), the open profile and its settings (M04b1).
+      const hidden = new Set(unl.defs().filter((u) => u.hidden === true).map((u) => u.id));
+      bridge.patch(
+        'sys.modes',
+        h.list().map((m) => {
+          const d = descriptors.get(m.id);
+          return { id: m.id, titleKey: m.titleKey, order: m.order, art: m.art, status: m.status, standalone: m.standalone, unlock: d?.unlock ?? null, hidden: d?.unlock != null && hidden.has(d.unlock), xr: d?.requires.xr ?? 'none', network: d?.requires.network ?? 'none', simProfile: d?.requires.simProfile ?? 'any' };
+        }) as unknown as JsonObject[],
+      );
+      const publishSession = (): void => {
+        bridge.patch('sys.controls', live.settings.controls as unknown as JsonObject);
+        bridge.patch('sys.settings', settingsView(live.settings));
+        bridge.patch('sys.profile', live.profile ? { ...live.profile } : null);
+        unl.publish();
+        econ.publish();
+        h.publish();
+        bridge.flushTick();
+      };
+      publishSession();
     },
 
     installQa(h) {
