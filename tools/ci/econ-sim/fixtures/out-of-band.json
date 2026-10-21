@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "unit": "cents",
+  "sections": {
+    "base": {
+      "exact": { "capWeek": 1000001, "emptyLedger": 1 },
+      "policies": {
+        "saver": { "endBalance": { "p50": [0, 1] } },
+        "spender": { "totalIncome": { "p10": [1, 2] } }
+      }
+    }
+  }
+}
