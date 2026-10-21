@@ -121,6 +121,7 @@ export function reasonOf(text: string | undefined): string {
   if (!text) return '';
   const m = /^\s*golden-update(?:\s+reason)?\s*:\s*(\S.*)$/im.exec(text);
   if (m) return (m[1] as string).trim();
+  if (/^\s*golden-update(?:\s+reason)?\s*:/im.test(text)) return '';
   return /[\r\n]/.test(text.trim()) ? '' : text.trim();
 }
 
