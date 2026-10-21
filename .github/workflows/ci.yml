@@ -202,13 +202,15 @@ jobs:
           path: apps/web/dist
           retention-days: 3
 
-  e2e:
+  # BD-FIX-CI2-04: the e2e of one project runs as E2E_SHARDS Playwright shards (`--shard=<n>/3`, both halves, each shard its own share
+  # of the tests). On e72e1fc the chromium-webgl2 leg took 1.1 h in one job against its 75-minute limit (BD-FIX-CI-03), with the
+  # DV_WORLD=synth half at 80 tests on 2 workers, and every milestone adds tests. The required checks keep their names: `e2e
+  # (<project>)` below is the job that reports the project's result from the results of all of its shards.
+  e2e-shard:
     needs: build
     runs-on: ubuntu-24.04
-    # BD-FIX-CI-03: 75, not 30. On run 39517892975 the DV_WORLD=synth step was cancelled at 30 min on chromium-webgl2 with 46 of 77
-    # tests done (one landmark test alone takes 13.5 min on software GL; the look goldens run on this project only); about 48 min
-    # estimated end to end, plus room for one retry of the longest test.
-    timeout-minutes: 75
+    # One shard holds about a third of the 1.1 h (the longest single test is 13.5 min); 60 leaves room for one retry of it and for growth.
+    timeout-minutes: 60
     # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
     # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
     continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
@@ -216,6 +218,8 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
+        # Keep equal to E2E_SHARDS of the e2e job and to the `/3` of both check:e2e steps.
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -245,35 +249,82 @@ jobs:
       # Two invocations (M02b1, DL-546): the gray-box tags on the build job's artifact (no world), then everything else on a fresh
       # DV_WORLD=synth build. DV_SKIP_BUILD belongs to the first step only: a job-level value would serve the world-less artifact twice.
       - name: e2e, gray-box tags (build without a world)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/3 --pass-with-no-tests
         env:
           DV_SKIP_BUILD: '1'
       - name: Header and isolation checks against the local Worker
-        if: matrix.project == 'chromium-webgl2'
+        if: matrix.project == 'chromium-webgl2' && matrix.shard == 1
         env:
           DV_SKIP_BUILD: '1'
         run: |
           pnpm check:headers -- --serve http://localhost:8788
           pnpm check:coi -- --serve http://localhost:8788
       - name: e2e, every other tag (DV_WORLD=synth build)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/3 --pass-with-no-tests
         env:
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
+      # What `e2e (<project>)` reads: this shard's outcome (job.status covers every step above), written even when a step failed.
+      - name: Shard result
+        if: always()
+        run: |
+          mkdir -p e2e-result
+          echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: gpu-probe-${{ matrix.project }}
+          name: e2e-result-${{ matrix.project }}-${{ matrix.shard }}
+          path: e2e-result
+          retention-days: 3
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: gpu-probe-${{ matrix.project }}-${{ matrix.shard }}
           path: test-results/gpu-probe.*.json
           if-no-files-found: ignore
           retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: failure()
         with:
-          name: playwright-report-${{ matrix.project }}
+          name: playwright-report-${{ matrix.project }}-${{ matrix.shard }}
           path: playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  # The required checks `e2e (chromium-webgl2)` and `e2e (webkit-webgl2)` (names unchanged): green only when every shard of the project
+  # wrote `success`. It runs whatever the shards did (not on a cancelled run), so a failed, timed-out or skipped shard (no result file)
+  # turns it red.
+  e2e:
+    needs: e2e-shard
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
+    steps:
+      # No result at all (the build failed, every shard was skipped) is not an error here: the next step reports each shard as missing.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        continue-on-error: true
+        with:
+          pattern: e2e-result-${{ matrix.project }}-*
+          path: e2e-result
+          merge-multiple: true
+      - name: Every shard of the project passed
+        env:
+          PROJECT: ${{ matrix.project }}
+          E2E_SHARDS: '3'
+        run: |
+          status=0
+          for n in $(seq 1 "$E2E_SHARDS"); do
+            f="e2e-result/${PROJECT}-${n}.txt"
+            r=$(cat "$f" 2>/dev/null || echo missing)
+            echo "e2e ${PROJECT} shard ${n}/${E2E_SHARDS}: ${r}"
+            [ "$r" = "success" ] || status=1
+          done
+          exit $status
 
   # M01c, M02b1: CPU-side budget counts of every registered scenario on the two software-GL projects, on a DV_WORLD=synth build.
   # Warnings on pull requests (check:perf exits 0 without --fail); nightly.yml runs it with --fail. BD-M02b1-15: this job did not exist

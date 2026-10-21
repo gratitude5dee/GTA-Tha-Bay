@@ -58,12 +58,40 @@ describe('ci.yml (AC-8)', () => {
     for (const [name, block] of Object.entries(jobs)) expect(block, name).toMatch(/timeout-minutes: \d+/);
   });
 
-  // BD-FIX-CI-03: the DV_WORLD=synth step alone outlasted 30 min on chromium-webgl2 (run 39517892975); the job names and matrix are
-  // the required checks and stay as they are.
-  it('e2e keeps its job name and four-project matrix and has at least 75 minutes; nightly e2e-full at least 90', () => {
+  // BD-FIX-CI-03: the DV_WORLD=synth step alone outlasted 30 min on chromium-webgl2 (run 39517892975). BD-FIX-CI2-04: one job then
+  // took 1.1 h of its 75 minutes (e72e1fc), so the tests run as Playwright shards in e2e-shard; the job `e2e` keeps the names of the
+  // required checks (`e2e (<project>)`, the same four-project matrix) and is green only when every shard of its project passed.
+  it('e2e-shard splits each project into shards; e2e keeps its name and matrix and reports all shards of its project; nightly e2e-full at least 90', () => {
     const minutes = (block: string | undefined): number => Number(/timeout-minutes: (\d+)/.exec(block ?? '')?.[1] ?? 0);
-    expect(minutes(jobs['e2e'])).toBeGreaterThanOrEqual(75);
-    expect(jobs['e2e']).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
+    const shard = jobs['e2e-shard'] ?? '';
+    const agg = jobs['e2e'] ?? '';
+    const shards = /^ {8}shard: \[([\d, ]+)\]$/m.exec(shard)?.[1]?.split(',').map((s) => Number(s.trim())) ?? [];
+    const n = shards.length;
+    expect(n).toBeGreaterThanOrEqual(2);
+    expect(shards).toEqual(Array.from({ length: n }, (_, i) => i + 1));
+    expect(shard).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
+    expect(shard).toContain('needs: build');
+    expect(minutes(shard)).toBeGreaterThanOrEqual(45);
+    // Both halves run the shard's share; each shard writes its outcome even after a failure and uploads it under its own name.
+    const runs = stepsOf(shard).filter((s) => s.includes('pnpm check:e2e'));
+    expect(runs).toHaveLength(2);
+    for (const s of runs) expect(s).toContain(`--shard=\${{ matrix.shard }}/${n}`);
+    const result = stepsOf(shard).find((s) => s.includes('name: Shard result')) ?? '';
+    expect(result).toContain('if: always()');
+    expect(result).toContain('echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"');
+    expect(shard).toMatch(/if: always\(\)\n\s+with:\n\s+name: e2e-result-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.shard \}\}/);
+    // The aggregate: same name and matrix as the required checks, runs after every shard (also failed ones), reads only its project's results.
+    expect(agg).toContain('needs: e2e-shard');
+    expect(agg).toContain('if: ${{ !cancelled() }}');
+    expect(agg).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
+    expect(agg).toContain('pattern: e2e-result-${{ matrix.project }}-*');
+    expect(agg).toContain(`E2E_SHARDS: '${n}'`);
+    expect(agg).toContain('[ "$r" = "success" ] || status=1');
+    expect(agg).not.toContain('pnpm check:e2e');
+    // Advisory projects stay advisory in both jobs.
+    const advisory = "continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}";
+    expect(shard).toContain(advisory);
+    expect(agg).toContain(advisory);
     expect(minutes(jobsOf(wf('nightly.yml'))['e2e-full'])).toBeGreaterThanOrEqual(90);
   });
 });
@@ -166,13 +194,13 @@ describe('world builds in CI (M02b1 AC-12)', () => {
 
   it('ci.yml: unit, e2e and perf restore or build the bakes before their test step; unit requires them', () => {
     bakeBefore(ciJobs['unit'] ?? '', /pnpm check:unit/, 'unit');
-    bakeBefore(ciJobs['e2e'] ?? '', /pnpm check:e2e/, 'e2e');
+    bakeBefore(ciJobs['e2e-shard'] ?? '', /pnpm check:e2e/, 'e2e-shard');
     bakeBefore(ciJobs['perf'] ?? '', /pnpm check:perf/, 'perf');
     expect(ciJobs['unit']).toContain("DV_REQUIRE_BAKE: '1'");
   });
 
-  it('ci.yml e2e: the gray-box step has its own DV_SKIP_BUILD, the world step builds with DV_WORLD=synth, no job env defines DV_SKIP_BUILD', () => {
-    const text = ciJobs['e2e'] ?? '';
+  it('ci.yml e2e-shard: the gray-box step has its own DV_SKIP_BUILD, the world step builds with DV_WORLD=synth, no job env defines DV_SKIP_BUILD', () => {
+    const text = ciJobs['e2e-shard'] ?? '';
     const steps = stepsOf(text);
     const gray = steps.find((s) => s.includes('--grep "$GRAYBOX_GREP"')) ?? '';
     const world = steps.find((s) => s.includes('--grep-invert "$GRAYBOX_GREP"')) ?? '';
@@ -194,7 +222,7 @@ describe('world builds in CI (M02b1 AC-12)', () => {
     expect(step).toContain("DV_SKIP_BUILD: ''");
     expect(step).not.toContain('--fail');
     expect(perf).not.toMatch(JOB_LEVEL_SKIP);
-    expect((ciJobs['e2e'] ?? '').split('\n').filter((l) => !l.trim().startsWith('#')).join('\n')).not.toContain('check:perf');
+    for (const j of ['e2e', 'e2e-shard']) expect((ciJobs[j] ?? '').split('\n').filter((l) => !l.trim().startsWith('#')).join('\n'), j).not.toContain('check:perf');
   });
 
   it('nightly.yml: bakes before the e2e, determinism and perf steps; the e2e matrix is split; determinism and perf run on DV_WORLD=synth', () => {
