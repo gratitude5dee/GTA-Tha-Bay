@@ -1,0 +1,7 @@
+# Names only; copy to .dev.vars (git-ignored) and fill in values. Never commit values.
+# PLAY_TOKEN_HMAC = "<kid>:<base64url of 32 random bytes>", e.g. "k1:" + `openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`
+PLAY_TOKEN_HMAC=
+# PLAY_TOKEN_HMAC_PREV=
+SUPABASE_SECRET_KEY=
+OPS_TOKEN=
+FAL_KEY=

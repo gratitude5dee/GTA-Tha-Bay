@@ -58,6 +58,12 @@ export interface BootConfig {
   gov: 0 | 1 | 2 | 3;
 }
 
+// Route 5 (M04b3, 09-backend-contracts.md section 2.5): the P0 play-token mint. The proof signs "pt-req|" + pid + "|" + ts (raw r||s, base64url).
+/** The DOM `JsonWebKey` shape restricted to what a P-256 public key carries (shared has no DOM types). */
+export interface DeviceJwk { kty?: string; crv?: string; x?: string; y?: string; [member: string]: unknown }
+export interface PlayTokenReq { pid: string; jwk: DeviceJwk; ts: number; sig: string; age: '18p' }
+export interface PlayTokenRes { token: string; exp: number }
+
 // Route 8 and the exchange routes (09-backend-contracts.md section 2.5).
 export interface TokenRes { accessToken: string; exp: number; refreshToken: string; refreshExp: number; state: IdentityStateDTO }
 export interface IdentityStateDTO { profileId: string; tier: 'local' | 'device' | 'linked'; providers: { id: string; linkedAt: number }[] }

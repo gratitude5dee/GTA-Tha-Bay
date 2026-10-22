@@ -289,6 +289,16 @@ importers:
         specifier: 2.6.0
         version: 2.6.0
 
+  packages/identity:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      fake-indexeddb:
+        specifier: ^6.2.6
+        version: 6.2.6
+
   packages/modes/racing:
     dependencies:
       '@dv/engine':
@@ -309,6 +319,12 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+
+  packages/net:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/shared:
     dependencies:

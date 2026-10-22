@@ -1,0 +1,15 @@
+{
+  "name": "@dv/net",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/net"
+  },
+  "dependencies": {
+    "@dv/shared": "workspace:*"
+  }
+}

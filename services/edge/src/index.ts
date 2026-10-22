@@ -6,6 +6,7 @@ import { withIsolationHeaders } from './headers.ts';
 import { dispatch, pathMatches, type Ctx, type Route } from './router.ts';
 import { ADMIN_PATH, handleDeleteMe, handleExportMe, handleLogin, handleLogout, handleMe, handleRefresh, handleSignup } from './routes/auth.ts';
 import { handleCutsceneStatus, handleFalHook, handlePrewarm } from './cutscenes/routes.ts';
+import { handlePlayToken } from './id/playtoken.ts';
 import { handleBoot } from './routes/boot.ts';
 import { handleGenaiStatus } from './routes/genai.ts';
 import { handleHealth } from './routes/health.ts';
@@ -24,6 +25,7 @@ const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/boot', handler: handleBoot },
   { methods: ['POST'], path: '/api/v1/t', handler: handleTelemetry },
   { methods: '*', path: '/api/v1/legal', prefix: true, handler: handleLegal },
+  { methods: ['POST'], path: '/api/v1/id/play-token', handler: handlePlayToken },
   { methods: ['POST'], path: '/api/v1/auth/signup', handler: handleSignup },
   { methods: ['POST'], path: '/api/v1/auth/login', handler: handleLogin },
   { methods: ['POST'], path: '/api/v1/auth/refresh', handler: handleRefresh },

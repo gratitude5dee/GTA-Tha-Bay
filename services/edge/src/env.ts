@@ -52,6 +52,10 @@ export interface Env {
   AUTH_PASSWORD_SIGNUP?: string | undefined;
   /** Operator contact printed in the privacy document and required by route 58 (DL-613, DL-635). Not a secret. */
   LEGAL_CONTACT?: string | undefined;
+  /** Play-token HMAC secret, "<kid>:<base64url 32 bytes>" (M04b3, BD-M04b3-01). Absent: route 5 answers 503. Not in secrets.required (DL-679). */
+  PLAY_TOKEN_HMAC?: string | undefined;
+  /** Previous play-token secret, same format; verifies only. */
+  PLAY_TOKEN_HMAC_PREV?: string | undefined;
   /** Optional secret that salts the daily net hash of the auth rate limit (M00e; M06a1 replaces the helper). */
   QUOTA_NET_SALT_SECRET?: string | undefined;
   /** Rate Limiting bindings of class auth (M00e). Absent in unit tests and local runs: no limit. */
