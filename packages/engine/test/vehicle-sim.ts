@@ -5,7 +5,7 @@
 import { SIM_DT, SimButton, type EntityHandle, type InputFrame, type SimConfig } from '@dv/shared';
 import { registerControlSystems } from '../src/sim/control/index.ts';
 import { BodyRef, Control, LocalPlayer, Transform, Vehicle, VehicleDamage, Velocity } from '../src/sim/ecs/components.ts';
-import { ENGINE_PREFABS, PrefabRegistry } from '../src/sim/prefabs/registry.ts';
+import { ENGINE_PREFABS, PrefabRegistry, RACE_CAR_PREFABS } from '../src/sim/prefabs/registry.ts';
 import { createPhysicsSim, type PhysicsSim } from '../src/sim/sim-factory.ts';
 import type { VehiclePhysics } from '../src/sim/physics/backend.ts';
 import { registerVehicleModule, seatDriver, type VehicleModule, type WheelPath } from '../src/sim/vehicle/index.ts';
@@ -61,6 +61,8 @@ export async function createVehicleWorld(opts: VehicleSimOptions = {}): Promise<
       const prefabs = new PrefabRegistry(s.ecs, s.backend);
       prefabs.load(ENGINE_PREFABS);
       const mod = registerVehicleModule(s.core, s.backend, prefabs, opts.wheelPath?.(s.backend));
+      // the race cars of M07a1 load only where a test asks for one (the string table is hashed)
+      if (RACE_CAR_PREFABS.some((p) => p.id === opts.prefab)) prefabs.load(RACE_CAR_PREFABS);
       holder.mod = mod;
       holder.prefabs = prefabs;
       const playerAt = opts.playerAt ?? [pos[0], pos[1], pos[2] - 3];

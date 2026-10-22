@@ -191,7 +191,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
           const lostAlong = (rt.lastVx * fx + rt.lastVz * fz) > 0 ? dvx * fx + dvz * fz : -(dvx * fx + dvz * fz);
           void forward;
           hurt(id, rt, { kind: 'static', vNormal: hit, vTangent: 0, local: [0, 0, lostAlong < 0 ? -2 : 2], otherMassKg: 0 });
-          services.events.push({ t: 'vehicle.impact', tick, a: handle, n: hit });
+          services.events.push({ t: 'vehicle.impact', tick, a: handle, n: hit, s: lostAlong < 0 ? 'front' : 'rear' });
         }
         rt.lastVx = vx;
         rt.lastVz = vz;

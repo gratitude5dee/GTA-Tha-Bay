@@ -28,3 +28,4 @@ export * from './telemetry.ts';
 export * from './world/index.ts';
 export * from './platform/xr-comfort.ts';
 export * from './vehicle/index.ts';
+export * from './racing/index.ts';

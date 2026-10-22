@@ -16,6 +16,7 @@
  */
 import { datan2, dcos, dsin, dsqrt, PI } from '../detmath.ts';
 import { powerScale, tireGripScale } from './damage.ts';
+import { nitroCeilingMps } from './envelope.ts';
 import { findQuirk, governorThrottleScale } from './quirks.ts';
 
 export const VEHICLE_SCHEMA = 1 as const;
@@ -446,6 +447,9 @@ export function stepHandling(
     if (reverse) driveForce = -driveForce;
   }
 
+  // --- nitro (M07a1): extra drive force while the racing director holds `nitroOn`; it fades out toward the over-speed ceiling
+  if (s.nitroOn && inContact > 0 && !reverse && p.nitro.capacity > 0) driveForce += nitroBoostForceN(p, speed);
+
   // --- brake demand
   const decel = p.brake.maxDecelG * GRAVITY;
   const brakeTotal = brakeCmd * decel * m;
@@ -527,6 +531,14 @@ export function stepHandling(
     out.airTorque[2] = ip * p.suspension.airRollTrim * (10 * -(b.roll ?? 0) - 4.5 * (b.rollRate ?? 0));
   }
   return out;
+}
+
+/** Newtons of extra drive force at the wheels from nitro at `speedMps`: `boostKw` over the speed (floored at 8 m/s), faded to zero over the last 5 % below the ceiling. */
+export function nitroBoostForceN(p: Pick<HandlingProfile, 'class' | 'nitro'>, speedMps: number): number {
+  const ceiling = nitroCeilingMps(p);
+  const room = (ceiling - speedMps) / (0.05 * ceiling);
+  const fade = room <= 0 ? 0 : room >= 1 ? 1 : room;
+  return ((p.nitro.boostKw * 1000) / (speedMps < 8 ? 8 : speedMps)) * fade;
 }
 
 function tanPeak(p: Pick<HandlingProfile, 'tire'>): number {

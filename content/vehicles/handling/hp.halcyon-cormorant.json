@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "id": "hp.halcyon-cormorant",
+  "rev": 1,
+  "class": "R",
+  "fictionalMake": "Halcyon",
+  "massKg": 2050,
+  "cgHeightM": 0.55,
+  "wheelbaseM": 2.9,
+  "trackM": 1.62,
+  "frontWeightPct": 50,
+  "engine": {
+    "idleRpm": 0,
+    "redlineRpm": 9000,
+    "torque": [
+      [
+        0,
+        330
+      ],
+      [
+        4500,
+        330
+      ],
+      [
+        6000,
+        247
+      ],
+      [
+        7500,
+        198
+      ],
+      [
+        9000,
+        165
+      ]
+    ],
+    "powerKw": 155
+  },
+  "drive": {
+    "type": "RWD",
+    "gears": [
+      1.6,
+      1.0
+    ],
+    "reverse": 1.6,
+    "finalDrive": 6.4,
+    "efficiency": 0.9,
+    "wheelRadiusM": 0.36,
+    "shiftUpPct": 0.97,
+    "shiftDownPct": 0.2,
+    "shiftTimeSec": 0.2,
+    "awdRearBias": 0.5
+  },
+  "tire": {
+    "muLong": 0.7,
+    "muLat": 0.7,
+    "peakSlipDeg": 6.5,
+    "slideRatio": 0.78,
+    "slideAtX": 2.5,
+    "loadSens": 0.12,
+    "frontGrip": 1.0,
+    "rearGrip": 0.98,
+    "rollResistN": 221
+  },
+  "aero": {
+    "cdA": 0.8,
+    "downforceNPerMps2": 0
+  },
+  "steer": {
+    "lockDeg": 34,
+    "speedRefMps": 26,
+    "minLockPct": 18,
+    "rateDegPerS": 260,
+    "assist": 0.6,
+    "selfAlign": 0.3
+  },
+  "brake": {
+    "maxDecelG": 0.7,
+    "bias": 0.55,
+    "abs": true
+  },
+  "drift": {
+    "assist": 0,
+    "handbrakeRearGrip": 0.5,
+    "yawDamp": 0.2
+  },
+  "suspension": {
+    "restM": 0.28,
+    "travelM": 0.12,
+    "rideHz": 1.4,
+    "dampingRatio": 0.7,
+    "antiRoll": 0.5,
+    "landingDamp": 0.6,
+    "airPitchTrim": 0.4,
+    "airRollTrim": 0.4
+  },
+  "nitro": {
+    "capacity": 0,
+    "boostKw": 0,
+    "drainPerSec": 0,
+    "minToFire": 100,
+    "maxOverTopPct": 0,
+    "refill": {
+      "driftPerSec": 0,
+      "nearMiss": 0,
+      "draftPerSec": 0,
+      "airPerSec": 0
+    }
+  },
+  "durability": 1.5,
+  "quirks": [
+    {
+      "k": "speedGovernor",
+      "kph": 105,
+      "jailbreakItem": "item.jailbreak-kit"
+    },
+    {
+      "k": "autoYield",
+      "radiusM": 14
+    },
+    {
+      "k": "stallOnDarkSignal",
+      "holdSec": [
+        4,
+        9
+      ]
+    }
+  ]
+}

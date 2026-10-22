@@ -12,7 +12,7 @@ import {
   SimStage, datan2,
   type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
   type GameModeSim, type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand,
-  type WorldApi,
+  type UnlockDef, type WorldApi,
 } from '@dv/shared';
 import { GROUP_BIT } from '../physics/groups.ts';
 import { Control, LocalPlayer, Transform } from '../ecs/components.ts';
@@ -65,6 +65,8 @@ export interface ModesModuleOptions {
    * mode's sim, which keeps free roam when no mission is active. The story package supplies it; the engine never imports it.
    */
   wrapStory?(freeroam: GameModeSim, env: StoryWrapEnv): GameModeSim;
+  /** Extra or replacement unlock rows, registered after the built-in ones (racing adds its starter loaner to `unlock.racing`; M07a1). */
+  unlockDefs?: readonly UnlockDef[];
 }
 
 /** What the engine hands the story mode besides the free-roam sim: session facts the `ModeContext` does not carry. */
@@ -250,6 +252,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         telemetry: tel as never,
       }));
       unl.register(builtinUnlockDefs());
+      if (opts.unlockDefs) unl.register([...opts.unlockDefs]);
 
       const backend = s.backend;
       const physics: PhysicsQueries = {

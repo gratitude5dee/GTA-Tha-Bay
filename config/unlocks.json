@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "note": "Unlock rows contributed by mode packages (UnlockDef, C06). The base rows `unlock.racing`, `unlock.fighter` and `unlock.tycoon` are registered by the engine (M04a2); a row here with the same id replaces the engine's, so racing adds its starter loaner to the tile grant.",
+  "unlocks": [
+    {
+      "id": "unlock.racing",
+      "titleKey": "unlock.racing.title",
+      "source": "base",
+      "grants": { "menuTile": "racing", "vehicles": ["vehicle.ondine-pico"] }
+    },
+    {
+      "id": "unlock.racing.class.c",
+      "titleKey": "unlock.racing.class.c.title",
+      "source": "base",
+      "grants": { "vehicles": ["vehicle.kestrel-quill"] }
+    },
+    {
+      "id": "unlock.racing.class.b",
+      "titleKey": "unlock.racing.class.b.title",
+      "source": "base",
+      "grants": { "vehicles": ["vehicle.brackenridge-rasp"] }
+    },
+    {
+      "id": "unlock.racing.class.a",
+      "titleKey": "unlock.racing.class.a.title",
+      "source": "base",
+      "grants": { "vehicles": ["vehicle.aurelian-sorrel"] }
+    },
+    {
+      "id": "unlock.racing.class.s",
+      "titleKey": "unlock.racing.class.s.title",
+      "source": "base",
+      "grants": { "vehicles": ["vehicle.solenne-skip"] }
+    }
+  ]
+}

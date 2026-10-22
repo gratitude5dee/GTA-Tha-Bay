@@ -164,6 +164,21 @@ export class ModeHost {
     return this.restartPending ? { ok: true, pending: 'restart' } : { ok: true };
   }
 
+  /**
+   * QA only (`qa` true): starts a top-level mode as it is, past `comingSoon`, the unlock and the profile restart, so a mode that is
+   * not offered to players yet (racing in M07a1) can be driven by the bridge and the tests. A production host refuses.
+   */
+  startQa(id: GameModeId, params?: ModeEnterArgs['params']): StartResult {
+    if (!this.d.qa) return this.refuse(id, 'unknown');
+    const desc = this.byId.get(id);
+    if (!desc) return this.refuse(id, 'unknown');
+    if (this.stack.root) return this.refuse(id, 'busy');
+    this.begin(desc, { ...(params !== undefined ? { params } : {}), origin: { kind: 'menu' }, seed: this.d.seed() }, null);
+    this.d.save.setCapability(capabilityOfMode(id) ?? IDLE_CAPABILITY);
+    this.publish();
+    return { ok: true };
+  }
+
   /** `ModeContext.startChild` (rules 1, 2, 5). False when the child cannot run under this parent. */
   startChild(parentId: GameModeId, id: GameModeId, args: Omit<ModeEnterArgs, 'origin'>): boolean {
     const parent = this.stack.top;

@@ -10,12 +10,24 @@ const DEFAULT_LABELS: Readonly<Record<string, string>> = {
   'touch.camera': 'Camera',
   'touch.enter': 'Enter',
   'touch.pause': 'Pause',
+  'touch.gas': 'Gas',
+  'touch.brake': 'Brake',
+  'touch.nitro': 'Nitro',
+  'touch.handbrake': 'Handbrake',
+  'touch.reset': 'Reset',
+  'touch.behind': 'Look behind',
 };
 
 const ICONS: Readonly<Record<string, string>> = {
   jump: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l7 9h-4v7H9v-7H5z" fill="currentColor"/></svg>',
   camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v11H4zm8 2.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" fill="currentColor"/></svg>',
   enter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8v16h-8v-3h5V7h-5zM4 11h8V8l5 4-5 4v-3H4z" fill="currentColor"/></svg>',
+  gas: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8l-1 18H9z" fill="currentColor"/></svg>',
+  brake: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14v8H5z" fill="currentColor"/></svg>',
+  nitro: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L5 14h6l-1 8 8-12h-6z" fill="currentColor"/></svg>',
+  handbrake: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zm-1 5h2v5h-2zm0 7h2v2h-2z" fill="currentColor"/></svg>',
+  reset: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z" fill="currentColor"/></svg>',
+  behind: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6l-8 6 8 6v-4h8v-4h-8z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>',
 };
 
@@ -51,6 +63,7 @@ export class TouchOverlay {
   private readonly base: HTMLElement;
   private readonly knob: HTMLElement;
   private readonly buttons = new Map<string, HTMLElement>();
+  private labels: Readonly<Record<string, string>> = {};
   private enabled = false;
   private device: DeviceKind = 'kbm';
   private readonly coarse: () => boolean;
@@ -80,20 +93,35 @@ export class TouchOverlay {
     this.knob.hidden = true;
     root.append(this.hint, this.base, this.knob);
 
-    for (const w of opts.layout.widgets) {
+    this.labels = labels;
+    this.buildButtons(opts.layout);
+    opts.container.append(root);
+    this.sync();
+  }
+
+  /** Replaces the buttons with those of another layout (M07a1: racing has its own). */
+  setLayout(layout: TouchLayout): void {
+    if (this.root.dataset['layout'] === layout.id) return;
+    for (const b of this.buttons.values()) b.remove();
+    this.buttons.clear();
+    this.root.dataset['layout'] = layout.id;
+    this.buildButtons(layout);
+  }
+
+  private buildButtons(layout: TouchLayout): void {
+    const doc = this.root.ownerDocument;
+    for (const w of layout.widgets) {
       if (w.kind !== 'button') continue;
       const b = doc.createElement('button');
       b.type = 'button';
       b.className = `dv-touch-btn dv-touch-btn--${w.icon}`;
       b.dataset['dvBtn'] = w.id;
-      b.setAttribute('aria-label', labels[w.label ?? ''] ?? w.id);
+      b.setAttribute('aria-label', this.labels[w.label ?? ''] ?? w.id);
       b.innerHTML = ICONS[w.icon] ?? '';
       place(b, w.at, w.sizePx);
-      root.append(b);
+      this.root.append(b);
       this.buttons.set(w.id, b);
     }
-    opts.container.append(root);
-    this.sync();
   }
 
   /** Play mode on or off: the layer is never shown over the title screen. */

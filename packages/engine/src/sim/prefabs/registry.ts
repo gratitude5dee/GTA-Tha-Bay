@@ -7,6 +7,11 @@ import vehicleVan from '../../../../../assets/prefabs/vehicle.van.json';
 import vehicleTruck from '../../../../../assets/prefabs/vehicle.truck.json';
 import vehiclePickup from '../../../../../assets/prefabs/vehicle.pickup.json';
 import vehicleOndinePico from '../../../../../assets/prefabs/vehicle.ondine-pico.json';
+import vehicleAurelianSorrel from '../../../../../assets/prefabs/vehicle.aurelian-sorrel.json';
+import vehicleKestrelQuill from '../../../../../assets/prefabs/vehicle.kestrel-quill.json';
+import vehicleBrackenridgeRasp from '../../../../../assets/prefabs/vehicle.brackenridge-rasp.json';
+import vehicleSolenneSkip from '../../../../../assets/prefabs/vehicle.solenne-skip.json';
+import vehicleHalcyonCormorant from '../../../../../assets/prefabs/vehicle.halcyon-cormorant.json';
 import policeCruiser from '../../../../../assets/prefabs/police.cruiser.json';
 import policeSuv from '../../../../../assets/prefabs/police.suv.json';
 import policeHeli from '../../../../../assets/prefabs/police.heli.json';
@@ -240,4 +245,13 @@ export const STORY_PREFABS: readonly PrefabDef[] = [pedActor, markerBeam] as unk
 export const VEHICLE_PREFABS: readonly PrefabDef[] = [
   vehicleCompact, vehicleSedan, vehicleRideshare, vehicleVan, vehicleTruck, vehiclePickup, vehicleOndinePico,
   policeCruiser, policeSuv, policeHeli, robotaxiDefault, propCone, propBarrier, propSpikestrip, propCrate, pickupCash, pickupItem,
+] as unknown as PrefabDef[];
+
+/**
+ * The six race cars of M07a1 (one per class above D; 06-racing-content.md C.1). Kept apart from `VEHICLE_PREFABS` on purpose:
+ * prefab loading interns strings, the string table is hashed, and a session without racing must hash as before. The racing sim
+ * module loads these (`@dv/mode-racing/sim/module`); the oracle-line tests load them next to the vehicle prefabs.
+ */
+export const RACE_CAR_PREFABS: readonly PrefabDef[] = [
+  vehicleAurelianSorrel, vehicleKestrelQuill, vehicleBrackenridgeRasp, vehicleSolenneSkip, vehicleHalcyonCormorant,
 ] as unknown as PrefabDef[];

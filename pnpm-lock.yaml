@@ -223,6 +223,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@dv/mode-racing':
+        specifier: workspace:*
+        version: link:../../packages/modes/racing
       '@dv/mode-story':
         specifier: workspace:*
         version: link:../../packages/modes/story
@@ -285,6 +288,15 @@ importers:
       iwer:
         specifier: 2.6.0
         version: 2.6.0
+
+  packages/modes/racing:
+    dependencies:
+      '@dv/engine':
+        specifier: workspace:*
+        version: link:../../engine
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../shared
 
   packages/modes/story:
     dependencies:

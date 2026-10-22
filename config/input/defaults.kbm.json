@@ -40,6 +40,8 @@
       "axis.LookX": [{ "control": "mouse:dx", "scale": 1 }],
       "axis.LookY": [{ "control": "mouse:dy", "scale": 1 }],
       "sim.Handbrake": [{ "control": "key:Space" }],
+      "sim.Nitro": [{ "control": "key:ShiftLeft" }],
+      "sim.Interact": [{ "control": "key:KeyR" }],
       "sim.LookBehind": [{ "control": "key:KeyB" }],
       "sim.Horn": [{ "control": "key:KeyH" }],
       "sim.Enter": [{ "control": "key:KeyF" }],

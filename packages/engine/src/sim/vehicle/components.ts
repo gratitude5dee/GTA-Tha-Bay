@@ -107,6 +107,8 @@ export function vehicleResource(store: VehicleStore): SimResource {
         for (let k = 0; k < 4; k++) h.f32(Number.isNaN(r.susp[k]) ? -1 : (r.susp[k] as number));
         h.u32(r.airTicks).u32(r.landTicks).u32(r.driver).u8(r.locked ? 1 : 0).u8(r.external ? 1 : 0).u8(r.contacts).u32(r.wet.wetTicks).u8(r.wet.stalled ? 1 : 0);
         h.u8(r.input.throttle).u8(r.input.brake).u8(r.input.steer & 0xff).u8(r.input.handbrake ? 1 : 0);
+        // the race director's nitro (M07a1): hashed only while it is open, so a session that never races hashes as before
+        if (s.nitroOn) h.u8(0xa5).f32(s.nitro);
       }
     },
     save(w: ByteWriter) {

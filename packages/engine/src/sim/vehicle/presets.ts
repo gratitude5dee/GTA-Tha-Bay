@@ -1,6 +1,6 @@
 /**
- * The ten handling presets (`content/vehicles/handling/hp.*.json`, schema `packages/shared/schemas/racing/handling.schema.json`),
- * bundled so the sim worker needs no fetch. M07a1 adds the race cars; mods add theirs through the registry below.
+ * The handling presets: the ten of M03a1 and the five race cars of M07a1 (`content/vehicles/handling/hp.*.json`, schema
+ * `packages/shared/schemas/racing/handling.schema.json`), bundled so the sim worker needs no fetch. Mods add theirs through the registry below.
  */
 import type { HandlingProfile } from '@dv/shared';
 import compact from '../../../../../content/vehicles/handling/hp.compact.json';
@@ -13,6 +13,11 @@ import policeCruiser from '../../../../../content/vehicles/handling/hp.police-cr
 import policeSuv from '../../../../../content/vehicles/handling/hp.police-suv.json';
 import robotaxiAmbient from '../../../../../content/vehicles/handling/hp.robotaxi-ambient.json';
 import ondinePico from '../../../../../content/vehicles/handling/hp.ondine-pico.json';
+import aurelianSorrel from '../../../../../content/vehicles/handling/hp.aurelian-sorrel.json';
+import kestrelQuill from '../../../../../content/vehicles/handling/hp.kestrel-quill.json';
+import brackenridgeRasp from '../../../../../content/vehicles/handling/hp.brackenridge-rasp.json';
+import solenneSkip from '../../../../../content/vehicles/handling/hp.solenne-skip.json';
+import halcyonCormorant from '../../../../../content/vehicles/handling/hp.halcyon-cormorant.json';
 
 const BUILT_IN = [
   compact,
@@ -25,6 +30,11 @@ const BUILT_IN = [
   policeSuv,
   robotaxiAmbient,
   ondinePico,
+  aurelianSorrel,
+  kestrelQuill,
+  brackenridgeRasp,
+  solenneSkip,
+  halcyonCormorant,
 ] as unknown as HandlingProfile[];
 
 const registry = new Map<string, HandlingProfile>();

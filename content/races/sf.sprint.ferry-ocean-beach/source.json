@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "sf.sprint.ferry-ocean-beach",
+  "version": 1,
+  "kind": "sprint",
+  "titleKey": "race.sf.sprint.ferry-ocean-beach.title",
+  "district": "d5",
+  "waypoints": [
+    { "lat": 37.795, "lng": -122.3935 },
+    { "lat": 37.7742, "lng": -122.5101 }
+  ],
+  "hour": 12,
+  "weather": "clear",
+  "traffic": "light",
+  "peds": "sidewalk",
+  "opponents": [],
+  "classLimit": ["D", "C"],
+  "loaner": "vehicle.kestrel-quill",
+  "police": { "enabled": false, "startHeat": 0, "maxHeat": 0 },
+  "rubberBand": 0,
+  "rewards": [
+    { "kind": "cash", "place": 1, "cents": 300000 },
+    { "kind": "rep", "place": 1, "rep": 120 }
+  ],
+  "xr": "full"
+}

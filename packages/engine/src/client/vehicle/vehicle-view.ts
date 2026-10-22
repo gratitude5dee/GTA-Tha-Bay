@@ -47,6 +47,12 @@ export const ARCHETYPES: Readonly<Record<string, Archetype>> = {
   pickup: { hp: 'hp.pickup', length: 5.3, width: 2.0, bodyH: 0.78, cabinLength: 2.1, cabinH: 0.62, cabinZ: -0.4, color: 0x4f9a54 },
   cruiser: { hp: 'hp.police-cruiser', length: 5.0, width: 1.9, bodyH: 0.64, cabinLength: 2.7, cabinH: 0.56, cabinZ: 0.2, color: 0x16181c, stripe: 0xf4f4f4, roof: 'lightbar' },
   suv: { hp: 'hp.police-suv', length: 4.9, width: 2.0, bodyH: 0.86, cabinLength: 3.2, cabinH: 0.66, cabinZ: 0.3, color: 0x1b1f24, stripe: 0xf4f4f4, roof: 'lightbar' },
+  // the race cars of M07a1, one per class; final bodies land in M10d3 (DL-460)
+  'kestrel-quill': { hp: 'hp.kestrel-quill', length: 4.3, width: 1.8, bodyH: 0.5, cabinLength: 1.9, cabinH: 0.44, cabinZ: 0.25, color: 0x2c6bd6, stripe: 0xf4f4f4 },
+  'brackenridge-rasp': { hp: 'hp.brackenridge-rasp', length: 4.8, width: 1.9, bodyH: 0.56, cabinLength: 2.1, cabinH: 0.46, cabinZ: 0.55, color: 0xb5342a, stripe: 0x16181c },
+  'aurelian-sorrel': { hp: 'hp.aurelian-sorrel', length: 4.5, width: 1.95, bodyH: 0.46, cabinLength: 1.8, cabinH: 0.4, cabinZ: 0.1, color: 0xf08a1c, cabinColor: 0x1d2630 },
+  'solenne-skip': { hp: 'hp.solenne-skip', length: 4.2, width: 1.92, bodyH: 0.44, cabinLength: 1.6, cabinH: 0.38, cabinZ: 0.2, color: 0x57d6c1, stripe: 0xf4f4f4 },
+  'halcyon-cormorant': { hp: 'hp.halcyon-cormorant', length: 4.9, width: 1.95, bodyH: 0.68, cabinLength: 2.9, cabinH: 0.62, cabinZ: 0.15, color: 0xf4f6f8, roof: 'dome' },
   robotaxi: { hp: 'hp.robotaxi-ambient', length: 4.8, width: 1.95, bodyH: 0.66, cabinLength: 2.8, cabinH: 0.6, cabinZ: 0.15, color: 0xf4f6f8, roof: 'dome' },
 };
 

@@ -13,13 +13,14 @@ const schema = JSON.parse(readFileSync(path.join(import.meta.dirname, '../schema
 const validate = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
 
 const EXPECTED = [
-  'hp.compact', 'hp.ondine-pico', 'hp.pickup', 'hp.police-cruiser', 'hp.police-suv', 'hp.rideshare', 'hp.robotaxi-ambient', 'hp.sedan', 'hp.truck', 'hp.van',
+  'hp.aurelian-sorrel', 'hp.brackenridge-rasp', 'hp.compact', 'hp.halcyon-cormorant', 'hp.kestrel-quill', 'hp.ondine-pico', 'hp.pickup',
+  'hp.police-cruiser', 'hp.police-suv', 'hp.rideshare', 'hp.robotaxi-ambient', 'hp.sedan', 'hp.solenne-skip', 'hp.truck', 'hp.van',
 ];
 
 describe('handling presets', () => {
   const presets = loadPresets();
 
-  it('there are exactly the ten presets, one file per id', () => {
+  it('there are exactly the fifteen presets, one file per id', () => {
     expect(presets.map((x) => x.p.id).sort()).toEqual(EXPECTED);
     for (const { file, p } of presets) expect(file).toBe(`${p.id}.json`);
   });

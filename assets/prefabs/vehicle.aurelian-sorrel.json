@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.aurelian-sorrel",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.aurelian-sorrel",
+  "render": {
+    "asset": "vehicle/graybox.aurelian-sorrel"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.97,
+      0.38,
+      2.25
+    ],
+    "massKg": 1450,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.52,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.aurelian-sorrel",
+    "seats": 2,
+    "wheels": [
+      {
+        "pos": [
+          -0.82,
+          0.06,
+          -1.566
+        ],
+        "radius": 0.34,
+        "restM": 0.3,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.82,
+          0.06,
+          -1.566
+        ],
+        "radius": 0.34,
+        "restM": 0.3,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.82,
+          0.06,
+          1.134
+        ],
+        "radius": 0.34,
+        "restM": 0.3,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.82,
+          0.06,
+          1.134
+        ],
+        "radius": 0.34,
+        "restM": 0.3,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

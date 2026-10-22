@@ -26,6 +26,7 @@ import {
   type GamepadLike, type PointerLockTarget, type TouchLayout,
 } from '../input/index.ts';
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
+import racingTouchLayoutJson from '../../../../../config/input/touch/vehicle-racing.json';
 import { ENGINE_TIERS } from '../anim/lod.ts';
 import { AUDIO_CONFIG, AudioServiceImpl, unlockOnFirstGesture, type AudioContextLike } from '../audio/audio-service.ts';
 import type { GrayboxInfo, GrayboxPacks, GrayboxPackUrls, GrayboxWorld } from '../graybox/load.ts';
@@ -279,6 +280,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
+  // QA `?racing=1`: the sim worker boots the racing module (M07a1).
+  if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
 
   const banner = document.createElement('div');
   banner.className = 'dv-engine-banner';
@@ -660,6 +663,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     kbm.attach(window as unknown as BinderTarget);
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);
+    // A mode with its own touch layout (racing, M07a1) swaps it in while it is the root of the mode stack.
+    cleanups.push(vm.subscribe('sys.mode', (v) => {
+      const rootMode = (v as { stack?: { id: string }[] } | undefined)?.stack?.[0]?.id;
+      const next = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : layout;
+      overlay?.setLayout(next);
+      touchBinder?.setLayout(next);
+    }));
     overlay.setEnabled(playing);
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
     const off = router.onClientAction((action, phase) => {

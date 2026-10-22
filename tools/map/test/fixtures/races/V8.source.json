@@ -1,0 +1,10 @@
+{
+  "rule": "V8",
+  "expect": [
+    "V8"
+  ],
+  "note": "a grid slot before the start of the route",
+  "defPatch": {
+    "/grid/0/s": -3
+  }
+}

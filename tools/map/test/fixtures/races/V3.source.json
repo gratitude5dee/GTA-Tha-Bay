@@ -1,0 +1,10 @@
+{
+  "rule": "V3",
+  "expect": [
+    "V3"
+  ],
+  "note": "route length outside the range of a sprint",
+  "defPatch": {
+    "/routeLenM": 300
+  }
+}

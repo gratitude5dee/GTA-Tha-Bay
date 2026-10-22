@@ -1,0 +1,12 @@
+{
+  "rule": "V10",
+  "expect": [
+    "V10"
+  ],
+  "note": "a landmark that does not exist",
+  "sourcePatch": {
+    "/waypoints/0": {
+      "landmark": "no-such-landmark"
+    }
+  }
+}

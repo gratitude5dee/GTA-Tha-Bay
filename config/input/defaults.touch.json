@@ -20,15 +20,18 @@
       "client.Pause": [{ "control": "touch:btn:pause" }]
     },
     "vehicle": {
-      "axis.Throttle": [{ "control": "touch:btn:moveUp", "scale": 1 }],
-      "axis.Brake": [{ "control": "touch:btn:moveDown", "scale": 1 }],
+      "axis.Throttle": [{ "control": "touch:btn:moveUp", "scale": 1 }, { "control": "touch:btn:gas", "scale": 1 }],
+      "axis.Brake": [{ "control": "touch:btn:moveDown", "scale": 1 }, { "control": "touch:btn:brake", "scale": 1 }],
       "axis.Steer": [
         { "control": "touch:btn:moveRight", "scale": 1 },
         { "control": "touch:btn:moveLeft", "scale": -1 }
       ],
       "axis.LookX": [{ "control": "touch:dragR", "scale": 1 }],
       "axis.LookY": [{ "control": "touch:dragR", "scale": 1 }],
-      "sim.Handbrake": [{ "control": "touch:btn:jump" }],
+      "sim.Handbrake": [{ "control": "touch:btn:jump" }, { "control": "touch:btn:handbrake" }],
+      "sim.Nitro": [{ "control": "touch:btn:nitro" }],
+      "sim.Interact": [{ "control": "touch:btn:reset" }],
+      "sim.LookBehind": [{ "control": "touch:btn:behind" }],
       "sim.Enter": [{ "control": "touch:btn:enter" }],
       "client.Camera": [{ "control": "touch:btn:camera" }],
       "client.Pause": [{ "control": "touch:btn:pause" }]

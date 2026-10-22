@@ -36,10 +36,10 @@ describe('C16 telemetry schemas', () => {
     expect(validateBatch({ ...valid, events: [{ ...valid.events[0], props: Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`k${i}`, i])) }] })).toBe(false);
   });
 
-  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) the mode names (M04a2) and the mission names (M05a1), all client names', () => {
+  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) the mode names (M04a2) the mission names (M05a1) and the racing names (M07a1), all client names', () => {
     const names = Object.keys(namesSchema.$defs);
     expect(names.sort()).toEqual(
-      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.onboard', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit', 'mission.start', 'mission.fail', 'mission.complete', 'err.sim'].sort(),
+      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.onboard', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit', 'mission.start', 'mission.fail', 'mission.complete', 'err.sim', 'racing.start', 'racing.finish'].sort(),
     );
     for (const n of names) expect(CLIENT_TELEMETRY_NAMES as readonly string[]).toContain(n);
   });

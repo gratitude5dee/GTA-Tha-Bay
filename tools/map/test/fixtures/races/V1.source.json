@@ -1,0 +1,12 @@
+{
+  "rule": "V1",
+  "expect": [
+    "V1"
+  ],
+  "note": "edge continuity: the open bake says edge a leads into 1 and edge b starts at 2",
+  "stub": {
+    "to": 1,
+    "from": 2,
+    "out": []
+  }
+}
