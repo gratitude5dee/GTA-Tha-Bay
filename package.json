@@ -93,6 +93,7 @@
     "npc:summarize": "tsx tools/soul/src/cli.ts summarize",
     "npc:normalize": "tsx tools/soul/src/cli.ts normalize",
     "npc:edge-bundle": "tsx tools/soul/src/cli.ts edge-bundle",
+    "npc:eval": "tsx tools/soul/src/eval.ts",
     "check:i18n": "tsx tools/ci/check-i18n.ts"
   },
   "devDependencies": {
