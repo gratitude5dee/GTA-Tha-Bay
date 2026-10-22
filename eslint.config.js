@@ -5,6 +5,8 @@ import tseslint from 'typescript-eslint';
 
 import { GLSL_SYNTAX, SIM_FILES, SIM_IGNORES, THIRD_PARTY_IMPORT_PATTERN, determinismConfig } from './config/eslint/determinism.mjs';
 
+const IDENTITY_IMPORT_PATTERN = { regex: '^@dv/identity(?:/|$)', message: 'services/** may not import @dv/identity: it is client-only (M04b3).' };
+
 export default defineConfig([
   globalIgnores([
     '**/node_modules/**',
@@ -44,6 +46,27 @@ export default defineConfig([
     ignores: ['tools/{map,assets,ci,soul}/**'],
     rules: { 'no-restricted-imports': ['error', { patterns: [THIRD_PARTY_IMPORT_PATTERN] }] },
   },
+  {
+    // M04b3: @dv/identity is client-only and imports only @dv/shared; no services/** file imports it. Placed before the edge blocks,
+    // which repeat IDENTITY_IMPORT_PATTERN because a later matching block replaces the options of an earlier no-restricted-imports.
+    files: ['packages/identity/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            THIRD_PARTY_IMPORT_PATTERN,
+            { regex: '^@dv/(?!shared(?:/|$))', message: '@dv/identity may import only @dv/shared (M04b3).' },
+            { regex: '^(?:\\.\\./){2,}', message: '@dv/identity may not import by a relative path that leaves the package (M04b3).' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['services/**/*.{ts,tsx}'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [THIRD_PARTY_IMPORT_PATTERN, IDENTITY_IMPORT_PATTERN] }] },
+  },
   ...edgeImportRules(),
   determinismConfig(SIM_FILES, SIM_IGNORES),
 ]);
@@ -64,6 +87,7 @@ function edgeImportRules() {
         {
           patterns: [
             THIRD_PARTY_IMPORT_PATTERN,
+            IDENTITY_IMPORT_PATTERN,
             {
               regex: `^(?:\\.\\./){${depth + 1},}${allowed}`,
               message:

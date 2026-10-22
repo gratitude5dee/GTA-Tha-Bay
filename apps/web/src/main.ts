@@ -7,6 +7,7 @@ import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/clien
 import platformFlags from '../../../config/platform-flags.json';
 import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
 import { TERMS_VERSION } from '../../../config/terms.ts';
+import { installIdentityBridge, wireIdentity } from './identity.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
@@ -63,6 +64,9 @@ const prefs: PrefsStore = qaPlay
   ? memoryPrefs({ ...defaultPrefs(), age: { attested: '18p', attestedAt: Date.now(), blocked: false }, terms: { version: TERMS_VERSION, acceptedAt: Date.now() } })
   : await loadPrefs();
 
+// The P0 identity (M04b3): opens behind the Title, never blocks it; the age page forwards its attestation here.
+const identity = wireIdentity(prefs);
+
 const shellProps = (unsupported: boolean): ShellProps => ({
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
@@ -78,6 +82,7 @@ const shellProps = (unsupported: boolean): ShellProps => ({
     pendingConsent = c;
     applyPendingConsent();
   },
+  onAttest: (bracket) => identity.attest(bracket),
   onGatesPassed: (phase) => {
     if (phase === 'attested') attestedOpen();
     else termsAccepted();
@@ -85,6 +90,7 @@ const shellProps = (unsupported: boolean): ShellProps => ({
 });
 const shell: ShellHandle = mountShell(root, shellProps(flags.unsupported));
 applyView();
+if (QA) installIdentityBridge(identity);
 
 /** The reload prompt after a second device loss (11-platform.md section 5.8). */
 function showReloadPrompt(): void {
@@ -151,7 +157,7 @@ async function boot(): Promise<void> {
       // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
       ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
       // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
-      region: attestedGate.then(() => fetchBootRegion(fetch, location.origin)),
+      region: bootRegion,
       events: {
         unsupported: () => shell.core.fire('unsupported'),
         reloadPrompt: showReloadPrompt,
@@ -300,6 +306,11 @@ let started = false;
 let attestedOpen: () => void = () => undefined;
 const attestedGate = new Promise<void>((resolve) => {
   attestedOpen = resolve;
+});
+// One region probe serves the platform and the play-token client.
+const bootRegion = attestedGate.then(() => fetchBootRegion(fetch, location.origin)).then((r) => {
+  identity.setRegion(r);
+  return r;
 });
 if (prefs.get().age.attested === '18p' && !prefs.get().age.blocked) attestedOpen();
 let platformPort: ReturnType<typeof createPlatformPort> | null = null;

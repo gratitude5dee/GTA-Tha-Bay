@@ -184,7 +184,10 @@ export function TitlePage(_props: PageProps) {
 export function AgePage(_props: PageProps) {
   const { ctx } = useShell();
   const port: AgeAttestationPort = {
-    attest: () => ctx.props.prefs.set({ age: { attested: '18p', attestedAt: Date.now(), blocked: false } }),
+    attest: () => {
+      ctx.props.prefs.set({ age: { attested: '18p', attestedAt: Date.now(), blocked: false } });
+      ctx.props.onAttest?.('18p');
+    },
     block: () => ctx.props.prefs.set({ age: { attested: null, attestedAt: null, blocked: true } }),
   };
   return (

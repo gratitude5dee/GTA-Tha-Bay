@@ -1,0 +1,18 @@
+{
+  "name": "@dv/identity",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/identity"
+  },
+  "dependencies": {
+    "@dv/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.6"
+  }
+}

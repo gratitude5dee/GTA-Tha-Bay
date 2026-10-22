@@ -220,6 +220,8 @@ export interface ShellProps {
   qaPlay: QaPlayOptions | null;
   unlockAllFlag: boolean;
   hooks: ShellHooks;
+  /** The age screen passed with this bracket: the app forwards it to `IdentityService.attestAge` (M04b3 rebinds `AgeAttestationPort.attest`). */
+  onAttest?: (bracket: '18p') => void;
   /** Called after Terms are accepted or the age screen passes: the app boots the engine then (nothing boots for a blocked device). */
   onGatesPassed?: (phase: 'attested' | 'terms') => void;
   /** The Terms card's consent before the platform exists; the app applies it when the platform does. */
