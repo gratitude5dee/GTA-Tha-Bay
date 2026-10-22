@@ -4,6 +4,9 @@ import { BRAND } from '../../../../config/brand.ts';
 import { t } from '../i18n/index.ts';
 import { FocusManager } from '../kit/focus.ts';
 import { ConfirmBody, Dialog, ToastHost, type ToastItem } from '../kit/widgets.tsx';
+import { StoryHud } from '../hud/story-hud.tsx';
+import { CoachMark, InstallChip } from '../onboarding/coach-mark.tsx';
+import { RotateOverlay } from '../onboarding/rotate.tsx';
 import { Banners } from './banners.tsx';
 import type { ShellCore } from './core.ts';
 import { ShellProvider } from './context.tsx';
@@ -82,6 +85,7 @@ function applyPrefs(core: ShellCore): void {
   else delete root.dataset['contrast'];
   root.dataset['focusRing'] = p.focusRing;
   root.dataset['reducedMotion'] = s?.accessibility.reducedMotion === true ? 'true' : 'false';
+  root.dataset['palette'] = s?.accessibility.hudPalette ?? 'default';
   root.lang = s?.language ?? p.lang ?? 'en';
 }
 
@@ -144,6 +148,18 @@ export function ShellApp(props: { core: ShellCore }) {
           {Page ? <Page page={pageId} shell={core} ctx={ctx} params={core.frame?.params ?? {}} /> : <main class="dv-screen" aria-busy="true" />}
         </>
       )}
+      {shellHidden ? (
+        <>
+          <StoryHud />
+          <RotateOverlay />
+        </>
+      ) : null}
+      {core.state === 'Menu' && !core.frame ? (
+        <>
+          <CoachMark />
+          <InstallChip />
+        </>
+      ) : null}
       <ToastHost store={core.toastStore} announce={core.props.prefs.get().announce} onAction={toastAction} />
       {core.modals.map((m) =>
         m.confirm ? (

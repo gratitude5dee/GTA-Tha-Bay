@@ -76,6 +76,8 @@ export interface BootEngineOptions {
   play?: boolean;
   /** Called when the Pause action toggles the pause (single player pauses the sim). */
   onPausedChange?: (paused: boolean) => void;
+  /** The Phone action was pressed (`client.Phone`); the shell opens the phone (M04b2). */
+  onPhone?: () => void;
   /** Show the touch layer on any device (`?touch=1`). */
   forceTouch?: boolean;
   /** Each toast the sim raised is handed here as it arrives (M04b1: the shell draws them). */
@@ -158,6 +160,8 @@ export interface EngineHandle {
   /** Telemetry events the sim queued, as the page received them (the last 50). */
   telemetryEvents(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   step(n: number): boolean;
+  /** Player actions as ActionIds (`sim.Jump`, `client.Camera`, `axis.MoveX`), for the onboarding tips. */
+  onAction(cb: (id: string) => void): () => void;
   /** Forget the previous frame time so the next `dt` is zero (the page was hidden). */
   resetClock(): void;
   qaResults(): Record<string, unknown>;
@@ -286,6 +290,19 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   // Vehicles (M03a1): the five cameras, the context switch, the prompt overlay, and the QA tools.
   const vcam = new VehicleCamera();
   // The snapshot side block reaches the HUD as view-model keys the page sets itself (M04b2, DL-663 part 2): the S10 widgets read them.
+  // Player actions for the onboarding tips (M04b2): rising edges of the sim buttons, movement, look and the client actions, by ActionId.
+  const actionListeners = new Set<(id: string) => void>();
+  const SIM_NAMES = ['Jump', 'Sprint', 'Interact', 'Enter', 'Attack', 'Block', 'Special', 'Handbrake', 'Nitro', 'Ability', 'LookBehind', 'Horn', 'FightHeavy', 'FightAssist', 'Teleport', 'Crouch', 'Respray', 'Emote', 'PhoneQuick'];
+  const CLIENT_NAMES = ['Look', 'Camera', 'ShoulderSwap', 'Map', 'Phone', 'Pause'];
+  const emitAction = (id: string): void => {
+    for (const cb of [...actionListeners]) cb(id);
+  };
+  const emitFrameActions = (f: InputFrame, looked: boolean): void => {
+    if (actionListeners.size === 0) return;
+    for (let i = 0; i < SIM_NAMES.length; i++) if (f.pressed & (1 << i)) emitAction(`sim.${SIM_NAMES[i]}`);
+    if (f.moveX !== 0 || f.moveY !== 0) emitAction('axis.MoveX');
+    if (looked) emitAction('axis.LookX');
+  };
   const mirrored = new Map<string, string>();
   const mirror = (k: `hud.${string}`, v: JsonValue | null): void => {
     const sig = v === null ? '' : JSON.stringify(v);
@@ -489,6 +506,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         router.applyLook(dtSec, freeCam?.active ? freeCam.look : look);
         idleSec = Math.abs(look.yaw + look.pitch * 7 - lookBefore) > 1e-5 ? 0 : idleSec + dtSec;
         const frame = router.sample(frames, look);
+        emitFrameActions(frame, Math.abs(look.yaw + look.pitch * 7 - lookBefore) > 1e-5);
         if (block) writeInputFrame(block, frame);
         overlay?.setActiveDevice(router.active);
       } else {
@@ -655,11 +673,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
     const off = router.onClientAction((action, phase) => {
       if (phase !== 'pressed') return;
+      if ((action as number) < CLIENT_NAMES.length) emitAction(`client.${CLIENT_NAMES[action as number]}`);
       if (action === ClientAction.Camera) {
         if (drivingCtx) vcam.cycle();
         else rig?.toggleFpTp();
       }
       else if (action === ClientAction.ShoulderSwap) rig?.swapShoulder();
+      else if (action === ClientAction.Phone) opts.onPhone?.();
       else if (action === ClientAction.Pause) {
         paused = !paused;
         opts.onPausedChange?.(paused);
@@ -874,6 +894,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {
       lastNow = -1;
+    },
+    onAction: (cb) => {
+      actionListeners.add(cb);
+      return () => void actionListeners.delete(cb);
     },
     qaResults: () => Object.fromEntries(host.qaResults),
     setPlay,

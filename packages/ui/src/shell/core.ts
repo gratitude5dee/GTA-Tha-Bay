@@ -292,6 +292,18 @@ export class ShellCore implements ShellApi {
     else if (!paused && this.state === 'Paused') this.fire('resume');
   }
 
+  /** The phone key (`client.Phone`): from a mode it pauses the sim and opens the phone; pressed again it closes it and resumes. */
+  togglePhone(): void {
+    if (this.state === 'Paused' && this.frame?.id === 'phone') {
+      this.frame = null;
+      this.pageChanged();
+      this.fire('resume');
+      return;
+    }
+    if (this.state === 'InMode') this.fire('pause');
+    if (this.state === 'Paused') this.navigate('phone');
+  }
+
   startMode(id: GameModeId, slot?: SlotId): void {
     if (!this.engine) {
       this.toast({ id: 'engine.notReady', kind: 'warning', text: lk('engine.notReady') });

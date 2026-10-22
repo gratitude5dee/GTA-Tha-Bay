@@ -135,20 +135,6 @@ export function LegalPage(props: PageProps) {
   );
 }
 
-export function PausePage(_props: PageProps) {
-  const { shell, ctx } = useShell();
-  return (
-    <main class="dv-page dv-pause" data-testid="pause">
-      <h1>{t('pause.title')}</h1>
-      <div class="dv-menu">
-        <Button id="pause-resume" style="primary" label={t('pause.resume')} onPress={() => ctx.fire('resume')} testId="pause-resume" />
-        <Button id="pause-settings" label={t('nav.settings')} onPress={() => shell.navigate('settings', { cat: 'graphics' })} testId="pause-settings" />
-        <Button id="pause-quit" label={t('pause.quit')} onPress={() => ctx.sendUi({ t: 'mode.quit' })} testId="pause-quit" />
-      </div>
-    </main>
-  );
-}
-
 const TIPS = [lk('loading.tip.1'), lk('loading.tip.2'), lk('loading.tip.3')];
 
 export function LoadingPage(_props: PageProps) {

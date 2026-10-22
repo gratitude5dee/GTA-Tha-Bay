@@ -8,6 +8,7 @@ import './kit/tokens.css';
 import './kit/shell.css';
 import './kit/kit.css';
 import './kit/m04b2.css';
+import './kit/m04b2-hud.css';
 import { ShellApp } from './shell/app.tsx';
 import type { ChannelLike } from './shell/banners.tsx';
 import { ShellCore, type SimToast } from './shell/core.ts';

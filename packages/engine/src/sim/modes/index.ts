@@ -352,6 +352,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         bridge.patch('sys.settings', settingsView(live.settings));
         bridge.patch('sys.profile', live.profile ? { ...live.profile } : null);
         bridge.patch('sys.avatar', live.core.avatar);
+        bridge.patch('sys.garage', live.core.garage as unknown as JsonObject[]);
         unl.publish();
         econ.publish();
         h.publish();

@@ -5,6 +5,7 @@
 import type { JsonValue } from '@dv/shared';
 import { useShell } from '../shell/context.tsx';
 import { HudGrid, useHudPrefs } from './layout.tsx';
+import { TipBar } from './tipbar.tsx';
 import type { HudClock, HudHeat, HudVehicle, HudWallet } from './model.ts';
 import {
   AreaBanner, ClockWeather, HealthBar, HeatStars, InteractionPrompt, MinimapFrame, ObjectiveTracker, SandboxChip, SaveIndicator, Subtitles, VehicleCluster,
@@ -52,6 +53,7 @@ export function StoryHud() {
         ),
         bc: (
           <>
+            <TipBar />
             <InteractionPrompt />
             <Subtitles line={subtitle} />
           </>

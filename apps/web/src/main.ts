@@ -68,6 +68,7 @@ let creatorStage: CreatorStagePort | null = null;
 
 const shellProps = (unsupported: boolean): ShellProps => ({
   stage: () => creatorStage,
+  forceTouch: flags.touch,
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
   update,
@@ -241,6 +242,8 @@ async function boot(): Promise<void> {
     onTelemetry: (name, props) => platform.telemetry.emit(name as never, props),
     // The Pause action opens or closes the shell's pause menu.
     onPausedChange: (paused) => shell.enginePaused(paused),
+    // The Phone action opens or closes the shell's phone.
+    onPhone: () => shell.core.togglePhone(),
     // Toasts the sim raises (unlocks, refused modes, boundary notices) are drawn by the shell.
     onToast: (toast) => shell.onToast(toast),
   }).catch((error: unknown) => {

@@ -190,6 +190,8 @@ export interface EnginePort {
   /** The device the player used last ('kbm' | 'gamepad' | 'touch'), for glyphs. */
   activeDevice(): string;
   audioUnlock(): void;
+  /** Player actions as ActionIds (the onboarding tips dismiss on them). */
+  onAction?(cb: (id: string) => void): () => void;
 }
 
 /** What the app does with the engine and the canvas as the shell changes state. All three are idempotent. */
@@ -228,6 +230,8 @@ export interface ShellProps {
   build: string;
   /** Flags the app knows before the engine (BootConfig.flags once fetched). */
   flags?: Record<string, boolean>;
+  /** `?touch=1` (QA builds) forces the touch layer; the rotate overlay follows it. */
+  forceTouch?: boolean;
   /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
   stage?: () => import('../creator/stage.ts').CreatorStagePort | null;
 }

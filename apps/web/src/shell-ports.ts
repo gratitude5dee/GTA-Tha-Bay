@@ -65,6 +65,7 @@ export function createEnginePort(engine: EngineHandle): EnginePort {
     sendUi: (cmd) => engine.sendUi(cmd),
     activeDevice: () => engine.router?.active ?? 'kbm',
     audioUnlock: () => engine.audioUnlock(),
+    onAction: (cb) => engine.onAction(cb),
   };
 }
 
