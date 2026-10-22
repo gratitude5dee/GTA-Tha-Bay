@@ -1,0 +1,398 @@
+{
+  "schema": "tycoon.events.v1",
+  "events": [
+    {
+      "id": "cul.ai_hype_peak",
+      "family": "cultural",
+      "scope": "tycoon",
+      "mtthWeeks": 40,
+      "modifiers": [
+        {
+          "when": {
+            "m": "sector:ai-tooling",
+            "op": ">=",
+            "v": 1
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "uniform",
+            "lo": 20,
+            "hi": 40
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.2
+          },
+          "durationWeeks": 12,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "cul.ai_hype_crash",
+          "delayWeeks": [
+            20,
+            40
+          ],
+          "p": 0.6
+        }
+      ],
+      "art": "ui/ty-card-cul.ai_hype_peak"
+    },
+    {
+      "id": "cul.ai_hype_crash",
+      "family": "cultural",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -30
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.75
+          },
+          "durationWeeks": 16,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -0.1
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-cul.ai_hype_crash"
+    },
+    {
+      "id": "cul.speculation_winter",
+      "family": "cultural",
+      "scope": "tycoon",
+      "mtthWeeks": 70,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 52,
+      "severity": 2,
+      "minWeek": 8,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -0.3
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-cul.speculation_winter"
+    },
+    {
+      "id": "cul.endorsement",
+      "family": "cultural",
+      "scope": "tycoon",
+      "mtthWeeks": 80,
+      "modifiers": [
+        {
+          "when": {
+            "m": "hype",
+            "op": ">",
+            "v": 30
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 100
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 2,
+      "choices": [
+        {
+          "id": "decline",
+          "effects": []
+        },
+        {
+          "id": "sign",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "hype",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 25
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "cacMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.7
+              },
+              "durationWeeks": 8,
+              "decay": "none"
+            }
+          ],
+          "cost": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": -4000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "requires": [
+            {
+              "m": "cash",
+              "op": ">=",
+              "v": 4000000
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "decline",
+      "art": "ui/ty-card-cul.endorsement"
+    },
+    {
+      "id": "cul.parade_week",
+      "family": "cultural",
+      "scope": "both",
+      "mtthWeeks": 100,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 52,
+      "severity": 1,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "flag",
+          "key": "officeClosed",
+          "value": true,
+          "durationWeeks": 1
+        },
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.03
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": 5
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-cul.parade_week"
+    },
+    {
+      "id": "cul.meme_moment",
+      "family": "cultural",
+      "scope": "both",
+      "mtthWeeks": 50,
+      "modifiers": [
+        {
+          "when": {
+            "m": "hype",
+            "op": ">",
+            "v": 20
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 12,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "uniform",
+            "lo": 1.05,
+            "hi": 1.25
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "cul.backlash_wave",
+          "delayWeeks": [
+            3,
+            8
+          ],
+          "p": 0.25
+        }
+      ],
+      "choices": [
+        {
+          "id": "let_it_ride",
+          "effects": []
+        },
+        {
+          "id": "engage",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "hype",
+              "op": "add",
+              "dist": {
+                "k": "uniform",
+                "lo": -10,
+                "hi": 10
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "reputation",
+              "op": "add",
+              "dist": {
+                "k": "uniform",
+                "lo": -8,
+                "hi": 8
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "tags": [
+            "risky"
+          ]
+        }
+      ],
+      "defaultChoiceId": "let_it_ride",
+      "art": "ui/ty-card-cul.meme_moment"
+    },
+    {
+      "id": "cul.backlash_wave",
+      "family": "cultural",
+      "scope": "tycoon",
+      "mtthWeeks": 120,
+      "modifiers": [
+        {
+          "when": {
+            "m": "reputation",
+            "op": "<",
+            "v": 40
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "reputation",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -15
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -10
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-cul.backlash_wave"
+    }
+  ]
+}

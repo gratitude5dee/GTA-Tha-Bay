@@ -3,14 +3,9 @@
  * of `(seed, stream, counter)`, so adding content never shifts another draw and nothing needs saving.
  * Streams used by the core: `climate`, `hire:<week>:<n>`, `hireo:<candidateId>`, `attr:<week>:<employeeId>`, `board:<week>:<seat>`.
  */
-import { ctrU32 } from '../rng.ts';
+import { ctrFloat } from '../events/rng.ts';
 
-const INV_2_32 = 1 / 4294967296;
-
-/** Uniform in [0, 1). */
-export function ctrFloat(seed: number, stream: string, counter: number): number {
-  return ctrU32(seed, stream, counter) * INV_2_32;
-}
+export { ctrFloat };
 
 /** Normal-ish: the sum of 12 `ctrFloat` draws minus 6 (mean 0, sd 1), then scaled. Uses counters `counter .. counter + 11`. */
 export function ctrNormal(seed: number, stream: string, counter: number, mean = 0, sd = 1): number {

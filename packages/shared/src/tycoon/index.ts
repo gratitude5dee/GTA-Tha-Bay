@@ -14,3 +14,5 @@ export type { PolicyView, ReplayOutcome } from './replay.ts';
 export { devPower, headcount, mrrGrowth13, netBurnWeek, runwayWeeks, valuationRef } from './company.ts';
 export { finishRun, founderPayout, scoreOf } from './end.ts';
 export * as finance from './finance/index.ts';
+export { createTycoonHost, hostFor } from './events/host.ts';
+export { BOTH_SCOPE_IDS, CatalogError, loadCatalog, withScope } from './events/catalog.ts';

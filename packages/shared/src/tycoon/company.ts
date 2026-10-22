@@ -16,20 +16,28 @@ export interface RunMods {
   devPowerMul: number;
   burnMul: number;
   multipleMul: number;
+  wageMul: number;
 }
 
-/** The run multipliers of the thesis card (1 for any missing key). Events add their own in M09a2. */
+/**
+ * The run multipliers: the thesis card times the modifier effects of active events (`events.totals`, written by `tickEffects`).
+ * An `officeClosed` flag cuts dev power by `balance.events.officeClosedDevMul` (BD-M09a2-05).
+ */
 export function mods(s: CompanyState, c: TycoonContent): RunMods {
   const t = c.theses.find((x) => x.id === s.setup.thesis);
   const m = t?.mods ?? {};
+  const mul = s.events.totals?.mul;
+  const add = s.events.totals?.add;
+  const ev = (k: string): number => (mul?.[k] ?? 1) + (add?.[k] ?? 0);
   return {
-    cacMul: m.cacMul ?? 1,
-    churnMul: m.churnMul ?? 1,
-    payRateMul: m.payRateMul ?? 1,
-    arpuMul: m.arpuMul ?? 1,
-    devPowerMul: m.devPowerMul ?? 1,
-    burnMul: m.burnMul ?? 1,
-    multipleMul: m.multipleMul ?? 1,
+    cacMul: (m.cacMul ?? 1) * ev('cacMul'),
+    churnMul: (m.churnMul ?? 1) * ev('churnMul'),
+    payRateMul: (m.payRateMul ?? 1) * ev('payRateMul'),
+    arpuMul: (m.arpuMul ?? 1) * ev('arpuMul'),
+    devPowerMul: (m.devPowerMul ?? 1) * ev('devPowerMul') * (s.flags['officeClosed'] === true || s.flags['officeClosed'] === 1 ? c.balance.events.officeClosedDevMul : 1),
+    burnMul: (m.burnMul ?? 1) * ev('burnMul'),
+    multipleMul: (m.multipleMul ?? 1) * ev('multipleMul'),
+    wageMul: ev('wageMul'),
   };
 }
 
@@ -90,7 +98,8 @@ export function expensesWeek(s: CompanyState, c: TycoonContent): number {
   let salaries = (c.balance.setup.founderSalaryYrCents * founderCount(s)) / 52;
   for (const e of s.team) salaries += e.salaryYr / 52;
   const infra = s.users * sec.infraPerUserWeekCents * (1 - b.infraReduction * Math.min(1, s.allocation.infra / b.infraFullAlloc));
-  return (salaries + infra + s.marketing + b.office[s.office]) * mods(s, c).burnMul;
+  const m = mods(s, c);
+  return (salaries * m.wageMul + infra + s.marketing + b.office[s.office]) * m.burnMul;
 }
 
 /** Net burn per week in cents (negative when profitable). */

@@ -226,7 +226,11 @@
     "moodBase": 50,
     "closingWeeks": 2
   },
-  "events": {},
+  "events": {
+    "officeClosedDevMul": 0.35,
+    "exitLo": 0.9,
+    "exitSpan": 0.4
+  },
   "hardcore": {
     "eventMul": 1.5,
     "chequeMul": 0.8

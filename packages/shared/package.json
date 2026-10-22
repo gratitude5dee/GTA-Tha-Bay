@@ -17,7 +17,8 @@
     "./npc": "./src/npc/index.ts",
     "./fight": "./src/fight/index.ts",
     "./tycoon": "./src/tycoon/index.ts",
-    "./tycoon/finance": "./src/tycoon/finance/index.ts"
+    "./tycoon/finance": "./src/tycoon/finance/index.ts",
+    "./events": "./src/events/index.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",

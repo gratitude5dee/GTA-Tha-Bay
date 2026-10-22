@@ -1,0 +1,276 @@
+{
+  "schema": "tycoon.events.v1",
+  "events": [
+    {
+      "id": "nat.quake_major",
+      "family": "natural",
+      "scope": "tycoon",
+      "mtthWeeks": 1226,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 104,
+      "severity": 5,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "flag",
+          "key": "officeClosed",
+          "value": true,
+          "durationWeeks": 3
+        },
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.95
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "cash",
+          "op": "add",
+          "dist": {
+            "k": "uniform",
+            "lo": -25000000,
+            "hi": -8000000
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-nat.quake_major"
+    },
+    {
+      "id": "nat.quake_minor",
+      "family": "natural",
+      "scope": "both",
+      "mtthWeeks": 200,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 2,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "morale",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -5
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "devPowerMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.5
+          },
+          "durationWeeks": 1,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-nat.quake_minor"
+    },
+    {
+      "id": "nat.atmospheric_river",
+      "family": "natural",
+      "scope": "both",
+      "mtthWeeks": 70,
+      "modifiers": [
+        {
+          "when": {
+            "season": [
+              44,
+              12
+            ]
+          },
+          "factor": 2.5
+        }
+      ],
+      "requires": [],
+      "cooldownWeeks": 12,
+      "severity": 2,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "flag",
+          "key": "officeClosed",
+          "value": true,
+          "durationWeeks": 1
+        },
+        {
+          "k": "metric",
+          "metric": "morale",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -3
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-nat.atmospheric_river"
+    },
+    {
+      "id": "nat.wildfire_smoke",
+      "family": "natural",
+      "scope": "tycoon",
+      "mtthWeeks": 90,
+      "modifiers": [
+        {
+          "when": {
+            "season": [
+              31,
+              44
+            ]
+          },
+          "factor": 3
+        }
+      ],
+      "requires": [],
+      "cooldownWeeks": 12,
+      "severity": 2,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "devPowerMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.9
+          },
+          "durationWeeks": 2,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "morale",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -5
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-nat.wildfire_smoke"
+    },
+    {
+      "id": "nat.fog_week",
+      "family": "natural",
+      "scope": "both",
+      "mtthWeeks": 40,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 8,
+      "severity": 1,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "devPowerMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.97
+          },
+          "durationWeeks": 1,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": 1
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-nat.fog_week"
+    },
+    {
+      "id": "nat.blackout",
+      "family": "natural",
+      "scope": "both",
+      "mtthWeeks": 150,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "minWeek": 4,
+      "onFire": [
+        {
+          "k": "flag",
+          "key": "officeClosed",
+          "value": true,
+          "durationWeeks": 2
+        },
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.97
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "wait_it_out",
+          "effects": []
+        },
+        {
+          "id": "run_generator",
+          "effects": [
+            {
+              "k": "flag",
+              "key": "officeClosed",
+              "value": false,
+              "durationWeeks": 0
+            }
+          ],
+          "cost": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": -3000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "requires": [
+            {
+              "m": "cash",
+              "op": ">=",
+              "v": 3000000
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "wait_it_out",
+      "art": "ui/ty-card-nat.blackout"
+    }
+  ]
+}

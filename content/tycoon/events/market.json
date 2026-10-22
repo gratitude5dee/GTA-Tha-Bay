@@ -1,0 +1,255 @@
+{
+  "schema": "tycoon.events.v1",
+  "events": [
+    {
+      "id": "mkt.rate_cut",
+      "family": "market",
+      "scope": "tycoon",
+      "mtthWeeks": 60,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 2,
+      "minWeek": 8,
+      "exclusiveGroup": "rates",
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": 0.2
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.1
+          },
+          "durationWeeks": 20,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-mkt.rate_cut"
+    },
+    {
+      "id": "mkt.rate_hike",
+      "family": "market",
+      "scope": "tycoon",
+      "mtthWeeks": 60,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 2,
+      "minWeek": 8,
+      "exclusiveGroup": "rates",
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -0.2
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.9
+          },
+          "durationWeeks": 20,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-mkt.rate_hike"
+    },
+    {
+      "id": "mkt.ipo_window",
+      "family": "market",
+      "scope": "tycoon",
+      "mtthWeeks": 90,
+      "modifiers": [
+        {
+          "when": {
+            "m": "climate",
+            "op": ">",
+            "v": 0.2
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [],
+      "cooldownWeeks": 52,
+      "severity": 2,
+      "minWeek": 20,
+      "onFire": [
+        {
+          "k": "flag",
+          "key": "ipoWindow",
+          "value": true,
+          "durationWeeks": 26
+        }
+      ],
+      "art": "ui/ty-card-mkt.ipo_window"
+    },
+    {
+      "id": "mkt.down_round_wave",
+      "family": "market",
+      "scope": "tycoon",
+      "mtthWeeks": 70,
+      "modifiers": [
+        {
+          "when": {
+            "m": "climate",
+            "op": "<",
+            "v": 0
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "minWeek": 8,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -0.4
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "vc.retrade",
+          "delayWeeks": [
+            1,
+            2
+          ],
+          "p": 0.7
+        }
+      ],
+      "art": "ui/ty-card-mkt.down_round_wave"
+    },
+    {
+      "id": "mkt.crash",
+      "family": "market",
+      "scope": "tycoon",
+      "mtthWeeks": 140,
+      "modifiers": [
+        {
+          "when": {
+            "m": "climate",
+            "op": ">",
+            "v": 0.3
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [],
+      "cooldownWeeks": 52,
+      "severity": 4,
+      "minWeek": 20,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "climate",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -0.7
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.6
+          },
+          "durationWeeks": 26,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "mkt.down_round_wave",
+          "delayWeeks": [
+            1,
+            3
+          ],
+          "p": 0.8
+        }
+      ],
+      "art": "ui/ty-card-mkt.crash"
+    },
+    {
+      "id": "vc.retrade",
+      "family": "system",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [
+        {
+          "flag": "termSheetClosing"
+        }
+      ],
+      "cooldownWeeks": 8,
+      "severity": 3,
+      "choices": [
+        {
+          "id": "accept_cut",
+          "effects": [
+            {
+              "k": "round",
+              "op": "cutTerms",
+              "frac": 0.15
+            }
+          ]
+        },
+        {
+          "id": "walk_away",
+          "effects": [
+            {
+              "k": "round",
+              "op": "withdrawOffers"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "accept_cut",
+      "art": "ui/ty-card-vc.retrade"
+    },
+    {
+      "id": "fin.bridge_offer",
+      "family": "system",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 0,
+      "severity": 4,
+      "art": "ui/ty-card-fin.bridge_offer"
+    }
+  ]
+}

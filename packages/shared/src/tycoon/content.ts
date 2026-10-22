@@ -4,6 +4,7 @@
  */
 import { canonicalize } from '../json.ts';
 import { sha256Hex } from '../hash.ts';
+import { loadCatalog } from './events/catalog.ts';
 import type { ArchetypeDefs, Balance, SectorDef, ThesisDef, TycoonContent } from './types.ts';
 
 export interface RawTycoonContent {
@@ -11,6 +12,10 @@ export interface RawTycoonContent {
   theses: unknown;
   archetypes: unknown;
   balance: unknown;
+  /** The event files (`{schema, events: EventDef[]}` each), any order. */
+  events: unknown;
+  /** When given, the event catalog is checked against it (every LocKey must exist). The runtime build passes none. */
+  locale?: Record<string, string>;
 }
 
 export class ContentError extends Error {
@@ -96,12 +101,14 @@ export function buildContent(raw: RawTycoonContent): TycoonContent {
   if (theses.length === 0) fail('at least one thesis is required');
   const archetypes = validateArchetypes(raw.archetypes);
   const balance = validateBalance(raw.balance);
+  const events = loadCatalog(raw.events, raw.locale);
   return {
     sectors,
     theses,
+    events,
     archetypes,
     balance,
-    contentVersion: hashVersion({ sectors: raw.sectors, theses: raw.theses, archetypes: raw.archetypes }),
+    contentVersion: hashVersion({ sectors: raw.sectors, theses: raw.theses, archetypes: raw.archetypes, events }),
     balanceVersion: hashVersion(raw.balance),
   };
 }

@@ -16,7 +16,7 @@ const golden = JSON.parse(readFileSync(goldenUrl, 'utf8')) as JsonObject;
 const fx = fixtureRun();
 
 describe('tycoon slice (C05 mode:tycoon, schema 1)', () => {
-  it('the fixture run is a 300-week run that is still going', () => {
+  it('the fixture run is a 150-week run that is still going', () => {
     expect(fx.state.week).toBe(FIXTURE_WEEKS);
     expect(fx.state.phase).not.toBe('ended');
     expect(fx.choices.length).toBeGreaterThan(10);

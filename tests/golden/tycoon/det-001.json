@@ -1,8 +1,8 @@
 {
  "v": 1,
  "suite": "tycoon",
- "contentVersion": "c0ce6359050d",
- "balanceVersion": "c6d14b4f4dbc",
+ "contentVersion": "f7dc05e3d3dd",
+ "balanceVersion": "c4079115003b",
  "runs": [
   {
    "seed": 12648430,
@@ -10,14 +10,14 @@
    "setup": {
     "seed": 12648430,
     "sector": "b2b-saas",
-    "thesis": "enterprise-rush",
+    "thesis": "talent-war",
     "founder": "engineer",
     "coFounder": false,
     "startWeekOfYear": 0,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "c0ce6359050d",
-    "balanceVersion": "c6d14b4f4dbc"
+    "contentVersion": "f7dc05e3d3dd",
+    "balanceVersion": "c4079115003b"
    },
    "choices": [
     {
@@ -86,6 +86,15 @@
      }
     },
     {
+     "week": 24,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 4,
+      "choiceId": "apply"
+     }
+    },
+    {
      "week": 28,
      "seq": 0,
      "cmd": {
@@ -94,97 +103,115 @@
      }
     },
     {
+     "week": 33,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 9,
+      "choiceId": "wait_it_out"
+     }
+    },
+    {
      "week": 34,
      "seq": 0,
      "cmd": {
-      "t": "startRaise",
-      "kind": "safe",
-      "targetCents": 15000000
+      "t": "resolveEvent",
+      "iid": 10,
+      "choiceId": "hold"
      }
     },
     {
-     "week": 35,
+     "week": 48,
      "seq": 0,
      "cmd": {
-      "t": "scheduleMeeting",
-      "vcId": "vc-operator-angel"
+      "t": "resolveEvent",
+      "iid": 16,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 35,
-     "seq": 1,
-     "cmd": {
-      "t": "accept",
-      "meetingId": "m2"
-     }
-    },
-    {
-     "week": 73,
+     "week": 62,
      "seq": 0,
      "cmd": {
-      "t": "startRaise",
-      "kind": "seed",
-      "targetCents": 30000000
+      "t": "resolveEvent",
+      "iid": 18,
+      "choiceId": "hold"
      }
     },
     {
-     "week": 74,
+     "week": 68,
      "seq": 0,
      "cmd": {
-      "t": "scheduleMeeting",
-      "vcId": "vc-operator-angel"
+      "t": "resolveEvent",
+      "iid": 21,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 74,
-     "seq": 1,
-     "cmd": {
-      "t": "accept",
-      "meetingId": "m3"
-     }
-    },
-    {
-     "week": 89,
+     "week": 87,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 24,
+      "choiceId": "apply"
      }
     },
     {
-     "week": 102,
+     "week": 88,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 25,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 115,
+     "week": 93,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 27,
+      "choiceId": "stay_quiet"
      }
     },
     {
-     "week": 128,
+     "week": 101,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 29,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 141,
+     "week": 110,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 33,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 119,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 36,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 120,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 37,
+      "choiceId": "decline"
      }
     }
    ],
-   "finalHash": "62e718b4e309341f",
+   "finalHash": "e57e4270c2c00f95",
    "endWeek": 150,
    "result": null
   },
@@ -194,14 +221,15 @@
    "setup": {
     "seed": 48879,
     "sector": "b2b-saas",
-    "thesis": "enterprise-rush",
+    "thesis": "lean-times",
     "founder": "designer",
     "coFounder": true,
     "startWeekOfYear": 31,
     "hardcore": false,
+    "autoResolveEvents": true,
     "preset": "standard",
-    "contentVersion": "c0ce6359050d",
-    "balanceVersion": "c6d14b4f4dbc"
+    "contentVersion": "f7dc05e3d3dd",
+    "balanceVersion": "c4079115003b"
    },
    "choices": [
     {
@@ -250,31 +278,6 @@
      }
     },
     {
-     "week": 16,
-     "seq": 0,
-     "cmd": {
-      "t": "startRaise",
-      "kind": "safe",
-      "targetCents": 15000000
-     }
-    },
-    {
-     "week": 17,
-     "seq": 0,
-     "cmd": {
-      "t": "scheduleMeeting",
-      "vcId": "vc-operator-angel"
-     }
-    },
-    {
-     "week": 17,
-     "seq": 1,
-     "cmd": {
-      "t": "accept",
-      "meetingId": "m2"
-     }
-    },
-    {
      "week": 21,
      "seq": 0,
      "cmd": {
@@ -283,7 +286,7 @@
      }
     },
     {
-     "week": 45,
+     "week": 23,
      "seq": 0,
      "cmd": {
       "t": "startRaise",
@@ -292,23 +295,23 @@
      }
     },
     {
-     "week": 46,
+     "week": 24,
      "seq": 0,
      "cmd": {
       "t": "scheduleMeeting",
-      "vcId": "vc-scout-solo"
+      "vcId": "vc-operator-angel"
      }
     },
     {
-     "week": 46,
+     "week": 24,
      "seq": 1,
      "cmd": {
       "t": "accept",
-      "meetingId": "m3"
+      "meetingId": "m2"
      }
     },
     {
-     "week": 71,
+     "week": 52,
      "seq": 0,
      "cmd": {
       "t": "startRaise",
@@ -317,23 +320,23 @@
      }
     },
     {
-     "week": 72,
+     "week": 53,
      "seq": 0,
      "cmd": {
       "t": "scheduleMeeting",
-      "vcId": "vc-seedling-angel"
+      "vcId": "vc-operator-angel"
      }
     },
     {
-     "week": 72,
+     "week": 53,
      "seq": 1,
      "cmd": {
       "t": "accept",
-      "meetingId": "m4"
+      "meetingId": "m3"
      }
     },
     {
-     "week": 87,
+     "week": 68,
      "seq": 0,
      "cmd": {
       "t": "boardVote",
@@ -341,7 +344,7 @@
      }
     },
     {
-     "week": 100,
+     "week": 81,
      "seq": 0,
      "cmd": {
       "t": "boardVote",
@@ -349,7 +352,7 @@
      }
     },
     {
-     "week": 113,
+     "week": 94,
      "seq": 0,
      "cmd": {
       "t": "boardVote",
@@ -357,7 +360,7 @@
      }
     },
     {
-     "week": 126,
+     "week": 107,
      "seq": 0,
      "cmd": {
       "t": "boardVote",
@@ -365,7 +368,23 @@
      }
     },
     {
-     "week": 139,
+     "week": 120,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 133,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 146,
      "seq": 0,
      "cmd": {
       "t": "boardVote",
@@ -373,7 +392,7 @@
      }
     }
    ],
-   "finalHash": "4f59a0a15fb40fb5",
+   "finalHash": "6c4ac028bb5fa275",
    "endWeek": 150,
    "result": null
   },
@@ -383,14 +402,14 @@
    "setup": {
     "seed": 7,
     "sector": "b2b-saas",
-    "thesis": "talent-war",
+    "thesis": "enterprise-rush",
     "founder": "engineer",
     "coFounder": false,
     "startWeekOfYear": 41,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "c0ce6359050d",
-    "balanceVersion": "c6d14b4f4dbc"
+    "contentVersion": "f7dc05e3d3dd",
+    "balanceVersion": "c4079115003b"
    },
    "choices": [
     {
@@ -411,6 +430,15 @@
       "candidateId": "c0-0",
       "salaryYr": 22911105,
       "optionBp": 50
+     }
+    },
+    {
+     "week": 8,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 2,
+      "choiceId": "wait_it_out"
      }
     },
     {
@@ -469,101 +497,182 @@
      "week": 22,
      "seq": 0,
      "cmd": {
-      "t": "scheduleMeeting",
-      "vcId": "vc-operator-angel"
+      "t": "resolveEvent",
+      "iid": 3,
+      "choiceId": "push_on"
      }
     },
     {
      "week": 22,
      "seq": 1,
      "cmd": {
-      "t": "accept",
-      "meetingId": "m2"
+      "t": "resolveEvent",
+      "iid": 4,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 51,
-     "seq": 0,
-     "cmd": {
-      "t": "startRaise",
-      "kind": "seed",
-      "targetCents": 30000000
-     }
-    },
-    {
-     "week": 52,
-     "seq": 0,
+     "week": 22,
+     "seq": 2,
      "cmd": {
       "t": "scheduleMeeting",
       "vcId": "vc-operator-angel"
      }
     },
     {
-     "week": 52,
-     "seq": 1,
+     "week": 22,
+     "seq": 3,
      "cmd": {
       "t": "accept",
-      "meetingId": "m3"
+      "meetingId": "m2"
      }
     },
     {
-     "week": 67,
+     "week": 23,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 5,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 38,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 10,
+      "choiceId": "apply"
+     }
+    },
+    {
+     "week": 44,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 13,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 44,
+     "seq": 1,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 14,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 65,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 20,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 78,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 24,
+      "choiceId": "wait_it_out"
      }
     },
     {
      "week": 80,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 25,
+      "choiceId": "stay_quiet"
      }
     },
     {
-     "week": 93,
+     "week": 81,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 27,
+      "choiceId": "push_on"
      }
     },
     {
-     "week": 106,
-     "seq": 0,
+     "week": 81,
+     "seq": 1,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 28,
+      "choiceId": "decline"
      }
     },
     {
-     "week": 119,
+     "week": 85,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 29,
+      "choiceId": "hold"
      }
     },
     {
-     "week": 132,
+     "week": 117,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 31,
+      "choiceId": "let_it_ride"
      }
     },
     {
-     "week": 145,
+     "week": 118,
      "seq": 0,
      "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
+      "t": "resolveEvent",
+      "iid": 33,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 120,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 35,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 133,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 37,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 140,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 40,
+      "choiceId": "push_on"
+     }
+    },
+    {
+     "week": 148,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 41,
+      "choiceId": "stay_quiet"
      }
     }
    ],
-   "finalHash": "1f9bde0c56b9e1e9",
+   "finalHash": "34a68c227e0020f9",
    "endWeek": 150,
    "result": null
   }

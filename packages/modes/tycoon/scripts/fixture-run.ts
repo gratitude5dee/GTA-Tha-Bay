@@ -1,8 +1,8 @@
 /**
  * The fixture of the tycoon save tests (M09a1). Two runs of the scripted founder of the shared fixtures:
- *  1. seed 0xC0FFEE, played to its end (a `ramen` win in week 269), archived by the mode into `runs`, `bestScores`, `hardcore`
+ *  1. seed 0xC0FFEE, played to its end (a `ramen` win in week 206), archived by the mode into `runs`, `bestScores`, `hardcore`
  *     and `dividendEarnedCents`;
- *  2. seed 1, played for 300 weeks with the founder switching to growth focus in week 60, still running: the `active` run.
+ *  2. seed 1, played for 150 weeks with the founder switching to growth focus in week 60, still running: the `active` run.
  * The slice the mode saves for this pair is the v1 golden `packages/engine/src/sim/save/__golden__/tycoon/v1.json`.
  */
 import type { JsonObject, ModeContext, SaveReason } from '@dv/shared';
@@ -11,13 +11,13 @@ import { playPolicy } from '../../../shared/src/tycoon/__fixtures__/policy.ts';
 import { emptySlice, tycoonContent, tycoonSim, type TycoonSlice } from '../src/sim/index.ts';
 
 export const FIXTURE_SEED = 1;
-export const FIXTURE_WEEKS = 300;
+export const FIXTURE_WEEKS = 150;
 export const FINISHED_SEED = 0xc0ffee;
 
 export interface FixtureRun {
   /** The slice the mode saved: the golden. */
   json: JsonObject;
-  /** The live run at week 300. */
+  /** The live run at week 150. */
   state: CompanyState;
   setup: RunSetup;
   choices: ChoiceRecord[];

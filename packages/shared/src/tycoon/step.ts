@@ -1,18 +1,21 @@
 /**
  * `stepWeek`: one in-game week in the order of 08-tycoon.md section 5.2.
  *  1. due items (offers, term-sheet expiry, round closings, raise expiry)
- *  2. events (an empty list until M09a2)
+ *  2. events: auto-resolve due choices, hazard roll, modifier totals
  *  3. product, users, revenue, costs, cash
  *  4. hiring market, morale and attrition, founder
  *  5. hype, reputation and climate drift
  *  6. board
  *  7. win and lose checks, `week += 1`, `awaiting`
  */
+import { autoResolve, roll, tickEffects } from '../events/engine.ts';
+import { ctrFloat } from '../events/rng.ts';
+import { hostFor } from './events/host.ts';
 import { addSafe, boardSeatsFor, priceRound, type Safe } from './finance/index.ts';
-import { clamp, devPower, expensesWeek, mrrGrowth13, mods, priceFactor, revenueWeek, sectorOf, skillSum } from './company.ts';
+import { clamp, devPower, valuationRef, expensesWeek, mrrGrowth13, mods, priceFactor, revenueWeek, sectorOf, skillSum } from './company.ts';
 import { finishRun } from './end.ts';
 import { boardStep, founderStep, moraleAndAttrition, recomputeControl, refreshMarket, resolveOffers, syncMorale } from './people.ts';
-import type { CompanyState, EndKind, StepResult, TycoonContent } from './types.ts';
+import type { CompanyState, EndKind, EventInstance, StepResult, TycoonContent } from './types.ts';
 
 interface PendingEnd {
   kind: EndKind;
@@ -95,11 +98,16 @@ function expireRaise(s: CompanyState, c: TycoonContent): void {
 export function stepWeek(s: CompanyState, c: TycoonContent): StepResult {
   if (s.phase === 'ended') return { week: s.week, events: [], awaiting: null, ended: s.result };
   if (s.awaiting !== null) return { week: s.week, events: [], awaiting: s.awaiting, ended: null };
+  // Choice events still in the inbox (carried over a board vote or a bridge offer) hold the clock first.
+  if (s.setup.autoResolveEvents !== true && s.events.inbox.length > 0) {
+    s.awaiting = 'event';
+    return { week: s.week, events: [], awaiting: 'event', ended: null };
+  }
 
   const cc = c.balance.company;
   const sec = sectorOf(s, c);
-  const m = mods(s, c);
   let end: PendingEnd | null = null;
+  const host = hostFor(c);
 
   // 1. due items
   resolveOffers(s, c);
@@ -110,7 +118,14 @@ export function stepWeek(s: CompanyState, c: TycoonContent): StepResult {
   end = closeRounds(s, c);
   expireRaise(s, c);
 
-  // 2. events: none in M09a1
+  // 2. events (an idea has no company to hit yet)
+  let fired: EventInstance[] = [];
+  if (s.phase !== 'idea') {
+    if (s.setup.autoResolveEvents === true) autoResolve(s, s.events, c.events, host);
+    fired = roll(s, s.events, c.events, host);
+  }
+  tickEffects(s, s.events, host);
+  const m = mods(s, c);
 
   // 3. product, market, revenue, costs
   const wasLaunched = s.phase === 'launched';
@@ -161,7 +176,10 @@ export function stepWeek(s: CompanyState, c: TycoonContent): StepResult {
   if (s.cash < 0) {
     s.negativeCashWeeks += 1;
     if (end === null && (s.flags['bridgeUsed'] === true || s.negativeCashWeeks >= c.balance.end.insolvencyWeeks)) end = { kind: 'insolvent', exit: 0 };
-    else if (s.negativeCashWeeks === 1 && s.flags['bridgeUsed'] !== true) awaiting = 'bridge';
+    else if (s.negativeCashWeeks === 1 && s.flags['bridgeUsed'] !== true) {
+      awaiting = 'bridge';
+      s.events.counts['fin.bridge_offer'] = (s.events.counts['fin.bridge_offer'] ?? 0) + 1;
+    }
   } else s.negativeCashWeeks = 0;
 
   // 4. hiring market, morale, founder
@@ -188,11 +206,17 @@ export function stepWeek(s: CompanyState, c: TycoonContent): StepResult {
   }
 
   // 7. win and lose
+  if (end === null && s.flags['exitAccepted'] === true) {
+    // `biz.acquisition_offer` accepted: sold at the valuation reference times 0.9 to 1.3 (section 6).
+    const e = c.balance.events;
+    end = { kind: 'acquisition', exit: Math.round(valuationRef(s, c) * (e.exitLo + e.exitSpan * ctrFloat(s.setup.seed, 'exit', s.week))) };
+  }
   if (end === null && s.profitableStreak >= c.balance.end.ramenWeeks) end = { kind: 'ramen' };
   if (end !== null) {
     const r = finishRun(s, c, end.kind, end.exit);
-    return { week: s.week, events: [], awaiting: null, ended: r };
+    return { week: s.week, events: fired, awaiting: null, ended: r };
   }
+  if (awaiting === null && s.setup.autoResolveEvents !== true && s.events.inbox.length > 0) awaiting = 'event';
   s.awaiting = awaiting;
-  return { week: s.week, events: [], awaiting, ended: null };
+  return { week: s.week, events: fired, awaiting, ended: null };
 }

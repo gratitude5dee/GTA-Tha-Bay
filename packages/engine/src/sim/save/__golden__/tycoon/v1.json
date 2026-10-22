@@ -1,19 +1,19 @@
 {
  "schema": 1,
- "contentVersion": "c0ce6359050d",
- "balanceVersion": "c6d14b4f4dbc",
+ "contentVersion": "f7dc05e3d3dd",
+ "balanceVersion": "c4079115003b",
  "active": {
   "setup": {
    "seed": 1,
    "sector": "b2b-saas",
-   "thesis": "enterprise-rush",
+   "thesis": "lean-times",
    "founder": "hustler",
    "coFounder": false,
    "startWeekOfYear": 7,
    "hardcore": false,
    "preset": "standard",
-   "contentVersion": "c0ce6359050d",
-   "balanceVersion": "c6d14b4f4dbc"
+   "contentVersion": "f7dc05e3d3dd",
+   "balanceVersion": "c4079115003b"
   },
   "choices": [
    {
@@ -62,44 +62,12 @@
     }
    },
    {
-    "week": 22,
+    "week": 25,
     "seq": 0,
     "cmd": {
-     "t": "startRaise",
-     "kind": "safe",
-     "targetCents": 15000000
-    }
-   },
-   {
-    "week": 23,
-    "seq": 0,
-    "cmd": {
-     "t": "scheduleMeeting",
-     "vcId": "vc-operator-angel"
-    }
-   },
-   {
-    "week": 23,
-    "seq": 1,
-    "cmd": {
-     "t": "walk",
-     "meetingId": "m2"
-    }
-   },
-   {
-    "week": 24,
-    "seq": 0,
-    "cmd": {
-     "t": "scheduleMeeting",
-     "vcId": "vc-scout-solo"
-    }
-   },
-   {
-    "week": 24,
-    "seq": 1,
-    "cmd": {
-     "t": "accept",
-     "meetingId": "m3"
+     "t": "resolveEvent",
+     "iid": 4,
+     "choiceId": "apply"
     }
    },
    {
@@ -111,31 +79,6 @@
     }
    },
    {
-    "week": 54,
-    "seq": 0,
-    "cmd": {
-     "t": "startRaise",
-     "kind": "seed",
-     "targetCents": 30000000
-    }
-   },
-   {
-    "week": 55,
-    "seq": 0,
-    "cmd": {
-     "t": "scheduleMeeting",
-     "vcId": "vc-seedling-angel"
-    }
-   },
-   {
-    "week": 55,
-    "seq": 1,
-    "cmd": {
-     "t": "accept",
-     "meetingId": "m4"
-    }
-   },
-   {
     "week": 60,
     "seq": 0,
     "cmd": {
@@ -144,187 +87,115 @@
     }
    },
    {
+    "week": 63,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 12,
+     "choiceId": "hold"
+    }
+   },
+   {
     "week": 70,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 15,
+     "choiceId": "shrug"
     }
    },
    {
-    "week": 83,
+    "week": 98,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 23,
+     "choiceId": "hold"
     }
    },
    {
-    "week": 96,
+    "week": 99,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 24,
+     "choiceId": "apply"
+    }
+   },
+   {
+    "week": 105,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 26,
+     "choiceId": "let_it_ride"
     }
    },
    {
     "week": 109,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 27,
+     "choiceId": "stay_quiet"
     }
    },
    {
-    "week": 122,
+    "week": 130,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 30,
+     "choiceId": "let_it_ride"
     }
    },
    {
     "week": 135,
     "seq": 0,
     "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 148,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 161,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 174,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 187,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 200,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 213,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 226,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 239,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 252,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 265,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 278,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
-    }
-   },
-   {
-    "week": 291,
-    "seq": 0,
-    "cmd": {
-     "t": "boardVote",
-     "motion": "approveBudget"
+     "t": "resolveEvent",
+     "iid": 34,
+     "choiceId": "shrug"
     }
    }
   ],
   "snapshot": {
-   "week": 300,
+   "week": 150,
    "state": {
     "v": 1,
     "setup": {
      "seed": 1,
      "sector": "b2b-saas",
-     "thesis": "enterprise-rush",
+     "thesis": "lean-times",
      "founder": "hustler",
      "coFounder": false,
      "startWeekOfYear": 7,
      "hardcore": false,
      "preset": "standard",
-     "contentVersion": "c0ce6359050d",
-     "balanceVersion": "c6d14b4f4dbc"
+     "contentVersion": "f7dc05e3d3dd",
+     "balanceVersion": "c4079115003b"
     },
-    "week": 300,
+    "week": 150,
     "phase": "launched",
     "awaiting": null,
-    "cash": 96285791,
-    "users": 1114.7441664516157,
-    "payingUsers": 687.3743434349645,
-    "mrr": 11685364,
+    "cash": 15019025,
+    "users": 206.8955585559897,
+    "payingUsers": 115.779553538765,
+    "mrr": 1968252,
     "arpuMonth": 17000,
     "churnMonthly": 0.028,
-    "cac": 115474.98250963776,
+    "cac": 126427.75218438671,
     "marketing": 20000,
     "priceLevel": "standard",
-    "mvpProgress": 205.20000000000005,
-    "featurePoints": 1693.4400000000119,
-    "productQuality": 76.17734675211798,
-    "techDebt": 57.73680000000033,
-    "hype": 25.000715705457342,
-    "reputation": 51.95000000000069,
-    "climate": -0.00023064193558951115,
-    "morale": 70,
-    "founderMorale": 82,
+    "mvpProgress": 208.49228571428577,
+    "featurePoints": 777.8388961363858,
+    "productQuality": 59.88681763168509,
+    "techDebt": 45.03319559285786,
+    "hype": 57.67436853342367,
+    "reputation": 0.1,
+    "climate": -0.15184718100271188,
+    "morale": 63.527125017277875,
+    "founderMorale": 69,
     "allocation": {
      "features": 70,
      "refactor": 20,
@@ -341,325 +212,339 @@
       "salaryYr": 19960655,
       "optionShares": 50000,
       "hiredWeek": 7,
-      "morale": 70,
+      "morale": 63.527125017277875,
       "name": "Dev Alder"
      }
     ],
     "market": [
      {
-      "id": "c294-0",
-      "role": "eng",
-      "skill": 5,
-      "askYr": 16799563,
-      "expiresWeek": 300
-     },
-     {
-      "id": "c294-1",
-      "role": "eng",
-      "skill": 5,
-      "askYr": 16799563,
-      "expiresWeek": 300
-     },
-     {
-      "id": "c294-2",
-      "role": "eng",
-      "skill": 9,
-      "askYr": 23519388,
-      "expiresWeek": 300
-     },
-     {
-      "id": "c294-3",
+      "id": "c144-4",
       "role": "design",
       "skill": 6,
-      "askYr": 15839588,
-      "expiresWeek": 300
+      "askYr": 15568478,
+      "expiresWeek": 150
      },
      {
-      "id": "c294-7",
+      "id": "c144-5",
+      "role": "design",
+      "skill": 7,
+      "askYr": 16983794,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-7",
+      "role": "growth",
+      "skill": 6,
+      "askYr": 14271105,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-8",
       "role": "growth",
       "skill": 4,
-      "askYr": 11879691,
-      "expiresWeek": 300
+      "askYr": 11676358,
+      "expiresWeek": 150
      },
      {
-      "id": "c294-8",
-      "role": "growth",
-      "skill": 6,
-      "askYr": 14519622,
-      "expiresWeek": 300
-     },
-     {
-      "id": "c294-11",
+      "id": "c144-9",
       "role": "sales",
-      "skill": 8,
-      "askYr": 20279472,
-      "expiresWeek": 300
+      "skill": 10,
+      "askYr": 22998888,
+      "expiresWeek": 150
      },
      {
-      "id": "c294-12",
+      "id": "c144-10",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13799333,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-12",
       "role": "ops",
-      "skill": 6,
-      "askYr": 13199656,
-      "expiresWeek": 300
+      "skill": 5,
+      "askYr": 11794301,
+      "expiresWeek": 150
      },
      {
-      "id": "c294-13",
+      "id": "c144-13",
       "role": "ops",
-      "skill": 3,
-      "askYr": 9599750,
-      "expiresWeek": 300
+      "skill": 7,
+      "askYr": 14153162,
+      "expiresWeek": 150
      },
      {
-      "id": "c295-0",
+      "id": "c145-0",
       "role": "eng",
       "skill": 10,
-      "askYr": 25199357,
-      "expiresWeek": 301
+      "askYr": 24776672,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-1",
+      "id": "c145-1",
       "role": "eng",
-      "skill": 6,
-      "askYr": 18479528,
-      "expiresWeek": 301
+      "skill": 5,
+      "askYr": 16517781,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-3",
+      "id": "c145-3",
+      "role": "design",
+      "skill": 7,
+      "askYr": 16989718,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-4",
       "role": "design",
       "skill": 4,
-      "askYr": 12959669,
-      "expiresWeek": 301
+      "askYr": 12742289,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-6",
+      "id": "c145-5",
+      "role": "design",
+      "skill": 6,
+      "askYr": 15573908,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-6",
       "role": "growth",
       "skill": 7,
-      "askYr": 15839596,
-      "expiresWeek": 301
+      "askYr": 15573908,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-7",
+      "id": "c145-7",
       "role": "growth",
       "skill": 6,
-      "askYr": 14519630,
-      "expiresWeek": 301
+      "askYr": 14276082,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-8",
-      "role": "growth",
-      "skill": 4,
-      "askYr": 11879697,
-      "expiresWeek": 301
-     },
-     {
-      "id": "c295-10",
+      "id": "c145-10",
       "role": "sales",
-      "skill": 5,
-      "askYr": 15599602,
-      "expiresWeek": 301
+      "skill": 1,
+      "askYr": 9202764,
+      "expiresWeek": 151
      },
      {
-      "id": "c295-11",
-      "role": "sales",
-      "skill": 6,
-      "askYr": 17159562,
-      "expiresWeek": 301
-     },
-     {
-      "id": "c295-13",
-      "role": "ops",
-      "skill": 10,
-      "askYr": 17999541,
-      "expiresWeek": 301
-     },
-     {
-      "id": "c295-14",
-      "role": "ops",
-      "skill": 8,
-      "askYr": 15599602,
-      "expiresWeek": 301
-     },
-     {
-      "id": "c296-0",
-      "role": "eng",
-      "skill": 7,
-      "askYr": 20159496,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-1",
-      "role": "eng",
-      "skill": 5,
-      "askYr": 16799580,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-3",
-      "role": "design",
-      "skill": 3,
-      "askYr": 11519712,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-4",
-      "role": "design",
-      "skill": 8,
-      "askYr": 18719532,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-5",
-      "role": "design",
-      "skill": 5,
-      "askYr": 14399640,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-6",
-      "role": "growth",
-      "skill": 5,
-      "askYr": 13199670,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-11",
-      "role": "sales",
-      "skill": 7,
-      "askYr": 18719532,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-12",
-      "role": "ops",
-      "skill": 9,
-      "askYr": 16799580,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-13",
-      "role": "ops",
-      "skill": 10,
-      "askYr": 17999550,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c296-14",
-      "role": "ops",
-      "skill": 7,
-      "askYr": 14399640,
-      "expiresWeek": 302
-     },
-     {
-      "id": "c297-1",
-      "role": "eng",
-      "skill": 7,
-      "askYr": 20159506,
-      "expiresWeek": 303
-     },
-     {
-      "id": "c297-3",
-      "role": "design",
-      "skill": 9,
-      "askYr": 20159506,
-      "expiresWeek": 303
-     },
-     {
-      "id": "c297-5",
-      "role": "design",
-      "skill": 9,
-      "askYr": 20159506,
-      "expiresWeek": 303
-     },
-     {
-      "id": "c297-7",
-      "role": "growth",
-      "skill": 2,
-      "askYr": 9239774,
-      "expiresWeek": 303
-     },
-     {
-      "id": "c297-11",
-      "role": "sales",
-      "skill": 5,
-      "askYr": 15599618,
-      "expiresWeek": 303
-     },
-     {
-      "id": "c298-1",
+      "id": "c146-0",
       "role": "eng",
       "skill": 3,
-      "askYr": 13439677,
-      "expiresWeek": 304
+      "askYr": 13218741,
+      "expiresWeek": 152
      },
      {
-      "id": "c298-3",
-      "role": "design",
-      "skill": 7,
-      "askYr": 17279585,
-      "expiresWeek": 304
-     },
-     {
-      "id": "c298-5",
-      "role": "design",
-      "skill": 8,
-      "askYr": 18719550,
-      "expiresWeek": 304
-     },
-     {
-      "id": "c298-9",
-      "role": "sales",
-      "skill": 5,
-      "askYr": 15599625,
-      "expiresWeek": 304
-     },
-     {
-      "id": "c298-14",
-      "role": "ops",
-      "skill": 6,
-      "askYr": 13199683,
-      "expiresWeek": 304
-     },
-     {
-      "id": "c299-2",
+      "id": "c146-1",
       "role": "eng",
-      "skill": 8,
-      "askYr": 21839486,
-      "expiresWeek": 305
+      "skill": 6,
+      "askYr": 18175768,
+      "expiresWeek": 152
      },
      {
-      "id": "c299-5",
+      "id": "c146-3",
       "role": "design",
-      "skill": 7,
-      "askYr": 17279593,
-      "expiresWeek": 305
+      "skill": 6,
+      "askYr": 15579230,
+      "expiresWeek": 152
      },
      {
-      "id": "c299-7",
+      "id": "c146-4",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14162936,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-6",
+      "role": "growth",
+      "skill": 7,
+      "askYr": 15579230,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-7",
       "role": "growth",
       "skill": 4,
-      "askYr": 11879720,
-      "expiresWeek": 305
+      "askYr": 11684423,
+      "expiresWeek": 152
      },
      {
-      "id": "c299-8",
-      "role": "growth",
-      "skill": 6,
-      "askYr": 14519658,
-      "expiresWeek": 305
-     },
-     {
-      "id": "c299-11",
+      "id": "c146-9",
       "role": "sales",
-      "skill": 5,
-      "askYr": 15599633,
-      "expiresWeek": 305
+      "skill": 1,
+      "askYr": 9205909,
+      "expiresWeek": 152
      },
      {
-      "id": "c299-13",
+      "id": "c146-10",
+      "role": "sales",
+      "skill": 3,
+      "askYr": 12274545,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-12",
+      "role": "ops",
+      "skill": 4,
+      "askYr": 10622202,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-13",
       "role": "ops",
       "skill": 7,
-      "askYr": 14399661,
-      "expiresWeek": 305
+      "askYr": 14162936,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c147-1",
+      "role": "eng",
+      "skill": 4,
+      "askYr": 14876062,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-5",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14167678,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-6",
+      "role": "growth",
+      "skill": 5,
+      "askYr": 12987038,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-7",
+      "role": "growth",
+      "skill": 4,
+      "askYr": 11688334,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-10",
+      "role": "sales",
+      "skill": 8,
+      "askYr": 19952813,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-11",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13813486,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-12",
+      "role": "ops",
+      "skill": 1,
+      "askYr": 7083839,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-13",
+      "role": "ops",
+      "skill": 6,
+      "askYr": 12987038,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c148-1",
+      "role": "eng",
+      "skill": 6,
+      "askYr": 18187816,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-3",
+      "role": "design",
+      "skill": 9,
+      "askYr": 19841254,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-4",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14172324,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-5",
+      "role": "design",
+      "skill": 9,
+      "askYr": 19841254,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-7",
+      "role": "growth",
+      "skill": 3,
+      "askYr": 10393038,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-10",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13818016,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-11",
+      "role": "sales",
+      "skill": 6,
+      "askYr": 16888686,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c149-1",
+      "role": "eng",
+      "skill": 4,
+      "askYr": 14885721,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-2",
+      "role": "eng",
+      "skill": 3,
+      "askYr": 13231752,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-3",
+      "role": "design",
+      "skill": 4,
+      "askYr": 12759190,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-7",
+      "role": "growth",
+      "skill": 6,
+      "askYr": 14295018,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-9",
+      "role": "sales",
+      "skill": 6,
+      "askYr": 16894112,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-12",
+      "role": "ops",
+      "skill": 6,
+      "askYr": 12995471,
+      "expiresWeek": 155
      }
     ],
     "offers": [],
@@ -671,31 +556,10 @@
        "shares": {
         "common": 9000000
        }
-      },
-      {
-       "id": "vc:vc-accelerator-batch",
-       "kind": "investor",
-       "shares": {
-        "pref-safe-safe-m1": 5607841
-       }
-      },
-      {
-       "id": "vc:vc-scout-solo",
-       "kind": "investor",
-       "shares": {
-        "pref-safe-safe-m3": 2659686
-       }
-      },
-      {
-       "id": "vc:vc-seedling-angel",
-       "kind": "investor",
-       "shares": {
-        "pref-seed": 6324487
-       }
       }
      ],
      "pool": {
-      "authorized": 2853192,
+      "authorized": 1000000,
       "granted": 50000
      },
      "safes": [
@@ -705,43 +569,11 @@
        "amount": 14375000,
        "signedWeek": 11,
        "type": "cap",
-       "postMoneyCap": 45636536,
-       "converted": true
-      },
-      {
-       "id": "safe-m3",
-       "investorId": "vc:vc-scout-solo",
-       "amount": 12900000,
-       "signedWeek": 26,
-       "type": "cap",
-       "postMoneyCap": 104607925,
-       "converted": true
+       "postMoneyCap": 45636536
       }
      ],
-     "rounds": [
-      {
-       "id": "m4",
-       "kind": "seed",
-       "week": 55,
-       "closedWeek": 57,
-       "preMoney": 97589416,
-       "amount": 30675000,
-       "poolTargetBp": 1060,
-       "newShares": 6324487,
-       "topUpShares": 1853192,
-       "priceMicros": 48501,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       },
-       "boardSeats": 0,
-       "leadInvestorId": "vc:vc-seedling-angel",
-       "invested": {
-        "vc:vc-seedling-angel": 30675000
-       }
-      }
-     ],
-     "totalFd": 26445206
+     "rounds": [],
+     "totalFd": 10000000
     },
     "meetings": [
      {
@@ -802,179 +634,6 @@
         "participating": false
        }
       }
-     },
-     {
-      "id": "m2",
-      "raiseId": "r22safe",
-      "vcId": "vc-operator-angel",
-      "kind": "safe",
-      "mood": 50,
-      "startedWeek": 23,
-      "closeWeek": null,
-      "clamped": [],
-      "phase": "withdrawn",
-      "envelope": {
-       "vcId": "vc-operator-angel",
-       "round": "safe",
-       "validUntilWeek": 25,
-       "amount": [
-        10000000,
-        18750000
-       ],
-       "preMoney": [
-        44513580,
-        61127530
-       ],
-       "poolTargetBp": [
-        0,
-        0
-       ],
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       },
-       "fomoBonusBp": 0,
-       "midpoint": {
-        "amount": 15687500,
-        "preMoney": 55312648,
-        "poolTargetBp": 0,
-        "boardSeat": false,
-        "liq": {
-         "multiple": 1,
-         "participating": false
-        }
-       },
-       "walkAway": null,
-       "safeCap": [
-        44513580,
-        61127530
-       ]
-      },
-      "offer": {
-       "amount": 15687500,
-       "preMoney": 55312648,
-       "poolTargetBp": 0,
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       }
-      }
-     },
-     {
-      "id": "m3",
-      "raiseId": "r22safe",
-      "vcId": "vc-scout-solo",
-      "kind": "safe",
-      "mood": 50,
-      "startedWeek": 24,
-      "closeWeek": 26,
-      "clamped": [],
-      "phase": "closed",
-      "envelope": {
-       "vcId": "vc-scout-solo",
-       "round": "safe",
-       "validUntilWeek": 26,
-       "amount": [
-        9000000,
-        15000000
-       ],
-       "preMoney": [
-        84187143,
-        115603731
-       ],
-       "poolTargetBp": [
-        0,
-        0
-       ],
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       },
-       "fomoBonusBp": 0,
-       "midpoint": {
-        "amount": 12900000,
-        "preMoney": 104607925,
-        "poolTargetBp": 0,
-        "boardSeat": false,
-        "liq": {
-         "multiple": 1,
-         "participating": false
-        }
-       },
-       "walkAway": null,
-       "safeCap": [
-        84187143,
-        115603731
-       ]
-      },
-      "offer": {
-       "amount": 12900000,
-       "preMoney": 104607925,
-       "poolTargetBp": 0,
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       }
-      }
-     },
-     {
-      "id": "m4",
-      "raiseId": "r54seed",
-      "vcId": "vc-seedling-angel",
-      "kind": "seed",
-      "mood": 50,
-      "startedWeek": 55,
-      "closeWeek": 57,
-      "clamped": [],
-      "phase": "closed",
-      "envelope": {
-       "vcId": "vc-seedling-angel",
-       "round": "seed",
-       "validUntilWeek": 57,
-       "amount": [
-        18000000,
-        37500000
-       ],
-       "preMoney": [
-        86447531,
-        103588892
-       ],
-       "poolTargetBp": [
-        800,
-        1200
-       ],
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       },
-       "fomoBonusBp": 0,
-       "midpoint": {
-        "amount": 30675000,
-        "preMoney": 97589416,
-        "poolTargetBp": 1060,
-        "boardSeat": false,
-        "liq": {
-         "multiple": 1,
-         "participating": false
-        }
-       },
-       "walkAway": null
-      },
-      "offer": {
-       "amount": 30675000,
-       "preMoney": 97589416,
-       "poolTargetBp": 1060,
-       "boardSeat": false,
-       "liq": {
-        "multiple": 1,
-        "participating": false
-       }
-      }
      }
     ],
     "termSheets": [],
@@ -985,43 +644,128 @@
      ],
      "founderControl": true,
      "missedTargets": 0,
-     "nextMeetingWeek": 304,
-     "lastTargetArrGrowth": 0.1
+     "nextMeetingWeek": null,
+     "lastTargetArrGrowth": 0
     },
     "events": {
-     "nextIid": 1
+     "nextIid": 38,
+     "nextEid": 23,
+     "inbox": [],
+     "pending": [
+      {
+       "dueWeek": 187,
+       "defId": "cul.ai_hype_crash",
+       "depth": 1,
+       "fromIid": 37
+      }
+     ],
+     "active": [
+      {
+       "eid": 22,
+       "iid": 37,
+       "spec": {
+        "k": "metric",
+        "metric": "multipleMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.2
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.2,
+       "startWeek": 147,
+       "endWeek": 159,
+       "strength": 1
+      }
+     ],
+     "cooldownUntil": {
+      "nat.wildfire_smoke": 93,
+      "mkt.rate_cut": 95,
+      "grp:rates": 95,
+      "nat.fog_week": 94,
+      "pol.city_grant": 150,
+      "mkt.ipo_window": 133,
+      "mkt.rate_hike": 63,
+      "cul.ai_hype_peak": 199,
+      "cul.parade_week": 110,
+      "mkt.down_round_wave": 94,
+      "biz.competitor_launch": 117,
+      "mkt.crash": 117,
+      "*severe": 73,
+      "biz.outage": 144,
+      "biz.viral_launch": 156,
+      "biz.scaling_strain": 144,
+      "nat.atmospheric_river": 150,
+      "biz.price_war": 122,
+      "cul.meme_moment": 141,
+      "biz.security_incident": 134,
+      "cul.backlash_wave": 159,
+      "nat.quake_minor": 171
+     },
+     "counts": {
+      "nat.wildfire_smoke": 3,
+      "mkt.rate_cut": 2,
+      "nat.fog_week": 3,
+      "pol.city_grant": 2,
+      "pol.city_grant.c.apply": 2,
+      "mkt.ipo_window": 2,
+      "mkt.rate_hike": 1,
+      "cul.ai_hype_peak": 2,
+      "cul.parade_week": 1,
+      "mkt.down_round_wave": 2,
+      "biz.competitor_launch": 2,
+      "biz.competitor_launch.c.hold": 2,
+      "mkt.crash": 1,
+      "biz.outage": 2,
+      "biz.outage.c.shrug": 2,
+      "biz.viral_launch": 2,
+      "biz.scaling_strain": 2,
+      "nat.atmospheric_river": 3,
+      "biz.price_war": 1,
+      "cul.meme_moment": 2,
+      "cul.meme_moment.c.let_it_ride": 2,
+      "biz.security_incident": 1,
+      "biz.security_incident.c.stay_quiet": 1,
+      "cul.backlash_wave": 2,
+      "nat.quake_minor": 1
+     },
+     "totals": {
+      "mul": {
+       "multipleMul": 1.2
+      },
+      "add": {}
+     }
     },
     "flags": {
-     "netBurn": -2099907,
+     "netBurn": -2143,
      "empSeq": 1,
-     "lastRaiseEnd": 57,
-     "lastRoundKindIx": 1,
-     "lastPost": 128264416,
-     "lastRoundDown": false,
-     "boardMissed": false
+     "lastRaiseEnd": 11,
+     "lastRoundKindIx": 0
     },
     "mrrHistory": [
-     9557578,
-     9706089,
-     9856980,
-     10010289,
-     10166056,
-     10324320,
-     10485123,
-     10648505,
-     10814509,
-     10983176,
-     11154551,
-     11328678,
-     11505600,
-     11685364
+     1661318,
+     1680544,
+     1699831,
+     1719414,
+     1740184,
+     1761275,
+     1782688,
+     1804428,
+     1826497,
+     1848729,
+     1871306,
+     1903352,
+     1935666,
+     1968252
     ],
-    "profitableStreak": 22,
+    "profitableStreak": 0,
     "negativeCashWeeks": 0,
     "dividendEarnedCents": 0,
     "result": null
    },
-   "hash": "2b9a3eef1dde545c"
+   "hash": "88fb71aa04a6b2da"
   }
  },
  "runs": [
@@ -1029,27 +773,27 @@
    "setup": {
     "seed": 12648430,
     "sector": "b2b-saas",
-    "thesis": "enterprise-rush",
+    "thesis": "talent-war",
     "founder": "engineer",
     "coFounder": false,
     "startWeekOfYear": 0,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "c0ce6359050d",
-    "balanceVersion": "c6d14b4f4dbc"
+    "contentVersion": "f7dc05e3d3dd",
+    "balanceVersion": "c4079115003b"
    },
    "result": {
     "kind": "ramen",
     "win": true,
-    "week": 269,
-    "founderPayoutCents": 452346626,
-    "exitValueCents": 1224843128,
-    "score": 4548,
+    "week": 206,
+    "founderPayoutCents": 631995278,
+    "exitValueCents": 953214601,
+    "score": 6344,
     "tier": "ramen",
-    "arrCents": 151924332,
+    "arrCents": 161658096,
     "headcountAtEnd": 2,
     "legacyTags": 0,
-    "stateHash": "6caad33b475007c0"
+    "stateHash": "4d72b47109211e6c"
    },
    "savedAt": 0
   }
@@ -1058,11 +802,11 @@
   "acq": 0,
   "unicorn": 0,
   "ipo": 0,
-  "ramen": 4548
+  "ramen": 6344
  },
  "unlockedSectors": [
   "b2b-saas"
  ],
  "hardcore": true,
- "dividendEarnedCents": 90469
+ "dividendEarnedCents": 126399
 }
