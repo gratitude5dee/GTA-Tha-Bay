@@ -4,6 +4,7 @@ import type {
   PwaUpdateController, SaveResult, SlotId, UiCommand, ViewModelSource,
 } from '@dv/shared';
 import type { LocKey } from '../i18n/index.ts';
+import type { CreatorStagePort } from '../creator/stage.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
 import type { ShellEvent } from './machine.ts';
@@ -235,7 +236,7 @@ export interface ShellProps {
   /** `?touch=1` (QA builds) forces the touch layer; the rotate overlay follows it. */
   forceTouch?: boolean;
   /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
-  stage?: () => import('../creator/stage.ts').CreatorStagePort | null;
+  stage?: () => CreatorStagePort | null;
 }
 
 export interface PrefsStore {

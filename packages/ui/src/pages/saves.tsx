@@ -102,7 +102,7 @@ export interface NewGameDeps {
   prefersReducedMotion: boolean;
   send(cmd: { t: 'save.profile'; op: 'select'; id: string } | { t: 'save.settings'; data: Record<string, unknown> }): boolean;
   /** Resolves true when the sim reports the profile as open. */
-  selected(id: string): Promise<boolean>;
+  selected(id: string, reloading?: boolean): Promise<boolean>;
 }
 
 export type NewGameResult = { ok: true; id: string; reused: boolean } | { ok: false; error: SaveErrorCode };
@@ -129,9 +129,10 @@ export async function runNewGame(d: NewGameDeps, name: string): Promise<NewGameR
     id = made.id;
   }
   d.send({ t: 'save.profile', op: 'select', id });
-  const ok = await d.selected(id);
+  // An already open profile is reloaded by the select command: wait for that reload before the settings write, or it would be overwritten.
+  const ok = await d.selected(id, reused);
   if (!ok) return { ok: false, error: 'IDB_UNAVAILABLE' };
-  if (d.prefersReducedMotion) d.send({ t: 'save.settings', data: { accessibility: { reducedMotion: true }, xr: { reduceMotion: true } } });
+  if (d.prefersReducedMotion) d.send({ t: 'save.settings', data: { accessibility: { reducedMotion: true }, camera: { shake: false }, xr: { reduceMotion: true } } });
   return { ok: true, id, reused };
 }
 
@@ -240,7 +241,7 @@ export function NewGamePage(_props: PageProps) {
         active: ctx.profile,
         prefersReducedMotion: reduced,
         send: (c) => ctx.sendUi(c as never),
-        selected: (id) => waitForProfile(ctx, id),
+        selected: (id, reloading) => waitForProfile(ctx, id, 10_000, reloading === true),
       },
       name.normalize('NFC').trim(),
     );
@@ -308,11 +309,11 @@ export function NewGamePage(_props: PageProps) {
 }
 
 /** Resolves true when the sim's `sys.profile` names `id` (the select command loads the slices asynchronously). */
-export function waitForProfile(ctx: ShellContext, id: string, timeoutMs = 10_000): Promise<boolean> {
+export function waitForProfile(ctx: ShellContext, id: string, timeoutMs = 10_000, fresh = false): Promise<boolean> {
   const engine = ctx.engine;
   if (!engine) return Promise.resolve(false);
   const is = (v: unknown): boolean => typeof v === 'object' && v !== null && (v as { id?: string }).id === id;
-  if (is(engine.vm.get('sys.profile'))) return Promise.resolve(true);
+  if (!fresh && is(engine.vm.get('sys.profile'))) return Promise.resolve(true);
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
       off();

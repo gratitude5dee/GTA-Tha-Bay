@@ -44,9 +44,9 @@ export function LiveText<T extends JsonValue>(props: { vmKey: string; format(v: 
 export function StatusChip(props: { status: StatusDef; icon?: string; label?: string; testId?: string; extra?: ComponentChildren }) {
   const s = props.status;
   return (
-    <span class="dv-chip" data-tone={s.tone} data-status={s.id} data-testid={props.testId}>
-      <span class="dv-chip-icon" aria-hidden="true">{props.icon ?? s.icon}</span>
-      <span class="dv-chip-text">{props.label ?? t(s.textKey)}</span>
+    <span class="dv-schip" data-tone={s.tone} data-status={s.id} data-testid={props.testId}>
+      <span class="dv-schip-icon" aria-hidden="true">{props.icon ?? s.icon}</span>
+      <span class="dv-schip-text">{props.label ?? t(s.textKey)}</span>
       {props.extra}
     </span>
   );
@@ -99,7 +99,7 @@ export function Wallet(props: { wallet: HudWallet | undefined }) {
   }, [w?.cashCents]);
   return (
     <div class="dv-wallet" data-testid="hud-wallet" data-changed={changed ? '1' : '0'} aria-label={t('hud.wallet.label')}>
-      <span class="dv-chip-icon" aria-hidden="true">$</span>
+      <span class="dv-schip-icon" aria-hidden="true">$</span>
       <span data-testid="hud-wallet-value">{w ? dollars(w.cashCents) : t('hud.empty')}</span>
     </div>
   );
@@ -109,7 +109,7 @@ export function ClockWeather(props: { clock: HudClock | undefined }) {
   const c = props.clock;
   return (
     <div class="dv-clock" data-testid="hud-clock" aria-label={t('hud.clock.label')}>
-      <span class="dv-chip-icon" aria-hidden="true">{'◔'}</span>
+      <span class="dv-schip-icon" aria-hidden="true">{'◔'}</span>
       <span data-testid="hud-clock-value">{c ? clockText(c.hour) : t('hud.empty')}</span>
       {c ? <span class="dv-muted" data-testid="hud-weather">{t(`hud.weather.${c.weather}`)}</span> : null}
     </div>
@@ -157,7 +157,7 @@ export function InteractionPrompt() {
   const glyph = blocked ? '' : promptGlyph(prompt.kind, device);
   return (
     <div class={`dv-prompt dv-prompt-ui${blocked ? ' dv-prompt-blocked' : ''}`} data-testid="hud-prompt" data-kind={prompt.kind} data-blocked={blocked ? '1' : '0'} role="status" aria-live="polite">
-      {blocked ? <span class="dv-chip-icon" aria-hidden="true">{'⛔'}</span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph">{glyph}</kbd> : null}
+      {blocked ? <span class="dv-schip-icon" aria-hidden="true">{'⛔'}</span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph">{glyph}</kbd> : null}
       <span data-testid="hud-prompt-text">{t(promptTextKey(prompt))}</span>
       {prompt.hold && !blocked ? (
         <span class="dv-hold" aria-hidden="true"><span ref={fill} class="dv-hold-fill" style={{ inlineSize: `${Math.round(prompt.progress * 100)}%` }} /></span>
@@ -193,7 +193,7 @@ export function MeterBar(props: { id: string; label: string; value: number; max:
   const pct = props.max > 0 ? Math.round(Math.max(0, Math.min(1, props.value / props.max)) * 100) : 0;
   return (
     <div class="dv-meter" data-tone={props.tone ?? 'neutral'} data-testid={`hud-meter-${props.id}`}>
-      <span class="dv-chip-icon" aria-hidden="true">{props.icon ?? '■'}</span>
+      <span class="dv-schip-icon" aria-hidden="true">{props.icon ?? '■'}</span>
       <span class="dv-meter-label">{props.label}</span>
       <span class="dv-meter-bar" role="progressbar" aria-valuemin={0} aria-valuemax={props.max} aria-valuenow={props.value} aria-label={props.label}>
         <span class="dv-meter-fill" style={{ inlineSize: `${pct}%` }} />

@@ -118,7 +118,7 @@ export class AmbientTransit {
         let best = Infinity;
         if (at) {
           for (const s of this.stations) {
-            const d = (s.x - at[0]) ** 2 + (s.z - at[2]) ** 2;
+            const d = (s.x - at[0]) * (s.x - at[0]) + (s.z - at[2]) * (s.z - at[2]);
             if (d < best) {
               best = d;
               from = s.id;

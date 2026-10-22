@@ -329,6 +329,15 @@ export class ShellCore implements ShellApi {
       this.toast({ id: 'engine.notReady', kind: 'warning', text: lk('engine.notReady') });
       return;
     }
+    // The page that started the mode (New Game, Continue, Modes) closes: the loading screen, then the HUD, take its place.
+    if (this.frame) {
+      this.frame = null;
+      try {
+        history.replaceState(null, '', '/');
+      } catch {
+        // no History in a test environment
+      }
+    }
     this.fire('startMode');
     this.engine.sendUi(slot ? { t: 'mode.start', id, slot } : { t: 'mode.start', id });
   }

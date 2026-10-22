@@ -55,7 +55,7 @@ export function TipBar() {
   if (!hint) return null;
   return (
     <div class="dv-tip" role="status" data-testid="hud-tip" data-hint={hint.id}>
-      <span class="dv-chip-icon" aria-hidden="true">{'ℹ'}</span>
+      <span class="dv-schip-icon" aria-hidden="true">{'ℹ'}</span>
       <span>{t(hintKey(hint, device))}</span>
     </div>
   );

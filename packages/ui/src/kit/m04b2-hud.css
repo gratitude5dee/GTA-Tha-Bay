@@ -22,12 +22,12 @@
 .dv-hud [data-tone='warning'] { --dv-tone: var(--dv-sem-warning, #ffd23f); }
 .dv-hud [data-tone='objective'] { --dv-tone: var(--dv-sem-objective, #4da3ff); }
 .dv-hud [data-tone='neutral'] { --dv-tone: var(--dv-sem-neutral, #f0f2f7); }
-.dv-chip, .dv-wallet, .dv-clock, .dv-area, .dv-objective, .dv-cluster, .dv-tip, .dv-subtitles, .dv-sandbox-chip, .dv-prompt-ui {
+.dv-schip, .dv-wallet, .dv-clock, .dv-area, .dv-objective, .dv-cluster, .dv-tip, .dv-subtitles, .dv-sandbox-chip, .dv-prompt-ui {
   display: inline-flex; align-items: center; gap: 0.4em; padding: 0.25em 0.6em; border-radius: 0.6em;
   background: rgb(8 12 22 / 0.72); border: 1px solid rgb(255 255 255 / 0.18); max-inline-size: 100%;
 }
-.dv-chip { color: var(--dv-tone, var(--dv-color-text)); border-color: var(--dv-tone, transparent); font-weight: 600; }
-.dv-chip-icon { font-weight: 700; color: var(--dv-tone, currentColor); }
+.dv-schip { color: var(--dv-tone, var(--dv-color-text)); border-color: var(--dv-tone, transparent); font-weight: 600; }
+.dv-schip-icon { font-weight: 700; color: var(--dv-tone, currentColor); }
 .dv-heat { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; justify-content: flex-end; }
 .dv-stars { display: inline-flex; gap: 0.1em; font-size: 1.3em; }
 .dv-star { color: var(--dv-sem-neutral, #f0f2f7); opacity: 0.6; }

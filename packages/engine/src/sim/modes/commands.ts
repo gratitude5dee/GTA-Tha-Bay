@@ -1,5 +1,6 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
 import { applyToggle } from './builtin/sandbox.ts';
+import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
 
@@ -17,7 +18,7 @@ export interface CommandDeps {
   /** The page pauses itself; the sim only learns of it (QA and later the HUD). */
   onPause?(on: boolean): void;
   /** The phone's Ride app (M04b2): the transit system's port, or null while no baked world runs. */
-  ride?(): import('../services.ts').RidePort | null;
+  ride?(): RidePort | null;
   /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
   selectProfile?(id: string): void;
 }

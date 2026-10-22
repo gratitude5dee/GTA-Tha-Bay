@@ -27,7 +27,7 @@ describe('status widgets (AC-5)', () => {
   it('a StatusChip renders the icon and the text, never the colour alone', () => {
     const tree = JSON.stringify(StatusChip({ status: STATUS['danger']! }));
     expect(tree).toContain(STATUS['danger']!.icon);
-    expect(tree).toContain('dv-chip-text');
+    expect(tree).toContain('dv-schip-text');
   });
 
   it('heat: the phase picks the text, the scripted level 6 has its own icon, stars lit are capped at five', () => {
