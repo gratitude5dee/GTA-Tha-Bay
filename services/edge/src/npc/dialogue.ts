@@ -363,6 +363,9 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
   inflight.add(work);
   void work.finally(() => inflight.delete(work));
   ctx.exec?.waitUntil(work);
+  // A stream that never reports back must not hold the invocation open: the work promise gives up after 2 minutes.
+  const giveUp = setTimeout(() => resolveWork(), 120_000);
+  void work.finally(() => clearTimeout(giveUp));
 
   let finished = false;
   const settle = async (micros: number): Promise<void> => {
@@ -380,7 +383,11 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
       if (outcome === 'done' && state.assistantJson !== null && state.usage !== null) {
         const u = state.usage;
         const micros = state.cost ?? 0;
-        await stub.complete(turnIndex, state.assistantJson, { inTok: u.input, outTok: u.output, cacheRead: u.cacheRead, cacheWrite: u.cacheWrite5m + u.cacheWrite1h, usdMicros: micros });
+        try {
+          await stub.complete(turnIndex, state.assistantJson, { inTok: u.input, outTok: u.output, cacheRead: u.cacheRead, cacheWrite: u.cacheWrite5m + u.cacheWrite1h, usdMicros: micros });
+        } catch {
+          // the turn is not stored (the encounter restarted); the money was still spent, so settlement goes on
+        }
         await settle(micros);
         writeServerEvent(env, 'genai.cost', { vendor: 'anthropic', model: costMicros(u, state.model).label, usdMicros: micros, cacheHit: u.cacheRead > 0, tier: 'local' }, now());
         if (state.closed) await stub.close();
