@@ -36,3 +36,7 @@ DV_UPDATE_GOLDEN=1 pnpm check:unit -- packages/shared/test/fight/hash-vectors   
 ## Rules of the data
 
 `onHit` and `onBlock` are derived, never authored: `advHit = hitstun - (A + R - 1)`, `advBlock = blockstun - (A + R - 1)`. A kit that carries them fails the schema. Startup counts the first active frame. Builder decisions: `spec/11-decision-log-builder.md` rows `BD-M08a1-*`.
+
+## Status
+
+M08a1 is complete for the runnable ACs; `pnpm deploy:preview` (AC-11) needs the Cloudflare token and was not run here. The PR needs the `golden-update` label (new goldens: `golden/*.dvfight`, `packages/shared/test/golden/fight/hash.v1.json`, and the refreshed `goldens-package` hash in `tools/ci/verifiers.lock.json`).
