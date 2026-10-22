@@ -37,5 +37,6 @@ export * from './pursuit/index.ts';
 export * from './modes/index.ts';
 export * from './ui/bridge.ts';
 export * from './ui/coalesce.ts';
+export * from './script/index.ts';
 export * from './input/remap-persist.ts';
 export * from './save-port.ts';

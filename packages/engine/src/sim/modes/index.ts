@@ -11,7 +11,8 @@
 import {
   SimStage, datan2,
   type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
-  type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand, type WorldApi,
+  type GameModeSim, type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand,
+  type WorldApi,
 } from '@dv/shared';
 import { GROUP_BIT } from '../physics/groups.ts';
 import { Control, LocalPlayer, Transform } from '../ecs/components.ts';
@@ -21,6 +22,9 @@ import { requestTeleport } from '../control/ownership.ts';
 import type { PursuitModule } from '../pursuit/module.ts';
 import type { ModeSaveBinding, SaveWritePort } from '../save-port.ts';
 import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
+import { SimSchedulerImpl } from '../script/scheduler.ts';
+import { TimelineRecorderImpl } from '../script/timeline.ts';
+import { ZoneServiceImpl } from '../script/zones.ts';
 import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory } from './builtin/index.ts';
 import { bindModeSave } from './capability-bind.ts';
 import { createCommandDispatcher } from './commands.ts';
@@ -55,10 +59,25 @@ export interface ModesModuleOptions {
   wallMs?(): number;
   /** Extra or replacement descriptors, registered after the built-in ones (tests, later modes). */
   descriptors?: readonly GameModeDescriptor[];
+  /**
+   * Replaces the sim of the built-in `story` mode (M05a1): receives the free-roam sim the engine would have used and returns the
+   * mode's sim, which keeps free roam when no mission is active. The story package supplies it; the engine never imports it.
+   */
+  wrapStory?(freeroam: GameModeSim, env: StoryWrapEnv): GameModeSim;
+}
+
+/** What the engine hands the story mode besides the free-roam sim: session facts the `ModeContext` does not carry. */
+export interface StoryWrapEnv {
+  /** Build with QA flags: the story mode honours its URL flags and the debug bridge only then. */
+  qa: boolean;
+  /** The boot payload's config object (QA mission flags and the mission IR the page fetched). */
+  bootConfig(): Readonly<Record<string, unknown>>;
 }
 
 export interface ModesModule extends SimModule {
   host(): ModeHost | null;
+  /** The script services of the session (M05a1); null before `onInit`. */
+  script(): ScriptServices | null;
   economy(): EconomyImpl | null;
   unlocks(): UnlockRegistryImpl | null;
   ui(): SimUiBridge | null;
@@ -71,6 +90,13 @@ export interface ModesModule extends SimModule {
   telemetryQueue(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   /** Installs the QA command handler (`qa.ts`); the QA worker entry does it, so a production bundle carries no QA ops. */
   installQa(h: ModesQaHandler): void;
+}
+
+/** The scheduler, zone service and timeline recorder the modes module builds (M05a1). */
+export interface ScriptServices {
+  scheduler: SimSchedulerImpl;
+  zones: ZoneServiceImpl;
+  timeline: TimelineRecorderImpl;
 }
 
 /** What the QA handler may touch. */
@@ -108,6 +134,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
   let unlocks: UnlockRegistryImpl | null = null;
   let ui: SimUiBridge | null = null;
   let slices: SessionSlices | null = null;
+  let script: ScriptServices | null = null;
   let dispatch: ((cmd: UiCommand) => void) | null = null;
   let reply: ((name: string, data: unknown) => void) | null = null;
   let qaHandler: ModesQaHandler | null = null;
@@ -120,6 +147,10 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         id: 'engine.modes.tick', owner: 'S01', stage: SimStage.Script, order: 0,
         run: () => host?.tick(),
       },
+      // The script services (M05a1) run after the mode host's tick: zone watchers, then the threads, then the timeline samples.
+      { id: 'engine.script.zones', owner: 'S01', stage: SimStage.Script, order: 5, run: ({ tick }) => script?.zones.update(tick) },
+      { id: 'engine.script.threads', owner: 'S01', stage: SimStage.Script, order: 10, run: ({ tick }) => script?.scheduler.run(tick) },
+      { id: 'engine.script.timeline', owner: 'S01', stage: SimStage.Script, order: 90, run: ({ tick }) => script?.timeline.update(tick) },
       {
         id: 'engine.modes.ui', owner: 'S01', stage: SimStage.Publish, order: 900,
         run: ({ tick, services }) => {
@@ -134,6 +165,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       },
     ],
     host: () => host,
+    script: () => script,
     economy: () => economy,
     unlocks: () => unlocks,
     ui: () => ui,
@@ -237,8 +269,45 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         return { x: tr.px[id] as number, y: tr.py[id] as number, z: tr.pz[id] as number, yaw: 2 * datan2(tr.qy[id] as number, tr.qw[id] as number) };
       };
 
+      // The script services (M05a1): the thread scheduler registers its hashed resource at the first thread.
+      const sched = new SimSchedulerImpl({
+        rng: services.rng,
+        events: bus,
+        onError: (id, e) => {
+          services.events.push({ t: 'script.error', tick: tick(), s: `${id}|${e instanceof Error ? e.message : String(e)}` });
+          runtime.env.log?.('error', `script thread ${id}: ${e instanceof Error ? e.message : String(e)}`);
+        },
+        onFirstUse: () => {
+          try {
+            s.core.addResource(sched.resource());
+          } catch {
+            // already registered
+          }
+        },
+      });
+      const zoneSvc = new ZoneServiceImpl({
+        ecs: s.ecs as unknown as EcsApi,
+        tick,
+        edgeProbe: (x, y, z, maxM) => {
+          const api = services.world.api;
+          if (!api) return null;
+          const hit = api.graph.nearestEdge(x, z, y, maxM);
+          if (!hit) return null;
+          return { edge: hit.edge, twin: api.graph.edge(hit.edge)?.twin ?? -1, distM: hit.distM };
+        },
+      });
+      const timelineSvc = new TimelineRecorderImpl({ ecs: s.ecs as unknown as EcsApi, tick });
+      script = { scheduler: sched, zones: zoneSvc, timeline: timelineSvc };
+
       const descriptors = new Map<string, GameModeDescriptor>();
-      for (const d of builtinDescriptors({ story: () => live.story, sandbox: () => live.sandbox, playerPose })) descriptors.set(d.id, d);
+      const wrapStory = opts.wrapStory;
+      const storyEnv: StoryWrapEnv = { qa: runtime.env.qa, bootConfig: () => ctx.boot.config };
+      for (const d of builtinDescriptors({
+        story: () => live.story,
+        sandbox: () => live.sandbox,
+        playerPose,
+        ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
+      })) descriptors.set(d.id, d);
       for (const d of opts.descriptors ?? []) descriptors.set(d.id, d);
 
       const h = (host = new ModeHost({
@@ -287,6 +356,9 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           },
           telemetry: tel as never,
           world,
+          zones: zoneSvc,
+          scheduler: sched,
+          timeline: timelineSvc,
         },
         save,
         unlocks: unl,
@@ -295,7 +367,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         restart: (profile, then) => void services.events.push({ t: 'mode.restart', tick: tick(), s: `${profile}|${then}` }),
         game: () => {
           const st = pursuitMod?.director()?.state();
-          return { heat: st?.level ?? 0, pursuit: st !== undefined && st.phase !== 'clear', mission: false };
+          return { heat: st?.level ?? 0, pursuit: st !== undefined && st.phase !== 'clear', mission: live.story.activeMission !== null };
         },
         tick,
         wallMs: opts.wallMs ?? (() => 0),
@@ -329,6 +401,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       reply = (name, data) => void runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
 
       if (ctx.boot.config['unlockAll'] === true) h.setUnlockAll(true);
+      // QA `?mission=<id>` (M05a1): the story mode starts by itself and runs that mission.
+      if (runtime.env.qa && typeof ctx.boot.config['mission'] === 'object' && ctx.boot.config['mission'] !== null) h.start('story');
       bridge.patch('sys.controls', live.settings.controls as unknown as JsonObject);
       unl.publish();
       econ.publish();
