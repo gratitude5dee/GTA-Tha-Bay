@@ -32,7 +32,7 @@ describe('bake stages and the stage cache', () => {
     const o = { area: 'civic-excerpt' as const, ...roots(), log: quiet };
     await expect(runBake({ ...o, stages: ['pack'] })).rejects.toThrow(/not selected and has no cached output/);
     const lines: string[] = [];
-    await runBake({ ...o, stages: ['water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod'], log: (l) => lines.push(l) });
+    await runBake({ ...o, stages: ['water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod', 'map'], log: (l) => lines.push(l) });
     expect(lines.join('\n')).toMatch(/water: done/);
     const full = await runBake({ ...o, stages: ['pack'], log: (l) => lines.push(l) });
     expect(full.ok).toBe(true);

@@ -108,17 +108,21 @@ export function verifyMapAssets(inp: MapVerifyInput): GateResult[] {
   for (const { line } of map.allStreets(9)) if (!(line.cnn > 0)) noCnn++;
   out.push(g('s12.map-cnn', noCnn === 0, noCnn === 0 ? 'every z9 street record carries its cnn' : `${noCnn} z9 street records have no cnn`));
 
-  // one-way arrows
-  const cnns = [...table.keys()].sort((a, b) => a - b);
-  const pick = seededSample(inp.bakeId, 'oneway', cnns.length, ONEWAY_SAMPLE);
+  // one-way arrows: the F/T flag of 30 seeded one-way segments (all when there are fewer), and the count of one-way segments
+  const oneWayCnns = [...table.keys()].filter((c) => src.oneway.get(c) !== 0 && src.oneway.get(c) !== undefined).sort((a, b) => a - b);
+  const pick = seededSample(inp.bakeId, 'oneway', oneWayCnns.length, ONEWAY_SAMPLE);
   const bad: string[] = [];
   for (const i of pick) {
-    const c = cnns[i] as number;
+    const c = oneWayCnns[i] as number;
     const want = src.oneway.get(c);
     const got = table.get(c)?.oneway;
     if (want !== got) bad.push(`${c}: map ${got} source ${want}`);
   }
-  out.push(g('s12.map-oneway', bad.length === 0, bad.length === 0 ? `one-way arrows equal the source flag on ${pick.length} sampled segments` : bad.slice(0, 6).join('; '), { sampled: pick.length }));
+  let srcOne = 0, mapOne = 0;
+  for (const v of src.oneway.values()) if (v !== 0) srcOne++;
+  for (const v of table.values()) if (v.oneway !== 0) mapOne++;
+  if (Math.abs(srcOne - mapOne) > Math.floor(srcOne * COUNT_TOLERANCE)) bad.push(`${mapOne} one-way segments in the map, ${srcOne} in the source`);
+  out.push(g('s12.map-oneway', bad.length === 0, bad.length === 0 ? `one-way arrows equal the source F/T flag on ${pick.length} sampled one-way segments (${mapOne} one-way segments in all)` : bad.slice(0, 6).join('; '), { sampled: pick.length, oneWay: mapOne }));
 
   // geocode sample
   const rows: { name: string; type: string; num: number; suffix: number; x: number; z: number; cnn: number }[] = [];
