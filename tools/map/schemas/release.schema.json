@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/world-release.schema.json",
+  "title": "config/world/release.json (M02c2, DL-670)",
+  "description": "Which deployed environments serve the real sf world. null builds the committed gray-box pointer. Release keys: staging (deploy:prod --env staging, assets:publish --env staging) and production (deploy:prod with no --env, assets:publish --env prod).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "staging", "production"],
+  "properties": {
+    "schema": { "const": "world-release/1" },
+    "staging": { "enum": [null, "sf"] },
+    "production": { "enum": [null, "sf"] }
+  }
+}

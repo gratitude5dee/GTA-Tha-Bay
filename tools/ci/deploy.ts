@@ -20,6 +20,7 @@ import { parseArgs } from 'node:util';
 import { collectChanges, evaluate } from './check-do-migrations.ts';
 import { decideDoLifecycle, type GitRun } from './deploy-decide.ts';
 import { planProd, readTextIfExists, runProd, type Exec, type ProdOptions } from './deploy-prod.ts';
+import { checkOdblOffer, prepareWorldRelease, releaseKeyOf, type ReleaseIo } from './world-release.ts';
 import { args, repoRoot } from './run.ts';
 
 export const PREVIEW_URL_FILE = 'test-results/preview-url.txt';
@@ -318,8 +319,20 @@ function prod(o: ProdOptions): number {
     process.stderr.write(res.stderr);
     return { status: res.status ?? 1, out: `${res.stdout}${res.stderr}` };
   };
+  const key = releaseKeyOf(o.env);
+  const io: ReleaseIo = {
+    read: (rel) => (existsSync(path.join(repoRoot, rel)) ? readFileSync(path.join(repoRoot, rel), 'utf8') : null),
+    write: (rel, text) => {
+      mkdirSync(path.dirname(path.join(repoRoot, rel)), { recursive: true });
+      writeFileSync(path.join(repoRoot, rel), text);
+    },
+  };
   const result = runProd(o, {
     exec,
+    world: {
+      before: () => prepareWorldRelease(io, key, (l) => console.log(`deploy:prod ${l}`)),
+      afterBuild: () => checkOdblOffer(io, key, 'apps/web/dist/credits.json'),
+    },
     build: () => spawnSync('pnpm', ['build'], { cwd: repoRoot, stdio: 'inherit' }).status ?? 1,
     writeSecrets: (file) => {
       mkdirSync(path.dirname(file), { recursive: true });

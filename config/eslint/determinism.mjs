@@ -73,8 +73,21 @@ export const THIRD_PARTY_IMPORT_PATTERN = {
   message: 'third_party/ is never imported: port the file with its attribution header (ADR-REUSE-01).',
 };
 
+// M02c2 (DL-676): no map SDK in game or web code. Mapbox and Google 3D Tiles are not sources of this game (F-055, F-056), and
+// MapLibre is for the web surfaces only (M13b2): a second WebGL context on iPhone must not appear in the game page.
+export const MAP_SDK_IMPORT_PATTERN = {
+  group: ['mapbox-gl', 'mapbox-gl/*', '@mapbox/mapbox-gl-*', '@mapbox/mapbox-gl-*/**', '3d-tiles-renderer', '3d-tiles-renderer/*', '@googlemaps/*'],
+  message: 'mapbox-gl, @mapbox/mapbox-gl-*, 3d-tiles-renderer and @googlemaps/* are never imported (F-055, F-056; DL-676).',
+};
+export const MAPLIBRE_IMPORT_PATTERN = {
+  group: ['maplibre-gl', 'maplibre-gl/*'],
+  message: 'maplibre-gl may not be imported by packages/engine, packages/world or apps/web game code: the maps are Canvas 2D (D-25, DL-676).',
+};
+
 export const SIM_IMPORT_PATTERNS = [
   THIRD_PARTY_IMPORT_PATTERN,
+  MAP_SDK_IMPORT_PATTERN,
+  MAPLIBRE_IMPORT_PATTERN,
   { group: ['three', 'three/*'], message: 'three is not allowed in sim code (C02).' },
   { group: ['@dv/ui', '@dv/ui/*'], message: 'Sim code never imports the UI.' },
 ];

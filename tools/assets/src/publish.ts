@@ -3,13 +3,15 @@
  * MEDIA_ORIGIN is set) -> upload the immutable manifest -> write the pointer that ships with the Worker.
  * A missing secret or rclone binary on the r2 target prints a SKIP line and exits 0 (after the verify step).
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { CONTENT_CLASSES, contentTypeOf } from '../../../packages/shared/src/assets/content-type.ts';
 import { formatFinding } from '../../../packages/shared/src/assets/gates/types.ts';
 import { lockGitStamp, pointerText, writeCatalogDir, type Blob, type CatalogBuild, type GitStamp } from './catalog.ts';
 import { mergeFragment, readFragment, type FragmentBlob } from './fragment.ts';
-import type { AssetLock } from './lock.ts';
+import { recordMap, type AssetLock } from './lock.ts';
 import { createDirUploader } from './uploader-dir.ts';
 import { createRcloneUploader, rclonePreflight, spawnRunner, type ClassFiles, type Runner, type Uploader } from './uploader-rclone.ts';
 import { POINTER_EDGE, POINTER_WEB, verifyAssets } from './verify.ts';
@@ -33,8 +35,20 @@ export interface PublishOptions {
   baseline?: AssetLock | null | undefined;
   /** catalog.fragment.json of a world bake (M02a1): needs a dir: target and --pointer-out. */
   fragment?: string | undefined;
+  /**
+   * The world release (M02c2, DL-670): `assets/world/sf.lock.json`. Merges the world entries (their manifests are the bake's
+   * `catalog.fragment.json`, checked against the lock) into the catalog and writes the merged pointer to `--pointer-out <file>.json`
+   * with `<file>.meta.json` beside it. The same run uploads the ODbL offer under `odbl/<bakeId>/` (DL-695).
+   */
+  world?: string | undefined;
+  /** The bake directory of the world release (default: the one `dist/world/latest-sf.json` names). */
+  worldBake?: string | undefined;
+  /** Writes `bake-scripts.tar.gz` (the committed bake scripts as a tar.gz); returns the exit status. Injected by tests. */
+  archive?: ((outFile: string) => number) | undefined;
+  /** `HOST_MEDIA` for the printed offer URL (default `MEDIA_ORIGIN`, else the Worker config of `root`). */
+  mediaOrigin?: string | undefined;
 }
-export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string }
+export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string; offerUrl?: string }
 
 const defaultHead: HeadFn = async (url) => {
   const r = await fetch(url, { method: 'HEAD' });
@@ -63,6 +77,77 @@ export function classUnits(blobs: readonly Blob[], srcDir: string): ClassFiles[]
   return units;
 }
 
+
+// ---- the world release (M02c2) ---------------------------------------------------------------------------------------------------
+
+const sha256Of = (b: Uint8Array | string): string => createHash('sha256').update(b).digest('hex');
+
+export const ODBL_SCRIPT_PATHS = ['tools/map', 'config/world', 'content/world'] as const;
+
+interface WorldInput {
+  lockRel: string;
+  lockBytes: Buffer;
+  bakeDir: string;
+  objectsDir: string;
+  fragment: ReturnType<typeof readFragment>;
+}
+
+/** Reads and checks the world lock against the bake's fragment and the provenance records. Returns lines for a failure. */
+function loadWorld(o: PublishOptions): { world: WorldInput | null; problems: string[] } {
+  const problems: string[] = [];
+  const lockAbs = path.resolve(o.root, o.world as string);
+  if (!existsSync(lockAbs)) return { world: null, problems: [`${o.world}: the world lock does not exist (run map:pack -- --target r2:<env> first)`] };
+  const lockBytes = readFileSync(lockAbs);
+  let lock: AssetLock;
+  try {
+    lock = JSON.parse(lockBytes.toString('utf8')) as AssetLock;
+  } catch (e) {
+    return { world: null, problems: [`${o.world}: not JSON (${(e as Error).message})`] };
+  }
+  if (lock.schema !== 'asset-lock/1' || typeof lock.entries !== 'object' || lock.entries === null) return { world: null, problems: [`${o.world}: not an asset-lock/1 file`] };
+  let bakeDir = o.worldBake ? path.resolve(o.root, o.worldBake) : '';
+  if (!bakeDir) {
+    const latest = path.join(o.root, 'dist', 'world', 'latest-sf.json');
+    if (!existsSync(latest)) return { world: null, problems: ['no sf bake: pass --bake <dir> or run pnpm map:build -- --area sf'] };
+    bakeDir = path.join(path.dirname(latest), (JSON.parse(readFileSync(latest, 'utf8')) as { bakeId: string }).bakeId);
+  }
+  const fragFile = path.join(bakeDir, 'catalog.fragment.json');
+  if (!existsSync(fragFile)) return { world: null, problems: [`${path.relative(o.root, fragFile)} does not exist (run map:pack on the bake)`] };
+  const fragment = readFragment(fragFile);
+  const records = recordMap(o.root);
+  const seen = new Set<string>();
+  for (const m of fragment.entries) {
+    const ref = `${m.kind}/${m.id}`;
+    seen.add(ref);
+    const e = lock.entries[ref];
+    const v = m.variants.default;
+    if (!e) problems.push(`${ref}: in the bake but not in ${o.world}`);
+    else if (!v || e.variants.default !== v.sha256) problems.push(`${ref}: lock sha256 ${(e.variants.default ?? '-').slice(0, 12)} differs from the bake's ${(v?.sha256 ?? '-').slice(0, 12)}`);
+  }
+  for (const [ref, e] of Object.entries(lock.entries)) {
+    if (!seen.has(ref)) problems.push(`${ref}: in ${o.world} but not in the bake`);
+    for (const [variant, sha] of Object.entries(e.variants)) if (sha && !records.has(sha)) problems.push(`${ref} ${variant}: no provenance record for sha256 ${sha.slice(0, 12)}`);
+  }
+  if (problems.length > 0) return { world: null, problems };
+  return { world: { lockRel: path.relative(o.root, lockAbs).split(path.sep).join('/'), lockBytes, bakeDir, objectsDir: path.join(bakeDir, 'objects'), fragment }, problems };
+}
+
+/** The `HOST_MEDIA` of the Worker config for a media env, or null. */
+export function hostMediaOf(root: string, env: 'staging' | 'prod'): string | null {
+  const file = path.join(root, 'services', 'edge', 'wrangler.jsonc');
+  if (!existsSync(file)) return null;
+  const text = readFileSync(file, 'utf8');
+  // the first HOST_MEDIA of the file is the top-level (production) one, the one under "staging" follows it
+  const all = [...text.matchAll(/"HOST_MEDIA"\s*:\s*"([^"]+)"/g)].map((m) => m[1] as string);
+  return (env === 'prod' ? all[0] : all[1]) ?? null;
+}
+
+const defaultArchive = (root: string) => (out: string): number =>
+  spawnSync('git', ['archive', '--format=tar.gz', '-o', out, 'HEAD', ...ODBL_SCRIPT_PATHS], { cwd: root }).status ?? 1;
+
+/** Meta file next to a pointer: `pointer.staging.json` gives `pointer.staging.meta.json`. */
+export const metaPathOf = (pointerFile: string): string => pointerFile.replace(/\.json$/, '.meta.json');
+
 export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
   const log = o.log ?? ((l: string) => console.log(l));
   const penv = o.processEnv ?? process.env;
@@ -73,6 +158,20 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
     }
     if (!o.pointerOut) {
       log('assets:publish: --fragment needs --pointer-out (the committed pointers are never written on this path)');
+      return { code: 2, uploaded: 0, total: 0 };
+    }
+  }
+  if (o.world !== undefined) {
+    if (o.fragment !== undefined) {
+      log('assets:publish: --world and --fragment are alternatives');
+      return { code: 2, uploaded: 0, total: 0 };
+    }
+    if (!o.pointerOut || !o.pointerOut.endsWith('.json')) {
+      log('assets:publish: --world needs --pointer-out <file>.json (the committed pointers are never written on this path)');
+      return { code: 2, uploaded: 0, total: 0 };
+    }
+    if (o.target !== 'r2' && !o.target.startsWith('dir:')) {
+      log(`assets:publish: unknown --target ${o.target} (use r2 or dir:<path>)`);
       return { code: 2, uploaded: 0, total: 0 };
     }
   }
@@ -101,6 +200,26 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
     }
     for (const r of merged.replaced) log(`fragment replaces ${r} in this catalog (the lock entry is untouched)`);
     log(`fragment merged: ${merged.added.length} added, ${merged.replaced.length} replaced`);
+    build = merged.build;
+    fragmentBlobs = merged.fragmentBlobs;
+  }
+  let worldInput: WorldInput | null = null;
+  if (o.world !== undefined) {
+    const loaded = loadWorld(o);
+    if (!loaded.world) {
+      for (const p of loaded.problems) log(`assets:publish: --world: ${p}`);
+      log('assets:publish: world lock rejected; nothing uploaded');
+      return { code: 1, uploaded: 0, total: 0 };
+    }
+    worldInput = loaded.world;
+    const merged = mergeFragment(build, worldInput.fragment, worldInput.objectsDir, o.stamp ?? lockGitStamp(o.root));
+    if (!merged.build) {
+      for (const f of merged.findings) log(formatFinding(f));
+      log(`assets:publish: world entries rejected (${merged.findings.length} findings); nothing uploaded`);
+      return { code: 1, uploaded: 0, total: 0 };
+    }
+    for (const r of merged.replaced) log(`world replaces ${r} in this catalog (the lock entry is untouched)`);
+    log(`world merged: ${merged.added.length} added, ${merged.replaced.length} replaced`);
     build = merged.build;
     fragmentBlobs = merged.fragmentBlobs;
   }
@@ -148,6 +267,11 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
   let uploaded = 0;
   try {
     for (const u of units) uploaded += uploader.put(u);
+    // a dir: target of the world release gets the pack blobs too (an r2 target has them from map:pack)
+    if (worldInput && o.target.startsWith('dir:')) {
+      const keys = fragmentBlobs.map((b) => b.key).sort();
+      if (keys.length > 0) uploaded += uploader.put({ label: 'world', contentType: 'application/octet-stream', srcDir: worldInput.objectsDir, include: '**/*', exclude: [], keys });
+    }
   } catch (e) {
     log(`assets:publish: ${(e as Error).message}`);
     return { code: 1, uploaded, total, buildId };
@@ -180,12 +304,84 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
     return { code: 1, uploaded, total, buildId };
   }
 
+  // the ODbL offer of a world release (DL-695): the bake scripts, the world lock and an index naming both and the world packs
+  let offerUrl: string | undefined;
+  if (worldInput) {
+    const offer = await uploadOffer(o, worldInput, uploader, fragmentBlobs, bucket, log);
+    if (typeof offer === 'string') {
+      log(`assets:publish: ODbL offer: ${offer}`);
+      return { code: 1, uploaded, total, buildId };
+    }
+    uploaded += offer.uploaded;
+    offerUrl = offer.url;
+  }
+
   const text = pointerText(build.pointer);
-  const targets = o.pointerOut ? [path.join(path.resolve(o.pointerOut), 'asset-catalog.json')] : [path.join(o.root, POINTER_WEB), path.join(o.root, POINTER_EDGE)];
+  const targets = worldInput && o.pointerOut
+    ? [path.resolve(o.root, o.pointerOut)]
+    : o.pointerOut ? [path.join(path.resolve(o.pointerOut), 'asset-catalog.json')] : [path.join(o.root, POINTER_WEB), path.join(o.root, POINTER_EDGE)];
   for (const t of targets) {
     mkdirSync(path.dirname(t), { recursive: true });
     writeFileSync(t, text);
   }
+  if (worldInput && o.pointerOut) {
+    const assetsLock = path.join(o.root, 'assets', 'assets.lock.json');
+    const worldIndexSha = worldInput.fragment.entries.find((m) => m.kind === 'data' && m.id === 'world-index')?.variants.default?.sha256;
+    const meta = {
+      schema: 'world-pointer-meta/1',
+      assetsLockSha256: existsSync(assetsLock) ? sha256Of(readFileSync(assetsLock)) : '',
+      worldLockSha256: sha256Of(worldInput.lockBytes),
+      ...(worldIndexSha ? { worldIndexSha256: worldIndexSha } : {}),
+    };
+    writeFileSync(metaPathOf(path.resolve(o.root, o.pointerOut)), `${JSON.stringify(meta, null, 2)}
+`);
+  }
   log(`assets:publish ok: env=${o.env} target=${o.target === 'r2' ? `r2:${bucket}` : o.target} build=${buildId} uploaded ${uploaded} of ${total} objects, manifest ${build.manifestKey}`);
-  return { code: 0, uploaded, total, buildId };
+  return { code: 0, uploaded, total, buildId, ...(offerUrl ? { offerUrl } : {}) };
+}
+
+/** Uploads `odbl/<bakeId>/{bake-scripts.tar.gz, <lock>, index.json}` through the uploader of the run; a string is the reason it failed. */
+async function uploadOffer(o: PublishOptions, w: WorldInput, uploader: Uploader, fragmentBlobs: readonly FragmentBlob[], bucket: string, log: (l: string) => void): Promise<string | { uploaded: number; url: string }> {
+  const bakeId = w.fragment.bakeId;
+  if (!/^[0-9a-f]{64}$/.test(bakeId)) return `the bake id ${bakeId} is not 64 lowercase hex characters`;
+  const dir = path.join(o.distRoot ? path.resolve(o.distRoot) : path.join(o.root, 'dist', 'assets'), `odbl-${bakeId.slice(0, 12)}`);
+  const prefix = `odbl/${bakeId}`;
+  const tarKey = `${prefix}/bake-scripts.tar.gz`;
+  const lockKey = `${prefix}/${path.basename(w.lockRel)}`;
+  const indexKey = `${prefix}/index.json`;
+  mkdirSync(path.join(dir, prefix), { recursive: true });
+  const archive = o.archive ?? defaultArchive(o.root);
+  if (archive(path.join(dir, tarKey)) !== 0 || !existsSync(path.join(dir, tarKey))) return 'the archive of the bake scripts failed (run from a git checkout with the scripts committed)';
+  writeFileSync(path.join(dir, lockKey), w.lockBytes);
+  const file = (key: string, name: string): { name: string; key: string; sha256: string; bytes: number } => {
+    const b = readFileSync(path.join(dir, key));
+    return { name, key, sha256: sha256Of(b), bytes: b.length };
+  };
+  const index = {
+    schema: 'odbl-offer/1',
+    bakeId,
+    licence: 'ODbL-1.0',
+    files: [file(tarKey, 'bake-scripts.tar.gz'), file(lockKey, path.basename(w.lockRel))],
+    scriptPaths: [...ODBL_SCRIPT_PATHS],
+    worldPacks: fragmentBlobs.map((b) => b.key).sort(),
+  };
+  writeFileSync(path.join(dir, indexKey), `${JSON.stringify(index, null, 2)}
+`);
+  const units: ClassFiles[] = [
+    { label: 'odbl-tgz', contentType: 'application/gzip', srcDir: dir, include: tarKey, exclude: [], keys: [tarKey] },
+    { label: 'odbl-json', contentType: 'application/json', srcDir: dir, include: `${prefix}/*.json`, exclude: [], keys: [lockKey, indexKey].sort() },
+  ];
+  let n = 0;
+  try {
+    for (const u of units) n += uploader.put(u);
+  } catch (e) {
+    return (e as Error).message;
+  }
+  const problems = uploader.verify([tarKey, lockKey, indexKey].map((k) => ({ key: k, bytes: statSync(path.join(dir, k)).size })));
+  if (problems.length > 0) return problems.join('; ');
+  const origin = (o.mediaOrigin ?? o.processEnv?.MEDIA_ORIGIN ?? process.env['MEDIA_ORIGIN'] ?? hostMediaOf(o.root, o.env) ?? '<HOST_MEDIA>').replace(/\/$/, '');
+  const url = `${origin}/${indexKey}`;
+  log(`ODbL offer uploaded to ${o.target === 'r2' ? `r2:${bucket}` : o.target}: ${index.files.map((f) => f.key).join(', ')}, ${index.worldPacks.length} world packs listed`);
+  log(`ODbL offer URL: ${url}`);
+  return { uploaded: n, url };
 }

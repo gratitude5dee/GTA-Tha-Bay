@@ -209,6 +209,12 @@ export interface ProdResult {
 export interface Deps {
   exec: Exec;
   build: () => number;
+  /**
+   * The world release (M02c2, DL-670): `before` runs ahead of the build (it swaps the world pointer into this checkout when
+   * `config/world/release.json` names `sf` for the environment), `afterBuild` ahead of `versions upload` (the ODbL offer must be in the built
+   * credits, DL-695). Each returns a failure message or null. Absent: the committed pointers are built.
+   */
+  world?: { before(): string | null; afterBuild(): string | null };
   writeSecrets: (file: string) => void;
   readOutputFile: (file: string) => string;
   configUrl: () => string;
@@ -227,7 +233,11 @@ function currentVersion(o: ProdOptions, d: Deps, exclude?: string): string | nul
 }
 
 export function runProd(o: ProdOptions, d: Deps): ProdResult {
+  const before = d.world?.before();
+  if (before) return { code: 1, message: before };
   if (d.build() !== 0) return { code: 1, message: 'build failed' };
+  const afterBuild = d.world?.afterBuild();
+  if (afterBuild) return { code: 1, message: afterBuild };
 
   if (o.doLifecycle) {
     const old = currentVersion(o, d);

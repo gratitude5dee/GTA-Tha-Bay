@@ -52,6 +52,12 @@ export class FullMapImpl implements FullMapView {
     this.palette = p;
   }
 
+  /** Forgets every tile (new layers or palette). */
+  invalidate(): void {
+    for (const e of this.tiles.values()) e.img?.close?.();
+    this.tiles.clear();
+  }
+
   get tilesResident(): number {
     return this.tiles.size;
   }
@@ -70,7 +76,7 @@ export class FullMapImpl implements FullMapView {
     this.tiles.set(key, e);
     void this.deps.raster.raster(level, cx, cy).then(
       (img) => {
-        if (this.disposed) {
+        if (this.disposed || this.tiles.get(key) !== e) {
           img?.close?.();
           return;
         }

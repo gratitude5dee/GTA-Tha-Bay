@@ -11,7 +11,7 @@ import { toolsRoot } from '../../../ci/lib/common.ts';
 import type { AreaId, SourcesConfig } from '../config.ts';
 import { cmp, stableJson, writeEnsured } from '../util.ts';
 
-export interface AttributionEntry { id: string; text: string; licence: string; licenceUrl: string; source: string; surfaces: string[] }
+export interface AttributionEntry { id: string; text: string; licence: string; licenceUrl: string; source: string; surfaces: string[]; offerUrl?: string }
 export interface AttributionFile { schema: 'attribution-world/1'; entries: AttributionEntry[] }
 
 export const ATTRIBUTION_PATH = path.join(toolsRoot, 'config', 'attribution.world.json');
@@ -30,7 +30,7 @@ export const TERRARIUM_CITATION_URL = 'https://registry.opendata.aws/terrain-til
 
 export function buildAttribution(cfg: SourcesConfig, accessed: string | null = terrariumAccessDate()): AttributionFile {
   const entries = cfg.sources
-    .map((s) => ({ id: s.id, text: s.id === 'terrarium' && accessed ? `${s.attribution}. Terrain Tiles was accessed on ${accessed} from ${TERRARIUM_CITATION_URL}` : s.attribution, licence: s.licence, licenceUrl: s.licenceUrl, source: s.source, surfaces: [...s.surfaces] }))
+    .map((s) => ({ id: s.id, text: s.id === 'terrarium' && accessed ? `${s.attribution}. Terrain Tiles was accessed on ${accessed} from ${TERRARIUM_CITATION_URL}` : s.attribution, licence: s.licence, licenceUrl: s.licenceUrl, source: s.source, surfaces: [...s.surfaces], ...(s.offerUrl ? { offerUrl: s.offerUrl } : {}) }))
     .sort((a, b) => cmp(a.id, b.id));
   return { schema: 'attribution-world/1', entries };
 }

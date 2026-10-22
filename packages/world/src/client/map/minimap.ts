@@ -11,7 +11,7 @@
  */
 import { CHUNK_EDGE_M, GRID_MIN_M, type MapBlip } from '@dv/shared';
 import { clampToRim, drawBlip, drawRoute, type Ctx2D } from './blips.ts';
-import { minimapRadiusM, type MapFrame, type MinimapOptions, type MinimapView } from './views.ts';
+import { minimapRadiusM, type LayerMask, type MapFrame, type MinimapOptions, type MinimapView } from './views.ts';
 
 export const MINIMAP_MAX_TILES = 48;
 export const MINIMAP_MAX_BLIPS = 64;
@@ -27,7 +27,7 @@ export interface TileRaster {
   /** True when tiles are drawn off the main thread (`asset.worker`, `OffscreenCanvas`); false for the main-thread fallback. */
   readonly inWorker: boolean;
   /** Rasterises the tile of `level` at chunk (cx, cy); null when the map has nothing there. */
-  raster(level: 9 | 7, cx: number, cy: number): Promise<TileImage | null>;
+  raster(level: 9 | 7, cx: number, cy: number, layers?: LayerMask): Promise<TileImage | null>;
 }
 
 interface Entry {
@@ -85,6 +85,16 @@ export class MinimapImpl implements MinimapView {
     this.lastDrawAt = -Infinity;
   }
 
+  /** Forgets every tile (a new palette): the next frames rasterise again. Requests still in flight are dropped when they land. */
+  invalidate(): void {
+    for (const e of this.tiles.values()) {
+      e.img?.close?.();
+      e.state = 'empty';
+      e.img = null;
+    }
+    this.tiles.clear();
+  }
+
   /** Changes the options of an attached view (north-up toggle, palette, refresh rate). */
   setOptions(o: Partial<MinimapOptions>): void {
     if (this.o) this.o = { ...this.o, ...o };
@@ -119,7 +129,7 @@ export class MinimapImpl implements MinimapView {
     void this.deps.raster.raster(level, cx, cy).then(
       (img) => {
         this.inFlight--;
-        if (this.disposed) {
+        if (this.disposed || this.tiles.get(key) !== e) {
           img?.close?.();
           return;
         }
