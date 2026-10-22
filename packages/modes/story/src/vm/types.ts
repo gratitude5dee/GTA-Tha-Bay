@@ -8,7 +8,7 @@ export type StoryCommand =
   | { name: 'mission.retry' }
   | { name: 'mission.quit' }
   | { name: 'talk.result'; talkId: string; outcome: string; turns: number; path: 'llm' | 'ink' | 'scripted' }
-  | { name: 'cut.state'; playId: string; state: 'video' | 'fallback' | 'done'; outcome?: CutsceneOutcome }
+  | { name: 'cut.state'; playId: string; state: 'video' | 'fallback' | 'done'; item?: number; trigger?: string; outcome?: CutsceneOutcome }
   // QA debugger (never sent by a production page)
   | { name: 'debug.jump'; stage: number }
   | { name: 'debug.pass' }
@@ -30,6 +30,10 @@ export interface RuntimeOptions {
   flags?: Partial<RuntimeFlags>;
   /** DirectorScripts by id, for `beat` ops and the intro/outro. */
   directors?: ReadonlyMap<string, DirectorScript>;
+  /** CutsceneRefs by id (M05b2): the fallback DirectorScript a `{cutscene}` beat arms. A ref that is not here plays as an instant beat. */
+  cutscenes?: ReadonlyMap<string, { fallback: string }>;
+  /** The next u32 play counter of the session (`cut.request` `n`); the story mode shares one across missions. Default: one per runtime. */
+  playCounter?(): number;
   /** The live story slice (flags, wallet, missions, relations, `activeMission`). */
   story(): StorySlice;
   /** `ProfileSettings.accessibility.timerScale` (1, 1.25, 1.5 or 2). */

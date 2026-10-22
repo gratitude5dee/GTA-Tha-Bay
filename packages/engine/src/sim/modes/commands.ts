@@ -95,7 +95,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         d.events.emit({ t: 'cutscene.skip', tick: d.tick() });
         return;
       case 'cutscene.state':
-        d.events.emit({ t: 'cutscene.state', tick: d.tick(), s: JSON.stringify({ playId: cmd.playId, item: cmd.item, state: cmd.state }) });
+        d.events.emit({ t: 'cutscene.state', tick: d.tick(), s: JSON.stringify({ playId: cmd.playId, item: cmd.item, state: cmd.state, trigger: cmd.trigger, outcome: cmd.outcome }) });
         return;
       case 'mode.cmd':
         d.events.emit({ t: 'mode.cmd', tick: d.tick(), s: JSON.stringify({ mode: cmd.mode, name: cmd.name, args: cmd.args ?? null }) });

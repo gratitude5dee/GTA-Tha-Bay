@@ -26,6 +26,8 @@ export interface QaMissionBoot {
   talk?: RuntimeFlags['talk'];
   beats?: RuntimeFlags['beats'];
   directors?: DirectorScript[];
+  /** The CutsceneRefs the mission's cutscene beats name (M05b2): id and fallback DirectorScript id. */
+  cutscenes?: { id: string; fallback: string }[];
   /** Text of the lines and keys, for how long a `say` holds. */
   lines?: Record<string, string>;
 }
@@ -40,6 +42,7 @@ export interface BeginOptions {
   resume?: boolean;
   flags?: Partial<RuntimeFlags>;
   directors?: readonly DirectorScript[];
+  cutscenes?: readonly { id: string; fallback: string }[];
   lines?: Readonly<Record<string, string>>;
 }
 
@@ -57,6 +60,9 @@ export class StoryController {
   private debugMod: { publishMissionDebug(ctx: ModeContext, rt: MissionRuntime): void } | null = null;
   private debugLoading = false;
   private directors = new Map<string, DirectorScript>();
+  private cutscenes = new Map<string, { fallback: string }>();
+  /** The session's play counter of `cut.request` (u32); shared by the missions of this controller. */
+  private playSerial = 0;
   private lines: Readonly<Record<string, string>> = {};
   private flags: RuntimeFlags = { ...DEFAULT_FLAGS };
   /** A mission waiting for the world under it to be resident (the QA boot path); see `PATIENCE_TICKS`. */
@@ -82,6 +88,7 @@ export class StoryController {
       ...(boot.seed !== undefined ? { seed: boot.seed } : {}),
       flags: { ...(boot.hooks ? { hooks: boot.hooks } : {}), ...(boot.talk ? { talk: boot.talk } : {}), ...(boot.beats ? { beats: boot.beats } : {}) },
       ...(boot.directors ? { directors: boot.directors } : {}),
+      ...(boot.cutscenes ? { cutscenes: boot.cutscenes } : {}),
       ...(boot.lines ? { lines: boot.lines } : {}),
     } };
   }
@@ -92,6 +99,7 @@ export class StoryController {
     const story = this.story as StorySlice;
     this.flags = { ...DEFAULT_FLAGS, ...(o.flags ?? {}) };
     this.directors = new Map((o.directors ?? []).map((d) => [d.id, d]));
+    this.cutscenes = new Map((o.cutscenes ?? []).map((c) => [c.id, { fallback: c.fallback }]));
     this.lines = o.lines ?? {};
 
     // a saved mission of another version or world bake is dropped: the mission is `available` again, never a broken checkpoint
@@ -114,6 +122,8 @@ export class StoryController {
       story: () => story,
       flags: this.flags,
       directors: this.directors,
+      cutscenes: this.cutscenes,
+      playCounter: () => ++this.playSerial,
       lineText: (id) => this.lines[id] ?? id,
       timerScale: () => 1,
     });

@@ -26,6 +26,7 @@ import {
 } from './types.ts';
 import { byStr, hash32 } from './util.ts';
 import { CHILD_OUTCOMES } from './hooks.ts';
+import { answerOverdue, doneEvent, parseStateEvent, playIdOf, requestEvent, transition, type CutBeat } from '../cutscene/protocol.ts';
 
 const isMissing = (e: unknown): boolean => e instanceof Error && e.name === 'NotYetAvailable';
 /** Calls a context service that a build may not have; a missing one is skipped. */
@@ -51,6 +52,8 @@ interface Beat {
   owner: string;
   script: DirectorScript | null;
   ticksLeft: number;
+  /** A generated-cutscene beat (M05b2): the request, its state and the answer wait. Absent for a plain director beat. */
+  cut?: CutBeat;
 }
 
 export interface ThreadView {
@@ -93,6 +96,7 @@ export class MissionRuntime implements OpHost {
   private completing = false;
   private beat: Beat | null = null;
   private beatSerial = 0;
+  private playSerial = 0;
   private lastFailRetry: 'checkpoint' | 'start' = 'checkpoint';
   private failReason = '';
   private runners = new Map<string, OpRunner>();
@@ -431,6 +435,7 @@ export class MissionRuntime implements OpHost {
     if (this.ir.heatPolicy.clearOnPass) soft(() => this.ctx.pursuit.clear('mission'));
     if (this.beat) {
       soft(() => this.ctx.camera.release());
+      if (this.beat.cut) soft(() => this.ctx.input.pop('cutscene'));
       this.beat = null;
     }
     this.undefineZones();
@@ -774,7 +779,7 @@ export class MissionRuntime implements OpHost {
         this.applyTalkResult(c);
         return;
       case 'cut.state':
-        this.noteEvent('cut.state', { playId: c.playId, state: c.state });
+        this.onCutState(c.playId, c.state, c.trigger);
         return;
       case 'debug.jump':
         this.jumpTo(c.stage);
@@ -857,6 +862,9 @@ export class MissionRuntime implements OpHost {
 
   private onSimEvent(e: SimEvent): void {
     if (!this.ir || e.t.startsWith('mode.cmd')) return;
+    // The main thread's answer (`UiCommand cutscene.state`) arrives as a sim event; the next tick applies it like any command.
+    const cs = parseStateEvent(e);
+    if (cs) this.command({ name: 'cut.state', playId: cs.playId, state: cs.state, ...(cs.item !== undefined ? { item: cs.item } : {}), ...(cs.trigger ? { trigger: cs.trigger } : {}) });
     this.counts.set(e.t, (this.counts.get(e.t) ?? 0) + 1);
     if (e.n !== undefined) this.sums.set(e.t, (this.sums.get(e.t) ?? 0) + e.n);
     if (e.t === 'mode.childExit' && this.activeHook !== null && e.n !== undefined) {
@@ -1076,8 +1084,9 @@ export class MissionRuntime implements OpHost {
 
   private startBeat(ref: { cutscene: string } | { director: string }, owner: string): WaitSpec | undefined {
     this.noteEvent('beat', { ref: 'director' in ref ? ref.director : ref.cutscene });
-    // cut.request and the CutscenePlayer come with M05b2: a cutscene ref plays as an instant beat here
-    const script = 'director' in ref ? (this.opts.directors?.get(ref.director) ?? null) : null;
+    const cutRef = 'cutscene' in ref ? (this.opts.cutscenes?.get(ref.cutscene) ?? null) : null;
+    const scriptId = 'director' in ref ? ref.director : (cutRef?.fallback ?? null);
+    const script = scriptId !== null ? (this.opts.directors?.get(scriptId) ?? null) : null;
     if (!script || this.flagsCfg.beats === 'instant') {
       if (script) this.applyEndMarks(script);
       this.noteEvent('beat.done', { instant: true });
@@ -1085,31 +1094,90 @@ export class MissionRuntime implements OpHost {
     }
     const id = ++this.beatSerial;
     this.beat = { id, owner, script, ticksLeft: Math.max(1, Math.ceil(script.durationSec * 60)) };
+    if (cutRef !== null && 'cutscene' in ref) {
+      // A generated cutscene (D7): ask the main thread for it and arm the fallback on the request tick.
+      const playNo = this.opts.playCounter ? this.opts.playCounter() : ++this.playSerial;
+      this.beat.cut = { playNo, playId: playIdOf(playNo), refId: ref.cutscene, state: 'armed', waited: 0 };
+      this.applyStartMarks(script);
+      soft(() => this.ctx.input.push('cutscene'));
+      this.ctx.events.emit(requestEvent(this.ctx.tick, [ref.cutscene], playNo));
+      this.noteEvent('cut.request', { ref: ref.cutscene, n: playNo });
+    }
+    this.publishShot(script);
+    return { k: 'pred', pred: () => this.beat === null || this.beat.id !== id };
+  }
+
+  /** Publishes the script's first shot as the cinematic camera directive and locks the player toggle. */
+  private publishShot(script: DirectorScript): void {
     const player = this.actors.player();
     const first = script.shots[0];
-    if (player !== null) {
-      soft(() =>
-        this.ctx.camera.direct({
-          mode: 'cinematic',
-          shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: script.seed },
-          letterbox: script.letterbox,
-          lockPlayerToggle: true,
-          reason: 'mission',
-        }),
-      );
+    if (player === null) return;
+    soft(() =>
+      this.ctx.camera.direct({
+        mode: 'cinematic',
+        shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: script.seed },
+        letterbox: script.letterbox,
+        lockPlayerToggle: true,
+        reason: this.beat?.cut ? 'cutscene' : 'mission',
+      }),
+    );
+  }
+
+  /** The main thread's answer for the play in force. A stale or repeated answer is ignored. */
+  private onCutState(playId: string, answer: 'video' | 'fallback' | 'done', trigger?: string): void {
+    const b = this.beat;
+    if (!b?.cut || b.cut.playId !== playId) return;
+    const next = transition(b.cut.state, answer);
+    this.noteEvent('cut.state', { playId, state: answer, ...(trigger ? { trigger } : {}) });
+    if (next === null) return;
+    if (next === 'ended') {
+      this.endBeat(b, 'cut');
+      return;
     }
-    return { k: 'pred', pred: () => this.beat === null || this.beat.id !== id };
+    b.cut.state = next;
+    // The script runs from its start: the command carries no clip position.
+    if (next === 'fallback' && b.script) b.ticksLeft = Math.max(1, Math.ceil(b.script.durationSec * 60));
   }
 
   private advanceBeat(): void {
     const b = this.beat;
     if (!b) return;
+    if (b.cut) {
+      if (b.cut.state === 'video') return; // the host pauses the sim; nothing counts while a clip covers the screen
+      if (b.cut.state === 'armed') {
+        b.cut.waited++;
+        // The mission never waits on the main thread: no answer in time is a `fallback`.
+        if (answerOverdue(b.cut)) this.onCutState(b.cut.playId, 'fallback', 'not_ready');
+        return;
+      }
+    }
     b.ticksLeft--;
     if (b.ticksLeft > 0) return;
+    this.endBeat(b, b.cut ? 'script' : 'director');
+  }
+
+  /** The beat is over: end marks, camera and input back, the clock runs on. */
+  private endBeat(b: Beat, via: 'cut' | 'script' | 'director'): void {
     this.beat = null;
     soft(() => this.ctx.camera.release());
+    if (b.cut) {
+      soft(() => this.ctx.input.pop('cutscene'));
+      this.ctx.events.emit(doneEvent(this.ctx.tick, b.cut.playNo));
+    }
     if (b.script) this.applyEndMarks(b.script);
-    this.noteEvent('beat.done', { instant: false });
+    this.noteEvent('beat.done', { instant: false, ...(b.cut ? { via } : {}) });
+  }
+
+  /** Puts each actor of the script on its start mark. */
+  private applyStartMarks(script: DirectorScript): void {
+    for (const a of script.actors) {
+      const mark = script.marks[a.start];
+      if (!mark) continue;
+      const h = this.actors.handleOf(a.who);
+      if (h === null) continue;
+      const p = this.markPos(mark.at);
+      if (p) this.actors.place(h, p, (mark.yawDeg * Math.PI) / 180);
+    }
   }
 
   /** Puts each actor of the script on its end mark. */

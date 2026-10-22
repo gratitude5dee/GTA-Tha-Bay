@@ -23,6 +23,9 @@ export interface HostElement {
   setAttribute(name: string, value: string): void;
   removeAttribute(name: string): void;
   style: object;
+  /** Present on real elements; the tap prompt of `waitForTap` needs it (M05b2). */
+  addEventListener?(type: string, listener: (e: unknown) => void): void;
+  textContent?: string | null;
 }
 
 export type RenditionKey = 'v540' | 'v768' | 'v1080' | 'p720';
@@ -73,6 +76,10 @@ export class DomCutsceneHost {
   private shown: HTMLVideoElement | null = null;
   private simWasPaused = false;
   private mobile: boolean;
+  /** The still image that replaced the video during a mid-play stall (M05b2); the sim runs behind it. */
+  private still: HostElement | null = null;
+  /** The layer is up with no cover: subtitles over the live world (the in-engine fallback, M05b2). */
+  private cuesOnly = false;
 
   constructor(private readonly opts: DomHostOptions) {
     this.mobile = opts.tier.startsWith('mobile');
@@ -86,11 +93,98 @@ export class DomCutsceneHost {
   }
 
   get visible(): boolean {
-    return this.shown !== null;
+    return this.shown !== null || this.still !== null;
+  }
+
+  /** True while the layer shows only the overlay (subtitles) above the running world. */
+  get cues(): boolean {
+    return this.cuesOnly;
+  }
+
+  /**
+   * Subtitles over the live world, with no cover and no pause: the overlay of the in-engine fallback (a cue-only sequence has no
+   * manifest and shows no AI chip). The HUD hides as it does for a clip.
+   */
+  showCues(): void {
+    if (this.cuesOnly || this.visible) return;
+    this.cuesOnly = true;
+    Object.assign(this.layer.style, { background: 'transparent' });
+    this.opts.parent.appendChild(this.layer);
+    this.layer.appendChild(this.overlayRoot);
+    this.opts.root?.setAttribute('data-dv-cutscene', 'on');
+  }
+
+  hideCues(): void {
+    if (!this.cuesOnly) return;
+    this.cuesOnly = false;
+    this.opts.parent.removeChild(this.layer);
+    this.opts.root?.removeAttribute('data-dv-cutscene');
+    Object.assign(this.layer.style, { background: '#000' });
+  }
+
+  /**
+   * A mid-play stall: the last frame replaces the video and covers the screen while the loop and the sim run again behind it, so the
+   * in-engine DirectorScript can finish the beat. `hide()` removes the layer when the beat is over.
+   */
+  holdStill(url: string): void {
+    const video = this.shown;
+    if (video === null) return;
+    const img = this.opts.createElement('img');
+    img.setAttribute('src', url);
+    img.setAttribute('alt', '');
+    Object.assign(img.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', background: '#000' });
+    this.shown = null;
+    try {
+      video.pause();
+    } catch {
+      // nothing playing
+    }
+    releaseDecoder(video);
+    this.layer.removeChild(video);
+    this.layer.appendChild(img);
+    this.layer.appendChild(this.overlayRoot);
+    this.still = img;
+    if (!this.simWasPaused) this.opts.sim.setPaused(false);
+    this.opts.loop.startLoop();
+  }
+
+  /**
+   * "Tap to play" for a `play()` that the browser refused (Low Power Mode): a button over the layer; resolves true when it is tapped
+   * within `ms`, false when the time is up. The caller calls `play()` again on true.
+   */
+  waitForTap(label: string, ms: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const btn = this.opts.createElement('button');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('class', 'dv-btn dv-cutscene-tap');
+      btn.setAttribute('data-testid', 'cutscene-tap-to-play');
+      btn.textContent = label;
+      Object.assign(btn.style, { position: 'absolute', insetBlockEnd: '30%', insetInlineStart: '50%', transform: 'translateX(-50%)', zIndex: '2' });
+      let done = false;
+      const finish = (tapped: boolean): void => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        this.overlayRoot.removeChild(btn);
+        resolve(tapped);
+      };
+      const timer = setTimeout(() => finish(false), ms);
+      btn.addEventListener?.('click', () => finish(true));
+      this.overlayRoot.appendChild(btn);
+    });
   }
 
   /** Covers the canvas with `video`. Rendering stops and the sim pauses (once; a second `show` swaps the element). */
   async show(video: HTMLVideoElement): Promise<void> {
+    if (this.cuesOnly) {
+      this.cuesOnly = false;
+      Object.assign(this.layer.style, { background: '#000' });
+    }
+    if (this.still !== null) {
+      this.layer.removeChild(this.still);
+      this.still = null;
+      this.shown = null;
+    }
     if (this.shown === null) {
       this.simWasPaused = this.opts.sim.paused;
       this.opts.loop.stopLoop();
@@ -110,6 +204,15 @@ export class DomCutsceneHost {
 
   /** Uncovers the canvas: drops the element's decoder, restores the loop and the sim, releases the wake lock. */
   async hide(): Promise<void> {
+    if (this.still !== null) {
+      const img = this.still;
+      this.still = null;
+      this.layer.removeChild(img);
+      this.opts.parent.removeChild(this.layer);
+      this.opts.root?.removeAttribute('data-dv-cutscene');
+      if (this.mobile && this.opts.wakeLock) await this.opts.wakeLock.release();
+      return;
+    }
     const video = this.shown;
     if (video === null) return;
     this.shown = null;
