@@ -129,7 +129,7 @@ function popcount(v: number): number {
   return c;
 }
 
-/** Result bits: 1 matched, 2 EX request. */
+/** Result bits: 1 matched, 2 EX request, bits 8..15 recency (255 - age of the later of press and completion; higher = fresher). */
 export const MATCH = 1, MATCH_EX = 2;
 
 export interface ParseState {
@@ -150,14 +150,14 @@ export function matchMove(buf: Int32Array, base: number, tick: number, m: CMove,
       for (let a = 0; a <= buffer; a++) {
         if (tick - a <= ps.lastConsumed) break;
         if (risingAt(buf, base, tick, a, m.mask) === 0) continue;
-        if (m.dirReq === 0 || dirHas(ringDir(buf, base, tick, a), m.dirReq)) return MATCH;
+        if (m.dirReq === 0 || dirHas(ringDir(buf, base, tick, a), m.dirReq)) return MATCH | ((255 - a) << 8);
       }
       return 0;
     }
     case Pat.Chord: {
       for (let a = 0; a <= buffer; a++) {
         if (tick - a <= ps.lastConsumed) break;
-        if (chordAt(buf, base, tick, a, m.mask, pp.chord)) return MATCH;
+        if (chordAt(buf, base, tick, a, m.mask, pp.chord)) return MATCH | ((255 - a) << 8);
       }
       return 0;
     }
@@ -195,14 +195,23 @@ function releaseAndButton(buf: Int32Array, base: number, tick: number, m: CMove,
         bits |= risingAt(buf, base, tick, p + k, m.mask);
         if (k <= p) bits |= risingAt(buf, base, tick, p - k, m.mask);
       }
-      return MATCH | (popcount(bits) >= 2 && ps.canEx && m.hasEx ? MATCH_EX : 0);
+      return MATCH | (popcount(bits) >= 2 && ps.canEx && m.hasEx ? MATCH_EX : 0) | ((255 - Math.min(p, mAge)) << 8);
     }
   }
   return 0;
 }
 
-/** Tick-exact double tap of `x` on the current frame (dash input). */
+/**
+ * Dash input on the current frame: a pure forward (or back) tap, then a return that never touches up or down, then the tap
+ * again inside `window`. Motions such as 236236 contain two forward frames but go through down, so they never dash.
+ */
 export function doubleTapNow(buf: Int32Array, base: number, tick: number, x: number, window: number): boolean {
-  return tapCompletes(buf, base, tick, 0, x, window);
+  if (ringDir(buf, base, tick, 0) !== x || ringDir(buf, base, tick, 1) === x) return false;
+  const limit = Math.min(window, RING - 1);
+  for (let a = 1; a <= limit; a++) {
+    const d = ringDir(buf, base, tick, a);
+    if (dirHas(d, 2) || dirHas(d, 8)) return false;
+    if (d === x && a >= 2) return true;
+  }
+  return false;
 }
-

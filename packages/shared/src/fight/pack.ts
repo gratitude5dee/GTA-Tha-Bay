@@ -85,7 +85,7 @@ function patternOf(p: InputPattern, isSuper: boolean): { pat: number; mask: numb
       const base = SEQS[p.seq] ?? [];
       // Supers read as the doubled motion (236236 / 214214; FC5.4) -- BD-M08a1-02.
       r.seq = isSuper ? base.concat(base) : base.slice();
-      r.cx = 10 * r.seq.length;
+      r.cx = p.seq === '360' ? 80 : 10 * p.seq.length;   // numpad length: 623 is as complex as 236
     }
   }
   return r;

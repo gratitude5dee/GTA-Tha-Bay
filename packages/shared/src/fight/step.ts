@@ -75,8 +75,10 @@ function pickClassic(c: Ctx, buf: Int32Array, tick: number, i: number, clsMask: 
   const pp = ppxOf(c, i), ps = psOf(c, i);
   const hype = g(buf, o + FF.Hype);
   let checkDone = !allowCheck || sc !== SCHEME_CLASSIC;
+  let best = -1, bestScore = -1, bestCls = 0, bestEx = 0;
   for (let k = 0; k < order.length; k++) {
     const m = kit.moves[order[k] as number] as CMove;
+    if (best >= 0 && m.cls < bestCls) break;
     if (!checkDone && m.cls < Cls.Command) {
       checkDone = true;
       if (canCheck(c, buf, o) && chordWithin(c, buf, tick, i, FB.MP | FB.MK, pp.bufS)) return NO_CHECK;
@@ -87,9 +89,12 @@ function pickClassic(c: Ctx, buf: Int32Array, tick: number, i: number, clsMask: 
     if (m.cost > hype) continue;
     const r = matchMove(buf, rb, tick, m, pp, ps);
     if (r === 0) continue;
-    c.iEx[i] = (r & MATCH_EX) !== 0 ? 1 : 0;
-    return m.idx;
+    // Inside the best class the freshest completion wins (a 236236 with no meter throws the fireball, not the 623 it also contains),
+    // then the more complex pattern, then kit order (FC5.3 rule 4).
+    const score = r >> 8;
+    if (score > bestScore) { best = m.idx; bestScore = score; bestCls = m.cls; bestEx = (r & MATCH_EX) !== 0 ? 1 : 0; }
   }
+  if (best >= 0) { c.iEx[i] = bestEx; return best; }
   if (!checkDone && canCheck(c, buf, o) && chordWithin(c, buf, tick, i, FB.MP | FB.MK, pp.bufS)) return NO_CHECK;
   return -1;
 }
