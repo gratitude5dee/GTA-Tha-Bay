@@ -1,0 +1,53 @@
+{
+  "schema": "cutscene-asset/1",
+  "key": "58e0b776fe9289507434e773f84a78d63c0001cbc569d5fa9556503085bab8e3",
+  "recipe": "cut@1",
+  "fps": 24,
+  "frames": 144,
+  "width": 1344,
+  "height": 768,
+  "renditions": {
+    "v768": {
+      "file": "v768.mp4",
+      "bytes": 969525,
+      "sha256": "de9dc16a5b6584c29db4421ef089690da32b6578e1508a19c08fcfeecd752f92",
+      "codecs": "avc1.640028",
+      "kbps": 1293
+    },
+    "v540": {
+      "file": "v768.webm",
+      "bytes": 259697,
+      "sha256": "6ecf2c781775f25a431501c254dccd5181cc8b51fedf29bb967144516c142dbc",
+      "codecs": "vp09.00.40.08",
+      "kbps": 346
+    }
+  },
+  "poster": "poster.webp",
+  "last": "last.webp",
+  "subs": {
+    "en": "subs.en.vtt"
+  },
+  "shots": [
+    {
+      "shotId": "s1",
+      "startFrame": 0,
+      "frames": 144
+    }
+  ],
+  "characters": [],
+  "licence": {
+    "gate": "ADR-GENAI-01",
+    "provider": "fixture",
+    "status": "pending",
+    "termsSnapshotSha256": []
+  },
+  "provenance": {
+    "endpoint": "tests/fixtures/cutscenes/make-fixtures.ts",
+    "pinnedUpdatedAt": "2026-10-22",
+    "requestIds": [],
+    "origSha256": "62f64bcd486d0c8a9b6969566b0e57658b25cdaeb13f80e9c92ae58477169dab",
+    "c2pa": "absent",
+    "resigned": false,
+    "aiGenerated": true
+  }
+}

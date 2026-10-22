@@ -274,6 +274,8 @@ async function boot(): Promise<void> {
       import('@dv/engine/assets/bridge'),
     ]);
     if (engine) installEngineBridge(engine);
+    // The flat cutscene path (M04c): F9 plays the test clip over the game, and window.__dvBridge.media drives it. QA builds only.
+    if (engine) (await import('./qa/media-game.ts')).installGameMedia(engine, platform);
     // The mission debugger (M05a1): window.__dvBridge.mission and the overlay, QA builds only.
     if (engine) {
       const [{ installMissionBridge }, { mountMissionOverlay }] = await Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]);

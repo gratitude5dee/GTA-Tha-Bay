@@ -220,7 +220,8 @@ describe('QA play bypass', () => {
         return true;
       },
       activeDevice: () => 'kbm',
-      audioUnlock: () => void unlocked++,
+      audioUnlock: () => undefined,
+      firstGesture: () => void unlocked++,
     };
     return {
       port,

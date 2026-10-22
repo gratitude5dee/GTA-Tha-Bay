@@ -28,7 +28,8 @@ import {
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
 import racingTouchLayoutJson from '../../../../../config/input/touch/vehicle-racing.json';
 import { ENGINE_TIERS } from '../anim/lod.ts';
-import { AUDIO_CONFIG, AudioServiceImpl, unlockOnFirstGesture, type AudioContextLike } from '../audio/audio-service.ts';
+import { AUDIO_CONFIG, AudioServiceImpl, type AudioContextLike } from '../audio/audio-service.ts';
+import { createFirstGestureUnlock, type FirstGestureUnlock } from '../../platform/media/first-gesture.ts';
 import type { GrayboxInfo, GrayboxPacks, GrayboxPackUrls, GrayboxWorld } from '../graybox/load.ts';
 import type { TouchOverlay } from '../input/touch-overlay.ts';
 import type { FreeCam } from '../debug/free-cam.ts';
@@ -178,8 +179,12 @@ export interface EngineHandle {
   readonly tools: { inspector: Inspector; physics: PhysicsDraw } | null;
   /** The input router (null until it exists): the shell rebinds controls and listens for client actions through it (M04b1). */
   readonly router: InputRouterImpl | null;
-  /** Unlocks the audio context from a user gesture (the Title's first tap; M04c wraps this in `FirstGestureUnlock`). */
+  /** Unlocks the audio context from a user gesture (the audio test button of Settings). */
   audioUnlock(): void;
+  /** The first gesture of the Title (M04c, DL-663): audio context plus the pool of three unlocked `<video>` elements. Idempotent. */
+  firstGesture(): void;
+  /** The `FirstGestureUnlock` pool for S03's CutscenePlayer: `acquireVideo`/`releaseVideo` (C13 1.1). */
+  readonly media: FirstGestureUnlock;
   /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
   ask(cmd: DebugCommand, replyName: string, timeoutMs?: number): Promise<unknown>;
   dispose(): Promise<void>;
@@ -337,9 +342,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         maxVoices: ENGINE_TIERS[opts.tier ?? opts.flags.tier ?? 'desktop'].audioVoices,
       })
     : null;
-  if (audio) {
-    cleanups.push(unlockOnFirstGesture(audio, window), audio.attachLifecycle(document, () => document.visibilityState));
-  }
+  // FirstGestureUnlock (M04c): the single first-gesture handler; it unlocks the audio service and the video pool.
+  const media = createFirstGestureUnlock({ audio: audio ?? { unlock: () => Promise.resolve() } });
+  cleanups.push(media.attach(window));
+  if (audio) cleanups.push(audio.attachLifecycle(document, () => document.visibilityState));
 
   const spawn = opts.spawn ?? spawnSimWorker;
 
@@ -889,6 +895,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     audioUnlock: () => {
       void audio?.unlock().catch(() => {});
     },
+    firstGesture: () => {
+      void media.trigger();
+    },
+    media,
     telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {

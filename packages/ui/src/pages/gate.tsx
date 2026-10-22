@@ -131,7 +131,7 @@ const isModifier = (e: KeyboardEvent): boolean => e.key === 'Tab' || e.key === '
 export function TitlePage(_props: PageProps) {
   const { ctx } = useShell();
   const start = (): void => {
-    ctx.engine?.audioUnlock();
+    ctx.engine?.firstGesture();
     ctx.fire('gesture');
   };
   useEffect(() => {

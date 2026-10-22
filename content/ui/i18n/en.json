@@ -2,6 +2,8 @@
   "boot.loading": "Loading {brand}",
   "title.name": "{brand}",
   "title.start": "Tap to start",
+  "cutscene.skip": "Skip",
+  "cutscene.ai": "AI-generated",
   "title.credits": "Credits",
   "title.legal": "Legal",
   "title.account": "Account",

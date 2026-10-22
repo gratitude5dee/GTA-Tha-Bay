@@ -190,6 +190,8 @@ export interface EnginePort {
   /** The device the player used last ('kbm' | 'gamepad' | 'touch'), for glyphs. */
   activeDevice(): string;
   audioUnlock(): void;
+  /** The first gesture of the title: `FirstGestureUnlock` (audio context and the pool of three `<video>` elements, M04c, DL-663). Idempotent. */
+  firstGesture(): void;
 }
 
 /** What the app does with the engine and the canvas as the shell changes state. All three are idempotent. */

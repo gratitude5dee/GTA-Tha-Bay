@@ -29,7 +29,10 @@
     "./workers/sim-worker-core": "./src/workers/sim-worker-core.ts",
     "./platform/perf": "./src/platform/perf/scenario-runner.ts",
     "./platform/tier-config": "./src/platform/tier-config.ts",
-    "./platform/post": "./src/platform/post/index.ts"
+    "./platform/post": "./src/platform/post/index.ts",
+    "./platform/media": "./src/platform/media/index.ts",
+    "./platform/media/spike-player": "./src/platform/media/spike-player.ts",
+    "./client/audio": "./src/client/audio/audio-service.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/engine",

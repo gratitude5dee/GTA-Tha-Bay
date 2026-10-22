@@ -1,0 +1,53 @@
+{
+  "schema": "cutscene-asset/1",
+  "key": "083fde5cc3b4360227512f1ae92c6b042203d1b5e5d78e628e7d440b9c318b54",
+  "recipe": "cut@1",
+  "fps": 24,
+  "frames": 192,
+  "width": 1344,
+  "height": 768,
+  "renditions": {
+    "v768": {
+      "file": "v768.mp4",
+      "bytes": 1248222,
+      "sha256": "ff9b319be5a5f4b73fea139943975dc15a3dbef50e3a4ac072e5b2b0c56584b5",
+      "codecs": "avc1.640028",
+      "kbps": 1248
+    },
+    "v540": {
+      "file": "v768.webm",
+      "bytes": 349649,
+      "sha256": "a81022addae75e895e2d47b4ec54c6467769f84b06689d97b5bb3374295227d7",
+      "codecs": "vp09.00.40.08",
+      "kbps": 350
+    }
+  },
+  "poster": "poster.webp",
+  "last": "last.webp",
+  "subs": {
+    "en": "subs.en.vtt"
+  },
+  "shots": [
+    {
+      "shotId": "s1",
+      "startFrame": 0,
+      "frames": 192
+    }
+  ],
+  "characters": [],
+  "licence": {
+    "gate": "ADR-GENAI-01",
+    "provider": "fixture",
+    "status": "pending",
+    "termsSnapshotSha256": []
+  },
+  "provenance": {
+    "endpoint": "tests/fixtures/cutscenes/make-fixtures.ts",
+    "pinnedUpdatedAt": "2026-10-22",
+    "requestIds": [],
+    "origSha256": "95b0e844eca8dfce05d569155d3b9950650c3a2de1946f5b7d0ab13c9996498b",
+    "c2pa": "absent",
+    "resigned": false,
+    "aiGenerated": true
+  }
+}

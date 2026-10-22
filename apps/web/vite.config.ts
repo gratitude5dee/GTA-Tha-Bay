@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { BRAND } from '../../config/brand.ts';
 import { cspForBuild } from '../../config/csp-hosts.ts';
 import tokens from '../../config/ui/tokens.json' with { type: 'json' };
+import { cutsceneFixtures } from './vite/cutscene-fixtures.ts';
 import { mediaLocal } from './vite/media-local.ts';
 import { moduleIds } from './vite/module-ids.ts';
 
@@ -88,7 +89,7 @@ export default defineConfig({
     brandInHtml(),
     moduleIds(here('.'), here('../..'), true),
     // QA builds only: the same-origin mirror of the asset store (M01e).
-    ...(QA ? [mediaLocal(here('.'))] : []),
+    ...(QA ? [mediaLocal(here('.')), cutsceneFixtures(here('.'))] : []),
     cspInHeaders(),
     VitePWA({
       strategies: 'injectManifest',
@@ -139,7 +140,7 @@ export default defineConfig({
       input: {
         main: here('index.html'),
         account: here('account/index.html'),
-        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html'), 'qa/world-hash': here('qa/world-hash.html') } : {}),
+        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html'), 'qa/world-hash': here('qa/world-hash.html'), 'qa/cutscene-spike': here('qa/cutscene-spike.html') } : {}),
       },
       output: {
         chunkFileNames: chunkName,
