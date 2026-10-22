@@ -3,19 +3,17 @@
  * mission observation (`observe()` of the host, never the runtime), derives a goal from the active objectives and writes player 0's
  * `InputFrame`. It cannot place anything or set an objective: the oracle would be vacuous. Seeded only from the `bot` stream.
  *
- * Params: `skip` (an integer; the bot stays neutral for that many ticks first, a robustness run), `pathNoise` is not used.
- * `done()` is true when the mission passed (`pass`), failed (`fail:<reason>` is read by the host), or ended otherwise.
+ * Params: `skip` (an integer; the bot stays neutral for that many ticks first, which shows that the bot is what passes a mission).
+ * `done()` is true when the mission passed (outcome `pass`), failed (`fail`) or was aborted (`abort`).
  * Sim code under the C02 lint; the registration at the bottom is a QA entry (`@dv/mode-story/qa`).
  */
-import { SimButton, type InputFrame } from '@dv/shared';
+import type { InputFrame } from '@dv/shared';
 import type { BotContext, BotDriver } from '@dv/engine/qa';
 import { deriveGoal, pickObjective, type Goal } from './goals.ts';
 import type { MissionObs } from './observe.ts';
 import { decide, newMem, type Control, type Mem } from './policies.ts';
 
 export const STORY_AUTOPLAYER_ID = 'story.autoplayer';
-
-const PRESSABLE = (1 << SimButton.Interact) | (1 << SimButton.Enter) | (1 << SimButton.Jump) | (1 << SimButton.Attack);
 
 /** Stable description of the goal, for the stuck report and the debugger. */
 export function describeGoal(g: Goal): string {
@@ -77,7 +75,6 @@ export function createStoryAutoplayer(): BotDriver & { view(): AutoplayerView } 
       // a pressed edge is a button that was not held on the previous tick
       const pressed = (buttons & ~prev) >>> 0;
       const released = (prev & ~buttons) >>> 0;
-      void PRESSABLE;
       prev = buttons;
       return {
         tick, buttons, pressed, released, moveX: c.moveX, moveY: c.moveY, throttle: c.throttle, brake: c.brake, steer: c.steer,

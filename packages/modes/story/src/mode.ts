@@ -230,6 +230,8 @@ export class StoryController {
 
   /** QA: the story autoplayer plays the running mission live (`__dvBridge.mission.autoplay`). Not an oracle: the live profile is `local`. */
   private async liveAutoplay(on: boolean): Promise<void> {
+    // the literal test lets a production build drop the import (a class method is not tree-shaken, so the guard sits here)
+    if (import.meta.env.VITE_DV_QA !== '1' || !this.env.qa) return;
     const live = await import('./autoplay/live.ts');
     const host = { ctx: () => this.ctx, rt: () => this.rt, setBot: (b: Parameters<NonNullable<StoryWrapEnv['setBot']>>[0]) => this.env.setBot?.(b) };
     if (on) live.startLiveAutoplay(host);
