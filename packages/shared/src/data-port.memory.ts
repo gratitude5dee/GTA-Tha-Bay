@@ -386,6 +386,43 @@ export class InMemoryDataPort implements ServerDataPort {
       rows['encounter_transcripts'] = [...this.transcriptRows.values()].filter((t) => t.profile_id === pid).map((t) => ({ ...t }));
       return Promise.resolve(rows);
     },
+    nearestMemory: (pid, npcId, q, window = 64) => {
+      const now = this.clock();
+      let best: { id: number; cosine: number } | null = null;
+      const pair = this.memoryRows
+        .filter((m) => m.profile_id === pid && m.npc_id === npcId && m.expires_at > now)
+        .sort((a, b) => b.id - a.id)
+        .slice(0, window);
+      for (const m of pair) {
+        const c = cosine(m.embedding, q);
+        if (best === null || c > best.cosine) best = { id: m.id, cosine: c };
+      }
+      return Promise.resolve(best);
+    },
+    touchMemories: (ids) => {
+      const now = this.clock();
+      for (const m of this.memoryRows) {
+        if (!ids.includes(m.id)) continue;
+        m.last_accessed_at = now;
+        m.expires_at = now + MEMORY_TTL_MS;
+      }
+      return Promise.resolve();
+    },
+    forgetNpcMemory: (pid, npcId) => {
+      const before = this.memoryRows.length;
+      for (let i = this.memoryRows.length - 1; i >= 0; i--) {
+        const m = this.memoryRows[i] as MemoryRow;
+        if (m.profile_id === pid && (npcId === null || m.npc_id === npcId)) this.memoryRows.splice(i, 1);
+      }
+      let relationships = 0;
+      for (const [k, r] of [...this.relationshipRows]) {
+        if (r.profile_id === pid && (npcId === null || r.npc_id === npcId)) {
+          this.relationshipRows.delete(k);
+          relationships++;
+        }
+      }
+      return Promise.resolve({ memories: before - this.memoryRows.length, relationships });
+    },
   };
 
   readonly ledger: LedgerStore = {

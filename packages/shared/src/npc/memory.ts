@@ -5,7 +5,8 @@ import { sha256Hex } from '../hash.ts';
 import { dexp, dsqrt } from '../detmath.ts';
 import type { KillScope, RosterFlags } from '../api/v1.ts';
 import type { AssetRef } from '../assets/c07.ts';
-import type { SummaryPatch } from '../contracts/c10-npc.ts';
+import type { MemoryKind, SummaryPatch } from '../contracts/c10-npc.ts';
+import { scrubPii } from './pii.ts';
 
 /** Recency decay scale in C06 game half-seconds: 72 game hours (C12 1.1 section 3, DL-058). Not 72*3600. */
 export const MEMORY_RECENCY_SCALE = 518_400;
@@ -50,13 +51,21 @@ export interface RelationshipFields {
 }
 
 /**
+ * A summary patch as the summarize consumer hands it to the ports. `replaceSummary` is a Worker-side extension of C10 `SummaryPatch`
+ * (BD-M06a4-04): when set, `summaryUpdate` replaces the stored summary instead of being appended, which is how a summary that outgrew
+ * 1,200 characters is re-summarized. Both ports honour it; the contract type is unchanged.
+ */
+export type SummaryPatchX = SummaryPatch & { replaceSummary?: boolean };
+
+/**
  * The relationship after an encounter summary (C10 SummaryPatch): deltas are added and clamped to -100..100, `flagsPatch` is merged over
- * the flags, `summaryUpdate` is appended and the result keeps its newest 1,200 characters, and the encounter count goes up by one.
+ * the flags, `summaryUpdate` is appended (or replaces the summary with `replaceSummary`) and the result keeps its newest 1,200 characters,
+ * and the encounter count goes up by one. The per-encounter clamp of +-10 is `clampPatch`, applied before the port is called.
  * The patch's memories carry no embeddings, so they are written by the caller through `npcMemory.write`.
  */
-export function mergeSummary(current: RelationshipFields | null, s: SummaryPatch): RelationshipFields {
+export function mergeSummary(current: RelationshipFields | null, s: SummaryPatchX): RelationshipFields {
   const base: RelationshipFields = current ?? { affinity: 0, trust: 0, flags: {}, encounters: 0, summary: '', soul_version: s.soulVersion };
-  const joined = base.summary === '' ? s.summaryUpdate : s.summaryUpdate === '' ? base.summary : `${base.summary} ${s.summaryUpdate}`;
+  const joined = s.replaceSummary === true ? s.summaryUpdate : base.summary === '' ? s.summaryUpdate : s.summaryUpdate === '' ? base.summary : `${base.summary} ${s.summaryUpdate}`;
   return {
     affinity: clamp(Math.round(base.affinity + s.affinityDelta), -100, 100),
     trust: clamp(Math.round(base.trust + s.trustDelta), -100, 100),
@@ -66,6 +75,80 @@ export function mergeSummary(current: RelationshipFields | null, s: SummaryPatch
     soul_version: s.soulVersion,
   };
 }
+
+// ---- the rules of M06a4 (04-npc.md section 5.6) ----
+
+/** A new memory whose cosine against the pair's stored memories reaches this only refreshes `last_accessed_at`. */
+export const MEMORY_DUPLICATE_COSINE = 0.92;
+/** A memory may quote at most this many consecutive words of the player's text. */
+export const MEMORY_QUOTE_WORDS_MAX = 8;
+/** The affinity and trust deltas of one encounter summary are clamped to +-10. */
+export const SUMMARY_DELTA_MAX = 10;
+/** Every Nth encounter of a pair adds one reflection memory. */
+export const REFLECTION_EVERY = 10;
+export const REFLECTION_IMPORTANCE = 8;
+export const PROMISE_IMPORTANCE_MIN = 6;
+export const SUMMARY_MEMORIES_MAX = 5;
+
+const words = (text: string): string[] =>
+  text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w !== '');
+
+/** True when `text` repeats more than `max` consecutive words of `player`. Case and punctuation do not matter. */
+export function quotesPlayer(text: string, player: string, max: number = MEMORY_QUOTE_WORDS_MAX): boolean {
+  const t = words(text);
+  const p = words(player);
+  if (t.length <= max || p.length <= max) return false;
+  // longest common run of words between the two lists
+  let best = 0;
+  const prev = new Array<number>(p.length + 1).fill(0);
+  for (let i = 1; i <= t.length; i++) {
+    let diag = 0;
+    for (let j = 1; j <= p.length; j++) {
+      const up = prev[j] as number;
+      const run = t[i - 1] === p[j - 1] ? diag + 1 : 0;
+      prev[j] = run;
+      if (run > best) best = run;
+      diag = up;
+    }
+  }
+  return best > max;
+}
+
+export interface RawMemoryWrite {
+  kind: Exclude<MemoryKind, 'reflection'>;
+  text: string;
+  importance: number;
+}
+
+/**
+ * The memory writes a turn may store: at most 2, PII removed, none that quotes more than 8 consecutive words of the player's text, a
+ * `promise` at importance 6 or more. An empty text after scrubbing is dropped.
+ */
+export function filterMemoryWrites(writes: readonly RawMemoryWrite[], playerText: string | undefined, max = 2): RawMemoryWrite[] {
+  const out: RawMemoryWrite[] = [];
+  for (const w of writes) {
+    if (out.length >= max) break;
+    const text = Array.from(scrubPii(w.text.replace(/\s+/g, ' ').trim()).text).slice(0, 240).join('').trim();
+    if (text === '') continue;
+    if (playerText !== undefined && quotesPlayer(text, playerText)) continue;
+    const base = clamp(Math.trunc(Number.isFinite(w.importance) ? w.importance : 1), 1, 10);
+    out.push({ kind: w.kind, text, importance: w.kind === 'promise' ? Math.max(base, PROMISE_IMPORTANCE_MIN) : base });
+  }
+  return out;
+}
+
+/** A patch with its deltas clamped to +-10 and at most 5 memories. The summary text is bounded by the caller. */
+export function clampPatch(s: SummaryPatchX): SummaryPatchX {
+  const d = (n: number): number => clamp(Math.round(Number.isFinite(n) ? n : 0), -SUMMARY_DELTA_MAX, SUMMARY_DELTA_MAX);
+  return { ...s, affinityDelta: d(s.affinityDelta), trustDelta: d(s.trustDelta), memories: s.memories.slice(0, SUMMARY_MEMORIES_MAX) };
+}
+
+/** Whether the encounter that is being folded in (number `encountersBefore + 1`) is a reflection encounter. */
+export const isReflectionEncounter = (encountersBefore: number): boolean => (encountersBefore + 1) % REFLECTION_EVERY === 0;
 
 /** Actor id stored in roster_flag.set_by when the ops token (no profile) made the change. */
 export const NIL_UUID = '00000000-0000-0000-0000-000000000000';

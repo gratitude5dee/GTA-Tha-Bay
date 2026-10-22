@@ -32,3 +32,15 @@ export type { NpcTurnOutput, ExecutorSoul, ExecutorScene, TurnEffects, Validated
 export { prefilterPlayerText, hasSlur, hasSelfHarm, SELF_HARM_PHRASES } from './safety-lists.ts';
 export type { PrefilterResult, PrefilterVerdict } from './safety-lists.ts';
 export { inkKnotFor, knotChain } from './knot.ts';
+// M06a4: voice tier, mouth shapes and the memory rules.
+export { effectiveTier, minTier } from './voice-tier.ts';
+export type { IdentityTier, VoiceSetting, VoiceTierInput } from './voice-tier.ts';
+export {
+  ATLAS_ORDER, ENVELOPE_THRESHOLDS, VOWEL_ALTERNATE_AT, atlasCell, cueAt, parseRhubarb, shapeFromEnvelope, shapesOf, visemesFromAlignment, vowelDensity,
+} from './visemes.ts';
+export type { Viseme, VisemeCue } from './visemes.ts';
+export {
+  MEMORY_DUPLICATE_COSINE, MEMORY_QUOTE_WORDS_MAX, PROMISE_IMPORTANCE_MIN, REFLECTION_EVERY, REFLECTION_IMPORTANCE, SUMMARY_DELTA_MAX, SUMMARY_MEMORIES_MAX,
+  clampPatch, filterMemoryWrites, isReflectionEncounter, quotesPlayer,
+} from './memory.ts';
+export type { RawMemoryWrite, SummaryPatchX } from './memory.ts';
