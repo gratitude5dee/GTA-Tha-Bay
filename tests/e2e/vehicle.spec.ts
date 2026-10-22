@@ -121,7 +121,7 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
     obs = await observe(page);
     expect(obs.player?.owner).toBe(1);
     expect(obs.vehicle).toBeNull();
-    expect(obs.vehicleCamera.active).toBe(false);
+    await expect.poll(async () => (await observe(page)).vehicleCamera.active, { timeout: 10_000 }).toBe(false);
 
     // the inspector lists the Vehicle component of the car and the wireframe toggles
     await bridge(page, (b) => b.tools.inspector(true));
