@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
+import { HOME, NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
 
 /**
  * M04b1 AC-10 (@ui-saves): two tabs on one profile, and export, import-as-new and undo through the Saves page. The second tab shows the
@@ -13,7 +13,7 @@ test.describe.configure({ timeout: 240_000 });
 
 test.describe('saves @ui-saves', () => {
   test('export, import as new, undo leave the profile list as it was; a delete asks for the name', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await passGates(page);
     await waitForEngineReady(page);
     // The sim opens (or makes) the profile once it has booted; wait until the shell knows it.
@@ -48,14 +48,14 @@ test.describe('saves @ui-saves', () => {
   });
 
   test('a second tab on the same profile shows the other-tab banner and turns Play and save actions off', async ({ page, context }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await passGates(page);
     await waitForEngineReady(page);
     await page.waitForTimeout(500);
     await expect(page.getByTestId('banner-other-tab')).toHaveCount(0);
 
     const second = await context.newPage();
-    await second.goto('/');
+    await second.goto(HOME);
     await expect(second.getByTestId('banner-other-tab')).toBeVisible();
     await second.getByTestId('title-start').click();
     await expect(second.getByTestId('main')).toBeVisible();

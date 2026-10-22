@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { NO_BYPASS, passGates } from './helpers.ts';
+import { HOME, NO_BYPASS, passGates } from './helpers.ts';
 
 /**
  * M04b1 AC-3, AC-4, AC-5 (@ui-menus). The flow title, main, settings, controls, back, modes, back by keyboard only, then by a simulated
@@ -117,7 +117,7 @@ async function menuFlow(page: Page, d: Driver): Promise<void> {
 
 /** Gates passed once, then a fresh load is a returning player who lands on the main menu one gesture later. */
 async function toMainAsReturning(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto(HOME);
   await passGates(page);
   await page.reload();
   await expect(page.getByTestId('title')).toBeVisible();
@@ -125,7 +125,7 @@ async function toMainAsReturning(page: Page): Promise<void> {
 
 test.describe('menus @ui-menus', () => {
   test('the Terms card: both toggles default on, decline returns to Title, accept opens the menu and a reload lands on Title then the menu', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await page.getByTestId('title-start').click();
     await page.getByTestId('age-month').fill('1');
     await page.getByTestId('age-day').fill('1');
@@ -225,7 +225,7 @@ test.describe('touch @ui-menus', () => {
       taps.push({ id: testId, w: box.width, h: box.height });
       await loc.tap();
     };
-    await page.goto('/');
+    await page.goto(HOME);
     await tap('title-start');
     await page.getByTestId('age-month').fill('1');
     await page.getByTestId('age-day').fill('1');

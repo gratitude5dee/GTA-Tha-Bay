@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { DISPLAY_NAME } from '../../config/brand.ts';
+import { TERMS_VERSION } from '../../config/terms.ts';
 
 /**
  * The /account/ island (M00e, AC-8). The Worker is real (redirect, headers, route 66); the sign-in routes are answered in the browser
@@ -67,34 +68,39 @@ async function fillDate(page: Page, month: string, day: string, year: string): P
 test.describe('account island @account', () => {
   test.setTimeout(90_000);
 
-  test('/account redirects to /account/, is not isolated, has no canvas or game bundle; back to title is isolated @account', async ({ page, request }) => {
-    const res = await request.get('/account', { maxRedirects: 0 });
-    expect(res.status()).toBe(308);
-    expect(res.headers()['location']).toMatch(/\/account\/$/);
-    expect(res.headers()['cross-origin-embedder-policy']).toBeUndefined();
+  // These two look at the Title, so they opt out of the QA play bypass (M04b1, DL-650).
+  test.describe('title', () => {
+    test.use({ storageState: { cookies: [], origins: [] } as { cookies: []; origins: [] } });
 
-    const requested: string[] = [];
-    page.on('request', (r) => requested.push(r.url()));
-    for (const path of ['/account', '/account/']) {
-      await page.goto(path);
+    test('/account redirects to /account/, is not isolated, has no canvas or game bundle; back to title is isolated @account', async ({ page, request }) => {
+      const res = await request.get('/account', { maxRedirects: 0 });
+      expect(res.status()).toBe(308);
+      expect(res.headers()['location']).toMatch(/\/account\/$/);
+      expect(res.headers()['cross-origin-embedder-policy']).toBeUndefined();
+
+      const requested: string[] = [];
+      page.on('request', (r) => requested.push(r.url()));
+      for (const path of ['/account', '/account/']) {
+        await page.goto(path);
+        await expect(page).toHaveURL(/\/account\/$/);
+        await expect(page.getByTestId('account')).toBeVisible();
+        expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(false);
+        expect(await page.locator('canvas').count()).toBe(0);
+      }
+      expect(requested.filter((u) => GAME_BUNDLE.test(u))).toEqual([]);
+
+      await page.getByTestId('account-back').click();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(page.getByTestId('title-name')).toHaveText(DISPLAY_NAME);
+      expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
+    });
+
+    test('the title link is a full navigation to /account/ @account', async ({ page }) => {
+      await page.goto('/');
+      await page.getByTestId('title-account').click();
       await expect(page).toHaveURL(/\/account\/$/);
-      await expect(page.getByTestId('account')).toBeVisible();
       expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(false);
-      expect(await page.locator('canvas').count()).toBe(0);
-    }
-    expect(requested.filter((u) => GAME_BUNDLE.test(u))).toEqual([]);
-
-    await page.getByTestId('account-back').click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByTestId('title-name')).toHaveText(DISPLAY_NAME);
-    expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
-  });
-
-  test('the title link is a full navigation to /account/ @account', async ({ page }) => {
-    await page.goto('/');
-    await page.getByTestId('title-account').click();
-    await expect(page).toHaveURL(/\/account\/$/);
-    expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(false);
+    });
   });
 
   test('an under-18 date blocks the device: no form, also after a reload @account', async ({ page }) => {
@@ -135,7 +141,7 @@ test.describe('account island @account', () => {
     await expect(page.getByTestId('account-terms')).toContainText(DISPLAY_NAME);
     await page.getByTestId('account-agree').click();
     await expect(page.getByTestId('account-signed-in')).toHaveText('Signed in as pilot');
-    expect(stubs.signupBodies).toEqual([{ username: 'newbie', password: 'a-long-password', ageBracket: '18p', termsVersion: 'interim-1' }]);
+    expect(stubs.signupBodies).toEqual([{ username: 'newbie', password: 'a-long-password', ageBracket: '18p', termsVersion: TERMS_VERSION }]);
 
     const stored = await page.evaluate(() => ({
       local: JSON.stringify({ ...localStorage }),
@@ -154,7 +160,7 @@ test.describe('account island @account', () => {
       stubs.loginBodies.push(route.request().postDataJSON());
       if (first) {
         first = false;
-        return route.fulfill(err('forbidden', 403, { reason: 'terms_required', termsVersion: 'interim-1' }));
+        return route.fulfill(err('forbidden', 403, { reason: 'terms_required', termsVersion: TERMS_VERSION }));
       }
       stubs.signedIn = true;
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SESSION) });
@@ -170,7 +176,7 @@ test.describe('account island @account', () => {
     await expect(page.getByTestId('account-signed-in')).toBeVisible();
     expect(stubs.loginBodies).toEqual([
       { username: 'pilot', password: 'old-pass' },
-      { username: 'pilot', password: 'old-pass', ageBracket: '18p', termsVersion: 'interim-1' },
+      { username: 'pilot', password: 'old-pass', ageBracket: '18p', termsVersion: TERMS_VERSION },
     ]);
     await page.getByTestId('account-signout').click();
     await expect(page.getByTestId('account-login')).toBeVisible();

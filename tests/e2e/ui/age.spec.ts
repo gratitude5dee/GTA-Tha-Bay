@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { dobYearsAgo, fillDob, NO_BYPASS, watchApi } from './helpers.ts';
+import { dobYearsAgo, fillDob, HOME, NO_BYPASS, watchApi } from './helpers.ts';
 
 /**
  * M04b1 AC-2 (@ui-age): the neutral age screen. Month/day/year in the locale's order, no threshold text, no prefill; 17 years old is
@@ -12,7 +12,7 @@ test.describe.configure({ timeout: 120_000 });
 test.describe('age screen @ui-age', () => {
   test('en-US orders the fields month, day, year with no threshold text and no prefill; 17 is blocked, and a relaunch is blocked again', async ({ page }) => {
     const api = watchApi(page);
-    await page.goto('/');
+    await page.goto(HOME);
     await expect(page.getByTestId('title')).toBeVisible();
     await page.getByTestId('title-start').click();
     await expect(page.getByTestId('age')).toBeVisible();
@@ -51,7 +51,7 @@ test.describe('age screen @ui-age', () => {
   });
 
   test('exactly 18 years ago today passes; one day short is blocked; an impossible date asks again', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await page.getByTestId('title-start').click();
     await fillDob(page, { month: '2', day: '30', year: '1990' });
     await page.getByTestId('age-continue').click();
@@ -64,7 +64,7 @@ test.describe('age screen @ui-age', () => {
   });
 
   test('the day before the 18th birthday is blocked', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await page.getByTestId('title-start').click();
     await fillDob(page, dobYearsAgo(18, 1));
     await page.getByTestId('age-continue').click();

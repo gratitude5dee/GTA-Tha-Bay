@@ -4,6 +4,9 @@ import { expect, type Page } from '@playwright/test';
  * Helpers for the shell specs (M04b1). These specs run without the QA play bypass: they opt out with an empty storage state, so the
  * Title, the age screen, the Terms card and the menus are what the page shows.
  */
+/** The small `walk-drop` scene: the shell specs look at pages, not at the world, and the synth city starves the software renderer. */
+export const HOME = '/?world=walk-drop';
+
 export const NO_BYPASS: { cookies: []; origins: [] } = { cookies: [], origins: [] };
 
 /** A date `years` years before today (or the day after a birthday boundary when `dayOffset` is 1), as the three field strings. */

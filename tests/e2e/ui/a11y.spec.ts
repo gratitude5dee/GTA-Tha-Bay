@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { dobYearsAgo, fillDob, NO_BYPASS, passGates } from './helpers.ts';
+import { dobYearsAgo, fillDob, HOME, NO_BYPASS, passGates } from './helpers.ts';
 
 /**
  * M04b1 AC-6 (@ui-a11y): axe-core over every flat page of this milestone, zero critical or serious findings. A finding is fixed in the
@@ -20,9 +20,10 @@ async function scan(page: Page, name: string): Promise<void> {
 
 const SETTINGS = ['graphics', 'controls', 'audio', 'subtitles', 'npc', 'cutscenes', 'accessibility', 'xr', 'camera', 'language', 'privacy', 'install', 'about'];
 
+
 test.describe('axe @ui-a11y', () => {
   test('gate pages: title, age, terms, blocked', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await expect(page.getByTestId('title')).toBeVisible();
     await scan(page, 'title');
     await page.getByTestId('title-start').click();
@@ -34,7 +35,7 @@ test.describe('axe @ui-a11y', () => {
     await scan(page, 'terms');
 
     const blocked = await page.context().newPage();
-    await blocked.goto('/');
+    await blocked.goto(HOME);
     await blocked.evaluate(() => localStorage.setItem('dv-ui-ageBlocked', '1'));
     await blocked.reload();
     await expect(blocked.getByTestId('blocked')).toBeVisible();
@@ -42,7 +43,7 @@ test.describe('axe @ui-a11y', () => {
   });
 
   test('menu pages: main, modes, load, new game, profile, saves, credits, legal, coming soon', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await passGates(page);
     await scan(page, 'main');
     for (const [nav, probe] of [
@@ -69,7 +70,7 @@ test.describe('axe @ui-a11y', () => {
   });
 
   test('every settings category', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(HOME);
     await passGates(page);
     await page.getByTestId('nav-settings').click();
     for (const cat of SETTINGS) {
