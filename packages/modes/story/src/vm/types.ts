@@ -34,6 +34,8 @@ export interface RuntimeOptions {
   story(): StorySlice;
   /** `ProfileSettings.accessibility.timerScale` (1, 1.25, 1.5 or 2). */
   timerScale?(): number;
+  /** Comfort settings for the director: reduced motion (`ProfileSettings.accessibility`) and the XR camera mode. Default: both off. */
+  comfort?(): { reducedMotion: boolean; xr: boolean };
   /** The story seed (`StorySlice.world.seed`); part of the mission RNG seed. */
   storySeed?(): number;
   /** The display text of a line id, for the duration of a `say` (the length of the text decides how long it holds). Default: the id. */

@@ -4,6 +4,7 @@ import { Health, Prop, Transform } from '../src/sim/ecs/components.ts';
 import { EcsWorld } from '../src/sim/ecs/world.ts';
 import { ModeEventBus } from '../src/sim/modes/host.ts';
 import { SimSchedulerImpl } from '../src/sim/script/scheduler.ts';
+import { decodeDvtl } from '../src/sim/script/dvtl.ts';
 import { TimelineRecorderImpl } from '../src/sim/script/timeline.ts';
 import { ZoneServiceImpl } from '../src/sim/script/zones.ts';
 
@@ -210,7 +211,7 @@ describe('ZoneService', () => {
 });
 
 describe('TimelineRecorder', () => {
-  it('keeps events and externals in order, samples tracked entities every 2 ticks, exports JSON', () => {
+  it('keeps events and externals in order, samples tracked entities every 2 ticks, exports a .dvtl file', () => {
     const w = world();
     const t = new TimelineRecorderImpl({ ecs: w, tick: () => 0, cap: 3 });
     const h = put(w, 1, 2, 3);
@@ -224,9 +225,11 @@ describe('TimelineRecorder', () => {
     expect(t.events().map((e) => e.tick)).toEqual([2, 3, 4]);
     expect(t.events(4)).toHaveLength(1);
     t.external({ src: 'talk', tick: 9, data: { outcome: 'a' } });
-    const parsed = JSON.parse(new TextDecoder().decode(t.export())) as { v: number; external: unknown[]; events: unknown[] };
-    expect(parsed.v).toBe(0);
+    const parsed = decodeDvtl(t.export());
+    expect(parsed.version).toBe(1);
     expect(parsed.external).toHaveLength(1);
+    expect(parsed.events.map((e) => e.tick)).toEqual([2, 3, 4]);
+    expect(parsed.tracks.map((x) => x.name)).toEqual(['player']);
     t.untrack(h);
     t.update(6);
     expect(t.tracks().get('player')).toHaveLength(3);

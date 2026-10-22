@@ -6,7 +6,7 @@
         "tests/e2e/det/",
         "tests/e2e/determinism.spec.ts"
       ],
-      "sha256": "dc760e243e301089eff3c5621cbbf97257964a1d7558d47b1b6986b5a20c0be2",
+      "sha256": "97285d4575325c558d961959992f361a61f4270fe3d8ee2d57f27fba8e7e62b1",
       "subjects": [
         "apps/web/src/qa/",
         "packages/engine/src/sim/",
@@ -47,7 +47,7 @@
         "packages/engine/src/qa/engine-specs.ts",
         "packages/engine/src/qa/browser.ts"
       ],
-      "sha256": "c65d7b6a9d547aad7bbde7677077ab38354f6fbe63b9807a99b413345cfcf719",
+      "sha256": "fde1bc58b9e7529326490fcf972733e7c754436d35e1fcda68b5ff9337269131",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/engine/src/headless/",
@@ -72,7 +72,7 @@
       "paths": [
         "tests/golden/"
       ],
-      "sha256": "54467b5543a41d5bddeb18d52759f2397d4aedddaa75997dee0fa75363cf0154",
+      "sha256": "75c272dc94e61ff9ea9cbb9f97b3d3897cc698cf71b5ab2bdf9e96d18b5fef1e",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",

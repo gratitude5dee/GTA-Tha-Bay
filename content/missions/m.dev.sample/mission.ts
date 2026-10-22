@@ -4,7 +4,7 @@
  * seconds. Positions are WGS84 tuples; they sit within 150 m of City Hall, on the gray-box terrain. Display text is in lines.en.json.
  */
 import {
-  ambient, at, circle, clock, collect, castZone, chase, defineMission, deliver, destroyed, enterVehicle, failWhen, fleeTask, follow, give, goto, ko, markerTrigger, modeHook,
+  ambient, at, beat, circle, clock, collect, castZone, chase, defineMission, deliver, destroyed, enterVehicle, failWhen, fleeTask, follow, give, goto, ko, markerTrigger, modeHook,
   modeObjective, npc, pickup, photo, protect, say, score, setFlag, stage, stealth, survive, talk, talkDef, task, text, vehicle, wait, waitFor, walkTo,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
@@ -51,6 +51,7 @@ export default defineMission({
           { id: 'talk_greet' },
         ),
       ],
+      { onEnter: [beat({ director: 'm.dev.sample.meet' })] },
     ),
     stage('pickup', [collect('crate', { id: 'collect_crate' })], { onComplete: [give('parcel-bonus', { cashCents: 5000 }), setFlag({ 'dev.parcel': true })] }),
     stage('wheels', [enterVehicle('car', { id: 'enter_car' })]),

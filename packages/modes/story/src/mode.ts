@@ -14,7 +14,7 @@ import { readCheckpoint } from './vm/checkpoint.ts';
 import { MissionRuntime } from './vm/runtime.ts';
 import type { VehicleDriver } from './vm/tasks.ts';
 import { DEFAULT_FLAGS, type RuntimeFlags, type StoryCommand } from './vm/types.ts';
-import { hash32 } from './vm/util.ts';
+import { missionDeps } from './vm/deps.ts';
 
 /** What the page puts in `BootPayload.config.mission` for `?mission=<id>` (QA builds only). */
 export interface QaMissionBoot {
@@ -116,18 +116,26 @@ export class StoryController {
       directors: this.directors,
       lineText: (id) => this.lines[id] ?? id,
       timerScale: () => 1,
+      comfort: () => this.env.comfort?.() ?? { reducedMotion: false, xr: false },
     });
     rt.bind(ctx);
     rt.setDriver(() => (ctx as ModeContext & { vehicleAi?: VehicleDriver | null }).vehicleAi ?? null);
     this.rt = rt;
     const storySeed = story.world.seed;
-    const seed = hash32(o.seed ?? storySeed, ir.id, 1);
+    const seed = missionDeps().missionSeed(o.seed ?? storySeed, ir.id, 1);
     rt.start(res, { attempt: 1, seed, ...(o.resume === true && cp ? { from: cp } : {}) });
     if (o.stage !== undefined && o.stage > 0) rt.jumpTo(o.stage);
     return { ok: true };
   }
 
+  /** One sim tick of the story mode: `advance`, then the QA debug state. A headless host (the canonical runner, Node) calls `advance` alone. */
   tick(ctx: ModeContext): void {
+    this.advance(ctx);
+    this.qaTick(ctx);
+  }
+
+  /** The QA boot start (when the world under the mission is resident), then the runtime's tick. Touches no `import.meta.env`. */
+  advance(ctx: ModeContext): void {
     this.ctx = ctx;
     const waiting = this.pending;
     if (waiting && ctx.tick % 6 === 0) {
@@ -140,7 +148,12 @@ export class StoryController {
     const rt = this.rt;
     if (!rt) return;
     if (rt.active) rt.tick(ctx);
-    // QA builds only: the debug state for the overlay and the bridge; the literal test lets a production build drop the import
+  }
+
+  /** QA builds only: the debug state for the overlay and the bridge; the literal test lets a production build drop the import. */
+  qaTick(ctx: ModeContext): void {
+    const rt = this.rt;
+    if (!rt) return;
     if (import.meta.env.VITE_DV_QA === '1' && this.env.qa) {
       if (!this.debugMod && !this.debugLoading) {
         this.debugLoading = true;
@@ -201,6 +214,9 @@ export class StoryController {
           rt.command({ name: 'debug.flag', key: a['key'], value: a['value'] });
         }
         return;
+      case 'debug.autoplay':
+        void this.liveAutoplay(a['on'] !== false);
+        return;
       case 'debug.predicate':
         if (typeof a['path'] === 'string' && this.ctx) {
           const value = rt.predicateAt(a['path']);
@@ -210,6 +226,16 @@ export class StoryController {
       default:
         return;
     }
+  }
+
+  /** QA: the story autoplayer plays the running mission live (`__dvBridge.mission.autoplay`). Not an oracle: the live profile is `local`. */
+  private async liveAutoplay(on: boolean): Promise<void> {
+    // the literal test lets a production build drop the import (a class method is not tree-shaken, so the guard sits here)
+    if (import.meta.env.VITE_DV_QA !== '1' || !this.env.qa) return;
+    const live = await import('./autoplay/live.ts');
+    const host = { ctx: () => this.ctx, rt: () => this.rt, setBot: (b: Parameters<NonNullable<StoryWrapEnv['setBot']>>[0]) => this.env.setBot?.(b) };
+    if (on) live.startLiveAutoplay(host);
+    else live.stopLiveAutoplay(host);
   }
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
@@ -223,18 +249,22 @@ export class StoryController {
   }
 }
 
-/** The engine's `ModesModuleOptions.wrapStory`: free roam plus the mission runtime. */
-export function wrapStory(freeroam: GameModeSim, env: StoryWrapEnv): GameModeSim {
+/**
+ * The story mode's sim and its controller; a headless host (`headless: true`, Node: no `import.meta.env`, no QA boot or debug state)
+ * keeps the controller to start a mission and to observe the runtime.
+ */
+export function createStoryMode(freeroam: GameModeSim, env: StoryWrapEnv, o: { headless?: boolean } = {}): { sim: GameModeSim; controller: StoryController } {
   const c = new StoryController(env);
-  return {
+  const sim: GameModeSim = {
     enter(ctx, args, slice) {
       freeroam.enter(ctx, args, slice);
       c.attach(ctx, slice as unknown as StorySlice);
-      c.qaAutostart();
+      if (o.headless !== true) c.qaAutostart();
     },
     tick(ctx) {
       freeroam.tick(ctx);
-      c.tick(ctx);
+      if (o.headless === true) c.advance(ctx);
+      else c.tick(ctx);
     },
     suspendedTick(ctx) {
       c.suspendedTick(ctx);
@@ -248,4 +278,10 @@ export function wrapStory(freeroam: GameModeSim, env: StoryWrapEnv): GameModeSim
       c.onEvent(ctx, e);
     },
   };
+  return { sim, controller: c };
+}
+
+/** The engine's `ModesModuleOptions.wrapStory`: free roam plus the mission runtime. */
+export function wrapStory(freeroam: GameModeSim, env: StoryWrapEnv): GameModeSim {
+  return createStoryMode(freeroam, env).sim;
 }

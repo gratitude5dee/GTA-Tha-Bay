@@ -15,7 +15,7 @@ permissions:
 env:
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay'
 
 # Actions are pinned by commit SHA (research/gap-ci-cd-release-assets.md section 1.1).
 # actions/checkout            v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -173,6 +173,18 @@ jobs:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
       # M04d: the economy bands (tycoon suite prints pending until M09a2).
       - run: pnpm check:balance
+      # M05a2: every mission x 3 seeds x 2 runs under the autoplayer, on the gray-box fixture world. The offline worlds are restored from
+      # the cache or baked on a miss, as in the other jobs; a full SF bake does not fit this job (the nightly runs it there).
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
+      - run: pnpm check:missions
 
   build:
     runs-on: ubuntu-24.04

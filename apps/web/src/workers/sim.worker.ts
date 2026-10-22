@@ -29,6 +29,8 @@ runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursui
           const [qa, dbg] = await Promise.all([import('@dv/mode-racing/qa'), import('@dv/mode-racing/qa/debug')]);
           qa.registerRacingQa();
           racing.installQa(dbg.runRacingQa);
+          // the missions suite loader and the story autoplayer (M05a2)
+          (await import('@dv/mode-story/qa')).registerStoryQa();
         },
       }
     : {}),

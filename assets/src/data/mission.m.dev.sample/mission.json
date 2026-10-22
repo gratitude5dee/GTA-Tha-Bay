@@ -207,6 +207,14 @@
           },
           "text": "mission.m.dev.sample.obj.talk_greet"
         }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "director": "m.dev.sample.meet"
+          }
+        }
       ]
     },
     {

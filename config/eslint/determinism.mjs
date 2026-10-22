@@ -10,6 +10,9 @@ export const SIM_FILES = [
   'packages/modes/*/src/sim/**/*.{ts,tsx}',
   // The story mode keeps its sim code in vm/, mode.ts and compiler/resolve.ts (M05a1, BD-M05a1-01): the spec names those paths.
   'packages/modes/story/src/vm/**/*.{ts,tsx}',
+  // M05a2: the autoplayer feeds the sim and the director publishes the camera from sim state, so both sit under the same rules
+  'packages/modes/story/src/autoplay/**/*.{ts,tsx}',
+  'packages/modes/story/src/director/**/*.{ts,tsx}',
   'packages/modes/story/src/mode.ts',
   'packages/modes/story/src/compiler/resolve.ts',
 ];

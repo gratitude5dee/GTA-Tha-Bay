@@ -202,6 +202,11 @@ export class CameraRigImpl implements CameraRig {
   update(f: { alpha: number; dtSec: number; reducedMotion: boolean; drawDistanceM: number; depthPolicy?: 'standard' | 'reversed' }): void {
     this.advanceBlend(Math.max(0, f.dtSec));
     const d = this.directive;
+    // A cinematic shot that the sim has placed (`pos` and `lookAt`, ENU metres; the story director re-places it every tick) is obeyed as it is.
+    if (this._mode === 'cinematic' && d?.shot?.pos && d.shot.lookAt) {
+      this.placeCinematic(d.shot.pos, d.shot.lookAt, d.shot.fovDeg, f.drawDistanceM, f.depthPolicy ?? 'standard');
+      return;
+    }
     const follow = d?.follow;
     if (!d || !follow || (this._mode !== 'fp' && this._mode !== 'tp')) return;
     const pose = this.opts.targetPose(follow.target);
@@ -289,6 +294,31 @@ export class CameraRigImpl implements CameraRig {
       cam.fov = fov;
       cam.near = near;
       cam.far = f.drawDistanceM;
+      cam.updateProjectionMatrix();
+    }
+  }
+
+  private placeCinematic(pos: readonly number[], lookAt: readonly number[], fovDeg: number, drawDistanceM: number, depthPolicy: 'standard' | 'reversed'): void {
+    const fx = (lookAt[0] as number) - (pos[0] as number);
+    const fy = (lookAt[1] as number) - (pos[1] as number);
+    const fz = (lookAt[2] as number) - (pos[2] as number);
+    const yaw = Math.atan2(-fx, -fz);
+    const pitch = Math.atan2(fy, Math.hypot(fx, fz));
+    const sy = Math.sin(yaw * HALF);
+    const cy = Math.cos(yaw * HALF);
+    const sp = Math.sin(pitch * HALF);
+    const cp = Math.cos(pitch * HALF);
+    const cam = this.camera;
+    cam.position.set(pos[0] as number, pos[1] as number, pos[2] as number);
+    cam.quaternion.set(cy * sp, sy * cp, -sy * sp, cy * cp);
+    this._opacity = 1;
+    this.initialized = false;
+    const baseNear = TP_NEAR_M;
+    const near = depthPolicy === 'standard' ? Math.max(baseNear, drawDistanceM / STANDARD_DEPTH_NEAR_DIVISOR) : baseNear;
+    if (cam.fov !== fovDeg || cam.near !== near || cam.far !== drawDistanceM) {
+      cam.fov = fovDeg;
+      cam.near = near;
+      cam.far = drawDistanceM;
       cam.updateProjectionMatrix();
     }
   }
