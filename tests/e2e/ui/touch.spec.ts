@@ -88,6 +88,17 @@ test.describe('touch play @ui-touch', () => {
   });
 });
 
+// The QA pursuit, modes and mission panels (M03c, M04a2, M05a1) float over the left and right edges of the menu in QA builds; the menu specs click through them.
+const hideQaPanels = async (page: Page): Promise<void> => {
+  await page.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '.dv-pursuit, .dv-modes, .dv-mission { display: none !important }';
+      document.head.append(st);
+    });
+  });
+};
+
 test.describe('touch menus and the layout editor @ui-touch', () => {
   test.use({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, storageState: NO_BYPASS, locale: 'en-US' });
   test.describe.configure({ timeout: 300_000 });
@@ -101,6 +112,7 @@ test.describe('touch menus and the layout editor @ui-touch', () => {
   });
 
   test('an edited layout saved as custom:1 survives a reload @ui-touch', async ({ page }) => {
+    await hideQaPanels(page);
     await page.goto(HOME);
     await passGates(page);
     await waitForEngineReady(page);
@@ -150,6 +162,7 @@ test.describe('Safari tab coach mark @ui-coach', () => {
         // not configurable in this engine: the other checks still run
       }
     });
+    await hideQaPanels(page);
     await page.goto(HOME);
     await passGates(page);
     await expect(page.getByTestId('coach-mark')).toBeVisible({ timeout: 60_000 });
