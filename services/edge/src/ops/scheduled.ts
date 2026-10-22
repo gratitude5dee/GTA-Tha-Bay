@@ -19,7 +19,7 @@ export const JOBS = {
   'catalog-sync': runCatalogSync,
   'ledger-export': runLedgerExport,
   keepalive: runKeepalive,
-  // M06a1 retention (spec/domains/09-backend-db.md section 7): three crons, each also run on demand through /_test/run-scheduled?job=<name>.
+  // M06a1 retention (spec/domains/09-backend-db.md section 7): three crons, each also run on demand through the test-only run-scheduled route of staging and previews.
   transcripts: runTranscriptRetention,
   memory: runMemoryRetention,
   'stub-profiles': runStubProfileRetention,

@@ -36,12 +36,14 @@ describe('C16 telemetry schemas', () => {
     expect(validateBatch({ ...valid, events: [{ ...valid.events[0], props: Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`k${i}`, i])) }] })).toBe(false);
   });
 
-  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) the mode names (M04a2) the mission names (M05a1), the racing names (M07a1) and cutscene.play (M05b2), all client names', () => {
+  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) the mode names (M04a2) the mission names (M05a1), the racing names (M07a1) and cutscene.play (M05b2), plus the server-only quota.block (M06a1)', () => {
     const names = Object.keys(namesSchema.$defs);
     expect(names.sort()).toEqual(
-      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.onboard', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit', 'mission.start', 'mission.fail', 'mission.complete', 'err.sim', 'racing.start', 'racing.finish', 'cutscene.play'].sort(),
+      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.onboard', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit', 'mission.start', 'mission.fail', 'mission.complete', 'err.sim', 'racing.start', 'racing.finish', 'cutscene.play', 'quota.block'].sort(),
     );
-    for (const n of names) expect(CLIENT_TELEMETRY_NAMES as readonly string[]).toContain(n);
+    // quota.block is server-only: it has a schema for the AE layout but is not a client name, so the ingest route drops it from a client batch.
+    for (const n of names.filter((x) => x !== 'quota.block')) expect(CLIENT_TELEMETRY_NAMES as readonly string[]).toContain(n);
+    expect(CLIENT_TELEMETRY_NAMES as readonly string[]).not.toContain('quota.block');
   });
 
   it('each per-name schema is a valid schema and accepts its own required props', () => {
