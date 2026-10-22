@@ -32,6 +32,6 @@ describe('fighter.script driver', () => {
     const l = scriptFrames(7, 600, 1), r = scriptFrames(7, 600, -1);
     expect(l).not.toEqual(r);
     const swap = (w: number): number => (w & ~(FB.Left | FB.Right)) | ((w & FB.Left) !== 0 ? FB.Right : 0) | ((w & FB.Right) !== 0 ? FB.Left : 0);
-    expect(r.map((w, i) => swap(w))).toEqual(l);
+    expect(r.map((w) => swap(w))).toEqual(l);
   });
 });

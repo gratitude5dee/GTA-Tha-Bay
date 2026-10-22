@@ -12,6 +12,7 @@
     "packages/modes/*/src",
     "packages/modes/*/test",
     "packages/*/scripts",
+    "packages/modes/*/scripts",
     "packages/modes/*/src",
     "packages/modes/*/test",
     "tests",

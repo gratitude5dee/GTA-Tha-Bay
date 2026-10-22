@@ -34,17 +34,21 @@ describe('golden replays', () => {
   });
 
   /** Replay the stream and tally what happened. */
-  function tally(text: string): Record<string, number> {
+  interface Tally { hit: number; exHit: number; block: number; check: number; super: number; ko: number; tech: number; throw: number; clear: number; rattled: number; maxCombo: number; timeUp: number; counter: number }
+  function tally(text: string): Tally {
     const rep = decodeReplay(text);
     const sim = new FightCore();
     const buf = sim.init(pack, rep.rules, rep.seed, rep.lineup);
     const a = decodeInputs(rep.inputs[0]), b = decodeInputs(rep.inputs[1]);
-    const t: Record<string, number> = { hit: 0, exHit: 0, block: 0, check: 0, super: 0, ko: 0, tech: 0, throw: 0, clear: 0, rattled: 0, maxCombo: 0, timeUp: 0, counter: 0 };
+    const t: Tally = { hit: 0, exHit: 0, block: 0, check: 0, super: 0, ko: 0, tech: 0, throw: 0, clear: 0, rattled: 0, maxCombo: 0, timeUp: 0, counter: 0 };
     const sink = {
       push(e: FightEvent): void {
         if (e.kind === 'hit') { t.hit++; if ((e.b & 2) !== 0) t.exHit++; if (e.b === 3) t.throw++; if ((e.b & 1) !== 0) t.counter++; }
         else if (e.kind === 'cue' && e.a === 1) t.tech++;
-        else if (e.kind === 'block' || e.kind === 'check' || e.kind === 'super' || e.kind === 'ko') t[e.kind]++;
+        else if (e.kind === 'block') t.block++;
+        else if (e.kind === 'check') t.check++;
+        else if (e.kind === 'super') t.super++;
+        else if (e.kind === 'ko') t.ko++;
       },
     };
     for (let i = 0; i < a.length; i++) {
@@ -53,7 +57,7 @@ describe('golden replays', () => {
         const o = FIGHTER_BASE[s] as number;
         if ((buf[o + FF.State] as number) === St.Clear) t.clear = 1;
         if ((buf[o + FF.Rattled] as number) !== 0) t.rattled = 1;
-        t.maxCombo = Math.max(t.maxCombo as number, buf[o + FF.ComboHits] as number);
+        t.maxCombo = Math.max(t.maxCombo, buf[o + FF.ComboHits] as number);
       }
       if ((buf[FM.Phase] as number) === Phase.TimeUp) t.timeUp = 1;
     }

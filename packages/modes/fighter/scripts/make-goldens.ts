@@ -93,7 +93,6 @@ function author(rules: FightRules, p: FrameDataPack, coach: Joint, max: number):
 
 const B0 = (): ScriptBuilder => new ScriptBuilder(1);
 const B1 = (): ScriptBuilder => new ScriptBuilder(-1);
-const P_ANY = LP | MP | HP;
 
 // ---- vs-001: normals, chains, specials, EX, super, KO ----------------------------------------------------------------
 function coach001(): Joint {
@@ -156,10 +155,9 @@ function describeRun(label: string, t: Counter, buf: Int32Array): void {
 const rules001: FightRules = { roundsToWin: 1, timerFrames: 5940, simpleDmgPct: 80, leniencyX100: 100, cpuLevel: [null, null], training: false, shutdowns: false, cinematics: 'off' };
 const rules002: FightRules = { ...rules001, timerFrames: 2200 };
 
-const out = (name: string, a: number[], b: number[], rules: FightRules): string => {
+const out = (a: number[], b: number[], rules: FightRules): string => {
   const rep = recordReplay(pack, rules, 2026, LINEUP, 'powell_turntable', 'm08a1', (t) => [a[t] ?? 0, b[t] ?? 0], a.length);
   return encodeReplay(rep);
-  void name;
 };
 
 const r1 = author(rules001, pack, coach001(), 12000);
@@ -168,7 +166,7 @@ const r2 = author(rules002, pack, coach002(), 12000);
 describeRun('vs-002', r2.tally, r2.buf);
 
 if (process.env.DV_UPDATE_GOLDEN === '1') {
-  writeFileSync(path.join(here, '..', 'golden', 'vs-001.dvfight'), `${out('vs-001', r1.a, r1.b, rules001)}\n`);
-  writeFileSync(path.join(here, '..', 'golden', 'vs-002.dvfight'), `${out('vs-002', r2.a, r2.b, rules002)}\n`);
+  writeFileSync(path.join(here, '..', 'golden', 'vs-001.dvfight'), `${out(r1.a, r1.b, rules001)}\n`);
+  writeFileSync(path.join(here, '..', 'golden', 'vs-002.dvfight'), `${out(r2.a, r2.b, rules002)}\n`);
   console.log('golden files written');
 }

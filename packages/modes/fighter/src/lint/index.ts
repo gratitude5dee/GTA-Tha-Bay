@@ -38,7 +38,7 @@ function fmt(errors: ErrorObject[] | null | undefined): LintIssue[] {
 
 export function lintTuning(json: unknown): LintIssue[] {
   if (!validateTuning(json)) return fmt(validateTuning.errors).map((i) => ({ ...i, rule: 'tuning' as const }));
-  const t = json as FightTuning;
+  const t = json as unknown as FightTuning;
   const out: LintIssue[] = [];
   for (let i = 1; i < t.COMBO_SCALE.length; i++) {
     if ((t.COMBO_SCALE[i] as number) > (t.COMBO_SCALE[i - 1] as number)) out.push({ rule: 'tuning', where: 'COMBO_SCALE', message: 'scaling must not increase' });
@@ -279,7 +279,7 @@ function fx3Issues(k: FighterDef): LintIssue[] {
 /** All rules over one kit. Schema errors stop the rest (the data would not be trustworthy). */
 export function lintKit(json: unknown, tuning: FightTuning): LintIssue[] {
   if (!validateKit(json)) return fmt(validateKit.errors);
-  const k = json as FighterDef;
+  const k = json as unknown as FighterDef;
   return [
     ...frameIssues(k), ...boundsIssues(k), ...hitIssues(k), ...reachIssues(k), ...nameIssues(k), ...loopIssues(k, tuning), ...fx3Issues(k),
   ];
