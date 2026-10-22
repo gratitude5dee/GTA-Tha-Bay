@@ -3,5 +3,5 @@
 // `createPlatform` loads the renderer host (and with it three) through a dynamic import, so importing this barrel is cheap.
 export * from './qa-flags.ts';
 export * from './diagnostics.ts';
-export { createPlatform } from './create-platform.ts';
+export { createPlatform, fetchBootRegion } from './create-platform.ts';
 export type { CreatePlatformOptions, Platform } from './create-platform.ts';

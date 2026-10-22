@@ -79,6 +79,8 @@ export interface BootEngineOptions {
   onPausedChange?: (paused: boolean) => void;
   /** Show the touch layer on any device (`?touch=1`). */
   forceTouch?: boolean;
+  /** Each toast the sim raised is handed here as it arrives (M04b1: the shell draws them). */
+  onToast?: (t: ToastRecord) => void;
   /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
   onTelemetry?: (name: string, props: Record<string, string | number | boolean>) => void;
 }
@@ -168,6 +170,10 @@ export interface EngineHandle {
   readonly vehicleCamera: VehicleCamera;
   /** QA tools (M03a1); null outside QA builds with `?debug=1`. */
   readonly tools: { inspector: Inspector; physics: PhysicsDraw } | null;
+  /** The input router (null until it exists): the shell rebinds controls and listens for client actions through it (M04b1). */
+  readonly router: InputRouterImpl | null;
+  /** Unlocks the audio context from a user gesture (the Title's first tap; M04c wraps this in `FirstGestureUnlock`). */
+  audioUnlock(): void;
   /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
   ask(cmd: DebugCommand, replyName: string, timeoutMs?: number): Promise<unknown>;
   dispose(): Promise<void>;
@@ -335,6 +341,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       for (const t of out.toasts) {
         toastLog.push(t);
         if (toastLog.length > 50) toastLog.shift();
+        opts.onToast?.(t);
       }
       modesUi?.refresh();
     },
@@ -842,6 +849,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     vm,
     sendUi: (cmd) => uiSender.send(cmd),
     toasts: () => toastLog,
+    get router() {
+      return router;
+    },
+    audioUnlock: () => {
+      void audio?.unlock().catch(() => {});
+    },
     telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {

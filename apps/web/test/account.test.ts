@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { bracketFor, deleteConfirmed, fieldOrder, isValidBirthDate, parseField } from '../src/account/age.ts';
 import { AGE_BLOCK_LOCAL_KEY, createAgeBlockStore } from '../src/account/age-block.ts';
 import { createAccountApi, purgeLegacySession, REFRESH_LEAD_MS, refreshDelayMs, type ClientDeps, type SessionState } from '../src/account/api.ts';
-import en from '../../../packages/ui/src/i18n/en.json' with { type: 'json' };
+import en from '../../../content/ui/i18n/en.json' with { type: 'json' };
 
 const NOW = new Date(2026, 9, 19); // 2026-10-19 local
 

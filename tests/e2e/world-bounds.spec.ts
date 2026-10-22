@@ -158,7 +158,7 @@ test.describe('world edges @world', () => {
     expect(state.fog).toBeLessThan(0.45);
     expect(state.fog).toBeGreaterThanOrEqual(0.4);
     await stopWalking(page);
-    const catalog = JSON.parse(readFileSync('packages/ui/src/i18n/en.json', 'utf8')) as Record<string, string>;
+    const catalog = JSON.parse(readFileSync('content/ui/i18n/en.json', 'utf8')) as Record<string, string>;
     expect(catalog['world.boundary.countyLine']).toBe('Leaving SF — coming soon');
   });
 

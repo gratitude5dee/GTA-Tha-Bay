@@ -15,6 +15,8 @@ export interface SessionSlices {
   story: StorySlice;
   sandbox: SandboxSlice;
   settings: ProfileSettings;
+  /** The open profile, when a SaveService supplied the slices (published as `sys.profile`; M04b1). */
+  profile?: { id: string; name: string; hasStory: boolean };
 }
 
 export interface ModeHostDeps {

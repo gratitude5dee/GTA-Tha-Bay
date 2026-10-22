@@ -49,8 +49,7 @@ test.describe('touch controls @touch', () => {
     await expect.poll(async () => (await observe(page)).world?.chunks, { timeout: 90_000 }).toBe(4);
     await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 60_000 }).toBe(true);
 
-    // Tap Start on the title; the touch layer appears.
-    await page.getByTestId('title-start').tap();
+    // The QA play bypass (M04b1) is in play already; the touch layer is up.
     await expect(page.locator('.dv-touch')).toBeVisible();
     expect((await observe(page)).play).toBe(true);
 

@@ -1,11 +1,13 @@
-import { collectDiagnosticSignals, createPlatform, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
-import { mountShell, t, type ShellProps } from '@dv/ui';
+import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
+import { TERMS_VERSION } from '../../../config/terms.ts';
+import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
@@ -20,8 +22,6 @@ const flags = parseQaFlags(location.search);
 const root = document.getElementById('app');
 if (!root) throw new Error('missing #app');
 
-// The title screen at "/" sits over the live world (M01b2); ?debug=1 (QA) goes straight to play. Other routes keep the corner view.
-const ON_HOME = location.pathname === '/';
 const PLAY_CLASS = 'dv-engine-canvas dv-engine-canvas--play';
 const BACKDROP_CLASS = 'dv-engine-canvas dv-engine-canvas--backdrop';
 
@@ -29,13 +29,62 @@ const update = 'serviceWorker' in navigator
   ? createPwaUpdateController({ container: navigator.serviceWorker, reload: () => location.reload() })
   : null;
 
+// The QA play bypass (M04b1, DL-650): `?play=sandbox|story`, the QA-only key `dv-qa-play`, or `?scenario=<id>` skips the gates and starts
+// that mode. It runs on an in-memory profile of preferences: nothing about the attestation or the Terms is persisted.
+const qaPlay = QA && (flags.play === 'sandbox' || flags.play === 'story') ? ({ mode: flags.play } as const) : null;
+
+// What the shell last asked of the engine and the canvas. The shell exists before the engine does, so these are applied when each appears.
+const want = { play: qaPlay !== null || flags.debug, paused: false, view: qaPlay !== null || flags.debug };
+let canvasRef: HTMLCanvasElement | null = null;
+let engineRef: EngineHandle | null = null;
+const applyView = (): void => {
+  document.documentElement.classList.toggle('dv-playing', want.view);
+  document.documentElement.classList.add('dv-world');
+  if (canvasRef) canvasRef.className = want.view ? PLAY_CLASS : BACKDROP_CLASS;
+};
+const hooks: ShellHooks = {
+  play: (on) => {
+    want.play = on;
+    engineRef?.setPlay(on);
+  },
+  setPaused: (p) => {
+    want.paused = p;
+    engineRef?.setPaused(p);
+  },
+  view: (on) => {
+    want.view = on;
+    applyView();
+  },
+  reload: () => location.reload(),
+};
+
+// The block check runs before anything else: a blocked device never boots the platform, the engine or any request (10-ui-pages.md 2.4 rule 4).
+const prefs: PrefsStore = qaPlay
+  ? memoryPrefs({ ...defaultPrefs(), age: { attested: '18p', attestedAt: Date.now(), blocked: false }, terms: { version: TERMS_VERSION, acceptedAt: Date.now() } })
+  : await loadPrefs();
+
 const shellProps = (unsupported: boolean): ShellProps => ({
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
   update,
   initialPath: location.pathname,
+  prefs,
+  qa: QA,
+  qaPlay,
+  unlockAllFlag: flags.unlockAll,
+  hooks,
+  build: BUILD,
+  onConsent: (c) => {
+    pendingConsent = c;
+    applyPendingConsent();
+  },
+  onGatesPassed: (phase) => {
+    if (phase === 'attested') attestedOpen();
+    else termsAccepted();
+  },
 });
-mountShell(root, shellProps(flags.unsupported));
+const shell: ShellHandle = mountShell(root, shellProps(flags.unsupported));
+applyView();
 
 /** The reload prompt after a second device loss (11-platform.md section 5.8). */
 function showReloadPrompt(): void {
@@ -79,9 +128,8 @@ async function boot(): Promise<void> {
   document.body.append(container);
   const canvas = document.createElement('canvas');
   canvas.id = 'dv-engine-canvas';
-  canvas.className = flags.debug ? PLAY_CLASS : ON_HOME ? BACKDROP_CLASS : 'dv-engine-canvas';
-  if (ON_HOME || flags.debug) document.documentElement.classList.add('dv-world');
-  if (flags.debug) document.documentElement.classList.add('dv-playing');
+  canvasRef = canvas;
+  applyView();
   canvas.setAttribute('aria-hidden', 'true');
   container.append(canvas);
 
@@ -100,16 +148,23 @@ async function boot(): Promise<void> {
       build: BUILD,
       // The composed asset worker: the engine's pack store plus the world jobs (M02b1).
       spawnAssetWorker: () => new Worker(new URL('./workers/asset.worker.ts', import.meta.url), { type: 'module', name: 'asset' }) as unknown as WorkerPort,
+      // Before the Terms are accepted nothing is sent: consent starts off and the Terms card sets it (10-ui-pages.md 2.4 rule 6).
+      ...(termsOk ? {} : { consent: { diagnostics: false, analytics: false } }),
+      // The region probe (`GET /api/v1/boot`) waits for the age screen to pass; a device that is blocked never asks (BD-M04b1-04).
+      region: attestedGate.then(() => fetchBootRegion(fetch, location.origin)),
       events: {
-        unsupported: () => mountShell(root as HTMLElement, shellProps(true)),
+        unsupported: () => shell.core.fire('unsupported'),
         reloadPrompt: showReloadPrompt,
       },
     });
   } catch (error) {
     console.error('platform failed to start', error);
-    mountShell(root as HTMLElement, shellProps(true));
+    shell.core.fire('unsupported');
     return;
   }
+  platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props));
+  shell.attachPlatform(platformPort);
+  applyPendingConsent();
 
   // A second tab never writes the pack store; say so without blocking anything.
   const assets = platform.assets;
@@ -157,13 +212,6 @@ async function boot(): Promise<void> {
       console.error('the baked world could not be prepared', error);
     }
   }
-  let engineRef: EngineHandle | null = null;
-  // True once the player pressed Start (or ?debug=1 skipped the title): from then on Pause brings the title back and Start resumes.
-  let started = flags.debug;
-  const setPlayView = (playing: boolean): void => {
-    document.documentElement.classList.toggle('dv-playing', playing);
-    canvas.className = playing ? PLAY_CLASS : BACKDROP_CLASS;
-  };
   const engine = await bootEngine({
     container,
     qa: QA,
@@ -180,20 +228,24 @@ async function boot(): Promise<void> {
       : choice === 'scenario'
         ? { scenario: flags.world as string }
         : { graybox: { p0: grayboxP0Url, l0: grayboxL0Url } }),
-    play: flags.debug,
+    play: want.play,
     forceTouch: flags.touch,
     // The sim queues mode.enter, mode.exit and unlock.emit (M04a2); the platform client applies consent and batching.
     onTelemetry: (name, props) => platform.telemetry.emit(name as never, props),
-    // Pausing brings the title back over the world; Start resumes.
-    onPausedChange: (paused) => {
-      if (started) setPlayView(!paused);
-    },
+    // The Pause action opens or closes the shell's pause menu.
+    onPausedChange: (paused) => shell.enginePaused(paused),
+    // Toasts the sim raises (unlocks, refused modes, boundary notices) are drawn by the shell.
+    onToast: (toast) => shell.onToast(toast),
   }).catch((error: unknown) => {
     console.error('engine failed to start', error);
     return null;
   });
   engineRef = engine;
-  if (engine) platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
+  if (engine) {
+    platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
+    engine.setPaused(want.paused);
+    shell.attachEngine(createEnginePort(engine));
+  }
   // The governor's atmosphereLevel knob drives the sky (M02b2): clouds, rain streak counts and decals follow it.
   if (prepared) {
     const view = prepared.view;
@@ -204,17 +256,6 @@ async function boot(): Promise<void> {
       view.lookView?.setPostLevel(q.postLevel);
     });
   }
-
-  // Start on the title screen: the world becomes the game.
-  document.addEventListener('click', (e) => {
-    const hit = (e.target as Element | null)?.closest?.('[data-testid="title-start"]');
-    if (!hit || !engineRef) return;
-    started = true;
-    document.documentElement.classList.add('dv-world');
-    engineRef.setPaused(false);
-    engineRef.setPlay(true);
-    setPlayView(true);
-  });
 
   // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
   if (import.meta.env.VITE_DV_QA === '1') {
@@ -238,7 +279,40 @@ async function boot(): Promise<void> {
   }
 }
 
-if (!flags.unsupported && typeof Worker !== 'undefined') void boot();
+// The platform and the engine boot at page load, behind the Title, on every device that is not blocked: a blocked device boots nothing
+// and makes no request. Nothing goes to the Worker API (the region probe) until the age screen has passed, and no telemetry leaves before
+// the Terms are accepted.
+let started = false;
+let attestedOpen: () => void = () => undefined;
+const attestedGate = new Promise<void>((resolve) => {
+  attestedOpen = resolve;
+});
+if (prefs.get().age.attested === '18p' && !prefs.get().age.blocked) attestedOpen();
+let platformPort: ReturnType<typeof createPlatformPort> | null = null;
+let pendingConsent: { diagnostics: boolean; analytics: boolean } | null = null;
+const termsOk = qaPlay !== null || prefs.get().terms?.version === TERMS_VERSION;
+
+function applyPendingConsent(): void {
+  if (platformPort && pendingConsent) {
+    const c = pendingConsent;
+    pendingConsent = null;
+    void platformPort.update({ telemetryConsent: c });
+    platformPort.applyConsent(c);
+  }
+}
+
+function startEngine(): void {
+  if (started || flags.unsupported || typeof Worker === 'undefined' || prefs.get().age.blocked) return;
+  started = true;
+  shell.attachSaves(createSavesPort(BUILD));
+  void boot();
+}
+
+function termsAccepted(): void {
+  applyPendingConsent();
+}
+
+startEngine();
 
 if (update && import.meta.env.PROD) {
   addEventListener('load', () => {

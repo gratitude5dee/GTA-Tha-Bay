@@ -8,7 +8,8 @@ import type { LegalDocRes } from '../packages/shared/src/api/legal.ts';
 import privacyJson from '../content/legal/privacy.json' with { type: 'json' };
 import termsJson from '../content/legal/terms.json' with { type: 'json' };
 
-export const TERMS_VERSION = 'interim-1';
+// M04b1 replaced the interim text with the game's pre-release terms (Terms card, telemetry consent), so the value changed.
+export const TERMS_VERSION = 'pre-release-1';
 
 // The JSON files hold the text; `version` comes from the constant so the two cannot drift.
 export const TERMS_DOC: LegalDocRes = { ...(termsJson as Omit<LegalDocRes, 'version'>), version: TERMS_VERSION };
