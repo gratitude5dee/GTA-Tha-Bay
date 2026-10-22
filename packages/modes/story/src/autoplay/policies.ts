@@ -81,7 +81,7 @@ export interface Mem {
 
 export function newMem(): Mem {
   return {
-    path: null, pathIdx: 0, pathKey: '', replanAt: 0, avoidOff: 0, avoidUntil: 0, avoidSide: 1, pulseAt: 0, lastPos: [0, 0, 0], lastPosTick: 0,
+    path: null, pathIdx: 0, pathKey: '', replanAt: 0, avoidOff: 0, avoidUntil: 0, avoidSide: 1, pulseAt: 0, lastPos: [0, 0, 0], lastPosTick: -1,
     unstickUntil: 0, unstickKind: 'sidestep', unstickSide: 1, vantageKey: '', vantage: null, shutterAt: 0, patternStart: -1, patternPhase: 0, pathPt: 0,
   };
 }
@@ -173,6 +173,11 @@ function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: n
 /** Un-sticking: a body that has barely moved for 1.5 s while it was asked to move sidesteps (on foot) or reverses (in a vehicle). */
 function stuckCheck(obs: MissionObs, mem: Mem, t: Tools, moving: boolean): void {
   const here = obs.me.vehicle?.pos ?? obs.me.pos;
+  if (mem.lastPosTick < 0) {
+    mem.lastPos = [here[0], here[1], here[2]];
+    mem.lastPosTick = t.tick;
+    return;
+  }
   if (t.tick - mem.lastPosTick < STUCK_CHECK_TICKS) return;
   const moved = dist(here, mem.lastPos);
   mem.lastPos = [here[0], here[1], here[2]];
