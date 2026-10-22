@@ -119,6 +119,8 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     ...(await refsFor('world_pack/p0-')),
     ...(await refsFor('map_data/sf-graph')),
     ...(await refsFor('data/district-grid')),
+    // M02c2: the offline geocoder behind `findPlace`; a catalog without it just searches landmarks and points of interest
+    ...(await refsFor('map_data/sf-geocode').catch(() => ({}) as WorldSimConfig['refs'])),
     // M03b2: the baked transit routes (buses, Metro, ferries, cable cars, air corridors); a catalog without them just has no transit
     ...(await refsFor('data/transit-routes').catch(() => ({}) as WorldSimConfig['refs'])),
   };

@@ -489,7 +489,16 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     }
   }
   for (const g of gates) log(`gate ${g.level.toUpperCase().padEnd(4)} ${g.id}: ${g.detail}`);
-  const hashes = outputs ? hashTree(outDir) : {};
+  // without the pack stage there is no bake directory to hash; a run of the map stage alone (`--stage map --repro`, M02c2 AC-11) is
+  // compared on the three assets it produces
+  const mapHashes: Record<string, string> = wanted.has('map')
+    ? {
+        'sf-map.v1.pack': sha256Text(Buffer.from(mapStage.product.map)),
+        'sf-map-bldg.v1.pack': sha256Text(Buffer.from(mapStage.product.bldg)),
+        'sf-geocode.v1.pack': sha256Text(Buffer.from(mapStage.geocode)),
+      }
+    : {};
+  const hashes = outputs ? hashTree(outDir) : mapHashes;
   return { ok: failed(gates).length === 0, bakeId, outDir, gates, hashes, ms };
 }
 
