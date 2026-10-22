@@ -1,0 +1,23 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.02.fare": "Thanks for stopping. The app promised a car ten minutes ago, so I will take yours.",
+    "line.m.a1.02.home": "Clean getaway. Back to the Yard before the fog does.",
+    "line.m.a1.02.patrol": "Patrol saw your plates on the way out. Lose them and come home.",
+    "line.m.a1.02.race": "The company car already left with the same fare number. You have four minutes.",
+    "line.m.a1.02.text": "Fare waiting at Fourth and King. Surge pricing is up and the robotaxis are late. Go.",
+    "mission.m.a1.02.fail.busted": "The patrol caught you.",
+    "mission.m.a1.02.fail.fare": "Your passenger got hurt.",
+    "mission.m.a1.02.fail.ko": "You went down. Get up and try again.",
+    "mission.m.a1.02.fail.ride": "The car is wrecked. Start again.",
+    "mission.m.a1.02.fail.rival": "The company car got there first.",
+    "mission.m.a1.02.obj.deliver_fare": "Get your fare to the 24th Street station plaza",
+    "mission.m.a1.02.obj.escape_patrol": "Lose the patrol",
+    "mission.m.a1.02.obj.enter_ride": "Get back in the car",
+    "mission.m.a1.02.obj.meet_fare": "Meet your fare on the sidewalk",
+    "mission.m.a1.02.obj.goto_pickup": "Pull up at Fourth and King",
+    "mission.m.a1.02.obj.goto_yard": "Drive back to the Yard",
+    "mission.m.a1.02.title": "Surge Pricing"
+  }
+}

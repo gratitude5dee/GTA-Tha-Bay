@@ -1,0 +1,32 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.04.keynote.1": "Every curb in this city is a lot. Every lot is a number. Tonight we put a number on all of them.",
+    "line.m.a1.04.keynote.2": "Mark the map, price the block, own the city.",
+    "line.m.a1.04.out": "Walk out like you belong. The photo is all we need.",
+    "line.m.a1.04.photo": "Got it. Now stay for the keynote and keep your head down.",
+    "line.m.a1.04.start": "Odessa here. The launch party is tonight. Get in the line and find a way up to the screen.",
+    "line.m.a1.04.talk.door.open": "Name is not on the list, friend. Unless you can make it worth my while.",
+    "line.m.a1.04.talk.influencer.open": "Stream is live! Are you here for the launch? Say hi to chat.",
+    "mission.m.a1.04.fail.host": "The door host is hurt. The party is shut down.",
+    "mission.m.a1.04.fail.ko": "You went down.",
+    "mission.m.a1.04.fail.screen": "The screen is wrecked. There is nothing left to photograph.",
+    "mission.m.a1.04.obj.goto_exit": "Walk out the front",
+    "mission.m.a1.04.obj.goto_front": "Stay for the keynote",
+    "mission.m.a1.04.obj.goto_queue": "Join the launch party line",
+    "mission.m.a1.04.obj.photo_screen": "Photograph the curb map",
+    "mission.m.a1.04.obj.stealth_front": "Slip up to the exec floor",
+    "mission.m.a1.04.obj.stealth_service": "Slip up the service stairs",
+    "mission.m.a1.04.obj.talk_door": "Get past the door host",
+    "mission.m.a1.04.obj.talk_influencer": "Say hi to the streamer",
+    "mission.m.a1.04.talk.door.bribe": "Slip them $300",
+    "mission.m.a1.04.talk.door.charm": "Charm your way in",
+    "mission.m.a1.04.talk.door.intent": "Get past the door host",
+    "mission.m.a1.04.talk.door.refuse": "Find another way in",
+    "mission.m.a1.04.talk.influencer.intent": "Say hello to the streamer in the line",
+    "mission.m.a1.04.talk.influencer.pass": "Walk on by",
+    "mission.m.a1.04.talk.influencer.selfie": "Take a selfie",
+    "mission.m.a1.04.title": "Curb Appeal"
+  }
+}

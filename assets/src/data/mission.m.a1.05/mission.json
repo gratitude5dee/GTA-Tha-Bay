@@ -1,0 +1,289 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      30,
+      600
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "host": {
+      "k": "npc",
+      "role": "host",
+      "spawn": {
+        "at": [
+          37.78466,
+          -122.40764
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "slot": "RAP_HYPHY_ELDER"
+      }
+    },
+    "rival": {
+      "k": "npc",
+      "role": "opponent",
+      "spawn": {
+        "at": [
+          37.78474,
+          -122.4078
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "slot": "RAP_NEW_WAVE"
+      }
+    },
+    "sparrer": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.78476,
+          -122.40775
+        ],
+        "snap": "ground"
+      },
+      "spawnAt": "manual",
+      "who": {
+        "soul": "chorus_sparrer"
+      }
+    }
+  },
+  "district": "d4",
+  "fail": [
+    {
+      "reason": "mission.m.a1.05.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "saint_static"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.a1.05",
+  "lines": [
+    "line.m.a1.05.bout",
+    "line.m.a1.05.lose",
+    "line.m.a1.05.start",
+    "line.m.a1.05.win"
+  ],
+  "medals": {
+    "goldSec": 300,
+    "silverSec": 420
+  },
+  "modeHooks": [
+    {
+      "defId": "bout.a5",
+      "id": "turntable",
+      "mode": "fighter",
+      "params": {
+        "kind": "story"
+      },
+      "passOn": [
+        "win",
+        "lose"
+      ],
+      "retry": "hook",
+      "stub": {
+        "id": "defeat_sparrer",
+        "k": "defeat",
+        "nonLethal": true,
+        "targets": [
+          "sparrer"
+        ],
+        "text": "mission.m.a1.05.obj.defeat_sparrer"
+      },
+      "unlockOnFirstEncounter": "unlock.fighter"
+    }
+  ],
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.04",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 100000,
+    "streetCred": 30
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "plaza",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.05.obj.goto_plaza",
+          "zone": "plaza"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.05.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "ring",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_ring",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.05.obj.goto_ring",
+          "zone": "ring"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.05.ring"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "signup",
+      "join": "all",
+      "next": "bout",
+      "objectives": [
+        {
+          "id": "talk_signup",
+          "k": "talk",
+          "talk": {
+            "default": "sign_up",
+            "id": "signup",
+            "ink": "mission_m_a1_05_signup",
+            "intent": "mission.m.a1.05.talk.signup.intent",
+            "maxTurns": 2,
+            "npc": "host",
+            "outcomes": {
+              "sign_up": {
+                "flags": {
+                  "a1.05.signed": true
+                },
+                "label": "mission.m.a1.05.talk.signup.sign_up",
+                "stage": "bout",
+                "trust": 3
+              }
+            }
+          },
+          "text": "mission.m.a1.05.obj.talk_signup"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "bout",
+      "join": "all",
+      "objectives": [
+        {
+          "hook": "turntable",
+          "id": "mode_turntable",
+          "k": "mode",
+          "text": "mission.m.a1.05.obj.mode_turntable"
+        }
+      ],
+      "onComplete": [
+        {
+          "cond": {
+            "hook": "turntable",
+            "outcome": [
+              "win"
+            ],
+            "p": "modeResult"
+          },
+          "else": [
+            {
+              "line": "line.m.a1.05.lose",
+              "op": "say",
+              "speaker": "host"
+            }
+          ],
+          "op": "if",
+          "then": [
+            {
+              "cashCents": 100000,
+              "idem": "a1.05.win",
+              "op": "give"
+            },
+            {
+              "line": "line.m.a1.05.win",
+              "op": "say",
+              "speaker": "host"
+            }
+          ]
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "sparrer"
+          ],
+          "op": "spawn"
+        },
+        {
+          "line": "line.m.a1.05.bout",
+          "op": "say",
+          "speaker": "host"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "saint_static",
+    "k": "phone"
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.05.title",
+  "unlocks": [
+    "unlock.fighter.rap_new_wave"
+  ],
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "plaza": {
+      "at": [
+        37.7847,
+        -122.4077
+      ],
+      "k": "circle",
+      "r": 22
+    },
+    "ring": {
+      "at": [
+        37.78472,
+        -122.40772
+      ],
+      "k": "circle",
+      "r": 8
+    }
+  }
+}

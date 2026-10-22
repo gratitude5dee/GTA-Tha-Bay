@@ -1,0 +1,24 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.03.gate": "Sunday night, the lot behind the cranes. Bring a car that likes to slide.",
+    "line.m.a1.03.follow": "Stay close. The crowd is already there.",
+    "line.m.a1.03.home": "Everybody scattered. Get back to the Yard before the next patrol comes through.",
+    "line.m.a1.03.raid.1": "Lights! Patrol on the fence line, everybody out the back!",
+    "line.m.a1.03.raid.2": "Go, go. Do not stop for anything!",
+    "line.m.a1.03.raid": "Patrol is on the lot. Lose them and head for the Yard.",
+    "line.m.a1.03.show": "Give them a show. Three thousand points of smoke and the lot is yours.",
+    "mission.m.a1.03.fail.busted": "The patrol caught you.",
+    "mission.m.a1.03.fail.ko": "You went down. Get up and try again.",
+    "mission.m.a1.03.fail.ride": "The car is wrecked. Start again.",
+    "mission.m.a1.03.obj.drift_show": "Drift for the crowd",
+    "mission.m.a1.03.obj.enter_ride": "Get in the car",
+    "mission.m.a1.03.obj.escape_raid": "Lose the patrol",
+    "mission.m.a1.03.obj.follow_tavi": "Follow Tavi to the lot",
+    "mission.m.a1.03.obj.goto_gate": "Meet Tavi at the Yard gate",
+    "mission.m.a1.03.obj.goto_yard": "Get back to the Yard",
+    "mission.m.a1.03.obj.sideshow_escape_obj": "Get away from the lot",
+    "mission.m.a1.03.title": "Sideshow Sunday"
+  }
+}

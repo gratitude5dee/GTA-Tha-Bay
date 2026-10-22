@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "a1634eb65baebb8a8a53eebb8fbed8b116e9b9e98f886eab1483266df5bbc0a4",
+  "sha256": "7968a36d481f9a23486fde9089d3922a9e5afef265712df473f60240dd599ddf",
   "paths": [
-    "assets/src/data/cutscene-index/index.json"
+    "assets/src/data/director.m.a1.03.raid/director.json"
   ],
   "kind": "data",
   "origin": "authored",
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T18:49:58Z"
+  "created_at": "2026-10-22T19:36:22Z"
 }

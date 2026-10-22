@@ -1,0 +1,278 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      900
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "crew": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.75062,
+          -122.41442
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "chorus_sparrer"
+      }
+    },
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.75058,
+          -122.4144
+        ],
+        "snap": "road",
+        "yawDeg": 0
+      }
+    },
+    "van": {
+      "k": "vehicle",
+      "prefab": "vehicle.van",
+      "spawn": {
+        "at": [
+          37.75066,
+          -122.41452
+        ],
+        "snap": "road",
+        "yawDeg": 0
+      },
+      "spawnAt": "manual"
+    }
+  },
+  "district": "d2",
+  "fail": [
+    {
+      "reason": "mission.m.a1.06.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.06.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.06.fail.van",
+      "retry": "checkpoint",
+      "when": {
+        "cast": "van",
+        "p": "destroyed"
+      }
+    },
+    {
+      "reason": "mission.m.a1.06.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "saint_static"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 2
+  },
+  "id": "m.a1.06",
+  "lines": [
+    "line.m.a1.06.convoy",
+    "line.m.a1.06.start",
+    "line.m.a1.06.sweep"
+  ],
+  "medals": {
+    "goldSec": 540,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.05",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 250000
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "warehouse",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_warehouse",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.06.obj.goto_warehouse",
+          "zone": "warehouse"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.06.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "wheels",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.06.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "van"
+          ],
+          "op": "spawn"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "convoy",
+      "join": "all",
+      "objectives": [
+        {
+          "band": [
+            10,
+            60
+          ],
+          "id": "follow_van",
+          "k": "follow",
+          "loseAfterSec": 20,
+          "target": "van",
+          "text": "mission.m.a1.06.obj.follow_van",
+          "untilZone": "hill"
+        },
+        {
+          "id": "protect_van",
+          "k": "protect",
+          "minHealth": 0.4,
+          "target": "van",
+          "text": "mission.m.a1.06.obj.protect_van",
+          "untilZone": "hill"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": "van",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "hill"
+          }
+        },
+        {
+          "line": "line.m.a1.06.convoy",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "sweep",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_sweep",
+          "k": "escape",
+          "text": "mission.m.a1.06.obj.escape_sweep",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "heat",
+          "set": 2
+        },
+        {
+          "line": "line.m.a1.06.sweep",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "antenna",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "wait_antenna",
+          "k": "wait",
+          "sec": 2,
+          "text": "mission.m.a1.06.obj.wait_antenna"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.06.antenna"
+          }
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "saint_static",
+    "k": "phone"
+  },
+  "tags": [],
+  "title": "mission.m.a1.06.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "hill": {
+      "at": [
+        37.7435,
+        -122.415
+      ],
+      "k": "circle",
+      "r": 30
+    },
+    "warehouse": {
+      "at": [
+        37.7506,
+        -122.4145
+      ],
+      "k": "circle",
+      "r": 16
+    }
+  }
+}

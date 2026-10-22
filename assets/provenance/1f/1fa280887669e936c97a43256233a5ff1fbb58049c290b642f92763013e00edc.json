@@ -1,6 +1,6 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "d79fc0672f2dd88ac6b6cc68cc40445b411d2d64fad1ff8b61853b870bca2c21",
+  "sha256": "1fa280887669e936c97a43256233a5ff1fbb58049c290b642f92763013e00edc",
   "paths": [
     "assets/src/data/story.index/story.index.json"
   ],
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T18:50:03Z"
+  "created_at": "2026-10-22T19:36:22Z"
 }

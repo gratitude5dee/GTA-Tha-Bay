@@ -1,0 +1,277 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      720
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "fare": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.776389,
+          -122.394215
+        ],
+        "snap": "road"
+      },
+      "who": {
+        "soul": "ama_osei"
+      }
+    },
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.776602,
+          -122.394471
+        ],
+        "snap": "road",
+        "yawDeg": 0
+      }
+    }
+  },
+  "district": "d1",
+  "fail": [
+    {
+      "reason": "mission.m.a1.02.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.02.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.02.fail.fare",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "fare"
+      }
+    },
+    {
+      "reason": "mission.m.a1.02.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "x_ramos"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 2
+  },
+  "id": "m.a1.02",
+  "lines": [
+    "line.m.a1.02.fare",
+    "line.m.a1.02.home",
+    "line.m.a1.02.patrol",
+    "line.m.a1.02.race",
+    "line.m.a1.02.text"
+  ],
+  "medals": {
+    "goldSec": 420,
+    "silverSec": 600
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.01",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 120000,
+    "streetCred": 20
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "to_pickup",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_pickup",
+          "inVehicle": "ride",
+          "k": "goto",
+          "stopped": true,
+          "text": "mission.m.a1.02.obj.goto_pickup",
+          "zone": "pickup"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.02.text",
+          "op": "say",
+          "speaker": "radio"
+        },
+        {
+          "cast": [
+            "fare"
+          ],
+          "op": "spawn"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "meet_fare",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "fare",
+          "id": "meet_fare",
+          "k": "collect",
+          "text": "mission.m.a1.02.obj.meet_fare"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.a1.02.fare",
+          "op": "say",
+          "speaker": "fare"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "back_in",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.02.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "fare_ride",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "fare",
+          "id": "deliver_fare",
+          "k": "deliver",
+          "text": "mission.m.a1.02.obj.deliver_fare",
+          "to": "bart"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.02.race",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ],
+      "timeLimitSec": 240
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "lose_patrol",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_patrol",
+          "k": "escape",
+          "text": "mission.m.a1.02.obj.escape_patrol",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "heat",
+          "set": 1
+        },
+        {
+          "line": "line.m.a1.02.patrol",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "to_yard",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_yard",
+          "inVehicle": "ride",
+          "k": "goto",
+          "text": "mission.m.a1.02.obj.goto_yard",
+          "zone": "yard"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.02.home",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "x_ramos",
+    "k": "phone"
+  },
+  "tags": [],
+  "title": "mission.m.a1.02.title",
+  "unlocks": [
+    "unlock.district.d1",
+    "unlock.district.d2"
+  ],
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "bart": {
+      "at": [
+        37.752247,
+        -122.418395
+      ],
+      "k": "circle",
+      "r": 20
+    },
+    "pickup": {
+      "at": [
+        37.776389,
+        -122.394215
+      ],
+      "k": "circle",
+      "r": 14
+    },
+    "yard": {
+      "at": [
+        37.73648,
+        -122.38865
+      ],
+      "k": "circle",
+      "r": 24
+    }
+  }
+}

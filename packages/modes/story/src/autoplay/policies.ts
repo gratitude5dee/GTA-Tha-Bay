@@ -35,14 +35,16 @@ const REPLAN_TICKS = 150;
 const WAYPOINT_FOOT_M = 3;
 /** On foot, a target this close is walked to in a straight line (bent by the ray fan): a C08 route follows the lanes and may circle a block to reach a car a few metres away (M05c1). */
 const FOOT_DIRECT_M = 40;
-/** How many leading route points the start of a route looks through for the one nearest the body. */
-const NEAREST_SCAN = 8;
+/** How far along a route (metres) the start looks for the point nearest the body: the first edge of a route can be long, and a route can come back past its own start. */
+const NEAREST_ARC_M = 250;
 const WAYPOINT_DRIVE_M = 9;
 /** How far ahead a driving bot looks for a collider to steer around; short, so the walls beyond a bend are not obstacles (M05c1). */
 const DRIVE_LOOK_M = 7;
 const DRIVE_DIRECT_M = 35;
+/** How far ahead along the route the speed plan looks for a bend. */
+const CURVE_LOOK_M = 45;
 const STICK = { walk: 51, run: 127, sprint: 127 } as const;
-const DRIVE_VMAX_MPS = 13;
+const DRIVE_VMAX_MPS = 24;
 const DRIVE_ACCEL_MPS2 = 3.2;
 const ENTER_RANGE_M = 1.9;
 const EXIT_SPEED_MPS = 3;
@@ -171,6 +173,10 @@ function steerClear(obs: MissionObs, mem: Mem, t: Tools, from: Vec3, dir: [numbe
   return rotate(dir, mem.avoidOff);
 }
 
+const vehiclePos = (obs: MissionObs): Vec3 => obs.me.vehicle?.pos ?? obs.me.pos;
+/** A waypoint further than this behind the body is not skipped as passed (the body may have left the route; it replans). */
+const PASSED_MAX_M = 30;
+
 /** The next point to head for: the C08 route to `target` when there is one, else `target`. */
 function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: number, yaw?: number): Vec3 {
   const key = `${Math.round(target[0] / 8)}:${Math.round(target[2] / 8)}`;
@@ -183,18 +189,29 @@ function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: n
     const first = mem.path;
     if (first) {
       let best = Infinity;
-      for (let i = 0; i < Math.min(first.length, NEAREST_SCAN); i++) {
-        const dd = dist(obs.me.pos, first[i] as Vec3);
+      let arc = 0;
+      for (let i = 0; i < first.length && arc <= NEAREST_ARC_M; i++) {
+        const q = first[i] as Vec3;
+        const dd = dist(vehiclePos(obs), q);
         if (dd < best) {
           best = dd;
           mem.pathIdx = i;
         }
+        if (i > 0) arc += dist(first[i - 1] as Vec3, q);
       }
     }
   }
   const p = mem.path;
   if (!p) return target;
-  while (mem.pathIdx < p.length - 1 && dist(obs.me.pos, p[mem.pathIdx] as Vec3) < arriveM) mem.pathIdx++;
+  // a waypoint is done when the body is near it or has passed it along the path: a waypoint left behind makes a pure-pursuit driver orbit it (M05c1)
+  const me = vehiclePos(obs);
+  while (mem.pathIdx < p.length - 1) {
+    const cur = p[mem.pathIdx] as Vec3;
+    const nxt = p[mem.pathIdx + 1] as Vec3;
+    const passed = (me[0] - cur[0]) * (nxt[0] - cur[0]) + (me[2] - cur[2]) * (nxt[2] - cur[2]) > 0;
+    if (dist(me, cur) < arriveM || (passed && dist(me, cur) < PASSED_MAX_M)) mem.pathIdx++;
+    else break;
+  }
   return p[mem.pathIdx] as Vec3;
 }
 
@@ -258,11 +275,38 @@ export function driveTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, stopR
   const left = Math.max(0, d - (stop ? stopR * 0.5 : 0));
   const vBrake = dsqrt(2 * DRIVE_ACCEL_MPS2 * left) + 1.5;
   const vCorner = Math.abs(alpha) > 0.9 ? 4 : Math.abs(alpha) > 0.45 ? 7 : vmax;
-  const want = Math.min(vmax, vBrake, vCorner);
+  const want = Math.min(vmax, vBrake, vCorner, curveSpeed(mem, v.pos, v.speed));
   const err = want - v.speed;
   const throttle = err > 0 ? clamp(0.3 + err * 0.3, 0, 1) : 0;
-  const brake = err < -1.2 ? clamp(-err * 0.2, 0, 1) : 0;
+  const brake = err < -1.2 ? clamp(-err * 0.3, 0, 1) : 0;
   return { ...base, steer, throttle: Math.round(throttle * 127), brake: Math.round(brake * 127) };
+}
+
+/**
+ * The speed a bend of the route ahead allows (M05c1): the heading change over the next `CURVE_LOOK_M` metres of waypoints, against the
+ * heading of the first segment. A sharp bend (a right angle at a block corner) takes the car to a crawl before the corner, not after it.
+ */
+function curveSpeed(mem: Mem, pos: Vec3, speed: number): number {
+  const p = mem.path;
+  if (!p || mem.pathIdx >= p.length - 1) return 99;
+  let along = 0;
+  let prev = pos;
+  let h0: number | null = null;
+  let worst = 0;
+  const look = CURVE_LOOK_M + speed * 2.5;
+  for (let i = mem.pathIdx; i < p.length && along < look; i++) {
+    const q = p[i] as Vec3;
+    const dx = q[0] - prev[0];
+    const dz = q[2] - prev[2];
+    const len = dsqrt(dx * dx + dz * dz);
+    if (len < 0.5) continue;
+    const h = headingOf(dx, dz);
+    if (h0 === null) h0 = h;
+    else worst = Math.max(worst, Math.abs(wrap(h - h0)));
+    along += len;
+    prev = q;
+  }
+  return clamp(20 - 16 * worst, 4, 99);
 }
 
 /** Holds a vehicle still: the brake while it rolls, the handbrake once it is slow (a brake pressed at rest reverses). */

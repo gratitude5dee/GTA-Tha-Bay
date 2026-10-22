@@ -1,0 +1,62 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 6000,
+      "kind": "dialogue",
+      "line": "line.m.a1.03.raid.1",
+      "speaker": "tavi_okafor",
+      "startMs": 1500
+    },
+    {
+      "endMs": 12500,
+      "kind": "dialogue",
+      "line": "line.m.a1.03.raid.2",
+      "speaker": "tavi_okafor",
+      "startMs": 8000
+    }
+  ],
+  "durationSec": 14,
+  "id": "m.a1.03.raid",
+  "letterbox": true,
+  "marks": {
+    "lot_close": {
+      "at": [
+        37.73588,
+        -122.38768
+      ],
+      "yawDeg": 220
+    },
+    "lot_wide": {
+      "at": [
+        37.73598,
+        -122.3879
+      ],
+      "yawDeg": 40
+    }
+  },
+  "schema": "director/1",
+  "seed": 114956793,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "lot_wide",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 7,
+      "from": "lot_close",
+      "lens": "normal",
+      "preset": "single",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "lot_close",
+    "yawDeg": 220
+  }
+}

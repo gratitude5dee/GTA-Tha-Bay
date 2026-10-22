@@ -110,7 +110,21 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       return d.targets[0] !== undefined ? { k: 'melee', target: d.targets[0] } : { k: 'idle' };
     case 'score':
       return { k: 'pattern', name: 'drift' };
-    case 'escape':
+    case 'escape': {
+      // run for the farthest place the mission names (its hideout or its last stop): a moving car leaves the search circle behind (M05c1)
+      let far: Vec3 | null = null;
+      let farD = 0;
+      for (const name of Object.keys(obs.zones).sort()) {
+        const z = obs.zones[name];
+        if (!z?.c) continue;
+        const dd = near(obs.me.pos, z.c);
+        if (dd > farD) {
+          far = z.c;
+          farD = dd;
+        }
+      }
+      return far ? { k: 'reach', at: far, r: 12, mode: 'free' } : { k: 'idle' };
+    }
     case 'survive':
     case 'protect':
     case 'talk':
