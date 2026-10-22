@@ -10,7 +10,7 @@
  *  - `flush(tick)` runs at `SimStage.Publish` and returns the view-model patch to publish, or null when nothing changed.
  * Pure; C02 lint applies.
  */
-import { RoadClass, type MapApi, type MapBlip } from '@dv/shared';
+import { RoadClass, dsqrt, type MapApi, type MapBlip } from '@dv/shared';
 import type { RoadGraph } from '../graph/query.ts';
 import { thin } from '../api/places.ts';
 
@@ -42,7 +42,7 @@ export function distToPolyline(pts: readonly number[], x: number, z: number): nu
     const d2 = ex * ex + ez * ez;
     if (d2 < best) best = d2;
   }
-  return best === Infinity ? Infinity : Math.sqrt(best);
+  return best === Infinity ? Infinity : dsqrt(best);
 }
 
 export interface RouteView {

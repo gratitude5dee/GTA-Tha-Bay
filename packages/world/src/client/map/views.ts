@@ -44,8 +44,8 @@ export const LAYER_LEGEND: readonly { id: keyof typeof LAYER; bit: number }[] = 
 ];
 
 export type PaletteName = 'default' | 'deutan' | 'protan' | 'tritan';
-const SEMANTIC = ['friendly', 'danger', 'warning', 'objective', 'neutral'] as const;
-interface PalettesFile { palettes: Record<PaletteName, Record<(typeof SEMANTIC)[number], string>>; mapSurfaces: Record<Exclude<PaletteToken, (typeof SEMANTIC)[number]>, string> }
+type Semantic = 'friendly' | 'danger' | 'warning' | 'objective' | 'neutral';
+interface PalettesFile { palettes: Record<PaletteName, Record<Semantic, string>>; mapSurfaces: Record<Exclude<PaletteToken, Semantic>, string> }
 const FILE = palettesJson as unknown as PalettesFile;
 
 /** The map palette of one HUD palette: its five semantic tokens plus the surface colours of `mapSurfaces`. */

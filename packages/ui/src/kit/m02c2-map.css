@@ -1,6 +1,6 @@
 /* M02c2: the minimap toggle, the phone Map app, the splash attribution line. Tokens come from kit.css. */
 .dv-minimap { position: relative; }
-.dv-minimap-toggle { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.dv-minimap-toggle { pointer-events: auto; position: absolute; inset: 0; inline-size: 100%; block-size: 100%; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
 .dv-minimap-toggle:focus-visible { outline: 3px solid var(--dv-color-focus, #fff); outline-offset: -3px; }
 
 .dv-map-app { display: flex; flex-direction: column; gap: var(--dv-space-3); max-inline-size: 48rem; }
