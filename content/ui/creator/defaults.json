@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "name": "Rookie",
+  "callsign": "Rookie",
+  "body": {
+    "preset": "body-lean",
+    "height": 0.5,
+    "build": 0.5
+  },
+  "face": {
+    "preset": "face-sunset",
+    "morphs": {}
+  },
+  "skinTone": 3,
+  "hair": {
+    "style": "hair-buzz",
+    "color": 1
+  },
+  "outfit": {
+    "top": "top-hoodie",
+    "bottom": "bottom-jeans",
+    "shoes": "shoes-sneakers"
+  },
+  "voice": {
+    "id": "voice-bay-smooth",
+    "pitch": 0
+  },
+  "fightStyle": "style-balanced"
+}
