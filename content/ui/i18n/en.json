@@ -759,7 +759,6 @@
   "phone.map.attribution.hide": "Hide map data credits",
   "phone.map.unavailable": "The city map is not available in this build.",
   "map.travel.sandboxOnly": "Fast travel to any point is a sandbox tool.",
-  "splash.attribution": "Map data © OpenStreetMap contributors",
   "hud.minimap.toggle": "Toggle minimap orientation",
   "nhood.bayview-hunters-point": "Bayview Hunters Point",
   "nhood.bernal-heights": "Bernal Heights",

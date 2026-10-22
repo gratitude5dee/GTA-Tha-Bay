@@ -1,0 +1,29 @@
+/* M02c2: the minimap toggle, the phone Map app, the splash attribution line. Tokens come from kit.css. */
+.dv-minimap { position: relative; }
+.dv-minimap-toggle { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.dv-minimap-toggle:focus-visible { outline: 3px solid var(--dv-color-focus, #fff); outline-offset: -3px; }
+
+.dv-map-app { display: flex; flex-direction: column; gap: var(--dv-space-3); max-inline-size: 48rem; }
+.dv-map-app h1 { margin: 0; }
+.dv-map-search { display: flex; flex-direction: column; gap: var(--dv-space-2); position: relative; }
+.dv-map-search input { inline-size: 100%; min-block-size: 2.75rem; padding: 0 var(--dv-space-3); font: inherit; border-radius: var(--dv-radius-md, 0.5rem); border: 1px solid var(--dv-color-text-muted, #888); background: var(--dv-color-surface-raised, #1b2030); color: var(--dv-color-text, #fff); }
+.dv-map-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-block-size: 11rem; overflow: auto; }
+.dv-map-result { inline-size: 100%; min-block-size: 2.5rem; text-align: start; padding: 0 var(--dv-space-3); font: inherit; border: 0; border-radius: var(--dv-radius-md, 0.5rem); background: var(--dv-color-surface-raised, #1b2030); color: var(--dv-color-text, #fff); cursor: pointer; }
+.dv-map-stage { position: relative; inline-size: 100%; block-size: min(55vh, 30rem); min-block-size: 14rem; border-radius: var(--dv-radius-lg, 0.75rem); overflow: hidden; background: var(--dv-color-surface, #10141f); }
+.dv-map-canvas { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; touch-action: none; cursor: grab; }
+.dv-map-canvas:active { cursor: grabbing; }
+.dv-map-zoom { position: absolute; inset-inline-end: var(--dv-space-2); inset-block-start: var(--dv-space-2); display: flex; flex-direction: column; gap: var(--dv-space-2); }
+.dv-map-zoom .dv-btn { min-inline-size: 2.75rem; min-block-size: 2.75rem; padding: 0; }
+.dv-map-attrib { position: absolute; inset-inline-start: var(--dv-space-2); inset-block-end: var(--dv-space-2); display: inline-flex; align-items: center; gap: var(--dv-space-2); max-inline-size: calc(100% - 4rem); padding: 0.25rem 0.5rem; border-radius: var(--dv-radius-md, 0.5rem); background: rgb(8 12 22 / 0.72); color: var(--dv-color-text, #fff); font-size: var(--dv-text-xs, 0.75rem); }
+.dv-map-attrib[data-state='collapsed'] { padding: 0; background: transparent; }
+.dv-map-attrib[data-state='collapsed'] .dv-link { min-inline-size: 2.75rem; min-block-size: 2.75rem; border-radius: 50%; background: rgb(8 12 22 / 0.72); }
+.dv-map-legend { display: flex; flex-wrap: wrap; gap: var(--dv-space-2) var(--dv-space-4); border: 1px solid var(--dv-color-text-muted, #888); border-radius: var(--dv-radius-md, 0.5rem); padding: var(--dv-space-2) var(--dv-space-3); margin: 0; }
+.dv-map-layer { display: inline-flex; align-items: center; gap: 0.4rem; min-block-size: 2.25rem; cursor: pointer; }
+.dv-map-layer input { inline-size: 1.25rem; block-size: 1.25rem; }
+.dv-map-sheet { display: flex; flex-direction: column; gap: var(--dv-space-2); min-block-size: 3.5rem; }
+.dv-muted { color: var(--dv-color-text-muted, #aab); }
+
+.dv-splash-attrib { position: fixed; inset-inline: 0; inset-block-end: max(var(--dv-space-2), env(safe-area-inset-bottom)); z-index: var(--dv-z-overlay, 50); text-align: center; font-size: var(--dv-text-xs, 0.75rem); color: var(--dv-color-text-muted, #aab); pointer-events: none; }
+.dv-credits-world { padding-inline-start: 1.2rem; }
+
+@media (prefers-reduced-motion: reduce) { .dv-map-canvas { cursor: default; } }

@@ -31,7 +31,7 @@ export interface WorldCredits {
 
 /** The `world` array and notice of `credits.json` for an attribution file: entries in id order, the notice naming the offer URL when there is one. */
 export function worldCreditsOf(file: WorldAttributionFile): WorldCredits {
-  const world = [...file.entries].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).map((e) => ({ ...e, surfaces: [...e.surfaces] }));
+  const world = [...file.entries].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).map((e) => ({ ...e, surfaces: [...(e.surfaces ?? [])] }));
   const offer = world.find((e) => e.id === 'osm')?.offerUrl;
   return { world, odblNotice: offer ? `${ODBL_NOTICE} Offer: ${offer}` : ODBL_NOTICE };
 }

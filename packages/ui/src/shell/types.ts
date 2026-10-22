@@ -5,6 +5,7 @@ import type {
 } from '@dv/shared';
 import type { LocKey } from '../i18n/index.ts';
 import type { CreatorStagePort } from '../creator/stage.ts';
+import type { MapPort } from '../phone/map-port.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
 import type { ShellEvent } from './machine.ts';
@@ -241,6 +242,8 @@ export interface ShellProps {
   forceTouch?: boolean;
   /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
   stage?: () => CreatorStagePort | null;
+  /** The world's maps (M02c2): the phone Map app's full map, the search and the minimap's north-up switch; null while no baked world runs. */
+  map?: () => MapPort | null;
 }
 
 export interface PrefsStore {
