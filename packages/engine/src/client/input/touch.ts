@@ -157,13 +157,20 @@ export class TouchBinder implements Binder {
     this.buttonIds = ids;
     this.stickZone = stick;
     this.lookZone = lookZone;
+    this.layoutSig = JSON.stringify(layout.widgets);
   }
 
   /** Swaps the layout (M04b2: the player picked another one, or saved a custom one). Every contact is released first. */
   setLayout(layout: TouchLayout): void {
+    // The same layout again (the shell hands over the default once its settings arrive) must not drop a contact that is down.
+    const sig = JSON.stringify(layout.widgets);
+    if (sig === this.layoutSig) return;
+    this.layoutSig = sig;
     this.releaseAll();
     this.applyLayout(layout);
   }
+
+  private layoutSig = '';
 
   get connected(): boolean {
     return this.target !== null;

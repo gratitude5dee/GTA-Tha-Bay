@@ -97,6 +97,7 @@ export class TouchOverlay {
   }
 
   private build(layout: TouchLayout, opacity = 1): void {
+    this.sig = JSON.stringify([layout.widgets, opacity]);
     for (const b of this.buttons.values()) b.remove();
     this.buttons.clear();
     this.root.dataset['layout'] = layout.id;
@@ -119,8 +120,16 @@ export class TouchOverlay {
   /** Swaps the layout and the labels (M04b2). */
   setLayout(layout: TouchLayout, labels?: Readonly<Record<string, string>>, opacity = 1): void {
     if (labels) this.labels = { ...DEFAULT_LABELS, ...labels };
+    const sig = JSON.stringify([layout.widgets, opacity]);
+    if (sig === this.sig) {
+      // The same layout (the shell hands over the default once its settings arrive): only the labels may differ; no button is rebuilt.
+      for (const w of layout.widgets) if (w.kind === 'button') this.buttons.get(w.id)?.setAttribute('aria-label', this.labels[w.label ?? ''] ?? w.id);
+      return;
+    }
     this.build(layout, opacity);
   }
+
+  private sig = '';
 
   /** Play mode on or off: the layer is never shown over the title screen. */
   setEnabled(on: boolean): void {
