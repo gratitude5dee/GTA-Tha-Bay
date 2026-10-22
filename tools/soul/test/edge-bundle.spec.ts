@@ -31,9 +31,9 @@ describe('npc:edge-bundle', () => {
     expect(EDGE_BUNDLE_PATH).toBe('services/edge/src/generated/npc-fixtures.json');
   });
 
-  it('bundles no private character: only the original npc_test', async () => {
+  it('bundles no private character: only the original npc_test and ro-batista (the t1 voiced preview soul, M06a4)', async () => {
     const bundle = await buildEdgeBundle(repoRoot);
-    expect(Object.keys(bundle.souls)).toEqual(['npc_test']);
-    expect((bundle.souls['npc_test']!.compiled as { basis: string }).basis).toBe('original');
+    expect(Object.keys(bundle.souls)).toEqual(['npc_test', 'ro-batista']);
+    for (const s of Object.values(bundle.souls)) expect((s.compiled as { basis: string }).basis).toBe('original');
   });
 });
