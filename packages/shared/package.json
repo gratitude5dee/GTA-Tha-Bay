@@ -9,7 +9,8 @@
     "./assets": "./src/assets/c07.ts",
     "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
     "./schemas/*": "./schemas/*",
-    "./npc": "./src/npc/index.ts"
+    "./npc": "./src/npc/index.ts",
+    "./fight": "./src/fight/index.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
