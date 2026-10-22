@@ -1,0 +1,6 @@
+{
+  "schema": "autoplay-mission-starts/1",
+  "note": "Where the story autoplayer (check:missions on the sf bake, M05c1) stands when a mission begins. A mission with a marker trigger starts at its marker; every other mission starts at its entry here, else at the default, the street in front of the Yard. Lat/lng are WGS84 and sit on a road or sidewalk of the sf bake.",
+  "default": { "lat": 37.73630, "lng": -122.38844, "yawDeg": 126 },
+  "missions": {}
+}

@@ -1,0 +1,23 @@
+{
+  "act": 1,
+  "lang": "en",
+  "schema": "lines/1",
+  "text": {
+    "line.m.a1.01.dawn.1": "First light, and the fog is already in the cranes. Tow truck is warm. Come to the gate.",
+    "line.m.a1.01.gate": "There you are. Keys are in the truck by the gate.",
+    "line.m.a1.01.hook": "Hooked. Easy now, nobody rushes a tow.",
+    "line.m.a1.01.radio": "Dispatch says a robotaxi quit on Third Street and is blocking the lane. Free tow if you beat the company truck.",
+    "line.m.a1.01.tow": "Bring it home slow. Nothing on it gets scratched.",
+    "line.m.a1.01.truck": "Take the truck. It idles rough, so give it a minute.",
+    "mission.m.a1.01.fail.ko": "You went down. Get up and try again.",
+    "mission.m.a1.01.fail.pod": "The stalled car is wrecked. Start the tow again.",
+    "mission.m.a1.01.fail.tow": "The tow truck is wrecked. Start again.",
+    "mission.m.a1.01.obj.deliver_pod": "Tow the stalled car back to the Yard",
+    "mission.m.a1.01.obj.enter_tow": "Get in the tow truck",
+    "mission.m.a1.01.obj.enter_tow_again": "Get back in the tow truck",
+    "mission.m.a1.01.obj.goto_gate": "Walk to the Yard gate",
+    "mission.m.a1.01.obj.goto_stall": "Pull up beside the stalled robotaxi on Third Street",
+    "mission.m.a1.01.obj.hook_pod": "Hook up the stalled robotaxi",
+    "mission.m.a1.01.title": "Jump Start"
+  }
+}

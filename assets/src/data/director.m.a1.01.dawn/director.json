@@ -1,0 +1,41 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 7200,
+      "kind": "dialogue",
+      "line": "line.m.a1.01.dawn.1",
+      "speaker": "odessa_calloway",
+      "startMs": 600
+    }
+  ],
+  "durationSec": 8,
+  "id": "m.a1.01.dawn",
+  "letterbox": true,
+  "marks": {
+    "yard": {
+      "at": [
+        37.736399,
+        -122.388401
+      ],
+      "yawDeg": 90
+    }
+  },
+  "schema": "director/1",
+  "seed": 1952890897,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "yard",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "yard",
+    "yawDeg": 90
+  }
+}

@@ -33,7 +33,14 @@ export const NEUTRAL_CONTROL: Control = { buttons: 0, moveX: 0, moveY: 0, thrott
 const TWO_PI = 2 * PI;
 const REPLAN_TICKS = 150;
 const WAYPOINT_FOOT_M = 3;
+/** On foot, a target this close is walked to in a straight line (bent by the ray fan): a C08 route follows the lanes and may circle a block to reach a car a few metres away (M05c1). */
+const FOOT_DIRECT_M = 40;
+/** How many leading route points the start of a route looks through for the one nearest the body. */
+const NEAREST_SCAN = 8;
 const WAYPOINT_DRIVE_M = 9;
+/** How far ahead a driving bot looks for a collider to steer around; short, so the walls beyond a bend are not obstacles (M05c1). */
+const DRIVE_LOOK_M = 7;
+const DRIVE_DIRECT_M = 35;
 const STICK = { walk: 51, run: 127, sprint: 127 } as const;
 const DRIVE_VMAX_MPS = 13;
 const DRIVE_ACCEL_MPS2 = 3.2;
@@ -136,7 +143,16 @@ function pulse(mem: Mem, tick: number, every = PULSE_EVERY): boolean {
 function steerClear(obs: MissionObs, mem: Mem, t: Tools, from: Vec3, dir: [number, number], look: number, start: number): [number, number] {
   if (t.tick < mem.avoidUntil) return mem.avoidOff === 0 ? dir : rotate(dir, mem.avoidOff);
   mem.avoidUntil = t.tick + 12;
-  const probe = (d: [number, number]): number | null => obs.ray([from[0] + d[0] * start, from[1] + 0.9, from[2] + d[1] * start], [d[0], 0, d[1]], look);
+  // the ray follows the ground: on a street with a grade a level ray would hit the road itself a few metres ahead (M05c1)
+  const probe = (d: [number, number]): number | null => {
+    const sx = from[0] + d[0] * start;
+    const sz = from[2] + d[1] * start;
+    const g0 = obs.groundY(sx, sz);
+    const g1 = obs.groundY(sx + d[0] * look, sz + d[1] * look);
+    const slope = g0 !== null && g1 !== null ? clamp((g1 - g0) / look, -0.35, 0.35) : 0;
+    const n = dsqrt(1 + slope * slope);
+    return obs.ray([sx, from[1] + 0.9, sz], [d[0] / n, slope / n, d[1] / n], look * n);
+  };
   const direct = probe(dir);
   if (direct === null) {
     mem.avoidOff = 0;
@@ -156,13 +172,25 @@ function steerClear(obs: MissionObs, mem: Mem, t: Tools, from: Vec3, dir: [numbe
 }
 
 /** The next point to head for: the C08 route to `target` when there is one, else `target`. */
-function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: number): Vec3 {
+function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: number, yaw?: number): Vec3 {
   const key = `${Math.round(target[0] / 8)}:${Math.round(target[2] / 8)}`;
   if (key !== mem.pathKey || t.tick >= mem.replanAt) {
     mem.pathKey = key;
     mem.replanAt = t.tick + REPLAN_TICKS;
-    mem.path = obs.route(obs.me.pos, target);
+    mem.path = obs.route(yaw === undefined ? obs.me.pos : (obs.me.vehicle?.pos ?? obs.me.pos), target, yaw);
     mem.pathIdx = 0;
+    // a route starts at the beginning of the edge the body stands on: begin at the route point nearest to it, not at one behind it (M05c1)
+    const first = mem.path;
+    if (first) {
+      let best = Infinity;
+      for (let i = 0; i < Math.min(first.length, NEAREST_SCAN); i++) {
+        const dd = dist(obs.me.pos, first[i] as Vec3);
+        if (dd < best) {
+          best = dd;
+          mem.pathIdx = i;
+        }
+      }
+    }
   }
   const p = mem.path;
   if (!p) return target;
@@ -194,7 +222,7 @@ export function walkTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, pace: 
   const me = obs.me.pos;
   const d = dist(me, target);
   if (d <= stopR) return { ...NEUTRAL_CONTROL, camYaw: camYawOf(obs.me.yaw) };
-  const wp = nextPoint(obs, mem, t, target, WAYPOINT_FOOT_M);
+  const wp = d < FOOT_DIRECT_M ? target : nextPoint(obs, mem, t, target, WAYPOINT_FOOT_M);
   const wd = dist(me, wp);
   let dir: [number, number] = wd > 1e-6 ? [(wp[0] - me[0]) / wd, (wp[2] - me[2]) / wd] : [0, 0];
   stuckCheck(obs, mem, t, true);
@@ -215,10 +243,11 @@ export function driveTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, stopR
   stuckCheck(obs, mem, t, true);
   // a brake pressed at rest reverses (handling.ts pedals)
   if (t.tick < mem.unstickUntil && mem.unstickKind === 'reverse') return { ...base, brake: 127, steer: 100 * mem.unstickSide };
-  const wp = nextPoint(obs, mem, t, target, WAYPOINT_DRIVE_M);
+  // the last metres go straight at the goal: the end of a route can loop through a dead-end stub or a turnaround (M05c1)
+  const wp = d < DRIVE_DIRECT_M ? target : nextPoint(obs, mem, t, target, WAYPOINT_DRIVE_M, v.yaw);
   const wd = dist(v.pos, wp);
   let dir: [number, number] = wd > 1e-6 ? [(wp[0] - v.pos[0]) / wd, (wp[2] - v.pos[2]) / wd] : [0, 0];
-  dir = steerClear(obs, mem, t, v.pos, dir, 14, 3.4);
+  dir = steerClear(obs, mem, t, v.pos, dir, DRIVE_LOOK_M, 3.4);
   const fx = -dsin(v.yaw);
   const fz = -dcos(v.yaw);
   const lat = dir[0] * -fz + dir[1] * fx;

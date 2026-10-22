@@ -1,30 +1,24 @@
 {
   "rows": [
     {
-      "act": 0,
-      "asset": "data/mission.m.dev.sample",
-      "district": "d4",
+      "act": 1,
+      "asset": "data/mission.m.a1.01",
+      "district": "d3",
       "giver": {
         "world": true
       },
-      "id": "m.dev.sample",
+      "id": "m.a1.01",
       "requires": [],
       "start": {
-        "at": {
-          "at": [
-            37.77894,
-            -122.418619
-          ],
-          "snap": "ground"
-        },
-        "k": "marker",
-        "radiusM": 6
+        "k": "auto",
+        "when": {
+          "p": "true"
+        }
       },
       "tags": [
-        "dev",
         "sensitivity-read"
       ],
-      "title": "mission.m.dev.sample.title",
+      "title": "mission.m.a1.01.title",
       "version": 1
     }
   ],

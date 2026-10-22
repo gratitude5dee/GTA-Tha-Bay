@@ -1,5 +1,9 @@
 {
   "beats": {
+    "cut.story.m.a1.01.dawn": {
+      "rev": 1,
+      "sha256": "1c49a02ac1d57c194f0a7d6f56ca5465a5283a33734adf347a5f56a6b5298719"
+    },
     "cut.story.m.dev.sample.intro": {
       "rev": 1,
       "sha256": "66f37072dccbaf0a56e1f0dd5b062cac9373da1f80ecb295e64b6ec48c79f515"

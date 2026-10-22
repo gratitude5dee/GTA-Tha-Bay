@@ -68,6 +68,8 @@ export function loadDirectorIds(root: string): Set<string> {
       const dir = path.join(missions, m.name, 'director');
       if (!m.isDirectory() || !existsSync(dir)) continue;
       for (const f of readdirSync(dir).filter((n) => n.endsWith('.json'))) ids.add((JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as { id: string }).id);
+      // a `.ts` script (`defineDirector`) is named `<missionId>.<file stem>` by convention, so a script that has not been compiled yet counts (M05c1)
+      for (const f of readdirSync(dir).filter((n) => n.endsWith('.ts'))) ids.add(`${m.name}.${f.slice(0, -3)}`);
     }
   }
   const data = path.join(root, 'assets/src/data');

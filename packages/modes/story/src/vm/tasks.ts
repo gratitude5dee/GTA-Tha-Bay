@@ -153,7 +153,21 @@ export class TaskRunner {
       case 'follow': {
         const target = actors.pos(t.who);
         if (!target) return;
-        if (distXZ(here, target) > t.distM) this.move(h, here, target, distXZ(here, target) > 12 ? RUN_MPS : WALK_MPS, dt);
+        const gap = distXZ(here, target);
+        const driver = actors.isVehicle(h) ? this.env.driver() : null;
+        if (driver) {
+          // a car follows like a driver (M05c1, the tow of m.a1.01): hold `distM` metres behind the leader, at its speed plus what closes the gap
+          if (gap <= t.distM) {
+            driver.drive(h, { throttle: 0, brake: 0.5, steer: 0, handbrake: false });
+            return;
+          }
+          const me = this.nameOf(h);
+          const want = Math.min(DRIVE_MPS.normal, actors.speed(t.who) + 2 + (gap - t.distM) * 0.6);
+          const u = pursuit(here, actors.yawOf(h), actors.speed(me), target, want);
+          driver.drive(h, { ...u, handbrake: false });
+          return;
+        }
+        if (gap > t.distM) this.move(h, here, target, gap > 12 ? RUN_MPS : WALK_MPS, dt);
         return;
       }
       case 'flee': {

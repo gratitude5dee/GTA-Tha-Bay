@@ -1,0 +1,122 @@
+{
+  "schema": "story-cast/1",
+  "note": "The Act 1 cast of missions m.a1.01 to m.a1.06 (M05c1). Every entry is original and fictionalized: M10c writes the soul.md of each id. A roster slot names the roster soul that plays it once Q-19 and Q-25 supply the roster (rosterSoul is null until then) and an original stand-in that plays it before; the stand-in is also the fallback when the roster soul is killed. Stand-in bodies are creator-kit bodies with a palette variant (DL-180).",
+  "cast": [
+    {
+      "id": "odessa_calloway",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-broad",
+      "visualBrief": "an older woman with close-cropped silver hair in a worn orange mechanic coverall, a rag in her back pocket, calm and watchful"
+    },
+    {
+      "id": "tavi_okafor",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-wiry",
+      "visualBrief": "a lean young driver in a cropped bomber jacket and gloves with bright orange stitching, a confident grin"
+    },
+    {
+      "id": "x_ramos",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-lean",
+      "visualBrief": "a young dispatcher with a headset around the neck, a faded green hoodie and round glasses"
+    },
+    {
+      "id": "ama_osei",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-lean",
+      "visualBrief": "a woman in a long yellow raincoat carrying a small rolling suitcase"
+    },
+    {
+      "id": "corwin_hale",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-athletic",
+      "visualBrief": "a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile"
+    },
+    {
+      "id": "dana_voss",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-athletic",
+      "visualBrief": "a broad-shouldered security chief in a dark utility jacket with silver trim, a watch with a large face"
+    },
+    {
+      "id": "door_host",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-stocky",
+      "visualBrief": "a stocky door host in a black suit with a velvet rope and a tablet in hand"
+    },
+    {
+      "id": "saint_static",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-wiry",
+      "visualBrief": "a lanky radio host in oversized round headphones and a teal windbreaker"
+    },
+    {
+      "id": "chorus_sparrer",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-stocky",
+      "visualBrief": "a sturdy sparring partner in a loose gray tracksuit with white wrist tape"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "INFLUENCER",
+      "rosterSoul": null,
+      "standIn": {
+        "id": "standin_influencer",
+        "soulVersion": 1,
+        "basis": "original",
+        "tier": "fictionalized",
+        "bodyPreset": "body-lean"
+      },
+      "missions": [
+        "m.a1.04"
+      ]
+    },
+    {
+      "slot": "RAP_HYPHY_ELDER",
+      "rosterSoul": null,
+      "standIn": {
+        "id": "standin_rap_elder",
+        "soulVersion": 1,
+        "basis": "original",
+        "tier": "fictionalized",
+        "bodyPreset": "body-broad"
+      },
+      "missions": [
+        "m.a1.05"
+      ]
+    },
+    {
+      "slot": "RAP_NEW_WAVE",
+      "rosterSoul": null,
+      "standIn": {
+        "id": "standin_rap_new_wave",
+        "soulVersion": 1,
+        "basis": "original",
+        "tier": "fictionalized",
+        "bodyPreset": "body-wiry"
+      },
+      "missions": [
+        "m.a1.05"
+      ]
+    }
+  ]
+}

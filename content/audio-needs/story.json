@@ -1,10 +1,16 @@
 {
   "schema": "audio-needs-story/1",
   "speakers": {
-    "npc_test": [
-      "line.m.dev.sample.bye",
-      "line.m.dev.sample.hello",
-      "line.m.dev.sample.nudge"
+    "odessa_calloway": [
+      "line.m.a1.01.gate",
+      "line.m.a1.01.tow",
+      "line.m.a1.01.truck"
+    ],
+    "player": [
+      "line.m.a1.01.hook"
+    ],
+    "tavi_okafor": [
+      "line.m.a1.01.radio"
     ]
   }
 }

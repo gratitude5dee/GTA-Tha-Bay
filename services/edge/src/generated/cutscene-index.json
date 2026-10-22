@@ -1,6 +1,34 @@
 {
-  "builtAt": 1792663158369,
+  "builtAt": 1792694998436,
   "entries": [
+    {
+      "audio": "generated-ambient",
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 7200,
+          "kind": "dialogue",
+          "line": "line.m.a1.01.dawn.1",
+          "speaker": "odessa_calloway",
+          "startMs": 600
+        }
+      ],
+      "durationMs": 8000,
+      "fallback": "m.a1.01.dawn",
+      "key": "5d520f3942ed02af1f2ac3541e256008f213ab84495b45ae620bff7b9833bb3d",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 237807443,
+        "stage": "beat.cut.story.m.a1.01.dawn@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.01.dawn"
+    },
     {
       "audio": "engine",
       "characters": [
