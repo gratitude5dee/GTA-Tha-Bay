@@ -172,7 +172,12 @@ export class ModeHost {
     if (!this.d.qa) return this.refuse(id, 'unknown');
     const desc = this.byId.get(id);
     if (!desc) return this.refuse(id, 'unknown');
-    if (this.stack.root) return this.refuse(id, 'busy');
+    // The QA play bypass (M04b1) may already have started a sandbox or story root: a QA start replaces it.
+    const root = this.stack.root;
+    if (root) {
+      if (this.stack.depth > 1) return this.refuse(id, 'busy');
+      this.exitEntry(root, 'quit');
+    }
     this.begin(desc, { ...(params !== undefined ? { params } : {}), origin: { kind: 'menu' }, seed: this.d.seed() }, null);
     this.d.save.setCapability(capabilityOfMode(id) ?? IDLE_CAPABILITY);
     this.publish();
