@@ -1,7 +1,7 @@
 /**
  * The auto-director (M05a2; 03-story-cutscenes.md D6.2). It picks a shot for a subject from a fixed vocabulary, holds it for a fixed
  * time, keeps the subject in view and cuts when the view stays blocked. Used for `auto` shots of a DirectorScript, for the `camera`
- * op of a mission and for race replays. The vocabulary and the durations are data ported from the gta-sa-earth pattern, not code
+ * op of a mission and for race replays. The vocabulary and the durations are data ported from a reference pattern, not code
  * [research/repos-world.md section 3.4, P15]:
  *
  *  - on foot: shoulder, shoulder, wide, shoulder, heli;

@@ -2,7 +2,7 @@
  * missions:preview (M05a2; 03-story-missions.md C10): runs a mission once, headless, at full speed under the autoplayer, and
  * writes the recorded timeline.
  *
- *   tsx tools/ci/missions/preview.ts --mission <id> --seed <n> [--instant]
+ *   tsx tools/ci/missions/preview.ts --mission <id> --seed <n> [--instant] [--out <dir>]
  *
  * Writes `test-results/preview/<id>.<seed>.dvtl` and prints one line per chapter (a `mis.stage` event: index, stage id, time) and the
  * URL of the QA scrub page. The beats are played (the director runs its scripts) unless `--instant` is given. The page
@@ -64,9 +64,9 @@ export async function preview(o: { root: string; mission: string; seed: number; 
 }
 
 export async function main(argv: readonly string[] = args()): Promise<number> {
-  const { values } = parseArgs({ args: [...argv], options: { mission: { type: 'string' }, seed: { type: 'string' }, instant: { type: 'boolean' } }, allowPositionals: true });
+  const { values } = parseArgs({ args: [...argv], options: { mission: { type: 'string' }, seed: { type: 'string' }, instant: { type: 'boolean' }, out: { type: 'string' } }, allowPositionals: true });
   if (!values.mission) {
-    console.error('usage: pnpm missions:preview -- --mission <id> [--seed <n>] [--instant]');
+    console.error('usage: pnpm missions:preview -- --mission <id> [--seed <n>] [--instant] [--out <dir>]');
     return 2;
   }
   const seed = values.seed === undefined ? 1 : Number(values.seed);
@@ -74,7 +74,7 @@ export async function main(argv: readonly string[] = args()): Promise<number> {
     console.error('missions:preview: --seed takes a non-negative integer');
     return 2;
   }
-  const r = await preview({ root: repoRoot, mission: values.mission, seed, ...(values.instant ? { instant: true } : {}) });
+  const r = await preview({ root: repoRoot, mission: values.mission, seed, ...(values.instant ? { instant: true } : {}), ...(values.out ? { outDir: path.resolve(repoRoot, values.out) } : {}) });
   return r.outcome === 'pass' ? 0 : 1;
 }
 

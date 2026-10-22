@@ -67,6 +67,13 @@ test.describe('mission preview @mission-preview', () => {
     await expect(page.getByTestId('subtitle')).toHaveAttribute('data-line', '');
   });
 
+  test('the bare URL shows the bundled recording of the sample', async ({ page }) => {
+    await page.goto('/qa/mission-preview.html');
+    await expect(page.getByTestId('status')).toHaveAttribute('data-loaded', 'true');
+    await expect(page.getByTestId('status')).toContainText('m.dev.sample seed 1 pass');
+    await expect(page.getByTestId('chapters').locator('button')).toHaveCount(16);
+  });
+
   test('loads the file from ?timeline=<url>', async ({ page }) => {
     await page.route((u) => u.pathname === '/qa-preview/run.dvtl', (route) => route.fulfill({ status: 200, contentType: 'application/octet-stream', body: readFileSync(FILE) }));
     await page.goto('/qa/mission-preview.html?timeline=/qa-preview/run.dvtl');

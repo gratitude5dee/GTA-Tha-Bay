@@ -7,6 +7,9 @@
  */
 import { decodeDvtl, lastBefore, type Dvtl, type DvtlEvent } from '@dv/engine/sim/dvtl';
 import { qaMissionBundle } from './missions.ts';
+// A recording of the sample (`pnpm missions:preview -- --mission m.dev.sample --seed 1 --out tests/fixtures/missions`), so that the page shows
+// something at the bare URL, for example in a pull request preview.
+import sampleRecordingUrl from '../../../../tests/fixtures/missions/m.dev.sample.1.dvtl?url';
 
 interface Chapter {
   tick: number;
@@ -188,7 +191,7 @@ window.addEventListener('drop', (e) => {
   if (f) void f.arrayBuffer().then((b) => load(b, f.name));
 });
 
-const url = new URLSearchParams(location.search).get('timeline');
+const url = new URLSearchParams(location.search).get('timeline') ?? (new URLSearchParams(location.search).has('empty') ? null : sampleRecordingUrl);
 if (url) {
   status.textContent = `loading ${url}`;
   void fetch(url)

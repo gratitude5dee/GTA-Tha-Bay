@@ -14,6 +14,7 @@ import { baseEnv } from '../../../packages/modes/story/test/fixtures/base.ts';
 import type E_REF_ZONE from '../../../packages/modes/story/test/fixtures/bad/E_REF_ZONE.ts';
 import { compileInMemory, readBundle, type InMemoryBuild } from '../missions/bundle.ts';
 import { runCheck } from '../missions/check.ts';
+import { preview } from '../missions/preview.ts';
 import { repoRoot } from '../run.ts';
 
 const out = mkdtempSync(path.join(os.tmpdir(), 'dv-check-missions-'));
@@ -116,4 +117,14 @@ describe('check:missions failures (AC-3)', () => {
     expect(r.failures[0]).toMatchObject({ reason: 'world_missing' });
     expect(r.failures[0]?.detail).toBe(`world bake ${'f'.repeat(64)} not found: run pnpm map:build -- --area sf`);
   }, 60_000);
+});
+
+describe('the bundled recording of the QA scrub page', () => {
+  it('tests/fixtures/missions/m.dev.sample.1.dvtl equals a fresh recording (regenerate: pnpm missions:preview -- --mission m.dev.sample --seed 1 --out tests/fixtures/missions)', async () => {
+    const r = await preview({ root: repoRoot, mission: 'm.dev.sample', seed: 1, outDir: out, log: () => undefined });
+    expect(r.outcome).toBe('pass');
+    const fresh = readFileSync(r.file);
+    const kept = readFileSync(path.join(repoRoot, 'tests', 'fixtures', 'missions', 'm.dev.sample.1.dvtl'));
+    expect(kept.equals(fresh)).toBe(true);
+  }, 120_000);
 });
