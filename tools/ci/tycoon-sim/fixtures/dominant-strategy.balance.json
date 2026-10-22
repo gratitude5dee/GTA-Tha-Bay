@@ -1,0 +1,7 @@
+{
+  "description": "Self-test fixture (must trip B4): the frugal policy gets customers ten times cheaper (marketing efficiency x10), so bootstrapping dominates.",
+  "patch": {},
+  "perPolicy": {
+    "frugal": { "sectors.b2b-saas.cac0Cents": 4500 }
+  }
+}

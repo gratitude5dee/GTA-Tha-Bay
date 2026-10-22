@@ -28,3 +28,6 @@ apps/web/.dv-build/
 # M05d: Supabase CLI scratch (link state, temp files)
 supabase/.temp/
 supabase/.branches/
+
+# M09a2 generated balance report (tests/tycoon/baseline.json and report.schema.json stay)
+tests/tycoon/report.json

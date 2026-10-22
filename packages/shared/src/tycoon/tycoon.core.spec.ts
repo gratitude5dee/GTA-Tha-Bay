@@ -38,9 +38,9 @@ describe('tycoon content', () => {
     expect(() => buildContent({ ...RAW_CONTENT, sectors: { sectors: [{ id: 'b2b-saas' }] } })).toThrow(ContentError);
     expect(() => buildContent({ ...RAW_CONTENT, balance: { schema: 'nope' } })).toThrow(/balance.schema/);
   });
-  it('ships b2b-saas, 3 theses and 12 fictional funds with one predatory-allowed fund', () => {
+  it('ships b2b-saas, 8 theses and 12 fictional funds with one predatory-allowed fund', () => {
     expect(Object.keys(c.sectors)).toEqual(['b2b-saas']);
-    expect(c.theses).toHaveLength(3);
+    expect(c.theses).toHaveLength(8);
     expect(c.archetypes.vcs).toHaveLength(12);
     expect(c.archetypes.vcs.filter((v) => v.predatoryAllowed).map((v) => v.id)).toEqual(['vc-tourist-hedge']);
   });

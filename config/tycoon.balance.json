@@ -50,7 +50,7 @@
     "cacGrowthCap": 0.35,
     "cacSaturation": 0.2,
     "churnOpsSkill": 0.02,
-    "churnOpsCap": 0.3,
+    "churnOpsCap": 0.15,
     "churnPriceWeight": 0.5,
     "payQualityBase": 0.5,
     "paySalesSkill": 0.02,
@@ -69,7 +69,7 @@
       "loft": 9,
       "tower": 25
     },
-    "hypeMean": 25,
+    "hypeMean": 15,
     "hypeRate": 0.04,
     "reputationUp": 0.1,
     "reputationDown": 0.05,
@@ -150,7 +150,7 @@
     "acquisitionMinCents": 5000000000,
     "unicornPostMoneyCents": 100000000000,
     "ipoArrCents": 10000000000,
-    "ramenArrCents": 100000000,
+    "ramenArrCents": 500000000,
     "ramenWeeks": 26,
     "insolvencyWeeks": 4,
     "bridgeBurnWeeks": 8,
@@ -180,9 +180,9 @@
       "seed": 0.18,
       "a": 0.2,
       "b": 0.15,
-      "c": 0.12
+      "c": 0.09
     },
-    "dilutionLo": 0.75,
+    "dilutionLo": 0.58,
     "dilutionHi": 1.35,
     "pool": {
       "seed": [
@@ -226,7 +226,11 @@
     "moodBase": 50,
     "closingWeeks": 2
   },
-  "events": {},
+  "events": {
+    "officeClosedDevMul": 0.35,
+    "exitLo": 0.9,
+    "exitSpan": 0.4
+  },
   "hardcore": {
     "eventMul": 1.5,
     "chequeMul": 0.8

@@ -1,6 +1,6 @@
 # @dv/mode-tycoon
 
-Business Tycoon (M09a1): the founder-versus-VC company simulation. The pure, seeded core lives in `@dv/shared/tycoon` (`packages/shared/src/tycoon`); this package is the thin C06 adapter around it. The descriptor stays `comingSoon` (M09a2 flips it); a QA build starts the mode from a text panel.
+Business Tycoon (M09a1, M09a2): the founder-versus-VC company simulation. The pure, seeded core lives in `@dv/shared/tycoon` (`packages/shared/src/tycoon`), the random-event engine in `@dv/shared/events`; this package is the thin C06 adapter around them. The descriptor is `available` in QA builds (the tile stays locked until `?unlockAll=1`) and `comingSoon` in every other build; a QA build also starts the mode from a text panel.
 
 ## Layout
 
@@ -13,7 +13,7 @@ Business Tycoon (M09a1): the founder-versus-VC company simulation. The pure, see
 | `scripts/` | the fixture run and `golden:write` for `packages/engine/src/sim/save/__golden__/tycoon/v1.json` | |
 | `test/` | mode conformance (`tycoon.mode.spec.ts`), save and load (`tycoon.save.spec.ts`) | |
 
-Content: `content/tycoon/{sectors,theses,archetypes}.json` (one sector, three theses, the founders, the role wages and the 12 fictional funds), `config/tycoon.balance.json`. Both version strings are the first 12 hex characters of the SHA-256 of the canonical JSON.
+Content: `content/tycoon/{sectors,theses,archetypes}.json` (one sector, the 8-card trend deck, the founders, the role wages and the 12 fictional funds), `content/tycoon/events/*.json` (37 events in five families: 30 rolled and enabled, 3 chain-only, 2 disabled until a hardware or mobility sector exists, 2 system), `config/tycoon.balance.json`, `config/tycoon.bands.json`. Both version strings are the first 12 hex characters of the SHA-256 of the canonical JSON.
 
 ## See it
 
@@ -22,7 +22,8 @@ In a QA build (`VITE_DV_QA=1`; the PR preview `https://pr-6-tha-bay-web-staging.
 | What | URL | Then |
 |---|---|---|
 | The QA text panel | `/?tycoon=1` (add `&world=walk-drop` for a light scene) | **Start run**, **Allocation 60/25/15**, **Step 5 wk**, **Start SAFE raise ($50k)**, a **meet ...** button, **Accept**, **Step 1 wk** twice. The cap table, the SAFE count and the state hash are in the panel |
-| The locked tile | main menu, then **Modes** | the Business Tycoon tile reads "coming soon" |
+| The locked tile | main menu, then **Modes** | the Business Tycoon tile reads "Find this in the story" (a production build reads "Coming soon") |
+| The open tile and the event inbox | `/?tycoon=1&unlockAll=1&world=walk-drop`, **Modes**, **Tycoon** | set seed 133, **Start run**, **20 wk**: the clock stops at week 5 for a blackout; **resolve: run_generator** pays $30k and cancels the closure; **20 wk** again. Tick "take default choices at the deadline" before **Start run** to see the default taken instead |
 
 ```js
 await __dvBridge.tycoon.start(1);                       // seeded run in the sim worker
@@ -33,6 +34,15 @@ __dvBridge.tycoon.runJson();                            // setup and choices: re
 ```
 
 ## Checks
+
+```bash
+pnpm check:balance -- --suite tycoon                    # 2,000 runs per bot policy: bands B1 to B12, the baseline guard
+pnpm tycoon:sim -- --runs 2000 --policy median --seed-base 1 --sweep finance.dilutionTarget.seed=0.14:0.22:0.02
+pnpm tycoon:sim -- --trace run=123                      # one run, week by week
+pnpm tycoon:baseline                                    # rewrites tests/tycoon/baseline.json (commit line: balance-rebaseline: <reason>)
+pnpm check:unit -- packages/shared/src/events packages/shared/src/tycoon/events tools/ci/tycoon-sim
+pnpm check:e2e -- --project=chromium-webgl2 --grep @tycoon-smoke
+```
 
 ```bash
 pnpm --filter @dv/shared test:tycoon-finance            # TV-1 .. TV-11, WF-1 .. WF-7, properties, envelope

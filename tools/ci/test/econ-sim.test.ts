@@ -79,18 +79,25 @@ describe('econ-sim suite', () => {
     expect(percentile([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 90)).toBe(9);
   });
 
-  it('check:balance without --suite also prints the tycoon pending line; an unknown suite exits 2', () => {
+  it('check:balance without --suite runs the tycoon suite too (M09a2); --suite econ does not; an unknown suite exits 2', () => {
     const logs: string[] = [];
     const orig = console.log;
+    const runs = process.env['DV_BALANCE_RUNS'];
+    process.env['DV_BALANCE_RUNS'] = '40'; // the band verdict needs 2,000 runs (AC-7); this only checks that both suites run
     console.log = (...a: unknown[]) => void logs.push(a.join(' '));
     try {
-      expect(main([])).toBe(0);
-      expect(logs).toContain('tycoon: pending: lands in M09a2');
+      main([]);
+      expect(logs.some((l) => l.startsWith('econ: seed'))).toBe(true);
+      expect(logs.some((l) => l.startsWith('tycoon: seed base 1, 40 runs per policy'))).toBe(true);
+      expect(logs.some((l) => /^(PASS|FAIL) B1:/.test(l))).toBe(true);
+      expect(logs).not.toContain('tycoon: pending: lands in M09a2');
       logs.length = 0;
       expect(main(['--suite', 'econ'])).toBe(0);
-      expect(logs).not.toContain('tycoon: pending: lands in M09a2');
+      expect(logs.some((l) => l.startsWith('tycoon:'))).toBe(false);
     } finally {
       console.log = orig;
+      if (runs === undefined) delete process.env['DV_BALANCE_RUNS'];
+      else process.env['DV_BALANCE_RUNS'] = runs;
     }
     const err = console.error;
     console.error = () => undefined;

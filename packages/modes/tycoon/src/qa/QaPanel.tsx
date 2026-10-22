@@ -8,7 +8,7 @@ import type { Command } from '@dv/shared/tycoon';
 import type { TycoonView } from '../sim/TycoonModeSim.ts';
 
 export interface PanelApi {
-  start(seed: number): void;
+  start(seed: number, autoEvents?: boolean): void;
   cmd(c: Command): void;
   step(n: number): void;
   speed(n: 1 | 2 | 4): void;
@@ -21,7 +21,7 @@ export interface PanelApi {
 
 const usd = (cents: number): string => `${cents < 0 ? '-' : ''}$${Math.abs(Math.round(cents / 100)).toLocaleString('en-US')}`;
 
-const CSS = `.dv-tycoon-qa{position:fixed;top:8px;right:8px;z-index:20;width:360px;max-height:94vh;overflow:auto;background:#101418ee;color:#e8eef4;font:13px/1.35 ui-monospace,Menlo,monospace;border:1px solid #3a4652;border-radius:6px;padding:8px}
+const CSS = `.dv-tycoon-qa{position:fixed;top:8px;right:8px;z-index:40;width:360px;max-height:94vh;overflow:auto;background:#101418ee;color:#e8eef4;font:13px/1.35 ui-monospace,Menlo,monospace;border:1px solid #3a4652;border-radius:6px;padding:8px}
 .dv-tycoon-qa h2{margin:0 0 6px;font:600 14px system-ui,sans-serif}
 .dv-tycoon-qa button{font:inherit;margin:2px 3px 2px 0;padding:3px 7px;background:#26323d;color:inherit;border:1px solid #56687a;border-radius:4px;cursor:pointer}
 .dv-tycoon-qa button:hover{background:#34475a}
@@ -30,7 +30,7 @@ const CSS = `.dv-tycoon-qa{position:fixed;top:8px;right:8px;z-index:20;width:360
 .dv-tycoon-qa td:first-child{color:#8fa3b5}.dv-tycoon-qa .hash{word-break:break-all;color:#9be3a7}.dv-tycoon-qa .err{color:#ff9a8a}
 .dv-tycoon-qa .note{color:#8fa3b5;font-size:12px}`;
 
-function Panel({ api, view, seed, setSeed }: { api: PanelApi; view: TycoonView | null; seed: number; setSeed: (n: number) => void }): JSX.Element {
+function Panel({ api, view, seed, setSeed, auto, setAuto }: { api: PanelApi; view: TycoonView | null; seed: number; setSeed: (n: number) => void; auto: boolean; setAuto: (b: boolean) => void }): JSX.Element {
   const v = view;
   const rows: [string, string][] = v
     ? [
@@ -52,7 +52,10 @@ function Panel({ api, view, seed, setSeed }: { api: PanelApi; view: TycoonView |
       <h2>Tycoon QA (AI investor sim · game ruleset, not financial advice)</h2>
       <div>
         seed <input type="number" value={seed} data-testid="tycoon-seed" onInput={(e) => setSeed(Number((e.currentTarget as HTMLInputElement).value) || 1)} />
-        <button data-testid="tycoon-start" onClick={() => api.start(seed)}>Start run</button>
+        <label class="note">
+          <input type="checkbox" data-testid="tycoon-auto" checked={auto} onInput={(e) => setAuto((e.currentTarget as HTMLInputElement).checked)} style="width:auto" /> take default choices at the deadline
+        </label>
+        <button data-testid="tycoon-start" onClick={() => api.start(seed, auto)}>Start run</button>
         <button data-testid="tycoon-abandon" onClick={() => api.abandon()}>Quit run</button>
       </div>
       <div>
@@ -91,6 +94,24 @@ function Panel({ api, view, seed, setSeed }: { api: PanelApi; view: TycoonView |
         <button onClick={() => api.cmd({ t: 'boardVote', motion: 'approveBudget' })}>Board: approve</button>
         <button onClick={() => api.cmd({ t: 'bridge', accept: true })}>Bridge: accept</button>
         <button onClick={() => api.cmd({ t: 'exploreSale' })}>Explore sale</button>
+      </div>
+      <div data-testid="tycoon-events">
+        <div class="note">events fired: <span data-testid="tycoon-events-fired">{v?.eventsFired ?? 0}</span> ({v?.autoEvents ? 'defaults at the deadline' : 'the clock waits for you'})</div>
+        {v?.recent.length ? <div class="note" data-testid="tycoon-recent">recent: {v.recent.map((r) => `w${r.week} ${r.defId}`).join(', ')}</div> : null}
+        {v?.flags.length ? <div class="note" data-testid="tycoon-flags">flags: {v.flags.join(', ')}</div> : null}
+        {v?.effects.length ? <div class="note" data-testid="tycoon-effects">effects: {v.effects.map((e) => `${e.label} until w${e.endWeek}`).join(', ')}</div> : null}
+        {(v?.inbox ?? []).map((i) => (
+          <div key={i.iid} data-testid="tycoon-inbox-item">
+            <div class="note">
+              inbox: {i.defId} (default {i.defaultChoiceId}{v?.autoEvents ? `, taken at week ${i.deadlineWeek}` : ''})
+            </div>
+            {i.choices.map((c) => (
+              <button key={c.id} data-testid={`tycoon-resolve-${c.id}`} disabled={!c.allowed} onClick={() => api.cmd({ t: 'resolveEvent', iid: i.iid, choiceId: c.id })}>
+                resolve: {c.id}
+              </button>
+            ))}
+          </div>
+        ))}
       </div>
       <table data-testid="tycoon-state">
         <tbody>
@@ -138,13 +159,25 @@ export function mountTycoonPanel(host: Document, api: PanelApi): () => void {
   host.head.append(style);
   host.body.append(root);
   let seed = 1;
+  let auto = false;
   let last = '';
   const draw = (): void => {
     const v = api.view();
     const key = JSON.stringify(v);
     if (key === last && root.childElementCount > 0) return;
     last = key;
-    render(<Panel api={api} view={v} seed={seed} setSeed={(n) => (seed = n)} />, root);
+    render(<Panel api={api} view={v} seed={seed} setSeed={setSeed} auto={auto} setAuto={setAuto} />, root);
+  };
+  // The click handlers close over the props of the last render, so a change redraws at once (M09a2: the seed typed before Start run counts).
+  const setSeed = (n: number): void => {
+    seed = n;
+    last = '';
+    draw();
+  };
+  const setAuto = (b: boolean): void => {
+    auto = b;
+    last = '';
+    draw();
   };
   draw();
   const timer = setInterval(draw, 250);

@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { HOME, NO_BYPASS, passGates } from '../ui/helpers.ts';
 
 /**
- * M09a1 AC-12, @tycoon-qa: in a QA build the main menu shows the Business Tycoon tile locked as `comingSoon`, and the QA text panel
+ * M09a1 AC-12, @tycoon-qa: in a QA build the main menu shows the Business Tycoon tile locked (M09a2: `available` in QA builds, locked until
+ * `?unlockAll=1`; a production build shows `comingSoon`), and the QA text panel
  * (`/?tycoon=1`) starts a seeded run in the sim worker and steps weeks.
  *
  * To see it by hand (the PR preview is a QA build): open `/?tycoon=1`, press "Start run", then "Allocation 60/25/15", "Step 5 wk",
@@ -11,7 +12,7 @@ import { HOME, NO_BYPASS, passGates } from '../ui/helpers.ts';
 test.describe('tycoon QA @tycoon-qa', () => {
   test.describe('main menu', () => {
     test.use({ storageState: NO_BYPASS, locale: 'en-US' });
-    test('the tycoon tile renders locked as comingSoon @tycoon-qa', async ({ page }) => {
+    test('the tycoon tile renders locked, not as comingSoon, in a QA build @tycoon-qa', async ({ page }) => {
       test.setTimeout(150_000);
       await page.goto(HOME);
       await passGates(page);
@@ -21,7 +22,7 @@ test.describe('tycoon QA @tycoon-qa', () => {
       const tile = screen.locator('[data-testid$="-tycoon"]');
       await expect(tile).toHaveCount(1, { timeout: 90_000 }); // the mode list arrives when the engine has booted
       await expect(tile).toHaveAttribute('aria-disabled', 'true');
-      await expect(tile).toContainText(/coming soon/i);
+      await expect(tile).toContainText(/find this in the story/i);
     });
   });
 

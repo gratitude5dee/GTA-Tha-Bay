@@ -24,9 +24,9 @@ function write(rel: string, value: unknown): void {
   console.log(`wrote ${rel}`);
 }
 
-// 1. step trace: seed 0xC0FFEE, 120 weeks
+// 1. step trace: seed 0xC0FFEE, 120 weeks (events take their default at the deadline, so a changed choice cannot orphan a later resolveEvent)
 {
-  const setup = setupFromSeed(0xc0ffee, undefined, content);
+  const setup = setupFromSeed(0xc0ffee, { autoResolveEvents: true }, content);
   const run = playPolicy(setup, content, 120);
   const hashes: string[] = [];
   replay(setup, run.choices, content, undefined, (s) => hashes.push(hashCompany(s)));
@@ -36,7 +36,8 @@ function write(rel: string, value: unknown): void {
 // 2. det suite: three seeds, 150 weeks each
 {
   const runs = [0xc0ffee, 0xbeef, 7].map((seed) => {
-    const setup = setupFromSeed(seed, undefined, content);
+    // seed 0xBEEF runs with automatic event resolution, the other two with the clock held for the player (both paths are in the det suite)
+    const setup = setupFromSeed(seed, seed === 0xbeef ? { autoResolveEvents: true } : undefined, content);
     const run = playPolicy(setup, content, 150);
     const out = replay(setup, run.choices, content, 150);
     return { seed, weeks: 150, setup, choices: run.choices, finalHash: out.hash, endWeek: out.state.week, result: out.result };

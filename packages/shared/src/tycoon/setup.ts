@@ -2,6 +2,7 @@
  * Run setup (08-tycoon.md section 5.8): `setupFromSeed` fills every unchosen field deterministically, `newRun` builds week 0.
  */
 import { ctrU32 } from '../rng.ts';
+import { emptyEventState } from '../events/types.ts';
 import { initialCapTable } from './finance/index.ts';
 import { ctrFloat } from './rand.ts';
 import type { CompanyState, FounderArchetype, RunSetup, TycoonContent } from './types.ts';
@@ -26,6 +27,7 @@ export function setupFromSeed(seed: number, opts: Partial<RunSetup> | undefined,
     coFounder: o.coFounder ?? ctrU32(u, 'setup:cofounder', 0) % 2 === 1,
     startWeekOfYear: o.startWeekOfYear ?? ctrU32(u, 'setup:week', 0) % 52,
     hardcore: o.hardcore ?? false,
+    ...(o.autoResolveEvents === true ? { autoResolveEvents: true as const } : {}),
     preset: o.preset ?? 'standard',
     contentVersion: content.contentVersion,
     balanceVersion: content.balanceVersion,
@@ -74,7 +76,7 @@ export function newRun(setup: RunSetup, content: TycoonContent): CompanyState {
     termSheets: [],
     raise: null,
     board: { seats: Array.from({ length: founders }, () => 'founder' as const), founderControl: true, missedTargets: 0, nextMeetingWeek: null, lastTargetArrGrowth: 0 },
-    events: { nextIid: 1 },
+    events: emptyEventState(),
     flags: {},
     mrrHistory: [],
     profitableStreak: 0,

@@ -3,6 +3,8 @@
  * state untouched (the state hash is unchanged). 08-tycoon.md section 4.4 for the rules; negotiation is the M09a1 stub of
  * 08-tycoon-finance.md section 9: `startRaise`, `scheduleMeeting` (the envelope midpoint at mood 50), then `accept` or `walk`.
  */
+import { choiceAllowed, choose as chooseEvent } from '../events/engine.ts';
+import { hostFor } from './events/host.ts';
 import { addSafe, termSheetEnvelope, type EnvelopeCompany, type RoundKind, type VcProfile } from './finance/index.ts';
 import { poolAvailable } from './finance/index.ts';
 import { headcount, runwayWeeks, valuationRef } from './company.ts';
@@ -153,8 +155,17 @@ export function applyCommand(s: CompanyState, cmd: Command, c: TycoonContent): C
     case 'sleepOnIt':
     case 'vcSpoke':
       return err('NOT_AVAILABLE', 'negotiation beyond the automatic midpoint arrives in M09b2');
-    case 'resolveEvent':
-      return err('NOT_AVAILABLE', 'events arrive in M09a2');
+    case 'resolveEvent': {
+      const inst = s.events.inbox.find((i) => i.iid === cmd.iid);
+      if (!inst) return err('NO_EVENT');
+      const choice = c.events.find((d) => d.id === inst.defId)?.choices?.find((x) => x.id === cmd.choiceId);
+      if (!choice) return err('NO_CHOICE');
+      const host = hostFor(c);
+      if (!choiceAllowed(choice, s, host)) return err('CHOICE_LOCKED');
+      chooseEvent(s, s.events, cmd.iid, cmd.choiceId, c.events, host);
+      if (s.awaiting === 'event' && s.events.inbox.length === 0) s.awaiting = null;
+      return OK;
+    }
     case 'boardVote': {
       if (s.awaiting !== 'board') return err('NOT_AWAITING');
       if (cmd.motion === 'ignore' && s.flags['boardMissed'] === true) s.reputation = Math.max(0, s.reputation - b.board.ignoreReputation);

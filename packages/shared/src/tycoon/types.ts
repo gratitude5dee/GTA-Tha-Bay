@@ -5,6 +5,9 @@
  */
 import type { CapTable, Cents, RoundKind, Terms } from './finance/types.ts';
 import type { FinanceConfig, TermSheetEnvelope, VcProfile } from './finance/envelope.ts';
+import type { EventDef, EventInstance, EventState } from '../events/types.ts';
+
+export type { EventDef, EventInstance, EventState };
 
 export type { Cents, RoundKind, Terms, CapTable };
 export type LocKey = string;
@@ -73,11 +76,6 @@ export interface RaiseProcess {
   meetingsHeld: number;
   vcPool: string[];
 }
-export interface EventState {
-  /** Next event instance id; the event engine arrives in M09a2. */
-  nextIid: number;
-}
-
 export interface RunSetup {
   seed: number;
   sector: SectorId;
@@ -86,6 +84,8 @@ export interface RunSetup {
   coFounder: boolean;
   startWeekOfYear: number;
   hardcore: boolean;
+  /** BD-M09a2-03: set when the player turned `pauseOnTycoonEvents` off; choice events then take their default at the deadline. */
+  autoResolveEvents?: true;
   preset: 'standard' | 'mini8w' | 'daily';
   contentVersion: string;
   balanceVersion: string;
@@ -211,6 +211,9 @@ export type CommandErrorCode =
   | 'NO_BUYER'
   | 'NO_OFFER'
   | 'IPO_CLOSED'
+  | 'NO_EVENT'
+  | 'NO_CHOICE'
+  | 'CHOICE_LOCKED'
   | 'NOT_AVAILABLE';
 export interface CommandError {
   code: CommandErrorCode;
@@ -220,7 +223,7 @@ export type CommandResult = { ok: true } | { ok: false; error: CommandError };
 
 export interface StepResult {
   week: number;
-  events: never[];
+  events: EventInstance[];
   awaiting: AwaitingKind | null;
   ended: RunResult | null;
 }
@@ -360,13 +363,15 @@ export interface Balance {
   };
   raise: { spacingWeeks: number; maxMeetings: number; closeWeeks: number; focusWeeksBase: number };
   finance: FinanceConfig;
-  events: Record<string, never>;
+  events: { officeClosedDevMul: number; exitLo: number; exitSpan: number };
   hardcore: { eventMul: number; chequeMul: number };
 }
 
 export interface TycoonContent {
   sectors: Record<string, SectorDef>;
   theses: ThesisDef[];
+  /** The validated catalog, ascending by id. */
+  events: EventDef[];
   archetypes: ArchetypeDefs;
   balance: Balance;
   contentVersion: string;

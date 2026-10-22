@@ -4,7 +4,8 @@
  * Monte-Carlo over the ledger model (`model.ts`): per section, N seeded runs per spending policy, percentile tables compared with
  * `config/econ-bands.json`, plus exact probes (the weekly dividend cap, the empty ledger, idempotent keys). Same seed, same
  * table: the seed is printed. A built-in self-test runs first: the out-of-band fixture must be rejected, or the command fails.
- * Section content arrives with content: Act 1 (M05c1), racing (M07b2), Acts 2 and 3 (M05e2, M05f2). The tycoon suite is M09a2.
+ * Section content arrives with content: Act 1 (M05c1), racing (M07b2), Acts 2 and 3 (M05e2, M05f2). The tycoon suite (M09a2) is
+ * `tools/ci/tycoon-sim`: 2,000 runs per bot policy, bands B1 to B12, the regression guard; `DV_BALANCE_RUNS` raises the run count (nightly).
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -18,6 +19,7 @@ import {
 import { creditDividend, DEFAULT_MODEL_DEPS, Ledger, type ModelDeps } from './model.ts';
 import { POLICIES, weeklySpend, type PolicyId } from './policies.ts';
 import { SECTIONS, type EconSection } from './sections/base.ts';
+import { runTycoonGate } from '../tycoon-sim/cli.ts';
 
 /** Master seed of the harness; the stream of a section is `econ:<section>`. */
 export const ECON_SEED = 0xec0a01;
@@ -131,7 +133,11 @@ export function main(argv: readonly string[] = args()): number {
     for (const l of r.lines) console.log(l);
     if (!r.ok) status = 1;
   }
-  if (suite === undefined || suite === 'tycoon') console.log('tycoon: pending: lands in M09a2');
+  if (suite === undefined || suite === 'tycoon') {
+    const r = runTycoonGate();
+    for (const l of r.lines) console.log(l);
+    if (!r.ok) status = 1;
+  }
   return status;
 }
 

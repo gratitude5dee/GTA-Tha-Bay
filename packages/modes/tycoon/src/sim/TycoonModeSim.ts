@@ -14,9 +14,11 @@
  * Sim code under the C02 lint: no `Math.random`, no `Date`, no timers; every draw is a counter draw of the core.
  */
 import type { GameModeSim, JsonObject, JsonValue, ModeContext, ModeEnterArgs, ModeExitReason, ModeResult, SaveReason, SimEvent } from '@dv/shared';
+import { choiceAllowed } from '@dv/shared/events';
 import {
   applyCommand,
   hashCompany,
+  hostFor,
   newRun,
   policyView,
   setupFromSeed,
@@ -78,6 +80,22 @@ export interface TycoonView {
   vcPool: string[];
   candidates: { id: string; role: string; skill: number; askYr: number }[];
   choices: number;
+  /** M09a2: choice events waiting for an answer (the QA panel's inbox). */
+  inbox: { iid: number; defId: string; deadlineWeek: number; choices: { id: string; allowed: boolean }[]; defaultChoiceId: string }[];
+  /** Active modifier effects, newest last, at most 8. */
+  effects: { label: string; endWeek: number }[];
+  /** Names of the flags that are set (officeClosed, ipoWindow, ...). */
+  flags: string[];
+  /** The newest fired events, at most 6. */
+  recent: { week: number; defId: string }[];
+  eventsFired: number;
+  autoEvents: boolean;
+}
+
+function effectLabel(e: { spec: unknown; sampled: number }): string {
+  const spec = e.spec as { k: string; metric?: string; op?: string };
+  if (spec.k !== 'metric') return spec.k;
+  return `${spec.metric ?? '?'} ${spec.op === 'add' ? '+' : '\u00d7'}${Math.round(e.sampled * 1000) / 1000}`;
 }
 
 export function weekThreshold(content: TycoonContent, speed: Speed): number {
@@ -95,6 +113,9 @@ export class TycoonSession {
   unverifiable = false;
   weekTicks = 0;
   lastError: string | null = null;
+  /** The newest fired events (view only; not saved). */
+  private recent: { week: number; defId: string }[] = [];
+  private eventsFired = 0;
   private seq = 0;
   private seqWeek = -1;
   private queue: Command[] = [];
@@ -180,6 +201,11 @@ export class TycoonSession {
     }
     const before = this.state.capTable.rounds.length + this.state.capTable.safes.length;
     const res = stepWeek(this.state, this.env.content);
+    for (const e of res.events) {
+      this.eventsFired += 1;
+      this.recent.push({ week: e.firedWeek, defId: e.defId });
+      if (this.recent.length > 6) this.recent.shift();
+    }
     if (res.ended !== null) this.onEnded();
     else {
       if (this.state.week % this.env.content.balance.sim.boardIntervalWeeks === 0) this.env.requestSave('interval');
@@ -243,6 +269,17 @@ export class TycoonSession {
       vcPool: s.raise ? s.raise.vcPool : [],
       candidates: s.market.slice(0, 5).map((x) => ({ id: x.id, role: x.role, skill: x.skill, askYr: x.askYr })),
       choices: this.choices.length,
+      inbox: s.events.inbox.flatMap((i) => {
+        const d = this.env.content.events.find((x) => x.id === i.defId);
+        if (!d?.choices || d.defaultChoiceId === undefined) return [];
+        const host = hostFor(this.env.content);
+        return [{ iid: i.iid, defId: i.defId, deadlineWeek: i.deadlineWeek ?? i.firedWeek, defaultChoiceId: d.defaultChoiceId, choices: d.choices.map((c) => ({ id: c.id, allowed: choiceAllowed(c, s, host) })) }];
+      }),
+      effects: s.events.active.slice(-8).map((e) => ({ label: effectLabel(e), endWeek: e.endWeek })),
+      flags: Object.keys(s.flags).filter((k) => `until.${k}` in s.flags && s.flags[k] !== false && s.flags[k] !== 0).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
+      recent: this.recent.map((x) => ({ ...x })),
+      eventsFired: this.eventsFired,
+      autoEvents: s.setup.autoResolveEvents === true,
     };
   }
 
@@ -289,6 +326,7 @@ function startRun(h: Held, args: Record<string, unknown>): void {
   if (args['founder'] === 'engineer' || args['founder'] === 'hustler' || args['founder'] === 'designer') opts.founder = args['founder'];
   if (typeof args['coFounder'] === 'boolean') opts.coFounder = args['coFounder'];
   if (typeof args['thesis'] === 'string') opts.thesis = args['thesis'];
+  if (args['autoEvents'] === true) opts.autoResolveEvents = true;
   const setup = setupFromSeed(seed, opts, content);
   h.session = new TycoonSession(makeEnv(h.ctx, content), setup);
   h.session.submit({ t: 'setAllocation', features: content.balance.setup.allocation.features, refactor: content.balance.setup.allocation.refactor, infra: content.balance.setup.allocation.infra });

@@ -1,0 +1,328 @@
+{
+  "schema": "tycoon.events.v1",
+  "events": [
+    {
+      "id": "pol.payroll_tax",
+      "family": "political",
+      "scope": "both",
+      "mtthWeeks": 80,
+      "modifiers": [
+        {
+          "when": {
+            "m": "headcount",
+            "op": ">",
+            "v": 10
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "headcount",
+          "op": ">=",
+          "v": 4
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 2,
+      "minWeek": 10,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "burnMul",
+          "op": "mul",
+          "dist": {
+            "k": "uniform",
+            "lo": 1.03,
+            "hi": 1.08
+          },
+          "durationWeeks": 26,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "pay",
+          "effects": []
+        },
+        {
+          "id": "lobby",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "burnMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.97
+              },
+              "durationWeeks": 26,
+              "decay": "none"
+            }
+          ],
+          "cost": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": -4000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "requires": [
+            {
+              "m": "cash",
+              "op": ">=",
+              "v": 4000000
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "pay",
+      "art": "ui/ty-card-pol.payroll_tax"
+    },
+    {
+      "id": "pol.ai_ordinance",
+      "family": "political",
+      "scope": "tycoon",
+      "mtthWeeks": 120,
+      "modifiers": [
+        {
+          "when": {
+            "m": "sector:ai-tooling",
+            "op": ">=",
+            "v": 1
+          },
+          "factor": 3
+        }
+      ],
+      "requires": [
+        {
+          "m": "sector:ai-tooling",
+          "op": ">=",
+          "v": 1
+        },
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "multipleMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.9
+          },
+          "durationWeeks": 26,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "burnMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.05
+          },
+          "durationWeeks": 26,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "wait",
+          "effects": []
+        },
+        {
+          "id": "comply_early",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "reputation",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 5
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "cost": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": -6000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "requires": [
+            {
+              "m": "cash",
+              "op": ">=",
+              "v": 6000000
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "wait",
+      "art": "ui/ty-card-pol.ai_ordinance"
+    },
+    {
+      "id": "pol.hardware_tariff",
+      "family": "political",
+      "scope": "tycoon",
+      "mtthWeeks": 100,
+      "modifiers": [
+        {
+          "when": {
+            "m": "sector:hardware",
+            "op": ">=",
+            "v": 1
+          },
+          "factor": 3
+        }
+      ],
+      "requires": [
+        {
+          "m": "sector:hardware",
+          "op": ">=",
+          "v": 1
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "burnMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.06
+          },
+          "durationWeeks": 20,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-pol.hardware_tariff",
+      "disabled": true
+    },
+    {
+      "id": "pol.permit_freeze",
+      "family": "political",
+      "scope": "tycoon",
+      "mtthWeeks": 90,
+      "modifiers": [
+        {
+          "when": {
+            "m": "sector:mobility",
+            "op": ">=",
+            "v": 1
+          },
+          "factor": 3
+        }
+      ],
+      "requires": [
+        {
+          "m": "sector:mobility",
+          "op": ">=",
+          "v": 1
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "cacMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.2
+          },
+          "durationWeeks": 6,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-pol.permit_freeze",
+      "disabled": true
+    },
+    {
+      "id": "pol.city_grant",
+      "family": "political",
+      "scope": "both",
+      "mtthWeeks": 110,
+      "modifiers": [
+        {
+          "when": {
+            "m": "reputation",
+            "op": ">",
+            "v": 40
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 52,
+      "severity": 1,
+      "choices": [
+        {
+          "id": "apply",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "uniform",
+                "lo": 5000000,
+                "hi": 20000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "devPowerMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.7
+              },
+              "durationWeeks": 1,
+              "decay": "none"
+            }
+          ]
+        },
+        {
+          "id": "skip",
+          "effects": []
+        }
+      ],
+      "defaultChoiceId": "apply",
+      "art": "ui/ty-card-pol.city_grant"
+    }
+  ]
+}

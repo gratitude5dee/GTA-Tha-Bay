@@ -41,6 +41,10 @@ export function playPolicy(setup: RunSetup, content: TycoonContent, weeks: numbe
     if (s.week === 0) cmds.push({ t: 'setAllocation', features: 70, refactor: 20, infra: 10 });
     if (s.awaiting === 'board') cmds.push({ t: 'boardVote', motion: 'approveBudget' });
     if (s.awaiting === 'bridge') cmds.push({ t: 'bridge', accept: true });
+    for (const inst of s.setup.autoResolveEvents === true ? [] : s.events.inbox) {
+      const dc = content.events.find((d) => d.id === inst.defId)?.defaultChoiceId;
+      if (dc !== undefined) cmds.push({ t: 'resolveEvent', iid: inst.iid, choiceId: dc });
+    }
     const open = s.meetings.find((m) => m.phase === 'offer');
     if (s.awaiting === 'meeting' && open) cmds.push({ t: 'accept', meetingId: open.id });
     if (s.phase === 'launched' && s.marketing === 0 && s.week % 7 === 0) cmds.push({ t: 'setMarketing', perWeek: 20_000 });

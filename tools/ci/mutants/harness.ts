@@ -16,6 +16,8 @@ import { newRefereeState, refereeStep, straightRaceDef, type RaceEvent } from '.
 import { RACING_GOLDEN, racingSpec } from '../../../packages/modes/racing/src/qa/specs.ts';
 import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
 import { runEconSuite } from '../econ-sim/index.ts';
+import { runSuite } from '../tycoon-sim/cli.ts';
+import type { Policy } from '../tycoon-sim/policies.ts';
 import { DEFAULT_MISSION_DEPS, registerStoryQa, setMissionDeps, type MissionDeps } from '../../../packages/modes/story/src/qa.ts';
 import { runCheck } from '../missions/check.ts';
 import { DEFAULT_MODEL_DEPS, type ModelDeps } from '../econ-sim/model.ts';
@@ -123,7 +125,42 @@ export const MISSIONS: MutantSuite<MissionsDeps> = {
   },
 };
 
-export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING, MISSIONS] as const;
+/** The knobs of the `tycoon` suite (M09a2): which balance fixture, extra event files and extra bot module the harness runs with. */
+export interface TycoonDeps {
+  balanceFile: string | null;
+  eventFiles: string[];
+  botModule: string | null;
+}
+
+/**
+ * `tycoon` (M09a2): the median and frugal bots on 300 seeded runs. It passes only when B4 (no dominant strategy), B5 (no lethal
+ * root event) and B11 (no bot offer outside the envelope) hold and the median policy does not win a unicorn in more than 12 % of
+ * runs (B3 with a margin for 300 runs). The four self-test fixtures of the balance tool are its mutants: each one trips exactly
+ * the rule it is named for.
+ */
+export const TYCOON: MutantSuite<TycoonDeps> = {
+  id: 'tycoon',
+  base: { balanceFile: null, eventFiles: [], botModule: null },
+  async run(deps) {
+    const extra: Policy[] = [];
+    if (deps.botModule) extra.push(((await import(pathToFileURL(path.join(toolsRoot, deps.botModule)).href)) as { policy: Policy }).policy);
+    const r = runSuite({
+      runs: 300,
+      policies: ['median', 'frugal', ...extra.map((p) => p.id)],
+      seedBase: 1,
+      extraPolicies: extra,
+      extraEventFiles: deps.eventFiles,
+      determinismRuns: 0,
+      ...(deps.balanceFile ? { balanceFile: deps.balanceFile } : {}),
+    });
+    const failed = r.bands.filter((b) => ['B4', 'B5', 'B11'].includes(b.id) && !b.pass).map((b) => `${b.id}: ${b.got}`);
+    const uni = r.report.policies['median']?.unicornRate ?? 0;
+    if (uni > 0.12) failed.push(`B3: unicorn rate ${(100 * uni).toFixed(1)} %`);
+    return { pass: failed.length === 0, detail: failed.length ? failed.join('; ') : 'B3 (relaxed), B4, B5 and B11 hold' };
+  },
+};
+
+export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING, MISSIONS, TYCOON] as const;
 
 export function mutantFiles(suite: string): string[] {
   const dir = path.join(toolsRoot, 'tools', 'ci', 'mutants', suite);

@@ -1,6 +1,7 @@
 /**
- * The C06 descriptor of Business Tycoon (08-tycoon.md section 3.1). `status` stays `comingSoon` until M09a2 (A-06): the tile renders
- * locked, and a QA build starts the mode through `host.startQa`. M09b2 bumps `version` to 2 and `world` to `'stage'` with the 3D pitch room.
+ * The C06 descriptor of Business Tycoon (08-tycoon.md section 3.1). `status` is `available` in QA builds (`VITE_DV_QA=1`, M09a2:
+ * the tile is locked until `?unlockAll=1`, since the story unlock lands in M09b2) and `comingSoon` in every other build, so a
+ * production tile stays inert. M09b2 bumps `version` to 2 and `world` to `'stage'` with the 3D pitch room.
  */
 import type { GameModeDescriptor, GameModeUI, UnlockDef } from '@dv/shared';
 
@@ -11,7 +12,7 @@ export const tycoonDescriptor = (): GameModeDescriptor => ({
   version: 1,
   titleKey: 'mode.tycoon.title',
   tile: { art: 'ui/mode-tycoon', order: 4 },
-  status: 'comingSoon',
+  status: import.meta.env.VITE_DV_QA === '1' ? 'available' : 'comingSoon',
   unlock: 'unlock.tycoon',
   standalone: true,
   embeddable: true,

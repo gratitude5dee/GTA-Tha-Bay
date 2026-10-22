@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "pendingTune": [],
+  "bands": {
+    "B1": { "policy": "median", "min": 120, "max": 200 },
+    "B2": { "policy": "median", "min": 35, "max": 60 },
+    "B3": { "policy": "median", "min": 3, "max": 8 },
+    "B4": { "ratio": 1.5 },
+    "B5": { "maxRate": 0.05 },
+    "B6": { "ratio": 0.5 },
+    "B7": { "policy": "median", "min": 15, "max": 24 },
+    "B8": { "policy": "median", "eventsMin": 20, "eventsMax": 45, "choiceMin": 6, "choiceMax": 22 },
+    "B9": { "maxRate": 0.01 },
+    "B10": { "required": true },
+    "B11": { "maxViolations": 0 },
+    "B12": { "runs": 10000, "maxSeconds": 300 }
+  }
+}
