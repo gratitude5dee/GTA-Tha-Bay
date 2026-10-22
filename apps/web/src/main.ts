@@ -228,6 +228,11 @@ async function boot(): Promise<void> {
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
     if (prepared) (await import('@dv/world/client/bridge')).installWorldBridge(prepared.view, platform.quality.tier.id);
+    // ?racing=1 (M07a1): __dvBridge.racing; ?racing=demo also starts the straight demo race at once.
+    if (flags.racing) {
+      const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
+      if (flags.racingDemo) void racing.demo().catch((e: unknown) => console.warn('racing demo failed', e));
+    }
     // ?scenario=<id> starts that perf scenario at boot (path duration).
     if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {

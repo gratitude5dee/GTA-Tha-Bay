@@ -220,6 +220,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@dv/mode-racing':
+        specifier: workspace:*
+        version: link:../../packages/modes/racing
       '@dv/shared':
         specifier: workspace:*
         version: link:../../packages/shared

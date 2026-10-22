@@ -1,0 +1,24 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "3671e70bcc41d5e6e3811955e23242bc107c6900f42cea3a20a0323923974f5b",
+  "paths": [
+    "content/races/sf.sprint.ferry-ocean-beach/corridor.bin",
+    "assets/corridor-ctPSGbdC.bin"
+  ],
+  "kind": "world_pack",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T00:00:00Z"
+}

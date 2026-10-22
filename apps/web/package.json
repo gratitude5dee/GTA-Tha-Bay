@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@dv/engine": "workspace:*",
+    "@dv/mode-racing": "workspace:*",
     "@dv/shared": "workspace:*",
     "@dv/ui": "workspace:*",
     "@dv/world": "workspace:*",

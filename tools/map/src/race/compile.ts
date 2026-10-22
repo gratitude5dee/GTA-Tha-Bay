@@ -109,7 +109,7 @@ export function routeLegs(bg: BakeGraph, snaps: readonly Snapped[]): RouteLeg[] 
   for (let i = 0; i + 1 < snaps.length; i++) {
     const a = snaps[i] as Snapped;
     const b = snaps[i + 1] as Snapped;
-    const r = bg.graph.routeDetailed({ from: { edge: a.edge, s: a.s }, to: { edge: b.edge, s: b.s }, maxExpand: 4_000_000, useTopology: true });
+    const r = bg.graph.routeDetailed({ from: { edge: a.edge, s: a.s, lane: 0 }, to: { edge: b.edge, s: b.s, lane: 0 }, maxExpand: 4_000_000, useTopology: true });
     if (!r || !r.complete) throw new CompileError('V1', `no route from waypoint ${i} to waypoint ${i + 1}`);
     legs.push({ from: a, to: b, edges: r.edges, lengthM: r.lengthM });
   }

@@ -8,7 +8,9 @@
     "./sim": "./src/sim/index.ts",
     "./sim/module": "./src/sim/module.ts",
     "./ui": "./src/ui/index.ts",
-    "./qa": "./src/qa/index.ts"
+    "./qa": "./src/qa/index.ts",
+    "./qa/debug": "./src/qa/debug.ts",
+    "./qa/bridge": "./src/qa/bridge.ts"
   },
   "scripts": {
     "test": "tsx ../../../tools/ci/run.ts vitest --pkg packages/modes/racing"

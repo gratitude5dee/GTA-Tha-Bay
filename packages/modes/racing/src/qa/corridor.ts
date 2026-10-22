@@ -4,14 +4,23 @@
  * grids (4 m cells, 65 x 65 posts) of the chunks the route crosses, with one chunk of margin. The canonical determinism run feeds
  * them to the physics world as the only statics (no buildings, no props), the same bytes in Node and in WebKit.
  *
- * Format (before deflate, little endian): `CRD1`, bakeId as 32 bytes, u16 chunk count, then per chunk: u8 key length, the key
+ * Format (before deflate, little endian): `CRD2`, bakeId as 32 bytes, u16 chunk count, then per chunk: u8 key length, the key
  * (ASCII `9/x/y`), f64 originX, f64 originZ, f64 cellM, then 65 x 65 i16 residuals (each post minus its left neighbour, the first
- * of a row minus the first of the row above, in decimetres). The file is raw-deflate compressed.
+ * of a row minus the first of the row above, in decimetres), then u32 n and n f32 of deck prisms (bridge decks and tunnel hoods; a
+ * road over a trench or a rail cut is a deck, not terrain). The file is raw-deflate compressed.
  */
-export const CORRIDOR_MAGIC = 'CRD1';
+export const CORRIDOR_MAGIC = 'CRD2';
 export const CORRIDOR_POSTS = 65;
 
-export interface CorridorChunk { key: string; originX: number; originZ: number; cellM: number; dm: Int16Array }
+export interface CorridorChunk {
+  key: string;
+  originX: number;
+  originZ: number;
+  cellM: number;
+  dm: Int16Array;
+  /** Bridge decks and tunnel hoods of the chunk as packed prisms (C08 PrismPack: slabs then hoods); buildings are left out. */
+  decks: Float32Array;
+}
 export interface Corridor { bakeId: string; chunks: CorridorChunk[] }
 
 const hexBytes = (hex: string): Uint8Array => Uint8Array.from(hex.match(/../g) ?? [], (h) => parseInt(h, 16));
@@ -21,7 +30,7 @@ const toHex = (b: Uint8Array): string => Array.from(b, (x) => x.toString(16).pad
 export function encodeCorridorRaw(c: Corridor): Uint8Array {
   const chunks = [...c.chunks].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
   let size = 4 + 32 + 2;
-  for (const k of chunks) size += 1 + k.key.length + 24 + CORRIDOR_POSTS * CORRIDOR_POSTS * 2;
+  for (const k of chunks) size += 1 + k.key.length + 24 + CORRIDOR_POSTS * CORRIDOR_POSTS * 2 + 4 + k.decks.length * 4;
   const out = new Uint8Array(size);
   const dv = new DataView(out.buffer);
   let o = 0;
@@ -44,6 +53,12 @@ export function encodeCorridorRaw(c: Corridor): Uint8Array {
         dv.setInt16(o, v - pred, true);
         o += 2;
       }
+    }
+    dv.setUint32(o, k.decks.length, true);
+    o += 4;
+    for (let i = 0; i < k.decks.length; i++) {
+      dv.setFloat32(o, k.decks[i] as number, true);
+      o += 4;
     }
   }
   return out;
@@ -76,7 +91,14 @@ export function decodeCorridorRaw(b: Uint8Array): Corridor {
         o += 2;
       }
     }
-    chunks.push({ key, originX, originZ, cellM, dm });
+    const nd = dv.getUint32(o, true);
+    o += 4;
+    const decks = new Float32Array(nd);
+    for (let i = 0; i < nd; i++) {
+      decks[i] = dv.getFloat32(o, true);
+      o += 4;
+    }
+    chunks.push({ key, originX, originZ, cellM, dm, decks });
   }
   return { bakeId, chunks };
 }

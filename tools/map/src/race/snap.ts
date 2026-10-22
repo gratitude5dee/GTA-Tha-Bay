@@ -29,6 +29,8 @@ export interface BakeGraph {
   edgeRec: Map<EdgeId, RoadEdge>;
   /** The height grid of every chunk loaded so far (the corridor of the headless run reads them). */
   heights: Map<ChunkKey, HeightGrid>;
+  /** Bridge decks and tunnel hoods per chunk (slabs then hoods, packed prisms). */
+  decks: Map<ChunkKey, Float32Array>;
   /** Loads the chunks whose keys are not resident yet. */
   ensureChunks(keys: Iterable<ChunkKey>): void;
   /** Loads the chunks around an ENU point (`rings` chunks either way). */
@@ -52,6 +54,7 @@ export function openBake(bake: { bakeId: string; dir: string }): BakeGraph {
   const segs = new Map<SegId, RoadSegment>();
   const edgeRec = new Map<EdgeId, RoadEdge>();
   const heights = new Map<ChunkKey, HeightGrid>();
+  const decks = new Map<ChunkKey, Float32Array>();
   const tileOf = (key: ChunkKey): string => {
     const k = parseChunkKey(key);
     return k ? `${Math.floor(k.x / 4)}-${Math.floor(k.y / 4)}` : '';
@@ -69,6 +72,10 @@ export function openBake(bake: { bakeId: string; dir: string }): BakeGraph {
         for (const sg of c.segments) segs.set(sg.id, sg);
         for (const ed of c.edges) edgeRec.set(ed.id, ed);
         heights.set(c.key, c.height);
+        const d = new Float32Array(c.slabs.length + c.hoods.length);
+        d.set(c.slabs, 0);
+        d.set(c.hoods, c.slabs.length);
+        decks.set(c.key, d);
       }
     }
   };
@@ -79,6 +86,7 @@ export function openBake(bake: { bakeId: string; dir: string }): BakeGraph {
     segs,
     edgeRec,
     heights,
+    decks,
     ensureChunks,
     ensureAround(x, z, rings = 1) {
       const out: ChunkKey[] = [];

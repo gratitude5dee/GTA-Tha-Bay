@@ -107,6 +107,11 @@ export class RaceSession {
     else this.exitNow = true;
   }
 
+  /** QA only (`racing.fill`): puts charge into the tank, as a drift or a perfect start would. */
+  qaFillNitro(amount: number): void {
+    addCharge(this.d.profile, this.nitro, amount);
+  }
+
   get exitRequested(): boolean {
     return this.exitNow;
   }

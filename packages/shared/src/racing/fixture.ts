@@ -60,6 +60,5 @@ export function straightRaceDef(o: StraightRaceOptions = {}): RaceDef {
     parSec: lengthM / 30,
     parBotHash: 'pending',
     medals: [lengthM / 24, lengthM / 26.8, lengthM / 28.8],
-    version: 1,
   };
 }
