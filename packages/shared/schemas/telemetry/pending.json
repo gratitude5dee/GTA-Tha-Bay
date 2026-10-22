@@ -14,8 +14,6 @@
   "npc.encounter.client": "M06a3",
   "npc.voice.client": "M06a4",
   "npc.builder.step": "M14b2",
-  "racing.start": "M07a1",
-  "racing.finish": "M07a1",
   "racing.pursuit_end": "M07a2",
   "racing.photo": "M14b2",
   "racing.replay_view": "M07a2",

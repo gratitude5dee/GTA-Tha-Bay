@@ -31,3 +31,8 @@ export function envelopeViolations(p: Pick<HandlingProfile, 'class' | 'massKg' |
   if (!inside(p.tire.muLat, e.muLat)) out.push(`muLat ${p.tire.muLat} outside ${e.muLat[0]}..${e.muLat[1]}`);
   return out;
 }
+
+/** The nitro speed ceiling in m/s: the class top speed times `1 + maxOverTopPct` (06-racing.md 2.10: 110 % of the class top). */
+export function nitroCeilingMps(p: Pick<HandlingProfile, 'class' | 'nitro'>): number {
+  return (CLASS_ENVELOPE[p.class].topKph[1] / 3.6) * (1 + p.nitro.maxOverTopPct);
+}

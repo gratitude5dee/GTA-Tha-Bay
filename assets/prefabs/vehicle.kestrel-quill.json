@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.kestrel-quill",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.kestrel-quill",
+  "render": {
+    "asset": "vehicle/graybox.kestrel-quill"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.89,
+      0.42,
+      2.15
+    ],
+    "massKg": 1320,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.56,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.kestrel-quill",
+    "seats": 2,
+    "wheels": [
+      {
+        "pos": [
+          -0.76,
+          0.06,
+          -1.224
+        ],
+        "radius": 0.32,
+        "restM": 0.29,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.76,
+          0.06,
+          -1.224
+        ],
+        "radius": 0.32,
+        "restM": 0.29,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.76,
+          0.06,
+          1.326
+        ],
+        "radius": 0.32,
+        "restM": 0.29,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.76,
+          0.06,
+          1.326
+        ],
+        "radius": 0.32,
+        "restM": 0.29,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

@@ -21,10 +21,18 @@ const CLASS_D: [hp: string, prefab: string][] = [
 ];
 const POLICE: [string, string][] = [['hp.police-cruiser', 'police.cruiser'], ['hp.police-suv', 'police.suv']];
 const ROBOTAXI: [string, string] = ['hp.robotaxi-ambient', 'robotaxi.default'];
-const ALL = [...CLASS_D, ...POLICE, ROBOTAXI];
+/** The five race cars of M07a1, one per class above D (06-racing-content.md C.1). */
+const RACE: [string, string][] = [
+  ['hp.kestrel-quill', 'vehicle.kestrel-quill'], ['hp.brackenridge-rasp', 'vehicle.brackenridge-rasp'], ['hp.aurelian-sorrel', 'vehicle.aurelian-sorrel'],
+  ['hp.solenne-skip', 'vehicle.solenne-skip'], ['hp.halcyon-cormorant', 'vehicle.halcyon-cormorant'],
+];
+const ALL = [...CLASS_D, ...POLICE, ROBOTAXI, ...RACE];
+const isRace = (hp: string): boolean => RACE.some(([h]) => h === hp);
 
 /** Rolling start on the 1.2 km straight for the top-speed line: metres per second along the heading. */
-const ROLLING: Record<string, number> = { 'hp.police-cruiser': 55, 'hp.police-suv': 52, 'hp.robotaxi-ambient': 28 };
+const ROLLING: Record<string, number> = { 'hp.police-cruiser': 55, 'hp.police-suv': 52, 'hp.robotaxi-ambient': 28, 'hp.halcyon-cormorant': 28,
+  // the race cars start near the class top so that the 1.2 km straight shows the ceiling, not the run-up
+  'hp.aurelian-sorrel': 85, 'hp.kestrel-quill': 68, 'hp.brackenridge-rasp': 76, 'hp.solenne-skip': 92 };
 
 function withStart(l: LineFile, speed: number | undefined, frames?: LineFile['frames']): LineFile {
   const start: LineFile['start'] = { ...l.start };
@@ -42,7 +50,10 @@ describe('oracle lines, canonical profile', () => {
       const i = run.trace.findIndex((v) => v.kph >= 100);
       expect(i, `${hp} reached 100 kph`).toBeGreaterThan(0);
       const sec = (i + 1) / 60;
-      const [lo, hi] = windows[hp] ?? [7.5, 12.0];
+      const cls = handlingById(hp).class;
+      // a race car: its class window (C.2), and the supercar's own C.3.1 window 3.4 +- 0.3 s
+      const win: [number, number] = hp === 'hp.aurelian-sorrel' ? [3.1, 3.7] : isRace(hp) ? [...CLASS_ENVELOPE[cls].zeroTo100Sec] as [number, number] : (windows[hp] ?? [7.5, 12.0]);
+      const [lo, hi] = win;
       expect(sec, `${hp} 0-100 s`).toBeGreaterThanOrEqual(lo);
       expect(sec, `${hp} 0-100 s`).toBeLessThanOrEqual(hi);
     }
@@ -78,9 +89,13 @@ describe('oracle lines, canonical profile', () => {
       } else if (hp === 'hp.police-suv') {
         expect(top, hp).toBeGreaterThanOrEqual(200 * 0.97);
         expect(top, hp).toBeLessThanOrEqual(200 * 1.03);
-      } else if (hp === ROBOTAXI[0]) {
+      } else if (hp === ROBOTAXI[0] || hp === 'hp.halcyon-cormorant') {
         expect(top, hp).toBeGreaterThanOrEqual(103);
         expect(top, hp).toBeLessThanOrEqual(107);
+      } else if (isRace(hp)) {
+        const [tlo, thi] = CLASS_ENVELOPE[handlingById(hp).class].topKph;
+        expect(top, hp).toBeGreaterThanOrEqual(tlo * 0.97);
+        expect(top, hp).toBeLessThanOrEqual(thi * 1.03);
       } else {
         expect(top, hp).toBeGreaterThanOrEqual(140);
         expect(top, hp).toBeLessThanOrEqual(185);
@@ -111,6 +126,11 @@ describe('oracle lines, canonical profile', () => {
       const [lo, hi] = CLASS_ENVELOPE[cls].muLat;
       expect(peak, `${hp} lateral g`).toBeGreaterThanOrEqual(lo - 0.08);
       expect(peak, `${hp} lateral g`).toBeLessThanOrEqual(hi + 0.08);
+      // the supercar's own oracle, C.3.1: skidpad 1.30 g +- 0.08
+      if (hp === 'hp.aurelian-sorrel') {
+        expect(peak, 'sorrel skidpad g').toBeGreaterThanOrEqual(1.22);
+        expect(peak, 'sorrel skidpad g').toBeLessThanOrEqual(1.38);
+      }
     }
   }, 240_000);
 

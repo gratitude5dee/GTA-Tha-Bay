@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/config/racing.schema.json",
+  "title": "config/racing.json (RacingConfig, schema 1; 06-racing-data.md 4.6)",
+  "description": "Racing tunables: tier caps, model tiers, AI, rubber band, nitro, damage, race rules, drift, progression, replay, photo and XR. Every number is a design starting value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "tierCaps", "models", "ai", "rubberBand", "nitro", "damage", "race", "drift", "progression", "replay", "photo", "xr"],
+  "$defs": {
+    "num": { "type": "number" },
+    "pos": { "type": "number", "exclusiveMinimum": 0 },
+    "frac": { "type": "number", "minimum": 0, "maximum": 1 },
+    "perTier": {
+      "type": "object", "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "type": "integer", "minimum": 0 }, "desktop": { "type": "integer", "minimum": 0 }, "mobile": { "type": "integer", "minimum": 0 },
+        "mobile-low": { "type": "integer", "minimum": 0 }, "xr-quest": { "type": "integer", "minimum": 0 }, "xr-visionpro": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "perDifficulty": {
+      "type": "object", "additionalProperties": false, "required": ["easy", "normal", "hard"],
+      "properties": { "easy": { "type": "number", "minimum": 0 }, "normal": { "type": "number", "minimum": 0 }, "hard": { "type": "number", "minimum": 0 } }
+    },
+    "tierCap": {
+      "type": "object", "additionalProperties": false,
+      "required": ["rivals", "policeCars", "cullM", "skidSegments", "envProbe", "wheelBlur", "sparkParticles"],
+      "properties": {
+        "rivals": { "type": "integer", "minimum": 0, "maximum": 7 }, "policeCars": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "cullM": { "$ref": "#/$defs/pos" }, "skidSegments": { "type": "integer", "minimum": 0 }, "envProbe": { "enum": ["grid", "baked"] },
+        "wheelBlur": { "type": "boolean" }, "sparkParticles": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "properties": {
+    "schema": { "const": 1 },
+    "tierCaps": {
+      "type": "object", "additionalProperties": false,
+      "required": ["desktop-ultra", "desktop", "mobile", "mobile-low", "xr-quest", "xr-visionpro"],
+      "properties": {
+        "desktop-ultra": { "$ref": "#/$defs/tierCap" }, "desktop": { "$ref": "#/$defs/tierCap" }, "mobile": { "$ref": "#/$defs/tierCap" },
+        "mobile-low": { "$ref": "#/$defs/tierCap" }, "xr-quest": { "$ref": "#/$defs/tierCap" }, "xr-visionpro": { "$ref": "#/$defs/tierCap" }
+      }
+    },
+    "models": {
+      "type": "object", "additionalProperties": false, "required": ["m1PromoteM", "m1DemoteM", "m1MaxActive"],
+      "properties": { "m1PromoteM": { "$ref": "#/$defs/pos" }, "m1DemoteM": { "$ref": "#/$defs/pos" }, "m1MaxActive": { "$ref": "#/$defs/perTier" } }
+    },
+    "ai": {
+      "type": "object", "additionalProperties": false,
+      "required": ["lookaheadBaseM", "lookaheadPerMps", "speedFactorMin", "speedFactorMax", "brakeMarginMax", "mistakePerCorner", "overtakeGapM", "overtakeHoldSec", "recoverStuckSec", "offRouteTeleportM", "thinkHz"],
+      "properties": {
+        "lookaheadBaseM": { "$ref": "#/$defs/pos" }, "lookaheadPerMps": { "$ref": "#/$defs/pos" }, "speedFactorMin": { "$ref": "#/$defs/frac" },
+        "speedFactorMax": { "$ref": "#/$defs/frac" }, "brakeMarginMax": { "$ref": "#/$defs/pos" }, "mistakePerCorner": { "$ref": "#/$defs/frac" },
+        "overtakeGapM": { "$ref": "#/$defs/pos" }, "overtakeHoldSec": { "$ref": "#/$defs/pos" }, "recoverStuckSec": { "$ref": "#/$defs/pos" },
+        "offRouteTeleportM": { "$ref": "#/$defs/pos" }, "thinkHz": { "type": "integer", "minimum": 1, "maximum": 60 }
+      }
+    },
+    "rubberBand": {
+      "type": "object", "additionalProperties": false, "required": ["maxPct", "gapScaleM", "freezeLastPct", "difficulty", "underdogNitro", "powerCapPct"],
+      "properties": {
+        "maxPct": { "$ref": "#/$defs/frac" }, "gapScaleM": { "$ref": "#/$defs/pos" }, "freezeLastPct": { "$ref": "#/$defs/frac" },
+        "difficulty": { "$ref": "#/$defs/perDifficulty" }, "underdogNitro": { "$ref": "#/$defs/pos" }, "powerCapPct": { "$ref": "#/$defs/frac" }
+      }
+    },
+    "nitro": {
+      "type": "object", "additionalProperties": false,
+      "required": ["nearMissM", "nearMissKph", "draftWindowSec", "draftLateralM", "draftKph", "perfectStartWindowSec", "perfectStartNitroPct"],
+      "properties": {
+        "nearMissM": { "$ref": "#/$defs/pos" }, "nearMissKph": { "$ref": "#/$defs/pos" }, "draftWindowSec": { "$ref": "#/$defs/pos" },
+        "draftLateralM": { "$ref": "#/$defs/pos" }, "draftKph": { "$ref": "#/$defs/pos" }, "perfectStartWindowSec": { "$ref": "#/$defs/pos" },
+        "perfectStartNitroPct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "damage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["vThreshold", "k", "engineShareFront", "spikePuncture", "landingVy", "repairKitPct", "bustRepairPct", "difficulty"],
+      "properties": {
+        "vThreshold": { "type": "number", "minimum": 0 }, "k": { "$ref": "#/$defs/pos" }, "engineShareFront": { "$ref": "#/$defs/frac" },
+        "spikePuncture": { "$ref": "#/$defs/frac" }, "landingVy": { "$ref": "#/$defs/pos" }, "repairKitPct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bustRepairPct": { "type": "number", "minimum": 0, "maximum": 100 }, "difficulty": { "$ref": "#/$defs/perDifficulty" }
+      }
+    },
+    "race": {
+      "type": "object", "additionalProperties": false,
+      "required": ["countdownTicks", "gridAutoTicks", "jumpStartM", "jumpStartPenaltySec", "wrongWayWarnM", "wrongWayRespawnSec", "stuckResetSec", "resetPenaltySec", "flipResetSec", "resetHoldSec", "gateTolerantY", "defaultGateWidthM", "minGateWidthM", "autoGateEveryM", "autoGateTurnDeg"],
+      "properties": {
+        "countdownTicks": { "type": "integer", "minimum": 1 }, "gridAutoTicks": { "type": "integer", "minimum": 1 }, "jumpStartM": { "$ref": "#/$defs/pos" },
+        "jumpStartPenaltySec": { "type": "number", "minimum": 0 }, "wrongWayWarnM": { "$ref": "#/$defs/pos" }, "wrongWayRespawnSec": { "$ref": "#/$defs/pos" },
+        "stuckResetSec": { "$ref": "#/$defs/pos" }, "resetPenaltySec": { "type": "number", "minimum": 0 }, "flipResetSec": { "$ref": "#/$defs/pos" },
+        "resetHoldSec": { "$ref": "#/$defs/pos" }, "gateTolerantY": { "$ref": "#/$defs/pos" }, "defaultGateWidthM": { "$ref": "#/$defs/pos" },
+        "minGateWidthM": { "$ref": "#/$defs/pos" }, "autoGateEveryM": { "$ref": "#/$defs/pos" }, "autoGateTurnDeg": { "$ref": "#/$defs/pos" }
+      }
+    },
+    "drift": {
+      "type": "object", "additionalProperties": false, "required": ["minAngleDeg", "chainBreakSec", "comboStep", "comboMax", "wallPenalty"],
+      "properties": {
+        "minAngleDeg": { "$ref": "#/$defs/pos" }, "chainBreakSec": { "$ref": "#/$defs/pos" }, "comboStep": { "$ref": "#/$defs/pos" },
+        "comboMax": { "$ref": "#/$defs/pos" }, "wallPenalty": { "$ref": "#/$defs/frac" }
+      }
+    },
+    "progression": {
+      "type": "object", "additionalProperties": false, "required": ["repThresholds", "classRepLevel", "purseDollars", "placeMult", "medalMult"],
+      "properties": {
+        "repThresholds": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 20, "maxItems": 20 },
+        "classRepLevel": {
+          "type": "object", "additionalProperties": false, "required": ["C", "B", "A", "S"],
+          "properties": { "C": { "type": "integer" }, "B": { "type": "integer" }, "A": { "type": "integer" }, "S": { "type": "integer" } }
+        },
+        "purseDollars": {
+          "type": "object", "additionalProperties": false, "required": ["D", "C", "B", "A", "S"],
+          "properties": { "D": { "type": "integer" }, "C": { "type": "integer" }, "B": { "type": "integer" }, "A": { "type": "integer" }, "S": { "type": "integer" } }
+        },
+        "placeMult": { "type": "array", "items": { "$ref": "#/$defs/frac" }, "minItems": 1 },
+        "medalMult": { "type": "array", "items": { "$ref": "#/$defs/pos" }, "minItems": 4, "maxItems": 4 }
+      }
+    },
+    "replay": {
+      "type": "object", "additionalProperties": false, "required": ["maxInputsBytes", "maxTrackBytes", "maxDurationSec", "keyframeEveryTicks"],
+      "properties": {
+        "maxInputsBytes": { "type": "integer", "minimum": 1 }, "maxTrackBytes": { "type": "integer", "minimum": 1 },
+        "maxDurationSec": { "type": "integer", "minimum": 1 }, "keyframeEveryTicks": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "photo": {
+      "type": "object", "additionalProperties": false, "required": ["radiusM", "fovDeg", "exposureEv", "filters"],
+      "properties": {
+        "radiusM": { "$ref": "#/$defs/pos" }, "fovDeg": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+        "exposureEv": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, "filters": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "xr": {
+      "type": "object", "additionalProperties": false, "required": ["allowKinds", "vignetteBoostPerYawRate"],
+      "properties": {
+        "allowKinds": { "type": "array", "items": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] } },
+        "vignetteBoostPerYawRate": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

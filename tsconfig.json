@@ -10,6 +10,8 @@
     "packages/*/src",
     "packages/*/test",
     "packages/*/scripts",
+    "packages/modes/*/src",
+    "packages/modes/*/test",
     "tests",
     "tools",
     "config",

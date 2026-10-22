@@ -177,6 +177,28 @@
       },
       "required": ["id"],
       "additionalProperties": false
+    },
+    "racing.start": {
+      "type": "object",
+      "properties": {
+        "raceKind": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] },
+        "class": { "enum": ["D", "C", "B", "A", "S", "R"] },
+        "profile": { "enum": ["local", "canonical"] }
+      },
+      "required": ["raceKind", "class", "profile"],
+      "additionalProperties": false
+    },
+    "racing.finish": {
+      "type": "object",
+      "properties": {
+        "raceKind": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] },
+        "outcome": { "enum": ["finish", "dnf", "quit"] },
+        "durBucket": { "enum": ["<60", "60-120", "120-240", "240-480", ">480"] },
+        "place": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "medals": { "type": "integer", "minimum": 0, "maximum": 3 }
+      },
+      "required": ["raceKind", "outcome", "durBucket", "place", "medals"],
+      "additionalProperties": false
     }
   }
 }

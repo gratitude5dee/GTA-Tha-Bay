@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "id": "hp.solenne-skip",
+  "rev": 1,
+  "class": "S",
+  "fictionalMake": "Solenne",
+  "massKg": 1720,
+  "cgHeightM": 0.44,
+  "wheelbaseM": 2.75,
+  "trackM": 1.66,
+  "frontWeightPct": 48,
+  "engine": {
+    "idleRpm": 0,
+    "redlineRpm": 14000,
+    "torque": [
+      [
+        0,
+        950
+      ],
+      [
+        4200,
+        950
+      ],
+      [
+        5000,
+        808
+      ],
+      [
+        6000,
+        673
+      ],
+      [
+        7000,
+        577
+      ],
+      [
+        8000,
+        505
+      ],
+      [
+        10000,
+        404
+      ],
+      [
+        12000,
+        337
+      ],
+      [
+        14000,
+        289
+      ]
+    ],
+    "powerKw": 423
+  },
+  "drive": {
+    "type": "AWD",
+    "gears": [
+      1.5,
+      0.95
+    ],
+    "reverse": 1.5,
+    "finalDrive": 5.0,
+    "efficiency": 0.9,
+    "wheelRadiusM": 0.35,
+    "shiftUpPct": 0.97,
+    "shiftDownPct": 0.2,
+    "shiftTimeSec": 0.12,
+    "awdRearBias": 0.5
+  },
+  "tire": {
+    "muLong": 1.05,
+    "muLat": 1.5,
+    "peakSlipDeg": 8.0,
+    "slideRatio": 0.8,
+    "slideAtX": 2.5,
+    "loadSens": 0.1,
+    "frontGrip": 1.0,
+    "rearGrip": 0.97,
+    "rollResistN": 180
+  },
+  "aero": {
+    "cdA": 0.55,
+    "downforceNPerMps2": 0.45
+  },
+  "steer": {
+    "lockDeg": 32,
+    "speedRefMps": 40,
+    "minLockPct": 22,
+    "rateDegPerS": 360,
+    "assist": 0.25,
+    "selfAlign": 0.35
+  },
+  "brake": {
+    "maxDecelG": 1.5,
+    "bias": 0.6,
+    "abs": true
+  },
+  "drift": {
+    "assist": 0.4,
+    "handbrakeRearGrip": 0.45,
+    "yawDamp": 0.3
+  },
+  "suspension": {
+    "restM": 0.3,
+    "travelM": 0.12,
+    "rideHz": 2.0,
+    "dampingRatio": 0.7,
+    "antiRoll": 0.6,
+    "landingDamp": 0.5,
+    "airPitchTrim": 0.5,
+    "airRollTrim": 0.5
+  },
+  "nitro": {
+    "capacity": 100,
+    "boostKw": 140,
+    "drainPerSec": 25,
+    "minToFire": 15,
+    "maxOverTopPct": 0.1,
+    "refill": {
+      "driftPerSec": 6,
+      "nearMiss": 6,
+      "draftPerSec": 8,
+      "airPerSec": 10
+    }
+  },
+  "durability": 0.9,
+  "quirks": [
+    {
+      "k": "thrusterHop",
+      "deltaVy": 7.5,
+      "charges": 2,
+      "rechargeSec": 6,
+      "coyoteSec": 0.4
+    },
+    {
+      "k": "regenBraking",
+      "nitroPerSec": 4,
+      "minKph": 60
+    }
+  ]
+}

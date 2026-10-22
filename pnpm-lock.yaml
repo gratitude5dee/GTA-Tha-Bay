@@ -280,6 +280,15 @@ importers:
         specifier: 2.6.0
         version: 2.6.0
 
+  packages/modes/racing:
+    dependencies:
+      '@dv/engine':
+        specifier: workspace:*
+        version: link:../../engine
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../shared
+
   packages/shared:
     dependencies:
       yaml:
