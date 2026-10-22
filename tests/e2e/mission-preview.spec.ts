@@ -68,7 +68,7 @@ test.describe('mission preview @mission-preview', () => {
   });
 
   test('loads the file from ?timeline=<url>', async ({ page }) => {
-    await page.route('**/qa-preview/run.dvtl', (route) => route.fulfill({ status: 200, contentType: 'application/octet-stream', body: readFileSync(FILE) }));
+    await page.route((u) => u.pathname === '/qa-preview/run.dvtl', (route) => route.fulfill({ status: 200, contentType: 'application/octet-stream', body: readFileSync(FILE) }));
     await page.goto('/qa/mission-preview.html?timeline=/qa-preview/run.dvtl');
     await expect(page.getByTestId('status')).toHaveAttribute('data-loaded', 'true');
     await expect(page.getByTestId('chapters').locator('button')).toHaveCount(recorded().events.filter((e) => e.t === 'mis.stage').length);

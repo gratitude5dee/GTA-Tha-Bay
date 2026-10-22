@@ -14,7 +14,7 @@ import type { CameraDirective, CinematicShot } from '@dv/shared';
 import type { DirectorScript, DirectorShot } from '@dv/shared/contracts/c09-cutscene';
 import { PI } from '@dv/shared';
 import { AutoDirector } from './auto.ts';
-import { fixedInFront, fovOf, headOf, kindOfPreset, poseOfKind, pushSpline, twoShot, FIXED_DISTANCE_M, type Pose } from './presets.ts';
+import { fixedInFront, fovOf, headOf, kindOfPreset, poseOfKind, pushSpline, rotateXZ, twoShot, FIXED_DISTANCE_M, type Pose } from './presets.ts';
 import {
   ALTERNATES, RayBudget, alternatePose, occluded,
 } from './validate.ts';
@@ -29,6 +29,8 @@ export interface RunnerEnv {
   world: DirWorld;
   comfort: () => Comfort;
   publish: Publish;
+  /** Called every tick with the current shot placed on its subject (`pos` and `lookAt` set); the camera follows a subject that moves. */
+  refresh?: Publish;
   /** A mark's position in ENU metres, or null when it cannot be resolved (a landmark that is not loaded). */
   markPos(at: Mark['at']): Vec3 | null;
   /** Puts an actor on a spot, heading `yaw` radians, and stops it. */
@@ -44,6 +46,8 @@ export interface RunnerEnv {
 }
 
 const toRad = (deg: number): number => (deg * PI) / 180;
+/** The orbit shot circles its subject at this rate. */
+const ORBIT_RAD_PER_SEC = 0.35;
 
 export class DirectorRunner {
   readonly budget: RayBudget;
@@ -55,6 +59,8 @@ export class DirectorRunner {
   private lastShotTick = -1_000_000;
   private auto: AutoDirector | null = null;
   private cueShown: number = -1;
+  /** The shot that is on: where its camera stands now, as a function of its subject. */
+  private cur: { cs: CinematicShot; at: (elapsedTicks: number) => Pose; since: number } | null = null;
   readonly shots: DirectorShot[];
   readonly actions: Action[];
 
@@ -109,6 +115,7 @@ export class DirectorRunner {
     this.cues(el);
     if (this.env.comfort().xr) return;
     if (this.auto?.running) this.auto.step(tick);
+    else this.refreshShot(tick);
     // the next shot whose time has come; with reduced motion no sooner than 2 s after the last change
     let due = this.shotIndex;
     while (due + 1 < this.shots.length && (this.shots[due + 1] as DirectorShot).atSec * TICKS_PER_SEC <= el) due++;
@@ -133,6 +140,19 @@ export class DirectorRunner {
       }
     }
     if (this.env.comfort().xr) this.publishVantage(tick, 1);
+  }
+
+  private refreshShot(tick: number): void {
+    const c = this.cur;
+    if (!c || !this.env.refresh) return;
+    const pose = c.at(tick - c.since);
+    this.env.refresh({
+      mode: 'cinematic',
+      shot: { ...c.cs, pos: pose.pos, lookAt: pose.lookAt },
+      letterbox: this.script.letterbox,
+      lockPlayerToggle: true,
+      reason: this.env.reason ?? 'mission',
+    });
   }
 
   private markOfArg(arg: string): Vec3 | null {
@@ -199,10 +219,12 @@ export class DirectorRunner {
         subject: shot.subject,
         seed: (this.script.seed + this.shotIndex) >>> 0,
         publish: this.env.publish,
+        ...(this.env.refresh ? { refresh: this.env.refresh } : {}),
         letterbox: this.script.letterbox,
         reason: this.env.reason ?? 'mission',
         ...(this.env.log ? { log: this.env.log } : {}),
       });
+      this.cur = null;
       this.auto = auto;
       auto.start(tick);
       return;
@@ -216,6 +238,7 @@ export class DirectorRunner {
       reason: this.env.reason ?? 'mission',
       ...(reduced && cut ? { fade: { to: 0 as const, sec: REDUCED_FADE_SEC } } : {}),
     });
+    this.refreshShot(tick);
   }
 
   /** The C04 shot of a preset. A fixed pose that is blocked tries the alternates in order, as far as the tick's ray budget goes. */
@@ -243,21 +266,71 @@ export class DirectorRunner {
         pose = fixedInFront(p, yaw, FIXED_DISTANCE_M[shot.preset] ?? 2.2);
         break;
       case 'over-shoulder':
-      case 'tracking':
-        return { kind: kind ?? 'wide', ...base };
-      case 'orbit':
+      case 'tracking': {
+        const k = kind ?? 'wide';
+        const cs: CinematicShot = { kind: k, ...base };
+        this.cur = { cs, since: tick, at: () => poseOfKind(k, w.pos(shot.subject) ?? p, w.yaw(shot.subject)) };
+        return cs;
+      }
+      case 'orbit': {
         // the start angle of the orbit is drawn from the script's own stream (the rig reads it from `seed`)
-        return { kind: 'heli', ...base, seed: (this.script.seed ^ (this.env.rng.nextU32() & 0xff)) >>> 0 };
+        const draw = this.env.rng.nextU32() & 0xff;
+        const cs: CinematicShot = { kind: 'heli', ...base, seed: (this.script.seed ^ draw) >>> 0 };
+        const a0 = (draw / 256) * 2 * PI;
+        this.cur = {
+          cs,
+          since: tick,
+          at: (el) => {
+            const sp = w.pos(shot.subject) ?? p;
+            const base2 = poseOfKind('wide', sp, 0);
+            const [ox, oz] = rotateXZ(base2.pos[0] - sp[0], base2.pos[2] - sp[2], a0 + (ORBIT_RAD_PER_SEC * el) / TICKS_PER_SEC);
+            return { pos: [sp[0] + ox, base2.pos[1], sp[2] + oz], lookAt: headOf(sp) };
+          },
+        };
+        return cs;
+      }
       case 'auto':
         return { kind: 'wide', ...base };
     }
     pose = this.clearPose(pose as Pose, p, yaw, tick);
     const move = shot.move ?? (shot.preset === 'establish' ? 'push-in' : 'static');
     const sec = ticks / TICKS_PER_SEC;
+    const subj = shot.subject;
+    // where the camera stands as the shot runs: the preset's pose on the subject as it moves; a push-in or pull-out slides along its spline
+    const live = (): Pose => {
+      const sp = w.pos(subj) ?? p;
+      const sy = w.yaw(subj);
+      switch (shot.preset) {
+        case 'single':
+        case 'insert':
+        case 'reaction':
+          return fixedInFront(sp, sy, FIXED_DISTANCE_M[shot.preset] ?? 2.2);
+        case 'two-shot': {
+          const q = shot.secondary ? w.pos(shot.secondary) : null;
+          return q ? twoShot(sp, q) : (pose as Pose);
+        }
+        default:
+          return { pos: (pose as Pose).pos, lookAt: headOf(sp) };
+      }
+    };
     if (move === 'push-in' || move === 'pull-out') {
-      return { kind: 'spline', ...base, pos: pose.pos, lookAt: pose.lookAt, spline: pushSpline(pose, sec, move === 'pull-out') };
+      const spline = pushSpline(pose, sec, move === 'pull-out');
+      const cs: CinematicShot = { kind: 'spline', ...base, pos: pose.pos, lookAt: pose.lookAt, spline };
+      this.cur = {
+        cs,
+        since: tick,
+        at: (el) => {
+          const l = live();
+          const t = Math.min(1, Math.max(0, el / spline.durationTicks));
+          const [a, b] = spline.pts as [Vec3, Vec3];
+          return { pos: [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t], lookAt: l.lookAt };
+        },
+      };
+      return cs;
     }
-    return { kind: 'fixed', ...base, pos: pose.pos, lookAt: pose.lookAt };
+    const cs: CinematicShot = { kind: 'fixed', ...base, pos: pose.pos, lookAt: pose.lookAt };
+    this.cur = { cs, since: tick, at: () => live() };
+    return cs;
   }
 
   private clearPose(pose: Pose, p: Vec3, yaw: number, tick: number): Pose {

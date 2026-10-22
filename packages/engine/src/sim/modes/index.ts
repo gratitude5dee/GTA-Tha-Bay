@@ -284,6 +284,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       });
       const contexts: InputContextId[] = [];
       let modeCamera: CameraDirective | null = null;
+      // A mode's camera directive (a cinematic shot of the story director) replaces the player's camera in the snapshot while it holds.
+      services.side.set('cam', () => modeCamera);
       const requested = new Set<string>();
 
       const playerPose = (): { x: number; y: number; z: number; yaw: number } | null => {
@@ -422,7 +424,6 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         seed: () => ctx.cfg.seed,
         qa: runtime.env.qa,
       }));
-      void modeCamera;
 
       // The pursuit director's wallet and the transit fares go through EconomyApi (M03c, M03b2).
       pursuitMod?.bindWallet?.(economyWallet(econ));

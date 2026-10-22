@@ -50,6 +50,8 @@ export interface AutoOptions {
   subject: string;
   seed: number;
   publish: Publish;
+  /** Called every tick with the current shot placed on its subject (`pos` and `lookAt` set), so a moving subject keeps its camera. */
+  refresh?: Publish;
   letterbox?: boolean;
   reason?: CameraDirective['reason'];
   log?: DirEvent[];
@@ -84,14 +86,36 @@ export class AutoDirector {
     this.index = -1;
     this.budget.begin(tick);
     this.nextShot(tick, false);
+    this.refreshShot(tick);
   }
 
   stop(): void {
     this.active = false;
   }
 
-  /** One tick: the shot timer, the view check, the alternates and the cut. */
+  /** One tick: the shot timer, the view check, the alternates and the cut; then the current shot is re-placed on its subject. */
   step(tick: number): void {
+    this.update(tick);
+    if (this.active && !this.o.comfort().xr) this.refreshShot(tick);
+  }
+
+  /** The current shot with `pos` and `lookAt` on the subject as it stands now. */
+  private refreshShot(tick: number): void {
+    void tick;
+    const w = this.o.world;
+    const p = w.pos(this.o.subject);
+    if (!p || !this.o.refresh || this.index < 0) return;
+    const pose = this.fixedPose && this.pose ? this.pose : poseOfKind(this.kind, p, w.yaw(this.o.subject));
+    this.o.refresh({
+      mode: 'cinematic',
+      shot: { kind: this.fixedPose ? 'fixed' : this.kind, subject: w.handle(this.o.subject), pos: pose.pos, lookAt: pose.lookAt, fovDeg: 60, damping: 1, durationTicks: Math.max(1, this.endTick - tick), seed: this.o.seed },
+      letterbox: this.o.letterbox ?? false,
+      lockPlayerToggle: true,
+      reason: this.o.reason ?? 'mission',
+    });
+  }
+
+  private update(tick: number): void {
     if (!this.active) return;
     this.budget.begin(tick);
     const w = this.o.world;

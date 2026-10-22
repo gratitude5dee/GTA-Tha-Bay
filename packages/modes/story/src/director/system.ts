@@ -97,6 +97,7 @@ export class DirectorSystem {
       world: this.world(),
       comfort: () => h.comfort(),
       publish: this.publish,
+      refresh: this.publish,
       markPos: (at) => h.markPos(at),
       place: (who, pos, yaw) => {
         const e = who.startsWith('soul:') ? this.world().handle(who) : (h.actors.handleOf(who) ?? 0);
@@ -201,7 +202,7 @@ export class DirectorSystem {
   /** The `camera` op: the auto-director on a subject for `sec` seconds (0 keeps it until `stopAuto`). */
   startAuto(subject: string, seed: number, reason: CameraDirective['reason'] = 'mission'): void {
     this.stopAuto();
-    const a = new AutoDirector({ world: this.world(), comfort: () => this.host.comfort(), subject, seed, publish: this.publish, reason, log: this.events });
+    const a = new AutoDirector({ world: this.world(), comfort: () => this.host.comfort(), subject, seed, publish: this.publish, refresh: this.publish, reason, log: this.events });
     this.auto = a;
     a.start(this.host.ctx().tick);
   }
