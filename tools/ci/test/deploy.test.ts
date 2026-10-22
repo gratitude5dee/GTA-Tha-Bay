@@ -29,7 +29,7 @@ describe('deploy.ts', () => {
   });
 
   it('maps the Worker secrets from the environment into the secrets file (DL-679, M06a1): keys only asserted, absent ones left out', () => {
-    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET']);
+    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY']);
     const full = buildSecretsJson({ PLAY_TOKEN_HMAC: 'k1:aaaa', PLAY_TOKEN_HMAC_PREV: 'k0:bbbb', QUOTA_NET_SALT_SECRET: 'salt', UNRELATED: 'x' });
     expect(Object.keys(JSON.parse(full.json) as object).sort()).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET']);
     expect(full.missing).toEqual([]);

@@ -28,7 +28,9 @@ export interface BeginArgs {
   turnCap?: number;
 }
 export type RefusalReason = 'busy' | 'turn_cap' | 'cadence' | 'killed';
-export type BeginResult = { ok: true; turnIndex: number; history: HistoryItem[] } | { ok: false; reason: RefusalReason };
+export type BeginResult =
+  | { ok: true; turnIndex: number; history: HistoryItem[]; /** Set once after `flagSafety` (M06a3): the turn's `meta` carries `safety: 'crisis'`. */ safety?: 'crisis' }
+  | { ok: false; reason: RefusalReason };
 export interface HistoryItem {
   role: 'user' | 'assistant';
   content: unknown;
@@ -133,8 +135,10 @@ export class EncounterDO extends DurableObject<Env> {
     this.set('pending', JSON.stringify({ turnIndex: done, user: a.turn }));
     this.set('streaming', '1');
     this.set('lastBegin', t);
+    const crisis = this.get('pendingSafety') === '1';
+    if (crisis) this.del('pendingSafety');
     await this.ctx.storage.setAlarm(t + ENC.idleCloseMs);
-    return { ok: true, turnIndex: done, history: this.history() };
+    return { ok: true, turnIndex: done, history: this.history(), ...(crisis ? { safety: 'crisis' as const } : {}) };
   }
 
   /** Stores the finished turn: the pending user turn and the assistant answer, in that order. A repeated or stray call changes nothing. */
@@ -166,6 +170,12 @@ export class EncounterDO extends DurableObject<Env> {
   /** Roster kill (route 46): refuses new turns at once. A stream in flight sees `status().killed` and ends with `fallback{killed}`. */
   kill(_npcId: string): Promise<void> {
     this.set('killed', '1');
+    return Promise.resolve();
+  }
+
+  /** Asynchronous moderation saw a self-harm intent (M06b1 calls this): the next turn's `meta` carries `safety: 'crisis'` and clears it. */
+  flagSafety(): Promise<void> {
+    this.set('pendingSafety', '1');
     return Promise.resolve();
   }
 

@@ -1,0 +1,3 @@
+: delay 50
+: status 429
+: retry-after 1

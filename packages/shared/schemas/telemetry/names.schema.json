@@ -699,6 +699,121 @@
         "tier"
       ],
       "additionalProperties": false
+    },
+    "npc.turn.client": {
+      "type": "object",
+      "description": "One dialogue turn as the client saw it (M06a3): time to the first text, whether ink took over, and why. No text, no ids.",
+      "properties": {
+        "ttftMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        },
+        "fallback": {
+          "type": "boolean"
+        },
+        "reason": {
+          "enum": [
+            "timeout",
+            "refusal",
+            "upstream",
+            "invalid_output",
+            "killed",
+            "moderation",
+            "offline",
+            "network",
+            "setting_off"
+          ]
+        }
+      },
+      "required": [
+        "ttftMs",
+        "fallback"
+      ],
+      "additionalProperties": false
+    },
+    "npc.encounter.client": {
+      "type": "object",
+      "description": "One closed encounter as the client saw it (M06a3). No text, no ids.",
+      "properties": {
+        "turns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "fallbacks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "voiceTier": {
+          "enum": [
+            "text",
+            "t1",
+            "t2",
+            "t3"
+          ]
+        },
+        "model": {
+          "enum": [
+            "haiku",
+            "sonnet",
+            "ink"
+          ]
+        }
+      },
+      "required": [
+        "turns",
+        "fallbacks",
+        "voiceTier",
+        "model"
+      ],
+      "additionalProperties": false
+    },
+    "genai.cost": {
+      "type": "object",
+      "description": "Server-only (a settled model call; never accepted from clients). Enums and numbers only.",
+      "properties": {
+        "vendor": {
+          "enum": [
+            "anthropic",
+            "fal",
+            "elevenlabs",
+            "workers_ai",
+            "openai_moderation"
+          ]
+        },
+        "model": {
+          "enum": [
+            "claude-haiku-5-5",
+            "claude-sonnet-5-5",
+            "claude-opus-5-5",
+            "other"
+          ]
+        },
+        "usdMicros": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cacheHit": {
+          "type": "boolean"
+        },
+        "tier": {
+          "enum": [
+            "local",
+            "device",
+            "linked"
+          ]
+        }
+      },
+      "required": [
+        "vendor",
+        "model",
+        "usdMicros",
+        "cacheHit",
+        "tier"
+      ],
+      "additionalProperties": false
     }
   }
 }
