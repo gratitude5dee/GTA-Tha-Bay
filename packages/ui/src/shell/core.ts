@@ -174,7 +174,7 @@ export class ShellCore implements ShellApi {
     if (this.mode().state === 'Idle') this.engine.sendUi({ t: 'mode.start', id });
     if (typeof window !== 'undefined') {
       const unlock = (): void => {
-        this.engine?.audioUnlock();
+        this.engine?.firstGesture();
         window.removeEventListener('keydown', unlock, true);
         window.removeEventListener('pointerdown', unlock, true);
       };

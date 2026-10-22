@@ -16,6 +16,13 @@
     "version": "1.0.0",
     "args_sha256": "619bc82db3a5661c09653746156e7175c84f022ea073ffe2ee2cf72945204329"
   },
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
   "review": [],
   "ip_checks": {
     "signatures": "pass",

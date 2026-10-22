@@ -88,9 +88,10 @@ export function CutsceneOverlay(props: CutsceneOverlayProps) {
 }
 
 export interface PadSource { (): readonly ({ buttons: ArrayLike<{ pressed: boolean }> } | null)[] }
+export interface KeyLike { key: string; stopPropagation?(): void; preventDefault?(): void }
 export interface KeyTarget {
-  addEventListener(t: 'keydown', l: (e: { key: string }) => void): void;
-  removeEventListener(t: 'keydown', l: (e: { key: string }) => void): void;
+  addEventListener(t: 'keydown', l: (e: KeyLike) => void, capture?: boolean): void;
+  removeEventListener(t: 'keydown', l: (e: KeyLike) => void, capture?: boolean): void;
 }
 
 export interface OverlayMountOptions {
@@ -119,7 +120,14 @@ export function mountCutsceneOverlay(root: Element, opts: OverlayMountOptions): 
   let timeMs = 0;
   let last = '';
   let rafId = 0;
-  const onKey = (e: { key: string }): void => skip.key(e);
+  // Capture phase: Escape ends the clip and must not also reach the game's Pause binding underneath.
+  const onKey = (e: KeyLike): void => {
+    if (e.key === 'Escape') {
+      e.stopPropagation?.();
+      e.preventDefault?.();
+    }
+    skip.key(e);
+  };
 
   const paint = (): void => {
     if (current === null) return;
@@ -145,7 +153,7 @@ export function mountCutsceneOverlay(root: Element, opts: OverlayMountOptions): 
       timeMs = 0;
       last = '';
       skip.reset();
-      keys.addEventListener('keydown', onKey);
+      keys.addEventListener('keydown', onKey, true);
       rafId = raf(poll);
       paint();
     },
@@ -156,7 +164,7 @@ export function mountCutsceneOverlay(root: Element, opts: OverlayMountOptions): 
     hide() {
       if (current === null) return;
       current = null;
-      keys.removeEventListener('keydown', onKey);
+      keys.removeEventListener('keydown', onKey, true);
       caf(rafId);
       render(null, root);
     },

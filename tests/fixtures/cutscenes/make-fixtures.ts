@@ -132,6 +132,7 @@ function writeProvenance(files: { rel: string; sha: string }[]): void {
       schema: 'provenance/1.0', sha256: sha, paths: [rel], kind: 'cutscene', origin: 'authored', license: 'LicenseRef-DeeVerse-Owned',
       authors: ['studio:dee-verse'], derived_from: [],
       tool: { name: 'tests/fixtures/cutscenes/make-fixtures.ts', version: '1.0.0', args_sha256: sha256(Buffer.from(FMP4 ? '--fmp4' : '')) },
+      likeness: { subject_id: null, tier: 'original', face_reference_used: false, voice_mode: 'none', photoreal: false },
       review: [], ip_checks: { signatures: 'pass', strings: 'n/a', similarity: 'n/a' }, ai_generated: false, status: 'active', created_at: '2026-10-22T00:00:00Z',
     };
     writeFileSync(path.join(dir, `${sha}.json`), `${JSON.stringify(rec, null, 2)}\n`);

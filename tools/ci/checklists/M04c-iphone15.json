@@ -1,0 +1,54 @@
+{
+  "id": "M04c-iphone15",
+  "milestone": "M04c",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Safari tab and Home Screen app, Low Power Mode off and on; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with VITE_DV_QA=1",
+  "urlTemplate": "https://<preview>/qa/cutscene-spike.html?tier=mobile-low",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with QA flags: VITE_DV_QA=1 pnpm build && pnpm deploy:preview. The H.264 fMP4 renditions (tests/fixtures/cutscenes/*/v768.mp4) and public/media/blank.mp4 are committed already; if they are missing, run pnpm exec tsx tests/fixtures/cutscenes/make-fixtures.ts --fmp4 (needs ffmpeg), commit the files and their provenance records, rebuild. Optional: publish the fixtures to media-staging to also measure a cross-origin first frame. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-unlock-safari-lpm-off",
+      "instruction": "Low Power Mode OFF. In a Safari tab open <preview>/qa/cutscene-spike.html?tier=mobile-low and attach Web Inspector from the Mac (Develop > the phone). Before tapping anything run __dvBridge.media.state() and note unlocked=false, pool=0. Tap 'Click to start'. Run __dvBridge.media.state() again: record unlocked, pool, audio, blank (expected 'mp4') and errors[] (whether every blank play() resolved) into notes.json under cases.safariTab.lpmOff."
+    },
+    {
+      "id": "3-play-after-unlock",
+      "instruction": "U-PLT-17: after the unlock, run await __dvBridge.media.play('fixture-a'). Record whether it reported path 'video' (the pooled element played a NEW source after the gesture) or a fallback with trigger not_permitted, and whether the clip, the subtitles and the AI-generated chip showed. Press the Skip button: record the time until the page returned to the loop (state().loop.running true)."
+    },
+    {
+      "id": "4-first-frame",
+      "instruction": "U-S03-7: first-frame time of v768. Run the next snippet three times (reload between runs) and record the three values in ms in notes.json as firstFrameMs: const t0 = performance.now(); const r = await __dvBridge.media.play('fixture-a'); const v = document.querySelector('[data-testid=cutscene-host] video'); await new Promise(res => v.requestVideoFrameCallback(() => res())); console.log(performance.now() - t0). Also note which rendition played (v.currentSrc ends in .mp4 expected)."
+    },
+    {
+      "id": "5-wake-lock",
+      "instruction": "Wake lock: with the tier=mobile-low URL, play fixture-a, then fixture-a again back to back for a 60 s total without touching the phone (set Auto-Lock to 30 s first). Record whether the screen stayed on (state().wakeLockHeld true during playback) in notes.json as wakeLock60s: { screenStayedOn, held }."
+    },
+    {
+      "id": "6-mse-gap",
+      "instruction": "U-S03-4 and DL-654: run const r = await __dvBridge.media.sequence(['fixture-a','fixture-b']) and then const p = await __dvBridge.media.pingPong(['fixture-a','fixture-b']). On iPhone sequence() uses ManagedMediaSource and the fMP4 rendition only. Record r (cls, support.mp4, support.webm, sequenceAccepted, stallMs, maxFrameIntervalMs, skipped) and p.gapMs in notes.json as mse: { sequence: r, pingPong: p }. A skipped: 'no-fmp4' result means the fMP4 renditions are missing: record U-S03-4 as not measured."
+    },
+    {
+      "id": "7-home-screen",
+      "instruction": "Share > Add to Home Screen from the Safari tab, then launch from the Home Screen icon. Repeat steps 2, 3 and 4 in the Home Screen app (the app opens the start URL, so open the QA page by editing the start URL once or by launching Safari, tapping the Share sheet link; if the page cannot be opened from the Home Screen app, record that) and store under cases.homeScreen.lpmOff."
+    },
+    {
+      "id": "8-lpm-on",
+      "instruction": "Turn Low Power Mode ON (Settings > Battery). Repeat steps 2, 3 and 4 in the Safari tab and in the Home Screen app. Under Low Power Mode any video may need a gesture: record whether play() after the unlock was refused (trigger not_permitted) or played, in cases.safariTab.lpmOn and cases.homeScreen.lpmOn. A refusal is a recorded outcome (U-PLT-17), not a failure."
+    },
+    {
+      "id": "9-perf",
+      "instruction": "Perf export for the tier judge: with Low Power Mode off, open <preview>/?perf=1&tier=mobile-low from the Home Screen app, tap 'Run 10 min' on the HUD (or __dvBridge.platform.perf.run('graybox-walk', {durationS: 60})), do not touch the phone, then tap Export and save perf.json and notes.json into docs/device-runs/M04c/iphone15/ (merge the notes from the steps above into that notes.json).",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "10-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M04c/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M04c-iphone15.json."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

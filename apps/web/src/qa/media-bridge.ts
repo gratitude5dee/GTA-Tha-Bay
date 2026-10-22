@@ -6,11 +6,8 @@
  *   `?tier=mobile-low` makes the host hold a screen wake lock like the mobile tiers do.
  */
 import { AudioServiceImpl, type AudioContextLike } from '@dv/engine/client/audio';
-import { createFirstGestureUnlock, DomCutsceneHost, MediaBudget, ScreenWakeLock, type HostElement } from '@dv/engine/platform/media';
-import { SpikePlayer, type SpikeFixture } from '@dv/engine/platform/media/spike-player';
-import type { CutsceneManifest } from '@dv/shared/contracts/c09-cutscene';
-import { mountCutsceneOverlay } from '@dv/ui/cutscene';
-import { parseVtt } from '@dv/ui/cutscene/subtitles';
+import { createFirstGestureUnlock } from '@dv/engine/platform/media';
+import { createMediaQa } from './media-assembly.ts';
 import '@dv/ui/tokens.css';
 import '@dv/ui/kit.css';
 import '@dv/ui/shell.css';
@@ -64,44 +61,7 @@ const audio = new AudioServiceImpl({
   audioSession: (navigator as { audioSession?: { type: string } }).audioSession ?? null,
 });
 const unlock = createFirstGestureUnlock({ audio });
-const wakeLock = new ScreenWakeLock(navigator as never, document);
-const host = new DomCutsceneHost({
-  parent: document.body as unknown as HostElement,
-  createElement: (tag) => document.createElement(tag) as unknown as HostElement,
-  loop: loopControl,
-  sim,
-  tier,
-  wakeLock,
-  root: document.documentElement,
-});
-const budget = new MediaBudget({ maxMediaMB: tier.startsWith('mobile') ? 64 : null });
-
-const ref: { player?: SpikePlayer } = {};
-const overlay = mountCutsceneOverlay(host.overlayRoot as unknown as Element, {
-  sendUi: (cmd) => {
-    if (cmd.t === 'cutscene.skip') void ref.player?.skip();
-  },
-});
-
-async function loadFixture(id: string): Promise<SpikeFixture> {
-  const baseUrl = `/media-local/cutscenes/${id}/`;
-  const res = await fetch(`${baseUrl}manifest.json`);
-  if (!res.ok) throw new Error(`fixture ${id}: ${res.status}`);
-  const manifest = (await res.json()) as CutsceneManifest;
-  const subs = manifest.subs['en'];
-  const vtt = subs ? await (await fetch(`${baseUrl}${subs}`)).text() : '';
-  return { id, baseUrl, manifest, cues: parseVtt(vtt) };
-}
-
-const player = new SpikePlayer({
-  unlock,
-  host,
-  budget,
-  overlay,
-  loadFixture,
-  dataSaver: () => params.get('datasaver') === '1',
-});
-ref.player = player;
+const { player, host, budget, wakeLock } = createMediaQa({ unlock, loop: loopControl, sim, tier, dataSaver: () => params.get('datasaver') === '1' });
 
 const show = (): void => {
   out.textContent = JSON.stringify(state(), null, 2);
