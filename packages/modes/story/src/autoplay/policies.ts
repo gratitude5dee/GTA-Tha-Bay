@@ -390,6 +390,9 @@ function patternPolicy(obs: MissionObs, mem: Mem, t: Tools): Control {
     return near ? enterVehicle(obs, mem, t, near) : NEUTRAL_CONTROL;
   }
   const base: Control = { ...NEUTRAL_CONTROL, context: CONTEXT_VEHICLE };
+  // a car pinned against a wall backs out first (a brake pressed at rest reverses)
+  stuckCheck(obs, mem, t, true);
+  if (t.tick < mem.unstickUntil && mem.unstickKind === 'reverse') return { ...base, brake: 127, steer: 100 * mem.unstickSide };
   if (mem.patternStart < 0) {
     mem.patternStart = t.tick;
     mem.patternPhase = 0;
@@ -413,6 +416,16 @@ function patternPolicy(obs: MissionObs, mem: Mem, t: Tools): Control {
 function followPolicy(obs: MissionObs, mem: Mem, t: Tools, g: Extract<Goal, { k: 'follow' }>): Control {
   const c = obs.cast[g.target];
   if (!c || !c.pos) return NEUTRAL_CONTROL;
+  if (c.kind === 'vehicle') {
+    // a car in front: take a car and drive after it, staying about `mid` metres behind (M05c1)
+    if (!obs.me.vehicle) {
+      const own = nearestUsableVehicle(obs, VEHICLE_REACH_M);
+      return own ? enterVehicle(obs, mem, t, own) : walkTo(obs, mem, t, c.pos, 'run', g.mid);
+    }
+    const gap = dist(obs.me.vehicle.pos, c.pos);
+    if (gap <= g.mid * 0.6 && c.speed < 1) return { ...NEUTRAL_CONTROL, context: CONTEXT_VEHICLE, ...holdStill(obs.me.vehicle.speed) };
+    return driveTo(obs, mem, t, c.pos, Math.max(3, g.mid * 0.5), false, Math.max(6, c.speed + 3));
+  }
   if (obs.me.vehicle) return leaveForFoot(obs, mem, t, c.pos);
   const d = dist(obs.me.pos, c.pos);
   if (d > g.mid) return walkTo(obs, mem, t, c.pos, 'run', g.mid);

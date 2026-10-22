@@ -23,13 +23,13 @@ export default defineMission({
     influencer: npc({ slot: 'INFLUENCER', role: 'cameo', spawn: at(37.77694, -122.40451) }),
     door_host: npc({ soul: 'door_host', role: 'civilian', spawn: at(37.77712, -122.40463) }),
     dana: npc({ soul: 'dana_voss', role: 'antagonist', spawn: at(37.77731, -122.40482), spawnAt: 'manual' }),
-    screen: prop({ prefab: 'prop.crate', spawn: at(37.77735, -122.40470) }),
+    screen: prop({ prefab: 'prop.barrier', spawn: at(37.77734, -122.40486) }),
   },
   zones: {
     queue: circle(37.77690, -122.40455, 9),
     front: circle(37.77735, -122.40465, 14),
-    service: circle(37.77728, -122.40500, 14),
-    exit: circle(37.77680, -122.40440, 12),
+    service: circle(37.77728, -122.40493, 12),
+    exit: circle(37.77698, -122.40460, 10),
   },
   stages: [
     stage('line', [goto('queue', { id: 'goto_queue', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.04.start')] }),
@@ -81,7 +81,7 @@ export default defineMission({
     ),
     stage(
       'sneak_service',
-      [stealth('service', 2, [[37.77700, -122.40500], [37.77715, -122.40500], [37.77728, -122.40490]], { id: 'stealth_service' })],
+      [stealth('service', 2, [[37.77721, -122.40460], [37.77728, -122.40471], [37.77728, -122.40488], [37.77728, -122.40497]], { id: 'stealth_service' })],
       { conduct: 'unlawful', onEnter: [spawn('dana')], next: 'snap' },
     ),
     stage('snap', [photo('screen', { id: 'photo_screen', maxDistM: 14 })], { conduct: 'unlawful', onComplete: [say('radio', 'line.m.a1.04.photo')] }),

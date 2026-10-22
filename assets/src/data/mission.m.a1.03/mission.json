@@ -153,32 +153,18 @@
     },
     {
       "conduct": "lawful",
-      "id": "follow_tavi",
+      "id": "to_lot",
       "join": "all",
       "objectives": [
         {
-          "band": [
-            4,
-            40
-          ],
-          "id": "follow_tavi",
-          "k": "follow",
-          "loseAfterSec": 25,
-          "target": "tavi",
-          "text": "mission.m.a1.03.obj.follow_tavi",
-          "untilZone": "lot"
+          "id": "goto_lot",
+          "inVehicle": "ride",
+          "k": "goto",
+          "text": "mission.m.a1.03.obj.goto_lot",
+          "zone": "lot"
         }
       ],
       "onEnter": [
-        {
-          "cast": "tavi",
-          "op": "task",
-          "task": {
-            "mode": "run",
-            "t": "goto",
-            "zone": "lot"
-          }
-        },
         {
           "line": "line.m.a1.03.follow",
           "op": "say",
@@ -192,9 +178,16 @@
       "join": "all",
       "objectives": [
         {
+          "id": "hold_crowd",
+          "k": "survive",
+          "sec": 30,
+          "text": "mission.m.a1.03.obj.hold_crowd"
+        },
+        {
           "id": "drift_show",
           "k": "score",
           "metric": "drift",
+          "optional": true,
           "target": 3000,
           "text": "mission.m.a1.03.obj.drift_show",
           "withinSec": 90
@@ -285,13 +278,21 @@
   "version": 1,
   "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
   "zones": {
-    "lot": {
+    "hideout": {
       "at": [
-        37.73583,
-        -122.38762
+        37.74046,
+        -122.38864
       ],
       "k": "circle",
-      "r": 22
+      "r": 30
+    },
+    "lot": {
+      "at": [
+        37.73684,
+        -122.3886
+      ],
+      "k": "circle",
+      "r": 25
     },
     "yard": {
       "at": [

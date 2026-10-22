@@ -2,7 +2,7 @@
   "act": 1,
   "autoplay": {
     "expectedSec": [
-      30,
+      10,
       600
     ],
     "seeds": [
@@ -163,6 +163,19 @@
           "ref": {
             "cutscene": "cut.story.m.a1.05.ring"
           }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "crowd",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "wait_crowd",
+          "k": "wait",
+          "sec": 4,
+          "text": "mission.m.a1.05.obj.wait_crowd"
         }
       ]
     },

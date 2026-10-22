@@ -56,6 +56,8 @@ export interface MissionObs {
   objectives: ObjView[];
   zones: Record<string, ZoneView>;
   cast: Record<string, CastView>;
+  /** The stub objective of each mode hook, by hook id: the bot plays a hook through its stub (M05c1). */
+  hookStubs: Record<string, ObjectiveDef>;
   /** Positions of the landmarks that active `photo` objectives name. */
   landmarks: Record<string, Vec3>;
   /** Distance along `dir` (unit, ENU) to the first collider within `maxM`, or null. */
@@ -111,6 +113,12 @@ export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number):
       const last = edgePts[edgePts.length - 1] ?? out[out.length - 1];
       if (at > 0 && last && d2(buf[0] as number, buf[2] as number, last) < 0.25) break;
       edgePts.push([buf[0] as number, buf[1] as number, buf[2] as number]);
+    }
+    // the first edge starts wherever the edge starts, maybe far behind the driver: drop the samples before the one nearest to it
+    if (k === 0 && edgePts.length > 1) {
+      let first = 0;
+      for (let i = 1; i < edgePts.length; i++) if (d2((edgePts[i] as Vec3)[0], (edgePts[i] as Vec3)[2], a) < d2((edgePts[first] as Vec3)[0], (edgePts[first] as Vec3)[2], a)) first = i;
+      edgePts.splice(0, first);
     }
     if (lastEdge && edgePts.length > 1) {
       let best = 0;
@@ -212,6 +220,7 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
     objectives,
     zones,
     cast,
+    hookStubs: Object.fromEntries((rt.ir?.modeHooks ?? []).map((h) => [h.id, h.stub])),
     landmarks,
     ray: (from, dir, maxM) => {
       const hit = ctx.physics.castRay(from, dir, maxM);

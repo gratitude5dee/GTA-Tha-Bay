@@ -129,7 +129,11 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
     case 'protect':
     case 'talk':
     case 'wait':
-    case 'mode':
       return { k: 'idle' };
+    case 'mode': {
+      // a hook runs its stub when the mode is not there yet; the bot works the stub (a hook the real mode plays needs no one)
+      const stub = obs.hookStubs[d.hook];
+      return stub ? deriveGoal(obs, { ...o, def: stub }) : { k: 'idle' };
+    }
   }
 }

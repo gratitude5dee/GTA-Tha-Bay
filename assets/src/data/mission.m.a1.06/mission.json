@@ -26,31 +26,18 @@
         "soul": "chorus_sparrer"
       }
     },
-    "ride": {
-      "k": "vehicle",
-      "playerUsable": true,
-      "prefab": "vehicle.compact",
-      "spawn": {
-        "at": [
-          37.75058,
-          -122.4144
-        ],
-        "snap": "road",
-        "yawDeg": 0
-      }
-    },
     "van": {
       "k": "vehicle",
+      "playerUsable": true,
       "prefab": "vehicle.van",
       "spawn": {
         "at": [
           37.75066,
-          -122.41452
+          -122.41447
         ],
         "snap": "road",
         "yawDeg": 0
-      },
-      "spawnAt": "manual"
+      }
     }
   },
   "district": "d2",
@@ -75,14 +62,6 @@
       "retry": "checkpoint",
       "when": {
         "cast": "van",
-        "p": "destroyed"
-      }
-    },
-    {
-      "reason": "mission.m.a1.06.fail.ride",
-      "retry": "start",
-      "when": {
-        "cast": "ride",
         "p": "destroyed"
       }
     }
@@ -143,18 +122,10 @@
       "join": "all",
       "objectives": [
         {
-          "id": "enter_ride",
+          "id": "enter_van",
           "k": "enterVehicle",
-          "text": "mission.m.a1.06.obj.enter_ride",
-          "vehicle": "ride"
-        }
-      ],
-      "onEnter": [
-        {
-          "cast": [
-            "van"
-          ],
-          "op": "spawn"
+          "text": "mission.m.a1.06.obj.enter_van",
+          "vehicle": "van"
         }
       ]
     },
@@ -165,16 +136,11 @@
       "join": "all",
       "objectives": [
         {
-          "band": [
-            10,
-            60
-          ],
-          "id": "follow_van",
-          "k": "follow",
-          "loseAfterSec": 20,
-          "target": "van",
-          "text": "mission.m.a1.06.obj.follow_van",
-          "untilZone": "hill"
+          "id": "goto_hill",
+          "inVehicle": "van",
+          "k": "goto",
+          "text": "mission.m.a1.06.obj.goto_hill",
+          "zone": "hill"
         },
         {
           "id": "protect_van",
@@ -186,15 +152,6 @@
         }
       ],
       "onEnter": [
-        {
-          "cast": "van",
-          "op": "task",
-          "task": {
-            "style": "normal",
-            "t": "driveTo",
-            "zone": "hill"
-          }
-        },
         {
           "line": "line.m.a1.06.convoy",
           "op": "say",

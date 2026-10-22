@@ -29,8 +29,8 @@ function runThrough(h: Harness, ir: MissionIR, attempt: number, drive: (h: Harne
 describe('Act 1 hooks on the stub path (AC-4)', () => {
   it('m.a1.03: the raid hook runs the escape stub at heat 2 and emits unlock.racing once, with its ref', () => {
     const ir = load('m.a1.03');
-    expect(ir.modeHooks).toHaveLength(1);
-    const hook = ir.modeHooks[0]!;
+    expect(ir.modeHooks!).toHaveLength(1);
+    const hook = ir.modeHooks![0]!;
     expect(hook).toMatchObject({ mode: 'racing', defId: 'sf.pursuit.bayview-escape', unlockOnFirstEncounter: 'unlock.racing', retry: 'hook' });
     expect(hook.stub.k).toBe('escape');
     expect(ir.tags).toContain('sideshow');
@@ -59,7 +59,7 @@ describe('Act 1 hooks on the stub path (AC-4)', () => {
 
   it('m.a1.05: the bout hook runs the defeat stub, pays the $1,000 win bonus only on a win, and emits unlock.fighter once', () => {
     const ir = load('m.a1.05');
-    const hook = ir.modeHooks[0]!;
+    const hook = ir.modeHooks![0]!;
     expect(hook).toMatchObject({ mode: 'fighter', defId: 'bout.a5', params: { kind: 'story' }, passOn: ['win', 'lose'], unlockOnFirstEncounter: 'unlock.fighter' });
     expect(hook.stub).toMatchObject({ k: 'defeat', nonLethal: true, targets: ['sparrer'] });
     expect(ir.unlocks).toEqual(['unlock.fighter.rap_new_wave']);

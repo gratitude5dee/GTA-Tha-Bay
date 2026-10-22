@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "d6622a4db81797d9563e8f7bbbc606229d34bb098bc87bc9bbd2cb59aadeed07",
+  "sha256": "8afa290ce303d6e9dd85cddfa977c8d52b65ae03be3b3d10d94a8810301cabe0",
   "paths": [
-    "assets/src/data/lines.1.en/lines.json"
+    "assets/src/data/director.m.a1.03.raid/director.json"
   ],
   "kind": "data",
   "origin": "authored",
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T20:01:23Z"
+  "created_at": "2026-10-22T20:35:26Z"
 }

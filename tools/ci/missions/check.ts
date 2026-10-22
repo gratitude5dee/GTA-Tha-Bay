@@ -14,7 +14,7 @@
  *
  *   tsx tools/ci/missions/check.ts [--mission <id>] [--act <n>]
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { UnlockDef } from '../../../packages/shared/src/index.ts';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -69,11 +69,25 @@ export interface CheckResult {
   rows: RunRow[];
   /** Missions that were not run (the sf bake is absent). */
   skipped: string[];
+  /** Missions that were not run because `config/autoplay/known-gaps.json` lists them. */
+  gaps: string[];
 }
 
 const RUNS = 2;
 /** Missions per act in the narrative (B4). */
 const ACT_MISSIONS = 12;
+
+interface KnownGap {
+  reason: string;
+  closedBy: string;
+}
+
+/** `config/autoplay/known-gaps.json`: the missions whose bot run is a known gap (none when the file is absent). */
+function loadKnownGaps(root: string): Record<string, KnownGap> {
+  const file = path.join(root, 'config/autoplay/known-gaps.json');
+  if (!existsSync(file)) return {};
+  return (JSON.parse(readFileSync(file, 'utf8')) as { missions?: Record<string, KnownGap> }).missions ?? {};
+}
 
 function describeStuck(h: MissionsHandle | null): string {
   const rt = h?.controller.rt;
@@ -105,10 +119,19 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
   if (outDir) mkdirSync(outDir, { recursive: true });
   const packs = o.packs ?? { ...readFixturePacks(o.root) };
 
+  const knownGaps = loadKnownGaps(o.root);
+  const gaps: string[] = [];
   const ids = [...build.bundles.keys()].filter((id) => !o.mission || id === o.mission).sort();
   for (const id of ids) {
     const bundle = build.bundles.get(id) as MissionBundle;
     if (o.act !== undefined && bundle.ir.act !== o.act) continue;
+    const gap = knownGaps[id];
+    const runGaps = (o.env?.['DV_RUN_KNOWN_GAPS'] ?? process.env['DV_RUN_KNOWN_GAPS']) === '1';
+    if (gap && !runGaps) {
+      log(`KNOWN GAP check:missions ${id}: not run. ${gap.reason} (closed by: ${gap.closedBy})`);
+      gaps.push(id);
+      continue;
+    }
     const onSf = bundle.ir.worldBake === SF_AUTHORING_BAKE;
     if (onSf && !sfBake) {
       if (o.env?.['DV_REQUIRE_BAKE'] === '1' || process.env['DV_REQUIRE_BAKE'] === '1') failures.push({ mission: id, seed: null, reason: 'world_missing', detail: 'no sf bake in dist/world (run pnpm map:build -- --area sf)' });
@@ -182,8 +205,8 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
     log(`${r.mission.padEnd(23)} ${String(r.seed).padStart(4)} ${String(r.run).padStart(3)} ${r.outcome.padEnd(8)} ${r.elapsedSec.toFixed(1).padStart(6)} ${String(r.endTick).padStart(8)}  ${r.endHash}`);
   }
   for (const f of failures) log(`FAIL ${f.mission}${f.seed === null ? '' : ` seed ${f.seed}`} ${f.reason}: ${f.detail}`);
-  if (failures.length === 0) log(`check:missions ok: ${ids.length - skipped.length} mission(s), ${rows.length} run(s)${skipped.length > 0 ? `, ${skipped.length} skipped` : ''}`);
-  return { ok: failures.length === 0, failures, rows, skipped };
+  if (failures.length === 0) log(`check:missions ok: ${ids.length - skipped.length - gaps.length} mission(s), ${rows.length} run(s)${skipped.length > 0 ? `, ${skipped.length} skipped` : ''}${gaps.length > 0 ? `, ${gaps.length} known gap(s)` : ''}`);
+  return { ok: failures.length === 0, failures, rows, skipped, gaps };
 }
 
 export async function main(argv: readonly string[] = args()): Promise<number> {

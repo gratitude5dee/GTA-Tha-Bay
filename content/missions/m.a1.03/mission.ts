@@ -5,8 +5,8 @@
  * encounter emits `unlock.racing`. Sideshows are allowed (Q-06) with a police response; only the player and the fictional cast take part.
  */
 import {
-  at, beat, busted, circle, defineMission, destroyed, enterVehicle, escape, failWhen, follow, goto, heat, ko, markerTrigger, modeHook, modeObjective, npc, passed, say, score, stage,
-  task, vehicle, walkTo,
+  at, beat, busted, circle, defineMission, destroyed, enterVehicle, escape, failWhen, goto, heat, ko, markerTrigger, modeHook, modeObjective, npc, passed, say, score, stage, survive,
+  vehicle,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -24,14 +24,15 @@ export default defineMission({
   },
   zones: {
     yard_gate: circle(37.73639, -122.38860, 9),
-    lot: circle(37.73583, -122.38762, 22),
+    lot: circle(37.73684, -122.38860, 25),
     yard: circle(37.73648, -122.38865, 18),
+    hideout: circle(37.74046, -122.38864, 30),
   },
   stages: [
     stage('gate', [goto('yard_gate', { id: 'goto_gate', onFoot: true })], { onEnter: [say('tavi', 'line.m.a1.03.gate')] }),
     stage('wheels', [enterVehicle('ride', { id: 'enter_ride' })]),
-    stage('follow_tavi', [follow('tavi', [4, 40], 25, { id: 'follow_tavi', untilZone: 'lot' })], { onEnter: [task('tavi', walkTo('lot', 'run')), say('tavi', 'line.m.a1.03.follow')] }),
-    stage('show', [score('drift', 3000, 90, { id: 'drift_show' })], { onEnter: [say('tavi', 'line.m.a1.03.show')] }),
+    stage('to_lot', [goto('lot', { id: 'goto_lot', inVehicle: 'ride' })], { onEnter: [say('tavi', 'line.m.a1.03.follow')] }),
+    stage('show', [survive(30, { id: 'hold_crowd' }), score('drift', 3000, 90, { id: 'drift_show', optional: true })], { onEnter: [say('tavi', 'line.m.a1.03.show')] }),
     stage('raid', [modeObjective('race-a1-sideshow-escape', { id: 'mode_sideshow' })], {
       onEnter: [beat({ cutscene: 'cut.story.m.a1.03.raid' }), heat({ set: 2 }), say('radio', 'line.m.a1.03.raid')],
     }),

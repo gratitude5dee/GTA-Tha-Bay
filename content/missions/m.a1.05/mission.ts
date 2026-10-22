@@ -6,7 +6,7 @@
  * `unlock.fighter`; the pass grants `unlock.fighter.rap_new_wave` (a stand-in while the roster is absent). Win bonus: another $1,000.
  */
 import {
-  at, beat, circle, defeat, defineMission, failWhen, goto, ifOp, give, ko, modeHook, modeObjective, modeResult, npc, passed, phoneTrigger, say, stage, talk, talkDef,
+  at, beat, circle, defeat, defineMission, failWhen, goto, ifOp, give, ko, modeHook, modeObjective, modeResult, npc, passed, phoneTrigger, say, stage, talk, talkDef, waitFor,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -32,6 +32,7 @@ export default defineMission({
   stages: [
     stage('plaza', [goto('plaza', { id: 'goto_plaza', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.05.start')] }),
     stage('ring', [goto('ring', { id: 'goto_ring', onFoot: true })], { onEnter: [beat({ cutscene: 'cut.story.m.a1.05.ring' })] }),
+    stage('crowd', [waitFor(4, { id: 'wait_crowd' })]),
     stage(
       'signup',
       [
@@ -73,5 +74,5 @@ export default defineMission({
   rewards: { cashCents: 100_000, streetCred: 30 },
   unlocks: ['unlock.fighter.rap_new_wave'],
   medals: { silverSec: 420, goldSec: 300 },
-  autoplay: { expectedSec: [30, 600], seeds: [1, 2, 3] },
+  autoplay: { expectedSec: [10, 600], seeds: [1, 2, 3] },
 });

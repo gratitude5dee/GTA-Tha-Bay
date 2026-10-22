@@ -5,6 +5,7 @@
  * engine's external vehicle input) with a pure-pursuit steering law over the C08 route; without a driver, or without a route, a
  * vehicle is moved along the straight line like a walker. Sim code under the C02 lint.
  */
+import { routeWaypoints } from '../autoplay/observe.ts';
 import { datan2, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
 import type { Actors, Vec3 } from './actors.ts';
 import { distXZ } from './actors.ts';
@@ -221,7 +222,7 @@ export class TaskRunner {
     }
     if (!a.planned) {
       a.planned = true;
-      a.path = planRoute(ctx, here, goal);
+      a.path = planRoute(ctx, here, goal, this.env.actors.yawOf(h));
     }
     const path = a.path;
     let target = goal;
@@ -242,21 +243,13 @@ export class TaskRunner {
   }
 }
 
-/** A polyline along the C08 road graph from `from` to `to`, or null when there is no route. */
-export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3): Vec3[] | null {
+/**
+ * A polyline along the C08 road graph from `from` to `to`, or null when there is no route. A driver that faces `yaw` gets the lane it
+ * points along (the router starts 3 m to the right of the heading), and the route is sampled every 12 m, as the autoplayer's is (M05c1).
+ */
+export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3, yaw?: number): Vec3[] | null {
   try {
-    const r = ctx.world.graph.route({ from: { x: from[0], z: from[2] }, to: { x: to[0], z: to[2] }, maxExpand: 6000 });
-    if (!r || r.edges.length === 0) return null;
-    const out: Vec3[] = [];
-    const buf = new Float64Array(4);
-    for (const edge of r.edges) {
-      for (const s of [0, 20, 60]) {
-        ctx.world.graph.laneCentre({ edge, s, lane: 0 }, buf);
-        out.push([buf[0] as number, buf[1] as number, buf[2] as number]);
-      }
-    }
-    out.push(to);
-    return out;
+    return routeWaypoints(ctx.world, from, to, yaw);
   } catch {
     return null;
   }

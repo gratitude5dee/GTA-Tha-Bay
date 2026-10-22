@@ -17,6 +17,9 @@ import {
 
 const ATTACK_BIT = 1 << 4;
 const ABILITY_BIT = 1 << 9;
+/** Aim assist reach in metres and the smallest cosine between facing and target (cos 100 degrees). */
+const ASSIST_RANGE_M = 3;
+const ASSIST_MIN_DOT = -0.17;
 
 export interface HitEvent {
   attacker: EntityHandle;
@@ -119,10 +122,41 @@ export class CombatImpl implements CombatApi {
     if ((ecs.store(Control).owner[pid] as number) === CONTROL_OWNER.Vehicle) return;
     const h = ecs.handle(pid);
     if (this.active.has(h as number)) return;
+    this.assistAim(pid);
     let move: MoveId = 'jab';
     if ((frame.buttons & ABILITY_BIT) !== 0) move = 'shove';
     else if (this.nearestDamaged(pid) !== null) move = 'takedown';
     this.startMove(h, move);
+  }
+
+  /**
+   * Aim assist: an attack turns the player toward the nearest standing character within `ASSIST_RANGE_M` that is in the half-plane
+   * the player faces or beside it (the cone is 200 degrees), so a swing at someone close lands without pixel-perfect facing.
+   */
+  private assistAim(attacker: EntityId): void {
+    const ecs = this.p.ecs;
+    const me = this.pose(attacker);
+    const fx = -dsin(me.yaw);
+    const fz = -dcos(me.yaw);
+    const hp = ecs.store(Health);
+    const tr = ecs.store(Transform);
+    let best: EntityId | null = null;
+    let bestD = ASSIST_RANGE_M;
+    for (const v0 of ecs.query([Health, Transform])) {
+      const v = v0 as EntityId;
+      if (v === attacker || (hp.ko[v] as number) !== 0) continue;
+      const dx = (tr.px[v] as number) - me.x;
+      const dz = (tr.pz[v] as number) - me.z;
+      const d = dsqrt(dx * dx + dz * dz);
+      if (d > bestD || d < 1e-6) continue;
+      if ((dx * fx + dz * fz) / d < ASSIST_MIN_DOT) continue;
+      best = v;
+      bestD = d;
+    }
+    if (best === null) return;
+    const yaw = datan2(-((tr.px[best] as number) - me.x), -((tr.pz[best] as number) - me.z));
+    tr.qy[attacker] = dsin(yaw / 2);
+    tr.qw[attacker] = dcos(yaw / 2);
   }
 
   /** The nearest standing character in front of `attacker` within takedown reach whose health is at or below `TAKEDOWN_BELOW`. */

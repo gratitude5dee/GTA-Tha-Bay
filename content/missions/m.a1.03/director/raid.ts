@@ -7,7 +7,7 @@ import { defineDirector, dirCue, dirShot, markAt } from '../../../../packages/mo
 export default defineDirector({
   id: 'm.a1.03.raid',
   durationSec: 14,
-  marks: { lot_wide: markAt(37.73598, -122.38790, 40), lot_close: markAt(37.73588, -122.38768, 220) },
+  marks: { lot_wide: markAt(37.73700, -122.38885, 40), lot_close: markAt(37.73690, -122.38845, 220) },
   shots: [dirShot(0, 'establish', 'player', { lens: 'wide', from: 'lot_wide', move: 'push-in' }), dirShot(7, 'single', 'player', { lens: 'normal', from: 'lot_close' })],
   cues: [
     dirCue('line.m.a1.03.raid.1', 1500, 6000, { speaker: 'tavi_okafor' }),

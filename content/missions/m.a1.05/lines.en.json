@@ -10,6 +10,7 @@
     "line.m.a1.05.ring.1": "The turntable turns, the crowd closes in. Ladies and gentlemen, the ring is open.",
     "mission.m.a1.05.fail.ko": "You went down.",
     "mission.m.a1.05.obj.defeat_sparrer": "Knock down the sparring partner",
+    "mission.m.a1.05.obj.wait_crowd": "Wait for the crowd to close in",
     "mission.m.a1.05.obj.goto_plaza": "Go to the cable-car turntable",
     "mission.m.a1.05.obj.goto_ring": "Step up to the ring",
     "mission.m.a1.05.obj.mode_turntable": "Fight the exhibition bout",
