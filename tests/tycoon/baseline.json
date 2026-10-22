@@ -7,17 +7,17 @@
  "policies": {
   "median": {
    "winRate": 0.848,
-   "unicornRate": 0.042,
+   "unicornRate": 0.0395,
    "lossRate": 0.152,
-   "reachA": 0.5755,
-   "runLengthP50": 150,
-   "runLengthP90": 195
+   "reachA": 0.5375,
+   "runLengthP50": 152,
+   "runLengthP90": 196
   },
   "aggressive": {
    "winRate": 0.4695,
-   "unicornRate": 0.0285,
+   "unicornRate": 0.0305,
    "lossRate": 0.5305,
-   "reachA": 0.3625,
+   "reachA": 0.3545,
    "runLengthP50": 110,
    "runLengthP90": 163
   },

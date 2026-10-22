@@ -86,8 +86,11 @@ test.describe('tycoon smoke @tycoon-smoke', () => {
       const afterResolve = cashOf(await stateText(page));
       expect(afterResolve).toBeLessThanOrEqual(cashBefore - 29_000); // the $30k generator was paid
 
-      await page.getByTestId('tycoon-step20').click();
-      await expect(page.getByTestId('tycoon-state')).toContainText('20 / ', { timeout: 120_000 });
+      // the first "20 wk" stopped at week 5; three more fives make exactly week 20
+      for (const week of [10, 15, 20]) {
+        await page.getByTestId('tycoon-step5').click();
+        await expect(page.getByTestId('tycoon-state')).toContainText(`${week} / `, { timeout: 120_000 });
+      }
       await expect(page.getByTestId('tycoon-events-fired')).not.toHaveText('0');
       await expect(page.getByTestId('tycoon-recent')).toContainText('nat.blackout');
       expect(errors).toEqual([]);

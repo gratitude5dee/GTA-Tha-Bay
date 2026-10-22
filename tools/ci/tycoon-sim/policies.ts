@@ -39,7 +39,7 @@ const KINDS = ['safe', 'seed', 'a', 'b', 'c'] as const;
 type Kind = (typeof KINDS)[number];
 
 /** ARR (cents) at which a policy starts the raise for a stage. */
-const STAGE_ARR: Record<Kind, number> = { safe: 0, seed: 25_000_000, a: 150_000_000, b: 800_000_000, c: 3_000_000_000 };
+const STAGE_ARR: Record<Kind, number> = { safe: 0, seed: 25_000_000, a: 250_000_000, b: 800_000_000, c: 3_000_000_000 };
 /** Smallest raise target (cents) per stage; the amount band of a fund is 0.6 to 1.25 of it. */
 const STAGE_TARGET: Record<Kind, number> = { safe: 15_000_000, seed: 150_000_000, a: 800_000_000, b: 2_500_000_000, c: 6_000_000_000 };
 const STAGE_MAX: Record<Kind, number> = { safe: 15_000_000, seed: 500_000_000, a: 2_500_000_000, b: 6_000_000_000, c: 9_600_000_000 };
