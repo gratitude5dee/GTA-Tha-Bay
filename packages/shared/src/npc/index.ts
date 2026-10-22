@@ -33,6 +33,7 @@ export { prefilterPlayerText, hasSlur, hasSelfHarm, SELF_HARM_PHRASES } from './
 export type { PrefilterResult, PrefilterVerdict } from './safety-lists.ts';
 export { inkKnotFor, knotChain } from './knot.ts';
 // M06a4: voice tier, mouth shapes and the memory rules.
+export { VOICE_CATALOG, TTS_MICROS_PER_CHAR, TTS_MICROS_PER_CHAR_MAX, ttsMicros, pickVoice } from './voice-catalog.ts';
 export { effectiveTier, minTier } from './voice-tier.ts';
 export type { IdentityTier, VoiceSetting, VoiceTierInput } from './voice-tier.ts';
 export {

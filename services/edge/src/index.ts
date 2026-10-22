@@ -17,6 +17,7 @@ import { handleMedia } from './routes/media.ts';
 import { handleDeleteMe as handleForgetMe, handleExport, handleMe as handleIdentityMe } from './routes/me.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
 import { handleNpc } from './routes/npc-talk.ts';
+import { handleForgetNpcMemory } from './routes/me-npc-memory.ts';
 import { handleRoster } from './routes/roster.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { handleQueueBatch } from './ops/jobs.ts';
@@ -54,6 +55,8 @@ const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/me/export', handler: handleExport },
   { methods: ['POST'], path: '/api/v1/admin/roster', prefix: true, handler: handleKill },
   { methods: ['PUT'], path: '/api/v1/admin/flags', prefix: true, handler: handlePutFlag },
+  // M06a4: route 52, DELETE /api/v1/me/npc-memory?npcId= (204).
+  { methods: ['DELETE'], path: '/api/v1/me/npc-memory', handler: handleForgetNpcMemory },
   // M06a3: route 31, POST /api/v1/npc/:npcId/talk (SSE).
   { methods: '*', path: '/api/v1/npc', prefix: true, handler: handleNpc },
 ];

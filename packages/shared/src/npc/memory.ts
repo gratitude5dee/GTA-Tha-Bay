@@ -119,7 +119,7 @@ export function quotesPlayer(text: string, player: string, max: number = MEMORY_
 }
 
 export interface RawMemoryWrite {
-  kind: Exclude<MemoryKind, 'reflection'>;
+  kind: MemoryKind;
   text: string;
   importance: number;
 }

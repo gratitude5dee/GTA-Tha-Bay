@@ -30,6 +30,86 @@
       "mode": "synthetic",
       "consentRecordId": null,
       "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-angus",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "angus",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-asteria",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "asteria",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-arcas",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "arcas",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-athena",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "athena",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-zeus",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "zeus",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura-stella",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-1",
+      "providerVoiceId": "stella",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura2-luna",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-2-en",
+      "providerVoiceId": "luna",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
+    },
+    {
+      "voiceRef": "voice/aura2-orion",
+      "tier": "t1",
+      "engine": "workers_ai",
+      "model": "@cf/deepgram/aura-2-en",
+      "providerVoiceId": "orion",
+      "mode": "synthetic",
+      "consentRecordId": null,
+      "allowedTiers": ["consented", "parody", "fictionalized"]
     }
   ]
 }

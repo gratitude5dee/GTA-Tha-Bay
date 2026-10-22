@@ -180,6 +180,25 @@ const TEXT_LINE = 'Copy that. This answer is a recorded fixture, not a live mode
 
 /** The recorded-style stream a Worker in fixture mode answers with when no test chose another one. */
 export function defaultFixtureText(req: FixtureRequest): string {
+  // M06a4: the summarize consumer asks with intent `summary` (npc-summary-1.0) and `summary-compress` ({ summary }).
+  if (req.intent === 'summary') {
+    return buildStream({
+      model: req.model,
+      answer: {
+        summaryUpdate: 'They talked at the lot. The player was polite and the character noted it.',
+        memories: [{ kind: 'event', text: 'The player stopped by the lot and was polite.', importance: 3, gameTime: 0, source: 'summary' }],
+        affinityDelta: 1,
+        trustDelta: 1,
+        flagsPatch: {},
+        reflection: false,
+      },
+      inputTokens: 900,
+      outputTokens: 120,
+    });
+  }
+  if (req.intent === 'summary-compress') {
+    return buildStream({ model: req.model, answer: { summary: 'The player has visited the lot several times and is polite and reliable.' }, inputTokens: 600, outputTokens: 40 });
+  }
   const first = req.turnIndex === 0;
   return buildStream({
     model: req.model,

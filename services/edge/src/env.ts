@@ -79,6 +79,10 @@ export interface Env {
   AIG_BASE?: string | undefined;
   /** Value of the `env` field of `cf-aig-metadata`; default is ENVIRONMENT. The synthetic T4 run sets `synthetic` (M14b1). */
   AIG_ENV?: string | undefined;
+  /** Workers AI (M06a4): `@cf/baai/bge-m3` embeddings for NPC memory and Aura text-to-speech. No key. Absent: memory and voice are skipped. */
+  AI?: Ai | undefined;
+  /** ElevenLabs key for the t2 voice tier (Worker secret, optional; Q-20 keeps t2 off). Absent: t2 is never selected. */
+  ELEVENLABS_API_KEY?: string | undefined;
 }
 
 export const DEFAULT_FLAGS: Readonly<Record<FeatureFlag, boolean>> = {

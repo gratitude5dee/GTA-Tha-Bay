@@ -80,11 +80,14 @@ describe('PlayerQuotaDO daily quotas (AC-2)', () => {
     expect(await q.reserve({ kind: 'turn', npcId: 'npc_a', estMicros: 1 })).toEqual({ ok: false, reason: 'cost_cap' });
   });
 
-  it('voice lines have their own 60/day count and share the dialogue cost cap', async () => {
+  // M06a4 (BD-M06a4-05): 04-npc.md section 5.3 fixes the cost cap as model spend only; voice is bounded by its own 60/day count.
+  it('voice lines have their own 60/day count and stay outside the dialogue cost cap', async () => {
     const q = fresh();
-    for (let i = 0; i < 60; i++) expect((await q.reserve({ kind: 'voice_line', npcId: 'npc_a', estMicros: 10 })).ok).toBe(true);
+    for (let i = 0; i < 60; i++) expect((await q.reserve({ kind: 'voice_line', npcId: 'npc_a', estMicros: 1650 })).ok).toBe(true);
     expect(await q.reserve({ kind: 'voice_line', npcId: 'npc_a', estMicros: 10 })).toEqual({ ok: false, reason: 'quota' });
-    expect((await q.usage())['cost_micros']).toBe(600);
+    expect((await q.usage())['cost_micros']).toBeUndefined();
+    // 99,000 micros of voice did not use the $0.05 cap: a turn still fits
+    expect((await q.reserve({ kind: 'turn', npcId: 'npc_a', estMicros: 40_000 })).ok).toBe(true);
   });
 
   it('the counters reset at 00:00 UTC', async () => {

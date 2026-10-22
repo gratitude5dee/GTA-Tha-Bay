@@ -90,6 +90,73 @@ const files: Record<string, string> = {
   'end-conversation.sse': buildStream({ model: 'claude-haiku-5-5', answer: turn({ line: 'Checklist complete. Good day.', end_conversation: true }), inputTokens: 160, cacheReadTokens: 1500, outputTokens: 45, firstDelayMs: 100, chunkDelayMs: 5 }),
   // Chunked in the middle of an escape and of a surrogate pair.
   'escapes.sse': buildStream({ model: 'claude-haiku-5-5', answer: turn({ line: 'Say "hello" \\ there\nsecond line \u{1f600} done.' }), inputTokens: 180, cacheWriteTokens: 1500, outputTokens: 50, chunk: 3, firstDelayMs: 100, chunkDelayMs: 5 }),
+  // M06a4: encounter summaries (npc-summary-1.0). No delays, so the suites need no virtual clock.
+  'summary-happy.sse': buildStream({
+    model: 'claude-haiku-5-5',
+    answer: {
+      summaryUpdate: 'The player came by the lot twice and kept a promise about the car.',
+      memories: [
+        { kind: 'promise', text: 'The player promised to return the car by Friday.', importance: 3, gameTime: 0, source: 'summary' },
+        { kind: 'preference', text: 'The player likes the red car.', importance: 4, gameTime: 0, source: 'summary' },
+      ],
+      affinityDelta: 4,
+      trustDelta: 3,
+      flagsPatch: { met_at_lot: true },
+      reflection: false,
+    },
+    inputTokens: 900,
+    outputTokens: 150,
+  }),
+  // Deltas far outside +-10, six memories, and a reflection-kind memory on an encounter that is not a reflection one.
+  'summary-extreme.sse': buildStream({
+    model: 'claude-haiku-5-5',
+    answer: {
+      summaryUpdate: 'The player was a great help and the character trusts them completely now.',
+      memories: [
+        { kind: 'reflection', text: 'The character thinks the player is the best thing to happen to the lot.', importance: 9, gameTime: 0, source: 'summary' },
+        { kind: 'event', text: 'The player asked about the lot.', importance: 5, gameTime: 0, source: 'summary' },
+      ],
+      affinityDelta: 40,
+      trustDelta: -25,
+      flagsPatch: {},
+      reflection: true,
+    },
+    inputTokens: 900,
+    outputTokens: 150,
+  }),
+  // The 10th encounter of a pair: one reflection memory (the consumer sets importance 8 whatever the model says).
+  'summary-reflection.sse': buildStream({
+    model: 'claude-haiku-5-5',
+    answer: {
+      summaryUpdate: 'Ten talks in, the player is a regular at the lot.',
+      memories: [
+        { kind: 'reflection', text: 'The character has come to see the player as a regular and a friend.', importance: 5, gameTime: 0, source: 'summary' },
+        { kind: 'event', text: 'The player asked about the lot.', importance: 5, gameTime: 0, source: 'summary' },
+      ],
+      affinityDelta: 2,
+      trustDelta: 2,
+      flagsPatch: {},
+      reflection: true,
+    },
+    inputTokens: 900,
+    outputTokens: 160,
+  }),
+  // The second call when the notes would pass 1,200 characters.
+  'summary-compress.sse': buildStream({ model: 'claude-haiku-5-5', answer: { summary: 'A regular at the lot who keeps promises and likes the red car.' }, inputTokens: 700, outputTokens: 30 }),
+  // A summary that is long enough to push a near-full relationship past 1,200 characters.
+  'summary-wordy.sse': buildStream({
+    model: 'claude-haiku-5-5',
+    answer: {
+      summaryUpdate: `${'The player stayed to talk about the lot and the weather. '.repeat(10)}`.trim(),
+      memories: [],
+      affinityDelta: 1,
+      trustDelta: 1,
+      flagsPatch: {},
+      reflection: false,
+    },
+    inputTokens: 900,
+    outputTokens: 200,
+  }),
 };
 
 for (const [name, text] of Object.entries(files)) writeFileSync(path.join(dir, name), text);
