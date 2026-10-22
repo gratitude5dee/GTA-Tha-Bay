@@ -160,6 +160,8 @@ export interface EngineHandle {
   /** Telemetry events the sim queued, as the page received them (the last 50). */
   telemetryEvents(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   step(n: number): boolean;
+  /** Swaps the touch layout (a shipped one or the player's custom one) and its localized labels; the binder releases every contact. */
+  setTouchLayout(layout: TouchLayout, labels?: Readonly<Record<string, string>>): void;
   /** Player actions as ActionIds (`sim.Jump`, `client.Camera`, `axis.MoveX`), for the onboarding tips. */
   onAction(cb: (id: string) => void): () => void;
   /** Forget the previous frame time so the next `dt` is zero (the page was hidden). */
@@ -894,6 +896,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {
       lastNow = -1;
+    },
+    setTouchLayout: (layout, labels) => {
+      touchBinder?.setLayout(layout);
+      overlay?.setLayout(layout, labels, (layout as { opacity?: number }).opacity ?? 1);
     },
     onAction: (cb) => {
       actionListeners.add(cb);

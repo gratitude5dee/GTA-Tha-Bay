@@ -3,6 +3,7 @@ import type { GameModeId, JsonValue, ProfileSettings, SlotId, UiCommand } from '
 import { TERMS_VERSION } from '../../../../config/terms.ts';
 import { lk, setLang, t } from '../i18n/index.ts';
 import { ToastStore, toastIcon } from '../kit/widgets.tsx';
+import { resolveLayout } from '../hud/touch.ts';
 import { SettingsBinder } from './binder.ts';
 import { InstanceGuard, type ChannelLike } from './banners.tsx';
 import { defaultGateCtx } from './gates.ts';
@@ -97,6 +98,7 @@ export class ShellCore implements ShellApi {
     props.prefs.subscribe((p) => {
       this.gate.attested = p.age.attested === '18p' || props.qaPlay !== null;
       setLang(this.settings()?.language ?? p.lang);
+      this.syncTouch();
       this.touch();
     });
     this.applyHooks();
@@ -124,6 +126,7 @@ export class ShellCore implements ShellApi {
       this.touch();
       return;
     }
+    this.touchSig = '';
     this.offVm = engine.vm.subscribe('sys.*', (_v, k) => this.onVm(k));
     this.onVm('sys.mode');
     this.onVm('sys.unlocks');
@@ -148,6 +151,7 @@ export class ShellCore implements ShellApi {
       this.gate.unlocks = new Set(Array.isArray(ids) ? ids.map(String) : []);
     } else if (key === 'sys.settings' || key === 'sys.controls') {
       this.binder.rebase();
+      this.syncTouch();
       setLang(this.settings()?.language ?? this.props.prefs.get().lang);
     } else if (key === 'sys.modes') {
       this.armBypass();
@@ -290,6 +294,22 @@ export class ShellCore implements ShellApi {
   enginePaused(paused: boolean): void {
     if (paused && this.state === 'InMode') this.fire('pause');
     else if (!paused && this.state === 'Paused') this.fire('resume');
+  }
+
+  private touchSig = '';
+  /** Hands the engine the touch layout `ControlsSettings.touch.layout` names (a shipped id or a saved `custom:<n>`). */
+  private syncTouch(): void {
+    const engine = this.engine;
+    const c = this.settings()?.controls;
+    if (!engine?.setTouchLayout || !c) return;
+    const layout = resolveLayout(c.touch.layout, this.props.prefs.get().customTouchLayouts);
+    const opacity = layout.opacity ?? c.touch.opacity;
+    const sig = JSON.stringify([layout, opacity]);
+    if (sig === this.touchSig) return;
+    this.touchSig = sig;
+    const labels: Record<string, string> = {};
+    for (const w of layout.widgets) if (w.kind === 'button' && w.label) labels[w.label] = t(w.label);
+    engine.setTouchLayout({ ...layout, opacity }, labels);
   }
 
   /** The phone key (`client.Phone`): from a mode it pauses the sim and opens the phone; pressed again it closes it and resumes. */

@@ -66,6 +66,7 @@ export function createEnginePort(engine: EngineHandle): EnginePort {
     activeDevice: () => engine.router?.active ?? 'kbm',
     audioUnlock: () => engine.audioUnlock(),
     onAction: (cb) => engine.onAction(cb),
+    setTouchLayout: (layout, labels) => engine.setTouchLayout(layout as never, labels),
   };
 }
 

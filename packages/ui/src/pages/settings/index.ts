@@ -144,7 +144,7 @@ export function SettingsPage(props: PageProps) {
   );
   const body =
     cat === 'controls'
-      ? h(ControlsPanel, { controls: (binder.get({ scope: 'profile', path: 'controls' }) as unknown as ControlsSettings | undefined) ?? EMPTY_CONTROLS, setControls: (next: ControlsSettings) => binder.setControls(next) })
+      ? h(ControlsPanel, { prefs: ctx.props.prefs, controls: (binder.get({ scope: 'profile', path: 'controls' }) as unknown as ControlsSettings | undefined) ?? EMPTY_CONTROLS, setControls: (next: ControlsSettings) => binder.setControls(next) })
       : screen
         ? h(ScreenHost, { key: cat, screen, get: (r: SettingRef) => binder.get(r), set: (r: SettingRef, v: JsonValue) => binder.set(r, v), run })
         : null;

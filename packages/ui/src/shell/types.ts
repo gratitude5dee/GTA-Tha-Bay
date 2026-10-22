@@ -192,6 +192,8 @@ export interface EnginePort {
   audioUnlock(): void;
   /** Player actions as ActionIds (the onboarding tips dismiss on them). */
   onAction?(cb: (id: string) => void): () => void;
+  /** Applies a touch layout (a shipped one or the player's custom one) with its localized button labels. */
+  setTouchLayout?(layout: unknown, labels: Record<string, string>): void;
 }
 
 /** What the app does with the engine and the canvas as the shell changes state. All three are idempotent. */

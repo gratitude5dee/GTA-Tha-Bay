@@ -134,18 +134,22 @@ export class TouchBinder implements Binder {
   private readonly radius: number;
   private readonly nowFn: () => number;
   private readonly buttonAtFn: (target: unknown) => string | null;
-  private readonly buttonIds: ReadonlySet<string>;
-  private readonly stickZone: TouchRect | null;
-  private readonly lookZone: TouchRect | null;
+  private buttonIds: ReadonlySet<string> = new Set();
+  private stickZone: TouchRect | null = null;
+  private lookZone: TouchRect | null = null;
 
   constructor(private readonly opts: TouchBinderOptions) {
     this.radius = opts.radiusPx ?? TOUCH_STICK_RADIUS_PX;
     this.nowFn = opts.now ?? ((): number => performance.now());
     this.buttonAtFn = opts.buttonAt ?? buttonFromTarget;
+    this.applyLayout(opts.layout);
+  }
+
+  private applyLayout(layout: TouchLayout): void {
     const ids = new Set<string>();
     let stick: TouchRect | null = null;
     let lookZone: TouchRect | null = null;
-    for (const w of opts.layout.widgets) {
+    for (const w of layout.widgets) {
       if (w.kind === 'button') ids.add(w.id);
       else if (w.kind === 'stick' && w.role === 'move' && !stick) stick = w.zone;
       else if (w.kind === 'lookzone' && !lookZone) lookZone = w.zone;
@@ -153,6 +157,12 @@ export class TouchBinder implements Binder {
     this.buttonIds = ids;
     this.stickZone = stick;
     this.lookZone = lookZone;
+  }
+
+  /** Swaps the layout (M04b2: the player picked another one, or saved a custom one). Every contact is released first. */
+  setLayout(layout: TouchLayout): void {
+    this.releaseAll();
+    this.applyLayout(layout);
   }
 
   get connected(): boolean {

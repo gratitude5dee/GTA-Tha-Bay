@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { BRAND } from '../../../../config/brand.ts';
 import { PRIVACY_DOC, TERMS_DOC } from '../../../../config/terms.ts';
 import { lk, t } from '../i18n/index.ts';
+import { ERROR_TOPIC } from './help.tsx';
 import { Button, Progress } from '../kit/widgets.tsx';
 import { Link, useShell } from '../shell/context.tsx';
 import { isLegalDoc, pageDef } from '../shell/registry.ts';
@@ -176,7 +177,7 @@ export function ErrorPage(props: PageProps) {
             void navigator.clipboard?.writeText(ctx.props.diagnostics()).then(() => setCopied(true), () => setCopied(false));
           }}
         />
-        <Button id="error-help" label={t('nav.help')} onPress={() => shell.navigate('help')} />
+        <Button id="error-help" label={t('nav.help')} onPress={() => shell.navigate('help', { topic: ERROR_TOPIC[kind] })} />
       </div>
     </main>
   );

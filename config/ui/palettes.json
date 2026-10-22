@@ -5,7 +5,7 @@
   "palettes": {
     "default": { "friendly": "#3ddc84", "danger": "#ff4d4d", "warning": "#ffd23f", "objective": "#4da3ff", "neutral": "#f0f2f7" },
     "deutan": { "friendly": "#56b4e9", "danger": "#d55e00", "warning": "#f0e442", "objective": "#cc79a7", "neutral": "#f0f2f7" },
-    "protan": { "friendly": "#56b4e9", "danger": "#e69f00", "warning": "#f0e442", "objective": "#7b3fe4", "neutral": "#f0f2f7" },
-    "tritan": { "friendly": "#00c8a0", "danger": "#ff4d6d", "warning": "#ffd23f", "objective": "#7a4dff", "neutral": "#f0f2f7" }
+    "protan": { "friendly": "#56b4e9", "danger": "#e69f00", "warning": "#f0e442", "objective": "#a98bff", "neutral": "#f0f2f7" },
+    "tritan": { "friendly": "#00c8a0", "danger": "#ff4d6d", "warning": "#ffd23f", "objective": "#a98bff", "neutral": "#f0f2f7" }
   }
 }
