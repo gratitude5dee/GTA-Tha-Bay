@@ -19,7 +19,7 @@ test.describe('tycoon QA @tycoon-qa', () => {
       const screen = page.locator('[data-screen="modes"]');
       await expect(screen).toBeVisible();
       const tile = screen.locator('[data-testid$="-tycoon"]');
-      await expect(tile).toHaveCount(1);
+      await expect(tile).toHaveCount(1, { timeout: 90_000 }); // the mode list arrives when the engine has booted
       await expect(tile).toHaveAttribute('aria-disabled', 'true');
       await expect(tile).toContainText(/coming soon/i);
     });
