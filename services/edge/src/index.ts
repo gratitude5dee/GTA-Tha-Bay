@@ -16,6 +16,7 @@ import { handleLegal } from './routes/legal.ts';
 import { handleMedia } from './routes/media.ts';
 import { handleDeleteMe as handleForgetMe, handleExport, handleMe as handleIdentityMe } from './routes/me.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
+import { handleNpc } from './routes/npc-talk.ts';
 import { handleRoster } from './routes/roster.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { handleQueueBatch } from './ops/jobs.ts';
@@ -53,6 +54,8 @@ const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/me/export', handler: handleExport },
   { methods: ['POST'], path: '/api/v1/admin/roster', prefix: true, handler: handleKill },
   { methods: ['PUT'], path: '/api/v1/admin/flags', prefix: true, handler: handlePutFlag },
+  // M06a3: route 31, POST /api/v1/npc/:npcId/talk (SSE).
+  { methods: '*', path: '/api/v1/npc', prefix: true, handler: handleNpc },
 ];
 
 /** Test routes are loaded behind a build-time constant so the production bundle does not contain them. */
@@ -63,7 +66,7 @@ async function testRoutes(): Promise<readonly Route[]> {
   return [];
 }
 
-async function route(request: Request, env: Env, url: URL, requestId: string, deps: AppDeps): Promise<Response> {
+async function route(request: Request, env: Env, url: URL, requestId: string, deps: AppDeps, exec?: ExecutionContext): Promise<Response> {
   // run_worker_first names /account so this redirect does not depend on the assets layer's trailing-slash handling (M00e item 10).
   if (url.pathname === '/account') {
     return new Response(null, { status: 308, headers: { Location: '/account/', 'Cache-Control': 'no-store' } });
@@ -77,7 +80,7 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
     if (url.pathname.startsWith('/api/')) return apiError('not_found', 'No such route.', requestId);
     return env.ASSETS.fetch(request);
   }
-  const ctx: Ctx = { request, env, url, requestId, deps };
+  const ctx: Ctx = { request, env, url, requestId, deps, exec };
   const tests = await testRoutes();
   if (tests.some((r) => pathMatches(r, url.pathname))) return dispatch(tests, ctx);
   if (!isGeoExempt(url.pathname, request.method) && !isRegionAllowed(requestCountry(request), env)) {
@@ -91,19 +94,19 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
  * tests pass stubs, production code calls `createApp()` and gets the recorded `ADMIN_PATH`.
  */
 export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<AppDeps, 'adminPath'>> = {}): {
-  fetch(request: Request, env: Env): Promise<Response>;
+  fetch(request: Request, env: Env, exec?: ExecutionContext): Promise<Response>;
   scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void>;
   queue(batch: MessageBatch<unknown>, env: Env): Promise<void>;
 } {
   const { adminPath, ...rest } = overrides;
   const deps = makeDeps(adminPath ?? ADMIN_PATH, rest);
   return {
-    async fetch(request: Request, env: Env): Promise<Response> {
+    async fetch(request: Request, env: Env, exec?: ExecutionContext): Promise<Response> {
       const requestId = uuidv7();
       const url = new URL(request.url);
       let res: Response;
       try {
-        res = await route(request, env, url, requestId, deps);
+        res = await route(request, env, url, requestId, deps, exec);
       } catch {
         // Never log request bodies or headers (F-027); the request id is enough to find the invocation.
         res = apiError('internal', 'Internal error.', requestId);

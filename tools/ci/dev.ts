@@ -1,5 +1,7 @@
 /**
  * pnpm dev: Vite (QA flags on) and `wrangler dev` together. Vite proxies /api to the Worker on :8788.
+ * The Worker runs with `ANTHROPIC_MODE=fixture` and `npc.dialogue` on (M06a3): the top-level wrangler vars are the production ones, and a local
+ * run must never call Anthropic. To try the real model set `ANTHROPIC_MODE=live` and `ANTHROPIC_API_KEY` in `.dev.vars` and run `pnpm dev:edge`.
  * Ctrl-C stops both; if either exits, the other is stopped and the exit code is passed on.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -12,7 +14,7 @@ tokens.on('exit', (code) => {
   if (code !== 0) process.exit(code ?? 1);
   const children: ChildProcess[] = [
     spawn('pnpm', ['--filter', '@dv/web', 'exec', 'vite'], { cwd: repoRoot, env, stdio: 'inherit' }),
-    spawn('pnpm', ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--port', '8788'], { cwd: repoRoot, env, stdio: 'inherit' }),
+    spawn('pnpm', ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--port', '8788', '--var', 'ANTHROPIC_MODE:fixture', '--var', 'FLAGS_JSON:{"npc.dialogue":true}'], { cwd: repoRoot, env, stdio: 'inherit' }),
   ];
   const stop = (code: number): void => {
     for (const c of children) if (c.exitCode === null) c.kill('SIGTERM');

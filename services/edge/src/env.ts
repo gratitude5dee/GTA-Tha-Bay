@@ -69,6 +69,16 @@ export interface Env {
   /** Rate Limiting bindings of class auth (M00e). Absent in unit tests and local runs: no limit. */
   RL_AUTH?: RateLimit | undefined;
   RL_AUTH_USER?: RateLimit | undefined;
+  /** Rate Limiting binding of class `talk` (M06a3): 4 turns per 10 s per player, burst control only (the quotas are exact). Absent: no limit. */
+  RL_TALK?: RateLimit | undefined;
+  /** `live` calls Anthropic; anything else (including absent) replays recorded streams. Production must be `live` (check:prod-routes). */
+  ANTHROPIC_MODE?: string | undefined;
+  /** Anthropic key of the workspace `npc-runtime` (Worker secret, M06a3). Absent in live mode: talk answers upstream_unavailable. */
+  ANTHROPIC_API_KEY?: string | undefined;
+  /** AI Gateway base URL `https://gateway.ai.cloudflare.com/v1/<account>/<gateway>/anthropic` (gw-dialogue). Unset: calls go to the Anthropic API directly (U-NPC-02). */
+  AIG_BASE?: string | undefined;
+  /** Value of the `env` field of `cf-aig-metadata`; default is ENVIRONMENT. The synthetic T4 run sets `synthetic` (M14b1). */
+  AIG_ENV?: string | undefined;
 }
 
 export const DEFAULT_FLAGS: Readonly<Record<FeatureFlag, boolean>> = {

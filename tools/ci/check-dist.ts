@@ -312,6 +312,9 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
     expect(!hasBridge, 'production build has no __dvBridge', 'QA bridge found in a production build');
     expect(!hasIwer, 'production build has no IWER emulator', 'IWER found in a production build');
   }
+  // M06a3: the Anthropic SDK runs in the Worker only; no build of the client, QA or production, may carry it (an Anthropic key is check:secrets').
+  const hasSdk = js.some((f) => readFileSync(f, 'utf8').includes('@anthropic-ai/sdk'));
+  expect(!hasSdk, 'no @anthropic-ai/sdk in the client bundle', 'the Anthropic SDK was found in a client chunk');
   // M00f: nothing under third_party/ may be bundled (DL-618). The build writes the module-id list.
   const bad = checkModuleIds(repoRoot, moduleIdsFile ? path.resolve(repoRoot, moduleIdsFile) : undefined);
   expect(bad.length === 0, 'no bundled module under third_party/', bad.join('; '));

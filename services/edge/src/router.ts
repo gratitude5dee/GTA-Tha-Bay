@@ -9,6 +9,8 @@ export interface Ctx {
   requestId: string;
   /** Injected dependencies of the account handlers (M00e). */
   deps: AppDeps;
+  /** The invocation's ExecutionContext, when the runtime gave one: handlers that finish work after the response (M06a3) use `waitUntil`. */
+  exec?: ExecutionContext | undefined;
 }
 
 export type Handler = (ctx: Ctx) => Response | Promise<Response>;

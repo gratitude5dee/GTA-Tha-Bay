@@ -36,3 +36,19 @@ No model is called yet; every limit that M06a3's dialogue route needs is already
 - **Test seams** (never set by production code): `setClockForTests` (`src/clock.ts`), `setDataPortForTests` (`src/data/index.ts`), `setQueueSinksForTests` (`src/ops/queue.ts`), `setServerEventSinkForTests` (`src/telemetry/server.ts`). A Workers-pool test cannot fake timers inside a Durable Object, so tests drive these. Put a mocked clock in the real future: an alarm set before the real now is run by workerd on its own.
 
 Secrets added here: `PLAY_TOKEN_HMAC` (+ `_PREV`), `QUOTA_NET_SALT_SECRET`; both required ones are in `secrets.required`, so a version upload without them fails. `tools/ci/deploy.ts` `buildSecretsJson` maps them from the environment; `deploy:bootstrap` creates the four queues.
+
+## Dialogue route (M06a3)
+
+`POST /api/v1/npc/:npcId/talk` (route 31, `src/routes/npc-talk.ts` and `src/npc/`). Pre-stream failures are C12 `ApiError` JSON; from the first byte on a failure is a `fallback` event and the client plays ink.
+
+- **`dialogue.ts`** is the service: play token, body schema (a client `history` is dropped), `npc.dialogue` flag (KV `flags:features` over the `FLAGS_JSON` var), `RL_TALK`, roster kill and `ks:*`, governor level (KV `gov:level`), soul version, input prefilter, `EncounterDO.begin`, quota reservation, prompt, stream, then settlement in `waitUntil`.
+- **`prompt.ts`**: block A (1 h) and block B (1 h) in `system`, the server history, one 5 m breakpoint after 8 turns, the scene last, top-level automatic caching, `output_config.format = npc-turn-1.0`. No sampling parameter, no prefill.
+- **`router.ts`**: Haiku by default; a hero (`roles.hero` and `modelTier sonnet`) is Sonnet with `between_tools` thinking and the server-side fallback beta; level 1 or `ks:anthropic:sonnet` sends heroes to Haiku with the same system blocks; level 3, `ks:anthropic`, `ks:genai:all` answer `budget_offline`. A Sonnet 429 is re-issued once, at once, as the Haiku request.
+- **`upstream.ts`**: `@anthropic-ai/sdk` (imported on first live call), `baseURL = AIG_BASE` when set, headers `cf-aig-metadata` (hashed pid, tier, env) and `cf-aig-collect-log-payload: false`. `ANTHROPIC_MODE=live` calls Anthropic; any other value (the default) replays `test/fixtures/anthropic/*.sse` through `upstream-fixture.ts`. Production must be `live` (`check:prod-routes`).
+- **`souls.ts`**: reads `souls/index.json`, `souls/<id>/<ver>/soul.{prompt.txt,compiled.json}` and `prompts/npc/rules@<n>.md` from PRIVATE (isolate LRU of 64). Outside live mode a missing object falls back to `src/generated/npc-fixtures.json` (`pnpm npc:edge-bundle`: the public rules example and the original `npc_test`).
+- **`settle.ts`**: micros from `usage` at the F-034 prices of the response's `model`; an unlisted model is charged at the Opus 5.5 rates and logs `genai.cost.unpriced`.
+- **`safety.ts`**: the shared prefilter, the NameRegistry check of the output (PRIVATE `names/real.json`, never in the repository) and the asynchronous moderation interface (logs `moderation: lands in M06b1`).
+- **Test seams**: `setUpstreamForTests`, `setTimingForTests` (`upstream.ts`), `setFixtureSourceForTests`, `setModerationForTests`, `setNameRegistryForTests`, `dropSoulCache`, and `drainTalk()` (waits for the work after the last byte). `test/talk-helpers.ts` drives a virtual clock so the 4 s rule and the fixture pacing run in milliseconds.
+- **Staging**: `GET /api/v1/_test/npc/usage?npc=&encounter=` (test routes only) returns the token counts of the caller's own encounter; `pnpm test:staging -- npc-cache` reads it.
+
+Secret added: `ANTHROPIC_API_KEY` (workspace `npc-runtime`), in the production `secrets.required` only: staging and Previews run fixtures. Var `AIG_BASE` (AI Gateway `gw-dialogue`) is set by the operator once the gateway exists; unset, calls go to the Anthropic API directly (U-NPC-02).

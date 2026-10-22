@@ -1,6 +1,6 @@
 /**
  * Pure NPC helpers of C10 (04-npc.md section 3). No IO: file reading, inkjs and network calls live in tools/soul.
- * `whereIs` lands in M06c; `executor` and `safety-lists` in M06a3.
+ * `whereIs` lands in M06c. `executor` and `safety-lists` are M06a3.
  */
 export * from '../contracts/c10-npc.ts';
 export * from '../contracts/c10-npc-builder.ts';
@@ -25,3 +25,10 @@ export {
   validateDialogueRequest, validateVoiceCatalog, validateBarkPool, formatIssue,
 } from './validate.ts';
 export type { SchemaIssue } from './validate.ts';
+export {
+  validateTurn, normalizeTurnJson, limitWords, wordCount, AFFINITY_MAX, MEMORY_WRITES_MAX, MEMORY_TEXT_MAX, WORD_SLACK,
+} from './executor.ts';
+export type { NpcTurnOutput, ExecutorSoul, ExecutorScene, TurnEffects, ValidatedTurn } from './executor.ts';
+export { prefilterPlayerText, hasSlur, hasSelfHarm, SELF_HARM_PHRASES } from './safety-lists.ts';
+export type { PrefilterResult, PrefilterVerdict } from './safety-lists.ts';
+export { inkKnotFor, knotChain } from './knot.ts';

@@ -69,7 +69,11 @@
     "MEDIA_ROUTE": "on",
     // placeholder until Q-15: R2 custom domain, no workers.dev form
     "HOST_UGC": "https://tha-bay-ugc.workers.dev",
+    // Dialogue stays off in production until the operator flips npc.dialogue with route 47 (after M06a5). Mode must be "live" here (check:prod-routes).
     "FLAGS_JSON": "{}",
+    "ANTHROPIC_MODE": "live",
+    // AIG_BASE (AI Gateway gw-dialogue, https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic) is set by the operator once the gateway exists;
+    // unset, calls go to the Anthropic API directly (U-NPC-02 fallback). AIG_ENV is optional ("synthetic" for the M14b1 T4 run).
     "FAL_MODE": "live",
     // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
     // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
@@ -82,11 +86,13 @@
   // Rate Limiting (M00e): class auth of 09-backend-ops.md section 3.1. Namespace ids are unique per environment (BD-M00e-01).
   "ratelimits": [
     { "name": "RL_AUTH", "namespace_id": "7301", "simple": { "limit": 10, "period": 60 } },
-    { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } }
+    { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } },
+    // Class talk (M06a3): 4 turns per 10 s per player; spam control only, the quotas are exact.
+    { "name": "RL_TALK", "namespace_id": "7303", "simple": { "limit": 4, "period": 10 } }
   ],
   // The service-path database key (M05d). Required where the Worker is deployed; local dev and tests run without it (no database: the static fallback applies).
   // PLAY_TOKEN_HMAC is first required here (M04b3 left it out, DL-679); a version upload without it fails instead of skipping.
-  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
+  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET", "ANTHROPIC_API_KEY"] },
   // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1).
   // Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in there.
   "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
@@ -133,6 +139,7 @@
           { "queue": "tha-bay-spend-staging", "max_batch_size": 100, "max_batch_timeout": 5 }
         ]
       },
+      // ANTHROPIC_API_KEY is not required in staging: it runs ANTHROPIC_MODE=fixture. Add it here when staging goes live (M06a3 AC-12).
       "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
       "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
@@ -155,7 +162,9 @@
         "MEDIA_ROUTE": "on",
         // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
-        "FLAGS_JSON": "{}",
+        // npc.dialogue is on in staging; recorded streams answer until the operator sets ANTHROPIC_MODE=live and the key.
+        "FLAGS_JSON": "{\"npc.dialogue\":true}",
+        "ANTHROPIC_MODE": "fixture",
         "FAL_MODE": "mock",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
@@ -164,7 +173,8 @@
       },
       "ratelimits": [
         { "name": "RL_AUTH", "namespace_id": "7311", "simple": { "limit": 10, "period": 60 } },
-        { "name": "RL_AUTH_USER", "namespace_id": "7312", "simple": { "limit": 5, "period": 60 } }
+        { "name": "RL_AUTH_USER", "namespace_id": "7312", "simple": { "limit": 5, "period": 60 } },
+        { "name": "RL_TALK", "namespace_id": "7313", "simple": { "limit": 4, "period": 10 } }
       ]
     }
   },
@@ -211,7 +221,8 @@
       "MEDIA_ROUTE": "on",
       // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
-      "FLAGS_JSON": "{}",
+      "FLAGS_JSON": "{\"npc.dialogue\":true}",
+      "ANTHROPIC_MODE": "fixture",
       "FAL_MODE": "mock"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
       // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to
@@ -219,7 +230,8 @@
     },
     "ratelimits": [
       { "name": "RL_AUTH", "namespace_id": "7321", "simple": { "limit": 10, "period": 60 } },
-      { "name": "RL_AUTH_USER", "namespace_id": "7322", "simple": { "limit": 5, "period": 60 } }
+      { "name": "RL_AUTH_USER", "namespace_id": "7322", "simple": { "limit": 5, "period": 60 } },
+      { "name": "RL_TALK", "namespace_id": "7323", "simple": { "limit": 4, "period": 10 } }
     ]
   }
 }

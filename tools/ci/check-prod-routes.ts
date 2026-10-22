@@ -27,6 +27,8 @@ export function prodConfigProblems(configText: string): string[] {
   const cfg = JSON.parse(stripJsonc(configText)) as { vars?: Record<string, string>; define?: Record<string, string> };
   const problems: string[] = [];
   if (cfg.vars?.['FAL_MODE'] === 'mock') problems.push('production FAL_MODE is "mock"');
+  // M06a3: anything but "live" replays recorded streams, so a production Worker with another value would answer players from fixtures.
+  if (cfg.vars?.['ANTHROPIC_MODE'] !== 'live') problems.push(`production ANTHROPIC_MODE is "${cfg.vars?.['ANTHROPIC_MODE'] ?? 'unset'}", expected "live" (fixture mode replays recorded streams)`);
   if (cfg.vars?.['ENVIRONMENT'] !== 'prod') problems.push(`production ENVIRONMENT is "${cfg.vars?.['ENVIRONMENT'] ?? 'unset'}", expected "prod"`);
   if (cfg.define?.['__DV_TEST_ROUTES__'] !== 'false') problems.push('production define __DV_TEST_ROUTES__ is not "false"');
   return problems;
@@ -68,7 +70,7 @@ export function main(): number {
       const hits = findTestRouteStrings(readFileSync(file, 'utf8'));
       for (const hit of hits) problems.push(`${path.relative(outdir, file)} contains a test-route string: ${hit.trim().slice(0, 120)}`);
     }
-    if (problems.length === 0) console.log(`check:prod-routes ok: ${files.length} bundle file(s), no /_test/ handler, FAL_MODE is not mock`);
+    if (problems.length === 0) console.log(`check:prod-routes ok: ${files.length} bundle file(s), no /_test/ handler, FAL_MODE is not mock, ANTHROPIC_MODE is live`);
   } finally {
     rmSync(outdir, { recursive: true, force: true });
   }
