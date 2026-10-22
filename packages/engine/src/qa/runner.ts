@@ -67,6 +67,8 @@ export interface RunnerEnv {
   /** `build` of the trace; default `local`. */
   build?: string;
   deps?: Partial<RunnerDeps>;
+  /** Handed to the scenario loader as `ScenarioEnv.onLoaded` (tools that read more than the trace; see the story loader). */
+  onLoaded?(handle: unknown): void;
   /** Process environment for the golden guard; default `process.env` where it exists. */
   processEnv?: Readonly<Record<string, string | undefined>>;
 }
@@ -115,7 +117,7 @@ export function createCanonicalRunner(env: RunnerEnv = {}): CanonicalRunner {
       // Resolve both before booting a sim: an unknown driver or suite fails fast and lists what exists.
       const bot = getBot(spec.bot.driver);
       const loader = getScenarioLoader(spec.suite);
-      const scenarioEnv: ScenarioEnv = { packs: env.packs ?? {}, ...(env.retry ? { retry: env.retry } : {}) };
+      const scenarioEnv: ScenarioEnv = { packs: env.packs ?? {}, ...(env.retry ? { retry: env.retry } : {}), ...(env.onLoaded ? { onLoaded: env.onLoaded } : {}) };
       const loaded = await loader(spec, scenarioEnv);
       const { sim } = loaded;
       try {

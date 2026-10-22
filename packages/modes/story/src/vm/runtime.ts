@@ -20,6 +20,8 @@ import { BUDGET_STREAK_LIMIT, OPS_BUDGET, missionScope } from './constants.ts';
 import { objectiveStep, objectiveTarget, startObjective } from './objectives.ts';
 import { OpRunner, type OpHost, type WaitSpec } from './ops.ts';
 import { evalPred, type Cost, type PredEnv } from './predicates.ts';
+import { missionDeps } from './deps.ts';
+import { Probes } from './probes.ts';
 import { TaskRunner, type VehicleDriver } from './tasks.ts';
 import {
   DEFAULT_FLAGS, type CastRt, type EndRequest, type ObjRt, type ObjState, type RuntimeFlags, type RuntimeOptions, type StartOptions, type StoryCommand,
@@ -51,6 +53,7 @@ interface Beat {
   owner: string;
   script: DirectorScript | null;
   ticksLeft: number;
+  instant: boolean;
 }
 
 export interface ThreadView {
@@ -83,6 +86,8 @@ export class MissionRuntime implements OpHost {
   walletDelta = 0;
   revokeGen = 0;
   readonly tasks: TaskRunner;
+  /** The photo shutter and the drift score (M05a2): events the engine does not produce yet. */
+  readonly probes = new Probes();
   /** Events of the mission, newest last (the debugger shows the last 50). */
   readonly eventLog: { tick: number; t: string; data: JsonObject }[] = [];
 
@@ -390,6 +395,7 @@ export class MissionRuntime implements OpHost {
     this.eventLog.length = 0;
     this.hudKey = '';
     this.introPending = false;
+    this.probes.reset();
   }
 
   private defineZones(): void {
@@ -486,7 +492,7 @@ export class MissionRuntime implements OpHost {
     if (this.phase !== 'stage') return;
     this.tasks.tick();
     this.advanceBeat();
-    if (this.beat === null) this.clock++;
+    if (this.beat === null || missionDeps().clockCountsBeats) this.clock++;
     if (this.pendingEnd) {
       const end = this.pendingEnd;
       this.pendingEnd = null;
@@ -495,6 +501,7 @@ export class MissionRuntime implements OpHost {
       return;
     }
     if (this.beat === null) {
+      this.probes.step(this, ctx);
       this.updateObjectives();
       if (this.phase === 'stage') this.checkFailRules();
       if (this.phase === 'stage') this.checkTimeLimit();
@@ -1078,25 +1085,24 @@ export class MissionRuntime implements OpHost {
     this.noteEvent('beat', { ref: 'director' in ref ? ref.director : ref.cutscene });
     // cut.request and the CutscenePlayer come with M05b2: a cutscene ref plays as an instant beat here
     const script = 'director' in ref ? (this.opts.directors?.get(ref.director) ?? null) : null;
-    if (!script || this.flagsCfg.beats === 'instant') {
-      if (script) this.applyEndMarks(script);
-      this.noteEvent('beat.done', { instant: true });
-      return undefined;
-    }
+    const instant = !script || this.flagsCfg.beats === 'instant';
     const id = ++this.beatSerial;
-    this.beat = { id, owner, script, ticksLeft: Math.max(1, Math.ceil(script.durationSec * 60)) };
-    const player = this.actors.player();
-    const first = script.shots[0];
-    if (player !== null) {
-      soft(() =>
-        this.ctx.camera.direct({
-          mode: 'cinematic',
-          shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: script.seed },
-          letterbox: script.letterbox,
-          lockPlayerToggle: true,
-          reason: 'mission',
-        }),
-      );
+    // an instant beat still lasts one tick (C9: "a beat completes in one tick and applies its end marks"), and that tick is not mission time
+    this.beat = { id, owner, script, ticksLeft: instant ? 1 : Math.max(1, Math.ceil((script as DirectorScript).durationSec * 60)), instant };
+    if (!instant) {
+      const player = this.actors.player();
+      const first = (script as DirectorScript).shots[0];
+      if (player !== null) {
+        soft(() =>
+          this.ctx.camera.direct({
+            mode: 'cinematic',
+            shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: (script as DirectorScript).seed },
+            letterbox: (script as DirectorScript).letterbox,
+            lockPlayerToggle: true,
+            reason: 'mission',
+          }),
+        );
+      }
     }
     return { k: 'pred', pred: () => this.beat === null || this.beat.id !== id };
   }
@@ -1107,9 +1113,9 @@ export class MissionRuntime implements OpHost {
     b.ticksLeft--;
     if (b.ticksLeft > 0) return;
     this.beat = null;
-    soft(() => this.ctx.camera.release());
+    if (!b.instant) soft(() => this.ctx.camera.release());
     if (b.script) this.applyEndMarks(b.script);
-    this.noteEvent('beat.done', { instant: false });
+    this.noteEvent('beat.done', { instant: b.instant });
   }
 
   /** Puts each actor of the script on its end mark. */

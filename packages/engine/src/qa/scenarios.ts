@@ -23,6 +23,8 @@ export interface ScenarioEnv {
   /** Fixture pack bytes by family (`p0`), already checked against `hashes.json`. */
   packs: Readonly<Record<string, Uint8Array>>;
   retry?: Partial<RetryEnv>;
+  /** A loader hands the host its own handle (the story loader: the mission controller and the timeline) once the sim is built. Optional; tools only. */
+  onLoaded?(handle: unknown): void;
 }
 
 export interface LoadedScenario {

@@ -92,7 +92,7 @@ export function objectiveStep(rt: MissionRuntime, o: ObjRt): () => ObjResult {
         rt.cost(1);
         if (d.fragile !== undefined && rt.actors.damage(d.cast) > d.fragile) return 'failed';
         const side = playerSide(rt);
-        if (rt.isCarried(d.cast)) return rt.zoneInside(side, d.to) ? deliverIt(rt, d.cast) : 'running';
+        if (rt.isCarried(d.cast)) return rt.zoneInside(side, d.to) ? deliverIt(rt, d.cast, d.to) : 'running';
         const h = rt.actors.cast(d.cast);
         if (h !== null && rt.zoneInside(d.cast, d.to)) return 'done';
         return 'running';
@@ -150,8 +150,11 @@ export function objectiveStep(rt: MissionRuntime, o: ObjRt): () => ObjResult {
   }
 }
 
-function deliverIt(rt: MissionRuntime, cast: string): ObjResult {
+/** Hands the item over: it is no longer carried and stands at the drop zone (a later `photo` or `collect` of it finds it there). */
+function deliverIt(rt: MissionRuntime, cast: string, zone: string): ObjResult {
   rt.uncarry(cast);
+  const c = rt.zoneCenter(zone);
+  if (c) rt.spawnCast(cast, { pos: [c[0], c[1], c[2]], yaw: 0 });
   return 'done';
 }
 
