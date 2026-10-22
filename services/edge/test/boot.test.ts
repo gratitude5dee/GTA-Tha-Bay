@@ -20,7 +20,8 @@ describe('GET /api/v1/boot', () => {
     expect('modsUi' in body.hosts).toBe(false);
     const flags = Object.entries(body.flags);
     expect(flags.length).toBe(14);
-    expect(flags.every(([, v]) => v === false)).toBe(true);
+    // staging and previews switch npc.dialogue on (M06a3); every other flag is off
+    expect(flags.filter(([, v]) => v).map(([k]) => k)).toEqual(['npc.dialogue']);
     expect(body.flags['mods.enabled']).toBe(false);
     // LEGAL_CONTACT is not set in the staging vars, so route 58 would refuse every sign-up (M00e item 8).
     expect(body.flags['auth.password']).toBe(false);

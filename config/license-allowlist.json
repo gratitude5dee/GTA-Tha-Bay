@@ -32,6 +32,12 @@
       "license": "MPL-2.0",
       "scope": "prod",
       "reason": "used unmodified, file-level copyleft"
+    },
+    {
+      "package": "fast-sha256",
+      "license": "Unlicense",
+      "scope": "prod",
+      "reason": "public-domain dedication, no copyleft; reached only through @anthropic-ai/sdk 1.0.0 > standardwebhooks in services/edge (M06a3, BD-M06a3-15)"
     }
   ]
 }
