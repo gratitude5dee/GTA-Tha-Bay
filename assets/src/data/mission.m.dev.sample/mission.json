@@ -102,10 +102,12 @@
   },
   "id": "m.dev.sample",
   "intro": {
-    "director": "m.dev.sample.intro"
+    "cutscene": "cut.story.m.dev.sample.intro"
   },
   "lines": [
     "line.m.dev.sample.bye",
+    "line.m.dev.sample.cut.intro.1",
+    "line.m.dev.sample.cut.intro.2",
     "line.m.dev.sample.hello",
     "line.m.dev.sample.nudge"
   ],

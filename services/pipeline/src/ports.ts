@@ -132,6 +132,38 @@ export interface JobSinkPort {
   fail(err: string): Promise<void>;
 }
 
+/**
+ * Real-side names for the prompt lint (M05b2, DL-550, DL-240): the PRIVATE R2 object `config/names-real.json`, which the
+ * operator uploads. The strings are never logged and never returned; `null` means the object is absent (the gate then applies
+ * the public denylist only and logs a SKIP line).
+ */
+export interface NamePort {
+  realNames(): Promise<readonly string[] | null>;
+}
+
+export const NAMES_REAL_KEY = 'config/names-real.json';
+
+/** NamePort over the PRIVATE bucket: `{schema: 'names/1', entries: [{id, real?, aliases?}]}`. Unreadable content counts as absent. */
+export function blobNamePort(blob: Pick<BlobPort, 'get'>): NamePort {
+  return {
+    async realNames() {
+      const bytes = await blob.get('PRIVATE', NAMES_REAL_KEY);
+      if (bytes === null) return null;
+      try {
+        const doc = JSON.parse(new TextDecoder().decode(bytes)) as { entries?: { real?: unknown; aliases?: unknown }[] };
+        const out: string[] = [];
+        for (const e of doc.entries ?? []) {
+          if (typeof e.real === 'string') out.push(e.real);
+          if (Array.isArray(e.aliases)) for (const a of e.aliases) if (typeof a === 'string') out.push(a);
+        }
+        return out;
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
 export interface GenPorts {
   fal: FalPort;
   blob: BlobPort;
@@ -143,6 +175,8 @@ export interface GenPorts {
   sign: SignPort;
   falGate: FalGatePort;
   sink: JobSinkPort;
+  /** Optional: absent behaves like an absent object (public denylist only). */
+  names?: NamePort;
 }
 
 export type { SpendEvent };

@@ -1,7 +1,7 @@
 {
   "schema": "director/1",
   "id": "m.dev.sample.intro",
-  "durationSec": 2,
+  "durationSec": 6,
   "seed": 1,
   "marks": {
     "plaza": { "at": { "local": [120, 0, 60] }, "yawDeg": 0 }
@@ -11,7 +11,10 @@
     { "atSec": 0, "preset": "establish", "subject": "player", "lens": "wide", "move": "static" }
   ],
   "actions": [],
-  "cues": [],
+  "cues": [
+    { "line": "line.m.dev.sample.cut.intro.1", "speaker": "npc_test", "startMs": 200, "endMs": 2800, "kind": "dialogue" },
+    { "line": "line.m.dev.sample.cut.intro.2", "speaker": "npc_test", "startMs": 3000, "endMs": 5600, "kind": "dialogue" }
+  ],
   "xrVantage": { "mark": "plaza", "yawDeg": 0 },
   "letterbox": true
 }

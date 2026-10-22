@@ -3,6 +3,8 @@
   "lang": "en",
   "text": {
     "line.m.dev.sample.bye": "That is the loop. Thanks for the walk.",
+    "line.m.dev.sample.cut.intro.1": "Hold on. This view is worth a second.",
+    "line.m.dev.sample.cut.intro.2": "Right. Let me check the list.",
     "line.m.dev.sample.hello": "Over here. Meet me at the plaza.",
     "line.m.dev.sample.nudge": "Still around? The plaza is the next stop.",
     "mission.m.dev.sample.fail.buddy": "Your friend got hurt.",

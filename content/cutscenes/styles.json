@@ -1,0 +1,10 @@
+{
+  "$comment": "style_tokens source of the cutscene prompt templates: the text of each style bible (S05 `style_bible`, toon-pbr). `sha256` is the approved style-bible image; it joins the key's inputHashes once the image exists.",
+  "schema": "cutscene-styles/1",
+  "styles": {
+    "bay-cel@1": {
+      "tokens": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes",
+      "sha256": null
+    }
+  }
+}

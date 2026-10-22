@@ -417,14 +417,23 @@
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
     },
-    "data/director.m.dev.sample.intro": {
+    "data/cutscene-index": {
       "rev": 1,
       "variants": {
-        "default": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8"
+        "default": "7a325f36ca51abec99501b162e10719090c20cfca8d2c4c42237600134701ef6"
       },
-      "root": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "7a325f36ca51abec99501b162e10719090c20cfca8d2c4c42237600134701ef6",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T09:59:58Z"
+    },
+    "data/director.m.dev.sample.intro": {
+      "rev": 2,
+      "variants": {
+        "default": "b2b921aefd57543d41535a6665858320c585cd3fe95c17ab653e94da14fcf527"
+      },
+      "root": "b2b921aefd57543d41535a6665858320c585cd3fe95c17ab653e94da14fcf527",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T09:59:58Z"
     },
     "data/ink.canary-mc": {
       "rev": 1,
@@ -472,22 +481,22 @@
       "approved_at": "2026-10-19T03:03:04Z"
     },
     "data/lines.0.en": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88"
+        "default": "0048aa0b08f33031e8ef6b08e091ea8e7417246050f2329a92ca16023cafb2da"
       },
-      "root": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "0048aa0b08f33031e8ef6b08e091ea8e7417246050f2329a92ca16023cafb2da",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T09:59:58Z"
     },
     "data/mission.m.dev.sample": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c"
+        "default": "36dc893c806887371fe4d86f3d71163ad80bbd9f619fb638b86df6ac6ca70df6"
       },
-      "root": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "36dc893c806887371fe4d86f3d71163ad80bbd9f619fb638b86df6ac6ca70df6",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T09:59:58Z"
     },
     "data/npc-roster": {
       "rev": 2,

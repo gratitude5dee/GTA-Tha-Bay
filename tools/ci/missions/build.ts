@@ -21,6 +21,9 @@ import { compileStringMatcher } from '../../../packages/shared/src/index.ts';
 import { compileRealNames } from '../../../packages/shared/src/assets/gates/names.ts';
 import { sha256Hex } from '../../../packages/shared/src/hash.ts';
 import { compileMission, type CompileEnv, type CompileError } from '../../../packages/modes/story/src/compiler/index.ts';
+import { checkBeatsLock, emptyBeatsLock, type BeatsLock } from '../../../packages/modes/story/src/cutscene/beat.ts';
+import type { CutsceneRef } from '../../../packages/shared/src/contracts/c09-cutscene.ts';
+import { loadCutsceneRefs, loadDirectorIds } from '../../assets/cutscene-index/refs.ts';
 import { buildRecord } from '../../assets/provenance-new.ts';
 import { buildTimeMs, isoSeconds } from '../../soul/src/common.ts';
 import { loadRecords, readJson } from '../lib/common.ts';
@@ -66,12 +69,16 @@ export function stableJson(v: unknown): string {
 
 const byId = (a: { id: string }, b: { id: string }): number => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
-function assetSpec(id: string, file: string, tags: string[]): string {
+export function assetSpec(id: string, file: string, tags: string[]): string {
   return `${JSON.stringify({ kind: 'data', id, variants: { default: `assets/src/data/${id}/${file}` }, deps: [], tags, status: 'active', visibility: 'public' }, null, 2)}\n`;
 }
 
 /** The environment the compiler checks a mission against, read from the repository. */
-export function loadEnv(root: string, mission: { lines: Record<string, string>; directors: Set<string> }, env: NodeJS.ProcessEnv = process.env): CompileEnv {
+export function loadEnv(
+  root: string,
+  mission: { lines: Record<string, string>; directors: Set<string>; cutscenes?: ReadonlyMap<string, { fallback: boolean }> },
+  env: NodeJS.ProcessEnv = process.env,
+): CompileEnv {
   const bounds = readJson<{ play: { minX: number; maxX: number; minZ: number; maxZ: number } }>(path.join(root, 'config/world.bounds.json')).play;
   const landmarks = new Set(readJson<{ landmarks: { id: string }[] }>(path.join(root, 'content/world/landmarks.json')).landmarks.map((l) => l.id));
   const i18nFile = path.join(root, 'packages/ui/src/i18n/en.json');
@@ -89,6 +96,7 @@ export function loadEnv(root: string, mission: { lines: Record<string, string>; 
     i18n,
     landmarks,
     directors: mission.directors,
+    ...(mission.cutscenes ? { cutscenes: mission.cutscenes } : {}),
     names,
     strings: compileStringMatcher(deny),
     realDerived: (who) => ('slot' in who ? true : roster.get(who.soul) === 'real_person'),
@@ -123,6 +131,13 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
   const dirs = listMissionDirs(o.root, o.mission);
   if (o.mission && dirs.length === 0) plan.problems.push(`no mission ${o.mission} under ${MISSIONS_DIR}`);
   const index: MissionIndexRow[] = [];
+  // M05b2: the cutscene refs (content/story/**), their fallbacks, and the beat locks (D3.4): a beat edited without a rev bump fails.
+  const refs: CutsceneRef[] = await loadCutsceneRefs(o.root);
+  const directorIds = loadDirectorIds(o.root);
+  const cutscenes = new Map(refs.map((r) => [r.id, { fallback: r.fallback !== '' && directorIds.has(r.fallback) }] as const));
+  const lockFile = path.join(o.root, 'content/cutscenes/beats.lock.json');
+  const lock: BeatsLock = existsSync(lockFile) ? readJson<BeatsLock>(lockFile) : emptyBeatsLock();
+  for (const p of checkBeatsLock(refs, lock)) plan.problems.push(`beats.lock: ${p.ref} ${p.message}`);
   const linesByAct = new Map<number, Record<string, string>>();
   const audio: Record<string, { line: string; speaker: string }> = {};
   const addData = (id: string, file: string, text: string, tags: string[]): void => {
@@ -154,7 +169,7 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
         directors.set(d.id, d);
       }
     }
-    const env = loadEnv(o.root, { lines, directors: new Set(directors.keys()) });
+    const env = loadEnv(o.root, { lines, directors: new Set([...directors.keys(), ...directorIds]), cutscenes });
     const res = compileMission(authored, env);
     for (const error of res.errors) plan.errors.push({ mission: dir, error });
     if (res.errors.length > 0) continue;
@@ -169,7 +184,10 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
     });
     // the text of every key and line the mission refers to
     const used: Record<string, string> = linesByAct.get(res.ir.act) ?? {};
-    for (const key of Object.keys(lines)) if (key.startsWith(`mission.${dir}.`) || res.ir.lines.includes(key as never) || key.startsWith('fail.reason.')) used[key] = lines[key] as string;
+    // the cues of this mission's cutscene refs are shown by the video path and by its fallback alike
+    const cueLines = new Set(refs.filter((r) => r.id.startsWith(`cut.story.${dir}.`)).flatMap((r) => r.cues.map((c) => c.line as string)));
+    for (const cl of cueLines) if (!(cl in lines)) plan.problems.push(`${dir}: cue line ${cl} is not in lines.${LANG}.json`);
+    for (const key of Object.keys(lines)) if (key.startsWith(`mission.${dir}.`) || res.ir.lines.includes(key as never) || cueLines.has(key) || key.startsWith('fail.reason.')) used[key] = lines[key] as string;
     linesByAct.set(res.ir.act, used);
     for (const a of res.audioNeeds) audio[a.line] = a;
   }

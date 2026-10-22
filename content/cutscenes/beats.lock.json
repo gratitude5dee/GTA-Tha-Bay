@@ -1,0 +1,9 @@
+{
+  "beats": {
+    "cut.story.m.dev.sample.intro": {
+      "rev": 1,
+      "sha256": "66f37072dccbaf0a56e1f0dd5b062cac9373da1f80ecb295e64b6ec48c79f515"
+    }
+  },
+  "schema": "beats-lock/1"
+}
