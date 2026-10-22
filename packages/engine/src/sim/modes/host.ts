@@ -212,6 +212,10 @@ export class ModeHost {
 
   /** SimStage.Script, once per tick. */
   tick(): void {
+    if (this.idleCoreRestore) {
+      this.idleCoreRestore = false;
+      if (!this.stack.root) this.d.save.setCapability(IDLE_CAPABILITY);
+    }
     if (this.restartPending) return;
     for (const e of [...this.stack.entries]) {
       if (e.state === 'Loading') {
@@ -357,6 +361,20 @@ export class ModeHost {
   // ---------------------------------------------------------------- saving
 
   /** The slots to write for `reason` from the running top-level mode, or null when there is none. */
+  /**
+   * Saves the `core` slice (the avatar) when no mode runs: the creator's Done happens in the menu, where the idle capability may not write
+   * `core`. The capability is raised for this one post only (M04b2, BD-M04b2-03). While a mode runs the normal policy applies.
+   */
+  saveCore(): boolean {
+    if (this.stack.root) return this.autosave.request('manual');
+    // The write is flushed after this tick, so the idle capability comes back at the start of the next tick.
+    this.d.save.setCapability('story');
+    this.idleCoreRestore = true;
+    return this.d.save.post('core', this.d.slices().core, 'manual').ok;
+  }
+
+  private idleCoreRestore = false;
+
   private entries(reason: SaveReason): AutosaveEntry[] | null {
     const s = this.d.slices();
     if (reason === 'settings') return [{ slot: 'settings', data: s.settings }];

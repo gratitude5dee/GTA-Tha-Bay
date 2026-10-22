@@ -65,7 +65,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
       case 'save.avatar':
         d.slices().core.avatar = cmd.avatar;
         d.ui.patch('sys.avatar', cmd.avatar);
-        d.host.autosave.request('manual');
+        d.host.saveCore();
         return;
       case 'save.profile':
         // Create, rename and delete run on the page's SaveService (profile rows only; BD-M04b1-02). The sim handles `select`.
