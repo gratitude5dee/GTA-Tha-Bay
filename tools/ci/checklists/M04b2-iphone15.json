@@ -1,0 +1,50 @@
+{
+  "id": "M04b2-iphone15",
+  "milestone": "M04b2",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Safari tab and Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview (pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview). Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-coach",
+      "instruction": "In Safari (a tab, not the Home Screen app) open the Preview URL and pass Title, age and Terms. The Share > Add to Home Screen coach card must show once on the main menu; close it, open Settings and come back: it must not return. Write what you saw into notes.json observations."
+    },
+    {
+      "id": "3-keyboard",
+      "instruction": "In New Game type a profile name with the OS keyboard, including an emoji and a name longer than 24 characters: the emoji and the long name must be refused inline with the message under the field. Note any layout shift when the keyboard opens in notes.json observations."
+    },
+    {
+      "id": "4-safe-areas",
+      "instruction": "In landscape, in the Safari tab and again in the Home Screen app (Share > Add to Home Screen, then launch from the icon), open the Preview URL with ?debug=1 and record in notes.json safeAreas.safariTab and safeAreas.homeScreen: innerWidth, innerHeight and the four computed env(safe-area-inset-*) values (top, right, bottom, left, in CSS px). They are recorded, not asserted (U-UI-10)."
+    },
+    {
+      "id": "5-touch-play",
+      "instruction": "Home Screen app, landscape, ?perf=1&tier=mobile-low: finish the creator (Done) and play on foot for 5 minutes with the touch layout: stick, look drag, Jump, Camera, phone and pause buttons; open the phone and the pause menu a few times; enter and leave a car. The HUD (clock, wallet, prompt, minimap frame) must stay readable and inside the safe areas. When the 5 minutes end tap Export and save perf.json and notes.json to docs/device-runs/M04b2/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "6-rotate",
+      "instruction": "While playing, turn the phone to portrait: the rotate card must cover the screen and the game must pause; turn back to landscape: it must clear and the game must run. In the main menu, portrait must show the menu with no rotate card. Write the result into notes.json observations."
+    },
+    {
+      "id": "7-tilt",
+      "instruction": "Settings > Controls > Touch: turn Tilt steering on. Read the explainer, accept, and note in notes.json tilt what the browser did (a permission prompt, a denial, or nothing) in the Home Screen app. If it is denied, the toggle must fall back to off and a toast must say the stick steers instead. No acceptance criterion asserts tilt."
+    },
+    {
+      "id": "8-creator-preview",
+      "instruction": "In the creator, turn the preview with a drag and open the Head zoom. Note whether the preview stutters (it is a menu scene on the shared canvas); if it does, say so in notes.json observations: the fallback is a 30 fps turntable."
+    },
+    {
+      "id": "9-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M04b2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M04b2-iphone15.json: the median and p95 frame times (30 fps at mobile-low), the frames over 50 ms and the render and triangle counts must pass at mobile-low."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}
