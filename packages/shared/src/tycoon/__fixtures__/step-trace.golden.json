@@ -1,0 +1,295 @@
+{
+ "v": 1,
+ "setup": {
+  "seed": 12648430,
+  "sector": "b2b-saas",
+  "thesis": "enterprise-rush",
+  "founder": "engineer",
+  "coFounder": false,
+  "startWeekOfYear": 0,
+  "hardcore": false,
+  "preset": "standard",
+  "contentVersion": "c0ce6359050d",
+  "balanceVersion": "c6d14b4f4dbc"
+ },
+ "choices": [
+  {
+   "week": 0,
+   "seq": 0,
+   "cmd": {
+    "t": "setAllocation",
+    "features": 70,
+    "refactor": 20,
+    "infra": 10
+   }
+  },
+  {
+   "week": 5,
+   "seq": 0,
+   "cmd": {
+    "t": "hireOffer",
+    "candidateId": "c2-0",
+    "salaryYr": 22405668,
+    "optionBp": 50
+   }
+  },
+  {
+   "week": 10,
+   "seq": 0,
+   "cmd": {
+    "t": "hireOffer",
+    "candidateId": "c7-0",
+    "salaryYr": 24070652,
+    "optionBp": 50
+   }
+  },
+  {
+   "week": 15,
+   "seq": 0,
+   "cmd": {
+    "t": "hireOffer",
+    "candidateId": "c10-1",
+    "salaryYr": 20604231,
+    "optionBp": 50
+   }
+  },
+  {
+   "week": 18,
+   "seq": 0,
+   "cmd": {
+    "t": "startRaise",
+    "kind": "safe",
+    "targetCents": 15000000
+   }
+  },
+  {
+   "week": 19,
+   "seq": 0,
+   "cmd": {
+    "t": "scheduleMeeting",
+    "vcId": "vc-accelerator-batch"
+   }
+  },
+  {
+   "week": 19,
+   "seq": 1,
+   "cmd": {
+    "t": "accept",
+    "meetingId": "m1"
+   }
+  },
+  {
+   "week": 28,
+   "seq": 0,
+   "cmd": {
+    "t": "setMarketing",
+    "perWeek": 20000
+   }
+  },
+  {
+   "week": 34,
+   "seq": 0,
+   "cmd": {
+    "t": "startRaise",
+    "kind": "safe",
+    "targetCents": 15000000
+   }
+  },
+  {
+   "week": 35,
+   "seq": 0,
+   "cmd": {
+    "t": "scheduleMeeting",
+    "vcId": "vc-operator-angel"
+   }
+  },
+  {
+   "week": 35,
+   "seq": 1,
+   "cmd": {
+    "t": "accept",
+    "meetingId": "m2"
+   }
+  },
+  {
+   "week": 73,
+   "seq": 0,
+   "cmd": {
+    "t": "startRaise",
+    "kind": "seed",
+    "targetCents": 30000000
+   }
+  },
+  {
+   "week": 74,
+   "seq": 0,
+   "cmd": {
+    "t": "scheduleMeeting",
+    "vcId": "vc-operator-angel"
+   }
+  },
+  {
+   "week": 74,
+   "seq": 1,
+   "cmd": {
+    "t": "accept",
+    "meetingId": "m3"
+   }
+  },
+  {
+   "week": 89,
+   "seq": 0,
+   "cmd": {
+    "t": "boardVote",
+    "motion": "approveBudget"
+   }
+  },
+  {
+   "week": 102,
+   "seq": 0,
+   "cmd": {
+    "t": "boardVote",
+    "motion": "approveBudget"
+   }
+  },
+  {
+   "week": 115,
+   "seq": 0,
+   "cmd": {
+    "t": "boardVote",
+    "motion": "approveBudget"
+   }
+  }
+ ],
+ "hashes": [
+  "75188c3de8b85d2a",
+  "07f973d7b2f61d41",
+  "828140602b842466",
+  "c785e1ef04367c36",
+  "3b71540f88753d2c",
+  "556ed655c65c6967",
+  "ae2f969272d2cc51",
+  "9dd7146889af5aae",
+  "ca428bff766809a3",
+  "f71ca735747b9265",
+  "a2394badad69eaeb",
+  "cb1ce1f3b0fa25f9",
+  "eab2702e6c22f7ce",
+  "6afa87a271f0b059",
+  "e9985e7adf6485e4",
+  "78fa4b93486cba60",
+  "ef69b80bf4af64c1",
+  "518f3395fd2787c9",
+  "5eeef8c1907fa806",
+  "2c609a27b3cb3290",
+  "d04f85486d517ace",
+  "819de4a0cbac7acf",
+  "69ccc97a82858b6e",
+  "02a6bd029489367d",
+  "eef2dd425062ded2",
+  "f0d718b0008d15b4",
+  "932fe845f6e64fa0",
+  "9a72780565bdde28",
+  "0bec64aa30e895cc",
+  "43f633fa2950ef70",
+  "f7ed011e52240bc8",
+  "ee1bf079988d9c06",
+  "a4d794fcb47bc8d7",
+  "e546351465e9ffa3",
+  "2b8b123aa6d8344b",
+  "3b500d08fa74c7bd",
+  "5c577c4ee7e297d6",
+  "34302c5a9492c1eb",
+  "cf3d587e8583a1ef",
+  "8c7cc13a73e95fe6",
+  "e968a6db8f21de6f",
+  "085c8a6da2bf3fbf",
+  "9be20287f1b4300a",
+  "3e7d4dadb553738a",
+  "17fed52a765ca032",
+  "dda2a19d0e50ffd1",
+  "b588eb024bea6980",
+  "a72a303e7654dc2e",
+  "bf3d7f5ff0739a37",
+  "272353904086f237",
+  "662219d4f51745c9",
+  "01dc32568e5271a4",
+  "e97bb8ddf4182ecc",
+  "6167df79b278784c",
+  "791d00225449b1eb",
+  "26f04dc9e24b9d57",
+  "d367c0d7ce65ba86",
+  "d65d0b9e8249f83d",
+  "ced8b850e2a62834",
+  "52b371488b0316e1",
+  "608f64882465a655",
+  "c8b8f2cf275ee8c1",
+  "49adcd97b2b194a4",
+  "caa69fe3ea63f79d",
+  "aacfb898ab4e95e6",
+  "6795dbb520886a31",
+  "b161374a62dc84af",
+  "8f084132a55b6731",
+  "5646a9234ac7ad2f",
+  "c45b5a8da2858570",
+  "49f01ceb03e933e2",
+  "2c5996a725cd4394",
+  "0e9db87d8875eec7",
+  "81757508e0209c40",
+  "48258f0ed1f7780a",
+  "183322d9a405d39e",
+  "125913af64accc57",
+  "2922891ab9a59fa4",
+  "e5763ffc441f6ac4",
+  "b43c00a3d5655741",
+  "e515e2f32bdd5d5b",
+  "3660ae4b2d530ce1",
+  "51bc5138a53cdef2",
+  "44741398ad1438b6",
+  "e71d285e1f4c71ad",
+  "edc808d2ac201ddb",
+  "22523723d2e23a6d",
+  "a80f9b5ac6e073e4",
+  "29136c04bde8cbbd",
+  "eea339aeb1147db7",
+  "619d17bf9c1cdc73",
+  "f7970be3a4a710a9",
+  "97f21808d76e08d6",
+  "88dafe41b234b7be",
+  "0d614135f2e9f56e",
+  "22d6737397bc3bd7",
+  "3d4d47d1cf0ab15d",
+  "2ad3be7d6e39db21",
+  "c5b2749945cba1db",
+  "14b4bf4c0dfb5e23",
+  "0226cfc367a9d99d",
+  "c3a46a29d48e1e1f",
+  "1e66accaa178820f",
+  "385c05cd88bc4329",
+  "92947b96f9f2430c",
+  "6370f98e1e9c476b",
+  "3a9c3153b80694c1",
+  "2e0c2056e7789a3a",
+  "0284bfdea710b4b0",
+  "178f5469c60c1d0d",
+  "f975ee0046f5f528",
+  "858cfb8a8352edf1",
+  "d0fb1b95d9c21574",
+  "93727d67660c44cb",
+  "52d87048b56d669d",
+  "6bc8732ab9978776",
+  "554fb8b934a265ee",
+  "05fd9d79fa6a6faa",
+  "1aed60519eb3a0ee",
+  "b113764273a1c57c",
+  "3a49cad87669ac17",
+  "81895314a71a4f8f",
+  "90f81d53415cf779",
+  "b99d4921ca4c216f",
+  "8ba77b566859899f",
+  "ea083ce68faf92c9",
+  "9ba551f25548bc3c",
+  "1d945b6ff23ed3a8"
+ ],
+ "final": "b113764273a1c57c"
+}

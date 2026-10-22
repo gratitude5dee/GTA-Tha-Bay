@@ -292,3 +292,27 @@ export function priceRound(t: CapTable, input: RoundInput, ctx: RoundContext): P
   const legal = Math.max(LEGAL_FEE_MIN_CENTS, mulDivFloor(input.amount, 2, 100));
   return { ok: true, table: next, round, conversion: c, X, T, newShares, postFd: next.totalFd, priceMicros, legalFeeCents: legal };
 }
+
+/**
+ * Converts every open SAFE at a notional price (no new money): used by exits and by the exit slider, where SAFEs that never met a
+ * priced round must still take part in the waterfall (BD-M09a1-06). `preMoney` is the notional pre-money; the pool is not topped up.
+ */
+export function settleSafes(t: CapTable, preMoney: Cents): CapTable {
+  const open = t.safes.filter((s) => s.converted !== true);
+  if (open.length === 0) return t;
+  // The notional price never falls below 4x the SAFE money, so a near-empty exit does not mint absurd share counts.
+  const floor = open.reduce((a, s) => a + 4 * s.amount, 1);
+  const conv = convertSafes(t, { preMoney: Math.max(floor, preMoney), amount: 0, poolTargetBp: 0 });
+  if ('ok' in conv && conv.ok === false) return t;
+  const c = conv as Conversion;
+  const next = cloneTable(t);
+  for (const s of next.safes) {
+    if (s.converted === true) continue;
+    const n = c.sharesBySafe[s.id] ?? 0;
+    const h = holderOf(next, s.investorId, 'investor');
+    h.shares[safeClass(s.id)] = (h.shares[safeClass(s.id)] ?? 0) + n;
+    s.converted = true;
+  }
+  next.totalFd = fdCount(next);
+  return next;
+}

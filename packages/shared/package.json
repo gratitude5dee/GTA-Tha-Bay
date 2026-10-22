@@ -19,6 +19,7 @@
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
     "test:tycoon-finance": "tsx ../../tools/ci/run.ts vitest run packages/shared/src/tycoon/finance",
+    "tycoon:goldens": "tsx scripts/write-tycoon-goldens.ts",
     "vectors:write": "tsx scripts/write-vectors.ts",
     "schema:mission": "tsx scripts/gen-mission-schema.ts"
   },

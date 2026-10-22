@@ -16,7 +16,8 @@ export const SIM_FILES = [
   'packages/modes/story/src/mode.ts',
   'packages/modes/story/src/compiler/resolve.ts',
 ];
-export const SIM_IGNORES = ['packages/engine/src/sim/save/**'];
+// Colocated specs and fixture helpers of the pure cores (packages/shared/src/tycoon, M09a1) are tests, not sim code.
+export const SIM_IGNORES = ['packages/engine/src/sim/save/**', 'packages/shared/src/**/*.{spec,test}.{ts,tsx}', 'packages/shared/src/**/__fixtures__/**'];
 
 export const TRANSCENDENTALS = [
   'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'sinh', 'cosh', 'tanh',

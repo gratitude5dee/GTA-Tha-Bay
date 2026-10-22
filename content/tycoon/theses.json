@@ -1,0 +1,29 @@
+{
+  "schema": "tycoon.theses.v1",
+  "theses": [
+    {
+      "id": "enterprise-rush",
+      "nameKey": "tycoon.thesis.enterprise-rush",
+      "mods": {
+        "cacMul": 0.9,
+        "churnMul": 0.95
+      }
+    },
+    {
+      "id": "lean-times",
+      "nameKey": "tycoon.thesis.lean-times",
+      "mods": {
+        "burnMul": 0.9,
+        "multipleMul": 0.9
+      }
+    },
+    {
+      "id": "talent-war",
+      "nameKey": "tycoon.thesis.talent-war",
+      "mods": {
+        "devPowerMul": 1.1,
+        "burnMul": 1.05
+      }
+    }
+  ]
+}

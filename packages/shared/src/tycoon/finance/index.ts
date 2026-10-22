@@ -12,6 +12,7 @@ export {
   issuedShares,
   poolAvailable,
   priceRound,
+  settleSafes,
 } from './captable.ts';
 export type { Conversion, PricedResult, RoundContext, RoundInput } from './captable.ts';
 export { OPTIONS_HOLDER, commonShares, preferredClasses, waterfall } from './waterfall.ts';
