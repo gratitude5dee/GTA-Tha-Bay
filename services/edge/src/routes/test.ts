@@ -3,6 +3,9 @@ import type { GovLevel, SpendEvent, Vendor } from '@dv/shared';
 import { apiError, json } from '../errors.ts';
 import { requestCountry } from '../geo.ts';
 import { CRON_JOBS, JOBS, runJobs, type JobName } from '../ops/scheduled.ts';
+import { authenticatePlayer } from '../id/tofu.ts';
+import type { EncounterDO, TurnUsage } from '../npc/EncounterDO.ts';
+import { UUIDV7_PATTERN } from '../uuidv7.ts';
 import type { Ctx, Route } from '../router.ts';
 
 /**
@@ -55,10 +58,25 @@ function handleDrainQueue(): Response {
   return json({ drained: 0 });
 }
 
+/**
+ * GET /api/v1/_test/npc/usage?npc=<id>&encounter=<id> (M06a3): the token counts of the caller's own encounter, from its play token. The staging
+ * suite `npc-cache` reads `cacheRead` here, because the dialogue stream itself carries only the cost. Never any text.
+ */
+async function handleNpcUsage(ctx: Ctx): Promise<Response> {
+  const auth = await authenticatePlayer(ctx);
+  if (auth instanceof Response) return auth;
+  const npc = ctx.url.searchParams.get('npc') ?? '';
+  const encounter = ctx.url.searchParams.get('encounter') ?? '';
+  if (!/^[a-z][a-z0-9_-]{2,47}$/.test(npc) || !UUIDV7_PATTERN.test(encounter)) return apiError('bad_request', 'npc and encounter are required.', ctx.requestId);
+  const stub = ctx.env.ENCOUNTER.get(ctx.env.ENCOUNTER.idFromName(`enc:${auth.profileId}:${npc}:${encounter}`)) as DurableObjectStub<EncounterDO>;
+  return json({ turns: (await stub.usages()) as TurnUsage[] });
+}
+
 export const TEST_ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/_test/echo-country', handler: handleEchoCountry },
   { methods: ['GET'], path: '/api/v1/_test/fal-jwks', handler: handleFalJwks },
   { methods: ['GET', 'POST'], path: '/api/v1/_test/spend', handler: handleSpend },
   { methods: ['POST'], path: '/api/v1/_test/run-scheduled', handler: handleRunScheduled },
   { methods: ['POST'], path: '/api/v1/_test/drain-queue', handler: handleDrainQueue },
+  { methods: ['GET'], path: '/api/v1/_test/npc/usage', handler: handleNpcUsage },
 ];

@@ -179,6 +179,16 @@ export class EncounterDO extends DurableObject<Env> {
     return Promise.resolve();
   }
 
+  /** The token counts and cost of each stored turn, oldest first (never content). The staging cache check (M06a3 AC-12) reads them through a test route. */
+  usages(): Promise<TurnUsage[]> {
+    return Promise.resolve(
+      this.sql()
+        .exec<TurnRow>("SELECT i, role, content, usage, at FROM turns WHERE role = 'assistant' ORDER BY i")
+        .toArray()
+        .flatMap((r) => (r.usage === null ? [] : [JSON.parse(r.usage) as TurnUsage])),
+    );
+  }
+
   status(): Promise<EncounterStatus> {
     return Promise.resolve({
       killed: this.get('killed') === '1',

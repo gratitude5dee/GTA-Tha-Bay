@@ -5,8 +5,8 @@ import type { Env } from '../src/env.ts';
 import { drainTalk } from '../src/npc/dialogue.ts';
 import { setModerationForTests, setNameRegistryForTests } from '../src/npc/safety.ts';
 import { dropSoulCache } from '../src/npc/souls.ts';
-import { setFixtureSourceForTests } from '../src/npc/upstream-fixture.ts';
-import { setTimingForTests, setUpstreamForTests, type Timing } from '../src/npc/upstream.ts';
+import { fixtureUpstream, setFixtureSourceForTests, type FixtureRequest } from '../src/npc/upstream-fixture.ts';
+import { setTimingForTests, setUpstreamForTests, type Timing, type UpstreamCall } from '../src/npc/upstream.ts';
 import { uuidv7 } from '../src/uuidv7.ts';
 import { harness, playToken, type Harness } from './npc-helpers.ts';
 import endConversation from './fixtures/anthropic/end-conversation.sse?raw';
@@ -114,8 +114,15 @@ export interface Talk {
   dkt: string;
   /** Posts a talk request as this player (or as `pid` when given) and returns the response without reading the body. */
   post(body: RawBody | NPCDialogueRequest, init?: { npcId?: string; token?: string | null; pid?: string }): Promise<Response>;
-  /** Reads a streaming response to its end while the virtual clock runs, then waits for the commit work. */
-  read(res: Response, maxMs?: number): Promise<Frame[]>;
+  /**
+   * Reads a streaming response to its end while the virtual clock runs, then waits for the commit work. `at` maps a virtual time (ms from
+   * the start of the read) to something to do once that time has passed (kill the NPC, for example).
+   */
+  read(res: Response, opts?: { maxMs?: number; at?: Record<number, () => Promise<void>> }): Promise<Frame[]>;
+  /** Every request the upstream saw, in order, once `recordCalls` has run. */
+  calls: { call: UpstreamCall; req: FixtureRequest }[];
+  /** Wraps the fixture upstream so the suite can see each request body and its headers. */
+  recordCalls(): void;
   /** post + read. */
   say(body: RawBody | NPCDialogueRequest, init?: { npcId?: string }): Promise<{ res: Response; frames: Frame[] }>;
   dispose(): void;
@@ -154,9 +161,19 @@ export function heroSoul(): Record<string, unknown> {
   return { ...base, roles: { ...base.roles, hero: true }, dialogue: { modelTier: 'sonnet', maxTurnsPerEncounter: 6 } };
 }
 
+/** Flags and governor state live in KV and a Durable Object, which survive from one test to the next: put them back to "all clear". */
+export async function resetFlags(): Promise<void> {
+  for (const key of ['gov:level', 'ks:anthropic', 'ks:anthropic:sonnet', 'ks:genai:all', 'ks:likeness:npc_test', 'ks:likeness:npc_hero', 'flags:features']) await env.FLAGS.delete(key);
+  const gov = env.GOVERNOR.get(env.GOVERNOR.idFromName(`gov:${env.ENVIRONMENT}`)) as unknown as { forceLevel(l: number, by: string, reason: string): Promise<void> };
+  await gov.forceLevel(0, 'test', 'reset');
+  await env.FLAGS.delete('gov:level');
+}
+
 /** Pre-built app, clock, souls and fixture choice. `dispose` restores every seam. */
 export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
-  const h = harness(opts.env === undefined ? {} : { env: opts.env });
+  await resetFlags();
+  // The Rate Limiting binding counts real time (4 per 10 s per player): off here, a suite that tests it passes its own stub.
+  const h = harness({ env: { RL_TALK: undefined, ...opts.env } });
   const clock = new ManualClock();
   setTimingForTests(clock);
   const choose = opts.fixture ?? 'happy';
@@ -179,7 +196,20 @@ export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
       if (token !== null) headers['Authorization'] = `PlayToken ${token}`;
       return h.api(`/api/v1/npc/${init.npcId ?? 'npc_test'}/talk`, { method: 'POST', headers, body: JSON.stringify(body) });
     },
-    async read(res, maxMs = 20_000) {
+    calls: [],
+    recordCalls() {
+      const inner = fixtureUpstream(clock);
+      setUpstreamForTests({
+        mode: 'fixture',
+        stream: (call, signal, req) => {
+          talk.calls.push({ call, req });
+          return inner.stream(call, signal, req);
+        },
+      });
+    },
+    async read(res, opts = {}) {
+      const maxMs = opts.maxMs ?? 20_000;
+      const pending = Object.entries(opts.at ?? {}).map(([ms, fn]) => ({ ms: Number(ms), fn })).sort((a, b) => a.ms - b.ms);
       const frames: Frame[] = [];
       const reader = res.body!.getReader();
       const dec = new TextDecoder();
@@ -205,6 +235,7 @@ export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
       const started = clock.t;
       while (!ended) {
         await clock.advance(100);
+        while (pending.length > 0 && clock.t - started >= pending[0]!.ms) await pending.shift()!.fn();
         if (clock.t - started > maxMs) throw new Error(`the stream did not end within ${maxMs} virtual ms; frames so far: ${frames.map((f) => f.event).join(',')}`);
       }
       await pump;
@@ -232,3 +263,19 @@ export async function talkSetup(opts: TalkOptions = {}): Promise<Talk> {
 export const names = (frames: readonly Frame[]): string[] => frames.map((f) => f.event);
 export const find = (frames: readonly Frame[], event: DialogueEvent['event']): Frame | undefined => frames.find((f) => f.event === event);
 export const textOf = (frames: readonly Frame[]): string => frames.filter((f) => f.event === 'line.delta').map((f) => String(f.data['text'] ?? '')).join('');
+
+/** Today's counters of a player's quota object (`turn`, `cost_micros`, `npc:<id>`, ...). */
+export async function quotaUsage(pid: string): Promise<Record<string, number>> {
+  const stub = env.QUOTA.get(env.QUOTA.idFromName(`q:p:${pid}`)) as unknown as { usage(): Promise<Record<string, number>> };
+  return stub.usage();
+}
+
+/** The text a fixture's stream carries, concatenated from its text deltas. */
+export function fixtureText(sse: string): string {
+  let out = '';
+  for (const m of sse.matchAll(/^data: (.+)$/gm)) {
+    const ev = JSON.parse(m[1] as string) as { type?: string; delta?: { type?: string; text?: string } };
+    if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') out += ev.delta.text ?? '';
+  }
+  return out;
+}
