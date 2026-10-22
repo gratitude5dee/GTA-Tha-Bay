@@ -1,11 +1,16 @@
-import type { PlayTokenClaims, PlayTokenReq, PlayTokenRes } from '@dv/shared';
+import { NPC_GUARDRAILS, type PlayTokenClaims, type PlayTokenReq, type PlayTokenRes } from '@dv/shared';
+import { netQuota } from '../budget/quota.ts';
+import { nextUtcMidnight } from '../clock.ts';
 import type { Env } from '../env.ts';
 import { apiError, json } from '../errors.ts';
 import type { Ctx } from '../router.ts';
+import { bindDeviceKey } from './bind.ts';
+import { netHash } from './nethash.ts';
 
 /**
- * Route 5, `POST /api/v1/id/play-token`: the stateless P0 play-token mint (M04b3, DL-182). Trust-on-first-use binding of the
- * device key to the profile id arrives with M06a1; here the proof only shows that the caller holds the key it posted.
+ * Route 5, `POST /api/v1/id/play-token`: the P0 play-token mint (M04b3, DL-182). The proof shows that the caller holds the key it posted.
+ * M06a1 adds the trust-on-first-use binding of that key to the profile id (a later request for the pid under another key is 403, id/bind.ts)
+ * and the per-network cap of 50 tokens a UTC day (PlayerQuotaDO `q:n:<netHash>`).
  *
  * Secret format (BD-M04b3-01): `PLAY_TOKEN_HMAC = "<kid>:<base64url of 32 bytes>"`; `PLAY_TOKEN_HMAC_PREV` has the same
  * format and verifies only. Nothing here logs a profile id, thumbprint, key or token.
@@ -137,7 +142,7 @@ export async function handlePlayToken(ctx: Ctx): Promise<Response> {
   const req = parseRequest(await readBody(request));
   if (!req) return bad('Invalid play-token request.');
   if (req.age !== '18p') return apiError('age_blocked', 'Online features need an 18+ attestation.', requestId);
-  const now = Date.now();
+  const now = ctx.deps.now();
   if (Math.abs(now - req.ts) > PROOF_SKEW_MS) return bad('Proof timestamp out of range.');
   const sigBytes = b64urlDecode(req.sig);
   if (!sigBytes || sigBytes.length !== 64) return bad('Invalid proof signature.');
@@ -156,6 +161,15 @@ export async function handlePlayToken(ctx: Ctx): Promise<Response> {
   }
   if (!verified) return bad('Invalid proof signature.');
   const dkt = await jwkThumbprint(req.jwk);
+  // Per-network cap: counted once the proof is valid, so unsigned noise never spends a network's allowance.
+  if (env.QUOTA) {
+    const taken = await netQuota(env, await netHash(request, env.QUOTA_NET_SALT_SECRET, now)).take('play_token', NPC_GUARDRAILS.playTokensPerNet);
+    if (!taken.ok) {
+      return apiError('rate_limited', 'Too many play tokens from this network today.', requestId, { retryAfterMs: nextUtcMidnight(now) - now });
+    }
+  }
+  const mismatch = await bindDeviceKey(ctx, req.pid, dkt);
+  if (mismatch !== null) return mismatch;
   const exp = now + PLAY_TOKEN_TTL_MS;
   const token = await mint(env, { pid: req.pid, dkt, age: '18p', iat: now, exp });
   if (token === null) {

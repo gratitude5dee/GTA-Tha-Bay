@@ -8,13 +8,18 @@ import { ADMIN_PATH, handleDeleteMe, handleExportMe, handleLogin, handleLogout, 
 import { handleCutsceneStatus, handleFalHook, handlePrewarm } from './cutscenes/routes.ts';
 import { handlePlayToken } from './id/playtoken.ts';
 import { handleBoot } from './routes/boot.ts';
+import { handleKill } from './routes/admin-roster.ts';
+import { handlePutFlag } from './routes/admin-flags.ts';
 import { handleGenaiStatus } from './routes/genai.ts';
 import { handleHealth } from './routes/health.ts';
 import { handleLegal } from './routes/legal.ts';
 import { handleMedia } from './routes/media.ts';
+import { handleDeleteMe as handleForgetMe, handleExport, handleMe as handleIdentityMe } from './routes/me.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
+import { handleRoster } from './routes/roster.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
-import { CRON_JOBS, runJobs } from './ops/scheduled.ts';
+import { handleQueueBatch } from './ops/jobs.ts';
+import { CRON_JOBS, CRON_SCHEDULE, runJobs } from './ops/scheduled.ts';
 import { uuidv7 } from './uuidv7.ts';
 
 export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
@@ -41,6 +46,13 @@ const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/cutscenes', prefix: true, handler: handleCutsceneStatus },
   { methods: ['POST'], path: '/api/v1/admin/cutscenes/prewarm', handler: handlePrewarm },
   { methods: ['POST'], path: '/api/v1/hooks/fal', handler: handleFalHook },
+  // M06a1: roster (30), kill (46), flags (47), identity state, export and forget (14). Staff routes carry the ops token until M12a1.
+  { methods: ['GET'], path: '/api/v1/roster', handler: handleRoster },
+  { methods: ['GET'], path: '/api/v1/me', handler: handleIdentityMe },
+  { methods: ['DELETE'], path: '/api/v1/me', handler: handleForgetMe },
+  { methods: ['GET'], path: '/api/v1/me/export', handler: handleExport },
+  { methods: ['POST'], path: '/api/v1/admin/roster', prefix: true, handler: handleKill },
+  { methods: ['PUT'], path: '/api/v1/admin/flags', prefix: true, handler: handlePutFlag },
 ];
 
 /** Test routes are loaded behind a build-time constant so the production bundle does not contain them. */
@@ -81,6 +93,7 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
 export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<AppDeps, 'adminPath'>> = {}): {
   fetch(request: Request, env: Env): Promise<Response>;
   scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void>;
+  queue(batch: MessageBatch<unknown>, env: Env): Promise<void>;
 } {
   const { adminPath, ...rest } = overrides;
   const deps = makeDeps(adminPath ?? ADMIN_PATH, rest);
@@ -99,9 +112,14 @@ export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<Ap
       res.headers.set('X-Request-Id', requestId);
       return res;
     },
+    /** Queue consumers of `tha-bay-jobs` and `tha-bay-spend` (M06a1). */
+    queue(batch, env) {
+      return handleQueueBatch(batch, env, deps);
+    },
     /** Cron `10 3 * * *` (M05d): catalog-sync, then ledger-export. Cron Triggers do not run in Previews; the staging-only test route for scheduled jobs stands in there. */
-    scheduled(_controller, env, ctx) {
-      ctx.waitUntil(runJobs(env, deps, CRON_JOBS).then((results) => deps.log(JSON.stringify({ event: 'cron.done', results }))));
+    scheduled(controller, env, ctx) {
+      const jobs = CRON_SCHEDULE[controller.cron] ?? CRON_JOBS;
+      ctx.waitUntil(runJobs(env, deps, jobs).then((results) => deps.log(JSON.stringify({ event: 'cron.done', cron: controller.cron, results }))));
       return Promise.resolve();
     },
   };

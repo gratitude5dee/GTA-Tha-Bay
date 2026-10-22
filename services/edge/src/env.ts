@@ -16,6 +16,14 @@ export interface Env {
   FAL_GATE: DurableObjectNamespace;
   GOVERNOR: DurableObjectNamespace;
   CUTSCENE_JOB: DurableObjectNamespace;
+  /** EncounterDO: one instance per conversation `enc:<pid>:<npcId>:<encounterId>`, plus the per-NPC open-set index `enc:index:<npcId>` (M06a1). */
+  ENCOUNTER: DurableObjectNamespace;
+  /** PlayerQuotaDO: `q:p:<pid>` per player and `q:n:<netHash>` per network (M06a1). */
+  QUOTA: DurableObjectNamespace;
+  /** Background jobs: `summarize`, `forget`, `export` (queue tha-bay-jobs). Absent where no queue is bound: the job then runs inline. */
+  JOBS?: Queue<unknown> | undefined;
+  /** Spend events of settled turns (queue tha-bay-spend), consumed into BudgetGovernorDO.ingest. Absent: events are ingested inline. */
+  SPEND?: Queue<unknown> | undefined;
   /** Workflow `gen-job` (GenJobWorkflow). */
   GEN_WF: Workflow;
   /** Analytics Engine dataset tha_bay_telemetry. Absent in a runtime that does not provide it. */
