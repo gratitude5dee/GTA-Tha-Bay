@@ -3,7 +3,7 @@ import { Transform } from '@dv/engine/sim';
 import { describe, expect, it } from 'vitest';
 import {
   all, ambient, at, beat, camera, clock, defineMission, despawn, emit, fade, fail, heat, ifOp, loop, marker, npc, pass, prop, race, say, setFlag, spawn, stage, task, text, trust, give,
-  wait, waitEvent, waitFor, waitUntil, circle, walkTo, inVehicle, flagIs, eventSeen,
+  wait, waitEvent, waitFor, waitUntil, circle, walkTo, inVehicle, flagIs, eventSeen, failWhen, destroyed,
 } from '../src/authoring/index.ts';
 import { ll, makeHarness } from './harness.ts';
 
@@ -271,6 +271,19 @@ describe('mission VM: effect ops', () => {
     h.start(ops([waitUntil(inVehicle('pal'), { timeoutSec: 1 }), setFlag({ 't.ok': 1 })]));
     h.step(90);
     expect(flag(h, 't.ok')).toBe(1);
+  });
+});
+
+describe('fail rules', () => {
+  it('a destroyed(cast) rule does not fire for a cast entry whose spawn has not taken effect yet, and fires once it is gone', () => {
+    const h = makeHarness();
+    h.start(ops([], { fail: [failWhen(destroyed('box'), 'mission.t.box_gone')] }));
+    h.step(5);
+    expect(h.rt.phase).toBe('stage');
+    h.ecs.commands.despawn(h.at(`mis:${ID}:box`));
+    h.step(3);
+    expect(h.rt.phase).toBe('failed');
+    expect(h.vm.get('hud.mission')).toMatchObject({ failKey: 'mission.t.box_gone' });
   });
 });
 

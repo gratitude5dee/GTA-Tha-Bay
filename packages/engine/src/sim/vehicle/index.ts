@@ -3,7 +3,7 @@ import type { SimCore } from '../loop/sim-core.ts';
 import type { VehiclePhysics } from '../physics/backend.ts';
 import { InteractionService } from '../interaction/interaction.ts';
 import { enterVehicleHandler } from '../interaction/handlers.ts';
-import { PrefabRegistry, ENGINE_PREFABS, STORY_PREFABS, VEHICLE_PREFABS } from '../prefabs/registry.ts';
+import { PrefabRegistry, ENGINE_PREFABS, VEHICLE_PREFABS } from '../prefabs/registry.ts';
 import { ragdollCap, RagdollLite, vehiclePedHitSystem } from '../ragdoll/ragdoll-lite.ts';
 import { closureBarrierSystem } from '../world/closures.ts';
 import { LocalPlayer, Control, Vehicle, Transform } from '../ecs/components.ts';
@@ -73,7 +73,6 @@ export function registerVehicleModule(
   const prefabs = existing ?? new PrefabRegistry(core.ecs, backend);
   if (!existing) prefabs.load(ENGINE_PREFABS);
   prefabs.load(VEHICLE_PREFABS);
-  prefabs.load(STORY_PREFABS);
 
   const interaction = new InteractionService(core.ecs, core.services);
   interaction.register(enterVehicleHandler({ backend, store }));

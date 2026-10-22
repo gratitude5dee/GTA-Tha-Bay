@@ -1,4 +1,5 @@
-import type { DirectorScript, MissionCheckpointV1, MissionIR } from '@dv/shared';
+import type { MissionCheckpointV1, MissionIR } from '@dv/shared';
+import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import { Transform } from '@dv/engine/sim';
 import { describe, expect, it } from 'vitest';
 import {

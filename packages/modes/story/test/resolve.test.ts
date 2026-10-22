@@ -1,4 +1,4 @@
-import type { MissionIR, WorldResolver } from '@dv/shared';
+import type { MissionIR, StorySlice, WorldResolver } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { at, atLandmark, circle, defineMission, landmark, npc, poly, route, stage, waitFor } from '../src/authoring/index.ts';
 import { resolveMission } from '../src/compiler/resolve.ts';
@@ -104,7 +104,7 @@ describe('a mission that reaches starting (AC-8)', () => {
   });
 
   it('drops a saved mission of an older version or another world bake, and resumes one that matches when asked', () => {
-    const cp = (version: number, bake: string): never => ({ id: ID, checkpoint: { schema: 1, data: { missionId: ID, version, worldBake: bake, stage: 0, attempt: 1, seed: 1, rng: [1, 2, 3, 4], elapsedSec: 0, flags: {}, objectivesDone: [], talkResults: {}, player: { x: 0, y: 0, z: 0, yaw: 0, health: 1 }, cast: {}, walletDeltaCents: 0 } } }) as never;
+    const cp = (version: number, bake: string): NonNullable<StorySlice['activeMission']> => ({ id: ID, checkpoint: { schema: 1, data: { missionId: ID, version, worldBake: bake, stage: 0, attempt: 1, seed: 1, rng: [1, 2, 3, 4], elapsedSec: 0, flags: {}, objectivesDone: [], talkResults: {}, player: { x: 0, y: 0, z: 0, yaw: 0, health: 1 }, cast: {}, walletDeltaCents: 0 } } }) as NonNullable<StorySlice['activeMission']>;
     const old = controller(flatResolver('new-bake'));
     old.h.story.activeMission = cp(1, 'new-bake');
     expect(old.c.begin(mission(), { resume: true }).ok).toBe(true);

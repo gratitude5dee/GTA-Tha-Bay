@@ -288,7 +288,7 @@ describe('objectives: every kind completes, fails and reads the world', () => {
     const f = makeHarness();
     f.start(one(deliver('car', 'z', { id: 'd', fragile: 0.3 })));
     f.step(3);
-    f.ecs.store(VehicleDamage).body[f.ecs.resolve(f.at(`mis:${ID}:car`)) as number] = 0.6;
+    f.ecs.store(VehicleDamage).body[f.ecs.resolve(f.at(`mis:${ID}:car`)) as number] = 0.4;
     f.step(3);
     expect(f.rt.phase).toBe('failed');
   });

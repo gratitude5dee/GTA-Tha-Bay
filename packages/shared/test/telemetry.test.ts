@@ -36,10 +36,10 @@ describe('C16 telemetry schemas', () => {
     expect(validateBatch({ ...valid, events: [{ ...valid.events[0], props: Object.fromEntries(Array.from({ length: 17 }, (_, i) => [`k${i}`, i])) }] })).toBe(false);
   });
 
-  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) and the mode names (M04a2), all client names', () => {
+  it('names.schema.json covers the M00a names, err.asset (M01e), world.stream (M02b1) the mode names (M04a2) and the mission names (M05a1), all client names', () => {
     const names = Object.keys(namesSchema.$defs);
     expect(names.sort()).toEqual(
-      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit'].sort(),
+      ['app.start', 'app.ready', 'app.hidden', 'app.abnormal_exit', 'app.cold_resume', 'err.js', 'err.promise', 'err.gpu', 'err.asset', 'perf.minute', 'tier.decision', 'storage.persist', 'pwa.install', 'ui.page', 'world.stream', 'mode.enter', 'mode.exit', 'unlock.emit', 'mission.start', 'mission.fail', 'mission.complete', 'err.sim'].sort(),
     );
     for (const n of names) expect(CLIENT_TELEMETRY_NAMES as readonly string[]).toContain(n);
   });
@@ -51,7 +51,7 @@ describe('C16 telemetry schemas', () => {
       const d = def as { properties: Record<string, { type?: string; enum?: unknown[] }>; required: string[] };
       for (const key of d.required) {
         const p = d.properties[key]!;
-        props[key] = p.enum ? p.enum[0] : p.type === 'boolean' ? true : p.type === 'number' ? 1 : 'x';
+        props[key] = p.enum ? p.enum[0] : p.type === 'boolean' ? true : p.type === 'number' || p.type === 'integer' ? 1 : 'x';
       }
       expect(validate(props), name).toBe(true);
       expect(validate({ ...props, extra: 1 }), `${name} rejects unknown props`).toBe(false);

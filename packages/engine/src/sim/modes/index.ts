@@ -32,6 +32,7 @@ import { ModeEventBus, ModeHost, type SessionSlices } from './host.ts';
 import { EconomyImpl, economyWallet, type ForwardingFareSink } from './economy.ts';
 import { NotYetAvailable } from './stubs.ts';
 import { createWorldStandin } from './world-standin.ts';
+import { STORY_PREFABS, type PrefabRegistry } from '../prefabs/registry.ts';
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
 
@@ -114,6 +115,23 @@ export function boundaryToast(ui: UiBridge, e: SimEvent): boolean {
   if (e.t !== 'world.boundary' || e.s !== 'countyLine') return false;
   ui.toast({ id: 'world.boundary.countyLine', kind: 'info', text: 'world.boundary.countyLine' });
   return true;
+}
+
+/**
+ * The prefab service a mode sees (M05a1): the vehicle module's registry, plus the two prefabs the mission VM spawns (`ped.actor`,
+ * `marker.beam`), which are loaded at the first spawn of either. Loading them at boot would intern their strings and change the
+ * `Key` ids of every session, and with them the state hash of a session that never runs a mission.
+ */
+export function withStoryPrefabs(reg: PrefabRegistry | null): PrefabService | null {
+  if (!reg) return null;
+  const story = new Set(STORY_PREFABS.map((d) => d.id));
+  return {
+    spawn: (id, at, key, init) => {
+      if (story.has(id) && !reg.has(id)) reg.load(STORY_PREFABS);
+      return reg.spawn(id, { pos: at.pos, yaw: at.yaw }, key, init);
+    },
+    despawn: (h) => reg.despawn(h),
+  };
 }
 
 export function freshSlices(): SessionSlices {
@@ -316,7 +334,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         ports: {
           tick,
           ecs: s.ecs as unknown as EcsApi,
-          prefabs: (services.vehicleCtx?.prefabs as unknown as PrefabService | undefined) ?? null,
+          prefabs: withStoryPrefabs((services.vehicleCtx?.prefabs as unknown as PrefabRegistry | undefined) ?? null),
           physics,
           rng: services.rng,
           clock: services.clock,

@@ -170,6 +170,50 @@
       "required": ["mode", "reason"],
       "additionalProperties": false
     },
+    "mission.start": {
+      "type": "object",
+      "properties": {
+        "mid": { "type": "string", "maxLength": 84 },
+        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
+        "sec": { "type": "number", "minimum": 0 },
+        "attempt": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["mid", "stage", "sec", "attempt"],
+      "additionalProperties": false
+    },
+    "mission.fail": {
+      "type": "object",
+      "properties": {
+        "mid": { "type": "string", "maxLength": 84 },
+        "reason": { "type": "string", "maxLength": 96 },
+        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
+        "sec": { "type": "number", "minimum": 0 },
+        "attempt": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["mid", "stage", "sec", "attempt"],
+      "additionalProperties": false
+    },
+    "mission.complete": {
+      "type": "object",
+      "properties": {
+        "mid": { "type": "string", "maxLength": 84 },
+        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
+        "sec": { "type": "number", "minimum": 0 },
+        "attempt": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["mid", "stage", "sec", "attempt"],
+      "additionalProperties": false
+    },
+    "err.sim": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "maxLength": 32 },
+        "mid": { "type": "string", "maxLength": 84 },
+        "thread": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["code"],
+      "additionalProperties": false
+    },
     "unlock.emit": {
       "type": "object",
       "properties": {

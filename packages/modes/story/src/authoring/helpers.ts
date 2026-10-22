@@ -82,7 +82,7 @@ export const modeObjective = (hook: string, o?: Base): DraftObjective => draft({
 
 export const talkDef = (d: Omit<TalkDef, 'maxTurns' | 'ink'> & { maxTurns?: number; ink?: string }): TalkDef => ({ maxTurns: 4, ink: '', ...d });
 
-export const modeHook = (h: ModeHook): ModeHook => h;
+export const modeHook = (h: Omit<ModeHook, 'stub'> & { stub: DraftObjective }): ModeHook => h as unknown as ModeHook;
 
 // ---- stages and fail rules ----------------------------------------------------------------------------------------------------
 

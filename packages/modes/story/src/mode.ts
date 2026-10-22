@@ -44,6 +44,8 @@ export interface BeginOptions {
 }
 
 const DEBUG_EVERY = 6;
+/** The QA boot path starts the mission on the first tick, before the gray-box colliders exist: it asks again every 6 ticks for this long. */
+const PATIENCE_TICKS = 900;
 
 /** The pieces the story mode holds, apart from the `GameModeSim` shell, so that tests and the QA boot can drive them. */
 export class StoryController {
@@ -57,6 +59,8 @@ export class StoryController {
   private directors = new Map<string, DirectorScript>();
   private lines: Readonly<Record<string, string>> = {};
   private flags: RuntimeFlags = { ...DEFAULT_FLAGS };
+  /** A mission waiting for the world under it to be resident (the QA boot path); see `PATIENCE_TICKS`. */
+  private pending: { ir: MissionIR; o: BeginOptions; deadline: number } | null = null;
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -65,6 +69,7 @@ export class StoryController {
     this.story = story;
     this.rt?.dispose();
     this.rt = null;
+    this.pending = null;
   }
 
   /** `?mission=<id>` in a QA build: the page put the IR in the boot payload. */
@@ -72,13 +77,13 @@ export class StoryController {
     if (import.meta.env.VITE_DV_QA !== '1' || !this.env.qa || !this.ctx) return;
     const boot = this.env.bootConfig()['mission'] as QaMissionBoot | undefined;
     if (!boot || typeof boot !== 'object' || !boot.ir) return;
-    this.begin(boot.ir, {
+    this.pending = { ir: boot.ir, deadline: this.ctx.tick + PATIENCE_TICKS, o: {
       ...(boot.stage !== undefined ? { stage: boot.stage } : {}),
       ...(boot.seed !== undefined ? { seed: boot.seed } : {}),
       flags: { ...(boot.hooks ? { hooks: boot.hooks } : {}), ...(boot.talk ? { talk: boot.talk } : {}), ...(boot.beats ? { beats: boot.beats } : {}) },
       ...(boot.directors ? { directors: boot.directors } : {}),
       ...(boot.lines ? { lines: boot.lines } : {}),
-    });
+    } };
   }
 
   /** Loads, resolves and starts a mission. A mission that does not resolve is disabled (`E_REF_*`, telemetry `unresolved`). */
@@ -99,7 +104,7 @@ export class StoryController {
     if ('errors' in res) {
       this.disabled.set(ir.id, res.errors);
       ctx.telemetry.emit('mission.fail', { mid: ir.id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
-      ctx.ui.toast({ id: `mission:${ir.id}:disabled`, kind: 'warning', text: 'mission.disabled', params: { code: res.errors[0]?.code ?? 'E_REF_ZONE' } });
+      ctx.ui.toast({ id: `mission:${ir.id}:disabled`, kind: 'warning', text: 'mission.disabled', params: { code: res.errors[0]?.code ?? 'E_REF_ZONE', pointer: res.errors[0]?.pointer ?? '/' } });
       return { ok: false, errors: res.errors };
     }
     this.disabled.delete(ir.id);
@@ -123,9 +128,17 @@ export class StoryController {
   }
 
   tick(ctx: ModeContext): void {
+    this.ctx = ctx;
+    const waiting = this.pending;
+    if (waiting && ctx.tick % 6 === 0) {
+      // `starting`: resolve again until the world under the mission is there, then start it; at the deadline start it anyway, which reports why not
+      if (!('errors' in resolveMission(waiting.ir, ctx.world.resolver)) || ctx.tick >= waiting.deadline) {
+        this.pending = null;
+        this.begin(waiting.ir, waiting.o);
+      }
+    }
     const rt = this.rt;
     if (!rt) return;
-    this.ctx = ctx;
     if (rt.active) rt.tick(ctx);
     // QA builds only: the debug state for the overlay and the bridge; the literal test lets a production build drop the import
     if (import.meta.env.VITE_DV_QA === '1' && this.env.qa) {
@@ -200,6 +213,7 @@ export class StoryController {
   }
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
+    this.pending = null;
     const rt = this.rt;
     if (!rt) return;
     rt.bind(ctx);

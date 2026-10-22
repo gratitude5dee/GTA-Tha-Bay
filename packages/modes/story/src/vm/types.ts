@@ -82,6 +82,8 @@ export interface CastRt {
   live: boolean;
   /** Collected into the player's hands (`collect`): the entity is gone but the cast entry counts as carried. */
   carried: boolean;
+  /** True once the entity was seen in the world (a spawn takes effect one stage later). */
+  seen: boolean;
 }
 
 export type EndRequest = { k: 'pass' } | { k: 'fail'; reason: string };

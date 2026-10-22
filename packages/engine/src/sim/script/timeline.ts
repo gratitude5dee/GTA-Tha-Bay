@@ -1,4 +1,4 @@
-import type { EcsApi, EntityHandle, JsonObject, TimelineRecorder } from '@dv/shared';
+import { utf8Bytes, type EcsApi, type EntityHandle, type JsonObject, type TimelineRecorder } from '@dv/shared';
 import { Transform } from '../ecs/components.ts';
 
 export interface TimelineEvent {
@@ -98,7 +98,7 @@ export class TimelineRecorderImpl implements TimelineRecorder {
       external: this.ext,
       tracks: [...this.samples].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)),
     });
-    const bytes = new TextEncoder().encode(body);
+    const bytes = utf8Bytes(body);
     return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
   }
 }

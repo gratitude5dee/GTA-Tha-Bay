@@ -303,7 +303,9 @@ export class MissionRuntime implements OpHost {
     const cr = this.castRt.get(cast);
     if (!cr || !cr.live) return false;
     if (this.carriedSet.has(cast)) return false;
-    return this.actors.cast(cast) === null || this.actors.isKo(cast) || this.actors.damage(cast) >= 0.98;
+    if (this.actors.cast(cast) === null) return cr.seen;
+    cr.seen = true;
+    return this.actors.isKo(cast) || this.actors.damage(cast) >= 0.98;
   }
 
   // ---------------------------------------------------------------- start and end
@@ -323,7 +325,7 @@ export class MissionRuntime implements OpHost {
     this.seed = o.seed;
     this.rng = new Rng(o.seed);
     this.phase = 'starting';
-    for (const name of Object.keys(this.ir.cast).sort(byStr)) this.castRt.set(name, { name, key: this.actors.keyOf(name), live: false, carried: false });
+    for (const name of Object.keys(this.ir.cast).sort(byStr)) this.castRt.set(name, { name, key: this.actors.keyOf(name), live: false, carried: false, seen: false });
     this.defineZones();
     this.applyStartPolicy();
     this.opts.log?.(`mission ${this.ir.id} start attempt ${o.attempt}`);
@@ -893,6 +895,7 @@ export class MissionRuntime implements OpHost {
     const gy = this.ctx.physics.groundY(at.pos[0], at.pos[2]);
     soft(() => this.ctx.prefabs.spawn(prefab, { pos: [at.pos[0], pose ? at.pos[1] : (gy ?? at.pos[1]), at.pos[2]], yaw: at.yaw }, cr.key));
     cr.live = true;
+    cr.seen = false;
   }
 
   despawnCast(name: string, keepRecord = false): void {
@@ -901,6 +904,7 @@ export class MissionRuntime implements OpHost {
     const h = this.actors.cast(name);
     if (h !== null) soft(() => this.ctx.prefabs.despawn(h));
     cr.live = false;
+    cr.seen = false;
     this.tasks.clear(name);
     if (!keepRecord) this.carriedSet.delete(name);
   }

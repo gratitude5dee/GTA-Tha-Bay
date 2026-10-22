@@ -97,7 +97,7 @@ export function mountMissionOverlay(host: MissionBridgeHost & { setPaused?(p: bo
       root.append(row);
       return;
     }
-    const head = line(`MISSION ${st.mission ?? '-'}  ${st.phase}  stage ${st.stage + 1}/${st.stages} (${st.stageId ?? '-'})  attempt ${st.attempt}  ${st.clockSec}s${st.beat ? '  BEAT' : ''}`);
+    const head = line(`MISSION ${st.mission ?? '-'}  ${st.phase}  #${st.stage + 1}/${st.stages} (${st.stageId ?? '-'})  attempt ${st.attempt}  ${st.clockSec}s${st.beat ? '  BEAT' : ''}`);
     head.dataset['testid'] = 'mission-head';
     root.append(head);
     if (st.failReason) root.append(line(`failed: ${st.failReason}`, 'dv-mission__failed'));

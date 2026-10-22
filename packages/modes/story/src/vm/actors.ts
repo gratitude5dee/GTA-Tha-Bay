@@ -120,14 +120,14 @@ export class Actors {
     return (hp.ko[id] as number) !== 0 || (hp.hp[id] as number) <= 0;
   }
 
-  /** Vehicle damage 0..1 (`VehicleDamage.body`), 0 for an entity without it. */
+  /** Vehicle damage 0..1: `VehicleDamage.body` holds the condition that is left (1 new, 0 wrecked), so the damage is its complement. 0 for an entity without it. */
   damage(who: string): number {
     const h = this.handleOf(who);
     if (h === null) return 0;
     const ecs = this.get().ecs;
     const id = ecs.resolve(h);
     if (id === null || !ecs.has(h, VehicleDamage)) return 0;
-    return ecs.store(VehicleDamage).body[id] as number;
+    return 1 - (ecs.store(VehicleDamage).body[id] as number);
   }
 
   isVehicle(h: EntityHandle): boolean {
