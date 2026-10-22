@@ -216,7 +216,7 @@ describe('the driver (BotDriver story.autoplayer)', () => {
   it('stays neutral outside the stage phase and for the first `skip` ticks', () => {
     const d = createStoryAutoplayer();
     const o = obs({ cast: { car: veh([1, 0, 0]) }, objectives: [ov({ id: 'e', text: 't', k: 'enterVehicle', vehicle: 'car' })], phase: 'intro' });
-    d.init({ observe: () => o, rng: () => () => 0.5 }, { skip: 10 });
+    d.init({ observe: () => o as unknown as Record<string, unknown>, rng: () => () => 0.5 }, { skip: 10 });
     expect(d.frame(0)).toMatchObject({ buttons: 0, moveY: 0, throttle: 0 });
     const d2 = createStoryAutoplayer();
     d2.init({ observe: () => ({ ...o, phase: 'stage' }), rng: () => () => 0.5 }, { skip: 10 });

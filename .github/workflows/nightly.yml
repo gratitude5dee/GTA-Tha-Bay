@@ -45,6 +45,9 @@ jobs:
       # M02a2: the offline synth world, baked and gated end to end (S5 to S14). Needs no network and no secrets.
       - name: World bake and S14 gates (synth)
         run: pnpm map:build -- --area synth && pnpm map:verify -- --area synth
+      # M05a2: the missions under the autoplayer again, on the worlds the mission files name (gray-box today; each SF mission adds its bake)
+      - name: Missions (autoplayer, 3 seeds x 2 runs)
+        run: pnpm check:missions
       - name: Optional licence reports (report only)
         continue-on-error: true
         run: |

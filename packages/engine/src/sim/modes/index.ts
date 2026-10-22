@@ -10,7 +10,7 @@
  */
 import {
   SimStage, datan2,
-  type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
+  type BotInput, type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
   type GameModeSim, type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand,
   type UnlockDef, type WorldApi,
 } from '@dv/shared';
@@ -77,6 +77,8 @@ export interface StoryWrapEnv {
   bootConfig(): Readonly<Record<string, unknown>>;
   /** Comfort settings the cinematic director obeys (M05a2): `accessibility.reducedMotion` of the open profile, and the XR camera mode. */
   comfort?(): { reducedMotion: boolean; xr: boolean };
+  /** QA builds: installs (null removes) the sim worker's bot input source, for the story autoplayer on a live mission (M05a2). */
+  setBot?(bot: BotInput | null): void;
 }
 
 export interface ModesModule extends SimModule {
@@ -328,6 +330,9 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         qa: runtime.env.qa,
         bootConfig: () => ctx.boot.config,
         comfort: () => ({ reducedMotion: live.settings.accessibility.reducedMotion, xr: ctx.boot.config['xr'] === true }),
+        setBot: (bot) => {
+          if (runtime.env.qa) runtime.bot = bot;
+        },
       };
       for (const d of builtinDescriptors({
         story: () => live.story,

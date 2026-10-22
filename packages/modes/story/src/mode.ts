@@ -214,6 +214,9 @@ export class StoryController {
           rt.command({ name: 'debug.flag', key: a['key'], value: a['value'] });
         }
         return;
+      case 'debug.autoplay':
+        void this.liveAutoplay(a['on'] !== false);
+        return;
       case 'debug.predicate':
         if (typeof a['path'] === 'string' && this.ctx) {
           const value = rt.predicateAt(a['path']);
@@ -223,6 +226,14 @@ export class StoryController {
       default:
         return;
     }
+  }
+
+  /** QA: the story autoplayer plays the running mission live (`__dvBridge.mission.autoplay`). Not an oracle: the live profile is `local`. */
+  private async liveAutoplay(on: boolean): Promise<void> {
+    const live = await import('./autoplay/live.ts');
+    const host = { ctx: () => this.ctx, rt: () => this.rt, setBot: (b: Parameters<NonNullable<StoryWrapEnv['setBot']>>[0]) => this.env.setBot?.(b) };
+    if (on) live.startLiveAutoplay(host);
+    else live.stopLiveAutoplay(host);
   }
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {

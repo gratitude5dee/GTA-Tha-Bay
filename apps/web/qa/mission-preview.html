@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Mission preview</title>
+    <style>
+      :root { color-scheme: dark; --bg: #10141c; --panel: #171d28; --line: #2a3446; --ink: #e6e9ef; --dim: #93a0b5; --accent: #7cc4ff; --warm: #ffb86b; }
+      @media (prefers-color-scheme: light) { :root:not([data-theme='dark']) { --bg: #f4f6fa; --panel: #ffffff; --line: #ccd3e0; --ink: #162033; --dim: #56627a; --accent: #1a6fc0; --warm: #b35a00; } }
+      * { box-sizing: border-box; }
+      body { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 0; padding: 16px; background: var(--bg); color: var(--ink); }
+      h1 { font-size: 16px; margin: 0 0 8px; }
+      .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 8px 0; }
+      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+      canvas { display: block; width: 100%; max-width: 720px; aspect-ratio: 4 / 3; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+      input[type='range'] { width: 100%; }
+      #chapters { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 8px 0; list-style: none; }
+      #chapters button { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+      #chapters button[aria-current='true'] { border-color: var(--accent); color: var(--accent); }
+      #subtitle { min-height: 3em; padding: 8px 12px; border-left: 3px solid var(--warm); }
+      .dim { color: var(--dim); }
+    </style>
+  </head>
+  <body>
+    <h1>Mission preview</h1>
+    <p class="dim">A recorded run of a mission (<code>pnpm missions:preview -- --mission m.dev.sample --seed 1</code> writes <code>test-results/preview/m.dev.sample.1.dvtl</code>). Open the file here, or pass <code>?timeline=&lt;url&gt;</code>.</p>
+    <div class="row">
+      <label>Timeline file <input id="file" type="file" accept=".dvtl" data-testid="file" /></label>
+      <span id="status" data-testid="status" class="dim">no file loaded</span>
+    </div>
+    <div class="panel">
+      <canvas id="map" width="720" height="540" data-testid="map" aria-label="Top-down view of the recorded tracks"></canvas>
+      <div class="row"><input id="scrub" type="range" min="0" max="0" value="0" step="1" data-testid="scrub" aria-label="Tick" /></div>
+      <div class="row">
+        <span>tick <b id="tick" data-testid="tick">0</b> (<span id="sec">0.0</span> s)</span>
+        <span>stage <b id="stage" data-testid="stage">-</b></span>
+        <span>player <b id="pos" data-testid="pos">-</b></span>
+      </div>
+      <ul id="chapters" data-testid="chapters" aria-label="Chapters"></ul>
+      <div id="subtitle" data-testid="subtitle" aria-live="polite"></div>
+    </div>
+    <script type="module" src="/src/qa/mission-preview.ts"></script>
+  </body>
+</html>

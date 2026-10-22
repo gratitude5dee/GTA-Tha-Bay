@@ -1050,8 +1050,8 @@ export class MissionRuntime implements OpHost {
         return;
       case 'say': {
         const text = this.lineText(op.line);
-        this.noteEvent('say', { speaker: op.speaker, line: op.line });
         const ticks = Math.max(SAY_MIN_TICKS, Math.ceil(text.length * SAY_TICKS_PER_CHAR));
+        this.noteEvent('say', { speaker: op.speaker, line: op.line, ticks });
         this.ctx.ui.patch('hud.subtitle', { speaker: op.speaker, text: op.line, startMs: Math.round((this.ctx.tick * 1000) / 60), endMs: Math.round(((this.ctx.tick + ticks) * 1000) / 60) });
         return op.wait ? { k: 'clock', until: this.clock + ticks } : undefined;
       }

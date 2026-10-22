@@ -108,6 +108,8 @@ export class DirectorSystem {
       act: (a, mark) => this.act(script, a, mark),
       subtitle: (v) => {
         const t0 = Math.round((h.ctx().tick * 1000) / 60);
+        // the cue is also a `mis.say` on the timeline, so the preview shows director subtitles like scripted lines
+        if (v) h.note('say', { speaker: v.speaker, line: v.line, ticks: Math.round(((v.endMs - v.startMs) * 60) / 1000) });
         h.ctx().ui.patch('hud.subtitle', v ? { speaker: v.speaker, text: v.line, startMs: t0, endMs: t0 + (v.endMs - v.startMs) } : null);
       },
       rng,
