@@ -61,6 +61,8 @@ export interface QaFlags {
   readonly racing: boolean;
   /** ?racing=demo: like ?racing=1, and the QA page starts the straight demo race by itself (no baked streets needed, M07a1). */
   readonly racingDemo: boolean;
+  /** ?tycoon=1 mounts the Business Tycoon QA panel and the bridge `tycoon` (M09a1); the mode itself starts from the panel. */
+  readonly tycoon: boolean;
 }
 
 export type QaPlay = 'sandbox' | 'story' | 'off';
@@ -94,6 +96,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   beats: null,
   racing: false,
   racingDemo: false,
+  tycoon: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -173,5 +176,6 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     beats: q.get('beats') === 'instant' ? 'instant' : q.get('beats') === 'fallback' ? 'fallback' : q.get('beats') === 'video' ? 'video' : null,
     racing: q.get('racing') === '1' || q.get('racing') === 'demo',
     racingDemo: q.get('racing') === 'demo',
+    tycoon: q.get('tycoon') === '1',
   };
 }

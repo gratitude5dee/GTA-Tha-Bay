@@ -1,5 +1,6 @@
 import type { JsonObject, SliceKind } from '@dv/shared';
 import { CURRENT_SCHEMA } from './schemas.ts';
+import { TYCOON_MIGRATIONS } from './migrations/tycoon.ts';
 
 /** One pure step: slice data at schema n to schema n + 1 (C05 rule 5). */
 export type MigrateStep = (data: JsonObject) => JsonObject;
@@ -11,8 +12,8 @@ export interface MigrationRegistry {
   steps: Partial<Record<SliceKind, Record<number, MigrateStep>>>;
 }
 
-/** v1 is the first schema of every kind, so there are no steps yet. */
-export const DEFAULT_MIGRATIONS: MigrationRegistry = { current: CURRENT_SCHEMA, steps: {} };
+/** v1 is the first schema of every kind, so the tables hold no steps yet; a kind with its own table (tycoon, M09a1) lists it here. */
+export const DEFAULT_MIGRATIONS: MigrationRegistry = { current: CURRENT_SCHEMA, steps: { tycoon: TYCOON_MIGRATIONS } };
 
 export class MigrationError extends Error {
   constructor(message: string) {

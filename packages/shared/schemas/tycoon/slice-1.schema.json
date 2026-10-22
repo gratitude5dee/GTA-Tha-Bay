@@ -1,0 +1,84 @@
+{
+  "$id": "https://dv.local/schema/save/tycoon.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TycoonSlice schema 1 (slot mode:tycoon)",
+  "type": "object",
+  "properties": {
+    "schema": { "const": 1 },
+    "contentVersion": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+    "balanceVersion": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+    "active": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": {
+            "setup": { "type": "object", "required": ["seed", "sector", "thesis", "founder", "coFounder", "startWeekOfYear", "hardcore", "preset", "contentVersion", "balanceVersion"] },
+            "choices": {
+              "type": "array",
+              "maxItems": 20000,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "week": { "type": "integer", "minimum": 0 },
+                  "seq": { "type": "integer", "minimum": 0 },
+                  "cmd": { "type": "object", "required": ["t"], "properties": { "t": { "type": "string" } } }
+                },
+                "required": ["week", "seq", "cmd"],
+                "additionalProperties": false
+              }
+            },
+            "snapshot": {
+              "anyOf": [
+                { "type": "null" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "week": { "type": "integer", "minimum": 0 },
+                    "state": { "type": "object", "required": ["v", "setup", "week", "phase", "cash", "capTable"] },
+                    "hash": { "type": "string", "pattern": "^[0-9a-f]{16}$" }
+                  },
+                  "required": ["week", "state", "hash"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "unverifiable": { "type": "boolean" }
+          },
+          "required": ["setup", "choices", "snapshot"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "runs": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "properties": {
+          "setup": { "type": "object" },
+          "result": { "type": "object", "required": ["kind", "win", "week", "founderPayoutCents", "exitValueCents", "score", "stateHash"] },
+          "savedAt": { "type": "integer", "minimum": 0 }
+        },
+        "required": ["setup", "result", "savedAt"],
+        "additionalProperties": false
+      }
+    },
+    "bestScores": {
+      "type": "object",
+      "properties": {
+        "acq": { "type": "integer", "minimum": 0 },
+        "unicorn": { "type": "integer", "minimum": 0 },
+        "ipo": { "type": "integer", "minimum": 0 },
+        "ramen": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["acq", "unicorn", "ipo", "ramen"],
+      "additionalProperties": false
+    },
+    "unlockedSectors": { "type": "array", "maxItems": 16, "items": { "type": "string", "minLength": 1, "maxLength": 80 } },
+    "hardcore": { "type": "boolean" },
+    "dividendEarnedCents": { "type": "integer", "minimum": 0 }
+  },
+  "required": ["schema", "contentVersion", "balanceVersion", "active", "runs", "bestScores", "unlockedSectors", "hardcore", "dividendEarnedCents"],
+  "additionalProperties": false
+}

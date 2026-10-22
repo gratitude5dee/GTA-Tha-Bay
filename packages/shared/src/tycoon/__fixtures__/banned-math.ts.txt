@@ -1,0 +1,5 @@
+// Lint fixture (M09a1 AC-4): copied under packages/shared/src/tycoon/ by tycoon.nolint.spec.ts. Every line below is a C02 violation.
+export const powCall = (x: number): number => Math.pow(x, 2);
+export const randomCall = (): number => Math.random();
+export const powOperator = (x: number): number => x ** 2;
+export const stamp = (): number => Date.now();

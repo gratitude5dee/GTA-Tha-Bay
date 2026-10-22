@@ -1,0 +1,228 @@
+{
+  "schema": "tycoon.archetypes.v1",
+  "founders": {
+    "engineer": {
+      "devPower": 7,
+      "hustle": 3,
+      "qualityBonus": 0,
+      "cacMul": 1,
+      "fundraisingMood": 0
+    },
+    "designer": {
+      "devPower": 5,
+      "hustle": 4,
+      "qualityBonus": 5,
+      "cacMul": 1,
+      "fundraisingMood": 0
+    },
+    "hustler": {
+      "devPower": 3,
+      "hustle": 7,
+      "qualityBonus": 0,
+      "cacMul": 0.9,
+      "fundraisingMood": 5
+    }
+  },
+  "roleBaseYrCents": {
+    "eng": 14000000,
+    "design": 12000000,
+    "growth": 11000000,
+    "sales": 13000000,
+    "ops": 10000000
+  },
+  "names": {
+    "first": [
+      "Ari",
+      "Bo",
+      "Cass",
+      "Dev",
+      "Eli",
+      "Fen",
+      "Gia",
+      "Hal",
+      "Ivo",
+      "Jun",
+      "Kit",
+      "Lux"
+    ],
+    "last": [
+      "Alder",
+      "Brook",
+      "Cove",
+      "Dune",
+      "Ember",
+      "Fjord",
+      "Glen",
+      "Hale",
+      "Isle",
+      "Jett",
+      "Knoll",
+      "Lark"
+    ]
+  },
+  "vcs": [
+    {
+      "id": "vc-fogindex-hardball",
+      "style": "hardball",
+      "valuationBias": -0.3,
+      "checkMin": 300000000,
+      "checkMax": 2500000000,
+      "predatoryAllowed": false,
+      "redFlags": [
+        "highTechDebt"
+      ],
+      "stages": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "vc-seedling-angel",
+      "style": "founder_friendly",
+      "valuationBias": 0.2,
+      "checkMin": 5000000,
+      "checkMax": 50000000,
+      "predatoryAllowed": false,
+      "redFlags": [
+        "noFounderControl"
+      ],
+      "stages": [
+        "safe",
+        "seed"
+      ]
+    },
+    {
+      "id": "vc-herd-crossover",
+      "style": "herd",
+      "valuationBias": 0.4,
+      "checkMin": 1500000000,
+      "checkMax": 8000000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "b",
+        "c"
+      ]
+    },
+    {
+      "id": "vc-contrarian-deep",
+      "style": "contrarian",
+      "valuationBias": -0.1,
+      "checkMin": 100000000,
+      "checkMax": 1000000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "seed",
+        "a"
+      ]
+    },
+    {
+      "id": "vc-accelerator-batch",
+      "style": "standard",
+      "valuationBias": 0,
+      "checkMin": 10000000,
+      "checkMax": 25000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "safe"
+      ]
+    },
+    {
+      "id": "vc-halcyon-corp",
+      "style": "herd",
+      "valuationBias": 0.1,
+      "checkMin": 500000000,
+      "checkMax": 3000000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "vc-microgrid-impact",
+      "style": "founder_friendly",
+      "valuationBias": -0.2,
+      "checkMin": 100000000,
+      "checkMax": 800000000,
+      "predatoryAllowed": false,
+      "redFlags": [
+        "noFounderControl"
+      ],
+      "stages": [
+        "seed",
+        "a"
+      ]
+    },
+    {
+      "id": "vc-family-office",
+      "style": "hardball",
+      "valuationBias": -0.4,
+      "checkMin": 50000000,
+      "checkMax": 500000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "seed",
+        "a"
+      ]
+    },
+    {
+      "id": "vc-tourist-hedge",
+      "style": "herd",
+      "valuationBias": 0.6,
+      "checkMin": 1000000000,
+      "checkMax": 6000000000,
+      "predatoryAllowed": true,
+      "redFlags": [],
+      "stages": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "id": "vc-scout-solo",
+      "style": "founder_friendly",
+      "valuationBias": 0.1,
+      "checkMin": 2500000,
+      "checkMax": 15000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "safe"
+      ]
+    },
+    {
+      "id": "vc-sovereign-slow",
+      "style": "contrarian",
+      "valuationBias": -0.3,
+      "checkMin": 3000000000,
+      "checkMax": 12000000000,
+      "predatoryAllowed": false,
+      "redFlags": [],
+      "stages": [
+        "b",
+        "c"
+      ]
+    },
+    {
+      "id": "vc-operator-angel",
+      "style": "founder_friendly",
+      "valuationBias": 0.1,
+      "checkMin": 10000000,
+      "checkMax": 100000000,
+      "predatoryAllowed": false,
+      "redFlags": [
+        "noFounderControl"
+      ],
+      "stages": [
+        "safe",
+        "seed"
+      ]
+    }
+  ]
+}

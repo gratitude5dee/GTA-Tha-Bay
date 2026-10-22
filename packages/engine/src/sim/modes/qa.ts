@@ -33,6 +33,13 @@ export const runModesQa: ModesQaHandler = (cx, cmd, send) => {
     case 'unlockAll':
       answer({ ok: true, took: host.setUnlockAll(a['on'] !== false) });
       break;
+    case 'startQa': {
+      // Starts a mode that is still `comingSoon` (QA builds only): `{id, params}`. Tycoon uses it (M09a1); racing has its own `racing.start`.
+      const id = a['id'];
+      const params = a['params'];
+      answer(typeof id === 'string' ? host.startQa(id as never, (params ?? undefined) as never) : { ok: false, reason: 'startQa needs an id' });
+      break;
+    }
     case 'credit':
       answer({ ok: typeof a['cents'] === 'number' && typeof a['key'] === 'string' ? economy.credit(a['cents'], 'qa', a['key']) : false, balance: economy.balance() });
       break;
