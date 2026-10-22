@@ -9,17 +9,17 @@
   "renditions": {
     "v768": {
       "file": "v768.mp4",
-      "bytes": 1361495,
-      "sha256": "4c01698db4865167904e175aa475d4c49ed1d7346009f9f402c0448d57a5a52e",
+      "bytes": 1248222,
+      "sha256": "ff9b319be5a5f4b73fea139943975dc15a3dbef50e3a4ac072e5b2b0c56584b5",
       "codecs": "avc1.640028",
-      "kbps": 1361
+      "kbps": 1248
     },
     "v540": {
       "file": "v768.webm",
-      "bytes": 270287,
-      "sha256": "d57a1878c761c87d4b9b1c532f80ad9064a11113e4c051160ae29fea78c0a057",
+      "bytes": 349649,
+      "sha256": "a81022addae75e895e2d47b4ec54c6467769f84b06689d97b5bb3374295227d7",
       "codecs": "vp09.00.40.08",
-      "kbps": 270
+      "kbps": 350
     }
   },
   "poster": "poster.webp",
@@ -45,7 +45,7 @@
     "endpoint": "tests/fixtures/cutscenes/make-fixtures.ts",
     "pinnedUpdatedAt": "2026-10-22",
     "requestIds": [],
-    "origSha256": "28ce6430053e49313daa547bf15c7fd55007efa3e1abec11bdc73def23d392fe",
+    "origSha256": "95b0e844eca8dfce05d569155d3b9950650c3a2de1946f5b7d0ab13c9996498b",
     "c2pa": "absent",
     "resigned": false,
     "aiGenerated": true

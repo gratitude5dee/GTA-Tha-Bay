@@ -9,8 +9,9 @@
  * research/gap-cutscene-delivery-playback.md section 2.4 (its COMMON flags and its v768 line, codecs avc1.640028). Without ffmpeg the
  * manifests list only the WebM and `blank.webm` is recorded in the browser.
  *
- * MediaRecorder output has no duration header, so `frames` in the manifest comes from the recording plan (frames = seconds x 24). When
- * ffmpeg exists the WebM is remuxed once (`-c copy`) so that the element reports a finite duration; the video bytes are unchanged.
+ * MediaRecorder output has no duration header and uneven frame timing, so `frames` in the manifest comes from the recording plan
+ * (frames = seconds x 24). When ffmpeg exists the recording is re-encoded once to VP9 at 24 fps with a key frame per second, which gives
+ * a finite duration and a stream MSE can buffer.
  * Rerunning rewrites the media, the manifests and the provenance records.
  */
 import { spawnSync } from 'node:child_process';
@@ -18,7 +19,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from '@playwright/test';
+import { chromium, type Page } from '@playwright/test';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
@@ -104,7 +105,7 @@ const RECORD_IN_PAGE = `async ({ draw, w, h, fps, seconds, hue }) => {
   return { webm: btoa(bin), poster, last };
 }`;
 
-async function record(page: import('@playwright/test').Page, f: Fixture): Promise<{ webm: Buffer; poster: Buffer; last: Buffer }> {
+async function record(page: Page, f: Fixture): Promise<{ webm: Buffer; poster: Buffer; last: Buffer }> {
   const args = { draw: DRAW, w: W, h: H, fps: FPS, seconds: f.seconds, hue: f.hue };
   const out = (await page.evaluate(`(${RECORD_IN_PAGE})(${JSON.stringify(args)})`)) as { webm: string; poster: string; last: string };
   const dataUrl = (s: string): Buffer => Buffer.from(s.split(',')[1] ?? '', 'base64');
@@ -151,7 +152,9 @@ async function main(): Promise<void> {
     const rawWebm = path.join(dir, 'raw.webm');
     writeFileSync(rawWebm, r.webm);
     const webm = path.join(dir, 'v768.webm');
-    if (hasFfmpeg) ffmpeg(['-i', rawWebm, '-c', 'copy', webm]);
+    // The recording has variable frame timing and sparse key frames, which MSE sequence mode cannot buffer; ffmpeg normalises it to
+    // 24 fps with a key frame every second (the same GOP as the fMP4 recipe), still VP9 and still muted.
+    if (hasFfmpeg) ffmpeg(['-i', rawWebm, '-r', '24', '-c:v', 'libvpx-vp9', '-b:v', '400k', '-g', '24', '-keyint_min', '24', '-pix_fmt', 'yuv420p', '-an', webm]);
     else writeFileSync(webm, r.webm);
     rmSync(rawWebm);
     if (FMP4) ffmpeg(['-i', webm, ...COMMON, ...V768, path.join(dir, 'v768.mp4')]);

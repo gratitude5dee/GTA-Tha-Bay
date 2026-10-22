@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Cutscene spike</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #10141c; color: #e6e9ef; font: 14px/1.5 ui-monospace, monospace; }
+      main { position: relative; height: 100%; display: grid; place-items: center; }
+      canvas#stage { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .panel { position: relative; z-index: 1; text-align: center; padding: 16px; background: rgb(0 0 0 / 0.55); border-radius: 12px; max-width: 28rem; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; text-align: left; margin: 8px 0 0; }
+      button { font: inherit; padding: 10px 18px; }
+    </style>
+  </head>
+  <body>
+    <main data-testid="title">
+      <canvas id="stage" data-testid="stage"></canvas>
+      <div class="panel">
+        <h1>Cutscene spike</h1>
+        <p>Click the button once (the first gesture unlocks audio and the video pool), then use <code>__dvBridge.media</code>.</p>
+        <button type="button" data-testid="title-start" id="start">Click to start</button>
+        <pre id="out" data-testid="out">waiting for the first gesture</pre>
+      </div>
+    </main>
+    <script type="module" src="/src/qa/media-bridge.ts"></script>
+  </body>
+</html>

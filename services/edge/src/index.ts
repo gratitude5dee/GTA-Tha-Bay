@@ -52,6 +52,8 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
     return new Response(null, { status: 308, headers: { Location: '/account/', 'Cache-Control': 'no-store' } });
   }
   // Public R2 media (M01d2, DL-713): before the ASSETS fallthrough and the geo gate (media is geo-exempt, A-10); the handler owns its methods.
+  // The two same-origin unlock clips of FirstGestureUnlock (M04c, public/media/) are static assets, not R2 keys.
+  if (url.pathname === '/media/blank.mp4' || url.pathname === '/media/blank.webm') return env.ASSETS.fetch(request);
   if (url.pathname.startsWith('/media/')) return handleMedia(request, env, url);
   if (!url.pathname.startsWith('/api/v1/') && url.pathname !== '/api/v1') {
     // run_worker_first covers /api/* only; anything else under /api/ is not a route, anything else is an asset.

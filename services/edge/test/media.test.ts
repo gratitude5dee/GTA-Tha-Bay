@@ -148,3 +148,25 @@ describe('GET /media/<key>', () => {
     expect(res.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
   });
 });
+
+describe('the unlock clips of FirstGestureUnlock (M04c)', () => {
+  it('/media/blank.mp4 and /media/blank.webm come from the static assets, not from R2', async () => {
+    const seen: string[] = [];
+    const ASSETS = {
+      fetch: (r: Request) => {
+        seen.push(new URL(r.url).pathname);
+        return Promise.resolve(new Response('clip'));
+      },
+    } as unknown as Fetcher;
+    for (const name of ['blank.mp4', 'blank.webm']) {
+      const res = await call(`/media/${name}`, { env: { ASSETS } });
+      expect(res.status).toBe(200);
+      expect(await res.text()).toBe('clip');
+    }
+    expect(seen).toEqual(['/media/blank.mp4', '/media/blank.webm']);
+    // any other key under /media/ still goes through the R2 key grammar
+    const other = await call('/media/blank.gif', { env: { ASSETS } });
+    expect(other.status).toBe(404);
+    expect(seen).toHaveLength(2);
+  });
+});
