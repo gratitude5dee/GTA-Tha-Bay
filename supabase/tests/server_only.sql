@@ -22,6 +22,19 @@ insert into gen_run (id, requested_by, env, budget_usd_micros) values (gen_rando
 insert into gen_job (id, job_key, kind, endpoint_key, env, asset_ref, state, budget_usd_micros) values (gen_random_uuid(), 'jk', 'k', 'e', 'test', 'a/b', 's', 1);
 insert into asset_index (ref, sha256, status) values ('a/b', repeat('a', 64), 'active');
 insert into bark_index values ('v', 'k');
+-- M06a1: the 0003 tables.
+insert into npc_relationship (profile_id, npc_id, soul_version) values ('00000000-0000-7000-8000-0000000000a1', 'npc_test', 1);
+insert into npc_memory (profile_id, npc_id, scope, kind, text, importance, game_time, source, embedding)
+  values ('00000000-0000-7000-8000-0000000000a1', 'npc_test', 'pair', 'event', 'm', 5, 0, 'dialogue', array_fill(0.1::real, array[1024])::extensions.halfvec(1024));
+insert into encounter_transcripts (encounter_id, profile_id, npc_id, r2_key, turns, usd_micros, closed_at, expires_at)
+  values ('e1', '00000000-0000-7000-8000-0000000000a1', 'npc_test', 'transcripts/e1.jsonl', 1, 1, now(), now() + interval '30 days');
+insert into roster_flag (npc_id, killed, stand_in, set_by) values ('npc_test', true, 'character/stand_in', '00000000-0000-7000-8000-0000000000a1');
+insert into likeness_subject (id, real_name, default_tier) values ('ls1', 'Test Person', 'parody');
+insert into consent_record (id, subject_id, signatory_name, signatory_capacity, scopes, media, use_description, term_start, revocation_terms,
+  counsel_represented, evidence_r2_key, evidence_sha256, approved_by, approved_at)
+  values ('cr1', 'ls1', 'Test Person', 'self', '{marketing}', '{image}', 'test', current_date, 'on request', false, 'k', repeat('a', 64),
+  '00000000-0000-7000-8000-0000000000a1', now());
+insert into consent_event (consent_id, kind, actor) values ('cr1', 'granted', 't');
 
 -- Rows a role can read from one table; a missing privilege counts as none.
 create function public._visible_rows(t regclass) returns bigint language plpgsql as $$
@@ -39,7 +52,7 @@ select is(
   0, 'RLS is enabled on every table of schema public');
 select is(
   (select array_agg(distinct tablename order by tablename) from pg_policies where schemaname = 'public'),
-  array['profiles']::name[], 'only profiles has policies; every other table is server-only');
+  array['npc_memory','npc_relationship','profiles']::name[], 'only profiles and the two self-read NPC tables have policies; every other table is server-only');
 
 set local role anon;
 select is(

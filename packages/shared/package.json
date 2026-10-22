@@ -8,8 +8,11 @@
     "./platform": "./src/platform/c13.ts",
     "./assets": "./src/assets/c07.ts",
     "./contracts/c09-cutscene": "./src/contracts/c09-cutscene.ts",
+    "./contracts/c10-npc": "./src/contracts/c10-npc.ts",
     "./data-port": "./src/data-port.ts",
     "./data-port.memory": "./src/data-port.memory.ts",
+    "./npc/memory": "./src/npc/memory.ts",
+    "./zip": "./src/zip.ts",
     "./schemas/*": "./schemas/*",
     "./npc": "./src/npc/index.ts",
     "./fight": "./src/fight/index.ts"

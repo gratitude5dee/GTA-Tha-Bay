@@ -46,6 +46,8 @@ interface ApiOpts {
   raw?: { body: string; contentType: string };
 }
 
+let nextNet = 0;
+
 function api(path: string, o: ApiOpts = {}): Promise<Response> {
   const headers: Record<string, string> = { ...o.headers };
   let body: string | undefined;
@@ -56,7 +58,8 @@ function api(path: string, o: ApiOpts = {}): Promise<Response> {
     body = JSON.stringify(o.body);
     headers['content-type'] = 'application/json';
   }
-  if (o.ip) headers['CF-Connecting-IP'] = o.ip;
+  // M06a1: route 58 now stops at 3 completed sign-ups per network per UTC day (PlayerQuotaDO), so each call gets a network of its own unless the test names one.
+  headers['CF-Connecting-IP'] = o.ip ?? `10.${(++nextNet >> 8) & 255}.${nextNet & 255}.7`;
   return call(path, {
     method: o.method ?? (o.body !== undefined || o.raw ? 'POST' : 'GET'),
     ...(body !== undefined ? { body } : {}),

@@ -20,10 +20,15 @@
     "bindings": [
       { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
       { "name": "FAL_GATE", "class_name": "FalGateDO" },
-      { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+      { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+      { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+      { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
     ]
   },
-  "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+  "migrations": [
+    { "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] },
+    { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] }
+  ],
   // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
   "r2_buckets": [
     { "binding": "MEDIA", "bucket_name": "tha-bay-media-prod" },
@@ -31,6 +36,17 @@
   ],
   "kv_namespaces": [{ "binding": "FLAGS", "id": "c97c407d70c8457083bf0865b82c27fe" }],
   "workflows": [{ "name": "gen-job", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
+  // Queues (M06a1): JOBS carries summarize, forget and export; SPEND carries settled turn costs into BudgetGovernorDO. Created by deploy:bootstrap.
+  "queues": {
+    "producers": [
+      { "binding": "JOBS", "queue": "tha-bay-jobs" },
+      { "binding": "SPEND", "queue": "tha-bay-spend" }
+    ],
+    "consumers": [
+      { "queue": "tha-bay-jobs", "max_batch_size": 50 },
+      { "queue": "tha-bay-spend", "max_batch_size": 100, "max_batch_timeout": 5 }
+    ]
+  },
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
   "observability": {
     "enabled": true,
@@ -69,9 +85,11 @@
     { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } }
   ],
   // The service-path database key (M05d). Required where the Worker is deployed; local dev and tests run without it (no database: the static fallback applies).
-  "secrets": { "required": ["SUPABASE_SECRET_KEY"] },
-  // Daily 03:10 UTC: catalog-sync, then ledger-export (M05d). Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in.
-  "triggers": { "crons": ["10 3 * * *"] },
+  // PLAY_TOKEN_HMAC is first required here (M04b3 left it out, DL-679); a version upload without it fails instead of skipping.
+  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
+  // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1).
+  // Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in there.
+  "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
@@ -89,10 +107,15 @@
         "bindings": [
           { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
           { "name": "FAL_GATE", "class_name": "FalGateDO" },
-          { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+          { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+          { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+          { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
         ]
       },
-      "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+      "migrations": [
+        { "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] },
+        { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] }
+      ],
       // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
       "r2_buckets": [
         { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
@@ -100,8 +123,18 @@
       ],
       "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
       "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
-      "secrets": { "required": ["SUPABASE_SECRET_KEY"] },
-      "triggers": { "crons": ["10 3 * * *"] },
+      "queues": {
+        "producers": [
+          { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
+          { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+        ],
+        "consumers": [
+          { "queue": "tha-bay-jobs-staging", "max_batch_size": 50 },
+          { "queue": "tha-bay-spend-staging", "max_batch_size": 100, "max_batch_timeout": 5 }
+        ]
+      },
+      "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
+      "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "observability": {
         "enabled": true,
@@ -143,7 +176,9 @@
       "bindings": [
         { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
         { "name": "FAL_GATE", "class_name": "FalGateDO" },
-        { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+        { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+        { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+        { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
       ]
     },
     // previews take no `migrations` key (wrangler 4.151.1 rejects it); the DO classes migrate through the staging deploy.
@@ -154,6 +189,13 @@
     ],
     "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
     "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow", "script_name": "tha-bay-web-staging" }],
+    // Producers only: Previews run no queue consumers (F-061); /api/v1/_test/drain-queue and the inline paths of the routes stand in.
+    "queues": {
+      "producers": [
+        { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
+        { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+      ]
+    },
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
     "define": { "__DV_TEST_ROUTES__": "true" },
     "vars": {

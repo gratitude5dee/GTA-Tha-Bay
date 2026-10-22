@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { main, parsePreviewUrl, PREVIEW_URL_FILE, stripJsonc, workerNames } from '../deploy.ts';
+import { buildSecretsJson, main, parsePreviewUrl, PREVIEW_URL_FILE, QUEUE_NAMES, stripJsonc, WORKER_SECRETS, workerNames } from '../deploy.ts';
 import { dropDashDash, repoRoot } from '../run.ts';
 
 describe('deploy.ts', () => {
@@ -26,6 +26,21 @@ describe('deploy.ts', () => {
     expect(log).toHaveBeenCalledWith('SKIP deploy:preview: CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID not set');
     expect(existsSync(file)).toBe(false);
     for (const mode of ['prod', 'bootstrap']) expect(main([mode], { CLOUDFLARE_API_TOKEN: 'only-one' })).toBe(0);
+  });
+
+  it('maps the Worker secrets from the environment into the secrets file (DL-679, M06a1): keys only asserted, absent ones left out', () => {
+    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET']);
+    const full = buildSecretsJson({ PLAY_TOKEN_HMAC: 'k1:aaaa', PLAY_TOKEN_HMAC_PREV: 'k0:bbbb', QUOTA_NET_SALT_SECRET: 'salt', UNRELATED: 'x' });
+    expect(Object.keys(JSON.parse(full.json) as object).sort()).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET']);
+    expect(full.missing).toEqual([]);
+    const partial = buildSecretsJson({ PLAY_TOKEN_HMAC: 'k1:aaaa', PLAY_TOKEN_HMAC_PREV: '' });
+    expect(Object.keys(JSON.parse(partial.json) as object)).toEqual(['PLAY_TOKEN_HMAC']);
+    expect(partial.missing).toEqual(['QUOTA_NET_SALT_SECRET']);
+    expect(buildSecretsJson({}).json).toBe('{}\n');
+  });
+
+  it('bootstrap creates the four queues of the web Worker, every name tha-bay-*', () => {
+    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging']);
   });
 
   it('finds a preview URL in JSON, NDJSON and plain wrangler output', () => {

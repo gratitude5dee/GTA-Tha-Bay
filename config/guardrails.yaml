@@ -9,3 +9,51 @@ genai:
   falConcurrency: 2
   # Fractions of the program cap that raise a log alarm.
   alarms: [0.5, 0.8, 1.0]
+
+# M06a1: NPC dialogue quotas, encounter limits and cost estimates (spec/domains/09-backend-ops.md section 5.2, 09-backend.md section 5.1).
+# Mirrored into packages/shared/src/genai/npc-guardrails.generated.ts by the same tool. Money is integer USD micros; the day is UTC.
+npc:
+  # Per-player daily quotas. p0 = tier local and device, linked = tier linked (18+). Per-net caps are netMultiplier times the p0 row.
+  quotas:
+    p0:
+      turns: 150
+      perNpc: 40
+      voiceLines: 60
+      costCapUsdMicros: 50000
+      builderText: 2
+      builderJob: 0
+      uploads: 20
+      posts: 20
+      reports: 30
+    linked:
+      turns: 400
+      perNpc: 40
+      voiceLines: 200
+      costCapUsdMicros: 150000
+      builderText: 10
+      builderJob: 0
+      uploads: 100
+      posts: 100
+      reports: 30
+  netMultiplier: 4
+  # Play tokens a network may mint per UTC day (route 5) and password sign-ups it may complete (route 58, AC-13).
+  playTokensPerNet: 50
+  signupsPerNet: 3
+  # builder_text: one reservation per draft per hour.
+  builderTextPerDraftMs: 3600000
+  encounter:
+    turnCap: 12
+    turnCapHard: 20
+    cadenceMs: 1500
+    idleCloseMs: 60000
+    firstTokenMs: 4000
+    transcriptRetentionDays: 30
+    indexStaleMs: 7200000
+  roster:
+    isolateCacheMs: 10000
+    pollMs: 30000
+  # Default reservation estimates for callers that have no better number (BD-M06a1-02).
+  estimates:
+    turnUsdMicros: 300
+    voiceLineUsdMicros: 100
+    builderTextUsdMicros: 4000

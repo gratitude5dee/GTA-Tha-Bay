@@ -29,6 +29,11 @@ export function isGeoExempt(pathname: string, method = 'GET'): boolean {
     // Routes authenticated by a vendor signature or a staff token (A-10, DL-184): fal webhook (29), prewarm (28).
     pathname === '/api/v1/hooks/fal' ||
     pathname === '/api/v1/admin/cutscenes/prewarm' ||
+    // M06a1: staff routes 46 and 47 (ops token), and the forget and export halves of route 14 (a user abroad can still delete and export; BD-M06a1-08).
+    pathname.startsWith('/api/v1/admin/roster/') ||
+    pathname.startsWith('/api/v1/admin/flags/') ||
+    (pathname === '/api/v1/me' && m === 'DELETE') ||
+    (pathname === '/api/v1/me/export' && (m === 'GET' || m === 'HEAD')) ||
     pathname === '/api/v1/legal' ||
     pathname.startsWith('/api/v1/legal/') ||
     pathname.startsWith('/.well-known/') ||

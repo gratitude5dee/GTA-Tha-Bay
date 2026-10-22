@@ -116,6 +116,10 @@ jobs:
         env:
           DV_EVENT_BEFORE: ${{ github.event.before }}
           DV_DEPLOY_BASE: ${{ inputs.base }}
+          # Worker secrets ride with the version (tools/ci/deploy.ts buildSecretsJson, DL-679; M06a1).
+          PLAY_TOKEN_HMAC: ${{ secrets.PLAY_TOKEN_HMAC }}
+          PLAY_TOKEN_HMAC_PREV: ${{ secrets.PLAY_TOKEN_HMAC_PREV }}
+          QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
         run: pnpm deploy:prod -- --env staging --auto-lifecycle
       # M05d: the two routes every client calls first, on the staging host, after the deploy.
       - name: Staging smoke suite
@@ -167,4 +171,8 @@ jobs:
         env:
           DV_EVENT_BEFORE: ${{ github.event.before }}
           DV_DEPLOY_BASE: ${{ inputs.base }}
+          # Worker secrets ride with the version (tools/ci/deploy.ts buildSecretsJson, DL-679; M06a1).
+          PLAY_TOKEN_HMAC: ${{ secrets.PLAY_TOKEN_HMAC }}
+          PLAY_TOKEN_HMAC_PREV: ${{ secrets.PLAY_TOKEN_HMAC_PREV }}
+          QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
         run: pnpm deploy:prod -- --auto-lifecycle

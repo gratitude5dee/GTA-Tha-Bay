@@ -4,6 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import type { SpendEvent } from '../../src/api/budget.ts';
 import { NotImplementedError, type CatalogInput, type Ctx, type CutsceneRow, type ServerDataPort } from '../../src/data-port.ts';
+import type { SummaryPatch } from '../../src/contracts/c10-npc.ts';
+import { readZip } from '../../src/zip.ts';
 
 const uuid = (): string => crypto.randomUUID();
 const hex64 = (): string => (crypto.randomUUID() + crypto.randomUUID()).replaceAll('-', '').slice(0, 64);
@@ -133,13 +135,146 @@ export function runDataPortContract(name: string, make: () => Promise<ContractTa
       expect(await port.ledger.sumUsdMicros('anthropic', base)).toBe(0);
     });
 
+    // ---- M06a1: NPC memory, relationship, roster, audit, retention, forget and export ----
+    const unit = (i: number): Float32Array => {
+      const v = new Float32Array(1024);
+      v[i] = 1;
+      return v;
+    };
+    const mem = (text: string, importance: number, gameTime: number, embedding: Float32Array) =>
+      ({ kind: 'event' as const, text, importance, gameTime, source: 'dialogue' as const, embedding });
+    const patch = (over: Partial<SummaryPatch> = {}): SummaryPatch => ({
+      summaryUpdate: 'Met at the shop.', memories: [], affinityDelta: 5, trustDelta: -3, flagsPatch: { met: true }, soulVersion: 2, reflection: false, ...over,
+    });
+
+    it('npcMemory.write then topK orders by 0.5 relevance + 0.3 importance + 0.2 recency on the 518,400 scale, and reaches world scope', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const npc = `npc_${uuid().slice(0, 8)}`;
+      // now_gt = 1,000,000. m1 .73, m2 .5, m3 .72358, m4 .77131 (see supabase/tests/memory_match.sql); the world row scores 1.0.
+      await port.npcMemory.write(pid, npc, [
+        mem('m1', 1, 1_000_000, unit(0)),
+        mem('m2', 10, 1_000_000, unit(1)),
+        mem('m3', 5, 481_600, unit(0)),
+        mem('m4', 5, 740_800, unit(0)),
+      ]);
+      await port.npcMemory.write(pid, '*', [mem('m5', 10, 1_000_000, unit(0))]);
+      const hits = await port.npcMemory.topK(pid, npc, unit(0), 1_000_000, 10);
+      expect(hits.map((h) => h.text)).toEqual(['m5', 'm4', 'm1', 'm3', 'm2']);
+      expect(hits[0]!.score).toBeCloseTo(1, 3);
+      expect(hits[1]!.score).toBeCloseTo(0.5 + 0.15 + 0.2 * Math.exp(-0.5), 3);
+      expect((await port.npcMemory.topK(pid, npc, unit(0), 1_000_000, 2)).map((h) => h.text)).toEqual(['m5', 'm4']);
+      expect(await port.npcMemory.topK(pid, `npc_${uuid().slice(0, 8)}`, unit(0), 1_000_000, 10)).toHaveLength(1); // only the world row
+      expect(await port.npcMemory.topK(uuid(), npc, unit(0), 1_000_000, 10)).toEqual([]);
+    });
+
+    it('npcMemory.applySummary creates and then updates the relationship (clamped deltas, merged flags, bounded summary)', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const npc = `npc_${uuid().slice(0, 8)}`;
+      expect(await port.npcMemory.relationship(pid, npc)).toBeNull();
+      await port.npcMemory.applySummary(pid, npc, patch());
+      const first = await port.npcMemory.relationship(pid, npc);
+      expect(first).toMatchObject({ profile_id: pid, npc_id: npc, affinity: 5, trust: -3, encounters: 1, summary: 'Met at the shop.', soul_version: 2, flags: { met: true } });
+      expect(typeof first!.last_seen_at).toBe('number');
+      await port.npcMemory.applySummary(pid, npc, patch({ affinityDelta: 200, trustDelta: -200, summaryUpdate: 'x'.repeat(600), flagsPatch: { owes_favor: true }, soulVersion: 3 }));
+      await port.npcMemory.applySummary(pid, npc, patch({ summaryUpdate: 'y'.repeat(600), flagsPatch: {} }));
+      const third = await port.npcMemory.relationship(pid, npc);
+      expect(third).toMatchObject({ affinity: 100, trust: -100, encounters: 3, soul_version: 2, flags: { met: true, owes_favor: true } });
+      expect(third!.summary.length).toBe(1200);
+      expect(third!.summary.endsWith('y'.repeat(600))).toBe(true);
+    });
+
+    it('roster.kill marks the NPC, flags lists it with scope and stand-in, and the etag moves', async () => {
+      const { port } = await make();
+      const before = await port.roster.flags();
+      const npc = `npc_${uuid().slice(0, 8)}`;
+      const row = await port.roster.kill(ctxOf(null), npc, { scope: ['spawn', 'all'], reason: 'quality', ticketId: 'T-1', standIn: 'character/stand_in' as never });
+      expect(row).toMatchObject({ npc_id: npc, killed: true, reason: 'quality', ticket_id: 'T-1', stand_in: 'character/stand_in' });
+      const after = await port.roster.flags();
+      expect(after.killed[npc]).toEqual({ scope: ['all', 'spawn'], standIn: 'character/stand_in' });
+      expect(after.etag).not.toBe(before.etag);
+      expect(after.updatedAt).toBeGreaterThanOrEqual(before.updatedAt);
+      expect(await port.roster.flags()).toEqual(after);
+    });
+
+    it('audit.append accepts an entry', async () => {
+      const { port } = await make();
+      await expect(port.audit.append({ actor: 'ops-token', role: 'ops', action: 'contract.test', targetKind: 'npc', targetId: 'npc_x', details: { scope: ['all'] } })).resolves.toBeUndefined();
+      await expect(port.audit.append({ actor: 'ops-token', role: 'ops', action: 'contract.test' })).resolves.toBeUndefined();
+    });
+
+    it('maintenance: transcripts are recorded, found when expired, and deleted; a missing profile is reported', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const mk = (id: string, expiresAt: number) => ({ encounter_id: id, profile_id: pid, npc_id: 'npc_a', r2_key: `transcripts/${id}.jsonl`, turns: 2, usd_micros: 40, closed_at: 1_700_000_000_000, expires_at: expiresAt });
+      const old = `enc-${uuid()}`;
+      const fresh = `enc-${uuid()}`;
+      expect(await port.maintenance.recordTranscript(mk(old, 1_700_000_100_000))).toBe('recorded');
+      expect(await port.maintenance.recordTranscript(mk(old, 1_700_000_100_000))).toBe('recorded'); // repeat is harmless
+      expect(await port.maintenance.recordTranscript(mk(fresh, 4_102_444_800_000))).toBe('recorded');
+      expect((await port.maintenance.expiredTranscripts(1_700_000_200_000, 1000)).map((r) => r.encounter_id)).toContain(old);
+      expect((await port.maintenance.expiredTranscripts(1_700_000_200_000, 1000)).map((r) => r.encounter_id)).not.toContain(fresh);
+      expect((await port.maintenance.transcriptKeys(pid)).sort()).toEqual([`transcripts/${fresh}.jsonl`, `transcripts/${old}.jsonl`].sort());
+      expect(await port.maintenance.deleteTranscripts([old])).toBe(1);
+      expect(await port.maintenance.deleteTranscripts([old])).toBe(0);
+      expect(await port.maintenance.recordTranscript({ ...mk(`enc-${uuid()}`, 1), profile_id: uuid() })).toBe('no_profile');
+    });
+
+    it('maintenance: forget hides the profile, exportRows and exportAll hold its rows, purgeProfile removes everything keyed by it', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const npc = `npc_${uuid().slice(0, 8)}`;
+      await port.npcMemory.write(pid, npc, [mem('remember me', 5, 10, unit(3))]);
+      await port.npcMemory.applySummary(pid, npc, patch());
+      await port.maintenance.recordTranscript({ encounter_id: `enc-${uuid()}`, profile_id: pid, npc_id: npc, r2_key: 'transcripts/e.jsonl', turns: 1, usd_micros: 1, closed_at: 1, expires_at: 4_102_444_800_000 });
+
+      const rows = await port.maintenance.exportRows(pid);
+      expect(rows['profiles']).toHaveLength(1);
+      expect(rows['npc_memory']).toHaveLength(1);
+      expect(rows['npc_relationship']).toHaveLength(1);
+      expect(rows['encounter_transcripts']).toHaveLength(1);
+      expect(JSON.stringify(rows)).not.toContain('"embedding"');
+      const entries = readZip(new Uint8Array(await new Response(await port.profiles.exportAll(ctxOf(pid))).arrayBuffer()));
+      expect(entries.map((e) => e.name)).toContain('tables/npc_memory.json');
+      expect(JSON.parse(new TextDecoder().decode(entries.find((e) => e.name === 'tables/profiles.json')!.data))).toHaveLength(1);
+
+      await port.profiles.forget(ctxOf(pid));
+      expect(await port.profiles.get(ctxOf(pid))).toBeNull();
+      expect(await port.maintenance.deletedProfiles(Date.now() + 1000, 10_000)).toContain(pid);
+      expect(await port.maintenance.purgeProfile(pid)).toBe(true);
+      expect(await port.maintenance.purgeProfile(pid)).toBe(false);
+      expect(await port.npcMemory.relationship(pid, npc)).toBeNull();
+      expect(await port.npcMemory.topK(pid, npc, unit(3), 10, 10)).toEqual([]);
+      expect(await port.maintenance.transcriptKeys(pid)).toEqual([]);
+      const after = await port.maintenance.exportRows(pid);
+      for (const table of Object.keys(after)) expect(after[table], table).toEqual([]);
+    });
+
+    it('maintenance: purgeMemory removes expired memories and long-unseen relationships only', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const npc = `npc_${uuid().slice(0, 8)}`;
+      await port.npcMemory.write(pid, npc, [mem('keeps', 5, 10, unit(1))]);
+      const far = Date.now() + 400 * 86_400_000;
+      const purged = await port.maintenance.purgeMemory(far);
+      expect(purged.memories).toBeGreaterThanOrEqual(1);
+      expect(await port.npcMemory.topK(pid, npc, unit(1), 10, 10)).toEqual([]);
+      await port.npcMemory.write(pid, npc, [mem('fresh', 5, 10, unit(1))]);
+      await port.maintenance.purgeMemory(Date.now());
+      expect((await port.npcMemory.topK(pid, npc, unit(1), 10, 10)).map((h) => h.text)).toEqual(['fresh']);
+    });
+
     it('every member owned by a later milestone rejects with NotImplementedError naming it', async () => {
       const { port } = await make();
       const ctx = ctxOf(uuid());
       const cases: [string, () => Promise<unknown>][] = [
         ['M12a1', () => port.profiles.upgrade(ctx, 'x')],
-        ['M06a1', () => port.profiles.forget(ctx)],
-        ['M06a1', () => port.profiles.exportAll(ctx)],
         ['M12a1', () => port.identity.putRefresh(uuid(), uuid(), new Uint8Array(32), 1)],
         ['M12a1', () => port.identity.rotateRefresh(new Uint8Array(32))],
         ['M12a1', () => port.identity.link(ctx, 'openai', 's')],
@@ -148,12 +283,9 @@ export function runDataPortContract(name: string, make: () => Promise<ContractTa
         ['M12a1', () => port.saves.putProfile(ctx, 'p', { name: 'n', createdAt: 1 })],
         ['M12c', () => port.progress.commit(uuid(), 'k', {})],
         ['M12c', () => port.leaderboards.top('racing.x.time', 10)],
-        ['M06a1', () => port.npcMemory.relationship(uuid(), 'npc_a')],
-        ['M06a1', () => port.npcMemory.topK(uuid(), 'npc_a', new Float32Array(1024), 0)],
         ['M13a2', () => port.ugc.getMod('x')],
         ['M13b1', () => port.forum.listThreads({})],
         ['M06b1', () => port.moderation.listCases(ctx, {})],
-        ['M06a1', () => port.roster.flags()],
       ];
       for (const [milestone, call] of cases) {
         const err: unknown = await call().then(

@@ -1,6 +1,7 @@
 import {
   compileStringMatcher,
   NAME_DISTANCE_THRESHOLD,
+  NPC_GUARDRAILS,
   normalisedDistance,
   normalizeName,
   scanText,
@@ -16,9 +17,12 @@ import {
 import { DISPLAY_NAME } from '../../../../config/brand.ts';
 import denylistJson from '../../../../config/ip-denylist.json' with { type: 'json' };
 import { TERMS_VERSION } from '../../../../config/terms.ts';
+import { netQuota } from '../budget/quota.ts';
+import { nextUtcMidnight } from '../clock.ts';
 import type { AdminPath } from '../deps.ts';
 import type { Env } from '../env.ts';
 import { apiError, json } from '../errors.ts';
+import { netHash } from '../id/nethash.ts';
 import { limitByNet, limitByUser } from '../ratelimit.ts';
 import type { Ctx } from '../router.ts';
 
@@ -366,10 +370,25 @@ export function signupBlockedReason(env: Env, adminPath: AdminPath): SignupBlock
 // ---------------------------------------------------------------------------------------------
 // routes
 
-/** Route 58. */
+/**
+ * Route 58. Three layers before any upstream call: the per-net rate limit (RL_AUTH), then the exact daily cap of PlayerQuotaDO
+ * (3 completed sign-ups per net per UTC day, M06a1 AC-13: a fourth answers 429 `rate_limited` until the next UTC midnight and makes 0 upstream
+ * calls), then the body checks. A sign-up counts against the cap only once the upstream has accepted it.
+ */
 export async function handleSignup(ctx: Ctx): Promise<Response> {
   const limited = await limitByNet(ctx);
   if (limited) return limited;
+  const quota = ctx.env.QUOTA ? netQuota(ctx.env, await netHash(ctx.request, ctx.env.QUOTA_NET_SALT_SECRET, ctx.deps.now())) : null;
+  if (quota !== null && (await quota.peek('signup', NPC_GUARDRAILS.signupsPerNet)) >= NPC_GUARDRAILS.signupsPerNet) {
+    const t = ctx.deps.now();
+    return apiError('rate_limited', 'Too many sign-ups from this network today.', ctx.requestId, { retryAfterMs: nextUtcMidnight(t) - t });
+  }
+  const res = await signupFlow(ctx);
+  if (quota !== null && res.ok) await quota.bump('signup');
+  return res;
+}
+
+async function signupFlow(ctx: Ctx): Promise<Response> {
   const body = await readJsonBody(ctx);
   if (body instanceof Response) return body;
 

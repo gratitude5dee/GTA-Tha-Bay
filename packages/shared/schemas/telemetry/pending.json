@@ -24,7 +24,6 @@
   "exp.enter": "M14b2",
   "exp.exit": "M13a4",
   "genai.cost": "M06a3",
-  "quota.block": "M06a1",
   "genjob.state": "M14b2",
   "room.tick": "M12c2",
   "room.hours": "M14b2",

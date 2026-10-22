@@ -81,7 +81,7 @@ describe('GET /api/v1/boot', () => {
     };
     for (const block of [wrangler, wrangler.env.staging]) {
       expect(block.secrets.required).toContain('SUPABASE_SECRET_KEY');
-      expect(block.triggers.crons).toEqual(['10 3 * * *']);
+      expect(block.triggers.crons).toEqual(['10 3 * * *', '20 3 * * *', '30 3 * * *']); // M06a1 adds the memory and stub-profile retention crons
     }
     // tha-bay-staging has no publishable key in config/supabase.projects.json yet, so previews still carry no Supabase vars.
     expect(wrangler.previews.triggers).toBeUndefined();
