@@ -302,6 +302,12 @@ importers:
         specifier: ^6.2.6
         version: 6.2.6
 
+  packages/modes/fighter:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../shared
+
   packages/modes/racing:
     dependencies:
       '@dv/engine':
