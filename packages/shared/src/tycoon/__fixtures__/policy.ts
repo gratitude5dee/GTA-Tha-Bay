@@ -71,7 +71,7 @@ export function playPolicy(setup: RunSetup, content: TycoonContent, weeks: numbe
     // A meeting opened this week is answered this week: take the midpoint.
     const offer = s.meetings.find((m) => m.phase === 'offer');
     if (s.awaiting === 'meeting' && offer && !issue({ t: 'accept', meetingId: offer.id })) issue({ t: 'walk', meetingId: offer.id });
-    if (s.phase === 'ended') break;
+    if ((s.phase as string) === 'ended') break;
     if (s.awaiting !== null) {
       // Stuck on something the script does not answer: quit so the list stays replayable.
       stuck = `${s.awaiting} at week ${s.week}`;

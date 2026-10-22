@@ -172,7 +172,7 @@ export function boardStep(s: CompanyState, c: TycoonContent, mrrGrowth: number):
   s.board.missedTargets = missed ? s.board.missedTargets + 1 : 0;
   s.flags['boardMissed'] = missed;
   recomputeControl(s);
-  const lastKind = typeof s.flags['lastRoundKind'] === 'string' ? s.flags['lastRoundKind'] : 'seed';
+  const lastKind = ['safe', 'seed', 'a', 'b', 'c'][typeof s.flags['lastRoundKindIx'] === 'number' ? (s.flags['lastRoundKindIx'] as number) : 1] ?? 'seed';
   s.board.nextMeetingWeek = nm + c.balance.sim.boardIntervalWeeks;
   const target = (b.targets as Record<string, number>)[String(lastKind)] ?? b.targets.seed;
   s.board.lastTargetArrGrowth = target;

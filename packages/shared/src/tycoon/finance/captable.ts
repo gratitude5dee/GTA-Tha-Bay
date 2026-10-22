@@ -172,11 +172,11 @@ export function convertSafes(t: CapTable, round: RoundInput | null): Conversion 
   let X = 0;
   let T = 0;
 
-  const solveX = (N: number): { X: number; T: number } | FinanceError => {
+  const solveX = (N: number): { X: number; T: number } | null => {
     if (round === null) return { X: 0, T: 0 };
     const B = issuedGranted + N;
     const den = round.preMoney * 10_000 - round.poolTargetBp * (round.preMoney + round.amount);
-    if (!(den > 0)) return fail('TERMS_INFEASIBLE');
+    if (!(den > 0)) return null;
     let x = mulDivCeil(B, round.preMoney * 10_000, den);
     let top = x - fd0 - N;
     if (top < 0) {
@@ -188,13 +188,11 @@ export function convertSafes(t: CapTable, round: RoundInput | null): Conversion 
 
   let N = shares.reduce((a, b) => a + b, 0);
   let sol = solveX(N);
-  if ('ok' in sol) return sol;
+  if (sol === null) return fail('TERMS_INFEASIBLE');
   if (round !== null) {
     for (;;) {
-      const next = eff.map((e, i) => {
-        const priced = mulDivFloor(e.safe.amount, sol_X(sol) * 10_000, e.disc * round.preMoney);
-        return Math.max(capShares[i] as number, priced);
-      });
+      const x = sol.X;
+      const next = eff.map((e, i) => Math.max(capShares[i] as number, mulDivFloor(e.safe.amount, x * 10_000, e.disc * round.preMoney)));
       let changed = false;
       for (let i = 0; i < next.length; i++) if (next[i] !== shares[i]) changed = true;
       if (!changed) break;
@@ -203,7 +201,7 @@ export function convertSafes(t: CapTable, round: RoundInput | null): Conversion 
       shares = next;
       N = shares.reduce((a, b) => a + b, 0);
       const s2 = solveX(N);
-      if ('ok' in s2) return s2;
+      if (s2 === null) return fail('TERMS_INFEASIBLE');
       sol = s2;
     }
     X = sol.X;
@@ -214,10 +212,6 @@ export function convertSafes(t: CapTable, round: RoundInput | null): Conversion 
     sharesBySafe[e.safe.id] = shares[i] as number;
   });
   return { ok: true, sharesBySafe, iterations, X, T, N, fd0 };
-}
-
-function sol_X(s: { X: number; T: number }): number {
-  return s.X;
 }
 
 export interface RoundContext {

@@ -6,31 +6,60 @@
       "id": "unlock.racing",
       "titleKey": "unlock.racing.title",
       "source": "base",
-      "grants": { "menuTile": "racing", "vehicles": ["vehicle.ondine-pico"] }
+      "grants": {
+        "menuTile": "racing",
+        "vehicles": [
+          "vehicle.ondine-pico"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.c",
       "titleKey": "unlock.racing.class.c.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.kestrel-quill"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.kestrel-quill"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.b",
       "titleKey": "unlock.racing.class.b.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.brackenridge-rasp"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.brackenridge-rasp"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.a",
       "titleKey": "unlock.racing.class.a.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.aurelian-sorrel"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.aurelian-sorrel"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.s",
       "titleKey": "unlock.racing.class.s.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.solenne-skip"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.solenne-skip"
+        ]
+      }
+    },
+    {
+      "id": "unlock.tycoon",
+      "titleKey": "unlock.tycoon.title",
+      "source": "base",
+      "grants": {
+        "menuTile": "tycoon"
+      }
     }
   ]
 }

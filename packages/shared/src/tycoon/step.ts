@@ -19,11 +19,13 @@ interface PendingEnd {
   exit?: number;
 }
 
+const KIND_IX = ['safe', 'seed', 'a', 'b', 'c'];
+
 function closeEffects(s: CompanyState, c: TycoonContent, kind: string, closedWeek: number): void {
   s.hype = clamp(s.hype + 8, 0, 100);
   s.founderMorale = clamp(s.founderMorale + c.balance.founder.roundClose, 0, 100);
   s.flags['lastRaiseEnd'] = closedWeek;
-  s.flags['lastRoundKind'] = kind;
+  s.flags['lastRoundKindIx'] = KIND_IX.indexOf(kind);
   s.raise = null;
 }
 

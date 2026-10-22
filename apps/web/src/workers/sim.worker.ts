@@ -6,11 +6,14 @@
  *
  * M07a1 adds racing: the descriptor that replaces the `comingSoon` stub, its unlock rows and the racing sim module, which is inert
  * unless the boot payload says `racing: true` (QA `?racing=1`; M07a2 turns it on for players).
+ *
+ * M09a1 replaces the tycoon `comingSoon` stub with the real descriptor (still `comingSoon`); `unlock.tycoon` is a row of config/unlocks.json.
  */
 import { createPursuitModule } from '@dv/engine/sim';
 import { runSimWorker, type WorkerScope } from '@dv/engine/workers/sim-worker-core';
 import { wrapStory } from '@dv/mode-story';
 import { racingDescriptor, racingUnlockDefs } from '@dv/mode-racing';
+import { tycoonDescriptor } from '@dv/mode-tycoon';
 import { createRacingModule } from '@dv/mode-racing/sim/module';
 import { worldStreamingModule } from '@dv/world/sim/module';
 
@@ -20,7 +23,7 @@ const racing = createRacingModule();
 // The story mode (M05a1) wraps the engine's free roam with the mission runtime; the engine never imports the mode package.
 runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule(), racing], {
   wrapStory,
-  descriptors: [racingDescriptor()],
+  descriptors: [racingDescriptor(), tycoonDescriptor()],
   unlockDefs: racingUnlockDefs(),
   // QA builds only (the literal comparison lets production builds drop the branch): the racing loader and bot, and its QA commands
   ...(import.meta.env.VITE_DV_QA === '1'

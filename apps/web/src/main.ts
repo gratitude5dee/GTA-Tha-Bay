@@ -334,6 +334,8 @@ async function boot(): Promise<void> {
       const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
       if (flags.racingDemo) void racing.demo().catch((e: unknown) => console.warn('racing demo failed', e));
     }
+    // ?tycoon=1 (M09a1): the Business Tycoon QA panel and __dvBridge.tycoon (text panel, seeded runs, the cross-browser det check).
+    if (flags.tycoon) (await import('@dv/mode-tycoon/qa/bridge')).installTycoonBridge();
     // ?scenario=<id> starts that perf scenario at boot (path duration).
     if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {
