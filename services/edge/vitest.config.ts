@@ -12,5 +12,6 @@ export default defineConfig({
       wrangler: { configPath: './wrangler.jsonc', environment: 'staging' },
     }),
   ],
-  test: { include: ['test/**/*.test.ts'] },
+  // test/db holds the tests that need a database: they run under check:db (vitest.db.config.ts), not here.
+  test: { include: ['test/**/*.test.ts'], exclude: ['test/db/**'] },
 });
