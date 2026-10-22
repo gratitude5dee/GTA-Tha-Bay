@@ -139,8 +139,8 @@ padding:.45rem .55rem;border-radius:.5rem;background:rgba(14,18,26,.9);color:#f3
 .dv-npcdbg__row{display:flex;flex-wrap:wrap;gap:.25rem;margin-block:.3rem}
 .dv-npcdbg__line{min-block-size:2.6em;font-size:.85rem;font-weight:500;overflow-wrap:anywhere}
 .dv-npcdbg__meta{color:#9aa4b2;font-weight:500;overflow-wrap:anywhere}
-.dv-npcdbg__voice{display:flex;align-items:center;gap:.5rem;margin-block:.25rem;pointer-events:auto}
-.dv-npcdbg__voice label{display:flex;align-items:center;gap:.25rem;cursor:pointer}
+.dv-npcdbg__voice{display:flex;align-items:center;gap:.5rem;margin-block:.25rem;pointer-events:none}
+.dv-npcdbg__voice label{display:flex;align-items:center;gap:.25rem;cursor:pointer;pointer-events:auto}
 .dv-npcdbg__atlas{display:grid;grid-template-columns:repeat(3,1.35rem);gap:2px}
 .dv-npcdbg__cell{display:grid;place-items:center;block-size:1.35rem;border-radius:.2rem;background:rgba(255,255,255,.1);color:#9aa4b2;font-size:.7rem}
 .dv-npcdbg__cell[data-on="true"]{background:#f2c230;color:#14181f}
@@ -256,7 +256,7 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
     },
     setJaw() {},
   };
-  root.append(head, line, meta, row, voiceRow, input);
+  root.append(head, line, meta, row, input, voiceRow);
   container.append(root);
 
   const sourceLabel = (r: DebugTurnResult): string => {

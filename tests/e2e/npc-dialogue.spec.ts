@@ -115,6 +115,23 @@ test.describe('npc dialogue panel @npc-dialogue', () => {
     expect(errors).toEqual([]);
   });
 
+  test('M06a4: with Voice on, a spoken reply moves the mouth readout off the rest shape (?npc=local&npcId=ro-batista)', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.goto('/?play=off&tier=mobile-low&npc=local&npcId=ro-batista');
+    await waitForEngine(page);
+    await page.waitForFunction(() => (window as unknown as W).__dvBridge.npc !== undefined, undefined, { timeout: 60_000 });
+    const lit = page.locator('[data-testid="npc-viseme"] [data-on="true"]');
+    await expect(lit).toHaveText('X');
+    await page.getByTestId('npc-voice').check();
+    await page.getByTestId('npc-smalltalk').click();
+    await expect(page.getByTestId('npc-line')).not.toHaveText('');
+    // The synthetic voice has syllable-like bursts: some Rhubarb shape other than the rest shape X lights up while the line plays.
+    await expect.poll(async () => (await lit.allTextContents()).join(''), { timeout: 20_000 }).not.toBe('X');
+    expect(errors).toEqual([]);
+  });
+
   test('drops the partial line and plays the deflect knot when the Worker sends a fallback after some text', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => (window as unknown as W).__dvBridge.npc.setAuthHeader('PlayToken e2e'));

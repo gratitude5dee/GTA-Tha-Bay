@@ -15,6 +15,8 @@ const vm = (page: Page, key: string): Promise<unknown> => page.evaluate((k) => (
 test.describe('creator @creator', () => {
   test('the edited avatar is stored and survives a reload; bad names are refused inline', async ({ page }) => {
     await page.goto(HOME);
+    // The QA NPC panel (M06a3, top right) covers the creator's right-hand tabs; hide it like the other QA panels in touch.spec.ts and world-look.spec.ts.
+    await page.addStyleTag({ content: '.dv-npcdbg { display: none !important }' });
     await passGates(page);
     await waitForEngineReady(page);
     await expect.poll(() => vm(page, 'sys.profile').then((v) => v != null), { timeout: 90_000 }).toBe(true);
