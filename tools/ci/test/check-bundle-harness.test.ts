@@ -18,6 +18,9 @@ function dist(js: string): string {
   writeFileSync(path.join(dir, 'index.html'), '<!doctype html>');
   writeFileSync(path.join(dir, 'sw.js'), 'precacheAndRoute([{url:"index.html",revision:null}])');
   writeFileSync(path.join(dir, 'assets', 'app.js'), js);
+  // M04b1 (AC-13) wants one shell chunk and at least four lazy page chunks in any dist that has scripts.
+  writeFileSync(path.join(dir, 'assets', 'shell-test.js'), 'export{}');
+  for (const n of ['a', 'b', 'c', 'd']) writeFileSync(path.join(dir, 'assets', `page-${n}.js`), 'export{}');
   return dir;
 }
 
