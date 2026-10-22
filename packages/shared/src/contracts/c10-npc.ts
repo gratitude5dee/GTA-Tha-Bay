@@ -1,11 +1,11 @@
 /**
- * C10 NPC contract, version 1.0.0: spec/domains/04-npc-contracts.md section B2, copied without shape changes.
- * Imports use the .ts extension. DialogueEvent meta.data.safety? (C10 1.1, DL-226) and C10_VERSION 1.1.0 arrive with M06a3.
+ * C10 NPC contract, version 1.1.0: spec/domains/04-npc-contracts.md section B2, copied without shape changes.
+ * Imports use the .ts extension. 1.1 (DL-226, M06a3) adds the optional DialogueEvent meta.data.safety.
  * Owner: S04. Change only through the Architect.
  */
 import type { AssetRef, LikenessTier } from '../assets/c07.ts';
 import type { StableKey } from './c01-ecs.ts';
-export const C10_VERSION = '1.0.0' as const;
+export const C10_VERSION = '1.1.0' as const;
 
 export type NpcId = string;                 // /^[a-z][a-z0-9_-]{2,47}$/ (B1 rule 4)
 export type SoulVersion = number;           // integer ≥ 1 (fixed)
@@ -173,7 +173,8 @@ export type FallbackReason = 'timeout' | 'refusal' | 'upstream' | 'invalid_outpu
 export type DialogueEvent =
   | { event: 'meta'; data: { encounterId: string; turnIndex: number; npcId: NpcId; soulVersion: SoulVersion;
         model: ModelTier; voice: VoiceTier /* effective tier for this turn */; turnsLeft: number;
-        disclosure: { aiCharacter: true; disclaimer: SoulLikeness['disclaimer'] }; gov: 0 | 1 | 2 | 3 } }
+        disclosure: { aiCharacter: true; disclaimer: SoulLikeness['disclaimer'] }; gov: 0 | 1 | 2 | 3;
+        safety?: 'crisis' /* 1.1 (DL-226): set on the turn after an async self-harm/intent hit (04-npc §5.4); the client shows S10's crisis card first */ } }
   | { event: 'line.delta'; data: { seq: number; text?: string; audio?: AudioChunk } }
   | { event: 'line.done'; data: { text: string; words: number } }
   | { event: 'effects'; data: { action?: { kind: NpcAction; arg: string | null }; mood?: Emotion; memoryWrite?: { count: number };
