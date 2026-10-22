@@ -607,13 +607,13 @@
       "approved_at": "2026-10-22T20:48:03Z"
     },
     "data/mission.m.a1.06": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "default": "4aeb3aff319df3353f167daecd258fd08cee582370215fa6ac6529c0acce62de"
+        "default": "83745ab1b77a0720cc3a0134e6e4c7943dd41a94d29a3eee8cdf1064915335da"
       },
-      "root": "4aeb3aff319df3353f167daecd258fd08cee582370215fa6ac6529c0acce62de",
+      "root": "83745ab1b77a0720cc3a0134e6e4c7943dd41a94d29a3eee8cdf1064915335da",
       "approved_by": "m05c1-builder",
-      "approved_at": "2026-10-22T20:48:03Z"
+      "approved_at": "2026-10-22T21:29:43Z"
     },
     "data/mission.m.dev.sample": {
       "rev": 3,

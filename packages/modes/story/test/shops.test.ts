@@ -6,7 +6,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { enuFromLatLng, type MissionIR, type VehicleInstance } from '@dv/shared';
-import { Transform, Vehicle, VehicleDamage, Velocity } from '@dv/engine/sim';
 import { describe, expect, it } from 'vitest';
 import {
   COMPACT_PRICE_CENTS, MISSION_FLAT_PRICE_CENTS, RESPRAY_PRICE_CENTS, SAFEHOUSES, SHOPS, ShopService, StoryPlaces, newGarageCar, offers, safehouseDef, type ShopPorts,
@@ -121,9 +120,6 @@ describe('the car lot, the clothing shop and the flat', () => {
 describe('sh.yard after m.a1.01', () => {
   it('the pass registers the Yard and puts the tow truck in the garage; the Yard offers save, respawn and sleep', () => {
     const h = makeHarness({ flags: { beats: 'instant' } });
-    for (const id of ['vehicle.pickup', 'vehicle.truck', 'vehicle.van', 'vehicle.sedan']) {
-      h.ecs.definePrefab({ id, components: [{ def: Transform, init: { qw: 1 } }, { def: Velocity }, { def: Vehicle }, { def: VehicleDamage, init: { body: 1, engine: 1 } }] });
-    }
     const cars: VehicleInstance[] = [];
     (h.ctx as unknown as { garage: unknown }).garage = { add: (i: VehicleInstance) => (cars.push(i), true), count: () => cars.length, slots: () => 4, recolor: () => true };
     h.start(load('m.a1.01'));

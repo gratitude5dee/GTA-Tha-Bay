@@ -19,12 +19,12 @@ export default defineMission({
   requires: [passed('m.a1.05')],
   start: phoneTrigger('saint_static'),
   cast: {
-    van: vehicle({ prefab: 'vehicle.van', spawn: at(37.75066, -122.41447, { snap: 'road', yawDeg: 0 }), playerUsable: true }),
+    van: vehicle({ prefab: 'vehicle.van', spawn: at(37.75066, -122.41447, { snap: 'road', yawDeg: 180 }), playerUsable: true }),
     crew: npc({ soul: 'chorus_sparrer', role: 'ally', spawn: at(37.75062, -122.41442) }),
   },
   zones: {
     warehouse: circle(37.7506, -122.4145, 16),
-    hill: circle(37.7435, -122.4150, 30),
+    hill: circle(37.74314, -122.41477, 25),
   },
   stages: [
     stage('warehouse', [goto('warehouse', { id: 'goto_warehouse', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.06.start')] }),

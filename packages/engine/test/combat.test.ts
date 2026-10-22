@@ -150,4 +150,29 @@ describe('engine/combat melee stub', () => {
     r.step(1);
     expect(r.combat.current(r.a)).toBeNull();
   });
+
+  it('aim assist: an attack turns the player toward a target within 3 m beside or ahead, and not toward one farther or behind', () => {
+    const ATTACK = 1 << 4;
+    const mk = (z: number, x = 0) => {
+      const r = rig({ player: true, targetZ: z });
+      r.w.store(Transform).px[r.w.resolve(r.t) as number] = x;
+      return r;
+    };
+    const frame = (r: ReturnType<typeof rig>): InputFrame => ({ tick: r.state.tick, buttons: ATTACK, pressed: ATTACK, released: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 0, device: 7 });
+    // the target is 1.5 m to the player's right (+X) and the player faces -Z: the jab still lands
+    const side = mk(0, 1.5);
+    side.state.input = frame(side);
+    side.step(1 + MOVES.jab.startup + 1);
+    expect(side.hp(side.t)).toBe(100 - MOVES.jab.damage);
+    // 6 m away: out of the assist range, out of reach
+    const far = mk(0, 6);
+    far.state.input = frame(far);
+    far.step(1 + MOVES.jab.startup + 1);
+    expect(far.hp(far.t)).toBe(100);
+    // 1.5 m straight behind: the assist does not spin the player around
+    const behind = mk(1.5);
+    behind.state.input = frame(behind);
+    behind.step(1 + MOVES.jab.startup + 1);
+    expect(behind.hp(behind.t)).toBe(100);
+  });
 });

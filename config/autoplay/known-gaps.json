@@ -11,8 +11,8 @@
       "closedBy": "bot driving off-road and out of the Yard (the same follow-up)"
     },
     "m.a1.06": {
-      "reason": "The warehouse spawn is a dead-end stub on which the bot cannot turn the van around; the drive to the hill (800 m) is never started.",
-      "closedBy": "a warehouse spawn on a through street, or a bot three-point turn"
+      "reason": "The bot drives the van off the warehouse street and along the 1.5 km route to the hill, but the hill streets are steep dead ends: it wrecks the van (the 40 percent health rule) at about tick 18,000, three hundred seconds in.",
+      "closedBy": "bot braking on steep grades and dead-end stubs (the same follow-up), or a hill zone on a through street"
     }
   }
 }

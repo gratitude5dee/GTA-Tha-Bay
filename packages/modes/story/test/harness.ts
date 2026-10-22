@@ -87,6 +87,9 @@ export function makeHarness(o: HarnessOptions = {}): Harness {
   ecs.definePrefab({ id: 'prop.crate', components: [{ def: Transform, init: { qw: 1 } }, { def: Velocity }, { def: Prop }] });
   ecs.definePrefab({ id: 'pickup.item', components: [{ def: Transform, init: { qw: 1 } }, { def: Pickup }] });
   ecs.definePrefab({ id: 'vehicle.compact', components: [{ def: Transform, init: { qw: 1 } }, { def: Velocity }, { def: Vehicle }, { def: VehicleDamage, init: { body: 1, engine: 1 } }] });
+  for (const id of ['vehicle.pickup', 'vehicle.truck', 'vehicle.van', 'vehicle.sedan']) {
+    ecs.definePrefab({ id, components: [{ def: Transform, init: { qw: 1 } }, { def: Velocity }, { def: Vehicle }, { def: VehicleDamage, init: { body: 1, engine: 1 } }] });
+  }
   ecs.definePrefab({ id: 'marker.beam', components: [{ def: Transform, init: { qw: 1 } }] });
 
   const tickNo = { n: 0 };
