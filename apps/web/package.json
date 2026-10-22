@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@dv/engine": "workspace:*",
+    "@dv/identity": "workspace:*",
     "@dv/mode-story": "workspace:*",
     "@dv/mode-racing": "workspace:*",
     "@dv/shared": "workspace:*",

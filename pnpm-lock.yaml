@@ -223,6 +223,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@dv/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
       '@dv/mode-racing':
         specifier: workspace:*
         version: link:../../packages/modes/racing
