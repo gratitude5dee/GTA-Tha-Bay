@@ -63,8 +63,9 @@ function chordWithin(c: Ctx, buf: Int32Array, tick: number, i: number, mask: num
   return false;
 }
 
-function canCheck(c: Ctx, buf: Int32Array, o: number): boolean {
-  return g(buf, o + FF.Rattled) === 0 && g(buf, o + FF.Composure) >= c.tun.CHECK_COST;
+/** Check works while any Composure is left; a Check that cannot be paid in full burns the gauge to 0 and leaves the fighter Rattled (BD-M08a1-06). */
+function canCheck(_c: Ctx, buf: Int32Array, o: number): boolean {
+  return g(buf, o + FF.Rattled) === 0 && g(buf, o + FF.Composure) > 0;
 }
 
 /** Classic parse over the kit's priority order: class (super > special > command > normal), then complexity. */
@@ -169,7 +170,7 @@ function computeIntent(c: Ctx, buf: Int32Array, tick: number, i: number): void {
     let mi = sc !== SCHEME_CLASSIC ? pickSimple(c, buf, tick, i, ALL, true) : -1;
     if (mi === -1) mi = pickClassic(c, buf, tick, i, ALL, -1, 0, false, true);
     if (mi !== -1) { setMove(c, i, mi); return; }
-    if (pressedWithin(c, buf, tick, i, FB.TA, ppxOf(c, i).bufN) && g(buf, o + FF.TauntTimer) === 0) { c.iKind[i] = Int.Move; c.iMove[i] = kit.tauntIdx; return; }
+    if (pressedWithin(c, buf, tick, i, FB.TA, ppxOf(c, i).bufN)) { c.iKind[i] = Int.Move; c.iMove[i] = kit.tauntIdx; return; }
     if (dirHas(d, 8)) { c.iKind[i] = Int.Jump; c.iArg[i] = dirHas(d, 6) ? 1 : dirHas(d, 4) ? 2 : 0; return; }
     const tap = c.pp.tap;
     if (doubleTapNow(buf, rb, tick, 6, tap)) { c.iKind[i] = Int.Dash; c.iArg[i] = 1; return; }
@@ -256,7 +257,7 @@ function airPhysics(buf: Int32Array, o: number, grav: number): boolean {
 
 function finishMove(c: Ctx, buf: Int32Array, i: number, o: number, m: CMove, s: number): void {
   if (g(buf, o + FF.MoveResult) === 0 && m.hits.length > 0) addWhiff(c, buf, o, m);
-  if (m.def.kind === 'taunt') { buf[o + FF.Hype] = Math.min(c.tun.HYPE_MAX, g(buf, o + FF.Hype) + c.tun.TAUNT_HYPE); buf[o + FF.TauntTimer] = 60; }
+  if (m.def.kind === 'taunt') { buf[o + FF.Hype] = Math.min(c.tun.HYPE_MAX, g(buf, o + FF.Hype) + c.tun.TAUNT_HYPE); }
   if (s === St.Auto) {
     const next = g(buf, o + FF.AiMacroStep) + 1;
     const kit = kitOf(c, i);

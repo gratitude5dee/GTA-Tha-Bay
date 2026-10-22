@@ -18,7 +18,7 @@ const argv = args();
 const kitAt = argv.indexOf('--kit');
 const kitFile = kitAt >= 0 ? argv[kitAt + 1] : undefined;
 const force = argv.includes('--force');
-const files = argv.filter((a, i) => !a.startsWith('--') && i !== kitAt + 1);
+const files = argv.filter((a, i) => !a.startsWith("--") && (kitAt < 0 || i !== kitAt + 1));
 if (files.length === 0) { console.error('usage: fighter:replay -- <file.dvfight>... [--kit <kit.json>] [--force]'); process.exit(2); }
 
 const pack = loadPack(root, kitFile === undefined ? undefined : { PLAYER_FIGHTER: JSON.parse(readFileSync(path.resolve(kitFile), 'utf8')) as FighterDef });
