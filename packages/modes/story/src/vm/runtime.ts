@@ -110,6 +110,7 @@ export class MissionRuntime implements OpHost {
   private bound: ModeContext | null = null;
   private driverFn: (() => VehicleDriver | null) | null = null;
   private firstCp: MissionCheckpointV1 | null = null;
+  private restarted = false;
 
   readonly predEnv: PredEnv;
 
@@ -465,6 +466,11 @@ export class MissionRuntime implements OpHost {
     this.bind(ctx);
     if (!this.ir) return;
     this.applyCommands();
+    if (this.restarted) {
+      // a retry just put the world back: the clock stands at the checkpoint for this tick
+      this.restarted = false;
+      return;
+    }
     if (this.phase === 'intro') {
       this.advanceBeat();
       if (this.beat === null && this.introPending) this.finishIntro();
@@ -787,10 +793,11 @@ export class MissionRuntime implements OpHost {
 
   private retry(): void {
     if (this.phase !== 'failed') return;
-    const stored = readCheckpoint(this.opts.story().activeMission, this.ir.id, this.ir.version, this.ir.worldBake);
+    const stored = readCheckpoint(this.opts.story().activeMission, this.ir.id, this.ir.version, this.rm.bake);
     const from = this.lastFailRetry === 'start' ? (this.firstCp ?? stored) : (stored ?? this.firstCp);
     const carry = { walletDelta: this.walletDelta, revokeGen: this.revokeGen, touchedFlags: new Set(this.touchedFlags), first: this.firstCp };
     this.start(this.rm, { attempt: this.attempt + 1, seed: this.seed, ...(from ? { from } : {}), carry });
+    this.restarted = true;
   }
 
   private applyTalkResult(c: Extract<StoryCommand, { name: 'talk.result' }>): void {

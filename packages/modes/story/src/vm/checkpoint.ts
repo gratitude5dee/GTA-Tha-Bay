@@ -54,7 +54,7 @@ export function captureCheckpoint(rt: MissionRuntime): MissionCheckpointV1 {
     missionId: rt.ir.id,
     version: rt.ir.version,
     worldBake: rt.rm.bake,
-    stage: rt.stageIndex,
+    stage: Math.max(0, rt.stageIndex),
     attempt: rt.attempt,
     seed: rt.seed,
     rng: rt.rng.getState(),

@@ -91,7 +91,7 @@ export class StoryController {
 
     // a saved mission of another version or world bake is dropped: the mission is `available` again, never a broken checkpoint
     const saved = story.activeMission;
-    const cp = saved && saved.id === ir.id ? readCheckpoint(saved, ir.id, ir.version, ir.worldBake) : null;
+    const cp = saved && saved.id === ir.id ? readCheckpoint(saved, ir.id, ir.version, ctx.world.resolver.bake) : null;
     if (saved && saved.id === ir.id && (!cp || o.resume !== true)) story.activeMission = null;
     if (story.missions[ir.id]?.state !== 'passed') story.missions[ir.id] = { state: 'available', ...(story.missions[ir.id]?.bestSec !== undefined ? { bestSec: story.missions[ir.id]?.bestSec as number } : {}) };
 
