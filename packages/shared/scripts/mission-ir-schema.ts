@@ -23,6 +23,7 @@ const re = {
   soul: '^[a-z][a-z0-9_-]{0,47}$',
   id: '^[a-z][a-z0-9_-]{0,31}$',
   key: '^[a-z][a-z0-9_.]{0,47}$',
+  tag: '^[a-z][a-z0-9_.-]{0,47}$',
   prefab: '^[a-z0-9][a-z0-9_.-]{0,63}$',
   idem: '^[a-z0-9][a-z0-9_.:-]{0,63}$',
   knot: '^mission_[a-z0-9_]{1,120}$',
@@ -250,7 +251,7 @@ function build(profile: 'story' | 'mod'): { defs: Record<string, J>; root: J } {
   const root: Record<string, J> = {
     schema: lit('mission-ir/1'), id: ref('MissionId'), version: int(1, 100000), worldBake: str(re.bake),
     act: mod ? lit(0) : { enum: [0, 1, 2, 3] }, premise: mod ? lit('mod') : { enum: ['hella-valuation', 'mod'] },
-    title: ref('LocKey'), district: { enum: ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10'] }, tags: arr(str(re.key), 0, 16),
+    title: ref('LocKey'), district: { enum: ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10'] }, tags: arr(str(re.tag), 0, 16),
     giver: anyOf([obj({ npc: ref('CastName') }), obj({ phone: str(re.soul) }), obj({ world: lit(true) })]),
     requires: arr(ref('Pred'), 0, 16), start: ref('Trigger'),
     cast: rec(re.name, ref('CastDef'), 32), zones: rec(re.name, ref('ZoneDef'), 48),

@@ -1,0 +1,10 @@
+{
+  "schema": "audio-needs-story/1",
+  "speakers": {
+    "npc_test": [
+      "line.m.dev.sample.bye",
+      "line.m.dev.sample.hello",
+      "line.m.dev.sample.nudge"
+    ]
+  }
+}

@@ -417,6 +417,15 @@
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
     },
+    "data/director.m.dev.sample.intro": {
+      "rev": 1,
+      "variants": {
+        "default": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8"
+      },
+      "root": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8",
+      "approved_by": "m05a1-builder",
+      "approved_at": "2026-10-22T00:32:45Z"
+    },
     "data/ink.canary-mc": {
       "rev": 1,
       "variants": {
@@ -462,6 +471,24 @@
       "approved_by": "m06a2-builder",
       "approved_at": "2026-10-19T03:03:04Z"
     },
+    "data/lines.0.en": {
+      "rev": 1,
+      "variants": {
+        "default": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88"
+      },
+      "root": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88",
+      "approved_by": "m05a1-builder",
+      "approved_at": "2026-10-22T00:32:45Z"
+    },
+    "data/mission.m.dev.sample": {
+      "rev": 1,
+      "variants": {
+        "default": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c"
+      },
+      "root": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c",
+      "approved_by": "m05a1-builder",
+      "approved_at": "2026-10-22T00:32:45Z"
+    },
     "data/npc-roster": {
       "rev": 2,
       "variants": {
@@ -470,6 +497,15 @@
       "root": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2",
       "approved_by": "m02a2-sf-fix-builder",
       "approved_at": "2026-10-19T17:35:08Z"
+    },
+    "data/story.index": {
+      "rev": 1,
+      "variants": {
+        "default": "19593c2b1921664d2fadfddbf9f1db28428adbf485764d8350af830ed7fa892b"
+      },
+      "root": "19593c2b1921664d2fadfddbf9f1db28428adbf485764d8350af830ed7fa892b",
+      "approved_by": "m05a1-builder",
+      "approved_at": "2026-10-22T00:32:45Z"
     },
     "texture/asset-smoke": {
       "rev": 1,

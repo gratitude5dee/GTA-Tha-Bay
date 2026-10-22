@@ -9,6 +9,8 @@
     "apps/web/*.ts",
     "packages/*/src",
     "packages/*/test",
+    "packages/modes/*/src",
+    "packages/modes/*/test",
     "packages/*/scripts",
     "tests",
     "tools",

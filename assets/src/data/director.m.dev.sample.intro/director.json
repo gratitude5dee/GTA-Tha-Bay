@@ -1,0 +1,35 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [],
+  "durationSec": 2,
+  "id": "m.dev.sample.intro",
+  "letterbox": true,
+  "marks": {
+    "plaza": {
+      "at": {
+        "local": [
+          120,
+          0,
+          60
+        ]
+      },
+      "yawDeg": 0
+    }
+  },
+  "schema": "director/1",
+  "seed": 1,
+  "shots": [
+    {
+      "atSec": 0,
+      "lens": "wide",
+      "move": "static",
+      "preset": "establish",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "plaza",
+    "yawDeg": 0
+  }
+}
