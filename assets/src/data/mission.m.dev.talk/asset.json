@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "mission.m.dev.talk",
+  "variants": {
+    "default": "assets/src/data/mission.m.dev.talk/mission.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.dev.talk"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

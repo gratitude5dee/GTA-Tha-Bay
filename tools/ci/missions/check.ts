@@ -72,6 +72,8 @@ export interface CheckResult {
 }
 
 const RUNS = 2;
+/** Missions per act in the narrative (B4). */
+const ACT_MISSIONS = 12;
 
 function describeStuck(h: MissionsHandle | null): string {
   const rt = h?.controller.rt;
@@ -167,6 +169,12 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
         if (!g.ok) failures.push({ mission: id, seed, reason: 'golden_mismatch', detail: `${g.state}${g.firstDiff ? `: ${g.firstDiff}` : ''}` });
       }
     }
+  }
+
+  // Act 1 has twelve missions (03-story-narrative.md B4); the ones whose milestone has not landed are named, not failed
+  if (o.act !== undefined && !o.mission) {
+    const missing = Array.from({ length: ACT_MISSIONS }, (_, i) => `m.a${o.act}.${String(i + 1).padStart(2, '0')}`).filter((id) => !build.bundles.has(id));
+    if (missing.length > 0) log(`missions ${missing.length === 1 ? missing[0] : `${missing[0]} to ${missing[missing.length - 1]}`} not yet in the index (${missing.length} of ${ACT_MISSIONS} of act ${o.act})`);
   }
 
   log('mission                 seed run outcome   sec     ticks  end hash');

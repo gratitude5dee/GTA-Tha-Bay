@@ -249,6 +249,7 @@ async function boot(): Promise<void> {
   let cutSink: CutsceneGlue['handleEvents'] | null = null;
   const story = storyBoot(!QA || flags.story);
   registerTexts(story.lines);
+  if (qaMission && typeof qaMission['lines'] === 'object') registerTexts(qaMission['lines'] as Record<string, string>);
   const engine = await bootEngine({
     onSimEvents: (events) => {
       const cuts = events.filter((e) => e.t === 'cut.request' || e.t === 'cut.done');
