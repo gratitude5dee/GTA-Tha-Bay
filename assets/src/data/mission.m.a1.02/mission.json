@@ -177,7 +177,7 @@
           "id": "deliver_fare",
           "k": "deliver",
           "text": "mission.m.a1.02.obj.deliver_fare",
-          "to": "bart"
+          "to": "plaza"
         }
       ],
       "onEnter": [
@@ -249,14 +249,6 @@
   "version": 1,
   "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
   "zones": {
-    "bart": {
-      "at": [
-        37.752247,
-        -122.418395
-      ],
-      "k": "circle",
-      "r": 20
-    },
     "pickup": {
       "at": [
         37.776389,
@@ -264,6 +256,14 @@
       ],
       "k": "circle",
       "r": 14
+    },
+    "plaza": {
+      "at": [
+        37.752247,
+        -122.418395
+      ],
+      "k": "circle",
+      "r": 20
     },
     "yard": {
       "at": [

@@ -68,4 +68,23 @@ test.describe('talk panel @story', () => {
     await page.keyboard.press('2');
     await expect.poll(async () => (await state(page))?.stageId, { timeout: 30_000 }).toBe('dealt');
   });
+
+  test('the phone Jobs app lists missions 1 to 6; only the open ones can be started @story', async ({ page }) => {
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.goto('/?play=story&tier=mobile-low');
+    await waitForEngine(page);
+    await expect(page.getByTestId('hud')).toBeVisible({ timeout: 60_000 });
+    await page.keyboard.press('Escape');
+    await page.getByTestId('btn-pause-phone').click();
+    await page.getByTestId('row-phone-apps-jobs').click();
+    const list = page.getByTestId('list-phone-missions');
+    await expect(list).toBeVisible({ timeout: 30_000 });
+    for (const [id, title] of [['m.a1.01', 'Jump Start'], ['m.a1.02', 'Surge Pricing'], ['m.a1.03', 'Sideshow Sunday'], ['m.a1.04', 'Curb Appeal'], ['m.a1.05', 'Turntable Battle'], ['m.a1.06', 'Signal Boost']] as const) {
+      await expect(page.getByTestId(`row-phone-missions-mis:${id}`), id).toContainText(title);
+    }
+    // the first is open; the later ones wait for the one before them
+    await expect(page.getByTestId('row-phone-missions-mis:m.a1.01')).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId('row-phone-missions-mis:m.a1.02')).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByTestId('row-phone-missions-mis:m.a1.02')).toContainText('Locked');
+  });
 });

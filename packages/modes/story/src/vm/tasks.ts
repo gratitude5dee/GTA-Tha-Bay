@@ -5,8 +5,7 @@
  * engine's external vehicle input) with a pure-pursuit steering law over the C08 route; without a driver, or without a route, a
  * vehicle is moved along the straight line like a walker. Sim code under the C02 lint.
  */
-import { routeWaypoints } from '../autoplay/observe.ts';
-import { datan2, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
+import { datan2, dcos, dsin, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
 import type { Actors, Vec3 } from './actors.ts';
 import { distXZ } from './actors.ts';
 import { byStr } from './util.ts';
@@ -244,12 +243,33 @@ export class TaskRunner {
 }
 
 /**
- * A polyline along the C08 road graph from `from` to `to`, or null when there is no route. A driver that faces `yaw` gets the lane it
- * points along (the router starts 3 m to the right of the heading), and the route is sampled every 12 m, as the autoplayer's is (M05c1).
+ * A polyline along the C08 road graph from `from` to `to`, or null when there is no route. A driver that faces `yaw` is routed from a
+ * point 3 m to the right of its heading, so it gets the lane it points along, and the samples of the first edge before the one nearest
+ * to it are dropped (an edge can start far behind the car), M05c1.
  */
 export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3, yaw?: number): Vec3[] | null {
   try {
-    return routeWaypoints(ctx.world, from, to, yaw);
+    const fx = yaw === undefined ? from[0] : from[0] + dcos(yaw) * 3;
+    const fz = yaw === undefined ? from[2] : from[2] - dsin(yaw) * 3;
+    const r = ctx.world.graph.route({ from: { x: fx, z: fz }, to: { x: to[0], z: to[2] }, maxExpand: 6000 });
+    if (!r || r.edges.length === 0) return null;
+    const out: Vec3[] = [];
+    const buf = new Float64Array(4);
+    r.edges.forEach((edge, k) => {
+      const pts: Vec3[] = [];
+      for (const s of [0, 20, 60]) {
+        ctx.world.graph.laneCentre({ edge, s, lane: 0 }, buf);
+        pts.push([buf[0] as number, buf[1] as number, buf[2] as number]);
+      }
+      if (k === 0) {
+        let first = 0;
+        for (let i = 1; i < pts.length; i++) if (distXZ(from, pts[i] as Vec3) < distXZ(from, pts[first] as Vec3)) first = i;
+        pts.splice(0, first);
+      }
+      out.push(...pts);
+    });
+    out.push(to);
+    return out;
   } catch {
     return null;
   }

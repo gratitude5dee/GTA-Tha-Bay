@@ -251,7 +251,10 @@ describe('beats.lock (AC-3)', () => {
   it('the lock file of the repository matches the shipped refs', async () => {
     const root = path.resolve(import.meta.dirname, '../../../..');
     const lock = JSON.parse(readFileSync(path.join(root, 'content/cutscenes/beats.lock.json'), 'utf8')) as BeatsLock;
-    const mod = (await import(path.join(root, 'content/story/dev/cutscene-refs.ts'))) as { default: CutsceneRef[] };
-    expect(checkBeatsLock(mod.default, lock)).toEqual([]);
+    const refs: CutsceneRef[] = [];
+    for (const file of ['content/story/dev/cutscene-refs.ts', 'content/story/act1/cutscene-refs.ts']) {
+      refs.push(...((await import(path.join(root, file))) as { default: CutsceneRef[] }).default);
+    }
+    expect(checkBeatsLock(refs, lock)).toEqual([]);
   });
 });

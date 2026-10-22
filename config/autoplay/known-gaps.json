@@ -3,7 +3,7 @@
   "note": "Missions whose bot run does not pass on the sf bake yet (M05c1). check:missions prints each as KNOWN GAP and does not run it; DV_RUN_KNOWN_GAPS=1 runs it anyway, and a gap that passes is reported so that its row can be deleted. A row names why and what closes it. The missions themselves are playable and compile clean; the gap is the autoplayer, or the world under it, not the IR.",
   "missions": {
     "m.a1.02": {
-      "reason": "The 4th and King to 24th St BART trip is 3.4 km; the bot reaches about 1.2 km in the 240 s limit and then hits a curb at speed. The limit is the spec's (times the player's timer scale).",
+      "reason": "The 4th and King to 24th Street station trip is 3.4 km; the bot reaches about 1.2 km in the 240 s limit and then hits a curb at speed. The limit is the spec's (times the player's timer scale).",
       "closedBy": "bot cornering and speed plan on long real-street legs (a follow-up to BD-M05c1-03)"
     },
     "m.a1.03": {
