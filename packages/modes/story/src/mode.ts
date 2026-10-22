@@ -116,6 +116,7 @@ export class StoryController {
       directors: this.directors,
       lineText: (id) => this.lines[id] ?? id,
       timerScale: () => 1,
+      comfort: () => this.env.comfort?.() ?? { reducedMotion: false, xr: false },
     });
     rt.bind(ctx);
     rt.setDriver(() => (ctx as ModeContext & { vehicleAi?: VehicleDriver | null }).vehicleAi ?? null);

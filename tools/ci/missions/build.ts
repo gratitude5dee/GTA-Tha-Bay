@@ -149,8 +149,11 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
     const directors = new Map<string, DirectorScript>();
     const dirDir = path.join(missionDir, 'director');
     if (existsSync(dirDir)) {
-      for (const f of readdirSync(dirDir).filter((n) => n.endsWith('.json')).sort()) {
-        const d = readJson<DirectorScript>(path.join(dirDir, f));
+      for (const f of readdirSync(dirDir).filter((n) => n.endsWith('.json') || n.endsWith('.ts')).sort()) {
+        // a `.ts` script is written with `defineDirector` and default-exports the DirectorScript; a `.json` one is the data itself
+        const d = f.endsWith('.ts')
+          ? ((await import(`${pathToFileURL(path.join(dirDir, f)).href}`)) as { default: DirectorScript }).default
+          : readJson<DirectorScript>(path.join(dirDir, f));
         directors.set(d.id, d);
       }
     }

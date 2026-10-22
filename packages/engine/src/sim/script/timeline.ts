@@ -1,5 +1,6 @@
-import { utf8Bytes, type EcsApi, type EntityHandle, type JsonObject, type TimelineRecorder } from '@dv/shared';
+import type { EcsApi, EntityHandle, JsonObject, StableKey, TimelineRecorder } from '@dv/shared';
 import { Transform } from '../ecs/components.ts';
+import { encodeDvtl } from './dvtl.ts';
 
 export interface TimelineEvent {
   t: string;
@@ -23,14 +24,15 @@ export interface TimelineOptions {
 
 /**
  * `TimelineRecorder` (C06 1.1) with an in-memory buffer: `emit` events, `external` recorded asynchronous inputs, and one position
- * sample every 2 ticks for each tracked entity (`track`; `update` is called in `SimStage.Script`). `export` returns the buffer as
- * UTF-8 JSON; the `.dvtl` binary format and the scrubber come with M05a2. Sim code under the C02 lint.
+ * sample every 2 ticks for each tracked entity (`track` by handle, `trackKey` by StableKey; `update` is called in `SimStage.Script`).
+ * `export` returns the buffer as a `.dvtl` file (`dvtl.ts`). Sim code under the C02 lint.
  */
 export class TimelineRecorderImpl implements TimelineRecorder {
   readonly snapshotEvery = 2 as const;
   private readonly log: TimelineEvent[] = [];
   private readonly ext: ExternalInput[] = [];
   private readonly tracked = new Map<number, string>();
+  private readonly trackedKeys = new Map<string, string>();
   private readonly samples = new Map<string, TrackSample[]>();
   private readonly cap: number;
 
@@ -57,10 +59,23 @@ export class TimelineRecorderImpl implements TimelineRecorder {
     this.tracked.delete(h);
   }
 
+  /** Follows whichever entity holds `key` under `name`: a respawn keeps the track, and a key with no entity yet records nothing. */
+  trackKey(key: StableKey, name: string): void {
+    this.trackedKeys.set(key, name);
+  }
+
   /** Samples the tracked entities on even ticks. */
   update(tick: number): void {
-    if (this.tracked.size === 0 || tick % this.snapshotEvery !== 0) return;
+    if ((this.tracked.size === 0 && this.trackedKeys.size === 0) || tick % this.snapshotEvery !== 0) return;
     const tr = this.o.ecs.store(Transform);
+    for (const [key, name] of [...this.trackedKeys].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+      const h = this.o.ecs.byKey(key as StableKey);
+      const id = h === 0 ? null : this.o.ecs.resolve(h);
+      if (id === null) continue;
+      let list = this.samples.get(name);
+      if (!list) this.samples.set(name, (list = []));
+      list.push([tick, tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number]);
+    }
     for (const [h, name] of [...this.tracked].sort((a, b) => a[0] - b[0])) {
       const id = this.o.ecs.resolve(h as EntityHandle);
       if (id === null) {
@@ -91,14 +106,19 @@ export class TimelineRecorderImpl implements TimelineRecorder {
     this.samples.clear();
   }
 
-  export(): ArrayBuffer {
-    const body = JSON.stringify({
-      v: 0,
+  /** The recording as a `.dvtl` file (`meta` is stored as given: mission id, seed, outcome, end hash). */
+  exportDvtl(meta: JsonObject = {}): ArrayBuffer {
+    return encodeDvtl({
+      snapshotEvery: this.snapshotEvery,
+      endTick: this.o.tick(),
+      meta,
       events: this.log,
       external: this.ext,
-      tracks: [...this.samples].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)),
+      tracks: [...this.samples].map(([name, samples]) => ({ name, samples })),
     });
-    const bytes = utf8Bytes(body);
-    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  }
+
+  export(): ArrayBuffer {
+    return this.exportDvtl({});
   }
 }

@@ -36,7 +36,7 @@ registerBot('story.debug', () => {
   };
 });
 const runner = createCanonicalRunner({ packs: { ...readFixturePacks(root), mission: encodeBundle(bundle) }, processEnv: {}, onLoaded: (h) => (handle = h) });
-const spec = missionSpec({ id: 'm.dev.sample', seed, expectedSecMax: 900, params: stage !== undefined ? { stage } : undefined });
+const spec = missionSpec({ id: 'm.dev.sample', seed, expectedSecMax: 900, ...(stage !== undefined ? { params: { stage } } : {}) });
 spec.bot.driver = 'story.debug';
 const t0 = Date.now();
 const trace = await runner.run(spec);

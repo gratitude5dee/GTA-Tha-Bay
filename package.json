@@ -70,6 +70,8 @@
     "map:pois": "tsx tools/map/src/cli.ts pois",
     "map:resolve": "tsx tools/map/src/cli.ts resolve",
     "missions:build": "tsx tools/ci/missions/build.ts",
+    "missions:preview": "tsx tools/ci/missions/preview.ts",
+    "check:missions": "tsx tools/ci/missions/check.ts",
     "map:races": "tsx tools/map/src/race/cli.ts",
     "check:balance": "tsx tools/ci/econ-sim/index.ts",
     "check:agents": "tsx tools/ci/check-agents.ts",

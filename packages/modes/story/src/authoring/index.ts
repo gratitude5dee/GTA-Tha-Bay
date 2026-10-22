@@ -2,6 +2,7 @@ import type { LineId, MissionIR, ObjectiveDef, Op, StageDef, TalkDef } from '@dv
 import type { DraftObjective, MissionInput } from './helpers.ts';
 
 export * from './helpers.ts';
+export * from './director.ts';
 
 const knotOf = (missionId: string, talkId: string): string => `mission_${missionId}_${talkId}`.replace(/[.-]/g, '_');
 

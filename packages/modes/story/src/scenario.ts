@@ -117,7 +117,7 @@ async function loadMissions(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScen
   });
   for (const d of modes.systems) sim.core.addSystem(d);
   const runtime = { env: { qa: true, modules: [] }, saveControl: null, transport: { postEvent: () => true } } as unknown as SimRuntime;
-  await modes.onInit({ sim, cfg: sim.core.cfg, boot: { strings: [], prefabs: [], config: {} }, runtime, ports: {} } as SimModuleContext);
+  await modes.onInit?.({ sim, cfg: sim.core.cfg, boot: { strings: [], prefabs: [], config: {} }, runtime, ports: {} } as SimModuleContext);
   sim.core.addResource({
     name: 'story.mission',
     hash: (h) => h.str(holder.controller?.rt?.stateHash() ?? ''),
@@ -157,7 +157,6 @@ async function loadMissions(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScen
   const handle: MissionsHandle = { sim, controller: ctrl(), modes, bundle, timeline: script.timeline, mission };
   env.onLoaded?.(handle);
   return {
-    sim,
     ...handle,
     observe: () => (mission() ?? { phase: 'none' }) as unknown as Readonly<Record<string, unknown>>,
   } as LoadedScenario & MissionsHandle;

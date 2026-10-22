@@ -75,6 +75,8 @@ export interface StoryWrapEnv {
   qa: boolean;
   /** The boot payload's config object (QA mission flags and the mission IR the page fetched). */
   bootConfig(): Readonly<Record<string, unknown>>;
+  /** Comfort settings the cinematic director obeys (M05a2): `accessibility.reducedMotion` of the open profile, and the XR camera mode. */
+  comfort?(): { reducedMotion: boolean; xr: boolean };
 }
 
 export interface ModesModule extends SimModule {
@@ -322,7 +324,11 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
 
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
-      const storyEnv: StoryWrapEnv = { qa: runtime.env.qa, bootConfig: () => ctx.boot.config };
+      const storyEnv: StoryWrapEnv = {
+        qa: runtime.env.qa,
+        bootConfig: () => ctx.boot.config,
+        comfort: () => ({ reducedMotion: live.settings.accessibility.reducedMotion, xr: ctx.boot.config['xr'] === true }),
+      };
       for (const d of builtinDescriptors({
         story: () => live.story,
         sandbox: () => live.sandbox,

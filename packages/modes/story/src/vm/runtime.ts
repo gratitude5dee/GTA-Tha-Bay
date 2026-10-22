@@ -10,7 +10,7 @@
  */
 import {
   Fnv64, Rng, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
-  type Op, type Pred, type SimEvent, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type WeatherPreset,
+  type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type WeatherPreset,
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import type { ResolvedMission } from '../compiler/resolve.ts';
@@ -20,6 +20,8 @@ import { BUDGET_STREAK_LIMIT, OPS_BUDGET, missionScope } from './constants.ts';
 import { objectiveStep, objectiveTarget, startObjective } from './objectives.ts';
 import { OpRunner, type OpHost, type WaitSpec } from './ops.ts';
 import { evalPred, type Cost, type PredEnv } from './predicates.ts';
+import { DirectorSystem } from '../director/system.ts';
+import type { Comfort } from '../director/types.ts';
 import { missionDeps } from './deps.ts';
 import { Probes } from './probes.ts';
 import { TaskRunner, type VehicleDriver } from './tasks.ts';
@@ -40,9 +42,6 @@ function soft<T>(fn: () => T): T | undefined {
   }
 }
 
-const SHOT_OF_PRESET: Record<string, 'wide' | 'side' | 'shoulder' | 'front' | 'fixed' | 'chase' | 'flyby'> = {
-  establish: 'wide', 'two-shot': 'side', 'over-shoulder': 'shoulder', single: 'front', insert: 'fixed', reaction: 'front', tracking: 'chase', orbit: 'flyby', auto: 'wide',
-};
 const SAY_MIN_TICKS = 90;
 const SAY_TICKS_PER_CHAR = 3.6;
 const MARKER_UPDATE_EVERY = 4;
@@ -88,6 +87,11 @@ export class MissionRuntime implements OpHost {
   readonly tasks: TaskRunner;
   /** The photo shutter and the drift score (M05a2): events the engine does not produce yet. */
   readonly probes = new Probes();
+  /** The in-engine cinematic director (M05a2): the DirectorScript of a beat, and the auto-director of the `camera` op. */
+  readonly director: DirectorSystem;
+  private readonly dirZones = new Map<string, Vec3>();
+  private camUntil: number | null = null;
+  private camSerial = 0;
   /** Events of the mission, newest last (the debugger shows the last 50). */
   readonly eventLog: { tick: number; t: string; data: JsonObject }[] = [];
 
@@ -130,6 +134,28 @@ export class MissionRuntime implements OpHost {
       driver: () => this.driverFn?.() ?? null,
     });
     this.predEnv = this.makePredEnv();
+    this.director = new DirectorSystem({
+      ctx: () => this.ctx,
+      actors: this.actors,
+      tasks: this.tasks,
+      markPos: (at) => this.markPos(at),
+      comfort: () => this.comfort(),
+      castOfSoul: (soul) => {
+        for (const name of Object.keys(this.ir.cast).sort(byStr)) {
+          const c = this.ir.cast[name];
+          if (c && c.k === 'npc' && 'soul' in c.who && c.who.soul === soul) return name;
+        }
+        return null;
+      },
+      note: (name, data) => this.noteEvent(name, data),
+      defineMarkZone: (zone, pos) => void this.dirZones.set(zone, pos),
+      clearMarkZones: () => this.dirZones.clear(),
+    });
+  }
+
+  /** Comfort settings the director obeys: reduced motion and the XR camera mode. */
+  comfort(): Comfort {
+    return this.opts.comfort?.() ?? { reducedMotion: false, xr: false };
   }
 
   // ---------------------------------------------------------------- binding and queries
@@ -219,6 +245,8 @@ export class MissionRuntime implements OpHost {
   }
 
   zoneCenter(zone: string): Vec3 | null {
+    const alias = this.dirZones.get(zone);
+    if (alias) return alias;
     const z = this.rm.zones[zone];
     if (!z) return null;
     switch (z.k) {
@@ -332,6 +360,7 @@ export class MissionRuntime implements OpHost {
     this.phase = 'starting';
     for (const name of Object.keys(this.ir.cast).sort(byStr)) this.castRt.set(name, { name, key: this.actors.keyOf(name), live: false, carried: false, seen: false });
     this.defineZones();
+    this.trackTimeline();
     this.applyStartPolicy();
     this.opts.log?.(`mission ${this.ir.id} start attempt ${o.attempt}`);
     this.telemetry('mission.start', 0);
@@ -357,6 +386,14 @@ export class MissionRuntime implements OpHost {
     this.phase = 'stage';
     this.startThreads();
     this.enterStage(0, false);
+  }
+
+  /** The player and every cast entry get a track on the timeline (a position every 2 ticks), for the preview scrubber. */
+  private trackTimeline(): void {
+    const tl = this.ctx.timeline as { trackKey?(key: StableKey, name: string): void };
+    if (!tl.trackKey) return;
+    tl.trackKey('player:0' as StableKey, 'player');
+    for (const name of this.castRt.keys()) tl.trackKey(this.actors.keyOf(name), `cast.${name}`);
   }
 
   private finishIntro(): void {
@@ -435,7 +472,10 @@ export class MissionRuntime implements OpHost {
     });
     soft(() => this.ctx.pursuit.capHeat(5));
     if (this.ir.heatPolicy.clearOnPass) soft(() => this.ctx.pursuit.clear('mission'));
-    if (this.beat) {
+    if (this.beat || this.director.active) {
+      this.director.disarm(false);
+      this.director.stopAuto();
+      this.camUntil = null;
       soft(() => this.ctx.camera.release());
       this.beat = null;
     }
@@ -491,7 +531,13 @@ export class MissionRuntime implements OpHost {
     }
     if (this.phase !== 'stage') return;
     this.tasks.tick();
+    this.director.step(ctx.tick);
     this.advanceBeat();
+    if (this.camUntil !== null && this.clock >= this.camUntil) {
+      this.camUntil = null;
+      this.director.stopAuto();
+      soft(() => ctx.camera.release());
+    }
     if (this.beat === null || missionDeps().clockCountsBeats) this.clock++;
     if (this.pendingEnd) {
       const end = this.pendingEnd;
@@ -1019,8 +1065,17 @@ export class MissionRuntime implements OpHost {
       case 'beat':
         return this.startBeat(op.ref, owner);
       case 'camera':
-        if (op.shot === 'release') soft(() => this.ctx.camera.release());
-        else this.noteEvent('camera', { shot: op.shot });
+        this.noteEvent('camera', { shot: op.shot });
+        if (op.shot === 'release') {
+          this.director.stopAuto();
+          this.camUntil = null;
+          soft(() => this.ctx.camera.release());
+        } else {
+          // every shot name is the auto-director's: it picks the angles (D6.2); `subject` defaults to the player, `sec` to 8
+          const who = op.subject ?? 'player';
+          this.director.startAuto(typeof who === 'string' ? who : 'player', missionDeps().missionSeed(this.seed, `camera:${this.camSerial++}`, this.attempt));
+          this.camUntil = this.clock + Math.ceil((op.sec ?? 8) * 60);
+        }
         return;
       case 'fade':
         this.noteEvent('fade', { to: op.to, sec: op.sec });
@@ -1090,19 +1145,9 @@ export class MissionRuntime implements OpHost {
     // an instant beat still lasts one tick (C9: "a beat completes in one tick and applies its end marks"), and that tick is not mission time
     this.beat = { id, owner, script, ticksLeft: instant ? 1 : Math.max(1, Math.ceil((script as DirectorScript).durationSec * 60)), instant };
     if (!instant) {
-      const player = this.actors.player();
-      const first = (script as DirectorScript).shots[0];
-      if (player !== null) {
-        soft(() =>
-          this.ctx.camera.direct({
-            mode: 'cinematic',
-            shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: (script as DirectorScript).seed },
-            letterbox: (script as DirectorScript).letterbox,
-            lockPlayerToggle: true,
-            reason: 'mission',
-          }),
-        );
-      }
+      // the full script runs: actors on their start marks, the first shot on this tick, actions and cues as it plays
+      this.director.stopAuto();
+      this.director.arm(script as DirectorScript, 'mission', this.ctx.rng(`cutscene:${(script as DirectorScript).id}`));
     }
     return { k: 'pred', pred: () => this.beat === null || this.beat.id !== id };
   }
@@ -1113,8 +1158,10 @@ export class MissionRuntime implements OpHost {
     b.ticksLeft--;
     if (b.ticksLeft > 0) return;
     this.beat = null;
-    if (!b.instant) soft(() => this.ctx.camera.release());
-    if (b.script) this.applyEndMarks(b.script);
+    if (!b.instant) {
+      this.director.disarm(true);
+      soft(() => this.ctx.camera.release());
+    } else if (b.script) this.applyEndMarks(b.script);
     this.noteEvent('beat.done', { instant: b.instant });
   }
 
@@ -1126,7 +1173,11 @@ export class MissionRuntime implements OpHost {
       const h = this.actors.handleOf(a.who);
       if (h === null) continue;
       const p = this.markPos(mark.at);
-      if (p) this.actors.place(h, p, (mark.yawDeg * Math.PI) / 180);
+      if (p) {
+        // a mark names a spot on the map; the actor stands on the ground there
+        const gy = soft(() => this.ctx.physics.groundY(p[0], p[2]));
+        this.actors.place(h, [p[0], gy ?? p[1], p[2]], (mark.yawDeg * Math.PI) / 180);
+      }
     }
   }
 

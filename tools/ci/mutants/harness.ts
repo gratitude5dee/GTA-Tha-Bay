@@ -16,6 +16,8 @@ import { newRefereeState, refereeStep, straightRaceDef, type RaceEvent } from '.
 import { RACING_GOLDEN, racingSpec } from '../../../packages/modes/racing/src/qa/specs.ts';
 import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
 import { runEconSuite } from '../econ-sim/index.ts';
+import { DEFAULT_MISSION_DEPS, registerStoryQa, setMissionDeps, type MissionDeps } from '../../../packages/modes/story/src/qa.ts';
+import { runCheck } from '../missions/check.ts';
 import { DEFAULT_MODEL_DEPS, type ModelDeps } from '../econ-sim/model.ts';
 import { toolsRoot } from '../lib/common.ts';
 
@@ -98,7 +100,30 @@ export const RACING: MutantSuite<RacingDeps> = {
   },
 };
 
-export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING] as const;
+/** The knobs of the `missions` suite: the runner's and the two rules of the mission runtime (`vm/deps.ts`). */
+export interface MissionsDeps extends RunnerDeps, MissionDeps {}
+
+/**
+ * `missions` (M05a2): `check:missions` on `m.dev.sample` seed 1. It passes only when the bot passes inside the expected band,
+ * both runs end with the same hash, and the det run (beats played) equals its Node golden. The mission RNG is seeded
+ * with the attempt, and the mission clock leaves a beat out: a mutant of either changes the mission state in the hash.
+ */
+export const MISSIONS: MutantSuite<MissionsDeps> = {
+  id: 'missions',
+  base: { ...DEFAULT_DEPS, ...DEFAULT_MISSION_DEPS },
+  async run(deps) {
+    registerStoryQa();
+    setMissionDeps({ missionSeed: deps.missionSeed, clockCountsBeats: deps.clockCountsBeats });
+    try {
+      const r = await runCheck({ root: toolsRoot, mission: 'm.dev.sample', seeds: [1], outDir: null, env: {}, log: () => undefined });
+      return { pass: r.ok, detail: r.ok ? 'passes inside the band and equals the golden' : r.failures.map((f) => `${f.reason}${f.seed === null ? '' : ` seed ${f.seed}`}`).join(', ') };
+    } finally {
+      setMissionDeps(null);
+    }
+  },
+};
+
+export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING, MISSIONS] as const;
 
 export function mutantFiles(suite: string): string[] {
   const dir = path.join(toolsRoot, 'tools', 'ci', 'mutants', suite);

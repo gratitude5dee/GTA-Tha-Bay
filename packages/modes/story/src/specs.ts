@@ -7,6 +7,9 @@
 import type { RunSpec } from '@dv/engine/qa';
 
 export const MISSIONS_GOLDEN = { sample: 'm.dev.sample.1' } as const;
+
+/** The (mission, seeds) that have a Node golden: `check:missions` compares their det run with it (`DV_UPDATE_GOLDEN=1` rewrites it). */
+export const GOLDEN_SEEDS: Readonly<Record<string, readonly number[]>> = { 'm.dev.sample': [1] };
 export const missionsTraceFile = (name: string): string => `tests/golden/missions/${name}.json`;
 
 /** `maxTicks = expectedSec[1] x 60 x 1.5` (13-qa.md 3.1). */
@@ -23,4 +26,9 @@ export function missionSpec(o: { id: string; seed: number; expectedSecMax: numbe
     bot: { driver: 'story.autoplayer', ...(o.params ? { params: o.params } : {}) },
     flags: o.flags ?? { beats: 'instant', talk: 'scripted', hooks: 'bot' },
   };
+}
+
+/** The det run of a mission: the beats are played (the clock rule that leaves a beat out of mission time is part of the trace). */
+export function missionDetSpec(o: { id: string; seed: number; expectedSecMax: number; checkpointEvery?: number }): RunSpec {
+  return missionSpec({ ...o, flags: { talk: 'scripted', hooks: 'bot' } });
 }

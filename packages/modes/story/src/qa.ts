@@ -7,7 +7,7 @@ export { observeMission } from './autoplay/observe.ts';
 export type { MissionObs, ObjView } from './autoplay/observe.ts';
 export { ensureMissionsLoader, MISSIONS_SUITE, encodeBundle, decodeBundle, missionFlags } from './scenario.ts';
 export type { MissionBundle, MissionsHandle } from './scenario.ts';
-export { missionSpec, MISSIONS_GOLDEN, missionsTraceFile, missionsMaxTicks } from './specs.ts';
+export { missionSpec, missionDetSpec, MISSIONS_GOLDEN, GOLDEN_SEEDS, missionsTraceFile, missionsMaxTicks } from './specs.ts';
 export { setMissionDeps, DEFAULT_MISSION_DEPS } from './vm/deps.ts';
 export type { MissionDeps } from './vm/deps.ts';
 
