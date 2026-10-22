@@ -10,6 +10,13 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin noinherit bypassrls; end if;
 end $$;
 
+-- PostgREST connects as `authenticator` and switches to the role named in the request's JWT.
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'authenticator') then create role authenticator login noinherit; end if;
+end $$;
+grant anon, authenticated, service_role to authenticator;
+
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;
 

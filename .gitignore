@@ -24,3 +24,7 @@ apps/web/.dv-build/
 
 # M05b2 cutscene index: private requests (prompts) never enter git
 .private/
+
+# M05d: Supabase CLI scratch (link state, temp files)
+supabase/.temp/
+supabase/.branches/

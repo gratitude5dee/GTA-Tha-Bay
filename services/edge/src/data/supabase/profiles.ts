@@ -1,5 +1,5 @@
 import { rejectLater, type DataPort, type ProfileRow } from '@dv/shared/data-port';
-import { fromIso, fromIsoOrNull, isUniqueViolation, must, toIso, type Db } from './client.ts';
+import { fromIso, fromIsoOrNull, isUniqueViolation, must, mustMaybe, toIso, type Db } from './client.ts';
 
 /** Maps a `profiles` row from the database to the port's row (timestamps in epoch ms). */
 export function profileRow(r: {
@@ -34,7 +34,7 @@ async function bindKey(db: Db, pid: string, dkt: string): Promise<'bound' | 'tak
   const res = await db.from('device_keys').insert({ kid: dkt, profile_id: pid, public_jwk: {} });
   if (!res.error) return 'bound';
   if (!isUniqueViolation(res.error)) must('device_keys', res);
-  const owner = must('device_keys', await db.from('device_keys').select('profile_id').eq('kid', dkt).maybeSingle());
+  const owner = mustMaybe('device_keys', await db.from('device_keys').select('profile_id').eq('kid', dkt).maybeSingle());
   return owner !== null && owner.profile_id === pid ? 'bound' : 'taken';
 }
 
@@ -60,7 +60,7 @@ export function profiles(db: Db): DataPort['profiles'] {
     upgrade: rejectLater('M12a1'),
     async get(ctx) {
       if (ctx.profileId === null) return null;
-      const row = must('profiles', await db.from('profiles').select('*').eq('id', ctx.profileId).is('deleted_at', null).maybeSingle());
+      const row = mustMaybe('profiles', await db.from('profiles').select('*').eq('id', ctx.profileId).is('deleted_at', null).maybeSingle());
       return row === null ? null : profileRow(row);
     },
     exportAll: rejectLater('M06a1'),

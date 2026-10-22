@@ -4,7 +4,6 @@
 // in both implementations (InMemoryDataPort here, services/edge/src/data/supabase/* on the Worker).
 // Types only, plus NotImplementedError and the `later` helper. No IO.
 import type { SpendEvent, Vendor } from './api/budget.ts';
-import type { UploadReq, UploadRes } from './api/v1.ts';
 import type { SlotId, SliceKind } from './contracts/c05-save.ts';
 import type { MemoryHit, MemoryWrite, SummaryPatch } from './contracts/c10-npc.ts';
 import type { Database } from './db.gen.ts';
@@ -83,6 +82,18 @@ export interface DeviceCodeStore {
   create(ctx: Ctx | null, req: unknown): Promise<unknown>;
   poll(deviceCode: string): Promise<unknown>;
   approve(ctx: Ctx, userCode: string): Promise<unknown>;
+}
+/** C12 section 2.5 (route 34); declared here until a milestone that serves the route moves them to api/v1.ts. */
+export interface UploadReq {
+  purpose: 'npc_image' | 'npc_backstory' | 'mod_archive' | 'experience_thumb' | 'forum_attachment' | 'save_blob';
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'text/markdown' | 'text/plain' | 'application/zip' | 'application/octet-stream';
+  bytes: number;
+}
+export interface UploadRes {
+  uploadId: string;
+  putUrl: string;
+  expiresAt: number;
+  headers: { 'Content-Type': string };
 }
 /** Routes 34, 35, 36, 37 (uploads, mods, experiences), M13a2. */
 export interface UgcStore {

@@ -11,7 +11,7 @@ import {
   type ServerDataPort,
   type UgcStore,
 } from '@dv/shared/data-port';
-import { createServiceClient, type Db, type SupabaseConfig } from './client.ts';
+import { createServiceClient, type SupabaseConfig } from './client.ts';
 import { catalog, cutscenes } from './cutscenes.ts';
 import { ledger } from './ledger.ts';
 import { profiles } from './profiles.ts';

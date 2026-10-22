@@ -2,6 +2,7 @@ import { mockJwks } from '@dv/pipeline/core';
 import type { GovLevel, SpendEvent, Vendor } from '@dv/shared';
 import { apiError, json } from '../errors.ts';
 import { requestCountry } from '../geo.ts';
+import { CRON_JOBS, JOBS, runJobs, type JobName } from '../ops/scheduled.ts';
 import type { Ctx, Route } from '../router.ts';
 
 /**
@@ -36,9 +37,17 @@ async function handleSpend({ request, env, requestId }: Ctx): Promise<Response> 
   return json({ ...(await gov.level()), falSpentUsdMicros: await gov.spentMicros('fal'), alarms: await gov.alarmLog() });
 }
 
-/** No cron triggers exist yet (the SLA pager and reconciliation arrive with M06a and M14b); the route answers so scripts can call it. */
-function handleRunScheduled(): Response {
-  return json({ ran: [] });
+/**
+ * Runs the scheduled jobs the way the cron would (Previews run no Cron Triggers): `?job=catalog-sync|ledger-export|keepalive`, or the
+ * two cron jobs when `job` is absent or `all`. The SLA pager and reconciliation jobs arrive with M06a and M14b.
+ */
+async function handleRunScheduled({ url, env, deps, requestId }: Ctx): Promise<Response> {
+  const job = url.searchParams.get('job');
+  let names: readonly JobName[];
+  if (job === null || job === 'all') names = CRON_JOBS;
+  else if (Object.hasOwn(JOBS, job)) names = [job as JobName];
+  else return apiError('bad_request', 'Unknown job.', requestId, { details: { jobs: Object.keys(JOBS) } });
+  return json({ ran: await runJobs(env, deps, names) });
 }
 
 /** No queue consumers exist yet (SPEND arrives with M06a3); nothing to drain. */

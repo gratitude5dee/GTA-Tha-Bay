@@ -37,9 +37,15 @@ export interface PgError {
 }
 
 /** Throws a DataPortError unless the call succeeded. Only the code of the error is kept. */
-export function must<T>(table: string, res: { data: T | null; error?: PgError | null }): T {
+export function must<T>(table: string, res: { data: T; error?: PgError | null }): NonNullable<T> {
   if (res.error) throw new DataPortError(table, res.error.code, res.error.message);
-  return res.data as T;
+  return res.data as NonNullable<T>;
+}
+
+/** `must` for a call whose success may carry no row (`maybeSingle`). */
+export function mustMaybe<T>(table: string, res: { data: T; error?: PgError | null }): T {
+  if (res.error) throw new DataPortError(table, res.error.code, res.error.message);
+  return res.data;
 }
 
 export const isUniqueViolation = (error: PgError | null | undefined): boolean => !!error && error.code === '23505';

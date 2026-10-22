@@ -1,5 +1,5 @@
 import type { CatalogInput, CatalogStore, CutsceneRow, DataPort } from '@dv/shared/data-port';
-import { must, toIso, type Db } from './client.ts';
+import { must, mustMaybe, toIso, type Db } from './client.ts';
 
 const CHUNK = 500;
 
@@ -28,7 +28,7 @@ export function cutscenes(db: Db): DataPort['cutscenes'] {
       );
     },
     async inCatalog(key: string) {
-      const row = must('cutscene_catalog', await db.from('cutscene_catalog').select('cache_key').eq('cache_key', key).maybeSingle());
+      const row = mustMaybe('cutscene_catalog', await db.from('cutscene_catalog').select('cache_key').eq('cache_key', key).maybeSingle());
       return row !== null;
     },
   };
