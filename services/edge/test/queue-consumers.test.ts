@@ -46,7 +46,8 @@ describe('queue consumers', () => {
     expect(r1.explicitAcks.sort()).toEqual(['j1', 'j2']);
     expect(r1.retryMessages).toEqual([]);
     expect(await env.PRIVATE.head(`exports/${pid}/1790000000000.zip`)).not.toBeNull();
-    expect(h.logs.some((l) => l.includes('job.summarize'))).toBe(true);
+    // M06a4: the summarize consumer runs; this message names a transcript that is not in PRIVATE, so it is skipped and acknowledged.
+    expect(h.logs.some((l) => l.includes('summarize.skip'))).toBe(true);
 
     const second = createMessageBatch('tha-bay-jobs-staging', [{ id: 'j3', timestamp: new Date(), attempts: 1, body: { type: 'forget', profileId: pid } }]);
     await h.app.queue(second, env as unknown as Env);

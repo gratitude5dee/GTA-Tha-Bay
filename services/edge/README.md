@@ -52,3 +52,12 @@ Secrets added here: `PLAY_TOKEN_HMAC` (+ `_PREV`), `QUOTA_NET_SALT_SECRET`; both
 - **Staging**: `GET /api/v1/_test/npc/usage?npc=&encounter=` (test routes only) returns the token counts of the caller's own encounter; `pnpm test:staging -- npc-cache` reads it.
 
 Secret added: `ANTHROPIC_API_KEY` (workspace `npc-runtime`), in the production `secrets.required` only: staging and Previews run fixtures. Var `AIG_BASE` (AI Gateway `gw-dialogue`) is set by the operator once the gateway exists; unset, calls go to the Anthropic API directly (U-NPC-02).
+
+## Memory and voice (M06a4)
+
+- **`npc/memory.ts`**: retrieval (bge-m3 embedding of the player's text, `match_npc_memories`, top 6) and writes (scrub, no 9-word quote of the player, dedupe at cosine 0.92). Only a player whose age bracket is `18p` has memory; any failure gives an empty `<memory>` and the turn goes on.
+- **`npc/summarize.ts`**: the `summarize` queue consumer (inline in the encounter DO when there is no queue). Haiku call with the `npc-summary-1.0` format; the summary is at most 1,200 chars, deltas are clamped to +-10, and every 10th encounter of a pair adds one `reflection`.
+- **`npc/tts-router.ts`**: `planVoice` applies `effectiveTier` (soul tier, voice setting, identity, governor level, kill switches, `voice_line` quota). t1 is Workers AI Aura through the `AI` binding (`tts-workers-ai.ts`); t2 is ElevenLabs behind `ks:tts:elevenlabs` and `ELEVENLABS_API_KEY` (`tts-elevenlabs.ts`, stub-tested only). Audio goes out per sentence as `line.delta {audio}` before `line.done`; a failure leaves the text line alone.
+- **Route 52**: `DELETE /api/v1/me/npc-memory[?npcId=]` deletes the player's memories and relationships (204).
+- **Staging**: `POST /api/v1/_test/npc/tts?model=aura-1|aura-2&speaker=` answers codec, size and time of one Aura call; `pnpm test:staging -- npc-tts` records them in `tests/reports/npc/tts.json` (U-NPC-05).
+- **Binding**: `ai` (Workers AI) in the root, staging and previews blocks. It is remote-only: `wrangler dev` needs `--local` without a Cloudflare token (the root `dev:edge` script and the Playwright web server pass it), and `vitest.config.ts` sets `remoteBindings: false`.

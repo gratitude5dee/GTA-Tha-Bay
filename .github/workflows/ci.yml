@@ -208,6 +208,18 @@ jobs:
       - run: pnpm npc:lint
         env:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      # M06a4: the in-character evals in replay mode: hand-written synthetic recordings keyed by the request body, deterministic checks only
+      # (no key, no network). A changed soul, rules block or turn schema needs `pnpm npc:eval -- --write-synthetic` or a `--record` run.
+      - run: pnpm npc:eval -- --replay
+        env:
+          DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: npc-evals-replay
+          path: tests/reports/npc-evals
+          if-no-files-found: ignore
+          retention-days: 7
       # M04d: the economy bands. M09a2: and the tycoon bands B1 to B12 (2,000 runs per bot policy, seed base 1; the nightly runs 10,000).
       - run: pnpm check:balance
       # M05a2: every mission x 3 seeds x 2 runs under the autoplayer, on the gray-box fixture world. The offline worlds are restored from

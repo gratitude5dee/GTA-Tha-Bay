@@ -4,6 +4,7 @@ import { now } from '../clock.ts';
 import { configuredDataPort } from '../data/index.ts';
 import type { Env } from '../env.ts';
 import { sendJob } from '../ops/queue.ts';
+import { runSummarize } from './summarize.ts';
 
 /**
  * Per-conversation Durable Object (`enc:<pid>:<npcId>:<encounterId>`, spec/domains/09-backend.md section 3.2 and spec/05 section 4.8):
@@ -260,7 +261,17 @@ export class EncounterDO extends DurableObject<Env> {
         });
         // The profile was forgotten while the conversation was open: nothing of it may remain.
         if (result === 'no_profile') await this.env.PRIVATE.delete(r2Key);
-        else await sendJob(this.env, { type: 'summarize', encounterId, profileId: pid, npcId, soulVersion: this.getNum('soulVersion'), r2Key });
+        else {
+          const job = { type: 'summarize' as const, encounterId, profileId: pid, npcId, soulVersion: this.getNum('soulVersion'), r2Key };
+          // Previews bind no queue (F-061): the summary then runs here, so a Preview remembers too. A failure is left to the 30-day transcript.
+          if (!(await sendJob(this.env, job))) {
+            try {
+              await runSummarize(this.env, { data: (e) => configuredDataPort(e), log: (l) => console.log(l) }, job);
+            } catch {
+              console.log(JSON.stringify({ event: 'summarize.inline.failed' }));
+            }
+          }
+        }
       }
     }
     await this.indexStub(npcId).indexRemove(this.name());

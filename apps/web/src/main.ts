@@ -6,7 +6,8 @@ import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
-import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
+import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
+import type { TtsAudioHost } from '@dv/npc/voice';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
@@ -73,8 +74,12 @@ let creatorStage: CreatorStagePort | null = null;
 // The world's maps (M02c2): the phone Map app, its search and the minimap's north-up switch; set once the baked world is prepared.
 let mapPort: ReturnType<NonNullable<ShellProps['map']>> = null;
 
+// The creator's voice preview (M06a4): built once the audio service and the pack catalog exist; null keeps the Preview button disabled.
+let voicePreviewFactory: ((onSubtitle: (text: string | null) => void) => VoicePreview) | null = null;
+
 const shellProps = (unsupported: boolean): ShellProps => ({
   stage: () => creatorStage,
+  voicePreview: (onSubtitle) => voicePreviewFactory?.(onSubtitle) ?? null,
   map: () => mapPort,
   forceTouch: flags.touch,
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
@@ -290,6 +295,41 @@ async function boot(): Promise<void> {
     return null;
   });
   engineRef = engine;
+  // The creator's voice preview (M06a4): the clips are `audio_bark/creator-voice.<partId>` assets rendered by the staging TTS probe. A part whose
+  // clip is not in the catalog keeps its button disabled. The check runs once the catalog is ready and costs one resolve per voice part.
+  if (engine?.audioService && assets) {
+    const audioHost = engine.audioService as unknown as TtsAudioHost;
+    const media = engine.media;
+    const have = new Set<string>();
+    void (async () => {
+      try {
+        if ((await assets.loadCatalog()) !== 'ready') return;
+        await Promise.all(
+          Object.keys(CREATOR_VOICES.voices).map(async (id) => {
+            try {
+              await assets.resolve(creatorVoiceRef(id));
+              have.add(id);
+            } catch {
+              // no clip for this part
+            }
+          }),
+        );
+      } catch {
+        // the catalog is not available: every Preview button stays disabled
+      }
+    })();
+    void import('@dv/npc/voice').then(({ TtsPlayer }) => {
+      const player = new TtsPlayer({ audio: audioHost });
+      voicePreviewFactory = (onSubtitle) =>
+        createVoicePreview({
+          hasClip: (id) => have.has(id),
+          loadClip: async (id) => ({ bytes: new Uint8Array(await assets.get(creatorVoiceRef(id))), codec: 'mp3' }),
+          play: (clip, o) => player.playClip(clip, { detuneCents: o.detuneCents, onEnded: o.onEnded }),
+          unlocked: () => media.state().unlocked,
+          subtitle: onSubtitle,
+        });
+    });
+  }
   // The map palette follows the HUD palette setting (default, deutan, protan, tritan; M02c2).
   if (engine && prepared?.view.map) {
     const map = prepared.view.map;
@@ -356,7 +396,8 @@ async function boot(): Promise<void> {
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
     // The NPC dialogue panel (M06a3): window.__dvBridge.npc and a "Talk to npc_test" box, QA builds only. Failure here never stops the game.
-    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity)).catch((e: unknown) => console.warn('npc qa panel failed', e));
+    const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
+    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio)).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

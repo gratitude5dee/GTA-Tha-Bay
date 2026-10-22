@@ -7,6 +7,8 @@
  */
 import type { DialogueEvent, NPCDialogueContext, NPCDialogueRequest } from '@dv/shared/contracts/c10-npc';
 import type { NpcRuntime } from '../client/runtime.ts';
+import type { LipSyncTarget } from '../lipsync/driver.ts';
+import { ATLAS_ORDER, atlasCell, type Viseme } from '@dv/shared/npc';
 
 export interface DebugTurnResult {
   npcId: string;
@@ -33,12 +35,15 @@ export interface NpcBridge {
   noteResponse(res: Response): void;
   /** QA only: use this `Authorization` value (`PlayToken <token>`) for the next turns instead of the identity's; null goes back to the identity. */
   setAuthHeader(header: string | null): void;
+  /** M06a4: ask for a voiced answer (`context.voice = 'auto'`) on the next turns. Default off. */
+  setVoice(on: boolean): void;
+  voiceOn(): boolean;
 }
 
 export const DEBUG_NPC_ID = 'npc_test';
 
 /** A neutral story-mode scene: nothing offered, nothing nearby. */
-export function debugContext(): NPCDialogueContext {
+export function debugContext(voice: NPCDialogueContext['voice'] = 'off'): NPCDialogueContext {
   return {
     schema: 1,
     clockT: 7200,
@@ -52,13 +57,18 @@ export function debugContext(): NPCDialogueContext {
     events: [],
     offers: { missionIds: [], raceIds: [], dealIds: [] },
     tycoon: null,
-    voice: 'off',
+    voice,
     locale: 'en-US',
   };
 }
 
-export function installNpcBridge(runtime: NpcRuntime, hooks: { setAuthHeader?: (header: string | null) => void } = {}, target: { __dvBridge?: Record<string, unknown> } = window as never): NpcBridge {
+export function installNpcBridge(
+  runtime: NpcRuntime,
+  hooks: { setAuthHeader?: (header: string | null) => void; onVoice?: (on: boolean) => void } = {},
+  target: { __dvBridge?: Record<string, unknown> } = window as never,
+): NpcBridge {
   const listeners = new Set<() => void>();
+  let voice = false;
   let last: DebugTurnResult | null = null;
   let mode: string | null = null;
   const bridge: NpcBridge = {
@@ -89,7 +99,7 @@ export function installNpcBridge(runtime: NpcRuntime, hooks: { setAuthHeader?: (
         listeners.forEach((fn) => fn());
       };
       listeners.forEach((fn) => fn());
-      const r = await runtime.talk(npcId, turn, debugContext(), on);
+      const r = await runtime.talk(npcId, turn, debugContext(voice ? 'auto' : 'off'), on);
       last = { npcId, source: r.source, mode, encounterId: r.encounterId, text: shown(), events, aiCharacter: ai };
       listeners.forEach((fn) => fn());
       return last;
@@ -106,6 +116,12 @@ export function installNpcBridge(runtime: NpcRuntime, hooks: { setAuthHeader?: (
     setAuthHeader(header) {
       hooks.setAuthHeader?.(header);
     },
+    setVoice(on) {
+      voice = on;
+      hooks.onVoice?.(on);
+      listeners.forEach((fn) => fn());
+    },
+    voiceOn: () => voice,
   };
   const w = target as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...(w.__dvBridge ?? {}), npc: bridge };
@@ -123,10 +139,17 @@ padding:.45rem .55rem;border-radius:.5rem;background:rgba(14,18,26,.9);color:#f3
 .dv-npcdbg__row{display:flex;flex-wrap:wrap;gap:.25rem;margin-block:.3rem}
 .dv-npcdbg__line{min-block-size:2.6em;font-size:.85rem;font-weight:500;overflow-wrap:anywhere}
 .dv-npcdbg__meta{color:#9aa4b2;font-weight:500;overflow-wrap:anywhere}
+.dv-npcdbg__voice{display:flex;align-items:center;gap:.5rem;margin-block:.25rem;pointer-events:none}
+.dv-npcdbg__voice label{display:flex;align-items:center;gap:.25rem;cursor:pointer;pointer-events:auto}
+.dv-npcdbg__atlas{display:grid;grid-template-columns:repeat(3,1.35rem);gap:2px}
+.dv-npcdbg__cell{display:grid;place-items:center;block-size:1.35rem;border-radius:.2rem;background:rgba(255,255,255,.1);color:#9aa4b2;font-size:.7rem}
+.dv-npcdbg__cell[data-on="true"]{background:#f2c230;color:#14181f}
 `;
 
 export interface NpcOverlay {
   dispose(): void;
+  /** The mouth readout of the overlay as a LipSyncDriver target: the nine atlas cells, the active shape lit (QA stand-in for a face decal). */
+  mouth: LipSyncTarget;
 }
 
 export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = document.body, npcId: string = DEBUG_NPC_ID): NpcOverlay {
@@ -199,7 +222,41 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
       if (text !== '') say({ text, intent: 'smalltalk' });
     }
   });
-  root.append(head, line, meta, row, input);
+  // M06a4: the voice switch and the mouth readout (the nine cells of the mouth atlas; the active Rhubarb shape is lit).
+  const voiceRow = document.createElement('div');
+  voiceRow.className = 'dv-npcdbg__voice';
+  const voiceLabel = document.createElement('label');
+  const voiceBox = document.createElement('input');
+  voiceBox.type = 'checkbox';
+  voiceBox.dataset['testid'] = 'npc-voice';
+  voiceBox.style.inlineSize = 'auto';
+  voiceBox.style.minBlockSize = '0';
+  voiceBox.style.marginBlock = '0';
+  voiceBox.addEventListener('change', () => bridge.setVoice(voiceBox.checked));
+  voiceLabel.append(voiceBox, document.createTextNode('Voice'));
+  const atlas = document.createElement('div');
+  atlas.className = 'dv-npcdbg__atlas';
+  atlas.dataset['testid'] = 'npc-viseme';
+  atlas.setAttribute('aria-label', 'Mouth shape');
+  const cells = new Map<Viseme, HTMLElement>();
+  for (const shape of ATLAS_ORDER) {
+    const c = document.createElement('span');
+    c.className = 'dv-npcdbg__cell';
+    c.textContent = shape;
+    c.dataset['on'] = shape === 'X' ? 'true' : 'false';
+    cells.set(shape, c);
+    atlas.append(c);
+  }
+  voiceRow.append(voiceLabel, atlas);
+  const mouth: LipSyncTarget = {
+    setCell(_col, _row, shape) {
+      for (const [s, el] of cells) el.dataset['on'] = s === shape ? 'true' : 'false';
+      atlas.dataset['shape'] = shape;
+      atlas.dataset['cell'] = `${atlasCell(shape).col},${atlasCell(shape).row}`;
+    },
+    setJaw() {},
+  };
+  root.append(head, line, meta, row, input, voiceRow);
   container.append(root);
 
   const sourceLabel = (r: DebugTurnResult): string => {
@@ -215,6 +272,7 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
   };
   const off = bridge.onChange(render);
   return {
+    mouth,
     dispose() {
       off();
       root.remove();

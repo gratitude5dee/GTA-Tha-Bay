@@ -1,0 +1,16 @@
+{
+  "schema": "creator-voices/1",
+  "_note": "M06a4 (R-UI-01): each creator voice part id of content/ui/creator/catalog.json maps to a t1 entry of config/voice-catalog.json. The staging TTS probe renders `sample` once per part into audio_bark/creator-voice.<partId>; the Voice tab plays that clip with detune = pitch * detuneCentsPerPitch.",
+  "sample": "Hey, it's me. Let's see what the Bay has for us today.",
+  "detuneCentsPerPitch": 300,
+  "voices": {
+    "voice-bay-smooth": "voice/aura-orion",
+    "voice-gravel": "voice/aura-zeus",
+    "voice-bright": "voice/aura-stella",
+    "voice-mellow": "voice/aura-luna",
+    "voice-quick": "voice/aura-angus",
+    "voice-deep": "voice/aura-arcas",
+    "voice-warm": "voice/aura-asteria",
+    "voice-crisp": "voice/aura-athena"
+  }
+}

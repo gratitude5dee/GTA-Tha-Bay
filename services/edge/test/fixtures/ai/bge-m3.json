@@ -1,0 +1,14 @@
+{
+  "_note": "Stub embeddings of the M06a4 suites. A text maps to a sparse 1024-d vector: a list of [axis, value]. The two promise texts are near-duplicates (cosine 0.98); the others are orthogonal. A text that is not listed gets a unit vector on an axis chosen from its characters.",
+  "dim": 1024,
+  "texts": {
+    "The player promised to bring the car back by Friday.": [[5, 1.0], [6, 0.05]],
+    "The player promised to return the car by Friday.": [[5, 1.0], [7, 0.2]],
+    "Reach the player at [removed] about the lot.": [[11, 1.0]],
+    "The player likes the red car.": [[13, 1.0]],
+    "The player asked about the lot.": [[17, 1.0]],
+    "hello there": [[19, 1.0]],
+    "greet": [[23, 1.0]],
+    "greet m_first": [[29, 1.0]]
+  }
+}

@@ -5,6 +5,7 @@ import type {
 } from '@dv/shared';
 import type { LocKey } from '../i18n/index.ts';
 import type { CreatorStagePort } from '../creator/stage.ts';
+import type { VoicePreview } from '../creator/voice-preview.ts';
 import type { MapPort } from '../phone/map-port.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
@@ -242,6 +243,8 @@ export interface ShellProps {
   forceTouch?: boolean;
   /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
   stage?: () => CreatorStagePort | null;
+  /** The creator's voice preview (M06a4): built from the audio service and the pack store once they exist; absent or null keeps the button disabled. */
+  voicePreview?: ((onSubtitle: (text: string | null) => void) => VoicePreview | null) | null;
   /** The world's maps (M02c2): the phone Map app's full map, the search and the minimap's north-up switch; null while no baked world runs. */
   map?: () => MapPort | null;
 }

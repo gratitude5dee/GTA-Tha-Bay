@@ -52,7 +52,7 @@ export function harness(opts: { t0?: number; env?: Partial<Env> } = {}): Harness
       const headers = new Headers(rest.headers);
       if (ops && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${OPS_TOKEN}`);
       if (bearer !== undefined) headers.set('Authorization', bearer);
-      return call(path, { ...rest, headers, app, country: country ?? 'US', env: { OPS_TOKEN, PLAY_TOKEN_HMAC: PLAY_SECRET, ...opts.env, ...env } });
+      return call(path, { ...rest, headers, app, country: country ?? 'US', env: { OPS_TOKEN, PLAY_TOKEN_HMAC: PLAY_SECRET, AI: undefined, ...opts.env, ...env } });
     },
     dispose() {
       setClockForTests(null);

@@ -32,7 +32,7 @@
     "check:api": "tsx tools/ci/check-api.ts",
     "db:push": "tsx tools/ci/db-push.ts",
     "test:staging": "tsx tools/ci/test-staging.ts",
-    "dev:edge": "pnpm --filter @dv/edge exec wrangler dev --port 8788",
+    "dev:edge": "pnpm --filter @dv/edge exec wrangler dev --local --port 8788",
     "check:headers": "tsx tools/ci/check-dist.ts headers",
     "check:coi": "tsx tools/ci/check-dist.ts coi",
     "check:bundle": "tsx tools/ci/check-dist.ts bundle",
@@ -95,6 +95,7 @@
     "npc:summarize": "tsx tools/soul/src/cli.ts summarize",
     "npc:normalize": "tsx tools/soul/src/cli.ts normalize",
     "npc:edge-bundle": "tsx tools/soul/src/cli.ts edge-bundle",
+    "npc:eval": "tsx tools/soul/src/eval.ts",
     "check:i18n": "tsx tools/ci/check-i18n.ts"
   },
   "devDependencies": {

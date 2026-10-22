@@ -259,6 +259,7 @@ export function NewGamePage(_props: PageProps) {
         initial={normalizeAvatar({ ...defaultAvatar(), name: ((): string => { const c = checkName(name); return c.ok ? c.name : defaultAvatar().name; })() }).avatar}
         mode="new"
         stage={ctx.props.stage?.() ?? null}
+        voicePreview={ctx.props.voicePreview ?? null}
         reducedMotion={ctx.settings?.accessibility.reducedMotion === true}
         onBack={() => setStep('name')}
         onDone={(a) => {

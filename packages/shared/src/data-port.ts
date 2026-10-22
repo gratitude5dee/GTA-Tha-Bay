@@ -174,6 +174,15 @@ export interface MaintenanceStore {
   purgeProfile(profileId: string): Promise<boolean>;
   /** Every row keyed by the profile, per table (the export job adds R2 objects). Secrets and embeddings are left out. */
   exportRows(profileId: string): Promise<ExportRows>;
+  /**
+   * M06a4 (BD-M06a4-03). The stored memory of the pair (this NPC's pair rows only) nearest to `q` by cosine similarity, among the newest
+   * `window` rows (default 64), or null when the pair has none. The memory writer uses it to skip near-duplicates.
+   */
+  nearestMemory(profileId: string, npcId: string, q: Float32Array, window?: number): Promise<{ id: number; cosine: number } | null>;
+  /** M06a4. Marks memories as read: `last_accessed_at` = now and `expires_at` = now + 180 days. */
+  touchMemories(ids: number[]): Promise<void>;
+  /** M06a4, route 52. Deletes one NPC's memory and relationship rows, or those of every NPC when `npcId` is null. */
+  forgetNpcMemory(profileId: string, npcId: string | null): Promise<{ memories: number; relationships: number }>;
 }
 /**
  * The GenAI ledger. It has no route (the nightly export of BudgetGovernorDO writes it), so its two methods are a Builder decision (BD-M05d-02).

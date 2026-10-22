@@ -27,7 +27,8 @@ export interface SettleMeta {
 
 const Q = NPC_GUARDRAILS.quotas;
 type Row = Record<keyof (typeof Q)["p0"], number>;
-const COST_CAPPED: ReadonlySet<QuotaKind> = new Set(['turn', 'voice_line']);
+// 04-npc.md section 5.3 (fixed in M06a4, BD-M06a4-05): the daily cost cap counts model spend (`turn`); voice is bounded by the voiced-line count.
+const COST_CAPPED: ReadonlySet<QuotaKind> = new Set(['turn']);
 const LIMIT_KEY: Record<QuotaKind, keyof Row> = {
   turn: 'turns',
   voice_line: 'voiceLines',

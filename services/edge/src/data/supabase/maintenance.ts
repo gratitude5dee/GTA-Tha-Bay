@@ -1,5 +1,5 @@
 import type { ExportRows, MaintenanceStore } from '@dv/shared/data-port';
-import { MEMORY_TTL_MS } from '@dv/shared/npc/memory';
+import { cosine, MEMORY_TTL_MS } from '@dv/shared/npc/memory';
 import { fromIso, must, toIso, DataPortError, type Db } from './client.ts';
 
 /** Columns of each table the export holds. Refresh-token hashes, identity subjects and embeddings are left out on purpose. */
@@ -73,7 +73,50 @@ export function maintenance(db: Db): MaintenanceStore {
       }
       return out;
     },
+    async nearestMemory(profileId, npcId, q, window = 64) {
+      // Exact scan of the newest rows of the pair: the vectors come back as halfvec text and the cosine is computed here, so no function
+      // beyond migration 0003 is needed. The newest 64 rows hold every memory a near-duplicate can come from within an encounter or two.
+      const rows = must(
+        'npc_memory',
+        await db.from('npc_memory').select('id,embedding').eq('profile_id', profileId).eq('npc_id', npcId).gt('expires_at', toIso(Date.now())).order('id', { ascending: false }).limit(window),
+      );
+      let best: { id: number; cosine: number } | null = null;
+      for (const r of rows) {
+        const v = parseVector(r.embedding);
+        if (v === null) continue;
+        const c = cosine(v, q);
+        if (best === null || c > best.cosine) best = { id: r.id, cosine: c };
+      }
+      return best;
+    },
+    async touchMemories(ids) {
+      if (ids.length === 0) return;
+      const t = Date.now();
+      must('npc_memory', await db.from('npc_memory').update({ last_accessed_at: toIso(t), expires_at: toIso(t + MEMORY_TTL_MS) }).in('id', ids));
+    },
+    async forgetNpcMemory(profileId, npcId) {
+      let mem = db.from('npc_memory').delete({ count: 'exact' }).eq('profile_id', profileId);
+      let rel = db.from('npc_relationship').delete({ count: 'exact' }).eq('profile_id', profileId);
+      if (npcId !== null) {
+        mem = mem.eq('npc_id', npcId);
+        rel = rel.eq('npc_id', npcId);
+      }
+      const m = await mem;
+      if (m.error) throw new DataPortError('npc_memory', m.error.code, m.error.message);
+      const r = await rel;
+      if (r.error) throw new DataPortError('npc_relationship', r.error.code, r.error.message);
+      return { memories: m.count ?? 0, relationships: r.count ?? 0 };
+    },
   };
+}
+
+/** A halfvec/vector column as PostgREST returns it: the text `[a,b,...]` (or an array). Null when it cannot be read. */
+function parseVector(raw: unknown): Float32Array | null {
+  const list: unknown = typeof raw === 'string' ? (JSON.parse(raw) as unknown) : raw;
+  if (!Array.isArray(list)) return null;
+  const v = new Float32Array(list.length);
+  for (let i = 0; i < list.length; i++) v[i] = Number(list[i]);
+  return v;
 }
 
 /** timestamptz strings of an export row become epoch ms, as at every other port boundary. */

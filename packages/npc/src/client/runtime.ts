@@ -1,6 +1,6 @@
 import type { ApiErrorCode, RosterFlags } from '@dv/shared';
 import type { AssetRef } from '@dv/shared/assets';
-import type { CompiledSoulPublic, DialogueEvent, FallbackReason, InkKnot, NPCDialogueContext, NPCDialogueRequest, NpcId } from '@dv/shared/contracts/c10-npc';
+import type { AudioChunk, CompiledSoulPublic, DialogueEvent, FallbackReason, InkKnot, NPCDialogueContext, NPCDialogueRequest, NpcId, VoiceTier } from '@dv/shared/contracts/c10-npc';
 import { inkKnotFor } from '@dv/shared/npc';
 import { InkRunner } from '../ink/ink-runner.ts';
 import { DialogueClient } from './dialogue-client.ts';
@@ -15,6 +15,8 @@ import { DialogueClient } from './dialogue-client.ts';
  *  - `refreshFlags` reads route 30 (`RosterFlags`) with its ETag: on start, on mode entry, every 30 s while the page is visible, on
  *    return to visible and after a `kill_switched`. A killed NPC leaves `roster()`.
  *  - Each turn records `npc.turn.client`, each closed encounter `npc.encounter.client` (counts and enums only, never text).
+ *  - Voice (M06a4): `context.voice` is `off` when the profile setting is `off`, or `heroes` and the NPC is not a hero; the stream's audio
+ *    chunks go to `options.voice` (a TtsPlayer) while every event, text first, still reaches `on` for the subtitles.
  */
 export interface NpcRuntime {
   roster(): ReadonlyMap<NpcId, CompiledSoulPublic>;
@@ -46,12 +48,23 @@ export interface NpcRuntimeOptions {
   /** Profile settings: `npc.aiDialogue` and `npc.voice` (C05 1.1). Default: AI dialogue on, voice all. */
   settings?: () => { aiDialogue: boolean; voice: 'all' | 'heroes' | 'off' };
   telemetry?: { emit(name: 'npc.turn.client' | 'npc.encounter.client', props: Record<string, string | number | boolean>): void };
+  /** Plays the audio of voiced lines (a `TtsPlayer`). Absent: audio chunks are ignored and the text stands alone. */
+  voice?: VoiceSink;
   now?: () => number;
   /** Sees each talk response before its body is read (the QA overlay reads `X-DV-Npc-Mode` here). */
   onResponse?: (res: Response) => void;
   timers?: { setInterval(fn: () => void, ms: number): unknown; clearInterval(handle: unknown): void };
   /** Page visibility; default is `document.visibilityState` when a document exists. */
   visibility?: { visible(): boolean; onChange(fn: () => void): () => void };
+}
+
+/** What the runtime needs from the audio side (`TtsPlayer` has these methods). */
+export interface VoiceSink {
+  beginLine(npcId: NpcId, tier: VoiceTier): void;
+  appendText(npcId: NpcId, text: string): void;
+  push(npcId: NpcId, chunk: AudioChunk): void;
+  endLine(npcId: NpcId): void;
+  stop(npcId: NpcId): void;
 }
 
 export interface NpcRuntimeHandle extends NpcRuntime {
@@ -70,7 +83,11 @@ interface Encounter {
   turns: number;
   fallbacks: number;
   model: 'haiku' | 'sonnet' | 'ink';
+  /** The highest voice tier any turn of the encounter was spoken at. */
+  voiceTier: VoiceTier;
 }
+
+const TIER_ORDER: readonly VoiceTier[] = ['text', 't1', 't2', 't3'];
 
 const wordsOf = (text: string): number => (text.trim() === '' ? 0 : text.trim().split(/\s+/).length);
 
@@ -109,7 +126,7 @@ export function createNpcRuntime(options: NpcRuntimeOptions): NpcRuntimeHandle {
   const encounter = (npcId: NpcId): Encounter => {
     let e = encounters.get(npcId);
     if (e === undefined) {
-      e = { id: null, turns: 0, fallbacks: 0, model: 'ink' };
+      e = { id: null, turns: 0, fallbacks: 0, model: 'ink', voiceTier: 'text' };
       encounters.set(npcId, e);
     }
     return e;
@@ -145,6 +162,39 @@ export function createNpcRuntime(options: NpcRuntimeOptions): NpcRuntimeHandle {
     options.telemetry?.emit('npc.turn.client', { ttftMs: Math.max(0, Math.min(60_000, ttftMs)), fallback: reason !== null, ...(reason === null ? {} : { reason }) });
   };
 
+  /** `off` when the profile setting says so: `off`, or `heroes` for an NPC that is not a hero. A caller that asked for `off` keeps it. */
+  const voiceFor = (npcId: NpcId, asked: NPCDialogueContext['voice']): NPCDialogueContext['voice'] => {
+    if (asked === 'off' || options.voice === undefined) return 'off';
+    const setting = settings().voice;
+    if (setting === 'off') return 'off';
+    if (setting === 'heroes' && options.souls?.().find((s) => s.id === npcId)?.roles.hero !== true) return 'off';
+    return 'auto';
+  };
+
+  /** Feeds a stream's audio to the voice sink and passes every event on unchanged. A failing sink never reaches the dialogue. */
+  const voiceTap = (npcId: NpcId, next: (e: DialogueEvent) => void, enc: Encounter): ((e: DialogueEvent) => void) => {
+    const sink = options.voice;
+    if (sink === undefined) return next;
+    return (e) => {
+      try {
+        if (e.event === 'meta') {
+          if (TIER_ORDER.indexOf(e.data.voice) > TIER_ORDER.indexOf(enc.voiceTier)) enc.voiceTier = e.data.voice;
+          if (e.data.voice !== 'text') sink.beginLine(npcId, e.data.voice);
+        } else if (e.event === 'line.delta') {
+          if (e.data.text !== undefined) sink.appendText(npcId, e.data.text);
+          if (e.data.audio !== undefined) sink.push(npcId, e.data.audio);
+        } else if (e.event === 'line.done' || e.event === 'done') {
+          sink.endLine(npcId);
+        } else if (e.event === 'fallback') {
+          sink.stop(npcId);
+        }
+      } catch {
+        // audio is a nicety; the subtitles and the text go on
+      }
+      next(e);
+    };
+  };
+
   async function refreshFlags(): Promise<RosterFlags> {
     const doFetch = options.fetch ?? fetch;
     try {
@@ -169,6 +219,8 @@ export function createNpcRuntime(options: NpcRuntimeOptions): NpcRuntimeHandle {
   ): Promise<{ encounterId: string | null; source: 'llm' | 'ink' }> {
     const enc = encounter(npcId);
     const knot = inkKnotFor(ctx, turn.intent);
+    const plain = on;
+    on = voiceTap(npcId, plain, enc);
     const asInk = async (k: InkKnot, reason: FallbackReason | 'offline' | 'network' | 'setting_off'): Promise<{ encounterId: string | null; source: 'ink' }> => {
       enc.fallbacks++;
       turnEvent(0, reason);
@@ -178,7 +230,7 @@ export function createNpcRuntime(options: NpcRuntimeOptions): NpcRuntimeHandle {
     if (!settings().aiDialogue) return asInk(knot, 'setting_off');
     const version = soulVersion(npcId);
     if (version === null) return asInk(knot, 'offline');
-    const req: NPCDialogueRequest = { npcId, ...(enc.id === null ? {} : { encounterId: enc.id }), soulVersion: version, turn, context: ctx, maxTokens: 512 };
+    const req: NPCDialogueRequest = { npcId, ...(enc.id === null ? {} : { encounterId: enc.id }), soulVersion: version, turn, context: { ...ctx, voice: voiceFor(npcId, ctx.voice) }, maxTokens: 512 };
     const end = await client.talk(npcId, req, on, signal);
     switch (end.kind) {
       case 'aborted':
@@ -219,7 +271,7 @@ export function createNpcRuntime(options: NpcRuntimeOptions): NpcRuntimeHandle {
     if (e === undefined) return;
     encounters.delete(npcId);
     if (e.turns + e.fallbacks === 0) return;
-    options.telemetry?.emit('npc.encounter.client', { turns: Math.min(40, e.turns), fallbacks: Math.min(40, e.fallbacks), voiceTier: 'text', model: e.model });
+    options.telemetry?.emit('npc.encounter.client', { turns: Math.min(40, e.turns), fallbacks: Math.min(40, e.fallbacks), voiceTier: e.voiceTier, model: e.model });
   }
 
   const runtime: NpcRuntimeHandle = {

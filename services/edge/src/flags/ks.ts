@@ -26,6 +26,19 @@ export async function activeKillSwitches(env: Pick<Env, 'FLAGS'>, candidates: re
   return out;
 }
 
+/**
+ * `ks:tts:elevenlabs` is a switch that is ON until staff turn it off (Q-20: t2 voices stay off unless the voice ceiling is raised). It is held
+ * off (true) when KV has no record, an unreadable record, or a record that is not explicitly `on: false`; false only for `{ on: false }`.
+ */
+export async function ttsElevenlabsHeldOff(env: Pick<Env, 'FLAGS'>): Promise<boolean> {
+  try {
+    const rec = await env.FLAGS.get<Partial<KsRecord>>('ks:tts:elevenlabs', { type: 'json', cacheTtl: 30 });
+    return rec?.on !== false;
+  } catch {
+    return true;
+  }
+}
+
 /** The governor level published to KV `gov:level` by BudgetGovernorDO. 0 when absent or unreadable. */
 export async function governorLevel(env: Pick<Env, 'FLAGS'>): Promise<0 | 1 | 2 | 3> {
   try {

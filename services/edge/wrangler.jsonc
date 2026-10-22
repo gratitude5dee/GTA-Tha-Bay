@@ -48,6 +48,8 @@
     ]
   },
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+  // Workers AI (M06a4): bge-m3 embeddings for NPC memory and Aura text-to-speech. No key; the binding is remote even under wrangler dev.
+  "ai": { "binding": "AI" },
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 0.25, "invocation_logs": true },
@@ -143,6 +145,7 @@
       "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
       "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+      "ai": { "binding": "AI" },
       "observability": {
         "enabled": true,
         "logs": { "enabled": true, "head_sampling_rate": 1.0, "invocation_logs": true },
@@ -207,6 +210,7 @@
       ]
     },
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+    "ai": { "binding": "AI" },
     "define": { "__DV_TEST_ROUTES__": "true" },
     "vars": {
       "ENVIRONMENT": "preview",

@@ -16,6 +16,7 @@ import {
   type CreatorPart, type CreatorSlot, type NameProblem, type PlayerAvatar,
 } from './catalog.ts';
 import { encodeAppearance } from './appearance.ts';
+import type { VoicePreview } from './voice-preview.ts';
 import { mannequinParams, type CreatorStagePort } from './stage.ts';
 
 type TabId = 'body' | 'face' | 'hair' | 'outfit' | 'voice' | 'style' | 'name';
@@ -88,6 +89,8 @@ export interface CreatorEditorProps {
   /** 'new': first run after the profile name; 'edit': Profile > Edit appearance; 'wardrobe': outfit tab only. */
   mode: 'new' | 'edit' | 'wardrobe';
   stage: CreatorStagePort | null;
+  /** The voice preview (M06a4): null or absent while no clip or no audio exists; the Preview button then stays disabled with its hint. */
+  voicePreview?: ((onSubtitle: (text: string | null) => void) => VoicePreview | null) | null;
   reducedMotion: boolean;
   onDone(a: PlayerAvatar): void;
   onBack?(): void;
@@ -103,6 +106,8 @@ export function CreatorEditor(props: CreatorEditorProps) {
   const [name, setName] = useState(props.initial.name);
   const [callsign, setCallsign] = useState(props.initial.callsign);
   const [problem, setProblem] = useState<NameProblem | null>(null);
+  const [subtitle, setSubtitle] = useState<string | null>(null);
+  const preview = useMemo(() => props.voicePreview?.(setSubtitle) ?? null, [props.voicePreview]);
   const seed = useRef(1);
   const a = h.value;
   const apply = (next: PlayerAvatar, key = ''): void => {
@@ -224,7 +229,19 @@ export function CreatorEditor(props: CreatorEditorProps) {
             <>
               {cards('voice')}
               <Slider id="creator-pitch" label={t('creator.pitch')} value={Math.round(a.voice.pitch * 100)} min={-100} max={100} step={5} onChange={(v) => apply({ ...a, voice: { ...a.voice, pitch: v / 100 } }, 'pitch')} />
-              <Button id="voice-preview" label={t('creator.voice.preview')} disabledReason={t('creator.voice.preview.soon')} onPress={() => undefined} />
+              <Button
+                id="voice-preview"
+                label={t('creator.voice.preview')}
+                disabledReason={preview?.available(a.voice.id) === true ? undefined : t('creator.voice.preview.soon')}
+                onPress={() => {
+                  void preview?.press(a.voice.id, a.voice.pitch);
+                }}
+              />
+              {subtitle !== null ? (
+                <p class="dv-voice-subtitle" role="status" data-testid="creator-voice-subtitle">
+                  {subtitle}
+                </p>
+              ) : null}
             </>
           ) : null}
           {tab === 'style' ? cards('fightStyle') : null}

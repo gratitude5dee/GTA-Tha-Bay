@@ -10,6 +10,8 @@ export default defineConfig({
     cloudflareTest({
       main: './src/index.ts',
       wrangler: { configPath: './wrangler.jsonc', environment: 'staging' },
+      // The AI binding (M06a4) is remote-only: the suites stub `env.AI` and never reach Workers AI, so no Cloudflare login is needed.
+      remoteBindings: false,
     }),
   ],
   // test/db holds the tests that need a database: they run under check:db (vitest.db.config.ts), not here.

@@ -1,6 +1,7 @@
 import { NPC_GUARDRAILS, sha256Hex, type GovLevel } from '@dv/shared';
 import type { CompiledSoul, DialogueEvent, FallbackReason, InkKnot, NPCDialogueRequest } from '@dv/shared/contracts/c10-npc';
-import { inkKnotFor, normalizeTurnJson, renderScene, validateDialogueRequest, validateNpcTurn, validateTurn, type ExecutorScene, type NpcTurnOutput } from '@dv/shared/npc';
+import { inkKnotFor, normalizeTurnJson, renderScene, validateDialogueRequest, validateNpcTurn, validateTurn, type ExecutorScene, type NpcTurnOutput, type VoiceSetting } from '@dv/shared/npc';
+import type { RawMemoryWrite } from '@dv/shared/npc/memory';
 import { nextUtcMidnight, now } from '../clock.ts';
 import { playerQuota } from '../budget/quota.ts';
 import { apiError } from '../errors.ts';
@@ -14,7 +15,9 @@ import type { BeginResult, EncounterDO } from './EncounterDO.ts';
 import { LineScanner } from './scanner.ts';
 import { assemblePrompt, asHaikuRequest, type AssembledPrompt, type HistoryMessage } from './prompt.ts';
 import { clampMaxTokens, offlineReason, routeModel, type RoutedModel } from './router.ts';
+import { retrieve as retrieveMemory, write as writeMemory } from './memory.ts';
 import { moderation, outputNameHit, preFilter } from './safety.ts';
+import { planVoice, TtsSession } from './tts-router.ts';
 import { costMicros, emptyUsage, mergeUsage, type Usage } from './settle.ts';
 import { activeSoulVersion, loadBlockA, loadSoul, temperamentOf, type LoadedSoul } from './souls.ts';
 import { sseStream, watchKill } from './sse.ts';
@@ -41,13 +44,9 @@ export async function drainTalk(): Promise<void> {
   while (inflight.size > 0) await Promise.allSettled([...inflight]);
 }
 
-/** The memory hook of step 4. M06a4 fills it; until then no memory enters the prompt. */
-export interface MemoryHook {
-  retrieve(input: { profileId: string; npcId: string }): Promise<{ summary: string; hits: [] }>;
-}
-export const memoryHook: MemoryHook = { retrieve: () => Promise.resolve({ summary: '', hits: [] }) };
-
 interface TurnState {
+  /** The validated memory writes of the turn (at most 2); stored after the stream by MemoryService (M06a4). */
+  memoryWrites: RawMemoryWrite[];
   usage: Usage | null;
   model: string | undefined;
   /** The assistant's JSON text exactly as the model wrote it (history stays byte-identical). */
@@ -107,6 +106,8 @@ interface TurnRun {
   scene: ExecutorScene;
   knot: InkKnot;
   state: TurnState;
+  /** Voices the validated line when the effective tier is not `text` (M06a4). */
+  tts: TtsSession | null;
 }
 
 const fallback = (reason: FallbackReason, knot: InkKnot): DialogueEvent => ({ event: 'fallback', data: { reason, knot } });
@@ -196,8 +197,13 @@ async function* turnEvents(r: TurnRun, signal: AbortSignal): AsyncGenerator<Dial
     return;
   }
   r.state.assistantJson = end.text;
+  r.state.memoryWrites = checked.memoryWrites;
   r.state.endConversation = checked.effects.endConversation === true;
   r.state.closed = r.state.endConversation || r.turnsLeft <= 0;
+  // Voice (M06a4): the validated line, sentence by sentence, after the text and before line.done. A failed engine leaves the text alone.
+  if (r.tts !== null) {
+    for await (const audio of r.tts.speak(checked.line)) yield { event: 'line.delta', data: { seq: seq++, audio } };
+  }
   yield { event: 'line.done', data: { text: checked.line, words: checked.words } };
   yield { event: 'effects', data: checked.effects };
   yield { event: 'done', data: { costMicros: priced.micros, turnsLeft: r.turnsLeft, closed: r.state.closed } };
@@ -251,11 +257,13 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
   let ks: Set<string>;
   let gov: GovLevel;
   let rosterKilled: boolean;
+  let voiceKilled: boolean;
   try {
-    [ks, gov, rosterKilled] = await Promise.all([
-      activeKillSwitches(env, ['ks:anthropic', 'ks:anthropic:sonnet', 'ks:genai:all', `ks:likeness:${npcId}`], now()),
+    [ks, gov, rosterKilled, voiceKilled] = await Promise.all([
+      activeKillSwitches(env, ['ks:anthropic', 'ks:anthropic:sonnet', 'ks:genai:all', 'ks:tts:all', `ks:likeness:${npcId}`], now()),
       governorLevel(env),
       isKilled(env, deps, npcId),
+      isKilled(env, deps, npcId, 'voice'),
     ]);
   } catch {
     return apiError('upstream_unavailable', 'The roster is temporarily unavailable.', requestId, { retryAfterMs: 5000 });
@@ -299,7 +307,15 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
   if (status.killed) return apiError('kill_switched', 'This character is not available.', requestId);
   const lastTurn = status.turns + 1 >= cap;
 
-  const mem = await memoryHook.retrieve({ profileId: pid, npcId });
+  // Step 4: the pair's memory (embedding + top six + the relationship summary). Any failure gives an empty <memory> and the turn goes on.
+  const mem = await retrieveMemory(env, deps.data(env), {
+    profileId: pid,
+    npcId,
+    age: auth.claims.age,
+    context: req.context,
+    text: pre.text,
+    intent: req.turn.intent,
+  });
   let userMessage = renderScene(req.context, mem, { ...(pre.text === '' ? {} : { text: pre.text }), ...(req.turn.intent === undefined ? {} : { intent: req.turn.intent }) });
   if (pre.piiRemoved) userMessage = userMessage.replace(/<player intent="([^"]*)"/, '<player intent="$1" pii_removed="true"');
   if (lastTurn) userMessage += `${WRAP_UP_NOTE}\n`;
@@ -335,7 +351,11 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
   };
   const turnsLeft = Math.max(0, cap - (turnIndex + 1));
   const knot = inkKnotFor(req.context, req.turn.intent);
-  const state: TurnState = { usage: null, model: undefined, assistantJson: null, cost: null, closed: false, endConversation: false };
+  const state: TurnState = { memoryWrites: [], usage: null, model: undefined, assistantJson: null, cost: null, closed: false, endConversation: false };
+  // The effective voice tier of this turn (04-npc.md section 5.7). A play token is a P0 identity, so t2 and t3 are never reached in v1.
+  const setting: VoiceSetting = req.context.voice === 'off' ? 'off' : 'all';
+  const plan = await planVoice({ env, npcId, soul: compiled, setting, identity: 'p0', gov, ks, voiceKilled, quota });
+  const tts = plan.tier === 'text' ? null : new TtsSession(env, plan, quota, npcId, now);
   const scene: ExecutorScene = { mode: req.context.mode, offers: req.context.offers, ...(pre.verdict === 'self_harm' || lastTurn ? { forceEnd: true } : {}) };
   const crisis = begun.safety === 'crisis' || pre.verdict === 'self_harm';
   const meta: Extract<DialogueEvent, { event: 'meta' }> = {
@@ -346,7 +366,7 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
       npcId,
       soulVersion: req.soulVersion,
       model: routed.tier,
-      voice: 'text',
+      voice: plan.tier,
       turnsLeft,
       disclosure: { aiCharacter: true, disclaimer: compiled.likeness.disclaimer },
       gov,
@@ -380,6 +400,8 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
     finished = true;
     watch.stop();
     try {
+      // The voice_line reservation is settled with what was voiced, whatever became of the turn (0 when nothing was).
+      if (tts !== null) await tts.finish();
       if (outcome === 'done' && state.assistantJson !== null && state.usage !== null) {
         const u = state.usage;
         const micros = state.cost ?? 0;
@@ -392,6 +414,17 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
         writeServerEvent(env, 'genai.cost', { vendor: 'anthropic', model: costMicros(u, state.model).label, usdMicros: micros, cacheHit: u.cacheRead > 0, tier: 'local' }, now());
         if (state.closed) await stub.close();
         await moderation.check(deps, { npcId, text: pre.text, flagCrisis: () => stub.flagSafety() });
+        // Memory writes of the turn (paraphrased, scrubbed, no quotes of the player, near-duplicates only refresh), inside the waitUntil work.
+        if (state.memoryWrites.length > 0) {
+          await writeMemory(env, deps.data(env), {
+            profileId: pid,
+            npcId,
+            age: auth.claims.age,
+            writes: state.memoryWrites,
+            playerText: pre.text === '' ? undefined : pre.text,
+            clockT: req.context.clockT,
+          });
+        }
       } else {
         await stub.abort(turnIndex, outcome === 'done' ? 'upstream' : outcome);
         const micros = state.cost ?? 0;
@@ -407,7 +440,7 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
     }
   };
 
-  const run: TurnRun = { ctx, upstream, assembled, headers, routed, loaded, req, turnIndex, turnsLeft, scene, knot, state };
+  const run: TurnRun = { ctx, upstream, assembled, headers, routed, loaded, req, turnIndex, turnsLeft, scene, knot, state, tts };
   const stream = sseStream({
     meta,
     upstream: (signal) => turnEvents(run, signal),
