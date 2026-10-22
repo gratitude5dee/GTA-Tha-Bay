@@ -3,12 +3,14 @@
  * `choices` are applied in `(week, seq)` order before the `stepWeek` of their week. The clock holds while the company is
  * `awaiting` something; a recorded choice resolves it in the same week.
  */
+import { choiceAllowed } from '../events/engine.ts';
 import { canonicalize } from '../json.ts';
 import { applyCommand } from './commands.ts';
-import { hashCompany, mrrGrowth13, runwayWeeks, valuationRef } from './company.ts';
+import { hashCompany, expensesWeek, mrrGrowth13, revenueWeek, roleCount, runwayWeeks, valuationRef } from './company.ts';
+import { hostFor } from './events/host.ts';
 import { newRun } from './setup.ts';
 import { stepWeek } from './step.ts';
-import type { AwaitingKind, ChoiceRecord, CompanyState, Phase, RunResult, RunSetup, TycoonContent } from './types.ts';
+import { ROLES, type AwaitingKind, type ChoiceRecord, type CompanyState, type Phase, type RoleId, type RunResult, type RunSetup, type TermSheetEnvelope, type TycoonContent } from './types.ts';
 
 export { hashCompany };
 
@@ -92,6 +94,30 @@ export interface PolicyView {
   raiseKind: string | null;
   openMeetingId: string | null;
   growth13: number;
+  /** BD-M09a2-06: the read model grew with what the bots (and later the UI) need; every field is derived from the state. */
+  expenseWeek: number;
+  revenueWeek: number;
+  marketing: number;
+  focus: CompanyState['focus'];
+  crunch: boolean;
+  allocation: CompanyState['allocation'];
+  roleCount: Record<RoleId, number>;
+  offersPending: number;
+  /** Candidates on the market that have no offer yet. */
+  market: { id: string; role: RoleId; skill: number; askYr: number }[];
+  /** Choice events waiting for an answer. */
+  inbox: { iid: number; defId: string; defaultChoiceId: string; choices: { id: string; allowed: boolean }[] }[];
+  meeting: { id: string; vcId: string; kind: string; amount: number; preMoney: number; envelope: TermSheetEnvelope | null } | null;
+  closing: boolean;
+  raise: { kind: string; targetCents: number; vcPool: string[]; meetingsHeld: number } | null;
+  /** True when `startRaise` would pass the spacing rule. */
+  raiseSpacingOk: boolean;
+  safes: number;
+  /** Kinds of the priced rounds that closed. */
+  closedRounds: string[];
+  canSell: boolean;
+  canListPublic: boolean;
+  officeClosed: boolean;
 }
 
 export function policyView(s: CompanyState, c: TycoonContent): PolicyView {
@@ -116,5 +142,34 @@ export function policyView(s: CompanyState, c: TycoonContent): PolicyView {
     raiseKind: s.raise ? s.raise.kind : null,
     openMeetingId: s.meetings.find((m) => m.phase === 'offer')?.id ?? null,
     growth13: mrrGrowth13(s, c),
+    expenseWeek: expensesWeek(s, c),
+    revenueWeek: revenueWeek(s, c),
+    marketing: s.marketing,
+    focus: s.focus,
+    crunch: s.crunch,
+    allocation: s.allocation,
+    roleCount: Object.fromEntries(ROLES.map((r) => [r, roleCount(s.team, r)])) as Record<RoleId, number>,
+    offersPending: s.offers.length,
+    market: s.market.filter((x) => !s.offers.some((o) => o.candidateId === x.id)).map((x) => ({ id: x.id, role: x.role, skill: x.skill, askYr: x.askYr })),
+    inbox: s.events.inbox.flatMap((i) => {
+      const d = c.events.find((e) => e.id === i.defId);
+      if (!d?.choices || d.defaultChoiceId === undefined) return [];
+      return [{ iid: i.iid, defId: i.defId, defaultChoiceId: d.defaultChoiceId, choices: d.choices.map((ch) => ({ id: ch.id, allowed: choiceAllowed(ch, s, hostFor(c)) })) }];
+    }),
+    meeting: s.meetings.find((m) => m.phase === 'offer' && m.offer)
+      ? (() => {
+          const m = s.meetings.find((x) => x.phase === 'offer' && x.offer) as CompanyState['meetings'][number];
+          const o = m.offer as NonNullable<typeof m.offer>;
+          return { id: m.id, vcId: m.vcId, kind: m.kind, amount: o.amount, preMoney: o.preMoney, envelope: m.envelope };
+        })()
+      : null,
+    closing: s.meetings.some((m) => m.phase === 'closing'),
+    raise: s.raise ? { kind: s.raise.kind, targetCents: s.raise.targetCents, vcPool: s.raise.vcPool, meetingsHeld: s.raise.meetingsHeld } : null,
+    raiseSpacingOk: s.raise === null && s.week >= (typeof s.flags['lastRaiseEnd'] === 'number' ? (s.flags['lastRaiseEnd'] as number) : -1000) + c.balance.raise.spacingWeeks,
+    safes: s.capTable.safes.length,
+    closedRounds: s.capTable.rounds.filter((r) => r.closedWeek !== null).map((r) => r.kind),
+    canSell: s.phase === 'launched' && valuationRef(s, c) >= c.balance.end.acquisitionMinCents,
+    canListPublic: s.phase === 'launched' && 12 * s.mrr >= c.balance.end.ipoArrCents && s.flags['ipoWindow'] === true,
+    officeClosed: s.flags['officeClosed'] === true,
   };
 }

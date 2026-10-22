@@ -1,0 +1,34 @@
+{
+  "description": "Self-test fixture (must trip B5): a harmless-looking root event whose follow-up, one week later, wrecks the founder. It rolls often, so a large share of healthy runs are lost within ten weeks of it.",
+  "events": [
+    {
+      "id": "biz.domino_root",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 30,
+      "modifiers": [],
+      "requires": [{ "m": "users", "op": ">=", "v": 50 }],
+      "cooldownWeeks": 8,
+      "severity": 1,
+      "onFire": [{ "k": "metric", "metric": "hype", "op": "add", "dist": { "k": "fixed", "v": 1 }, "durationWeeks": 0, "decay": "none" }],
+      "followUps": [{ "eventId": "biz.domino_blow", "delayWeeks": [1, 1], "p": 1 }]
+    },
+    {
+      "id": "biz.domino_blow",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 8,
+      "severity": 2,
+      "onFire": [{ "k": "metric", "metric": "founderMorale", "op": "add", "dist": { "k": "fixed", "v": -100 }, "durationWeeks": 0, "decay": "none" }]
+    }
+  ],
+  "locale": {
+    "tycoon.events.biz.domino_root.title": "A small thing",
+    "tycoon.events.biz.domino_root.body": "Something minor happened.",
+    "tycoon.events.biz.domino_blow.title": "The other shoe",
+    "tycoon.events.biz.domino_blow.body": "It was not minor."
+  }
+}

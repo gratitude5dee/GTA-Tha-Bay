@@ -81,6 +81,8 @@
     "check:missions": "tsx tools/ci/missions/check.ts",
     "map:races": "tsx tools/map/src/race/cli.ts",
     "check:balance": "tsx tools/ci/econ-sim/index.ts",
+    "tycoon:sim": "tsx tools/ci/tycoon-sim/cli.ts",
+    "tycoon:baseline": "tsx tools/ci/tycoon-sim/cli.ts --runs 2000 --seed-base 1 --write-baseline --no-baseline",
     "check:agents": "tsx tools/ci/check-agents.ts",
     "check:telemetry": "tsx tools/ci/check-telemetry.ts",
     "check:rollout": "tsx tools/ci/check-rollout.ts",

@@ -39,7 +39,7 @@ export interface DetOutcome {
 }
 
 export interface TycoonBridge {
-  start(seed?: number, opts?: { founder?: string; coFounder?: boolean; thesis?: string }): Promise<Record<string, unknown> | null>;
+  start(seed?: number, opts?: { founder?: string; coFounder?: boolean; thesis?: string; autoEvents?: boolean }): Promise<Record<string, unknown> | null>;
   cmd(c: Command): void;
   step(n?: number): Promise<TycoonView | null>;
   speed(n: 1 | 2 | 4): void;
@@ -100,7 +100,7 @@ export function installTycoonBridge(): TycoonBridge {
     runDet,
   };
   const api: PanelApi = {
-    start: (seed) => void bridge.start(seed),
+    start: (seed, autoEvents) => void bridge.start(seed, autoEvents ? { autoEvents: true } : {}),
     cmd: bridge.cmd,
     step: (n) => void bridge.step(n),
     speed: bridge.speed,

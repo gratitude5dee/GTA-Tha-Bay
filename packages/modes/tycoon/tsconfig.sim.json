@@ -4,6 +4,6 @@
     "lib": ["ES2023"],
     "types": []
   },
-  "include": ["src/sim/**/*.ts", "../../shared/src/tycoon/**/*.ts", "../../shared/src/contracts/dom-media.d.ts"],
-  "exclude": ["src/sim/**/*.test.ts", "../../shared/src/tycoon/**/*.spec.ts", "../../shared/src/tycoon/__fixtures__/**"]
+  "include": ["src/sim/**/*.ts", "../../shared/src/tycoon/**/*.ts", "../../shared/src/events/**/*.ts", "../../shared/src/contracts/dom-media.d.ts"],
+  "exclude": ["src/sim/**/*.test.ts", "../../shared/src/tycoon/**/*.spec.ts", "../../shared/src/tycoon/__fixtures__/**", "../../shared/src/events/**/*.spec.ts", "../../shared/src/events/__fixtures__/**"]
 }
