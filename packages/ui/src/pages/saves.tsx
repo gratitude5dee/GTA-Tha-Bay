@@ -3,9 +3,11 @@
  * through the page's `SavesPort` (BD-M04b1-02); the sim only selects the profile it plays (`save.profile select`).
  */
 import { useState } from 'preact/hooks';
-import { SAVE_LIMITS, type LastSaveStatus, type ProfileId, type ProfileMeta, type SaveErrorCode, type SaveReason, type SaveResult, type SlotId } from '@dv/shared';
+import { SAVE_LIMITS, type JsonObject, type LastSaveStatus, type ProfileId, type ProfileMeta, type SaveErrorCode, type SaveReason, type SaveResult, type SlotId } from '@dv/shared';
 import { formatDate, formatNumber, getLang, lk, plural, t } from '../i18n/index.ts';
 import { Button, ListBox, Progress, useAsync, Banner } from '../kit/widgets.tsx';
+import { CreatorEditor } from '../creator/page.tsx';
+import { checkName, defaultAvatar, normalizeAvatar } from '../creator/catalog.ts';
 import { Link, useShell } from '../shell/context.tsx';
 import type { PageProps, SavesPort, ShellApi, ShellContext } from '../shell/types.ts';
 
@@ -216,7 +218,7 @@ export function LoadPage(_props: PageProps) {
 
 // ---- New Game
 
-type NewStep = 'name' | 'creator';
+type NewStep = 'name' | 'creator' | 'intro';
 
 export function NewGamePage(_props: PageProps) {
   const { shell, ctx } = useShell();
@@ -252,9 +254,24 @@ export function NewGamePage(_props: PageProps) {
   };
   if (step === 'creator') {
     return (
+      <CreatorEditor
+        initial={normalizeAvatar({ ...defaultAvatar(), name: ((): string => { const c = checkName(name); return c.ok ? c.name : defaultAvatar().name; })() }).avatar}
+        mode="new"
+        stage={ctx.props.stage?.() ?? null}
+        reducedMotion={ctx.settings?.accessibility.reducedMotion === true}
+        onBack={() => setStep('name')}
+        onDone={(a) => {
+          ctx.sendUi({ t: 'save.avatar', avatar: a as unknown as JsonObject });
+          setStep('intro');
+        }}
+      />
+    );
+  }
+  if (step === 'intro') {
+    return (
       <main class="dv-page" data-testid="new-creator">
         <h1>{t('new.creator.title')}</h1>
-        <p class="dv-muted">{t('new.creator.placeholder')}</p>
+        <p class="dv-muted">{t('new.intro')}</p>
         <div class="dv-actions">
           <Button id="new-start" style="primary" label={t('new.start')} disabledReason={blocked(ctx)} onPress={() => ctx.startMode('story')} />
         </div>

@@ -226,3 +226,64 @@ function canonical(x: unknown): unknown {
   }
   return x;
 }
+
+/** Undo and Redo for the creator: up to `limit` steps (20), a new edit clears the redo branch, a no-op edit is not recorded. */
+export class EditHistory {
+  private past: PlayerAvatar[] = [];
+  private future: PlayerAvatar[] = [];
+  constructor(private current: PlayerAvatar, private readonly limit = 20) {}
+
+  get value(): PlayerAvatar {
+    return this.current;
+  }
+
+  get canUndo(): boolean {
+    return this.past.length > 0;
+  }
+
+  get canRedo(): boolean {
+    return this.future.length > 0;
+  }
+
+  private lastKey = '';
+  private lastAt = 0;
+
+  /**
+   * Records an edit. Returns true when it changed anything. Edits with the same `key` within `windowMs` of each other (a slider drag)
+   * replace the newest step instead of adding one.
+   */
+  push(next: PlayerAvatar, key = '', now = 0, windowMs = 600): boolean {
+    if (sameAvatar(next, this.current)) return false;
+    const merge = key !== '' && key === this.lastKey && now - this.lastAt < windowMs && this.past.length > 0;
+    this.lastKey = key;
+    this.lastAt = now;
+    if (merge) {
+      this.future = [];
+      this.current = next;
+      return true;
+    }
+    this.past.push(this.current);
+    if (this.past.length > this.limit) this.past.shift();
+    this.future = [];
+    this.current = next;
+    return true;
+  }
+
+  undo(): PlayerAvatar {
+    const prev = this.past.pop();
+    if (prev) {
+      this.future.push(this.current);
+      this.current = prev;
+    }
+    return this.current;
+  }
+
+  redo(): PlayerAvatar {
+    const next = this.future.pop();
+    if (next) {
+      this.past.push(this.current);
+      this.current = next;
+    }
+    return this.current;
+  }
+}

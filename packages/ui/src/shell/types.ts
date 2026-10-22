@@ -228,6 +228,8 @@ export interface ShellProps {
   build: string;
   /** Flags the app knows before the engine (BootConfig.flags once fetched). */
   flags?: Record<string, boolean>;
+  /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
+  stage?: () => import('../creator/stage.ts').CreatorStagePort | null;
 }
 
 export interface PrefsStore {

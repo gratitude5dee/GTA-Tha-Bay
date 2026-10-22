@@ -7,6 +7,7 @@ import { render } from 'preact';
 import './kit/tokens.css';
 import './kit/shell.css';
 import './kit/kit.css';
+import './kit/m04b2.css';
 import { ShellApp } from './shell/app.tsx';
 import type { ChannelLike } from './shell/banners.tsx';
 import { ShellCore, type SimToast } from './shell/core.ts';
@@ -14,6 +15,7 @@ import type { EnginePort, PlatformPort, SavesPort, ShellProps } from './shell/ty
 
 export { t, lk, setLang, plural, formatNumber, formatDate } from './i18n/index.ts';
 export type { LocKey } from './i18n/index.ts';
+export type { CreatorStagePort, MannequinParams } from './creator/stage.ts';
 export { loadPrefs, memoryPrefs, defaultPrefs } from './shell/prefs.ts';
 export { LEGAL_DOCS, frameFor, hrefFor, PAGES } from './shell/registry.ts';
 export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo } from './shell/types.ts';

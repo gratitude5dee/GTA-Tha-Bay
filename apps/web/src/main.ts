@@ -5,7 +5,7 @@ import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
-import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
+import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
@@ -63,7 +63,11 @@ const prefs: PrefsStore = qaPlay
   ? memoryPrefs({ ...defaultPrefs(), age: { attested: '18p', attestedAt: Date.now(), blocked: false }, terms: { version: TERMS_VERSION, acceptedAt: Date.now() } })
   : await loadPrefs();
 
+// The creator preview (M04b2): built once the renderer host exists; the shell asks for it each time the creator opens.
+let creatorStage: CreatorStagePort | null = null;
+
 const shellProps = (unsupported: boolean): ShellProps => ({
+  stage: () => creatorStage,
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
   update,
@@ -162,6 +166,9 @@ async function boot(): Promise<void> {
     shell.core.fire('unsupported');
     return;
   }
+  void import('@dv/engine/client/creator-stage').then((m) => {
+    creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
+  });
   platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props));
   shell.attachPlatform(platformPort);
   applyPendingConsent();

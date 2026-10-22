@@ -64,6 +64,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
       }
       case 'save.avatar':
         d.slices().core.avatar = cmd.avatar;
+        d.ui.patch('sys.avatar', cmd.avatar);
         d.host.autosave.request('manual');
         return;
       case 'save.profile':

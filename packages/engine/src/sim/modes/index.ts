@@ -350,6 +350,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         bridge.patch('sys.controls', live.settings.controls as unknown as JsonObject);
         bridge.patch('sys.settings', settingsView(live.settings));
         bridge.patch('sys.profile', live.profile ? { ...live.profile } : null);
+        bridge.patch('sys.avatar', live.core.avatar);
         unl.publish();
         econ.publish();
         h.publish();

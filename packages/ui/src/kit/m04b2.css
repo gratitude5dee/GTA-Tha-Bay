@@ -1,0 +1,37 @@
+/* M04b2: creator, HUD, phone and pause, touch editor, onboarding, help and garage. Tokens come from tokens.css. */
+
+/* ---- creator */
+.dv-sprite { position: absolute; inline-size: 0; block-size: 0; overflow: hidden; }
+.dv-creator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  min-block-size: 100dvh;
+  padding-inline: max(var(--dv-space-4), env(safe-area-inset-left)) max(var(--dv-space-4), env(safe-area-inset-right));
+  padding-block: max(var(--dv-space-4), env(safe-area-inset-top)) max(var(--dv-space-4), env(safe-area-inset-bottom));
+  gap: var(--dv-space-4);
+}
+.dv-creator-stage { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: var(--dv-space-2); min-block-size: 40dvh; }
+.dv-creator-drag { position: absolute; inset: 0; touch-action: none; border-radius: var(--dv-radius-lg); }
+.dv-creator-zoom { position: relative; display: flex; gap: var(--dv-space-2); }
+.dv-creator-panel { display: flex; flex-direction: column; gap: var(--dv-space-3); background: color-mix(in srgb, var(--dv-color-bg) 92%, transparent); border-radius: var(--dv-radius-lg); padding: var(--dv-space-4); min-inline-size: 0; }
+.dv-creator-body { display: flex; flex-direction: column; gap: var(--dv-space-3); overflow-y: auto; max-block-size: 60dvh; }
+.dv-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr)); gap: var(--dv-space-2); }
+.dv-part {
+  display: flex; flex-direction: column; align-items: center; gap: var(--dv-space-1);
+  min-block-size: 44px; padding: var(--dv-space-2); color: var(--dv-color-text); cursor: pointer;
+  background: var(--dv-color-surface); border: 2px solid transparent; border-radius: var(--dv-radius-md);
+}
+.dv-part[aria-checked='true'] { border-color: var(--dv-color-accent); background: var(--dv-color-surface-raised); }
+.dv-part-art { inline-size: 2.5rem; block-size: 2.5rem; }
+.dv-part-none { display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.dv-part-name { font-size: var(--dv-text-sm); text-align: center; overflow-wrap: anywhere; }
+.dv-swatches { display: flex; flex-wrap: wrap; gap: var(--dv-space-2); }
+.dv-swatch { inline-size: 44px; block-size: 44px; border-radius: 50%; border: 3px solid var(--dv-color-surface-raised); cursor: pointer; }
+.dv-swatch[aria-checked='true'] { border-color: var(--dv-color-text); outline: 2px solid var(--dv-color-accent); }
+.dv-creator-footer { flex-wrap: wrap; }
+.dv-error { color: var(--dv-color-danger); min-block-size: 1.25em; margin: 0; }
+@media (max-width: 720px) {
+  .dv-creator { grid-template-columns: minmax(0, 1fr); }
+  .dv-creator-stage { min-block-size: 28dvh; }
+  .dv-creator-body { max-block-size: none; }
+}

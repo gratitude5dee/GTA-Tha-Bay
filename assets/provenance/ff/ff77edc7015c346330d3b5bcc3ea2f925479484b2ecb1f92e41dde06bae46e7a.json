@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "ff77edc7015c346330d3b5bcc3ea2f925479484b2ecb1f92e41dde06bae46e7a",
+  "paths": [
+    "assets/creator-kit/icons.svg"
+  ],
+  "kind": "ui",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "procedural SVG sprite (M04b2 creator kit)",
+    "version": "1.0.0",
+    "args_sha256": "34d224b194d67597ec89d7e3fb72edaa8dba03de86fa36b22f7dfa9d7c47cd02"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T00:00:00Z"
+}

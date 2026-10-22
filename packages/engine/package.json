@@ -14,6 +14,7 @@
     "./client/boot": "./src/client/boot/boot-engine.ts",
     "./client/debug/bridge": "./src/client/debug/bridge.ts",
     "./client/save-status": "./src/client/save-status.ts",
+    "./client/creator-stage": "./src/client/creator-stage.ts",
     "./save": "./src/sim/save/index.ts",
     "./qa": "./src/qa/index.ts",
     "./assets/bridge": "./src/assets/bridge.ts",

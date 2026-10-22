@@ -37,7 +37,7 @@ export const PAGES: readonly PageDef[] = [
   def({ id: 'main', route: '/', titleKey: lk('nav.main'), kind: 'menu', xr: 'screen', inputContext: 'menu', load: () => import('../pages/main.tsx').then((m) => ({ default: m.MainPage })), milestone: 'M04b1' }),
   def({ id: 'load', route: '/menu/load', titleKey: lk('nav.continue'), kind: 'menu', xr: 'screen', inputContext: 'menu', load: () => import('../pages/saves.tsx').then((m) => ({ default: m.LoadPage })), milestone: 'M04b1' }),
   def({ id: 'new', route: '/menu/new', titleKey: lk('nav.new'), kind: 'menu', xr: 'exit', inputContext: 'menu', load: () => import('../pages/saves.tsx').then((m) => ({ default: m.NewGamePage })), milestone: 'M04b1' }),
-  def({ id: 'creator', route: '/menu/creator', titleKey: lk('nav.new'), kind: 'menu', xr: 'exit', inputContext: 'menu', load: soon, milestone: 'M04b2' }),
+  def({ id: 'creator', route: '/menu/creator', titleKey: lk('nav.new'), kind: 'menu', xr: 'exit', inputContext: 'menu', load: () => import('../creator/page.tsx').then((m) => ({ default: m.default })), milestone: 'M04b2' }),
   def({ id: 'modes', route: '/menu/modes', titleKey: lk('nav.modes'), kind: 'menu', xr: 'screen', inputContext: 'menu', load: () => import('../pages/modes.ts').then((m) => ({ default: m.ModesPage })), milestone: 'M04b1' }),
   def({ id: 'garage', route: '/menu/garage', titleKey: lk('nav.garage'), kind: 'menu', xr: 'screen', inputContext: 'menu', load: soon, milestone: 'M04b2' }),
   def({ id: 'npcs', route: '/menu/npcs', titleKey: lk('nav.npcs'), kind: 'menu', xr: 'exit', inputContext: 'menu', load: soon, milestone: 'M06b' }),
