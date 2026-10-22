@@ -1,0 +1,5925 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mission-ir-1",
+  "title": "MissionIR (C09 1.0.0)",
+  "description": "Mission IR, schema mission-ir/1. $defs.story is the story profile (the top level); $defs.mod is the mod profile (C12 item 2).",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "mission-ir/1"
+    },
+    "id": {
+      "$ref": "#/$defs/MissionId"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "worldBake": {
+      "type": "string",
+      "pattern": "^[a-z0-9._-]{1,80}$"
+    },
+    "act": {
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "premise": {
+      "enum": [
+        "hella-valuation",
+        "mod"
+      ]
+    },
+    "title": {
+      "$ref": "#/$defs/LocKey"
+    },
+    "district": {
+      "enum": [
+        "d1",
+        "d2",
+        "d3",
+        "d4",
+        "d5",
+        "d6",
+        "d7",
+        "d8",
+        "d9",
+        "d10"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "giver": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "npc": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "npc"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "phone": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            }
+          },
+          "required": [
+            "phone"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "world": {
+              "const": true
+            }
+          },
+          "required": [
+            "world"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Pred"
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "start": {
+      "$ref": "#/$defs/Trigger"
+    },
+    "cast": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/CastDef"
+      },
+      "maxProperties": 32
+    },
+    "zones": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/ZoneDef"
+      },
+      "maxProperties": 48
+    },
+    "intro": {
+      "$ref": "#/$defs/BeatRef"
+    },
+    "outro": {
+      "$ref": "#/$defs/BeatRef"
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StageDef"
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "threads": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,31}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Ops"
+      },
+      "maxProperties": 8
+    },
+    "fail": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FailRule"
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "heatPolicy": {
+      "type": "object",
+      "properties": {
+        "maxHeat": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "clearOnPass": {
+          "type": "boolean"
+        },
+        "startHeat": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        }
+      },
+      "required": [
+        "maxHeat",
+        "clearOnPass"
+      ],
+      "additionalProperties": false
+    },
+    "ambient": {
+      "type": "object",
+      "properties": {
+        "traffic": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "peds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lock": {
+          "type": "object",
+          "properties": {
+            "hour": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 24
+            },
+            "weather": {
+              "enum": [
+                "clear",
+                "karl-fog",
+                "overcast",
+                "rain",
+                "smoke",
+                "golden"
+              ]
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "rewards": {
+      "$ref": "#/$defs/Rewards"
+    },
+    "medals": {
+      "type": "object",
+      "properties": {
+        "silverSec": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "goldSec": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "goldIf": {
+          "$ref": "#/$defs/Pred"
+        }
+      },
+      "required": [
+        "silverSec",
+        "goldSec"
+      ],
+      "additionalProperties": false
+    },
+    "unlocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/UnlockEventId"
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "modeHooks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ModeHook"
+      },
+      "minItems": 0,
+      "maxItems": 8
+    },
+    "autoplay": {
+      "type": "object",
+      "properties": {
+        "expectedSec": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 3600
+            },
+            {
+              "type": "number",
+              "minimum": 10,
+              "maximum": 3600
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "seeds": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            },
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4294967295
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "expectedSec",
+        "seeds"
+      ],
+      "additionalProperties": false
+    },
+    "lines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LineId"
+      },
+      "minItems": 0,
+      "maxItems": 512
+    }
+  },
+  "required": [
+    "schema",
+    "id",
+    "version",
+    "worldBake",
+    "act",
+    "premise",
+    "title",
+    "district",
+    "tags",
+    "giver",
+    "requires",
+    "start",
+    "cast",
+    "zones",
+    "stages",
+    "fail",
+    "heatPolicy",
+    "rewards",
+    "autoplay",
+    "lines"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "LocKey": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]{1,96}$"
+    },
+    "LineId": {
+      "type": "string",
+      "pattern": "^line\\.[a-z0-9_.-]{1,90}$"
+    },
+    "CastName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "ZoneName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$"
+    },
+    "Who": {
+      "type": "string",
+      "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+    },
+    "MissionId": {
+      "type": "string",
+      "pattern": "^m\\.[a-z0-9][a-z0-9.-]{1,80}$"
+    },
+    "LandmarkId": {
+      "type": "string",
+      "pattern": "^lm\\.[a-z0-9][a-z0-9.-]{0,60}$"
+    },
+    "UnlockEventId": {
+      "type": "string",
+      "pattern": "^unlock\\.[a-z0-9._]{1,60}$"
+    },
+    "LatLngTuple": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Heat": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "Weather": {
+      "enum": [
+        "clear",
+        "karl-fog",
+        "overcast",
+        "rain",
+        "smoke",
+        "golden"
+      ]
+    },
+    "Placement": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LatLngTuple"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "landmark": {
+                  "$ref": "#/$defs/LandmarkId"
+                }
+              },
+              "required": [
+                "landmark"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "yawDeg": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        },
+        "snap": {
+          "enum": [
+            "ground",
+            "road",
+            "sidewalk",
+            "none"
+          ]
+        },
+        "y": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "at",
+        "snap"
+      ],
+      "additionalProperties": false
+    },
+    "BeatRef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "cutscene": {
+              "type": "string",
+              "pattern": "^cut\\.[a-z0-9_.-]{1,120}$"
+            }
+          },
+          "required": [
+            "cutscene"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "director": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,80}$"
+            }
+          },
+          "required": [
+            "director"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "FlagMap": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^[a-z0-9_.-]{0,64}$"
+          }
+        ]
+      },
+      "maxProperties": 32
+    },
+    "Trigger": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "marker"
+            },
+            "at": {
+              "$ref": "#/$defs/Placement"
+            },
+            "radiusM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "onFoot": {
+              "type": "boolean"
+            },
+            "hours": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "required": [
+            "k",
+            "at",
+            "radiusM"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "phone"
+            },
+            "contact": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "delaySec": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "k",
+            "contact"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "auto"
+            },
+            "when": {
+              "$ref": "#/$defs/Pred"
+            }
+          },
+          "required": [
+            "k",
+            "when"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "mode"
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "const": "sandbox"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^exp:[a-z0-9][a-z0-9_.-]{0,40}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "k",
+            "mode"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CastDef": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "npc"
+            },
+            "who": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "soul": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                    }
+                  },
+                  "required": [
+                    "soul"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "slot": {
+                      "enum": [
+                        "RAP_HYPHY_ELDER",
+                        "RAP_LYRICIST",
+                        "RAP_NEW_WAVE",
+                        "RAP_COLLECTIVE",
+                        "TECH_VISIONARY",
+                        "TECH_HACKER",
+                        "TECH_VC",
+                        "ATH_SHOOTER",
+                        "ATH_POWER_BACK",
+                        "INFLUENCER"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "slot"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "role": {
+              "enum": [
+                "ally",
+                "mentor",
+                "rival",
+                "host",
+                "opponent",
+                "cameo",
+                "antagonist",
+                "civilian",
+                "unit"
+              ]
+            },
+            "spawn": {
+              "$ref": "#/$defs/Placement"
+            },
+            "prefab": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+            },
+            "spawnAt": {
+              "enum": [
+                "start",
+                "manual"
+              ]
+            }
+          },
+          "required": [
+            "k",
+            "who",
+            "role"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "vehicle"
+            },
+            "prefab": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+            },
+            "spawn": {
+              "$ref": "#/$defs/Placement"
+            },
+            "role": {
+              "enum": [
+                "ally",
+                "mentor",
+                "rival",
+                "host",
+                "opponent",
+                "cameo",
+                "antagonist",
+                "civilian",
+                "unit"
+              ]
+            },
+            "playerUsable": {
+              "type": "boolean"
+            },
+            "spawnAt": {
+              "enum": [
+                "start",
+                "manual"
+              ]
+            }
+          },
+          "required": [
+            "k",
+            "prefab",
+            "spawn"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "enum": [
+                "prop",
+                "pickup"
+              ]
+            },
+            "prefab": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+            },
+            "spawn": {
+              "$ref": "#/$defs/Placement"
+            },
+            "item": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+            },
+            "spawnAt": {
+              "enum": [
+                "start",
+                "manual"
+              ]
+            }
+          },
+          "required": [
+            "k",
+            "prefab",
+            "spawn"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "unit"
+            },
+            "prefab": {
+              "type": "string",
+              "pattern": "^police\\.[a-z0-9_.-]{1,56}$"
+            },
+            "spawn": {
+              "$ref": "#/$defs/Placement"
+            },
+            "spawnAt": {
+              "enum": [
+                "start",
+                "manual"
+              ]
+            }
+          },
+          "required": [
+            "k",
+            "prefab",
+            "spawn"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ZoneDef": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "circle"
+            },
+            "at": {
+              "$ref": "#/$defs/LatLngTuple"
+            },
+            "r": {
+              "type": "number",
+              "minimum": 2,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "k",
+            "at",
+            "r"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "poly"
+            },
+            "ring": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LatLngTuple"
+              },
+              "minItems": 3,
+              "maxItems": 64
+            },
+            "yMin": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 1000
+            },
+            "yMax": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 1000
+            }
+          },
+          "required": [
+            "k",
+            "ring"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "landmark"
+            },
+            "id": {
+              "$ref": "#/$defs/LandmarkId"
+            },
+            "r": {
+              "type": "number",
+              "minimum": 2,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "k",
+            "id"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "route"
+            },
+            "via": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LatLngTuple"
+              },
+              "minItems": 2,
+              "maxItems": 64
+            },
+            "widthM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "k",
+            "via",
+            "widthM"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "cast"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "r": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "k",
+            "cast",
+            "r"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TalkDef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "npc": {
+          "$ref": "#/$defs/CastName"
+        },
+        "intent": {
+          "$ref": "#/$defs/LocKey"
+        },
+        "outcomes": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "stage": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+              },
+              "flags": {
+                "$ref": "#/$defs/FlagMap"
+              },
+              "trust": {
+                "type": "number",
+                "minimum": -100,
+                "maximum": 100
+              },
+              "label": {
+                "$ref": "#/$defs/LocKey"
+              },
+              "when": {
+                "type": "object",
+                "properties": {
+                  "actions": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "none",
+                        "offer_mission",
+                        "offer_race",
+                        "offer_fight",
+                        "offer_deal",
+                        "give_item",
+                        "sell",
+                        "refuse",
+                        "call_police",
+                        "flee",
+                        "attack",
+                        "follow",
+                        "leave"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 13
+                  },
+                  "minTrust": {
+                    "type": "number",
+                    "minimum": -100,
+                    "maximum": 100
+                  },
+                  "mood": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+                    },
+                    "minItems": 1,
+                    "maxItems": 8
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "minProperties": 1,
+          "maxProperties": 12
+        },
+        "default": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "maxTurns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "ink": {
+          "type": "string",
+          "pattern": "^mission_[a-z0-9_]{1,120}$"
+        }
+      },
+      "required": [
+        "id",
+        "npc",
+        "intent",
+        "outcomes",
+        "default",
+        "maxTurns",
+        "ink"
+      ],
+      "additionalProperties": false
+    },
+    "ObjectiveNoMode": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "goto"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "onFoot": {
+              "type": "boolean"
+            },
+            "inVehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            },
+            "stopped": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "enterVehicle"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "vehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "vehicle"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "follow"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "band": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 400
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "loseAfterSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "untilEvent": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "band",
+            "loseAfterSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "chase"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "catchDist": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "holdSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "catchDist"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "escape"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "untilHeat": {
+              "const": 0
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "untilHeat"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "survive"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "collect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "deliver"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "to": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "fragile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "protect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "minHealth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "minHealth"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "talk"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "talk": {
+              "$ref": "#/$defs/TalkDef"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "talk"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "photo"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CastName"
+                },
+                {
+                  "$ref": "#/$defs/LandmarkId"
+                }
+              ]
+            },
+            "framing": {
+              "enum": [
+                "any",
+                "wide",
+                "selfie"
+              ]
+            },
+            "maxDistM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "subject"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "stealth"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "detectBudget": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "autoplayPath": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LatLngTuple"
+              },
+              "minItems": 1,
+              "maxItems": 64
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone",
+            "detectBudget",
+            "autoplayPath"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "defeat"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CastName"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            },
+            "nonLethal": {
+              "const": true
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "targets",
+            "nonLethal"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "score"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "metric": {
+              "enum": [
+                "drift",
+                "airtime",
+                "nearMiss"
+              ]
+            },
+            "target": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "withinSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "metric",
+            "target",
+            "withinSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "wait"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ObjectiveDef": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "goto"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "onFoot": {
+              "type": "boolean"
+            },
+            "inVehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            },
+            "stopped": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "enterVehicle"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "vehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "vehicle"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "follow"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "band": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 400
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "loseAfterSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "untilEvent": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "band",
+            "loseAfterSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "chase"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "catchDist": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "holdSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "catchDist"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "escape"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "untilHeat": {
+              "const": 0
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "untilHeat"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "survive"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "collect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "deliver"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "to": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "fragile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "protect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "minHealth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "minHealth"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "talk"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "talk": {
+              "$ref": "#/$defs/TalkDef"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "talk"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "photo"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CastName"
+                },
+                {
+                  "$ref": "#/$defs/LandmarkId"
+                }
+              ]
+            },
+            "framing": {
+              "enum": [
+                "any",
+                "wide",
+                "selfie"
+              ]
+            },
+            "maxDistM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "subject"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "stealth"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "detectBudget": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "autoplayPath": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LatLngTuple"
+              },
+              "minItems": 1,
+              "maxItems": 64
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone",
+            "detectBudget",
+            "autoplayPath"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "defeat"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CastName"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            },
+            "nonLethal": {
+              "const": true
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "targets",
+            "nonLethal"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "score"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "metric": {
+              "enum": [
+                "drift",
+                "airtime",
+                "nearMiss"
+              ]
+            },
+            "target": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "withinSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "metric",
+            "target",
+            "withinSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "wait"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "mode"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "hook": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "hook"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ModeHook": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "mode": {
+          "enum": [
+            "racing",
+            "fighter",
+            "tycoon"
+          ]
+        },
+        "defId": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+        },
+        "params": {
+          "type": "object",
+          "maxProperties": 16
+        },
+        "passOn": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "win",
+              "finish",
+              "lose",
+              "quit"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "stub": {
+          "$ref": "#/$defs/ObjectiveNoMode"
+        },
+        "unlockOnFirstEncounter": {
+          "$ref": "#/$defs/UnlockEventId"
+        },
+        "retry": {
+          "enum": [
+            "hook",
+            "checkpoint"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "mode",
+        "defId",
+        "passOn",
+        "stub",
+        "retry"
+      ],
+      "additionalProperties": false
+    },
+    "NpcTask": {
+      "discriminator": {
+        "propertyName": "t"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "goto"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "mode": {
+              "enum": [
+                "walk",
+                "run",
+                "drive"
+              ]
+            }
+          },
+          "required": [
+            "t",
+            "zone",
+            "mode"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "driveTo"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "style": {
+              "enum": [
+                "normal",
+                "fast",
+                "flee"
+              ]
+            }
+          },
+          "required": [
+            "t",
+            "zone",
+            "style"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "follow"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            },
+            "distM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "t",
+            "who",
+            "distM"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "enterVehicle"
+            },
+            "vehicle": {
+              "$ref": "#/$defs/CastName"
+            },
+            "seat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 7
+            }
+          },
+          "required": [
+            "t",
+            "vehicle",
+            "seat"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "leaveVehicle"
+            }
+          },
+          "required": [
+            "t"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "anim"
+            },
+            "clip": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            },
+            "loop": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "t",
+            "clip"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "look"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            }
+          },
+          "required": [
+            "t",
+            "who"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "idle"
+            }
+          },
+          "required": [
+            "t"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "t": {
+              "const": "flee"
+            },
+            "from": {
+              "$ref": "#/$defs/Who"
+            }
+          },
+          "required": [
+            "t",
+            "from"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Op": {
+      "discriminator": {
+        "propertyName": "op"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "seq"
+            },
+            "body": {
+              "$ref": "#/$defs/Ops"
+            }
+          },
+          "required": [
+            "op",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "all"
+            },
+            "branches": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Ops"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "op",
+            "branches"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "race"
+            },
+            "branches": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Ops"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "op",
+            "branches"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "if"
+            },
+            "cond": {
+              "$ref": "#/$defs/Pred"
+            },
+            "then": {
+              "$ref": "#/$defs/Ops"
+            },
+            "else": {
+              "$ref": "#/$defs/Ops"
+            }
+          },
+          "required": [
+            "op",
+            "cond",
+            "then"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "loop"
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "until": {
+              "$ref": "#/$defs/Pred"
+            },
+            "body": {
+              "$ref": "#/$defs/Ops"
+            }
+          },
+          "required": [
+            "op",
+            "max",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "wait"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "waitUntil"
+            },
+            "cond": {
+              "$ref": "#/$defs/Pred"
+            },
+            "timeoutSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "onTimeout": {
+              "$ref": "#/$defs/Ops"
+            }
+          },
+          "required": [
+            "op",
+            "cond"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "waitEvent"
+            },
+            "event": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            },
+            "timeoutSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "enum": [
+                "spawn",
+                "despawn"
+              ]
+            },
+            "cast": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CastName"
+              },
+              "minItems": 1,
+              "maxItems": 32
+            }
+          },
+          "required": [
+            "op",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "task"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "task": {
+              "$ref": "#/$defs/NpcTask"
+            }
+          },
+          "required": [
+            "op",
+            "cast",
+            "task"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "say"
+            },
+            "speaker": {
+              "anyOf": [
+                {
+                  "const": "player"
+                },
+                {
+                  "const": "radio"
+                },
+                {
+                  "$ref": "#/$defs/CastName"
+                }
+              ]
+            },
+            "line": {
+              "$ref": "#/$defs/LineId"
+            },
+            "wait": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "speaker",
+            "line"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "text"
+            },
+            "from": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "line": {
+              "$ref": "#/$defs/LineId"
+            }
+          },
+          "required": [
+            "op",
+            "from",
+            "line"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "marker"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "kind": {
+              "enum": [
+                "objective",
+                "destination",
+                "target",
+                "avoid"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "target",
+            "kind",
+            "on"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "beat"
+            },
+            "ref": {
+              "$ref": "#/$defs/BeatRef"
+            }
+          },
+          "required": [
+            "op",
+            "ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "camera"
+            },
+            "shot": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,80}$"
+            },
+            "subject": {
+              "$ref": "#/$defs/Who"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "shot"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "fade"
+            },
+            "to": {
+              "anyOf": [
+                {
+                  "const": 0
+                },
+                {
+                  "const": 1
+                }
+              ]
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            }
+          },
+          "required": [
+            "op",
+            "to",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "heat"
+            },
+            "set": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "cap": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "clear": {
+              "const": true
+            },
+            "unit": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "clock"
+            },
+            "lock": {
+              "type": "object",
+              "properties": {
+                "hour": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "weather": {
+                  "enum": [
+                    "clear",
+                    "karl-fog",
+                    "overcast",
+                    "rain",
+                    "smoke",
+                    "golden"
+                  ]
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "unlock": {
+              "const": true
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "ambient"
+            },
+            "traffic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "peds": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "flag"
+            },
+            "set": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_.-]{0,64}$"
+                  }
+                ]
+              },
+              "maxProperties": 16
+            }
+          },
+          "required": [
+            "op",
+            "set"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "trust"
+            },
+            "npc": {
+              "$ref": "#/$defs/CastName"
+            },
+            "delta": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "op",
+            "npc",
+            "delta"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "give"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+                  },
+                  "qty": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 999
+                  }
+                },
+                "required": [
+                  "id",
+                  "qty"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1,
+              "maxItems": 8
+            },
+            "cashCents": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000000
+            },
+            "idem": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.:-]{0,63}$"
+            }
+          },
+          "required": [
+            "op",
+            "idem"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "emit"
+            },
+            "event": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            }
+          },
+          "required": [
+            "op",
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "pass"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "fail"
+            },
+            "reason": {
+              "$ref": "#/$defs/LocKey"
+            }
+          },
+          "required": [
+            "op",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Ops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Op"
+      },
+      "minItems": 0,
+      "maxItems": 256
+    },
+    "Pred": {
+      "discriminator": {
+        "propertyName": "p"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "enum": [
+                "and",
+                "or"
+              ]
+            },
+            "of": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Pred"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "p",
+            "of"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "not"
+            },
+            "of": {
+              "$ref": "#/$defs/Pred"
+            }
+          },
+          "required": [
+            "p",
+            "of"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "true"
+            }
+          },
+          "required": [
+            "p"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "inZone"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            }
+          },
+          "required": [
+            "p",
+            "who",
+            "zone"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "inVehicle"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            },
+            "vehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            }
+          },
+          "required": [
+            "p",
+            "who"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "near"
+            },
+            "a": {
+              "$ref": "#/$defs/Who"
+            },
+            "b": {
+              "$ref": "#/$defs/Who"
+            },
+            "maxM": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "p",
+            "a",
+            "b",
+            "maxM"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "far"
+            },
+            "a": {
+              "$ref": "#/$defs/Who"
+            },
+            "b": {
+              "$ref": "#/$defs/Who"
+            },
+            "minM": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "p",
+            "a",
+            "b",
+            "minM"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "health"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            },
+            "below": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "p",
+            "who",
+            "below"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "ko"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            }
+          },
+          "required": [
+            "p",
+            "who"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "destroyed"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "p",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "busted"
+            }
+          },
+          "required": [
+            "p"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "heat"
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "phase": {
+              "enum": [
+                "clear",
+                "pursuit",
+                "search",
+                "cooldown"
+              ]
+            }
+          },
+          "required": [
+            "p"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "speed"
+            },
+            "who": {
+              "$ref": "#/$defs/Who"
+            },
+            "minMps": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 200
+            },
+            "maxMps": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 200
+            }
+          },
+          "required": [
+            "p",
+            "who"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "hour"
+            },
+            "from": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 24
+            },
+            "to": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 24
+            }
+          },
+          "required": [
+            "p",
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "weather"
+            },
+            "is": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "clear",
+                  "karl-fog",
+                  "overcast",
+                  "rain",
+                  "smoke",
+                  "golden"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 6
+            }
+          },
+          "required": [
+            "p",
+            "is"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "flag"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            },
+            "eq": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_.-]{0,64}$"
+                }
+              ]
+            },
+            "gte": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "p",
+            "key"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "trust"
+            },
+            "npc": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "gte": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            },
+            "lte": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "p",
+            "npc"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "item"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+            },
+            "gte": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 999
+            }
+          },
+          "required": [
+            "p",
+            "id",
+            "gte"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "cash"
+            },
+            "gteCents": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000000
+            }
+          },
+          "required": [
+            "p",
+            "gteCents"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "objective"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "state": {
+              "enum": [
+                "active",
+                "done",
+                "failed"
+              ]
+            }
+          },
+          "required": [
+            "p",
+            "id",
+            "state"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "stageTime"
+            },
+            "gteSec": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 3600
+            },
+            "lteSec": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 3600
+            }
+          },
+          "required": [
+            "p"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "event"
+            },
+            "name": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            },
+            "since": {
+              "enum": [
+                "stage",
+                "mission"
+              ]
+            }
+          },
+          "required": [
+            "p",
+            "name",
+            "since"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "modeResult"
+            },
+            "hook": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "outcome": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "win",
+                  "finish",
+                  "lose",
+                  "quit",
+                  "abort"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 5
+            }
+          },
+          "required": [
+            "p",
+            "hook",
+            "outcome"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "passed"
+            },
+            "mission": {
+              "$ref": "#/$defs/MissionId"
+            }
+          },
+          "required": [
+            "p",
+            "mission"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "act"
+            },
+            "gte": {
+              "enum": [
+                1,
+                2,
+                3
+              ]
+            }
+          },
+          "required": [
+            "p",
+            "gte"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "p": {
+              "const": "unlocked"
+            },
+            "id": {
+              "$ref": "#/$defs/UnlockEventId"
+            }
+          },
+          "required": [
+            "p",
+            "id"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "StageDef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "join": {
+          "enum": [
+            "all",
+            "any",
+            "sequence"
+          ]
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ObjectiveDef"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "onEnter": {
+          "$ref": "#/$defs/Ops"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/Ops"
+        },
+        "timeLimitSec": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "checkpoint": {
+          "type": "boolean"
+        },
+        "conduct": {
+          "enum": [
+            "lawful",
+            "unlawful"
+          ]
+        },
+        "next": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        }
+      },
+      "required": [
+        "id",
+        "join",
+        "objectives"
+      ],
+      "additionalProperties": false
+    },
+    "FailRule": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/Pred"
+        },
+        "reason": {
+          "$ref": "#/$defs/LocKey"
+        },
+        "retry": {
+          "enum": [
+            "checkpoint",
+            "start"
+          ]
+        }
+      },
+      "required": [
+        "when",
+        "reason",
+        "retry"
+      ],
+      "additionalProperties": false
+    },
+    "Rewards": {
+      "type": "object",
+      "properties": {
+        "cashCents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "streetCred": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "techClout": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              }
+            },
+            "required": [
+              "id",
+              "qty"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "vehicles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "safehouse": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+        },
+        "trust": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "npc": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+              },
+              "delta": {
+                "type": "number",
+                "minimum": -100,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "npc",
+              "delta"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "mod.BeatRef": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "director": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,80}$"
+            }
+          },
+          "required": [
+            "director"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mod.ObjectiveDef": {
+      "discriminator": {
+        "propertyName": "k"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "goto"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "onFoot": {
+              "type": "boolean"
+            },
+            "inVehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            },
+            "stopped": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "enterVehicle"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "vehicle": {
+              "type": "string",
+              "pattern": "^(player|playerVehicle|[a-z][a-z0-9_]{0,31})$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "vehicle"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "follow"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "band": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 200
+                },
+                {
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 400
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "loseAfterSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "untilEvent": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "band",
+            "loseAfterSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "chase"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "catchDist": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "holdSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "catchDist"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "escape"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "untilHeat": {
+              "const": 0
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "untilHeat"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "survive"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "collect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "deliver"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "to": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "fragile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "cast",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "protect"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "minHealth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "untilZone": {
+              "$ref": "#/$defs/ZoneName"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "target",
+            "minHealth"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "talk"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "talk": {
+              "$ref": "#/$defs/TalkDef"
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "talk"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "photo"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "subject": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CastName"
+                },
+                {
+                  "$ref": "#/$defs/LandmarkId"
+                }
+              ]
+            },
+            "framing": {
+              "enum": [
+                "any",
+                "wide",
+                "selfie"
+              ]
+            },
+            "maxDistM": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "subject"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "stealth"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "zone": {
+              "$ref": "#/$defs/ZoneName"
+            },
+            "detectBudget": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "autoplayPath": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/LatLngTuple"
+              },
+              "minItems": 1,
+              "maxItems": 64
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "zone",
+            "detectBudget",
+            "autoplayPath"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "defeat"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CastName"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            },
+            "nonLethal": {
+              "const": true
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "targets",
+            "nonLethal"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "score"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "metric": {
+              "enum": [
+                "drift",
+                "airtime",
+                "nearMiss"
+              ]
+            },
+            "target": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 1000000
+            },
+            "withinSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "metric",
+            "target",
+            "withinSec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "k": {
+              "const": "wait"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+            },
+            "text": {
+              "$ref": "#/$defs/LocKey"
+            },
+            "optional": {
+              "type": "boolean"
+            },
+            "marker": {
+              "type": "boolean"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "k",
+            "id",
+            "text",
+            "sec"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mod.Op": {
+      "discriminator": {
+        "propertyName": "op"
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "seq"
+            },
+            "body": {
+              "$ref": "#/$defs/mod.Ops"
+            }
+          },
+          "required": [
+            "op",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "all"
+            },
+            "branches": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/mod.Ops"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "op",
+            "branches"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "race"
+            },
+            "branches": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/mod.Ops"
+              },
+              "minItems": 1,
+              "maxItems": 16
+            }
+          },
+          "required": [
+            "op",
+            "branches"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "if"
+            },
+            "cond": {
+              "$ref": "#/$defs/Pred"
+            },
+            "then": {
+              "$ref": "#/$defs/mod.Ops"
+            },
+            "else": {
+              "$ref": "#/$defs/mod.Ops"
+            }
+          },
+          "required": [
+            "op",
+            "cond",
+            "then"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "loop"
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "until": {
+              "$ref": "#/$defs/Pred"
+            },
+            "body": {
+              "$ref": "#/$defs/mod.Ops"
+            }
+          },
+          "required": [
+            "op",
+            "max",
+            "body"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "wait"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "waitUntil"
+            },
+            "cond": {
+              "$ref": "#/$defs/Pred"
+            },
+            "timeoutSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            },
+            "onTimeout": {
+              "$ref": "#/$defs/mod.Ops"
+            }
+          },
+          "required": [
+            "op",
+            "cond"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "waitEvent"
+            },
+            "event": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            },
+            "timeoutSec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "enum": [
+                "spawn",
+                "despawn"
+              ]
+            },
+            "cast": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CastName"
+              },
+              "minItems": 1,
+              "maxItems": 32
+            }
+          },
+          "required": [
+            "op",
+            "cast"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "task"
+            },
+            "cast": {
+              "$ref": "#/$defs/CastName"
+            },
+            "task": {
+              "$ref": "#/$defs/NpcTask"
+            }
+          },
+          "required": [
+            "op",
+            "cast",
+            "task"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "say"
+            },
+            "speaker": {
+              "anyOf": [
+                {
+                  "const": "player"
+                },
+                {
+                  "const": "radio"
+                },
+                {
+                  "$ref": "#/$defs/CastName"
+                }
+              ]
+            },
+            "line": {
+              "$ref": "#/$defs/LineId"
+            },
+            "wait": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "speaker",
+            "line"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "text"
+            },
+            "from": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+            },
+            "line": {
+              "$ref": "#/$defs/LineId"
+            }
+          },
+          "required": [
+            "op",
+            "from",
+            "line"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "marker"
+            },
+            "target": {
+              "$ref": "#/$defs/CastName"
+            },
+            "kind": {
+              "enum": [
+                "objective",
+                "destination",
+                "target",
+                "avoid"
+              ]
+            },
+            "on": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "op",
+            "target",
+            "kind",
+            "on"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "beat"
+            },
+            "ref": {
+              "$ref": "#/$defs/mod.BeatRef"
+            }
+          },
+          "required": [
+            "op",
+            "ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "camera"
+            },
+            "shot": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,80}$"
+            },
+            "subject": {
+              "$ref": "#/$defs/Who"
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0.05,
+              "maximum": 600
+            }
+          },
+          "required": [
+            "op",
+            "shot"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "fade"
+            },
+            "to": {
+              "anyOf": [
+                {
+                  "const": 0
+                },
+                {
+                  "const": 1
+                }
+              ]
+            },
+            "sec": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            }
+          },
+          "required": [
+            "op",
+            "to",
+            "sec"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "heat"
+            },
+            "set": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "cap": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "clear": {
+              "const": true
+            },
+            "unit": {
+              "$ref": "#/$defs/CastName"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "clock"
+            },
+            "lock": {
+              "type": "object",
+              "properties": {
+                "hour": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "weather": {
+                  "enum": [
+                    "clear",
+                    "karl-fog",
+                    "overcast",
+                    "rain",
+                    "smoke",
+                    "golden"
+                  ]
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "unlock": {
+              "const": true
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "ambient"
+            },
+            "traffic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "peds": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "flag"
+            },
+            "set": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^mod\\.[a-z0-9_.]{1,44}$"
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^[a-z0-9_.-]{0,64}$"
+                  }
+                ]
+              },
+              "maxProperties": 16
+            }
+          },
+          "required": [
+            "op",
+            "set"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "trust"
+            },
+            "npc": {
+              "$ref": "#/$defs/CastName"
+            },
+            "delta": {
+              "type": "number",
+              "minimum": -100,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "op",
+            "npc",
+            "delta"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "emit"
+            },
+            "event": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+            }
+          },
+          "required": [
+            "op",
+            "event"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "pass"
+            }
+          },
+          "required": [
+            "op"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "op": {
+              "const": "fail"
+            },
+            "reason": {
+              "$ref": "#/$defs/LocKey"
+            }
+          },
+          "required": [
+            "op",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mod.Ops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mod.Op"
+      },
+      "minItems": 0,
+      "maxItems": 256
+    },
+    "mod.StageDef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "join": {
+          "enum": [
+            "all",
+            "any",
+            "sequence"
+          ]
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mod.ObjectiveDef"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "onEnter": {
+          "$ref": "#/$defs/mod.Ops"
+        },
+        "onComplete": {
+          "$ref": "#/$defs/mod.Ops"
+        },
+        "timeLimitSec": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "checkpoint": {
+          "type": "boolean"
+        },
+        "conduct": {
+          "enum": [
+            "lawful",
+            "unlawful"
+          ]
+        },
+        "next": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        }
+      },
+      "required": [
+        "id",
+        "join",
+        "objectives"
+      ],
+      "additionalProperties": false
+    },
+    "mod.Rewards": {
+      "type": "object",
+      "properties": {
+        "cashCents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "streetCred": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "techClout": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+              },
+              "qty": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999
+              }
+            },
+            "required": [
+              "id",
+              "qty"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "vehicles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "safehouse": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,63}$"
+        },
+        "trust": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "npc": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+              },
+              "delta": {
+                "type": "number",
+                "minimum": -100,
+                "maximum": 100
+              }
+            },
+            "required": [
+              "npc",
+              "delta"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "maxProperties": 0
+    },
+    "story": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "mission-ir/1"
+        },
+        "id": {
+          "$ref": "#/$defs/MissionId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "worldBake": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]{1,80}$"
+        },
+        "act": {
+          "enum": [
+            0,
+            1,
+            2,
+            3
+          ]
+        },
+        "premise": {
+          "enum": [
+            "hella-valuation",
+            "mod"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/LocKey"
+        },
+        "district": {
+          "enum": [
+            "d1",
+            "d2",
+            "d3",
+            "d4",
+            "d5",
+            "d6",
+            "d7",
+            "d8",
+            "d9",
+            "d10"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "giver": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "npc": {
+                  "$ref": "#/$defs/CastName"
+                }
+              },
+              "required": [
+                "npc"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                }
+              },
+              "required": [
+                "phone"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "world": {
+                  "const": true
+                }
+              },
+              "required": [
+                "world"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Pred"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "start": {
+          "$ref": "#/$defs/Trigger"
+        },
+        "cast": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/CastDef"
+          },
+          "maxProperties": 32
+        },
+        "zones": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ZoneDef"
+          },
+          "maxProperties": 48
+        },
+        "intro": {
+          "$ref": "#/$defs/BeatRef"
+        },
+        "outro": {
+          "$ref": "#/$defs/BeatRef"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StageDef"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "threads": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/Ops"
+          },
+          "maxProperties": 8
+        },
+        "fail": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FailRule"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "heatPolicy": {
+          "type": "object",
+          "properties": {
+            "maxHeat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "clearOnPass": {
+              "type": "boolean"
+            },
+            "startHeat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          "required": [
+            "maxHeat",
+            "clearOnPass"
+          ],
+          "additionalProperties": false
+        },
+        "ambient": {
+          "type": "object",
+          "properties": {
+            "traffic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "peds": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "lock": {
+              "type": "object",
+              "properties": {
+                "hour": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "weather": {
+                  "enum": [
+                    "clear",
+                    "karl-fog",
+                    "overcast",
+                    "rain",
+                    "smoke",
+                    "golden"
+                  ]
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "rewards": {
+          "$ref": "#/$defs/Rewards"
+        },
+        "medals": {
+          "type": "object",
+          "properties": {
+            "silverSec": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "goldSec": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "goldIf": {
+              "$ref": "#/$defs/Pred"
+            }
+          },
+          "required": [
+            "silverSec",
+            "goldSec"
+          ],
+          "additionalProperties": false
+        },
+        "unlocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UnlockEventId"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "modeHooks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ModeHook"
+          },
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "autoplay": {
+          "type": "object",
+          "properties": {
+            "expectedSec": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 3600
+                },
+                {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 3600
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "seeds": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "expectedSec",
+            "seeds"
+          ],
+          "additionalProperties": false
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineId"
+          },
+          "minItems": 0,
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schema",
+        "id",
+        "version",
+        "worldBake",
+        "act",
+        "premise",
+        "title",
+        "district",
+        "tags",
+        "giver",
+        "requires",
+        "start",
+        "cast",
+        "zones",
+        "stages",
+        "fail",
+        "heatPolicy",
+        "rewards",
+        "autoplay",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "mod": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "const": "mission-ir/1"
+        },
+        "id": {
+          "$ref": "#/$defs/MissionId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "worldBake": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]{1,80}$"
+        },
+        "act": {
+          "const": 0
+        },
+        "premise": {
+          "const": "mod"
+        },
+        "title": {
+          "$ref": "#/$defs/LocKey"
+        },
+        "district": {
+          "enum": [
+            "d1",
+            "d2",
+            "d3",
+            "d4",
+            "d5",
+            "d6",
+            "d7",
+            "d8",
+            "d9",
+            "d10"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.]{0,47}$"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "giver": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "npc": {
+                  "$ref": "#/$defs/CastName"
+                }
+              },
+              "required": [
+                "npc"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_-]{0,47}$"
+                }
+              },
+              "required": [
+                "phone"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "world": {
+                  "const": true
+                }
+              },
+              "required": [
+                "world"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Pred"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "start": {
+          "$ref": "#/$defs/Trigger"
+        },
+        "cast": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/CastDef"
+          },
+          "maxProperties": 32
+        },
+        "zones": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/ZoneDef"
+          },
+          "maxProperties": 48
+        },
+        "intro": {
+          "$ref": "#/$defs/mod.BeatRef"
+        },
+        "outro": {
+          "$ref": "#/$defs/mod.BeatRef"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mod.StageDef"
+          },
+          "minItems": 1,
+          "maxItems": 16
+        },
+        "threads": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/mod.Ops"
+          },
+          "maxProperties": 8
+        },
+        "fail": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FailRule"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "heatPolicy": {
+          "type": "object",
+          "properties": {
+            "maxHeat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "clearOnPass": {
+              "type": "boolean"
+            },
+            "startHeat": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            }
+          },
+          "required": [
+            "maxHeat",
+            "clearOnPass"
+          ],
+          "additionalProperties": false
+        },
+        "ambient": {
+          "type": "object",
+          "properties": {
+            "traffic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "peds": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "lock": {
+              "type": "object",
+              "properties": {
+                "hour": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 24
+                },
+                "weather": {
+                  "enum": [
+                    "clear",
+                    "karl-fog",
+                    "overcast",
+                    "rain",
+                    "smoke",
+                    "golden"
+                  ]
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "rewards": {
+          "$ref": "#/$defs/mod.Rewards"
+        },
+        "medals": {
+          "type": "object",
+          "properties": {
+            "silverSec": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "goldSec": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "goldIf": {
+              "$ref": "#/$defs/Pred"
+            }
+          },
+          "required": [
+            "silverSec",
+            "goldSec"
+          ],
+          "additionalProperties": false
+        },
+        "autoplay": {
+          "type": "object",
+          "properties": {
+            "expectedSec": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 3600
+                },
+                {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 3600
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "seeds": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "expectedSec",
+            "seeds"
+          ],
+          "additionalProperties": false
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineId"
+          },
+          "minItems": 0,
+          "maxItems": 512
+        }
+      },
+      "required": [
+        "schema",
+        "id",
+        "version",
+        "worldBake",
+        "act",
+        "premise",
+        "title",
+        "district",
+        "tags",
+        "giver",
+        "requires",
+        "start",
+        "cast",
+        "zones",
+        "stages",
+        "fail",
+        "heatPolicy",
+        "rewards",
+        "autoplay",
+        "lines"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
