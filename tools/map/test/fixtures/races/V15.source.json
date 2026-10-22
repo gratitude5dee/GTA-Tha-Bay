@@ -1,0 +1,15 @@
+{
+  "rule": "V15",
+  "expect": [
+    "V15"
+  ],
+  "note": "an S-class opponent in a D/C race",
+  "sourcePatch": {
+    "/opponents": [
+      {
+        "driverId": "npc:test-driver",
+        "vehicleDef": "vehicle.solenne-skip"
+      }
+    ]
+  }
+}

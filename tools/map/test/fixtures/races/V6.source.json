@@ -1,0 +1,10 @@
+{
+  "rule": "V6",
+  "expect": [
+    "V6"
+  ],
+  "note": "a gate 5 m wide",
+  "defPatch": {
+    "/gates/1/widthM": 5
+  }
+}

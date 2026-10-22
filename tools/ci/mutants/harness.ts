@@ -12,6 +12,9 @@ import { readGolden, sameTrace } from '../../../packages/engine/src/qa/golden.ts
 import { readFixturePacks } from '../../../packages/engine/src/qa/node.ts';
 import { createCanonicalRunner, DEFAULT_DEPS, type RunnerDeps } from '../../../packages/engine/src/qa/runner.ts';
 import { readFileSync } from 'node:fs';
+import { newRefereeState, refereeStep, straightRaceDef, type RaceEvent } from '../../../packages/shared/src/index.ts';
+import { RACING_GOLDEN, racingSpec } from '../../../packages/modes/racing/src/qa/specs.ts';
+import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
 import { runEconSuite } from '../econ-sim/index.ts';
 import { DEFAULT_MODEL_DEPS, type ModelDeps } from '../econ-sim/model.ts';
 import { toolsRoot } from '../lib/common.ts';
@@ -61,7 +64,41 @@ export const ECON: MutantSuite<ModelDeps> = {
   },
 };
 
-export const MUTANT_SUITES = [ENGINE_LINES, ECON] as const;
+/** The knobs of the `racing` suite: the runner's (bot stream, skipped ticks) and the referee that counts gates. */
+export interface RacingDeps extends RunnerDeps {
+  referee: typeof refereeStep;
+}
+
+/**
+ * `racing` (M07a1): (a) the seeded steer-noise run of `racing.line` on the sprint, first 3,000 ticks, must equal its Node golden
+ * (the bot stream and the whole sim path); (b) on a straight five-gate fixture a car that skips gate 3 gets gates 1 and 2 only
+ * (the referee counts gates in order).
+ */
+export const RACING: MutantSuite<RacingDeps> = {
+  id: 'racing',
+  base: { ...DEFAULT_DEPS, referee: refereeStep },
+  async run(deps) {
+    registerRacingQa();
+    const corridor = new Uint8Array(readFileSync(path.join(toolsRoot, 'content', 'races', 'sf.sprint.ferry-ocean-beach', 'corridor.bin')));
+    const bad: string[] = [];
+    const runner = createCanonicalRunner({ packs: { corridor }, deps, processEnv: {} });
+    const trace = await runner.run(racingSpec({ noise: 4, maxTicks: 3000 }));
+    const want = readGolden('racing', RACING_GOLDEN.noise);
+    if (!want || !sameTrace(trace, want)) bad.push('the noise run differs from its golden');
+
+    const def = straightRaceDef({ lengthM: 1000, gates: 5 });
+    const st = newRefereeState(def, 0);
+    const events: RaceEvent[] = [];
+    const at = (s: number, x: number): [number, number, number] => [x, 0, -s];
+    const x = (v: number): number => (v > 570 && v < 640 ? 20 : 0);   // round gate 3 (s 600), 20 m to the side
+    for (let s = 0, t = 1; s < 1010; s += 2, t++) events.push(...deps.referee(def, st, at(s, x(s)), at(s + 2, x(s + 2)), 20, t));
+    const gates = events.filter((e) => e.t === 'race.gate').map((e) => (e as { i: number }).i);
+    if (gates.join(',') !== '1,2') bad.push(`a skipped gate 3 gave gates ${gates.join(',') || 'none'}`);
+    return { pass: bad.length === 0, detail: bad.length ? bad.join('; ') : 'matches the golden; the skipped gate is not counted' };
+  },
+};
+
+export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING] as const;
 
 export function mutantFiles(suite: string): string[] {
   const dir = path.join(toolsRoot, 'tools', 'ci', 'mutants', suite);

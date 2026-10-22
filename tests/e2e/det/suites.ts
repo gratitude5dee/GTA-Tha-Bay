@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs';
 import { WALK_DRIVE_GOLDENS, walkDriveSpec } from '../../../packages/engine/src/qa/engine-specs.ts';
 import type { RunSpec } from '../../../packages/engine/src/qa/runner.ts';
+import { RACING_GOLDEN, racingSpec, racingTraceFile } from '../../../packages/modes/racing/src/qa/specs.ts';
 
 export interface DetRun {
   /** Short name; the test title carries it. */
@@ -35,7 +36,7 @@ export const DET_SUITES: readonly DetSuite[] = [
       { name: 'lines walk-drive with seeded steer noise', spec: walkDriveSpec(LINE, { noise: 12 }), golden: golden(WALK_DRIVE_GOLDENS.noise) },
     ],
   },
-  { tag: '@racing-det', pending: 'M07a1' },
+  { tag: '@racing-det', runs: [{ name: 'racing.line on sf.sprint.ferry-ocean-beach', spec: racingSpec(), golden: racingTraceFile(RACING_GOLDEN.line) }] },
   { tag: '@fighter-hash', pending: 'M08a1' },
   { tag: '@world-hash', ownSpec: 'tests/e2e/world-hash.spec.ts' },
   { tag: '@tycoon-det', pending: 'M09a2' },

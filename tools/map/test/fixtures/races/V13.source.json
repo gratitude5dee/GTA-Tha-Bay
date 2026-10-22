@@ -1,0 +1,8 @@
+{
+  "rule": "V13",
+  "expect": [
+    "V13"
+  ],
+  "note": "race.json over 64 KiB",
+  "jsonPadBytes": 70000
+}
