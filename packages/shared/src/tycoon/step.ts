@@ -32,6 +32,12 @@ function closeEffects(s: CompanyState, c: TycoonContent, kind: string, closedWee
   s.raise = null;
 }
 
+/** A close that failed is counted by code in `events.counts` (the balance tool's B11 reads `closeFail.CAPTABLE_INVARIANT`). */
+function noteCloseFailure(s: CompanyState, code: string): void {
+  const k = `closeFail.${code}`;
+  s.events.counts[k] = (s.events.counts[k] ?? 0) + 1;
+}
+
 /** Closes accepted rounds whose two weeks are over: cash arrives and the cap table changes (08-tycoon-finance.md section 9). */
 function closeRounds(s: CompanyState, c: TycoonContent): PendingEnd | null {
   let end: PendingEnd | null = null;
@@ -48,7 +54,10 @@ function closeRounds(s: CompanyState, c: TycoonContent): PendingEnd | null {
         s.cash += t.amount;
         m.phase = 'closed';
         closeEffects(s, c, 'safe', cw);
-      } else m.phase = 'withdrawn';
+      } else {
+        m.phase = 'withdrawn';
+        noteCloseFailure(s, r.code);
+      }
       continue;
     }
     const seats = boardSeatsFor(m.kind, t.boardSeat);
@@ -56,6 +65,7 @@ function closeRounds(s: CompanyState, c: TycoonContent): PendingEnd | null {
     if (!('table' in r)) {
       // CAPTABLE_INVARIANT or infeasible terms at close: the round is aborted and no cash moves.
       m.phase = 'withdrawn';
+      noteCloseFailure(s, 'code' in r ? r.code : 'UNKNOWN');
       continue;
     }
     r.round.week = m.startedWeek;

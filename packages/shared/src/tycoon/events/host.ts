@@ -95,7 +95,11 @@ export function createTycoonHost(c: TycoonContent): EventHost<CompanyState> {
         if (m?.offer) m.offer = { ...m.offer, preMoney: Math.round(m.offer.preMoney * (1 - frac)) };
         return;
       }
-      for (const m of s.meetings) if (m.phase === 'offer' || m.phase === 'closing') m.phase = 'withdrawn';
+      for (const m of s.meetings) {
+        if (m.phase !== 'offer' && m.phase !== 'closing') continue;
+        m.phase = 'withdrawn';
+        m.closeWeek = null; // the round did not close: a withdrawn meeting with a close week means a failed close (B11)
+      }
       s.termSheets = [];
       if (s.awaiting === 'meeting') s.awaiting = null;
     },

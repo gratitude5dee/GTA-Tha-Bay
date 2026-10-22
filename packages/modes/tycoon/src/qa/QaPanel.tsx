@@ -21,7 +21,7 @@ export interface PanelApi {
 
 const usd = (cents: number): string => `${cents < 0 ? '-' : ''}$${Math.abs(Math.round(cents / 100)).toLocaleString('en-US')}`;
 
-const CSS = `.dv-tycoon-qa{position:fixed;top:8px;right:8px;z-index:20;width:360px;max-height:94vh;overflow:auto;background:#101418ee;color:#e8eef4;font:13px/1.35 ui-monospace,Menlo,monospace;border:1px solid #3a4652;border-radius:6px;padding:8px}
+const CSS = `.dv-tycoon-qa{position:fixed;top:8px;right:8px;z-index:40;width:360px;max-height:94vh;overflow:auto;background:#101418ee;color:#e8eef4;font:13px/1.35 ui-monospace,Menlo,monospace;border:1px solid #3a4652;border-radius:6px;padding:8px}
 .dv-tycoon-qa h2{margin:0 0 6px;font:600 14px system-ui,sans-serif}
 .dv-tycoon-qa button{font:inherit;margin:2px 3px 2px 0;padding:3px 7px;background:#26323d;color:inherit;border:1px solid #56687a;border-radius:4px;cursor:pointer}
 .dv-tycoon-qa button:hover{background:#34475a}
@@ -166,7 +166,18 @@ export function mountTycoonPanel(host: Document, api: PanelApi): () => void {
     const key = JSON.stringify(v);
     if (key === last && root.childElementCount > 0) return;
     last = key;
-    render(<Panel api={api} view={v} seed={seed} setSeed={(n) => (seed = n)} auto={auto} setAuto={(b) => (auto = b)} />, root);
+    render(<Panel api={api} view={v} seed={seed} setSeed={setSeed} auto={auto} setAuto={setAuto} />, root);
+  };
+  // The click handlers close over the props of the last render, so a change redraws at once (M09a2: the seed typed before Start run counts).
+  const setSeed = (n: number): void => {
+    seed = n;
+    last = '';
+    draw();
+  };
+  const setAuto = (b: boolean): void => {
+    auto = b;
+    last = '';
+    draw();
   };
   draw();
   const timer = setInterval(draw, 250);

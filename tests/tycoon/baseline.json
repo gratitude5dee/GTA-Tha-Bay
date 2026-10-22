@@ -1,0 +1,41 @@
+{
+ "v": 1,
+ "runsPerPolicy": 2000,
+ "seedBase": 1,
+ "contentVersion": "8b23cbc3b767",
+ "balanceVersion": "91edb7743e04",
+ "policies": {
+  "median": {
+   "winRate": 0.848,
+   "unicornRate": 0.042,
+   "lossRate": 0.152,
+   "reachA": 0.5755,
+   "runLengthP50": 150,
+   "runLengthP90": 195
+  },
+  "aggressive": {
+   "winRate": 0.4695,
+   "unicornRate": 0.0285,
+   "lossRate": 0.5305,
+   "reachA": 0.3625,
+   "runLengthP50": 110,
+   "runLengthP90": 163
+  },
+  "frugal": {
+   "winRate": 1,
+   "unicornRate": 0,
+   "lossRate": 0,
+   "reachA": 0,
+   "runLengthP50": 212,
+   "runLengthP90": 281
+  },
+  "random": {
+   "winRate": 0.012,
+   "unicornRate": 0,
+   "lossRate": 0.988,
+   "reachA": 0.002,
+   "runLengthP50": 43,
+   "runLengthP90": 84
+  }
+ }
+}

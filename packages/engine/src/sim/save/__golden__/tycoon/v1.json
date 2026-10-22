@@ -1,7 +1,7 @@
 {
  "schema": 1,
- "contentVersion": "f7dc05e3d3dd",
- "balanceVersion": "c4079115003b",
+ "contentVersion": "8b23cbc3b767",
+ "balanceVersion": "91edb7743e04",
  "active": {
   "setup": {
    "seed": 1,
@@ -12,8 +12,8 @@
    "startWeekOfYear": 7,
    "hardcore": false,
    "preset": "standard",
-   "contentVersion": "f7dc05e3d3dd",
-   "balanceVersion": "c4079115003b"
+   "contentVersion": "8b23cbc3b767",
+   "balanceVersion": "91edb7743e04"
   },
   "choices": [
    {
@@ -145,7 +145,7 @@
     "seq": 0,
     "cmd": {
      "t": "resolveEvent",
-     "iid": 30,
+     "iid": 31,
      "choiceId": "let_it_ride"
     }
    },
@@ -172,27 +172,27 @@
      "startWeekOfYear": 7,
      "hardcore": false,
      "preset": "standard",
-     "contentVersion": "f7dc05e3d3dd",
-     "balanceVersion": "c4079115003b"
+     "contentVersion": "8b23cbc3b767",
+     "balanceVersion": "91edb7743e04"
     },
     "week": 150,
     "phase": "launched",
     "awaiting": null,
-    "cash": 15019025,
-    "users": 206.8955585559897,
-    "payingUsers": 115.779553538765,
-    "mrr": 1968252,
+    "cash": 66228212,
+    "users": 1043.1612457061826,
+    "payingUsers": 612.944914558547,
+    "mrr": 11462070,
     "arpuMonth": 17000,
     "churnMonthly": 0.028,
-    "cac": 126427.75218438671,
+    "cac": 41179.91717578203,
     "marketing": 20000,
     "priceLevel": "standard",
     "mvpProgress": 208.49228571428577,
     "featurePoints": 777.8388961363858,
     "productQuality": 59.88681763168509,
-    "techDebt": 45.03319559285786,
-    "hype": 57.67436853342367,
-    "reputation": 0.1,
+    "techDebt": 37.03319559285786,
+    "hype": 48.48119798477317,
+    "reputation": 1.6000000000000003,
     "climate": -0.15184718100271188,
     "morale": 63.527125017277875,
     "founderMorale": 69,
@@ -234,8 +234,8 @@
      {
       "id": "c144-7",
       "role": "growth",
-      "skill": 6,
-      "askYr": 14271105,
+      "skill": 7,
+      "askYr": 15568478,
       "expiresWeek": 150
      },
      {
@@ -465,8 +465,8 @@
      {
       "id": "c148-3",
       "role": "design",
-      "skill": 9,
-      "askYr": 19841254,
+      "skill": 10,
+      "askYr": 21258486,
       "expiresWeek": 154
      },
      {
@@ -569,7 +569,7 @@
        "amount": 14375000,
        "signedWeek": 11,
        "type": "cap",
-       "postMoneyCap": 45636536
+       "postMoneyCap": 43464852
       }
      ],
      "rounds": [],
@@ -595,8 +595,8 @@
         18750000
        ],
        "preMoney": [
-        38367687,
-        52905385
+        36541902,
+        50387802
        ],
        "poolTargetBp": [
         0,
@@ -610,7 +610,7 @@
        "fomoBonusBp": 0,
        "midpoint": {
         "amount": 14375000,
-        "preMoney": 45636536,
+        "preMoney": 43464852,
         "poolTargetBp": 0,
         "boardSeat": false,
         "liq": {
@@ -620,13 +620,13 @@
        },
        "walkAway": null,
        "safeCap": [
-        38367687,
-        52905385
+        36541902,
+        50387802
        ]
       },
       "offer": {
        "amount": 14375000,
-       "preMoney": 45636536,
+       "preMoney": 43464852,
        "poolTargetBp": 0,
        "boardSeat": false,
        "liq": {
@@ -648,21 +648,59 @@
      "lastTargetArrGrowth": 0
     },
     "events": {
-     "nextIid": 38,
-     "nextEid": 23,
+     "nextIid": 39,
+     "nextEid": 26,
      "inbox": [],
      "pending": [
       {
-       "dueWeek": 187,
+       "dueWeek": 185,
        "defId": "cul.ai_hype_crash",
        "depth": 1,
-       "fromIid": 37
+       "fromIid": 38
       }
      ],
      "active": [
       {
        "eid": 22,
-       "iid": 37,
+       "iid": 36,
+       "spec": {
+        "k": "metric",
+        "metric": "arpuMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.1
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.1,
+       "startWeek": 140,
+       "endWeek": 152,
+       "strength": 1
+      },
+      {
+       "eid": 23,
+       "iid": 36,
+       "spec": {
+        "k": "metric",
+        "metric": "payRateMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.05
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.05,
+       "startWeek": 140,
+       "endWeek": 152,
+       "strength": 1
+      },
+      {
+       "eid": 25,
+       "iid": 38,
        "spec": {
         "k": "metric",
         "metric": "multipleMul",
@@ -696,12 +734,13 @@
       "*severe": 73,
       "biz.outage": 144,
       "biz.viral_launch": 156,
-      "biz.scaling_strain": 144,
+      "biz.scaling_strain": 87,
       "nat.atmospheric_river": 150,
       "biz.price_war": 122,
       "cul.meme_moment": 141,
       "biz.security_incident": 134,
-      "cul.backlash_wave": 159,
+      "biz.enterprise_whale": 160,
+      "cul.backlash_wave": 158,
       "nat.quake_minor": 171
      },
      "counts": {
@@ -721,51 +760,54 @@
       "biz.outage": 2,
       "biz.outage.c.shrug": 2,
       "biz.viral_launch": 2,
-      "biz.scaling_strain": 2,
+      "biz.scaling_strain": 1,
       "nat.atmospheric_river": 3,
       "biz.price_war": 1,
       "cul.meme_moment": 2,
       "cul.meme_moment.c.let_it_ride": 2,
       "biz.security_incident": 1,
       "biz.security_incident.c.stay_quiet": 1,
+      "biz.enterprise_whale": 2,
       "cul.backlash_wave": 2,
       "nat.quake_minor": 1
      },
      "totals": {
       "mul": {
+       "arpuMul": 1.1,
+       "payRateMul": 1.05,
        "multipleMul": 1.2
       },
       "add": {}
      }
     },
     "flags": {
-     "netBurn": -2143,
+     "netBurn": -2114750,
      "empSeq": 1,
      "lastRaiseEnd": 11,
      "lastRoundKindIx": 0
     },
     "mrrHistory": [
-     1661318,
-     1680544,
-     1699831,
-     1719414,
-     1740184,
-     1761275,
-     1782688,
-     1804428,
-     1826497,
-     1848729,
-     1871306,
-     1903352,
-     1935666,
-     1968252
+     6827020,
+     7009085,
+     7195521,
+     7387450,
+     8760717,
+     8995661,
+     9237542,
+     9486570,
+     9742965,
+     10005995,
+     10276831,
+     10660860,
+     11055837,
+     11462070
     ],
     "profitableStreak": 0,
     "negativeCashWeeks": 0,
     "dividendEarnedCents": 0,
     "result": null
    },
-   "hash": "88fb71aa04a6b2da"
+   "hash": "f3412a807bd2cab7"
   }
  },
  "runs": [
@@ -779,21 +821,21 @@
     "startWeekOfYear": 0,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "f7dc05e3d3dd",
-    "balanceVersion": "c4079115003b"
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
    },
    "result": {
     "kind": "ramen",
     "win": true,
-    "week": 206,
-    "founderPayoutCents": 631995278,
-    "exitValueCents": 953214601,
-    "score": 6344,
+    "week": 190,
+    "founderPayoutCents": 11049223146,
+    "exitValueCents": 17387554756,
+    "score": 110517,
     "tier": "ramen",
-    "arrCents": 161658096,
+    "arrCents": 1344686808,
     "headcountAtEnd": 2,
     "legacyTags": 0,
-    "stateHash": "4d72b47109211e6c"
+    "stateHash": "0976ec321563d7e7"
    },
    "savedAt": 0
   }
@@ -802,11 +844,11 @@
   "acq": 0,
   "unicorn": 0,
   "ipo": 0,
-  "ramen": 6344
+  "ramen": 110517
  },
  "unlockedSectors": [
   "b2b-saas"
  ],
  "hardcore": true,
- "dividendEarnedCents": 126399
+ "dividendEarnedCents": 1000000
 }

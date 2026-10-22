@@ -224,8 +224,8 @@ export function runSeed(content: TycoonContent, policy: Policy, seed: number, in
       if (f.origin === 'roll' && f.healthy && result.week - f.week <= LETHAL_WINDOW_WEEKS && !lethal.includes(f.defId)) lethal.push(f.defId);
     }
   }
-  let captableInvariant = 0;
-  for (const m of s.meetings) if (m.phase === 'withdrawn' && m.closeWeek !== null) captableInvariant++;
+  // a deal that collapses at the close (a SAFE stack over its limit after a re-trade) is play; a broken cap table is a bug
+  const captableInvariant = s.events.counts['closeFail.CAPTABLE_INVARIANT'] ?? 0;
   let payoutMismatch = 0;
   if (result) {
     const E = Math.max(0, Math.floor(result.exitValueCents));

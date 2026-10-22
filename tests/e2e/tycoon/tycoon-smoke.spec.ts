@@ -33,6 +33,9 @@ async function startRun(page: Page, auto: boolean): Promise<void> {
   if (auto) await page.getByTestId('tycoon-auto').check();
   await page.getByTestId('tycoon-start').click();
   await expect(page.getByTestId('tycoon-state')).toContainText('0 / mvp', { timeout: 60_000 });
+  // the week clock runs in real time (20 s a week at 1x): hold it so that only the "N wk" buttons move the run
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible();
 }
 
 test.describe('tycoon smoke @tycoon-smoke', () => {

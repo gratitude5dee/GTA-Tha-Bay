@@ -19,7 +19,7 @@
         "tools/ci/econ-sim/",
         "config/econ-bands.json"
       ],
-      "sha256": "e89eccc64702ac327719c6d14a9a3e96678ec1dbb591fa975fe7f84b8e6e41cf",
+      "sha256": "211de58c2eab1421c35876dc1688b6b5f775c4952018dc509bc9db95aa5fe26d",
       "subjects": [
         "packages/engine/src/sim/modes/",
         "packages/modes/",
@@ -61,7 +61,7 @@
         "packages/world/test/golden/",
         "packages/engine/src/sim/save/__golden__/"
       ],
-      "sha256": "531ea71131a9ddf2db2828b9761c6cae6b50cbc89c27c51fb76e515a4027e74c",
+      "sha256": "071ae80c83ff1d758f03e7bd9d53ba4ad8d244ad9938191a93af0f04711e5856",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",
@@ -72,11 +72,25 @@
       "paths": [
         "tests/golden/"
       ],
-      "sha256": "e93f0c0a8dea7cc897016cee2f4ccae605bcbb6848cf48f1f8d7e86d240d56a1",
+      "sha256": "59bf5b34df0e032ca96c1e355589b14d843cccfe30d04bc2c8fc72481a561e14",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",
         "packages/world/src/"
+      ]
+    },
+    "tycoon-sim": {
+      "paths": [
+        "tools/ci/tycoon-sim/",
+        "config/tycoon.bands.json"
+      ],
+      "sha256": "8efda940f261cb1dd4ee41558a407b70ab201fb0314f13e54253320172fdfe5c",
+      "subjects": [
+        "packages/shared/src/events/",
+        "packages/shared/src/tycoon/",
+        "packages/modes/tycoon/",
+        "content/tycoon/",
+        "config/tycoon.balance.json"
       ]
     }
   }

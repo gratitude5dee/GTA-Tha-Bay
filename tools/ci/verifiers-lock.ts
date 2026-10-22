@@ -57,6 +57,11 @@ export const VERIFIER_DEFS: Readonly<Record<string, VerifierDef>> = {
     paths: ['tools/ci/econ-sim/', 'config/econ-bands.json'],
     subjects: ['packages/engine/src/sim/modes/', 'packages/modes/', 'packages/shared/src/contracts/'],
   },
+  'tycoon-sim': {
+    // the baseline file is not locked: it is rewritten together with a balance change under a `balance-rebaseline:` commit line
+    paths: ['tools/ci/tycoon-sim/', 'config/tycoon.bands.json'],
+    subjects: ['packages/shared/src/events/', 'packages/shared/src/tycoon/', 'packages/modes/tycoon/', 'content/tycoon/', 'config/tycoon.balance.json'],
+  },
   'goldens-qa': {
     paths: ['tests/golden/'],
     subjects: ['packages/engine/src/sim/', 'packages/shared/src/', 'packages/world/src/'],

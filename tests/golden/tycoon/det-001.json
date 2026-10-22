@@ -1,8 +1,8 @@
 {
  "v": 1,
  "suite": "tycoon",
- "contentVersion": "f7dc05e3d3dd",
- "balanceVersion": "c4079115003b",
+ "contentVersion": "8b23cbc3b767",
+ "balanceVersion": "91edb7743e04",
  "runs": [
   {
    "seed": 12648430,
@@ -16,8 +16,8 @@
     "startWeekOfYear": 0,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "f7dc05e3d3dd",
-    "balanceVersion": "c4079115003b"
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
    },
    "choices": [
     {
@@ -130,11 +130,20 @@
      }
     },
     {
-     "week": 62,
+     "week": 59,
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
       "iid": 18,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 62,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 19,
       "choiceId": "hold"
      }
     },
@@ -157,20 +166,11 @@
      }
     },
     {
-     "week": 88,
-     "seq": 0,
-     "cmd": {
-      "t": "resolveEvent",
-      "iid": 25,
-      "choiceId": "let_it_ride"
-     }
-    },
-    {
      "week": 93,
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 27,
+      "iid": 26,
       "choiceId": "stay_quiet"
      }
     },
@@ -179,7 +179,7 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 29,
+      "iid": 28,
       "choiceId": "let_it_ride"
      }
     },
@@ -211,7 +211,7 @@
      }
     }
    ],
-   "finalHash": "e57e4270c2c00f95",
+   "finalHash": "7d961c83c87842ba",
    "endWeek": 150,
    "result": null
   },
@@ -228,8 +228,8 @@
     "hardcore": false,
     "autoResolveEvents": true,
     "preset": "standard",
-    "contentVersion": "f7dc05e3d3dd",
-    "balanceVersion": "c4079115003b"
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
    },
    "choices": [
     {
@@ -309,90 +309,9 @@
       "t": "accept",
       "meetingId": "m2"
      }
-    },
-    {
-     "week": 52,
-     "seq": 0,
-     "cmd": {
-      "t": "startRaise",
-      "kind": "seed",
-      "targetCents": 30000000
-     }
-    },
-    {
-     "week": 53,
-     "seq": 0,
-     "cmd": {
-      "t": "scheduleMeeting",
-      "vcId": "vc-operator-angel"
-     }
-    },
-    {
-     "week": 53,
-     "seq": 1,
-     "cmd": {
-      "t": "accept",
-      "meetingId": "m3"
-     }
-    },
-    {
-     "week": 68,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 81,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 94,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 107,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 120,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 133,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
-    },
-    {
-     "week": 146,
-     "seq": 0,
-     "cmd": {
-      "t": "boardVote",
-      "motion": "approveBudget"
-     }
     }
    ],
-   "finalHash": "6c4ac028bb5fa275",
+   "finalHash": "89122932b702e431",
    "endWeek": 150,
    "result": null
   },
@@ -408,8 +327,8 @@
     "startWeekOfYear": 41,
     "hardcore": false,
     "preset": "standard",
-    "contentVersion": "f7dc05e3d3dd",
-    "balanceVersion": "c4079115003b"
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
    },
    "choices": [
     {
@@ -618,11 +537,20 @@
      }
     },
     {
-     "week": 117,
+     "week": 95,
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
       "iid": 31,
+      "choiceId": "absorb"
+     }
+    },
+    {
+     "week": 117,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 33,
       "choiceId": "let_it_ride"
      }
     },
@@ -631,7 +559,7 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 33,
+      "iid": 35,
       "choiceId": "hold"
      }
     },
@@ -640,7 +568,7 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 35,
+      "iid": 37,
       "choiceId": "stay_quiet"
      }
     },
@@ -649,7 +577,7 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 37,
+      "iid": 39,
       "choiceId": "let_it_ride"
      }
     },
@@ -658,7 +586,7 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 40,
+      "iid": 41,
       "choiceId": "push_on"
      }
     },
@@ -667,12 +595,12 @@
      "seq": 0,
      "cmd": {
       "t": "resolveEvent",
-      "iid": 41,
+      "iid": 42,
       "choiceId": "stay_quiet"
      }
     }
    ],
-   "finalHash": "34a68c227e0020f9",
+   "finalHash": "388ed435b4166923",
    "endWeek": 150,
    "result": null
   }

@@ -9,7 +9,7 @@ import { ctrFloat } from '../../../packages/shared/src/events/rng.ts';
 import type { Command, PolicyView, RoleId } from '../../../packages/shared/src/tycoon/index.ts';
 
 /** A deterministic stream: the n-th draw is a pure function of `(seed, stream, n)`. */
-export class CtrRng {
+export class CtrRng implements BotRng {
   private n = 0;
   constructor(private readonly seed: number, private readonly stream: string) {}
   next(): number {
@@ -23,9 +23,16 @@ export class CtrRng {
   }
 }
 
+/** What a policy may draw from: the counter stream of the harness or the `bot` stream of a `BotDriver` host. */
+export interface BotRng {
+  next(): number;
+  int(n: number): number;
+  pick<T>(xs: readonly T[]): T;
+}
+
 export interface Policy {
   id: string;
-  decide(view: PolicyView, rng: CtrRng): Command[];
+  decide(view: PolicyView, rng: BotRng): Command[];
 }
 
 const KINDS = ['safe', 'seed', 'a', 'b', 'c'] as const;

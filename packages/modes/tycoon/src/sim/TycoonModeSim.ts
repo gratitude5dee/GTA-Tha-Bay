@@ -276,7 +276,7 @@ export class TycoonSession {
         return [{ iid: i.iid, defId: i.defId, deadlineWeek: i.deadlineWeek ?? i.firedWeek, defaultChoiceId: d.defaultChoiceId, choices: d.choices.map((c) => ({ id: c.id, allowed: choiceAllowed(c, s, host) })) }];
       }),
       effects: s.events.active.slice(-8).map((e) => ({ label: effectLabel(e), endWeek: e.endWeek })),
-      flags: Object.keys(s.flags).filter((k) => `until.${k}` in s.flags && s.flags[k] !== false && s.flags[k] !== 0).sort(),
+      flags: Object.keys(s.flags).filter((k) => `until.${k}` in s.flags && s.flags[k] !== false && s.flags[k] !== 0).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
       recent: this.recent.map((x) => ({ ...x })),
       eventsFired: this.eventsFired,
       autoEvents: s.setup.autoResolveEvents === true,
