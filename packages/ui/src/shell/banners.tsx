@@ -33,8 +33,9 @@ export interface ChannelLike {
   close(): void;
 }
 
-interface Msg { t: 'hello' | 'owner'; id: string }
-const isMsg = (x: unknown): x is Msg => typeof x === 'object' && x !== null && ((x as Msg).t === 'hello' || (x as Msg).t === 'owner') && typeof (x as Msg).id === 'string';
+// Own message tags: the engine's asset worker (TabLock) talks on the same channel with 'hello' and 'owner', and must not hear these.
+interface Msg { t: 'ui-hello' | 'ui-owner'; id: string }
+const isMsg = (x: unknown): x is Msg => typeof x === 'object' && x !== null && ((x as Msg).t === 'ui-hello' || (x as Msg).t === 'ui-owner') && typeof (x as Msg).id === 'string';
 
 const CLAIM_MS = 150;
 /** After hearing an owner, ask once more this much later: an old page that is unloading (a reload) has stopped answering by then. */
@@ -71,7 +72,7 @@ export class InstanceGuard {
     }
     ch.onmessage = (e) => {
       if (!isMsg(e.data) || e.data.id === this.id) return;
-      if (e.data.t === 'owner') {
+      if (e.data.t === 'ui-owner') {
         if (this.claimed || this.otherTab) return;
         if (this.confirming) {
           this.setOther();
@@ -80,18 +81,18 @@ export class InstanceGuard {
         this.confirming = true;
         this.after(() => {
           if (this.otherTab) return;
-          ch.postMessage({ t: 'hello', id: this.id } satisfies Msg);
+          ch.postMessage({ t: 'ui-hello', id: this.id } satisfies Msg);
           this.after(() => {
             if (!this.otherTab) this.claimed = true;
           }, CLAIM_MS);
         }, RECHECK_MS);
       } else if (this.claimed) {
-        ch.postMessage({ t: 'owner', id: this.id } satisfies Msg);
+        ch.postMessage({ t: 'ui-owner', id: this.id } satisfies Msg);
       } else if (e.data.id < this.id) {
         this.setOther();
       }
     };
-    ch.postMessage({ t: 'hello', id: this.id } satisfies Msg);
+    ch.postMessage({ t: 'ui-hello', id: this.id } satisfies Msg);
     this.timer = this.after(() => {
       if (!this.otherTab && !this.confirming) this.claimed = true;
     }, CLAIM_MS);
