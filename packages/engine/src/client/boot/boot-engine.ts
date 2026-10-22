@@ -42,6 +42,11 @@ import type { RendererHost } from '../../platform/renderer-host.ts';
 import type { WorldBoot } from './world-layer.ts';
 
 export interface BootEngineOptions {
+  /**
+   * Every batch of sim events the page receives, oldest first (M05b2: the CutscenePlayer listens for `cut.request` and `cut.done`).
+   * Set it before the first tick: a mission that starts at boot emits its request before the engine handle exists.
+   */
+  onSimEvents?: (events: readonly { t: string; tick: number; n?: number; s?: string }[]) => void;
   /** Where the canvas and the "Recovering..." banner go. */
   container: HTMLElement;
   qa: boolean;
@@ -185,6 +190,8 @@ export interface EngineHandle {
   firstGesture(): void;
   /** The `FirstGestureUnlock` pool for S03's CutscenePlayer: `acquireVideo`/`releaseVideo` (C13 1.1). */
   readonly media: FirstGestureUnlock;
+  /** The audio service (null without Web Audio); the cutscene audio port plays on its `cutscene` bus. */
+  readonly audioService: AudioServiceImpl | null;
   /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
   ask(cmd: DebugCommand, replyName: string, timeoutMs?: number): Promise<unknown>;
   dispose(): Promise<void>;
@@ -380,6 +387,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     onSimEvents: (events) => {
       worldBoot?.layer.onSimEvents?.(events);
+      opts.onSimEvents?.(events);
       for (const e of events) {
         if (e.t === 'telemetry' && e.s) {
           const bar = e.s.indexOf('|');
@@ -899,6 +907,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       void media.trigger();
     },
     media,
+    audioService: audio,
     telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {
