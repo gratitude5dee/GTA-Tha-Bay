@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { WALK_DRIVE_GOLDENS, walkDriveSpec } from '../../../packages/engine/src/qa/engine-specs.ts';
 import type { RunSpec } from '../../../packages/engine/src/qa/runner.ts';
 import { RACING_GOLDEN, racingSpec, racingTraceFile } from '../../../packages/modes/racing/src/qa/specs.ts';
+import { MISSIONS_GOLDEN, missionDetSpec, missionsTraceFile } from '../../../packages/modes/story/src/specs.ts';
 
 export interface DetRun {
   /** Short name; the test title carries it. */
@@ -34,6 +35,8 @@ export const DET_SUITES: readonly DetSuite[] = [
       { name: 'lines walk-drive', spec: walkDriveSpec(LINE), golden: golden(WALK_DRIVE_GOLDENS.plain) },
       { name: 'lines walk-drive checkpoints every 60 ticks', spec: walkDriveSpec(LINE, { checkpointEvery: 60 }), golden: golden(WALK_DRIVE_GOLDENS.fine) },
       { name: 'lines walk-drive with seeded steer noise', spec: walkDriveSpec(LINE, { noise: 12 }), golden: golden(WALK_DRIVE_GOLDENS.noise) },
+      // M05a2: the story autoplayer plays m.dev.sample seed 1 (beats played) in the gray-box block
+      { name: 'story.autoplayer on m.dev.sample seed 1', spec: missionDetSpec({ id: 'm.dev.sample', seed: 1, expectedSecMax: 900 }), golden: missionsTraceFile(MISSIONS_GOLDEN.sample) },
     ],
   },
   { tag: '@racing-det', runs: [{ name: 'racing.line on sf.sprint.ferry-ocean-beach', spec: racingSpec(), golden: racingTraceFile(RACING_GOLDEN.line) }] },

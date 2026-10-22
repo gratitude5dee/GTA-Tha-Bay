@@ -426,6 +426,15 @@
       "approved_by": "m05a1-builder",
       "approved_at": "2026-10-22T00:32:45Z"
     },
+    "data/director.m.dev.sample.meet": {
+      "rev": 1,
+      "variants": {
+        "default": "36573052f8d4ed808dcf76e035edda9cb5492b1aaec482533b994fc80c980675"
+      },
+      "root": "36573052f8d4ed808dcf76e035edda9cb5492b1aaec482533b994fc80c980675",
+      "approved_by": "builder-m05a2",
+      "approved_at": "2026-10-22T10:15:10Z"
+    },
     "data/ink.canary-mc": {
       "rev": 1,
       "variants": {
@@ -481,13 +490,13 @@
       "approved_at": "2026-10-22T00:32:45Z"
     },
     "data/mission.m.dev.sample": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c"
+        "default": "0bb0a6b3c0c861e3ae146c6c66c34800fd43075555d8f3da9626d81b0b5cd268"
       },
-      "root": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "0bb0a6b3c0c861e3ae146c6c66c34800fd43075555d8f3da9626d81b0b5cd268",
+      "approved_by": "builder-m05a2",
+      "approved_at": "2026-10-22T10:15:10Z"
     },
     "data/npc-roster": {
       "rev": 2,
