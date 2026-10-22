@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "19593c2b1921664d2fadfddbf9f1db28428adbf485764d8350af830ed7fa892b",
+  "paths": [
+    "assets/src/data/story.index/story.index.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T00:32:34Z"
+}

@@ -244,6 +244,10 @@ function buildProp(a: GrayboxAssets, name: string): DrawnThing {
       root.add(mesh(a, a.box(1.02, 0.12, 1.02), 0x6e4a26, 0, 0.3, 0));
       root.add(mesh(a, a.box(1.02, 0.12, 1.02), 0x6e4a26, 0, -0.3, 0));
       break;
+    case 'beam':
+      // the objective marker of a mission (M05a1): a tall thin column standing on the zone centre
+      root.add(mesh(a, a.box(0.5, 30, 0.5), 0xf2c230, 0, 15, 0, 0x7a5e08));
+      break;
     case 'pickup-cash':
       root.add(mesh(a, a.box(0.5, 0.12, 0.3), 0x55c26b, 0, 0, 0, 0x1d6b2e));
       spinY = 2;

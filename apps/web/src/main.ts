@@ -212,10 +212,13 @@ async function boot(): Promise<void> {
       console.error('the baked world could not be prepared', error);
     }
   }
+  // QA `?mission=<id>` (M05a1): the compiled mission the story mode starts at boot; QA builds only.
+  const qaMission = QA && flags.mission ? await import('./qa/missions.ts').then((m) => m.qaMissionBundle(flags.mission as string)) : null;
   const engine = await bootEngine({
     container,
     qa: QA,
     flags,
+    ...(qaMission ? { mission: qaMission } : {}),
     host: platform.host,
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),
@@ -265,6 +268,12 @@ async function boot(): Promise<void> {
       import('@dv/engine/assets/bridge'),
     ]);
     if (engine) installEngineBridge(engine);
+    // The mission debugger (M05a1): window.__dvBridge.mission and the overlay, QA builds only.
+    if (engine) {
+      const [{ installMissionBridge }, { mountMissionOverlay }] = await Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]);
+      const host = { vm: engine.vm, sendUi: (c: Parameters<typeof engine.sendUi>[0]) => engine.sendUi(c), step: (n: number) => engine.step(n), setPaused: (p: boolean) => engine.setPaused(p) };
+      mountMissionOverlay(host, installMissionBridge(host));
+    }
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

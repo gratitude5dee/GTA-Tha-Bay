@@ -223,6 +223,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@dv/mode-story':
+        specifier: workspace:*
+        version: link:../../packages/modes/story
       '@dv/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -282,6 +285,18 @@ importers:
       iwer:
         specifier: 2.6.0
         version: 2.6.0
+
+  packages/modes/story:
+    dependencies:
+      '@dv/engine':
+        specifier: workspace:*
+        version: link:../../engine
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
 
   packages/shared:
     dependencies:

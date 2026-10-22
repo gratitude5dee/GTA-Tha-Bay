@@ -1,4 +1,4 @@
-import type { MapBlip, TeleportResult, WorldApi } from '@dv/shared';
+import { PI, enuFromLatLng, type MapBlip, type TeleportResult, type WorldApi } from '@dv/shared';
 
 export interface WorldStandinDeps {
   /** Ground height from the colliders that are resident (the M01f gray-box chunks); null where there is none. */
@@ -69,11 +69,23 @@ export function createWorldStandin(deps: WorldStandinDeps): WorldApi {
       pedRoute: () => [],
       findPlace: () => Promise.resolve([]),
     },
+    // The gray-box resolver (M05a1): the C08 frame and the resident ground. `ground` and `none` placements resolve (a ground
+    // placement needs a resident collider under it); `road` and `sidewalk` need the graph this build does not have, so they do not.
     resolver: {
       bake: 'graybox',
-      toEnu: () => [0, 0, 0],
+      toEnu: (ll) => {
+        const p = enuFromLatLng(ll.lat, ll.lng);
+        return [p.x, deps.groundY(p.x, p.z) ?? 0, p.z];
+      },
       landmark: () => null,
-      snap: () => null,
+      snap: (req) => {
+        if (!('lat' in req.at) || req.snap === 'road' || req.snap === 'sidewalk') return null;
+        const p = enuFromLatLng(req.at.lat, req.at.lng);
+        const g = deps.groundY(p.x, p.z);
+        if (req.snap === 'ground' && g === null) return null;
+        const y = req.snap === 'none' ? (req.y ?? g ?? 0) : (g ?? 0);
+        return { pos: [p.x, y, p.z], yaw: ((req.yawDeg ?? 0) * PI) / 180, distM: 0 };
+      },
       route: () => null,
     },
   };

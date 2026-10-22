@@ -17,6 +17,8 @@ import propSpikestrip from '../../../../../assets/prefabs/prop.spikestrip.json';
 import propCrate from '../../../../../assets/prefabs/prop.crate.json';
 import pickupCash from '../../../../../assets/prefabs/pickup.cash.json';
 import pickupItem from '../../../../../assets/prefabs/pickup.item.json';
+import pedActor from '../../../../../assets/prefabs/ped.actor.json';
+import markerBeam from '../../../../../assets/prefabs/marker.beam.json';
 import { BodyRef, Interactable, RenderKey, Transform, Vehicle } from '../ecs/components.ts';
 import { INTERACT_KIND, type InteractKindName } from '../interaction/kinds.ts';
 import type { EcsWorld, PrefabComponent } from '../ecs/world.ts';
@@ -230,6 +232,9 @@ export class PrefabRegistry implements PrefabService {
 
 /** The prefabs the engine ships (v1 list grows with M03a1 and later). */
 export const ENGINE_PREFABS: readonly PrefabDef[] = [playerDefault as unknown as PrefabDef];
+
+/** The prefabs the mission VM spawns (M05a1): `ped.actor`, a kinematic capsule for cast members, and `marker.beam`, an objective beam. */
+export const STORY_PREFABS: readonly PrefabDef[] = [pedActor, markerBeam] as unknown as PrefabDef[];
 
 /** The vehicle, police, robotaxi, prop and pickup prefabs of M03a1 (loaded by `registerVehicleSystems`' callers; the walking scenarios stay as they were). */
 export const VEHICLE_PREFABS: readonly PrefabDef[] = [

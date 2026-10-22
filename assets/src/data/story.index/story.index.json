@@ -1,0 +1,32 @@
+{
+  "rows": [
+    {
+      "act": 0,
+      "asset": "data/mission.m.dev.sample",
+      "district": "d4",
+      "giver": {
+        "world": true
+      },
+      "id": "m.dev.sample",
+      "requires": [],
+      "start": {
+        "at": {
+          "at": [
+            37.77894,
+            -122.418619
+          ],
+          "snap": "ground"
+        },
+        "k": "marker",
+        "radiusM": 6
+      },
+      "tags": [
+        "dev",
+        "sensitivity-read"
+      ],
+      "title": "mission.m.dev.sample.title",
+      "version": 1
+    }
+  ],
+  "schema": "story-index/1"
+}

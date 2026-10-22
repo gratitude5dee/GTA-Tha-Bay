@@ -10,7 +10,8 @@
  * `error` event and runs its recovery (the "Recovering..." banner and a restart).
  *
  * M02b1 moved this body, unchanged, out of `sim.worker.ts` into `runSimWorker(scope, modules)`: the engine's own entry
- * (`sim.worker.ts`) passes no modules; `apps/web/src/workers/sim.worker.ts` passes the world streaming module.
+ * (`sim.worker.ts`) passes no modules; `apps/web/src/workers/sim.worker.ts` passes the world streaming module. M05a1 adds the third
+ * parameter: the story mode's sim wrapper (the engine never imports the mode packages).
  */
 import { SimRuntime, type SimModule, type SimRuntimeEnv } from '../sim/runtime.ts';
 import { isInitMessage, type InitMessage } from '../sim/sim-host.ts';
@@ -18,7 +19,7 @@ import { attachSabWorker } from '../sim/transport/sab-transport.ts';
 import { attachPmWorker, type PortLike } from '../sim/transport/pm-transport.ts';
 import type { WorkerTransport } from '../sim/transport/types.ts';
 import { SaveControl } from '../sim/worker/save-control.ts';
-import { createModesModule, defaultSandbox, defaultStory, type SessionSlices } from '../sim/modes/index.ts';
+import { createModesModule, defaultSandbox, defaultStory, type ModesModuleOptions, type SessionSlices } from '../sim/modes/index.ts';
 import type { SaveServiceImpl } from '../sim/save/service.ts';
 
 export interface WorkerScope extends PortLike {
@@ -28,7 +29,7 @@ export interface WorkerScope extends PortLike {
 }
 
 /** Starts the sim worker on `scope` (the worker's global scope; tests pass a stand-in). `modules` apply to the `SimRuntime` the game boots. */
-export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]): void {
+export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[], modesOptions: Pick<ModesModuleOptions, 'wrapStory' | 'descriptors'> = {}): void {
   const sleep = (ms: number): Promise<void> => new Promise((resolve) => scope.setTimeout(resolve, ms));
 
   let started = false;
@@ -107,6 +108,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
         return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
       })());
     const modes = createModesModule({
+      ...modesOptions,
       wallMs: () => Date.now(),
       // The open profile: `profileId` when the shell selects one, else the most recently saved (made when there is none; M04b1).
       loadSlices: async (profileId?: string): Promise<SessionSlices> => {
