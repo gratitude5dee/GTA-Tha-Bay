@@ -13,7 +13,8 @@ export function buildCutsceneJob(key: string, env: Pick<Env, 'FAL_MODE' | 'ENVIR
   const providerKey = GENAI_REGISTRY.defaults.videoProvider;
   const provider = GENAI_REGISTRY.videoProviders[providerKey];
   if (provider === undefined) throw new Error(`registry has no provider ${providerKey}`);
-  const prompt = `Mock cutscene ${key.slice(0, 8)}: a two second test pattern.`;
+  // The mock prompt passes the real prompt lint (M05b2): it carries the "no text, no logos" clause.
+  const prompt = `Mock cutscene ${key.slice(0, 8)}: a two second test pattern. No text, no logos.`;
   const params: Record<string, unknown> = {
     cutsceneKey: key,
     seed: parseInt(key.slice(0, 8), 16),

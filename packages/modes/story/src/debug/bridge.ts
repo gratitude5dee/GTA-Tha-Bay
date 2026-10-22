@@ -56,6 +56,8 @@ export interface MissionBridge {
   quit(): boolean;
   talk(talkId: string, outcome: string): boolean;
   setFlag(key: string, value: boolean | number | string): boolean;
+  /** The story autoplayer plays the mission live (QA; not an oracle, the live profile is `local`). `autoplay(false)` gives the controls back. */
+  autoplay(on: boolean): boolean;
 }
 
 export function createMissionBridge(host: MissionBridgeHost): MissionBridge {
@@ -87,6 +89,7 @@ export function createMissionBridge(host: MissionBridgeHost): MissionBridge {
     quit: () => cmd('mission.quit'),
     talk: (talkId, outcome) => cmd('talk.result', { talkId, outcome, turns: 0, path: 'scripted' }),
     setFlag: (key, value) => cmd('debug.flag', { key, value }),
+    autoplay: (on) => cmd('debug.autoplay', { on }),
   };
 }
 

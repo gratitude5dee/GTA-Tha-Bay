@@ -10,7 +10,7 @@
  */
 import {
   SimStage, datan2,
-  type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
+  type BotInput, type CameraDirective, type EcsApi, type GameModeDescriptor, type InputContextId, type InputFrame, type InteractionApi, type JsonObject,
   type GameModeSim, type PhysicsQueries, type PrefabService, type PursuitApi, type SaveReason, type SimEvent, type SlotId, type UiBridge, type UiCommand,
   type UnlockDef, type WorldApi,
 } from '@dv/shared';
@@ -75,6 +75,10 @@ export interface StoryWrapEnv {
   qa: boolean;
   /** The boot payload's config object (QA mission flags and the mission IR the page fetched). */
   bootConfig(): Readonly<Record<string, unknown>>;
+  /** Comfort settings the cinematic director obeys (M05a2): `accessibility.reducedMotion` of the open profile, and the XR camera mode. */
+  comfort?(): { reducedMotion: boolean; xr: boolean };
+  /** QA builds: installs (null removes) the sim worker's bot input source, for the story autoplayer on a live mission (M05a2). */
+  setBot?(bot: BotInput | null): void;
 }
 
 export interface ModesModule extends SimModule {
@@ -280,6 +284,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       });
       const contexts: InputContextId[] = [];
       let modeCamera: CameraDirective | null = null;
+      // A mode's camera directive (a cinematic shot of the story director) replaces the player's camera in the snapshot while it holds.
+      services.side.set('cam', () => modeCamera);
       const requested = new Set<string>();
 
       const playerPose = (): { x: number; y: number; z: number; yaw: number } | null => {
@@ -322,7 +328,14 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
 
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
-      const storyEnv: StoryWrapEnv = { qa: runtime.env.qa, bootConfig: () => ctx.boot.config };
+      const storyEnv: StoryWrapEnv = {
+        qa: runtime.env.qa,
+        bootConfig: () => ctx.boot.config,
+        comfort: () => ({ reducedMotion: live.settings.accessibility.reducedMotion, xr: ctx.boot.config['xr'] === true }),
+        setBot: (bot) => {
+          if (runtime.env.qa) runtime.bot = bot;
+        },
+      };
       for (const d of builtinDescriptors({
         story: () => live.story,
         sandbox: () => live.sandbox,
@@ -411,7 +424,6 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         seed: () => ctx.cfg.seed,
         qa: runtime.env.qa,
       }));
-      void modeCamera;
 
       // The pursuit director's wallet and the transit fares go through EconomyApi (M03c, M03b2).
       pursuitMod?.bindWallet?.(economyWallet(econ));

@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.dev.sample.meet",
+  "variants": {
+    "default": "assets/src/data/director.m.dev.sample.meet/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.dev.sample"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

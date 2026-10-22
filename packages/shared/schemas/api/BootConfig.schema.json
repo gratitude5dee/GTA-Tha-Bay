@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "build": {
+      "type": "string"
+    },
+    "minClientBuild": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "blocked"
+      ]
+    },
+    "hosts": {
+      "type": "object",
+      "properties": {
+        "api": {
+          "type": "string"
+        },
+        "rt": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "media": {
+          "type": "string"
+        },
+        "ugc": {
+          "type": "string"
+        },
+        "modsUi": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "api",
+        "rt",
+        "id",
+        "media",
+        "ugc"
+      ],
+      "additionalProperties": false
+    },
+    "assetCatalog": {
+      "type": "string"
+    },
+    "flags": {
+      "type": "object",
+      "properties": {
+        "mp.enabled": {
+          "type": "boolean"
+        },
+        "npc.dialogue": {
+          "type": "boolean"
+        },
+        "npc.voice": {
+          "type": "boolean"
+        },
+        "npc.builder": {
+          "type": "boolean"
+        },
+        "cutscene.generated": {
+          "type": "boolean"
+        },
+        "forum.enabled": {
+          "type": "boolean"
+        },
+        "ugc.publish": {
+          "type": "boolean"
+        },
+        "auth.openaiWeb": {
+          "type": "boolean"
+        },
+        "auth.thirdweb": {
+          "type": "boolean"
+        },
+        "telemetry.verbose": {
+          "type": "boolean"
+        },
+        "mods.enabled": {
+          "type": "boolean"
+        },
+        "mods.script": {
+          "type": "boolean"
+        },
+        "mods.ui": {
+          "type": "boolean"
+        },
+        "auth.password": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mp.enabled",
+        "npc.dialogue",
+        "npc.voice",
+        "npc.builder",
+        "cutscene.generated",
+        "forum.enabled",
+        "ugc.publish",
+        "auth.openaiWeb",
+        "auth.thirdweb",
+        "telemetry.verbose",
+        "mods.enabled",
+        "mods.script",
+        "mods.ui",
+        "auth.password"
+      ],
+      "additionalProperties": false
+    },
+    "gov": {
+      "type": "number",
+      "enum": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  "required": [
+    "build",
+    "minClientBuild",
+    "region",
+    "hosts",
+    "assetCatalog",
+    "flags",
+    "gov"
+  ],
+  "additionalProperties": false,
+  "definitions": {}
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "autoplay-score/1",
+  "drift": {
+    "approachSpeedMps": 11,
+    "throttle": 127,
+    "steer": 110,
+    "handbrakeTicks": 24,
+    "turnTicks": 150,
+    "straightTicks": 40
+  },
+  "airtime": null,
+  "nearMiss": null
+}

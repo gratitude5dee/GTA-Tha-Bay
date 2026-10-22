@@ -17,6 +17,7 @@ import { runNamesLint } from '../names-lint.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
 import { writeThirdPartyLicences } from '../third-party-licenses.ts';
 import { readJson, toolsRoot } from '../lib/common.ts';
+import { lintTemplates, templateFiles } from '../prompt-lint.ts';
 
 const cfg = readJson<IpDenylistConfig>(path.join(toolsRoot, 'config/ip-denylist.json'));
 const TERM = cfg.terms[0] as string; // first seed term
@@ -496,5 +497,66 @@ describe('likeness:gate (AC-7)', () => {
     expect(res.findings.map((f) => `${f.rule}`).sort()).toEqual(
       ['face-detector', 'likeness-consent-expired', 'likeness-consent-missing', 'likeness-face-ref', 'likeness-missing', 'likeness-photoreal', 'likeness-scope', 'likeness-voice-mode'].sort(),
     );
+  });
+});
+
+describe('prompt-lint CLI (M05b2 AC-4)', () => {
+  const TEMPLATE = (over: { body?: string; pin?: string; slots?: string } = {}): string => `---
+id: t
+version: 1
+hook: story.beat
+recipe: K
+style: bay-cel@1
+keyframePin: ${over.pin ?? 'openai/gpt-image-2.5/sunburst/edit@unpinned'}
+shots: [{ durationS: 7, camera: push-in }]
+aspect: '16:9'
+resolution: 768P
+audio: engine
+slots: [${over.slots ?? 'style_tokens, place_desc'}]
+---
+${over.body ?? '{style_tokens}. {place_desc}. No text, no letters, no logos.'}
+`;
+  const lintRoot = (root: string, env: NodeJS.ProcessEnv = {}) => lintTemplates(root, templateFiles(root), env);
+
+  it('passes the two story templates of the repository and prints the real-side SKIP line without DV_NAMES_REAL_JSON', () => {
+    const res = lintTemplates(toolsRoot, templateFiles(toolsRoot), {});
+    expect(templateFiles(toolsRoot).map((f) => path.basename(f))).toEqual(['story.beat@1.md', 'story.establish@1.md']);
+    expect(res.findings).toEqual([]);
+    expect(res.notes).toContain('SKIP prompt-lint real-side names: DV_NAMES_REAL_JSON not set');
+  });
+
+  it('fails each fixture with its rule number', () => {
+    const cases: [string, Parameters<typeof TEMPLATE>[0], string][] = [
+      ['banned vocabulary', { body: '{style_tokens}. {place_desc}. A pistol. No text, no logos.' }, 'rule-2'],
+      ['a denylisted term', { body: `{style_tokens}. {place_desc}. Like ${TERM}. No text, no logos.` }, 'rule-1'],
+      ['realism tokens', { body: '{style_tokens}. {place_desc}. Photorealistic. No text, no logos.' }, 'rule-3'],
+      ['the missing clause', { body: '{style_tokens}. {place_desc}.' }, 'rule-5'],
+      ['an unknown slot', { body: '{style_tokens}. {place_desc}. {secret}. No text, no logos.', slots: 'style_tokens, place_desc, secret' }, 'rule-4'],
+      ['a keyframePin that differs from the registry', { pin: 'openai/gpt-image-2.5/sunburst/edit@2020-01-01' }, 'rule-6'],
+    ];
+    for (const [name, over, rule] of cases) {
+      const root = tempRoot();
+      put(root, 'content/prompts/genai/t@1.md', TEMPLATE(over));
+      expect(rules(lintRoot(root).findings), name).toContain(rule);
+    }
+    const ok = tempRoot();
+    put(ok, 'content/prompts/genai/t@1.md', TEMPLATE());
+    expect(lintRoot(ok).findings).toEqual([]);
+  });
+
+  it('flags frontmatter slots that differ from the body', () => {
+    const root = tempRoot();
+    put(root, 'content/prompts/genai/t@1.md', TEMPLATE({ slots: 'style_tokens' }));
+    expect(rules(lintRoot(root).findings)).toEqual(['template']);
+  });
+
+  it('applies the real-side names from DV_NAMES_REAL_JSON and never prints them', () => {
+    const root = tempRoot();
+    put(root, 'content/prompts/genai/t@1.md', TEMPLATE({ body: '{style_tokens}. {place_desc}. Zaphod Quillfeather. No text, no logos.' }));
+    const real = JSON.stringify({ schema: 'names/1', entries: [{ id: 'x', real: 'Zaphod Quillfeather' }] });
+    const res = lintRoot(root, { DV_NAMES_REAL_JSON: real });
+    expect(rules(res.findings)).toEqual(['rule-1']);
+    expect(JSON.stringify(res)).not.toMatch(/quillfeather/i);
+    expect(res.notes).toEqual([]);
   });
 });

@@ -55,4 +55,10 @@ describe('check:bundle QA harness scan (M04d)', () => {
     const full = bundle(dist('window.__dvBridge={};"CanonicalRunner BotDriver registerBot"'));
     expect(full.status).toBe(0);
   });
+
+  it('a production chunk that holds the story autoplayer or the missions scenario fails (M05a2 AC-11)', () => {
+    expect(bundle(dist('console.log("driver story.autoplayer used before init")')).out).toContain('production chunks contain no story autoplayer or missions scenario');
+    expect(bundle(dist("throw new Error(\"suite 'missions' needs the fixture pack\")")).status).toBe(1);
+    expect(bundle(dist('console.log(1)')).out).toContain('ok    production chunks contain no story autoplayer or missions scenario');
+  });
 });

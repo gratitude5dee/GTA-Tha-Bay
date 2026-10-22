@@ -417,14 +417,32 @@
       "approved_by": "gratitude5dee",
       "approved_at": "2026-10-18T23:14:39Z"
     },
-    "data/director.m.dev.sample.intro": {
+    "data/cutscene-index": {
       "rev": 1,
       "variants": {
-        "default": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8"
+        "default": "7a325f36ca51abec99501b162e10719090c20cfca8d2c4c42237600134701ef6"
       },
-      "root": "e70334c0aba0bd544eb3b101841ded250f18a14e52f08b07b1a0b4b49719b6b8",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "7a325f36ca51abec99501b162e10719090c20cfca8d2c4c42237600134701ef6",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T12:07:02Z"
+    },
+    "data/director.m.dev.sample.intro": {
+      "rev": 2,
+      "variants": {
+        "default": "b2b921aefd57543d41535a6665858320c585cd3fe95c17ab653e94da14fcf527"
+      },
+      "root": "b2b921aefd57543d41535a6665858320c585cd3fe95c17ab653e94da14fcf527",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T12:07:02Z"
+    },
+    "data/director.m.dev.sample.meet": {
+      "rev": 1,
+      "variants": {
+        "default": "36573052f8d4ed808dcf76e035edda9cb5492b1aaec482533b994fc80c980675"
+      },
+      "root": "36573052f8d4ed808dcf76e035edda9cb5492b1aaec482533b994fc80c980675",
+      "approved_by": "builder-m05a2",
+      "approved_at": "2026-10-22T10:15:10Z"
     },
     "data/ink.canary-mc": {
       "rev": 1,
@@ -472,22 +490,22 @@
       "approved_at": "2026-10-19T03:03:04Z"
     },
     "data/lines.0.en": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88"
+        "default": "0048aa0b08f33031e8ef6b08e091ea8e7417246050f2329a92ca16023cafb2da"
       },
-      "root": "c9f2cc085e3e3c1bee2be36495e0ecb04aa7431fd9184d983ba84bd51fef2f88",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "0048aa0b08f33031e8ef6b08e091ea8e7417246050f2329a92ca16023cafb2da",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T12:07:02Z"
     },
     "data/mission.m.dev.sample": {
-      "rev": 1,
+      "rev": 3,
       "variants": {
-        "default": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c"
+        "default": "a856917c6b29d0fa40e5a2ad0263084f9ecb316df8b660f4731a4f87c90de732"
       },
-      "root": "4b1085ef81cdd056691fa9716da6cb87653b93c32caac73b62b6fb5082ead75c",
-      "approved_by": "m05a1-builder",
-      "approved_at": "2026-10-22T00:32:45Z"
+      "root": "a856917c6b29d0fa40e5a2ad0263084f9ecb316df8b660f4731a4f87c90de732",
+      "approved_by": "m05b2-builder",
+      "approved_at": "2026-10-22T12:07:02Z"
     },
     "data/npc-roster": {
       "rev": 2,

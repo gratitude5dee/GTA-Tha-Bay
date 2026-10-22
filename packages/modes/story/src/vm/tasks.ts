@@ -43,14 +43,15 @@ interface Active {
 
 /** Steering for a vehicle at `pos` heading `yaw` that wants to reach `target` at `speedWant`; inputs in -1..1 and 0..1. Pure. */
 export function pursuit(pos: Vec3, yaw: number, speed: number, target: Vec3, speedWant: number): { throttle: number; brake: number; steer: number } {
-  // forward is -Z at yaw 0 (the sim's convention): the bearing to the target is atan2(dx, -dz)
+  // forward is (-sin yaw, -cos yaw), so -Z at yaw 0: the heading that points at the target is atan2(-dx, -dz), and a target to the
+  // right (a smaller yaw) wants a positive steer (positive is right)
   const dx = target[0] - pos[0];
   const dz = target[2] - pos[2];
-  const want = datan2(dx, -dz);
+  const want = datan2(-dx, -dz);
   let err = want - yaw;
   while (err > Math.PI) err -= 2 * Math.PI;
   while (err < -Math.PI) err += 2 * Math.PI;
-  const steer = Math.max(-1, Math.min(1, err * 1.4));
+  const steer = Math.max(-1, Math.min(1, -err * 1.4));
   const slow = Math.abs(err) > 0.9 ? 0.35 : 1;
   const want2 = speedWant * slow;
   const throttle = speed < want2 ? Math.min(1, (want2 - speed) / 4 + 0.2) : 0;
@@ -63,7 +64,7 @@ export function stepToward(from: Vec3, to: Vec3, step: number): { pos: Vec3; yaw
   const dx = to[0] - from[0];
   const dz = to[2] - from[2];
   const d = dsqrt(dx * dx + dz * dz);
-  const yaw = d > 1e-6 ? datan2(dx, -dz) : 0;
+  const yaw = d > 1e-6 ? datan2(-dx, -dz) : 0;
   if (d <= step) return { pos: [to[0], from[1], to[2]], yaw, arrived: true };
   return { pos: [from[0] + (dx / d) * step, from[1], from[2] + (dz / d) * step], yaw, arrived: false };
 }
@@ -169,7 +170,7 @@ export class TaskRunner {
         if (!target) return;
         const dx = target[0] - here[0];
         const dz = target[2] - here[2];
-        actors.place(h, here, datan2(dx, -dz));
+        actors.place(h, here, datan2(-dx, -dz));
         return;
       }
       case 'enterVehicle': {

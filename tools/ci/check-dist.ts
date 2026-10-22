@@ -254,6 +254,8 @@ function distDir(value: string | undefined): string {
 
 /** Identifiers of the engine QA harness (M04d, AC-9). */
 export const QA_HARNESS_IDS = ['CanonicalRunner', 'BotDriver', 'registerBot'] as const;
+/** The story autoplayer and the headless missions scenario (M05a2, AC-11): strings in their messages, absent from production chunks. */
+export const STORY_QA_IDS = ['story.autoplayer', "suite 'missions'"] as const;
 
 function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): void {
   console.log(`check:bundle ${path.relative(repoRoot, dist)}`);
@@ -301,6 +303,11 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   const harness = QA_HARNESS_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
   if (hasBridge) expect(harness.length === QA_HARNESS_IDS.length, 'the QA build contains the QA harness', `missing: ${QA_HARNESS_IDS.filter((id) => !harness.includes(id)).join(', ')}`);
   else expect(harness.length === 0, 'production chunks contain no CanonicalRunner, BotDriver or registerBot', `found: ${harness.join(', ')}`);
+  if (!hasBridge) {
+    const story = STORY_QA_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+    expect(story.length === 0, 'production chunks contain no story autoplayer or missions scenario', `found: ${story.join(', ')}`);
+    expect(!existsSync(path.join(dist, 'qa', 'mission-preview.html')), 'production build has no mission preview page', 'dist/qa/mission-preview.html exists');
+  }
   if (forbidQa) {
     expect(!hasBridge, 'production build has no __dvBridge', 'QA bridge found in a production build');
     expect(!hasIwer, 'production build has no IWER emulator', 'IWER found in a production build');

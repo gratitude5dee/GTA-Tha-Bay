@@ -71,6 +71,22 @@ describe('GET /api/v1/boot', () => {
     expect(wrangler.env.staging.vars['AUTH_PASSWORD_SIGNUP']).toBe('on');
     for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'AUTH_PASSWORD_SIGNUP']) expect(wrangler.previews.vars[k]).toBeUndefined();
   });
+
+  it('M05d: the daily cron and the database secret are declared where the Worker is deployed, and previews run no cron', () => {
+    const wrangler = parseJsonc(wranglerRaw) as {
+      secrets: { required: string[] };
+      triggers: { crons: string[] };
+      env: { staging: { secrets: { required: string[] }; triggers: { crons: string[] } } };
+      previews: { triggers?: unknown; vars: Record<string, string> };
+    };
+    for (const block of [wrangler, wrangler.env.staging]) {
+      expect(block.secrets.required).toContain('SUPABASE_SECRET_KEY');
+      expect(block.triggers.crons).toEqual(['10 3 * * *']);
+    }
+    // tha-bay-staging has no publishable key in config/supabase.projects.json yet, so previews still carry no Supabase vars.
+    expect(wrangler.previews.triggers).toBeUndefined();
+    expect(wrangler.previews.vars['SUPABASE_URL']).toBeUndefined();
+  });
 });
 
 /** Strips // and block comments outside strings and trailing commas, then parses. */

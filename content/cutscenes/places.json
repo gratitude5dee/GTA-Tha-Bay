@@ -1,0 +1,7 @@
+{
+  "$comment": "place_desc source of the cutscene prompt templates (spec/domains/03-story-cutscenes.md section D4): authored descriptive text per stage or per story beat (`beat.<refId>`, without the @rev). Text only: no names of real places or brands.",
+  "schema": "cutscene-places/1",
+  "places": {
+    "beat.cut.story.m.dev.sample.intro": "a wide civic plaza in front of a domed hall, with lawns, flagpoles and a few benches"
+  }
+}

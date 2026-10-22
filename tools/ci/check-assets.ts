@@ -17,6 +17,8 @@ import { defaultDist, isMain, listDist, loadConfigs, loadRecords, MIB, readJson,
 import { isShipFile } from './provenance-check.ts';
 import { assetGateFindings, pointerFindings, type VerifyOptions } from '../assets/src/verify.ts';
 import { releaseNamesSf, staleLockMessage, type ReleaseIo, type ReleaseKey } from './world-release.ts';
+import { cutsceneIndexFindings } from '../assets/cutscene-index/verify.ts';
+import { lintTemplates, templateFiles } from './prompt-lint.ts';
 
 const GATE = 'check:assets';
 const SHIP_LIMIT = 25 * MIB;
@@ -95,6 +97,14 @@ export function runCheckAssets(opts: { root: string; dist: string; verify?: Veri
     const size = statSync(path.join(opts.dist, rel)).size;
     if (size > SHIP_LIMIT) findings.push(finding(GATE, rel, 'file-too-large', `${size} bytes exceeds 25 MiB`));
   }
+  // M05b2: the genAI prompt templates (rules 1 to 6 of the prompt lint) and the shipped cutscene index.
+  const prompts = lintTemplates(opts.root, templateFiles(opts.root));
+  for (const n of prompts.notes) console.log(n);
+  findings.push(...prompts.findings);
+  scanned += prompts.scanned;
+  const index = cutsceneIndexFindings(opts.root);
+  findings.push(...index.findings);
+  scanned += index.scanned;
   const gate = assetGateFindings(opts.root, opts.verify);
   findings.push(...gate.findings, ...pointerFindings(opts.root));
   scanned += gate.scanned;

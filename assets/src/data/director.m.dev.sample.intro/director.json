@@ -1,8 +1,23 @@
 {
   "actions": [],
   "actors": [],
-  "cues": [],
-  "durationSec": 2,
+  "cues": [
+    {
+      "endMs": 2800,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.cut.intro.1",
+      "speaker": "npc_test",
+      "startMs": 200
+    },
+    {
+      "endMs": 5600,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.cut.intro.2",
+      "speaker": "npc_test",
+      "startMs": 3000
+    }
+  ],
+  "durationSec": 6,
   "id": "m.dev.sample.intro",
   "letterbox": true,
   "marks": {

@@ -27,6 +27,18 @@
       "required": ["bootMs", "phaseShellMs", "phaseWorldMs", "nav"],
       "additionalProperties": false
     },
+    "cutscene.play": {
+      "type": "object",
+      "properties": {
+        "key8": { "type": "string", "maxLength": 8 },
+        "path": { "enum": ["video", "fallback", "instant"] },
+        "trigger": { "enum": ["not_ready", "not_permitted", "media_error", "start_stall", "mid_stall", "codec", "budget", "policy", "offline", "degraded_sequence", "setting_off"] },
+        "cached": { "type": "boolean" },
+        "fallback": { "type": "boolean" }
+      },
+      "required": ["key8", "path", "cached", "fallback"],
+      "additionalProperties": false
+    },
     "app.hidden": {
       "type": "object",
       "properties": {},

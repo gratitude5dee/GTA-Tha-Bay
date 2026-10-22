@@ -7,8 +7,9 @@
  * Production and FAL_MODE=live need a provider `cleared` by ADR-GENAI-01; while every provider is `pending` the gate
  * refuses with ENDPOINT_NOT_CLEARED before any FalPort call.
  */
-import { isBannedEndpoint, type GateCode, type GateVerdict, type GenAiRegistry, type GenJob, type GovLevel } from '@dv/shared';
+import { isBannedEndpoint, lintPrompt as lintPromptRules, type GateCode, type GateVerdict, type GenAiRegistry, type GenJob, type GovLevel, type PromptLintRule } from '@dv/shared';
 import type { GenPorts, RosterEntry } from './ports.ts';
+import { PROMPT_LINT_CONFIG, type PromptLintConfig } from './registry.ts';
 
 export type GateStage =
   | 'gate' | 'cache-check' | 'budget-reserve' | 'acquire' | 'keyframes' | 'plan' | 'submit' | 'copy-orig'
@@ -24,20 +25,29 @@ export interface PromptLintResult {
 }
 
 /**
- * Prompt-lint hook. The linter itself (`lintPrompt` in @dv/shared, real names from the private names file, DL-550) lands in
- * M05b2; until then the stub fails on an empty prompt.
+ * Prompt-lint hook. The default is the shared `lintPrompt` (M05b2, DL-550) over the public lists and the real-side names the
+ * caller read from the PRIVATE bucket; a test may pass its own linter.
  */
 export type PromptLinter = (text: string) => PromptLintResult;
 
+/** Kept for callers that want the M05b1 behaviour: only an empty prompt fails. */
 export const stubPromptLinter: PromptLinter = (text) =>
   text.trim().length === 0 ? { ok: false, code: 'POLICY_REFUSED', detail: 'empty prompt' } : { ok: true };
+
+/** Rule 1 is a name, rule 3 a realism token on a non-consented cast; the other rules are policy refusals (existing C07 GateCodes). */
+const CODE_OF_RULE: Record<PromptLintRule, GateCode> = { 1: 'NAME_IN_PROMPT', 2: 'POLICY_REFUSED', 3: 'PHOTOREAL_FORBIDDEN', 4: 'POLICY_REFUSED', 5: 'POLICY_REFUSED', 6: 'POLICY_REFUSED' };
 
 export interface GateConfig {
   falMode: 'mock' | 'live';
   /** The Worker's ENVIRONMENT var: prod | staging | preview | dev. */
   environment: string;
   registry: Pick<GenAiRegistry, 'endpoints' | 'videoProviders' | 'banned'>;
+  /** Replaces the shared lint (tests). */
   lintPrompt?: PromptLinter;
+  /** Public lint lists; default: the repository's config files. */
+  lint?: PromptLintConfig;
+  /** SKIP lines go here; default `console.log`. */
+  log?: (line: string) => void;
 }
 
 export interface GateInputs extends GateConfig {
@@ -45,6 +55,8 @@ export interface GateInputs extends GateConfig {
   govLevel: GovLevel;
   /** Roster rows for the characters of the job; a missing id maps to null. */
   roster: ReadonlyMap<string, RosterEntry | null>;
+  /** Real-side names read from the PRIVATE bucket; null or absent: the public lists only. */
+  realNames?: readonly string[] | null;
 }
 
 const refuse = (code: GateCode, detail: string): GateVerdict => ({ ok: false, code, detail });
@@ -79,6 +91,21 @@ function providerEndpointIds(job: GenJob, reg: GateConfig['registry']): { ids: s
   return { ids: [e.id], cleared: e.status === 'active', pending: e.status === 'pending' };
 }
 
+/** The shared lint over one filled prompt: display names plus real-side names, the roster's tiers for the cast. */
+function sharedLinter(job: GenJob, g: GateInputs): PromptLinter {
+  const cfg = g.lint ?? PROMPT_LINT_CONFIG;
+  const names = [...cfg.displayNames, ...(g.realNames ?? [])];
+  const cast = jobCharacters(job).map((id) => ({ id, tier: g.roster.get(id)?.tier ?? 'fictionalized' }));
+  return (text) => {
+    if (text.trim().length === 0) return { ok: false, code: 'POLICY_REFUSED', detail: 'empty prompt' };
+    const r = lintPromptRules(text, { names, denylist: cfg.denylist, banned: cfg.banned, cast });
+    const first = r.failures[0];
+    if (!first) return { ok: true };
+    // The rule number goes in `detail`; the lint's own detail never repeats a name.
+    return { ok: false, code: CODE_OF_RULE[first.rule], detail: `prompt-lint rule ${first.rule}: ${first.detail}` };
+  };
+}
+
 /** Pure evaluation over prefetched inputs. */
 export function evaluateGate(job: GenJob, stage: GateStage, g: GateInputs): GateVerdict {
   // 1. roster: unknown tier, minors, killed scopes
@@ -107,7 +134,7 @@ export function evaluateGate(job: GenJob, stage: GateStage, g: GateInputs): Gate
   }
 
   // 3. prompt lint
-  const lint = g.lintPrompt ?? stubPromptLinter;
+  const lint = g.lintPrompt ?? sharedLinter(job, g);
   const prompts = jobPrompts(job);
   if (prompts.length === 0) {
     const r = lint('');
@@ -129,11 +156,16 @@ export function evaluateGate(job: GenJob, stage: GateStage, g: GateInputs): Gate
   return { ok: true };
 }
 
-/** Spec signature: reads flags, level and roster through the ports, then evaluates. */
-export async function assertStageAllowed(job: GenJob, stage: GateStage, ports: Pick<GenPorts, 'roster' | 'flags' | 'budget'>, cfg: GateConfig): Promise<GateVerdict> {
+/** Spec signature: reads flags, level, roster and the real-side names through the ports, then evaluates. */
+export async function assertStageAllowed(job: GenJob, stage: GateStage, ports: Pick<GenPorts, 'roster' | 'flags' | 'budget'> & { names?: GenPorts['names'] }, cfg: GateConfig): Promise<GateVerdict> {
   const ids = jobCharacters(job);
   const roster = new Map<string, RosterEntry | null>();
   for (const id of ids) roster.set(id, await ports.roster.lookup(id));
   const [killSwitches, govLevel] = SUBMIT_TIME_STAGES.has(stage) ? await Promise.all([ports.flags.killSwitches(), ports.budget.level()]) : [new Set<string>(), 0 as GovLevel];
-  return evaluateGate(job, stage, { ...cfg, killSwitches, govLevel, roster });
+  let realNames: readonly string[] | null = null;
+  if (cfg.lintPrompt === undefined) {
+    realNames = (await ports.names?.realNames()) ?? null;
+    if (realNames === null && stage === 'gate') (cfg.log ?? console.log)('SKIP prompt-lint real-side names: config/names-real.json is not in the PRIVATE bucket');
+  }
+  return evaluateGate(job, stage, { ...cfg, killSwitches, govLevel, roster, realNames });
 }

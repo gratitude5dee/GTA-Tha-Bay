@@ -140,7 +140,7 @@ export default defineConfig({
       input: {
         main: here('index.html'),
         account: here('account/index.html'),
-        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html'), 'qa/world-hash': here('qa/world-hash.html'), 'qa/cutscene-spike': here('qa/cutscene-spike.html') } : {}),
+        ...(QA ? { 'qa/determinism': here('qa/determinism.html'), 'qa/memory-bomb': here('qa/memory-bomb.html'), 'qa/save-kill': here('qa/save-kill.html'), 'qa/world-hash': here('qa/world-hash.html'), 'qa/cutscene-spike': here('qa/cutscene-spike.html'), 'qa/mission-preview': here('qa/mission-preview.html') } : {}),
       },
       output: {
         chunkFileNames: chunkName,

@@ -1,0 +1,54 @@
+{
+  "builtAt": 1792663158369,
+  "entries": [
+    {
+      "audio": "engine",
+      "characters": [
+        {
+          "id": "npc_test",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 2800,
+          "kind": "dialogue",
+          "line": "line.m.dev.sample.cut.intro.1",
+          "speaker": "npc_test",
+          "startMs": 200
+        },
+        {
+          "endMs": 5600,
+          "kind": "dialogue",
+          "line": "line.m.dev.sample.cut.intro.2",
+          "speaker": "npc_test",
+          "startMs": 3000
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.dev.sample.intro",
+      "key": "abc35ee6f85ca5aad8dec37a7b43752418ae6c4704cd3364abe211377e637dd2",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "npc_test",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 1174774120,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.dev.sample.intro"
+    }
+  ],
+  "release": "dev",
+  "schema": "cutscene-index/1"
+}

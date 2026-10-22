@@ -4,7 +4,7 @@
  * seconds. Positions are WGS84 tuples; they sit within 150 m of City Hall, on the gray-box terrain. Display text is in lines.en.json.
  */
 import {
-  ambient, at, circle, clock, collect, castZone, chase, defineMission, deliver, destroyed, enterVehicle, failWhen, fleeTask, follow, give, goto, ko, markerTrigger, modeHook,
+  ambient, at, beat, circle, clock, collect, castZone, chase, defineMission, deliver, destroyed, enterVehicle, failWhen, fleeTask, follow, give, goto, ko, markerTrigger, modeHook,
   modeObjective, npc, pickup, photo, protect, say, score, setFlag, stage, stealth, survive, talk, talkDef, task, text, vehicle, wait, waitFor, walkTo,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
@@ -28,7 +28,8 @@ export default defineMission({
     park: circle(37.777949, -122.418959, 15),
     buddy_near: castZone('buddy', 8),
   },
-  intro: { director: 'm.dev.sample.intro' },
+  intro: { cutscene: 'cut.story.m.dev.sample.intro' },
+  lines: ['line.m.dev.sample.cut.intro.1', 'line.m.dev.sample.cut.intro.2'],
   stages: [
     stage('arrive', [goto('plaza', { id: 'arrive_plaza', onFoot: true })], {
       onEnter: [ambient({ traffic: 0.5 }), clock({ lock: { hour: 14 } }), say('buddy', 'line.m.dev.sample.hello')],
@@ -51,6 +52,7 @@ export default defineMission({
           { id: 'talk_greet' },
         ),
       ],
+      { onEnter: [beat({ director: 'm.dev.sample.meet' })] },
     ),
     stage('pickup', [collect('crate', { id: 'collect_crate' })], { onComplete: [give('parcel-bonus', { cashCents: 5000 }), setFlag({ 'dev.parcel': true })] }),
     stage('wheels', [enterVehicle('car', { id: 'enter_car' })]),

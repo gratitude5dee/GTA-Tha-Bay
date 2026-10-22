@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "cutscene-index",
+  "variants": {
+    "default": "assets/src/data/cutscene-index/index.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "cutscene-index"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -6,6 +6,7 @@ import { DET_SUITES, isRuns } from '../../../tests/e2e/det/suites.ts';
 import { getBot, registeredBots } from '../../../packages/engine/src/qa/bots.ts';
 import { ensureBuiltinDrivers, validateRunSpec } from '../../../packages/engine/src/qa/runner.ts';
 import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
+import { registerStoryQa } from '../../../packages/modes/story/src/qa.ts';
 import { repoRoot } from '../run.ts';
 
 const nightly = readFileSync(path.join(repoRoot, '.github', 'workflows', 'nightly.yml'), 'utf8');
@@ -28,6 +29,7 @@ describe('det suites', () => {
   it('each listed RunSpec names a registered driver; the others are pending or own a spec file', () => {
     ensureBuiltinDrivers();
     registerRacingQa();   // the racing suite's driver (M07a1)
+    registerStoryQa();    // the story autoplayer (M05a2)
     for (const s of DET_SUITES) {
       if (isRuns(s)) {
         expect(s.runs.length, s.tag).toBeGreaterThan(0);

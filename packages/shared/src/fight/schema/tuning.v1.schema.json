@@ -1,0 +1,375 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/fight/tuning.v1.schema.json",
+  "title": "Fight tuning v1 (config/fighter.tuning.json, FC2 constants)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "RING",
+    "MOTION_WINDOW",
+    "BUTTON_LEEWAY",
+    "BUFFER_NORMAL",
+    "BUFFER_SPECIAL",
+    "DASH_TAP_WINDOW",
+    "CHARGE_FRAMES",
+    "CHARGE_GAP",
+    "THROW_TECH",
+    "SIMPLE_DMG_PCT",
+    "CHORD_WINDOW",
+    "PUSH_FRAMES",
+    "GRAVITY",
+    "JUMP_V0",
+    "PREJUMP",
+    "LAND",
+    "WAKEUP",
+    "QUICKRISE",
+    "WAKE_THROW_INVULN",
+    "KNOCKDOWN",
+    "DASH_IMPLY",
+    "STAGE_HALF_WIDTH",
+    "MAX_SEPARATION",
+    "START_X",
+    "COMBO_SCALE",
+    "SCALE_FLOOR",
+    "L2_MIN",
+    "L3_MIN",
+    "HITSTUN_DECAY",
+    "MAX_COMBO_HITS",
+    "COUNTER_HITSTUN",
+    "COUNTER_DMG_PCT",
+    "HEALTH",
+    "HYPE_MAX",
+    "STOCK",
+    "COMPOSURE_MAX",
+    "COMP_REGEN",
+    "COMP_IDLE",
+    "CHECK_COST",
+    "CHECK_REFUND",
+    "CLEAR_COST",
+    "RATTLED_EXIT",
+    "HYPE_ON_DAMAGE_PCT",
+    "TAUNT_HYPE",
+    "EX_DMG_PCT",
+    "CHIP_KILLS",
+    "CHECK_STARTUP",
+    "CHECK_ACTIVE",
+    "CHECK_WHIFF_RECOVERY",
+    "CHECK_SUCCESS_RECOVERY",
+    "CHECK_ATTACKER_STUN",
+    "CLEAR_STARTUP",
+    "CLEAR_INVULN",
+    "CLEAR_TOTAL",
+    "TIMER",
+    "READY",
+    "KO_SLOW",
+    "KO_DIV",
+    "TIME_UP",
+    "ROUND_END",
+    "MATCH_END",
+    "SHUTDOWN_WINDOW",
+    "CINEMATIC_HOLD",
+    "SUDDEN",
+    "SUDDEN_HEALTH",
+    "INTRO_INGAME",
+    "HITSTOP_L",
+    "HITSTOP_M",
+    "HITSTOP_H",
+    "HITSTOP_SPECIAL",
+    "SUPER_FREEZE"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "RING": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "MOTION_WINDOW": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "BUTTON_LEEWAY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "BUFFER_NORMAL": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "BUFFER_SPECIAL": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "DASH_TAP_WINDOW": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHARGE_FRAMES": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHARGE_GAP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "THROW_TECH": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "SIMPLE_DMG_PCT": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHORD_WINDOW": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "PUSH_FRAMES": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "GRAVITY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "JUMP_V0": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "PREJUMP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "LAND": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "WAKEUP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "QUICKRISE": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "WAKE_THROW_INVULN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "KNOCKDOWN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "DASH_IMPLY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "STAGE_HALF_WIDTH": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "MAX_SEPARATION": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "START_X": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COMBO_SCALE": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 100
+      }
+    },
+    "SCALE_FLOOR": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "L2_MIN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "L3_MIN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HITSTUN_DECAY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "MAX_COMBO_HITS": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COUNTER_HITSTUN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COUNTER_DMG_PCT": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HEALTH": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HYPE_MAX": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "STOCK": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COMPOSURE_MAX": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COMP_REGEN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "COMP_IDLE": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_COST": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_REFUND": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CLEAR_COST": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "RATTLED_EXIT": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HYPE_ON_DAMAGE_PCT": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "TAUNT_HYPE": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "EX_DMG_PCT": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHIP_KILLS": {
+      "type": "boolean"
+    },
+    "CHECK_STARTUP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_ACTIVE": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_WHIFF_RECOVERY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_SUCCESS_RECOVERY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CHECK_ATTACKER_STUN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CLEAR_STARTUP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CLEAR_INVULN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CLEAR_TOTAL": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "TIMER": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "READY": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "KO_SLOW": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "KO_DIV": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "TIME_UP": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ROUND_END": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "MATCH_END": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "SHUTDOWN_WINDOW": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "CINEMATIC_HOLD": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "SUDDEN": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "SUDDEN_HEALTH": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "INTRO_INGAME": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HITSTOP_L": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HITSTOP_M": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HITSTOP_H": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "HITSTOP_SPECIAL": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "SUPER_FREEZE": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

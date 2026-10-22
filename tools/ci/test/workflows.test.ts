@@ -48,6 +48,18 @@ describe('ci.yml (AC-8)', () => {
     expect(jobs['content']).toContain('pnpm check:balance');
   });
 
+  it('the content job restores or builds the world bakes before it runs pnpm check:missions; the nightly runs it too (M05a2 AC-10)', () => {
+    const job = jobs['content'] ?? '';
+    const cache = job.search(/uses: actions\/cache@[0-9a-f]{40}\n\s+with:\n\s+path: \|\n\s+\.cache\/map\n\s+dist\/world\n\s+key: world-bakes-/);
+    const bake = job.indexOf('run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt');
+    const missions = job.indexOf('run: pnpm check:missions');
+    expect(cache, 'cache step').toBeGreaterThan(-1);
+    expect(bake, 'map:build on a miss').toBeGreaterThan(cache);
+    expect(missions, 'check:missions').toBeGreaterThan(bake);
+    expect(job).toContain("if: steps.bake-cache.outputs.cache-hit != 'true'");
+    expect(wf('nightly.yml')).toContain('pnpm check:missions');
+  });
+
   it('has a world-content job (M02a1) that restores .cache/map, checks the graybox fixture and bakes the civic-excerpt twice; unit no longer runs map:fixture', () => {
     const job = jobs['world-content'] ?? '';
     expect(job).toContain('pnpm map:fixture graybox --check');

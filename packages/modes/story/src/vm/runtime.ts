@@ -10,7 +10,7 @@
  */
 import {
   Fnv64, Rng, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
-  type Op, type Pred, type SimEvent, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type WeatherPreset,
+  type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type WeatherPreset,
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import type { ResolvedMission } from '../compiler/resolve.ts';
@@ -20,12 +20,17 @@ import { BUDGET_STREAK_LIMIT, OPS_BUDGET, missionScope } from './constants.ts';
 import { objectiveStep, objectiveTarget, startObjective } from './objectives.ts';
 import { OpRunner, type OpHost, type WaitSpec } from './ops.ts';
 import { evalPred, type Cost, type PredEnv } from './predicates.ts';
+import { DirectorSystem } from '../director/system.ts';
+import type { Comfort } from '../director/types.ts';
+import { missionDeps } from './deps.ts';
+import { Probes } from './probes.ts';
 import { TaskRunner, type VehicleDriver } from './tasks.ts';
 import {
   DEFAULT_FLAGS, type CastRt, type EndRequest, type ObjRt, type ObjState, type RuntimeFlags, type RuntimeOptions, type StartOptions, type StoryCommand,
 } from './types.ts';
 import { byStr, hash32 } from './util.ts';
 import { CHILD_OUTCOMES } from './hooks.ts';
+import { answerOverdue, doneEvent, parseStateEvent, playIdOf, requestEvent, transition, type CutBeat } from '../cutscene/protocol.ts';
 
 const isMissing = (e: unknown): boolean => e instanceof Error && e.name === 'NotYetAvailable';
 /** Calls a context service that a build may not have; a missing one is skipped. */
@@ -38,9 +43,6 @@ function soft<T>(fn: () => T): T | undefined {
   }
 }
 
-const SHOT_OF_PRESET: Record<string, 'wide' | 'side' | 'shoulder' | 'front' | 'fixed' | 'chase' | 'flyby'> = {
-  establish: 'wide', 'two-shot': 'side', 'over-shoulder': 'shoulder', single: 'front', insert: 'fixed', reaction: 'front', tracking: 'chase', orbit: 'flyby', auto: 'wide',
-};
 const SAY_MIN_TICKS = 90;
 const SAY_TICKS_PER_CHAR = 3.6;
 const MARKER_UPDATE_EVERY = 4;
@@ -51,6 +53,9 @@ interface Beat {
   owner: string;
   script: DirectorScript | null;
   ticksLeft: number;
+  instant: boolean;
+  /** A generated-cutscene beat (M05b2): the request, its state and the answer wait. Absent for a plain director beat. */
+  cut?: CutBeat;
 }
 
 export interface ThreadView {
@@ -83,6 +88,13 @@ export class MissionRuntime implements OpHost {
   walletDelta = 0;
   revokeGen = 0;
   readonly tasks: TaskRunner;
+  /** The photo shutter and the drift score (M05a2): events the engine does not produce yet. */
+  readonly probes = new Probes();
+  /** The in-engine cinematic director (M05a2): the DirectorScript of a beat, and the auto-director of the `camera` op. */
+  readonly director: DirectorSystem;
+  private readonly dirZones = new Map<string, Vec3>();
+  private camUntil: number | null = null;
+  private camSerial = 0;
   /** Events of the mission, newest last (the debugger shows the last 50). */
   readonly eventLog: { tick: number; t: string; data: JsonObject }[] = [];
 
@@ -93,6 +105,7 @@ export class MissionRuntime implements OpHost {
   private completing = false;
   private beat: Beat | null = null;
   private beatSerial = 0;
+  private playSerial = 0;
   private lastFailRetry: 'checkpoint' | 'start' = 'checkpoint';
   private failReason = '';
   private runners = new Map<string, OpRunner>();
@@ -125,6 +138,28 @@ export class MissionRuntime implements OpHost {
       driver: () => this.driverFn?.() ?? null,
     });
     this.predEnv = this.makePredEnv();
+    this.director = new DirectorSystem({
+      ctx: () => this.ctx,
+      actors: this.actors,
+      tasks: this.tasks,
+      markPos: (at) => this.markPos(at),
+      comfort: () => this.comfort(),
+      castOfSoul: (soul) => {
+        for (const name of Object.keys(this.ir.cast).sort(byStr)) {
+          const c = this.ir.cast[name];
+          if (c && c.k === 'npc' && 'soul' in c.who && c.who.soul === soul) return name;
+        }
+        return null;
+      },
+      note: (name, data) => this.noteEvent(name, data),
+      defineMarkZone: (zone, pos) => void this.dirZones.set(zone, pos),
+      clearMarkZones: () => this.dirZones.clear(),
+    });
+  }
+
+  /** Comfort settings the director obeys: reduced motion and the XR camera mode. */
+  comfort(): Comfort {
+    return this.opts.comfort?.() ?? { reducedMotion: false, xr: false };
   }
 
   // ---------------------------------------------------------------- binding and queries
@@ -214,6 +249,8 @@ export class MissionRuntime implements OpHost {
   }
 
   zoneCenter(zone: string): Vec3 | null {
+    const alias = this.dirZones.get(zone);
+    if (alias) return alias;
     const z = this.rm.zones[zone];
     if (!z) return null;
     switch (z.k) {
@@ -327,6 +364,7 @@ export class MissionRuntime implements OpHost {
     this.phase = 'starting';
     for (const name of Object.keys(this.ir.cast).sort(byStr)) this.castRt.set(name, { name, key: this.actors.keyOf(name), live: false, carried: false, seen: false });
     this.defineZones();
+    this.trackTimeline();
     this.applyStartPolicy();
     this.opts.log?.(`mission ${this.ir.id} start attempt ${o.attempt}`);
     this.telemetry('mission.start', 0);
@@ -352,6 +390,14 @@ export class MissionRuntime implements OpHost {
     this.phase = 'stage';
     this.startThreads();
     this.enterStage(0, false);
+  }
+
+  /** The player and every cast entry get a track on the timeline (a position every 2 ticks), for the preview scrubber. */
+  private trackTimeline(): void {
+    const tl = this.ctx.timeline as { trackKey?(key: StableKey, name: string): void };
+    if (!tl.trackKey) return;
+    tl.trackKey('player:0' as StableKey, 'player');
+    for (const name of this.castRt.keys()) tl.trackKey(this.actors.keyOf(name), `cast.${name}`);
   }
 
   private finishIntro(): void {
@@ -390,6 +436,7 @@ export class MissionRuntime implements OpHost {
     this.eventLog.length = 0;
     this.hudKey = '';
     this.introPending = false;
+    this.probes.reset();
   }
 
   private defineZones(): void {
@@ -429,8 +476,12 @@ export class MissionRuntime implements OpHost {
     });
     soft(() => this.ctx.pursuit.capHeat(5));
     if (this.ir.heatPolicy.clearOnPass) soft(() => this.ctx.pursuit.clear('mission'));
-    if (this.beat) {
+    if (this.beat || this.director.active) {
+      this.director.disarm(false);
+      this.director.stopAuto();
+      this.camUntil = null;
       soft(() => this.ctx.camera.release());
+      if (this.beat?.cut) soft(() => this.ctx.input.pop('cutscene'));
       this.beat = null;
     }
     this.undefineZones();
@@ -485,8 +536,15 @@ export class MissionRuntime implements OpHost {
     }
     if (this.phase !== 'stage') return;
     this.tasks.tick();
+    // while a cutscene's answer is awaited the fallback script holds; it starts from its first tick on `fallback`
+    if (this.beat?.cut?.state !== 'armed') this.director.step(ctx.tick);
     this.advanceBeat();
-    if (this.beat === null) this.clock++;
+    if (this.camUntil !== null && this.clock >= this.camUntil) {
+      this.camUntil = null;
+      this.director.stopAuto();
+      soft(() => ctx.camera.release());
+    }
+    if (this.beat === null || missionDeps().clockCountsBeats) this.clock++;
     if (this.pendingEnd) {
       const end = this.pendingEnd;
       this.pendingEnd = null;
@@ -495,6 +553,7 @@ export class MissionRuntime implements OpHost {
       return;
     }
     if (this.beat === null) {
+      this.probes.step(this, ctx);
       this.updateObjectives();
       if (this.phase === 'stage') this.checkFailRules();
       if (this.phase === 'stage') this.checkTimeLimit();
@@ -660,6 +719,7 @@ export class MissionRuntime implements OpHost {
     if (this.phase !== 'stage' && this.phase !== 'intro') return;
     if (stage < 0 || stage >= this.ir.stages.length) return;
     if (this.phase === 'intro') {
+      if (this.beat?.cut) soft(() => this.ctx.input.pop('cutscene'));
       this.beat = null;
       soft(() => this.ctx.camera.release());
       this.finishIntro();
@@ -774,7 +834,7 @@ export class MissionRuntime implements OpHost {
         this.applyTalkResult(c);
         return;
       case 'cut.state':
-        this.noteEvent('cut.state', { playId: c.playId, state: c.state });
+        this.onCutState(c.playId, c.state, c.trigger);
         return;
       case 'debug.jump':
         this.jumpTo(c.stage);
@@ -857,6 +917,9 @@ export class MissionRuntime implements OpHost {
 
   private onSimEvent(e: SimEvent): void {
     if (!this.ir || e.t.startsWith('mode.cmd')) return;
+    // The main thread's answer (`UiCommand cutscene.state`) arrives as a sim event; the next tick applies it like any command.
+    const cs = parseStateEvent(e);
+    if (cs) this.command({ name: 'cut.state', playId: cs.playId, state: cs.state, ...(cs.item !== undefined ? { item: cs.item } : {}), ...(cs.trigger ? { trigger: cs.trigger } : {}) });
     this.counts.set(e.t, (this.counts.get(e.t) ?? 0) + 1);
     if (e.n !== undefined) this.sums.set(e.t, (this.sums.get(e.t) ?? 0) + e.n);
     if (e.t === 'mode.childExit' && this.activeHook !== null && e.n !== undefined) {
@@ -997,8 +1060,8 @@ export class MissionRuntime implements OpHost {
         return;
       case 'say': {
         const text = this.lineText(op.line);
-        this.noteEvent('say', { speaker: op.speaker, line: op.line });
         const ticks = Math.max(SAY_MIN_TICKS, Math.ceil(text.length * SAY_TICKS_PER_CHAR));
+        this.noteEvent('say', { speaker: op.speaker, line: op.line, ticks });
         this.ctx.ui.patch('hud.subtitle', { speaker: op.speaker, text: op.line, startMs: Math.round((this.ctx.tick * 1000) / 60), endMs: Math.round(((this.ctx.tick + ticks) * 1000) / 60) });
         return op.wait ? { k: 'clock', until: this.clock + ticks } : undefined;
       }
@@ -1012,8 +1075,17 @@ export class MissionRuntime implements OpHost {
       case 'beat':
         return this.startBeat(op.ref, owner);
       case 'camera':
-        if (op.shot === 'release') soft(() => this.ctx.camera.release());
-        else this.noteEvent('camera', { shot: op.shot });
+        this.noteEvent('camera', { shot: op.shot });
+        if (op.shot === 'release') {
+          this.director.stopAuto();
+          this.camUntil = null;
+          soft(() => this.ctx.camera.release());
+        } else {
+          // every shot name is the auto-director's: it picks the angles (D6.2); `subject` defaults to the player, `sec` to 8
+          const who = op.subject ?? 'player';
+          this.director.startAuto(typeof who === 'string' ? who : 'player', missionDeps().missionSeed(this.seed, `camera:${this.camSerial++}`, this.attempt));
+          this.camUntil = this.clock + Math.ceil((op.sec ?? 8) * 60);
+        }
         return;
       case 'fade':
         this.noteEvent('fade', { to: op.to, sec: op.sec });
@@ -1076,40 +1148,78 @@ export class MissionRuntime implements OpHost {
 
   private startBeat(ref: { cutscene: string } | { director: string }, owner: string): WaitSpec | undefined {
     this.noteEvent('beat', { ref: 'director' in ref ? ref.director : ref.cutscene });
-    // cut.request and the CutscenePlayer come with M05b2: a cutscene ref plays as an instant beat here
-    const script = 'director' in ref ? (this.opts.directors?.get(ref.director) ?? null) : null;
-    if (!script || this.flagsCfg.beats === 'instant') {
-      if (script) this.applyEndMarks(script);
-      this.noteEvent('beat.done', { instant: true });
-      return undefined;
-    }
+    const cutRef = 'cutscene' in ref ? (this.opts.cutscenes?.get(ref.cutscene) ?? null) : null;
+    const scriptId = 'director' in ref ? ref.director : (cutRef?.fallback ?? null);
+    const script = scriptId !== null ? (this.opts.directors?.get(scriptId) ?? null) : null;
+    const instant = !script || this.flagsCfg.beats === 'instant';
     const id = ++this.beatSerial;
-    this.beat = { id, owner, script, ticksLeft: Math.max(1, Math.ceil(script.durationSec * 60)) };
-    const player = this.actors.player();
-    const first = script.shots[0];
-    if (player !== null) {
-      soft(() =>
-        this.ctx.camera.direct({
-          mode: 'cinematic',
-          shot: { kind: SHOT_OF_PRESET[first?.preset ?? 'establish'] ?? 'wide', subject: player, fovDeg: 60, damping: 1, durationTicks: this.beat?.ticksLeft ?? 60, seed: script.seed },
-          letterbox: script.letterbox,
-          lockPlayerToggle: true,
-          reason: 'mission',
-        }),
-      );
+    // an instant beat still lasts one tick (C9: "a beat completes in one tick and applies its end marks"), and that tick is not mission time
+    this.beat = { id, owner, script, ticksLeft: instant ? 1 : Math.max(1, Math.ceil((script as DirectorScript).durationSec * 60)), instant };
+    if (!instant) {
+      const sc = script as DirectorScript;
+      this.director.stopAuto();
+      if (cutRef !== null && 'cutscene' in ref) {
+        // A generated cutscene (D7): ask the main thread for it and arm the fallback on the request tick.
+        const playNo = this.opts.playCounter ? this.opts.playCounter() : ++this.playSerial;
+        this.beat.cut = { playNo, playId: playIdOf(playNo), refId: ref.cutscene, state: 'armed', waited: 0 };
+        soft(() => this.ctx.input.push('cutscene'));
+        this.ctx.events.emit(requestEvent(this.ctx.tick, [ref.cutscene], playNo));
+        this.noteEvent('cut.request', { ref: ref.cutscene, n: playNo });
+      }
+      // the full script runs: actors on their start marks, the first shot on this tick; while an answer is awaited the runner holds
+      this.director.arm(sc, this.beat.cut ? 'cutscene' : 'mission', this.ctx.rng(`cutscene:${sc.id}`));
     }
     return { k: 'pred', pred: () => this.beat === null || this.beat.id !== id };
+  }
+
+  /** The main thread's answer for the play in force. A stale or repeated answer is ignored. */
+  private onCutState(playId: string, answer: 'video' | 'fallback' | 'done', trigger?: string): void {
+    const b = this.beat;
+    if (!b?.cut || b.cut.playId !== playId) return;
+    const next = transition(b.cut.state, answer);
+    this.noteEvent('cut.state', { playId, state: answer, ...(trigger ? { trigger } : {}) });
+    if (next === null) return;
+    if (next === 'ended') {
+      this.endBeat(b, 'cut');
+      return;
+    }
+    b.cut.state = next;
+    // The script runs from its start: the command carries no clip position.
+    if (next === 'fallback' && b.script) {
+      b.ticksLeft = Math.max(1, Math.ceil(b.script.durationSec * 60));
+      this.director.arm(b.script, 'cutscene', this.ctx.rng(`cutscene:${b.script.id}`));
+    }
   }
 
   private advanceBeat(): void {
     const b = this.beat;
     if (!b) return;
+    if (b.cut) {
+      if (b.cut.state === 'video') return; // the host pauses the sim; nothing counts while a clip covers the screen
+      if (b.cut.state === 'armed') {
+        b.cut.waited++;
+        // The mission never waits on the main thread: no answer in time is a `fallback`.
+        if (answerOverdue(b.cut)) this.onCutState(b.cut.playId, 'fallback', 'not_ready');
+        return;
+      }
+    }
     b.ticksLeft--;
     if (b.ticksLeft > 0) return;
+    this.endBeat(b, b.cut ? 'script' : 'director');
+  }
+
+  /** The beat is over: end marks, camera and input back, the clock runs on. */
+  private endBeat(b: Beat, via: 'cut' | 'script' | 'director'): void {
     this.beat = null;
-    soft(() => this.ctx.camera.release());
-    if (b.script) this.applyEndMarks(b.script);
-    this.noteEvent('beat.done', { instant: false });
+    if (!b.instant) {
+      this.director.disarm(true);
+      soft(() => this.ctx.camera.release());
+    } else if (b.script) this.applyEndMarks(b.script);
+    if (b.cut) {
+      soft(() => this.ctx.input.pop('cutscene'));
+      this.ctx.events.emit(doneEvent(this.ctx.tick, b.cut.playNo));
+    }
+    this.noteEvent('beat.done', { instant: b.instant, ...(b.cut ? { via } : {}) });
   }
 
   /** Puts each actor of the script on its end mark. */
@@ -1120,7 +1230,11 @@ export class MissionRuntime implements OpHost {
       const h = this.actors.handleOf(a.who);
       if (h === null) continue;
       const p = this.markPos(mark.at);
-      if (p) this.actors.place(h, p, (mark.yawDeg * Math.PI) / 180);
+      if (p) {
+        // a mark names a spot on the map; the actor stands on the ground there
+        const gy = soft(() => this.ctx.physics.groundY(p[0], p[2]));
+        this.actors.place(h, [p[0], gy ?? p[1], p[2]], (mark.yawDeg * Math.PI) / 180);
+      }
     }
   }
 

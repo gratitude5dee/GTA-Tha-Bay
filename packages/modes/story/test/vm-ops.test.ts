@@ -157,7 +157,10 @@ describe('mission VM: control ops (AC-4)', () => {
     h.step(90);
     expect(h.rt.beating).toBe(false);
     expect(flag(h, 't.beat_done')).toBe(1);
-    expect(h.calls.camera).toEqual(['direct', 'release']);
+    // the director publishes its shot on the arming tick and again every tick while it holds (the camera follows the subject), then lets go
+    expect(h.calls.camera[0]).toBe('direct');
+    expect(h.calls.camera.at(-1)).toBe('release');
+    expect(new Set(h.calls.camera.slice(0, -1))).toEqual(new Set(['direct']));
     h.step(40);
     expect(flag(h, 't.after_wait')).toBe(1);
   });

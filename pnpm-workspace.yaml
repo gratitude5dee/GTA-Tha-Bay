@@ -10,6 +10,7 @@ allowBuilds:
   esbuild: true
   workerd: true
   sharp: true
+  supabase: true
 
 minimumReleaseAgeExclude:
   - '@cloudflare/workers-types@5.20261018.1'
