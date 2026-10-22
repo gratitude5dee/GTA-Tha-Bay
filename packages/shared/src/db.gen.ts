@@ -95,6 +95,46 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"consent_event": {
+                  Row: {
+                    "actor": string | null,"at": string,"consent_id": string | null,"details": Json | null,"id": number,"kind": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor"?: string | null,"at"?: string,"consent_id"?: string | null,"details"?: Json | null,"id"?: never,"kind"?: string | null
+                  }
+                  Update: {
+                    "actor"?: string | null,"at"?: string,"consent_id"?: string | null,"details"?: Json | null,"id"?: never,"kind"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "consent_event_consent_id_fkey"
+      columns: ["consent_id"]
+isOneToOne: false
+      referencedRelation: "consent_record"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"consent_record": {
+                  Row: {
+                    "approved_at": string,"approved_by": string,"compensation_ref": string | null,"counsel_represented": boolean,"evidence_r2_key": string,"evidence_sha256": string,"id": string,"media": (string)[],"revocable": boolean,"revocation_terms": string,"revoked_at": string | null,"revoked_reason": string | null,"scopes": (string)[],"signatory_capacity": string,"signatory_name": string,"subject_id": string,"term_end": string | null,"term_start": string,"territory": string,"union_covered": boolean,"use_description": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_at": string,"approved_by": string,"compensation_ref"?: string | null,"counsel_represented": boolean,"evidence_r2_key": string,"evidence_sha256": string,"id": string,"media": (string)[],"revocable"?: boolean,"revocation_terms": string,"revoked_at"?: string | null,"revoked_reason"?: string | null,"scopes": (string)[],"signatory_capacity": string,"signatory_name": string,"subject_id": string,"term_end"?: string | null,"term_start": string,"territory"?: string,"union_covered"?: boolean,"use_description": string
+                  }
+                  Update: {
+                    "approved_at"?: string,"approved_by"?: string,"compensation_ref"?: string | null,"counsel_represented"?: boolean,"evidence_r2_key"?: string,"evidence_sha256"?: string,"id"?: string,"media"?: (string)[],"revocable"?: boolean,"revocation_terms"?: string,"revoked_at"?: string | null,"revoked_reason"?: string | null,"scopes"?: (string)[],"signatory_capacity"?: string,"signatory_name"?: string,"subject_id"?: string,"term_end"?: string | null,"term_start"?: string,"territory"?: string,"union_covered"?: boolean,"use_description"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "consent_record_subject_id_fkey"
+      columns: ["subject_id"]
+isOneToOne: false
+      referencedRelation: "likeness_subject"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"cutscene_catalog": {
                   Row: {
                     "added_at": string,"cache_key": string,"characters": (string)[],"priority": number,"source": string,"template_id": string,"template_ver": number
@@ -137,6 +177,26 @@ isOneToOne: true
                   Relationships: [
                     {
       foreignKeyName: "device_keys_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"encounter_transcripts": {
+                  Row: {
+                    "closed_at": string,"encounter_id": string,"expires_at": string,"npc_id": string,"profile_id": string,"r2_key": string,"turns": number,"usd_micros": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "closed_at": string,"encounter_id": string,"expires_at": string,"npc_id": string,"profile_id": string,"r2_key": string,"turns": number,"usd_micros": number
+                  }
+                  Update: {
+                    "closed_at"?: string,"encounter_id"?: string,"expires_at"?: string,"npc_id"?: string,"profile_id"?: string,"r2_key"?: string,"turns"?: number,"usd_micros"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "encounter_transcripts_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
       referencedRelation: "profiles"
@@ -225,6 +285,60 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"likeness_subject": {
+                  Row: {
+                    "aliases": (string)[],"created_at": string,"deceased": boolean,"default_tier": string,"died_on": string | null,"estate_contact": string | null,"id": string,"marks": (string)[],"notes": string | null,"real_name": string,"sos_registration_ref": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aliases"?: (string)[],"created_at"?: string,"deceased"?: boolean,"default_tier": string,"died_on"?: string | null,"estate_contact"?: string | null,"id": string,"marks"?: (string)[],"notes"?: string | null,"real_name": string,"sos_registration_ref"?: string | null
+                  }
+                  Update: {
+                    "aliases"?: (string)[],"created_at"?: string,"deceased"?: boolean,"default_tier"?: string,"died_on"?: string | null,"estate_contact"?: string | null,"id"?: string,"marks"?: (string)[],"notes"?: string | null,"real_name"?: string,"sos_registration_ref"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"npc_memory": {
+                  Row: {
+                    "created_at": string,"embedding": unknown,"expires_at": string,"game_time": number,"id": number,"importance": number,"kind": string,"last_accessed_at": string | null,"npc_id": string,"profile_id": string,"scope": string,"source": string,"text": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"embedding": unknown,"expires_at"?: string,"game_time": number,"id"?: never,"importance": number,"kind": string,"last_accessed_at"?: string | null,"npc_id": string,"profile_id": string,"scope": string,"source": string,"text": string
+                  }
+                  Update: {
+                    "created_at"?: string,"embedding"?: unknown,"expires_at"?: string,"game_time"?: number,"id"?: never,"importance"?: number,"kind"?: string,"last_accessed_at"?: string | null,"npc_id"?: string,"profile_id"?: string,"scope"?: string,"source"?: string,"text"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "npc_memory_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"npc_relationship": {
+                  Row: {
+                    "affinity": number,"encounters": number,"flags": NonNullable<Json>,"last_seen_at": string,"npc_id": string,"profile_id": string,"soul_version": number,"summary": string,"trust": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "affinity"?: number,"encounters"?: number,"flags"?: NonNullable<Json>,"last_seen_at"?: string,"npc_id": string,"profile_id": string,"soul_version": number,"summary"?: string,"trust"?: number
+                  }
+                  Update: {
+                    "affinity"?: number,"encounters"?: number,"flags"?: NonNullable<Json>,"last_seen_at"?: string,"npc_id"?: string,"profile_id"?: string,"soul_version"?: number,"summary"?: string,"trust"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "npc_relationship_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"deleted_at": string | null,"display_name": string | null,"display_name_state": string,"flags": NonNullable<Json>,"id": string,"last_seen_at": string,"registered_at": string | null,"tier": string
@@ -258,6 +372,20 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"roster_flag": {
+                  Row: {
+                    "killed": boolean,"npc_id": string,"reason": string | null,"scope": (string)[],"set_at": string,"set_by": string,"stand_in": string,"ticket_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "killed"?: boolean,"npc_id": string,"reason"?: string | null,"scope"?: (string)[],"set_at"?: string,"set_by": string,"stand_in": string,"ticket_id"?: string | null
+                  }
+                  Update: {
+                    "killed"?: boolean,"npc_id"?: string,"reason"?: string | null,"scope"?: (string)[],"set_at"?: string,"set_by"?: string,"stand_in"?: string,"ticket_id"?: string | null
+                  }
+                  Relationships: [
+                    
                   ]
                 },"staff_roles": {
                   Row: {
@@ -299,7 +427,11 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "match_npc_memories":
+{ Args: { "k"?: number,"now_gt": number,"p_npc": string,"p_profile": string,"q": unknown }; Returns: {
+              "id": number,"kind": string,"score": number,"text": string
+            }[]
+                           }
           }
           Enums: {
             [_ in never]: never
