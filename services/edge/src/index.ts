@@ -18,7 +18,9 @@ import { CRON_JOBS, runJobs } from './ops/scheduled.ts';
 import { uuidv7 } from './uuidv7.ts';
 
 export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
+export { PlayerQuotaDO } from './budget/QuotaDO.ts';
 export { CutsceneJobDO } from './cutscenes/CutsceneJobDO.ts';
+export { EncounterDO } from './npc/EncounterDO.ts';
 export { FalGateDO, GenJobWorkflow } from '@dv/pipeline';
 
 const ROUTES: readonly Route[] = [

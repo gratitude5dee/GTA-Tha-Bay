@@ -20,10 +20,15 @@
     "bindings": [
       { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
       { "name": "FAL_GATE", "class_name": "FalGateDO" },
-      { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+      { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+      { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+      { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
     ]
   },
-  "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+  "migrations": [
+    { "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] },
+    { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] }
+  ],
   // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
   "r2_buckets": [
     { "binding": "MEDIA", "bucket_name": "tha-bay-media-prod" },
@@ -89,10 +94,15 @@
         "bindings": [
           { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
           { "name": "FAL_GATE", "class_name": "FalGateDO" },
-          { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+          { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+          { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+          { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
         ]
       },
-      "migrations": [{ "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] }],
+      "migrations": [
+        { "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] },
+        { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] }
+      ],
       // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
       "r2_buckets": [
         { "binding": "MEDIA", "bucket_name": "tha-bay-media-staging" },
@@ -143,7 +153,9 @@
       "bindings": [
         { "name": "CUTSCENE_JOB", "class_name": "CutsceneJobDO" },
         { "name": "FAL_GATE", "class_name": "FalGateDO" },
-        { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" }
+        { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
+        { "name": "ENCOUNTER", "class_name": "EncounterDO" },
+        { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
       ]
     },
     // previews take no `migrations` key (wrangler 4.151.1 rejects it); the DO classes migrate through the staging deploy.
