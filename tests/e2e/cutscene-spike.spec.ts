@@ -4,7 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * M04c AC-6 (@cutscene): the flat cutscene path on the QA page /qa/cutscene-spike.html. The assertions read
  * `__dvBridge.media.state()` and the DOM, never pixels. WebKit on Linux may decode neither fixture codec: that project (and any project
- * where `canPlayType` accepts neither rendition) feeds the same host from `canvas.captureStream(24)` (BD-M04c-03). The codec results
+ * where `canPlayType` accepts neither rendition) feeds the same host from `canvas.captureStream(24)` (BD-M04c-04). The codec results
  * and the blank-clip outcome go to test-results/codecs.<project>.json (U-REC-1, U-PLT-17).
  */
 interface Media {
