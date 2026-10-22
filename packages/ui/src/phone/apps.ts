@@ -14,6 +14,8 @@ export interface PhoneEnv {
   mode: string | null;
   /** Mode tiles as rows (Jobs); built with `tileRows` by the page. */
   jobs: ListRow[];
+  /** Story missions as rows (Jobs, M05c1); built with `missionRows` from `mode.story.jobs`. */
+  missions?: ListRow[];
   /** Cash in cents, when the wallet is known. */
   cashCents: number | undefined;
   garage: GarageCard[];
@@ -56,7 +58,18 @@ export function appScreen(id: string, env: PhoneEnv): ScreenDef {
       return {
         id: 'app-jobs',
         title: lk('phone.app.jobs'),
-        children: [...head('phone.app.jobs'), { k: 'list', id: 'phone-jobs', rows: env.jobs, onPress: { call: 'phone.job' }, empty: lk('modes.empty') }, back()],
+        children: [
+          ...head('phone.app.jobs'),
+          ...(env.missions && env.missions.length > 0
+            ? [
+                { k: 'heading', text: lk('phone.jobs.missions'), level: 2 } as Widget,
+                { k: 'list', id: 'phone-missions', rows: env.missions, onPress: { call: 'phone.job' }, empty: lk('phone.jobs.empty') } as Widget,
+                { k: 'heading', text: lk('phone.jobs.modes'), level: 2 } as Widget,
+              ]
+            : []),
+          { k: 'list', id: 'phone-jobs', rows: env.jobs, onPress: { call: 'phone.job' }, empty: lk('modes.empty') },
+          back(),
+        ],
       };
     case 'garage': {
       const g = garageScreen(env.garage, true);
@@ -112,4 +125,27 @@ export function appScreen(id: string, env: PhoneEnv): ScreenDef {
     default:
       return { id: `app-${id}`, title: lk(`phone.app.${id}`), children: [...head(`phone.app.${id}`), { k: 'text', text: lk('phone.soon'), tone: 'muted' }, back()] };
   }
+}
+
+/** One row of `mode.story.jobs` (see `JobRow` in `@dv/mode-story`; the UI reads the view-model, never the package). */
+export interface MissionJob {
+  id: string;
+  title: string;
+  state: 'locked' | 'available' | 'active' | 'passed';
+  trigger: string;
+  giver?: string;
+  needs?: string;
+  medals?: number;
+  bestSec?: number;
+}
+
+/** The Jobs rows of the missions: id `mis:<missionId>`; only an available or passed mission can be started (a replay). */
+export function missionRows(jobs: readonly MissionJob[]): ListRow[] {
+  return jobs.map((j) => {
+    const state = t(`phone.jobs.state.${j.state}`);
+    const row: ListRow = { id: `mis:${j.id}`, text: j.title, detail: state };
+    if (j.state === 'locked') return { ...row, disabled: true, hint: j.needs ? t('phone.jobs.needs', { mission: j.needs }) : state };
+    if (j.state === 'active') return { ...row, disabled: true, hint: state };
+    return row;
+  });
 }

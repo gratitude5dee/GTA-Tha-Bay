@@ -3,7 +3,7 @@ import {
   type AssetRef, type CameraDirective, type CombatApi, type EcsApi, type EntityHandle, type EconomyApi, type GameModeId, type InputContextId, type InputFrame,
   type InteractionApi, type ModeContext, type ModeEnterArgs, type ModeOrigin, type PhysicsQueries, type PrefabService, type PursuitApi,
   type Rng, type RngStreams, type SaveReason, type SimEventBus, type SimScheduler, type TelemetryName, type TimelineRecorder, type UiBridge,
-  type UnlockApi, type WorldApi, type WorldClockApi, type ZoneService,
+  type UnlockApi, type VehicleInstance, type WorldApi, type WorldClockApi, type ZoneService,
 } from '@dv/shared';
 import { NotYetAvailable, combatStub, npcStub, schedulerStub, timelineStub, zonesStub } from './stubs.ts';
 
@@ -37,6 +37,16 @@ export interface ContextPorts {
   combat?: CombatApi | null;
   /** Sets the input of a script-driven vehicle (NPC cars of a mission). Reaches the mode as `ctx.vehicleAi`, which is not part of C06 (BD-M05a1-04). */
   vehicleAi?: VehicleAiPort | null;
+  /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
+  garage?: GaragePort | null;
+}
+
+export interface GaragePort {
+  /** Adds an instance, idempotent by `id`; never refused for lack of room. False when the id was already there. */
+  add(instance: VehicleInstance): boolean;
+  /** Cars in the garage and the slots the owned safehouses offer. */
+  count(): number;
+  slots(): number;
 }
 
 export interface VehicleAiPort {
@@ -101,5 +111,6 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
     startChild: (child, args) => p.startChild(id, child, args),
   };
   if (p.vehicleAi) (ctx as ModeContext & { vehicleAi: VehicleAiPort }).vehicleAi = p.vehicleAi;
+  if (p.garage) (ctx as ModeContext & { garage: GaragePort }).garage = p.garage;
   return ctx;
 }

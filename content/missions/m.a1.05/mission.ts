@@ -19,6 +19,7 @@ export default defineMission({
   giver: { phone: 'saint_static' },
   requires: [passed('m.a1.04')],
   start: phoneTrigger('saint_static'),
+  lines: ['line.m.a1.05.talk.signup.open'],
   cast: {
     host: npc({ slot: 'RAP_HYPHY_ELDER', role: 'host', spawn: at(37.78466, -122.40764) }),
     rival: npc({ slot: 'RAP_NEW_WAVE', role: 'opponent', spawn: at(37.78474, -122.40780) }),

@@ -106,7 +106,9 @@
   "lines": [
     "line.m.a1.04.out",
     "line.m.a1.04.photo",
-    "line.m.a1.04.start"
+    "line.m.a1.04.start",
+    "line.m.a1.04.talk.door.open",
+    "line.m.a1.04.talk.influencer.open"
   ],
   "medals": {
     "goldSec": 540,

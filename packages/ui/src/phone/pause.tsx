@@ -14,7 +14,7 @@ import { buildTiles, tileRows, type ModeTile } from '../pages/modes.ts';
 import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
-import { homeScreen, type PhoneEnv, type RideDestination } from './apps.ts';
+import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
@@ -117,6 +117,7 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
   return {
     mode,
     jobs: tileRows(views),
+    missions: missionRows(((ctx.vm<JsonValue>('mode.story.jobs') as unknown as MissionJob[] | undefined) ?? []).filter((j) => typeof j?.id === 'string')),
     cashCents: wallet?.cashCents,
     garage: garageCards(ctx.vm<JsonValue>('sys.garage')),
     ride,
@@ -182,7 +183,11 @@ export function PhonePage(props: PageProps) {
             break;
           }
           case 'phone.job':
-            if (rowId) ctx.startMode(rowId as never);
+            if (rowId?.startsWith('mis:')) {
+              // a story mission: the sim starts it (or toasts why not); the phone closes so the player can play
+              ctx.sendUi({ t: 'mode.cmd', mode: 'story', name: 'mission.start', args: { id: rowId.slice(4) } });
+              shell.back();
+            } else if (rowId) ctx.startMode(rowId as never);
             break;
           case 'garage.card': {
             const cmd = rowId ? cardAction(rowId) : null;

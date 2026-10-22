@@ -18,6 +18,7 @@ export default defineMission({
   giver: { phone: 'odessa_calloway' },
   requires: [passed('m.a1.02')],
   start: phoneTrigger('odessa_calloway'),
+  lines: ['line.m.a1.04.talk.influencer.open', 'line.m.a1.04.talk.door.open'],
   cast: {
     influencer: npc({ slot: 'INFLUENCER', role: 'cameo', spawn: at(37.77694, -122.40451) }),
     door_host: npc({ soul: 'door_host', role: 'civilian', spawn: at(37.77712, -122.40463) }),

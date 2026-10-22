@@ -89,6 +89,11 @@ export interface BootEngineOptions {
    * it when the sim boots. Ignored unless `qa` and `flags.mission` are set.
    */
   mission?: Record<string, unknown>;
+  /**
+   * The story's mission catalog (M05c1): the compiled missions, their directors and line texts. The story mode reads it from the boot
+   * payload (`config.story`): its Jobs list, the start markers and the auto trigger. Any build.
+   */
+  story?: Record<string, unknown>;
   /** The Phone action was pressed (`client.Phone`); the shell opens the phone (M04b2). */
   onPhone?: () => void;
   /** Show the touch layer on any device (`?touch=1`). */
@@ -297,6 +302,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       },
     };
   }
+
+  if (opts.story) boot = { ...boot, config: { ...boot.config, story: opts.story } };
 
   // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
