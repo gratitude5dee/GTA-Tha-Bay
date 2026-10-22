@@ -10,6 +10,7 @@ import { FightCore } from '../../src/fight/step.ts';
 import { makeParseParams, ringPush, updateCharge, dirHas, ringDir } from '../../src/fight/motion.ts';
 import type { ParseState } from '../../src/fight/motion.ts';
 import { FB } from '../../src/fight/input.ts';
+import { Rng } from '../../src/rng.ts';
 
 export const TUNING = tuningJson as unknown as FightTuning;
 export const PLAYER = kitJson as unknown as FighterDef;
@@ -124,6 +125,42 @@ export function packWith(mutate: (a: FighterDef, b: FighterDef) => void): { pack
     ],
   };
 }
+/**
+ * A seeded scripted opponent: random macros (walk, jump, normals, motions, throw, Check, Clear, supers) strung together.
+ * Deterministic from `seed`; used by the hash, replay and allocation specs.
+ */
+export function randomBot(seed: number, ticks: number, facing: number): number[] {
+  const rng = new Rng(seed);
+  const s = new Script(facing);
+  const pick = (n: number): number => Math.floor(rng.nextFloat() * n);
+  const P = [BTN.LP, BTN.MP, BTN.HP], K = [BTN.LK, BTN.MK, BTN.HK];
+  while (s.length < ticks) {
+    switch (pick(24)) {
+      case 0: case 1: case 2: s.hold(4 + pick(20), 6); break;
+      case 3: s.hold(4 + pick(14), 4); break;
+      case 4: s.hold(8 + pick(20), pick(2) === 0 ? 1 : 4); break;           // block
+      case 5: s.hold(1, pick(3) === 0 ? 7 : pick(2) === 0 ? 9 : 8).idle(2 + pick(30)); break;   // jump
+      case 6: s.press(P[pick(3)] as number).idle(pick(10)); break;
+      case 7: s.press(P[pick(3)] as number, 2).idle(pick(10)); break;
+      case 8: s.press(K[pick(3)] as number).idle(pick(10)); break;
+      case 9: case 10: s.motion('236', P[pick(3)] as number).idle(pick(20)); break;
+      case 11: s.motion('623', P[pick(3)] as number).idle(pick(20)); break;
+      case 12: s.motion('214', K[pick(3)] as number).idle(pick(20)); break;
+      case 13: s.press(BTN.LP | BTN.LK).idle(pick(20)); break;
+      case 14: s.press(BTN.MP | BTN.MK).idle(pick(20)); break;
+      case 15: s.press(BTN.HP | BTN.HK).idle(pick(10)); break;
+      case 16: s.motion('236236', P[pick(3)] as number).idle(pick(30)); break;
+      case 17: s.motion('623', BTN.LP | BTN.MP).idle(pick(20)); break;
+      case 18: s.hold(1, 6).idle(2).hold(1, 6).idle(pick(10)); break;       // dash
+      case 19: s.press(BTN.TA).idle(pick(10)); break;
+      case 20: s.press(BTN.LP).idle(2).press(BTN.MP).idle(2).press(BTN.HP).idle(pick(12)); break;   // chain
+      case 21: s.motion('214214', P[pick(3)] as number).idle(pick(20)); break;
+      default: s.idle(2 + pick(20));
+    }
+  }
+  return s.out.slice(0, ticks);
+}
+
 export function moveOf(def: FighterDef, id: string): MoveDef {
   const m = [...def.moves, ...def.supers].find((x) => x.id === id);
   if (!m) throw new Error(`no move ${id}`);

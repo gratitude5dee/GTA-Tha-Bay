@@ -44,7 +44,7 @@ export function fromInputFrame(f: InputFrame): FighterInput {
 }
 
 /**
- * The inverse of `fromInputFrame` for QA drivers: an InputFrame that maps back to exactly `fi`.
+ * The inverse of `fromInputFrame` for QA drivers: an InputFrame that maps back to `fi` (left+right cancels, as SOCD does).
  * `device` is the C03 DeviceKind index (7 = 'bot'); `context` 2 = 'fighter' in the InputContextId order.
  */
 export function toInputFrame(fi: FighterInput, tick: number, device = 7): InputFrame {
@@ -61,8 +61,10 @@ export function toInputFrame(fi: FighterInput, tick: number, device = 7): InputF
   if (fi & FB.TA) buttons |= bit(SimButton.Emote);
   if (fi & FB.BL) buttons |= bit(SimButton.Block);
   if (fi & FB.DA) buttons |= bit(SimButton.Interact);
+  // Up and Down both survive (stick up, Crouch button for down); left+right cancels on the stick, which is what SOCD makes of it.
   const moveX = (fi & FB.Right ? 127 : 0) - (fi & FB.Left ? 127 : 0);
-  const moveY = (fi & FB.Up ? 127 : 0) - (fi & FB.Down ? 127 : 0);
+  const moveY = fi & FB.Up ? 127 : fi & FB.Down ? -127 : 0;
+  if ((fi & FB.Up) !== 0 && (fi & FB.Down) !== 0) buttons |= bit(SimButton.Crouch);
   return {
     tick: tick >>> 0, buttons: buttons >>> 0, pressed: 0, released: 0, moveX, moveY,
     throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 2, device,

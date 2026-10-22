@@ -1,0 +1,30 @@
+{
+  "v": 1,
+  "frameDataHash": "8f523b4c43eb1e19193ac6e9e54a0c997bc28694833851098db63585f118182f",
+  "seed": 11,
+  "rules": {
+    "roundsToWin": 2,
+    "timerFrames": 5940,
+    "simpleDmgPct": 80,
+    "leniencyX100": 100,
+    "cpuLevel": [
+      null,
+      null
+    ],
+    "training": false,
+    "shutdowns": false,
+    "cinematics": "off"
+  },
+  "bots": [
+    101,
+    202
+  ],
+  "hashes": {
+    "0": "d865dad3b4e4b97f",
+    "60": "7888e613c2673166",
+    "600": "dbdab92c70317003",
+    "1000": "de3362a91d56e10c",
+    "3000": "c10206e1bec12fc1",
+    "5000": "fb6ab7e00d221316"
+  }
+}

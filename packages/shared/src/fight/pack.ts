@@ -171,7 +171,7 @@ export function compilePack(pack: FrameDataPack): CompiledPack {
 export function derivedAdvantage(m: MoveDef, hit: HitDef): { advHit: number | null; advBlock: number | null } {
   const tail = m.active + m.recovery - 1;
   return {
-    advHit: hit.launch ? null : hit.hitstun - tail,
+    advHit: hit.launch || m.hits.some((h) => h.hit.launch !== undefined) ? null : hit.hitstun - tail,
     advBlock: hit.guard === 'throw' || hit.blockstun === 0 ? null : hit.blockstun - tail,
   };
 }

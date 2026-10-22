@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/fight/replay.v1.schema.json",
+  "title": ".dvfight v1 replay (FC2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "build", "frameDataHash", "fightDataVersion", "seed", "rules", "lineup", "stage", "inputs", "checkpoints", "final"],
+  "properties": {
+    "v": { "const": 1 },
+    "build": { "type": "string" },
+    "frameDataHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "fightDataVersion": { "const": 1 },
+    "seed": { "type": "integer" },
+    "rules": {
+      "type": "object", "additionalProperties": false,
+      "required": ["roundsToWin", "timerFrames", "simpleDmgPct", "leniencyX100", "cpuLevel", "training", "shutdowns", "cinematics"],
+      "properties": {
+        "roundsToWin": { "enum": [1, 2, 3] },
+        "timerFrames": { "type": "integer", "minimum": 0 },
+        "simpleDmgPct": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "leniencyX100": { "type": "integer", "minimum": 50, "maximum": 400 },
+        "cpuLevel": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "enum": [0, 1, 2, 3, null] } },
+        "training": { "type": "boolean" },
+        "shutdowns": { "type": "boolean" },
+        "cinematics": { "enum": ["off", "first", "always"] }
+      }
+    },
+    "lineup": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["slot", "fighterId", "scheme", "costume"],
+        "properties": {
+          "slot": { "type": "string" }, "fighterId": { "type": "string" }, "scheme": { "enum": ["classic", "simple", "pose"] },
+          "autoBlock": { "type": "boolean" }, "costume": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "stage": { "type": "string" },
+    "inputs": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "string", "pattern": "^[A-Za-z0-9+/]*={0,2}$" } },
+    "checkpoints": {
+      "type": "object", "additionalProperties": false, "required": ["every", "hashes"],
+      "properties": {
+        "every": { "const": 60 },
+        "hashes": { "type": "array", "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer", "minimum": 0, "maximum": 4294967295 } } }
+      }
+    },
+    "final": {
+      "type": "object", "additionalProperties": false, "required": ["winner", "rounds"],
+      "properties": {
+        "winner": { "type": "integer", "minimum": -1, "maximum": 1 },
+        "rounds": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer", "minimum": 0 } }
+      }
+    }
+  }
+}
