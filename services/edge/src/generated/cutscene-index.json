@@ -1,6 +1,184 @@
 {
-  "builtAt": 1792663158369,
+  "builtAt": 1792697781070,
   "entries": [
+    {
+      "audio": "generated-ambient",
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 7200,
+          "kind": "dialogue",
+          "line": "line.m.a1.01.dawn.1",
+          "speaker": "odessa_calloway",
+          "startMs": 600
+        }
+      ],
+      "durationMs": 8000,
+      "fallback": "m.a1.01.dawn",
+      "key": "5d520f3942ed02af1f2ac3541e256008f213ab84495b45ae620bff7b9833bb3d",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 237807443,
+        "stage": "beat.cut.story.m.a1.01.dawn@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.01.dawn"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [
+        {
+          "id": "tavi_okafor",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 6000,
+          "kind": "dialogue",
+          "line": "line.m.a1.03.raid.1",
+          "speaker": "tavi_okafor",
+          "startMs": 1500
+        },
+        {
+          "endMs": 12500,
+          "kind": "dialogue",
+          "line": "line.m.a1.03.raid.2",
+          "speaker": "tavi_okafor",
+          "startMs": 8000
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.a1.03.raid",
+      "key": "7c22cb30d6a173c4d55f4ecdcdecf60346b30bc08e4e6fb95a44c8d6cae383ef",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "tavi_okafor",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 1687856682,
+        "stage": "beat.cut.story.m.a1.03.raid@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.03.raid"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [
+        {
+          "id": "corwin_hale",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 7000,
+          "kind": "dialogue",
+          "line": "line.m.a1.04.keynote.1",
+          "speaker": "corwin_hale",
+          "startMs": 1200
+        },
+        {
+          "endMs": 12800,
+          "kind": "dialogue",
+          "line": "line.m.a1.04.keynote.2",
+          "speaker": "corwin_hale",
+          "startMs": 8000
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.a1.04.keynote",
+      "key": "f9df78eb4d54793c0085aa437ab2e6d88d4d2d95c88a640101afde3063358150",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "corwin_hale",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 1957685826,
+        "stage": "beat.cut.story.m.a1.04.keynote@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.04.keynote"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 7000,
+          "kind": "dialogue",
+          "line": "line.m.a1.05.ring.1",
+          "speaker": "standin_rap_elder",
+          "startMs": 800
+        }
+      ],
+      "durationMs": 8000,
+      "fallback": "m.a1.05.ring",
+      "key": "48c2676c03089118904ef1d1b3e099af9f630663244e8145d926ed232932e832",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 3918657841,
+        "stage": "beat.cut.story.m.a1.05.ring@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.05.ring"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 6800,
+          "kind": "dialogue",
+          "line": "line.m.a1.06.antenna.1",
+          "speaker": "saint_static",
+          "startMs": 700
+        }
+      ],
+      "durationMs": 8000,
+      "fallback": "m.a1.06.antenna",
+      "key": "dff496d5df556ae4d3c49a119e640c3aa7f112f4851e5fbf48e25e046ecd9f42",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 380274034,
+        "stage": "beat.cut.story.m.a1.06.antenna@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.06.antenna"
+    },
     {
       "audio": "engine",
       "characters": [

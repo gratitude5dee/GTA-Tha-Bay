@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.a1.01.dawn",
+  "variants": {
+    "default": "assets/src/data/director.m.a1.01.dawn/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.01"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

@@ -5,16 +5,19 @@
  * whose IR the page puts in the boot payload). The mission store, the Jobs app and the markers that start a mission come with
  * M05c1. Sim code under the C02 lint.
  */
-import type { GameModeSim, MissionIR, ModeContext, ModeExitReason, SimEvent, StorySlice } from '@dv/shared';
+import type { GameModeSim, JsonValue, MissionIR, ModeContext, ModeExitReason, Placement, SimEvent, StorySlice } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import type { StoryWrapEnv } from '@dv/engine/sim';
 import { resolveMission } from './compiler/resolve.ts';
 import type { CompileError } from './compiler/types.ts';
 import { readCheckpoint } from './vm/checkpoint.ts';
 import { MissionRuntime } from './vm/runtime.ts';
+import { Actors } from './vm/actors.ts';
 import type { VehicleDriver } from './vm/tasks.ts';
 import { DEFAULT_FLAGS, type RuntimeFlags, type StoryCommand } from './vm/types.ts';
 import { missionDeps } from './vm/deps.ts';
+import { MissionStore, type CatalogPayload, type JobRow } from './missions/store.ts';
+import { StoryPlaces, type ShopPorts } from './missions/index.ts';
 
 /** What the page puts in `BootPayload.config.mission` for `?mission=<id>` (QA builds only). */
 export interface QaMissionBoot {
@@ -46,7 +49,24 @@ export interface BeginOptions {
   lines?: Readonly<Record<string, string>>;
 }
 
+type ShopGarage = NonNullable<ShopPorts['garage']>;
+type ShopWardrobe = NonNullable<ShopPorts['wardrobe']>;
 const DEBUG_EVERY = 6;
+/** The triggers and the Jobs list are looked at every 15 ticks (4 Hz). */
+const TRIGGER_EVERY = 15;
+/** A new game moves the player to the first auto mission's start only when it is farther than this from it. */
+const AUTO_PLACE_MIN_M = 300;
+const sq = (n: number): number => n * n;
+
+/** The local player's position on the ground plane, or null while it does not exist. */
+function playerXZ(ctx: ModeContext): [number, number] | null {
+  const p = new Actors(() => ctx, () => '').pos('player');
+  return p ? [p[0], p[2]] : null;
+}
+
+function playerInVehicle(ctx: ModeContext): boolean {
+  return new Actors(() => ctx, () => '').playerVehicle() !== null;
+}
 /** The QA boot path starts the mission on the first tick, before the gray-box colliders exist: it asks again every 6 ticks for this long. */
 const PATIENCE_TICKS = 900;
 
@@ -67,6 +87,22 @@ export class StoryController {
   private flags: RuntimeFlags = { ...DEFAULT_FLAGS };
   /** A mission waiting for the world under it to be resident (the QA boot path); see `PATIENCE_TICKS`. */
   private pending: { ir: MissionIR; o: BeginOptions; deadline: number } | null = null;
+  /** The bundled missions of the page (`BootPayload.config.story`), null for a headless host and the QA scenes without them. */
+  store: MissionStore | null = null;
+  /** Missions a trigger tried to start this session and that did not resolve: not tried again (the Jobs app still can). */
+  private triedTrigger = new Set<string>();
+  private startMarks = new Map<string, { handle: number | null; blip: string }>();
+  private startPos = new Map<string, [number, number] | null>();
+  private jobsJson = '';
+  /** Safehouses and shops (M05c1); ticks only with a catalog (the page), so a headless run is unchanged. */
+  private readonly places = new StoryPlaces({
+    ctx: () => this.ctx as ModeContext,
+    story: () => this.story as StorySlice,
+    ports: (c) => {
+      const x = c as ModeContext & { garage?: ShopGarage; wardrobe?: ShopWardrobe };
+      return { garage: x.garage ?? null, wardrobe: x.wardrobe ?? null, respray: (k: string) => c.pursuit.respray(k) };
+    },
+  });
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -76,6 +112,13 @@ export class StoryController {
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
+    this.triedTrigger.clear();
+    this.startMarks.clear();
+    this.startPos.clear();
+    this.jobsJson = '';
+    this.places.reset();
+    const cfg = this.env.bootConfig()['story'] as CatalogPayload | undefined;
+    this.store = cfg && typeof cfg === 'object' && Array.isArray(cfg.missions) ? new MissionStore(cfg) : null;
   }
 
   /** `?mission=<id>` in a QA build: the page put the IR in the boot payload. */
@@ -155,9 +198,132 @@ export class StoryController {
         this.begin(waiting.ir, waiting.o);
       }
     }
+    if (this.store) {
+      this.triggers(ctx, this.store);
+      if (this.story) this.places.tick(ctx);
+    }
     const rt = this.rt;
     if (!rt) return;
     if (rt.active) rt.tick(ctx);
+  }
+
+  /** Starts a catalog mission by id (the Jobs app, a trigger). A mission already running is never replaced. */
+  startById(id: string, ctx: ModeContext): BeginResult | null {
+    const store = this.store;
+    const entry = store?.get(id);
+    if (!store || !entry || this.pending || this.rt?.active) return null;
+    this.clearStartMarks(ctx);
+    return this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines });
+  }
+
+  /** The triggers and the Jobs list, a few times a second while no mission runs. */
+  private triggers(ctx: ModeContext, store: MissionStore): void {
+    const story = this.story;
+    if (!story || ctx.tick % TRIGGER_EVERY !== 0) return;
+    const busy = this.pending !== null || this.rt?.active === true;
+    if (busy) {
+      if (this.startMarks.size > 0) this.clearStartMarks(ctx);
+    } else {
+      this.checkTriggers(ctx, store, story);
+    }
+    if (ctx.tick % (TRIGGER_EVERY * 2) === 0) {
+      const rows: JobRow[] = store.rows(story, ctx, busy ? (this.rt?.missionId ?? null) : null);
+      const json = JSON.stringify(rows);
+      if (json !== this.jobsJson) {
+        this.jobsJson = json;
+        ctx.ui.patch('mode.story.jobs', rows as unknown as JsonValue);
+      }
+    }
+  }
+
+  private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {
+    if (!store.triggers) return;
+    const due = store.autoDue(story, ctx);
+    if (due && !this.triedTrigger.has(due.ir.id)) {
+      this.triedTrigger.add(due.ir.id);
+      if (store.autoStart && Object.keys(story.missions).length === 0) this.placePlayer(ctx, store.autoStart);
+      const res = this.startById(due.ir.id, ctx);
+      if (res && !res.ok) return;
+      if (res) return;
+    }
+    const player = playerXZ(ctx);
+    const cands = store.markerCandidates(story, ctx);
+    const keep = new Set<string>();
+    for (const e of cands) {
+      const s = e.ir.start;
+      if (s.k !== 'marker') continue;
+      const at = this.startXZ(ctx, e.ir.id, s.at);
+      if (!at) continue;
+      keep.add(e.ir.id);
+      this.showStartMark(ctx, e.ir.id, at, e.ir.title);
+      if (!player || this.triedTrigger.has(e.ir.id)) continue;
+      const dx = player[0] - at[0];
+      const dz = player[1] - at[1];
+      if (dx * dx + dz * dz > s.radiusM * s.radiusM) continue;
+      if (s.onFoot === true && playerInVehicle(ctx)) continue;
+      this.triedTrigger.add(e.ir.id);
+      this.startById(e.ir.id, ctx);
+      return;
+    }
+    for (const id of [...this.startMarks.keys()]) if (!keep.has(id)) this.removeStartMark(ctx, id);
+  }
+
+  private startXZ(ctx: ModeContext, id: string, at: Placement): [number, number] | null {
+    const known = this.startPos.get(id);
+    if (known !== undefined) return known;
+    if (!Array.isArray(at.at)) return null;
+    const e = ctx.world.resolver.toEnu({ lat: at.at[0], lng: at.at[1] });
+    const p: [number, number] = [e[0], e[2]];
+    this.startPos.set(id, p);
+    return p;
+  }
+
+  private showStartMark(ctx: ModeContext, id: string, at: [number, number], titleKey: string): void {
+    const gy = ctx.physics.groundY(at[0], at[1]);
+    const have = this.startMarks.get(id);
+    if (have && (have.handle !== null || gy === null)) return;
+    let handle: number | null = null;
+    if (gy !== null) {
+      try {
+        handle = ctx.prefabs.spawn('marker.beam', { pos: [at[0], gy, at[1]], yaw: 0 }, `story:start:${id}` as never) as unknown as number;
+      } catch {
+        handle = null;
+      }
+    }
+    const blip = `story:start:${id}`;
+    try {
+      ctx.world.map.setBlip({ id: blip, kind: 'mission', shape: 'diamond', colorToken: 'mission', x: at[0], z: at[1], priority: 8, labelKey: titleKey });
+    } catch {
+      // a world without a map layer
+    }
+    this.startMarks.set(id, { handle, blip });
+  }
+
+  private removeStartMark(ctx: ModeContext, id: string): void {
+    const m = this.startMarks.get(id);
+    if (!m) return;
+    try {
+      if (m.handle !== null) ctx.prefabs.despawn(m.handle as never);
+      ctx.world.map.removeBlip(m.blip);
+    } catch {
+      // already gone
+    }
+    this.startMarks.delete(id);
+  }
+
+  private clearStartMarks(ctx: ModeContext): void {
+    for (const id of [...this.startMarks.keys()]) this.removeStartMark(ctx, id);
+  }
+
+  /** A new game begins at the Yard: the player is moved there when the first auto mission starts and the story is fresh. */
+  private placePlayer(ctx: ModeContext, at: { lat: number; lng: number; yawDeg: number }): void {
+    const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+    const p = playerXZ(ctx);
+    if (p && sq(p[0] - e[0]) + sq(p[1] - e[2]) < AUTO_PLACE_MIN_M * AUTO_PLACE_MIN_M) return;
+    const h = ctx.ecs.byKey('player:0');
+    if (h === 0) return;
+    const gy = ctx.physics.groundY(e[0], e[2]);
+    new Actors(() => ctx, () => '').place(h, [e[0], gy ?? e[1], e[2]], (at.yawDeg * Math.PI) / 180);
   }
 
   /** QA builds only: the debug state for the overlay and the bridge; the literal test lets a production build drop the import. */
@@ -182,7 +348,7 @@ export class StoryController {
 
   /** Commands that arrive as `UiCommand mode.cmd {mode: 'story'}`. */
   onEvent(_ctx: ModeContext, e: SimEvent): void {
-    if (e.t !== 'mode.cmd' || e.s === undefined || !this.rt) return;
+    if (e.t !== 'mode.cmd' || e.s === undefined) return;
     let msg: { mode?: string; name?: string; args?: Record<string, unknown> | null };
     try {
       msg = JSON.parse(e.s) as typeof msg;
@@ -191,6 +357,15 @@ export class StoryController {
     }
     if (msg.mode !== 'story' || typeof msg.name !== 'string') return;
     const a = msg.args ?? {};
+    if (msg.name === 'mission.start') {
+      if (typeof a['id'] === 'string') {
+        const res = this.startById(a['id'], _ctx);
+        if (res === null) _ctx.ui.toast({ id: `mission:start:${a['id']}`, kind: 'warning', text: 'jobs.busy' });
+      }
+      return;
+    }
+    if (this.store && this.places.command(_ctx, msg.name, a)) return;
+    if (!this.rt) return;
     switch (msg.name) {
       case 'talk.result':
         if (typeof a['talkId'] === 'string' && typeof a['outcome'] === 'string') {

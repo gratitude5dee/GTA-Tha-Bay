@@ -78,6 +78,7 @@ export function loadEnv(
   root: string,
   mission: { lines: Record<string, string>; directors: Set<string>; cutscenes?: ReadonlyMap<string, { fallback: boolean }> },
   env: NodeJS.ProcessEnv = process.env,
+  worldBake: string = GRAYBOX_BAKE,
 ): CompileEnv {
   const bounds = readJson<{ play: { minX: number; maxX: number; minZ: number; maxZ: number } }>(path.join(root, 'config/world.bounds.json')).play;
   const landmarks = new Set(readJson<{ landmarks: { id: string }[] }>(path.join(root, 'content/world/landmarks.json')).landmarks.map((l) => l.id));
@@ -90,7 +91,7 @@ export function loadEnv(
   return {
     profile: 'story',
     bounds,
-    worldBake: GRAYBOX_BAKE,
+    worldBake,
     lines: new Set(Object.keys(mission.lines)),
     lineText: mission.lines,
     i18n,
@@ -102,6 +103,14 @@ export function loadEnv(
     realDerived: (who) => ('slot' in who ? true : roster.get(who.soul) === 'real_person'),
   };
 }
+
+/**
+ * The `worldBake` written into the story missions of the `sf` world (`m.a<act>.<nn>`). It names the authoring world, not one build of it: the
+ * runtime always compares against the bake it loaded (`resolver.bake`), so a rebake re-resolves the missions and the compiled IR does not
+ * change with every rebake (BD-M05c1-01). The development missions (`m.dev.*`) stay on the gray-box block.
+ */
+export const SF_AUTHORING_BAKE = sha256Hex('{"area":"sf","authoring":"story@1"}');
+export const bakeOfMission = (id: string): string => (id.startsWith('m.dev.') ? GRAYBOX_BAKE : SF_AUTHORING_BAKE);
 
 /** The bake id of the gray-box fixture (`tests/fixtures/world/civic-graybox/README.md`): sha256 of the canonical bake description. */
 export const GRAYBOX_BAKE = sha256Hex('{"configHashes":{},"sourceHashes":{},"toolVersion":"graybox@1"}');
@@ -172,7 +181,7 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
         directors.set(d.id, d);
       }
     }
-    const env = loadEnv(o.root, { lines, directors: new Set([...directors.keys(), ...directorIds]), cutscenes });
+    const env = loadEnv(o.root, { lines, directors: new Set([...directors.keys(), ...directorIds]), cutscenes }, process.env, bakeOfMission(authored.id));
     const res = compileMission(authored, env);
     for (const error of res.errors) plan.errors.push({ mission: dir, error });
     if (res.errors.length > 0) continue;

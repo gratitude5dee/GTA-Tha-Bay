@@ -10,11 +10,11 @@ import { baseEnv, baseMission, LINES, type Fixture } from './fixtures/base.ts';
 const root = path.resolve(import.meta.dirname, '../../../..');
 
 describe('compiler: the sample and the bad fixtures (AC-1)', () => {
-  it('m.dev.sample compiles with zero errors, and its outputs are stable', async () => {
+  it('every mission of the repository compiles with zero errors, and the outputs are stable', async () => {
     const a = await planBuild({ root });
     expect(a.errors).toEqual([]);
     expect(a.problems).toEqual([]);
-    expect(a.missions).toEqual(['m.dev.sample']);
+    expect(a.missions).toEqual(['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06', 'm.dev.sample', 'm.dev.talk']);
     const b = await planBuild({ root });
     expect([...a.files]).toEqual([...b.files]);
   });

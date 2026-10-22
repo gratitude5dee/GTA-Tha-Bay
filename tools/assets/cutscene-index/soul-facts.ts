@@ -27,9 +27,29 @@ interface RosterFile {
   entries: { id: string; soul: string; status: string }[];
 }
 
+interface CastEntry {
+  id: string;
+  soulVersion: number;
+  basis: Parameters<typeof assetTier>[0]['basis'];
+  tier: LikenessTier & ('consented' | 'parody' | 'fictionalized');
+  visualBrief?: string;
+}
+
+/** The Act 1 cast table (`content/story/cast.json`, M05c1): facts of the cast members and slot stand-ins whose `soul.md` M10c has not written yet. */
+function castTableFacts(root: string): Map<string, SoulFacts> {
+  const out = new Map<string, SoulFacts>();
+  const file = path.join(root, 'content/story/cast.json');
+  if (!existsSync(file)) return out;
+  const j = JSON.parse(readFileSync(file, 'utf8')) as { cast?: CastEntry[]; slots?: { standIn?: CastEntry }[] };
+  const list = [...(j.cast ?? []), ...(j.slots ?? []).flatMap((s) => (s.standIn ? [s.standIn] : []))];
+  for (const e of list) out.set(e.id, { id: e.id, soulVersion: e.soulVersion, tier: assetTier({ basis: e.basis, tier: e.tier }), visualBrief: e.visualBrief ?? '', killed: [] });
+  return out;
+}
+
 /** Reads `content/npcs/roster.json` (and `content-private/npcs/roster.json` when mounted) and each listed soul.md. */
 export function fileSoulFacts(root: string, extraKilled: readonly string[] = []): SoulFactsPort {
   const cache = new Map<string, SoulFacts | null>();
+  const table = castTableFacts(root);
   const rows = new Map<string, { soul: string; status: string; base: string }>();
   for (const base of [root, path.join(root, 'content-private')]) {
     const file = path.join(base, base === root ? 'content/npcs/roster.json' : 'npcs/roster.json');
@@ -50,6 +70,8 @@ export function fileSoulFacts(root: string, extraKilled: readonly string[] = [])
           facts = { id: f.id, soulVersion: f.soulVersion, tier: assetTier({ basis: f.likeness.basis, tier: f.tier }), visualBrief: String(f.visual_brief ?? ''), killed };
         }
       }
+      // a cast member without a soul file yet: the cast table of content/story (M05c1) until M10c writes the soul
+      if (facts === null) facts = table.get(id) ?? null;
       cache.set(id, facts);
       return facts;
     },

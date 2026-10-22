@@ -1,0 +1,199 @@
+{
+  "act": 0,
+  "autoplay": {
+    "expectedSec": [
+      10,
+      300
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "buddy": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.77885,
+          -122.418051
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "npc_test"
+      }
+    }
+  },
+  "district": "d1",
+  "fail": [],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.dev.talk",
+  "lines": [
+    "line.m.dev.talk.talk.ask.open"
+  ],
+  "premise": "hella-valuation",
+  "requires": [],
+  "rewards": {
+    "cashCents": 1000
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "arrive",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "arrive_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.dev.talk.obj.arrive_plaza",
+          "zone": "plaza"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "ask",
+      "join": "all",
+      "next": "dealt",
+      "objectives": [
+        {
+          "id": "talk_ask",
+          "k": "talk",
+          "talk": {
+            "default": "deal",
+            "id": "ask",
+            "ink": "mission_m_dev_talk_ask",
+            "intent": "mission.m.dev.talk.ask.intent",
+            "maxTurns": 2,
+            "npc": "buddy",
+            "outcomes": {
+              "charm": {
+                "flags": {
+                  "dev.talk": "charm"
+                },
+                "label": "mission.m.dev.talk.ask.charm",
+                "stage": "charmed",
+                "when": {
+                  "minTrust": 20,
+                  "mood": [
+                    "friendly"
+                  ]
+                }
+              },
+              "deal": {
+                "flags": {
+                  "dev.talk": "deal"
+                },
+                "label": "mission.m.dev.talk.ask.deal",
+                "stage": "dealt"
+              },
+              "pay": {
+                "flags": {
+                  "dev.talk": "pay",
+                  "talk.cost": 30000
+                },
+                "label": "mission.m.dev.talk.ask.pay",
+                "stage": "paid"
+              }
+            }
+          },
+          "text": "mission.m.dev.talk.obj.talk_ask"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "charmed",
+      "join": "all",
+      "next": "done",
+      "objectives": [
+        {
+          "id": "wait_charmed",
+          "k": "wait",
+          "sec": 1,
+          "text": "mission.m.dev.talk.obj.wait_charmed"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "dealt",
+      "join": "all",
+      "next": "done",
+      "objectives": [
+        {
+          "id": "wait_dealt",
+          "k": "wait",
+          "sec": 1,
+          "text": "mission.m.dev.talk.obj.wait_dealt"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "paid",
+      "join": "all",
+      "next": "done",
+      "objectives": [
+        {
+          "id": "wait_paid",
+          "k": "wait",
+          "sec": 1,
+          "text": "mission.m.dev.talk.obj.wait_paid"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "done",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "return_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.dev.talk.obj.return_plaza",
+          "zone": "plaza"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "at": {
+      "at": [
+        37.77894,
+        -122.418619
+      ],
+      "snap": "ground"
+    },
+    "k": "marker",
+    "radiusM": 6
+  },
+  "tags": [
+    "dev"
+  ],
+  "title": "mission.m.dev.talk.title",
+  "version": 1,
+  "worldBake": "ad8280ab5ca4a4b74c7eccdf97ee8d0ec0398f2ef51a04d476db1945fb3f0fcf",
+  "zones": {
+    "plaza": {
+      "at": [
+        37.778759,
+        -122.417938
+      ],
+      "k": "circle",
+      "r": 10
+    }
+  }
+}

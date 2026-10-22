@@ -18,7 +18,7 @@ import {
 } from './bands.ts';
 import { creditDividend, DEFAULT_MODEL_DEPS, Ledger, type ModelDeps } from './model.ts';
 import { POLICIES, weeklySpend, type PolicyId } from './policies.ts';
-import { SECTIONS, type EconSection } from './sections/base.ts';
+import { SECTIONS, type EconSection } from './sections/index.ts';
 import { runTycoonGate } from '../tycoon-sim/cli.ts';
 
 /** Master seed of the harness; the stream of a section is `econ:<section>`. */
@@ -36,7 +36,7 @@ export function simulatePolicy(section: EconSection, policy: PolicyId, deps: Mod
     const ledger = new Ledger(deps);
     let income = 0;
     for (let week = 1; week <= section.weeks; week++) {
-      const gross = section.grossDividend(rng.nextFloat(), rng.nextFloat());
+      const gross = section.grossDividend(rng.nextFloat(), rng.nextFloat(), week);
       income += creditDividend(ledger, week, gross, deps);
       const spend = weeklySpend(policy, ledger.balance);
       if (spend > 0) ledger.debit(`sink:${week}`, spend);

@@ -80,4 +80,21 @@ test.describe('mission preview @mission-preview', () => {
     await expect(page.getByTestId('status')).toHaveAttribute('data-loaded', 'true');
     await expect(page.getByTestId('chapters').locator('button')).toHaveCount(recorded().events.filter((e) => e.t === 'mis.stage').length);
   });
+
+  test('lists the recorded runs of the Act 1 missions and shows the one that is picked (M05c1)', async ({ page }) => {
+    const d = decodeDvtl(new Uint8Array(readFileSync(fileURLToPath(new URL('../../tests/fixtures/missions/m.a1.05.1.dvtl', import.meta.url)))));
+    const stages = d.events.filter((e) => e.t === 'mis.stage');
+    await page.goto('/qa/mission-preview.html');
+    const options = await page.getByTestId('rec').locator('option').allTextContents();
+    expect(options).toEqual(expect.arrayContaining(['m.a1.01.1', 'm.a1.04.1', 'm.a1.05.1', 'm.dev.sample.1']));
+    await page.getByTestId('rec').selectOption('m.a1.05.1');
+    await expect(page.getByTestId('status')).toContainText('m.a1.05 seed 1 pass');
+    await expect(page.getByTestId('chapters').locator('button')).toHaveCount(stages.length);
+    // the host's line shows as a subtitle with its text, not its key
+    const say = d.events.find((e) => e.t === 'mis.say');
+    expect(say).toBeDefined();
+    await page.evaluate((t) => (window as unknown as { __dvBridge: { preview: { setTick(n: number): void } } }).__dvBridge.preview.setTick(t), (say?.tick ?? 0) + 1);
+    await expect(page.getByTestId('subtitle')).not.toHaveText('');
+    await expect(page.getByTestId('subtitle')).not.toContainText('line.m.a1');
+  });
 });

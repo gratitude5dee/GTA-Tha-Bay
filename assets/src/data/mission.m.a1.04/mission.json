@@ -1,0 +1,464 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1200
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "dana": {
+      "k": "npc",
+      "role": "antagonist",
+      "spawn": {
+        "at": [
+          37.77731,
+          -122.40482
+        ],
+        "snap": "ground"
+      },
+      "spawnAt": "manual",
+      "who": {
+        "soul": "dana_voss"
+      }
+    },
+    "door_host": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.77712,
+          -122.40463
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "door_host"
+      }
+    },
+    "influencer": {
+      "k": "npc",
+      "role": "cameo",
+      "spawn": {
+        "at": [
+          37.77694,
+          -122.40451
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "slot": "INFLUENCER"
+      }
+    },
+    "screen": {
+      "k": "prop",
+      "prefab": "prop.barrier",
+      "spawn": {
+        "at": [
+          37.77734,
+          -122.40486
+        ],
+        "snap": "ground"
+      }
+    }
+  },
+  "district": "d1",
+  "fail": [
+    {
+      "reason": "mission.m.a1.04.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.04.fail.host",
+      "retry": "checkpoint",
+      "when": {
+        "below": 0.3,
+        "p": "health",
+        "who": "door_host"
+      }
+    },
+    {
+      "reason": "mission.m.a1.04.fail.screen",
+      "retry": "checkpoint",
+      "when": {
+        "cast": "screen",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "odessa_calloway"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.a1.04",
+  "lines": [
+    "line.m.a1.04.out",
+    "line.m.a1.04.photo",
+    "line.m.a1.04.start",
+    "line.m.a1.04.talk.door.open",
+    "line.m.a1.04.talk.influencer.open"
+  ],
+  "medals": {
+    "goldSec": 540,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.02",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 200000,
+    "techClout": 30
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "line",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_queue",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.04.obj.goto_queue",
+          "zone": "queue"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.04.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "selfie",
+      "join": "all",
+      "next": "door",
+      "objectives": [
+        {
+          "id": "talk_influencer",
+          "k": "talk",
+          "talk": {
+            "default": "pass",
+            "id": "influencer",
+            "ink": "mission_m_a1_04_influencer",
+            "intent": "mission.m.a1.04.talk.influencer.intent",
+            "maxTurns": 2,
+            "npc": "influencer",
+            "outcomes": {
+              "pass": {
+                "flags": {
+                  "a1.04.selfie": false
+                },
+                "label": "mission.m.a1.04.talk.influencer.pass",
+                "stage": "door"
+              },
+              "selfie": {
+                "flags": {
+                  "a1.04.selfie": true
+                },
+                "label": "mission.m.a1.04.talk.influencer.selfie",
+                "stage": "door",
+                "trust": 3
+              }
+            }
+          },
+          "text": "mission.m.a1.04.obj.talk_influencer"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "door",
+      "join": "all",
+      "next": "sneak_front",
+      "objectives": [
+        {
+          "id": "talk_door",
+          "k": "talk",
+          "talk": {
+            "default": "refuse",
+            "id": "door",
+            "ink": "mission_m_a1_04_door",
+            "intent": "mission.m.a1.04.talk.door.intent",
+            "maxTurns": 3,
+            "npc": "door_host",
+            "outcomes": {
+              "bribe": {
+                "flags": {
+                  "a1.04.way": "bribe",
+                  "talk.cost": 30000
+                },
+                "label": "mission.m.a1.04.talk.door.bribe",
+                "stage": "sneak_front",
+                "when": {
+                  "actions": [
+                    "offer_deal"
+                  ]
+                }
+              },
+              "charm": {
+                "flags": {
+                  "a1.04.way": "charm"
+                },
+                "label": "mission.m.a1.04.talk.door.charm",
+                "stage": "sneak_front",
+                "trust": 5,
+                "when": {
+                  "minTrust": 5,
+                  "mood": [
+                    "amused",
+                    "friendly"
+                  ]
+                }
+              },
+              "refuse": {
+                "flags": {
+                  "a1.04.way": "service"
+                },
+                "label": "mission.m.a1.04.talk.door.refuse",
+                "stage": "sneak_service"
+              }
+            }
+          },
+          "text": "mission.m.a1.04.obj.talk_door"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "sneak_front",
+      "join": "all",
+      "next": "snap",
+      "objectives": [
+        {
+          "autoplayPath": [
+            [
+              37.77712,
+              -122.40463
+            ],
+            [
+              37.77722,
+              -122.40466
+            ],
+            [
+              37.77732,
+              -122.40468
+            ]
+          ],
+          "detectBudget": 3,
+          "id": "stealth_front",
+          "k": "stealth",
+          "text": "mission.m.a1.04.obj.stealth_front",
+          "zone": "front"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "influencer"
+          ],
+          "op": "despawn"
+        },
+        {
+          "cast": [
+            "dana"
+          ],
+          "op": "spawn"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "sneak_service",
+      "join": "all",
+      "next": "snap",
+      "objectives": [
+        {
+          "autoplayPath": [
+            [
+              37.77721,
+              -122.4046
+            ],
+            [
+              37.77728,
+              -122.40471
+            ],
+            [
+              37.77728,
+              -122.40488
+            ],
+            [
+              37.77728,
+              -122.40497
+            ]
+          ],
+          "detectBudget": 2,
+          "id": "stealth_service",
+          "k": "stealth",
+          "text": "mission.m.a1.04.obj.stealth_service",
+          "zone": "service"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "influencer"
+          ],
+          "op": "despawn"
+        },
+        {
+          "cast": [
+            "dana"
+          ],
+          "op": "spawn"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "snap",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "photo_screen",
+          "k": "photo",
+          "maxDistM": 14,
+          "subject": "screen",
+          "text": "mission.m.a1.04.obj.photo_screen"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.a1.04.photo",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "influencer"
+          ],
+          "op": "despawn"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "keynote",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_front",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.04.obj.goto_front",
+          "zone": "front"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "influencer"
+          ],
+          "op": "despawn"
+        },
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.04.keynote"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "out",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_exit",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.04.obj.goto_exit",
+          "zone": "exit"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "influencer"
+          ],
+          "op": "despawn"
+        },
+        {
+          "line": "line.m.a1.04.out",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "odessa_calloway",
+    "k": "phone"
+  },
+  "tags": [],
+  "title": "mission.m.a1.04.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "exit": {
+      "at": [
+        37.77698,
+        -122.4046
+      ],
+      "k": "circle",
+      "r": 10
+    },
+    "front": {
+      "at": [
+        37.77735,
+        -122.40465
+      ],
+      "k": "circle",
+      "r": 14
+    },
+    "queue": {
+      "at": [
+        37.7769,
+        -122.40455
+      ],
+      "k": "circle",
+      "r": 9
+    },
+    "service": {
+      "at": [
+        37.77728,
+        -122.40493
+      ],
+      "k": "circle",
+      "r": 12
+    }
+  }
+}

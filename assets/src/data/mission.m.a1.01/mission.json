@@ -1,0 +1,308 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      30,
+      600
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "odessa": {
+      "k": "npc",
+      "role": "mentor",
+      "spawn": {
+        "at": [
+          37.73645,
+          -122.38868
+        ],
+        "snap": "road"
+      },
+      "who": {
+        "soul": "odessa_calloway"
+      }
+    },
+    "pod_car": {
+      "k": "vehicle",
+      "prefab": "robotaxi.default",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.73583,
+          -122.38762
+        ],
+        "snap": "road",
+        "yawDeg": -126
+      },
+      "spawnAt": "manual"
+    },
+    "tavi": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.73641,
+          -122.38868
+        ],
+        "snap": "road"
+      },
+      "who": {
+        "soul": "tavi_okafor"
+      }
+    },
+    "tow": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.pickup",
+      "spawn": {
+        "at": [
+          37.73633,
+          -122.3885
+        ],
+        "snap": "road",
+        "yawDeg": -126
+      }
+    }
+  },
+  "district": "d3",
+  "fail": [
+    {
+      "reason": "mission.m.a1.01.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.01.fail.pod",
+      "retry": "start",
+      "when": {
+        "cast": "pod_car",
+        "p": "destroyed"
+      }
+    },
+    {
+      "reason": "mission.m.a1.01.fail.tow",
+      "retry": "start",
+      "when": {
+        "cast": "tow",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.a1.01",
+  "intro": {
+    "cutscene": "cut.story.m.a1.01.dawn"
+  },
+  "lines": [
+    "line.m.a1.01.gate",
+    "line.m.a1.01.hook",
+    "line.m.a1.01.radio",
+    "line.m.a1.01.tow",
+    "line.m.a1.01.truck"
+  ],
+  "medals": {
+    "goldSec": 360,
+    "silverSec": 480
+  },
+  "outro": {
+    "director": "m.a1.01.pod"
+  },
+  "premise": "hella-valuation",
+  "requires": [],
+  "rewards": {
+    "cashCents": 50000,
+    "safehouse": "sh.yard",
+    "vehicles": [
+      "vehicle.pickup"
+    ]
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "to_gate",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_gate",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.01.obj.goto_gate",
+          "zone": "yard_gate"
+        }
+      ],
+      "onEnter": [
+        {
+          "lock": {
+            "hour": 6,
+            "weather": "karl-fog"
+          },
+          "op": "clock"
+        },
+        {
+          "line": "line.m.a1.01.gate",
+          "op": "say",
+          "speaker": "odessa"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "truck",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_tow",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.01.obj.enter_tow",
+          "vehicle": "tow"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "pod_car"
+          ],
+          "op": "spawn"
+        },
+        {
+          "line": "line.m.a1.01.truck",
+          "op": "say",
+          "speaker": "odessa"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "to_stall",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_stall",
+          "inVehicle": "tow",
+          "k": "goto",
+          "stopped": true,
+          "text": "mission.m.a1.01.obj.goto_stall",
+          "zone": "stall"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.01.radio",
+          "op": "say",
+          "speaker": "tavi"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "hook",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "pod_car",
+          "id": "hook_pod",
+          "k": "collect",
+          "text": "mission.m.a1.01.obj.hook_pod"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.a1.01.hook",
+          "op": "say",
+          "speaker": "player"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "truck_again",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_tow_again",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.01.obj.enter_tow_again",
+          "vehicle": "tow"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "tow_home",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "pod_car",
+          "fragile": 0.5,
+          "id": "deliver_pod",
+          "k": "deliver",
+          "text": "mission.m.a1.01.obj.deliver_pod",
+          "to": "yard"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.01.tow",
+          "op": "say",
+          "speaker": "odessa"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "k": "auto",
+    "when": {
+      "p": "true"
+    }
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.01.title",
+  "unlocks": [
+    "unlock.district.d3"
+  ],
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "stall": {
+      "at": [
+        37.73583,
+        -122.38762
+      ],
+      "k": "circle",
+      "r": 14
+    },
+    "yard": {
+      "at": [
+        37.73648,
+        -122.38865
+      ],
+      "k": "circle",
+      "r": 16
+    },
+    "yard_gate": {
+      "at": [
+        37.73639,
+        -122.3886
+      ],
+      "k": "circle",
+      "r": 9
+    }
+  }
+}

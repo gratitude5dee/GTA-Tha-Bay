@@ -9,13 +9,14 @@ import './kit/shell.css';
 import './kit/kit.css';
 import './kit/m04b2.css';
 import './kit/m04b2-hud.css';
+import './kit/m05c1-talk.css';
 import './kit/m02c2-map.css';
 import { ShellApp } from './shell/app.tsx';
 import type { ChannelLike } from './shell/banners.tsx';
 import { ShellCore, type SimToast } from './shell/core.ts';
 import type { EnginePort, PlatformPort, SavesPort, ShellProps } from './shell/types.ts';
 
-export { t, lk, setLang, plural, formatNumber, formatDate } from './i18n/index.ts';
+export { t, lk, setLang, plural, formatNumber, formatDate, registerTexts, contentText } from './i18n/index.ts';
 export type { LocKey } from './i18n/index.ts';
 export type { CreatorStagePort, MannequinParams } from './creator/stage.ts';
 export { loadPrefs, memoryPrefs, defaultPrefs } from './shell/prefs.ts';

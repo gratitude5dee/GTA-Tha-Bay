@@ -8,19 +8,24 @@
  *   out_of_band    `elapsedSec` (the mission clock) is outside `expectedSec`,
  *   hash_mismatch  the two runs of a seed end with different state hashes,
  *   golden_mismatch the det run of a seed that has a Node golden (`GOLDEN_SEEDS`) differs from `tests/golden/missions/<id>.<seed>.json`.
+ * A story mission of the `sf` world (`m.a<act>.<nn>`, M05c1) runs in the `missions-sf` suite on the finished sf bake in `dist/world`
+ * (`pnpm map:build -- --area sf`); without the bake it is skipped with a SKIP line, and `DV_REQUIRE_BAKE=1` makes that a `world_missing` failure.
  * It writes `test-results/missions/<id>.<seed>.{json,dvtl}` (the first run of the seed) and prints a summary table.
  *
  *   tsx tools/ci/missions/check.ts [--mission <id>] [--act <n>]
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import type { UnlockDef } from '../../../packages/shared/src/index.ts';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { createCanonicalRunner, type StateHashTrace } from '../../../packages/engine/src/qa/runner.ts';
+import { createCanonicalRunner, type RunSpec, type StateHashTrace } from '../../../packages/engine/src/qa/runner.ts';
 import { checkGolden } from '../../../packages/engine/src/qa/golden.ts';
 import { readFixturePacks } from '../../../packages/engine/src/qa/node.ts';
 import { GOLDEN_SEEDS, encodeBundle, registerStoryQa, missionDetSpec, missionSpec, type MissionBundle, type MissionsHandle } from '../../../packages/modes/story/src/qa.ts';
 import { args, repoRoot } from '../run.ts';
 import { compileInMemory, type InMemoryBuild } from './bundle.ts';
+import { SF_AUTHORING_BAKE } from './build.ts';
+import { SF_MISSIONS_SUITE, loadSfBake, registerSfMissionsLoader, type MissionStarts } from './sf-scenario.ts';
 
 export type FailReason = 'compile_error' | 'world_missing' | 'not_passed' | 'out_of_band' | 'hash_mismatch' | 'golden_mismatch';
 
@@ -62,9 +67,27 @@ export interface CheckResult {
   ok: boolean;
   failures: Failure[];
   rows: RunRow[];
+  /** Missions that were not run (the sf bake is absent). */
+  skipped: string[];
+  /** Missions that were not run because `config/autoplay/known-gaps.json` lists them. */
+  gaps: string[];
 }
 
 const RUNS = 2;
+/** Missions per act in the narrative (B4). */
+const ACT_MISSIONS = 12;
+
+interface KnownGap {
+  reason: string;
+  closedBy: string;
+}
+
+/** `config/autoplay/known-gaps.json`: the missions whose bot run is a known gap (none when the file is absent). */
+function loadKnownGaps(root: string): Record<string, KnownGap> {
+  const file = path.join(root, 'config/autoplay/known-gaps.json');
+  if (!existsSync(file)) return {};
+  return (JSON.parse(readFileSync(file, 'utf8')) as { missions?: Record<string, KnownGap> }).missions ?? {};
+}
 
 function describeStuck(h: MissionsHandle | null): string {
   const rt = h?.controller.rt;
@@ -78,7 +101,16 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
   const log = o.log ?? ((l: string) => console.log(l));
   const failures: Failure[] = [];
   const rows: RunRow[] = [];
+  const skipped: string[] = [];
   registerStoryQa();
+  const sfBake = loadSfBake(o.root);
+  if (sfBake) {
+    registerSfMissionsLoader({
+      bake: sfBake,
+      starts: JSON.parse(readFileSync(path.join(o.root, 'config/autoplay/mission-starts.json'), 'utf8')) as MissionStarts,
+      unlockDefs: (JSON.parse(readFileSync(path.join(o.root, 'config/unlocks.json'), 'utf8')) as { unlocks: UnlockDef[] }).unlocks,
+    });
+  }
   const build = await (o.compile ?? compileInMemory)(o.root, o.mission);
   for (const e of build.errors) failures.push({ mission: e.mission, seed: null, reason: 'compile_error', detail: `${e.code} ${e.pointer}: ${e.message}` });
   for (const p of build.problems) failures.push({ mission: '-', seed: null, reason: 'compile_error', detail: p });
@@ -87,10 +119,29 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
   if (outDir) mkdirSync(outDir, { recursive: true });
   const packs = o.packs ?? { ...readFixturePacks(o.root) };
 
+  const knownGaps = loadKnownGaps(o.root);
+  const gaps: string[] = [];
   const ids = [...build.bundles.keys()].filter((id) => !o.mission || id === o.mission).sort();
   for (const id of ids) {
     const bundle = build.bundles.get(id) as MissionBundle;
     if (o.act !== undefined && bundle.ir.act !== o.act) continue;
+    const gap = knownGaps[id];
+    const runGaps = (o.env?.['DV_RUN_KNOWN_GAPS'] ?? process.env['DV_RUN_KNOWN_GAPS']) === '1';
+    if (gap && !runGaps) {
+      log(`KNOWN GAP check:missions ${id}: not run. ${gap.reason} (closed by: ${gap.closedBy})`);
+      gaps.push(id);
+      continue;
+    }
+    const onSf = bundle.ir.worldBake === SF_AUTHORING_BAKE;
+    if (onSf && !sfBake) {
+      if (o.env?.['DV_REQUIRE_BAKE'] === '1' || process.env['DV_REQUIRE_BAKE'] === '1') failures.push({ mission: id, seed: null, reason: 'world_missing', detail: 'no sf bake in dist/world (run pnpm map:build -- --area sf)' });
+      else {
+        log(`SKIP check:missions ${id}: no sf bake in dist/world (run pnpm map:build -- --area sf)`);
+        skipped.push(id);
+      }
+      continue;
+    }
+    const suiteOf = (spec: RunSpec): RunSpec => (onSf ? { ...spec, suite: SF_MISSIONS_SUITE } : spec);
     const [lo, hi] = bundle.ir.autoplay.expectedSec;
     for (const seed of bundle.ir.autoplay.seeds) {
       if (o.seeds && !o.seeds.includes(seed)) continue;
@@ -105,7 +156,7 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
         });
         let trace: StateHashTrace;
         try {
-          trace = await runner.run(missionSpec({ id, seed, expectedSecMax: hi }));
+          trace = await runner.run(suiteOf(missionSpec({ id, seed, expectedSecMax: hi })));
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           failures.push({ mission: id, seed, reason: msg.startsWith('world bake') ? 'world_missing' : 'not_passed', detail: msg });
@@ -135,7 +186,7 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
       if (!bad && (GOLDEN_SEEDS[id] ?? []).includes(seed)) {
         // the det run (beats played) against the Node golden the browsers are held to
         const runner = createCanonicalRunner({ packs: { ...packs, mission: encodeBundle(bundle) }, processEnv: {} });
-        const trace = await runner.run(missionDetSpec({ id, seed, expectedSecMax: hi }));
+        const trace = await runner.run(suiteOf(missionDetSpec({ id, seed, expectedSecMax: hi })));
         const g = checkGolden(trace, `${id}.${seed}`, { root: path.join(o.root, 'tests', 'golden'), env: o.env ?? process.env });
         log(`golden ${id}.${seed}: ${g.state}`);
         if (!g.ok) failures.push({ mission: id, seed, reason: 'golden_mismatch', detail: `${g.state}${g.firstDiff ? `: ${g.firstDiff}` : ''}` });
@@ -143,13 +194,19 @@ export async function runCheck(o: CheckOptions): Promise<CheckResult> {
     }
   }
 
+  // Act 1 has twelve missions (03-story-narrative.md B4); the ones whose milestone has not landed are named, not failed
+  if (o.act !== undefined && !o.mission) {
+    const missing = Array.from({ length: ACT_MISSIONS }, (_, i) => `m.a${o.act}.${String(i + 1).padStart(2, '0')}`).filter((id) => !build.bundles.has(id));
+    if (missing.length > 0) log(`missions ${missing.length === 1 ? missing[0] : `${missing[0]} to ${missing[missing.length - 1]}`} not yet in the index (${missing.length} of ${ACT_MISSIONS} of act ${o.act})`);
+  }
+
   log('mission                 seed run outcome   sec     ticks  end hash');
   for (const r of rows) {
     log(`${r.mission.padEnd(23)} ${String(r.seed).padStart(4)} ${String(r.run).padStart(3)} ${r.outcome.padEnd(8)} ${r.elapsedSec.toFixed(1).padStart(6)} ${String(r.endTick).padStart(8)}  ${r.endHash}`);
   }
   for (const f of failures) log(`FAIL ${f.mission}${f.seed === null ? '' : ` seed ${f.seed}`} ${f.reason}: ${f.detail}`);
-  if (failures.length === 0) log(`check:missions ok: ${ids.length} mission(s), ${rows.length} run(s)`);
-  return { ok: failures.length === 0, failures, rows };
+  if (failures.length === 0) log(`check:missions ok: ${ids.length - skipped.length - gaps.length} mission(s), ${rows.length} run(s)${skipped.length > 0 ? `, ${skipped.length} skipped` : ''}${gaps.length > 0 ? `, ${gaps.length} known gap(s)` : ''}`);
+  return { ok: failures.length === 0, failures, rows, skipped, gaps };
 }
 
 export async function main(argv: readonly string[] = args()): Promise<number> {

@@ -6,7 +6,7 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JsonValue, VmKey } from '@dv/shared';
-import { t } from '../i18n/index.ts';
+import { contentText, t } from '../i18n/index.ts';
 import { useShell } from '../shell/context.tsx';
 import {
   STATUS, clockText, dollars, heatStatus, litStars, promptGlyph, promptTextKey,
@@ -238,12 +238,17 @@ export function Countdown(props: { n: number }) {
   return <div class="dv-countdown" role="status" data-testid="hud-countdown">{props.n > 0 ? String(props.n) : t('hud.go')}</div>;
 }
 
+/** `tavi_okafor` as `Tavi Okafor`; `radio` and `player` as a word. Real display names arrive with the souls (M10c). */
+export function speakerName(id: string): string {
+  return id.replace(/^standin_/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function Subtitles(props: { line: { speaker?: string; text: string } | undefined }) {
   if (!props.line) return null;
   return (
     <div class="dv-subtitles" data-testid="hud-subtitles" role="status">
-      {props.line.speaker ? <strong>{props.line.speaker}: </strong> : null}
-      <span>{props.line.text}</span>
+      {props.line.speaker ? <strong>{speakerName(props.line.speaker)}: </strong> : null}
+      <span>{contentText(props.line.text)}</span>
     </div>
   );
 }

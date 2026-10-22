@@ -5,7 +5,7 @@
  * engine's external vehicle input) with a pure-pursuit steering law over the C08 route; without a driver, or without a route, a
  * vehicle is moved along the straight line like a walker. Sim code under the C02 lint.
  */
-import { datan2, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
+import { datan2, dcos, dsin, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
 import type { Actors, Vec3 } from './actors.ts';
 import { distXZ } from './actors.ts';
 import { byStr } from './util.ts';
@@ -153,7 +153,21 @@ export class TaskRunner {
       case 'follow': {
         const target = actors.pos(t.who);
         if (!target) return;
-        if (distXZ(here, target) > t.distM) this.move(h, here, target, distXZ(here, target) > 12 ? RUN_MPS : WALK_MPS, dt);
+        const gap = distXZ(here, target);
+        const driver = actors.isVehicle(h) ? this.env.driver() : null;
+        if (driver) {
+          // a car follows like a driver (M05c1, the tow of m.a1.01): hold `distM` metres behind the leader, at its speed plus what closes the gap
+          if (gap <= t.distM) {
+            driver.drive(h, { throttle: 0, brake: 0.5, steer: 0, handbrake: false });
+            return;
+          }
+          const me = this.nameOf(h);
+          const want = Math.min(DRIVE_MPS.normal, actors.speed(t.who) + 2 + (gap - t.distM) * 0.6);
+          const u = pursuit(here, actors.yawOf(h), actors.speed(me), target, want);
+          driver.drive(h, { ...u, handbrake: false });
+          return;
+        }
+        if (gap > t.distM) this.move(h, here, target, gap > 12 ? RUN_MPS : WALK_MPS, dt);
         return;
       }
       case 'flee': {
@@ -207,7 +221,7 @@ export class TaskRunner {
     }
     if (!a.planned) {
       a.planned = true;
-      a.path = planRoute(ctx, here, goal);
+      a.path = planRoute(ctx, here, goal, this.env.actors.yawOf(h));
     }
     const path = a.path;
     let target = goal;
@@ -228,19 +242,32 @@ export class TaskRunner {
   }
 }
 
-/** A polyline along the C08 road graph from `from` to `to`, or null when there is no route. */
-export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3): Vec3[] | null {
+/**
+ * A polyline along the C08 road graph from `from` to `to`, or null when there is no route. A driver that faces `yaw` is routed from a
+ * point 3 m to the right of its heading, so it gets the lane it points along, and the samples of the first edge before the one nearest
+ * to it are dropped (an edge can start far behind the car), M05c1.
+ */
+export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3, yaw?: number): Vec3[] | null {
   try {
-    const r = ctx.world.graph.route({ from: { x: from[0], z: from[2] }, to: { x: to[0], z: to[2] }, maxExpand: 6000 });
+    const fx = yaw === undefined ? from[0] : from[0] + dcos(yaw) * 3;
+    const fz = yaw === undefined ? from[2] : from[2] - dsin(yaw) * 3;
+    const r = ctx.world.graph.route({ from: { x: fx, z: fz }, to: { x: to[0], z: to[2] }, maxExpand: 6000 });
     if (!r || r.edges.length === 0) return null;
     const out: Vec3[] = [];
     const buf = new Float64Array(4);
-    for (const edge of r.edges) {
+    r.edges.forEach((edge, k) => {
+      const pts: Vec3[] = [];
       for (const s of [0, 20, 60]) {
         ctx.world.graph.laneCentre({ edge, s, lane: 0 }, buf);
-        out.push([buf[0] as number, buf[1] as number, buf[2] as number]);
+        pts.push([buf[0] as number, buf[1] as number, buf[2] as number]);
       }
-    }
+      if (k === 0) {
+        let first = 0;
+        for (let i = 1; i < pts.length; i++) if (distXZ(from, pts[i] as Vec3) < distXZ(from, pts[first] as Vec3)) first = i;
+        pts.splice(0, first);
+      }
+      out.push(...pts);
+    });
     out.push(to);
     return out;
   } catch {

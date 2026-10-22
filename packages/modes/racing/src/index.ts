@@ -38,5 +38,5 @@ export function racingDescriptor(): GameModeDescriptor {
 
 /** The unlock rows of racing: `unlock.racing` with the starter loaner set, and the four class unlocks. */
 export function racingUnlockDefs(): UnlockDef[] {
-  return (unlocksJson as { unlocks: UnlockDef[] }).unlocks.map((u) => ({ ...u }));
+  return (unlocksJson as { unlocks: UnlockDef[] }).unlocks.filter((u) => u.id === 'unlock.racing' || u.id.startsWith('unlock.racing.')).map((u) => ({ ...u }));
 }

@@ -1,6 +1,153 @@
 {
   "rows": [
     {
+      "act": 1,
+      "asset": "data/mission.m.a1.01",
+      "district": "d3",
+      "giver": {
+        "world": true
+      },
+      "id": "m.a1.01",
+      "requires": [],
+      "start": {
+        "k": "auto",
+        "when": {
+          "p": "true"
+        }
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.01.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.02",
+      "district": "d1",
+      "giver": {
+        "phone": "x_ramos"
+      },
+      "id": "m.a1.02",
+      "requires": [
+        {
+          "mission": "m.a1.01",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "x_ramos",
+        "k": "phone"
+      },
+      "tags": [],
+      "title": "mission.m.a1.02.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.03",
+      "district": "d3",
+      "giver": {
+        "world": true
+      },
+      "id": "m.a1.03",
+      "requires": [
+        {
+          "mission": "m.a1.01",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "at": {
+          "at": [
+            37.73639,
+            -122.3886
+          ],
+          "snap": "ground"
+        },
+        "hours": [
+          18,
+          23
+        ],
+        "k": "marker",
+        "radiusM": 8
+      },
+      "tags": [
+        "sideshow",
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.03.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.04",
+      "district": "d1",
+      "giver": {
+        "phone": "odessa_calloway"
+      },
+      "id": "m.a1.04",
+      "requires": [
+        {
+          "mission": "m.a1.02",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "odessa_calloway",
+        "k": "phone"
+      },
+      "tags": [],
+      "title": "mission.m.a1.04.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.05",
+      "district": "d4",
+      "giver": {
+        "phone": "saint_static"
+      },
+      "id": "m.a1.05",
+      "requires": [
+        {
+          "mission": "m.a1.04",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "saint_static",
+        "k": "phone"
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.05.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.06",
+      "district": "d2",
+      "giver": {
+        "phone": "saint_static"
+      },
+      "id": "m.a1.06",
+      "requires": [
+        {
+          "mission": "m.a1.05",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "saint_static",
+        "k": "phone"
+      },
+      "tags": [],
+      "title": "mission.m.a1.06.title",
+      "version": 1
+    },
+    {
       "act": 0,
       "asset": "data/mission.m.dev.sample",
       "district": "d4",
@@ -25,6 +172,32 @@
         "sensitivity-read"
       ],
       "title": "mission.m.dev.sample.title",
+      "version": 1
+    },
+    {
+      "act": 0,
+      "asset": "data/mission.m.dev.talk",
+      "district": "d1",
+      "giver": {
+        "world": true
+      },
+      "id": "m.dev.talk",
+      "requires": [],
+      "start": {
+        "at": {
+          "at": [
+            37.77894,
+            -122.418619
+          ],
+          "snap": "ground"
+        },
+        "k": "marker",
+        "radiusM": 6
+      },
+      "tags": [
+        "dev"
+      ],
+      "title": "mission.m.dev.talk.title",
       "version": 1
     }
   ],

@@ -3,6 +3,7 @@ import { applyToggle } from './builtin/sandbox.ts';
 import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
+import type { GarageService } from '../garage/garage.ts';
 
 export interface CommandDeps {
   host: ModeHost;
@@ -19,6 +20,8 @@ export interface CommandDeps {
   onPause?(on: boolean): void;
   /** The phone's Ride app (M04b2): the transit system's port, or null while no baked world runs. */
   ride?(): RidePort | null;
+  /** The garage module (M05c1): `garage.call` and `garage.favorite` go to it. Without one both raise `garage.refuse.noWorld` and change nothing. */
+  garage?(): GarageService | null;
   /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
   selectProfile?(id: string): void;
 }
@@ -27,8 +30,7 @@ export interface CommandDeps {
  * The worker side of the UI command channel (C06 1.1 `UiCommand`). A command is applied between ticks, as soon as it arrives, so
  * a settings page opened over a paused game still works. Handled here: `mode.start`, `mode.quit`, `pause`, `save.*` (except
  * profile management: the page creates, renames and deletes profiles, the sim only selects one), `sandbox.set`, `sandbox.teleport`, `phone.waypoint`, `mode.cmd`, and the cutscene
- * commands (forwarded as events for M05b2). `garage.call` and `garage.favorite` raise one `garage.notYet` toast and change nothing
- * until M05c1 routes them (DL-668 part 3).
+ * commands (forwarded as events for M05b2). `garage.call` and `garage.favorite` go to the garage module (M05c1, DL-668 part 3).
  */
 /** `sys.settings`: the profile settings without `controls` (those ride `sys.controls`), so a long remap list cannot push the value over the 4 KiB patch limit. */
 export function settingsView(s: ProfileSettings): JsonObject {
@@ -77,10 +79,18 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
           else d.selectProfile?.(cmd.id);
         }
         return;
-      case 'garage.call':
-      case 'garage.favorite':
-        toast('garage.notYet', 'info', 'garage.notYet');
+      case 'garage.call': {
+        const g = d.garage?.() ?? null;
+        if (g) g.call(cmd.vehicleKey);
+        else toast('garage.refuse.noWorld', 'warning', 'garage.refuse.noWorld');
         return;
+      }
+      case 'garage.favorite': {
+        const g = d.garage?.() ?? null;
+        if (g) g.favorite(cmd.vehicleKey);
+        else toast('garage.refuse.noWorld', 'warning', 'garage.refuse.noWorld');
+        return;
+      }
       case 'sandbox.set': {
         const ctx = d.sandboxContext();
         if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v);

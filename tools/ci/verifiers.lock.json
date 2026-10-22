@@ -19,7 +19,7 @@
         "tools/ci/econ-sim/",
         "config/econ-bands.json"
       ],
-      "sha256": "211de58c2eab1421c35876dc1688b6b5f775c4952018dc509bc9db95aa5fe26d",
+      "sha256": "24122a7f360e3a37da33579de1e6cf8f140b37a8a69c55711613621ce63deee5",
       "subjects": [
         "packages/engine/src/sim/modes/",
         "packages/modes/",
@@ -61,7 +61,7 @@
         "packages/world/test/golden/",
         "packages/engine/src/sim/save/__golden__/"
       ],
-      "sha256": "071ae80c83ff1d758f03e7bd9d53ba4ad8d244ad9938191a93af0f04711e5856",
+      "sha256": "84c722fc821771825410300cb33be4b089539f98e30909ec2ba67ceec4c753bd",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",
@@ -72,7 +72,7 @@
       "paths": [
         "tests/golden/"
       ],
-      "sha256": "59bf5b34df0e032ca96c1e355589b14d843cccfe30d04bc2c8fc72481a561e14",
+      "sha256": "7a2f3ada0b28b6253706a3aa55a770c9d409f1e69e0328a79cf32eaacf1c51e9",
       "subjects": [
         "packages/engine/src/sim/",
         "packages/shared/src/",

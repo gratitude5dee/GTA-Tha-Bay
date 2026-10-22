@@ -1,0 +1,20 @@
+/* The talk panel and the mission fail panel (M05c1). Colour pairs with text and a key number; the panel takes pointer events inside the HUD. */
+.dv-talk {
+  pointer-events: auto; display: grid; gap: 0.5em; inline-size: min(36em, 92vw); padding: 0.9em 1.1em; border-radius: 0.8em;
+  background: rgb(8 12 22 / 0.88); border: 1px solid rgb(255 255 255 / 0.25); color: var(--dv-color-text, #f0f2f7);
+}
+.dv-talk-npc { margin: 0; font-size: 1.05em; letter-spacing: 0.02em; }
+.dv-talk-open { margin: 0; font-size: 1.1em; }
+.dv-talk-intent { margin: 0; opacity: 0.8; font-size: 0.9em; }
+.dv-talk-choices { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4em; }
+.dv-talk-choices li { display: grid; gap: 0.15em; }
+.dv-talk-choice {
+  display: flex; align-items: center; gap: 0.6em; inline-size: 100%; text-align: start; padding: 0.55em 0.8em; min-block-size: 2.75em;
+  border-radius: 0.6em; border: 1px solid rgb(255 255 255 / 0.3); background: rgb(255 255 255 / 0.08); color: inherit; font: inherit; cursor: pointer;
+}
+.dv-talk-choice:focus-visible { outline: 3px solid var(--dv-sem-objective, #4da3ff); outline-offset: 2px; }
+.dv-talk-choice:hover:not(:disabled) { background: rgb(255 255 255 / 0.16); }
+.dv-talk-choice:disabled { opacity: 0.55; cursor: not-allowed; border-style: dashed; }
+.dv-talk-key { display: inline-grid; place-items: center; min-inline-size: 1.6em; border-radius: 0.35em; background: var(--dv-color-text, #f0f2f7); color: var(--dv-color-bg, #0b0f19); font-family: var(--dv-font-mono, monospace); }
+.dv-talk-hint { font-size: 0.85em; padding-inline-start: 0.9em; color: var(--dv-sem-warning, #ffd23f); }
+.dv-fail { border-color: var(--dv-sem-danger, #ff4d4d); }

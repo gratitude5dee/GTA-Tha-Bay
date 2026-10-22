@@ -31,6 +31,7 @@ function obs(over: Partial<MissionObs> = {}): MissionObs {
     objectives: [],
     zones: {},
     cast: {},
+    hookStubs: {},
     landmarks: {},
     ray: () => null,
     groundY: () => 0,

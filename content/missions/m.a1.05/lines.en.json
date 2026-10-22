@@ -1,0 +1,22 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.05.bout": "Ring is set! Two rounds, no weapons, the crowd decides.",
+    "line.m.a1.05.lose": "You went down swinging. The crowd respects that.",
+    "line.m.a1.05.start": "Saint here. The turntable at Powell and Market is open tonight. Come see what the Chorus is building.",
+    "line.m.a1.05.talk.signup.open": "Welcome to the turntable! Folks are signing up for an exhibition bout. Want a spot?",
+    "line.m.a1.05.win": "That is how it is done! The Chorus will remember you.",
+    "line.m.a1.05.ring.1": "The turntable turns, the crowd closes in. Ladies and gentlemen, the ring is open.",
+    "mission.m.a1.05.fail.ko": "You went down.",
+    "mission.m.a1.05.obj.defeat_sparrer": "Knock down the sparring partner",
+    "mission.m.a1.05.obj.wait_crowd": "Wait for the crowd to close in",
+    "mission.m.a1.05.obj.goto_plaza": "Go to the cable-car turntable",
+    "mission.m.a1.05.obj.goto_ring": "Step up to the ring",
+    "mission.m.a1.05.obj.mode_turntable": "Fight the exhibition bout",
+    "mission.m.a1.05.obj.talk_signup": "Sign up with the host",
+    "mission.m.a1.05.talk.signup.intent": "Sign up for the exhibition bout",
+    "mission.m.a1.05.talk.signup.sign_up": "Sign me up",
+    "mission.m.a1.05.title": "Turntable Battle"
+  }
+}

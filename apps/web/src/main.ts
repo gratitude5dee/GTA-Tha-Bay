@@ -1,11 +1,12 @@
 import { collectDiagnosticSignals, createPlatform, fetchBootRegion, formatDiagnostics, parseQaFlags } from '@dv/engine';
+import { storyBoot } from './story-content.ts';
 import { bootEngine, type EngineHandle } from '@dv/engine/client/boot';
 import type { WorkerPort } from '@dv/engine/assets/client';
 import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
-import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
+import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
@@ -246,6 +247,9 @@ async function boot(): Promise<void> {
   // caught from the first tick and handed to the CutscenePlayer once it is installed.
   const cutBacklog: { t: string; tick: number; n?: number; s?: string }[] = [];
   let cutSink: CutsceneGlue['handleEvents'] | null = null;
+  const story = storyBoot(!QA || flags.story);
+  registerTexts(story.lines);
+  if (qaMission && typeof qaMission['lines'] === 'object') registerTexts(qaMission['lines'] as Record<string, string>);
   const engine = await bootEngine({
     onSimEvents: (events) => {
       const cuts = events.filter((e) => e.t === 'cut.request' || e.t === 'cut.done');
@@ -257,6 +261,8 @@ async function boot(): Promise<void> {
     qa: QA,
     flags,
     ...(qaMission ? { mission: qaMission } : {}),
+    // The Act 1 mission catalog: the Jobs list, the start markers and the auto start (M05c1). A QA build turns the triggers on with `?story=1`.
+    story: story,
     host: platform.host,
     tier: platform.quality.tier.id,
     ...(flags.profile ? { profile: flags.profile } : {}),

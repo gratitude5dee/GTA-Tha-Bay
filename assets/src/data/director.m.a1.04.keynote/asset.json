@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.a1.04.keynote",
+  "variants": {
+    "default": "assets/src/data/director.m.a1.04.keynote/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.04"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

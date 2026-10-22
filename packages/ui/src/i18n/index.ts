@@ -43,12 +43,24 @@ export function chain(lang: string): string[] {
   return out;
 }
 
+/** Texts the content brings at run time (mission lines and titles, M05c1): English, consulted after the catalogs. */
+const texts = new Map<string, string>();
+
+export function registerTexts(entries: Readonly<Record<string, string>>): void {
+  for (const k of Object.keys(entries)) texts.set(k, entries[k] as string);
+}
+
+/** A content text (a mission line or title) by its key, else the key itself; never recorded as a missing catalog key. */
+export function contentText(key: string): string {
+  return texts.get(key) ?? lookup(key, current) ?? key;
+}
+
 function lookup(key: string, lang: string): string | undefined {
   for (const l of chain(lang)) {
     const hit = catalogs[l]?.[key];
     if (hit !== undefined) return hit;
   }
-  return undefined;
+  return texts.get(key);
 }
 
 export function t(key: LocKey, vars: Readonly<Record<string, string | number>> = {}, lang: Lang = current): string {

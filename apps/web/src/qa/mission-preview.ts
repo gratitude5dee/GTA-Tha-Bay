@@ -10,6 +10,10 @@ import { qaMissionBundle } from './missions.ts';
 // A recording of the sample (`pnpm missions:preview -- --mission m.dev.sample --seed 1 --out tests/fixtures/missions`), so that the page shows
 // something at the bare URL, for example in a pull request preview.
 import sampleRecordingUrl from '../../../../tests/fixtures/missions/m.dev.sample.1.dvtl?url';
+// The recorded runs of the Act 1 missions on the real city map (M05c1: `check:missions` wrote them, copied from test-results/missions):
+// the pull request preview lists them so that the missions can be watched without the city.
+import { storyBoot } from '../story-content.ts';
+const recordings = import.meta.glob('../../../../tests/fixtures/missions/*.dvtl', { query: '?url', import: 'default', eager: true }) as Record<string, string>;
 
 interface Chapter {
   tick: number;
@@ -141,7 +145,7 @@ function load(bytes: ArrayBuffer, name: string): void {
       return { tick: e.tick, endTick: e.tick + (typeof d.ticks === 'number' ? d.ticks : 150), speaker: String(d.speaker ?? ''), line: String(d.line ?? '') };
     });
   const bundle = meta.mission ? qaMissionBundle(meta.mission) : null;
-  lineText = (bundle?.['lines'] ?? {}) as Record<string, string>;
+  lineText = { ...storyBoot(false).lines, ...((bundle?.['lines'] ?? {}) as Record<string, string>) };
   mapBounds(dvtl);
   scrub.max = String(dvtl.endTick);
   chaptersEl.replaceChildren(
@@ -191,7 +195,28 @@ window.addEventListener('drop', (e) => {
   if (f) void f.arrayBuffer().then((b) => load(b, f.name));
 });
 
-const url = new URLSearchParams(location.search).get('timeline') ?? (new URLSearchParams(location.search).has('empty') ? null : sampleRecordingUrl);
+const recSelect = $<HTMLSelectElement>('rec');
+const recNames = Object.keys(recordings).map((k) => k.replace(/^.*\//, '').replace(/\.dvtl$/, '')).sort();
+const recUrl = (name: string): string | undefined => Object.entries(recordings).find(([k]) => k.endsWith(`/${name}.dvtl`))?.[1];
+recSelect.replaceChildren(...recNames.map((n) => Object.assign(document.createElement('option'), { value: n, textContent: n })));
+const params = new URLSearchParams(location.search);
+const wanted = params.get('rec');
+if (wanted && recNames.includes(wanted)) recSelect.value = wanted;
+else recSelect.value = 'm.dev.sample.1';
+const loadRec = (name: string): void => {
+  const u = recUrl(name);
+  if (!u) return;
+  status.textContent = `loading ${name}`;
+  void fetch(u)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`${u}: ${r.status}`))))
+    .then((b) => load(b, name))
+    .catch((e: unknown) => {
+      status.textContent = `error: ${e instanceof Error ? e.message : String(e)}`;
+    });
+};
+recSelect.addEventListener('change', () => loadRec(recSelect.value));
+
+const url = params.get('timeline') ?? (params.has('empty') ? null : (recUrl(recSelect.value) ?? sampleRecordingUrl));
 if (url) {
   status.textContent = `loading ${url}`;
   void fetch(url)

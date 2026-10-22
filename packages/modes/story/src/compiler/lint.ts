@@ -2,7 +2,9 @@
  * Content and depiction lint (C09 section C11, R-IP-02), run by `missions:build`:
  *  1. real-derived cast: allowed roles, lawful stages only, never a target, never in sideshow or jailbreak missions, talk outcomes
  *     never lead to an unlawful stage;
- *  2. no firearms: prefab and item ids under `weapon.` are rejected (`defeat` is non-lethal by the schema);
+ *  2. no firearms: prefab and item ids under `weapon.` are rejected (`defeat` is non-lethal by the schema, and a `defeat` that is
+ *     not is also refused here with E_DEPICTION, for an IR that did not pass through the schema);
+ *  2b. fame-domain exclusion: an athlete slot (`ATH_*`) never appears in a mission tagged `sports` (a sports context);
  *  3. names: the text of every referenced line and key passes the real-name matchers and the ip-denylist strings;
  *  4. missions in districts d3 and d4 carry the tag `sensitivity-read`.
  */
@@ -89,6 +91,20 @@ export function lintMission(ir: MissionIR, env: CompileEnv): CompileError[] {
   });
 
   // 2. no firearms
+  walkMission(
+    {
+      objective(o, ptr) {
+        if (o.k === 'defeat' && (o as { nonLethal?: boolean }).nonLethal !== true) add('E_DEPICTION', `${ptr}/nonLethal`, 'defeat is always non-lethal (D-30)');
+      },
+    },
+    ir,
+  );
+  // 2b. fame-domain exclusion
+  if (ir.tags.includes('sports')) {
+    for (const [name, c] of Object.entries(ir.cast)) {
+      if (c.k === 'npc' && 'slot' in c.who && c.who.slot.startsWith('ATH_')) add('E_DEPICTION', `/cast/${name}/who/slot`, `an athlete slot (${c.who.slot}) never appears in a sports context`);
+    }
+  }
   const weapon = (id: string, ptr: string): void => {
     if (id.startsWith('weapon.')) add('E_DEPICTION', ptr, `${id}: weapons are not part of this game`);
   };

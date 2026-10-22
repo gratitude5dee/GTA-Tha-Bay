@@ -35,6 +35,8 @@ import { createWorldStandin } from './world-standin.ts';
 import { STORY_PREFABS, type PrefabRegistry } from '../prefabs/registry.ts';
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
+import { CombatImpl } from '../combat/combat.ts';
+import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
 
 export * from './host.ts';
 export * from './stack.ts';
@@ -159,6 +161,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
   let ui: SimUiBridge | null = null;
   let slices: SessionSlices | null = null;
   let script: ScriptServices | null = null;
+  let combat: CombatImpl | null = null;
+  let garage: GarageService | null = null;
   let dispatch: ((cmd: UiCommand) => void) | null = null;
   let reply: ((name: string, data: unknown) => void) | null = null;
   let qaHandler: ModesQaHandler | null = null;
@@ -175,6 +179,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       { id: 'engine.script.zones', owner: 'S01', stage: SimStage.Script, order: 5, run: ({ tick }) => script?.zones.update(tick) },
       { id: 'engine.script.threads', owner: 'S01', stage: SimStage.Script, order: 10, run: ({ tick }) => script?.scheduler.run(tick) },
       { id: 'engine.script.timeline', owner: 'S01', stage: SimStage.Script, order: 90, run: ({ tick }) => script?.timeline.update(tick) },
+      // Open-world melee (M05c1): the player's Attack button, the moves in progress and the wake-ups, in the rules stage with damage and infractions.
+      { id: 'engine.combat', owner: 'S01', stage: SimStage.Rules, order: 40, run: () => combat?.update() },
       {
         id: 'engine.modes.ui', owner: 'S01', stage: SimStage.Publish, order: 900,
         run: ({ tick, services }) => {
@@ -326,6 +332,40 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       const timelineSvc = new TimelineRecorderImpl({ ecs: s.ecs as unknown as EcsApi, tick });
       script = { scheduler: sched, zones: zoneSvc, timeline: timelineSvc };
 
+      combat = new CombatImpl({
+        ecs: s.ecs as unknown as EcsApi,
+        tick,
+        input: () => services.input ?? null,
+        report: (kind, at) => {
+          try {
+            lazyPursuit.report(kind, at, 'ped', 1);
+          } catch (e) {
+            if (!(e instanceof NotYetAvailable)) throw e;
+          }
+        },
+        emit: (t, tk, a, b, move, damage, ko) => void services.events.push({ t, tick: tk, a, b, n: damage, s: `${move}|${ko ? 1 : 0}` }),
+      });
+      garage = createGarageService({
+        list: () => live.core.garage,
+        ui: bridge,
+        heat: () => pursuitMod?.director()?.state().level ?? 0,
+        world: () => services.world.api ?? null,
+        prefabs: () => withStoryPrefabs((services.vehicleCtx?.prefabs as unknown as PrefabRegistry | undefined) ?? null),
+        player: () => {
+          const pose = playerPose();
+          if (!pose) return null;
+          return { x: pose.x, y: pose.y, z: pose.z, camYaw: ((services.input?.camYaw ?? 0) * 2 * Math.PI) / 65536 };
+        },
+        onChange: () => h.saveCore(),
+        vehicleHeat: (key) => {
+          try {
+            return lazyPursuit.vehicleHeat(key);
+          } catch {
+            return 0;
+          }
+        },
+      });
+
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
       const storyEnv: StoryWrapEnv = {
@@ -393,6 +433,19 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           zones: zoneSvc,
           scheduler: sched,
           timeline: timelineSvc,
+          combat,
+          garage: {
+            add: (instance) => garageAdd(live.core.garage, instance),
+            count: () => live.core.garage.length,
+            slots: () => garageSlots(live.story.property.safehouses),
+            recolor: (key, hue) => garageRecolor(live.core.garage, key, hue),
+          },
+          wardrobe: {
+            has: (id) => live.core.inventory.wardrobe.includes(id),
+            add: (id) => {
+              if (!live.core.inventory.wardrobe.includes(id)) live.core.inventory.wardrobe.push(id);
+            },
+          },
           // Script-driven vehicles (M05a1, `ctx.vehicleAi`): the input of an NPC car, which marks the vehicle `external`.
           vehicleAi: {
             drive: (veh, input) => {
@@ -442,6 +495,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         },
         world: () => (services.world.api ?? standin),
         ride: () => services.ride,
+        garage: () => garage,
         selectProfile: (id) => {
           void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
             .then((next) => {
@@ -474,7 +528,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         bridge.patch('sys.settings', settingsView(live.settings));
         bridge.patch('sys.profile', live.profile ? { ...live.profile } : null);
         bridge.patch('sys.avatar', live.core.avatar);
-        bridge.patch('sys.garage', live.core.garage as unknown as JsonObject[]);
+        garage?.publish();
         unl.publish();
         econ.publish();
         h.publish();

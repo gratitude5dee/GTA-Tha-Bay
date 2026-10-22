@@ -1,0 +1,62 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 7000,
+      "kind": "dialogue",
+      "line": "line.m.a1.04.keynote.1",
+      "speaker": "corwin_hale",
+      "startMs": 1200
+    },
+    {
+      "endMs": 12800,
+      "kind": "dialogue",
+      "line": "line.m.a1.04.keynote.2",
+      "speaker": "corwin_hale",
+      "startMs": 8000
+    }
+  ],
+  "durationSec": 14,
+  "id": "m.a1.04.keynote",
+  "letterbox": true,
+  "marks": {
+    "stage_close": {
+      "at": [
+        37.77735,
+        -122.40468
+      ],
+      "yawDeg": 20
+    },
+    "stage_wide": {
+      "at": [
+        37.7774,
+        -122.4047
+      ],
+      "yawDeg": 200
+    }
+  },
+  "schema": "director/1",
+  "seed": 3272457101,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "stage_wide",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 8,
+      "from": "stage_close",
+      "lens": "normal",
+      "preset": "single",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "stage_close",
+    "yawDeg": 20
+  }
+}

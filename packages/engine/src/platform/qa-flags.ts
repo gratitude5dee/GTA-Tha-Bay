@@ -57,6 +57,8 @@ export interface QaFlags {
   readonly talk: 'scripted' | null;
   /** ?beats=instant completes a beat in one tick; `fallback` and `video` are the M05b2 paths and play as the normal beat here. */
   readonly beats: 'instant' | 'fallback' | 'video' | null;
+  /** ?story=1 turns the mission triggers on in a QA build (the auto start of the first mission and the start markers); a production build always has them (M05c1). */
+  readonly story: boolean;
   /** ?racing=1 boots the racing sim module (components 1024 to 1031, the race cars) and the QA bridge `racing` (M07a1). */
   readonly racing: boolean;
   /** ?racing=demo: like ?racing=1, and the QA page starts the straight demo race by itself (no baked streets needed, M07a1). */
@@ -94,6 +96,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   hooks: null,
   talk: null,
   beats: null,
+  story: false,
   racing: false,
   racingDemo: false,
   tycoon: false,
@@ -174,6 +177,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     hooks: q.get('hooks') === 'stub' ? 'stub' : q.get('hooks') === 'bot' ? 'bot' : null,
     talk: q.get('talk') === 'scripted' ? 'scripted' : null,
     beats: q.get('beats') === 'instant' ? 'instant' : q.get('beats') === 'fallback' ? 'fallback' : q.get('beats') === 'video' ? 'video' : null,
+    story: q.get('story') === '1',
     racing: q.get('racing') === '1' || q.get('racing') === 'demo',
     racingDemo: q.get('racing') === 'demo',
     tycoon: q.get('tycoon') === '1',

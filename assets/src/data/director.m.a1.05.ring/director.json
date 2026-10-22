@@ -1,0 +1,41 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 7000,
+      "kind": "dialogue",
+      "line": "line.m.a1.05.ring.1",
+      "speaker": "standin_rap_elder",
+      "startMs": 800
+    }
+  ],
+  "durationSec": 8,
+  "id": "m.a1.05.ring",
+  "letterbox": true,
+  "marks": {
+    "plaza": {
+      "at": [
+        37.78478,
+        -122.40755
+      ],
+      "yawDeg": 215
+    }
+  },
+  "schema": "director/1",
+  "seed": 4287287485,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "plaza",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "plaza",
+    "yawDeg": 215
+  }
+}

@@ -10,7 +10,7 @@
  */
 import {
   Fnv64, Rng, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
-  type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type WeatherPreset,
+  type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type VehicleInstance, type WeatherPreset,
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import type { ResolvedMission } from '../compiler/resolve.ts';
@@ -24,6 +24,7 @@ import { DirectorSystem } from '../director/system.ts';
 import type { Comfort } from '../director/types.ts';
 import { missionDeps } from './deps.ts';
 import { Probes } from './probes.ts';
+import { newGarageCar } from '../missions/garage-car.ts';
 import { TaskRunner, type VehicleDriver } from './tasks.ts';
 import {
   DEFAULT_FLAGS, type CastRt, type EndRequest, type ObjRt, type ObjState, type RuntimeFlags, type RuntimeOptions, type StartOptions, type StoryCommand,
@@ -762,6 +763,8 @@ export class MissionRuntime implements OpHost {
       bestSec: prev?.bestSec !== undefined ? Math.min(prev.bestSec, sec) : sec,
       medals: (Math.max(prev?.medals ?? 0, medals) as 0 | 1 | 2 | 3),
     };
+    const garage = (this.ctx as ModeContext & { garage?: { add(i: VehicleInstance): boolean } }).garage;
+    for (const defId of r.vehicles ?? []) garage?.add(newGarageCar({ defId, seed: `mis:${ir.id}:${defId}`, source: 'reward' }));
     this.noteEvent('reward', { cashCents: r.cashCents ?? 0, vehicles: (r.vehicles ?? []).join(',') });
     for (const u of ir.unlocks ?? []) this.ctx.unlocks.emit(u as UnlockEventId, { kind: 'mission', ref: ir.id });
     story.activeMission = null;
@@ -868,6 +871,10 @@ export class MissionRuntime implements OpHost {
     const talk = o.def.talk;
     const out = talk.outcomes[c.outcome];
     if (!out) return;
+    // a gated or unaffordable outcome is refused; the scripted default of a CI run is always taken
+    if (c.path !== 'scripted' && this.talkChoices(talk).find((x) => x.id === c.outcome)?.enabled !== true) return;
+    const cost = out.flags?.['talk.cost'];
+    if (typeof cost === 'number' && cost > 0) this.ctx.economy.debit(cost, 'mission.talk', `${this.scope()}:talk:${talk.id}:${c.outcome}`);
     this.talkResults[talk.id] = c.outcome;
     this.ctx.timeline.external({ src: 'talk', tick: this.ctx.tick, data: { talkId: talk.id, outcome: c.outcome, turns: c.turns, path: c.path } });
     this.noteEvent('talk', { talkId: talk.id, outcome: c.outcome, path: c.path });
@@ -1249,11 +1256,43 @@ export class MissionRuntime implements OpHost {
 
   offerTalk(talk: TalkDef, o: ObjRt): void {
     void o;
-    const choices = Object.entries(talk.outcomes)
-      .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-      .map(([id, out]) => ({ id, label: out.label, enabled: true }));
-    this.ctx.ui.patch('mode.story.talk', { talkId: talk.id, npc: this.soulOf(talk.npc), intent: talk.intent, choices } as unknown as JsonValue);
+    const choices = this.talkChoices(talk);
+    const open = `line.${this.ir.id}.talk.${talk.id}.open` as `line.${string}`;
+    const opening = this.ir.lines.includes(open) ? this.lineText(open) : undefined;
+    this.ctx.ui.patch('mode.story.talk', {
+      talkId: talk.id,
+      npc: this.soulOf(talk.npc),
+      intent: talk.intent,
+      ...(opening !== undefined ? { open: opening } : {}),
+      choices,
+    } as unknown as JsonValue);
     if (this.flagsCfg.talk === 'scripted') this.command({ name: 'talk.result', talkId: talk.id, outcome: talk.default, turns: 0, path: 'scripted' });
+  }
+
+  /**
+   * The outcome buttons of a talk, in id order. Offline (no NPC brain before M06a3), a `TalkUnlock` is read like this (03-story-missions.md C7):
+   * `actions` count as offered (the ink knot plays the offer), `mood` and `minTrust` need the NPC's trust to reach `minTrust` (default 20 for a mood
+   * gate), and a numeric flag `talk.cost` on the outcome is paid from the wallet, so the button is off when the wallet is short.
+   */
+  talkChoices(talk: TalkDef): { id: string; label: string; enabled: boolean; hint?: string; hintParams?: Record<string, string | number> }[] {
+    const trust = this.opts.story().npcRelations[this.soulOf(talk.npc)]?.trust ?? 0;
+    const cash = this.ctx.economy.balance();
+    return Object.entries(talk.outcomes)
+      .sort((a, b) => byStr(a[0], b[0]))
+      .map(([id, out]) => {
+        const need = out.when?.minTrust ?? (out.when?.mood ? 20 : undefined);
+        const cost = out.flags?.['talk.cost'];
+        let hint: string | undefined;
+        let hintParams: Record<string, string | number> | undefined;
+        if (need !== undefined && trust < need) {
+          hint = out.when?.mood ? 'talk.gate.mood' : 'talk.gate.trust';
+          hintParams = { need };
+        } else if (typeof cost === 'number' && cash < cost) {
+          hint = 'talk.gate.cost';
+          hintParams = { cents: cost };
+        }
+        return { id, label: out.label, enabled: hint === undefined, ...(hint !== undefined ? { hint, hintParams: hintParams as Record<string, string | number> } : {}) };
+      });
   }
 
   private publishHud(): void {

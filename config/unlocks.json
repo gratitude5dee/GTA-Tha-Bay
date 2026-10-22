@@ -1,36 +1,175 @@
 {
   "schema": 1,
-  "note": "Unlock rows contributed by mode packages (UnlockDef, C06). The base rows `unlock.racing`, `unlock.fighter` and `unlock.tycoon` are registered by the engine (M04a2); a row here with the same id replaces the engine's, so racing adds its starter loaner to the tile grant.",
+  "note": "Unlock rows contributed by mode packages (UnlockDef, C06). The base rows `unlock.racing`, `unlock.fighter` and `unlock.tycoon` are registered by the engine (M04a2); a row here with the same id replaces the engine's, so racing adds its starter loaner to the tile grant. Story rows (M05c1): unlock.fighter, unlock.fighter.rap_new_wave and unlock.district.d1 to d10; the racing package registers the unlock.racing* rows, the story package registers the rest.",
   "unlocks": [
     {
       "id": "unlock.racing",
       "titleKey": "unlock.racing.title",
       "source": "base",
-      "grants": { "menuTile": "racing", "vehicles": ["vehicle.ondine-pico"] }
+      "grants": {
+        "menuTile": "racing",
+        "vehicles": [
+          "vehicle.ondine-pico"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.c",
       "titleKey": "unlock.racing.class.c.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.kestrel-quill"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.kestrel-quill"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.b",
       "titleKey": "unlock.racing.class.b.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.brackenridge-rasp"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.brackenridge-rasp"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.a",
       "titleKey": "unlock.racing.class.a.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.aurelian-sorrel"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.aurelian-sorrel"
+        ]
+      }
     },
     {
       "id": "unlock.racing.class.s",
       "titleKey": "unlock.racing.class.s.title",
       "source": "base",
-      "grants": { "vehicles": ["vehicle.solenne-skip"] }
+      "grants": {
+        "vehicles": [
+          "vehicle.solenne-skip"
+        ]
+      }
+    },
+    {
+      "id": "unlock.fighter",
+      "titleKey": "unlock.fighter.title",
+      "source": "base",
+      "grants": {
+        "menuTile": "fighter"
+      }
+    },
+    {
+      "id": "unlock.fighter.rap_new_wave",
+      "titleKey": "unlock.fighter.rap_new_wave.title",
+      "source": "base",
+      "grants": {
+        "fighters": [
+          "standin_rap_new_wave"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d1",
+      "titleKey": "unlock.district.d1.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d1"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d2",
+      "titleKey": "unlock.district.d2.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d2"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d3",
+      "titleKey": "unlock.district.d3.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d3"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d4",
+      "titleKey": "unlock.district.d4.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d4"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d5",
+      "titleKey": "unlock.district.d5.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d5"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d6",
+      "titleKey": "unlock.district.d6.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d6"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d7",
+      "titleKey": "unlock.district.d7.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d7"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d8",
+      "titleKey": "unlock.district.d8.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d8"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d9",
+      "titleKey": "unlock.district.d9.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d9"
+        ]
+      }
+    },
+    {
+      "id": "unlock.district.d10",
+      "titleKey": "unlock.district.d10.title",
+      "source": "base",
+      "grants": {
+        "districts": [
+          "d10"
+        ]
+      }
     }
   ]
 }

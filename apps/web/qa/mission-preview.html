@@ -26,6 +26,10 @@
     <h1>Mission preview</h1>
     <p class="dim">A recorded run of a mission (<code>pnpm missions:preview -- --mission m.dev.sample --seed 1</code> writes <code>test-results/preview/m.dev.sample.1.dvtl</code>). Open the file here, or pass <code>?timeline=&lt;url&gt;</code>.</p>
     <div class="row">
+      <label>Recorded run <select id="rec" data-testid="rec"></select></label>
+      <span class="dim">Act 1 runs come from the headless autoplayer on the real city map (<code>pnpm check:missions -- --act 1</code>); the picture is the path of the player and the cast, seen from above.</span>
+    </div>
+    <div class="row">
       <label>Timeline file <input id="file" type="file" accept=".dvtl" data-testid="file" /></label>
       <span id="status" data-testid="status" class="dim">no file loaded</span>
     </div>
