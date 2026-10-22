@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { JsonObject, SimEvent } from '@dv/shared';
 import { hashCompany, replay } from '@dv/shared/tycoon';
+import { builtinUnlockDefs } from '../../../engine/src/sim/modes/index.ts';
 import { tycoonDescriptor, tycoonUnlock } from '../src/index.ts';
 import { RUN_KEY, VIEW_KEY, activeTycoon, tycoonContent, tycoonSim, weekThreshold } from '../src/sim/index.ts';
 import { makeRig, makeSession, playScript } from './harness.ts';
@@ -20,9 +21,10 @@ describe('descriptor (C06)', () => {
     const m = await tycoonDescriptor().sim();
     expect(m.default).toBe(tycoonSim);
   });
-  it('config/unlocks.json carries unlock.tycoon', async () => {
-    const { default: unlocks } = await import('../../../../config/unlocks.json');
-    expect((unlocks as { unlocks: { id: string; grants: { menuTile?: string } }[] }).unlocks.find((u) => u.id === 'unlock.tycoon')?.grants.menuTile).toBe('tycoon');
+  it('the engine registers unlock.tycoon as a base row that grants the menu tile (config/unlocks.json adds only the racing rows)', () => {
+    const def = builtinUnlockDefs().find((u) => u.id === 'unlock.tycoon');
+    expect(def).toMatchObject({ source: 'base', grants: { menuTile: 'tycoon' } });
+    expect(def?.grants).toEqual(tycoonUnlock.grants);
   });
 });
 
