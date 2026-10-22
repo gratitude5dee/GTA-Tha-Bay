@@ -43,6 +43,16 @@ export function garageRemove(list: GarageList, key: string): boolean {
   return true;
 }
 
+/** Repaints an instance: `livery.hue`. True when the key exists. */
+export function garageRecolor(list: GarageList, key: string, hue: number): boolean {
+  const i = indexOfKey(list, key);
+  if (i < 0) return false;
+  const e = list[i] as JsonObject;
+  const livery = { ...((e['livery'] ?? {}) as JsonObject), hue: ((hue % 360) + 360) % 360 };
+  e['livery'] = livery;
+  return true;
+}
+
 /** Moves the instance to index 0, the favourite place. True when the key exists. */
 export function garageFavorite(list: GarageList, key: string): boolean {
   const i = indexOfKey(list, key);

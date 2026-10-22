@@ -39,6 +39,7 @@ export interface ContextPorts {
   vehicleAi?: VehicleAiPort | null;
   /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
   garage?: GaragePort | null;
+  wardrobe?: WardrobePort | null;
 }
 
 export interface GaragePort {
@@ -47,6 +48,14 @@ export interface GaragePort {
   /** Cars in the garage and the slots the owned safehouses offer. */
   count(): number;
   slots(): number;
+  /** Repaints the instance `veh:<id>` (a respray). */
+  recolor(vehicleKey: string, hue: number): boolean;
+}
+
+/** The wardrobe of `CoreSlice.inventory` (M05c1): a clothing shop adds a garment id. Reaches the mode as `ctx.wardrobe`, which is not part of C06. */
+export interface WardrobePort {
+  has(id: string): boolean;
+  add(id: string): void;
 }
 
 export interface VehicleAiPort {
@@ -112,5 +121,6 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
   };
   if (p.vehicleAi) (ctx as ModeContext & { vehicleAi: VehicleAiPort }).vehicleAi = p.vehicleAi;
   if (p.garage) (ctx as ModeContext & { garage: GaragePort }).garage = p.garage;
+  if (p.wardrobe) (ctx as ModeContext & { wardrobe: WardrobePort }).wardrobe = p.wardrobe;
   return ctx;
 }

@@ -13,7 +13,7 @@ export interface EconSection {
   /** Game weeks per simulated run. */
   weeks: number;
   /** One week's gross dividend in cents, from a uniform draw `u` in [0, 1) and a second `v`. */
-  grossDividend(u: number, v: number): number;
+  grossDividend(u: number, v: number, week?: number): number;
   probes: Readonly<Record<string, (deps: ModelDeps) => number>>;
 }
 
@@ -44,4 +44,5 @@ export const BASE_SECTION: EconSection = {
   },
 };
 
-export const SECTIONS: Readonly<Record<string, EconSection>> = { base: BASE_SECTION };
+/** The sections that need no data file; `sections/index.ts` adds the content sections. */
+export const BASE_SECTIONS: Readonly<Record<string, EconSection>> = { base: BASE_SECTION };

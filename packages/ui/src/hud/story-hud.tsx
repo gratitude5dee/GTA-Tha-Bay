@@ -8,6 +8,7 @@ import { HudGrid, useHudPrefs } from './layout.tsx';
 import { MinimapSlot } from './minimap-slot.tsx';
 import { TipBar } from './tipbar.tsx';
 import { TalkPanel } from './TalkChoices.tsx';
+import { ShopPanel } from './ShopPanel.tsx';
 import { MissionFail } from './mission-fail.tsx';
 import { contentText } from '../i18n/index.ts';
 import type { HudClock, HudHeat, HudVehicle, HudWallet } from './model.ts';
@@ -71,6 +72,7 @@ export function StoryHud() {
         c: (
           <>
             <TalkPanel />
+            <ShopPanel />
             <MissionFail fail={mission?.failKey ? { reason: mission.failKey, retry: mission.retry ?? 'checkpoint' } : undefined} />
           </>
         ),

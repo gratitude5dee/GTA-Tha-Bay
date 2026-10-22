@@ -17,6 +17,7 @@ import type { VehicleDriver } from './vm/tasks.ts';
 import { DEFAULT_FLAGS, type RuntimeFlags, type StoryCommand } from './vm/types.ts';
 import { missionDeps } from './vm/deps.ts';
 import { MissionStore, type CatalogPayload, type JobRow } from './missions/store.ts';
+import { StoryPlaces, type ShopPorts } from './missions/index.ts';
 
 /** What the page puts in `BootPayload.config.mission` for `?mission=<id>` (QA builds only). */
 export interface QaMissionBoot {
@@ -48,6 +49,8 @@ export interface BeginOptions {
   lines?: Readonly<Record<string, string>>;
 }
 
+type ShopGarage = NonNullable<ShopPorts['garage']>;
+type ShopWardrobe = NonNullable<ShopPorts['wardrobe']>;
 const DEBUG_EVERY = 6;
 /** The triggers and the Jobs list are looked at every 15 ticks (4 Hz). */
 const TRIGGER_EVERY = 15;
@@ -91,6 +94,15 @@ export class StoryController {
   private startMarks = new Map<string, { handle: number | null; blip: string }>();
   private startPos = new Map<string, [number, number] | null>();
   private jobsJson = '';
+  /** Safehouses and shops (M05c1); ticks only with a catalog (the page), so a headless run is unchanged. */
+  private readonly places = new StoryPlaces({
+    ctx: () => this.ctx as ModeContext,
+    story: () => this.story as StorySlice,
+    ports: (c) => {
+      const x = c as ModeContext & { garage?: ShopGarage; wardrobe?: ShopWardrobe };
+      return { garage: x.garage ?? null, wardrobe: x.wardrobe ?? null, respray: (k: string) => c.pursuit.respray(k) };
+    },
+  });
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -104,6 +116,7 @@ export class StoryController {
     this.startMarks.clear();
     this.startPos.clear();
     this.jobsJson = '';
+    this.places.reset();
     const cfg = this.env.bootConfig()['story'] as CatalogPayload | undefined;
     this.store = cfg && typeof cfg === 'object' && Array.isArray(cfg.missions) ? new MissionStore(cfg) : null;
   }
@@ -185,7 +198,10 @@ export class StoryController {
         this.begin(waiting.ir, waiting.o);
       }
     }
-    if (this.store) this.triggers(ctx, this.store);
+    if (this.store) {
+      this.triggers(ctx, this.store);
+      if (this.story) this.places.tick(ctx);
+    }
     const rt = this.rt;
     if (!rt) return;
     if (rt.active) rt.tick(ctx);
@@ -348,6 +364,7 @@ export class StoryController {
       }
       return;
     }
+    if (this.store && this.places.command(_ctx, msg.name, a)) return;
     if (!this.rt) return;
     switch (msg.name) {
       case 'talk.result':

@@ -36,7 +36,7 @@ import { STORY_PREFABS, type PrefabRegistry } from '../prefabs/registry.ts';
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
 import { CombatImpl } from '../combat/combat.ts';
-import { createGarageService, garageAdd, garageSlots, type GarageService } from '../garage/garage.ts';
+import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
 
 export * from './host.ts';
 export * from './stack.ts';
@@ -438,6 +438,13 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
             add: (instance) => garageAdd(live.core.garage, instance),
             count: () => live.core.garage.length,
             slots: () => garageSlots(live.story.property.safehouses),
+            recolor: (key, hue) => garageRecolor(live.core.garage, key, hue),
+          },
+          wardrobe: {
+            has: (id) => live.core.inventory.wardrobe.includes(id),
+            add: (id) => {
+              if (!live.core.inventory.wardrobe.includes(id)) live.core.inventory.wardrobe.push(id);
+            },
           },
           // Script-driven vehicles (M05a1, `ctx.vehicleAi`): the input of an NPC car, which marks the vehicle `external`.
           vehicleAi: {
