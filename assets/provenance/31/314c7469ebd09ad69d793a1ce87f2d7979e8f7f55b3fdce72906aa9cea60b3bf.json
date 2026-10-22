@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "314c7469ebd09ad69d793a1ce87f2d7979e8f7f55b3fdce72906aa9cea60b3bf",
+  "paths": [
+    "tests/fixtures/cutscenes/fixture-b/last.webp"
+  ],
+  "kind": "cutscene",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tests/fixtures/cutscenes/make-fixtures.ts",
+    "version": "1.0.0",
+    "args_sha256": "619bc82db3a5661c09653746156e7175c84f022ea073ffe2ee2cf72945204329"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T00:00:00Z"
+}
