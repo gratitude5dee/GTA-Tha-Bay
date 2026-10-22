@@ -93,7 +93,7 @@ const hideQaPanels = async (page: Page): Promise<void> => {
   await page.addInitScript(() => {
     document.addEventListener('DOMContentLoaded', () => {
       const st = document.createElement('style');
-      st.textContent = '.dv-pursuit, .dv-modes, .dv-mission { display: none !important }';
+      st.textContent = '.dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg { display: none !important }';
       document.head.append(st);
     });
   });

@@ -238,6 +238,9 @@ importers:
       '@dv/mode-story':
         specifier: workspace:*
         version: link:../../packages/modes/story
+      '@dv/npc':
+        specifier: workspace:*
+        version: link:../../packages/npc
       '@dv/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -340,6 +343,15 @@ importers:
       '@dv/shared':
         specifier: workspace:*
         version: link:../shared
+
+  packages/npc:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../shared
+      inkjs:
+        specifier: 2.4.0
+        version: 2.4.0
 
   packages/shared:
     dependencies:

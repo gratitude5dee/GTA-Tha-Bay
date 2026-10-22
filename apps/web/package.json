@@ -8,6 +8,7 @@
     "@dv/identity": "workspace:*",
     "@dv/mode-story": "workspace:*",
     "@dv/mode-racing": "workspace:*",
+    "@dv/npc": "workspace:*",
     "@dv/shared": "workspace:*",
     "@dv/ui": "workspace:*",
     "@dv/world": "workspace:*",

@@ -32,6 +32,8 @@ export function main(argv: string[], env: NodeJS.ProcessEnv = process.env): numb
     console.error(`test:staging: unknown suite ${unknown.join(', ')}; known: ${SUITES.join(', ')}`);
     return 1;
   }
+  // A skipped vitest file swallows its own console output, so the SKIP line (CLAUDE.md: secret absent) is printed here.
+  if (suites.includes('npc-cache') && !env['ANTHROPIC_API_KEY']) console.log('SKIP npc-cache: ANTHROPIC_API_KEY not set (staging stays in fixture mode; U-NPC-01 and U-NPC-02 stay open)');
   const res = spawnSync(
     'pnpm',
     ['exec', 'vitest', 'run', '--config', 'tests/staging/vitest.config.ts', ...suites.map((s) => `tests/staging/${s}.test.ts`)],

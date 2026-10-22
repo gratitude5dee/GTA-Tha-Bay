@@ -1,6 +1,6 @@
 import { NPC_GUARDRAILS, sha256Hex, type GovLevel } from '@dv/shared';
 import type { CompiledSoul, DialogueEvent, FallbackReason, InkKnot, NPCDialogueRequest } from '@dv/shared/contracts/c10-npc';
-import { normalizeTurnJson, renderScene, validateDialogueRequest, validateNpcTurn, validateTurn, type ExecutorScene, type NpcTurnOutput } from '@dv/shared/npc';
+import { inkKnotFor, normalizeTurnJson, renderScene, validateDialogueRequest, validateNpcTurn, validateTurn, type ExecutorScene, type NpcTurnOutput } from '@dv/shared/npc';
 import { nextUtcMidnight, now } from '../clock.ts';
 import { playerQuota } from '../budget/quota.ts';
 import { apiError } from '../errors.ts';
@@ -46,18 +46,6 @@ export interface MemoryHook {
   retrieve(input: { profileId: string; npcId: string }): Promise<{ summary: string; hits: [] }>;
 }
 export const memoryHook: MemoryHook = { retrieve: () => Promise.resolve({ summary: '', hits: [] }) };
-
-/** The ink knot a fallback names: the mission talk knot for a mission intent, `farewell`, `greeting`, else `smalltalk`. */
-export function knotFor(ctx: NPCDialogueRequest['context'], intent: string | undefined): InkKnot {
-  const missionIntent = intent === 'ask_mission' || intent === 'accept' || intent === 'decline';
-  if (missionIntent && ctx.missionId !== null && ctx.missionStep !== null) {
-    const norm = (s: string): string => s.replace(/[.-]/g, '_');
-    return `mission_${norm(ctx.missionId)}_${norm(ctx.missionStep)}`;
-  }
-  if (intent === 'farewell') return 'farewell';
-  if (intent === 'greet') return 'greeting';
-  return 'smalltalk';
-}
 
 interface TurnState {
   usage: Usage | null;
@@ -346,7 +334,7 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
     'cf-aig-collect-log-payload': 'false',
   };
   const turnsLeft = Math.max(0, cap - (turnIndex + 1));
-  const knot = knotFor(req.context, req.turn.intent);
+  const knot = inkKnotFor(req.context, req.turn.intent);
   const state: TurnState = { usage: null, model: undefined, assistantJson: null, cost: null, closed: false, endConversation: false };
   const scene: ExecutorScene = { mode: req.context.mode, offers: req.context.offers, ...(pre.verdict === 'self_harm' || lastTurn ? { forceEnd: true } : {}) };
   const crisis = begun.safety === 'crisis' || pre.verdict === 'self_harm';

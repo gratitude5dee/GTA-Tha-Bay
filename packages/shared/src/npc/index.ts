@@ -31,3 +31,4 @@ export {
 export type { NpcTurnOutput, ExecutorSoul, ExecutorScene, TurnEffects, ValidatedTurn } from './executor.ts';
 export { prefilterPlayerText, hasSlur, hasSelfHarm, SELF_HARM_PHRASES } from './safety-lists.ts';
 export type { PrefilterResult, PrefilterVerdict } from './safety-lists.ts';
+export { inkKnotFor, knotChain } from './knot.ts';

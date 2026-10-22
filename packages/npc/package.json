@@ -1,0 +1,19 @@
+{
+  "name": "@dv/npc",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/runtime.ts",
+    "./ink": "./src/ink/ink-runner.ts",
+    "./debug": "./src/debug/overlay.ts"
+  },
+  "scripts": {
+    "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/npc"
+  },
+  "dependencies": {
+    "@dv/shared": "workspace:*",
+    "inkjs": "2.4.0"
+  }
+}

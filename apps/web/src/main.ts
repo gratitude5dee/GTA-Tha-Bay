@@ -325,6 +325,8 @@ async function boot(): Promise<void> {
       const w = window as unknown as { __dvBridge?: Record<string, unknown> };
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
+    // The NPC dialogue panel (M06a3): window.__dvBridge.npc and a "Talk to npc_test" box, QA builds only. Failure here never stops the game.
+    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity)).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

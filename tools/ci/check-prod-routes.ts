@@ -70,7 +70,7 @@ export function main(): number {
       const hits = findTestRouteStrings(readFileSync(file, 'utf8'));
       for (const hit of hits) problems.push(`${path.relative(outdir, file)} contains a test-route string: ${hit.trim().slice(0, 120)}`);
     }
-    if (problems.length === 0) console.log(`check:prod-routes ok: ${files.length} bundle file(s), no /_test/ handler, FAL_MODE is not mock`);
+    if (problems.length === 0) console.log(`check:prod-routes ok: ${files.length} bundle file(s), no /_test/ handler, FAL_MODE is not mock, ANTHROPIC_MODE is live`);
   } finally {
     rmSync(outdir, { recursive: true, force: true });
   }
