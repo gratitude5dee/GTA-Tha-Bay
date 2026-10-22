@@ -11,7 +11,8 @@
     "./data-port": "./src/data-port.ts",
     "./data-port.memory": "./src/data-port.memory.ts",
     "./schemas/*": "./schemas/*",
-    "./npc": "./src/npc/index.ts"
+    "./npc": "./src/npc/index.ts",
+    "./fight": "./src/fight/index.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",

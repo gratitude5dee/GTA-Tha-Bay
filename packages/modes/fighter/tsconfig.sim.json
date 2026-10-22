@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["../../shared/src/fight/**/*.ts", "../../shared/src/contracts/dom-media.d.ts"],
+  "exclude": ["../../shared/src/fight/**/*.test.ts"]
+}

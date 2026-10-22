@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/fight/kit.v1.schema.json",
+  "title": "Fight kit v1 (FighterDef, FC2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["slot", "kit", "archetype", "health", "walk", "dash", "jump", "push", "hurtDefault", "moves", "supers", "shutdown", "taunt", "autoCombo", "projectiles", "ai"],
+  "properties": {
+    "slot": { "enum": ["PLAYER_FIGHTER", "RAP_HYPHY_ELDER", "RAP_LYRICIST", "RAP_NEW_WAVE", "RAP_COLLECTIVE", "TECH_VISIONARY", "TECH_HACKER", "TECH_VC", "ATH_SHOOTER", "ATH_POWER_BACK", "INFLUENCER"] },
+    "kit": { "type": "string", "minLength": 1 },
+    "archetype": { "type": "string", "minLength": 1 },
+    "health": { "type": "integer", "minimum": 9500, "maximum": 10500 },
+    "walk": { "type": "object", "additionalProperties": false, "required": ["f", "b"], "properties": { "f": { "type": "integer", "minimum": 1 }, "b": { "type": "integer", "minimum": 1 } } },
+    "dash": {
+      "type": "object", "additionalProperties": false, "required": ["f", "b"],
+      "properties": { "f": { "$ref": "#/$defs/dashSpec" }, "b": { "$ref": "#/$defs/dashSpec" } }
+    },
+    "jump": {
+      "type": "object", "additionalProperties": false, "required": ["pre", "v0", "gravity", "vxF", "vxB", "land"],
+      "properties": {
+        "pre": { "type": "integer", "minimum": 1 }, "v0": { "type": "integer", "minimum": 1 }, "gravity": { "type": "integer", "minimum": 1 },
+        "vxF": { "type": "integer" }, "vxB": { "type": "integer" }, "land": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "push": { "type": "object", "additionalProperties": false, "required": ["stand", "crouch", "air"], "properties": { "stand": { "$ref": "#/$defs/aabb" }, "crouch": { "$ref": "#/$defs/aabb" }, "air": { "$ref": "#/$defs/aabb" } } },
+    "hurtDefault": {
+      "type": "object", "additionalProperties": false, "required": ["stand", "crouch", "air", "down"],
+      "properties": {
+        "stand": { "$ref": "#/$defs/capsules" }, "crouch": { "$ref": "#/$defs/capsules" }, "air": { "$ref": "#/$defs/capsules" }, "down": { "$ref": "#/$defs/capsules" }
+      }
+    },
+    "moves": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/move" } },
+    "supers": { "type": "array", "items": { "$ref": "#/$defs/move" } },
+    "shutdown": { "$ref": "#/$defs/move" },
+    "taunt": { "$ref": "#/$defs/move" },
+    "autoCombo": { "type": "array", "items": { "type": "string" } },
+    "projectiles": { "type": "array", "items": { "$ref": "#/$defs/projectile" } },
+    "gimmick": {
+      "type": "object", "additionalProperties": false, "required": ["id", "params"],
+      "properties": { "id": { "type": "string" }, "params": { "type": "object", "additionalProperties": { "type": "number" } } }
+    },
+    "ai": {
+      "type": "object", "additionalProperties": false,
+      "required": ["aggression", "zoning", "antiAir", "throwRate", "blockRate", "shutdownRate", "reaction", "habits"],
+      "properties": {
+        "aggression": { "$ref": "#/$defs/pct" }, "zoning": { "$ref": "#/$defs/pct" }, "antiAir": { "$ref": "#/$defs/pct" },
+        "throwRate": { "$ref": "#/$defs/pct" }, "blockRate": { "$ref": "#/$defs/pct" }, "shutdownRate": { "$ref": "#/$defs/pct" },
+        "reaction": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 2, "maxItems": 2 },
+        "habits": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "$defs": {
+    "pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "dashSpec": { "type": "object", "additionalProperties": false, "required": ["frames", "dist"], "properties": { "frames": { "type": "integer", "minimum": 1 }, "dist": { "type": "integer", "minimum": 0 } } },
+    "aabb": { "type": "object", "additionalProperties": false, "required": ["x", "y", "w", "h"], "properties": { "x": { "type": "integer" }, "y": { "type": "integer" }, "w": { "type": "integer", "minimum": 1 }, "h": { "type": "integer", "minimum": 1 } } },
+    "capsule": {
+      "type": "object", "additionalProperties": false, "required": ["x1", "y1", "x2", "y2", "r"],
+      "properties": { "x1": { "type": "integer" }, "y1": { "type": "integer" }, "x2": { "type": "integer" }, "y2": { "type": "integer" }, "r": { "type": "integer", "minimum": 1 } }
+    },
+    "capsules": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/capsule" } },
+    "frame": { "type": "integer", "minimum": 0 },
+    "hit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["boxes", "group", "damage", "chipPermille", "hitstun", "blockstun", "hitstop", "pushHit", "pushBlock", "guard", "juggle", "hype", "fx"],
+      "properties": {
+        "boxes": { "type": "array", "items": { "$ref": "#/$defs/capsule" } },
+        "group": { "type": "integer", "minimum": 0, "maximum": 31 },
+        "multi": { "type": "object", "additionalProperties": false, "required": ["every", "max"], "properties": { "every": { "type": "integer", "minimum": 1 }, "max": { "type": "integer", "minimum": 1 } } },
+        "damage": { "type": "integer", "minimum": 0, "maximum": 5000 },
+        "chipPermille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+        "hitstun": { "type": "integer", "minimum": 0 }, "blockstun": { "type": "integer", "minimum": 0 }, "hitstop": { "type": "integer", "minimum": 0, "maximum": 60 },
+        "pushHit": { "type": "integer" }, "pushBlock": { "type": "integer" },
+        "guard": { "enum": ["high", "mid", "low", "overhead", "unblockable", "throw"] },
+        "launch": {
+          "type": "object", "additionalProperties": false, "required": ["vx", "vy", "kd"],
+          "properties": { "vx": { "type": "integer" }, "vy": { "type": "integer" }, "kd": { "enum": ["soft", "hard"] } }
+        },
+        "juggle": { "type": "object", "additionalProperties": false, "required": ["cost", "limit"], "properties": { "cost": { "type": "integer", "minimum": 0 }, "limit": { "type": "integer", "minimum": 0 } } },
+        "hype": { "type": "object", "additionalProperties": false, "required": ["hit", "block", "whiff"], "properties": { "hit": { "type": "integer" }, "block": { "type": "integer" }, "whiff": { "type": "integer" } } },
+        "fx": { "type": "object", "additionalProperties": false, "required": ["spark", "cue"], "properties": { "spark": { "enum": ["light", "medium", "heavy", "special", "super"] }, "cue": { "type": "string" } } }
+      }
+    },
+    "pattern": {
+      "oneOf": [
+        { "type": "object", "additionalProperties": false, "required": ["t", "buttons"], "properties": { "t": { "const": "button" }, "buttons": { "type": "integer", "minimum": 0, "maximum": 65535 }, "dir": { "enum": [5, 2, 6, 4, 8, 3, 1, 9] } } },
+        { "type": "object", "additionalProperties": false, "required": ["t", "seq", "buttons"], "properties": { "t": { "const": "motion" }, "seq": { "enum": ["236", "214", "623", "41236", "63214", "22", "66", "44", "360"] }, "buttons": { "type": "integer", "minimum": 0, "maximum": 65535 } } },
+        { "type": "object", "additionalProperties": false, "required": ["t", "hold", "release", "frames", "buttons"], "properties": { "t": { "const": "charge" }, "hold": { "enum": [4, 2, 1] }, "release": { "enum": [6, 8, 9] }, "frames": { "type": "integer", "minimum": 1 }, "buttons": { "type": "integer", "minimum": 0, "maximum": 65535 } } },
+        { "type": "object", "additionalProperties": false, "required": ["t", "buttons"], "properties": { "t": { "const": "chord" }, "buttons": { "type": "integer", "minimum": 0, "maximum": 65535 } } }
+      ]
+    },
+    "move": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "nameKey", "kind", "input", "schemes", "startup", "active", "recovery", "hits", "tracks", "invuln", "cancels", "tags"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_.:-]+$" },
+        "nameKey": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["normal", "command", "air", "special", "super", "throw", "auto", "shutdown", "taunt"] },
+        "input": { "$ref": "#/$defs/pattern" },
+        "schemes": { "type": "array", "items": { "enum": ["classic", "simple", "pose"] }, "uniqueItems": true },
+        "startup": { "type": "integer", "minimum": 1 }, "active": { "type": "integer", "minimum": 0 }, "recovery": { "type": "integer", "minimum": 0 },
+        "hits": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["from", "hit"], "properties": { "from": { "$ref": "#/$defs/frame" }, "hit": { "$ref": "#/$defs/hit" } } } },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["from", "to"],
+            "properties": { "from": { "$ref": "#/$defs/frame" }, "to": { "$ref": "#/$defs/frame" }, "hurt": { "$ref": "#/$defs/capsules" }, "push": { "$ref": "#/$defs/aabb" }, "throw": { "$ref": "#/$defs/aabb" } }
+          }
+        },
+        "invuln": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["from", "to", "kind"], "properties": { "from": { "$ref": "#/$defs/frame" }, "to": { "$ref": "#/$defs/frame" }, "kind": { "enum": ["strike", "projectile", "throw", "all"] } } } },
+        "armor": { "type": "object", "additionalProperties": false, "required": ["from", "to", "hits"], "properties": { "from": { "$ref": "#/$defs/frame" }, "to": { "$ref": "#/$defs/frame" }, "hits": { "type": "integer", "minimum": 1 } } },
+        "motion": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["frame", "vx", "vy"], "properties": { "frame": { "$ref": "#/$defs/frame" }, "vx": { "type": "integer" }, "vy": { "type": "integer" } } } },
+        "cancels": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["into", "on", "from", "to"],
+            "properties": {
+              "into": { "enum": ["chain", "special", "super", "jump", "dash"] },
+              "on": { "type": "array", "items": { "enum": ["hit", "block", "whiff"] }, "minItems": 1, "uniqueItems": true },
+              "from": { "$ref": "#/$defs/frame" }, "to": { "$ref": "#/$defs/frame" }
+            }
+          }
+        },
+        "hypeCost": { "enum": [0, 1000, 2000, 3000] },
+        "ex": { "type": "object" },
+        "spawn": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["frame", "def", "ox", "oy"], "properties": { "frame": { "$ref": "#/$defs/frame" }, "def": { "type": "string" }, "ox": { "type": "integer" }, "oy": { "type": "integer" } } } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "cutscene": { "type": "object", "additionalProperties": false, "required": ["hook", "template"], "properties": { "hook": { "enum": ["special", "super", "shutdown"] }, "template": { "type": "string" } } },
+        "gesture": { "enum": ["jab", "cross", "hook", "uppercut", "frontKick", "lowKick", "guard", "crouch", "jump", "push"] },
+        "lockFrames": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "projectile": {
+      "type": "object", "additionalProperties": false, "required": ["id", "behavior", "speed", "life", "hits", "hit", "power"],
+      "properties": {
+        "id": { "type": "string" }, "behavior": { "enum": ["linear", "sine", "arc", "trap", "orbit", "summon"] },
+        "speed": { "type": "integer" }, "life": { "type": "integer", "minimum": 1 }, "hits": { "type": "integer", "minimum": 1 },
+        "hit": { "$ref": "#/$defs/hit" }, "power": { "type": "integer", "minimum": 0 },
+        "sine": { "type": "object", "additionalProperties": false, "required": ["amp", "period"], "properties": { "amp": { "type": "integer" }, "period": { "type": "integer", "minimum": 1 } } },
+        "arc": { "type": "object", "additionalProperties": false, "required": ["vy", "gravity"], "properties": { "vy": { "type": "integer" }, "gravity": { "type": "integer" } } },
+        "summon": { "type": "object", "additionalProperties": false, "required": ["moveSet", "hypeCost"], "properties": { "moveSet": { "type": "string" }, "hypeCost": { "type": "integer" } } }
+      }
+    }
+  }
+}

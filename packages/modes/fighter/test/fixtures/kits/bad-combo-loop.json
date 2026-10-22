@@ -1,0 +1,1243 @@
+{
+ "slot": "PLAYER_FIGHTER",
+ "kit": "player",
+ "archetype": "allrounder",
+ "health": 10000,
+ "walk": {
+  "f": 60,
+  "b": 45
+ },
+ "dash": {
+  "f": {
+   "frames": 16,
+   "dist": 1400
+  },
+  "b": {
+   "frames": 14,
+   "dist": 900
+  }
+ },
+ "jump": {
+  "pre": 4,
+  "v0": 200,
+  "gravity": 9,
+  "vxF": 45,
+  "vxB": 38,
+  "land": 3
+ },
+ "push": {
+  "stand": {
+   "x": -300,
+   "y": 0,
+   "w": 600,
+   "h": 1700
+  },
+  "crouch": {
+   "x": -300,
+   "y": 0,
+   "w": 600,
+   "h": 1000
+  },
+  "air": {
+   "x": -300,
+   "y": 300,
+   "w": 600,
+   "h": 1200
+  }
+ },
+ "hurtDefault": {
+  "stand": [
+   {
+    "x1": 0,
+    "y1": 250,
+    "x2": 0,
+    "y2": 1500,
+    "r": 250
+   }
+  ],
+  "crouch": [
+   {
+    "x1": 0,
+    "y1": 250,
+    "x2": 0,
+    "y2": 800,
+    "r": 280
+   }
+  ],
+  "air": [
+   {
+    "x1": 0,
+    "y1": 350,
+    "x2": 0,
+    "y2": 1250,
+    "r": 250
+   }
+  ],
+  "down": [
+   {
+    "x1": -500,
+    "y1": 150,
+    "x2": 500,
+    "y2": 150,
+    "r": 150
+   }
+  ]
+ },
+ "moves": [
+  {
+   "id": "5L",
+   "nameKey": "fighter.player.move.5L",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 16
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 4,
+   "active": 2,
+   "recovery": 8,
+   "hits": [
+    {
+     "from": 4,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 1150,
+        "x2": 850,
+        "y2": 1150,
+        "r": 180
+       }
+      ],
+      "group": 0,
+      "damage": 300,
+      "chipPermille": 0,
+      "hitstun": 13,
+      "blockstun": 10,
+      "hitstop": 8,
+      "pushHit": 150,
+      "pushBlock": 200,
+      "guard": "mid",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 40,
+       "block": 20,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "light",
+       "cue": "hit.light"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "chain",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 12
+    },
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 12
+    },
+    {
+     "into": "super",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 12
+    }
+   ],
+   "tags": []
+  },
+  {
+   "id": "5M",
+   "nameKey": "fighter.player.move.5M",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 32
+   },
+   "schemes": [
+    "classic"
+   ],
+   "startup": 6,
+   "active": 3,
+   "recovery": 12,
+   "hits": [
+    {
+     "from": 6,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 400,
+        "y1": 1100,
+        "x2": 950,
+        "y2": 1100,
+        "r": 200
+       }
+      ],
+      "group": 0,
+      "damage": 600,
+      "chipPermille": 0,
+      "hitstun": 19,
+      "blockstun": 13,
+      "hitstop": 10,
+      "pushHit": 200,
+      "pushBlock": 250,
+      "guard": "mid",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 60,
+       "block": 30,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "medium",
+       "cue": "hit.medium"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "chain",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 6,
+     "to": 17
+    },
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 6,
+     "to": 17
+    },
+    {
+     "into": "super",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 6,
+     "to": 17
+    }
+   ],
+   "tags": []
+  },
+  {
+   "id": "5H",
+   "nameKey": "fighter.player.move.5H",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 64
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 10,
+   "active": 4,
+   "recovery": 17,
+   "hits": [
+    {
+     "from": 10,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 450,
+        "y1": 1050,
+        "x2": 1100,
+        "y2": 1150,
+        "r": 230
+       }
+      ],
+      "group": 0,
+      "damage": 900,
+      "chipPermille": 0,
+      "hitstun": 23,
+      "blockstun": 16,
+      "hitstop": 12,
+      "pushHit": 300,
+      "pushBlock": 400,
+      "guard": "mid",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 80,
+       "block": 40,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "heavy",
+       "cue": "hit.heavy"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 10,
+     "to": 26
+    },
+    {
+     "into": "super",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 10,
+     "to": 26
+    }
+   ],
+   "tags": []
+  },
+  {
+   "id": "2L",
+   "nameKey": "fighter.player.move.2L",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 16,
+    "dir": 2
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 4,
+   "active": 2,
+   "recovery": 7,
+   "hits": [
+    {
+     "from": 4,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 220,
+        "x2": 850,
+        "y2": 220,
+        "r": 150
+       }
+      ],
+      "group": 0,
+      "damage": 250,
+      "chipPermille": 0,
+      "hitstun": 12,
+      "blockstun": 10,
+      "hitstop": 8,
+      "pushHit": 120,
+      "pushBlock": 180,
+      "guard": "low",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 40,
+       "block": 20,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "light",
+       "cue": "hit.light"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "chain",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 11
+    },
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 11
+    },
+    {
+     "into": "super",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 4,
+     "to": 11
+    }
+   ],
+   "tags": []
+  },
+  {
+   "id": "2M",
+   "nameKey": "fighter.player.move.2M",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 32,
+    "dir": 2
+   },
+   "schemes": [
+    "classic"
+   ],
+   "startup": 7,
+   "active": 3,
+   "recovery": 13,
+   "hits": [
+    {
+     "from": 7,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 400,
+        "y1": 200,
+        "x2": 1000,
+        "y2": 200,
+        "r": 170
+       }
+      ],
+      "group": 0,
+      "damage": 550,
+      "chipPermille": 0,
+      "hitstun": 19,
+      "blockstun": 13,
+      "hitstop": 10,
+      "pushHit": 180,
+      "pushBlock": 230,
+      "guard": "low",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 60,
+       "block": 30,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "medium",
+       "cue": "hit.medium"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 7,
+     "to": 19
+    },
+    {
+     "into": "super",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 7,
+     "to": 19
+    }
+   ],
+   "tags": []
+  },
+  {
+   "id": "2H",
+   "nameKey": "fighter.player.move.2H",
+   "kind": "normal",
+   "input": {
+    "t": "button",
+    "buttons": 64,
+    "dir": 2
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 11,
+   "active": 4,
+   "recovery": 22,
+   "hits": [
+    {
+     "from": 11,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 450,
+        "y1": 180,
+        "x2": 1150,
+        "y2": 180,
+        "r": 170
+       }
+      ],
+      "group": 0,
+      "damage": 800,
+      "chipPermille": 0,
+      "hitstun": 0,
+      "blockstun": 16,
+      "hitstop": 12,
+      "pushHit": 200,
+      "pushBlock": 300,
+      "guard": "low",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 80,
+       "block": 40,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "heavy",
+       "cue": "hit.heavy"
+      },
+      "launch": {
+       "vx": 8,
+       "vy": 40,
+       "kd": "hard"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [],
+   "tags": []
+  },
+  {
+   "id": "jM",
+   "nameKey": "fighter.player.move.jM",
+   "kind": "air",
+   "input": {
+    "t": "button",
+    "buttons": 32
+   },
+   "schemes": [
+    "classic"
+   ],
+   "startup": 6,
+   "active": 8,
+   "recovery": 3,
+   "hits": [
+    {
+     "from": 6,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 300,
+        "y1": 650,
+        "x2": 850,
+        "y2": 300,
+        "r": 230
+       }
+      ],
+      "group": 0,
+      "damage": 650,
+      "chipPermille": 0,
+      "hitstun": 18,
+      "blockstun": 14,
+      "hitstop": 10,
+      "pushHit": 150,
+      "pushBlock": 200,
+      "guard": "high",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 60,
+       "block": 30,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "medium",
+       "cue": "hit.medium"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [],
+   "tags": []
+  },
+  {
+   "id": "throw",
+   "nameKey": "fighter.player.move.throw",
+   "kind": "throw",
+   "input": {
+    "t": "chord",
+    "buttons": 144
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 5,
+   "active": 2,
+   "recovery": 19,
+   "hits": [
+    {
+     "from": 5,
+     "hit": {
+      "boxes": [],
+      "group": 0,
+      "damage": 1000,
+      "chipPermille": 0,
+      "hitstun": 24,
+      "blockstun": 0,
+      "hitstop": 14,
+      "pushHit": 600,
+      "pushBlock": 0,
+      "guard": "throw",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 100,
+       "block": 0,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "heavy",
+       "cue": "hit.throw"
+      }
+     }
+    }
+   ],
+   "tracks": [
+    {
+     "from": 5,
+     "to": 6,
+     "throw": {
+      "x": 0,
+      "y": 0,
+      "w": 900,
+      "h": 1500
+     }
+    }
+   ],
+   "invuln": [],
+   "cancels": [],
+   "tags": []
+  },
+  {
+   "id": "sparkToss",
+   "nameKey": "fighter.player.move.sparkToss",
+   "kind": "special",
+   "input": {
+    "t": "motion",
+    "seq": "236",
+    "buttons": 112
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 13,
+   "active": 1,
+   "recovery": 34,
+   "hits": [],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [],
+   "tags": [],
+   "spawn": [
+    {
+     "frame": 13,
+     "def": "spark",
+     "ox": 700,
+     "oy": 1100
+    }
+   ],
+   "ex": {}
+  },
+  {
+   "id": "uplift",
+   "nameKey": "fighter.player.move.uplift",
+   "kind": "special",
+   "input": {
+    "t": "motion",
+    "seq": "623",
+    "buttons": 112
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 4,
+   "active": 10,
+   "recovery": 30,
+   "hits": [
+    {
+     "from": 4,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 300,
+        "y1": 900,
+        "x2": 600,
+        "y2": 1800,
+        "r": 250
+       }
+      ],
+      "group": 0,
+      "damage": 1000,
+      "chipPermille": 0,
+      "hitstun": 0,
+      "blockstun": 14,
+      "hitstop": 12,
+      "pushHit": 0,
+      "pushBlock": 300,
+      "guard": "mid",
+      "juggle": {
+       "cost": 1,
+       "limit": 3
+      },
+      "hype": {
+       "hit": 80,
+       "block": 40,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "special",
+       "cue": "hit.special"
+      },
+      "launch": {
+       "vx": 10,
+       "vy": 110,
+       "kd": "hard"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [
+    {
+     "from": 1,
+     "to": 8,
+     "kind": "strike"
+    }
+   ],
+   "cancels": [],
+   "tags": [],
+   "motion": [
+    {
+     "frame": 1,
+     "vx": 15,
+     "vy": 0
+    },
+    {
+     "frame": 9,
+     "vx": 0,
+     "vy": 0
+    }
+   ],
+   "ex": {}
+  },
+  {
+   "id": "skidKick",
+   "nameKey": "fighter.player.move.skidKick",
+   "kind": "special",
+   "input": {
+    "t": "motion",
+    "seq": "214",
+    "buttons": 896
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 11,
+   "active": 9,
+   "recovery": 16,
+   "hits": [
+    {
+     "from": 11,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 300,
+        "y1": 150,
+        "x2": 700,
+        "y2": 150,
+        "r": 170
+       }
+      ],
+      "group": 0,
+      "damage": 700,
+      "chipPermille": 0,
+      "hitstun": 26,
+      "blockstun": 19,
+      "hitstop": 12,
+      "pushHit": 200,
+      "pushBlock": 300,
+      "guard": "low",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 70,
+       "block": 35,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "special",
+       "cue": "hit.special"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [],
+   "cancels": [
+    {
+     "into": "special",
+     "on": [
+      "hit",
+      "block"
+     ],
+     "from": 11,
+     "to": 30
+    }
+   ],
+   "tags": [],
+   "motion": [
+    {
+     "frame": 11,
+     "vx": 122,
+     "vy": 0
+    },
+    {
+     "frame": 20,
+     "vx": 0,
+     "vy": 0
+    }
+   ],
+   "ex": {}
+  }
+ ],
+ "supers": [
+  {
+   "id": "surge",
+   "nameKey": "fighter.player.move.surge",
+   "kind": "super",
+   "input": {
+    "t": "motion",
+    "seq": "236",
+    "buttons": 112
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 6,
+   "active": 14,
+   "recovery": 38,
+   "hits": [
+    {
+     "from": 6,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 1100,
+        "x2": 950,
+        "y2": 1100,
+        "r": 230
+       }
+      ],
+      "group": 0,
+      "damage": 600,
+      "chipPermille": 150,
+      "hitstun": 24,
+      "blockstun": 20,
+      "hitstop": 8,
+      "pushHit": 150,
+      "pushBlock": 250,
+      "guard": "mid",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 0,
+       "block": 0,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "super",
+       "cue": "hit.super"
+      }
+     }
+    },
+    {
+     "from": 10,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 1100,
+        "x2": 1000,
+        "y2": 1100,
+        "r": 230
+       }
+      ],
+      "group": 1,
+      "damage": 700,
+      "chipPermille": 150,
+      "hitstun": 24,
+      "blockstun": 20,
+      "hitstop": 8,
+      "pushHit": 150,
+      "pushBlock": 250,
+      "guard": "mid",
+      "juggle": {
+       "cost": 99,
+       "limit": 0
+      },
+      "hype": {
+       "hit": 0,
+       "block": 0,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "super",
+       "cue": "hit.super"
+      }
+     }
+    },
+    {
+     "from": 14,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 1000,
+        "x2": 1100,
+        "y2": 1500,
+        "r": 260
+       }
+      ],
+      "group": 2,
+      "damage": 900,
+      "chipPermille": 150,
+      "hitstun": 0,
+      "blockstun": 20,
+      "hitstop": 10,
+      "pushHit": 300,
+      "pushBlock": 350,
+      "guard": "mid",
+      "juggle": {
+       "cost": 1,
+       "limit": 2
+      },
+      "hype": {
+       "hit": 0,
+       "block": 0,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "super",
+       "cue": "hit.super"
+      },
+      "launch": {
+       "vx": 12,
+       "vy": 120,
+       "kd": "hard"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [
+    {
+     "from": 1,
+     "to": 10,
+     "kind": "all"
+    }
+   ],
+   "cancels": [],
+   "tags": [],
+   "hypeCost": 2000
+  },
+  {
+   "id": "showstopper",
+   "nameKey": "fighter.player.move.showstopper",
+   "kind": "super",
+   "input": {
+    "t": "motion",
+    "seq": "214",
+    "buttons": 112
+   },
+   "schemes": [
+    "classic",
+    "simple"
+   ],
+   "startup": 8,
+   "active": 6,
+   "recovery": 30,
+   "hits": [
+    {
+     "from": 8,
+     "hit": {
+      "boxes": [
+       {
+        "x1": 350,
+        "y1": 1000,
+        "x2": 1300,
+        "y2": 1500,
+        "r": 300
+       }
+      ],
+      "group": 0,
+      "damage": 3200,
+      "chipPermille": 200,
+      "hitstun": 0,
+      "blockstun": 24,
+      "hitstop": 12,
+      "pushHit": 400,
+      "pushBlock": 400,
+      "guard": "mid",
+      "juggle": {
+       "cost": 1,
+       "limit": 2
+      },
+      "hype": {
+       "hit": 0,
+       "block": 0,
+       "whiff": 0
+      },
+      "fx": {
+       "spark": "super",
+       "cue": "hit.super"
+      },
+      "launch": {
+       "vx": 14,
+       "vy": 130,
+       "kd": "hard"
+      }
+     }
+    }
+   ],
+   "tracks": [],
+   "invuln": [
+    {
+     "from": 1,
+     "to": 12,
+     "kind": "all"
+    }
+   ],
+   "cancels": [],
+   "tags": [
+    "placeholder"
+   ],
+   "hypeCost": 3000
+  }
+ ],
+ "shutdown": {
+  "id": "shutdown",
+  "nameKey": "fighter.player.move.shutdown",
+  "kind": "shutdown",
+  "input": {
+   "t": "button",
+   "buttons": 0
+  },
+  "schemes": [
+   "classic"
+  ],
+  "startup": 20,
+  "active": 1,
+  "recovery": 150,
+  "hits": [],
+  "tracks": [],
+  "invuln": [],
+  "cancels": [],
+  "tags": [
+   "placeholder"
+  ]
+ },
+ "taunt": {
+  "id": "taunt",
+  "nameKey": "fighter.player.move.taunt",
+  "kind": "taunt",
+  "input": {
+   "t": "button",
+   "buttons": 8192
+  },
+  "schemes": [
+   "classic",
+   "simple"
+  ],
+  "startup": 3,
+  "active": 1,
+  "recovery": 56,
+  "hits": [],
+  "tracks": [],
+  "invuln": [],
+  "cancels": [],
+  "tags": [
+   "placeholder"
+  ]
+ },
+ "autoCombo": [
+  "5L",
+  "5M",
+  "5H"
+ ],
+ "projectiles": [
+  {
+   "id": "spark",
+   "behavior": "linear",
+   "speed": 50,
+   "life": 90,
+   "hits": 1,
+   "power": 1,
+   "hit": {
+    "boxes": [
+     {
+      "x1": -150,
+      "y1": 0,
+      "x2": 150,
+      "y2": 0,
+      "r": 180
+     }
+    ],
+    "group": 0,
+    "damage": 700,
+    "chipPermille": 0,
+    "hitstun": 22,
+    "blockstun": 16,
+    "hitstop": 10,
+    "pushHit": 250,
+    "pushBlock": 300,
+    "guard": "mid",
+    "juggle": {
+     "cost": 1,
+     "limit": 0
+    },
+    "hype": {
+     "hit": 50,
+     "block": 25,
+     "whiff": 0
+    },
+    "fx": {
+     "spark": "special",
+     "cue": "hit.special"
+    }
+   }
+  },
+  {
+   "id": "spark:ex",
+   "behavior": "linear",
+   "speed": 70,
+   "life": 90,
+   "hits": 2,
+   "power": 2,
+   "hit": {
+    "boxes": [
+     {
+      "x1": -150,
+      "y1": 0,
+      "x2": 150,
+      "y2": 0,
+      "r": 180
+     }
+    ],
+    "group": 0,
+    "damage": 700,
+    "chipPermille": 0,
+    "hitstun": 22,
+    "blockstun": 16,
+    "hitstop": 10,
+    "pushHit": 250,
+    "pushBlock": 300,
+    "guard": "mid",
+    "juggle": {
+     "cost": 1,
+     "limit": 0
+    },
+    "hype": {
+     "hit": 50,
+     "block": 25,
+     "whiff": 0
+    },
+    "fx": {
+     "spark": "special",
+     "cue": "hit.special"
+    }
+   }
+  }
+ ],
+ "ai": {
+  "aggression": 50,
+  "zoning": 40,
+  "antiAir": 50,
+  "throwRate": 30,
+  "blockRate": 50,
+  "shutdownRate": 50,
+  "reaction": [
+   12,
+   24
+  ],
+  "habits": []
+ }
+}
