@@ -7,36 +7,109 @@
     "app.start": {
       "type": "object",
       "properties": {
-        "nav": { "type": "string", "maxLength": 32 },
-        "coi": { "type": "boolean" },
-        "store": { "enum": ["opfs", "memory"] },
-        "backend": { "enum": ["webgpu", "webgl2"] },
-        "tier": { "type": "string", "maxLength": 32 }
+        "nav": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "coi": {
+          "type": "boolean"
+        },
+        "store": {
+          "enum": [
+            "opfs",
+            "memory"
+          ]
+        },
+        "backend": {
+          "enum": [
+            "webgpu",
+            "webgl2"
+          ]
+        },
+        "tier": {
+          "type": "string",
+          "maxLength": 32
+        }
       },
-      "required": ["nav", "coi", "store", "backend", "tier"],
+      "required": [
+        "nav",
+        "coi",
+        "store",
+        "backend",
+        "tier"
+      ],
       "additionalProperties": false
     },
     "app.ready": {
       "type": "object",
       "properties": {
-        "nav": { "enum": ["navigate", "reload", "back_forward"] },
-        "bootMs": { "type": "number" },
-        "phaseShellMs": { "type": "number" },
-        "phaseWorldMs": { "type": "number" }
+        "nav": {
+          "enum": [
+            "navigate",
+            "reload",
+            "back_forward"
+          ]
+        },
+        "bootMs": {
+          "type": "number"
+        },
+        "phaseShellMs": {
+          "type": "number"
+        },
+        "phaseWorldMs": {
+          "type": "number"
+        }
       },
-      "required": ["bootMs", "phaseShellMs", "phaseWorldMs", "nav"],
+      "required": [
+        "bootMs",
+        "phaseShellMs",
+        "phaseWorldMs",
+        "nav"
+      ],
       "additionalProperties": false
     },
     "cutscene.play": {
       "type": "object",
       "properties": {
-        "key8": { "type": "string", "maxLength": 8 },
-        "path": { "enum": ["video", "fallback", "instant"] },
-        "trigger": { "enum": ["not_ready", "not_permitted", "media_error", "start_stall", "mid_stall", "codec", "budget", "policy", "offline", "degraded_sequence", "setting_off"] },
-        "cached": { "type": "boolean" },
-        "fallback": { "type": "boolean" }
+        "key8": {
+          "type": "string",
+          "maxLength": 8
+        },
+        "path": {
+          "enum": [
+            "video",
+            "fallback",
+            "instant"
+          ]
+        },
+        "trigger": {
+          "enum": [
+            "not_ready",
+            "not_permitted",
+            "media_error",
+            "start_stall",
+            "mid_stall",
+            "codec",
+            "budget",
+            "policy",
+            "offline",
+            "degraded_sequence",
+            "setting_off"
+          ]
+        },
+        "cached": {
+          "type": "boolean"
+        },
+        "fallback": {
+          "type": "boolean"
+        }
       },
-      "required": ["key8", "path", "cached", "fallback"],
+      "required": [
+        "key8",
+        "path",
+        "cached",
+        "fallback"
+      ],
       "additionalProperties": false
     },
     "app.hidden": {
@@ -54,215 +127,577 @@
     "app.abnormal_exit": {
       "type": "object",
       "properties": {
-        "prevSid": { "type": "string", "maxLength": 64 },
-        "scene": { "type": "string", "maxLength": 64 },
-        "mode": { "type": "string", "maxLength": 64 },
-        "chunkKey": { "type": "string", "maxLength": 64 },
-        "cause": { "enum": ["jetsam", "gpu_lost", "hang", "unknown"] },
-        "lastBeatAgoMs": { "type": "number" },
-        "memEstMB": { "type": "number" },
-        "gpuEstMB": { "type": "number" }
+        "prevSid": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "scene": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "mode": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "chunkKey": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "cause": {
+          "enum": [
+            "jetsam",
+            "gpu_lost",
+            "hang",
+            "unknown"
+          ]
+        },
+        "lastBeatAgoMs": {
+          "type": "number"
+        },
+        "memEstMB": {
+          "type": "number"
+        },
+        "gpuEstMB": {
+          "type": "number"
+        }
       },
-      "required": ["prevSid", "lastBeatAgoMs", "scene", "mode", "chunkKey", "memEstMB", "gpuEstMB"],
+      "required": [
+        "prevSid",
+        "lastBeatAgoMs",
+        "scene",
+        "mode",
+        "chunkKey",
+        "memEstMB",
+        "gpuEstMB"
+      ],
       "additionalProperties": false
     },
     "err.js": {
       "type": "object",
       "properties": {
-        "fp": { "type": "string", "maxLength": 16 },
-        "msg": { "type": "string", "maxLength": 128 },
-        "top": { "type": "string", "maxLength": 128 }
+        "fp": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "msg": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "top": {
+          "type": "string",
+          "maxLength": 128
+        }
       },
-      "required": ["fp", "msg", "top"],
+      "required": [
+        "fp",
+        "msg",
+        "top"
+      ],
       "additionalProperties": false
     },
     "err.promise": {
       "type": "object",
       "properties": {
-        "fp": { "type": "string", "maxLength": 16 },
-        "msg": { "type": "string", "maxLength": 128 },
-        "top": { "type": "string", "maxLength": 128 }
+        "fp": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "msg": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "top": {
+          "type": "string",
+          "maxLength": 128
+        }
       },
-      "required": ["fp", "msg"],
+      "required": [
+        "fp",
+        "msg"
+      ],
       "additionalProperties": false
     },
     "err.gpu": {
       "type": "object",
       "properties": {
-        "kind": { "type": "string", "maxLength": 32 },
-        "msg": { "type": "string", "maxLength": 128 }
+        "kind": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "msg": {
+          "type": "string",
+          "maxLength": 128
+        }
       },
-      "required": ["msg"],
+      "required": [
+        "msg"
+      ],
       "additionalProperties": false
     },
     "err.asset": {
       "type": "object",
       "properties": {
-        "reason": { "type": "string", "maxLength": 32 },
-        "kind": { "type": "string", "maxLength": 16 }
+        "reason": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "kind": {
+          "type": "string",
+          "maxLength": 16
+        }
       },
-      "required": ["reason", "kind"],
+      "required": [
+        "reason",
+        "kind"
+      ],
       "additionalProperties": false
     },
     "perf.minute": {
       "type": "object",
       "properties": {
-        "fpsP50": { "type": "number" },
-        "fpsP5": { "type": "number" },
-        "frameP95Ms": { "type": "number" },
-        "drawCalls": { "type": "number" },
-        "tris": { "type": "number" },
-        "texMBEst": { "type": "number" },
-        "gpuMBEst": { "type": "number" },
-        "memEstMB": { "type": "number" }
+        "fpsP50": {
+          "type": "number"
+        },
+        "fpsP5": {
+          "type": "number"
+        },
+        "frameP95Ms": {
+          "type": "number"
+        },
+        "drawCalls": {
+          "type": "number"
+        },
+        "tris": {
+          "type": "number"
+        },
+        "texMBEst": {
+          "type": "number"
+        },
+        "gpuMBEst": {
+          "type": "number"
+        },
+        "memEstMB": {
+          "type": "number"
+        }
       },
-      "required": ["fpsP50", "fpsP5", "frameP95Ms", "drawCalls", "tris", "texMBEst", "gpuMBEst", "memEstMB"],
+      "required": [
+        "fpsP50",
+        "fpsP5",
+        "frameP95Ms",
+        "drawCalls",
+        "tris",
+        "texMBEst",
+        "gpuMBEst",
+        "memEstMB"
+      ],
       "additionalProperties": false
     },
     "world.stream": {
       "type": "object",
       "properties": {
-        "residentL0": { "type": "number" },
-        "missCount": { "type": "number" },
-        "uploadP95Ms": { "type": "number" },
-        "bytesMB": { "type": "number" }
+        "residentL0": {
+          "type": "number"
+        },
+        "missCount": {
+          "type": "number"
+        },
+        "uploadP95Ms": {
+          "type": "number"
+        },
+        "bytesMB": {
+          "type": "number"
+        }
       },
-      "required": ["residentL0", "missCount", "uploadP95Ms", "bytesMB"],
+      "required": [
+        "residentL0",
+        "missCount",
+        "uploadP95Ms",
+        "bytesMB"
+      ],
       "additionalProperties": false
     },
     "tier.decision": {
       "type": "object",
       "properties": {
-        "tier": { "type": "string", "maxLength": 32 },
-        "source": { "type": "string", "maxLength": 32 },
-        "benchP90Ms": { "type": "number" }
+        "tier": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "source": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "benchP90Ms": {
+          "type": "number"
+        }
       },
-      "required": ["tier", "source"],
+      "required": [
+        "tier",
+        "source"
+      ],
       "additionalProperties": false
     },
     "storage.persist": {
       "type": "object",
       "properties": {
-        "granted": { "type": "boolean" }
+        "granted": {
+          "type": "boolean"
+        }
       },
-      "required": ["granted"],
+      "required": [
+        "granted"
+      ],
       "additionalProperties": false
     },
     "pwa.install": {
       "type": "object",
       "properties": {
-        "evt": { "type": "string", "maxLength": 32 }
+        "evt": {
+          "type": "string",
+          "maxLength": 32
+        }
       },
-      "required": ["evt"],
+      "required": [
+        "evt"
+      ],
       "additionalProperties": false
     },
     "ui.page": {
       "type": "object",
       "properties": {
-        "page": { "type": "string", "maxLength": 32 },
-        "ms": { "type": "number" }
+        "page": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "ms": {
+          "type": "number"
+        }
       },
-      "required": ["page", "ms"],
+      "required": [
+        "page",
+        "ms"
+      ],
       "additionalProperties": false
     },
     "ui.onboard": {
       "type": "object",
       "properties": {
-        "step": { "type": "string", "maxLength": 32 },
-        "outcome": { "type": "string", "maxLength": 32 }
+        "step": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "outcome": {
+          "type": "string",
+          "maxLength": 32
+        }
       },
-      "required": ["step", "outcome"],
+      "required": [
+        "step",
+        "outcome"
+      ],
       "additionalProperties": false
     },
     "mode.enter": {
       "type": "object",
       "properties": {
-        "mode": { "type": "string", "maxLength": 64 }
+        "mode": {
+          "type": "string",
+          "maxLength": 64
+        }
       },
-      "required": ["mode"],
+      "required": [
+        "mode"
+      ],
       "additionalProperties": false
     },
     "mode.exit": {
       "type": "object",
       "properties": {
-        "mode": { "type": "string", "maxLength": 64 },
-        "reason": { "enum": ["completed", "quit", "failed", "parentExit", "error", "kill"] }
+        "mode": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "reason": {
+          "enum": [
+            "completed",
+            "quit",
+            "failed",
+            "parentExit",
+            "error",
+            "kill"
+          ]
+        }
       },
-      "required": ["mode", "reason"],
+      "required": [
+        "mode",
+        "reason"
+      ],
       "additionalProperties": false
     },
     "mission.start": {
       "type": "object",
       "properties": {
-        "mid": { "type": "string", "maxLength": 84 },
-        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
-        "sec": { "type": "number", "minimum": 0 },
-        "attempt": { "type": "integer", "minimum": 1 }
+        "mid": {
+          "type": "string",
+          "maxLength": 84
+        },
+        "stage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
-      "required": ["mid", "stage", "sec", "attempt"],
+      "required": [
+        "mid",
+        "stage",
+        "sec",
+        "attempt"
+      ],
       "additionalProperties": false
     },
     "mission.fail": {
       "type": "object",
       "properties": {
-        "mid": { "type": "string", "maxLength": 84 },
-        "reason": { "type": "string", "maxLength": 96 },
-        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
-        "sec": { "type": "number", "minimum": 0 },
-        "attempt": { "type": "integer", "minimum": 1 }
+        "mid": {
+          "type": "string",
+          "maxLength": 84
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 96
+        },
+        "stage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
-      "required": ["mid", "stage", "sec", "attempt"],
+      "required": [
+        "mid",
+        "stage",
+        "sec",
+        "attempt"
+      ],
       "additionalProperties": false
     },
     "mission.complete": {
       "type": "object",
       "properties": {
-        "mid": { "type": "string", "maxLength": 84 },
-        "stage": { "type": "integer", "minimum": 0, "maximum": 16 },
-        "sec": { "type": "number", "minimum": 0 },
-        "attempt": { "type": "integer", "minimum": 1 }
+        "mid": {
+          "type": "string",
+          "maxLength": 84
+        },
+        "stage": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "sec": {
+          "type": "number",
+          "minimum": 0
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
-      "required": ["mid", "stage", "sec", "attempt"],
+      "required": [
+        "mid",
+        "stage",
+        "sec",
+        "attempt"
+      ],
       "additionalProperties": false
     },
     "err.sim": {
       "type": "object",
       "properties": {
-        "code": { "type": "string", "maxLength": 32 },
-        "mid": { "type": "string", "maxLength": 84 },
-        "thread": { "type": "string", "maxLength": 128 }
+        "code": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "mid": {
+          "type": "string",
+          "maxLength": 84
+        },
+        "thread": {
+          "type": "string",
+          "maxLength": 128
+        }
       },
-      "required": ["code"],
+      "required": [
+        "code"
+      ],
       "additionalProperties": false
     },
     "unlock.emit": {
       "type": "object",
       "properties": {
-        "id": { "type": "string", "maxLength": 64 }
+        "id": {
+          "type": "string",
+          "maxLength": 64
+        }
       },
-      "required": ["id"],
+      "required": [
+        "id"
+      ],
       "additionalProperties": false
     },
     "racing.start": {
       "type": "object",
       "properties": {
-        "raceKind": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] },
-        "class": { "enum": ["D", "C", "B", "A", "S", "R"] },
-        "profile": { "enum": ["local", "canonical"] }
+        "raceKind": {
+          "enum": [
+            "sprint",
+            "circuit",
+            "checkpoint",
+            "speedtrap",
+            "downhill",
+            "hillclimb",
+            "drift",
+            "pursuit",
+            "sideshow",
+            "robotaxiRush"
+          ]
+        },
+        "class": {
+          "enum": [
+            "D",
+            "C",
+            "B",
+            "A",
+            "S",
+            "R"
+          ]
+        },
+        "profile": {
+          "enum": [
+            "local",
+            "canonical"
+          ]
+        }
       },
-      "required": ["raceKind", "class", "profile"],
+      "required": [
+        "raceKind",
+        "class",
+        "profile"
+      ],
       "additionalProperties": false
     },
     "racing.finish": {
       "type": "object",
       "properties": {
-        "raceKind": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] },
-        "outcome": { "enum": ["finish", "dnf", "quit"] },
-        "durBucket": { "enum": ["<60", "60-120", "120-240", "240-480", ">480"] },
-        "place": { "type": "integer", "minimum": 1, "maximum": 16 },
-        "medals": { "type": "integer", "minimum": 0, "maximum": 3 }
+        "raceKind": {
+          "enum": [
+            "sprint",
+            "circuit",
+            "checkpoint",
+            "speedtrap",
+            "downhill",
+            "hillclimb",
+            "drift",
+            "pursuit",
+            "sideshow",
+            "robotaxiRush"
+          ]
+        },
+        "outcome": {
+          "enum": [
+            "finish",
+            "dnf",
+            "quit"
+          ]
+        },
+        "durBucket": {
+          "enum": [
+            "<60",
+            "60-120",
+            "120-240",
+            "240-480",
+            ">480"
+          ]
+        },
+        "place": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "medals": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
       },
-      "required": ["raceKind", "outcome", "durBucket", "place", "medals"],
+      "required": [
+        "raceKind",
+        "outcome",
+        "durBucket",
+        "place",
+        "medals"
+      ],
+      "additionalProperties": false
+    },
+    "quota.block": {
+      "type": "object",
+      "description": "Server-only (PlayerQuotaDO refusal; never accepted from clients). Props are enums only: no profile id, no net hash.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "turn",
+            "voice_line",
+            "builder_text",
+            "builder_job",
+            "upload",
+            "post",
+            "report",
+            "play_token",
+            "signup"
+          ]
+        },
+        "reason": {
+          "enum": [
+            "quota",
+            "cost_cap",
+            "per_npc",
+            "net_cap"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "player",
+            "net"
+          ]
+        },
+        "tier": {
+          "enum": [
+            "local",
+            "device",
+            "linked"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "reason",
+        "scope",
+        "tier"
+      ],
       "additionalProperties": false
     }
   }

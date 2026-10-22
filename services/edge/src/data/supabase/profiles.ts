@@ -1,4 +1,5 @@
-import { rejectLater, type DataPort, type ProfileRow } from '@dv/shared/data-port';
+import { rejectLater, type DataPort, type MaintenanceStore, type ProfileRow } from '@dv/shared/data-port';
+import { bytesStream, zipOfRows } from '@dv/shared/zip';
 import { fromIso, fromIsoOrNull, isUniqueViolation, must, mustMaybe, toIso, type Db } from './client.ts';
 
 /** Maps a `profiles` row from the database to the port's row (timestamps in epoch ms). */
@@ -38,7 +39,7 @@ async function bindKey(db: Db, pid: string, dkt: string): Promise<'bound' | 'tak
   return owner !== null && owner.profile_id === pid ? 'bound' : 'taken';
 }
 
-export function profiles(db: Db): DataPort['profiles'] {
+export function profiles(db: Db, maintenance: MaintenanceStore, now: () => number = Date.now): DataPort['profiles'] {
   return {
     async ensureLocal(pid, dkt) {
       const inserted = must('profiles', await db.from('profiles').upsert({ id: pid }, { onConflict: 'id', ignoreDuplicates: true }).select('id'));
@@ -63,7 +64,13 @@ export function profiles(db: Db): DataPort['profiles'] {
       const row = mustMaybe('profiles', await db.from('profiles').select('*').eq('id', ctx.profileId).is('deleted_at', null).maybeSingle());
       return row === null ? null : profileRow(row);
     },
-    exportAll: rejectLater('M06a1'),
-    forget: rejectLater('M06a1'),
+    async exportAll(ctx) {
+      return bytesStream(zipOfRows(await maintenance.exportRows(ctx.profileId ?? '')));
+    },
+    /** The soft step of DELETE /me: the profile stops existing for the API at once; the forget job purges the rows (maintenance.purgeProfile). */
+    async forget(ctx) {
+      if (ctx.profileId === null) return;
+      must('profiles', await db.from('profiles').update({ deleted_at: toIso(now()) }).eq('id', ctx.profileId).is('deleted_at', null).select('id'));
+    },
   };
 }

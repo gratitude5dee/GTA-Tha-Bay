@@ -7,22 +7,25 @@ import {
   type DeviceCodeStore,
   type ForumStore,
   type ModerationStore,
-  type RosterStore,
   type ServerDataPort,
   type UgcStore,
 } from '@dv/shared/data-port';
 import { createServiceClient, type SupabaseConfig } from './client.ts';
 import { catalog, cutscenes } from './cutscenes.ts';
 import { ledger } from './ledger.ts';
+import { maintenance } from './maintenance.ts';
+import { npcMemory } from './npc-memory.ts';
 import { profiles } from './profiles.ts';
+import { audit, roster } from './roster.ts';
 
 export { DataPortError, createServiceClient, type Db, type SupabaseConfig } from './client.ts';
 
 export function supabaseDataPort(cfg: SupabaseConfig): ServerDataPort {
   const db = createServiceClient(cfg);
   const defaultEnv = cfg.env;
+  const maint = maintenance(db);
   return {
-    profiles: profiles(db),
+    profiles: profiles(db, maint),
     identity: {
       putRefresh: rejectLater('M12a1'),
       rotateRefresh: rejectLater('M12a1'),
@@ -38,18 +41,15 @@ export function supabaseDataPort(cfg: SupabaseConfig): ServerDataPort {
     },
     progress: { commit: rejectLater('M12c') },
     leaderboards: { top: rejectLater('M12c'), submit: rejectLater('M12c') },
-    npcMemory: {
-      relationship: rejectLater('M06a1'),
-      topK: rejectLater('M06a1'),
-      write: rejectLater('M06a1'),
-      applySummary: rejectLater('M06a1'),
-    },
+    npcMemory: npcMemory(db),
     cutscenes: cutscenes(db),
     catalog: catalog(db),
     ugc: later<UgcStore>('M13a2'),
     forum: later<ForumStore>('M13b1'),
     moderation: later<ModerationStore>('M06b1'),
     ledger: ledger(db, defaultEnv),
-    roster: later<RosterStore>('M06a1'),
+    roster: roster(db),
+    audit: audit(db),
+    maintenance: maint,
   };
 }

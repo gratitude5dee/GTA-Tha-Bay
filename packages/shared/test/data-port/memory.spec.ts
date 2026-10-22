@@ -4,7 +4,7 @@ import { NotImplementedError } from '../../src/data-port.ts';
 import { runDataPortContract } from './contract.ts';
 
 // AC-5: the same contract suite the Supabase implementation runs.
-runDataPortContract('InMemoryDataPort', () => Promise.resolve({ port: new InMemoryDataPort({ env: 'test' }), env: 'test' }));
+runDataPortContract('InMemoryDataPort', () => Promise.resolve({ port: new InMemoryDataPort({ env: 'test', now: () => Date.now() }), env: 'test' }));
 
 describe('InMemoryDataPort', () => {
   it('seeds the catalog from catalogKeys', async () => {
@@ -21,8 +21,8 @@ describe('InMemoryDataPort', () => {
 
   it('a later member rejects instead of throwing synchronously', async () => {
     const port = new InMemoryDataPort();
-    const call = port.roster.flags();
+    const call = port.ugc.getMod('x');
     await expect(call).rejects.toBeInstanceOf(NotImplementedError);
-    await expect(call).rejects.toThrow('M06a1');
+    await expect(call).rejects.toThrow('M13a2');
   });
 });

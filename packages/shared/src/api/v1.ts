@@ -4,6 +4,7 @@
 // M00e adds the C12 1.0 shapes TokenRes and IdentityStateDTO (09-backend-contracts.md section 2.5) and the 1.3 members
 // (09-backend-contracts-1.3.md section 2) without changing C12_VERSION (1.3 section 4).
 
+import type { AssetRef } from '../assets/c07.ts';
 import type { AgeBracket } from '../identity.ts';
 
 export const C12_VERSION = '1.1.0' as const;
@@ -79,3 +80,12 @@ export interface LogoutRes { ok: true }                                         
 export interface PasswordMeRes { user: PasswordUser }                                                                              // route 62
 export interface PasswordExportRes { username: string; ageBracket: '18p'; termsVersion: string; acceptedAt: number; createdAt: number }   // route 65; epoch ms
 export interface TermsRequiredDetails { reason: 'terms_required'; termsVersion: string }                                         // ApiError.error.details of a 403 'forbidden' on routes 59, 60 and 65
+
+// Route 30 and 46 (09-backend-contracts.md section 2.5, 09-backend-contracts-1.1.md section 2; M06a1).
+export type KillScope = 'all' | 'spawn' | 'fighter' | 'cutscene' | 'voice' | 'marketing' | 'ugc';
+export const KILL_SCOPES: readonly KillScope[] = ['all', 'spawn', 'fighter', 'cutscene', 'voice', 'marketing', 'ugc'];
+export interface RosterFlags { etag: string; killed: Record<string /* NpcId */, { scope: KillScope[]; standIn: AssetRef /* character/<id>, copied from the soul */ }>; updatedAt: number }
+/** Why a roster entry was killed (the `roster_flag.reason` check of migration 0003). */
+export type KillReason = 'consent_revoked' | 'complaint' | 'legal' | 'safety' | 'quality';
+/** Route 46 body. `standIn` is optional here: without it the Worker uses the generic stand-in (BD-M06a1-05). */
+export interface KillReq { scope: KillScope[]; reason: KillReason; ticketId: string; standIn?: AssetRef }

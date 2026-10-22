@@ -427,7 +427,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "match_npc_memories":
+            "audit_append":
+{ Args: { "p_action": string,"p_actor": string,"p_details": Json,"p_role": string,"p_target_id": string,"p_target_kind": string }; Returns: number
+                           },
+"match_npc_memories":
 { Args: { "k"?: number,"now_gt": number,"p_npc": string,"p_profile": string,"q": unknown }; Returns: {
               "id": number,"kind": string,"score": number,"text": string
             }[]

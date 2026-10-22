@@ -4,6 +4,7 @@
 // in both implementations (InMemoryDataPort here, services/edge/src/data/supabase/* on the Worker).
 // Types only, plus NotImplementedError and the `later` helper. No IO.
 import type { SpendEvent, Vendor } from './api/budget.ts';
+import type { KillReq, RosterFlags } from './api/v1.ts';
 import type { SlotId, SliceKind } from './contracts/c05-save.ts';
 import type { MemoryHit, MemoryWrite, SummaryPatch } from './contracts/c10-npc.ts';
 import type { Database } from './db.gen.ts';
@@ -72,8 +73,12 @@ export type SaveKey = { saveProfileId: string; slot: SlotId };
 export type ProgressDelta = Record<string, unknown>;
 export type ScoreRow = Record<string, unknown>;
 export type ScoreSubmit = Record<string, unknown>;
-/** Owner M06a1 (C10 relationship record); opaque until then. */
-export type RelationshipRow = Record<string, unknown>;
+/** One row of `npc_relationship` (C10 relationship record), M06a1. */
+export type RelationshipRow = MsRow<PublicTables['npc_relationship']['Row'], 'last_seen_at'>;
+/** One row of `roster_flag` (the kill-switch state of one NPC), M06a1. */
+export type RosterFlagRow = MsRow<PublicTables['roster_flag']['Row'], 'set_at'>;
+/** One row of `encounter_transcripts` (the index of a transcript object in PRIVATE), M06a1. */
+export type TranscriptRow = MsRow<PublicTables['encounter_transcripts']['Row'], 'closed_at' | 'expires_at'>;
 
 // ---- Store interfaces: one method per route of section 2.4. Argument and result shapes are widened by the owner milestone. ----
 
@@ -124,10 +129,51 @@ export interface ModerationStore {
   hashBank(ctx: Ctx, bank: string, entries: unknown): Promise<unknown>;
   takedowns(ctx: Ctx): Promise<unknown>;
 }
-/** Routes 30, 46, M06a1. */
+/** Route 46 request as the store takes it: `standIn` is resolved by the caller. */
+export type KillRequest = Required<Pick<KillReq, 'standIn'>> & Omit<KillReq, 'standIn'>;
+/** Routes 30 and 46 (M06a1). `flags` reads Postgres (strongly consistent); the Worker adds the 10 s isolate cache and the KV fallback. */
 export interface RosterStore {
-  flags(): Promise<unknown>;
-  kill(ctx: Ctx, npcId: string, req: unknown): Promise<unknown>;
+  flags(): Promise<RosterFlags>;
+  /** Marks the NPC killed for the scopes (replacing an earlier row) and returns the stored row. `ctx.profileId` is null for the ops token. */
+  kill(ctx: Ctx, npcId: string, req: KillRequest): Promise<RosterFlagRow>;
+}
+/** One append-only audit entry (`audit_log`, hash-chained). Never holds a secret, a token or a network address. */
+export interface AuditEntry {
+  actor: string;
+  role: string;
+  action: string;
+  targetKind?: string;
+  targetId?: string;
+  details?: Record<string, unknown>;
+}
+/** Every admin write is audited (R-IP-02). Added beyond C12 section 2.6 (BD-M06a1-03). */
+export interface AuditStore {
+  append(entry: AuditEntry): Promise<void>;
+}
+/** The tables an export covers and the rows it holds: table name to rows (JSON-safe). */
+export type ExportRows = Record<string, Record<string, unknown>[]>;
+/**
+ * Retention, forget and export operations of M06a1 (BD-M06a1-03): the Worker's crons and queue jobs run through these, not through a
+ * route. Added beyond C12 section 2.6; `DataPort` itself stays as the contract has it.
+ */
+export interface MaintenanceStore {
+  /** Inserts the `encounter_transcripts` row of a closed encounter. 'no_profile' when the profile was deleted meanwhile. */
+  recordTranscript(row: TranscriptRow): Promise<'recorded' | 'no_profile'>;
+  /** Rows past `expires_at` (at most `limit`). */
+  expiredTranscripts(nowMs: number, limit: number): Promise<{ encounter_id: string; r2_key: string }[]>;
+  deleteTranscripts(encounterIds: string[]): Promise<number>;
+  /** R2 keys of every transcript of a profile. */
+  transcriptKeys(profileId: string): Promise<string[]>;
+  /** Deletes memories past `expires_at` and relationships with `last_seen_at` more than 180 days before `nowMs`. */
+  purgeMemory(nowMs: number): Promise<{ memories: number; relationships: number }>;
+  /** Profiles of tier 'local' not seen since `beforeMs` (at most `limit`). */
+  stubProfiles(beforeMs: number, limit: number): Promise<string[]>;
+  /** Profiles soft-deleted (`deleted_at`) before `beforeMs` that the forget job has not purged yet (at most `limit`). */
+  deletedProfiles(beforeMs: number, limit: number): Promise<string[]>;
+  /** Deletes the profile row; every table keyed by it cascades. True when a row existed. */
+  purgeProfile(profileId: string): Promise<boolean>;
+  /** Every row keyed by the profile, per table (the export job adds R2 objects). Secrets and embeddings are left out. */
+  exportRows(profileId: string): Promise<ExportRows>;
 }
 /**
  * The GenAI ledger. It has no route (the nightly export of BudgetGovernorDO writes it), so its two methods are a Builder decision (BD-M05d-02).
@@ -187,6 +233,8 @@ export interface CatalogStore {
 }
 export interface ServerDataPort extends DataPort {
   catalog: CatalogStore;
+  audit: AuditStore;
+  maintenance: MaintenanceStore;
 }
 
 /**

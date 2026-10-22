@@ -90,3 +90,27 @@ create policy mem_self_read on npc_memory for select to authenticated using (pro
 alter table encounter_transcripts enable row level security; alter table roster_flag enable row level security;
 alter table likeness_subject enable row level security; alter table consent_record enable row level security;
 alter table consent_event enable row level security;   -- server-only
+
+-- M06a1: hash-chained append to audit_log. row_hash = sha256(prev_hash || canonical row), where the canonical row is the jsonb text of
+-- {actor, role, action, target_kind, target_id, details, at} (jsonb orders its keys deterministically). An advisory transaction lock
+-- serialises writers so the chain never forks. Service path only; audit_log keeps its INSERT-only grant (0001).
+create or replace function audit_append(p_actor text, p_role text, p_action text, p_target_kind text, p_target_id text, p_details jsonb)
+returns bigint language plpgsql set search_path = public, extensions as $$
+declare
+  v_prev bytea;
+  v_at timestamptz := clock_timestamp();
+  v_row jsonb;
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('audit_log'));
+  select row_hash into v_prev from audit_log order by id desc limit 1;
+  v_row := jsonb_build_object('actor', p_actor, 'role', p_role, 'action', p_action, 'target_kind', p_target_kind, 'target_id', p_target_id,
+                              'details', coalesce(p_details, '{}'::jsonb), 'at', to_char(v_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'));
+  insert into audit_log (at, actor, role, action, target_kind, target_id, details, prev_hash, row_hash)
+    values (v_at, p_actor, p_role, p_action, p_target_kind, p_target_id, coalesce(p_details, '{}'::jsonb), v_prev,
+            sha256(coalesce(v_prev, ''::bytea) || convert_to(v_row::text, 'UTF8')))
+    returning id into v_id;
+  return v_id;
+end $$;
+revoke execute on function audit_append(text, text, text, text, text, jsonb) from public, anon, authenticated;
+grant execute on function audit_append(text, text, text, text, text, jsonb) to service_role;
