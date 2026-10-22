@@ -180,7 +180,7 @@ export class TycoonSession {
     }
     const before = this.state.capTable.rounds.length + this.state.capTable.safes.length;
     const res = stepWeek(this.state, this.env.content);
-    if (this.state.phase === 'ended') this.onEnded();
+    if (res.ended !== null) this.onEnded();
     else {
       if (this.state.week % this.env.content.balance.sim.boardIntervalWeeks === 0) this.env.requestSave('interval');
       if (this.state.capTable.rounds.length + this.state.capTable.safes.length !== before) this.env.requestSave('checkpoint');

@@ -38,7 +38,7 @@ function write(rel: string, value: unknown): void {
   const runs = [0xc0ffee, 0xbeef, 7].map((seed) => {
     const setup = setupFromSeed(seed, undefined, content);
     const run = playPolicy(setup, content, 150);
-    const out = replay(setup, run.choices, content);
+    const out = replay(setup, run.choices, content, 150);
     return { seed, weeks: 150, setup, choices: run.choices, finalHash: out.hash, endWeek: out.state.week, result: out.result };
   });
   write('tests/golden/tycoon/det-001.json', { v: 1, suite: 'tycoon', contentVersion: content.contentVersion, balanceVersion: content.balanceVersion, runs });

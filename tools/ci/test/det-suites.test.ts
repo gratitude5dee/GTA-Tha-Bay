@@ -51,7 +51,7 @@ describe('det suites', () => {
 
   it('the pending tags name the milestones that fill them', () => {
     const pending = Object.fromEntries(DET_SUITES.filter((s): s is { tag: string; pending: string } => 'pending' in s).map((s) => [s.tag, s.pending]));
-    expect(pending).toEqual({ '@fighter-hash': 'M08a1', '@tycoon-det': 'M09a2' });
+    expect(pending).toEqual({ '@fighter-hash': 'M08a1' });
   });
 
   it('@determinism joins no gray-box grep: it is world-agnostic (the page reads the committed fixture, DL-699)', () => {

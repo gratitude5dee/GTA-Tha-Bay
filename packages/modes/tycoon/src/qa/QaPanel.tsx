@@ -71,7 +71,7 @@ function Panel({ api, view, seed, setSeed }: { api: PanelApi; view: TycoonView |
         <button onClick={() => api.cmd({ t: 'setCrunch', on: false })}>Crunch off</button>
       </div>
       <div>
-        <button data-testid="tycoon-raise" onClick={() => api.cmd({ t: 'startRaise', kind: 'safe', targetCents: 15_000_000 })}>Start SAFE raise ($150k)</button>
+        <button data-testid="tycoon-raise" onClick={() => api.cmd({ t: 'startRaise', kind: 'safe', targetCents: 5_000_000 })}>Start SAFE raise ($50k)</button>
         <button onClick={() => api.cmd({ t: 'startRaise', kind: 'seed', targetCents: 30_000_000 })}>Start seed raise ($300k)</button>
         {pool.map((id) => (
           <button key={id} onClick={() => api.cmd({ t: 'scheduleMeeting', vcId: id })}>meet {id.replace('vc-', '')}</button>

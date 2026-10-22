@@ -55,7 +55,7 @@ export interface TycoonBridge {
 export function runDet(runs: readonly DetRun[]): DetOutcome[] {
   const content = tycoonContent();
   return runs.map((r) => {
-    const out = replay(r.setup, r.choices, content);
+    const out = replay(r.setup, r.choices, content, r.weeks);
     return { seed: r.seed, finalHash: out.hash, endWeek: out.state.week, resultHash: out.result ? out.result.stateHash : null };
   });
 }
