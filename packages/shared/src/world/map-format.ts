@@ -19,7 +19,7 @@
  * { height class u8, ring points } footprints.
  *
  * `sf-geocode.v1` ("DVGC", version 1): header 44 B, a street table sorted by (name, type), a chunk table, the base addresses sorted by
- * (street, number, suffix) with { streetId u16, number u16, suffix u8, x i16, z i16, chunk u16 } and a parallel `cnn` array, and the name
+ * (street, number, suffix) with { streetId u16, number u16, suffix u8, x i16, z i16, chunk u16 } and a parallel `cnn` array (zigzag deltas), and the name
  * index of landmarks, points of interest and neighbourhoods sorted by lower-case label.
  */
 import { CHUNK_EDGE_M, GRID_MIN_M } from './c08.ts';
@@ -966,7 +966,11 @@ export function encodeGeocode(src: GeocodeSource): Uint8Array {
     ad.u16(chunkIds.get(keyOf(c.cx, c.cy)) as number);
   });
   const cn = new Writer();
-  for (const a of addrs) cn.vu(a.cnn);
+  let prevCnn = 0;
+  for (const a of addrs) {
+    cn.vs(a.cnn - prevCnn);
+    prevCnn = a.cnn;
+  }
   const names = [...src.names].sort((a, b) => cmpStr(a.label.toLowerCase(), b.label.toLowerCase()) || a.kind - b.kind || cmpStr(a.label, b.label) || a.x - b.x || a.z - b.z);
   const nm = new Writer();
   nm.vu(names.length);
@@ -1025,14 +1029,18 @@ export function decodeGeocode(buf: ArrayBuffer | ArrayBufferView): GeocodeData {
     const streetId = ar.u16(), number = ar.u16(), suffix = ar.u8();
     const x = ar.i16(), z = ar.i16(), chunk = ar.u16();
     const c = chunks[chunk];
-    if (!c) ar.fail(`chunk ${chunk} does not exist`);
+    if (!c) return ar.fail(`chunk ${chunk} does not exist`);
     if (streetId >= streets.length) ar.fail(`street ${streetId} does not exist`);
     addresses.push({ streetId, number, suffix, x: GRID_MIN_M + c.cx * edge + x / MAP_UNITS_PER_M, z: GRID_MIN_M + c.cy * edge + z / MAP_UNITS_PER_M, cnn: 0 });
     streetStart[streetId + 1] = (streetStart[streetId + 1] as number) + 1;
   }
   for (let s = 0; s < streets.length; s++) streetStart[s + 1] = (streetStart[s + 1] as number) + (streetStart[s] as number);
   const nr = sec(4);
-  for (const a of addresses) a.cnn = nr.vu();
+  let prevCnn = 0;
+  for (const a of addresses) {
+    prevCnn += nr.vs();
+    a.cnn = prevCnn;
+  }
   const mr = sec(5);
   const names: GeocodeName[] = [];
   for (let n = mr.vu(); n > 0; n--) {

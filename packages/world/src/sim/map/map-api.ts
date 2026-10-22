@@ -5,8 +5,8 @@
  *  - Blips are kept sorted by priority (high first), then id; `setBlip` replaces by id.
  *  - The waypoint is the blip `waypoint` (kind `waypoint`).
  *  - `setRoute(to)` sets a GPS target; the polyline (from the player to the target on the drivable graph, along the resident
- *    centrelines and the topology chords beyond) is planned at the next `flush`, and again when the player has moved 25 m or
- *    more from where the last plan started and two seconds have passed.
+ *    centrelines and the topology chords beyond) is planned at the next `flush`, and again when the player is more than 25 m off
+ *    the planned line (or has no line and moved 25 m) and three seconds have passed since the last plan (M02c2, 02-world-maps.md 3.3).
  *  - `flush(tick)` runs at `SimStage.Publish` and returns the view-model patch to publish, or null when nothing changed.
  * Pure; C02 lint applies.
  */
@@ -19,10 +19,31 @@ export const WAYPOINT_PRIORITY = 100;
 /** Route polylines are thinned to this many points. */
 export const ROUTE_MAX_POINTS = 400;
 /** Replan period and distance of a live GPS route, ticks and metres. */
-export const REPLAN_TICKS = 120;
+export const REPLAN_TICKS = 180;
 export const REPLAN_MOVE_M = 25;
+/** The route is rebuilt when the player is farther than this from it. */
+export const OFF_ROUTE_M = REPLAN_MOVE_M;
 const ROUTE_EXPAND = 120_000;
 const NO_SERVICE_MASK = (1 << RoadClass.Freeway) | (1 << RoadClass.Ramp) | (1 << RoadClass.Arterial) | (1 << RoadClass.Collector) | (1 << RoadClass.Local);
+
+/** Distance from (x, z) to a polyline of x, z pairs, metres; Infinity for an empty line. */
+export function distToPolyline(pts: readonly number[], x: number, z: number): number {
+  const n = pts.length >> 1;
+  if (n === 0) return Infinity;
+  let best = Infinity;
+  for (let i = 0; i < n; i++) {
+    const ax = pts[i * 2] as number, az = pts[i * 2 + 1] as number;
+    const bx = i + 1 < n ? (pts[i * 2 + 2] as number) : ax, bz = i + 1 < n ? (pts[i * 2 + 3] as number) : az;
+    const dx = bx - ax, dz = bz - az;
+    const len2 = dx * dx + dz * dz;
+    let t = len2 === 0 ? 0 : ((x - ax) * dx + (z - az) * dz) / len2;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const ex = ax + t * dx - x, ez = az + t * dz - z;
+    const d2 = ex * ex + ez * ez;
+    if (d2 < best) best = d2;
+  }
+  return best === Infinity ? Infinity : Math.sqrt(best);
+}
 
 export interface RouteView {
   /** x, z pairs. */
@@ -155,8 +176,11 @@ export class MapApiImpl implements MapApi {
   flush(tick: number): MapPatch | null {
     const me = this.deps.player();
     if (this.target && me) {
-      const moved = this.routeOrigin ? Math.abs(me.x - this.routeOrigin.x) + Math.abs(me.z - this.routeOrigin.z) >= REPLAN_MOVE_M : true;
-      if (this.routeDirty || (moved && tick - this.routeTick >= REPLAN_TICKS)) {
+      // with a line: off it by more than 25 m; without one (no road joined the ends): moved 25 m since the last try
+      const off = this.route && this.route.points.length >= 4
+        ? distToPolyline(this.route.points, me.x, me.z) > OFF_ROUTE_M
+        : this.routeOrigin ? Math.abs(me.x - this.routeOrigin.x) + Math.abs(me.z - this.routeOrigin.z) >= REPLAN_MOVE_M : true;
+      if (this.routeDirty || (off && tick - this.routeTick >= REPLAN_TICKS)) {
         this.route = this.plan(me, this.target);
         this.routeOrigin = { x: me.x, z: me.z };
         this.routeTick = tick;
