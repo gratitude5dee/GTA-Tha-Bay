@@ -68,7 +68,10 @@
     { "name": "RL_AUTH", "namespace_id": "7301", "simple": { "limit": 10, "period": 60 } },
     { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } }
   ],
-  "secrets": { "required": [] },
+  // The service-path database key (M05d). Required where the Worker is deployed; local dev and tests run without it (no database: the static fallback applies).
+  "secrets": { "required": ["SUPABASE_SECRET_KEY"] },
+  // Daily 03:10 UTC: catalog-sync, then ledger-export (M05d). Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in.
+  "triggers": { "crons": ["10 3 * * *"] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
@@ -97,7 +100,8 @@
       ],
       "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
       "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
-      "secrets": { "required": [] },
+      "secrets": { "required": ["SUPABASE_SECRET_KEY"] },
+      "triggers": { "crons": ["10 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "observability": {
         "enabled": true,
@@ -168,6 +172,8 @@
       "FLAGS_JSON": "{}",
       "FAL_MODE": "mock"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
+      // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to
+      // config/supabase.projects.json, previews and env.staging take its URL and key here and boot.test.ts AC-6 asserts them.
     },
     "ratelimits": [
       { "name": "RL_AUTH", "namespace_id": "7321", "simple": { "limit": 10, "period": 60 } },

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": [
+    "bad_request",
+    "unauthorized",
+    "forbidden",
+    "not_found",
+    "conflict",
+    "gone",
+    "payload_too_large",
+    "unsupported_media_type",
+    "rate_limited",
+    "quota_exhausted",
+    "budget_offline",
+    "region_blocked",
+    "age_blocked",
+    "tier_required",
+    "build_mismatch",
+    "feature_disabled",
+    "kill_switched",
+    "moderation_blocked",
+    "upstream_unavailable",
+    "internal"
+  ],
+  "definitions": {}
+}

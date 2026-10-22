@@ -4,10 +4,14 @@ The `tha-bay-web` Worker (and `tha-bay-web-staging`): static assets, the `/api/v
 
 ## Import rules
 
-- Imports only `@dv/shared` and `@dv/net` (never `apps/*`, `@dv/engine` or `@dv/ui`).
+- Imports only `@dv/shared` and `@dv/net` (never `apps/*`, `@dv/engine` or `@dv/ui`), plus `@supabase/supabase-js`, which only `src/data/supabase/` imports (M05d). No client package or app imports it.
 - Every Worker response goes through `withIsolationHeaders`; `/account/*` is the only non-isolated path.
 - No secret value is committed; local development reads `.dev.vars` (git-ignored). Worker secrets ride with versions.
 - Only Workers named `tha-bay-*` are ever deployed from here.
+
+## Data (M05d)
+
+`src/data/supabase/` is the one real `DataPort` (service path, `SUPABASE_SECRET_KEY`); `InMemoryDataPort` (`@dv/shared/data-port.memory`) serves tests. `AppDeps.data(env)` returns the Supabase port or null when the Worker has no database (then the static key list of the shipped cutscene index gates route 27). `src/ops/` holds the scheduled jobs: `catalog-sync` (shipped index to `cutscene_catalog`), `ledger-export` (`BudgetGovernorDO` to `genai_ledger`) and `keepalive`. The cron `10 3 * * *` runs the first two; in staging and previews `POST /api/v1/_test/run-scheduled?job=<name>` runs any of the three. Tests that need a database live in `test/db/` and run under `pnpm check:db`. Runbook: `docs/runbooks/supabase.md`.
 
 ## Scripts
 

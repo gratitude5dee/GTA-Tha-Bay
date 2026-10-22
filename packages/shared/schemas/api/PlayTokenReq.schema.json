@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "pid": {
+      "type": "string"
+    },
+    "jwk": {
+      "type": "object",
+      "properties": {
+        "kty": {
+          "type": "string"
+        },
+        "crv": {
+          "type": "string"
+        },
+        "x": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "ts": {
+      "type": "number"
+    },
+    "sig": {
+      "type": "string"
+    },
+    "age": {
+      "type": "string",
+      "const": "18p"
+    }
+  },
+  "required": [
+    "pid",
+    "jwk",
+    "ts",
+    "sig",
+    "age"
+  ],
+  "additionalProperties": false,
+  "definitions": {}
+}

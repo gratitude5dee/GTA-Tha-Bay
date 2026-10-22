@@ -20,7 +20,8 @@ function globTests(dir: string, rel = ''): string[] {
   return out;
 }
 
-const excluded = (f: string): boolean => /^tests\/(e2e|perf)\//.test(f) || /^services\/[^/]+\/test\//.test(f);
+// M05d: tests/staging runs against a deployed Worker (pnpm test:staging), not in the unit job.
+const excluded = (f: string): boolean => /^tests\/(e2e|perf|staging)\//.test(f) || /^services\/[^/]+\/test\//.test(f);
 
 describe('unit-collect (AC-11, DL-250)', () => {
   const found = globTests(repoRoot).filter((f) => !excluded(f));

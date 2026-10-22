@@ -30,6 +30,7 @@ import { fileSoulFacts } from './soul-facts.ts';
 
 export const BEATS_LOCK_PATH = 'content/cutscenes/beats.lock.json';
 export const CATALOG_PATH = 'services/edge/src/generated/cutscene-catalog.json';
+export const WORKER_INDEX_PATH = 'services/edge/src/generated/cutscene-index.json';
 const INDEX_ID = 'cutscene-index';
 const INDEX_FILE = `assets/src/data/${INDEX_ID}/index.json`;
 
@@ -96,6 +97,8 @@ export async function planCutsceneIndex(o: CliOptions): Promise<CliPlan> {
   const indexText = stableJson(result.index);
   plan.data.push({ id: INDEX_ID, file: 'index.json', path: INDEX_FILE, text: indexText, tags: ['story', 'cutscene-index'] });
   plan.files.set(INDEX_FILE, indexText);
+  // M05d: the same index, bundled into the Worker; the daily catalog-sync job upserts its rows into cutscene_catalog.
+  plan.files.set(WORKER_INDEX_PATH, indexText);
   plan.files.set(`assets/src/data/${INDEX_ID}/asset.json`, assetSpec(INDEX_ID, 'index.json', ['story', 'cutscene-index']));
   plan.files.set(BEATS_LOCK_PATH, stableJson(lock));
 

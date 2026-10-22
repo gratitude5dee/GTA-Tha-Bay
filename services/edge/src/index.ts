@@ -14,6 +14,7 @@ import { handleLegal } from './routes/legal.ts';
 import { handleMedia } from './routes/media.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
+import { CRON_JOBS, runJobs } from './ops/scheduled.ts';
 import { uuidv7 } from './uuidv7.ts';
 
 export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
@@ -75,7 +76,10 @@ async function route(request: Request, env: Env, url: URL, requestId: string, de
  * Builds the Worker handler. The account routes take the admin path, a log sink and a clock by injection (M00e, DL-611):
  * tests pass stubs, production code calls `createApp()` and gets the recorded `ADMIN_PATH`.
  */
-export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<AppDeps, 'adminPath'>> = {}): { fetch(request: Request, env: Env): Promise<Response> } {
+export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<AppDeps, 'adminPath'>> = {}): {
+  fetch(request: Request, env: Env): Promise<Response>;
+  scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void>;
+} {
   const { adminPath, ...rest } = overrides;
   const deps = makeDeps(adminPath ?? ADMIN_PATH, rest);
   return {
@@ -92,6 +96,11 @@ export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<Ap
       res = withIsolationHeaders(res, url.pathname, env);
       res.headers.set('X-Request-Id', requestId);
       return res;
+    },
+    /** Cron `10 3 * * *` (M05d): catalog-sync, then ledger-export. Cron Triggers do not run in Previews; the staging-only test route for scheduled jobs stands in there. */
+    scheduled(_controller, env, ctx) {
+      ctx.waitUntil(runJobs(env, deps, CRON_JOBS).then((results) => deps.log(JSON.stringify({ event: 'cron.done', results }))));
+      return Promise.resolve();
     },
   };
 }

@@ -1,0 +1,9 @@
+{
+  "$comment": "Supabase projects (M05d). Refs, URLs and publishable keys are public; no secret belongs in this file. staging is null until the operator creates tha-bay-staging (Free plan) and fills ref, url and publishableKey; until then staging shares the prod project (RISK-28, DL-603) and db:push for staging prints a SKIP line. The ref is also the SUPABASE_PROJECT_ID repository secret of each environment.",
+  "staging": { "ref": null, "url": null, "publishableKey": null },
+  "prod": {
+    "ref": "jwvvllhxuvwkrynmnchb",
+    "url": "https://jwvvllhxuvwkrynmnchb.supabase.co",
+    "publishableKey": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar"
+  }
+}

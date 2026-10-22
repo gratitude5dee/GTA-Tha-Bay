@@ -25,10 +25,14 @@ export async function generationBlock(env: Env): Promise<'kill_switched' | 'budg
 }
 
 /** Route 27: GET /api/v1/cutscenes/:key. Never starts generation; reports what a prewarm would be allowed to do. */
-export async function handleCutsceneStatus({ env, url, requestId }: Ctx): Promise<Response> {
+export async function handleCutsceneStatus({ env, url, requestId, deps }: Ctx): Promise<Response> {
   const key = url.pathname.slice('/api/v1/cutscenes/'.length);
   if (!CUTSCENE_KEY.test(key)) return apiError('bad_request', 'A cutscene key is 64 lowercase hex characters.', requestId);
-  if (!inCatalog(env, key)) return json({ key, state: 'absent', reason: 'not_in_catalog' } satisfies CutsceneStatus);
+  const inCat = await inCatalog(env, deps, key);
+  // Database down (09-backend.md section 5.3): the catalog cannot be read, so report what R2 holds and start nothing. `status` never
+  // calls `ensure`; a manifest in MEDIA is `ready`, anything else is `absent`.
+  if (inCat === 'down') return json(await jobStub(env, key).status(key));
+  if (inCat === 'no') return json({ key, state: 'absent', reason: 'not_in_catalog' } satisfies CutsceneStatus);
   const st = await jobStub(env, key).status(key);
   if (st.state !== 'absent') return json(st);
   const block = await generationBlock(env);
@@ -54,7 +58,7 @@ async function sameSecret(a: string, b: string): Promise<boolean> {
 const MAX_PREWARM_KEYS = 50;
 
 /** Route 28: POST /api/v1/admin/cutscenes/prewarm {keys[]} -> 202. Staff only (OPS_TOKEN until staff JWTs, M12a1); geo-exempt (DL-184). */
-export async function handlePrewarm({ request, env, requestId }: Ctx): Promise<Response> {
+export async function handlePrewarm({ request, env, requestId, deps }: Ctx): Promise<Response> {
   const token = bearer(request);
   if (!env.OPS_TOKEN || token === null || !(await sameSecret(token, env.OPS_TOKEN))) {
     return apiError('unauthorized', 'A staff token is required.', requestId);
@@ -73,11 +77,17 @@ export async function handlePrewarm({ request, env, requestId }: Ctx): Promise<R
   const unique = [...new Set(keys as string[])];
   const results: CutsceneStatus[] = [];
   for (const key of unique) {
-    if (!inCatalog(env, key)) {
+    const inCat = await inCatalog(env, deps, key);
+    if (inCat === 'no') {
       results.push({ key, state: 'absent', reason: 'not_in_catalog' });
       continue;
     }
     const stub = jobStub(env, key);
+    if (inCat === 'down') {
+      // The catalog cannot be checked, so nothing is generated; the key reports what R2 holds.
+      results.push(await stub.status(key));
+      continue;
+    }
     // A ready key stays ready whatever the budget or kill state; only a new generation is held back.
     const st = block === null ? await stub.ensure(buildCutsceneJob(key, env, 'ops:prewarm'), { allowGenerate: true }) : await stub.status(key);
     results.push(block !== null && st.state === 'absent' ? { ...st, reason: block } : st);

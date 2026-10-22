@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "bad_request",
+            "unauthorized",
+            "forbidden",
+            "not_found",
+            "conflict",
+            "gone",
+            "payload_too_large",
+            "unsupported_media_type",
+            "rate_limited",
+            "quota_exhausted",
+            "budget_offline",
+            "region_blocked",
+            "age_blocked",
+            "tier_required",
+            "build_mismatch",
+            "feature_disabled",
+            "kill_switched",
+            "moderation_blocked",
+            "upstream_unavailable",
+            "internal"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "retryAfterMs": {
+          "type": "number"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "requestId"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "additionalProperties": false,
+  "definitions": {}
+}

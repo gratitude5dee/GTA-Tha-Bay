@@ -37,6 +37,12 @@ export class BudgetGovernorDO extends DurableObject<Env> implements BudgetGovern
     ctx.storage.sql.exec(`CREATE TABLE IF NOT EXISTS ledger (
       job_id TEXT PRIMARY KEY, vendor TEXT NOT NULL, est INTEGER NOT NULL, actual INTEGER NOT NULL DEFAULT 0,
       settled INTEGER NOT NULL DEFAULT 0, ts INTEGER NOT NULL, request_id TEXT)`);
+    // M05d: the nightly export to genai_ledger needs the model and kind of an event and whether a settled row has been exported.
+    // ALTER TABLE ... ADD COLUMN is applied once to a ledger created by M05b1; this is a storage change, not a class lifecycle change.
+    const cols = ctx.storage.sql.exec<{ name: string }>('PRAGMA table_info(ledger)').toArray().map((c) => c.name);
+    if (!cols.includes('model')) ctx.storage.sql.exec('ALTER TABLE ledger ADD COLUMN model TEXT');
+    if (!cols.includes('kind')) ctx.storage.sql.exec('ALTER TABLE ledger ADD COLUMN kind TEXT');
+    if (!cols.includes('exported')) ctx.storage.sql.exec('ALTER TABLE ledger ADD COLUMN exported INTEGER NOT NULL DEFAULT 0');
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS alarms (threshold TEXT PRIMARY KEY, ts INTEGER NOT NULL, spent INTEGER NOT NULL)');
     ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS gov_state (k TEXT PRIMARY KEY, v TEXT NOT NULL)');
   }
@@ -126,9 +132,10 @@ export class BudgetGovernorDO extends DurableObject<Env> implements BudgetGovern
     for (const [i, ev] of batch.entries()) {
       const id = ev.jobId ?? ev.requestId ?? `ev:${ev.ts}:${ev.vendor}:${ev.model}:${ev.kind}:${ev.usdMicros}:${i}`;
       this.sql().exec(
-        `INSERT INTO ledger (job_id, vendor, est, actual, settled, ts, request_id) VALUES (?, ?, ?, ?, ?, ?, ?)
-         ON CONFLICT(job_id) DO UPDATE SET actual = excluded.actual, settled = 1 WHERE ledger.settled = 0 AND excluded.settled = 1`,
-        id, ev.vendor, ev.usdMicros, ev.settled ? ev.usdMicros : 0, ev.settled ? 1 : 0, ev.ts, ev.requestId ?? null,
+        `INSERT INTO ledger (job_id, vendor, est, actual, settled, ts, request_id, model, kind) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(job_id) DO UPDATE SET actual = excluded.actual, settled = 1, model = excluded.model, kind = excluded.kind
+         WHERE ledger.settled = 0 AND excluded.settled = 1`,
+        id, ev.vendor, ev.usdMicros, ev.settled ? ev.usdMicros : 0, ev.settled ? 1 : 0, ev.ts, ev.requestId ?? null, ev.model, ev.kind,
       );
     }
     await this.afterChange(before);
@@ -148,5 +155,38 @@ export class BudgetGovernorDO extends DurableObject<Env> implements BudgetGovern
 
   spentMicros(vendor: Vendor): Promise<number> {
     return Promise.resolve(this.spent(vendor));
+  }
+
+  /**
+   * Settled rows not yet exported to genai_ledger, oldest first (M05d). The amount is the settled `actual`; `env` is left empty and
+   * stamped by the caller. A reservation that has not settled is not exported: its amount may still change.
+   */
+  exportBatch(limit = 500): Promise<SpendEvent[]> {
+    const rows = this.sql()
+      .exec<LedgerRow & { model: string | null; kind: string | null }>('SELECT * FROM ledger WHERE settled = 1 AND exported = 0 ORDER BY ts, rowid LIMIT ?', Math.max(1, Math.min(limit, 1000)))
+      .toArray();
+    return Promise.resolve(
+      rows.map((r) => ({
+        ts: r.ts,
+        vendor: r.vendor as Vendor,
+        model: r.model ?? 'unknown',
+        kind: r.kind ?? 'unknown',
+        usdMicros: r.actual,
+        settled: true,
+        ...(r.request_id === null ? {} : { requestId: r.request_id }),
+        jobId: r.job_id,
+        env: '',
+      })),
+    );
+  }
+
+  /** Marks rows exported by job id; returns how many changed. Idempotent. */
+  markExported(jobIds: string[]): Promise<number> {
+    let changed = 0;
+    for (const id of jobIds) {
+      const hit = this.sql().exec('UPDATE ledger SET exported = 1 WHERE job_id = ? AND settled = 1 AND exported = 0 RETURNING job_id', id).toArray();
+      changed += hit.length;
+    }
+    return Promise.resolve(changed);
   }
 }

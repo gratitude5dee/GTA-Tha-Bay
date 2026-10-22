@@ -45,6 +45,8 @@ jobs:
       # M00f: ported code needs its attribution header (no-op while third_party/ is absent).
       - run: pnpm reuse:clones
       - run: pnpm check:do-migrations
+      # M05d: packages/shared/schemas/api against the DTOs of api/v1.ts.
+      - run: pnpm check:api
       # M00d spec gates: instruction-file sizes, C16 privacy rules, skills mirror (pending stub), R-ROLL-01 order gate.
       - run: pnpm check:agents
       - run: pnpm check:telemetry
@@ -52,6 +54,41 @@ jobs:
       - run: pnpm check:rollout
         env:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
+
+  # M05d: the database checks, on a pull request only when it touches the schema, the DataPort or the scripts around them (a push to
+  # main or claude/build always runs them). They need Docker: ubuntu-24.04 has it. `check:db` starts the Supabase local stack, lints
+  # the migrations, runs the pgTAP files and the DataPort contract; `check:db:types` regenerates packages/shared/src/db.gen.ts.
+  db:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      BASE_REF: ${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the scope step diffs against the base branch
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: scope
+        name: Does this change touch the database?
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${BASE_REF}...HEAD" | grep -Eq '^(supabase/|packages/shared/src/(db|data-port)|services/edge/src/data/|services/edge/test/db/|packages/shared/test/data-port/|tools/ci/(check-db|lib/db-lint)|\.github/workflows/ci\.yml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No database path changed: db checks skipped."
+          fi
+      - if: steps.scope.outputs.run == 'true'
+        run: pnpm check:db
+      - if: steps.scope.outputs.run == 'true'
+        run: pnpm check:db:types
 
   unit:
     runs-on: ubuntu-24.04
