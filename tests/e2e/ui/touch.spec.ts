@@ -77,6 +77,7 @@ test.describe('touch play @ui-touch', () => {
     await expect(page.getByTestId('rotate-overlay')).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByTestId('rotate-overlay')).toBeVisible();
+    await page.waitForTimeout(500); // the pause reaches the worker within a few ticks
     const t0 = (await observe(page)).stats.tick;
     await page.waitForTimeout(900);
     const t1 = (await observe(page)).stats.tick;

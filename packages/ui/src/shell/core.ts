@@ -130,6 +130,7 @@ export class ShellCore implements ShellApi {
     this.offVm = engine.vm.subscribe('sys.*', (_v, k) => this.onVm(k));
     this.onVm('sys.mode');
     this.onVm('sys.unlocks');
+    this.syncTouch();
     this.armBypass();
     this.touch();
   }
