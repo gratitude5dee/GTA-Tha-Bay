@@ -5,13 +5,33 @@ import settingsV1 from './schema/settings.v1.schema.json';
 import storyV1 from './schema/story.v1.schema.json';
 import sandboxV1 from './schema/sandbox.v1.schema.json';
 import tycoonV1 from '../../../../shared/schemas/tycoon/slice-1.schema.json';
+import vehicleInstanceV1 from '../../../../shared/schemas/racing/vehicle-instance.v1.schema.json';
 import { validateSchema, type JsonSchema } from './validate.ts';
+
+/** Schemas a slice schema may `$ref` by `$id`. The built-in validator has no `$ref`, so `inlineRefs` resolves them when the table below is built. */
+const REF_REGISTRY: Readonly<Record<string, unknown>> = { [(vehicleInstanceV1 as { $id: string }).$id]: vehicleInstanceV1 };
+
+/** A copy of `schema` with every `{ $ref }` node replaced by the registered schema (without its `$id` and `$schema`). Throws on an unknown ref. */
+export function inlineRefs(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(inlineRefs);
+  if (schema === null || typeof schema !== 'object') return schema;
+  const o = schema as Record<string, unknown>;
+  if (typeof o['$ref'] === 'string') {
+    const target = REF_REGISTRY[o['$ref']] as Record<string, unknown> | undefined;
+    if (!target) throw new Error(`unknown schema ref ${o['$ref']}`);
+    const { $id: _id, $schema: _schema, ...rest } = target;
+    return inlineRefs(rest);
+  }
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(o)) out[k] = inlineRefs(o[k]);
+  return out;
+}
 
 export const ENVELOPE_SCHEMA = envelopeJson as unknown as JsonSchema;
 
 /** Slice schemas by kind and schema number. Mode slices and `mod:*` are validated as JSON objects only (until their owners add schemas). */
 export const SLICE_SCHEMAS: Partial<Record<SliceKind, Record<number, JsonSchema>>> = {
-  core: { 1: coreV1 as unknown as JsonSchema },
+  core: { 1: inlineRefs(coreV1) as JsonSchema },
   settings: { 1: settingsV1 as unknown as JsonSchema },
   story: { 1: storyV1 as unknown as JsonSchema },
   sandbox: { 1: sandboxV1 as unknown as JsonSchema },

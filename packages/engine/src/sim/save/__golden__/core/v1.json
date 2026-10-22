@@ -11,8 +11,22 @@
   },
   "garage": [
     {
-      "key": "veh:golden-1",
-      "prefab": "vehicle.compact"
+      "id": "0123456789abcdef0123456789abcdef",
+      "defId": "vehicle.compact",
+      "upgrades": {},
+      "livery": {
+        "assetRef": "texture/livery-plain",
+        "hue": 210,
+        "plate": "DV0001"
+      },
+      "damage": {
+        "body": 1,
+        "engine": 1,
+        "tires": [1, 1, 1, 1]
+      },
+      "odometerKm": 0,
+      "acquired": 1760000000000,
+      "source": "reward"
     }
   ],
   "inventory": {

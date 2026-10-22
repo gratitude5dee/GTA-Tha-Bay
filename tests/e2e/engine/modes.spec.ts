@@ -71,9 +71,9 @@ test.describe('modes @modes', () => {
     expect(((await modes(page, (m) => m.state())) as { host: { stack: unknown[] } }).host.stack).toHaveLength(1);
     expect(await modes(page, (m) => m.vm('hud.wallet'))).toEqual({ cashCents: 0, streetCred: 0, techClout: 0 });
 
-    // the garage commands raise garage.notYet and change nothing
+    // the garage commands answer an unknown key with garage.refuse.unknown and change nothing
     await modes(page, (m) => m.send({ t: 'garage.call', vehicleKey: 'veh:test' }));
-    await expect.poll(() => modes(page, (m) => m.toasts().map((t) => t.text)), { timeout: 10_000 }).toContain('garage.notYet');
+    await expect.poll(() => modes(page, (m) => m.toasts().map((t) => t.text)), { timeout: 10_000 }).toContain('garage.refuse.unknown');
 
     // the QA unlock helper: one toast, and repeating it does nothing
     const first = (await modes(page, (m) => m.unlock('unlock.racing'))) as { isNew: boolean };

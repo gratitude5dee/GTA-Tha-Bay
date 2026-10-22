@@ -1,6 +1,6 @@
 import {
   SIM_DT,
-  type AssetRef, type CameraDirective, type EcsApi, type EntityHandle, type EconomyApi, type GameModeId, type InputContextId, type InputFrame,
+  type AssetRef, type CameraDirective, type CombatApi, type EcsApi, type EntityHandle, type EconomyApi, type GameModeId, type InputContextId, type InputFrame,
   type InteractionApi, type ModeContext, type ModeEnterArgs, type ModeOrigin, type PhysicsQueries, type PrefabService, type PursuitApi,
   type Rng, type RngStreams, type SaveReason, type SimEventBus, type SimScheduler, type TelemetryName, type TimelineRecorder, type UiBridge,
   type UnlockApi, type WorldApi, type WorldClockApi, type ZoneService,
@@ -33,6 +33,8 @@ export interface ContextPorts {
   zones?: ZoneService | null;
   scheduler?: SimScheduler | null;
   timeline?: TimelineRecorder | null;
+  /** The open-world melee (M05c1). A build without it keeps the `NotYetAvailable` stub. */
+  combat?: CombatApi | null;
   /** Sets the input of a script-driven vehicle (NPC cars of a mission). Reaches the mode as `ctx.vehicleAi`, which is not part of C06 (BD-M05a1-04). */
   vehicleAi?: VehicleAiPort | null;
 }
@@ -54,7 +56,7 @@ function missing<T extends object>(service: string, milestone: string, methods: 
 /**
  * The only capability surface of a mode (C06 rule 7). One context per stack entry, so `rng` is prefixed with that mode's id and
  * `startChild` knows its parent. `tick` reads the sim tick live. Members whose services have not landed throw `NotYetAvailable`
- * when called, naming the milestone: zones, scheduler and timeline M05a1 (real services since M05a1; the stubs remain for a context built without them), combat M05c1, npc M06a3; and, on a build that has
+ * when called, naming the milestone: zones, scheduler and timeline M05a1 (real services since M05a1; the stubs remain for a context built without them), combat (real since M05c1), npc M06a3; and, on a build that has
  * none, the clock (M02b2), the pursuit director (M03c) and the interaction service (M03a1). `net` is null (single player).
  */
 export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeOrigin): ModeContext {
@@ -65,7 +67,7 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
   const zones = p.zones ?? zonesStub();
   const scheduler = p.scheduler ?? schedulerStub();
   const timeline = p.timeline ?? timelineStub();
-  const combat = combatStub();
+  const combat = p.combat ?? combatStub();
   const npc = npcStub();
   const ctx: ModeContext = {
     get tick() {

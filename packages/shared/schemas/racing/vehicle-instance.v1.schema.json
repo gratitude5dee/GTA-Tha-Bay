@@ -1,0 +1,48 @@
+{
+  "$id": "https://dv.local/schema/racing/vehicle-instance.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VehicleInstance schema 1 (an element of CoreSlice.garage; 06-racing-data.md 4.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "defId", "upgrades", "livery", "damage", "odometerKm", "acquired", "source"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[0-9a-f]{32}$" },
+    "defId": { "type": "string", "pattern": "^[a-z][a-z0-9._-]{0,63}$" },
+    "upgrades": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "tires": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "brakes": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "suspension": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "weight": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "nitro": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "armor": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
+    },
+    "livery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetRef", "hue", "plate"],
+      "properties": {
+        "assetRef": { "type": "string", "pattern": "^texture/[a-z0-9][a-z0-9._-]{0,63}$" },
+        "hue": { "type": "number", "minimum": 0, "maximum": 360 },
+        "plate": { "type": "string", "pattern": "^[A-Z0-9]{0,7}$" }
+      }
+    },
+    "damage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["body", "engine", "tires"],
+      "properties": {
+        "body": { "type": "number", "minimum": 0, "maximum": 1 },
+        "engine": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tires": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+      }
+    },
+    "odometerKm": { "type": "number", "minimum": 0 },
+    "acquired": { "type": "integer", "minimum": 0 },
+    "source": { "enum": ["bought", "reward", "loaner", "mod"] }
+  }
+}

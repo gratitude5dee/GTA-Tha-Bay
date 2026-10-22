@@ -97,12 +97,12 @@ describe('UiBridge coalescing and the ViewModelSource', () => {
     expect(bridge.takeOutbox()?.toasts.map((t) => t.text)).toEqual(['world.boundary.countyLine']);
   });
 
-  it('commands: garage.call toasts garage.notYet and changes nothing', () => {
+  it('commands: garage.call and garage.favorite toast garage.refuse.noWorld without a garage module and change nothing', () => {
     const rig = makeRig();
     rig.dispatch({ t: 'garage.call', vehicleKey: 'veh:1' });
     rig.dispatch({ t: 'garage.favorite', vehicleKey: 'veh:1' });
     const out = rig.ui.takeOutbox();
-    expect(out?.toasts.map((t) => t.text)).toEqual(['garage.notYet', 'garage.notYet']);
+    expect(out?.toasts.map((t) => t.text)).toEqual(['garage.refuse.noWorld', 'garage.refuse.noWorld']);
     expect(rig.slices.core.garage).toEqual([]);
   });
 });

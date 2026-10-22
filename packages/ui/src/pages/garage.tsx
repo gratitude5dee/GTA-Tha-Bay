@@ -1,8 +1,8 @@
 /**
  * Garage frame (10-ui-pages.md section 2.10, M04b2): a grid of `core.garage` entries. The cards read a partial `VehicleInstance`
  * defensively (`key`, `prefab`, `class`, `nickname`, `plate`, `damage`, `vehicleHeat`, `impoundStrikes`) and ignore the rest. Call and
- * Set as favourite send `garage.call` / `garage.favorite` with the card's `vehicleKey`; until M05c1 lands the garage module the sim
- * answers both with the `garage.notYet` toast (DL-668 part 3). The mod shop and upgrades are M07b2.
+ * Set as favourite send `garage.call` / `garage.favorite` with the card's `vehicleKey`; since M05c1 the garage module (engine/sim/garage)
+ * handles both and answers with a toast (DL-668 part 3). The mod shop and upgrades are M07b2.
  */
 import { h } from 'preact';
 import type { JsonValue, UiCommand } from '@dv/shared';

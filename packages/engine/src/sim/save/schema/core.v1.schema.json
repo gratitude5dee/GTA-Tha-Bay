@@ -23,7 +23,7 @@
     "garage": {
       "type": "array",
       "items": {
-        "type": "object"
+        "$ref": "https://dv.local/schema/racing/vehicle-instance.v1.schema.json"
       }
     },
     "inventory": {

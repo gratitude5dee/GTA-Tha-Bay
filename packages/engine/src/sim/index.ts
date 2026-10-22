@@ -36,6 +36,8 @@ export * from './world/fixture-statics.ts';
 export { VEHICLE_PREFABS, STORY_PREFABS, RACE_CAR_PREFABS } from './prefabs/registry.ts';
 export * from './pursuit/index.ts';
 export * from './modes/index.ts';
+export * from './combat/combat.ts';
+export * from './garage/garage.ts';
 export * from './ui/bridge.ts';
 export * from './ui/coalesce.ts';
 export * from './script/index.ts';
