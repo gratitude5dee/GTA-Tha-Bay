@@ -97,7 +97,7 @@ export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<Ap
       res.headers.set('X-Request-Id', requestId);
       return res;
     },
-    /** Cron `10 3 * * *` (M05d): catalog-sync, then ledger-export. Cron Triggers do not run in Previews; `/api/v1/_test/run-scheduled` stands in there. */
+    /** Cron `10 3 * * *` (M05d): catalog-sync, then ledger-export. Cron Triggers do not run in Previews; the staging-only test route for scheduled jobs stands in there. */
     scheduled(_controller, env, ctx) {
       ctx.waitUntil(runJobs(env, deps, CRON_JOBS).then((results) => deps.log(JSON.stringify({ event: 'cron.done', results }))));
       return Promise.resolve();

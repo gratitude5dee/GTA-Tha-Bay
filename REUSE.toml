@@ -19,6 +19,7 @@ path = [
   "research/**",
   "services/**",
   "spec/**",
+  "supabase/**",
   "tests/**",
   "tools/**",
 ]

@@ -42,6 +42,9 @@ jobs:
         run: pnpm genai:liveness
       - name: Vendor-terms hashes
         run: pnpm legal:snapshot -- --verify
+      # M05d: one database select on the staging project through the staging Worker, so the Free project does not pause after 7 idle days.
+      - name: Staging keep-alive
+        run: pnpm test:staging -- keepalive
       # M02a2: the offline synth world, baked and gated end to end (S5 to S14). Needs no network and no secrets.
       - name: World bake and S14 gates (synth)
         run: pnpm map:build -- --area synth && pnpm map:verify -- --area synth

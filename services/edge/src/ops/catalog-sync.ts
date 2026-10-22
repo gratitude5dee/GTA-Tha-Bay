@@ -54,7 +54,7 @@ export function catalogRows(index: CutsceneIndex): CatalogInput[] {
 }
 
 /**
- * catalog-sync (daily cron 03:10 and `/_test/run-scheduled?job=catalog-sync`): upserts every row of the shipped cutscene index into
+ * catalog-sync (daily cron 03:10, and the staging test route for scheduled jobs): upserts every row of the shipped cutscene index into
  * `cutscene_catalog`, idempotently. A repeat writes 0 rows. In a mock-generation environment the fixture keys of the static catalog
  * (`mockKeys`) are included, so the staging demo script keeps working once route 27 reads the table.
  */

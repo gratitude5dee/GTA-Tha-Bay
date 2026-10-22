@@ -14,7 +14,7 @@ const PAGE = 500;
 const MAX_PAGES = 20;
 
 /**
- * ledger-export (nightly cron and `/_test/run-scheduled?job=ledger-export`): appends the settled, not yet exported rows of the
+ * ledger-export (nightly cron, and the staging test route for scheduled jobs): appends the settled, not yet exported rows of the
  * BudgetGovernorDO ledger to `genai_ledger` with `env = ENVIRONMENT`, then marks them exported. `append` skips a row whose
  * (env, job_id) is stored, so a crash between the two steps costs nothing on the next run. A rerun adds 0 rows.
  */
