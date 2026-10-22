@@ -62,7 +62,7 @@ export async function createVehicleWorld(opts: VehicleSimOptions = {}): Promise<
       prefabs.load(ENGINE_PREFABS);
       const mod = registerVehicleModule(s.core, s.backend, prefabs, opts.wheelPath?.(s.backend));
       // the race cars of M07a1 load only where a test asks for one (the string table is hashed)
-      if (opts.prefab.startsWith('vehicle.') && RACE_CAR_PREFABS.some((p) => p.id === opts.prefab)) prefabs.load(RACE_CAR_PREFABS);
+      if (RACE_CAR_PREFABS.some((p) => p.id === opts.prefab)) prefabs.load(RACE_CAR_PREFABS);
       holder.mod = mod;
       holder.prefabs = prefabs;
       const playerAt = opts.playerAt ?? [pos[0], pos[1], pos[2] - 3];

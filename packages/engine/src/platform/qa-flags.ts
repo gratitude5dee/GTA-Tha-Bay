@@ -40,6 +40,10 @@ export interface QaFlags {
   readonly touch: boolean;
   /** ?unlockAll=1 unlocks every registered unlock in memory, never persisted (M04a2, C06 rule 6). */
   readonly unlockAll: boolean;
+  /** ?racing=1 boots the racing sim module (components 1024 to 1031, the race cars) and the QA bridge `racing` (M07a1). */
+  readonly racing: boolean;
+  /** ?racing=demo: like ?racing=1, and the QA page starts the straight demo race by itself (no baked streets needed, M07a1). */
+  readonly racingDemo: boolean;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -60,6 +64,8 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   world: null,
   touch: false,
   unlockAll: false,
+  racing: false,
+  racingDemo: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -111,5 +117,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
     touch: q.get('touch') === '1',
     unlockAll: q.get('unlockAll') === '1',
+    racing: q.get('racing') === '1' || q.get('racing') === 'demo',
+    racingDemo: q.get('racing') === 'demo',
   };
 }

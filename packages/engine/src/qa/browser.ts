@@ -19,6 +19,10 @@ export async function runQaSpec(config: Readonly<Record<string, unknown>>, retry
     verifyFixturePack('p0-64-64.pack', bytes, hashes);
     packs['p0'] = bytes;
   }
+  // other packs (a mode's own fixture, for example the racing corridor) are handed to the loader as they are
+  for (const [k, v] of Object.entries(raw ?? {})) {
+    if (k !== 'p0' && (v instanceof ArrayBuffer || v instanceof Uint8Array)) packs[k] = v instanceof Uint8Array ? v : new Uint8Array(v);
+  }
   const build = typeof config['build'] === 'string' ? config['build'] : 'local';
   return createCanonicalRunner({ packs, retry, build, processEnv: {} }).run(spec);
 }

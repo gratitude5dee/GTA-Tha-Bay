@@ -18,7 +18,7 @@ import { attachSabWorker } from '../sim/transport/sab-transport.ts';
 import { attachPmWorker, type PortLike } from '../sim/transport/pm-transport.ts';
 import type { WorkerTransport } from '../sim/transport/types.ts';
 import { SaveControl } from '../sim/worker/save-control.ts';
-import { createModesModule, defaultSandbox, defaultStory, type SessionSlices } from '../sim/modes/index.ts';
+import { createModesModule, defaultSandbox, defaultStory, type ModesModuleOptions, type SessionSlices } from '../sim/modes/index.ts';
 import type { SaveServiceImpl } from '../sim/save/service.ts';
 
 export interface WorkerScope extends PortLike {
@@ -28,7 +28,10 @@ export interface WorkerScope extends PortLike {
 }
 
 /** Starts the sim worker on `scope` (the worker's global scope; tests pass a stand-in). `modules` apply to the `SimRuntime` the game boots. */
-export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]): void {
+export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[], extras: Pick<ModesModuleOptions, 'descriptors' | 'unlockDefs'> & {
+  /** QA builds only: registers the QA parts of a mode package (its scenario loader, bot and command handler) before a QA run or boot. */
+  qaSetup?: () => Promise<void>;
+} = {}): void {
   const sleep = (ms: number): Promise<void> => new Promise((resolve) => scope.setTimeout(resolve, ms));
 
   let started = false;
@@ -82,6 +85,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
 
     // `?run=<RunSpec>` of the determinism page (M04d): one canonical run on sims the runner builds itself, like the branch above.
     if (import.meta.env.VITE_DV_QA === '1' && init.p.qa && boot.config['mode'] === 'qa-run') {
+      await extras.qaSetup?.();
       const { runQaSpec } = await import('../qa/browser.ts');
       const post = (name: string, data: unknown): void => scope.postMessage({ v: 1, t: 'qa', seq: 0, p: { name, data } });
       try {
@@ -107,6 +111,8 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
         return SaveServiceImpl.open({ buildId: import.meta.env.VITE_DV_BUILD ?? 'dev', worldBake: cfg.worldBake });
       })());
     const modes = createModesModule({
+      ...(extras.descriptors ? { descriptors: extras.descriptors } : {}),
+      ...(extras.unlockDefs ? { unlockDefs: extras.unlockDefs } : {}),
       wallMs: () => Date.now(),
       // The open profile: the first one, made if there is none (profile selection is M04b1's page).
       loadSlices: async (): Promise<SessionSlices> => {
@@ -144,6 +150,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[]):
       // `debug.pursuit` (QA): the pursuit module's command handler (M03c)
       // `debug.modes` (QA): the mode host's command handler (M04a2)
       modes.installQa((await import('../sim/modes/qa.ts')).runModesQa);
+      await extras.qaSetup?.();
       const pursuit = (env.modules ?? []).find((m) => m.id === 'engine.pursuit') as (SimModule & { installQa?(h: unknown): void }) | undefined;
       if (pursuit?.installQa) pursuit.installQa((await import('../sim/pursuit/qa.ts')).runPursuitQa);
       runtime.lineTools = {

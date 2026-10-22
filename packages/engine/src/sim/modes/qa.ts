@@ -40,6 +40,8 @@ export const runModesQa: ModesQaHandler = (cx, cmd, send) => {
       answer({ ok: typeof a['cents'] === 'number' && typeof a['key'] === 'string' ? economy.debit(a['cents'], 'qa', a['key']) : false, balance: economy.balance() });
       break;
     default:
+      // an op with a dot belongs to another module (`racing.start`); it answers under the same reply name
+      if (cmd.op.includes('.')) return;
       answer({ ok: false, reason: `unknown op ${cmd.op}` });
   }
 };

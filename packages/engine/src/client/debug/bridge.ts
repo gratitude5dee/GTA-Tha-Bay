@@ -69,6 +69,8 @@ export interface EngineBridge {
     unlockAll(on: boolean): Promise<Record<string, unknown> | null>;
     credit(cents: number, key: string): Promise<Record<string, unknown> | null>;
     debit(cents: number, key: string): Promise<Record<string, unknown> | null>;
+    /** Any `debug.modes` op, for modules that add their own (`racing.start`); the answer is the module's reply. */
+    call(op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null>;
     /** A view model value (`hud.wallet`, `sys.unlocks`, `sys.controls`, ...). */
     vm(key: string): JsonValue | undefined;
     toasts(): readonly { id: string; kind: string; text: string }[];
@@ -121,6 +123,7 @@ export function installEngineBridge(engine: EngineHandle): EngineBridge {
       start: (id) => engine.sendUi({ t: 'mode.start', id }),
       quit: () => engine.sendUi({ t: 'mode.quit' }),
       send: (cmd) => engine.sendUi(cmd),
+      call: (op, args) => modesCall(op, args),
       unlock: (id) => modesCall('unlock', { id }),
       unlockAll: (on) => modesCall('unlockAll', { on }),
       credit: (cents, key) => modesCall('credit', { cents, key }),
