@@ -58,7 +58,8 @@ export async function handleExport(ctx: Ctx): Promise<Response> {
   if (download !== null) {
     if (!EXPORT_ID.test(download)) return apiError('bad_request', 'Invalid export id.', requestId);
     const obj = await env.PRIVATE.get(exportKey(pid, download));
-    if (obj === null || obj.uploaded.getTime() < deps.now() - EXPORT_TTL_MS) return apiError('not_found', 'No such export.', requestId);
+    // The export id is the creation time in epoch ms (key exports/<profile>/<ts>.zip), so its age needs no clock of the bucket's.
+    if (obj === null || Number(download) < deps.now() - EXPORT_TTL_MS) return apiError('not_found', 'No such export.', requestId);
     return new Response(ctx.request.method === 'HEAD' ? null : obj.body, {
       status: 200,
       headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="export.zip"', 'Cache-Control': 'no-store', 'Content-Length': String(obj.size) },
@@ -71,8 +72,8 @@ export async function handleExport(ctx: Ctx): Promise<Response> {
   if (deps.data(env) === null) return apiError('upstream_unavailable', 'Nothing is stored for this profile.', requestId);
   const t = deps.now();
   const marker = `exports/${pid}/pending`;
-  const pending = await env.PRIVATE.head(marker);
-  if (pending !== null && t - pending.uploaded.getTime() < PENDING_MS) return json({ state: 'pending', retryAfterMs: 15_000 }, { status: 202 });
+  const pending = await env.PRIVATE.get(marker);
+  if (pending !== null && t - Number(await pending.text()) < PENDING_MS) return json({ state: 'pending', retryAfterMs: 15_000 }, { status: 202 });
   const exportId = String(t);
   await env.PRIVATE.put(marker, String(t));
   if (await sendJob(env, { type: 'export', profileId: pid, exportId })) return json({ state: 'pending', retryAfterMs: 15_000 }, { status: 202 });
@@ -88,7 +89,7 @@ async function latestExport(ctx: Ctx, pid: string): Promise<{ id: string; at: nu
   for (const o of listed.objects) {
     const m = /\/([0-9]{10,16})\.zip$/.exec(o.key);
     if (!m) continue;
-    const at = o.uploaded.getTime();
+    const at = Number(m[1]);
     if (at >= t - EXPORT_TTL_MS && (best === null || at > best.at)) best = { id: m[1]!, at };
   }
   return best;

@@ -111,7 +111,7 @@ export function readZip(zip: Uint8Array): ZipEntry[] {
 /** The export archive of a profile's rows: `tables/<name>.json` per table, keys in sorted order. */
 export function zipOfRows(rows: Record<string, unknown[]>, extra: readonly ZipEntry[] = []): Uint8Array {
   const entries: ZipEntry[] = Object.keys(rows)
-    .sort()
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     .map((name) => ({ name: `tables/${name}.json`, data: utf8(`${JSON.stringify(rows[name], null, 1)}\n`) }));
   return buildZip([...entries, ...extra]);
 }

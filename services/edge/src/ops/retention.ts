@@ -34,7 +34,13 @@ export async function runTranscriptRetention(env: Env, deps: Pick<AppDeps, 'data
   let cursor: string | undefined;
   do {
     const page = await env.PRIVATE.list({ prefix: 'exports/', limit: 1000, ...(cursor === undefined ? {} : { cursor }) });
-    const old = page.objects.filter((o) => o.uploaded.getTime() < t - EXPORT_TTL_MS).map((o) => o.key);
+    // An export's name carries its creation time (exports/<profile>/<ts>.zip); a pending marker, which has none, goes after a day.
+    const old = page.objects
+      .filter((o) => {
+        const m = /\/([0-9]{10,16})\.zip$/.exec(o.key);
+        return m ? Number(m[1]) < t - EXPORT_TTL_MS : o.uploaded.getTime() < t - 86_400_000;
+      })
+      .map((o) => o.key);
     if (old.length > 0) await env.PRIVATE.delete(old);
     exportsDeleted += old.length;
     cursor = page.truncated ? page.cursor : undefined;

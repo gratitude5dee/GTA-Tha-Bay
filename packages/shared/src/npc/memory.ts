@@ -37,6 +37,7 @@ export function scoreMemory(m: { cosine: number; importance: number; gameTime: n
   return MEMORY_WEIGHTS.relevance * m.cosine + MEMORY_WEIGHTS.importance * (m.importance / 10) + MEMORY_WEIGHTS.recency * dexp(-age / MEMORY_RECENCY_SCALE);
 }
 
+const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 export interface RelationshipFields {
@@ -77,7 +78,7 @@ export function buildRosterFlags(rows: readonly { npc_id: string; killed: boolea
   for (const r of [...rows].sort((a, b) => (a.npc_id < b.npc_id ? -1 : a.npc_id > b.npc_id ? 1 : 0))) {
     if (r.set_at > updatedAt) updatedAt = r.set_at;
     if (!r.killed) continue;
-    killed[r.npc_id] = { scope: [...r.scope].sort() as KillScope[], standIn: r.stand_in as AssetRef };
+    killed[r.npc_id] = { scope: [...r.scope].sort(byText) as KillScope[], standIn: r.stand_in as AssetRef };
   }
   return { etag: sha256Hex(canonicalize(killed)).slice(0, 16), killed, updatedAt };
 }
