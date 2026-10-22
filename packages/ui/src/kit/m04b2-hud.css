@@ -81,3 +81,6 @@
 .dv-help-topic { background: var(--dv-color-surface); border-radius: var(--dv-radius-md); padding: var(--dv-space-3); }
 .dv-help-topic summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; font-weight: 600; }
 .dv-help-topic ol { margin: 0; padding-inline-start: 1.25rem; display: flex; flex-direction: column; gap: var(--dv-space-1); }
+
+/* ---- phone and pause */
+.dv-phone, .dv-pause, .dv-garage { max-inline-size: 36rem; }

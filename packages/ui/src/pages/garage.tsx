@@ -104,7 +104,7 @@ export function cardAction(rowId: string): UiCommand | null {
 export function GaragePage(_props: PageProps) {
   const { shell, ctx } = useShell();
   const cards = garageCards(ctx.vm<JsonValue>('sys.garage'));
-  return h(ScreenHost, {
+  return h('main', { class: 'dv-page dv-garage', 'data-testid': 'garage' }, h(ScreenHost, {
     screen: garageScreen(cards, false),
     get: () => undefined,
     set: () => undefined,
@@ -115,7 +115,7 @@ export function GaragePage(_props: PageProps) {
         if (cmd) ctx.sendUi(cmd);
       }
     },
-  });
+  }));
 }
 
 export default GaragePage;

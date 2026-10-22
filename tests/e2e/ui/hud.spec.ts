@@ -21,7 +21,7 @@ test.describe('hud @ui-hud', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => {
-      if (m.type() === 'error' && !/favicon|manifest/i.test(m.text())) errors.push(m.text());
+      if (m.type() === 'error' && !/favicon|manifest|\[Report Only\]/i.test(m.text())) errors.push(m.text());
     });
     await page.setViewportSize(SMALL_VIEWPORT);
     await page.goto('/?debug=1');

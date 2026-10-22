@@ -18,7 +18,7 @@ export interface PursuitPanelOptions {
 }
 
 const STYLE = `
-.dv-pursuit{position:fixed;left:calc(env(safe-area-inset-left,0px) + .5rem);top:calc(env(safe-area-inset-top,0px) + .5rem);z-index:35;max-inline-size:min(22rem,70vw);
+.dv-pursuit{position:fixed;left:calc(env(safe-area-inset-left,0px) + .5rem);top:clamp(5rem,28vh,11rem);z-index:35;max-inline-size:min(22rem,70vw);
 padding:.4rem .5rem;border-radius:.5rem;background:rgba(14,18,26,.82);color:#f3f5f8;font:600 .8rem/1.25 system-ui,sans-serif;pointer-events:none}
 .dv-pursuit button,.dv-pursuit label{pointer-events:auto}
 .dv-pursuit__line{display:block;font-variant-numeric:tabular-nums;white-space:nowrap}

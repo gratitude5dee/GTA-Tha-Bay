@@ -66,7 +66,7 @@ export function PausePage(_props: PageProps) {
   useVmRedraw(ctx);
   const atSafehouse = ctx.vm<JsonValue>('hud.safehouse') === true;
   const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab });
-  return h(ScreenHost, {
+  return h('main', { class: 'dv-page dv-pause', 'data-testid': 'pause' }, h(ScreenHost, {
     screen,
     get: () => undefined,
     set: () => undefined,
@@ -88,7 +88,7 @@ export function PausePage(_props: PageProps) {
         }
       }
     },
-  });
+  }));
 }
 
 /** Redraws the page when a `hud.*`, `phone.*` or `mode.*` key changes (the shell itself only listens to `sys.*`). */
@@ -145,7 +145,7 @@ export function PhonePage(props: PageProps) {
   } as ListRow));
   const def = app ? appDef(app) : undefined;
   const screen = def ? def.screen({ ...env, appRows }) : homeScreen({ appRows });
-  return h(ScreenHost, {
+  return h('main', { class: 'dv-page dv-phone', 'data-testid': 'phone', 'data-app': app ?? 'home' }, h(ScreenHost, {
     screen,
     get: () => undefined,
     set: () => undefined,
@@ -191,7 +191,7 @@ export function PhonePage(props: PageProps) {
         }
       }
     },
-  });
+  }));
 }
 
 export default PausePage;
