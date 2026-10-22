@@ -732,6 +732,29 @@
       ],
       "additionalProperties": false
     },
+    "npc.voice.client": {
+      "type": "object",
+      "description": "One voiced line as the client heard it (M06a4): time from the request of the line to the first audible sample, and the tier that spoke. No text, no ids.",
+      "properties": {
+        "ttfaMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        },
+        "tier": {
+          "enum": [
+            "t1",
+            "t2",
+            "t3"
+          ]
+        }
+      },
+      "required": [
+        "ttfaMs",
+        "tier"
+      ],
+      "additionalProperties": false
+    },
     "npc.encounter.client": {
       "type": "object",
       "description": "One closed encounter as the client saw it (M06a3). No text, no ids.",

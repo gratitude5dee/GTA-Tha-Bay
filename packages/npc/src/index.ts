@@ -13,3 +13,12 @@ export type { InkLine } from './ink/ink-runner.ts';
 // The executor is pure and lives in @dv/shared so the Worker can use it; the NPC package re-exports it (DL-234).
 export { validateTurn, normalizeTurnJson, prefilterPlayerText, inkKnotFor } from '@dv/shared/npc';
 export type { ExecutorScene, ExecutorSoul, NpcTurnOutput, ValidatedTurn } from '@dv/shared/npc';
+// M06a4: voice and lip-sync.
+export { TtsPlayer } from './tts/tts-player.ts';
+export type { TtsAudioHost, TtsContext, TtsPlayerOptions } from './tts/tts-player.ts';
+export { LipSyncDriver, HOLD_MS, MAX_SPEAKERS } from './lipsync/driver.ts';
+export type { LipSyncOptions, LipSyncSource, LipSyncTarget } from './lipsync/driver.ts';
+export { atlasTarget, cellUv, ATLAS_GRID, JAW_OPEN, MAX_JAW_RAD } from './lipsync/atlas.ts';
+export { rms, envelopeReader } from './lipsync/rms.ts';
+export type { AnalyserLike } from './lipsync/rms.ts';
+export type { VoiceSink } from './client/runtime.ts';

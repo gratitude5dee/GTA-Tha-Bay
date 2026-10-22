@@ -129,7 +129,7 @@ export interface Talk {
 }
 
 export interface TalkOptions {
-  fixture?: FixtureName | ((req: { model: string; hero: boolean; turnIndex: number }) => string);
+  fixture?: FixtureName | ((req: FixtureRequest) => string);
   env?: Partial<Env>;
 }
 

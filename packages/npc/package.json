@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./client": "./src/client/runtime.ts",
     "./ink": "./src/ink/ink-runner.ts",
-    "./debug": "./src/debug/overlay.ts"
+    "./debug": "./src/debug/overlay.ts",
+    "./voice": "./src/voice.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/npc"

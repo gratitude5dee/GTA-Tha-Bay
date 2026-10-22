@@ -7,7 +7,7 @@ import auraMp3 from './fixtures/ai/aura.mp3?raw';
 export const AURA_BYTES = new TextEncoder().encode(auraMp3);
 
 const DIM = 1024;
-const TABLE = vectors.texts as Record<string, [number, number][]>;
+const TABLE = vectors.texts as unknown as Record<string, [number, number][]>;
 
 /** The stub embedding of a text: its listed sparse vector, else a unit vector on an axis taken from its characters. */
 export function stubVector(text: string): number[] {

@@ -18,6 +18,8 @@ import type { EnginePort, PlatformPort, SavesPort, ShellProps } from './shell/ty
 export { t, lk, setLang, plural, formatNumber, formatDate } from './i18n/index.ts';
 export type { LocKey } from './i18n/index.ts';
 export type { CreatorStagePort, MannequinParams } from './creator/stage.ts';
+export { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, detuneCents } from './creator/voice-preview.ts';
+export type { VoiceClip, VoicePreview, VoicePreviewDeps } from './creator/voice-preview.ts';
 export { loadPrefs, memoryPrefs, defaultPrefs } from './shell/prefs.ts';
 export { LEGAL_DOCS, frameFor, hrefFor, PAGES } from './shell/registry.ts';
 export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo } from './shell/types.ts';
