@@ -188,7 +188,7 @@ export function detect(c: Ctx, buf: Int32Array): void {
               touch = (w[0] as number) <= (pw[2] as number) && (w[2] as number) >= (pw[0] as number) && (w[1] as number) <= (pw[3] as number) && (w[3] as number) >= (pw[1] as number);
             } else if (tb === undefined) touch = strikeLands(c, buf, h, ax, ay, af, v, INV_THROW);
           } else touch = strikeLands(c, buf, h, ax, ay, af, v, INV_STRIKE);
-          if (touch) pushCand(c, a, 0, hi, hi, h, m, ex, (buf[oa + FF.ViaSimple] as number) !== 0 && (m.cls === Cls.Special || m.def.kind === 'auto'));
+          if (touch) pushCand(c, a, 0, hi, hi, h, m, ex, (buf[oa + FF.ViaSimple] as number) !== 0 && (m.cls === Cls.Special || (buf[oa + FF.State] as number) === St.Auto));
         }
       }
     }

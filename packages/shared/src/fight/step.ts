@@ -140,6 +140,7 @@ function pickSimple(c: Ctx, buf: Int32Array, tick: number, i: number, clsMask: n
   }
   if (ground && (clsMask & (1 << Cls.Normal)) !== 0 && kit.autoIdx.length > 0 && pressedWithin(c, buf, tick, i, FB.AS, pp.bufN)
     && (ringInput(buf, rb, tick, 0) & FB.SP) === 0) {
+    c.iArg[i] = 1;   // starts the auto-combo state
     return kit.autoIdx[0] as number;
   }
   c.iSimple[i] = 0;
@@ -223,20 +224,20 @@ function toIdle(buf: Int32Array, o: number): void {
   buf[o + FF.State] = St.Idle; buf[o + FF.StateFrame] = 0; buf[o + FF.Move] = -1; buf[o + FF.MoveFrame] = 0;
 }
 
-function startMove(c: Ctx, buf: Int32Array, tick: number, i: number, mi: number, ex: boolean, simple: boolean): void {
+function startMove(c: Ctx, buf: Int32Array, tick: number, i: number, mi: number, ex: boolean, simple: boolean, auto = false): void {
   const o = FIGHTER_BASE[i] as number;
   const m = kitOf(c, i).moves[mi] as CMove;
   const cost = m.cost + (ex ? c.tun.STOCK : 0);
   buf[o + FF.Hype] = Math.max(0, g(buf, o + FF.Hype) - cost);
   const k = m.def.kind;
-  buf[o + FF.State] = k === 'air' ? St.AirAttack : k === 'special' ? St.Special : k === 'super' ? St.Super : k === 'throw' ? St.Throw
+  buf[o + FF.State] = auto ? St.Auto : k === 'air' ? St.AirAttack : k === 'special' ? St.Special : k === 'super' ? St.Super : k === 'throw' ? St.Throw
     : k === 'taunt' ? St.Taunt : k === 'shutdown' ? St.Shutdown : k === 'auto' ? St.Auto : St.Attack;
   buf[o + FF.StateFrame] = 0; buf[o + FF.Move] = mi; buf[o + FF.MoveFrame] = 0;
   buf[o + FF.GroupsDone] = 0; buf[o + FF.MoveResult] = 0; buf[o + FF.Ex] = ex ? 1 : 0; buf[o + FF.ViaSimple] = simple ? 1 : 0;
   buf[o + FF.ArmorLeft] = m.def.armor !== undefined ? m.def.armor.hits : 0;
   buf[o + FF.BufAge] = tick; buf[o + FF.BufMove] = 0;
   buf[o + FF.ChargeBack] = 0; buf[o + FF.ChargeDown] = 0; buf[o + FF.DashFrames] = 0;
-  if (k === 'auto') buf[o + FF.AiMacroStep] = 0;
+  if (auto) buf[o + FF.AiMacroStep] = 0;
   if (k === 'super') {
     c.freeze = Math.max(c.freeze, c.tun.SUPER_FREEZE);
     emit(c, tick, 'super', i as 0 | 1, g(buf, o + FF.X), g(buf, o + FF.Y), mi, ex ? 1 : 0);
@@ -276,9 +277,29 @@ function addWhiff(c: Ctx, buf: Int32Array, o: number, m: CMove): void {
   buf[o + FF.Hype] = Math.min(c.tun.HYPE_MAX, g(buf, o + FF.Hype) + h);
 }
 
+/** The auto-combo steps into its next move as soon as the current one has connected and its chain window is open. */
+function autoStep(c: Ctx, buf: Int32Array, i: number, o: number, m: CMove): boolean {
+  const kit = kitOf(c, i);
+  const next = g(buf, o + FF.AiMacroStep) + 1;
+  const res = g(buf, o + FF.MoveResult);
+  if (next >= kit.autoIdx.length || res === 0) return false;
+  const mf = g(buf, o + FF.MoveFrame);
+  const cs = m.def.cancels;
+  for (let k = 0; k < cs.length; k++) {
+    const e = cs[k] as (typeof cs)[number];
+    if (e.into === 'chain' && mf >= e.from && mf <= e.to && e.on.includes(res === 1 ? 'hit' : 'block')) {
+      buf[o + FF.AiMacroStep] = next; buf[o + FF.Move] = kit.autoIdx[next] as number; buf[o + FF.MoveFrame] = 0;
+      buf[o + FF.GroupsDone] = 0; buf[o + FF.MoveResult] = 0; buf[o + FF.StateFrame] = 0;
+      return true;
+    }
+  }
+  return false;
+}
+
 function runMove(c: Ctx, buf: Int32Array, tick: number, i: number, o: number, s: number): void {
-  const m = kitOf(c, i).moves[g(buf, o + FF.Move)];
+  let m = kitOf(c, i).moves[g(buf, o + FF.Move)];
   if (m === undefined) { toIdle(buf, o); return; }
+  if (s === St.Auto && autoStep(c, buf, i, o, m)) m = kitOf(c, i).moves[g(buf, o + FF.Move)] as CMove;
   const mf = g(buf, o + FF.MoveFrame) + 1;
   buf[o + FF.MoveFrame] = mf;
   const f = g(buf, o + FF.Facing);
@@ -307,7 +328,7 @@ function runMove(c: Ctx, buf: Int32Array, tick: number, i: number, o: number, s:
 function applyIntent(c: Ctx, buf: Int32Array, tick: number, i: number, o: number): void {
   const t = c.tun;
   switch (c.iKind[i]) {
-    case Int.Move: startMove(c, buf, tick, i, c.iMove[i] as number, c.iEx[i] !== 0, c.iSimple[i] !== 0); break;
+    case Int.Move: startMove(c, buf, tick, i, c.iMove[i] as number, c.iEx[i] !== 0, c.iSimple[i] !== 0, c.iArg[i] === 1); break;
     case Int.Jump:
       buf[o + FF.State] = St.PreJump; buf[o + FF.StateFrame] = 0; buf[o + FF.AirKind] = c.iArg[i] as number;
       buf[o + FF.BufMove] = 0; buf[o + FF.DashFrames] = 0;
