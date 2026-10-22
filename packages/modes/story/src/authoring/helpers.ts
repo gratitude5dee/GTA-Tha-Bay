@@ -96,14 +96,18 @@ export interface StageOpts {
   next?: string;
 }
 export type DraftStage = Omit<StageDef, 'objectives'> & { objectives: DraftObjective[] };
-export const stage = (id: string, objectives: DraftObjective[], o: StageOpts = {}): DraftStage => ({ id, join: o.join ?? 'all', objectives, ...stripUndefined({ ...o, join: undefined }) });
+export const stage = (id: string, objectives: DraftObjective[], o: StageOpts = {}): DraftStage => ({
+  id,
+  join: o.join ?? 'all',
+  objectives,
+  ...(o.onEnter !== undefined ? { onEnter: o.onEnter } : {}),
+  ...(o.onComplete !== undefined ? { onComplete: o.onComplete } : {}),
+  ...(o.timeLimitSec !== undefined ? { timeLimitSec: o.timeLimitSec } : {}),
+  ...(o.checkpoint !== undefined ? { checkpoint: o.checkpoint } : {}),
+  ...(o.conduct !== undefined ? { conduct: o.conduct } : {}),
+  ...(o.next !== undefined ? { next: o.next } : {}),
+});
 export const failWhen = (when: Pred, reason: string, retry: FailRule['retry'] = 'checkpoint'): FailRule => ({ when, reason, retry });
-
-function stripUndefined<T extends object>(o: T): Partial<T> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(o)) if (v !== undefined) out[k] = v;
-  return out as Partial<T>;
-}
 
 // ---- predicates ---------------------------------------------------------------------------------------------------------------
 

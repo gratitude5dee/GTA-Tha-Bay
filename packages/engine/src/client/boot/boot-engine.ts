@@ -77,6 +77,11 @@ export interface BootEngineOptions {
   play?: boolean;
   /** Called when the Pause action toggles the pause (single player pauses the sim). */
   onPausedChange?: (paused: boolean) => void;
+  /**
+   * QA `?mission=<id>` (M05a1): the mission bundle the page loaded (its IR, DirectorScripts and line text). The story mode starts
+   * it when the sim boots. Ignored unless `qa` and `flags.mission` are set.
+   */
+  mission?: Record<string, unknown>;
   /** Show the touch layer on any device (`?touch=1`). */
   forceTouch?: boolean;
   /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
@@ -245,6 +250,25 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     const gb = await import('../graybox/load.ts');
     packs = await gb.fetchGrayboxPacks(opts.graybox);
     boot = { strings: [], prefabs: [], config: gb.grayboxBootConfig(packs) };
+  }
+
+  // QA `?mission=<id>`: the story mode starts that mission; the flags that force its paths ride along (M05a1).
+  if (opts.qa && opts.flags.mission && opts.mission) {
+    const f = opts.flags;
+    boot = {
+      ...boot,
+      config: {
+        ...boot.config,
+        mission: {
+          ...opts.mission,
+          ...(f.stage !== null ? { stage: f.stage } : {}),
+          ...(f.seed !== null ? { seed: f.seed } : {}),
+          ...(f.hooks !== null ? { hooks: f.hooks } : {}),
+          ...(f.talk !== null ? { talk: f.talk } : {}),
+          ...(f.beats === 'instant' ? { beats: 'instant' } : {}),
+        },
+      },
+    };
   }
 
   // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).

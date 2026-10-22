@@ -73,8 +73,8 @@ export function lintMission(ir: MissionIR, env: CompileEnv): CompileError[] {
       walkOps(hit, s.onEnter, `${p}/onEnter`);
       s.objectives.forEach((o, oi) => {
         const refs: string[] = [];
-        if ('target' in o) refs.push(o.target);
-        if ('cast' in o) refs.push(o.cast);
+        if (o.k === 'follow' || o.k === 'chase' || o.k === 'protect') refs.push(o.target);
+        if (o.k === 'collect' || o.k === 'deliver') refs.push(o.cast);
         if (o.k === 'defeat') refs.push(...o.targets);
         if (o.k === 'talk') refs.push(o.talk.npc);
         for (const r of refs) if (real.has(r)) add('E_DEPICTION', `${p}/objectives/${oi}`, `a real-derived character (${r}) may not appear in the unlawful stage ${s.id}`);

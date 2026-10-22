@@ -6,7 +6,9 @@
  */
 import { createPursuitModule } from '@dv/engine/sim';
 import { runSimWorker, type WorkerScope } from '@dv/engine/workers/sim-worker-core';
+import { wrapStory } from '@dv/mode-story';
 import { worldStreamingModule } from '@dv/world/sim/module';
 
 // The pursuit director (M03c) is inert until the world services and the vehicle module exist, and unhashed until it is first touched.
-runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule()]);
+// The story mode (M05a1) wraps the engine's free roam with the mission runtime; the engine never imports the mode package.
+runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule()], { wrapStory });

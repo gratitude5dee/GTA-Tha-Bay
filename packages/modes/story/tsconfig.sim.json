@@ -4,5 +4,5 @@
     "lib": ["ES2023"],
     "types": []
   },
-  "include": ["src/vm/**/*.ts", "src/mode.ts", "src/compiler/resolve.ts", "../../shared/src/contracts/dom-media.d.ts"]
+  "include": ["src/vm/**/*.ts", "src/compiler/resolve.ts", "../../shared/src/contracts/dom-media.d.ts"]
 }

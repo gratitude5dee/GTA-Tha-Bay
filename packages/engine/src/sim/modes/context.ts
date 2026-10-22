@@ -1,6 +1,6 @@
 import {
   SIM_DT,
-  type AssetRef, type CameraDirective, type EcsApi, type EconomyApi, type GameModeId, type InputContextId, type InputFrame,
+  type AssetRef, type CameraDirective, type EcsApi, type EntityHandle, type EconomyApi, type GameModeId, type InputContextId, type InputFrame,
   type InteractionApi, type ModeContext, type ModeEnterArgs, type ModeOrigin, type PhysicsQueries, type PrefabService, type PursuitApi,
   type Rng, type RngStreams, type SaveReason, type SimEventBus, type SimScheduler, type TelemetryName, type TimelineRecorder, type UiBridge,
   type UnlockApi, type WorldApi, type WorldClockApi, type ZoneService,
@@ -33,6 +33,12 @@ export interface ContextPorts {
   zones?: ZoneService | null;
   scheduler?: SimScheduler | null;
   timeline?: TimelineRecorder | null;
+  /** Sets the input of a script-driven vehicle (NPC cars of a mission). Reaches the mode as `ctx.vehicleAi`, which is not part of C06 (BD-M05a1-04). */
+  vehicleAi?: VehicleAiPort | null;
+}
+
+export interface VehicleAiPort {
+  drive(h: EntityHandle, input: { throttle: number; brake: number; steer: number; handbrake: boolean }): boolean;
 }
 
 function missing<T extends object>(service: string, milestone: string, methods: readonly string[]): T {
@@ -61,7 +67,7 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
   const timeline = p.timeline ?? timelineStub();
   const combat = combatStub();
   const npc = npcStub();
-  return {
+  const ctx: ModeContext = {
     get tick() {
       return p.tick();
     },
@@ -92,4 +98,6 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
     npc,
     startChild: (child, args) => p.startChild(id, child, args),
   };
+  if (p.vehicleAi) (ctx as ModeContext & { vehicleAi: VehicleAiPort }).vehicleAi = p.vehicleAi;
+  return ctx;
 }

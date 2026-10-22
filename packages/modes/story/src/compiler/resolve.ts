@@ -6,6 +6,7 @@
  */
 import type { LatLng, LatLngTuple, MissionIR, Placement, WorldResolver, ZoneShape } from '@dv/shared';
 import type { CompileError } from './types.ts';
+import { byStr } from '../vm/util.ts';
 
 export interface ResolvedPlacement {
   pos: [number, number, number];
@@ -48,7 +49,7 @@ export function resolveMission(ir: MissionIR, w: WorldResolver): ResolvedMission
   };
 
   const zones: Record<string, ResolvedZone> = {};
-  for (const name of Object.keys(ir.zones).sort()) {
+  for (const name of Object.keys(ir.zones).sort(byStr)) {
     const z = ir.zones[name];
     const ptr = `/zones/${name}`;
     if (!z) continue;
@@ -86,7 +87,7 @@ export function resolveMission(ir: MissionIR, w: WorldResolver): ResolvedMission
   }
 
   const spawns: Record<string, ResolvedPlacement> = {};
-  for (const name of Object.keys(ir.cast).sort()) {
+  for (const name of Object.keys(ir.cast).sort(byStr)) {
     const c = ir.cast[name];
     if (c && 'spawn' in c && c.spawn) {
       const r = place(c.spawn, `/cast/${name}/spawn`);

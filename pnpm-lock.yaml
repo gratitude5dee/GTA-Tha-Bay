@@ -220,6 +220,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../packages/engine
+      '@dv/mode-story':
+        specifier: workspace:*
+        version: link:../../packages/modes/story
       '@dv/shared':
         specifier: workspace:*
         version: link:../../packages/shared

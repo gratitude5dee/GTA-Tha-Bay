@@ -40,6 +40,18 @@ export interface QaFlags {
   readonly touch: boolean;
   /** ?unlockAll=1 unlocks every registered unlock in memory, never persisted (M04a2, C06 rule 6). */
   readonly unlockAll: boolean;
+  /** ?mission=<id> starts that mission in the story mode at boot (M05a1; `m.dev.sample` is the only one with a QA bundle). */
+  readonly mission: string | null;
+  /** ?stage=<n> starts the mission at that stage index. */
+  readonly stage: number | null;
+  /** ?seed=<n> replaces the story seed in the mission seed. */
+  readonly seed: number | null;
+  /** ?hooks=stub|bot forces the mode-hook path (`bot` plays as `real` until M05a2). */
+  readonly hooks: 'stub' | 'bot' | null;
+  /** ?talk=scripted applies `TalkDef.default` without a conversation. */
+  readonly talk: 'scripted' | null;
+  /** ?beats=instant completes a beat in one tick; `fallback` and `video` are the M05b2 paths and play as the normal beat here. */
+  readonly beats: 'instant' | 'fallback' | 'video' | null;
 }
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
@@ -60,6 +72,12 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   world: null,
   touch: false,
   unlockAll: false,
+  mission: null,
+  stage: null,
+  seed: null,
+  hooks: null,
+  talk: null,
+  beats: null,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -83,6 +101,11 @@ export function parseLimits(value: string | null): Readonly<Record<string, numbe
     if (/^[A-Za-z0-9]+$/.test(name) && Number.isFinite(n) && n >= 0) out[name] = n;
   }
   return out;
+}
+
+/** A non-negative integer from a URL value, else null. */
+function nonNegInt(v: string | null): number | null {
+  return v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null;
 }
 
 export function isQaBuild(): boolean {
@@ -111,5 +134,11 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
     touch: q.get('touch') === '1',
     unlockAll: q.get('unlockAll') === '1',
+    mission: q.get('mission') && /^m\.[a-z0-9][a-z0-9.-]{1,80}$/.test(q.get('mission') as string) ? (q.get('mission') as string) : null,
+    stage: nonNegInt(q.get('stage')),
+    seed: nonNegInt(q.get('seed')),
+    hooks: q.get('hooks') === 'stub' ? 'stub' : q.get('hooks') === 'bot' ? 'bot' : null,
+    talk: q.get('talk') === 'scripted' ? 'scripted' : null,
+    beats: q.get('beats') === 'instant' ? 'instant' : q.get('beats') === 'fallback' ? 'fallback' : q.get('beats') === 'video' ? 'video' : null,
   };
 }

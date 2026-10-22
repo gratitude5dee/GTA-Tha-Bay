@@ -359,6 +359,22 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           zones: zoneSvc,
           scheduler: sched,
           timeline: timelineSvc,
+          // Script-driven vehicles (M05a1, `ctx.vehicleAi`): the input of an NPC car, which marks the vehicle `external`.
+          vehicleAi: {
+            drive: (veh, input) => {
+              const vc = services.vehicleCtx;
+              const id = s.ecs.resolve(veh);
+              const rt = vc && id !== null ? vc.store.rt.get(id) : undefined;
+              if (!rt) return false;
+              const q = (v: number, lo: number, hi: number): number => Math.round(Math.max(lo, Math.min(hi, v)) * 127);
+              rt.external = true;
+              rt.input.throttle = q(input.throttle, 0, 1);
+              rt.input.brake = q(input.brake, 0, 1);
+              rt.input.steer = q(input.steer, -1, 1);
+              rt.input.handbrake = input.handbrake;
+              return true;
+            },
+          },
         },
         save,
         unlocks: unl,

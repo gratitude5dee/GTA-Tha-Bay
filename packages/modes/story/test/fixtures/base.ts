@@ -1,8 +1,6 @@
 import type { MissionIR } from '@dv/shared';
-import {
-  at, circle, collect, defineMission, emit, failWhen, goto, ko, say, stage, waitFor,
-} from '../../src/authoring/index.ts';
-import type { CompileEnv } from '../../src/compiler/index.ts';
+import { at, circle, collect, defineMission, failWhen, goto, ko, say, stage, waitFor } from '../../src/authoring/index.ts';
+import type { CompileEnv, CompileErrorCode } from '../../src/compiler/index.ts';
 
 /** City Hall is the ENU origin; these tuples sit a few metres from it. */
 export const NEAR = { a: [37.7794, -122.4192], b: [37.7795, -122.419], c: [37.7792, -122.4194] } as const;
@@ -56,4 +54,11 @@ export function baseMission(): MissionIR {
   });
 }
 
-export { emit, circle };
+/** One bad mission and the single error it must produce. */
+export interface Fixture {
+  code: CompileErrorCode;
+  /** A pointer that must be among the errors. */
+  pointer: string;
+  build(): MissionIR;
+  env?(): CompileEnv;
+}

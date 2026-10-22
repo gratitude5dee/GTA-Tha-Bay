@@ -8,6 +8,10 @@ export const SIM_FILES = [
   'packages/engine/src/sim/**/*.{ts,tsx}',
   'packages/world/src/sim/**/*.{ts,tsx}',
   'packages/modes/*/src/sim/**/*.{ts,tsx}',
+  // The story mode keeps its sim code in vm/, mode.ts and compiler/resolve.ts (M05a1, BD-M05a1-01): the spec names those paths.
+  'packages/modes/story/src/vm/**/*.{ts,tsx}',
+  'packages/modes/story/src/mode.ts',
+  'packages/modes/story/src/compiler/resolve.ts',
 ];
 export const SIM_IGNORES = ['packages/engine/src/sim/save/**'];
 
