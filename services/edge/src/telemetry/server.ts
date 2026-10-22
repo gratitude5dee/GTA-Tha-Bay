@@ -13,7 +13,18 @@ interface NameSpec {
 }
 const SPECS = namesSchema.$defs as unknown as Record<string, NameSpec>;
 
+let sink: ((name: string, props: Record<string, Scalar>) => void) | null = null;
+
+/** Test seam: a function that sees every server event, instead of Analytics Engine (which a test cannot read). Null restores the default. */
+export function setServerEventSinkForTests(fn: ((name: string, props: Record<string, Scalar>) => void) | null): void {
+  sink = fn;
+}
+
 export function writeServerEvent(env: Pick<Env, 'AE' | 'ENVIRONMENT'>, name: string, props: Record<string, Scalar>, ts: number): void {
+  if (sink !== null) {
+    sink(name, props);
+    return;
+  }
   const spec = SPECS[name];
   if (!spec || !env.AE) return;
   const blobs: string[] = [env.ENVIRONMENT];

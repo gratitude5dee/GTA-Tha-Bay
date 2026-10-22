@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { NPC_GUARDRAILS, type PlayerQuota, type SpendEvent, type Tier } from '@dv/shared';
 import { now, utcDay } from '../clock.ts';
 import type { Env } from '../env.ts';
+import { assertMicros } from './BudgetGovernorDO.ts';
 import { sendSpend } from '../ops/queue.ts';
 import { writeServerEvent } from '../telemetry/server.ts';
 
@@ -85,7 +86,7 @@ export class PlayerQuotaDO extends DurableObject<Env> implements PlayerQuota {
   }
 
   reserve(r: ReserveRequest): Promise<ReserveResult> {
-    if (!Number.isInteger(r.estMicros) || r.estMicros < 0) throw new Error('estMicros must be a non-negative integer (USD micros)');
+    assertMicros(r.estMicros, 'estMicros');
     const tier: Tier = r.tier ?? 'local';
     const scope = r.scope ?? 'player';
     const limits = limitsFor(tier, scope);
@@ -119,7 +120,7 @@ export class PlayerQuotaDO extends DurableObject<Env> implements PlayerQuota {
   }
 
   async settle(reservationId: string, actualMicros: number, meta: SettleMeta = {}): Promise<void> {
-    if (!Number.isInteger(actualMicros) || actualMicros < 0) throw new Error('actualMicros must be a non-negative integer (USD micros)');
+    assertMicros(actualMicros, 'actualMicros');
     const row = this.sql()
       .exec<{ kind: QuotaKind; est: number; settled: number; day: string }>('SELECT kind, est, settled, day FROM reservations WHERE id = ?', reservationId)
       .toArray()[0];
