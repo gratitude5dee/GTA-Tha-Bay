@@ -104,6 +104,9 @@ export function packBake(bakeDir: string, cfg: SourcesConfig): PackedBake {
   }
   if (existsSync(path.join(packsDir, 'far-bay-cards.png'))) files.push({ kind: 'texture', id: 'far-bay-cards', abs: path.join(packsDir, 'far-bay-cards.png'), ext: 'png' });
   if (existsSync(path.join(packsDir, 'sf-graph.v1.pack'))) files.push({ kind: 'map_data', id: 'sf-graph.v1', abs: path.join(packsDir, 'sf-graph.v1.pack'), ext: 'pack' });
+  for (const id of ['sf-map.v1', 'sf-map-bldg.v1', 'sf-geocode.v1']) {
+    if (existsSync(path.join(packsDir, `${id}.pack`))) files.push({ kind: 'map_data', id, abs: path.join(packsDir, `${id}.pack`), ext: 'pack' });
+  }
   files.push({ kind: 'data', id: 'world-index', abs: path.join(bakeDir, 'world-index.json'), ext: 'json' });
   if (existsSync(path.join(bakeDir, 'district-grid.v1.pack'))) files.push({ kind: 'data', id: 'district-grid.v1', abs: path.join(bakeDir, 'district-grid.v1.pack'), ext: 'pack' });
   if (existsSync(path.join(bakeDir, 'transit-routes.json'))) files.push({ kind: 'data', id: 'transit-routes.v1', abs: path.join(bakeDir, 'transit-routes.json'), ext: 'json' });

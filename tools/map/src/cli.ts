@@ -11,6 +11,8 @@
  *   tsx tools/map/src/cli.ts landmarks --preview <id> [--fidelity hi|mid|lo] [--az <deg>] [--el <deg>] [--dist <m>] [--eye x,y,z --look x,y,z] [--out <png>]
  *   tsx tools/map/src/cli.ts pois [--bake <bakeId> | --area <id>]              (M02a2)
  *   tsx tools/map/src/cli.ts resolve --lat=<y> --lng=<x> [--bake <id> | --area <id>]   (M02a2)
+ *   tsx tools/map/src/cli.ts geocode "<text>" [--area <id> | --bake <id>]      (M02c2: the offline geocoder of sf-geocode.v1)
+ *   tsx tools/map/src/cli.ts geocode --sample <n> [--area <id>]                (M02c2: n seeded EAS rows geocoded against the source)
  *
  * fixture, without --check, writes tests/fixtures/world/civic-graybox/{p0-64-64,l0-64-64}.pack and hashes.json.
  * With --check it builds both packs in memory, compares their SHA-256 with the committed hashes.json, prints
@@ -34,6 +36,7 @@ import { validatePoiSeeds, validatePoisInBake, countsByKind } from './verify/poi
 import { loadContentWorld } from './content.ts';
 import { resolveLatLng } from './resolve.ts';
 import { stableJson } from './util.ts';
+import { runGeocodeCommand } from './geocode-cli.ts';
 
 export const GRAYBOX_DIR = path.join(toolsRoot, 'tests', 'fixtures', 'world', 'civic-graybox');
 
@@ -298,6 +301,7 @@ if (isMain(import.meta.url)) {
   if (cmd === 'landmarks') process.exit(await runLandmarksCommand(rest));
   if (cmd === 'pois') process.exit(await runPoisCommand(rest));
   if (cmd === 'resolve') process.exit(await runResolveCommand(rest));
-  console.error('usage: map <fixture|build|fetch|pack|verify|landmarks|pois|resolve> ...');
+  if (cmd === 'geocode') process.exit(await runGeocodeCommand(rest));
+  console.error('usage: map <fixture|build|fetch|pack|verify|landmarks|pois|resolve|geocode> ...');
   process.exit(2);
 }

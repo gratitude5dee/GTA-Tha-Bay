@@ -49,7 +49,7 @@ export interface FetchOptions {
 }
 
 /** The street, SFMTA stop and SFMTA pattern sources of the excerpt are synthetic like its OSM part (no network, M02a2). */
-export const SYNTHETIC_ROAD_SOURCES = ['datasf-streets', 'sfmta-stops', 'sfmta-patterns'] as const;
+export const SYNTHETIC_ROAD_SOURCES = ['datasf-streets', 'datasf-addresses', 'sfmta-stops', 'sfmta-patterns'] as const;
 
 export const nowIso = (): string => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const skip = (log: (l: string) => void, id: string, reason: string): void => log(`SKIP map:fetch ${id}: ${reason}`);

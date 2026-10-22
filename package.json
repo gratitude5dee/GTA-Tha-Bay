@@ -69,6 +69,7 @@
     "map:landmarks": "tsx tools/map/src/cli.ts landmarks",
     "map:pois": "tsx tools/map/src/cli.ts pois",
     "map:resolve": "tsx tools/map/src/cli.ts resolve",
+    "map:geocode": "tsx tools/map/src/cli.ts geocode",
     "missions:build": "tsx tools/ci/missions/build.ts",
     "map:races": "tsx tools/map/src/race/cli.ts",
     "check:balance": "tsx tools/ci/econ-sim/index.ts",
