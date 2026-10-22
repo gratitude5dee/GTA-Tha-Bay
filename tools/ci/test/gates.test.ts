@@ -3,7 +3,7 @@
  * run time from config/ip-denylist.json into a temp directory: the repository never contains them.
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -267,6 +267,36 @@ describe('provenance gate (AC-2)', () => {
     putRecord(root, record(bytes, { origin: 'open_data', license: 'ODbL-1.0', attribution: 'Map data contributors', source: { url: null, dataset_id: 'd', retrieved: '2026-10-18' } }));
     expect(rules(provenance(root).findings)).toEqual(['attribution-not-in-credits']);
     expect(runProvenanceCheck({ root, dist: path.join(root, 'dist'), emitCredits: true }).findings).toEqual([]);
+  });
+
+  // M02c2 (DL-662): the world half of credits.json, and --emit-only
+  it('emits every attribution.world.json entry, the OSM offerUrl and the ODbL notice, and runs no gate with --emit-only', () => {
+    const root = tempRoot();
+    const entries = [
+      { id: 'osm', text: '© OpenStreetMap contributors', licence: 'ODbL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/odbl/1-0/', source: 'OpenStreetMap', surfaces: ['boot-splash', 'full-map', 'pause-credits'], offerUrl: 'https://media.example/media/odbl/abc/index.json' },
+      { id: 'datasf-streets', text: 'City and County of San Francisco', licence: 'PDDL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/pddl/1-0/', source: 'DataSF', surfaces: ['full-map', 'pause-credits'] },
+    ];
+    put(root, 'config/attribution.world.json', JSON.stringify({ schema: 'attribution-world/1', entries }));
+    // a record that would fail the gate if it ran: an asset in dist with no provenance record
+    mkdirSync(path.join(root, 'dist'), { recursive: true });
+    put(root, 'dist/unrecorded.png', randomBytes(16));
+    const res = runProvenanceCheck({ root, dist: path.join(root, 'dist'), emitCredits: true, emitOnly: true });
+    expect(res.findings).toEqual([]);
+    const doc = JSON.parse(readFileSync(path.join(root, 'dist', 'credits.json'), 'utf8')) as { schema: string; attributions: unknown[]; world: { id: string; text: string; offerUrl?: string }[]; odblNotice: string };
+    expect(doc.schema).toBe('credits/1');
+    expect(doc.world.map((e) => e.id)).toEqual(['datasf-streets', 'osm']);
+    expect(doc.world.find((e) => e.id === 'osm')?.offerUrl).toBe('https://media.example/media/odbl/abc/index.json');
+    expect(doc.odblNotice).toContain('ODbL');
+    expect(doc.odblNotice).toContain('https://media.example/media/odbl/abc/index.json');
+    // the gate still catches the unrecorded file when it runs
+    expect(rules(provenance(root).findings)).toContain('no-record');
+  });
+
+  it('ends the root build script with the emit step, after the dist verifier', () => {
+    const scripts = (JSON.parse(readFileSync(path.join(toolsRoot, 'package.json'), 'utf8')) as { scripts: Record<string, string> }).scripts;
+    const steps = (scripts['build'] as string).split('&&').map((x) => x.trim());
+    expect(steps.at(-1)).toBe('tsx tools/ci/provenance-check.ts --emit-credits --emit-only');
+    expect(steps.some((x) => x.includes('check-dist.ts'))).toBe(true);
   });
 });
 

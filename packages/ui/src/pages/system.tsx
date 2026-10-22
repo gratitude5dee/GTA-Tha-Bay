@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { BRAND } from '../../../../config/brand.ts';
 import { PRIVACY_DOC, TERMS_DOC } from '../../../../config/terms.ts';
+import worldAttribution from '../../../../config/attribution.world.json';
+import { worldCreditsOf, type WorldAttributionFile, type WorldCredits } from '@dv/shared';
 import { lk, t } from '../i18n/index.ts';
 import { ERROR_TOPIC } from './help.tsx';
 import { Button, Progress } from '../kit/widgets.tsx';
@@ -80,8 +82,30 @@ export function ComingSoonPage(props: PageProps) {
   );
 }
 
+/**
+ * The world credits of the build (M02c2, DL-662): `/credits.json` from the build, falling back to a bundled copy of
+ * `config/attribution.world.json` when the fetch fails (`pnpm dev`) and to the ODbL notice alone.
+ */
+export function useWorldCredits(): WorldCredits {
+  const [credits, setCredits] = useState<WorldCredits>(() => worldCreditsOf(worldAttribution as unknown as WorldAttributionFile));
+  useEffect(() => {
+    let live = true;
+    void fetch('/credits.json', { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`credits.json ${r.status}`))))
+      .then((doc: Partial<WorldCredits>) => {
+        if (live && Array.isArray(doc.world) && typeof doc.odblNotice === 'string') setCredits({ world: doc.world, odblNotice: doc.odblNotice });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
+  return credits;
+}
+
 export function CreditsPage(_props: PageProps) {
   const { shell } = useShell();
+  const world = useWorldCredits();
   return (
     <main class="dv-page dv-credits" data-testid="credits">
       <h1>{t('credits.title')}</h1>
@@ -89,6 +113,16 @@ export function CreditsPage(_props: PageProps) {
       <section>
         <h2>{t('credits.data')}</h2>
         <p>{t('credits.data.body')}</p>
+        <ul class="dv-credits-world" data-testid="credits-world">
+          {world.world.map((e) => (
+            <li key={e.id} data-testid={`credit-${e.id}`}>
+              {e.text}
+              {' '}
+              <small>(<a href={e.licenceUrl} rel="noreferrer noopener" target="_blank">{e.licence}</a>)</small>
+            </li>
+          ))}
+        </ul>
+        <p data-testid="odbl-notice">{world.odblNotice}</p>
       </section>
       <section>
         <h2>{t('credits.ai')}</h2>

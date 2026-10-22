@@ -93,7 +93,9 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         return;
       }
       case 'phone.waypoint':
+        // the waypoint is the GPS target too (M02c2, 02-world-maps.md 3.3): the route is planned at the next Publish
         d.world().map.setWaypoint(cmd.x, cmd.z);
+        d.world().map.setRoute({ x: cmd.x, z: cmd.z });
         return;
       case 'cutscene.skip':
         d.events.emit({ t: 'cutscene.skip', tick: d.tick() });
@@ -114,6 +116,24 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
 
 /** Phone commands ride `mode.cmd` with the reserved owner `phone` (C06 leaves `mode.cmd` to the owner named in `mode`). */
 function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void): void {
+  // The Map app's commands (M02c2): clear the waypoint and its route, and fast travel to a point (sandbox only; it is the `sandbox` teleport of the world API).
+  if (name === 'map.waypoint.clear') {
+    d.world().map.clearWaypoint();
+    d.world().map.setRoute(null);
+    return;
+  }
+  if (name === 'map.travel') {
+    const x = args?.['x'], z = args?.['z'];
+    if (typeof x !== 'number' || typeof z !== 'number') return;
+    if (!d.sandboxContext()) {
+      toast('map.travel', 'warning', 'map.travel.sandboxOnly');
+      return;
+    }
+    void d.world().teleport.request('sandbox', { x, z }).then((r) => {
+      if (!r.ok) toast('map.travel', 'warning', r.messageKey);
+    });
+    return;
+  }
   const ride = d.ride?.() ?? null;
   if (name === 'ride.list') {
     d.ui.patch('phone.ride', { ready: ride !== null, destinations: (ride?.destinations() ?? []).map((x) => ({ id: x.id, nameKey: x.nameKey, x: Math.round(x.x), z: Math.round(x.z) })) });

@@ -3,7 +3,11 @@
  * `credits.json`), joins each SHA-256 to a record under assets/provenance/, validates records against
  * provenance-1.0.schema.json and applies the semantic rules of the pure core.
  *
- *   tsx tools/ci/provenance-check.ts [--root <dir>] [--dist <dir>] [--emit-credits] [--release]
+ *   tsx tools/ci/provenance-check.ts [--root <dir>] [--dist <dir>] [--emit-credits [--emit-only]] [--release]
+ *
+ * `--emit-credits` writes dist/credits.json: the record attributions, the vendored-item NOTICE lines and (M02c2, DL-662) the `world`
+ * array of config/attribution.world.json with the ODbL notice and the OSM `offerUrl`. `--emit-only` writes the file and runs no gate
+ * (the root `build` script ends with it so every dist holds the file; the gate runs in the CI `ip` job).
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,6 +20,7 @@ import {
 } from '../../packages/shared/src/assets/gates/provenance.ts';
 import { finding, type GateFinding } from '../../packages/shared/src/assets/gates/types.ts';
 import type { ProvenanceRecord } from '../../packages/shared/src/assets/provenance.ts';
+import { worldCreditsOf, type WorldAttributionFile } from '../../packages/shared/src/world/credits.ts';
 import { args } from './run.ts';
 import { hasThirdParty, loadRegister, noticeFor, parseNotice, readText, vendoredEntries } from './lib/third-party.ts';
 import {
@@ -116,10 +121,20 @@ export interface ProvenanceCheckOptions {
   root: string;
   dist: string;
   emitCredits?: boolean | undefined;
+  /** With `emitCredits`: write credits.json and skip every gate (M02c2, DL-662). */
+  emitOnly?: boolean | undefined;
   release?: boolean | undefined;
 }
 
 export interface ProvenanceCheckResult { findings: GateFinding[]; scanned: number; records: ProvenanceRecord[] }
+
+/** `config/attribution.world.json` of a checkout, or an empty file when there is none. */
+export function readWorldAttribution(root: string): WorldAttributionFile {
+  const file = path.join(root, 'config', 'attribution.world.json');
+  if (!existsSync(file)) return { entries: [] };
+  const parsed = JSON.parse(readFileSync(file, 'utf8')) as WorldAttributionFile;
+  return { ...parsed, entries: Array.isArray(parsed.entries) ? parsed.entries : [] };
+}
 
 export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceCheckResult {
   const findings: GateFinding[] = [];
@@ -147,6 +162,16 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
     if (host !== null && (host === MAPBOX_HOST || host.endsWith(`.${MAPBOX_HOST}`))) {
       findings.push(finding(GATE, `assets/provenance/${rec.sha256.slice(0, 2)}/${rec.sha256}.json`, 'mapbox-source', 'source.url is a Mapbox host; Mapbox content is never used (DL-506)'));
     }
+  }
+  const writeCredits = (): void => {
+    const attributions = collectAttributions(records).map((a) => ({ license: a.license, attribution: a.attribution }));
+    attributions.push(...vendoredCredits(opts.root));
+    const doc = { schema: 'credits/1', attributions, ...worldCreditsOf(readWorldAttribution(opts.root)) };
+    writeFileSync(path.join(opts.dist, 'credits.json'), `${JSON.stringify(doc, null, 2)}\n`);
+  };
+  if (opts.emitCredits && opts.emitOnly) {
+    if (existsSync(opts.dist)) writeCredits();
+    return { findings: [], scanned: 0, records };
   }
   const bySha = new Map(records.map((r) => [r.sha256, r]));
   const gateOpts = { recordLicenses: cfg.licenses.record, release: opts.release === true };
@@ -183,12 +208,7 @@ export function runProvenanceCheck(opts: ProvenanceCheckOptions): ProvenanceChec
     findings.push(finding(GATE, 'third-party-licenses.txt', 'licences-file-missing', 'vendored items exist but the dist has no third-party-licenses.txt (run tools/ci/third-party-licenses.ts)'));
   }
   const creditsPath = path.join(opts.dist, 'credits.json');
-  if (opts.emitCredits && existsSync(opts.dist)) {
-    const attributions = collectAttributions(records).map((a) => ({ license: a.license, attribution: a.attribution }));
-    attributions.push(...vendoredCredits(opts.root));
-    const doc = { schema: 'credits/1', attributions };
-    writeFileSync(creditsPath, `${JSON.stringify(doc, null, 2)}\n`);
-  }
+  if (opts.emitCredits && existsSync(opts.dist)) writeCredits();
   if (existsSync(opts.dist)) {
     findings.push(...checkCredits(records, existsSync(creditsPath) ? readFileSync(creditsPath, 'utf8') : null));
   }
@@ -202,6 +222,7 @@ function main(): void {
       root: { type: 'string' },
       dist: { type: 'string' },
       'emit-credits': { type: 'boolean', default: false },
+      'emit-only': { type: 'boolean', default: false },
       release: { type: 'boolean', default: false },
     },
   });
@@ -211,7 +232,7 @@ function main(): void {
     console.error(`${GATE}: ${dist} does not exist; run pnpm build first`);
     process.exit(2);
   }
-  const res = runProvenanceCheck({ root, dist, emitCredits: values['emit-credits'], release: values.release || process.env.DV_RELEASE === '1' });
+  const res = runProvenanceCheck({ root, dist, emitCredits: values['emit-credits'] || values['emit-only'], emitOnly: values['emit-only'], release: values.release || process.env.DV_RELEASE === '1' });
   process.exit(report(GATE, res.findings, res.scanned));
 }
 

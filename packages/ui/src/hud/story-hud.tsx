@@ -1,14 +1,15 @@
 /**
  * The story and sandbox HUD (10-ui-hud-xr.md 2.10, table row "Story / free roam"). Bound to the `hud.*` view-model keys; a missing key
- * renders the widget's empty state. The minimap slot is an empty frame (M02c2 draws into it). Mission content binds in M05c1.
+ * renders the widget's empty state. The minimap slot (M02c2) hosts the canvas the world's map layer draws into. Mission content binds in M05c1.
  */
 import type { JsonValue } from '@dv/shared';
 import { useShell } from '../shell/context.tsx';
 import { HudGrid, useHudPrefs } from './layout.tsx';
+import { MinimapSlot } from './minimap-slot.tsx';
 import { TipBar } from './tipbar.tsx';
 import type { HudClock, HudHeat, HudVehicle, HudWallet } from './model.ts';
 import {
-  AreaBanner, ClockWeather, HealthBar, HeatStars, InteractionPrompt, MinimapFrame, ObjectiveTracker, SandboxChip, SaveIndicator, Subtitles, VehicleCluster,
+  AreaBanner, ClockWeather, HealthBar, HeatStars, InteractionPrompt, ObjectiveTracker, SandboxChip, SaveIndicator, Subtitles, VehicleCluster,
   Wallet, useVm, type ObjectiveView,
 } from './widgets.tsx';
 
@@ -19,7 +20,7 @@ export function StoryHud() {
   const wallet = useVm<JsonValue>('hud.wallet') as HudWallet | undefined;
   const heat = useVm<JsonValue>('hud.heat') as HudHeat | undefined;
   const veh = useVm<JsonValue>('hud.veh') as HudVehicle | undefined;
-  const area = useVm<JsonValue>('hud.area') as { name: string } | undefined;
+  const area = useVm<JsonValue>('hud.area') as { name?: string; key?: string } | undefined;
   const health = useVm<JsonValue>('hud.health') as { hp: number; max: number } | undefined;
   const objective = useVm<JsonValue>('hud.objective') as ObjectiveView | undefined;
   const subtitle = useVm<JsonValue>('hud.subtitle') as { speaker?: string; text: string } | undefined;
@@ -44,7 +45,7 @@ export function StoryHud() {
             <HeatStars heat={heat} />
           </>
         ),
-        bl: <MinimapFrame />,
+        bl: <MinimapSlot />,
         br: (
           <>
             <HealthBar health={health} />

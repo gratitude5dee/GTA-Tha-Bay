@@ -4,13 +4,15 @@
  *
  *  - `poisNear`: the POIs inside a radius, nearest first, ties by id;
  *  - `pedRoute`: the commute polyline between two POIs along the road topology, at most 64 points;
- *  - `findPlace`: a prefix and token match over landmark and POI labels. The geocoder (`sf-geocode.v1`) plugs in at M02c2.
+ *  - `findPlace`: a prefix and token match over landmark and POI labels; with a geocoder installed (`setGeocoder`, M02c2) also addresses,
+ *    streets and neighbourhoods from `sf-geocode.v1`, loaded on the first search.
  *
  * Labels. The index carries name keys (`place.coit-tower`), not text, and the sim has no catalogue, so a label is the injected
  * `labels(key)` when it answers and otherwise the last segment of the key in title case ("Coit Tower"). Pure; C02 lint applies.
  */
 import type { LandmarkId, LandmarkRecord, PlaceIndex, PoiId, PoiRecord, WorldIndex } from '@dv/shared';
 import type { RoadGraph } from '../graph/query.ts';
+import type { Geocoder } from '../map/geocoder.ts';
 
 export const PED_ROUTE_MAX_POINTS = 64;
 /** How far a POI looks for a road when a commute is planned, metres. */
@@ -48,6 +50,8 @@ export class PlaceIndexImpl implements PlaceIndex {
   private readonly lmById = new Map<string, LandmarkRecord>();
   private readonly poiById = new Map<string, PoiRecord>();
   private entries: Entry[] | null = null;
+  private geocoderLoader: (() => Promise<Geocoder | null>) | null = null;
+  private geocoder: Promise<Geocoder | null> | null = null;
 
   constructor(
     index: Pick<WorldIndex, 'landmarks' | 'pois'>,
@@ -127,10 +131,31 @@ export class PlaceIndexImpl implements PlaceIndex {
     return out;
   }
 
+  /** Installs the lazy geocoder (M02c2): `load` runs on the first search that needs it and resolves to null when there is no `sf-geocode.v1`. */
+  setGeocoder(load: (() => Promise<Geocoder | null>) | null): void {
+    this.geocoderLoader = load;
+    this.geocoder = null;
+  }
+
   findPlace(text: string, limit: number): Promise<readonly { label: string; x: number; z: number; kind: string }[]> {
+    const own = this.findOwn(text, limit);
+    if (!this.geocoderLoader || !(limit > 0)) return Promise.resolve(own);
+    this.geocoder ??= this.geocoderLoader().catch(() => null);
+    return this.geocoder.then((g) => {
+      if (!g) return own;
+      const n = Math.floor(limit);
+      const addr = g.address(text, n).map((h) => ({ label: h.label, x: h.x, z: h.z, kind: h.kind }));
+      const hoods = g.names(text, n).filter((h) => h.kind === 'nhood').map((h) => ({ label: h.label, x: h.x, z: h.z, kind: h.kind }));
+      const streets = g.streets(text, n).map((h) => ({ label: h.label, x: h.x, z: h.z, kind: h.kind }));
+      const merged = /^\s*\d/.test(text) ? [...addr, ...own, ...hoods, ...streets] : [...own, ...hoods, ...streets, ...addr];
+      return merged.slice(0, n);
+    });
+  }
+
+  private findOwn(text: string, limit: number): { label: string; x: number; z: number; kind: string }[] {
     const q = text.toLowerCase().trim();
     const qt = tokensOf(q);
-    if (qt.length === 0 || !(limit > 0)) return Promise.resolve([]);
+    if (qt.length === 0 || !(limit > 0)) return [];
     const scored: { e: Entry; score: number }[] = [];
     for (const e of this.build()) {
       let score = 0;
@@ -142,7 +167,7 @@ export class PlaceIndexImpl implements PlaceIndex {
       scored.push({ e, score });
     }
     scored.sort((a, b) => b.score - a.score || (a.e.label < b.e.label ? -1 : a.e.label > b.e.label ? 1 : 0) || (a.e.id < b.e.id ? -1 : a.e.id > b.e.id ? 1 : 0));
-    return Promise.resolve(scored.slice(0, Math.floor(limit)).map(({ e }) => ({ label: e.label, x: e.x, z: e.z, kind: e.kind })));
+    return scored.slice(0, Math.floor(limit)).map(({ e }) => ({ label: e.label, x: e.x, z: e.z, kind: e.kind }));
   }
 }
 

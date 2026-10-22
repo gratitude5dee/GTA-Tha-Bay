@@ -8,6 +8,7 @@ import { StoryHud } from '../hud/story-hud.tsx';
 import { CoachMark, InstallChip } from '../onboarding/coach-mark.tsx';
 import { RotateOverlay } from '../onboarding/rotate.tsx';
 import { Banners } from './banners.tsx';
+import { AttributionSplash } from './attribution-splash.tsx';
 import type { ShellCore } from './core.ts';
 import { ShellProvider } from './context.tsx';
 import { pageDef } from './registry.ts';
@@ -160,6 +161,7 @@ export function ShellApp(props: { core: ShellCore }) {
           <InstallChip />
         </>
       ) : null}
+      <AttributionSplash />
       <ToastHost store={core.toastStore} announce={core.props.prefs.get().announce} onAction={toastAction} />
       {core.modals.map((m) =>
         m.confirm ? (

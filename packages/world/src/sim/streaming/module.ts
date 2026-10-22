@@ -22,6 +22,7 @@ import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
 import { playWallPrisms } from '../api/boundaries.ts';
 import type { TeleportHost } from '../api/teleport.ts';
 import { createWorldApi, type WorldServices } from '../api/world-api.ts';
+import { Geocoder } from '../map/geocoder.ts';
 import { AmbientTraffic } from '../traffic/system.ts';
 import { WORLD_COMPONENTS } from '../traffic/components.ts';
 import { AmbientPeds } from '../peds/system.ts';
@@ -476,6 +477,17 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   sim.services.world.tags = createTagsPort(world.store);
   world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
   world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
+  // M02c2: the offline geocoder joins `findPlace` (addresses, streets, neighbourhoods); the pack is asked for on the first search only.
+  api.places.setGeocoder(() => new Promise<Geocoder | null>((resolve) => {
+    const asked = world.loadAux('map_data/sf-geocode.v1', (b) => {
+      try {
+        resolve(Geocoder.fromBytes(b));
+      } catch {
+        resolve(null);
+      }
+    });
+    if (!asked) resolve(null);
+  }));
   return api;
 }
 

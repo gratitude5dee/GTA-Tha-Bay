@@ -15,6 +15,7 @@ import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
 import { homeScreen, type PhoneEnv, type RideDestination } from './apps.ts';
+import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
   /** At a safehouse (view-model key `hud.safehouse`, M05); absent means away. */
@@ -143,6 +144,17 @@ export function PhonePage(props: PageProps) {
     detail: a.comingSoon ? t('phone.soon') : undefined,
     ...(a.comingSoon ? { disabled: true, hint: t('phone.soon') } : {}),
   } as ListRow));
+  // The Map app (M02c2) is a canvas the world draws, not a widget tree.
+  if (app === 'map') {
+    return h(MapApp, {
+      port: ctx.props.map?.() ?? null,
+      onWaypoint: (x: number, z: number) => void ctx.sendUi({ t: 'phone.waypoint', x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 }),
+      ...(env.mode === 'sandbox'
+        ? { onTravel: (x: number, z: number) => void ctx.sendUi({ t: 'mode.cmd', mode: 'phone' as never, name: 'map.travel', args: { x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10 } }) }
+        : {}),
+      onBack: () => setApp(null),
+    });
+  }
   const def = app ? appDef(app) : undefined;
   const screen = def ? def.screen({ ...env, appRows }) : homeScreen({ appRows });
   return h('main', { class: 'dv-page dv-phone', 'data-testid': 'phone', 'data-app': app ?? 'home' }, h(ScreenHost, {

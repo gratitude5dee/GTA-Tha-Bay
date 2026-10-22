@@ -35,6 +35,9 @@ import { runTransit, type RouteRow, type StopRow, type TransitRoutes } from './s
 import { runLod } from './stages/s11-lod.ts';
 import { runFar } from './stages/s11-far.ts';
 import { districtGridBytes, runDistrictGrid, type DistrictGridProduct } from './stages/s12-district-grid.ts';
+import { runMap, type MapProduct, type MapStreetRow } from './stages/s12-map.ts';
+import { runGeocode, type EasRow, type GeocodeReport } from './stages/s12-geocode.ts';
+import { verifyMapAssets } from './verify/map-verify.ts';
 import { buildPacks, graphBytes, type PackOutput } from './stages/s13-pack.ts';
 import { failed, s0Gates, s10Gates, s12Gates, s13Gates, s2Gates, s3Gates, s4Gates, s5Gates, s6Gates, s7Gates, s8Gates, s9Gates, type GateResult } from './verify/gates.ts';
 import { verifyBakeDir } from './verify/verify.ts';
@@ -45,8 +48,8 @@ import { PrismIndex } from './geom/prisms.ts';
 import { cmp, stableJson } from './util.ts';
 import type { SpawnTable } from '../../../packages/shared/src/index.ts';
 
-export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'district-grid' | 'lod' | 'pack';
-export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod', 'pack'];
+export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'district-grid' | 'lod' | 'map' | 'pack';
+export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod', 'map', 'pack'];
 export const isStageId = (s: string): s is StageId => (STAGE_ORDER as readonly string[]).includes(s);
 
 export interface BakeOptions {
@@ -166,6 +169,7 @@ interface PedStage { product: PedProduct; gates: GateResult[] }
 interface TagsStage { tags: TagsProduct; spawn: Map<ChunkKey, SpawnTable>; spawnReport: Record<string, number>; gates: GateResult[] }
 interface PlacesStage { places: PlacesProduct; transit: TransitRoutes; transitReport: Record<string, unknown>; gates: GateResult[] }
 interface DistrictStage { product: DistrictGridProduct; gates: GateResult[] }
+interface MapStage { product: MapProduct; geocode: Uint8Array; geoReport: GeocodeReport; gates: GateResult[] }
 interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
 
 export async function runBake(o: BakeOptions): Promise<BakeResult> {
@@ -375,6 +379,22 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     return { files: lod.files, far: { dem: far.dem, massing: far.massing, cards: far.cards }, report: lod.report as unknown as Record<string, unknown>, farReport: far.report as unknown as Record<string, unknown> };
   });
 
+  // S12 map: sf-map.v1, sf-map-bldg.v1 and sf-geocode.v1 (M02c2)
+  const mapStage = await stage<MapStage>(c, 'map', wanted.has('map'), ms, () => {
+    const streetRows = jsonlOrEmpty<MapStreetRow>(path.join(rawDir, '3psu-pn9h.jsonl'));
+    const easRows = jsonlOrEmpty<EasRow>(path.join(rawDir, 'ramy-di5m.jsonl'));
+    const product = runMap({
+      bakeId, streets: streetRows, segs: grading.product.segs, water: water.product, heightAt: (x, z) => graded.heightAt(x, z), box: gridBox,
+      landmarks: placesStage.places.landmarks, buildings: buildings.product.byChunk,
+    });
+    const geo = runGeocode({ bakeId, rows: easRows, landmarks: placesStage.places.landmarks, pois: placesStage.places.pois, hoods: product.hoodPoints, box: gridBox });
+    return {
+      product, geocode: geo.bytes, geoReport: geo.report,
+      gates: verifyMapAssets({ bakeId, map: product.map, bldg: product.bldg, geocode: geo.bytes, streets: streetRows, addresses: easRows }),
+    };
+  });
+  gates.push(...mapStage.gates);
+
   // S13 pack, then S14 verify on the written bake
   let outputs: PackOutput | null = null;
   if (wanted.has('pack')) {
@@ -391,6 +411,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       name: 'sf-graph.v1.pack', family: 'graph', x: 0, y: 0, chunks: 1,
       bytes: graphBytes(bakeId, grading.product.nodes, grading.product.edges, grading.product.segs),
     });
+    for (const [name, bytes] of [['sf-map.v1.pack', mapStage.product.map], ['sf-map-bldg.v1.pack', mapStage.product.bldg], ['sf-geocode.v1.pack', mapStage.geocode]] as const) {
+      outputs.files.push({ name, family: 'graph', x: 0, y: 0, chunks: 1, bytes });
+    }
     const idxErr = mapSchema('world-index')(outputs.index);
     gates.push({ id: 's13.index-schema', stage: 'S13', level: idxErr.length === 0 ? 'pass' : 'fail', detail: idxErr.length === 0 ? 'data/world-index validates against world-index.schema.json' : idxErr.join('; ') });
     const trErr = mapSchema('transit-routes')(placesStage.transit);
@@ -441,6 +464,8 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       lod: lodStage.report,
       far: lodStage.farReport,
       districtGrid: districtStage.product.report,
+      map: mapStage.product.report,
+      geocode: mapStage.geoReport,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
     };
     const writeReport = (g: GateResult[]): void => {
@@ -464,7 +489,16 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     }
   }
   for (const g of gates) log(`gate ${g.level.toUpperCase().padEnd(4)} ${g.id}: ${g.detail}`);
-  const hashes = outputs ? hashTree(outDir) : {};
+  // without the pack stage there is no bake directory to hash; a run of the map stage alone (`--stage map --repro`, M02c2 AC-11) is
+  // compared on the three assets it produces
+  const mapHashes: Record<string, string> = wanted.has('map')
+    ? {
+        'sf-map.v1.pack': sha256Text(Buffer.from(mapStage.product.map)),
+        'sf-map-bldg.v1.pack': sha256Text(Buffer.from(mapStage.product.bldg)),
+        'sf-geocode.v1.pack': sha256Text(Buffer.from(mapStage.geocode)),
+      }
+    : {};
+  const hashes = outputs ? hashTree(outDir) : mapHashes;
   return { ok: failed(gates).length === 0, bakeId, outDir, gates, hashes, ms };
 }
 

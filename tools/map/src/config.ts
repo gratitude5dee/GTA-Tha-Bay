@@ -36,6 +36,8 @@ export interface SourceDef {
   surfaces: string[];
   /** Ordered fallbacks tried after `url` fails (DL-703); used by source `osm`. */
   mirrors?: OsmMirror[];
+  /** Source `osm` only (DL-695): the ODbL offer index URL, set by the world release (M02c2). Not part of the bakeId config hash. */
+  offerUrl?: string;
 }
 export interface OsmMirror { url: string; coverage: 'play' | 'california'; note?: string }
 export interface AreaGates {
@@ -234,7 +236,8 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
   const def = cfg.areas[area];
   const out: Record<string, string> = {
     area: sha256Hex(canonicalize({ id: area, def })),
-    sources: sha256Hex(canonicalize(cfg.sources.filter((s) => def.sources.includes(s.id)))),
+    // offerUrl is release metadata (DL-695): setting it must not change the bake
+    sources: sha256Hex(canonicalize(cfg.sources.filter((s) => def.sources.includes(s.id)).map(({ offerUrl: _offer, ...rest }) => rest))),
     terrarium: sha256Hex(canonicalize(cfg.terrarium)),
     bounds: sha256Hex(canonicalize(loadBounds())),
     roadclass: sha256Hex(canonicalize(loadRoadClass())),

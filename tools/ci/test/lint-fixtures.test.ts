@@ -90,3 +90,37 @@ describe('no-glsl-in-engine lint', () => {
     expect(await lint(GLSL_SOURCE, 'tools/ci/__fixture__.ts')).toEqual([]);
   });
 });
+
+// M02c2 (DL-676, DL-689): no map SDK in game or web code. The banned sources are strings importing modules that are not installed.
+describe('map SDK import ban (DL-676)', () => {
+  const MAPLIBRE = "import maplibregl from 'maplibre-gl';\nexport const m = maplibregl;\n";
+  const MAPBOX = "import mapboxgl from 'mapbox-gl';\nimport { Draw } from '@mapbox/mapbox-gl-draw';\nexport const m = [mapboxgl, Draw];\n";
+  const GOOGLE = "import { Loader } from '@googlemaps/js-api-loader';\nimport { TilesRenderer } from '3d-tiles-renderer';\nexport const m = [Loader, TilesRenderer];\n";
+  const files = ['packages/world/src/client/__fixture__.ts', 'packages/ui/src/__fixture__.tsx', 'apps/web/src/__fixture__.ts'];
+
+  for (const file of files) {
+    it(`reports mapbox-gl, @mapbox/mapbox-gl-*, @googlemaps/* and 3d-tiles-renderer in ${file}`, async () => {
+      expect(has(await lint(MAPBOX, file), 'no-restricted-imports', 'mapbox-gl')).toBe(true);
+      const g = await lint(GOOGLE, file);
+      expect(g.filter((m) => m.ruleId === 'no-restricted-imports').length).toBeGreaterThanOrEqual(2);
+      expect(has(g, 'no-restricted-imports', '@googlemaps/*')).toBe(true);
+    });
+  }
+
+  for (const file of ['packages/world/src/client/__fixture__.ts', 'packages/engine/src/client/__fixture__.ts', 'apps/web/src/__fixture__.ts']) {
+    it(`reports maplibre-gl in ${file}`, async () => {
+      expect(has(await lint(MAPLIBRE, file), 'no-restricted-imports', 'maplibre-gl')).toBe(true);
+    });
+  }
+
+  it('reports the bans in sim code, where the determinism block has its own import list', async () => {
+    const sim = 'packages/world/src/sim/__fixture__.ts';
+    expect(has(await lint(MAPLIBRE, sim), 'no-restricted-imports', 'maplibre-gl')).toBe(true);
+    expect(has(await lint(MAPBOX, sim), 'no-restricted-imports', 'mapbox-gl')).toBe(true);
+  });
+
+  it('keeps maplibre-gl allowed outside the game page packages (the web surfaces of M13b2) and the tools unrestricted', async () => {
+    expect(has(await lint(MAPLIBRE, 'packages/ui/src/__fixture__.tsx'), 'no-restricted-imports', 'maplibre-gl')).toBe(false);
+    expect(has(await lint(MAPBOX, 'tools/map/src/__fixture__.ts'), 'no-restricted-imports', 'mapbox-gl')).toBe(false);
+  });
+});

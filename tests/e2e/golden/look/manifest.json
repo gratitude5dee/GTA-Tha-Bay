@@ -1,7 +1,7 @@
 {
   "$comment": "M02e look goldens: written by DV_UPDATE_GOLDEN=1 pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden (outside CI, under the golden-update label). 256 x 144 captures of the canvas on chromium-webgl2 at the shots of config/world/look-shots.json.",
   "schema": "look-golden/1",
-  "bakeId": "291b90f0e93dbaad590b6df49362f2cf6c5c110a320423188d16790be381da14",
+  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
   "source": "synth",
   "viewport": {
     "width": 256,

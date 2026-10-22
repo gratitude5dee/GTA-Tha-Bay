@@ -1,0 +1,65 @@
+{
+  "area": "sf",
+  "bakeId": "bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae",
+  "baseAddresses": 224254,
+  "geocodeBytes": 2747988,
+  "geocodeSample": {
+    "checked": 50,
+    "failing": 0,
+    "requested": 50,
+    "toleranceM": 10,
+    "worstM": 0.31
+  },
+  "mapGates": [
+    {
+      "detail": "every neighbourhood polygon is one of the 41 Analysis Neighborhoods",
+      "id": "s12.district-names",
+      "level": "pass"
+    },
+    {
+      "detail": "29765 of 58316 cells (244 x 239) belong to 41 neighbourhoods",
+      "id": "s12.district-cells",
+      "level": "pass"
+    },
+    {
+      "detail": "sf-map.v1 is 980482 B (limit 4194304)",
+      "id": "s12.map-size",
+      "level": "pass"
+    },
+    {
+      "detail": "sf-map-bldg.v1 is 2401337 B (limit 4194304)",
+      "id": "s12.bldg-size",
+      "level": "pass"
+    },
+    {
+      "detail": "the three assets decode and carry bake bf9c29c4ba53",
+      "id": "s12.map-decode",
+      "level": "pass"
+    },
+    {
+      "detail": "15114 street segments with classcode 1 to 5 in sf-map.v1, 15114 in the source rows (0.000 %, limit 0.5 %)",
+      "id": "s12.map-streets",
+      "level": "pass"
+    },
+    {
+      "detail": "every z9 street record carries its cnn",
+      "id": "s12.map-cnn",
+      "level": "pass"
+    },
+    {
+      "detail": "one-way arrows equal the source F/T flag on 30 sampled one-way segments (3933 one-way segments in all)",
+      "id": "s12.map-oneway",
+      "level": "pass"
+    },
+    {
+      "detail": "50 sampled addresses geocode within 10 m on the same cnn (224254 base addresses)",
+      "id": "s12.geocode-sample",
+      "level": "pass"
+    }
+  ],
+  "milestone": "M02c2",
+  "schema": "bake-run-notes/1",
+  "sfMapBldgBytes": 2401337,
+  "sfMapBytes": 980482,
+  "streetSegments": 15223
+}
