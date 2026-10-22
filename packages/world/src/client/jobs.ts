@@ -12,9 +12,12 @@
 import { PackUnavailable, type PackRef as StorePackRef } from '@dv/engine/assets/types';
 import type { AssetJob, AssetService } from '@dv/engine/assets/service';
 import {
-  ancestorKey, decodeFarDem, decodeFarMassing, decodeL0, decodeLod, decodeP0, packRefOf, parseChunkKey,
+  MapBuildings, MapData, ancestorKey, decodeFarDem, decodeFarMassing, decodeL0, decodeLod, decodeP0, packRefOf, parseChunkKey,
   type ChunkKey, type FarDem, type LodUnit, type QualityTierId, type RenderChunk, type SimChunk,
 } from '@dv/shared';
+import { Geocoder, type GeocodeHit } from '../sim/map/geocoder.ts';
+import { rasterTile, type CanvasFactory } from './map/raster.ts';
+import type { LayerMask, MapPalette } from './map/views.ts';
 import type { PackErrorReason, PackReply, PackRequest } from '../sim/streaming/channel.ts';
 import { basePlan } from '../sim/streaming/plan.ts';
 import { massingInstances, ringMesh } from './backdrop/far-mesh.ts';
@@ -296,8 +299,110 @@ const far: AssetJob = async (svc, raw, signal) => {
   return { result: { png }, transfer: [png] };
 };
 
+// ---- the maps (M02c2) -------------------------------------------------------------------------------------------------------
+
+export type MapAssetName = 'map' | 'bldg' | 'geocode' | 'district';
+const MAP_ASSET: Record<MapAssetName, string> = {
+  map: 'map_data/sf-map.v1',
+  bldg: 'map_data/sf-map-bldg.v1',
+  geocode: 'map_data/sf-geocode.v1',
+  district: 'data/district-grid.v1',
+};
+
+class MapCache {
+  map: Promise<MapData | null> | null = null;
+  bldg: Promise<MapBuildings | null> | null = null;
+  geocoder: Promise<Geocoder | null> | null = null;
+}
+const mapCaches = new WeakMap<AssetService, MapCache>();
+const mapCacheOf = (svc: AssetService): MapCache => {
+  let c = mapCaches.get(svc);
+  if (!c) {
+    c = new MapCache();
+    mapCaches.set(svc, c);
+  }
+  return c;
+};
+
+/** True when the catalog has the asset (a world baked before M02c2 has none of the map files, and the maps then draw nothing). */
+async function hasAsset(svc: AssetService, asset: string, tier: QualityTierId): Promise<boolean> {
+  const state = await svc.catalog.load();
+  if (state !== 'ready') return false;
+  return asset in svc.catalog.refsWithPrefix(asset, tier);
+}
+
+async function loadOptional<T>(svc: AssetService, name: MapAssetName, tier: QualityTierId, decode: (b: ArrayBuffer) => T, signal?: AbortSignal): Promise<T | null> {
+  const asset = MAP_ASSET[name];
+  if (!(await hasAsset(svc, asset, tier))) return null;
+  return readDecoded(svc, asset, tier, 'soon', decode, signal);
+}
+
+export interface MapTileJobArgs {
+  level: 9 | 7;
+  cx: number;
+  cy: number;
+  tier: QualityTierId;
+  palette: MapPalette;
+  layers: LayerMask;
+}
+export type MapTileJobResult = { bitmap: ImageBitmap } | { empty: true } | { unsupported: true };
+
+const mapTile: AssetJob = async (svc, raw, signal) => {
+  const a = raw as MapTileJobArgs;
+  if (typeof OffscreenCanvas === 'undefined') return { result: { unsupported: true } satisfies MapTileJobResult };
+  const cache = mapCacheOf(svc);
+  cache.map ??= loadOptional(svc, 'map', a.tier, (b) => MapData.decode(b), signal).catch((e: unknown) => {
+    cache.map = null;
+    throw e;
+  });
+  const data = await cache.map;
+  if (!data) return { result: { empty: true } satisfies MapTileJobResult };
+  let bldg: MapBuildings | null = null;
+  if (a.level === 9) {
+    cache.bldg ??= loadOptional(svc, 'bldg', a.tier, (b) => MapBuildings.decode(b), signal).catch(() => {
+      cache.bldg = null;
+      return null;
+    });
+    bldg = await cache.bldg;
+  }
+  const make: CanvasFactory = (w, h) => new OffscreenCanvas(w, h);
+  const cv = rasterTile(make, data, bldg, a.level, a.cx, a.cy, a.palette, a.layers) as OffscreenCanvas | null;
+  if (!cv) return { result: { empty: true } satisfies MapTileJobResult };
+  const bitmap = cv.transferToImageBitmap();
+  return { result: { bitmap } satisfies MapTileJobResult, transfer: [bitmap] };
+};
+
+export interface MapBytesJobArgs { which: MapAssetName; tier: QualityTierId }
+
+/** The bytes of a map asset for the main thread (the full map's vector redraw and the fallback rasteriser); null when the catalog has none. */
+const mapBytes: AssetJob = async (svc, raw, signal) => {
+  const a = raw as MapBytesJobArgs;
+  const asset = MAP_ASSET[a.which];
+  if (!asset || !(await hasAsset(svc, asset, a.tier))) return { result: { bytes: null } };
+  const bytes = await readPack(svc, asset, a.tier, 'soon', signal);
+  const copy = bytes.slice(0);
+  return { result: { bytes: copy }, transfer: [copy] };
+};
+
+export interface MapGeocodeJobArgs { text: string; limit: number; tier: QualityTierId }
+
+const mapGeocode: AssetJob = async (svc, raw, signal) => {
+  const a = raw as MapGeocodeJobArgs;
+  const cache = mapCacheOf(svc);
+  cache.geocoder ??= loadOptional(svc, 'geocode', a.tier, (b) => Geocoder.fromBytes(b), signal).catch((e: unknown) => {
+    cache.geocoder = null;
+    throw e;
+  });
+  const g = await cache.geocoder;
+  const hits: GeocodeHit[] = g ? g.search(a.text, Math.max(1, Math.min(20, Math.floor(a.limit) || 8))) : [];
+  return { result: { hits, ready: g !== null } };
+};
+
 /** The jobs of the world, by name. */
 export const worldJobs: Readonly<Record<string, AssetJob>> = {
+  'world.map.tile': mapTile,
+  'world.map.bytes': mapBytes,
+  'world.map.geocode': mapGeocode,
   'world.attach': attach,
   'world.refs': refs,
   'world.mesh': mesh,

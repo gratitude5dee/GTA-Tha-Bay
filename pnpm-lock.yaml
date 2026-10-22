@@ -238,6 +238,9 @@ importers:
       '@dv/mode-story':
         specifier: workspace:*
         version: link:../../packages/modes/story
+      '@dv/mode-tycoon':
+        specifier: workspace:*
+        version: link:../../packages/modes/tycoon
       '@dv/npc':
         specifier: workspace:*
         version: link:../../packages/npc
@@ -337,6 +340,15 @@ importers:
       ajv:
         specifier: ^8.20.0
         version: 8.20.0
+
+  packages/modes/tycoon:
+    dependencies:
+      '@dv/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      preact:
+        specifier: 11.0.1
+        version: 11.0.1
 
   packages/net:
     dependencies:

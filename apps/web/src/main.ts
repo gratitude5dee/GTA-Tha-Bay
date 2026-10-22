@@ -69,9 +69,12 @@ const prefs: PrefsStore = qaPlay
 const identity = wireIdentity(prefs);
 // The creator preview (M04b2): built once the renderer host exists; the shell asks for it each time the creator opens.
 let creatorStage: CreatorStagePort | null = null;
+// The world's maps (M02c2): the phone Map app, its search and the minimap's north-up switch; set once the baked world is prepared.
+let mapPort: ReturnType<NonNullable<ShellProps['map']>> = null;
 
 const shellProps = (unsupported: boolean): ShellProps => ({
   stage: () => creatorStage,
+  map: () => mapPort,
   forceTouch: flags.touch,
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
@@ -221,7 +224,18 @@ async function boot(): Promise<void> {
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),
         qa: QA,
+        // The neighbourhood banner (M02c2): the HUD shows `hud.area` { key: 'nhood.<slug>' }, at most once per 3 s.
+        onArea: (p) => engineRef?.vm.setLocal('hud.area', { key: p.key, name: p.slug }),
       });
+      const layer = prepared.view.map;
+      if (layer) {
+        mapPort = {
+          open: (canvas, onChange) => layer.openFullMap(canvas, onChange),
+          search: (text, limit) => layer.search(text, limit),
+          northUp: () => layer.northUpOn,
+          setNorthUp: (on) => layer.setNorthUp(on),
+        };
+      }
     } catch (error) {
       console.error('the baked world could not be prepared', error);
     }
@@ -270,6 +284,16 @@ async function boot(): Promise<void> {
     return null;
   });
   engineRef = engine;
+  // The map palette follows the HUD palette setting (default, deutan, protan, tritan; M02c2).
+  if (engine && prepared?.view.map) {
+    const map = prepared.view.map;
+    const apply = (v: unknown): void => {
+      const name = (v as { accessibility?: { hudPalette?: string } } | undefined)?.accessibility?.hudPalette;
+      if (name === 'default' || name === 'deutan' || name === 'protan' || name === 'tritan') map.setPalette(name);
+    };
+    apply(engine.vm.get('sys.settings'));
+    engine.vm.subscribe('sys.settings', apply);
+  }
   // The CutscenePlayer (M05b2): answers the sim's cut.request with the clip or the in-engine fallback. QA builds also hand it the
   // bundled index and the sample mission's line texts.
   let cutscenes: CutsceneGlue | null = null;
@@ -336,6 +360,8 @@ async function boot(): Promise<void> {
       const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
       if (flags.racingDemo) void racing.demo().catch((e: unknown) => console.warn('racing demo failed', e));
     }
+    // ?tycoon=1 (M09a1): the Business Tycoon QA panel and __dvBridge.tycoon (text panel, seeded runs, the cross-browser det check).
+    if (flags.tycoon) (await import('@dv/mode-tycoon/qa/bridge')).installTycoonBridge();
     // ?scenario=<id> starts that perf scenario at boot (path duration).
     if (flags.scenario) void bridge.perf.run(flags.scenario).catch((e: unknown) => console.warn('perf scenario failed', e));
     if (flags.probe === 'gpu') {

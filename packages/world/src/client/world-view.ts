@@ -41,6 +41,8 @@ import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
 import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
 import { PedRenderer, type PedInfo } from './peds/instances.ts';
 import { TransitRenderer, type TransitInfo } from './transit/render.ts';
+import { MapLayer } from './map/layer.ts';
+import type { AreaBannerPatch } from './map/banner.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -89,6 +91,10 @@ export interface WorldViewOptions {
   now?: () => number;
   /** QA builds: the bridge and the focus override are live. */
   qa?: boolean;
+  /** M02c2: the maps (HUD minimap, the neighbourhood banner and the full map of the phone). `false` leaves them out (the perf scenarios do not need them). */
+  map?: boolean;
+  /** M02c2: called for each neighbourhood banner (`nhood.<slug>`, at most once per 3 s); the app patches `hud.area`. */
+  onArea?: (p: AreaBannerPatch) => void;
 }
 
 export interface ChunksReport {
@@ -157,6 +163,8 @@ export class WorldView implements WorldLayer {
   transit: TransitRenderer | null = null;
   /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
   readonly fade: TeleportFade;
+  /** The maps of the world (M02c2): the HUD minimap, the banner and the full map; null when the view was built with `map: false`. */
+  readonly map: MapLayer | null;
   /** The newest `world.boundary` event (M02c1) and how many arrived; the QA bridge reads them. */
   lastBoundary: { tick: number; s: string } | null = null;
   boundaryCount = 0;
@@ -203,6 +211,9 @@ export class WorldView implements WorldLayer {
     this.plan = basePlan(o.tier);
     this.sets = tileSets(o.index);
     this.fade = new TeleportFade(o.container);
+    this.map = o.map === false ? null : new MapLayer({
+      assets: o.assets, tier: o.tier, doc: o.container.ownerDocument ?? null, ...(o.onArea ? { onArea: o.onArea } : {}), now: () => this.now(),
+    });
   }
 
   private now(): number {
@@ -404,6 +415,7 @@ export class WorldView implements WorldLayer {
     this.peds?.update(f, tSec);
     this.transit?.update(f);
     this.updateOverlays();
+    this.map?.frame(f);
     this.telemetry();
   }
 
@@ -419,6 +431,7 @@ export class WorldView implements WorldLayer {
       } else if (e.t === 'world.map' && e.s) {
         try {
           this.lastMap = JSON.parse(e.s) as NonNullable<WorldView['lastMap']>;
+          this.map?.setPatch(this.lastMap);
         } catch {
           // a damaged patch is dropped; the next one replaces it
         }
@@ -487,6 +500,7 @@ export class WorldView implements WorldLayer {
       this.host.backdrop = null;
       if (this.lights) this.host.scene.remove(...this.lights);
     }
+    this.map?.dispose();
     this.fade.dispose();
     this.veil?.remove();
     this.redownload?.remove();

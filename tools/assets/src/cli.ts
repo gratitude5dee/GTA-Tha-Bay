@@ -5,6 +5,7 @@
  *   tsx tools/assets/src/cli.ts lock --approved-by <handle>
  *   tsx tools/assets/src/cli.ts verify
  *   tsx tools/assets/src/cli.ts publish --env staging|prod [--target r2|dir:<path>] [--dry-run] [--pointer-out <dir>] [--fragment <file>]
+ *   tsx tools/assets/src/cli.ts publish --env staging|prod --world assets/world/sf.lock.json --pointer-out assets/world/pointer.<env>.json [--bake <dir>]   (M02c2)
  *   tsx tools/assets/src/cli.ts seed [--check]
  */
 import path from 'node:path';
@@ -31,6 +32,8 @@ async function main(): Promise<number> {
       'dry-run': { type: 'boolean', default: false },
       'pointer-out': { type: 'string' },
       fragment: { type: 'string' },
+      world: { type: 'string' },
+      bake: { type: 'string' },
       check: { type: 'boolean', default: false },
     },
   });
@@ -76,11 +79,11 @@ async function main(): Promise<number> {
     }
     case 'publish': {
       if (values.env !== 'staging' && values.env !== 'prod') {
-        console.error('usage: assets:publish -- --env staging|prod [--target r2|dir:<path>] [--dry-run] [--pointer-out <dir>] [--fragment <catalog.fragment.json>]');
+        console.error('usage: assets:publish -- --env staging|prod [--target r2|dir:<path>] [--dry-run] [--pointer-out <dir>] [--fragment <catalog.fragment.json>] | --world <sf.lock.json> --pointer-out <file>.json [--bake <dir>]');
         return 2;
       }
       const res = await publishAssets({
-        root, env: values.env, target: values.target, dryRun: values['dry-run'], pointerOut: values['pointer-out'], fragment: values.fragment,
+        root, env: values.env, target: values.target, dryRun: values['dry-run'], pointerOut: values['pointer-out'], fragment: values.fragment, world: values.world, worldBake: values.bake,
       });
       return res.code;
     }

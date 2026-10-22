@@ -15,10 +15,14 @@
     "./zip": "./src/zip.ts",
     "./schemas/*": "./schemas/*",
     "./npc": "./src/npc/index.ts",
-    "./fight": "./src/fight/index.ts"
+    "./fight": "./src/fight/index.ts",
+    "./tycoon": "./src/tycoon/index.ts",
+    "./tycoon/finance": "./src/tycoon/finance/index.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/shared",
+    "test:tycoon-finance": "tsx ../../tools/ci/run.ts vitest run packages/shared/src/tycoon/finance",
+    "tycoon:goldens": "tsx scripts/write-tycoon-goldens.ts",
     "vectors:write": "tsx scripts/write-vectors.ts",
     "schema:mission": "tsx scripts/gen-mission-schema.ts"
   },

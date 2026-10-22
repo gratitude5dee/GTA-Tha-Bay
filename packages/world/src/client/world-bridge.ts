@@ -16,6 +16,24 @@ import type { TransitInfo } from './transit/render.ts';
  * `import.meta.env.VITE_DV_QA === '1'`, so a production dist contains neither it nor the string "__dvBridge"
  * (apps/web/scripts/verify-dist.mjs). Results are JSON-friendly.
  */
+export interface WorldMapBridge {
+  (): { rev: number; blips: unknown[]; route: unknown } | null;
+  /** Where the minimap draws the player: its pixel, the ENU point it stands for, the view radius and the metres per pixel; null while no frame was drawn. */
+  minimapPlayerPx(): { px: number; py: number; x: number; z: number; yaw: number; radiusM: number; mPerPx: number; level: number; tilesDrawn: number; blipsDrawn: number; northUp: boolean } | null;
+  /** The pixel on the minimap of an ENU point (what the view draws it at), or null before the first frame. */
+  minimapProject(x: number, z: number): { px: number; py: number } | null;
+  /** `nhoodAt` of the district grid the page holds: the index (255 none) and the slug. */
+  nhoodAt(x: number, z: number): { index: number; slug: string | null };
+  /** The offline geocoder (asset.worker): addresses, streets, landmarks, points of interest and neighbourhoods. */
+  geocode(text: string, limit?: number): Promise<{ label: string; x: number; z: number; kind: string; cnn: number }[]>;
+  /** The banners shown so far and the last one. */
+  banner(): { count: number; last: { key: string; slug: string; index: number; tick: number } | null };
+  /** The state of the HUD map layer (QA). */
+  state(): unknown;
+  /** Opens the north-up switch of the minimap. */
+  setNorthUp(on: boolean): void;
+}
+
 export interface WorldBridge {
   /** Resident keys per level (uploaded), `bundleRerecords` per unit, upload cadence and bytes, failed tiles, cover masks. */
   chunks(): ChunksReport;
@@ -87,8 +105,11 @@ export interface WorldBridge {
   boundaryEvents(): number;
   /** The teleport fade: the directions asked so far (`out`, `in`) and where the veil is now. */
   fade(): { log: ('out' | 'in')[]; state: string; opacity: number };
-  /** The newest map patch the sim published (blips and the GPS route), or null. */
-  map(): { rev: number; blips: unknown[]; route: unknown } | null;
+  /**
+   * The newest map patch the sim published (blips and the GPS route), or null. M02c2 hangs the map QA calls on the function:
+   * `minimapPlayerPx()`, `minimapProject(x, z)`, `nhoodAt(x, z)`, `geocode(text, limit)`, `banner()` (see `WorldMapBridge`).
+   */
+  map: WorldMapBridge;
   /**
    * The landmark layer (M02d1): the tier's cap and swap distance, the resident landmark models with their fidelity, distance and the
    * chunks that hold their proxies (masked or not, with each chunk's `bundleRerecords`), the ones that failed to load, and the objects
@@ -246,7 +267,33 @@ export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldB
     lastBoundaryEvent: () => view.lastBoundary,
     boundaryEvents: () => view.boundaryCount,
     fade: () => ({ log: [...view.fade.log], state: view.fade.state, opacity: Number(view.fade.el.style.opacity || '0') }),
-    map: () => view.lastMap,
+    map: Object.assign(() => view.lastMap, {
+      minimapPlayerPx: () => {
+        const l = view.map;
+        if (!l) return null;
+        const q = l.qa().minimap.last;
+        const half = 80;
+        return { px: half, py: half, x: l.player.x, z: l.player.z, yaw: l.player.yaw, radiusM: q.radiusM, mPerPx: q.radiusM / half, level: q.level, tilesDrawn: q.tilesDrawn, blipsDrawn: q.blipsDrawn, northUp: l.northUpOn };
+      },
+      minimapProject: (x: number, z: number) => {
+        const l = view.map;
+        if (!l) return null;
+        const q = l.qa().minimap.last;
+        const k = 80 / q.radiusM;
+        const yaw = l.northUpOn ? 0 : l.player.yaw;
+        const rx = (x - l.player.x) * k, rz = (z - l.player.z) * k;
+        return { px: 80 + rx * Math.cos(yaw) - rz * Math.sin(yaw), py: 80 + rx * Math.sin(yaw) + rz * Math.cos(yaw) };
+      },
+      nhoodAt: (x: number, z: number) => {
+        const l = view.map;
+        const index = l ? l.nhoodAt(x, z) : 255;
+        return { index, slug: l?.nhoodSlugs[index] ?? null };
+      },
+      geocode: (text: string, limit = 8) => (view.map ? view.map.search(text, limit) : Promise.resolve([])),
+      banner: () => ({ count: view.map?.bannerCount ?? 0, last: view.map?.lastBanner ?? null }),
+      state: () => view.map?.qa() ?? null,
+      setNorthUp: (on: boolean) => view.map?.setNorthUp(on),
+    }),
     landmarks: () => view.landmarksReport(),
     swaps: () => view.landmarksReport()?.swaps ?? [],
     traffic: () => view.trafficReport(),

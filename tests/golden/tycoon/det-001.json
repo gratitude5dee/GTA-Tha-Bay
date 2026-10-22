@@ -1,0 +1,571 @@
+{
+ "v": 1,
+ "suite": "tycoon",
+ "contentVersion": "c0ce6359050d",
+ "balanceVersion": "c6d14b4f4dbc",
+ "runs": [
+  {
+   "seed": 12648430,
+   "weeks": 150,
+   "setup": {
+    "seed": 12648430,
+    "sector": "b2b-saas",
+    "thesis": "enterprise-rush",
+    "founder": "engineer",
+    "coFounder": false,
+    "startWeekOfYear": 0,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "c0ce6359050d",
+    "balanceVersion": "c6d14b4f4dbc"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c2-0",
+      "salaryYr": 22405668,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c7-0",
+      "salaryYr": 24070652,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 15,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c10-1",
+      "salaryYr": 20604231,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 18,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 19,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 19,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 28,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 34,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 35,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 35,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m2"
+     }
+    },
+    {
+     "week": 73,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "seed",
+      "targetCents": 30000000
+     }
+    },
+    {
+     "week": 74,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 74,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m3"
+     }
+    },
+    {
+     "week": 89,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 102,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 115,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 128,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 141,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    }
+   ],
+   "finalHash": "62e718b4e309341f",
+   "endWeek": 150,
+   "result": null
+  },
+  {
+   "seed": 48879,
+   "weeks": 150,
+   "setup": {
+    "seed": 48879,
+    "sector": "b2b-saas",
+    "thesis": "enterprise-rush",
+    "founder": "designer",
+    "coFounder": true,
+    "startWeekOfYear": 31,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "c0ce6359050d",
+    "balanceVersion": "c6d14b4f4dbc"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c2-1",
+      "salaryYr": 22923872,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 9,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 10,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 16,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 17,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 17,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m2"
+     }
+    },
+    {
+     "week": 21,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 45,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 46,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-scout-solo"
+     }
+    },
+    {
+     "week": 46,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m3"
+     }
+    },
+    {
+     "week": 71,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "seed",
+      "targetCents": 30000000
+     }
+    },
+    {
+     "week": 72,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-seedling-angel"
+     }
+    },
+    {
+     "week": 72,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m4"
+     }
+    },
+    {
+     "week": 87,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 100,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 113,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 126,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 139,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    }
+   ],
+   "finalHash": "4f59a0a15fb40fb5",
+   "endWeek": 150,
+   "result": null
+  },
+  {
+   "seed": 7,
+   "weeks": 150,
+   "setup": {
+    "seed": 7,
+    "sector": "b2b-saas",
+    "thesis": "talent-war",
+    "founder": "engineer",
+    "coFounder": false,
+    "startWeekOfYear": 41,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "c0ce6359050d",
+    "balanceVersion": "c6d14b4f4dbc"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c0-0",
+      "salaryYr": 22911105,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c5-0",
+      "salaryYr": 24610293,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 14,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 15,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 15,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 21,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 21,
+     "seq": 1,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 22,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 22,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m2"
+     }
+    },
+    {
+     "week": 51,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "seed",
+      "targetCents": 30000000
+     }
+    },
+    {
+     "week": 52,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 52,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m3"
+     }
+    },
+    {
+     "week": 67,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 80,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 93,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 106,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 119,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 132,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    },
+    {
+     "week": 145,
+     "seq": 0,
+     "cmd": {
+      "t": "boardVote",
+      "motion": "approveBudget"
+     }
+    }
+   ],
+   "finalHash": "1f9bde0c56b9e1e9",
+   "endWeek": 150,
+   "result": null
+  }
+ ]
+}

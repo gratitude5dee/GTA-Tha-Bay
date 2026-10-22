@@ -179,7 +179,7 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
-  await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
+  await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
   // M03b1/M03b2 integration: the ambient traffic, pedestrians and transit vehicles move between two captures, so the goldens are taken
   // without them (their groups are hidden; the goldens predate them). The groups are children of the scene, so the shadow pass skips them too.
   await page.evaluate(() => {
@@ -189,7 +189,7 @@ async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba
   });
   await page.evaluate((id) => (window as unknown as W).__dvBridge.world.shot(id), shot);
   await frames(page, 2);
-  const buf = await page.locator('canvas').first().screenshot();
+  const buf = await page.locator('#dv-engine-canvas').screenshot();
   return decodePng(buf);
 }
 
@@ -217,7 +217,7 @@ test.describe('look goldens @look-golden', () => {
       expect(first).toMatchObject({ width: GOLDEN_VIEWPORT.width, height: GOLDEN_VIEWPORT.height });
       // Two consecutive captures of one shot are byte-identical.
       await frames(page, 2);
-      const second = decodePng(await page.locator('canvas').first().screenshot());
+      const second = decodePng(await page.locator('#dv-engine-canvas').screenshot());
       expect(identical(first, second), 'two consecutive captures differ').toBe(true);
       if (update) {
         mkdirSync(GOLDEN_DIR, { recursive: true });
@@ -272,7 +272,7 @@ test.describe('look before and after @look-compare', () => {
       // Boot and place the shot at the small size (the software renderer needs seconds per frame at 960 x 540 and the shot waits for
       // many frames), then grow the viewport for the capture only: the aspect is 16:9 in both, so the frustum and the residents stay.
       await bootWorld(page, 'desktop', '', GOLDEN_VIEWPORT);
-      await page.addStyleTag({ content: '.dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
+      await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
       const tiles: Rgba[] = [];
       const means: Record<string, number> = {};
       for (const id of COMPARE_SHOTS) {
@@ -285,7 +285,7 @@ test.describe('look before and after @look-compare', () => {
           await frames(page, 2);
           // Stop the loop so the element screenshot does not wait on new frames; the canvas keeps the last one.
           await page.evaluate(() => (window as unknown as W).__dvBridge.world.hold(true));
-          pair.push(decodePng(await page.locator('canvas').first().screenshot()));
+          pair.push(decodePng(await page.locator('#dv-engine-canvas').screenshot()));
           await page.evaluate(() => (window as unknown as W).__dvBridge.world.hold(false));
           await page.setViewportSize(GOLDEN_VIEWPORT);
         }

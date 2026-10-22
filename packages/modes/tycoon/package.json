@@ -1,0 +1,20 @@
+{
+  "name": "@dv/mode-tycoon",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sim": "./src/sim/index.ts",
+    "./qa": "./src/qa/index.ts",
+    "./qa/bridge": "./src/qa/bridge.ts"
+  },
+  "scripts": {
+    "test": "tsx ../../../tools/ci/run.ts vitest --pkg packages/modes/tycoon",
+    "golden:write": "tsx scripts/write-golden.ts"
+  },
+  "dependencies": {
+    "@dv/shared": "workspace:*",
+    "preact": "11.0.1"
+  }
+}

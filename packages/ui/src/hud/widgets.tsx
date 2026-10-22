@@ -116,10 +116,24 @@ export function ClockWeather(props: { clock: HudClock | undefined }) {
   );
 }
 
-export function AreaBanner(props: { area: { name: string } | undefined }) {
-  if (!props.area?.name) return null;
-  return <div class="dv-area" data-testid="hud-area" role="status">{props.area.name}</div>;
+/**
+ * The area banner (`hud.area`). M02c2 patches `{ key: 'nhood.<slug>' }` on a neighbourhood change (at most once per 3 s) and the banner
+ * shows the localized name for 4 s; a plain `{ name }` stays as it was.
+ */
+export function AreaBanner(props: { area: { name?: string; key?: string } | undefined }) {
+  const key = props.area?.key;
+  const [shown, setShown] = useState<string | undefined>(key);
+  useEffect(() => {
+    if (!key) return undefined;
+    setShown(key);
+    const id = setTimeout(() => setShown(undefined), AREA_BANNER_MS);
+    return () => clearTimeout(id);
+  }, [key]);
+  const text = key ? (shown ? t(shown) : '') : (props.area?.name ?? '');
+  if (!text) return null;
+  return <div class="dv-area" data-testid="hud-area" data-area={key ?? ''} role="status">{text}</div>;
 }
+const AREA_BANNER_MS = 4000;
 
 export interface ObjectiveView { title?: string; text?: string; timerSec?: number; assist?: boolean }
 export function ObjectiveTracker(props: { objective: ObjectiveView | undefined }) {
@@ -242,15 +256,6 @@ export function SaveIndicator(props: { state: 'saving' | 'saved' | 'failed' | un
 export function NetStatus(props: { ok: boolean | undefined }) {
   if (props.ok === undefined) return null;
   return <StatusChip status={STATUS[props.ok ? 'net.ok' : 'net.bad'] as StatusDef} testId="hud-net" />;
-}
-
-/** The empty frame of the minimap (M02c2 draws into it). A canvas keeps its place so the draw code only needs `getElementById`. */
-export function MinimapFrame() {
-  return (
-    <div class="dv-minimap" data-testid="hud-minimap" role="img" aria-label={t('hud.minimap.label')}>
-      <canvas id="dv-minimap-canvas" width={160} height={160} />
-    </div>
-  );
 }
 
 export function SandboxChip() {

@@ -46,6 +46,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     const manifests = readdirSync(path.join(b.outDir, 'manifests'));
     expect(manifests).toHaveLength(nBlobs);
     expect(manifests).toContain('map_data.sf-graph.v1.json');
+    for (const id of ['sf-map.v1', 'sf-map-bldg.v1', 'sf-geocode.v1']) expect(manifests).toContain(`map_data.${id}.json`);
     expect(manifests).toContain('data.transit-routes.v1.json');
     expect(manifests).toContain('texture.far-bay-cards.json');
     expect(manifests).toContain('world_pack.p0-64-64.json');
@@ -54,11 +55,11 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
 
     const validate = schemaValidator('provenance-1.0');
     const records = walkFiles(path.join(b.outDir, 'provenance')).map((f) => JSON.parse(readFileSync(f, 'utf8')) as { sha256: string; origin: string; derived_from: string[] });
-    expect(records).toHaveLength(nBlobs + 10); // one per blob and one per source stamp (nine raw sources and content-world)
+    expect(records).toHaveLength(nBlobs + 11); // one per blob and one per source stamp (ten raw sources and content-world)
     for (const rec of records) expect(validate(rec), rec.sha256).toEqual([]);
     expect(records.filter((x) => x.origin === 'derived')).toHaveLength(nBlobs);
     expect(records.filter((x) => x.origin === 'open_data')).toHaveLength(5);
-    expect(records.filter((x) => x.origin === 'authored')).toHaveLength(5); // the synthetic OSM, street, stop and pattern parts and content-world
+    expect(records.filter((x) => x.origin === 'authored')).toHaveLength(6); // the synthetic OSM, street, stop, pattern and address parts and content-world
 
     for (const m of r.packed.manifests) {
       const blob = r.packed.blobs.find((x) => x.ref === `${m.kind}/${m.id}`)!;
@@ -69,7 +70,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     const bySha = new Map(r.packed.records.map((x) => [x.sha256, x]));
     for (const blob of r.packed.blobs) {
       const rec = bySha.get(blob.sha256)!;
-      expect(rec.derived_from).toHaveLength(10);
+      expect(rec.derived_from).toHaveLength(11);
       expect(rootRecord(blob.sha256, bySha)).toBeDefined();
     }
     expect(sha256Hex(readFileSync(lockFile))).toBe(lockBefore);
@@ -83,7 +84,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     const fragment = JSON.parse(readFileSync(path.join(b.outDir, 'catalog.fragment.json'), 'utf8')) as { bakeId: string; entries: AssetManifest[] };
     expect(fragment.bakeId).toBe(b.result.bakeId);
     const packs = fragment.entries.filter((e) => e.kind === 'world_pack');
-    expect(packs).toHaveLength(readdirSync(path.join(b.outDir, 'packs')).filter((n) => n.endsWith('.pack') && !n.startsWith('sf-graph')).length);
+    expect(packs).toHaveLength(readdirSync(path.join(b.outDir, 'packs')).filter((n) => n.endsWith('.pack') && !n.startsWith('sf-')).length);
     expect(fragment.entries.map((e) => `${e.kind}/${e.id}`)).toEqual([...fragment.entries.map((e) => `${e.kind}/${e.id}`)].sort());
     for (const e of fragment.entries) for (const tier of TIERS) expect(resolveVariant(e, tier)).toBe(e.variants.default);
   });
@@ -141,7 +142,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     expect(existsSync(path.join(root, 'assets', 'assets.lock.json'))).toBe(false);
     expect(existsSync(path.join(root, 'apps'))).toBe(false);
     const recs = walkFiles(path.join(root, 'assets', 'provenance'));
-    expect(recs).toHaveLength(ok.packed.blobs.length + 10);
+    expect(recs).toHaveLength(ok.packed.blobs.length + 11);
   });
 
   it('never invents the committed pointers or the main lock', () => {

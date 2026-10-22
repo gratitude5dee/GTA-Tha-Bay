@@ -10,6 +10,7 @@ import { WORLD_PORT, type WorldSimConfig } from '../sim/streaming/channel.ts';
 import { bootSet, groundHeightAt, spawnPose, type BootSet } from '../sim/streaming/boot.ts';
 import type { LandmarkSpot } from './chunks/landmark-layer.ts';
 import { WorldView, type WorldViewLabels } from './world-view.ts';
+import type { AreaBannerPatch } from './map/banner.ts';
 
 /** Whether the catalog resolves `data/world-index` (the boot rule's second input). False without a catalog or a world in it. */
 export async function hasWorldIndex(assets: AssetClient): Promise<boolean> {
@@ -34,6 +35,8 @@ export interface PrepareWorldOptions {
   container: HTMLElement;
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
   qa?: boolean;
+  /** M02c2: called for each neighbourhood banner (`nhood.<slug>`); the app patches `hud.area`. */
+  onArea?: (p: AreaBannerPatch) => void;
 }
 
 export interface PreparedWorld {
@@ -116,6 +119,8 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     ...(await refsFor('world_pack/p0-')),
     ...(await refsFor('map_data/sf-graph')),
     ...(await refsFor('data/district-grid')),
+    // M02c2: the offline geocoder behind `findPlace`; a catalog without it just searches landmarks and points of interest
+    ...(await refsFor('map_data/sf-geocode').catch(() => ({}) as WorldSimConfig['refs'])),
     // M03b2: the baked transit routes (buses, Metro, ferries, cable cars, air corridors); a catalog without them just has no transit
     ...(await refsFor('data/transit-routes').catch(() => ({}) as WorldSimConfig['refs'])),
   };
@@ -143,6 +148,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     bytesBase: base,
     ...(o.emit ? { emit: o.emit } : {}),
     ...(o.qa ? { qa: true } : {}),
+    ...(o.onArea ? { onArea: o.onArea } : {}),
   });
 
   const boot: WorldBoot = {

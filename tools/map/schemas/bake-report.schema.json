@@ -43,6 +43,8 @@
     "lod": { "type": "object" },
     "far": { "type": "object" },
     "districtGrid": { "type": "object" },
+    "map": { "type": "object" },
+    "geocode": { "type": "object" },
     "buildings": {
       "type": "object",
       "required": ["rows", "baked", "dropped", "records", "osm"],

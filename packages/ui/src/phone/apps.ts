@@ -51,7 +51,7 @@ export function appScreen(id: string, env: PhoneEnv): ScreenDef {
   const head = (key: string): Widget[] => [{ k: 'heading', text: lk(key), level: 1 }];
   switch (id) {
     case 'map':
-      return { id: 'app-map', title: lk('phone.app.map'), children: [...head('phone.app.map'), { k: 'text', text: lk('phone.map.note'), tone: 'muted' }, back()] };
+      return { id: 'app-map', title: lk('phone.app.map'), children: [...head('phone.app.map'), { k: 'text', text: lk('phone.map.unavailable'), tone: 'muted' }, back()] };
     case 'jobs':
       return {
         id: 'app-jobs',

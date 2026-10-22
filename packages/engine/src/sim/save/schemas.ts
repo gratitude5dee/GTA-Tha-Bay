@@ -4,6 +4,7 @@ import coreV1 from './schema/core.v1.schema.json';
 import settingsV1 from './schema/settings.v1.schema.json';
 import storyV1 from './schema/story.v1.schema.json';
 import sandboxV1 from './schema/sandbox.v1.schema.json';
+import tycoonV1 from '../../../../shared/schemas/tycoon/slice-1.schema.json';
 import { validateSchema, type JsonSchema } from './validate.ts';
 
 export const ENVELOPE_SCHEMA = envelopeJson as unknown as JsonSchema;
@@ -14,6 +15,8 @@ export const SLICE_SCHEMAS: Partial<Record<SliceKind, Record<number, JsonSchema>
   settings: { 1: settingsV1 as unknown as JsonSchema },
   story: { 1: storyV1 as unknown as JsonSchema },
   sandbox: { 1: sandboxV1 as unknown as JsonSchema },
+  // M09a1: the tycoon slice schema is owned by the shared tycoon core (packages/shared/schemas/tycoon).
+  tycoon: { 1: tycoonV1 as unknown as JsonSchema },
 };
 
 /** The schema version this build writes for each kind. */

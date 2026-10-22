@@ -56,3 +56,15 @@ pnpm assets:publish -- --env staging
 The first live run uploads every blob and the manifest and reports `uploaded N of N objects`; the second reports `uploaded 0`. Paste both summaries into the milestone PR. The publish step writes the pointer (`apps/web/public/asset-catalog.json` and `services/edge/src/generated/asset-catalog.json`); commit both, and deploy the Worker so `GET /api/v1/boot` returns the new manifest key in `assetCatalog`.
 
 Never upload gzip-encoded objects: Cloudflare decompresses `Content-Encoding: gzip` objects and breaks Range requests, so the publisher never sets that header.
+
+## 7. World release (M02c2; DL-661, DL-662, DL-688, DL-695)
+
+The sf world (map packs, graph, chunks, landmarks) reaches a deployed Worker only through a world pointer. Nothing is public until the ODbL offer exists.
+
+1. Bake: `pnpm map:build -- --area sf` (operator workstation, `.cache/map/raw/sf` from `pnpm map:fetch`), then `pnpm map:pack -- --bake <bakeId> --target dir:<dir>` for a local mirror, or the R2 target of section 6.
+2. Offer first: `config/world/sources.json` carries `offerUrl` on the `osm` row (outside the `bakeId` hash). `pnpm assets:publish -- --env <staging|production> --world sf --bake <bakeId>` uploads `odbl/<bakeId>/{bake-scripts.tar.gz, sf.lock.json, index.json}` in the same run as the packs and prints the offer URL. Copy that URL into `offerUrl` of the `osm` row, run `pnpm map:build` again (the pack step copies it into `config/attribution.world.json`), and commit.
+3. Pointer: the publish writes `assets/world/pointer.<env>.json` and `pointer.<env>.meta.json` (SHA-256 of both locks and of the world index). Commit both. `<env>` is the release key: `staging` or `production`; an absent `--env` means production.
+4. Release: set `config/world/release.json` `staging` (then `production`) to `"sf"` in a PR. `pnpm deploy:prod [-- --env staging]` fails with `world release <env>: pointer built from lock <a>, current lock <b>` when a lock changed after the pointer was published; re-run step 3. `pnpm check:assets` warns when a release names a world without a pointer.
+5. Credits: the build writes `dist/credits.json` (`pnpm build` ends with `provenance-check --emit-credits --emit-only`); it carries every `config/attribution.world.json` entry and the ODbL notice. `deploy:prod` runs `tools/ci/odbl-offer.ts` (`odblOffer`) on the attribution file and the built `credits.json` and fails when the offer URL is missing from either.
+
+Secrets: `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY` for the upload; without them the publish prints `SKIP ... R2_ACCESS_KEY_ID not set` and writes nothing.
