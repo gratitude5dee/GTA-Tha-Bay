@@ -176,3 +176,51 @@ body {
 .dv-doc p {
   margin-block: 0 var(--dv-space-2);
 }
+
+/* Cutscene overlay (M04c): above the covering clip; the HUD is hidden while the host sets data-dv-cutscene. */
+[data-dv-cutscene] .dv-hud {
+  display: none;
+}
+
+.dv-cutscene {
+  position: absolute;
+  inset: 0;
+  color: var(--dv-color-text);
+  pointer-events: auto;
+}
+
+.dv-cutscene-chip {
+  position: absolute;
+  inset-block-start: max(env(safe-area-inset-top), var(--dv-space-3));
+  inset-inline-start: max(env(safe-area-inset-left), var(--dv-space-3));
+  display: flex;
+  gap: var(--dv-space-2);
+  align-items: baseline;
+  padding: var(--dv-space-1) var(--dv-space-3);
+  border-radius: var(--dv-radius-md);
+  background: rgb(0 0 0 / 0.65);
+  font-size: var(--dv-text-sm);
+}
+
+.dv-cutscene-skip {
+  position: absolute;
+  inset-block-start: max(env(safe-area-inset-top), var(--dv-space-3));
+  inset-inline-end: max(env(safe-area-inset-right), var(--dv-space-3));
+}
+
+.dv-cutscene-sub {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: max(env(safe-area-inset-bottom), var(--dv-space-6));
+  margin: 0 auto;
+  max-inline-size: min(48rem, 90%);
+  padding: var(--dv-space-2) var(--dv-space-3);
+  text-align: center;
+  background: rgb(0 0 0 / 0.65);
+  border-radius: var(--dv-radius-md);
+  font-size: var(--dv-text-md);
+}
+
+.dv-cutscene-sub:empty {
+  display: none;
+}
