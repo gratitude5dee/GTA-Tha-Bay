@@ -1,12 +1,12 @@
 /**
  * m.a1.05 Turntable Battle (Act 1, D4 at Powell and Market; 03-story-narrative.md B4). Saint Static texts the player about the Chorus street
  * exhibition at the cable-car turntable. Walk to the plaza, watch the ring form, talk the host (a roster slot; it only announces and signs the
- * player up), then the fighter hook `fight.a1.turntable` (`bout.a5`: the new-wave opponent, a sanctioned exhibition bout, CPU Normal). Both a
+ * player up), then the fighter hook `fight-a1-turntable` (`bout.a5`: the new-wave opponent, a sanctioned exhibition bout, CPU Normal). Both a
  * win and a loss pass. Until the fighter mode ships the stub runs: knock down `chorus_sparrer`, non-lethal. The first encounter emits
  * `unlock.fighter`; the pass grants `unlock.fighter.rap_new_wave` (a stand-in while the roster is absent). Win bonus: another $1,000.
  */
 import {
-  at, beat, circle, defeat, defineMission, failWhen, goto, ifOp, give, ko, modeHook, modeObjective, modeResult, npc, passed, phoneTrigger, say, spawn, stage, talk, talkDef,
+  at, beat, circle, defeat, defineMission, failWhen, goto, ifOp, give, ko, modeHook, modeObjective, modeResult, npc, passed, phoneTrigger, say, stage, talk, talkDef,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -23,7 +23,7 @@ export default defineMission({
   cast: {
     host: npc({ slot: 'RAP_HYPHY_ELDER', role: 'host', spawn: at(37.78466, -122.40764) }),
     rival: npc({ slot: 'RAP_NEW_WAVE', role: 'opponent', spawn: at(37.78474, -122.40780) }),
-    sparrer: npc({ soul: 'chorus_sparrer', role: 'civilian', spawn: at(37.78476, -122.40775), spawnAt: 'manual' }),
+    sparrer: npc({ soul: 'chorus_sparrer', role: 'civilian', spawn: at(37.78476, -122.40775) }),
   },
   zones: {
     plaza: circle(37.7847, -122.4077, 22),
@@ -51,14 +51,14 @@ export default defineMission({
       ],
       { next: 'bout' },
     ),
-    stage('bout', [modeObjective('turntable', { id: 'mode_turntable' })], {
-      onEnter: [spawn('sparrer'), say('host', 'line.m.a1.05.bout')],
-      onComplete: [ifOp(modeResult('turntable', ['win']), [give('a1.05.win', { cashCents: 100_000 }), say('host', 'line.m.a1.05.win')], [say('host', 'line.m.a1.05.lose')])],
+    stage('bout', [modeObjective('fight-a1-turntable', { id: 'mode_turntable' })], {
+      onEnter: [say('host', 'line.m.a1.05.bout')],
+      onComplete: [ifOp(modeResult('fight-a1-turntable', ['win']), [give('a1.05.win', { cashCents: 100_000 }), say('host', 'line.m.a1.05.win')], [say('host', 'line.m.a1.05.lose')])],
     }),
   ],
   modeHooks: [
     modeHook({
-      id: 'turntable',
+      id: 'fight-a1-turntable',
       mode: 'fighter',
       defId: 'bout.a5',
       params: { kind: 'story' },

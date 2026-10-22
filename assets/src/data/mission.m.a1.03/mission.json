@@ -88,7 +88,7 @@
   "modeHooks": [
     {
       "defId": "sf.pursuit.bayview-escape",
-      "id": "sideshow_escape",
+      "id": "race-a1-sideshow-escape",
       "mode": "racing",
       "passOn": [
         "win",
@@ -214,10 +214,10 @@
       "join": "all",
       "objectives": [
         {
-          "hook": "sideshow_escape",
-          "id": "sideshow_escape_obj",
+          "hook": "race-a1-sideshow-escape",
+          "id": "mode_sideshow",
           "k": "mode",
-          "text": "mission.m.a1.03.obj.sideshow_escape_obj"
+          "text": "mission.m.a1.03.obj.mode_sideshow"
         }
       ],
       "onEnter": [

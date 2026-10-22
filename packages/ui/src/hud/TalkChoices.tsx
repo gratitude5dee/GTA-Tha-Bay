@@ -36,7 +36,30 @@ export function hintText(c: TalkChoice): string {
   return t(c.hint, vars);
 }
 
-/** The panel as a pure function of its data (the unit test renders this). */
+export interface TalkButton {
+  id: string;
+  /** The number key that picks it (1 to 9). */
+  key: number;
+  label: string;
+  enabled: boolean;
+  /** The localized reason a gated outcome is off; empty when it is on. */
+  hint: string;
+}
+
+/** What the panel draws, in order: a button per outcome with its label and, when gated, its hint. */
+export function talkButtons(talk: TalkView): TalkButton[] {
+  return talk.choices.map((c, i) => ({ id: c.id, key: i + 1, label: contentText(c.label), enabled: c.enabled, hint: c.enabled ? '' : hintText(c) }));
+}
+
+/** The outcome a number key picks, or null when the key is not a number, out of range, or the outcome is gated. */
+export function pickByKey(talk: TalkView, key: string): string | null {
+  const n = Number.parseInt(key, 10);
+  if (!Number.isInteger(n) || n < 1 || n > talk.choices.length) return null;
+  const c = talk.choices[n - 1];
+  return c?.enabled ? c.id : null;
+}
+
+/** The panel. */
 export function TalkChoices(props: { talk: TalkView; onPick(talkId: string, outcome: string): void }) {
   const { talk } = props;
   const root = useRef<HTMLElement>(null);
@@ -45,12 +68,10 @@ export function TalkChoices(props: { talk: TalkView; onPick(talkId: string, outc
   }, [talk.talkId]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      const n = Number.parseInt(e.key, 10);
-      if (!Number.isInteger(n) || n < 1 || n > talk.choices.length) return;
-      const c = talk.choices[n - 1];
-      if (c?.enabled) {
+      const id = pickByKey(talk, e.key);
+      if (id !== null) {
         e.preventDefault();
-        props.onPick(talk.talkId, c.id);
+        props.onPick(talk.talkId, id);
       }
     };
     window.addEventListener('keydown', onKey);

@@ -1,8 +1,8 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "e5e27937e992dce0d183e31596183e56457292b3293c2c003af2c52ab5a31eff",
+  "sha256": "d6622a4db81797d9563e8f7bbbc606229d34bb098bc87bc9bbd2cb59aadeed07",
   "paths": [
-    "assets/src/data/mission.m.a1.05/mission.json"
+    "assets/src/data/lines.1.en/lines.json"
   ],
   "kind": "data",
   "origin": "authored",
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T19:39:19Z"
+  "created_at": "2026-10-22T20:01:23Z"
 }

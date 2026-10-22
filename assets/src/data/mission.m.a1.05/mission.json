@@ -50,7 +50,6 @@
         ],
         "snap": "ground"
       },
-      "spawnAt": "manual",
       "who": {
         "soul": "chorus_sparrer"
       }
@@ -89,7 +88,7 @@
   "modeHooks": [
     {
       "defId": "bout.a5",
-      "id": "turntable",
+      "id": "fight-a1-turntable",
       "mode": "fighter",
       "params": {
         "kind": "story"
@@ -204,7 +203,7 @@
       "join": "all",
       "objectives": [
         {
-          "hook": "turntable",
+          "hook": "fight-a1-turntable",
           "id": "mode_turntable",
           "k": "mode",
           "text": "mission.m.a1.05.obj.mode_turntable"
@@ -213,7 +212,7 @@
       "onComplete": [
         {
           "cond": {
-            "hook": "turntable",
+            "hook": "fight-a1-turntable",
             "outcome": [
               "win"
             ],
@@ -242,12 +241,6 @@
         }
       ],
       "onEnter": [
-        {
-          "cast": [
-            "sparrer"
-          ],
-          "op": "spawn"
-        },
         {
           "line": "line.m.a1.05.bout",
           "op": "say",

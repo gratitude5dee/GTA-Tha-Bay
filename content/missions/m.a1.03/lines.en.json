@@ -18,7 +18,7 @@
     "mission.m.a1.03.obj.follow_tavi": "Follow Tavi to the lot",
     "mission.m.a1.03.obj.goto_gate": "Meet Tavi at the Yard gate",
     "mission.m.a1.03.obj.goto_yard": "Get back to the Yard",
-    "mission.m.a1.03.obj.sideshow_escape_obj": "Get away from the lot",
+    "mission.m.a1.03.obj.mode_sideshow": "Get away from the lot",
     "mission.m.a1.03.title": "Sideshow Sunday"
   }
 }
