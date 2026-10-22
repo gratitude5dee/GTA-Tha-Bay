@@ -99,6 +99,22 @@ test.describe('npc dialogue panel @npc-dialogue', () => {
     expect(errors).toEqual([]);
   });
 
+  test('?npc=local streams a recorded reply made in the browser, with the badge and an honest label', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.goto('/?play=off&tier=mobile-low&npc=local');
+    await waitForEngine(page);
+    await page.waitForFunction(() => (window as unknown as W).__dvBridge.npc !== undefined, undefined, { timeout: 60_000 });
+    await page.getByTestId('npc-greet').click();
+    await expect(page.getByTestId('npc-line')).toHaveText(INK_GREETING);
+    await expect(page.getByTestId('npc-ai-badge')).toBeVisible();
+    await expect(page.getByTestId('npc-meta')).toContainText('recorded in this browser');
+    const turn = await page.evaluate(() => (window as unknown as W).__dvBridge.npc.last());
+    expect(turn).toMatchObject({ source: 'llm', mode: 'local-fixture', aiCharacter: true });
+    expect(errors).toEqual([]);
+  });
+
   test('drops the partial line and plays the deflect knot when the Worker sends a fallback after some text', async ({ page }) => {
     await boot(page);
     await page.evaluate(() => (window as unknown as W).__dvBridge.npc.setAuthHeader('PlayToken e2e'));

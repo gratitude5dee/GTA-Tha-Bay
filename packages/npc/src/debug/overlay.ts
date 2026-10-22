@@ -204,7 +204,7 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
 
   const sourceLabel = (r: DebugTurnResult): string => {
     if (r.source === 'ink') return r.mode === null && r.events.every((e) => e.event !== 'meta') ? 'ink (no stream from the Worker: no play token, offline, or dialogue off)' : 'ink (fallback)';
-    return r.mode === 'fixture' ? 'recorded fixture, not a live model' : r.mode === 'live' ? 'live model' : 'model';
+    return r.mode === 'local-fixture' ? 'recorded in this browser (?npc=local), no Worker' : r.mode === 'fixture' ? 'recorded fixture, not a live model' : r.mode === 'live' ? 'live model' : 'model';
   };
   const render = (): void => {
     const r = bridge.last();
