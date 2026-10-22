@@ -27,6 +27,8 @@ export interface BinderDeps {
   prefs: PrefsStore;
   setTimer?(fn: () => void, ms: number): unknown;
   clearTimer?(h: unknown): void;
+  /** Called when a profile value was set locally, so the page shows it before the sim echoes it. */
+  changed?(): void;
 }
 
 export interface SettingsBinderApi {
@@ -120,6 +122,7 @@ export class SettingsBinder implements SettingsBinderApi {
     setPath(this.pending, path, value);
     if (this.timer !== null) (this.d.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)))(this.timer);
     this.timer = this.after(() => this.flush(), PROFILE_DEBOUNCE_MS);
+    this.d.changed?.();
   }
 
   flush(): void {

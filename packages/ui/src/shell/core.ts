@@ -84,6 +84,7 @@ export class ShellCore implements ShellApi {
       sendUi: (c) => this.sendUi(c),
       platform: () => this.platform,
       prefs: props.prefs,
+      changed: () => this.touch(),
     });
     this.guard = new InstanceGuard(channel);
     this.guard.onChange(() => this.touch());

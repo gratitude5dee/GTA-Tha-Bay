@@ -49,6 +49,14 @@ describe('settings binding (AC-11)', () => {
     vi.useRealTimers();
   });
 
+  it('tells the shell about a local profile change at once, so the page redraws before the sim echoes it', () => {
+    const changed = vi.fn();
+    const binder = new SettingsBinder({ base: () => null, sendUi: () => true, platform: () => null, prefs: memoryPrefs(defaultPrefs()), changed });
+    binder.set({ scope: 'profile', path: 'audio.master' }, 0.5);
+    expect(changed).toHaveBeenCalledTimes(1);
+    binder.flush();
+  });
+
   it('shows a profile change at once (overlay) and drops it when the sim echoes the value', () => {
     const { binder, base } = setup();
     expect(binder.get({ scope: 'profile', path: 'audio.master' })).toBe(1);
