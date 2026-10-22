@@ -15,10 +15,17 @@ import type { NpcBridge } from '@dv/npc/debug';
 import type { LipSyncTarget, TtsAudioHost } from '@dv/npc/voice';
 import soulsIndex from '../../../../content/npcs/souls.index.json';
 import npcTestInk from '../../../../assets/src/data/ink.npc_test/ink.json?raw';
+import roBatistaInk from '../../../../assets/src/data/ink.ro-batista/ink.json?raw';
 import type { IdentityWiring } from '../identity.ts';
 import { babbleChunks } from './babble.ts';
 
-const NPC_ID = 'npc_test';
+/**
+ * The panel talks to `npc_test` (no voice: its soul has tier text) or, with `?npcId=ro-batista`, to the original voiced hero (tier t1: Aura through
+ * the Worker, a synthetic tone in `?npc=local`). Both are bundled into the Worker's fixture mode.
+ */
+const INK: Record<string, string> = { npc_test: npcTestInk, 'ro-batista': roBatistaInk };
+const wanted = typeof location === 'undefined' ? '' : (new URLSearchParams(location.search).get('npcId') ?? '');
+const NPC_ID = wanted in INK ? wanted : 'npc_test';
 
 const LINES: Record<string, string> = {
   greet: 'Good day. Please confirm the lot is clear.',
@@ -79,7 +86,6 @@ export async function installNpcQa(identity: IdentityWiring, audio: NpcQaAudio |
     import('@dv/npc/debug'),
     import('@dv/npc/voice'),
   ]);
-  const version = (soulsIndex as { souls: Record<string, { soulVersion: number }> }).souls[NPC_ID]?.soulVersion ?? 1;
   const local = new URLSearchParams(location.search).get('npc') === 'local';
   let bridge: NpcBridge | null = null;
   let override: string | null = local ? 'PlayToken local-fixture' : null;
@@ -107,8 +113,8 @@ export async function installNpcQa(identity: IdentityWiring, audio: NpcQaAudio |
       return service === null ? null : service.authHeader();
     },
     ...(local ? { fetch: localFixtureFetch(fetch.bind(globalThis)) } : {}),
-    soulVersionOf: (id) => (id === NPC_ID ? version : null),
-    loadInk: (id) => (id === NPC_ID ? Promise.resolve(npcTestInk) : Promise.reject(new Error(`no ink bundled for ${id}`))),
+    soulVersionOf: (id) => (INK[id] !== undefined ? ((soulsIndex as { souls: Record<string, { soulVersion: number }> }).souls[id]?.soulVersion ?? 1) : null),
+    loadInk: (id) => (INK[id] !== undefined ? Promise.resolve(INK[id] as string) : Promise.reject(new Error(`no ink bundled for ${id}`))),
     onResponse: (res) => bridge?.noteResponse(res),
     ...(player === null ? {} : { voice: player, settings: () => ({ aiDialogue: true, voice: 'all' as const }) }),
   });

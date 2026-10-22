@@ -5,6 +5,7 @@ import { requestCountry } from '../geo.ts';
 import { CRON_JOBS, JOBS, runJobs, type JobName } from '../ops/scheduled.ts';
 import { authenticatePlayer } from '../id/tofu.ts';
 import type { EncounterDO, TurnUsage } from '../npc/EncounterDO.ts';
+import { auraSpeak } from '../npc/ai.ts';
 import { UUIDV7_PATTERN } from '../uuidv7.ts';
 import type { Ctx, Route } from '../router.ts';
 
@@ -72,6 +73,41 @@ async function handleNpcUsage(ctx: Ctx): Promise<Response> {
   return json({ turns: (await stub.usages()) as TurnUsage[] });
 }
 
+/** What the first bytes of a TTS answer say about its container. */
+function sniffAudio(b: Uint8Array): 'mp3' | 'wav' | 'ogg' | 'flac' | 'unknown' {
+  const ascii = (from: number, n: number): string => String.fromCharCode(...b.subarray(from, from + n));
+  if (ascii(0, 3) === 'ID3' || (b[0] === 0xff && ((b[1] ?? 0) & 0xe0) === 0xe0)) return 'mp3';
+  if (ascii(0, 4) === 'RIFF') return 'wav';
+  if (ascii(0, 4) === 'OggS') return 'ogg';
+  if (ascii(0, 4) === 'fLaC') return 'flac';
+  return 'unknown';
+}
+
+const TTS_MODELS: Record<string, string> = { 'aura-1': '@cf/deepgram/aura-1', 'aura-2': '@cf/deepgram/aura-2-en' };
+
+/**
+ * POST /api/v1/_test/npc/tts?model=aura-1|aura-2&speaker=<name> with `{ "text": "..." }` (M06a4 AC-10): voices one sentence through the `AI` binding and
+ * answers what came back: the container sniffed from the first bytes, the size and the wall time. Never the audio. The suite `npc-tts` writes the
+ * readings to tests/reports/npc/tts.json, which settles U-NPC-05 (Aura-1 encoding and latency). Play token required; the text is at most 200 characters.
+ */
+async function handleNpcTts(ctx: Ctx): Promise<Response> {
+  const auth = await authenticatePlayer(ctx);
+  if (auth instanceof Response) return auth;
+  const model = TTS_MODELS[ctx.url.searchParams.get('model') ?? ''];
+  const speaker = ctx.url.searchParams.get('speaker') ?? '';
+  let text = '';
+  try {
+    text = String(((await ctx.request.json()) as { text?: unknown }).text ?? '');
+  } catch {
+    text = '';
+  }
+  if (model === undefined || !/^[a-z]{3,16}$/.test(speaker) || text.trim() === '' || text.length > 200) return apiError('bad_request', 'model, speaker and text (at most 200 characters) are required.', ctx.requestId);
+  if (ctx.env.AI === undefined) return apiError('feature_disabled', 'The AI binding is not available here.', ctx.requestId);
+  const r = await auraSpeak(ctx.env, model, speaker, text);
+  if (r === null) return json({ model, speaker, ok: false, bytes: 0, ms: null, container: 'unknown' });
+  return json({ model, speaker, ok: true, bytes: r.bytes.length, ms: r.ms, container: sniffAudio(r.bytes), head: Array.from(r.bytes.subarray(0, 4)) });
+}
+
 export const TEST_ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/_test/echo-country', handler: handleEchoCountry },
   { methods: ['GET'], path: '/api/v1/_test/fal-jwks', handler: handleFalJwks },
@@ -79,4 +115,5 @@ export const TEST_ROUTES: readonly Route[] = [
   { methods: ['POST'], path: '/api/v1/_test/run-scheduled', handler: handleRunScheduled },
   { methods: ['POST'], path: '/api/v1/_test/drain-queue', handler: handleDrainQueue },
   { methods: ['GET'], path: '/api/v1/_test/npc/usage', handler: handleNpcUsage },
+  { methods: ['POST'], path: '/api/v1/_test/npc/tts', handler: handleNpcTts },
 ];

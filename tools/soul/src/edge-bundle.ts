@@ -1,6 +1,6 @@
 /**
  * npc:edge-bundle (M06a3). Writes `services/edge/src/generated/npc-fixtures.json`: block A (the public example rules) and the compiled
- * `npc_test` soul, so the dialogue Worker has something to talk to where the PRIVATE bucket holds no souls (local runs, Workers
+* `npc_test` soul (M06a4 adds the original voiced hero `ro-batista`, so a Preview can speak with Aura), so the dialogue Worker has something to talk to where the PRIVATE bucket holds no souls (local runs, Workers
  * Previews, the Workers-runtime tests). The Worker reads this file only while `ANTHROPIC_MODE` is not `live`; a live Worker reads
  * block A and every soul from PRIVATE (`prompts/npc/rules@<n>.md`, `souls/<id>/<ver>/...`). `npc_test` is an original public
  * character (content/npcs/npc_test), so bundling it exposes nothing private.
@@ -18,7 +18,7 @@ import { compileToFiles } from './compile.ts';
 export const EDGE_BUNDLE_PATH = 'services/edge/src/generated/npc-fixtures.json';
 /** compiledAt of the bundled soul: fixed, so the file only changes when the sources do. */
 const FIXED_COMPILED_AT = Date.UTC(2026, 9, 22);
-export const BUNDLED_SOUL_IDS = ['npc_test'] as const;
+export const BUNDLED_SOUL_IDS = ['npc_test', 'ro-batista'] as const;
 
 export interface EdgeBundle {
   schema: 'npc-edge-fixtures/1';
