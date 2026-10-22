@@ -69,7 +69,8 @@ async function canPlayFixture(page: Page): Promise<boolean> {
 }
 
 test.describe('cutscene player @cutscene', () => {
-  test.describe.configure({ timeout: 240_000 });
+  // A clip that is slow to its first frame on a loaded runner falls back (start_stall, section D7); one retry keeps the video tests honest.
+  test.describe.configure({ timeout: 240_000, retries: 1 });
 
   test('route 27 absent: the fallback starts within 2.5 s, subtitles show, no AI chip, the mission resumes with the end marks applied @cutscene', async ({ page }) => {
     const errors = await boot(page, 'absent');

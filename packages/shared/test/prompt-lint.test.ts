@@ -36,7 +36,7 @@ describe('lintPrompt', () => {
   });
 
   it('rule 1: a denylist term and "in the style of"', () => {
-    expect(lintPrompt(`${clean} Like Rockstar.`, ctx()).rules).toEqual([1]);
+    expect(lintPrompt(`${clean} Like ${denylist.terms[0]}.`, ctx()).rules).toEqual([1]);
     expect(lintPrompt(`${clean} In the style of a famous painter.`, ctx()).rules).toEqual([1]);
     expect(lintPrompt(`${clean} In the manner of a famous painter.`, ctx()).rules).toEqual([1]);
   });
@@ -90,7 +90,7 @@ describe('lintPrompt', () => {
   });
 
   it('lists every failing rule once, ascending, and never throws', () => {
-    const r = lintPrompt('Rockstar pistol photoreal', ctx());
+    const r = lintPrompt(`${denylist.terms[0]} pistol photoreal`, ctx());
     expect(r.rules).toEqual([1, 2, 3, 5]);
     expect(() => lintPrompt('', ctx({ names: [], cast: [] }))).not.toThrow();
   });
