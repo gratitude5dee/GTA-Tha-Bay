@@ -1,0 +1,134 @@
+{
+  "v": 1,
+  "id": "compact",
+  "nameKey": "touch.layout.compact",
+  "context": "onFoot",
+  "handed": "right",
+  "widgets": [
+    {
+      "id": "move",
+      "kind": "stick",
+      "role": "move",
+      "zone": {
+        "x": 0.06,
+        "y": 0,
+        "w": 0.44,
+        "h": 0.93
+      }
+    },
+    {
+      "id": "look",
+      "kind": "lookzone",
+      "zone": {
+        "x": 0.5,
+        "y": 0,
+        "w": 0.44,
+        "h": 0.93
+      }
+    },
+    {
+      "id": "jump",
+      "kind": "button",
+      "action": "sim.Jump",
+      "at": {
+        "corner": "br",
+        "dx": 16,
+        "dy": 16
+      },
+      "sizePx": 56,
+      "icon": "jump",
+      "label": "touch.jump"
+    },
+    {
+      "id": "attack",
+      "kind": "button",
+      "action": "sim.Attack",
+      "at": {
+        "corner": "br",
+        "dx": 80,
+        "dy": 16
+      },
+      "sizePx": 48,
+      "icon": "attack",
+      "label": "touch.attack"
+    },
+    {
+      "id": "special",
+      "kind": "button",
+      "action": "sim.Special",
+      "at": {
+        "corner": "br",
+        "dx": 144,
+        "dy": 16
+      },
+      "sizePx": 44,
+      "icon": "special",
+      "label": "touch.special"
+    },
+    {
+      "id": "enter",
+      "kind": "button",
+      "action": "sim.Enter",
+      "at": {
+        "corner": "br",
+        "dx": 16,
+        "dy": 80
+      },
+      "sizePx": 48,
+      "icon": "enter",
+      "label": "touch.enter"
+    },
+    {
+      "id": "block",
+      "kind": "button",
+      "action": "sim.Block",
+      "at": {
+        "corner": "br",
+        "dx": 80,
+        "dy": 80
+      },
+      "sizePx": 44,
+      "icon": "block",
+      "label": "touch.block"
+    },
+    {
+      "id": "camera",
+      "kind": "button",
+      "action": "client.Camera",
+      "at": {
+        "corner": "br",
+        "dx": 144,
+        "dy": 68
+      },
+      "sizePx": 44,
+      "icon": "camera",
+      "label": "touch.camera"
+    },
+    {
+      "id": "pause",
+      "kind": "button",
+      "action": "client.Pause",
+      "at": {
+        "corner": "tr",
+        "dx": 12,
+        "dy": 12
+      },
+      "sizePx": 44,
+      "icon": "pause",
+      "label": "touch.pause"
+    },
+    {
+      "id": "phone",
+      "kind": "button",
+      "action": "client.Phone",
+      "at": {
+        "corner": "tr",
+        "dx": 64,
+        "dy": 12
+      },
+      "sizePx": 44,
+      "icon": "phone",
+      "label": "touch.phone"
+    }
+  ]
+}

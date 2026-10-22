@@ -110,6 +110,32 @@ export class AmbientTransit {
     });
     this.definePrefabs();
     this.registerHandler();
+    deps.services.ride = {
+      destinations: () => this.stations.map((s) => ({ id: s.id, nameKey: s.nameKey, x: s.x, z: s.z })),
+      fastTravelTo: async (toId) => {
+        const at = this.livePlayer();
+        let from: string | null = null;
+        let best = Infinity;
+        if (at) {
+          for (const s of this.stations) {
+            const d = (s.x - at[0]) * (s.x - at[0]) + (s.z - at[2]) * (s.z - at[2]);
+            if (d < best) {
+              best = d;
+              from = s.id;
+            }
+          }
+        }
+        // standing at the destination itself: ride from the next station on instead of refusing a same-station trip
+        if (from === toId) from = this.nextStationOf(toId);
+        if (!from) return { ok: false, messageKey: TELEPORT_MSG.unknownTarget };
+        const r = await this.ride.fastTravel(from, toId);
+        return r.ok ? { ok: true, cents: r.cents, kind: r.kind } : { ok: false, messageKey: r.messageKey };
+      },
+      callRobotaxi: async (to) => {
+        const r = await this.ride.callRobotaxi(to, 'point');
+        return r.ok ? { ok: true, cents: r.cents, kind: r.kind } : { ok: false, messageKey: r.messageKey };
+      },
+    };
   }
 
   private livePlayer(): [number, number, number] | null {

@@ -29,9 +29,17 @@ const ICONS: Readonly<Record<string, string>> = {
   reset: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z" fill="currentColor"/></svg>',
   behind: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6l-8 6 8 6v-4h8v-4h-8z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>',
+  attack: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19L17 7l2 2L7 21zM15 5l4-1-1 4z" fill="currentColor"/></svg>',
+  block: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" fill="currentColor"/></svg>',
+  special: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.4L21 9l-5 4.4L17.5 20 12 16.5 6.5 20 8 13.4 3 9l6.4-.6z" fill="currentColor"/></svg>',
+  interact: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h3v8h2l4 2v6H9l-4-6 2-1 2 2z" fill="currentColor"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8a1 1 0 011 1v16a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v12h6V5zm3 14a1 1 0 100 2 1 1 0 000-2z" fill="currentColor"/></svg>',
+  sprint: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4a2 2 0 110 4 2 2 0 010-4zM8 21l3-7-3-2 2-5 4 1 3 3-2 1-2-2-1 2 3 2v5h-2v-4l-2-1-2 6z" fill="currentColor"/></svg>',
 };
 
 export interface TouchOverlayOptions {
+  /** Button opacity, 0.2 to 1 (the layout's `opacity`). */
+  opacity?: number;
   /** Where the layer goes (the body). */
   container: HTMLElement;
   layout: TouchLayout;
@@ -63,15 +71,17 @@ export class TouchOverlay {
   private readonly base: HTMLElement;
   private readonly knob: HTMLElement;
   private readonly buttons = new Map<string, HTMLElement>();
-  private labels: Readonly<Record<string, string>> = {};
+  private readonly doc: Document;
+  private labels: Readonly<Record<string, string>>;
   private enabled = false;
   private device: DeviceKind = 'kbm';
   private readonly coarse: () => boolean;
 
   constructor(opts: TouchOverlayOptions) {
     const doc = opts.container.ownerDocument;
+    this.doc = doc;
     this.coarse = opts.coarsePointer ?? ((): boolean => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
-    const labels = { ...DEFAULT_LABELS, ...(opts.labels ?? {}) };
+    this.labels = { ...DEFAULT_LABELS, ...(opts.labels ?? {}) };
 
     const root = doc.createElement('div');
     root.className = 'dv-touch';
@@ -93,26 +103,21 @@ export class TouchOverlay {
     this.knob.hidden = true;
     root.append(this.hint, this.base, this.knob);
 
-    this.labels = labels;
-    this.buildButtons(opts.layout);
+    this.build(opts.layout, opts.opacity);
     opts.container.append(root);
     this.sync();
   }
 
-  /** Replaces the buttons with those of another layout (M07a1: racing has its own). */
-  setLayout(layout: TouchLayout): void {
-    if (this.root.dataset['layout'] === layout.id) return;
+  private build(layout: TouchLayout, opacity = 1): void {
+    this.sig = JSON.stringify([layout.widgets, opacity]);
     for (const b of this.buttons.values()) b.remove();
     this.buttons.clear();
     this.root.dataset['layout'] = layout.id;
-    this.buildButtons(layout);
-  }
-
-  private buildButtons(layout: TouchLayout): void {
-    const doc = this.root.ownerDocument;
+    this.root.dataset['handed'] = layout.handed;
+    this.root.style.setProperty('--dv-touch-opacity', String(opacity));
     for (const w of layout.widgets) {
       if (w.kind !== 'button') continue;
-      const b = doc.createElement('button');
+      const b = this.doc.createElement('button');
       b.type = 'button';
       b.className = `dv-touch-btn dv-touch-btn--${w.icon}`;
       b.dataset['dvBtn'] = w.id;
@@ -123,6 +128,20 @@ export class TouchOverlay {
       this.buttons.set(w.id, b);
     }
   }
+
+  /** Swaps the layout and the labels (M04b2). */
+  setLayout(layout: TouchLayout, labels?: Readonly<Record<string, string>>, opacity = 1): void {
+    if (labels) this.labels = { ...DEFAULT_LABELS, ...labels };
+    const sig = JSON.stringify([layout.widgets, opacity]);
+    if (sig === this.sig) {
+      // The same layout (the shell hands over the default once its settings arrive): only the labels may differ; no button is rebuilt.
+      for (const w of layout.widgets) if (w.kind === 'button') this.buttons.get(w.id)?.setAttribute('aria-label', this.labels[w.label ?? ''] ?? w.id);
+      return;
+    }
+    this.build(layout, opacity);
+  }
+
+  private sig = '';
 
   /** Play mode on or off: the layer is never shown over the title screen. */
   setEnabled(on: boolean): void {

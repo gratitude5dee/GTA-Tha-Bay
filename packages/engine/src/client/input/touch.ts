@@ -144,11 +144,10 @@ export class TouchBinder implements Binder {
     this.radius = opts.radiusPx ?? TOUCH_STICK_RADIUS_PX;
     this.nowFn = opts.now ?? ((): number => performance.now());
     this.buttonAtFn = opts.buttonAt ?? buttonFromTarget;
-    this.setLayout(opts.layout);
+    this.applyLayout(opts.layout);
   }
 
-  /** Switches the widgets (a mode with its own layout, M07a1): zones and button ids change, every contact is released. */
-  setLayout(layout: TouchLayout): void {
+  private applyLayout(layout: TouchLayout): void {
     const ids = new Set<string>();
     let stick: TouchRect | null = null;
     let steer = false;
@@ -164,8 +163,20 @@ export class TouchBinder implements Binder {
     this.stickZone = stick;
     this.steerOnly = steer;
     this.lookZone = lookZone;
-    this.releaseAll();
+    this.layoutSig = JSON.stringify(layout.widgets);
   }
+
+  /** Swaps the layout (M04b2: the player picked another one, or saved a custom one). Every contact is released first. */
+  setLayout(layout: TouchLayout): void {
+    // The same layout again (the shell hands over the default once its settings arrive) must not drop a contact that is down.
+    const sig = JSON.stringify(layout.widgets);
+    if (sig === this.layoutSig) return;
+    this.layoutSig = sig;
+    this.releaseAll();
+    this.applyLayout(layout);
+  }
+
+  private layoutSig = '';
 
   get connected(): boolean {
     return this.target !== null;

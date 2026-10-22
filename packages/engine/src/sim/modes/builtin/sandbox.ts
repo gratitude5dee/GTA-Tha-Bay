@@ -7,6 +7,8 @@ export function defaultSandbox(): SandboxSlice {
 
 /** Toggle paths this milestone acts on; every other `sandbox.*` path is stored and shown but changes nothing yet. */
 export const NEVER_WANTED = 'sandbox.player.neverWanted';
+/** Sets the heat level 0 to 5 (the sandbox frame of the player section; the phone's Sandbox app, M04b2). */
+export const SET_HEAT = 'sandbox.player.heat';
 const MAX_TOGGLES = 128;
 
 export interface SandboxEnv {
@@ -27,6 +29,15 @@ export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: 
   if (!(path in s.toggles) && Object.keys(s.toggles).length >= MAX_TOGGLES) return false;
   s.toggles[path] = v;
   publishToggles(ctx, s);
+  if (path === SET_HEAT && typeof v === 'number') {
+    try {
+      const level = Math.max(0, Math.min(5, Math.round(v)));
+      // `setHeat(0)` ends the pursuit; `clear` is for the scripted pursuit only.
+      ctx.pursuit.setHeat(level as never, 'sandbox');
+    } catch {
+      // no pursuit director in this build
+    }
+  }
   if (path === NEVER_WANTED) {
     try {
       ctx.pursuit.capHeat(v ? 0 : 6);

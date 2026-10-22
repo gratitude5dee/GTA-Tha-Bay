@@ -78,7 +78,7 @@ describe('New Game (AC-9, AC-11)', () => {
   it('a profile made under prefers-reduced-motion starts with reducedMotion on (and the XR mirror)', async () => {
     const { d, sent } = deps({ prefersReducedMotion: true });
     await runNewGame(d, 'Pilot');
-    expect(sent).toContainEqual({ t: 'save.settings', data: { accessibility: { reducedMotion: true }, xr: { reduceMotion: true } } });
+    expect(sent).toContainEqual({ t: 'save.settings', data: { accessibility: { reducedMotion: true }, camera: { shake: false }, xr: { reduceMotion: true } } });
     const calm = deps({ prefersReducedMotion: false });
     await runNewGame(calm.d, 'Pilot');
     expect(calm.sent.filter((c) => (c as { t: string }).t === 'save.settings')).toEqual([]);

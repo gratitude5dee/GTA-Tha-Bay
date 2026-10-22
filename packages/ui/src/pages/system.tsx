@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { BRAND } from '../../../../config/brand.ts';
 import { PRIVACY_DOC, TERMS_DOC } from '../../../../config/terms.ts';
 import { lk, t } from '../i18n/index.ts';
+import { ERROR_TOPIC } from './help.tsx';
 import { Button, Progress } from '../kit/widgets.tsx';
 import { Link, useShell } from '../shell/context.tsx';
 import { isLegalDoc, pageDef } from '../shell/registry.ts';
@@ -135,20 +136,6 @@ export function LegalPage(props: PageProps) {
   );
 }
 
-export function PausePage(_props: PageProps) {
-  const { shell, ctx } = useShell();
-  return (
-    <main class="dv-page dv-pause" data-testid="pause">
-      <h1>{t('pause.title')}</h1>
-      <div class="dv-menu">
-        <Button id="pause-resume" style="primary" label={t('pause.resume')} onPress={() => ctx.fire('resume')} testId="pause-resume" />
-        <Button id="pause-settings" label={t('nav.settings')} onPress={() => shell.navigate('settings', { cat: 'graphics' })} testId="pause-settings" />
-        <Button id="pause-quit" label={t('pause.quit')} onPress={() => ctx.sendUi({ t: 'mode.quit' })} testId="pause-quit" />
-      </div>
-    </main>
-  );
-}
-
 const TIPS = [lk('loading.tip.1'), lk('loading.tip.2'), lk('loading.tip.3')];
 
 export function LoadingPage(_props: PageProps) {
@@ -190,7 +177,7 @@ export function ErrorPage(props: PageProps) {
             void navigator.clipboard?.writeText(ctx.props.diagnostics()).then(() => setCopied(true), () => setCopied(false));
           }}
         />
-        <Button id="error-help" label={t('nav.help')} onPress={() => shell.navigate('help')} />
+        <Button id="error-help" label={t('nav.help')} onPress={() => shell.navigate('help', { topic: ERROR_TOPIC[kind] })} />
       </div>
     </main>
   );

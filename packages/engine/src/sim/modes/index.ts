@@ -416,6 +416,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       // The pursuit director's wallet and the transit fares go through EconomyApi (M03c, M03b2).
       pursuitMod?.bindWallet?.(economyWallet(econ));
       (services as { fareSink?: ForwardingFareSink | null }).fareSink?.bind(econ);
+      services.world.heat = () => pursuitMod?.director()?.state().level ?? 0;
 
       dispatch = createCommandDispatcher({
         host: h,
@@ -428,6 +429,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           return e ? e.ctx : null;
         },
         world: () => (services.world.api ?? standin),
+        ride: () => services.ride,
         selectProfile: (id) => {
           void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
             .then((next) => {
@@ -459,6 +461,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         bridge.patch('sys.controls', live.settings.controls as unknown as JsonObject);
         bridge.patch('sys.settings', settingsView(live.settings));
         bridge.patch('sys.profile', live.profile ? { ...live.profile } : null);
+        bridge.patch('sys.avatar', live.core.avatar);
+        bridge.patch('sys.garage', live.core.garage as unknown as JsonObject[]);
         unl.publish();
         econ.publish();
         h.publish();

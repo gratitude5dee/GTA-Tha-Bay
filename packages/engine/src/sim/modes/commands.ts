@@ -1,5 +1,6 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
 import { applyToggle } from './builtin/sandbox.ts';
+import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
 
@@ -16,6 +17,8 @@ export interface CommandDeps {
   teleport?(x: number, y: number, z: number): boolean;
   /** The page pauses itself; the sim only learns of it (QA and later the HUD). */
   onPause?(on: boolean): void;
+  /** The phone's Ride app (M04b2): the transit system's port, or null while no baked world runs. */
+  ride?(): RidePort | null;
   /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
   selectProfile?(id: string): void;
 }
@@ -64,7 +67,8 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
       }
       case 'save.avatar':
         d.slices().core.avatar = cmd.avatar;
-        d.host.autosave.request('manual');
+        d.ui.patch('sys.avatar', cmd.avatar);
+        d.host.saveCore();
         return;
       case 'save.profile':
         // Create, rename and delete run on the page's SaveService (profile rows only; BD-M04b1-02). The sim handles `select`.
@@ -98,8 +102,38 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         d.events.emit({ t: 'cutscene.state', tick: d.tick(), s: JSON.stringify({ playId: cmd.playId, item: cmd.item, state: cmd.state }) });
         return;
       case 'mode.cmd':
+        if ((cmd.mode as string) === 'phone') {
+          phoneCommand(d, cmd.name, cmd.args ?? null, toast);
+          return;
+        }
         d.events.emit({ t: 'mode.cmd', tick: d.tick(), s: JSON.stringify({ mode: cmd.mode, name: cmd.name, args: cmd.args ?? null }) });
         return;
     }
   };
+}
+
+/** Phone commands ride `mode.cmd` with the reserved owner `phone` (C06 leaves `mode.cmd` to the owner named in `mode`). */
+function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void): void {
+  const ride = d.ride?.() ?? null;
+  if (name === 'ride.list') {
+    d.ui.patch('phone.ride', { ready: ride !== null, destinations: (ride?.destinations() ?? []).map((x) => ({ id: x.id, nameKey: x.nameKey, x: Math.round(x.x), z: Math.round(x.z) })) });
+    return;
+  }
+  if (name !== 'ride.go' && name !== 'ride.taxi') return;
+  if (!ride) {
+    toast('ride', 'warning', 'world.teleport.notLoaded');
+    return;
+  }
+  const done = (r: { ok: true; cents: number } | { ok: false; messageKey: string }): void => {
+    if (r.ok) toast('ride', 'info', 'phone.ride.done', { fare: (r.cents / 100).toFixed(2) });
+    else toast('ride', 'warning', r.messageKey);
+  };
+  if (name === 'ride.go') {
+    const to = typeof args?.['to'] === 'string' ? args['to'] : '';
+    void ride.fastTravelTo(to).then(done);
+    return;
+  }
+  const wp = args?.['to'] as { x?: unknown; z?: unknown } | undefined;
+  if (typeof wp?.x === 'number' && typeof wp.z === 'number') void ride.callRobotaxi({ x: wp.x, z: wp.z }).then(done);
+  else toast('ride', 'warning', 'phone.ride.noWaypoint');
 }

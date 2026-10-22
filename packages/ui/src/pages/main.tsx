@@ -11,7 +11,7 @@ export interface NavItem { id: string; page: PageId; labelKey: string; params?: 
 export const NAV_ITEMS = (navJson as { items: NavItem[] }).items;
 
 /** Pages whose own milestone has not landed: the menu shows them with a "Coming soon" tag. */
-export const COMING_SOON_PAGES: ReadonlySet<PageId> = new Set<PageId>(['garage', 'npcs', 'community', 'experiences', 'online', 'help']);
+export const COMING_SOON_PAGES: ReadonlySet<PageId> = new Set<PageId>(['npcs', 'community', 'experiences', 'online']);
 
 export interface NavView { item: NavItem; gate: GateResult }
 

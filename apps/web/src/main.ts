@@ -5,7 +5,7 @@ import type { WorkerLike } from '@dv/engine/sim';
 import { bootChoice } from '@dv/world/sim/boot';
 import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/client';
 import platformFlags from '../../../config/platform-flags.json';
-import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
+import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
@@ -66,8 +66,12 @@ const prefs: PrefsStore = qaPlay
 
 // The P0 identity (M04b3): opens behind the Title, never blocks it; the age page forwards its attestation here.
 const identity = wireIdentity(prefs);
+// The creator preview (M04b2): built once the renderer host exists; the shell asks for it each time the creator opens.
+let creatorStage: CreatorStagePort | null = null;
 
 const shellProps = (unsupported: boolean): ShellProps => ({
+  stage: () => creatorStage,
+  forceTouch: flags.touch,
   diagnostics: () => formatDiagnostics(collectDiagnosticSignals(BUILD)),
   unsupported,
   update,
@@ -168,6 +172,9 @@ async function boot(): Promise<void> {
     shell.core.fire('unsupported');
     return;
   }
+  void import('@dv/engine/client/creator-stage').then((m) => {
+    creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
+  });
   platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props));
   shell.attachPlatform(platformPort);
   applyPendingConsent();
@@ -243,6 +250,8 @@ async function boot(): Promise<void> {
     onTelemetry: (name, props) => platform.telemetry.emit(name as never, props),
     // The Pause action opens or closes the shell's pause menu.
     onPausedChange: (paused) => shell.enginePaused(paused),
+    // The Phone action opens or closes the shell's phone.
+    onPhone: () => shell.core.togglePhone(),
     // Toasts the sim raises (unlocks, refused modes, boundary notices) are drawn by the shell.
     onToast: (toast) => shell.onToast(toast),
   }).catch((error: unknown) => {
@@ -281,6 +290,13 @@ async function boot(): Promise<void> {
       const [{ installMissionBridge }, { mountMissionOverlay }] = await Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]);
       const host = { vm: engine.vm, sendUi: (c: Parameters<typeof engine.sendUi>[0]) => engine.sendUi(c), step: (n: number) => engine.step(n), setPaused: (p: boolean) => engine.setPaused(p) };
       mountMissionOverlay(host, installMissionBridge(host));
+    }
+    // The UI skeleton's test panel (M04b2, AC-11): only where the engine has a panels host (QA builds with a renderer).
+    if (engine?.xrPanels) {
+      const { createUiQaBridge } = await import('@dv/ui/xr-qa');
+      const ui = createUiQaBridge(engine.xrPanels as never, engine.vm as never);
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';

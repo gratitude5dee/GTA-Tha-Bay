@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "touch-layout.v1",
+  "title": "TouchLayout v1 (10-ui-hud-xr.md section 2.9)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "nameKey", "context", "handed", "widgets"],
+  "$defs": {
+    "rect": {
+      "type": "object", "additionalProperties": false, "required": ["x", "y", "w", "h"],
+      "properties": { "x": { "type": "number", "minimum": 0, "maximum": 1 }, "y": { "type": "number", "minimum": 0, "maximum": 1 }, "w": { "type": "number", "minimum": 0, "maximum": 1 }, "h": { "type": "number", "minimum": 0, "maximum": 1 } }
+    },
+    "anchor": {
+      "type": "object", "additionalProperties": false, "required": ["corner", "dx", "dy"],
+      "properties": { "corner": { "enum": ["bl", "br", "tl", "tr"] }, "dx": { "type": "number", "minimum": 0 }, "dy": { "type": "number", "minimum": 0 } }
+    }
+  },
+  "properties": {
+    "v": { "const": 1 },
+    "id": { "type": "string", "pattern": "^([a-z][a-z-]*|custom:[1-4])$" },
+    "nameKey": { "type": "string" },
+    "context": { "enum": ["onFoot", "vehicle", "fighter"] },
+    "handed": { "enum": ["right", "left"] },
+    "opacity": { "type": "number", "minimum": 0.2, "maximum": 1 },
+    "widgets": {
+      "type": "array", "minItems": 1, "maxItems": 24,
+      "items": {
+        "oneOf": [
+          { "type": "object", "additionalProperties": false, "required": ["id", "kind", "role", "zone"], "properties": { "id": { "type": "string" }, "kind": { "const": "stick" }, "role": { "enum": ["move", "steer"] }, "zone": { "$ref": "#/$defs/rect" } } },
+          { "type": "object", "additionalProperties": false, "required": ["id", "kind", "zone"], "properties": { "id": { "type": "string" }, "kind": { "const": "lookzone" }, "zone": { "$ref": "#/$defs/rect" } } },
+          { "type": "object", "additionalProperties": false, "required": ["id", "kind", "action", "at", "sizePx", "icon"], "properties": { "id": { "type": "string" }, "kind": { "const": "button" }, "action": { "type": "string", "pattern": "^(sim|client)\\.[A-Za-z]+$" }, "at": { "$ref": "#/$defs/anchor" }, "sizePx": { "type": "number", "minimum": 40, "maximum": 96 }, "icon": { "type": "string" }, "label": { "type": "string" }, "toggle": { "type": "boolean" } } },
+          { "type": "object", "additionalProperties": false, "required": ["id", "kind", "axis", "at", "w", "h"], "properties": { "id": { "type": "string" }, "kind": { "const": "pedal" }, "axis": { "enum": ["throttle", "brake"] }, "at": { "$ref": "#/$defs/anchor" }, "w": { "type": "number", "minimum": 44 }, "h": { "type": "number", "minimum": 44 } } },
+          { "type": "object", "additionalProperties": false, "required": ["id", "kind", "at", "sizePx"], "properties": { "id": { "type": "string" }, "kind": { "const": "dpad" }, "at": { "$ref": "#/$defs/anchor" }, "sizePx": { "type": "number", "minimum": 44 } } }
+        ]
+      }
+    }
+  }
+}

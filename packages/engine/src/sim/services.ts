@@ -44,7 +44,23 @@ export interface EngineServices extends SimServices {
    * `EconomyApi` afterwards, so a fare is a debit with the ride's idempotency key.
    */
   readonly fareSink: ForwardingFareSink;
+  /**
+   * The phone's Ride app (M04b2): set by the world module's transit system when it starts; null while no baked world runs. The command
+   * dispatcher turns `mode.cmd phone.ride*` into calls on it.
+   */
+  ride: RidePort | null;
 }
+
+/** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
+export interface RidePort {
+  /** Fast-travel destinations (Bay Rail stations) with their name keys. */
+  destinations(): readonly { id: string; nameKey: string; x: number; z: number }[];
+  /** Bay Rail from the station nearest the player to `toId`. */
+  fastTravelTo(toId: string): Promise<RidePortResult>;
+  /** Robotaxi to a point. */
+  callRobotaxi(to: { x: number; z: number }): Promise<RidePortResult>;
+}
+export type RidePortResult = { ok: true; cents: number; kind: string } | { ok: false; messageKey: string };
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
 export interface ControlShared {
@@ -82,6 +98,7 @@ export function createSimServices(seed: number): EngineServices {
     side: new Map(),
     vehicleCtx: null,
     fareSink: new ForwardingFareSink(),
+    ride: null,
   };
 }
 

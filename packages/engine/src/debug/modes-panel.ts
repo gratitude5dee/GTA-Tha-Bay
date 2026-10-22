@@ -19,7 +19,7 @@ export interface ModesPanelOptions {
 }
 
 const STYLE = `
-.dv-modes{position:fixed;right:calc(env(safe-area-inset-right,0px) + .5rem);top:calc(env(safe-area-inset-top,0px) + .5rem);z-index:35;max-inline-size:min(21rem,60vw);
+.dv-modes{position:fixed;right:calc(env(safe-area-inset-right,0px) + .5rem);top:clamp(5rem,28vh,11rem);z-index:35;max-inline-size:min(21rem,60vw);
 padding:.4rem .5rem;border-radius:.5rem;background:rgba(14,18,26,.82);color:#f3f5f8;font:600 .8rem/1.25 system-ui,sans-serif;pointer-events:none}
 .dv-modes button{pointer-events:auto;min-block-size:1.9rem;padding-inline:.5rem;border:1px solid rgba(255,255,255,.35);border-radius:.3rem;background:rgba(255,255,255,.1);color:inherit;font:inherit;cursor:pointer}
 .dv-modes__line{display:block;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}

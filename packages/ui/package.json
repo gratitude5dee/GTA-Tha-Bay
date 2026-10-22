@@ -8,6 +8,7 @@
     "./i18n": "./src/i18n/index.ts",
     "./cutscene": "./src/cutscene/CutsceneOverlay.tsx",
     "./cutscene/subtitles": "./src/cutscene/subtitles.ts",
+    "./xr-qa": "./src/screen/xr-qa.ts",
     "./tokens.css": "./src/kit/tokens.css",
     "./shell.css": "./src/kit/shell.css",
     "./kit.css": "./src/kit/kit.css"

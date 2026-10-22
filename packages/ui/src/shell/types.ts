@@ -4,6 +4,7 @@ import type {
   PwaUpdateController, SaveResult, SlotId, UiCommand, ViewModelSource,
 } from '@dv/shared';
 import type { LocKey } from '../i18n/index.ts';
+import type { CreatorStagePort } from '../creator/stage.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
 import type { ShellEvent } from './machine.ts';
@@ -192,6 +193,10 @@ export interface EnginePort {
   audioUnlock(): void;
   /** The first gesture of the title: `FirstGestureUnlock` (audio context and the pool of three `<video>` elements, M04c, DL-663). Idempotent. */
   firstGesture(): void;
+  /** Player actions as ActionIds (the onboarding tips dismiss on them). */
+  onAction?(cb: (id: string) => void): () => void;
+  /** Applies a touch layout (a shipped one or the player's custom one) with its localized button labels. */
+  setTouchLayout?(layout: unknown, labels: Record<string, string>): void;
 }
 
 /** What the app does with the engine and the canvas as the shell changes state. All three are idempotent. */
@@ -232,6 +237,10 @@ export interface ShellProps {
   build: string;
   /** Flags the app knows before the engine (BootConfig.flags once fetched). */
   flags?: Record<string, boolean>;
+  /** `?touch=1` (QA builds) forces the touch layer; the rotate overlay follows it. */
+  forceTouch?: boolean;
+  /** The creator preview on the shared canvas; null while the renderer host does not exist (M04b2). */
+  stage?: () => CreatorStagePort | null;
 }
 
 export interface PrefsStore {

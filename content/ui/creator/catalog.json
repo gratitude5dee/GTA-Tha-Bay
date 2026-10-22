@@ -1,0 +1,1073 @@
+{
+ "v": 1,
+ "rev": 1,
+ "slots": {
+  "body": [
+   {
+    "id": "body-lean",
+    "index": 1,
+    "titleKey": "creator.part.body.lean",
+    "tags": [
+     "starter"
+    ],
+    "icon": "body-1",
+    "tint": 0
+   },
+   {
+    "id": "body-wiry",
+    "index": 2,
+    "titleKey": "creator.part.body.wiry",
+    "tags": [
+     "starter"
+    ],
+    "icon": "body-2",
+    "tint": 0.08333333333333333
+   },
+   {
+    "id": "body-athletic",
+    "index": 3,
+    "titleKey": "creator.part.body.athletic",
+    "tags": [
+     "starter"
+    ],
+    "icon": "body-3",
+    "tint": 0.16666666666666666
+   },
+   {
+    "id": "body-stocky",
+    "index": 4,
+    "titleKey": "creator.part.body.stocky",
+    "tags": [
+     "starter"
+    ],
+    "icon": "body-4",
+    "tint": 0.25
+   },
+   {
+    "id": "body-broad",
+    "index": 5,
+    "titleKey": "creator.part.body.broad",
+    "tags": [],
+    "icon": "body-5",
+    "tint": 0.3333333333333333
+   },
+   {
+    "id": "body-sturdy",
+    "index": 6,
+    "titleKey": "creator.part.body.sturdy",
+    "tags": [],
+    "icon": "body-6",
+    "tint": 0.4166666666666667
+   },
+   {
+    "id": "body-compact",
+    "index": 7,
+    "titleKey": "creator.part.body.compact",
+    "tags": [],
+    "icon": "body-7",
+    "tint": 0.5
+   },
+   {
+    "id": "body-tall",
+    "index": 8,
+    "titleKey": "creator.part.body.tall",
+    "tags": [],
+    "icon": "body-8",
+    "tint": 0.5833333333333334
+   },
+   {
+    "id": "body-long",
+    "index": 9,
+    "titleKey": "creator.part.body.long",
+    "tags": [],
+    "icon": "body-9",
+    "tint": 0.6666666666666666
+   },
+   {
+    "id": "body-rounded",
+    "index": 10,
+    "titleKey": "creator.part.body.rounded",
+    "tags": [],
+    "icon": "body-10",
+    "tint": 0.75
+   },
+   {
+    "id": "body-solid",
+    "index": 11,
+    "titleKey": "creator.part.body.solid",
+    "tags": [],
+    "icon": "body-11",
+    "tint": 0.8333333333333334
+   },
+   {
+    "id": "body-slight",
+    "index": 12,
+    "titleKey": "creator.part.body.slight",
+    "tags": [],
+    "icon": "body-12",
+    "tint": 0.9166666666666666
+   }
+  ],
+  "face": [
+   {
+    "id": "face-sunset",
+    "index": 1,
+    "titleKey": "creator.part.face.sunset",
+    "tags": [
+     "starter"
+    ],
+    "icon": "face-1",
+    "tint": 0
+   },
+   {
+    "id": "face-karl",
+    "index": 2,
+    "titleKey": "creator.part.face.karl",
+    "tags": [
+     "starter"
+    ],
+    "icon": "face-2",
+    "tint": 0.041666666666666664
+   },
+   {
+    "id": "face-mission",
+    "index": 3,
+    "titleKey": "creator.part.face.mission",
+    "tags": [
+     "starter"
+    ],
+    "icon": "face-3",
+    "tint": 0.08333333333333333
+   },
+   {
+    "id": "face-marina",
+    "index": 4,
+    "titleKey": "creator.part.face.marina",
+    "tags": [
+     "starter"
+    ],
+    "icon": "face-4",
+    "tint": 0.125
+   },
+   {
+    "id": "face-haight",
+    "index": 5,
+    "titleKey": "creator.part.face.haight",
+    "tags": [],
+    "icon": "face-5",
+    "tint": 0.16666666666666666
+   },
+   {
+    "id": "face-presidio",
+    "index": 6,
+    "titleKey": "creator.part.face.presidio",
+    "tags": [],
+    "icon": "face-6",
+    "tint": 0.20833333333333334
+   },
+   {
+    "id": "face-embarcadero",
+    "index": 7,
+    "titleKey": "creator.part.face.embarcadero",
+    "tags": [],
+    "icon": "face-7",
+    "tint": 0.25
+   },
+   {
+    "id": "face-tenderloin",
+    "index": 8,
+    "titleKey": "creator.part.face.tenderloin",
+    "tags": [],
+    "icon": "face-8",
+    "tint": 0.2916666666666667
+   },
+   {
+    "id": "face-nob",
+    "index": 9,
+    "titleKey": "creator.part.face.nob",
+    "tags": [],
+    "icon": "face-9",
+    "tint": 0.3333333333333333
+   },
+   {
+    "id": "face-castro",
+    "index": 10,
+    "titleKey": "creator.part.face.castro",
+    "tags": [],
+    "icon": "face-10",
+    "tint": 0.375
+   },
+   {
+    "id": "face-sunset-park",
+    "index": 11,
+    "titleKey": "creator.part.face.sunset-park",
+    "tags": [],
+    "icon": "face-11",
+    "tint": 0.4166666666666667
+   },
+   {
+    "id": "face-richmond",
+    "index": 12,
+    "titleKey": "creator.part.face.richmond",
+    "tags": [],
+    "icon": "face-12",
+    "tint": 0.4583333333333333
+   },
+   {
+    "id": "face-soma",
+    "index": 13,
+    "titleKey": "creator.part.face.soma",
+    "tags": [],
+    "icon": "face-13",
+    "tint": 0.5
+   },
+   {
+    "id": "face-dogpatch",
+    "index": 14,
+    "titleKey": "creator.part.face.dogpatch",
+    "tags": [],
+    "icon": "face-14",
+    "tint": 0.5416666666666666
+   },
+   {
+    "id": "face-bayview",
+    "index": 15,
+    "titleKey": "creator.part.face.bayview",
+    "tags": [],
+    "icon": "face-15",
+    "tint": 0.5833333333333334
+   },
+   {
+    "id": "face-noe",
+    "index": 16,
+    "titleKey": "creator.part.face.noe",
+    "tags": [],
+    "icon": "face-16",
+    "tint": 0.625
+   },
+   {
+    "id": "face-twin-peaks",
+    "index": 17,
+    "titleKey": "creator.part.face.twin-peaks",
+    "tags": [],
+    "icon": "face-17",
+    "tint": 0.6666666666666666
+   },
+   {
+    "id": "face-fillmore",
+    "index": 18,
+    "titleKey": "creator.part.face.fillmore",
+    "tags": [],
+    "icon": "face-18",
+    "tint": 0.7083333333333334
+   },
+   {
+    "id": "face-chinatown",
+    "index": 19,
+    "titleKey": "creator.part.face.chinatown",
+    "tags": [],
+    "icon": "face-19",
+    "tint": 0.75
+   },
+   {
+    "id": "face-excelsior",
+    "index": 20,
+    "titleKey": "creator.part.face.excelsior",
+    "tags": [],
+    "icon": "face-20",
+    "tint": 0.7916666666666666
+   },
+   {
+    "id": "face-glen-park",
+    "index": 21,
+    "titleKey": "creator.part.face.glen-park",
+    "tags": [],
+    "icon": "face-21",
+    "tint": 0.8333333333333334
+   },
+   {
+    "id": "face-portola",
+    "index": 22,
+    "titleKey": "creator.part.face.portola",
+    "tags": [],
+    "icon": "face-22",
+    "tint": 0.875
+   },
+   {
+    "id": "face-potrero",
+    "index": 23,
+    "titleKey": "creator.part.face.potrero",
+    "tags": [],
+    "icon": "face-23",
+    "tint": 0.9166666666666666
+   },
+   {
+    "id": "face-union-square",
+    "index": 24,
+    "titleKey": "creator.part.face.union-square",
+    "tags": [],
+    "icon": "face-24",
+    "tint": 0.9583333333333334
+   }
+  ],
+  "hair": [
+   {
+    "id": "hair-buzz",
+    "index": 1,
+    "titleKey": "creator.part.hair.buzz",
+    "tags": [
+     "starter"
+    ],
+    "icon": "hair-1",
+    "tint": 0
+   },
+   {
+    "id": "hair-crop",
+    "index": 2,
+    "titleKey": "creator.part.hair.crop",
+    "tags": [
+     "starter"
+    ],
+    "icon": "hair-2",
+    "tint": 0.0625
+   },
+   {
+    "id": "hair-fade",
+    "index": 3,
+    "titleKey": "creator.part.hair.fade",
+    "tags": [
+     "starter"
+    ],
+    "icon": "hair-3",
+    "tint": 0.125
+   },
+   {
+    "id": "hair-waves",
+    "index": 4,
+    "titleKey": "creator.part.hair.waves",
+    "tags": [
+     "starter"
+    ],
+    "icon": "hair-4",
+    "tint": 0.1875
+   },
+   {
+    "id": "hair-curls",
+    "index": 5,
+    "titleKey": "creator.part.hair.curls",
+    "tags": [],
+    "icon": "hair-5",
+    "tint": 0.25
+   },
+   {
+    "id": "hair-coils",
+    "index": 6,
+    "titleKey": "creator.part.hair.coils",
+    "tags": [],
+    "icon": "hair-6",
+    "tint": 0.3125
+   },
+   {
+    "id": "hair-locs",
+    "index": 7,
+    "titleKey": "creator.part.hair.locs",
+    "tags": [],
+    "icon": "hair-7",
+    "tint": 0.375
+   },
+   {
+    "id": "hair-braids",
+    "index": 8,
+    "titleKey": "creator.part.hair.braids",
+    "tags": [],
+    "icon": "hair-8",
+    "tint": 0.4375
+   },
+   {
+    "id": "hair-bob",
+    "index": 9,
+    "titleKey": "creator.part.hair.bob",
+    "tags": [],
+    "icon": "hair-9",
+    "tint": 0.5
+   },
+   {
+    "id": "hair-long",
+    "index": 10,
+    "titleKey": "creator.part.hair.long",
+    "tags": [],
+    "icon": "hair-10",
+    "tint": 0.5625
+   },
+   {
+    "id": "hair-ponytail",
+    "index": 11,
+    "titleKey": "creator.part.hair.ponytail",
+    "tags": [],
+    "icon": "hair-11",
+    "tint": 0.625
+   },
+   {
+    "id": "hair-bun",
+    "index": 12,
+    "titleKey": "creator.part.hair.bun",
+    "tags": [],
+    "icon": "hair-12",
+    "tint": 0.6875
+   },
+   {
+    "id": "hair-afro",
+    "index": 13,
+    "titleKey": "creator.part.hair.afro",
+    "tags": [],
+    "icon": "hair-13",
+    "tint": 0.75
+   },
+   {
+    "id": "hair-pomp",
+    "index": 14,
+    "titleKey": "creator.part.hair.pomp",
+    "tags": [],
+    "icon": "hair-14",
+    "tint": 0.8125
+   },
+   {
+    "id": "hair-shag",
+    "index": 15,
+    "titleKey": "creator.part.hair.shag",
+    "tags": [],
+    "icon": "hair-15",
+    "tint": 0.875
+   },
+   {
+    "id": "hair-bald",
+    "index": 16,
+    "titleKey": "creator.part.hair.bald",
+    "tags": [],
+    "icon": "hair-16",
+    "tint": 0.9375
+   }
+  ],
+  "top": [
+   {
+    "id": "top-hoodie",
+    "index": 1,
+    "titleKey": "creator.part.top.hoodie",
+    "tags": [
+     "starter"
+    ],
+    "icon": "top-1",
+    "tint": 0
+   },
+   {
+    "id": "top-tee",
+    "index": 2,
+    "titleKey": "creator.part.top.tee",
+    "tags": [
+     "starter"
+    ],
+    "icon": "top-2",
+    "tint": 0.08333333333333333
+   },
+   {
+    "id": "top-windbreaker",
+    "index": 3,
+    "titleKey": "creator.part.top.windbreaker",
+    "tags": [
+     "starter"
+    ],
+    "icon": "top-3",
+    "tint": 0.16666666666666666
+   },
+   {
+    "id": "top-flannel",
+    "index": 4,
+    "titleKey": "creator.part.top.flannel",
+    "tags": [
+     "starter"
+    ],
+    "icon": "top-4",
+    "tint": 0.25
+   },
+   {
+    "id": "top-tank",
+    "index": 5,
+    "titleKey": "creator.part.top.tank",
+    "tags": [],
+    "icon": "top-5",
+    "tint": 0.3333333333333333
+   },
+   {
+    "id": "top-bomber",
+    "index": 6,
+    "titleKey": "creator.part.top.bomber",
+    "tags": [],
+    "icon": "top-6",
+    "tint": 0.4166666666666667
+   },
+   {
+    "id": "top-fleece",
+    "index": 7,
+    "titleKey": "creator.part.top.fleece",
+    "tags": [],
+    "icon": "top-7",
+    "tint": 0.5
+   },
+   {
+    "id": "top-crewneck",
+    "index": 8,
+    "titleKey": "creator.part.top.crewneck",
+    "tags": [],
+    "icon": "top-8",
+    "tint": 0.5833333333333334
+   },
+   {
+    "id": "top-jersey",
+    "index": 9,
+    "titleKey": "creator.part.top.jersey",
+    "tags": [],
+    "icon": "top-9",
+    "tint": 0.6666666666666666
+   },
+   {
+    "id": "top-denim-jacket",
+    "index": 10,
+    "titleKey": "creator.part.top.denim-jacket",
+    "tags": [],
+    "icon": "top-10",
+    "tint": 0.75
+   },
+   {
+    "id": "top-raincoat",
+    "index": 11,
+    "titleKey": "creator.part.top.raincoat",
+    "tags": [],
+    "icon": "top-11",
+    "tint": 0.8333333333333334
+   },
+   {
+    "id": "top-button-up",
+    "index": 12,
+    "titleKey": "creator.part.top.button-up",
+    "tags": [],
+    "icon": "top-12",
+    "tint": 0.9166666666666666
+   }
+  ],
+  "bottom": [
+   {
+    "id": "bottom-jeans",
+    "index": 1,
+    "titleKey": "creator.part.bottom.jeans",
+    "tags": [
+     "starter"
+    ],
+    "icon": "bottom-1",
+    "tint": 0
+   },
+   {
+    "id": "bottom-joggers",
+    "index": 2,
+    "titleKey": "creator.part.bottom.joggers",
+    "tags": [
+     "starter"
+    ],
+    "icon": "bottom-2",
+    "tint": 0.125
+   },
+   {
+    "id": "bottom-cargo",
+    "index": 3,
+    "titleKey": "creator.part.bottom.cargo",
+    "tags": [
+     "starter"
+    ],
+    "icon": "bottom-3",
+    "tint": 0.25
+   },
+   {
+    "id": "bottom-shorts",
+    "index": 4,
+    "titleKey": "creator.part.bottom.shorts",
+    "tags": [
+     "starter"
+    ],
+    "icon": "bottom-4",
+    "tint": 0.375
+   },
+   {
+    "id": "bottom-chinos",
+    "index": 5,
+    "titleKey": "creator.part.bottom.chinos",
+    "tags": [],
+    "icon": "bottom-5",
+    "tint": 0.5
+   },
+   {
+    "id": "bottom-track-pants",
+    "index": 6,
+    "titleKey": "creator.part.bottom.track-pants",
+    "tags": [],
+    "icon": "bottom-6",
+    "tint": 0.625
+   },
+   {
+    "id": "bottom-skirt",
+    "index": 7,
+    "titleKey": "creator.part.bottom.skirt",
+    "tags": [],
+    "icon": "bottom-7",
+    "tint": 0.75
+   },
+   {
+    "id": "bottom-overalls",
+    "index": 8,
+    "titleKey": "creator.part.bottom.overalls",
+    "tags": [],
+    "icon": "bottom-8",
+    "tint": 0.875
+   }
+  ],
+  "shoes": [
+   {
+    "id": "shoes-sneakers",
+    "index": 1,
+    "titleKey": "creator.part.shoes.sneakers",
+    "tags": [
+     "starter"
+    ],
+    "icon": "shoes-1",
+    "tint": 0
+   },
+   {
+    "id": "shoes-boots",
+    "index": 2,
+    "titleKey": "creator.part.shoes.boots",
+    "tags": [
+     "starter"
+    ],
+    "icon": "shoes-2",
+    "tint": 0.16666666666666666
+   },
+   {
+    "id": "shoes-skate-shoes",
+    "index": 3,
+    "titleKey": "creator.part.shoes.skate-shoes",
+    "tags": [
+     "starter"
+    ],
+    "icon": "shoes-3",
+    "tint": 0.3333333333333333
+   },
+   {
+    "id": "shoes-runners",
+    "index": 4,
+    "titleKey": "creator.part.shoes.runners",
+    "tags": [
+     "starter"
+    ],
+    "icon": "shoes-4",
+    "tint": 0.5
+   },
+   {
+    "id": "shoes-loafers",
+    "index": 5,
+    "titleKey": "creator.part.shoes.loafers",
+    "tags": [],
+    "icon": "shoes-5",
+    "tint": 0.6666666666666666
+   },
+   {
+    "id": "shoes-sandals",
+    "index": 6,
+    "titleKey": "creator.part.shoes.sandals",
+    "tags": [],
+    "icon": "shoes-6",
+    "tint": 0.8333333333333334
+   }
+  ],
+  "accessory": [
+   {
+    "id": "acc-cap",
+    "index": 1,
+    "titleKey": "creator.part.accessory.cap",
+    "tags": [
+     "starter"
+    ],
+    "icon": "accessory-1",
+    "tint": 0
+   },
+   {
+    "id": "acc-beanie",
+    "index": 2,
+    "titleKey": "creator.part.accessory.beanie",
+    "tags": [
+     "starter"
+    ],
+    "icon": "accessory-2",
+    "tint": 0.125
+   },
+   {
+    "id": "acc-shades",
+    "index": 3,
+    "titleKey": "creator.part.accessory.shades",
+    "tags": [
+     "starter"
+    ],
+    "icon": "accessory-3",
+    "tint": 0.25
+   },
+   {
+    "id": "acc-chain",
+    "index": 4,
+    "titleKey": "creator.part.accessory.chain",
+    "tags": [
+     "starter"
+    ],
+    "icon": "accessory-4",
+    "tint": 0.375
+   },
+   {
+    "id": "acc-watch",
+    "index": 5,
+    "titleKey": "creator.part.accessory.watch",
+    "tags": [],
+    "icon": "accessory-5",
+    "tint": 0.5
+   },
+   {
+    "id": "acc-backpack",
+    "index": 6,
+    "titleKey": "creator.part.accessory.backpack",
+    "tags": [],
+    "icon": "accessory-6",
+    "tint": 0.625
+   },
+   {
+    "id": "acc-scarf",
+    "index": 7,
+    "titleKey": "creator.part.accessory.scarf",
+    "tags": [],
+    "icon": "accessory-7",
+    "tint": 0.75
+   },
+   {
+    "id": "acc-headphones",
+    "index": 8,
+    "titleKey": "creator.part.accessory.headphones",
+    "tags": [],
+    "icon": "accessory-8",
+    "tint": 0.875
+   }
+  ],
+  "voice": [
+   {
+    "id": "voice-bay-smooth",
+    "index": 1,
+    "titleKey": "creator.part.voice.bay-smooth",
+    "tags": [
+     "starter"
+    ],
+    "icon": "voice-1"
+   },
+   {
+    "id": "voice-gravel",
+    "index": 2,
+    "titleKey": "creator.part.voice.gravel",
+    "tags": [
+     "starter"
+    ],
+    "icon": "voice-2"
+   },
+   {
+    "id": "voice-bright",
+    "index": 3,
+    "titleKey": "creator.part.voice.bright",
+    "tags": [
+     "starter"
+    ],
+    "icon": "voice-3"
+   },
+   {
+    "id": "voice-mellow",
+    "index": 4,
+    "titleKey": "creator.part.voice.mellow",
+    "tags": [
+     "starter"
+    ],
+    "icon": "voice-4"
+   },
+   {
+    "id": "voice-quick",
+    "index": 5,
+    "titleKey": "creator.part.voice.quick",
+    "tags": [],
+    "icon": "voice-5"
+   },
+   {
+    "id": "voice-deep",
+    "index": 6,
+    "titleKey": "creator.part.voice.deep",
+    "tags": [],
+    "icon": "voice-6"
+   },
+   {
+    "id": "voice-warm",
+    "index": 7,
+    "titleKey": "creator.part.voice.warm",
+    "tags": [],
+    "icon": "voice-7"
+   },
+   {
+    "id": "voice-crisp",
+    "index": 8,
+    "titleKey": "creator.part.voice.crisp",
+    "tags": [],
+    "icon": "voice-8"
+   }
+  ],
+  "fightStyle": [
+   {
+    "id": "style-brawler",
+    "index": 1,
+    "titleKey": "creator.part.fightStyle.brawler",
+    "tags": [
+     "starter"
+    ],
+    "icon": "fightStyle-1"
+   },
+   {
+    "id": "style-kicker",
+    "index": 2,
+    "titleKey": "creator.part.fightStyle.kicker",
+    "tags": [
+     "starter"
+    ],
+    "icon": "fightStyle-2"
+   },
+   {
+    "id": "style-grappler",
+    "index": 3,
+    "titleKey": "creator.part.fightStyle.grappler",
+    "tags": [
+     "starter"
+    ],
+    "icon": "fightStyle-3"
+   },
+   {
+    "id": "style-balanced",
+    "index": 4,
+    "titleKey": "creator.part.fightStyle.balanced",
+    "tags": [
+     "starter"
+    ],
+    "icon": "fightStyle-4"
+   }
+  ]
+ },
+ "palettes": {
+  "skin": [
+   "#f6d7c3",
+   "#efc3a3",
+   "#e2a97f",
+   "#cf9168",
+   "#b9794f",
+   "#a0623b",
+   "#87502f",
+   "#6f4025",
+   "#5a321d",
+   "#47271a",
+   "#3a2016",
+   "#2b180f"
+  ],
+  "hair": [
+   "#0f0b09",
+   "#2b1b12",
+   "#4a2f1c",
+   "#6b4423",
+   "#8a5a2b",
+   "#b07d3c",
+   "#d1a45b",
+   "#e8d29a",
+   "#8e2a1f",
+   "#5d6b7a",
+   "#c9ced3",
+   "#2f5f8f"
+  ]
+ },
+ "morphs": [
+  {
+   "id": "brow-height",
+   "index": 1,
+   "titleKey": "creator.morph.brow-height",
+   "target": "morph_brow_height"
+  },
+  {
+   "id": "brow-depth",
+   "index": 2,
+   "titleKey": "creator.morph.brow-depth",
+   "target": "morph_brow_depth"
+  },
+  {
+   "id": "eye-size",
+   "index": 3,
+   "titleKey": "creator.morph.eye-size",
+   "target": "morph_eye_size"
+  },
+  {
+   "id": "eye-spacing",
+   "index": 4,
+   "titleKey": "creator.morph.eye-spacing",
+   "target": "morph_eye_spacing"
+  },
+  {
+   "id": "eye-tilt",
+   "index": 5,
+   "titleKey": "creator.morph.eye-tilt",
+   "target": "morph_eye_tilt"
+  },
+  {
+   "id": "nose-width",
+   "index": 6,
+   "titleKey": "creator.morph.nose-width",
+   "target": "morph_nose_width"
+  },
+  {
+   "id": "nose-length",
+   "index": 7,
+   "titleKey": "creator.morph.nose-length",
+   "target": "morph_nose_length"
+  },
+  {
+   "id": "nose-bridge",
+   "index": 8,
+   "titleKey": "creator.morph.nose-bridge",
+   "target": "morph_nose_bridge"
+  },
+  {
+   "id": "cheek-fullness",
+   "index": 9,
+   "titleKey": "creator.morph.cheek-fullness",
+   "target": "morph_cheek_fullness"
+  },
+  {
+   "id": "cheekbone",
+   "index": 10,
+   "titleKey": "creator.morph.cheekbone",
+   "target": "morph_cheekbone"
+  },
+  {
+   "id": "jaw-width",
+   "index": 11,
+   "titleKey": "creator.morph.jaw-width",
+   "target": "morph_jaw_width"
+  },
+  {
+   "id": "jaw-length",
+   "index": 12,
+   "titleKey": "creator.morph.jaw-length",
+   "target": "morph_jaw_length"
+  },
+  {
+   "id": "chin-width",
+   "index": 13,
+   "titleKey": "creator.morph.chin-width",
+   "target": "morph_chin_width"
+  },
+  {
+   "id": "chin-height",
+   "index": 14,
+   "titleKey": "creator.morph.chin-height",
+   "target": "morph_chin_height"
+  },
+  {
+   "id": "mouth-width",
+   "index": 15,
+   "titleKey": "creator.morph.mouth-width",
+   "target": "morph_mouth_width"
+  },
+  {
+   "id": "lip-fullness",
+   "index": 16,
+   "titleKey": "creator.morph.lip-fullness",
+   "target": "morph_lip_fullness"
+  },
+  {
+   "id": "ear-size",
+   "index": 17,
+   "titleKey": "creator.morph.ear-size",
+   "target": "morph_ear_size"
+  },
+  {
+   "id": "forehead-height",
+   "index": 18,
+   "titleKey": "creator.morph.forehead-height",
+   "target": "morph_forehead_height"
+  },
+  {
+   "id": "temple-width",
+   "index": 19,
+   "titleKey": "creator.morph.temple-width",
+   "target": "morph_temple_width"
+  },
+  {
+   "id": "neck-width",
+   "index": 20,
+   "titleKey": "creator.morph.neck-width",
+   "target": "morph_neck_width"
+  },
+  {
+   "id": "face-length",
+   "index": 21,
+   "titleKey": "creator.morph.face-length",
+   "target": "morph_face_length"
+  },
+  {
+   "id": "face-width",
+   "index": 22,
+   "titleKey": "creator.morph.face-width",
+   "target": "morph_face_width"
+  },
+  {
+   "id": "smile",
+   "index": 23,
+   "titleKey": "creator.morph.smile",
+   "target": "morph_smile"
+  },
+  {
+   "id": "age",
+   "index": 24,
+   "titleKey": "creator.morph.age",
+   "target": "morph_age"
+  }
+ ],
+ "defaults": {
+  "v": 1,
+  "name": "Rookie",
+  "callsign": "Rookie",
+  "body": {
+   "preset": "body-lean",
+   "height": 0.5,
+   "build": 0.5
+  },
+  "face": {
+   "preset": "face-sunset",
+   "morphs": {}
+  },
+  "skinTone": 3,
+  "hair": {
+   "style": "hair-buzz",
+   "color": 1
+  },
+  "outfit": {
+   "top": "top-hoodie",
+   "bottom": "bottom-jeans",
+   "shoes": "shoes-sneakers"
+  },
+  "voice": {
+   "id": "voice-bay-smooth",
+   "pitch": 0
+  },
+  "fightStyle": "style-balanced"
+ }
+}

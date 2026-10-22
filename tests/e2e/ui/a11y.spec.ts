@@ -51,7 +51,8 @@ test.describe('axe @ui-a11y', () => {
       ['nav-load', '[data-testid="load"]'],
       ['nav-new', '[data-testid="new"]'],
       ['nav-profile', '[data-testid="profile"]'],
-      ['nav-garage', '[data-testid="coming-soon"]'],
+      ['nav-garage', '[data-screen="garage"]'],
+      ['nav-help', '[data-testid="help"]'],
       ['nav-credits', '[data-testid="credits"]'],
     ] as const) {
       await page.getByTestId(nav).click();

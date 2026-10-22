@@ -4,6 +4,8 @@
  * device, `client.Pause` locked, hold-to-toggle, sensitivity, invert Y and deadzones. The model is pure (unit-tested); the capture reads
  * the next key or pad button itself because the engine's binders are suspended while a menu is open.
  */
+import { TouchSection } from '../../hud/touch-editor.tsx';
+import type { PrefsStore } from '../../shell/types.ts';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ActionId, Binding, ContextBindings, ControlId, ControlsSettings, InputContextId } from '@dv/shared';
 import kbmDefaults from '../../../../../config/input/defaults.kbm.json';
@@ -184,6 +186,8 @@ export function captureBinding(device: PadDevice, timeoutMs: number, win: Window
 // ---- component
 
 export interface ControlsPanelProps {
+  /** The preferences store: the touch layouts the player saved live in it (`UiPrefs.customTouchLayouts`). */
+  prefs?: PrefsStore;
   controls: ControlsSettings;
   setControls(next: ControlsSettings): void;
   capture?: (device: PadDevice, ms: number) => Promise<Binding | null>;
@@ -230,7 +234,8 @@ export function ControlsPanel(props: ControlsPanelProps) {
     <div class="dv-controls" data-testid="controls">
       <h2>{t('settings.controls')}</h2>
       <Tabs id="controls-device" tabs={tabs} active={device} onSelect={setDevice} />
-      {device === 'touch' || device === 'vr' ? <p class="dv-muted" data-testid="controls-note">{t(device === 'touch' ? 'settings.controls.touch.note' : 'settings.controls.vr.note')}</p> : null}
+      {device === 'touch' && props.prefs ? <TouchSection controls={c} setControls={props.setControls} prefs={props.prefs} /> : null}
+      {(device === 'touch' && !props.prefs) || device === 'vr' ? <p class="dv-muted" data-testid="controls-note">{t(device === 'touch' ? 'settings.controls.touch.note' : 'settings.controls.vr.note')}</p> : null}
       {device === 'kbm' || device === 'gamepad' ? (
         <>
           <p aria-live="polite" class="dv-sr" data-testid="capture-status">{capturing ? t('settings.controls.press') : ''}</p>
