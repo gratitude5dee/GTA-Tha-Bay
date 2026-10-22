@@ -1,0 +1,5 @@
+{
+  "$comment": "Reviewed retakes (spec/domains/03-story-cutscenes.md section D3.1): a pinned seed per ref id. Absent: parseInt(sha256Hex(refId).slice(0, 8), 16). A retake is a new seed and therefore a new key.",
+  "schema": "cutscene-seeds/1",
+  "seeds": {}
+}

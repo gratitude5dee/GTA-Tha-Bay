@@ -113,3 +113,72 @@ describe('pickRendition', () => {
     expect(pickRendition({ renditions: { v768: manifest.renditions.v768 } }, () => 'maybe', { dataSaver: true, baseUrl: '' })?.key).toBe('v768');
   });
 });
+
+describe('DomCutsceneHost: cue-only layer, still image, tap prompt (M05b2)', () => {
+  it('showCues puts the overlay above the live world without stopping the loop or pausing the sim; hideCues undoes it', () => {
+    const t = setup('desktop');
+    t.host.showCues();
+    expect(t.log).toEqual([]);
+    expect(t.parent.children).toHaveLength(1);
+    expect(t.host.cues).toBe(true);
+    expect((t.parent.children[0] as FakeEl).style['background']).toBe('transparent');
+    expect(t.root.get('data-dv-cutscene')).toBe('on');
+    t.host.hideCues();
+    expect(t.parent.children).toHaveLength(0);
+    expect(t.root.has('data-dv-cutscene')).toBe(false);
+    expect(t.host.cues).toBe(false);
+  });
+
+  it('show after showCues covers the screen again (black), and hide restores everything', async () => {
+    const t = setup('desktop');
+    t.host.showCues();
+    const video = new FakeVideo();
+    await t.host.show(video as unknown as HTMLVideoElement);
+    expect(t.host.cues).toBe(false);
+    expect((t.parent.children[0] as FakeEl).style['background']).toBe('#000');
+    expect(t.sim.paused).toBe(true);
+    await t.host.hide();
+    expect(t.sim.paused).toBe(false);
+  });
+
+  it('holdStill swaps the video for an image and lets the loop and the sim run behind it; hide removes the layer', async () => {
+    const t = setup('desktop');
+    const video = new FakeVideo();
+    await t.host.show(video as unknown as HTMLVideoElement);
+    t.log.length = 0;
+    t.host.holdStill('/last.webp');
+    expect(t.log).toEqual(['sim.paused=false', 'startLoop']);
+    expect(t.host.visible).toBe(true);
+    expect(video.getAttribute('src')).toBeNull();
+    expect(video.loadCalls).toBe(1);
+    const layer = t.parent.children[0] as FakeEl;
+    expect(layer.children.map((c) => (c as FakeEl).attrs.get('src') ?? 'overlay')).toEqual(['/last.webp', 'overlay']);
+    await t.host.hide();
+    expect(t.parent.children).toHaveLength(0);
+    expect(t.host.visible).toBe(false);
+    expect(t.root.has('data-dv-cutscene')).toBe(false);
+  });
+
+  it('waitForTap resolves false after the time and true on a click', async () => {
+    const clicks: ((e: unknown) => void)[] = [];
+    const sim = { paused: false, setPaused: () => undefined };
+    const loop = { stopLoop: () => undefined, startLoop: () => undefined };
+    const parent = new FakeEl();
+    const host = new DomCutsceneHost({
+      parent: parent as HostElement,
+      createElement: () => {
+        const el = new FakeEl() as FakeEl & { addEventListener(t: string, l: (e: unknown) => void): void; textContent: string };
+        el.addEventListener = (_t, l) => void clicks.push(l);
+        return el;
+      },
+      loop,
+      sim,
+      tier: 'mobile',
+    });
+    const timedOut = host.waitForTap('Tap to play', 10);
+    expect(await timedOut).toBe(false);
+    const tapped = host.waitForTap('Tap to play', 1000);
+    clicks.at(-1)?.({});
+    expect(await tapped).toBe(true);
+  });
+});

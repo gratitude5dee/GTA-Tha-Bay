@@ -1,5 +1,11 @@
 {
-  "schema": "cutscene-catalog/1",
-  "note": "Keys only, until the cutscene_catalog table (M05d). M05b2's index builder rewrites this file; the first key is the mock fixture used by the demo script.",
-  "keys": ["56a4f5da0800e4782a7e36ab1952ef6ec35a066175cc4674eee3350040e8899e"]
+  "keys": [
+    "56a4f5da0800e4782a7e36ab1952ef6ec35a066175cc4674eee3350040e8899e",
+    "abc35ee6f85ca5aad8dec37a7b43752418ae6c4704cd3364abe211377e637dd2"
+  ],
+  "mockKeys": [
+    "56a4f5da0800e4782a7e36ab1952ef6ec35a066175cc4674eee3350040e8899e"
+  ],
+  "note": "Keys only, until the cutscene_catalog table (M05d). Written by pnpm assets:cutscene-index: the keys of the index plus the mock fixture keys.",
+  "schema": "cutscene-catalog/1"
 }

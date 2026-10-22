@@ -1,0 +1,16 @@
+{
+  "$comment": "Prompt hygiene lists (spec/domains/03-story-cutscenes.md section D4, DL-550; M05b2). `words` are matched whole-word and case-insensitively by lintPrompt rule 2 (firearm, gore, killing, drug and sexual vocabulary; D-30, Q-06). `realism` is rule 3, applied when the cast holds a character whose tier is not consented. A trailing * allows letters after the stem.",
+  "schema": "prompt-banned/1",
+  "words": [
+    "gun*", "pistol*", "revolver*", "rifle*", "shotgun*", "firearm*", "handgun*", "machine gun*", "ammo", "ammunition", "bullet*", "gunshot*", "gunfire", "sniper*", "grenade*", "explosive*", "bomb*",
+    "gore", "gory", "blood", "bloody", "bloodied", "bloodshed", "wound*", "corpse*", "dead body", "decapitat*", "dismember*", "mutilat*", "entrails", "severed",
+    "kill", "kills", "killed", "killing", "killer*", "murder*", "stab", "stabs", "stabbed", "stabbing", "strangl*", "execution", "massacre", "slaughter*", "torture*", "suicide",
+    "cocaine", "heroin", "meth", "methamphetamine", "fentanyl", "crack pipe", "syringe*", "overdose", "marijuana", "cannabis", "bong", "weed",
+    "nude", "naked", "nudity", "topless", "sex", "sexy", "sexual", "erotic", "porn*", "lingerie", "fetish", "genitals", "breasts", "nipple*"
+  ],
+  "realism": [
+    "photoreal", "photorealistic", "photo-realistic", "photo realistic", "hyperreal", "hyperrealistic", "hyper-realistic", "realistic skin", "skin pores",
+    "canon", "nikon", "sony alpha", "fujifilm", "leica", "hasselblad", "arri", "arriflex", "red komodo", "blackmagic", "gopro",
+    "kodak", "portra", "ektachrome", "kodachrome", "cinestill", "velvia", "tri-x", "ilford", "35mm film", "16mm film", "film grain", "dslr"
+  ]
+}

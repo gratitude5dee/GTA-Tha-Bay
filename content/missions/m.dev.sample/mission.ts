@@ -28,7 +28,8 @@ export default defineMission({
     park: circle(37.777949, -122.418959, 15),
     buddy_near: castZone('buddy', 8),
   },
-  intro: { director: 'm.dev.sample.intro' },
+  intro: { cutscene: 'cut.story.m.dev.sample.intro' },
+  lines: ['line.m.dev.sample.cut.intro.1', 'line.m.dev.sample.cut.intro.2'],
   stages: [
     stage('arrive', [goto('plaza', { id: 'arrive_plaza', onFoot: true })], {
       onEnter: [ambient({ traffic: 0.5 }), clock({ lock: { hour: 14 } }), say('buddy', 'line.m.dev.sample.hello')],

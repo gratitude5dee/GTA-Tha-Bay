@@ -21,6 +21,11 @@ export class MediaBudget {
 
   constructor(private readonly opts: MediaBudgetOptions) {}
 
+  /** The media line in MB (64 on the mobile tiers), null where the tier has none. */
+  get limitMB(): number | null {
+    return this.opts.maxMediaMB;
+  }
+
   /** Reserves a slot for a clip of `bytes`: decoding first, then pre-roll; refused when both are taken or the line would be crossed. */
   prepare(id: string, bytes: number): BudgetResult {
     if (this.decoding?.id === id || this.preroll?.id === id) return { ok: true, slot: this.decoding?.id === id ? 'decoding' : 'preroll' };

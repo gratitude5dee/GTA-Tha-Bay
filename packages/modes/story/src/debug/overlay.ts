@@ -91,6 +91,8 @@ export function mountMissionOverlay(host: MissionBridgeHost & { setPaused?(p: bo
           u.searchParams.set('mission', 'm.dev.sample');
           u.searchParams.set('seed', '1');
           u.searchParams.set('talk', 'scripted');
+          // the intro beat of the sample is a generated cutscene: show the fixture clip with the AI chip (M05b2)
+          u.searchParams.set('beats', 'video');
           location.href = u.toString();
         }),
       );

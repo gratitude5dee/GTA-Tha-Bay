@@ -4,5 +4,5 @@
     "lib": ["ES2023"],
     "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": ["fixtures/sign-fixtures.ts", "scripts", "../../packages/shared/src/contracts/dom-media.d.ts"]
+  "include": ["fixtures/sign-fixtures.ts", "scripts", "test", "vitest.config.ts", "../../packages/shared/src/contracts/dom-media.d.ts"]
 }

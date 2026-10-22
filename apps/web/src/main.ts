@@ -8,6 +8,7 @@ import platformFlags from '../../../config/platform-flags.json';
 import { loadPrefs, memoryPrefs, defaultPrefs, mountShell, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps } from '@dv/ui';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
+import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { createPwaUpdateController } from './pwa-update.ts';
@@ -227,7 +228,17 @@ async function boot(): Promise<void> {
   }
   // QA `?mission=<id>` (M05a1): the compiled mission the story mode starts at boot; QA builds only.
   const qaMission = QA && flags.mission ? await import('./qa/missions.ts').then((m) => m.qaMissionBundle(flags.mission as string)) : null;
+  // The cutscene protocol (M05b2): a mission that starts at boot emits cut.request before the engine handle exists, so the events are
+  // caught from the first tick and handed to the CutscenePlayer once it is installed.
+  const cutBacklog: { t: string; tick: number; n?: number; s?: string }[] = [];
+  let cutSink: CutsceneGlue['handleEvents'] | null = null;
   const engine = await bootEngine({
+    onSimEvents: (events) => {
+      const cuts = events.filter((e) => e.t === 'cut.request' || e.t === 'cut.done');
+      if (cuts.length === 0) return;
+      if (cutSink) cutSink(cuts);
+      else cutBacklog.push(...cuts);
+    },
     container,
     qa: QA,
     flags,
@@ -259,6 +270,20 @@ async function boot(): Promise<void> {
     return null;
   });
   engineRef = engine;
+  // The CutscenePlayer (M05b2): answers the sim's cut.request with the clip or the in-engine fallback. QA builds also hand it the
+  // bundled index and the sample mission's line texts.
+  let cutscenes: CutsceneGlue | null = null;
+  if (engine) {
+    const qaMod = QA ? await import('./qa/missions.ts') : null;
+    const { installCutscenes } = await import('./cutscene.ts');
+    cutscenes = installCutscenes(engine, platform, {
+      qa: QA,
+      beats: flags.beats,
+      ...(qaMod ? { index: qaMod.qaCutsceneIndex(), lines: qaMod.qaLines() } : {}),
+    });
+    cutSink = cutscenes.handleEvents;
+    if (cutBacklog.length > 0) cutscenes.handleEvents(cutBacklog.splice(0));
+  }
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
     engine.setPaused(want.paused);
@@ -285,6 +310,8 @@ async function boot(): Promise<void> {
     if (engine) installEngineBridge(engine);
     // The flat cutscene path (M04c): F9 plays the test clip over the game, and window.__dvBridge.media drives it. QA builds only.
     if (engine) (await import('./qa/media-game.ts')).installGameMedia(engine, platform);
+    // The CutscenePlayer's bridge (M05b2): window.__dvBridge.cutscene.
+    if (engine && cutscenes) (await import('./qa/cutscene-bridge.ts')).installCutsceneBridge(cutscenes, engine);
     // The mission debugger (M05a1): window.__dvBridge.mission and the overlay, QA builds only.
     if (engine) {
       const [{ installMissionBridge }, { mountMissionOverlay }] = await Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]);
