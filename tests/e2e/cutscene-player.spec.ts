@@ -83,8 +83,9 @@ test.describe('cutscene player @cutscene', () => {
     expect((fallback as LogEntry).at - (request as LogEntry).at).toBeLessThanOrEqual(2500);
     expect(answer(entries, 'video')).toBeUndefined();
 
-    // the subtitle of the first cue shows over the live world, with no AI chip and no video
-    await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 60_000, intervals: [100] }).toContain('Hold on');
+    // a subtitle of the beat shows over the live world, with no AI chip and no video. Either of the two cues counts: on a slow runner each
+    // bridge read takes a second, and the first cue alone is on screen for 2.6 s (integration, M05b2 merge onto the M02e world).
+    await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 60_000, intervals: [50] }).toMatch(/Hold on|Right\. Let me/);
     expect(await cut(page, (c) => c.aiChip())).toBe(false);
     expect(await cut(page, (c) => c.hasVideo())).toBe(false);
     expect((await cut(page, (c) => c.state())).host.cues).toBe(true);
