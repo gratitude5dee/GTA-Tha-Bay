@@ -5,3 +5,5 @@ PLAY_TOKEN_HMAC=
 SUPABASE_SECRET_KEY=
 OPS_TOKEN=
 FAL_KEY=
+# M06a1: salts the daily network hash of the per-net caps (any random string; absent: the UTC day alone, which still works locally)
+QUOTA_NET_SALT_SECRET=
