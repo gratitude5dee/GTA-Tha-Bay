@@ -1,5 +1,5 @@
 import {
-  ClientAction, type ControlsSettings, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
+  ClientAction, type ControlsSettings, type JsonValue, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
   type SimProfile,
 } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
@@ -18,7 +18,6 @@ import { SnapshotView } from '../snapshot/reader.ts';
 import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
-import { PromptOverlay } from '../hud/prompt.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
 import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
@@ -286,7 +285,23 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   const view = new SnapshotView();
   // Vehicles (M03a1): the five cameras, the context switch, the prompt overlay, and the QA tools.
   const vcam = new VehicleCamera();
-  let promptUi: PromptOverlay | null = null;
+  // The snapshot side block reaches the HUD as view-model keys the page sets itself (M04b2, DL-663 part 2): the S10 widgets read them.
+  const mirrored = new Map<string, string>();
+  const mirror = (k: `hud.${string}`, v: JsonValue | null): void => {
+    const sig = v === null ? '' : JSON.stringify(v);
+    if (mirrored.get(k) === sig) return;
+    mirrored.set(k, sig);
+    vm.setLocal(k, v);
+  };
+  const mirrorHud = (): void => {
+    const pr = playing ? view.prompt : null;
+    const pu = playing ? view.pursuit : null;
+    const ve = playing && view.vehicle && view.vehicle.state === 201 ? view.vehicle : null;
+    mirror('hud.prompt', pr ? { kind: pr.kind, key: pr.key, hold: pr.hold, progress: Math.round(pr.progress * 100) / 100, ...(pr.reason ? { reason: pr.reason } : {}) } : null);
+    mirror('hud.heat', pu ? { level: pu.level, phase: pu.phase, cooldown: Math.round(pu.cooldown * 100) / 100, units: pu.units, seen: pu.seen } : null);
+    mirror('hud.veh', ve ? { kph: Math.round(Math.abs(ve.speed) * 3.6), gear: ve.gear, rpm: Math.round(ve.rpm / 50) * 50 } : null);
+    mirror('hud.device', router?.active ?? 'kbm');
+  };
   let pursuitUi: { update(s: PursuitSide | null): void } | null = null;
   let drivingCtx = false;
   let snapBehind = false;
@@ -376,6 +391,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     banner.hidden = false;
     pool?.clear();
     vm.reset();
+    mirrored.clear();
     try {
       await host.restart(withProfile(cfg, profile));
       host.sendUi({ t: 'mode.start', id: then as never });
@@ -393,6 +409,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     banner.hidden = false;
     pool?.clear();
     vm.reset();
+    mirrored.clear();
     chunksLoaded = 0;
     try {
       await host.restart(cfg);
@@ -486,7 +503,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
-    promptUi?.update(playing ? view.prompt : null, playing ? view.vehicle : null, router?.active ?? 'kbm');
+    mirrorHud();
     pursuitUi?.update(view.pursuit);
     if (physicsDraw?.visible) {
       physicsDraw.sync(view.poses, view.count);
@@ -631,8 +648,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     };
     applyControls(vm.get('sys.controls'));
     cleanups.push(vm.subscribe('sys.controls', applyControls));
-    promptUi = new PromptOverlay(document.body);
-    cleanups.push(() => promptUi?.dispose());
     kbm.attach(window as unknown as BinderTarget);
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);

@@ -319,6 +319,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           return e ? e.ctx : null;
         },
         world: () => (services.world.api ?? standin),
+        ride: () => services.ride,
         selectProfile: (id) => {
           void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
             .then((next) => {

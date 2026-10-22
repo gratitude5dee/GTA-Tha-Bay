@@ -66,7 +66,7 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
 
     // the prompt is offered for the vehicle, and F gets in: 200 (entering), then 201 (driving) in the vehicle input context
     await expect.poll(async () => (await observe(page)).prompt?.kind, { timeout: 30_000 }).toBe(1);
-    await expect(page.getByTestId('dv-prompt')).toBeVisible();
+    await expect(page.getByTestId('hud-prompt')).toBeVisible();
     await page.screenshot({ path: testInfo.outputPath('vehicle-2-prompt.png') });
     await page.keyboard.press('KeyF');
     // 200 (entering) lasts only a few ticks and the page samples slower than that, so it is optional here (the unit spec
@@ -78,7 +78,7 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
     expect(obs.player?.owner).toBe(2);
     expect(obs.vehicle?.handling).toBe('hp.sedan');
     expect(obs.vehicleCamera.active).toBe(true);
-    await expect(page.getByTestId('dv-speed')).toBeVisible();
+    await expect(page.getByTestId('hud-speed')).toBeVisible();
 
     // the keyboard drives it
     await page.keyboard.down('KeyW');

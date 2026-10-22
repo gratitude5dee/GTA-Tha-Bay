@@ -50,6 +50,22 @@ export class ViewModelStore implements ViewModelSource {
     }
   }
 
+  /**
+   * Sets a value that only the page knows (mirrors of the snapshot side block: `hud.prompt`, `hud.heat`, `hud.veh`, M04b2). Does not
+   * touch the sim's revisions; `null` deletes. Listeners hear the change like any patch.
+   */
+  setLocal(k: VmKey, v: JsonValue | null): void {
+    const prev = this.values.get(k);
+    if (v === null) {
+      if (!prev) return;
+      this.values.delete(k);
+      this.notify(k, undefined);
+      return;
+    }
+    this.values.set(k, { v, rev: prev?.rev ?? 0 });
+    this.notify(k, v);
+  }
+
   /** Forgets every value (the sim worker restarted). Listeners hear `undefined` for each key that was set. */
   reset(): void {
     const keys = [...this.values.keys()];
