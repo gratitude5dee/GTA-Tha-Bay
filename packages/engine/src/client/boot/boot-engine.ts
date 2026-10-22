@@ -34,6 +34,7 @@ import type { Inspector, InspectReply } from '../debug/inspector.ts';
 import type { PhysicsDraw, PhysicsShapeInfo } from '../debug/physics-draw.ts';
 import type { SimPanel, SkyControls } from '../debug/sim-panel.ts';
 import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
+import type { XrPanelsLite } from '../xr/panels.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
 import type { WorldBoot } from './world-layer.ts';
@@ -175,6 +176,8 @@ export interface EngineHandle {
   readonly vehicleCamera: VehicleCamera;
   /** QA tools (M03a1); null outside QA builds with `?debug=1`. */
   readonly tools: { inspector: Inspector; physics: PhysicsDraw } | null;
+  /** The scene panels host of the UI skeleton (QA builds with a renderer host only; null otherwise). */
+  readonly xrPanels: XrPanelsLite | null;
   /** The input router (null until it exists): the shell rebinds controls and listens for client actions through it (M04b1). */
   readonly router: InputRouterImpl | null;
   /** Unlocks the audio context from a user gesture (the Title's first tap; M04c wraps this in `FirstGestureUnlock`). */
@@ -285,6 +288,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let skyControls: SkyControls | null = null;
   let freeCam: FreeCam | null = null;
   let xrSmoke: XrSmoke | null = null;
+  // The scene panels of the UI skeleton (M04b2): QA builds only, until M11b1 brings the real `XrPanels`.
+  let xrPanels: XrPanelsLite | null = null;
   let xrSupported = false;
   let chunksLoaded = 0;
   let backend: EngineObservation['backend'] = 'none';
@@ -557,6 +562,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           pool.fadeOpacity = 1;
         }
         if (xrSmoke) xrSmoke.update();
+        xrPanels?.update(nowMs / 1000);
       } else {
         if (view.camera && !freeCam?.active) rig.apply(view.camera);
         if (pool) {
@@ -579,6 +585,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           });
         }
         if (xrSmoke) xrSmoke.update();
+        xrPanels?.update(nowMs / 1000);
       }
     }
     if (audio && camPos) audio.setListener([camPos.x, camPos.y, camPos.z], [0, 0, -1], [0, 1, 0]);
@@ -798,6 +805,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         },
       });
       xrSupported = xrSmoke !== null;
+      {
+        const { XrPanelsLite } = await import('../xr/panels.ts');
+        xrPanels = new XrPanelsLite(host2.scene, host2.camera);
+        const panels = xrPanels;
+        cleanups.push(() => panels.dispose());
+      }
       if (xrSmoke) cleanups.push(() => xrSmoke?.dispose());
     }
   }
@@ -886,6 +899,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     vm,
     sendUi: (cmd) => uiSender.send(cmd),
     toasts: () => toastLog,
+    get xrPanels() {
+      return xrPanels;
+    },
     get router() {
       return router;
     },

@@ -188,7 +188,10 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     const after = (await observe(page)).player!.pos;
     expect(Math.hypot(after[0] - before[0], after[2] - before[2])).toBeLessThan(0.05);
 
-    // Back to Pause, then Quit: a confirmation, then the main menu.
+    // Clear the heat (no autosave is due during a pursuit), back to Pause, then Quit: a confirmation, then the main menu.
+    await page.getByTestId('btn-phone-home').click();
+    await page.getByTestId('row-phone-apps-sandbox').click();
+    await page.getByTestId('btn-heat-0').click();
     await page.getByTestId('btn-phone-home').click();
     await page.getByTestId('btn-phone-close').click();
     await expect(page.getByTestId('btn-pause-quit')).toBeVisible();
@@ -253,8 +256,11 @@ test.describe('boundary toast @ui-boundary-toast', () => {
     await expect(toast).toBeVisible({ timeout: 150_000 });
     await expect(toast).toContainText('Leaving SF — coming soon');
     await expect(page.getByTestId('toasts')).toContainText('Leaving SF');
-    await page.waitForTimeout(3000);
     await expect(toast).toHaveCount(1);
+    // Still pressing against the barrier: the approach fired one event and the sim raised one toast.
+    await page.waitForTimeout(3000);
     expect(await page.evaluate(() => (window as unknown as WorldW).__dvBridge.world.boundaryEvents())).toBe(1);
+    const raised = await page.evaluate(() => (window as unknown as { __dvBridge: { engine: { modes: { toasts(): { id: string }[] } } } }).__dvBridge.engine.modes.toasts().filter((x) => x.id === 'world.boundary.countyLine').length);
+    expect(raised).toBe(1);
   });
 });

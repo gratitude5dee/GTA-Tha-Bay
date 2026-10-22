@@ -63,6 +63,7 @@ export function PausePage(_props: PageProps) {
       live = false;
     };
   }, [ctx.saves, ctx.profile?.id]);
+  useVmRedraw(ctx);
   const atSafehouse = ctx.vm<JsonValue>('hud.safehouse') === true;
   const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab });
   return h(ScreenHost, {
@@ -90,6 +91,17 @@ export function PausePage(_props: PageProps) {
   });
 }
 
+/** Redraws the page when a `hud.*`, `phone.*` or `mode.*` key changes (the shell itself only listens to `sys.*`). */
+export function useVmRedraw(ctx: ShellContext): void {
+  const [, redraw] = useState(0);
+  useEffect(() => {
+    const vm = ctx.engine?.vm;
+    if (!vm) return undefined;
+    const offs = (['hud.*', 'phone.*', 'mode.*'] as const).map((k) => vm.subscribe(k, () => redraw((n) => n + 1)));
+    return () => offs.forEach((off) => off());
+  }, [ctx.engine]);
+}
+
 /** Everything the app screens read, from the view models and the shell. */
 export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
   const modes = ctx.vm<JsonValue>('sys.modes');
@@ -107,7 +119,8 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
     cashCents: wallet?.cashCents,
     garage: garageCards(ctx.vm<JsonValue>('sys.garage')),
     ride,
-    heat: heat?.level ?? 0,
+    // The toggle is published at once; the snapshot's heat waits for the next tick, and the phone pauses the sim.
+    heat: typeof toggles?.['sandbox.player.heat'] === 'number' ? (toggles['sandbox.player.heat'] as number) : (heat?.level ?? 0),
     neverWanted: toggles?.['sandbox.player.neverWanted'] === true,
     appRows: [],
   };
@@ -117,6 +130,7 @@ export function PhonePage(props: PageProps) {
   const { shell, ctx } = useShell();
   const [app, setApp] = useState<string | null>(props.params['app'] ?? null);
   const [lastPick, setLastPick] = useState<string | null>(null);
+  useVmRedraw(ctx);
   const env = usePhoneEnv(ctx);
   const apps = useMemo(() => visibleApps({ mode: env.mode }), [env.mode]);
   // The Ride app asks the sim for its destinations each time it opens.

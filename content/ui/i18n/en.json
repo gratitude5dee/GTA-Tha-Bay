@@ -896,5 +896,8 @@
   "help.online.region.step2": "Your local saves are not affected.",
   "help.online.signin.title": "I cannot sign in",
   "help.online.signin.step1": "Check the username and password.",
-  "help.online.signin.step2": "Playing without an account is always possible."
+  "help.online.signin.step2": "Playing without an account is always possible.",
+  "xr.test.title": "Test panel",
+  "xr.test.counter": "Counter: {n}",
+  "xr.test.press": "Press me"
 }

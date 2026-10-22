@@ -307,6 +307,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
       // The pursuit director's wallet and the transit fares go through EconomyApi (M03c, M03b2).
       pursuitMod?.bindWallet?.(economyWallet(econ));
       (services as { fareSink?: ForwardingFareSink | null }).fareSink?.bind(econ);
+      services.world.heat = () => pursuitMod?.director()?.state().level ?? 0;
 
       dispatch = createCommandDispatcher({
         host: h,

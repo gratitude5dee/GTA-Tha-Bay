@@ -32,8 +32,8 @@ export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: 
   if (path === SET_HEAT && typeof v === 'number') {
     try {
       const level = Math.max(0, Math.min(5, Math.round(v)));
-      if (level === 0) ctx.pursuit.clear('sandbox.heat');
-      else ctx.pursuit.setHeat(level as never, 'sandbox');
+      // `setHeat(0)` ends the pursuit; `clear` is for the scripted pursuit only.
+      ctx.pursuit.setHeat(level as never, 'sandbox');
     } catch {
       // no pursuit director in this build
     }

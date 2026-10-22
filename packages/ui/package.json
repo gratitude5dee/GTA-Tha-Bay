@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.tsx",
     "./i18n": "./src/i18n/index.ts",
+    "./xr-qa": "./src/screen/xr-qa.ts",
     "./tokens.css": "./src/kit/tokens.css",
     "./shell.css": "./src/kit/shell.css"
   },

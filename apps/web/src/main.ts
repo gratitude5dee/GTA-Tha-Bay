@@ -275,6 +275,13 @@ async function boot(): Promise<void> {
       import('@dv/engine/assets/bridge'),
     ]);
     if (engine) installEngineBridge(engine);
+    // The UI skeleton's test panel (M04b2, AC-11): only where the engine has a panels host (QA builds with a renderer).
+    if (engine?.xrPanels) {
+      const { createUiQaBridge } = await import('@dv/ui/xr-qa');
+      const ui = createUiQaBridge(engine.xrPanels as never, engine.vm as never);
+      const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+      w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
+    }
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

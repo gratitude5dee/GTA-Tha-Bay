@@ -462,6 +462,8 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   const api = createWorldApi(world.store, index, { tick: () => sim.core.tick }, {
     blackout,
     host,
+    // The teleport policy reads the wanted level the modes module hands to the hub (M04b2): heat 1 refuses fast travel.
+    policy: { allowed: () => true, heat: () => sim.services.world.heat?.() ?? 0 },
     onBoundary: (e) => events.push({ t: 'world.boundary', tick: e.tick, s: e.s }),
     onBarrierChange: (key) => void world.feeder.refresh(key, world.store),
   });
