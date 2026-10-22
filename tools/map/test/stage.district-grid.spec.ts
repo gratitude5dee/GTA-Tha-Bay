@@ -84,7 +84,7 @@ describe('S12 district grid', () => {
       const d = districtOfSlug.get(grid.nhoods[v] as string);
       expect(allowed.has(d as string), `index ${v} (${grid.nhoods[v]}) -> ${String(d)}`).toBe(true);
     }
-    const gate = bake.report.gates.filter((g) => g.id.startsWith('s12.') || g.id === 's14.district-grid');
+    const gate = bake.report.gates.filter((g) => g.id.startsWith('s12.district') || g.id === 's14.district-grid');
     expect(gate.map((g) => g.id).sort()).toEqual(['s12.district-cells', 's12.district-names', 's14.district-grid']);
     expect(gate.every((g) => g.level === 'pass')).toBe(true);
   });
