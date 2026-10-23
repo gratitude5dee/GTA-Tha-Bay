@@ -14,6 +14,7 @@ import type { QualityTier, RenderBackend } from '@dv/shared';
 import type { QaFlags } from './qa-flags.ts';
 import type { PostStack } from './post/stack.ts';
 import { PLATFORM_FLAGS } from './tier-config.ts';
+import { GpuPacer, type FenceGl } from './gpu-pacer.ts';
 
 /**
  * Renderer host (C13, 11-platform.md sections 5.1 and 5.8 plus the 1.1 menu-scene members).
@@ -93,6 +94,8 @@ export interface RendererHostOptions {
   events?: HostEvents;
   /** Replaces a canvas whose context was lost (a lost WebGL context cannot be re-acquired on the same element). */
   cloneCanvas?: (old: HTMLCanvasElement) => HTMLCanvasElement;
+  /** QA builds: pace flat WebGL2 frames on GPU fences (`gpu-pacer.ts`, BD-FIX-CI7-F03). */
+  paceGpu?: boolean;
 }
 
 export interface FrameListener {
@@ -151,6 +154,10 @@ export class RendererHost {
   frames = 0;
   /** Frames rendered while an XR session was presenting. */
   xrFrames = 0;
+  /** Flat frames held back by the GPU pacer (QA builds on WebGL2; 0 otherwise). */
+  get pacedFrames(): number {
+    return this.pacer?.held ?? 0;
+  }
   /** Runs at the start of every frame, before the render call (M01a2: the engine hand-off and the snapshot view). */
   frameHook: ((timeMs: number) => void) | null = null;
   /** The tier whose resolution caps `resize` applies. QualityService keeps it current. */
@@ -171,6 +178,7 @@ export class RendererHost {
   deviceLosses = 0;
 
   private _renderer: WebGPURenderer | null = null;
+  private pacer: GpuPacer | null = null;
   private _backend: RenderBackend | null = null;
   private _depthPolicy: 'reversed' | 'standard' = 'standard';
   private _features: readonly string[] = [];
@@ -283,6 +291,9 @@ export class RendererHost {
         this.opts.events?.gpuError?.('uncaptured', (info.message ?? 'uncaptured').slice(0, 128))) as unknown as (errorMessage: string) => void;
       this._renderer = renderer;
       this._backend = backend;
+      this.pacer?.dispose();
+      const gl = backend === 'webgl2' && this.opts.paceGpu === true ? (renderer.backend as unknown as { gl?: FenceGl | null }).gl : null;
+      this.pacer = gl ? new GpuPacer(gl) : null;
       this._depthPolicy = (renderer as unknown as { reversedDepthBuffer?: boolean }).reversedDepthBuffer === true ? 'reversed' : 'standard';
       const dev = (renderer.backend as unknown as BackendFlags).device;
       this._features = dev?.features ? [...dev.features].sort() : [];
@@ -427,6 +438,10 @@ export class RendererHost {
     // and three's own XR loop skips it the same way. Passed on, its NaN time gave the engine a NaN dt that made the camera rig NaN for
     // good, and every later frame drew from a NaN camera (BD-FIX-CI6-A01).
     if (time === undefined || !Number.isFinite(time)) return;
+    // QA builds on WebGL2: no frame starts while the GPU still has GPU_PACE_DEPTH earlier frames to draw (BD-FIX-CI7-F03). XR frames are
+    // paced by the headset's compositor (or, emulated, by `installIwer`), so the pacer stays out of them.
+    const paced = this.pacer !== null && !r.xr.isPresenting;
+    if (paced && !(this.pacer as GpuPacer).ready()) return;
     // info.autoReset is off, so the host resets once per frame and the counts below are this frame's.
     r.info.reset();
     for (const l of this.listeners) l.before?.(time);
@@ -437,6 +452,7 @@ export class RendererHost {
     if (this.menu) r.render(this.menu.scene as Scene, this.menu.camera);
     else if (this.postStack && !r.xr.isPresenting) this.postStack.render();
     else this.renderDirect();
+    if (paced) this.pacer?.submitted();
     for (const l of this.listeners) l.after?.(time);
   };
 
@@ -457,6 +473,8 @@ export class RendererHost {
 
   dispose(): void {
     this.stopLoop();
+    this.pacer?.dispose();
+    this.pacer = null;
     this.postStack?.dispose();
     this.postStack = null;
     this.owners.clear();

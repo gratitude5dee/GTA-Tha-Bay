@@ -34,7 +34,8 @@ export interface SaveControlDeps {
 export type { SaveWritePort } from '../save-port.ts';
 
 export class SaveControl implements SaveWritePort {
-  private readonly queue = new Map<SlotId, { data: unknown; reason: SaveReason }>();
+  /** The latest write per slot, with the capability it was posted under (BD-FIX-CI7-F04). */
+  private readonly queue = new Map<SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }>();
   private flushing: Promise<number> | null = null;
   /** Writes that failed at a flush (kept for QA and the status line). */
   readonly failures: { slot: SlotId; error: string }[] = [];
@@ -43,8 +44,13 @@ export class SaveControl implements SaveWritePort {
 
   constructor(private readonly deps: SaveControlDeps) {}
 
+  /**
+   * Queues a slot write under the capability in force now. The write keeps that capability even when the capability changes before
+   * the flush: the pump can run a tick between the post and the flush (a UI command and frames in one batch), and the idle menu's
+   * `core` save (`ModeHost.saveCore`) raises the capability for its own post only and lowers it again at that tick (BD-FIX-CI7-F04).
+   */
   post(slot: SlotId, data: unknown, reason: SaveReason): void {
-    this.queue.set(slot, { data, reason });
+    this.queue.set(slot, { data, reason, cap: this.capability });
   }
 
   setCapability(cap: SaveCapability | null): void {
@@ -79,8 +85,9 @@ export class SaveControl implements SaveWritePort {
       if (this.capability) svc.setCapability?.(this.capability);
       let n = 0;
       while (this.queue.size > 0) {
-        const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason }];
+        const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }];
         this.queue.delete(slot);
+        if (item.cap) svc.setCapability?.(item.cap);
         const r = await svc.write(slot, item.data, item.reason);
         if (r.ok) n++;
         else this.failures.push({ slot, error: r.error });

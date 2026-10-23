@@ -258,6 +258,8 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     ...(o.createRenderer ? { createRenderer: o.createRenderer } : {}),
     qa: o.flags,
     compatibilityMode: settings.compatibilityMode,
+    // QA builds pace flat WebGL2 frames on GPU fences, as a compositor would (BD-FIX-CI7-F03); production builds leave it to the browser.
+    paceGpu: import.meta.env.VITE_DV_QA === '1',
     events: {
       gpuError: (kind, message) => errors.gpu(kind, message),
       unsupported: (e) => o.events?.unsupported?.(e),

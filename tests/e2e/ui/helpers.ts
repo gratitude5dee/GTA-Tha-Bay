@@ -97,7 +97,6 @@ export function lastSave(page: Page): Promise<LastSave | null> {
  */
 export async function waitForSave(page: Page, slot: string, since: number, timeout = 60_000): Promise<LastSave> {
   let seen: LastSave | null = null;
-  const tDbg = Date.now(); // TEMP-DIAG
   await expect
     .poll(async () => {
       seen = await lastSave(page);
@@ -105,7 +104,6 @@ export async function waitForSave(page: Page, slot: string, since: number, timeo
       return seen.ok ? 'ok' : `failed: ${seen.error ?? 'unknown'}`;
     }, { timeout, intervals: [100, 250, 500, 1000] })
     .toBe('ok');
-  console.log(`TEMP-DIAG save ${slot} confirmed ${Date.now() - tDbg} ms after the wait began, ${(seen as unknown as LastSave).at - since} ms after since`); // TEMP-DIAG
   return seen as unknown as LastSave;
 }
 
