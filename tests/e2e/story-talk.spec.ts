@@ -74,6 +74,12 @@ test.describe('talk panel @story', () => {
     await page.goto('/?play=story&tier=mobile-low');
     await waitForEngine(page);
     await expect(page.getByTestId('hud')).toBeVisible({ timeout: 60_000 });
+    // The Jobs missions are the story mode's view model (`mode.story.jobs`, published as the mode enters, BD-FIX-CI9-W02). The play bypass
+    // starts the mode while the HUD is already up, and its sim half loads first; Pause stops the ticks, so the mode must be running
+    // before Escape, as it is when a player who walked in opens the phone.
+    await expect
+      .poll(() => page.evaluate(() => JSON.stringify((window as unknown as { __dvBridge: { engine: { modes: { vm(k: string): unknown } } } }).__dvBridge.engine.modes.vm('sys.mode') ?? null)), { timeout: 60_000 })
+      .toContain('{"id":"story","state":"Running"}');
     await page.keyboard.press('Escape');
     await page.getByTestId('btn-pause-phone').click();
     await page.getByTestId('row-phone-apps-jobs').click();
