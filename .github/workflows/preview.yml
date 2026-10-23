@@ -65,6 +65,12 @@ jobs:
           key=$(jq -r .key apps/web/dist/asset-catalog.json)
           grep -q '"data/world-index"' "apps/web/dist/media-local/$key" || { echo "::error::the catalog manifest apps/web/dist/media-local/$key has no data/world-index"; exit 1; }
       - run: pnpm deploy:preview
+        env:
+          # Staging's secrets.required applies to Previews; the secrets ride with the Preview (tools/ci/deploy.ts previewCommands, BD-FIX-CI5-S02).
+          PLAY_TOKEN_HMAC: ${{ secrets.PLAY_TOKEN_HMAC }}
+          PLAY_TOKEN_HMAC_PREV: ${{ secrets.PLAY_TOKEN_HMAC_PREV }}
+          QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm check:headers -- --from test-results/preview-url.txt
       - run: pnpm check:coi -- --from test-results/preview-url.txt

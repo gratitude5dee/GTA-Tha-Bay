@@ -215,19 +215,42 @@ function ensureDist(): void {
   if (res.status !== 0) throw new Error('pnpm build failed');
 }
 
+/**
+ * The two wrangler calls of deploy:preview. Staging's `secrets.required` applies to Previews too (observed on PR #6, U-BE-22), so when the
+ * environment holds any Worker secret its file rides on both paths (`--secrets-file`, BD-FIX-CI5-S02).
+ */
+export function previewCommands(name: string, secretsFile: string | null): { first: string[]; second: string[] } {
+  const secrets = secretsFile ? ['--secrets-file', secretsFile] : [];
+  return {
+    first: ['preview', '--env', 'staging', '--name', name, '--json', ...secrets],
+    second: ['versions', 'upload', '--env', 'staging', '--preview-alias', name, ...secrets],
+  };
+}
+
 function preview(name: string): number {
   ensureDist();
   mkdirSync(path.join(repoRoot, 'test-results'), { recursive: true });
+  const { json, missing } = buildSecretsJson(process.env);
+  if (missing.length > 0) console.warn(`deploy:preview: required Worker secrets not in the environment: ${missing.join(', ')} (the Preview fails without them unless the Worker already holds them)`);
+  const secretsFile = json === '{}\n' ? null : path.join(process.env['RUNNER_TEMP'] ?? os.tmpdir(), 'preview-secrets.json');
+  if (secretsFile) writeFileSync(secretsFile, json, { mode: 0o600 });
+  try {
+    return previewWith(name, previewCommands(name, secretsFile));
+  } finally {
+    if (secretsFile) rmSync(secretsFile, { force: true });
+  }
+}
 
+function previewWith(name: string, cmd: { first: string[]; second: string[] }): number {
   // Primary path: Workers Preview of the staging Worker (open beta in wrangler 4.151.1).
-  const first = wrangler(['preview', '--env', 'staging', '--name', name, '--json']);
+  const first = wrangler(cmd.first);
   let url = first.status === 0 ? parsePreviewUrl(first.out) : null;
   let pathTaken = 'wrangler-preview';
 
   if (!url) {
     // CI-R01 fallback: a Version Preview URL on the staging Worker, which holds no production data.
     console.warn(`wrangler preview did not yield a URL (exit ${first.status}); falling back to versions upload --preview-alias ${name}`);
-    const second = wrangler(['versions', 'upload', '--env', 'staging', '--preview-alias', name]);
+    const second = wrangler(cmd.second);
     if (second.status !== 0) {
       console.error('deploy:preview failed on both paths');
       return 1;

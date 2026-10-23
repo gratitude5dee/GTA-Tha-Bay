@@ -1,7 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildSecretsJson, main, parsePreviewUrl, PREVIEW_URL_FILE, QUEUE_NAMES, stripJsonc, WORKER_SECRETS, workerNames } from '../deploy.ts';
+import { buildSecretsJson, main, parsePreviewUrl, PREVIEW_URL_FILE, previewCommands, QUEUE_NAMES, stripJsonc, WORKER_SECRETS, workerNames } from '../deploy.ts';
 import { dropDashDash, repoRoot } from '../run.ts';
 
 describe('deploy.ts', () => {
@@ -37,6 +37,15 @@ describe('deploy.ts', () => {
     expect(Object.keys(JSON.parse(partial.json) as object)).toEqual(['PLAY_TOKEN_HMAC']);
     expect(partial.missing).toEqual(['QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY']);
     expect(buildSecretsJson({}).json).toBe('{}\n');
+  });
+
+  it('passes the secrets file to both Preview paths only when the environment holds a Worker secret (BD-FIX-CI5-S02)', () => {
+    const withFile = previewCommands('pr-6', '/tmp/preview-secrets.json');
+    expect(withFile.first).toEqual(['preview', '--env', 'staging', '--name', 'pr-6', '--json', '--secrets-file', '/tmp/preview-secrets.json']);
+    expect(withFile.second).toEqual(['versions', 'upload', '--env', 'staging', '--preview-alias', 'pr-6', '--secrets-file', '/tmp/preview-secrets.json']);
+    const without = previewCommands('pr-6', null);
+    expect(without.first).not.toContain('--secrets-file');
+    expect(without.second).not.toContain('--secrets-file');
   });
 
   it('bootstrap creates the four queues of the web Worker, every name tha-bay-*', () => {
