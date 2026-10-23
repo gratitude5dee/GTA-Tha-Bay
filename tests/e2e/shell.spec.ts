@@ -11,58 +11,92 @@ const GATES = { cookies: [], origins: [] } as { cookies: []; origins: [] };
 test.describe('shell', () => {
   // The title now sits over the live gray-box world, which the software renderer draws while these checks run (M01b2).
   test.setTimeout(90_000);
-  test('keeps crossOriginIsolated after a service-worker reload @coi', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    await page.reload();
-    const state = await page.evaluate(() => ({
-      isolated: self.crossOriginIsolated,
-      controlled: navigator.serviceWorker.controller !== null,
-    }));
-    expect(state).toEqual({ isolated: true, controlled: true });
-  });
 
-  test('is an installable PWA @pwa', async ({ page, request, browserName }) => {
-    test.skip(browserName !== 'chromium', 'manifest and precache checks run on Chromium');
-    // BD-FIX-CI2-03: the manifest, the service worker and the precache do not depend on the world, so the page boots the small
-    // `walk-drop` scene (QA builds take `?world=` on a DV_WORLD build too) instead of the software-rendered synth city, which kept
-    // the main thread busy past the 90 s timeout. The manifest's own start_url is still checked to be '/'.
-    await page.goto('/?world=walk-drop');
-    await expect(page.locator('link[rel="manifest"]')).toHaveCount(1);
+  // The service worker is these tests' subject: they run the real one that production runs. Every other spec blocks it
+  // (playwright.config.ts, BD-FIX-CI7-D01).
+  test.describe('service worker', () => {
+    test.use({ serviceWorkers: 'allow' });
 
-    const manifest = (await (await request.get('/manifest.webmanifest')).json()) as Record<string, unknown> & {
-      icons: Array<{ purpose?: string; sizes: string }>;
-    };
-    expect(manifest['name']).toBe(DISPLAY_NAME);
-    expect(manifest['short_name']).toBe(BRAND.shortName);
-    expect(manifest['display']).toBe('standalone');
-    expect(manifest['start_url']).toBe('/');
-    expect('orientation' in manifest).toBe(false);
-    expect('display_override' in manifest).toBe(false);
-    expect(manifest.icons.some((i) => i.purpose === 'maskable')).toBe(true);
+    test('registers sw.js on its own; the worker activates and controls the page after a reload @pwa', async ({ page }) => {
+      // BD-FIX-CI7-D05: from M04b1 until BD-FIX-CI6-C01 the page never registered its worker (the `load` listener came after a top-level
+      // await) and no spec noticed. The e2e build is a production `vite build` (import.meta.env.PROD, the registration path production
+      // takes) with the QA flags on; nothing here registers or activates the worker for the page.
+      await page.goto('/?world=walk-drop');
+      const registration = (): Promise<{ count: number; script: string | null; state: string | null; scope: string | null }> =>
+        page.evaluate(async () => {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          const active = regs[0]?.active ?? null;
+          return { count: regs.length, script: active?.scriptURL ?? null, state: active?.state ?? null, scope: regs[0]?.scope ?? null };
+        });
+      await expect.poll(registration, { timeout: 60_000, message: 'sw.js registered and activated' }).toMatchObject({ count: 1, state: 'activated' });
+      const reg = await registration();
+      expect(reg.script).toMatch(/\/sw\.js$/);
+      expect(new URL(reg.scope as string).pathname).toBe('/');
 
-    const registered = await page.evaluate(async () => {
-      const reg = await navigator.serviceWorker.ready;
-      return reg.active?.scriptURL ?? null;
+      await page.reload();
+      const after = await page.evaluate(() => ({
+        controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+        state: navigator.serviceWorker.controller?.state ?? null,
+      }));
+      expect(after.controller).toMatch(/\/sw\.js$/);
+      expect(after.state).toBe('activated');
     });
-    expect(registered).toMatch(/\/sw\.js$/);
 
-    const precache = await page.evaluate(async () => {
-      const names = (await caches.keys()).filter((n) => n.includes('precache'));
-      const sizes: Array<{ url: string; bytes: number }> = [];
-      for (const name of names) {
-        const cache = await caches.open(name);
-        for (const req of await cache.keys()) {
-          const res = await cache.match(req);
-          sizes.push({ url: req.url, bytes: res ? (await res.clone().arrayBuffer()).byteLength : 0 });
+    test('keeps crossOriginIsolated after a service-worker reload @coi', async ({ page }) => {
+      await page.goto('/');
+      await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      await page.reload();
+      const state = await page.evaluate(() => ({
+        isolated: self.crossOriginIsolated,
+        controlled: navigator.serviceWorker.controller !== null,
+      }));
+      expect(state).toEqual({ isolated: true, controlled: true });
+    });
+
+    test('is an installable PWA @pwa', async ({ page, request, browserName }) => {
+      test.skip(browserName !== 'chromium', 'manifest and precache checks run on Chromium');
+      // BD-FIX-CI2-03: the manifest, the service worker and the precache do not depend on the world, so the page boots the small
+      // `walk-drop` scene (QA builds take `?world=` on a DV_WORLD build too) instead of the software-rendered synth city, which kept
+      // the main thread busy past the 90 s timeout. The manifest's own start_url is still checked to be '/'.
+      await page.goto('/?world=walk-drop');
+      await expect(page.locator('link[rel="manifest"]')).toHaveCount(1);
+
+      const manifest = (await (await request.get('/manifest.webmanifest')).json()) as Record<string, unknown> & {
+        icons: Array<{ purpose?: string; sizes: string }>;
+      };
+      expect(manifest['name']).toBe(DISPLAY_NAME);
+      expect(manifest['short_name']).toBe(BRAND.shortName);
+      expect(manifest['display']).toBe('standalone');
+      expect(manifest['start_url']).toBe('/');
+      expect('orientation' in manifest).toBe(false);
+      expect('display_override' in manifest).toBe(false);
+      expect(manifest.icons.some((i) => i.purpose === 'maskable')).toBe(true);
+
+      const registered = await page.evaluate(async () => {
+        const reg = await navigator.serviceWorker.ready;
+        return reg.active?.scriptURL ?? null;
+      });
+      expect(registered).toMatch(/\/sw\.js$/);
+
+      const precache = await page.evaluate(async () => {
+        const names = (await caches.keys()).filter((n) => n.includes('precache'));
+        const sizes: Array<{ url: string; bytes: number }> = [];
+        for (const name of names) {
+          const cache = await caches.open(name);
+          for (const req of await cache.keys()) {
+            const res = await cache.match(req);
+            sizes.push({ url: req.url, bytes: res ? (await res.clone().arrayBuffer()).byteLength : 0 });
+          }
         }
-      }
-      return sizes;
+        return sizes;
+      });
+      expect(precache.length).toBeGreaterThan(0);
+      expect(precache.some((e) => e.url.endsWith('/index.html') || e.url.includes('index.html'))).toBe(true);
+      for (const entry of precache) expect(entry.bytes, entry.url).toBeLessThanOrEqual(SIX_MIB);
+      // QA pages and their chunks are never precached, not even in this QA build (BD-FIX-CI7-D04).
+      expect(precache.filter((e) => /\/qa\/|\/media-local\//.test(new URL(e.url).pathname)).map((e) => e.url)).toEqual([]);
     });
-    expect(precache.length).toBeGreaterThan(0);
-    expect(precache.some((e) => e.url.endsWith('/index.html') || e.url.includes('index.html'))).toBe(true);
-    for (const entry of precache) expect(entry.bytes, entry.url).toBeLessThanOrEqual(SIX_MIB);
   });
 
 

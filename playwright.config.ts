@@ -53,6 +53,13 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     trace: 'retain-on-failure',
     storageState: QA_PLAY_STORAGE,
+    // BD-FIX-CI7-D01: no service worker unless a spec asks for one. Playwright's route() does not intercept a request that the
+    // service worker handles, and the docs recommend 'block' wherever a test intercepts requests (https://playwright.dev/docs/api/class-page#page-route,
+    // https://playwright.dev/docs/service-workers, spec/03 section 6). Once sw.js registered in every build (BD-FIX-CI6-C01), it
+    // claimed each page mid-test, and WebKit stopped routing the mocks of @npc-dialogue and @cutscene. Each test context is fresh,
+    // so 'allow' would also have every test install the whole precache (119 entries, 8.4 MB in a QA build) beside its software-rendered world.
+    // The specs whose subject is the service worker (tests/e2e/shell.spec.ts: @coi, @pwa) set `serviceWorkers: 'allow'`.
+    serviceWorkers: 'block',
   },
   webServer: {
     command,
