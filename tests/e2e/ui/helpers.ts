@@ -51,7 +51,7 @@ export function watchApi(page: Page): { requests: string[] } {
 /**
  * The QA pursuit, modes, mission and NPC panels (M03c, M04a2, M05a1, M06a3) are fixed over the left and right edges of every page in QA
  * builds only (a production build has none), so in a small viewport they cover the menu's buttons. The menu specs that tap or click
- * through the shell hide them (2e756dc, BD-M06a4-16, BD-FIX-CI5-G03).
+ * through the shell hide them (2e756dc, BD-M06a4-16, BD-FIX-CI5-G03, BD-FIX-CI6-A03).
  */
 export async function hideQaPanels(page: Page): Promise<void> {
   await page.addInitScript(() => {
