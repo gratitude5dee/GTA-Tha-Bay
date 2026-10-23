@@ -281,6 +281,7 @@ test.describe('map attribution and credits @world-attribution', () => {
     const corner = (await page.evaluate(() => (window as unknown as { __corner: Corner }).__corner)) as Corner;
     expect(corner.first, 'the corner opens expanded').toBe('expanded');
     const waited = (corner.collapsed ?? 0) - (corner.open ?? 0);
+    testInfo.annotations.push({ type: 'corner-collapse-ms', description: `splash ${shown.toFixed(0)} ms, corner ${waited.toFixed(0)} ms` });
     expect(waited, `corner collapsed after 5 s of the map being open (${waited.toFixed(0)} ms)`).toBeGreaterThanOrEqual(5000);
     expect(waited, `corner collapsed after 5 s of the map being open (${waited.toFixed(0)} ms)`).toBeLessThanOrEqual(10_000);
     await expect(page.getByTestId('map-attribution-text')).toHaveCount(0);
