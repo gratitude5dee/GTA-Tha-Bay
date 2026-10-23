@@ -36,6 +36,10 @@ test.describe('offline boot @offline', () => {
     await page.getByTestId('nav-new').click();
     await page.getByTestId('new-name').fill('Offline');
     await page.getByTestId('new-continue').click();
+    // M04b2: New Game is name, creator, intro (spec/07-milestones/M04b2-creator-phone-hud-kit.md, "New Game"); the creator is left as
+    // it opens. This spec predates the creator step and was hidden until the synth half of its CI shard ran again (BD-FIX-CI7-D03).
+    await expect(page.getByTestId('creator')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('btn-creator-done').click();
     await expect(page.getByTestId('new-creator')).toBeVisible();
     const before = (await observe(page)).tick;
     await page.getByTestId('btn-new-start').click();

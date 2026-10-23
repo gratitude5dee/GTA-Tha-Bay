@@ -9,6 +9,7 @@ import tokens from '../../config/ui/tokens.json' with { type: 'json' };
 import { cutsceneFixtures } from './vite/cutscene-fixtures.ts';
 import { mediaLocal } from './vite/media-local.ts';
 import { moduleIds } from './vite/module-ids.ts';
+import { qaPrecache } from './vite/qa-precache.ts';
 
 // The same three headers `public/_headers` sets for static assets (11-platform-pwa.md section 2),
 // applied by the dev and preview servers so crossOriginIsolated works there too. /account/* is the one exception (M00e).
@@ -33,6 +34,9 @@ function buildId(): string {
 }
 
 const here = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
+
+// QA builds only: the chunks that only QA code loads stay out of the precache (BD-FIX-CI7-D04); a production build has none.
+const qaOnly = QA ? qaPrecache(here('../..'), here('.dv-build/qa-precache.json')) : null;
 
 // Each Rapier build is its own chunk (it embeds about 3 MB of wasm as base64). The names let the service worker
 // precache the simd-compat chunk and leave the deterministic-compat chunk to load on demand (M01a2).
@@ -88,6 +92,7 @@ export default defineConfig({
     isolationHeaders(),
     brandInHtml(),
     moduleIds(here('.'), here('../..'), true),
+    ...(qaOnly ? [qaOnly.main()] : []),
     // QA builds only: the same-origin mirror of the asset store (M01e).
     ...(QA ? [mediaLocal(here('.')), cutsceneFixtures(here('.'))] : []),
     cspInHeaders(),
@@ -102,9 +107,11 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         // asset-catalog.json is the catalog pointer (DL-042): it must be in the precache so a new Worker version switches content.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2,wasm,pack}', 'asset-catalog.json'],
-        // The deterministic-compat build loads on demand (canonical sessions only); QA pages are never precached.
+        // The deterministic-compat build loads on demand (canonical sessions only); QA pages and QA-only chunks are never precached.
         // The /account/ island is a separate, non-isolated document: it stays out of the precache and the SPA fallback (M00e).
         globIgnores: ['**/rapier-deterministic-*.js', 'qa/**', 'media-local/**', 'account/**', 'assets/account-*.js'],
+        // QA builds: neither the QA pages nor the chunks only QA code loads (the bridges, panels, QA sim modes and QA-page workers).
+        ...(qaOnly ? { manifestTransforms: [qaOnly.transform] } : {}),
       },
       manifest: {
         id: '/',
@@ -131,7 +138,7 @@ export default defineConfig({
   },
   // /api goes to `wrangler dev` (services/edge) on :8788; `pnpm dev` starts both.
   server: { proxy: { '/api': 'http://localhost:8788' } },
-  worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false)], rollupOptions: { output: { chunkFileNames: chunkName } } },
+  worker: { format: 'es', plugins: () => [moduleIds(here('.'), here('../..'), false), ...(qaOnly ? [qaOnly.worker()] : [])], rollupOptions: { output: { chunkFileNames: chunkName } } },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

@@ -405,6 +405,39 @@ describe('request: the answer the sim waits for', () => {
     expect(r.clock.now()).toBe(0);
   });
 
+  it('a pending unlock (QA stand-in) delays no answer: absent falls back at once, ready waits for it inside the deadline (BD-FIX-CI7-D02)', async () => {
+    // absent: the answer does not wait for the unlock at all
+    const absent = rig();
+    absent.deps.unlocked = () => new Promise(() => undefined);
+    absent.status.set(KEY_A, { key: KEY_A, state: 'absent', reason: 'not_in_catalog' });
+    expect(await player(absent).request('7', [REF_A], ['dir.a'])).toEqual([{ path: 'fallback', skipped: false, trigger: 'not_ready' }]);
+    expect(absent.clock.now()).toBe(0);
+
+    // ready: no pooled element is taken before the unlock; the clip plays once it resolves
+    const ready = rig();
+    let open: () => void = () => undefined;
+    ready.deps.unlocked = () => new Promise<void>((res) => (open = res));
+    const p = player(ready);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    await settle();
+    expect(ready.answers()).toEqual([]);
+    expect(ready.free.size).toBe(3);
+    open();
+    await settle();
+    expect(ready.answers()).toEqual([{ state: 'video' }]);
+    ready.pool[0]!.end();
+    expect(await run).toEqual([{ path: 'video', skipped: false }]);
+
+    // an unlock that outlives the deadline: fallback at 2.5 s, as for any preparation that hangs
+    const stuck = rig();
+    stuck.deps.unlocked = () => new Promise(() => undefined);
+    const late = player(stuck).request('7', [REF_A], ['dir.a']);
+    await stuck.clock.advance(2499);
+    expect(stuck.answers()).toEqual([]);
+    await stuck.clock.advance(1);
+    expect(await late).toEqual([{ path: 'fallback', skipped: false, trigger: 'not_ready' }]);
+  });
+
   it('?beats=fallback answers fallback without asking the network', async () => {
     const r = rig();
     r.state.force = 'fallback';

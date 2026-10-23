@@ -23,6 +23,12 @@ import { emitPlay, Watch, type Telemetry } from './triggers.ts';
 
 export interface PlayerDeps extends ResolveDeps {
   unlock: Pick<FirstGestureUnlock, 'acquireVideo' | 'releaseVideo'>;
+  /**
+   * Resolves when the pooled elements are unlocked. A QA page has no Title tap, so its glue starts a stand-in unlock with the request
+   * and passes it here; a clip waits for it before it takes a pooled element, inside the answer window of section D7 (BD-FIX-CI7-D02).
+   * A player's page leaves it out: the Title tap unlocked the pool before any mission could ask for a beat.
+   */
+  unlocked?(): Promise<void>;
   host: CutsceneHostPort;
   budget: BudgetPort;
   overlay: OverlayPort;
@@ -244,6 +250,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
   private async prepareClip(playId: string, r: Resolved): Promise<Prep> {
     const { deps } = this;
     const { entry, manifest } = r;
+    if (deps.unlocked) await deps.unlocked();
     const video = deps.unlock.acquireVideo();
     if (video === null) return { fallback: 'not_permitted', entry };
     const candidates = renditionCandidates(manifest, {
@@ -581,6 +588,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     const rs = await Promise.all(items.map((i) => this.resolve(i.ref as CutsceneRefId)));
     const ok = rs.filter((r): r is Resolved => r.ok);
     if (ok.length !== rs.length || ok.some((r) => r.manifest.degraded === true)) return null;
+    if (deps.unlocked) await deps.unlocked();
     const video = deps.unlock.acquireVideo();
     if (video === null) return null;
     const mseItems: MseItem[] = [];
