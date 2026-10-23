@@ -130,8 +130,6 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     cfg: CUTSCENE_CONFIG,
     strictKey: !o.qa,
     unlock: engine.media,
-    // QA pages only: a clip takes a pooled element once the stand-in unlock (started with the request) has finished.
-    ...(o.qa ? { unlocked: () => engine.media.trigger().catch(() => undefined) } : {}),
     host,
     budget,
     overlay,
@@ -175,11 +173,8 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
         note({ k: 'request', n: e.n, refs });
         const fallbacks = refs.map((r) => index?.entries.find((x) => x.ref === r)?.fallback ?? '');
         const play = async (): Promise<void> => {
-          // QA pages skip the Title, so nothing has unlocked the pooled elements; a player's page has (FirstGestureUnlock). A QA
-          // `?mission=` page starts the stand-in unlock at boot (boot-engine.ts); any other QA page starts it here. It is not awaited
-          // before the request: section D7 counts the 2.5 s answer window from the sim's request, and on a software-GL runner the blank
-          // plays took 2 to 3 s. Only a clip waits for it, inside that window (`unlocked` below, BD-FIX-CI7-D02).
-          if (o.qa && !engine.media.state().unlocked) void engine.media.trigger().catch(() => undefined);
+          // QA pages skip the Title, so nothing has unlocked the pooled elements; a player's page has (FirstGestureUnlock).
+          if (o.qa && !engine.media.state().unlocked) await engine.media.trigger().catch(() => undefined);
           await player.request(String(e.n), refs as (CutsceneRefId | null)[], fallbacks);
         };
         void play().catch((err: unknown) => console.warn('cutscene request failed', err));
