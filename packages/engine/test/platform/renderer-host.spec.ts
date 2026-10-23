@@ -231,25 +231,29 @@ describe('menu scene and frame loop', () => {
     expect(t.h.frames).toBe(2);
   });
 
-  it('gives every frame a finite time: the untimed call of three\'s Animation.start() (loop start, XR session start and end) repeats the last one', async () => {
+  it('skips the untimed call three\'s Animation.start() makes when an XR session ends: no frame, no listener, no render', async () => {
     const t = host();
     await t.h.init(TIERS.desktop);
     const r = t.factory.state.renderers[0] as FakeRenderer;
+    let renders = 0;
+    r.render = (() => {
+      renders += 1;
+    }) as never;
     const times: number[] = [];
     const late: number[] = [];
     t.h.frameHook = (ms) => times.push(ms);
     t.h.addFrameListener({ late: (ms) => late.push(ms) });
     t.h.startLoop();
     const loop = r.loop as unknown as (t?: number) => void;
-    loop(undefined);   // the first call of Animation.start(): the clock, finite
-    expect(Number.isFinite(times[0])).toBe(true);
     loop(1000);
     loop(1016);
-    loop(undefined);   // an XR session ended and three restarted the window loop: a zero-length frame
+    loop(undefined); // XRManager's session end: the window loop is back and start() runs it once with no time
     loop(Number.NaN);
     loop(1050);
-    expect(times.slice(1)).toEqual([1000, 1016, 1016, 1016, 1050]);
+    expect(times).toEqual([1000, 1016, 1050]);
     expect(late).toEqual(times);
+    expect(t.h.frames).toBe(3);
+    expect(renders).toBe(3);
   });
 });
 

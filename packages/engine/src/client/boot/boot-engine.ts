@@ -538,9 +538,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   const onFrame = (nowMs: number): void => {
     if (disposed) return;
-    // A non-finite or backwards step is a zero-length frame: NaN here would poison every smoothed state that integrates dt (the camera rig).
-    const dtSec = lastNow < 0 || !Number.isFinite(nowMs) ? 0 : Math.min(Math.max(0, (nowMs - lastNow) / 1000), 1);
-    if (Number.isFinite(nowMs)) lastNow = nowMs;
+    const dtSec = lastNow < 0 ? 0 : Math.min((nowMs - lastNow) / 1000, 1);
+    lastNow = nowMs;
     panel?.frame(nowMs);
     skyControls?.sync(view.env, view.blackout);
     // The control owner decides the input context (C03): a vehicle owner reads the `vehicle` bindings.
