@@ -3,7 +3,9 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, claude/build]
+    # BD-FIX-CI6-K01: a merge candidate `claude/integ-*` gets the full CI (every e2e project, all shards) before claude/build moves.
+    # Deploys never run from these branches: deploy.yml runs on main and v* tags only, preview.yml on pull requests only.
+    branches: [main, claude/build, 'claude/integ-**']
 
 concurrency:
   group: ci-${{ github.ref }}
