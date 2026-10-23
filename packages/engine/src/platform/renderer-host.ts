@@ -102,6 +102,24 @@ export interface RendererHostOptions {
   paceGpu?: boolean;
 }
 
+/**
+ * Why the flat world is not drawn (`RendererHost.holdWorld`; M05b2, spec/domains/03-story-cutscenes.md section D7, BD-FIX-CI10-R01):
+ *
+ * - `cover`: an opaque layer above the canvas hides it (a cutscene's `poster.webp` while the clip pre-rolls, `last.webp` after a
+ *   mid-play stall). Nothing is drawn from the next frame on.
+ * - `frame`: the canvas itself holds its last drawn frame (the armed in-engine frame while the CutscenePlayer resolves a clip). Frames
+ *   are drawn until `armed()` says the frame to hold is in the view, that frame included, then nothing until the hold ends; a resize
+ *   (which clears the drawing buffer) draws one more frame.
+ */
+export type WorldHoldKind = 'cover' | 'frame';
+
+interface WorldHold {
+  kind: WorldHoldKind;
+  armed: () => boolean;
+  /** The frame to hold has been drawn. */
+  drawn: boolean;
+}
+
 export interface FrameListener {
   /** Start of a frame, before the engine hand-off and the render call. `time` is the rAF (or XR) timestamp in ms. */
   before?(time: number): void;
@@ -154,8 +172,10 @@ function cloneCanvasElement(old: HTMLCanvasElement): HTMLCanvasElement {
 export class RendererHost {
   readonly scene = new Scene();
   readonly camera = new PerspectiveCamera(60, 1, 0.1, 100);
-  /** Frames rendered by the animation loop (flat or XR). */
+  /** Frames the animation loop ran (flat or XR), held ones included. */
   frames = 0;
+  /** Flat frames whose world and backdrop passes a `holdWorld` skipped (listeners and the engine hand-off still ran). */
+  heldFrames = 0;
   /** Frames rendered while an XR session was presenting. */
   xrFrames = 0;
   /** Flat frames held back by the GPU pacer (QA builds on WebGL2; 0 otherwise). */
@@ -189,6 +209,9 @@ export class RendererHost {
   private canvas: HTMLCanvasElement;
   private readonly owners = new Set<GpuResourceOwner>();
   private readonly listeners = new Set<FrameListener>();
+  private readonly holds = new Set<WorldHold>();
+  /** A resize cleared the drawing buffer: the next held `frame` is drawn again. */
+  private redrawHeld = false;
   private menu: { scene: Object3D; camera: Camera } | null = null;
   private looping = false;
   private recovering: Promise<void> | null = null;
@@ -325,6 +348,51 @@ export class RendererHost {
     };
   }
 
+  /**
+   * Stops drawing the flat world and its backdrop while something hides it (`WorldHoldKind`); returns the release, which is
+   * idempotent. The loop keeps running: frame listeners and the engine hand-off (`frameHook`, which drives the sim's ticks) run every
+   * frame as before, so the sim ticks wherever it is not paused, and only the render call is skipped. The menu scene and XR frames are
+   * always drawn. Drawing resumes on the first frame after the last hold is released. `armed` (default: at once) is read after the
+   * engine hand-off of each frame until it returns true; a `frame` hold draws until then.
+   */
+  holdWorld(kind: WorldHoldKind, armed: () => boolean = () => true): () => void {
+    const hold: WorldHold = { kind, armed, drawn: false };
+    this.holds.add(hold);
+    return () => {
+      this.holds.delete(hold);
+    };
+  }
+
+  /** True while a `holdWorld` is in force (the next flat frame may still draw: a `frame` hold before its frame is in the view). */
+  get worldHeld(): boolean {
+    return this.holds.size > 0;
+  }
+
+  /** Whether this frame's world and backdrop passes are skipped. Called once per flat frame, after the engine hand-off. */
+  private skipWorld(): boolean {
+    if (this.holds.size === 0) return false;
+    let draw = false;
+    for (const h of this.holds) {
+      if (h.drawn) continue;
+      if (!h.armed()) {
+        // A `cover` that is not armed yet, or the frame a `frame` hold waits for, is not in the view: keep drawing.
+        draw = true;
+        continue;
+      }
+      h.drawn = true;
+      if (h.kind === 'frame') draw = true;
+    }
+    if (draw) {
+      this.redrawHeld = false;
+      return false;
+    }
+    if (this.redrawHeld && [...this.holds].every((h) => h.kind === 'frame')) {
+      this.redrawHeld = false;
+      return false;
+    }
+    return true;
+  }
+
   /** Shadow passes the active shadow object reports this frame (the post stack carries it; 0 without a look). Fed to `RenderBudgetMeter.measure`. */
   get shadowPasses(): number {
     return this.postStack?.shadowPasses ?? 0;
@@ -344,6 +412,8 @@ export class RendererHost {
     const dpr = (globalThis as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     r.setPixelRatio(tier ? pixelRatioFor(tier, cssWidth, cssHeight, dpr, renderScale) : Math.min(dpr, 2));
     r.setSize(Math.max(1, cssWidth), Math.max(1, cssHeight), false);
+    // A new drawing-buffer size clears the canvas: a held `frame` is drawn once more.
+    this.redrawHeld = true;
     const aspect = Math.max(1, cssWidth) / Math.max(1, cssHeight);
     this.camera.aspect = aspect;
     this.camera.updateProjectionMatrix();
@@ -454,7 +524,12 @@ export class RendererHost {
     this.frames += 1;
     if (r.xr.isPresenting) this.xrFrames += 1;
     if (this.menu) r.render(this.menu.scene as Scene, this.menu.camera);
-    else if (this.postStack && !r.xr.isPresenting) this.postStack.render();
+    else if (!r.xr.isPresenting && this.skipWorld()) {
+      // Held (BD-FIX-CI10-R01): no world, no backdrop, no post pass, and so no GPU work for the pacer to wait on.
+      this.heldFrames += 1;
+      for (const l of this.listeners) l.after?.(time);
+      return;
+    } else if (this.postStack && !r.xr.isPresenting) this.postStack.render();
     else this.renderDirect();
     if (paced) this.pacer?.submitted();
     for (const l of this.listeners) l.after?.(time);

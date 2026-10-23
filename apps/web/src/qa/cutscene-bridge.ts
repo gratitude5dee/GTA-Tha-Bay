@@ -11,7 +11,9 @@ export function installCutsceneBridge(glue: CutsceneGlue, engine: EngineHandle):
   const bridge = {
     state: () => ({
       playing: glue.player.playing,
-      host: { visible: glue.host.visible, cues: glue.host.cues },
+      host: { visible: glue.host.visible, cues: glue.host.cues, held: glue.host.held },
+      /** Flat frames not drawn so far because a cutscene hid the world (BD-FIX-CI10-R01). */
+      heldFrames: glue.heldFrames(),
       simPaused: engine.paused,
       media: engine.media.state(),
     }),

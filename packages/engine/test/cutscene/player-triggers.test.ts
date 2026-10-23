@@ -438,6 +438,115 @@ describe('request: the answer the sim waits for', () => {
   });
 });
 
+describe('what covers the world while a clip is resolved and pre-rolled (section D7 step 2, BD-FIX-CI10-R01)', () => {
+  it('a ready clip: the armed frame is held while it resolves, the poster covers the pre-roll, the clip replaces it', async () => {
+    const r = rig();
+    let release: () => void = () => undefined;
+    const manifestGate = new Promise<void>((res) => {
+      release = res;
+    });
+    const real = r.deps.fetchManifest;
+    r.deps.fetchManifest = async (url) => {
+      await manifestGate;
+      return real(url);
+    };
+    const p = player(r);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    // resolving: route 27 and the manifest are still out
+    expect(r.host.held).toBe('frame');
+    release();
+    await settle();
+    expect(r.answers()).toEqual([{ state: 'video' }]);
+    expect(r.host.holds).toEqual(['frame', 'poster', 'drawn']);
+    expect(r.host.log).toEqual(['show']);
+    r.pool[0]!.end();
+    await run;
+    expect(r.host.held).toBeNull();
+  });
+
+  it('the poster stays up until the first frame and goes, with the world drawn again, when the clip stalls before it', async () => {
+    const r = rig();
+    r.manualFallback = true;
+    r.pool[0]!.noFrame = true;
+    const p = player(r);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    await settle();
+    expect(r.host.held).toBe('poster');
+    expect(r.host.posterUrl).toBe(`https://media.test/cutscenes/${KEY_A}/poster.webp`);
+    expect(r.answers()).toEqual([]);
+    await r.clock.advance(2500);
+    expect(r.answers()).toEqual([{ state: 'fallback', trigger: 'start_stall' }]);
+    // the in-engine fallback runs over the live world: nothing is held and only the cues are up
+    expect(r.host.held).toBeNull();
+    expect(r.host.visible).toBe(false);
+    expect(r.host.cuesOn).toBe(true);
+    r.simDone('7', undefined);
+    expect(await run).toEqual([{ path: 'fallback', skipped: false, trigger: 'start_stall' }]);
+    expect(r.host.holds).toEqual(['frame', 'poster', 'drawn']);
+  });
+
+  it('an absent clip: the held frame goes in the same step as the fallback answer', async () => {
+    const r = rig();
+    r.manualFallback = true;
+    r.status.set(KEY_A, { key: KEY_A, state: 'absent', reason: 'not_in_catalog' });
+    const p = player(r);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    expect(r.host.held).toBe('frame');
+    await settle();
+    expect(r.answers()).toEqual([{ state: 'fallback', trigger: 'not_ready' }]);
+    expect(r.host.held).toBeNull();
+    expect(r.host.holds).toEqual(['frame', 'drawn']);
+    r.simDone('7', undefined);
+    await run;
+  });
+
+  it('a late answer: the held frame goes with the fallback at the deadline, and the clip that resolves later shows no poster', async () => {
+    const r = rig();
+    r.manualFallback = true;
+    let resolveStatus: (s: { key: string; state: 'ready'; manifestUrl: string }) => void = () => undefined;
+    r.deps.status = () => new Promise((res) => {
+      resolveStatus = res;
+    });
+    const p = player(r);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    await r.clock.advance(2500);
+    expect(r.answers()).toEqual([{ state: 'fallback', trigger: 'not_ready' }]);
+    expect(r.host.held).toBeNull();
+    resolveStatus({ key: KEY_A, state: 'ready', manifestUrl: `https://media.test/cutscenes/${KEY_A}/manifest.json` });
+    await settle();
+    expect(r.host.posterUrl).toBeNull();
+    expect(r.host.holds).toEqual(['frame', 'drawn']);
+    r.simDone('7', undefined);
+    await run;
+    expect(r.free.size).toBe(3);
+  });
+
+  it('nothing is held when the checks without network already fall back, or under ?beats=fallback', async () => {
+    const off = rig();
+    off.state.generated = false;
+    await player(off).request('7', [REF_A], ['dir.a']);
+    const forced = rig();
+    forced.state.force = 'fallback';
+    await player(forced).request('7', [REF_A], ['dir.a']);
+    const unknown = rig();
+    await player(unknown).request('7', ['cut.unknown' as CutsceneRefId], ['dir.x']);
+    for (const r of [off, forced, unknown]) expect(r.host.holds).toEqual([]);
+  });
+
+  it('a sequence holds the frame for its first item and shows no poster under a clip that is already up', async () => {
+    const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B)]);
+    const p = player(r);
+    const run = p.playSequence('9', [{ ref: REF_A, fallback: '' }, { ref: REF_B, fallback: '' }]);
+    expect(r.host.held).toBe('frame');
+    await settle();
+    r.pool.find((v) => v.src.includes(KEY_A))!.end();
+    await settle();
+    r.pool.find((v) => v.src.includes(KEY_B))!.end();
+    await run;
+    expect(r.host.holds).toEqual(['frame', 'poster', 'drawn']);
+  });
+});
+
 describe('prefetch', () => {
   it('looks at most 2 refs ahead on mobile tiers and answers the next prepare from the cache', async () => {
     const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B), entry('cut.c', KEY_C)]);

@@ -20,7 +20,7 @@ interface LogEntry {
   props?: Record<string, unknown>;
 }
 interface Cutscene {
-  state(): { playing: string[]; host: { visible: boolean; cues: boolean }; simPaused: boolean };
+  state(): { playing: string[]; host: { visible: boolean; cues: boolean; held: 'stopped' | 'cover' | 'frame' | null }; heldFrames: number; simPaused: boolean };
   log(): LogEntry[];
   stall(): boolean;
   subtitle(): string;
@@ -101,7 +101,8 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 60_000, intervals: [50] }).toMatch(/Hold on|Right\. Let me/);
     expect(await cut(page, (c) => c.aiChip())).toBe(false);
     expect(await cut(page, (c) => c.hasVideo())).toBe(false);
-    expect((await cut(page, (c) => c.state())).host.cues).toBe(true);
+    // the in-engine fallback draws the world under its cues (BD-FIX-CI10-R01)
+    expect((await cut(page, (c) => c.state())).host).toMatchObject({ cues: true, held: null });
 
     // the sim finishes the beat (end marks applied) and the mission goes on
     await expect.poll(async () => (await log(page)).some((e) => e.k === 'done'), { timeout: 120_000, intervals: [250] }).toBe(true);
@@ -138,17 +139,19 @@ test.describe('cutscene player @cutscene', () => {
     expect(answer(entries, 'fallback')).toBeUndefined();
     expect(await cut(page, (c) => c.aiChip())).toBe(true);
     await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 30_000, intervals: [100] }).toContain('Hold on');
-    // the clip covers the screen and the sim waits behind it
+    // the clip covers the screen and the sim waits behind it; the world it hides is not drawn (the loop is stopped, BD-FIX-CI10-R01)
     const st = await cut(page, (c) => c.state());
     expect(st.host.visible).toBe(true);
+    expect(st.host.held).toBe('stopped');
     expect(st.simPaused).toBe(true);
+    test.info().annotations.push({ type: 'held-frames', description: String(st.heldFrames) });
 
     await page.keyboard.press('Escape');
     await expect.poll(async () => answer(await log(page), 'done') !== undefined, { timeout: 30_000, intervals: [100] }).toBe(true);
     const done = answer(await log(page), 'done');
     expect(done?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false }, simPaused: false });
+    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false, held: null }, simPaused: false });
     expect((await log(page)).find((e) => e.k === 'play')?.props).toMatchObject({ path: 'video', fallback: false });
     expect(errors).toEqual([]);
   });
@@ -176,12 +179,13 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => cut(page, (c) => c.stillSrc()), { timeout: 15_000, intervals: [100] }).toMatch(/last\.webp$/);
     const stalled = answer(await log(page), 'fallback');
     expect(stalled?.cmd?.trigger).toBe('mid_stall');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ simPaused: false });
+    // the sim runs the DirectorScript behind the opaque still, which keeps the world from being drawn (BD-FIX-CI10-R01)
+    expect(await cut(page, (c) => c.state())).toMatchObject({ simPaused: false, host: { held: 'cover' } });
     expect(await cut(page, (c) => c.hasVideo())).toBe(false);
 
     await expect.poll(async () => (await log(page)).some((e) => e.k === 'done'), { timeout: 120_000, intervals: [250] }).toBe(true);
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false } });
+    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false, held: null } });
     expect((await log(page)).find((e) => e.k === 'play')?.props).toMatchObject({ path: 'fallback', trigger: 'mid_stall' });
     expect(errors).toEqual([]);
   });

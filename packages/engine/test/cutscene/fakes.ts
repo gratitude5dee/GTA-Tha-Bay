@@ -112,23 +112,47 @@ export class FakeHost implements CutsceneHostPort {
   stillUrl: string | null = null;
   cuesOn = false;
   tap: boolean | (() => boolean) = false;
+  /** What keeps the world from being drawn, as `DomCutsceneHost` does it; `holds` lists every change, oldest first. */
+  held: 'frame' | 'poster' | null = null;
+  posterUrl: string | null = null;
+  holds: string[] = [];
   get visible(): boolean {
-    return this.shown !== null || this.stillUrl !== null;
+    return this.shown !== null || this.stillUrl !== null || this.posterUrl !== null;
+  }
+  private setHeld(h: 'frame' | 'poster' | null): void {
+    if (this.held === h) return;
+    this.held = h;
+    this.holds.push(h ?? 'drawn');
+  }
+  holdFrame(): void {
+    if (this.held !== null || this.visible || this.cuesOn) return;
+    this.setHeld('frame');
+  }
+  holdPoster(url: string): void {
+    if (this.shown !== null || this.stillUrl !== null || this.posterUrl !== null) return;
+    this.posterUrl = url;
+    this.cuesOn = false;
+    this.setHeld('poster');
   }
   show(video: HTMLVideoElement): Promise<void> {
     this.log.push('show');
     this.shown = video;
     this.stillUrl = null;
+    this.posterUrl = null;
     this.cuesOn = false;
+    this.setHeld(null);
     return Promise.resolve();
   }
   hide(): Promise<void> {
-    if (this.visible) this.log.push('hide');
+    if (this.shown !== null || this.stillUrl !== null) this.log.push('hide');
     this.shown = null;
     this.stillUrl = null;
+    this.posterUrl = null;
+    this.setHeld(null);
     return Promise.resolve();
   }
   showCues(): void {
+    if (this.held === 'frame') this.setHeld(null);
     if (this.cuesOn || this.visible) return;
     this.log.push('showCues');
     this.cuesOn = true;
