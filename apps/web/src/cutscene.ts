@@ -25,6 +25,11 @@ export interface CutsceneGlueOptions {
   index?: CutsceneIndex | null;
   /** Text of the lines the cues name (the QA mission bundle). */
   lines?: Readonly<Record<string, string>>;
+  /**
+   * The same-origin manifest every request resolves to under `?beats=video` (QA builds only: `qa/missions.ts` hands it over, so the
+   * production bundle carries no `media-local` path; M01e, verify-dist).
+   */
+  fixtureManifest?: string;
 }
 
 export type SimEventLike = { t: string; tick: number; n?: number; s?: string };
@@ -47,9 +52,6 @@ export type CutsceneLogEntry = { at: number } & (
 );
 
 type DistributiveOmit<T, K extends string> = T extends unknown ? Omit<T, K> : never;
-
-/** The QA fixture clip every request resolves to under `?beats=video`. */
-export const QA_FIXTURE_MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
 
 async function loadShippedIndex(assets: NonNullable<Platform['assets']>): Promise<CutsceneIndex | null> {
   try {
@@ -108,7 +110,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     bootEnabled: () => (platformFlags as Record<string, unknown>)['cutscene.generated'] !== false,
     online: () => navigator.onLine,
     status: async (key): Promise<CutsceneStatus | null> => {
-      if (o.qa && o.beats === 'video') return { key, state: 'ready', manifestUrl: new URL(QA_FIXTURE_MANIFEST, location.origin).href };
+      if (o.qa && o.beats === 'video' && o.fixtureManifest) return { key, state: 'ready', manifestUrl: new URL(o.fixtureManifest, location.origin).href };
       try {
         const res = await fetch(`/api/v1/cutscenes/${key}`, { credentials: 'same-origin' });
         return res.ok ? ((await res.json()) as CutsceneStatus) : null;

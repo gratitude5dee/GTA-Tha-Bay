@@ -26,7 +26,11 @@ export interface RacingQaContext {
   host: ReturnType<ModesModule['host']>;
   session: RaceSession | null;
 }
-export type RacingQaHandler = (cx: RacingQaContext, cmd: Extract<DebugCommand, { t: 'debug.modes' }>, reply: (data: unknown) => void) => void;
+/**
+ * The QA handler gets a plain `send(name, data)` and names its own answer (`modes.reply.<id>`), the way the engine's `ModesQaHandler`
+ * does, so the production module carries no QA reply name (verify-dist greps for `modes.reply.`).
+ */
+export type RacingQaHandler = (cx: RacingQaContext, cmd: Extract<DebugCommand, { t: 'debug.modes' }>, send: (name: string, data: unknown) => void) => void;
 
 export interface RacingModule extends SimModule {
   /** The session the state hash covers, if any (tests). */
@@ -63,8 +67,8 @@ export function createRacingModule(): RacingModule {
       if (!qaHandler || !cx || cmd.t !== 'debug.modes' || !cmd.op.startsWith('racing.')) return;
       const c = cx;
       const modes = (c.runtime.env.modules ?? []).find((m) => m.id === MODES_MODULE_ID) as ModesModule | undefined;
-      qaHandler({ host: modes?.host() ?? null, session: activeSession() }, cmd, (data) => {
-        void c.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name: `modes.reply.${cmd.id}`, data } });
+      qaHandler({ host: modes?.host() ?? null, session: activeSession() }, cmd, (name, data) => {
+        void c.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
       });
     },
     onInit(ctx: SimModuleContext): void {
