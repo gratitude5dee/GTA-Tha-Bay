@@ -127,10 +127,13 @@ test.describe('modes @modes', () => {
       .toEqual([{ control: 'key:KeyH' }]);
     // the unbind of Pause was dropped
     expect(await modes(page, (m) => (m.vm('sys.controls') as { overrides: { kbm: { onFoot: Record<string, unknown> } } }).overrides.kbm.onFoot['client.Pause'])).toBeUndefined();
-    // the write reaches IndexedDB before we reload
+    // the write reaches IndexedDB before we reload (ok: a failed write keeps its reason, BD-FIX-CI6-B02)
     await expect
-      .poll(async () => page.evaluate(async () => ((await (window as unknown as W).__dvBridge.engine.save.list())[0]?.lastSave?.reason ?? null)), { timeout: 30_000, intervals: [250, 500, 1000] })
-      .toBe('settings');
+      .poll(async () => page.evaluate(async () => {
+        const s = (await (window as unknown as W).__dvBridge.engine.save.list())[0]?.lastSave;
+        return s ? { reason: s.reason, ok: s.ok } : null;
+      }), { timeout: 30_000, intervals: [250, 500, 1000] })
+      .toEqual({ reason: 'settings', ok: true });
 
     await page.reload();
     await waitForEngine(page);
