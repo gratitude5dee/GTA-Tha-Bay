@@ -64,8 +64,10 @@ describe('the QA-only files of a QA build', () => {
 
   it('a chunk that a player page also imports statically stays, even when a QA chunk imports it too', () => {
     const graphs = qaBuild();
-    (graphs[0]!.chunks[0] as { imports: string[] }).imports = ['assets/shell-A.js', 'assets/inspector-A.js'];
-    expect(qaOnlyFiles(graphs).has('assets/inspector-A.js')).toBe(false);
+    const [app, ...workers] = graphs;
+    const [entry, ...rest] = app!.chunks;
+    const withStatic: BundleGraph = { main: true, chunks: [{ ...entry!, imports: ['assets/shell-A.js', 'assets/inspector-A.js'] }, ...rest] };
+    expect(qaOnlyFiles([withStatic, ...workers]).has('assets/inspector-A.js')).toBe(false);
   });
 
   it('the import roots name QA modules only, not their production neighbours', () => {
