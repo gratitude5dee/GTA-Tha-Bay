@@ -263,6 +263,11 @@ async function boot(): Promise<void> {
           world: prepared ? import('@dv/world/client/bridge') : null,
         }
       : null;
+  // Some of these are awaited only when the engine starts (or has a panels host), so an engine that fails leaves them unawaited, and the
+  // ones awaited later are still pending through bootEngine; a chunk that fails to load is then not an unhandled rejection. Each
+  // `await` below still sees the original promise and throws as before (the same guard as boot-engine.ts, BD-FIX-CI4-F03).
+  void cutsceneChunk.catch(() => undefined);
+  if (qaChunks) for (const chunk of Object.values(qaChunks) as (Promise<unknown> | null)[]) void chunk?.catch(() => undefined);
   // QA `?mission=<id>` (M05a1): the compiled mission the story mode starts at boot; QA builds only.
   const qaMission = qaChunks && flags.mission ? await qaChunks.missions.then((m) => m.qaMissionBundle(flags.mission as string)) : null;
   // The cutscene protocol (M05b2): a mission that starts at boot emits cut.request before the engine handle exists, so the events are
