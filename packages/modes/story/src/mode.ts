@@ -34,8 +34,9 @@ export interface QaMissionBoot {
   /** Text of the lines and keys, for how long a `say` holds. */
   lines?: Record<string, string>;
   /**
-   * Wait for the page's `debug.release` before the mission starts (DL-715). A page with a streamed world sets it, so the QA boot plays the
-   * mission's first beat in a revealed world after the stand-in first-gesture unlock, the order a player's game runs in.
+   * Wait for the page's `debug.release` before the mission starts (DL-715 as amended). A page with a streamed world sets it, and its mission
+   * gate releases the mission once a real first gesture has run the media unlock and the world is revealed, the order a player's game
+   * runs in (apps/web/src/qa/mission-gate.ts; past its deadline the gate reports why the mission did not start).
    */
   hold?: boolean;
 }

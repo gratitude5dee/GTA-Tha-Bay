@@ -6,7 +6,8 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  * M05b2 AC-8 and AC-9 (@cutscene): the CutscenePlayer on the game page. The intro beat of the sample mission is a generated cutscene with
  * an in-engine fallback. The assertions read `__dvBridge.cutscene` (requests, commands sent to the sim, subtitle and chip in the DOM) and
  * `__dvBridge.mission` (the phase), never pixels. Route 27 is mocked through Playwright. The tests that need a decodable clip skip on a
- * browser that plays neither fixture codec (WebKit on Linux); the absent-to-fallback test runs everywhere.
+ * browser that plays neither fixture codec (WebKit on Linux); the absent-to-fallback test runs everywhere. As in a player's game, a
+ * trusted click on the Title's Start unlocks media before the mission's first beat (DL-715 as amended); the 2.5 s clock starts at the beat.
  */
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -27,7 +28,10 @@ interface Cutscene {
   hasVideo(): boolean;
   stillSrc(): string | null;
 }
-type W = { __dvBridge: { cutscene: Cutscene; mission: MissionBridge } };
+interface MissionGate {
+  state(): { state: 'waiting' | 'released' | 'expired'; waiting: string[]; reason: string | null; releasedAfterMs: number | null };
+}
+type W = { __dvBridge: { cutscene: Cutscene; mission: MissionBridge; missionGate?: MissionGate } };
 
 const cut = <T>(page: Page, fn: (c: Cutscene) => T): Promise<T> => page.evaluate(`(${fn.toString()})(window.__dvBridge.cutscene)`) as Promise<T>;
 const log = (page: Page): Promise<LogEntry[]> => cut(page, (c) => c.log());
@@ -58,6 +62,12 @@ async function boot(page: Page, route: Route27, query = ''): Promise<string[]> {
   await page.goto(`/?play=off&tier=mobile-low&mission=m.dev.sample&seed=1&talk=scripted${query}`);
   await waitForEngine(page);
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.cutscene !== undefined && (window as unknown as W).__dvBridge.mission !== undefined, undefined, { timeout: 60_000 });
+  // The player's first gesture (DL-715 as amended): a trusted click on the Title's Start runs the product's FirstGestureUnlock. The
+  // held boot mission, and so the beat whose clock AC-8 reads, starts only after it and after the world reveal (qa/mission-gate.ts).
+  await page.getByTestId('title-start').click();
+  await page.waitForFunction(() => (window as unknown as W).__dvBridge.missionGate?.state().state !== 'waiting', undefined, { timeout: 120_000 });
+  const gate = await page.evaluate(() => (window as unknown as W).__dvBridge.missionGate?.state());
+  expect(gate, `the boot mission did not start: ${gate?.reason ?? 'no mission gate on the page'}`).toMatchObject({ state: 'released', waiting: [] });
   return errors;
 }
 
