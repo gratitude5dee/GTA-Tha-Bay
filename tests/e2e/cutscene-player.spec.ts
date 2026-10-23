@@ -68,6 +68,7 @@ async function boot(page: Page, route: Route27, query = ''): Promise<string[]> {
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.missionGate?.state().state !== 'waiting', undefined, { timeout: 120_000 });
   const gate = await page.evaluate(() => (window as unknown as W).__dvBridge.missionGate?.state());
   expect(gate, `the boot mission did not start: ${gate?.reason ?? 'no mission gate on the page'}`).toMatchObject({ state: 'released', waiting: [] });
+  test.info().annotations.push({ type: 'mission-gate', description: JSON.stringify(gate) });
   return errors;
 }
 
@@ -90,7 +91,9 @@ test.describe('cutscene player @cutscene', () => {
     const fallback = answer(entries, 'fallback');
     expect(request?.refs).toEqual(['cut.story.m.dev.sample.intro']);
     expect(fallback?.cmd?.trigger).toBe('not_ready');
-    expect((fallback as LogEntry).at - (request as LogEntry).at).toBeLessThanOrEqual(2500);
+    const answerMs = (fallback as LogEntry).at - (request as LogEntry).at;
+    test.info().annotations.push({ type: 'answer-ms', description: String(Math.round(answerMs)) });
+    expect(answerMs).toBeLessThanOrEqual(2500);
     expect(answer(entries, 'video')).toBeUndefined();
 
     // a subtitle of the beat shows over the live world, with no AI chip and no video. Either of the two cues counts: on a slow runner each
