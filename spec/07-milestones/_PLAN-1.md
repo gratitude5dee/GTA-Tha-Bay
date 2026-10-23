@@ -195,12 +195,12 @@
 - **R** R-ENG-01/02, R-MODE-01 · **Dep** M04a2, M03a1, M00d · **Read** `13-qa.md` §3.1–§3.6, §3.9; `01-engine-contracts.md` C03 1.1 section · **Out** `packages/engine/src/qa`, `tests/{golden,e2e/det}`, `tools/ci/{mutants,econ-sim}`, `config/econ-bands.json` · **C** C02 1.1, C03 1.1, C06 1.1 (`EconomyApi`)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/src/qa tools/ci` (equal traces; mutants fail; lock guard); `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism`; `pnpm check:balance -- --suite econ` (self-test fixture fails)
 
-### Study set in Block B (owner request 2026-10-23, DL-716; run order rows 43–53, after M05c1 and before M05c2, `_PLAN.md` §0 rule 9)
+### Study set in Block B (owner request 2026-10-23, DL-716, DL-732; run order rows 43–45 before M05c2 (M04e5, M04e0, M02f1) and rows 49–56 after M05c3 (the rest), `_PLAN.md` §0 rule 9)
 
 ### M04e5 · ip-wall-strings — 0.2 · risk L · S05 (+S10) (DL-717)
-- **Goal:** no shipped string reuses trainer-checklist wording (the teleport refusal, the control-reason default, heat labels, the QA panel label, comments), and three `trainer-*` patterns in `config/ip-denylist.json` make `ip:strings` refuse it from now on.
-- **R** R-IP-01, R-UI-03 (s) · **Dep** M00b, M02c1, M03c, M04b2 · **Read** file `M04e5-ip-wall-strings.md`; DL-664, DL-717 · **Out** `content/ui/i18n/en.json`, `config/ip-denylist.json`, `packages/engine/src/sim/control/states.ts`, `packages/engine/src/debug/pursuit-panel.ts`, `tools/ci/test/ip-trainer-phrases.test.ts` · **C** none changed (C05 1.2, C06 1.1 read)
-- **Gate** none · **Proof** `pnpm check:unit -- tools/ci/test/ip-trainer-phrases.test.ts`; `pnpm build && pnpm ip:strings`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @pursuit`
+- **Goal:** no shipped string reuses trainer-checklist wording (the teleport refusal, the control-reason default, heat labels, the QA panel label, comments), the heat HUD shows bars instead of stars with the phase "Pursued", and three `trainer-*` patterns in `config/ip-denylist.json` make `ip:strings` refuse it from now on.
+- **R** R-IP-01, R-UI-03 (s) · **Dep** M00b, M02c1, M03c, M04b2 · **Read** file `M04e5-ip-wall-strings.md`; DL-664, DL-717 · **Out** `content/ui/i18n/en.json`, `config/ip-denylist.json`, `packages/engine/src/sim/control/states.ts`, `packages/engine/src/debug/pursuit-panel.ts`, `packages/ui/src/hud/{model.ts, widgets.tsx}`, `tools/ci/test/ip-trainer-phrases.test.ts` · **C** none changed (C05 1.2, C06 1.1 read)
+- **Gate** none · **Proof** `pnpm check:unit -- tools/ci/test/ip-trainer-phrases.test.ts`; `pnpm build && pnpm ip:strings`; `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @pursuit`
 
 ### M04e0 · sandbox-rooms-guard — 0.2 · risk L · S01 (DL-719)
 - **Goal:** every sandbox tool (`sandbox.*`, `mode.cmd {mode:'sandbox'}`, the phone's `map.travel`) is refused with `sandbox.refuse.online` while any running `ModeContext` has `net`; `ContextPorts.net` becomes an engine-internal getter. Must merge before M12b1.
@@ -209,33 +209,33 @@
 
 ### M04e1 · sandbox-world-controls — 0.8 · risk M · S01 (+S02, S10) (DL-718, DL-720)
 - **Goal:** Weather (presets held by the engine-internal `WorldClock.holdWeather`, no draws while held), Time (hour, pause, wall-clock sync, our SF fog-day shortcuts in `config/clock.json`) and World (speed through `SimCore.setSandboxScale`, blackout, density) sections in the phone Sandbox app as `ScreenDef` widgets; the `SANDBOX_ACTIONS` dispatcher for `mode.cmd {mode:'sandbox'}`.
-- **R** R-MAP-04, R-UI-03 (s), R-PLAT-02 (s) · **Dep** M04e0, M04b2, M02b2, M03b1, M03b2 · **Read** file `M04e1-sandbox-world-controls.md`; `01-engine-save-modes.md` (`SandboxSlice`, clock rules); DL-720 · **Out** `packages/engine/src/sim/{world/clock.ts, loop/sim-core.ts, modes/}`, `config/{clock.json, schemas/clock.schema.json}`, `packages/ui/src/phone/{apps.ts, pause.tsx}` · **C** C02 1.1, C05 1.2, C06 1.1, C08 1.0 (all read)
+- **R** R-MAP-04, R-UI-03 (s), R-PLAT-02 (s) · **Dep** M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 · **Read** file `M04e1-sandbox-world-controls.md`; `01-engine-save-modes.md` (`SandboxSlice`, clock rules); DL-720 · **Out** `packages/engine/src/sim/{world/clock.ts, loop/sim-core.ts, modes/}`, `config/{clock.json, schemas/clock.schema.json}`, `packages/ui/src/phone/{apps.ts, pause.tsx}` · **C** C02 1.1, C05 1.2, C06 1.1, C08 1.0 (all read)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/clock.hold.spec.ts`; `pnpm check:unit -- packages/engine/test/modes/sandbox-world.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @sandbox-world`
 
 ### M04e2 · sandbox-teleport-display — 0.7 · risk L · S01 (+S02, S10)
 - **Goal:** Teleport (37 landmarks, map pin, previous spot, up to 32 saved `pos-<n>` spots) through `TeleportApi.request('sandbox', …)`, rerouting `sandbox.teleport` and `map.travel`; Display (hide HUD, hide minimap; subtitles stay).
-- **R** R-MAP-01, R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M04e1, M04e0, M02c1, M02c2, M04b2, M04a2 · **Read** file `M04e2-sandbox-teleport-display.md`; `02-world-maps.md` §5 · **Out** `packages/engine/src/sim/modes/`, `packages/ui/src/{phone,hud}`, `content/ui/i18n/en.json` · **C** C05 1.2, C06 1.1, C08 1.0 (read)
+- **R** R-MAP-01, R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 · **Read** file `M04e2-sandbox-teleport-display.md`; `02-world-maps.md` §5 · **Out** `packages/engine/src/sim/modes/`, `packages/ui/src/{phone,hud}`, `content/ui/i18n/en.json` · **C** C05 1.2, C06 1.1, C08 1.0 (read)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/modes/sandbox-teleport.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @sandbox-teleport`
 
 ### M04e3 · sandbox-vehicle-spawner — 0.8 · risk M · S01 (+S06, S10) (DL-721)
 - **Goal:** a Cars tab placing our fictional cars by class with a new near-player in-view search `findNearSpot` (the garage's 120–400 m `findCallSpot` is untouched); session cars `veh:sbx<n>`, cap 8, never saved, gone on exit and when `net` turns non-null.
-- **R** R-UI-03, R-IP-01 (s), R-PLAT-02 (s) · **Dep** M04e1, M04e0, M03a1, M07a1, M05c1 · **Read** file `M04e3-sandbox-vehicle-spawner.md`; DL-721 · **Out** `packages/engine/src/sim/modes/{builtin/sandbox-spot.ts, sandbox-vehicle-port.ts}`, `content/vehicles/sandbox-catalog.json`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1, C08 1.0 (read)
+- **R** R-UI-03, R-IP-01 (s), R-PLAT-02 (s) · **Dep** M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 · **Read** file `M04e3-sandbox-vehicle-spawner.md`; DL-721 · **Out** `packages/engine/src/sim/modes/{builtin/sandbox-spot.ts, sandbox-vehicle-port.ts}`, `content/vehicles/sandbox-catalog.json`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1, C08 1.0 (read)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/sandbox-spot.spec.ts packages/engine/test/garage.test.ts`; `pnpm check:unit -- packages/engine/test/modes/sandbox-vehicles.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @sandbox-vehicles`
 
 ### M04e4 · sandbox-vehicle-player-actions — 0.6 · risk M · S01 (+S10)
 - **Goal:** Player tab (can't get hurt, big jumps, patch me up) and car actions on `veh:sbx` cars (repair, upright, dismiss, no-damage); every flag session-only in `EngineServices.sandboxFlags`, cleared online.
-- **R** R-UI-03, R-PLAT-02 (s), R-ROLL-02 (s), R-IP-01 (s) · **Dep** M04e3 · **Read** file `M04e4-sandbox-vehicle-player-actions.md`; DL-718, DL-730 · **Out** `packages/engine/src/sim/{sandbox-flags.ts, services.ts, combat, control/onfoot.ts, vehicle}`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1 (read)
+- **R** R-UI-03, R-PLAT-02 (s), R-ROLL-02 (s), R-IP-01 (s) · **Dep** M04e3, M04e5 · **Read** file `M04e4-sandbox-vehicle-player-actions.md`; DL-718, DL-730 · **Out** `packages/engine/src/sim/{sandbox-flags.ts, services.ts, combat, control/onfoot.ts, vehicle}`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1 (read)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/sandbox-flags.spec.ts`; `pnpm check:unit -- packages/engine/test/modes/sandbox-player.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @sandbox-actions`
 
 ### M04b5 · settings-live-overlay-hooks — 0.8 · risk M · S10 (+S11) (DL-727)
-- **Goal:** a fixed render scale applies inside the tier budget, the frame-cap row is disabled with a reason until M11a1, an FPS chip, a full-screen control where `document.fullscreenEnabled` (tests stub it), the read-only overlay hooks (`data-ui-skip`, `dv-settings`, `dv-save-profile`, `BroadcastChannel('dv-ui')`), unknown prefs fields kept.
+- **Goal:** a fixed render scale applies inside the tier budget, the frame-cap row is disabled with a reason until M11a1, an FPS chip, a full-screen control where `document.fullscreenEnabled` (tests stub it), the read-only overlay hooks (`data-ui-skip` and one `ShellSignal` stream on the `dv-shell` window event and `BroadcastChannel('dv-shell')`, DL-732), unknown prefs fields kept.
 - **R** R-UI-02, R-PLAT-03, R-PLAT-01, R-ENG-04 (s) · **Dep** M01c, M04b1, M04b2 · **Read** file `M04b5-settings-live-overlay-hooks.md`; `10-ui-hud-xr.md` §2.14 rule 5; DL-727 · **Out** `packages/engine/src/platform/{render-scale.ts, perf/fps-feed.ts}`, `packages/ui/src/{shell, hud, screen, pages/settings}`, `apps/web/src/{main.ts, shell-ports.ts}` · **C** C13 1.1 (read)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/ui/test/overlay-hooks.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-fullscreen`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-settings-live`
 
 ### M04b4 · offline-download-ui — 0.3 · risk L · S10 (+S11) (DL-728)
 - **Goal:** "Download the city for offline play" (size, 1.2 × quota check, `persist()` first, progress, cancel) and "Clear downloaded data" (confirm) enabled in Settings › Install and storage; no offline-reload AC (M11a2).
 - **R** R-PLAT-01, R-UI-03 (s) · **Dep** M01e, M04b1 · **Read** file `M04b4-offline-download-ui.md`; `11-platform-pwa.md` §5 · **Out** `packages/engine/src/assets/`, `packages/ui/src/pages/settings/`, `apps/web/src/offline-port.ts`, `tests/e2e/offline-download.spec.ts` · **C** C13 1.1, C16 1.2 (read)
-- **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/assets/offline-download.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-download`
+- **Gate** none · **Proof** `pnpm check:unit -- packages/engine/test/assets/offline-download.spec.ts`; `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-download`
 
 ### M02f1 · stream-measure — 0.6 · risk M · S11 (+S02) (DL-722, DL-725)
 - **Goal:** boot figures (requests, bytes, reveal time, waves, peak in flight from new `FetchRetry` counting) in the bridge, the perf report (C13 1.2) and `data-dv-boot`; new `boot-cityhall` perf scenario; QA-only `?net=` shaper; a staging device checklist that records the restated U-W8.

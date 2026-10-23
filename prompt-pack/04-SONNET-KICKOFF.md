@@ -77,7 +77,7 @@ Next: the next milestone id and anything it must know
 </report>
 
 <milestones>
-All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–129 are v1 (≈ 115.0 sessions; rows 14–15, M00e and M00f, came from the owner updates of 2026-10-19, DL-605; row 20, M02e, from the owner look request, DL-704; row 29, M01d2, from the owner's media-host choice of 2026-10-20, DL-713; rows 43–53, 68 and 84, the study set, from the owner request of 2026-10-23, DL-716, with M04e5 and M04e0 first), 130–136 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
+All milestone files are READY, in run order (id · slug · sessions · depends on · gate). Rows 1–12 are the fast-track files, frozen; 1–129 are v1 (≈ 115.0 sessions; rows 14–15, M00e and M00f, came from the owner updates of 2026-10-19, DL-605; row 20, M02e, from the owner look request, DL-704; row 29, M01d2, from the owner's media-host choice of 2026-10-20, DL-713; rows 43–45, 49–56, 68 and 84, the study set, from the owner request of 2026-10-23, DL-716, with M04e5 and M04e0 first and eight rows after M05c3, DL-732), 130–136 are post-v1 Bay expansion (7 sessions). A gate names secrets, devices, paid plans or owner questions; without one, stub or skip as `<stops>` says and continue.
 1. M00 · bootstrap-ci-pwa-on-workers · 1 · — · deploy steps need secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (everything else runs without)
 2. M00a · edge-api-skeleton · 0.8 · M00 · same secrets; variable `DEPLOY_ALLOWED_ACTORS` for production deploys
 3. M00b · ip-provenance-gates · 1 · M00 · none (optional CI secret `DV_NAMES_REAL_JSON`)
@@ -122,18 +122,18 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 42. M05c1 · act1-missions-1-6 · 1 · M05a2, M05b2, M03c, M04b2, M02c2 · none
 43. M04e5 · ip-wall-strings · 0.2 · M00b, M02c1, M03c, M04b2 · none
 44. M04e0 · sandbox-rooms-guard · 0.2 · M04b2, M02c2 · none (must merge before M12b1, DL-719)
-45. M04e1 · sandbox-world-controls · 0.8 · M04e0, M04b2, M02b2, M03b1, M03b2 · none
-46. M04e2 · sandbox-teleport-display · 0.7 · M04e1, M04e0, M02c1, M02c2, M04b2, M04a2 · none
-47. M04e3 · sandbox-vehicle-spawner · 0.8 · M04e1, M04e0, M03a1, M07a1, M05c1 · none
-48. M04e4 · sandbox-vehicle-player-actions · 0.6 · M04e3 · none
-49. M04b5 · settings-live-overlay-hooks · 0.8 · M01c, M04b1, M04b2 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy in AC-10)
-50. M04b4 · offline-download-ui · 0.3 · M01e, M04b1 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy)
-51. M02f1 · stream-measure · 0.6 · M02b1, M01d2, M02c2 · AC-8 only: the M02c2 AC-14 staging `sf` release; Q-13 desktop Mac and iPhone 15
-52. M02f2 · boot-prefetch · 0.5 · M01e, M02b1, M04b1, M04a2 · none
-53. M01d3 · media-route-tuning · 0.4 · M01d2, M00e · AC-8 only: a staging deploy by the operator (`deploy.yml`)
-54. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · the M02c2 AC-14 staging `sf` release (AC-7 to AC-9; DL-670, DL-713); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
-55. M05d · data-spine-supabase · 1 · M05b1, M00e · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
-56. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
+45. M02f1 · stream-measure · 0.6 · M02b1, M01d2, M02c2 · AC-8 only: the M02c2 AC-14 staging `sf` release; Q-13 desktop Mac and iPhone 15
+46. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · the M02c2 AC-14 staging `sf` release (AC-7 to AC-9; DL-670, DL-713); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
+47. M05d · data-spine-supabase · 1 · M05b1, M00e · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
+48. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
+49. M04e1 · sandbox-world-controls · 0.8 · M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 · none
+50. M04e2 · sandbox-teleport-display · 0.7 · M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 · none
+51. M04e3 · sandbox-vehicle-spawner · 0.8 · M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 · none
+52. M04e4 · sandbox-vehicle-player-actions · 0.6 · M04e3, M04e5 · none
+53. M04b5 · settings-live-overlay-hooks · 0.8 · M01c, M04b1, M04b2 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy in AC-11)
+54. M04b4 · offline-download-ui · 0.3 · M01e, M04b1 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy)
+55. M02f2 · boot-prefetch · 0.5 · M01e, M02b1, M04b1, M04a2 · none
+56. M01d3 · media-route-tuning · 0.4 · M01d2, M00e · AC-8 only: a staging deploy by the operator (`deploy.yml`)
 57. M06a1 · npc-backend-spine · 1 · M05d, M04b3 · `PLAY_TOKEN_HMAC`, `QUOTA_NET_SALT_SECRET`, `SUPABASE_SECRET_KEY`, `OPS_TOKEN`
 58. M06a2 · soul-contract-compiler · 1 · M00b, M01d · Q-19, Q-25 (real roster waits; originals only); optional `ANTHROPIC_API_KEY`, `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`
 59. M06a3 · dialogue-proxy · 1 · M06a1, M06a2 · `ANTHROPIC_API_KEY` (workspace `npc-runtime`), AI Gateway `gw-dialogue`
@@ -145,7 +145,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 65. M07a2 · racing-ai-replay-ghosts · 1 · M07a1, M03c, M05c1 · none
 66. M07b1 · racing-content-events-ladder · 1 · M07a2, M03b2 · none
 67. M07b2 · racing-garage-replay-photo-visuals · 1 · M07b1, M05b2 · Q-13 iPhone 15 (AC-10)
-68. M07b3 · sandbox-tune · 0.5 · M07b2, M04e3 · none
+68. M07b3 · sandbox-tune · 0.5 · M07b2, M04e3, M04e5 · none
 69. M08a1 · fight-core-sim-data · 1 · M01a1, M05a1 · none
 70. M08a2 · fight-mode-training-vs · 1 · M08a1, M04a2, M04b2, M04d, M05c1 · none
 71. M08b1 · fight-roster-kits-ai · 1 · M08a2, M06a2 · Q-24 (library clips until art-lead signatures)
@@ -161,7 +161,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 81. M10b · qa-gates-kill-drill · 1 · M10a2, M08b2, M06a3 · `OPS_TOKEN`, `CF_API_TOKEN_CACHE`; `FAL_KEY` (operator only); ADR-GENAI-01 `cleared` for paid prewarm
 82. M10c · roster-souls-ink-barks · 1 · M10a2, M06a4, M06c, M05c2 · Q-19, Q-25 (canary only while open), Q-20; `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`
 83. M10d1 · art-integration · 1 · M05c2, M03b2, M04b2 · Q-39 art sourcing (default: recipe fallback), Q-24
-84. M10f · emote-wheel · 0.6 · M10d1, M04b2 · Q-13 iPhone 15 (manual touch run)
+84. M10f · emote-wheel · 0.6 · M10d1, M04b2, M04e5 · Q-13 iPhone 15 (manual touch run)
 85. M10d3 · art-integration · 1 · M10d1, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24
 86. M10d2 · art-integration · 1 · M10d1, M10d3, M02d2, M02e · Q-39 art sourcing (default: recipes stay)
 87. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
@@ -180,7 +180,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 100. M06b2 · builder-images-review · 1 · M06b1, M12a1, M06a5 · Q-16 (photo uploads private-only until filings are approved), `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` as Worker secrets, `OPENAI_MODERATION_API_KEY`, `ANTHROPIC_BUILDER_KEY`
 101. M06b3 · npc-builder-ui · 1 · M06b2, M04b2, M06a5, M06c · none
 102. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2, M04e0 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
-103. M12b2 · rooms-core-protocol-v2 · 1 · M12b1 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)
+103. M12b2 · rooms-core-protocol-v2 · 1 · M12b1, M04e3 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)
 104. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · `SUPABASE_SECRET_KEY` (rooms Worker), `CI_STAFF_DEVICE_JWK`
 105. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location; `INTERNAL_HMAC`, `OPENAI_MODERATION_API_KEY`, `CI_STAFF_DEVICE_JWK`
 106. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none

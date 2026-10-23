@@ -19,7 +19,7 @@ This milestone carries proposal GV-04 of the 2026-10-23 streaming study. The des
 - **M04b1** (shell-ui-kit-menus-settings): the Title, the main menu, `ShellHooks` (`packages/ui/src/shell/types.ts`), and `passGates` and `NO_BYPASS` (`tests/e2e/ui/helpers.ts`).
 - **M04a2** (saves-gamemode-unlocks): `mode.start` and `ShellCore.startMode` (`packages/ui/src/shell/core.ts`).
 - Optional: **M02f1** (stream-measure, written in the same batch). If it has merged when this session starts, the demo also records its `boot.*` fields. No AC needs it.
-- Contracts: C13 1.1 (`WorldPackStore` and `QaFlags` stay unchanged) and C06 1.1. No contract change.
+- Contracts: C13 1.1 or 1.2 (M02f1, which runs first in the register, makes it 1.2 with `PerfReport.boot` fields and `QaFlags.net`; this milestone reads `WorldPackStore` and `QaFlags` and changes neither) and C06 1.1. No contract change.
 
 ## Scope in
 - **Promotion in the fetch layer** (`fetch-retry.ts`): add `FetchRetry.promote(url, to)`. If the entry for that URL is still queued, `Lanes.promote` moves it up, and the call returns `true`. It returns `false` when the URL is not in flight or the job is already running.
@@ -62,7 +62,7 @@ This milestone carries proposal GV-04 of the 2026-10-23 streaming study. The des
   - `startToPlayMs` is the time from `modeStart` to the first `play(true)`.
 
 ## Scope out
-- Prefetching a saved position. No code restores `StorySlice.position`: `storyFreeroamSim` in `packages/engine/src/sim/modes/builtin/story-freeroam.ts` adopts the booted spawn, and `git grep "story.position"` finds no reader. So every mode starts at `spawnPose(index)`. The milestone that restores the position passes its pose to `bootSet` → `planBootPrefetch`.
+- Prefetching a saved position. No code restores the saved x/z pose of `StorySlice.position`: `storyFreeroamSim` in `packages/engine/src/sim/modes/builtin/story-freeroam.ts` only writes the booted pose (l.38), and the one reader of `story.position`, `packages/modes/story/src/missions/index.ts` l.79, reads and writes only `story.position.safehouse`, never the pose. So every mode starts at `spawnPose(index)`. The milestone that restores the position passes its pose to `bootSet` → `planBootPrefetch`.
 - The CI headless emission of `bootset.<mode>.json` (`spec/domains/11-platform-pwa.md` §5, `spec/domains/02-world.md` §5.1 step 2). The runtime `planBootPrefetch` covers world packs. DL-726 retires that emission; non-world first-touch assets stay with the service worker's app-shell precache.
 - The boot measurement fields, peak-in-flight instrumentation and the `boot-cityhall` perf scenario (all M02f1); the network shaper (M02f1); the offline download rows (M04b4); offline reload from a cached catalog (M11a2).
 - Any route, header or `services/*` change; any telemetry name (C16 is closed).

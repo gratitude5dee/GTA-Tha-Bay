@@ -20,7 +20,7 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - Every family above one session is split into digit-suffixed ids (DL-212).
 - **Runs next: M00e** `owner-account-hardening` (row 14; formerly the owner PR #1 follow-up list, DL-605; `_PLAN.md` §0 rule 7, Q-43; M00a, M00b and M01c are merged into `claude/build`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts before it has merged (M05d and M13a1 name it in Depends on); milestones already executing (M00…M01f) merge as before, and M05b1 (started 2026-10-19) merges after it in run order.
 - **Already executing: M00d** `qa-spec-gates` (row 13; branch `claude/build-m00d`, frozen since it started; its PR sets the row to IN PROGRESS; not gated by rule 7, it writes only a docs `services/edge/README.md`) merges as before (DL-648).
-- **Study set (owner request 2026-10-23, DL-716; `_PLAN.md` §0 rule 9):** rows 43–53 run after the merged rows and before M05c2, M04e5 and M04e0 first; M07b3 follows M07b2 and M10f follows M10d1. M04e0 must merge before M12b1 starts.
+- **Study set (owner request 2026-10-23, DL-716, order amended by DL-732; `_PLAN.md` §0 rule 9):** M04e5, M04e0 and M02f1 (rows 43–45) run before M05c2; M04e1–M04e4, M04b5, M04b4, M02f2 and M01d3 (rows 49–56) run after M05c3; M07b3 follows M07b2 and M10f follows M10d1. M04e0 must merge before M12b1 starts; M04e5 is in the Depends on of every later sandbox file. M02f1, M04b5, M04b4 and M02f2 share files and run one at a time in that order.
 - **Then: M00f** `third-party-reuse-gates` (row 15, needs M00d; formerly the reuse-gates follow-up list, DL-605; `_PLAN.md` §0 rule 8): a gate for no milestone; nothing is vendored into `third_party/` before it merges (DL-607).
 
 ## Table (READY 136, of which 12 frozen (executing); 129 v1 milestones ≈ 115.0 sessions + 7 post-v1 = 122.0 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500, M00e–M00f by DL-605, M02e by DL-704, M01d2 by DL-713, the study set M04e0–M04e5, M04b4, M04b5, M02f1, M02f2, M01d3, M07b3 and M10f by DL-716; the conditional M01d4 is not listed, DL-723)
@@ -73,18 +73,18 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 42 | M05c1 | act1-missions-1-6 | 1 | M05a2, M05b2, M03c, M04b2, M02c2 | READY | `M05c1-act1-missions-1-6.md` |
 | 43 | M04e5 | ip-wall-strings | 0.2 | M00b, M02c1, M03c, M04b2 | READY | `M04e5-ip-wall-strings.md` |
 | 44 | M04e0 | sandbox-rooms-guard | 0.2 | M04b2, M02c2 | READY | `M04e0-sandbox-rooms-guard.md` |
-| 45 | M04e1 | sandbox-world-controls | 0.8 | M04e0, M04b2, M02b2, M03b1, M03b2 | READY | `M04e1-sandbox-world-controls.md` |
-| 46 | M04e2 | sandbox-teleport-display | 0.7 | M04e1, M04e0, M02c1, M02c2, M04b2, M04a2 | READY | `M04e2-sandbox-teleport-display.md` |
-| 47 | M04e3 | sandbox-vehicle-spawner | 0.8 | M04e1, M04e0, M03a1, M07a1, M05c1 | READY | `M04e3-sandbox-vehicle-spawner.md` |
-| 48 | M04e4 | sandbox-vehicle-player-actions | 0.6 | M04e3 | READY | `M04e4-sandbox-vehicle-player-actions.md` |
-| 49 | M04b5 | settings-live-overlay-hooks | 0.8 | M01c, M04b1, M04b2 | READY | `M04b5-settings-live-overlay-hooks.md` |
-| 50 | M04b4 | offline-download-ui | 0.3 | M01e, M04b1 | READY | `M04b4-offline-download-ui.md` |
-| 51 | M02f1 | stream-measure | 0.6 | M02b1, M01d2, M02c2 | READY | `M02f1-stream-measure.md` |
-| 52 | M02f2 | boot-prefetch | 0.5 | M01e, M02b1, M04b1, M04a2 | READY | `M02f2-boot-prefetch.md` |
-| 53 | M01d3 | media-route-tuning | 0.4 | M01d2, M00e | READY | `M01d3-media-route-tuning.md` |
-| 54 | M05c2 | act1-vertical-slice | 1 | M05c1, M03b2 | READY | `M05c2-act1-vertical-slice.md` |
-| 55 | M05d | data-spine-supabase | 1 | M05b1, M00e | READY | `M05d-data-spine-supabase.md` |
-| 56 | M05c3 | act1-prewarm | 0.7 | M05c2, M05d | READY | `M05c3-act1-prewarm.md` |
+| 45 | M02f1 | stream-measure | 0.6 | M02b1, M01d2, M02c2 | READY | `M02f1-stream-measure.md` |
+| 46 | M05c2 | act1-vertical-slice | 1 | M05c1, M03b2 | READY | `M05c2-act1-vertical-slice.md` |
+| 47 | M05d | data-spine-supabase | 1 | M05b1, M00e | READY | `M05d-data-spine-supabase.md` |
+| 48 | M05c3 | act1-prewarm | 0.7 | M05c2, M05d | READY | `M05c3-act1-prewarm.md` |
+| 49 | M04e1 | sandbox-world-controls | 0.8 | M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 | READY | `M04e1-sandbox-world-controls.md` |
+| 50 | M04e2 | sandbox-teleport-display | 0.7 | M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 | READY | `M04e2-sandbox-teleport-display.md` |
+| 51 | M04e3 | sandbox-vehicle-spawner | 0.8 | M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 | READY | `M04e3-sandbox-vehicle-spawner.md` |
+| 52 | M04e4 | sandbox-vehicle-player-actions | 0.6 | M04e3, M04e5 | READY | `M04e4-sandbox-vehicle-player-actions.md` |
+| 53 | M04b5 | settings-live-overlay-hooks | 0.8 | M01c, M04b1, M04b2 | READY | `M04b5-settings-live-overlay-hooks.md` |
+| 54 | M04b4 | offline-download-ui | 0.3 | M01e, M04b1 | READY | `M04b4-offline-download-ui.md` |
+| 55 | M02f2 | boot-prefetch | 0.5 | M01e, M02b1, M04b1, M04a2 | READY | `M02f2-boot-prefetch.md` |
+| 56 | M01d3 | media-route-tuning | 0.4 | M01d2, M00e | READY | `M01d3-media-route-tuning.md` |
 | 57 | M06a1 | npc-backend-spine | 1 | M05d, M04b3 | READY | `M06a1-npc-backend-spine.md` |
 | 58 | M06a2 | soul-contract-compiler | 1 | M00b, M01d | READY | `M06a2-soul-contract-compiler.md` |
 | 59 | M06a3 | dialogue-proxy | 1 | M06a1, M06a2 | READY | `M06a3-dialogue-proxy.md` |
@@ -96,7 +96,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 65 | M07a2 | racing-ai-replay-ghosts | 1 | M07a1, M03c, M05c1 | READY | `M07a2-racing-ai-replay-ghosts.md` |
 | 66 | M07b1 | racing-content-events-ladder | 1 | M07a2, M03b2 | READY | `M07b1-racing-content-events-ladder.md` |
 | 67 | M07b2 | racing-garage-replay-photo-visuals | 1 | M07b1, M05b2 | READY | `M07b2-racing-garage-replay-photo-visuals.md` |
-| 68 | M07b3 | sandbox-tune | 0.5 | M07b2, M04e3 | READY | `M07b3-sandbox-tune.md` |
+| 68 | M07b3 | sandbox-tune | 0.5 | M07b2, M04e3, M04e5 | READY | `M07b3-sandbox-tune.md` |
 | 69 | M08a1 | fight-core-sim-data | 1 | M01a1, M05a1 | READY | `M08a1-fight-core-sim-data.md` |
 | 70 | M08a2 | fight-mode-training-vs | 1 | M08a1, M04a2, M04b2, M04d, M05c1 | READY | `M08a2-fight-mode-training-vs.md` |
 | 71 | M08b1 | fight-roster-kits-ai | 1 | M08a2, M06a2 | READY | `M08b1-fight-roster-kits-ai.md` |
@@ -112,7 +112,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 81 | M10b | qa-gates-kill-drill | 1 | M10a2, M08b2, M06a3 | READY | `M10b-qa-gates-kill-drill.md` |
 | 82 | M10c | roster-souls-ink-barks | 1 | M10a2, M06a4, M06c, M05c2 | READY | `M10c-roster-souls-ink-barks.md` |
 | 83 | M10d1 | art-integration | 1 | M05c2, M03b2, M04b2 | READY | `M10d1-art-integration.md` |
-| 84 | M10f | emote-wheel | 0.6 | M10d1, M04b2 | READY | `M10f-emote-wheel.md` |
+| 84 | M10f | emote-wheel | 0.6 | M10d1, M04b2, M04e5 | READY | `M10f-emote-wheel.md` |
 | 85 | M10d3 | art-integration | 1 | M10d1, M07b2, M08b2, M10a2 | READY | `M10d3-art-integration.md` |
 | 86 | M10d2 | art-integration | 1 | M10d1, M10d3, M02d2, M02e | READY | `M10d2-art-integration.md` |
 | 87 | M05e1 | story-act2-part1 | 1 | M05c2, M07a2, M08b2, M09b2, M07b1 | READY | `M05e1-story-act2-part1.md` |
@@ -131,7 +131,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 100 | M06b2 | builder-images-review | 1 | M06b1, M12a1, M06a5 | READY | `M06b2-builder-images-review.md` |
 | 101 | M06b3 | npc-builder-ui | 1 | M06b2, M04b2, M06a5, M06c | READY | `M06b3-npc-builder-ui.md` |
 | 102 | M12b1 | rooms-core-protocol-v2 | 1 | M12a1, M05c2, M04a2, M04e0 | READY | `M12b1-rooms-core-protocol-v2.md` |
-| 103 | M12b2 | rooms-core-protocol-v2 | 1 | M12b1 | READY | `M12b2-rooms-core-protocol-v2.md` |
+| 103 | M12b2 | rooms-core-protocol-v2 | 1 | M12b1, M04e3 | READY | `M12b2-rooms-core-protocol-v2.md` |
 | 104 | M12c1 | rooms-hardening-presence-loadtest | 1 | M12b2 | READY | `M12c1-rooms-hardening-presence-loadtest.md` |
 | 105 | M12c2 | rooms-hardening-presence-loadtest | 1 | M12c1 | READY | `M12c2-rooms-hardening-presence-loadtest.md` |
 | 106 | M12d | online-page-invites | 0.3 | M12c1, M04b1 | READY | `M12d-online-page-invites.md` |

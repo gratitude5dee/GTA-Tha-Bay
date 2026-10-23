@@ -11,7 +11,7 @@
 6. **Gaps closed (wave5 note 11).** `RaceDef.intro` + `cut.race.intro.<raceId>` refs → M07b2. `tools/ci/econ-sim` (owner S01) → M04d, with sections in M05c1, M07b2, M05e2, M05f2. Avatar and wardrobe schemas in `packages/shared/schemas/ui/` → M04b2.
 7. **M00e gate (2026-10-19, DL-514, DL-605, DL-622, Q-43).** M00e `owner-account-hardening` (formerly the owner PR #1 follow-up list) runs next: its dependencies M00a, M00b and M01c are merged into `claude/build` (M01c at `dae8f08`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts until M00e has merged; the only not-yet-started such milestones without a dependency path to M00e were M05d and M13a1, which now name it in Depends on (critical path unchanged, 29.8 / 33.8: both have slack), and every other one reaches M00e through M04b1 or M05d. M00d is not gated (a docs-only `services/edge/README.md`). PRs of milestones already executing (M00…M01f) merge as before and M00e rebases over them; M05b1, started on 2026-10-19 before this rule, is row 40 (row 38 before M02e, DL-704, and row 39 before M01d2, DL-713), so its PR merges after M00e in run order and rebases over it. Order: M00e next; M00d, already executing (IN PROGRESS, not gated), merges as before; then M00f (DL-648). Its file lists the operator actions (create `main`, the production `AUTH_PASSWORD_SIGNUP` switch, dashboard settings), which are never Builder work. **Integration branch:** `claude/build` until the operator creates `main` (Q-42, DL-606), then `main`; "merged" in this register and in every start-after rule means merged to that branch, and each PR targets it (DL-641).
 8. **M00f before vendoring (2026-10-19, DL-508, DL-523, DL-605, DL-607).** M00f `third-party-reuse-gates` (formerly the reuse-gates follow-up list) is a gate for no milestone; nothing is vendored into `third_party/` before it merges, and its `license:scan` rules are the mechanical stop, enforced by branch protection that makes the CI `static` and `ip` jobs required checks on the integration branch before the first vendoring PR (M00f Operator actions, DL-633). Vendoring is done by the operator or the Architect only (DL-502).
-9. **Study set (2026-10-23, owner request, DL-716).** Rows 43–53 (M04e5, M04e0, M04e1, M04e2, M04e3, M04e4, M04b5, M04b4, M02f1, M02f2, M01d3) are Block B work placed after the merged rows and before M05c2; M07b3 (row 68) follows M07b2 and M10f (row 84) follows M10d1. M04e3 names M07a1 (row 66), which is already merged; that is the only forward reference outside Block A and rule 3 allows it for a merged dependency. M04e0 must merge before M12b1 starts (it is in M12b1's Depends on, DL-719); M04e1 and M04e4 before M11b3, and M04b5 before M11a1. M04e5 runs first so every new sandbox string is written under its `trainer-*` patterns (DL-717). M01d4 `media-edge-cache` is conditional: the Architect creates it only if M02f1 AC-8 records U-W8 as failed (DL-723); it is not in this table.
+9. **Study set (2026-10-23, owner request, DL-716; order amended by DL-732).** Only three study rows precede M05c2: M04e5, M04e0 and M02f1 (rows 43–45; M04e0 gates M12b1, M04e5 is the string guard every later sandbox file depends on, M02f1 records U-W8). The other eight (M04e1, M04e2, M04e3, M04e4, M04b5, M04b4, M02f2, M01d3, rows 49–56) are Block B work placed after M05c2, M05d and M05c3, so the A-06 vertical slice and the R-ROLL-01 gate slip by 1.0 session (the three early rows), not by 5.9. M07b3 (row 68) follows M07b2 and M10f (row 84) follows M10d1. M04e3 names M07a1 (row 64), which is already merged; that is the only forward reference outside Block A and rule 3 allows it for a merged dependency. M04e0 must merge before M12b1 starts (it is in M12b1's Depends on, DL-719); M04e1 and M04e4 before M11b3, and M04b5 before M11a1. M04e5 is in the Depends on of M04e1, M04e2, M04e3, M04e4, M07b3 and M10f, so every new sandbox string is written under its `trainer-*` patterns (DL-717). **Shared files, no dependency path:** M02f1, M04b5, M04b4 and M02f2 edit the same files (`packages/engine/src/assets/{rpc.ts, service.ts, client.ts, bridge.ts}`, `assets/store/{store.ts, fetch-retry.ts}`, `packages/world/src/client/{boot-world.ts, world-view.ts}`, `packages/ui/src/shell/types.ts`, `apps/web/src/{main.ts, shell-ports.ts}`). Parallel Builders (DL-246) do not run two of them at once: each starts after the previous one in this order has merged (M02f1 → M04b5 → M04b4 → M02f2), and rebases over it; the same holds for M04e1 → M04e2 → M04e3 → M04e4, which already chain through Depends on. M01d4 `media-edge-cache` is conditional: the Architect creates it only if M02f1 AC-8 records U-W8 as failed (DL-723); it is not in this table.
 
 ## 1. Ordered index (v1: 129 milestones, ≈ 115.0 sessions; post-v1: 7 milestones, 7 sessions)
 Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NPC runtime · E roster, Acts 2–3, hardening, XR · F identity and multiplayer · G modding, UGC, legal · H launch · I Bay expansion.
@@ -62,18 +62,18 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 42 | M05c1 | act1-missions-1-6 | 1 | C | M05a2, M05b2, M03c, M04b2, M02c2 |
 | 43 | M04e5 | ip-wall-strings | 0.2 | B | M00b, M02c1, M03c, M04b2 |
 | 44 | M04e0 | sandbox-rooms-guard | 0.2 | B | M04b2, M02c2 |
-| 45 | M04e1 | sandbox-world-controls | 0.8 | B | M04e0, M04b2, M02b2, M03b1, M03b2 |
-| 46 | M04e2 | sandbox-teleport-display | 0.7 | B | M04e1, M04e0, M02c1, M02c2, M04b2, M04a2 |
-| 47 | M04e3 | sandbox-vehicle-spawner | 0.8 | B | M04e1, M04e0, M03a1, M07a1, M05c1 |
-| 48 | M04e4 | sandbox-vehicle-player-actions | 0.6 | B | M04e3 |
-| 49 | M04b5 | settings-live-overlay-hooks | 0.8 | B | M01c, M04b1, M04b2 |
-| 50 | M04b4 | offline-download-ui | 0.3 | B | M01e, M04b1 |
-| 51 | M02f1 | stream-measure | 0.6 | B | M02b1, M01d2, M02c2 |
-| 52 | M02f2 | boot-prefetch | 0.5 | B | M01e, M02b1, M04b1, M04a2 |
-| 53 | M01d3 | media-route-tuning | 0.4 | B | M01d2, M00e |
-| 54 | M05c2 | act1-vertical-slice | 1 | C | M05c1, M03b2 |
-| 55 | M05d | data-spine-supabase | 1 | C | M05b1, M00e |
-| 56 | M05c3 | act1-prewarm | 0.7 | C | M05c2, M05d |
+| 45 | M02f1 | stream-measure | 0.6 | B | M02b1, M01d2, M02c2 |
+| 46 | M05c2 | act1-vertical-slice | 1 | C | M05c1, M03b2 |
+| 47 | M05d | data-spine-supabase | 1 | C | M05b1, M00e |
+| 48 | M05c3 | act1-prewarm | 0.7 | C | M05c2, M05d |
+| 49 | M04e1 | sandbox-world-controls | 0.8 | B | M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 |
+| 50 | M04e2 | sandbox-teleport-display | 0.7 | B | M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 |
+| 51 | M04e3 | sandbox-vehicle-spawner | 0.8 | B | M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 |
+| 52 | M04e4 | sandbox-vehicle-player-actions | 0.6 | B | M04e3, M04e5 |
+| 53 | M04b5 | settings-live-overlay-hooks | 0.8 | B | M01c, M04b1, M04b2 |
+| 54 | M04b4 | offline-download-ui | 0.3 | B | M01e, M04b1 |
+| 55 | M02f2 | boot-prefetch | 0.5 | B | M01e, M02b1, M04b1, M04a2 |
+| 56 | M01d3 | media-route-tuning | 0.4 | B | M01d2, M00e |
 | 57 | M06a1 | npc-backend-spine | 1 | D | M05d, M04b3 |
 | 58 | M06a2 | soul-contract-compiler | 1 | D | M00b, M01d |
 | 59 | M06a3 | dialogue-proxy | 1 | D | M06a1, M06a2 |
@@ -85,7 +85,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 65 | M07a2 | racing-ai-replay-ghosts | 1 | D | M07a1, M03c, M05c1 |
 | 66 | M07b1 | racing-content-events-ladder | 1 | D | M07a2, M03b2 |
 | 67 | M07b2 | racing-garage-replay-photo-visuals | 1 | D | M07b1, M05b2 |
-| 68 | M07b3 | sandbox-tune | 0.5 | D | M07b2, M04e3 |
+| 68 | M07b3 | sandbox-tune | 0.5 | D | M07b2, M04e3, M04e5 |
 | 69 | M08a1 | fight-core-sim-data | 1 | D | M01a1, M05a1 |
 | 70 | M08a2 | fight-mode-training-vs | 1 | D | M08a1, M04a2, M04b2, M04d, M05c1 |
 | 71 | M08b1 | fight-roster-kits-ai | 1 | D | M08a2, M06a2 |
@@ -101,7 +101,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 81 | M10b | qa-gates-kill-drill | 1 | E | M10a2, M08b2, M06a3 |
 | 82 | M10c | roster-souls-ink-barks | 1 | E | M10a2, M06a4, M06c, M05c2 |
 | 83 | M10d1 | art-integration | 1 | E | M05c2, M03b2, M04b2 |
-| 84 | M10f | emote-wheel | 0.6 | E | M10d1, M04b2 |
+| 84 | M10f | emote-wheel | 0.6 | E | M10d1, M04b2, M04e5 |
 | 85 | M10d3 | art-integration | 1 | E | M10d1, M07b2, M08b2, M10a2 |
 | 86 | M10d2 | art-integration | 1 | E | M10d1, M10d3, M02d2, M02e |
 | 87 | M05e1 | story-act2-part1 | 1 | E | M05c2, M07a2, M08b2, M09b2, M07b1 |
@@ -120,7 +120,7 @@ Blocks: A fast-track (READY) · B foundations · C story spine · D modes and NP
 | 100 | M06b2 | builder-images-review | 1 | F | M06b1, M12a1, M06a5 |
 | 101 | M06b3 | npc-builder-ui | 1 | F | M06b2, M04b2, M06a5, M06c |
 | 102 | M12b1 | rooms-core-protocol-v2 | 1 | F | M12a1, M05c2, M04a2, M04e0 |
-| 103 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1 |
+| 103 | M12b2 | rooms-core-protocol-v2 | 1 | F | M12b1, M04e3 |
 | 104 | M12c1 | rooms-hardening-presence-loadtest | 1 | F | M12b2 |
 | 105 | M12c2 | rooms-hardening-presence-loadtest | 1 | F | M12c1 |
 | 106 | M12d | online-page-invites | 0.3 | F | M12c1, M04b1 |
@@ -553,6 +553,9 @@ flowchart LR
   M04e3 --> M07b3
   M10d1 --> M10f
   M04e0 --> M12b1
+  M04e5 --> M04e1
+  M04e5 --> M10f
+  M04e3 --> M12b2
   M04e1 --> M11b3
   M04e4 --> M11b3
   M04b5 --> M11a1
@@ -622,7 +625,7 @@ At every checkpoint the Architect runs the three critic lenses on the next block
 | 14 | M05c2, M06a3, M07a2, M08a2, M12a1 |
 | 15 | M05c3, M06a4, M06a5, M06c, M06b1, M07b1, M08b1, M08c1, M09b2, M10d1, M11a1, M12a2, M12b1, M13c1 |
 
-**Study set (DL-716; same method, merged rows count as done):** M01d3 wave 3; M04b4, M02f2 wave 11; M04e5, M04b5 wave 12; M04e0, M02f1 wave 13; M04e1 wave 14; M04e2, M04e3 wave 15; M04e4, M10f wave 16; M07b3 wave 17. No existing wave moves: M12b1 stays 15 (M04e0 is 13), M11a1 15 (M04b5 is 12), M11b3 17 (M04e4 is 16).
+**Study set (DL-716; same method, merged rows count as done):** M01d3 wave 3; M04b4, M02f2 wave 11; M04e5, M04b5 wave 12; M04e0, M02f1 wave 13; M04e1 wave 14; M04e2, M04e3 wave 15; M04e4, M10f wave 16; M07b3 wave 17. The M04e5 edges of DL-732 (to M04e1–M04e4, M07b3 and M10f) and M04e3 → M12b2 move no wave (M04e5 is 12, M04e3 15, M12b2 stays 16). No existing wave moves: M12b1 stays 15 (M04e0 is 13), M11a1 15 (M04b5 is 12), M11b3 17 (M04e4 is 16).
 
 Before → after: M05d 1 → 12, M06a1 12 → 13, M06a3 13 → 14, M12a1 13 → 14, M13a2 11 → 13, M13c1 14 → 15, M06a4/M06a5/M06c/M06b1/M09b2/M12a2 14 → 15, M06b2 15 → 16, M06b3 16 → 17, M13b1 16 → 17, M13b4 17 → 18; every other wave is unchanged. M05c2 sits in wave 14, M14a in wave 25 and M15g in wave 29, before and after. **Critical path to M05c2:** 19.0 sessions from M00 before and after (M00 → M01a1 → M01a2 → M01c → M00d → M02a1 → M02a2 → M02b1 → M02b2 → M02c1 → M03a1 → M03b1 → M03c → M04a2 → M04b1 → M04c → M05b2 → M05c1 → M05c2), 15.0 from today counting M00d as a full session; to M14a 29.8 (25.8 from today), unchanged. The chain to M05c2 is one milestone wide from M02a1 to M02c1 and again at M04a2, so parallel Builders shorten the calendar only beside it (M04a1 now; M03a2 and M02d1–M02d2 beside M03b1–M03c; blocks D–G after wave 10), not the path itself.
 

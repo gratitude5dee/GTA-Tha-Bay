@@ -1,7 +1,7 @@
 # M04b5 — settings-live-overlay-hooks
 
 ## Goal
-After this session every Graphics row the player sees does something or says why not. A fixed render scale sizes the canvas through `RendererHost.resize`, inside the tier's pixel budget (`pixelRatioFor`). The frame-cap row is disabled with a reason until M11a1's `FramePacer` exists. "Show frame rate" draws an FPS chip. Desktop browsers that report `document.fullscreenEnabled` get a full-screen button in Pause and on Graphics. The overlay hooks of `10-ui-hud-xr.md` §2.14 rule 5 become real: `data-ui-skip`, the window events `dv-settings` and `dv-save-profile`, and a read-only `BroadcastChannel('dv-ui')` feed. The device-scoped stores keep unknown fields across a round-trip. This is GV-02 of the Grand-V study in our own code and wording; today `claude/build` has no reader of `fpsCap`, `renderScale` or `showFps` outside the settings pages and stores, and no `requestFullscreen` call.
+After this session every Graphics row the player sees does something or says why not. A fixed render scale sizes the canvas through `RendererHost.resize`, inside the tier's pixel budget (`pixelRatioFor`). The frame-cap row is disabled with a reason until M11a1's `FramePacer` exists. "Show frame rate" draws an FPS chip. Desktop browsers that report `document.fullscreenEnabled` get a full-screen button in Pause and on Graphics. The overlay hooks of `10-ui-hud-xr.md` §2.14 rule 5 become real: `data-ui-skip`, and one read-only shell signal stream, each `ShellSignal` delivered as a `dv-shell` window event and on `BroadcastChannel('dv-shell')`. The device-scoped stores keep unknown fields across a round-trip. This is GV-02 of the Grand-V study in our own code and wording; today `claude/build` has no reader of `fpsCap`, `renderScale` or `showFps` outside the settings pages and stores, and no `requestFullscreen` call.
 
 ## Requirements
 - R-UI-02: the Graphics rows apply or say why they cannot.
@@ -35,15 +35,13 @@ After this session every Graphics row the player sees does something or says why
   - `toggleFullscreen(doc)` runs synchronously inside the press handler. With `doc.fullscreenElement` set it calls `doc.exitFullscreen()`; otherwise it calls `doc.documentElement.requestFullscreen()`. A rejection shows the toast `settings.fullscreen.failed`.
   - Buttons: `pause-fullscreen` in `pauseScreen` (after Settings) and `fullscreen` in `graphicsScreen`, each present only when `fullscreenAvailable`. The label is `settings.fullscreen.enter` or `settings.fullscreen.exit`, refreshed on `fullscreenchange`. Nothing is persisted, since every entry needs a gesture.
   - Both buttons sit in pages where the sim is paused or not running, so the click never reaches the canvas, whose click requests pointer lock (`packages/engine/src/client/input/kbm.ts`).
-- **Overlay hooks** (`packages/ui/src/shell/overlay-hooks.ts`, `createOverlayHooks({target, channel, now})`):
-  - **`dv-settings`.** A `CustomEvent` on `window` after each `SettingsBinder.set`. The detail is `{v: 1, ref: '<scope>:<path>', value?}`, for example `'device:renderScale'`. `value` is present only for a JSON primitive. There is one event per player write: the `xr.reduceMotion` mirror and `setControls` emit none.
-  - **`dv-save-profile`.** Detail `{v: 1, profileId}`, fired when the `sys.profile` view-model id changes (`ShellCore.onVm`), and once per change.
-  - **`BroadcastChannel('dv-ui')`** messages:
-    - `{v: 1, t: 'fps', fps, tier}` at most once per 1000 ms, from `onFrameStats`, whether or not the chip is shown;
-    - `{v: 1, t: 'state', state}` when `ShellCore` changes state;
-    - `{v: 1, t: 'page', page}` on `navigate`.
-    Where `BroadcastChannel` is missing, the channel is `null` and nothing throws (the guard pattern of `assets/store/tab-lock.ts`).
-  - The hooks carry no names, saves or free text, and nothing on the page listens to them. Mods use C14 only.
+- **Overlay hooks** (`packages/ui/src/shell/overlay-hooks.ts`, `createOverlayHooks({target, channel, now})`). One stream, one shape (DL-732): every signal is a `ShellSignal` `{v: 1, kind, …}`, dispatched as `new CustomEvent('dv-shell', {detail})` on `window` and posted on `BroadcastChannel('dv-shell')`. The kinds:
+  - `{kind: 'setting', ref: '<scope>:<path>', value?}` after each `SettingsBinder.set`, for example `ref: 'device:renderScale'`. `value` is present only for a JSON primitive. There is one signal per player write: the `xr.reduceMotion` mirror and `setControls` emit none.
+  - `{kind: 'profile', profileId}` when the `sys.profile` view-model id changes (`ShellCore.onVm`), once per change.
+  - `{kind: 'fps', fps, tier}` at most once per 1000 ms, from `onFrameStats`, whether or not the chip is shown.
+  - `{kind: 'state', state}` when `ShellCore` changes state, and `{kind: 'page', page}` on `navigate`.
+  Where `BroadcastChannel` is missing, the channel is `null`, the window event still fires and nothing throws (the guard pattern of `assets/store/tab-lock.ts`).
+  - The signals carry no names, saves or free text, and nothing on the page listens to them. Mods use C14 only.
 - **`data-ui-skip` with `translate="no"`** goes on:
   - the `#dv-engine` container (`main.ts`);
   - the HUD values `hud-wallet-value` and `hud-clock`;
@@ -86,7 +84,7 @@ After this session every Graphics row the player sees does something or says why
 ## Interfaces
 - C13 1.1 `PlatformSettings.renderScale`, `.fpsCap`, `QualityTier.budget.render`: read only.
 - S10 shell ports (not a contract): `PlatformPort.framePacer?`, `.onFrameStats?`; `EngineHandle.setRenderScale`; `Widget` `choice.disabled?`.
-- Public hook shapes (versioned by `v: 1`): `dv-settings` `{v, ref, value?}`, `dv-save-profile` `{v, profileId}`, `dv-ui` `{v, t: 'fps' | 'state' | 'page', …}`.
+- Public hook shape (versioned by `v: 1`): `ShellSignal` `{v, kind: 'setting' | 'profile' | 'fps' | 'state' | 'page', …}`, on the `dv-shell` window event and `BroadcastChannel('dv-shell')`.
 
 ## Acceptance criteria
 - AC-1 Given `effectiveRenderScale` and a `RendererHost` over a fake renderer When the unit cases run Then:
@@ -111,15 +109,15 @@ After this session every Graphics row the player sees does something or says why
 
   — proof: `pnpm check:e2e -- --project=webkit-webgl2 --grep @ui-fullscreen && pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-fullscreen`
 - AC-7 Given `createOverlayHooks` with a fake `EventTarget`, a fake channel and a fake clock, and a `SettingsBinder` wired to it When the unit cases run Then:
-  - one `set({scope:'device', path:'renderScale'}, 0.5)` dispatches exactly one `dv-settings` with detail `{v:1, ref:'device:renderScale', value:0.5}`;
-  - `accessibility.reducedMotion` dispatches one event, not two;
-  - fps samples fed every 100 ms for 3 s post at most 3 `fps` messages;
-  - a `sys.profile` id change posts one `dv-save-profile`, and a repeat of the same id posts none;
-  - with `channel: null` nothing throws;
+  - one `set({scope:'device', path:'renderScale'}, 0.5)` dispatches exactly one `dv-shell` event with detail `{v:1, kind:'setting', ref:'device:renderScale', value:0.5}` and posts the same object once on the channel;
+  - `accessibility.reducedMotion` dispatches one signal, not two;
+  - fps samples fed every 100 ms for 3 s give at most 3 `fps` signals;
+  - a `sys.profile` id change gives one `profile` signal, and a repeat of the same id gives none;
+  - with `channel: null` the window event still fires and nothing throws;
   - each listed creator and saves element carries `data-ui-skip`
 
   — proof: `pnpm check:unit -- packages/ui/test/overlay-hooks.spec.ts`
-- AC-8 Given the QA build in play When the page is inspected Then `#dv-engine`, `[data-testid=hud-wallet-value]` and `[data-testid=hud-clock]` carry `data-ui-skip` and `translate="no"`, and a `BroadcastChannel('dv-ui')` listener opened in the page receives at least one `fps` message and no more than 2 per second over 5 s — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-settings-live`
+- AC-8 Given the QA build in play When the page is inspected Then `#dv-engine`, `[data-testid=hud-wallet-value]` and `[data-testid=hud-clock]` carry `data-ui-skip` and `translate="no"`, and a `BroadcastChannel('dv-shell')` listener opened in the page receives at least one `{kind:'fps'}` signal and no more than 2 per second over 5 s — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @ui-settings-live`
 - AC-9 Given a stored `UiPrefs` with an extra key `futureKey: {a: 1}` and stored `PlatformSettings` with `futureKnob: 3` When each is normalized, changed by one known field and written back Then both extra keys come back unchanged, and a record with `v: 2` still reads as the defaults — proof: `pnpm check:unit -- packages/ui/test/settings-live.spec.ts packages/engine/test/platform/settings-live.spec.ts`
 - AC-10 Given the existing UI suites When they run Then menus, the HUD node budget (≤ 300 with the chip off), accessibility and reduced motion stay green — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep "@ui-menus|@ui-hud|@ui-a11y|@ui-motion"`
 - AC-11 Given the branch When the standard gates and a preview deploy run Then all pass, and the production `dist` holds no QA bridge code and no secret — proof: `pnpm lint && pnpm typecheck && pnpm check:unit && pnpm check:i18n && pnpm build && pnpm check:bundle && pnpm check:secrets -- apps/web/dist && pnpm deploy:preview`
@@ -135,7 +133,7 @@ After this session every Graphics row the player sees does something or says why
 3. Pick 50 %: the image softens at once; Auto sharpens it.
 4. Turn on "Show frame rate": a number appears top-right and stays after Resume.
 5. In desktop Chrome, press Full screen in Pause; the label changes, and the button leaves full screen.
-6. In the console, `new BroadcastChannel('dv-ui').onmessage = (e) => console.log(e.data)` logs one `fps` line a second.
+6. In the console, `new BroadcastChannel('dv-shell').onmessage = (e) => console.log(e.data)` logs one `{kind:'fps'}` line a second.
 
 ## Effort
 0.8 Builder session; about 32 files; risk **low-medium** (many small seams in shell and engine boot).
@@ -154,5 +152,5 @@ After this session every Graphics row the player sees does something or says why
   - `apps/web/scripts/verify-dist.mjs` (strings that must not ship).
 - Order of work: render scale with its bridge, the `choice.disabled` field, `FpsFeed` and the chip, full screen, hooks, round-trips, then e2e.
 - Call `requestFullscreen` before any `await` in the press path. `ScreenHost`'s `run` (`packages/ui/src/screen/dom-screen.tsx`) must stay synchronous for the `call` action.
-- IP wall: the study's source names (its channel name, event names, attribute name, button API, CSS) are not ours. Use only the names in this file and in `10-ui-hud-xr.md` §2.14, and write every string fresh.
+- IP wall: the study's launcher has no licence, so only the idea (stable hooks instead of DOM scraping) is reused (DL-732). Its channel name, event names, payloads, grouping, attribute name, button API and CSS are not ours: use only the single `ShellSignal` stream, the names in this file and in `10-ui-hud-xr.md` §2.14, and write every string fresh.
 - No secrets needed. `deploy:preview` prints SKIP without `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; list it under "Blocked on" then.

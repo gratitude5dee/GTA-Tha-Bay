@@ -1,7 +1,7 @@
 # M04e0 — sandbox-rooms-guard
 
 ## Goal
-After this session the sandbox's player tools refuse to run in an online session, and a unit test proves it. Today the guard is only implied: the sandbox descriptor declares `requires.network: 'none'` (`packages/engine/src/sim/modes/builtin/sandbox.ts`), and `createModeContext` always sets `net: null` (`packages/engine/src/sim/modes/context.ts`). M12b2, however, runs online sessions as `mode.start {id:'sandbox'}` with `ModeContext.net = {slot, peers()}`. Without a guard, the first room build would let one player change heat, the wanted cap or their own position locally, outside the room's `validated` authority. This milestone adds an explicit, engine-side guard that does not depend on the descriptor. While any running mode's context has a non-null `net`:
+After this session the sandbox's player tools refuse to run in an online session, and a unit test proves it. Today the guard is only implied: the sandbox descriptor declares `requires.network: 'none'` (`packages/engine/src/sim/modes/builtin/sandbox.ts`), and `createModeContext` always sets `net: null` (`packages/engine/src/sim/modes/context.ts`). M12b2, however, runs online sessions as `mode.start {id:'sandbox'}` with `ModeContext.net = {slot, peers()}`. Without a guard, the first room build would let one player change heat, the heat cap or their own position locally, outside the room's `validated` authority. This milestone adds an explicit, engine-side guard that does not depend on the descriptor. While any running mode's context has a non-null `net`:
 - every `sandbox.*` `UiCommand` is refused with the toast `sandbox.refuse.online` and changes nothing;
 - every `mode.cmd {mode:'sandbox'}` is refused the same way;
 - the phone's sandbox fast travel (`mode.cmd {mode:'phone', name:'map.travel'}`) is refused the same way.
@@ -41,7 +41,11 @@ Single-player behaviour is unchanged. This is the rooms guard taken out of the p
 - **Text:**
   - `content/ui/i18n/en.json` gets `"sandbox.refuse.online"`, with original wording, for example "Sandbox tools are off while you are in an online session."
   - `tools/ci/check-i18n.ts` adds `'sandbox.refuse.'` to `EXTERNAL_PREFIXES`. The sim raises the key, so no `t()` literal in `packages/ui/src` refers to it.
-- **Test rig:** `RigOptions` in `packages/engine/test/modes/fixture.ts` gains `net?: () => ModeContext['net']`, passed through to the host's `ports`.
+- **Test rig** (`packages/engine/test/modes/fixture.ts`). Today `makeRig` passes no `teleport` dependency to `createCommandDispatcher`, and its `world` is a plain `() => ({})`. `RigOptions` gains:
+  - `net?: () => ModeContext['net']`, passed through to the host's `ports`;
+  - `teleport?: CommandDeps['teleport']`, passed to `createCommandDispatcher` (absent by default, as today);
+  - `world?: () => ReturnType<CommandDeps['world']>`, replacing the fixed `() => ({})` when given.
+  The spec passes `vi.fn()` spies for both, so AC-2 can prove they are never called. Existing callers pass none and see no change.
 - **Builder decisions** in `spec/11-decision-log-builder.md` (section M04e0). New rows go only there, never to `-builder-2.md` or `-builder-3.md`.
 
 ## Scope out
@@ -55,7 +59,7 @@ Single-player behaviour is unchanged. This is the rooms guard taken out of the p
 - `packages/engine/src/sim/modes/context.ts` (`ContextPorts.net`, the `net` getter).
 - `packages/engine/src/sim/modes/builtin/sandbox.ts` (`SANDBOX_REFUSE_ONLINE`, `sandboxOnline`, the guards in `applyToggle` and `enter`).
 - `packages/engine/src/sim/modes/commands.ts` (`online()`, the four refusals).
-- `packages/engine/test/modes/fixture.ts` (`RigOptions.net`); `packages/engine/test/modes/sandbox-guard.spec.ts` (new).
+- `packages/engine/test/modes/fixture.ts` (`RigOptions.net`, `teleport`, `world`); `packages/engine/test/modes/sandbox-guard.spec.ts` (new).
 - `content/ui/i18n/en.json` (one key); `tools/ci/check-i18n.ts` (one prefix).
 - `spec/11-decision-log-builder.md` (BD rows).
 - About 8 files.
@@ -85,7 +89,7 @@ Single-player behaviour is unchanged. This is the rooms guard taken out of the p
   - `slices.sandbox` is deep-equal to its value before the commands;
   - no `mode.sandbox.toggles` patch leaves the bridge;
   - no `mode.cmd` `SimEvent` is emitted;
-  - the rig's `teleport` and `world` stand-ins are never called (spies prove it)
+  - the `teleport` and `world` spies passed through `RigOptions` are never called
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`
 - AC-3 Given a hand-built `ModeContext` stand-in with `net` set and a `pursuit` spy When `applyToggle` is called for `SET_HEAT` and for `NEVER_WANTED`, and `sandboxSim(env).enter` runs with a stored `NEVER_WANTED: true` Then:
@@ -95,11 +99,12 @@ Single-player behaviour is unchanged. This is the rooms guard taken out of the p
   - `enter` still publishes `mode.sandbox.toggles` once
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`
-- AC-4 Given a rig where the sandbox started with the net port returning `null` When `sandbox.set` sets the heat, then the port switches to a fake net, then `sandbox.set` sets the heat again Then:
+- AC-4 Given a rig where the sandbox started with the net port returning `null`, run twice: once with the shipped sandbox descriptor, and once with a copy whose `requires.network` is `'optional'` passed through `RigOptions.descriptors` (same id, so it replaces the built-in) When `sandbox.set` sets the heat, then the port switches to a fake net, then `sandbox.set` sets the heat again Then, in both runs:
   - the first command writes the toggle and raises no refusal;
   - the second is refused with `sandbox.refuse.online`;
-  - `ctx.net` read from the running entry reflects the switch;
-  - `sandboxDescriptor(...).requires.network` is still `'none'`
+  - `ctx.net` read from the running entry reflects the switch.
+
+  The spec never asserts the shipped descriptor's `network` value, so M12b2's change to `'optional'` (DL-719) leaves it green
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`
 - AC-5 Given single-player (no net port) When the existing mode suites run Then they pass unchanged: `context.spec.ts` still sees `ctx.net === null`, and the `garage.call` and command cases in `bridge.spec.ts`, `autosave.spec.ts` and the host specs are untouched — proof: `pnpm check:unit -- packages/engine/test/modes`
@@ -109,12 +114,12 @@ Single-player behaviour is unchanged. This is the rooms guard taken out of the p
 - **Unit:** `packages/engine/test/modes/sandbox-guard.spec.ts` (AC-2, AC-3, AC-4, AC-6), run with `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`.
 - **Regression:** the whole mode suite, `pnpm check:unit -- packages/engine/test/modes` (AC-5).
 - **Repository:** `pnpm typecheck`, `pnpm lint` (C02 scope covers `packages/engine/src/sim/**`), `pnpm check:i18n`.
-- **No e2e:** no room exists before M12b1. M12b2 re-runs this spec as its re-proof (DL-719 adds that AC to M12b2 as AC-10).
+- **No e2e:** no room exists before M12b1. M12b2 re-runs this spec as its re-proof and adds one case with its real net port (DL-719; M12b2 AC-10).
 
 ## Demo script
 1. `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`: every case passes. The log names the five refused commands.
 2. `pnpm check:unit -- packages/engine/test/modes`: the single-player suites are green.
-3. `pnpm check:i18n`: no missing key, and `sandbox.refuse.` is listed among the external prefixes.
+3. `pnpm check:i18n`: `missing English keys: 0`, and `sandbox.refuse.online` is not among the `unused` lines.
 
 ## Effort
 0.2 Builder session; about 8 files; risk **low**.

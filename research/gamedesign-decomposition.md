@@ -645,24 +645,25 @@ Full remapping on all devices; hold-to-toggle options; subtitles for every voice
 ### 7.7 Sandbox / free-roam menu (checklist from the Grand-V study; our own features and wording)
 All items are re-implemented features of our engine (no third-party game data, no trainer wording), are settings in the `sandbox` slice or session-only actions, and are disabled in story missions and refused in multiplayer rooms (M04e0) [research/repos-grand-v.md §3, rec 16, rec 20]. Owners as of DL-716 and DL-718 (`spec/11-decision-log-9.md`); `spec/domains/10-ui-hud-xr.md` §2.10 is normative.
 
-| Checklist group | Our feature | Milestone |
+Grouped and ordered as our phone app's tabs (DL-732); the research checklist decided which features exist, not their names, grouping or order.
+
+| Our feature (phone tab) | Owner | Notes |
 |---|---|---|
-| Player toggles (god mode, stamina, super jump, cops look away, set heat 0–5, restore health) | heat 0–5 and cops look away; can't get hurt, big jumps, patch me up (session-only); no stamina system, so no stamina toggle | M04b2 (heat) / M04e4 |
-| Model changer, wardrobe/props | swap to any unlocked character/outfit | M04b2 (creator) |
-| Animations/scenarios | emote wheel (eight original clips) | M10f |
-| Vehicle spawner by class | spawn by class D/C/B/A/S/R, at most 8 session cars | M04e3 |
-| Mod shop (slots, colours, plate, neon, tint) | free upgrades on session cars; paint, tint and plates post-v1 | M07b3 |
-| Repair, upright; doors, engine on/off | repair, upright, dismiss, no-damage on session cars | M04e4 |
-| Weapons | n/a in v1 (§2.12, D-30); gadgets instead | M05c |
-| Bodyguards | companions post-v1 (DL-730) | — |
-| Teleport: locations, waypoint, saved position | real SF landmarks (Golden Gate Bridge deck, Coit Tower, Ferry Building, Twin Peaks, Oracle-style ballpark, Alcatraz dock), map pin, previous spot, saved positions | M04e2 |
-| Weather, clouds, wind | presets `clear, karl-fog, overcast, rain, smoke, golden`, held until Natural [research/repos-world.md P10] | M04e1 |
-| Time (hour, presets, pause, wall-clock sync) | hour, pause, sync and our SF fog-day shortcuts (`config/clock.json`) | M04e1 |
-| World speed, blackout, population density, gravity | sim time scale (sandbox only), **blackout** (signals dark, robotaxis hold), density; no gravity | M04e1 |
-| Object placement (≤ 32 scene entities) | prop placer → basis of the M13 experience creator | M13b3 |
-| Imported presets | JSON presets post-v1 (DL-730) | — |
-| Hide HUD / hide map; night/thermal vision | hide HUD, hide minimap; photo filters with the post-v1 Camera app (DL-292) | M04e2 |
-| Precondition status lines | translated toasts by key in our own wording (`world.teleport.notLoaded`, `sandbox.refuse.*`) | M04e5 guard |
+| Heat 0–5 and heat lock (Player) | M04b2, worded by M04e5 | heat shown as five gauge bars |
+| Can't get hurt, big jumps, patch me up (Player) | M04e4 | session-only flags; no stamina system exists, so no stamina toggle |
+| Look: swap to any unlocked character or outfit (Appearance) | M04b2 | the creator |
+| Emote wheel, eight original clips (Emotes) | M10f | |
+| Session cars by class, at most 8 (Cars) | M04e3 | near-player in-view search of our own |
+| Fix, set upright, send away, no-damage on session cars (Cars) | M04e4 | `veh:sbx` cars only |
+| Free upgrades on session cars (Cars) | M07b3 | paint, tint and plates post-v1 |
+| Landmark jumps, map-pin jump, back to previous spot, remembered spots (Go places) | M04e2 | the 37 SF landmarks of `content/world/teleports.json` |
+| Tuck away the HUD or the minimap (Screen) | M04e2 | photo filters wait for the post-v1 Camera app (DL-292) |
+| Weather presets `clear, karl-fog, overcast, rain, smoke, golden`, held until Natural (Weather) | M04e1 | [research/repos-world.md P10] |
+| Hour, pause, match my clock, SF fog-day shortcuts from `config/clock.json` (Time) | M04e1 | |
+| World speed, blackout, traffic, pedestrian and parked-car density (World) | M04e1 | sandbox-only time scale |
+| Prop placer (Create) | M13b3 | basis of the M13 experience creator; its entity cap comes from our own scene budget |
+| Refusals and preconditions as translated toasts by key | M04e0, M04e5 guard | `sandbox.refuse.*`, `sandbox.status.*` |
+| Declined for v1 | DL-718, DL-730 | weapons (D-30, §2.12), companions, gravity, night and thermal vision, JSON presets, endless stamina, no-ragdoll |
 
 ### 7.8 NameRegistry and localization
 `config/names.ts` (+ JSON) maps every real-world referent (brands, venues, people) to `{displayName, tier, aliases, notes}`; `config/brand.ts → DISPLAY_NAME` for the game title (06 §5). All strings are id-keyed with a CI missing-translation report [research/repos-grand-v.md rec 12].

@@ -14,12 +14,13 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
 - R-PLAT-02 (support): the sections are `ScreenDef` trees, so the XR panel shows the same controls in the same focus order.
 
 ## Depends on
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns that make AC-11's `ip:strings` meaningful, and the new English values of the `phone.sandbox.*` heat keys.
 - **M04e0** (sandbox-rooms-guard): `sandboxOnline`, `SANDBOX_REFUSE_ONLINE`, the refusals in `createCommandDispatcher`, and the `ContextPorts.net` getter. It edits the same files (`sandbox.ts`, `commands.ts`, `context.ts`, `test/modes/fixture.ts`), so it merges first.
 - **M04b2** (creator-phone-hud-kit): `appScreen` case `'sandbox'` in `packages/ui/src/phone/apps.ts`; `usePhoneEnv` in `packages/ui/src/phone/pause.tsx`; `applyToggle`, `publishToggles` and `sandboxSim` in `packages/engine/src/sim/modes/builtin/sandbox.ts`.
 - **M02b2** (weather-time): `WorldClock`, `CLOCK_CONFIG`, `WEATHER_PRESETS` and `installClock` in `packages/engine/src/sim/world/clock.ts`; `config/clock.json` and `config/schemas/clock.schema.json`; `packages/engine/test/clock.spec.ts`.
 - **M03b1** (traffic-robotaxis) and **M03b2** (peds-transit): C08 `TrafficControl.setBlackout`, `setDensity` (clamped to 0–1.5, one override stack per owner in `packages/world/src/sim/traffic/control.ts`) and `release`.
 - Through those: M04a2 (`ModeHost.route`, `createCommandDispatcher`, `makeRig` in `packages/engine/test/modes/fixture.ts`), M01a1 (`SimCore`, `TimeScaleError`, `ALLOWED_SCALES` in `packages/engine/src/sim/loop/sim-core.ts`), M04b1 (`tools/ci/check-i18n.ts`, `content/ui/i18n/en.json`).
-- M04e0 is in the Architect's registration batch with this file; every other dependency is merged on `claude/build`.
+- M04e5 and M04e0 are in the Architect's registration batch with this file; every other dependency is merged on `claude/build`.
 - Contracts: C02 1.1, C05 1.2, C06 1.1, C08 1.0, all read only.
 
 ## Scope in
@@ -45,7 +46,7 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
 
   | path | v | stored in | effect |
   |---|---|---|---|
-  | `sandbox.weather.preset` | int −1…5 | `SandboxSlice.weather` (0…5) and `toggles['sandbox.weather.hold']` | −1 releases the hold ("Natural"); 0…5 holds `WEATHER_PRESETS[v]` |
+  | `sandbox.weather.preset` | int −1…5 | 0…5: `SandboxSlice.weather = WEATHER_PRESETS[v]` (the `WeatherPreset` string, its C05 type) and `toggles['sandbox.weather.hold'] = true`; −1: only `toggles['sandbox.weather.hold'] = false`, `weather` keeps its last string | −1 releases the hold ("Natural"); 0…5 holds `WEATHER_PRESETS[v]` |
   | `sandbox.time.hour` | 0…23.5, step 0.5 | `SandboxSlice.clock.hour` | turns sync off, then `ctx.clock.setHour(v)` |
   | `sandbox.time.paused` | boolean | `SandboxSlice.clock.paused` | `ctx.clock.pause(v)`, unless sync is on |
   | `sandbox.time.sync` | boolean | `SandboxSlice.clock.syncSystemTime` | on: `pause(true)`; off: `pause(clock.paused)` |
@@ -63,26 +64,27 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
     - `world.reset`: weather back to Natural, scale 1, blackout off, `traffic.release('sandbox')`, sync and pause off.
 - **Enter and exit** (`sandboxSim`):
   - `enter` re-applies the stored state: the hold, pause or sync, the scale, blackout and density. The hour is applied only when the clock was saved paused or synced. It skips all of this while `sandboxOnline(ctx)` (M04e0 rule) but still publishes.
+  - **Going online mid-session.** `tick()` compares `sandboxOnline(ctx)` with its value at the previous tick. On false → true it releases every world effect exactly as `exit` does (`holdWeather(null)`, `setTimeScale(1)`, `traffic.release('sandbox')`, `pause(false)` when sandbox had paused the clock) and leaves the stored slice values untouched, so a room never runs with a local hold, speed, blackout, density or pause. On true → false it re-applies the stored state as `enter` does. Both transitions republish `mode.sandbox.world`.
   - `exit` releases everything: `holdWeather(null)`, `setTimeScale(1)`, `ctx.world.traffic.release('sandbox')`, and `ctx.clock.pause(false)` when sandbox had paused it. It still runs `capHeat(6)`.
   - Every clock, traffic and port call sits in the same `try/catch` as the pursuit calls (a `NotYetAvailable` stub, or no world).
 - **View model.** A new patch, `mode.sandbox.world`: `{weather: WeatherPreset | null, hour, paused, sync, timeScale, blackout, density: {traffic, ped, parked}, shortcuts: string[], online}`.
   - It is sent on enter and after each applied setting or action.
-  - `tick()` sends it again when `sandboxOnline(ctx)` changes, so the controls grey out on room join.
+  - `tick()` sends it again when `sandboxOnline(ctx)` changes (with the release above), so the controls grey out on room join.
 - **SF shortcuts** in `config/clock.json`: `sandboxShortcuts`, with schema rows `{id, hour, weather?}` (at most 6, ids `[a-z-]{1,24}`, hour 0–23.5 in steps of 0.5). `ClockConfig` gains the field. Values (design values the owner may tune):
   - `fog-dawn` 6.0 with `karl-fog`;
   - `burn-off` 11.0 with `clear`;
   - `golden-hour` 18.5 with `golden`;
   - `fog-returns` 20.5 with `karl-fog`.
 - **Phone UI** (`packages/ui/src/phone/apps.ts`):
-  - The Sandbox app becomes a `tabs` widget, `sandbox-tabs`, with the tabs `player` (today's heat buttons and never-wanted, ids unchanged), `weather`, `time` and `world`.
+  - The Sandbox app becomes a `tabs` widget, `sandbox-tabs`, with the tabs `player` (today's heat buttons and the heat-lock button, ids `heat-<n>` and `never-wanted` unchanged), `weather`, `time` and `world`.
   - Only existing widget kinds are used: buttons whose `onPress.cmd` is a `sandbox.set` or `mode.cmd`, the selected one styled `primary` as the heat buttons are, plus text rows.
   - Weather has the six presets, labelled with the existing `hud.weather.*` keys, plus `phone.sandbox.weather.natural`.
-  - Time shows the hour from `hud.clock`, `−1 h` and `+1 h` (absolute values, rounded to 0.5 and wrapped), pause and resume, "match my clock", and the shortcut buttons with `phone.sandbox.time.<id>` labels.
+  - Time shows the hour from the view model's `hour`, formatted as the HUD clock widget does (`hud-clock` in `packages/ui/src/hud/widgets.tsx`) and labelled with the existing key `hud.clock.label`, then `−1 h` and `+1 h` (absolute values, rounded to 0.5 and wrapped), pause and resume, "match my clock", and the shortcut buttons with `phone.sandbox.time.<id>` labels.
   - World has four speed buttons, a blackout button, and Off / Light / Normal / Busy for each density kind.
   - While `online`, every new button carries `disabled: 'sandbox.refuse.online'`.
   - `PhoneEnv` gains `sandboxWorld`, which `usePhoneEnv` reads from `mode.sandbox.world`.
 - **Clock sync, page side** (new `packages/ui/src/phone/sandbox-sync.ts`):
-  - `createSandboxClockSync({ send, now, everyMs = 60_000 })` sends `mode.cmd {mode:'sandbox', name:'time.sync', args:{hour}}` at once and then every `everyMs` while `mode.sandbox.world.sync` is true and the running mode is sandbox.
+  - `createSandboxClockSync({ send, now, everyMs = 60_000 })` sends `mode.cmd {mode:'sandbox', name:'time.sync', args:{hour}}` at once and then every `everyMs` while `mode.sandbox.world.sync` is true, `mode.sandbox.world.online` is false and the running mode is sandbox. In a room the stored sync stays published but nothing is sent, so the M04e0 refusal toast never fires on a timer.
   - `hour` = local hours + minutes / 60, rounded to 1/60.
   - It is mounted once in `ShellApp` (`packages/ui/src/shell/app.tsx`).
   - The sim never reads `Date` (C02; 01-engine-save-modes.md, "Sandbox may … sync to system time").
@@ -103,6 +105,7 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
 - `packages/engine/src/sim/modes/builtin/sandbox-world.ts` (new); `builtin/sandbox.ts` (`onEvent`, `applyToggle` port argument, enter, exit, tick, `publishWorld`); `builtin/index.ts` (`SandboxEnv.world`, exports); `modes/commands.ts` (`CommandDeps.sandboxWorld`, passed to `applyToggle`); `modes/index.ts` (port binding).
 - Tests:
   - `packages/engine/test/clock.hold.spec.ts` (new);
+  - `packages/engine/test/clock.spec.ts` (extended: the `sandboxShortcuts` ids are unique and each has a `phone.sandbox.time.<id>` key in `content/ui/i18n/en.json`);
   - `packages/engine/test/sandbox-scale.spec.ts` (new);
   - `packages/engine/test/modes/sandbox-world.spec.ts` (new);
   - `packages/engine/test/modes/fixture.ts` (`RigOptions.clock`, `world`, `sandboxWorld`).
@@ -155,11 +158,18 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
   - each valid value lands only in its table location and makes exactly its call;
   - each invalid value writes nothing and calls nothing;
   - `mode.sandbox.world` reflects each change;
+  - `sandbox.weather.preset` 3 stores `weather: 'rain'` (a string, never an index) with the hold on, and −1 turns the hold off and keeps `weather: 'rain'`;
   - `mode.quit` calls `holdWeather(null)`, `setTimeScale(1)`, `release('sandbox')` and `pause(false)`;
   - a second `mode.start sandbox` re-applies the stored hold, scale, blackout and density
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-world.spec.ts`
-- AC-6 Given the same rig When actions are dispatched as `mode.cmd {mode:'sandbox'}` Then:
+- AC-6 Given the same rig with a stored hold (`rain`), scale 2, blackout, traffic density 0 and a sandbox pause, and the M04e0 net port returning `null` When the port switches to a fake net, one tick runs, then the port returns `null` again and one tick runs Then:
+  - after the first tick `holdWeather(null)`, `setTimeScale(1)`, `release('sandbox')` and `pause(false)` have each been called once, and `mode.sandbox.world.online` is true;
+  - `slices.sandbox` is deep-equal to its value before the switch;
+  - after the second tick the hold, scale, blackout, density and pause are applied again, once each
+
+  — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-world.spec.ts`
+- AC-7 Given the same rig When actions are dispatched as `mode.cmd {mode:'sandbox'}` Then:
   - `time.shortcut {id:'golden-hour'}` calls `setHour(18.5)` and holds `golden`;
   - `time.sync {hour: 7.5}` is ignored with sync off and calls `setHour(7.5)` with sync on, leaving `SandboxSlice` unchanged;
   - `world.reset` releases everything;
@@ -167,35 +177,35 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
   - with M04e0's fake net, every action is still refused with `sandbox.refuse.online`
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-world.spec.ts packages/engine/test/modes/sandbox-guard.spec.ts`
-- AC-7 Given a rig running `story` When every table path and every action is dispatched Then:
+- AC-8 Given a rig running `story` When every table path and every action is dispatched Then:
   - `slices.sandbox` is deep-equal to its value before;
   - no clock, traffic or port spy is called;
   - `mode.cmd` sandbox events reach no sandbox handler
 
   — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-world.spec.ts`
-- AC-8 Given `appScreen('sandbox', env)` When it is built with a `sandboxWorld` env Then:
+- AC-9 Given `appScreen('sandbox', env)` When it is built with a `sandboxWorld` env Then:
   - the tabs are `player`, `weather`, `time` and `world`;
-  - the heat and never-wanted button ids are unchanged;
+  - the heat and heat-lock button ids (`heat-<n>`, `never-wanted`) are unchanged;
   - each new button's `onPress` is the documented command;
   - the selected preset, speed and density level are `primary`;
   - with `online: true` every new button has `disabled: 'sandbox.refuse.online'`;
   - `DomScreen` and `CanvasScreen` give the same focus order for every tab
 
   — proof: `pnpm check:unit -- packages/ui/test/phone.spec.ts packages/ui/test/ui-screen-parity.spec.ts`
-- AC-9 Given `createSandboxClockSync` with fake timers and a fixed `now` of 07:42 When sync is on in sandbox for 3 minutes, then turned off Then:
+- AC-10 Given `createSandboxClockSync` with fake timers and a fixed `now` of 07:42 When sync is on in sandbox for 3 minutes, then turned off Then:
   - exactly 4 `time.sync` commands are sent, each with `hour` 7.7;
-  - none is sent after it is turned off, or while another mode runs;
+  - none is sent after it is turned off, while another mode runs, or while `online` is true with sync still on;
   - `dispose()` clears the interval
 
   — proof: `pnpm check:unit -- packages/ui/test/sandbox-sync.spec.ts`
-- AC-10 Given `config/clock.json` When it is validated and scanned Then:
+- AC-11 Given `config/clock.json` When it is validated and scanned Then:
   - it matches the extended schema;
   - the shortcut ids are unique;
   - every id has a `phone.sandbox.time.<id>` key in `en.json`;
   - no new string contains a denylisted term
 
   — proof: `pnpm check:unit -- packages/engine/test/clock.spec.ts && pnpm build && pnpm ip:strings && pnpm names:lint`
-- AC-11 Given a QA build on the synth world with sandbox running When the e2e opens Pause, then the phone, then the Sandbox app Then:
+- AC-12 Given a QA build on the synth world with sandbox running When the e2e opens Pause, then the phone, then the Sandbox app Then:
   - **weather:** with Weather → Rain tapped and the phone closed, `__dvBridge.world.sky()` reports `weather` and `next` as `'rain'` within 5 s, and again 20 s later;
   - **time:** with Time → "Golden hour" tapped, `sky().hour` is within 0.1 of 18.5 and the weather is `golden`;
   - **blackout:** with World → Blackout on, `sky().windowFactor` is below 0.5, and after `mode.quit` it returns to 1 within 5 s;
@@ -207,11 +217,11 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
 - **Unit (engine):**
   - `clock.hold.spec.ts` (AC-2, AC-3);
   - `sandbox-scale.spec.ts` (AC-4);
-  - `modes/sandbox-world.spec.ts` (AC-5–AC-7);
+  - `modes/sandbox-world.spec.ts` (AC-5, AC-6, AC-7, AC-8);
   - regression: `clock.spec.ts`, `loop.accumulator.spec.ts`, `modes/sandbox-guard.spec.ts`, and the whole `packages/engine/test/modes` suite.
-- **Unit (UI):** `phone.spec.ts`, `ui-screen-parity.spec.ts` (AC-8) and `sandbox-sync.spec.ts` (AC-9).
-- **Config and IP:** `clock.spec.ts`, `ip:strings`, `names:lint` (AC-10).
-- **e2e:** `@sandbox-world` on `chromium-webgl2`, `DV_WORLD=synth` (AC-11); `@world-hash` regression (AC-3).
+- **Unit (UI):** `phone.spec.ts`, `ui-screen-parity.spec.ts` (AC-9) and `sandbox-sync.spec.ts` (AC-10).
+- **Config and IP:** `clock.spec.ts`, `ip:strings`, `names:lint` (AC-11).
+- **e2e:** `@sandbox-world` on `chromium-webgl2`, `DV_WORLD=synth` (AC-12); `@world-hash` regression (AC-3).
 - **Repository:** typecheck, lint (C02), `check:i18n`, build (AC-1).
 
 ## Demo script
@@ -250,6 +260,5 @@ Today these are reachable only through QA debug envelopes (`debug.hour`, `debug.
   5. the UI and sync;
   6. the text and the e2e.
 - **C02.** `clock.ts`, `sim-core.ts` and `sandbox-world.ts` are in lint scope: no `Date`, no timers, no `**`, no `for…in`. Wall time enters only through `time.sync`.
-- **IP wall:** every label, key and identifier is original. Do not copy wording, section names or shortcut sets from other sandbox menus or trainer tools; the research checklist names features only. The shortcuts follow SF's own fog day, and no label names a real brand or the display name.
-- **Rebase note:** M04e5 (ip-wall-strings) changes English values of `phone.sandbox.*` keys. Keep its values if it merges first; key names do not collide.
+- **IP wall:** every label, key and identifier is original. Do not copy wording, section names or shortcut sets from other sandbox menus or trainer tools; the research checklist names features only. The tab grouping and order (player, weather, time, world) are our own phone-app layout (DL-732), not a checklist's menu tree. The shortcuts follow SF's own fog day, and no label names a real brand or the display name. M04e5 has merged first, so `ip:strings` already enforces its `trainer-*` patterns.
 - **Secrets:** none.

@@ -15,13 +15,14 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
 
 ## Depends on
 - **M04e3** (sandbox-vehicle-spawner): the `owned` list of `{key, prefab, h}` in the `sandboxSim` closure, `SandboxVehiclePort.retire` and `alive`, the `vehicles` tab of `sandbox-tabs`, `mode.sandbox.vehicles`, `RigOptions.sandboxVehicles`. Same files, so it merges first.
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns that AC-8's `ip:strings` enforces.
 - Through M04e3: **M04e1** (`sandboxSim(env).onEvent`, `SANDBOX_ACTIONS`, the `applyToggle` hand-off pattern, `CommandDeps.sandboxWorld`, the `player` tab) and **M04e0** (`sandboxOnline`, `SANDBOX_REFUSE_ONLINE`, the dispatcher refusals).
 - Merged on `claude/build`:
   - **M05c1**: `CombatImpl` and `CombatPorts` in `packages/engine/src/sim/combat/combat.ts`;
   - **M01b1** and **M01b2**: `onFootSystem`, `OnFootOptions` and `jumpV0` in `packages/engine/src/sim/control/onfoot.ts`; `packages/engine/test/walk-sim.ts`;
   - **M03a1**: `createVehicleSystems` and its `hurt` in `packages/engine/src/sim/vehicle/vehicle-system.ts`; `VehicleDamage`, `Health`, `Vehicle` and `LocalPlayer` in `packages/engine/src/sim/ecs/components.ts`; `VehicleStore` (`rt.wet`); `VehiclePhysics.setBodyPose` and `setBodyVelocity` in `packages/engine/src/sim/physics/backend.ts`; `packages/engine/test/vehicle-sim.ts`;
   - **M03a2**: `applyImpact` in `packages/shared/src/vehicle/damage.ts`.
-- M04e0, M04e1 and M04e3 are in the Architect's registration batch with this file.
+- M04e5, M04e0, M04e1 and M04e3 are in the Architect's registration batch with this file.
 - Contracts: C01 1.0 (`StableKey` `veh:`), C05 1.2, C06 1.1 (`UiCommand`, `GameModeSim.onEvent`, `PhysicsQueries.groundY`, `ModeContext.net`). All are read only.
 
 ## Scope in
@@ -29,6 +30,7 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
   - `SandboxFlags { godMode: boolean; superJump: boolean; carNoDamage: boolean }`, `noFlags()`, `SUPER_JUMP_APEX_M = 4` (a design value the owner may tune), and `isSessionCar(key: StableKey | null)`, which is true only for `^veh:sbx\d+$`.
   - `EngineServices` (`packages/engine/src/sim/services.ts`) gains `sandboxFlags: SandboxFlags`, set to `noFlags()` by `createSimServices`.
   - A hashed `SimResource` named `sandbox-flags` (three bytes) is added through `core.addResource` the first time a flag is set. A session that never sets one has no new resource, so its hash is unchanged.
+  - `SimCore` (`packages/engine/src/sim/loop/sim-core.ts`) gains `removeResource(name): boolean`, the counterpart of `removeSystem`. The sandbox `exit` and the online transition reset the flags to `noFlags()` and remove `sandbox-flags`, so no later session in the same sim carries its bytes into hashes, snapshots or checkpoints.
 - **Readers.** Each reader checks a flag only, so with every flag off behaviour is byte-identical:
   - **Combat:** `CombatPorts` gains `immune?(victim: EntityHandle): boolean`. In `hurt`, an immune victim keeps `hp`, `ko`, `koUntilTick` and its position; the `combat.hit` event and `HitEvent` still fire with damage 0. `modes/index.ts` binds `immune` to `services.sandboxFlags.godMode && ecs.has(h, LocalPlayer)`.
   - **Jump:** `onFootSystem` uses `dsqrt(2 * g * SUPER_JUMP_APEX_M)` instead of `jumpV0` while `services.sandboxFlags.superJump` is true. The vault rule still wins when a vault applies. `OnFootOptions.services` adds `sandboxFlags` to its `Pick` as an optional field.
@@ -97,7 +99,7 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
 
 ## Deliverables
 - Engine, `packages/engine/src/sim/`:
-  - `sandbox-flags.ts` (new) and `services.ts`;
+  - `sandbox-flags.ts` (new), `services.ts` and `loop/sim-core.ts` (`removeResource`);
   - `combat/combat.ts`, `control/onfoot.ts` and `vehicle/vehicle-system.ts`;
   - `modes/sandbox-body-port.ts` (new), `modes/builtin/sandbox-body.ts` (new), `modes/builtin/sandbox.ts`, `modes/builtin/index.ts`, `modes/commands.ts` and `modes/index.ts`.
 - Engine tests, `packages/engine/test/`:
@@ -108,13 +110,13 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
 - `content/ui/i18n/en.json`.
 - `tests/e2e/ui/sandbox-actions.spec.ts` (new, tag `@sandbox-actions`). It runs in the `DV_WORLD=synth` half, so it does not go in `GRAYBOX_GREP`.
 - `spec/11-decision-log-builder.md`.
-- About 22 files.
+- About 23 files.
 
 ## Interfaces
 - C06 1.1, read only: `UiCommand` (`sandbox.set`, `mode.cmd` ≤ 512 B), `GameModeSim.onEvent`, `PhysicsQueries.groundY`, `ModeContext.net`.
 - C05 1.2: `SandboxSlice` and `CoreSlice` are unchanged and unwritten. The example path `sandbox.player.godMode` in `01-engine-save-modes.md` becomes session-only. DL-718 records that spec edit; the type does not change.
 - C01 1.0: `veh:sbx<n>` keys are read through `EcsApi.keyOf`.
-- Engine-internal, in no contract: `SandboxFlags`, `EngineServices.sandboxFlags`, the `sandbox-flags` resource, `CombatPorts.immune`, `SandboxBodyPort`, and the `mode.sandbox.player` view-model key.
+- Engine-internal, in no contract: `SandboxFlags`, `EngineServices.sandboxFlags`, the `sandbox-flags` resource, `SimCore.removeResource`, `CombatPorts.immune`, `SandboxBodyPort`, and the `mode.sandbox.player` view-model key.
 
 ## Acceptance criteria
 - AC-1 Given the merged base with this milestone When the repository checks run Then:
@@ -133,7 +135,7 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
   - **combat:** with `immune` true for the local player, an NPC `jab` leaves its `hp`, `ko` and position unchanged and emits one `HitEvent` with damage 0; with `immune` false the existing damage applies;
   - **jump:** with `superJump`, a standing jump on flat ground peaks at 4.0 ± 0.15 m above the start, and without it at the existing apex;
   - **car damage:** with `carNoDamage`, two sedans dropped from 6 m, keyed `veh:sbx0` and `veh:test0`, land; `veh:sbx0` keeps `body` 1, and `veh:test0` loses body;
-  - **resource:** the `sandbox-flags` resource exists only after the first `setFlags`
+  - **resource:** the `sandbox-flags` resource exists only after the first `setFlags`, and is gone after the sandbox exits; a story session started in the same sim after that exit hashes equal, over 600 ticks, to the same story session in a fresh sim
 
   — proof: `pnpm check:unit -- packages/engine/test/sandbox-flags.spec.ts`
 - AC-4 Given a real vehicle world (`createVehicleWorld`) with the body port When the port is exercised Then:
@@ -196,19 +198,19 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
 1. `pnpm dev` (QA build), then New Game → Sandbox.
 2. Pause → Phone → Sandbox → Player → "Big jumps: on". Close the phone and jump onto a low roof.
 3. Player → "Can't get hurt: on", then "Patch me up".
-4. Cars → Class C → "Put one here and drive" (M04e3), then roll it on a steep street and stop.
+4. Cars → Lively (class C) → "Put one here and drive" (M04e3), then roll it on a steep street and stop.
 5. Cars → "Back on its wheels": the car settles upright on the road. Then "Fix it up".
 6. Step out, Cars → "Send this one away": it leaves.
 7. Quit Sandbox and start it again: the Player toggles read "off".
 
 ## Effort
-0.6 Builder session; about 22 files; risk **medium** (three hashed sim paths gain a flag check).
+0.6 Builder session; about 23 files; risk **medium** (three hashed sim paths gain a flag check).
 
 ## Risks & fallbacks
 - **A flag check changes a golden even while off.** Each reader branches on a boolean that is false by default, and AC-2 proves the never-set hash. If a golden still moves, the Builder finds the reader that runs work while its flag is off, makes it skip that work, and records a BD row.
 - **`setBodyPose` on a seated car desyncs the seat.** If the driver capsule lags, `upright` first requests the exit, as M04e3's `retire` does, and refuses with `sandbox.refuse.carMoving` until the player is on foot. Record a BD row.
 - **A 4 m jump is uncomfortable in XR.** If the M11b3 comfort review flags it, the XR panel hides `sandbox-superjump` through a BD row. The flag stays sim-side.
-- **The resource stays registered after a sandbox session** in the same sim, so a later story session in that sim hashes differently from a fresh boot. Hashed story suites always start fresh. If one does not, the resource's `hash` and `save` write zero bytes while every flag is off; the Builder confirms that the core adds no per-resource framing, and records a BD row.
+- **A checkpoint taken while a flag is set** holds the `sandbox-flags` bytes. Sandbox checkpoints are never restored into another mode (C05 saves carry no session flags), and `removeResource` on exit means a later checkpoint never sees them. If a restore path in `packages/engine/src/sim/save/**` expects every checkpointed resource to exist, it skips an unknown name with a BD row; it never re-registers the flags.
 
 ## Notes for the Builder
 - **Read first:**
@@ -228,6 +230,5 @@ Every effect is sandbox-only and session-only. The three toggles live in an engi
   6. the text and the e2e.
 - **C02:** `sandbox-flags.ts`, `sandbox-body.ts`, `sandbox-body-port.ts` and the readers are in lint scope. Use `dsqrt`, `datan2`, `dsin` and `dcos` only, with no `Date`, timers, `**` or `for…in`.
 - **Frames:** `Transform` and `PhysicsQueries.groundY` use the same rebased sim frame that M04e3's spot search uses. Never add the world origin.
-- **IP wall:** every label, key and status line is original. Do not copy wording, menu names or section order from sandbox trainers. After M04e5, `ip:strings` enforces its trainer patterns, and none of the strings above matches them. The display name never appears.
-- **Rebase note:** M04e5 changes English values under `phone.sandbox.*`; key names do not collide.
+- **IP wall:** every label, key and status line is original. Do not copy wording, menu names or section order from sandbox trainers. M04e5 is a dependency, so `ip:strings` already enforces its trainer patterns, and none of the strings above matches them. The Player tab's grouping is our own layout (DL-732). The display name never appears.
 - **Secrets:** none.

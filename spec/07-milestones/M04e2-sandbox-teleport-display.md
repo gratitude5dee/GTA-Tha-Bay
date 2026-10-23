@@ -16,6 +16,7 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
 ## Depends on
 - **M04e1** (sandbox-world-controls): the `sandbox-tabs` widget, `sandboxSim(env).onEvent` with `SANDBOX_ACTIONS`, `RigOptions.world` (`packages/engine/test/modes/fixture.ts`) and `PhoneEnv.sandboxWorld`. Same files, so it merges first.
 - Through M04e1: **M04e0** (sandbox-rooms-guard): its online refusal stays the first check of every path below.
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns behind AC-11's `ip:strings`, and the reworded `world.teleport.*` values this file passes through by key.
 - Merged on `claude/build`:
   - M02c1 (`TeleportService`, `TELEPORT_MSG`, `PRESTREAM_TICKS`, `ARRIVE_TOLERANCE_M` in `packages/world/src/sim/api/teleport.ts`; the heat policy bound in `packages/world/src/sim/streaming/module.ts`);
   - M02c2 (`phone.waypoint` and `map.waypoint.clear` in `commands.ts`; the Map app);
@@ -50,11 +51,11 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
     - `usePhoneEnv` reads `mode.sandbox.teleport`, and `PhonePage` holds the forget switch.
     - The calls `sandbox.landmark`, `sandbox.waypoint`, `sandbox.back` and `sandbox.spot` send their command and then `ctx.fire('resume')`, the Pause page's Resume path. The phone pauses the sim, and the teleport needs ticks to run.
     - A spot press while forgetting sends `position.delete` and stays on the phone.
-- **HUD** (`packages/ui/src/hud/model.ts` gains the pure `hudHidden(mode, toggles)`; `story-hud.tsx` applies it):
-  - In sandbox only, `hideHud` hides the `tl`, `tr`, `bl` and `br` regions and the tip bar and interaction prompt of `bc`. Subtitles, region `c` (talk, shop and fail panels) and toasts stay.
+- **HUD** (`packages/ui/src/hud/model.ts` gains the pure `hudHidden(mode, toggles, online)`; `story-hud.tsx` applies it with `online` from `mode.sandbox.world.online`):
+  - In single-player sandbox only (`online === false`), `hideHud` hides the `tl`, `tr`, `bl` and `br` regions and the tip bar and interaction prompt of `bc`. Subtitles, region `c` (talk, shop and fail panels) and toasts stay.
   - `hideMinimap` hides `bl` only.
   - Hidden regions get `data-hidden="true"` and `visibility: hidden` (`packages/ui/src/kit/m04b2-hud.css`). The opacity transition is 150 ms, and none under `[data-reduced-motion='true']` or `prefers-reduced-motion`.
-  - Any other mode ignores the toggles.
+  - Any other mode ignores the toggles, and so does an online session: in a room the HUD is always shown, because every Display control is disabled there and a player could not bring it back. The stored toggles are untouched and apply again after leaving the room.
 - **Text** (`content/ui/i18n/en.json`, original wording):
 
   | key | value |
@@ -76,7 +77,7 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
   | `sandbox.position.full` | You already keep {max} spots. Forget one first. |
   | `sandbox.position.forgot` / `.missing` / `.noPlayer` | Spot forgotten. / That spot is gone. / Nobody to place yet. Try again once you are on the street. |
 
-  - Add a `place.<slug>` English value for each of the 37 ids. Each value is the readable form of the id, such as "Pyramid Tower" or "Bay Bridge (Yerba Buena Island)". The ids already avoid company, team and sponsor names, and the values must too.
+  - Add a `place.<slug>` English value for each of the 37 ids. Each value is the readable form of the id, such as "Pyramid Tower" or "Bay Bridge (Yerba Buena Island)", and names no company, team, sponsor or privately branded attraction. One id, `lm.pier-39`, is the name of a privately held attraction; the id stays (it is bake data and a C01 key that no player sees), but its value is a plain description, "Sea lion pier". `config/names.json` has no entries yet, so no registry check covers these values; the AC-11 test asserts the `lm.pier-39` value instead.
   - `tools/ci/check-i18n.ts` adds `place.`, `sandbox.teleport.` and `sandbox.position.` to `EXTERNAL_PREFIXES`.
 - **Builder decisions:** BD rows go in `spec/11-decision-log-builder.md`, under the section M04e2.
 
@@ -159,16 +160,16 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
   - `DomScreen` and `CanvasScreen` give both tabs the same focus order
 
   — proof: `pnpm check:unit -- packages/ui/test/sandbox-teleport.spec.ts packages/ui/test/ui-screen-parity.spec.ts`
-- AC-8 Given `hudHidden` When it is called with each combination of mode (`sandbox`, `story`) and the two toggles Then:
+- AC-8 Given `hudHidden` When it is called with each combination of mode (`sandbox`, `story`), `online` (false, true) and the two toggles Then:
   - `hideHud` in sandbox hides `tl`, `tr`, `bl`, `br`, the tip bar and the prompt, but never the subtitles or `c`;
   - `hideMinimap` alone hides `bl` only;
-  - `story` hides nothing
+  - `story` hides nothing, and `sandbox` with `online: true` hides nothing whatever the toggles
 
   — proof: `pnpm check:unit -- packages/ui/test/sandbox-teleport.spec.ts`
 - AC-9 Given a QA build on the synth world with sandbox running When the e2e uses Pause → Phone → Sandbox → Go places Then:
-  - **landmark:** picking Coit Tower puts the player within `ARRIVE_TOLERANCE_M` (3 m) of its arrival point, as listed by `__dvBridge.world.call('candidates', {kind:'sandbox'})`, and grounded, within 60 s;
-  - **spots:** "Remember this spot", a jump to the Ferry Building, then Spot 1 returns within 3 m of the remembered x and z;
-  - **back:** "Back to where I was" returns within 3 m of the Ferry Building arrival;
+  - **landmark:** picking City Hall lands within 60 s, with one retry and then Coit Tower, then the Ferry Building, if a pick is refused `not-loaded` (the synth world refuses up to 2 of 10 landmarks, `tests/e2e/world-teleport.spec.ts`). The player then stands within 0.2 m of the ground at its own x and z (`__dvBridge.world.call('query', {x, z})`, not water) and within 40.5 m (`PLACE_RADIUS_M` + 0.5; step 3 of `TeleportService` may place it up to 40 m from a target on water or a building) of the arrival pose listed by `__dvBridge.world.call('candidates', {kind:'sandbox'})`, the bounds the existing teleport e2e uses;
+  - **spots:** "Remember this spot", a jump to the next landing landmark of that list, then Spot 1 returns within 3 m of the remembered x and z;
+  - **back:** "Back to where I was" returns within 3 m of the pose the player stood at before the last successful jump;
   - **heat:** at heat 1 (`sandbox.set`), a landmark pick shows the toast text `en.json['world.teleport.heat']` and moves the player less than 0.05 m;
   - **display:** with the HUD tucked away, regions `tl`, `tr`, `br` and `hud-minimap` are not visible, their computed `transition-duration` is `0s` under the new profile's reduced motion, and Escape still opens Pause; turning it back on shows them again;
   - **clean run:** no `pageerror` occurs
@@ -177,7 +178,7 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
 - AC-10 Given the existing phone, world and sandbox suites When they run after this milestone Then they pass unchanged — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@ui-pause|@world-teleport|@world-map|@sandbox-world"`
 - AC-11 Given the new strings When the IP and name scans run on the tree and the build Then:
   - they exit 0;
-  - no new value contains `DISPLAY_NAME` or `SHORT_NAME` from `config/brand.ts` (a case in `packages/ui/test/sandbox-teleport.spec.ts`)
+  - no new value contains `DISPLAY_NAME` or `SHORT_NAME` from `config/brand.ts`, and `place.pier-39` is the plain description (cases in `packages/ui/test/sandbox-teleport.spec.ts`)
 
   — proof: `pnpm build && pnpm ip:strings && pnpm names:lint && pnpm check:unit -- packages/ui/test/sandbox-teleport.spec.ts`
 
@@ -204,6 +205,7 @@ Today only the QA world controls (`packages/world/src/client/world-controls.ts`)
 - **Read first:** `packages/world/src/sim/api/teleport.ts`; in `packages/engine/src/sim/modes/`: `commands.ts`, `builtin/sandbox.ts`, `index.ts` (`playerPose`), `host.ts` (`route`); M04e0 and M04e1; `packages/ui/src/phone/{apps.ts, pause.tsx}`, `packages/ui/src/hud/{story-hud.tsx, model.ts}`; `tests/e2e/ui/hud.spec.ts` (`bootSynth`, the `@ui-pause` flow); `spec/domains/02-world-maps.md` §5.
 - **Order:** engine path and reroutes, actions and view model, engine spec, UI and HUD, text, e2e.
 - **C02:** `sandbox-teleport.ts`, `sandbox.ts` and `commands.ts` are in lint scope. No `Date`, timers, `**` or `for…in`; `Math.round` is fine. The `request(...).then` continuation is the same pattern `map.travel` uses today.
-- **IP wall:** the wording above is original; if one reads badly, pick another phrase of our own and record a BD row. Take no wording, section names or menu structure from other sandbox menus or trainer tools; the research checklist names features only.
+- **IP wall:** the wording above is original; if one reads badly, pick another phrase of our own and record a BD row. Take no wording, section names or menu structure from other sandbox menus or trainer tools; the research checklist names features only. The tabs (`teleport` as "Go places", `display` as "Screen") follow our own phone-app layout (DL-732).
+- **Online:** a session that turns online mid-way keeps its stored Display toggles; `hudHidden` ignores them while `online` is true, so the room always shows the HUD (AC-8).
 - **Spots are local:** numbered, no player text, never published, so no moderation applies (R-IP-03 covers UGC shown to others).
 - **Secrets:** none.

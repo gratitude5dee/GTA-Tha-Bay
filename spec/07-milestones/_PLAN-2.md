@@ -61,7 +61,7 @@
 
 ### M07b3 · sandbox-tune — 0.5 · risk M · S06 (+S01, S10) (study set, DL-716, DL-721)
 - **Goal:** a Tune tab in the Sandbox app applies M07b2's upgrade levels to the player's session cars (M04e3) at no cost; guarded by the `veh:sbx` key and session-only state, never reaching the purse, `CoreSlice.garage`, a save or a race.
-- **R** R-UI-03, R-MODE-02 (s), R-ROLL-02 (s), R-PLAT-02 (s), R-IP-01 (s) · **Dep** M07b2, M04e3 · **Read** file `M07b3-sandbox-tune.md`; `06-racing-content.md` C.4; DL-721 · **Out** `packages/shared/src/vehicle/upgrades.ts`, `packages/modes/racing/src/garage/`, `packages/engine/src/sim/modes/builtin/sandbox-tune.ts`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1 (read)
+- **R** R-UI-03, R-MODE-02 (s), R-ROLL-02 (s), R-PLAT-02 (s), R-IP-01 (s) · **Dep** M07b2, M04e3, M04e5 · **Read** file `M07b3-sandbox-tune.md`; `06-racing-content.md` C.4; DL-721 · **Out** `packages/shared/src/vehicle/upgrades.ts`, `packages/modes/racing/src/garage/`, `packages/engine/src/sim/modes/builtin/sandbox-tune.ts`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1 (read)
 - **Gate** none · **Proof** `pnpm --filter @dv/mode-racing test -- sandbox-tune-guard`; `pnpm check:unit -- packages/engine/test/modes/sandbox-tune.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @sandbox-tune`
 
 ### M08a1 · fight-core-sim-data — 1 · risk M · S07
@@ -143,7 +143,7 @@
 
 ### M10f · emote-wheel — 0.6 · risk M · S01 (+S10) (study set, DL-716, DL-718)
 - **Goal:** holding `SimButton.Emote` opens a wheel of eight original code-built clips played as `AnimStateId` 21, decided in the sim from the `InputFrame`; an Emotes list in the Sandbox app; closed in missions and while `net` is set (DL-719).
-- **R** R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M10d1, M04b2 · **Read** file `M10f-emote-wheel.md`; `01-engine-contracts.md` (C03 `Emote`, C04 `AnimStateId`) · **Out** `packages/engine/src/sim/control/emote.ts`, `packages/engine/src/client/anim/emote-clips.ts`, `config/emotes.json`, `packages/ui/src/hud/emote-wheel.tsx` · **C** C01 1.0, C03 1.1, C04 1.1, C06 1.1 (read)
+- **R** R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M10d1, M04b2, M04e5 · **Read** file `M10f-emote-wheel.md`; `01-engine-contracts.md` (C03 `Emote`, C04 `AnimStateId`) · **Out** `packages/engine/src/sim/control/emote.ts`, `packages/engine/src/client/anim/emote-clips.ts`, `config/emotes.json`, `packages/ui/src/hud/emote-wheel.tsx` · **C** C01 1.0, C03 1.1, C04 1.1, C06 1.1 (read)
 - **Gate** Q-13 iPhone 15 (manual touch run) · **Proof** `pnpm check:unit -- packages/engine/test/control.emote.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @emote`; manual `M10f/iphone`
 
 ### M10d3 · art-integration — 1 · risk M · S05 (+S06, S07) (split 2 of 3, runs before M10d2; DL-460)

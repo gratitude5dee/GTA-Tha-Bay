@@ -1,7 +1,7 @@
 # M10f — emote-wheel
 
 ## Goal
-After this session the player can express themselves in free roam. Holding the existing `SimButton.Emote` (bit 17) opens an emote wheel of eight original, code-built clips: wave, clap, two-step, check phone, sit down, shrug, stretch, nod along. The move stick or keys choose a slot, and letting go plays it as `AnimStateId` 21 (`ANIM_STATE.emote`). Moving, jumping, entering a car, a mission start or leaving free roam ends it. The phone's Sandbox app gets an **Emotes** list that plays the same clips, so touch, one-handed and XR-panel players have a path that needs no two-thumb gesture. Slot choice and every start, cancel and end is decided in the sim from the `InputFrame`, so replays and state hashes stay deterministic. The clips use the `bay_rig_v1` bone names, so they play on the mannequin and on the M10d1 bodies. This takes over the *Emotes* section of the sandbox menu, which `spec/domains/10-ui-hud-xr.md` l.64 gives to M06a, although none of M06a1–M06a5 builds it.
+After this session the player can express themselves in free roam. Holding the existing `SimButton.Emote` (bit 17) opens an emote wheel of eight original, code-built clips: wave, clap, two-step, check phone, sit down, shrug, stretch, nod along. The move stick or keys choose a slot, and letting go plays it as `AnimStateId` 21 (`ANIM_STATE.emote`). Moving, jumping, entering a car, a mission start or leaving free roam ends it. The phone's Sandbox app gets an **Emotes** list that plays the same clips, so touch, one-handed and XR-panel players have a path that needs no two-thumb gesture. Slot choice and every start, cancel and end is decided in the sim from the `InputFrame`, so replays and state hashes stay deterministic. The clips use the `bay_rig_v1` bone names, so they play on the mannequin and on the M10d1 bodies. This takes over the *Emotes* section of the sandbox menu, which `spec/domains/10-ui-hud-xr.md` l.64 gave to M06a before DL-716, although none of M06a1–M06a5 builds it; l.64 now names M10f.
 
 ## Requirements
 - R-UI-03 (support): the Sandbox app, an implied page, gets its Emotes section, and the story and sandbox HUD gets the wheel.
@@ -11,7 +11,7 @@ After this session the player can express themselves in free roam. Holding the e
 ## Depends on
 - **M10d1** (art-integration): final bodies on `bay_rig_v1`, which are the creator parts and the ped kit. The clips are authored and checked against them.
 - **M04b2** (creator-phone-hud-kit):
-  - in `packages/ui/src/phone/apps.ts`, the `'sandbox'` case of `appScreen` and `visibleApps`;
+  - the `'sandbox'` case of `appScreen` in `packages/ui/src/phone/apps.ts`, and `visibleApps` in `packages/ui/src/phone/registry.ts` (l.62, imported by `pause.tsx` l.16);
   - the `call` switch in `packages/ui/src/phone/pause.tsx`, which already sends `mode.cmd` with the reserved owner `phone`;
   - `StoryHud` and `useVm` (`packages/ui/src/hud/`);
   - the touch layouts and `validateLayout` (`packages/ui/src/hud/touch.ts`, `config/input/touch/*.json`);
@@ -22,6 +22,7 @@ After this session the player can express themselves in free roam. Holding the e
   - `AnimGraph`, `PLAYER_GRAPH`, `buildPlaceholderClips` and `MannequinAnimator` (`packages/engine/src/client/anim/`);
   - `createCommandDispatcher` and `phoneCommand` in `packages/engine/src/sim/modes/commands.ts`, and `playerSide` in `publish.ts`;
   - `createWalkSim` (`packages/engine/test/walk-sim.ts`).
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns that AC-9's `ip:strings` enforces on the new strings and ids.
 - Not a dependency: M04e1. If its `sandbox-tabs` widget is on the base, the Emotes list becomes a tab of it. If not, the list is appended to the Sandbox app.
 - Contracts: C03 1.1, C04 1.1, C01 1.0, C06 1.1. No contract change.
 
@@ -104,9 +105,9 @@ After this session the player can express themselves in free roam. Holding the e
   - `packages/engine/test/control.emote.spec.ts` (new);
   - `packages/engine/test/anim.graph.spec.ts` and `packages/engine/test/walk-sim.ts` (a gate option);
   - `packages/ui/test/emote-wheel.spec.ts` (new), and `packages/ui/test/phone.spec.ts` (extended);
-  - `tests/e2e/ui/emote.spec.ts` (new, `@emote`).
+  - `tests/e2e/ui/emote.spec.ts` (new, `@emote`). It runs on the gray-box block, so `@emote` joins `GRAYBOX_GREP` in `.github/workflows/ci.yml` and `.github/workflows/nightly.yml` and the committed copy `tests/e2e/graybox-grep.txt` (the unit test that keeps the three equal stays green); CI then runs it in the world-less half, as the local proof does.
 - BD rows in `spec/11-decision-log-builder.md`, plus `docs/device-runs/M10f/iphone/notes.json` (AC-10).
-- About 34 files.
+- About 37 files (the three `GRAYBOX_GREP` copies included).
 
 ## Interfaces
 - **C03 1.1:** `SimButton.Emote = 17` is read, with no change. The default `InputMap` files gain bindings.
@@ -164,7 +165,7 @@ After this session the player can express themselves in free roam. Holding the e
 
   — proof: `pnpm check:unit -- packages/ui/test/emote-wheel.spec.ts packages/ui/test/phone.spec.ts packages/ui/test/ui-screen-parity.spec.ts`
 - AC-9 Given the new strings, ids and icon When the language and IP gates run Then every new key has its English value and no new string, id or file name matches the denylist or a registry name — proof: `pnpm check:i18n && pnpm ip:strings && pnpm names:lint`
-- AC-10 Given a QA build on the gray-box block (`/?debug=1`, the sandbox runs) When `@emote` runs Then:
+- AC-10 Given a QA build without `DV_WORLD` on the gray-box block (`/?debug=1`, the sandbox runs; `@emote` is in `GRAYBOX_GREP`, so CI runs it in the same world-less half) When `@emote` runs Then:
   - **hold:** with `KeyG` held and `KeyD` pressed, `hud-emote-wheel` is visible with `hud-emote-2` selected, and its computed transition is at most 150 ms;
   - **release:** after `KeyG` is released, `observe().player.anim` is 21 and `player.emote.slot` is 2, and the wheel is gone;
   - **cancel:** releasing `KeyD` and then holding `KeyW` makes `anim` leave 21 and the player move more than 1 m;
@@ -191,7 +192,7 @@ After this session the player can express themselves in free roam. Holding the e
 5. Press Escape, open the phone, then Sandbox, then Emotes, and pick "Sit down". The game resumes with the player sitting.
 
 ## Effort
-0.6 Builder session; about 34 files; risk **low** to **medium**: clip quality from pose functions, and the one-shot timing between the sim and the mixer.
+0.6 Builder session; about 37 files; risk **low** to **medium**: clip quality from pose functions, and the one-shot timing between the sim and the mixer.
 
 ## Risks & fallbacks
 - **Code-built clips look stiff on the M10d1 bodies:** ship the four core slots (`wave`, `two-step`, `phone`, `sit`, the gamedesign §7.7 set) and set the other four `enabled: false`. The wheel greys them out and AC-3 covers a disabled slot. Record a BD row.

@@ -31,7 +31,7 @@
 
 ### M12b2 · rooms-core-protocol-v2 — 1 · risk H · S09 (+S01) (split 2 of 2)
 - **Goal:** interest management, `validated` authority with `config/net.speedcaps.json`, close codes, client prediction ring, net slots, hash cadence; two clients on staging.
-- **R** R-ROLL-02 · **Dep** M12b1 · **Read** `09-backend-contracts.md` §1; `01-engine.md` §8 (M12b row); DL-719 (sandbox descriptor `requires.network: 'optional'`; AC-10 re-proves `sandbox-guard.spec.ts` with the real `net`) · **Out** `services/rooms/src/room`, `packages/net/src/client`, `packages/engine/src/net` · **C** C11 1.0, C02 1.1 (NetIn/NetOut)
+- **R** R-ROLL-02 · **Dep** M12b1, M04e3 · **Read** `09-backend-contracts.md` §1; `01-engine.md` §8 (M12b row); DL-719 (sandbox descriptor `requires.network: 'optional'`; AC-10 re-proves `sandbox-guard.spec.ts` with the real `net`) · **Out** `services/rooms/src/room`, `packages/net/src/client`, `packages/engine/src/net` · **C** C11 1.0, C02 1.1 (NetIn/NetOut)
 - **Gate** staging · **Proof** `pnpm check:workers -- rooms-speed`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @mp` (isolated pages, peer sees the move within 150 ms of server tick)
 
 ### M12c1 · rooms-hardening-presence-loadtest — 1 · risk M · S09 (split 1 of 2)

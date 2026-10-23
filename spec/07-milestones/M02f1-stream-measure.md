@@ -78,18 +78,18 @@ After this session a world boot can be measured. `FetchRetry` counts requests in
 - `config/perf/{scenarios.json, net-profiles.json, paths/boot-cityhall.json}`; `tools/ci/schemas/perf-report.v1.json`; `tools/ci/{perf-check.ts, check-dist.ts}`; `tools/ci/checklists/{M02f1-staging.json, M02b1-mac.json}`.
 - Tests:
   - `packages/engine/test/assets/{fetch-retry.spec.ts, net-shaper.spec.ts}`;
-  - `packages/engine/test/platform/config.spec.ts`;
+  - `packages/engine/test/platform/{config.spec.ts, heartbeat.spec.ts, tier-select.spec.ts}` and `packages/shared/test/platform.classify.spec.ts`: every `TierDecision` literal `c13: '1.1.0'` (`config.spec.ts` l.77, `heartbeat.spec.ts` l.257, `tier-select.spec.ts` l.124, `platform.classify.spec.ts` l.152) becomes `c13: C13_VERSION`, because `TierDecision.c13` is typed `typeof C13_VERSION` (`c13.ts` l.180) and the root tsconfig includes `packages/*/test`;
   - `tools/ci/test/{perf-check.spec.ts, check-bundle-harness.test.ts}`;
   - `tests/e2e/world-boot-figures.spec.ts` (tags `@world-boot-figures`, `@net-shaper`).
 - BD rows in `spec/11-decision-log-builder.md`.
-- About 30 files. No new `pnpm` script.
+- About 33 files. No new `pnpm` script.
 
 ## Interfaces
 - C13 1.1 → **1.2 (additive, accepted by DL-725)**:
   - `PerfReport.boot` adds the optional `requests`, `bytes`, `revealMs`, `waves` and `inflightPeak`;
   - `QaFlags` adds `net: string | null`.
 
-  `C13_VERSION` (`packages/shared/src/platform/c13.ts`) and `config/tier-budgets.json` `c13` both become `'1.2.0'` in this session, because `tiers.ts` checks that they are equal (DL-725).
+  `C13_VERSION` (`packages/shared/src/platform/c13.ts`) and `config/tier-budgets.json` `c13` both become `'1.2.0'` in this session, because `tiers.ts` checks that they are equal (DL-725). Every typed test literal follows `C13_VERSION` (Deliverables). The JSON fixtures that carry `"c13": "1.1.0"` (`tools/ci/fixtures/perf/{ok,over}.json`, `tools/ci/fixtures/device-runs/M00d/ci-fixture/perf.json`, `tools/ci/fixtures/trace/seen-on-device/**/perf.json`) and committed device-run records stay as they are: `PerfReport.c13` is a `string` and `tier-decision.v1.json` accepts any `^1\.` value.
 - C07 1.1, C08 1.0: read only.
 - Not contracts: `FetchStats`, the asset RPC (`rpc.ts` says so), `BootReport`, `WorldScenarioDriver`, `data-dv-boot`.
 
@@ -138,7 +138,7 @@ After this session a world boot can be measured. `FetchRetry` counts requests in
 5. After AC-14: `pnpm perf:checklist -- tools/ci/checklists/M02f1-staging.json --url <staging-url>` and follow it.
 
 ## Effort
-0.6 Builder session; about 30 files; risk **low-medium**.
+0.6 Builder session; about 33 files; risk **low-medium**.
 
 ## Risks & fallbacks
 - **Sampling skew.** The figures are read when the stats RPC answers, milliseconds after the reveal; every assertion is a bound this skew cannot break.

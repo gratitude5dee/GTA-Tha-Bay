@@ -14,11 +14,12 @@ This is part 1 of the vehicle work; vehicle actions and player toggles follow in
 
 ## Depends on
 - **M04e1** (sandbox-world-controls): `sandboxSim(env).onEvent` and the `SANDBOX_ACTIONS` table for `mode.cmd {mode:'sandbox'}`; the `sandbox-tabs` widget in `packages/ui/src/phone/apps.ts`; the `RigOptions` additions in `packages/engine/test/modes/fixture.ts`. It edits the same files, so it merges first.
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns that AC-9's `ip:strings` enforces on every string below.
 - Through M04e1: **M04e0** (`sandboxOnline`, `SANDBOX_REFUSE_ONLINE`, the online refusal in `createCommandDispatcher`).
 - **M03a1** (vehicles-interaction-prefabs): `PrefabRegistry` (`has`, `load`, `def`, `spawn`, `despawn`) and `VEHICLE_PREFABS` in `packages/engine/src/sim/prefabs/registry.ts`; `seatDriver` in `packages/engine/src/sim/vehicle/enter-exit.ts`; `VehicleStore` (`rt.get(id).driver`); `handlingById` in `packages/engine/src/sim/vehicle/presets.ts`; `packages/engine/test/vehicle-sim.ts`.
 - **M07a1** (racing-core-director-car): `RACE_CAR_PREFABS` (the C, B, A, S and R cars), which are kept out of non-racing sessions so they do not change the state hash.
 - **M05c1** (act1-missions-1-6): `inView` and `VIEW_HALF_ANGLE_DEG` in `garage.ts` (the cone test only, reused as is); `packages/engine/test/garage.test.ts`.
-- All but M04e0 and M04e1 are merged on `claude/build`.
+- All but M04e5, M04e0 and M04e1 are merged on `claude/build`.
 - Contracts: C01 1.0 (`StableKey` `veh:`), C05 1.2, C06 1.1 (`PrefabService`, `PhysicsQueries`, `ModeContext.assets`, `UiCommand mode.cmd`), C08 1.0 (`nearestEdge`, `laneCentre`). All are read only.
 
 ## Scope in
@@ -30,7 +31,7 @@ This is part 1 of the vehicle work; vehicle actions and player toggles follow in
 - **Near search** (new `packages/engine/src/sim/modes/builtin/sandbox-spot.ts`, in the C02 lint scope):
   - `findNearSpot(graph, physics, p, blocked): { x; y; z; yaw } | null`, where `p` is `{x, y, z, camYaw}` and `blocked(x, z)` reports whether something occupies that point.
   - It tries a fixed pattern: distances `[8, 10, 6, 12]` m, each at bearings `0, +15°, −15°, +30°, −30°` from the camera's forward direction (`−sin camYaw, −cos camYaw`, as in `inView`), using `dsin` and `dcos`.
-  - For each target point it calls `graph.nearestEdge(tx, tz, p.y, 6)`, then `laneCentre({edge, s, lane: 0})`. A candidate is accepted only when all of these hold:
+  - For each target point it calls `graph.nearestEdge(tx, tz, p.y, 6)`, then `graph.laneCentre({edge, s, lane: 0}, out)` with one reused `out = new Float64Array(4)`. C08 `RoadGraphQuery.laneCentre(e: EdgePos, out: Float64Array): void` returns nothing and writes x, y, z and yaw into `out` (`packages/shared/src/world/c08-api.ts` l.12), as `findCallSpot` uses it (`garage.ts` l.149). A candidate is accepted only when all of these hold:
     - its distance from the player is 5 to 13 m;
     - `inView` holds;
     - `physics.groundY(x, z)` is non-null and within 1.5 m of the lane's `y`;
@@ -71,7 +72,7 @@ This is part 1 of the vehicle work; vehicle actions and player toggles follow in
   - `PhoneEnv` gains `sandboxVehicles`, which `usePhoneEnv` reads from `mode.sandbox.vehicles`.
 - **Text** (`content/ui/i18n/en.json`, original wording; design values the owner may tune):
   - the twelve `sandbox.car.<slug>` names, built from each preset's `fictionalMake`, for example "Kestrel Quill", "Ondine Pico" and "Brackenridge Box Truck";
-  - `phone.sandbox.class.D`…`R` ("Class D" … "Class R");
+  - `phone.sandbox.class.D`…`R`, in our own player-facing words rather than letter grades: "Everyday" (D), "Lively" (C), "Quick" (B), "Fast" (A), "Top shelf" (S), "Robotaxi" (R). The keys keep the internal class letters;
   - `phone.sandbox.car.place` "Put one here";
   - `phone.sandbox.car.placeDrive` "Put one here and drive";
   - `phone.sandbox.car.count` "{n} of {cap} cars out";
@@ -215,7 +216,7 @@ This is part 1 of the vehicle work; vehicle actions and player toggles follow in
 
 ## Demo script
 1. `pnpm dev` (QA build), then New Game → Sandbox.
-2. Face a street. Pause → Phone → Sandbox → Cars → Class R → "Put one here and drive". Close the phone: you are at the wheel a few metres up the road.
+2. Face a street. Pause → Phone → Sandbox → Cars → Robotaxi → "Put one here and drive". Close the phone: you are at the wheel a few metres up the road.
 3. Put eight more cars out; the toast says the oldest was towed, and the count reads "8 of 8 cars out".
 4. "Send my cars away": the parked ones vanish, and the one you drive leaves once you are out.
 5. Quit Sandbox: no session car is left in the world.
@@ -245,6 +246,5 @@ This is part 1 of the vehicle work; vehicle actions and player toggles follow in
   5. the UI;
   6. the text and the e2e.
 - **C02.** `sandbox-spot.ts`, `sandbox-vehicles.ts` and `sandbox.ts` are in lint scope: `dsin`, `dcos` and `dsqrt` only, with no `Date`, timers, `**` or `for…in`. Production code never imports `vehicle/debug.ts`, which stays QA-only.
-- **IP wall:** every label, key and status line here is original. Do not copy wording or menu structure from sandbox trainers. The research checklist names features only. After M04e5, `ip:strings` enforces its trainer patterns; none of the strings above matches them. Car names use only our fictional makes. The display name never appears.
-- **Rebase note:** M04e5 changes `phone.sandbox.*` English values. Key names do not collide.
+- **IP wall:** every label, key and status line here is original. Do not copy wording or menu structure from sandbox trainers. The research checklist names features only. M04e5 is a dependency, so `ip:strings` already enforces its trainer patterns; none of the strings above matches them. The Cars tab's grouping by handling class is our own layout (DL-732). Car names use only our fictional makes. The display name never appears.
 - **Secrets:** none.

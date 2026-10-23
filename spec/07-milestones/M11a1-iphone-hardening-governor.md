@@ -43,12 +43,13 @@ After this session the platform adapts to the device while the game runs, and th
 ## Deliverables
 - `packages/engine/src/platform/governor/{governor.ts, knobs.ts, signals.ts, frame-pacer.ts}`.
 - `packages/engine/src/platform/memory/{memory-budget.ts, eviction.ts}`. The ChunkStore and WorldPackStore hooks are small edits in `packages/world/src/sim/streaming/` (ChunkStore, M02b1) and `packages/engine/src/assets/store/` (WorldPackStore, M01e) (DL-247).
-- Edits: `qa-flags.ts` (`?governor=off` active); the bridge (`probe.ts` / perf bridge) additions; `apps/web/src/main.ts` (start the pacer and governor after reveal).
+- Edits: `qa-flags.ts` (`?governor=off` active); the bridge (`probe.ts` / perf bridge) additions; `apps/web/src/main.ts` (start the pacer and governor after reveal, and hand them `device:fpsCap` and a fixed `device:renderScale` from the `createPlatformPort` `onChange` that M04b5 added); `apps/web/src/shell-ports.ts` (`PlatformPort.framePacer: true`, which enables the Graphics frame-cap row through M04b5's existing `graphicsScreen` branch, so `packages/ui/src/pages/settings/display.ts` is not edited).
+- AC-11 integration (DL-727): the pacer's target is `min(tier targetFps, fpsCap)` in `frame-pacer.ts`, and the governor skips a pinned `renderScale` in `knobs.ts`; both sit in files already listed. `packages/ui/test/settings-live.spec.ts` (M04b5) already has the `framePacer: true` case and runs unchanged as a regression proof.
 - `config/perf/paths/{race-sprint,race-pursuit-heat4}.json`, the scenario registration in `packages/engine/src/platform/perf/scenario-runner.ts`, and `tests/perf/race.perf.spec.ts`; both ids appended to `config/perf/scenarios.json` (the `check:perf` registry, M02b1; DL-656 part 4).
 - `services/edge/src/reports/browser.ts` (crash branch), `packages/shared/src/telemetry.ts` (`app.crash`, `C16_VERSION`), `packages/shared/schemas/telemetry/app.crash.json`, `services/edge/test/reports-crash.spec.ts` (suite `reports-crash`).
 - `.github/workflows/nightly.yml` (required perf step) and `tools/ci/test/workflows.test.ts`.
 - `packages/engine/test/platform/{governor.spec.ts, memory-budget.spec.ts, frame-pacer.spec.ts}`; `tests/e2e/governor.spec.ts` (`@governor`).
-- About 24 files in all.
+- About 25 files in all.
 
 ## Interfaces
 - C13 1.1.0 is used verbatim: `QualityService.setTier(id, reason)` with `'governor-demotion'` and `'memory-pressure'`, `onDynamicChange`, `onMemoryPressure`, `DynamicQuality`, `DynamicRange`, `PerfScenario`. Scenario ids come from the 1.1 list.
@@ -86,7 +87,7 @@ After this session the platform adapts to the device while the game runs, and th
 3. Run `pnpm check:perf -- --scenario race-pursuit-heat4` and open `test-results/perf.race-pursuit-heat4.chromium-webgl2.mobile.json` (reports are keyed by scenario from M02b1).
 
 ## Effort
-1 Builder session; about 24 files; risk **medium**. The governor and memory policies are well specified, so the time goes to wiring eviction into ChunkStore and making the racing scenarios deterministic in CI.
+1 Builder session; about 25 files; risk **medium**. The governor and memory policies are well specified, so the time goes to wiring eviction into ChunkStore and making the racing scenarios deterministic in CI. The M04b5 integration (AC-11) adds one file and two small rules to files already in scope; if the session runs long, the Builder finishes AC-1…AC-10 first and reports AC-11 as open rather than cutting a governor AC.
 
 ## Risks & fallbacks
 - **A racing scenario exceeds the `mobile-low` object budget in CI.** That is a real finding, not a test problem: lower the scenario's crowd density through the governor floor or the racing tier caps (data), and report it. Never raise a budget in `config/tier-budgets.json` here; calibration is M11a2's.

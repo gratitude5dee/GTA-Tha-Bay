@@ -92,7 +92,7 @@ export interface SandboxSlice {                       // schema 1; never read by
   savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[]; // M04e2: names pos-<n>, lowest free n in 1..32; saved through ctx.save.request('manual')
   clock: { hour: number; paused: boolean; syncSystemTime: boolean }; // sandbox.time.{hour,paused,sync} write here, never toggles (M04e1)
   weather: WeatherPreset;                             // sandbox.weather.preset writes here plus toggle sandbox.weather.hold (M04e1)
-  presets: JsonObject[];                              // JSON presets (≤ 512 ops each); post-v1, stays empty in v1 (DL-730)
+  presets: JsonObject[];                              // JSON presets; post-v1, stays empty in v1 (DL-730); the per-preset op cap is set from our record budget (recordMaxBytes) when presets are specified, not here (DL-732)
 }
 Sandbox paths (DL-718): `toggles` holds `sandbox.player.neverWanted`, `sandbox.weather.hold`, `sandbox.world.{timeScale, blackout, density.traffic, density.ped, density.parked}` (M04e1) and `sandbox.display.{hideHud, hideMinimap}` (M04e2). One-shot actions (`time.shortcut`, `time.sync`, `world.reset`, teleports, `position.save`/`delete`, car actions) are `mode.cmd {mode:'sandbox'}` events, not slice paths. Session-only, never written to the slice: `sandbox.player.godMode`, `sandbox.player.superJump`, `sandbox.vehicle.noDamage` (engine-internal `EngineServices.sandboxFlags`, M04e4) and the session cars (M04e3).
 

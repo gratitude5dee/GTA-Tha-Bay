@@ -19,6 +19,7 @@ The guard is the car itself, not the PI band. Tuning accepts only a car whose ke
   - `content/vehicles/pi.lock.json`;
   - its `garage` spec.
 - **M04e3** (sandbox-vehicle-spawner): the `owned` list of `{key, prefab, h}` in the `sandboxSim` closure, `SandboxVehiclePort` in `packages/engine/src/sim/modes/sandbox-vehicle-port.ts`, the `vehicles` tab and `mode.sandbox.vehicles`, `RigOptions.sandboxVehicles`, and the `veh:sbx<n>` keys.
+- **M04e5** (ip-wall-strings): the `trainer-*` patterns that AC-8's `ip:strings` enforces.
 - Through M04e3: **M04e1** (`SANDBOX_ACTIONS`, `sandbox-tabs`) and **M04e0** (`sandboxOnline`, `SANDBOX_REFUSE_ONLINE`, the dispatcher's online refusal).
 - Merged on `claude/build`:
   - M03a1: `VehicleStore`, `vehicleResource`, `handlingById`, `UnknownHandlingError` and `HANDLING_PRESETS` in `packages/engine/src/sim/vehicle/{components.ts, presets.ts}`; `createVehicleWorld` and `drive` in `packages/engine/test/vehicle-sim.ts`;
@@ -197,7 +198,7 @@ The guard is the car itself, not the PI band. Tuning accepts only a car whose ke
 
 ## Demo script
 1. `pnpm dev` (QA build), then New Game → Sandbox.
-2. Pause → Phone → Sandbox → Cars → Class C → "Put one here and drive" (M04e3). Stop the car.
+2. Pause → Phone → Sandbox → Cars → Lively (class C) → "Put one here and drive" (M04e3). Stop the car.
 3. Tune → "Everything to the top". Close the phone and pull away: the car pulls harder and brakes shorter.
 4. Open Tune while rolling and tap a button: the stop-first refusal shows.
 5. Quit Sandbox and start it again: the Tune tab is empty, and the racing garage shows its own levels and prices unchanged.
@@ -227,5 +228,5 @@ The guard is the car itself, not the PI band. Tuning accepts only a car whose ke
   6. the text and the e2e.
 - **C02.** `upgrades.ts`, `presets.ts`, `components.ts` and `sandbox-tune.ts` are in lint scope: no `Date`, timers, `**` or `for…in`. Multipliers are plain products; no transcendental call is needed.
 - **The guard is the key and the session**, never PI or class. AC-6 proves that a session car or a tuned id cannot enter a race.
-- **IP wall.** Every label and status line is original; never copy wording, menu names or structure from sandbox trainers or mod-shop menus (the research checklist names features only). M04e5's `ip:strings` patterns do not match the strings above. The display name never appears. No firearms (D-30).
+- **IP wall.** Every label and status line is original; never copy wording, menu names or structure from sandbox trainers or mod-shop menus (the research checklist names features only). M04e5 is a dependency, so its `ip:strings` patterns already apply, and they do not match the strings above. Player-facing text names no letter class or performance index; it uses M04e3's class words (DL-732). The display name never appears. No firearms (D-30).
 - **Secrets:** none.

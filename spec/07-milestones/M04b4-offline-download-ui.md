@@ -58,7 +58,7 @@ This re-implements proposal GV-06 of the owner's study in our own code and words
 - `packages/ui/src/shell/types.ts`, `packages/ui/src/pages/settings/{privacy-storage.ts, index.ts}`, `packages/ui/test/settings-offline.spec.ts` (new).
 - `apps/web/src/offline-port.ts` (new), `apps/web/src/shell-ports.ts`, `apps/web/test/offline-port.test.ts` (new).
 - `content/ui/i18n/en.json`.
-- `tests/e2e/offline-download.spec.ts` (new, `@offline-download`).
+- `tests/e2e/offline-download.spec.ts` (new, `@offline-download`). It needs the baked world, so it runs in CI's `DV_WORLD=synth` half and does not go in `GRAYBOX_GREP` (`.github/workflows/ci.yml`, `tests/e2e/graybox-grep.txt`).
 - BD rows in the current `spec/11-decision-log-builder*.md` part file, including one that closes the pack-store part of BD-M04b1-08.
 - 17 files. No new root script.
 
@@ -99,19 +99,20 @@ This re-implements proposal GV-06 of the owner's study in our own code and words
   - `__dvBridge.assets.downloadPlan()` reported `totalBytes` equal to the sum of `resolve(ref).bytes` over every resolvable entry of the served catalog (read from `/media-local/`);
   - the done text shows and `has(ref)` is true for every such ref;
   - after `injectFaults({ status: 'network', times: 100000 })` in the same session (no reload), `get(ref)` returns the catalog's `sha256` for every world-pack ref and `stats().network` does not increase;
+  - the plan holds at least one world-pack ref (the case fails rather than passing with nothing to check);
   - pressing Clear opens the confirm dialog, and `confirm-ok` leaves `usage().packs` at 0 with the downloaded row at 0 MB
 
-  — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @offline-download && pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-download`
+  — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @offline-download && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @offline-download`
 - AC-7 Given the new and changed strings When the string checks run Then every new key exists in `en.json`, no catalog value names the display name (text uses `{brand}`), and the IP string scan passes — proof: `pnpm check:i18n && pnpm ip:strings && pnpm names:lint`
 - AC-8 Given the branch When the production build is checked and previewed Then no secret pattern is in `apps/web/dist`, the bundle limits hold, and the Preview deploys — proof: `pnpm build && pnpm check:bundle && pnpm check:secrets -- apps/web/dist && pnpm deploy:preview`
 
 ## Test plan
 - **Unit:** the four specs of AC-2…AC-5; the existing `store.rules.spec.ts` rule-5 case stays green unchanged.
-- **E2E:** `@offline-download` on `chromium-webgl2` (required) and `webkit-webgl2`, with `pack-store.spec.ts`'s persistent-context fixture.
+- **E2E:** `@offline-download` on `chromium-webgl2` (required) and `webkit-webgl2`, with `pack-store.spec.ts`'s persistent-context fixture, on a `DV_WORLD=synth` build locally and in CI's synth half.
 - **Static and deployed:** AC-7, AC-8.
 
 ## Demo script
-1. `pnpm dev`, Settings › Install and storage: the size row shows the synth city's size; downloaded reads 0 MB.
+1. `pnpm map:build -- --area synth`, then `DV_WORLD=synth pnpm dev`, Settings › Install and storage: the size row shows the synth city's size; downloaded reads 0 MB.
 2. Download: progress runs to done. Clear, then Cancel: nothing changes. Clear and confirm: downloaded reads 0 MB.
 3. Download and Stop at once: the stopped line shows; a second Download fetches only the rest.
 

@@ -24,7 +24,7 @@ export type SlotId =
   | `mod:${string}`;                                                    // C14 mod id, sandbox-only data
 
 export const SAVE_LIMITS = {
-  maxProfiles: 64, nameMin: 1, nameMax: 80,          // Grand-V profile limits
+  maxProfiles: 64, nameMin: 1, nameMax: 80,          // our design values (DL-732), within profileMaxBytes
   recordMaxBytes: 2 * 1024 * 1024,                    // per slot record (canonical JSON UTF-8)
   profileMaxBytes: 16 * 1024 * 1024,                  // all live records of a profile
   storyTargetBytes: 256 * 1024,                       // budget; warn in CI above this
