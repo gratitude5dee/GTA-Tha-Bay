@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { observe, waitForEngine } from '../engine-helpers.ts';
-import { HOME, hideQaPanels, NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
+import { HOME, hideQaPanels, NO_BYPASS, pageNow, passGates, waitForEngineReady, waitForSave } from './helpers.ts';
 
 /**
  * M04b2 AC-4 (@ui-touch) and AC-8 (@ui-coach), on WebKit with the iPhone-landscape design fixture (844 x 390). The synthetic contacts go to
@@ -118,10 +118,12 @@ test.describe('touch menus and the layout editor @ui-touch', () => {
     await page.getByTestId('btn-touch-x-plus').click();
     await page.getByTestId('btn-touch-x-plus').click();
     expect(Number(await page.getByTestId('touch-val-x').innerText())).toBe(before + 16);
+    const since = await pageNow(page);
     await page.getByTestId('btn-touch-edit-save').click();
     await expect(page.getByTestId('touch-layout-custom:1')).toHaveAttribute('aria-checked', 'true');
     await expect.poll(() => page.evaluate(() => document.querySelector('.dv-touch')?.getAttribute('data-layout')), { timeout: 30_000 }).toBe('custom:1');
-    await page.waitForTimeout(2500); // the debounced settings write
+    // The layout id rides the debounced `save.settings`; reload only once the settings write is confirmed (BD-FIX-CI7-F01).
+    await waitForSave(page, 'settings', since);
 
     await page.reload();
     await waitForEngineReady(page);

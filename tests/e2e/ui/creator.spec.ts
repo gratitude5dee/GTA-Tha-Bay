@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { HOME, hideQaPanels, NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
+import { HOME, hideQaPanels, NO_BYPASS, pageNow, passGates, waitForEngineReady, waitForSave } from './helpers.ts';
 
 /**
  * M04b2 AC-2 (@creator): New Game names the profile, the creator changes body, hair, outfit and voice, Undo and Redo work, Done saves
@@ -58,6 +58,7 @@ test.describe('creator @creator', () => {
     await page.getByTestId('creator-name').fill('Dee Test');
     await expect(page.getByTestId('creator-name-error')).toHaveText('');
 
+    const since = await pageNow(page);
     await page.getByTestId('btn-creator-done').click();
     await expect(page.getByTestId('new-creator')).toBeVisible();
     await expect.poll(() => vm(page, 'sys.avatar').then((v) => (v as { name?: string } | undefined)?.name), { timeout: 30_000 }).toBe('Dee Test');
@@ -66,7 +67,8 @@ test.describe('creator @creator', () => {
     expect(stored['hair']).toEqual({ style: 'hair-waves', color: 4 });
     expect(stored['outfit']).toMatchObject({ top: 'top-bomber', accessory: 'acc-shades' });
     expect(stored['voice'].id).toBe('voice-deep');
-    await page.waitForTimeout(2500); // the manual autosave
+    // Done posts `save.avatar`; the sim writes `core` as a manual save (BD-M04b2-03). Reload only once that write is confirmed (BD-FIX-CI7-F01).
+    await waitForSave(page, 'core', since);
 
     await page.reload();
     await waitForEngineReady(page);

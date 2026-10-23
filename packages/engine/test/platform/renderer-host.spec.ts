@@ -257,6 +257,68 @@ describe('menu scene and frame loop', () => {
   });
 });
 
+describe('RendererHost GPU pacing (QA builds, BD-FIX-CI7-F03)', () => {
+  /** A WebGL2 fake whose backend carries a GL with fences the test signals by hand. */
+  function pacedHost(paceGpu: boolean) {
+    let finished = 0;
+    let next = 1;
+    const gl = {
+      SYNC_GPU_COMMANDS_COMPLETE: 1,
+      SYNC_STATUS: 2,
+      UNSIGNALED: 3,
+      fenceSync: () => next++ as unknown as WebGLSync,
+      getSyncParameter: (s: WebGLSync) => ((s as unknown as number) <= finished ? 4 : 3),
+      deleteSync: () => undefined,
+      flush: () => undefined,
+    };
+    const base = fakeFactory();
+    const factory = {
+      state: base.state,
+      create: ((o) => {
+        const r = base.create(o) as unknown as FakeRenderer;
+        (r.backend as { gl?: unknown }).gl = gl;
+        return r as never;
+      }) as ReturnType<typeof fakeFactory>['create'],
+    };
+    const t = host({ factory, paceGpu, qa: { gl: true, gpu: false, limits: {} } });
+    return { t, done: (n: number) => void (finished = n) };
+  }
+
+  it('holds a flat frame, listeners and hook included, while the GPU has two earlier frames to draw', async () => {
+    const { t, done } = pacedHost(true);
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    let renders = 0;
+    r.render = (() => {
+      renders += 1;
+    }) as never;
+    const hooks: number[] = [];
+    t.h.frameHook = (ms) => hooks.push(ms);
+    t.h.startLoop();
+    r.loop?.(10);
+    r.loop?.(20);
+    r.loop?.(30); // frames 1 and 2 are still on the GPU
+    r.loop?.(40);
+    expect(hooks).toEqual([10, 20]);
+    expect(t.h.pacedFrames).toBe(2);
+    done(1);
+    r.loop?.(50);
+    expect(hooks).toEqual([10, 20, 50]);
+    expect(renders).toBe(3);
+    expect(t.h.frames).toBe(3);
+  });
+
+  it('never holds a frame without paceGpu (production builds)', async () => {
+    const { t } = pacedHost(false);
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    t.h.startLoop();
+    for (let i = 1; i <= 5; i++) r.loop?.(i * 10);
+    expect(t.h.frames).toBe(5);
+    expect(t.h.pacedFrames).toBe(0);
+  });
+});
+
 describe('pixelRatioFor', () => {
   it('applies dprCap, maxPixelsMP and the render scale', () => {
     // mobile-low: dprCap 1.25, 0.8 MP. 400x800 css = 0.32 MP css, so the dpr cap wins.

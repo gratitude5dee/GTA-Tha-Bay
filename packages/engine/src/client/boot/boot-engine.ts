@@ -328,6 +328,19 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let router: InputRouterImpl | null = null;
   let overlay: TouchOverlay | null = null;
   let touchBinder: TouchBinder | null = null;
+  /**
+   * The touch layout the shell handed over (the profile's `controls.touch.layout`, M04b2; the shipped default until then) and the layout
+   * of the root mode when it brings its own (racing, M07a1). The mode's layout is shown while it runs and the player's comes back after;
+   * a `sys.mode` update never puts the default back over the player's choice (BD-FIX-CI7-F02).
+   */
+  let playerTouch: { layout: TouchLayout; labels?: Readonly<Record<string, string>>; opacity: number } = { layout: touchLayoutJson as unknown as TouchLayout, opacity: 1 };
+  let modeTouch: TouchLayout | null = null;
+  const applyTouch = (): void => {
+    const shown = modeTouch ?? playerTouch.layout;
+    touchBinder?.setLayout(shown);
+    if (modeTouch) overlay?.setLayout(modeTouch);
+    else overlay?.setLayout(playerTouch.layout, playerTouch.labels, playerTouch.opacity);
+  };
   let world: GrayboxWorld | null = null;
   let hostScene: RendererHost | null = null;
   let panel: SimPanel | null = null;
@@ -718,10 +731,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       warn: (m) => console.warn(m),
     });
     const { TouchOverlay: Overlay } = await overlayChunk;
-    const layout = touchLayoutJson as unknown as TouchLayout;
+    const layout = playerTouch.layout;
     overlay = new Overlay({
       container: document.body,
       layout,
+      opacity: playerTouch.opacity,
+      ...(playerTouch.labels ? { labels: playerTouch.labels } : {}),
       ...(opts.forceTouch ? { coarsePointer: () => true } : {}),
     });
     touchBinder = new TouchBinder({
@@ -745,9 +760,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     // A mode with its own touch layout (racing, M07a1) swaps it in while it is the root of the mode stack.
     cleanups.push(vm.subscribe('sys.mode', (v) => {
       const rootMode = (v as { stack?: { id: string }[] } | undefined)?.stack?.[0]?.id;
-      const next = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : layout;
-      overlay?.setLayout(next);
-      touchBinder?.setLayout(next);
+      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : null;
+      applyTouch();
     }));
     overlay.setEnabled(playing);
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
@@ -986,8 +1000,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       lastNow = -1;
     },
     setTouchLayout: (layout, labels) => {
-      touchBinder?.setLayout(layout);
-      overlay?.setLayout(layout, labels, (layout as { opacity?: number }).opacity ?? 1);
+      playerTouch = { layout, ...(labels ? { labels } : {}), opacity: (layout as { opacity?: number }).opacity ?? 1 };
+      applyTouch();
     },
     onAction: (cb) => {
       actionListeners.add(cb);

@@ -44,6 +44,24 @@ describe('engine/save.control (SimControlMessage and the write port)', () => {
     expect(await ctl.flush()).toBe(0);
   });
 
+  it('a posted write keeps the capability it was posted under when the capability changes before the flush (BD-FIX-CI7-F04)', async () => {
+    const svc = await openSvc(await newStore('memory'), { capability: 'sandbox', now: clock().now });
+    const p = await mkProfile(svc);
+    const ctl = new SaveControl({ service: async () => svc, collect: () => null });
+    // The idle menu's core save: the capability is raised for the post and lowered by the next tick, which can run before the flush.
+    ctl.setCapability('story');
+    ctl.post('core', { avatar: { name: 'Dee Test' } }, 'manual');
+    ctl.setCapability('sandbox');
+    ctl.post('sandbox', sandboxData(3), 'interval');
+    expect(await ctl.flush()).toBe(2);
+    expect(ctl.failures).toEqual([]);
+    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Dee Test' } });
+    // A write posted under a capability that does not allow its slot is still refused.
+    ctl.post('core', { avatar: null }, 'manual');
+    expect(await ctl.flush()).toBe(0);
+    expect(ctl.failures).toEqual([{ slot: 'core', error: 'NOT_ALLOWED' }]);
+  });
+
   it('SimRuntime hands save.request to the installed SaveControl between ticks and posts ctl.result', async () => {
     const workers: InProcessWorker[] = [];
     const host = new SimHostImpl({ spawn: () => { const w = new InProcessWorker(); workers.push(w); return w; }, sab: true, qa: false });
