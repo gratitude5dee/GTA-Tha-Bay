@@ -177,6 +177,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M04d | F-014 | QA harness: headless canonical sim, state hash, autoplayer bots, goldens; deterministic Rapier build | U-ENG-1 |
 | M14c | none | accessibility and i18n gates; no external-system fact | — |
 | M15a to M15g | F-017, F-023, F-053, F-054 | same grid, packs and OSM and DataSF sources; other counties' open data is not in the ledger and is listed when those specs are written | — |
+| e2e harness, all milestones (fix D, BD-FIX-CI7-D01) | none (Playwright docs, read 2026-10-23) | `page.route()` "will not intercept requests intercepted by Service Worker"; the docs recommend "disabling Service Workers when using request interception by setting serviceWorkers to 'block'" (https://playwright.dev/docs/api/class-page#page-route). The test option `serviceWorkers` is `'allow'` (default) or `'block'`, and `'block'` makes Playwright "block all registration of Service Workers" (https://playwright.dev/docs/api/class-testoptions#test-options-service-workers). Requests the service worker itself makes are reported on the BrowserContext, and those network events are documented for Chromium only (https://playwright.dev/docs/service-workers); a frame request the worker answers is not routable. `playwright.config.ts` therefore blocks service workers and the service-worker specs (`tests/e2e/shell.spec.ts`) allow them | — |
 
 Rows that say "none" depend on no external system: their proofs are repository commands over pure code or authored data.
 

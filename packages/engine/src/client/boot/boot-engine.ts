@@ -398,6 +398,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   // FirstGestureUnlock (M04c): the single first-gesture handler; it unlocks the audio service and the video pool.
   const media = createFirstGestureUnlock({ audio: audio ?? { unlock: () => Promise.resolve() } });
   cleanups.push(media.attach(window));
+  // QA `?mission=<id>` (QA builds only): the mission starts at boot with no Title, so no tap unlocks the pool before its first beat. The
+  // stand-in unlock starts here, as the Title tap would come before a player's first mission, and not when the beat is requested:
+  // section D7 counts the 2.5 s answer window from the sim's request, and on WebKit the blank plays alone take 1.5 s (BD-FIX-CI7-D02).
+  if (import.meta.env.VITE_DV_QA === '1' && opts.qa && opts.mission) {
+    void media.trigger().catch(() => undefined);
+  }
   if (audio) cleanups.push(audio.attachLifecycle(document, () => document.visibilityState));
 
   const spawn = opts.spawn ?? spawnSimWorker;
