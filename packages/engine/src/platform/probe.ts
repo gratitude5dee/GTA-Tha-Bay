@@ -55,6 +55,8 @@ export interface PlatformBridge {
   signals(): DeviceSignals;
   /** Counters from `renderer.info.memory` plus registered wasm bytes. */
   memory(): MemoryCounters;
+  /** Flat frames drawn and frames the GPU pacer held back (QA builds on WebGL2, BD-FIX-CI7-F03). */
+  pacing(): { frames: number; held: number };
   gpuProbe(): Promise<GpuProbeResult>;
   perf: {
     run(id: string, opts?: { durationS?: number; warmupS?: number }): Promise<PerfReport>;
@@ -318,6 +320,7 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     depthPolicy: () => host.depthPolicy,
     signals: () => platform.profile.signals,
     memory: () => platform.memory(),
+    pacing: () => ({ frames: host.frames, held: host.pacedFrames }),
 
     async gpuProbe() {
       if (lastProbe) return lastProbe;
