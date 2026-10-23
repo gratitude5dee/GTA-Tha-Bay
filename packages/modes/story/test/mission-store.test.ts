@@ -105,6 +105,13 @@ describe('the story controller triggers', () => {
     expect(c.rt?.missionId).toBe('m.a1.02');
   });
 
+  it('publishes the Jobs list when the mode enters, before any tick (a pause right after the start stops the ticks; BD-FIX-CI9-W02)', () => {
+    const { h } = rig(12, { triggers: false });
+    expect(rows(h).map((r) => [r.id, r.state])).toEqual([
+      ['m.a1.01', 'available'], ['m.a1.02', 'locked'], ['m.a1.03', 'locked'], ['m.a1.04', 'locked'], ['m.a1.05', 'locked'], ['m.a1.06', 'locked'],
+    ]);
+  });
+
   it('QA scenes with the triggers off start nothing by themselves', () => {
     const { h, c } = rig(12, { triggers: false });
     c.advance(h.ctx);

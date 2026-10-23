@@ -150,10 +150,16 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     // Pause opens and the sim tick stops.
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-    const t0 = (await observe(page)).stats.tick;
+    // The pause reaches the sim with the page's next frame signal, and the sim's tick reaches the page in its stats reports, which on a
+    // software GPU can be seconds apart. Count from the sim's own report that it runs paused (posted when the pause reaches it,
+    // BD-FIX-CI9-W04), then check both the reported tick and the newest snapshot's tick over the window.
+    await expect.poll(async () => (await observe(page)).simPaused, { timeout: 30_000 }).toBe(true);
+    const o0 = await observe(page);
     await page.waitForTimeout(800);
-    const t1 = (await observe(page)).stats.tick;
-    expect(t1 - t0).toBeLessThanOrEqual(1);
+    const o1 = await observe(page);
+    expect(o1.simPaused).toBe(true);
+    expect(o1.stats.tick - o0.stats.tick).toBeLessThanOrEqual(1);
+    expect(o1.tick - o0.tick).toBeLessThanOrEqual(1);
     await page.screenshot({ path: testInfo.outputPath('pause.png') });
 
     // Save is disabled away from a safehouse, with its reason text.

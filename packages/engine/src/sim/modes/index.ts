@@ -546,6 +546,10 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
     onDebug(cmd: DebugCommand) {
       if (cmd.t !== 'debug.modes' || !qaHandler || !host || !economy || !unlocks || !reply) return;
       qaHandler({ host, economy, unlocks, ui, telemetry }, cmd, reply);
+      // A debug command runs between ticks and the runtime sends the UI outbox right after it: the patches it raised leave with its
+      // toasts, as a `command` does above (BD-FIX-CI9-W01). Before, the unlock helper's `unlock` toast left at once and its `sys.unlocks`
+      // patch only at the next tick's flush, so the page showed the toast while the unlock list was still the old one.
+      ui?.flushTick();
     },
   };
   return module;

@@ -103,10 +103,13 @@ test.describe('modes @modes', () => {
       )
       .toBe('modeExit');
 
-    // telemetry: queued with registry names and props only
+    // telemetry: queued with registry names and props only. The sim's events, telemetry among them, reach the page with the next frame
+    // group (SimRuntime.postSimEvents), while the Idle state left with the quit command's UI outbox and the save resolves on its own:
+    // wait for the mode.exit event, then check every event (BD-FIX-CI9-W03).
+    await expect
+      .poll(async () => (await modes(page, (m) => m.telemetry())).map((t) => t.name), { timeout: 10_000 })
+      .toEqual(expect.arrayContaining(['mode.enter', 'mode.exit', 'unlock.emit']));
     const tel = await modes(page, (m) => m.telemetry());
-    const names = tel.map((t) => t.name);
-    expect(names).toEqual(expect.arrayContaining(['mode.enter', 'mode.exit', 'unlock.emit']));
     for (const t of tel) {
       if (t.name === 'mode.enter') expect(Object.keys(t.props)).toEqual(['mode']);
       if (t.name === 'mode.exit') expect(t.props).toEqual({ mode: 'sandbox', reason: 'quit' });

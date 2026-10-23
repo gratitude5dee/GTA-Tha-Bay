@@ -127,6 +127,9 @@ export class StoryController {
     this.places.reset();
     const cfg = this.env.bootConfig()['story'] as CatalogPayload | undefined;
     this.store = cfg && typeof cfg === 'object' && Array.isArray(cfg.missions) ? new MissionStore(cfg) : null;
+    // The Jobs list is there from the tick the mode enters, not from the first trigger pass up to 30 ticks later: a pause in between
+    // stops the ticks, and the phone's Jobs app then listed no mission for the whole pause (BD-FIX-CI9-W02).
+    if (this.store) this.publishJobs(ctx, this.store, story, null);
   }
 
   /** `?mission=<id>` in a QA build: the page put the IR in the boot payload. */
@@ -234,14 +237,16 @@ export class StoryController {
     } else {
       this.checkTriggers(ctx, store, story);
     }
-    if (ctx.tick % (TRIGGER_EVERY * 2) === 0) {
-      const rows: JobRow[] = store.rows(story, ctx, busy ? (this.rt?.missionId ?? null) : null);
-      const json = JSON.stringify(rows);
-      if (json !== this.jobsJson) {
-        this.jobsJson = json;
-        ctx.ui.patch('mode.story.jobs', rows as unknown as JsonValue);
-      }
-    }
+    if (ctx.tick % (TRIGGER_EVERY * 2) === 0) this.publishJobs(ctx, store, story, busy ? (this.rt?.missionId ?? null) : null);
+  }
+
+  /** `mode.story.jobs`, when the rows changed since the last patch. */
+  private publishJobs(ctx: ModeContext, store: MissionStore, story: StorySlice, activeId: string | null): void {
+    const rows: JobRow[] = store.rows(story, ctx, activeId);
+    const json = JSON.stringify(rows);
+    if (json === this.jobsJson) return;
+    this.jobsJson = json;
+    ctx.ui.patch('mode.story.jobs', rows as unknown as JsonValue);
   }
 
   private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {

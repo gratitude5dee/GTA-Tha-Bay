@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { LocalPlayer, Transform } from '../../src/sim/ecs/components.ts';
 import { CIVIC_GRAYBOX } from '../../src/sim/scenarios/civic-graybox.ts';
 import { NotYetAvailable, createModesModule } from '../../src/sim/modes/index.ts';
+import { runModesQa } from '../../src/sim/modes/qa.ts';
 import type { SimModuleContext, SimRuntime } from '../../src/sim/runtime.ts';
 import { createGrayboxSim, fixtureChunks } from '../graybox-helpers.ts';
 import { fixtureDescriptor, fixtureSim, makeRig, newLog } from './fixture.ts';
@@ -134,6 +135,30 @@ describe('modes module on the booted civic-graybox scenario (DL-668)', () => {
     // QA unlockAll is off here (no boot flag) and the quit leaves a modeExit save request
     modes.command({ t: 'mode.quit' });
     expect(host?.state).toBe('Idle');
+    sim.dispose();
+  });
+
+  it('the QA unlock helper sends its sys.unlocks patch in the same outbox as its toast, between ticks (BD-FIX-CI9-W01)', async () => {
+    const sim = await createGrayboxSim();
+    const modes = createModesModule();
+    modes.installQa?.(runModesQa);
+    for (const def of modes.systems) sim.core.addSystem(def);
+    const posted: unknown[] = [];
+    const runtime = {
+      env: { qa: true, modules: [] as never[], log: undefined },
+      saveControl: null,
+      transport: { postEvent: (m: unknown) => void posted.push(m) },
+      uiCommand: null,
+      uiOutbox: null,
+    } as unknown as SimRuntime;
+    await modes.onInit?.({ sim, cfg: sim.core.cfg, boot: { strings: [], prefabs: [], config: {} }, runtime, ports: {} } as SimModuleContext);
+    sim.step(2);
+    runtime.uiOutbox?.();
+    // what SimRuntime.debug does: the modules' onDebug, then the UI outbox, with no tick in between
+    modes.onDebug?.({ t: 'debug.modes', id: 1, op: 'unlock', args: { id: 'unlock.racing' } });
+    const out = runtime.uiOutbox?.();
+    expect(out?.toasts.map((t) => t.kind)).toEqual(['unlock']);
+    expect(out?.patches.find((p) => p.k === 'sys.unlocks')?.v).toEqual(['unlock.racing']);
     sim.dispose();
   });
 });

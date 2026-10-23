@@ -76,6 +76,12 @@ export interface StatsReport {
   bodies: number;
   /** Messages the worker dropped: events that did not fit the event ring. */
   eventsDropped: number;
+  /**
+   * The frame group this report closes ran paused (the page's pause reached the sim). The runtime also posts a report on the first frame
+   * group of each pause and of each resume, so the page learns the tick the sim stopped at without waiting for the regular report
+   * (BD-FIX-CI9-W04).
+   */
+  paused: boolean;
 }
 
 /**
@@ -240,7 +246,7 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
     case 'ready':
       return isObject(p) && (p['physicsBuild'] === 'simd-compat' || p['physicsBuild'] === 'deterministic-compat') && (p['transport'] === 'sab' || p['transport'] === 'postMessage');
     case 'stats':
-      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']);
+      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']) && typeof p['paused'] === 'boolean';
     case 'ctl.result':
       return isObject(p) && p['t'] === 'save.result' && (p['ok'] === true ? isInt(p['slots']) : p['ok'] === false && typeof p['reason'] === 'string' && SAVE_RESULT_REASONS.has(p['reason']));
     case 'log':
