@@ -86,6 +86,22 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     expect((await w.client.usage()).packs).toBe(1);
   });
 
+  it('every reply carries the network bytes so far: bytesSeen is current when the result is used, with no stats round trip (BD-FIX-CI9-T01)', async () => {
+    const w = await world();
+    expect(w.client.bytesSeen).toBe(0);
+    // the reply that hands over the pack already counts its bytes (and the catalog fetched on the way)
+    const seenAtResult = await w.client.get(w.packRef, { priority: 'now' }).then(() => w.client.bytesSeen);
+    const { bytes } = await w.client.stats();
+    expect(bytes).toBeGreaterThanOrEqual(w.bytes.byteLength);
+    expect(seenAtResult).toBe(bytes);
+    // a store hit downloads nothing: the count stays
+    await w.client.get(w.packRef);
+    expect(w.client.bytesSeen).toBe(bytes);
+    // a failed request carries the count too
+    await expect(w.client.get('world_pack/none')).rejects.toThrow();
+    expect(w.client.bytesSeen).toBe(bytes);
+  });
+
   it('a PackRef with a wrong hash rejects with hash-mismatch and usage is unchanged', async () => {
     const w = await world();
     const ref = await w.client.resolve(w.packRef);

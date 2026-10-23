@@ -210,9 +210,9 @@ export class AssetService {
     this.aborts.set(msg.id, ac);
     try {
       const out = await this.dispatch(msg, ac.signal);
-      this.d.post({ t: 'res', id: msg.id, ok: true, result: out.result }, out.transfer);
+      this.d.post({ t: 'res', id: msg.id, ok: true, result: out.result, bytes: this.stats().bytes }, out.transfer);
     } catch (e) {
-      this.d.post({ t: 'res', id: msg.id, ok: false, error: toWire(e) });
+      this.d.post({ t: 'res', id: msg.id, ok: false, error: toWire(e), bytes: this.stats().bytes });
     } finally {
       this.aborts.delete(msg.id);
     }

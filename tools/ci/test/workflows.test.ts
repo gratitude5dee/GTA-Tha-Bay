@@ -232,6 +232,35 @@ describe('nightly.yml (AC-8)', () => {
   });
 });
 
+describe('Playwright system packages come from the Actions cache (BD-FIX-CI9-T02)', () => {
+  const RESTORE = /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}\n\s+restore-keys: pw-apt-\$\{\{ runner\.os \}\}-\n/;
+  const CONF = 'echo "Dir::Cache::archives \\"$HOME/.cache/dv-pw-apt/\\";" | sudo tee /etc/apt/apt.conf.d/99dv-pw-apt > /dev/null';
+  const SAVE = /- if: steps\.pw-apt\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}\n/;
+
+  for (const f of ['ci.yml', 'nightly.yml', 'preview.yml']) {
+    it(`${f}: every install with --with-deps restores the apt archives first, points apt at them and saves them right after`, () => {
+      const jobs = jobsOf(wf(f));
+      let installs = 0;
+      for (const [name, job] of Object.entries(jobs)) {
+        const install = job.indexOf('pnpm exec playwright install --with-deps');
+        if (install < 0) continue;
+        installs++;
+        const restore = job.search(RESTORE);
+        const conf = job.indexOf(CONF);
+        const save = job.search(SAVE);
+        expect(restore, `${f} ${name}: restore`).toBeGreaterThan(-1);
+        expect(conf, `${f} ${name}: apt config`).toBeGreaterThan(restore);
+        expect(job.indexOf('mkdir -p ~/.cache/dv-pw-apt/partial'), `${f} ${name}: partial dir`).toBeGreaterThan(restore);
+        expect(install, `${f} ${name}: install after the apt config`).toBeGreaterThan(conf);
+        expect(save, `${f} ${name}: save right after the install`).toBeGreaterThan(install);
+        // nothing runs between the install step and the save
+        expect(stepsOf(job).findIndex((s) => SAVE.test(`${s}\n`)), `${f} ${name}`).toBe(stepsOf(job).findIndex((s) => s.includes('playwright install --with-deps')) + 1);
+      }
+      expect(installs, f).toBeGreaterThan(0);
+    });
+  }
+});
+
 /** The step blocks of one job: each from its `- ` line to the next one. */
 function stepsOf(job: string): string[] {
   const out: string[] = [];
