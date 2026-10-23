@@ -13,7 +13,7 @@ import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
-import { createPwaUpdateController } from './pwa-update.ts';
+import { afterWindowLoad, createPwaUpdateController } from './pwa-update.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -479,8 +479,10 @@ function termsAccepted(): void {
 
 startEngine();
 
+// The service worker registers after the window has loaded. The `await loadPrefs()` above can let `load` fire before this line runs,
+// so afterWindowLoad registers at once in that case (BD-FIX-CI6-C01).
 if (update && import.meta.env.PROD) {
-  addEventListener('load', () => {
+  afterWindowLoad(document, window, () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
       .then((registration) => {
