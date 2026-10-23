@@ -28,6 +28,21 @@ export interface AttachablePwaUpdateController extends PwaUpdateController {
   attach(reg: RegistrationLike): void;
 }
 
+/** The slices of `document` and `window` that {@link afterWindowLoad} reads. */
+export interface LoadTarget {
+  addEventListener(type: 'load', fn: () => void, opts?: { once?: boolean }): void;
+}
+
+/**
+ * Runs `fn` once the window has loaded: at once when `load` has already fired, otherwise on `load`. The entry module awaits the stored
+ * preferences at top level (M04b1), and a module's top-level await does not hold back the window's `load` event, so a plain
+ * `addEventListener('load', ...)` placed after that await can be added too late and never run (BD-FIX-CI6-C01).
+ */
+export function afterWindowLoad(doc: { readonly readyState: string }, win: LoadTarget, fn: () => void): void {
+  if (doc.readyState === 'complete') fn();
+  else win.addEventListener('load', fn, { once: true });
+}
+
 /**
  * PwaUpdateController (11-platform-pwa.md section 4), prompt-style updates:
  * a new worker waits until `applyNow()`; applying is refused while the game is unsafe (mid-mission)
