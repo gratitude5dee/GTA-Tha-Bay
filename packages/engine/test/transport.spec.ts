@@ -149,7 +149,11 @@ describe('stats reports and the pause (BD-FIX-CI9-W04)', () => {
     const runtime = new SimRuntime(attachSabWorker(init), env);
     await runtime.boot(cfg(), BOOT);
     const reports: { tick: number; paused: boolean }[] = [];
-    const drain = (): void => main.drainEvents((m: FromWorkerMessage) => void (m.t === 'stats' && reports.push({ tick: m.p.stats.tick, paused: m.p.paused })));
+    const drain = (): void => {
+      main.drainEvents((m: FromWorkerMessage) => {
+        if (m.t === 'stats') reports.push({ tick: m.p.stats.tick, paused: m.p.paused });
+      });
+    };
     const frame = (f: number, paused: boolean): void => {
       expect(main.sendFrame({ frame: f, nowMs: f * 50, dtSec: 0.05, paused, timeScale: 1 })).toBe(true);
       runtime.pump();
