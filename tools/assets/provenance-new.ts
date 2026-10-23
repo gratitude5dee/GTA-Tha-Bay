@@ -4,8 +4,11 @@
  * assets/provenance/<sha[0:2]>/<sha>.json.
  *
  *   tsx tools/assets/provenance-new.ts <file> --origin authored --kind ui --license LicenseRef-DeeVerse-Owned
- *       --author studio:dee-verse [--path <repo path>] [--derived-from <sha256>]... [--tool name@version]
+ *       --author studio:dee-verse [--path <repo path>]... [--derived-from <sha256>]... [--tool name@version]
  *       [--attribution <text>] [--source-url <url>] [--dataset-id <id>] [--created-at <iso>] [--dry-run]
+ *
+ * `--path` repeats: a file the Vite build bundles under a content-hashed name lists both its repo path and its dist path
+ * (`assets/<name>-<hash>.<ext>`), because provenance:check joins each dist file to a record path (BD-FIX-CI4-F02).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -60,7 +63,7 @@ function main(): void {
       kind: { type: 'string' },
       license: { type: 'string' },
       author: { type: 'string', multiple: true },
-      path: { type: 'string' },
+      path: { type: 'string', multiple: true },
       'derived-from': { type: 'string', multiple: true },
       tool: { type: 'string' },
       attribution: { type: 'string' },
@@ -77,7 +80,7 @@ function main(): void {
   }
   const abs = path.resolve(file);
   const sha = sha256Hex(readFileSync(abs));
-  const rel = values.path ?? path.relative(toolsRoot, abs).split(path.sep).join('/');
+  const paths = values.path?.length ? values.path : [path.relative(toolsRoot, abs).split(path.sep).join('/')];
   let tool: NewRecordInput['tool'];
   if (values.tool) {
     const at = values.tool.lastIndexOf('@');
@@ -90,7 +93,7 @@ function main(): void {
   const now = values['created-at'] ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   const rec = buildRecord({
     sha256: sha,
-    paths: [rel],
+    paths,
     kind: values.kind as AssetKind,
     origin: values.origin as Origin,
     license: values.license,

@@ -3,7 +3,8 @@
  * its result files; a band that ends before the bot's finish gives `out_of_band`, a mission with a compiler error gives
  * `compile_error`, a run that cannot finish names the objective it is stuck on, and two runs that differ give `hash_mismatch`.
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -127,4 +128,20 @@ describe('the bundled recording of the QA scrub page', () => {
     const kept = readFileSync(path.join(repoRoot, 'tests', 'fixtures', 'missions', 'm.dev.sample.1.dvtl'));
     expect(kept.equals(fresh)).toBe(true);
   }, 120_000);
+
+  // The scrub page bundles every recording (import.meta.glob), so each is ship set of the QA dist that the CI ip job gates with
+  // provenance:check. A re-recorded file has new bytes and needs a new record (pnpm provenance:new with the fixture path and the
+  // dist path, BD-FIX-CI4-F02); this catches a missing one before the build does.
+  it('every tests/fixtures/missions/*.dvtl has a provenance record that lists its repo path', () => {
+    const dir = path.join(repoRoot, 'tests', 'fixtures', 'missions');
+    const files = readdirSync(dir).filter((f) => f.endsWith('.dvtl')).sort();
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) {
+      const sha = createHash('sha256').update(readFileSync(path.join(dir, f))).digest('hex');
+      const rec = path.join(repoRoot, 'assets', 'provenance', sha.slice(0, 2), `${sha}.json`);
+      expect(existsSync(rec), `${f}: no record ${path.relative(repoRoot, rec)}`).toBe(true);
+      const paths = (JSON.parse(readFileSync(rec, 'utf8')) as { paths: string[] }).paths;
+      expect(paths, f).toContain(`tests/fixtures/missions/${f}`);
+    }
+  });
 });
