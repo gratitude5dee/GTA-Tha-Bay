@@ -261,6 +261,7 @@ async function boot(): Promise<void> {
           mission: Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]),
           ui: import('@dv/ui/xr-qa'),
           world: prepared ? import('@dv/world/client/bridge') : null,
+          missionGate: prepared && flags.mission ? import('./qa/mission-gate.ts') : null,
         }
       : null;
   // Some of these are awaited only when the engine starts (or has a panels host), so an engine that fails leaves them unawaited, and the
@@ -287,7 +288,7 @@ async function boot(): Promise<void> {
     container,
     qa: QA,
     flags,
-    // With a streamed world the boot mission waits for the page's release below (DL-715); the gray-box scenes start it at once.
+    // With a streamed world the boot mission waits for the page's mission gate below (DL-715); the gray-box scenes start it at once.
     ...(qaMission ? { mission: prepared ? { ...qaMission, hold: true } : qaMission } : {}),
     // The Act 1 mission catalog: the Jobs list, the start markers and the auto start (M05c1). A QA build turns the triggers on with `?story=1`.
     story: story,
@@ -377,14 +378,18 @@ async function boot(): Promise<void> {
     cutSink = cutscenes.handleEvents;
     if (cutBacklog.length > 0) cutscenes.handleEvents(cutBacklog.splice(0));
   }
-  // QA `?mission=<id>` on a streamed world (DL-715, M05b2 AC-8): the mission and its first beat start in the order a player's game runs
-  // in. The player's first gesture at the Title unlocks the media pool long before any beat; a QA page skips the Title, so the stand-in
-  // unlock runs here, at boot. A mission beat triggers inside a revealed world, so the held mission is released after the reveal.
-  if (import.meta.env.VITE_DV_QA === '1' && engine && qaMission && prepared) {
-    const view = prepared.view;
-    void Promise.all([engine.media.trigger().catch(() => undefined), view.whenRevealed()]).then(() =>
-      engine.sendUi({ t: 'mode.cmd', mode: 'story', name: 'debug.release' }),
-    );
+  // QA `?mission=<id>` on a streamed world (DL-715 as amended, M05b2 AC-8): the held boot mission, and so its first beat, starts in
+  // the order a player's game runs in: after a real first gesture has run the product's media unlock and after the world reveal. The
+  // page never unlocks media on its own; a spec presses the Title's Start as a player does. Past the deadline the gate says why not.
+  if (import.meta.env.VITE_DV_QA === '1' && engine && qaMission && prepared && qaChunks?.missionGate) {
+    const { createMissionGate } = await qaChunks.missionGate;
+    const gate = createMissionGate({
+      gesture: engine.media.ready,
+      revealed: prepared.view.whenRevealed(),
+      release: () => engine.sendUi({ t: 'mode.cmd', mode: 'story', name: 'debug.release' }),
+    });
+    const w = window as unknown as { __dvBridge?: Record<string, unknown> };
+    w.__dvBridge = { ...(w.__dvBridge ?? {}), missionGate: { state: () => gate.state() } };
   }
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });

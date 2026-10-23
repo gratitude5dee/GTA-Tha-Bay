@@ -172,12 +172,9 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
         const refs = (e.s ?? '').split(',').map((r) => (r === '' ? null : r));
         note({ k: 'request', n: e.n, refs });
         const fallbacks = refs.map((r) => index?.entries.find((x) => x.ref === r)?.fallback ?? '');
-        const play = async (): Promise<void> => {
-          // QA pages skip the Title, so nothing has unlocked the pooled elements; a player's page has (FirstGestureUnlock).
-          if (o.qa && !engine.media.state().unlocked) await engine.media.trigger().catch(() => undefined);
-          await player.request(String(e.n), refs as (CutsceneRefId | null)[], fallbacks);
-        };
-        void play().catch((err: unknown) => console.warn('cutscene request failed', err));
+        // The pooled elements are the ones the first gesture unlocked (FirstGestureUnlock); the page never unlocks them itself, in QA
+        // builds either: a QA boot mission's beat waits for a real gesture (qa/mission-gate.ts, DL-715 as amended).
+        void player.request(String(e.n), refs as (CutsceneRefId | null)[], fallbacks).catch((err: unknown) => console.warn('cutscene request failed', err));
       } else if (e.t === 'cut.done' && e.n !== undefined) {
         note({ k: 'done', n: e.n });
         const key = doneKey(e.n, e.s);
