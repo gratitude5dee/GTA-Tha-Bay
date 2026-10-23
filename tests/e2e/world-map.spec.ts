@@ -238,13 +238,27 @@ test.describe('map attribution and credits @world-attribution', () => {
     // the boot splash: an in-page observer stamps the moment the line appears and the moment it goes (the test's own polling would
     // add the delays of a software-rendered boot that keeps the main thread busy)
     await page.addInitScript(() => {
-      const w = window as unknown as { __splash: { on?: number; off?: number } };
+      const w = window as unknown as { __splash: { on?: number; off?: number }; __corner: Record<string, number> };
       w.__splash = {};
+      w.__corner = {};
       new MutationObserver(() => {
         const here = document.querySelector('[data-testid="attribution-splash"]') !== null;
         if (here && w.__splash.on === undefined) w.__splash.on = performance.now();
         if (!here && w.__splash.on !== undefined && w.__splash.off === undefined) w.__splash.off = performance.now();
-      }).observe(document, { childList: true, subtree: true });
+        const corner = document.querySelector('[data-testid="map-attribution"]')?.getAttribute('data-state');
+        if (corner === 'expanded' && w.__corner.open === undefined) {
+          w.__corner.open = performance.now();
+          requestAnimationFrame((t) => { w.__corner.frame = t; w.__corner.frameNow = performance.now(); });
+        }
+        if (corner === 'collapsed' && w.__corner.open !== undefined && w.__corner.collapsed === undefined) {
+          w.__corner.collapsed = performance.now();
+          requestAnimationFrame((t) => { w.__corner.cframe = t; });
+        }
+      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] });
+      document.addEventListener('click', (e) => {
+        const t = (e.target as Element | null)?.closest?.('[data-testid="row-phone-apps-map"]');
+        if (t) w.__corner.click = performance.now();
+      }, true);
     });
     await page.setViewportSize(SMALL_VIEWPORT);
     await page.goto('/?debug=1&tier=mobile-low', { waitUntil: 'commit' });
@@ -270,7 +284,9 @@ test.describe('map attribution and credits @world-attribution', () => {
     const opened = Date.now();
     await expect(attrib).toHaveAttribute('data-state', 'collapsed', { timeout: 10_000 });
     const waited = Date.now() - opened;
-    expect(waited, `corner collapsed after about 5 s (${waited} ms)`).toBeGreaterThanOrEqual(3500);
+    const cs = await page.evaluate(() => (window as unknown as { __corner: Record<string, number> }).__corner);
+    console.log(`DIAG corner ${JSON.stringify(cs)} open->collapsed=${(cs.collapsed! - cs.open!).toFixed(1)} frame->collapsed=${(cs.collapsed! - cs.frame!).toFixed(1)} frame->cframe=${(cs.cframe! - cs.frame!).toFixed(1)} click->open=${(cs.open! - cs.click!).toFixed(1)} test=${waited}`);
+    expect(waited,`corner collapsed after about 5 s (${waited} ms)`).toBeGreaterThanOrEqual(3500);
     await expect(page.getByTestId('map-attribution-text')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('map-collapsed.png') });
     await page.getByTestId('map-attribution-toggle').click();
