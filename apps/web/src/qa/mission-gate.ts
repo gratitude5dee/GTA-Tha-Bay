@@ -24,6 +24,8 @@ export interface MissionGateState {
   reason: string | null;
   /** Milliseconds from the gate's creation to the release, null before it. */
   releasedAfterMs: number | null;
+  /** Milliseconds from the gate's creation to each condition, null while it is outstanding. */
+  after: Record<MissionGateWait, number | null>;
 }
 
 export interface MissionGateOptions {
@@ -63,6 +65,7 @@ export function createMissionGate(o: MissionGateOptions): MissionGate {
   let state: MissionGateState['state'] = 'waiting';
   let reason: string | null = null;
   let releasedAfterMs: number | null = null;
+  const after: Record<MissionGateWait, number | null> = { gesture: null, reveal: null };
 
   const timer = arm(() => {
     if (state !== 'waiting') return;
@@ -73,7 +76,8 @@ export function createMissionGate(o: MissionGateOptions): MissionGate {
   }, deadlineMs);
 
   const done = (what: MissionGateWait): void => {
-    waiting.delete(what);
+    if (!waiting.delete(what)) return;
+    after[what] = Math.round(now() - t0);
     if (state !== 'waiting' || waiting.size > 0) return;
     state = 'released';
     releasedAfterMs = Math.round(now() - t0);
@@ -84,6 +88,6 @@ export function createMissionGate(o: MissionGateOptions): MissionGate {
   void o.revealed.then(() => done('reveal'), () => undefined);
 
   return {
-    state: () => ({ state, waiting: [...waiting], reason, releasedAfterMs }),
+    state: () => ({ state, waiting: [...waiting], reason, releasedAfterMs, after: { ...after } }),
   };
 }

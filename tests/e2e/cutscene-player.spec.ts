@@ -29,7 +29,7 @@ interface Cutscene {
   stillSrc(): string | null;
 }
 interface MissionGate {
-  state(): { state: 'waiting' | 'released' | 'expired'; waiting: string[]; reason: string | null; releasedAfterMs: number | null };
+  state(): { state: 'waiting' | 'released' | 'expired'; waiting: string[]; reason: string | null; releasedAfterMs: number | null; after: Record<'gesture' | 'reveal', number | null> };
 }
 type W = { __dvBridge: { cutscene: Cutscene; mission: MissionBridge; missionGate?: MissionGate } };
 
