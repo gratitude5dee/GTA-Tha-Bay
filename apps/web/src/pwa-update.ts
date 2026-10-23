@@ -28,6 +28,15 @@ export interface AttachablePwaUpdateController extends PwaUpdateController {
   attach(reg: RegistrationLike): void;
 }
 
+/**
+ * Whether `register()` resolved with a registration the controller can attach to. Where the browser context does not let the page
+ * register a worker it resolves with nothing (Playwright's `serviceWorkers: 'block'`, which every e2e spec without @pwa or @coi runs
+ * under, BD-FIX-CI7-D01); there is then nothing to attach to and nothing to report (BD-FIX-CI8-G03).
+ */
+export function isRegistration(reg: unknown): reg is RegistrationLike & { update(): Promise<unknown> } {
+  return typeof reg === 'object' && reg !== null && typeof (reg as { addEventListener?: unknown }).addEventListener === 'function' && typeof (reg as { update?: unknown }).update === 'function';
+}
+
 /** The slices of `document` and `window` that {@link afterWindowLoad} reads. */
 export interface LoadTarget {
   addEventListener(type: 'load', fn: () => void, opts?: { once?: boolean }): void;

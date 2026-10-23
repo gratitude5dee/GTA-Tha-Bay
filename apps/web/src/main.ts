@@ -13,7 +13,7 @@ import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
-import { afterWindowLoad, createPwaUpdateController } from './pwa-update.ts';
+import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -495,7 +495,9 @@ if (update && import.meta.env.PROD) {
   afterWindowLoad(document, window, () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
-      .then((registration) => {
+      .then((registration: unknown) => {
+        // A context that blocks service workers resolves with no registration: nothing to attach to (BD-FIX-CI8-G03).
+        if (!isRegistration(registration)) return;
         update.attach(registration);
         const check = (): void => void registration.update().catch(() => {});
         setInterval(check, 60 * 60 * 1000);

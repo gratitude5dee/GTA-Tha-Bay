@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   afterWindowLoad,
   createPwaUpdateController,
+  isRegistration,
   SKIP_WAITING_MESSAGE,
   type ContainerLike,
   type RegistrationLike,
@@ -158,5 +159,18 @@ describe('afterWindowLoad', () => {
       win.fireLoad();
       expect(fn).toHaveBeenCalledTimes(1);
     }
+  });
+});
+
+describe('isRegistration (BD-FIX-CI8-G03)', () => {
+  it('rejects what register() resolves with in a context that blocks service workers', () => {
+    expect(isRegistration(undefined)).toBe(false);
+    expect(isRegistration(null)).toBe(false);
+    expect(isRegistration({})).toBe(false);
+    expect(isRegistration({ addEventListener: () => undefined })).toBe(false);
+  });
+
+  it('accepts a registration with addEventListener and update', () => {
+    expect(isRegistration({ waiting: null, installing: null, addEventListener: () => undefined, update: () => Promise.resolve() })).toBe(true);
   });
 });
