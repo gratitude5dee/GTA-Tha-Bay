@@ -125,6 +125,8 @@ export interface EngineObservation {
   crashed: string | null;
   recovering: boolean;
   paused: boolean;
+  /** The sim's own word (its newest stats report): the frame group that report closes ran paused. The page's `paused` reaches it with the next frame signal. */
+  simPaused: boolean;
   rebases: number;
   eventsDropped: number;
   commandsDropped: number;
@@ -936,6 +938,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         crashed: host.crashed,
         recovering,
         paused,
+        simPaused: report?.paused ?? false,
         rebases: report?.rebases ?? 0,
         eventsDropped: host.transport?.counters.eventsDropped ?? 0,
         commandsDropped: host.transport?.counters.commandsDropped ?? 0,

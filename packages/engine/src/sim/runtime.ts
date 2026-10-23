@@ -93,6 +93,8 @@ export class SimRuntime {
   sim: PhysicsSim | null = null;
   cfg: SimConfig | null = null;
   framesHandled = 0;
+  /** Whether the last frame group ran paused (`FrameSignal.paused`). */
+  private paused = false;
   /** QA input source (BotInput, C03 1.1). Replaces the page's input block while set. */
   bot: BotInput | null = null;
   /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
@@ -218,7 +220,11 @@ export class SimRuntime {
     this.framesHandled++;
     this.postSimEvents();
     this.postUi();
-    if (++this.frameGroups % STATS_EVERY_FRAMES === 0) this.postStats();
+    // A report every STATS_EVERY_FRAMES frame groups, and one at once when a pause or a resume reaches the sim: on a slow page (a software
+    // GPU at a few frames a second) the regular report can be seconds old, and the tick the sim stopped at would only show in the next one.
+    const turned = sig.paused !== this.paused;
+    this.paused = sig.paused;
+    if (++this.frameGroups % STATS_EVERY_FRAMES === 0 || turned) this.postStats();
   }
 
   /** Sends the view-model patches, toasts and overlay ops gathered since the last send (M04a2). */
@@ -405,6 +411,7 @@ export class SimRuntime {
       entities: sim.ecs.entityCount,
       bodies: sim.backend.bodyCount,
       eventsDropped: this.transport.eventsDropped,
+      paused: this.paused,
     };
   }
 
