@@ -7,7 +7,7 @@ The multiplayer server exists and can be deployed. When this session ends, `pack
 - R-ROLL-02: authoritative-shaped rooms on Cloudflare Durable Objects in their own Worker, speaking the frozen C11 protocol.
 
 ## Depends on
-- M12a1 (ES256 JWT, JWKS at `ID_ISSUER`, staff scopes), M05c2 (R-ROLL-01: the story slice is deployed to staging and its ACs pass there), M04a2 (`ModeHost` and its `modsActive()` hook point for the room client).
+- M12a1 (ES256 JWT, JWKS at `ID_ISSUER`, staff scopes), M05c2 (R-ROLL-01: the story slice is deployed to staging and its ACs pass there), M04a2 (`ModeHost` and its `modsActive()` hook point for the room client), M04e0 (the sandbox rooms guard: no rooms milestone starts before it merges, DL-719).
 - Contracts: C11 1.0 (`09-backend-contracts.md` §1, `PROTOCOL_VERSION` 2), C12 1.1 (routes 22–24, `AssignReq/AssignRes`, `ApiError`).
 
 ## Scope in

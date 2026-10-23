@@ -40,7 +40,7 @@ After this session the open world has a wanted system. S01's `PursuitDirector` t
   Cash is read from a `WalletPort`. The fine is applied there; until M04a2 binds `EconomyApi`, the port is an in-memory test wallet.
 - `vehicleHeat(key)` per vehicle instance and `respray(key)` resets vehicle heat but not player heat (rule 4). `capHeat`, `clear`, and `setHeat(6)` allowed only with `scripted: true` (rule 6).
 - `spawnNamedUnit(prefabId, key)` for scripted chases (S03 uses it from M05c1).
-- QA sandbox toggles (QA builds only): `__dvBridge.engine.pursuit.{setHeat, clear, state}` and debug-panel buttons "heat 0–5" and "never wanted". These are written to the `SandboxSlice.toggles` path `sandbox.player.neverWanted` once M04a1 saves exist; until then they are memory-only.
+- QA sandbox toggles (QA builds only): `__dvBridge.engine.pursuit.{setHeat, clear, state}` and debug-panel buttons "heat 0–5" and the cops-look-away toggle (label reworded by M04e5, DL-717). These are written to the `SandboxSlice.toggles` path `sandbox.player.neverWanted` once M04a1 saves exist; until then they are memory-only.
 - HUD feed: heat level, phase and cooldown in the C02 snapshot side block (as `10-ui.md` §3.3 states; heat is not a patch). The visual `HeatStars` widget arrives in M04b2.
 
 ## Scope out

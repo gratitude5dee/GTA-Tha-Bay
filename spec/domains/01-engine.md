@@ -184,7 +184,7 @@ stateDiagram-v2
   Leaving --> Ready: settle
 ```
 
-- `request()` returns a localized reason when entry is blocked, for example "Enter a vehicle first" or "Ground not loaded; player was not moved" [research/gamedesign-decomposition.md §7.7].
+- `request()` returns a localized reason key when entry is blocked, for example `engine.control.groundNotLoaded` (our wording, M04e5, DL-717).
 - A read-only monitor logs every transition with its reason.
 - Owners: `OnFoot | Vehicle | Swim | Cutscene | Fighter | Ragdoll | Arrested`.
 

@@ -642,27 +642,27 @@ Graphics (tier auto/override, render scale, draw distance, shadows, post FX, FPS
 ### 7.6 Accessibility baseline (R-ENG-04)
 Full remapping on all devices; hold-to-toggle options; subtitles for every voice line incl. generated speech, with speaker names and size/background options; colorblind-safe HUD palettes (3 presets) and non-colour cues (shapes on minimap); reduced motion (no camera shake, no flashes, reduced motion blur, slower director cuts); timer scaling for timed objectives (×1–×2); fighter assist (Simple scheme, auto-block option in story fights); racing assists (steer, brake, traction); tycoon pause-on-every-event; XR comfort options above; screen-reader labels on menus (DOM UI).
 
-### 7.7 Sandbox / free-roam menu (translated from the Grand-V checklist)
-All items are re-implemented features of our engine (no Rockstar data), live in the `sandbox` slice, and are disabled in story missions and multiplayer rooms [research/repos-grand-v.md §3, rec 16].
+### 7.7 Sandbox / free-roam menu (checklist from the Grand-V study; our own features and wording)
+All items are re-implemented features of our engine (no third-party game data, no trainer wording), are settings in the `sandbox` slice or session-only actions, and are disabled in story missions and refused in multiplayer rooms (M04e0) [research/repos-grand-v.md §3, rec 16, rec 20]. Owners as of DL-716 and DL-718 (`spec/11-decision-log-9.md`); `spec/domains/10-ui-hud-xr.md` §2.10 is normative.
 
-| Checklist group (translated) | Our feature | Milestone |
+| Checklist group | Our feature | Milestone |
 |---|---|---|
-| Player toggles (god mode, infinite stamina, super jump, never wanted, set wanted 0–5, replenish) | `sandbox.player.*` toggles; heat override | M03c (heat) / M04a (menu) |
-| Model changer, wardrobe/props | swap to any unlocked character/outfit | M04b |
-| Animations/scenarios | emote wheel (dance, sit, phone) | M06a |
-| Vehicle spawner by class | spawn by class D/C/B/A/S/R, owned-vehicle cap 8 | M03a |
-| Mod shop (slots, colours, plate ≤ 8 chars, neon, tint) | upgrade/livery UI shared with racing | M07b |
-| Repair / clean / place on ground; doors, engine on/off | vehicle actions | M03a |
-| Weapons | n/a in v1 (§2.12); gadgets instead | M05c |
-| Bodyguards | companion NPCs (follow, formation) | M06a |
-| Teleport: locations, waypoint, saved position | teleport to real SF landmarks (Golden Gate Bridge deck, Coit Tower, Ferry Building, Twin Peaks, Oracle-style ballpark, Alcatraz dock), map waypoint, saved positions | M02c |
-| Weather (clear, cloudy, overcast, fog, rain, storm), clouds, wind | timecyc presets `clear, karl-fog, overcast, rain, smoke, golden` [research/repos-world.md P10] | M02b |
-| Time (hour, presets, pause clock, sync with system time) | time controls | M02b |
-| World speed, blackout, population density, gravity | sim time scale (sandbox only), **blackout** (signals dark, robotaxis hold — reuses the story/tycoon blackout event), density slider | M03b |
-| Object spooner (place, freeze, attach, ≤ 32 scene entities) | prop placer → basis of the M13 experience creator | M13 |
-| Imported XML presets (≤ 512 ops) | JSON presets (vehicles, outfits, scenes) with an op cap of 512 | M13 |
-| Hide HUD / hide radar; night/thermal vision | HUD toggles; photo filters | M07b |
-| Status strings ("Enter a vehicle first", "Ground not loaded; player was not moved") | precondition UX rules for teleport/spawn | M02c / M03a |
+| Player toggles (god mode, stamina, super jump, cops look away, set heat 0–5, restore health) | heat 0–5 and cops look away; can't get hurt, big jumps, patch me up (session-only); no stamina system, so no stamina toggle | M04b2 (heat) / M04e4 |
+| Model changer, wardrobe/props | swap to any unlocked character/outfit | M04b2 (creator) |
+| Animations/scenarios | emote wheel (eight original clips) | M10f |
+| Vehicle spawner by class | spawn by class D/C/B/A/S/R, at most 8 session cars | M04e3 |
+| Mod shop (slots, colours, plate, neon, tint) | free upgrades on session cars; paint, tint and plates post-v1 | M07b3 |
+| Repair, upright; doors, engine on/off | repair, upright, dismiss, no-damage on session cars | M04e4 |
+| Weapons | n/a in v1 (§2.12, D-30); gadgets instead | M05c |
+| Bodyguards | companions post-v1 (DL-730) | — |
+| Teleport: locations, waypoint, saved position | real SF landmarks (Golden Gate Bridge deck, Coit Tower, Ferry Building, Twin Peaks, Oracle-style ballpark, Alcatraz dock), map pin, previous spot, saved positions | M04e2 |
+| Weather, clouds, wind | presets `clear, karl-fog, overcast, rain, smoke, golden`, held until Natural [research/repos-world.md P10] | M04e1 |
+| Time (hour, presets, pause, wall-clock sync) | hour, pause, sync and our SF fog-day shortcuts (`config/clock.json`) | M04e1 |
+| World speed, blackout, population density, gravity | sim time scale (sandbox only), **blackout** (signals dark, robotaxis hold), density; no gravity | M04e1 |
+| Object placement (≤ 32 scene entities) | prop placer → basis of the M13 experience creator | M13b3 |
+| Imported presets | JSON presets post-v1 (DL-730) | — |
+| Hide HUD / hide map; night/thermal vision | hide HUD, hide minimap; photo filters with the post-v1 Camera app (DL-292) | M04e2 |
+| Precondition status lines | translated toasts by key in our own wording (`world.teleport.notLoaded`, `sandbox.refuse.*`) | M04e5 guard |
 
 ### 7.8 NameRegistry and localization
 `config/names.ts` (+ JSON) maps every real-world referent (brands, venues, people) to `{displayName, tier, aliases, notes}`; `config/brand.ts → DISPLAY_NAME` for the game title (06 §5). All strings are id-keyed with a CI missing-translation report [research/repos-grand-v.md rec 12].

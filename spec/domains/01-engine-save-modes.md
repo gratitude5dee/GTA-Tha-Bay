@@ -23,7 +23,7 @@ export const SAVE_LIMITS = {
   profileMaxBytes: 16 * 1024 * 1024,                  // all live records of a profile
   storyTargetBytes: 256 * 1024,                       // budget; warn in CI above this
   keepGenerations: 2,                                 // current + previous per slot
-  sandboxSavedPositions: 32, sandboxVehicleCap: 8,
+  sandboxSavedPositions: 32, sandboxVehicleCap: 8,   // saved positions: M04e2; vehicle cap: M04e3 (session cars veh:sbx<n>, never saved; a ninth retires the oldest unused; all despawn on exit and when ModeContext.net turns non-null)
   tombstoneRetentionDays: 180,
 } as const;
 
@@ -88,12 +88,13 @@ export interface StorySlice {                         // schema 1 (gamedesign §
 }
 
 export interface SandboxSlice {                       // schema 1; never read by story
-  toggles: Record<string, boolean | number>;          // sandbox.player.godMode, sandbox.world.density …
-  savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[];
-  clock: { hour: number; paused: boolean; syncSystemTime: boolean };
-  weather: WeatherPreset;
-  presets: JsonObject[];                              // M13 JSON presets (≤ 512 ops each)
+  toggles: Record<string, boolean | number>;          // sandbox.display.hideHud, sandbox.world.density.traffic … (paths below)
+  savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[]; // M04e2: names pos-<n>, lowest free n in 1..32; saved through ctx.save.request('manual')
+  clock: { hour: number; paused: boolean; syncSystemTime: boolean }; // sandbox.time.{hour,paused,sync} write here, never toggles (M04e1)
+  weather: WeatherPreset;                             // sandbox.weather.preset writes here plus toggle sandbox.weather.hold (M04e1)
+  presets: JsonObject[];                              // JSON presets (≤ 512 ops each); post-v1, stays empty in v1 (DL-730)
 }
+Sandbox paths (DL-718): `toggles` holds `sandbox.player.neverWanted`, `sandbox.weather.hold`, `sandbox.world.{timeScale, blackout, density.traffic, density.ped, density.parked}` (M04e1) and `sandbox.display.{hideHud, hideMinimap}` (M04e2). One-shot actions (`time.shortcut`, `time.sync`, `world.reset`, teleports, `position.save`/`delete`, car actions) are `mode.cmd {mode:'sandbox'}` events, not slice paths. Session-only, never written to the slice: `sandbox.player.godMode`, `sandbox.player.superJump`, `sandbox.vehicle.noDamage` (engine-internal `EngineServices.sandboxFlags`, M04e4) and the session cars (M04e3).
 
 export interface ProfileSettings {                    // schema 1; device-level graphics and telemetry consent live with S11 (IndexedDB dv-platform), never here
   controls: ControlsSettings;                         // C03
@@ -320,7 +321,7 @@ export interface WorldClockApi {
   forceWeather(w: WeatherPreset, blendSec: number): void;
 }
 ```
-**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time. The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's keyframe sky [research/repos-world.md rec 7].
+**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time (page-side, once per real minute; the sim never reads `Date`). Sandbox holds a preset through the engine-internal `WorldClock.holdWeather` (sentinel `changeAtT`; no `weather` draws while held; not part of `WorldClockApi`; M04e1, DL-720). The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's keyframe sky [research/repos-world.md rec 7].
 
 ## Interaction system (owner S01; handlers from S03, S04, S10, S12)
 
