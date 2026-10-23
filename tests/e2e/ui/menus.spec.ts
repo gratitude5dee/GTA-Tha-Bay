@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { HOME, NO_BYPASS, passGates } from './helpers.ts';
+import { HOME, hideQaPanels, NO_BYPASS, passGates } from './helpers.ts';
 
 /**
  * M04b1 AC-3, AC-4, AC-5 (@ui-menus). The flow title, main, settings, controls, back, modes, back by keyboard only, then by a simulated
@@ -225,6 +225,9 @@ test.describe('touch @ui-menus', () => {
       taps.push({ id: testId, w: box.width, h: box.height });
       await loc.tap();
     };
+    // The QA-only panels cover the left column of the menu at 844 x 390 (the pursuit panel from 28vh down, the mission panel at the
+    // bottom); the targets measured and tapped are the shell's own (BD-FIX-CI5-G03).
+    await hideQaPanels(page);
     await page.goto(HOME);
     await tap('title-start');
     await page.getByTestId('age-month').fill('1');
