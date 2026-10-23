@@ -121,7 +121,7 @@
         {
           "id": "wait_charmed",
           "k": "wait",
-          "sec": 1,
+          "sec": 12,
           "text": "mission.m.dev.talk.obj.wait_charmed"
         }
       ]
@@ -135,7 +135,7 @@
         {
           "id": "wait_dealt",
           "k": "wait",
-          "sec": 1,
+          "sec": 12,
           "text": "mission.m.dev.talk.obj.wait_dealt"
         }
       ]
@@ -149,7 +149,7 @@
         {
           "id": "wait_paid",
           "k": "wait",
-          "sec": 1,
+          "sec": 12,
           "text": "mission.m.dev.talk.obj.wait_paid"
         }
       ]
@@ -184,7 +184,7 @@
     "dev"
   ],
   "title": "mission.m.dev.talk.title",
-  "version": 1,
+  "version": 2,
   "worldBake": "ad8280ab5ca4a4b74c7eccdf97ee8d0ec0398f2ef51a04d476db1945fb3f0fcf",
   "zones": {
     "plaza": {

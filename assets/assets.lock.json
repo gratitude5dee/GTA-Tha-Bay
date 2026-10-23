@@ -625,13 +625,13 @@
       "approved_at": "2026-10-22T12:07:02Z"
     },
     "data/mission.m.dev.talk": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "af75e9d8fc17f3d90c69bea545feaf2d3e5bb09fa29b229c7ab990c77f559aef"
+        "default": "a545c187bce086f24f70d255a3f35c43dfab9c87b7e62a7225fe00d469304a6d"
       },
-      "root": "af75e9d8fc17f3d90c69bea545feaf2d3e5bb09fa29b229c7ab990c77f559aef",
-      "approved_by": "m05c1-builder",
-      "approved_at": "2026-10-22T20:08:06Z"
+      "root": "a545c187bce086f24f70d255a3f35c43dfab9c87b7e62a7225fe00d469304a6d",
+      "approved_by": "fix-ci3-b-builder",
+      "approved_at": "2026-10-22T23:59:55Z"
     },
     "data/npc-roster": {
       "rev": 2,
@@ -643,13 +643,13 @@
       "approved_at": "2026-10-19T17:35:08Z"
     },
     "data/story.index": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "default": "edfd2de448e7f51f8fa14b895382e700cc7782dbf829e96b324460c9f06fac7f"
+        "default": "001b9d3eed89aacb2bcf13cf21cf2e0d129af55a0320b0a2c8f199eaefef42a4"
       },
-      "root": "edfd2de448e7f51f8fa14b895382e700cc7782dbf829e96b324460c9f06fac7f",
-      "approved_by": "m05c1-builder",
-      "approved_at": "2026-10-22T20:08:06Z"
+      "root": "001b9d3eed89aacb2bcf13cf21cf2e0d129af55a0320b0a2c8f199eaefef42a4",
+      "approved_by": "fix-ci3-b-builder",
+      "approved_at": "2026-10-22T23:59:55Z"
     },
     "texture/asset-smoke": {
       "rev": 1,
