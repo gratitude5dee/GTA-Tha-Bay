@@ -134,11 +134,79 @@ async function readAdapter(): Promise<AdapterRead> {
 
 /** Installs the IWER Quest 3 emulator. Must run before the device probe and the renderer are created. */
 export async function installIwer(): Promise<void> {
-  const { XRDevice, metaQuest3 } = await import('iwer');
+  const { XRDevice, XRSession, metaQuest3 } = await import('iwer');
   const device = new XRDevice(metaQuest3);
   // forceInstall: Chromium has a native navigator.xr, which IWER otherwise leaves in place.
   device.installRuntime({ forceInstall: true });
   giveEmulatedLayersAFramebuffer();
+  paceEmulatedFrames(XRSession.prototype as unknown as EmulatedSessionProto);
+}
+
+type XrFrameCallback = (time: number, frame: unknown) => void;
+interface EmulatedSessionProto {
+  requestAnimationFrame(this: EmulatedSession, callback: XrFrameCallback): number;
+  cancelAnimationFrame(this: EmulatedSession, handle: number): void;
+}
+interface EmulatedSession extends EmulatedSessionProto {
+  readonly renderState: { readonly baseLayer?: { readonly context?: unknown } | null };
+}
+
+/**
+ * A headset's compositor never lets an app run ahead of its GPU. The emulated layer renders into the offscreen framebuffer below,
+ * which nothing presents, so no back-pressure reaches the XR loop: IWER runs it on every window frame, and on software GL each one
+ * queued a stereo world render the GPU had not yet drawn (about 36 queued per second against 5 drawn on SwiftShader). The backlog
+ * fell due when the session ended and the canvas was presented again: on CI the main thread stalled for 17 to 60 s, longer the
+ * longer the session ran (BD-FIX-CI6-A02). The emulator therefore paces XR frames as a compositor would, on a fence: when the GPU
+ * has not finished the previous XR frame, this frame's callbacks move to the next device frame. A real headset runs none of this.
+ */
+function paceEmulatedFrames(proto: EmulatedSessionProto): void {
+  const request = proto.requestAnimationFrame;
+  const cancel = proto.cancelAnimationFrame;
+  /** Per context: the fence after the last XR frame drawn, and the device frame whose callbacks were last let through or held. */
+  const pace = new WeakMap<WebGL2RenderingContext, { fence: WebGLSync | null; time: number; go: boolean }>();
+  /** Per session: the handle the caller holds, mapped to the request it currently names (a held callback is requested again). */
+  const handles = new WeakMap<EmulatedSession, Map<number, number>>();
+  proto.requestAnimationFrame = function (this: EmulatedSession, callback: XrFrameCallback): number {
+    const live = handles.get(this) ?? new Map<number, number>();
+    handles.set(this, live);
+    let outer = 0;
+    const run: XrFrameCallback = (time, frame) => {
+      const ctx = this.renderState.baseLayer?.context;
+      const gl = typeof WebGL2RenderingContext !== 'undefined' && ctx instanceof WebGL2RenderingContext ? ctx : null;
+      if (gl) {
+        let p = pace.get(gl);
+        if (!p) pace.set(gl, (p = { fence: null, time: Number.NaN, go: true }));
+        // The first callback of a device frame decides for all of them (IWER passes every callback of a frame the same time).
+        if (p.time !== time) {
+          p.time = time;
+          p.go = p.fence === null || gl.getSyncParameter(p.fence, gl.SYNC_STATUS) !== gl.UNSIGNALED;
+        }
+        if (!p.go) {
+          live.set(outer, request.call(this, run));
+          return;
+        }
+      }
+      live.delete(outer);
+      callback(time, frame);
+      if (gl) {
+        const p = pace.get(gl);
+        if (p) {
+          if (p.fence) gl.deleteSync(p.fence);
+          p.fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+          gl.flush();
+        }
+      }
+    };
+    outer = request.call(this, run);
+    live.set(outer, outer);
+    return outer;
+  };
+  proto.cancelAnimationFrame = function (this: EmulatedSession, handle: number): void {
+    const live = handles.get(this);
+    const current = live?.get(handle) ?? handle;
+    live?.delete(handle);
+    cancel.call(this, current);
+  };
 }
 
 /**
