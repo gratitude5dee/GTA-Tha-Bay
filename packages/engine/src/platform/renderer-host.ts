@@ -419,9 +419,14 @@ export class RendererHost {
     this._renderer?.setAnimationLoop(null);
   }
 
-  private readonly tick = (time: number): void => {
+  private readonly tick = (time: number | undefined): void => {
     const r = this._renderer;
     if (!r) return;
+    // three's `Animation.start()` calls the loop once, synchronously, with no timestamp; the requestAnimationFrame it has already made
+    // follows. Our loop meets that call when an XR session ends and three hands the loop back to the window. It is not a display frame,
+    // and three's own XR loop skips it the same way. Passed on, its NaN time gave the engine a NaN dt that made the camera rig NaN for
+    // good, and every later frame drew from a NaN camera (BD-FIX-CI6-A01).
+    if (time === undefined || !Number.isFinite(time)) return;
     // info.autoReset is off, so the host resets once per frame and the counts below are this frame's.
     r.info.reset();
     for (const l of this.listeners) l.before?.(time);
