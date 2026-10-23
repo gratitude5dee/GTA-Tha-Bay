@@ -80,7 +80,11 @@ export interface NpcQaAudio {
   unlock(): void;
 }
 
-export async function installNpcQa(identity: IdentityWiring, audio: NpcQaAudio | null = null): Promise<NpcBridge> {
+/**
+ * `startAfter`: the runtime's roster poll (`GET /api/v1/roster` on start, then every 30 s) begins only once it settles. The page passes
+ * the age gate, so an unattested or blocked device sends nothing to the Worker API (BD-FIX-CI5-G02); the panel and the bridge are there at once.
+ */
+export async function installNpcQa(identity: IdentityWiring, audio: NpcQaAudio | null = null, startAfter: Promise<void> = Promise.resolve()): Promise<NpcBridge> {
   const [{ createNpcRuntime }, { installNpcBridge, mountNpcOverlay }, { TtsPlayer, LipSyncDriver }] = await Promise.all([
     import('@dv/npc/client'),
     import('@dv/npc/debug'),
@@ -120,6 +124,6 @@ export async function installNpcQa(identity: IdentityWiring, audio: NpcQaAudio |
   });
   bridge = installNpcBridge(runtime, { setAuthHeader: (h) => (override = h), onVoice: (on) => (on ? audio?.unlock() : player?.stop(NPC_ID)) });
   overlayMouth = mountNpcOverlay(bridge, document.body, NPC_ID).mouth;
-  runtime.start();
+  void startAfter.then(() => runtime.start());
   return bridge;
 }
