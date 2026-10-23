@@ -377,14 +377,15 @@ async function boot(): Promise<void> {
     cutSink = cutscenes.handleEvents;
     if (cutBacklog.length > 0) cutscenes.handleEvents(cutBacklog.splice(0));
   }
+  // The render programs a mission beat draws compile once the streamed world is revealed, before any mission can start (DL-715,
+  // M05b2 AC-8): a program first linked on the beat's first frame would stall it.
+  const warmed = engine && prepared ? prepared.view.whenRevealed().then(() => engine.warmRender()).catch(() => undefined) : Promise.resolve();
   // QA `?mission=<id>` on a streamed world (DL-715, M05b2 AC-8): the mission and its first beat start in the order a player's game runs
   // in. The player's first gesture at the Title unlocks the media pool long before any beat; a QA page skips the Title, so the stand-in
-  // unlock runs here, at boot. A mission beat triggers inside a revealed world, so the held mission is released after the reveal.
+  // unlock runs here, at boot. A mission beat triggers inside a revealed world, so the held mission is released after the reveal (and
+  // the warm-up above).
   if (import.meta.env.VITE_DV_QA === '1' && engine && qaMission && prepared) {
-    const view = prepared.view;
-    void Promise.all([engine.media.trigger().catch(() => undefined), view.whenRevealed()]).then(() =>
-      engine.sendUi({ t: 'mode.cmd', mode: 'story', name: 'debug.release' }),
-    );
+    void Promise.all([engine.media.trigger().catch(() => undefined), warmed]).then(() => engine.sendUi({ t: 'mode.cmd', mode: 'story', name: 'debug.release' }));
   }
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
