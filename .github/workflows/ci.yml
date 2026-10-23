@@ -358,9 +358,10 @@ jobs:
 
   # The required checks `e2e (chromium-webgl2)` and `e2e (webkit-webgl2)` (names unchanged): green only when every shard of the project
   # wrote `success`. It runs whatever the shards did (not on a cancelled run), so a failed, timed-out or skipped shard (no result file)
-  # turns it red.
+  # turns it red. BD-FIX-CI3-D01: `build` is listed too, only so the log can name why the shards never ran (from c03f671 the build job
+  # failed at verify:dist, every e2e-shard leg was skipped and the four checks printed "missing" with no cause); the verdict is unchanged.
   e2e:
-    needs: e2e-shard
+    needs: [build, e2e-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -381,14 +382,22 @@ jobs:
         env:
           PROJECT: ${{ matrix.project }}
           E2E_SHARDS: '3'
+          BUILD_RESULT: ${{ needs.build.result }}
+          SHARDS_RESULT: ${{ needs.e2e-shard.result }}
         run: |
+          echo "build: ${BUILD_RESULT}; e2e-shard: ${SHARDS_RESULT}"
           status=0
+          missing=0
           for n in $(seq 1 "$E2E_SHARDS"); do
             f="e2e-result/${PROJECT}-${n}.txt"
             r=$(cat "$f" 2>/dev/null || echo missing)
             echo "e2e ${PROJECT} shard ${n}/${E2E_SHARDS}: ${r}"
             [ "$r" = "success" ] || status=1
+            if [ "$r" = "missing" ]; then missing=1; fi
           done
+          if [ "$missing" = 1 ] && [ "$BUILD_RESULT" != "success" ]; then
+            echo "::error::e2e ${PROJECT}: no shard result because the build job ended '${BUILD_RESULT}' and the e2e-shard legs did not run; fix the build job first"
+          fi
           exit $status
 
   # M01c, M02b1: CPU-side budget counts of every registered scenario on the two software-GL projects, on a DV_WORLD=synth build.

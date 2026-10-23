@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { repoRoot } from '../run.ts';
@@ -98,7 +100,8 @@ describe('ci.yml (AC-8)', () => {
     expect(result).toContain('echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"');
     expect(shard).toMatch(/if: always\(\)\n\s+with:\n\s+name: e2e-result-\$\{\{ matrix\.project \}\}-\$\{\{ matrix\.shard \}\}/);
     // The aggregate: same name and matrix as the required checks, runs after every shard (also failed ones), reads only its project's results.
-    expect(agg).toContain('needs: e2e-shard');
+    // BD-FIX-CI3-D01: `build` is a need only so the log can say why the shards never ran; the verdict reads the shard results alone.
+    expect(agg).toContain('needs: [build, e2e-shard]');
     expect(agg).toContain('if: ${{ !cancelled() }}');
     expect(agg).toContain('project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]');
     expect(agg).toContain('pattern: e2e-result-${{ matrix.project }}-*');
@@ -110,6 +113,59 @@ describe('ci.yml (AC-8)', () => {
     expect(shard).toContain(advisory);
     expect(agg).toContain(advisory);
     expect(minutes(jobsOf(wf('nightly.yml'))['e2e-full'])).toBeGreaterThanOrEqual(90);
+  });
+
+  // BD-FIX-CI3-D01: from c03f671 the build job failed (verify:dist), e2e-shard was skipped as a whole, no e2e-result-* artifact existed
+  // and the four aggregates printed "shard n/3: missing" with no cause (run 39862711522). The step script itself is run here under
+  // `bash -e` (the runner's default shell) for each case: green only when every shard wrote `success`; a failed, skipped or missing
+  // shard is red, and a missing result after a failed build names the build job.
+  it('e2e aggregate step: green exactly when every shard of the project wrote success; names a failed build', () => {
+    const agg = jobs['e2e'] ?? '';
+    const step = stepsOf(agg).find((s) => s.includes('name: Every shard of the project passed')) ?? '';
+    const lines = step.split('\n');
+    const at = lines.findIndex((l) => /^ {8}run: \|$/.test(l));
+    expect(at).toBeGreaterThan(-1);
+    const body = lines.slice(at + 1).filter((l) => l.startsWith(' '.repeat(10)) || l.trim() === '');
+    const script = body.map((l) => l.slice(10)).join('\n');
+    expect(script).not.toContain('${{');
+    expect(step).toContain('BUILD_RESULT: ${{ needs.build.result }}');
+    expect(step).toContain('SHARDS_RESULT: ${{ needs.e2e-shard.result }}');
+    const shards = Number(/E2E_SHARDS: '(\d+)'/.exec(step)?.[1] ?? 0);
+    expect(shards).toBe(3);
+    const run = (results: (string | null)[], build = 'success'): { code: number; out: string } => {
+      const dir = mkdtempSync(path.join(tmpdir(), 'dv-e2e-agg-'));
+      try {
+        mkdirSync(path.join(dir, 'e2e-result'));
+        results.forEach((r, i) => {
+          if (r !== null) writeFileSync(path.join(dir, 'e2e-result', `chromium-webgl2-${i + 1}.txt`), `${r}\n`);
+        });
+        // Another project's results in the same folder never count.
+        writeFileSync(path.join(dir, 'e2e-result', 'webkit-webgl2-1.txt'), 'failure\n');
+        const res = spawnSync('bash', ['-e', '-c', script], {
+          cwd: dir,
+          encoding: 'utf8',
+          env: { PATH: process.env['PATH'] ?? '', PROJECT: 'chromium-webgl2', E2E_SHARDS: String(shards), BUILD_RESULT: build, SHARDS_RESULT: 'success' },
+        });
+        return { code: res.status ?? -1, out: `${res.stdout}${res.stderr}` };
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    };
+    expect(run(['success', 'success', 'success']).code).toBe(0);
+    for (const bad of [
+      ['success', 'failure', 'success'],
+      ['success', 'success', 'cancelled'],
+      ['success', null, 'success'],
+      [null, null, null],
+    ]) {
+      const r = run(bad);
+      expect(r.code, JSON.stringify(bad)).toBe(1);
+      expect(r.out).not.toContain('::error::');
+    }
+    const skipped = run([null, null, null], 'failure');
+    expect(skipped.code).toBe(1);
+    expect(skipped.out).toContain('e2e chromium-webgl2 shard 3/3: missing');
+    expect(skipped.out).toContain("::error::e2e chromium-webgl2: no shard result because the build job ended 'failure'");
   });
 });
 
