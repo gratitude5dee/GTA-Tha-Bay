@@ -33,6 +33,11 @@ export interface QaMissionBoot {
   cutscenes?: { id: string; fallback: string }[];
   /** Text of the lines and keys, for how long a `say` holds. */
   lines?: Record<string, string>;
+  /**
+   * Wait for the page's `debug.release` before the mission starts (DL-715). A page with a streamed world sets it, so the QA boot plays the
+   * mission's first beat in a revealed world after the stand-in first-gesture unlock, the order a player's game runs in.
+   */
+  hold?: boolean;
 }
 
 export type BeginResult = { ok: true } | { ok: false; errors: CompileError[] };
@@ -86,7 +91,9 @@ export class StoryController {
   private lines: Readonly<Record<string, string>> = {};
   private flags: RuntimeFlags = { ...DEFAULT_FLAGS };
   /** A mission waiting for the world under it to be resident (the QA boot path); see `PATIENCE_TICKS`. */
-  private pending: { ir: MissionIR; o: BeginOptions; deadline: number } | null = null;
+  private pending: { ir: MissionIR; o: BeginOptions; deadline: number; held: boolean } | null = null;
+  /** QA: the page's `debug.release` came (it may come before the mode enters); a held boot mission then starts at once. */
+  private released = false;
   /** The bundled missions of the page (`BootPayload.config.story`), null for a headless host and the QA scenes without them. */
   store: MissionStore | null = null;
   /** Missions a trigger tried to start this session and that did not resolve: not tried again (the Jobs app still can). */
@@ -126,7 +133,7 @@ export class StoryController {
     if (import.meta.env.VITE_DV_QA !== '1' || !this.env.qa || !this.ctx) return;
     const boot = this.env.bootConfig()['mission'] as QaMissionBoot | undefined;
     if (!boot || typeof boot !== 'object' || !boot.ir) return;
-    this.pending = { ir: boot.ir, deadline: this.ctx.tick + PATIENCE_TICKS, o: {
+    this.pending = { ir: boot.ir, deadline: this.ctx.tick + PATIENCE_TICKS, held: boot.hold === true && !this.released, o: {
       ...(boot.stage !== undefined ? { stage: boot.stage } : {}),
       ...(boot.seed !== undefined ? { seed: boot.seed } : {}),
       flags: { ...(boot.hooks ? { hooks: boot.hooks } : {}), ...(boot.talk ? { talk: boot.talk } : {}), ...(boot.beats ? { beats: boot.beats } : {}) },
@@ -191,7 +198,7 @@ export class StoryController {
   advance(ctx: ModeContext): void {
     this.ctx = ctx;
     const waiting = this.pending;
-    if (waiting && ctx.tick % 6 === 0) {
+    if (waiting && !waiting.held && ctx.tick % 6 === 0) {
       // `starting`: resolve again until the world under the mission is there, then start it; at the deadline start it anyway, which reports why not
       if (!('errors' in resolveMission(waiting.ir, ctx.world.resolver)) || ctx.tick >= waiting.deadline) {
         this.pending = null;
@@ -364,6 +371,10 @@ export class StoryController {
       }
       return;
     }
+    if (msg.name === 'debug.release') {
+      if (import.meta.env.VITE_DV_QA === '1' && this.env.qa) this.release(_ctx);
+      return;
+    }
     if (this.store && this.places.command(_ctx, msg.name, a)) return;
     if (!this.rt) return;
     switch (msg.name) {
@@ -379,6 +390,16 @@ export class StoryController {
         return;
       default:
         if (import.meta.env.VITE_DV_QA === '1' && this.env.qa && msg.name.startsWith('debug.')) this.debugCommand(msg.name, a);
+    }
+  }
+
+  /** QA `debug.release`: a boot mission held for the page (`QaMissionBoot.hold`) starts now; its patience counts from here. */
+  release(ctx: ModeContext): void {
+    this.released = true;
+    const waiting = this.pending;
+    if (waiting?.held) {
+      waiting.held = false;
+      waiting.deadline = ctx.tick + PATIENCE_TICKS;
     }
   }
 

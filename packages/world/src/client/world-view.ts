@@ -196,6 +196,7 @@ export class WorldView implements WorldLayer {
   private simStatus = { unavailable: 0, failed: 0, ready: 0, reason: 'ok' };
   private revealed = false;
   private revealMs: number | null = null;
+  private readonly revealWaiters: (() => void)[] = [];
   private startMs = 0;
   private bytesAtStart = 0;
   private bytesBeforeReveal: number | null = null;
@@ -702,6 +703,7 @@ export class WorldView implements WorldLayer {
       setTimeout(() => this.veil?.remove(), 700);
     }
     document.documentElement.dataset.dvWorld = 'revealed';
+    for (const w of this.revealWaiters.splice(0)) w();
   }
 
   private makeOverlays(): void {
@@ -828,6 +830,12 @@ export class WorldView implements WorldLayer {
 
   backdropInfo(): BackdropInfo {
     return this.backdrop.info();
+  }
+
+  /** Resolves once the world is revealed (the first L0 upload at the spawn); at once when it already is. */
+  whenRevealed(): Promise<void> {
+    if (this.revealed) return Promise.resolve();
+    return new Promise((resolve) => this.revealWaiters.push(resolve));
   }
 
   bootReport(): BootReport {
