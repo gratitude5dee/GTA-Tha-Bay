@@ -414,8 +414,10 @@ async function boot(): Promise<void> {
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
     // The NPC dialogue panel (M06a3): window.__dvBridge.npc and a "Talk to npc_test" box, QA builds only. Failure here never stops the game.
+    // Its runtime polls route 30 (`GET /api/v1/roster`) from start(), so the poll waits for the age screen: nothing goes to the Worker API
+    // before that (10-ui-pages.md 2.4, M04b1 AC-2; BD-FIX-CI5-G02). An attested device opens the gate at load.
     const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
-    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio)).catch((e: unknown) => console.warn('npc qa panel failed', e));
+    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate)).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

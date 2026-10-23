@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { observe, waitForEngine } from '../engine-helpers.ts';
-import { HOME, NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
+import { HOME, hideQaPanels, NO_BYPASS, passGates, waitForEngineReady } from './helpers.ts';
 
 /**
  * M04b2 AC-4 (@ui-touch) and AC-8 (@ui-coach), on WebKit with the iPhone-landscape design fixture (844 x 390). The synthetic contacts go to
@@ -87,17 +87,6 @@ test.describe('touch play @ui-touch', () => {
     await expect.poll(async () => (await observe(page)).stats.tick - t1, { timeout: 15_000 }).toBeGreaterThan(20);
   });
 });
-
-// The QA pursuit, modes and mission panels (M03c, M04a2, M05a1) float over the left and right edges of the menu in QA builds; the menu specs click through them.
-const hideQaPanels = async (page: Page): Promise<void> => {
-  await page.addInitScript(() => {
-    document.addEventListener('DOMContentLoaded', () => {
-      const st = document.createElement('style');
-      st.textContent = '.dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg { display: none !important }';
-      document.head.append(st);
-    });
-  });
-};
 
 test.describe('touch menus and the layout editor @ui-touch', () => {
   test.use({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, storageState: NO_BYPASS, locale: 'en-US' });

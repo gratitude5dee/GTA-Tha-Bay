@@ -41,9 +41,12 @@ test.describe('modes @modes', () => {
     await expect(page.getByTestId('modes-state')).toContainText('MODE Idle');
 
     const listing = (await modes(page, (m) => m.list())) as { modes: { id: string; status: string; order: number; unlocked: boolean }[] };
+    // M09a2 (spec/07-milestones/M09a2-tycoon-events-balance.md, "Mode availability"): a QA build lists tycoon as `available` but
+    // locked until `?unlockAll=1` or the story unlock (M09b2); racing and fighter are still `comingSoon` here.
     expect(listing.modes.map((m) => [m.id, m.status, m.order])).toEqual([
-      ['story', 'available', 1], ['racing', 'comingSoon', 2], ['fighter', 'comingSoon', 3], ['tycoon', 'comingSoon', 4], ['sandbox', 'available', 5],
+      ['story', 'available', 1], ['racing', 'comingSoon', 2], ['fighter', 'comingSoon', 3], ['tycoon', 'available', 4], ['sandbox', 'available', 5],
     ]);
+    expect(listing.modes.find((m) => m.id === 'tycoon')?.unlocked).toBe(false);
 
     // let the player settle on the ground, then note it
     await expect.poll(async () => (await observe(page)).player?.grounded ?? false, { timeout: 60_000 }).toBe(true);
