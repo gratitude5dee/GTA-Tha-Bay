@@ -177,6 +177,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M04d | F-014 | QA harness: headless canonical sim, state hash, autoplayer bots, goldens; deterministic Rapier build | U-ENG-1 |
 | M14c | none | accessibility and i18n gates; no external-system fact | — |
 | M15a to M15g | F-017, F-023, F-053, F-054 | same grid, packs and OSM and DataSF sources; other counties' open data is not in the ledger and is listed when those specs are written | — |
+| M03a1 (fix BD-FIX-CI7-E02, 2026-10-23) | none | Playwright test tooling, from the official docs fetched 2026-10-23: `expect.poll` waits 100, 250, 500, then 1000 ms between probes by default ("Defaults to [100, 250, 500, 1000]", https://playwright.dev/docs/test-assertions#expectpoll); `page.waitForFunction` with `polling: 'raf'` runs its function "constantly … in requestAnimationFrame callback", and its `timeout` is the longest wait in ms (https://playwright.dev/docs/api/class-page#page-wait-for-function). The @vehicle brake check samples on every animation frame for that reason | — |
 
 Rows that say "none" depend on no external system: their proofs are repository commands over pure code or authored data.
 
