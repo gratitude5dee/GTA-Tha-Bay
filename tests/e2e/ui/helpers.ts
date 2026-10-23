@@ -38,6 +38,77 @@ export async function waitForEngineReady(page: Page): Promise<void> {
   await page.waitForSelector('html[data-dv-engine="ready"]', { state: 'attached', timeout: 120_000 });
 }
 
+/** C05 `LastSaveStatus` (01-engine-save-modes.md): the fields these specs read. */
+export interface LastSave {
+  slot: string;
+  at: number;
+  ok: boolean;
+  reason: string;
+  error?: string;
+}
+
+/** The page's wall clock (`Date.now()`), the clock the sim worker stamps `LastSaveStatus.at` with. */
+export function pageNow(page: Page): Promise<number> {
+  return page.evaluate(() => Date.now());
+}
+
+/**
+ * The confirmed-save signal: C05 `ProfileMeta.lastSave` of the open profile (`sys.profile`). The SaveService writes it after the slot's
+ * pointer has moved (rule 1, step e), so a reload after it cannot lose the write; the shell reads it the same way, through a read-only
+ * `dv-saves` handle (10-ui-pages.md, Continue). No database is created when none exists, and the handle is closed after the read.
+ */
+export function lastSave(page: Page): Promise<LastSave | null> {
+  return page.evaluate(async () => {
+    const vm = (window as unknown as { __dvBridge?: { engine?: { modes?: { vm(k: string): unknown } } } }).__dvBridge?.engine?.modes?.vm('sys.profile') as { id?: string } | null | undefined;
+    const id = vm?.id;
+    if (!id) return null;
+    const db = await new Promise<IDBDatabase | null>((resolve) => {
+      let created = false;
+      const req = indexedDB.open('dv-saves');
+      req.onupgradeneeded = () => {
+        created = true;
+        req.transaction?.abort();
+      };
+      req.onsuccess = () => {
+        if (created) {
+          req.result.close();
+          resolve(null);
+        } else resolve(req.result);
+      };
+      req.onerror = () => resolve(null);
+    });
+    if (!db) return null;
+    try {
+      const row = await new Promise<{ lastSave?: LastSave | null } | undefined>((resolve, reject) => {
+        const get = db.transaction('profiles', 'readonly').objectStore('profiles').get(id);
+        get.onsuccess = () => resolve(get.result as { lastSave?: LastSave | null } | undefined);
+        get.onerror = () => reject(get.error ?? new Error('profiles read failed'));
+      });
+      return row?.lastSave ?? null;
+    } finally {
+      db.close();
+    }
+  });
+}
+
+/**
+ * Waits until the open profile's last save is a successful write of `slot` stamped at or after `since` (a `pageNow` taken before the
+ * action that saves). A failed write shows as `failed: <code>` in the assertion message.
+ */
+export async function waitForSave(page: Page, slot: string, since: number, timeout = 60_000): Promise<LastSave> {
+  let seen: LastSave | null = null;
+  const tDbg = Date.now(); // TEMP-DIAG
+  await expect
+    .poll(async () => {
+      seen = await lastSave(page);
+      if (!seen || seen.slot !== slot || seen.at < since) return 'pending';
+      return seen.ok ? 'ok' : `failed: ${seen.error ?? 'unknown'}`;
+    }, { timeout, intervals: [100, 250, 500, 1000] })
+    .toBe('ok');
+  console.log(`TEMP-DIAG save ${slot} confirmed ${Date.now() - tDbg} ms after the wait began, ${(seen as unknown as LastSave).at - since} ms after since`); // TEMP-DIAG
+  return seen as unknown as LastSave;
+}
+
 /** The requests the page makes to the Worker API and the telemetry route. */
 export function watchApi(page: Page): { requests: string[] } {
   const seen = { requests: [] as string[] };
