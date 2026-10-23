@@ -671,6 +671,22 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.headless || !opts.host) {
     runOnRaf();
   } else {
+    // The chunks needed after the view exists start loading before createView starts the render loop, all at once: an `await import()`
+    // taken after that waits for a frame, and a software-GL frame at the desktop tiers takes seconds (BD-FIX-CI3-C01).
+    const overlayChunk = import('../input/touch-overlay.ts');
+    // QA builds only (the literal comparison lets production builds drop the branch): the panels every QA build shows.
+    const qaChunks =
+      import.meta.env.VITE_DV_QA === '1' && opts.qa
+        ? Promise.all([import('../../debug/pursuit-panel.ts'), import('../../debug/modes-panel.ts'), import('../xr/smoke.ts'), import('../xr/panels.ts')])
+        : null;
+    // ?debug=1 adds the F3 panel, the free cam, the inspector and the physics wireframe.
+    const debugChunks =
+      import.meta.env.VITE_DV_QA === '1' && opts.qa && opts.flags.debug
+        ? Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts'), import('../debug/inspector.ts'), import('../debug/physics-draw.ts')])
+        : null;
+    // A view that fails leaves these chunks unawaited; their failure is then not an unhandled rejection.
+    void qaChunks?.catch(() => undefined);
+    void debugChunks?.catch(() => undefined);
     const made = await createView(opts.host, opts.container, onFrame, packs, worldBoot).catch((e: unknown) => {
       console.warn('engine view unavailable, running the sim without drawing', e);
       return null;
@@ -701,7 +717,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       getPads: () => (typeof navigator.getGamepads === 'function' ? (navigator.getGamepads() as unknown as ArrayLike<GamepadLike | null>) : []),
       warn: (m) => console.warn(m),
     });
-    const { TouchOverlay: Overlay } = await import('../input/touch-overlay.ts');
+    const { TouchOverlay: Overlay } = await overlayChunk;
     const layout = touchLayoutJson as unknown as TouchLayout;
     overlay = new Overlay({
       container: document.body,
@@ -752,9 +768,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     cleanups.push(off);
 
     // QA builds only (the literal comparison lets production builds drop the branch): the F3 panel, the F4 free cam, the XR smoke.
-    if (import.meta.env.VITE_DV_QA === '1' && opts.qa && made) {
-      if (opts.flags.debug) {
-        const [{ SimPanel: Panel, SkyControls: Sky }, { FreeCam: Free }] = await Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts')]);
+    if (import.meta.env.VITE_DV_QA === '1' && opts.qa && made && qaChunks) {
+      const [{ PursuitPanel }, { ModesPanel }, { installXrSmoke }, { XrPanelsLite }] = await qaChunks;
+      if (opts.flags.debug && debugChunks) {
+        const [{ SimPanel: Panel, SkyControls: Sky }, { FreeCam: Free }, { Inspector: Insp }, { PhysicsDraw: Draw }] = await debugChunks;
         panel = new Panel({
           container: document.body,
           build: import.meta.env.VITE_DV_BUILD ?? 'qa',
@@ -765,7 +782,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         });
         freeCam = new Free({ router, camera: made.camera as unknown as CameraLike });
         // The entity inspector (F7) and the physics wireframe (F6), M03a1.
-        const [{ Inspector: Insp }, { PhysicsDraw: Draw }] = await Promise.all([import('../debug/inspector.ts'), import('../debug/physics-draw.ts')]);
         inspector = new Insp({
           container: document.body,
           ask: async (cmd) => {
@@ -814,7 +830,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         cleanups.push(() => window.removeEventListener('keydown', onKey), () => panel?.dispose());
       }
       // The pursuit panel (M03c) is on in every QA build, so the wanted system can be seen without ?debug=1.
-      const { PursuitPanel } = await import('../../debug/pursuit-panel.ts');
       const pursuitAsk = (op: string, args?: Record<string, unknown>): void => {
         const id = ++askSerial;
         void host.sendDebug({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) });
@@ -829,7 +844,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       pursuitUi = pp;
       cleanups.push(() => pp.dispose());
       // The modes panel (M04a2) is on in every QA build too: mode state, wallet, unlocks and the last toasts, with the start/quit buttons.
-      const { ModesPanel } = await import('../../debug/modes-panel.ts');
       const modesAsk = (op: string, args?: Record<string, unknown>): void => {
         const id = ++askSerial;
         void host.sendDebug({ t: 'debug.modes', id, op, ...(args ? { args } : {}) });
@@ -845,7 +859,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       });
       const mp = modesUi;
       cleanups.push(() => mp.dispose());
-      const { installXrSmoke } = await import('../xr/smoke.ts');
       const host2 = opts.host;
       xrSmoke = await installXrSmoke({
         renderer: () => host2.renderer,
@@ -861,7 +874,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       });
       xrSupported = xrSmoke !== null;
       {
-        const { XrPanelsLite } = await import('../xr/panels.ts');
         xrPanels = new XrPanelsLite(host2.scene, host2.camera);
         const panels = xrPanels;
         cleanups.push(() => panels.dispose());

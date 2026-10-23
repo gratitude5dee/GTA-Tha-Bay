@@ -246,8 +246,25 @@ async function boot(): Promise<void> {
       console.error('the baked world could not be prepared', error);
     }
   }
+  // The chunks the page needs once the engine is up start loading now, all at once, before the engine starts its render loop. An
+  // `await import()` taken after that waits for a frame, and a software-GL frame at the desktop tiers takes seconds, so one import after
+  // another kept window.__dvBridge.platform back past the perf harness's 90 s wait (BD-FIX-CI3-C01). Awaiting a settled promise costs no frame.
+  const cutsceneChunk = import('./cutscene.ts');
+  // QA builds only (the literal comparison lets production builds drop the branch): the QA bridges and panels.
+  const qaChunks =
+    import.meta.env.VITE_DV_QA === '1'
+      ? {
+          missions: import('./qa/missions.ts'),
+          bridges: Promise.all([import('@dv/engine/client/debug/bridge'), import('@dv/engine/platform/probe'), import('@dv/engine/assets/bridge')]),
+          media: import('./qa/media-game.ts'),
+          cutscene: import('./qa/cutscene-bridge.ts'),
+          mission: Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]),
+          ui: import('@dv/ui/xr-qa'),
+          world: prepared ? import('@dv/world/client/bridge') : null,
+        }
+      : null;
   // QA `?mission=<id>` (M05a1): the compiled mission the story mode starts at boot; QA builds only.
-  const qaMission = QA && flags.mission ? await import('./qa/missions.ts').then((m) => m.qaMissionBundle(flags.mission as string)) : null;
+  const qaMission = qaChunks && flags.mission ? await qaChunks.missions.then((m) => m.qaMissionBundle(flags.mission as string)) : null;
   // The cutscene protocol (M05b2): a mission that starts at boot emits cut.request before the engine handle exists, so the events are
   // caught from the first tick and handed to the CutscenePlayer once it is installed.
   const cutBacklog: { t: string; tick: number; n?: number; s?: string }[] = [];
@@ -344,8 +361,8 @@ async function boot(): Promise<void> {
   // bundled index and the sample mission's line texts.
   let cutscenes: CutsceneGlue | null = null;
   if (engine) {
-    const qaMod = QA ? await import('./qa/missions.ts') : null;
-    const { installCutscenes } = await import('./cutscene.ts');
+    const qaMod = qaChunks ? await qaChunks.missions : null;
+    const { installCutscenes } = await cutsceneChunk;
     cutscenes = installCutscenes(engine, platform, {
       qa: QA,
       beats: flags.beats,
@@ -371,26 +388,22 @@ async function boot(): Promise<void> {
   }
 
   // QA builds only: window.__dvBridge. The literal comparison lets production builds drop the branch.
-  if (import.meta.env.VITE_DV_QA === '1') {
-    const [{ installEngineBridge }, { installPlatformBridge }, { installAssetsBridge }] = await Promise.all([
-      import('@dv/engine/client/debug/bridge'),
-      import('@dv/engine/platform/probe'),
-      import('@dv/engine/assets/bridge'),
-    ]);
+  if (import.meta.env.VITE_DV_QA === '1' && qaChunks) {
+    const [{ installEngineBridge }, { installPlatformBridge }, { installAssetsBridge }] = await qaChunks.bridges;
     if (engine) installEngineBridge(engine);
     // The flat cutscene path (M04c): F9 plays the test clip over the game, and window.__dvBridge.media drives it. QA builds only.
-    if (engine) (await import('./qa/media-game.ts')).installGameMedia(engine, platform);
+    if (engine) (await qaChunks.media).installGameMedia(engine, platform);
     // The CutscenePlayer's bridge (M05b2): window.__dvBridge.cutscene.
-    if (engine && cutscenes) (await import('./qa/cutscene-bridge.ts')).installCutsceneBridge(cutscenes, engine);
+    if (engine && cutscenes) (await qaChunks.cutscene).installCutsceneBridge(cutscenes, engine);
     // The mission debugger (M05a1): window.__dvBridge.mission and the overlay, QA builds only.
     if (engine) {
-      const [{ installMissionBridge }, { mountMissionOverlay }] = await Promise.all([import('@dv/mode-story/debug'), import('@dv/mode-story/debug/overlay')]);
+      const [{ installMissionBridge }, { mountMissionOverlay }] = await qaChunks.mission;
       const host = { vm: engine.vm, sendUi: (c: Parameters<typeof engine.sendUi>[0]) => engine.sendUi(c), step: (n: number) => engine.step(n), setPaused: (p: boolean) => engine.setPaused(p) };
       mountMissionOverlay(host, installMissionBridge(host));
     }
     // The UI skeleton's test panel (M04b2, AC-11): only where the engine has a panels host (QA builds with a renderer).
     if (engine?.xrPanels) {
-      const { createUiQaBridge } = await import('@dv/ui/xr-qa');
+      const { createUiQaBridge } = await qaChunks.ui;
       const ui = createUiQaBridge(engine.xrPanels as never, engine.vm as never);
       const w = window as unknown as { __dvBridge?: Record<string, unknown> };
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
@@ -401,7 +414,7 @@ async function boot(): Promise<void> {
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
-    if (prepared) (await import('@dv/world/client/bridge')).installWorldBridge(prepared.view, platform.quality.tier.id);
+    if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id);
     // ?racing=1 (M07a1): __dvBridge.racing; ?racing=demo also starts the straight demo race at once.
     if (flags.racing) {
       const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
