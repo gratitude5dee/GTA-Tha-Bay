@@ -287,10 +287,11 @@ export function resolveDoLifecycle(env: NodeJS.ProcessEnv, values: ProdFlags): b
  * Worker secrets that ride with a version upload (`--secrets-file`, DL-679). Each is read from the environment (GitHub repository secrets in CI)
  * and written to `$RUNNER_TEMP/secrets.json` with mode 0600; one that is absent or empty is left out, never written as an empty string.
  * `PLAY_TOKEN_HMAC` and `QUOTA_NET_SALT_SECRET` are in the Worker's `secrets.required` (M06a1), `PLAY_TOKEN_HMAC_PREV` is optional (rotation window).
+ * `SUPABASE_SECRET_KEY` (M05d, `sb_secret_…`) is in `secrets.required` of both configs; it rides here too, so a deploy never depends on a hand-set secret.
  * `ANTHROPIC_API_KEY` (M06a3, workspace `npc-runtime`) is required by the production config only; staging runs recorded streams.
  */
-export const WORKER_SECRETS = ['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY'] as const;
-const REQUIRED_WORKER_SECRETS: readonly (typeof WORKER_SECRETS)[number][] = ['PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET'];
+export const WORKER_SECRETS = ['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY'] as const;
+const REQUIRED_WORKER_SECRETS: readonly (typeof WORKER_SECRETS)[number][] = ['PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY'];
 
 export function buildSecretsJson(env: NodeJS.ProcessEnv): { json: string; missing: string[] } {
   const out: Record<string, string> = {};

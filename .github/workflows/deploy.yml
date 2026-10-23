@@ -120,6 +120,7 @@ jobs:
           PLAY_TOKEN_HMAC: ${{ secrets.PLAY_TOKEN_HMAC }}
           PLAY_TOKEN_HMAC_PREV: ${{ secrets.PLAY_TOKEN_HMAC_PREV }}
           QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: pnpm deploy:prod -- --env staging --auto-lifecycle
       # M05d: the two routes every client calls first, on the staging host, after the deploy.
@@ -176,5 +177,6 @@ jobs:
           PLAY_TOKEN_HMAC: ${{ secrets.PLAY_TOKEN_HMAC }}
           PLAY_TOKEN_HMAC_PREV: ${{ secrets.PLAY_TOKEN_HMAC_PREV }}
           QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: pnpm deploy:prod -- --auto-lifecycle
