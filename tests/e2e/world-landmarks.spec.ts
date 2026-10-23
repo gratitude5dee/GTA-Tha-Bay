@@ -189,13 +189,16 @@ test.describe('landmarks @world', () => {
     test(`each of the twelve landmarks becomes resident at ${tier}, within its triangle budget @world-landmarks`, async ({ page }) => {
       const errors = await boot(page, tier);
       const cap = tier === 'desktop' ? 8 : 3;
+      // BD-FIX-CI8-H01: no settle() between landmarks. Every assertion below reads the landmark layer, which is up once the model
+      // is shown; settle() waited for the whole chunk ring of the tier to upload (one chunk per frame, M02b1), and at desktop on
+      // SwiftShader that ring alone took 17 to 53 s per landmark (often the full 45 s, 45 chunks still queued), about half of the
+      // test. The cap holds over the whole run (`maxResident`, below), not only at the twelve sampled moments.
       for (const id of TWELVE) {
         const result = await teleport(page, id);
         expect(result.ok, `${id}: ${JSON.stringify(result)}`).toBe(true);
         await expect
           .poll(async () => shown(await world(page, (w) => w.landmarks())), { timeout: 180_000, intervals: [500, 1000, 2000], message: id })
           .toContain(id);
-        await world(page, (w) => w.settle(45_000));
         const r = (await world(page, (w) => w.landmarks()))!;
         const e = r.resident.find((x) => x.id === id)!;
         console.log(`world-landmarks ${tier} ${id}: ${e.fidelity} ${e.objects} objects ${e.triangles} tris, ${e.chunks.length} proxy chunks, ${e.chunks.filter((c) => c.masked).length} masked, ${Math.round(e.distM)} m`);
@@ -204,6 +207,9 @@ test.describe('landmarks @world', () => {
         expect(r.resident.length).toBeLessThanOrEqual(cap);
         expect(r.failed).toEqual([]);
       }
+      const end = (await world(page, (w) => w.landmarks()))!;
+      expect(end.maxResident).toBeLessThanOrEqual(cap);
+      expect(end.failed).toEqual([]);
       const chunks = await world(page, (w) => w.chunks());
       expect(chunks.uploads.perFrameMax).toBeLessThanOrEqual(1);
       expect(errors).toEqual([]);
