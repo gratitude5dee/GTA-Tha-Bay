@@ -461,19 +461,19 @@ export class RendererHost {
   };
 
   /**
-   * Compiles the render programs of what the world and backdrop passes hold, in every horizontal direction from the camera, without
-   * drawing (DL-715). A program that is first linked inside a frame stalls that frame: a mission beat that cuts to a new shot (M05b2
-   * AC-8) brings objects into view the player camera never looked at (the skyline cards behind it, the cast). `compileAsync` is three
-   * r186's `Renderer.compileAsync(scene, camera)`: it collects the objects inside the camera frustum synchronously, then builds their
-   * pipelines and links the programs, without blocking where the backend allows it (WebGL2: KHR_parallel_shader_compile). The camera
-   * is turned in four 90-degree steps with a wider field of view for the collection only, and restored before any frame draws.
+   * Compiles the render programs of the backdrop pass in every horizontal direction from the camera, without drawing (DL-715). A program
+   * that is first linked inside a frame stalls that frame: a mission beat that cuts to a new shot (M05b2 AC-8) turns the view to parts of
+   * the skyline the player camera never looked at (on chromium-webgl2 the skyline cards' program was linked on the beat's first frame).
+   * `compileAsync` is three r186's `Renderer.compileAsync(scene, camera)`: it collects the objects inside the camera frustum
+   * synchronously, then builds their pipelines and links the programs, without blocking where the backend allows it (WebGL2:
+   * KHR_parallel_shader_compile). The camera is turned in four 90-degree steps with a wider field of view for the collection only, and
+   * restored before any frame draws. The world pass is not turned: its chunk materials are shared and compile with the first chunk
+   * uploaded in view, and turning it compiled every resident chunk's tree program (one per chunk), about 5 s on chromium-webgl2.
    */
   async warm(): Promise<void> {
     const r = this._renderer;
-    if (!r || r.xr.isPresenting) return;
-    const passes: { scene: Object3D; camera: Camera }[] = [{ scene: this.scene, camera: this.camera }];
-    if (this.backdrop) passes.unshift(this.backdrop);
-    for (const pass of passes) {
+    if (!r || r.xr.isPresenting || !this.backdrop) return;
+    for (const pass of [this.backdrop]) {
       for (let k = 0; k < WARM_TURNS; k++) {
         const cam = pass.camera;
         const persp = (cam as PerspectiveCamera).isPerspectiveCamera === true ? (cam as PerspectiveCamera) : null;

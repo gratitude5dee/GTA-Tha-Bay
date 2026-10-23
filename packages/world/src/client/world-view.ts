@@ -341,7 +341,12 @@ export class WorldView implements WorldLayer {
           }
         : {}),
     });
-    void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
+    // The backdrop's render programs compile as soon as it has its objects, in every direction (DL-715): a mission beat that cuts to a
+    // shot facing another way would otherwise link them on its first frame (the skyline cards on chromium-webgl2).
+    void this.backdrop
+      .load()
+      .then(() => host.warm())
+      .catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
     this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
     this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });

@@ -203,11 +203,6 @@ export interface EngineHandle {
   firstGesture(): void;
   /** The `FirstGestureUnlock` pool for S03's CutscenePlayer: `acquireVideo`/`releaseVideo` (C13 1.1). */
   readonly media: FirstGestureUnlock;
-  /**
-   * Compiles the render programs a mission beat draws before it starts (DL-715, M05b2 AC-8): the cast kit (`ObjectPool.warm`) and
-   * everything the world and backdrop passes hold around the camera (`RendererHost.warm`). Resolves at once without a renderer.
-   */
-  warmRender(): Promise<void>;
   /** The audio service (null without Web Audio); the cutscene audio port plays on its `cutscene` bus. */
   readonly audioService: AudioServiceImpl | null;
   /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
@@ -998,12 +993,6 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       void media.trigger();
     },
     media,
-    warmRender: async () => {
-      const h = hostScene;
-      if (!h || !h.ready) return;
-      const r = h.renderer;
-      await Promise.all([pool ? pool.warm((root) => r.compileAsync(root, h.camera, h.scene)) : null, h.warm()]);
-    },
     audioService: audio,
     telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
@@ -1100,6 +1089,11 @@ async function createView(
   resize();
 
   const pool = new ObjectPool(scene);
+  // The cast kit's render programs compile now, long before a mission beat spawns its cast on the beat's first frame (DL-715).
+  if (host.ready) {
+    const r = host.renderer;
+    void pool.warm((root) => r.compileAsync(root, camera, scene));
+  }
   host.frameHook = onFrame;
   return {
     canvas,
