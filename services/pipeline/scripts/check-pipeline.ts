@@ -83,7 +83,14 @@ async function main(): Promise<void> {
   process.env['WRANGLER_LOG'] ??= 'error'; // the edge config binds Durable Objects that a Node proxy cannot host; only R2 is used
   // The R2 buckets come from the edge Worker's own wrangler config (Miniflare under the hood, nothing persisted).
   const configPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../edge/wrangler.jsonc');
-  const proxy = await getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE: R2Bucket }>({ configPath, environment: 'staging', persist: false });
+  // remoteBindings: false keeps every binding local (wrangler's GetPlatformProxyOptions; default true). Without it the
+  // remote-only Workers AI `ai` binding (M06a4) starts a remote proxy session, which needs CLOUDFLARE_API_TOKEN (BD-FIX-CI4-E01).
+  const proxy = await getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE: R2Bucket }>({
+    configPath,
+    environment: 'staging',
+    persist: false,
+    remoteBindings: false,
+  });
   try {
     const { MEDIA, PRIVATE } = proxy.env;
     const blob = r2Blob({ MEDIA, PRIVATE });
