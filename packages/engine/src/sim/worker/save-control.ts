@@ -84,13 +84,19 @@ export class SaveControl implements SaveWritePort {
       const svc = await this.deps.service();
       if (this.capability) svc.setCapability?.(this.capability);
       let n = 0;
-      while (this.queue.size > 0) {
-        const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }];
-        this.queue.delete(slot);
-        if (item.cap) svc.setCapability?.(item.cap);
-        const r = await svc.write(slot, item.data, item.reason);
-        if (r.ok) n++;
-        else this.failures.push({ slot, error: r.error });
+      try {
+        while (this.queue.size > 0) {
+          const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }];
+          this.queue.delete(slot);
+          if (item.cap) svc.setCapability?.(item.cap);
+          const r = await svc.write(slot, item.data, item.reason);
+          if (r.ok) n++;
+          else this.failures.push({ slot, error: r.error });
+        }
+      } finally {
+        // A write's own capability lasts for that write only: the service goes back to the session's capability in force now, so a
+        // capability raised for one post (the idle menu's `core` save) does not outlive the flush (BD-FIX-CI8-G04).
+        if (this.capability) svc.setCapability?.(this.capability);
       }
       return n;
     })();

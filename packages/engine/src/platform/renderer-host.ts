@@ -16,6 +16,10 @@ import type { PostStack } from './post/stack.ts';
 import { PLATFORM_FLAGS } from './tier-config.ts';
 import { GpuPacer, type FenceGl } from './gpu-pacer.ts';
 
+/** `RendererHost.warm`: four turns of 90 degrees, each collected with a vertical field of view of 110 degrees. */
+const WARM_TURNS = 4;
+const WARM_FOV_DEG = 110;
+
 /**
  * Renderer host (C13, 11-platform.md sections 5.1 and 5.8 plus the 1.1 menu-scene members).
  *
@@ -455,6 +459,47 @@ export class RendererHost {
     if (paced) this.pacer?.submitted();
     for (const l of this.listeners) l.after?.(time);
   };
+
+  /**
+   * Compiles the render programs of the backdrop pass in every horizontal direction from the camera, without drawing (DL-715). A program
+   * that is first linked inside a frame stalls that frame: a mission beat that cuts to a new shot (M05b2 AC-8) turns the view to parts of
+   * the skyline the player camera never looked at (on chromium-webgl2 the skyline cards' program was linked on the beat's first frame).
+   * `compileAsync` is three r186's `Renderer.compileAsync(scene, camera)`: it collects the objects inside the camera frustum
+   * synchronously, then builds their pipelines and links the programs, without blocking where the backend allows it (WebGL2:
+   * KHR_parallel_shader_compile). The camera is turned in four 90-degree steps with a wider field of view for the collection only, and
+   * restored before any frame draws. The world pass is not turned: its chunk materials are shared and compile with the first chunk
+   * uploaded in view, and turning it compiled every resident chunk's tree program (one per chunk), about 5 s on chromium-webgl2.
+   */
+  async warm(): Promise<void> {
+    const r = this._renderer;
+    if (!r || r.xr.isPresenting || !this.backdrop) return;
+    for (const pass of [this.backdrop]) {
+      for (let k = 0; k < WARM_TURNS; k++) {
+        const cam = pass.camera;
+        const persp = (cam as PerspectiveCamera).isPerspectiveCamera === true ? (cam as PerspectiveCamera) : null;
+        const q = cam.quaternion.clone();
+        const fov = persp?.fov ?? 0;
+        let done: Promise<void>;
+        try {
+          cam.rotateY((k * Math.PI * 2) / WARM_TURNS);
+          if (persp) {
+            persp.fov = Math.max(fov, WARM_FOV_DEG);
+            persp.updateProjectionMatrix();
+          }
+          cam.updateMatrixWorld(true);
+          done = r.compileAsync(pass.scene, cam);
+        } finally {
+          cam.quaternion.copy(q);
+          if (persp) {
+            persp.fov = fov;
+            persp.updateProjectionMatrix();
+          }
+          cam.updateMatrixWorld(true);
+        }
+        await done.catch(() => undefined);
+      }
+    }
+  }
 
   /** The M01c/M02b1 render: the backdrop pass, then the world pass over it (depth cleared only), tone mapping in the renderer. */
   readonly renderDirect = (): void => {

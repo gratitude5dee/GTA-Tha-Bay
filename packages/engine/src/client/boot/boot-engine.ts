@@ -1089,6 +1089,11 @@ async function createView(
   resize();
 
   const pool = new ObjectPool(scene);
+  // The cast kit's render programs compile now, long before a mission beat spawns its cast on the beat's first frame (DL-715).
+  if (host.ready) {
+    const r = host.renderer;
+    void pool.warm((root) => r.compileAsync(root, camera, scene));
+  }
   host.frameHook = onFrame;
   return {
     canvas,

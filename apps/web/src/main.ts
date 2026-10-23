@@ -13,7 +13,7 @@ import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
-import { afterWindowLoad, createPwaUpdateController } from './pwa-update.ts';
+import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -287,7 +287,8 @@ async function boot(): Promise<void> {
     container,
     qa: QA,
     flags,
-    ...(qaMission ? { mission: qaMission } : {}),
+    // With a streamed world the boot mission waits for the page's release below (DL-715); the gray-box scenes start it at once.
+    ...(qaMission ? { mission: prepared ? { ...qaMission, hold: true } : qaMission } : {}),
     // The Act 1 mission catalog: the Jobs list, the start markers and the auto start (M05c1). A QA build turns the triggers on with `?story=1`.
     story: story,
     host: platform.host,
@@ -375,6 +376,15 @@ async function boot(): Promise<void> {
     });
     cutSink = cutscenes.handleEvents;
     if (cutBacklog.length > 0) cutscenes.handleEvents(cutBacklog.splice(0));
+  }
+  // QA `?mission=<id>` on a streamed world (DL-715, M05b2 AC-8): the mission and its first beat start in the order a player's game runs
+  // in. The player's first gesture at the Title unlocks the media pool long before any beat; a QA page skips the Title, so the stand-in
+  // unlock runs here, at boot. A mission beat triggers inside a revealed world, so the held mission is released after the reveal.
+  if (import.meta.env.VITE_DV_QA === '1' && engine && qaMission && prepared) {
+    const view = prepared.view;
+    void Promise.all([engine.media.trigger().catch(() => undefined), view.whenRevealed()]).then(() =>
+      engine.sendUi({ t: 'mode.cmd', mode: 'story', name: 'debug.release' }),
+    );
   }
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
@@ -485,7 +495,9 @@ if (update && import.meta.env.PROD) {
   afterWindowLoad(document, window, () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })
-      .then((registration) => {
+      .then((registration: unknown) => {
+        // A context that blocks service workers resolves with no registration: nothing to attach to (BD-FIX-CI8-G03).
+        if (!isRegistration(registration)) return;
         update.attach(registration);
         const check = (): void => void registration.update().catch(() => {});
         setInterval(check, 60 * 60 * 1000);
