@@ -242,7 +242,7 @@ const RUN_SEC = 420;
 
 /**
  * Puts a sedan 6 m ahead of (x, z) facing `yaw`, seats the player in it and drives it along `course` by one input line whose `cruise`
- * holds `cruise` m/s (at most `throttle` of 127, and at most a 70 brake) and whose `follow` steers at a point on the centre line past
+ * holds `cruise` m/s (with at most `throttle` of 127) and whose `follow` steers at a point on the centre line past
  * the end; both act on every sim tick (BD-FIX-CI7-E01). The street through the tunnel falls 25 %, and an eastbound sedan at 40 m/s
  * leaves the road on the cell steps of the heightfield and hits a hood (BD-M03a1-10). While the line plays, the page samples the car
  * and asks the world, while the car is there, for the surface under it.
@@ -264,7 +264,7 @@ async function drive(page: Page, at: { x: number; z: number }, yaw: number, thro
   const line = {
     v: 1, scenario: 'vehicle-world', seed: 0xc0ffee, profile: 'local', start: { pos: [cx, y, cz], yaw, prefab: 'vehicle.sedan' },
     frames: [{ tick: 0, run: RUN_SEC * 60, input: { buttons: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 } }],
-    commands: [{ t: 'cruise', tick: 0, speed: cruise, throttle, brake: 70 }, { t: 'follow', tick: 0, x: aim.x, z: aim.z }],
+    commands: [{ t: 'cruise', tick: 0, speed: cruise, throttle }, { t: 'follow', tick: 0, x: aim.x, z: aim.z }],
   };
   const played = await page.evaluate((l) => (window as unknown as EB).__dvBridge.engine.line.play(l), line);
   expect(played?.ok, JSON.stringify(played)).toBe(true);
