@@ -7,9 +7,10 @@ import { DEFAULT_RACE } from './race-ids.ts';
 import ferryOceanBeach from '../../../../content/races/sf.sprint.ferry-ocean-beach/race.json';
 
 /**
- * QA only: a straight 180 m sprint north along the street of the gray-box block (x = 96, from z = 190), which the default QA
- * scene and the synth build both have as ground. Not content: it is not a place in San Francisco, and the sf race needs the
- * baked streets. `__dvBridge.racing.demo()` and `?racing=demo` start it.
+ * QA only: a straight 180 m sprint north along the street of the gray-box block (x = 96, from z = 190), the default QA scene.
+ * The synth bake has ground there but no street, and only tiers whose physics radius reaches 238 m from the synth spawn load its
+ * colliders (BD-FIX-CI4-F01). Not content: it is not a place in San Francisco, and the sf race needs the baked streets.
+ * `__dvBridge.racing.demo()` and `?racing=demo` start it.
  */
 export const DEMO_RACE = 'qa.demo.straight';
 const DEMO_AT = { x: 96, y: 16, z: 190 };

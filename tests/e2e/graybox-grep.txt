@@ -1,1 +1,1 @@
-@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story
+@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story|@racing-touch
