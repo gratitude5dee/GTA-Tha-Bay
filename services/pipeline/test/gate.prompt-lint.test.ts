@@ -34,7 +34,8 @@ let proxy: Awaited<ReturnType<typeof getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE
 beforeAll(async () => {
   process.env['WRANGLER_LOG'] ??= 'error';
   const configPath = path.resolve(import.meta.dirname, '../../edge/wrangler.jsonc');
-  proxy = await getPlatformProxy({ configPath, environment: 'staging', persist: false });
+  // remoteBindings: false: the remote-only Workers AI binding must not start a remote proxy session (BD-FIX-CI4-E01).
+  proxy = await getPlatformProxy({ configPath, environment: 'staging', persist: false, remoteBindings: false });
 });
 afterAll(async () => {
   await proxy.dispose();
