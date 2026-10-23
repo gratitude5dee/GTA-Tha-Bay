@@ -184,6 +184,19 @@ describe('playwright.config.ts webServer country', () => {
     expect(cf.country).toBe(mod.E2E_COUNTRY);
     if (process.env.DV_E2E_COUNTRY === undefined) expect(mod.E2E_COUNTRY).toBe('US');
   });
+
+  // BD-FIX-CI8-H02: wrangler dev loads `secrets.required` from the process environment; the e2e Worker never inherits the shell's.
+  it('passes every secrets.required name the shell holds on empty, and leaves the others unset', async () => {
+    const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as {
+      default: { webServer?: { env?: Record<string, string> } };
+      E2E_UNSET_SECRETS: readonly string[];
+    };
+    const { stripJsonc } = await import('../deploy.ts');
+    const cfg = JSON.parse(stripJsonc(readFileSync(path.join(repoRoot, 'services/edge/wrangler.jsonc'), 'utf8'))) as { secrets?: { required?: string[] } };
+    expect([...mod.E2E_UNSET_SECRETS].sort()).toEqual([...(cfg.secrets?.required ?? [])].sort());
+    const env = mod.default.webServer?.env ?? {};
+    for (const k of mod.E2E_UNSET_SECRETS) expect(env[k], k).toBe(process.env[k] === undefined ? undefined : '');
+  });
 });
 
 describe('nightly.yml (AC-8)', () => {

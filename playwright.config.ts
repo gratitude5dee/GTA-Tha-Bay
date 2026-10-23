@@ -24,6 +24,17 @@ export const E2E_CF_PATH = fileURLToPath(new URL(`./test-results/e2e-cf.${E2E_CO
 mkdirSync(dirname(E2E_CF_PATH), { recursive: true });
 writeFileSync(E2E_CF_PATH, `${JSON.stringify({ country: E2E_COUNTRY, colo: 'LOCAL', httpProtocol: 'HTTP/1.1', clientTcpRtt: 0 })}\n`);
 
+// BD-FIX-CI8-H02: the local Worker of the e2e runs with no secret, as on the CI runner. Wrangler loads the names listed in
+// `secrets.required` of services/edge/wrangler.jsonc from the process environment by itself
+// (https://developers.cloudflare.com/workers/configuration/secrets/, spec/03 section 6), so a shell that holds one, such as an agent
+// container with SUPABASE_SECRET_KEY, handed it to `wrangler dev`: the Worker then had a live database (SUPABASE_URL is a var), every
+// roster poll (route 30, every 30 s) failed against it with no KV copy and answered 503, and every spec that collects console errors
+// (hud.spec.ts:19) saw "Failed to load resource: ... 503". A name the shell holds is passed on empty (every route treats an empty secret
+// as absent); a name it does not hold stays unset, so CI, where none is set, sees exactly what it saw before.
+// Keep equal to `secrets.required` of the top-level config (tools/ci/test/workflows.test.ts checks it).
+export const E2E_UNSET_SECRETS = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY'] as const;
+const unsetSecrets: Record<string, string> = Object.fromEntries(E2E_UNSET_SECRETS.filter((k) => process.env[k] !== undefined).map((k) => [k, '']));
+
 // The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with
 // `test.use({ storageState: { cookies: [], origins: [] } })` (the gate specs under tests/e2e/ui and the title tests of shell.spec.ts).
 export const QA_PLAY_STORAGE = {
@@ -68,7 +79,7 @@ export default defineConfig({
     timeout: 300_000,
     stdout: 'ignore',
     stderr: 'pipe',
-    env: { WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
+    env: { ...unsetSecrets, WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
   },
   projects: [
     {
