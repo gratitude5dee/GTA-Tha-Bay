@@ -11,7 +11,7 @@
  * The pacer does what that compositor would do: a frame starts only when the GPU has finished the frame `depth` frames back, so at most
  * `depth` frames wait in the GPU queue. A skipped frame is a frame the compositor would not have offered. `createPlatform` turns it on
  * only where the device probe found a fallback (software) WebGPU adapter: the `chromium-webgl2` project has no adapter and WebKit no
- * `navigator.gpu`, and both already pace WebGL; held frames on WebKit failed @ui-pause's tick check in 3 of 10 runs (0 of 10 without).
+ * `navigator.gpu`, and both already pace WebGL. (Turned on for every QA build, @ui-pause failed its tick check on WebKit in 3 of 10 runs.)
  */
 export interface FenceGl {
   readonly SYNC_GPU_COMMANDS_COMPLETE: number;
