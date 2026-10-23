@@ -102,10 +102,20 @@ function eachJsonDoc(text: string): unknown[] {
   const whole = text.trim();
   try {
     docs.push(JSON.parse(whole));
+    return docs;
   } catch {
-    for (const line of whole.split('\n')) {
-      const t = line.trim();
-      if (!t.startsWith('{') && !t.startsWith('[')) continue;
+    /* banner-prefixed or multi-doc output */
+  }
+  // Wrangler banners and config warnings ride on stderr, which the exec plumbing merges into the captured output: a JSON
+  // document is the suffix starting at a line that opens with '{' or '[' (pretty-printed docs don't parse line-by-line).
+  const lines = whole.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i]!.trim();
+    if (!t.startsWith('{') && !t.startsWith('[')) continue;
+    try {
+      docs.push(JSON.parse(lines.slice(i).join('\n')));
+      return docs;
+    } catch {
       try {
         docs.push(JSON.parse(t));
       } catch {
