@@ -95,6 +95,8 @@ export class SimRuntime {
   framesHandled = 0;
   /** Whether the last frame group ran paused (`FrameSignal.paused`). */
   private paused = false;
+  /** `FrameSignal.frame` of the first paused signal of the pause in force; null while running (BD-FIX-CI10-R03). */
+  private pausedSince: number | null = null;
   /** QA input source (BotInput, C03 1.1). Replaces the page's input block while set. */
   bot: BotInput | null = null;
   /** C05 save plumbing (M04a1). While null, `save.request` is answered 'not-implemented'. */
@@ -224,6 +226,8 @@ export class SimRuntime {
     // GPU at a few frames a second) the regular report can be seconds old, and the tick the sim stopped at would only show in the next one.
     const turned = sig.paused !== this.paused;
     this.paused = sig.paused;
+    // A group starts with its first signal (`pump` keeps that signal's frame), so this is the page frame whose signal stopped the ticks.
+    if (turned) this.pausedSince = sig.paused ? sig.frame : null;
     if (++this.frameGroups % STATS_EVERY_FRAMES === 0 || turned) this.postStats();
   }
 
@@ -412,6 +416,7 @@ export class SimRuntime {
       bodies: sim.backend.bodyCount,
       eventsDropped: this.transport.eventsDropped,
       paused: this.paused,
+      pausedSince: this.pausedSince,
     };
   }
 

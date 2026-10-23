@@ -150,11 +150,18 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     // Pause opens and the sim tick stops.
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-    // The pause reaches the sim with the page's next frame signal, and the sim's tick reaches the page in its stats reports, which on a
-    // software GPU can be seconds apart. Count from the sim's own report that it runs paused (posted when the pause reaches it,
-    // BD-FIX-CI9-W04), then check both the reported tick and the newest snapshot's tick over the window.
+    // AC-6 "Pause opens and the sim tick stops", with the mechanism of 10-ui-hud-xr.md section 2.10 rule 2 and C02 rule 3: Pause sets
+    // FrameSignal.paused, and the sim stops on the first signal that carries it. So the bound is counted in page frames, not in wall time
+    // (a software GPU draws a frame in 0.1 to 2 s): by the time Pause shows, the page is paused, and the signal that stopped the sim is at
+    // the latest the next one after that moment (BD-FIX-CI10-R03). The poll below only waits for the sim's report of it to travel back
+    // (stats reports, BD-FIX-CI9-W04).
+    const shown = await observe(page);
+    expect(shown.paused).toBe(true);
     await expect.poll(async () => (await observe(page)).simPaused, { timeout: 30_000 }).toBe(true);
     const o0 = await observe(page);
+    expect(o0.simPausedSince).not.toBeNull();
+    expect(o0.simPausedSince as number).toBeLessThanOrEqual(shown.frames);
+    testInfo.annotations.push({ type: 'pause-frames', description: JSON.stringify({ shown: shown.frames, simPausedSince: o0.simPausedSince, reportedAt: o0.frames }) });
     await page.waitForTimeout(800);
     const o1 = await observe(page);
     expect(o1.simPaused).toBe(true);

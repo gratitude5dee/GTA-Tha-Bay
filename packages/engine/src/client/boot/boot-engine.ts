@@ -127,6 +127,11 @@ export interface EngineObservation {
   paused: boolean;
   /** The sim's own word (its newest stats report): the frame group that report closes ran paused. The page's `paused` reaches it with the next frame signal. */
   simPaused: boolean;
+  /**
+   * From the same report: `FrameSignal.frame` of the first paused signal of the pause in force, null while the sim runs. Compare with
+   * `frames` (signals sent so far): the pause reached the sim with signal `simPausedSince` (BD-FIX-CI10-R03).
+   */
+  simPausedSince: number | null;
   rebases: number;
   eventsDropped: number;
   commandsDropped: number;
@@ -939,6 +944,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         recovering,
         paused,
         simPaused: report?.paused ?? false,
+        simPausedSince: report?.pausedSince ?? null,
         rebases: report?.rebases ?? 0,
         eventsDropped: host.transport?.counters.eventsDropped ?? 0,
         commandsDropped: host.transport?.counters.commandsDropped ?? 0,
