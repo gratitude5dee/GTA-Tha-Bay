@@ -37,7 +37,13 @@ export type LineCommand =
   /** From `tick` on, steer (in a vehicle) or walk (on foot) toward the point (x, z) until within `r` metres (default 2). */
   | { t: 'follow'; tick: number; x: number; z: number; r?: number }
   /** At `tick`, hold the line until the player is within `r` metres of (x, z), or `timeout` ticks have passed. */
-  | { t: 'waitNear'; tick: number; x: number; z: number; r: number; timeout: number };
+  | { t: 'waitNear'; tick: number; x: number; z: number; r: number; timeout: number }
+  /**
+   * From `tick` on, in a vehicle: throttle and brake hold the forward speed at `speed` m/s, decided again on every tick from the
+   * vehicle's own speed (BD-FIX-CI7-E01). `throttle` and `brake` (0..127, default 127) are the largest pedals the hold uses; the
+   * line's own pedals are replaced. The hold never brakes at or below 1.5 m/s, where the brake pedal selects reverse.
+   */
+  | { t: 'cruise'; tick: number; speed: number; throttle?: number; brake?: number };
 
 export interface LineFile {
   v: typeof LINE_VERSION;
@@ -178,8 +184,20 @@ export function validateLine(data: unknown): LineFile {
         case 'waitNear':
           if (!isNum(cmd['x']) || !isNum(cmd['z']) || !isNum(cmd['r']) || !isInt(cmd['timeout'])) throw new LineFormatError(p, 'waitNear needs x, z, r and timeout');
           return { t: 'waitNear', tick: cmd['tick'], x: cmd['x'], z: cmd['z'], r: cmd['r'], timeout: cmd['timeout'] };
+        case 'cruise': {
+          if (!isNum(cmd['speed']) || cmd['speed'] < 0) throw new LineFormatError(`${p}.speed`, 'must be a non-negative number');
+          for (const k of ['throttle', 'brake'] as const) {
+            const v = cmd[k];
+            if (v !== undefined && (!isInt(v) || v < 0 || v > 127)) throw new LineFormatError(`${p}.${k}`, 'must be in 0..127');
+          }
+          return {
+            t: 'cruise', tick: cmd['tick'], speed: cmd['speed'],
+            ...(cmd['throttle'] !== undefined ? { throttle: cmd['throttle'] as number } : {}),
+            ...(cmd['brake'] !== undefined ? { brake: cmd['brake'] as number } : {}),
+          };
+        }
         default:
-          throw new LineFormatError(`${p}.t`, "must be 'aim', 'follow' or 'waitNear'");
+          throw new LineFormatError(`${p}.t`, "must be 'aim', 'follow', 'waitNear' or 'cruise'");
       }
     });
   }

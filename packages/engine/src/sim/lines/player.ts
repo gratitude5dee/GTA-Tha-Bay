@@ -4,7 +4,8 @@
  * and the real frame is what the sim reads on that tick. Not bundled into production builds.
  *
  * Commands: `aim` holds the view heading, `follow` steers or walks toward a point, `waitNear` holds the line's clock until the
- * player is near a point or a timeout passes. The player's position and heading come from a probe the host supplies.
+ * player is near a point or a timeout passes, `cruise` holds a vehicle's speed with throttle and brake (BD-FIX-CI7-E01). The
+ * player's position, heading and vehicle speed come from a probe the host supplies.
  *
  * Sim-adjacent code: arithmetic uses `detmath` where the result reaches the sim (the commands' steering).
  */
@@ -13,9 +14,12 @@ import { inputAt, lineLength, type LineCommand, type LineFile, type LineInput } 
 
 const DEVICE_BOT = 7;
 
-/** Where the player is and which way it (or its vehicle) faces; heading is radians about +Y, 0 faces -Z. */
+/**
+ * Where the player is and which way it (or its vehicle) faces; heading is radians about +Y, 0 faces -Z. `speed` is the signed
+ * forward speed of the vehicle in m/s (C01 `Vehicle.speed`); without it `cruise` is skipped.
+ */
 export interface LineProbe {
-  (): { x: number; z: number; yaw: number; inVehicle: boolean };
+  (): { x: number; z: number; yaw: number; inVehicle: boolean; speed?: number };
 }
 
 /** True when `f` carries input a person produced: any button, stick, pedal or steer. View angles alone do not count. */
@@ -26,6 +30,22 @@ export function isRealInput(f: InputFrame | null | undefined): boolean {
 
 const NEUTRAL: LineInput = { buttons: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 0 };
 const clamp = (x: number, lo: number, hi: number): number => (x < lo ? lo : x > hi ? hi : x);
+
+/** `cruise`: the pedal is full this many m/s away from the target speed and falls off linearly to the target (a P band). */
+export const CRUISE_BAND = 2;
+/** `cruise`: no brake until the vehicle is this many m/s above the target, so that throttle and brake never alternate on the target. */
+export const CRUISE_DEADBAND = 0.5;
+/** Below this forward speed the brake pedal selects reverse (`@dv/shared` vehicle handling), so `cruise` never brakes there. */
+const REVERSE_BELOW = 1.5;
+
+/** The pedals that hold `target` m/s at forward speed `speed`, at most `maxThrottle` and `maxBrake` (0..127). */
+export function cruisePedals(speed: number, target: number, maxThrottle: number, maxBrake: number): { throttle: number; brake: number } {
+  const err = target - speed;
+  if (err > 0) return { throttle: Math.round(maxThrottle * clamp(err / CRUISE_BAND, 0, 1)), brake: 0 };
+  const over = -err - CRUISE_DEADBAND;
+  if (over <= 0 || speed <= REVERSE_BELOW) return { throttle: 0, brake: 0 };
+  return { throttle: 0, brake: Math.max(1, Math.round(maxBrake * clamp(over / CRUISE_BAND, 0, 1))) };
+}
 
 export class LinePlayer implements BotInput {
   readonly device = 'bot' as const;
@@ -108,14 +128,20 @@ export class LinePlayer implements BotInput {
     let out = base;
     let aim: number | null = null;
     let follow: Extract<LineCommand, { t: 'follow' }> | null = null;
+    let cruise: Extract<LineCommand, { t: 'cruise' }> | null = null;
     for (const c of cmds) {
       if (c.tick > clock) continue;
       if (c.t === 'aim') {
         aim = c.yaw;
         follow = null;
       } else if (c.t === 'follow') follow = c;
+      else if (c.t === 'cruise') cruise = c;
     }
     if (aim !== null) out = { ...out, camYaw: aim };
+    if (cruise && this.probe) {
+      const p = this.probe();
+      if (p.inVehicle && p.speed !== undefined) out = { ...out, ...cruisePedals(p.speed, cruise.speed, cruise.throttle ?? 127, cruise.brake ?? 127) };
+    }
     if (follow && this.probe) {
       const p = this.probe();
       const dx = follow.x - p.x;

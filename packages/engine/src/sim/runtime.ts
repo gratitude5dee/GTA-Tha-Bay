@@ -5,7 +5,7 @@ import type { RetryEnv } from './physics/rapier-backend.ts';
 import { publishedCamera } from './camera/collision.ts';
 import { requestRagdoll, requestTeleport } from './control/ownership.ts';
 import { CONTROL_OWNER } from './control/states.ts';
-import { Control, LocalPlayer, Transform } from './ecs/components.ts';
+import { Control, LocalPlayer, Transform, Vehicle } from './ecs/components.ts';
 import { playerSide, snapshotPublisher } from './publish.ts';
 import { scenarioById } from './scenarios/index.ts';
 import { createPhysicsSim, type PhysicsSim } from './sim-factory.ts';
@@ -52,7 +52,7 @@ export interface SimModule {
  * production bundle. `play` builds a bot that plays `line` from `baseTick`; recording sees every frame the sim reads.
  */
 export interface LineTools {
-  play(line: unknown, baseTick: number, probe: () => { x: number; z: number; yaw: number; inVehicle: boolean }): BotInput;
+  play(line: unknown, baseTick: number, probe: () => { x: number; z: number; yaw: number; inVehicle: boolean; speed?: number }): BotInput;
   startRecording(meta: { scenario: string; seed: number; profile: SimProfile; pos: [number, number, number]; yaw: number; prefab?: string }): void;
   record(frame: InputFrame): void;
   readonly recording: boolean;
@@ -352,7 +352,8 @@ export class SimRuntime {
         try {
           this.bot = tools.play(cmd.line, sim.core.tick, () => {
             const p = player();
-            return { x: p.x, z: p.z, yaw: p.yaw, inVehicle: p.vehicle !== 0 };
+            // the vehicle's signed forward speed, for `cruise` (BD-FIX-CI7-E01)
+            return { x: p.x, z: p.z, yaw: p.yaw, inVehicle: p.vehicle !== 0, ...(p.vehicle !== 0 ? { speed: sim.ecs.store(Vehicle).speed[p.vehicle] as number } : {}) };
           });
           reply({ ok: true, baseTick: sim.core.tick });
         } catch (e) {

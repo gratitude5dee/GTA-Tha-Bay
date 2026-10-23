@@ -7,7 +7,7 @@ import type { InputFrame } from '@dv/shared';
 import {
   encodeRuns, inputAt, LineFormatError, lineLength, parseLine, serializeLine, validateLine, type LineFile, type LineInput,
 } from '../src/sim/lines/format.ts';
-import { isRealInput, LinePlayer } from '../src/sim/lines/player.ts';
+import { cruisePedals, CRUISE_BAND, CRUISE_DEADBAND, isRealInput, LinePlayer } from '../src/sim/lines/player.ts';
 import { LineRecorder } from '../src/sim/lines/recorder.ts';
 import { createVehicleWorld, NEUTRAL } from './vehicle-sim.ts';
 
@@ -63,6 +63,9 @@ describe('line format', () => {
     expect(() => validateLine({ ...ok, frames: [{ ...ok.frames[0], input: { ...ok.frames[0]?.input, steer: 200 } }] })).toThrow(/steer/);
     expect(() => validateLine({ ...ok, frames: [ok.frames[0], { ...ok.frames[0], tick: 1 }] })).toThrow(LineFormatError);
     expect(() => validateLine({ ...ok, commands: [{ t: 'jump', tick: 0 }] })).toThrow(/commands\[0\]\.t/);
+    expect(validateLine({ ...ok, commands: [{ t: 'cruise', tick: 0, speed: 8, throttle: 90 }] }).commands).toEqual([{ t: 'cruise', tick: 0, speed: 8, throttle: 90 }]);
+    expect(() => validateLine({ ...ok, commands: [{ t: 'cruise', tick: 0, speed: -1 }] })).toThrow(/commands\[0\]\.speed/);
+    expect(() => validateLine({ ...ok, commands: [{ t: 'cruise', tick: 0, speed: 8, brake: 128 }] })).toThrow(/commands\[0\]\.brake/);
     expect(() => parseLine('{')).toThrow(/not JSON/);
   });
 
@@ -207,5 +210,52 @@ describe('line format', () => {
     const dist = (v: { x: number; z: number }): number => Math.hypot(v.x - 60, v.z - 60);
     expect(dist(last)).toBeLessThan(dist(first) - 30);
     expect(last.z).toBeGreaterThan(20);
+  });
+
+  it('cruise pedals: throttle below the target, nothing in the dead band, brake above it, never a brake that would reverse', () => {
+    expect(cruisePedals(0, 8, 90, 127)).toEqual({ throttle: 90, brake: 0 });
+    expect(cruisePedals(8 - CRUISE_BAND / 2, 8, 90, 127)).toEqual({ throttle: 45, brake: 0 });
+    expect(cruisePedals(8, 8, 90, 127)).toEqual({ throttle: 0, brake: 0 });
+    expect(cruisePedals(8 + CRUISE_DEADBAND, 8, 90, 127)).toEqual({ throttle: 0, brake: 0 });
+    expect(cruisePedals(8 + CRUISE_DEADBAND + CRUISE_BAND, 8, 90, 127)).toEqual({ throttle: 0, brake: 127 });
+    expect(cruisePedals(30, 8, 90, 70)).toEqual({ throttle: 0, brake: 70 });
+    // a target near rest: the brake pedal at 1.5 m/s or less would select reverse
+    expect(cruisePedals(1.4, 0, 90, 127)).toEqual({ throttle: 0, brake: 0 });
+  });
+
+  it('cruise replaces the line pedals on every tick from the probe speed, and only in a vehicle', () => {
+    const input: LineInput = { buttons: 0, moveX: 0, moveY: 0, throttle: 127, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 };
+    const line: LineFile = {
+      v: 1, scenario: 's', seed: 1, profile: 'canonical', start: { pos: [0, 0, 0], yaw: 0 },
+      frames: encodeRuns(Array.from({ length: 10 }, () => input)),
+      commands: [{ t: 'cruise', tick: 2, speed: 8, throttle: 90 }],
+    };
+    let speed = 0;
+    let inVehicle = true;
+    const p = new LinePlayer(line, 0, () => ({ x: 0, z: 0, yaw: 0, inVehicle, speed }));
+    expect(p.frame(0).throttle).toBe(127);   // before the command's tick: the line's own pedal
+    p.frame(1);
+    expect(p.frame(2)).toMatchObject({ throttle: 90, brake: 0 });
+    speed = 12;
+    expect(p.frame(3)).toMatchObject({ throttle: 0, brake: 127 });
+    speed = 8;
+    expect(p.frame(4)).toMatchObject({ throttle: 0, brake: 0 });
+    inVehicle = false;
+    expect(p.frame(5)).toMatchObject({ throttle: 127, brake: 0 });
+  });
+
+  it('a cruise line holds the sedan at its target speed', async () => {
+    const input: LineInput = { buttons: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 };
+    const line: LineFile = {
+      v: 1, scenario: 'vehicle-oracle', seed: 1, profile: 'canonical', start: { pos: [0, 0, 0], yaw: -Math.PI / 2, prefab: 'vehicle.sedan' },
+      frames: encodeRuns(Array.from({ length: 900 }, () => input)),
+      commands: [{ t: 'cruise', tick: 0, speed: 8, throttle: 90 }],
+    };
+    const { runLine } = await import('./lines-runner.ts');
+    const r = await runLine(line);
+    // after the run-up (5 s), every tick of the last 10 s is within 1 m/s of the target
+    const held = r.trace.slice(300).map((v) => v.speed);
+    expect(Math.min(...held)).toBeGreaterThan(7);
+    expect(Math.max(...held)).toBeLessThan(9);
   });
 });

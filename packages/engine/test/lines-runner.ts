@@ -3,7 +3,7 @@
  * player at its wheel, 60 settle ticks, then the line. The runner returns what the oracle tests measure.
  */
 import { SIM_DT } from '@dv/shared';
-import { Transform } from '../src/sim/ecs/components.ts';
+import { Transform, Vehicle } from '../src/sim/ecs/components.ts';
 import type { PhysicsBuild, VehiclePhysics } from '../src/sim/physics/backend.ts';
 import type { WheelPath } from '../src/sim/vehicle/index.ts';
 import { LinePlayer } from '../src/sim/lines/player.ts';
@@ -53,10 +53,13 @@ export async function runLine(line: LineFile, opts: RunOptions = {}): Promise<Li
   }
   const baseTick = sim.tick;
   // the probe of `follow` and `waitNear`: where the vehicle is and which way it faces (yaw = 2 atan2(qy, qw), forward is (-sin, -cos))
-  const probe = (): { x: number; z: number; yaw: number; inVehicle: boolean } => {
+  const probe = (): { x: number; z: number; yaw: number; inVehicle: boolean; speed: number } => {
     const id = sim.ecs.resolve(world.vehicle) as number;
     const tr = sim.ecs.store(Transform);
-    return { x: tr.px[id] as number, z: tr.pz[id] as number, yaw: 2 * Math.atan2(tr.qy[id] as number, tr.qw[id] as number), inVehicle: true };
+    return {
+      x: tr.px[id] as number, z: tr.pz[id] as number, yaw: 2 * Math.atan2(tr.qy[id] as number, tr.qw[id] as number), inVehicle: true,
+      speed: sim.ecs.store(Vehicle).speed[id] as number,
+    };
   };
   const player = new LinePlayer(line, baseTick, probe);
   const trace: VehicleView[] = [];

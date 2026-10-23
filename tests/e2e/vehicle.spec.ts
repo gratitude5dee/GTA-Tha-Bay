@@ -85,9 +85,19 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
     await expect.poll(async () => (await observe(page)).vehicle?.speed ?? 0, { timeout: 20_000 }).toBeGreaterThan(4);
     await page.screenshot({ path: testInfo.outputPath('vehicle-3-driving.png') });
     await page.keyboard.up('KeyW');
+    // S brakes while the car rolls forward and selects reverse once it is below 1.5 m/s (`@dv/shared` handling.ts), so |speed| < 1.5
+    // holds only for the few ticks between the two. It is looked for on every animation frame inside the page, that is in every
+    // snapshot the page draws; a poll from the runner (100, 250, 500, then 1000 ms apart) stepped over it on a slow browser and found
+    // the car at its reverse top speed, 16.8 m/s (BD-FIX-CI7-E02).
     await page.keyboard.down('KeyS');
-    await expect.poll(async () => Math.abs((await observe(page)).vehicle?.speed ?? 99), { timeout: 20_000 }).toBeLessThan(1.5);
+    const braked = await page.waitForFunction(() => {
+      const w = window as unknown as { __dvMinSpeed?: number; __dvBridge: { engine: { observe(): { vehicle: { speed: number } | null } } } };
+      const v = Math.abs(w.__dvBridge.engine.observe().vehicle?.speed ?? 99);
+      w.__dvMinSpeed = Math.min(w.__dvMinSpeed ?? 99, v);
+      return v < 1.5;
+    }, undefined, { polling: 'raf', timeout: 20_000 }).then(() => true, () => false);
     await page.keyboard.up('KeyS');
+    expect(braked, `|speed| < 1.5 while S is held (the least seen: ${await page.evaluate(() => (window as unknown as { __dvMinSpeed?: number }).__dvMinSpeed)})`).toBe(true);
 
     // the five cameras: each view is somewhere above the ground, and the chase views stay inside the distance the sim allowed
     const order = await bridge(page, (b) => b.vehicleCamera.views());
@@ -169,8 +179,11 @@ test.describe('vehicles in the gray-box block @vehicle', () => {
  * A sedan is driven over each by a canonical input line; every sample of the run is checked against the world's own `groundY`, asked
  * while the car is there (a chunk that the car has left is no longer resident, and `groundY` is then `null`).
  *
- * A chunk that has not streamed in yet is a wall (`wallPrism`), so a car that outruns the stream waits at it. The run therefore plays
- * the line in rounds of 15 s and goes on until the car is through, instead of trusting one long throttle line.
+ * A chunk that has not streamed in yet is a wall (`wallPrism`), so a car that outruns the stream waits at it, and goes on once the chunk
+ * is in. The speed and the line are therefore held inside the sim, on every tick, by the line player's `cruise` and `follow` commands
+ * (BD-FIX-CI7-E01): a controller in the test runner or the page acts only once per bridge round trip, and a page starved of CPU
+ * (software GL beside another synth world) takes seconds per round. Full throttle between rounds took the sedan down the tunnel's
+ * 25 % fall at 14 to 18 m/s into the hood; braking between rounds held it near 3 m/s on the overpass, which then ran out of time.
  *
  * These runs check the car against the world's surfaces, not against other cars, so the streets are emptied first (BD-FIX-VW-02):
  * the street through the tunnel is one-way westbound with a single lane on its centre line and parked cars 2.7 m either side, and the
@@ -219,14 +232,20 @@ interface Sample {
   up: number | null;
 }
 
-/** Where a run keeps to and where it ends: the centre line is `lateral = centre`, `sign` makes an offset positive on the car's own right. */
-interface Course { lateral: 'x' | 'z'; centre: number; sign: 1 | -1; keep: boolean; endAxis: 'x' | 'z'; endValue: number; endDir: 1 | -1 }
+/** Where a run keeps to and where it ends: the centre line is `lateral = centre`; the run ends once `endAxis` passes `endValue` in `endDir`. */
+interface Course { lateral: 'x' | 'z'; centre: number; endAxis: 'x' | 'z'; endValue: number; endDir: 1 | -1 }
+
+/** `follow` steers at a point on the centre line this far past the end, so that the car keeps to the line up to the end. */
+const AIM_BEYOND = 150;
+/** The longest a run may take, seconds; the line is that long. */
+const RUN_SEC = 420;
 
 /**
- * Puts a sedan 6 m ahead of (x, z) facing `yaw`, seats the player in it and drives it along `course` with a controller that runs in the
- * page (every ~100 ms, without a round trip per look): full `throttle` below `cruise` m/s, the brake above it, and a steer that holds
- * the centre line. The street through the tunnel falls 25 %, and an eastbound sedan at 40 m/s leaves the road on the cell steps of the
- * heightfield and hits a hood (BD-M03a1-10). Every look also asks the world, while the car is there, for the surface under it.
+ * Puts a sedan 6 m ahead of (x, z) facing `yaw`, seats the player in it and drives it along `course` by one input line whose `cruise`
+ * holds `cruise` m/s (with at most `throttle` of 127) and whose `follow` steers at a point on the centre line past
+ * the end; both act on every sim tick (BD-FIX-CI7-E01). The street through the tunnel falls 25 %, and an eastbound sedan at 40 m/s
+ * leaves the road on the cell steps of the heightfield and hits a hood (BD-M03a1-10). While the line plays, the page samples the car
+ * and asks the world, while the car is there, for the surface under it.
  */
 async function drive(page: Page, at: { x: number; z: number }, yaw: number, throttle: number, cruise: number, course: Course): Promise<Sample[]> {
   const tp = await page.evaluate((pt) => (window as unknown as W).__dvBridge.world.teleport(pt), { x: at.x, z: at.z });
@@ -240,48 +259,40 @@ async function drive(page: Page, at: { x: number; z: number }, yaw: number, thro
   expect(car?.ok, JSON.stringify(car)).toBe(true);
   const seat = await page.evaluate((h) => (window as unknown as EB).__dvBridge.engine.vehicleOp('seat', h), car?.handle ?? 0);
   expect(seat?.ok, JSON.stringify(seat)).toBe(true);
+  const endPast = course.endValue + course.endDir * AIM_BEYOND;
+  const aim = course.lateral === 'x' ? { x: course.centre, z: endPast } : { x: endPast, z: course.centre };
+  const line = {
+    v: 1, scenario: 'vehicle-world', seed: 0xc0ffee, profile: 'local', start: { pos: [cx, y, cz], yaw, prefab: 'vehicle.sedan' },
+    frames: [{ tick: 0, run: RUN_SEC * 60, input: { buttons: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 1 } }],
+    commands: [{ t: 'cruise', tick: 0, speed: cruise, throttle }, { t: 'follow', tick: 0, x: aim.x, z: aim.z }],
+  };
+  const played = await page.evaluate((l) => (window as unknown as EB).__dvBridge.engine.line.play(l), line);
+  expect(played?.ok, JSON.stringify(played)).toBe(true);
   const samples = await page.evaluate(async (a) => {
     type Call = (op: string, args?: Record<string, unknown>) => Promise<unknown>;
     const eng = (window as unknown as { __dvBridge: { engine: Bridge & { observe(): { vehicle: { pos: number[]; speed: number } | null } } } }).__dvBridge.engine;
     const call = (window as unknown as { __dvBridge: { world: { call: Call } } }).__dvBridge.world.call;
     const ground = async (x: number, z: number, h?: number): Promise<number> => ((await call('query', { x, z, ...(h !== undefined ? { y: h } : {}) })) as { groundY: number | null } | null)?.groundY ?? Number.NaN;   // null reply: the world did not answer in time (a slow software-rendered browser)
     const out: { x: number; y: number; z: number; speed: number; g: number; terrain: number; top: number; up: number | null }[] = [];
-    // One sample at a time, asked while the car is there; the controller below does not wait for it (BD-FIX-CI6-B01).
+    // one sample at a time, asked while the car is there; the line drives on in the sim meanwhile
     const sample = async (x: number, vy: number, z: number, speed: number): Promise<void> => {
       const up = (await call('ray', { from: [x, vy + 1, z], dir: [0, 1, 0], max: 12 })) as { toi: number } | null;
       out.push({ x, y: vy, z, speed, g: await ground(x, z, vy), terrain: await ground(x, z, -50), top: await ground(x, z), up: up ? up.toi : null });
     };
-    let pending: Promise<void> | null = null;
     const t0 = performance.now();
-    let speed = 0, steer = 0;
-    while (performance.now() - t0 < 420_000) {
+    while (performance.now() - t0 < a.runMs) {
       const v = eng.observe().vehicle;
       if (v) {
         const x = v.pos[0] as number, vy = v.pos[1] as number, z = v.pos[2] as number;
-        speed = v.speed;
-        const off = a.course.sign * ((a.course.lateral === 'x' ? x : z) - a.course.centre);
-        steer = a.course.keep ? Math.round(-Math.max(-0.06, Math.min(0.06, 0.015 * off)) * 127) : 0;   // a weak pull to the centre line: the deck's cross-fall drifts a car 20 m in 500 m
-        if ((a.course.endAxis === 'x' ? x : z) * a.course.endDir > a.course.endValue * a.course.endDir) {
-          await pending;
-          await sample(x, vy, z, speed);   // the last sample is the car past the end
-          break;
-        }
-        if (pending === null) pending = sample(x, vy, z, speed).finally(() => void (pending = null));
+        const past = (a.course.endAxis === 'x' ? x : z) * a.course.endDir > a.course.endValue * a.course.endDir;
+        await sample(x, vy, z, v.speed);   // when past the end, the last sample is the car past the end
+        if (past) break;
       }
-      // The throttle holds for 20 ticks (1/3 s), then the line brakes until the next round replaces it. A round takes one bridge
-      // round trip, a few frames; a page starved of CPU (software GL beside another synth world) can take seconds, and a line that
-      // kept full throttle until then took the sedan down the tunnel's 25 % fall at 14 to 18 m/s into the hood (BD-FIX-CI6-B01).
-      const drive = { buttons: 0, moveX: 0, moveY: 0, throttle: speed < a.cruise ? a.throttle : 0, brake: speed > a.cruise + 1 ? 70 : 0, steer, camYaw: 0, camPitch: 0, context: 1 };
-      await eng.line.play({
-        v: 1, scenario: 'vehicle-world', seed: 0xc0ffee, profile: 'local', start: { pos: [a.cx, a.y, a.cz], yaw: a.yaw, prefab: 'vehicle.sedan' },
-        frames: [{ tick: 0, run: 20, input: drive }, { tick: 20, run: 70, input: { ...drive, throttle: 0, brake: 70 } }],
-      });
       await new Promise((r) => setTimeout(r, 40));
     }
-    await pending;
     await eng.line.stop();
     return out;
-  }, { course, cx, cz, y, yaw, throttle, cruise });
+  }, { course, runMs: RUN_SEC * 1000 });
   const run = samples as Sample[];
   console.log(`vehicle-world drive at ${at.x}, ${at.z}: ${run.length} samples, top speed ${Math.max(...run.map((s) => s.speed)).toFixed(1)} m/s (cruise ${cruise})`);
   return run;
@@ -295,7 +306,7 @@ test.describe('vehicles in the synth city @vehicle-world', () => {
     const errors = await bootWorld(page);
     // south along the avenue (yaw pi), from the deck's first metres (the synth deck starts 1.6 to 2.9 m above the approach, a lip no car
     // mounts: BD-M03a1-10) to past its far end, where the car drops back onto the street
-    const samples = await drive(page, { x: 1340, z: 2232 }, Math.PI, 90, 8, { lateral: 'x', centre: 1340, sign: -1, keep: true, endAxis: 'z', endValue: 2520, endDir: 1 });
+    const samples = await drive(page, { x: 1340, z: 2232 }, Math.PI, 90, 8, { lateral: 'x', centre: 1340, endAxis: 'z', endValue: 2520, endDir: 1 });
     expect(samples.length).toBeGreaterThan(8);
     expect(samples[samples.length - 1]!.z, 'reached the far end').toBeGreaterThan(2500);
     let onDeck = 0;
@@ -318,7 +329,7 @@ test.describe('vehicles in the synth city @vehicle-world', () => {
     const errors = await bootWorld(page);
     // east along the street (yaw -pi/2), from 140 m before the west portal to 100 m after the east one, at 6 m/s (it falls 25 %; the
     // west-bound climb ends at a 52 % step at the east portal that no sedan mounts, BD-M03a1-10)
-    const samples = await drive(page, { x: -2800, z: 3016 }, -Math.PI / 2, 90, 6, { lateral: 'z', centre: 3016, sign: 1, keep: true, endAxis: 'x', endValue: -2080, endDir: 1 });
+    const samples = await drive(page, { x: -2800, z: 3016 }, -Math.PI / 2, 90, 6, { lateral: 'z', centre: 3016, endAxis: 'x', endValue: -2080, endDir: 1 });
     expect(samples.length).toBeGreaterThan(8);
     expect(samples[samples.length - 1]!.x, 'came out of the tunnel').toBeGreaterThan(-2100);
     let under = 0;
