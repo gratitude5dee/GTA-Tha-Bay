@@ -27,7 +27,7 @@ In a QA build (`VITE_DV_QA=1`; the PR preview `https://pr-6-tha-bay-web-staging.
 
 | What | URL | Then |
 |---|---|---|
-| The straight demo sprint, any world (the default QA scene and the synth preview) | `/?racing=demo&debug=1` (add `&touch=1` for the touch layout) | tap Start; the grid, the 3-2-1 countdown (it starts by itself after 5 s) and the HUD show at once. W A S D drive, Left Shift is nitro, Space the handbrake, hold R for the reset |
+| The straight demo sprint on the gray-box street (the default QA scene; on the synth preview only at a tier whose physics radius reaches the grid, see below) | `/?racing=demo&debug=1` (add `&touch=1` for the touch layout) | tap Start; the grid, the 3-2-1 countdown (it starts by itself after 5 s) and the HUD show at once. W A S D drive, Left Shift is nitro, Space the handbrake, hold R for the reset |
 | The same, by hand | `/?racing=1&debug=1` | `await __dvBridge.racing.demo()` |
 | The real sprint on the streets of San Francisco | `/?racing=1&debug=1` on a build with the `sf` bake (`DV_WORLD` unset) | `await __dvBridge.racing.start('sf.sprint.ferry-ocean-beach', { vehicle: 'vehicle.aurelian-sorrel' })` |
 
@@ -38,4 +38,4 @@ await __dvBridge.racing.fillNitro(); // QA shortcut for a drift or a perfect sta
 await __dvBridge.racing.cmd('ready' | 'retry' | 'exit'); await __dvBridge.racing.quit();
 ```
 
-The demo race (`qa.demo.straight`, 180 m north along the street of the gray-box block) is QA scaffolding, not content: the `sf` race needs the baked streets, which the synth build does not have. The HUD in these builds is a plain DOM overlay mounted by the bridge; the shell mounts the mode UI itself from M04b2.
+The demo race (`qa.demo.straight`, 180 m north along the street of the gray-box block) is QA scaffolding, not content: the `sf` race needs the baked streets, which the synth build does not have. The grid is fixed at (96, 190), on the gray-box street. The synth bake has ground there but no street (its streets run every 160 m from x = 60), and the grid is 238 m from the synth spawn: the sim streams colliders only within the tier's physics radius of the player (`config/world/streaming.json`: 400 m at `desktop`, 150 m at `mobile-low`), so on a phone-sized synth session the race stays in `Loading`. The touch test `@racing-touch` therefore runs in the gray-box half of CI (`GRAYBOX_GREP`, BD-FIX-CI4-F01). The HUD in these builds is a plain DOM overlay mounted by the bridge; the shell mounts the mode UI itself from M04b2.
