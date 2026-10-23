@@ -39,6 +39,14 @@ const phase = (page: Page): Promise<string | undefined> =>
   page.evaluate(() => ((window as unknown as W).__dvBridge.mission.state() as { phase?: string } | null)?.phase);
 const answer = (entries: LogEntry[], state: string): LogEntry | undefined => entries.find((e) => e.k === 'cmd' && e.cmd?.t === 'cutscene.state' && e.cmd.state === state);
 
+/** Records how long the clip took from the beat's request to the `video` answer (the start chain of section D7) as an annotation. */
+async function noteVideoMs(page: Page): Promise<void> {
+  const entries = await log(page);
+  const request = entries.find((e) => e.k === 'request');
+  const video = answer(entries, 'video');
+  if (request && video) test.info().annotations.push({ type: 'video-ms', description: String(Math.round(video.at - request.at)) });
+}
+
 const MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
 
 type Route27 = 'absent' | 'ready' | null;
@@ -134,6 +142,7 @@ test.describe('cutscene player @cutscene', () => {
     test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
     const errors = await boot(page, 'ready');
     await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    await noteVideoMs(page);
     const entries = await log(page);
     expect(answer(entries, 'video')).toBeDefined();
     expect(answer(entries, 'fallback')).toBeUndefined();
@@ -161,6 +170,7 @@ test.describe('cutscene player @cutscene', () => {
     test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
     const errors = await boot(page, null, '&beats=video');
     await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    await noteVideoMs(page);
     expect(await cut(page, (c) => c.aiChip())).toBe(true);
     await page.keyboard.press('Escape');
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
@@ -187,6 +197,7 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
     expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false, held: null } });
     expect((await log(page)).find((e) => e.k === 'play')?.props).toMatchObject({ path: 'fallback', trigger: 'mid_stall' });
+    await noteVideoMs(page);
     expect(errors).toEqual([]);
   });
 
