@@ -1,5 +1,5 @@
 import type { MissionIR, StorySlice, WorldResolver } from '@dv/shared';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { at, atLandmark, circle, defineMission, landmark, npc, poly, route, stage, waitFor } from '../src/authoring/index.ts';
 import { resolveMission } from '../src/compiler/resolve.ts';
 import { StoryController } from '../src/mode.ts';
@@ -122,5 +122,55 @@ describe('a mission that reaches starting (AC-8)', () => {
     expect(same.c.rt?.attempt).toBe(1);
     expect(stored?.id).toBe(ID);
     expect(same.c.rt?.phase).toBe('stage');
+  });
+});
+
+describe('the QA boot mission held for the page (DL-715)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+  const release = { t: 'mode.cmd', tick: 0, s: JSON.stringify({ mode: 'story', name: 'debug.release' }) } as const;
+  function held(): { c: StoryController; h: ReturnType<typeof makeHarness>; run(n: number): void } {
+    vi.stubEnv('VITE_DV_QA', '1');
+    const h = makeHarness();
+    (h.ctx.world as { resolver: WorldResolver }).resolver = flatResolver('new-bake');
+    const c = new StoryController({ qa: true, bootConfig: () => ({ mission: { id: ID, ir: mission(), hold: true } }) });
+    const run = (n: number): void => {
+      for (let i = 0; i < n; i++) {
+        c.advance(h.ctx);
+        h.tickNo.n++;
+      }
+    };
+    return { c, h, run };
+  }
+
+  it('waits for debug.release, then starts the mission', () => {
+    const { c, h, run } = held();
+    c.attach(h.ctx, h.story);
+    c.qaAutostart();
+    run(1200); // longer than the patience of an unheld boot mission (900 ticks)
+    expect(c.rt).toBeNull();
+    c.onEvent(h.ctx, release as never);
+    run(6);
+    expect(c.rt?.phase).toBe('stage');
+  });
+
+  it('a release that came before the mode entered starts it at once', () => {
+    const { c, h, run } = held();
+    c.attach(h.ctx, h.story);
+    c.onEvent(h.ctx, release as never);
+    c.qaAutostart();
+    run(6);
+    expect(c.rt?.phase).toBe('stage');
+  });
+
+  it('a production build ignores debug.release', () => {
+    const { c, h, run } = held();
+    vi.stubEnv('VITE_DV_QA', '0');
+    c.attach(h.ctx, h.story);
+    c.onEvent(h.ctx, release as never);
+    c.qaAutostart();
+    run(12);
+    expect(c.rt).toBeNull();
   });
 });
