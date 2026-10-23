@@ -1,5 +1,5 @@
 import type { ProfileId, ProfileMeta, SaveRecord, SlotId, SlotPointer, Tombstone } from '@dv/shared';
-import { SaveStoreError, type SaveStore } from './store.ts';
+import { SaveStoreError, isOrphan, isSameIntactRecord, type SaveStore } from './store.ts';
 
 /** IndexedDB database name and version (C05 "IndexedDB layout"). */
 export const SAVE_DB_NAME = 'dv-saves';
@@ -166,6 +166,41 @@ export class IdbStore implements SaveStore {
       if ((cur?.gen ?? 0) !== expectedGen) return false;
       await wrap(store.put(next));
       return true;
+    });
+  }
+  commitRecord(rec: SaveRecord, expectedGen: number): Promise<'ok' | 'moved' | 'corrupt'> {
+    return this.run(['pointers', 'records'], 'readwrite', async (tx) => {
+      const pointers = tx.objectStore('pointers');
+      const records = tx.objectStore('records');
+      const cur = (await wrap(pointers.get([rec.profileId, rec.slot]) as IDBRequest<SlotPointer | undefined>)) ?? null;
+      if ((cur?.gen ?? 0) !== expectedGen) return 'moved';
+      const key = [rec.profileId, rec.slot, rec.gen];
+      let stored = (await wrap(records.get(key) as IDBRequest<SaveRecord | undefined>)) ?? null;
+      if (!stored) {
+        // Another service's boot sweep took the record between step (c) and here: put it back in this transaction.
+        await wrap(records.put(rec));
+        stored = (await wrap(records.get(key) as IDBRequest<SaveRecord | undefined>)) ?? null;
+      }
+      if (!stored || !isSameIntactRecord(stored, rec)) return 'corrupt';
+      const next: SlotPointer = { profileId: rec.profileId, slot: rec.slot, gen: rec.gen, savedAt: rec.savedAt };
+      await wrap(pointers.put(next));
+      return 'ok';
+    });
+  }
+  sweepOrphans(profileId: ProfileId, keepGenerations: number): Promise<number> {
+    return this.run(['pointers', 'records'], 'readwrite', async (tx) => {
+      const ptrs = await wrap(tx.objectStore('pointers').getAll(prefix(profileId)) as IDBRequest<SlotPointer[]>);
+      const gens = new Map<SlotId, number>(ptrs.map((p) => [p.slot, p.gen] as const));
+      const records = tx.objectStore('records');
+      const keys = (await wrap(records.getAllKeys(prefix(profileId)))) as unknown as [ProfileId, SlotId, number][];
+      let n = 0;
+      for (const k of keys) {
+        if (isOrphan(gens.get(k[1]), k[2], keepGenerations)) {
+          await wrap(records.delete(k));
+          n++;
+        }
+      }
+      return n;
     });
   }
   setPointer(p: SlotPointer): Promise<void> {

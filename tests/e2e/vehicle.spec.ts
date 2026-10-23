@@ -246,6 +246,12 @@ async function drive(page: Page, at: { x: number; z: number }, yaw: number, thro
     const call = (window as unknown as { __dvBridge: { world: { call: Call } } }).__dvBridge.world.call;
     const ground = async (x: number, z: number, h?: number): Promise<number> => ((await call('query', { x, z, ...(h !== undefined ? { y: h } : {}) })) as { groundY: number | null } | null)?.groundY ?? Number.NaN;   // null reply: the world did not answer in time (a slow software-rendered browser)
     const out: { x: number; y: number; z: number; speed: number; g: number; terrain: number; top: number; up: number | null }[] = [];
+    // One sample at a time, asked while the car is there; the controller below does not wait for it (BD-FIX-CI6-B01).
+    const sample = async (x: number, vy: number, z: number, speed: number): Promise<void> => {
+      const up = (await call('ray', { from: [x, vy + 1, z], dir: [0, 1, 0], max: 12 })) as { toi: number } | null;
+      out.push({ x, y: vy, z, speed, g: await ground(x, z, vy), terrain: await ground(x, z, -50), top: await ground(x, z), up: up ? up.toi : null });
+    };
+    let pending: Promise<void> | null = null;
     const t0 = performance.now();
     let speed = 0, steer = 0;
     while (performance.now() - t0 < 420_000) {
@@ -255,20 +261,30 @@ async function drive(page: Page, at: { x: number; z: number }, yaw: number, thro
         speed = v.speed;
         const off = a.course.sign * ((a.course.lateral === 'x' ? x : z) - a.course.centre);
         steer = a.course.keep ? Math.round(-Math.max(-0.06, Math.min(0.06, 0.015 * off)) * 127) : 0;   // a weak pull to the centre line: the deck's cross-fall drifts a car 20 m in 500 m
-        const up = (await call('ray', { from: [x, vy + 1, z], dir: [0, 1, 0], max: 12 })) as { toi: number } | null;
-        out.push({ x, y: vy, z, speed, g: await ground(x, z, vy), terrain: await ground(x, z, -50), top: await ground(x, z), up: up ? up.toi : null });
-        if ((a.course.endAxis === 'x' ? x : z) * a.course.endDir > a.course.endValue * a.course.endDir) break;
+        if ((a.course.endAxis === 'x' ? x : z) * a.course.endDir > a.course.endValue * a.course.endDir) {
+          await pending;
+          await sample(x, vy, z, speed);   // the last sample is the car past the end
+          break;
+        }
+        if (pending === null) pending = sample(x, vy, z, speed).finally(() => void (pending = null));
       }
+      // The throttle holds for 20 ticks (1/3 s), then the line brakes until the next round replaces it. A round takes one bridge
+      // round trip, a few frames; a page starved of CPU (software GL beside another synth world) can take seconds, and a line that
+      // kept full throttle until then took the sedan down the tunnel's 25 % fall at 14 to 18 m/s into the hood (BD-FIX-CI6-B01).
+      const drive = { buttons: 0, moveX: 0, moveY: 0, throttle: speed < a.cruise ? a.throttle : 0, brake: speed > a.cruise + 1 ? 70 : 0, steer, camYaw: 0, camPitch: 0, context: 1 };
       await eng.line.play({
         v: 1, scenario: 'vehicle-world', seed: 0xc0ffee, profile: 'local', start: { pos: [a.cx, a.y, a.cz], yaw: a.yaw, prefab: 'vehicle.sedan' },
-        frames: [{ tick: 0, run: 90, input: { buttons: 0, moveX: 0, moveY: 0, throttle: speed < a.cruise ? a.throttle : 0, brake: speed > a.cruise + 1 ? 70 : 0, steer, camYaw: 0, camPitch: 0, context: 1 } }],
+        frames: [{ tick: 0, run: 20, input: drive }, { tick: 20, run: 70, input: { ...drive, throttle: 0, brake: 70 } }],
       });
       await new Promise((r) => setTimeout(r, 40));
     }
+    await pending;
     await eng.line.stop();
     return out;
   }, { course, cx, cz, y, yaw, throttle, cruise });
-  return samples as Sample[];
+  const run = samples as Sample[];
+  console.log(`vehicle-world drive at ${at.x}, ${at.z}: ${run.length} samples, top speed ${Math.max(...run.map((s) => s.speed)).toFixed(1)} m/s (cruise ${cruise})`);
+  return run;
 }
 
 test.describe('vehicles in the synth city @vehicle-world', () => {

@@ -8,7 +8,8 @@
  *   pnpm tycoon:baseline                        rewrites tests/tycoon/baseline.json (2000 runs per policy, seed base 1)
  *
  * Flags: --content <dir> --balance <file> --bands <file> --events <file> (extra event file) --bot <module> (extra policy)
- * --bands-only (print the table, write nothing) --no-baseline (skip the regression guard) --check-baseline.
+ * --bands-only (print the table, write nothing) --no-baseline (skip the regression guard) --check-baseline
+ * --determinism-runs <n> (B10 replays the first n runs of the first policy; default 200, capped at --runs).
  * Exit code 1 when a band fails, the baseline guard fails or a self-test is vacuous.
  */
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -165,6 +166,10 @@ export async function main(argv: readonly string[] = args()): Promise<number> {
   const policies = (opt(argv, '--policy') ?? POLICY_IDS.join(',')).split(',').filter(Boolean);
   const seedBase = Number(opt(argv, '--seed-base') ?? 1);
   const bandsFile = opt(argv, '--bands');
+  const determinismRuns = opt(argv, '--determinism-runs');
+  if (determinismRuns !== undefined && !(Number.isInteger(Number(determinismRuns)) && Number(determinismRuns) > 0)) {
+    throw new Error(`tycoon-sim: --determinism-runs wants a positive integer, got '${determinismRuns}'`);
+  }
   const extra: Policy[] = [];
   const botFile = opt(argv, '--bot');
   if (botFile) {
@@ -181,6 +186,7 @@ export async function main(argv: readonly string[] = args()): Promise<number> {
     ...(opt(argv, '--balance') ? { balanceFile: opt(argv, '--balance') as string } : {}),
     ...(opt(argv, '--events') ? { extraEventFiles: [opt(argv, '--events') as string] } : {}),
     ...(bandsFile ? { bands: loadBands(path.resolve(toolsRoot, bandsFile)) } : {}),
+    ...(determinismRuns !== undefined ? { determinismRuns: Number(determinismRuns) } : {}),
   };
 
   const traceSpec = opt(argv, '--trace');

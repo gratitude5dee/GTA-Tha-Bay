@@ -64,19 +64,20 @@ export async function writeSlot(
   if (!(await ctx.store.addRecord(rec))) return fail('CONFLICT', 'another session wrote the same generation');
   await ctx.step?.('c');
 
-  // (d) a new read verifies the checksum.
+  // (d) a new read verifies the checksum. A missing record is not a checksum failure: another service's boot sweep (a second tab, or
+  // the page's own SaveService opening) took it as an orphan, and (e) puts it back in the transaction that moves the pointer.
   const stored = await ctx.store.getRecord(pid, slot, gen);
-  if (!stored || !recordIsIntact(stored)) {
+  if (stored && !recordIsIntact(stored)) {
     await ctx.store.deleteRecord(pid, slot, gen);
     return fail('CHECKSUM', 'the record did not verify after writing');
   }
   await ctx.step?.('d');
 
-  // (e) move the pointer only if it is still where we read it.
-  const moved = await ctx.store.casPointer({ profileId: pid, slot, gen, savedAt }, curGen);
-  if (!moved) {
+  // (e) move the pointer only if it is still where we read it, with the record verified in the same transaction.
+  const moved = await ctx.store.commitRecord(rec, curGen);
+  if (moved !== 'ok') {
     await ctx.store.deleteRecord(pid, slot, gen);
-    return fail('CONFLICT', 'the pointer moved while writing');
+    return moved === 'moved' ? fail('CONFLICT', 'the pointer moved while writing') : fail('CHECKSUM', 'the record did not verify after writing');
   }
   sess.seen.set(slot, gen);
   await ctx.step?.('e');

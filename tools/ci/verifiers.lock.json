@@ -84,7 +84,7 @@
         "tools/ci/tycoon-sim/",
         "config/tycoon.bands.json"
       ],
-      "sha256": "82fd6666399dbbb675aa093e97162b7de396a3fe82bc213a4adbfdeead89d8fc",
+      "sha256": "b5a8435034bdbea53677356ffdd2bf6fc8438925c27715b1a3321105631901a3",
       "subjects": [
         "packages/shared/src/events/",
         "packages/shared/src/tycoon/",
