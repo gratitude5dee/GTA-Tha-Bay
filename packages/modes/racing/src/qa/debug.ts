@@ -5,7 +5,8 @@
  */
 import type { RacingQaHandler } from '../sim/module.ts';
 
-export const runRacingQa: RacingQaHandler = (cx, cmd, reply) => {
+export const runRacingQa: RacingQaHandler = (cx, cmd, send) => {
+  const reply = (data: unknown): void => send(`modes.reply.${cmd.id}`, data);
   const a = (cmd.args ?? {}) as Record<string, unknown>;
   const s = cx.session;
   switch (cmd.op) {

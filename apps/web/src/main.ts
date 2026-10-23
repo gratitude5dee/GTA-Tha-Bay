@@ -341,7 +341,7 @@ async function boot(): Promise<void> {
     engine.vm.subscribe('sys.settings', apply);
   }
   // The CutscenePlayer (M05b2): answers the sim's cut.request with the clip or the in-engine fallback. QA builds also hand it the
-  // bundled index and the sample mission's line texts.
+  // bundled index, the sample mission's line texts and the `?beats=video` fixture manifest.
   let cutscenes: CutsceneGlue | null = null;
   if (engine) {
     const qaMod = QA ? await import('./qa/missions.ts') : null;
@@ -349,7 +349,7 @@ async function boot(): Promise<void> {
     cutscenes = installCutscenes(engine, platform, {
       qa: QA,
       beats: flags.beats,
-      ...(qaMod ? { index: qaMod.qaCutsceneIndex(), lines: qaMod.qaLines() } : {}),
+      ...(qaMod ? { index: qaMod.qaCutsceneIndex(), lines: qaMod.qaLines(), fixtureManifest: qaMod.QA_FIXTURE_MANIFEST } : {}),
     });
     cutSink = cutscenes.handleEvents;
     if (cutBacklog.length > 0) cutscenes.handleEvents(cutBacklog.splice(0));

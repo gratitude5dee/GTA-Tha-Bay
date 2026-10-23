@@ -13,6 +13,9 @@ import cutsceneIndex from '../../../../assets/src/data/cutscene-index/index.json
 import sampleRefs from '../../../../content/story/dev/cutscene-refs.ts';
 import type { CutsceneIndex } from '@dv/shared/contracts/c09-cutscene';
 
+/** The QA fixture clip every cutscene request resolves to under `?beats=video` (the same-origin media mirror, M01e). */
+export const QA_FIXTURE_MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
+
 export function qaMissionBundle(id: string): Record<string, unknown> | null {
   // m.dev.talk (M05c1): the talk panel's mission, one talk with a gated outcome; no beats, so no directors or cutscenes
   if (id === 'm.dev.talk') return { id, ir: talkMission, directors: [], cutscenes: [], lines: (sampleLines as { text: Record<string, string> }).text };
