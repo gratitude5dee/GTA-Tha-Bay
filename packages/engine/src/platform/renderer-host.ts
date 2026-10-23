@@ -94,7 +94,7 @@ export interface RendererHostOptions {
   events?: HostEvents;
   /** Replaces a canvas whose context was lost (a lost WebGL context cannot be re-acquired on the same element). */
   cloneCanvas?: (old: HTMLCanvasElement) => HTMLCanvasElement;
-  /** QA builds: pace flat WebGL2 frames on GPU fences (`gpu-pacer.ts`, BD-FIX-CI7-F03). */
+  /** Pace flat WebGL2 frames on GPU fences (`gpu-pacer.ts`; `createPlatform` sets it in QA builds on a fallback adapter, BD-FIX-CI7-F03). */
   paceGpu?: boolean;
 }
 
@@ -438,7 +438,7 @@ export class RendererHost {
     // and three's own XR loop skips it the same way. Passed on, its NaN time gave the engine a NaN dt that made the camera rig NaN for
     // good, and every later frame drew from a NaN camera (BD-FIX-CI6-A01).
     if (time === undefined || !Number.isFinite(time)) return;
-    // QA builds on WebGL2: no frame starts while the GPU still has GPU_PACE_DEPTH earlier frames to draw (BD-FIX-CI7-F03). XR frames are
+    // With `paceGpu` on WebGL2: no frame starts while the GPU still has GPU_PACE_DEPTH earlier frames to draw (BD-FIX-CI7-F03). XR frames are
     // paced by the headset's compositor (or, emulated, by `installIwer`), so the pacer stays out of them.
     const paced = this.pacer !== null && !r.xr.isPresenting;
     if (paced && !(this.pacer as GpuPacer).ready()) return;

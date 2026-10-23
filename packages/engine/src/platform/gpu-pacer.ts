@@ -1,5 +1,5 @@
 /**
- * Frame pacing on GPU fences for the WebGL2 backend (QA builds; BD-FIX-CI7-F03).
+ * Frame pacing on GPU fences for the WebGL2 backend (QA builds on a software WebGPU fallback adapter; BD-FIX-CI7-F03).
  *
  * A browser's compositor keeps a page at most a frame or two ahead of its GPU: requestAnimationFrame waits until the GPU has taken
  * the last frames. Headless Chromium with Vulkan compositing (the `chromium-webgpu` project: SwiftShader through Vulkan) gives no such
@@ -9,7 +9,9 @@
  * much as on the game (`Target.createBrowserContext`), and a test with the default 30 s budget timed out while setting up its context.
  *
  * The pacer does what that compositor would do: a frame starts only when the GPU has finished the frame `depth` frames back, so at most
- * `depth` frames wait in the GPU queue. A skipped frame is a frame the compositor would not have offered.
+ * `depth` frames wait in the GPU queue. A skipped frame is a frame the compositor would not have offered. `createPlatform` turns it on
+ * only where the device probe found a fallback (software) WebGPU adapter: the `chromium-webgl2` project has no adapter and WebKit no
+ * `navigator.gpu`, and both already pace WebGL; held frames on WebKit failed @ui-pause's tick check in 3 of 10 runs (0 of 10 without).
  */
 export interface FenceGl {
   readonly SYNC_GPU_COMMANDS_COMPLETE: number;

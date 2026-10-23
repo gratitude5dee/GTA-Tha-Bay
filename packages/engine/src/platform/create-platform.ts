@@ -258,8 +258,10 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
     ...(o.createRenderer ? { createRenderer: o.createRenderer } : {}),
     qa: o.flags,
     compatibilityMode: settings.compatibilityMode,
-    // QA builds pace flat WebGL2 frames on GPU fences, as a compositor would (BD-FIX-CI7-F03); production builds leave it to the browser.
-    paceGpu: import.meta.env.VITE_DV_QA === '1',
+    // QA builds on a software WebGPU fallback adapter (SwiftShader through Vulkan, the `chromium-webgpu` project) pace flat WebGL2 frames
+    // on GPU fences, as a compositor would: that headless setup gives WebGL no back-pressure. Every other browser keeps its own pacing,
+    // and production builds always do (BD-FIX-CI7-F03).
+    paceGpu: import.meta.env.VITE_DV_QA === '1' && profile.signals.adapter?.isFallbackAdapter === true,
     events: {
       gpuError: (kind, message) => errors.gpu(kind, message),
       unsupported: (e) => o.events?.unsupported?.(e),
