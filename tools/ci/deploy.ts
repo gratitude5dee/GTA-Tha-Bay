@@ -216,8 +216,8 @@ function ensureDist(): void {
 }
 
 /**
- * The two wrangler calls of deploy:preview. Staging's `secrets.required` applies to Previews too (observed on PR #6, U-BE-22), so when the
- * environment holds any Worker secret its file rides on both paths (`--secrets-file`, BD-FIX-CI5-S02).
+ * The two wrangler calls of deploy:preview. The `versions upload` fallback enforces staging's `secrets.required` (observed on PR #6), so
+ * when the environment holds any Worker secret its file rides on both paths (`--secrets-file`, BD-FIX-CI5-S02).
  */
 export function previewCommands(name: string, secretsFile: string | null): { first: string[]; second: string[] } {
   const secrets = secretsFile ? ['--secrets-file', secretsFile] : [];
