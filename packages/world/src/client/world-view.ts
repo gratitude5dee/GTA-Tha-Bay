@@ -53,6 +53,11 @@ export interface WorldViewLabels {
 
 export interface AssetsLike extends JobClient {
   stats(): Promise<{ bytes: number; network: number; retries: number }>;
+  /**
+   * Network bytes downloaded as of the latest asset reply handled on this thread (`AssetClient.bytesSeen`), read synchronously at the
+   * reveal. Absent: the reveal asks `stats()`, whose answer comes a worker round trip later and counts what arrived in between.
+   */
+  bytesSeen?(): number;
 }
 
 /** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
@@ -702,7 +707,11 @@ export class WorldView implements WorldLayer {
   private reveal(): void {
     this.revealed = true;
     this.revealMs = this.now() - this.startMs;
-    void this.o.assets.stats().then((s) => void (this.bytesBeforeReveal = Math.max(0, s.bytes - this.bytesAtStart))).catch(() => undefined);
+    // Bytes before the reveal (M02b1 AC-8) are read in the same task as the reveal: the boot report never says `revealed` without them,
+    // and they do not count what arrived while a `stats()` round trip waited behind the first frames' long tasks (BD-FIX-CI9-T01).
+    const seen = this.o.assets.bytesSeen?.();
+    if (seen !== undefined) this.bytesBeforeReveal = Math.max(0, seen - this.bytesAtStart);
+    else void this.o.assets.stats().then((s) => void (this.bytesBeforeReveal = Math.max(0, s.bytes - this.bytesAtStart))).catch(() => undefined);
     if (this.veil) {
       this.veil.style.opacity = '0';
       setTimeout(() => this.veil?.remove(), 700);

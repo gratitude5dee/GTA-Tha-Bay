@@ -80,9 +80,14 @@ export interface WireError {
   reason?: PackFailure;
   ref?: PackRef;
 }
+/**
+ * `bytes` is the worker's running count of network bytes (`StatsResult.bytes`) when it posted the reply, so that the main thread knows,
+ * without a round trip, how much had been downloaded by the time it handled a reply (the world's bytes-before-reveal, M02b1 AC-8).
+ * Optional: an in-process loopback may leave it out.
+ */
 export type RpcResponse =
-  | { t: 'res'; id: number; ok: true; result: unknown }
-  | { t: 'res'; id: number; ok: false; error: WireError };
+  | { t: 'res'; id: number; ok: true; result: unknown; bytes?: number }
+  | { t: 'res'; id: number; ok: false; error: WireError; bytes?: number };
 
 export type WorkerEvent =
   | { t: 'event'; name: 'mode'; mode: TabMode }

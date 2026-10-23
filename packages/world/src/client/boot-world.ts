@@ -137,6 +137,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     assets: {
       job: (name, args) => assets.job(name, args),
       stats: () => assets.stats(),
+      bytesSeen: () => assets.bytesSeen,
     },
     flags: o.flags,
     ...(o.sky ? { sky: o.sky } : {}),
