@@ -1,0 +1,33 @@
+{
+  "id": "M02f1-staging",
+  "milestone": "M02f1",
+  "device": "Apple Silicon Mac, Chrome (new guest profile), and iPhone 15, Home Screen app with the Mac's Web Inspector; the staging Worker serving the real sf world",
+  "urlTemplate": "https://<preview>/",
+  "steps": [
+    {
+      "id": "1-release",
+      "instruction": "Confirm that docs/bake-runs/M02c2/staging.json exists and that config/world/release.json names staging: \"sf\" (the M02c2 AC-14 release). If either is missing, stop: this checklist waits for that release and nothing here is recorded before it."
+    },
+    {
+      "id": "2-desktop-cold",
+      "instruction": "Desktop Chrome on an Apple Silicon Mac, in a new guest profile (an empty pack store), open the staging URL and start free roam. After the world is revealed, run JSON.parse(document.documentElement.dataset.dvBoot) in the console and record the result in notes.json as desktop.cold (tier, requests, bytes, revealMs, waves, inflightPeak)."
+    },
+    {
+      "id": "3-desktop-media",
+      "instruction": "In the DevTools console context named asset.worker (the context selector above the console), run: const e = performance.getEntriesByType('resource').filter((r) => r.name.includes('/media/')); const t = e.map((r) => r.responseStart - r.requestStart).sort((a, b) => a - b); ({ count: e.length, p50: t[Math.floor(t.length * 0.5)], p95: t[Math.floor(t.length * 0.95)], protocols: [...new Set(e.map((r) => r.nextHopProtocol))] }). Record the object as desktop.media. Informational only: if Resource Timing is not offered in that context, write \"unavailable\" and carry on."
+    },
+    {
+      "id": "4-desktop-warm",
+      "instruction": "Reload the page (the pack store now holds the boot set), start free roam again and record JSON.parse(document.documentElement.dataset.dvBoot) as desktop.warm."
+    },
+    {
+      "id": "5-iphone",
+      "instruction": "On the iPhone 15, open the staging URL from the Home Screen app (Add to Home Screen first, then launch it with an empty pack store: remove the app and Website Data if it ran before) and connect the Mac's Safari Web Inspector. Start free roam. After the reveal run JSON.parse(document.documentElement.dataset.dvBoot) in the Inspector console and record it as iphone.cold. If the Inspector offers the asset.worker context, run the step 3 snippet there and record the object as iphone.media (informational). Note the network type (Wi-Fi or cellular) as iphone.network."
+    },
+    {
+      "id": "6-uw8",
+      "instruction": "Write uw8: { desktop, iphone } in notes.json. Each value is \"pass\" when its cold revealMs is at most 1000 times warmBootToPlayableS of the tier that device reported in dataset.dvBoot.tier (tiers.<tier>.boot.warmBootToPlayableS in config/tier-budgets.json), otherwise \"fail\". Save notes.json to docs/device-runs/M02f1/staging/notes.json and commit it. A fail is a finding for the Architect (the lever order of DL-722), not a reason to change this milestone."
+    }
+  ],
+  "upload": ["notes.json"]
+}
