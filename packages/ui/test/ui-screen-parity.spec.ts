@@ -74,12 +74,13 @@ function registered(): { name: string; screen: ScreenDef }[] {
 
 const sandboxEnv: PhoneEnv = {
   mode: 'sandbox', jobs: [], cashCents: 0, garage: [], ride: undefined, heat: 1, neverWanted: false, appRows: [],
+  sandboxTeleport: { positions: [{ name: 'pos-1', x: 10, z: -20 }, { name: 'pos-2', x: 30, z: 40 }], previous: true },
   sandboxWorld: { weather: 'rain', hour: 18.5, paused: false, sync: false, timeScale: 2, blackout: false, density: { traffic: 1, ped: 0, parked: 1.5 }, shortcuts: ['fog-dawn', 'burn-off', 'golden-hour', 'fog-returns'], online: false },
 };
 
-describe('ui-screen-parity: the Sandbox app tabs (M04e1, AC-9)', () => {
+describe('ui-screen-parity: the Sandbox app tabs (M04e1 AC-9, M04e2 AC-7)', () => {
   for (const online of [false, true]) {
-    for (const tab of ['player', 'weather', 'time', 'world']) {
+    for (const tab of ['player', 'weather', 'time', 'world', 'teleport', 'display']) {
       it(`${tab}${online ? ' (online)' : ''}: DomScreen and CanvasScreen list the same focusables in the same order`, () => {
         const screen = appScreen('sandbox', { ...sandboxEnv, sandboxWorld: { ...sandboxEnv.sandboxWorld!, online } });
         const ctx = ctxWith(tab);

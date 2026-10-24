@@ -243,7 +243,21 @@ export class ShellCore implements ShellApi {
   fire(t: ShellEvent['t']): void {
     const prefs = this.props.prefs.get();
     const next = transition(this.state, { t } as ShellEvent, { prefs, termsVersion: TERMS_VERSION });
-    if (t === 'resume' && this.state === 'Paused') this.props.hooks.setPaused(false);
+    if (t === 'resume' && this.state === 'Paused') {
+      // A page still open over Pause (the phone, after a jump from its Sandbox app, M04e2) closes with the resume: left behind it kept
+      // Escape for the focus manager (`back()` -> history.back() -> a popstate that pauses the running game) and the engine's own Pause
+      // toggle at once, and the two cancelled out (BD-M04e2-07). No history.back() here: its popstate would land in InMode and pause.
+      if (this.frame) {
+        this.frame = null;
+        try {
+          history.replaceState(null, '', '/');
+        } catch {
+          // no History in a test environment
+        }
+        this.pageChanged();
+      }
+      this.props.hooks.setPaused(false);
+    }
     if (next === this.state) return;
     const prev = this.state;
     this.state = next;

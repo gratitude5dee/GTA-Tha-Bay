@@ -4,7 +4,7 @@ import {
   AutosavePolicy, EconomyImpl, ModeEventBus, ModeHost, UnlockRegistryImpl, bindModeSave, builtinDescriptors, builtinUnlockDefs, createCommandDispatcher, freshSlices,
   type AutosaveGameState, type CommandDeps, type SessionSlices,
 } from '../../src/sim/modes/index.ts';
-import type { SandboxWorldPort } from '../../src/sim/modes/builtin/index.ts';
+import { createWaypointMemo, type Pose, type SandboxWorldPort, type WaypointMemo } from '../../src/sim/modes/builtin/index.ts';
 
 export interface Posted {
   slot: SlotId;
@@ -29,6 +29,8 @@ export interface Rig {
   run(n: number): Promise<void>;
   dispatch: (cmd: Parameters<ReturnType<typeof createCommandDispatcher>>[0]) => void;
   capabilitySet: (string | null)[];
+  /** The map pin memo of the dispatcher (M04e2). */
+  waypoint: WaypointMemo;
 }
 
 export interface RigOptions {
@@ -47,6 +49,8 @@ export interface RigOptions {
   clock?: unknown;
   /** The sandbox's weather hold and world speed (M04e1), for the sandbox sim and the dispatcher. */
   sandboxWorld?: () => SandboxWorldPort | null;
+  /** The local player's pose for the sandbox and the dispatcher (M04e2). Absent: no player (null). */
+  playerPose?: () => Pose | null;
 }
 
 /** A sim-free harness: the real ModeHost, registry, economy, bridge and policy on fake ports. */
@@ -61,6 +65,7 @@ export function makeRig(o: RigOptions = {}): Rig {
   const restarts: Rig['restarts'] = [];
   const game: Rig['game'] = { heat: 0, pursuit: false, mission: false };
   const clockT = { t: 0 };
+  const waypoint = createWaypointMemo();
   const holder: { host: ModeHost | null } = { host: null };
   const bus = new ModeEventBus((e) => events.push(e));
   const save = bindModeSave({ post: (slot, data, reason) => void posted.push({ slot, data, reason }) }, { setCapability: (c) => void capabilitySet.push(c) });
@@ -68,7 +73,7 @@ export function makeRig(o: RigOptions = {}): Rig {
   const unlocks = new UnlockRegistryImpl({ core: () => slices.core, ui, saveUnlock: () => void holder.host?.autosave.request('unlock'), telemetry: tel as never });
   unlocks.register(builtinUnlockDefs());
   const economy = new EconomyImpl({ wallet: () => slices.story.wallet, tick: () => tick.n, clockT: () => clockT.t, ui });
-  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: () => null, ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
+  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: o.playerPose ?? (() => null), waypoint: () => waypoint.get(), ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
   const byId = new Map(descriptors.map((d) => [d.id, d]));
   const host = new ModeHost({
     descriptors: [...byId.values()],
@@ -110,11 +115,13 @@ export function makeRig(o: RigOptions = {}): Rig {
     host, slices: () => slices, ui, events: bus, tick: () => tick.n,
     sandboxContext: () => host.stack.entries.find((e) => e.id === 'sandbox' && e.state === 'Running')?.ctx ?? null,
     world: o.world ?? (() => ({}) as never),
+    waypoint,
+    ...(o.playerPose ? { playerPose: o.playerPose } : {}),
     ...(o.teleport ? { teleport: o.teleport } : {}),
     ...(o.sandboxWorld ? { sandboxWorld: o.sandboxWorld } : {}),
   });
   return {
-    host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet,
+    host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet, waypoint,
     async run(n) {
       for (let i = 0; i < n; i++) {
         await Promise.resolve();

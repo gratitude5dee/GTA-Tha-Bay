@@ -25,7 +25,7 @@ import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
 import { SimSchedulerImpl } from '../script/scheduler.ts';
 import { TimelineRecorderImpl } from '../script/timeline.ts';
 import { ZoneServiceImpl } from '../script/zones.ts';
-import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory, type SandboxWorldPort } from './builtin/index.ts';
+import { builtinDescriptors, builtinUnlockDefs, createWaypointMemo, defaultSandbox, defaultStory, type SandboxWorldPort } from './builtin/index.ts';
 import { bindModeSave } from './capability-bind.ts';
 import { createCommandDispatcher, settingsView } from './commands.ts';
 import { ModeEventBus, ModeHost, type SessionSlices } from './host.ts';
@@ -383,11 +383,14 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         holdWeather: (w) => services.clock?.holdWeather(w),
         setTimeScale: (sc) => s.core.setSandboxScale(sc),
       };
+      // The map pin the sandbox's "jump to my map pin" reads; C08 `MapApi` has no getter (M04e2).
+      const waypointMemo = createWaypointMemo();
       for (const d of builtinDescriptors({
         story: () => live.story,
         sandbox: () => live.sandbox,
         world: () => sandboxWorld,
         playerPose,
+        waypoint: () => waypointMemo.get(),
         ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
       })) descriptors.set(d.id, d);
       for (const d of opts.descriptors ?? []) descriptors.set(d.id, d);
@@ -503,6 +506,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         },
         world: () => (services.world.api ?? standin),
         sandboxWorld: () => sandboxWorld,
+        waypoint: waypointMemo,
+        playerPose,
         ride: () => services.ride,
         garage: () => garage,
         selectProfile: (id) => {
