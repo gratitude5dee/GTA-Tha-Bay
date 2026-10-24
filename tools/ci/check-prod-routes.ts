@@ -4,7 +4,7 @@
  *   tsx tools/ci/check-prod-routes.ts
  *
  * Builds the production bundle (top-level environment, where __DV_TEST_ROUTES__ is false) with
- * `wrangler deploy --dry-run --outdir`, then fails on any `/_test/` string in the output or a prod FAL_MODE of `mock`.
+ * `wrangler deploy --dry-run --containers-rollout=none --outdir` (no Docker daemon: the Transcoder Container image is built by the deploy, M05c3), then fails on any `/_test/` string in the output or a prod FAL_MODE of `mock`.
  * Needs apps/web/dist (the dry run reads the assets directory); builds it first when it is missing.
  */
 import { spawnSync } from 'node:child_process';
@@ -56,7 +56,7 @@ export function main(): number {
   try {
     const res = spawnSync(
       'pnpm',
-      ['--filter', '@dv/edge', 'exec', 'wrangler', 'deploy', '--dry-run', '--env=', '--outdir', outdir],
+      ['--filter', '@dv/edge', 'exec', 'wrangler', 'deploy', '--dry-run', '--env=', '--containers-rollout=none', '--outdir', outdir],
       { cwd: repoRoot, encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false' }, maxBuffer: 64 * 1024 * 1024 },
     );
     if (res.status !== 0) {

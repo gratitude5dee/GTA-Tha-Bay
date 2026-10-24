@@ -8,6 +8,7 @@
     "./core": "./src/core.ts"
   },
   "dependencies": {
+    "@cloudflare/containers": "0.3.7",
     "@dv/shared": "workspace:*"
   },
   "devDependencies": {

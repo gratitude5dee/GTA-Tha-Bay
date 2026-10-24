@@ -10,6 +10,11 @@
  * DL-233: the lifecycle change may also carry what a new class needs to exist: empty DO class skeletons (new files named
  * `*DO.ts`), `export { X } from '...'` lines added to `services/<name>/src/index.ts`, the manifests of a new service package
  * and workspace links added to a package.json. A logic edit in `src/index.ts` still fails.
+ *
+ * M05c3 (container classes): a Cloudflare Container application is part of its Durable Object class's lifecycle, so the
+ * `containers` section counts as a lifecycle section, `export class X extends Container {}` is a skeleton, the
+ * `@cloudflare/containers` dependency may be added, new files under `services/<name>/transcoder/` (the image sources the
+ * container config points at) ride along, and a `dev` section (local development switches) is ignored.
  */
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -32,7 +37,11 @@ export interface Verdict {
   reasons: string[];
 }
 
-const LIFECYCLE_KEYS = ['migrations', 'durable_objects', 'exports'] as const;
+const LIFECYCLE_KEYS = ['migrations', 'durable_objects', 'exports', 'containers'] as const;
+/** Sections that only affect local development and bundling, never a deployed object. */
+const LOCAL_ONLY_KEYS: readonly string[] = ['dev'];
+/** Dependencies a lifecycle change may add besides workspace links: the Container base class (spec/03, @cloudflare/containers 0.3.7). */
+const LIFECYCLE_DEPENDENCIES: readonly string[] = ['@cloudflare/containers'];
 
 function isWranglerConfig(file: string): boolean {
   return /(^|\/)wrangler\.jsonc$/.test(file);
@@ -65,7 +74,7 @@ function withoutLifecycle(text: string | null): string {
   if (text === null) return '';
   const cfg = JSON.parse(stripJsonc(text)) as Record<string, unknown> & { env?: Record<string, Record<string, unknown>>; previews?: Record<string, unknown> };
   const strip = (o: Record<string, unknown>): Record<string, unknown> =>
-    Object.fromEntries(Object.entries(o).filter(([k]) => !(LIFECYCLE_KEYS as readonly string[]).includes(k)));
+    Object.fromEntries(Object.entries(o).filter(([k]) => !(LIFECYCLE_KEYS as readonly string[]).includes(k) && !LOCAL_ONLY_KEYS.includes(k)));
   const { env, previews, ...top } = cfg;
   return JSON.stringify({
     top: strip(top),
@@ -75,7 +84,7 @@ function withoutLifecycle(text: string | null): string {
 }
 
 const SKELETON_IMPORT = /^import\s+\{[\w\s,]*\}\s+from\s+'[^']+';?$/;
-const SKELETON_CLASS = /^export\s+class\s+\w+\s+extends\s+DurableObject(<[\w\s,]*>)?\s*\{\s*\}$/;
+const SKELETON_CLASS = /^export\s+class\s+\w+\s+extends\s+(?:DurableObject|Container)(<[\w\s,]*>)?\s*\{\s*\}$/;
 const EXPORT_FROM = /^export\s+\{\s*[\w\s,]+\}\s+from\s+'[^']+';?$/;
 
 function stripComments(text: string): string[] {
@@ -120,12 +129,17 @@ export function isPackageScaffold(c: Change): boolean {
   return sections.every((sec) => {
     const old = (a[sec] ?? {}) as Record<string, string>;
     const now = (b[sec] ?? {}) as Record<string, string>;
-    return Object.keys(old).every((k) => now[k] === old[k]) && Object.entries(now).every(([k, v]) => k in old || v.startsWith('workspace:'));
+    return Object.keys(old).every((k) => now[k] === old[k]) && Object.entries(now).every(([k, v]) => k in old || v.startsWith('workspace:') || LIFECYCLE_DEPENDENCIES.includes(k));
   });
 }
 
+/** A new file of a container image: `services/<name>/transcoder/**` (Dockerfile, scripts, server). */
+export function isContainerSource(c: Change): boolean {
+  return c.before === null && c.after !== null && /^services\/[^/]+\/transcoder\//.test(c.file);
+}
+
 function isLifecycleScaffold(c: Change): boolean {
-  return isDoSkeleton(c) || isExportOnlyIndexChange(c) || isPackageScaffold(c);
+  return isDoSkeleton(c) || isExportOnlyIndexChange(c) || isPackageScaffold(c) || isContainerSource(c);
 }
 
 export function evaluate(changes: readonly Change[]): Verdict {

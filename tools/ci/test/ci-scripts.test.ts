@@ -109,6 +109,32 @@ describe('check:do-migrations', () => {
     expect(v).toMatchObject({ ok: true, lifecycle: true, label: 'do-lifecycle' });
   });
 
+  it('passes the container lifecycle shape (M05c3): containers section, Container skeleton, its dependency, image sources, dev switch', () => {
+    const withContainer = (extra: string): string =>
+      `{ "name": "tha-bay-web", "main": "src/index.ts"${extra}, "migrations": ${JSON.stringify(m2)}, "containers": [{ "class_name": "BarDO", "image": "../pipeline/transcoder/Dockerfile" }] }`;
+    const skeleton = "import { Container } from '@cloudflare/containers';\n\nexport class BarDO extends Container {}\n";
+    const changes: Change[] = [
+      { file: 'services/edge/wrangler.jsonc', before: config(m1), after: withContainer(', "dev": { "enable_containers": false }') },
+      { file: 'services/pipeline/src/do/BarDO.ts', before: null, after: skeleton },
+      { file: 'services/pipeline/transcoder/Dockerfile', before: null, after: 'FROM ubuntu:24.04\n' },
+      { file: 'services/pipeline/transcoder/server.ts', before: null, after: 'export {};\n' },
+      {
+        file: 'services/pipeline/package.json',
+        before: '{ "dependencies": { "@dv/shared": "workspace:*" } }',
+        after: '{ "dependencies": { "@cloudflare/containers": "0.3.7", "@dv/shared": "workspace:*" } }',
+      },
+    ];
+    expect(evaluate(changes)).toMatchObject({ ok: true, lifecycle: true, label: 'do-lifecycle' });
+    // an edit to an existing image source is a runtime change; so is a Container class with a body
+    const edit = evaluate([...changes, { file: 'services/pipeline/transcoder/ladder.sh', before: 'a', after: 'b' }]);
+    expect(edit.ok).toBe(false);
+    const body = evaluate([
+      changes[0]!,
+      { file: 'services/pipeline/src/do/BarDO.ts', before: null, after: "import { Container } from '@cloudflare/containers';\nexport class BarDO extends Container { defaultPort = 8080; }\n" },
+    ]);
+    expect(body.ok).toBe(false);
+  });
+
   it('still fails a logic edit in src/index.ts, a DO class with a body, and a non-workspace dependency', () => {
     const lifecycle = { file: 'services/edge/wrangler.jsonc', before: config(m1), after: config(m2) };
     const edit = evaluate([

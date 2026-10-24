@@ -29,6 +29,7 @@ export { PlayerQuotaDO } from './budget/QuotaDO.ts';
 export { CutsceneJobDO } from './cutscenes/CutsceneJobDO.ts';
 export { EncounterDO } from './npc/EncounterDO.ts';
 export { FalGateDO, GenJobWorkflow } from '@dv/pipeline';
+export { TranscoderContainer } from '@dv/pipeline';
 
 const ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/health', handler: handleHealth },
