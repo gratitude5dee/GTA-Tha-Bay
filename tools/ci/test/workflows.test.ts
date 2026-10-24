@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { ARCHIVES } from '../pw-install.ts';
 import { repoRoot } from '../run.ts';
 
 const wf = (name: string): string => readFileSync(path.join(repoRoot, '.github', 'workflows', name), 'utf8');
@@ -232,33 +233,81 @@ describe('nightly.yml (AC-8)', () => {
   });
 });
 
-describe('Playwright system packages come from the Actions cache (BD-FIX-CI9-T02)', () => {
-  const RESTORE = /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}\n\s+restore-keys: pw-apt-\$\{\{ runner\.os \}\}-\n/;
-  const CONF = 'echo "Dir::Cache::archives \\"$HOME/.cache/dv-pw-apt/\\";" | sudo tee /etc/apt/apt.conf.d/99dv-pw-apt > /dev/null';
-  const SAVE = /- if: steps\.pw-apt\.outputs\.cache-hit != 'true'\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}\n/;
+describe('Playwright system packages: mirror-resilient install, apt cache saved whatever the job does (BD-FIX-CI10-P01)', () => {
+  const RESTORE =
+    /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}-\$\{\{ github\.job \}\}-\$\{\{ strategy\.job-index \}\}\n\s+restore-keys: \|\n\s+pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}-\n\s+pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\n/;
+  const INSTALL = '- name: Playwright browsers and their system packages\n        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS';
+  const COUNT = '- id: pw-apt-new\n        name: New apt archives since the restore\n        if: always()\n        run: pnpm exec tsx tools/ci/pw-install.ts --count-new';
+  const SAVE =
+    /- if: always\(\) && fromJSON\(steps\.pw-apt-new\.outputs\.new \|\| '0'\) > 0\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}\n/;
+  /** The job-level DV_PW_BROWSERS value (an expression or a quoted literal). */
+  const browsersOf = (job: string): string | undefined => /^ {4}env:\n(?: {6}.*\n)*? {6}DV_PW_BROWSERS: (.*)$/m.exec(job)?.[1];
+  /** Evaluates a DV_PW_BROWSERS value for one matrix leg (the expressions hold only ==, &&, || and literals). */
+  const evalSet = (expr: string, leg: { project: string; shard?: number }): string => {
+    const m = /^\$\{\{ (.*) \}\}$/.exec(expr);
+    if (!m) return expr.replace(/^'(.*)'$/, '$1');
+    const js = (m[1] as string)
+      .replace(/matrix\.project/g, JSON.stringify(leg.project))
+      .replace(/matrix\.shard/g, String(leg.shard ?? 0))
+      .replace(/==/g, '===');
+    expect(js, 'only literals and operators remain').toMatch(/^[\s'"a-z0-9=&|-]+$/);
+    return String(new Function(`return (${js});`)());
+  };
+  /** playwright.config.ts: webkit-webgl2 runs on WebKit, every other project on Chromium. */
+  const engine = (project: string): string => (project === 'webkit-webgl2' ? 'webkit' : 'chromium');
+
+  it('pw-install.ts keeps its archives where the workflows cache them', () => {
+    expect(ARCHIVES.endsWith(path.join('.cache', 'dv-pw-apt'))).toBe(true);
+  });
 
   for (const f of ['ci.yml', 'nightly.yml', 'preview.yml']) {
-    it(`${f}: every install with --with-deps restores the apt archives first, points apt at them and saves them right after`, () => {
-      const jobs = jobsOf(wf(f));
+    it(`${f}: every Playwright install restores, installs through pw-install.ts, counts and saves under always()`, () => {
+      const text = wf(f);
+      const code = text.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
+      expect(code, `${f}: playwright install --with-deps runs only inside pw-install.ts`).not.toContain('playwright install --with-deps');
       let installs = 0;
-      for (const [name, job] of Object.entries(jobs)) {
-        const install = job.indexOf('pnpm exec playwright install --with-deps');
-        if (install < 0) continue;
+      for (const [name, job] of Object.entries(jobsOf(text))) {
+        if (!job.includes('tools/ci/pw-install.ts $DV_PW_BROWSERS')) continue;
         installs++;
-        const restore = job.search(RESTORE);
-        const conf = job.indexOf(CONF);
-        const save = job.search(SAVE);
+        const steps = stepsOf(job);
+        const at = (pred: (s: string) => boolean): number => steps.findIndex(pred);
+        const restore = at((s) => RESTORE.test(`${s}\n`));
+        const install = at((s) => s.includes(INSTALL));
         expect(restore, `${f} ${name}: restore`).toBeGreaterThan(-1);
-        expect(conf, `${f} ${name}: apt config`).toBeGreaterThan(restore);
-        expect(job.indexOf('mkdir -p ~/.cache/dv-pw-apt/partial'), `${f} ${name}: partial dir`).toBeGreaterThan(restore);
-        expect(install, `${f} ${name}: install after the apt config`).toBeGreaterThan(conf);
-        expect(save, `${f} ${name}: save right after the install`).toBeGreaterThan(install);
-        // nothing runs between the install step and the save
-        expect(stepsOf(job).findIndex((s) => SAVE.test(`${s}\n`)), `${f} ${name}`).toBe(stepsOf(job).findIndex((s) => s.includes('playwright install --with-deps')) + 1);
+        expect(install, `${f} ${name}: install right after the restore`).toBe(restore + 1);
+        expect(at((s) => s.includes(COUNT)), `${f} ${name}: count right after the install`).toBe(install + 1);
+        expect(at((s) => SAVE.test(`${s}\n`)), `${f} ${name}: save right after the count`).toBe(install + 2);
+        expect(browsersOf(job), `${f} ${name}: DV_PW_BROWSERS`).toBeDefined();
       }
       expect(installs, f).toBeGreaterThan(0);
     });
   }
+
+  it('each job installs the engines it launches, and only those', () => {
+    const ci = jobsOf(wf('ci.yml'));
+    const nightly = jobsOf(wf('nightly.yml'));
+    const shardSet = browsersOf(ci['e2e-shard'] ?? '') ?? '';
+    for (const project of ['chromium-webgpu', 'chromium-webgl2', 'webkit-webgl2', 'xr-quest3']) {
+      for (const shard of [1, 2, 3, 4]) {
+        // chromium-webgl2 shard 1 also runs check:coi, which launches Chromium and WebKit (tools/ci/check-dist.ts checkCoi).
+        const want = project === 'chromium-webgl2' && shard === 1 ? 'chromium webkit' : engine(project);
+        expect(evalSet(shardSet, { project, shard }), `ci e2e-shard ${project} ${shard}`).toBe(want);
+      }
+      for (const job of ['e2e-full', 'determinism']) {
+        if (job === 'determinism' && (project === 'chromium-webgpu' || project === 'xr-quest3')) continue;
+        expect(evalSet(browsersOf(nightly[job] ?? '') ?? '', { project }), `nightly ${job} ${project}`).toBe(engine(project));
+      }
+    }
+    expect(ci['e2e-shard']).toContain("if: matrix.project == 'chromium-webgl2' && matrix.shard == 1");
+    expect(nightly['e2e-full']).not.toContain('check:coi');
+    // check:perf runs chromium-webgl2 and webkit-webgl2 (tools/ci/perf-check.ts PERF_PROJECTS); the preview job runs check:coi.
+    const both = [
+      ['ci perf', ci['perf']],
+      ['nightly perf', nightly['perf']],
+      ['preview', jobsOf(wf('preview.yml'))['preview']],
+    ] as const;
+    for (const [label, job] of both) expect(browsersOf(job ?? ''), label).toBe("'chromium webkit'");
+  });
 });
 
 /** The step blocks of one job: each from its `- ` line to the next one. */

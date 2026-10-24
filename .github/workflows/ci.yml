@@ -288,6 +288,10 @@ jobs:
         project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
         # Keep equal to E2E_SHARDS of the e2e job and to the `/4` of both check:e2e steps.
         shard: [1, 2, 3, 4]
+    env:
+      # BD-FIX-CI10-P01: the browser engines this leg launches (playwright.config.ts: webkit-webgl2 on WebKit, the other projects on
+      # Chromium); chromium-webgl2 shard 1 also runs check:coi, which launches both.
+      DV_PW_BROWSERS: ${{ matrix.project == 'webkit-webgl2' && 'webkit' || matrix.project == 'chromium-webgl2' && matrix.shard == 1 && 'chromium webkit' || 'chromium' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -302,23 +306,28 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
-      # BD-FIX-CI9-T02: the browsers' system packages (about 120 MB of .deb, 181 packages on ubuntu-24.04) come from the Actions cache. A
-      # runner that fetched them from the Ubuntu mirror at 40 to 50 kB/s spent 38 to 42 min in this step: chromium-webgpu shard 2 of run
-      # 39964617132 hit its 60-minute limit and perf of run 39981400378 its 45-minute limit that way, with no test running long. apt keeps
-      # what it downloads in Dir::Cache::archives (apt.conf(5)); the restore and save sub-actions of actions/cache v6.1.0 (spec/03 section 6)
-      # bring the archives back before the install and store them right after it, whatever the tests do later.
+      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
+      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
+      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
+      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
+      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
+      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
+      # newest cache of the same browser set (spec/03 section 6).
       - id: pw-apt
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
-          key: pw-apt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: pw-apt-${{ runner.os }}-
+          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          restore-keys: |
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
       - name: Playwright browsers and their system packages
-        run: |
-          mkdir -p ~/.cache/dv-pw-apt/partial
-          echo "Dir::Cache::archives \"$HOME/.cache/dv-pw-apt/\";" | sudo tee /etc/apt/apt.conf.d/99dv-pw-apt > /dev/null
-          pnpm exec playwright install --with-deps chromium webkit
-      - if: steps.pw-apt.outputs.cache-hit != 'true'
+        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
+      - id: pw-apt-new
+        name: New apt archives since the restore
+        if: always()
+        run: pnpm exec tsx tools/ci/pw-install.ts --count-new
+      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
@@ -429,6 +438,9 @@ jobs:
   perf:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      # BD-FIX-CI10-P01: this job launches both engines.
+      DV_PW_BROWSERS: 'chromium webkit'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -439,23 +451,28 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # BD-FIX-CI9-T02: the browsers' system packages (about 120 MB of .deb, 181 packages on ubuntu-24.04) come from the Actions cache. A
-      # runner that fetched them from the Ubuntu mirror at 40 to 50 kB/s spent 38 to 42 min in this step: chromium-webgpu shard 2 of run
-      # 39964617132 hit its 60-minute limit and perf of run 39981400378 its 45-minute limit that way, with no test running long. apt keeps
-      # what it downloads in Dir::Cache::archives (apt.conf(5)); the restore and save sub-actions of actions/cache v6.1.0 (spec/03 section 6)
-      # bring the archives back before the install and store them right after it, whatever the tests do later.
+      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
+      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
+      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
+      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
+      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
+      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
+      # newest cache of the same browser set (spec/03 section 6).
       - id: pw-apt
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
-          key: pw-apt-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: pw-apt-${{ runner.os }}-
+          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          restore-keys: |
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
       - name: Playwright browsers and their system packages
-        run: |
-          mkdir -p ~/.cache/dv-pw-apt/partial
-          echo "Dir::Cache::archives \"$HOME/.cache/dv-pw-apt/\";" | sudo tee /etc/apt/apt.conf.d/99dv-pw-apt > /dev/null
-          pnpm exec playwright install --with-deps chromium webkit
-      - if: steps.pw-apt.outputs.cache-hit != 'true'
+        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
+      - id: pw-apt-new
+        name: New apt archives since the restore
+        if: always()
+        run: pnpm exec tsx tools/ci/pw-install.ts --count-new
+      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
