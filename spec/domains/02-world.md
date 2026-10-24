@@ -171,7 +171,7 @@ r0, r2, physics and upload come from the C13 budget table (11-platform.md §4.5)
 ### 5.1 Boot
 
 1. `BootConfig.assetCatalog` → catalog → `data/world-index`, `data/district-grid.v1`, `map_data/sf-graph.v1` (idle lane), `map_data/sf-map.v1` header.
-2. Compute the boot set for the spawn point: `p0` tiles inside the physics radius plus one chunk, `l0` tiles inside `min(r0, 1 tile ring)`, `l1`/`l2` around, `far-bay-*`, facade atlas and sky assets, the landmarks inside `swapM`. The set is emitted by the headless run as `bootset.<mode>.json` (S11) and prefetched from the main menu [11-platform-pwa.md §5].
+2. Compute the boot set for the spawn point: `p0` tiles inside the physics radius plus one chunk, `l0` tiles inside `min(r0, 1 tile ring)`, `l1`/`l2` around, `far-bay-*`, facade atlas and sky assets, the landmarks inside `swapM`. Computed at runtime by `bootSet()`; prefetch: M02f2 (DL-726).
 3. The sim waits (`Control` = `Waiting`) until the `p0` statics of the spawn area are built; the render fades in when the first `l0` chunk is uploaded.
 4. Cold download for the first district must stay within the tier budget: 60 MB (ultra, desktop, Vision Pro), 40 (mobile, Quest), 30 (mobile-low) [11-platform.md §4.5]. Design estimate at desktop ≈ 33 MB: about 16 tiles of `p0` + `l0` at ≈ 1.2 MB, `sf-map` 3 MB, atlas and sky 6 MB, landmarks 5 MB; mobile ≈ 20 MB, mobile-low ≈ 13 MB.
 
@@ -277,7 +277,7 @@ Rows copied from the ledger or the research reports. New rows (**N**) were check
 | U-W5 | Seeds: BART 16th St, 24th St, Balboa Park; Caltrain terminus; Golden Gate portal point | snapped by `pnpm map:landmarks` | M02a2 |
 | U-W6 | Cable-car street chains | bake checks within 6 m | M02a2 |
 | U-W7 | SPDX strings `ODbL-1.0`, `PDDL-1.0` in the licence allowlist | proposal P5 | resolved by M00b (merged; DL-687) |
-| U-W8 | Per-pack GETs from the R2 custom domain are fast enough without a batch route | measure | M02b1 |
+| U-W8 | Worker-route pack GETs reach the reveal within budget (DL-722) | measure | M02f1 AC-8 |
 | U-W9 | OSM sidewalk, crossing and ferry-route coverage in SF | derived sidewalks, authored ferry lines | M02a2 |
 | U-W10 | Bake time ≤ 25 min, meshing 12 / 25 ms, sky GPU ms, all † budgets | calibrate | M02b1–b2, M11a |
 | U-W11 | DataSF footprints omit post-2010 buildings | OSM gap fill and towers | M02a1 |

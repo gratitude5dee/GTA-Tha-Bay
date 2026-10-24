@@ -8,6 +8,8 @@ Two players can see each other move in San Francisco. When this session ends, `R
 
 ## Depends on
 - M12b1 (rooms Worker, codec, clock, tick loop, tickets, gates).
+- **M04e3** (sandbox-vehicle-spawner): session cars leave when `net` turns non-null, which the session wiring relies on.
+- Through M12b1: M04e0 (`sandboxOnline`, the dispatcher refusals, `packages/engine/test/modes/sandbox-guard.spec.ts`).
 - Contracts: C11 1.0 (`09-backend-contracts.md` §1.3–§1.8; `config/net.speedcaps.json` rows of `09-backend-contracts-1.1.md` §3, C11 shape unchanged), C02 1.1 (`FramePhase.NetIn`/`NetOut`, `NET_DIVISOR`, `stateHash`), C01 1.0 (`player:<slot>` keys), C06 1.1 (`ModeContext.net`).
 
 ## Scope in
@@ -17,7 +19,7 @@ Two players can see each other move in San Francisco. When this session ends, `R
 - Slow receivers: lag = `tick − lastSnapTick` from `ACK`; > 10 → every other tick with `DEGRADED`; > 40 → close 1013 `too_slow`.
 - `RoomClient` (`packages/net/src/client/room-client.ts`): route 23 then route 24; `IN` at 20 Hz with one sample (desktop, XR) or 10 Hz with two samples (mobile tiers, `MOBILE_SEND_HZ`); `ACK` every 250 ms; `ping` every 20 s; close reactions per C11 §1.3 (1000, 4004, 4006, 4007 stop; 4001 refresh then one retry; 4002 PWA update flow; 4003 re-assign; 4005 fresh join; 1001, 1006, 1013, 4008 reconnect with jitter 250 ms → 4 s; resume itself lands in M12c1). `modsActive` is false until the mod runtime exists (M13a3 wires C14 `modsActive()`).
 - Engine (`packages/engine/src/net/`): socket in `sim.worker` (Q-ENG-03 default) with a main-thread `MessagePort` relay chosen by feature detection when the worker has no `WebSocket`; `NetIn` drains decoded frames into the command ring before the Commands stage; `NetOut` encodes the C03 `InputFrame` into the `IN` sample (buttons bits 0–15, brake 0..127) after ticks where `tick % NET_DIVISOR === 0`; prediction ring of 64 `(InputFrame, Transform, Control)`; on `CORRECTION` snap to the server pose and replay inputs after `ackSeq`; otherwise errors above 0.3/0.8/2.0 m blend with gains 0.05/0.12/0.4, and vehicle transitions snap (`01-engine.md` §2.13); remote players are kinematic proxies keyed `player:<slot>`, positioned from the clock's render time (interpolation, shortest-arc yaw, no interpolation across enter/exit, extrapolation ≤ 250 ms); `stateHash` every 60 ticks kept in a ring for desync diagnosis.
-- Session wiring: `mode.start {id:'sandbox'}` with `ModeContext.net = {slot, peers()}`; single-player keeps `net: null` and is unchanged.
+- Session wiring: `mode.start {id:'sandbox'}` with `ModeContext.net = {slot, peers()}`; single-player keeps `net: null` and is unchanged. The sandbox descriptor (`packages/engine/src/sim/modes/builtin/sandbox.ts`) changes `requires.network` from `'none'` to `'optional'`; M04e0's guard keeps refusing every sandbox tool while `net` is set, and the session cars of M04e3 leave the world on room join (DL-719).
 - QA bridge (QA builds only): `__dvBridge.net` with `join()`, `state()`, `peers()` (slot → pose and the server tick that produced it), `hashes()`, `transport()` (`'worker' | 'relay'`, `hosts.rt`, cross-origin or not).
 - Playwright: a second `webServer` runs the rooms Worker on port 8789; the web Worker's dev `RT_ORIGIN` points at it; rooms CORS allows `http://localhost:8788` in dev only.
 
@@ -30,7 +32,8 @@ Two players can see each other move in San Francisco. When this session ends, `R
 - `packages/net/src/validate.ts`; `packages/net/src/client/{room-client.ts, reconnect.ts}`; `packages/net/test/{validate.test.ts, room-client.test.ts}`.
 - `config/net.speedcaps.json`, `config/schemas/net.speedcaps.schema.json` (validated by `check:assets`).
 - `packages/engine/src/net/{net-in.ts, net-out.ts, prediction.ts, correction.ts, proxies.ts, socket-host.ts, relay.ts}`; `packages/engine/src/net/{prediction,correction,relay}.test.ts` (colocated so `check:unit -- packages/engine/src/net` selects them).
-- Sandbox wiring for `ModeContext.net` (edit in `packages/engine/src/sim/modes`), `packages/engine/src/client/debug/` bridge additions.
+- Sandbox wiring for `ModeContext.net` (edit in `packages/engine/src/sim/modes`: the descriptor's `requires.network` and the `ContextPorts.net` provider bound in `modes/index.ts`), `packages/engine/src/client/debug/` bridge additions.
+- `packages/engine/test/modes/sandbox-guard.spec.ts`: one new case that builds the host's `ContextPorts.net` with the session wiring's own provider (fed a stand-in room session), instead of the spec's fake port.
 - `services/rooms/test/{rooms-interest, rooms-speed, rooms-ack-lag}.test.ts`.
 - `tests/e2e/mp-two-clients.spec.ts` (`@mp`), `playwright.config.ts` (second `webServer`).
 - `docs/device-runs/M12b2/desktop/notes.json` (from the staging run).
@@ -49,12 +52,14 @@ Two players can see each other move in San Francisco. When this session ends, `R
 - AC-7 Given two isolated pages (separate contexts) on the local web and rooms servers, each registered as P1 through the QA bridge, When both join one room and page A walks 10 m Then `crossOriginIsolated` is true on both, B's `peers()` shows A at the new position, the time between the server tick that produced the move and B's render of it is at most 150 ms, and `test-results/mp-transport.json` records `hosts.rt` and the transport used — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @mp`
 - AC-8 Given the branch When both Previews deploy and the rooms bundle is checked Then both succeed and no `/_test/` route exists in production bundles — proof: `pnpm deploy:preview && pnpm deploy:preview -- --worker rooms && pnpm check:prod-routes`
 - AC-9 Given staging with both Workers deployed When two desktop browsers (Chrome and Safari on the Mac) register, join one room and walk Then each sees the other move, both report `crossOriginIsolated === true`, and `docs/device-runs/M12b2/desktop/notes.json` records the `transport()` output of each (this records U-BE-1) — proof: manual: desktop browser, Apple Silicon Mac, open staging in Chrome and Safari, register both, join through the QA bridge on the staging Preview build, walk, copy `__dvBridge.net.transport()` into `notes.json`
+- AC-10 Given the sandbox descriptor with `requires.network: 'optional'` When the M04e0 guard spec runs, including its new case that wires M12b2's own `ContextPorts.net` provider Then every `sandbox.*` command, `mode.cmd {mode:'sandbox'}` and `map.travel` is refused with `sandbox.refuse.online` while `net` is set, and single-player behaviour is unchanged (DL-719) — proof: `pnpm check:unit -- packages/engine/test/modes/sandbox-guard.spec.ts`
 
 ## Test plan
 - Workers runtime: `rooms-interest`, `rooms-speed`, `rooms-ack-lag` plus M12b1's suites (`pnpm check:workers -- rooms`).
 - Unit: `packages/net/test/{validate, room-client}.test.ts`; `packages/engine/src/net/*.test.ts`; determinism goldens unchanged.
 - E2E: `tests/e2e/mp-two-clients.spec.ts` (`@mp`, `chromium-webgl2`, two browser contexts, assertions on bridge state, not pixels).
 - Staging: manual two-browser run (AC-9).
+- Re-proof of M04e0's guard with the real `net` port (AC-10).
 
 ## Demo script
 1. `pnpm dev` and the rooms Worker on 8789 (`playwright.config.ts` shows the command).
