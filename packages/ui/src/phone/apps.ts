@@ -6,6 +6,7 @@ import { lk, t } from '../i18n/index.ts';
 import { garageScreen, type GarageCard } from '../pages/garage.tsx';
 import type { ListRow, ScreenDef, Widget } from '../screen/types.ts';
 import { dollars } from '../hud/model.ts';
+import { buildThreads, focusJobRows, messagesScreen, type PhoneMessage } from './messages.tsx';
 
 export interface RideDestination { id: string; nameKey: string; x: number; z: number }
 
@@ -26,6 +27,14 @@ export interface PhoneEnv {
   neverWanted: boolean;
   /** Home screen rows. */
   appRows: ListRow[];
+  /** `mode.story.messages`: the phone messages of the session (Messages app, M05c2). */
+  messages?: PhoneMessage[];
+  /** The raw `mode.story.jobs` rows: the Messages app offers the available `phone` ones. */
+  jobList?: MissionJob[];
+  /** The sender whose thread the Messages app shows, or null for the thread list. */
+  thread?: string | null;
+  /** The mission an offer opened Jobs on: its row comes first. */
+  focusJob?: string | null;
 }
 
 /** A place name: the catalog entry when there is one, else the id made readable. */
@@ -54,6 +63,8 @@ export function appScreen(id: string, env: PhoneEnv): ScreenDef {
   switch (id) {
     case 'map':
       return { id: 'app-map', title: lk('phone.app.map'), children: [...head('phone.app.map'), { k: 'text', text: lk('phone.map.unavailable'), tone: 'muted' }, back()] };
+    case 'messages':
+      return messagesScreen(buildThreads(env.messages ?? [], env.jobList ?? []), env.thread ?? null);
     case 'jobs':
       return {
         id: 'app-jobs',
@@ -63,7 +74,7 @@ export function appScreen(id: string, env: PhoneEnv): ScreenDef {
           ...(env.missions && env.missions.length > 0
             ? [
                 { k: 'heading', text: lk('phone.jobs.missions'), level: 2 } as Widget,
-                { k: 'list', id: 'phone-missions', rows: env.missions, onPress: { call: 'phone.job' }, empty: lk('phone.jobs.empty') } as Widget,
+                { k: 'list', id: 'phone-missions', rows: focusJobRows(env.missions, env.focusJob), onPress: { call: 'phone.job' }, empty: lk('phone.jobs.empty') } as Widget,
                 { k: 'heading', text: lk('phone.jobs.modes'), level: 2 } as Widget,
               ]
             : []),
@@ -134,6 +145,7 @@ export interface MissionJob {
   state: 'locked' | 'available' | 'active' | 'passed';
   trigger: string;
   giver?: string;
+  giverName?: string;
   needs?: string;
   medals?: number;
   bestSec?: number;

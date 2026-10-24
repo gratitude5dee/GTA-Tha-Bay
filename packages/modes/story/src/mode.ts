@@ -62,6 +62,8 @@ type ShopWardrobe = NonNullable<ShopPorts['wardrobe']>;
 const DEBUG_EVERY = 6;
 /** The triggers and the Jobs list are looked at every 15 ticks (4 Hz). */
 const TRIGGER_EVERY = 15;
+/** The most phone messages kept for the Messages app. */
+const MAX_MESSAGES = 60;
 /** A new game moves the player to the first auto mission's start only when it is farther than this from it. */
 const AUTO_PLACE_MIN_M = 300;
 const sq = (n: number): number => n * n;
@@ -114,10 +116,21 @@ export class StoryController {
     },
   });
 
+  /** The phone messages of this session (`text` ops), oldest first; the Messages app reads `mode.story.messages`. */
+  private messages: { from: string; name: string; text: string; at: number }[] = [];
   /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
   private teleportRestore: (() => void) | null = null;
 
   constructor(private readonly env: StoryWrapEnv) {}
+
+  /** A `text` op ran: keep the line and publish the threads (display name from the cast table, text from the line table). */
+  private addMessage(from: string, line: string, tick: number): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.messages.push({ from, name: this.store?.names[from] ?? from, text: this.lines[line] ?? this.store?.lines[line] ?? line, at: tick });
+    if (this.messages.length > MAX_MESSAGES) this.messages.splice(0, this.messages.length - MAX_MESSAGES);
+    ctx.ui.patch('mode.story.messages', this.messages.map((m) => ({ ...m })) as unknown as JsonValue);
+  }
 
   /** Story fast travel: installs the rule of `fast-travel-policy.ts` on the world's teleport service (a host without one is left alone). */
   private installFastTravel(ctx: ModeContext): void {
@@ -143,6 +156,7 @@ export class StoryController {
     this.ctx = ctx;
     this.story = story;
     this.installFastTravel(ctx);
+    this.messages = [];
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
@@ -205,6 +219,7 @@ export class StoryController {
       cutscenes: this.cutscenes,
       playCounter: () => ++this.playSerial,
       lineText: (id) => this.lines[id] ?? id,
+      onText: (from, line, tick) => this.addMessage(from, line, tick),
       timerScale: () => 1,
       comfort: () => this.env.comfort?.() ?? { reducedMotion: false, xr: false },
     });

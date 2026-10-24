@@ -14,6 +14,7 @@ import { buildTiles, tileRows, type ModeTile } from '../pages/modes.ts';
 import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
+import { messagePress, type PhoneMessage } from './messages.tsx';
 import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
@@ -114,10 +115,14 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
   const wallet = ctx.vm<JsonValue>('hud.wallet') as unknown as { cashCents?: number } | undefined;
   const heat = ctx.vm<JsonValue>('hud.heat') as unknown as { level?: number } | undefined;
   const toggles = ctx.vm<JsonValue>('mode.sandbox.toggles') as unknown as Record<string, boolean | number> | undefined;
+  const jobList = ((ctx.vm<JsonValue>('mode.story.jobs') as unknown as MissionJob[] | undefined) ?? []).filter((j) => typeof j?.id === 'string');
+  const messages = ((ctx.vm<JsonValue>('mode.story.messages') as unknown as PhoneMessage[] | undefined) ?? []).filter((m) => typeof m?.from === 'string' && typeof m?.text === 'string');
   return {
     mode,
     jobs: tileRows(views),
-    missions: missionRows(((ctx.vm<JsonValue>('mode.story.jobs') as unknown as MissionJob[] | undefined) ?? []).filter((j) => typeof j?.id === 'string')),
+    missions: missionRows(jobList),
+    jobList,
+    messages,
     cashCents: wallet?.cashCents,
     garage: garageCards(ctx.vm<JsonValue>('sys.garage')),
     ride,
@@ -132,6 +137,8 @@ export function PhonePage(props: PageProps) {
   const { shell, ctx } = useShell();
   const [app, setApp] = useState<string | null>(props.params['app'] ?? null);
   const [lastPick, setLastPick] = useState<string | null>(null);
+  const [thread, setThread] = useState<string | null>(null);
+  const [focusJob, setFocusJob] = useState<string | null>(null);
   useVmRedraw(ctx);
   const env = usePhoneEnv(ctx);
   const apps = useMemo(() => visibleApps({ mode: env.mode }), [env.mode]);
@@ -157,7 +164,7 @@ export function PhonePage(props: PageProps) {
     });
   }
   const def = app ? appDef(app) : undefined;
-  const screen = def ? def.screen({ ...env, appRows }) : homeScreen({ appRows });
+  const screen = def ? def.screen({ ...env, appRows, thread, focusJob }) : homeScreen({ appRows });
   return h('main', { class: 'dv-page dv-phone', 'data-testid': 'phone', 'data-app': app ?? 'home' }, h(ScreenHost, {
     screen,
     get: () => undefined,
@@ -172,6 +179,21 @@ export function PhonePage(props: PageProps) {
         switch (action.call) {
           case 'phone.home':
             setApp(null);
+            setThread(null);
+            setFocusJob(null);
+            break;
+          case 'phone.message.open':
+          case 'phone.message.offer': {
+            const press = rowId ? messagePress(rowId) : null;
+            if (press?.kind === 'thread') setThread(press.from);
+            else if (press?.kind === 'offer') {
+              setFocusJob(press.missionId);
+              setApp('jobs');
+            }
+            break;
+          }
+          case 'phone.message.back':
+            setThread(null);
             break;
           case 'phone.open': {
             const d = rowId ? appDef(rowId) : undefined;

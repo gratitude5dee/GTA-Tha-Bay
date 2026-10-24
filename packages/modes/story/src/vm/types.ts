@@ -44,6 +44,8 @@ export interface RuntimeOptions {
   storySeed?(): number;
   /** The display text of a line id, for the duration of a `say` (the length of the text decides how long it holds). Default: the id. */
   lineText?(id: string): string;
+  /** A `text` op ran (a phone message from a soul, M05c2): the story mode keeps the session's threads for the Messages app. */
+  onText?(from: string, line: string, tick: number): void;
   log?(line: string): void;
 }
 

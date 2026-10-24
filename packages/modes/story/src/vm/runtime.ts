@@ -1099,6 +1099,7 @@ export class MissionRuntime implements OpHost {
       }
       case 'text':
         this.noteEvent('text', { from: op.from, line: op.line });
+        this.opts.onText?.(op.from, op.line, this.ctx.tick);
         this.ctx.ui.toast({ id: `${this.scope()}:text:${op.line}`, kind: 'info', text: op.line });
         return;
       case 'marker':
