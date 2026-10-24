@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../../packages/world/src/client/world-bridge.ts';
 import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
+import { hideQaPanels } from './helpers.ts';
 
 /**
  * M04e1 AC-12 (@sandbox-world): the Sandbox app's Weather, Time and World tabs on the synth world (the QA play bypass starts the
@@ -10,6 +11,8 @@ import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
 type W = { __dvBridge: { world: WorldBridge; engine: { modes: { send(c: object): boolean } } } };
 
 async function bootSynth(page: Page): Promise<void> {
+  // The QA pursuit and mission panels sit over the left edge of every page in a 480 x 270 viewport; the menu specs hide them (BD-M04e1-07).
+  await hideQaPanels(page);
   await page.setViewportSize(SMALL_VIEWPORT);
   await page.goto('/?tier=mobile-low');
   await waitForEngine(page);
