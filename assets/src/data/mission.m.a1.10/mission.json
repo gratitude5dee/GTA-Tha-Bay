@@ -1,0 +1,620 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1200
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "imani": {
+      "k": "npc",
+      "role": "mentor",
+      "spawn": {
+        "at": [
+          37.77925,
+          -122.4184
+        ],
+        "snap": "ground"
+      },
+      "spawnAt": "manual",
+      "who": {
+        "soul": "imani_hart"
+      }
+    },
+    "kai": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.78453,
+          -122.41551
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "res_kai"
+      }
+    },
+    "moss": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.78103,
+          -122.41625
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "res_moss"
+      }
+    },
+    "tran": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.78281,
+          -122.414
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "res_tran"
+      }
+    }
+  },
+  "district": "d4",
+  "fail": [
+    {
+      "reason": "mission.m.a1.10.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "imani_hart"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.a1.10",
+  "lines": [
+    "line.m.a1.10.clock",
+    "line.m.a1.10.start",
+    "line.m.a1.10.talk.kai.open",
+    "line.m.a1.10.talk.moss.open",
+    "line.m.a1.10.talk.tran.open"
+  ],
+  "medals": {
+    "goldSec": 420,
+    "silverSec": 600
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.06",
+      "p": "passed"
+    },
+    {
+      "mission": "m.a1.09",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 150000,
+    "streetCred": 50
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "to_moss",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_moss",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.10.obj.goto_moss",
+          "zone": "moss_spot"
+        }
+      ],
+      "onEnter": [
+        {
+          "lock": {
+            "hour": 15,
+            "weather": "clear"
+          },
+          "op": "clock"
+        },
+        {
+          "line": "line.m.a1.10.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "moss",
+      "join": "all",
+      "next": "to_tran",
+      "objectives": [
+        {
+          "id": "talk_moss",
+          "k": "talk",
+          "talk": {
+            "default": "agree",
+            "id": "moss",
+            "ink": "mission_m_a1_10_moss",
+            "intent": "mission.m.a1.10.talk.moss.intent",
+            "maxTurns": 3,
+            "npc": "moss",
+            "outcomes": {
+              "agree": {
+                "flags": {
+                  "a1.10.moss": true
+                },
+                "label": "mission.m.a1.10.talk.moss.agree",
+                "stage": "to_tran",
+                "trust": 4
+              },
+              "decline": {
+                "flags": {
+                  "a1.10.moss": false
+                },
+                "label": "mission.m.a1.10.talk.moss.decline",
+                "stage": "to_tran"
+              }
+            }
+          },
+          "text": "mission.m.a1.10.obj.talk_moss"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "to_tran",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_tran",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.10.obj.goto_tran",
+          "zone": "tran_spot"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "tran",
+      "join": "all",
+      "next": "to_kai",
+      "objectives": [
+        {
+          "id": "talk_tran",
+          "k": "talk",
+          "talk": {
+            "default": "agree",
+            "id": "tran",
+            "ink": "mission_m_a1_10_tran",
+            "intent": "mission.m.a1.10.talk.tran.intent",
+            "maxTurns": 3,
+            "npc": "tran",
+            "outcomes": {
+              "agree": {
+                "flags": {
+                  "a1.10.tran": true
+                },
+                "label": "mission.m.a1.10.talk.tran.agree",
+                "stage": "to_kai",
+                "trust": 4
+              },
+              "decline": {
+                "flags": {
+                  "a1.10.tran": false
+                },
+                "label": "mission.m.a1.10.talk.tran.decline",
+                "stage": "to_kai"
+              }
+            }
+          },
+          "text": "mission.m.a1.10.obj.talk_tran"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "to_kai",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_kai",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.10.obj.goto_kai",
+          "zone": "kai_spot"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "kai",
+      "join": "all",
+      "next": "steps",
+      "objectives": [
+        {
+          "id": "talk_kai",
+          "k": "talk",
+          "talk": {
+            "default": "decline",
+            "id": "kai",
+            "ink": "mission_m_a1_10_kai",
+            "intent": "mission.m.a1.10.talk.kai.intent",
+            "maxTurns": 3,
+            "npc": "kai",
+            "outcomes": {
+              "agree": {
+                "flags": {
+                  "a1.10.kai": true
+                },
+                "label": "mission.m.a1.10.talk.kai.agree",
+                "stage": "steps",
+                "trust": 4
+              },
+              "decline": {
+                "flags": {
+                  "a1.10.kai": false
+                },
+                "label": "mission.m.a1.10.talk.kai.decline",
+                "stage": "steps"
+              }
+            }
+          },
+          "text": "mission.m.a1.10.obj.talk_kai"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "steps",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_steps",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.10.obj.goto_steps",
+          "zone": "steps"
+        }
+      ],
+      "onComplete": [
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.10.steps"
+          }
+        }
+      ],
+      "onEnter": [
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": false,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 0
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": true,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 1
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": false,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 1
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": true,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 2
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": false,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 1
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": true,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": false,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 2
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": false,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 2
+              }
+            }
+          ]
+        },
+        {
+          "cond": {
+            "of": [
+              {
+                "eq": true,
+                "key": "a1.10.moss",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.tran",
+                "p": "flag"
+              },
+              {
+                "eq": true,
+                "key": "a1.10.kai",
+                "p": "flag"
+              }
+            ],
+            "p": "and"
+          },
+          "op": "if",
+          "then": [
+            {
+              "op": "flag",
+              "set": {
+                "hearing_support": 3
+              }
+            }
+          ]
+        },
+        {
+          "cast": [
+            "imani"
+          ],
+          "op": "spawn"
+        },
+        {
+          "line": "line.m.a1.10.clock",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ],
+      "timeLimitSec": 240
+    }
+  ],
+  "start": {
+    "contact": "imani_hart",
+    "k": "phone"
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.10.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "kai_spot": {
+      "at": [
+        37.78453,
+        -122.41551
+      ],
+      "k": "circle",
+      "r": 10
+    },
+    "moss_spot": {
+      "at": [
+        37.78103,
+        -122.41625
+      ],
+      "k": "circle",
+      "r": 10
+    },
+    "steps": {
+      "at": [
+        37.77925,
+        -122.4184
+      ],
+      "k": "circle",
+      "r": 22
+    },
+    "tran_spot": {
+      "at": [
+        37.78281,
+        -122.414
+      ],
+      "k": "circle",
+      "r": 10
+    }
+  }
+}

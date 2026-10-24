@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "9f30e5372d1d7853d19eeee0c0625fc24696a1f189f793d38d90899daae42e37",
+  "paths": [
+    "assets/src/data/director.m.a1.12.arrival/director.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-24T11:54:48Z"
+}

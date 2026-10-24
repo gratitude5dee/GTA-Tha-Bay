@@ -1,0 +1,41 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 6800,
+      "kind": "dialogue",
+      "line": "line.m.a1.08.scanner.1",
+      "speaker": "patch",
+      "startMs": 700
+    }
+  ],
+  "durationSec": 8,
+  "id": "m.a1.08.scanner",
+  "letterbox": true,
+  "marks": {
+    "street": {
+      "at": [
+        37.7361,
+        -122.3879
+      ],
+      "yawDeg": 300
+    }
+  },
+  "schema": "director/1",
+  "seed": 2589256560,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "street",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "scan1"
+    }
+  ],
+  "xrVantage": {
+    "mark": "street",
+    "yawDeg": 300
+  }
+}

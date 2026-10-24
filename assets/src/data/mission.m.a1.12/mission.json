@@ -1,0 +1,317 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      120,
+      2400
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.sedan",
+      "spawn": {
+        "at": [
+          37.76888,
+          -122.38841
+        ],
+        "snap": "road",
+        "yawDeg": 94
+      }
+    },
+    "whitney": {
+      "k": "npc",
+      "role": "antagonist",
+      "spawn": {
+        "at": [
+          37.73642,
+          -122.38843
+        ],
+        "snap": "road",
+        "yawDeg": 55
+      },
+      "spawnAt": "manual",
+      "who": {
+        "soul": "whitney_arlo"
+      }
+    }
+  },
+  "district": "d1",
+  "fail": [
+    {
+      "reason": "mission.m.a1.12.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.12.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.12.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "saint_static"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 4,
+    "startHeat": 0
+  },
+  "id": "m.a1.12",
+  "lines": [
+    "line.m.a1.12.fog",
+    "line.m.a1.12.home",
+    "line.m.a1.12.lot",
+    "line.m.a1.12.run",
+    "line.m.a1.12.start",
+    "line.m.a1.12.talk.whitney.open"
+  ],
+  "medals": {
+    "goldSec": 1000,
+    "silverSec": 1500
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.10",
+      "p": "passed"
+    },
+    {
+      "mission": "m.a1.11",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 500000
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "to_plaza",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.12.obj.goto_plaza",
+          "zone": "plaza"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.12.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "lot",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.12.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.12.lot-one"
+          }
+        },
+        {
+          "line": "line.m.a1.12.lot",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "run",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "survive_run",
+          "k": "survive",
+          "sec": 120,
+          "text": "mission.m.a1.12.obj.survive_run"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "heat",
+          "set": 4
+        },
+        {
+          "line": "line.m.a1.12.run",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "lose",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_fog",
+          "k": "escape",
+          "text": "mission.m.a1.12.obj.escape_fog",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "cap": 2,
+          "op": "heat"
+        },
+        {
+          "line": "line.m.a1.12.fog",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "home",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_yard",
+          "inVehicle": "ride",
+          "k": "goto",
+          "text": "mission.m.a1.12.obj.goto_yard",
+          "zone": "yard"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.12.home",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "arrival",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "wait_car",
+          "k": "wait",
+          "sec": 3,
+          "text": "mission.m.a1.12.obj.wait_car"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "whitney"
+          ],
+          "op": "spawn"
+        },
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.12.arrival"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "listen",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "talk_whitney",
+          "k": "talk",
+          "talk": {
+            "default": "listen",
+            "id": "whitney",
+            "ink": "mission_m_a1_12_whitney",
+            "intent": "mission.m.a1.12.talk.whitney.intent",
+            "maxTurns": 3,
+            "npc": "whitney",
+            "outcomes": {
+              "listen": {
+                "flags": {
+                  "act1_complete": true
+                },
+                "label": "mission.m.a1.12.talk.whitney.listen",
+                "trust": 2
+              }
+            }
+          },
+          "text": "mission.m.a1.12.obj.talk_whitney"
+        }
+      ],
+      "onComplete": [
+        {
+          "op": "flag",
+          "set": {
+            "story.act": 2
+          }
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "saint_static",
+    "k": "phone"
+  },
+  "tags": [],
+  "title": "mission.m.a1.12.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "plaza": {
+      "at": [
+        37.76891,
+        -122.38799
+      ],
+      "k": "circle",
+      "r": 24
+    },
+    "yard": {
+      "at": [
+        37.73648,
+        -122.38865
+      ],
+      "k": "circle",
+      "r": 26
+    }
+  }
+}

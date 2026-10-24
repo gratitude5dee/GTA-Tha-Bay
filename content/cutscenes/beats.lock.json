@@ -20,6 +20,22 @@
       "rev": 1,
       "sha256": "ef9ab5e85a83fe74e72757bee4f3c27d84a6c3567a01f144b9bc8fad668b6a6f"
     },
+    "cut.story.m.a1.08.scanner": {
+      "rev": 1,
+      "sha256": "7a8c055f7fe6f3f5cc484f5ec23c5caa56ff43e1695e847c223427b9e6f1808e"
+    },
+    "cut.story.m.a1.10.steps": {
+      "rev": 1,
+      "sha256": "f39fe07544faec4cdfa02ca645873abafa01295e658bf40f4a144c81bf62c05e"
+    },
+    "cut.story.m.a1.12.arrival": {
+      "rev": 1,
+      "sha256": "6b44eee977fb5eb33fec08d89e300905278595c0bc5d2e2148d03b77d1670a05"
+    },
+    "cut.story.m.a1.12.lot-one": {
+      "rev": 1,
+      "sha256": "521188a2eaa06668c9939d0687be42190793bd88e2e387a619cad675fd396083"
+    },
     "cut.story.m.dev.sample.intro": {
       "rev": 1,
       "sha256": "66f37072dccbaf0a56e1f0dd5b062cac9373da1f80ecb295e64b6ec48c79f515"

@@ -1,0 +1,366 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1500
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "guest": {
+      "k": "npc",
+      "role": "cameo",
+      "spawn": {
+        "at": [
+          37.75222,
+          -122.4185
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "slot": "ATH_SHOOTER"
+      }
+    },
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.75215,
+          -122.41999
+        ],
+        "snap": "road",
+        "yawDeg": 95
+      }
+    },
+    "truck_a": {
+      "k": "vehicle",
+      "prefab": "convoy.pickup",
+      "role": "antagonist",
+      "spawn": {
+        "at": [
+          37.754,
+          -122.41863
+        ],
+        "snap": "road",
+        "yawDeg": -176
+      },
+      "spawnAt": "manual"
+    },
+    "truck_b": {
+      "k": "vehicle",
+      "prefab": "convoy.pickup",
+      "role": "antagonist",
+      "spawn": {
+        "at": [
+          37.75215,
+          -122.4216
+        ],
+        "snap": "road",
+        "yawDeg": 95
+      },
+      "spawnAt": "manual"
+    },
+    "truck_c": {
+      "k": "vehicle",
+      "prefab": "convoy.pickup",
+      "role": "antagonist",
+      "spawn": {
+        "at": [
+          37.75236,
+          -122.41651
+        ],
+        "snap": "road",
+        "yawDeg": -86
+      },
+      "spawnAt": "manual"
+    }
+  },
+  "district": "d2",
+  "fail": [
+    {
+      "reason": "mission.m.a1.11.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.11.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.11.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 3
+  },
+  "id": "m.a1.11",
+  "lines": [
+    "line.m.a1.11.patrol",
+    "line.m.a1.11.start",
+    "line.m.a1.11.talk.raffle.open",
+    "line.m.a1.11.trucks"
+  ],
+  "medals": {
+    "goldSec": 540,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.06",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 300000,
+    "streetCred": 60
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "raffle",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "talk_raffle",
+          "k": "talk",
+          "talk": {
+            "default": "thanks",
+            "id": "raffle",
+            "ink": "mission_m_a1_11_raffle",
+            "intent": "mission.m.a1.11.talk.raffle.intent",
+            "maxTurns": 2,
+            "npc": "guest",
+            "outcomes": {
+              "thanks": {
+                "flags": {
+                  "a1.11.raffle": true
+                },
+                "label": "mission.m.a1.11.talk.raffle.thanks",
+                "trust": 3
+              }
+            }
+          },
+          "text": "mission.m.a1.11.obj.talk_raffle"
+        }
+      ],
+      "onComplete": [
+        {
+          "cast": [
+            "guest"
+          ],
+          "op": "despawn"
+        }
+      ],
+      "onEnter": [
+        {
+          "lock": {
+            "hour": 20,
+            "weather": "clear"
+          },
+          "op": "clock"
+        },
+        {
+          "line": "line.m.a1.11.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "wheels",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.11.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.11.trucks",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "box_in",
+      "join": "sequence",
+      "objectives": [
+        {
+          "catchDist": 4,
+          "holdSec": 2,
+          "id": "box_a",
+          "k": "chase",
+          "target": "truck_a",
+          "text": "mission.m.a1.11.obj.box_a"
+        },
+        {
+          "catchDist": 4,
+          "holdSec": 2,
+          "id": "box_b",
+          "k": "chase",
+          "target": "truck_b",
+          "text": "mission.m.a1.11.obj.box_b"
+        },
+        {
+          "catchDist": 4,
+          "holdSec": 2,
+          "id": "box_c",
+          "k": "chase",
+          "target": "truck_c",
+          "text": "mission.m.a1.11.obj.box_c"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "guest"
+          ],
+          "op": "despawn"
+        },
+        {
+          "cast": [
+            "truck_a",
+            "truck_b",
+            "truck_c"
+          ],
+          "op": "spawn"
+        },
+        {
+          "cast": "truck_a",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "run_a"
+          }
+        },
+        {
+          "cast": "truck_b",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "run_b"
+          }
+        },
+        {
+          "cast": "truck_c",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "run_c"
+          }
+        }
+      ],
+      "timeLimitSec": 240
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "lose",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_patrol",
+          "k": "escape",
+          "text": "mission.m.a1.11.obj.escape_patrol",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "guest"
+          ],
+          "op": "despawn"
+        },
+        {
+          "op": "heat",
+          "set": 2
+        },
+        {
+          "line": "line.m.a1.11.patrol",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "at": {
+      "at": [
+        37.75225,
+        -122.4184
+      ],
+      "snap": "ground"
+    },
+    "hours": [
+      19,
+      23
+    ],
+    "k": "marker",
+    "radiusM": 10
+  },
+  "tags": [],
+  "title": "mission.m.a1.11.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "run_a": {
+      "at": [
+        37.751,
+        -122.41891
+      ],
+      "k": "circle",
+      "r": 20
+    },
+    "run_b": {
+      "at": [
+        37.75194,
+        -122.42348
+      ],
+      "k": "circle",
+      "r": 20
+    },
+    "run_c": {
+      "at": [
+        37.75221,
+        -122.41186
+      ],
+      "k": "circle",
+      "r": 20
+    }
+  }
+}

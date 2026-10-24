@@ -148,6 +148,179 @@
       "version": 1
     },
     {
+      "act": 1,
+      "asset": "data/mission.m.a1.07",
+      "district": "d4",
+      "giver": {
+        "phone": "odessa_calloway"
+      },
+      "id": "m.a1.07",
+      "requires": [
+        {
+          "mission": "m.a1.04",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "odessa_calloway",
+        "k": "phone"
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.07.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.08",
+      "district": "d3",
+      "giver": {
+        "world": true
+      },
+      "id": "m.a1.08",
+      "requires": [
+        {
+          "mission": "m.a1.07",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "at": {
+          "at": [
+            37.73639,
+            -122.3886
+          ],
+          "snap": "ground"
+        },
+        "hours": [
+          21,
+          4
+        ],
+        "k": "marker",
+        "radiusM": 8
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.08.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.09",
+      "district": "d3",
+      "giver": {
+        "phone": "odessa_calloway"
+      },
+      "id": "m.a1.09",
+      "requires": [
+        {
+          "mission": "m.a1.08",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "k": "auto",
+        "when": {
+          "mission": "m.a1.08",
+          "p": "passed"
+        }
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.09.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.10",
+      "district": "d4",
+      "giver": {
+        "phone": "imani_hart"
+      },
+      "id": "m.a1.10",
+      "requires": [
+        {
+          "mission": "m.a1.06",
+          "p": "passed"
+        },
+        {
+          "mission": "m.a1.09",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "imani_hart",
+        "k": "phone"
+      },
+      "tags": [
+        "sensitivity-read"
+      ],
+      "title": "mission.m.a1.10.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.11",
+      "district": "d2",
+      "giver": {
+        "world": true
+      },
+      "id": "m.a1.11",
+      "requires": [
+        {
+          "mission": "m.a1.06",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "at": {
+          "at": [
+            37.75225,
+            -122.4184
+          ],
+          "snap": "ground"
+        },
+        "hours": [
+          19,
+          23
+        ],
+        "k": "marker",
+        "radiusM": 10
+      },
+      "tags": [],
+      "title": "mission.m.a1.11.title",
+      "version": 1
+    },
+    {
+      "act": 1,
+      "asset": "data/mission.m.a1.12",
+      "district": "d1",
+      "giver": {
+        "phone": "saint_static"
+      },
+      "id": "m.a1.12",
+      "requires": [
+        {
+          "mission": "m.a1.10",
+          "p": "passed"
+        },
+        {
+          "mission": "m.a1.11",
+          "p": "passed"
+        }
+      ],
+      "start": {
+        "contact": "saint_static",
+        "k": "phone"
+      },
+      "tags": [],
+      "title": "mission.m.a1.12.title",
+      "version": 1
+    },
+    {
       "act": 0,
       "asset": "data/mission.m.dev.sample",
       "district": "d4",

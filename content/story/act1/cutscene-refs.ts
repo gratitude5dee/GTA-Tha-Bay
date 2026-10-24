@@ -152,7 +152,7 @@ const refs: CutsceneRef[] = [
     stage: 'beat.cut.story.m.a1.10.steps@1',
     move: null,
     slots: {
-      time_of_day: 'golden hour',
+      time_of_day: 'dusk',
       weather: 'clear',
       mood: 'hopeful and determined',
       action_1: 'neighbors of every age gather on the wide stone steps of a domed civic hall',

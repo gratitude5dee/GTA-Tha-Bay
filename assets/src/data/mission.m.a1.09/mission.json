@@ -1,0 +1,248 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1500
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "tow": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.pickup",
+      "spawn": {
+        "at": [
+          37.73642,
+          -122.38843
+        ],
+        "snap": "road",
+        "yawDeg": 55
+      }
+    }
+  },
+  "district": "d3",
+  "fail": [
+    {
+      "reason": "mission.m.a1.09.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.09.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.09.fail.tow",
+      "retry": "start",
+      "when": {
+        "cast": "tow",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "odessa_calloway"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 3
+  },
+  "id": "m.a1.09",
+  "lines": [
+    "line.m.a1.09.flagged",
+    "line.m.a1.09.hide",
+    "line.m.a1.09.home",
+    "line.m.a1.09.sprayed",
+    "line.m.a1.09.start"
+  ],
+  "medals": {
+    "goldSec": 600,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.08",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 250000
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "wheels",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_tow",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.09.obj.enter_tow",
+          "vehicle": "tow"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.09.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "leave",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_exit",
+          "inVehicle": "tow",
+          "k": "goto",
+          "text": "mission.m.a1.09.obj.goto_exit",
+          "zone": "exit"
+        }
+      ],
+      "onComplete": [
+        {
+          "op": "heat",
+          "set": 3
+        },
+        {
+          "line": "line.m.a1.09.flagged",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "shop",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_shop",
+          "inVehicle": "tow",
+          "k": "goto",
+          "stopped": true,
+          "text": "mission.m.a1.09.obj.goto_shop",
+          "zone": "bodyshop"
+        }
+      ],
+      "onComplete": [
+        {
+          "event": "vehicle.respray",
+          "op": "emit"
+        },
+        {
+          "line": "line.m.a1.09.sprayed",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "hide",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_viaduct",
+          "k": "escape",
+          "text": "mission.m.a1.09.obj.escape_viaduct",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.09.hide",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "home",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_yard",
+          "inVehicle": "tow",
+          "k": "goto",
+          "text": "mission.m.a1.09.obj.goto_yard",
+          "zone": "yard"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.09.home",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "k": "auto",
+    "when": {
+      "mission": "m.a1.08",
+      "p": "passed"
+    }
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.09.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "bodyshop": {
+      "at": [
+        37.75796,
+        -122.38802
+      ],
+      "k": "circle",
+      "r": 16
+    },
+    "exit": {
+      "at": [
+        37.73681,
+        -122.38923
+      ],
+      "k": "circle",
+      "r": 22
+    },
+    "hide_viaduct": {
+      "at": [
+        37.75817,
+        -122.39222
+      ],
+      "k": "circle",
+      "r": 16
+    },
+    "yard": {
+      "at": [
+        37.73648,
+        -122.38865
+      ],
+      "k": "circle",
+      "r": 24
+    }
+  }
+}
