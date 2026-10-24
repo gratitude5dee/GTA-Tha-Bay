@@ -108,7 +108,10 @@ async function getSpawnTile(assets: AssetClient, pack: string, o: PrepareWorldOp
 
 export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorld> {
   const { assets } = o;
-  const base = (await assets.stats()).bytes;
+  // M02f1: the boot's figures count from here; `resetPeak` makes the in-flight peak this boot's own.
+  const bootStartMs = performance.now();
+  const baseStats = await assets.stats({ resetPeak: true });
+  const base = baseStats.bytes;
 
   let indexBytes: ArrayBuffer;
   try {
@@ -156,7 +159,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     index,
     assets: {
       job: (name, args) => assets.job(name, args),
-      stats: () => assets.stats(),
+      stats: (so) => assets.stats(so),
       bytesSeen: () => assets.bytesSeen,
     },
     flags: o.flags,
@@ -167,6 +170,8 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     labels: o.labels,
     container: o.container,
     bytesBase: base,
+    bootStartMs,
+    statsBase: { network: baseStats.network, waves: baseStats.waves },
     ...(o.emit ? { emit: o.emit } : {}),
     ...(o.qa ? { qa: true } : {}),
     ...(o.onArea ? { onArea: o.onArea } : {}),

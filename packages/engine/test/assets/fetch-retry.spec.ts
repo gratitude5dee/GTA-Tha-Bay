@@ -44,7 +44,7 @@ describe('FetchRetry', () => {
     expect(h.delays).toHaveLength(MAX_ATTEMPTS - 1);
     us.forEach((u, n) => expect(h.delays[n]).toBeCloseTo(Math.min(5000, 300 * 2 ** n) * u, 9));
     expect(h.delays.map((d, n) => d / backoffMs(n, 1))).toEqual(us.map((u) => expect.closeTo(u, 9)));
-    expect(h.fr.stats).toEqual({ network: 1, retries: 7, bytes: 0 });
+    expect(h.fr.stats).toMatchObject({ network: 1, retries: 7, bytes: 0 });
   });
 
   it('the cap is 5000 ms before jitter: attempts 6 and 7 wait 5000 x u', async () => {
@@ -70,7 +70,7 @@ describe('FetchRetry', () => {
       return Promise.resolve(ok(body));
     });
     expect(await h.fr.fetchBytes('https://m.test/a')).toEqual(body);
-    expect(h.fr.stats).toEqual({ network: 1, retries: 2, bytes: 100 });
+    expect(h.fr.stats).toMatchObject({ network: 1, retries: 2, bytes: 100 });
   });
 
   it('network errors on every attempt end as offline', async () => {
@@ -188,5 +188,141 @@ describe('FetchRetry', () => {
     expect(init.cache).toBe('no-store');
     expect(init.mode).toBe('cors');
     expect(init.priority).toBe('high');
+  });
+});
+
+describe('FetchRetry in-flight figures (M02f1)', () => {
+  /** A fetch whose answers are released by hand, per URL. */
+  function gated(): { fn: FetchFn; release: (url: string, body?: Uint8Array) => void; fail: (url: string, status: number) => void } {
+    const waiting = new Map<string, Array<(r: Response) => void>>();
+    const fn: FetchFn = (url, init) =>
+      new Promise<Response>((res, rej) => {
+        const list = waiting.get(url) ?? [];
+        list.push(res);
+        waiting.set(url, list);
+        init.signal?.addEventListener('abort', () => rej(new DOMException('aborted', 'AbortError')));
+      });
+    return {
+      fn,
+      release: (url, body = bytesOf(1, 8)) => waiting.get(url)?.shift()?.(ok(body)),
+      fail: (url, status) => waiting.get(url)?.shift()?.(new Response(null, { status })),
+    };
+  }
+  const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+  it('two concurrent URLs give inflightPeak 2 and waves 1', async () => {
+    const g = gated();
+    const h = harness(g.fn);
+    const a = h.fr.fetchBytes('https://m.test/a');
+    const b = h.fr.fetchBytes('https://m.test/b');
+    await tick();
+    expect(h.fr.stats.inflight).toBe(2);
+    g.release('https://m.test/a');
+    g.release('https://m.test/b');
+    await Promise.all([a, b]);
+    expect(h.fr.stats).toMatchObject({ inflight: 0, inflightPeak: 2, waves: 1 });
+  });
+
+  it('two sequential URLs give waves 2 and inflightPeak 1', async () => {
+    const g = gated();
+    const h = harness(g.fn);
+    const a = h.fr.fetchBytes('https://m.test/a');
+    await tick();
+    g.release('https://m.test/a');
+    await a;
+    const b = h.fr.fetchBytes('https://m.test/b');
+    await tick();
+    g.release('https://m.test/b');
+    await b;
+    expect(h.fr.stats).toMatchObject({ inflight: 0, inflightPeak: 1, waves: 2 });
+  });
+
+  it('a joined request counts once', async () => {
+    const g = gated();
+    const h = harness(g.fn);
+    const a1 = h.fr.fetchBytes('https://m.test/a');
+    const a2 = h.fr.fetchBytes('https://m.test/a', { priority: 'now' });
+    await tick();
+    expect(h.fr.stats.inflight).toBe(1);
+    g.release('https://m.test/a');
+    await Promise.all([a1, a2]);
+    expect(h.fr.stats).toMatchObject({ inflight: 0, inflightPeak: 1, waves: 1, network: 1 });
+  });
+
+  it('a retried request counts once, also during its backoff', async () => {
+    const g = gated();
+    let wake!: () => void;
+    const lanes = new Lanes(laneLimits(false));
+    const fr = new FetchRetry({
+      fetch: g.fn,
+      lanes,
+      random: () => 0.5,
+      sleep: () =>
+        new Promise<void>((r) => {
+          wake = r;
+        }),
+    });
+    const p = fr.fetchBytes('https://m.test/a');
+    await tick();
+    g.fail('https://m.test/a', 503);
+    await tick();
+    expect(fr.stats.inflight).toBe(1); // waiting out the backoff
+    wake();
+    await tick();
+    expect(fr.stats.inflight).toBe(1);
+    g.release('https://m.test/a');
+    await p;
+    expect(fr.stats).toMatchObject({ inflight: 0, inflightPeak: 1, waves: 1, retries: 1 });
+  });
+
+  it('a 4-slice Range object counts as one in flight', async () => {
+    const total = 4 * MIB + 1; // above the threshold: 5 slices, 4 at a time
+    const whole = bytesOf(3, total);
+    const h = harness((_u, init) => {
+      const r = (init.headers as Record<string, string>)['Range'] ?? '';
+      const m = /bytes=(\d+)-(\d+)/.exec(r);
+      const part = m ? whole.slice(Number(m[1]), Number(m[2]) + 1) : whole;
+      return new Promise<Response>((res) => setTimeout(() => res(ok(part, 206)), 1));
+    });
+    const got = await h.fr.fetchBytes('https://m.test/big', { bytes: total });
+    expect(got.byteLength).toBe(total);
+    expect(h.calls.length).toBe(5);
+    expect(h.fr.stats).toMatchObject({ inflight: 0, inflightPeak: 1, waves: 1, network: 1 });
+  });
+
+  it('resetPeak() with one request running sets the peak to 1', async () => {
+    const g = gated();
+    const h = harness(g.fn);
+    const a = h.fr.fetchBytes('https://m.test/a');
+    const b = h.fr.fetchBytes('https://m.test/b');
+    await tick();
+    g.release('https://m.test/b');
+    await b;
+    expect(h.fr.stats.inflightPeak).toBe(2);
+    h.fr.resetPeak();
+    expect(h.fr.stats.inflightPeak).toBe(1);
+    g.release('https://m.test/a');
+    await a;
+    h.fr.resetPeak();
+    expect(h.fr.stats.inflightPeak).toBe(0);
+  });
+
+  it('inflight returns to 0 after success, failure and abort', async () => {
+    const g = gated();
+    const h = harness(g.fn);
+    const ok1 = h.fr.fetchBytes('https://m.test/ok');
+    const bad = h.fr.fetchBytes('https://m.test/bad');
+    const ac = new AbortController();
+    const gone = h.fr.fetchBytes('https://m.test/gone', { signal: ac.signal });
+    await tick();
+    expect(h.fr.stats.inflight).toBe(3);
+    g.release('https://m.test/ok');
+    g.fail('https://m.test/bad', 404);
+    ac.abort();
+    await ok1;
+    await expect(bad).rejects.toMatchObject({ reason: 'http' });
+    await expect(gone).rejects.toMatchObject({ reason: 'aborted' });
+    await tick();
+    expect(h.fr.stats.inflight).toBe(0);
   });
 });

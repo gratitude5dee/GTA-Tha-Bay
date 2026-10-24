@@ -64,7 +64,7 @@ async function world(): Promise<World> {
     onmessage: null,
   };
   toClient = (m) => port.onmessage?.({ data: m });
-  const client = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false }, { tier: () => 'desktop' });
+  const client = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false, net: null }, { tier: () => 'desktop' });
   return { client, svc, requests, events: client.errLog, packRef: 'world_pack/p0-64-64', bytes, sha };
 }
 
@@ -186,7 +186,7 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: fetchFn, channel: null, tabId: 't', sleep: () => Promise.resolve(), online: () => true });
     const port: WorkerPort = { postMessage: (m) => void svc.handle(m), onmessage: null };
     toClient = (m) => port.onmessage?.({ data: m });
-    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false }, { tier: () => 'desktop' });
+    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false, net: null }, { tier: () => 'desktop' });
     const info = await c.catalogInfo();
     expect(info).toEqual({ state: 'unavailable', failure: { stage: 'catalog', url: `https://media.test/${pointer.key}`, status: 404, offline: false } });
     expect(c.catalogState).toBe('unavailable');
@@ -199,7 +199,7 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: () => Promise.reject(new Error('x')), channel: null, tabId: 't' });
     const port: WorkerPort = { postMessage: (m) => void svc.handle(m), onmessage: null };
     toClient = (m) => port.onmessage?.({ data: m });
-    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: true }, { tier: () => 'mobile' });
+    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: true, net: null }, { tier: () => 'mobile' });
     await expect(c.qa('files')).rejects.toThrow('not-supported');
     expect(await c.loadCatalog()).toBe('disabled');
   });

@@ -226,7 +226,7 @@ export async function createPlatform(o: CreatePlatformOptions): Promise<Platform
       ? Promise.resolve(o.assets)
       : startAssets({
           ...(o.spawnAssetWorker ? { spawn: o.spawnAssetWorker } : {}),
-          init: { origin: typeof location === 'undefined' ? '' : location.origin, localMedia: import.meta.env.VITE_DV_QA === '1' ? '/media-local' : null, mobileOrXr: profile.class !== 'desktop' },
+          init: { origin: typeof location === 'undefined' ? '' : location.origin, localMedia: import.meta.env.VITE_DV_QA === '1' ? '/media-local' : null, mobileOrXr: profile.class !== 'desktop', net: import.meta.env.VITE_DV_QA === '1' ? o.flags.net : null },
           tier: () => quality?.tier.id ?? 'mobile-low',
           onTelemetry: (name, props) => telemetry.emit(name, props),
         });

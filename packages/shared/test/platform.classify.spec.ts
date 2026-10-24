@@ -149,7 +149,7 @@ describe('tier config', () => {
 describe('tier-decision.v1', () => {
   const schema = JSON.parse(readFileSync(fileURLToPath(new URL('../schemas/tier-decision.v1.json', import.meta.url)), 'utf8')) as object;
   const validate = new Ajv2020({ strict: false }).compile(schema);
-  const ok = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1_700_000_000_000, build: 'b1', uaHash: 'a', adapterHash: 'b', c13: '1.1.0' };
+  const ok = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1_700_000_000_000, build: 'b1', uaHash: 'a', adapterHash: 'b', c13: C13_VERSION };
 
   it('the hand validator and the JSON Schema agree', () => {
     const cases: unknown[] = [

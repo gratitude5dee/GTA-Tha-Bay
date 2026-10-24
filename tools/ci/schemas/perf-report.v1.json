@@ -112,7 +112,12 @@
       "additionalProperties": false,
       "properties": {
         "warmBootToPlayableS": { "type": ["number", "null"], "minimum": 0 },
-        "coldDownloadMB": { "type": ["number", "null"], "minimum": 0 }
+        "coldDownloadMB": { "type": ["number", "null"], "minimum": 0 },
+        "requests": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "revealMs": { "type": "integer", "minimum": 0 },
+        "waves": { "type": "integer", "minimum": 0 },
+        "inflightPeak": { "type": "integer", "minimum": 0 }
       }
     },
     "errors": {

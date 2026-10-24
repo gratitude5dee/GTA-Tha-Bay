@@ -210,8 +210,8 @@ export class AssetClient {
     this.catalogStateValue = info.state;
     return info;
   }
-  stats(): Promise<StatsResult> {
-    return this.call('stats', {});
+  stats(o: { resetPeak?: boolean } = {}): Promise<StatsResult> {
+    return this.call('stats', o);
   }
   qa(name: string, args?: unknown): Promise<unknown> {
     return this.call('qa', { name, args: args ?? null });

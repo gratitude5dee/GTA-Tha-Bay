@@ -1,0 +1,10 @@
+{
+  "schema": "net-profiles/1",
+  "$comment": "QA-only pack-fetch shaper profiles (M02f1, ?net=<id>). The values are our own design values for making latency and throughput visible in a test; they are not claims about real networks. latencyMs is waited before every pack request; bytesPerSec (null = unlimited) is one budget shared by all requests of the page.",
+  "profiles": {
+    "home": { "latencyMs": 20, "bytesPerSec": 6000000 },
+    "cell": { "latencyMs": 120, "bytesPerSec": 1000000 },
+    "poor": { "latencyMs": 400, "bytesPerSec": 150000 },
+    "lag": { "latencyMs": 400, "bytesPerSec": null }
+  }
+}

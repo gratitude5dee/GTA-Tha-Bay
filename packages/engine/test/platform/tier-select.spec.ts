@@ -1,4 +1,4 @@
-import { classifyDevice, type DeviceProfile, type QualityTierId } from '@dv/shared';
+import { C13_VERSION, classifyDevice, type DeviceProfile, type QualityTierId } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { createMemoryStore } from '../../src/platform/platform-store.ts';
 import { NO_QA_FLAGS, parseQaFlags, type QaFlags } from '../../src/platform/qa-flags.ts';
@@ -121,7 +121,7 @@ describe('TierSelector persistence (AC-3)', () => {
   });
 
   it('ignores a stored record with v: 2 and one that fails the schema', async () => {
-    const good = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1, build: 'b1', uaHash: desktop.uaHash, adapterHash: desktop.adapterHash, c13: '1.1.0' };
+    const good = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1, build: 'b1', uaHash: desktop.uaHash, adapterHash: desktop.adapterHash, c13: C13_VERSION };
     const v2 = createMemoryStore({ decision: { ...good, v: 2 } });
     const a = selector({ store: v2, p90: { desktop: 12 } });
     expect((await a.sel.select()).reused).toBe(false);
