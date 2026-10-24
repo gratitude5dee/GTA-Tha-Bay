@@ -12,6 +12,7 @@ import { MockTranscodePort } from './mock/MockTranscodePort.ts';
 import { mockJwks } from './mock/test-key.ts';
 import type { Bucket, BlobPort, BudgetPort, FalGatePort, FlagsPort, GenPorts, JobSinkPort, RosterPort, SignPort, TranscodePort } from './ports.ts';
 import { cutsceneKeyOf } from './steps/cutscene.ts';
+import { containerPorts } from './transcode.ts';
 import type { GenJob } from '@dv/shared';
 
 export interface PipelineEnv {
@@ -28,6 +29,10 @@ export interface PipelineEnv {
   GOVERNOR: DurableObjectNamespace;
   CUTSCENE_JOB: DurableObjectNamespace;
   GEN_WF: Workflow;
+  /** The Transcoder Container (class `TranscoderContainer`, M05c3). Bound in production only; mock mode never touches it. */
+  TRANSCODER?: DurableObjectNamespace | undefined;
+  /** "1": renditions are re-signed with our C2PA claim (production); "0": they are not (staging, previews). Absent means on. */
+  C2PA_RESIGN?: string | undefined;
 }
 
 /** RPC surface of the DOs as the pipeline sees them (the classes live in services/edge and services/pipeline). */
@@ -152,16 +157,26 @@ export function r2Recorder(bucket: R2Bucket): MockRecorder {
   };
 }
 
+const NO_CONTAINER = 'the TRANSCODER container binding is not declared in this environment';
 class UnavailableTranscode implements TranscodePort {
+  ready(): Promise<string | null> {
+    return Promise.resolve(NO_CONTAINER);
+  }
   transcode(): never {
-    throw new Error('the Transcoder container (TRANSCODER) lands with the first live run (M05c3)');
+    throw new Error(NO_CONTAINER);
   }
 }
 class UnavailableSign implements SignPort {
+  ready(): Promise<string | null> {
+    return Promise.resolve(NO_CONTAINER);
+  }
   resign(): never {
-    throw new Error('the live SignPort adapter runs where the transcoder runs (M05c3)');
+    throw new Error(NO_CONTAINER);
   }
 }
+
+/** Production runs re-sign unless C2PA_RESIGN is "0"; mock mode always re-signs (the mock signer is free). */
+export const resignOn = (env: Pick<PipelineEnv, 'FAL_MODE' | 'C2PA_RESIGN'>): boolean => isMock(env) || env.C2PA_RESIGN !== '0';
 
 /** Ports for one job. Mock mode replays fixtures; live mode binds fal and the not-yet-built container adapters. */
 export function makePorts(env: PipelineEnv, job: GenJob): GenPorts {
@@ -192,6 +207,12 @@ export function makePorts(env: PipelineEnv, job: GenJob): GenPorts {
       sign: new MockSignPort(),
     };
   }
-  return { ...base, fal: new LiveFalPort({ key: env.FAL_KEY ?? '', fetch: (...a) => fetch(...a) }), transcode: new UnavailableTranscode(), sign: new UnavailableSign() };
+  const container = containerPorts(env.TRANSCODER, cutsceneKeyOf(job));
+  return {
+    ...base,
+    fal: new LiveFalPort({ key: env.FAL_KEY ?? '', fetch: (...a) => fetch(...a) }),
+    transcode: container?.transcode ?? new UnavailableTranscode(),
+    sign: container?.sign ?? new UnavailableSign(),
+  };
 }
 

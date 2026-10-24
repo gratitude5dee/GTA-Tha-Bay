@@ -52,6 +52,13 @@ export interface Env {
   SUPABASE_ANON_KEY?: string | undefined;
   /** Bearer token for the staff routes until staff JWTs arrive (M12a1). Absent: those routes answer 401. */
   OPS_TOKEN?: string | undefined;
+  /** "1": renditions are re-signed with our C2PA claim (production); "0": not (staging, previews). Absent means on (M05c3). */
+  C2PA_RESIGN?: string | undefined;
+  /** The Transcoder Container (class TranscoderContainer, M05c3). Bound in production only; mock mode never touches it. */
+  TRANSCODER?: DurableObjectNamespace | undefined;
+  /** Signing material of the C2PA re-signer, passed to the container at start (Worker secrets, M05c3). */
+  C2PA_CERT_CHAIN_PEM?: string | undefined;
+  C2PA_KEY_PEM?: string | undefined;
   /** Test only (compiled out of the production bundle): extra catalog keys, comma separated. */
   CUTSCENE_CATALOG_EXTRA?: string | undefined;
   /** Supabase secret key (sb_secret_..., Worker secret): the admin path of the password accounts (M00e) and the M05d data spine. */

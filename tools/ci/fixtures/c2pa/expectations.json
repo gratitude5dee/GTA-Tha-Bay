@@ -1,0 +1,24 @@
+{
+  "note": "Self-test of check:c2pa (M05c3 AC-6). Each fixture is read as a production-environment manifest; `expect` lists the rules it must trip.",
+  "fixtures": [
+    {
+      "manifest": "mock-prewarm",
+      "env": "prod",
+      "expect": []
+    },
+    {
+      "manifest": "prod-unsigned",
+      "env": "prod",
+      "expect": [
+        "resign-missing"
+      ]
+    },
+    {
+      "manifest": "no-ai-flag",
+      "env": "prod",
+      "expect": [
+        "ai-generated-missing"
+      ]
+    }
+  ]
+}

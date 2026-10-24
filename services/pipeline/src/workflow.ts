@@ -5,7 +5,7 @@
  */
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import type { GenJob } from '@dv/shared';
-import { gateConfig, isMock, makePorts, type PipelineEnv } from './env.ts';
+import { gateConfig, isMock, makePorts, resignOn, type PipelineEnv } from './env.ts';
 import { runCutsceneJob, type JobOutcome, type StepLike } from './steps/cutscene.ts';
 
 export class GenJobWorkflow extends WorkflowEntrypoint<PipelineEnv, GenJob> {
@@ -15,7 +15,7 @@ export class GenJobWorkflow extends WorkflowEntrypoint<PipelineEnv, GenJob> {
     const ports = makePorts(this.env, job);
     return runCutsceneJob(
       step as unknown as StepLike,
-      { ports, gate: gateConfig(this.env), instanceId: event.instanceId, hostApi: this.env.HOST_API, mock: isMock(this.env) },
+      { ports, gate: gateConfig(this.env), instanceId: event.instanceId, hostApi: this.env.HOST_API, mock: isMock(this.env), resign: resignOn(this.env) },
       job,
     );
   }

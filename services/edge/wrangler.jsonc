@@ -86,6 +86,8 @@
     // AIG_BASE (AI Gateway gw-dialogue, https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic) is set by the operator once the gateway exists;
     // unset, calls go to the Anthropic API directly (U-NPC-02 fallback). AIG_ENV is optional ("synthetic" for the M14b1 T4 run).
     "FAL_MODE": "live",
+    // Renditions are re-signed with our C2PA claim in production (ADR-GENAI-01 G4, M05c3); "0" in staging and previews. Absent means on.
+    "C2PA_RESIGN": "1",
     // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
     // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
     "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
@@ -178,6 +180,7 @@
         "FLAGS_JSON": "{\"npc.dialogue\":true}",
         "ANTHROPIC_MODE": "fixture",
         "FAL_MODE": "mock",
+        "C2PA_RESIGN": "0",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
         // Owner testing: staging sign-up is open. Route 58 also needs LEGAL_CONTACT (operator-supplied, not set here; DL-635).
@@ -236,7 +239,8 @@
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
       "FLAGS_JSON": "{\"npc.dialogue\":true}",
       "ANTHROPIC_MODE": "fixture",
-      "FAL_MODE": "mock"
+      "FAL_MODE": "mock",
+      "C2PA_RESIGN": "0"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
       // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to
       // config/supabase.projects.json, previews and env.staging take its URL and key here and boot.test.ts AC-6 asserts them.

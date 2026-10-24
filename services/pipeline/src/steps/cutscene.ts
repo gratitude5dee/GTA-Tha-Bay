@@ -33,6 +33,11 @@ export interface RunContext {
   hostApi: string;
   /** True in mock mode: nothing is spent, so the settled amount is 0. */
   mock: boolean;
+  /**
+   * `C2PA_RESIGN` of the Worker build (M05c3): false skips the resign step and the manifest says `resigned: false`.
+   * Default true. Production live runs refuse to start with it off (ADR-GENAI-01 gate G4).
+   */
+  resign?: boolean;
 }
 
 export interface JobOutcome {
@@ -141,6 +146,26 @@ export async function runCutsceneJob(step: StepLike, ctx: RunContext, job: GenJo
       return { status: 'cached', manifestKey, writes };
     }
 
+    // 2b. preflight (live adapters only): the container answers, the signer is configured, and a production run has re-signing on.
+    // Everything after this point costs money, so a missing piece fails the job here, before the reservation (M05c3).
+    const wantResign = ctx.resign !== false;
+    const prod = !ctx.mock && ctx.gate.environment === 'prod';
+    if (prod && !wantResign) return await refuse('POLICY_REFUSED', 'preflight: C2PA_RESIGN is off in the production build (ADR-GENAI-01 G4)');
+    const checks: { name: string; ready: () => Promise<string | null> }[] = [];
+    if (ports.transcode.ready) checks.push({ name: 'transcoder', ready: () => ports.transcode.ready!() });
+    if (wantResign && ports.sign.ready) checks.push({ name: 'c2pa signer', ready: () => ports.sign.ready!() });
+    if (checks.length > 0) {
+      const problems = await step.do('preflight', async () => {
+        const out: string[] = [];
+        for (const c of checks) {
+          const why = await c.ready();
+          if (why !== null) out.push(`${c.name}: ${why}`);
+        }
+        return out;
+      });
+      if (problems.length > 0) return await refuse('POLICY_REFUSED', `preflight: ${problems.join('; ')}`);
+    }
+
     // 3. budget-reserve (submit-time gate rules first: kill switches, governor level)
     const g2 = await gate('budget-reserve');
     if (!g2.ok) return await refuse(g2.code, g2.detail);
@@ -229,6 +254,7 @@ export async function runCutsceneJob(step: StepLike, ctx: RunContext, job: GenJo
 
     // 15. resign: each video rendition gets our C2PA claim with orig.mp4 as ingredient
     const signed = await step.do('resign', async () => {
+      if (!wantResign) return {} as Record<string, { sha256: string; bytes: number; c2pa: string }>;
       const origBytes = await ports.blob.get('PRIVATE', origKeyOf(key));
       if (origBytes === null) throw new Error('orig.mp4 vanished before resign');
       const meta: Record<string, { sha256: string; bytes: number; c2pa: string }> = {};

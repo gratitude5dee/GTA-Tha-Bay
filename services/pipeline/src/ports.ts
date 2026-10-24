@@ -107,6 +107,8 @@ export interface TranscodeResult {
 export interface TranscodePort {
   /** Probe + ladder of recipe cut@1 over the unmodified original. */
   transcode(orig: Uint8Array): Promise<TranscodeResult>;
+  /** Live adapters only: null when the container answers, else the reason it cannot run. Checked before any money moves (M05c3). */
+  ready?(): Promise<string | null>;
 }
 
 export interface SignedFile {
@@ -119,6 +121,8 @@ export interface SignedFile {
 export interface SignPort {
   /** Re-sign one rendition with our claim (`trainedAlgorithmicMedia`), `orig` as the ingredient. */
   resign(rendition: { file: string; bytes: Uint8Array; contentType: string }, orig: Uint8Array): Promise<SignedFile>;
+  /** Live adapters only: null when the signer is configured, else the reason it cannot sign. Checked before any money moves (M05c3). */
+  ready?(): Promise<string | null>;
 }
 
 export interface FalGatePort {
