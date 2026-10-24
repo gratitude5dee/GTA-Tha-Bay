@@ -1,9 +1,9 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "791f1a50ba80119ce870434ca5b9bd1bb6aa62377a7cea1edf8fff08068293af",
+  "sha256": "f992d34a5571b6848bf49c67e907ec2e3ba9d61629d37cb7402617e8fa41e32f",
   "paths": [
-    "tests/fixtures/missions/m.a1.04.1.dvtl",
-    "assets/m.a1.04.1-Bu-GoF9T.dvtl"
+    "tests/fixtures/missions/m.a1.01.1.dvtl",
+    "assets/m.a1.01.1-Ct1wbwc0.dvtl"
   ],
   "kind": "data",
   "origin": "authored",
@@ -20,7 +20,7 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T00:00:00Z",
+  "created_at": "2026-10-24T15:00:05Z",
   "tool": {
     "name": "tools/ci/missions/check.ts",
     "version": "1.0.0",
