@@ -75,11 +75,11 @@ describe('phone registry (AC-6)', () => {
     expect(buttonsIn(s, 'player').some((w) => w.id === 'never-wanted')).toBe(true);
   });
 
-  it('Sandbox is a tabs widget: player, weather, time, world (AC-9)', () => {
+  it('Sandbox is a tabs widget: player, weather, time, world, teleport, display (AC-9)', () => {
     const s = appScreen('sandbox', env({ mode: 'sandbox', sandboxWorld: world() }));
     const tabs = tabsOf(s);
     expect(tabs.id).toBe('sandbox-tabs');
-    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world']);
+    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world', 'teleport', 'display']);
     for (const k of keys(s)) expect(cat[k], k).toBeDefined();
   });
 
@@ -138,7 +138,7 @@ describe('phone registry (AC-6)', () => {
 
   it('without a published view model the tabs still build', () => {
     const s = appScreen('sandbox', env({ mode: 'sandbox' }));
-    expect(tabsOf(s).tabs).toHaveLength(4);
+    expect(tabsOf(s).tabs).toHaveLength(6);
   });
 
   it('the home screen lists the rows it is given and has a close button', () => {

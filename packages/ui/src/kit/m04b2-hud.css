@@ -17,6 +17,11 @@
 .dv-hud-bc { position: absolute; inset-inline: 25%; inset-block-end: max(env(safe-area-inset-bottom), 1.5em); align-items: center; justify-content: flex-end; }
 .dv-hud-c { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); }
 .dv-hud-region:empty { display: none; }
+/* The sandbox's Display tab (M04e2): a hidden region keeps its place, fades in 150 ms and does not fade under reduced motion. */
+.dv-hud-region { transition: opacity 150ms linear; }
+.dv-hud-region[data-hidden='true'] { visibility: hidden; opacity: 0; transition: opacity 150ms linear, visibility 0s linear 150ms; }
+[data-reduced-motion='true'] .dv-hud-region { transition: none; }
+@media (prefers-reduced-motion: reduce) { .dv-hud-region { transition: none; } }
 .dv-hud [data-tone='friendly'] { --dv-tone: var(--dv-sem-friendly, #3ddc84); }
 .dv-hud [data-tone='danger'] { --dv-tone: var(--dv-sem-danger, #ff4d4d); }
 .dv-hud [data-tone='warning'] { --dv-tone: var(--dv-sem-warning, #ffd23f); }

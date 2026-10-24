@@ -10,7 +10,7 @@ import { paletteVars } from './model.ts';
 export type HudRegion = 'tl' | 'tr' | 'bl' | 'br' | 'bc' | 'c';
 export const HUD_REGIONS: readonly HudRegion[] = ['tl', 'tr', 'bl', 'br', 'bc', 'c'];
 
-export function HudGrid(props: { regions: Partial<Record<HudRegion, ComponentChildren>>; palette?: string; scale: number; opacity: number; marginPct: number }) {
+export function HudGrid(props: { regions: Partial<Record<HudRegion, ComponentChildren>>; hidden?: Partial<Record<HudRegion, boolean>>; palette?: string; scale: number; opacity: number; marginPct: number }) {
   const style: Record<string, string> = {
     '--dv-hud-scale': String(props.scale),
     '--dv-hud-opacity': String(props.opacity),
@@ -20,7 +20,7 @@ export function HudGrid(props: { regions: Partial<Record<HudRegion, ComponentChi
   return (
     <div class="dv-hud" data-testid="hud" data-palette={props.palette ?? 'default'} style={style}>
       {HUD_REGIONS.map((r) => (
-        <div key={r} class={`dv-hud-region dv-hud-${r}`} data-region={r}>
+        <div key={r} class={`dv-hud-region dv-hud-${r}`} data-region={r} {...(props.hidden?.[r] ? { 'data-hidden': 'true', 'aria-hidden': 'true' } : {})}>
           {props.regions[r]}
         </div>
       ))}
