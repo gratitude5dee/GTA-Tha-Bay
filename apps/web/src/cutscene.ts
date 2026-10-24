@@ -57,6 +57,16 @@ export type CutsceneLogEntry = { at: number } & (
 
 type DistributiveOmit<T, K extends string> = T extends unknown ? Omit<T, K> : never;
 
+/**
+ * What the glue's `dispose` undoes (BD-FU-B04): the overlay and its input listeners, the cue-only layer, and whatever the host holds
+ * over the world: the armed frame, the poster or `last.webp` cover, or a clip (which also restarts the loop and resumes the sim).
+ */
+export async function releaseCutsceneView(overlay: { hide(): void }, host: Pick<DomCutsceneHost, 'hideCues' | 'hide'>): Promise<void> {
+  overlay.hide();
+  host.hideCues();
+  await host.hide();
+}
+
 async function loadShippedIndex(assets: NonNullable<Platform['assets']>): Promise<CutsceneIndex | null> {
   try {
     if ((await assets.loadCatalog()) !== 'ready') return null;
@@ -202,6 +212,6 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     handleEvents,
     log: () => log,
     heldFrames: () => platform.host.heldFrames,
-    dispose: () => overlay.hide(),
+    dispose: () => void releaseCutsceneView(overlay, host),
   };
 }
