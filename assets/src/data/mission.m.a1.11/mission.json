@@ -32,8 +32,8 @@
       "prefab": "vehicle.compact",
       "spawn": {
         "at": [
-          37.75215,
-          -122.41999
+          37.75225,
+          -122.41905
         ],
         "snap": "road",
         "yawDeg": 95
@@ -223,7 +223,7 @@
       "join": "sequence",
       "objectives": [
         {
-          "catchDist": 4,
+          "catchDist": 6,
           "holdSec": 2,
           "id": "box_a",
           "k": "chase",
@@ -231,7 +231,7 @@
           "text": "mission.m.a1.11.obj.box_a"
         },
         {
-          "catchDist": 4,
+          "catchDist": 6,
           "holdSec": 2,
           "id": "box_b",
           "k": "chase",
@@ -239,7 +239,7 @@
           "text": "mission.m.a1.11.obj.box_b"
         },
         {
-          "catchDist": 4,
+          "catchDist": 6,
           "holdSec": 2,
           "id": "box_c",
           "k": "chase",
@@ -346,8 +346,8 @@
   "zones": {
     "run_a": {
       "at": [
-        37.751,
-        -122.41891
+        37.75195,
+        -122.4205
       ],
       "k": "circle",
       "r": 20
@@ -362,8 +362,8 @@
     },
     "run_c": {
       "at": [
-        37.75221,
-        -122.41186
+        37.7519,
+        -122.4262
       ],
       "k": "circle",
       "r": 20

@@ -1,18 +1,30 @@
 {
   "schema": "autoplay-known-gaps/1",
-  "note": "Missions whose bot run does not pass on the sf bake yet (M05c1). check:missions prints each as KNOWN GAP and does not run it; DV_RUN_KNOWN_GAPS=1 runs it anyway, and a gap that passes is reported so that its row can be deleted. A row names why and what closes it. The missions themselves are playable and compile clean; the gap is the autoplayer, or the world under it, not the IR.",
+  "note": "Missions whose bot run does not pass on the sf bake yet (M05c1, M05c2). check:missions prints each as KNOWN GAP and does not run it; DV_RUN_KNOWN_GAPS=1 runs it anyway, and a gap that passes is reported so that its row can be deleted. A row names why and what closes it. The missions themselves are playable and compile clean; the gap is the autoplayer, or the world under it, not the IR. Last full run (M05c2, three seeds): m.a1.01, 04, 05, 07, 08 and 10 pass twice with equal hashes on every seed; m.a1.03 passes on seed 1 only.",
   "missions": {
     "m.a1.02": {
-      "reason": "The 4th and King to 24th Street station trip is 3.4 km; the bot reaches about 1.2 km in the 240 s limit and then hits a curb at speed. The limit is the spec's (times the player's timer scale).",
-      "closedBy": "bot cornering and speed plan on long real-street legs (a follow-up to BD-M05c1-03)"
+      "reason": "The 4th and King to 24th Street station trip is 3.4 km. The bot now drives at 18 to 20 m/s on the open streets, but it sits in ambient traffic at two junctions (about 45 s each, ten cars within 15 m) and reaches the end about 20 s after the 240 s limit (the spec's, times the player's timer scale).",
+      "closedBy": "a bot that goes round queued traffic (kerb or lane change), or a fare limit measured against the robotaxi's ETA as the spec words it"
     },
     "m.a1.03": {
-      "reason": "The drift show is optional for the bot (the drift pattern builds no slip on the Bayview apron: off-road rolling drag keeps the car under 5 m/s), and the raid escape at heat 2 needs the bot to leave the Yard apron by a road, where it crawls and is busted.",
-      "closedBy": "bot driving off-road and out of the Yard (the same follow-up)"
+      "reason": "Seed 1 passes. On seeds 2 and 3 the raid escape at heat 2 ends with the car wrecked or the bot busted: the cruisers pit the bot's car in the Yard's narrow streets and it loses seconds to a three-point turn.",
+      "closedBy": "evasive driving in a pursuit (steering away from the cruisers' approach line, reversing out at once when boxed in)"
     },
     "m.a1.06": {
-      "reason": "The bot drives the van off the warehouse street and along the 1.5 km route to the hill, but the hill streets are steep dead ends: it wrecks the van (the 40 percent health rule) at about tick 18,000, three hundred seconds in.",
-      "closedBy": "bot braking on steep grades and dead-end stubs (the same follow-up), or a hill zone on a through street"
+      "reason": "The convoy stage times out at 1350 s: the bot follows the Chorus van to Bernal Heights but does not close the last steep dead-end streets before the van's stop zone.",
+      "closedBy": "bot braking on steep grades and dead-end stubs, or a hill zone on a through street"
+    },
+    "m.a1.09": {
+      "reason": "The heat-3 leg from the Yard to the body shop (the spec's: heat set to 3 on leaving the Yard) ends busted on every seed: the cruisers box the bot in before the shop.",
+      "closedBy": "evasive driving in a pursuit (as m.a1.03)"
+    },
+    "m.a1.11": {
+      "reason": "The bot boxes in two of the three compliance trucks and the third about 40 s after the 240 s limit of the spec: the first 35 s are lost turning round in the narrow 24th Street lane the compact car stands in, and the lane route to the third truck goes two blocks round.",
+      "closedBy": "a bot that turns round in a narrow street, or wider streets for the car and the trucks"
+    },
+    "m.a1.12": {
+      "reason": "The heat-4 survive stage (the spec's: helicopter, cruisers, spikes) ends with the car wrecked or the bot busted before the 120 s are up on every seed (one seed gets to the fog escape).",
+      "closedBy": "evasive driving in a pursuit (as m.a1.03)"
     }
   }
 }

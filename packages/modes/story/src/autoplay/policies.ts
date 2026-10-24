@@ -370,7 +370,6 @@ export function walkTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, pace: 
     }
   }
   let dir: [number, number] = wd > 1e-6 ? [(wp[0] - me[0]) / wd, (wp[2] - me[2]) / wd] : [0, 0];
-  if (DBG.sink) DBG.sink({ tick: t.tick, foot: true, d, wd, wp: wp.map(Math.round), me: me.map(Math.round), np: mem.path?.length ?? 0, idx: mem.pathIdx, unstick: t.tick < mem.unstickUntil, avoid: mem.avoid.size, stuckN: mem.stuckN, edge: mem.pathEdges[mem.pathIdx] });
   stuckCheck(obs, mem, t, true);
   if (t.tick < mem.unstickUntil && mem.unstickKind === 'sidestep') dir = rotate(dir, 1.5 * mem.unstickSide);
   else dir = steerClear(obs, mem, t, me, dir, 5, 0.7);
@@ -379,7 +378,6 @@ export function walkTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, pace: 
   return footControl(dir, p);
 }
 
-export const DBG: { sink: ((o: Record<string, unknown>) => void) | null } = { sink: null };
 
 export function driveTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, stopR: number, stop: boolean, vmax = DRIVE_VMAX_MPS): Control {
   const v = obs.me.vehicle;
@@ -445,7 +443,6 @@ function pursue(obs: MissionObs, mem: Mem, t: Tools, wp: Vec3, vcap: number, cur
   const err = want - v.speed;
   const throttle = err > 0 ? clamp(0.3 + err * 0.3, 0, 1) : 0;
   const brake = err < -1.2 ? clamp(-err * 0.3, 0, 1) : 0;
-  if (DBG.sink) DBG.sink({ tick: t.tick, wd, alpha, steer, want, vcap, vCorner, cc: curveCap, speed: v.speed, throttle, brake, idx: mem.pathIdx, np: mem.path?.length ?? 0, wp: wp.map(Math.round), oth: obs.others.slice(0, 4).map((u) => `${u.police ? 'P' : 'c'}${Math.round(dist(u.pos, v.pos))}`).join(' ') });
   return { ...base, steer, throttle: Math.round(throttle * 127), brake: Math.round(brake * 127) };
 }
 

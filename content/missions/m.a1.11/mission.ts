@@ -20,15 +20,15 @@ export default defineMission({
   lines: ['line.m.a1.11.talk.raffle.open'],
   cast: {
     guest: npc({ slot: 'ATH_SHOOTER', role: 'cameo', spawn: at(37.75222, -122.41850) }),
-    ride: vehicle({ prefab: 'vehicle.compact', spawn: at(37.75215, -122.41999, { snap: 'road', yawDeg: 95 }), playerUsable: true }),
+    ride: vehicle({ prefab: 'vehicle.compact', spawn: at(37.75225, -122.41905, { snap: 'road', yawDeg: 95 }), playerUsable: true }),
     truck_a: vehicle({ prefab: 'convoy.pickup', spawn: at(37.75400, -122.41863, { snap: 'road', yawDeg: -176 }), role: 'antagonist', spawnAt: 'manual' }),
     truck_b: vehicle({ prefab: 'convoy.pickup', spawn: at(37.75215, -122.42160, { snap: 'road', yawDeg: 95 }), role: 'antagonist', spawnAt: 'manual' }),
     truck_c: vehicle({ prefab: 'convoy.pickup', spawn: at(37.75236, -122.41651, { snap: 'road', yawDeg: -86 }), role: 'antagonist', spawnAt: 'manual' }),
   },
   zones: {
-    run_a: circle(37.75100, -122.41891, 20),
+    run_a: circle(37.75195, -122.42050, 20),
     run_b: circle(37.75194, -122.42348, 20),
-    run_c: circle(37.75221, -122.41186, 20),
+    run_c: circle(37.75190, -122.42620, 20),
   },
   stages: [
     stage(
@@ -52,9 +52,9 @@ export default defineMission({
     stage(
       'box_in',
       [
-        chase('truck_a', 4, { id: 'box_a', holdSec: 2 }),
-        chase('truck_b', 4, { id: 'box_b', holdSec: 2 }),
-        chase('truck_c', 4, { id: 'box_c', holdSec: 2 }),
+        chase('truck_a', 6, { id: 'box_a', holdSec: 2 }),
+        chase('truck_b', 6, { id: 'box_b', holdSec: 2 }),
+        chase('truck_c', 6, { id: 'box_c', holdSec: 2 }),
       ],
       {
         join: 'sequence',

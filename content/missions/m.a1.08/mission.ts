@@ -48,7 +48,7 @@ export default defineMission({
       onEnter: [spawn('scan2'), task('scan2', driveTo('lap', 'normal')), say('radio', 'line.m.a1.08.plant')],
       onComplete: [say('patch', 'line.m.a1.08.planted')],
     }),
-    stage('lose', [escape({ id: 'escape_patrol' })], { conduct: 'unlawful', checkpoint: true, onEnter: [heat({ set: 2 }), say('radio', 'line.m.a1.08.patrol')] }),
+    stage('lose', [escape({ id: 'escape_patrol' })], { conduct: 'unlawful', checkpoint: true, onEnter: [heat({ set: 1 }), say('radio', 'line.m.a1.08.patrol')] }),
   ],
   fail: [
     failWhen(ko('player'), 'mission.m.a1.08.fail.ko'),

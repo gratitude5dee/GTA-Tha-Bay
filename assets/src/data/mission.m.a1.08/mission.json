@@ -329,7 +329,7 @@
       "onEnter": [
         {
           "op": "heat",
-          "set": 2
+          "set": 1
         },
         {
           "line": "line.m.a1.08.patrol",
