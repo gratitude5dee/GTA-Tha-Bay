@@ -5,9 +5,10 @@
  * engine's external vehicle input) with a pure-pursuit steering law over the C08 route; without a driver, or without a route, a
  * vehicle is moved along the straight line like a walker. Sim code under the C02 lint.
  */
-import { datan2, dcos, dsin, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
+import { datan2, dsin, dcos, dsqrt, type EntityHandle, type ModeContext, type NpcTask } from '@dv/shared';
 import type { Actors, Vec3 } from './actors.ts';
 import { distXZ } from './actors.ts';
+import { routeWaypoints } from './route.ts';
 import { byStr } from './util.ts';
 
 /** The engine's way to set a vehicle's input from a script (it marks the vehicle `external`). */
@@ -21,6 +22,11 @@ const DRIVE_MPS = { normal: 11, fast: 18, flee: 22 } as const;
 const ARRIVE_M = 1.2;
 const SEAT_REACH_M = 3;
 const LOOKAHEAD_M = 8;
+/** A scripted car (`glideStep`): the waypoint it has reached, its acceleration and braking, and how fast it can turn. */
+const GLIDE_REACH_M = 3;
+const GLIDE_ACCEL_MPS2 = 3;
+const GLIDE_BRAKE_MPS2 = 6;
+const GLIDE_TURN_RAD_S = 3;
 
 export interface TaskEnv {
   ctx(): ModeContext;
@@ -29,6 +35,42 @@ export interface TaskEnv {
   zoneCenter(zone: string): Vec3 | null;
   zoneInside(zone: string, h: EntityHandle): boolean;
   driver(): VehicleDriver | null;
+  /** The distances between which a car that the player follows or chases eases off to wait for the player (M05c2); null for any other car. */
+  pace?(cast: string): { slowAboveM: number; floorAtM: number; floor?: number } | null;
+}
+
+/** The share of its speed a leader keeps when the player is `d` metres behind: all of it up to `slowAboveM`, `PACE_FLOOR` of it from `floorAtM`. */
+export const PACE_FLOOR = 0.35;
+export function paceFactor(d: number, slowAboveM: number, floorAtM: number, floor = PACE_FLOOR): number {
+  if (d <= slowAboveM) return 1;
+  if (d >= floorAtM) return floor;
+  return 1 - ((1 - floor) * (d - slowAboveM)) / (floorAtM - slowAboveM);
+}
+
+/** The speed a bend of the route ahead allows: the heading change over the next 40 m of waypoints against the first leg. */
+export function cornerCap(path: readonly Vec3[], idx: number, here: Vec3, speed: number): number {
+  let along = 0;
+  let prev = here;
+  let h0: number | null = null;
+  let worst = 0;
+  const look = 30 + speed * 2;
+  for (let i = idx; i < path.length && along < look; i++) {
+    const q = path[i] as Vec3;
+    const dx = q[0] - prev[0];
+    const dz = q[2] - prev[2];
+    const len = dsqrt(dx * dx + dz * dz);
+    if (len < 0.5) continue;
+    const h = datan2(-dx, -dz);
+    if (h0 === null) h0 = h;
+    else {
+      let dh = Math.abs(h - h0);
+      if (dh > Math.PI) dh = 2 * Math.PI - dh;
+      worst = Math.max(worst, dh);
+    }
+    along += len;
+    prev = q;
+  }
+  return Math.max(4.5, Math.min(99, 18 - 11 * worst));
 }
 
 interface Active {
@@ -39,6 +81,9 @@ interface Active {
   pathIdx: number;
   planned: boolean;
   done: boolean;
+  /** A scripted car's speed, m/s, and the height of its centre above the ground (`glideStep`). */
+  v: number;
+  lift: number;
 }
 
 /** Steering for a vehicle at `pos` heading `yaw` that wants to reach `target` at `speedWant`; inputs in -1..1 and 0..1. Pure. */
@@ -75,7 +120,7 @@ export class TaskRunner {
   constructor(private readonly env: TaskEnv) {}
 
   assign(cast: string, task: NpcTask, tick: number): void {
-    this.active.set(cast, { task, since: tick, path: null, pathIdx: 0, planned: false, done: false });
+    this.active.set(cast, { task, since: tick, path: null, pathIdx: 0, planned: false, done: false, v: 0, lift: 0 });
   }
 
   clear(cast?: string): void {
@@ -144,7 +189,8 @@ export class TaskRunner {
         const c = this.env.zoneCenter(t.zone);
         if (!c || this.env.zoneInside(t.zone, h)) {
           a.done = true;
-          this.env.driver()?.drive(h, { throttle: 0, brake: 1, steer: 0, handbrake: true });
+          if (actors.isGlider(h)) actors.glide(h, here, actors.yawOf(h), 0);
+          else this.env.driver()?.drive(h, { throttle: 0, brake: 1, steer: 0, handbrake: true });
           return;
         }
         this.driveStep(h, a, here, c, DRIVE_MPS[t.style], dt);
@@ -212,7 +258,52 @@ export class TaskRunner {
     }
   }
 
+  /**
+   * A scripted car (a `convoy.*` kinematic prop) follows the route as a glider: it accelerates at 3 m/s2 toward the speed its bend and
+   * the player's distance allow, brakes in time to stop on the goal, turns at most 3 rad/s and keeps its height over the ground. It
+   * cannot stall on a curb or turn round at a junction, which a driven car does (BD-M05c1-04).
+   */
+  private glideStep(h: EntityHandle, a: Active, here: Vec3, goal: Vec3, mps: number, dt: number): void {
+    const ctx = this.env.ctx();
+    const actors = this.env.actors;
+    if (!a.planned) {
+      a.planned = true;
+      a.path = planRoute(ctx, here, goal, actors.yawOf(h));
+      a.pathIdx = 0;
+      a.v = 0;
+      const g = groundNear(ctx, here[0], here[2], here[1]);
+      a.lift = g === null ? 0.6 : here[1] - g;
+    }
+    const path = a.path;
+    if (path) while (a.pathIdx < path.length - 1 && distXZ(here, path[a.pathIdx] as Vec3) < GLIDE_REACH_M) a.pathIdx++;
+    const target = path && path.length > 0 ? (path[a.pathIdx] as Vec3) : goal;
+    const name = this.nameOf(h);
+    let want = Math.min(mps, path ? cornerCap(path, a.pathIdx, here, a.v) : 99);
+    const pace = this.env.pace?.(name) ?? null;
+    const me = pace ? actors.pos('player') : null;
+    if (pace && me) want *= paceFactor(distXZ(here, me), pace.slowAboveM, pace.floorAtM, pace.floor);
+    const left = distXZ(here, goal);
+    want = Math.min(want, dsqrt(2 * GLIDE_BRAKE_MPS2 * Math.max(0, left - ARRIVE_M)) + 0.5);
+    a.v += Math.max(-GLIDE_BRAKE_MPS2 * dt, Math.min(GLIDE_ACCEL_MPS2 * dt, want - a.v));
+    const yaw0 = actors.yawOf(h);
+    const wantYaw = datan2(-(target[0] - here[0]), -(target[2] - here[2]));
+    let dy = wantYaw - yaw0;
+    while (dy > Math.PI) dy -= 2 * Math.PI;
+    while (dy < -Math.PI) dy += 2 * Math.PI;
+    const yaw = yaw0 + Math.max(-GLIDE_TURN_RAD_S * dt, Math.min(GLIDE_TURN_RAD_S * dt, dy));
+    const x = here[0] - dsin(yaw) * a.v * dt;
+    const z = here[2] - dcos(yaw) * a.v * dt;
+    const gy = groundNear(ctx, x, z, here[1] - a.lift);
+    actors.glide(h, [x, gy === null ? here[1] : gy + a.lift, z], yaw, a.v);
+    if (left <= ARRIVE_M * 3) {
+      a.done = true;
+      a.v = 0;
+      actors.glide(h, [x, gy === null ? here[1] : gy + a.lift, z], yaw, 0);
+    }
+  }
+
   private driveStep(h: EntityHandle, a: Active, here: Vec3, goal: Vec3, mps: number, dt: number): void {
+    if (this.env.actors.isGlider(h)) return this.glideStep(h, a, here, goal, mps, dt);
     const ctx = this.env.ctx();
     const driver = this.env.driver();
     if (!driver) {
@@ -229,9 +320,15 @@ export class TaskRunner {
       while (a.pathIdx < path.length - 1 && distXZ(here, path[a.pathIdx] as Vec3) < LOOKAHEAD_M) a.pathIdx++;
       target = path[a.pathIdx] as Vec3;
     }
-    const speed = this.env.actors.speed(this.nameOf(h));
+    const name = this.nameOf(h);
+    const speed = this.env.actors.speed(name);
     const yaw = this.env.actors.yawOf(h);
-    const u = pursuit(here, yaw, speed, target, mps);
+    // a car the player follows or chases waits for the player (M05c2), and every car slows for a bend of its route
+    let want = Math.min(mps, path ? cornerCap(path, a.pathIdx, here, speed) : 99);
+    const pace = this.env.pace?.(name) ?? null;
+    const me = pace ? this.env.actors.pos('player') : null;
+    if (pace && me) want *= paceFactor(distXZ(here, me), pace.slowAboveM, pace.floorAtM, pace.floor);
+    const u = pursuit(here, yaw, speed, target, want);
     if (distXZ(here, goal) <= ARRIVE_M * 3) a.done = true;
     driver.drive(h, { ...u, handbrake: false });
   }
@@ -242,6 +339,17 @@ export class TaskRunner {
   }
 }
 
+/** The ground height at (x, z) nearest to the height `y`: a road under an overpass, not the overpass (the world's query); the ray cast without a world. */
+function groundNear(ctx: ModeContext, x: number, z: number, y: number): number | null {
+  try {
+    const g = ctx.world.query.groundY(x, z, y);
+    if (g !== null && Number.isFinite(g)) return g;
+  } catch {
+    // no world service in this session: the ray below
+  }
+  return ctx.physics.groundY(x, z);
+}
+
 /**
  * A polyline along the C08 road graph from `from` to `to`, or null when there is no route. A driver that faces `yaw` is routed from a
  * point 3 m to the right of its heading, so it gets the lane it points along, and the samples of the first edge before the one nearest
@@ -249,27 +357,7 @@ export class TaskRunner {
  */
 export function planRoute(ctx: ModeContext, from: Vec3, to: Vec3, yaw?: number): Vec3[] | null {
   try {
-    const fx = yaw === undefined ? from[0] : from[0] + dcos(yaw) * 3;
-    const fz = yaw === undefined ? from[2] : from[2] - dsin(yaw) * 3;
-    const r = ctx.world.graph.route({ from: { x: fx, z: fz }, to: { x: to[0], z: to[2] }, maxExpand: 6000 });
-    if (!r || r.edges.length === 0) return null;
-    const out: Vec3[] = [];
-    const buf = new Float64Array(4);
-    r.edges.forEach((edge, k) => {
-      const pts: Vec3[] = [];
-      for (const s of [0, 20, 60]) {
-        ctx.world.graph.laneCentre({ edge, s, lane: 0 }, buf);
-        pts.push([buf[0] as number, buf[1] as number, buf[2] as number]);
-      }
-      if (k === 0) {
-        let first = 0;
-        for (let i = 1; i < pts.length; i++) if (distXZ(from, pts[i] as Vec3) < distXZ(from, pts[first] as Vec3)) first = i;
-        pts.splice(0, first);
-      }
-      out.push(...pts);
-    });
-    out.push(to);
-    return out;
+    return routeWaypoints(ctx.world, from, to, yaw);
   } catch {
     return null;
   }

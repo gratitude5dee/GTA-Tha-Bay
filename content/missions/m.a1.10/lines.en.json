@@ -1,0 +1,30 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.10.clock": "Doors close at half past five. Everyone you asked is already walking over. Get to the steps.",
+    "line.m.a1.10.start": "Imani Hart, Curb Allocation Board. Public comment on the curb auction closes at five thirty, and the room is full of people paid to say yes. Find three neighbors who will say what they see.",
+    "line.m.a1.10.steps.1": "The doors are open. Anyone who wants to speak, line up on the steps. Everyone gets two minutes, and I will keep the clock.",
+    "line.m.a1.10.talk.kai.open": "I made flyers about the curb maps. Nobody reads flyers. Do you really think they will listen to me?",
+    "line.m.a1.10.talk.moss.open": "I drove the number fourteen for thirty years. I know every curb on this street, and nobody asked me about a single one.",
+    "line.m.a1.10.talk.tran.open": "My awning has been on this corner since before the lots had numbers. They want to price it by the foot?",
+    "mission.m.a1.10.fail.ko": "You went down.",
+    "mission.m.a1.10.obj.goto_kai": "Find the teenager with the flyers",
+    "mission.m.a1.10.obj.goto_moss": "Find the retired bus driver",
+    "mission.m.a1.10.obj.goto_steps": "Get to the City Hall steps before the doors close",
+    "mission.m.a1.10.obj.goto_tran": "Find the shopkeeper on his corner",
+    "mission.m.a1.10.obj.talk_kai": "Ask the teenager to speak",
+    "mission.m.a1.10.obj.talk_moss": "Ask the bus driver to speak",
+    "mission.m.a1.10.obj.talk_tran": "Ask the shopkeeper to speak",
+    "mission.m.a1.10.talk.kai.agree": "Your flyers are the best map of the block. Say it in the room",
+    "mission.m.a1.10.talk.kai.decline": "No pressure. Keep handing out the flyers",
+    "mission.m.a1.10.talk.kai.intent": "Ask Kai to speak at the hearing",
+    "mission.m.a1.10.talk.moss.agree": "You know these curbs better than the map. Come and say so",
+    "mission.m.a1.10.talk.moss.decline": "Rest your feet. Thank you for telling me about the route",
+    "mission.m.a1.10.talk.moss.intent": "Ask Ms. Moss to speak at the hearing",
+    "mission.m.a1.10.talk.tran.agree": "Your awning is the story. Tell them what it cost to hang it",
+    "mission.m.a1.10.talk.tran.decline": "Understood. The shop needs you open tonight",
+    "mission.m.a1.10.talk.tran.intent": "Ask Mr. Tran to speak at the hearing",
+    "mission.m.a1.10.title": "Public Comment"
+  }
+}

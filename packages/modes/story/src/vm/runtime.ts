@@ -137,6 +137,7 @@ export class MissionRuntime implements OpHost {
       zoneCenter: (z) => this.zoneCenter(z),
       zoneInside: (z, h) => this.zoneInsideHandle(z, h),
       driver: () => this.driverFn?.() ?? null,
+      pace: (cast) => this.paceOf(cast),
     });
     this.predEnv = this.makePredEnv();
     this.director = new DirectorSystem({
@@ -166,6 +167,17 @@ export class MissionRuntime implements OpHost {
   // ---------------------------------------------------------------- binding and queries
 
   /** The engine's vehicle driver for NPC cars; without it `driveTo` moves the car in a straight line. */
+  /** How far behind a car the player may fall before the car eases off: set by the `follow` or `chase` objective that names it (M05c2). */
+  private paceOf(cast: string): { slowAboveM: number; floorAtM: number; floor: number } | null {
+    for (const o of this.objectives.values()) {
+      if (o.state !== 'active') continue;
+      const d = o.def;
+      if (d.k === 'follow' && d.target === cast) return { slowAboveM: d.band[1] * 0.5, floorAtM: d.band[1] * 0.9, floor: 0 };
+      if (d.k === 'chase' && d.target === cast) return { slowAboveM: Math.max(25, d.catchDist * 4), floorAtM: Math.max(60, d.catchDist * 10), floor: 0.35 };
+    }
+    return null;
+  }
+
   setDriver(fn: (() => VehicleDriver | null) | null): void {
     this.driverFn = fn;
   }

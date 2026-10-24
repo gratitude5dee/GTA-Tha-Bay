@@ -24,6 +24,8 @@ import pickupCash from '../../../../../assets/prefabs/pickup.cash.json';
 import pickupItem from '../../../../../assets/prefabs/pickup.item.json';
 import pedActor from '../../../../../assets/prefabs/ped.actor.json';
 import markerBeam from '../../../../../assets/prefabs/marker.beam.json';
+import convoySedan from '../../../../../assets/prefabs/convoy.sedan.json';
+import convoyPickup from '../../../../../assets/prefabs/convoy.pickup.json';
 import { BodyRef, Interactable, RenderKey, Transform, Vehicle } from '../ecs/components.ts';
 import { INTERACT_KIND, type InteractKindName } from '../interaction/kinds.ts';
 import type { EcsWorld, PrefabComponent } from '../ecs/world.ts';
@@ -240,6 +242,13 @@ export const ENGINE_PREFABS: readonly PrefabDef[] = [playerDefault as unknown as
 
 /** The prefabs the mission VM spawns (M05a1): `ped.actor`, a kinematic capsule for cast members, and `marker.beam`, an objective beam. */
 export const STORY_PREFABS: readonly PrefabDef[] = [pedActor, markerBeam] as unknown as PrefabDef[];
+
+/**
+ * The scripted cars of the story (M05c2): kinematic bodies that a mission moves along the road graph with `driveTo`, so a car that the
+ * player follows or chases cannot stall on a curb. Loaded at the first spawn of one of them, apart from `STORY_PREFABS`, so that a
+ * mission without them hashes as it did.
+ */
+export const CONVOY_PREFABS: readonly PrefabDef[] = [convoySedan, convoyPickup] as unknown as PrefabDef[];
 
 /** The vehicle, police, robotaxi, prop and pickup prefabs of M03a1 (loaded by `registerVehicleSystems`' callers; the walking scenarios stay as they were). */
 export const VEHICLE_PREFABS: readonly PrefabDef[] = [
