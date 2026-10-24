@@ -56,6 +56,7 @@ export class SimCore {
   lastHash: { tick: number; hex: string } | null = null;
 
   private acc = 0;
+  private sandboxScale = 1;
   private readonly stats = new TickStats();
   private readonly resources: SimResource[] = [];
   private readonly now: () => number;
@@ -89,6 +90,15 @@ export class SimCore {
   }
 
   /**
+   * World speed of a sandbox session (M04e1). Only the numbers of ticks a frame pays for change: `SIM_DT` and the state do not.
+   * Throws `TimeScaleError` unless `s` is one of the allowed scales.
+   */
+  setSandboxScale(s: number): void {
+    if (!ALLOWED_SCALES.includes(s)) throw new TimeScaleError(s);
+    this.sandboxScale = s;
+  }
+
+  /**
    * Accumulate `dtSec x timeScale` of time and run the ticks it pays for. `paused` runs none and keeps the
    * accumulator. A timeScale other than 1 throws unless the session is sandbox or debug.
    */
@@ -100,7 +110,9 @@ export class SimCore {
       return { ticks: 0, alpha: this.acc };
     }
     const dt = dtSec > 0 && dtSec < Infinity ? dtSec : 0;
-    this.acc += dt * timeScale * SIM_HZ;
+    // The sandbox world speed (engine-internal) takes over when it is not 1; the page keeps sending 1 (M04e1).
+    const scale = this.sandboxScale !== 1 ? this.sandboxScale : timeScale;
+    this.acc += dt * scale * SIM_HZ;
     if (this.acc > MAX_TICKS_PER_FRAME) {
       this.stats.droppedSec += (this.acc - MAX_TICKS_PER_FRAME) / SIM_HZ;
       this.stats.overruns++;

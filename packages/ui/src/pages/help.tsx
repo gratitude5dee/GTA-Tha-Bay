@@ -27,6 +27,7 @@ export const ERROR_TOPIC: Record<ErrorKind, string> = {
   'sim-crash': 'graphics.crash',
   'storage-unavailable': 'saves.storage',
   'region-blocked': 'online.region',
+  'world-load': 'performance.load',
 };
 
 export function topicIds(): string[] {

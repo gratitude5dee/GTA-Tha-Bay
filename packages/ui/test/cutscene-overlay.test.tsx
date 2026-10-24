@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { UiCommand } from '@dv/shared';
-import { overlayView, SkipController, type OverlayShow } from '../src/cutscene/CutsceneOverlay.tsx';
+import { overlayView, SkipController, type OverlayShow, type PointerLike, type SkipSource } from '../src/cutscene/CutsceneOverlay.tsx';
 import { activeCue, cueHoldMs, cueLeavesAtMs, parseVtt } from '../src/cutscene/subtitles.ts';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
@@ -86,5 +86,59 @@ describe('CutsceneOverlay (AC-4)', () => {
     c.tap();
     c.tap();
     expect(sent).toEqual([{ t: 'cutscene.skip' }]);
+  });
+
+  it('a tap is a press that began on the overlay while it showed and ends there; an earlier press let go over it is not (BD-FU-B03)', () => {
+    const sent: UiCommand[] = [];
+    const sources: SkipSource[] = [];
+    const c = new SkipController((cmd) => sent.push(cmd), (s) => sources.push(s));
+    const up = (pointerId: number, over: Partial<PointerLike> = {}): PointerLike => ({ type: 'pointerup', pointerType: 'mouse', isTrusted: true, pointerId, ...over });
+    const down = (pointerId: number, over: Partial<PointerLike> = {}): PointerLike => ({ type: 'pointerdown', pointerType: 'mouse', isTrusted: true, pointerId, button: 0, ...over });
+
+    // a press from before the showing (the click that started the game, a finger on the touch stick) is let go over the overlay
+    c.pointerDown(down(1));
+    c.reset();
+    c.pointerUp(up(1));
+    // a release with no press at all, another pointer's release, a cancelled press, a secondary button, and script-made events
+    c.pointerUp(up(2));
+    c.pointerDown(down(3));
+    c.pointerUp(up(4));
+    c.pointerCancel({ type: 'pointercancel', pointerId: 3 });
+    c.pointerUp(up(3));
+    c.pointerDown(down(5, { button: 2 }));
+    c.pointerUp(up(5));
+    c.pointerDown(down(6, { isTrusted: false }));
+    c.pointerUp(up(6));
+    c.pointerDown(down(7));
+    c.pointerUp(up(7, { isTrusted: false }));
+    expect(sent).toHaveLength(0);
+
+    // a whole tap on the overlay skips, once
+    c.reset();
+    c.pointerDown(down(8, { pointerType: 'touch' }));
+    c.pointerUp(up(8, { pointerType: 'touch' }));
+    c.pointerDown(down(9));
+    c.pointerUp(up(9));
+    expect(sent).toEqual([{ t: 'cutscene.skip' }]);
+    expect(sources).toEqual([{ input: 'tap', event: 'pointerup', pointerType: 'touch', trusted: true, pointerId: 8 }]);
+  });
+
+  it('Escape skips on a fresh, trusted press only, and every skip names its input', () => {
+    const sent: UiCommand[] = [];
+    const sources: SkipSource[] = [];
+    const c = new SkipController((cmd) => sent.push(cmd), (s) => sources.push(s));
+    c.reset();
+    c.key({ key: 'Escape', repeat: true, isTrusted: true });
+    c.key({ key: 'Escape', isTrusted: false });
+    expect(sent).toHaveLength(0);
+    c.key({ key: 'Escape', repeat: false, isTrusted: true });
+    expect(sources).toEqual([{ input: 'key', event: 'keydown', trusted: true }]);
+    c.reset();
+    c.pad([false, false]);
+    c.pad([false, true]);
+    c.reset();
+    c.button({ event: 'click', trusted: true });
+    expect(sources.map((s) => s.input)).toEqual(['key', 'pad', 'button']);
+    expect(sent).toHaveLength(3);
   });
 });

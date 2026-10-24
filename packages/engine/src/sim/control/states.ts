@@ -76,7 +76,7 @@ export const CONTROL_REASON = {
 } as const;
 /** English defaults for the reason keys until the i18n catalog exists (spec 2.5). */
 export const CONTROL_REASON_EN: Readonly<Record<string, string>> = {
-  [CONTROL_REASON.groundNotLoaded]: 'Ground not loaded; player was not moved',
+  [CONTROL_REASON.groundNotLoaded]: 'That part of the city is still on its way. Try again in a moment.',
   [CONTROL_REASON.busy]: 'Not now',
   [CONTROL_REASON.wrongOwner]: 'Not available right now',
   [CONTROL_REASON.vehicleLocked]: 'The doors are locked',

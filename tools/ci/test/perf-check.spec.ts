@@ -10,7 +10,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { PerfReport } from '../../../packages/shared/src/index.ts';
 import { repoRoot } from '../run.ts';
-import { EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyPeds, verifyTraffic } from '../perf-check.ts';
+import { BOOT_SCENARIOS, EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyBoot, verifyPeds, verifyTraffic } from '../perf-check.ts';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-perf-check-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
@@ -23,6 +23,9 @@ const pedCrowd = (tier: string): number => (JSON.parse(readFileSync(path.join(re
 const pedsOf = (tier: string, share: number): Record<string, unknown> => ({ samples: 40, instancesMax: Math.floor(pedCrowd(tier) * share), nearMax: Math.floor((NEAR_PED_CAP[tier] ?? 0) * share), drawsMax: 8, objectsMax: 9, cap: pedCrowd(tier), nearCap: NEAR_PED_CAP[tier] ?? 0, busesMax: 2, carsPlusBusesMax: Math.floor(crowd(tier) * share), simPeds: Math.floor(pedCrowd(tier) * share), simCap: pedCrowd(tier) });
 const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ scenario: 'downtown-rush', tier, samples: 40, instancesMax: Math.floor(crowd(tier) * share), drawsMax: 1, objectsMax: 1, cap: crowd(tier), simAgents: Math.floor(crowd(tier) * share), simCap: crowd(tier), peds: pedsOf(tier, share) });
 
+/** A boot block that passes `verifyBoot` for the fixture's device class (`iphone`: lane sum 18). */
+const bootOf = (): NonNullable<PerfReport['boot']> => ({ warmBootToPlayableS: null, coldDownloadMB: 1.23, requests: 6, bytes: 1_230_000, revealMs: 1500, waves: 2, inflightPeak: 5 });
+
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });
   for (const scenario of scenarios) {
@@ -30,6 +33,7 @@ function write(root: string, scenarios: readonly string[]): void {
       for (const tier of FLAT_TIERS) {
         const b = budgets.tiers[tier]?.render as { maxRenderObjects: number; maxTriangles: number };
         const r: PerfReport = { ...fixture, tier, counts: { ...fixture.counts, renderObjectsMax: Math.floor(b.maxRenderObjects * 0.5), trianglesMax: Math.floor(b.maxTriangles * 0.5) } };
+        if (BOOT_SCENARIOS.includes(scenario)) r.boot = { ...r.boot, ...bootOf() };
         writeFileSync(reportPath(root, scenario, project, tier), JSON.stringify(r));
         if (TRAFFIC_SCENARIOS.includes(scenario)) writeFileSync(trafficPath(root, scenario, project, tier), JSON.stringify(trafficOf(tier, 0.5)));
       }
@@ -151,5 +155,62 @@ describe('the pedestrian half of the traffic scenario (M03b2, AC-9)', () => {
     mkdirSync(path.dirname(noBlock), { recursive: true });
     writeFileSync(noBlock, JSON.stringify({ ...trafficOf('mobile-low', 0.5), peds: undefined }));
     expect(verifyPeds(noBlock, 'mobile-low').join('\n')).toContain('no pedestrian block');
+  });
+});
+
+describe('the boot scenario (M02f1, AC-4)', () => {
+  const put = (name: string, over: Partial<NonNullable<PerfReport['boot']>> | null, deviceClass: PerfReport['device']['class'] = 'iphone', drop: string[] = []): string => {
+    const file = path.join(tmp, 'boot', `${name}.json`);
+    mkdirSync(path.dirname(file), { recursive: true });
+    const boot: Record<string, unknown> = { ...bootOf(), ...(over ?? {}) };
+    for (const k of drop) delete boot[k];
+    writeFileSync(file, JSON.stringify({ ...fixture, device: { ...fixture.device, class: deviceClass }, boot }));
+    return file;
+  };
+
+  it('boot-cityhall is registered, with a path file, and is the one boot scenario', () => {
+    expect(PERF_SCENARIOS).toContain('boot-cityhall');
+    expect(BOOT_SCENARIOS).toEqual(['boot-cityhall']);
+    const p = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'perf', 'paths', 'boot-cityhall.json'), 'utf8')) as Record<string, unknown>;
+    expect(p).toMatchObject({ id: 'boot-cityhall', kind: 'route', speedMps: 1.5, durationS: 20, warmupS: 2, density: 'off', seed: 0xb007 });
+  });
+
+  it('passes a report with all five figures within bounds', () => {
+    expect(verifyBoot(put('ok', null), 'mobile')).toEqual([]);
+    const root = path.join(tmp, 'boot-all');
+    write(root, ['boot-cityhall']);
+    expect(checkReports(root, ['boot-cityhall']).ok).toBe(true);
+  });
+
+  it('fails a report missing a figure, and names it', () => {
+    for (const k of ['requests', 'bytes', 'revealMs', 'waves', 'inflightPeak']) {
+      expect(verifyBoot(put(`missing-${k}`, null, 'iphone', [k]), 'mobile').join('\n')).toContain(k);
+    }
+    const root = path.join(tmp, 'boot-missing');
+    write(root, ['boot-cityhall']);
+    const f = reportPath(root, 'boot-cityhall', 'chromium-webgl2', 'mobile');
+    const r = JSON.parse(readFileSync(f, 'utf8')) as PerfReport;
+    delete (r.boot as Record<string, unknown>)['waves'];
+    writeFileSync(f, JSON.stringify(r));
+    const res = checkReports(root, ['boot-cityhall']);
+    expect(res.ok).toBe(false);
+    expect(res.lines.join('\n')).toContain('boot figures missing: waves');
+  });
+
+  it('fails a peak above the lane sum of the device class (18 off the desktop, 26 on it) and below 1', () => {
+    expect(verifyBoot(put('peak19', { inflightPeak: 19 }), 'mobile').join('\n')).toContain('inflightPeak 19');
+    expect(verifyBoot(put('peak18', { inflightPeak: 18 }), 'mobile')).toEqual([]);
+    expect(verifyBoot(put('peak26', { inflightPeak: 26 }, 'desktop'), 'mobile')).toEqual([]);
+    expect(verifyBoot(put('peak27', { inflightPeak: 27 }, 'desktop'), 'mobile').join('\n')).toContain('1..26');
+    expect(verifyBoot(put('peak0', { inflightPeak: 0 }), 'mobile').join('\n')).toContain('inflightPeak 0');
+  });
+
+  it('fails mismatched bytes, too few requests, no reveal time and no wave', () => {
+    expect(verifyBoot(put('bytes', { bytes: 1_300_000 }), 'mobile').join('\n')).toContain('coldDownloadMB');
+    expect(verifyBoot(put('null-mb', { coldDownloadMB: null }), 'mobile').join('\n')).toContain('coldDownloadMB');
+    expect(verifyBoot(put('req', { requests: 1 }), 'mobile').join('\n')).toContain('requests 1');
+    expect(verifyBoot(put('ms', { revealMs: 0 }), 'mobile').join('\n')).toContain('revealMs');
+    expect(verifyBoot(put('wave', { waves: 0 }), 'mobile').join('\n')).toContain('waves 0');
+    expect(verifyBoot(put('nobytes', { bytes: 0, coldDownloadMB: 0 }), 'mobile').join('\n')).toContain('bytes 0');
   });
 });

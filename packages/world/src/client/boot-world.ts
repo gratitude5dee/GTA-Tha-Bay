@@ -39,6 +39,21 @@ export interface PrepareWorldOptions {
   onArea?: (p: AreaBannerPatch) => void;
 }
 
+/**
+ * The catalog names `data/world-index` but the fetch layer could not deliver it (after its retry policy). `reason` is the store's
+ * `PackFailure` (`offline`, `http`, `hash-mismatch`, `quota`, `aborted`), or `unavailable` for any other error. The page turns every
+ * reason but `offline` and `aborted` into the shell's world-load error (BD-FU-A02).
+ */
+export class WorldIndexUnavailable extends Error {
+  readonly reason: string;
+  constructor(cause: unknown) {
+    const reason = (cause as { name?: string; reason?: string } | null)?.name === 'PackUnavailable' ? ((cause as { reason?: string }).reason ?? 'unavailable') : 'unavailable';
+    super(`data/world-index: ${reason}`);
+    this.name = 'WorldIndexUnavailable';
+    this.reason = reason;
+  }
+}
+
 export interface PreparedWorld {
   boot: WorldBoot;
   view: WorldView;
@@ -93,9 +108,17 @@ async function getSpawnTile(assets: AssetClient, pack: string, o: PrepareWorldOp
 
 export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorld> {
   const { assets } = o;
-  const base = (await assets.stats()).bytes;
+  // M02f1: the boot's figures count from here; `resetPeak` makes the in-flight peak this boot's own.
+  const bootStartMs = performance.now();
+  const baseStats = await assets.stats({ resetPeak: true });
+  const base = baseStats.bytes;
 
-  const indexBytes = await assets.get('data/world-index', { priority: 'now' });
+  let indexBytes: ArrayBuffer;
+  try {
+    indexBytes = await assets.get('data/world-index', { priority: 'now' });
+  } catch (error) {
+    throw new WorldIndexUnavailable(error);
+  }
   const index = JSON.parse(new TextDecoder().decode(indexBytes)) as WorldIndex;
   const pose = spawnPose(index);
   const set = bootSet(index, pose, o.tier, o.flags);
@@ -136,7 +159,7 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     index,
     assets: {
       job: (name, args) => assets.job(name, args),
-      stats: () => assets.stats(),
+      stats: (so) => assets.stats(so),
       bytesSeen: () => assets.bytesSeen,
     },
     flags: o.flags,
@@ -147,6 +170,8 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     labels: o.labels,
     container: o.container,
     bytesBase: base,
+    bootStartMs,
+    statsBase: { network: baseStats.network, waves: baseStats.waves },
     ...(o.emit ? { emit: o.emit } : {}),
     ...(o.qa ? { qa: true } : {}),
     ...(o.onArea ? { onArea: o.onArea } : {}),

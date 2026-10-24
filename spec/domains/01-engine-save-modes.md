@@ -23,7 +23,7 @@ export const SAVE_LIMITS = {
   profileMaxBytes: 16 * 1024 * 1024,                  // all live records of a profile
   storyTargetBytes: 256 * 1024,                       // budget; warn in CI above this
   keepGenerations: 2,                                 // current + previous per slot
-  sandboxSavedPositions: 32, sandboxVehicleCap: 8,
+  sandboxSavedPositions: 32, sandboxVehicleCap: 8,   // saved positions: M04e2; vehicle cap: M04e3 (session cars veh:sbx<n>, never saved; a ninth retires the oldest unused; all despawn on exit and when ModeContext.net turns non-null)
   tombstoneRetentionDays: 180,
 } as const;
 
@@ -88,12 +88,13 @@ export interface StorySlice {                         // schema 1 (gamedesign §
 }
 
 export interface SandboxSlice {                       // schema 1; never read by story
-  toggles: Record<string, boolean | number>;          // sandbox.player.godMode, sandbox.world.density …
-  savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[];
-  clock: { hour: number; paused: boolean; syncSystemTime: boolean };
-  weather: WeatherPreset;
-  presets: JsonObject[];                              // M13 JSON presets (≤ 512 ops each)
+  toggles: Record<string, boolean | number>;          // sandbox.display.hideHud, sandbox.world.density.traffic … (paths below)
+  savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[]; // M04e2: names pos-<n>, lowest free n in 1..32; saved through ctx.save.request('manual')
+  clock: { hour: number; paused: boolean; syncSystemTime: boolean }; // sandbox.time.{hour,paused,sync} write here, never toggles (M04e1)
+  weather: WeatherPreset;                             // sandbox.weather.preset writes here plus toggle sandbox.weather.hold (M04e1)
+  presets: JsonObject[];                              // JSON presets; post-v1, stays empty in v1 (DL-730); the per-preset op cap is set from our record budget (recordMaxBytes) when presets are specified, not here (DL-732)
 }
+Sandbox paths (DL-718): `toggles` holds `sandbox.player.neverWanted`, `sandbox.weather.hold`, `sandbox.world.{timeScale, blackout, density.traffic, density.ped, density.parked}` (M04e1) and `sandbox.display.{hideHud, hideMinimap}` (M04e2). One-shot actions (`time.shortcut`, `time.sync`, `world.reset`, teleports, `position.save`/`delete`, car actions) are `mode.cmd {mode:'sandbox'}` events, not slice paths. Session-only, never written to the slice: `sandbox.player.godMode`, `sandbox.player.superJump`, `sandbox.vehicle.noDamage` (engine-internal `EngineServices.sandboxFlags`, M04e4) and the session cars (M04e3).
 
 export interface ProfileSettings {                    // schema 1; device-level graphics and telemetry consent live with S11 (IndexedDB dv-platform), never here
   controls: ControlsSettings;                         // C03
@@ -135,7 +136,7 @@ type XrComfortSettings = import('../platform/xr-comfort').XrComfortSettings;
 **IndexedDB layout** (`dv-saves`, version 1): stores `profiles` (key `id`), `records` (key `[profileId, slot, gen]`), `pointers` (key `[profileId, slot]`), `tombstones` (key `[profileId, slot, deletedAt]`), `conflicts` (key `[profileId, slot, serverVersion]`: cloud copies awaiting the player's choice, rule 10), `meta` (deviceId, cursor). `SaveService` runs in `sim.worker` (slice data is there); the main thread opens the same DB read-only for the home-screen status line.
 
 **Rules (numbered, testable):**
-1. **Atomic write.** (a) canonicalize `data` (sorted keys, finite numbers, no `undefined`) and compute `bytes` and `checksum`; (b) reject above `recordMaxBytes` (`TOO_LARGE`) or if the profile total would exceed `profileMaxBytes`; (c) transaction 1 puts the record at `gen = pointer.gen + 1`; (d) a new read verifies the checksum; (e) transaction 2 moves the pointer only if `pointer.gen` is unchanged (else `CONFLICT`); (f) records older than `keepGenerations` are deleted afterwards. A tab killed at any step leaves the pointer on the last good record; orphan records are swept on boot.
+1. **Atomic write.** (a) canonicalize `data` (sorted keys, finite numbers, no `undefined`) and compute `bytes` and `checksum`; (b) reject above `recordMaxBytes` (`TOO_LARGE`) or if the profile total would exceed `profileMaxBytes`; (c) transaction 1 puts the record at `gen = pointer.gen + 1`; (d) a new read verifies the checksum (a stored record that fails is `CHECKSUM`; a record another `SaveService` swept as an orphan meanwhile is not an error at this step); (e) transaction 2, over `pointers` and `records`, moves the pointer only if `pointer.gen` is unchanged (else `CONFLICT`) and the record is present and intact, putting it back from memory first if a sweep removed it (DL-714); (f) records older than `keepGenerations` are deleted afterwards. A tab killed at any step leaves the pointer on the last good record; orphan records are swept on boot, one transaction per profile.
 2. **Load.** Read the pointer's record; on checksum mismatch fall back to the previous generation and report `CHECKSUM` in `lastSave`; never mutate a record while reading it.
 3. **Namespaces.** A session's `SaveCapability` limits writable slots: story → `core, settings, story:*`; sandbox → `settings, sandbox, mod:*`; standalone mode → `core, settings, mode:<id>`. Any other write returns `NOT_ALLOWED`. Sandbox actions can never change story or core (gamedesign P-8).
 4. **Autosave** on mission pass, safehouse save, mode exit, unlock, every 300 s of free roam when heat = 0 and no mission is active, and on `visibilitychange → hidden` when the same eligibility holds (the main thread sends C02 `SimControlMessage {t:'save.request', reason:'hidden'}`, handled outside ticks, C02 rule 9). Never mid-pursuit, never mid-mission except the mission's own checkpoint.
@@ -320,7 +321,7 @@ export interface WorldClockApi {
   forceWeather(w: WeatherPreset, blendSec: number): void;
 }
 ```
-**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time. The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's keyframe sky [research/repos-world.md rec 7].
+**Rules:** one game day = 172,800 half-seconds; at `rate` 1 the clock advances 30 game seconds per real second (48 real minutes per day; design value). Weather changes are drawn from stream `weather` every 20–40 game minutes with per-preset weights; Karl-the-Fog favours mornings and evenings. `night`/`dark` are piecewise-linear in hour (computed with exact ops) so the sim can use them; the exact sun direction is computed on the main thread for rendering only. Missions lock time/weather and must unlock on exit (C09). Sandbox may set hour, pause, or sync to system time (page-side, once per real minute; the sim never reads `Date`). Sandbox holds a preset through the engine-internal `WorldClock.holdWeather` (sentinel `changeAtT`; no `weather` draws while held; not part of `WorldClockApi`; M04e1, DL-720). The env block publishes uniforms `uNight, uDark, uSunDir, uSunColor, uFogColor/Near/Far` for S02's keyframe sky [research/repos-world.md rec 7].
 
 ## Interaction system (owner S01; handlers from S03, S04, S10, S12)
 

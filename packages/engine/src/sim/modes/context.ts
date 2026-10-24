@@ -40,6 +40,8 @@ export interface ContextPorts {
   /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
   garage?: GaragePort | null;
   wardrobe?: WardrobePort | null;
+  /** The room session (M12b2 binds it). Read live on every access, so a room joined after the mode started is seen at the next command. Absent in single player: `ctx.net` is null (M04e0). */
+  net?: (() => ModeContext['net']) | null;
 }
 
 export interface GaragePort {
@@ -76,7 +78,7 @@ function missing<T extends object>(service: string, milestone: string, methods: 
  * The only capability surface of a mode (C06 rule 7). One context per stack entry, so `rng` is prefixed with that mode's id and
  * `startChild` knows its parent. `tick` reads the sim tick live. Members whose services have not landed throw `NotYetAvailable`
  * when called, naming the milestone: zones, scheduler and timeline M05a1 (real services since M05a1; the stubs remain for a context built without them), combat (real since M05c1), npc M06a3; and, on a build that has
- * none, the clock (M02b2), the pursuit director (M03c) and the interaction service (M03a1). `net` is null (single player).
+ * none, the clock (M02b2), the pursuit director (M03c) and the interaction service (M03a1). `net` is null (single player) unless a `net` port says otherwise (M04e0).
  */
 export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeOrigin): ModeContext {
   const clock = p.clock ?? missing<WorldClockApi>('clock', 'M02b2', ['now', 'env', 'setHour', 'pause', 'lock', 'unlock', 'forceWeather']);
@@ -114,7 +116,9 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
     assets: p.assets,
     save: { request: (reason) => p.saveRequest(reason) },
     telemetry: p.telemetry,
-    net: null,
+    get net() {
+      return p.net?.() ?? null;
+    },
     world: p.world,
     npc,
     startChild: (child, args) => p.startChild(id, child, args),

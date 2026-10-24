@@ -2,8 +2,9 @@ import { RngStreams, type EcsApi, type GameModeDescriptor, type GameModeId, type
 import { SimUiBridge } from '../../src/sim/ui/bridge.ts';
 import {
   AutosavePolicy, EconomyImpl, ModeEventBus, ModeHost, UnlockRegistryImpl, bindModeSave, builtinDescriptors, builtinUnlockDefs, createCommandDispatcher, freshSlices,
-  type AutosaveGameState, type SessionSlices,
+  type AutosaveGameState, type CommandDeps, type SessionSlices,
 } from '../../src/sim/modes/index.ts';
+import type { SandboxWorldPort } from '../../src/sim/modes/builtin/index.ts';
 
 export interface Posted {
   slot: SlotId;
@@ -36,6 +37,16 @@ export interface RigOptions {
   qa?: boolean;
   slices?: SessionSlices;
   builtin?: boolean;
+  /** The room port (M04e0): what `ctx.net` reads. Absent in single player. */
+  net?: () => ModeContext['net'];
+  /** Passed to the dispatcher; absent by default. */
+  teleport?: CommandDeps['teleport'];
+  /** Replaces the empty world of the dispatcher; the same object is the `ctx.world` of the modes. */
+  world?: () => ReturnType<CommandDeps['world']>;
+  /** The clock a mode sees as `ctx.clock` (M04e1). Absent: null, as in a build without a clock. */
+  clock?: unknown;
+  /** The sandbox's weather hold and world speed (M04e1), for the sandbox sim and the dispatcher. */
+  sandboxWorld?: () => SandboxWorldPort | null;
 }
 
 /** A sim-free harness: the real ModeHost, registry, economy, bridge and policy on fake ports. */
@@ -57,7 +68,7 @@ export function makeRig(o: RigOptions = {}): Rig {
   const unlocks = new UnlockRegistryImpl({ core: () => slices.core, ui, saveUnlock: () => void holder.host?.autosave.request('unlock'), telemetry: tel as never });
   unlocks.register(builtinUnlockDefs());
   const economy = new EconomyImpl({ wallet: () => slices.story.wallet, tick: () => tick.n, clockT: () => clockT.t, ui });
-  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: () => null })), ...(o.descriptors ?? [])];
+  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: () => null, ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
   const byId = new Map(descriptors.map((d) => [d.id, d]));
   const host = new ModeHost({
     descriptors: [...byId.values()],
@@ -68,7 +79,7 @@ export function makeRig(o: RigOptions = {}): Rig {
       prefabs: null,
       physics: { groundY: () => null, castRay: () => null },
       rng: new RngStreams(7),
-      clock: null,
+      clock: (o.clock ?? null) as never,
       pursuit: null,
       interaction: null,
       camera: { direct: () => undefined, release: () => undefined },
@@ -79,7 +90,9 @@ export function makeRig(o: RigOptions = {}): Rig {
       ui,
       assets: { request: () => undefined, ready: () => true },
       telemetry: tel as never,
-      world: {} as never,
+      // Lazy: `world()` is called only when a mode reads a member of `ctx.world`.
+      world: (o.world ? new Proxy({}, { get: (_t, k) => (o.world?.() as unknown as Record<string | symbol, unknown>)[k] }) : {}) as never,
+      ...(o.net ? { net: o.net } : {}),
     },
     save,
     unlocks,
@@ -96,7 +109,9 @@ export function makeRig(o: RigOptions = {}): Rig {
   const dispatch = createCommandDispatcher({
     host, slices: () => slices, ui, events: bus, tick: () => tick.n,
     sandboxContext: () => host.stack.entries.find((e) => e.id === 'sandbox' && e.state === 'Running')?.ctx ?? null,
-    world: () => ({}) as never,
+    world: o.world ?? (() => ({}) as never),
+    ...(o.teleport ? { teleport: o.teleport } : {}),
+    ...(o.sandboxWorld ? { sandboxWorld: o.sandboxWorld } : {}),
   });
   return {
     host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet,

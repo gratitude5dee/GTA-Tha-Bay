@@ -87,6 +87,7 @@ export interface AssistSettings {                                           // p
   driftAssist: 0 | 1 | 2; stabilityControl: boolean; racingLine: 'off' | 'brake' | 'full'; resetPenalty: boolean;
 }
 ```
+Other `VehicleClass` consumers: the sandbox car catalog `content/vehicles/sandbox-catalog.json` (M04e3) groups our fictional cars by class, derived from each prefab's `HandlingProfile.class` and never stored in the catalog; session cars (`veh:sbx<n>`) and their free sandbox tuning (M07b3) never enter the garage, the purse or a race (DL-721).
 
 ```ts
 // packages/shared/src/vehicle/damage.ts

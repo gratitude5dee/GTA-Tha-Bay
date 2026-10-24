@@ -1,6 +1,6 @@
 /**
  * The pursuit panel (QA builds only, M03c): a small box in the top-left corner with the heat readout (level, phase, cooldown, units) and
- * the sandbox toggles "heat 0 to 5", "never wanted", and two scene helpers that stand a roadblock or a spike strip in front of the car.
+ * the sandbox toggles "heat 0 to 5", "heat lock", and two scene helpers that stand a roadblock or a spike strip in front of the car.
  * M04b2 brings the real `HeatStars` widget; this file is reached only through a dynamic import behind `VITE_DV_QA === '1'`, so a
  * production dist does not contain it (apps/web/scripts/verify-dist.mjs).
  *
@@ -75,7 +75,7 @@ export class PursuitPanel {
     box.type = 'checkbox';
     box.dataset['testid'] = 'pursuit-never';
     box.addEventListener('change', () => this.o.onNeverWanted(box.checked));
-    never.append(box, document.createTextNode('never wanted'));
+    never.append(box, document.createTextNode('heat lock'));
     const block = document.createElement('button');
     block.type = 'button';
     block.textContent = 'roadblock';
@@ -101,7 +101,7 @@ export class PursuitPanel {
     const key = `${level}|${phase}|${s?.fine ?? 0}|${s?.strikes ?? 0}|${s ? Math.round(s.cooldown * 100) : 0}|${s?.units ?? 0}|${s?.radius ?? 0}|${s?.seen ? 1 : 0}`;
     if (key === this.shown) return;
     this.shown = key;
-    this.stars.textContent = `${'★'.repeat(Math.min(level, 5))}${'☆'.repeat(Math.max(0, 5 - level))}`;
+    this.stars.textContent = `${'▮'.repeat(Math.min(level, 5))}${'▯'.repeat(Math.max(0, 5 - level))}`;
     const cd = s && (phase === 'cooldown' || phase === 'search') ? ` cooldown ${Math.round(s.cooldown * 100)}%` : '';
     const circle = s && s.radius > 0 ? ` circle ${s.radius} m` : '';
     const bust = phase === 'busted' ? ` fine $${((s?.fine ?? 0) / 100).toFixed(0)} strike ${s?.strikes ?? 0}` : '';

@@ -59,6 +59,11 @@
 - **R** R-MODE-02, R-CUT-02/03 · **Dep** M07b1, M05b2 · **Read** `06-racing-data.md` §4.2, §4.4; `06-racing-content.md` C.7, C.10; `03-story-cutscenes.md` §D4 · **Out** `packages/modes/racing/src/{garage,photo}`, `content/races/*/race.json` · **C** C09 1.0 (`CutsceneRef`), C13 1.1 (`PostNode`)
 - **Gate** none · **Proof** `pnpm map:races validate` (every intro ref resolves and has a fallback); `pnpm check:balance -- --suite econ`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene`; manual `M07b2-iphone15`
 
+### M07b3 · sandbox-tune — 0.5 · risk M · S06 (+S01, S10) (study set, DL-716, DL-721)
+- **Goal:** a Tune tab in the Sandbox app applies M07b2's upgrade levels to the player's session cars (M04e3) at no cost; guarded by the `veh:sbx` key and session-only state, never reaching the purse, `CoreSlice.garage`, a save or a race.
+- **R** R-UI-03, R-MODE-02 (s), R-ROLL-02 (s), R-PLAT-02 (s), R-IP-01 (s) · **Dep** M07b2, M04e3, M04e5 · **Read** file `M07b3-sandbox-tune.md`; `06-racing-content.md` C.4; DL-721 · **Out** `packages/shared/src/vehicle/upgrades.ts`, `packages/modes/racing/src/garage/`, `packages/engine/src/sim/modes/builtin/sandbox-tune.ts`, `packages/ui/src/phone` · **C** C01 1.0, C05 1.2, C06 1.1 (read)
+- **Gate** none · **Proof** `pnpm --filter @dv/mode-racing test -- sandbox-tune-guard`; `pnpm check:unit -- packages/engine/test/modes/sandbox-tune.spec.ts`; `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @sandbox-tune`
+
 ### M08a1 · fight-core-sim-data — 1 · risk M · S07
 - **Goal:** pure fighter core (`packages/shared/src/fight`, FC2–FC9), schemas, reference kit, input buffer, hash, replay, motion parser, `fighter:lint`, `fighter:replay`, golden vectors, the `fighter.script` input script (its M04d `BotDriver` registration and mutants land in M08a2, DL-236).
 - **R** R-MODE-03 · **Dep** M01a1, M05a1 (C09 `RosterSlot` type, DL-163) · **Read** `07-fighter-core.md` FC1–FC9, FC11; `07-fighter-content.md` FX3 · **Out** `packages/shared/src/fight`, `packages/modes/fighter/golden` · **C** C02 1.1, C03 1.1 (fighter aliases)
@@ -136,6 +141,11 @@
 - **R** R-MAP-04, R-UI-01, R-IP-01, R-MODE-02 (s) · **Dep** M05c2, M03b2, M04b2 · **Read** file `M10d1-…md`; `05-assets-pipeline.md` §3, §4, §7, §14; `02-world-living.md` §2.6, §4.5; `10-ui-pages.md` §2.8 · **Out** `assets/`, `config/art-placeholders.json`, `packages/world/src/client/{traffic,peds}`, `packages/ui/src/creator` · **C** C07 1.1, C04 1.1, C13 1.1
 - **Gate** Q-39, Q-24 (defaults apply) · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `DV_WORLD=synth pnpm check:perf -- --scenario downtown-rush --fail`; `@art-city`, `@art-creator`
 
+### M10f · emote-wheel — 0.6 · risk M · S01 (+S10) (study set, DL-716, DL-718)
+- **Goal:** holding `SimButton.Emote` opens a wheel of eight original code-built clips played as `AnimStateId` 21, decided in the sim from the `InputFrame`; an Emotes list in the Sandbox app; closed in missions and while `net` is set (DL-719).
+- **R** R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M10d1, M04b2, M04e5 · **Read** file `M10f-emote-wheel.md`; `01-engine-contracts.md` (C03 `Emote`, C04 `AnimStateId`) · **Out** `packages/engine/src/sim/control/emote.ts`, `packages/engine/src/client/anim/emote-clips.ts`, `config/emotes.json`, `packages/ui/src/hud/emote-wheel.tsx` · **C** C01 1.0, C03 1.1, C04 1.1, C06 1.1 (read)
+- **Gate** Q-13 iPhone 15 (manual touch run) · **Proof** `pnpm check:unit -- packages/engine/test/control.emote.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @emote`; manual `M10f/iphone`
+
 ### M10d3 · art-integration — 1 · risk M · S05 (+S06, S07) (split 2 of 3, runs before M10d2; DL-460)
 - **Goal:** final v1 art for the 14 player cars with prefabs (`vehicle/<slug>` on the §7 node contract plus the `06-racing-content.md` C.8 nodes: cockpit, steering wheel, thrusters, `_dent`), the six fight-stage dioramas `prop/stage-<id>-{day,night}`, and a creator-kit body for any fighter M10a2 leaves on its gray-box capsule; fills the `owner: 'M10d3'` registry rows; recipe fallback when no art is supplied (Q-39).
 - **R** R-MODE-02, R-MODE-03, R-IP-01 · **Dep** M10d1, M07b2, M08b2, M10a2 · **Read** file `M10d3-…md`; `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4, FX5 · **Out** `assets/`, `content/fighter/{stages,roster.json}`, `config/art-placeholders.json`, `tools/assets/src/recipes` · **C** C07 1.1, C04 1.1, C13 1.1, C06 1.1
@@ -173,7 +183,7 @@
 
 ### M11a1 · iphone-hardening-governor — 1 · risk M · S11 (+S06 scenarios) (split 1 of 2)
 - **Goal:** two-way governor, `MemoryBudget` enforcement, `FramePacer`, nightly `check:perf -- --fail` required, `race-sprint` and `race-pursuit-heat4`, route 4 crash reports emitted as C16 1.2 `app.crash` (DL-224).
-- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M02b1, M03b1, M07a2 · **Read** `11-platform.md` §4.5, §5; `11-platform-perf.md` §5, §9 · **Out** `packages/engine/src/platform/{governor,memory}`, `config/perf/paths` · **C** C13 1.1, C12 1.1 (route 4), C16 1.2 (`app.crash`)
+- **R** R-PLAT-03/05, R-ENG-02 · **Dep** M02b1, M03b1, M07a2, M04b5 (AC-11 enables the frame-cap row and proves the render-scale pin, DL-727) · **Read** `11-platform.md` §4.5, §5; `11-platform-perf.md` §5, §9 · **Out** `packages/engine/src/platform/{governor,memory}`, `config/perf/paths` · **C** C13 1.1, C12 1.1 (route 4), C16 1.2 (`app.crash`)
 - **Gate** none · **Proof** `pnpm check:unit -- packages/engine/src/platform` (governor, memory budget, frame pacer specs); `pnpm check:perf -- --fail`; `pnpm check:perf -- --scenario race-sprint`
 
 ### M11a2 · iphone-hardening-governor — 1 · risk H · S11 (split 2 of 2)
@@ -188,7 +198,7 @@
 
 ### M11b3 · xr-ui-panels-comfort — 0.8 · risk M · S10
 - **Goal:** `UiSurface` on Quest layers and Vision Pro planes, Enter/Exit VR button, wrist panel, comfort settings in XR, the NPC dialogue bubble, flat-only text entry (DL-142).
-- **R** R-PLAT-02, R-UI-02, R-ENG-04, R-NPC-05 · **Dep** M11b1, M06a5 (XR dialogue bubble) · **Read** `10-ui-hud-xr.md` §2, §6 · **Out** `packages/ui/src/xr` · **C** C13 1.1 (`XrPanels`)
+- **R** R-PLAT-02, R-UI-02, R-ENG-04, R-NPC-05 · **Dep** M11b1, M06a5 (XR dialogue bubble), M04e1, M04e4 (new Sandbox `ScreenDef` tabs, DL-716) · **Read** `10-ui-hud-xr.md` §2, §6 · **Out** `packages/ui/src/xr` · **C** C13 1.1 (`XrPanels`)
 - **Gate** none · **Proof** `pnpm check:e2e:xr` (Enter VR calls `enter()` synchronously in the click handler)
 
 ### M11b2 · per-mode-xr-and-xr-cutscenes — 0.7 · risk M · S11, S06, S07, S10 (split 1 of 2)

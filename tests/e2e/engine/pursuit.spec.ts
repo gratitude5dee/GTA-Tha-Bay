@@ -108,13 +108,14 @@ test.describe('pursuit director @pursuit', () => {
     await expect(page.getByTestId('pursuit-line')).toContainText('HEAT 0');
   });
 
-  test('the panel buttons set the heat; never wanted refuses it @pursuit', async ({ page }) => {
+  test('the panel buttons set the heat; heat lock refuses it @pursuit', async ({ page }) => {
     await boot(page);
     await page.getByTestId('pursuit-heat-3').click();
     await expect.poll(async () => (await observe(page)).pursuit?.level ?? 0, { timeout: 30_000 }).toBe(3);
     await expect(page.getByTestId('pursuit-line')).toContainText('HEAT 3');
     await page.getByTestId('pursuit-heat-0').click();
     await expect.poll(async () => (await observe(page)).pursuit, { timeout: 30_000 }).toBeNull();
+    await expect(page.getByTestId('pursuit-never').locator('xpath=ancestor::label')).toHaveText('heat lock');
     await page.getByTestId('pursuit-never').check();
     await page.getByTestId('pursuit-heat-4').click();
     await page.waitForTimeout(1500);

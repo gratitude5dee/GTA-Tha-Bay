@@ -1,0 +1,389 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1500
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "gate": {
+      "k": "prop",
+      "prefab": "prop.barrier",
+      "spawn": {
+        "at": [
+          37.7599,
+          -122.38762
+        ],
+        "snap": "road"
+      }
+    },
+    "patch": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.73641,
+          -122.38868
+        ],
+        "snap": "road"
+      },
+      "spawnAt": "manual",
+      "who": {
+        "soul": "patch"
+      }
+    },
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.73642,
+          -122.38843
+        ],
+        "snap": "road",
+        "yawDeg": 55
+      }
+    },
+    "scan1": {
+      "k": "vehicle",
+      "prefab": "convoy.sedan",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.73655,
+          -122.38876
+        ],
+        "snap": "road",
+        "yawDeg": 54
+      },
+      "spawnAt": "manual"
+    },
+    "scan2": {
+      "k": "vehicle",
+      "prefab": "convoy.sedan",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.76199,
+          -122.38771
+        ],
+        "snap": "road",
+        "yawDeg": 4
+      },
+      "spawnAt": "manual"
+    }
+  },
+  "district": "d3",
+  "fail": [
+    {
+      "reason": "mission.m.a1.08.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.08.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.08.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 2
+  },
+  "id": "m.a1.08",
+  "lines": [
+    "line.m.a1.08.gate",
+    "line.m.a1.08.lurk",
+    "line.m.a1.08.patrol",
+    "line.m.a1.08.plant",
+    "line.m.a1.08.planted",
+    "line.m.a1.08.start",
+    "line.m.a1.08.tail"
+  ],
+  "medals": {
+    "goldSec": 600,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.07",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 300000
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "wait",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.08.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ],
+      "onEnter": [
+        {
+          "lock": {
+            "hour": 22,
+            "weather": "karl-fog"
+          },
+          "op": "clock"
+        },
+        {
+          "line": "line.m.a1.08.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "lurk",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "wait_car",
+          "k": "wait",
+          "sec": 4,
+          "text": "mission.m.a1.08.obj.wait_car"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.08.lurk",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "tail",
+      "join": "all",
+      "objectives": [
+        {
+          "band": [
+            15,
+            90
+          ],
+          "id": "follow_scanner",
+          "k": "follow",
+          "loseAfterSec": 25,
+          "target": "scan1",
+          "text": "mission.m.a1.08.obj.follow_scanner",
+          "untilZone": "depot"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "scan1"
+          ],
+          "op": "spawn"
+        },
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.08.scanner"
+          }
+        },
+        {
+          "cast": "scan1",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "depot"
+          }
+        },
+        {
+          "line": "line.m.a1.08.tail",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "snap",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "photo_gate",
+          "k": "photo",
+          "maxDistM": 30,
+          "subject": "gate",
+          "text": "mission.m.a1.08.obj.photo_gate"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.08.gate",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "wheels_again",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride_again",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.08.obj.enter_ride_again",
+          "vehicle": "ride"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "plant",
+      "join": "all",
+      "objectives": [
+        {
+          "catchDist": 6,
+          "holdSec": 3,
+          "id": "chase_scanner",
+          "k": "chase",
+          "target": "scan2",
+          "text": "mission.m.a1.08.obj.chase_scanner"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.a1.08.planted",
+          "op": "say",
+          "speaker": "patch"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": [
+            "scan2"
+          ],
+          "op": "spawn"
+        },
+        {
+          "cast": "scan2",
+          "op": "task",
+          "task": {
+            "style": "normal",
+            "t": "driveTo",
+            "zone": "lap"
+          }
+        },
+        {
+          "line": "line.m.a1.08.plant",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "lose",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "escape_patrol",
+          "k": "escape",
+          "text": "mission.m.a1.08.obj.escape_patrol",
+          "untilHeat": 0
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "heat",
+          "set": 1
+        },
+        {
+          "line": "line.m.a1.08.patrol",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "at": {
+      "at": [
+        37.73639,
+        -122.3886
+      ],
+      "snap": "ground"
+    },
+    "hours": [
+      21,
+      4
+    ],
+    "k": "marker",
+    "radiusM": 8
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.08.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "depot": {
+      "at": [
+        37.75999,
+        -122.38753
+      ],
+      "k": "circle",
+      "r": 26
+    },
+    "lap": {
+      "at": [
+        37.766,
+        -122.38807
+      ],
+      "k": "circle",
+      "r": 24
+    },
+    "yard_gate": {
+      "at": [
+        37.73639,
+        -122.3886
+      ],
+      "k": "circle",
+      "r": 9
+    }
+  }
+}

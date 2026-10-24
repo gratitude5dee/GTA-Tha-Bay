@@ -17,7 +17,7 @@ permissions:
 env:
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story|@racing-touch'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch'
 
 # Actions are pinned by commit SHA (research/gap-ci-cd-release-assets.md section 1.1).
 # actions/checkout            v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -306,32 +306,49 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
-      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
-      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
-      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
-      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
-      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
-      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
-      # newest cache of the same browser set (spec/03 section 6).
+      # BD-FIX-CI10-P01, keyed per package set by BD-FU-B05: the browsers in DV_PW_BROWSERS and their system packages through
+      # tools/ci/pw-install.ts. On some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf
+      # cancelled at 45 min in this step, two shards 47 min). The script skips apt when nothing is missing, prefetches in apt
+      # download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first), then runs
+      # `playwright install --with-deps` as before; its exit status is the step's. The apt archives are cached under one stable key per
+      # package set (runner OS and arch, Ubuntu release, Playwright version, engines) and ISO week, shared by every job and run that
+      # installs that set in that week: a complete set is saved once per week, only when the restore was not an exact hit (caches are
+      # immutable; the default branch's are restored on every branch); the week's first install starts from last week's set.
+      # A failed or cancelled install keeps its downloads in a per-job `-partial-` cache, which the next restore picks up by prefix.
+      # A refused save never fails the job (spec/03 section 6).
+      - id: pw-key
+        name: Apt cache key of this package set and ISO week
+        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key --week "$(date -u +%GW%V)" $DV_PW_BROWSERS
       - id: pw-apt
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
-          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          key: ${{ steps.pw-key.outputs.key }}
           restore-keys: |
-            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
-      - name: Playwright browsers and their system packages
+            ${{ steps.pw-key.outputs.key }}-
+            ${{ steps.pw-key.outputs.version }}
+            ${{ steps.pw-key.outputs.base }}
+      - id: pw-install
+        name: Playwright browsers and their system packages
         run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
       - id: pw-apt-new
         name: New apt archives since the restore
         if: always()
         run: pnpm exec tsx tools/ci/pw-install.ts --count-new
-      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+      - name: Save the complete package set (once per key)
+        if: always() && steps.pw-install.outcome == 'success' && steps.pw-apt.outputs.cache-hit != 'true' && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
           key: ${{ steps.pw-apt.outputs.cache-primary-key }}
+      - name: Save the downloads of a failed or cancelled install
+        if: always() && (steps.pw-install.outcome == 'failure' || steps.pw-install.outcome == 'cancelled') && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: ${{ steps.pw-apt.outputs.cache-primary-key }}-partial-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
       # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
       # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
       - id: bake-cache
@@ -437,7 +454,7 @@ jobs:
   # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here.
   perf:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'
@@ -451,32 +468,49 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
-      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
-      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
-      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
-      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
-      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
-      # newest cache of the same browser set (spec/03 section 6).
+      # BD-FIX-CI10-P01, keyed per package set by BD-FU-B05: the browsers in DV_PW_BROWSERS and their system packages through
+      # tools/ci/pw-install.ts. On some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf
+      # cancelled at 45 min in this step, two shards 47 min). The script skips apt when nothing is missing, prefetches in apt
+      # download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first), then runs
+      # `playwright install --with-deps` as before; its exit status is the step's. The apt archives are cached under one stable key per
+      # package set (runner OS and arch, Ubuntu release, Playwright version, engines) and ISO week, shared by every job and run that
+      # installs that set in that week: a complete set is saved once per week, only when the restore was not an exact hit (caches are
+      # immutable; the default branch's are restored on every branch); the week's first install starts from last week's set.
+      # A failed or cancelled install keeps its downloads in a per-job `-partial-` cache, which the next restore picks up by prefix.
+      # A refused save never fails the job (spec/03 section 6).
+      - id: pw-key
+        name: Apt cache key of this package set and ISO week
+        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key --week "$(date -u +%GW%V)" $DV_PW_BROWSERS
       - id: pw-apt
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
-          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          key: ${{ steps.pw-key.outputs.key }}
           restore-keys: |
-            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
-            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
-      - name: Playwright browsers and their system packages
+            ${{ steps.pw-key.outputs.key }}-
+            ${{ steps.pw-key.outputs.version }}
+            ${{ steps.pw-key.outputs.base }}
+      - id: pw-install
+        name: Playwright browsers and their system packages
         run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
       - id: pw-apt-new
         name: New apt archives since the restore
         if: always()
         run: pnpm exec tsx tools/ci/pw-install.ts --count-new
-      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+      - name: Save the complete package set (once per key)
+        if: always() && steps.pw-install.outcome == 'success' && steps.pw-apt.outputs.cache-hit != 'true' && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.cache/dv-pw-apt/*.deb
           key: ${{ steps.pw-apt.outputs.cache-primary-key }}
+      - name: Save the downloads of a failed or cancelled install
+        if: always() && (steps.pw-install.outcome == 'failure' || steps.pw-install.outcome == 'cancelled') && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: ${{ steps.pw-apt.outputs.cache-primary-key }}-partial-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
       # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
       # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
       - id: bake-cache

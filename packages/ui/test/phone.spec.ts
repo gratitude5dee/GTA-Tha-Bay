@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appScreen, homeScreen, placeName, type PhoneEnv } from '../src/phone/apps.ts';
+import { appScreen, homeScreen, placeName, stepHour, type PhoneEnv, type SandboxWorldView } from '../src/phone/apps.ts';
 import { PHONE_APPS, appDef, visibleApps } from '../src/phone/registry.ts';
 import { pauseScreen } from '../src/phone/pause.tsx';
 import type { ScreenDef, Widget } from '../src/screen/types.ts';
@@ -26,11 +26,12 @@ function keys(s: ScreenDef): string[] {
 }
 
 describe('phone registry (AC-6)', () => {
-  it('lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Messages, Camera and Feed are comingSoon tiles', () => {
+  it('lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Camera and Feed are comingSoon tiles; Messages opens (M05c2)', () => {
     const ids = visibleApps({ mode: 'story' }).map((a) => a.id);
     for (const id of ['map', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help']) expect(ids).toContain(id);
-    for (const id of ['messages', 'camera', 'feed']) expect(appDef(id)?.comingSoon, id).toBe(true);
-    for (const a of PHONE_APPS.filter((x) => x.id !== 'messages' && x.id !== 'camera' && x.id !== 'feed')) expect(a.comingSoon).toBeUndefined();
+    for (const id of ['camera', 'feed']) expect(appDef(id)?.comingSoon, id).toBe(true);
+    expect(appDef('messages')?.comingSoon).toBeUndefined();
+    for (const a of PHONE_APPS.filter((x) => x.id !== 'camera' && x.id !== 'feed')) expect(a.comingSoon).toBeUndefined();
   });
 
   it('Sandbox appears only in the sandbox mode', () => {
@@ -59,12 +60,86 @@ describe('phone registry (AC-6)', () => {
     expect(placeName('no.such.key', 'transit.civic-center')).toBe('Civic Center');
   });
 
-  it('Sandbox sets the heat 0 to 5 through sandbox.set', () => {
-    const s = appScreen('sandbox', env({ mode: 'sandbox', heat: 2 }));
-    const heats = s.children.filter((w): w is Extract<Widget, { k: 'button' }> => w.k === 'button' && w.id.startsWith('heat-'));
-    expect(heats).toHaveLength(6);
+  const tabsOf = (s: ScreenDef): Extract<Widget, { k: 'tabs' }> => s.children.find((w): w is Extract<Widget, { k: 'tabs' }> => w.k === 'tabs')!;
+  const buttonsIn = (s: ScreenDef, tab: string): Extract<Widget, { k: 'button' }>[] =>
+    tabsOf(s).tabs.find((x) => x.id === tab)!.children.filter((w): w is Extract<Widget, { k: 'button' }> => w.k === 'button');
+  const world = (over: Partial<SandboxWorldView> = {}): SandboxWorldView => ({
+    weather: null, hour: 7.5, paused: false, sync: false, timeScale: 1, blackout: false, density: { traffic: 1, ped: 1, parked: 1 }, shortcuts: ['fog-dawn', 'burn-off', 'golden-hour', 'fog-returns'], online: false, ...over,
+  });
+
+  it('Sandbox sets the heat 0 to 5 through sandbox.set (player tab)', () => {
+    const s = appScreen('sandbox', env({ mode: 'sandbox', heat: 2, sandboxWorld: world() }));
+    const heats = buttonsIn(s, 'player').filter((w) => w.id.startsWith('heat-'));
+    expect(heats.map((h) => h.id)).toEqual(['heat-0', 'heat-1', 'heat-2', 'heat-3', 'heat-4', 'heat-5']);
     expect(heats[2]!.style).toBe('primary');
     expect(heats[2]!.onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.player.heat', v: 2 } });
+    expect(buttonsIn(s, 'player').some((w) => w.id === 'never-wanted')).toBe(true);
+  });
+
+  it('Sandbox is a tabs widget: player, weather, time, world (AC-9)', () => {
+    const s = appScreen('sandbox', env({ mode: 'sandbox', sandboxWorld: world() }));
+    const tabs = tabsOf(s);
+    expect(tabs.id).toBe('sandbox-tabs');
+    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world']);
+    for (const k of keys(s)) expect(cat[k], k).toBeDefined();
+  });
+
+  it('Weather: six presets and Natural, the held one is primary, each press is a sandbox.set', () => {
+    const rain = buttonsIn(appScreen('sandbox', env({ sandboxWorld: world({ weather: 'rain' }) })), 'weather');
+    expect(rain.map((b) => b.id)).toEqual(['weather-natural', 'weather-clear', 'weather-karl-fog', 'weather-overcast', 'weather-rain', 'weather-smoke', 'weather-golden']);
+    expect(rain.filter((b) => b.style === 'primary').map((b) => b.id)).toEqual(['weather-rain']);
+    expect(rain[4]!.onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.weather.preset', v: 3 } });
+    expect(rain[0]!.onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.weather.preset', v: -1 } });
+    expect(rain[2]!.label).toBe('hud.weather.karl-fog');
+    const natural = buttonsIn(appScreen('sandbox', env({ sandboxWorld: world() })), 'weather');
+    expect(natural.filter((b) => b.style === 'primary').map((b) => b.id)).toEqual(['weather-natural']);
+  });
+
+  it('Time: the hour as the HUD clock shows it, wrapped half-hour steps, pause, sync and the shortcuts', () => {
+    const s = appScreen('sandbox', env({ sandboxWorld: world({ hour: 23.75, paused: true, sync: true }) }));
+    const time = tabsOf(s).tabs.find((x) => x.id === 'time')!.children;
+    const line = time.find((w) => w.k === 'text');
+    expect(line && line.k === 'text' ? line.params : null).toEqual({ label: 'Time', time: '23:45' });
+    const b = buttonsIn(s, 'time');
+    const by = (id: string) => b.find((x) => x.id === id)!;
+    expect(by('time-minus').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.time.hour', v: 23 } });
+    expect(by('time-plus').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.time.hour', v: 1 } });
+    expect(by('time-pause').label).toBe('phone.sandbox.resume');
+    expect(by('time-pause').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.time.paused', v: false } });
+    expect(by('time-sync').style).toBe('primary');
+    expect(by('time-sync').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.time.sync', v: false } });
+    expect(by('shortcut-golden-hour').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'time.shortcut', args: { id: 'golden-hour' } } });
+    expect(by('shortcut-fog-dawn').label).toBe('phone.sandbox.time.fog-dawn');
+    expect(stepHour(0.2, -1)).toBe(23);
+  });
+
+  it('World: speed, blackout and the three density rows mark the stored level as primary', () => {
+    const s = appScreen('sandbox', env({ sandboxWorld: world({ timeScale: 2, blackout: true, density: { traffic: 0, ped: 0.35, parked: 1.5 } }) }));
+    const b = buttonsIn(s, 'world');
+    const primary = b.filter((x) => x.style === 'primary').map((x) => x.id);
+    expect(primary).toEqual(['speed-2', 'blackout', 'density-traffic-off', 'density-ped-light', 'density-parked-busy']);
+    const by = (id: string) => b.find((x) => x.id === id)!;
+    expect(by('speed-025').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.world.timeScale', v: 0.25 } });
+    expect(by('blackout').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.world.blackout', v: false } });
+    expect(by('density-ped-normal').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.world.density.ped', v: 1 } });
+    expect(by('world-reset').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'world.reset' } });
+  });
+
+  it('online: every new button is disabled with sandbox.refuse.online, the heat buttons are as they were', () => {
+    const s = appScreen('sandbox', env({ sandboxWorld: world({ online: true }) }));
+    for (const tab of ['weather', 'time', 'world']) {
+      const bs = buttonsIn(s, tab);
+      expect(bs.length).toBeGreaterThan(3);
+      for (const x of bs) expect(x.disabled, x.id).toBe('sandbox.refuse.online');
+    }
+    for (const x of buttonsIn(s, 'player')) expect(x.disabled).toBeUndefined();
+    const on = buttonsIn(appScreen('sandbox', env({ sandboxWorld: world() })), 'world');
+    for (const x of on) expect(x.disabled).toBeUndefined();
+  });
+
+  it('without a published view model the tabs still build', () => {
+    const s = appScreen('sandbox', env({ mode: 'sandbox' }));
+    expect(tabsOf(s).tabs).toHaveLength(4);
   });
 
   it('the home screen lists the rows it is given and has a close button', () => {

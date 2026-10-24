@@ -54,7 +54,7 @@ export function StatusChip(props: { status: StatusDef; icon?: string; label?: st
 
 // ---- heat
 
-/** Five stars, a distinct scripted-6 icon, the phase text and a ring for the cooldown progress (C06 `HeatState`). */
+/** Five heat bars, a distinct scripted-6 icon, the phase text and a ring for the cooldown progress (C06 `HeatState`). */
 export function HeatStars(props: { heat: HudHeat | undefined }) {
   const h = props.heat;
   const level = h?.level ?? 0;
@@ -66,7 +66,7 @@ export function HeatStars(props: { heat: HudHeat | undefined }) {
     <div class="dv-heat" data-testid="hud-heat" data-level={level} data-phase={h?.phase ?? 'clear'} role="group" aria-label={t('hud.heat.label')}>
       <span class="dv-stars" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((i) => (
-          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}>{i <= lit ? '★' : '☆'}</span>
+          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}>{i <= lit ? '▮' : '▯'}</span>
         ))}
         {level >= 6 ? <span class="dv-star dv-star-script" data-testid="hud-heat-scripted">{'✦'}</span> : null}
       </span>

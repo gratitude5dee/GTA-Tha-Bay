@@ -4,6 +4,7 @@ import { CanvasScreen, layoutScreen, type Canvas2DLike } from '../src/screen/can
 import { DomScreen } from '../src/screen/dom-screen.tsx';
 import type { ScreenCtx, ScreenDef } from '../src/screen/types.ts';
 import { modesScreen } from '../src/pages/modes.ts';
+import { appScreen, type PhoneEnv } from '../src/phone/apps.ts';
 import { CATEGORIES, categoryScreen, type SettingsEnv } from '../src/pages/settings/index.ts';
 
 /** Walks the vnode tree DomScreen returns (expanding function components) and lists the `data-fid` of every focusable element in order. */
@@ -70,6 +71,28 @@ function registered(): { name: string; screen: ScreenDef }[] {
   }
   return out;
 }
+
+const sandboxEnv: PhoneEnv = {
+  mode: 'sandbox', jobs: [], cashCents: 0, garage: [], ride: undefined, heat: 1, neverWanted: false, appRows: [],
+  sandboxWorld: { weather: 'rain', hour: 18.5, paused: false, sync: false, timeScale: 2, blackout: false, density: { traffic: 1, ped: 0, parked: 1.5 }, shortcuts: ['fog-dawn', 'burn-off', 'golden-hour', 'fog-returns'], online: false },
+};
+
+describe('ui-screen-parity: the Sandbox app tabs (M04e1, AC-9)', () => {
+  for (const online of [false, true]) {
+    for (const tab of ['player', 'weather', 'time', 'world']) {
+      it(`${tab}${online ? ' (online)' : ''}: DomScreen and CanvasScreen list the same focusables in the same order`, () => {
+        const screen = appScreen('sandbox', { ...sandboxEnv, sandboxWorld: { ...sandboxEnv.sandboxWorld!, online } });
+        const ctx = ctxWith(tab);
+        const dom = domFocus(DomScreen({ screen, ctx }));
+        const canvas = new CanvasScreen(screen, ctx).focusOrder();
+        expect(canvas).toEqual(dom);
+        expect(new Set(dom).size).toBe(dom.length);
+        expect(dom.some((f) => f.startsWith(`tab.sandbox-tabs.${tab}`))).toBe(true);
+        expect(dom.length).toBeGreaterThan(5);
+      });
+    }
+  }
+});
 
 describe('ui-screen-parity (AC-12)', () => {
   it('has screens to compare', () => {

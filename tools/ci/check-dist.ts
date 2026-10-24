@@ -254,6 +254,8 @@ function distDir(value: string | undefined): string {
 
 /** Identifiers of the engine QA harness (M04d, AC-9). */
 export const QA_HARNESS_IDS = ['CanonicalRunner', 'BotDriver', 'registerBot'] as const;
+/** The QA network shaper (M02f1): its error messages carry this marker; production chunks hold none, a QA build holds it. */
+export const NET_SHAPER_IDS = ['dv-net-shaper'] as const;
 /** The story autoplayer and the headless missions scenario (M05a2, AC-11): strings in their messages, absent from production chunks. */
 export const STORY_QA_IDS = ['story.autoplayer', "suite 'missions'"] as const;
 
@@ -303,6 +305,9 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   const harness = QA_HARNESS_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
   if (hasBridge) expect(harness.length === QA_HARNESS_IDS.length, 'the QA build contains the QA harness', `missing: ${QA_HARNESS_IDS.filter((id) => !harness.includes(id)).join(', ')}`);
   else expect(harness.length === 0, 'production chunks contain no CanonicalRunner, BotDriver or registerBot', `found: ${harness.join(', ')}`);
+  const shaper = NET_SHAPER_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+  if (hasBridge) expect(shaper.length === NET_SHAPER_IDS.length, 'the QA build contains the QA network shaper', `missing: ${NET_SHAPER_IDS.filter((id) => !shaper.includes(id)).join(', ')}`);
+  else expect(shaper.length === 0, 'production chunks contain no QA network shaper', `found: ${shaper.join(', ')}`);
   if (!hasBridge) {
     const story = STORY_QA_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
     expect(story.length === 0, 'production chunks contain no story autoplayer or missions scenario', `found: ${story.join(', ')}`);

@@ -4,6 +4,8 @@ import grayboxWalk from '../../../../../config/perf/paths/graybox-walk.json';
 import walkCivicCenter from '../../../../../config/perf/paths/walk-civic-center.json';
 import routeFerryOceanBeach from '../../../../../config/perf/paths/route-ferry-ocean-beach.json';
 import downtownRush from '../../../../../config/perf/paths/downtown-rush.json';
+import bootCityhall from '../../../../../config/perf/paths/boot-cityhall.json';
+import storyChase from '../../../../../config/perf/paths/story-chase.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -59,7 +61,11 @@ export interface WorldScenarioDriver {
   /** Every frame, after the engine hand-off: the camera pose the runner chose. Returns the ground height under it, or null while unknown. */
   frame(pose: { x: number; y: number; z: number; vx: number; vz: number }): { groundY: number | null };
   /** End of the run: figures for the report. */
-  finish(): { coldDownloadMB: number | null };
+  finish(): {
+    coldDownloadMB: number | null;
+    /** M02f1: the boot figures once known (requests, bytes, ms to reveal, waves, peak in flight); the runner copies them into `PerfReport.boot`. */
+    boot?: { requests: number; bytes: number; revealMs: number; waves: number; inflightPeak: number };
+  };
 }
 
 /** Scenario registry. Later milestones add their paths here. */
@@ -68,12 +74,16 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'walk-civic-center': walkCivicCenter as unknown as RoutePath,
   'route-ferry-ocean-beach': routeFerryOceanBeach as unknown as RoutePath,
   'downtown-rush': downtownRush as unknown as RoutePath,
+  'boot-cityhall': bootCityhall as unknown as RoutePath,
+  'story-chase': storyChase as unknown as RoutePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
   'walk-civic-center': 'config/perf/paths/walk-civic-center.json',
   'route-ferry-ocean-beach': 'config/perf/paths/route-ferry-ocean-beach.json',
   'downtown-rush': 'config/perf/paths/downtown-rush.json',
+  'boot-cityhall': 'config/perf/paths/boot-cityhall.json',
+  'story-chase': 'config/perf/paths/story-chase.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
@@ -123,6 +133,8 @@ export interface RunInfo {
   meterTrianglesMax: number;
   infoTrianglesMax: number;
   meterRenderObjectsMax: number;
+  /** The counted objects of the frame with the most, by top-level scene node (QA diagnostics, M05c2). */
+  breakdownAtMax?: Record<string, number>;
   infoDrawCallsMax: number;
   frames: number;
 }
@@ -194,6 +206,7 @@ export class PerfScenarioRunner {
     }
     let lastY = 0;
     const meter = new RenderBudgetMeter(Math.max(1000, Math.ceil(scenario.durationS * 240)));
+    meter.trace = true;
     const probe = new PerfProbe(Math.max(1000, Math.ceil(scenario.durationS * 240)));
     const info = (host.renderer as unknown as { info: RendererInfoLike }).info;
 
@@ -301,7 +314,7 @@ export class PerfScenarioRunner {
       },
       memory: { accountedHeapMBMax: round2(heapMax), mediaMBMax: 0, webContentEstMB: null },
       dynamic: { minRenderScale: 1, downgrades: 0, upgrades: 0, tierChanges: 0 },
-      boot: { warmBootToPlayableS: null, coldDownloadMB: worldFigures?.coldDownloadMB ?? null },
+      boot: { warmBootToPlayableS: null, coldDownloadMB: worldFigures?.coldDownloadMB ?? null, ...(worldFigures?.boot ?? {}) },
       errors: this.d.errors(),
     };
     this.lastReport = report;
@@ -309,6 +322,7 @@ export class PerfScenarioRunner {
       meterTrianglesMax: Math.round(meter.maxTriangles),
       infoTrianglesMax: Math.round(infoTrianglesMax),
       meterRenderObjectsMax: meter.maxRenderObjects,
+      ...(Object.keys(meter.breakdownAtMax).length > 0 ? { breakdownAtMax: meter.breakdownAtMax } : {}),
       infoDrawCallsMax: infoDrawMax,
       frames: frames.count,
     };

@@ -1,0 +1,24 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.07.civic": "Civic Center is a few blocks on. Keep Patch in the open and walk like you are late for lunch.",
+    "line.m.a1.07.drones": "Halcyon survey drones are sweeping the park. Stay off the paths and keep moving.",
+    "line.m.a1.07.msg": "Patch is waiting at the Hacker House. Go easy on the neighbors and keep to the park path. Odessa",
+    "line.m.a1.07.patch.come": "Right, I am coming with you. The house is not safe once a drone has read my door.",
+    "line.m.a1.07.patch.thanks": "You walked me the whole way. I owe you a decoded pod and a very large favor.",
+    "line.m.a1.07.start": "Odessa here. The Cerebral live in the painted house by Alamo Square. Their lead, Patch, can read the pod. Go and ask nicely.",
+    "line.m.a1.07.talk.patch.open": "Door is open and the router is on fire. Is that the pod? Hand it here, or tell me why you will not.",
+    "mission.m.a1.07.fail.ko": "You went down.",
+    "mission.m.a1.07.fail.patch": "Patch got hurt. The house will not talk to you now.",
+    "mission.m.a1.07.obj.collect_patch": "Walk Patch out of the house",
+    "mission.m.a1.07.obj.deliver_patch": "See Patch to Civic Center",
+    "mission.m.a1.07.obj.goto_house": "Go to the hacker house by Alamo Square",
+    "mission.m.a1.07.obj.stealth_park": "Cross Alamo Square past the survey drones",
+    "mission.m.a1.07.obj.talk_patch": "Talk to Patch about the pod",
+    "mission.m.a1.07.talk.patch.doubt": "I keep the pod. You can look, not touch",
+    "mission.m.a1.07.talk.patch.intent": "Decide whether Patch gets the pod",
+    "mission.m.a1.07.talk.patch.trust": "Here, take the pod",
+    "mission.m.a1.07.title": "Hacker House"
+  }
+}

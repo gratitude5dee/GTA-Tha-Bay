@@ -140,7 +140,7 @@ export function createWorldApi(store: WorldStore, index: WorldIndex, clock: { ti
     release: (by) => portals.release(by),
     sealedPortals: () => portals.sealed(),
     nearestShore: (x, z, roadAdjacent) => nearestShoreNode(store, store.residentKeys('p0'), x, z, roadAdjacent, graph),
-    waterDepth: (x, z) => query.waterDepth(x, z),
+    waterDepth: (x, z, y) => query.waterDepth(x, z, y),
     onClosureChange: (cb) => traffic.onClosureChange(cb),
   };
 

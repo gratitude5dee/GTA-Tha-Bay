@@ -1,0 +1,41 @@
+{
+  "id": "M05c2-mac",
+  "milestone": "M05c2",
+  "device": "Apple Silicon Mac, Safari and Chrome (desktop A and B in the device matrix); tier desktop at 60 fps, keyboard and a gamepad; the staging Worker (tha-bay-web-staging) with the sf world",
+  "urlTemplate": "https://<preview>/?perf=1&tier=desktop&debug=1",
+  "steps": [
+    {
+      "id": "1-open",
+      "instruction": "Open the staging URL (from the deploy summary of the latest run on main, recorded by AC-7) in Chrome. Pass the age and terms screens and choose New Game. Write the staging URL into notes.json as stagingUrl. Repeat steps 2 to 4 in Safari (note the browser in notes.json for each pass)."
+    },
+    {
+      "id": "2-missions-keyboard",
+      "instruction": "With the keyboard play Jump Start (m.a1.01) and Surge Pricing (m.a1.02): WASD to move, F to get into a car, the mouse to look. Both pass; the beats play with subtitles (note in notes.json beats whether each played as the generated clip or the in-engine fallback). Reload the page during Surge Pricing after its first checkpoint toast and choose Continue: the mission resumes at the checkpoint stage with the same cash.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "desktop" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "3-mission-3-pad",
+      "instruction": "Connect a gamepad (standard mapping). Play Sideshow Sunday (m.a1.03) with the pad: sideshow, raid beat, escape, drive home. It passes; the Racing tile on the Modes page is unlocked and 'coming soon', Fighter and Tycoon are locked, and the unlock toast showed once."
+    },
+    {
+      "id": "4-messages-fast-travel",
+      "instruction": "Open the phone: Messages lists a thread per sender with the offer of the next mission (tap it, Jobs opens on that mission). Open the Map app: fast travel is refused while a mission stage runs (the toast says to finish or leave the job) and works to an unlocked district between missions. Write what you saw into notes.json as phone."
+    },
+    {
+      "id": "5-chase",
+      "instruction": "Run the story-chase scenario in Chrome: open <preview>/?perf=1&tier=desktop&scenario=story-chase&debug=1 and let it run to its end (60 s). When it ends tap Export and save perf.json and notes.json to docs/device-runs/M05c2/mac/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "desktop" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "6-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M05c2/mac/perf.json --tier desktop --checklist tools/ci/checklists/M05c2-mac.json: median and p95 frame time, frames over 50 ms, render and triangle counts must pass."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

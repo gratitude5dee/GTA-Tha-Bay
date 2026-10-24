@@ -73,6 +73,20 @@
       }
     },
     "night": { "$ref": "#/$defs/curve" },
-    "dark": { "$ref": "#/$defs/curve" }
+    "dark": { "$ref": "#/$defs/curve" },
+    "sandboxShortcuts": {
+      "type": "array",
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "hour"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z-]{1,24}$" },
+          "hour": { "type": "number", "minimum": 0, "maximum": 23.5, "multipleOf": 0.5 },
+          "weather": { "$ref": "#/$defs/preset" }
+        }
+      }
+    }
   }
 }

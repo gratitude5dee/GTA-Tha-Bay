@@ -1,0 +1,29 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "0bb7a63934c6888fed7bcd5a30f686a25fa3481b30f647320861af6e13dbea80",
+  "paths": [
+    "tests/fixtures/missions/m.a1.05.1.dvtl",
+    "assets/m.a1.05.1-Da4SMej5.dvtl"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-24T15:00:06Z",
+  "tool": {
+    "name": "tools/ci/missions/check.ts",
+    "version": "1.0.0",
+    "args_sha256": "a6bac61c53cc0a2cd632e98b64da26542224c7f17d08cd4957a97a18f851cac7"
+  }
+}

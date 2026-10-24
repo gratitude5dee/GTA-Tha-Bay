@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { act, observe, SMALL_VIEWPORT, terrainAt, waitForEngine } from '../engine-helpers.ts';
+import { hideQaPanels } from './helpers.ts';
 
 /**
  * M04b2 AC-9 (@ui-hud), AC-7 (@ui-motion) and the HUD half of the demo. Free roam on the gray-box block (the QA play bypass starts the
@@ -144,6 +145,9 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
   test.describe.configure({ timeout: 600_000 });
 
   test('Pause stops the sim, Save is off away from a safehouse, the phone lists its apps, Ride refuses at heat 1 and Quit confirms @ui-pause', async ({ page }, testInfo) => {
+    // The QA pursuit and mission panels are fixed over the left edge above every page (z-index 34 and 35), and the Sandbox app's Player tab
+    // (heat buttons) sits there in this 480 x 270 viewport; the menu specs hide them, as hideQaPanels says (BD-M04e1-07).
+    await hideQaPanels(page);
     await bootSynth(page);
     await expect(page.getByTestId('hud')).toBeVisible();
 
@@ -178,11 +182,11 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     // The phone.
     await page.getByTestId('btn-pause-phone').click();
     await expect(page.getByTestId('list-phone-apps')).toBeVisible();
-    for (const id of ['map', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help', 'sandbox']) {
+    for (const id of ['map', 'messages', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help', 'sandbox']) {
       await expect(page.getByTestId(`row-phone-apps-${id}`), id).toBeVisible();
       await expect(page.getByTestId(`row-phone-apps-${id}`), id).not.toHaveAttribute('aria-disabled', 'true');
     }
-    for (const id of ['messages', 'camera', 'feed']) await expect(page.getByTestId(`row-phone-apps-${id}`), id).toHaveAttribute('aria-disabled', 'true');
+    for (const id of ['camera', 'feed']) await expect(page.getByTestId(`row-phone-apps-${id}`), id).toHaveAttribute('aria-disabled', 'true');
     await page.screenshot({ path: testInfo.outputPath('phone.png') });
 
     // Sandbox: heat 1. The stars appear on the HUD once the phone closes.

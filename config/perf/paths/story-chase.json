@@ -1,0 +1,13 @@
+{
+  "$comment": "M05c2 camera path for the scenario 'story-chase' (spec 03-story.md section 5, DL-656 part 4): a chase of the story runs under the story autoplayer (the heat-4 survive stage of m.a1.12 where the world has Mission Bay's roads, else the sideshow raid of m.a1.03 at the Yard; tests/perf/scenarios/story-chase.ts) while the camera drives south along the bay shore east of Mission Bay (12 m/s, eye 2.6 m above the ground, looking 50 m ahead). The shore line keeps the world's own render objects low: a street-level line through the inland blocks is over the mobile-low row of 100 with the player rig and one car, which the meter counts wherever they are (walk-civic-center alone is at 101). So the figures say what the chase and the mission VM add. 60 s with 8 s of warm-up, nominal density. ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "story-chase",
+  "kind": "route",
+  "waypointsEnu": [[3350, 1153], [3350, 1760], [3200, 1990]],
+  "speedMps": 12,
+  "eyeHeightM": 2.6,
+  "lookAheadM": 50,
+  "durationS": 60,
+  "warmupS": 8,
+  "seed": 12648430,
+  "density": "nominal"
+}

@@ -63,12 +63,17 @@ export interface TeleportHost {
   fade(dir: 'out' | 'in'): void;
 }
 
-/** The hooks mode rules and the wanted level plug into (default: a sandbox session with no heat). */
+/** The hooks mode rules and the heat level plug into (default: a sandbox session with no heat). */
 export interface TeleportPolicy {
   /** Whether the session's mode allows this kind of teleport (story rules: M05c2). */
   allowed(kind: TeleportKind): boolean;
-  /** Wanted level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
+  /** Heat level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
   heat(): number;
+  /**
+   * Optional, checked once the target is resolved: a message key refuses the request as `forbidden-in-mode` with that key (story
+   * fast travel: only outside a mission, only into an unlocked district, M05c2). Absent or null lets the request go on.
+   */
+  deny?(kind: TeleportKind, target: { x: number; z: number; id: string | null }): string | null;
 }
 export const SANDBOX_POLICY: TeleportPolicy = { allowed: () => true, heat: () => 0 };
 
@@ -211,6 +216,8 @@ export class TeleportService implements TeleportApi {
     if ((kind === 'fast-travel' || kind === 'sandbox') && this.policy.heat() > 0) return fail('heat', TELEPORT_MSG.heat);
     const t = this.resolve(kind, to);
     if (!t) return fail('blocked', TELEPORT_MSG.unknownTarget);
+    const denied = this.policy.deny?.(kind, { x: t.x, z: t.z, id: t.id }) ?? null;
+    if (denied !== null) return fail('forbidden-in-mode', denied);
     const p = this.d.play;
     if (!(t.x >= p.minX && t.x <= p.maxX && t.z >= p.minZ && t.z <= p.maxZ)) return fail('out-of-bounds', TELEPORT_MSG.outOfBounds);
     if (kind === 'fast-travel' && this.lastFastTravel !== null && this.d.now() - this.lastFastTravel < this.cfg.cooldown.fastTravelS * 60) {
