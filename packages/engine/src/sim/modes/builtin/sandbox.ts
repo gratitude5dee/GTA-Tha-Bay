@@ -3,6 +3,8 @@ import { noopUi } from './coming-soon.ts';
 import {
   applyStoredWorld, applyWorldSetting, isWorldPath, liveHour, publishWorld, releaseWorld, runSandboxAction, type SandboxWorldPort,
 } from './sandbox-world.ts';
+import { createSandboxVehicles } from './sandbox-vehicles.ts';
+import type { SandboxVehiclePort } from '../sandbox-vehicle-port.ts';
 import { enterTeleport, exitTeleport, runTeleportAction, type Pose } from './sandbox-teleport.ts';
 
 export function defaultSandbox(): SandboxSlice {
@@ -30,6 +32,8 @@ export interface SandboxEnv {
   playerPose?(): Pose | null;
   /** The map pin the player dropped, or null (M04e2). */
   waypoint?(): { x: number; z: number } | null;
+  /** The engine side of the car spawner (M04e3). Absent or null: no world, so a car request is refused with `sandbox.refuse.noSpot`. */
+  vehicles?(): SandboxVehiclePort | null;
 }
 
 /** Pushes the toggles to the view model (`mode.sandbox.toggles`). */
@@ -77,6 +81,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
   const port = (): SandboxWorldPort | null => env.world?.() ?? null;
   /** `sandboxOnline` at the previous tick: a change releases or re-applies the world effects. */
   let wasOnline = false;
+  const cars = createSandboxVehicles(() => env.vehicles?.() ?? null);
   let n = 0;
   let shownHour = -1;
   return {
@@ -90,9 +95,11 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
         applyStoredWorld(ctx, env.sandbox(), port());
       }
       publishWorld(ctx, env.sandbox(), wasOnline);
+      cars.enter(ctx, wasOnline);
     },
     tick(ctx) {
       const on = sandboxOnline(ctx);
+      cars.tick(ctx, on);
       // The Time tab shows the hour of the last `mode.sandbox.world`: refresh it twice a second when it moved a tenth of an hour.
       if (on === wasOnline && ++n % 30 === 0) {
         const h = Math.round(liveHour(ctx, env.sandbox()) * 10);
@@ -109,6 +116,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
       publishWorld(ctx, env.sandbox(), on);
     },
     exit(ctx) {
+      cars.exit(ctx);
       exitTeleport(ctx);
       releaseWorld(ctx, env.sandbox(), port());
       try {
@@ -122,6 +130,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
     onEvent(ctx, e) {
       runSandboxAction(ctx, env.sandbox(), e, port(), sandboxOnline(ctx));
       runTeleportAction(ctx, env.sandbox(), e, env, sandboxOnline(ctx));
+      cars.onEvent(ctx, e, sandboxOnline(ctx));
     },
   };
 }
