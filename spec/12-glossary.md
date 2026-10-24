@@ -36,7 +36,7 @@
 **Frame data**: per-move startup, active, recovery and advantage frames (fighter).  
 **GenJob / job key**: one genAI job and its SHA-256 dedupe key (C07).  
 **Ghost**: recorded racing run replayed from inputs.  
-**Heat**: wanted level driving the PursuitDirector.  
+**Heat**: the police-attention level (0–5, 6 scripted) driving the PursuitDirector.  
 **Hype**: fighter meter; stocks pay for EX moves, supers and the Showstopper.  
 **Identity profile / save profile**: UUIDv7 player identity (C12) / 32-hex save namespace (C05); New Game creates a new save profile.  
 **Ink**: authored offline dialogue lines, the NPC fallback.  
