@@ -3,12 +3,14 @@ import {
   APT_CONF,
   ATTEMPT_S,
   DOWNLOAD_ONLY_CONF,
+  ISO_WEEK,
   MIRRORS,
   aptConf,
   cacheKey,
   composeCommand,
   countNew,
   install,
+  main,
   osRelease,
   rotateMirrors,
   type Host,
@@ -50,20 +52,48 @@ describe('pw-install pure parts (BD-FIX-CI10-P01)', () => {
   });
 });
 
-describe('pw-install cache key: one stable key per package set (BD-FU-B05)', () => {
-  const set = { os: 'Linux', arch: 'X64', release: 'ubuntu24.04', playwright: '1.64.1' };
+describe('pw-install cache key: one stable key per package set and ISO week (BD-FU-B05)', () => {
+  const set = { os: 'Linux', arch: 'X64', release: 'ubuntu24.04', playwright: '1.64.1', week: '2026W43' };
 
-  it('names the runner, the Ubuntu release, the engines and the Playwright version, and nothing of one run or job', () => {
-    expect(cacheKey({ ...set, browsers: ['chromium'] })).toEqual({ key: 'pw-apt-Linux-X64-ubuntu24.04-chromium-pw1.64.1', base: 'pw-apt-Linux-X64-ubuntu24.04-chromium-' });
-    expect(cacheKey({ ...set, browsers: ['webkit', 'chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu24.04-chromium+webkit-pw1.64.1');
-    // the same set in any order is the same key; another set never matches its restore prefix
+  it('names the runner, the Ubuntu release, the engines, the Playwright version and the week, and nothing of one run or job', () => {
+    expect(cacheKey({ ...set, browsers: ['chromium'] })).toEqual({
+      key: 'pw-apt-Linux-X64-ubuntu24.04-chromium-pw1.64.1-2026W43',
+      version: 'pw-apt-Linux-X64-ubuntu24.04-chromium-pw1.64.1-',
+      base: 'pw-apt-Linux-X64-ubuntu24.04-chromium-',
+    });
+    expect(cacheKey({ ...set, browsers: ['webkit', 'chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu24.04-chromium+webkit-pw1.64.1-2026W43');
+    // the same set in any order is the same key; another set never matches its restore prefixes
     expect(cacheKey({ ...set, browsers: ['chromium', 'webkit'] })).toEqual(cacheKey({ ...set, browsers: ['webkit', 'chromium'] }));
     expect(cacheKey({ ...set, browsers: ['chromium', 'webkit'] }).key.startsWith(cacheKey({ ...set, browsers: ['chromium'] }).base)).toBe(false);
-    // a new Playwright release is a new key under the same restore prefix
+    expect(cacheKey({ ...set, browsers: ['chromium', 'webkit'] }).key.startsWith(cacheKey({ ...set, browsers: ['chromium'] }).version)).toBe(false);
+    // a new Playwright release is a new key under the same base prefix, outside the old version prefix
     const next = cacheKey({ ...set, playwright: '1.65.0', browsers: ['chromium'] });
     expect(next.key).not.toBe(cacheKey({ ...set, browsers: ['chromium'] }).key);
     expect(next.base).toBe(cacheKey({ ...set, browsers: ['chromium'] }).base);
-    expect(cacheKey({ ...set, release: 'ubuntu 26.04/x', playwright: '', browsers: ['chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu_26.04_x-chromium-pwunknown');
+    expect(next.key.startsWith(cacheKey({ ...set, browsers: ['chromium'] }).version)).toBe(false);
+    // 1.64.1 is not a prefix match of 1.64.10
+    expect(cacheKey({ ...set, playwright: '1.64.10', browsers: ['chromium'] }).key.startsWith(cacheKey({ ...set, browsers: ['chromium'] }).version)).toBe(false);
+    expect(cacheKey({ ...set, release: 'ubuntu 26.04/x', playwright: '', browsers: ['chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu_26.04_x-chromium-pwunknown-2026W43');
+  });
+
+  it('a new ISO week is a new key, and last week\'s set is restored by the version prefix', () => {
+    const now = cacheKey({ ...set, browsers: ['chromium'] });
+    const later = cacheKey({ ...set, week: '2026W44', browsers: ['chromium'] });
+    expect(later.key).not.toBe(now.key);
+    expect(later.version).toBe(now.version);
+    expect(now.key.startsWith(later.version)).toBe(true);
+    // this week's partial caches (`<key>-partial-…`) are not taken for another week's exact key prefix
+    expect(`${now.key}-partial-1-1-e2e-0`.startsWith(`${later.key}-`)).toBe(false);
+    // the year turn follows ISO weeks (date -u +%GW%V), e.g. 2026-12-31 is 2026W53, 2027-01-04 is 2027W01
+    expect(ISO_WEEK.test('2026W53')).toBe(true);
+    expect(ISO_WEEK.test('2027W01')).toBe(true);
+    for (const bad of ['2026W00', '2026W54', '2026-W43', '26W43', '', '2026W4']) expect(ISO_WEEK.test(bad), bad).toBe(false);
+  });
+
+  it('the CLI needs the week before the engines', () => {
+    expect(main(['--cache-key', 'chromium'])).toBe(2);
+    expect(main(['--cache-key', '--week', 'soon', 'chromium'])).toBe(2);
+    expect(main(['--cache-key', '--week', '2026W43'])).toBe(2);
   });
 
   it('reads the release from os-release(5)', () => {

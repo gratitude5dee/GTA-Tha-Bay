@@ -7,7 +7,7 @@ import { compileStringMatcher, scanText as scanBrandText, type IpDenylistConfig 
 import { evaluate, type Change } from '../check-do-migrations.ts';
 import { findTestRouteStrings, prodConfigProblems } from '../check-prod-routes.ts';
 import { scanDir, scanText } from '../check-secrets.ts';
-import { mediaEnvOf, overrideHeader, smoke } from '../check-smoke.ts';
+import { mediaEnvOf, overrideHeader, smoke, smokeMediaEnv } from '../check-smoke.ts';
 import {
   parseCurrentVersion,
   parseVersionId,
@@ -216,10 +216,29 @@ describe('check:smoke', () => {
     expect(staging).toHaveLength(1);
     expect(staging[0]).toContain(`names ${pointer.key}, but GET /media/${pointer.key} answered 404`);
     expect(staging[0]).toContain('pnpm assets:publish -- --env staging');
-    const prod = await smoke('https://x.test', { fetchImpl: worker({ [`/media/${pointer.key}`]: 404 }) });
+    const prod = await smoke('https://x.test', { worker: 'tha-bay-web', fetchImpl: worker({ [`/media/${pointer.key}`]: 404 }) });
     expect(prod[0]).toContain('pnpm assets:publish -- --env prod');
     expect(mediaEnvOf('tha-bay-web-staging')).toBe('staging');
     expect(mediaEnvOf('tha-bay-web')).toBe('prod');
+  });
+
+  it('without --worker, names the env from the URL host: a staging or preview host is staging, any other says "staging or prod"', async () => {
+    const missing = { [`/media/${pointer.key}`]: 404 };
+    // A Workers Preview URL is the staging Worker (review note on BD-FU-A03).
+    const preview = await smoke('https://pr-12-tha-bay-web-staging.me.workers.dev', { fetchImpl: worker(missing) });
+    expect(preview[0]).toContain('pnpm assets:publish -- --env staging');
+    expect(preview[0]).not.toContain('--env prod');
+    const custom = await smoke('https://play.example.test', { fetchImpl: worker(missing) });
+    expect(custom[0]).toContain('pnpm assets:publish -- --env <staging or prod>');
+    expect(custom[0]).toContain('pass --worker to name it');
+    expect(smokeMediaEnv('https://pr-7-tha-bay-web-staging.me.workers.dev')).toBe('staging');
+    expect(smokeMediaEnv('https://THA-BAY-WEB-STAGING.me.workers.dev/')).toBe('staging');
+    expect(smokeMediaEnv('https://tha-bay-web.me.workers.dev')).toBe('staging or prod');
+    expect(smokeMediaEnv('http://localhost:8788')).toBe('staging or prod');
+    expect(smokeMediaEnv('not a url')).toBe('staging or prod');
+    // --worker wins over the host.
+    expect(smokeMediaEnv('https://pr-7-tha-bay-web-staging.me.workers.dev', 'tha-bay-web')).toBe('prod');
+    expect(smokeMediaEnv('https://play.example.test', 'tha-bay-web-staging')).toBe('staging');
   });
 
   it('fails on catalog bytes that do not match the pointer, a missing world index object, or a pointer that is not served', async () => {

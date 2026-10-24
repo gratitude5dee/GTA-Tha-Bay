@@ -78,13 +78,14 @@ jobs:
       # cancelled at 45 min in this step, two shards 47 min). The script skips apt when nothing is missing, prefetches in apt
       # download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first), then runs
       # `playwright install --with-deps` as before; its exit status is the step's. The apt archives are cached under one stable key per
-      # package set (runner OS and arch, Ubuntu release, Playwright version, engines), shared by every job and run that installs that
-      # set: a complete set is saved once, only when the restore was not an exact hit (caches are immutable; the default branch's are
-      # restored on every branch). A failed or cancelled install keeps its downloads in a per-job `-partial-` cache, which the next
-      # restore picks up by prefix. A refused save never fails the job (spec/03 section 6).
+      # package set (runner OS and arch, Ubuntu release, Playwright version, engines) and ISO week, shared by every job and run that
+      # installs that set in that week: a complete set is saved once per week, only when the restore was not an exact hit (caches are
+      # immutable; the default branch's are restored on every branch); the week's first install starts from last week's set.
+      # A failed or cancelled install keeps its downloads in a per-job `-partial-` cache, which the next restore picks up by prefix.
+      # A refused save never fails the job (spec/03 section 6).
       - id: pw-key
-        name: Apt cache key of this package set
-        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key $DV_PW_BROWSERS
+        name: Apt cache key of this package set and ISO week
+        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key --week "$(date -u +%GW%V)" $DV_PW_BROWSERS
       - id: pw-apt
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
@@ -92,6 +93,7 @@ jobs:
           key: ${{ steps.pw-key.outputs.key }}
           restore-keys: |
             ${{ steps.pw-key.outputs.key }}-
+            ${{ steps.pw-key.outputs.version }}
             ${{ steps.pw-key.outputs.base }}
       - id: pw-install
         name: Playwright browsers and their system packages

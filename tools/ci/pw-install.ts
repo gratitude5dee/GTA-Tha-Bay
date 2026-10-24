@@ -3,7 +3,8 @@
  *
  *   tsx tools/ci/pw-install.ts <browser>...    install (e.g. `chromium`, `webkit`, `chromium webkit`)
  *   tsx tools/ci/pw-install.ts --count-new     `new=<n>`: .deb files added to the apt archive cache since the install began
- *   tsx tools/ci/pw-install.ts --cache-key <browser>...   `key=` and `base=`: the apt cache key of this package set (BD-FU-B05)
+ *   tsx tools/ci/pw-install.ts --cache-key --week <GGGG>W<VV> <browser>...   `key=`, `version=` and `base=`: the apt cache key of
+ *                                              this package set in this ISO week, and its two restore prefixes (BD-FU-B05)
  *
  * Why: on some GitHub-hosted runners the Azure Ubuntu mirror serves package files at about 42 kB/s while its indexes come at
  * about 10 MB/s (run 40017655149: perf, webkit-webgl2 shard 2 and xr-quest3 shard 2 spent 45 to 47 min fetching 119 MB). The
@@ -68,19 +69,27 @@ export interface KeyInputs {
   /** The installed `@playwright/test` version: its `install-deps` list is the package set. */
   playwright: string;
   browsers: readonly string[];
+  /** The ISO 8601 week-numbering year and week, `<GGGG>W<VV>` (`date -u +%GW%V` in the workflow step), e.g. `2026W43`. */
+  week: string;
 }
+
+/** An ISO week as `date -u +%GW%V` prints it. */
+export const ISO_WEEK = /^\d{4}W(0[1-9]|[1-4]\d|5[0-3])$/;
 
 const keyPart = (v: string): string => v.replace(/[^A-Za-z0-9._]+/g, '_') || 'unknown';
 
 /**
- * The apt cache key of one package set (BD-FU-B05): stable across runs, attempts, jobs and lockfile changes, so every job that
- * installs the same engines on the same image with the same Playwright shares one cache and saves it once (GitHub caches are
- * immutable and a repository holds 10 GB; spec/03 section 6). `base` (no Playwright version) is the last restore prefix: the
- * newest cache of an older Playwright release still holds most of the files.
+ * The apt cache key of one package set (BD-FU-B05): stable across runs, attempts, jobs and lockfile changes within one ISO week, so
+ * every job that installs the same engines on the same image with the same Playwright shares one cache and saves it once per week
+ * (GitHub caches are immutable and a repository holds 10 GB; spec/03 section 6). The week makes the archive refresh once a week, so
+ * Ubuntu's package updates since the last save are downloaded by the week's first install only, not by every run until Playwright
+ * changes. `version` (no week) is the second restore prefix: the newest cache of the same set under the same Playwright, i.e. last
+ * week's, still holds most of the files. `base` (no Playwright version) is the last: the newest cache of an older Playwright release.
  */
-export function cacheKey(k: KeyInputs): { key: string; base: string } {
+export function cacheKey(k: KeyInputs): { key: string; version: string; base: string } {
   const base = `pw-apt-${keyPart(k.os)}-${keyPart(k.arch)}-${keyPart(k.release)}-${[...k.browsers].sort().map(keyPart).join('+')}-`;
-  return { key: `${base}pw${keyPart(k.playwright)}`, base };
+  const version = `${base}pw${keyPart(k.playwright)}-`;
+  return { key: `${version}${keyPart(k.week)}`, version, base };
 }
 
 /** `ID` + `VERSION_ID` of an os-release(5) file; `unknown` when either is missing. */
@@ -255,9 +264,10 @@ function realHost(archives: string): Host {
 
 export function main(argv: readonly string[]): number {
   if (argv[0] === '--cache-key') {
-    const browsers = argv.slice(1);
-    if (browsers.length === 0 || browsers.some((b) => !BROWSER.test(b))) {
-      console.log(`pw-install: usage: pw-install.ts --cache-key <browser>... (got ${JSON.stringify(browsers)})`);
+    const week = argv[1] === '--week' ? (argv[2] ?? '') : '';
+    const browsers = argv.slice(3);
+    if (!ISO_WEEK.test(week) || browsers.length === 0 || browsers.some((b) => !BROWSER.test(b))) {
+      console.log(`pw-install: usage: pw-install.ts --cache-key --week <GGGG>W<VV> <browser>... (got ${JSON.stringify(argv.slice(1))})`);
       return 2;
     }
     let playwright = 'unknown';
@@ -267,10 +277,10 @@ export function main(argv: readonly string[]): number {
       // not installed: the key still names the set, with an unknown version
     }
     const release = osRelease(existsSync('/etc/os-release') ? readFileSync('/etc/os-release', 'utf8') : null);
-    const { key, base } = cacheKey({ os: process.env['RUNNER_OS'] ?? os.platform(), arch: process.env['RUNNER_ARCH'] ?? os.arch(), release, playwright, browsers });
-    console.log(`pw-install: apt cache key ${key} (restore prefix ${base})`);
+    const { key, version, base } = cacheKey({ os: process.env['RUNNER_OS'] ?? os.platform(), arch: process.env['RUNNER_ARCH'] ?? os.arch(), release, playwright, browsers, week });
+    console.log(`pw-install: apt cache key ${key} (restore prefixes ${key}-, ${version}, ${base})`);
     const out = process.env['GITHUB_OUTPUT'];
-    if (out) appendFileSync(out, `key=${key}\nbase=${base}\n`);
+    if (out) appendFileSync(out, `key=${key}\nversion=${version}\nbase=${base}\n`);
     return 0;
   }
   if (argv[0] === '--count-new') {

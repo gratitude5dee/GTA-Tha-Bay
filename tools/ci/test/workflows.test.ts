@@ -234,9 +234,10 @@ describe('nightly.yml (AC-8)', () => {
 });
 
 describe('Playwright system packages: mirror-resilient install, one apt cache per package set (BD-FIX-CI10-P01, BD-FU-B05)', () => {
-  const KEY = '- id: pw-key\n        name: Apt cache key of this package set\n        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key $DV_PW_BROWSERS';
+  // The key has an ISO week part computed in the step (`date -u +%GW%V`), so the archive refreshes once a week (BD-FU-B05).
+  const KEY = '- id: pw-key\n        name: Apt cache key of this package set and ISO week\n        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key --week "$(date -u +%GW%V)" $DV_PW_BROWSERS';
   const RESTORE =
-    /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-key\.outputs\.key \}\}\n\s+restore-keys: \|\n\s+\$\{\{ steps\.pw-key\.outputs\.key \}\}-\n\s+\$\{\{ steps\.pw-key\.outputs\.base \}\}\n/;
+    /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-key\.outputs\.key \}\}\n\s+restore-keys: \|\n\s+\$\{\{ steps\.pw-key\.outputs\.key \}\}-\n\s+\$\{\{ steps\.pw-key\.outputs\.version \}\}\n\s+\$\{\{ steps\.pw-key\.outputs\.base \}\}\n/;
   const INSTALL = '- id: pw-install\n        name: Playwright browsers and their system packages\n        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS';
   const COUNT = '- id: pw-apt-new\n        name: New apt archives since the restore\n        if: always()\n        run: pnpm exec tsx tools/ci/pw-install.ts --count-new';
   // The complete set: once per key, only after a successful install and when the restore was not an exact hit.
@@ -286,6 +287,8 @@ describe('Playwright system packages: mirror-resilient install, one apt cache pe
         expect(browsersOf(job), `${f} ${name}: DV_PW_BROWSERS`).toBeDefined();
         // the stable key carries nothing of one run, attempt or job, nor the lockfile (the 10 GB repository limit, BD-FU-B05)
         expect(steps[key + 1] ?? '', `${f} ${name}: restore key`).not.toMatch(/github\.run_id|github\.run_attempt|github\.job|strategy\.job-index|hashFiles/);
+        // the week comes from the step's clock, not from the run (one save per key and week)
+        expect(steps[key] ?? '', `${f} ${name}: weekly key`).not.toMatch(/github\.run_id|github\.run_attempt|github\.job|strategy\.job-index|hashFiles/);
       }
       expect(installs, f).toBeGreaterThan(0);
     });
