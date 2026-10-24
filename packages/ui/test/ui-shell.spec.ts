@@ -259,6 +259,45 @@ describe('QA play bypass', () => {
     expect(e.sent).toHaveLength(1);
     expect(set).not.toHaveBeenCalled();
   });
+  it('a world that cannot be loaded shows the world-load error page on a mode start instead of entering it (BD-FU-A02)', () => {
+    const core = new ShellCore(props({}));
+    core.ready();
+    core.state = 'Menu';
+    const e = fakeEngine();
+    core.attachEngine(e.port);
+    core.worldUnavailable('catalog-404');
+    expect(core.frame).toBeNull();
+    core.startMode('story');
+    expect(e.sent).toEqual([]);
+    expect(core.state).toBe('Menu');
+    expect(core.frame).toEqual({ id: 'error', params: { kind: 'world-load', detail: 'catalog-404' } });
+    expect(core.currentPage()).toBe('error');
+    // Back returns to the menu; the next start shows the error again.
+    vi.stubGlobal('history', { state: null, replaceState: () => undefined, back: () => undefined });
+    core.back();
+    vi.unstubAllGlobals();
+    expect(core.frame).toBeNull();
+    core.startMode('sandbox');
+    expect(core.frame?.id).toBe('error');
+    expect(e.sent).toEqual([]);
+  });
+  it('a world failure found while a mode runs shows the error at once; without one the mode starts', () => {
+    const running = new ShellCore(props({ qaPlay: { mode: 'sandbox' } }));
+    running.worldUnavailable('index-http');
+    expect(running.frame).toEqual({ id: 'error', params: { kind: 'world-load', detail: 'index-http' } });
+    const fine = new ShellCore(props({}));
+    fine.ready();
+    fine.state = 'Menu';
+    const e = fakeEngine();
+    fine.attachEngine(e.port);
+    fine.startMode('story');
+    expect(e.sent).toEqual([{ t: 'mode.start', id: 'story' }]);
+    expect(fine.frame).toBeNull();
+  });
+  it('the world-load kind has its text and a retry label', () => {
+    expect(t('error.kind.world-load')).not.toBe('error.kind.world-load');
+    expect(t('error.retry')).not.toBe('error.retry');
+  });
   it('without the bypass the shell starts on Title', () => {
     const core = new ShellCore(props({}));
     core.ready();
