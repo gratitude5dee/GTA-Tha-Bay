@@ -1,0 +1,12 @@
+{
+  "$comment": "M02e look shots: fixed cameras for the goldens (tests/e2e/golden/look) and the before/after image (docs/look). ENU metres from City Hall (+X east, -Z north); y is the eye height above the ground under the camera; yaw 0 looks north (-Z), 90 west. Positions of the first four are in the Civic Center and the commercial blocks of the synth world, which every CI run bakes; the two `sf-civic-*` shots stand on Civic Center Plaza of the real `sf` bake (the before/after of `docs/look`, optional) and are not part of the goldens. The hour and weather are locked with a zero-second blend.",
+  "schema": "world-look-shots/1",
+  "shots": [
+    { "id": "noon-street", "x": 60, "y": 6, "z": 150, "yawDeg": 15, "pitchDeg": -6, "fovDeg": 60, "hour": 13, "weather": "clear" },
+    { "id": "golden-water", "x": 3190, "y": 3, "z": -1500, "yawDeg": -90, "pitchDeg": -4, "fovDeg": 60, "hour": 19, "weather": "golden" },
+    { "id": "night-street", "x": 60, "y": 6, "z": 150, "yawDeg": 15, "pitchDeg": -6, "fovDeg": 60, "hour": 22, "weather": "clear" },
+    { "id": "fog-west", "x": 60, "y": 6, "z": 150, "yawDeg": 90, "pitchDeg": 2, "fovDeg": 60, "hour": 9, "weather": "karl-fog" },
+    { "id": "sf-civic-noon", "x": 114.5, "y": 2, "z": -55.5, "yawDeg": 90, "pitchDeg": 4, "fovDeg": 60, "hour": 13, "weather": "clear" },
+    { "id": "sf-civic-night", "x": 114.5, "y": 2, "z": -55.5, "yawDeg": 90, "pitchDeg": 4, "fovDeg": 60, "hour": 22, "weather": "clear" }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 6800,
+      "kind": "dialogue",
+      "line": "line.m.a1.06.antenna.1",
+      "speaker": "saint_static",
+      "startMs": 700
+    }
+  ],
+  "durationSec": 8,
+  "id": "m.a1.06.antenna",
+  "letterbox": true,
+  "marks": {
+    "hill": {
+      "at": [
+        37.7438,
+        -122.4153
+      ],
+      "yawDeg": 160
+    }
+  },
+  "schema": "director/1",
+  "seed": 689629535,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "hill",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "hill",
+    "yawDeg": 160
+  }
+}

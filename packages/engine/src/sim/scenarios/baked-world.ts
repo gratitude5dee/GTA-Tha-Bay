@@ -11,6 +11,8 @@ import { SIM_DT, type SimConfig, type SimProfile } from '@dv/shared';
 import { registerControlSystems } from '../control/index.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_STATE, packPending } from '../control/states.ts';
 import { ENGINE_PREFABS, PrefabRegistry } from '../prefabs/registry.ts';
+import { registerVehicleModule } from '../vehicle/index.ts';
+import { parkedCarsSystem, streamedParkedCars } from '../vehicle/parked.ts';
 import type { PhysicsScenario, ScenarioSetup } from '../sim-factory.ts';
 import { physicsDropConfig } from './physics-drop.ts';
 
@@ -37,6 +39,10 @@ export function setupBakedWorld(s: ScenarioSetup): void {
   registerControlSystems(core, backend);
   const prefabs = new PrefabRegistry(ecs, backend);
   prefabs.load(ENGINE_PREFABS);
+  // Vehicles (M03a1): the module, and a few cars along the road nearest to the spawn once the road graph is up.
+  registerVehicleModule(core, backend, prefabs);
+  // `BootPayload.config.parked === false` (the headless mission runs of M05c1): no parked cars, so a bot drives on an empty street
+  if (s.boot['parked'] !== false) core.addSystem(parkedCarsSystem({ backend, prefabs, services, groundHintY: spawn[1], plan: streamedParkedCars(spawn) }));
   prefabs.spawn('player.default', { pos: [...spawn], yaw }, 'player:0', {
     'Control.state': CONTROL_STATE.teleportPending,
     'Control.pending': packPending(CONTROL_PHASE.Waiting, CONTROL_OWNER.OnFoot),

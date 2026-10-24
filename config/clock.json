@@ -1,0 +1,23 @@
+{
+  "$comment": "Game clock and weather schedule of 01-engine-save-modes.md 'Time-of-day and weather clock' (M02b2). Design values: the owner may tune them. 172,800 half-seconds make one game day (7,200 per hour, 120 per minute); at rate 1 the clock advances 30 game seconds per real second. Weights are integers; hourBias multiplies a preset's weight when the change arrives inside [fromHour, toHour). The night and dark tables are piecewise-linear in the hour of day: [hour, value] pairs from 0 to 24 with equal ends.",
+  "schema": "clock/1",
+  "start": { "hour": 9, "weather": "clear" },
+  "intervalGameMinutes": { "min": 20, "max": 40 },
+  "defaultBlendGameMinutes": 8,
+  "presets": {
+    "clear": { "weight": 40, "fogBankM": 0, "rain": 0 },
+    "karl-fog": { "weight": 14, "fogBankM": 240, "rain": 0 },
+    "overcast": { "weight": 20, "fogBankM": 0, "rain": 0 },
+    "rain": { "weight": 12, "fogBankM": 0, "rain": 200 },
+    "smoke": { "weight": 4, "fogBankM": 0, "rain": 0 },
+    "golden": { "weight": 10, "fogBankM": 0, "rain": 0 }
+  },
+  "hourBias": [
+    { "preset": "karl-fog", "fromHour": 4, "toHour": 10, "mul": 3 },
+    { "preset": "karl-fog", "fromHour": 17, "toHour": 22, "mul": 3 },
+    { "preset": "golden", "fromHour": 17, "toHour": 20, "mul": 4 },
+    { "preset": "golden", "fromHour": 6, "toHour": 8, "mul": 2 }
+  ],
+  "night": [[0, 1], [5, 1], [6.5, 0.5], [8, 0], [18, 0], [19.5, 0.5], [21.5, 1], [24, 1]],
+  "dark": [[0, 1], [5, 1], [7, 0], [17.5, 0], [19.5, 1], [24, 1]]
+}

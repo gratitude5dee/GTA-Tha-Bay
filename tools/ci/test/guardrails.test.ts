@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GENAI_GUARDRAILS } from '../../../packages/shared/src/genai/guardrails.generated.ts';
-import { GENERATED_PATH, genaiSection, main, parseGuardrailsYaml, renderGenerated, YAML_PATH } from '../guardrails.ts';
+import { NPC_GUARDRAILS } from '../../../packages/shared/src/genai/npc-guardrails.generated.ts';
+import { GENERATED_PATH, NPC_GENERATED_PATH, genaiSection, main, npcSection, parseGuardrailsYaml, renderGenerated, renderNpcGenerated, YAML_PATH } from '../guardrails.ts';
 
 describe('config/guardrails.yaml', () => {
   it('holds the DL-OWN-01 program cap, the fal concurrency and the alarm fractions', () => {
@@ -22,5 +23,30 @@ describe('config/guardrails.yaml', () => {
     expect(() => genaiSection('genai:\n  programCapUsdMicros: 1.5\n  falConcurrency: 2\n  alarms: [1]\n')).toThrow(/integer/);
     expect(() => genaiSection('genai:\n  programCapUsdMicros: 5\n  falConcurrency: 2\n  alarms: [2]\n')).toThrow(/fractions/);
     expect(() => genaiSection('other:\n  a: 1\n')).toThrow(/genai/);
+  });
+});
+
+describe('config/guardrails.yaml npc section (M06a1)', () => {
+  const text = readFileSync(YAML_PATH, 'utf8');
+
+  it('holds the quota table of 09-backend-ops.md section 5.2', () => {
+    const n = npcSection(text);
+    expect(n.quotas.p0).toMatchObject({ turns: 150, perNpc: 40, voiceLines: 60, costCapUsdMicros: 50_000, builderText: 2, builderJob: 0 });
+    expect(n.quotas.linked).toMatchObject({ turns: 400, perNpc: 40, voiceLines: 200, costCapUsdMicros: 150_000, builderText: 10, builderJob: 0 });
+    expect(n.netMultiplier).toBe(4);
+    expect(n.playTokensPerNet).toBe(50);
+    expect(n.signupsPerNet).toBe(3);
+    expect(n.encounter).toMatchObject({ turnCap: 12, turnCapHard: 20, cadenceMs: 1500, idleCloseMs: 60_000, firstTokenMs: 4000 });
+  });
+
+  it('is mirrored exactly into the generated constant the Worker reads', () => {
+    expect(readFileSync(NPC_GENERATED_PATH, 'utf8')).toBe(renderNpcGenerated(npcSection(text)));
+    expect(NPC_GUARDRAILS.quotas.p0.turns).toBe(150);
+  });
+
+  it('rejects a missing or malformed section', () => {
+    expect(() => npcSection('genai:\n  a: 1\n')).toThrow(/npc section/);
+    expect(() => npcSection(text.replace('turns: 150', 'turns: 1.5'))).toThrow(/npc.quotas.p0.turns/);
+    expect(() => npcSection(text.replace('turnCap: 12', 'turnCap: 30'))).toThrow(/turnCapHard/);
   });
 });

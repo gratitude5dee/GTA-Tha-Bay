@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "be3c1a9c39f91ae6f0a91399f1a14f3f7d4d676077440d482bca4bf386533e75",
+  "paths": [
+    "assets/src/building/lm.fort-point/desktop.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "9aa0dff066b4610e53ed5bab6852e55855f2b3c2ec76611cc15bcb3c1db5b8ef"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

@@ -1,0 +1,10 @@
+{
+  "rule": "V11",
+  "expect": [
+    "V11"
+  ],
+  "note": "hour 25 is not an hour",
+  "sourcePatch": {
+    "/hour": 25
+  }
+}

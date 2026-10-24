@@ -1,0 +1,854 @@
+{
+ "schema": 1,
+ "contentVersion": "8b23cbc3b767",
+ "balanceVersion": "91edb7743e04",
+ "active": {
+  "setup": {
+   "seed": 1,
+   "sector": "b2b-saas",
+   "thesis": "lean-times",
+   "founder": "hustler",
+   "coFounder": false,
+   "startWeekOfYear": 7,
+   "hardcore": false,
+   "preset": "standard",
+   "contentVersion": "8b23cbc3b767",
+   "balanceVersion": "91edb7743e04"
+  },
+  "choices": [
+   {
+    "week": 0,
+    "seq": 0,
+    "cmd": {
+     "t": "setAllocation",
+     "features": 70,
+     "refactor": 20,
+     "infra": 10
+    }
+   },
+   {
+    "week": 5,
+    "seq": 0,
+    "cmd": {
+     "t": "hireOffer",
+     "candidateId": "c0-0",
+     "salaryYr": 19960655,
+     "optionBp": 50
+    }
+   },
+   {
+    "week": 8,
+    "seq": 0,
+    "cmd": {
+     "t": "startRaise",
+     "kind": "safe",
+     "targetCents": 15000000
+    }
+   },
+   {
+    "week": 9,
+    "seq": 0,
+    "cmd": {
+     "t": "scheduleMeeting",
+     "vcId": "vc-accelerator-batch"
+    }
+   },
+   {
+    "week": 9,
+    "seq": 1,
+    "cmd": {
+     "t": "accept",
+     "meetingId": "m1"
+    }
+   },
+   {
+    "week": 25,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 4,
+     "choiceId": "apply"
+    }
+   },
+   {
+    "week": 28,
+    "seq": 0,
+    "cmd": {
+     "t": "setMarketing",
+     "perWeek": 20000
+    }
+   },
+   {
+    "week": 60,
+    "seq": 0,
+    "cmd": {
+     "t": "setFocus",
+     "focus": "growth"
+    }
+   },
+   {
+    "week": 63,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 12,
+     "choiceId": "hold"
+    }
+   },
+   {
+    "week": 70,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 15,
+     "choiceId": "shrug"
+    }
+   },
+   {
+    "week": 98,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 23,
+     "choiceId": "hold"
+    }
+   },
+   {
+    "week": 99,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 24,
+     "choiceId": "apply"
+    }
+   },
+   {
+    "week": 105,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 26,
+     "choiceId": "let_it_ride"
+    }
+   },
+   {
+    "week": 109,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 27,
+     "choiceId": "stay_quiet"
+    }
+   },
+   {
+    "week": 130,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 31,
+     "choiceId": "let_it_ride"
+    }
+   },
+   {
+    "week": 135,
+    "seq": 0,
+    "cmd": {
+     "t": "resolveEvent",
+     "iid": 34,
+     "choiceId": "shrug"
+    }
+   }
+  ],
+  "snapshot": {
+   "week": 150,
+   "state": {
+    "v": 1,
+    "setup": {
+     "seed": 1,
+     "sector": "b2b-saas",
+     "thesis": "lean-times",
+     "founder": "hustler",
+     "coFounder": false,
+     "startWeekOfYear": 7,
+     "hardcore": false,
+     "preset": "standard",
+     "contentVersion": "8b23cbc3b767",
+     "balanceVersion": "91edb7743e04"
+    },
+    "week": 150,
+    "phase": "launched",
+    "awaiting": null,
+    "cash": 66228212,
+    "users": 1043.1612457061826,
+    "payingUsers": 612.944914558547,
+    "mrr": 11462070,
+    "arpuMonth": 17000,
+    "churnMonthly": 0.028,
+    "cac": 41179.91717578203,
+    "marketing": 20000,
+    "priceLevel": "standard",
+    "mvpProgress": 208.49228571428577,
+    "featurePoints": 777.8388961363858,
+    "productQuality": 59.88681763168509,
+    "techDebt": 37.03319559285786,
+    "hype": 48.48119798477317,
+    "reputation": 1.6000000000000003,
+    "climate": -0.15184718100271188,
+    "morale": 63.527125017277875,
+    "founderMorale": 69,
+    "allocation": {
+     "features": 70,
+     "refactor": 20,
+     "infra": 10
+    },
+    "focus": "growth",
+    "crunch": false,
+    "office": "garage",
+    "team": [
+     {
+      "id": "e1",
+      "role": "eng",
+      "skill": 7,
+      "salaryYr": 19960655,
+      "optionShares": 50000,
+      "hiredWeek": 7,
+      "morale": 63.527125017277875,
+      "name": "Dev Alder"
+     }
+    ],
+    "market": [
+     {
+      "id": "c144-4",
+      "role": "design",
+      "skill": 6,
+      "askYr": 15568478,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-5",
+      "role": "design",
+      "skill": 7,
+      "askYr": 16983794,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-7",
+      "role": "growth",
+      "skill": 7,
+      "askYr": 15568478,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-8",
+      "role": "growth",
+      "skill": 4,
+      "askYr": 11676358,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-9",
+      "role": "sales",
+      "skill": 10,
+      "askYr": 22998888,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-10",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13799333,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-12",
+      "role": "ops",
+      "skill": 5,
+      "askYr": 11794301,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c144-13",
+      "role": "ops",
+      "skill": 7,
+      "askYr": 14153162,
+      "expiresWeek": 150
+     },
+     {
+      "id": "c145-0",
+      "role": "eng",
+      "skill": 10,
+      "askYr": 24776672,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-1",
+      "role": "eng",
+      "skill": 5,
+      "askYr": 16517781,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-3",
+      "role": "design",
+      "skill": 7,
+      "askYr": 16989718,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-4",
+      "role": "design",
+      "skill": 4,
+      "askYr": 12742289,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-5",
+      "role": "design",
+      "skill": 6,
+      "askYr": 15573908,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-6",
+      "role": "growth",
+      "skill": 7,
+      "askYr": 15573908,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-7",
+      "role": "growth",
+      "skill": 6,
+      "askYr": 14276082,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c145-10",
+      "role": "sales",
+      "skill": 1,
+      "askYr": 9202764,
+      "expiresWeek": 151
+     },
+     {
+      "id": "c146-0",
+      "role": "eng",
+      "skill": 3,
+      "askYr": 13218741,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-1",
+      "role": "eng",
+      "skill": 6,
+      "askYr": 18175768,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-3",
+      "role": "design",
+      "skill": 6,
+      "askYr": 15579230,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-4",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14162936,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-6",
+      "role": "growth",
+      "skill": 7,
+      "askYr": 15579230,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-7",
+      "role": "growth",
+      "skill": 4,
+      "askYr": 11684423,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-9",
+      "role": "sales",
+      "skill": 1,
+      "askYr": 9205909,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-10",
+      "role": "sales",
+      "skill": 3,
+      "askYr": 12274545,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-12",
+      "role": "ops",
+      "skill": 4,
+      "askYr": 10622202,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c146-13",
+      "role": "ops",
+      "skill": 7,
+      "askYr": 14162936,
+      "expiresWeek": 152
+     },
+     {
+      "id": "c147-1",
+      "role": "eng",
+      "skill": 4,
+      "askYr": 14876062,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-5",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14167678,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-6",
+      "role": "growth",
+      "skill": 5,
+      "askYr": 12987038,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-7",
+      "role": "growth",
+      "skill": 4,
+      "askYr": 11688334,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-10",
+      "role": "sales",
+      "skill": 8,
+      "askYr": 19952813,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-11",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13813486,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-12",
+      "role": "ops",
+      "skill": 1,
+      "askYr": 7083839,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c147-13",
+      "role": "ops",
+      "skill": 6,
+      "askYr": 12987038,
+      "expiresWeek": 153
+     },
+     {
+      "id": "c148-1",
+      "role": "eng",
+      "skill": 6,
+      "askYr": 18187816,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-3",
+      "role": "design",
+      "skill": 10,
+      "askYr": 21258486,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-4",
+      "role": "design",
+      "skill": 5,
+      "askYr": 14172324,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-5",
+      "role": "design",
+      "skill": 9,
+      "askYr": 19841254,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-7",
+      "role": "growth",
+      "skill": 3,
+      "askYr": 10393038,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-10",
+      "role": "sales",
+      "skill": 4,
+      "askYr": 13818016,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c148-11",
+      "role": "sales",
+      "skill": 6,
+      "askYr": 16888686,
+      "expiresWeek": 154
+     },
+     {
+      "id": "c149-1",
+      "role": "eng",
+      "skill": 4,
+      "askYr": 14885721,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-2",
+      "role": "eng",
+      "skill": 3,
+      "askYr": 13231752,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-3",
+      "role": "design",
+      "skill": 4,
+      "askYr": 12759190,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-7",
+      "role": "growth",
+      "skill": 6,
+      "askYr": 14295018,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-9",
+      "role": "sales",
+      "skill": 6,
+      "askYr": 16894112,
+      "expiresWeek": 155
+     },
+     {
+      "id": "c149-12",
+      "role": "ops",
+      "skill": 6,
+      "askYr": 12995471,
+      "expiresWeek": 155
+     }
+    ],
+    "offers": [],
+    "capTable": {
+     "holders": [
+      {
+       "id": "f1",
+       "kind": "founder",
+       "shares": {
+        "common": 9000000
+       }
+      }
+     ],
+     "pool": {
+      "authorized": 1000000,
+      "granted": 50000
+     },
+     "safes": [
+      {
+       "id": "safe-m1",
+       "investorId": "vc:vc-accelerator-batch",
+       "amount": 14375000,
+       "signedWeek": 11,
+       "type": "cap",
+       "postMoneyCap": 43464852
+      }
+     ],
+     "rounds": [],
+     "totalFd": 10000000
+    },
+    "meetings": [
+     {
+      "id": "m1",
+      "raiseId": "r8safe",
+      "vcId": "vc-accelerator-batch",
+      "kind": "safe",
+      "mood": 50,
+      "startedWeek": 9,
+      "closeWeek": 11,
+      "clamped": [],
+      "phase": "closed",
+      "envelope": {
+       "vcId": "vc-accelerator-batch",
+       "round": "safe",
+       "validUntilWeek": 11,
+       "amount": [
+        10000000,
+        18750000
+       ],
+       "preMoney": [
+        36541902,
+        50387802
+       ],
+       "poolTargetBp": [
+        0,
+        0
+       ],
+       "boardSeat": false,
+       "liq": {
+        "multiple": 1,
+        "participating": false
+       },
+       "fomoBonusBp": 0,
+       "midpoint": {
+        "amount": 14375000,
+        "preMoney": 43464852,
+        "poolTargetBp": 0,
+        "boardSeat": false,
+        "liq": {
+         "multiple": 1,
+         "participating": false
+        }
+       },
+       "walkAway": null,
+       "safeCap": [
+        36541902,
+        50387802
+       ]
+      },
+      "offer": {
+       "amount": 14375000,
+       "preMoney": 43464852,
+       "poolTargetBp": 0,
+       "boardSeat": false,
+       "liq": {
+        "multiple": 1,
+        "participating": false
+       }
+      }
+     }
+    ],
+    "termSheets": [],
+    "raise": null,
+    "board": {
+     "seats": [
+      "founder"
+     ],
+     "founderControl": true,
+     "missedTargets": 0,
+     "nextMeetingWeek": null,
+     "lastTargetArrGrowth": 0
+    },
+    "events": {
+     "nextIid": 39,
+     "nextEid": 26,
+     "inbox": [],
+     "pending": [
+      {
+       "dueWeek": 185,
+       "defId": "cul.ai_hype_crash",
+       "depth": 1,
+       "fromIid": 38
+      }
+     ],
+     "active": [
+      {
+       "eid": 22,
+       "iid": 36,
+       "spec": {
+        "k": "metric",
+        "metric": "arpuMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.1
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.1,
+       "startWeek": 140,
+       "endWeek": 152,
+       "strength": 1
+      },
+      {
+       "eid": 23,
+       "iid": 36,
+       "spec": {
+        "k": "metric",
+        "metric": "payRateMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.05
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.05,
+       "startWeek": 140,
+       "endWeek": 152,
+       "strength": 1
+      },
+      {
+       "eid": 25,
+       "iid": 38,
+       "spec": {
+        "k": "metric",
+        "metric": "multipleMul",
+        "op": "mul",
+        "dist": {
+         "k": "fixed",
+         "v": 1.2
+        },
+        "durationWeeks": 12,
+        "decay": "none"
+       },
+       "sampled": 1.2,
+       "startWeek": 147,
+       "endWeek": 159,
+       "strength": 1
+      }
+     ],
+     "cooldownUntil": {
+      "nat.wildfire_smoke": 93,
+      "mkt.rate_cut": 95,
+      "grp:rates": 95,
+      "nat.fog_week": 94,
+      "pol.city_grant": 150,
+      "mkt.ipo_window": 133,
+      "mkt.rate_hike": 63,
+      "cul.ai_hype_peak": 199,
+      "cul.parade_week": 110,
+      "mkt.down_round_wave": 94,
+      "biz.competitor_launch": 117,
+      "mkt.crash": 117,
+      "*severe": 73,
+      "biz.outage": 144,
+      "biz.viral_launch": 156,
+      "biz.scaling_strain": 87,
+      "nat.atmospheric_river": 150,
+      "biz.price_war": 122,
+      "cul.meme_moment": 141,
+      "biz.security_incident": 134,
+      "biz.enterprise_whale": 160,
+      "cul.backlash_wave": 158,
+      "nat.quake_minor": 171
+     },
+     "counts": {
+      "nat.wildfire_smoke": 3,
+      "mkt.rate_cut": 2,
+      "nat.fog_week": 3,
+      "pol.city_grant": 2,
+      "pol.city_grant.c.apply": 2,
+      "mkt.ipo_window": 2,
+      "mkt.rate_hike": 1,
+      "cul.ai_hype_peak": 2,
+      "cul.parade_week": 1,
+      "mkt.down_round_wave": 2,
+      "biz.competitor_launch": 2,
+      "biz.competitor_launch.c.hold": 2,
+      "mkt.crash": 1,
+      "biz.outage": 2,
+      "biz.outage.c.shrug": 2,
+      "biz.viral_launch": 2,
+      "biz.scaling_strain": 1,
+      "nat.atmospheric_river": 3,
+      "biz.price_war": 1,
+      "cul.meme_moment": 2,
+      "cul.meme_moment.c.let_it_ride": 2,
+      "biz.security_incident": 1,
+      "biz.security_incident.c.stay_quiet": 1,
+      "biz.enterprise_whale": 2,
+      "cul.backlash_wave": 2,
+      "nat.quake_minor": 1
+     },
+     "totals": {
+      "mul": {
+       "arpuMul": 1.1,
+       "payRateMul": 1.05,
+       "multipleMul": 1.2
+      },
+      "add": {}
+     }
+    },
+    "flags": {
+     "netBurn": -2114750,
+     "empSeq": 1,
+     "lastRaiseEnd": 11,
+     "lastRoundKindIx": 0
+    },
+    "mrrHistory": [
+     6827020,
+     7009085,
+     7195521,
+     7387450,
+     8760717,
+     8995661,
+     9237542,
+     9486570,
+     9742965,
+     10005995,
+     10276831,
+     10660860,
+     11055837,
+     11462070
+    ],
+    "profitableStreak": 0,
+    "negativeCashWeeks": 0,
+    "dividendEarnedCents": 0,
+    "result": null
+   },
+   "hash": "f3412a807bd2cab7"
+  }
+ },
+ "runs": [
+  {
+   "setup": {
+    "seed": 12648430,
+    "sector": "b2b-saas",
+    "thesis": "talent-war",
+    "founder": "engineer",
+    "coFounder": false,
+    "startWeekOfYear": 0,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
+   },
+   "result": {
+    "kind": "ramen",
+    "win": true,
+    "week": 190,
+    "founderPayoutCents": 11049223146,
+    "exitValueCents": 17387554756,
+    "score": 110517,
+    "tier": "ramen",
+    "arrCents": 1344686808,
+    "headcountAtEnd": 2,
+    "legacyTags": 0,
+    "stateHash": "0976ec321563d7e7"
+   },
+   "savedAt": 0
+  }
+ ],
+ "bestScores": {
+  "acq": 0,
+  "unicorn": 0,
+  "ipo": 0,
+  "ramen": 110517
+ },
+ "unlockedSectors": [
+  "b2b-saas"
+ ],
+ "hardcore": true,
+ "dividendEarnedCents": 1000000
+}

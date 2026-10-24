@@ -15,10 +15,14 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 import { args, repoRoot } from './run.ts';
 import { ASSET_COUNT_LIMIT, ASSET_FILE_LIMIT_BYTES, MIB, assetLimitFailures, assetStats, listFiles } from './lib/asset-limits.ts';
 import { checkModuleIds } from './lib/module-ids.ts';
+
+/** The shell chunk budget of 10-ui.md section 2.7: 120 KiB gzip. */
+const SHELL_GZIP_LIMIT_BYTES = 120 * 1024;
 
 const PRECACHE_LIMIT_BYTES = 6 * MIB; // matches maximumFileSizeToCacheInBytes in apps/web/vite.config.ts
 
@@ -51,14 +55,15 @@ async function isListening(u: URL): Promise<boolean> {
   });
 }
 
-async function webServerCommand(): Promise<{ command: string; timeout: number }> {
-  const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as {
-    default: { webServer?: { command: string; timeout?: number } | Array<{ command: string; timeout?: number }> };
-  };
+type WebServer = { command: string; timeout?: number; env?: Record<string, string> };
+
+/** The Playwright webServer command, timeout and env (the env pins the country the local Worker sees, BD-FIX-CI-02). */
+async function webServerCommand(): Promise<{ command: string; timeout: number; env: Record<string, string> }> {
+  const mod = (await import(path.join(repoRoot, 'playwright.config.ts'))) as { default: { webServer?: WebServer | WebServer[] } };
   const ws = mod.default.webServer;
   const first = Array.isArray(ws) ? ws[0] : ws;
   if (!first) throw new Error('playwright.config.ts has no webServer');
-  return { command: first.command, timeout: first.timeout ?? 120_000 };
+  return { command: first.command, timeout: first.timeout ?? 120_000, env: first.env ?? {} };
 }
 
 async function withServer<T>(url: string, fn: () => Promise<T>): Promise<T> {
@@ -67,9 +72,9 @@ async function withServer<T>(url: string, fn: () => Promise<T>): Promise<T> {
     console.log(`reusing the server already listening on ${u.host}`);
     return fn();
   }
-  const { command, timeout } = await webServerCommand();
+  const { command, timeout, env } = await webServerCommand();
   console.log(`starting: ${command}`);
-  const child = spawn('sh', ['-c', command], { cwd: repoRoot, detached: true, stdio: ['ignore', 'inherit', 'inherit'] });
+  const child = spawn('sh', ['-c', command], { cwd: repoRoot, detached: true, env: { ...process.env, ...env }, stdio: ['ignore', 'inherit', 'inherit'] });
   const exited = new Promise<number | null>((resolve) => child.once('exit', (code) => resolve(code)));
   try {
     const deadline = Date.now() + timeout;
@@ -247,6 +252,11 @@ function distDir(value: string | undefined): string {
   return dir;
 }
 
+/** Identifiers of the engine QA harness (M04d, AC-9). */
+export const QA_HARNESS_IDS = ['CanonicalRunner', 'BotDriver', 'registerBot'] as const;
+/** The story autoplayer and the headless missions scenario (M05a2, AC-11): strings in their messages, absent from production chunks. */
+export const STORY_QA_IDS = ['story.autoplayer', "suite 'missions'"] as const;
+
 function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): void {
   console.log(`check:bundle ${path.relative(repoRoot, dist)}`);
   const files = listFiles(dist);
@@ -271,14 +281,40 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
     expect(mirrored.length === 0, 'media-local is not in the precache', mirrored.join(', '));
   }
 
+  // M04b1 (AC-13): the shell chunk (state machine, registry, kit, i18n and Preact) stays at 120 KiB gzip or less, and every page is a lazy chunk.
+  const shellChunks = files.filter((f) => /\/assets\/shell-[^/]+\.js$/.test(f));
+  const pageChunks = files.filter((f) => /\/assets\/page-[^/]+\.js$/.test(f));
+  // A dist without any built script (the stub of the third_party test) has no shell to measure.
+  if (files.some((f) => /\/assets\/[^/]+\.js$/.test(f))) {
+    expect(shellChunks.length === 1, 'one shell chunk', `found ${shellChunks.length}`);
+    for (const f of shellChunks) {
+      const gz = gzipSync(readFileSync(f)).length;
+      expect(gz <= SHELL_GZIP_LIMIT_BYTES, `shell chunk <= 120 KiB gzip (${(gz / 1024).toFixed(1)} KiB)`, path.relative(dist, f));
+    }
+    expect(pageChunks.length >= 4, `pages are separate lazy chunks (${pageChunks.length})`, 'fewer than 4 page chunks');
+  }
+
   const js = files.filter((f) => f.endsWith('.js'));
   const hasBridge = js.some((f) => readFileSync(f, 'utf8').includes('__dvBridge'));
   const hasIwer = js.some((f) => readFileSync(f, 'utf8').includes('installRuntime'));
   console.log(`        build kind: ${hasBridge ? 'qa' : 'production'}`);
+  // M04d: the QA harness (CanonicalRunner, BotDriver, registerBot) is in QA builds only. The names are minified away as identifiers,
+  // so the harness carries them in its error messages; a production chunk must hold none, a QA build must hold them.
+  const harness = QA_HARNESS_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+  if (hasBridge) expect(harness.length === QA_HARNESS_IDS.length, 'the QA build contains the QA harness', `missing: ${QA_HARNESS_IDS.filter((id) => !harness.includes(id)).join(', ')}`);
+  else expect(harness.length === 0, 'production chunks contain no CanonicalRunner, BotDriver or registerBot', `found: ${harness.join(', ')}`);
+  if (!hasBridge) {
+    const story = STORY_QA_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+    expect(story.length === 0, 'production chunks contain no story autoplayer or missions scenario', `found: ${story.join(', ')}`);
+    expect(!existsSync(path.join(dist, 'qa', 'mission-preview.html')), 'production build has no mission preview page', 'dist/qa/mission-preview.html exists');
+  }
   if (forbidQa) {
     expect(!hasBridge, 'production build has no __dvBridge', 'QA bridge found in a production build');
     expect(!hasIwer, 'production build has no IWER emulator', 'IWER found in a production build');
   }
+  // M06a3: the Anthropic SDK runs in the Worker only; no build of the client, QA or production, may carry it (an Anthropic key is check:secrets').
+  const hasSdk = js.some((f) => readFileSync(f, 'utf8').includes('@anthropic-ai/sdk'));
+  expect(!hasSdk, 'no @anthropic-ai/sdk in the client bundle', 'the Anthropic SDK was found in a client chunk');
   // M00f: nothing under third_party/ may be bundled (DL-618). The build writes the module-id list.
   const bad = checkModuleIds(repoRoot, moduleIdsFile ? path.resolve(repoRoot, moduleIdsFile) : undefined);
   expect(bad.length === 0, 'no bundled module under third_party/', bad.join('; '));

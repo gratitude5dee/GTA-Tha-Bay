@@ -20,6 +20,7 @@ import { parseArgs } from 'node:util';
 import { collectChanges, evaluate } from './check-do-migrations.ts';
 import { decideDoLifecycle, type GitRun } from './deploy-decide.ts';
 import { planProd, readTextIfExists, runProd, type Exec, type ProdOptions } from './deploy-prod.ts';
+import { checkOdblOffer, prepareWorldRelease, releaseKeyOf, type ReleaseIo } from './world-release.ts';
 import { args, repoRoot } from './run.ts';
 
 export const PREVIEW_URL_FILE = 'test-results/preview-url.txt';
@@ -214,19 +215,42 @@ function ensureDist(): void {
   if (res.status !== 0) throw new Error('pnpm build failed');
 }
 
+/**
+ * The two wrangler calls of deploy:preview. The `versions upload` fallback enforces staging's `secrets.required` (observed on PR #6), so
+ * when the environment holds any Worker secret its file rides on both paths (`--secrets-file`, BD-FIX-CI5-S02).
+ */
+export function previewCommands(name: string, secretsFile: string | null): { first: string[]; second: string[] } {
+  const secrets = secretsFile ? ['--secrets-file', secretsFile] : [];
+  return {
+    first: ['preview', '--env', 'staging', '--name', name, '--json', ...secrets],
+    second: ['versions', 'upload', '--env', 'staging', '--preview-alias', name, ...secrets],
+  };
+}
+
 function preview(name: string): number {
   ensureDist();
   mkdirSync(path.join(repoRoot, 'test-results'), { recursive: true });
+  const { json, missing } = buildSecretsJson(process.env);
+  if (missing.length > 0) console.warn(`deploy:preview: required Worker secrets not in the environment: ${missing.join(', ')} (the Preview fails without them unless the Worker already holds them)`);
+  const secretsFile = json === '{}\n' ? null : path.join(process.env['RUNNER_TEMP'] ?? os.tmpdir(), 'preview-secrets.json');
+  if (secretsFile) writeFileSync(secretsFile, json, { mode: 0o600 });
+  try {
+    return previewWith(name, previewCommands(name, secretsFile));
+  } finally {
+    if (secretsFile) rmSync(secretsFile, { force: true });
+  }
+}
 
+function previewWith(name: string, cmd: { first: string[]; second: string[] }): number {
   // Primary path: Workers Preview of the staging Worker (open beta in wrangler 4.151.1).
-  const first = wrangler(['preview', '--env', 'staging', '--name', name, '--json']);
+  const first = wrangler(cmd.first);
   let url = first.status === 0 ? parsePreviewUrl(first.out) : null;
   let pathTaken = 'wrangler-preview';
 
   if (!url) {
     // CI-R01 fallback: a Version Preview URL on the staging Worker, which holds no production data.
     console.warn(`wrangler preview did not yield a URL (exit ${first.status}); falling back to versions upload --preview-alias ${name}`);
-    const second = wrangler(['versions', 'upload', '--env', 'staging', '--preview-alias', name]);
+    const second = wrangler(cmd.second);
     if (second.status !== 0) {
       console.error('deploy:preview failed on both paths');
       return 1;
@@ -282,6 +306,25 @@ export function resolveDoLifecycle(env: NodeJS.ProcessEnv, values: ProdFlags): b
   return decision.doLifecycle;
 }
 
+/**
+ * Worker secrets that ride with a version upload (`--secrets-file`, DL-679). Each is read from the environment (GitHub repository secrets in CI)
+ * and written to `$RUNNER_TEMP/secrets.json` with mode 0600; one that is absent or empty is left out, never written as an empty string.
+ * `PLAY_TOKEN_HMAC` and `QUOTA_NET_SALT_SECRET` are in the Worker's `secrets.required` (M06a1), `PLAY_TOKEN_HMAC_PREV` is optional (rotation window).
+ * `SUPABASE_SECRET_KEY` (M05d, `sb_secret_…`) is in `secrets.required` of both configs; it rides here too, so a deploy never depends on a hand-set secret.
+ * `ANTHROPIC_API_KEY` (M06a3, workspace `npc-runtime`) is required by the production config only; staging runs recorded streams.
+ */
+export const WORKER_SECRETS = ['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY'] as const;
+const REQUIRED_WORKER_SECRETS: readonly (typeof WORKER_SECRETS)[number][] = ['PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY'];
+
+export function buildSecretsJson(env: NodeJS.ProcessEnv): { json: string; missing: string[] } {
+  const out: Record<string, string> = {};
+  for (const name of WORKER_SECRETS) {
+    const v = env[name];
+    if (v !== undefined && v !== '') out[name] = v;
+  }
+  return { json: `${JSON.stringify(out)}\n`, missing: REQUIRED_WORKER_SECRETS.filter((n) => out[n] === undefined) };
+}
+
 /** Options for the versions-based deploy; exported so tests and --dry-run share them. */
 export function prodOptions(env: NodeJS.ProcessEnv, values: { env?: string | undefined; url?: string | undefined; 'do-lifecycle'?: boolean | undefined }): ProdOptions {
   const tmp = env['RUNNER_TEMP'] ?? os.tmpdir();
@@ -318,12 +361,26 @@ function prod(o: ProdOptions): number {
     process.stderr.write(res.stderr);
     return { status: res.status ?? 1, out: `${res.stdout}${res.stderr}` };
   };
+  const key = releaseKeyOf(o.env);
+  const io: ReleaseIo = {
+    read: (rel) => (existsSync(path.join(repoRoot, rel)) ? readFileSync(path.join(repoRoot, rel), 'utf8') : null),
+    write: (rel, text) => {
+      mkdirSync(path.dirname(path.join(repoRoot, rel)), { recursive: true });
+      writeFileSync(path.join(repoRoot, rel), text);
+    },
+  };
   const result = runProd(o, {
     exec,
+    world: {
+      before: () => prepareWorldRelease(io, key, (l) => console.log(`deploy:prod ${l}`)),
+      afterBuild: () => checkOdblOffer(io, key, 'apps/web/dist/credits.json'),
+    },
     build: () => spawnSync('pnpm', ['build'], { cwd: repoRoot, stdio: 'inherit' }).status ?? 1,
     writeSecrets: (file) => {
       mkdirSync(path.dirname(file), { recursive: true });
-      writeFileSync(file, '{}\n', { mode: 0o600 });
+      const { json, missing } = buildSecretsJson(process.env);
+      if (missing.length > 0) console.warn(`deploy:prod: required Worker secrets not in the environment: ${missing.join(', ')} (versions upload fails without them unless the Worker already holds them)`);
+      writeFileSync(file, json, { mode: 0o600 });
     },
     readOutputFile: readTextIfExists,
     configUrl: () => {
@@ -345,10 +402,26 @@ function prod(o: ProdOptions): number {
 const CUSTOM_DOMAIN_NOTE = `deploy:bootstrap: no custom domain yet (Q-15). Once the domain is chosen, add to the top-level config
 and set workers_dev to false there:
   "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ]
-and replace the HOST_* vars (they hold workers.dev placeholders). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
+and replace the HOST_* vars (HOST_MEDIA is the Worker's own /media route, DL-713; HOST_UGC is still a placeholder; a media.<domain> replaces the route's value). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
+
+/** Queues of the web Worker (M06a1); `wrangler queues create` is repeated safely, an existing queue is not an error. */
+export const QUEUE_NAMES = ['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging'] as const;
+
+function ensureQueues(): number {
+  for (const name of QUEUE_NAMES) {
+    const res = wrangler(['queues', 'create', name]);
+    if (res.status !== 0 && !/already exists|\b11009\b/i.test(res.out)) {
+      console.error(`deploy:bootstrap: could not create queue ${name}`);
+      return res.status || 1;
+    }
+  }
+  return 0;
+}
 
 function bootstrap(): number {
   ensureDist();
+  const queues = ensureQueues();
+  if (queues !== 0) return queues;
   console.log('deploy:bootstrap: first deploy of tha-bay-web-staging, then tha-bay-web (idempotent)');
   const staging = wrangler(['deploy', '--env', 'staging']);
   if (staging.status !== 0) return staging.status;

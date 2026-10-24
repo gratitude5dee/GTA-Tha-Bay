@@ -1,8 +1,11 @@
 import {
-  ClientAction, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
+  ClientAction, type ControlsSettings, type JsonValue, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
   type SimProfile,
 } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
+import { ViewModelStore } from '../ui/view-model-source.ts';
+import { UiCommandSender } from '../ui/command-sender.ts';
+import type { ModesPanel } from '../../debug/modes-panel.ts';
 import { spawnSimWorker } from './spawn-worker.ts';
 import { BAKED_WORLD, bakedWorldConfig } from '../../sim/scenarios/baked-world.ts';
 import { CIVIC_GRAYBOX, civicGrayboxConfig } from '../../sim/scenarios/civic-graybox.ts';
@@ -10,26 +13,40 @@ import { physicsDropConfig } from '../../sim/scenarios/physics-drop.ts';
 import { WALK_DROP, walkDropConfig } from '../../sim/scenarios/walk-drop.ts';
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { PlayerSide } from '../../sim/publish.ts';
+import type { PromptSide, VehicleSide } from '../snapshot/reader.ts';
 import { SnapshotView } from '../snapshot/reader.ts';
 import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
+import { CONTROL_OWNER } from '../../sim/control/states.ts';
+import type { PursuitSide } from '../snapshot/reader.ts';
+import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
   GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
   type GamepadLike, type PointerLockTarget, type TouchLayout,
 } from '../input/index.ts';
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
+import racingTouchLayoutJson from '../../../../../config/input/touch/vehicle-racing.json';
 import { ENGINE_TIERS } from '../anim/lod.ts';
-import { AUDIO_CONFIG, AudioServiceImpl, unlockOnFirstGesture, type AudioContextLike } from '../audio/audio-service.ts';
+import { AUDIO_CONFIG, AudioServiceImpl, type AudioContextLike } from '../audio/audio-service.ts';
+import { createFirstGestureUnlock, type FirstGestureUnlock } from '../../platform/media/first-gesture.ts';
 import type { GrayboxInfo, GrayboxPacks, GrayboxPackUrls, GrayboxWorld } from '../graybox/load.ts';
 import type { TouchOverlay } from '../input/touch-overlay.ts';
 import type { FreeCam } from '../debug/free-cam.ts';
-import type { SimPanel } from '../debug/sim-panel.ts';
+import type { Inspector, InspectReply } from '../debug/inspector.ts';
+import type { PhysicsDraw, PhysicsShapeInfo } from '../debug/physics-draw.ts';
+import type { SimPanel, SkyControls } from '../debug/sim-panel.ts';
 import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
+import type { XrPanelsLite } from '../xr/panels.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
 import type { WorldBoot } from './world-layer.ts';
 
 export interface BootEngineOptions {
+  /**
+   * Every batch of sim events the page receives, oldest first (M05b2: the CutscenePlayer listens for `cut.request` and `cut.done`).
+   * Set it before the first tick: a mission that starts at boot emits its request before the engine handle exists.
+   */
+  onSimEvents?: (events: readonly { t: string; tick: number; n?: number; s?: string }[]) => void;
   /** Where the canvas and the "Recovering..." banner go. */
   container: HTMLElement;
   qa: boolean;
@@ -67,8 +84,32 @@ export interface BootEngineOptions {
   play?: boolean;
   /** Called when the Pause action toggles the pause (single player pauses the sim). */
   onPausedChange?: (paused: boolean) => void;
+  /**
+   * QA `?mission=<id>` (M05a1): the mission bundle the page loaded (its IR, DirectorScripts and line text). The story mode starts
+   * it when the sim boots. Ignored unless `qa` and `flags.mission` are set.
+   */
+  mission?: Record<string, unknown>;
+  /**
+   * The story's mission catalog (M05c1): the compiled missions, their directors and line texts. The story mode reads it from the boot
+   * payload (`config.story`): its Jobs list, the start markers and the auto trigger. Any build.
+   */
+  story?: Record<string, unknown>;
+  /** The Phone action was pressed (`client.Phone`); the shell opens the phone (M04b2). */
+  onPhone?: () => void;
   /** Show the touch layer on any device (`?touch=1`). */
   forceTouch?: boolean;
+  /** Each toast the sim raised is handed here as it arrives (M04b1: the shell draws them). */
+  onToast?: (t: ToastRecord) => void;
+  /** Telemetry the sim queued (`mode.enter`, `mode.exit`, `unlock.emit`; M04a2) is handed here with its registry props. */
+  onTelemetry?: (name: string, props: Record<string, string | number | boolean>) => void;
+}
+
+/** A toast the sim-side UiBridge raised; the shell (M04b1) draws it, the QA panel lists it. */
+export interface ToastRecord {
+  id: string;
+  kind: string;
+  text: string;
+  params?: Record<string, string | number>;
 }
 
 export interface EngineObservation {
@@ -84,6 +125,13 @@ export interface EngineObservation {
   crashed: string | null;
   recovering: boolean;
   paused: boolean;
+  /** The sim's own word (its newest stats report): the frame group that report closes ran paused. The page's `paused` reaches it with the next frame signal. */
+  simPaused: boolean;
+  /**
+   * From the same report: `FrameSignal.frame` of the first paused signal of the pause in force, null while the sim runs. Compare with
+   * `frames` (signals sent so far): the pause reached the sim with signal `simPausedSince` (BD-FIX-CI10-R03).
+   */
+  simPausedSince: number | null;
   rebases: number;
   eventsDropped: number;
   commandsDropped: number;
@@ -108,6 +156,16 @@ export interface EngineObservation {
   xr: { supported: boolean; presenting: boolean; frames: number; sessions: number } | null;
   /** Chunks the sim has added colliders for, from the `world.chunk` events. */
   chunksLoaded: number;
+  /** The vehicle the local player drives (side key `veh`, M03a1); null on foot. */
+  vehicle: VehicleSide | null;
+  /** The interaction prompt in force (side key `prompt`); null when nothing is offered. */
+  prompt: PromptSide | null;
+  /** The heat (side key `pursuit`, M03c); null at level 0. */
+  pursuit: PursuitSide | null;
+  /** The vehicle camera: which of the five views, whether it drives the draw camera now, and where the last frame put it. */
+  vehicleCamera: { view: string; active: boolean; x: number; y: number; z: number; distance: number };
+  /** QA tools (M03a1): the entity inspector and the physics wireframe. */
+  tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
 }
 
 export interface EngineHandle {
@@ -118,7 +176,19 @@ export interface EngineHandle {
   setPaused(paused: boolean): void;
   observe(): EngineObservation;
   act(cmd: DebugCommand): boolean;
+  /** The view models the sim publishes (`hud.*`, `sys.*`, `mode.<id>.*`; M04a2). */
+  readonly vm: ViewModelStore;
+  /** Sends a `UiCommand` to the sim over the command ring. False when it could not be sent. */
+  sendUi(cmd: UiCommand): boolean;
+  /** Toasts the sim raised since the page started, oldest first (the last 50). */
+  toasts(): readonly ToastRecord[];
+  /** Telemetry events the sim queued, as the page received them (the last 50). */
+  telemetryEvents(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   step(n: number): boolean;
+  /** Swaps the touch layout (a shipped one or the player's custom one) and its localized labels; the binder releases every contact. */
+  setTouchLayout(layout: TouchLayout, labels?: Readonly<Record<string, string>>): void;
+  /** Player actions as ActionIds (`sim.Jump`, `client.Camera`, `axis.MoveX`), for the onboarding tips. */
+  onAction(cb: (id: string) => void): () => void;
   /** Forget the previous frame time so the next `dt` is zero (the page was hidden). */
   resetClock(): void;
   qaResults(): Record<string, unknown>;
@@ -126,6 +196,24 @@ export interface EngineHandle {
   setPlay(on: boolean): void;
   /** Ends the XR smoke session, if one runs. */
   endXr(): Promise<void>;
+  /** The vehicle camera (M03a1): the bridge cycles and reads it. */
+  readonly vehicleCamera: VehicleCamera;
+  /** QA tools (M03a1); null outside QA builds with `?debug=1`. */
+  readonly tools: { inspector: Inspector; physics: PhysicsDraw } | null;
+  /** The scene panels host of the UI skeleton (QA builds with a renderer host only; null otherwise). */
+  readonly xrPanels: XrPanelsLite | null;
+  /** The input router (null until it exists): the shell rebinds controls and listens for client actions through it (M04b1). */
+  readonly router: InputRouterImpl | null;
+  /** Unlocks the audio context from a user gesture (the audio test button of Settings). */
+  audioUnlock(): void;
+  /** The first gesture of the Title (M04c, DL-663): audio context plus the pool of three unlocked `<video>` elements. Idempotent. */
+  firstGesture(): void;
+  /** The `FirstGestureUnlock` pool for S03's CutscenePlayer: `acquireVideo`/`releaseVideo` (C13 1.1). */
+  readonly media: FirstGestureUnlock;
+  /** The audio service (null without Web Audio); the cutscene audio port plays on its `cutscene` bus. */
+  readonly audioService: AudioServiceImpl | null;
+  /** Sends a debug command that has a `qa` reply and waits for the reply (M03a1 bridge). */
+  ask(cmd: DebugCommand, replyName: string, timeoutMs?: number): Promise<unknown>;
   dispose(): Promise<void>;
 }
 
@@ -203,6 +291,32 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     boot = { strings: [], prefabs: [], config: gb.grayboxBootConfig(packs) };
   }
 
+  // QA `?mission=<id>`: the story mode starts that mission; the flags that force its paths ride along (M05a1).
+  if (opts.qa && opts.flags.mission && opts.mission) {
+    const f = opts.flags;
+    boot = {
+      ...boot,
+      config: {
+        ...boot.config,
+        mission: {
+          ...opts.mission,
+          ...(f.stage !== null ? { stage: f.stage } : {}),
+          ...(f.seed !== null ? { seed: f.seed } : {}),
+          ...(f.hooks !== null ? { hooks: f.hooks } : {}),
+          ...(f.talk !== null ? { talk: f.talk } : {}),
+          ...(f.beats === 'instant' ? { beats: 'instant' } : {}),
+        },
+      },
+    };
+  }
+
+  if (opts.story) boot = { ...boot, config: { ...boot.config, story: opts.story } };
+
+  // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
+  if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
+  // QA `?racing=1`: the sim worker boots the racing module (M07a1).
+  if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+
   const banner = document.createElement('div');
   banner.className = 'dv-engine-banner';
   banner.setAttribute('role', 'status');
@@ -221,15 +335,70 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let router: InputRouterImpl | null = null;
   let overlay: TouchOverlay | null = null;
   let touchBinder: TouchBinder | null = null;
+  /**
+   * The touch layout the shell handed over (the profile's `controls.touch.layout`, M04b2; the shipped default until then) and the layout
+   * of the root mode when it brings its own (racing, M07a1). The mode's layout is shown while it runs and the player's comes back after;
+   * a `sys.mode` update never puts the default back over the player's choice (BD-FIX-CI7-F02).
+   */
+  let playerTouch: { layout: TouchLayout; labels?: Readonly<Record<string, string>>; opacity: number } = { layout: touchLayoutJson as unknown as TouchLayout, opacity: 1 };
+  let modeTouch: TouchLayout | null = null;
+  const applyTouch = (): void => {
+    const shown = modeTouch ?? playerTouch.layout;
+    touchBinder?.setLayout(shown);
+    if (modeTouch) overlay?.setLayout(modeTouch);
+    else overlay?.setLayout(playerTouch.layout, playerTouch.labels, playerTouch.opacity);
+  };
   let world: GrayboxWorld | null = null;
   let hostScene: RendererHost | null = null;
   let panel: SimPanel | null = null;
+  let skyControls: SkyControls | null = null;
   let freeCam: FreeCam | null = null;
   let xrSmoke: XrSmoke | null = null;
+  // The scene panels of the UI skeleton (M04b2): QA builds only, until M11b1 brings the real `XrPanels`.
+  let xrPanels: XrPanelsLite | null = null;
   let xrSupported = false;
   let chunksLoaded = 0;
   let backend: EngineObservation['backend'] = 'none';
   const view = new SnapshotView();
+  // Vehicles (M03a1): the five cameras, the context switch, the prompt overlay, and the QA tools.
+  const vcam = new VehicleCamera();
+  // The snapshot side block reaches the HUD as view-model keys the page sets itself (M04b2, DL-663 part 2): the S10 widgets read them.
+  // Player actions for the onboarding tips (M04b2): rising edges of the sim buttons, movement, look and the client actions, by ActionId.
+  const actionListeners = new Set<(id: string) => void>();
+  const SIM_NAMES = ['Jump', 'Sprint', 'Interact', 'Enter', 'Attack', 'Block', 'Special', 'Handbrake', 'Nitro', 'Ability', 'LookBehind', 'Horn', 'FightHeavy', 'FightAssist', 'Teleport', 'Crouch', 'Respray', 'Emote', 'PhoneQuick'];
+  const CLIENT_NAMES = ['Look', 'Camera', 'ShoulderSwap', 'Map', 'Phone', 'Pause'];
+  const emitAction = (id: string): void => {
+    for (const cb of [...actionListeners]) cb(id);
+  };
+  const emitFrameActions = (f: InputFrame, looked: boolean): void => {
+    if (actionListeners.size === 0) return;
+    for (let i = 0; i < SIM_NAMES.length; i++) if (f.pressed & (1 << i)) emitAction(`sim.${SIM_NAMES[i]}`);
+    if (f.moveX !== 0 || f.moveY !== 0) emitAction('axis.MoveX');
+    if (looked) emitAction('axis.LookX');
+  };
+  const mirrored = new Map<string, string>();
+  const mirror = (k: `hud.${string}`, v: JsonValue | null): void => {
+    const sig = v === null ? '' : JSON.stringify(v);
+    if (mirrored.get(k) === sig) return;
+    mirrored.set(k, sig);
+    vm.setLocal(k, v);
+  };
+  const mirrorHud = (): void => {
+    const pr = playing ? view.prompt : null;
+    const pu = playing ? view.pursuit : null;
+    const ve = playing && view.vehicle && view.vehicle.state === 201 ? view.vehicle : null;
+    mirror('hud.prompt', pr ? { kind: pr.kind, key: pr.key, hold: pr.hold, progress: Math.round(pr.progress * 100) / 100, ...(pr.reason ? { reason: pr.reason } : {}) } : null);
+    mirror('hud.heat', pu ? { level: pu.level, phase: pu.phase, cooldown: Math.round(pu.cooldown * 100) / 100, units: pu.units, seen: pu.seen } : null);
+    mirror('hud.veh', ve ? { kph: Math.round(Math.abs(ve.speed) * 3.6), gear: ve.gear, rpm: Math.round(ve.rpm / 50) * 50 } : null);
+    mirror('hud.device', router?.active ?? 'kbm');
+  };
+  let pursuitUi: { update(s: PursuitSide | null): void } | null = null;
+  let drivingCtx = false;
+  let snapBehind = false;
+  let idleSec = 0;
+  let inspector: Inspector | null = null;
+  let physicsDraw: PhysicsDraw | null = null;
+  let physicsPoll = 0;
 
   /** The player's view angles: applied every frame on the main thread (C03 rule 1). */
   const look = { yaw: worldBoot ? worldBoot.spawnYaw : startYaw(scenario), pitch: 0 };
@@ -246,11 +415,20 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         maxVoices: ENGINE_TIERS[opts.tier ?? opts.flags.tier ?? 'desktop'].audioVoices,
       })
     : null;
-  if (audio) {
-    cleanups.push(unlockOnFirstGesture(audio, window), audio.attachLifecycle(document, () => document.visibilityState));
-  }
+  // FirstGestureUnlock (M04c): the single first-gesture handler; it unlocks the audio service and the video pool.
+  const media = createFirstGestureUnlock({ audio: audio ?? { unlock: () => Promise.resolve() } });
+  cleanups.push(media.attach(window));
+  if (audio) cleanups.push(audio.attachLifecycle(document, () => document.visibilityState));
 
   const spawn = opts.spawn ?? spawnSimWorker;
+
+  // The UI channel (M04a2): view models from the sim, commands to it, toasts and queued telemetry.
+  const vm = new ViewModelStore();
+  const toastLog: ToastRecord[] = [];
+  const telemetryLog: { name: string; props: Record<string, string | number | boolean> }[] = [];
+  let modesUi: ModesPanel | null = null;
+  const uiSender = new UiCommandSender(() => host.transport);
+  const withProfile = (c: SimConfig, p: SimProfile): SimConfig => ({ ...c, profile: p, physicsBuild: p === 'canonical' ? 'deterministic-compat' : 'simd-compat' });
 
   const host: SimHostImpl = new SimHostImpl({
     spawn,
@@ -264,20 +442,66 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     onLog: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'info'](`sim: ${message}`),
     ...(worldBoot?.initExtras ? { initExtras: worldBoot.initExtras } : {}),
+    onUi: (out) => {
+      vm.apply(out.patches);
+      for (const t of out.toasts) {
+        toastLog.push(t);
+        if (toastLog.length > 50) toastLog.shift();
+        opts.onToast?.(t);
+      }
+      modesUi?.refresh();
+    },
     onSimEvents: (events) => {
       worldBoot?.layer.onSimEvents?.(events);
+      opts.onSimEvents?.(events);
       for (const e of events) {
+        if (e.t === 'telemetry' && e.s) {
+          const bar = e.s.indexOf('|');
+          try {
+            const name = e.s.slice(0, bar);
+            const props = JSON.parse(e.s.slice(bar + 1)) as Record<string, string | number | boolean>;
+            telemetryLog.push({ name, props });
+            if (telemetryLog.length > 50) telemetryLog.shift();
+            opts.onTelemetry?.(name, props);
+          } catch {
+            // a malformed line is dropped
+          }
+        } else if (e.t === 'mode.restart' && e.s) {
+          // C06 rule 3: a top-level mode of another profile restarts the sim behind loading, then starts there.
+          const [profile, then] = e.s.split('|') as [SimProfile, string];
+          void switchProfile(profile, then);
+        }
         if (e.t === 'audio.cue' && e.s) audio?.play({ tick: e.tick, cue: e.s, bus: AUDIO_CONFIG.footstep.bus, ...(e.a !== undefined ? { entity: e.a } : {}) });
         else if (e.t === 'world.chunk') chunksLoaded = Math.max(chunksLoaded, e.n ?? 0);
       }
     },
   });
 
+  async function switchProfile(profile: SimProfile, then: string): Promise<void> {
+    if (recovering || disposed) return;
+    recovering = true;
+    banner.hidden = false;
+    pool?.clear();
+    vm.reset();
+    mirrored.clear();
+    try {
+      await host.restart(withProfile(cfg, profile));
+      host.sendUi({ t: 'mode.start', id: then as never });
+    } catch (e) {
+      console.error('profile switch failed', e);
+    } finally {
+      recovering = false;
+      banner.hidden = true;
+    }
+  }
+
   async function recover(): Promise<void> {
     if (recovering || disposed) return;
     recovering = true;
     banner.hidden = false;
     pool?.clear();
+    vm.reset();
+    mirrored.clear();
     chunksLoaded = 0;
     try {
       await host.restart(cfg);
@@ -299,6 +523,27 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     return null;
   };
 
+  /** The pose of an entity with its orientation (the vehicle camera needs the heading). */
+  const targetFull = (handle: number): VehiclePose | null => {
+    for (let i = 0; i < view.count; i++) {
+      const p = view.poses[i];
+      if (p && p.handle === handle) return { x: p.px, y: p.py, z: p.pz, qx: p.qx, qy: p.qy, qz: p.qz, qw: p.qw };
+    }
+    return null;
+  };
+
+  /** Sends a debug command with a reply and waits for the reply (the same wait the world bridge uses). */
+  const ask = async (cmd: DebugCommand, replyName: string, timeoutMs = 8000): Promise<unknown> => {
+    if (!host.sendDebug(cmd)) return null;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (host.qaResults.has(replyName)) return host.qaResults.get(replyName);
+      await new Promise<void>((r) => setTimeout(r, 15));
+    }
+    return null;
+  };
+  let askSerial = 0;
+
   /** Resolution while the title is up is lower; play restores it. */
   const applyScale = (): void => {
     if (!hostScene || !hostScene.ready) return;
@@ -316,13 +561,27 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     const dtSec = lastNow < 0 ? 0 : Math.min((nowMs - lastNow) / 1000, 1);
     lastNow = nowMs;
     panel?.frame(nowMs);
+    skyControls?.sync(view.env, view.blackout);
+    // The control owner decides the input context (C03): a vehicle owner reads the `vehicle` bindings.
+    const driving = view.player?.owner === CONTROL_OWNER.Vehicle;
+    if (router && driving !== drivingCtx) {
+      drivingCtx = driving;
+      if (driving) {
+        router.push('vehicle');
+        snapBehind = true;
+        vcam.reset();
+      } else router.pop('vehicle');
+    }
     if (router) {
       const block = host.transport?.input;
       if (playing) {
         // Look first (no tick latency), then the devices into the input block the worker samples once per tick. The free cam
         // takes the look for itself and the sim gets the neutral `debug` context, so the player stands still.
+        const lookBefore = look.yaw + look.pitch * 7;
         router.applyLook(dtSec, freeCam?.active ? freeCam.look : look);
+        idleSec = Math.abs(look.yaw + look.pitch * 7 - lookBefore) > 1e-5 ? 0 : idleSec + dtSec;
         const frame = router.sample(frames, look);
+        emitFrameActions(frame, Math.abs(look.yaw + look.pitch * 7 - lookBefore) > 1e-5);
         if (block) writeInputFrame(block, frame);
         overlay?.setActiveDevice(router.active);
       } else {
@@ -337,29 +596,65 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
-    if (rig) {
-      const tier = hostScene?.tier ?? null;
-      if (view.camera && !freeCam?.active) rig.apply(view.camera);
-      if (pool) {
-        pool.hiddenHandle = rig.playerHidden ? (view.camera?.follow?.target ?? null) : null;
-        pool.fadeHandle = view.camera?.follow?.target ?? null;
-        pool.fadeOpacity = rig.playerOpacity;
-        const id = tier?.id;
-        if (id) pool.setLodBands(ENGINE_TIERS[id].animBands);
-      }
-      if (freeCam?.active) {
-        freeCam.update(dtSec);
-      } else {
-        rig.update({
-          alpha: view.alpha,
-          dtSec,
-          reducedMotion,
-          // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
-          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
-          depthPolicy: hostScene?.depthPolicy ?? 'standard',
+    mirrorHud();
+    pursuitUi?.update(view.pursuit);
+    if (physicsDraw?.visible) {
+      physicsDraw.sync(view.poses, view.count);
+      if (++physicsPoll % 30 === 1) {
+        const id = ++askSerial;
+        void ask({ t: 'debug.physics', id }, `physics.reply.${id}`).then((r) => {
+          const list = (r as { bodies?: PhysicsShapeInfo[] } | null)?.bodies;
+          if (list) physicsDraw?.setShapes(list);
         });
       }
-      if (xrSmoke) xrSmoke.update();
+    }
+    if (rig) {
+      const tier = hostScene?.tier ?? null;
+      const vfollow = driving && view.camera?.reason === 'vehicle' ? view.camera.follow : undefined;
+      const vpose = vfollow ? targetFull(vfollow.target) : null;
+      if (vfollow && vpose && !freeCam?.active) {
+        // The vehicle cameras: chase near, mid and far, hood and cockpit (R-PLAT-04). The player's own mesh is hidden by the sim.
+        const heading = headingOf(vpose);
+        if (snapBehind) {
+          vcam.snapBehind(look, heading);
+          snapBehind = false;
+        }
+        vcam.recentre(look, heading, idleSec, dtSec);
+        vcam.update({
+          camera: rig.camera, pose: vpose, look, allowed: view.camera?.allowedDistance ?? null, dtSec, idleSec,
+          drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
+        });
+        if (pool) {
+          pool.hiddenHandle = null;
+          pool.fadeHandle = null;
+          pool.fadeOpacity = 1;
+        }
+        if (xrSmoke) xrSmoke.update();
+        xrPanels?.update(nowMs / 1000);
+      } else {
+        if (view.camera && !freeCam?.active) rig.apply(view.camera);
+        if (pool) {
+          pool.hiddenHandle = rig.playerHidden ? (view.camera?.follow?.target ?? null) : null;
+          pool.fadeHandle = view.camera?.follow?.target ?? null;
+          pool.fadeOpacity = rig.playerOpacity;
+          const id = tier?.id;
+          if (id) pool.setLodBands(ENGINE_TIERS[id].animBands);
+        }
+        if (freeCam?.active) {
+          freeCam.update(dtSec);
+        } else {
+          rig.update({
+            alpha: view.alpha,
+            dtSec,
+            reducedMotion,
+            // A streamed world draws L2 out to r2 (+ the altitude boost when high): the world pass reaches that far, the backdrop pass further.
+            drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
+            depthPolicy: hostScene?.depthPolicy ?? 'standard',
+          });
+        }
+        if (xrSmoke) xrSmoke.update();
+        xrPanels?.update(nowMs / 1000);
+      }
     }
     if (audio && camPos) audio.setListener([camPos.x, camPos.y, camPos.z], [0, 0, -1], [0, 1, 0]);
     if (worldBoot && hostScene) {
@@ -372,6 +667,12 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         dtSec,
         player: view.player,
         camera: { pos: [cam.position.x, cam.position.y, cam.position.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] },
+        env: view.env,
+        blackout: view.blackout,
+        boundaryFog: view.boundaryFog,
+        poses: view.poses,
+        poseCount: view.count,
+        poseKeys: view.keys,
       });
     }
   };
@@ -390,6 +691,22 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.headless || !opts.host) {
     runOnRaf();
   } else {
+    // The chunks needed after the view exists start loading before createView starts the render loop, all at once: an `await import()`
+    // taken after that waits for a frame, and a software-GL frame at the desktop tiers takes seconds (BD-FIX-CI3-C01).
+    const overlayChunk = import('../input/touch-overlay.ts');
+    // QA builds only (the literal comparison lets production builds drop the branch): the panels every QA build shows.
+    const qaChunks =
+      import.meta.env.VITE_DV_QA === '1' && opts.qa
+        ? Promise.all([import('../../debug/pursuit-panel.ts'), import('../../debug/modes-panel.ts'), import('../xr/smoke.ts'), import('../xr/panels.ts')])
+        : null;
+    // ?debug=1 adds the F3 panel, the free cam, the inspector and the physics wireframe.
+    const debugChunks =
+      import.meta.env.VITE_DV_QA === '1' && opts.qa && opts.flags.debug
+        ? Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts'), import('../debug/inspector.ts'), import('../debug/physics-draw.ts')])
+        : null;
+    // A view that fails leaves these chunks unawaited; their failure is then not an unhandled rejection.
+    void qaChunks?.catch(() => undefined);
+    void debugChunks?.catch(() => undefined);
     const made = await createView(opts.host, opts.container, onFrame, packs, worldBoot).catch((e: unknown) => {
       console.warn('engine view unavailable, running the sim without drawing', e);
       return null;
@@ -420,11 +737,13 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       getPads: () => (typeof navigator.getGamepads === 'function' ? (navigator.getGamepads() as unknown as ArrayLike<GamepadLike | null>) : []),
       warn: (m) => console.warn(m),
     });
-    const { TouchOverlay: Overlay } = await import('../input/touch-overlay.ts');
-    const layout = touchLayoutJson as unknown as TouchLayout;
+    const { TouchOverlay: Overlay } = await overlayChunk;
+    const layout = playerTouch.layout;
     overlay = new Overlay({
       container: document.body,
       layout,
+      opacity: playerTouch.opacity,
+      ...(playerTouch.labels ? { labels: playerTouch.labels } : {}),
       ...(opts.forceTouch ? { coarsePointer: () => true } : {}),
     });
     touchBinder = new TouchBinder({
@@ -436,15 +755,32 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       onVisual: overlay.draw,
     });
     router = new InputRouterImpl({ binders: [kbm, pad, touchBinder] });
+    // Remapped controls come from the sim's settings slice as the view model `sys.controls` (also on load; R-ENG-04).
+    const applyControls = (v: unknown): void => {
+      if (v && typeof v === 'object') router?.setOverrides(v as ControlsSettings);
+    };
+    applyControls(vm.get('sys.controls'));
+    cleanups.push(vm.subscribe('sys.controls', applyControls));
     kbm.attach(window as unknown as BinderTarget);
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);
+    // A mode with its own touch layout (racing, M07a1) swaps it in while it is the root of the mode stack.
+    cleanups.push(vm.subscribe('sys.mode', (v) => {
+      const rootMode = (v as { stack?: { id: string }[] } | undefined)?.stack?.[0]?.id;
+      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : null;
+      applyTouch();
+    }));
     overlay.setEnabled(playing);
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());
     const off = router.onClientAction((action, phase) => {
       if (phase !== 'pressed') return;
-      if (action === ClientAction.Camera) rig?.toggleFpTp();
+      if ((action as number) < CLIENT_NAMES.length) emitAction(`client.${CLIENT_NAMES[action as number]}`);
+      if (action === ClientAction.Camera) {
+        if (drivingCtx) vcam.cycle();
+        else rig?.toggleFpTp();
+      }
       else if (action === ClientAction.ShoulderSwap) rig?.swapShoulder();
+      else if (action === ClientAction.Phone) opts.onPhone?.();
       else if (action === ClientAction.Pause) {
         paused = !paused;
         opts.onPausedChange?.(paused);
@@ -453,9 +789,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     cleanups.push(off);
 
     // QA builds only (the literal comparison lets production builds drop the branch): the F3 panel, the F4 free cam, the XR smoke.
-    if (import.meta.env.VITE_DV_QA === '1' && opts.qa && made) {
-      if (opts.flags.debug) {
-        const [{ SimPanel: Panel }, { FreeCam: Free }] = await Promise.all([import('../debug/sim-panel.ts'), import('../debug/free-cam.ts')]);
+    if (import.meta.env.VITE_DV_QA === '1' && opts.qa && made && qaChunks) {
+      const [{ PursuitPanel }, { ModesPanel }, { installXrSmoke }, { XrPanelsLite }] = await qaChunks;
+      if (opts.flags.debug && debugChunks) {
+        const [{ SimPanel: Panel, SkyControls: Sky }, { FreeCam: Free }, { Inspector: Insp }, { PhysicsDraw: Draw }] = await debugChunks;
         panel = new Panel({
           container: document.body,
           build: import.meta.env.VITE_DV_BUILD ?? 'qa',
@@ -465,9 +802,46 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           backend: () => backend,
         });
         freeCam = new Free({ router, camera: made.camera as unknown as CameraLike });
+        // The entity inspector (F7) and the physics wireframe (F6), M03a1.
+        inspector = new Insp({
+          container: document.body,
+          ask: async (cmd) => {
+            const id = ++askSerial;
+            const r = await ask({ ...cmd, id } as DebugCommand, `inspect.reply.${id}`);
+            return r as InspectReply | null;
+          },
+        });
+        physicsDraw = new Draw(opts.host!.scene);
+        cleanups.push(() => inspector?.dispose(), () => physicsDraw?.dispose());
+        // The sky controls (M02b2): only a streamed world has a sky.
+        if (worldBoot) {
+          const layer = worldBoot.layer;
+          skyControls = new Sky({
+            container: document.body,
+            onHour: (h) => void host.sendDebug({ t: 'debug.hour', h }),
+            onWeather: (w) => void host.sendDebug({ t: 'debug.weather', w, blendSec: 0 }),
+            onBlackout: (on) => void host.sendDebug({ t: 'debug.blackout', on }),
+            onRain: (rain) => layer.debug?.setRainOverride(rain),
+            onFreeze: (on) => void host.sendDebug({ t: 'debug.clock.pause', on }),
+            ...(layer.debug?.look ? { look: layer.debug.look } : {}),
+          });
+          // The sky controls are on from the start with ?debug=1 (F3 hides them with the panel text), so the day and the weather can be seen at once.
+          panel.addCompanion(skyControls.root, true);
+          cleanups.push(() => skyControls?.dispose());
+        }
         // A phone has no F3: with ?debug=1 on a touch device the panel is on from the start.
         if (opts.forceTouch || (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)) panel.toggle();
         const onKey = (e: KeyboardEvent): void => {
+          if (e.code === 'F6' && !e.repeat) {
+            e.preventDefault();
+            physicsDraw?.toggle();
+            return;
+          }
+          if (e.code === 'F7' && !e.repeat) {
+            e.preventDefault();
+            inspector?.toggle();
+            return;
+          }
           if (e.code !== 'F4' || e.repeat) return;
           e.preventDefault();
           const cam = made.camera as unknown as { position: { x: number; y: number; z: number } };
@@ -476,7 +850,36 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         window.addEventListener('keydown', onKey);
         cleanups.push(() => window.removeEventListener('keydown', onKey), () => panel?.dispose());
       }
-      const { installXrSmoke } = await import('../xr/smoke.ts');
+      // The pursuit panel (M03c) is on in every QA build, so the wanted system can be seen without ?debug=1.
+      const pursuitAsk = (op: string, args?: Record<string, unknown>): void => {
+        const id = ++askSerial;
+        void host.sendDebug({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) });
+      };
+      const pp = new PursuitPanel({
+        container: document.body,
+        onHeat: (level) => pursuitAsk('setHeat', { level }),
+        onNeverWanted: (on) => pursuitAsk('neverWanted', { on }),
+        onBlock: () => pursuitAsk('blockAhead', { ahead: 45 }),
+        onStrip: () => pursuitAsk('stripAhead', { ahead: 45 }),
+      });
+      pursuitUi = pp;
+      cleanups.push(() => pp.dispose());
+      // The modes panel (M04a2) is on in every QA build too: mode state, wallet, unlocks and the last toasts, with the start/quit buttons.
+      const modesAsk = (op: string, args?: Record<string, unknown>): void => {
+        const id = ++askSerial;
+        void host.sendDebug({ t: 'debug.modes', id, op, ...(args ? { args } : {}) });
+      };
+      modesUi = new ModesPanel({
+        container: document.body,
+        vm,
+        toasts: () => toastLog,
+        onStart: (id) => void uiSender.send({ t: 'mode.start', id }),
+        onQuit: () => void uiSender.send({ t: 'mode.quit' }),
+        onUnlock: (id) => modesAsk('unlock', { id }),
+        onCredit: (cents) => modesAsk('credit', { cents, key: `qa:panel:${++askSerial}` }),
+      });
+      const mp = modesUi;
+      cleanups.push(() => mp.dispose());
       const host2 = opts.host;
       xrSmoke = await installXrSmoke({
         renderer: () => host2.renderer,
@@ -491,6 +894,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         },
       });
       xrSupported = xrSmoke !== null;
+      {
+        xrPanels = new XrPanelsLite(host2.scene, host2.camera);
+        const panels = xrPanels;
+        cleanups.push(() => panels.dispose());
+      }
       if (xrSmoke) cleanups.push(() => xrSmoke?.dispose());
     }
   }
@@ -535,6 +943,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         crashed: host.crashed,
         recovering,
         paused,
+        simPaused: report?.paused ?? false,
+        simPausedSince: report?.pausedSince ?? null,
         rebases: report?.rebases ?? 0,
         eventsDropped: host.transport?.counters.eventsDropped ?? 0,
         commandsDropped: host.transport?.counters.commandsDropped ?? 0,
@@ -563,15 +973,56 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
           ? { supported: true, presenting: hostScene?.isPresenting ?? false, frames: hostScene?.xrFrames ?? 0, sessions: xrSmoke?.sessions ?? 0 }
           : null,
         chunksLoaded,
+        vehicle: view.vehicle,
+        prompt: view.prompt,
+        pursuit: view.pursuit,
+        vehicleCamera: { view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance },
+        tools: inspector && physicsDraw
+          ? {
+              inspector: inspector.visible, inspectorComponents: inspector.components, physics: physicsDraw.visible,
+              physicsBodies: physicsDraw.count, physicsShapes: physicsDraw.shapesDrawn,
+            }
+          : null,
       };
     },
     act: (cmd) => host.sendDebug(cmd),
+    vm,
+    sendUi: (cmd) => uiSender.send(cmd),
+    toasts: () => toastLog,
+    get xrPanels() {
+      return xrPanels;
+    },
+    get router() {
+      return router;
+    },
+    audioUnlock: () => {
+      void audio?.unlock().catch(() => {});
+    },
+    firstGesture: () => {
+      void media.trigger();
+    },
+    media,
+    audioService: audio,
+    telemetryEvents: () => telemetryLog,
     step: (n) => host.sendDebug({ t: 'debug.step', n }),
     resetClock: () => {
       lastNow = -1;
     },
+    setTouchLayout: (layout, labels) => {
+      playerTouch = { layout, ...(labels ? { labels } : {}), opacity: (layout as { opacity?: number }).opacity ?? 1 };
+      applyTouch();
+    },
+    onAction: (cb) => {
+      actionListeners.add(cb);
+      return () => void actionListeners.delete(cb);
+    },
     qaResults: () => Object.fromEntries(host.qaResults),
     setPlay,
+    vehicleCamera: vcam,
+    get tools() {
+      return inspector && physicsDraw ? { inspector, physics: physicsDraw } : null;
+    },
+    ask,
     endXr: async () => {
       await xrSmoke?.end();
     },
@@ -647,6 +1098,11 @@ async function createView(
   resize();
 
   const pool = new ObjectPool(scene);
+  // The cast kit's render programs compile now, long before a mission beat spawns its cast on the beat's first frame (DL-715).
+  if (host.ready) {
+    const r = host.renderer;
+    void pool.warm((root) => r.compileAsync(root, camera, scene));
+  }
   host.frameHook = onFrame;
   return {
     canvas,

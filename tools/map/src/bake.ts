@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { canonicalize, chunkKeyAt, enuFromLatLng, sha256Hex, type ChunkKey, type SourceStamp } from '../../../packages/shared/src/index.ts';
 import {
-  CACHE_ROOT, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
+  CACHE_ROOT, DEFAULT_LAMP_PITCH_M, DIST_ROOT, TOOL_ID, areaGridOf, codeHash, configHashesOf, enuBoxOf, loadBridges, loadDensity, loadBounds, loadRoadClass, loadSources, loadSynth, mapSchema, rawDirOf,
   type AreaGrid, type AreaId, type SourcesConfig, type SynthConfig,
 } from './config.ts';
 import { CONTENT_STAMP_AT, CONTENT_STAMP_ID, contentRows, contentStamp, loadContentWorld, type ContentWorld } from './content.ts';
@@ -34,8 +34,12 @@ import { hoodAt, runPlaces, type PlacesProduct } from './stages/s10-places.ts';
 import { runTransit, type RouteRow, type StopRow, type TransitRoutes } from './stages/s10-transit.ts';
 import { runLod } from './stages/s11-lod.ts';
 import { runFar } from './stages/s11-far.ts';
+import { districtGridBytes, runDistrictGrid, type DistrictGridProduct } from './stages/s12-district-grid.ts';
+import { runMap, type MapProduct, type MapStreetRow } from './stages/s12-map.ts';
+import { runGeocode, type EasRow, type GeocodeReport } from './stages/s12-geocode.ts';
+import { verifyMapAssets } from './verify/map-verify.ts';
 import { buildPacks, graphBytes, type PackOutput } from './stages/s13-pack.ts';
-import { failed, s0Gates, s10Gates, s13Gates, s2Gates, s3Gates, s4Gates, s5Gates, s6Gates, s7Gates, s8Gates, s9Gates, type GateResult } from './verify/gates.ts';
+import { failed, s0Gates, s10Gates, s12Gates, s13Gates, s2Gates, s3Gates, s4Gates, s5Gates, s6Gates, s7Gates, s8Gates, s9Gates, type GateResult } from './verify/gates.ts';
 import { verifyBakeDir } from './verify/verify.ts';
 import { buildEdgeGraph } from './graph/route.ts';
 import { attributionFor } from './pack/attribution.ts';
@@ -44,8 +48,8 @@ import { PrismIndex } from './geom/prisms.ts';
 import { cmp, stableJson } from './util.ts';
 import type { SpawnTable } from '../../../packages/shared/src/index.ts';
 
-export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'lod' | 'pack';
-export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'lod', 'pack'];
+export type StageId = 'fetch' | 'water' | 'terrain' | 'roads' | 'junctions' | 'grading' | 'buildings' | 'ped' | 'tags' | 'places' | 'district-grid' | 'lod' | 'map' | 'pack';
+export const STAGE_ORDER: readonly StageId[] = ['fetch', 'water', 'terrain', 'roads', 'junctions', 'grading', 'buildings', 'ped', 'tags', 'places', 'district-grid', 'lod', 'map', 'pack'];
 export const isStageId = (s: string): s is StageId => (STAGE_ORDER as readonly string[]).includes(s);
 
 export interface BakeOptions {
@@ -74,6 +78,8 @@ export interface BakeResult {
 }
 
 const TIMES_FILE = 'bake-times.json';
+/** The S12 output, next to world-index.json in the bake directory; `map:pack` ships it as `data/district-grid.v1`. */
+export const DISTRICT_GRID_FILE = 'district-grid.v1.pack';
 
 // ---- raw inputs ---------------------------------------------------------------------------------------------------
 
@@ -162,6 +168,8 @@ interface BuildingsStage { product: BuildingsProduct; gates: GateResult[] }
 interface PedStage { product: PedProduct; gates: GateResult[] }
 interface TagsStage { tags: TagsProduct; spawn: Map<ChunkKey, SpawnTable>; spawnReport: Record<string, number>; gates: GateResult[] }
 interface PlacesStage { places: PlacesProduct; transit: TransitRoutes; transitReport: Record<string, unknown>; gates: GateResult[] }
+interface DistrictStage { product: DistrictGridProduct; gates: GateResult[] }
+interface MapStage { product: MapProduct; geocode: Uint8Array; geoReport: GeocodeReport; gates: GateResult[] }
 interface LodStage { files: { name: string; family: 'l1' | 'l2'; x: number; y: number; units: number; bytes: Uint8Array }[]; far: { dem: Uint8Array; massing: Uint8Array; cards: Uint8Array }; report: Record<string, unknown>; farReport: Record<string, unknown> }
 
 export async function runBake(o: BakeOptions): Promise<BakeResult> {
@@ -239,7 +247,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       for (let i = 0; i < co.length; i++) {
         const p = enuFromLatLng((co[i] as number[])[1] as number, (co[i] as number[])[0] as number);
         const a = i === 0 ? p : enuFromLatLng((co[i - 1] as number[])[1] as number, (co[i - 1] as number[])[0] as number);
-        const n = Math.max(1, Math.ceil(Math.hypot(p.x - a.x, p.z - a.z) / 64));
+        const n = Math.max(1, Math.ceil(Math.hypot(p.x - a.x, p.z - a.z) / 8));   // a chunk corner clipped by a deck can hold less than 64 m of it
         for (let k = 0; k <= n; k++) {
           const x = a.x + ((p.x - a.x) * k) / n, z = a.z + ((p.z - a.z) * k) / n;
           if (x < box.minX || x >= box.maxX || z < box.minZ || z >= box.maxZ) continue;
@@ -255,7 +263,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   // S5 roads
   const roads = await stage<RoadsStage>(c, 'roads', wanted.has('roads'), ms, () => {
     const streets = jsonlOrEmpty<StreetRow>(path.join(rawDir, '3psu-pn9h.jsonl'));
-    const product = runRoads({ osm: osmOf(c), streets, hoods: water.product.hoods, cfg: roadCfg, box: gridBox });
+    const product = runRoads({ osm: osmOf(c), streets, hoods: water.product.hoods, cfg: roadCfg, fixes: content.roadFixes, box: gridBox });
     return { product, gates: s5Gates(product.report, roadCfg.oneway.minAgreement) };
   });
   gates.push(...roads.gates);
@@ -318,6 +326,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const tags = runTags({
       segs: grading.product.segs, edges: grading.product.edges, nodes: grading.product.nodes, ped: ped.product, osm: osmOf(c), field: graded,
       landRings: water.product.landRings, pierRings: water.product.piers, box: gridBox, inUnion, isLand, content, bridges: bridgesCfg,
+      lampPitchM: densityCfg.lampPitchM ?? DEFAULT_LAMP_PITCH_M,
     });
     const sp = runSpawn({
       segs: grading.product.segs, edges: grading.product.edges, nodes: grading.product.nodes, chunks: grading.product.grids.keys(),
@@ -331,7 +340,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
   const placesStage = await stage<PlacesStage>(c, 'places', wanted.has('places'), ms, () => {
     const places = runPlaces({
       content, box: gridBox, osm: osmOf(c), buildings: buildings.product, prisms, ped: ped.product, hoods: water.product.hoods, density: densityCfg,
-      chunkExists: (k) => grading.product.grids.has(k), groundY: (x, z) => graded.heightAt(x, z) ?? 0, isWater,
+      chunkExists: (k) => grading.product.grids.has(k), groundY: (x, z) => graded.heightAt(x, z) ?? 0, isWater, farArrival: o.area === 'sf',
     });
     const net = grading.product;
     const graph = buildEdgeGraph(net.edges, junctions.product.junctions, (n) => (net.nodes[n] as { junction: number }).junction, (e) => (net.segs[e.seg] as { lengthM: number }).lengthM, (n) => (net.nodes[n] as { out: number[] }).out);
@@ -343,9 +352,19 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     if (def.gates.s14.cablecars && tr.report.cablecarMissing.length > 0) {
       g.push({ id: 's10.cablecars', stage: 'S10', level: 'fail', detail: `cable-car chains not found in the street graph (U-W6): ${tr.report.cablecarMissing.join(', ')}` });
     }
+    if (def.gates.s14.cablecars && tr.report.cablecarOff.length > 0) {
+      g.push({ id: 's10.cablecars-6m', stage: 'S10', level: 'fail', detail: `cable-car spline points more than 6 m from a street edge, tram rail or turntable (U-W6): ${tr.report.cablecarCheck.filter((c) => tr.report.cablecarOff.includes(c.id)).map((c) => `${c.id} ${c.worstM} m at ${c.worstAnchor}`).join(', ')}` });
+    }
     return { places, transit: tr.routes, transitReport: tr.report as unknown as Record<string, unknown>, gates: g };
   });
   gates.push(...placesStage.gates);
+
+  // S12 district grid
+  const districtStage = await stage<DistrictStage>(c, 'district-grid', wanted.has('district-grid'), ms, () => {
+    const product = runDistrictGrid({ bakeId, hoods: water.product.hoods, play: loadBounds().play });
+    return { product, gates: s12Gates(product.report) };
+  });
+  gates.push(...districtStage.gates);
 
   // S11 LOD packs and the far backdrop
   const lodStage = await stage<LodStage>(c, 'lod', wanted.has('lod'), ms, () => {
@@ -360,6 +379,22 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     return { files: lod.files, far: { dem: far.dem, massing: far.massing, cards: far.cards }, report: lod.report as unknown as Record<string, unknown>, farReport: far.report as unknown as Record<string, unknown> };
   });
 
+  // S12 map: sf-map.v1, sf-map-bldg.v1 and sf-geocode.v1 (M02c2)
+  const mapStage = await stage<MapStage>(c, 'map', wanted.has('map'), ms, () => {
+    const streetRows = jsonlOrEmpty<MapStreetRow>(path.join(rawDir, '3psu-pn9h.jsonl'));
+    const easRows = jsonlOrEmpty<EasRow>(path.join(rawDir, 'ramy-di5m.jsonl'));
+    const product = runMap({
+      bakeId, streets: streetRows, segs: grading.product.segs, water: water.product, heightAt: (x, z) => graded.heightAt(x, z), box: gridBox,
+      landmarks: placesStage.places.landmarks, buildings: buildings.product.byChunk,
+    });
+    const geo = runGeocode({ bakeId, rows: easRows, landmarks: placesStage.places.landmarks, pois: placesStage.places.pois, hoods: product.hoodPoints, box: gridBox });
+    return {
+      product, geocode: geo.bytes, geoReport: geo.report,
+      gates: verifyMapAssets({ bakeId, map: product.map, bldg: product.bldg, geocode: geo.bytes, streets: streetRows, addresses: easRows }),
+    };
+  });
+  gates.push(...mapStage.gates);
+
   // S13 pack, then S14 verify on the written bake
   let outputs: PackOutput | null = null;
   if (wanted.has('pack')) {
@@ -368,7 +403,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     outputs = buildPacks({
       bakeId, grid, water: water.product, terrain: { ...terrain.product, grids: grading.product.grids }, buildings: buildings.product, stamps,
       segs: grading.product.segs, nodes: grading.product.nodes, edges: grading.product.edges, junctions: junctions.product.junctions,
-      slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, portals: tagStage.tags.portals, spawn: tagStage.spawn,
+      slabs: grading.product.slabs, hoods: grading.product.hoods, ped: ped.product, tags: tagStage.tags.tags, lamps: tagStage.tags.lamps, portals: tagStage.tags.portals, spawn: tagStage.spawn,
       places: placesStage.places, lod: lodStage.files,
       far: [{ name: 'far-bay-dem.pack', bytes: lodStage.far.dem }, { name: 'far-bay-massing.pack', bytes: lodStage.far.massing }, { name: 'far-bay-cards.png', bytes: lodStage.far.cards }],
     });
@@ -376,6 +411,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       name: 'sf-graph.v1.pack', family: 'graph', x: 0, y: 0, chunks: 1,
       bytes: graphBytes(bakeId, grading.product.nodes, grading.product.edges, grading.product.segs),
     });
+    for (const [name, bytes] of [['sf-map.v1.pack', mapStage.product.map], ['sf-map-bldg.v1.pack', mapStage.product.bldg], ['sf-geocode.v1.pack', mapStage.geocode]] as const) {
+      outputs.files.push({ name, family: 'graph', x: 0, y: 0, chunks: 1, bytes });
+    }
     const idxErr = mapSchema('world-index')(outputs.index);
     gates.push({ id: 's13.index-schema', stage: 'S13', level: idxErr.length === 0 ? 'pass' : 'fail', detail: idxErr.length === 0 ? 'data/world-index validates against world-index.schema.json' : idxErr.join('; ') });
     const trErr = mapSchema('transit-routes')(placesStage.transit);
@@ -387,6 +425,7 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     const extra = [
       { name: 'world-index.json', bytes: Buffer.from(stableJson(outputs.index)) },
       { name: 'transit-routes.json', bytes: Buffer.from(stableJson(placesStage.transit)) },
+      { name: DISTRICT_GRID_FILE, bytes: Buffer.from(districtGridBytes(districtStage.product)) },
       { name: RAW_LOCK_NAME, bytes: Buffer.from(rawLockText(bakeLock)) },
       { name: 'attribution.world.json', bytes: Buffer.from(stableJson(attributionFor(cfg, o.area))) },
       { name: 'preview.png', bytes: renderPreview(grid, outputs.sims, outputs.renders) },
@@ -424,6 +463,9 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
       transit: placesStage.transitReport,
       lod: lodStage.report,
       far: lodStage.farReport,
+      districtGrid: districtStage.product.report,
+      map: mapStage.product.report,
+      geocode: mapStage.geoReport,
       packs: outputs.files.map((f) => ({ name: f.name, bytes: f.bytes.length, chunks: f.chunks })),
     };
     const writeReport = (g: GateResult[]): void => {
@@ -447,7 +489,16 @@ export async function runBake(o: BakeOptions): Promise<BakeResult> {
     }
   }
   for (const g of gates) log(`gate ${g.level.toUpperCase().padEnd(4)} ${g.id}: ${g.detail}`);
-  const hashes = outputs ? hashTree(outDir) : {};
+  // without the pack stage there is no bake directory to hash; a run of the map stage alone (`--stage map --repro`, M02c2 AC-11) is
+  // compared on the three assets it produces
+  const mapHashes: Record<string, string> = wanted.has('map')
+    ? {
+        'sf-map.v1.pack': sha256Text(Buffer.from(mapStage.product.map)),
+        'sf-map-bldg.v1.pack': sha256Text(Buffer.from(mapStage.product.bldg)),
+        'sf-geocode.v1.pack': sha256Text(Buffer.from(mapStage.geocode)),
+      }
+    : {};
+  const hashes = outputs ? hashTree(outDir) : mapHashes;
   return { ok: failed(gates).length === 0, bakeId, outDir, gates, hashes, ms };
 }
 

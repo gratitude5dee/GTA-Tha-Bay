@@ -13,7 +13,7 @@ import type { RoadClassConfig } from './stages/s5-roads.ts';
 
 export const TOOL_NAME = 'tools/map';
 /** Bumped by hand when a change alters baked bytes; part of the bakeId (C08 rule 16). */
-export const TOOL_VERSION = '0.3.0';
+export const TOOL_VERSION = '0.3.1';
 export const TOOL_ID = `${TOOL_NAME}@${TOOL_VERSION}`;
 
 export type AreaId = 'sf' | 'civic-excerpt' | 'synth';
@@ -34,7 +34,12 @@ export interface SourceDef {
   attribution: string;
   source: string;
   surfaces: string[];
+  /** Ordered fallbacks tried after `url` fails (DL-703); used by source `osm`. */
+  mirrors?: OsmMirror[];
+  /** Source `osm` only (DL-695): the ODbL offer index URL, set by the world release (M02c2). Not part of the bakeId config hash. */
+  offerUrl?: string;
 }
+export interface OsmMirror { url: string; coverage: 'play' | 'california'; note?: string }
 export interface AreaGates {
   s0: { minRows: Record<string, number>; exactRows: Record<string, number> };
   s2: { cityHallM: [number, number]; minM: number };
@@ -112,7 +117,15 @@ export function loadSources(file = SOURCES_PATH): SourcesConfig {
   return raw as SourcesConfig;
 }
 
-export interface DensityConfig { schema: 'world-density/1'; profiles: { name: string; perKm: number }[]; perLaneKm: Record<string, number> }
+export interface DensityConfig {
+  schema: 'world-density/1';
+  profiles: { name: string; perKm: number }[];
+  perLaneKm: Record<string, number>;
+  /** Street-lamp spacing along Arterial and Collector segments, metres (M02b2). */
+  lampPitchM?: number;
+}
+/** The lamp pitch when density.json carries none (design value 30 m). */
+export const DEFAULT_LAMP_PITCH_M = 30;
 
 function loadChecked<T>(file: string, schema: string): T {
   const raw = readJson<unknown>(file);
@@ -223,7 +236,8 @@ export function configHashesOf(cfg: SourcesConfig, area: AreaId): Record<string,
   const def = cfg.areas[area];
   const out: Record<string, string> = {
     area: sha256Hex(canonicalize({ id: area, def })),
-    sources: sha256Hex(canonicalize(cfg.sources.filter((s) => def.sources.includes(s.id)))),
+    // offerUrl is release metadata (DL-695): setting it must not change the bake
+    sources: sha256Hex(canonicalize(cfg.sources.filter((s) => def.sources.includes(s.id)).map(({ offerUrl: _offer, ...rest }) => rest))),
     terrarium: sha256Hex(canonicalize(cfg.terrarium)),
     bounds: sha256Hex(canonicalize(loadBounds())),
     roadclass: sha256Hex(canonicalize(loadRoadClass())),

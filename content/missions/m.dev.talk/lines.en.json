@@ -1,0 +1,18 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.dev.talk.talk.ask.open": "Well, hello there. What can I do for you?",
+    "mission.m.dev.talk.ask.charm": "Charm them",
+    "mission.m.dev.talk.ask.deal": "Make a plain deal",
+    "mission.m.dev.talk.ask.intent": "Ask the friend for a favour",
+    "mission.m.dev.talk.ask.pay": "Pay for it",
+    "mission.m.dev.talk.obj.arrive_plaza": "Walk to the plaza",
+    "mission.m.dev.talk.obj.return_plaza": "Walk back to the plaza",
+    "mission.m.dev.talk.obj.talk_ask": "Ask your friend",
+    "mission.m.dev.talk.obj.wait_charmed": "Enjoy the charm",
+    "mission.m.dev.talk.obj.wait_dealt": "Shake on it",
+    "mission.m.dev.talk.obj.wait_paid": "Count the cash",
+    "mission.m.dev.talk.title": "Talk panel test"
+  }
+}

@@ -11,7 +11,7 @@
     "directory": "../../apps/web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/account"]
+    "run_worker_first": ["/api/*", "/account", "/media/*"]
   },
   // No custom domain until Q-15 is answered.
   "workers_dev": true,
@@ -36,7 +36,20 @@
   ],
   "kv_namespaces": [{ "binding": "FLAGS", "id": "c97c407d70c8457083bf0865b82c27fe" }],
   "workflows": [{ "name": "gen-job", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
+  // Queues (M06a1): JOBS carries summarize, forget and export; SPEND carries settled turn costs into BudgetGovernorDO. Created by deploy:bootstrap.
+  "queues": {
+    "producers": [
+      { "binding": "JOBS", "queue": "tha-bay-jobs" },
+      { "binding": "SPEND", "queue": "tha-bay-spend" }
+    ],
+    "consumers": [
+      { "queue": "tha-bay-jobs", "max_batch_size": 50 },
+      { "queue": "tha-bay-spend", "max_batch_size": 100, "max_batch_timeout": 5 }
+    ]
+  },
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+  // Workers AI (M06a4): bge-m3 embeddings for NPC memory and Aura text-to-speech. No key; the binding is remote even under wrangler dev.
+  "ai": { "binding": "AI" },
   "observability": {
     "enabled": true,
     "logs": { "enabled": true, "head_sampling_rate": 0.25, "invocation_logs": true },
@@ -52,11 +65,17 @@
     "HOST_API": "https://tha-bay-web.gratitude-8f4.workers.dev",
     "HOST_RT": "https://tha-bay-rooms.gratitude-8f4.workers.dev",
     "HOST_ID": "https://tha-bay-web.gratitude-8f4.workers.dev",
-    // placeholder until Q-15: R2 custom domain, no workers.dev form
-    "HOST_MEDIA": "https://tha-bay-media.workers.dev",
+    // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+    "HOST_MEDIA": "https://tha-bay-web.gratitude-8f4.workers.dev/media",
+    // Kill switch of /media/*: "off" answers 503 (DL-713).
+    "MEDIA_ROUTE": "on",
     // placeholder until Q-15: R2 custom domain, no workers.dev form
     "HOST_UGC": "https://tha-bay-ugc.workers.dev",
+    // Dialogue stays off in production until the operator flips npc.dialogue with route 47 (after M06a5). Mode must be "live" here (check:prod-routes).
     "FLAGS_JSON": "{}",
+    "ANTHROPIC_MODE": "live",
+    // AIG_BASE (AI Gateway gw-dialogue, https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic) is set by the operator once the gateway exists;
+    // unset, calls go to the Anthropic API directly (U-NPC-02 fallback). AIG_ENV is optional ("synthetic" for the M14b1 T4 run).
     "FAL_MODE": "live",
     // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
     // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
@@ -69,9 +88,16 @@
   // Rate Limiting (M00e): class auth of 09-backend-ops.md section 3.1. Namespace ids are unique per environment (BD-M00e-01).
   "ratelimits": [
     { "name": "RL_AUTH", "namespace_id": "7301", "simple": { "limit": 10, "period": 60 } },
-    { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } }
+    { "name": "RL_AUTH_USER", "namespace_id": "7302", "simple": { "limit": 5, "period": 60 } },
+    // Class talk (M06a3): 4 turns per 10 s per player; spam control only, the quotas are exact.
+    { "name": "RL_TALK", "namespace_id": "7303", "simple": { "limit": 4, "period": 10 } }
   ],
-  "secrets": { "required": [] },
+  // The service-path database key (M05d). Required where the Worker is deployed; local dev and tests run without it (no database: the static fallback applies).
+  // PLAY_TOKEN_HMAC is first required here (M04b3 left it out, DL-679); a version upload without it fails instead of skipping.
+  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET", "ANTHROPIC_API_KEY"] },
+  // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1).
+  // Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in there.
+  "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
@@ -82,7 +108,7 @@
         "directory": "../../apps/web/dist",
         "binding": "ASSETS",
         "not_found_handling": "single-page-application",
-        "run_worker_first": ["/api/*", "/account"]
+        "run_worker_first": ["/api/*", "/account", "/media/*"]
       },
       // Durable Objects (M05b1). Class lifecycle changes ship alone through `wrangler deploy` (check:do-migrations, label do-lifecycle).
       "durable_objects": {
@@ -105,8 +131,21 @@
       ],
       "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
       "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow" }],
-      "secrets": { "required": [] },
+      "queues": {
+        "producers": [
+          { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
+          { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+        ],
+        "consumers": [
+          { "queue": "tha-bay-jobs-staging", "max_batch_size": 50 },
+          { "queue": "tha-bay-spend-staging", "max_batch_size": 100, "max_batch_timeout": 5 }
+        ]
+      },
+      // ANTHROPIC_API_KEY is not required in staging: it runs ANTHROPIC_MODE=fixture. Add it here when staging goes live (M06a3 AC-12).
+      "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
+      "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+      "ai": { "binding": "AI" },
       "observability": {
         "enabled": true,
         "logs": { "enabled": true, "head_sampling_rate": 1.0, "invocation_logs": true },
@@ -121,11 +160,14 @@
         "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
         "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
         "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-        // placeholder until Q-15: R2 custom domain, no workers.dev form
-        "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+        // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+        "HOST_MEDIA": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media",
+        "MEDIA_ROUTE": "on",
         // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
-        "FLAGS_JSON": "{}",
+        // npc.dialogue is on in staging; recorded streams answer until the operator sets ANTHROPIC_MODE=live and the key.
+        "FLAGS_JSON": "{\"npc.dialogue\":true}",
+        "ANTHROPIC_MODE": "fixture",
         "FAL_MODE": "mock",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
@@ -134,7 +176,8 @@
       },
       "ratelimits": [
         { "name": "RL_AUTH", "namespace_id": "7311", "simple": { "limit": 10, "period": 60 } },
-        { "name": "RL_AUTH_USER", "namespace_id": "7312", "simple": { "limit": 5, "period": 60 } }
+        { "name": "RL_AUTH_USER", "namespace_id": "7312", "simple": { "limit": 5, "period": 60 } },
+        { "name": "RL_TALK", "namespace_id": "7313", "simple": { "limit": 4, "period": 10 } }
       ]
     }
   },
@@ -159,7 +202,15 @@
     ],
     "kv_namespaces": [{ "binding": "FLAGS", "id": "cc3f7d4eeac748c59dfec0a88ab181f4" }],
     "workflows": [{ "name": "gen-job-staging", "binding": "GEN_WF", "class_name": "GenJobWorkflow", "script_name": "tha-bay-web-staging" }],
+    // Producers only: Previews run no queue consumers (F-061); /api/v1/_test/drain-queue and the inline paths of the routes stand in.
+    "queues": {
+      "producers": [
+        { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
+        { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+      ]
+    },
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
+    "ai": { "binding": "AI" },
     "define": { "__DV_TEST_ROUTES__": "true" },
     "vars": {
       "ENVIRONMENT": "preview",
@@ -169,17 +220,22 @@
       "HOST_API": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
       "HOST_RT": "https://tha-bay-rooms-staging.gratitude-8f4.workers.dev",
       "HOST_ID": "https://tha-bay-web-staging.gratitude-8f4.workers.dev",
-      // placeholder until Q-15: R2 custom domain, no workers.dev form
-      "HOST_MEDIA": "https://tha-bay-media-staging.workers.dev",
+      // The Worker's own media route (M01d2, DL-713); a media.<domain> replaces it after Q-15.
+      "HOST_MEDIA": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media",
+      "MEDIA_ROUTE": "on",
       // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
-      "FLAGS_JSON": "{}",
+      "FLAGS_JSON": "{\"npc.dialogue\":true}",
+      "ANTHROPIC_MODE": "fixture",
       "FAL_MODE": "mock"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
+      // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to
+      // config/supabase.projects.json, previews and env.staging take its URL and key here and boot.test.ts AC-6 asserts them.
     },
     "ratelimits": [
       { "name": "RL_AUTH", "namespace_id": "7321", "simple": { "limit": 10, "period": 60 } },
-      { "name": "RL_AUTH_USER", "namespace_id": "7322", "simple": { "limit": 5, "period": 60 } }
+      { "name": "RL_AUTH_USER", "namespace_id": "7322", "simple": { "limit": 5, "period": 60 } },
+      { "name": "RL_TALK", "namespace_id": "7323", "simple": { "limit": 4, "period": 10 } }
     ]
   }
 }

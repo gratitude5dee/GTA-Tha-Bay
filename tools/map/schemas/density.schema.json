@@ -22,8 +22,50 @@
     },
     "perLaneKm": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
     "lampPitchM": { "type": "number", "minimum": 5 },
-    "hourCurves": { "type": "object" },
-    "tierFactors": { "type": "object" },
-    "weatherFactors": { "type": "object" }
+    "hourAnchors": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "type": "number", "minimum": 0, "maximum": 24 } },
+    "hourCurves": {
+      "type": "object",
+      "minProperties": 12,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["traffic", "ped"],
+        "additionalProperties": false,
+        "properties": {
+          "traffic": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "type": "number", "minimum": 0, "maximum": 2 } },
+          "ped": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "type": "number", "minimum": 0, "maximum": 2 } }
+        }
+      }
+    },
+    "tierFactors": {
+      "type": "object",
+      "required": ["traffic", "ped", "parked"],
+      "additionalProperties": false,
+      "properties": {
+        "traffic": { "$ref": "#/$defs/tierRow" },
+        "ped": { "$ref": "#/$defs/tierRow" },
+        "parked": { "$ref": "#/$defs/tierRow" }
+      }
+    },
+    "weatherFactors": {
+      "type": "object",
+      "required": ["traffic", "ped"],
+      "additionalProperties": false,
+      "properties": {
+        "traffic": { "$ref": "#/$defs/weatherRow" },
+        "ped": { "$ref": "#/$defs/weatherRow" }
+      }
+    }
+  },
+  "$defs": {
+    "tierRow": {
+      "type": "object",
+      "required": ["desktop-ultra", "desktop", "xr-visionpro", "mobile", "mobile-low", "xr-quest"],
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "weatherRow": {
+      "type": "object",
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "additionalProperties": { "type": "number", "minimum": 0, "maximum": 2 }
+    }
   }
 }

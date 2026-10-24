@@ -1,0 +1,42 @@
+name: weekly
+
+# Weekly checks that call paid APIs and so do not run on pull requests (M06a4):
+#  - npc:eval --live: the in-character evaluation of every active soul against the real model (workspace `ci-evals`, secret ANTHROPIC_EVALS_KEY),
+#    judged by Sonnet 5.5 through the Batch API. Judge gates are reports until M10c; deterministic failures fail the job.
+#    Without the secret the step prints `SKIP npc:eval --live: ANTHROPIC_EVALS_KEY not set` and passes.
+# A pull request that touches a soul, the rules block, the turn schema or the model ids is evaluated live by an operator with the same command.
+
+on:
+  schedule:
+    - cron: '23 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Actions are pinned by commit SHA, same pins as ci.yml.
+jobs:
+  npc-evals-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm npc:eval -- --live
+        env:
+          ANTHROPIC_EVALS_KEY: ${{ secrets.ANTHROPIC_EVALS_KEY }}
+          DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: npc-evals-live
+          path: tests/reports/npc-evals
+          if-no-files-found: ignore
+          retention-days: 30

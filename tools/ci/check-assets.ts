@@ -6,7 +6,7 @@
  *
  *   tsx tools/ci/check-assets.ts [--root <dir>] [--dist <dir>]
  */
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { finding, type GateFinding } from '../../packages/shared/src/assets/gates/types.ts';
@@ -16,6 +16,9 @@ import { args } from './run.ts';
 import { defaultDist, isMain, listDist, loadConfigs, loadRecords, MIB, readJson, report, schemaValidator, toolsRoot } from './lib/common.ts';
 import { isShipFile } from './provenance-check.ts';
 import { assetGateFindings, pointerFindings, type VerifyOptions } from '../assets/src/verify.ts';
+import { releaseNamesSf, staleLockMessage, type ReleaseIo, type ReleaseKey } from './world-release.ts';
+import { cutsceneIndexFindings } from '../assets/cutscene-index/verify.ts';
+import { lintTemplates, templateFiles } from './prompt-lint.ts';
 
 const GATE = 'check:assets';
 const SHIP_LIMIT = 25 * MIB;
@@ -30,6 +33,21 @@ const CONFIG_SCHEMAS: [file: string, schema: string][] = [
 ];
 
 interface TermsIndex { entries: { id: string; path: string | null }[] }
+
+/** The stale world pointer warnings (DL-688): `release.json` names `sf` for an environment whose pointer was built from other locks. */
+export function worldReleaseWarnings(root: string): string[] {
+  const io: ReleaseIo = {
+    read: (rel) => (existsSync(path.join(root, rel)) ? readFileSync(path.join(root, rel), 'utf8') : null),
+    write: () => undefined,
+  };
+  const out: string[] = [];
+  for (const key of ['staging', 'production'] as ReleaseKey[]) {
+    if (!releaseNamesSf(io, key)) continue;
+    const m = staleLockMessage(io, key);
+    if (m) out.push(m);
+  }
+  return out;
+}
 
 export function runCheckAssets(opts: { root: string; dist: string; verify?: VerifyOptions }): { findings: GateFinding[]; scanned: number } {
   const findings: GateFinding[] = [];
@@ -79,6 +97,14 @@ export function runCheckAssets(opts: { root: string; dist: string; verify?: Veri
     const size = statSync(path.join(opts.dist, rel)).size;
     if (size > SHIP_LIMIT) findings.push(finding(GATE, rel, 'file-too-large', `${size} bytes exceeds 25 MiB`));
   }
+  // M05b2: the genAI prompt templates (rules 1 to 6 of the prompt lint) and the shipped cutscene index.
+  const prompts = lintTemplates(opts.root, templateFiles(opts.root));
+  for (const n of prompts.notes) console.log(n);
+  findings.push(...prompts.findings);
+  scanned += prompts.scanned;
+  const index = cutsceneIndexFindings(opts.root);
+  findings.push(...index.findings);
+  scanned += index.scanned;
   const gate = assetGateFindings(opts.root, opts.verify);
   findings.push(...gate.findings, ...pointerFindings(opts.root));
   scanned += gate.scanned;
@@ -91,6 +117,7 @@ function main(): void {
   const dist = path.resolve(values.dist ?? defaultDist(root));
   if (!existsSync(dist)) console.log(`${GATE}: note: ${dist} does not exist, ship-set size check skipped`);
   const { findings, scanned } = runCheckAssets({ root, dist });
+  for (const w of worldReleaseWarnings(root)) console.log(`${GATE}: warning: ${w}`);
   process.exit(report(GATE, findings, scanned));
 }
 

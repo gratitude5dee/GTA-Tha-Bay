@@ -73,16 +73,10 @@ export async function loadAll(ctx: SaveCtx, profileId: ProfileId): Promise<Loade
   return out;
 }
 
-/** Boot sweep (C05 rule 1): delete records no pointer reaches, and generations older than `keepGenerations`. */
-export async function sweepOrphans(ctx: SaveCtx, profileId: ProfileId): Promise<number> {
-  const pointers = new Map((await ctx.store.listPointers(profileId)).map((p) => [p.slot, p.gen] as const));
-  let n = 0;
-  for (const rec of await ctx.store.listRecords(profileId)) {
-    const gen = pointers.get(rec.slot);
-    if (gen === undefined || rec.gen > gen || rec.gen <= gen - SAVE_LIMITS.keepGenerations) {
-      await ctx.store.deleteRecord(profileId, rec.slot, rec.gen);
-      n++;
-    }
-  }
-  return n;
+/**
+ * Boot sweep (C05 rule 1): delete records no pointer reaches, and generations older than `keepGenerations`. One store transaction,
+ * so a write another service has between step (c) and step (e) either keeps its record or gets it back at (e) (BD-FIX-CI6-B02).
+ */
+export function sweepOrphans(ctx: SaveCtx, profileId: ProfileId): Promise<number> {
+  return ctx.store.sweepOrphans(profileId, SAVE_LIMITS.keepGenerations);
 }

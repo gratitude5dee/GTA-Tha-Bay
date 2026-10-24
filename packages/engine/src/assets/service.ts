@@ -86,6 +86,15 @@ export class AssetService {
     this.fetchHook = (u, i) => deps.fetch(u, i);
   }
 
+  /**
+   * Keeps the packs with these hashes out of eviction for the session, like the `pin` RPC (an asset job pins what it needs: the
+   * landmark skyline of M02d2); re-applied when the store is rebuilt.
+   */
+  pinHashes(hashes: readonly string[]): void {
+    for (const h of hashes) this.pinnedHashes.add(h);
+    this.store.pin(hashes);
+  }
+
   // ---- accessors for the QA handler and tests ----
   get store(): PackStore {
     if (!this.storeValue) throw new Error('asset service is not initialised');
@@ -201,9 +210,9 @@ export class AssetService {
     this.aborts.set(msg.id, ac);
     try {
       const out = await this.dispatch(msg, ac.signal);
-      this.d.post({ t: 'res', id: msg.id, ok: true, result: out.result }, out.transfer);
+      this.d.post({ t: 'res', id: msg.id, ok: true, result: out.result, bytes: this.stats().bytes }, out.transfer);
     } catch (e) {
-      this.d.post({ t: 'res', id: msg.id, ok: false, error: toWire(e) });
+      this.d.post({ t: 'res', id: msg.id, ok: false, error: toWire(e), bytes: this.stats().bytes });
     } finally {
       this.aborts.delete(msg.id);
     }

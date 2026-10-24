@@ -1,0 +1,19 @@
+{
+  "rule": "V4",
+  "expect": [
+    "V4"
+  ],
+  "note": "a 25 m step that climbs 20 m is an 80 percent grade",
+  "defPatch": {
+    "/elevation": [
+      {
+        "s": 0,
+        "y": 0
+      },
+      {
+        "s": 25,
+        "y": 20
+      }
+    ]
+  }
+}

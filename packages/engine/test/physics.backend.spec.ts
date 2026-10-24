@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { describe, expect, it } from 'vitest';
 import { SIM_DT } from '@dv/shared';
-import { NotImplementedError, type PhysicsBuild } from '../src/sim/physics/backend.ts';
+import { VEHICLE_READ_STRIDE, type PhysicsBuild } from '../src/sim/physics/backend.ts';
 import { PHYSICS_CONFIG } from '../src/sim/physics/config.ts';
 import { GROUPS, GROUP_BIT as GROUPS_BIT, interactionGroups } from '../src/sim/physics/groups.ts';
 import { loadRapierBuild, type RapierModule } from '../src/sim/physics/load-build.ts';
@@ -133,11 +133,26 @@ describe('PhysicsBackend over Rapier 0.21.0 (AC-1)', () => {
     backend.dispose();
   });
 
-  it('the vehicle controller is not built yet and says which milestone builds it', async () => {
+  it('the vehicle seam reads a documented layout: 11 floats per wheel, NaN for the wheel-point velocity (M03a2)', async () => {
     const backend = new RapierBackend('deterministic-compat');
     await backend.init();
-    expect(() => backend.vehicle.create(1, [])).toThrow(NotImplementedError);
-    expect(() => backend.vehicle.create(1, [])).toThrow(/M03a1/);
+    backend.addChunkStatics('ground', { heightfield: groundHeightfield(), prisms: new Float32Array(0) });
+    const body = backend.createBody({ kind: 'dynamic', shape: 'box', dims: [0.6, 0.2, 2], mass: 1200, at: [3, 0.9, -4], groups: GROUPS.vehicle });
+    const wheels = [[-0.8, 0, -1.3, 'front'], [0.8, 0, -1.3, 'front'], [-0.8, 0, 1.3, 'rear'], [0.8, 0, 1.3, 'rear']] as const;
+    const v = backend.vehicle.create(body, wheels.map((w) => ({ pos: [w[0], w[1], w[2]], radius: 0.33, restM: 0.6, axle: w[3] })));
+    for (let i = 0; i < 5; i++) backend.step(SIM_DT, 1);
+    const out = new Float32Array(4 * VEHICLE_READ_STRIDE);
+    backend.vehicle.drive(v, { engineForce: 0, brake: 0, steerRad: 0, handbrake: false });
+    backend.vehicle.read(v, out);
+    expect(VEHICLE_READ_STRIDE).toBe(11);
+    for (let k = 0; k < 4; k++) {
+      const b = k * VEHICLE_READ_STRIDE;
+      expect(out[b], `wheel ${k} inContact`).toBe(1);
+      expect(out[b + 5], `wheel ${k} normal y`).toBeGreaterThan(0.9);
+      expect(Number.isNaN(out[b + 8]) && Number.isNaN(out[b + 9]), `wheel ${k} vLong and vLat are NaN`).toBe(true);
+      expect(out[b + 10], `wheel ${k} loadN`).toBeGreaterThan(0);
+    }
+    expect(() => backend.vehicle.read(999, out)).toThrow(RangeError);
     backend.dispose();
   });
 

@@ -1,0 +1,19 @@
+{
+  "name": "@dv/mode-fighter",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lint": "./src/lint/index.ts",
+    "./qa": "./src/qa/index.ts"
+  },
+  "scripts": {
+    "test": "tsx ../../../tools/ci/run.ts vitest --pkg packages/modes/fighter",
+    "fighter:lint": "tsx scripts/lint.ts",
+    "fighter:replay": "tsx scripts/replay.ts"
+  },
+  "dependencies": {
+    "@dv/shared": "workspace:*"
+  }
+}

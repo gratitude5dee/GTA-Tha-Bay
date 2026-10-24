@@ -1,0 +1,6 @@
+{
+  "description": "Self-test fixture (must trip B3): a unicorn needs only a $6M post-money round, so the median policy wins it far more often than 8 percent.",
+  "patch": {
+    "balance.end.unicornPostMoneyCents": 600000000
+  }
+}

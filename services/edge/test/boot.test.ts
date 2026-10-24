@@ -20,7 +20,8 @@ describe('GET /api/v1/boot', () => {
     expect('modsUi' in body.hosts).toBe(false);
     const flags = Object.entries(body.flags);
     expect(flags.length).toBe(14);
-    expect(flags.every(([, v]) => v === false)).toBe(true);
+    // staging and previews switch npc.dialogue on (M06a3); every other flag is off
+    expect(flags.filter(([, v]) => v).map(([k]) => k)).toEqual(['npc.dialogue']);
     expect(body.flags['mods.enabled']).toBe(false);
     // LEGAL_CONTACT is not set in the staging vars, so route 58 would refuse every sign-up (M00e item 8).
     expect(body.flags['auth.password']).toBe(false);
@@ -34,6 +35,14 @@ describe('GET /api/v1/boot', () => {
       expect(host, name).toMatch(/^https:\/\/[a-z0-9-]+\.gratitude-8f4\.workers\.dev$/);
     }
     expect(hosts.rt).toBe('https://tha-bay-rooms-staging.gratitude-8f4.workers.dev');
+  });
+
+  it('hosts.media is the configured HOST_MEDIA, the Worker media route (M01d2)', async () => {
+    const res = await call('/api/v1/boot', { country: 'US', env: { HOST_MEDIA: 'https://media.example.test/media' } });
+    const { hosts } = (await res.json()) as BootConfig;
+    expect(hosts.media).toBe('https://media.example.test/media');
+    const staging = (await (await call('/api/v1/boot', { country: 'US' })).json()) as BootConfig;
+    expect(staging.hosts.media).toBe('https://tha-bay-web-staging.gratitude-8f4.workers.dev/media');
   });
 
   it('parseFlags ignores unknown keys and bad JSON', () => {
@@ -62,6 +71,22 @@ describe('GET /api/v1/boot', () => {
     expect(wrangler.vars['AUTH_PASSWORD_SIGNUP']).toBe('off');
     expect(wrangler.env.staging.vars['AUTH_PASSWORD_SIGNUP']).toBe('on');
     for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'AUTH_PASSWORD_SIGNUP']) expect(wrangler.previews.vars[k]).toBeUndefined();
+  });
+
+  it('M05d: the daily cron and the database secret are declared where the Worker is deployed, and previews run no cron', () => {
+    const wrangler = parseJsonc(wranglerRaw) as {
+      secrets: { required: string[] };
+      triggers: { crons: string[] };
+      env: { staging: { secrets: { required: string[] }; triggers: { crons: string[] } } };
+      previews: { triggers?: unknown; vars: Record<string, string> };
+    };
+    for (const block of [wrangler, wrangler.env.staging]) {
+      expect(block.secrets.required).toContain('SUPABASE_SECRET_KEY');
+      expect(block.triggers.crons).toEqual(['10 3 * * *', '20 3 * * *', '30 3 * * *']); // M06a1 adds the memory and stub-profile retention crons
+    }
+    // tha-bay-staging has no publishable key in config/supabase.projects.json yet, so previews still carry no Supabase vars.
+    expect(wrangler.previews.triggers).toBeUndefined();
+    expect(wrangler.previews.vars['SUPABASE_URL']).toBeUndefined();
   });
 });
 

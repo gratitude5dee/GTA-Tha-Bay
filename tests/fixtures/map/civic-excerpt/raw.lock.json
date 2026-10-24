@@ -4,28 +4,20 @@
   "synthetic": false,
   "sources": [
     {
+      "id": "datasf-addresses",
+      "url": "synth://datasf-addresses",
+      "retrievedAt": "2026-10-22T00:00:00Z",
+      "sha256": "53b18ce2d465769ae5806b2062fdb843a04f565a74f9dc7855aef5beeee4f3c4",
+      "rows": 822,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
       "id": "datasf-footprints",
       "url": "https://data.sf.gov/resource/ynuv-fyni.json",
       "retrievedAt": "2026-10-19T04:29:14Z",
       "sha256": "30f4357e33493f37d8b1760a5335be3b4152af8c0bf8ed3160caadf4848cd6f5",
       "rows": 639,
       "licence": "PDDL-1.0"
-    },
-    {
-      "id": "datasf-muni-routes",
-      "url": "synth://datasf-muni-routes",
-      "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "595fe8df988a0148b19d3594020b5a1d997507ba58270fbaf99f86264dc350fb",
-      "rows": 1,
-      "licence": "LicenseRef-DeeVerse-Owned"
-    },
-    {
-      "id": "datasf-muni-stops",
-      "url": "synth://datasf-muni-stops",
-      "retrievedAt": "2026-10-19T07:00:00Z",
-      "sha256": "64168c1c00895d2b989e7da60535ab708e3c8db5f26cafc0ff5fcdeb46afb987",
-      "rows": 2,
-      "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
       "id": "datasf-neighborhoods",
@@ -68,6 +60,22 @@
       "licence": "LicenseRef-DeeVerse-Owned"
     },
     {
+      "id": "sfmta-patterns",
+      "url": "synth://sfmta-patterns",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "595fe8df988a0148b19d3594020b5a1d997507ba58270fbaf99f86264dc350fb",
+      "rows": 1,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
+      "id": "sfmta-stops",
+      "url": "synth://sfmta-stops",
+      "retrievedAt": "2026-10-19T07:00:00Z",
+      "sha256": "64168c1c00895d2b989e7da60535ab708e3c8db5f26cafc0ff5fcdeb46afb987",
+      "rows": 2,
+      "licence": "LicenseRef-DeeVerse-Owned"
+    },
+    {
       "id": "terrarium",
       "url": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
       "retrievedAt": "2026-10-19T04:29:17Z",
@@ -77,9 +85,10 @@
     }
   ],
   "syntheticSources": [
-    "datasf-muni-routes",
-    "datasf-muni-stops",
+    "datasf-addresses",
     "datasf-streets",
-    "osm"
+    "osm",
+    "sfmta-patterns",
+    "sfmta-stops"
   ]
 }

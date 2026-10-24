@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/sky-keys.schema.json",
+  "title": "config/world/sky-keys.json (M02b2): six weather presets, a row at each of eight key hours (02-world-living.md section 6)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "hours", "presets"],
+  "$defs": {
+    "rgb": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "minimum": 0, "maximum": 4 } },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skyTop", "skyBottom", "sunColor", "sunSize", "ambient", "fogColor", "fogNearM", "fogFarM", "exposure", "cloudCover", "windowLit", "starAlpha"],
+      "properties": {
+        "skyTop": { "$ref": "#/$defs/rgb" },
+        "skyBottom": { "$ref": "#/$defs/rgb" },
+        "sunColor": { "$ref": "#/$defs/rgb" },
+        "sunSize": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.5 },
+        "ambient": { "$ref": "#/$defs/rgb" },
+        "fogColor": { "$ref": "#/$defs/rgb" },
+        "fogNearM": { "type": "number", "minimum": 0 },
+        "fogFarM": { "type": "number", "exclusiveMinimum": 0 },
+        "exposure": { "type": "number", "exclusiveMinimum": 0, "maximum": 4 },
+        "cloudCover": { "type": "number", "minimum": 0, "maximum": 1 },
+        "windowLit": { "type": "number", "minimum": 0, "maximum": 1 },
+        "starAlpha": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "rows": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "$ref": "#/$defs/row" } }
+  },
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": "sky-keys/1" },
+    "hours": { "const": [0, 5, 6.5, 9, 13, 17, 19.5, 21.5] },
+    "presets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"],
+      "properties": {
+        "clear": { "$ref": "#/$defs/rows" },
+        "karl-fog": { "$ref": "#/$defs/rows" },
+        "overcast": { "$ref": "#/$defs/rows" },
+        "rain": { "$ref": "#/$defs/rows" },
+        "smoke": { "$ref": "#/$defs/rows" },
+        "golden": { "$ref": "#/$defs/rows" }
+      }
+    }
+  }
+}

@@ -29,6 +29,30 @@ export interface AttachablePwaUpdateController extends PwaUpdateController {
 }
 
 /**
+ * Whether `register()` resolved with a registration the controller can attach to. Where the browser context does not let the page
+ * register a worker it resolves with nothing (Playwright's `serviceWorkers: 'block'`, which every e2e spec without @pwa or @coi runs
+ * under, BD-FIX-CI7-D01); there is then nothing to attach to and nothing to report (BD-FIX-CI8-G03).
+ */
+export function isRegistration(reg: unknown): reg is RegistrationLike & { update(): Promise<unknown> } {
+  return typeof reg === 'object' && reg !== null && typeof (reg as { addEventListener?: unknown }).addEventListener === 'function' && typeof (reg as { update?: unknown }).update === 'function';
+}
+
+/** The slices of `document` and `window` that {@link afterWindowLoad} reads. */
+export interface LoadTarget {
+  addEventListener(type: 'load', fn: () => void, opts?: { once?: boolean }): void;
+}
+
+/**
+ * Runs `fn` once the window has loaded: at once when `load` has already fired, otherwise on `load`. The entry module awaits the stored
+ * preferences at top level (M04b1), and a module's top-level await does not hold back the window's `load` event, so a plain
+ * `addEventListener('load', ...)` placed after that await can be added too late and never run (BD-FIX-CI6-C01).
+ */
+export function afterWindowLoad(doc: { readonly readyState: string }, win: LoadTarget, fn: () => void): void {
+  if (doc.readyState === 'complete') fn();
+  else win.addEventListener('load', fn, { once: true });
+}
+
+/**
  * PwaUpdateController (11-platform-pwa.md section 4), prompt-style updates:
  * a new worker waits until `applyNow()`; applying is refused while the game is unsafe (mid-mission)
  * unless forced. `onChange` reports whether an update can be offered now (waiting and at a safe point).

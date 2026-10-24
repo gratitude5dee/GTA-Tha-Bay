@@ -11,13 +11,26 @@
  * Without `BootPayload.config.world` the module stays inert: its system returns at once and it registers no resource, so a
  * session without a world runs and hashes as a session without the module.
  */
-import { SimStage, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef } from '@dv/shared';
-import { playerSide, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { SimStage, decodeDistrictGrid, decodeGraph, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef, type WorldIndex } from '@dv/shared';
+import { GROUP_BIT, playerSide, requestTeleport, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
 import { STREAMING, type planFor } from './plan.ts';
 import { StaticsFeeder } from './statics.ts';
+import { BLACKOUT_DEBUG_OWNER, Blackout } from '../env/blackout.ts';
+import { playWallPrisms } from '../api/boundaries.ts';
+import type { TeleportHost } from '../api/teleport.ts';
+import { createWorldApi, type WorldServices } from '../api/world-api.ts';
+import { Geocoder } from '../map/geocoder.ts';
+import { AmbientTraffic } from '../traffic/system.ts';
+import { WORLD_COMPONENTS } from '../traffic/components.ts';
+import { AmbientPeds } from '../peds/system.ts';
+import { PED_COMPONENTS } from '../peds/components.ts';
+import { AmbientTransit } from '../transit/system.ts';
+import { TRANSIT_COMPONENTS } from '../transit/components.ts';
+import { createTagsPort } from '../api/tags.ts';
+import { runWorldDebug, type WorldDebugCommand, type WorldDebugPhysics } from '../api/debug.ts';
 import type { Focus } from './priority.ts';
 
 /** The sim tick rate the retry delays (milliseconds in the config) are converted with. */
@@ -40,9 +53,11 @@ interface Pending {
   keys: Set<ChunkKey>;
   /** The sim already asked for a purge and refetch of this pack once. */
   refetched: boolean;
+  /** A pack that is not a chunk pack (the road topology, the district grid): its handler gets the bytes. */
+  aux?: (bytes: ArrayBuffer) => void;
 }
 
-type Arrival = { pend: Pending; chunks: SimChunk[] } | { pend: Pending; error: PackErrorReason | 'decode' };
+type Arrival = { pend: Pending; chunks: SimChunk[] } | { pend: Pending; raw: ArrayBuffer } | { pend: Pending; error: PackErrorReason | 'decode' };
 
 const failOf = (r: PackErrorReason | 'decode'): FailReason =>
   r === 'offline' ? 'offline' : r === 'quota' ? 'quota' : r === 'aborted' ? 'aborted' : r === 'hash-mismatch' ? 'corrupt' : r === 'decode' ? 'decode' : 'unavailable';
@@ -102,6 +117,23 @@ export class WorldSim {
     port.start?.();
   }
 
+  /** The world services once the module has built them (M02c1); null for a session that sent no world index. */
+  api: WorldServices | null = null;
+
+  /**
+   * Asks the asset worker for a pack that is not a chunk pack (`map_data/sf-graph.v1`, `data/district-grid.v1`); `fn` gets the
+   * bytes on the tick they are applied, in `seq` order with the chunk replies. Returns false when the config has no ref for it.
+   */
+  loadAux(name: string, fn: (bytes: ArrayBuffer) => void): boolean {
+    const ref = this.cfg.refs[name];
+    if (!ref) return false;
+    const pend: Pending = { seq: ++this.seq, pack: name, keys: new Set(), refetched: true, aux: fn };
+    this.bySeq.set(pend.seq, pend);
+    const msg: PackRequest = { seq: pend.seq, ref, priority: 'now' };
+    this.port.postMessage(msg);
+    return true;
+  }
+
   // ---- requests and replies -------------------------------------------------------------------------------------------
 
   private request(r: LoadRequest): void {
@@ -132,6 +164,10 @@ export class WorldSim {
     const pend = this.bySeq.get(reply.seq);
     if (!pend) return;
     if ('bytes' in reply) {
+      if (pend.aux) {
+        this.arrivals.set(reply.seq, { pend, raw: reply.bytes });
+        return;
+      }
       try {
         this.arrivals.set(reply.seq, { pend, chunks: decodeP0(reply.bytes) });
       } catch {
@@ -140,6 +176,11 @@ export class WorldSim {
     } else {
       this.arrivals.set(reply.seq, { pend, error: reply.error.reason });
     }
+  }
+
+  /** Requests posted and not yet applied (the residency rule of the determinism scenarios waits for it to reach 0). */
+  pendingCount(): number {
+    return this.bySeq.size;
   }
 
   /** Applies arrivals in `seq` order; stops at the first `seq` that has not arrived. Returns the number applied. */
@@ -155,6 +196,20 @@ export class WorldSim {
       n++;
       const { pend } = a;
       if (this.byPack.get(pend.pack) === pend) this.byPack.delete(pend.pack);
+      if (pend.aux) {
+        // not a chunk pack: hand the bytes to the handler, or note that they did not come
+        if ('raw' in a) {
+          try {
+            pend.aux(a.raw);
+          } catch (e) {
+            this.log?.('warn', `world: ${pend.pack} could not be read (${e instanceof Error ? e.message : String(e)})`);
+          }
+        } else if ('error' in a) {
+          this.log?.('warn', `world: ${pend.pack} did not load (${a.error})`);
+        }
+        continue;
+      }
+      if ('raw' in a) continue;   // raw bytes answer only the requests that carry a handler
       if ('chunks' in a) {
         const byKey = new Map(a.chunks.map((c) => [c.key, c] as const));
         for (const k of pend.keys) {
@@ -179,8 +234,10 @@ export class WorldSim {
     this.applyReplies();
     const pl = playerSide(ctx.ecs as unknown as EcsWorld);
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
-    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(focus);
+    // QA: the perf scenario drives the traffic (and so the residency it needs) from the camera; the statics feed keeps the player's focus
+    if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(this.api?.ambient?.focusOverride ?? focus);
     const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
+    this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
     if (st.added) {
       this.addedTotal++;
@@ -256,6 +313,16 @@ export class WorldSim {
 export interface WorldStreamingModule extends SimModule {
   /** The live world sim after `onInit`, or null while the session has no world. */
   readonly state: WorldSim | null;
+  /** The world services (M02c1) once built, or null while the session has no world index. */
+  readonly api: WorldServices | null;
+  /** The blackout switch (M02b2): TrafficControl adopts it unchanged; until then the QA bridge and the debug panel set it. */
+  readonly blackout: Blackout;
+  /** The ambient traffic (M03b1) once built, or null while the session has no world services. */
+  readonly traffic: AmbientTraffic | null;
+  /** The ambient pedestrians (M03b2) when the session asked for them, else null. */
+  readonly peds: AmbientPeds | null;
+  /** Transit, rides and entrances (M03b2) when the session asked for them, else null. */
+  readonly transit: AmbientTransit | null;
 }
 
 function isWorldConfig(v: unknown): v is WorldSimConfig {
@@ -267,6 +334,14 @@ function isWorldConfig(v: unknown): v is WorldSimConfig {
 /** A fresh module instance (tests build their own; each worker generation gets one through the exported singleton). */
 export function createWorldStreamingModule(): WorldStreamingModule {
   let state: WorldSim | null = null;
+  let api: WorldServices | null = null;
+  let traffic: AmbientTraffic | null = null;
+  let peds: AmbientPeds | null = null;
+  let transit: AmbientTransit | null = null;
+  let sendQa: ((name: string, data: unknown) => void) | null = null;
+  let physics: WorldDebugPhysics | null = null;
+  let simHash: (() => { tick: number; hash: string }) | null = null;
+  const blackout = new Blackout();
   const system: SystemDef = {
     id: 'world.streaming',
     owner: 'S02',
@@ -274,25 +349,220 @@ export function createWorldStreamingModule(): WorldStreamingModule {
     order: 0,
     run: (ctx) => state?.step(ctx),
   };
+  // The map patch (blips, GPS route) goes out as a sim event once a tick changed it, before the snapshot is written.
+  let events: SimEventLog | null = null;
+  const mapSystem: SystemDef = {
+    id: 'world.map',
+    owner: 'S02',
+    stage: SimStage.Publish,
+    order: 900,
+    run: (ctx) => {
+      const patch = api?.flushMap(ctx.tick);
+      if (patch && events) events.push({ t: 'world.map', tick: ctx.tick, n: patch.rev, s: JSON.stringify(patch) });
+    },
+  };
   return {
     id: 'world.streaming',
-    systems: [system],
+    systems: [system, mapSystem],
     get state() {
       return state;
+    },
+    get api() {
+      return api;
+    },
+    get traffic() {
+      return traffic;
+    },
+    get peds() {
+      return peds;
+    },
+    get transit() {
+      return transit;
+    },
+    blackout,
+    // the world components exist only in a session that has a world with services (M03b1): other sessions hash as before
+    components: (boot) => {
+      const w = boot.config['world'];
+      return isWorldConfig(w) && w.index
+        ? [...WORLD_COMPONENTS, ...(w.ambient?.peds ? PED_COMPONENTS : []), ...(w.ambient?.transit ? TRANSIT_COMPONENTS : [])]
+        : [];
+    },
+    side: () => {
+      if (!state) return {};
+      const out: Record<string, unknown> = blackout.side();
+      // the fog far-plane factor near the county line (1 elsewhere; absent then)
+      if (api && api.boundaries.fog < 1) out['wf'] = Math.round(api.boundaries.fog * 1000) / 1000;
+      return out;
+    },
+    onDebug(cmd: DebugCommand): void {
+      if (state && cmd.t === 'debug.blackout') blackout.set(cmd.on, BLACKOUT_DEBUG_OWNER);
+      // the residency rule of the determinism scenarios (DL-678): request and pin a set, apply the replies, ask the hash
+      if (state && cmd.t === 'debug.world' && runResidencyOp(state, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), simHash)) return;
+      if (api && cmd.t === 'debug.world') runWorldDebug(api, state?.tick ?? 0, cmd as WorldDebugCommand, (id, data) => sendQa?.(`world.reply.${id}`, data), physics ?? undefined);
     },
     onInit(ctx: SimModuleContext): void {
       const raw = ctx.boot.config['world'];
       state?.dispose();
+      api?.dispose();
       state = null;
+      api = null;
+      traffic = null;
+      peds = null;
+      transit = null;
+      ctx.sim.services.world.api = null;
+      ctx.sim.services.world.bounds = null;
+      ctx.sim.services.world.tags = null;
+      for (const by of [...blackout.owners()]) blackout.set(false, by);
       if (!isWorldConfig(raw)) return;
       const port = ctx.ports[WORLD_PORT] as PackPort | undefined;
       if (!port) throw new Error('the world streaming module needs the pack channel port (InitMessage.p.ports.world)');
       const log = ctx.runtime.env.log;
+      events = ctx.sim.services.events;
+      sendQa = (name, data) => void ctx.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
+      simHash = () => ({ tick: ctx.sim.core.tick, hash: ctx.sim.hash() });
+      physics = { castRay: (o, d, max, mask) => ctx.sim.backend.castRay(o, d, max, mask), staticMask: GROUP_BIT.static };
       const world = new WorldSim(raw, ctx.cfg.tier, port, ctx.sim.backend, ctx.sim.services.events, log);
       state = world;
       ctx.sim.core.addResource(world.resource());
+      ctx.sim.core.addResource(blackout.resource());
+      if (raw.index) {
+        api = installWorldServices(ctx, world, raw.index, blackout);
+        traffic = installTraffic(ctx, world, api, raw);
+        if (traffic) {
+          peds = installPeds(ctx, world, api, raw, traffic);
+          transit = installTransit(ctx, world, api, raw, traffic);
+        }
+      }
     },
   };
+}
+
+/**
+ * Builds the world services on the live sim (M02c1): the engine host for the teleport, the barrier colliders, the play-bounds wall,
+ * the hashed resources, the registration on `services.world`, and the two packs that arrive after the first chunks.
+ */
+function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: WorldIndex, blackout: Blackout): WorldServices {
+  const sim = ctx.sim;
+  const events = sim.services.events;
+  const host: TeleportHost = {
+    playerPos: () => {
+      const p = playerSide(sim.ecs as unknown as EcsWorld);
+      return p ? [p.pos[0], p.pos[1], p.pos[2]] : null;
+    },
+    begin: (x, y, z) => {
+      try {
+        const r = requestTeleport(sim.ecs, sim.services, sim.ecs.byKey('player:0'), [x, y, z], sim.core.tick);
+        return r.ok ? { ok: true } : { ok: false, reason: 'busy' };
+      } catch {
+        return { ok: false, reason: 'no-player' };
+      }
+    },
+    active: () => sim.services.control.teleportActive,
+    fade: (dir) => events.push({ t: 'world.teleport', tick: sim.core.tick, s: dir }),
+  };
+  const api = createWorldApi(world.store, index, { tick: () => sim.core.tick }, {
+    blackout,
+    host,
+    // The teleport policy reads the wanted level the modes module hands to the hub (M04b2): heat 1 refuses fast travel.
+    policy: { allowed: () => true, heat: () => sim.services.world.heat?.() ?? 0 },
+    onBoundary: (e) => events.push({ t: 'world.boundary', tick: e.tick, s: e.s }),
+    onBarrierChange: (key) => void world.feeder.refresh(key, world.store),
+  });
+  world.api = api;
+  world.feeder.extras = (key) => api.barrierPrisms(key);
+  sim.backend.addChunkStatics('world.bounds', { prisms: Float32Array.from(playWallPrisms(api.play)) });
+  for (const r of api.resources()) sim.core.addResource(r);
+  sim.services.world.api = api;
+  sim.services.world.bounds = api.bounds;
+  sim.services.world.tags = createTagsPort(world.store);
+  world.loadAux('map_data/sf-graph.v1', (b) => api.setTopology(decodeGraph(b)));
+  world.loadAux('data/district-grid.v1', (b) => api.setDistrictGrid(decodeDistrictGrid(b)));
+  // M02c2: the offline geocoder joins `findPlace` (addresses, streets, neighbourhoods); the pack is asked for on the first search only.
+  api.places.setGeocoder(() => new Promise<Geocoder | null>((resolve) => {
+    const asked = world.loadAux('map_data/sf-geocode.v1', (b) => {
+      try {
+        resolve(Geocoder.fromBytes(b));
+      } catch {
+        resolve(null);
+      }
+    });
+    if (!asked) resolve(null);
+  }));
+  return api;
+}
+
+/**
+ * The QA ops of the residency rule, answered between ticks: `preload` requests the listed `p0` keys and pins them, `settle` applies the
+ * replies that arrived and reports what is pending and resident, `hash` reports the state hash now. Returns false for any other op.
+ */
+function runResidencyOp(world: WorldSim, cmd: WorldDebugCommand, reply: (id: number, data: unknown) => void, hash: (() => { tick: number; hash: string }) | null): boolean {
+  const a = cmd.args ?? {};
+  const keys = Array.isArray(a['keys']) ? (a['keys'] as string[]).filter((k) => typeof k === 'string') as ChunkKey[] : [];
+  switch (cmd.op) {
+    case 'preload':
+      world.store.pin('p0', keys);
+      void world.store.preload(keys.map((key) => ({ level: 'p0' as const, key })));
+      reply(cmd.id, { requested: keys.length });
+      return true;
+    case 'settle': {
+      world.applyReplies();
+      const resident = keys.filter((k) => world.store.ready(k, 'p0') || world.store.emptyKeys('p0').includes(k)).length;
+      reply(cmd.id, { pending: world.pendingCount(), resident, wanted: keys.length });
+      return true;
+    }
+    case 'hash':
+      reply(cmd.id, hash ? hash() : null);
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
+ * Builds the ambient traffic (M03b1) on the live sim: its brain system at `SimStage.AI` and its hashed resource. Skipped when the
+ * ECS has no traffic components (a session built without the world components) so a bare sim is never half-wired.
+ */
+function installTraffic(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig): AmbientTraffic | null {
+  const sim = ctx.sim;
+  if (!sim.ecs.registry.getByName('TrafficAgent')) return null;
+  const traffic = new AmbientTraffic({
+    ecs: sim.ecs, backend: sim.backend, services: sim.services, world: api, store: world.store, cfg: ctx.cfg, seed: raw.index ? raw.index.worldSeed : 0,
+  });
+  api.ambient = traffic;
+  sim.core.addSystem(traffic.system());
+  sim.core.addResource(traffic.resource());
+  return traffic;
+}
+
+/**
+ * Builds the ambient pedestrians (M03b2) when the boot payload asks for them and the ECS has the `PedAgent` component: the brain
+ * system at `SimStage.AI` after the traffic, and its hashed resource.
+ */
+function installPeds(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig, traffic: AmbientTraffic): AmbientPeds | null {
+  const sim = ctx.sim;
+  if (!raw.ambient?.peds || !sim.ecs.registry.getByName('PedAgent')) return null;
+  const peds = new AmbientPeds({
+    ecs: sim.ecs, services: sim.services, world: api, store: world.store, cfg: ctx.cfg, seed: raw.index ? raw.index.worldSeed : 0, traffic,
+  });
+  api.peds = peds;
+  sim.core.addSystem(peds.system());
+  sim.core.addResource(peds.resource());
+  return peds;
+}
+
+/**
+ * Builds transit, the rides and the Bay Rail entrances (M03b2) when the boot payload asks for them: the brain system at `SimStage.AI`,
+ * its hashed resource, and the request for `data/transit-routes.v1`.
+ */
+function installTransit(ctx: SimModuleContext, world: WorldSim, api: WorldServices, raw: WorldSimConfig, traffic: AmbientTraffic): AmbientTransit | null {
+  const sim = ctx.sim;
+  if (!raw.ambient?.transit || !sim.ecs.registry.getByName('TransitVehicle')) return null;
+  const transit = new AmbientTransit({ ecs: sim.ecs, services: sim.services, world: api, cfg: ctx.cfg, traffic, sink: sim.services.fareSink });
+  api.transit = transit;
+  sim.core.addSystem(transit.system());
+  sim.core.addResource(transit.resource());
+  world.loadAux('data/transit-routes.v1', (b) => void transit.loadRoutes(b));
+  return transit;
 }
 
 /** The module `apps/web/src/workers/sim.worker.ts` composes into the sim worker. */

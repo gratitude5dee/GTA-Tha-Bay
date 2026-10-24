@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.halcyon-cormorant",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.halcyon-cormorant",
+  "render": {
+    "asset": "vehicle/graybox.halcyon-cormorant"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.97,
+      0.5,
+      2.4
+    ],
+    "massKg": 2050,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.61,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.halcyon-cormorant",
+    "seats": 2,
+    "wheels": [
+      {
+        "pos": [
+          -0.81,
+          0.06,
+          -1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.81,
+          0.06,
+          -1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.81,
+          0.06,
+          1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.81,
+          0.06,
+          1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

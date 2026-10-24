@@ -5,11 +5,13 @@
  * is a failure (the seed is corrected from OSM in content/world/landmarks.json, never waived), and every landmark needs an
  * arrival pose.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { chunkKeyOf, enuFromLatLng, type WorldIndex } from '../../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../../ci/lib/common.ts';
 import { loadContentWorld, type LandmarkSeed } from '../content.ts';
+import { diffPlan, paramFindings, planAsset, writePlan, type AssetPlan, type BaseParams } from '../landmarks/kit/build.ts';
+import { RECIPES } from '../landmarks/index.ts';
 
 export interface Finding { level: 'fail' | 'warn'; id: string; detail: string }
 
@@ -73,5 +75,75 @@ export function validateLandmarksInBake(bakeDir: string, area: string): Finding[
     if (area === 'sf') for (const id of p.featureMissing) out.push({ level: 'warn', id: 'landmarks.feature-missing', detail: `${id}: its OSM feature is not in the extract` });
   }
   for (const l of index.landmarks) if (!l.arrival) out.push({ level: 'fail', id: 'landmarks.arrival', detail: `${l.id} has no arrival pose` });
+  return out;
+}
+
+/** `--build [--slug <id>] [--check]`: the landmark models (M02d1). */
+export interface LandmarkBuildResult { findings: Finding[]; plans: AssetPlan[]; written: string[] }
+
+/** The recipe id of `--slug` (`lm.coit-tower` or `coit-tower`), or null for all. */
+export const normalizeSlug = (slug: string): string => (slug.startsWith('lm.') ? slug : `lm.${slug}`);
+
+export async function buildLandmarks(opts: { root?: string; slug?: string | undefined; check: boolean }): Promise<LandmarkBuildResult> {
+  const root = opts.root ?? toolsRoot;
+  const findings: Finding[] = [];
+  const plans: AssetPlan[] = [];
+  const written: string[] = [];
+  const seeds = new Map(loadContentWorld().landmarks.map((l) => [l.id, l] as const));
+  const want = opts.slug ? normalizeSlug(opts.slug) : null;
+  if (want && !RECIPES.some((r) => r.id === want)) {
+    findings.push({ level: 'fail', id: 'landmarks.build-slug', detail: `${want} has no recipe (${RECIPES.map((r) => r.id).join(', ')})` });
+    return { findings, plans, written };
+  }
+  for (const def of RECIPES) {
+    if (want && def.id !== want) continue;
+    const seed = seeds.get(def.id);
+    if (!seed) { findings.push({ level: 'fail', id: 'landmarks.build-seed', detail: `${def.id} is not in content/world/landmarks.json` }); continue; }
+    if (!seed.recipe) { findings.push({ level: 'fail', id: 'landmarks.build-recipe', detail: `${def.id}: no recipe key in content/world/landmarks.json` }); continue; }
+    const bad = paramFindings(def, seed.recipe);
+    if (bad.length > 0) { for (const b of bad) findings.push({ level: 'fail', id: 'landmarks.build-params', detail: b }); continue; }
+    const plan = await planAsset(def, seed.recipe as unknown as BaseParams, seed.cls);
+    plans.push(plan);
+    if (opts.check) {
+      for (const d of diffPlan(root, plan)) findings.push({ level: 'fail', id: 'landmarks.build-check', detail: `${d.path} ${d.why === 'missing' ? 'is missing' : d.why === 'stale' ? 'is a stale provenance record' : 'differs from a fresh build'}` });
+    } else {
+      writePlan(root, plan);
+      written.push(plan.dir);
+    }
+  }
+  return { findings, plans, written };
+}
+
+// ---- catalog completeness (M02d2) -----------------------------------------------------------------------------------------------
+
+const VARIANTS = ['desktop', 'mobile', 'mobile-low'] as const;
+
+/**
+ * Every landmark of landmarks.json needs a `building/lm.<slug>` asset under assets/src (an asset.json with the three variants, each
+ * file present), and every `lm.*` asset there needs a landmark entry. Run by `map:landmarks` in content mode (M02d2).
+ */
+export function validateLandmarkAssets(seeds: readonly LandmarkSeed[] = loadContentWorld().landmarks, root = toolsRoot): Finding[] {
+  const out: Finding[] = [];
+  const dir = path.join(root, 'assets', 'src', 'building');
+  const onDisk = existsSync(dir) ? readdirSync(dir).filter((n) => n.startsWith('lm.')).sort() : [];
+  const ids = new Set(seeds.map((s) => s.id));
+  for (const s of seeds) {
+    const specFile = path.join(dir, s.id, 'asset.json');
+    if (!existsSync(specFile)) { out.push({ level: 'fail', id: 'landmarks.asset-missing', detail: `${s.id} has no building/${s.id} asset (assets/src/building/${s.id}/asset.json)` }); continue; }
+    let spec: { variants?: Record<string, string>; tags?: string[] };
+    try {
+      spec = JSON.parse(readFileSync(specFile, 'utf8')) as typeof spec;
+    } catch {
+      out.push({ level: 'fail', id: 'landmarks.asset-spec', detail: `${s.id}: asset.json is not valid JSON` });
+      continue;
+    }
+    for (const v of VARIANTS) {
+      const rel = spec.variants?.[v];
+      if (!rel) out.push({ level: 'fail', id: 'landmarks.asset-variant', detail: `${s.id}: the ${v} variant is missing from asset.json` });
+      else if (!existsSync(path.join(root, rel))) out.push({ level: 'fail', id: 'landmarks.asset-file', detail: `${s.id}: ${rel} is listed and not on disk` });
+    }
+    if (!spec.tags?.includes(`lm-class:${s.cls}`)) out.push({ level: 'fail', id: 'landmarks.asset-class', detail: `${s.id}: asset.json lacks the tag lm-class:${s.cls}` });
+  }
+  for (const n of onDisk) if (!ids.has(n)) out.push({ level: 'fail', id: 'landmarks.asset-extra', detail: `building/${n} has no entry in content/world/landmarks.json` });
   return out;
 }

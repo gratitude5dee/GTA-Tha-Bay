@@ -1,0 +1,20 @@
+{
+  "$comment": "CutscenePlayer thresholds (spec/domains/03-story-cutscenes.md section D7; M05b2). Design values from the spec: answerDeadlineMs is how long the sim waits for a cutscene.state answer, the player enforces it. Times are milliseconds.",
+  "schema": "cutscene-config/1",
+  "answerDeadlineMs": 2500,
+  "answerDeadlinePrefetchedMs": 1500,
+  "startStallMs": 2500,
+  "startStallPrefetchedMs": 1500,
+  "midStallMs": 1500,
+  "midStallFrozenXrMs": 1000,
+  "tapToPlayMs": 3000,
+  "budgetFraction": 0.85,
+  "dataSaverMbps": 4,
+  "v1080MinScreenHeightPx": 1440,
+  "prefetchAheadMobile": 2,
+  "prefetchAheadDesktop": 4,
+  "audioNudgeMs": 45,
+  "audioNudgeConstantOffsetMs": 0,
+  "mobileMediaBudgetMB": 64,
+  "manifestTimeoutMs": 4000
+}

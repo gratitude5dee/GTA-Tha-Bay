@@ -39,6 +39,39 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.atomic (%s store)', (ki
     expect(Math.max(...records.map((r) => r.gen))).toBe(reachedPointer ? 3 : 2);
   });
 
+  // BD-FIX-CI6-B02: the page's SaveService (or a second tab) opening sweeps orphans while the sim worker writes. A record put at (c)
+  // is an orphan until (e) moves the pointer; the sweep must not leave the pointer on a record it deleted.
+  it.each<WriteStep>(['c', 'd'])('another service opening after step (%s) of a write does not lose the written record', async (step) => {
+    const store = await newStore(kind);
+    const clk = clock();
+    const a = await openSvc(store, { capability: 'sandbox', now: clk.now });
+    const p = await mkProfile(a);
+    expect((await a.write('sandbox', slice(1), 'manual')).ok).toBe(true);
+    expect((await a.write('sandbox', slice(2), 'manual')).ok).toBe(true);
+
+    let swept = false;
+    const b = await openSvc(store, {
+      capability: 'sandbox',
+      now: clk.now,
+      onStep: async (s) => {
+        if (s !== step || swept) return;
+        swept = true;
+        // The sweep of the other service's open sees generation 3 with the pointer still on 2, and deletes it.
+        await openSvc(store, { capability: 'sandbox', now: clk.now });
+        expect((await store.listRecords(p.id)).filter((r) => r.slot === 'sandbox').map((r) => r.gen)).not.toContain(3);
+      },
+    });
+    await b.load(p.id);
+    expect(await b.write('sandbox', slice(3), 'settings')).toMatchObject({ ok: true, gen: 3 });
+    expect(swept).toBe(true);
+
+    const c = await openSvc(store, { capability: 'sandbox', now: clk.now });
+    const game = await c.load(p.id);
+    expect((game.sandbox as SandboxSlice).toggles['n']).toBe(3);
+    expect(game.profile.lastSave).toMatchObject({ slot: 'sandbox', ok: true, reason: 'settings' });
+    expect((await c.describeSlot(p.id, 'sandbox'))?.gen).toBe(3);
+  });
+
   it('a clean write moves the pointer, keeps two generations and reports ok through onStatus', async () => {
     const store = await newStore(kind);
     const svc = await openSvc(store, { capability: 'sandbox', now: clock().now });

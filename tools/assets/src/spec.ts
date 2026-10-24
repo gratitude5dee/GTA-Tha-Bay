@@ -5,7 +5,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
-import type { AssetId, AssetKind, AssetRef, KindExtras, LikenessSummary, VariantId } from '../../../packages/shared/src/assets/c07.ts';
+import type { AssetId, AssetKind, AssetRef, AssetVariant, KindExtras, LikenessSummary, VariantId, VariantStats } from '../../../packages/shared/src/assets/c07.ts';
 import { finding, type GateFinding } from '../../../packages/shared/src/assets/gates/types.ts';
 
 export const GATE = 'check:assets';
@@ -25,6 +25,10 @@ export interface AssetSpec {
   tags: string[];
   extras?: KindExtras;
   likeness?: LikenessSummary;
+  /** Per variant, recorded by the tool that wrote the file (M02d1: tris, verts, primitives, materials); the stats budgets read it. */
+  stats?: Partial<Record<VariantId, VariantStats>>;
+  /** Mesh codec of the glTF variants (`meshopt` when the writer compressed them). */
+  codec?: NonNullable<AssetVariant['codec']>;
   status: 'active' | 'quarantined' | 'killed';
   visibility: 'public' | 'private';
 }

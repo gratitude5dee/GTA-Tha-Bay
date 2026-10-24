@@ -1,0 +1,10 @@
+{
+  "rule": "V14",
+  "expect": [
+    "V14"
+  ],
+  "note": "a pursuit without police",
+  "sourcePatch": {
+    "/kind": "pursuit"
+  }
+}

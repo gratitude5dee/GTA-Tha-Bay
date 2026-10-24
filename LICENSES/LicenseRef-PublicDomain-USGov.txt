@@ -8,7 +8,11 @@ Mapzen (a Linux Foundation project).
 The registry page has no licence URL. It is the citation page:
 https://registry.opendata.aws/terrain-tiles
 
-Credit text shown in the game: "3DEP data courtesy of the U.S. Geological Survey".
+Credit text shown in the game: "3DEP data courtesy of the U.S. Geological Survey", followed by the two lines the Terrain Tiles
+attribution document requires for the datasets behind the bake boxes: "United States 3DEP (formerly NED) and global GMTED2010
+and SRTM terrain data courtesy of the U.S. Geological Survey." and "Global ETOPO1 terrain data U.S. National Oceanic and
+Atmospheric Administration" (ETOPO1 is NOAA public domain; https://github.com/tilezen/joerd/blob/master/docs/attribution.md,
+checked 2026-10-19).
 Citation: "Terrain Tiles was accessed on <date> from https://registry.opendata.aws/terrain-tiles".
 
 Sources: research/repos-world.md section 4 (https://registry.opendata.aws/terrain-tiles/,

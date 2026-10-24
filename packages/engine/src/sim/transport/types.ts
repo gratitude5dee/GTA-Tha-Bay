@@ -1,4 +1,4 @@
-import type { FrameSignal, InputFrame, SimControlMessage } from '@dv/shared';
+import type { FrameSignal, InputFrame, SimControlMessage, UiCommand } from '@dv/shared';
 import type { InputBlock } from './input-block.ts';
 import type { DebugCommand, FromWorkerMessage, ToWorkerMessage } from './envelope.ts';
 import type { SnapshotRead, SnapshotWriter } from './snapshot-buffer.ts';
@@ -23,6 +23,8 @@ export interface MainTransport {
   sendFrame(sig: FrameSignal): boolean;
   sendControl(msg: SimControlMessage): boolean;
   sendDebug(cmd: DebugCommand): boolean;
+  /** A `UiCommand` over the command ring (M04a2). */
+  sendUi(cmd: UiCommand): boolean;
   readSnapshot(): SnapshotRead | null;
   /** Calls `handler` for every event received since the last call. */
   drainEvents(handler: (m: FromWorkerMessage) => void): number;

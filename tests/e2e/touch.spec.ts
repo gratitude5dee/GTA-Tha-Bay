@@ -49,8 +49,7 @@ test.describe('touch controls @touch', () => {
     await expect.poll(async () => (await observe(page)).world?.chunks, { timeout: 90_000 }).toBe(4);
     await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 60_000 }).toBe(true);
 
-    // Tap Start on the title; the touch layer appears.
-    await page.getByTestId('title-start').tap();
+    // The QA play bypass (M04b1) is in play already; the touch layer is up.
     await expect(page.locator('.dv-touch')).toBeVisible();
     expect((await observe(page)).play).toBe(true);
 
@@ -74,7 +73,7 @@ test.describe('touch controls @touch', () => {
       return { touchAction: cs.touchAction, userSelect: cs.userSelect || cs.getPropertyValue('-webkit-user-select'), buttons };
     });
     expect(layer.touchAction).toBe('none');
-    expect(layer.buttons.map((b) => b.id).sort()).toEqual(['camera', 'jump', 'pause']);
+    expect(layer.buttons.map((b) => b.id).sort()).toEqual(['attack', 'block', 'camera', 'enter', 'jump', 'pause', 'phone', 'special']);
     for (const b of layer.buttons) {
       expect(b.w, `${b.id} width`).toBeGreaterThanOrEqual(44);
       expect(b.h, `${b.id} height`).toBeGreaterThanOrEqual(44);

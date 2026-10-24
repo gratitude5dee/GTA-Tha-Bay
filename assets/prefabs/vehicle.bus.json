@@ -1,0 +1,31 @@
+{
+  "id": "vehicle.bus",
+  "kind": "prop",
+  "version": 1,
+  "nameKey": "transit.vehicle.bus",
+  "render": {
+    "asset": "vehicle/graybox.bus"
+  },
+  "physics": {
+    "body": "kinematic",
+    "shape": "box",
+    "dims": [
+      1.3,
+      1.55,
+      5.8
+    ],
+    "massKg": 12000,
+    "groups": [
+      "kinematic"
+    ],
+    "liftM": 1.55
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  }
+}

@@ -2,7 +2,7 @@
 import { CHUNK_EDGE_M, GRID_MIN_M, TERRAIN_POSTS, latLngFromEnu, type ChunkKey } from '../../../packages/shared/src/index.ts';
 import { loadBridges, loadRoadClass } from '../src/config.ts';
 import type { OsmFeature } from '../src/sources/geo.ts';
-import { runRoads, type RoadsProduct, type StreetRow } from '../src/stages/s5-roads.ts';
+import { runRoads, type RoadFixes, type RoadsProduct, type StreetRow } from '../src/stages/s5-roads.ts';
 import { buildJunctions, type JunctionsProduct } from '../src/stages/s6-junctions.ts';
 
 export const roadCfg = loadRoadClass();
@@ -33,8 +33,8 @@ export function row(line: number[], o: Partial<StreetRow> & { cnn: number }): St
   return { streetname: '', classcode: '5', oneway: 'B', layer: 'STREETS', active: 'true', ...o, line: { type: 'MultiLineString', coordinates: [co] } };
 }
 
-export function net(osm: OsmFeature[], streets: StreetRow[] = []): { roads: RoadsProduct; junctions: JunctionsProduct } {
-  const roads = runRoads({ osm, streets, hoods: [], cfg: roadCfg, box: BOX });
+export function net(osm: OsmFeature[], streets: StreetRow[] = [], fixes?: RoadFixes): { roads: RoadsProduct; junctions: JunctionsProduct } {
+  const roads = runRoads({ osm, streets, hoods: [], cfg: roadCfg, box: BOX, fixes });
   return { roads, junctions: buildJunctions(roads) };
 }
 

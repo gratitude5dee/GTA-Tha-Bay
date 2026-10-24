@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { branchSlug, main, sweepClosed, type SweepRunner } from '../deploy.ts';
-import { mapPkgFilter } from '../run.ts';
+import { listSpecs, mapPkgFilter, pkgSelection, unmatchedNames } from '../run.ts';
 
 describe('run.ts --pkg filter (known defect: package test scripts honour -- <name>)', () => {
   it('maps name filters to paths inside the package test directory', () => {
@@ -13,6 +13,21 @@ describe('run.ts --pkg filter (known defect: package test scripts honour -- <nam
   });
   it('leaves argument lists without --pkg untouched', () => {
     expect(mapPkgFilter(['packages/ui'])).toEqual(['packages/ui']);
+  });
+  it('lists the names no spec path contains (DL-674 part 2)', () => {
+    const specs = ['packages/engine/test/clock.spec.ts', 'packages/engine/test/save/load.spec.ts'];
+    const sel = pkgSelection(['--pkg', 'packages/engine', 'clock', 'nosuchspec']);
+    expect(sel).toEqual({ dir: 'packages/engine', base: 'packages/engine/test/', names: ['clock', 'nosuchspec'] });
+    expect(unmatchedNames(sel!.base, sel!.names, specs)).toEqual(['nosuchspec']);
+    expect(unmatchedNames('packages/engine/test/', ['save/'], specs)).toEqual([]);
+    expect(unmatchedNames('packages/engine/test/', [], specs)).toEqual([]);
+    expect(pkgSelection(['packages/ui'])).toBeNull();
+  });
+  it('finds the real engine specs recursively', () => {
+    const specs = listSpecs('packages/engine');
+    expect(specs).toContain('packages/engine/test/determinism.node.spec.ts');
+    expect(specs.some((s) => s.startsWith('packages/engine/test/save/'))).toBe(true);
+    expect(listSpecs('packages/nonexistent')).toEqual([]);
   });
 });
 

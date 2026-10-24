@@ -71,7 +71,7 @@
             "properties": {
               "id": { "$ref": "#/$defs/id" },
               "kind": { "const": "button" },
-              "action": { "type": "string", "pattern": "^(sim|client)\\.[A-Za-z]+$" },
+              "action": { "type": "string", "pattern": "^(sim|client|axis)\\.[A-Za-z]+$" },
               "at": { "$ref": "#/$defs/anchor" },
               "sizePx": { "type": "number", "minimum": 44, "maximum": 96 },
               "icon": { "type": "string", "minLength": 1 },

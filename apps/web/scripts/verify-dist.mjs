@@ -5,6 +5,7 @@
  *   - no bot-input module (by file name and by its error strings);
  *   - no `__dvBridge` string in any file;
  *   - no memory-bomb page or code and no PerfHud (M01c AC-11);
+ *   - no entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11);
  *   - no media-local/ mirror and no `__dvBridge.assets` (M01e AC-10);
  *   - the service worker precache has the simd-compat Rapier chunk and no deterministic-compat entry, while the
  *     deterministic-compat chunk exists in dist so canonical sessions can load it on demand.
@@ -70,6 +71,19 @@ export function verifyDist(dist) {
     if (s.includes('save-kill') || s.includes('save-verify') || s.includes('KILL_PROFILE')) fail(`save-kill QA code found in ${rel(f)}`);
   }
 
+  // 2e. No entity inspector, physics wireframe, line recorder or QA vehicle commands (M03a1 AC-11).
+  for (const f of textFiles) {
+    const s = text(f);
+    if (/inspect\.reply\.|physics\.reply\.|spawn\.reply\.|vehicle\.reply\.|veh:qa|LineRecorder|physics-draw|dv-inspector|pursuit\.reply\.|dv-pursuit|pursuit-panel|runPursuitQa|modes\.reply\.|modes-panel|dv-modes|runModesQa/.test(s)) fail(`QA vehicle tools found in ${rel(f)}`);
+  }
+
+  // 2f. No world-hash QA page or its code (M03b1 AC-12): the page and the strings only it contains.
+  for (const f of files) if (/world-hash/.test(rel(f))) fail(`world-hash file in dist: ${rel(f)}`);
+  for (const f of textFiles) {
+    const s = text(f);
+    if (s.includes('world-hash') || s.includes('dvWorldHash') || s.includes('traffic-synth') || s.includes('traffic-peds-synth')) fail(`world-hash QA code found in ${rel(f)}`);
+  }
+
   // 3. No __dvBridge anywhere.
   for (const f of textFiles) if (text(f).includes('__dvBridge')) fail(`"__dvBridge" found in ${rel(f)}`);
 
@@ -115,7 +129,7 @@ function main() {
     console.error(`verify:dist failed (${failures.length})`);
     process.exit(1);
   }
-  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no PerfHud, no __dvBridge string, no media-local');
+  console.log('  ok    no qa/ page, no bot-input module, no memory-bomb, no save-kill, no world-hash, no PerfHud, no __dvBridge string, no media-local');
   console.log('  ok    precache has the simd-compat chunk and no deterministic-compat entry');
   console.log('verify:dist passed');
 }

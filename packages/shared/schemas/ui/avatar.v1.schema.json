@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "avatar.v1",
+  "title": "PlayerAvatar v1 (10-ui-pages.md section 4.1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "name", "callsign", "body", "face", "skinTone", "hair", "outfit", "voice", "fightStyle"],
+  "$defs": {
+    "partId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,62}$" },
+    "unit": { "type": "number", "minimum": 0, "maximum": 1 },
+    "signed": { "type": "number", "minimum": -1, "maximum": 1 },
+    "index": { "type": "integer", "minimum": 0, "maximum": 255 }
+  },
+  "properties": {
+    "v": { "const": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 24, "pattern": "^[\\p{L}\\p{N} '._-]+$" },
+    "callsign": { "type": "string", "minLength": 1, "maxLength": 24, "pattern": "^[\\p{L}\\p{N} '._-]+$" },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preset", "height", "build"],
+      "properties": { "preset": { "$ref": "#/$defs/partId" }, "height": { "$ref": "#/$defs/unit" }, "build": { "$ref": "#/$defs/unit" } }
+    },
+    "face": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preset", "morphs"],
+      "properties": {
+        "preset": { "$ref": "#/$defs/partId" },
+        "morphs": { "type": "object", "maxProperties": 24, "propertyNames": { "$ref": "#/$defs/partId" }, "additionalProperties": { "$ref": "#/$defs/signed" } }
+      }
+    },
+    "skinTone": { "$ref": "#/$defs/index" },
+    "hair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "color"],
+      "properties": { "style": { "$ref": "#/$defs/partId" }, "color": { "$ref": "#/$defs/index" } }
+    },
+    "outfit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["top", "bottom", "shoes"],
+      "properties": {
+        "top": { "$ref": "#/$defs/partId" },
+        "bottom": { "$ref": "#/$defs/partId" },
+        "shoes": { "$ref": "#/$defs/partId" },
+        "accessory": { "$ref": "#/$defs/partId" }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "pitch"],
+      "properties": { "id": { "$ref": "#/$defs/partId" }, "pitch": { "$ref": "#/$defs/signed" } }
+    },
+    "fightStyle": { "$ref": "#/$defs/partId" },
+    "customLook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pipelineJobId", "tier"],
+      "properties": { "pipelineJobId": { "type": "string" }, "tier": { "const": "fictionalized" } }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "beats": {
+    "cut.story.m.a1.01.dawn": {
+      "rev": 1,
+      "sha256": "1c49a02ac1d57c194f0a7d6f56ca5465a5283a33734adf347a5f56a6b5298719"
+    },
+    "cut.story.m.a1.03.raid": {
+      "rev": 1,
+      "sha256": "252e0e91f015935a6759ab7b00b69a56da5777d43415d6fc24a0416acec4e6cd"
+    },
+    "cut.story.m.a1.04.keynote": {
+      "rev": 1,
+      "sha256": "3b247a0f0894ab215aef44953b741647b638c4abab86965b47b7124067d3c747"
+    },
+    "cut.story.m.a1.05.ring": {
+      "rev": 1,
+      "sha256": "e8726df7155feee14fa31a4fdd38ef5c04b8715467618704e3a98b3eba60c4e3"
+    },
+    "cut.story.m.a1.06.antenna": {
+      "rev": 1,
+      "sha256": "ef9ab5e85a83fe74e72757bee4f3c27d84a6c3567a01f144b9bc8fad668b6a6f"
+    },
+    "cut.story.m.dev.sample.intro": {
+      "rev": 1,
+      "sha256": "66f37072dccbaf0a56e1f0dd5b062cac9373da1f80ecb295e64b6ec48c79f515"
+    }
+  },
+  "schema": "beats-lock/1"
+}

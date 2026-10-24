@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/tycoon.report.v1.json",
+  "title": "Tycoon balance report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "contentVersion", "balanceVersion", "runsPerPolicy", "seedBase", "policies"],
+  "properties": {
+    "schema": { "const": "tycoon.report.v1" },
+    "contentVersion": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+    "balanceVersion": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+    "runsPerPolicy": { "type": "integer", "minimum": 1 },
+    "seedBase": { "type": "integer" },
+    "wallTimeMs": { "type": "number", "minimum": 0 },
+    "determinism": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runsChecked", "twiceIdentical", "replayMismatches"],
+      "properties": {
+        "runsChecked": { "type": "integer", "minimum": 0 },
+        "twiceIdentical": { "type": "boolean" },
+        "replayMismatches": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/policy" }
+    }
+  },
+  "$defs": {
+    "rate": { "type": "number", "minimum": 0, "maximum": 1 },
+    "pct": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["p10", "p50", "p90"],
+      "properties": { "p10": { "type": "number" }, "p50": { "type": "number" }, "p90": { "type": "number" } }
+    },
+    "counts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runs", "outcomes", "timedOut", "runLength", "winRate", "unicornRate", "lossRate", "meanScore", "score", "reach", "dilution", "events", "lethality", "violations", "refusedCommands"],
+      "properties": {
+        "runs": { "type": "integer", "minimum": 1 },
+        "outcomes": { "$ref": "#/$defs/counts" },
+        "timedOut": { "type": "integer", "minimum": 0 },
+        "runLength": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["p10", "p50", "p90", "mean"],
+          "properties": { "p10": { "type": "number" }, "p50": { "type": "number" }, "p90": { "type": "number" }, "mean": { "type": "number" } }
+        },
+        "winRate": { "$ref": "#/$defs/rate" },
+        "unicornRate": { "$ref": "#/$defs/rate" },
+        "lossRate": { "$ref": "#/$defs/rate" },
+        "meanScore": { "type": "number" },
+        "score": { "$ref": "#/$defs/pct" },
+        "reach": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["safe", "seed", "a", "b", "c"],
+          "properties": {
+            "safe": { "$ref": "#/$defs/rate" },
+            "seed": { "$ref": "#/$defs/rate" },
+            "a": { "$ref": "#/$defs/rate" },
+            "b": { "$ref": "#/$defs/rate" },
+            "c": { "$ref": "#/$defs/rate" }
+          }
+        },
+        "dilution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["p10", "p50", "p90", "n"],
+          "properties": { "p10": { "type": "number" }, "p50": { "type": "number" }, "p90": { "type": "number" }, "n": { "type": "integer", "minimum": 0 } }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["firedPerRun", "choicePerRun", "suppressedPerWeek", "byId"],
+          "properties": {
+            "firedPerRun": { "type": "number", "minimum": 0 },
+            "choicePerRun": { "type": "number", "minimum": 0 },
+            "suppressedPerWeek": { "type": "number", "minimum": 0 },
+            "byId": { "$ref": "#/$defs/counts" }
+          }
+        },
+        "lethality": { "type": "object", "additionalProperties": { "$ref": "#/$defs/rate" } },
+        "violations": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["offersOutOfBand", "captableInvariant", "payoutMismatch", "stuck"],
+          "properties": {
+            "offersOutOfBand": { "type": "integer", "minimum": 0 },
+            "captableInvariant": { "type": "integer", "minimum": 0 },
+            "payoutMismatch": { "type": "integer", "minimum": 0 },
+            "stuck": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "refusedCommands": { "type": "integer", "minimum": 0 },
+        "wallTimeMs": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

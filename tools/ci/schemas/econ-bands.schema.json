@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dee-verse.invalid/schemas/econ-bands.schema.json",
+  "title": "Economy bands (M04d)",
+  "type": "object",
+  "required": ["v", "unit", "sections"],
+  "additionalProperties": false,
+  "properties": {
+    "v": { "const": 1 },
+    "unit": { "const": "cents" },
+    "sections": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/section" }
+    }
+  },
+  "$defs": {
+    "band": {
+      "type": "array",
+      "prefixItems": [{ "type": "integer" }, { "type": "integer" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "percentiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "p10": { "$ref": "#/$defs/band" },
+        "p50": { "$ref": "#/$defs/band" },
+        "p90": { "$ref": "#/$defs/band" }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["exact", "policies"],
+      "additionalProperties": false,
+      "properties": {
+        "exact": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "policies": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "endBalance": { "$ref": "#/$defs/percentiles" },
+              "totalIncome": { "$ref": "#/$defs/percentiles" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

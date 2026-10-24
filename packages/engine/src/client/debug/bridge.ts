@@ -1,5 +1,7 @@
+import type { GameModeId, JsonValue, UiCommand, VehicleView } from '@dv/shared';
 import type { DebugCommand } from '../../sim/transport/envelope.ts';
 import type { EngineHandle, EngineObservation } from '../boot/boot-engine.ts';
+import { VEHICLE_VIEW_ORDER } from '../vehicle/vehicle-camera.ts';
 import { createSaveBridge, type SaveBridge } from './save-bridge.ts';
 
 /**
@@ -7,6 +9,13 @@ import { createSaveBridge, type SaveBridge } from './save-bridge.ts';
  * for Playwright and agents. This module is reachable only through a dynamic import behind `VITE_DV_QA === '1'`, so a
  * production dist contains neither it nor the string "__dvBridge" (apps/web/scripts/verify-dist.mjs).
  */
+export interface SpawnReply {
+  ok: boolean;
+  handle?: number;
+  key?: string | null;
+  reason?: string;
+}
+
 export interface EngineBridge {
   observe(): EngineObservation;
   act(cmd: DebugCommand): boolean;
@@ -21,10 +30,163 @@ export interface EngineBridge {
   endXr(): Promise<void>;
   /** C05 SaveService on the real database: list, write, load, kill (M04a1). */
   save: SaveBridge;
+  /** Vehicles (M03a1). */
+  spawn(prefab: string, at: [number, number, number], yaw?: number): Promise<SpawnReply | null>;
+  /** The vehicle the local player drives (side key `veh`); null on foot. */
+  vehicle(): EngineObservation['vehicle'];
+  /** `enter` (with reach and the machine's checks), `seat` (at once), `exit`, `lock`, `unlock`, or `state`; `target` is an entity handle (default: the nearest vehicle). */
+  vehicleOp(op: 'enter' | 'seat' | 'exit' | 'lock' | 'unlock' | 'state', target?: number): Promise<Record<string, unknown> | null>;
+  /** The pursuit director (M03c, QA): the heat toggles of the sandbox and the director's state as the sim holds it. */
+  pursuit: {
+    /** The `pursuit` side block of the newest snapshot; null at level 0. */
+    side(): EngineObservation['pursuit'];
+    state(): Promise<Record<string, unknown> | null>;
+    setHeat(level: number): Promise<Record<string, unknown> | null>;
+    clear(): Promise<Record<string, unknown> | null>;
+    neverWanted(on: boolean): Promise<Record<string, unknown> | null>;
+    scripted(on: boolean): Promise<Record<string, unknown> | null>;
+    report(kind: string, witness?: 'police' | 'robotaxi' | 'ped' | 'heli', count?: number): Promise<Record<string, unknown> | null>;
+    wallet(cents: number): Promise<Record<string, unknown> | null>;
+    /** Hot reload: replaces `config/pursuit.json` values in the running director (refused with the JSON paths of its defects). */
+    reloadConfig(config: unknown): Promise<Record<string, unknown> | null>;
+    blockAhead(ahead?: number, heavy?: boolean): Promise<Record<string, unknown> | null>;
+    stripAhead(ahead?: number): Promise<Record<string, unknown> | null>;
+  };
+  /** The mode host, the unlocks, the economy and the UI channel (M04a2, QA). */
+  modes: {
+    /** Registered modes in tile order, with `status` and whether each is unlocked. */
+    list(): Promise<Record<string, unknown> | null>;
+    /** Host state, balance, unlock flag, recent autosaves and refusals, queued telemetry. */
+    state(): Promise<Record<string, unknown> | null>;
+    /** The host state as the page's view model sees it (`Idle`, `Loading`, `Running`, ...) and the stack. */
+    mode(): { state: string; stack: { id: string; state: string }[] };
+    start(id: GameModeId): boolean;
+    quit(): boolean;
+    /** Sends any `UiCommand`. */
+    send(cmd: UiCommand): boolean;
+    /** The QA unlock helper: true in the answer when the unlock was new. */
+    unlock(id: string): Promise<Record<string, unknown> | null>;
+    unlockAll(on: boolean): Promise<Record<string, unknown> | null>;
+    credit(cents: number, key: string): Promise<Record<string, unknown> | null>;
+    debit(cents: number, key: string): Promise<Record<string, unknown> | null>;
+    /** Any `debug.modes` op, for modules that add their own (`racing.start`); the answer is the module's reply. */
+    call(op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null>;
+    /** A view model value (`hud.wallet`, `sys.unlocks`, `sys.controls`, ...). */
+    vm(key: string): JsonValue | undefined;
+    toasts(): readonly { id: string; kind: string; text: string }[];
+    telemetry(): readonly { name: string; props: Record<string, string | number | boolean> }[];
+  };
+  /** The five vehicle cameras (R-PLAT-04). */
+  vehicleCamera: {
+    views(): readonly VehicleView[];
+    view(): VehicleView;
+    set(v: VehicleView): void;
+    cycle(): VehicleView;
+    /** Where the draw camera was put by the last vehicle-camera frame, and its distance from the anchor. */
+    last(): { x: number; y: number; z: number; distance: number; view: VehicleView };
+  };
+  /** Input lines (QA): play one from now, stop, record, and stop recording (answers with the line). */
+  line: {
+    play(line: unknown): Promise<Record<string, unknown> | null>;
+    stop(): Promise<Record<string, unknown> | null>;
+    record(): Promise<Record<string, unknown> | null>;
+    save(): Promise<Record<string, unknown> | null>;
+  };
+  /** The entity inspector and the physics wireframe (`?debug=1`). */
+  tools: {
+    inspector(on?: boolean): void;
+    physics(on?: boolean): void;
+    /** The components of an entity (default: the player's vehicle, else the player). */
+    inspect(handle?: number): Promise<Record<string, unknown> | null>;
+  };
 }
 
 export function installEngineBridge(engine: EngineHandle): EngineBridge {
+  let serial = 1_000_000;   // apart from the inspector panel's ids, so that reply names never collide
+  const ask = async (cmd: DebugCommand, reply: string): Promise<Record<string, unknown> | null> => (await engine.ask(cmd, reply)) as Record<string, unknown> | null;
+  const pursuitCall = async (op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const id = ++serial;
+    return ask({ t: 'debug.pursuit', id, op, ...(args ? { args } : {}) }, `pursuit.reply.${id}`);
+  };
+  const modesCall = async (op: string, args?: Record<string, unknown>): Promise<Record<string, unknown> | null> => {
+    const id = ++serial;
+    return ask({ t: 'debug.modes', id, op, ...(args ? { args } : {}) }, `modes.reply.${id}`);
+  };
   const bridge: EngineBridge = {
+    modes: {
+      list: () => modesCall('list'),
+      state: () => modesCall('state'),
+      mode: () => {
+        const v = engine.vm.get('sys.mode') as { state?: string; stack?: { id: string; state: string }[] } | undefined;
+        return { state: v?.state ?? 'Idle', stack: v?.stack ?? [] };
+      },
+      start: (id) => engine.sendUi({ t: 'mode.start', id }),
+      quit: () => engine.sendUi({ t: 'mode.quit' }),
+      send: (cmd) => engine.sendUi(cmd),
+      call: (op, args) => modesCall(op, args),
+      unlock: (id) => modesCall('unlock', { id }),
+      unlockAll: (on) => modesCall('unlockAll', { on }),
+      credit: (cents, key) => modesCall('credit', { cents, key }),
+      debit: (cents, key) => modesCall('debit', { cents, key }),
+      vm: (key) => engine.vm.get(key as never),
+      toasts: () => engine.toasts(),
+      telemetry: () => engine.telemetryEvents(),
+    },
+    spawn: async (prefab, at, yaw) => {
+      const id = ++serial;
+      return (await ask({ t: 'debug.spawn', id, prefab, at, ...(yaw !== undefined ? { yaw } : {}) }, `spawn.reply.${id}`)) as SpawnReply | null;
+    },
+    vehicle: () => engine.observe().vehicle,
+    vehicleOp: async (op, target) => {
+      const id = ++serial;
+      return ask({ t: 'debug.vehicle', id, op, ...(target !== undefined ? { target } : {}) }, `vehicle.reply.${id}`);
+    },
+    pursuit: {
+      side: () => engine.observe().pursuit,
+      state: () => pursuitCall('state'),
+      setHeat: (level) => pursuitCall('setHeat', { level }),
+      clear: () => pursuitCall('clear'),
+      neverWanted: (on) => pursuitCall('neverWanted', { on }),
+      scripted: (on) => pursuitCall('scripted', { on }),
+      report: (kind, witness = 'police', count = 1) => pursuitCall('report', { kind, witness, count }),
+      wallet: (cents) => pursuitCall('wallet', { cents }),
+      reloadConfig: (config) => pursuitCall('config', { config }),
+      blockAhead: (ahead = 45, heavy = false) => pursuitCall('blockAhead', { ahead, heavy }),
+      stripAhead: (ahead = 45) => pursuitCall('stripAhead', { ahead }),
+    },
+    vehicleCamera: {
+      views: () => VEHICLE_VIEW_ORDER,
+      view: () => engine.vehicleCamera.view,
+      set: (v) => engine.vehicleCamera.setView(v),
+      cycle: () => engine.vehicleCamera.cycle(),
+      last: () => engine.vehicleCamera.last,
+    },
+    line: {
+      play: async (line) => {
+        const id = ++serial;
+        return ask({ t: 'debug.line', id, op: 'play', line }, `line.reply.${id}`);
+      },
+      stop: async () => {
+        const id = ++serial;
+        return ask({ t: 'debug.line', id, op: 'stop' }, `line.reply.${id}`);
+      },
+      record: async () => {
+        const id = ++serial;
+        return ask({ t: 'debug.line', id, op: 'record' }, `line.reply.${id}`);
+      },
+      save: async () => {
+        const id = ++serial;
+        return ask({ t: 'debug.line', id, op: 'save' }, `line.reply.${id}`);
+      },
+    },
+    tools: {
+      inspector: (on) => engine.tools?.inspector.toggle(on),
+      physics: (on) => engine.tools?.physics.toggle(on),
+      inspect: async (handle) => {
+        const id = ++serial;
+        return ask({ t: 'debug.inspect', id, ...(handle !== undefined ? { handle } : {}) }, `inspect.reply.${id}`);
+      },
+    },
     observe: () => engine.observe(),
     act: (cmd) => engine.act(cmd),
     step: (n) => engine.step(n),

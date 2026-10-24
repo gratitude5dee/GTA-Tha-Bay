@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/racing/race-def.schema.json",
+  "title": "content/races/<id>/race.json (RaceDef, schema 1; 06-racing-data.md 4.2)",
+  "description": "The compiled race: the source fields plus the route on the baked road graph, the gates, the grid, the centreline and the par. Written by `pnpm map:races compile`, pinned to one bake.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "version", "kind", "titleKey", "district", "traffic", "peds", "opponents", "police", "rubberBand", "rewards", "xr",
+    "worldBake", "waypoints", "route", "routeLenM", "elevation", "gates", "closures", "zones", "grid", "jumpZones", "line", "parSec", "parBotHash", "medals"
+  ],
+  "$defs": {
+    "point": { "type": "object" },
+    "xy": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+    "xyz": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+  },
+  "properties": {
+    "schema": { "const": 1 },
+    "id": { "type": "string", "pattern": "^sf\\.[a-z]+\\.[a-z0-9-]{3,40}$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "kind": { "enum": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "drift", "pursuit", "sideshow", "robotaxiRush"] },
+    "titleKey": { "type": "string" },
+    "district": { "type": "string", "pattern": "^[a-z0-9-]{2,32}$" },
+    "laps": { "type": "integer", "minimum": 1, "maximum": 9 },
+    "closedLoop": { "type": "boolean" },
+    "hour": { "type": "number", "minimum": 0, "maximum": 24 },
+    "weather": { "enum": ["clear", "karl-fog", "overcast", "rain", "smoke", "golden"] },
+    "traffic": { "enum": ["off", "light", "normal"] },
+    "peds": { "const": "sidewalk" },
+    "opponents": { "type": "array", "maxItems": 7, "items": { "type": "object" } },
+    "classLimit": { "type": "array", "items": { "enum": ["D", "C", "B", "A", "S", "R"] } },
+    "loaner": { "type": "string" },
+    "police": { "type": "object" },
+    "rubberBand": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rewards": { "type": "array", "items": { "type": "object" } },
+    "unlocks": { "type": "array", "items": { "type": "string" } },
+    "xr": { "enum": ["full", "none"] },
+    "story": { "type": "object" },
+    "worldBake": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "waypoints": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point" } },
+    "route": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["edgeIds", "dir"],
+        "properties": { "edgeIds": { "type": "array", "items": { "type": "integer", "minimum": 0 } }, "dir": { "enum": [1, -1] } }
+      }
+    },
+    "routeLenM": { "type": "number", "exclusiveMinimum": 0 },
+    "elevation": {
+      "type": "array", "minItems": 2,
+      "items": { "type": "object", "additionalProperties": false, "required": ["s", "y"], "properties": { "s": { "type": "number" }, "y": { "type": "number" } } }
+    },
+    "gates": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["s", "widthM", "kind", "at", "tangent"],
+        "properties": {
+          "s": { "type": "number", "minimum": 0 }, "widthM": { "type": "number", "minimum": 10 },
+          "kind": { "enum": ["start", "gate", "finish", "lap", "speedCam"] }, "timeBonusSec": { "type": "number", "minimum": 0 },
+          "at": { "$ref": "#/$defs/xyz" }, "tangent": { "$ref": "#/$defs/xy" }
+        }
+      }
+    },
+    "closures": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["s", "lat", "lng", "propSet"],
+        "properties": { "s": { "type": "number" }, "lat": { "type": "number" }, "lng": { "type": "number" }, "propSet": { "type": "string" } }
+      }
+    },
+    "zones": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["id", "kind", "ringEnu"],
+        "properties": {
+          "id": { "type": "string" }, "kind": { "enum": ["drift", "sideshow", "finish"] },
+          "ringEnu": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/xy" } }
+        }
+      }
+    },
+    "grid": {
+      "type": "array", "minItems": 1, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["s", "lane", "offsetM"],
+        "properties": { "s": { "type": "number" }, "lane": { "type": "integer" }, "offsetM": { "type": "number" } }
+      }
+    },
+    "jumpZones": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": false, "required": ["s0", "s1"], "properties": { "s0": { "type": "number" }, "s1": { "type": "number" } } }
+    },
+    "line": {
+      "type": "object", "additionalProperties": false, "required": ["stepM", "curvature", "offsetCm", "start", "dxz"],
+      "properties": {
+        "stepM": { "const": 5 },
+        "curvature": { "type": "array", "items": { "type": "integer", "minimum": -32768, "maximum": 32767 } },
+        "offsetCm": { "type": "array", "items": { "type": "integer" } },
+        "start": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+        "dxz": { "type": "array", "items": { "type": "integer" } }
+      }
+    },
+    "parSec": { "type": "number", "exclusiveMinimum": 0 },
+    "parBotHash": { "type": "string", "pattern": "^([0-9a-f]{16}|pending)$" },
+    "medals": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+  }
+}

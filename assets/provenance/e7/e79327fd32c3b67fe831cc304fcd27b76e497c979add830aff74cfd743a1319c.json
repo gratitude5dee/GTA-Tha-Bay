@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "e79327fd32c3b67fe831cc304fcd27b76e497c979add830aff74cfd743a1319c",
+  "paths": [
+    "assets/src/building/lm.china-basin-ballpark/desktop.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "95c288aa14281d56cf64a6982e90ae1fffa930a61eea7d1d96f93a8f3509b241"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

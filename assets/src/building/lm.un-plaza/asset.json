@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.un-plaza",
+  "variants": {
+    "desktop": "assets/src/building/lm.un-plaza/desktop.glb",
+    "mobile": "assets/src/building/lm.un-plaza/mobile.glb",
+    "mobile-low": "assets/src/building/lm.un-plaza/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 2708,
+      "verts": 5446,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 1100,
+      "verts": 2206,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 488,
+      "verts": 980,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

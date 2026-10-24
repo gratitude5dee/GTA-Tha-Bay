@@ -1,0 +1,1707 @@
+{
+  "schema": 1,
+  "machine": "linux Intel(R) Xeon(R) Processor @ 2.80GHz x4, node v22.22.0",
+  "rapier": "0.21.0",
+  "selected": "castray",
+  "rules": {
+    "a": {
+      "pass": false,
+      "why": "8/44 read slots are NaN (vLong, vLat: the controller gives no wheel-point velocity)"
+    },
+    "b": {
+      "pass": true,
+      "why": "every oracle within tolerance"
+    },
+    "c": {
+      "pass": true,
+      "why": "hashes equal in all runs"
+    },
+    "d": {
+      "pass": true,
+      "why": "mean tick cost ratio controller/castray deterministic-compat 0.74, simd-compat 0.99"
+    }
+  },
+  "note": "tickMs is the wall-clock of one whole sim tick in Node: informational, machine dependent",
+  "rows": [
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 9.283333333333333
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 9.283333333333333,
+        "lo": 7.5,
+        "hi": 12,
+        "pass": true
+      },
+      "hashes": [
+        "ec66f7e03aa14509",
+        "ec66f7e03aa14509",
+        "ec66f7e03aa14509"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.26235431555555705,
+      "tickMsP99": 2.9262650000000576,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 46.786722123622894
+      },
+      "check": {
+        "name": "braking m",
+        "value": 46.786722123622894,
+        "lo": 42.32,
+        "hi": 49.68000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "a9b1ff3bb36409de",
+        "a9b1ff3bb36409de",
+        "a9b1ff3bb36409de"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.1006730095764281,
+      "tickMsP99": 0.3674940000000788,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.7866740082446018
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.7866740082446018,
+        "lo": 0.67,
+        "hi": 1.03,
+        "pass": true
+      },
+      "hashes": [
+        "cd143666799d3643",
+        "cd143666799d3643",
+        "cd143666799d3643"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10103431111111799,
+      "tickMsP99": 0.3576339999999618,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "filbert",
+      "oracle": {
+        "topY": 38.339969635009766
+      },
+      "check": {
+        "name": "Filbert top y",
+        "value": 38.339969635009766,
+        "lo": 30,
+        "hi": null,
+        "pass": true
+      },
+      "hashes": [
+        "40813d6c3b17067b",
+        "40813d6c3b17067b",
+        "40813d6c3b17067b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.1322527355555478,
+      "tickMsP99": 0.37036399999988134,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998668433513
+      },
+      "check": {
+        "name": "crest landing",
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "pass": true
+      },
+      "hashes": [
+        "c418fd076288d29c",
+        "c418fd076288d29c",
+        "c418fd076288d29c"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.09010253111111195,
+      "tickMsP99": 0.21433699999988676,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 7.05
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 7.05,
+        "lo": 6.5,
+        "hi": 7.5,
+        "pass": true
+      },
+      "hashes": [
+        "766debd35091c3e7",
+        "766debd35091c3e7",
+        "766debd35091c3e7"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.12064721199999874,
+      "tickMsP99": 0.3166300000002593,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 40.35920086503029
+      },
+      "check": {
+        "name": "braking m",
+        "value": 40.35920086503029,
+        "lo": 35.88,
+        "hi": 42.120000000000005,
+        "pass": true
+      },
+      "hashes": [
+        "2110f9f0908b5b2d",
+        "2110f9f0908b5b2d",
+        "2110f9f0908b5b2d"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07758005303867539,
+      "tickMsP99": 0.24510400000053778,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.8887116745444803
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.8887116745444803,
+        "lo": 0.8400000000000001,
+        "hi": 1.1600000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "d63cd9b8f480b5d6",
+        "d63cd9b8f480b5d6",
+        "d63cd9b8f480b5d6"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07678472291665217,
+      "tickMsP99": 0.19605400000000373,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "filbert",
+      "oracle": {
+        "topY": 0.5499943494796753
+      },
+      "check": null,
+      "hashes": [
+        "52015c8902dac14f",
+        "52015c8902dac14f",
+        "52015c8902dac14f"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11737394740740388,
+      "tickMsP99": 0.36026200000014796,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999997426282803
+      },
+      "check": null,
+      "hashes": [
+        "43ac5873fbcdd50b",
+        "43ac5873fbcdd50b",
+        "43ac5873fbcdd50b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.15974199722222643,
+      "tickMsP99": 0.4151879999999437,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 8.066666666666666
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 8.066666666666666,
+        "lo": 6.5,
+        "hi": 9.5,
+        "pass": true
+      },
+      "hashes": [
+        "fd5a47589724ccd3",
+        "fd5a47589724ccd3",
+        "fd5a47589724ccd3"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11301441844444202,
+      "tickMsP99": 0.35731899999973393,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 56.72939586639404
+      },
+      "check": {
+        "name": "braking m",
+        "value": 56.72939586639404,
+        "lo": 51.52,
+        "hi": 60.480000000000004,
+        "pass": true
+      },
+      "hashes": [
+        "dca180d5cb26dcac",
+        "dca180d5cb26dcac",
+        "dca180d5cb26dcac"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.09238836279926722,
+      "tickMsP99": 0.3188719999998284,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.5613590002320193
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.5613590002320193,
+        "lo": 0.52,
+        "hi": 0.88,
+        "pass": true
+      },
+      "hashes": [
+        "7b71684a2b9df576",
+        "7b71684a2b9df576",
+        "7b71684a2b9df576"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.06707534791666868,
+      "tickMsP99": 0.14411100000052102,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "filbert",
+      "oracle": {
+        "topY": 20.4306697845459
+      },
+      "check": null,
+      "hashes": [
+        "7236f99c8b4a428b",
+        "7236f99c8b4a428b",
+        "7236f99c8b4a428b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.14100197740741283,
+      "tickMsP99": 0.3190619999995761,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998191823178
+      },
+      "check": null,
+      "hashes": [
+        "79df8d3550634b20",
+        "79df8d3550634b20",
+        "79df8d3550634b20"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.09694181500000165,
+      "tickMsP99": 0.29799499999990076,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 9.166666666666666
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 9.166666666666666,
+        "lo": 7.5,
+        "hi": 12,
+        "pass": true
+      },
+      "hashes": [
+        "1eb4353ce56913c0",
+        "1eb4353ce56913c0",
+        "1eb4353ce56913c0"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11456692244444215,
+      "tickMsP99": 0.3656120000005103,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 46.16464418172836
+      },
+      "check": {
+        "name": "braking m",
+        "value": 46.16464418172836,
+        "lo": 42.32,
+        "hi": 49.68000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "9f61551c22e0748c",
+        "9f61551c22e0748c",
+        "9f61551c22e0748c"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.06724950570901397,
+      "tickMsP99": 0.23195400000076916,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.8049032504100695
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.8049032504100695,
+        "lo": 0.67,
+        "hi": 1.03,
+        "pass": true
+      },
+      "hashes": [
+        "647e5bcb676cce7e",
+        "647e5bcb676cce7e",
+        "647e5bcb676cce7e"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.06101763124998772,
+      "tickMsP99": 0.16679500000100234,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "filbert",
+      "oracle": {
+        "topY": 38.3497428894043
+      },
+      "check": {
+        "name": "Filbert top y",
+        "value": 38.3497428894043,
+        "lo": 30,
+        "hi": null,
+        "pass": true
+      },
+      "hashes": [
+        "a01d939e59614c72",
+        "a01d939e59614c72",
+        "a01d939e59614c72"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10315830703701741,
+      "tickMsP99": 0.2941609999998036,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.sedan",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998982089758
+      },
+      "check": {
+        "name": "crest landing",
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "pass": true
+      },
+      "hashes": [
+        "5c245dd887370564",
+        "5c245dd887370564",
+        "5c245dd887370564"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.09902801000001395,
+      "tickMsP99": 0.27582299999994575,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 6.95
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 6.95,
+        "lo": 6.5,
+        "hi": 7.5,
+        "pass": true
+      },
+      "hashes": [
+        "dbefeae4ce4ec099",
+        "dbefeae4ce4ec099",
+        "dbefeae4ce4ec099"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10567691177779165,
+      "tickMsP99": 0.34122000000024855,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 39.896035581827164
+      },
+      "check": {
+        "name": "braking m",
+        "value": 39.896035581827164,
+        "lo": 35.88,
+        "hi": 42.120000000000005,
+        "pass": true
+      },
+      "hashes": [
+        "4ce36d11a03ae1ea",
+        "4ce36d11a03ae1ea",
+        "4ce36d11a03ae1ea"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07155671233887503,
+      "tickMsP99": 0.2164890000003652,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.9056629550046412
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.9056629550046412,
+        "lo": 0.8400000000000001,
+        "hi": 1.1600000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "1993056a62922908",
+        "1993056a62922908",
+        "1993056a62922908"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07086208125000693,
+      "tickMsP99": 0.20547000000078697,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "filbert",
+      "oracle": {
+        "topY": 26.271820068359375
+      },
+      "check": null,
+      "hashes": [
+        "60f987aa9fc1bdde",
+        "60f987aa9fc1bdde",
+        "60f987aa9fc1bdde"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08827615259261115,
+      "tickMsP99": 0.27470199999879696,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.police-cruiser",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998057705969
+      },
+      "check": null,
+      "hashes": [
+        "d1e122802442196b",
+        "d1e122802442196b",
+        "d1e122802442196b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10375559055554832,
+      "tickMsP99": 0.3092980000001262,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 7.95
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 7.95,
+        "lo": 6.5,
+        "hi": 9.5,
+        "pass": true
+      },
+      "hashes": [
+        "d0af8b222129c9a2",
+        "d0af8b222129c9a2",
+        "d0af8b222129c9a2"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11686425599998054,
+      "tickMsP99": 0.6307900000010704,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 56.15471935272217
+      },
+      "check": {
+        "name": "braking m",
+        "value": 56.15471935272217,
+        "lo": 51.52,
+        "hi": 60.480000000000004,
+        "pass": true
+      },
+      "hashes": [
+        "b49da46bf0a9a9b1",
+        "b49da46bf0a9a9b1",
+        "b49da46bf0a9a9b1"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07265642504606895,
+      "tickMsP99": 0.22900400000071386,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.5724774637961154
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.5724774637961154,
+        "lo": 0.52,
+        "hi": 0.88,
+        "pass": true
+      },
+      "hashes": [
+        "9b79bcca2d6a6c33",
+        "9b79bcca2d6a6c33",
+        "9b79bcca2d6a6c33"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.06423374444442263,
+      "tickMsP99": 0.17376599999988684,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "filbert",
+      "oracle": {
+        "topY": 35.0836067199707
+      },
+      "check": null,
+      "hashes": [
+        "9d60663048fe428b",
+        "9d60663048fe428b",
+        "9d60663048fe428b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08378949481481228,
+      "tickMsP99": 0.20493399999941175,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "deterministic-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 1,
+        "damage": 0.41203904151916504,
+        "endContacts": 4,
+        "endUpY": 0.9999983776625992
+      },
+      "check": null,
+      "hashes": [
+        "b49763243f0de417",
+        "b49763243f0de417",
+        "b49763243f0de417"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07641270222225204,
+      "tickMsP99": 0.22092400000110501,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 9.283333333333333
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 9.283333333333333,
+        "lo": 7.5,
+        "hi": 12,
+        "pass": true
+      },
+      "hashes": [
+        "0e508478262caf43",
+        "0e508478262caf43",
+        "0e508478262caf43"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.19685586977777753,
+      "tickMsP99": 2.1832630000008066,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 46.786722123622894
+      },
+      "check": {
+        "name": "braking m",
+        "value": 46.786722123622894,
+        "lo": 42.32,
+        "hi": 49.68000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "d17efa095baa5afb",
+        "d17efa095baa5afb",
+        "d17efa095baa5afb"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.0853269767955615,
+      "tickMsP99": 0.2302769999987504,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.7866740568349029
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.7866740568349029,
+        "lo": 0.67,
+        "hi": 1.03,
+        "pass": true
+      },
+      "hashes": [
+        "1d8f6b90f2d9c4a2",
+        "1d8f6b90f2d9c4a2",
+        "1d8f6b90f2d9c4a2"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08865186944445769,
+      "tickMsP99": 0.33350699999937206,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "filbert",
+      "oracle": {
+        "topY": 38.33997344970703
+      },
+      "check": {
+        "name": "Filbert top y",
+        "value": 38.33997344970703,
+        "lo": 30,
+        "hi": null,
+        "pass": true
+      },
+      "hashes": [
+        "49a2644908b29323",
+        "49a2644908b29323",
+        "49a2644908b29323"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10320154888888822,
+      "tickMsP99": 0.31979299999875366,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998665877323
+      },
+      "check": {
+        "name": "crest landing",
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "pass": true
+      },
+      "hashes": [
+        "574082e7adad2cd3",
+        "574082e7adad2cd3",
+        "574082e7adad2cd3"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08568555666665614,
+      "tickMsP99": 0.2529979999999341,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 7.05
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 7.05,
+        "lo": 6.5,
+        "hi": 7.5,
+        "pass": true
+      },
+      "hashes": [
+        "517a19d5695f0d38",
+        "517a19d5695f0d38",
+        "517a19d5695f0d38"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11316853088888658,
+      "tickMsP99": 0.27636900000106834,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 40.35920086503029
+      },
+      "check": {
+        "name": "braking m",
+        "value": 40.35920086503029,
+        "lo": 35.88,
+        "hi": 42.120000000000005,
+        "pass": true
+      },
+      "hashes": [
+        "295c078c346decab",
+        "295c078c346decab",
+        "295c078c346decab"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07929732081027271,
+      "tickMsP99": 0.3832190000011906,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.888711371214031
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.888711371214031,
+        "lo": 0.8400000000000001,
+        "hi": 1.1600000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "be1ddb135451e271",
+        "be1ddb135451e271",
+        "be1ddb135451e271"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10865892083332558,
+      "tickMsP99": 0.32773699999961536,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "filbert",
+      "oracle": {
+        "topY": 0.5499945282936096
+      },
+      "check": null,
+      "hashes": [
+        "4a420edefb166c46",
+        "4a420edefb166c46",
+        "4a420edefb166c46"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08887115259260908,
+      "tickMsP99": 0.2692910000005213,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999997426736293
+      },
+      "check": null,
+      "hashes": [
+        "a3180723275c847d",
+        "a3180723275c847d",
+        "a3180723275c847d"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.0976965749999676,
+      "tickMsP99": 0.2937739999979385,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 8.066666666666666
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 8.066666666666666,
+        "lo": 6.5,
+        "hi": 9.5,
+        "pass": true
+      },
+      "hashes": [
+        "ae178b66e50146ed",
+        "ae178b66e50146ed",
+        "ae178b66e50146ed"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10030999111110496,
+      "tickMsP99": 0.2625160000025062,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 56.72939586639404
+      },
+      "check": {
+        "name": "braking m",
+        "value": 56.72939586639404,
+        "lo": 51.52,
+        "hi": 60.480000000000004,
+        "pass": true
+      },
+      "hashes": [
+        "1466d6f0a987755d",
+        "1466d6f0a987755d",
+        "1466d6f0a987755d"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08669407476978185,
+      "tickMsP99": 0.2718819999972766,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.5613589429373023
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.5613589429373023,
+        "lo": 0.52,
+        "hi": 0.88,
+        "pass": true
+      },
+      "hashes": [
+        "9a2e6f950d69ef01",
+        "9a2e6f950d69ef01",
+        "9a2e6f950d69ef01"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07728366805555298,
+      "tickMsP99": 0.2773010000018985,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "filbert",
+      "oracle": {
+        "topY": 20.45566749572754
+      },
+      "check": null,
+      "hashes": [
+        "3540e2ed504fa2b4",
+        "3540e2ed504fa2b4",
+        "3540e2ed504fa2b4"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.0968964933333242,
+      "tickMsP99": 0.27736300000105985,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "castray",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998191867729
+      },
+      "check": null,
+      "hashes": [
+        "fbf26d5f9eacfa4f",
+        "fbf26d5f9eacfa4f",
+        "fbf26d5f9eacfa4f"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08356586944444644,
+      "tickMsP99": 0.2323660000001837,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 0,
+        "complete": true
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 9.166666666666666
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 9.166666666666666,
+        "lo": 7.5,
+        "hi": 12,
+        "pass": true
+      },
+      "hashes": [
+        "627d4ef09c1a237d",
+        "627d4ef09c1a237d",
+        "627d4ef09c1a237d"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.12489990644447001,
+      "tickMsP99": 0.5232759999998962,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 46.16464418172836
+      },
+      "check": {
+        "name": "braking m",
+        "value": 46.16464418172836,
+        "lo": 42.32,
+        "hi": 49.68000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "c90e607b60620a0e",
+        "c90e607b60620a0e",
+        "c90e607b60620a0e"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.07106773848988418,
+      "tickMsP99": 0.18537900000228547,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.8049036536247377
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.8049036536247377,
+        "lo": 0.67,
+        "hi": 1.03,
+        "pass": true
+      },
+      "hashes": [
+        "3ca370cd44ccfdfc",
+        "3ca370cd44ccfdfc",
+        "3ca370cd44ccfdfc"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11358585416675547,
+      "tickMsP99": 0.43570399999953224,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "filbert",
+      "oracle": {
+        "topY": 38.349727630615234
+      },
+      "check": {
+        "name": "Filbert top y",
+        "value": 38.349727630615234,
+        "lo": 30,
+        "hi": null,
+        "pass": true
+      },
+      "hashes": [
+        "a34acebf2f5a2e44",
+        "a34acebf2f5a2e44",
+        "a34acebf2f5a2e44"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10094328222220982,
+      "tickMsP99": 0.29386199999862583,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.sedan",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998984655536
+      },
+      "check": {
+        "name": "crest landing",
+        "value": 1,
+        "lo": 1,
+        "hi": 1,
+        "pass": true
+      },
+      "hashes": [
+        "3559a2430b4c457c",
+        "3559a2430b4c457c",
+        "3559a2430b4c457c"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10284775388887687,
+      "tickMsP99": 0.27124999999796273,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 6.95
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 6.95,
+        "lo": 6.5,
+        "hi": 7.5,
+        "pass": true
+      },
+      "hashes": [
+        "1b32fa34c1ceeba6",
+        "1b32fa34c1ceeba6",
+        "1b32fa34c1ceeba6"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10756954066668711,
+      "tickMsP99": 0.29827300000033574,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 39.896035581827164
+      },
+      "check": {
+        "name": "braking m",
+        "value": 39.896035581827164,
+        "lo": 35.88,
+        "hi": 42.120000000000005,
+        "pass": true
+      },
+      "hashes": [
+        "b7679d83e46a0604",
+        "b7679d83e46a0604",
+        "b7679d83e46a0604"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08312866703492469,
+      "tickMsP99": 0.284483999999793,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.9056624743325662
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.9056624743325662,
+        "lo": 0.8400000000000001,
+        "hi": 1.1600000000000001,
+        "pass": true
+      },
+      "hashes": [
+        "fbb4cbe332011eab",
+        "fbb4cbe332011eab",
+        "fbb4cbe332011eab"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.1011337145833118,
+      "tickMsP99": 0.31345800000053714,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "filbert",
+      "oracle": {
+        "topY": 26.271821975708008
+      },
+      "check": null,
+      "hashes": [
+        "1e58ad753b035bc6",
+        "1e58ad753b035bc6",
+        "1e58ad753b035bc6"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.10912996629630436,
+      "tickMsP99": 0.4338450000032026,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.police-cruiser",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 0,
+        "damage": 0,
+        "endContacts": 4,
+        "endUpY": 0.9999998059034315
+      },
+      "check": null,
+      "hashes": [
+        "5a8f6d528ab37c27",
+        "5a8f6d528ab37c27",
+        "5a8f6d528ab37c27"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.09936982611106335,
+      "tickMsP99": 0.2591069999980391,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "accel-0-100",
+      "oracle": {
+        "seconds": 7.95
+      },
+      "check": {
+        "name": "0-100 s",
+        "value": 7.95,
+        "lo": 6.5,
+        "hi": 9.5,
+        "pass": true
+      },
+      "hashes": [
+        "1da281f8bfff47e3",
+        "1da281f8bfff47e3",
+        "1da281f8bfff47e3"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.11316868777779585,
+      "tickMsP99": 0.29380999999921187,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "brake-100-0",
+      "oracle": {
+        "metres": 56.15471935272217
+      },
+      "check": {
+        "name": "braking m",
+        "value": 56.15471935272217,
+        "lo": 51.52,
+        "hi": 60.480000000000004,
+        "pass": true
+      },
+      "hashes": [
+        "55da51390f3d7dfb",
+        "55da51390f3d7dfb",
+        "55da51390f3d7dfb"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08959691491715299,
+      "tickMsP99": 0.25773599999956787,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "skidpad",
+      "oracle": {
+        "lateralG": 0.5724779643055948
+      },
+      "check": {
+        "name": "lateral g",
+        "value": 0.5724779643055948,
+        "lo": 0.52,
+        "hi": 0.88,
+        "pass": true
+      },
+      "hashes": [
+        "3f524735cba80196",
+        "3f524735cba80196",
+        "3f524735cba80196"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.0804835284721902,
+      "tickMsP99": 0.2718979999990552,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "filbert",
+      "oracle": {
+        "topY": 34.8113899230957
+      },
+      "check": null,
+      "hashes": [
+        "f5ce241ad8d5f762",
+        "f5ce241ad8d5f762",
+        "f5ce241ad8d5f762"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.0852610914814903,
+      "tickMsP99": 0.22392699999909382,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    },
+    {
+      "path": "controller",
+      "build": "simd-compat",
+      "preset": "hp.robotaxi-ambient",
+      "line": "crest-jump",
+      "oracle": {
+        "bounces": 1,
+        "damage": 0.4120393991470337,
+        "endContacts": 4,
+        "endUpY": 0.9999983776633156
+      },
+      "check": null,
+      "hashes": [
+        "c31e2289f2b1901b",
+        "c31e2289f2b1901b",
+        "c31e2289f2b1901b"
+      ],
+      "hashesEqual": true,
+      "tickMsMean": 0.08781610222216436,
+      "tickMsP99": 0.24382599999808008,
+      "readout": {
+        "slots": 44,
+        "nanSlots": 8,
+        "complete": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": [
+    "mp.enabled",
+    "npc.dialogue",
+    "npc.voice",
+    "npc.builder",
+    "cutscene.generated",
+    "forum.enabled",
+    "ugc.publish",
+    "auth.openaiWeb",
+    "auth.thirdweb",
+    "telemetry.verbose",
+    "mods.enabled",
+    "mods.script",
+    "mods.ui",
+    "auth.password"
+  ],
+  "definitions": {}
+}

@@ -1,0 +1,127 @@
+{
+  "actions": [
+    {
+      "arg": "me_end",
+      "atSec": 1,
+      "do": "moveTo",
+      "who": "player"
+    },
+    {
+      "arg": "pal_end",
+      "atSec": 1,
+      "do": "moveTo",
+      "who": "buddy"
+    }
+  ],
+  "actors": [
+    {
+      "end": "me_end",
+      "start": "me_start",
+      "who": "player"
+    },
+    {
+      "end": "pal_end",
+      "start": "pal_start",
+      "who": "buddy"
+    }
+  ],
+  "cues": [
+    {
+      "endMs": 2500,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.hello",
+      "speaker": "buddy",
+      "startMs": 500
+    },
+    {
+      "endMs": 5500,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.nudge",
+      "speaker": "buddy",
+      "startMs": 3000
+    }
+  ],
+  "durationSec": 6,
+  "id": "m.dev.sample.meet",
+  "letterbox": true,
+  "marks": {
+    "me_end": {
+      "at": {
+        "local": [
+          118,
+          0,
+          60
+        ]
+      },
+      "yawDeg": 0
+    },
+    "me_start": {
+      "at": {
+        "local": [
+          114,
+          0,
+          66
+        ]
+      },
+      "yawDeg": 0
+    },
+    "pal_end": {
+      "at": {
+        "local": [
+          122,
+          0,
+          60
+        ]
+      },
+      "yawDeg": 0
+    },
+    "pal_start": {
+      "at": {
+        "local": [
+          126,
+          0,
+          66
+        ]
+      },
+      "yawDeg": 90
+    },
+    "wide_cam": {
+      "at": {
+        "local": [
+          138,
+          0,
+          80
+        ]
+      },
+      "yawDeg": 0
+    }
+  },
+  "schema": "director/1",
+  "seed": 7,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "wide_cam",
+      "lens": "wide",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 2,
+      "lens": "normal",
+      "preset": "two-shot",
+      "secondary": "buddy",
+      "subject": "player"
+    },
+    {
+      "atSec": 4,
+      "lens": "tele",
+      "preset": "single",
+      "subject": "buddy"
+    }
+  ],
+  "xrVantage": {
+    "mark": "me_end",
+    "yawDeg": 0
+  }
+}

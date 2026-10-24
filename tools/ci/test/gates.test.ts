@@ -3,7 +3,7 @@
  * run time from config/ip-denylist.json into a temp directory: the repository never contains them.
  */
 import { createHash, randomBytes } from 'node:crypto';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,7 +15,9 @@ import { runLicenseScan } from '../license-scan.ts';
 import { runLikenessGate } from '../likeness-gate.ts';
 import { runNamesLint } from '../names-lint.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
+import { writeThirdPartyLicences } from '../third-party-licenses.ts';
 import { readJson, toolsRoot } from '../lib/common.ts';
+import { lintTemplates, templateFiles } from '../prompt-lint.ts';
 
 const cfg = readJson<IpDenylistConfig>(path.join(toolsRoot, 'config/ip-denylist.json'));
 const TERM = cfg.terms[0] as string; // first seed term
@@ -253,6 +255,7 @@ describe('provenance gate (AC-2)', () => {
     put(root, 'assets/world/sf.lock.json', JSON.stringify({ schema: 'asset-lock/1', entries: { 'world_pack/p0-1-1': { rev: 1, variants: { default: sha(pack) }, root: sha(pack), approved_by: 't', approved_at: '2026-10-19T00:00:00Z' } } }));
     expect(rules(provenance(root).findings)).toEqual(['derivation-unrooted']);
     const dist = mkdtempSync(path.join(os.tmpdir(), 'dv-prov-dist-'));
+    writeThirdPartyLicences(toolsRoot, path.join(dist, 'third-party-licenses.txt')); // as pnpm build does (M00f item 1)
     expect(runProvenanceCheck({ root: toolsRoot, dist, emitCredits: true }).findings).toEqual([]);
     rmSync(dist, { recursive: true, force: true });
   });
@@ -264,6 +267,36 @@ describe('provenance gate (AC-2)', () => {
     putRecord(root, record(bytes, { origin: 'open_data', license: 'ODbL-1.0', attribution: 'Map data contributors', source: { url: null, dataset_id: 'd', retrieved: '2026-10-18' } }));
     expect(rules(provenance(root).findings)).toEqual(['attribution-not-in-credits']);
     expect(runProvenanceCheck({ root, dist: path.join(root, 'dist'), emitCredits: true }).findings).toEqual([]);
+  });
+
+  // M02c2 (DL-662): the world half of credits.json, and --emit-only
+  it('emits every attribution.world.json entry, the OSM offerUrl and the ODbL notice, and runs no gate with --emit-only', () => {
+    const root = tempRoot();
+    const entries = [
+      { id: 'osm', text: '© OpenStreetMap contributors', licence: 'ODbL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/odbl/1-0/', source: 'OpenStreetMap', surfaces: ['boot-splash', 'full-map', 'pause-credits'], offerUrl: 'https://media.example/media/odbl/abc/index.json' },
+      { id: 'datasf-streets', text: 'City and County of San Francisco', licence: 'PDDL-1.0', licenceUrl: 'https://opendatacommons.org/licenses/pddl/1-0/', source: 'DataSF', surfaces: ['full-map', 'pause-credits'] },
+    ];
+    put(root, 'config/attribution.world.json', JSON.stringify({ schema: 'attribution-world/1', entries }));
+    // a record that would fail the gate if it ran: an asset in dist with no provenance record
+    mkdirSync(path.join(root, 'dist'), { recursive: true });
+    put(root, 'dist/unrecorded.png', randomBytes(16));
+    const res = runProvenanceCheck({ root, dist: path.join(root, 'dist'), emitCredits: true, emitOnly: true });
+    expect(res.findings).toEqual([]);
+    const doc = JSON.parse(readFileSync(path.join(root, 'dist', 'credits.json'), 'utf8')) as { schema: string; attributions: unknown[]; world: { id: string; text: string; offerUrl?: string }[]; odblNotice: string };
+    expect(doc.schema).toBe('credits/1');
+    expect(doc.world.map((e) => e.id)).toEqual(['datasf-streets', 'osm']);
+    expect(doc.world.find((e) => e.id === 'osm')?.offerUrl).toBe('https://media.example/media/odbl/abc/index.json');
+    expect(doc.odblNotice).toContain('ODbL');
+    expect(doc.odblNotice).toContain('https://media.example/media/odbl/abc/index.json');
+    // the gate still catches the unrecorded file when it runs
+    expect(rules(provenance(root).findings)).toContain('no-record');
+  });
+
+  it('ends the root build script with the emit step, after the dist verifier', () => {
+    const scripts = (JSON.parse(readFileSync(path.join(toolsRoot, 'package.json'), 'utf8')) as { scripts: Record<string, string> }).scripts;
+    const steps = (scripts['build'] as string).split('&&').map((x) => x.trim());
+    expect(steps.at(-1)).toBe('tsx tools/ci/provenance-check.ts --emit-credits --emit-only');
+    expect(steps.some((x) => x.includes('check-dist.ts'))).toBe(true);
   });
 });
 
@@ -321,6 +354,18 @@ describe('ip:strings (AC-4)', () => {
     put(root, 'packages/ui/src/fine.ts', `const make = '${WORD}ly different';\n`);
     const res = runIpScan({ root, dist: path.join(root, 'dist'), modes: ['strings'] });
     expect(new Set(files(res.findings))).toEqual(new Set(['packages/ui/src/a.ts', 'packages/ui/src/bad.ts', 'packages/ui/src/word.ts']));
+  });
+
+  it('reports the real transit brand words in any letter case outside spec/, and only as whole words (M03b2 AC-10, DL-664)', () => {
+    const root = tempRoot();
+    // built from parts so this file itself passes ip:strings (the words are denylisted repo-wide)
+    const words = ['BA' + 'RT', 'Mu' + 'ni', 'Cal' + 'train', 'ba' + 'rt', 'MU' + 'NI', 'caL' + 'train'];
+    for (const w of words) put(root, `packages/ui/src/t-${w}.ts`, `export const n = '${w} line';\n`);
+    put(root, 'spec/transit.md', words.slice(0, 3).join(' ') + '\n');
+    put(root, 'packages/ui/src/fine.ts', 'export const n = ' + JSON.stringify('a municipal bartender, caltrains') + ';\n');
+    put(root, 'packages/ui/src/id.ts', 'export const id = ' + JSON.stringify('lm.rail-terminus sfmta-stops sfmta-patterns') + ';\n');
+    const res = runIpScan({ root, dist: path.join(root, 'dist'), modes: ['strings'] });
+    expect(new Set(files(res.findings))).toEqual(new Set(words.map((w) => `packages/ui/src/t-${w}.ts`)));
   });
 
   it('skips base64 runs and data URLs in dist, but not ordinary text', () => {
@@ -452,5 +497,66 @@ describe('likeness:gate (AC-7)', () => {
     expect(res.findings.map((f) => `${f.rule}`).sort()).toEqual(
       ['face-detector', 'likeness-consent-expired', 'likeness-consent-missing', 'likeness-face-ref', 'likeness-missing', 'likeness-photoreal', 'likeness-scope', 'likeness-voice-mode'].sort(),
     );
+  });
+});
+
+describe('prompt-lint CLI (M05b2 AC-4)', () => {
+  const TEMPLATE = (over: { body?: string; pin?: string; slots?: string } = {}): string => `---
+id: t
+version: 1
+hook: story.beat
+recipe: K
+style: bay-cel@1
+keyframePin: ${over.pin ?? 'openai/gpt-image-2.5/sunburst/edit@unpinned'}
+shots: [{ durationS: 7, camera: push-in }]
+aspect: '16:9'
+resolution: 768P
+audio: engine
+slots: [${over.slots ?? 'style_tokens, place_desc'}]
+---
+${over.body ?? '{style_tokens}. {place_desc}. No text, no letters, no logos.'}
+`;
+  const lintRoot = (root: string, env: NodeJS.ProcessEnv = {}) => lintTemplates(root, templateFiles(root), env);
+
+  it('passes the two story templates of the repository and prints the real-side SKIP line without DV_NAMES_REAL_JSON', () => {
+    const res = lintTemplates(toolsRoot, templateFiles(toolsRoot), {});
+    expect(templateFiles(toolsRoot).map((f) => path.basename(f))).toEqual(['story.beat@1.md', 'story.establish@1.md']);
+    expect(res.findings).toEqual([]);
+    expect(res.notes).toContain('SKIP prompt-lint real-side names: DV_NAMES_REAL_JSON not set');
+  });
+
+  it('fails each fixture with its rule number', () => {
+    const cases: [string, Parameters<typeof TEMPLATE>[0], string][] = [
+      ['banned vocabulary', { body: '{style_tokens}. {place_desc}. A pistol. No text, no logos.' }, 'rule-2'],
+      ['a denylisted term', { body: `{style_tokens}. {place_desc}. Like ${TERM}. No text, no logos.` }, 'rule-1'],
+      ['realism tokens', { body: '{style_tokens}. {place_desc}. Photorealistic. No text, no logos.' }, 'rule-3'],
+      ['the missing clause', { body: '{style_tokens}. {place_desc}.' }, 'rule-5'],
+      ['an unknown slot', { body: '{style_tokens}. {place_desc}. {secret}. No text, no logos.', slots: 'style_tokens, place_desc, secret' }, 'rule-4'],
+      ['a keyframePin that differs from the registry', { pin: 'openai/gpt-image-2.5/sunburst/edit@2020-01-01' }, 'rule-6'],
+    ];
+    for (const [name, over, rule] of cases) {
+      const root = tempRoot();
+      put(root, 'content/prompts/genai/t@1.md', TEMPLATE(over));
+      expect(rules(lintRoot(root).findings), name).toContain(rule);
+    }
+    const ok = tempRoot();
+    put(ok, 'content/prompts/genai/t@1.md', TEMPLATE());
+    expect(lintRoot(ok).findings).toEqual([]);
+  });
+
+  it('flags frontmatter slots that differ from the body', () => {
+    const root = tempRoot();
+    put(root, 'content/prompts/genai/t@1.md', TEMPLATE({ slots: 'style_tokens' }));
+    expect(rules(lintRoot(root).findings)).toEqual(['template']);
+  });
+
+  it('applies the real-side names from DV_NAMES_REAL_JSON and never prints them', () => {
+    const root = tempRoot();
+    put(root, 'content/prompts/genai/t@1.md', TEMPLATE({ body: '{style_tokens}. {place_desc}. Zaphod Quillfeather. No text, no logos.' }));
+    const real = JSON.stringify({ schema: 'names/1', entries: [{ id: 'x', real: 'Zaphod Quillfeather' }] });
+    const res = lintRoot(root, { DV_NAMES_REAL_JSON: real });
+    expect(rules(res.findings)).toEqual(['rule-1']);
+    expect(JSON.stringify(res)).not.toMatch(/quillfeather/i);
+    expect(res.notes).toEqual([]);
   });
 });

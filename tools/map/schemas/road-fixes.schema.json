@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.invalid/schemas/road-fixes.schema.json",
+  "title": "content/world/road-fixes.json (M02a2, DL-706): authored per-way keeps and connectors for the S5 road graph, each with a reason",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "keepWays", "connectors"],
+  "properties": {
+    "schema": { "const": "world-road-fixes/1" },
+    "note": { "type": "string" },
+    "keepWays": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["osmWay", "reason"],
+        "properties": { "osmWay": { "type": "integer", "minimum": 1 }, "reason": { "type": "string", "minLength": 8 }, "name": { "type": "string" } }
+      }
+    },
+    "connectors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "reason", "highway", "points"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9.-]{3,60}$" },
+          "reason": { "type": "string", "minLength": 8 },
+          "highway": { "enum": ["residential", "unclassified", "tertiary", "secondary", "primary", "service", "living_street"] },
+          "name": { "type": "string" },
+          "oneway": { "enum": ["yes", "no", "-1"] },
+          "points": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["lat", "lng"],
+              "properties": { "lat": { "type": "number", "minimum": -90, "maximum": 90 }, "lng": { "type": "number", "minimum": -180, "maximum": 180 } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

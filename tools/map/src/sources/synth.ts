@@ -13,7 +13,7 @@ import { GRID_MIN_M, M_PER_DEG_LAT, M_PER_DEG_LNG, ORIGIN, Rng, canonicalize, fn
 import { areaGridOf, type AreaId, type EnuBox, type SourcesConfig, type SynthConfig } from '../config.ts';
 import { writeRawLock, type RawLockFile, type RawSourceLock, RAW_LOCK_NAME } from '../raw-lock.ts';
 import { distToRing } from '../geom/rings.ts';
-import { CORRIDOR_HALF_M, generateRoads, roadGrid } from './synth-roads.ts';
+import { CORRIDOR_HALF_M, generateRoads, roadGrid, type StreetRowData } from './synth-roads.ts';
 import { encodeTerrarium, latOfPy, lngOfPx, tilePath, tilesCovering, TILE_PX } from './terrarium.ts';
 
 export const SYNTH_RETRIEVED_AT = '2026-01-01T00:00:00Z';
@@ -296,6 +296,54 @@ function osmLine(id: string, line: Ring, tags: Record<string, string>): string {
 
 // ---- the generator -------------------------------------------------------------------------------------------------
 
+/**
+ * EAS-shaped address rows (`ramy-di5m`, M02c2) along the synth streets: per street name the blocks are numbered by `cnn`
+ * (block k holds k * 100 + 1 ...), odd numbers on one side and even on the other, a seeded jitter along the block, and every
+ * fifth address repeated as a unit row ("#2") so the base-address reduction has something to do. Pure and seeded.
+ */
+export function genAddresses(cfg: SynthConfig, streets: readonly StreetRowData[], box: EnuBox): string[] {
+  const groups = new Map<string, StreetRowData[]>();
+  for (const s of streets) {
+    if (s.streetname === 'PAPER') continue;
+    const k = `${s.streetname}|${s.st_type}`;
+    const g = groups.get(k);
+    if (g) g.push(s);
+    else groups.set(k, [s]);
+  }
+  const out: string[] = [];
+  let baseId = 400000;
+  for (const key of [...groups.keys()].sort()) {
+    const blocks = (groups.get(key) as StreetRowData[]).sort((a, b) => a.cnn - b.cnn);
+    blocks.forEach((s, k) => {
+      const n = s.line.length / 2;
+      if (n < 2) return;
+      const x0 = s.line[0] as number, z0 = s.line[1] as number, x1 = s.line[(n - 1) * 2] as number, z1 = s.line[(n - 1) * 2 + 1] as number;
+      const len = Math.hypot(x1 - x0, z1 - z0);
+      if (len < 20) return;
+      const ux = (x1 - x0) / len, uz = (z1 - z0) / len;
+      const count = Math.max(2, Math.min(10, Math.floor(len / 30)));
+      const rng = new Rng(splitmix32(cfg.seed ^ fnv32(`addr:${s.cnn}`)));
+      for (let i = 0; i < count; i++) {
+        for (let side = 0; side < 2; side++) {
+          const t = ((i + 0.5) / count) * len + (rng.nextFloat() - 0.5) * 4;
+          const off = (side === 0 ? 1 : -1) * 13;
+          const x = x0 + ux * t - uz * off, z = z0 + uz * t + ux * off;
+          if (!inBox(box, x, z)) continue;
+          const number = k * 100 + 2 * i + (side === 0 ? 2 : 1);
+          const p = latLngFromEnu(x, z);
+          const hood = JSON.stringify(s.nhood);
+          const row = (suffix: string): string =>
+            `{"address":"${number} ${s.streetname} ${s.st_type}${suffix}","address_number":"${number}","street_name":${JSON.stringify(s.streetname)},"street_type":"${s.st_type}","cnn":"${s.cnn}","latitude":"${f9(p.lat)}","longitude":"${f9(p.lng)}","eas_baseid":"${baseId}","nhood":${hood}}`;
+          out.push(row(''));
+          if ((k + i + side) % 5 === 0) out.push(row(' #2'));
+          baseId++;
+        }
+      }
+    });
+  }
+  return out;
+}
+
 export interface GenerateOptions {
   outDir: string;
   /** The area box the files must cover. */
@@ -397,7 +445,7 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
   }
   osm.push(...b.osm);
 
-  // roads, rails, ferry, footways and the DataSF street / Muni rows that describe them (M02a2)
+  // roads, rails, ferry, footways and the DataSF street / SFMTA rows that describe them (M02a2)
   const nb2 = cfg.neighbourhoods;
   const cw2 = (cfg.land.maxX - cfg.land.minX) / nb2.cols, ch2 = (cfg.land.maxZ - cfg.land.minZ) / nb2.rows;
   const hoodOf = (x: number, z: number): string => {
@@ -419,10 +467,13 @@ export function generateSynth(cfg: SynthConfig, sources: SourcesConfig, area: Ar
     return `{"stopname":${JSON.stringify(s.stopname)},"stopid":"${s.stopid}","latitude":"${f9(p.lat)}","longitude":"${f9(p.lng)}","shelter":"${s.shelter}"}`;
   });
   writeFileSync(path.join(o.outDir, 'i28k-bkz6.jsonl'), stopRows.length ? `${stopRows.join('\n')}\n` : '');
-  rows['datasf-muni-stops'] = stopRows.length;
+  rows['sfmta-stops'] = stopRows.length;
   const patternRows = roads.patterns.map((p) => `{"route_name":${JSON.stringify(p.route_name)},"lineabbr":"${p.lineabbr}","direction":"${p.direction}","shape":${multiLine(p.line)}}`);
   writeFileSync(path.join(o.outDir, '9exe-acju.jsonl'), patternRows.length ? `${patternRows.join('\n')}\n` : '');
-  rows['datasf-muni-routes'] = patternRows.length;
+  rows['sfmta-patterns'] = patternRows.length;
+  const addressRows = genAddresses(cfg, roads.streets, box);
+  writeFileSync(path.join(o.outDir, 'ramy-di5m.jsonl'), addressRows.length ? `${addressRows.join('\n')}\n` : '');
+  rows['datasf-addresses'] = addressRows.length;
 
   // Terrarium tiles over the area box
   const tiles = tilesCovering(box, 15);

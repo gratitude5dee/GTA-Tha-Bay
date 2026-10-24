@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "updated": "2026-10-22",
+  "groups": [
+    {
+      "id": "install",
+      "title": "help.install.title",
+      "topics": [
+        {
+          "id": "install.ios",
+          "title": "help.install.ios.title",
+          "steps": [
+            "help.install.ios.step1",
+            "help.install.ios.step2",
+            "help.install.ios.step3"
+          ]
+        },
+        {
+          "id": "install.update",
+          "title": "help.install.update.title",
+          "steps": [
+            "help.install.update.step1",
+            "help.install.update.step2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "title": "help.performance.title",
+      "topics": [
+        {
+          "id": "performance.slow",
+          "title": "help.performance.slow.title",
+          "steps": [
+            "help.performance.slow.step1",
+            "help.performance.slow.step2",
+            "help.performance.slow.step3"
+          ]
+        },
+        {
+          "id": "performance.load",
+          "title": "help.performance.load.title",
+          "steps": [
+            "help.performance.load.step1",
+            "help.performance.load.step2",
+            "help.performance.load.step3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "graphics",
+      "title": "help.graphics.title",
+      "topics": [
+        {
+          "id": "graphics.gpu",
+          "title": "help.graphics.gpu.title",
+          "steps": [
+            "help.graphics.gpu.step1",
+            "help.graphics.gpu.step2",
+            "help.graphics.gpu.step3"
+          ]
+        },
+        {
+          "id": "graphics.crash",
+          "title": "help.graphics.crash.title",
+          "steps": [
+            "help.graphics.crash.step1",
+            "help.graphics.crash.step2",
+            "help.graphics.crash.step3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "title": "help.audio.title",
+      "topics": [
+        {
+          "id": "audio.silent",
+          "title": "help.audio.silent.title",
+          "steps": [
+            "help.audio.silent.step1",
+            "help.audio.silent.step2",
+            "help.audio.silent.step3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "controls",
+      "title": "help.controls.title",
+      "topics": [
+        {
+          "id": "controls.pad",
+          "title": "help.controls.pad.title",
+          "steps": [
+            "help.controls.pad.step1",
+            "help.controls.pad.step2"
+          ]
+        },
+        {
+          "id": "controls.remap",
+          "title": "help.controls.remap.title",
+          "steps": [
+            "help.controls.remap.step1",
+            "help.controls.remap.step2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "saves",
+      "title": "help.saves.title",
+      "topics": [
+        {
+          "id": "saves.storage",
+          "title": "help.saves.storage.title",
+          "steps": [
+            "help.saves.storage.step1",
+            "help.saves.storage.step2",
+            "help.saves.storage.step3"
+          ]
+        },
+        {
+          "id": "saves.lost",
+          "title": "help.saves.lost.title",
+          "steps": [
+            "help.saves.lost.step1",
+            "help.saves.lost.step2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vr",
+      "title": "help.vr.title",
+      "topics": [
+        {
+          "id": "vr.enter",
+          "title": "help.vr.enter.title",
+          "steps": [
+            "help.vr.enter.step1",
+            "help.vr.enter.step2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "online",
+      "title": "help.online.title",
+      "topics": [
+        {
+          "id": "online.region",
+          "title": "help.online.region.title",
+          "steps": [
+            "help.online.region.step1",
+            "help.online.region.step2"
+          ]
+        },
+        {
+          "id": "online.signin",
+          "title": "help.online.signin.title",
+          "steps": [
+            "help.online.signin.step1",
+            "help.online.signin.step2"
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": []
+}

@@ -152,10 +152,17 @@ describe('check:prod-routes', () => {
   });
 
   it('flags a mock prod FAL_MODE and an enabled define', () => {
-    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
+    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
     expect(prodConfigProblems(bad)).toHaveLength(2);
-    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
+    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
     expect(prodConfigProblems(good)).toEqual([]);
+  });
+
+  it('flags a production ANTHROPIC_MODE that is fixture or unset (M06a3)', () => {
+    const base = (mode: string): string => `{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod"${mode} }, "define": { "__DV_TEST_ROUTES__": "false" } }`;
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "fixture"'))).toEqual([expect.stringContaining('ANTHROPIC_MODE')]);
+    expect(prodConfigProblems(base(''))).toEqual([expect.stringContaining('unset')]);
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "live"'))).toEqual([]);
   });
 });
 
@@ -266,7 +273,7 @@ describe('ip:strings brand words (DL-664)', () => {
   const deny = JSON.parse(readFileSync(path.join(import.meta.dirname, '..', '..', '..', 'config', 'ip-denylist.json'), 'utf8')) as IpDenylistConfig;
   const matcher = compileStringMatcher(deny);
   // the words come from the config, so this test never spells a brand out
-  const brands = [['wa', 'ymo'], ['tes', 'la'], ['trans', 'america'], ['sales', 'force'], ['ora', 'cle park'], ['chase', ' center']].map((p) => p.join(''));
+  const brands = [['wa', 'ymo'], ['tes', 'la'], ['trans', 'america'], ['sales', 'force'], ['ora', 'cle park'], ['chase', ' center'], ['hum', 'vee']].map((p) => p.join(''));
 
   it('has every brand word in config/ip-denylist.json words', () => {
     for (const w of brands) expect(deny.words).toContain(w);

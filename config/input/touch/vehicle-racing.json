@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "id": "vehicle-racing",
+  "nameKey": "touch.layout.vehicleRacing",
+  "context": "vehicle",
+  "handed": "right",
+  "widgets": [
+    { "id": "steer", "kind": "stick", "role": "steer", "zone": { "x": 0, "y": 0.2, "w": 0.5, "h": 0.8 } },
+    { "id": "gas", "kind": "button", "action": "axis.Throttle", "at": { "corner": "br", "dx": 28, "dy": 36 }, "sizePx": 84, "icon": "gas", "label": "touch.gas" },
+    { "id": "brake", "kind": "button", "action": "axis.Brake", "at": { "corner": "br", "dx": 128, "dy": 36 }, "sizePx": 64, "icon": "brake", "label": "touch.brake" },
+    { "id": "nitro", "kind": "button", "action": "sim.Nitro", "at": { "corner": "br", "dx": 28, "dy": 140 }, "sizePx": 64, "icon": "nitro", "label": "touch.nitro" },
+    { "id": "handbrake", "kind": "button", "action": "sim.Handbrake", "at": { "corner": "br", "dx": 112, "dy": 120 }, "sizePx": 56, "icon": "handbrake", "label": "touch.handbrake" },
+    { "id": "behind", "kind": "button", "action": "sim.LookBehind", "at": { "corner": "br", "dx": 212, "dy": 36 }, "sizePx": 52, "icon": "behind", "label": "touch.behind" },
+    { "id": "reset", "kind": "button", "action": "sim.Interact", "at": { "corner": "tr", "dx": 16, "dy": 80 }, "sizePx": 52, "icon": "reset", "label": "touch.reset" },
+    { "id": "pause", "kind": "button", "action": "client.Pause", "at": { "corner": "tr", "dx": 16, "dy": 16 }, "sizePx": 48, "icon": "pause", "label": "touch.pause" }
+  ]
+}

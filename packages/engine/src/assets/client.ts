@@ -60,6 +60,7 @@ export class AssetClient {
   private catalogStateValue: CatalogStateName = 'idle';
   private storeKindValue: 'opfs' | 'memory-fallback' = 'memory-fallback';
   private disposed = false;
+  private bytesSeenValue = 0;
   /** The `err.asset` events received from the worker (at most 50), for the QA bridge and tests. */
   readonly errLog: Array<{ reason: string; kind: string }> = [];
   private readonly port: WorkerPort;
@@ -92,6 +93,14 @@ export class AssetClient {
   get mode(): TabMode {
     return this.modeValue;
   }
+  /**
+   * Network bytes the worker had downloaded when it posted the latest reply this client has handled (`StatsResult.bytes` carried on
+   * every reply). Synchronous: every byte it counts arrived before the caller's current task, so a caller that reads it the moment a
+   * reply's result is used gets the bytes downloaded up to then, not a figure that a later `stats()` round trip would inflate.
+   */
+  get bytesSeen(): number {
+    return this.bytesSeenValue;
+  }
   /** The last known state; `loadCatalog()` loads the catalog and refreshes it. */
   get catalogState(): CatalogStateName {
     return this.catalogStateValue;
@@ -104,6 +113,7 @@ export class AssetClient {
 
   private receive(m: FromWorker): void {
     if (m.t === 'res') {
+      if (m.bytes !== undefined && m.bytes > this.bytesSeenValue) this.bytesSeenValue = m.bytes;
       const p = this.pending.get(m.id);
       if (!p) return;
       this.pending.delete(m.id);

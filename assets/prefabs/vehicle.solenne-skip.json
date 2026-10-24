@@ -1,0 +1,94 @@
+{
+  "id": "vehicle.solenne-skip",
+  "kind": "vehicle",
+  "version": 1,
+  "nameKey": "vehicle.solenne-skip",
+  "render": {
+    "asset": "vehicle/graybox.solenne-skip"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.96,
+      0.38,
+      2.1
+    ],
+    "massKg": 1720,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.5,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  },
+  "vehicle": {
+    "handling": "hp.solenne-skip",
+    "seats": 2,
+    "wheels": [
+      {
+        "pos": [
+          -0.83,
+          0.06,
+          -1.43
+        ],
+        "radius": 0.35,
+        "restM": 0.3,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.83,
+          0.06,
+          -1.43
+        ],
+        "radius": 0.35,
+        "restM": 0.3,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.83,
+          0.06,
+          1.32
+        ],
+        "radius": 0.35,
+        "restM": 0.3,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.83,
+          0.06,
+          1.32
+        ],
+        "radius": 0.35,
+        "restM": 0.3,
+        "axle": "rear"
+      }
+    ]
+  },
+  "interact": {
+    "kind": "EnterVehicle",
+    "radius": 2.5,
+    "promptKey": "interact.enterVehicle",
+    "coneDeg": 180
+  }
+}

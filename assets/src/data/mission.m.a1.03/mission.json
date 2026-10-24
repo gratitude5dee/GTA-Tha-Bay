@@ -1,0 +1,314 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      780
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "ride": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.73633,
+          -122.3885
+        ],
+        "snap": "road",
+        "yawDeg": -126
+      }
+    },
+    "tavi": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.73641,
+          -122.38868
+        ],
+        "snap": "road"
+      },
+      "who": {
+        "soul": "tavi_okafor"
+      }
+    }
+  },
+  "district": "d3",
+  "fail": [
+    {
+      "reason": "mission.m.a1.03.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.03.fail.busted",
+      "retry": "checkpoint",
+      "when": {
+        "p": "busted"
+      }
+    },
+    {
+      "reason": "mission.m.a1.03.fail.ride",
+      "retry": "start",
+      "when": {
+        "cast": "ride",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 3
+  },
+  "id": "m.a1.03",
+  "lines": [
+    "line.m.a1.03.follow",
+    "line.m.a1.03.gate",
+    "line.m.a1.03.home",
+    "line.m.a1.03.raid",
+    "line.m.a1.03.show"
+  ],
+  "medals": {
+    "goldSec": 420,
+    "silverSec": 600
+  },
+  "modeHooks": [
+    {
+      "defId": "sf.pursuit.bayview-escape",
+      "id": "race-a1-sideshow-escape",
+      "mode": "racing",
+      "passOn": [
+        "win",
+        "finish"
+      ],
+      "retry": "hook",
+      "stub": {
+        "id": "escape_raid",
+        "k": "escape",
+        "text": "mission.m.a1.03.obj.escape_raid",
+        "untilHeat": 0
+      },
+      "unlockOnFirstEncounter": "unlock.racing"
+    }
+  ],
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.01",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 150000,
+    "streetCred": 40
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "gate",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_gate",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.03.obj.goto_gate",
+          "zone": "yard_gate"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.03.gate",
+          "op": "say",
+          "speaker": "tavi"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "wheels",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_ride",
+          "k": "enterVehicle",
+          "text": "mission.m.a1.03.obj.enter_ride",
+          "vehicle": "ride"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "to_lot",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_lot",
+          "inVehicle": "ride",
+          "k": "goto",
+          "text": "mission.m.a1.03.obj.goto_lot",
+          "zone": "lot"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.03.follow",
+          "op": "say",
+          "speaker": "tavi"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "show",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "hold_crowd",
+          "k": "survive",
+          "sec": 30,
+          "text": "mission.m.a1.03.obj.hold_crowd"
+        },
+        {
+          "id": "drift_show",
+          "k": "score",
+          "metric": "drift",
+          "optional": true,
+          "target": 3000,
+          "text": "mission.m.a1.03.obj.drift_show",
+          "withinSec": 90
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.03.show",
+          "op": "say",
+          "speaker": "tavi"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "raid",
+      "join": "all",
+      "objectives": [
+        {
+          "hook": "race-a1-sideshow-escape",
+          "id": "mode_sideshow",
+          "k": "mode",
+          "text": "mission.m.a1.03.obj.mode_sideshow"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "cutscene": "cut.story.m.a1.03.raid"
+          }
+        },
+        {
+          "op": "heat",
+          "set": 2
+        },
+        {
+          "line": "line.m.a1.03.raid",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "home",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_yard",
+          "inVehicle": "ride",
+          "k": "goto",
+          "text": "mission.m.a1.03.obj.goto_yard",
+          "zone": "yard"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.03.home",
+          "op": "say",
+          "speaker": "tavi"
+        }
+      ],
+      "timeLimitSec": 240
+    }
+  ],
+  "start": {
+    "at": {
+      "at": [
+        37.73639,
+        -122.3886
+      ],
+      "snap": "ground"
+    },
+    "hours": [
+      18,
+      23
+    ],
+    "k": "marker",
+    "radiusM": 8
+  },
+  "tags": [
+    "sideshow",
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.03.title",
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "hideout": {
+      "at": [
+        37.74046,
+        -122.38864
+      ],
+      "k": "circle",
+      "r": 30
+    },
+    "lot": {
+      "at": [
+        37.73684,
+        -122.3886
+      ],
+      "k": "circle",
+      "r": 25
+    },
+    "yard": {
+      "at": [
+        37.73648,
+        -122.38865
+      ],
+      "k": "circle",
+      "r": 18
+    },
+    "yard_gate": {
+      "at": [
+        37.73639,
+        -122.3886
+      ],
+      "k": "circle",
+      "r": 9
+    }
+  }
+}

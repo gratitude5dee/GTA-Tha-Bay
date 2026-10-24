@@ -4,24 +4,27 @@
  * only when every source of the area was fetched. Without network, without `osmium`, or with DV_MAP_OFFLINE=1 a source
  * prints `SKIP map:fetch <source>: <reason>` and the command still exits 0.
  *
+ * The `sf` OSM extract is the bbox extract, tag-filtered, plus the objects named in the landmark seeds (`osmium getid`, merged
+ * before the export, DL-708).
+ *
  * `civic-excerpt --fixture` cuts the committed 1 km2 excerpt: DataSF rows and Terrarium tiles from the network, the OSM part
  * from the synth generator restricted to the square (the bake never calls Overpass or Nominatim), stamps marked synthetic.
  */
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, createWriteStream, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { latLngFromEnu } from '../../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../../ci/lib/common.ts';
 import { spawnRunner, type Runner } from '../../../assets/src/uploader-rclone.ts';
 import {
-  CIVIC_FIXTURE_DIR, assertAllowedHost, enuBoxOf, loadBounds, loadSources, loadSynth, rawDirOf, sourceById,
+  CIVIC_FIXTURE_DIR, enuBoxOf, loadBounds, loadSources, loadSynth, rawDirOf, sourceById,
   type AreaId, type BBox, type EnuBox, type SourcesConfig,
 } from '../config.ts';
 import { RAW_LOCK_NAME, rawLockText, readRawLock, sha256File, sha256Text, writeRawLock, type RawLockFile, type RawSourceLock } from '../raw-lock.ts';
+import { loadContentWorld } from '../content.ts';
 import { clipRingToBox } from '../geom/rings.ts';
 import { polygonsOf } from '../sources/geo.ts';
+import { ensureOsmPbf, readOsmServed, type OsmDownloader } from '../sources/osm.ts';
 import { generateSynth } from '../sources/synth.ts';
 import { countLines, fetchSocrata, readJsonl, whereLatLng, whereWithinBox, writeJsonl } from '../sources/socrata.ts';
 import { fetchTiles, listTileFiles, tilePath, tilesCovering, unionTiles, type TileId } from '../sources/terrarium.ts';
@@ -37,12 +40,16 @@ export interface FetchOptions {
   /** Where the committed sf lock goes (default content/world). */
   contentDir?: string | undefined;
   run?: Runner | undefined;
+  /** Replaces the HTTP download of the OSM extract (tests inject a fake with failing routes). */
+  osmDownload?: OsmDownloader | undefined;
+  /** Replaces the shell run of the osmium commands and the `osmium --version` probe (tests). */
+  osmShell?: ((cmd: string) => number) | undefined;
   /** Stop after this many rows per Socrata source (tests). */
   rowLimit?: number | undefined;
 }
 
-/** The street, Muni stop and Muni pattern sources of the excerpt are synthetic like its OSM part (no network, M02a2). */
-export const SYNTHETIC_ROAD_SOURCES = ['datasf-streets', 'datasf-muni-stops', 'datasf-muni-routes'] as const;
+/** The street, SFMTA stop and SFMTA pattern sources of the excerpt are synthetic like its OSM part (no network, M02a2). */
+export const SYNTHETIC_ROAD_SOURCES = ['datasf-streets', 'datasf-addresses', 'sfmta-stops', 'sfmta-patterns'] as const;
 
 export const nowIso = (): string => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 const skip = (log: (l: string) => void, id: string, reason: string): void => log(`SKIP map:fetch ${id}: ${reason}`);
@@ -50,6 +57,12 @@ const skip = (log: (l: string) => void, id: string, reason: string): void => log
 /** Replaces `{name}` and `{a.b}` placeholders from a flat lookup. */
 export function fillCommand(tpl: string, vars: Record<string, string | number>): string {
   return tpl.replace(/\{([a-zA-Z.]+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
+}
+
+/** The OSM ids of the landmark seeds (`w<id>`, `r<id>`, `n<id>`), one per line, for the `osmium getid` pass (DL-708). */
+export function landmarkIdsText(seeds: readonly { osm: string }[]): string {
+  const ids = [...new Set(seeds.map((s) => s.osm).filter((o) => /^[wrn]\d+$/.test(o)))].sort();
+  return `${ids.join('\n')}\n`;
 }
 
 export function osmCommands(cfg: SourcesConfig, dir: string, pbf: string, backdrop = false): string[] {
@@ -62,15 +75,8 @@ export function osmCommands(cfg: SourcesConfig, dir: string, pbf: string, backdr
   return (backdrop ? cfg.osm.backdropCommands : cfg.osm.commands).map((t) => fillCommand(t, vars));
 }
 
-async function downloadTo(url: string, file: string): Promise<void> {
-  assertAllowedHost(url);
-  const res = await fetch(url, { headers: { 'user-agent': 'tha-bay-map-bake/0.2' } });
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status} for ${url}`);
-  mkdirSync(path.dirname(file), { recursive: true });
-  await pipeline(Readable.fromWeb(res.body as never), createWriteStream(file));
-}
-
-function hasOsmium(): boolean {
+function hasOsmium(shell?: (cmd: string) => number): boolean {
+  if (shell) return shell('osmium --version') === 0;
   const r = spawnSync('osmium', ['--version'], { encoding: 'utf8' });
   return !r.error && r.status === 0;
 }
@@ -123,25 +129,39 @@ async function fetchSf(o: FetchOptions, cfg: SourcesConfig, rawDir: string, log:
         entries.push({ id, url: s.url, retrievedAt: nowIso(), sha256: set.sha256, rows: set.rows, licence: s.licence });
       } else {
         const file = path.join(rawDir, s.file);
+        let extract: RawSourceLock['extract'];
+        let servedUrl = s.url;
+        let servedAt = nowIso();
         if (existsSync(file)) {
           log(`map:fetch ${id}: using the existing ${s.file} (hand-supplied or earlier osmium export)`);
-        } else if (!hasOsmium()) {
+          const prev = readOsmServed(rawDir);
+          if (prev) {
+            servedUrl = prev.url;
+            servedAt = prev.retrievedAt;
+            extract = { sha256: prev.sha256, bytes: prev.bytes, route: prev.routeIndex };
+          }
+        } else if (!hasOsmium(o.osmShell)) {
           skip(log, id, 'osmium not found on PATH (install osmium-tool, then re-run; commands are in config/world/sources.json osm.commands)');
           skipped.push(id);
           continue;
         } else {
-          const pbf = path.join(rawDir, 'norcal-latest.osm.pbf');
-          if (!existsSync(pbf)) {
-            log(`map:fetch ${id}: downloading ${s.url}`);
-            await downloadTo(s.url, pbf);
-          }
-          for (const cmd of [...osmCommands(cfg, rawDir, pbf), ...osmCommands(cfg, rawDir, pbf, true)]) {
+          const got = await ensureOsmPbf(s, rawDir, { download: o.osmDownload, log });
+          // S0 merges the landmark Source ids of 02-world-bake.md section 7 into the extract: the tag filter drops some of them (DL-708)
+          writeFileSync(path.join(rawDir, 'landmark-ids.txt'), landmarkIdsText(loadContentWorld().landmarks));
+          for (const cmd of [...osmCommands(cfg, rawDir, got.pbf), ...osmCommands(cfg, rawDir, got.pbf, true)]) {
             log(`map:fetch ${id}: ${cmd}`);
-            const r = spawnSync(cmd, { shell: true, stdio: 'inherit' });
-            if (r.status !== 0) throw new Error(`osmium step failed with exit ${r.status ?? 'null'}: ${cmd}`);
+            const status = o.osmShell ? o.osmShell(cmd) : spawnSync(cmd, { shell: true, stdio: 'inherit' }).status;
+            if (status !== 0) throw new Error(`osmium step failed with exit ${status ?? 'null'}: ${cmd}`);
           }
+          servedUrl = got.served.url;
+          servedAt = got.served.retrievedAt;
+          extract = { sha256: got.served.sha256, bytes: got.served.bytes, route: got.served.routeIndex };
+          log(`map:fetch ${id}: extract served by ${servedUrl} (sha256 ${got.served.sha256}, ${got.served.bytes} bytes)`);
         }
-        entries.push({ id, url: s.url, retrievedAt: nowIso(), sha256: await sha256File(file), rows: countLines(file), licence: s.licence });
+        entries.push({
+          id, url: servedUrl, retrievedAt: servedAt, sha256: await sha256File(file), rows: countLines(file), licence: s.licence,
+          ...(extract ? { extract } : {}),
+        });
       }
     } catch (e) {
       log(`map:fetch ${id}: FAILED: ${(e as Error).message}`);

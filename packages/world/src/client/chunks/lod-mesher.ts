@@ -8,6 +8,7 @@
  * unit without a land outline (all water) is one flat sheet.
  */
 import { TERRAIN_POSTS, LOD_LAND_CLASS, type LodUnit, type QualityTierId } from '@dv/shared';
+import { Surf, roadSurf } from '../look/surfaces.ts';
 import { MESHER, MeshBuilder, addBuilding, addRibbon, hexToLinear, profileOf, roadColor, type MesherProfile, type Rgb } from './mesher.ts';
 import { meshBytes, type MeshBuffers, type MeshStats, type UnitMesh } from './mesh-types.ts';
 
@@ -21,6 +22,8 @@ const LANDUSE_COLORS: readonly Rgb[] = [
   hexToLinear(MESHER.landuse['plaza'] as string),
   hexToLinear(MESHER.landuse['rock'] as string),
 ];
+/** The surface id of each coarse land-use class (residential, commercial, industrial, grass, park, sand, plaza, rock). */
+const LANDUSE_SURF: readonly number[] = [Surf.GroundBase + 0, Surf.GroundBase + 3, Surf.GroundBase + 4, Surf.GroundBase + 0, Surf.GroundBase + 1, Surf.GroundBase + 2, Surf.GroundBase + 3, Surf.GroundBase + 5];
 const WATER = hexToLinear(MESHER.landuse['water'] as string);
 const LAND = hexToLinear(MESHER.landuse['land'] as string);
 
@@ -124,16 +127,20 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
       isWater.push(!dry);
       let color: Rgb = WATER;
       let y = sea;
+      let surf = Surf.Sea as number;
       if (dry) {
         y = h;
         color = LAND;
+        surf = Surf.GroundBase;
         for (const p of use) {
           if (inside(p, x, z)) {
             color = LANDUSE_COLORS[p.cls] ?? LAND;
+            surf = LANDUSE_SURF[p.cls] ?? Surf.GroundBase;
             break;
           }
         }
       }
+      tb.setSurf(surf);
       const gx = (hAt(i + 1, j) - hAt(i - 1, j)) / (2 * step);
       const gz = (hAt(i, j + 1) - hAt(i, j - 1)) / (2 * step);
       const l = Math.sqrt(gx * gx + 1 + gz * gz);
@@ -156,6 +163,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
   for (let j = verts - 2; j >= 1; j--) edgeIdx.push(j * verts);
   const lower: number[] = edgeIdx.map((v) => {
     const x = tb.pos[v * 3] as number, y = tb.pos[v * 3 + 1] as number, z = tb.pos[v * 3 + 2] as number;
+    tb.setSurf(tb.surf[v * 4] as number);
     return tb.vertex(x, y - skirt, z, [0, 1, 0], [tb.col[v * 3] as number, tb.col[v * 3 + 1] as number, tb.col[v * 3 + 2] as number]);
   });
   for (let k = 0; k < edgeIdx.length; k++) {
@@ -198,7 +206,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
       const ring: number[] = [];
       for (let i = 0; i < m.ring.length; i += 2) ring.push((m.ring[i] as number) - ox, (m.ring[i + 1] as number) - oz);
       if (ring.length < 6) continue;
-      const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile);
+      const t = addBuilding(mb, ring, m.baseDm / 10, m.heightDm / 10, { kind: m.kind, roof: 0, palette: m.palette, seed: m.seed }, massProfile, unit.level === 'l2' ? Surf.MassingL2 : Surf.MassingL1);
       buildings++;
       if (t > maxTris) maxTris = t;
     }
@@ -224,6 +232,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
         xyz[i * 3 + 1] = surfaceAt(unit.heights, stride, postM, x, z);
         xyz[i * 3 + 2] = z;
       }
+      rb.setSurf(roadSurf(r.cls));
       addRibbon(rb, xyz, 0, 0, width, lift, roadColor(r.cls));
     }
     return rb.build('roads');
@@ -259,6 +268,7 @@ export function meshLod(unit: LodUnit, tier: QualityTierId, maxBytes: number | n
     stats.vertices += o.positions.length / 3;
   }
   const trees = new Float32Array(0);
+  const lamps = new Float32Array(0);
   stats.bytes = bytesOf(objects);
-  return { level: unit.level, key: unit.key, originX: ox, originZ: oz, objects, trees, stats };
+  return { level: unit.level, key: unit.key, originX: ox, originZ: oz, objects, trees, lamps, stats, proxies: [], masked: [] };
 }

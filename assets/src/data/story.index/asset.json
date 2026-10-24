@@ -1,0 +1,13 @@
+{
+  "kind": "data",
+  "id": "story.index",
+  "variants": {
+    "default": "assets/src/data/story.index/story.index.json"
+  },
+  "deps": [],
+  "tags": [
+    "story"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

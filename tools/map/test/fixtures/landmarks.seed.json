@@ -34,7 +34,7 @@
     { "id": "lm.candlestick-point", "lat": 37.71719, "lng": -122.38042, "x": 3425, "z": 6894 },
     { "id": "lm.treasure-island", "lat": 37.82381, "lng": -122.37041, "x": 4306, "z": -4940 },
     { "id": "lm.un-plaza", "lat": 37.78014, "lng": -122.41369, "x": 494, "z": -93 },
-    { "id": "lm.caltrain-terminus", "lat": 37.7765, "lng": -122.3946, "x": 2176, "z": 311 },
+    { "id": "lm.rail-terminus", "lat": 37.7765, "lng": -122.3946, "x": 2176, "z": 311 },
     { "id": "lm.peace-pagoda", "lat": 37.78507, "lng": -122.42986, "x": -930, "z": -640 },
     { "id": "lm.opera-house", "lat": 37.77854, "lng": -122.42093, "x": -144, "z": 84 },
     { "id": "lm.saint-mary-cathedral", "lat": 37.78402, "lng": -122.42534, "x": -532, "z": -524 }

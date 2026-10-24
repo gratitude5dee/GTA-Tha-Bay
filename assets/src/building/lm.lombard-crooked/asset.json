@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.lombard-crooked",
+  "variants": {
+    "desktop": "assets/src/building/lm.lombard-crooked/desktop.glb",
+    "mobile": "assets/src/building/lm.lombard-crooked/mobile.glb",
+    "mobile-low": "assets/src/building/lm.lombard-crooked/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1266,
+      "verts": 2526,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 674,
+      "verts": 1346,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 440,
+      "verts": 882,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

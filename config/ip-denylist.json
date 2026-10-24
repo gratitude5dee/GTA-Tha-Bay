@@ -32,10 +32,14 @@
     "vapid",
     "waymo",
     "tesla",
+    "humvee",
     "transamerica",
     "salesforce",
     "oracle park",
-    "chase center"
+    "chase center",
+    "bart",
+    "muni",
+    "caltrain"
   ],
   "patterns": [
     {

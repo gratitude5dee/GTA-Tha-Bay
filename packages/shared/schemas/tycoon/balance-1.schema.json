@@ -1,0 +1,65 @@
+{
+  "$id": "https://dv.local/schema/tycoon/balance.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "config/tycoon.balance.json (tycoon.balance.v1)",
+  "type": "object",
+  "properties": {
+    "schema": { "const": "tycoon.balance.v1" },
+    "sim": {
+      "type": "object",
+      "properties": {
+        "ticksPerWeek": {
+          "type": "object",
+          "properties": { "x1": { "const": 1200 }, "x2": { "const": 600 }, "x4": { "const": 300 } },
+          "required": ["x1", "x2", "x4"],
+          "additionalProperties": false
+        },
+        "boardIntervalWeeks": { "type": "integer", "minimum": 1 },
+        "maxEmployees": { "type": "integer", "minimum": 1, "maximum": 60 }
+      },
+      "required": ["ticksPerWeek", "boardIntervalWeeks", "maxEmployees"],
+      "additionalProperties": false
+    },
+    "setup": {
+      "type": "object",
+      "properties": {
+        "startCashCents": { "type": "integer", "minimum": 0 },
+        "founderSalaryYrCents": { "type": "integer", "minimum": 0 },
+        "founderMorale": { "type": "number", "minimum": 0, "maximum": 100 },
+        "teamMorale": { "type": "number", "minimum": 0, "maximum": 100 },
+        "reputation": { "type": "number", "minimum": 0, "maximum": 100 },
+        "hype": { "type": "number", "minimum": 0, "maximum": 100 },
+        "climateSpread": { "type": "number", "minimum": 0, "maximum": 1 },
+        "allocation": {
+          "type": "object",
+          "properties": { "features": { "type": "integer" }, "refactor": { "type": "integer" }, "infra": { "type": "integer" } },
+          "required": ["features", "refactor", "infra"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["startCashCents", "founderSalaryYrCents", "founderMorale", "teamMorale", "reputation", "hype", "climateSpread", "allocation"],
+      "additionalProperties": false
+    },
+    "company": { "type": "object" },
+    "valuation": { "type": "object" },
+    "hiring": { "type": "object" },
+    "founder": { "type": "object" },
+    "board": { "type": "object" },
+    "end": { "type": "object" },
+    "raise": { "type": "object" },
+    "finance": {
+      "type": "object",
+      "properties": {
+        "fomoCap": { "type": "number", "minimum": 0, "maximum": 0.15 },
+        "fomoPerSheet": { "type": "number", "minimum": 0 },
+        "validWeeks": { "type": "integer", "minimum": 1 },
+        "closingWeeks": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["fomoCap", "fomoPerSheet", "validWeeks", "closingWeeks"]
+    },
+    "events": { "type": "object" },
+    "hardcore": { "type": "object", "required": ["eventMul", "chequeMul"] }
+  },
+  "required": ["schema", "sim", "setup", "company", "valuation", "hiring", "founder", "board", "end", "raise", "finance", "events", "hardcore"],
+  "additionalProperties": false
+}

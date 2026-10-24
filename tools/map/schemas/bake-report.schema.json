@@ -42,6 +42,9 @@
     "transit": { "type": "object" },
     "lod": { "type": "object" },
     "far": { "type": "object" },
+    "districtGrid": { "type": "object" },
+    "map": { "type": "object" },
+    "geocode": { "type": "object" },
     "buildings": {
       "type": "object",
       "required": ["rows", "baked", "dropped", "records", "osm"],
@@ -68,7 +71,7 @@
         "type": "object",
         "required": ["id", "stage", "level", "detail"],
         "properties": {
-          "id": { "type": "string" }, "stage": { "enum": ["S0", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S13", "S14"] }, "level": { "enum": ["pass", "fail", "warn"] }, "detail": { "type": "string" }
+          "id": { "type": "string" }, "stage": { "enum": ["S0", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14"] }, "level": { "enum": ["pass", "fail", "warn"] }, "detail": { "type": "string" }
         }
       }
     },

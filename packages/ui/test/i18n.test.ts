@@ -2,8 +2,8 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BRAND, DISPLAY_NAME } from '../../../config/brand.ts';
-import { catalogs, missingKeys, t, type LocKey } from '../src/i18n.ts';
-import { LEGAL_DOCS, routeFor } from '../src/index.tsx';
+import { catalogs, missingKeys, t, type LocKey } from '../src/i18n/index.ts';
+import { LEGAL_DOCS, frameFor } from '../src/index.tsx';
 import { readTokens, renderTokensCss, TOKENS_CSS } from '../scripts/build-tokens.ts';
 
 const repo = path.resolve(import.meta.dirname, '../../..');
@@ -28,12 +28,12 @@ describe('i18n catalog', () => {
       for (const m of text.matchAll(/\bt\(\s*['"]([\w.-]+)['"]/g)) used.add(m[1]!);
     }
     expect(used.size).toBeGreaterThan(5);
-    const missing = [...used].filter((k) => !(k in catalogs.en));
+    const missing = [...used].filter((k) => !(k in catalogs['en']!));
     expect(missing).toEqual([]);
   });
 
   it('has a title for every legal document', () => {
-    for (const doc of LEGAL_DOCS) expect(`legal.doc.${doc}` in catalogs.en).toBe(true);
+    for (const doc of LEGAL_DOCS) expect(`legal.doc.${doc}` in catalogs['en']!).toBe(true);
   });
 
   it('no catalog contains the display-name literal', () => {
@@ -47,7 +47,7 @@ describe('i18n catalog', () => {
   });
 
   it('the display name arrives through the {brand} placeholder', () => {
-    expect(catalogs.en['title.name']).toBe('{brand}');
+    expect(catalogs['en']!['title.name']).toBe('{brand}');
     expect(t('title.name')).toBe(DISPLAY_NAME);
     expect(t('boot.loading')).toBe(`Loading ${DISPLAY_NAME}`);
   });
@@ -59,12 +59,13 @@ describe('i18n catalog', () => {
 });
 
 describe('shell routes', () => {
-  it('maps paths to pages', () => {
-    expect(routeFor('/')).toEqual({ page: 'title' });
-    expect(routeFor('/menu/credits')).toEqual({ page: 'credits' });
-    expect(routeFor('/menu/credits/')).toEqual({ page: 'credits' });
-    expect(routeFor('/legal/terms')).toEqual({ page: 'legal', doc: 'terms' });
-    expect(routeFor('/anything/else')).toEqual({ page: 'title' });
+  it('maps paths to page frames above the root', () => {
+    expect(frameFor('/')).toBeNull();
+    expect(frameFor('/menu/credits')).toEqual({ id: 'credits', params: {} });
+    expect(frameFor('/menu/credits/')).toEqual({ id: 'credits', params: {} });
+    expect(frameFor('/legal/terms')).toEqual({ id: 'legal', params: { doc: 'terms' } });
+    expect(frameFor('/menu/settings/audio')).toEqual({ id: 'settings', params: { cat: 'audio' } });
+    expect(frameFor('/anything/else')).toBeNull();
   });
 });
 

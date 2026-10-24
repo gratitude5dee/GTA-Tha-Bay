@@ -3,6 +3,7 @@ import type { Camera, Object3D, PerspectiveCamera } from 'three/webgpu';
 import grayboxWalk from '../../../../../config/perf/paths/graybox-walk.json';
 import walkCivicCenter from '../../../../../config/perf/paths/walk-civic-center.json';
 import routeFerryOceanBeach from '../../../../../config/perf/paths/route-ferry-ocean-beach.json';
+import downtownRush from '../../../../../config/perf/paths/downtown-rush.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -54,7 +55,7 @@ export type ScenarioPath = OrbitPath | RoutePath;
  */
 export interface WorldScenarioDriver {
   /** Places the focus at the start of the path and resolves when the streaming around it is idle (bounded wait). */
-  prepare(startXz: [number, number]): Promise<void>;
+  prepare(startXz: [number, number], opts?: { density: 'off' | 'nominal' }): Promise<void>;
   /** Every frame, after the engine hand-off: the camera pose the runner chose. Returns the ground height under it, or null while unknown. */
   frame(pose: { x: number; y: number; z: number; vx: number; vz: number }): { groundY: number | null };
   /** End of the run: figures for the report. */
@@ -66,11 +67,13 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'graybox-walk': grayboxWalk as unknown as OrbitPath,
   'walk-civic-center': walkCivicCenter as unknown as RoutePath,
   'route-ferry-ocean-beach': routeFerryOceanBeach as unknown as RoutePath,
+  'downtown-rush': downtownRush as unknown as RoutePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
   'walk-civic-center': 'config/perf/paths/walk-civic-center.json',
   'route-ferry-ocean-beach': 'config/perf/paths/route-ferry-ocean-beach.json',
+  'downtown-rush': 'config/perf/paths/downtown-rush.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
@@ -183,7 +186,7 @@ export class PerfScenarioRunner {
     if (route && driver) {
       const start = routePose(route, 0);
       try {
-        await driver.prepare([start.x, start.z]);
+        await driver.prepare([start.x, start.z], { density: route.density });
       } catch (e) {
         this.running = false;
         throw e;
@@ -238,7 +241,7 @@ export class PerfScenarioRunner {
       },
       after: (time) => {
         if (!measuring) return;
-        meter.measure(scene, camera, 0, host.backdrop && !bench ? [host.backdrop] : []);
+        meter.measure(scene, camera, bench ? 0 : host.shadowPasses, host.backdrop && !bench ? [host.backdrop] : []);
         infoTrianglesMax = Math.max(infoTrianglesMax, info.render.triangles);
         infoDrawMax = Math.max(infoDrawMax, info.render.drawCalls);
         const m = readMemory(info, this.d.wasm);

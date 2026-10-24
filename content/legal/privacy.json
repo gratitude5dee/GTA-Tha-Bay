@@ -1,6 +1,6 @@
 {
   "doc": "privacy",
-  "updated": 1792368000000,
+  "updated": 1792540800000,
   "counselReviewed": false,
   "sections": [
     {
@@ -18,6 +18,14 @@
         "A password hash. The password itself is never stored by us; it is checked and hashed by the sign-in provider.",
         "An age confirmation of 18 or older (stored as the bracket 18p), the version of the terms you accepted, and the time you accepted them.",
         "No game progress, saves, location or device data is attached to a password account."
+      ]
+    },
+    {
+      "id": "telemetry",
+      "heading": "Diagnostics and gameplay analytics",
+      "paragraphs": [
+        "The game can send diagnostics (errors, device class, graphics tier and performance numbers) and gameplay analytics (which pages and modes are opened). Each is a separate switch on the terms screen and in Settings, and both are on by default. Turning one off drops its events on your device before they are sent.",
+        "Events carry registry names and small numbers only: no name, no free text, no save data and no date of birth. Nothing is sent before you accept the terms, and nothing is sent from a device blocked by the age check. The age check keeps one flag on your device and nothing on our servers."
       ]
     },
     {

@@ -1,13 +1,14 @@
-import type { Collider, KinematicCharacterController, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
+import type { Collider, DynamicRayCastVehicleController, KinematicCharacterController, RigidBody, RigidBodyDesc, World } from '@dimforge/rapier3d-deterministic-compat';
 import { dsqrt, PI } from '@dv/shared';
 import { ByteReader, ByteWriter } from '../bytes.ts';
 import {
-  NotImplementedError, PhysicsInitError,
-  type BodyDesc, type BodyKind, type CharMoveOpts, type CharMoveResult, type PhysicsBuild, type PhysicsSystemsBackend,
-  type RayHit, type StaticShapeSet, type VehicleDrive, type Vec3, type WheelDesc,
+  PhysicsInitError,
+  type BodyDesc, type BodyKind, type CharMoveOpts, type CharMoveResult, type PhysicsBuild,
+  type RayHit, type StaticShapeSet, type VehicleDrive, type VehiclePhysics, type Vec3, type WheelDesc, type VehicleSuspensionTune,
+  VEHICLE_READ_STRIDE,
 } from './backend.ts';
 import { PHYSICS_CONFIG, type PhysicsConfig } from './config.ts';
-import { GROUPS, interactionGroups } from './groups.ts';
+import { GROUP_BIT, GROUPS, interactionGroups } from './groups.ts';
 import { loadRapierBuild, type RapierModule } from './load-build.ts';
 import { heightfieldLayout, prismPieces } from './static-shapes.ts';
 
@@ -35,6 +36,8 @@ interface BodyEntry {
   handle: number;
   collider: number;
   kind: BodyKind;
+  /** The shape the body was made with, for the QA physics wireframe (not part of a snapshot; null after a restore). */
+  shape?: { shape: BodyDesc['shape']; dims: number[] };
 }
 
 interface StaticEntry {
@@ -53,7 +56,7 @@ const KIND_BY_CODE: BodyKind[] = ['dynamic', 'kinematic', 'fixed'];
  * Body ids are the backend's own sequential integers (never reused), because Rapier's handles are opaque f64 values
  * that do not fit the ECS `BodyRef.body` u32.
  */
-export class RapierBackend implements PhysicsSystemsBackend {
+export class RapierBackend implements VehiclePhysics {
   readonly origin: Vec3 = [0, 0, 0];
   /** Times `rebase` ran. */
   rebases = 0;
@@ -65,6 +68,9 @@ export class RapierBackend implements PhysicsSystemsBackend {
   private nextId = 1;
   private readonly bodies = new Map<number, BodyEntry>();
   private readonly bodyObjs = new Map<number, RigidBody>();
+  /** Rapier vehicle controllers by vehicle id (the M03a2 `controller` wheel path). Not part of a snapshot. */
+  private readonly controllers = new Map<number, { ctrl: DynamicRayCastVehicleController; body: number; frontMask: boolean[] }>();
+  private nextVehicle = 1;
   private readonly statics = new Map<string, StaticEntry>();
   private readonly cfg: PhysicsConfig;
   private readonly load: (build: PhysicsBuild) => Promise<RapierModule>;
@@ -135,6 +141,7 @@ export class RapierBackend implements PhysicsSystemsBackend {
 
   /** Frees the wasm world. */
   dispose(): void {
+    this.controllers.clear();
     this.kcc?.free();
     this.kcc = null;
     this.world?.free();
@@ -150,6 +157,11 @@ export class RapierBackend implements PhysicsSystemsBackend {
 
   bodyKind(id: number): BodyKind | null {
     return this.bodies.get(id)?.kind ?? null;
+  }
+
+  /** The shape and dimensions a body was created with (QA physics wireframe); null for an unknown body or after a restore. */
+  bodyShape(id: number): { shape: BodyDesc['shape']; dims: number[] } | null {
+    return this.bodies.get(id)?.shape ?? null;
   }
 
   // ------------------------------------------------------------------ coordinates
@@ -196,8 +208,13 @@ export class RapierBackend implements PhysicsSystemsBackend {
 
   step(dt: number, substeps: 1 | 2): void {
     const w = this.W;
-    w.integrationParameters.dt = dt / substeps;
-    for (let i = 0; i < substeps; i++) w.step();
+    const sub = dt / substeps;
+    w.integrationParameters.dt = sub;
+    for (let i = 0; i < substeps; i++) {
+      // vehicle controllers cast their rays and push the chassis before the world integrates
+      for (const c of this.controllers.values()) c.ctrl.updateVehicle(sub, undefined, interactionGroups(0xffff, GROUP_BIT.static));
+      w.step();
+    }
     this.steps++;
   }
 
@@ -265,13 +282,18 @@ export class RapierBackend implements PhysicsSystemsBackend {
     }
     rbDesc.setTranslation(at.x, at.y, at.z);
     if (d.rot) rbDesc.setRotation({ x: d.rot[0], y: d.rot[1], z: d.rot[2], w: d.rot[3] });
+    if (d.linearDamping !== undefined) rbDesc.setLinearDamping(d.linearDamping);
+    if (d.angularDamping !== undefined) rbDesc.setAngularDamping(d.angularDamping);
+    if (d.ccd) rbDesc.setCcdEnabled(true);
     const rb = w.createRigidBody(rbDesc);
     const cd = this.colliderDesc(d);
-    cd.setCollisionGroups(d.groups).setFriction(this.cfg.defaultFriction).setRestitution(this.cfg.defaultRestitution);
+    cd.setCollisionGroups(d.groups)
+      .setFriction(d.friction ?? this.cfg.defaultFriction)
+      .setRestitution(d.restitution ?? this.cfg.defaultRestitution);
     if (d.mass !== undefined && d.kind === 'dynamic') cd.setMass(d.mass);
     const collider: Collider = w.createCollider(cd, rb);
     const id = this.nextId++;
-    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind });
+    this.bodies.set(id, { handle: rb.handle, collider: collider.handle, kind: d.kind, shape: { shape: d.shape, dims: [...d.dims] } });
     this.bodyObjs.set(id, rb);
     return id;
   }
@@ -294,6 +316,11 @@ export class RapierBackend implements PhysicsSystemsBackend {
   removeBody(id: number): void {
     const e = this.bodies.get(id);
     if (!e) return;
+    for (const [vid, c] of this.controllers) {
+      if (c.body !== id) continue;
+      this.W.removeVehicleController(c.ctrl);
+      this.controllers.delete(vid);
+    }
     this.W.removeRigidBody(this.body(id));
     this.bodies.delete(id);
     this.bodyObjs.delete(id);
@@ -326,6 +353,36 @@ export class RapierBackend implements PhysicsSystemsBackend {
     const l = this.local(p);
     rb.setNextKinematicTranslation(l);
     rb.setNextKinematicRotation({ x: q[0], y: q[1], z: q[2], w: q[3] });
+  }
+
+  setBodyPose(id: number, p: Vec3, q: [number, number, number, number]): void {
+    const rb = this.body(id);
+    rb.setTranslation(this.local(p), true);
+    rb.setRotation({ x: q[0], y: q[1], z: q[2], w: q[3] }, true);
+  }
+
+  setBodyVelocity(id: number, lin: Vec3, ang: Vec3): void {
+    const rb = this.body(id);
+    rb.setLinvel({ x: lin[0], y: lin[1], z: lin[2] }, true);
+    rb.setAngvel({ x: ang[0], y: ang[1], z: ang[2] }, true);
+  }
+
+  applyTorqueImpulse(id: number, t: Vec3): void {
+    this.body(id).applyTorqueImpulse({ x: t[0], y: t[1], z: t[2] }, true);
+  }
+
+  setBodyGroups(id: number, groups: number): void {
+    const e = this.bodies.get(id);
+    if (!e) throw new RangeError(`unknown physics body ${id}`);
+    this.W.getCollider(e.collider).setCollisionGroups(groups);
+  }
+
+  setBodyKind(id: number, kind: 'dynamic' | 'kinematic'): void {
+    const e = this.bodies.get(id);
+    if (!e) throw new RangeError(`unknown physics body ${id}`);
+    const R = this.R;
+    this.body(id).setBodyType(kind === 'dynamic' ? R.RigidBodyType.Dynamic : R.RigidBodyType.KinematicPositionBased, true);
+    e.kind = kind;
   }
 
   applyImpulse(id: number, j: [number, number, number], at?: [number, number, number]): void {
@@ -380,17 +437,74 @@ export class RapierBackend implements PhysicsSystemsBackend {
     return this.kcc;
   }
 
+  /**
+   * The vehicle seam over Rapier's `DynamicRayCastVehicleController` (M03a2 spike; ADR-0031). Wheel `i` is `wheels[i]`.
+   * `drive` sets the same engine force and brake on all wheels and the steering angle on the `front` wheels; `handbrake`
+   * locks the `rear` wheels. The controller itself runs inside `step`, before each world substep.
+   *
+   * `read` layout (engine-internal, not a contract): `VEHICLE_READ_STRIDE` = 11 floats per wheel, wheels in order, at
+   * `out[11 * i + slot]`:
+   *   0 inContact (1 or 0), 1..3 contact point (ENU metres), 4..6 contact normal, 7 suspLenM (hub to ground, m),
+   *   8 vLong (NaN: the controller exposes no wheel-point velocity), 9 vLat (NaN, same), 10 loadN (suspension force, N).
+   * A wheel with no ground reports inContact 0, zeros for point and normal, suspLenM = rest + travel, loadN 0.
+   */
   readonly vehicle = {
-    create: (_body: number, _wheels: WheelDesc[]): number => {
-      throw new NotImplementedError('vehicle.create', 'M03a1');
+    create: (body: number, wheels: WheelDesc[]): number => {
+      const rb = this.body(body);
+      const ctrl = this.W.createVehicleController(rb);
+      for (const w of wheels) {
+        ctrl.addWheel({ x: w.pos[0], y: w.pos[1], z: w.pos[2] }, { x: 0, y: -1, z: 0 }, { x: -1, y: 0, z: 0 }, w.restM, w.radius);
+      }
+      const id = this.nextVehicle++;
+      this.controllers.set(id, { ctrl, body, frontMask: wheels.map((w) => w.axle === 'front') });
+      return id;
     },
-    drive: (_v: number, _i: VehicleDrive): void => {
-      throw new NotImplementedError('vehicle.drive', 'M03a1');
+    drive: (v: number, i: VehicleDrive): void => {
+      const c = this.controllers.get(v);
+      if (!c) throw new RangeError(`unknown vehicle ${v}`);
+      const n = c.ctrl.numWheels();
+      for (let k = 0; k < n; k++) {
+        const front = c.frontMask[k] === true;
+        c.ctrl.setWheelEngineForce(k, i.engineForce);
+        c.ctrl.setWheelBrake(k, !front && i.handbrake ? 1e6 : i.brake);
+        c.ctrl.setWheelSteering(k, front ? i.steerRad : 0);
+      }
     },
-    read: (_v: number, _out: Float32Array): void => {
-      throw new NotImplementedError('vehicle.read', 'M03a1');
+    read: (v: number, out: Float32Array): void => {
+      const c = this.controllers.get(v);
+      if (!c) throw new RangeError(`unknown vehicle ${v}`);
+      const ctrl = c.ctrl;
+      const o = this.origin;
+      for (let k = 0, n = ctrl.numWheels(); k < n; k++) {
+        const b = k * VEHICLE_READ_STRIDE;
+        const hit = ctrl.wheelIsInContact(k);
+        out[b] = hit ? 1 : 0;
+        const pt = hit ? ctrl.wheelContactPoint(k) : null;
+        const nm = hit ? ctrl.wheelContactNormal(k) : null;
+        out[b + 1] = pt ? pt.x + o[0] : 0; out[b + 2] = pt ? pt.y + o[1] : 0; out[b + 3] = pt ? pt.z + o[2] : 0;
+        out[b + 4] = nm ? nm.x : 0; out[b + 5] = nm ? nm.y : 0; out[b + 6] = nm ? nm.z : 0;
+        out[b + 7] = hit ? (ctrl.wheelSuspensionLength(k) ?? 0) : (ctrl.wheelSuspensionRestLength(k) ?? 0) + (ctrl.wheelMaxSuspensionTravel(k) ?? 0);
+        out[b + 8] = Number.NaN;
+        out[b + 9] = Number.NaN;
+        out[b + 10] = hit ? (ctrl.wheelSuspensionForce(k) ?? 0) : 0;
+      }
     },
   };
+
+  /** Suspension and friction settings of every wheel of vehicle `v` (engine-internal, beside the `vehicle` seam). */
+  tuneVehicle(v: number, t: VehicleSuspensionTune): void {
+    const c = this.controllers.get(v);
+    if (!c) throw new RangeError(`unknown vehicle ${v}`);
+    for (let k = 0, n = c.ctrl.numWheels(); k < n; k++) {
+      c.ctrl.setWheelSuspensionStiffness(k, t.stiffness[k] as number);
+      c.ctrl.setWheelSuspensionCompression(k, t.compression[k] as number);
+      c.ctrl.setWheelSuspensionRelaxation(k, t.relaxation[k] as number);
+      c.ctrl.setWheelMaxSuspensionTravel(k, t.maxTravelM);
+      c.ctrl.setWheelMaxSuspensionForce(k, t.maxForceN);
+      c.ctrl.setWheelSideFrictionStiffness(k, t.sideFriction);
+      c.ctrl.setWheelFrictionSlip(k, t.frictionSlip);
+    }
+  }
 
   /**
    * First hit along a ray against solid colliders. `d` need not be unit length; `toi` is in metres. `mask` is the OR
@@ -505,6 +619,7 @@ export class RapierBackend implements PhysicsSystemsBackend {
     }
     const len = r.u32();
     const rapierBytes = r.bytes(len);
+    this.controllers.clear();
     this.kcc?.free();
     this.kcc = null;
     this.world?.free();

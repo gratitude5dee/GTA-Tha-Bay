@@ -1,7 +1,11 @@
 import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
+import { ForwardingFareSink } from './modes/economy.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import type { VehicleDebugContext } from './vehicle/debug.ts';
+import type { WorldClock } from './world/clock.ts';
+import { createWorldHub, type WorldHub } from './world/index.ts';
 
 /**
  * Sim state that lives outside the ECS but must be hashed and checkpointed (C02 rule 7: RNG states, clock, weather,
@@ -27,7 +31,36 @@ export interface EngineServices extends SimServices {
   readonly control: ControlShared;
   /** Camera lock and the collision result the Publish stage puts in the snapshot side block (M01b1). */
   camera: CameraDirectiveState;
+  /** The game clock and weather once the session has one (`installClock`, M02b2); null in clock-free sims. */
+  clock: WorldClock | null;
+  /** The world services (M02c1): `WorldApi` and `WorldBoundsPort`, null until the world sim module registers them. */
+  readonly world: WorldHub;
+  /** Snapshot side-block providers by key (M03a1: `veh`, `prompt`). Called once per tick in the Publish stage; a null result is left out. */
+  readonly side: Map<string, () => unknown>;
+  /** The vehicle module's handles for the QA commands (M03a1); set by `registerVehicleModule`, read only by `vehicleQa`. */
+  vehicleCtx: VehicleDebugContext | null;
+  /**
+   * The transit fare sink (M04a2): the world module hands it to the ride service when it starts, the modes module binds it to
+   * `EconomyApi` afterwards, so a fare is a debit with the ride's idempotency key.
+   */
+  readonly fareSink: ForwardingFareSink;
+  /**
+   * The phone's Ride app (M04b2): set by the world module's transit system when it starts; null while no baked world runs. The command
+   * dispatcher turns `mode.cmd phone.ride*` into calls on it.
+   */
+  ride: RidePort | null;
 }
+
+/** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
+export interface RidePort {
+  /** Fast-travel destinations (Bay Rail stations) with their name keys. */
+  destinations(): readonly { id: string; nameKey: string; x: number; z: number }[];
+  /** Bay Rail from the station nearest the player to `toId`. */
+  fastTravelTo(toId: string): Promise<RidePortResult>;
+  /** Robotaxi to a point. */
+  callRobotaxi(to: { x: number; z: number }): Promise<RidePortResult>;
+}
+export type RidePortResult = { ok: true; cents: number; kind: string } | { ok: false; messageKey: string };
 
 /** Where a pending teleport is going. One teleport at a time; a second request is refused as busy. */
 export interface ControlShared {
@@ -60,6 +93,12 @@ export function createSimServices(seed: number): EngineServices {
     events: new SimEventLog(),
     control: { teleportActive: false, teleportX: 0, teleportY: 0, teleportZ: 0 },
     camera: { lockPlayerToggle: false, reason: 'player', target: 0, allowedRight: 0, allowedLeft: 0 },
+    clock: null,
+    world: createWorldHub(),
+    side: new Map(),
+    vehicleCtx: null,
+    fareSink: new ForwardingFareSink(),
+    ride: null,
   };
 }
 

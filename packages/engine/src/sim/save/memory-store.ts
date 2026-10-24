@@ -1,5 +1,5 @@
 import type { ProfileId, ProfileMeta, SaveRecord, SlotId, SlotPointer, Tombstone } from '@dv/shared';
-import { tombstoneKey, type SaveStore } from './store.ts';
+import { isOrphan, isSameIntactRecord, tombstoneKey, type SaveStore } from './store.ts';
 
 const clone = <T>(v: T): T => structuredClone(v);
 
@@ -69,6 +69,27 @@ export class MemoryStore implements SaveStore {
     if ((cur?.gen ?? 0) !== expectedGen) return false;
     this.pointers.set(k, { ...next });
     return true;
+  }
+  async commitRecord(rec: SaveRecord, expectedGen: number): Promise<'ok' | 'moved' | 'corrupt'> {
+    const k = this.pk(rec.profileId, rec.slot);
+    if ((this.pointers.get(k)?.gen ?? 0) !== expectedGen) return 'moved';
+    const rk = this.rk(rec.profileId, rec.slot, rec.gen);
+    if (!this.records.has(rk)) this.records.set(rk, clone(rec));
+    if (!isSameIntactRecord(this.records.get(rk) as SaveRecord, rec)) return 'corrupt';
+    this.pointers.set(k, { profileId: rec.profileId, slot: rec.slot, gen: rec.gen, savedAt: rec.savedAt });
+    return 'ok';
+  }
+  async sweepOrphans(profileId: ProfileId, keepGenerations: number): Promise<number> {
+    const gens = new Map<SlotId, number>();
+    for (const p of this.pointers.values()) if (p.profileId === profileId) gens.set(p.slot, p.gen);
+    let n = 0;
+    for (const [k, r] of [...this.records]) {
+      if (r.profileId === profileId && isOrphan(gens.get(r.slot), r.gen, keepGenerations)) {
+        this.records.delete(k);
+        n++;
+      }
+    }
+    return n;
   }
   async setPointer(p: SlotPointer): Promise<void> {
     this.pointers.set(this.pk(p.profileId, p.slot), { ...p });

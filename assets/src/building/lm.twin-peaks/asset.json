@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.twin-peaks",
+  "variants": {
+    "desktop": "assets/src/building/lm.twin-peaks/desktop.glb",
+    "mobile": "assets/src/building/lm.twin-peaks/mobile.glb",
+    "mobile-low": "assets/src/building/lm.twin-peaks/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1106,
+      "verts": 1476,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 520,
+      "verts": 780,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 232,
+      "verts": 352,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

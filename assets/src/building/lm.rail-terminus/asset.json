@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.rail-terminus",
+  "variants": {
+    "desktop": "assets/src/building/lm.rail-terminus/desktop.glb",
+    "mobile": "assets/src/building/lm.rail-terminus/mobile.glb",
+    "mobile-low": "assets/src/building/lm.rail-terminus/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1378,
+      "verts": 2758,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 768,
+      "verts": 1538,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 364,
+      "verts": 730,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

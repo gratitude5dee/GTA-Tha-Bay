@@ -1,0 +1,25 @@
+{
+  "id": "M04c-quest3",
+  "milestone": "M04c",
+  "device": "Meta Quest 3, Quest Browser, flat page (not an immersive session); operator Preview built with VITE_DV_QA=1",
+  "urlTemplate": "https://<preview>/qa/cutscene-spike.html",
+  "steps": [
+    {
+      "id": "1-open",
+      "instruction": "Open <preview>/qa/cutscene-spike.html in Quest Browser as a flat window (remote-debug it from a computer with chrome://inspect, or read the page's status text). Point at 'Click to start' and press the trigger. Record state(): unlocked, pool, audio, blank, errors[] in notes.json."
+    },
+    {
+      "id": "2-play",
+      "instruction": "Run await __dvBridge.media.play('fixture-a') (remote console) and record the playback path (the outcome path, and which rendition played: v.currentSrc), and whether the subtitles and the AI-generated chip showed."
+    },
+    {
+      "id": "3-first-frame",
+      "instruction": "Record the first-frame time as on the iPhone checklist, step 4 (three runs, ms): const t0 = performance.now(); await __dvBridge.media.play('fixture-a'); const v = document.querySelector('[data-testid=cutscene-host] video'); await new Promise(res => v.requestVideoFrameCallback(() => res())); console.log(performance.now() - t0). Store as firstFrameMs."
+    },
+    {
+      "id": "4-skip",
+      "instruction": "Skip by controller button: while a clip plays press the controller B button (a gamepad B press is the standard-mapping button 1) and record whether the clip ended as skipped and the page returned to the loop (state().loop.running true). Also try pointing at the Skip button and pressing the trigger. Store as skip: { controllerB, pointerTrigger }. Save notes.json to docs/device-runs/M04c/quest3/notes.json."
+    }
+  ],
+  "upload": ["notes.json"]
+}

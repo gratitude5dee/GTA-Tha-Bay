@@ -1,0 +1,646 @@
+{
+  "schema": "cutscene-key-vectors/1",
+  "base": {
+    "template": "story.beat@1",
+    "characters": [
+      {
+        "id": "npc_test",
+        "soulVersion": 1,
+        "likenessTier": "fictionalized"
+      },
+      {
+        "id": "standin_founder",
+        "soulVersion": 2,
+        "likenessTier": "parody"
+      }
+    ],
+    "move": null,
+    "stage": "beat.cut.story.m.dev.sample.intro@1",
+    "style": "bay-cel@1",
+    "endpoint": "minimax/h3/image-to-video@2026-10-18",
+    "seed": 1234567890,
+    "inputHashes": [
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    ]
+  },
+  "baseKey": "9250c98a810661af1987a0b32a13502e69b84cbb95782fe172710e2eec856e96",
+  "cases": [
+    {
+      "name": "reordered characters give the same key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          },
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "same"
+    },
+    {
+      "name": "reordered inputHashes give the same key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expect": "same"
+    },
+    {
+      "name": "uppercase inputHashes give the same key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+        ]
+      },
+      "expect": "same"
+    },
+    {
+      "name": "soulVersion +1 gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 2,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "a tier change gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "parody"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "an endpoint re-pin gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-11-01",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "a new seed gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567891,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "a changed stage revision gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@2",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "a changed style version gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@2",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "a changed input hash gives a new key",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "seed 0 is accepted",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 0,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "seed 4294967295 is accepted",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 4294967295,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "different"
+    },
+    {
+      "name": "an extra property is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ],
+        "extra": 1
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "an extra property on a character is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized",
+            "name": "x"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "a duplicate character is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          },
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "seed 2^32 is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 4294967296,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "a negative seed is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": -1,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "a fractional seed is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1.5,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "a missing property is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "a URL instead of a hash is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "fictionalized"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "https://example.invalid/a.png",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    },
+    {
+      "name": "an unknown tier is rejected",
+      "input": {
+        "template": "story.beat@1",
+        "characters": [
+          {
+            "id": "npc_test",
+            "soulVersion": 1,
+            "likenessTier": "real"
+          },
+          {
+            "id": "standin_founder",
+            "soulVersion": 2,
+            "likenessTier": "parody"
+          }
+        ],
+        "move": null,
+        "stage": "beat.cut.story.m.dev.sample.intro@1",
+        "style": "bay-cel@1",
+        "endpoint": "minimax/h3/image-to-video@2026-10-18",
+        "seed": 1234567890,
+        "inputHashes": [
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        ]
+      },
+      "expect": "throws"
+    }
+  ]
+}

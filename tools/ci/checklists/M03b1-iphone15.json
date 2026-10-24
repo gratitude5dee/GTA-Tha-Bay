@@ -1,0 +1,38 @@
+{
+  "id": "M03b1-iphone15",
+  "milestone": "M03b1",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; operator Preview built with the synth world",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&scenario=downtown-rush&debug=1",
+  "steps": [
+    {
+      "id": "1-build",
+      "instruction": "Build one Preview with the synth world (Preview builds carry no world, DL-653): pnpm map:build -- --area synth && DV_WORLD=synth VITE_DV_QA=1 pnpm build && pnpm deploy:preview. Write the Preview URL into notes.json as previewUrl."
+    },
+    {
+      "id": "2-install",
+      "instruction": "In Safari open the Preview URL, then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Open <preview>/?perf=1&tier=mobile-low&scenario=downtown-rush&debug=1. The HUD must show 'mobile-low  webgl2'; the sky controls (hour, weather, blackout, rain, freeze) show under the sim panel because debug=1 shows the panel on a touch device."
+    },
+    {
+      "id": "3-rush",
+      "instruction": "In the sky controls set the hour to 17:00, weather clear, tick Freeze, and run the downtown-rush scenario to its end (90 s; the camera drives down the centre of the SoMa and Financial District streets and the traffic follows it). Watch the street: cars queue at the red lights and go on green, turn at the junctions, parked cars line the kerbs, and the robotaxis (the white cars with the roof sensor) drive a little slower than the rest. Note in notes.json observations whether the density reads as a busy evening street without pop-in close to the camera, and whether the cars' lights show at 17:00. When the run ends tap Export and save perf.json and notes.json to docs/device-runs/M03b1/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "4-night-blackout",
+      "instruction": "Run downtown-rush a second time with the hour at 21:30 and the Blackout control on (the signals are dark and the robotaxis stall at the junctions: some stand still for 4 to 9 s, the rest treat the junction as an all-way stop). Write the median frame time of this run into notes.json as blackoutRunMedianMs and note whether the junctions clear without a lock-up."
+    },
+    {
+      "id": "5-count",
+      "instruction": "During the first run read the traffic figures off the HUD or the world bridge (debug=1: window.__dvBridge.world.traffic()) and write the highest instances, draws and render objects into notes.json as traffic: { instancesMax, drawsMax, objectsMax }. At mobile-low the instance cap is 120 and each archetype is one draw."
+    },
+    {
+      "id": "6-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M03b1/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M03b1-iphone15.json: the median and p95 frame times (30 fps at mobile-low), the frames over 50 ms and the render and triangle counts must pass at mobile-low."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

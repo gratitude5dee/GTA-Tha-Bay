@@ -230,6 +230,197 @@ describe('menu scene and frame loop', () => {
     expect(seen).toEqual(['before', 'after', 'before', 'after']);
     expect(t.h.frames).toBe(2);
   });
+
+  it('skips the untimed call three\'s Animation.start() makes when an XR session ends: no frame, no listener, no render', async () => {
+    const t = host();
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    let renders = 0;
+    r.render = (() => {
+      renders += 1;
+    }) as never;
+    const times: number[] = [];
+    const late: number[] = [];
+    t.h.frameHook = (ms) => times.push(ms);
+    t.h.addFrameListener({ late: (ms) => late.push(ms) });
+    t.h.startLoop();
+    const loop = r.loop as unknown as (t?: number) => void;
+    loop(1000);
+    loop(1016);
+    loop(undefined); // XRManager's session end: the window loop is back and start() runs it once with no time
+    loop(Number.NaN);
+    loop(1050);
+    expect(times).toEqual([1000, 1016, 1050]);
+    expect(late).toEqual(times);
+    expect(t.h.frames).toBe(3);
+    expect(renders).toBe(3);
+  });
+});
+
+describe('RendererHost.holdWorld (BD-FIX-CI10-R01)', () => {
+  async function counted() {
+    const t = host();
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    const rendered: unknown[] = [];
+    r.render = ((scene: unknown) => {
+      rendered.push(scene);
+    }) as never;
+    const hooks: number[] = [];
+    const seen: string[] = [];
+    t.h.frameHook = (ms) => hooks.push(ms);
+    t.h.addFrameListener({ before: () => seen.push('before'), late: () => seen.push('late'), after: () => seen.push('after') });
+    t.h.startLoop();
+    return { t, r, rendered, hooks, seen, frame: (ms: number) => r.loop?.(ms) };
+  }
+
+  it('a cover skips the world and backdrop passes from the next frame while the hook and every listener still run, until released', async () => {
+    const c = await counted();
+    c.t.h.backdrop = { scene: new Group(), camera: new PerspectiveCamera() };
+    c.frame(10);
+    expect(c.rendered).toHaveLength(2); // backdrop, then world
+    const release = c.t.h.holdWorld('cover');
+    expect(c.t.h.worldHeld).toBe(true);
+    c.frame(20);
+    c.frame(30);
+    expect(c.rendered).toHaveLength(2);
+    expect(c.hooks).toEqual([10, 20, 30]);
+    expect(c.seen.filter((x) => x === 'after')).toHaveLength(3);
+    expect(c.t.h.heldFrames).toBe(2);
+    expect(c.t.h.frames).toBe(3);
+    release();
+    release(); // idempotent
+    expect(c.t.h.worldHeld).toBe(false);
+    c.frame(40);
+    expect(c.rendered).toHaveLength(4);
+    expect(c.t.h.heldFrames).toBe(2);
+  });
+
+  it('a frame hold draws until armed() says the frame is in the view, draws that frame, then holds it; a resize draws it again', async () => {
+    const c = await counted();
+    let armed = false;
+    c.t.h.holdWorld('frame', () => armed);
+    c.frame(10);
+    c.frame(20);
+    expect(c.rendered).toHaveLength(2);
+    armed = true;
+    c.frame(30); // the armed frame
+    c.frame(40);
+    c.frame(50);
+    expect(c.rendered).toHaveLength(3);
+    c.t.h.resize(640, 360);
+    c.frame(60);
+    c.frame(70);
+    expect(c.rendered).toHaveLength(4);
+    expect(c.t.h.heldFrames).toBe(3);
+    expect(c.hooks).toEqual([10, 20, 30, 40, 50, 60, 70]);
+  });
+
+  it('the world is drawn again only when the last hold goes; the menu scene is always drawn', async () => {
+    const c = await counted();
+    const a = c.t.h.holdWorld('cover');
+    const b = c.t.h.holdWorld('frame');
+    c.frame(10);
+    expect(c.rendered).toHaveLength(1); // the frame hold draws its frame
+    c.frame(20);
+    expect(c.rendered).toHaveLength(1);
+    b();
+    c.frame(30);
+    expect(c.rendered).toHaveLength(1);
+    const menu = new Group();
+    c.t.h.setMenuScene(menu, new PerspectiveCamera());
+    c.frame(40);
+    expect(c.rendered.at(-1)).toBe(menu);
+    c.t.h.clearMenuScene();
+    a();
+    c.frame(50);
+    expect(c.rendered.at(-1)).toBe(c.t.h.scene);
+  });
+
+  it('XR frames are drawn whatever holds the flat world', async () => {
+    const c = await counted();
+    c.t.h.holdWorld('cover');
+    c.r.xr.isPresenting = true;
+    c.frame(10);
+    expect(c.rendered).toHaveLength(1);
+    expect(c.t.h.heldFrames).toBe(0);
+  });
+});
+
+describe('RendererHost GPU pacing (QA builds, BD-FIX-CI7-F03)', () => {
+  /** A WebGL2 fake whose backend carries a GL with fences the test signals by hand. */
+  function pacedHost(paceGpu: boolean) {
+    let finished = 0;
+    let next = 1;
+    const gl = {
+      SYNC_GPU_COMMANDS_COMPLETE: 1,
+      SYNC_STATUS: 2,
+      UNSIGNALED: 3,
+      fenceSync: () => next++ as unknown as WebGLSync,
+      getSyncParameter: (s: WebGLSync) => ((s as unknown as number) <= finished ? 4 : 3),
+      deleteSync: () => undefined,
+      flush: () => undefined,
+    };
+    const base = fakeFactory();
+    const factory = {
+      state: base.state,
+      create: ((o) => {
+        const r = base.create(o) as unknown as FakeRenderer;
+        (r.backend as { gl?: unknown }).gl = gl;
+        return r as never;
+      }) as ReturnType<typeof fakeFactory>['create'],
+    };
+    const t = host({ factory, paceGpu, qa: { gl: true, gpu: false, limits: {} } });
+    return { t, done: (n: number) => void (finished = n) };
+  }
+
+  it('holds a flat frame, listeners and hook included, while the GPU has two earlier frames to draw', async () => {
+    const { t, done } = pacedHost(true);
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    let renders = 0;
+    r.render = (() => {
+      renders += 1;
+    }) as never;
+    const hooks: number[] = [];
+    t.h.frameHook = (ms) => hooks.push(ms);
+    t.h.startLoop();
+    r.loop?.(10);
+    r.loop?.(20);
+    r.loop?.(30); // frames 1 and 2 are still on the GPU
+    r.loop?.(40);
+    expect(hooks).toEqual([10, 20]);
+    expect(t.h.pacedFrames).toBe(2);
+    done(1);
+    r.loop?.(50);
+    expect(hooks).toEqual([10, 20, 50]);
+    expect(renders).toBe(3);
+    expect(t.h.frames).toBe(3);
+  });
+
+  it('a held world frame submits nothing for the pacer to wait on', async () => {
+    const { t } = pacedHost(true);
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    const hooks: number[] = [];
+    t.h.frameHook = (ms) => hooks.push(ms);
+    t.h.holdWorld('cover');
+    t.h.startLoop();
+    for (let i = 1; i <= 5; i++) r.loop?.(i * 10);
+    expect(hooks).toEqual([10, 20, 30, 40, 50]);
+    expect(t.h.pacedFrames).toBe(0);
+    expect(t.h.heldFrames).toBe(5);
+  });
+
+  it('never holds a frame without paceGpu (production builds)', async () => {
+    const { t } = pacedHost(false);
+    await t.h.init(TIERS.desktop);
+    const r = t.factory.state.renderers[0] as FakeRenderer;
+    t.h.startLoop();
+    for (let i = 1; i <= 5; i++) r.loop?.(i * 10);
+    expect(t.h.frames).toBe(5);
+    expect(t.h.pacedFrames).toBe(0);
+  });
 });
 
 describe('pixelRatioFor', () => {

@@ -40,6 +40,7 @@ export function runSpawn(inp: SpawnInputs): { spawn: Map<ChunkKey, SpawnTable>; 
   const roadM = new Map<ChunkKey, { all: number; freeway: number }>();
   for (const e of inp.edges) {
     const s = inp.segs[e.seg] as SegB;
+    if (s.island === true) continue;   // islands get no traffic or parked slots (DL-706)
     const from = inp.nodes[e.from] as NodeB;
     const key = chunkKeyAt(9, from.x, from.z);
     const perLane = inp.density.perLaneKm[String(e.cls)] ?? 0;
@@ -53,7 +54,7 @@ export function runSpawn(inp: SpawnInputs): { spawn: Map<ChunkKey, SpawnTable>; 
   interface Cand { h: number; slot: Omit<ParkedSlot, 'slot'> }
   const parked = new Map<ChunkKey, Cand[]>();
   for (const s of inp.segs) {
-    if (s.parking === 0 || s.bridge || s.tunnel) continue;
+    if (s.parking === 0 || s.bridge || s.tunnel || s.island === true) continue;
     const L = polyLength(s.pts);
     const sides: (-1 | 1)[] = s.parking === 2 ? [-1, 1] : [1];
     let i = 0;

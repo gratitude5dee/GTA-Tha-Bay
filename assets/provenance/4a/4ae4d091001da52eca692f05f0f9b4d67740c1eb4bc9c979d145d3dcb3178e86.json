@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4ae4d091001da52eca692f05f0f9b4d67740c1eb4bc9c979d145d3dcb3178e86",
+  "paths": [
+    "assets/src/building/lm.mount-davidson-cross/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "c87d6de5e2460b21a4f1209f7c1ce46e04961f34c97b4bca94ebcb3a45c1b980"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

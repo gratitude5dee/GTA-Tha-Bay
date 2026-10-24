@@ -38,7 +38,38 @@ export interface QaFlags {
   readonly world: string | null;
   /** ?touch=1 shows the touch layer on any device (M01b2). */
   readonly touch: boolean;
+  /** ?unlockAll=1 unlocks every registered unlock in memory, never persisted (M04a2, C06 rule 6). */
+  readonly unlockAll: boolean;
+  /**
+   * The QA play bypass (M04b1, DL-650): `sandbox` or `story` skips the age, Terms and menu pages and starts that mode at once; `off`
+   * runs the normal flow. From `?play=`, else the QA-only localStorage key `dv-qa-play`, else `sandbox` when `?scenario=` is set.
+   */
+  readonly play: QaPlay | null;
+  /** ?mission=<id> starts that mission in the story mode at boot (M05a1; `m.dev.sample` is the only one with a QA bundle). */
+  readonly mission: string | null;
+  /** ?stage=<n> starts the mission at that stage index. */
+  readonly stage: number | null;
+  /** ?seed=<n> replaces the story seed in the mission seed. */
+  readonly seed: number | null;
+  /** ?hooks=stub|bot forces the mode-hook path (`bot` plays as `real` until M05a2). */
+  readonly hooks: 'stub' | 'bot' | null;
+  /** ?talk=scripted applies `TalkDef.default` without a conversation. */
+  readonly talk: 'scripted' | null;
+  /** ?beats=instant completes a beat in one tick; `fallback` and `video` are the M05b2 paths and play as the normal beat here. */
+  readonly beats: 'instant' | 'fallback' | 'video' | null;
+  /** ?story=1 turns the mission triggers on in a QA build (the auto start of the first mission and the start markers); a production build always has them (M05c1). */
+  readonly story: boolean;
+  /** ?racing=1 boots the racing sim module (components 1024 to 1031, the race cars) and the QA bridge `racing` (M07a1). */
+  readonly racing: boolean;
+  /** ?racing=demo: like ?racing=1, and the QA page starts the straight demo race by itself (no baked streets needed, M07a1). */
+  readonly racingDemo: boolean;
+  /** ?tycoon=1 mounts the Business Tycoon QA panel and the bridge `tycoon` (M09a1); the mode itself starts from the panel. */
+  readonly tycoon: boolean;
 }
+
+export type QaPlay = 'sandbox' | 'story' | 'off';
+/** The QA-only localStorage key that supplies `play` when the URL has none (Playwright's storage state sets it). */
+export const QA_PLAY_KEY = 'dv-qa-play';
 
 export const NO_QA_FLAGS: QaFlags = Object.freeze({
   enabled: false,
@@ -57,6 +88,18 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   scenario: null,
   world: null,
   touch: false,
+  unlockAll: false,
+  play: null,
+  mission: null,
+  stage: null,
+  seed: null,
+  hooks: null,
+  talk: null,
+  beats: null,
+  story: false,
+  racing: false,
+  racingDemo: false,
+  tycoon: false,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -82,14 +125,33 @@ export function parseLimits(value: string | null): Readonly<Record<string, numbe
   return out;
 }
 
+/** A non-negative integer from a URL value, else null. */
+function nonNegInt(v: string | null): number | null {
+  return v !== null && /^\d{1,9}$/.test(v) ? Number(v) : null;
+}
+
 export function isQaBuild(): boolean {
   return import.meta.env.VITE_DV_QA === '1';
 }
 
-export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): QaFlags {
+function asPlay(v: string | null | undefined): QaPlay | null {
+  return v === 'sandbox' || v === 'story' || v === 'off' ? v : null;
+}
+
+/** The stored `dv-qa-play` value; storage can throw (private windows) or be absent (Node), both read as unset. */
+function storedPlay(): QaPlay | null {
+  try {
+    return asPlay(globalThis.localStorage?.getItem(QA_PLAY_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), stored: () => QaPlay | null = storedPlay): QaFlags {
   if (!enabled) return NO_QA_FLAGS;
   const q = new URLSearchParams(search);
   const tier = q.get('tier');
+  const scenario = q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null;
   return {
     enabled: true,
     gl: q.get('gl') === '1',
@@ -104,8 +166,20 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild()): Qa
     perf: q.get('perf') === '1',
     governor: q.get('governor') === 'off' ? 'off' : null,
     limits: parseLimits(q.get('limits')),
-    scenario: q.get('scenario') && /^[a-z0-9-]{1,40}$/.test(q.get('scenario') as string) ? (q.get('scenario') as string) : null,
+    scenario,
     world: q.get('world') && /^[a-z0-9-]{1,40}$/.test(q.get('world') as string) ? (q.get('world') as string) : null,
     touch: q.get('touch') === '1',
+    unlockAll: q.get('unlockAll') === '1',
+    play: asPlay(q.get('play')) ?? stored() ?? (scenario !== null ? 'sandbox' : null),
+    mission: q.get('mission') && /^m\.[a-z0-9][a-z0-9.-]{1,80}$/.test(q.get('mission') as string) ? (q.get('mission') as string) : null,
+    stage: nonNegInt(q.get('stage')),
+    seed: nonNegInt(q.get('seed')),
+    hooks: q.get('hooks') === 'stub' ? 'stub' : q.get('hooks') === 'bot' ? 'bot' : null,
+    talk: q.get('talk') === 'scripted' ? 'scripted' : null,
+    beats: q.get('beats') === 'instant' ? 'instant' : q.get('beats') === 'fallback' ? 'fallback' : q.get('beats') === 'video' ? 'video' : null,
+    story: q.get('story') === '1',
+    racing: q.get('racing') === '1' || q.get('racing') === 'demo',
+    racingDemo: q.get('racing') === 'demo',
+    tycoon: q.get('tycoon') === '1',
   };
 }

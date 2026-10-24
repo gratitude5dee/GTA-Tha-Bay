@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.saint-mary-cathedral",
+  "variants": {
+    "desktop": "assets/src/building/lm.saint-mary-cathedral/desktop.glb",
+    "mobile": "assets/src/building/lm.saint-mary-cathedral/mobile.glb",
+    "mobile-low": "assets/src/building/lm.saint-mary-cathedral/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 670,
+      "verts": 1356,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 390,
+      "verts": 796,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 194,
+      "verts": 404,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:minor"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

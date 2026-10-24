@@ -1,9 +1,30 @@
-import { BoxGeometry, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
+import { BoxGeometry, Group, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
 import { AnimLod, ENGINE_TIERS } from '../anim/lod.ts';
 import { buildPlaceholderRig, MannequinAnimator, type PlaceholderRig } from '../anim/placeholder-rig.ts';
+import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } from '../vehicle/vehicle-view.ts';
 import type { Pose } from './interpolate.ts';
 
 export const GRAYBOX_CAPSULE = 'prop/graybox.capsule';
+/**
+ * The render keys whose programs `ObjectPool.warm` compiles before any of them is drawn (DL-715): the character placeholder and the
+ * gray-box kit a mission's cast and markers draw from (assets/prefabs). Keys that share a material share its program, so one of each
+ * material variant is enough; the list names every kit key so that a new material in the kit is warmed too.
+ */
+export const WARM_KEYS: readonly string[] = [
+  GRAYBOX_CAPSULE,
+  'vehicle/graybox.compact',
+  'vehicle/graybox.pickup',
+  'prop/graybox.pickup-item',
+  'prop/graybox.pickup-cash',
+  'prop/graybox.beam',
+  'prop/graybox.crate',
+  'prop/graybox.cone',
+  'prop/graybox.barrier',
+  'prop/graybox.spikestrip',
+];
+
+/** Snapshot record flag of ambient entities (`SNAP_FLAG_INSTANCED` of the publisher). */
+const AMBIENT_FLAG = 2;
 
 /**
  * The debug cube view's object pool: one three Mesh per entity handle, created on first sight and removed when the
@@ -55,6 +76,9 @@ export class ObjectPool {
   private readonly meshes = new Map<number, Object3D>();
   private readonly avatars = new Map<number, Avatar>();
   private readonly lod = new AnimLod(ENGINE_TIERS.desktop.animBands);
+  /** Vehicles, props and pickups drawn from the gray-box kit (M03a1), by handle. */
+  private readonly things = new Map<number, DrawnThing>();
+  private readonly assets = new GrayboxAssets();
   private readonly geometries = new Map<string, BufferGeometry>();
   private readonly materials = new Map<number, MeshStandardNodeMaterial>();
   /** The handle whose mesh stays hidden (the player in first person). */
@@ -64,6 +88,9 @@ export class ObjectPool {
   fadeOpacity = 1;
   private stamp = 0;
   private readonly seen = new Map<number, number>();
+  /** The warm set (`warm`): one object per `WARM_KEYS` entry, kept hidden so that their pipelines and programs stay alive. */
+  private warmSet: Group | null = null;
+  private readonly warmRigs: PlaceholderRig[] = [];
 
   constructor(private readonly scene: Pick<Scene, 'add' | 'remove'>) {}
 
@@ -98,6 +125,8 @@ export class ObjectPool {
     this.lod.nextFrame();
     for (let i = 0; i < count; i++) {
       const p = poses[i] as Pose;
+      // ambient entities (traffic, parked cars) are drawn instanced by the world layer, not one mesh each
+      if ((p.flags & AMBIENT_FLAG) !== 0) continue;
       let mesh = this.meshes.get(p.handle);
       if (!mesh) {
         const key = keyOf(p.renderKey) ?? '';
@@ -105,6 +134,10 @@ export class ObjectPool {
           const rig = buildPlaceholderRig();
           this.avatars.set(p.handle, { rig, animator: new MannequinAnimator(rig), pendingSec: 0 });
           mesh = rig.root;
+        } else if (isGrayboxThing(key)) {
+          const thing = buildGrayboxThing(this.assets, key) as DrawnThing;
+          this.things.set(p.handle, thing);
+          mesh = thing.root;
         } else {
           mesh = this.create(key);
         }
@@ -127,6 +160,8 @@ export class ObjectPool {
         }
       } else {
         mesh.visible = shown;
+        // a vehicle's forward speed and steer input ride in the record's anim params
+        this.things.get(p.handle)?.update(dtSec, p.animP0, p.animP1);
       }
       this.seen.set(p.handle, this.stamp);
     }
@@ -135,24 +170,69 @@ export class ObjectPool {
       this.scene.remove(mesh);
       this.meshes.delete(handle);
       this.seen.delete(handle);
+      this.things.delete(handle);
       this.disposeAvatar(handle);
     }
+  }
+
+  /**
+   * Compiles the render programs of the cast kit before a mission draws it (DL-715, M05b2 AC-8): a mission's first beat spawns its cast
+   * on the tick the beat starts, and a program first linked on that frame stalls the main thread. `compile` is the renderer's
+   * `compileAsync(object, camera, scene)` (three r186 `Renderer.compileAsync`), which collects the objects synchronously and then
+   * builds and links their pipelines without blocking where the backend allows it (WebGL2: KHR_parallel_shader_compile). The objects
+   * are hidden once the compile has collected them, so they are never drawn; they stay in the scene so their programs are not released.
+   */
+  warm(compile: (root: Object3D) => Promise<unknown>): Promise<void> {
+    if (this.warmSet) return Promise.resolve();
+    const set = new Group();
+    set.name = 'dv:warm';
+    for (const key of WARM_KEYS) {
+      let obj: Object3D;
+      if (key === GRAYBOX_CAPSULE) {
+        const rig = buildPlaceholderRig();
+        this.warmRigs.push(rig);
+        obj = rig.root;
+      } else {
+        obj = buildGrayboxThing(this.assets, key)?.root ?? this.create(key);
+      }
+      set.add(obj);
+    }
+    // the compile collects what the camera sees; the warm set is collected wherever it stands
+    set.traverse((o) => void (o.frustumCulled = false));
+    this.warmSet = set;
+    this.scene.add(set);
+    let done: Promise<unknown>;
+    try {
+      done = compile(set);
+    } catch (e) {
+      done = Promise.reject(e);
+    }
+    set.visible = false;
+    return done.then(
+      () => undefined,
+      () => undefined,
+    );
   }
 
   /** Remove every mesh (worker restart: handles are not valid across sessions). */
   clear(): void {
     for (const mesh of this.meshes.values()) this.scene.remove(mesh);
     for (const handle of [...this.avatars.keys()]) this.disposeAvatar(handle);
+    this.things.clear();
     this.meshes.clear();
     this.seen.clear();
   }
 
   dispose(): void {
     this.clear();
+    if (this.warmSet) this.scene.remove(this.warmSet);
+    this.warmSet = null;
+    for (const rig of this.warmRigs.splice(0)) rig.dispose();
     for (const g of this.geometries.values()) g.dispose();
     for (const m of this.materials.values()) m.dispose();
     this.geometries.clear();
     this.materials.clear();
+    this.assets.dispose();
   }
 
   private disposeAvatar(handle: number): void {

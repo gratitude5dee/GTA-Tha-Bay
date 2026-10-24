@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "d1715b4be9bd6ee7c8a11f02149623f9739d69c001098dbd269477a0bdd46937",
+  "paths": [
+    "assets/src/building/lm.candlestick-point/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "a3824c463cee8885cf26420adce38cce7b625f95dd177ce958849523d9a844d9"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

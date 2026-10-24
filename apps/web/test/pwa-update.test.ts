@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  afterWindowLoad,
   createPwaUpdateController,
+  isRegistration,
   SKIP_WAITING_MESSAGE,
   type ContainerLike,
   type RegistrationLike,
@@ -123,5 +125,52 @@ describe('PwaUpdateController', () => {
     firstReg.waiting = null; // a first install activates directly, nothing waits
     first.fire();
     expect(firstInstall.updateAvailable).toBe(false);
+  });
+});
+
+// BD-FIX-CI6-C01: the entry module awaits its preferences at top level, so the window can finish loading before it asks to register.
+describe('afterWindowLoad', () => {
+  function mockWindow() {
+    const listeners: Array<{ fn: () => void; once: boolean }> = [];
+    return {
+      listeners,
+      addEventListener: (_type: 'load', fn: () => void, opts?: { once?: boolean }) => {
+        listeners.push({ fn, once: opts?.once === true });
+      },
+      fireLoad: () => listeners.forEach((l) => l.fn()),
+    };
+  }
+
+  it('runs at once when the load event has already fired', () => {
+    const win = mockWindow();
+    const fn = vi.fn();
+    afterWindowLoad({ readyState: 'complete' }, win, fn);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(win.listeners).toHaveLength(0);
+  });
+
+  it('waits for the load event while the document is still loading', () => {
+    for (const readyState of ['loading', 'interactive']) {
+      const win = mockWindow();
+      const fn = vi.fn();
+      afterWindowLoad({ readyState }, win, fn);
+      expect(fn).not.toHaveBeenCalled();
+      expect(win.listeners).toEqual([{ fn, once: true }]);
+      win.fireLoad();
+      expect(fn).toHaveBeenCalledTimes(1);
+    }
+  });
+});
+
+describe('isRegistration (BD-FIX-CI8-G03)', () => {
+  it('rejects what register() resolves with in a context that blocks service workers', () => {
+    expect(isRegistration(undefined)).toBe(false);
+    expect(isRegistration(null)).toBe(false);
+    expect(isRegistration({})).toBe(false);
+    expect(isRegistration({ addEventListener: () => undefined })).toBe(false);
+  });
+
+  it('accepts a registration with addEventListener and update', () => {
+    expect(isRegistration({ waiting: null, installing: null, addEventListener: () => undefined, update: () => Promise.resolve() })).toBe(true);
   });
 });

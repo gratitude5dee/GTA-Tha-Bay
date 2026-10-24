@@ -5,10 +5,12 @@
  */
 import type { AssetClient } from '@dv/engine/assets/client';
 import type { WorldBoot } from '@dv/engine/client/boot/world-layer';
-import { decodeP0, type QualityTierId, type WorldIndex } from '@dv/shared';
+import { decodeP0, type QualityTierId, type RenderBackend, type WorldIndex } from '@dv/shared';
 import { WORLD_PORT, type WorldSimConfig } from '../sim/streaming/channel.ts';
 import { bootSet, groundHeightAt, spawnPose, type BootSet } from '../sim/streaming/boot.ts';
+import type { LandmarkSpot } from './chunks/landmark-layer.ts';
 import { WorldView, type WorldViewLabels } from './world-view.ts';
+import type { AreaBannerPatch } from './map/banner.ts';
 
 /** Whether the catalog resolves `data/world-index` (the boot rule's second input). False without a catalog or a world in it. */
 export async function hasWorldIndex(assets: AssetClient): Promise<boolean> {
@@ -25,10 +27,16 @@ export interface PrepareWorldOptions {
   assets: AssetClient;
   tier: QualityTierId;
   flags: { cards: boolean; massing: boolean };
+  /** `world.rain`, `world.atmosphere` and the QA sky switch (M02b2). */
+  sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
+  /** The look pass (M02e): the `world.look` flag, the browser and the backend (WebKit never bakes the environment) and the governor's `postLevel`. */
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number };
   labels: WorldViewLabels;
   container: HTMLElement;
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
   qa?: boolean;
+  /** M02c2: called for each neighbourhood banner (`nhood.<slug>`); the app patches `hud.area`. */
+  onArea?: (p: AreaBannerPatch) => void;
 }
 
 export interface PreparedWorld {
@@ -105,9 +113,23 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
   // pack that is unavailable is the view's to retry, with the "re-downloading district" message over the page (02-world.md 5.6).
   void Promise.all(set.critical.filter((a) => a !== spawnPack).map((a) => assets.get(a, { priority: 'now' }).catch(() => undefined)));
 
-  const refs = (await assets.job('world.refs', { prefix: 'world_pack/p0-', tier: o.tier })) as WorldSimConfig['refs'];
+  const refsFor = async (prefix: string): Promise<WorldSimConfig['refs']> => (await assets.job('world.refs', { prefix, tier: o.tier })) as WorldSimConfig['refs'];
+  // The p0 tiles, plus the always-resident road topology and the district grid (M02c1), which the sim loads through the same channel.
+  const refs: WorldSimConfig['refs'] = {
+    ...(await refsFor('world_pack/p0-')),
+    ...(await refsFor('map_data/sf-graph')),
+    ...(await refsFor('data/district-grid')),
+    // M02c2: the offline geocoder behind `findPlace`; a catalog without it just searches landmarks and points of interest
+    ...(await refsFor('map_data/sf-geocode').catch(() => ({}) as WorldSimConfig['refs'])),
+    // M03b2: the baked transit routes (buses, Metro, ferries, cable cars, air corridors); a catalog without them just has no transit
+    ...(await refsFor('data/transit-routes').catch(() => ({}) as WorldSimConfig['refs'])),
+  };
+  // M02d1: the landmarks that have a model in the catalog; the layer swaps their baked proxies for the glTF near the player.
+  const modelled = await refsFor('building/lm.').catch(() => ({}) as WorldSimConfig['refs']);
+  const landmarks: LandmarkSpot[] = index.landmarks.flatMap((l, i) => (l.asset in modelled ? [{ id: l.id, index: i, x: l.x, z: l.z, asset: l.asset }] : []));
   const spawn: [number, number, number] = [pose.x, ground + SPAWN_LIFT_M, pose.z];
-  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn };
+  // M03b2: the game page runs the pedestrians and transit; the determinism scenarios choose their own layers
+  const simConfig: WorldSimConfig = { bakeId: index.bakeId, p0Tiles: index.tiles.p0, refs, spawn, index, ambient: { peds: true, transit: true } };
 
   const view = new WorldView({
     tier: o.tier,
@@ -115,14 +137,19 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     assets: {
       job: (name, args) => assets.job(name, args),
       stats: () => assets.stats(),
+      bytesSeen: () => assets.bytesSeen,
     },
     flags: o.flags,
+    ...(o.sky ? { sky: o.sky } : {}),
+    ...(o.look ? { look: o.look } : {}),
     spawn: { x: pose.x, z: pose.z },
+    landmarks,
     labels: o.labels,
     container: o.container,
     bytesBase: base,
     ...(o.emit ? { emit: o.emit } : {}),
     ...(o.qa ? { qa: true } : {}),
+    ...(o.onArea ? { onArea: o.onArea } : {}),
   });
 
   const boot: WorldBoot = {

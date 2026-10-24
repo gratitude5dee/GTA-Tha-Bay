@@ -38,6 +38,63 @@ export function selectScenarios(arg: string | undefined): string[] | null {
   return [...PERF_SCENARIOS, ...EXTRA_SCENARIOS].includes(arg) ? [arg] : null;
 }
 
+/** Scenarios that show the ambient traffic (M03b1): their run also writes `perf.<scenario>.<project>.<tier>.traffic.json`. */
+export const TRAFFIC_SCENARIOS: readonly string[] = ['downtown-rush'];
+
+export function trafficPath(root: string, scenario: string, project: string, tier: string): string {
+  return path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.traffic.json`);
+}
+
+/**
+ * The traffic half of a traffic scenario (M03b1, AC-10): the instances drawn stay within `crowd.maxTrafficInstances` of the tier row of
+ * `config/tier-budgets.json` (C13 `CrowdLimits`), the instanced draws within one mesh, and the traffic was really on
+ * screen (at least one instance) so a build without it cannot pass. Returns the failure lines.
+ */
+export function verifyTraffic(file: string, tier: QualityTierId): string[] {
+  const budgets = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxTrafficInstances: number } }> };
+  const crowd = budgets.tiers[tier]?.crowd;
+  const t = JSON.parse(readFileSync(file, 'utf8')) as { instancesMax: number; drawsMax: number; objectsMax: number; simAgents: number };
+  const out: string[] = [];
+  if (!crowd) return [`FAIL  no crowd row for tier ${tier} in config/tier-budgets.json`];
+  if (t.instancesMax < 1) out.push('FAIL  no traffic instance was drawn during the run');
+  if (t.instancesMax > crowd.maxTrafficInstances) out.push(`FAIL  traffic instances ${t.instancesMax} > crowd.maxTrafficInstances ${crowd.maxTrafficInstances}`);
+  if (t.simAgents > crowd.maxTrafficInstances + 400) out.push(`FAIL  sim agents ${t.simAgents} are far over the instance cap ${crowd.maxTrafficInstances}`);
+  if (t.drawsMax > TRAFFIC_DRAWS_MAX) out.push(`FAIL  traffic draws ${t.drawsMax} > ${TRAFFIC_DRAWS_MAX} (one instanced mesh)`);
+  return out;
+}
+
+/** Skinned near-LOD pedestrians per tier (living part 4.5); `packages/world/src/sim/peds/density.ts` holds the same table (a unit test keeps them equal). */
+export const NEAR_PED_CAP: Readonly<Record<string, number>> = { 'desktop-ultra': 24, desktop: 24, 'xr-visionpro': 16, mobile: 12, 'xr-quest': 8, 'mobile-low': 6 };
+
+/** The far pedestrians draw as one instanced mesh per body (8) plus one draw per near figure. */
+export const PED_FAR_DRAWS_MAX = 8;
+
+/**
+ * The pedestrian half of a traffic scenario (M03b2, AC-9): the instances drawn (far and near) stay within `crowd.maxPedInstances` of the
+ * tier row, the skinned near figures within the tier's near cap, the sim population within the cap, the draws within one mesh per body
+ * plus the near figures, and cars and buses together within `crowd.maxTrafficInstances` (buses share the traffic cap). At least one
+ * pedestrian was on screen, so a build without them cannot pass. Returns the failure lines.
+ */
+export function verifyPeds(file: string, tier: QualityTierId): string[] {
+  const budgets = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'tier-budgets.json'), 'utf8')) as { tiers: Record<string, { crowd: { maxPedInstances: number; maxTrafficInstances: number } }> };
+  const crowd = budgets.tiers[tier]?.crowd;
+  const t = (JSON.parse(readFileSync(file, 'utf8')) as { peds?: { instancesMax: number; nearMax: number; drawsMax: number; carsPlusBusesMax: number; simPeds: number } }).peds;
+  if (!crowd) return [`FAIL  no crowd row for tier ${tier} in config/tier-budgets.json`];
+  if (!t) return ['FAIL  the traffic report has no pedestrian block'];
+  const out: string[] = [];
+  const nearCap = NEAR_PED_CAP[tier] ?? 0;
+  if (t.instancesMax < 1) out.push('FAIL  no pedestrian instance was drawn during the run');
+  if (t.instancesMax > crowd.maxPedInstances) out.push(`FAIL  pedestrian instances ${t.instancesMax} > crowd.maxPedInstances ${crowd.maxPedInstances}`);
+  if (t.nearMax > nearCap) out.push(`FAIL  near-LOD skinned pedestrians ${t.nearMax} > the ${tier} cap ${nearCap}`);
+  if (t.simPeds > crowd.maxPedInstances) out.push(`FAIL  sim pedestrians ${t.simPeds} > crowd.maxPedInstances ${crowd.maxPedInstances}`);
+  if (t.drawsMax > PED_FAR_DRAWS_MAX + nearCap) out.push(`FAIL  pedestrian draws ${t.drawsMax} > ${PED_FAR_DRAWS_MAX} far meshes + ${nearCap} near figures`);
+  if (t.carsPlusBusesMax > crowd.maxTrafficInstances) out.push(`FAIL  cars and buses ${t.carsPlusBusesMax} > crowd.maxTrafficInstances ${crowd.maxTrafficInstances}`);
+  return out;
+}
+
+/** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
+export const TRAFFIC_DRAWS_MAX = 1;
+
 export interface CheckResult {
   ok: boolean;
   lines: string[];
@@ -67,6 +124,18 @@ export function checkReports(root: string, scenarios: readonly string[] = PERF_S
         if (!r.ok) ok = false;
         lines.push(`${r.ok ? 'PASS' : 'FAIL'}  ${label}`);
         for (const l of r.lines.filter((x) => x.startsWith('FAIL'))) lines.push(`        ${l}`);
+        if (TRAFFIC_SCENARIOS.includes(scenario)) {
+          const tf = trafficPath(root, scenario, project, tier);
+          if (!existsSync(tf)) {
+            missing += 1;
+            ok = false;
+            lines.push(`FAIL  ${label}: no traffic report at ${path.relative(root, tf)}`);
+          } else {
+            const bad = [...verifyTraffic(tf, tier), ...verifyPeds(tf, tier)];
+            if (bad.length > 0) ok = false;
+            for (const l of bad) lines.push(`        ${l}`);
+          }
+        }
       }
     }
   }
@@ -88,7 +157,12 @@ function main(): void {
   if (!argv.includes('--skip-run')) {
     const bin = path.join(repoRoot, 'node_modules', '.bin', 'playwright');
     for (const scenario of scenarios) {
-      for (const project of PERF_PROJECTS) for (const tier of FLAT_TIERS) rmSync(reportPath(repoRoot, scenario, project, tier), { force: true });
+      for (const project of PERF_PROJECTS) {
+        for (const tier of FLAT_TIERS) {
+          rmSync(reportPath(repoRoot, scenario, project, tier), { force: true });
+          rmSync(trafficPath(repoRoot, scenario, project, tier), { force: true });
+        }
+      }
     }
     for (const scenario of scenarios) {
       const env = {

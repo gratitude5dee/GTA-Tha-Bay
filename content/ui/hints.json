@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "hints": [
+    { "id": "move", "trigger": "play", "devices": { "kbm": "hint.move.kbm", "gamepad": "hint.move.gamepad", "touch": "hint.move.touch" }, "maxShows": 2, "dismissOn": "axis.MoveX" },
+    { "id": "look", "trigger": "after:move", "devices": { "kbm": "hint.look.kbm", "gamepad": "hint.look.gamepad", "touch": "hint.look.touch" }, "maxShows": 2, "dismissOn": "axis.LookX" },
+    { "id": "sprint", "trigger": "after:look", "devices": { "kbm": "hint.sprint.kbm", "gamepad": "hint.sprint.gamepad", "touch": "hint.sprint.touch" }, "maxShows": 1, "dismissOn": "sim.Sprint" },
+    { "id": "camera", "trigger": "after:sprint", "devices": { "kbm": "hint.camera.kbm", "gamepad": "hint.camera.gamepad", "touch": "hint.camera.touch" }, "maxShows": 1, "dismissOn": "client.Camera" },
+    { "id": "interact", "trigger": "prompt.interact", "devices": { "kbm": "hint.interact.kbm", "gamepad": "hint.interact.gamepad", "touch": "hint.interact.touch" }, "maxShows": 2, "dismissOn": "sim.Interact" },
+    { "id": "enter", "trigger": "prompt.enter", "devices": { "kbm": "hint.enter.kbm", "gamepad": "hint.enter.gamepad", "touch": "hint.enter.touch" }, "maxShows": 2, "dismissOn": "sim.Enter" },
+    { "id": "phone", "trigger": "after:camera", "devices": { "kbm": "hint.phone.kbm", "gamepad": "hint.phone.gamepad", "touch": "hint.phone.touch" }, "maxShows": 1, "dismissOn": "client.Phone" },
+    { "id": "map", "trigger": "after:phone", "devices": { "kbm": "hint.map.kbm", "gamepad": "hint.map.gamepad", "touch": "hint.map.touch" }, "maxShows": 1, "dismissOn": "client.Map" }
+  ]
+}

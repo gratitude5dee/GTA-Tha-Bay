@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "lines.1.en",
+  "variants": {
+    "default": "assets/src/data/lines.1.en/lines.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "act:1"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

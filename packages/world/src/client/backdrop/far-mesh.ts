@@ -10,6 +10,7 @@
 import { dhypot, datan2, dcos, dsin, TWO_PI, type FarDem, type FarMassing } from '@dv/shared';
 import backdropJson from '../../../../../config/world/backdrop.json';
 import { MeshBuilder, hexToLinear, type Rgb } from '../chunks/mesher.ts';
+import { Surf } from '../look/surfaces.ts';
 import type { MeshBuffers } from '../chunks/mesh-types.ts';
 
 export interface BackdropCluster { id: string; col: number; enu: [number, number]; widthM: number; heightM: number }
@@ -61,6 +62,7 @@ export function ringMesh(dem: FarDem, stride: 1 | 2 | 4 = 1): RingMesh {
       const gz = (h(i, j + 1) - h(i, j - 1)) / (2 * step);
       const l = Math.sqrt(gx * gx + 1 + gz * gz);
       const shade = dry ? 0.75 + 0.25 * (1 / l) : 1;
+      b.setSurf(dry ? Surf.GroundBase : Surf.Sea);
       const t = Math.min(1, Math.max(0, y / 400));
       const base: Rgb = dry ? [LOW[0] + (HIGH[0] - LOW[0]) * t, LOW[1] + (HIGH[1] - LOW[1]) * t, LOW[2] + (HIGH[2] - LOW[2]) * t] : SEA;
       b.vertex(i * step, y, j * step, dry ? [-gx / l, 1 / l, -gz / l] : [0, 1, 0], [base[0] * shade, base[1] * shade, base[2] * shade]);

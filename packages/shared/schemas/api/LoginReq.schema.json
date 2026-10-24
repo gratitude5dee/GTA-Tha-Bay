@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string"
+    },
+    "password": {
+      "type": "string"
+    },
+    "ageBracket": {
+      "type": "string",
+      "enum": [
+        "u13",
+        "13_15",
+        "16_17",
+        "18p"
+      ]
+    },
+    "termsVersion": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "username",
+    "password"
+  ],
+  "additionalProperties": false,
+  "definitions": {}
+}

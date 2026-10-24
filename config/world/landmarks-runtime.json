@@ -1,0 +1,21 @@
+{
+  "$comment": "LandmarkLayer (M02d1; 02-world-bake.md section 7 rules 3 and 5). resident = most landmark models resident at once; swapM = distance inside which a landmark's model replaces its baked extrusion proxies. A resident landmark is released at swapM x unloadFactor (hysteresis, BD-M02d1-02). A failed load is tried again after retryMs. skyline (M02d2): the always-resident far silhouettes at the lo fidelity (02-world-bake.md section 7 rule 4); each is read when within loadFactor x the tier r2M (the building draw distance, config/world/streaming.json), put in the scene within mountFactor x r2M and parked beyond releaseFactor x r2M, so every skyline landmark inside r2M is up before it is needed; the skyline sits outside the per-tier resident caps (BD-M02d2-01).",
+  "schema": "world-landmarks-runtime/1",
+  "unloadFactor": 1.05,
+  "skyline": {
+    "ids": ["lm.golden-gate-bridge", "lm.bay-bridge-ybi", "lm.sutro-tower", "lm.crown-tower", "lm.pyramid-tower", "lm.coit-tower", "lm.ferry-building"],
+    "loadFactor": 2,
+    "mountFactor": 1.5,
+    "releaseFactor": 1.7
+  },
+  "retryMs": 30000,
+  "inFlight": 1,
+  "tiers": {
+    "desktop-ultra": { "resident": 8, "swapM": 1200 },
+    "desktop": { "resident": 8, "swapM": 1200 },
+    "xr-visionpro": { "resident": 6, "swapM": 900 },
+    "mobile": { "resident": 4, "swapM": 500 },
+    "xr-quest": { "resident": 3, "swapM": 400 },
+    "mobile-low": { "resident": 3, "swapM": 350 }
+  }
+}

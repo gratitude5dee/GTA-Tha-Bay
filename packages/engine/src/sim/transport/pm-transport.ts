@@ -1,4 +1,4 @@
-import type { FrameSignal, InputFrame, SimControlMessage } from '@dv/shared';
+import type { FrameSignal, InputFrame, SimControlMessage, UiCommand } from '@dv/shared';
 import {
   isFromWorkerMessage, isToWorkerMessage, makeEnvelope,
   type DebugCommand, type FromWorkerMessage, type ToWorkerMessage,
@@ -52,6 +52,9 @@ class PmMain implements MainTransport {
   }
   sendDebug(cmd: DebugCommand): boolean {
     return this.post(makeEnvelope('dbg', this.seq++, cmd));
+  }
+  sendUi(cmd: UiCommand): boolean {
+    return this.post(makeEnvelope('ui', this.seq++, cmd));
   }
 
   readSnapshot(): SnapshotRead | null {

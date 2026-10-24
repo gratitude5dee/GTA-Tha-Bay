@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "4cabc9857c505ea278d1d2b8de90ca7a3afa1d6eccc705830d5c7a78e3ec5609",
+  "paths": [
+    "assets/src/building/lm.hunters-point-yard/desktop.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "743f72e10d7900c31033b2f95d8490646e32a328a4dd25b2dd7094b391c9d8e8"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

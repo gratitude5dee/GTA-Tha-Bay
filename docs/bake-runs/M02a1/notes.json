@@ -1,0 +1,64 @@
+{
+  "milestone": "M02a1",
+  "ac": "AC-9 (operator run without R2 keys: fetch, bake, gate report; archive and r2 publish skipped)",
+  "date": "2026-10-19",
+  "host": "Claude Code cloud container, Linux, Node 22.22, osmium 1.16.0 (apt osmium-tool 1.16.0-1build1)",
+  "bakeId": "8463cd8bbf18e711030c37ff035a023755eae91f4447e0dc95810a81905cbb46",
+  "toolVersion": "tools/map@0.3.0",
+  "bakeTime": {
+    "fetchWallClock": "11 min 48 s (Socrata 8 datasets, 561 Terrarium tiles, 654 MB OSM PBF download, osmium extract/filter/export)",
+    "bakeStagesSum": "about 232 s per bake (water 18.5 s, terrain 15.8 s, roads 13.3 s, junctions 4.7 s, grading 5.9 s, buildings 20.5 s, ped 30.1 s, tags 8.2 s, places 102.3 s, lod 12.9 s; pack and gates extra)",
+    "reproWallClock": "9 min 17 s for map:build -- --area sf --repro (two bakes, 410 outputs byte-identical)"
+  },
+  "sourceRoutes": {
+    "osm": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf (primary answered in this run; mirrors not needed; BBBike SanFrancisco.osm.pbf was also run through the same osmium commands by hand and produced a usable export)",
+    "datasf": "https://data.sf.gov/resource/<dataset>.json (data.sfgov.org answers 301 to data.sf.gov; sources.json already uses data.sf.gov)",
+    "terrarium": "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
+  },
+  "U-W1": {
+    "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf",
+    "extractBytes": 654271307,
+    "extractSha256": "8b3c8d0d7a4dcc76e046825c90c75c0fd90265e00a30b58c73e8064d6dea249b",
+    "exportSha256": "e931b3a81f49764e392391d138b0e5eee2dd9e614e8d841ce673220f2368b575",
+    "exportFeatures": 561182,
+    "osmiumFlags": "the three commands of config/world/sources.json osm.commands plus osm.backdropCommands, unchanged: extract --bbox=-122.55,37.68,-122.3,37.89 --strategy=complete_ways; tags-filter with osm.tagFilter; export --add-unique-id=type_id -f geojsonseq -x print_record_separator=false; backdrop extract --strategy=simple",
+    "verdict": "worked unchanged"
+  },
+  "U-W11": {
+    "datasfRows": 177023,
+    "bakedDataSf": 176286,
+    "bakedFraction": 0.9958,
+    "dropped": { "area<4m2": 737 },
+    "osmAdditions": 2071,
+    "osmGapFill": 2063,
+    "osmTowers": 8,
+    "osmCandidates": 66133,
+    "osmCap": 9278,
+    "osmFractionOfBuildings": 0.0116,
+    "gates": "s4.baked PASS (99.58 % >= 98 %), s4.osm PASS (1.16 % <= 5 %)"
+  },
+  "U-W14": {
+    "ratioLandInUnionOverUnion": 0.9813085410770201,
+    "landInUnionKm2": 119.774768,
+    "unionKm2": 122.056176,
+    "landOutsideUnionKm2": 15.499088,
+    "gate": "s3.land-union PASS (within +-0.03 of 1)"
+  },
+  "U-W16": {
+    "source": "https://raw.githubusercontent.com/tilezen/joerd/master/docs/attribution.md and data-sources.md, read 2026-10-19",
+    "finding": "Terrain Tiles over the stream/play boxes and the z12 far box are 3DEP/NED (land), NED Topobathy in California at z10+, SRTM and GMTED2010 (land, USGS) and ETOPO1 ocean bathymetry (NOAA) at all zooms. The attribution file asks for 'United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey' and 'Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration'.",
+    "action": "config/attribution.world.json credits only the 3DEP line today. An ETOPO1 (NOAA) credit is not in sources.json: it needs an Architect DL entry before M02c2 AC-14 releases sf (DL-672 part 2). Reported, not edited."
+  },
+  "gateReport": {
+    "pass": ["s0.rows.datasf-footprints 177023 (>= 150000)", "s0.rows.datasf-streets 17176 (>= 16000)", "s0.exact.datasf-neighborhoods 41", "s3.land-union 0.9813", "s2.city-hall 17.60 m (10-25)", "s2.min -60.0 m (>= -130)", "s2.edges 0 mismatches", "s2.coverage 0 pixels outside tiles", "s4.baked 99.58 %", "s4.osm 1.16 %", "s4.chunk-limit 278 of 1500", "s13.pack-size 404 packs, largest 1,293,264 B (limit 4,194,304)", "s13.no-keys", "s13.index-schema"],
+    "failOrWarn": "none of the M02a1 gates failed; the failing gates of the full bake belong to M02a2 (see docs/bake-runs/M02a2/notes.json)"
+  },
+  "skipped": [
+    "map:fetch --archive (R2_PRIVATE_ACCESS_KEY_ID / R2_PRIVATE_SECRET_ACCESS_KEY / CLOUDFLARE_ACCOUNT_ID not set)",
+    "map:pack -- --target r2:staging (R2 keys not set): assets/world/sf.lock.json and the sf provenance records are therefore not written; provenance:check on the sf ship set and the PR with the lock stay with the operator"
+  ],
+  "toolFixes": [
+    "S5 cuts OSM ways at the chunk-aligned area grid (clipWayToBox); before, a real extract reaching past the play box left 32,707 road records in chunks without terrain and S13 threw",
+    "S2 bridge-chunk sampling every 8 m instead of 64 m: a deck corner clipping a chunk by less than 64 m left 237 slabs without a terrain chunk (s7.deck-chunks)"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "v": 1,
+  "verifiers": {
+    "det-suites": {
+      "paths": [
+        "tests/e2e/det/",
+        "tests/e2e/determinism.spec.ts"
+      ],
+      "sha256": "76b4d1006654a4970e3c94b169fe1b55173c4c122035bb9ca869734562dcaa98",
+      "subjects": [
+        "apps/web/src/qa/",
+        "packages/engine/src/sim/",
+        "packages/engine/src/workers/",
+        "tests/golden/"
+      ]
+    },
+    "econ-sim": {
+      "paths": [
+        "tools/ci/econ-sim/",
+        "config/econ-bands.json"
+      ],
+      "sha256": "24122a7f360e3a37da33579de1e6cf8f140b37a8a69c55711613621ce63deee5",
+      "subjects": [
+        "packages/engine/src/sim/modes/",
+        "packages/modes/",
+        "packages/shared/src/contracts/"
+      ]
+    },
+    "engine-drivers": {
+      "paths": [
+        "packages/engine/src/qa/drivers/"
+      ],
+      "sha256": "caec656f0fa011936328a354e642101acceca1230a7e4989e238f3f0a46d3544",
+      "subjects": [
+        "packages/engine/src/sim/lines/",
+        "packages/engine/src/sim/input/",
+        "packages/engine/src/sim/vehicle/",
+        "tests/golden/"
+      ]
+    },
+    "engine-runner": {
+      "paths": [
+        "packages/engine/src/qa/runner.ts",
+        "packages/engine/src/qa/bots.ts",
+        "packages/engine/src/qa/scenarios.ts",
+        "packages/engine/src/qa/golden.ts",
+        "packages/engine/src/qa/engine-specs.ts",
+        "packages/engine/src/qa/browser.ts"
+      ],
+      "sha256": "fde1bc58b9e7529326490fcf972733e7c754436d35e1fcda68b5ff9337269131",
+      "subjects": [
+        "packages/engine/src/sim/",
+        "packages/engine/src/headless/",
+        "tests/golden/"
+      ]
+    },
+    "goldens-package": {
+      "paths": [
+        "packages/engine/test/golden/",
+        "packages/shared/test/golden/",
+        "packages/world/test/golden/",
+        "packages/engine/src/sim/save/__golden__/"
+      ],
+      "sha256": "84c722fc821771825410300cb33be4b089539f98e30909ec2ba67ceec4c753bd",
+      "subjects": [
+        "packages/engine/src/sim/",
+        "packages/shared/src/",
+        "packages/world/src/"
+      ]
+    },
+    "goldens-qa": {
+      "paths": [
+        "tests/golden/"
+      ],
+      "sha256": "7a2f3ada0b28b6253706a3aa55a770c9d409f1e69e0328a79cf32eaacf1c51e9",
+      "subjects": [
+        "packages/engine/src/sim/",
+        "packages/shared/src/",
+        "packages/world/src/"
+      ]
+    },
+    "tycoon-sim": {
+      "paths": [
+        "tools/ci/tycoon-sim/",
+        "config/tycoon.bands.json"
+      ],
+      "sha256": "b5a8435034bdbea53677356ffdd2bf6fc8438925c27715b1a3321105631901a3",
+      "subjects": [
+        "packages/shared/src/events/",
+        "packages/shared/src/tycoon/",
+        "packages/modes/tycoon/",
+        "content/tycoon/",
+        "config/tycoon.balance.json"
+      ]
+    }
+  }
+}

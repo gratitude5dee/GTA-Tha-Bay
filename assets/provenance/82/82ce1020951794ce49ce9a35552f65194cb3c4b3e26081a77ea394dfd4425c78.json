@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "82ce1020951794ce49ce9a35552f65194cb3c4b3e26081a77ea394dfd4425c78",
+  "paths": [
+    "assets/src/data/cutscene-index/index.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T19:36:21Z"
+}

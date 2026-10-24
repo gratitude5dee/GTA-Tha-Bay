@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.painted-ladies",
+  "variants": {
+    "desktop": "assets/src/building/lm.painted-ladies/desktop.glb",
+    "mobile": "assets/src/building/lm.painted-ladies/mobile.glb",
+    "mobile-low": "assets/src/building/lm.painted-ladies/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1172,
+      "verts": 2388,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile": {
+      "tris": 510,
+      "verts": 1046,
+      "primitives": 3,
+      "materials": 3
+    },
+    "mobile-low": {
+      "tris": 129,
+      "verts": 265,
+      "primitives": 1,
+      "materials": 1
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:major"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

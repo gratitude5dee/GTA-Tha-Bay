@@ -1,0 +1,540 @@
+{
+  "act": 0,
+  "autoplay": {
+    "expectedSec": [
+      120,
+      900
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "buddy": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.77885,
+          -122.418051
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "npc_test"
+      }
+    },
+    "car": {
+      "k": "vehicle",
+      "playerUsable": true,
+      "prefab": "vehicle.compact",
+      "spawn": {
+        "at": [
+          37.778507,
+          -122.418483
+        ],
+        "snap": "ground",
+        "yawDeg": 90
+      }
+    },
+    "crate": {
+      "item": "item.dev.parcel",
+      "k": "pickup",
+      "prefab": "pickup.item",
+      "spawn": {
+        "at": [
+          37.778624,
+          -122.418165
+        ],
+        "snap": "ground"
+      }
+    },
+    "runner": {
+      "k": "npc",
+      "role": "civilian",
+      "spawn": {
+        "at": [
+          37.778309,
+          -122.417711
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "standin_founder"
+      }
+    }
+  },
+  "district": "d4",
+  "fail": [
+    {
+      "reason": "mission.m.dev.sample.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.dev.sample.fail.buddy",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "buddy"
+      }
+    },
+    {
+      "reason": "mission.m.dev.sample.fail.car",
+      "retry": "start",
+      "when": {
+        "cast": "car",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "world": true
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 0
+  },
+  "id": "m.dev.sample",
+  "intro": {
+    "cutscene": "cut.story.m.dev.sample.intro"
+  },
+  "lines": [
+    "line.m.dev.sample.bye",
+    "line.m.dev.sample.cut.intro.1",
+    "line.m.dev.sample.cut.intro.2",
+    "line.m.dev.sample.hello",
+    "line.m.dev.sample.nudge"
+  ],
+  "medals": {
+    "goldSec": 600,
+    "silverSec": 900
+  },
+  "modeHooks": [
+    {
+      "defId": "race.dev.loop",
+      "id": "race1",
+      "mode": "racing",
+      "passOn": [
+        "win",
+        "finish"
+      ],
+      "retry": "hook",
+      "stub": {
+        "id": "race1_stub",
+        "k": "wait",
+        "sec": 5,
+        "text": "mission.m.dev.sample.obj.race1_stub"
+      },
+      "unlockOnFirstEncounter": "unlock.racing"
+    }
+  ],
+  "premise": "hella-valuation",
+  "requires": [],
+  "rewards": {
+    "cashCents": 10000,
+    "streetCred": 5
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "arrive",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "arrive_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.dev.sample.obj.arrive_plaza",
+          "zone": "plaza"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "ambient",
+          "traffic": 0.5
+        },
+        {
+          "lock": {
+            "hour": 14
+          },
+          "op": "clock"
+        },
+        {
+          "line": "line.m.dev.sample.hello",
+          "op": "say",
+          "speaker": "buddy"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "meet",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "talk_greet",
+          "k": "talk",
+          "talk": {
+            "default": "agree",
+            "id": "greet",
+            "ink": "mission_m_dev_sample_greet",
+            "intent": "mission.m.dev.sample.talk.greet.intent",
+            "maxTurns": 3,
+            "npc": "buddy",
+            "outcomes": {
+              "agree": {
+                "flags": {
+                  "dev.buddy_ok": true
+                },
+                "label": "mission.m.dev.sample.talk.greet.agree",
+                "stage": "pickup",
+                "trust": 5
+              },
+              "decline": {
+                "flags": {
+                  "dev.buddy_ok": false
+                },
+                "label": "mission.m.dev.sample.talk.greet.decline",
+                "stage": "pickup",
+                "trust": -5
+              }
+            }
+          },
+          "text": "mission.m.dev.sample.obj.talk_greet"
+        }
+      ],
+      "onEnter": [
+        {
+          "op": "beat",
+          "ref": {
+            "director": "m.dev.sample.meet"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "pickup",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "crate",
+          "id": "collect_crate",
+          "k": "collect",
+          "text": "mission.m.dev.sample.obj.collect_crate"
+        }
+      ],
+      "onComplete": [
+        {
+          "cashCents": 5000,
+          "idem": "parcel-bonus",
+          "op": "give"
+        },
+        {
+          "op": "flag",
+          "set": {
+            "dev.parcel": true
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "wheels",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "enter_car",
+          "k": "enterVehicle",
+          "text": "mission.m.dev.sample.obj.enter_car",
+          "vehicle": "car"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "lawful",
+      "id": "drive",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_corner",
+          "inVehicle": "car",
+          "k": "goto",
+          "stopped": true,
+          "text": "mission.m.dev.sample.obj.goto_corner",
+          "zone": "corner"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "deliver",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "crate",
+          "id": "deliver_crate",
+          "k": "deliver",
+          "text": "mission.m.dev.sample.obj.deliver_crate",
+          "to": "park"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "tail",
+      "join": "all",
+      "objectives": [
+        {
+          "band": [
+            6,
+            40
+          ],
+          "id": "follow_buddy",
+          "k": "follow",
+          "loseAfterSec": 15,
+          "target": "buddy",
+          "text": "mission.m.dev.sample.obj.follow_buddy",
+          "untilZone": "park"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": "buddy",
+          "op": "task",
+          "task": {
+            "mode": "walk",
+            "t": "goto",
+            "zone": "park"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "chase",
+      "join": "all",
+      "objectives": [
+        {
+          "catchDist": 5,
+          "id": "chase_runner",
+          "k": "chase",
+          "target": "runner",
+          "text": "mission.m.dev.sample.obj.chase_runner"
+        }
+      ],
+      "onEnter": [
+        {
+          "cast": "runner",
+          "op": "task",
+          "task": {
+            "from": "player",
+            "t": "flee"
+          }
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "guard",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "protect_buddy",
+          "k": "protect",
+          "minHealth": 0.5,
+          "sec": 8,
+          "target": "buddy",
+          "text": "mission.m.dev.sample.obj.protect_buddy"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "snap",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "photo_crate",
+          "k": "photo",
+          "maxDistM": 20,
+          "subject": "crate",
+          "text": "mission.m.dev.sample.obj.photo_crate"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "sneak",
+      "join": "all",
+      "objectives": [
+        {
+          "autoplayPath": [
+            [
+              37.778039,
+              -122.419073
+            ],
+            [
+              37.777949,
+              -122.418959
+            ],
+            [
+              37.777904,
+              -122.418789
+            ]
+          ],
+          "detectBudget": 2,
+          "id": "stealth_park",
+          "k": "stealth",
+          "text": "mission.m.dev.sample.obj.stealth_park",
+          "zone": "park"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "drift",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "score_drift",
+          "k": "score",
+          "metric": "drift",
+          "target": 30,
+          "text": "mission.m.dev.sample.obj.score_drift",
+          "withinSec": 60
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "hold",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "survive_six",
+          "k": "survive",
+          "sec": 6,
+          "text": "mission.m.dev.sample.obj.survive_six"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "rest",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "wait_rest",
+          "k": "wait",
+          "sec": 3,
+          "text": "mission.m.dev.sample.obj.wait_rest"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "race",
+      "join": "all",
+      "objectives": [
+        {
+          "hook": "race1",
+          "id": "mode_race1",
+          "k": "mode",
+          "text": "mission.m.dev.sample.obj.mode_race1"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "finish",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "return_plaza",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.dev.sample.obj.return_plaza",
+          "zone": "plaza"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.dev.sample.bye",
+          "op": "say",
+          "speaker": "buddy"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "at": {
+      "at": [
+        37.77894,
+        -122.418619
+      ],
+      "snap": "ground"
+    },
+    "k": "marker",
+    "radiusM": 6
+  },
+  "tags": [
+    "dev",
+    "sensitivity-read"
+  ],
+  "threads": {
+    "nudge": [
+      {
+        "op": "wait",
+        "sec": 45
+      },
+      {
+        "from": "npc_test",
+        "line": "line.m.dev.sample.nudge",
+        "op": "text"
+      }
+    ]
+  },
+  "title": "mission.m.dev.sample.title",
+  "version": 1,
+  "worldBake": "ad8280ab5ca4a4b74c7eccdf97ee8d0ec0398f2ef51a04d476db1945fb3f0fcf",
+  "zones": {
+    "buddy_near": {
+      "cast": "buddy",
+      "k": "cast",
+      "r": 8
+    },
+    "corner": {
+      "at": [
+        37.778399,
+        -122.417484
+      ],
+      "k": "circle",
+      "r": 12
+    },
+    "park": {
+      "at": [
+        37.777949,
+        -122.418959
+      ],
+      "k": "circle",
+      "r": 15
+    },
+    "plaza": {
+      "at": [
+        37.778759,
+        -122.417938
+      ],
+      "k": "circle",
+      "r": 10
+    }
+  }
+}

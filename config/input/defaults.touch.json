@@ -4,22 +4,117 @@
   "contexts": {
     "onFoot": {
       "axis.MoveX": [
+        {
+          "control": "touch:btn:moveRight",
+          "scale": 1
+        },
+        {
+          "control": "touch:btn:moveLeft",
+          "scale": -1
+        }
+      ],
+      "axis.MoveY": [
+        {
+          "control": "touch:btn:moveDown",
+          "scale": 1
+        },
+        {
+          "control": "touch:btn:moveUp",
+          "scale": -1
+        }
+      ],
+      "axis.LookX": [
+        {
+          "control": "touch:dragR",
+          "scale": 1
+        }
+      ],
+      "axis.LookY": [
+        {
+          "control": "touch:dragR",
+          "scale": 1
+        }
+      ],
+      "sim.Jump": [
+        {
+          "control": "touch:btn:jump"
+        }
+      ],
+      "sim.Sprint": [
+        {
+          "control": "touch:btn:sprint"
+        }
+      ],
+      "sim.Enter": [
+        {
+          "control": "touch:btn:enter"
+        }
+      ],
+      "client.Camera": [
+        {
+          "control": "touch:btn:camera"
+        }
+      ],
+      "client.Pause": [
+        {
+          "control": "touch:btn:pause"
+        }
+      ],
+      "sim.Interact": [
+        {
+          "control": "touch:btn:enter"
+        }
+      ],
+      "sim.Attack": [
+        {
+          "control": "touch:btn:attack"
+        }
+      ],
+      "sim.Block": [
+        {
+          "control": "touch:btn:block"
+        }
+      ],
+      "sim.Special": [
+        {
+          "control": "touch:btn:special"
+        }
+      ],
+      "client.Phone": [
+        {
+          "control": "touch:btn:phone"
+        }
+      ]
+    },
+    "vehicle": {
+      "axis.Throttle": [{ "control": "touch:btn:moveUp", "scale": 1 }, { "control": "touch:btn:gas", "scale": 1 }],
+      "axis.Brake": [{ "control": "touch:btn:moveDown", "scale": 1 }, { "control": "touch:btn:brake", "scale": 1 }],
+      "axis.Steer": [
         { "control": "touch:btn:moveRight", "scale": 1 },
         { "control": "touch:btn:moveLeft", "scale": -1 }
       ],
-      "axis.MoveY": [
-        { "control": "touch:btn:moveDown", "scale": 1 },
-        { "control": "touch:btn:moveUp", "scale": -1 }
-      ],
       "axis.LookX": [{ "control": "touch:dragR", "scale": 1 }],
       "axis.LookY": [{ "control": "touch:dragR", "scale": 1 }],
-      "sim.Jump": [{ "control": "touch:btn:jump" }],
-      "sim.Sprint": [{ "control": "touch:btn:sprint" }],
+      "sim.Handbrake": [{ "control": "touch:btn:jump" }, { "control": "touch:btn:handbrake" }],
+      "sim.Nitro": [{ "control": "touch:btn:nitro" }],
+      "sim.Interact": [{ "control": "touch:btn:reset" }],
+      "sim.LookBehind": [{ "control": "touch:btn:behind" }],
+      "sim.Enter": [{ "control": "touch:btn:enter" }],
       "client.Camera": [{ "control": "touch:btn:camera" }],
-      "client.Pause": [{ "control": "touch:btn:pause" }]
+      "client.Pause": [{ "control": "touch:btn:pause" }],
+      "client.Phone": [{ "control": "touch:btn:phone" }]
     },
     "menu": {
-      "client.Pause": [{ "control": "touch:btn:pause" }]
+      "client.Pause": [
+        {
+          "control": "touch:btn:pause"
+        }
+      ],
+      "client.Phone": [
+        {
+          "control": "touch:btn:phone"
+        }
+      ]
     }
   }
 }

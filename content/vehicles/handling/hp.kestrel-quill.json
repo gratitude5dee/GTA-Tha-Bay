@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "id": "hp.kestrel-quill",
+  "rev": 1,
+  "class": "C",
+  "fictionalMake": "Kestrel",
+  "massKg": 1320,
+  "cgHeightM": 0.5,
+  "wheelbaseM": 2.55,
+  "trackM": 1.52,
+  "frontWeightPct": 52,
+  "engine": {
+    "idleRpm": 900,
+    "redlineRpm": 7500,
+    "torque": [
+      [
+        1000,
+        230
+      ],
+      [
+        2500,
+        330
+      ],
+      [
+        4000,
+        400
+      ],
+      [
+        5500,
+        405
+      ],
+      [
+        6800,
+        350
+      ],
+      [
+        7500,
+        300
+      ]
+    ],
+    "powerKw": 249
+  },
+  "drive": {
+    "type": "RWD",
+    "gears": [
+      3.6,
+      2.2,
+      1.55,
+      1.17,
+      0.93,
+      0.76
+    ],
+    "reverse": 3.3,
+    "finalDrive": 4.3,
+    "efficiency": 0.92,
+    "wheelRadiusM": 0.32,
+    "shiftUpPct": 0.94,
+    "shiftDownPct": 0.45,
+    "shiftTimeSec": 0.18,
+    "awdRearBias": 0.5
+  },
+  "tire": {
+    "muLong": 0.9,
+    "muLat": 1.08,
+    "peakSlipDeg": 8.0,
+    "slideRatio": 0.78,
+    "slideAtX": 2.5,
+    "loadSens": 0.12,
+    "frontGrip": 1.0,
+    "rearGrip": 0.97,
+    "rollResistN": 140
+  },
+  "aero": {
+    "cdA": 1.05,
+    "downforceNPerMps2": 0.1
+  },
+  "steer": {
+    "lockDeg": 33,
+    "speedRefMps": 32,
+    "minLockPct": 20,
+    "rateDegPerS": 320,
+    "assist": 0.28,
+    "selfAlign": 0.32
+  },
+  "brake": {
+    "maxDecelG": 1.0,
+    "bias": 0.6,
+    "abs": true
+  },
+  "drift": {
+    "assist": 0.3,
+    "handbrakeRearGrip": 0.48,
+    "yawDamp": 0.25
+  },
+  "suspension": {
+    "restM": 0.29,
+    "travelM": 0.12,
+    "rideHz": 1.7,
+    "dampingRatio": 0.7,
+    "antiRoll": 0.55,
+    "landingDamp": 0.55,
+    "airPitchTrim": 0.45,
+    "airRollTrim": 0.45
+  },
+  "nitro": {
+    "capacity": 100,
+    "boostKw": 70,
+    "drainPerSec": 25,
+    "minToFire": 15,
+    "maxOverTopPct": 0.1,
+    "refill": {
+      "driftPerSec": 6,
+      "nearMiss": 6,
+      "draftPerSec": 8,
+      "airPerSec": 10
+    }
+  },
+  "durability": 1.2
+}

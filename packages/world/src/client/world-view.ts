@@ -14,10 +14,11 @@
  */
 import { DirectionalLight, Frustum, HemisphereLight, Matrix4, type PerspectiveCamera } from 'three/webgpu';
 import type { SimEvent } from '@dv/engine/sim';
-import type { WorldFrame, WorldLayer } from '@dv/engine/client/boot/world-layer';
+import type { WorldFrame, WorldLayer, WorldLayerDebug } from '@dv/engine/client/boot/world-layer';
 import type { RendererHost } from '@dv/engine/platform/renderer-host';
 import type { WorldScenarioDriver } from '@dv/engine/platform/perf';
-import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type WorldIndex } from '@dv/shared';
+import { CHUNK_EDGE_M, GRID_MIN_M, packRefOf, type ChunkKey, type QualityTierId, type RenderBackend, type WorldIndex } from '@dv/shared';
+import type { PostLevel } from '@dv/engine/platform/post';
 import { ChunkStore, LEVEL_Z, type FailReason, type Level, type LoadRequest } from '../sim/streaming/chunk-store.ts';
 import { STREAMING, basePlan, type StreamingPlan } from '../sim/streaming/plan.ts';
 import { rankUnits, type Focus } from '../sim/streaming/priority.ts';
@@ -25,9 +26,23 @@ import { tileSets, unitExists, type TileSets } from '../sim/streaming/boot.ts';
 import { BackdropLayer, type BackdropInfo, type JobClient } from './backdrop/backdrop-layer.ts';
 import { ChunkRenderer, type RenderLevel } from './chunks/chunk-renderer.ts';
 import { createWorldMaterials, type WorldMaterials } from './chunks/materials.ts';
-import { profileOf } from './chunks/mesher.ts';
+import { LandmarkLayer, type LandmarkSpot, type LandmarksReport, type PreparedRemesh } from './chunks/landmark-layer.ts';
+import { mountLandmark } from './chunks/landmark-view.ts';
+import { MESHER, profileOf } from './chunks/mesher.ts';
 import type { UnitMesh } from './chunks/mesh-types.ts';
-import type { MeshJobArgs, MeshJobResult } from './jobs.ts';
+import type { LandmarkJobArgs, LandmarkJobResult, MeshJobArgs, MeshJobResult } from './jobs.ts';
+import { LOOK, lookProfileFor } from './look/config.ts';
+import { LookView, type LookReport } from './look/look-view.ts';
+import { createSkyNodes, type SkyNodes } from './sky/nodes.ts';
+import { SkyView, type LumaOptions, type LumaSample, type SkyInfo } from './sky/sky-view.ts';
+import { TeleportFade } from './teleport-fade.ts';
+import { trafficCap } from '../sim/traffic/density.ts';
+import { TrafficRenderer, type TrafficInfo } from './traffic/instances.ts';
+import { NEAR_PED_CAP, pedCap } from '../sim/peds/density.ts';
+import { PedRenderer, type PedInfo } from './peds/instances.ts';
+import { TransitRenderer, type TransitInfo } from './transit/render.ts';
+import { MapLayer } from './map/layer.ts';
+import type { AreaBannerPatch } from './map/banner.ts';
 
 export interface WorldViewLabels {
   /** "Re-downloading district" overlay text. */
@@ -38,6 +53,21 @@ export interface WorldViewLabels {
 
 export interface AssetsLike extends JobClient {
   stats(): Promise<{ bytes: number; network: number; retries: number }>;
+  /**
+   * Network bytes downloaded as of the latest asset reply handled on this thread (`AssetClient.bytesSeen`), read synchronously at the
+   * reveal. Absent: the reveal asks `stats()`, whose answer comes a worker round trip later and counts what arrived in between.
+   */
+  bytesSeen?(): number;
+}
+
+/** The ambient traffic as the perf scenarios drive it (QA builds): see `WorldView.trafficLink`. */
+export interface TrafficLink {
+  /** The point the traffic follows (and the sim's streaming wants), or null for the player. */
+  focus(f: { x: number; z: number; vx: number; vz: number } | null): void;
+  /** Density multiplier of the `traffic` kind, 0 to 1.5 (1 = the model's own). */
+  density(mult: number): void;
+  /** Agents alive and whether the initial fill is over; null if the sim did not answer. */
+  probe(): Promise<{ agents: number; filled: boolean } | null>;
 }
 
 export interface WorldViewOptions {
@@ -46,7 +76,15 @@ export interface WorldViewOptions {
   assets: AssetsLike;
   /** `world.cards` and `world.massing` of config/platform-flags.json. */
   flags: { cards: boolean; massing: boolean };
+  /** The sky (M02b2): `world.rain` and `world.atmosphere` of config/platform-flags.json; `enabled` false is the QA `?sky=0` comparison. Absent: rain on, atmosphere off, sky on. */
+  sky?: { rain: boolean; atmosphere: boolean; enabled: boolean };
+  /** The governor's `atmosphereLevel` at boot (the tier's ceiling when absent). */
+  atmosphereLevel?: number;
+  /** M02e: the look pass. Absent: the legacy materials only (the M02b1/M02b2 look). `enabled` is the `world.look` flag. */
+  look?: { enabled: boolean; browser: string; backend: RenderBackend; postLevel: number };
   spawn: { x: number; z: number };
+  /** The landmarks that have a model in the catalog (M02d1): the `LandmarkLayer` swaps their baked proxies for the glTF within the tier's swap distance. */
+  landmarks?: readonly LandmarkSpot[];
   labels: WorldViewLabels;
   /** Where the overlays go. */
   container: HTMLElement;
@@ -58,6 +96,10 @@ export interface WorldViewOptions {
   now?: () => number;
   /** QA builds: the bridge and the focus override are live. */
   qa?: boolean;
+  /** M02c2: the maps (HUD minimap, the neighbourhood banner and the full map of the phone). `false` leaves them out (the perf scenarios do not need them). */
+  map?: boolean;
+  /** M02c2: called for each neighbourhood banner (`nhood.<slug>`, at most once per 3 s); the app patches `hud.area`. */
+  onArea?: (p: AreaBannerPatch) => void;
 }
 
 export interface ChunksReport {
@@ -112,6 +154,39 @@ export class WorldView implements WorldLayer {
   renderer!: ChunkRenderer;
   backdrop!: BackdropLayer;
   materials!: WorldMaterials;
+  /** M02e: the look pass (post stack, shadows, physical sky); null in a view built without `look`. */
+  lookView: LookView | null = null;
+  /** The landmark models of the world (M02d1); null when the catalog holds none. */
+  landmarks: LandmarkLayer | null = null;
+  /** The sky of the world path (M02b2); set in `attach`. */
+  sky: SkyView | null = null;
+  /** The instanced ambient traffic (M03b1); set in `attach`. */
+  traffic: TrafficRenderer | null = null;
+  /** The instanced pedestrians (M03b2); set in `attach`. */
+  peds: PedRenderer | null = null;
+  /** Buses, trains, cable cars, ferries, airliners and station entrances (M03b2); set in `attach`. */
+  transit: TransitRenderer | null = null;
+  /** The teleport fade (M02c1): the veil the sim's `world.teleport` events drive. */
+  readonly fade: TeleportFade;
+  /** The maps of the world (M02c2): the HUD minimap, the banner and the full map; null when the view was built with `map: false`. */
+  readonly map: MapLayer | null;
+  /** The newest `world.boundary` event (M02c1) and how many arrived; the QA bridge reads them. */
+  lastBoundary: { tick: number; s: string } | null = null;
+  boundaryCount = 0;
+  /** The newest map patch (`world.map`, M02c1): the blips and the GPS route; M02c2 draws them. */
+  lastMap: { rev: number; blips: unknown[]; route: unknown } | null = null;
+  readonly skyNodes: SkyNodes = createSkyNodes();
+  /** QA hooks the debug panel's sky controls use (the engine's `WorldLayer.debug`). */
+  readonly debug: WorldLayerDebug = {
+    setRainOverride: (rain) => this.sky?.setRainOverride(rain),
+    rainOverride: () => this.sky?.getRainOverride() ?? null,
+    look: {
+      available: () => this.lookView?.available ?? false,
+      isOn: () => this.lookView?.on ?? false,
+      setOn: (on) => this.setLook(on),
+      nodes: () => this.lookView?.report().postNodes ?? [],
+    },
+  };
 
   private readonly o: WorldViewOptions;
   private readonly sets: TileSets;
@@ -126,6 +201,7 @@ export class WorldView implements WorldLayer {
   private simStatus = { unavailable: 0, failed: 0, ready: 0, reason: 'ok' };
   private revealed = false;
   private revealMs: number | null = null;
+  private readonly revealWaiters: (() => void)[] = [];
   private startMs = 0;
   private bytesAtStart = 0;
   private bytesBeforeReveal: number | null = null;
@@ -140,6 +216,10 @@ export class WorldView implements WorldLayer {
     this.o = o;
     this.plan = basePlan(o.tier);
     this.sets = tileSets(o.index);
+    this.fade = new TeleportFade(o.container);
+    this.map = o.map === false ? null : new MapLayer({
+      assets: o.assets, tier: o.tier, doc: o.container.ownerDocument ?? null, ...(o.onArea ? { onArea: o.onArea } : {}), now: () => this.now(),
+    });
   }
 
   private now(): number {
@@ -155,7 +235,8 @@ export class WorldView implements WorldLayer {
     else void this.o.assets.stats().then((s) => void (this.bytesAtStart = s.bytes)).catch(() => undefined);
 
     const fade = STREAMING_FADE_SECONDS[this.o.tier];
-    this.materials = createWorldMaterials({ fadeSeconds: fade });
+    const profile = this.o.look ? lookProfileFor(this.o.tier, this.o.look.enabled) : 'legacy';
+    this.materials = createWorldMaterials({ fadeSeconds: fade, sky: this.skyNodes, look: { profile, config: LOOK } });
     // The world pass draws over the backdrop pass: no scene background of its own.
     host.scene.background = null;
     const hemi = new HemisphereLight(0xdbe9ff, 0x6a6f64, 3.4);
@@ -185,10 +266,100 @@ export class WorldView implements WorldLayer {
       packOf: (level, key) => packRefOf(key, level as 'l0' | 'l1' | 'l2'),
     });
 
+    const spots = this.o.landmarks ?? [];
+    if (spots.length > 0) {
+      this.landmarks = new LandmarkLayer({
+        tier: this.o.tier,
+        spots,
+        load: async (spot, opts) => {
+          const args: LandmarkJobArgs = { asset: spot.asset, tier: this.o.tier, ...(opts.skyline ? { skyline: true } : {}) };
+          return ((await this.o.assets.job('world.landmark', args)) as LandmarkJobResult).model;
+        },
+        mount: (spot, model, y, nowSec) => mountLandmark(host.scene, this.materials, spot, model, y, nowSec),
+        chunks: {
+          states: () => this.landmarkChunkStates(),
+          prepare: (key, mask) => this.prepareChunk(key, mask),
+          apply: (p) => this.applyPrepared(p),
+          remesh: (key, mask) => this.remeshChunk(key, mask),
+          rerecords: (key) => this.renderer.rerecordsOf('l0', key),
+        },
+        // The commit takes one upload slot, like a chunk: the gate never lets two through in a frame.
+        queue: (task) => this.renderer.enqueueTask(task.id, task.priority, task.bytes, { run: (info) => task.run(info) }),
+        groundY: (x, z, exact) => (exact ? this.groundY(x, z) : (this.groundY(x, z) ?? this.coarseGroundY(x, z))),
+        waterY: MESHER.lod.waterLevelM,
+        now: () => this.now(),
+        // The skyline: the tier's building draw distance (the streaming r2), once the world is revealed (after the spawn p0 set).
+        skylineRangeM: this.plan.r2M,
+        ready: () => this.revealed,
+        frameNo: () => this.frames,
+        ...(this.o.qa ? { qa: true } : {}),
+      });
+    }
+
     this.backdrop = new BackdropLayer({ tier: this.o.tier, jobs: this.o.assets, flags: this.o.flags, spawn: this.o.spawn });
     host.backdrop = { scene: this.backdrop.scene, camera: this.backdrop.camera };
-    void this.backdrop.load().catch((e: unknown) => console.warn('world backdrop failed to load', e));
+    // The look pass (M02e) starts before the sky: the dome of the `full` profile is blended over the physical sky it builds.
+    if (this.o.look && profile !== 'legacy') {
+      const look = new LookView({
+        host,
+        tier: this.o.tier,
+        look: LOOK,
+        profile,
+        materials: this.materials,
+        chunks: this.renderer,
+        lights: { hemi: this.lights[0], sun: this.lights[1] },
+        backdrop: this.backdrop,
+        browser: this.o.look.browser,
+        backend: this.o.look.backend,
+        postLevel: this.o.look.postLevel as PostLevel,
+        focus: () => ({ x: this.lastFocus.x, z: this.lastFocus.z }),
+        freezeSkyTime: (on) => this.sky?.freezeTime(on),
+      });
+      this.lookView = look;
+      look.start();
+      host.register({
+        onRendererReplaced: (next) => {
+          look.onRendererReplaced(next);
+          return Promise.resolve();
+        },
+      });
+    }
+    const lookView = this.lookView;
+    this.sky = new SkyView({
+      host,
+      nodes: this.skyNodes,
+      tier: this.o.tier,
+      ...(this.o.atmosphereLevel !== undefined ? { atmosphereLevel: this.o.atmosphereLevel } : {}),
+      lights: { hemi: this.lights[0], sun: this.lights[1] },
+      backdrop: { scene: this.backdrop.scene, camera: this.backdrop.camera, hemi: this.backdrop.lights[0], sun: this.backdrop.lights[1] },
+      flags: { rain: this.o.sky?.rain ?? true, atmosphere: this.o.sky?.atmosphere ?? false },
+      lamps: () => this.collectLamps(),
+      disabled: this.o.sky?.enabled === false,
+      now: () => this.now(),
+      ...(lookView
+        ? {
+            look: {
+              domeBlend: lookView.domeBlend,
+              after: (u, input, nowMs) => lookView.after(u, input, nowMs),
+              pinClouds: () => lookView.sky?.pinClouds() ?? (() => {}),
+            },
+          }
+        : {}),
+    });
+    // The backdrop's render programs compile as soon as it has its objects, in every direction (DL-715): a mission beat that cuts to a
+    // shot facing another way would otherwise link them on its first frame (the skyline cards on chromium-webgl2).
+    void this.backdrop
+      .load()
+      .then(() => host.warm())
+      .catch((e: unknown) => console.warn('world backdrop failed to load', e));
 
+    this.traffic = new TrafficRenderer({ parent: host.scene, sky: this.skyNodes, cap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier) });
+    this.peds = new PedRenderer({ parent: host.scene, cap: host.tier?.budget.crowd.maxPedInstances ?? pedCap(this.o.tier), nearCap: NEAR_PED_CAP[this.o.tier] });
+    this.transit = new TransitRenderer({
+      parent: host.scene,
+      trafficCap: host.tier?.budget.crowd.maxTrafficInstances ?? trafficCap(this.o.tier),
+      carsDrawn: () => this.traffic?.instances ?? 0,
+    });
     this.makeOverlays();
     this.lastFocus = { x: this.o.spawn.x, z: this.o.spawn.z, vx: 0, vz: 0 };
     // The first pass runs before the first frame so the spawn tile is already on its way.
@@ -206,9 +377,24 @@ export class WorldView implements WorldLayer {
     return this.frustum.setFromProjectionMatrix(this.viewProj);
   }
 
-  frame(f: WorldFrame): void {
+  frame(frameIn: WorldFrame): void {
     if (this.disposed) return;
     this.frames++;
+    let f = frameIn;
+    const held = this.lookView?.shotCamera;
+    if (held && this.host) {
+      // A look shot holds the camera: the host's camera, the culling and the sky all see the shot's pose.
+      const cam = this.host.camera as PerspectiveCamera;
+      cam.position.set(held.x, held.y, held.z);
+      cam.quaternion.set(held.quat[0], held.quat[1], held.quat[2], held.quat[3]);
+      if (cam.fov !== held.fovDeg) {
+        cam.fov = held.fovDeg;
+        cam.updateProjectionMatrix();
+      }
+      cam.updateMatrixWorld();
+      const e = cam.matrixWorld.elements;
+      f = { ...frameIn, camera: { pos: [held.x, held.y, held.z], dir: [-(e[8] as number), -(e[9] as number), -(e[10] as number)] } };
+    }
     const tSec = f.nowMs / 1000;
     const camDist = f.player ? Math.hypot(f.camera.pos[0] - f.player.pos[0], f.camera.pos[2] - f.player.pos[2]) : 0;
     let focus: Focus;
@@ -225,24 +411,99 @@ export class WorldView implements WorldLayer {
     const t0 = this.now();
     const up = this.renderer.update(tSec, { pos: f.camera.pos, dir: f.camera.dir, frustum: this.frustumOf() });
     if (up) {
-      this.commitMs.push(this.now() - t0);
+      const ms = this.now() - t0;
+      this.commitMs.push(ms);
       if (this.commitMs.length > 240) this.commitMs.shift();
+      if (up.level === 'l0') this.landmarks?.onChunkCommitted(up.key, ms, this.renderer.uploadsThisFrame);
       if (!this.revealed && up.level === 'l0') this.reveal();
     }
+    this.landmarks?.update(focus, tSec);
     if (this.frames % 30 === 0) this.remeshFiltered();
     if (this.host) this.backdrop.sync(this.host.camera as PerspectiveCamera);
+    this.sky?.update(f);
+    this.traffic?.update(f, tSec);
+    if (this.lookView && this.host) this.lookView.frame(f.dtSec, this.host.camera as PerspectiveCamera);
+    this.peds?.update(f, tSec);
+    this.transit?.update(f);
     this.updateOverlays();
+    this.map?.frame(f);
     this.telemetry();
   }
 
   onSimEvents(events: readonly SimEvent[]): void {
     for (const e of events) {
       if (e.t === 'world.status') this.simStatus = { unavailable: e.n ?? 0, failed: e.a ?? 0, ready: e.b ?? 0, reason: e.s ?? 'ok' };
+      else if (e.t === 'world.teleport') {
+        if (e.s === 'out') this.fade.out();
+        else if (e.s === 'in') this.fade.in();
+      } else if (e.t === 'world.boundary') {
+        this.lastBoundary = { tick: e.tick, s: e.s ?? '' };
+        this.boundaryCount++;
+      } else if (e.t === 'world.map' && e.s) {
+        try {
+          this.lastMap = JSON.parse(e.s) as NonNullable<WorldView['lastMap']>;
+          this.map?.setPatch(this.lastMap);
+        } catch {
+          // a damaged patch is dropped; the next one replaces it
+        }
+      }
     }
+  }
+
+  /** The governor moved `atmosphereLevel` (C13 `DynamicQuality`): the sky follows. */
+  setAtmosphereLevel(level: number): void {
+    this.sky?.setAtmosphereLevel(level);
+  }
+
+  /** World positions (x, y, z triples) of the street lamps of the resident L0 chunks. */
+  private collectLamps(): Float32Array {
+    if (!this.store) return new Float32Array(0);
+    const parts: Float32Array[] = [];
+    let total = 0;
+    for (const key of this.store.residentKeys('l0')) {
+      const mesh = this.store.unit('l0', key)?.payload;
+      if (!mesh || mesh.lamps.length === 0) continue;
+      const out = new Float32Array(mesh.lamps.length);
+      for (let i = 0; i < mesh.lamps.length; i += 3) {
+        out[i] = mesh.originX + (mesh.lamps[i] as number);
+        out[i + 1] = mesh.lamps[i + 1] as number;
+        out[i + 2] = mesh.originZ + (mesh.lamps[i + 2] as number);
+      }
+      parts.push(out);
+      total += out.length;
+    }
+    const all = new Float32Array(total);
+    let at = 0;
+    for (const p of parts) {
+      all.set(p, at);
+      at += p.length;
+    }
+    return all;
+  }
+
+  skyInfo(): SkyInfo | null {
+    return this.sky?.info() ?? null;
+  }
+
+  sampleLuma(pitchDeg: number, yawDeg?: number, opts?: LumaOptions): Promise<LumaSample> {
+    if (!this.sky) return Promise.reject(new Error('the sky is not mounted'));
+    return this.sky.sampleLuma(pitchDeg, yawDeg, opts);
   }
 
   dispose(): void {
     this.disposed = true;
+    this.lookView?.dispose();
+    this.lookView = null;
+    this.sky?.dispose();
+    this.sky = null;
+    this.traffic?.dispose();
+    this.traffic = null;
+    this.peds?.dispose();
+    this.peds = null;
+    this.transit?.dispose();
+    this.transit = null;
+    this.landmarks?.dispose();
+    this.landmarks = null;
     this.renderer?.dispose();
     this.backdrop?.dispose();
     this.materials?.dispose();
@@ -250,6 +511,8 @@ export class WorldView implements WorldLayer {
       this.host.backdrop = null;
       if (this.lights) this.host.scene.remove(...this.lights);
     }
+    this.map?.dispose();
+    this.fade.dispose();
     this.veil?.remove();
     this.redownload?.remove();
     this.offline?.remove();
@@ -266,6 +529,8 @@ export class WorldView implements WorldLayer {
       tier: this.o.tier,
       distM: this.store ? this.store.distanceTo(key) : 0,
       priority: r.priority,
+      // A chunk that streams in while a landmark model stands in its proxies' place arrives without them (no second upload, no overlap).
+      ...(level === 'l0' && this.landmarks && this.landmarks.maskList().length > 0 ? { maskProxies: this.landmarks.maskList() } : {}),
     };
     this.inflight++;
     void this.o.assets
@@ -305,7 +570,8 @@ export class WorldView implements WorldLayer {
       if (this.store.distanceTo(key) > skip.beyondM * 0.8) continue;
       // Mark it handled first so one pass requests it once.
       mesh.stats.filtered = false;
-      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon' };
+      const mask = this.landmarks?.maskFor(mesh.proxies) ?? [];
+      const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store.distanceTo(key), priority: 'soon', ...(mask.length > 0 ? { maskProxies: mask } : {}) };
       void this.o.assets
         .job('world.mesh', args)
         .then((res) => {
@@ -314,6 +580,103 @@ export class WorldView implements WorldLayer {
         })
         .catch(() => undefined);
     }
+  }
+
+  // ---- landmarks (M02d1) ---------------------------------------------------------------------------------------------------
+
+  /** The resident L0 chunks that hold landmark proxies, with the proxies their current mesh leaves out. */
+  private landmarkChunkStates(): { key: ChunkKey; proxies: number[]; masked: number[] }[] {
+    const out: { key: ChunkKey; proxies: number[]; masked: number[] }[] = [];
+    for (const u of this.renderer.units.values()) if (u.level === 'l0' && u.mesh.proxies.length > 0) out.push({ key: u.key, proxies: u.mesh.proxies, masked: u.mesh.masked });
+    return out;
+  }
+
+  /** Meshes an uploaded chunk again with `mask` (proxy ids) left out; the new mesh goes through the upload gate ahead of everything else. */
+  private remeshChunk(key: ChunkKey, mask: number[]): void {
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    this.inflight++;
+    void this.o.assets
+      .job('world.mesh', args)
+      .then((res) => {
+        const result = res as MeshJobResult;
+        if ('mesh' in result && this.store.ready(key, 'l0') && !this.disposed) this.renderer.enqueue(result.mesh, -1);
+      })
+      .catch(() => undefined)
+      .finally(() => void this.inflight--);
+  }
+
+  /**
+   * The first half of a landmark swap (M02d2): the chunk is meshed again in `asset.worker` with `mask` left out and the mesh is held,
+   * not uploaded. The layer queues it through the upload gate after the model it belongs to has joined the scene.
+   */
+  private prepareChunk(key: ChunkKey, mask: number[]): Promise<PreparedRemesh | null> {
+    const args: MeshJobArgs = { level: 'l0', key, tier: this.o.tier, distM: this.store ? this.store.distanceTo(key) : 0, priority: 'now', maskProxies: mask };
+    this.inflight++;
+    return this.o.assets
+      .job('world.mesh', args)
+      .then((res): PreparedRemesh | null => {
+        const result = res as MeshJobResult;
+        return 'mesh' in result && !this.disposed ? ({ key, mask, mesh: result.mesh } as PreparedRemesh & { mesh: UnitMesh }) : null;
+      })
+      .catch(() => null)
+      .finally(() => void this.inflight--);
+  }
+
+  /** The second half: the prepared mesh goes through the upload gate (one unit per frame, the model's own commit went first). */
+  private applyPrepared(p: PreparedRemesh): void {
+    const mesh = (p as PreparedRemesh & { mesh?: UnitMesh }).mesh;
+    if (!mesh || this.disposed || !this.store.ready(p.key, 'l0')) return;
+    this.renderer.enqueue(mesh, -1);
+  }
+
+  /** The instanced traffic's counts for the QA bridge (`__dvBridge.world.traffic()`); null before `attach`. */
+  trafficReport(): TrafficInfo | null {
+    return this.traffic?.info() ?? null;
+  }
+
+  /** The instanced pedestrians' counts for the QA bridge (`__dvBridge.world.peds()`); null before `attach`. */
+  pedsReport(): PedInfo | null {
+    return this.peds?.info() ?? null;
+  }
+
+  /** Transit instances for the QA bridge (`__dvBridge.world.transit()`); null before `attach`. */
+  transitReport(): TransitInfo | null {
+    return this.transit?.info() ?? null;
+  }
+
+  /** The landmark layer's state for the QA bridge (`__dvBridge.world.landmarks()`); null when the world has no landmark models. */
+  landmarksReport(): LandmarksReport | null {
+    return this.landmarks?.report() ?? null;
+  }
+
+  /**
+   * Terrain height under (x, z) from the coarse levels: the L1 tile (posts every 16 m or more), else the L2 block (64 m), sampled
+   * bilinearly on the regular grid that starts each terrain object (the skirt vertices follow it). Null until one is up. A far
+   * skyline landmark is placed with it before any L0 chunk is near, and moved to the exact height when the chunk arrives.
+   */
+  coarseGroundY(x: number, z: number): number | null {
+    for (const [level, zoom] of [['l1', 7], ['l2', 5]] as const) {
+      const edge = CHUNK_EDGE_M[zoom];
+      const cx = Math.floor((x - GRID_MIN_M) / edge);
+      const cy = Math.floor((z - GRID_MIN_M) / edge);
+      const u = this.store?.unit(level, `${zoom}/${cx}/${cy}` as ChunkKey);
+      const mesh = u?.state === 'ready' ? u.payload : null;
+      const t = mesh?.objects.find((o) => o.kind === 'terrain');
+      if (!mesh || !t) continue;
+      // positions = verts x verts grid + 4 (verts - 1) skirt vertices
+      const verts = Math.round(-2 + Math.sqrt(t.positions.length / 3 + 8));
+      if (verts < 2) continue;
+      const step = edge / (verts - 1);
+      const fx = Math.min(verts - 1.000001, Math.max(0, (x - mesh.originX) / step));
+      const fz = Math.min(verts - 1.000001, Math.max(0, (z - mesh.originZ) / step));
+      const i = Math.floor(fx), j = Math.floor(fz);
+      const tx = fx - i, tz = fz - j;
+      const h = (a: number, b: number): number => t.positions[(b * verts + a) * 3 + 1] as number;
+      const n0 = h(i, j) + (h(i + 1, j) - h(i, j)) * tx;
+      const n1 = h(i, j + 1) + (h(i + 1, j + 1) - h(i, j + 1)) * tx;
+      return n0 + (n1 - n0) * tz;
+    }
+    return null;
   }
 
   // ---- ground height for the camera ----------------------------------------------------------------------------------------
@@ -344,12 +707,17 @@ export class WorldView implements WorldLayer {
   private reveal(): void {
     this.revealed = true;
     this.revealMs = this.now() - this.startMs;
-    void this.o.assets.stats().then((s) => void (this.bytesBeforeReveal = Math.max(0, s.bytes - this.bytesAtStart))).catch(() => undefined);
+    // Bytes before the reveal (M02b1 AC-8) are read in the same task as the reveal: the boot report never says `revealed` without them,
+    // and they do not count what arrived while a `stats()` round trip waited behind the first frames' long tasks (BD-FIX-CI9-T01).
+    const seen = this.o.assets.bytesSeen?.();
+    if (seen !== undefined) this.bytesBeforeReveal = Math.max(0, seen - this.bytesAtStart);
+    else void this.o.assets.stats().then((s) => void (this.bytesBeforeReveal = Math.max(0, s.bytes - this.bytesAtStart))).catch(() => undefined);
     if (this.veil) {
       this.veil.style.opacity = '0';
       setTimeout(() => this.veil?.remove(), 700);
     }
     document.documentElement.dataset.dvWorld = 'revealed';
+    for (const w of this.revealWaiters.splice(0)) w();
   }
 
   private makeOverlays(): void {
@@ -446,8 +814,42 @@ export class WorldView implements WorldLayer {
     };
   }
 
+  /** M02e: what the look pass is doing now (the bridge's `look()`). A view without a look reports `legacy`. */
+  /**
+   * QA only (M02e): stops (`true`) or restarts (`false`) the render loop. A stopped loop leaves the last presented frame on the canvas, so
+   * a capture on a slow software renderer does not wait on new frames (an element screenshot waits for the canvas to stay still).
+   */
+  holdRender(on: boolean): void {
+    if (!this.host) return;
+    if (on) this.host.stopLoop();
+    else this.host.startLoop();
+  }
+
+  lookReport(): LookReport | null {
+    if (this.lookView) return this.lookView.report();
+    if (!this.o.look || !this.host) return null;
+    // A tier without a look (the XR tiers, or `world.look` off): the legacy materials, the tier's own pipeline, nothing else.
+    return {
+      profile: 'legacy', on: false, postNodes: [], postMode: 'none', postLevel: 0, shadowMode: 'none', shadowPath: 'off', shadowPasses: 0,
+      casters: 0, casterKinds: [], exposure: this.host.ready ? this.host.renderer.toneMappingExposure : 1, envMap: false, sky: 'dome',
+      windowEmissive: 0, backend: this.o.look.backend, tier: this.o.tier, fallbacks: [], envBakes: 0, envBakeMs: 0,
+      pipeline: this.host.tier?.features.pipeline ?? 'direct', sun: null,
+    };
+  }
+
+  /** M02e QA: the look on or off at runtime; false when the tier has none. */
+  setLook(on: boolean): boolean {
+    return this.lookView ? this.lookView.setOn(on) : !on;
+  }
+
   backdropInfo(): BackdropInfo {
     return this.backdrop.info();
+  }
+
+  /** Resolves once the world is revealed (the first L0 upload at the spawn); at once when it already is. */
+  whenRevealed(): Promise<void> {
+    if (this.revealed) return Promise.resolve();
+    return new Promise((resolve) => this.revealWaiters.push(resolve));
   }
 
   bootReport(): BootReport {
@@ -475,7 +877,7 @@ export class WorldView implements WorldLayer {
       let quiet = 0;
       let lastFrame = this.frames;
       const poll = (): void => {
-        const idle = this.store.pending() === 0 && this.renderer.gate.size === 0 && this.renderer.rebuilding === 0 && this.inflight === 0;
+        const idle = this.store.pending() === 0 && this.renderer.gate.size === 0 && this.renderer.rebuilding === 0 && this.inflight === 0 && (this.landmarks?.idle ?? true);
         if (this.frames !== lastFrame) {
           lastFrame = this.frames;
           quiet = idle ? quiet + 1 : 0;
@@ -488,19 +890,45 @@ export class WorldView implements WorldLayer {
     });
   }
 
+  /**
+   * QA/perf: the way into the sim's ambient traffic (set by the bridge, which owns the command channel to sim.worker): the point it
+   * follows instead of the player, its density, and a probe of its fill. Null where there is no channel.
+   */
+  trafficLink: TrafficLink | null = null;
+
   /** The route scenarios' world half (`PerfScenarioRunner`): the focus follows the camera the runner places. */
   scenarioDriver(): WorldScenarioDriver {
+    let frames = 0;
     return {
-      prepare: async (start) => {
+      prepare: async (start, opts) => {
+        const link = this.trafficLink;
+        const nominal = opts?.density === 'nominal';
         this.setFocus({ x: start[0], z: start[1], vx: 0, vz: 0 });
+        link?.density(nominal ? 1 : 0);
+        if (nominal) link?.focus({ x: start[0], z: start[1], vx: 0, vz: 0 });
         await this.settle(45_000);
+        if (nominal && link) {
+          // the sim streams the packs around the start itself; the traffic fills in once the roads there are resident
+          const until = this.now() + 60_000;
+          for (;;) {
+            const p = await link.probe();
+            if (p && p.agents > 0 && p.filled) break;
+            if (this.now() > until) break;
+            await new Promise<void>((r) => setTimeout(r, 100));
+          }
+        }
+        frames = 0;
       },
       frame: (pose) => {
         this.setFocus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
+        // a command to the sim a few times a second is enough for a focus that moves at car speed
+        if (this.trafficLink && frames++ % 8 === 0) this.trafficLink.focus({ x: pose.x, z: pose.z, vx: pose.vx, vz: pose.vz });
         return { groundY: this.groundY(pose.x, pose.z) };
       },
       finish: () => {
         this.setFocus(null);
+        this.trafficLink?.focus(null);
+        this.trafficLink?.density(1);
         return { coldDownloadMB: this.bytesBeforeReveal === null ? null : Math.round((this.bytesBeforeReveal / 1_000_000) * 100) / 100 };
       },
     };

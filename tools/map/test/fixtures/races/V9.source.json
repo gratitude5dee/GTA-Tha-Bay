@@ -1,0 +1,13 @@
+{
+  "rule": "V9",
+  "expect": [
+    "V9"
+  ],
+  "note": "a centreline point far outside the play box",
+  "defPatch": {
+    "/line/start": [
+      99999999,
+      0
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.a1.06.antenna",
+  "variants": {
+    "default": "assets/src/data/director.m.a1.06.antenna/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.06"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

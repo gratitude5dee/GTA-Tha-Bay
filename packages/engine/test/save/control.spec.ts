@@ -44,6 +44,46 @@ describe('engine/save.control (SimControlMessage and the write port)', () => {
     expect(await ctl.flush()).toBe(0);
   });
 
+  it('a posted write keeps the capability it was posted under when the capability changes before the flush (BD-FIX-CI7-F04)', async () => {
+    const svc = await openSvc(await newStore('memory'), { capability: 'sandbox', now: clock().now });
+    const p = await mkProfile(svc);
+    const ctl = new SaveControl({ service: async () => svc, collect: () => null });
+    // The idle menu's core save: the capability is raised for the post and lowered by the next tick, which can run before the flush.
+    ctl.setCapability('story');
+    ctl.post('core', { avatar: { name: 'Dee Test' } }, 'manual');
+    ctl.setCapability('sandbox');
+    ctl.post('sandbox', sandboxData(3), 'interval');
+    expect(await ctl.flush()).toBe(2);
+    expect(ctl.failures).toEqual([]);
+    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Dee Test' } });
+    // A write posted under a capability that does not allow its slot is still refused.
+    ctl.post('core', { avatar: null }, 'manual');
+    expect(await ctl.flush()).toBe(0);
+    expect(ctl.failures).toEqual([{ slot: 'core', error: 'NOT_ALLOWED' }]);
+  });
+
+  it('after a flush the service is back on the capability in force, not the last write\'s (BD-FIX-CI8-G04)', async () => {
+    const svc = await openSvc(await newStore('memory'), { capability: 'sandbox', now: clock().now });
+    const p = await mkProfile(svc);
+    const caps: string[] = [];
+    const writer = {
+      write: (slot: Parameters<typeof svc.write>[0], data: unknown, reason: Parameters<typeof svc.write>[2]) => svc.write(slot, data, reason),
+      setCapability: (cap: Parameters<typeof svc.setCapability>[0]) => {
+        caps.push(cap);
+        svc.setCapability(cap);
+      },
+    };
+    const ctl = new SaveControl({ service: async () => writer, collect: () => null });
+    ctl.setCapability('story');
+    ctl.post('core', { avatar: { name: 'Dee Test' } }, 'manual');
+    ctl.setCapability('sandbox');
+    expect(await ctl.flush()).toBe(1);
+    expect(caps).toEqual(['sandbox', 'story', 'sandbox']);
+    // the raised capability did not outlive the flush: a direct write of the core slot is refused again
+    expect(await svc.write('core', { avatar: null }, 'manual')).toMatchObject({ ok: false, error: 'NOT_ALLOWED' });
+    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Dee Test' } });
+  });
+
   it('SimRuntime hands save.request to the installed SaveControl between ticks and posts ctl.result', async () => {
     const workers: InProcessWorker[] = [];
     const host = new SimHostImpl({ spawn: () => { const w = new InProcessWorker(); workers.push(w); return w; }, sab: true, qa: false });

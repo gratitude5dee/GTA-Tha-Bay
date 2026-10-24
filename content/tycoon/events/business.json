@@ -1,0 +1,768 @@
+{
+  "schema": "tycoon.events.v1",
+  "events": [
+    {
+      "id": "biz.competitor_launch",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 40,
+      "modifiers": [
+        {
+          "when": {
+            "m": "users",
+            "op": ">",
+            "v": 2000
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 20,
+      "severity": 2,
+      "minWeek": 12,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "cacMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.15
+          },
+          "durationWeeks": 12,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "biz.price_war",
+          "delayWeeks": [
+            4,
+            8
+          ],
+          "p": 0.3
+        }
+      ],
+      "choices": [
+        {
+          "id": "hold",
+          "effects": []
+        },
+        {
+          "id": "match",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "devPowerMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 1.1
+              },
+              "durationWeeks": 6,
+              "decay": "none"
+            }
+          ],
+          "cost": [
+            {
+              "k": "metric",
+              "metric": "cash",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": -15000000
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ],
+          "requires": [
+            {
+              "m": "cash",
+              "op": ">=",
+              "v": 15000000
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "hold",
+      "art": "ui/ty-card-biz.competitor_launch"
+    },
+    {
+      "id": "biz.price_war",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 20,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "arpuMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.92
+          },
+          "durationWeeks": 10,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "churnMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.1
+          },
+          "durationWeeks": 10,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-biz.price_war"
+    },
+    {
+      "id": "biz.engineer_poached",
+      "family": "business",
+      "scope": "both",
+      "mtthWeeks": 50,
+      "modifiers": [
+        {
+          "when": {
+            "m": "morale",
+            "op": "<",
+            "v": 50
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "headcount",
+          "op": ">=",
+          "v": 4
+        }
+      ],
+      "cooldownWeeks": 12,
+      "severity": 2,
+      "choices": [
+        {
+          "id": "let_go",
+          "effects": [
+            {
+              "k": "staff",
+              "op": "poach",
+              "role": "eng",
+              "count": {
+                "k": "fixed",
+                "v": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "counter",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "wageMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 1.04
+              },
+              "durationWeeks": 26,
+              "decay": "none"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "let_go",
+      "art": "ui/ty-card-biz.engineer_poached"
+    },
+    {
+      "id": "biz.outage",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 45,
+      "modifiers": [
+        {
+          "when": {
+            "m": "techDebt",
+            "op": ">",
+            "v": 60
+          },
+          "factor": 2.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 10,
+      "severity": 3,
+      "minWeek": 8,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "lognormal",
+            "mu": -0.07,
+            "sigma": 0.03,
+            "clamp": [
+              0.85,
+              1.0
+            ]
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "reputation",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -5
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "shrug",
+          "effects": []
+        },
+        {
+          "id": "postmortem",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "devPowerMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.5
+              },
+              "durationWeeks": 2,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "reputation",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 3
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "shrug",
+      "art": "ui/ty-card-biz.outage"
+    },
+    {
+      "id": "biz.viral_launch",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 60,
+      "modifiers": [
+        {
+          "when": {
+            "m": "productQuality",
+            "op": ">",
+            "v": 60
+          },
+          "factor": 1.5
+        },
+        {
+          "when": {
+            "m": "hype",
+            "op": ">",
+            "v": 50
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "users",
+          "op": "mul",
+          "dist": {
+            "k": "normal",
+            "mu": 1.22,
+            "sigma": 0.1,
+            "clamp": [
+              1.0,
+              1.6
+            ]
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "hype",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": 15
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        }
+      ],
+      "followUps": [
+        {
+          "eventId": "biz.scaling_strain",
+          "delayWeeks": [
+            2,
+            4
+          ],
+          "p": 0.5
+        }
+      ],
+      "art": "ui/ty-card-biz.viral_launch"
+    },
+    {
+      "id": "biz.scaling_strain",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 0,
+      "modifiers": [],
+      "requires": [],
+      "cooldownWeeks": 12,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "techDebt",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": 8
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "churnMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.08
+          },
+          "durationWeeks": 8,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-biz.scaling_strain"
+    },
+    {
+      "id": "biz.acquisition_offer",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 90,
+      "modifiers": [
+        {
+          "when": {
+            "m": "arr",
+            "op": ">",
+            "v": 200000000
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "valuationRef",
+          "op": ">=",
+          "v": 5600000000
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "exclusiveGroup": "exit",
+      "choices": [
+        {
+          "id": "decline",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "hype",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 3
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ]
+        },
+        {
+          "id": "accept",
+          "effects": [
+            {
+              "k": "flag",
+              "key": "exitAccepted",
+              "value": true,
+              "durationWeeks": 1
+            }
+          ],
+          "tags": [
+            "legacy"
+          ]
+        }
+      ],
+      "defaultChoiceId": "decline",
+      "art": "ui/ty-card-biz.acquisition_offer"
+    },
+    {
+      "id": "biz.cloud_bill_spike",
+      "family": "business",
+      "scope": "both",
+      "mtthWeeks": 55,
+      "modifiers": [
+        {
+          "when": {
+            "m": "users",
+            "op": ">",
+            "v": 5000
+          },
+          "factor": 1.5
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 500
+        }
+      ],
+      "cooldownWeeks": 12,
+      "severity": 1,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "burnMul",
+          "op": "mul",
+          "dist": {
+            "k": "uniform",
+            "lo": 1.1,
+            "hi": 1.3
+          },
+          "durationWeeks": 6,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "absorb",
+          "effects": []
+        },
+        {
+          "id": "optimize",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "devPowerMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.7
+              },
+              "durationWeeks": 2,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "burnMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.9
+              },
+              "durationWeeks": 4,
+              "decay": "none"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "absorb",
+      "art": "ui/ty-card-biz.cloud_bill_spike"
+    },
+    {
+      "id": "biz.enterprise_whale",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 70,
+      "modifiers": [
+        {
+          "when": {
+            "flag": "hasSales"
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 200
+        }
+      ],
+      "cooldownWeeks": 20,
+      "severity": 2,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "arpuMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.1
+          },
+          "durationWeeks": 12,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "payRateMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.05
+          },
+          "durationWeeks": 12,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-biz.enterprise_whale"
+    },
+    {
+      "id": "biz.founder_burnout",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 100,
+      "modifiers": [
+        {
+          "when": {
+            "m": "founderMorale",
+            "op": "<",
+            "v": 30
+          },
+          "factor": 3
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 50
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "founderMorale",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -20
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "devPowerMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.85
+          },
+          "durationWeeks": 4,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "push_on",
+          "effects": []
+        },
+        {
+          "id": "rest_week",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "founderMorale",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 12
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            },
+            {
+              "k": "metric",
+              "metric": "devPowerMul",
+              "op": "mul",
+              "dist": {
+                "k": "fixed",
+                "v": 0.6
+              },
+              "durationWeeks": 1,
+              "decay": "none"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "push_on",
+      "art": "ui/ty-card-biz.founder_burnout"
+    },
+    {
+      "id": "biz.security_incident",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 80,
+      "modifiers": [
+        {
+          "when": {
+            "m": "techDebt",
+            "op": ">",
+            "v": 50
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "users",
+          "op": ">=",
+          "v": 100
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 3,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "reputation",
+          "op": "add",
+          "dist": {
+            "k": "fixed",
+            "v": -10
+          },
+          "durationWeeks": 0,
+          "decay": "none"
+        },
+        {
+          "k": "metric",
+          "metric": "churnMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 1.15
+          },
+          "durationWeeks": 8,
+          "decay": "none"
+        }
+      ],
+      "choices": [
+        {
+          "id": "stay_quiet",
+          "effects": []
+        },
+        {
+          "id": "disclose",
+          "effects": [
+            {
+              "k": "metric",
+              "metric": "reputation",
+              "op": "add",
+              "dist": {
+                "k": "fixed",
+                "v": 4
+              },
+              "durationWeeks": 0,
+              "decay": "none"
+            }
+          ]
+        }
+      ],
+      "defaultChoiceId": "stay_quiet",
+      "art": "ui/ty-card-biz.security_incident"
+    },
+    {
+      "id": "biz.talent_wave",
+      "family": "business",
+      "scope": "tycoon",
+      "mtthWeeks": 60,
+      "modifiers": [
+        {
+          "when": {
+            "m": "climate",
+            "op": "<",
+            "v": -0.2
+          },
+          "factor": 2
+        }
+      ],
+      "requires": [
+        {
+          "m": "headcount",
+          "op": ">=",
+          "v": 3
+        }
+      ],
+      "cooldownWeeks": 26,
+      "severity": 1,
+      "onFire": [
+        {
+          "k": "metric",
+          "metric": "wageMul",
+          "op": "mul",
+          "dist": {
+            "k": "fixed",
+            "v": 0.92
+          },
+          "durationWeeks": 12,
+          "decay": "none"
+        }
+      ],
+      "art": "ui/ty-card-biz.talent_wave"
+    }
+  ]
+}

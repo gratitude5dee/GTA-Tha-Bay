@@ -12,7 +12,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import {
-  decodeGraph, decodeP0, enuFromLatLng, type PedEdge, type RoadEdge, type SimChunk, type WorldIndex, type Junction,
+  NHOOD_NONE, decodeDistrictGrid, decodeGraph, decodeP0, enuFromLatLng, type PedEdge, type RoadEdge, type SimChunk, type WorldIndex, type Junction,
 } from '../../../../packages/shared/src/index.ts';
 import { loadSources, mapSchema, type AreaId, type SourcesConfig } from '../config.ts';
 import type { ContentWorld } from '../content.ts';
@@ -34,6 +34,8 @@ export interface DecodedBake {
   transit: TransitRoutes;
   report: Record<string, unknown>;
   graphBytes: Uint8Array;
+  /** `district-grid.v1.pack` when the bake has one (M02c1). */
+  districtGrid?: Uint8Array;
 }
 
 export function loadBakeDir(dir: string): DecodedBake {
@@ -49,6 +51,7 @@ export function loadBakeDir(dir: string): DecodedBake {
     transit: JSON.parse(readFileSync(path.join(dir, 'transit-routes.json'), 'utf8')) as TransitRoutes,
     report,
     graphBytes: readFileSync(path.join(dir, 'packs', 'sf-graph.v1.pack')),
+    ...(existsSync(path.join(dir, 'district-grid.v1.pack')) ? { districtGrid: readFileSync(path.join(dir, 'district-grid.v1.pack')) } : {}),
   };
 }
 
@@ -95,7 +98,9 @@ export function verifyDecoded(b: DecodedBake, cfg: SourcesConfig, content?: Cont
   const segInfo = new Map<number, { cnn: number; osmWay: number }>();
   for (const c of b.sims) for (const s of c.segments) segInfo.set(s.id, { cnn: s.cnn, osmWay: s.osmWay });
   const sr = sccReport(eg, edges, (e) => segInfo.get(e.seg) ?? { cnn: 0, osmWay: 0 });
-  out.push(row('s14.scc', sr.fraction >= g14.sccMin, `largest strongly connected component holds ${sr.largest} of ${sr.edges} drivable edges (${(sr.fraction * 100).toFixed(2)} %), at least ${(g14.sccMin * 100).toFixed(0)} % required${sr.fraction < g14.sccMin ? `; strays: ${sr.stray.map((s) => `${s.edges} edges near cnn ${s.cnn} way ${s.osmWay}`).join('; ')}` : ''}`, { fraction: sr.fraction, edges: sr.edges, components: sr.components }));
+  const isl = (b.report['roads'] as { islands?: { droppedComponents: number; droppedEdges: number; keptComponents: number; keptEdges: number } } | undefined)?.islands;
+  const islNote = isl ? `; declared island drops ${isl.droppedComponents} fragments (${isl.droppedEdges} edges, outside the count), kept islands ${isl.keptComponents} (${isl.keptEdges} edges, inside it)` : '';
+  out.push(row('s14.scc', sr.fraction >= g14.sccMin, `largest strongly connected component holds ${sr.largest} of ${sr.edges} drivable edges (${(sr.fraction * 100).toFixed(2)} %), at least ${(g14.sccMin * 100).toFixed(0)} % required${islNote}${sr.fraction < g14.sccMin ? `; strays: ${sr.stray.map((s) => `${s.edges} edges near cnn ${s.cnn} way ${s.osmWay}`).join('; ')}` : ''}`, { fraction: sr.fraction, edges: sr.edges, components: sr.components }));
   const noLanes = edges.filter((e) => e.lanes === 0).length;
   out.push(row('s14.lanes', noLanes === 0, `${noLanes} edges with lanes = 0`, { noLanes }));
   const badSignals = junctions.filter((j) => j.control === 1 && (!j.program || j.program.phases.length < 2)).length;
@@ -169,6 +174,34 @@ export function verifyDecoded(b: DecodedBake, cfg: SourcesConfig, content?: Cont
   }
   const trErr = mapSchema('transit-routes')(b.transit);
   out.push(row('s14.transit-schema', trErr.length === 0, trErr.length === 0 ? 'transit-routes.json validates against transit-routes.schema.json' : trErr.slice(0, 5).join('; ')));
+
+  // district grid (M02c1): every cell is a neighbourhood 0 to 40 or 255, and every neighbourhood maps to a district of districts.json
+  if (b.districtGrid) {
+    const bad: string[] = [];
+    let grid: ReturnType<typeof decodeDistrictGrid> | null = null;
+    try {
+      grid = decodeDistrictGrid(b.districtGrid);
+    } catch (e) {
+      bad.push(e instanceof Error ? e.message : String(e));
+    }
+    let used = 0;
+    if (grid) {
+      if (grid.bakeId !== b.index.bakeId) bad.push('bakeId differs from the world index');
+      const districtOf = new Map(b.index.districts.filter((d) => d.kind === 'nhood').map((d) => [d.id, d.parent] as const));
+      const known = new Set(b.index.districts.filter((d) => d.kind === 'district').map((d) => d.id));
+      const seen = new Set<number>();
+      for (const v of grid.cells) seen.add(v);
+      for (const v of [...seen].sort((a, c) => a - c)) {
+        if (v === NHOOD_NONE) continue;
+        used++;
+        const slug = grid.nhoods[v];
+        const parent = slug === undefined ? undefined : districtOf.get(slug);
+        if (v > 40 || slug === undefined) bad.push(`cell index ${v} is outside 0 to 40`);
+        else if (!parent || !known.has(parent)) bad.push(`index ${v} (${slug}) maps to no district`);
+      }
+    }
+    out.push(row('s14.district-grid', bad.length === 0, bad.length === 0 ? `district-grid.v1: every cell is 0 to 40 or 255 and ${used} neighbourhoods map to a district` : bad.slice(0, 6).join('; '), { neighbourhoods: used }));
+  }
 
   // hero edges (sf only)
   if (g14.heroEdges) {

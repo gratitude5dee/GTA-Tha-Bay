@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "tierCaps": {
+    "desktop-ultra": { "rivals": 7, "policeCars": 10, "cullM": 400, "skidSegments": 512, "envProbe": "grid", "wheelBlur": true, "sparkParticles": 256 },
+    "desktop": { "rivals": 7, "policeCars": 10, "cullM": 350, "skidSegments": 384, "envProbe": "grid", "wheelBlur": true, "sparkParticles": 192 },
+    "mobile": { "rivals": 5, "policeCars": 6, "cullM": 200, "skidSegments": 128, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 96 },
+    "mobile-low": { "rivals": 3, "policeCars": 4, "cullM": 150, "skidSegments": 0, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 32 },
+    "xr-quest": { "rivals": 3, "policeCars": 3, "cullM": 150, "skidSegments": 0, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 0 },
+    "xr-visionpro": { "rivals": 5, "policeCars": 6, "cullM": 250, "skidSegments": 128, "envProbe": "baked", "wheelBlur": false, "sparkParticles": 64 }
+  },
+  "models": {
+    "m1PromoteM": 70,
+    "m1DemoteM": 100,
+    "m1MaxActive": { "desktop-ultra": 8, "desktop": 8, "mobile": 6, "mobile-low": 4, "xr-quest": 4, "xr-visionpro": 6 }
+  },
+  "ai": {
+    "lookaheadBaseM": 6, "lookaheadPerMps": 0.25, "speedFactorMin": 0.82, "speedFactorMax": 0.98, "brakeMarginMax": 1.25,
+    "mistakePerCorner": 0.06, "overtakeGapM": 25, "overtakeHoldSec": 1.5, "recoverStuckSec": 3, "offRouteTeleportM": 40, "thinkHz": 30
+  },
+  "rubberBand": {
+    "maxPct": 0.08, "gapScaleM": 150, "freezeLastPct": 0.15, "difficulty": { "easy": 1.0, "normal": 0.6, "hard": 0.25 }, "underdogNitro": 1.25, "powerCapPct": 0.08
+  },
+  "nitro": {
+    "nearMissM": 1.5, "nearMissKph": 80, "draftWindowSec": 1.2, "draftLateralM": 1.5, "draftKph": 100,
+    "perfectStartWindowSec": 0.25, "perfectStartNitroPct": 10
+  },
+  "damage": {
+    "vThreshold": 3, "k": 0.0016, "engineShareFront": 0.5, "spikePuncture": 1.0, "landingVy": 6, "repairKitPct": 30, "bustRepairPct": 5,
+    "difficulty": { "easy": 0.6, "normal": 1.0, "hard": 1.2 }
+  },
+  "race": {
+    "countdownTicks": 180, "gridAutoTicks": 300, "jumpStartM": 0.5, "jumpStartPenaltySec": 3, "wrongWayWarnM": 30, "wrongWayRespawnSec": 6,
+    "stuckResetSec": 3, "resetPenaltySec": 5, "flipResetSec": 3, "resetHoldSec": 1, "gateTolerantY": 6, "defaultGateWidthM": 14, "minGateWidthM": 10,
+    "autoGateEveryM": 250, "autoGateTurnDeg": 60
+  },
+  "drift": { "minAngleDeg": 8, "chainBreakSec": 1.0, "comboStep": 0.1, "comboMax": 5, "wallPenalty": 0.5 },
+  "progression": {
+    "repThresholds": [0, 200, 500, 1000, 1700, 2600, 3700, 5000, 6600, 8500, 10700, 13200, 16000, 19200, 22800, 26800, 31300, 36300, 41800, 48000],
+    "classRepLevel": { "C": 3, "B": 7, "A": 11, "S": 15 },
+    "purseDollars": { "D": 1200, "C": 3000, "B": 7000, "A": 15000, "S": 25000 },
+    "placeMult": [1.0, 0.6, 0.35, 0.2, 0.1],
+    "medalMult": [1.0, 1.25, 1.5, 2.0]
+  },
+  "replay": { "maxInputsBytes": 12288, "maxTrackBytes": 16384, "maxDurationSec": 600, "keyframeEveryTicks": 300 },
+  "photo": { "radiusM": 30, "fovDeg": [18, 90], "exposureEv": [-2, 2], "filters": 8 },
+  "xr": { "allowKinds": ["sprint", "circuit", "checkpoint", "speedtrap", "downhill", "hillclimb", "pursuit", "robotaxiRush"], "vignetteBoostPerYawRate": 0.6 }
+}

@@ -7,6 +7,7 @@
  * the real verifier and wakes the shim's waitForEvent. The same code runs inside GenJobWorkflow; services/edge/test covers
  * the Workflows runtime (cutscene-singleflight, genjob-poll-fallback, fal-webhook-verify).
  */
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPlatformProxy } from 'wrangler';
@@ -29,6 +30,7 @@ import {
 } from '../src/core.ts';
 import { buildCutsceneJob } from '../../edge/src/cutscenes/job.ts';
 
+const repoRootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const failures: string[] = [];
 const check = (ok: boolean, what: string, detail = ''): void => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}${ok || detail === '' ? '' : ` (${detail})`}`);
@@ -81,7 +83,14 @@ async function main(): Promise<void> {
   process.env['WRANGLER_LOG'] ??= 'error'; // the edge config binds Durable Objects that a Node proxy cannot host; only R2 is used
   // The R2 buckets come from the edge Worker's own wrangler config (Miniflare under the hood, nothing persisted).
   const configPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../edge/wrangler.jsonc');
-  const proxy = await getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE: R2Bucket }>({ configPath, environment: 'staging', persist: false });
+  // remoteBindings: false keeps every binding local (wrangler's GetPlatformProxyOptions; default true). Without it the
+  // remote-only Workers AI `ai` binding (M06a4) starts a remote proxy session, which needs CLOUDFLARE_API_TOKEN (BD-FIX-CI4-E01).
+  const proxy = await getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE: R2Bucket }>({
+    configPath,
+    environment: 'staging',
+    persist: false,
+    remoteBindings: false,
+  });
   try {
     const { MEDIA, PRIVATE } = proxy.env;
     const blob = r2Blob({ MEDIA, PRIVATE });
@@ -179,6 +188,10 @@ async function main(): Promise<void> {
   } finally {
     await proxy.dispose();
   }
+
+  // M05b2: the gate's prompt lint over the PRIVATE names object (AC-11), in Node over Miniflare's R2.
+  const lint = spawnSync('pnpm', ['exec', 'vitest', 'run', '--root', 'services/pipeline'], { cwd: repoRootDir, stdio: 'inherit' });
+  check(lint.status === 0, 'gate.prompt-lint: the gate lints the filled prompt with the real-side names from PRIVATE');
 
   if (failures.length > 0) {
     console.error(`check:pipeline FAIL ${failures.length} check(s)`);

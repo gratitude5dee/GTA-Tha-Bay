@@ -1,0 +1,11 @@
+{
+  "rule": "V5",
+  "expect": [
+    "V5"
+  ],
+  "note": "a circuit that ends far from its start",
+  "defPatch": {
+    "/kind": "circuit",
+    "/routeLenM": 2000
+  }
+}

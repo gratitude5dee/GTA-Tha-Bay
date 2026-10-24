@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "mission.m.a1.05",
+  "variants": {
+    "default": "assets/src/data/mission.m.a1.05/mission.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.05"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

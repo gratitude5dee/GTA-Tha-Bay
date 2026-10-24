@@ -1,0 +1,12 @@
+{
+  "$comment": "place_desc source of the cutscene prompt templates (spec/domains/03-story-cutscenes.md section D4): authored descriptive text per stage or per story beat (`beat.<refId>`, without the @rev). Text only: no names of real places or brands.",
+  "schema": "cutscene-places/1",
+  "places": {
+    "beat.cut.story.m.dev.sample.intro": "a wide civic plaza in front of a domed hall, with lawns, flagpoles and a few benches",
+    "beat.cut.story.m.a1.01.dawn": "an industrial shipyard on a bay shore, tall dockside cranes, a rolling-door garage with an amber tow truck parked in front",
+    "beat.cut.story.m.a1.03.raid": "a fenced industrial lot at night, tire smoke drifting through headlights, a few parked cars in a loose ring, a harbor crane in the fog behind",
+    "beat.cut.story.m.a1.04.keynote": "a bright launch stage in a glass office atrium, a large curved screen above the stage, rows of standing guests",
+    "beat.cut.story.m.a1.05.ring": "a busy downtown plaza at dusk with a round cable-car turntable at its centre, storefronts and string lights around",
+    "beat.cut.story.m.a1.06.antenna": "a grassy hilltop above a dense city grid at night, a scaffold mast with small lights, a parked van beside it"
+  }
+}

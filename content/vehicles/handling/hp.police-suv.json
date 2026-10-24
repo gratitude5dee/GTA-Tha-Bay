@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "id": "hp.police-suv",
+  "rev": 1,
+  "class": "D",
+  "fictionalMake": "Brackenridge",
+  "massKg": 2300,
+  "cgHeightM": 0.75,
+  "wheelbaseM": 3,
+  "trackM": 1.7,
+  "frontWeightPct": 54,
+  "engine": {
+    "idleRpm": 750,
+    "redlineRpm": 6000,
+    "torque": [
+      [
+        750,
+        358
+      ],
+      [
+        1500,
+        429
+      ],
+      [
+        2500,
+        477
+      ],
+      [
+        3750,
+        397
+      ],
+      [
+        5000,
+        298
+      ],
+      [
+        5500,
+        268
+      ],
+      [
+        6000,
+        238
+      ]
+    ],
+    "powerKw": 159
+  },
+  "drive": {
+    "type": "AWD",
+    "gears": [
+      3.8,
+      2.3,
+      1.5,
+      1.1,
+      0.85,
+      0.7
+    ],
+    "reverse": 3.5,
+    "finalDrive": 3.7,
+    "efficiency": 0.9,
+    "wheelRadiusM": 0.36,
+    "shiftUpPct": 0.92,
+    "shiftDownPct": 0.42,
+    "shiftTimeSec": 0.14,
+    "awdRearBias": 0.5
+  },
+  "tire": {
+    "muLong": 0.9,
+    "muLat": 0.9,
+    "peakSlipDeg": 8,
+    "slideRatio": 0.78,
+    "slideAtX": 2.5,
+    "loadSens": 0.12,
+    "frontGrip": 1,
+    "rearGrip": 0.98,
+    "rollResistN": 248
+  },
+  "aero": {
+    "cdA": 1.2,
+    "downforceNPerMps2": 0
+  },
+  "steer": {
+    "lockDeg": 34,
+    "speedRefMps": 26,
+    "minLockPct": 18,
+    "rateDegPerS": 260,
+    "assist": 0.3,
+    "selfAlign": 0.3
+  },
+  "brake": {
+    "maxDecelG": 0.85,
+    "bias": 0.6,
+    "abs": true
+  },
+  "drift": {
+    "assist": 0,
+    "handbrakeRearGrip": 0.5,
+    "yawDamp": 0.2
+  },
+  "suspension": {
+    "restM": 0.28,
+    "travelM": 0.12,
+    "rideHz": 1.4,
+    "dampingRatio": 0.7,
+    "antiRoll": 0.5,
+    "landingDamp": 0.6,
+    "airPitchTrim": 0.4,
+    "airRollTrim": 0.4
+  },
+  "nitro": {
+    "capacity": 0,
+    "boostKw": 0,
+    "drainPerSec": 0,
+    "minToFire": 100,
+    "maxOverTopPct": 0,
+    "refill": {
+      "driftPerSec": 0,
+      "nearMiss": 0,
+      "draftPerSec": 0,
+      "airPerSec": 0
+    }
+  },
+  "durability": 1.6
+}

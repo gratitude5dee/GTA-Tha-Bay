@@ -1,5 +1,6 @@
 import type { SaveReason, SaveResult, SimControlMessage, SlotId } from '@dv/shared';
 import type { SimControlResult } from '../transport/envelope.ts';
+import type { SaveCapability, SaveWritePort } from '../save-port.ts';
 
 /**
  * Worker side of saving (C05 rule 4, C02 rule 9): the handler for `SimControlMessage {t: 'save.request'}` and the
@@ -11,6 +12,8 @@ import type { SimControlResult } from '../transport/envelope.ts';
  */
 export interface SaveWriter {
   write(slot: SlotId, data: unknown, reason: SaveReason): Promise<SaveResult>;
+  /** The SaveService sets the session capability before a write (M04a2: ModeHost chooses it per top-level mode). */
+  setCapability?(cap: SaveCapability): void;
 }
 
 export interface SaveSnapshotEntry {
@@ -28,21 +31,30 @@ export interface SaveControlDeps {
   collect: (reason: SaveReason) => SaveSnapshotEntry[] | null;
 }
 
-/** What a sim system holds to request a save of a slot's data. Writes happen at the next flush, latest per slot wins. */
-export interface SaveWritePort {
-  post(slot: SlotId, data: unknown, reason: SaveReason): void;
-}
+export type { SaveWritePort } from '../save-port.ts';
 
 export class SaveControl implements SaveWritePort {
-  private readonly queue = new Map<SlotId, { data: unknown; reason: SaveReason }>();
+  /** The latest write per slot, with the capability it was posted under (BD-FIX-CI7-F04). */
+  private readonly queue = new Map<SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }>();
   private flushing: Promise<number> | null = null;
   /** Writes that failed at a flush (kept for QA and the status line). */
   readonly failures: { slot: SlotId; error: string }[] = [];
+  /** The capability of the running top-level mode (M04a2); applied to the SaveService before each write batch. */
+  capability: SaveCapability | null = null;
 
   constructor(private readonly deps: SaveControlDeps) {}
 
+  /**
+   * Queues a slot write under the capability in force now. The write keeps that capability even when the capability changes before
+   * the flush: the pump can run a tick between the post and the flush (a UI command and frames in one batch), and the idle menu's
+   * `core` save (`ModeHost.saveCore`) raises the capability for its own post only and lowers it again at that tick (BD-FIX-CI7-F04).
+   */
   post(slot: SlotId, data: unknown, reason: SaveReason): void {
-    this.queue.set(slot, { data, reason });
+    this.queue.set(slot, { data, reason, cap: this.capability });
+  }
+
+  setCapability(cap: SaveCapability | null): void {
+    this.capability = cap;
   }
 
   get pending(): number {
@@ -54,6 +66,7 @@ export class SaveControl implements SaveWritePort {
     const entries = this.deps.collect(msg.reason);
     if (!entries) return { t: 'save.result', ok: false, reason: 'not-eligible' };
     const svc = await this.deps.service();
+    if (this.capability) svc.setCapability?.(this.capability);
     let n = 0;
     for (const e of entries) {
       const r = await svc.write(e.slot, e.data, msg.reason);
@@ -69,13 +82,21 @@ export class SaveControl implements SaveWritePort {
     if (this.queue.size === 0) return Promise.resolve(0);
     const run = (async (): Promise<number> => {
       const svc = await this.deps.service();
+      if (this.capability) svc.setCapability?.(this.capability);
       let n = 0;
-      while (this.queue.size > 0) {
-        const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason }];
-        this.queue.delete(slot);
-        const r = await svc.write(slot, item.data, item.reason);
-        if (r.ok) n++;
-        else this.failures.push({ slot, error: r.error });
+      try {
+        while (this.queue.size > 0) {
+          const [slot, item] = this.queue.entries().next().value as [SlotId, { data: unknown; reason: SaveReason; cap: SaveCapability | null }];
+          this.queue.delete(slot);
+          if (item.cap) svc.setCapability?.(item.cap);
+          const r = await svc.write(slot, item.data, item.reason);
+          if (r.ok) n++;
+          else this.failures.push({ slot, error: r.error });
+        }
+      } finally {
+        // A write's own capability lasts for that write only: the service goes back to the session's capability in force now, so a
+        // capability raised for one post (the idle menu's `core` save) does not outlive the flush (BD-FIX-CI8-G04).
+        if (this.capability) svc.setCapability?.(this.capability);
       }
       return n;
     })();

@@ -4,7 +4,7 @@
  * tunnel portals), pursuitBreakers (authored, snapped to an edge within 12 m), chokePoints (bridge and tunnel mouths, ramps
  * with at most two lanes, narrow streets), jumpZones (crests with vertical curvature above 0.02 /m at speeds from 11 m/s,
  * at most three per chunk), portals (authored bridge, ferry and tunnel seeds snapped to the graph, plus one `county-line`
- * portal per drivable edge that leaves the neighbourhood union on land), shoreNodes (land-side coastline samples every
+ * portal per drivable edge that leaves the neighbourhood union on land and is not on an island, DL-706), shoreNodes (land-side coastline samples every
  * 40 m with the outward normal, piers included) and teleportNodes (XR nodes at stairs and slopes of 15 % and more; landmark
  * and transit nodes come from S10, which runs after this stage).
  * A chunk holds at most 24 records per type (contract rule 20): derived records beyond that are thinned in hash order and
@@ -43,6 +43,8 @@ export interface TagsInputs {
   isLand(x: number, z: number): boolean;
   content: ContentWorld;
   bridges: BridgesConfig;
+  /** Street-lamp spacing along Arterial and Collector segments, metres (config/world/density.json `lampPitchM`, M02b2). */
+  lampPitchM: number;
 }
 
 export interface TagsReport {
@@ -54,7 +56,61 @@ export interface TagsReport {
   portalsMissing: string[];
   countyLine: number;
 }
-export interface TagsProduct { tags: Map<ChunkKey, ChunkTags>; portals: Portal[]; report: TagsReport }
+export interface TagsProduct {
+  tags: Map<ChunkKey, ChunkTags>;
+  portals: Portal[];
+  /** The `l0` LAMP records per chunk as x, z, yaw triples (yaw faces the road), sorted by x then z (M02b2). */
+  lamps: Map<ChunkKey, number[]>;
+  report: TagsReport;
+}
+
+/** Lamp poles stand this far outside the carriageway edge. */
+export const LAMP_SETBACK_M = 1.5;
+/** No lamp this close to either end of a segment (the junction mouth). */
+export const LAMP_END_CLEAR_M = 10;
+/** Segments of these classes carry lamps. */
+const LAMP_CLASSES: readonly RoadClass[] = [RoadClass.Arterial, RoadClass.Collector];
+
+/**
+ * The street-lamp records (M02b2): a lamp every `pitchM` metres on both sides of each Arterial and Collector segment that is on the
+ * ground (bridges and tunnels carry none: the LAMP record has no height, the renderer sets it on the terrain). Pure and ordered.
+ */
+export function placeLamps(inp: Pick<TagsInputs, 'segs' | 'box' | 'isLand' | 'lampPitchM'>): Map<ChunkKey, number[]> {
+  const out = new Map<ChunkKey, number[]>();
+  const pitch = inp.lampPitchM;
+  for (const s of inp.segs) {
+    if (!LAMP_CLASSES.includes(s.cls) || s.bridge || s.tunnel) continue;
+    const L = polyLength(s.pts);
+    if (L < 2 * LAMP_END_CLEAR_M) continue;
+    const span = L - 2 * LAMP_END_CLEAR_M;
+    const n = Math.floor(span / pitch) + 1;
+    // Centre the run between the two clear zones so the ends are symmetric.
+    const start = LAMP_END_CLEAR_M + (span - (n - 1) * pitch) / 2;
+    const off = s.widthM / 2 + LAMP_SETBACK_M;
+    for (let k = 0; k < n; k++) {
+      const p = pointAt3(s.pts, s.ys, start + k * pitch);
+      for (const side of [1, -1]) {
+        // The left normal of the direction (tx, tz) in ENU x/z is (tz, -tx); `side` picks the kerb.
+        const x = Math.round((p.x + side * p.tz * off) * 10) / 10;
+        const z = Math.round((p.z - side * p.tx * off) * 10) / 10;
+        if (x < inp.box.minX || x > inp.box.maxX || z < inp.box.minZ || z > inp.box.maxZ || !inp.isLand(x, z)) continue;
+        const yaw = yawOf(-side * p.tz, side * p.tx);
+        const key = chunkKeyAt(9, x, z);
+        const list = out.get(key) ?? [];
+        list.push(x, z, Math.round(yaw * 1000) / 1000);
+        out.set(key, list);
+      }
+    }
+  }
+  // Stable order: by x, then z, whatever order the segments came in.
+  for (const [key, l] of out) {
+    const recs: [number, number, number][] = [];
+    for (let i = 0; i < l.length; i += 3) recs.push([l[i] as number, l[i + 1] as number, l[i + 2] as number]);
+    recs.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+    out.set(key, recs.flat());
+  }
+  return new Map([...out.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+}
 
 type Rec = Record<string, unknown> & { id: string; x: number; y: number; z: number };
 
@@ -204,6 +260,7 @@ export function runTags(inp: TagsInputs): TagsProduct {
   }
   inp.edges.forEach((e) => {
     const s = inp.segs[e.seg] as SegB;
+    if (s.island === true) return;   // an island gets no portal (DL-706); dropped fragments are not in the graph
     const from = inp.nodes[e.from] as NodeB, to = inp.nodes[e.to] as NodeB;
     if (!inp.inUnion(from.x, from.z) || inp.inUnion(to.x, to.z) || !inp.isLand(to.x, to.z)) return;
     // the last point of the edge inside the union
@@ -254,18 +311,25 @@ export function runTags(inp: TagsInputs): TagsProduct {
     }
   }
 
-  // -- teleport nodes: stairs and steep walkways (XR comfort)
+  // -- teleport nodes: stairs and steep walkways (XR comfort); none beside an island (DL-706)
+  const islandGrid = new PointGrid<number>(32);
+  inp.segs.forEach((s, i) => {
+    if (s.island !== true) return;
+    const L = polyLength(s.pts);
+    for (let d = 0; d <= L; d += 8) { const p = pointAt3(s.pts, s.ys, d); islandGrid.add(p.x, p.z, i); }
+  });
+  const nearIsland = (x: number, z: number): boolean => islandGrid.nearest(x, z, 14) !== null;
   for (const [key, c] of inp.ped.chunks) {
     const byId = new Map(c.nodes.map((n) => [n.id, n] as const));
     for (const n of c.nodes) {
-      if ((n.flags & PedNodeFlag.Stairs) !== 0) add('teleportNodes', { id: idAt('tp.xr', n.x, n.z), x: n.x, y: n.y, z: n.z, yaw: 0, kind: 'xr' });
+      if ((n.flags & PedNodeFlag.Stairs) !== 0 && !nearIsland(n.x, n.z)) add('teleportNodes', { id: idAt('tp.xr', n.x, n.z), x: n.x, y: n.y, z: n.z, yaw: 0, kind: 'xr' });
     }
     for (const e of c.edges) {
       if (e.kind !== PedEdgeKind.Sidewalk && e.kind !== PedEdgeKind.Path) continue;
       const a = byId.get(e.a), b = byId.get(e.b);
       if (!a || !b) continue;
       const h = Math.hypot(b.x - a.x, b.z - a.z);
-      if (h >= 4 && Math.abs(b.y - a.y) / h >= 0.15) add('teleportNodes', { id: idAt('tp.xr', a.x, a.z), x: a.x, y: a.y, z: a.z, yaw: yawOf(b.x - a.x, b.z - a.z), kind: 'xr' });
+      if (h >= 4 && Math.abs(b.y - a.y) / h >= 0.15 && !nearIsland(a.x, a.z)) add('teleportNodes', { id: idAt('tp.xr', a.x, a.z), x: a.x, y: a.y, z: a.z, yaw: yawOf(b.x - a.x, b.z - a.z), kind: 'xr' });
     }
     void key;
   }
@@ -292,5 +356,7 @@ export function runTags(inp: TagsInputs): TagsProduct {
     }
     tags.set(key, out as unknown as ChunkTags);
   }
-  return { tags, portals: portals.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)), report };
+  const lamps = placeLamps(inp);
+  report.counts['lamps'] = [...lamps.values()].reduce((n, l) => n + l.length / 3, 0);
+  return { tags, portals: portals.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)), lamps, report };
 }

@@ -230,6 +230,46 @@ test.describe('telemetry @telemetry', () => {
   });
 });
 
+// BD-FIX-CI-01 (A-10, R-ROLL-01): `POST /api/v1/t` is geo-gated. When boot answers region 'blocked' the offline single-player page
+// still boots and never calls it, so a blocked player sees no 451 in the console. The boot answer is rewritten here, so the
+// runner's location does not matter.
+test.describe('telemetry in a blocked region @telemetry', () => {
+  test('boot region blocked: the page boots and sends no telemetry, not even the hidden beacon @telemetry', async ({ page, browserName }) => {
+    test.setTimeout(120_000);
+    const posts: string[] = [];
+    await page.route('**/api/v1/boot', async (route) => {
+      const res = await route.fetch();
+      const body = { ...((await res.json()) as Record<string, unknown>), region: 'blocked' };
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.route('**/api/v1/t', async (route) => {
+      posts.push(route.request().postData() ?? '');
+      await route.fulfill({ status: 204 });
+    });
+    page.on('request', (req) => {
+      if (req.url().endsWith('/api/v1/t') && req.method() === 'POST') posts.push(req.postData() ?? '');
+    });
+    const errors: string[] = [];
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
+    await page.goto('/?tier=mobile-low');
+    await waitForPlatform(page);
+    // app.start, tier.decision and app.ready are queued at boot and flushed 200 ms later on an open region.
+    await page.waitForTimeout(3_000);
+    if (browserName === 'chromium') {
+      await page.evaluate(() => {
+        Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      await expect.poll(() => page.evaluate(() => (JSON.parse(localStorage.getItem('dv.hb') ?? '{}') as { state?: string }).state)).toBe('hidden');
+      await page.waitForTimeout(1_000);
+    }
+    expect(posts).toEqual([]);
+    expect(errors.filter((e) => /\b451\b/.test(e))).toEqual([]);
+  });
+});
+
 test.describe('memory bomb @membomb', () => {
   test('writes the running total before each 64 MB step and shows it after a relaunch @membomb', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'the bomb allocates real memory; one engine is enough in CI');

@@ -1,0 +1,39 @@
+{
+  "kind": "building",
+  "id": "lm.sutro-tower",
+  "variants": {
+    "desktop": "assets/src/building/lm.sutro-tower/desktop.glb",
+    "mobile": "assets/src/building/lm.sutro-tower/mobile.glb",
+    "mobile-low": "assets/src/building/lm.sutro-tower/mobile-low.glb"
+  },
+  "stats": {
+    "desktop": {
+      "tris": 1390,
+      "verts": 3006,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile": {
+      "tris": 598,
+      "verts": 1278,
+      "primitives": 2,
+      "materials": 2
+    },
+    "mobile-low": {
+      "tris": 280,
+      "verts": 620,
+      "primitives": 2,
+      "materials": 2
+    }
+  },
+  "codec": {
+    "mesh": "meshopt"
+  },
+  "deps": [],
+  "tags": [
+    "landmark",
+    "lm-class:hero"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

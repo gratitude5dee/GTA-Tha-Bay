@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "a0af42d23f0a4b501f4cfb1719fa6868bd15a6b932d4c5af231c8b8f3a716a43",
+  "paths": [
+    "assets/src/building/lm.dolores-park/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "2b70e8933acbeef237184efd3480277597f70884a1c5892cb8dcace12d0b866f"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

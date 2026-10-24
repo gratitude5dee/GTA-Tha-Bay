@@ -35,18 +35,19 @@ describe('config/input (AC-1)', () => {
 
   it('every button of the layout is at least 44 px, has a binding in the touch map, and no binding points at a missing widget', () => {
     const onFoot = touchMap.contexts.onFoot ?? {};
-    const bound = new Map<string, string>();
+    // One button may drive two actions: Enter is also Interact on touch (M04b2).
+    const bound = new Map<string, string[]>();
     for (const [action, bindings] of Object.entries(onFoot)) {
-      for (const b of bindings ?? []) if (b.control.startsWith('touch:btn:')) bound.set(b.control.slice('touch:btn:'.length), action);
+      for (const b of bindings ?? []) if (b.control.startsWith('touch:btn:')) bound.set(b.control.slice('touch:btn:'.length), [...(bound.get(b.control.slice('touch:btn:'.length)) ?? []), action]);
     }
     const buttons = layout.widgets.filter((w) => w.kind === 'button');
-    expect(buttons.map((b) => b.id).sort()).toEqual(['camera', 'jump', 'pause']);
+    expect(buttons.map((b) => b.id).sort()).toEqual(['attack', 'block', 'camera', 'enter', 'jump', 'pause', 'phone', 'special']);
     for (const b of buttons) {
       if (b.kind !== 'button') continue;
       expect(b.sizePx, `${b.id} size`).toBeGreaterThanOrEqual(44);
-      expect(bound.get(b.id), `${b.id} is bound to its action`).toBe(b.action);
+      expect(bound.get(b.id) ?? [], `${b.id} is bound to its action`).toContain(b.action);
     }
-    // The on-foot layout has Jump, Camera and Pause and nothing else with a button (no dead button).
+    // The layout has Jump, Enter (M03a1), Camera, Pause (M04b2 adds Attack, Block, Special and Phone) and no dead button.
     const widgetIds = new Set(buttons.map((b) => b.id));
     const reserved = new Set(['moveRight', 'moveLeft', 'moveUp', 'moveDown', 'sprint']);
     for (const id of bound.keys()) expect(widgetIds.has(id) || reserved.has(id), `binding touch:btn:${id} has no widget`).toBe(true);

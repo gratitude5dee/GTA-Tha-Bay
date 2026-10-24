@@ -1,0 +1,31 @@
+{
+  "id": "aircraft.airliner",
+  "kind": "prop",
+  "version": 1,
+  "nameKey": "transit.vehicle.airliner",
+  "render": {
+    "asset": "vehicle/graybox.airliner"
+  },
+  "physics": {
+    "body": "kinematic",
+    "shape": "box",
+    "dims": [
+      18,
+      3,
+      28
+    ],
+    "massKg": 12000,
+    "groups": [
+      "kinematic"
+    ],
+    "liftM": 0
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    }
+  }
+}

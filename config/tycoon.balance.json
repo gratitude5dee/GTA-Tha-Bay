@@ -1,0 +1,238 @@
+{
+  "schema": "tycoon.balance.v1",
+  "sim": {
+    "ticksPerWeek": {
+      "x1": 1200,
+      "x2": 600,
+      "x4": 300
+    },
+    "boardIntervalWeeks": 13,
+    "maxEmployees": 60
+  },
+  "setup": {
+    "startCashCents": 9000000,
+    "founderSalaryYrCents": 4000000,
+    "founderMorale": 70,
+    "teamMorale": 70,
+    "reputation": 50,
+    "hype": 10,
+    "climateSpread": 0.3,
+    "allocation": {
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+    }
+  },
+  "company": {
+    "cofounderDev": 3,
+    "engWeight": 1.2,
+    "designWeight": 0.6,
+    "moraleBase": 0.6,
+    "moraleSlope": 0.4,
+    "moraleRef": 70,
+    "crunchMul": 1.2,
+    "raiseFocus": 0.2,
+    "opsPerHeads": 8,
+    "opsPenalty": 0.9,
+    "priceMul": {
+      "low": 0.8,
+      "standard": 1,
+      "premium": 1.25
+    },
+    "launchHype": 20,
+    "launchUsers": 50,
+    "qualityRate": 0.15,
+    "debtFeature": 0.6,
+    "debtRefactor": 1,
+    "debtQualityStart": 50,
+    "debtQualityWeight": 0.1,
+    "cacGrowthSkill": 0.03,
+    "cacGrowthCap": 0.35,
+    "cacSaturation": 0.2,
+    "churnOpsSkill": 0.02,
+    "churnOpsCap": 0.15,
+    "churnPriceWeight": 0.5,
+    "payQualityBase": 0.5,
+    "paySalesSkill": 0.02,
+    "payPriceWeight": 0.6,
+    "infraReduction": 0.4,
+    "infraFullAlloc": 30,
+    "office": {
+      "garage": 0,
+      "cowork": 80000,
+      "loft": 300000,
+      "tower": 900000
+    },
+    "officeUnlock": {
+      "garage": 0,
+      "cowork": 3,
+      "loft": 9,
+      "tower": 25
+    },
+    "hypeMean": 15,
+    "hypeRate": 0.04,
+    "reputationUp": 0.1,
+    "reputationDown": 0.05,
+    "climateDecay": 0.98,
+    "marketingCapMul": 2,
+    "marketingCapCashDiv": 8,
+    "monthWeeks": 4.333333333333333
+  },
+  "valuation": {
+    "growthWeight": 0.5,
+    "growthMin": -0.5,
+    "growthMax": 2,
+    "minOldMrrCents": 100000,
+    "hypeBase": 0.8,
+    "hypeDiv": 250,
+    "climateWeight": 0.35,
+    "floorBaseCents": 25000000,
+    "floorHypeBase": 0.5,
+    "floorLaunchMul": 1.5
+  },
+  "hiring": {
+    "perRolePerWeek": 3,
+    "poolPerRole": 12,
+    "expiryWeeks": 6,
+    "appearP": 0.5,
+    "skillMean": 5,
+    "skillSd": 2,
+    "reputationDiv": 50,
+    "askBase": 0.6,
+    "askSlope": 0.12,
+    "askClimate": 0.1,
+    "offerMinWeeks": 1,
+    "offerSpanWeeks": 3,
+    "accept": {
+      "base": 0.35,
+      "salarySlope": 1.6,
+      "optionCap": 0.25,
+      "optionDiv": 200,
+      "reputationDiv": 400,
+      "min": 0.05,
+      "max": 0.95
+    },
+    "vestWeeks": 208,
+    "cliffWeeks": 52,
+    "moraleRevert": 0.05,
+    "moraleCrunch": -1.5,
+    "moraleFire": -5,
+    "moraleLayoff": -10,
+    "moraleDownRound": -15,
+    "attritionBelow": 40,
+    "attritionRate": 0.02,
+    "severanceWeeks": 4,
+    "fireShare": 0.2,
+    "fireWindowWeeks": 8,
+    "fireReputation": 5
+  },
+  "founder": {
+    "crunch": -2,
+    "rest": 8,
+    "roundClose": 4
+  },
+  "board": {
+    "targets": {
+      "seed": 0.1,
+      "a": 0.15,
+      "b": 0.12,
+      "c": 0.1
+    },
+    "ignoreReputation": 3,
+    "oust": {
+      "perMiss": 0.15,
+      "reputation": 0.25,
+      "downRound": 0.2,
+      "max": 0.95
+    }
+  },
+  "end": {
+    "acquisitionMinCents": 5000000000,
+    "unicornPostMoneyCents": 100000000000,
+    "ipoArrCents": 10000000000,
+    "ramenArrCents": 500000000,
+    "ramenWeeks": 26,
+    "insolvencyWeeks": 4,
+    "bridgeBurnWeeks": 8,
+    "bridgeDiscountBp": 7000,
+    "bridgeMinCents": 1000000,
+    "retainedEmployeeScore": 25,
+    "legacyTagScore": 50,
+    "scoreCentsDiv": 100000,
+    "legacyTagMax": 10
+  },
+  "raise": {
+    "spacingWeeks": 4,
+    "maxMeetings": 4,
+    "closeWeeks": 2,
+    "focusWeeksBase": 3
+  },
+  "finance": {
+    "valLoBase": 0.8,
+    "valHiBase": 1.1,
+    "biasWeight": 0.1,
+    "climateWeight": 0.1,
+    "fomoPerSheet": 0.06,
+    "fomoCap": 0.15,
+    "amountLo": 0.6,
+    "amountHi": 1.25,
+    "dilutionTarget": {
+      "seed": 0.18,
+      "a": 0.2,
+      "b": 0.15,
+      "c": 0.09
+    },
+    "dilutionLo": 0.58,
+    "dilutionHi": 1.35,
+    "pool": {
+      "seed": [
+        800,
+        1200
+      ],
+      "a": [
+        1000,
+        1200
+      ],
+      "b": [
+        500,
+        800
+      ],
+      "c": [
+        300,
+        500
+      ]
+    },
+    "predatoryClimate": -0.3,
+    "predatoryRunwayWeeks": 12,
+    "predatoryLure": 0.1,
+    "predatoryLiq": {
+      "multiple": 2,
+      "participating": true
+    },
+    "walk": {
+      "reputation": 20,
+      "techDebt": 80,
+      "mood": 10
+    },
+    "validWeeks": 2,
+    "styleShift": {
+      "hardball": -0.15,
+      "founder_friendly": 0.15,
+      "herdWithRival": 0.1,
+      "herdAlone": -0.1,
+      "contrarianLowHype": 0.1,
+      "contrarianHypeBelow": 30
+    },
+    "moodBase": 50,
+    "closingWeeks": 2
+  },
+  "events": {
+    "officeClosedDevMul": 0.35,
+    "exitLo": 0.9,
+    "exitSpan": 0.4
+  },
+  "hardcore": {
+    "eventMul": 1.5,
+    "chequeMul": 0.8
+  }
+}

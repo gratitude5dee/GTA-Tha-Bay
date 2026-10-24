@@ -134,26 +134,49 @@ export class TouchBinder implements Binder {
   private readonly radius: number;
   private readonly nowFn: () => number;
   private readonly buttonAtFn: (target: unknown) => string | null;
-  private readonly buttonIds: ReadonlySet<string>;
-  private readonly stickZone: TouchRect | null;
-  private readonly lookZone: TouchRect | null;
+  private buttonIds: ReadonlySet<string> = new Set();
+  private stickZone: TouchRect | null = null;
+  private lookZone: TouchRect | null = null;
+  /** The stick is a steering arc (racing): only its horizontal half-axes are written. */
+  private steerOnly = false;
 
   constructor(private readonly opts: TouchBinderOptions) {
     this.radius = opts.radiusPx ?? TOUCH_STICK_RADIUS_PX;
     this.nowFn = opts.now ?? ((): number => performance.now());
     this.buttonAtFn = opts.buttonAt ?? buttonFromTarget;
+    this.applyLayout(opts.layout);
+  }
+
+  private applyLayout(layout: TouchLayout): void {
     const ids = new Set<string>();
     let stick: TouchRect | null = null;
+    let steer = false;
     let lookZone: TouchRect | null = null;
-    for (const w of opts.layout.widgets) {
+    for (const w of layout.widgets) {
       if (w.kind === 'button') ids.add(w.id);
-      else if (w.kind === 'stick' && w.role === 'move' && !stick) stick = w.zone;
-      else if (w.kind === 'lookzone' && !lookZone) lookZone = w.zone;
+      else if (w.kind === 'stick' && !stick) {
+        stick = w.zone;
+        steer = w.role === 'steer';
+      } else if (w.kind === 'lookzone' && !lookZone) lookZone = w.zone;
     }
     this.buttonIds = ids;
     this.stickZone = stick;
+    this.steerOnly = steer;
     this.lookZone = lookZone;
+    this.layoutSig = JSON.stringify(layout.widgets);
   }
+
+  /** Swaps the layout (M04b2: the player picked another one, or saved a custom one). Every contact is released first. */
+  setLayout(layout: TouchLayout): void {
+    // The same layout again (the shell hands over the default once its settings arrive) must not drop a contact that is down.
+    const sig = JSON.stringify(layout.widgets);
+    if (sig === this.layoutSig) return;
+    this.layoutSig = sig;
+    this.releaseAll();
+    this.applyLayout(layout);
+  }
+
+  private layoutSig = '';
 
   get connected(): boolean {
     return this.target !== null;
@@ -365,7 +388,7 @@ export class TouchBinder implements Binder {
     for (const c of this.contacts.values()) {
       if (c.kind !== 'stick') continue;
       let ax = (c.x - c.ox) / this.radius;
-      let ay = (c.y - c.oy) / this.radius;
+      let ay = this.steerOnly ? 0 : (c.y - c.oy) / this.radius;
       const m = Math.hypot(ax, ay);
       if (m > 1) {
         ax /= m;

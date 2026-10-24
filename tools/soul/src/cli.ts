@@ -9,6 +9,7 @@
  *   consent-index
  *   summarize <id> [--fixture <recorded.json>] [--out <dir>]
  *   normalize <slug> [--fixture <recorded.json>] [--out <dir>]
+ *   edge-bundle [--check]
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,6 +23,7 @@ import { discoverSouls, readJson, soulRoot, soulsUnder } from './common.ts';
 import { compileToFiles } from './compile.ts';
 import { writeConsentIndex } from './consent-index.ts';
 import { buildLintEnv, lintFiles } from './lint.ts';
+import { runEdgeBundle } from './edge-bundle.ts';
 import { normalize } from './normalize.ts';
 import { runSchemas } from './schemas.ts';
 import { summarize } from './summarize.ts';
@@ -143,8 +145,13 @@ async function main(): Promise<number> {
       r.problems.forEach((p) => console.log(`npc:normalize: ${p}`));
       return r.ok ? 0 : 1;
     }
+    case 'edge-bundle': {
+      const r = await runEdgeBundle(root, values.check);
+      log(r.message);
+      return r.ok ? 0 : 1;
+    }
     default:
-      console.error('usage: tools/soul/src/cli.ts schemas | lint | compile | build | consent-index | summarize | normalize');
+      console.error('usage: tools/soul/src/cli.ts schemas | lint | compile | build | consent-index | summarize | normalize | edge-bundle');
       return 2;
   }
 }

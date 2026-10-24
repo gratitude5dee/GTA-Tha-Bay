@@ -1,0 +1,20 @@
+{
+  "rule": "V7",
+  "expect": [
+    "V5",
+    "V7"
+  ],
+  "note": "a circuit with traffic and open side streets",
+  "defPatch": {
+    "/kind": "circuit",
+    "/routeLenM": 2000
+  },
+  "stub": {
+    "to": 5,
+    "from": 5,
+    "out": [
+      100,
+      101
+    ]
+  }
+}

@@ -1,0 +1,376 @@
+{
+  "$comment": "M02d2 AC-9 template (manual, desktop browser with a hardware GPU). Copy to notes.json and fill every null. Nothing here is a result: the review has NOT been run (device check pending). Steps: DV_WORLD=synth pnpm dev, open /?debug=1&tier=desktop, call __dvBridge.world.teleport(id) for each id and for lm.twin-peaks, repeat at tier=mobile-low, then open /?debug=1&perf=1&tier=mobile-low, run __dvBridge.platform.perf.run('route-ferry-ocean-beach', {durationS: 60, warmupS: 2}) and read __dvBridge.world.swaps() (each event has frame, ms and uploads).",
+  "milestone": "M02d2",
+  "ac": "AC-9",
+  "status": "pending",
+  "reviewer": null,
+  "date": null,
+  "gpu": null,
+  "browser": null,
+  "landmarks": [
+    {
+      "id": "lm.painted-ladies",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.china-basin-ballpark",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.mission-bay-arena",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.pier-39",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.fort-point",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.grace-cathedral",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.dragon-gate",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.transit-center-park",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.hunters-point-yard",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.mount-davidson-cross",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.dolores-park",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.haight-ashbury",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.flower-conservatory",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.park-bandshell",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.cliff-house",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.crissy-field",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.powell-turntable",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.lands-end-lookout",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.candlestick-point",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.treasure-island",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.un-plaza",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.rail-terminus",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.peace-pagoda",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.opera-house",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    },
+    {
+      "id": "lm.saint-mary-cathedral",
+      "tiers": {
+        "desktop": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        },
+        "mobile-low": {
+          "readsAsItsPlace": null,
+          "showsTextLogoMuralOrSculpture": null
+        }
+      },
+      "notes": ""
+    }
+  ],
+  "skylineFromTwinPeaks": {
+    "tier": "mobile-low",
+    "allSevenVisibleInsideDrawDistance": null,
+    "notes": ""
+  },
+  "route": {
+    "tier": "mobile-low",
+    "scenario": "route-ferry-ocean-beach",
+    "swapCommits": null,
+    "maxSwapCommitMs": null,
+    "maxSwapCommitReview": null,
+    "limitMs": 50,
+    "allUnderLimit": null
+  }
+}

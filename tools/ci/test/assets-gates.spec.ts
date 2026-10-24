@@ -9,6 +9,7 @@ import { addAsset, put, tempRepo } from '../../assets/test/helpers.ts';
 import { runCheckAssets } from '../check-assets.ts';
 import { toolsRoot } from '../lib/common.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
+import { writeThirdPartyLicences } from '../third-party-licenses.ts';
 
 const roots: string[] = [];
 function repo(): string {
@@ -149,6 +150,7 @@ describe('provenance:check with lock variants (AC-5)', () => {
     unlinkSync(path.join(root, `assets/provenance/${h.slice(0, 2)}/${h}.json`));
     const f = runProvenanceCheck({ root, dist }).findings;
     expect(f.some((x) => x.rule === 'no-record' && x.detail.includes(h))).toBe(true);
+    writeThirdPartyLicences(toolsRoot, path.join(dist, 'third-party-licenses.txt')); // as pnpm build does (M00f item 1)
     const real = runProvenanceCheck({ root: toolsRoot, dist });
     expect(real.findings).toEqual([]);
   });

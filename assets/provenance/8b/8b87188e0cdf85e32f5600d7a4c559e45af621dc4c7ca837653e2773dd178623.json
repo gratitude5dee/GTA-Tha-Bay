@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "8b87188e0cdf85e32f5600d7a4c559e45af621dc4c7ca837653e2773dd178623",
+  "paths": [
+    "assets/src/data/director.m.a1.06.antenna/director.json"
+  ],
+  "kind": "data",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T19:36:22Z"
+}

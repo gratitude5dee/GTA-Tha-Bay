@@ -65,7 +65,13 @@ html.dv-world .dv-screen.dv-title {
   background: linear-gradient(180deg, rgb(8 12 20 / 0.1) 0%, rgb(8 12 20 / 0.35) 55%, rgb(8 12 20 / 0.7) 100%);
 }
 
-/* In play the shell is hidden; Pause brings it back. */
+/* In play the shell draws no page (the HUD, the toasts and the rotate overlay are its only output); Pause brings the pages back (M04b2). */
 html.dv-playing #app {
-  display: none;
+  pointer-events: none;
+  /* above the play canvas (z-index 5), or the HUD would draw behind the world (M02c2 found it: the minimap was drawn and not seen) */
+  z-index: 6;
+}
+html.dv-playing #app .dv-toast-item,
+html.dv-playing #app .dv-rotate {
+  pointer-events: auto;
 }

@@ -1,0 +1,69 @@
+{
+  "schema": "tycoon.theses.v1",
+  "theses": [
+    {
+      "id": "enterprise-rush",
+      "nameKey": "tycoon.thesis.enterprise-rush",
+      "mods": {
+        "cacMul": 0.9,
+        "churnMul": 0.95
+      }
+    },
+    {
+      "id": "lean-times",
+      "nameKey": "tycoon.thesis.lean-times",
+      "mods": {
+        "burnMul": 0.9,
+        "multipleMul": 0.9
+      }
+    },
+    {
+      "id": "talent-war",
+      "nameKey": "tycoon.thesis.talent-war",
+      "mods": {
+        "devPowerMul": 1.1,
+        "burnMul": 1.05
+      }
+    },
+    {
+      "id": "viral-loops",
+      "nameKey": "tycoon.thesis.viral-loops",
+      "mods": {
+        "cacMul": 0.85,
+        "churnMul": 1.05
+      }
+    },
+    {
+      "id": "cheap-money",
+      "nameKey": "tycoon.thesis.cheap-money",
+      "mods": {
+        "multipleMul": 1.1,
+        "burnMul": 1.03
+      }
+    },
+    {
+      "id": "platform-shift",
+      "nameKey": "tycoon.thesis.platform-shift",
+      "mods": {
+        "arpuMul": 1.08,
+        "devPowerMul": 0.95
+      }
+    },
+    {
+      "id": "trust-premium",
+      "nameKey": "tycoon.thesis.trust-premium",
+      "mods": {
+        "payRateMul": 1.06,
+        "cacMul": 1.05
+      }
+    },
+    {
+      "id": "tool-fatigue",
+      "nameKey": "tycoon.thesis.tool-fatigue",
+      "mods": {
+        "cacMul": 1.1,
+        "churnMul": 0.9
+      }
+    }
+  ]
+}

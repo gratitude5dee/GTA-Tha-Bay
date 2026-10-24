@@ -1,0 +1,37 @@
+{
+  "id": "pickup.cash",
+  "kind": "pickup",
+  "version": 1,
+  "render": {
+    "asset": "prop/graybox.pickup-cash"
+  },
+  "physics": {
+    "body": "fixed",
+    "shape": "sphere",
+    "dims": [
+      0.4
+    ],
+    "groups": [
+      "sensor"
+    ],
+    "liftM": 0.6
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "BodyRef": {},
+    "RenderKey": {
+      "visible": 1
+    },
+    "Pickup": {
+      "qty": 1
+    }
+  },
+  "interact": {
+    "kind": "Pickup",
+    "radius": 1.5,
+    "promptKey": "interact.pickup",
+    "coneDeg": 360
+  }
+}

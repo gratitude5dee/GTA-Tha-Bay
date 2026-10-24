@@ -1,0 +1,608 @@
+{
+ "v": 1,
+ "suite": "tycoon",
+ "contentVersion": "8b23cbc3b767",
+ "balanceVersion": "91edb7743e04",
+ "runs": [
+  {
+   "seed": 12648430,
+   "weeks": 150,
+   "setup": {
+    "seed": 12648430,
+    "sector": "b2b-saas",
+    "thesis": "talent-war",
+    "founder": "engineer",
+    "coFounder": false,
+    "startWeekOfYear": 0,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c2-0",
+      "salaryYr": 22405668,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c7-0",
+      "salaryYr": 24070652,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 15,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c10-1",
+      "salaryYr": 20604231,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 18,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 19,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 19,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 24,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 4,
+      "choiceId": "apply"
+     }
+    },
+    {
+     "week": 28,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 33,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 9,
+      "choiceId": "wait_it_out"
+     }
+    },
+    {
+     "week": 34,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 10,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 48,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 16,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 59,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 18,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 62,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 19,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 68,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 21,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 87,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 24,
+      "choiceId": "apply"
+     }
+    },
+    {
+     "week": 93,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 26,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 101,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 28,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 110,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 33,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 119,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 36,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 120,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 37,
+      "choiceId": "decline"
+     }
+    }
+   ],
+   "finalHash": "7d961c83c87842ba",
+   "endWeek": 150,
+   "result": null
+  },
+  {
+   "seed": 48879,
+   "weeks": 150,
+   "setup": {
+    "seed": 48879,
+    "sector": "b2b-saas",
+    "thesis": "lean-times",
+    "founder": "designer",
+    "coFounder": true,
+    "startWeekOfYear": 31,
+    "hardcore": false,
+    "autoResolveEvents": true,
+    "preset": "standard",
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c2-1",
+      "salaryYr": 22923872,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 9,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 10,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 21,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 23,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 24,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 24,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m2"
+     }
+    }
+   ],
+   "finalHash": "89122932b702e431",
+   "endWeek": 150,
+   "result": null
+  },
+  {
+   "seed": 7,
+   "weeks": 150,
+   "setup": {
+    "seed": 7,
+    "sector": "b2b-saas",
+    "thesis": "enterprise-rush",
+    "founder": "engineer",
+    "coFounder": false,
+    "startWeekOfYear": 41,
+    "hardcore": false,
+    "preset": "standard",
+    "contentVersion": "8b23cbc3b767",
+    "balanceVersion": "91edb7743e04"
+   },
+   "choices": [
+    {
+     "week": 0,
+     "seq": 0,
+     "cmd": {
+      "t": "setAllocation",
+      "features": 70,
+      "refactor": 20,
+      "infra": 10
+     }
+    },
+    {
+     "week": 5,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c0-0",
+      "salaryYr": 22911105,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 8,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 2,
+      "choiceId": "wait_it_out"
+     }
+    },
+    {
+     "week": 10,
+     "seq": 0,
+     "cmd": {
+      "t": "hireOffer",
+      "candidateId": "c5-0",
+      "salaryYr": 24610293,
+      "optionBp": 50
+     }
+    },
+    {
+     "week": 14,
+     "seq": 0,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 15,
+     "seq": 0,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-accelerator-batch"
+     }
+    },
+    {
+     "week": 15,
+     "seq": 1,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m1"
+     }
+    },
+    {
+     "week": 21,
+     "seq": 0,
+     "cmd": {
+      "t": "setMarketing",
+      "perWeek": 20000
+     }
+    },
+    {
+     "week": 21,
+     "seq": 1,
+     "cmd": {
+      "t": "startRaise",
+      "kind": "safe",
+      "targetCents": 15000000
+     }
+    },
+    {
+     "week": 22,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 3,
+      "choiceId": "push_on"
+     }
+    },
+    {
+     "week": 22,
+     "seq": 1,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 4,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 22,
+     "seq": 2,
+     "cmd": {
+      "t": "scheduleMeeting",
+      "vcId": "vc-operator-angel"
+     }
+    },
+    {
+     "week": 22,
+     "seq": 3,
+     "cmd": {
+      "t": "accept",
+      "meetingId": "m2"
+     }
+    },
+    {
+     "week": 23,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 5,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 38,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 10,
+      "choiceId": "apply"
+     }
+    },
+    {
+     "week": 44,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 13,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 44,
+     "seq": 1,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 14,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 65,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 20,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 78,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 24,
+      "choiceId": "wait_it_out"
+     }
+    },
+    {
+     "week": 80,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 25,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 81,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 27,
+      "choiceId": "push_on"
+     }
+    },
+    {
+     "week": 81,
+     "seq": 1,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 28,
+      "choiceId": "decline"
+     }
+    },
+    {
+     "week": 85,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 29,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 95,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 31,
+      "choiceId": "absorb"
+     }
+    },
+    {
+     "week": 117,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 33,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 118,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 35,
+      "choiceId": "hold"
+     }
+    },
+    {
+     "week": 120,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 37,
+      "choiceId": "stay_quiet"
+     }
+    },
+    {
+     "week": 133,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 39,
+      "choiceId": "let_it_ride"
+     }
+    },
+    {
+     "week": 140,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 41,
+      "choiceId": "push_on"
+     }
+    },
+    {
+     "week": 148,
+     "seq": 0,
+     "cmd": {
+      "t": "resolveEvent",
+      "iid": 42,
+      "choiceId": "stay_quiet"
+     }
+    }
+   ],
+   "finalHash": "388ed435b4166923",
+   "endWeek": 150,
+   "result": null
+  }
+ ]
+}

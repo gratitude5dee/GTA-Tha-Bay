@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "f845cd1c6abd44d518fe385ae27bfff74b2b785f9972e0c7159db6c78669bc74",
+  "paths": [
+    "assets/src/building/lm.treasure-island/mobile-low.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "ec7c3025a7494e0ec5d2ddf2e082282cfdb115c346a2bda5a05a7e4da096bd28"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

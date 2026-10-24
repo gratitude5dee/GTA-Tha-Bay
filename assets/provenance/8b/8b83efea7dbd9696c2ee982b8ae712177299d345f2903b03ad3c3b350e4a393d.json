@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "8b83efea7dbd9696c2ee982b8ae712177299d345f2903b03ad3c3b350e4a393d",
+  "paths": [
+    "assets/src/building/lm.un-plaza/mobile.glb"
+  ],
+  "kind": "building",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "tools/map landmarks",
+    "version": "1.0.0",
+    "args_sha256": "9d51d06c10a1bd62201aadee5ec79becc43f9bc78a7a9750aae9144ec6c4b7ea"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-19T00:00:00Z"
+}

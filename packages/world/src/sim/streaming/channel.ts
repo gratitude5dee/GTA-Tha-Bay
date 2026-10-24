@@ -7,6 +7,8 @@
  * Types only, so both workers and the tests share them.
  */
 
+import type { WorldIndex } from '@dv/shared';
+
 /** C13 1.1 `PackRef`, structurally (the sim tsconfig has no DOM lib, so the engine's store types are not imported here). */
 export interface PackRef {
   url: string;
@@ -40,8 +42,18 @@ export interface WorldSimConfig {
   bakeId: string;
   /** `p0` host tiles of the bake, `x-y`. */
   p0Tiles: string[];
-  /** `world_pack/p0-x-y` to its `PackRef`. */
+  /**
+   * `world_pack/p0-x-y` to its `PackRef`; also `map_data/sf-graph.v1` and `data/district-grid.v1` when the catalog has them
+   * (M02c1: the always-resident road topology and the neighbourhood raster, requested through the same channel).
+   */
   refs: Record<string, PackRef>;
   /** Feet of the player at spawn (the first focus, before the first snapshot). */
   spawn: [number, number, number];
+  /** The world index (`data/world-index`) for the world services of M02c1: landmarks, POIs, portals, transit, districts. Absent: no services. */
+  index?: WorldIndex;
+  /**
+   * The ambient layers this session runs beyond the traffic (M03b2): pedestrians and transit. Absent or false: the layer is not built,
+   * its components are not registered and the session hashes as it did before (the `traffic-synth` golden runs without them).
+   */
+  ambient?: { peds?: boolean; transit?: boolean };
 }

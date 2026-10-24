@@ -1,0 +1,47 @@
+{
+  "schema": "audio-needs-story/1",
+  "speakers": {
+    "ama_osei": [
+      "line.m.a1.02.fare"
+    ],
+    "npc_test": [
+      "line.m.dev.sample.bye",
+      "line.m.dev.sample.hello",
+      "line.m.dev.sample.nudge"
+    ],
+    "odessa_calloway": [
+      "line.m.a1.01.gate",
+      "line.m.a1.01.tow",
+      "line.m.a1.01.truck"
+    ],
+    "player": [
+      "line.m.a1.01.hook"
+    ],
+    "radio": [
+      "line.m.a1.02.home",
+      "line.m.a1.02.patrol",
+      "line.m.a1.02.race",
+      "line.m.a1.02.text",
+      "line.m.a1.03.raid",
+      "line.m.a1.04.out",
+      "line.m.a1.04.photo",
+      "line.m.a1.04.start",
+      "line.m.a1.05.start",
+      "line.m.a1.06.convoy",
+      "line.m.a1.06.start",
+      "line.m.a1.06.sweep"
+    ],
+    "slot:RAP_HYPHY_ELDER": [
+      "line.m.a1.05.bout",
+      "line.m.a1.05.lose",
+      "line.m.a1.05.win"
+    ],
+    "tavi_okafor": [
+      "line.m.a1.01.radio",
+      "line.m.a1.03.follow",
+      "line.m.a1.03.gate",
+      "line.m.a1.03.home",
+      "line.m.a1.03.show"
+    ]
+  }
+}

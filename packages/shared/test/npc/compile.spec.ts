@@ -58,7 +58,7 @@ describe('compileSoul: determinism (AC-2)', () => {
 describe('compileSoul: output shape', () => {
   it('emits block B in section order with the rails list, and no backstory or frontmatter', () => {
     const { promptTxt } = compileSoul(shippedSoul('ro-batista'), rules);
-    expect(promptTxt.startsWith('<character id="ro-batista" version="1" tier="fictionalized">\n<limits max_words="28" profanity="mild" rating="M"/>\n')).toBe(true);
+    expect(promptTxt.startsWith('<character id="ro-batista" version="2" tier="fictionalized">\n<limits max_words="28" profanity="mild" rating="M"/>\n')).toBe(true);
     expect(promptTxt.endsWith('</character>\n')).toBe(true);
     const order = ['## Identity', '## Voice', '## Personality', '## Knowledge', '## Relationships', '## Places and schedule', '## Rails', '## Example lines', '## Rail list'];
     const at = order.map((h) => promptTxt.indexOf(h));

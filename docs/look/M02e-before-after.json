@@ -1,0 +1,16 @@
+{
+  "commit": "local",
+  "bakeId": "8db977b5a80dc0ef115e3d7ac51cdc961cdc2d1deaa8a4a4588a66d90f0501dd",
+  "tier": "desktop",
+  "backend": "webgl2",
+  "shots": [
+    "noon-street",
+    "night-street"
+  ],
+  "layout": "rows: noon-street, night-street; columns: before (look off), after (look on)",
+  "meanAbsDifference": {
+    "noon-street": 0.2307676183127572,
+    "night-street": 0.16544724844670378
+  },
+  "sha256": "d4549fda783328c2fc403467feb9f014818880239d5f621e47c0a394d91c2134"
+}

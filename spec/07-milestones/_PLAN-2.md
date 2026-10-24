@@ -143,7 +143,7 @@
 
 ### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (split 3 of 3; DL-390, DL-460)
 - **Goal:** KTX2 facade atlas, rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
-- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d1, M10d3, M02d2 · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
+- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d1, M10d3, M02d2, M02e (façade node, DL-704) · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
 - **Gate** Q-39 (default applies) · **Proof** `pnpm assets:final`; `pnpm map:landmarks -- --build --check`; `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`; `@art-skyline`, `@art-ultra`
 
 ### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)

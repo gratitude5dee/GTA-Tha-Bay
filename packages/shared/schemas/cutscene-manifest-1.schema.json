@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cutscene-manifest-1",
+  "title": "CutsceneManifest (C09 1.0, spec/domains/03-story-cutscenes.md section D2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "key", "recipe", "fps", "frames", "width", "height", "renditions", "poster", "last", "subs", "shots", "characters", "licence", "provenance"],
+  "properties": {
+    "schema": { "const": "cutscene-asset/1" },
+    "key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "recipe": { "const": "cut@1" },
+    "fps": { "const": 24 },
+    "frames": { "type": "integer", "minimum": 1 },
+    "width": { "type": "integer", "minimum": 1 },
+    "height": { "type": "integer", "minimum": 1 },
+    "renditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "v540": { "$ref": "#/$defs/rendition" },
+        "v768": { "$ref": "#/$defs/rendition" },
+        "v1080": { "$ref": "#/$defs/rendition" },
+        "p720": { "$ref": "#/$defs/rendition" }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "lufs", "speechDetected"],
+      "properties": {
+        "file": { "const": "a.m4a" },
+        "lufs": { "type": "number" },
+        "speechDetected": { "type": "boolean" },
+        "approvedBy": { "type": "string" }
+      }
+    },
+    "poster": { "const": "poster.webp" },
+    "last": { "const": "last.webp" },
+    "subs": { "type": "object", "additionalProperties": { "type": "string", "pattern": "^subs\\.[A-Za-z0-9-]+\\.vtt$" } },
+    "shots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["shotId", "startFrame", "frames"],
+        "properties": {
+          "shotId": { "type": "string", "minLength": 1 },
+          "startFrame": { "type": "integer", "minimum": 0 },
+          "frames": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "characters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "soulVersion", "tier"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "soulVersion": { "type": "integer", "minimum": 0 },
+          "tier": { "enum": ["consented", "parody", "fictionalized", "original"] }
+        }
+      }
+    },
+    "licence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "provider", "status", "termsSnapshotSha256"],
+      "properties": {
+        "gate": { "const": "ADR-GENAI-01" },
+        "provider": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["cleared", "pending"] },
+        "termsSnapshotSha256": { "type": "array", "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" } },
+        "clearedBy": { "type": "string" },
+        "clearedAt": { "type": "integer", "minimum": 0 },
+        "uiCredit": { "type": "string" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "pinnedUpdatedAt", "requestIds", "origSha256", "c2pa", "resigned", "aiGenerated"],
+      "properties": {
+        "endpoint": { "type": "string", "minLength": 1 },
+        "pinnedUpdatedAt": { "type": "string" },
+        "requestIds": { "type": "array", "items": { "type": "string" } },
+        "origSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "c2pa": { "enum": ["valid", "valid-untrusted", "absent", "invalid"] },
+        "resigned": { "type": "boolean" },
+        "aiGenerated": { "const": true }
+      }
+    },
+    "degraded": { "const": true }
+  },
+  "$defs": {
+    "rendition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "bytes", "sha256", "codecs", "kbps"],
+      "properties": {
+        "file": { "type": "string", "minLength": 1 },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "codecs": { "type": "string", "minLength": 1 },
+        "kbps": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

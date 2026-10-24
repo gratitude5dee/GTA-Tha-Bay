@@ -27,32 +27,6 @@
       "text": "City and County of San Francisco"
     },
     {
-      "id": "datasf-muni-routes",
-      "licence": "PDDL-1.0",
-      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
-      "source": "DataSF Muni Routes (9exe-acju); used from M02a2",
-      "surfaces": [
-        "boot-splash",
-        "full-map",
-        "pause-credits",
-        "docs-legal"
-      ],
-      "text": "City and County of San Francisco, SFMTA"
-    },
-    {
-      "id": "datasf-muni-stops",
-      "licence": "PDDL-1.0",
-      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
-      "source": "DataSF Muni Stops (i28k-bkz6); used from M02a2",
-      "surfaces": [
-        "boot-splash",
-        "full-map",
-        "pause-credits",
-        "docs-legal"
-      ],
-      "text": "City and County of San Francisco, SFMTA"
-    },
-    {
       "id": "datasf-neighborhoods",
       "licence": "PDDL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
@@ -118,17 +92,43 @@
       "text": "© OpenStreetMap contributors"
     },
     {
-      "id": "terrarium",
-      "licence": "LicenseRef-PublicDomain-USGov",
-      "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
-      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "id": "sfmta-patterns",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF SFMTA Patterns (9exe-acju); used from M02a2",
       "surfaces": [
         "boot-splash",
         "full-map",
         "pause-credits",
         "docs-legal"
       ],
-      "text": "3DEP data courtesy of the U.S. Geological Survey"
+      "text": "City and County of San Francisco, SFMTA"
+    },
+    {
+      "id": "sfmta-stops",
+      "licence": "PDDL-1.0",
+      "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
+      "source": "DataSF SFMTA Stops (i28k-bkz6); used from M02a2",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "City and County of San Francisco, SFMTA"
+    },
+    {
+      "id": "terrarium",
+      "licence": "LicenseRef-PublicDomain-USGov",
+      "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP, SRTM and ETOPO1 over the bake boxes; tiled by Mapzen); there is no licence URL, the registry page is the citation; credit lines from the Terrain Tiles attribution document (DL-711)",
+      "surfaces": [
+        "boot-splash",
+        "full-map",
+        "pause-credits",
+        "docs-legal"
+      ],
+      "text": "3DEP data courtesy of the U.S. Geological Survey. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration. Terrain Tiles was accessed on 2026-10-19 from https://registry.opendata.aws/terrain-tiles"
     }
   ],
   "schema": "attribution-world/1"

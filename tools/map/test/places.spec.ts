@@ -88,6 +88,7 @@ describe('POI seeds', () => {
     const dir = path.join(toolsRoot, 'content', 'world');
     for (const f of readdirSync(dir)) {
       if (!statSync(path.join(dir, f)).isFile()) continue;
+      if (/^raw\.lock\..+\.json$/.test(f)) continue;   // tool-written source locks name data sources (datasf-...-routes), not seeds
       const text = readFileSync(path.join(dir, f), 'utf8').toLowerCase();
       for (const op of operators) expect(new RegExp(`(^|[^a-z])${op}([^a-z]|$)`).test(text), `${f} names ${op}`).toBe(false);
     }

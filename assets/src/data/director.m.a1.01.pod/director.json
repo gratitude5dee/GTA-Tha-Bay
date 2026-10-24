@@ -1,0 +1,106 @@
+{
+  "actions": [
+    {
+      "arg": "me_end",
+      "atSec": 0.5,
+      "do": "moveTo",
+      "who": "player"
+    },
+    {
+      "arg": "odessa_end",
+      "atSec": 0.5,
+      "do": "moveTo",
+      "who": "odessa"
+    }
+  ],
+  "actors": [
+    {
+      "end": "me_end",
+      "start": "me_start",
+      "who": "player"
+    },
+    {
+      "end": "odessa_end",
+      "start": "odessa_start",
+      "who": "odessa"
+    }
+  ],
+  "cues": [
+    {
+      "endMs": 3400,
+      "kind": "dialogue",
+      "line": "line.m.a1.01.pod.1",
+      "speaker": "odessa_calloway",
+      "startMs": 400
+    },
+    {
+      "endMs": 6600,
+      "kind": "dialogue",
+      "line": "line.m.a1.01.pod.2",
+      "speaker": "odessa_calloway",
+      "startMs": 3600
+    }
+  ],
+  "durationSec": 7,
+  "id": "m.a1.01.pod",
+  "letterbox": true,
+  "marks": {
+    "cam": {
+      "at": [
+        37.73595,
+        -122.38915
+      ],
+      "yawDeg": 30
+    },
+    "me_end": {
+      "at": [
+        37.73609,
+        -122.389059
+      ],
+      "yawDeg": 0
+    },
+    "me_start": {
+      "at": [
+        37.736034,
+        -122.389059
+      ],
+      "yawDeg": 0
+    },
+    "odessa_end": {
+      "at": [
+        37.73608,
+        -122.38899
+      ],
+      "yawDeg": 270
+    },
+    "odessa_start": {
+      "at": [
+        37.736034,
+        -122.38899
+      ],
+      "yawDeg": 270
+    }
+  },
+  "schema": "director/1",
+  "seed": 3347320774,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "cam",
+      "lens": "wide",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 3,
+      "lens": "normal",
+      "preset": "two-shot",
+      "secondary": "odessa",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "cam",
+    "yawDeg": 30
+  }
+}

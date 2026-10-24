@@ -1,0 +1,24 @@
+{
+  "schema": "tycoon.sectors.v1",
+  "sectors": [
+    {
+      "id": "b2b-saas",
+      "nameKey": "tycoon.sector.b2b-saas",
+      "tam": 300000,
+      "cac0Cents": 45000,
+      "arpuMonthCents": 17000,
+      "payRate": 0.7,
+      "churn0": 0.028,
+      "k": 0.093,
+      "infraPerUserWeekCents": 120,
+      "mvpPoints": 200,
+      "featureHalf": 500,
+      "multiple": 13,
+      "hypeSensitivity": 1,
+      "tags": [
+        "b2b",
+        "saas"
+      ]
+    }
+  ]
+}

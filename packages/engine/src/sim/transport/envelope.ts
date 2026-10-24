@@ -1,6 +1,7 @@
-import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage } from '@dv/shared';
+import { utf8Bytes, type FrameSignal, type LoopStats, type SaveErrorCode, type SimControlMessage, type UiCommand, type WeatherPreset } from '@dv/shared';
 import { decodeUtf8 } from '../bytes.ts';
 import type { SimEvent } from '../events.ts';
+import type { UiOut } from '../ui/bridge.ts';
 
 /**
  * Every message between the main thread and sim.worker is `{ v: 1, t, seq, p }` (01-engine.md section 2.1,
@@ -26,7 +27,34 @@ export type DebugCommand =
   | { t: 'debug.teleport'; pos: [number, number, number] }
   | { t: 'debug.ragdoll' }
   /** Lock or unlock the fp/tp toggle (reason `debug`). */
-  | { t: 'debug.camera.lock'; on: boolean };
+  | { t: 'debug.camera.lock'; on: boolean }
+  /** Set the hour of the game day; `pause` also freezes the clock (and with it the weather schedule) there (M02b2). */
+  | { t: 'debug.hour'; h: number; pause?: boolean }
+  /** Blend to a weather preset over `blendSec` game seconds (M02b2). */
+  | { t: 'debug.weather'; w: WeatherPreset; blendSec: number }
+  | { t: 'debug.clock.pause'; on: boolean }
+  /** Blackout on or off for the owner `debug` (M02b2; the traffic milestone adopts the same switch). */
+  | { t: 'debug.blackout'; on: boolean }
+  /** A call into the world services (M02c1): `op` names it, the answer is the qa message `world.reply.<id>`. The world module handles it. */
+  | { t: 'debug.world'; id: number; op: string; args?: Record<string, unknown> }
+  /** Scripted player input from the next tick on, ticks relative to now (BotInput segments); an empty list hands the input back (M02c1). */
+  | { t: 'debug.bot'; script: { from: number; to: number; buttons?: number; moveX?: number; moveY?: number; camYaw?: number }[] }
+  /** Spawn a prefab at a point (feet, ENU metres) facing `yaw` (radians about +Y); the answer is the qa message `spawn.reply.<id>` with the handle (M03a1). */
+  | { t: 'debug.spawn'; id: number; prefab: string; at: [number, number, number]; yaw?: number }
+  /** A vehicle operation for the local player (M03a1): enter (the interaction rule, with reach), seat (at once), exit, lock, unlock, state; the answer is `vehicle.reply.<id>`. */
+  | { t: 'debug.vehicle'; id: number; op: 'enter' | 'seat' | 'exit' | 'lock' | 'unlock' | 'state'; target?: number }
+  /** Input lines (M03a1, QA only): play a line from now, stop playback, record, or stop recording and answer with the line (`line.reply.<id>`). */
+  | { t: 'debug.line'; id: number; op: 'play' | 'stop' | 'record' | 'save'; line?: unknown }
+  /** The entity inspector (QA, M03a1): the components of an entity (default: the player's vehicle, else the player); the answer is `inspect.reply.<id>`. */
+  | { t: 'debug.inspect'; id: number; handle?: number }
+  /** Sets one field of one component of an entity through the command channel (QA, debug builds only); the answer is `inspect.reply.<id>`. */
+  | { t: 'debug.edit'; id: number; handle: number; component: string; field: string; lane?: number; value: number }
+  /** The shapes of every physics body by entity handle, for the wireframe (QA); the answer is `physics.reply.<id>`. */
+  | { t: 'debug.physics'; id: number }
+  /** The pursuit director (M03c, QA only): `setHeat {level}`, `clear`, `neverWanted {on}`, `scripted {on}`, `report {kind, witness, count}`, `wallet {cents}`, `state`; the answer is `pursuit.reply.<id>`. */
+  | { t: 'debug.pursuit'; id: number; op: string; args?: Record<string, unknown> }
+  /** The mode host (M04a2, QA only): `list`, `state`, `unlock {id}`, `unlockAll {on}`, `credit {cents, key}`, `debit {cents, key}`; the answer is `modes.reply.<id>`. */
+  | { t: 'debug.modes'; id: number; op: string; args?: Record<string, unknown> };
 
 /** The input block contents carried by the postMessage transport (the SAB transport shares the block itself). */
 export interface InputState {
@@ -48,6 +76,17 @@ export interface StatsReport {
   bodies: number;
   /** Messages the worker dropped: events that did not fit the event ring. */
   eventsDropped: number;
+  /**
+   * The frame group this report closes ran paused (the page's pause reached the sim). The runtime also posts a report on the first frame
+   * group of each pause and of each resume, so the page learns the tick the sim stopped at without waiting for the regular report
+   * (BD-FIX-CI9-W04).
+   */
+  paused: boolean;
+  /**
+   * `FrameSignal.frame` of the first paused signal of the pause in force (the page frame whose signal stopped the ticks); null while
+   * the sim runs. Every report while paused carries it, so a page that misses the report of the turn still learns it (BD-FIX-CI10-R03).
+   */
+  pausedSince: number | null;
 }
 
 /**
@@ -76,6 +115,8 @@ export type ToWorkerMessage =
   | Envelope<'frame', FrameSignal>
   | Envelope<'ctl', SimControlMessage>
   | Envelope<'dbg', DebugCommand>
+  /** A UI command for the Commands stage (M04a2, C06 `UiCommand`); handled between ticks like `ctl`. */
+  | Envelope<'ui', UiCommand>
   | Envelope<'input', InputState>;
 
 export type FromWorkerMessage =
@@ -85,12 +126,15 @@ export type FromWorkerMessage =
   | Envelope<'log', { level: 'info' | 'warn' | 'error'; message: string }>
   | Envelope<'qa', { name: string; data: unknown }>
   | Envelope<'events', { events: SimEvent[] }>
+  /** View-model patches, toasts and overlay ops from the sim-side UiBridge (M04a2). */
+  | Envelope<'ui', UiOut>
   | Envelope<'snap', PmSnapshotPayload>;
 
 export function makeEnvelope<T extends string, P>(t: T, seq: number, p: P): Envelope<T, P> {
   return { v: ENVELOPE_VERSION, t, seq, p };
 }
 
+const WEATHER_IDS: ReadonlySet<string> = new Set(['clear', 'karl-fog', 'overcast', 'rain', 'smoke', 'golden']);
 const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const isInt = (x: unknown): x is number => isNum(x) && Number.isInteger(x);
@@ -116,6 +160,33 @@ export function isSimControlMessage(p: unknown): p is SimControlMessage {
   return isObject(p) && p['t'] === 'save.request' && p['reason'] === 'hidden';
 }
 
+const MODE_IDS = /^(story|sandbox|racing|fighter|tycoon|exp:[a-z0-9][a-z0-9._-]{0,63})$/;
+const SAVE_REASONS: ReadonlySet<string> = new Set(['missionPass', 'safehouse', 'modeExit', 'interval', 'hidden', 'manual', 'settings', 'unlock', 'import', 'migration', 'checkpoint']);
+
+/** Shape check of a UI command at the worker boundary; the dispatcher checks values (C06 `UiCommand`). */
+export function isUiCommand(p: unknown): p is UiCommand {
+  if (!isObject(p) || typeof p['t'] !== 'string') return false;
+  switch (p['t']) {
+    case 'mode.start': return typeof p['id'] === 'string' && MODE_IDS.test(p['id']) && (p['slot'] === undefined || typeof p['slot'] === 'string');
+    case 'mode.quit': return true;
+    case 'pause': return typeof p['on'] === 'boolean';
+    case 'save.request': return typeof p['reason'] === 'string' && SAVE_REASONS.has(p['reason']);
+    case 'save.settings': return isObject(p['data']);
+    case 'save.avatar': return isObject(p['avatar']);
+    case 'save.profile': return typeof p['op'] === 'string' && ['create', 'rename', 'delete', 'select'].includes(p['op']);
+    case 'garage.call':
+    case 'garage.favorite': return typeof p['vehicleKey'] === 'string' && p['vehicleKey'].length <= 96;
+    case 'sandbox.set': return typeof p['path'] === 'string' && p['path'].length <= 96 && (typeof p['v'] === 'boolean' || isNum(p['v']));
+    case 'sandbox.teleport': return typeof p['name'] === 'string' && p['name'].length <= 96;
+    case 'phone.waypoint': return isNum(p['x']) && isNum(p['z']);
+    case 'cutscene.skip': return true;
+    case 'cutscene.state': return typeof p['playId'] === 'string' && typeof p['state'] === 'string';
+    // `phone` is the reserved owner of the phone apps' commands (M04b2)
+    case 'mode.cmd': return typeof p['mode'] === 'string' && (p['mode'] === 'phone' || MODE_IDS.test(p['mode'])) && typeof p['name'] === 'string' && p['name'].length <= 48 && (p['args'] === undefined || isObject(p['args']));
+    default: return false;
+  }
+}
+
 export function isDebugCommand(p: unknown): p is DebugCommand {
   if (!isObject(p)) return false;
   switch (p['t']) {
@@ -126,6 +197,25 @@ export function isDebugCommand(p: unknown): p is DebugCommand {
     case 'debug.teleport': return Array.isArray(p['pos']) && p['pos'].length === 3 && p['pos'].every(isNum);
     case 'debug.ragdoll': return true;
     case 'debug.camera.lock': return typeof p['on'] === 'boolean';
+    case 'debug.hour': return isNum(p['h']) && (p['pause'] === undefined || typeof p['pause'] === 'boolean');
+    case 'debug.weather': return typeof p['w'] === 'string' && WEATHER_IDS.has(p['w']) && isNum(p['blendSec']) && p['blendSec'] >= 0 && p['blendSec'] <= 86_400;
+    case 'debug.clock.pause': return typeof p['on'] === 'boolean';
+    case 'debug.blackout': return typeof p['on'] === 'boolean';
+    case 'debug.world': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 40 && (p['args'] === undefined || isObject(p['args']));
+    case 'debug.bot':
+      return Array.isArray(p['script']) && p['script'].length <= 64 && p['script'].every((s) => isObject(s) && isNum(s['from']) && isNum(s['to']) && (['buttons', 'moveX', 'moveY', 'camYaw'] as const).every((k) => s[k] === undefined || isNum(s[k])));
+    case 'debug.spawn':
+      return isInt(p['id']) && typeof p['prefab'] === 'string' && p['prefab'].length <= 64 && Array.isArray(p['at']) && p['at'].length === 3 && p['at'].every(isNum) && (p['yaw'] === undefined || isNum(p['yaw']));
+    case 'debug.vehicle':
+      return isInt(p['id']) && typeof p['op'] === 'string' && ['enter', 'seat', 'exit', 'lock', 'unlock', 'state'].includes(p['op']) && (p['target'] === undefined || isInt(p['target']));
+    case 'debug.modes': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 24 && (p['args'] === undefined || isObject(p['args']));
+    case 'debug.pursuit': return isInt(p['id']) && typeof p['op'] === 'string' && p['op'].length <= 24 && (p['args'] === undefined || isObject(p['args']));
+    case 'debug.inspect': return isInt(p['id']) && (p['handle'] === undefined || isInt(p['handle']));
+    case 'debug.edit':
+      return isInt(p['id']) && isInt(p['handle']) && typeof p['component'] === 'string' && p['component'].length <= 40 && typeof p['field'] === 'string' && p['field'].length <= 40 && (p['lane'] === undefined || isInt(p['lane'])) && isNum(p['value']);
+    case 'debug.physics': return isInt(p['id']);
+    case 'debug.line':
+      return isInt(p['id']) && typeof p['op'] === 'string' && ['play', 'stop', 'record', 'save'].includes(p['op']) && (p['line'] === undefined || isObject(p['line']));
     default: return false;
   }
 }
@@ -140,6 +230,7 @@ export function isToWorkerMessage(x: unknown): x is ToWorkerMessage {
     case 'frame': return isFrameSignal(x.p);
     case 'ctl': return isSimControlMessage(x.p);
     case 'dbg': return isDebugCommand(x.p);
+    case 'ui': return isUiCommand(x.p);
     case 'input': return isInputState(x.p);
     default: return false;
   }
@@ -160,13 +251,15 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
     case 'ready':
       return isObject(p) && (p['physicsBuild'] === 'simd-compat' || p['physicsBuild'] === 'deterministic-compat') && (p['transport'] === 'sab' || p['transport'] === 'postMessage');
     case 'stats':
-      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']);
+      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']) && typeof p['paused'] === 'boolean' && (p['pausedSince'] === null || isInt(p['pausedSince']));
     case 'ctl.result':
       return isObject(p) && p['t'] === 'save.result' && (p['ok'] === true ? isInt(p['slots']) : p['ok'] === false && typeof p['reason'] === 'string' && SAVE_RESULT_REASONS.has(p['reason']));
     case 'log':
       return isObject(p) && (p['level'] === 'info' || p['level'] === 'warn' || p['level'] === 'error') && typeof p['message'] === 'string';
     case 'qa':
       return isObject(p) && typeof p['name'] === 'string';
+    case 'ui':
+      return isObject(p) && Array.isArray(p['patches']) && Array.isArray(p['toasts']) && Array.isArray(p['ops']);
     case 'events':
       return isObject(p) && Array.isArray(p['events']) && p['events'].every((e) => isObject(e) && typeof e['t'] === 'string' && isNum(e['tick']));
     case 'snap':

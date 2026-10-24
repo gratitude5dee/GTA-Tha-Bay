@@ -3,7 +3,9 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, claude/build]
+    # BD-FIX-CI6-K01: a merge candidate `claude/integ-*` gets the full CI (every e2e project, all shards) before claude/build moves.
+    # Deploys never run from these branches: deploy.yml runs on main and v* tags only, preview.yml on pull requests only.
+    branches: [main, claude/build, 'claude/integ-**']
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,7 +17,7 @@ permissions:
 env:
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story|@racing-touch'
 
 # Actions are pinned by commit SHA (research/gap-ci-cd-release-assets.md section 1.1).
 # actions/checkout            v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -45,6 +47,8 @@ jobs:
       # M00f: ported code needs its attribution header (no-op while third_party/ is absent).
       - run: pnpm reuse:clones
       - run: pnpm check:do-migrations
+      # M05d: packages/shared/schemas/api against the DTOs of api/v1.ts.
+      - run: pnpm check:api
       # M00d spec gates: instruction-file sizes, C16 privacy rules, skills mirror (pending stub), R-ROLL-01 order gate.
       - run: pnpm check:agents
       - run: pnpm check:telemetry
@@ -53,12 +57,49 @@ jobs:
         env:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
 
+  # M05d: the database checks, on a pull request only when it touches the schema, the DataPort or the scripts around them (a push to
+  # main or claude/build always runs them). They need Docker: ubuntu-24.04 has it. `check:db` starts the Supabase local stack, lints
+  # the migrations, runs the pgTAP files and the DataPort contract; `check:db:types` regenerates packages/shared/src/db.gen.ts.
+  db:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      BASE_REF: ${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the scope step diffs against the base branch
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: scope
+        name: Does this change touch the database?
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "origin/${BASE_REF}...HEAD" | grep -Eq '^(supabase/|packages/shared/src/(db|data-port)|services/edge/src/data/|services/edge/test/db/|packages/shared/test/data-port/|tools/ci/(check-db|lib/db-lint)|\.github/workflows/ci\.yml)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "No database path changed: db checks skipped."
+          fi
+      - if: steps.scope.outputs.run == 'true'
+        run: pnpm check:db
+      - if: steps.scope.outputs.run == 'true'
+        run: pnpm check:db:types
+
   unit:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       # tools/ci/test/golden-guard.test.ts runs the live check over origin/$GITHUB_BASE_REF...HEAD with these labels.
       DV_PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+      # M04d: tools/ci/test/verifiers-lock.test.ts reads the reason of a golden-update PR from the body (`Golden-update: <reason>` line).
+      DV_PR_REASON: ${{ github.event.pull_request.body }}
       # M02b1: world suites read the synth and civic-excerpt bakes; a missing bake fails instead of skipping (tests/support/require-bake.ts).
       DV_REQUIRE_BAKE: '1'
     steps:
@@ -169,6 +210,32 @@ jobs:
       - run: pnpm npc:lint
         env:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      # M06a4: the in-character evals in replay mode: hand-written synthetic recordings keyed by the request body, deterministic checks only
+      # (no key, no network). A changed soul, rules block or turn schema needs `pnpm npc:eval -- --write-synthetic` or a `--record` run.
+      - run: pnpm npc:eval -- --replay
+        env:
+          DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: npc-evals-replay
+          path: tests/reports/npc-evals
+          if-no-files-found: ignore
+          retention-days: 7
+      # M04d: the economy bands. M09a2: and the tycoon bands B1 to B12 (2,000 runs per bot policy, seed base 1; the nightly runs 10,000).
+      - run: pnpm check:balance
+      # M05a2: every mission x 3 seeds x 2 runs under the autoplayer, on the gray-box fixture world. The offline worlds are restored from
+      # the cache or baked on a miss, as in the other jobs; a full SF bake does not fit this job (the nightly runs it there).
+      - id: bake-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: |
+            .cache/map
+            dist/world
+          key: world-bakes-${{ hashFiles('tools/map/**', 'config/world/**', 'content/world/**') }}
+      - if: steps.bake-cache.outputs.cache-hit != 'true'
+        run: pnpm map:build -- --area synth && pnpm map:build -- --area civic-excerpt
+      - run: pnpm check:missions
 
   build:
     runs-on: ubuntu-24.04
@@ -202,10 +269,16 @@ jobs:
           path: apps/web/dist
           retention-days: 3
 
-  e2e:
+  # BD-FIX-CI2-04: the e2e of one project runs as E2E_SHARDS Playwright shards (`--shard=<n>/4`, both halves, each shard its own share
+  # of the tests). On e72e1fc the chromium-webgl2 leg took 1.1 h in one job against its 75-minute limit (BD-FIX-CI-03), with the
+  # DV_WORLD=synth half at 80 tests on 2 workers, and every milestone adds tests. The required checks keep their names: `e2e
+  # (<project>)` below is the job that reports the project's result from the results of all of its shards.
+  e2e-shard:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # One shard holds about a quarter of the suite (the longest single test is about 20 min, world-landmarks at desktop on software GL); 60 leaves
+    # room for growth. BD-FIX-CI8-S01: with three shards, chromium-webgpu shard 2 of run 39964617132 hit the 60-minute limit with every test passing.
+    timeout-minutes: 60
     # chromium-webgl2 is required in M00; the others become required in the milestone that first depends on them.
     # webkit-webgl2 joined in M01a2 (the cross-browser determinism test); chromium-webgpu and xr-quest3 stay advisory.
     continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
@@ -213,6 +286,12 @@ jobs:
       fail-fast: false
       matrix:
         project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
+        # Keep equal to E2E_SHARDS of the e2e job and to the `/4` of both check:e2e steps.
+        shard: [1, 2, 3, 4]
+    env:
+      # BD-FIX-CI10-P01: the browser engines this leg launches (playwright.config.ts: webkit-webgl2 on WebKit, the other projects on
+      # Chromium); chromium-webgl2 shard 1 also runs check:coi, which launches both.
+      DV_PW_BROWSERS: ${{ matrix.project == 'webkit-webgl2' && 'webkit' || matrix.project == 'chromium-webgl2' && matrix.shard == 1 && 'chromium webkit' || 'chromium' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -227,7 +306,32 @@ jobs:
         with:
           name: web-dist
           path: apps/web/dist
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
+      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
+      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
+      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
+      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
+      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
+      # newest cache of the same browser set (spec/03 section 6).
+      - id: pw-apt
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          restore-keys: |
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
+      - name: Playwright browsers and their system packages
+        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
+      - id: pw-apt-new
+        name: New apt archives since the restore
+        if: always()
+        run: pnpm exec tsx tools/ci/pw-install.ts --count-new
+      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: ${{ steps.pw-apt.outputs.cache-primary-key }}
       # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
       # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
       - id: bake-cache
@@ -242,35 +346,91 @@ jobs:
       # Two invocations (M02b1, DL-546): the gray-box tags on the build job's artifact (no world), then everything else on a fresh
       # DV_WORLD=synth build. DV_SKIP_BUILD belongs to the first step only: a job-level value would serve the world-less artifact twice.
       - name: e2e, gray-box tags (build without a world)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/4 --pass-with-no-tests
         env:
           DV_SKIP_BUILD: '1'
       - name: Header and isolation checks against the local Worker
-        if: matrix.project == 'chromium-webgl2'
+        if: matrix.project == 'chromium-webgl2' && matrix.shard == 1
         env:
           DV_SKIP_BUILD: '1'
         run: |
           pnpm check:headers -- --serve http://localhost:8788
           pnpm check:coi -- --serve http://localhost:8788
       - name: e2e, every other tag (DV_WORLD=synth build)
-        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --pass-with-no-tests
+        run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/4 --pass-with-no-tests
         env:
           DV_WORLD: synth
           DV_SKIP_BUILD: ''
+      # What `e2e (<project>)` reads: this shard's outcome (job.status covers every step above), written even when a step failed.
+      - name: Shard result
+        if: always()
+        run: |
+          mkdir -p e2e-result
+          echo "${{ job.status }}" > "e2e-result/${{ matrix.project }}-${{ matrix.shard }}.txt"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: gpu-probe-${{ matrix.project }}
+          name: e2e-result-${{ matrix.project }}-${{ matrix.shard }}
+          path: e2e-result
+          retention-days: 3
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: gpu-probe-${{ matrix.project }}-${{ matrix.shard }}
           path: test-results/gpu-probe.*.json
           if-no-files-found: ignore
           retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: failure()
         with:
-          name: playwright-report-${{ matrix.project }}
+          name: playwright-report-${{ matrix.project }}-${{ matrix.shard }}
           path: playwright-report
           if-no-files-found: ignore
           retention-days: 7
+
+  # The required checks `e2e (chromium-webgl2)` and `e2e (webkit-webgl2)` (names unchanged): green only when every shard of the project
+  # wrote `success`. It runs whatever the shards did (not on a cancelled run), so a failed, timed-out or skipped shard (no result file)
+  # turns it red. BD-FIX-CI3-D01: `build` is listed too, only so the log can name why the shards never ran (from c03f671 the build job
+  # failed at verify:dist, every e2e-shard leg was skipped and the four checks printed "missing" with no cause); the verdict is unchanged.
+  e2e:
+    needs: [build, e2e-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: ${{ matrix.project != 'chromium-webgl2' && matrix.project != 'webkit-webgl2' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium-webgpu, chromium-webgl2, webkit-webgl2, xr-quest3]
+    steps:
+      # No result at all (the build failed, every shard was skipped) is not an error here: the next step reports each shard as missing.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        continue-on-error: true
+        with:
+          pattern: e2e-result-${{ matrix.project }}-*
+          path: e2e-result
+          merge-multiple: true
+      - name: Every shard of the project passed
+        env:
+          PROJECT: ${{ matrix.project }}
+          E2E_SHARDS: '4'
+          BUILD_RESULT: ${{ needs.build.result }}
+          SHARDS_RESULT: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "build: ${BUILD_RESULT}; e2e-shard: ${SHARDS_RESULT}"
+          status=0
+          missing=0
+          for n in $(seq 1 "$E2E_SHARDS"); do
+            f="e2e-result/${PROJECT}-${n}.txt"
+            r=$(cat "$f" 2>/dev/null || echo missing)
+            echo "e2e ${PROJECT} shard ${n}/${E2E_SHARDS}: ${r}"
+            [ "$r" = "success" ] || status=1
+            if [ "$r" = "missing" ]; then missing=1; fi
+          done
+          if [ "$missing" = 1 ] && [ "$BUILD_RESULT" != "success" ]; then
+            echo "::error::e2e ${PROJECT}: no shard result because the build job ended '${BUILD_RESULT}' and the e2e-shard legs did not run; fix the build job first"
+          fi
+          exit $status
 
   # M01c, M02b1: CPU-side budget counts of every registered scenario on the two software-GL projects, on a DV_WORLD=synth build.
   # Warnings on pull requests (check:perf exits 0 without --fail); nightly.yml runs it with --fail. BD-M02b1-15: this job did not exist
@@ -278,6 +438,9 @@ jobs:
   perf:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      # BD-FIX-CI10-P01: this job launches both engines.
+      DV_PW_BROWSERS: 'chromium webkit'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -288,7 +451,32 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium webkit
+      # BD-FIX-CI10-P01 (after BD-FIX-CI9-T02): the browsers in DV_PW_BROWSERS and their system packages through tools/ci/pw-install.ts. On
+      # some runners the Azure Ubuntu mirror serves package files at about 42 kB/s (run 40017655149: perf cancelled at 45 min in this
+      # step, two shards 47 min), and a branch's first run has no cache to restore. The script skips apt when nothing is missing,
+      # prefetches in apt download-only mode in time-boxed attempts (the second on the rotated mirror list, archive.ubuntu.com first),
+      # then runs `playwright install --with-deps` as before; its exit status is the step's. The archives are saved even when the job
+      # fails or is cancelled, under a key unique to the run attempt and job, so no two jobs race for one key; the restore takes the
+      # newest cache of the same browser set (spec/03 section 6).
+      - id: pw-apt
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}-${{ strategy.job-index }}
+          restore-keys: |
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            pw-apt-${{ runner.os }}-${{ env.DV_PW_BROWSERS }}-
+      - name: Playwright browsers and their system packages
+        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS
+      - id: pw-apt-new
+        name: New apt archives since the restore
+        if: always()
+        run: pnpm exec tsx tools/ci/pw-install.ts --count-new
+      - if: always() && fromJSON(steps.pw-apt-new.outputs.new || '0') > 0
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.cache/dv-pw-apt/*.deb
+          key: ${{ steps.pw-apt.outputs.cache-primary-key }}
       # M02b1: the offline worlds (`synth`, `civic-excerpt`) restored from the cache or baked on a miss; `check:unit`, the world e2e and
       # the perf scenarios read dist/world. actions/cache v6.1.0 (research/gap-ci-cd-release-assets.md section 1.1)
       - id: bake-cache
@@ -343,5 +531,7 @@ jobs:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
       - run: pnpm likeness:gate
       - run: pnpm check:assets
+      # M05a1: the compiled missions under assets/src/data match content/missions.
+      - run: pnpm missions:build -- --check
       # M05b1: shipped generated cutscenes keep their original anchor, AI flag and re-sign (0 shipped until M05b2).
       - run: pnpm check:c2pa

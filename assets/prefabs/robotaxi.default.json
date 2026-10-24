@@ -1,0 +1,94 @@
+{
+  "id": "robotaxi.default",
+  "kind": "robotaxi",
+  "version": 1,
+  "nameKey": "vehicle.default",
+  "render": {
+    "asset": "vehicle/graybox.robotaxi"
+  },
+  "physics": {
+    "body": "dynamic",
+    "shape": "box",
+    "dims": [
+      0.95,
+      0.42,
+      2.4
+    ],
+    "massKg": 2050,
+    "groups": [
+      "vehicle"
+    ],
+    "liftM": 0.6,
+    "friction": 0.1,
+    "restitution": 0.1,
+    "angularDamping": 0.3,
+    "ccd": true
+  },
+  "components": {
+    "Transform": {
+      "qw": 1
+    },
+    "Velocity": {},
+    "BodyRef": {},
+    "VehicleDamage": {
+      "body": 1,
+      "engine": 1,
+      "tires": 1
+    },
+    "RenderKey": {
+      "visible": 1
+    },
+    "Robotaxi": {}
+  },
+  "vehicle": {
+    "handling": "hp.robotaxi-ambient",
+    "seats": 4,
+    "wheels": [
+      {
+        "pos": [
+          -0.81,
+          0.09,
+          -1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          0.81,
+          0.09,
+          -1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "front"
+      },
+      {
+        "pos": [
+          -0.81,
+          0.09,
+          1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "rear"
+      },
+      {
+        "pos": [
+          0.81,
+          0.09,
+          1.45
+        ],
+        "radius": 0.36,
+        "restM": 0.28,
+        "axle": "rear"
+      }
+    ],
+    "quirks": [
+      "speedGovernor",
+      "autoYield",
+      "stallOnDarkSignal"
+    ]
+  }
+}

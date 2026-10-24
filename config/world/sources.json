@@ -73,7 +73,7 @@
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
-      "id": "datasf-muni-stops",
+      "id": "sfmta-stops",
       "kind": "socrata",
       "dataset": "i28k-bkz6",
       "url": "https://data.sf.gov/resource/i28k-bkz6.json",
@@ -83,11 +83,11 @@
       "licence": "PDDL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
       "attribution": "City and County of San Francisco, SFMTA",
-      "source": "DataSF Muni Stops (i28k-bkz6); used from M02a2",
+      "source": "DataSF SFMTA Stops (i28k-bkz6); used from M02a2",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
-      "id": "datasf-muni-routes",
+      "id": "sfmta-patterns",
       "kind": "socrata",
       "dataset": "9exe-acju",
       "url": "https://data.sf.gov/resource/9exe-acju.json",
@@ -97,7 +97,7 @@
       "licence": "PDDL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/pddl/1-0/",
       "attribution": "City and County of San Francisco, SFMTA",
-      "source": "DataSF Muni Routes (9exe-acju); used from M02a2",
+      "source": "DataSF SFMTA Patterns (9exe-acju); used from M02a2",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
@@ -121,8 +121,8 @@
       "file": "terrarium",
       "licence": "LicenseRef-PublicDomain-USGov",
       "licenceUrl": "https://registry.opendata.aws/terrain-tiles",
-      "attribution": "3DEP data courtesy of the U.S. Geological Survey",
-      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP and SRTM, Mapzen); there is no licence URL, the registry page is the citation",
+      "attribution": "3DEP data courtesy of the U.S. Geological Survey. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration",
+      "source": "AWS Terrain Tiles, Terrarium PNG (3DEP, SRTM and ETOPO1 over the bake boxes; tiled by Mapzen); there is no licence URL, the registry page is the citation; credit lines from the Terrain Tiles attribution document (DL-711)",
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     },
     {
@@ -134,6 +134,18 @@
       "licenceUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
       "attribution": "© OpenStreetMap contributors",
       "source": "OpenStreetMap via Geofabrik NorCal extract and osmium",
+      "mirrors": [
+        {
+          "url": "https://download.bbbike.org/osm/bbbike/SanFrancisco/SanFrancisco.osm.pbf",
+          "coverage": "play",
+          "note": "BBBike SF extract, box lng -122.54..-122.32, lat 37.54..37.93: covers the C08 play box, not the full stream box (spec/03 section 7)"
+        },
+        {
+          "url": "https://download.openstreetmap.fr/extracts/north-america/us-west/california.osm.pbf",
+          "coverage": "california",
+          "note": "State extract (about 1.4 GB) for coverage beyond the BBBike box (stream and far boxes)"
+        }
+      ],
       "surfaces": ["boot-splash", "full-map", "pause-credits", "docs-legal"]
     }
   ],
@@ -147,7 +159,7 @@
     "far": { "z": 12, "boxes": ["far"] }
   },
   "osm": {
-    "note": "U-W1 and U-W2: the Geofabrik URL and the osmium flags below are UNVERIFIED until the operator first runs them (AC-9); record what worked here. The OSM reader accepts GeoJSON lines from any route: a hand-supplied .cache/map/raw/sf/osm.geojsonl is used as is.",
+    "note": "U-W1 and U-W2: the URL route and the osmium flags below are UNVERIFIED until the operator first runs them (AC-9); record what worked here. The primary Geofabrik URL is tried first and the ordered mirrors after it (DL-703); the raw lock names the URL that served the bytes. The OSM reader accepts GeoJSON lines from any route: a hand-supplied .cache/map/raw/sf/osm.geojsonl is used as is.",
     "bboxes": {
       "sf": { "minLat": 37.68, "minLng": -122.55, "maxLat": 37.89, "maxLng": -122.3 },
       "backdrop": { "minLat": 37.3, "minLng": -122.6, "maxLat": 38.0, "maxLng": -121.8 }
@@ -156,7 +168,9 @@
     "commands": [
       "osmium extract --bbox={sf.minLng},{sf.minLat},{sf.maxLng},{sf.maxLat} --strategy=complete_ways --overwrite -o {dir}/osm-sf.osm.pbf {pbf}",
       "osmium tags-filter --overwrite -o {dir}/osm-sf-tags.osm.pbf {dir}/osm-sf.osm.pbf {tagFilter}",
-      "osmium export --overwrite --add-unique-id=type_id -f geojsonseq -x print_record_separator=false -o {dir}/osm.geojsonl {dir}/osm-sf-tags.osm.pbf"
+      "osmium getid --overwrite --add-referenced -i {dir}/landmark-ids.txt -o {dir}/osm-sf-landmarks.osm.pbf {dir}/osm-sf.osm.pbf",
+      "osmium merge --overwrite -o {dir}/osm-sf-merged.osm.pbf {dir}/osm-sf-tags.osm.pbf {dir}/osm-sf-landmarks.osm.pbf",
+      "osmium export --overwrite --add-unique-id=type_id -f geojsonseq -x print_record_separator=false -o {dir}/osm.geojsonl {dir}/osm-sf-merged.osm.pbf"
     ],
     "backdropCommands": [
       "osmium extract --bbox={backdrop.minLng},{backdrop.minLat},{backdrop.maxLng},{backdrop.maxLat} --strategy=simple --overwrite -o {dir}/osm-backdrop.osm.pbf {pbf}"
@@ -167,7 +181,7 @@
       "label": "San Francisco, the real city: network, osmium, baked and published by the operator",
       "network": true,
       "box": "play",
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
         "s0": { "minRows": { "datasf-footprints": 150000, "datasf-streets": 16000 }, "exactRows": { "datasf-neighborhoods": 41 } },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
@@ -181,7 +195,7 @@
       "label": "Committed 1 km2 source excerpt around City Hall (chunks 9/254..257 on both axes): byte-reproducible bakes in CI",
       "network": false,
       "box": { "minX": -640, "minZ": -640, "maxX": 384, "maxZ": 384 },
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
         "s0": { "minRows": { "datasf-footprints": 500, "datasf-streets": 10 }, "exactRows": {} },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
@@ -195,9 +209,9 @@
       "label": "Offline seeded sources in the raw formats over the whole play box: the full-size CI world for M02b1-M02d2. Stamps are authored; QA only, never in assets.lock.json",
       "network": false,
       "box": "play",
-      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-parks", "datasf-muni-stops", "datasf-muni-routes", "datasf-trees", "terrarium", "osm"],
+      "sources": ["datasf-footprints", "datasf-streets", "datasf-neighborhoods", "datasf-addresses", "datasf-parks", "sfmta-stops", "sfmta-patterns", "datasf-trees", "terrarium", "osm"],
       "gates": {
-        "s0": { "minRows": { "datasf-footprints": 50000, "datasf-streets": 1000, "datasf-muni-stops": 6, "datasf-muni-routes": 2 }, "exactRows": { "datasf-neighborhoods": 41 } },
+        "s0": { "minRows": { "datasf-footprints": 50000, "datasf-streets": 1000, "sfmta-stops": 6, "sfmta-patterns": 2 }, "exactRows": { "datasf-neighborhoods": 41 } },
         "s2": { "cityHallM": [10, 25], "minM": -130 },
         "s3": { "landRatioTolerance": 0.03, "minRingKm2": 0.01 },
         "s4": { "minBakedFraction": 0.98, "maxOsmFraction": 0.05 },

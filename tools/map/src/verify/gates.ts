@@ -15,10 +15,11 @@ import type { GradingStats } from '../stages/s7-grading.ts';
 import type { PedReport } from '../stages/s8-ped.ts';
 import type { TagsReport } from '../stages/s9-tags.ts';
 import type { PlacesReport } from '../stages/s10-places.ts';
+import type { DistrictGridReport } from '../stages/s12-district-grid.ts';
 
 export interface GateResult {
   id: string;
-  stage: 'S0' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8' | 'S9' | 'S10' | 'S11' | 'S13' | 'S14';
+  stage: 'S0' | 'S2' | 'S3' | 'S4' | 'S5' | 'S6' | 'S7' | 'S8' | 'S9' | 'S10' | 'S11' | 'S12' | 'S13' | 'S14';
   level: 'pass' | 'fail' | 'warn';
   detail: string;
   /** Numbers worth keeping in bake-report.json. */
@@ -82,10 +83,16 @@ export function s5Gates(r: RoadsReport, minAgreement: number): GateResult[] {
   const o = r.oneway;
   const out: GateResult[] = [
     row('s5.oneway', 'S5', o.ok,
-      o.comparable === 0 ? 'no matched one-way pieces to compare (DataSF F/T vs OSM)' : `DataSF F/T agreement with OSM on ${o.comparable} matched pieces: F-along ${(o.ratio1 * 100).toFixed(1)} %, F-against ${(o.ratio2 * 100).toFixed(1)} %; adopted ${o.adopted}; more than ${(minAgreement * 100).toFixed(0)} % required`,
-      { comparable: o.comparable, ratioAlong: o.ratio1, ratioAgainst: o.ratio2 }),
+      o.comparable === 0 ? 'no matched one-way pieces to compare (DataSF F/T vs OSM)' : `DataSF F/T agreement with OSM on ${o.comparable} matched pieces: F-along ${(o.ratio1 * 100).toFixed(1)} %, F-against ${(o.ratio2 * 100).toFixed(1)} %; adopted ${o.adopted}; more than ${(minAgreement * 100).toFixed(0)} % required; DataSF one-way applied to ${o.applied} named two-way STREETS pieces, ${o.osmKept} OSM one-ways kept (${o.osmKeptAgainstDsf} against DataSF), ${o.unnamedSkipped} unnamed pieces and ${o.otherLayerSkipped} other-layer pieces took none (DL-705)`,
+      { comparable: o.comparable, ratioAlong: o.ratio1, ratioAgainst: o.ratio2, applied: o.applied, osmKept: o.osmKept, osmKeptAgainstDsf: o.osmKeptAgainstDsf, unnamedSkipped: o.unnamedSkipped }),
     row('s5.edges-per-chunk', 'S5', r.maxEdgesPerChunk <= EDGE_CHUNK_LIMIT, `most edges owned by one chunk: ${r.maxEdgesPerChunk}, limit ${EDGE_CHUNK_LIMIT}`, { maxPerChunk: r.maxEdgesPerChunk }),
   ];
+  const isl = r.islands;
+  out.push({
+    id: 's5.islands', stage: 'S5', level: 'pass',
+    detail: `weakly detached fragments (DL-706): ${isl.droppedComponents} dropped by the declared rules (${isl.droppedEdges} edges), ${isl.keptComponents} kept in the graph and the SCC count (${isl.keptEdges} edges); keepWays applied ${isl.keepWaysApplied.length}, connectors ${isl.connectorsApplied.length}`,
+    values: { droppedEdges: isl.droppedEdges, keptEdges: isl.keptEdges, keptComponents: isl.keptComponents },
+  });
   if (r.unknownLayers.length > 0) out.push({ id: 's5.layers', stage: 'S5', level: 'warn', detail: `DataSF layer values not in the N2 list: ${r.unknownLayers.join(', ')}` });
   return out;
 }
@@ -126,12 +133,23 @@ export function s9Gates(r: TagsReport): GateResult[] {
   return out;
 }
 
+/** S12: the district grid names only known neighbourhoods and assigns at least one cell (every index 0 to 40 or 255 holds by construction). */
+export function s12Gates(r: DistrictGridReport): GateResult[] {
+  return [
+    row('s12.district-names', 'S12', r.unknownNames.length === 0, r.unknownNames.length === 0 ? `every neighbourhood polygon is one of the 41 Analysis Neighborhoods` : `polygons that are not one of the 41: ${r.unknownNames.join(', ')}`, { unknown: r.unknownNames.length }),
+    row('s12.district-cells', 'S12', r.assigned > 0, `${r.assigned} of ${r.cells} cells (${r.cols} x ${r.rows}) belong to ${r.nhoodsPresent} neighbourhoods`, { assigned: r.assigned, cells: r.cells, nhoods: r.nhoodsPresent }),
+  ];
+}
+
 export function s10Gates(r: PlacesReport, requireFeature: boolean): GateResult[] {
   const out: GateResult[] = [
     row('s10.arrival', 'S10', r.noArrival.length === 0, r.noArrival.length === 0 ? `${r.landmarks} landmarks have an arrival pose on ground` : `no arrival pose within 120 m for ${r.noArrival.join(', ')}`, { landmarks: r.landmarks }),
   ];
   if (r.featureTooFar.length > 0) {
     out.push({ id: 's10.feature', stage: 'S10', level: requireFeature ? 'fail' : 'warn', detail: `landmark seeds more than 120 m from their OSM feature: ${r.featureTooFar.map((x) => `${x.id} ${x.distM} m`).join(', ')}` });
+  }
+  if (r.arrivalFar.length > 0) {
+    out.push({ id: 's10.arrival-far', stage: 'S10', level: 'warn', detail: `arrival pose farther than 120 m from the landmark (the nearest valid pedestrian node at any distance): ${r.arrivalFar.map((x) => `${x.id} ${x.distM} m at (${x.x}, ${x.z})`).join(', ')}` });
   }
   if (r.featureMissing.length > 0 && requireFeature) out.push({ id: 's10.feature-missing', stage: 'S10', level: 'warn', detail: `OSM features not in the extract: ${r.featureMissing.join(', ')}` });
   return out;

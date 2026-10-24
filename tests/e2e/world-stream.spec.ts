@@ -148,12 +148,32 @@ test.describe('world streaming @world', () => {
       const WALL_TOP_M = 500;
       const above: [number, number, number] = [1400, WALL_TOP_M + 20, 500];
       await act(page, { t: 'debug.teleport', pos: above });
-      await expect.poll(async () => (await world(page, (w) => w.chunks())).sim.failed, { timeout: 120_000 }).toBeGreaterThanOrEqual(1);
+      // A teleport posted while one is in flight is refused as busy (e.g. the spawn one right after reveal), and `act` only
+      // reports that the command was posted: re-issue it on every poll so a refused request is retried while the tile fails.
+      await expect
+        .poll(
+          async () => {
+            await act(page, { t: 'debug.teleport', pos: above });
+            return (await world(page, (w) => w.chunks())).sim.failed;
+          },
+          { timeout: 120_000 },
+        )
+        .toBeGreaterThanOrEqual(1);
       expect(p0.hits()).toBeGreaterThanOrEqual(2); // the fetch and the one refetch of the store
       await expect.poll(() => l0.hits(), { timeout: 120_000 }).toBeGreaterThanOrEqual(9); // the outage ends and the l0 comes back
       // The teleport waits for colliders for a bounded time, which a slow engine can outlast while the pack is still being refetched:
-      // ask again now that the tile has failed (a request made while one is in flight is refused, so it is repeated until accepted).
-      await expect.poll(() => act(page, { t: 'debug.teleport', pos: above }), { timeout: 120_000, intervals: [500, 1000, 2000] }).toBe(true);
+      // ask again now that the tile has failed, re-issuing until the player is actually on the wall — `act` reports only that the
+      // command was posted, so the player position is the acceptance signal (a refused or expired request leaves it unchanged).
+      await expect
+        .poll(
+          async () => {
+            await act(page, { t: 'debug.teleport', pos: above });
+            const p = (await observe(page)).player?.pos;
+            return p !== undefined && Math.abs(p[0] - above[0]) < 50 && Math.abs(p[2] - above[2]) < 50;
+          },
+          { timeout: 120_000, intervals: [500, 1000, 2000] },
+        )
+        .toBe(true);
       // The player does not fall through the failed tile: its wall holds the capsule at the tile edge. The check counts sim ticks and
       // not wall time (a software renderer ticks far slower than 60 Hz): 3 s of sim time unsupported is a fall of about 44 m.
       const tick0 = (await observe(page)).stats.tick;

@@ -1,5 +1,6 @@
-import type { BootPayload, FrameSignal, LoopStats, SimConfig, SimHost } from '@dv/shared';
+import type { BootPayload, FrameSignal, LoopStats, SimConfig, SimHost, UiCommand } from '@dv/shared';
 import type { SimEvent } from './events.ts';
+import type { UiOut } from './ui/bridge.ts';
 import type { DebugCommand, FromWorkerMessage, StatsReport } from './transport/envelope.ts';
 import { createPmMain, type PortLike } from './transport/pm-transport.ts';
 import { createSabMain, type SabInit } from './transport/sab-transport.ts';
@@ -51,6 +52,8 @@ export interface SimHostOptions {
   onLog?(level: 'info' | 'warn' | 'error', message: string): void;
   /** Receives every batch of sim events the worker reports (ownership transitions, audio cues, chunk loads), oldest first. */
   onSimEvents?(events: readonly SimEvent[]): void;
+  /** Receives the view-model patches, toasts and overlay ops the sim-side UiBridge flushed (M04a2), in order. */
+  onUi?(out: UiOut): void;
   /**
    * Called before every (re)start of the worker; the ports it returns travel in the init message (`InitMessage.p.ports`) and are
    * transferred. The world uses it to open a fresh `MessageChannel` to asset.worker for each worker generation (M02b1).
@@ -177,6 +180,11 @@ export class SimHostImpl implements SimHost {
     return this.transport?.sendDebug(cmd) ?? false;
   }
 
+  /** A UI command over the command ring (M04a2). False when there is no worker or the ring was full. */
+  sendUi(cmd: UiCommand): boolean {
+    return this.transport?.sendUi(cmd) ?? false;
+  }
+
   /** Terminates the worker and starts a new one for `cfg` (profile switch, or crash recovery). */
   async restart(cfg: SimConfig): Promise<void> {
     this.restarts++;
@@ -214,6 +222,9 @@ export class SimHostImpl implements SimHost {
         break;
       case 'qa':
         this.qaResults.set(m.p.name, m.p.data);
+        break;
+      case 'ui':
+        this.opts.onUi?.(m.p);
         break;
       case 'events':
         for (const e of m.p.events) {

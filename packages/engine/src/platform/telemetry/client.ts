@@ -12,6 +12,10 @@ import {
  * C16 envelope; `sendBeacon` on `hidden` and `pagehide`. Consent comes from `PlatformSettings` (both toggles default on,
  * DL-140): an event whose class is switched off is dropped here, before it is queued. No user agent, IP, profile id or free text
  * is sent; the envelope carries tier, device class, OS major, display mode and backend only.
+ *
+ * Region (A-10, R-ROLL-01; BD-FIX-CI-01): `POST /api/v1/t` is behind the US-only geo gate, and a blocked region runs offline
+ * single-player without calling gated online routes. With a `region` answer the client holds its batches until the answer comes;
+ * `'blocked'` drops the queue and every later event, so the page never draws a 451. Without one it sends at once (unit tests).
  */
 export type TelemetryProps = Record<string, string | number | boolean>;
 
@@ -86,7 +90,12 @@ export interface TelemetryClientOptions {
   intervalMs?: number;
   timers?: TimerApi;
   endpoint?: string;
+  /** `BootConfig.region` (route 1, geo-exempt). A rejected promise counts as 'ok': telemetry stays best effort. */
+  region?: Promise<'ok' | 'blocked'>;
 }
+
+/** Events held while the region answer is pending; older ones are dropped first. */
+export const MAX_HELD_EVENTS = TELEMETRY_LIMITS.maxEvents * 4;
 
 function defaultSend(endpoint: string): (body: string, viaBeacon: boolean) => void {
   return (body, viaBeacon) => {
@@ -112,6 +121,7 @@ export class TelemetryClient implements Telemetry {
   private sink: HeartbeatSink | null = null;
   private interval: unknown = null;
   private soon: unknown = null;
+  private regionState: 'pending' | 'ok' | 'blocked';
   /** Number of batches handed to the transport. */
   batches = 0;
 
@@ -121,6 +131,27 @@ export class TelemetryClient implements Telemetry {
     this.timers = o.timers ?? GLOBAL_TIMERS;
     this.consent = o.consent ?? { diagnostics: true, analytics: true };
     this.sendBody = o.send ?? defaultSend(o.endpoint ?? '/api/v1/t');
+    this.regionState = o.region ? 'pending' : 'ok';
+    o.region?.then(
+      (r) => this.setRegion(r === 'blocked' ? 'blocked' : 'ok'),
+      () => this.setRegion('ok'),
+    );
+  }
+
+  /** 'pending' until the region answer arrives; 'blocked' sends nothing for the rest of the session. */
+  get region(): 'pending' | 'ok' | 'blocked' {
+    return this.regionState;
+  }
+
+  private setRegion(r: 'ok' | 'blocked'): void {
+    if (this.regionState !== 'pending') return;
+    this.regionState = r;
+    if (r === 'blocked') {
+      this.queue = [];
+      this.stop();
+    } else if (this.queue.length > 0) {
+      this.flush('interval');
+    }
   }
 
   attachHeartbeat(sink: HeartbeatSink): void {
@@ -139,7 +170,7 @@ export class TelemetryClient implements Telemetry {
 
   /** Starts the interval flush. */
   start(): void {
-    if (this.interval !== null) return;
+    if (this.interval !== null || this.regionState === 'blocked') return;
     this.interval = this.timers.setInterval(() => this.flush('interval'), this.o.intervalMs ?? 10_000);
   }
 
@@ -155,6 +186,7 @@ export class TelemetryClient implements Telemetry {
   }
 
   emit(name: TelemetryName, props: TelemetryProps = {}): void {
+    if (this.regionState === 'blocked') return;
     if (!ALLOWED.has(name)) return;
     if (!(isDiagnostic(name) ? this.consent.diagnostics : this.consent.analytics)) return;
     const clean: TelemetryProps = {};
@@ -165,12 +197,13 @@ export class TelemetryClient implements Telemetry {
       clean[k] = typeof v === 'string' ? scrub(v).slice(0, TELEMETRY_LIMITS.maxStringChars) : v;
     }
     this.queue.push({ name, ts: (this.o.now ?? Date.now)(), sessionId: this.sessionId, props: clean });
+    if (this.regionState === 'pending' && this.queue.length > MAX_HELD_EVENTS) this.queue.shift();
     if (this.queue.length >= TELEMETRY_LIMITS.maxEvents) this.flush('interval');
   }
 
   /** Flush shortly (200 ms) so events emitted back to back go out in one batch. */
   flushSoon(): void {
-    if (this.soon !== null) return;
+    if (this.soon !== null || this.regionState === 'blocked') return;
     this.soon = this.timers.setTimeout(() => {
       this.soon = null;
       this.flush('interval');
@@ -178,6 +211,8 @@ export class TelemetryClient implements Telemetry {
   }
 
   flush(reason: 'hidden' | 'pagehide' | 'interval'): void {
+    // Held until the region answer comes; a blocked region never sends (its queue is already empty).
+    if (this.regionState !== 'ok') return;
     const beacon = reason !== 'interval';
     while (this.queue.length > 0) {
       const events: TelemetryEvent[] = [];

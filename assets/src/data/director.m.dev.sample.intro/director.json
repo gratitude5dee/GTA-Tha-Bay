@@ -1,0 +1,50 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 2800,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.cut.intro.1",
+      "speaker": "npc_test",
+      "startMs": 200
+    },
+    {
+      "endMs": 5600,
+      "kind": "dialogue",
+      "line": "line.m.dev.sample.cut.intro.2",
+      "speaker": "npc_test",
+      "startMs": 3000
+    }
+  ],
+  "durationSec": 6,
+  "id": "m.dev.sample.intro",
+  "letterbox": true,
+  "marks": {
+    "plaza": {
+      "at": {
+        "local": [
+          120,
+          0,
+          60
+        ]
+      },
+      "yawDeg": 0
+    }
+  },
+  "schema": "director/1",
+  "seed": 1,
+  "shots": [
+    {
+      "atSec": 0,
+      "lens": "wide",
+      "move": "static",
+      "preset": "establish",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "plaza",
+    "yawDeg": 0
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$comment": "HUD palettes (10-ui-hud-xr.md 2.13 rule 4); mapSurfaces are the fixed ground colours of the map views (M02c2), the same in every set. The four sets swap the semantic colour tokens; every state also has an icon, a shape or text. packages/ui/test/hud-status.spec.ts checks each set with the CVD simulation of packages/ui/src/hud/cvd.ts (BD-M04b2-01).",
+  "v": 1,
+  "cvd": { "algorithm": "machado-2009-severity-1.0", "metric": "cie76", "minDeltaE": 20 },
+  "mapSurfaces": { "water": "#2a4a6b", "land": "#2b2f36", "park": "#2f4a3a", "building": "#3d424c", "street": "#9aa3b2", "freeway": "#e0b252", "label": "#dfe4ee" },
+  "palettes": {
+    "default": { "friendly": "#3ddc84", "danger": "#ff4d4d", "warning": "#ffd23f", "objective": "#4da3ff", "neutral": "#f0f2f7" },
+    "deutan": { "friendly": "#56b4e9", "danger": "#d55e00", "warning": "#f0e442", "objective": "#cc79a7", "neutral": "#f0f2f7" },
+    "protan": { "friendly": "#56b4e9", "danger": "#e69f00", "warning": "#f0e442", "objective": "#a98bff", "neutral": "#f0f2f7" },
+    "tritan": { "friendly": "#00c8a0", "danger": "#ff4d6d", "warning": "#ffd23f", "objective": "#a98bff", "neutral": "#f0f2f7" }
+  }
+}

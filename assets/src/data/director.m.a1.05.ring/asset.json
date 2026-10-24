@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.a1.05.ring",
+  "variants": {
+    "default": "assets/src/data/director.m.a1.05.ring/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.05"
+  ],
+  "status": "active",
+  "visibility": "public"
+}
