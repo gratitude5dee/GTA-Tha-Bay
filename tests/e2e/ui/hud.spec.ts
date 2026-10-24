@@ -182,11 +182,11 @@ test.describe('pause and phone on the synth world @ui-pause', () => {
     // The phone.
     await page.getByTestId('btn-pause-phone').click();
     await expect(page.getByTestId('list-phone-apps')).toBeVisible();
-    for (const id of ['map', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help', 'sandbox']) {
+    for (const id of ['map', 'messages', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help', 'sandbox']) {
       await expect(page.getByTestId(`row-phone-apps-${id}`), id).toBeVisible();
       await expect(page.getByTestId(`row-phone-apps-${id}`), id).not.toHaveAttribute('aria-disabled', 'true');
     }
-    for (const id of ['messages', 'camera', 'feed']) await expect(page.getByTestId(`row-phone-apps-${id}`), id).toHaveAttribute('aria-disabled', 'true');
+    for (const id of ['camera', 'feed']) await expect(page.getByTestId(`row-phone-apps-${id}`), id).toHaveAttribute('aria-disabled', 'true');
     await page.screenshot({ path: testInfo.outputPath('phone.png') });
 
     // Sandbox: heat 1. The stars appear on the HUD once the phone closes.

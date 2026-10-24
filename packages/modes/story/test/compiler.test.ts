@@ -14,7 +14,7 @@ describe('compiler: the sample and the bad fixtures (AC-1)', () => {
     const a = await planBuild({ root });
     expect(a.errors).toEqual([]);
     expect(a.problems).toEqual([]);
-    expect(a.missions).toEqual(['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06', 'm.dev.sample', 'm.dev.talk']);
+    expect(a.missions).toEqual(['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06', 'm.a1.07', 'm.a1.08', 'm.a1.09', 'm.a1.10', 'm.a1.11', 'm.a1.12', 'm.dev.sample', 'm.dev.talk']);
     const b = await planBuild({ root });
     expect([...a.files]).toEqual([...b.files]);
   });

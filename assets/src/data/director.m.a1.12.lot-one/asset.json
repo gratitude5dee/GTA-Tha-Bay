@@ -1,0 +1,14 @@
+{
+  "kind": "data",
+  "id": "director.m.a1.12.lot-one",
+  "variants": {
+    "default": "assets/src/data/director.m.a1.12.lot-one/director.json"
+  },
+  "deps": [],
+  "tags": [
+    "story",
+    "mission:m.a1.12"
+  ],
+  "status": "active",
+  "visibility": "public"
+}

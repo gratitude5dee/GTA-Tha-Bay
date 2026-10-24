@@ -1,0 +1,62 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 6500,
+      "kind": "dialogue",
+      "line": "line.m.a1.12.lot-one.1",
+      "speaker": "corwin_hale",
+      "startMs": 1200
+    },
+    {
+      "endMs": 12500,
+      "kind": "dialogue",
+      "line": "line.m.a1.12.lot-one.2",
+      "speaker": "dana_voss",
+      "startMs": 8000
+    }
+  ],
+  "durationSec": 14,
+  "id": "m.a1.12.lot-one",
+  "letterbox": true,
+  "marks": {
+    "garage": {
+      "at": [
+        37.7692,
+        -122.3878
+      ],
+      "yawDeg": 200
+    },
+    "plaza_wide": {
+      "at": [
+        37.7685,
+        -122.3881
+      ],
+      "yawDeg": 5
+    }
+  },
+  "schema": "director/1",
+  "seed": 3638092231,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "plaza_wide",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 7,
+      "from": "garage",
+      "lens": "normal",
+      "preset": "tracking",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "garage",
+    "yawDeg": 200
+  }
+}

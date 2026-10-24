@@ -91,7 +91,7 @@ export async function planCutsceneIndex(o: CliOptions): Promise<CliPlan> {
     lint: loadLintBase(o.root, env),
   });
 
-  const plan: BuildPlan = { files: new Map(), data: [], errors: [], problems: [...result.problems], missions: [] };
+  const plan: BuildPlan = { files: new Map(), data: [], errors: [], problems: [...result.problems], warnings: [], missions: [] };
   // A rerun with nothing new keeps the old stamp, so the output is byte-identical.
   if (previous && previous.release === result.index.release && stableJson(previous.entries) === stableJson(result.index.entries)) result.index.builtAt = previous.builtAt;
   const indexText = stableJson(result.index);

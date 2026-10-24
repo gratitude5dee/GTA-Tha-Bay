@@ -213,7 +213,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
         // water wall (02-world-maps.md 4.1 a): depth at the wheels
         if (bounds) {
-          const depth = wheelWaterDepth(bounds, rt, tr.px[id] as number, tr.pz[id] as number, tr.qy[id] as number, tr.qw[id] as number);
+          const depth = wheelWaterDepth(bounds, rt, tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number, tr.qy[id] as number, tr.qw[id] as number);
           if (!rt.wet.stalled) {
             const r = waterWall(rt.wet, depth, 1);
             rt.wet = r.state;
@@ -245,7 +245,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
 /** Deepest water over any of the four wheel positions, metres. */
 function wheelWaterDepth(
-  bounds: NonNullable<EngineServices['world']['bounds']>, rt: VehicleRuntime, px: number, pz: number, qy: number, qw: number,
+  bounds: NonNullable<EngineServices['world']['bounds']>, rt: VehicleRuntime, px: number, py: number, pz: number, qy: number, qw: number,
 ): number {
   const p = rt.profile;
   const yaw = 2 * datan2(qy, qw);
@@ -261,7 +261,8 @@ function wheelWaterDepth(
     // local (lx, lz) with forward -Z: world = pos + (lx * c + lz * s, -lx * s + lz * c)
     const x = px + lx * c + lz * s;
     const z = pz - lx * s + lz * c;
-    const d = bounds.waterDepth(x, z);
+    // the car's height lets the world tell a bridge deck from the water under it (M05c2)
+    const d = bounds.waterDepth(x, z, py);
     if (d > deepest) deepest = d;
   }
   return deepest;

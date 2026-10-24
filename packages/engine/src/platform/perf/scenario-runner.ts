@@ -5,6 +5,7 @@ import walkCivicCenter from '../../../../../config/perf/paths/walk-civic-center.
 import routeFerryOceanBeach from '../../../../../config/perf/paths/route-ferry-ocean-beach.json';
 import downtownRush from '../../../../../config/perf/paths/downtown-rush.json';
 import bootCityhall from '../../../../../config/perf/paths/boot-cityhall.json';
+import storyChase from '../../../../../config/perf/paths/story-chase.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -74,6 +75,7 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'route-ferry-ocean-beach': routeFerryOceanBeach as unknown as RoutePath,
   'downtown-rush': downtownRush as unknown as RoutePath,
   'boot-cityhall': bootCityhall as unknown as RoutePath,
+  'story-chase': storyChase as unknown as RoutePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
@@ -81,6 +83,7 @@ export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'route-ferry-ocean-beach': 'config/perf/paths/route-ferry-ocean-beach.json',
   'downtown-rush': 'config/perf/paths/downtown-rush.json',
   'boot-cityhall': 'config/perf/paths/boot-cityhall.json',
+  'story-chase': 'config/perf/paths/story-chase.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
@@ -130,6 +133,8 @@ export interface RunInfo {
   meterTrianglesMax: number;
   infoTrianglesMax: number;
   meterRenderObjectsMax: number;
+  /** The counted objects of the frame with the most, by top-level scene node (QA diagnostics, M05c2). */
+  breakdownAtMax?: Record<string, number>;
   infoDrawCallsMax: number;
   frames: number;
 }
@@ -201,6 +206,7 @@ export class PerfScenarioRunner {
     }
     let lastY = 0;
     const meter = new RenderBudgetMeter(Math.max(1000, Math.ceil(scenario.durationS * 240)));
+    meter.trace = true;
     const probe = new PerfProbe(Math.max(1000, Math.ceil(scenario.durationS * 240)));
     const info = (host.renderer as unknown as { info: RendererInfoLike }).info;
 
@@ -316,6 +322,7 @@ export class PerfScenarioRunner {
       meterTrianglesMax: Math.round(meter.maxTriangles),
       infoTrianglesMax: Math.round(infoTrianglesMax),
       meterRenderObjectsMax: meter.maxRenderObjects,
+      ...(Object.keys(meter.breakdownAtMax).length > 0 ? { breakdownAtMax: meter.breakdownAtMax } : {}),
       infoDrawCallsMax: infoDrawMax,
       frames: frames.count,
     };

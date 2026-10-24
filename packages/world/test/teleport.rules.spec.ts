@@ -181,6 +181,18 @@ describe('TeleportApi validation', () => {
     expect(SANDBOX_POLICY.heat()).toBe(0);
   });
 
+  it('asks the optional policy.deny once the target is resolved and refuses with its key (M05c2)', async () => {
+    const rg = await rig({});
+    const seen: { kind: string; x: number; z: number }[] = [];
+    (rg.w.teleport.policy as TeleportPolicy).deny = (kind, t) => {
+      seen.push({ kind, x: t.x, z: t.z });
+      return t.x > 100 ? 'story.fastTravel.locked' : null;
+    };
+    expect((await go(rg, 'fast-travel', { x: 200, z: 0 })).r).toEqual({ ok: false, reason: 'forbidden-in-mode', messageKey: 'story.fastTravel.locked' });
+    expect((await go(rg, 'sandbox', { x: 60, z: 0 })).r?.ok).toBe(true);
+    expect(seen).toEqual([{ kind: 'fast-travel', x: 200, z: 0 }, { kind: 'sandbox', x: 60, z: 0 }]);
+  });
+
   it('allows a second fast travel only after 30 s, and records the fares', async () => {
     const transit: TransitNode[] = [
       { id: 'rail.a', kind: 'bay-rail', x: 100, z: 0, nameKey: 'transit.a', fastTravel: true },

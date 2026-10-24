@@ -5,7 +5,7 @@ import type { AdapterSummary, DeviceClass, DisplayMode, QualityTierId, RenderBac
  * tools/ci/schemas/perf-report.v1.json.
  */
 export interface PerfScenario {
-  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'fight-stage' | 'xr-walk'
+  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'story-chase' | 'fight-stage' | 'xr-walk'
   pathRef: string;                    // camera path file owned by the scenario's milestone (S02, S06, S07)
   durationS: number; warmupS: number; seed: number;
   density: 'off' | 'nominal';         // traffic and peds at the tier budget

@@ -137,6 +137,7 @@ export class MissionRuntime implements OpHost {
       zoneCenter: (z) => this.zoneCenter(z),
       zoneInside: (z, h) => this.zoneInsideHandle(z, h),
       driver: () => this.driverFn?.() ?? null,
+      pace: (cast) => this.paceOf(cast),
     });
     this.predEnv = this.makePredEnv();
     this.director = new DirectorSystem({
@@ -166,6 +167,25 @@ export class MissionRuntime implements OpHost {
   // ---------------------------------------------------------------- binding and queries
 
   /** The engine's vehicle driver for NPC cars; without it `driveTo` moves the car in a straight line. */
+  /** Clears the heat the player's current car carries (the body shop of m.a1.09). */
+  private respray(): void {
+    const h = this.actors.playerVehicle();
+    if (h === null) return;
+    const key = soft(() => this.ctx.ecs.keyOf(h));
+    if (typeof key === 'string') soft(() => this.ctx.pursuit.respray(key));
+  }
+
+  /** How far behind a car the player may fall before the car eases off: set by the `follow` or `chase` objective that names it (M05c2). */
+  private paceOf(cast: string): { slowAboveM: number; floorAtM: number; floor: number } | null {
+    for (const o of this.objectives.values()) {
+      if (o.state !== 'active') continue;
+      const d = o.def;
+      if (d.k === 'follow' && d.target === cast) return { slowAboveM: d.band[1] * 0.5, floorAtM: d.band[1] * 0.9, floor: 0 };
+      if (d.k === 'chase' && d.target === cast) return { slowAboveM: Math.max(25, d.catchDist * 4), floorAtM: Math.max(60, d.catchDist * 10), floor: 0.35 };
+    }
+    return null;
+  }
+
   setDriver(fn: (() => VehicleDriver | null) | null): void {
     this.driverFn = fn;
   }
@@ -890,6 +910,11 @@ export class MissionRuntime implements OpHost {
     this.opts.story().flags[key] = value;
     this.touchedFlags.add(key);
     this.noteEvent('flag', { key, value });
+    // the one flag that is a slice field: a story mission moves the campaign on by setting `story.act` (never back down, M05c2)
+    if (key === 'story.act' && (value === 2 || value === 3)) {
+      const story = this.opts.story();
+      if (value > story.act) story.act = value;
+    }
   }
 
   soulOf(cast: string): string {
@@ -1074,6 +1099,7 @@ export class MissionRuntime implements OpHost {
       }
       case 'text':
         this.noteEvent('text', { from: op.from, line: op.line });
+        this.opts.onText?.(op.from, op.line, this.ctx.tick);
         this.ctx.ui.toast({ id: `${this.scope()}:text:${op.line}`, kind: 'info', text: op.line });
         return;
       case 'marker':
@@ -1125,6 +1151,8 @@ export class MissionRuntime implements OpHost {
         return;
       case 'emit':
         this.noteEvent(op.event);
+        // a body shop job: the player's car loses the heat it carries (C06 `PursuitApi.respray`, M05c2)
+        if (op.event === 'vehicle.respray') this.respray();
         return;
       case 'pass':
         this.pendingEnd ??= { k: 'pass' };

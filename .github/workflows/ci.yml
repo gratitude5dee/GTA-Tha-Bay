@@ -17,7 +17,7 @@ permissions:
 env:
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story|@racing-touch'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch'
 
 # Actions are pinned by commit SHA (research/gap-ci-cd-release-assets.md section 1.1).
 # actions/checkout            v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -454,7 +454,7 @@ jobs:
   # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here.
   perf:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'

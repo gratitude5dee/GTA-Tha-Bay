@@ -66,7 +66,8 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       const stop = d.stopped === true;
       if (d.inVehicle !== undefined && d.inVehicle !== 'any') return { k: 'reach', at: z.c, r: aimR(z.r), mode: 'vehicle', vehicle: d.inVehicle, stop };
       if (d.inVehicle === 'any') return { k: 'reach', at: z.c, r: aimR(z.r), mode: 'vehicle', stop };
-      return { k: 'reach', at: z.c, r: aimR(z.r), mode: d.onFoot === true ? 'foot' : 'free', stop };
+      // on foot the bot sprints: a stage may carry a time limit (m.a1.10) and the bot has no reason to save its breath (M05c2)
+      return { k: 'reach', at: z.c, r: aimR(z.r), mode: d.onFoot === true ? 'foot' : 'free', stop, pace: 'sprint' };
     }
     case 'enterVehicle': {
       const v = d.vehicle === 'any' ? nearestUsableVehicle(obs, 1e9) : d.vehicle;
@@ -111,8 +112,10 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       return d.targets[0] !== undefined ? { k: 'melee', target: d.targets[0] } : { k: 'idle' };
     case 'score':
       return { k: 'pattern', name: 'drift' };
-    case 'escape': {
-      // run for the farthest place the mission names (its hideout or its last stop): a moving car leaves the search circle behind (M05c1)
+    case 'escape':
+    case 'survive': {
+      // run for the farthest place the mission names (its hideout or its last stop): a moving car leaves the search circle behind
+      // (M05c1), and a car that keeps moving is not busted, which is what a survive stage asks for (M05c2)
       let far: Vec3 | null = null;
       let farD = 0;
       for (const name of Object.keys(obs.zones).sort(byStr)) {
@@ -126,7 +129,6 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       }
       return far ? { k: 'reach', at: far, r: 12, mode: 'free' } : { k: 'idle' };
     }
-    case 'survive':
     case 'protect':
     case 'talk':
     case 'wait':

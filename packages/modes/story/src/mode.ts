@@ -18,6 +18,8 @@ import { DEFAULT_FLAGS, type RuntimeFlags, type StoryCommand } from './vm/types.
 import { missionDeps } from './vm/deps.ts';
 import { MissionStore, type CatalogPayload, type JobRow } from './missions/store.ts';
 import { StoryPlaces, type ShopPorts } from './missions/index.ts';
+import { storyTeleportPolicy, type PolicyLike } from './fast-travel-policy.ts';
+import { storyUnlockDefs } from './unlock-defs.ts';
 
 /** What the page puts in `BootPayload.config.mission` for `?mission=<id>` (QA builds only). */
 export interface QaMissionBoot {
@@ -60,6 +62,8 @@ type ShopWardrobe = NonNullable<ShopPorts['wardrobe']>;
 const DEBUG_EVERY = 6;
 /** The triggers and the Jobs list are looked at every 15 ticks (4 Hz). */
 const TRIGGER_EVERY = 15;
+/** The most phone messages kept for the Messages app. */
+const MAX_MESSAGES = 60;
 /** A new game moves the player to the first auto mission's start only when it is farther than this from it. */
 const AUTO_PLACE_MIN_M = 300;
 const sq = (n: number): number => n * n;
@@ -112,11 +116,50 @@ export class StoryController {
     },
   });
 
+  /** The saved `activeMission` was offered to `begin` once this session (M05c2: resume from the last checkpoint after a reload). */
+  private triedResume = false;
+  /** The phone messages of this session (`text` ops), oldest first; the Messages app reads `mode.story.messages`. */
+  private messages: { from: string; name: string; text: string; at: number }[] = [];
+  /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
+  private teleportRestore: (() => void) | null = null;
+
   constructor(private readonly env: StoryWrapEnv) {}
+
+  /** A `text` op ran: keep the line and publish the threads (display name from the cast table, text from the line table). */
+  private addMessage(from: string, line: string, tick: number): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.messages.push({ from, name: this.store?.names[from] ?? from, text: this.lines[line] ?? this.store?.lines[line] ?? line, at: tick });
+    if (this.messages.length > MAX_MESSAGES) this.messages.splice(0, this.messages.length - MAX_MESSAGES);
+    ctx.ui.patch('mode.story.messages', this.messages.map((m) => ({ ...m })) as unknown as JsonValue);
+  }
+
+  /** Story fast travel: installs the rule of `fast-travel-policy.ts` on the world's teleport service (a host without one is left alone). */
+  private installFastTravel(ctx: ModeContext): void {
+    this.teleportRestore?.();
+    this.teleportRestore = null;
+    const tp = (ctx.world as { teleport?: { policy?: PolicyLike } } | undefined)?.teleport;
+    if (!tp || !tp.policy) return;
+    const before = tp.policy;
+    const defs = storyUnlockDefs();
+    const mine = storyTeleportPolicy(before, {
+      inMission: () => this.rt?.active === true,
+      districtAt: (x, z) => ctx.world.query.districtAt(x, z),
+      hasUnlock: (id) => ctx.unlocks.has(id as never),
+      defs: () => defs,
+    });
+    tp.policy = mine;
+    this.teleportRestore = () => {
+      if (tp.policy === mine) tp.policy = before;
+    };
+  }
 
   attach(ctx: ModeContext, story: StorySlice): void {
     this.ctx = ctx;
     this.story = story;
+    this.installFastTravel(ctx);
+    this.messages = [];
+    this.triedResume = false;
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
@@ -179,6 +222,7 @@ export class StoryController {
       cutscenes: this.cutscenes,
       playCounter: () => ++this.playSerial,
       lineText: (id) => this.lines[id] ?? id,
+      onText: (from, line, tick) => this.addMessage(from, line, tick),
       timerScale: () => 1,
       comfort: () => this.env.comfort?.() ?? { reducedMotion: false, xr: false },
     });
@@ -249,8 +293,29 @@ export class StoryController {
     ctx.ui.patch('mode.story.jobs', rows as unknown as JsonValue);
   }
 
+  /**
+   * A mission that was running when the game was saved (`StorySlice.activeMission`, written at a checkpoint) continues from that
+   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake is dropped by `begin`, which
+   * leaves the mission `available` again. Tried once per session.
+   */
+  private resumeSaved(ctx: ModeContext, store: MissionStore, story: StorySlice): boolean {
+    const saved = story.activeMission;
+    if (this.triedResume || !saved) return false;
+    this.triedResume = true;
+    const entry = store.get(saved.id);
+    if (!entry) {
+      story.activeMission = null;
+      return false;
+    }
+    this.clearStartMarks(ctx);
+    this.triedTrigger.add(saved.id);
+    const res = this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true });
+    return res.ok;
+  }
+
   private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {
     if (!store.triggers) return;
+    if (this.resumeSaved(ctx, store, story)) return;
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
       this.triedTrigger.add(due.ir.id);
@@ -452,6 +517,8 @@ export class StoryController {
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
+    this.teleportRestore?.();
+    this.teleportRestore = null;
     const rt = this.rt;
     if (!rt) return;
     rt.bind(ctx);

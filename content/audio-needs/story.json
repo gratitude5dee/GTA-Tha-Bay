@@ -4,6 +4,9 @@
     "ama_osei": [
       "line.m.a1.02.fare"
     ],
+    "imani_hart": [
+      "line.m.a1.10.msg"
+    ],
     "npc_test": [
       "line.m.dev.sample.bye",
       "line.m.dev.sample.hello",
@@ -12,7 +15,13 @@
     "odessa_calloway": [
       "line.m.a1.01.gate",
       "line.m.a1.01.tow",
-      "line.m.a1.01.truck"
+      "line.m.a1.01.truck",
+      "line.m.a1.07.msg"
+    ],
+    "patch": [
+      "line.m.a1.07.patch.come",
+      "line.m.a1.07.patch.thanks",
+      "line.m.a1.08.planted"
     ],
     "player": [
       "line.m.a1.01.hook"
@@ -29,7 +38,34 @@
       "line.m.a1.05.start",
       "line.m.a1.06.convoy",
       "line.m.a1.06.start",
-      "line.m.a1.06.sweep"
+      "line.m.a1.06.sweep",
+      "line.m.a1.07.civic",
+      "line.m.a1.07.drones",
+      "line.m.a1.07.start",
+      "line.m.a1.08.gate",
+      "line.m.a1.08.lurk",
+      "line.m.a1.08.patrol",
+      "line.m.a1.08.plant",
+      "line.m.a1.08.start",
+      "line.m.a1.08.tail",
+      "line.m.a1.09.flagged",
+      "line.m.a1.09.hide",
+      "line.m.a1.09.home",
+      "line.m.a1.09.sprayed",
+      "line.m.a1.09.start",
+      "line.m.a1.10.clock",
+      "line.m.a1.10.start",
+      "line.m.a1.11.patrol",
+      "line.m.a1.11.start",
+      "line.m.a1.11.trucks",
+      "line.m.a1.12.fog",
+      "line.m.a1.12.home",
+      "line.m.a1.12.lot",
+      "line.m.a1.12.run",
+      "line.m.a1.12.start"
+    ],
+    "saint_static": [
+      "line.m.a1.12.msg"
     ],
     "slot:RAP_HYPHY_ELDER": [
       "line.m.a1.05.bout",
@@ -42,6 +78,9 @@
       "line.m.a1.03.gate",
       "line.m.a1.03.home",
       "line.m.a1.03.show"
+    ],
+    "x_ramos": [
+      "line.m.a1.11.msg"
     ]
   }
 }

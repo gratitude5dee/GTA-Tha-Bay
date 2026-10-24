@@ -169,6 +169,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Sensitivity gate (every sensitivity-read mission needs a recorded read of its current version, M05c2)
+        run: pnpm missions:build -- --release
       - name: Versions upload (wrangler deploy for a Durable Object lifecycle change), 0 % smoke, 100 %, rollback on failure
         env:
           DV_EVENT_BEFORE: ${{ github.event.before }}

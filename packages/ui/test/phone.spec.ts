@@ -26,11 +26,12 @@ function keys(s: ScreenDef): string[] {
 }
 
 describe('phone registry (AC-6)', () => {
-  it('lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Messages, Camera and Feed are comingSoon tiles', () => {
+  it('lists Map, Jobs, Garage, Bank, Ride, Settings and Help; Camera and Feed are comingSoon tiles; Messages opens (M05c2)', () => {
     const ids = visibleApps({ mode: 'story' }).map((a) => a.id);
     for (const id of ['map', 'jobs', 'garage', 'bank', 'ride', 'settings', 'help']) expect(ids).toContain(id);
-    for (const id of ['messages', 'camera', 'feed']) expect(appDef(id)?.comingSoon, id).toBe(true);
-    for (const a of PHONE_APPS.filter((x) => x.id !== 'messages' && x.id !== 'camera' && x.id !== 'feed')) expect(a.comingSoon).toBeUndefined();
+    for (const id of ['camera', 'feed']) expect(appDef(id)?.comingSoon, id).toBe(true);
+    expect(appDef('messages')?.comingSoon).toBeUndefined();
+    for (const a of PHONE_APPS.filter((x) => x.id !== 'camera' && x.id !== 'feed')) expect(a.comingSoon).toBeUndefined();
   });
 
   it('Sandbox appears only in the sandbox mode', () => {
