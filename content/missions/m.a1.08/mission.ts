@@ -6,7 +6,7 @@
  * graph. Sensitivity read: the night drive starts in the Bayview (B3 rule 4).
  */
 import {
-  at, beat, chase, circle, clock, defineMission, destroyed, enterVehicle, escape, failWhen, follow, goto, heat, ko, markerTrigger, npc, passed, photo, prop, say, spawn, stage, task,
+  at, beat, chase, circle, clock, defineMission, destroyed, enterVehicle, escape, failWhen, follow, heat, ko, markerTrigger, npc, passed, photo, prop, say, spawn, stage, task,
   vehicle, waitFor, driveTo, busted,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 

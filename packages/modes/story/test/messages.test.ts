@@ -9,7 +9,7 @@ import { MissionStore, type CatalogPayload } from '../src/missions/store.ts';
 import { StoryController } from '../src/mode.ts';
 import { ll, makeHarness } from './harness.ts';
 
-const ir = (id: string, giver?: string) =>
+const ir = (id: `m.${string}`, giver?: string) =>
   defineMission({
     id,
     version: 1,

@@ -445,7 +445,7 @@ function pursue(obs: MissionObs, mem: Mem, t: Tools, wp: Vec3, vcap: number, cur
   const err = want - v.speed;
   const throttle = err > 0 ? clamp(0.3 + err * 0.3, 0, 1) : 0;
   const brake = err < -1.2 ? clamp(-err * 0.3, 0, 1) : 0;
-  if (DBG.sink) DBG.sink({ tick: t.tick, wd, alpha, steer, want, vcap, vCorner, cc: curveCap, speed: v.speed, throttle, brake, idx: mem.pathIdx, np: mem.path?.length ?? 0, wp: wp.map(Math.round), vdbg: v.dbg, prof: Array.from({ length: 12 }, (_, i) => (obs.groundY(v.pos[0] - 3 * i, v.pos[2] + 0.1 * i) ?? -99).toFixed(1)).join(" "), vy: v.pos[1], gy: obs.groundY(v.pos[0], v.pos[2]), oth: obs.others.slice(0, 4).map((u) => `${u.police ? 'P' : 'c'}${Math.round(dist(u.pos, v.pos))}@${Math.round(u.pos[0] - v.pos[0])},${Math.round(u.pos[2] - v.pos[2])}v${Math.round(Math.hypot(u.vx, u.vz))}`).join(' '), cops: obs.units.slice(0, 5).map((u) => `${Math.round(dist(u.pos, v.pos))}@${Math.round(u.pos[0] - v.pos[0])},${Math.round(u.pos[2] - v.pos[2])}`).join(" "), ahead: (mem.path ?? []).slice(mem.pathIdx, mem.pathIdx + 14).map((q) => `${Math.round(q[0])},${Math.round(q[2])}`).join(" ") });
+  if (DBG.sink) DBG.sink({ tick: t.tick, wd, alpha, steer, want, vcap, vCorner, cc: curveCap, speed: v.speed, throttle, brake, idx: mem.pathIdx, np: mem.path?.length ?? 0, wp: wp.map(Math.round), oth: obs.others.slice(0, 4).map((u) => `${u.police ? 'P' : 'c'}${Math.round(dist(u.pos, v.pos))}`).join(' ') });
   return { ...base, steer, throttle: Math.round(throttle * 127), brake: Math.round(brake * 127) };
 }
 

@@ -7,6 +7,7 @@
  * the CLI skips (the plates are then rendered where such a build and a WebGPU adapter exist, and only the lock is committed).
  */
 import { createHash } from 'node:crypto';
+import type * as Playwright from '@playwright/test';
 import type { CutsceneRef, DirectorScript } from '../../../packages/shared/src/contracts/c09-cutscene.ts';
 import { buildRecord } from '../provenance-new.ts';
 
@@ -97,7 +98,7 @@ export function plateRecord(sha256: string, derivedFrom: readonly string[], args
   return buildRecord({
     sha256,
     paths: [plateObjectKey(sha256)],
-    kind: 'image',
+    kind: 'texture',
     origin: 'derived',
     license: 'LicenseRef-DeeVerse-Owned',
     authors: ['studio:dee-verse'],
@@ -127,7 +128,7 @@ export type RendererResult = { ok: true; renderer: PlateRenderer } | { ok: false
  * without it, a browser without a WebGPU adapter or a missing Playwright browser all give `{ ok: false, reason }` so the CLI can skip.
  */
 export async function chromiumRenderer(o: { baseUrl: string; webgpu: boolean }): Promise<RendererResult> {
-  let pw: typeof import('@playwright/test');
+  let pw: typeof Playwright;
   try {
     pw = await import('@playwright/test');
   } catch (e) {

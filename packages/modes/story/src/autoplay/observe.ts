@@ -6,7 +6,7 @@
  */
 import type { ModeContext, ObjectiveDef } from '@dv/shared';
 import { dsqrt } from '@dv/shared';
-import { Police, Transform, Vehicle, VehicleDamage, Velocity } from '@dv/engine/sim';
+import { Police, Transform, Vehicle, Velocity } from '@dv/engine/sim';
 import type { Vec3 } from '../vm/actors.ts';
 import { quatYaw } from '../vm/actors.ts';
 import type { MissionRuntime } from '../vm/runtime.ts';
@@ -42,6 +42,9 @@ export interface CastView {
   occupied: boolean;
 }
 
+/** Other vehicles closer than this to the player are listed in `MissionObs.others`. */
+const OTHERS_RADIUS_M = 40;
+
 export interface MissionObs {
   tick: number;
   phase: string;
@@ -54,7 +57,7 @@ export interface MissionObs {
     yaw: number;
     /** Horizontal speed of the character, or of the vehicle it drives. */
     speed: number;
-    vehicle: null | { cast: string | null; pos: Vec3; yaw: number; speed: number; dbg?: string };
+    vehicle: null | { cast: string | null; pos: Vec3; yaw: number; speed: number };
   };
   objectives: ObjView[];
   zones: Record<string, ZoneView>;
@@ -105,11 +108,6 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
       let cast: string | null = null;
       for (const name of rt.castRt.keys()) if (actors.cast(name) === vh) cast = name;
       vehicle = { cast, pos: vp, yaw: quatYaw(tr.qy[vid] as number, tr.qw[vid] as number), speed: dsqrt(vx * vx + vz * vz) };
-      if (ecs.hasId(vid, VehicleDamage)) {
-        const vd = ecs.store(VehicleDamage);
-        const vv = ecs.store(Vehicle);
-        vehicle.dbg = `body ${(vd.body[vid] as number).toFixed(2)} eng ${(vd.engine[vid] as number).toFixed(2)} gear ${vv.gear[vid]} rpm ${(vv.rpm[vid] as number).toFixed(0)} hb ${vv.handbrake[vid]} thr ${vv.throttle[vid]} sp ${(vv.speed[vid] as number).toFixed(1)} water ${ctx.world.query.waterDepth(vp[0], vp[2], vp[1]).toFixed(2)}/${ctx.world.query.waterDepth(vp[0], vp[2]).toFixed(2)}`;
-      }
     }
   }
 
@@ -169,15 +167,20 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
   const units: MissionObs['units'] = [];
   const others: MissionObs['others'] = [];
   const myId = vh === null ? null : ecs.resolve(vh);
-  for (const id of ctx.ecs.query([Vehicle, Transform])) {
+  const d2 = (q: Vec3): number => (q[0] - pos[0]) * (q[0] - pos[0]) + (q[2] - pos[2]) * (q[2] - pos[2]);
+  const read = (id: number): { pos: Vec3; vx: number; vz: number } => ({ pos: [tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number], vx: ve.vx[id] as number, vz: ve.vz[id] as number });
+  for (const id of ecs.query([Vehicle, Police, Transform])) {
     if (id === myId) continue;
-    const q: Vec3 = [tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number];
-    const police = ctx.ecs.hasId(id, Police);
-    const u = { pos: q, vx: ve.vx[id] as number, vz: ve.vz[id] as number };
-    if (police) units.push(u);
-    if (((q[0] - pos[0]) ** 2 + (q[2] - pos[2]) ** 2) < 1600) others.push({ ...u, police });
+    const u = read(id);
+    units.push(u);
+    if (d2(u.pos) < OTHERS_RADIUS_M * OTHERS_RADIUS_M) others.push({ ...u, police: true });
   }
-  const byDist = (a: { pos: Vec3 }, b: { pos: Vec3 }): number => (a.pos[0] - pos[0]) ** 2 + (a.pos[2] - pos[2]) ** 2 - ((b.pos[0] - pos[0]) ** 2 + (b.pos[2] - pos[2]) ** 2);
+  for (const id of ecs.query([Vehicle, Transform], [Police])) {
+    if (id === myId) continue;
+    const u = read(id);
+    if (d2(u.pos) < OTHERS_RADIUS_M * OTHERS_RADIUS_M) others.push({ ...u, police: false });
+  }
+  const byDist = (a: { pos: Vec3 }, b: { pos: Vec3 }): number => d2(a.pos) - d2(b.pos);
   units.sort(byDist);
   others.sort(byDist);
 

@@ -172,7 +172,7 @@ export class MissionRuntime implements OpHost {
     const h = this.actors.playerVehicle();
     if (h === null) return;
     const key = soft(() => this.ctx.ecs.keyOf(h));
-    if (typeof key === 'string' && key !== '') soft(() => this.ctx.pursuit.respray(key));
+    if (typeof key === 'string') soft(() => this.ctx.pursuit.respray(key));
   }
 
   /** How far behind a car the player may fall before the car eases off: set by the `follow` or `chase` objective that names it (M05c2). */

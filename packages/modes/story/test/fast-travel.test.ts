@@ -44,10 +44,10 @@ describe('storyTeleportPolicy', () => {
     const base = { allowed: () => true, heat: () => 2 };
     const p = storyTeleportPolicy(base, ports({ held: ['unlock.district.d1'] }));
     expect(p.heat()).toBe(2);
-    expect(p.deny?.('fast-travel' as never, { x: 10, z: 0, id: null })).toBeNull();
-    expect(p.deny?.('fast-travel' as never, { x: 1500, z: 0, id: null })).toBe('story.fastTravel.locked');
+    expect(p.deny('fast-travel', { x: 10, z: 0, id: null })).toBeNull();
+    expect(p.deny('fast-travel', { x: 1500, z: 0, id: null })).toBe('story.fastTravel.locked');
     const withBase = storyTeleportPolicy({ ...base, deny: () => 'world.teleport.forbidden' }, ports({ held: ['unlock.district.d1'] }));
-    expect(withBase.deny?.('fast-travel' as never, { x: 10, z: 0, id: null })).toBe('world.teleport.forbidden');
+    expect(withBase.deny('fast-travel', { x: 10, z: 0, id: null })).toBe('world.teleport.forbidden');
   });
 });
 

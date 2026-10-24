@@ -47,16 +47,16 @@ export function fastTravelDenial(kind: string, x: number, z: number, p: FastTrav
 
 /** The shape of the world's teleport policy this module extends (kept structural so the story package needs no import of the world package). */
 export interface PolicyLike {
-  allowed(kind: never): boolean;
+  allowed(kind: string): boolean;
   heat(): number;
-  deny?(kind: never, target: { x: number; z: number; id: string | null }): string | null;
+  deny?(kind: string, target: { x: number; z: number; id: string | null }): string | null;
 }
 
 /** A policy that is `base` plus the story rule. */
-export function storyTeleportPolicy<P extends PolicyLike>(base: P, ports: FastTravelPorts): P {
-  const baseDeny = base.deny as ((kind: string, t: { x: number; z: number; id: string | null }) => string | null) | undefined;
+export function storyTeleportPolicy<P extends PolicyLike>(base: P, ports: FastTravelPorts): P & { deny(kind: string, target: { x: number; z: number; id: string | null }): string | null } {
+  const baseDeny = base.deny;
   return {
     ...base,
     deny: (kind: string, t: { x: number; z: number; id: string | null }) => baseDeny?.call(base, kind, t) ?? fastTravelDenial(kind, t.x, t.z, ports),
-  } as P;
+  };
 }

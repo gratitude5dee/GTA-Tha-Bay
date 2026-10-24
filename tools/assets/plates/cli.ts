@@ -21,7 +21,6 @@ import { stableJson } from '../../ci/missions/build.ts';
 import { buildTimeMs, isoSeconds } from '../../soul/src/common.ts';
 import { spawnRunner } from '../src/uploader-rclone.ts';
 import { loadCutsceneRefs } from '../cutscene-index/refs.ts';
-import { sha256Hex } from '../../ci/lib/common.ts';
 import {
   chromiumRenderer, emptyPlateLock, mergeLock, plateJobs, plateObjectKey, plateRecord, sha256Of,
   type PlateLock, type PlateRenderer, type RendererResult,
@@ -93,7 +92,7 @@ export function uploadPlate(
     o.log(`assets:plates upload failed for ${sha256.slice(0, 12)} (rclone exit ${r.status})`);
     return false;
   }
-  const rec = plateRecord(sha256, derivedFrom, sha256Hex(JSON.stringify({ shot: 'first', w: 1920, h: 1080 })), o.createdAt);
+  const rec = plateRecord(sha256, derivedFrom, sha256Of(new TextEncoder().encode(JSON.stringify({ shot: 'first', w: 1920, h: 1080 }))), o.createdAt);
   const recFile = path.join(o.root, 'assets/provenance', sha256.slice(0, 2), `${sha256}.json`);
   mkdirSync(path.dirname(recFile), { recursive: true });
   writeFileSync(recFile, `${JSON.stringify(rec, null, 2)}\n`);
