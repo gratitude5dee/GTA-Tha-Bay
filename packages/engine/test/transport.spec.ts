@@ -176,6 +176,44 @@ describe('stats reports and the pause (BD-FIX-CI9-W04)', () => {
     expect(runtime.sim!.tick).toBeGreaterThan(stoppedAt);
     runtime.dispose();
   });
+
+  it('every report while paused names the frame whose signal stopped the ticks; running reports name none (BD-FIX-CI10-R03)', async () => {
+    const { main, init } = createSabMain();
+    const runtime = new SimRuntime(attachSabWorker(init), env);
+    await runtime.boot(cfg(), BOOT);
+    const reports: { paused: boolean; since: number | null }[] = [];
+    const drain = (): void => {
+      main.drainEvents((m: FromWorkerMessage) => {
+        if (m.t === 'stats') reports.push({ paused: m.p.paused, since: m.p.pausedSince });
+      });
+    };
+    const send = (f: number, paused: boolean): void => {
+      expect(main.sendFrame({ frame: f, nowMs: f * 50, dtSec: 0.05, paused, timeScale: 1 })).toBe(true);
+    };
+    drain();
+    send(0, false);
+    runtime.pump();
+    // a running signal and the first two paused ones in one pump: the pause starts with signal 2
+    send(1, false);
+    send(2, true);
+    send(3, true);
+    runtime.pump();
+    drain();
+    expect(reports).toEqual([{ paused: true, since: 2 }]);
+    // the regular reports of the pause keep naming signal 2
+    for (let f = 4; f < 4 + 6; f++) {
+      send(f, true);
+      runtime.pump();
+    }
+    drain();
+    expect(reports.slice(1).every((r) => r.paused && r.since === 2)).toBe(true);
+    expect(reports.length).toBeGreaterThan(1);
+    send(10, false);
+    runtime.pump();
+    drain();
+    expect(reports.at(-1)).toEqual({ paused: false, since: null });
+    runtime.dispose();
+  });
 });
 
 describe('snapshot triple buffer and seqlock', () => {
@@ -396,7 +434,7 @@ describe('message guards run on both sides', () => {
   it('accepts well-formed worker messages and rejects everything else', () => {
     const stats = { tick: 1, ticksLastFrame: 1, tickMsP50: 0, tickMsP99: 0, droppedSec: 0, overruns: 0 };
     expect(isFromWorkerMessage(makeEnvelope('ready', 0, { physicsBuild: 'simd-compat', transport: 'sab' }))).toBe(true);
-    expect(isFromWorkerMessage(makeEnvelope('stats', 0, { stats, nanCount: 0, hash: null, physicsBuild: 'simd-compat', rebases: 0, entities: 1, bodies: 1, eventsDropped: 0, paused: false }))).toBe(true);
+    expect(isFromWorkerMessage(makeEnvelope('stats', 0, { stats, nanCount: 0, hash: null, physicsBuild: 'simd-compat', rebases: 0, entities: 1, bodies: 1, eventsDropped: 0, paused: false, pausedSince: null }))).toBe(true);
     expect(isFromWorkerMessage(makeEnvelope('ctl.result', 0, { t: 'save.result', ok: false, reason: 'not-implemented' }))).toBe(true);
     for (const bad of [
       makeEnvelope('ready', 0, { physicsBuild: 'bullet', transport: 'sab' }),

@@ -41,6 +41,8 @@ export interface CutsceneGlue {
   handleEvents(events: readonly SimEventLike[]): void;
   /** What happened, oldest first (the last 60); the QA bridge reads it. */
   log: () => readonly CutsceneLogEntry[];
+  /** Flat frames the renderer has not drawn because the world was hidden (`RendererHost.heldFrames`); the QA bridge reads it. */
+  heldFrames: () => number;
   dispose(): void;
 }
 
@@ -77,6 +79,9 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
   }
 
   const tier = platform.quality.tier.id;
+  // The tick of the newest `cut.request`: the frame the host holds while the player resolves the clip is the first one drawn from that
+  // tick's snapshot, which carries the armed DirectorScript's first shot (section D7 step 1; BD-FIX-CI10-R01).
+  let armTick = Number.POSITIVE_INFINITY;
   const wakeLock = new ScreenWakeLock(navigator as never, document);
   const host = new DomCutsceneHost({
     parent: document.body as unknown as HostElement,
@@ -86,6 +91,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     tier,
     wakeLock,
     root: document.documentElement,
+    frameArmed: () => engine.view.tick >= armTick,
   });
   const budget = new MediaBudget({ maxMediaMB: tier.startsWith('mobile') ? CUTSCENE_CONFIG.mobileMediaBudgetMB : null });
   const holder: { player?: CutscenePlayerImpl } = {};
@@ -171,6 +177,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
       if (e.t === 'cut.request' && e.n !== undefined) {
         const refs = (e.s ?? '').split(',').map((r) => (r === '' ? null : r));
         note({ k: 'request', n: e.n, refs });
+        armTick = e.tick;
         const fallbacks = refs.map((r) => index?.entries.find((x) => x.ref === r)?.fallback ?? '');
         // The pooled elements are the ones the first gesture unlocked (FirstGestureUnlock); the page never unlocks them itself, in QA
         // builds either: a QA boot mission's beat waits for a real gesture (qa/mission-gate.ts, DL-715 as amended).
@@ -191,6 +198,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     host,
     handleEvents,
     log: () => log,
+    heldFrames: () => platform.host.heldFrames,
     dispose: () => overlay.hide(),
   };
 }

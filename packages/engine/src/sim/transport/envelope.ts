@@ -82,6 +82,11 @@ export interface StatsReport {
    * (BD-FIX-CI9-W04).
    */
   paused: boolean;
+  /**
+   * `FrameSignal.frame` of the first paused signal of the pause in force (the page frame whose signal stopped the ticks); null while
+   * the sim runs. Every report while paused carries it, so a page that misses the report of the turn still learns it (BD-FIX-CI10-R03).
+   */
+  pausedSince: number | null;
 }
 
 /**
@@ -246,7 +251,7 @@ export function isFromWorkerMessage(x: unknown): x is FromWorkerMessage {
     case 'ready':
       return isObject(p) && (p['physicsBuild'] === 'simd-compat' || p['physicsBuild'] === 'deterministic-compat') && (p['transport'] === 'sab' || p['transport'] === 'postMessage');
     case 'stats':
-      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']) && typeof p['paused'] === 'boolean';
+      return isObject(p) && isLoopStats(p['stats']) && isNum(p['nanCount']) && isNum(p['rebases']) && isNum(p['entities']) && isNum(p['bodies']) && isNum(p['eventsDropped']) && typeof p['paused'] === 'boolean' && (p['pausedSince'] === null || isInt(p['pausedSince']));
     case 'ctl.result':
       return isObject(p) && p['t'] === 'save.result' && (p['ok'] === true ? isInt(p['slots']) : p['ok'] === false && typeof p['reason'] === 'string' && SAVE_RESULT_REASONS.has(p['reason']));
     case 'log':

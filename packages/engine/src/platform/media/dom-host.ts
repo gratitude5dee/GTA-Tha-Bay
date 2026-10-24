@@ -3,6 +3,11 @@
  * the canvas on black (`object-fit: contain`), stops the render loop and pauses the sim while the clip covers the screen, keeps the
  * GPU resources resident (nothing is disposed), holds a screen wake lock on mobile tiers, and undoes all of it on `hide`. Releasing
  * the element drops its decoder: `removeAttribute('src'); load()`.
+ *
+ * Around the clip (BD-FIX-CI10-R01), the world the host hides is not drawn either, while the loop and the sim keep running: the armed
+ * in-engine frame is held on the canvas while the player resolves the clip (`holdFrame`), `poster.webp` covers the screen on black
+ * while the clip pre-rolls (`holdPoster`), and `last.webp` after a mid-play stall (`holdStill`). Each goes through the loop's
+ * `holdWorld`; the cue-only layer of the in-engine fallback is translucent and keeps the world drawn.
  */
 import type { CutsceneManifest, Rendition } from '@dv/shared/contracts/c09-cutscene';
 import type { ScreenWakeLock } from './wake-lock.ts';
@@ -11,6 +16,11 @@ import type { ScreenWakeLock } from './wake-lock.ts';
 export interface LoopControl {
   stopLoop(): void;
   startLoop(): void;
+  /**
+   * Skips the world and backdrop passes while the loop keeps running (`RendererHost.holdWorld`); returns the release. Optional: a loop
+   * without it (the QA media page's stand-in) draws as before.
+   */
+  holdWorld?(kind: 'cover' | 'frame', armed?: () => boolean): () => void;
 }
 /** The part of the engine handle the host drives; `EngineHandle` satisfies it. */
 export interface SimPause {
@@ -66,6 +76,11 @@ export interface DomHostOptions {
   wakeLock?: ScreenWakeLock | null;
   /** Sets `data-dv-cutscene` on the document element so that the HUD hides (10-ui-hud-xr.md section 1). */
   root?: { setAttribute(n: string, v: string): void; removeAttribute(n: string): void };
+  /**
+   * True once the frame `holdFrame` keeps is in the view (the page: the snapshot of the tick that armed the beat has arrived). Without
+   * it the frame drawn next is held.
+   */
+  frameArmed?: () => boolean;
 }
 
 export class DomCutsceneHost {
@@ -80,6 +95,11 @@ export class DomCutsceneHost {
   private still: HostElement | null = null;
   /** The layer is up with no cover: subtitles over the live world (the in-engine fallback, M05b2). */
   private cuesOnly = false;
+  /** `poster.webp` on black while the clip pre-rolls; the sim runs behind it (BD-FIX-CI10-R01). */
+  private poster: HostElement | null = null;
+  /** Releases of the loop's `holdWorld`: the held in-engine frame, and the opaque cover (poster or still). */
+  private frameHold: (() => void) | null = null;
+  private coverHold: (() => void) | null = null;
 
   constructor(private readonly opts: DomHostOptions) {
     this.mobile = opts.tier.startsWith('mobile');
@@ -92,8 +112,66 @@ export class DomCutsceneHost {
     Object.assign(this.overlayRoot.style, { position: 'absolute', inset: '0' });
   }
 
+  /** A clip, its poster or the still of a stalled clip covers the screen. */
   get visible(): boolean {
-    return this.shown !== null || this.still !== null;
+    return this.shown !== null || this.still !== null || this.poster !== null;
+  }
+
+  /** What keeps the world from being drawn now: the loop is stopped under a clip, a cover hides it, or its armed frame is held. */
+  get held(): 'stopped' | 'cover' | 'frame' | null {
+    if (this.shown !== null) return 'stopped';
+    if (this.coverHold !== null) return 'cover';
+    return this.frameHold !== null ? 'frame' : null;
+  }
+
+  /**
+   * The CutscenePlayer is resolving a clip (section D7 step 2): the armed in-engine frame stays on the canvas, the loop and the sim run
+   * on, and the world is not drawn again until the poster, the clip or the in-engine fallback takes over (or `hide`).
+   */
+  holdFrame(): void {
+    if (this.frameHold !== null || this.visible || this.cuesOnly) return;
+    this.frameHold = this.opts.loop.holdWorld?.('frame', this.opts.frameArmed) ?? null;
+  }
+
+  /**
+   * `poster.webp` covers the screen on black while the clip pre-rolls to its first frame (section D7 step 2). The sim is not paused
+   * (it has not heard `video` yet) and the loop runs; only the world passes are skipped. No-op while a clip or a still is up.
+   */
+  holdPoster(url: string): void {
+    if (this.shown !== null || this.still !== null || this.poster !== null) return;
+    this.releaseFrame();
+    if (this.cuesOnly) {
+      this.cuesOnly = false;
+      this.opts.parent.removeChild(this.layer);
+    }
+    const img = this.opts.createElement('img');
+    img.setAttribute('src', url);
+    img.setAttribute('alt', '');
+    img.setAttribute('data-testid', 'cutscene-poster');
+    Object.assign(img.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'contain', background: '#000' });
+    Object.assign(this.layer.style, { background: '#000' });
+    this.layer.appendChild(img);
+    this.layer.appendChild(this.overlayRoot);
+    this.opts.parent.appendChild(this.layer);
+    this.opts.root?.setAttribute('data-dv-cutscene', 'on');
+    this.poster = img;
+    this.coverHold = this.opts.loop.holdWorld?.('cover') ?? null;
+  }
+
+  private releaseFrame(): void {
+    this.frameHold?.();
+    this.frameHold = null;
+  }
+
+  private releaseCover(): void {
+    this.coverHold?.();
+    this.coverHold = null;
+  }
+
+  private dropPoster(): void {
+    if (this.poster === null) return;
+    this.layer.removeChild(this.poster);
+    this.poster = null;
   }
 
   /** True while the layer shows only the overlay (subtitles) above the running world. */
@@ -106,6 +184,8 @@ export class DomCutsceneHost {
    * manifest and shows no AI chip). The HUD hides as it does for a clip.
    */
   showCues(): void {
+    // The in-engine fallback draws the world: a held frame goes.
+    this.releaseFrame();
     if (this.cuesOnly || this.visible) return;
     this.cuesOnly = true;
     Object.assign(this.layer.style, { background: 'transparent' });
@@ -145,6 +225,8 @@ export class DomCutsceneHost {
     this.layer.appendChild(this.overlayRoot);
     this.still = img;
     if (!this.simWasPaused) this.opts.sim.setPaused(false);
+    // The still is opaque: the loop runs again for the sim and the DirectorScript, without drawing the world behind it.
+    this.coverHold = this.opts.loop.holdWorld?.('cover') ?? null;
     this.opts.loop.startLoop();
   }
 
@@ -185,6 +267,10 @@ export class DomCutsceneHost {
       this.still = null;
       this.shown = null;
     }
+    // The clip replaces its poster (or the held frame); the stopped loop draws nothing, and a hold ends with the clip.
+    this.dropPoster();
+    this.releaseFrame();
+    this.releaseCover();
     if (this.shown === null) {
       this.simWasPaused = this.opts.sim.paused;
       this.opts.loop.stopLoop();
@@ -204,12 +290,22 @@ export class DomCutsceneHost {
 
   /** Uncovers the canvas: drops the element's decoder, restores the loop and the sim, releases the wake lock. */
   async hide(): Promise<void> {
+    this.releaseFrame();
+    if (this.poster !== null) {
+      // The clip never showed: the poster goes and the world is drawn again (the sim was never paused).
+      this.dropPoster();
+      this.opts.parent.removeChild(this.layer);
+      this.opts.root?.removeAttribute('data-dv-cutscene');
+      this.releaseCover();
+      return;
+    }
     if (this.still !== null) {
       const img = this.still;
       this.still = null;
       this.layer.removeChild(img);
       this.opts.parent.removeChild(this.layer);
       this.opts.root?.removeAttribute('data-dv-cutscene');
+      this.releaseCover();
       if (this.mobile && this.opts.wakeLock) await this.opts.wakeLock.release();
       return;
     }

@@ -7,7 +7,9 @@
  * waits on a network answer.
  *
  * Order of events for a clip: resolve, acquire a pooled element, pick the rendition under the media budget, pre-roll to the first
- * frame, answer `video` (the sim must hear it before the host pauses it), cover the screen and play. A refused `play()` on a mobile
+ * frame, answer `video` (the sim must hear it before the host pauses it), cover the screen and play. While it resolves, the host holds
+ * the armed in-engine frame, and while it pre-rolls `poster.webp` covers the screen (section D7 step 2); neither draws the world behind
+ * it, and the in-engine fallback draws it again (BD-FIX-CI10-R01). A refused `play()` on a mobile
  * tier gets a "Tap to play" prompt for 3 s; a stall of 1.5 s during play holds `last.webp` and the sim finishes the beat in-engine.
  */
 import type { UiCommand } from '@dv/shared';
@@ -17,7 +19,7 @@ import type {
 import type { FirstGestureUnlock } from '../../platform/media/first-gesture.ts';
 import { ambientAllowed, AudioSync, type CutsceneAudioPort } from './audio-sync.ts';
 import { overBudget, renditionCandidates, type BudgetPort, type CutsceneHostPort, type OverlayPort } from './hosts.ts';
-import { resolveRef, within, type Resolution, type Resolved, type ResolveDeps } from './resolve.ts';
+import { precheck, resolveRef, within, type Resolution, type Resolved, type ResolveDeps } from './resolve.ts';
 import { canJoinWithMse, mseClass, playMseRun, type MseDeps, type MseItem } from './sequence.ts';
 import { emitPlay, Watch, type Telemetry } from './triggers.ts';
 
@@ -127,6 +129,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
 
   async playSequence(playId: string, items: Item[]): Promise<CutsceneOutcome[]> {
     if (!this.t0.has(playId)) this.t0.set(playId, this.deps.timers.now());
+    this.holdWhileResolving(items[0]?.ref ?? null);
     let outcomes = await this.tryMse(playId, items);
     if (outcomes === null) {
       outcomes = [];
@@ -191,6 +194,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     }
     const cfg = this.deps.cfg;
     const window = this.prefetchCache.has(single) ? cfg.answerDeadlinePrefetchedMs : cfg.answerDeadlineMs;
+    this.holdWhileResolving(single);
     const prepared = this.prepare(playId, [single]);
     const raced = await within<{ clips: PreparedClip[] } | { fallback: FallbackTrigger } | 'late'>(prepared, window, this.deps.timers, 'late');
     if (raced === 'late') {
@@ -219,6 +223,14 @@ export class CutscenePlayerImpl implements CutscenePlayer {
   }
 
   // ---------------------------------------------------------------- resolution and preparation
+
+  /**
+   * Section D7 step 2: while a ref that may play a clip is resolved, the armed in-engine frame covers the screen. A ref that the
+   * checks without network already send to the fallback holds nothing: the DirectorScript starts at once over the live world.
+   */
+  private holdWhileResolving(ref: CutsceneRefId | null): void {
+    if (ref !== null && precheck(this.deps, ref).ok) this.deps.host.holdFrame();
+  }
 
   private entryOf(ref: CutsceneRefId): CutsceneIndexEntry | undefined {
     return this.deps.index()?.entries.find((e) => e.ref === ref);
@@ -405,6 +417,8 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     let sync: AudioSync | null = null;
     let over = false;
     let shown = false;
+    /** This clip put its poster up (it is not a back-to-back item under the previous clip). */
+    let postered = false;
     let finish: (out: CutsceneOutcome) => void = () => undefined;
     const done = new Promise<CutsceneOutcome>((res) => {
       finish = res;
@@ -456,7 +470,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       emitPlay(deps.telemetry, key, info.prefetched, fallbackOutcome(trigger));
       stopWatches();
       overlay.hide();
-      if (shown) await host.hide();
+      if (shown || postered) await host.hide();
       giveBack();
       this.answer(playId, o.item, 'fallback', trigger);
       finish(await this.fallbackItem(playId, o.item, trigger, clip.cues, o.sendDone, true));
@@ -489,6 +503,10 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     // The window runs from the request for a single clip; a later item of a sequence gets a fresh one when its turn comes.
     const window = info.prefetched ? cfg.startStallPrefetchedMs : cfg.startStallMs;
     const until = o.inSequence && (o.item ?? 0) > 0 ? timers.now() + window : info.answerBy;
+    if (!host.visible) {
+      host.holdPoster(clip.posterUrl);
+      postered = host.visible;
+    }
     const first = await this.firstFrame(video, Math.max(0, until - timers.now()));
     if (first !== 'ok') {
       await failEarly(first);

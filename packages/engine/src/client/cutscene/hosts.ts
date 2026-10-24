@@ -10,8 +10,15 @@ import type { CutsceneConfig } from './triggers.ts';
 /** What the player needs of a host. `DomCutsceneHost` satisfies it. */
 export interface CutsceneHostPort {
   readonly kind: CutsceneHostKind;
-  /** A clip (or the still of a stalled clip) covers the screen. */
+  /** A clip, its poster or the still of a stalled clip covers the screen. */
   readonly visible: boolean;
+  /**
+   * The ref is being resolved (section D7 step 2): the armed in-engine frame covers the screen and the world is not drawn again until
+   * `holdPoster`, `show`, `showCues` or `hide` (BD-FIX-CI10-R01).
+   */
+  holdFrame(): void;
+  /** `poster.webp` covers the screen while the clip pre-rolls; the sim keeps running and the world is not drawn behind it. */
+  holdPoster(url: string): void;
   show(video: HTMLVideoElement): Promise<void>;
   hide(): Promise<void>;
   showCues(): void;

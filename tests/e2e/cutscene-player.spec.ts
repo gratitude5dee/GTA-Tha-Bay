@@ -20,7 +20,7 @@ interface LogEntry {
   props?: Record<string, unknown>;
 }
 interface Cutscene {
-  state(): { playing: string[]; host: { visible: boolean; cues: boolean }; simPaused: boolean };
+  state(): { playing: string[]; host: { visible: boolean; cues: boolean; held: 'stopped' | 'cover' | 'frame' | null }; heldFrames: number; simPaused: boolean };
   log(): LogEntry[];
   stall(): boolean;
   subtitle(): string;
@@ -38,6 +38,14 @@ const log = (page: Page): Promise<LogEntry[]> => cut(page, (c) => c.log());
 const phase = (page: Page): Promise<string | undefined> =>
   page.evaluate(() => ((window as unknown as W).__dvBridge.mission.state() as { phase?: string } | null)?.phase);
 const answer = (entries: LogEntry[], state: string): LogEntry | undefined => entries.find((e) => e.k === 'cmd' && e.cmd?.t === 'cutscene.state' && e.cmd.state === state);
+
+/** Records how long the clip took from the beat's request to the `video` answer (the start chain of section D7) as an annotation. */
+async function noteVideoMs(page: Page): Promise<void> {
+  const entries = await log(page);
+  const request = entries.find((e) => e.k === 'request');
+  const video = answer(entries, 'video');
+  if (request && video) test.info().annotations.push({ type: 'video-ms', description: String(Math.round(video.at - request.at)) });
+}
 
 const MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
 
@@ -82,6 +90,17 @@ async function canPlayFixture(page: Page): Promise<boolean> {
 test.describe('cutscene player @cutscene', () => {
   // A clip that is slow to its first frame on a loaded runner falls back (start_stall, section D7); one retry keeps the video tests honest.
   test.describe.configure({ timeout: 240_000, retries: 1 });
+  // A failed try keeps what the player did (requests, answers, telemetry) and its state beside the trace, which records neither.
+  test.afterEach(async ({ page }, info) => {
+    if (info.status === info.expectedStatus) return;
+    const body = await page
+      .evaluate(() => {
+        const w = window as unknown as Partial<W>;
+        return JSON.stringify({ log: w.__dvBridge?.cutscene?.log() ?? null, state: w.__dvBridge?.cutscene?.state() ?? null, gate: w.__dvBridge?.missionGate?.state() ?? null });
+      })
+      .catch((e: unknown) => JSON.stringify({ error: String(e) }));
+    await info.attach('cutscene-log', { body, contentType: 'application/json' });
+  });
 
   test('route 27 absent: the fallback starts within 2.5 s, subtitles show, no AI chip, the mission resumes with the end marks applied @cutscene', async ({ page }) => {
     const errors = await boot(page, 'absent');
@@ -101,7 +120,8 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 60_000, intervals: [50] }).toMatch(/Hold on|Right\. Let me/);
     expect(await cut(page, (c) => c.aiChip())).toBe(false);
     expect(await cut(page, (c) => c.hasVideo())).toBe(false);
-    expect((await cut(page, (c) => c.state())).host.cues).toBe(true);
+    // the in-engine fallback draws the world under its cues (BD-FIX-CI10-R01)
+    expect((await cut(page, (c) => c.state())).host).toMatchObject({ cues: true, held: null });
 
     // the sim finishes the beat (end marks applied) and the mission goes on
     await expect.poll(async () => (await log(page)).some((e) => e.k === 'done'), { timeout: 120_000, intervals: [250] }).toBe(true);
@@ -133,22 +153,25 @@ test.describe('cutscene player @cutscene', () => {
     test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
     const errors = await boot(page, 'ready');
     await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    await noteVideoMs(page);
     const entries = await log(page);
     expect(answer(entries, 'video')).toBeDefined();
     expect(answer(entries, 'fallback')).toBeUndefined();
     expect(await cut(page, (c) => c.aiChip())).toBe(true);
     await expect.poll(() => cut(page, (c) => c.subtitle()), { timeout: 30_000, intervals: [100] }).toContain('Hold on');
-    // the clip covers the screen and the sim waits behind it
+    // the clip covers the screen and the sim waits behind it; the world it hides is not drawn (the loop is stopped, BD-FIX-CI10-R01)
     const st = await cut(page, (c) => c.state());
     expect(st.host.visible).toBe(true);
+    expect(st.host.held).toBe('stopped');
     expect(st.simPaused).toBe(true);
+    test.info().annotations.push({ type: 'held-frames', description: String(st.heldFrames) });
 
     await page.keyboard.press('Escape');
     await expect.poll(async () => answer(await log(page), 'done') !== undefined, { timeout: 30_000, intervals: [100] }).toBe(true);
     const done = answer(await log(page), 'done');
     expect(done?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false }, simPaused: false });
+    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false, held: null }, simPaused: false });
     expect((await log(page)).find((e) => e.k === 'play')?.props).toMatchObject({ path: 'video', fallback: false });
     expect(errors).toEqual([]);
   });
@@ -158,6 +181,7 @@ test.describe('cutscene player @cutscene', () => {
     test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
     const errors = await boot(page, null, '&beats=video');
     await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    await noteVideoMs(page);
     expect(await cut(page, (c) => c.aiChip())).toBe(true);
     await page.keyboard.press('Escape');
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
@@ -176,13 +200,15 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => cut(page, (c) => c.stillSrc()), { timeout: 15_000, intervals: [100] }).toMatch(/last\.webp$/);
     const stalled = answer(await log(page), 'fallback');
     expect(stalled?.cmd?.trigger).toBe('mid_stall');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ simPaused: false });
+    // the sim runs the DirectorScript behind the opaque still, which keeps the world from being drawn (BD-FIX-CI10-R01)
+    expect(await cut(page, (c) => c.state())).toMatchObject({ simPaused: false, host: { held: 'cover' } });
     expect(await cut(page, (c) => c.hasVideo())).toBe(false);
 
     await expect.poll(async () => (await log(page)).some((e) => e.k === 'done'), { timeout: 120_000, intervals: [250] }).toBe(true);
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
-    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false } });
+    expect(await cut(page, (c) => c.state())).toMatchObject({ host: { visible: false, held: null } });
     expect((await log(page)).find((e) => e.k === 'play')?.props).toMatchObject({ path: 'fallback', trigger: 'mid_stall' });
+    await noteVideoMs(page);
     expect(errors).toEqual([]);
   });
 

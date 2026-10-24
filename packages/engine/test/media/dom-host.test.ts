@@ -20,9 +20,23 @@ function setup(tier: string, nav: object = { wakeLock: undefined }) {
   const doc = { visibilityState: 'visible', addEventListener: () => undefined, removeEventListener: () => undefined };
   const wakeLock = new ScreenWakeLock(navigator, doc, (m) => warnings.push(m));
   const sim = { paused: false, setPaused(p: boolean) { this.paused = p; log.push(`sim.paused=${p}`); } };
-  const loop = { stopLoop: () => log.push('setAnimationLoop(null)'), startLoop: () => log.push('startLoop') };
+  const holds = new Set<string>();
+  let armed = (): boolean => true;
+  const loop = {
+    stopLoop: () => log.push('setAnimationLoop(null)'),
+    startLoop: () => log.push('startLoop'),
+    holdWorld: (kind: 'cover' | 'frame', a?: () => boolean): (() => void) => {
+      if (a) armed = a;
+      holds.add(kind);
+      log.push(`hold:${kind}`);
+      return () => {
+        if (holds.delete(kind)) log.push(`release:${kind}`);
+      };
+    },
+  };
   const parent = new FakeEl();
   const root = new Map<string, string>();
+  const frameArmed = { value: false };
   const host = new DomCutsceneHost({
     parent: parent as HostElement,
     createElement: () => new FakeEl(),
@@ -31,8 +45,9 @@ function setup(tier: string, nav: object = { wakeLock: undefined }) {
     tier,
     wakeLock,
     root: { setAttribute: (n, v) => void root.set(n, v), removeAttribute: (n) => void root.delete(n) },
+    frameArmed: () => frameArmed.value,
   });
-  return { host, log, locks, warnings, sim, parent, root, wakeLock };
+  return { host, log, locks, warnings, sim, parent, root, wakeLock, holds, frameArmed, armed: () => armed() };
 }
 
 describe('DomCutsceneHost (AC-2)', () => {
@@ -147,7 +162,8 @@ describe('DomCutsceneHost: cue-only layer, still image, tap prompt (M05b2)', () 
     await t.host.show(video as unknown as HTMLVideoElement);
     t.log.length = 0;
     t.host.holdStill('/last.webp');
-    expect(t.log).toEqual(['sim.paused=false', 'startLoop']);
+    // the loop runs for the sim; the opaque still keeps the world from being drawn (BD-FIX-CI10-R01)
+    expect(t.log).toEqual(['sim.paused=false', 'hold:cover', 'startLoop']);
     expect(t.host.visible).toBe(true);
     expect(video.getAttribute('src')).toBeNull();
     expect(video.loadCalls).toBe(1);
@@ -180,5 +196,95 @@ describe('DomCutsceneHost: cue-only layer, still image, tap prompt (M05b2)', () 
     const tapped = host.waitForTap('Tap to play', 1000);
     clicks.at(-1)?.({});
     expect(await tapped).toBe(true);
+  });
+});
+
+describe('DomCutsceneHost: what keeps the hidden world from being drawn (BD-FIX-CI10-R01)', () => {
+  it('holdFrame holds the armed frame through the loop; the cue-only fallback layer draws the world again', () => {
+    const t = setup('desktop');
+    t.host.holdFrame();
+    expect(t.log).toEqual(['hold:frame']);
+    expect(t.host.held).toBe('frame');
+    expect(t.host.visible).toBe(false);
+    // the host hands the page's "armed" test to the loop
+    expect(t.armed()).toBe(false);
+    t.frameArmed.value = true;
+    expect(t.armed()).toBe(true);
+    t.host.showCues();
+    expect(t.log).toEqual(['hold:frame', 'release:frame']);
+    expect(t.host.held).toBeNull();
+    expect(t.host.cues).toBe(true);
+  });
+
+  it('holdPoster covers the screen on black with the poster, without pausing the sim or stopping the loop; hide undoes it', async () => {
+    const t = setup('mobile-low', {});
+    t.host.holdFrame();
+    t.host.holdPoster('/poster.webp');
+    expect(t.log).toEqual(['hold:frame', 'release:frame', 'hold:cover']);
+    expect(t.sim.paused).toBe(false);
+    expect(t.host.visible).toBe(true);
+    expect(t.host.held).toBe('cover');
+    const layer = t.parent.children[0] as FakeEl;
+    expect(layer.style['background']).toBe('#000');
+    expect(layer.children.map((c) => (c as FakeEl).attrs.get('src') ?? 'overlay')).toEqual(['/poster.webp', 'overlay']);
+    expect(t.root.get('data-dv-cutscene')).toBe('on');
+    await t.host.hide();
+    expect(t.log.slice(3)).toEqual(['release:cover']);
+    expect(t.parent.children).toHaveLength(0);
+    expect(t.host.visible).toBe(false);
+    expect(t.host.held).toBeNull();
+    expect(t.root.has('data-dv-cutscene')).toBe(false);
+    expect(t.wakeLock.held).toBe(false);
+  });
+
+  it('show replaces the poster with the clip: the loop stops and the sim pauses as before, and hide restarts both', async () => {
+    const t = setup('desktop');
+    t.host.holdPoster('/poster.webp');
+    const video = new FakeVideo();
+    await t.host.show(video as unknown as HTMLVideoElement);
+    expect(t.log).toEqual(['hold:cover', 'release:cover', 'setAnimationLoop(null)', 'sim.paused=true']);
+    expect(t.host.held).toBe('stopped');
+    const layer = t.parent.children[0] as FakeEl;
+    expect(t.parent.children).toHaveLength(1);
+    expect(layer.children).toEqual([video, t.host.overlayRoot]);
+    // a second poster under a clip that is up changes nothing
+    t.host.holdPoster('/other.webp');
+    t.host.holdFrame();
+    expect(t.log).toHaveLength(4);
+    await t.host.hide();
+    expect(t.log.slice(4)).toEqual(['sim.paused=false', 'startLoop']);
+    expect(t.holds.size).toBe(0);
+  });
+
+  it('holdStill runs the loop and the sim for the in-engine beat without drawing the world behind the opaque still', async () => {
+    const t = setup('desktop');
+    await t.host.show(new FakeVideo() as unknown as HTMLVideoElement);
+    t.log.length = 0;
+    t.host.holdStill('/last.webp');
+    expect(t.log).toEqual(['sim.paused=false', 'hold:cover', 'startLoop']);
+    expect(t.host.held).toBe('cover');
+    // the fallback's cues go over the still: the cover stays
+    t.host.showCues();
+    expect(t.host.held).toBe('cover');
+    await t.host.hide();
+    expect(t.log.slice(3)).toEqual(['release:cover']);
+    expect(t.host.held).toBeNull();
+  });
+
+  it('a loop without holdWorld (the QA media page) keeps drawing and nothing throws', async () => {
+    const parent = new FakeEl();
+    const host = new DomCutsceneHost({
+      parent: parent as HostElement,
+      createElement: () => new FakeEl(),
+      loop: { stopLoop: () => undefined, startLoop: () => undefined },
+      sim: { paused: false, setPaused: () => undefined },
+      tier: 'desktop',
+    });
+    host.holdFrame();
+    expect(host.held).toBeNull();
+    host.holdPoster('/poster.webp');
+    expect(host.visible).toBe(true);
+    await host.hide();
+    expect(parent.children).toHaveLength(0);
   });
 });
