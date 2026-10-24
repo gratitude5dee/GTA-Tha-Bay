@@ -294,6 +294,25 @@ describe('QA play bypass', () => {
     expect(e.sent).toEqual([{ t: 'mode.start', id: 'story' }]);
     expect(fine.frame).toBeNull();
   });
+  it('a resume from Pause closes a page left open over it, so the next Escape reaches the engine alone (M04e2, BD-M04e2-07)', () => {
+    const h = hooks();
+    const core = new ShellCore(props({ qaPlay: { mode: 'sandbox' }, hooks: h }));
+    expect(core.state).toBe('InMode');
+    core.fire('pause');
+    expect(core.state).toBe('Paused');
+    vi.stubGlobal('history', { state: null, pushState: () => undefined, replaceState: vi.fn(), back: vi.fn() });
+    core.navigate('phone');
+    expect(core.frame?.id).toBe('phone');
+    const before = h.log.length;
+    core.fire('resume');
+    const hist = (globalThis as unknown as { history: { replaceState: ReturnType<typeof vi.fn>; back: ReturnType<typeof vi.fn> } }).history;
+    vi.unstubAllGlobals();
+    expect(core.state).toBe('InMode');
+    expect(core.frame).toBeNull();
+    expect(h.log.slice(before)).toContain('paused:false');
+    expect(hist.replaceState).toHaveBeenCalledWith(null, '', '/');
+    expect(hist.back).not.toHaveBeenCalled();
+  });
   it('the world-load kind has its text and a retry label', () => {
     expect(t('error.kind.world-load')).not.toBe('error.kind.world-load');
     expect(t('error.retry')).not.toBe('error.retry');

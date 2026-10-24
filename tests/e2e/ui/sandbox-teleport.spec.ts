@@ -28,7 +28,8 @@ type Tab = 'teleport' | 'display';
 async function openTab(page: Page, tab: Tab): Promise<void> {
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-  // Right after a jump the Pause page can swallow the first press while the shell settles: press Phone again until the app list shows.
+  // The Phone press can land before the Pause page has settled (software rendering is slow): press Phone again until the app list shows.
+  // (A jump from the phone used to leave the phone page open over the running game, so the next Escape paused and resumed at once: BD-M04e2-07.)
   await expect(async () => {
     if (!(await page.getByTestId('phone').isVisible())) await page.getByTestId('btn-pause-phone').click({ timeout: 2_000 });
     await page.getByTestId('row-phone-apps-sandbox').click({ timeout: 4_000 });
