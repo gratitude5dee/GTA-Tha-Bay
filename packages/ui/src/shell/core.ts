@@ -62,6 +62,12 @@ export class ShellCore implements ShellApi {
   readonly guard: InstanceGuard;
   modals: ModalEntry[] = [];
   noSave = false;
+  /**
+   * The world-load error (BD-FU-A02): the detail code (`catalog-404`, `index-http`, ...) once the page has found that the asset catalog
+   * or the world index it names cannot be loaded after the fetch layer's retry policy. A mode start then shows the error page, with a
+   * retry, instead of entering an empty world. Null while the world loads, or when the failure is the offline path (M11a2).
+   */
+  worldError: string | null = null;
   /** Incremented on every change the view should redraw for. */
   version = 0;
   /** What the QA play bypass still has to do: send `mode.start` once the sim has published its modes. */
@@ -325,9 +331,28 @@ export class ShellCore implements ShellApi {
     if (this.state === 'Paused') this.navigate('phone');
   }
 
+  /** The page found that the world cannot be loaded (BD-FU-A02). A mode that is already loading or running shows the error at once. */
+  worldUnavailable(detail: string): void {
+    this.worldError = detail;
+    if (this.state === 'Loading' || this.state === 'InMode' || this.state === 'Paused') this.showWorldError();
+    this.touch();
+  }
+
+  /** The error page of kind `world-load` over the current state; Back returns to it, Retry reloads the page. */
+  private showWorldError(): void {
+    this.frame = { id: 'error', params: { kind: 'world-load', detail: this.worldError ?? '' } };
+    this.pageChanged();
+    this.touch();
+  }
+
   startMode(id: GameModeId, slot?: SlotId): void {
     if (!this.engine) {
       this.toast({ id: 'engine.notReady', kind: 'warning', text: lk('engine.notReady') });
+      return;
+    }
+    // A world that cannot be loaded is never entered: the error page says so and offers a retry (BD-FU-A02).
+    if (this.worldError !== null) {
+      this.showWorldError();
       return;
     }
     // The page that started the mode (New Game, Continue, Modes) closes: the loading screen, then the HUD, take its place.

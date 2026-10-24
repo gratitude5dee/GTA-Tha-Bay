@@ -14,6 +14,7 @@ import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
+import { catalogFailureCode, worldIndexFailureCode } from './world-failure.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -203,7 +204,11 @@ async function boot(): Promise<void> {
   const headless = flags.probe !== null;
   // The boot rule (M02b1, DL-668): a catalog with data/world-index boots the baked world, the gray-box Civic Center block otherwise;
   // an explicit ?world=<id> (QA builds only) wins and boots that engine scenario on the gray-box path.
-  const choice = bootChoice(flags.world, !headless && assets !== null && (await hasWorldIndex(assets)));
+  const catalog = !headless && assets !== null ? await assets.catalogInfo().catch(() => null) : null;
+  const choice = bootChoice(flags.world, catalog?.state === 'ready' && assets !== null && (await hasWorldIndex(assets)));
+  // The world-load error (BD-FU-A02): a catalog, or the world index it names, that the fetch layer could not deliver is said on the
+  // error page, with a retry, when the player starts a mode, instead of an empty world. Only the default boot rule asks (no ?world=).
+  let worldFailure = flags.world === null ? catalogFailureCode(catalog) : null;
   let prepared: PreparedWorld | null = null;
   if (choice === 'baked' && assets) {
     try {
@@ -244,7 +249,12 @@ async function boot(): Promise<void> {
       }
     } catch (error) {
       console.error('the baked world could not be prepared', error);
+      worldFailure = worldIndexFailureCode(error);
     }
+  }
+  if (worldFailure !== null) {
+    console.error(`the world cannot be loaded (${worldFailure})`, catalog?.failure?.url ?? '');
+    shell.worldUnavailable(worldFailure);
   }
   // The chunks the page needs once the engine is up start loading now, all at once, before the engine starts its render loop. An
   // `await import()` taken after that waits for a frame, and a software-GL frame at the desktop tiers takes seconds, so one import after

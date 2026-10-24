@@ -1,4 +1,5 @@
 import type { QualityTierId } from '@dv/shared';
+import type { CatalogFailure } from './store/catalog-client.ts';
 import type { Priority } from './store/lanes.ts';
 import type { TabMode } from './store/tab-lock.ts';
 import type { PackFailure, PackRef, StorageUsage } from './store/types.ts';
@@ -37,6 +38,12 @@ export interface StatsResult {
 
 export type CatalogStateName = 'idle' | 'loading' | 'ready' | 'invalid' | 'disabled' | 'unavailable';
 
+/** The catalog state and, when it is `unavailable`, the request that failed and why (the shell's world-load error, BD-FU-A02). */
+export interface CatalogInfo {
+  state: CatalogStateName;
+  failure: CatalogFailure | null;
+}
+
 /** Operation name to `[params, result]`. */
 export interface RpcOps {
   init: [InitParams, InitResult];
@@ -54,6 +61,7 @@ export interface RpcOps {
   clear: [Record<string, never>, null];
   mode: [Record<string, never>, TabMode];
   catalog: [Record<string, never>, CatalogStateName];
+  catalogInfo: [Record<string, never>, CatalogInfo];
   stats: [Record<string, never>, StatsResult];
   /** QA builds only; the worker answers `not-supported` otherwise. */
   qa: [{ name: string; args: unknown }, unknown];

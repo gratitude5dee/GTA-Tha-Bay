@@ -35,6 +35,8 @@ export interface ShellHandle {
   onToast(toast: SimToast): void;
   crashed(): void;
   recovered(): void;
+  /** The asset catalog or the world index cannot be loaded (BD-FU-A02); `detail` is the code the error page shows. */
+  worldUnavailable(detail: string): void;
   unmount(): void;
 }
 
@@ -58,6 +60,7 @@ export function mountShell(root: HTMLElement, props: ShellProps): ShellHandle {
     onToast: (tst) => core.onEngineToast(tst),
     crashed: () => core.crashed(),
     recovered: () => core.recovered(),
+    worldUnavailable: (detail) => core.worldUnavailable(detail),
     unmount: () => render(null, root),
   };
 }

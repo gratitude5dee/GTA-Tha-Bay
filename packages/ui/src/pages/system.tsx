@@ -191,19 +191,24 @@ export function LoadingPage(_props: PageProps) {
   );
 }
 
-export type ErrorKind = 'gpu-init' | 'wasm-load' | 'sim-crash' | 'storage-unavailable' | 'region-blocked';
-export const ERROR_KINDS: readonly ErrorKind[] = ['gpu-init', 'wasm-load', 'sim-crash', 'storage-unavailable', 'region-blocked'];
+/** The kinds of 10-ui-pages.md section 2.3 rule 4, plus `world-load`: the asset catalog or its world index cannot be loaded (BD-FU-A02). */
+export type ErrorKind = 'gpu-init' | 'wasm-load' | 'sim-crash' | 'storage-unavailable' | 'region-blocked' | 'world-load';
+export const ERROR_KINDS: readonly ErrorKind[] = ['gpu-init', 'wasm-load', 'sim-crash', 'storage-unavailable', 'region-blocked', 'world-load'];
+/** The kinds whose page offers Retry, which reloads the page and so loads the catalog again. */
+const RETRY_KINDS: ReadonlySet<ErrorKind> = new Set(['world-load']);
 
 export function ErrorPage(props: PageProps) {
   const { shell, ctx } = useShell();
   const kind = (ERROR_KINDS as readonly string[]).includes(props.params['kind'] ?? '') ? (props.params['kind'] as ErrorKind) : 'sim-crash';
   const [copied, setCopied] = useState(false);
+  const detail = props.params['detail'];
   return (
     <main class="dv-screen dv-error-page" data-testid="error" data-kind={kind}>
       <h1>{t('error.title')}</h1>
-      <p>{t(`error.kind.${kind}`)}</p>
-      <p class="dv-muted" data-testid="error-code">{t('error.code', { code: kind })}</p>
+      <p role="alert" data-testid="error-message">{t(`error.kind.${kind}`)}</p>
+      <p class="dv-muted" data-testid="error-code">{t('error.code', { code: detail ? `${kind}/${detail}` : kind })}</p>
       <div class="dv-actions">
+        {RETRY_KINDS.has(kind) ? <Button id="error-retry" style="primary" label={t('error.retry')} onPress={() => ctx.props.hooks.reload()} testId="error-retry" /> : null}
         <Button
           id="copy-diagnostics"
           label={copied ? t('error.copied') : t('error.copy')}
