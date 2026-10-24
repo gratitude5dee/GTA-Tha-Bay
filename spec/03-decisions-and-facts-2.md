@@ -26,7 +26,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M02c2 | F-053, F-054, F-055, F-056 | OSM attribution; EAS addresses for geocoding; no Mapbox runtime; no 3D Tiles import (DL-676); the R2 binding and Workers cache facts below (DL-713) | U-W4 (DL-687) |
 | M02d1, M02d2 | F-007, F-017, F-053 | landmark objects inside the budget; glTF with meshopt (`meshoptimizer@1.3.0` [research/stack-rendering-platform.md §5.6]); `BundleGroup` re-record counter [research/stack-rendering-platform.md §1.5]; OSM landmark ids (DL-687) | — |
 | M03a1 | F-014, F-017 | ray-cast vehicle controller; prefab asset formats | U-ENG-6 |
-| M03a2 | F-014 | Rapier per-wheel contact and impulse readout | U-RAC-1 |
+| M03a2 | F-014 | Rapier per-wheel contact and impulse readout. Resolved 2026-10-20: the installed 0.21.0 declarations (`control/ray_cast_vehicle_controller.d.ts`) give contact point, normal, suspension length and force per wheel, but no wheel-point velocity (vLong, vLat), so the controller path fails the readout rule and `castray` ships; see `docs/decisions/ADR-0031-vehicle-wheel-force-path.md` | U-RAC-1 (resolved) |
 | M03b1 | F-007 | ambient agents and instancing within the object budget; robotaxi hold at dark signals, Dec 2025 SF blackout [research/gamedesign-decomposition.md §2.7] (DL-687) | — |
 | M03b2 | F-007 | crowd instancing within the object budget; Muni Metro station positions (`02-world.md` §7 N4, DL-660); BART developer licence forbids its marks [research/auth-ugc-input-maps.md §5.2] (DL-687) | — |
 | M03c | none | pure sim; no external-system fact | — |

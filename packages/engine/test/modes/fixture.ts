@@ -2,7 +2,7 @@ import { RngStreams, type EcsApi, type GameModeDescriptor, type GameModeId, type
 import { SimUiBridge } from '../../src/sim/ui/bridge.ts';
 import {
   AutosavePolicy, EconomyImpl, ModeEventBus, ModeHost, UnlockRegistryImpl, bindModeSave, builtinDescriptors, builtinUnlockDefs, createCommandDispatcher, freshSlices,
-  type AutosaveGameState, type SessionSlices,
+  type AutosaveGameState, type CommandDeps, type SessionSlices,
 } from '../../src/sim/modes/index.ts';
 
 export interface Posted {
@@ -36,6 +36,12 @@ export interface RigOptions {
   qa?: boolean;
   slices?: SessionSlices;
   builtin?: boolean;
+  /** The room port (M04e0): what `ctx.net` reads. Absent in single player. */
+  net?: () => ModeContext['net'];
+  /** Passed to the dispatcher; absent by default. */
+  teleport?: CommandDeps['teleport'];
+  /** Replaces the empty world of the dispatcher. */
+  world?: () => ReturnType<CommandDeps['world']>;
 }
 
 /** A sim-free harness: the real ModeHost, registry, economy, bridge and policy on fake ports. */
@@ -80,6 +86,7 @@ export function makeRig(o: RigOptions = {}): Rig {
       assets: { request: () => undefined, ready: () => true },
       telemetry: tel as never,
       world: {} as never,
+      ...(o.net ? { net: o.net } : {}),
     },
     save,
     unlocks,
@@ -96,7 +103,8 @@ export function makeRig(o: RigOptions = {}): Rig {
   const dispatch = createCommandDispatcher({
     host, slices: () => slices, ui, events: bus, tick: () => tick.n,
     sandboxContext: () => host.stack.entries.find((e) => e.id === 'sandbox' && e.state === 'Running')?.ctx ?? null,
-    world: () => ({}) as never,
+    world: o.world ?? (() => ({}) as never),
+    ...(o.teleport ? { teleport: o.teleport } : {}),
   });
   return {
     host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet,

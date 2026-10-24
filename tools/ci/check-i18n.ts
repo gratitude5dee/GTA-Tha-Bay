@@ -32,7 +32,7 @@ export interface I18nReport {
 
 const SOURCE_DIRS = ['packages/ui/src', 'apps/web/src'];
 /** Key families the sim raises (toasts) or a table builds by name; they have no `t()` call to find. */
-const EXTERNAL_PREFIXES = ['world.', 'mode.', 'unlock.', 'garage.', 'save.profile.', 'legal.doc.', 'help.', 'hint.', 'creator.part.', 'creator.morph.', 'touch.layout.', 'engine.vehicle.', 'phone.ride.', 'nhood.', 'map.travel.'];
+const EXTERNAL_PREFIXES = ['world.', 'mode.', 'unlock.', 'garage.', 'save.profile.', 'legal.doc.', 'help.', 'hint.', 'creator.part.', 'creator.morph.', 'touch.layout.', 'engine.vehicle.', 'phone.ride.', 'nhood.', 'map.travel.', 'sandbox.refuse.'];
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
