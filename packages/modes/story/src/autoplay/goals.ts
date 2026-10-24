@@ -66,7 +66,8 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       const stop = d.stopped === true;
       if (d.inVehicle !== undefined && d.inVehicle !== 'any') return { k: 'reach', at: z.c, r: aimR(z.r), mode: 'vehicle', vehicle: d.inVehicle, stop };
       if (d.inVehicle === 'any') return { k: 'reach', at: z.c, r: aimR(z.r), mode: 'vehicle', stop };
-      return { k: 'reach', at: z.c, r: aimR(z.r), mode: d.onFoot === true ? 'foot' : 'free', stop };
+      // on foot the bot sprints: a stage may carry a time limit (m.a1.10) and the bot has no reason to save its breath (M05c2)
+      return { k: 'reach', at: z.c, r: aimR(z.r), mode: d.onFoot === true ? 'foot' : 'free', stop, pace: 'sprint' };
     }
     case 'enterVehicle': {
       const v = d.vehicle === 'any' ? nearestUsableVehicle(obs, 1e9) : d.vehicle;

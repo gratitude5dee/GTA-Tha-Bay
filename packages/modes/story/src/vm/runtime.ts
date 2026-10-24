@@ -167,6 +167,14 @@ export class MissionRuntime implements OpHost {
   // ---------------------------------------------------------------- binding and queries
 
   /** The engine's vehicle driver for NPC cars; without it `driveTo` moves the car in a straight line. */
+  /** Clears the heat the player's current car carries (the body shop of m.a1.09). */
+  private respray(): void {
+    const h = this.actors.playerVehicle();
+    if (h === null) return;
+    const key = soft(() => this.ctx.ecs.keyOf(h));
+    if (typeof key === 'string' && key !== '') soft(() => this.ctx.pursuit.respray(key));
+  }
+
   /** How far behind a car the player may fall before the car eases off: set by the `follow` or `chase` objective that names it (M05c2). */
   private paceOf(cast: string): { slowAboveM: number; floorAtM: number; floor: number } | null {
     for (const o of this.objectives.values()) {
@@ -902,6 +910,11 @@ export class MissionRuntime implements OpHost {
     this.opts.story().flags[key] = value;
     this.touchedFlags.add(key);
     this.noteEvent('flag', { key, value });
+    // the one flag that is a slice field: a story mission moves the campaign on by setting `story.act` (never back down, M05c2)
+    if (key === 'story.act' && (value === 2 || value === 3)) {
+      const story = this.opts.story();
+      if (value > story.act) story.act = value;
+    }
   }
 
   soulOf(cast: string): string {
@@ -1137,6 +1150,8 @@ export class MissionRuntime implements OpHost {
         return;
       case 'emit':
         this.noteEvent(op.event);
+        // a body shop job: the player's car loses the heat it carries (C06 `PursuitApi.respray`, M05c2)
+        if (op.event === 'vehicle.respray') this.respray();
         return;
       case 'pass':
         this.pendingEnd ??= { k: 'pass' };

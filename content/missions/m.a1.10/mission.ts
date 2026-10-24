@@ -3,7 +3,7 @@
  * Allocation Board, texts that the public comment on the curb auction closes at half past five, and the Yard needs voices in the room.
  * The player asks three residents (a shopkeeper, a retired bus driver, a teenager with flyers) to speak, each of whom agrees or declines,
  * then reaches the City Hall steps before the doors close. The clock starts at 15:00 and the doors close at 17:30: the stage limit is
- * 150 s of play (one game minute per second) times the player's timer scale. The number of residents who agreed is the flag
+ * 240 s of play (about a game minute per two seconds) times the player's timer scale. The number of residents who agreed is the flag
  * `hearing_support` (0 to 3), which Act 3 reads. Sensitivity read: the Tenderloin is shown through the people who work and live there (B3 rule 4).
  */
 import {
@@ -71,7 +71,7 @@ export default defineMission({
     stage('to_kai', [goto('kai_spot', { id: 'goto_kai', onFoot: true })]),
     stage('kai', [residentTalk('kai', 'steps')], { next: 'steps' }),
     stage('steps', [goto('steps', { id: 'goto_steps', onFoot: true })], {
-      timeLimitSec: 150,
+      timeLimitSec: 240,
       checkpoint: true,
       onEnter: [...tally(), spawn('imani'), say('radio', 'line.m.a1.10.clock')],
       onComplete: [beat({ cutscene: 'cut.story.m.a1.10.steps' })],

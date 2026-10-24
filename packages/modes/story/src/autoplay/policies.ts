@@ -55,6 +55,8 @@ const TURN_MAX_MPS = 3;
 const TURN_FORWARD_TICKS = 50;
 const TURN_REVERSE_TICKS = 70;
 const CORNER_SHARP_MPS = 5;
+/** The deceleration the bot plans for when it brakes for an obstacle ahead. */
+const OBSTACLE_BRAKE_MPS2 = 5;
 /** Metres between the crumbs of a followed car's trail, and how far ahead of itself the bot aims along them. */
 const TRAIL_STEP_M = 5;
 const DRIVE_ACCEL_MPS2 = 3.2;
@@ -65,6 +67,8 @@ const PULSE_EVERY = 24;
 const FOOT_NEAR_M = 40;
 const STUCK_CHECK_TICKS = 90;
 const STUCK_MIN_MOVE_M = 0.5;
+const STUCK_AVOID_AFTER = 3;
+const REGRESS_M = 14;
 const FAN = [0.6, -0.6, 1.2, -1.2, 1.9, -1.9] as const;
 
 export interface PatternConfig {
@@ -108,13 +112,22 @@ export interface Mem {
   /** A three-point turn in progress: the tick it ends and whether it is the reversing half. */
   turnUntil: number;
   turnReverse: boolean;
+  /** Road edges the bot got stuck on (a building across a street in the bake); routes avoid them. `pathEdges` is the edge of each waypoint of `path`. */
+  avoid: Set<number>;
+  pathEdges: number[];
+  stuckN: number;
+  /** The waypoint a walker is heading for and the nearest it has come to it: a walker that drifts away from it is blocked. */
+  progIdx: number;
+  progBest: number;
+  /** The goal (rounded to 40 m) that `avoid` was collected for: a new goal starts with an empty set. */
+  avoidGoal: string;
 }
 
 export function newMem(): Mem {
   return {
     path: null, pathIdx: 0, pathKey: '', replanAt: 0, avoidOff: 0, avoidUntil: 0, avoidSide: 1, pulseAt: 0, lastPos: [0, 0, 0], lastPosTick: -1,
     unstickUntil: 0, unstickKind: 'sidestep', unstickSide: 1, vantageKey: '', vantage: null, shutterAt: 0, patternStart: -1, patternPhase: 0, pathPt: 0,
-    losAt: -1, losKey: '', losClear: false, trail: [], trailKey: '', trailIdx: 0, turnUntil: 0, turnReverse: false,
+    losAt: -1, losKey: '', losClear: false, trail: [], trailKey: '', trailIdx: 0, turnUntil: 0, turnReverse: false, avoid: new Set(), pathEdges: [], stuckN: 0, progIdx: -1, progBest: Infinity, avoidGoal: '',
   };
 }
 
@@ -214,12 +227,19 @@ function onPath(mem: Mem, me: Vec3): boolean {
 /** The next point to head for: the C08 route to `target` when there is one, else `target`. */
 function nextPoint(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, arriveM: number, yaw?: number): Vec3 {
   const key = `${Math.round(target[0] / 8)}:${Math.round(target[2] / 8)}`;
+  const goal = `${Math.round(target[0] / 40)}:${Math.round(target[2] / 40)}`;
+  if (goal !== mem.avoidGoal) {
+    mem.avoidGoal = goal;
+    mem.avoid.clear();
+  }
   // a route that still lies under the body is kept (M05c2): a new route from here can start on the other lane of the street and send a walker back and forth
   if (key === mem.pathKey && t.tick >= mem.replanAt && mem.path !== null && onPath(mem, vehiclePos(obs))) mem.replanAt = t.tick + REPLAN_TICKS;
   if (key !== mem.pathKey || t.tick >= mem.replanAt) {
     mem.pathKey = key;
     mem.replanAt = t.tick + REPLAN_TICKS;
-    mem.path = obs.route(yaw === undefined ? obs.me.pos : (obs.me.vehicle?.pos ?? obs.me.pos), target, yaw);
+    const edges: number[] = [];
+    mem.path = obs.route(yaw === undefined ? obs.me.pos : (obs.me.vehicle?.pos ?? obs.me.pos), target, yaw, mem.avoid, edges);
+    mem.pathEdges = edges;
     mem.pathIdx = 0;
     // a route starts at the beginning of the edge the body stands on: begin at the route point nearest to it, not at one behind it (M05c1)
     const first = mem.path;
@@ -263,7 +283,15 @@ function stuckCheck(obs: MissionObs, mem: Mem, t: Tools, moving: boolean): void 
   const moved = dist(here, mem.lastPos);
   mem.lastPos = [here[0], here[1], here[2]];
   mem.lastPosTick = t.tick;
+  if (moved >= STUCK_MIN_MOVE_M) mem.stuckN = 0;
   if (moving && moved < STUCK_MIN_MOVE_M && t.tick >= mem.unstickUntil) {
+    mem.stuckN++;
+    // stuck again and again on one route: the edge under the waypoint ahead is closed to the bot, and the route is planned again (M05c2)
+    if (mem.stuckN >= STUCK_AVOID_AFTER && mem.path !== null) {
+      for (let i = Math.max(0, mem.pathIdx - 1); i <= Math.min(mem.pathEdges.length - 1, mem.pathIdx + 1); i++) mem.avoid.add(mem.pathEdges[i] as number);
+      mem.pathKey = '';
+      mem.stuckN = 0;
+    }
     mem.unstickUntil = t.tick + 70;
     mem.unstickKind = obs.me.vehicle ? 'reverse' : 'sidestep';
     mem.unstickSide = t.rng() < 0.5 ? 1 : -1;
@@ -321,7 +349,21 @@ export function walkTo(obs: MissionObs, mem: Mem, t: Tools, target: Vec3, pace: 
     wp = mem.path !== null && lineClear(obs, mem, t, me, target) ? target : next;
   }
   const wd = dist(me, wp);
+  // a walker that is getting away from its waypoint (a building across the street keeps the ray fan turning it round) closes that edge and is routed again (M05c2)
+  if (mem.path !== null && wp !== target && !direct) {
+    if (mem.pathIdx !== mem.progIdx) {
+      mem.progIdx = mem.pathIdx;
+      mem.progBest = wd;
+    } else if (wd < mem.progBest) mem.progBest = wd;
+    else if (wd - mem.progBest > REGRESS_M) {
+      for (let i = Math.max(0, mem.pathIdx - 1); i <= Math.min(mem.pathEdges.length - 1, mem.pathIdx + 1); i++) mem.avoid.add(mem.pathEdges[i] as number);
+      mem.pathKey = '';
+      mem.progBest = Infinity;
+      mem.progIdx = -1;
+    }
+  }
   let dir: [number, number] = wd > 1e-6 ? [(wp[0] - me[0]) / wd, (wp[2] - me[2]) / wd] : [0, 0];
+  if (DBG.sink) DBG.sink({ tick: t.tick, foot: true, d, wd, wp: wp.map(Math.round), me: me.map(Math.round), np: mem.path?.length ?? 0, idx: mem.pathIdx, unstick: t.tick < mem.unstickUntil, avoid: mem.avoid.size, stuckN: mem.stuckN, edge: mem.pathEdges[mem.pathIdx] });
   stuckCheck(obs, mem, t, true);
   if (t.tick < mem.unstickUntil && mem.unstickKind === 'sidestep') dir = rotate(dir, 1.5 * mem.unstickSide);
   else dir = steerClear(obs, mem, t, me, dir, 5, 0.7);
@@ -388,7 +430,11 @@ function pursue(obs: MissionObs, mem: Mem, t: Tools, wp: Vec3, vcap: number, cur
   const lock = clamp(1 - (v.speed - 6) / 14, 0.25, 1);
   const steer = Math.round(clamp(alpha * 1.6, -lock, lock) * 127);
   const vCorner = Math.abs(alpha) > 0.9 ? CORNER_SHARP_MPS : Math.abs(alpha) > 0.45 ? 7 : DRIVE_VMAX_MPS;
-  const want = Math.min(vcap, vCorner, curveCap);
+  // something solid dead ahead inside the braking distance: slow down for it, whatever the route says (a parked or stopped car, a barrier; M05c2)
+  const lookM = Math.min(45, v.speed * 1.8 + 8);
+  const hit = obs.ray([v.pos[0] + fx * 3.4, v.pos[1] + 0.9, v.pos[2] + fz * 3.4], [fx, 0, fz], lookM);
+  const vObstacle = hit === null ? 99 : Math.max(0, dsqrt(2 * OBSTACLE_BRAKE_MPS2 * Math.max(0, hit - 2)));
+  const want = Math.min(vcap, vCorner, curveCap, vObstacle);
   const err = want - v.speed;
   const throttle = err > 0 ? clamp(0.3 + err * 0.3, 0, 1) : 0;
   const brake = err < -1.2 ? clamp(-err * 0.3, 0, 1) : 0;

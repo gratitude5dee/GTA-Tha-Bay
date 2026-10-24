@@ -20,8 +20,11 @@ const ROUTE_STEP_M = 12;
 const ROUTE_MAX_POINTS = 600;
 const ROUTE_LANE_OFFSET_M = 3;
 
-/** Route waypoints from a C08 route: the lane centre of each edge every `ROUTE_STEP_M` metres, then the end point. */
-export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number): Vec3[] | null {
+/**
+ * Route waypoints from a C08 route: the lane centre of each edge every `ROUTE_STEP_M` metres, then the end point. `avoid` is a set of
+ * edge ids the route must not use (an edge a bot got stuck on); `edgesOut` receives the edge of each returned point.
+ */
+export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number, avoid?: ReadonlySet<number>, edgesOut?: number[]): Vec3[] | null {
   // A router snaps a point to the edge whose right-hand side it lies on. A driver that faces a heading starts 3 m to the right of it, so
   // that it gets the lane it points along, not the twin lane that would need a U-turn (M05c1).
   const fromX = yaw === undefined ? a[0] : a[0] + dcos(yaw) * ROUTE_LANE_OFFSET_M;
@@ -34,7 +37,7 @@ export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number):
   const graph = world.graph as unknown as { routeDetailed?: (r: unknown) => Detailed | null; route: (r: unknown) => Detailed | null };
   const ask = (x: number, z: number): Detailed | null | undefined =>
     soft(() => {
-      const req = { from: { x, z }, to: { x: b[0], z: b[2] }, maxExpand: 6000, ...(yaw === undefined ? { allowWrongWay: true } : {}) };
+      const req = { from: { x, z }, to: { x: b[0], z: b[2] }, maxExpand: 6000, ...(yaw === undefined ? { allowWrongWay: true } : {}), ...(avoid && avoid.size > 0 ? { avoid } : {}) };
       return graph.routeDetailed ? graph.routeDetailed(req) : graph.route(req);
     });
   let r: Detailed | null | undefined;
@@ -76,8 +79,10 @@ export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number):
       edgePts.length = best + 1;
     }
     out.push(...edgePts);
+    if (edgesOut) for (let i = 0; i < edgePts.length; i++) edgesOut.push(e);
   }
   out.push([b[0], b[1], b[2]]);
+  if (edgesOut) edgesOut.push(r.edges[r.edges.length - 1] as number);
   return out;
 }
 

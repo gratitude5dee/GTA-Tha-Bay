@@ -67,7 +67,7 @@ export interface MissionObs {
   ray(from: Vec3, dir: Vec3, maxM: number): number | null;
   groundY(x: number, z: number): number | null;
   /** Waypoints on the C08 road graph from `a` to `b`, or null when the world has no route (a gray-box build, an unreachable point). */
-  route(a: Vec3, b: Vec3, yaw?: number): Vec3[] | null;
+  route(a: Vec3, b: Vec3, yaw?: number, avoid?: ReadonlySet<number>, edgesOut?: number[]): Vec3[] | null;
 }
 
 function polyRadius(ring: readonly [number, number][], c: Vec3): number {
@@ -175,6 +175,6 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
       return hit ? hit.toi : null;
     },
     groundY: (x, z) => ctx.physics.groundY(x, z),
-    route: (a, b, yaw) => routeWaypoints(ctx.world, a, b, yaw),
+    route: (a, b, yaw, avoid, edgesOut) => routeWaypoints(ctx.world, a, b, yaw, avoid, edgesOut),
   };
 }
