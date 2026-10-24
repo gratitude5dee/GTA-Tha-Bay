@@ -18,6 +18,8 @@ import { DEFAULT_FLAGS, type RuntimeFlags, type StoryCommand } from './vm/types.
 import { missionDeps } from './vm/deps.ts';
 import { MissionStore, type CatalogPayload, type JobRow } from './missions/store.ts';
 import { StoryPlaces, type ShopPorts } from './missions/index.ts';
+import { storyTeleportPolicy, type PolicyLike } from './fast-travel-policy.ts';
+import { storyUnlockDefs } from './unlock-defs.ts';
 
 /** What the page puts in `BootPayload.config.mission` for `?mission=<id>` (QA builds only). */
 export interface QaMissionBoot {
@@ -112,11 +114,35 @@ export class StoryController {
     },
   });
 
+  /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
+  private teleportRestore: (() => void) | null = null;
+
   constructor(private readonly env: StoryWrapEnv) {}
+
+  /** Story fast travel: installs the rule of `fast-travel-policy.ts` on the world's teleport service (a host without one is left alone). */
+  private installFastTravel(ctx: ModeContext): void {
+    this.teleportRestore?.();
+    this.teleportRestore = null;
+    const tp = (ctx.world as { teleport?: { policy?: PolicyLike } } | undefined)?.teleport;
+    if (!tp || !tp.policy) return;
+    const before = tp.policy;
+    const defs = storyUnlockDefs();
+    const mine = storyTeleportPolicy(before, {
+      inMission: () => this.rt?.active === true,
+      districtAt: (x, z) => ctx.world.query.districtAt(x, z),
+      hasUnlock: (id) => ctx.unlocks.has(id as never),
+      defs: () => defs,
+    });
+    tp.policy = mine;
+    this.teleportRestore = () => {
+      if (tp.policy === mine) tp.policy = before;
+    };
+  }
 
   attach(ctx: ModeContext, story: StorySlice): void {
     this.ctx = ctx;
     this.story = story;
+    this.installFastTravel(ctx);
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
@@ -452,6 +478,8 @@ export class StoryController {
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
+    this.teleportRestore?.();
+    this.teleportRestore = null;
     const rt = this.rt;
     if (!rt) return;
     rt.bind(ctx);

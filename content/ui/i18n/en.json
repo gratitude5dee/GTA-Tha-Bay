@@ -89,6 +89,8 @@
   "world.teleport.cooldown": "Fast travel is cooling down",
   "world.teleport.unknownTarget": "Unknown destination",
   "world.teleport.busy": "A teleport is already under way",
+  "story.fastTravel.locked": "You have not opened up that part of town yet",
+  "story.fastTravel.inMission": "Finish or leave the job before you travel across town",
   "world.boundary.countyLine": "Leaving SF — coming soon",
   "age.title": "Before you play",
   "age.month": "Month",
