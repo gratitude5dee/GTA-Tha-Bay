@@ -292,7 +292,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0,
+        "usdPerS": 0.06,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -359,7 +359,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0,
+        "usdPerS": 0.08,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -392,7 +392,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0,
+        "usdPerS": 0.09,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
@@ -425,7 +425,7 @@
         "evidence": []
       },
       "price": {
-        "usdPerS": 0,
+        "usdPerS": 0.1,
         "resolution": "768P",
         "checkedAt": "2026-10-18"
       }
