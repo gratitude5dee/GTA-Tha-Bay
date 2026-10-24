@@ -1,9 +1,10 @@
 {
   "schema": "story-cast/1",
-  "note": "The Act 1 cast of missions m.a1.01 to m.a1.06 (M05c1). Every entry is original and fictionalized: M10c writes the soul.md of each id. A roster slot names the roster soul that plays it once Q-19 and Q-25 supply the roster (rosterSoul is null until then) and an original stand-in that plays it before; the stand-in is also the fallback when the roster soul is killed. Stand-in bodies are creator-kit bodies with a palette variant (DL-180).",
+  "note": "The Act 1 cast of missions m.a1.01 to m.a1.12 (M05c1, M05c2). Every entry is original and fictionalized: M10c writes the soul.md of each id. A roster slot names the roster soul that plays it once Q-19 and Q-25 supply the roster (rosterSoul is null until then) and an original stand-in that plays it before; the stand-in is also the fallback when the roster soul is killed. Stand-in bodies are creator-kit bodies with a palette variant (DL-180).",
   "cast": [
     {
       "id": "odessa_calloway",
+      "name": "Odessa Calloway",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -12,6 +13,7 @@
     },
     {
       "id": "tavi_okafor",
+      "name": "Tavi Okafor",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -20,6 +22,7 @@
     },
     {
       "id": "x_ramos",
+      "name": "X Ramos",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -28,6 +31,7 @@
     },
     {
       "id": "ama_osei",
+      "name": "Ama Osei",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -36,6 +40,7 @@
     },
     {
       "id": "corwin_hale",
+      "name": "Corwin Hale",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -44,6 +49,7 @@
     },
     {
       "id": "dana_voss",
+      "name": "Dana Voss",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -52,6 +58,7 @@
     },
     {
       "id": "door_host",
+      "name": "Door Host",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -60,6 +67,7 @@
     },
     {
       "id": "saint_static",
+      "name": "Saint Static",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
@@ -68,11 +76,75 @@
     },
     {
       "id": "chorus_sparrer",
+      "name": "Chorus Sparrer",
       "soulVersion": 1,
       "basis": "original",
       "tier": "fictionalized",
       "bodyPreset": "body-stocky",
       "visualBrief": "a sturdy sparring partner in a loose gray tracksuit with white wrist tape"
+    },
+    {
+      "id": "patch",
+      "name": "Patch",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-lean",
+      "visualBrief": "a wiry hacker in a patchwork denim jacket covered in sew-on circuit badges, thick round glasses and a scarf of cable ties"
+    },
+    {
+      "id": "imani_hart",
+      "name": "Imani Hart",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-broad",
+      "visualBrief": "a calm civic supervisor in a plum blazer with a lanyard of keys, reading glasses pushed up into short gray curls"
+    },
+    {
+      "id": "res_tran",
+      "name": "Mr. Tran",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-stocky",
+      "visualBrief": "a shopkeeper in a green apron with a pencil behind his ear and a folded newspaper under one arm"
+    },
+    {
+      "id": "res_moss",
+      "name": "Ms. Moss",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-lean",
+      "visualBrief": "a retired bus driver in a quilted vest with a thermos and a faded transit pin"
+    },
+    {
+      "id": "res_kai",
+      "name": "Kai",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-wiry",
+      "visualBrief": "a teenager in a bright yellow rain jacket with a skateboard and a stack of hand-drawn flyers"
+    },
+    {
+      "id": "whitney_arlo",
+      "name": "Whitney Arlo",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-athletic",
+      "visualBrief": "a partner at an investment firm in a long camel coat and crisp white sneakers, a slim phone held like a clipboard"
+    },
+    {
+      "id": "sgt_bell",
+      "name": "Sergeant Bell",
+      "soulVersion": 1,
+      "basis": "original",
+      "tier": "fictionalized",
+      "bodyPreset": "body-broad",
+      "visualBrief": "a heavyset patrol sergeant in a navy uniform with a bright yellow reflective sash and a bullhorn"
     }
   ],
   "slots": [
@@ -81,6 +153,7 @@
       "rosterSoul": null,
       "standIn": {
         "id": "standin_influencer",
+        "name": "Streamer",
         "soulVersion": 1,
         "basis": "original",
         "tier": "fictionalized",
@@ -95,6 +168,7 @@
       "rosterSoul": null,
       "standIn": {
         "id": "standin_rap_elder",
+        "name": "Turntable Host",
         "soulVersion": 1,
         "basis": "original",
         "tier": "fictionalized",
@@ -109,6 +183,7 @@
       "rosterSoul": null,
       "standIn": {
         "id": "standin_rap_new_wave",
+        "name": "Challenger",
         "soulVersion": 1,
         "basis": "original",
         "tier": "fictionalized",
@@ -116,6 +191,21 @@
       },
       "missions": [
         "m.a1.05"
+      ]
+    },
+    {
+      "slot": "ATH_SHOOTER",
+      "rosterSoul": null,
+      "standIn": {
+        "id": "standin_raffle_guest",
+        "name": "Raffle Guest",
+        "soulVersion": 1,
+        "basis": "original",
+        "tier": "fictionalized",
+        "bodyPreset": "body-athletic"
+      },
+      "missions": [
+        "m.a1.11"
       ]
     }
   ]

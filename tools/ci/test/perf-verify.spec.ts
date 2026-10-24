@@ -191,7 +191,7 @@ describe('check:perf aggregation (AC-8)', () => {
   }
 
   it('the registered scenarios are the data file ids, and --scenario selects one of them, graybox-walk, or fails', () => {
-    expect(PERF_SCENARIOS).toEqual(['walk-civic-center', 'route-ferry-ocean-beach', 'downtown-rush', 'boot-cityhall']);
+    expect(PERF_SCENARIOS).toEqual(['walk-civic-center', 'route-ferry-ocean-beach', 'downtown-rush', 'boot-cityhall', 'story-chase']);
     expect(selectScenarios(undefined)).toEqual([...PERF_SCENARIOS]);
     expect(selectScenarios('route-ferry-ocean-beach')).toEqual(['route-ferry-ocean-beach']);
     expect(selectScenarios('graybox-walk')).toEqual(['graybox-walk']);

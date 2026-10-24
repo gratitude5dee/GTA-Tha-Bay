@@ -33,7 +33,7 @@ export * from './interaction/handlers.ts';
 export * from './ragdoll/ragdoll-lite.ts';
 export * from './world/closures.ts';
 export * from './world/fixture-statics.ts';
-export { VEHICLE_PREFABS, STORY_PREFABS, RACE_CAR_PREFABS } from './prefabs/registry.ts';
+export { VEHICLE_PREFABS, STORY_PREFABS, CONVOY_PREFABS, RACE_CAR_PREFABS } from './prefabs/registry.ts';
 export * from './pursuit/index.ts';
 export * from './modes/index.ts';
 export * from './combat/combat.ts';

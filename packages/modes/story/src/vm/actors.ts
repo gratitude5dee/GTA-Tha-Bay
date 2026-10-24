@@ -1,5 +1,5 @@
 import { datan2, dcos, dsin, dsqrt, type EntityHandle, type ModeContext } from '@dv/shared';
-import { CONTROL_OWNER, Control, Health, LocalPlayer, Seat, Transform, Vehicle, VehicleDamage, Velocity } from '@dv/engine/sim';
+import { CONTROL_OWNER, Control, Health, LocalPlayer, Prop, Seat, Transform, Vehicle, VehicleDamage, Velocity } from '@dv/engine/sim';
 
 export type Vec3 = [number, number, number];
 
@@ -87,6 +87,23 @@ export class Actors {
       v.vy[id] = 0;
       v.vz[id] = 0;
     }
+  }
+
+  /** A scripted car (`convoy.*`, M05c2): a kinematic prop with a velocity that the task runner moves along its route. */
+  isGlider(h: EntityHandle): boolean {
+    const ecs = this.get().ecs;
+    return ecs.has(h, Prop) && !ecs.has(h, Vehicle) && ecs.has(h, Velocity);
+  }
+
+  /** Moves a scripted car to `pos` heading `yaw` and records the speed it moves at, so that `speed()` and the autoplayer read it. */
+  glide(h: EntityHandle, pos: Vec3, yaw: number, speed: number): void {
+    this.place(h, pos, yaw);
+    const ecs = this.get().ecs;
+    const id = ecs.resolve(h);
+    if (id === null || !ecs.has(h, Velocity)) return;
+    const v = ecs.store(Velocity);
+    v.vx[id] = -dsin(yaw) * speed;
+    v.vz[id] = -dcos(yaw) * speed;
   }
 
   /** Health as a fraction 0..1, or null for an entity without `Health`. */

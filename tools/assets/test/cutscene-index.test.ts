@@ -167,7 +167,7 @@ describe('the repository index', () => {
     const refs = await loadCutsceneRefs(root);
     expect(refs.map((r) => r.id)).toContain('cut.story.m.dev.sample.intro');
     const log: string[] = [];
-    const code = await runCutsceneIndex({ root, release: 'dev', builtAt: 1, check: true, log: (l) => void log.push(l), env: {} });
+    const code = await runCutsceneIndex({ root, release: 'act1', builtAt: 1, check: true, log: (l) => void log.push(l), env: {} });
     expect(log.filter((l) => !l.startsWith('SKIP'))).toEqual([]);
     expect(code).toBe(0);
     expect(cutsceneIndexFindings(root).findings).toEqual([]);

@@ -1,0 +1,295 @@
+{
+  "act": 1,
+  "autoplay": {
+    "expectedSec": [
+      60,
+      1200
+    ],
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "cast": {
+    "patch": {
+      "k": "npc",
+      "role": "ally",
+      "spawn": {
+        "at": [
+          37.77643,
+          -122.43648
+        ],
+        "snap": "ground"
+      },
+      "who": {
+        "soul": "patch"
+      }
+    }
+  },
+  "district": "d4",
+  "fail": [
+    {
+      "reason": "mission.m.a1.07.fail.ko",
+      "retry": "checkpoint",
+      "when": {
+        "p": "ko",
+        "who": "player"
+      }
+    },
+    {
+      "reason": "mission.m.a1.07.fail.patch",
+      "retry": "checkpoint",
+      "when": {
+        "below": 0.25,
+        "p": "health",
+        "who": "patch"
+      }
+    },
+    {
+      "reason": "mission.m.a1.07.fail.patch",
+      "retry": "checkpoint",
+      "when": {
+        "cast": "patch",
+        "p": "destroyed"
+      }
+    }
+  ],
+  "giver": {
+    "phone": "odessa_calloway"
+  },
+  "heatPolicy": {
+    "clearOnPass": true,
+    "maxHeat": 1
+  },
+  "id": "m.a1.07",
+  "lines": [
+    "line.m.a1.07.civic",
+    "line.m.a1.07.drones",
+    "line.m.a1.07.msg",
+    "line.m.a1.07.patch.come",
+    "line.m.a1.07.patch.thanks",
+    "line.m.a1.07.start",
+    "line.m.a1.07.talk.patch.open"
+  ],
+  "medals": {
+    "goldSec": 540,
+    "silverSec": 900
+  },
+  "premise": "hella-valuation",
+  "requires": [
+    {
+      "mission": "m.a1.04",
+      "p": "passed"
+    }
+  ],
+  "rewards": {
+    "cashCents": 200000,
+    "techClout": 40
+  },
+  "schema": "mission-ir/1",
+  "stages": [
+    {
+      "conduct": "lawful",
+      "id": "to_house",
+      "join": "all",
+      "objectives": [
+        {
+          "id": "goto_house",
+          "k": "goto",
+          "onFoot": true,
+          "text": "mission.m.a1.07.obj.goto_house",
+          "zone": "house"
+        }
+      ],
+      "onEnter": [
+        {
+          "from": "odessa_calloway",
+          "line": "line.m.a1.07.msg",
+          "op": "text"
+        },
+        {
+          "line": "line.m.a1.07.start",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "meet_patch",
+      "join": "all",
+      "next": "bring_patch",
+      "objectives": [
+        {
+          "id": "talk_patch",
+          "k": "talk",
+          "talk": {
+            "default": "trust",
+            "id": "patch",
+            "ink": "mission_m_a1_07_patch",
+            "intent": "mission.m.a1.07.talk.patch.intent",
+            "maxTurns": 3,
+            "npc": "patch",
+            "outcomes": {
+              "doubt": {
+                "flags": {
+                  "a1.07.pod": "kept"
+                },
+                "label": "mission.m.a1.07.talk.patch.doubt",
+                "stage": "bring_patch",
+                "trust": -2
+              },
+              "trust": {
+                "flags": {
+                  "a1.07.pod": "handed"
+                },
+                "label": "mission.m.a1.07.talk.patch.trust",
+                "stage": "bring_patch",
+                "trust": 6
+              }
+            }
+          },
+          "text": "mission.m.a1.07.obj.talk_patch"
+        }
+      ]
+    },
+    {
+      "conduct": "lawful",
+      "id": "bring_patch",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "patch",
+          "id": "collect_patch",
+          "k": "collect",
+          "text": "mission.m.a1.07.obj.collect_patch"
+        }
+      ],
+      "onComplete": [
+        {
+          "line": "line.m.a1.07.patch.come",
+          "op": "say",
+          "speaker": "patch"
+        }
+      ]
+    },
+    {
+      "checkpoint": true,
+      "conduct": "unlawful",
+      "id": "sneak",
+      "join": "all",
+      "objectives": [
+        {
+          "autoplayPath": [
+            [
+              37.77632,
+              -122.4359
+            ],
+            [
+              37.77625,
+              -122.435
+            ],
+            [
+              37.77625,
+              -122.4342
+            ],
+            [
+              37.77636,
+              -122.4335
+            ],
+            [
+              37.7764,
+              -122.4331
+            ]
+          ],
+          "detectBudget": 3,
+          "id": "stealth_park",
+          "k": "stealth",
+          "text": "mission.m.a1.07.obj.stealth_park",
+          "zone": "park"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.07.drones",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    },
+    {
+      "conduct": "unlawful",
+      "id": "civic",
+      "join": "all",
+      "objectives": [
+        {
+          "cast": "patch",
+          "id": "deliver_patch",
+          "k": "deliver",
+          "text": "mission.m.a1.07.obj.deliver_patch",
+          "to": "civic"
+        }
+      ],
+      "onComplete": [
+        {
+          "op": "flag",
+          "set": {
+            "a1.07.done": true
+          }
+        },
+        {
+          "line": "line.m.a1.07.patch.thanks",
+          "op": "say",
+          "speaker": "patch"
+        }
+      ],
+      "onEnter": [
+        {
+          "line": "line.m.a1.07.civic",
+          "op": "say",
+          "speaker": "radio"
+        }
+      ]
+    }
+  ],
+  "start": {
+    "contact": "odessa_calloway",
+    "k": "phone"
+  },
+  "tags": [
+    "sensitivity-read"
+  ],
+  "title": "mission.m.a1.07.title",
+  "unlocks": [
+    "unlock.district.d4"
+  ],
+  "version": 1,
+  "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
+  "zones": {
+    "civic": {
+      "at": [
+        37.77925,
+        -122.4184
+      ],
+      "k": "circle",
+      "r": 22
+    },
+    "house": {
+      "at": [
+        37.77643,
+        -122.43639
+      ],
+      "k": "circle",
+      "r": 14
+    },
+    "park": {
+      "at": [
+        37.7764,
+        -122.43302
+      ],
+      "k": "circle",
+      "r": 14
+    }
+  }
+}

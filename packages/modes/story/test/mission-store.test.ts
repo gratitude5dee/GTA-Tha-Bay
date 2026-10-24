@@ -39,11 +39,11 @@ function rig(hour = 12, over: Partial<CatalogPayload> = {}): { h: Harness; c: St
 const rows = (h: Harness): JobRow[] => (h.vm.get('mode.story.jobs') ?? []) as unknown as JobRow[];
 
 describe('the mission store', () => {
-  it('holds the six Act 1 missions in order; only the first is open on a new game', () => {
+  it('holds the twelve Act 1 missions in order; only the first is open on a new game', () => {
     const { h, store } = rig();
-    expect(store.entries.map((e) => e.ir.id)).toEqual(['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06']);
+    expect(store.entries.map((e) => e.ir.id)).toEqual(['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06', 'm.a1.07', 'm.a1.08', 'm.a1.09', 'm.a1.10', 'm.a1.11', 'm.a1.12']);
     const r = store.rows(h.story, h.ctx, null);
-    expect(r.map((x) => [x.id, x.state, x.trigger])).toEqual([
+    expect(r.slice(0, 6).map((x) => [x.id, x.state, x.trigger])).toEqual([
       ['m.a1.01', 'available', 'auto'],
       ['m.a1.02', 'locked', 'phone'],
       ['m.a1.03', 'locked', 'marker'],
@@ -51,6 +51,7 @@ describe('the mission store', () => {
       ['m.a1.05', 'locked', 'phone'],
       ['m.a1.06', 'locked', 'phone'],
     ]);
+    expect(r.slice(6).every((x) => x.state === 'locked')).toBe(true);
     expect(r[1]).toMatchObject({ title: 'Surge Pricing', needs: 'Jump Start', giver: 'x_ramos' });
   });
 
@@ -109,6 +110,7 @@ describe('the story controller triggers', () => {
     const { h } = rig(12, { triggers: false });
     expect(rows(h).map((r) => [r.id, r.state])).toEqual([
       ['m.a1.01', 'available'], ['m.a1.02', 'locked'], ['m.a1.03', 'locked'], ['m.a1.04', 'locked'], ['m.a1.05', 'locked'], ['m.a1.06', 'locked'],
+      ['m.a1.07', 'locked'], ['m.a1.08', 'locked'], ['m.a1.09', 'locked'], ['m.a1.10', 'locked'], ['m.a1.11', 'locked'], ['m.a1.12', 'locked'],
     ]);
   });
 
@@ -118,6 +120,43 @@ describe('the story controller triggers', () => {
     h.tickNo.n = 30;
     c.advance(h.ctx);
     expect(c.rt).toBeNull();
-    expect(rows(h).map((r) => r.id)).toHaveLength(6);
+    expect(rows(h).map((r) => r.id)).toHaveLength(12);
+  });
+});
+
+describe('resume after a reload (M05c2)', () => {
+  it('a saved checkpoint continues the mission at its stage with the same flags and wallet; a checkpoint of another version starts it fresh', () => {
+    const first = rig();
+    first.h.tickNo.n = 0;
+    first.c.advance(first.h.ctx);
+    expect(first.c.rt?.missionId).toBe('m.a1.01');
+    // the last stage of m.a1.01 carries a checkpoint: entering it writes `activeMission` and asks for a save
+    first.c.rt?.jumpTo(5);
+    first.h.step(2);
+    const saved = first.h.story.activeMission;
+    expect(saved?.id).toBe('m.a1.01');
+    expect(first.h.calls.saves).toContain('checkpoint');
+    first.h.story.flags['e2e.keep'] = 7;
+    first.h.story.wallet.cashCents = 123_456;
+    const snapshot = JSON.parse(JSON.stringify(first.h.story)) as typeof first.h.story;
+
+    // a reload: a new controller on the loaded slice (the cast of the old session is gone with its world)
+    const second = rig();
+    Object.assign(second.h.story, snapshot);
+    second.h.tickNo.n = 0;
+    second.c.advance(second.h.ctx);
+    expect(second.c.rt?.missionId).toBe('m.a1.01');
+    expect(second.c.rt?.stageIndex).toBe(5);
+    expect(second.h.story.flags['e2e.keep']).toBe(7);
+    expect(second.h.story.wallet.cashCents).toBe(123_456);
+
+    // another mission version: the checkpoint is dropped, the mission starts at its first stage
+    const third = rig();
+    const stale = JSON.parse(JSON.stringify(snapshot)) as typeof snapshot;
+    (stale.activeMission?.checkpoint.data as { version: number }).version = 99;
+    Object.assign(third.h.story, stale);
+    third.h.tickNo.n = 0;
+    third.c.advance(third.h.ctx);
+    expect(third.c.rt?.stageIndex).toBeLessThan(5);
   });
 });

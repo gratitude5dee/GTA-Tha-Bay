@@ -114,6 +114,23 @@ describe('WorldQuery water, districts and walking', () => {
     expect(q.chunkReady(K(257, 256))).toBe(false);
   });
 
+  it('a body on a bridge deck over water is not in the water; one beside or under the deck is (M05c2)', async () => {
+    // water 2 m deep for x < 0; a deck over x -40..-20 (base 6 m, 1 m thick, top at 7 m)
+    const deck = [4, 6, 1, -40, -10, -20, -10, -20, 10, -40, 10];
+    const c = chunkOf(K(256, 256), none, {
+      heightAt: (x) => (x < 0 ? -2 : 5),
+      ground: (i) => (i < 32 ? GroundClass.Water : GroundClass.Paved),
+      slabs: deck,
+    });
+    const q = await queryOver([c]);
+    expect(q.waterDepth(-30, 0)).toBeCloseTo(2, 5);
+    expect(q.waterDepth(-30, 0, 6.5)).toBe(0);
+    expect(q.waterDepth(-30, 0, 5.6)).toBe(0);
+    // under the deck (a swimmer) and beside it
+    expect(q.waterDepth(-30, 0, -1)).toBeCloseTo(2, 5);
+    expect(q.waterDepth(-60, 0, 6.5)).toBeCloseTo(2, 5);
+  });
+
   it('answers nhoodAt and districtAt from the grid, and 255 and null without one', async () => {
     const cells = new Uint8Array(4 * 4).fill(255);
     cells[0] = 3;   // x 0..64, z 0..64

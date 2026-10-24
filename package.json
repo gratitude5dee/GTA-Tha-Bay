@@ -64,6 +64,7 @@
     "assets:catalog": "tsx tools/assets/src/cli.ts catalog",
     "assets:cutscene-index": "tsx tools/assets/cutscene-index/cli.ts",
     "assets:lock": "tsx tools/assets/src/cli.ts lock",
+    "assets:plates": "tsx tools/assets/plates/cli.ts",
     "assets:verify": "tsx tools/assets/src/cli.ts verify",
     "assets:publish": "tsx tools/assets/src/cli.ts publish",
     "assets:seed": "tsx tools/assets/src/cli.ts seed",

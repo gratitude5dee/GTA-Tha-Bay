@@ -1,0 +1,15 @@
+{
+  "id": "convoy.pickup",
+  "kind": "prop",
+  "version": 1,
+  "nameKey": "vehicle.pickup",
+  "render": { "asset": "vehicle/graybox.pickup" },
+  "physics": { "body": "kinematic", "shape": "box", "dims": [1.0, 0.42, 2.65], "groups": ["vehicle"], "liftM": 0.67 },
+  "components": {
+    "Transform": { "qw": 1 },
+    "Velocity": {},
+    "BodyRef": {},
+    "RenderKey": { "visible": 1 },
+    "Prop": {}
+  }
+}

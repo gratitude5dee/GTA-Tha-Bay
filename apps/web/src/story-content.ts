@@ -8,6 +8,7 @@ import type { MissionIR } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import act1Refs from '../../../content/story/act1/cutscene-refs.ts';
 import starts from '../../../config/autoplay/mission-starts.json';
+import castFile from '../../../content/story/cast.json';
 
 const missionFiles = import.meta.glob('../../../assets/src/data/mission.m.a1.*/mission.json', { eager: true, import: 'default' }) as Record<string, MissionIR>;
 const directorFiles = import.meta.glob('../../../assets/src/data/director.m.a1.*/director.json', { eager: true, import: 'default' }) as Record<string, DirectorScript>;
@@ -18,6 +19,8 @@ export interface StoryBoot {
   directors: DirectorScript[];
   cutscenes: { id: string; fallback: string }[];
   lines: Record<string, string>;
+  /** Display names of the cast by soul id, for the senders of phone messages. */
+  names: Record<string, string>;
   autoStart: { lat: number; lng: number; yawDeg: number };
   triggers: boolean;
   [key: string]: unknown;
@@ -27,11 +30,14 @@ export interface StoryBoot {
 export function storyBoot(triggers: boolean): StoryBoot {
   const lines: Record<string, string> = {};
   for (const f of Object.values(lineFiles)) Object.assign(lines, f.text);
+  const names: Record<string, string> = {};
+  for (const c of (castFile as { cast: { id: string; name?: string }[] }).cast) if (c.name) names[c.id] = c.name;
   return {
     missions: Object.values(missionFiles),
     directors: Object.values(directorFiles),
     cutscenes: act1Refs.map((r) => ({ id: r.id, fallback: r.fallback })),
     lines,
+    names,
     autoStart: { lat: starts.default.lat, lng: starts.default.lng, yawDeg: starts.default.yawDeg },
     triggers,
   };

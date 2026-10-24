@@ -1,0 +1,20 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.09.flagged": "Sergeant Bell on the patrol channel: the Yard's tow truck is on the hot list. All units, that is the one.",
+    "line.m.a1.09.hide": "Fresh paint, same engine. Now get under the freeway viaduct and let the patrol lose you.",
+    "line.m.a1.09.home": "Quiet street, clean truck. Bring it home before the sun is up.",
+    "line.m.a1.09.sprayed": "Odessa here. Half an hour in the booth and the truck is a new color. The patrol has no plate to chase.",
+    "line.m.a1.09.start": "Odessa here. The depot cameras caught our tow truck. Take it out of the Yard and get it to the body shop in Dogpatch before they box it in.",
+    "mission.m.a1.09.fail.busted": "The patrol caught you.",
+    "mission.m.a1.09.fail.ko": "You went down.",
+    "mission.m.a1.09.fail.tow": "The tow truck is wrecked. Start again.",
+    "mission.m.a1.09.obj.enter_tow": "Take the Yard's tow truck",
+    "mission.m.a1.09.obj.escape_viaduct": "Lose the patrol under the freeway viaduct",
+    "mission.m.a1.09.obj.goto_exit": "Drive out of the Yard",
+    "mission.m.a1.09.obj.goto_shop": "Pull into the body shop in Dogpatch",
+    "mission.m.a1.09.obj.goto_yard": "Bring the truck home",
+    "mission.m.a1.09.title": "Respray"
+  }
+}

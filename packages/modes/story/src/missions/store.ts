@@ -16,6 +16,8 @@ export interface CatalogPayload {
   cutscenes: { id: string; fallback: string }[];
   /** Line and key texts, English; shared by all missions. */
   lines: Record<string, string>;
+  /** Display names of the cast by soul id (`content/story/cast.json`), for phone senders (M05c2). */
+  names?: Record<string, string>;
   /** A new game starts the first auto mission here (WGS84 and degrees, as the autoplayer's mission-starts file), when the player is far from it. */
   autoStart?: { lat: number; lng: number; yawDeg: number } | null;
   /** The auto and marker triggers are live. Off, only the Jobs app starts a mission (QA scenes that are not about the story). */
@@ -39,6 +41,8 @@ export interface JobRow {
   trigger: 'marker' | 'phone' | 'auto' | 'mode';
   /** The contact who gives the job (a soul id), when there is one. */
   giver?: string;
+  /** The contact's display name (cast table), when known. */
+  giverName?: string;
   /** Why a locked job is locked: the title of the mission to finish first. */
   needs?: string;
   medals?: number;
@@ -76,11 +80,13 @@ function startEnv(story: StorySlice, ctx: ModeContext): PredEnv {
 export class MissionStore {
   readonly entries: CatalogEntry[];
   readonly lines: Readonly<Record<string, string>>;
+  readonly names: Readonly<Record<string, string>>;
   readonly autoStart: CatalogPayload['autoStart'];
   readonly triggers: boolean;
 
   constructor(p: CatalogPayload) {
     this.lines = p.lines;
+    this.names = p.names ?? {};
     this.autoStart = p.autoStart ?? null;
     this.triggers = p.triggers !== false;
     this.entries = [...p.missions]
@@ -121,7 +127,11 @@ export class MissionStore {
       const rec = story.missions[ir.id];
       const state: JobState = ir.id === activeId ? 'active' : rec?.state === 'passed' ? 'passed' : this.open(ir, story, ctx) ? 'available' : 'locked';
       const row: JobRow = { id: ir.id, title: this.titleOf(ir), state, trigger: ir.start.k };
-      if (ir.giver && 'phone' in ir.giver) row.giver = ir.giver.phone;
+      if (ir.giver && 'phone' in ir.giver) {
+        row.giver = ir.giver.phone;
+        const gn = this.names[ir.giver.phone];
+        if (gn) row.giverName = gn;
+      }
       if (state === 'locked') {
         const by = this.blockedBy(ir, story);
         const needs = by ? this.get(by) : undefined;

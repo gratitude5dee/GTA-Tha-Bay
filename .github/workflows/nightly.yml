@@ -21,7 +21,7 @@ permissions:
 
 env:
   # Same string as ci.yml and tests/e2e/graybox-grep.txt (M02b1, DL-546, DL-680).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story|@racing-touch'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch'
 
 # Actions are pinned by commit SHA, same pins as ci.yml.
 jobs:

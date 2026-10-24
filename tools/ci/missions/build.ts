@@ -20,7 +20,7 @@ import type { DirectorScript } from '../../../packages/shared/src/contracts/c09-
 import { compileStringMatcher } from '../../../packages/shared/src/index.ts';
 import { compileRealNames } from '../../../packages/shared/src/assets/gates/names.ts';
 import { sha256Hex } from '../../../packages/shared/src/hash.ts';
-import { compileMission, type CompileEnv, type CompileError } from '../../../packages/modes/story/src/compiler/index.ts';
+import { checkSensitivity, compileMission, validateSensitivityFile, type CompileEnv, type CompileError, type SensitivityRow } from '../../../packages/modes/story/src/compiler/index.ts';
 import { checkBeatsLock, emptyBeatsLock, type BeatsLock } from '../../../packages/modes/story/src/cutscene/beat.ts';
 import type { CutsceneRef } from '../../../packages/shared/src/contracts/c09-cutscene.ts';
 import { loadCutsceneRefs, loadDirectorIds } from '../../assets/cutscene-index/refs.ts';
@@ -39,6 +39,10 @@ export interface BuildOptions {
   root: string;
   /** Build only this mission id. */
   mission?: string | undefined;
+  /** A release build: a `sensitivity-read` mission whose current version has no row in content/story/sensitivity.json fails it. */
+  release?: boolean | undefined;
+  /** Test hook: the content of sensitivity.json instead of the file. */
+  sensitivity?: unknown;
   log?: (line: string) => void;
   nowMs?: number;
 }
@@ -50,6 +54,8 @@ export interface BuildPlan {
   data: { id: string; file: string; path: string; text: string; tags: string[] }[];
   errors: { mission: string; error: CompileError }[];
   problems: string[];
+  /** Printed, never fatal (a release build turns the sensitivity ones into problems). */
+  warnings: string[];
   missions: string[];
 }
 
@@ -136,7 +142,7 @@ function listMissionDirs(root: string, only?: string): string[] {
 
 /** Compiles every mission and plans every output file without writing anything. */
 export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
-  const plan: BuildPlan = { files: new Map(), data: [], errors: [], problems: [], missions: [] };
+  const plan: BuildPlan = { files: new Map(), data: [], errors: [], problems: [], warnings: [], missions: [] };
   const dirs = listMissionDirs(o.root, o.mission);
   if (o.mission && dirs.length === 0) plan.problems.push(`no mission ${o.mission} under ${MISSIONS_DIR}`);
   const index: MissionIndexRow[] = [];
@@ -204,6 +210,18 @@ export async function planBuild(o: BuildOptions): Promise<BuildPlan> {
     for (const a of res.audioNeeds) audio[a.line] = a;
   }
 
+  if (plan.errors.length === 0 && !o.mission) {
+    const sFile = path.join(o.root, 'content/story/sensitivity.json');
+    const raw: unknown = o.sensitivity !== undefined ? o.sensitivity : existsSync(sFile) ? readJson<unknown>(sFile) : { schema: 'story-sensitivity/1', rows: [] };
+    const bad = validateSensitivityFile(raw);
+    for (const b of bad) plan.problems.push(b);
+    if (bad.length === 0) {
+      const res = checkSensitivity(index, (raw as { rows: SensitivityRow[] }).rows, o.release === true);
+      for (const e of res.errors) plan.problems.push(`sensitivity: ${e.message}`);
+      for (const w of res.warnings) plan.warnings.push(`sensitivity: ${w.message}`);
+    }
+  }
+
   if (plan.errors.length === 0 && plan.problems.length === 0) {
     if (index.length > 0) {
       addData('story.index', 'story.index.json', stableJson({ schema: 'story-index/1', rows: [...index].sort(byId) }), ['story']);
@@ -258,6 +276,7 @@ export function writePlan(root: string, plan: BuildPlan, nowMs: number, log: (l:
 export async function runMissionsBuild(o: BuildOptions & { check?: boolean }): Promise<number> {
   const log = o.log ?? ((l: string) => console.log(l));
   const plan = await planBuild(o);
+  for (const w of plan.warnings) log(`missions:build: warning: ${w}`);
   for (const p of plan.problems) log(`missions:build: ${p}`);
   for (const e of plan.errors) log(`${e.mission}: ${e.error.code} ${e.error.pointer} ${e.error.message}`);
   if (plan.problems.length > 0 || plan.errors.length > 0) return 1;
@@ -279,9 +298,9 @@ export async function runMissionsBuild(o: BuildOptions & { check?: boolean }): P
 }
 
 async function main(): Promise<void> {
-  const { values } = parseArgs({ args: args(), options: { mission: { type: 'string' }, check: { type: 'boolean', default: false } } });
+  const { values } = parseArgs({ args: args(), options: { mission: { type: 'string' }, check: { type: 'boolean', default: false }, release: { type: 'boolean', default: false } } });
   const root = path.resolve(import.meta.dirname, '../../..');
-  process.exitCode = await runMissionsBuild({ root, mission: values.mission, check: values.check });
+  process.exitCode = await runMissionsBuild({ root, mission: values.mission, check: values.check, release: values.release });
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) void main();

@@ -1,0 +1,29 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.12.arrival.1": "Quite a place you have here. I came to see what the Yard is worth, and now I think I should ask you.",
+    "line.m.a1.12.fog": "The helicopter lost you in the fog. A few cruisers are still on your tail. Shake them.",
+    "line.m.a1.12.home": "The Yard gate is lit. Bring the truck in and let the pod's story ride home with you.",
+    "line.m.a1.12.lot": "Look at the screen. That is our street with a number on it. Get in the car, they are coming.",
+    "line.m.a1.12.lot-one.1": "Every curb in this city is a lot. Lot number one is a street called home. Our crews begin tonight.",
+    "line.m.a1.12.lot-one.2": "Units to the plaza. Take the driver in the plain car, and nobody gets hurt.",
+    "line.m.a1.12.msg": "Big screen at the plaza by the arena. I am going live in a minute. Do not miss this.",
+    "line.m.a1.12.run": "Security is rolling out. Helicopter, spike strips, everything they have. Stay moving for two minutes, no matter what.",
+    "line.m.a1.12.start": "Saint here, live. They are about to put a number on the Yard. Get to the plaza by the arena and watch the big screen.",
+    "line.m.a1.12.talk.whitney.open": "I run a fund that has a stake in this auction. Before anyone writes a headline, would you like to hear what I can do for the Yard?",
+    "mission.m.a1.12.fail.busted": "The patrol caught you.",
+    "mission.m.a1.12.fail.ko": "You went down.",
+    "mission.m.a1.12.fail.ride": "Your car is wrecked. Start again.",
+    "mission.m.a1.12.obj.enter_ride": "Get in the car",
+    "mission.m.a1.12.obj.escape_fog": "Lose the patrol in the fog",
+    "mission.m.a1.12.obj.goto_plaza": "Go to the plaza by the arena",
+    "mission.m.a1.12.obj.goto_yard": "Drive home to the Yard",
+    "mission.m.a1.12.obj.survive_run": "Stay ahead of Halcyon security",
+    "mission.m.a1.12.obj.talk_whitney": "Hear out the investor at the gate",
+    "mission.m.a1.12.obj.wait_car": "Wait at the gate",
+    "mission.m.a1.12.talk.whitney.intent": "Listen to the investor",
+    "mission.m.a1.12.talk.whitney.listen": "Go on, I am listening",
+    "mission.m.a1.12.title": "Lot Number One"
+  }
+}

@@ -8,6 +8,8 @@ export * from './types.ts';
 export { validateSchema, validateRefs, reachableStages, OP_NODE_LIMIT } from './validate.ts';
 export { lintMission, conductOf, realDerivedCast } from './lint.ts';
 export { walkMission, walkOps, walkPred } from './walk.ts';
+export { checkSensitivity, validateSensitivityFile, SENSITIVITY_TAG } from './sensitivity.ts';
+export type { SensitivityRow, SensitivityFile, SensitivityFinding, SensitivityResult } from './sensitivity.ts';
 export type { Visitor } from './walk.ts';
 
 const byPointer = (a: CompileError, b: CompileError): number => (a.pointer < b.pointer ? -1 : a.pointer > b.pointer ? 1 : a.code < b.code ? -1 : a.code > b.code ? 1 : 0);

@@ -24,6 +24,8 @@ export interface ChunkSource {
 
 /** Sea level of the bake, metres. */
 export const SEA_LEVEL_M = 0;
+/** A body this close to a slab surface (above or below it) stands on that bridge deck, not in the water under it (M05c2). */
+export const DECK_REACH_M = 1.6;
 
 /** Calls `fn(offset, n, base, height)` for every record of a packed prism list (C08 `PrismPack`). */
 export function eachPrism(pack: ArrayLike<number>, fn: (offset: number, n: number, base: number, height: number) => void): void {
@@ -143,13 +145,22 @@ export class WorldQueryImpl implements WorldQuery {
     return g === GroundClass.Water || g === GroundClass.WaterShallow;
   }
 
-  /** Depth of the water over the terrain at a point, metres (0 on land or where no chunk is resident). */
-  waterDepth(x: number, z: number): number {
+  /**
+   * Depth of the water over the terrain at a point, metres (0 on land or where no chunk is resident). With `y`, the height of a body
+   * there: a body standing on a bridge deck (a slab surface within `DECK_REACH_M` below it) is not in the water (M05c2).
+   */
+  waterDepth(x: number, z: number, y?: number): number {
     if (!this.isWater(x, z)) return 0;
     const c = this.chunkAt(x, z);
     if (!c) return 0;
-    const depth = SEA_LEVEL_M - sampleHeight(c.height, x, z);
-    return depth > 0 ? depth : 0;
+    const terrain = sampleHeight(c.height, x, z);
+    const depth = SEA_LEVEL_M - terrain;
+    if (!(depth > 0)) return 0;
+    if (y !== undefined && Number.isFinite(y)) {
+      const surface = this.groundY(x, z, y);
+      if (surface !== null && surface > terrain + 0.3 && y - surface < DECK_REACH_M && y - surface > -DECK_REACH_M) return 0;
+    }
+    return depth;
   }
 
   nhoodAt(x: number, z: number): number {

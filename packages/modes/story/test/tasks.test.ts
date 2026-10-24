@@ -115,7 +115,8 @@ describe('driveTo over a synthetic C08 graph', () => {
       route: () => ({ edges: [1, 2], lengthM: 170, etaS: 20, complete: true }),
       laneCentre: (e: { edge: number; s: number }, out: Float64Array) => {
         // edge 1 runs east from x=40, edge 2 from x=120; s metres along each
-        out[0] = (e.edge === 1 ? 40 : 120) + e.s;
+        // edge 1 is 80 m long, edge 2 is 80 m long; a sample past the end clamps to the end (as the real graph does)
+        out[0] = (e.edge === 1 ? 40 : 120) + Math.min(e.s, 80);
         out[1] = 0;
         out[2] = 0;
         out[3] = 0;
@@ -127,8 +128,13 @@ describe('driveTo over a synthetic C08 graph', () => {
     const h = makeHarness();
     graph(h);
     const path = planRoute(h.ctx, [30, 0, 0], [200, 0, 0]);
-    expect(path?.length).toBe(7);
+    // a lane-centre sample every 12 m along the two edges (the first and last edges are trimmed to the start and the goal), then the goal
     expect(path?.[0]).toEqual([40, 0, 0]);
+    for (let i = 1; i < (path?.length ?? 0); i++) {
+      const dx = (path?.[i]?.[0] ?? 0) - (path?.[i - 1]?.[0] ?? 0);
+      expect(dx).toBeGreaterThanOrEqual(0);
+      expect(dx).toBeLessThanOrEqual(12.0001);
+    }
     expect(path?.at(-1)).toEqual([200, 0, 0]);
     expect(planRoute({ world: { graph: { route: () => null } } } as never, [0, 0, 0], [1, 0, 0])).toBeNull();
   });

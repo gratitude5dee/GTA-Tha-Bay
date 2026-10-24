@@ -45,6 +45,12 @@ export class RenderBudgetMeter {
   private readonly objectsRing: Float32Array;
   private head = 0;
   private filled = 0;
+  /**
+   * Diagnostics (M05c2): when on, each frame also tallies the counted objects by the name of their top-level ancestor (`Group:Name`;
+   * a shadow pass adds under the same label), and the tally of the frame with the most objects is kept in `breakdownAtMax`.
+   */
+  trace = false;
+  breakdownAtMax: Record<string, number> = {};
   /** Largest counts seen since the last reset. */
   maxRenderObjects = 0;
   maxTriangles = 0;
@@ -69,13 +75,14 @@ export class RenderBudgetMeter {
   measure(scene: Object3D, camera: Camera, shadowPasses = 0, extra: readonly { scene: Object3D; camera: Camera }[] = []): FrameCounts {
     let objects = 0;
     let triangles = 0;
+    const tally: Record<string, number> | null = this.trace ? {} : null;
     // `extra` roots (the backdrop pass of M02b1) are drawn in the same frame with their own camera planes: counted with it.
     for (const root of [{ scene, camera }, ...extra]) {
       root.camera.updateMatrixWorld();
       this.projView.multiplyMatrices(root.camera.projectionMatrix, root.camera.matrixWorldInverse);
       this.frustum.setFromProjectionMatrix(this.projView);
       const cam = root.camera;
-      const visit = (o: Object3D): void => {
+      const visit = (o: Object3D, label: string): void => {
         if (!o.visible) return;
         const r = o as Renderable;
         // A node on another layer is not drawn, but its children may be on the camera's layers.
@@ -83,11 +90,13 @@ export class RenderBudgetMeter {
           objects += 1;
           if (shadowPasses > 0 && r.castShadow) objects += shadowPasses;
           triangles += triangleCount(r);
+          if (tally) tally[label] = (tally[label] ?? 0) + 1 + (shadowPasses > 0 && r.castShadow ? shadowPasses : 0);
         }
-        for (const c of o.children) visit(c);
+        for (const c of o.children) visit(c, label);
       };
-      visit(root.scene);
+      for (const c of root.scene.children) visit(c, tally ? `${c.type}:${c.name || '-'}${(c.userData as { key?: string } | undefined)?.key ? `:${(c.userData as { key?: string }).key}` : ''}` : '');
     }
+    if (tally && objects > this.maxRenderObjects) this.breakdownAtMax = tally;
     this.record(objects, triangles);
     return { renderObjects: objects, triangles };
   }
