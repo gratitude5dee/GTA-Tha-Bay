@@ -14,7 +14,7 @@
 | Moderation: image semantics · backstory · forum post | ≈ $0.00025 · $0.0044 · $0.00029 | [research/gap-trust-safety-tooling.md §8] |
 | Human review | 0.191 min per MAU-month at $25/h (assumption) | same; U-COST-4 |
 | 16-player room-hour | ≈ $0.014 | [research/stack-cloudflare-backend.md §4.7] |
-| Media request through the app Worker (DL-713): one Worker request ($0.30 per million) plus one R2 Class B read ($0.36 per million), each beyond 10 million a month included; about 300 requests per first City Hall boot (estimate) | $0.00000066 per request; ≈ $0.0002 per first boot | spec/03 §6 (2026-10-20); DL-713 |
+| Media request through the app Worker (DL-713, DL-724): one Worker request ($0.30 per million) plus bucket operations counted per request: one R2 Class B read ($0.36 per million) for a 200 or 206 (one `get`, M01d3), one more `head` for a rejected or failing range; each beyond 10 million a month included; about 300 requests per first City Hall boot (estimate) | $0.00000066 per request; ≈ $0.0002 per first boot | spec/03 §6 (2026-10-20); DL-713 |
 | fal one-off: video $0.04–$0.10/s; Standard character $3.67; Lean $1.05; keyframe $0.0396 | §5, `06-asset-pipeline.md` §11 | F-039, F-040, F-044–F-046 |
 
 ## 2. Monthly recurring cost

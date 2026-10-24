@@ -35,7 +35,7 @@ After this session a player capsule walks, runs, sprints and jumps through the M
   - capsule radius 0.35 m, height 1.8 m;
   - states 100 idle, 101 walk, 102 run, 103 sprint, 110 jump, 111 fall, 112 land (6 ticks);
   - writes `Anim{state: AnimStateId 0–6, p0: speed}`.
-- **Ownership machine** (`ownership.ts`, stage `Control`): `Ready → Waiting → Entering → Active → Leaving / Delegated` per `01-engine.md` §2.5, with owners `OnFoot` and a `Ragdoll` stub (300 → 301 → 100 over 3 s, triggered by `debug.ragdoll`). Teleport goes 700 → 701 and waits up to 300 ticks for a static collider under the target. On timeout it returns to `Ready` with reason key `engine.control.groundNotLoaded` (English default "Ground not loaded; player was not moved") and leaves the position unchanged. Transitions go to the event ring.
+- **Ownership machine** (`ownership.ts`, stage `Control`): `Ready → Waiting → Entering → Active → Leaving / Delegated` per `01-engine.md` §2.5, with owners `OnFoot` and a `Ragdoll` stub (300 → 301 → 100 over 3 s, triggered by `debug.ragdoll`). Teleport goes 700 → 701 and waits up to 300 ticks for a static collider under the target. On timeout it returns to `Ready` with reason key `engine.control.groundNotLoaded` (English default in `CONTROL_REASON_EN`; reworded by M04e5, DL-717) and leaves the position unchanged. Transitions go to the event ring.
 - **Prefab registry:**
   - `PrefabDef` and `PrefabService` (`01-engine-save-modes.md` "Entity prefabs");
   - `assets/prefabs/player.default.json` with `render.asset` `prop/graybox.capsule`. It is a procedural placeholder: no file ships, so no provenance record is needed;

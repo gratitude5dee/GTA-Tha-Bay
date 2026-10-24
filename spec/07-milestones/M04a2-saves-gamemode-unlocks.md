@@ -109,7 +109,7 @@ After this session the engine has its mode system. `ModeHost` (C06 1.1) runs a s
 
 ## Demo script
 1. `pnpm dev`, then in the console `__dvBridge.engine.modes.list()`: story and sandbox available; racing, fighter and tycoon coming soon.
-2. Start sandbox, toggle "never wanted", quit: a `modeExit` save appears in `__dvBridge.engine.save.list()`.
+2. Start sandbox, toggle heat lock (`sandbox.player.neverWanted`), quit: a `modeExit` save appears in `__dvBridge.engine.save.list()`.
 3. Run the QA unlock helper for `unlock.racing`: one toast event is logged, and repeating it logs nothing.
 4. Rebind Jump in the QA console, reload: the binding persists.
 
