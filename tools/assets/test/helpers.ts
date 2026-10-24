@@ -13,7 +13,7 @@ export const STAMP = { gitSha: 'a'.repeat(40), createdAt: 1_790_000_000_000 };
 
 export function tempRepo(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), 'dv-assets-'));
-  for (const d of ['assets', 'config', 'docs/legal']) cpSync(path.join(toolsRoot, d), path.join(root, d), { recursive: true });
+  for (const d of ['assets', 'config', 'docs/legal', 'content/vehicles']) cpSync(path.join(toolsRoot, d), path.join(root, d), { recursive: true });
   dropFixtureAssets(root);
   return root;
 }
