@@ -36,7 +36,7 @@ const list = (ws: Widget[], id: string): Extract<Widget, { k: 'list' }> => {
 describe('the Sandbox app Teleport and Display tabs (AC-7)', () => {
   it('adds the two tabs after the M04e1 tabs', () => {
     const tabs = appScreen('sandbox', env()).children.find((w) => w.k === 'tabs') as Extract<Widget, { k: 'tabs' }>;
-    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world', 'teleport', 'display']);
+    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world', 'teleport', 'vehicles', 'display']);
   });
 
   it('lists the 37 landmarks in teleports.json order, each with a real name', () => {

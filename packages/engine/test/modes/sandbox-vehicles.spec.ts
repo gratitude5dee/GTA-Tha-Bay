@@ -46,7 +46,7 @@ function fakePort() {
 
 type Fake = ReturnType<typeof fakePort>;
 
-async function sandboxRig(opts: { assetsReady?: () => boolean; net?: { v: ModeContext['net'] }; fake?: Fake; story?: boolean } = {}) {
+async function sandboxRig(opts: { assetsReady?: (refs: string[]) => boolean; net?: { v: ModeContext['net'] }; fake?: Fake; story?: boolean } = {}) {
   const fake = opts.fake ?? fakePort();
   const net = opts.net ?? { v: null };
   const rig = makeRig({ sandboxVehicles: fake.port, net: () => net.v, ...(opts.assetsReady ? { assetsReady: opts.assetsReady } : {}) });

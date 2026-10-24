@@ -36,6 +36,18 @@ export interface SandboxTeleportView {
   previous: boolean;
 }
 
+/** `mode.sandbox.vehicles` (M04e3): the cars the Cars tab offers, grouped by class, and the ones out now. */
+export interface SandboxVehiclesView {
+  catalog: { prefab: string; cls: string; nameKey: string }[];
+  owned: { key: string; nameKey: string }[];
+  cap: number;
+  pending: string | null;
+  online: boolean;
+}
+
+/** The class order of the Cars tab: the racing classes from everyday to robotaxi. */
+export const SANDBOX_CAR_CLASSES: readonly string[] = ['D', 'C', 'B', 'A', 'S', 'R'];
+
 /** The sandbox's list of landmarks: `content/world/teleports.json`, in file order (the bake's landmark ids). */
 export const SANDBOX_LANDMARK_IDS: readonly string[] = (teleportsJson as { sandbox: string[] }).sandbox;
 /** `SAVE_LIMITS.sandboxSavedPositions` (C05 1.2); the UI reads the number, not the package. */
@@ -71,6 +83,8 @@ export interface PhoneEnv {
   sandboxWorld?: SandboxWorldView | undefined;
   /** `mode.sandbox.teleport`; absent until the sandbox has published it. */
   sandboxTeleport?: SandboxTeleportView | undefined;
+  /** `mode.sandbox.vehicles`; absent until the sandbox has published it. */
+  sandboxVehicles?: SandboxVehiclesView | undefined;
   /** The Display tab's stored toggles (`SandboxSlice.toggles`). */
   hideHud?: boolean;
   hideMinimap?: boolean;
@@ -175,6 +189,28 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
     { k: 'button', id: 'sandbox-spot-forget', label: lk(forgetting ? 'phone.sandbox.spotForgetDone' : 'phone.sandbox.spotForget'), style: forgetting ? 'primary' : 'secondary', onPress: { call: 'sandbox.forget' }, ...refuse() },
     { k: 'list', id: 'sandbox-spots', rows: spotRows, onPress: { call: 'sandbox.spot' }, empty: lk('phone.sandbox.spotsEmpty') },
   ];
+  // The Cars tab (M04e3): one heading per class, two buttons per car, then the count and the clear button.
+  const cv = env.sandboxVehicles ?? { catalog: [], owned: [], cap: 8, pending: null, online: false };
+  const carOff = cv.online || w.online ? { disabled: lk('sandbox.refuse.online') } : {};
+  const spawnCar = (prefab: string, seat: 'none' | 'driver'): UiAction => ({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.spawn', args: { prefab, seat } } });
+  const cars: Widget[] = [];
+  for (const cls of SANDBOX_CAR_CLASSES) {
+    const inClass = cv.catalog.filter((c) => c.cls === cls);
+    if (inClass.length === 0) continue;
+    cars.push({ k: 'heading', text: lk(`phone.sandbox.class.${cls}`), level: 2 });
+    for (const c of inClass) {
+      const slug = c.prefab.replace(/^vehicle\./, '');
+      cars.push(
+        { k: 'heading', text: lk(c.nameKey), level: 3 },
+        { k: 'button', id: `car-${slug}`, label: lk('phone.sandbox.car.place'), style: 'secondary', onPress: spawnCar(c.prefab, 'none'), ...carOff },
+        { k: 'button', id: `car-${slug}-drive`, label: lk('phone.sandbox.car.placeDrive'), style: 'primary', onPress: spawnCar(c.prefab, 'driver'), ...carOff },
+      );
+    }
+  }
+  cars.push(
+    { k: 'text', text: lk('phone.sandbox.car.count'), params: { n: cv.owned.length, cap: cv.cap } },
+    { k: 'button', id: 'car-clear', label: lk('phone.sandbox.car.clear'), style: 'secondary', onPress: { cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.clear' } }, ...carOff },
+  );
   const display: Widget[] = [
     { k: 'text', text: lk('phone.sandbox.displayNote'), tone: 'muted' },
     { k: 'button', id: 'sandbox-hide-hud', label: lk(env.hideHud ? 'phone.sandbox.hudHidden' : 'phone.sandbox.hudShown'), style: env.hideHud ? 'primary' : 'secondary', onPress: set(HIDE_HUD, !env.hideHud), ...refuse() },
@@ -194,6 +230,7 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
           { id: 'time', label: lk('phone.sandbox.tab.time'), children: time },
           { id: 'world', label: lk('phone.sandbox.tab.world'), children: world },
           { id: 'teleport', label: lk('phone.sandbox.tab.teleport'), children: teleport },
+          { id: 'vehicles', label: lk('phone.sandbox.tab.vehicles'), children: cars },
           { id: 'display', label: lk('phone.sandbox.tab.display'), children: display },
         ],
       },

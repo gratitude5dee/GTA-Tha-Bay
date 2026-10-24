@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { appScreen, homeScreen, placeName, stepHour, type PhoneEnv, type SandboxWorldView } from '../src/phone/apps.ts';
+import { appScreen, homeScreen, placeName, stepHour, type PhoneEnv, type SandboxVehiclesView, type SandboxWorldView } from '../src/phone/apps.ts';
 import { PHONE_APPS, appDef, visibleApps } from '../src/phone/registry.ts';
 import { pauseScreen } from '../src/phone/pause.tsx';
 import type { ScreenDef, Widget } from '../src/screen/types.ts';
@@ -76,11 +76,11 @@ describe('phone registry (AC-6)', () => {
     expect(buttonsIn(s, 'player').some((w) => w.id === 'never-wanted')).toBe(true);
   });
 
-  it('Sandbox is a tabs widget: player, weather, time, world, teleport, display (AC-9)', () => {
+  it('Sandbox is a tabs widget: player, weather, time, world, teleport, cars, display (AC-9)', () => {
     const s = appScreen('sandbox', env({ mode: 'sandbox', sandboxWorld: world() }));
     const tabs = tabsOf(s);
     expect(tabs.id).toBe('sandbox-tabs');
-    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world', 'teleport', 'display']);
+    expect(tabs.tabs.map((x) => x.id)).toEqual(['player', 'weather', 'time', 'world', 'teleport', 'vehicles', 'display']);
     for (const k of keys(s)) expect(cat[k], k).toBeDefined();
   });
 
@@ -137,9 +137,61 @@ describe('phone registry (AC-6)', () => {
     for (const x of on) expect(x.disabled).toBeUndefined();
   });
 
+  describe('Cars tab (M04e3 AC-8)', () => {
+    const cars = (over: Partial<SandboxVehiclesView> = {}): SandboxVehiclesView => ({
+      catalog: [
+        { prefab: 'vehicle.compact', cls: 'D', nameKey: 'sandbox.car.compact' },
+        { prefab: 'vehicle.sedan', cls: 'D', nameKey: 'sandbox.car.sedan' },
+        { prefab: 'vehicle.halcyon-cormorant', cls: 'R', nameKey: 'sandbox.car.halcyon-cormorant' },
+        { prefab: 'vehicle.solenne-skip', cls: 'S', nameKey: 'sandbox.car.solenne-skip' },
+        { prefab: 'vehicle.aurelian-sorrel', cls: 'A', nameKey: 'sandbox.car.aurelian-sorrel' },
+        { prefab: 'vehicle.brackenridge-rasp', cls: 'B', nameKey: 'sandbox.car.brackenridge-rasp' },
+        { prefab: 'vehicle.kestrel-quill', cls: 'C', nameKey: 'sandbox.car.kestrel-quill' },
+      ],
+      owned: [{ key: 'veh:sbx0', nameKey: 'sandbox.car.compact' }, { key: 'veh:sbx1', nameKey: 'sandbox.car.sedan' }],
+      cap: 8,
+      pending: null,
+      online: false,
+      ...over,
+    });
+    const tab = (s: ScreenDef): Widget[] => tabsOf(s).tabs.find((x) => x.id === 'vehicles')!.children;
+
+    it('has the six class headings in order, then each car with a place and a place-and-drive button', () => {
+      const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars() }));
+      const w = tab(s);
+      const heads = w.filter((x): x is Extract<Widget, { k: 'heading' }> => x.k === 'heading' && x.level === 2).map((x) => x.text);
+      expect(heads).toEqual(['D', 'C', 'B', 'A', 'S', 'R'].map((c) => `phone.sandbox.class.${c}`));
+      const by = (id: string) => w.find((x): x is Extract<Widget, { k: 'button' }> => x.k === 'button' && x.id === id)!;
+      expect(by('car-kestrel-quill').label).toBe('phone.sandbox.car.place');
+      expect(by('car-kestrel-quill').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.spawn', args: { prefab: 'vehicle.kestrel-quill', seat: 'none' } } });
+      expect(by('car-kestrel-quill-drive').label).toBe('phone.sandbox.car.placeDrive');
+      expect(by('car-kestrel-quill-drive').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.spawn', args: { prefab: 'vehicle.kestrel-quill', seat: 'driver' } } });
+      expect(by('car-clear').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.clear' } });
+      const count = w.find((x) => x.k === 'text');
+      expect(count && count.k === 'text' ? count.params : null).toEqual({ n: 2, cap: 8 });
+      // within a class the cars keep the catalog order, and each car has a level 3 name heading
+      const d = w.slice(w.findIndex((x) => x.k === 'heading' && x.text === 'phone.sandbox.class.D'));
+      expect(d.slice(1, 4).map((x) => (x.k === 'heading' ? x.text : x.k === 'button' ? x.id : ''))).toEqual(['sandbox.car.compact', 'car-compact', 'car-compact-drive']);
+      for (const x of w) if (x.k === 'heading' || x.k === 'button' || x.k === 'text') expect(cat[x.k === 'button' ? x.label : x.text], JSON.stringify(x)).toBeTypeOf('string');
+    });
+
+    it('online: every button is disabled with sandbox.refuse.online', () => {
+      const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars({ online: true }) }));
+      const bs = tab(s).filter((x): x is Extract<Widget, { k: 'button' }> => x.k === 'button');
+      expect(bs.length).toBeGreaterThan(10);
+      for (const x of bs) expect(x.disabled, x.id).toBe('sandbox.refuse.online');
+      for (const x of buttonsIn(appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars() })), 'vehicles')) expect(x.disabled).toBeUndefined();
+    });
+
+    it('without a view model the tab shows the count and the clear button only', () => {
+      const w = tab(appScreen('sandbox', env({ mode: 'sandbox' })));
+      expect(w.map((x) => (x.k === 'button' ? x.id : x.k))).toEqual(['text', 'car-clear']);
+    });
+  });
+
   it('without a published view model the tabs still build', () => {
     const s = appScreen('sandbox', env({ mode: 'sandbox' }));
-    expect(tabsOf(s).tabs).toHaveLength(6);
+    expect(tabsOf(s).tabs).toHaveLength(7);
   });
 
   it('the home screen lists the rows it is given and has a close button', () => {
