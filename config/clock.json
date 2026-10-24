@@ -19,5 +19,11 @@
     { "preset": "golden", "fromHour": 6, "toHour": 8, "mul": 2 }
   ],
   "night": [[0, 1], [5, 1], [6.5, 0.5], [8, 0], [18, 0], [19.5, 0.5], [21.5, 1], [24, 1]],
-  "dark": [[0, 1], [5, 1], [7, 0], [17.5, 0], [19.5, 1], [24, 1]]
+  "dark": [[0, 1], [5, 1], [7, 0], [17.5, 0], [19.5, 1], [24, 1]],
+  "sandboxShortcuts": [
+    { "id": "fog-dawn", "hour": 6, "weather": "karl-fog" },
+    { "id": "burn-off", "hour": 11, "weather": "clear" },
+    { "id": "golden-hour", "hour": 18.5, "weather": "golden" },
+    { "id": "fog-returns", "hour": 20.5, "weather": "karl-fog" }
+  ]
 }

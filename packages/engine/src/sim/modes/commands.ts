@@ -1,5 +1,6 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
 import { SANDBOX_REFUSE_ONLINE, applyToggle } from './builtin/sandbox.ts';
+import type { SandboxWorldPort } from './builtin/sandbox-world.ts';
 import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
@@ -14,6 +15,8 @@ export interface CommandDeps {
   /** The context of the running `sandbox` mode, or null when another mode (or none) runs. */
   sandboxContext(): ModeContext | null;
   world(): WorldApi;
+  /** The weather hold and the world speed of the sandbox (M04e1), or null without a running sim. */
+  sandboxWorld?(): SandboxWorldPort | null;
   /** Moves the player to a point (the ownership machine's teleport); false when it is refused. */
   teleport?(x: number, y: number, z: number): boolean;
   /** The page pauses itself; the sim only learns of it (QA and later the HUD). */
@@ -100,7 +103,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
           return;
         }
         const ctx = d.sandboxContext();
-        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v);
+        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v, d.sandboxWorld?.() ?? null);
         return;
       }
       case 'sandbox.teleport': {

@@ -25,7 +25,7 @@ import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
 import { SimSchedulerImpl } from '../script/scheduler.ts';
 import { TimelineRecorderImpl } from '../script/timeline.ts';
 import { ZoneServiceImpl } from '../script/zones.ts';
-import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory } from './builtin/index.ts';
+import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory, type SandboxWorldPort } from './builtin/index.ts';
 import { bindModeSave } from './capability-bind.ts';
 import { createCommandDispatcher, settingsView } from './commands.ts';
 import { ModeEventBus, ModeHost, type SessionSlices } from './host.ts';
@@ -376,9 +376,15 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           if (runtime.env.qa) runtime.bot = bot;
         },
       };
+      // The sandbox's weather hold and world speed (M04e1): engine-internal calls, in no contract.
+      const sandboxWorld: SandboxWorldPort = {
+        holdWeather: (w) => services.clock?.holdWeather(w),
+        setTimeScale: (sc) => s.core.setSandboxScale(sc),
+      };
       for (const d of builtinDescriptors({
         story: () => live.story,
         sandbox: () => live.sandbox,
+        world: () => sandboxWorld,
         playerPose,
         ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
       })) descriptors.set(d.id, d);
@@ -494,6 +500,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           return e ? e.ctx : null;
         },
         world: () => (services.world.api ?? standin),
+        sandboxWorld: () => sandboxWorld,
         ride: () => services.ride,
         garage: () => garage,
         selectProfile: (id) => {
