@@ -58,12 +58,13 @@ describe('sandbox rooms guard', () => {
     expect(pursuit.setHeat).not.toHaveBeenCalled();
     expect(pursuit.capHeat).not.toHaveBeenCalled();
     expect(pursuit.clear).not.toHaveBeenCalled();
-    // The toggles, then (M04e1) the world controls with `online: true`, so the phone greys them out.
-    expect(patch).toHaveBeenCalledTimes(2);
+    // The toggles, the teleport tab's view model (M04e2), then (M04e1) the world controls with `online: true`, so the phone greys them out.
+    expect(patch).toHaveBeenCalledTimes(3);
     expect(patch.mock.calls[0]?.[0]).toBe('mode.sandbox.toggles');
     expect(patch).toHaveBeenCalledWith('mode.sandbox.toggles', toggles);
-    expect(patch.mock.calls[1]?.[0]).toBe('mode.sandbox.world');
-    expect((patch.mock.calls[1]?.[1] as { online: boolean }).online).toBe(true);
+    expect(patch.mock.calls[1]?.[0]).toBe('mode.sandbox.teleport');
+    expect(patch.mock.calls[2]?.[0]).toBe('mode.sandbox.world');
+    expect((patch.mock.calls[2]?.[1] as { online: boolean }).online).toBe(true);
   });
 
   it.each(['shipped', 'optional'] as const)('follows ctx.net live whatever the descriptor says (%s) (AC-4)', async (variant) => {

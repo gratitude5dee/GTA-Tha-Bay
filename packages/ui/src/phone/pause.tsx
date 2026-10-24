@@ -15,7 +15,7 @@ import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
 import { messagePress, type PhoneMessage } from './messages.tsx';
-import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxWorldView } from './apps.ts';
+import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxTeleportView, type SandboxWorldView } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
@@ -130,6 +130,9 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
     heat: typeof toggles?.['sandbox.player.heat'] === 'number' ? (toggles['sandbox.player.heat'] as number) : (heat?.level ?? 0),
     neverWanted: toggles?.['sandbox.player.neverWanted'] === true,
     sandboxWorld: ctx.vm<JsonValue>('mode.sandbox.world') as unknown as SandboxWorldView | undefined,
+    sandboxTeleport: ctx.vm<JsonValue>('mode.sandbox.teleport') as unknown as SandboxTeleportView | undefined,
+    hideHud: toggles?.['sandbox.display.hideHud'] === true,
+    hideMinimap: toggles?.['sandbox.display.hideMinimap'] === true,
     appRows: [],
   };
 }
@@ -138,10 +141,12 @@ export function PhonePage(props: PageProps) {
   const { shell, ctx } = useShell();
   const [app, setApp] = useState<string | null>(props.params['app'] ?? null);
   const [lastPick, setLastPick] = useState<string | null>(null);
+  // The Sandbox app's spot list: false goes to the spot, true forgets it (M04e2).
+  const [forgetting, setForgetting] = useState(false);
   const [thread, setThread] = useState<string | null>(null);
   const [focusJob, setFocusJob] = useState<string | null>(null);
   useVmRedraw(ctx);
-  const env = usePhoneEnv(ctx);
+  const env = { ...usePhoneEnv(ctx), forgetting };
   const apps = useMemo(() => visibleApps({ mode: env.mode }), [env.mode]);
   // The Ride app asks the sim for its destinations each time it opens.
   useEffect(() => {
@@ -211,6 +216,30 @@ export function PhonePage(props: PageProps) {
               ctx.sendUi({ t: 'mode.cmd', mode: 'story', name: 'mission.start', args: { id: rowId.slice(4) } });
               shell.back();
             } else if (rowId) ctx.startMode(rowId as never);
+            break;
+          case 'sandbox.landmark':
+            if (rowId) {
+              ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.landmark', args: { id: rowId } });
+              ctx.fire('resume');
+            }
+            break;
+          case 'sandbox.waypoint':
+            ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.waypoint' });
+            ctx.fire('resume');
+            break;
+          case 'sandbox.back':
+            ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.back' });
+            ctx.fire('resume');
+            break;
+          case 'sandbox.forget':
+            setForgetting((f) => !f);
+            break;
+          case 'sandbox.spot':
+            if (rowId && forgetting) ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'position.delete', args: { name: rowId } });
+            else if (rowId) {
+              ctx.sendUi({ t: 'sandbox.teleport', name: rowId });
+              ctx.fire('resume');
+            }
             break;
           case 'garage.card': {
             const cmd = rowId ? cardAction(rowId) : null;

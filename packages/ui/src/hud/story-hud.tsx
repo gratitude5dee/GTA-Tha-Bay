@@ -11,7 +11,7 @@ import { TalkPanel } from './TalkChoices.tsx';
 import { ShopPanel } from './ShopPanel.tsx';
 import { MissionFail } from './mission-fail.tsx';
 import { contentText } from '../i18n/index.ts';
-import type { HudClock, HudHeat, HudVehicle, HudWallet } from './model.ts';
+import { hudHidden, type HudClock, type HudHeat, type HudVehicle, type HudWallet } from './model.ts';
 import {
   AreaBanner, ClockWeather, HealthBar, HeatStars, InteractionPrompt, ObjectiveTracker, SandboxChip, SaveIndicator, Subtitles, VehicleCluster,
   Wallet, useVm, type ObjectiveView,
@@ -36,9 +36,14 @@ export function StoryHud() {
   const subtitle = useVm<JsonValue>('hud.subtitle') as { speaker?: string; text: string } | undefined;
   const save = useVm<JsonValue>('hud.save') as 'saving' | 'saved' | 'failed' | undefined;
   const mode = ctx.mode.stack[0]?.id;
+  // The sandbox's Display toggles (M04e2): single-player sandbox only, `SandboxSlice.toggles` is the one store.
+  const toggles = useVm<JsonValue>('mode.sandbox.toggles') as unknown as Record<string, boolean | number> | undefined;
+  const online = (useVm<JsonValue>('mode.sandbox.world') as unknown as { online?: boolean } | undefined)?.online === true;
+  const hide = hudHidden(mode, toggles, online);
   return (
     <HudGrid
       {...prefs}
+      hidden={{ tl: hide.tl, tr: hide.tr, bl: hide.bl, br: hide.br }}
       regions={{
         tl: (
           <>
@@ -64,8 +69,8 @@ export function StoryHud() {
         ),
         bc: (
           <>
-            <TipBar />
-            <InteractionPrompt />
+            {hide.tip ? null : <TipBar />}
+            {hide.prompt ? null : <InteractionPrompt />}
             <Subtitles line={subtitle} />
           </>
         ),

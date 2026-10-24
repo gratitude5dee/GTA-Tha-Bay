@@ -5,7 +5,8 @@
 import { lk, t, type LocKey } from '../i18n/index.ts';
 import { garageScreen, type GarageCard } from '../pages/garage.tsx';
 import type { ListRow, ScreenDef, UiAction, Widget } from '../screen/types.ts';
-import { clockText, dollars } from '../hud/model.ts';
+import { clockText, dollars, HIDE_HUD, HIDE_MINIMAP } from '../hud/model.ts';
+import teleportsJson from '../../../../content/world/teleports.json';
 import { buildThreads, focusJobRows, messagesScreen, type PhoneMessage } from './messages.tsx';
 
 export interface RideDestination { id: string; nameKey: string; x: number; z: number }
@@ -28,6 +29,17 @@ export interface SandboxWorldView {
 export const SANDBOX_WORLD_DEFAULT: SandboxWorldView = {
   weather: null, hour: 12, paused: false, sync: false, timeScale: 1, blackout: false, density: { traffic: 1, ped: 1, parked: 1 }, shortcuts: [], online: false,
 };
+
+/** `mode.sandbox.teleport` (M04e2): the remembered spots (whole metres) and whether "back" has somewhere to go. */
+export interface SandboxTeleportView {
+  positions: { name: string; x: number; z: number }[];
+  previous: boolean;
+}
+
+/** The sandbox's list of landmarks: `content/world/teleports.json`, in file order (the bake's landmark ids). */
+export const SANDBOX_LANDMARK_IDS: readonly string[] = (teleportsJson as { sandbox: string[] }).sandbox;
+/** `SAVE_LIMITS.sandboxSavedPositions` (C05 1.2); the UI reads the number, not the package. */
+export const SANDBOX_SPOT_LIMIT = 32;
 
 const WEATHER_IDS = ['clear', 'karl-fog', 'overcast', 'rain', 'smoke', 'golden'] as const;
 const SPEEDS: readonly { v: number; id: string }[] = [{ v: 0.25, id: '025' }, { v: 0.5, id: '05' }, { v: 1, id: '1' }, { v: 2, id: '2' }];
@@ -57,6 +69,13 @@ export interface PhoneEnv {
   neverWanted: boolean;
   /** `mode.sandbox.world`; absent until the sandbox has published it. */
   sandboxWorld?: SandboxWorldView | undefined;
+  /** `mode.sandbox.teleport`; absent until the sandbox has published it. */
+  sandboxTeleport?: SandboxTeleportView | undefined;
+  /** The Display tab's stored toggles (`SandboxSlice.toggles`). */
+  hideHud?: boolean;
+  hideMinimap?: boolean;
+  /** The Teleport tab's spot list goes to "forget" instead of "go" (page state). */
+  forgetting?: boolean;
   /** Home screen rows. */
   appRows: ListRow[];
   /** `mode.story.messages`: the phone messages of the session (Messages app, M05c2). */
@@ -131,6 +150,36 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
     ]),
     btn('world-reset', lk('phone.sandbox.reset'), false, { cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'world.reset' } }),
   ];
+  // The Go places and Screen tabs (M04e2). Every control is greyed out online, like the world controls.
+  const tp = env.sandboxTeleport ?? { positions: [], previous: false };
+  const refuse = (extra?: LocKey): { disabled?: LocKey } => (w.online ? { disabled: lk('sandbox.refuse.online') } : extra ? { disabled: extra } : {});
+  const full = tp.positions.length >= SANDBOX_SPOT_LIMIT;
+  const forgetting = env.forgetting === true;
+  const spotText = (name: string): string => {
+    const m = /^pos-(\d{1,2})$/.exec(name);
+    return m ? t('sandbox.position.name', { n: Number(m[1]) }) : name;
+  };
+  const landmarkRows: ListRow[] = SANDBOX_LANDMARK_IDS.map((id) => ({
+    id, text: placeName(`place.${id.slice(3)}`, id), ...(w.online ? { disabled: true, hint: t('sandbox.refuse.online') } : {}),
+  }));
+  const spotRows: ListRow[] = tp.positions.map((p) => ({
+    id: p.name, text: spotText(p.name), detail: `${p.x}, ${p.z}`, ...(w.online ? { disabled: true, hint: t('sandbox.refuse.online') } : {}),
+  }));
+  const teleport: Widget[] = [
+    { k: 'heading', text: lk('phone.sandbox.landmarks'), level: 2 },
+    { k: 'list', id: 'sandbox-landmarks', rows: landmarkRows, onPress: { call: 'sandbox.landmark' }, empty: lk('phone.sandbox.spotsEmpty') },
+    { k: 'button', id: 'sandbox-waypoint', label: lk('phone.sandbox.waypoint'), style: 'secondary', onPress: { call: 'sandbox.waypoint' }, ...refuse() },
+    { k: 'button', id: 'sandbox-back', label: lk('phone.sandbox.back'), style: 'secondary', onPress: { call: 'sandbox.back' }, ...refuse(tp.previous ? undefined : lk('phone.sandbox.noPrevious')) },
+    { k: 'heading', text: lk('phone.sandbox.spots'), level: 2 },
+    { k: 'button', id: 'sandbox-spot-save', label: lk('phone.sandbox.spotSave'), style: 'secondary', onPress: { cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'position.save' } }, ...refuse(full ? lk('phone.sandbox.spotsFull') : undefined) },
+    { k: 'button', id: 'sandbox-spot-forget', label: lk(forgetting ? 'phone.sandbox.spotForgetDone' : 'phone.sandbox.spotForget'), style: forgetting ? 'primary' : 'secondary', onPress: { call: 'sandbox.forget' }, ...refuse() },
+    { k: 'list', id: 'sandbox-spots', rows: spotRows, onPress: { call: 'sandbox.spot' }, empty: lk('phone.sandbox.spotsEmpty') },
+  ];
+  const display: Widget[] = [
+    { k: 'text', text: lk('phone.sandbox.displayNote'), tone: 'muted' },
+    { k: 'button', id: 'sandbox-hide-hud', label: lk(env.hideHud ? 'phone.sandbox.hudHidden' : 'phone.sandbox.hudShown'), style: env.hideHud ? 'primary' : 'secondary', onPress: set(HIDE_HUD, !env.hideHud), ...refuse() },
+    { k: 'button', id: 'sandbox-hide-minimap', label: lk(env.hideMinimap ? 'phone.sandbox.mapHidden' : 'phone.sandbox.mapShown'), style: env.hideMinimap ? 'primary' : 'secondary', onPress: set(HIDE_MINIMAP, !env.hideMinimap), ...refuse() },
+  ];
   return {
     id: 'app-sandbox',
     title: lk('phone.app.sandbox'),
@@ -144,6 +193,8 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
           { id: 'weather', label: lk('phone.sandbox.tab.weather'), children: weather },
           { id: 'time', label: lk('phone.sandbox.tab.time'), children: time },
           { id: 'world', label: lk('phone.sandbox.tab.world'), children: world },
+          { id: 'teleport', label: lk('phone.sandbox.tab.teleport'), children: teleport },
+          { id: 'display', label: lk('phone.sandbox.tab.display'), children: display },
         ],
       },
       back(),
