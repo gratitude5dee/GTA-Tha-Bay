@@ -89,10 +89,10 @@ Total backdrop cost: ≤ 3 render objects (ring, massing, cards), ≤ 1 upload a
 
 ## 5. Teleports and fast travel
 
-`TeleportApi.request(kind, to)` is the single entry (sandbox menu, map, story fast travel, XR, respawn, QA). Kinds: `sandbox` (landmark list, waypoint, saved position; sandbox mode only, never in missions or rooms), `fast-travel` (unlocked nodes: Bay Rail stations, cable-car stops, robotaxi, ferry; heat 0; story rules), `xr-comfort` (S11 arcs, snapping to `teleportNodes` within 3 m on stairs and ≥ 15 % slopes), `respawn`, `debug` (QA builds).
+`TeleportApi.request(kind, to)` is the single entry (sandbox menu, map, story fast travel, XR, respawn, QA). Kinds: `sandbox` (landmark list, waypoint, saved position, previous spot; sandbox mode only, never in missions or rooms; the sandbox menu's jumps and the phone map's `map.travel` both go through `request('sandbox', …)`, and `sandbox.teleport` no longer calls the ownership machine directly, M04e2), `fast-travel` (unlocked nodes: Bay Rail stations, cable-car stops, robotaxi, ferry; heat 0; story rules), `xr-comfort` (S11 arcs, snapping to `teleportNodes` within 3 m on stairs and ≥ 15 % slopes), `respawn`, `debug` (QA builds).
 
 1. **Validate:** mode rules, heat, bounds (`out-of-bounds`), cooldown (30 s for fast travel), then resolve the target to ENU (landmarks use their `arrival` pose, which the bake guarantees is on ground ≥ 3 m from water and prisms).
-2. **Pre-stream:** request the destination `p0` tile plus a one-tile ring as `needNow`; wait up to 8 s. On timeout return `not-loaded` and do not move the player (message key `world.teleport.notLoaded`, "Ground not loaded; player was not moved").
+2. **Pre-stream:** request the destination `p0` tile plus a one-tile ring as `needNow`; wait up to 8 s. On timeout return `not-loaded` and do not move the player (message key `world.teleport.notLoaded`; English value in our own words, M04e5).
 3. **Fade out** (≤ 200 ms), `Control` state 700, then colliders wait (state 701).
 4. **Place:** cast down from `y + 300 m` against the heightfield, slabs and hoods; reject water (`water`) and prisms (`blocked`) by searching the nearest valid `arrival`/walkable point within 40 m; a driver keeps the vehicle only when the target lies on a drivable edge.
 5. **Fade in.** In rooms, a non-sandbox teleport waits for the server's `EV TeleportGrant` (reason `fast_travel`); sandbox teleport is disabled there.

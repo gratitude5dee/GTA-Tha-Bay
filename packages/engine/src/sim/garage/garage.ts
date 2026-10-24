@@ -98,7 +98,7 @@ export interface GaragePorts {
   /** The live `CoreSlice.garage` array. */
   list(): GarageList;
   ui: UiBridge;
-  /** Wanted level now (0 when calm). */
+  /** Heat level now (0 when calm). */
   heat(): number;
   /** The world services; null on the world-less stand-in (no road graph). */
   world(): WorldApi | null;

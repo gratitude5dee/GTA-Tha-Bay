@@ -63,11 +63,11 @@ export interface TeleportHost {
   fade(dir: 'out' | 'in'): void;
 }
 
-/** The hooks mode rules and the wanted level plug into (default: a sandbox session with no heat). */
+/** The hooks mode rules and the heat level plug into (default: a sandbox session with no heat). */
 export interface TeleportPolicy {
   /** Whether the session's mode allows this kind of teleport (story rules: M05c2). */
   allowed(kind: TeleportKind): boolean;
-  /** Wanted level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
+  /** Heat level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
   heat(): number;
 }
 export const SANDBOX_POLICY: TeleportPolicy = { allowed: () => true, heat: () => 0 };

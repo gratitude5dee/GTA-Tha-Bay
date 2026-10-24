@@ -11,6 +11,7 @@ After this session the game's UI works inside the headset. S10's `UiSurface` dra
 
 ## Depends on
 - **M11b1** (`XrSessionController`, the "XR armed" state, `XrPanels` with registration, ray picking, `XrInputRouter`).
+- **M04e1** and **M04e4** (the Sandbox app's new `ScreenDef` tabs, which the XR panel must draw: Weather, Time and World from M04e1; Cars, Player and car actions from M04e3 and M04e4; DL-716).
 - **M06a5** (`DialogueBubble`, `IntentChoices`, `SafetyCard`, `LikenessCard`, the dialogue session and its `hud.subtitle` feed).
 - Also used: M04b1 (shell, menus, Settings pages, focus navigation, i18n, `check:i18n`), M04b2 (`UiSurface` skeleton, phone and pause registry, HUD view-model keys, wrist and glance data), M04a1 (C05 `ProfileSettings.xr`).
 - Contracts: C13 1.1.0 (`XrPanels`, `XrPanel`, `XrComfortSettings`), C06 1.1.0 (`UiBridge`, `ViewModelSource`, `UiCommand` `save.settings` and `pause`), C05 1.1.0 (`ProfileSettings.xr & {heightCalibM}`).

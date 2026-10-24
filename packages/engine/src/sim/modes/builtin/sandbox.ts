@@ -22,7 +22,7 @@ export function publishToggles(ctx: Pick<ModeContext, 'ui'>, s: SandboxSlice): v
 
 /**
  * Applies one sandbox toggle (`UiCommand sandbox.set`): writes `SandboxSlice.toggles`, publishes them, and acts on the ones this
- * milestone knows. "Never wanted" caps the heat at 0 (`PursuitApi.capHeat`); a build without the pursuit director keeps the value only.
+ * milestone knows. The heat lock caps the heat at 0 (`PursuitApi.capHeat`); a build without the pursuit director keeps the value only.
  */
 export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: boolean | number): boolean {
   if (!/^sandbox\.[a-zA-Z0-9_.]{1,80}$/.test(path)) return false;
