@@ -235,16 +235,26 @@ test.describe('map attribution and credits @world-attribution', () => {
     const file = JSON.parse(readFileSync(path.join(ROOT, 'config/attribution.world.json'), 'utf8')) as { entries: { id: string; text: string }[] };
     const osm = file.entries.find((e) => e.id === 'osm')!;
 
-    // the boot splash: an in-page observer stamps the moment the line appears and the moment it goes (the test's own polling would
-    // add the delays of a software-rendered boot that keeps the main thread busy)
+    // the boot splash and the full-map corner: an in-page observer stamps the moments the splash line appears and goes, and the
+    // moments the corner first appears (the map opens, which is what the corner's 5 s count from) and turns to "(i)". The test's own
+    // polling would add the delays of a software-rendered world that keeps the main thread busy: every Playwright round trip waits for
+    // that thread, so a clock started in Node after the corner's two checks starts about 2 s late (BD-FIX-CI10-M01).
+    type Corner = { first?: string; open?: number; collapsed?: number };
     await page.addInitScript(() => {
-      const w = window as unknown as { __splash: { on?: number; off?: number } };
+      const w = window as unknown as { __splash: { on?: number; off?: number }; __corner: Corner };
       w.__splash = {};
+      w.__corner = {};
       new MutationObserver(() => {
         const here = document.querySelector('[data-testid="attribution-splash"]') !== null;
         if (here && w.__splash.on === undefined) w.__splash.on = performance.now();
         if (!here && w.__splash.on !== undefined && w.__splash.off === undefined) w.__splash.off = performance.now();
-      }).observe(document, { childList: true, subtree: true });
+        const corner = document.querySelector('[data-testid="map-attribution"]')?.getAttribute('data-state') ?? undefined;
+        if (corner !== undefined && w.__corner.first === undefined) {
+          w.__corner.first = corner;
+          w.__corner.open = performance.now();
+        }
+        if (corner === 'collapsed' && w.__corner.open !== undefined && w.__corner.collapsed === undefined) w.__corner.collapsed = performance.now();
+      }).observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-state'] });
     });
     await page.setViewportSize(SMALL_VIEWPORT);
     await page.goto('/?debug=1&tier=mobile-low', { waitUntil: 'commit' });
@@ -267,10 +277,13 @@ test.describe('map attribution and credits @world-attribution', () => {
     const attrib = page.getByTestId('map-attribution');
     await expect(attrib).toHaveAttribute('data-state', 'expanded');
     await expect(page.getByTestId('map-attribution-text')).toContainText('OpenStreetMap');
-    const opened = Date.now();
     await expect(attrib).toHaveAttribute('data-state', 'collapsed', { timeout: 10_000 });
-    const waited = Date.now() - opened;
-    expect(waited, `corner collapsed after about 5 s (${waited} ms)`).toBeGreaterThanOrEqual(3500);
+    const corner = (await page.evaluate(() => (window as unknown as { __corner: Corner }).__corner)) as Corner;
+    expect(corner.first, 'the corner opens expanded').toBe('expanded');
+    const waited = (corner.collapsed ?? 0) - (corner.open ?? 0);
+    testInfo.annotations.push({ type: 'corner-collapse-ms', description: `splash ${shown.toFixed(0)} ms, corner ${waited.toFixed(0)} ms` });
+    expect(waited, `corner collapsed after 5 s of the map being open (${waited.toFixed(0)} ms)`).toBeGreaterThanOrEqual(5000);
+    expect(waited, `corner collapsed after 5 s of the map being open (${waited.toFixed(0)} ms)`).toBeLessThanOrEqual(10_000);
     await expect(page.getByTestId('map-attribution-text')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('map-collapsed.png') });
     await page.getByTestId('map-attribution-toggle').click();
