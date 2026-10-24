@@ -1,0 +1,10 @@
+{
+  "name": "tha-bay-transcoder-image",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Dependencies of the Transcoder Container image only. Not a workspace package; npm installs it inside the image (package-lock.json).",
+  "dependencies": {
+    "@contentauth/c2pa-node": "0.9.10"
+  }
+}

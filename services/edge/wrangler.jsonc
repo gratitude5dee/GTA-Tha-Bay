@@ -22,12 +22,21 @@
       { "name": "FAL_GATE", "class_name": "FalGateDO" },
       { "name": "GOVERNOR", "class_name": "BudgetGovernorDO" },
       { "name": "ENCOUNTER", "class_name": "EncounterDO" },
-      { "name": "QUOTA", "class_name": "PlayerQuotaDO" }
+      { "name": "QUOTA", "class_name": "PlayerQuotaDO" },
+      // The Transcoder Container (M05c3): ffmpeg ladder cut@1 and the C2PA re-signer, one instance per cutscene key.
+      { "name": "TRANSCODER", "class_name": "TranscoderContainer" }
     ]
   },
   "migrations": [
     { "tag": "web-v1", "new_sqlite_classes": ["CutsceneJobDO", "FalGateDO", "BudgetGovernorDO"] },
-    { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] }
+    { "tag": "web-v2", "new_sqlite_classes": ["EncounterDO", "PlayerQuotaDO"] },
+    { "tag": "web-v3", "new_sqlite_classes": ["TranscoderContainer"] }
+  ],
+  // No Docker daemon is needed for local dev, tests or bundling: mock mode uses MockTranscodePort (wrangler dev / getPlatformProxy).
+  "dev": { "enable_containers": false },
+  // Container application bound to the DO class above (wrangler 4.151.1 schema: ContainerApp; spec/03 section 7, U-BE-3).
+  "containers": [
+    { "name": "tha-bay-transcoder", "class_name": "TranscoderContainer", "image": "../pipeline/transcoder/Dockerfile", "instance_type": "standard-2", "max_instances": 4 }
   ],
   // Media and private buckets, the FLAGS namespace (kill switches, gov:level) and the gen-job Workflow (M05b1).
   "r2_buckets": [
