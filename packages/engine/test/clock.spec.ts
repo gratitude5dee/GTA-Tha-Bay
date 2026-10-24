@@ -41,6 +41,16 @@ describe('config/clock.json', () => {
   });
 });
 
+describe('sandboxShortcuts (M04e1)', () => {
+  it('has unique ids, each with a phone.sandbox.time.<id> key in en.json', () => {
+    const en = JSON.parse(readFileSync(new URL('../../../content/ui/i18n/en.json', import.meta.url), 'utf8')) as Record<string, unknown>;
+    const ids = (CLOCK_CONFIG.sandboxShortcuts ?? []).map((s) => s.id);
+    expect(ids.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) expect(typeof en[`phone.sandbox.time.${id}`]).toBe('string');
+  });
+});
+
 describe('WorldClock time (AC-2)', () => {
   it('60 ticks advance t by 60 (30 game seconds)', () => {
     const c = clockAt0();

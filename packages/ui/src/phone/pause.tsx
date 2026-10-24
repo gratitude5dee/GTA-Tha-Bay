@@ -14,7 +14,7 @@ import { buildTiles, tileRows, type ModeTile } from '../pages/modes.ts';
 import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
-import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination } from './apps.ts';
+import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxWorldView } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
@@ -124,6 +124,7 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
     // The toggle is published at once; the snapshot's heat waits for the next tick, and the phone pauses the sim.
     heat: typeof toggles?.['sandbox.player.heat'] === 'number' ? (toggles['sandbox.player.heat'] as number) : (heat?.level ?? 0),
     neverWanted: toggles?.['sandbox.player.neverWanted'] === true,
+    sandboxWorld: ctx.vm<JsonValue>('mode.sandbox.world') as unknown as SandboxWorldView | undefined,
     appRows: [],
   };
 }
