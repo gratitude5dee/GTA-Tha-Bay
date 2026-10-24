@@ -18,6 +18,7 @@ import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { args, repoRoot } from './run.ts';
 import { isMain } from './lib/common.ts';
 import { verifyFile } from './perf-verify.ts';
+import { laneLimits } from '../../packages/engine/src/assets/store/lanes.ts';
 
 export const PERF_PROJECTS = ['chromium-webgl2', 'webkit-webgl2'] as const;
 export const FLAT_TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'];
@@ -92,6 +93,45 @@ export function verifyPeds(file: string, tier: QualityTierId): string[] {
   return out;
 }
 
+/** Scenarios that report the world boot (M02f1): their `PerfReport.boot` carries the five boot figures and `verifyBoot` judges them. */
+export const BOOT_SCENARIOS: readonly string[] = ['boot-cityhall'];
+
+/** The lane sum (`now` + `soon` + `idle`) of a device class: the most requests the fetch layer can have in flight (`laneLimits`). */
+export function laneSum(deviceClass: string): number {
+  const l = laneLimits(deviceClass !== 'desktop');
+  return l.now + l.soon + l.idle;
+}
+
+/**
+ * The boot half of a boot scenario (M02f1, AC-4): all five figures are present; at least two requests (the world index and the spawn
+ * tile), some bytes, a reveal time and one wave; the peak in flight is between 1 and the lane sum of the report's own `device.class`
+ * (the class, not the forced tier, sets the lanes); and `bytes` in MB, rounded to two decimals, equals `coldDownloadMB`. Network times
+ * are recorded and never judged, because `check:perf` judges CPU-side counts only. Returns the failure lines.
+ */
+export function verifyBoot(file: string, _tier: QualityTierId): string[] {
+  const r = JSON.parse(readFileSync(file, 'utf8')) as { device?: { class?: string }; boot?: Record<string, unknown> };
+  const b = r.boot;
+  if (!b) return ['FAIL  the report has no boot block'];
+  const out: string[] = [];
+  const num = (k: string): number | null => (typeof b[k] === 'number' && Number.isFinite(b[k]) ? (b[k] as number) : null);
+  const missing = ['requests', 'bytes', 'revealMs', 'waves', 'inflightPeak'].filter((k) => num(k) === null);
+  if (missing.length > 0) return [`FAIL  boot figures missing: ${missing.join(', ')}`];
+  const requests = num('requests') as number;
+  const bytes = num('bytes') as number;
+  const revealMs = num('revealMs') as number;
+  const waves = num('waves') as number;
+  const peak = num('inflightPeak') as number;
+  if (requests < 2) out.push(`FAIL  boot requests ${requests} < 2`);
+  if (!(bytes > 0)) out.push(`FAIL  boot bytes ${bytes} is not above 0`);
+  if (!(revealMs > 0)) out.push(`FAIL  boot revealMs ${revealMs} is not above 0`);
+  if (waves < 1) out.push(`FAIL  boot waves ${waves} < 1`);
+  const lanes = laneSum(r.device?.class ?? 'unknown');
+  if (peak < 1 || peak > lanes) out.push(`FAIL  boot inflightPeak ${peak} is outside 1..${lanes} (the lane sum of device class ${r.device?.class ?? 'unknown'})`);
+  const mb = Math.round((bytes / 1e6) * 100) / 100;
+  if (b['coldDownloadMB'] !== mb) out.push(`FAIL  boot bytes ${bytes} (${mb} MB) differ from coldDownloadMB ${String(b['coldDownloadMB'])}`);
+  return out;
+}
+
 /** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
 export const TRAFFIC_DRAWS_MAX = 1;
 
@@ -124,6 +164,11 @@ export function checkReports(root: string, scenarios: readonly string[] = PERF_S
         if (!r.ok) ok = false;
         lines.push(`${r.ok ? 'PASS' : 'FAIL'}  ${label}`);
         for (const l of r.lines.filter((x) => x.startsWith('FAIL'))) lines.push(`        ${l}`);
+        if (BOOT_SCENARIOS.includes(scenario)) {
+          const bad = verifyBoot(file, tier);
+          if (bad.length > 0) ok = false;
+          for (const l of bad) lines.push(`        ${l}`);
+        }
         if (TRAFFIC_SCENARIOS.includes(scenario)) {
           const tf = trafficPath(root, scenario, project, tier);
           if (!existsSync(tf)) {

@@ -1,4 +1,5 @@
 import type { QualityTierId, SimProfile } from '@dv/shared';
+import netProfilesJson from '../../../../config/perf/net-profiles.json';
 
 /**
  * The single parser for QA URL flags (11-platform-perf.md section 4).
@@ -65,6 +66,8 @@ export interface QaFlags {
   readonly racingDemo: boolean;
   /** ?tycoon=1 mounts the Business Tycoon QA panel and the bridge `tycoon` (M09a1); the mode itself starts from the panel. */
   readonly tycoon: boolean;
+  /** ?net=<id> slows the pack fetches on purpose with a profile of `config/perf/net-profiles.json`; anything else reads as null (M02f1, C13 1.2). */
+  readonly net: string | null;
 }
 
 export type QaPlay = 'sandbox' | 'story' | 'off';
@@ -100,6 +103,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   racing: false,
   racingDemo: false,
   tycoon: false,
+  net: null,
 });
 
 const TIER_IDS: readonly QualityTierId[] = [
@@ -124,6 +128,9 @@ export function parseLimits(value: string | null): Readonly<Record<string, numbe
   }
   return out;
 }
+
+/** The ids of `config/perf/net-profiles.json`. */
+export const NET_PROFILE_IDS: readonly string[] = Object.keys(netProfilesJson.profiles);
 
 /** A non-negative integer from a URL value, else null. */
 function nonNegInt(v: string | null): number | null {
@@ -181,5 +188,6 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     racing: q.get('racing') === '1' || q.get('racing') === 'demo',
     racingDemo: q.get('racing') === 'demo',
     tycoon: q.get('tycoon') === '1',
+    net: NET_PROFILE_IDS.find((id) => id === q.get('net')) ?? null,
   };
 }

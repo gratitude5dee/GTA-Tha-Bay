@@ -187,6 +187,15 @@ export class AssetService {
       ...(this.d.random ? { random: this.d.random } : {}),
       ...(this.d.sleep ? { sleep: this.d.sleep } : {}),
     });
+    // QA only: the literal check lets the bundler drop the shaper chunk from production builds (M02f1).
+    if (import.meta.env.VITE_DV_QA === '1' && p.net !== null) {
+      const [{ createNetShaper }, profiles] = await Promise.all([
+        import('./store/net-shaper.ts'),
+        import('../../../../config/perf/net-profiles.json'),
+      ]);
+      const profile = (profiles.default.profiles as Record<string, { latencyMs: number; bytesPerSec: number | null } | undefined>)[p.net];
+      if (profile) this.wrapFetch(createNetShaper(profile).wrap);
+    }
     this.catalogValue = new CatalogClient({ fetch: (u, i) => this.d.fetch(u, i ?? {}), origin: p.origin, localMedia: p.localMedia });
     this.lock = new TabLock({
       channel: this.d.channel,
@@ -234,9 +243,16 @@ export class AssetService {
   }
 
   private stats(): StatsResult {
-    const f = this.fetcher?.stats ?? { network: 0, retries: 0, bytes: 0 };
+    const f = this.fetcher?.stats ?? { network: 0, retries: 0, bytes: 0, inflightPeak: 0, waves: 0 };
     const s = this.storeValue?.stats ?? { hits: 0, evictions: 0 };
-    return { network: f.network, retries: f.retries, bytes: f.bytes, hits: this.base.hits + s.hits, evictions: this.base.evictions + s.evictions };
+    return {
+      network: f.network,
+      retries: f.retries,
+      bytes: f.bytes,
+      inflightPeak: f.inflightPeak,
+      waves: f.waves,
+      hits: this.base.hits + s.hits, evictions: this.base.evictions + s.evictions,
+    };
   }
 
   private async dispatch(msg: RpcRequest, signal: AbortSignal): Promise<{ result: unknown; transfer?: Transferable[] }> {
@@ -319,8 +335,11 @@ export class AssetService {
         return { result: this.mode() };
       case 'catalog':
         return { result: (await this.catalog.load()) satisfies CatalogStateName };
-      case 'stats':
-        return { result: this.stats() };
+      case 'stats': {
+        const out = this.stats();
+        if ((msg.p as RpcOps['stats'][0]).resetPeak) this.fetcher?.resetPeak();
+        return { result: out };
+      }
       case 'qa': {
         const p = msg.p as RpcOps['qa'][0];
         if (!this.d.qa) throw new Error('not-supported');

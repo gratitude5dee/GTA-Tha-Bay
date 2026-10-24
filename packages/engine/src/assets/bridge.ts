@@ -13,7 +13,7 @@ export interface AssetsBridge {
   has(target: string | PackRef): Promise<boolean>;
   resolve(ref: string): Promise<PackRef>;
   usage(): ReturnType<AssetClient['usage']>;
-  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number; bytes: number }>;
+  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number; bytes: number; inflightPeak: number; waves: number }>;
   configure(o: { softCapBytes: number | null }): Promise<void>;
   injectFaults(o: { status: number | 'network' | 'corrupt'; times: number; match?: string }): Promise<void>;
   clearFaults(): Promise<void>;

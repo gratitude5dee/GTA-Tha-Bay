@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Ajv2020 } from 'ajv/dist/2020.js';
-import { FLAT_LADDER, TIER_IDS, VARIANT_FALLBACK, type QualityTierId } from '@dv/shared';
+import { C13_VERSION, FLAT_LADDER, TIER_IDS, VARIANT_FALLBACK, type QualityTierId } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { classifyDevice } from '@dv/shared';
 import { DEFAULT_SETTINGS, createMemoryStore, normalizeSettings } from '../../src/platform/platform-store.ts';
@@ -74,7 +74,7 @@ describe('config/platform-flags.json', () => {
 describe('tier-decision.v1 schema', () => {
   const ajv = new Ajv2020({ strict: false });
   const validate = ajv.compile(json('packages/shared/schemas/tier-decision.v1.json'));
-  const good = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1, build: 'b', uaHash: 'a', adapterHash: 'b', c13: '1.1.0' };
+  const good = { v: 1, tier: 'mobile', source: 'auto-benchmark', decidedAt: 1, build: 'b', uaHash: 'a', adapterHash: 'b', c13: C13_VERSION };
   it('accepts a decision and rejects v: 2, an unknown tier and a 2.x contract', () => {
     expect(validate(good)).toBe(true);
     expect(validate({ ...good, v: 2 })).toBe(false);

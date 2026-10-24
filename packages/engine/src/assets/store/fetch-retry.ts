@@ -45,6 +45,12 @@ export interface FetchStats {
   retries: number;
   /** Body bytes received from the network (M02b1: the cold-download figure of the boot-size check). */
   bytes: number;
+  /** Requests whose lane task is running now: one per URL, backoff waits and Range slices included. */
+  inflight: number;
+  /** The highest `inflight` since construction or the last `resetPeak()`. */
+  inflightPeak: number;
+  /** How many times `inflight` rose from 0 to 1 (busy periods, not concurrency). */
+  waves: number;
 }
 
 export function backoffMs(n: number, u: number): number {
@@ -79,7 +85,7 @@ interface InFlight {
 }
 
 export class FetchRetry {
-  readonly stats: FetchStats = { network: 0, retries: 0, bytes: 0 };
+  readonly stats: FetchStats = { network: 0, retries: 0, bytes: 0, inflight: 0, inflightPeak: 0, waves: 0 };
   private readonly inflight = new Map<string, InFlight>();
   private readonly fetchFn: FetchFn;
   private readonly lanes: Lanes;
@@ -93,6 +99,18 @@ export class FetchRetry {
     this.random = o.random ?? Math.random;
     this.sleep = o.sleep ?? defaultSleep;
     this.onRetry = o.onRetry;
+  }
+
+  /** Sets `inflightPeak` to the current `inflight`, so a later reading holds the peak of one window. */
+  resetPeak(): void {
+    this.stats.inflightPeak = this.stats.inflight;
+  }
+
+  private enter(): void {
+    const s = this.stats;
+    if (s.inflight === 0) s.waves++;
+    s.inflight++;
+    if (s.inflight > s.inflightPeak) s.inflightPeak = s.inflight;
   }
 
   /** True while a request for this URL is queued or running. */
@@ -147,11 +165,16 @@ export class FetchRetry {
 
   private start(url: string, priority: Priority, bytes: number | undefined): InFlight {
     const controller = new AbortController();
-    const handle = this.lanes.schedule(priority, () => {
+    const handle = this.lanes.schedule(priority, async () => {
       this.stats.network++;
-      return bytes !== undefined && bytes > RANGE_THRESHOLD_BYTES
-        ? this.fetchSlices(url, bytes, priority, controller.signal)
-        : this.fetchWhole(url, priority, controller.signal);
+      this.enter();
+      try {
+        return await (bytes !== undefined && bytes > RANGE_THRESHOLD_BYTES
+          ? this.fetchSlices(url, bytes, priority, controller.signal)
+          : this.fetchWhole(url, priority, controller.signal));
+      } finally {
+        this.stats.inflight--;
+      }
     });
     const entry: InFlight = {
       promise: handle.promise,
