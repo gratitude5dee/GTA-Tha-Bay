@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AssetCatalog, AssetManifest, AssetVariant, CatalogPointer } from '@dv/shared/assets';
-import { CatalogClient, packKindOf } from '../../src/assets/store/catalog-client.ts';
+import { CatalogClient, packKindOf, type CatalogRetry } from '../../src/assets/store/catalog-client.ts';
 import { sha256Hex } from '../../src/assets/store/store.ts';
 
 const enc = new TextEncoder();
@@ -142,6 +142,73 @@ describe('CatalogClient', () => {
     expect(c.sourceFor('texture/asset-smoke')).toBeNull();
     expect(c.resolveAll('mobile-low').map((p) => p.kind).sort()).toEqual(['chunk', 'tex']);
     expect(c.allHashes().size).toBe(3 + 1 + 1);
+  });
+
+  describe('the retry policy and the failure record (BD-FU-A01, BD-FU-A02)', () => {
+    const sleeps: number[] = [];
+    const retry = (online = true): CatalogRetry => ({
+      sleep: (ms) => {
+        sleeps.push(ms);
+        return Promise.resolve();
+      },
+      random: () => 0.5,
+      online: () => online,
+    });
+
+    it('a catalog the media host answers 404 for is unavailable at once, with the status and the URL', async () => {
+      sleeps.length = 0;
+      const s = await serve({});
+      const missing = (url: string): Promise<Response> => (url.includes('/manifests/') ? (s.requests.push(url), Promise.resolve(new Response('not found', { status: 404 }))) : s.fetch(url));
+      const c = new CatalogClient({ fetch: missing, origin: 'https://app.test', localMedia: null, retry: retry() });
+      expect(await c.load()).toBe('unavailable');
+      expect(c.failure).toEqual({ stage: 'catalog', url: `https://media.test/${s.pointer.key}`, status: 404, offline: false });
+      // A 4xx other than 429 is not retried (11-platform-pwa.md section 5).
+      expect(s.requests.filter((u) => u.includes('/manifests/'))).toHaveLength(1);
+      expect(sleeps).toEqual([]);
+      c.reset();
+      expect(c.failure).toBeNull();
+    });
+
+    it('5xx and 429 are retried up to 8 attempts with the fetch layer backoff, then recorded', async () => {
+      sleeps.length = 0;
+      const s = await serve({});
+      let n = 0;
+      const flaky = (url: string): Promise<Response> => (url.includes('/manifests/') ? Promise.resolve(new Response(null, { status: n++ % 2 ? 503 : 429 })) : s.fetch(url));
+      const c = new CatalogClient({ fetch: flaky, origin: 'https://app.test', localMedia: null, retry: retry() });
+      expect(await c.load()).toBe('unavailable');
+      expect(n).toBe(8);
+      expect(sleeps).toEqual([300, 600, 1200, 2400, 4800, 5000, 5000]);
+      expect(c.failure).toMatchObject({ stage: 'catalog', status: 503, offline: false });
+    });
+
+    it('a request that recovers within the retries loads the catalog', async () => {
+      const s = await serve({});
+      let n = 0;
+      const recovering = (url: string): Promise<Response> => (url.includes('/manifests/') && n++ < 3 ? Promise.reject(new TypeError('Failed to fetch')) : s.fetch(url));
+      const c = new CatalogClient({ fetch: recovering, origin: 'https://app.test', localMedia: null, retry: retry() });
+      expect(await c.load()).toBe('ready');
+      expect(c.failure).toBeNull();
+    });
+
+    it('a network error while the browser is offline fails at once and is marked offline (the offline relaunch path)', async () => {
+      sleeps.length = 0;
+      const s = await serve({});
+      let n = 0;
+      const offline = (url: string): Promise<Response> => (url.includes('/manifests/') ? (n++, Promise.reject(new TypeError('Failed to fetch'))) : s.fetch(url));
+      const c = new CatalogClient({ fetch: offline, origin: 'https://app.test', localMedia: null, retry: retry(false) });
+      expect(await c.load()).toBe('unavailable');
+      expect(n).toBe(1);
+      expect(sleeps).toEqual([]);
+      expect(c.failure).toMatchObject({ stage: 'catalog', status: null, offline: true });
+    });
+
+    it('a pointer the app does not serve is recorded at the pointer stage', async () => {
+      const s = await serve({});
+      const noPointer = (url: string): Promise<Response> => (url === 'https://app.test/asset-catalog.json' ? Promise.resolve(new Response(null, { status: 404 })) : s.fetch(url));
+      const c = new CatalogClient({ fetch: noPointer, origin: 'https://app.test', localMedia: null, retry: retry() });
+      expect(await c.load()).toBe('unavailable');
+      expect(c.failure).toMatchObject({ stage: 'pointer', url: 'https://app.test/asset-catalog.json', status: 404 });
+    });
   });
 
   it('maps asset kinds to pack kinds', () => {

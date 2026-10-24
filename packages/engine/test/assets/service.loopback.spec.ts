@@ -175,6 +175,25 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     expect(err).not.toBeInstanceOf(PackUnavailable);
   });
 
+  it('catalogInfo reports a catalog the media host does not serve, once, as err.asset {http, catalog} (BD-FU-A02)', async () => {
+    let toClient: ((m: FromWorker) => void) | null = null;
+    const pointer = { schema: 'asset-catalog-pointer/1', sha256: 'a'.repeat(64), key: `manifests/assets-${'a'.repeat(64)}.json`, bytes: 10 };
+    const fetchFn = (url: string): Promise<Response> => {
+      if (url.endsWith('/api/v1/boot')) return Promise.resolve(Response.json({ hosts: { media: 'https://media.test' } }));
+      if (url.endsWith('/asset-catalog.json')) return Promise.resolve(Response.json(pointer));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    };
+    const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: fetchFn, channel: null, tabId: 't', sleep: () => Promise.resolve(), online: () => true });
+    const port: WorkerPort = { postMessage: (m) => void svc.handle(m), onmessage: null };
+    toClient = (m) => port.onmessage?.({ data: m });
+    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false, net: null }, { tier: () => 'desktop' });
+    const info = await c.catalogInfo();
+    expect(info).toEqual({ state: 'unavailable', failure: { stage: 'catalog', url: `https://media.test/${pointer.key}`, status: 404, offline: false } });
+    expect(c.catalogState).toBe('unavailable');
+    expect(await c.loadCatalog()).toBe('unavailable');
+    expect(c.errLog).toEqual([{ reason: 'http', kind: 'catalog' }]);
+  });
+
   it('without a qa handler the qa op is refused', async () => {
     let toClient: ((m: FromWorker) => void) | null = null;
     const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: () => Promise.reject(new Error('x')), channel: null, tabId: 't' });

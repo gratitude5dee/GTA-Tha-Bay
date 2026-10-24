@@ -233,13 +233,19 @@ describe('nightly.yml (AC-8)', () => {
   });
 });
 
-describe('Playwright system packages: mirror-resilient install, apt cache saved whatever the job does (BD-FIX-CI10-P01)', () => {
+describe('Playwright system packages: mirror-resilient install, one apt cache per package set (BD-FIX-CI10-P01, BD-FU-B05)', () => {
+  // The key has an ISO week part computed in the step (`date -u +%GW%V`), so the archive refreshes once a week (BD-FU-B05).
+  const KEY = '- id: pw-key\n        name: Apt cache key of this package set and ISO week\n        run: pnpm exec tsx tools/ci/pw-install.ts --cache-key --week "$(date -u +%GW%V)" $DV_PW_BROWSERS';
   const RESTORE =
-    /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}-\$\{\{ github\.job \}\}-\$\{\{ strategy\.job-index \}\}\n\s+restore-keys: \|\n\s+pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\$\{\{ hashFiles\('pnpm-lock\.yaml'\) \}\}-\n\s+pw-apt-\$\{\{ runner\.os \}\}-\$\{\{ env\.DV_PW_BROWSERS \}\}-\n/;
-  const INSTALL = '- name: Playwright browsers and their system packages\n        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS';
+    /- id: pw-apt\n\s+uses: actions\/cache\/restore@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-key\.outputs\.key \}\}\n\s+restore-keys: \|\n\s+\$\{\{ steps\.pw-key\.outputs\.key \}\}-\n\s+\$\{\{ steps\.pw-key\.outputs\.version \}\}\n\s+\$\{\{ steps\.pw-key\.outputs\.base \}\}\n/;
+  const INSTALL = '- id: pw-install\n        name: Playwright browsers and their system packages\n        run: pnpm exec tsx tools/ci/pw-install.ts $DV_PW_BROWSERS';
   const COUNT = '- id: pw-apt-new\n        name: New apt archives since the restore\n        if: always()\n        run: pnpm exec tsx tools/ci/pw-install.ts --count-new';
+  // The complete set: once per key, only after a successful install and when the restore was not an exact hit.
   const SAVE =
-    /- if: always\(\) && fromJSON\(steps\.pw-apt-new\.outputs\.new \|\| '0'\) > 0\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}\n/;
+    /- name: Save the complete package set \(once per key\)\n\s+if: always\(\) && steps\.pw-install\.outcome == 'success' && steps\.pw-apt\.outputs\.cache-hit != 'true' && fromJSON\(steps\.pw-apt-new\.outputs\.new \|\| '0'\) > 0\n\s+continue-on-error: true\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}\n/;
+  // What a failed or cancelled install downloaded, under a per-job key below the stable one (the restore's first prefix).
+  const PARTIAL =
+    /- name: Save the downloads of a failed or cancelled install\n\s+if: always\(\) && \(steps\.pw-install\.outcome == 'failure' \|\| steps\.pw-install\.outcome == 'cancelled'\) && fromJSON\(steps\.pw-apt-new\.outputs\.new \|\| '0'\) > 0\n\s+continue-on-error: true\n\s+uses: actions\/cache\/save@[0-9a-f]{40}\n\s+with:\n\s+path: ~\/\.cache\/dv-pw-apt\/\*\.deb\n\s+key: \$\{\{ steps\.pw-apt\.outputs\.cache-primary-key \}\}-partial-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}-\$\{\{ github\.job \}\}-\$\{\{ strategy\.job-index \}\}\n/;
   /** The job-level DV_PW_BROWSERS value (an expression or a quoted literal). */
   const browsersOf = (job: string): string | undefined => /^ {4}env:\n(?: {6}.*\n)*? {6}DV_PW_BROWSERS: (.*)$/m.exec(job)?.[1];
   /** Evaluates a DV_PW_BROWSERS value for one matrix leg (the expressions hold only ==, &&, || and literals). */
@@ -261,7 +267,7 @@ describe('Playwright system packages: mirror-resilient install, apt cache saved 
   });
 
   for (const f of ['ci.yml', 'nightly.yml', 'preview.yml']) {
-    it(`${f}: every Playwright install restores, installs through pw-install.ts, counts and saves under always()`, () => {
+    it(`${f}: every Playwright install keys its package set, restores, installs through pw-install.ts, counts and saves once per key`, () => {
       const text = wf(f);
       const code = text.split('\n').filter((l) => !l.trimStart().startsWith('#')).join('\n');
       expect(code, `${f}: playwright install --with-deps runs only inside pw-install.ts`).not.toContain('playwright install --with-deps');
@@ -271,13 +277,18 @@ describe('Playwright system packages: mirror-resilient install, apt cache saved 
         installs++;
         const steps = stepsOf(job);
         const at = (pred: (s: string) => boolean): number => steps.findIndex(pred);
-        const restore = at((s) => RESTORE.test(`${s}\n`));
-        const install = at((s) => s.includes(INSTALL));
-        expect(restore, `${f} ${name}: restore`).toBeGreaterThan(-1);
-        expect(install, `${f} ${name}: install right after the restore`).toBe(restore + 1);
-        expect(at((s) => s.includes(COUNT)), `${f} ${name}: count right after the install`).toBe(install + 1);
-        expect(at((s) => SAVE.test(`${s}\n`)), `${f} ${name}: save right after the count`).toBe(install + 2);
+        const key = at((s) => s.includes(KEY));
+        expect(key, `${f} ${name}: key`).toBeGreaterThan(-1);
+        expect(at((s) => RESTORE.test(`${s}\n`)), `${f} ${name}: restore right after the key`).toBe(key + 1);
+        expect(at((s) => s.includes(INSTALL)), `${f} ${name}: install right after the restore`).toBe(key + 2);
+        expect(at((s) => s.includes(COUNT)), `${f} ${name}: count right after the install`).toBe(key + 3);
+        expect(at((s) => SAVE.test(`${s}\n`)), `${f} ${name}: save of the complete set after the count`).toBe(key + 4);
+        expect(at((s) => PARTIAL.test(`${s}\n`)), `${f} ${name}: save of a failed install's downloads last`).toBe(key + 5);
         expect(browsersOf(job), `${f} ${name}: DV_PW_BROWSERS`).toBeDefined();
+        // the stable key carries nothing of one run, attempt or job, nor the lockfile (the 10 GB repository limit, BD-FU-B05)
+        expect(steps[key + 1] ?? '', `${f} ${name}: restore key`).not.toMatch(/github\.run_id|github\.run_attempt|github\.job|strategy\.job-index|hashFiles/);
+        // the week comes from the step's clock, not from the run (one save per key and week)
+        expect(steps[key] ?? '', `${f} ${name}: weekly key`).not.toMatch(/github\.run_id|github\.run_attempt|github\.job|strategy\.job-index|hashFiles/);
       }
       expect(installs, f).toBeGreaterThan(0);
     });
