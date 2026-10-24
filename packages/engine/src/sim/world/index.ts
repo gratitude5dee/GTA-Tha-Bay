@@ -33,7 +33,7 @@ export interface WorldHub {
   bounds: WorldBoundsPort | null;
   /** The chunk tags (hiding spots, choke points) the pursuit director reads (M03c); null until the world module registers them. */
   tags: WorldTagsPort | null;
-  /** The wanted level now, set by the modes module from the pursuit director (M04b2): fast travel and the sandbox teleport refuse above 0. */
+  /** The heat level now, set by the modes module from the pursuit director (M04b2): fast travel and the sandbox teleport refuse above 0. */
   heat: (() => number) | null;
 }
 

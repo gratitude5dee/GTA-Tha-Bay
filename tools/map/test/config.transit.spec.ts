@@ -26,7 +26,7 @@ describe('config/world/transit.json (M02c1)', () => {
   it('every teleport message key and the county-line key exist in the English catalogue', () => {
     const en = read('content/ui/i18n/en.json') as Record<string, string>;
     for (const key of Object.values(TELEPORT_MSG)) expect(en[key], key).toBeTypeOf('string');
-    expect(en['world.teleport.notLoaded']).toBe('Ground not loaded; player was not moved');
+    expect(en['world.teleport.notLoaded']).toBe('That part of the city is still on its way. Try again in a moment.');
     expect(en['world.boundary.countyLine']).toBe('Leaving SF — coming soon');
   });
 });

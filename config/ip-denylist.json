@@ -46,6 +46,21 @@
       "id": "franchise-acronym",
       "regex": "\\bgta\\b",
       "flags": "i"
+    },
+    {
+      "id": "trainer-status",
+      "regex": "\\b(?:loading\\s+model|streaming\\s+teleport\\s+destination|enter\\s+a\\s+vehicle\\s+first|ground\\s+not\\s+loaded|player\\s+was\\s+not\\s+moved)\\b",
+      "flags": "i"
+    },
+    {
+      "id": "trainer-heat",
+      "regex": "\\b(?:never\\s+wanted|wanted\\s+level)\\b",
+      "flags": "i"
+    },
+    {
+      "id": "trainer-menu",
+      "regex": "\\b(?:replenish\\s+player|vehicle\\s+spawner|spawn\\s+in\\s+vehicle|refresh\\s+vehicle\\s+availability|clean\\s+vehicle|place\\s+on\\s+ground|time\\s+options|pause\\s+clock\\s+time|sync\\s+with\\s+system\\s+time|object\\s+spooner|spooner)\\b",
+      "flags": "i"
     }
   ],
   "nameRegex": {

@@ -46,7 +46,7 @@ describe('ownership machine: teleport (AC-6)', () => {
     const events = sim.services.events.drain();
     const refused = events.find((e) => e.t === 'control.refused');
     expect(refused?.s).toBe(CONTROL_REASON.groundNotLoaded);
-    expect(CONTROL_REASON_EN[CONTROL_REASON.groundNotLoaded]).toBe('Ground not loaded; player was not moved');
+    expect(CONTROL_REASON_EN[CONTROL_REASON.groundNotLoaded]).toBe('That part of the city is still on its way. Try again in a moment.');
     expect(events.filter((e) => e.t === 'control.transition').map((e) => e.n)).toEqual([701, 100]);
     sim.dispose();
   });
