@@ -6,7 +6,7 @@
  */
 import type { ModeContext, ObjectiveDef } from '@dv/shared';
 import { dsqrt } from '@dv/shared';
-import { Transform, Velocity } from '@dv/engine/sim';
+import { Police, Transform, Vehicle, VehicleDamage, Velocity } from '@dv/engine/sim';
 import type { Vec3 } from '../vm/actors.ts';
 import { quatYaw } from '../vm/actors.ts';
 import type { MissionRuntime } from '../vm/runtime.ts';
@@ -54,7 +54,7 @@ export interface MissionObs {
     yaw: number;
     /** Horizontal speed of the character, or of the vehicle it drives. */
     speed: number;
-    vehicle: null | { cast: string | null; pos: Vec3; yaw: number; speed: number };
+    vehicle: null | { cast: string | null; pos: Vec3; yaw: number; speed: number; dbg?: string };
   };
   objectives: ObjView[];
   zones: Record<string, ZoneView>;
@@ -63,6 +63,10 @@ export interface MissionObs {
   hookStubs: Record<string, ObjectiveDef>;
   /** Positions of the landmarks that active `photo` objectives name. */
   landmarks: Record<string, Vec3>;
+  /** Police cars on the map (pursuit): position and horizontal velocity, nearest the player first (M05c2). */
+  units: { pos: Vec3; vx: number; vz: number }[];
+  /** Other vehicles within 40 m of the player (traffic, parked cars, mission cars), nearest first (M05c2). */
+  others: { pos: Vec3; vx: number; vz: number; police: boolean }[];
   /** Distance along `dir` (unit, ENU) to the first collider within `maxM`, or null. */
   ray(from: Vec3, dir: Vec3, maxM: number): number | null;
   groundY(x: number, z: number): number | null;
@@ -101,6 +105,11 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
       let cast: string | null = null;
       for (const name of rt.castRt.keys()) if (actors.cast(name) === vh) cast = name;
       vehicle = { cast, pos: vp, yaw: quatYaw(tr.qy[vid] as number, tr.qw[vid] as number), speed: dsqrt(vx * vx + vz * vz) };
+      if (ecs.hasId(vid, VehicleDamage)) {
+        const vd = ecs.store(VehicleDamage);
+        const vv = ecs.store(Vehicle);
+        vehicle.dbg = `body ${(vd.body[vid] as number).toFixed(2)} eng ${(vd.engine[vid] as number).toFixed(2)} gear ${vv.gear[vid]} rpm ${(vv.rpm[vid] as number).toFixed(0)} hb ${vv.handbrake[vid]} thr ${vv.throttle[vid]} sp ${(vv.speed[vid] as number).toFixed(1)} water ${ctx.world.query.waterDepth(vp[0], vp[2], vp[1]).toFixed(2)}/${ctx.world.query.waterDepth(vp[0], vp[2]).toFixed(2)}`;
+      }
     }
   }
 
@@ -157,6 +166,21 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
     }
   }
 
+  const units: MissionObs['units'] = [];
+  const others: MissionObs['others'] = [];
+  const myId = vh === null ? null : ecs.resolve(vh);
+  for (const id of ctx.ecs.query([Vehicle, Transform])) {
+    if (id === myId) continue;
+    const q: Vec3 = [tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number];
+    const police = ctx.ecs.hasId(id, Police);
+    const u = { pos: q, vx: ve.vx[id] as number, vz: ve.vz[id] as number };
+    if (police) units.push(u);
+    if (((q[0] - pos[0]) ** 2 + (q[2] - pos[2]) ** 2) < 1600) others.push({ ...u, police });
+  }
+  const byDist = (a: { pos: Vec3 }, b: { pos: Vec3 }): number => (a.pos[0] - pos[0]) ** 2 + (a.pos[2] - pos[2]) ** 2 - ((b.pos[0] - pos[0]) ** 2 + (b.pos[2] - pos[2]) ** 2);
+  units.sort(byDist);
+  others.sort(byDist);
+
   return {
     tick: ctx.tick,
     phase: rt.phase,
@@ -170,6 +194,8 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
     cast,
     hookStubs: Object.fromEntries((rt.ir?.modeHooks ?? []).map((h) => [h.id, h.stub])),
     landmarks,
+    units,
+    others,
     ray: (from, dir, maxM) => {
       const hit = ctx.physics.castRay(from, dir, maxM);
       return hit ? hit.toi : null;

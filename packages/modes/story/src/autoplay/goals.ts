@@ -112,8 +112,10 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       return d.targets[0] !== undefined ? { k: 'melee', target: d.targets[0] } : { k: 'idle' };
     case 'score':
       return { k: 'pattern', name: 'drift' };
-    case 'escape': {
-      // run for the farthest place the mission names (its hideout or its last stop): a moving car leaves the search circle behind (M05c1)
+    case 'escape':
+    case 'survive': {
+      // run for the farthest place the mission names (its hideout or its last stop): a moving car leaves the search circle behind
+      // (M05c1), and a car that keeps moving is not busted, which is what a survive stage asks for (M05c2)
       let far: Vec3 | null = null;
       let farD = 0;
       for (const name of Object.keys(obs.zones).sort(byStr)) {
@@ -127,7 +129,6 @@ export function deriveGoal(obs: MissionObs, o: ObjView): Goal {
       }
       return far ? { k: 'reach', at: far, r: 12, mode: 'free' } : { k: 'idle' };
     }
-    case 'survive':
     case 'protect':
     case 'talk':
     case 'wait':

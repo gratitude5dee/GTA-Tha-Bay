@@ -19,6 +19,8 @@ function soft<T>(fn: () => T): T | undefined {
 const ROUTE_STEP_M = 12;
 const ROUTE_MAX_POINTS = 600;
 const ROUTE_LANE_OFFSET_M = 3;
+/** A route point closer than this to the one before it is dropped (the joins of two edges). */
+const ROUTE_MIN_GAP_M = 3.5;
 
 /**
  * Route waypoints from a C08 route: the lane centre of each edge every `ROUTE_STEP_M` metres, then the end point. `avoid` is a set of
@@ -83,6 +85,22 @@ export function routeWaypoints(world: WorldApi, a: Vec3, b: Vec3, yaw?: number, 
   }
   out.push([b[0], b[1], b[2]]);
   if (edgesOut) edgesOut.push(r.edges[r.edges.length - 1] as number);
-  return out;
+  // Where two edges meet, the end of one lane and the start of the next lie a metre or two apart and sideways: such samples make a
+  // zig-zag that no driver should follow, so a point within ROUTE_MIN_GAP_M of the one kept before it is dropped (the goal stays).
+  const kept: Vec3[] = [];
+  const keptEdges: number[] = [];
+  for (let i = 0; i < out.length; i++) {
+    const q = out[i] as Vec3;
+    const last = kept[kept.length - 1];
+    if (last && i < out.length - 1 && d2(q[0], q[2], last) < ROUTE_MIN_GAP_M * ROUTE_MIN_GAP_M) continue;
+    if (last && i === out.length - 1 && d2(q[0], q[2], last) < 0.25) {
+      kept[kept.length - 1] = q;
+      continue;
+    }
+    kept.push(q);
+    if (edgesOut) keptEdges.push(edgesOut[i] as number);
+  }
+  if (edgesOut) edgesOut.splice(0, edgesOut.length, ...keptEdges);
+  return kept;
 }
 

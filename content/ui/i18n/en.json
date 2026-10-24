@@ -1121,6 +1121,7 @@
   "phone.messages.noOffers": "No job offers right now.",
   "phone.messages.back": "All chats",
   "jobs.busy": "Finish or quit the mission you are on first.",
+  "mission.disabled": "This job cannot start here ({code} at {pointer}).",
   "talk.gate.mood": "Not in the mood yet",
   "talk.gate.trust": "Needs more trust ({need})",
   "talk.gate.cost": "Costs {amount}",

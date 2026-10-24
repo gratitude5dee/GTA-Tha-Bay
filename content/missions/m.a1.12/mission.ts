@@ -21,7 +21,7 @@ export default defineMission({
   start: phoneTrigger('saint_static'),
   lines: ['line.m.a1.12.talk.whitney.open'],
   cast: {
-    ride: vehicle({ prefab: 'vehicle.sedan', spawn: at(37.76888, -122.38841, { snap: 'road', yawDeg: 94 }), playerUsable: true }),
+    ride: vehicle({ prefab: 'vehicle.compact', spawn: at(37.76888, -122.38841, { snap: 'road', yawDeg: 94 }), playerUsable: true }),
     whitney: npc({ soul: 'whitney_arlo', role: 'antagonist', spawn: at(37.73642, -122.38843, { snap: 'road', yawDeg: 55 }), spawnAt: 'manual' }),
   },
   zones: {

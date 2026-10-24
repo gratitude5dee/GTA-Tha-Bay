@@ -47,6 +47,8 @@ const DRIVE_LOOK_M = 7;
 const DRIVE_DIRECT_M = 35;
 /** How far ahead along the route the speed plan looks for a bend. */
 const CURVE_LOOK_M = 45;
+/** The shortest stretch of route that counts as a heading for `curveSpeed`. */
+const CURVE_CHORD_M = 5;
 const STICK = { walk: 51, run: 127, sprint: 127 } as const;
 const DRIVE_VMAX_MPS = 24;
 /** A waypoint more than this far off the nose (radians) with the car nearly at rest starts a three-point turn; each half lasts this many ticks (M05c2). */
@@ -66,6 +68,8 @@ const PULSE_EVERY = 24;
 /** Within this distance of a goal that needs the character on foot, the bot gets out of its vehicle. */
 const FOOT_NEAR_M = 40;
 const STUCK_CHECK_TICKS = 90;
+const STUCK_CHECK_HEAT_TICKS = 30;
+const STUCK_STILL_MPS = 1;
 const STUCK_MIN_MOVE_M = 0.5;
 const STUCK_AVOID_AFTER = 3;
 const REGRESS_M = 14;
@@ -279,12 +283,15 @@ function stuckCheck(obs: MissionObs, mem: Mem, t: Tools, moving: boolean): void 
     mem.lastPosTick = t.tick;
     return;
   }
-  if (t.tick - mem.lastPosTick < STUCK_CHECK_TICKS) return;
+  // under a pursuit a car that does not move is busted within three seconds: it looks again sooner (M05c2)
+  if (t.tick - mem.lastPosTick < (obs.heat > 0 && obs.me.vehicle ? STUCK_CHECK_HEAT_TICKS : STUCK_CHECK_TICKS)) return;
   const moved = dist(here, mem.lastPos);
   mem.lastPos = [here[0], here[1], here[2]];
   mem.lastPosTick = t.tick;
   if (moved >= STUCK_MIN_MOVE_M) mem.stuckN = 0;
-  if (moving && moved < STUCK_MIN_MOVE_M && t.tick >= mem.unstickUntil) {
+  // a car that is picking up speed from rest has moved little in a short look but is not stuck: it must also be still (M05c2)
+  const still = !obs.me.vehicle || obs.me.vehicle.speed < STUCK_STILL_MPS;
+  if (moving && moved < STUCK_MIN_MOVE_M && still && t.tick >= mem.unstickUntil) {
     mem.stuckN++;
     // stuck again and again on one route: the edge under the waypoint ahead is closed to the bot, and the route is planned again (M05c2)
     if (mem.stuckN >= STUCK_AVOID_AFTER && mem.path !== null) {
@@ -292,7 +299,7 @@ function stuckCheck(obs: MissionObs, mem: Mem, t: Tools, moving: boolean): void 
       mem.pathKey = '';
       mem.stuckN = 0;
     }
-    mem.unstickUntil = t.tick + 70;
+    mem.unstickUntil = t.tick + (obs.heat > 0 && obs.me.vehicle ? 45 : 70);
     mem.unstickKind = obs.me.vehicle ? 'reverse' : 'sidestep';
     mem.unstickSide = t.rng() < 0.5 ? 1 : -1;
     mem.avoidSide = mem.unstickSide;
@@ -438,7 +445,7 @@ function pursue(obs: MissionObs, mem: Mem, t: Tools, wp: Vec3, vcap: number, cur
   const err = want - v.speed;
   const throttle = err > 0 ? clamp(0.3 + err * 0.3, 0, 1) : 0;
   const brake = err < -1.2 ? clamp(-err * 0.3, 0, 1) : 0;
-  if (DBG.sink) DBG.sink({ tick: t.tick, wd, alpha, steer, want, vcap, vCorner, cc: curveCap, speed: v.speed, throttle, brake, idx: mem.pathIdx, np: mem.path?.length ?? 0, wp: wp.map(Math.round) });
+  if (DBG.sink) DBG.sink({ tick: t.tick, wd, alpha, steer, want, vcap, vCorner, cc: curveCap, speed: v.speed, throttle, brake, idx: mem.pathIdx, np: mem.path?.length ?? 0, wp: wp.map(Math.round), vdbg: v.dbg, prof: Array.from({ length: 12 }, (_, i) => (obs.groundY(v.pos[0] - 3 * i, v.pos[2] + 0.1 * i) ?? -99).toFixed(1)).join(" "), vy: v.pos[1], gy: obs.groundY(v.pos[0], v.pos[2]), oth: obs.others.slice(0, 4).map((u) => `${u.police ? 'P' : 'c'}${Math.round(dist(u.pos, v.pos))}@${Math.round(u.pos[0] - v.pos[0])},${Math.round(u.pos[2] - v.pos[2])}v${Math.round(Math.hypot(u.vx, u.vz))}`).join(' '), cops: obs.units.slice(0, 5).map((u) => `${Math.round(dist(u.pos, v.pos))}@${Math.round(u.pos[0] - v.pos[0])},${Math.round(u.pos[2] - v.pos[2])}`).join(" "), ahead: (mem.path ?? []).slice(mem.pathIdx, mem.pathIdx + 14).map((q) => `${Math.round(q[0])},${Math.round(q[2])}`).join(" ") });
   return { ...base, steer, throttle: Math.round(throttle * 127), brake: Math.round(brake * 127) };
 }
 
@@ -459,7 +466,8 @@ function curveSpeed(mem: Mem, pos: Vec3, speed: number): number {
     const dx = q[0] - prev[0];
     const dz = q[2] - prev[2];
     const len = dsqrt(dx * dx + dz * dz);
-    if (len < 0.5) continue;
+    // a chord shorter than CURVE_CHORD_M is noise (the join of two lane samples), not a bend
+    if (len < CURVE_CHORD_M) continue;
     const h = headingOf(dx, dz);
     if (h0 === null) h0 = h;
     else worst = Math.max(worst, Math.abs(wrap(h - h0)));

@@ -1,0 +1,42 @@
+{
+  "id": "M05c2-iphone15",
+  "milestone": "M05c2",
+  "device": "iPhone 15, iOS 26.x (or the newest release), Home Screen app; floor device (Q-10): tier mobile-low at 30 fps; the staging Worker (tha-bay-web-staging) with the sf world",
+  "urlTemplate": "https://<preview>/?perf=1&tier=mobile-low&debug=1",
+  "steps": [
+    {
+      "id": "1-install",
+      "instruction": "In Safari open the staging URL (the one the deploy summary of the latest run on main shows, and that AC-7 recorded), then Share > Add to Home Screen, and launch the app from the Home Screen icon (not from Safari). Tap Start, pass the age and terms screens, choose New Game. The HUD must show 'mobile-low  webgl2' (add debug=1 to the URL for the HUD). Write the staging URL into notes.json as stagingUrl."
+    },
+    {
+      "id": "2-mission-1",
+      "instruction": "Play Jump Start (m.a1.01) with the touch controls: the intro beat plays with subtitles over the live city (note in notes.json beats whether it played as the generated clip or as the in-engine fallback; until the generated clips exist it is the fallback), follow the marker to the Yard gate, take the tow truck and bring the pod car home. The mission passes and the Jobs app of the phone lists Surge Pricing as ready.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "backend", "op": "==", "value": "webgl2" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "3-mission-2-reload",
+      "instruction": "Open the phone (Messages shows the text from X Ramos and the offer; tap the offer to open Jobs on Surge Pricing) and start Surge Pricing (m.a1.02). Play to its first checkpoint (the mission toasts when a checkpoint is saved), then force-quit the app from the app switcher, launch it again from the Home Screen and choose Continue. The mission resumes at the checkpoint stage with the same cash (compare the HUD wallet before and after) and finishes. Write the stage before and after into notes.json as resume: { stageBefore, stageAfter, cashBefore, cashAfter }."
+    },
+    {
+      "id": "4-mission-3",
+      "instruction": "Between 18:00 and 23:00 game time (the Jobs app or the sky control in the debug panel can wait for it) play Sideshow Sunday (m.a1.03) with touch: the sideshow, the raid beat with subtitles, the escape and the drive home. The Racing tile on the Modes page then shows as unlocked and 'coming soon'; Fighter and Tycoon stay locked. The unlock toast shows once. Write the beat paths and any fallback trigger into notes.json as beats."
+    },
+    {
+      "id": "5-chase",
+      "instruction": "Run the story-chase scenario: open <preview>/?perf=1&tier=mobile-low&scenario=story-chase&debug=1 and let it run to its end (60 s). When it ends tap Export and save perf.json and notes.json to docs/device-runs/M05c2/iphone15/.",
+      "expect": [
+        { "metric": "tier", "op": "==", "value": "mobile-low" },
+        { "metric": "errors.gpuLost", "op": "==", "value": 0 }
+      ]
+    },
+    {
+      "id": "6-verify",
+      "instruction": "Run pnpm perf:verify -- docs/device-runs/M05c2/iphone15/perf.json --tier mobile-low --checklist tools/ci/checklists/M05c2-iphone15.json: the median and p95 frame times (30 fps at mobile-low), the frames over 50 ms and the render and triangle counts must pass at mobile-low."
+    }
+  ],
+  "upload": ["perf.json", "notes.json"]
+}

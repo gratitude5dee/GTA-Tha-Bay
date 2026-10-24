@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.ts';
+import { storyChase } from './scenarios/story-chase.ts';
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
@@ -13,13 +14,16 @@ const TIERS: readonly QualityTierId[] = ['desktop-ultra', 'desktop', 'mobile', '
 const SCENARIO = process.env.DV_PERF_SCENARIO ?? 'graybox-walk';
 /** Scenarios that show the ambient traffic (M03b1): they also write a `.traffic.json` the counts check judges. */
 const TRAFFIC = new Set(['downtown-rush']);
+/** Scenarios whose page runs a part of the game (a URL suffix and a setup after the world is up; tests/perf/scenarios/*.ts). */
+const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: import('@playwright/test').Page): Promise<void> }> = { 'story-chase': storyChase };
+const PAGE = PAGE_SCENARIOS[SCENARIO];
 const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
 
 for (const tier of TIERS) {
   test(`${SCENARIO} at ${tier} writes its counts report @perf`, async ({ page }, testInfo) => {
-    test.setTimeout(240_000);
-    await page.goto(`/?tier=${tier}&perf=1`);
+    test.setTimeout(PAGE?.timeoutMs ?? 240_000);
+    await page.goto(`/?tier=${tier}&perf=1${PAGE ? `&${PAGE.query}` : ''}`);
     await page.waitForFunction(() => (window as unknown as { __dvBridge?: { platform?: unknown } }).__dvBridge?.platform !== undefined, undefined, { timeout: 90_000 });
 
     // M03b1: the traffic scenario runs at the evening peak (17:00 on a clear weekday, the hour curve's top) with the traffic following the camera.
@@ -48,6 +52,8 @@ for (const tier of TIERS) {
         world.setWeather('rain', 0);
         world.rain(200);
       });
+      // M05c2: a scenario that plays a part of the game starts it now, with the sky already at its most expensive look
+      if (PAGE) await PAGE.setup(page);
     }
 
     const report = (await page.evaluate(
@@ -57,6 +63,11 @@ for (const tier of TIERS) {
     mkdirSync('test-results', { recursive: true });
     const file = `test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.json`;
     writeFileSync(file, `${JSON.stringify(report, null, 2)}\n`);
+    // M05c2: what the objects of the busiest frame were (by top-level scene node), beside the report; and which chase a story scenario played
+    const extra = (await page.evaluate(
+      `({ info: window.__dvBridge.platform.perf.info ? window.__dvBridge.platform.perf.info() : null, chase: window.__dvChase ?? null })`,
+    )) as { info: { breakdownAtMax?: Record<string, number> } | null; chase: string | null };
+    if (extra.info?.breakdownAtMax) writeFileSync(file.replace(/\.json$/, '.breakdown.json'), `${JSON.stringify({ chase: extra.chase, breakdown: extra.info.breakdownAtMax }, null, 2)}\n`);
 
     if (TRAFFIC.has(SCENARIO)) {
       const traffic = await page.evaluate(async () => {
