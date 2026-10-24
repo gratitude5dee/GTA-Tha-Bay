@@ -1,5 +1,6 @@
 import type { QualityTierId } from '@dv/shared';
 import { resolveVariant, type AssetCatalog, type AssetKind, type AssetManifest, type AssetRef, type CatalogPointer } from '@dv/shared/assets';
+import { backoffMs, MAX_ATTEMPTS } from './fetch-retry.ts';
 import { sha256Hex } from './store.ts';
 import type { AssetSource, PackRef } from './types.ts';
 
@@ -13,9 +14,35 @@ import type { AssetSource, PackRef } from './types.ts';
  * - `ready`       the catalog matches its pointer;
  * - `invalid`     the catalog failed verification: the game runs without packs and nothing is cached;
  * - `disabled`    no media base is configured (production builds before `media.<domain>` exists);
- * - `unavailable` the pointer or catalog could not be fetched.
+ * - `unavailable` the pointer or catalog could not be fetched (`failure` says where and why).
  */
 export type CatalogState = 'idle' | 'loading' | 'ready' | 'invalid' | 'disabled' | 'unavailable';
+
+/**
+ * Why the catalog is `unavailable`: the request that failed, the HTTP status the server answered (null for a network error) and whether
+ * the browser reported itself offline at that moment. A status means the media host answered and does not serve the object (a deploy
+ * whose catalog was never published: `pnpm assets:publish`, M01d); `offline` is the offline relaunch path (M11a2).
+ */
+export interface CatalogFailure {
+  stage: 'pointer' | 'catalog';
+  url: string;
+  status: number | null;
+  offline: boolean;
+}
+
+/**
+ * The retry policy of the pointer and catalog requests: the shared fetch layer's (M01e, 11-platform-pwa.md section 5), that is up to
+ * `MAX_ATTEMPTS` attempts on 5xx, 429 or a network error with `backoffMs` between them, and no retry on any other 4xx. A network error
+ * while `online()` is false fails at once, so an offline relaunch is not held back by the backoff (BD-FU-A01). Without this option a
+ * request is tried once.
+ */
+export interface CatalogRetry {
+  sleep: (ms: number) => Promise<void>;
+  /** Uniform in [0, 1); the delay multiplier is `0.5 + random()`. */
+  random?: () => number;
+  /** `navigator.onLine` of the worker; absent counts as online. */
+  online?: () => boolean;
+}
 
 export type CatalogFetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -29,6 +56,15 @@ export interface CatalogClientOptions {
    */
   localMedia: string | null;
   hash?: (bytes: Uint8Array) => Promise<string>;
+  retry?: CatalogRetry;
+}
+
+class CatalogFetchError extends Error {
+  readonly status: number | null;
+  constructor(url: string, status: number | null) {
+    super(`${url}: ${status ?? 'network error'}`);
+    this.status = status;
+  }
 }
 
 export class AssetNotFound extends Error {
@@ -78,6 +114,7 @@ function isCatalog(v: unknown): v is AssetCatalog {
 
 export class CatalogClient {
   private stateValue: CatalogState = 'idle';
+  private failureValue: CatalogFailure | null = null;
   private catalog: AssetCatalog | null = null;
   private mediaBaseValue: string | null = null;
   private loading: Promise<CatalogState> | null = null;
@@ -92,6 +129,11 @@ export class CatalogClient {
 
   get state(): CatalogState {
     return this.stateValue;
+  }
+
+  /** Why the catalog is `unavailable`; null in every other state. */
+  get failure(): CatalogFailure | null {
+    return this.failureValue;
   }
 
   get mediaBase(): string | null {
@@ -128,6 +170,7 @@ export class CatalogClient {
   reset(): void {
     this.stateValue = 'idle';
     this.catalog = null;
+    this.failureValue = null;
     this.mediaBaseValue = null;
     this.loading = null;
   }
@@ -136,6 +179,33 @@ export class CatalogClient {
     const res = await this.o.fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`${url}: ${res.status}`);
     return res.json() as Promise<unknown>;
+  }
+
+  /** One request under the retry policy (`CatalogRetry`). Resolves with an ok response; an error body is cancelled, never read. */
+  private async fetchPolicy(url: string, init: RequestInit): Promise<Response> {
+    const r = this.o.retry;
+    const attempts = r ? MAX_ATTEMPTS : 1;
+    let status: number | null = null;
+    for (let n = 0; n < attempts; n++) {
+      try {
+        const res = await this.o.fetch(url, init);
+        if (res.ok) return res;
+        void res.body?.cancel().catch(() => undefined);
+        status = res.status;
+        if (res.status < 500 && res.status !== 429) break;
+      } catch {
+        status = null;
+        if (r?.online && !r.online()) break;
+      }
+      if (r && n < attempts - 1) await r.sleep(backoffMs(n, 0.5 + (r.random ?? Math.random)()));
+    }
+    throw new CatalogFetchError(url, status);
+  }
+
+  private fail(stage: CatalogFailure['stage'], url: string, e: unknown): 'unavailable' {
+    const status = e instanceof CatalogFetchError ? e.status : null;
+    this.failureValue = { stage, url, status, offline: this.o.retry?.online ? !this.o.retry.online() : false };
+    return 'unavailable';
   }
 
   private async hostsMedia(): Promise<string> {
@@ -173,18 +243,17 @@ export class CatalogClient {
     this.mediaBaseValue = where.base;
     let pointer: unknown;
     try {
-      pointer = await this.getJson(where.pointer);
-    } catch {
-      return 'unavailable';
+      pointer = await (await this.fetchPolicy(where.pointer, { cache: 'no-store' })).json();
+    } catch (e) {
+      return this.fail('pointer', where.pointer, e);
     }
     if (!isPointer(pointer)) return 'invalid';
+    const url = `${where.base}/${pointer.key}`;
     let bytes: Uint8Array;
     try {
-      const res = await this.o.fetch(`${where.base}/${pointer.key}`, { cache: 'no-store', mode: 'cors' });
-      if (!res.ok) return 'unavailable';
-      bytes = new Uint8Array(await res.arrayBuffer());
-    } catch {
-      return 'unavailable';
+      bytes = new Uint8Array(await (await this.fetchPolicy(url, { cache: 'no-store', mode: 'cors' })).arrayBuffer());
+    } catch (e) {
+      return this.fail('catalog', url, e);
     }
     if (bytes.byteLength !== pointer.bytes || (await this.hash(bytes)) !== pointer.sha256) return 'invalid';
     let parsed: unknown;

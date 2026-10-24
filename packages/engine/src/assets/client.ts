@@ -4,6 +4,7 @@ import type { Priority } from './store/lanes.ts';
 import type { TabMode } from './store/tab-lock.ts';
 import { PackUnavailable, type PackRef, type StorageUsage } from './store/types.ts';
 import type {
+  CatalogInfo,
   CatalogStateName,
   FromWorker,
   InitParams,
@@ -202,6 +203,12 @@ export class AssetClient {
   async loadCatalog(): Promise<CatalogStateName> {
     this.catalogStateValue = await this.call('catalog', {});
     return this.catalogStateValue;
+  }
+  /** `loadCatalog()` plus, for an `unavailable` catalog, the request that failed and why. */
+  async catalogInfo(): Promise<CatalogInfo> {
+    const info = await this.call('catalogInfo', {});
+    this.catalogStateValue = info.state;
+    return info;
   }
   stats(): Promise<StatsResult> {
     return this.call('stats', {});

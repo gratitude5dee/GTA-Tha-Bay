@@ -9,6 +9,7 @@ import { TabLock, type ChannelLike } from './store/tab-lock.ts';
 import { PackUnavailable, type PackRef } from './store/types.ts';
 import {
   ERR_ASSET_MAX_PER_REASON,
+  type CatalogInfo,
   type CatalogStateName,
   type FromWorker,
   type InitParams,
@@ -42,6 +43,8 @@ export interface ServiceDeps {
   now?: () => number;
   random?: () => number;
   sleep?: (ms: number, signal: AbortSignal) => Promise<void>;
+  /** `navigator.onLine` (the catalog's retry policy fails a network error at once while offline); defaults to the global. */
+  online?: () => boolean;
   estimate?: () => Promise<QuotaEstimate | null>;
   persisted?: () => Promise<boolean | null>;
   /** QA handler for the `qa` op (VITE_DV_QA builds only). */
@@ -80,6 +83,7 @@ export class AssetService {
   private readonly pinnedHashes = new Set<string>();
   private base = { hits: 0, evictions: 0 };
   private softCapOverride: number | null = null;
+  private catalogReported = false;
 
   constructor(deps: ServiceDeps) {
     this.d = deps;
@@ -187,7 +191,19 @@ export class AssetService {
       ...(this.d.random ? { random: this.d.random } : {}),
       ...(this.d.sleep ? { sleep: this.d.sleep } : {}),
     });
-    this.catalogValue = new CatalogClient({ fetch: (u, i) => this.d.fetch(u, i ?? {}), origin: p.origin, localMedia: p.localMedia });
+    const never = new AbortController().signal;
+    const sleep = this.d.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+    this.catalogValue = new CatalogClient({
+      fetch: (u, i) => this.d.fetch(u, i ?? {}),
+      origin: p.origin,
+      localMedia: p.localMedia,
+      // The pointer and the catalog follow the fetch layer's retry policy (M01e); the shell shows the failure that survives it.
+      retry: {
+        sleep: (ms) => sleep(ms, never),
+        ...(this.d.random ? { random: this.d.random } : {}),
+        online: this.d.online ?? (() => (globalThis as { navigator?: { onLine?: boolean } }).navigator?.onLine !== false),
+      },
+    });
     this.lock = new TabLock({
       channel: this.d.channel,
       id: this.d.tabId,
@@ -231,6 +247,18 @@ export class AssetService {
     const n = (this.errCounts.get(e.reason) ?? 0) + 1;
     this.errCounts.set(e.reason, n);
     if (n <= ERR_ASSET_MAX_PER_REASON) this.d.post({ t: 'event', name: 'telemetry', event: 'err.asset', props: { reason: e.reason, kind: ref.kind } });
+  }
+
+  /** Loads the catalog; a catalog that cannot be had is reported once per session as `err.asset { reason, kind: 'catalog' }`. */
+  private async loadCatalog(): Promise<CatalogStateName> {
+    const state = await this.catalog.load();
+    const f = this.catalog.failure;
+    if (state === 'unavailable' && f && !this.catalogReported) {
+      this.catalogReported = true;
+      const reason = f.status !== null ? 'http' : f.offline ? 'offline' : 'network';
+      this.d.post({ t: 'event', name: 'telemetry', event: 'err.asset', props: { reason, kind: 'catalog' } });
+    }
+    return state;
   }
 
   private stats(): StatsResult {
@@ -318,7 +346,11 @@ export class AssetService {
       case 'mode':
         return { result: this.mode() };
       case 'catalog':
-        return { result: (await this.catalog.load()) satisfies CatalogStateName };
+        return { result: (await this.loadCatalog()) satisfies CatalogStateName };
+      case 'catalogInfo': {
+        const state = await this.loadCatalog();
+        return { result: { state, failure: this.catalog.failure } satisfies CatalogInfo };
+      }
       case 'stats':
         return { result: this.stats() };
       case 'qa': {
