@@ -5,9 +5,11 @@ import {
   DOWNLOAD_ONLY_CONF,
   MIRRORS,
   aptConf,
+  cacheKey,
   composeCommand,
   countNew,
   install,
+  osRelease,
   rotateMirrors,
   type Host,
   type InstallPlan,
@@ -45,6 +47,29 @@ describe('pw-install pure parts (BD-FIX-CI10-P01)', () => {
     ]);
     expect(composeCommand('pw', ['install', 'chromium'], {}, { isRoot: false, path: '/x' })).toEqual(['pw', 'install', 'chromium']);
     expect(composeCommand('pw', ['install-deps'], { asRoot: true }, { isRoot: true, path: '/x' })).toEqual(['env', 'PATH=/x', 'pw', 'install-deps']);
+  });
+});
+
+describe('pw-install cache key: one stable key per package set (BD-FU-B05)', () => {
+  const set = { os: 'Linux', arch: 'X64', release: 'ubuntu24.04', playwright: '1.64.1' };
+
+  it('names the runner, the Ubuntu release, the engines and the Playwright version, and nothing of one run or job', () => {
+    expect(cacheKey({ ...set, browsers: ['chromium'] })).toEqual({ key: 'pw-apt-Linux-X64-ubuntu24.04-chromium-pw1.64.1', base: 'pw-apt-Linux-X64-ubuntu24.04-chromium-' });
+    expect(cacheKey({ ...set, browsers: ['webkit', 'chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu24.04-chromium+webkit-pw1.64.1');
+    // the same set in any order is the same key; another set never matches its restore prefix
+    expect(cacheKey({ ...set, browsers: ['chromium', 'webkit'] })).toEqual(cacheKey({ ...set, browsers: ['webkit', 'chromium'] }));
+    expect(cacheKey({ ...set, browsers: ['chromium', 'webkit'] }).key.startsWith(cacheKey({ ...set, browsers: ['chromium'] }).base)).toBe(false);
+    // a new Playwright release is a new key under the same restore prefix
+    const next = cacheKey({ ...set, playwright: '1.65.0', browsers: ['chromium'] });
+    expect(next.key).not.toBe(cacheKey({ ...set, browsers: ['chromium'] }).key);
+    expect(next.base).toBe(cacheKey({ ...set, browsers: ['chromium'] }).base);
+    expect(cacheKey({ ...set, release: 'ubuntu 26.04/x', playwright: '', browsers: ['chromium'] }).key).toBe('pw-apt-Linux-X64-ubuntu_26.04_x-chromium-pwunknown');
+  });
+
+  it('reads the release from os-release(5)', () => {
+    expect(osRelease('PRETTY_NAME="Ubuntu 24.04.5 LTS"\nNAME="Ubuntu"\nVERSION_ID="24.04"\nID=ubuntu\n')).toBe('ubuntu24.04');
+    expect(osRelease('ID=ubuntu\n')).toBe('unknown');
+    expect(osRelease(null)).toBe('unknown');
   });
 });
 
