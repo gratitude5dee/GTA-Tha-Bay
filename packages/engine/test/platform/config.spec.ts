@@ -91,6 +91,15 @@ describe('QaFlags', () => {
     expect(f.limits).toEqual({ maxBufferSize: 1_048_576, maxTextureDimension2D: 2048 });
   });
 
+  it('?net= (M02f1, C13 1.2) is accepted only for a profile id and only in a QA build', () => {
+    expect(parseQaFlags('?net=cell', true).net).toBe('cell');
+    expect(parseQaFlags('?net=lag&tier=mobile', true).net).toBe('lag');
+    expect(parseQaFlags('?net=nope', true).net).toBeNull();
+    expect(parseQaFlags('?tier=mobile', true).net).toBeNull();
+    expect(parseQaFlags('?net=cell', false)).toBe(NO_QA_FLAGS);
+    expect(NO_QA_FLAGS.net).toBeNull();
+  });
+
   it('parses nothing in a production build', () => {
     expect(parseQaFlags('?gpu=1&perf=1&tier=mobile&gl=1', false)).toBe(NO_QA_FLAGS);
     expect(NO_QA_FLAGS.limits).toEqual({});

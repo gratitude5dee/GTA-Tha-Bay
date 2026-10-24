@@ -52,8 +52,19 @@ describe('check:bundle QA harness scan (M04d)', () => {
     const missing = bundle(dist('window.__dvBridge={}'));
     expect(missing.status).toBe(1);
     expect(missing.out).toContain('the QA build contains the QA harness');
-    const full = bundle(dist('window.__dvBridge={};"CanonicalRunner BotDriver registerBot"'));
+    const full = bundle(dist('window.__dvBridge={};"CanonicalRunner BotDriver registerBot dv-net-shaper"'));
     expect(full.status).toBe(0);
+  });
+
+  it('a production chunk with the net shaper marker fails; a QA build without it fails; a QA build with it passes (M02f1 AC-6)', () => {
+    const prod = bundle(dist('throw new Error("dv-net-shaper: aborted")'));
+    expect(prod.status).toBe(1);
+    expect(prod.out).toContain('production chunks contain no QA network shaper');
+    const qaMissing = bundle(dist('window.__dvBridge={};"CanonicalRunner BotDriver registerBot"'));
+    expect(qaMissing.status).toBe(1);
+    expect(qaMissing.out).toContain('the QA build contains the QA network shaper');
+    expect(bundle(dist('window.__dvBridge={};"CanonicalRunner BotDriver registerBot dv-net-shaper"')).status).toBe(0);
+    expect(bundle(dist('console.log(1)')).out).toContain('ok    production chunks contain no QA network shaper');
   });
 
   it('a production chunk that holds the story autoplayer or the missions scenario fails (M05a2 AC-11)', () => {
