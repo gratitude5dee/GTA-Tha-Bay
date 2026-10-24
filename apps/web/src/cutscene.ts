@@ -14,7 +14,7 @@ import { DomCutsceneHost, MediaBudget, ScreenWakeLock, type HostElement } from '
 import type { CutsceneStatus, UiCommand } from '@dv/shared';
 import type { CutsceneIndex, CutsceneManifest, CutsceneRefId } from '@dv/shared/contracts/c09-cutscene';
 import { t } from '@dv/ui';
-import { mountCutsceneOverlay } from '@dv/ui/cutscene';
+import { mountCutsceneOverlay, type SkipSource } from '@dv/ui/cutscene';
 import platformFlags from '../../../config/platform-flags.json';
 
 export interface CutsceneGlueOptions {
@@ -51,6 +51,8 @@ export type CutsceneLogEntry = { at: number } & (
   | { k: 'cmd'; cmd: UiCommand }
   | { k: 'done'; n: number }
   | { k: 'play'; props: Record<string, unknown> }
+  /** The input that asked for a skip, and the plays it ended (BD-FU-B03). */
+  | { k: 'skip'; source: SkipSource; plays: string[] }
 );
 
 type DistributiveOmit<T, K extends string> = T extends unknown ? Omit<T, K> : never;
@@ -96,6 +98,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
   const budget = new MediaBudget({ maxMediaMB: tier.startsWith('mobile') ? CUTSCENE_CONFIG.mobileMediaBudgetMB : null });
   const holder: { player?: CutscenePlayerImpl } = {};
   const overlay = mountCutsceneOverlay(host.overlayRoot as unknown as Element, {
+    onSkip: (source) => note({ k: 'skip', source, plays: holder.player?.playing ?? [] }),
     sendUi: (cmd) => {
       if (cmd.t !== 'cutscene.skip') return;
       for (const id of holder.player?.playing ?? []) holder.player?.skip(id);
