@@ -116,6 +116,8 @@ export class StoryController {
     },
   });
 
+  /** The saved `activeMission` was offered to `begin` once this session (M05c2: resume from the last checkpoint after a reload). */
+  private triedResume = false;
   /** The phone messages of this session (`text` ops), oldest first; the Messages app reads `mode.story.messages`. */
   private messages: { from: string; name: string; text: string; at: number }[] = [];
   /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
@@ -157,6 +159,7 @@ export class StoryController {
     this.story = story;
     this.installFastTravel(ctx);
     this.messages = [];
+    this.triedResume = false;
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
@@ -290,8 +293,29 @@ export class StoryController {
     ctx.ui.patch('mode.story.jobs', rows as unknown as JsonValue);
   }
 
+  /**
+   * A mission that was running when the game was saved (`StorySlice.activeMission`, written at a checkpoint) continues from that
+   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake is dropped by `begin`, which
+   * leaves the mission `available` again. Tried once per session.
+   */
+  private resumeSaved(ctx: ModeContext, store: MissionStore, story: StorySlice): boolean {
+    const saved = story.activeMission;
+    if (this.triedResume || !saved) return false;
+    this.triedResume = true;
+    const entry = store.get(saved.id);
+    if (!entry) {
+      story.activeMission = null;
+      return false;
+    }
+    this.clearStartMarks(ctx);
+    this.triedTrigger.add(saved.id);
+    const res = this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true });
+    return res.ok;
+  }
+
   private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {
     if (!store.triggers) return;
+    if (this.resumeSaved(ctx, store, story)) return;
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
       this.triedTrigger.add(due.ir.id);
