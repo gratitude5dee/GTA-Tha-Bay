@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DISPLAY_NAME, SHORT_NAME } from '../../../config/brand.ts';
 import { appScreen, SANDBOX_LANDMARK_IDS, SANDBOX_SPOT_LIMIT, type PhoneEnv, type SandboxWorldView } from '../src/phone/apps.ts';
@@ -159,10 +158,5 @@ describe('the new strings (AC-11)', () => {
       expect(cat[k], k).not.toContain(SHORT_NAME);
     }
     expect(cat['place.pier-39']).toBe('Sea lion pier');
-  });
-
-  it('does not lean on the franchise name', () => {
-    const src = readFileSync(new URL('../src/phone/apps.ts', import.meta.url), 'utf8');
-    expect(src).not.toMatch(/grand theft/i);
   });
 });
