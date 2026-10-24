@@ -10,6 +10,13 @@ export const NEVER_WANTED = 'sandbox.player.neverWanted';
 /** Sets the heat level 0 to 5 (the sandbox frame of the player section; the phone's Sandbox app, M04b2). */
 export const SET_HEAT = 'sandbox.player.heat';
 const MAX_TOGGLES = 128;
+/** The toast key raised when a sandbox tool is refused because the session is online (M04e0). */
+export const SANDBOX_REFUSE_ONLINE = 'sandbox.refuse.online';
+
+/** True while the context has a room session (`ModeContext.net` set). Independent of the descriptor's `requires.network`. */
+export function sandboxOnline(ctx: Pick<ModeContext, 'net'>): boolean {
+  return ctx.net !== null;
+}
 
 export interface SandboxEnv {
   sandbox(): SandboxSlice;
@@ -25,6 +32,7 @@ export function publishToggles(ctx: Pick<ModeContext, 'ui'>, s: SandboxSlice): v
  * milestone knows. The heat lock caps the heat at 0 (`PursuitApi.capHeat`); a build without the pursuit director keeps the value only.
  */
 export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: boolean | number): boolean {
+  if (sandboxOnline(ctx)) return false;
   if (!/^sandbox\.[a-zA-Z0-9_.]{1,80}$/.test(path)) return false;
   if (!(path in s.toggles) && Object.keys(s.toggles).length >= MAX_TOGGLES) return false;
   s.toggles[path] = v;
@@ -58,7 +66,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
     enter(ctx) {
       publishToggles(ctx, env.sandbox());
       const v = env.sandbox().toggles[NEVER_WANTED];
-      if (v) applyToggle(ctx, env.sandbox(), NEVER_WANTED, v);
+      if (v && !sandboxOnline(ctx)) applyToggle(ctx, env.sandbox(), NEVER_WANTED, v);
     },
     tick() {},
     exit(ctx) {

@@ -1,5 +1,5 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
-import { applyToggle } from './builtin/sandbox.ts';
+import { SANDBOX_REFUSE_ONLINE, applyToggle } from './builtin/sandbox.ts';
 import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
@@ -41,6 +41,9 @@ export function settingsView(s: ProfileSettings): JsonObject {
 export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => void {
   const toast = (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>): void =>
     d.ui.toast({ id, kind, text, ...(params ? { params } : {}) });
+  /** True while any running mode's context has a room session (M04e0): the sandbox tools are refused then. */
+  const online = (): boolean => d.host.stack.entries.some((e) => e.ctx.net !== null);
+  const refuseOnline = (): void => toast(SANDBOX_REFUSE_ONLINE, 'warning', SANDBOX_REFUSE_ONLINE);
   return (cmd) => {
     switch (cmd.t) {
       case 'mode.start': {
@@ -92,11 +95,19 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         return;
       }
       case 'sandbox.set': {
+        if (online()) {
+          refuseOnline();
+          return;
+        }
         const ctx = d.sandboxContext();
         if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v);
         return;
       }
       case 'sandbox.teleport': {
+        if (online()) {
+          refuseOnline();
+          return;
+        }
         if (!d.sandboxContext()) return;
         const p = d.slices().sandbox.savedPositions.find((s) => s.name === cmd.name);
         if (!p || !d.teleport?.(p.x, p.y, p.z)) toast('sandbox.teleport', 'warning', 'world.teleport.notLoaded');
@@ -115,7 +126,11 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         return;
       case 'mode.cmd':
         if ((cmd.mode as string) === 'phone') {
-          phoneCommand(d, cmd.name, cmd.args ?? null, toast);
+          phoneCommand(d, cmd.name, cmd.args ?? null, toast, online);
+          return;
+        }
+        if ((cmd.mode as string) === 'sandbox' && online()) {
+          refuseOnline();
           return;
         }
         d.events.emit({ t: 'mode.cmd', tick: d.tick(), s: JSON.stringify({ mode: cmd.mode, name: cmd.name, args: cmd.args ?? null }) });
@@ -125,7 +140,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
 }
 
 /** Phone commands ride `mode.cmd` with the reserved owner `phone` (C06 leaves `mode.cmd` to the owner named in `mode`). */
-function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void): void {
+function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void, online: () => boolean): void {
   // The Map app's commands (M02c2): clear the waypoint and its route, and fast travel to a point (sandbox only; it is the `sandbox` teleport of the world API).
   if (name === 'map.waypoint.clear') {
     d.world().map.clearWaypoint();
@@ -134,6 +149,10 @@ function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toa
   }
   if (name === 'map.travel') {
     const x = args?.['x'], z = args?.['z'];
+    if (online()) {
+      toast(SANDBOX_REFUSE_ONLINE, 'warning', SANDBOX_REFUSE_ONLINE);
+      return;
+    }
     if (typeof x !== 'number' || typeof z !== 'number') return;
     if (!d.sandboxContext()) {
       toast('map.travel', 'warning', 'map.travel.sandboxOnly');
