@@ -81,6 +81,7 @@
     "line.m.a1.12.fog",
     "line.m.a1.12.home",
     "line.m.a1.12.lot",
+    "line.m.a1.12.msg",
     "line.m.a1.12.run",
     "line.m.a1.12.start",
     "line.m.a1.12.talk.whitney.open"
@@ -119,6 +120,11 @@
         }
       ],
       "onEnter": [
+        {
+          "from": "saint_static",
+          "line": "line.m.a1.12.msg",
+          "op": "text"
+        },
         {
           "line": "line.m.a1.12.start",
           "op": "say",

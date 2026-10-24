@@ -7,7 +7,7 @@
  * `hearing_support` (0 to 3), which Act 3 reads. Sensitivity read: the Tenderloin is shown through the people who work and live there (B3 rule 4).
  */
 import {
-  and, at, beat, circle, clock, defineMission, failWhen, flagIs, goto, ifOp, ko, npc, passed, phoneTrigger, say, setFlag, spawn, stage, talk, talkDef,
+  text, and, at, beat, circle, clock, defineMission, failWhen, flagIs, goto, ifOp, ko, npc, passed, phoneTrigger, say, setFlag, spawn, stage, talk, talkDef,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 import type { Op } from '@dv/shared';
 
@@ -64,7 +64,7 @@ export default defineMission({
     steps: circle(37.77925, -122.41840, 22),
   },
   stages: [
-    stage('to_moss', [goto('moss_spot', { id: 'goto_moss', onFoot: true })], { onEnter: [clock({ lock: { hour: 15, weather: 'clear' } }), say('radio', 'line.m.a1.10.start')] }),
+    stage('to_moss', [goto('moss_spot', { id: 'goto_moss', onFoot: true })], { onEnter: [clock({ lock: { hour: 15, weather: 'clear' } }), text('imani_hart', 'line.m.a1.10.msg'), say('radio', 'line.m.a1.10.start')] }),
     stage('moss', [residentTalk('moss', 'to_tran')], { next: 'to_tran' }),
     stage('to_tran', [goto('tran_spot', { id: 'goto_tran', onFoot: true })]),
     stage('tran', [residentTalk('tran', 'to_kai')], { next: 'to_kai' }),

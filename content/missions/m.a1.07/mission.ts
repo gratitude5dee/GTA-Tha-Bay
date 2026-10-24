@@ -7,7 +7,7 @@
  * Coordinates are WGS84 and sit on the sf bake's roads or in its park (checked with the authoring probe).
  */
 import {
-  at, circle, collect, defineMission, deliver, destroyed, failWhen, goto, health, ko, npc, passed, phoneTrigger, say, setFlag, stage, stealth, talk, talkDef,
+  text, at, circle, collect, defineMission, deliver, destroyed, failWhen, goto, health, ko, npc, passed, phoneTrigger, say, setFlag, stage, stealth, talk, talkDef,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -30,7 +30,7 @@ export default defineMission({
     civic: circle(37.77925, -122.41840, 22),
   },
   stages: [
-    stage('to_house', [goto('house', { id: 'goto_house', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.07.start')] }),
+    stage('to_house', [goto('house', { id: 'goto_house', onFoot: true })], { onEnter: [text('odessa_calloway', 'line.m.a1.07.msg'), say('radio', 'line.m.a1.07.start')] }),
     stage(
       'meet_patch',
       [

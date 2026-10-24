@@ -4,6 +4,9 @@
     "ama_osei": [
       "line.m.a1.02.fare"
     ],
+    "imani_hart": [
+      "line.m.a1.10.msg"
+    ],
     "npc_test": [
       "line.m.dev.sample.bye",
       "line.m.dev.sample.hello",
@@ -12,7 +15,8 @@
     "odessa_calloway": [
       "line.m.a1.01.gate",
       "line.m.a1.01.tow",
-      "line.m.a1.01.truck"
+      "line.m.a1.01.truck",
+      "line.m.a1.07.msg"
     ],
     "patch": [
       "line.m.a1.07.patch.come",
@@ -60,6 +64,9 @@
       "line.m.a1.12.run",
       "line.m.a1.12.start"
     ],
+    "saint_static": [
+      "line.m.a1.12.msg"
+    ],
     "slot:RAP_HYPHY_ELDER": [
       "line.m.a1.05.bout",
       "line.m.a1.05.lose",
@@ -71,6 +78,9 @@
       "line.m.a1.03.gate",
       "line.m.a1.03.home",
       "line.m.a1.03.show"
+    ],
+    "x_ramos": [
+      "line.m.a1.11.msg"
     ]
   }
 }

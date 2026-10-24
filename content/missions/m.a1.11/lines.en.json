@@ -2,6 +2,7 @@
   "schema": "lines/1",
   "lang": "en",
   "text": {
+    "line.m.a1.11.msg": "Market night. I will talk you through the trucks once you have said hello to the raffle guest.",
     "line.m.a1.11.patrol": "The tow companies called it in. A patrol is rolling on you. Lose it and go home.",
     "line.m.a1.11.start": "X Ramos on the dispatch line. The market is full tonight and the guest of honor is drawing tickets. Say hello, then keep your eyes on the curb.",
     "line.m.a1.11.talk.raffle.open": "Ticket number seven thousand and one! Come over, there is a prize with your name on it, and I promise it is not a parking ticket.",

@@ -91,6 +91,7 @@
   "id": "m.a1.10",
   "lines": [
     "line.m.a1.10.clock",
+    "line.m.a1.10.msg",
     "line.m.a1.10.start",
     "line.m.a1.10.talk.kai.open",
     "line.m.a1.10.talk.moss.open",
@@ -137,6 +138,11 @@
             "weather": "clear"
           },
           "op": "clock"
+        },
+        {
+          "from": "imani_hart",
+          "line": "line.m.a1.10.msg",
+          "op": "text"
         },
         {
           "line": "line.m.a1.10.start",

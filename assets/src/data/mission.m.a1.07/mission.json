@@ -66,6 +66,7 @@
   "lines": [
     "line.m.a1.07.civic",
     "line.m.a1.07.drones",
+    "line.m.a1.07.msg",
     "line.m.a1.07.patch.come",
     "line.m.a1.07.patch.thanks",
     "line.m.a1.07.start",
@@ -102,6 +103,11 @@
         }
       ],
       "onEnter": [
+        {
+          "from": "odessa_calloway",
+          "line": "line.m.a1.07.msg",
+          "op": "text"
+        },
         {
           "line": "line.m.a1.07.start",
           "op": "say",

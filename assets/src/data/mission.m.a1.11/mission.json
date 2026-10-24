@@ -117,6 +117,7 @@
   },
   "id": "m.a1.11",
   "lines": [
+    "line.m.a1.11.msg",
     "line.m.a1.11.patrol",
     "line.m.a1.11.start",
     "line.m.a1.11.talk.raffle.open",
@@ -182,6 +183,11 @@
             "weather": "clear"
           },
           "op": "clock"
+        },
+        {
+          "from": "x_ramos",
+          "line": "line.m.a1.11.msg",
+          "op": "text"
         },
         {
           "line": "line.m.a1.11.start",

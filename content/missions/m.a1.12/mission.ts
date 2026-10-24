@@ -7,7 +7,7 @@
  * Starts by phone from Saint Static once m.a1.10 and m.a1.11 are passed.
  */
 import {
-  at, beat, busted, circle, defineMission, destroyed, enterVehicle, escape, failWhen, goto, heat, ko, npc, passed, phoneTrigger, say, setFlag, spawn, stage, survive, talk, talkDef, vehicle, waitFor,
+  text, at, beat, busted, circle, defineMission, destroyed, enterVehicle, escape, failWhen, goto, heat, ko, npc, passed, phoneTrigger, say, setFlag, spawn, stage, survive, talk, talkDef, vehicle, waitFor,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -29,7 +29,7 @@ export default defineMission({
     yard: circle(37.73648, -122.38865, 26),
   },
   stages: [
-    stage('to_plaza', [goto('plaza', { id: 'goto_plaza', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.12.start')] }),
+    stage('to_plaza', [goto('plaza', { id: 'goto_plaza', onFoot: true })], { onEnter: [text('saint_static', 'line.m.a1.12.msg'), say('radio', 'line.m.a1.12.start')] }),
     stage('lot', [enterVehicle('ride', { id: 'enter_ride' })], { onEnter: [beat({ cutscene: 'cut.story.m.a1.12.lot-one' }), say('radio', 'line.m.a1.12.lot')] }),
     stage('run', [survive(120, { id: 'survive_run' })], {
       checkpoint: true,

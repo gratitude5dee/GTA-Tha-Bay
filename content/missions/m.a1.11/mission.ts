@@ -6,7 +6,7 @@
  * is the last stage (scripted heat 2). Starts at the market plaza between 19:00 and 23:00.
  */
 import {
-  at, busted, chase, circle, clock, defineMission, despawn, destroyed, driveTo, enterVehicle, escape, failWhen, heat, ko, markerTrigger, npc, passed, say, spawn, stage, talk, talkDef, task, vehicle,
+  text, at, busted, chase, circle, clock, defineMission, despawn, destroyed, driveTo, enterVehicle, escape, failWhen, heat, ko, markerTrigger, npc, passed, say, spawn, stage, talk, talkDef, task, vehicle,
 } from '../../../packages/modes/story/src/authoring/index.ts';
 
 export default defineMission({
@@ -46,7 +46,7 @@ export default defineMission({
           { id: 'talk_raffle' },
         ),
       ],
-      { onEnter: [clock({ lock: { hour: 20, weather: 'clear' } }), say('radio', 'line.m.a1.11.start')], onComplete: [despawn('guest')] },
+      { onEnter: [clock({ lock: { hour: 20, weather: 'clear' } }), text('x_ramos', 'line.m.a1.11.msg'), say('radio', 'line.m.a1.11.start')], onComplete: [despawn('guest')] },
     ),
     stage('wheels', [enterVehicle('ride', { id: 'enter_ride' })], { onEnter: [say('radio', 'line.m.a1.11.trucks')] }),
     stage(
