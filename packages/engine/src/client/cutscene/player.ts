@@ -77,6 +77,11 @@ interface Active {
   skipVideo?: (() => void) | undefined;
   /** Ends the wait for the in-engine beat as skipped. */
   skipFallback?: (() => void) | undefined;
+  /**
+   * The previous clip of a sequence still covers the screen, back to back, until the next clip shows or fails; this gives its element
+   * back to the pool then, so that no later item can load into the element on screen (BD-FU-B02).
+   */
+  kept?: (() => void) | undefined;
 }
 
 type Prep = { clip: PreparedClip } | { fallback: FallbackTrigger; entry?: CutsceneIndexEntry };
@@ -122,7 +127,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
 
   play(playId: string, clips: PreparedClip[]): Promise<CutsceneOutcome> {
     const clip = clips[0];
-    if (!clip) return Promise.resolve(fallbackOutcome('not_ready'));
+    if (!clip) return this.letGo(playId, true).then(() => fallbackOutcome('not_ready'));
     this.releaseClips(clips.slice(1));
     return this.playClip(playId, clip, { item: undefined, sendDone: true, keepHost: () => Promise.resolve(false) });
   }
@@ -151,6 +156,8 @@ export class CutscenePlayerImpl implements CutscenePlayer {
         }
       }
     }
+    // Nothing of this play stays over the world (every path above uncovers it; this is the backstop).
+    await this.letGo(playId, false);
     this.deps.send({ t: 'cutscene.state', playId, state: 'done', outcome: summarize(outcomes) });
     this.finishPlay(playId);
     return outcomes;
@@ -342,6 +349,27 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     this.t0.delete(playId);
   }
 
+  /** The covering element of the previous clip goes back to the pool (the host no longer shows it). */
+  private dropKept(act: Active): void {
+    const release = act.kept;
+    act.kept = undefined;
+    release?.();
+  }
+
+  /**
+   * An early return with no clip to play (BD-FU-B01): whatever this play still holds over the world goes, the previous clip's cover in
+   * a sequence or the armed frame of `holdWhileResolving`, so the world is drawn and the sim runs again. A clip of another play that
+   * is on screen is left alone (the host holds no frame under it).
+   */
+  private async letGo(playId: string, ends: boolean): Promise<void> {
+    const act = this.activePlays.get(playId);
+    if (act?.kept !== undefined) {
+      await this.deps.host.hide();
+      this.dropKept(act);
+    } else if (!this.deps.host.visible) await this.deps.host.hide();
+    if (ends) this.finishPlay(playId);
+  }
+
   private async runItem(playId: string, item: number, it: Item, p: Prep, keepHost: () => Promise<boolean>): Promise<CutsceneOutcome> {
     if ('fallback' in p) {
       emitPlay(this.deps.telemetry, p.entry?.key ?? null, false, fallbackOutcome(p.fallback));
@@ -406,7 +434,10 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     const { deps } = this;
     const info = this.internals.get(clip);
     const video = clip.source.kind === 'element' ? clip.source.video : null;
-    if (!info || video === null) return fallbackOutcome('not_ready');
+    if (!info || video === null) {
+      await this.letGo(playId, o.sendDone);
+      return fallbackOutcome('not_ready');
+    }
     const act = this.begin(playId);
     const { timers, host, overlay } = deps;
     const cfg = deps.cfg;
@@ -437,11 +468,13 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       act.video = undefined;
       act.skipVideo = undefined;
     };
-    const giveBack = (): void => {
+    /** The budget slot and the decoder go; the element goes back to the pool unless it still covers the screen (`act.kept`). */
+    const giveBack = (keptOnScreen = false): void => {
       deps.budget.release(key);
       video.removeAttribute('src');
       video.load();
-      deps.unlock.releaseVideo(video);
+      if (keptOnScreen) act.kept = () => deps.unlock.releaseVideo(video);
+      else deps.unlock.releaseVideo(video);
     };
     const send = (out: CutsceneOutcome): void => {
       if (!o.sendDone) return;
@@ -459,7 +492,7 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       // Back to back in a sequence the host keeps covering the screen for the next clip.
       const keep = !final.skipped && final.path === 'video' ? await o.keepHost() : false;
       if (shown && !keep) await host.hide();
-      giveBack();
+      giveBack(shown && keep);
       send(final);
       finish(final);
     };
@@ -470,7 +503,11 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       emitPlay(deps.telemetry, key, info.prefetched, fallbackOutcome(trigger));
       stopWatches();
       overlay.hide();
-      if (shown || postered) await host.hide();
+      // A later item of a sequence that fails under the previous clip, still up back to back, uncovers the world too: the sim and the
+      // loop run again for the in-engine beat (section D7 step 3; BD-FU-B02).
+      const inherited = act.kept !== undefined;
+      if (shown || postered || inherited) await host.hide();
+      this.dropKept(act);
       giveBack();
       this.answer(playId, o.item, 'fallback', trigger);
       finish(await this.fallbackItem(playId, o.item, trigger, clip.cues, o.sendDone, true));
@@ -523,6 +560,8 @@ export class CutscenePlayerImpl implements CutscenePlayer {
     act.skipVideo = () => void conclude({ path: 'video', skipped: true });
     await host.show(video);
     shown = true;
+    // The host swapped the previous clip's element out for this one.
+    this.dropKept(act);
     overlay.show({ aiGenerated: clip.aiGenerated, ...(clip.uiCredit ? { credit: clip.uiCredit } : {}), cues: clip.cues });
 
     // 3. play; a refusal on a mobile tier gets the tap prompt

@@ -14,7 +14,7 @@ import { DomCutsceneHost, MediaBudget, ScreenWakeLock, type HostElement } from '
 import type { CutsceneStatus, UiCommand } from '@dv/shared';
 import type { CutsceneIndex, CutsceneManifest, CutsceneRefId } from '@dv/shared/contracts/c09-cutscene';
 import { t } from '@dv/ui';
-import { mountCutsceneOverlay } from '@dv/ui/cutscene';
+import { mountCutsceneOverlay, type SkipSource } from '@dv/ui/cutscene';
 import platformFlags from '../../../config/platform-flags.json';
 
 export interface CutsceneGlueOptions {
@@ -51,9 +51,21 @@ export type CutsceneLogEntry = { at: number } & (
   | { k: 'cmd'; cmd: UiCommand }
   | { k: 'done'; n: number }
   | { k: 'play'; props: Record<string, unknown> }
+  /** The input that asked for a skip, and the plays it ended (BD-FU-B03). */
+  | { k: 'skip'; source: SkipSource; plays: string[] }
 );
 
 type DistributiveOmit<T, K extends string> = T extends unknown ? Omit<T, K> : never;
+
+/**
+ * What the glue's `dispose` undoes (BD-FU-B04): the overlay and its input listeners, the cue-only layer, and whatever the host holds
+ * over the world: the armed frame, the poster or `last.webp` cover, or a clip (which also restarts the loop and resumes the sim).
+ */
+export async function releaseCutsceneView(overlay: { hide(): void }, host: Pick<DomCutsceneHost, 'hideCues' | 'hide'>): Promise<void> {
+  overlay.hide();
+  host.hideCues();
+  await host.hide();
+}
 
 async function loadShippedIndex(assets: NonNullable<Platform['assets']>): Promise<CutsceneIndex | null> {
   try {
@@ -96,6 +108,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
   const budget = new MediaBudget({ maxMediaMB: tier.startsWith('mobile') ? CUTSCENE_CONFIG.mobileMediaBudgetMB : null });
   const holder: { player?: CutscenePlayerImpl } = {};
   const overlay = mountCutsceneOverlay(host.overlayRoot as unknown as Element, {
+    onSkip: (source) => note({ k: 'skip', source, plays: holder.player?.playing ?? [] }),
     sendUi: (cmd) => {
       if (cmd.t !== 'cutscene.skip') return;
       for (const id of holder.player?.playing ?? []) holder.player?.skip(id);
@@ -199,6 +212,6 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     handleEvents,
     log: () => log,
     heldFrames: () => platform.host.heldFrames,
-    dispose: () => overlay.hide(),
+    dispose: () => void releaseCutsceneView(overlay, host),
   };
 }

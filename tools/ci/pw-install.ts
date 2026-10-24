@@ -3,6 +3,7 @@
  *
  *   tsx tools/ci/pw-install.ts <browser>...    install (e.g. `chromium`, `webkit`, `chromium webkit`)
  *   tsx tools/ci/pw-install.ts --count-new     `new=<n>`: .deb files added to the apt archive cache since the install began
+ *   tsx tools/ci/pw-install.ts --cache-key <browser>...   `key=` and `base=`: the apt cache key of this package set (BD-FU-B05)
  *
  * Why: on some GitHub-hosted runners the Azure Ubuntu mirror serves package files at about 42 kB/s while its indexes come at
  * about 10 MB/s (run 40017655149: perf, webkit-webgl2 shard 2 and xr-quest3 shard 2 spent 45 to 47 min fetching 119 MB). The
@@ -55,6 +56,39 @@ export function rotateMirrors(text: string): string | null {
   if (lines.length < 2) return null;
   const rotated = [...lines.slice(1), lines[0] as string];
   return `${rotated.map((l, i) => (/\bpriority:\d+/.test(l) ? l.replace(/\bpriority:\d+/, `priority:${i + 1}`) : `${l}\tpriority:${i + 1}`)).join('\n')}\n`;
+}
+
+/** What makes up one package set: the runner, its Ubuntu release, the Playwright version and the browser engines. */
+export interface KeyInputs {
+  /** `RUNNER_OS` and `RUNNER_ARCH` (default variables on every runner). */
+  os: string;
+  arch: string;
+  /** `ID` and `VERSION_ID` of /etc/os-release, e.g. `ubuntu24.04`. */
+  release: string;
+  /** The installed `@playwright/test` version: its `install-deps` list is the package set. */
+  playwright: string;
+  browsers: readonly string[];
+}
+
+const keyPart = (v: string): string => v.replace(/[^A-Za-z0-9._]+/g, '_') || 'unknown';
+
+/**
+ * The apt cache key of one package set (BD-FU-B05): stable across runs, attempts, jobs and lockfile changes, so every job that
+ * installs the same engines on the same image with the same Playwright shares one cache and saves it once (GitHub caches are
+ * immutable and a repository holds 10 GB; spec/03 section 6). `base` (no Playwright version) is the last restore prefix: the
+ * newest cache of an older Playwright release still holds most of the files.
+ */
+export function cacheKey(k: KeyInputs): { key: string; base: string } {
+  const base = `pw-apt-${keyPart(k.os)}-${keyPart(k.arch)}-${keyPart(k.release)}-${[...k.browsers].sort().map(keyPart).join('+')}-`;
+  return { key: `${base}pw${keyPart(k.playwright)}`, base };
+}
+
+/** `ID` + `VERSION_ID` of an os-release(5) file; `unknown` when either is missing. */
+export function osRelease(text: string | null): string {
+  const field = (name: string): string | undefined => new RegExp(`^${name}="?([^"\n]*)"?$`, 'm').exec(text ?? '')?.[1];
+  const id = field('ID');
+  const version = field('VERSION_ID');
+  return id && version ? `${id}${version}` : 'unknown';
 }
 
 /** The .deb files present now that were not in the restored listing. */
@@ -220,6 +254,25 @@ function realHost(archives: string): Host {
 }
 
 export function main(argv: readonly string[]): number {
+  if (argv[0] === '--cache-key') {
+    const browsers = argv.slice(1);
+    if (browsers.length === 0 || browsers.some((b) => !BROWSER.test(b))) {
+      console.log(`pw-install: usage: pw-install.ts --cache-key <browser>... (got ${JSON.stringify(browsers)})`);
+      return 2;
+    }
+    let playwright = 'unknown';
+    try {
+      playwright = (JSON.parse(readFileSync(path.join(repoRoot, 'node_modules', '@playwright', 'test', 'package.json'), 'utf8')) as { version?: string }).version ?? 'unknown';
+    } catch {
+      // not installed: the key still names the set, with an unknown version
+    }
+    const release = osRelease(existsSync('/etc/os-release') ? readFileSync('/etc/os-release', 'utf8') : null);
+    const { key, base } = cacheKey({ os: process.env['RUNNER_OS'] ?? os.platform(), arch: process.env['RUNNER_ARCH'] ?? os.arch(), release, playwright, browsers });
+    console.log(`pw-install: apt cache key ${key} (restore prefix ${base})`);
+    const out = process.env['GITHUB_OUTPUT'];
+    if (out) appendFileSync(out, `key=${key}\nbase=${base}\n`);
+    return 0;
+  }
   if (argv[0] === '--count-new') {
     const restored = existsSync(RESTORED_LIST) ? readFileSync(RESTORED_LIST, 'utf8') : null;
     const now = existsSync(ARCHIVES) ? readdirSync(ARCHIVES).filter((f) => f.endsWith('.deb')) : [];
