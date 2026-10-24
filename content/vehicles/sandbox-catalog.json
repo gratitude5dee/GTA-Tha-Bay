@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "rows": [
+    { "prefab": "vehicle.compact", "nameKey": "sandbox.car.compact" },
+    { "prefab": "vehicle.sedan", "nameKey": "sandbox.car.sedan" },
+    { "prefab": "vehicle.rideshare", "nameKey": "sandbox.car.rideshare" },
+    { "prefab": "vehicle.van", "nameKey": "sandbox.car.van" },
+    { "prefab": "vehicle.truck", "nameKey": "sandbox.car.truck" },
+    { "prefab": "vehicle.pickup", "nameKey": "sandbox.car.pickup" },
+    { "prefab": "vehicle.ondine-pico", "nameKey": "sandbox.car.ondine-pico" },
+    { "prefab": "vehicle.kestrel-quill", "nameKey": "sandbox.car.kestrel-quill" },
+    { "prefab": "vehicle.brackenridge-rasp", "nameKey": "sandbox.car.brackenridge-rasp" },
+    { "prefab": "vehicle.aurelian-sorrel", "nameKey": "sandbox.car.aurelian-sorrel" },
+    { "prefab": "vehicle.solenne-skip", "nameKey": "sandbox.car.solenne-skip" },
+    { "prefab": "vehicle.halcyon-cormorant", "nameKey": "sandbox.car.halcyon-cormorant" }
+  ]
+}

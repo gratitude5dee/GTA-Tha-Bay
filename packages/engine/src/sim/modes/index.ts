@@ -36,6 +36,8 @@ import { CONVOY_PREFABS, STORY_PREFABS, type PrefabRegistry } from '../prefabs/r
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
 import { CombatImpl } from '../combat/combat.ts';
+import { createSandboxVehiclePort, type SandboxVehiclePortImpl } from './sandbox-vehicle-port.ts';
+import type { EcsWorld } from '../ecs/world.ts';
 import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
 
 export * from './host.ts';
@@ -165,6 +167,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
   let script: ScriptServices | null = null;
   let combat: CombatImpl | null = null;
   let garage: GarageService | null = null;
+  let sandboxCars: SandboxVehiclePortImpl | null = null;
   let dispatch: ((cmd: UiCommand) => void) | null = null;
   let reply: ((name: string, data: unknown) => void) | null = null;
   let qaHandler: ModesQaHandler | null = null;
@@ -178,6 +181,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         run: () => host?.tick(),
       },
       // The script services (M05a1) run after the mode host's tick: zone watchers, then the threads, then the timeline samples.
+      // Cars the sandbox is taking away wait here for their driver to get out (M04e3); with nothing queued the system does nothing.
+      { id: 'engine.modes.sandbox-retire', owner: 'S01', stage: SimStage.Script, order: 2, run: ({ tick }) => sandboxCars?.update(tick) },
       { id: 'engine.script.zones', owner: 'S01', stage: SimStage.Script, order: 5, run: ({ tick }) => script?.zones.update(tick) },
       { id: 'engine.script.threads', owner: 'S01', stage: SimStage.Script, order: 10, run: ({ tick }) => script?.scheduler.run(tick) },
       { id: 'engine.script.timeline', owner: 'S01', stage: SimStage.Script, order: 90, run: ({ tick }) => script?.timeline.update(tick) },
@@ -368,6 +373,29 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         },
       });
 
+      // The sandbox's car spawner (M04e3): built at the first request, on a build that has the vehicle module.
+      const sandboxVehicles = (): SandboxVehiclePortImpl | null => {
+        if (sandboxCars) return sandboxCars;
+        const vc = services.vehicleCtx;
+        if (!vc) return null;
+        sandboxCars = createSandboxVehiclePort({
+          ecs: s.ecs as unknown as EcsWorld,
+          backend: vc.backend,
+          services,
+          store: vc.store,
+          prefabs: vc.prefabs,
+          physics,
+          tick,
+          graph: () => services.world.api?.graph ?? null,
+          player: () => {
+            const pose = playerPose();
+            if (!pose) return null;
+            return { x: pose.x, y: pose.y, z: pose.z, camYaw: ((services.input?.camYaw ?? 0) * 2 * Math.PI) / 65536 };
+          },
+        });
+        return sandboxCars;
+      };
+
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
       const storyEnv: StoryWrapEnv = {
@@ -391,6 +419,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         world: () => sandboxWorld,
         playerPose,
         waypoint: () => waypointMemo.get(),
+        vehicles: sandboxVehicles,
         ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
       })) descriptors.set(d.id, d);
       for (const d of opts.descriptors ?? []) descriptors.set(d.id, d);
