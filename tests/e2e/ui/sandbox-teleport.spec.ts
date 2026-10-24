@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { expect as baseExpect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../../packages/world/src/client/world-bridge.ts';
 import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
 import { hideQaPanels } from './helpers.ts';
@@ -10,6 +10,8 @@ import { hideQaPanels } from './helpers.ts';
  * `DV_WORLD=synth` (`pnpm dev`), open `/?tier=mobile-low`, press Escape, then Phone, then Sandbox, and use the "Go places" and "Screen"
  * tabs: pick a landmark, "Remember this spot", "Back to where I was", and "HUD: on screen" to tuck the HUD away.
  */
+/** Web assertions get 30 s instead of 5 s: a loaded CI runner answers one page query in about a second (BD-M04e2-08). */
+const expect = baseExpect.configure({ timeout: 30_000 });
 type W = { __dvBridge: { world: WorldBridge; engine: { modes: { send(c: object): boolean } } } };
 const messages = JSON.parse(readFileSync(new URL('../../../content/ui/i18n/en.json', import.meta.url), 'utf8')) as Record<string, string>;
 
@@ -28,12 +30,15 @@ type Tab = 'teleport' | 'display';
 async function openTab(page: Page, tab: Tab): Promise<void> {
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-  // The Phone press can land before the Pause page has settled (software rendering is slow): press Phone again until the app list shows.
-  // (A jump from the phone used to leave the phone page open over the running game, so the next Escape paused and resumed at once: BD-M04e2-07.)
+  // Each action gets a budget that a loaded runner can meet: on the shared CI machines (2 workers, software GL) one round trip to the
+  // page takes about a second, and a click needs several (scroll, hit test, move, down, up). A 2 s click budget never fit, so every retry
+  // was cancelled half way and the loop ran out its 60 s (BD-M04e2-08). The loop stays for a Phone press that lands before the Pause page
+  // has settled, and only presses Phone while the phone is not showing. (A jump from the phone used to leave the phone page open over the
+  // running game, so the next Escape paused and resumed at once: BD-M04e2-07.)
   await expect(async () => {
-    if (!(await page.getByTestId('phone').isVisible())) await page.getByTestId('btn-pause-phone').click({ timeout: 2_000 });
-    await page.getByTestId('row-phone-apps-sandbox').click({ timeout: 4_000 });
-  }).toPass({ timeout: 60_000 });
+    if (!(await page.getByTestId('phone').isVisible())) await page.getByTestId('btn-pause-phone').click({ timeout: 20_000 });
+    await page.getByTestId('row-phone-apps-sandbox').click({ timeout: 20_000 });
+  }).toPass({ timeout: 180_000 });
   await page.getByTestId(`tab-sandbox-tabs-${tab}`).click();
 }
 
