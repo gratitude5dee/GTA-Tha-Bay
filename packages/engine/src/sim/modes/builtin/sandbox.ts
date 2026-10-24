@@ -3,6 +3,7 @@ import { noopUi } from './coming-soon.ts';
 import {
   applyStoredWorld, applyWorldSetting, isWorldPath, liveHour, publishWorld, releaseWorld, runSandboxAction, type SandboxWorldPort,
 } from './sandbox-world.ts';
+import { enterTeleport, exitTeleport, runTeleportAction, type Pose } from './sandbox-teleport.ts';
 
 export function defaultSandbox(): SandboxSlice {
   return { toggles: {}, savedPositions: [], clock: { hour: 12, paused: false, syncSystemTime: false }, weather: 'clear', presets: [] };
@@ -25,6 +26,10 @@ export interface SandboxEnv {
   sandbox(): SandboxSlice;
   /** The weather hold and the world speed (M04e1). Absent or null: the values are stored and nothing else happens. */
   world?(): SandboxWorldPort | null;
+  /** The local player's feet and heading, or null before it exists (M04e2). */
+  playerPose?(): Pose | null;
+  /** The map pin the player dropped, or null (M04e2). */
+  waypoint?(): { x: number; z: number } | null;
 }
 
 /** Pushes the toggles to the view model (`mode.sandbox.toggles`). */
@@ -77,6 +82,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
   return {
     enter(ctx) {
       publishToggles(ctx, env.sandbox());
+      enterTeleport(ctx, env.sandbox());
       wasOnline = sandboxOnline(ctx);
       if (!wasOnline) {
         const v = env.sandbox().toggles[NEVER_WANTED];
@@ -103,6 +109,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
       publishWorld(ctx, env.sandbox(), on);
     },
     exit(ctx) {
+      exitTeleport(ctx);
       releaseWorld(ctx, env.sandbox(), port());
       try {
         ctx.pursuit.capHeat(6);
@@ -114,6 +121,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
     saveSlice: () => env.sandbox() as unknown as JsonObject,
     onEvent(ctx, e) {
       runSandboxAction(ctx, env.sandbox(), e, port(), sandboxOnline(ctx));
+      runTeleportAction(ctx, env.sandbox(), e, env, sandboxOnline(ctx));
     },
   };
 }
