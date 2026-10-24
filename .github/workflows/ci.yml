@@ -454,7 +454,7 @@ jobs:
   # on the code branch (M01c ran check:perf as a step of the chromium-webgl2 e2e leg), so it is created here.
   perf:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       # BD-FIX-CI10-P01: this job launches both engines.
       DV_PW_BROWSERS: 'chromium webkit'
