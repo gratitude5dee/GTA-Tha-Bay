@@ -1,6 +1,6 @@
 {
-  "$comment": "Mirrors the normative table in spec/domains/11-platform.md 4.5 (C13 1.1.0). Values marked with a dagger there are S11 extrapolations to calibrate in M11a. distantAnimHz is not in the table; Builder decision BD-M00-03. maxChunkUploadBytes uses 2 MiB for the \"2 MB\" cells. M01c adds family, features (4.4), backend (4.3) and xr (11-platform-xr.md 4.1) per tier; the dynamic range is derived in packages/shared/src/platform/tiers.ts. XR \"tonemap in material\" is post: [] (the direct pipeline has no post stack); Builder decision BD-M01c-02.",
-  "c13": "1.1.0",
+  "$comment": "Mirrors the normative table in spec/domains/11-platform.md 4.5 (C13 1.2.0). Values marked with a dagger there are S11 extrapolations to calibrate in M11a. distantAnimHz is not in the table; Builder decision BD-M00-03. maxChunkUploadBytes uses 2 MiB for the \"2 MB\" cells. M01c adds family, features (4.4), backend (4.3) and xr (11-platform-xr.md 4.1) per tier; the dynamic range is derived in packages/shared/src/platform/tiers.ts. XR \"tonemap in material\" is post: [] (the direct pipeline has no post stack); Builder decision BD-M01c-02.",
+  "c13": "1.2.0",
   "tiers": {
     "desktop-ultra": {
       "family": "desktop",

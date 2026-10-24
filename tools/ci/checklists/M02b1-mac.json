@@ -2,11 +2,11 @@
   "id": "M02b1-mac",
   "milestone": "M02b1",
   "device": "Apple Silicon Mac, Chrome (desktop A in the device matrix); tier desktop at 60 fps, the operator's sf bake",
-  "urlTemplate": "http://localhost:8788/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach",
+  "urlTemplate": "https://<preview>/?perf=1&tier=desktop&scenario=route-ferry-ocean-beach",
   "steps": [
     {
       "id": "1-build",
-      "instruction": "Bake the real city (pnpm map:build -- --area sf, then pnpm map:pack), build the QA bundle with the bake merged in (DV_WORLD=sf VITE_DV_QA=1 pnpm build) and serve it locally (pnpm --filter @dv/edge exec wrangler dev --port 8788)."
+      "instruction": "Bake the real city (pnpm map:build -- --area sf, then pnpm map:pack), build the QA bundle with the bake merged in (DV_WORLD=sf VITE_DV_QA=1 pnpm build) and serve it locally (pnpm --filter @dv/edge exec wrangler dev --port 8788). Print this list with pnpm perf:checklist -- tools/ci/checklists/M02b1-mac.json --url http://localhost:8788 to get the local URLs."
     },
     {
       "id": "2-route",
@@ -18,7 +18,7 @@
     },
     {
       "id": "3-notes",
-      "instruction": "Add to notes.json: U-W8 (what the sf bake looks like and costs at the desktop tier: render objects, triangles, GPU MB at the end of the route) and the meshing time per chunk (U-W10: the p50 and p95 of the world.mesh job in asset.worker, from the Performance panel or __dvBridge.world.chunks().uploads and the HUD)."
+      "instruction": "Add to notes.json: render (what the sf bake looks like and costs at the desktop tier: render objects, triangles, GPU MB at the end of the route; this is a render figure and is not U-W8, which the M02f1 staging checklist records as the boot time against the tier's boot budget) and the meshing time per chunk (U-W10: the p50 and p95 of the world.mesh job in asset.worker, from the Performance panel or __dvBridge.world.chunks().uploads and the HUD)."
     },
     {
       "id": "4-verify",

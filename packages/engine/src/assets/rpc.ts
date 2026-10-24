@@ -19,6 +19,11 @@ export interface InitParams {
   localMedia: string | null;
   /** Mobile and XR devices: soft cap 600 MB and 8 `soon` lanes. */
   mobileOrXr: boolean;
+  /**
+   * QA builds only: the id of a network profile (`config/perf/net-profiles.json`) that slows pack fetches on purpose, else null.
+   * Production builds never send a value and never contain the shaper.
+   */
+  net: string | null;
 }
 
 export interface InitResult {
@@ -33,6 +38,10 @@ export interface StatsResult {
   evictions: number;
   /** Body bytes received from the network since the worker started. */
   bytes: number;
+  /** The highest number of requests in flight since the worker started or the last `stats` call with `resetPeak` (M02f1). */
+  inflightPeak: number;
+  /** How many times the requests in flight rose from 0 to 1 (busy periods, M02f1). */
+  waves: number;
 }
 
 export type CatalogStateName = 'idle' | 'loading' | 'ready' | 'invalid' | 'disabled' | 'unavailable';
@@ -54,7 +63,8 @@ export interface RpcOps {
   clear: [Record<string, never>, null];
   mode: [Record<string, never>, TabMode];
   catalog: [Record<string, never>, CatalogStateName];
-  stats: [Record<string, never>, StatsResult];
+  /** `resetPeak` sets the in-flight peak to the current in-flight count after the figures are read. */
+  stats: [{ resetPeak?: boolean }, StatsResult];
   /** QA builds only; the worker answers `not-supported` otherwise. */
   qa: [{ name: string; args: unknown }, unknown];
   /** A domain job registered by the composed worker (`runAssetWorker(scope, jobs)`, M02b1: the world mesher and pack channel). */

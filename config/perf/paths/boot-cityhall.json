@@ -1,0 +1,34 @@
+{
+  "$comment": "M02f1 camera path for the scenario 'boot-cityhall': a 30 m loop (a 7.5 m square) around the City Hall arrival point (the spawn: x 6.7, z -31.1 in the baked index, 32 m south of the hall), 20 s at 1.5 m/s, eye height 1.7 m, looking 0.5 m ahead and 1 m down (about 63 degrees below the horizon, so the view holds the ground at the spawn and not the hall and the blocks behind it), seed 0xB007. Starting at the spawn means prepare() streams nothing new, so the run reads the boot figures of the reveal that came before it. ENU metres: +X east, -Z north. Needs the streamed city (DV_WORLD).",
+  "id": "boot-cityhall",
+  "kind": "route",
+  "waypointsEnu": [
+    [
+      2.95,
+      -27.35
+    ],
+    [
+      10.45,
+      -27.35
+    ],
+    [
+      10.45,
+      -34.85
+    ],
+    [
+      2.95,
+      -34.85
+    ],
+    [
+      2.95,
+      -27.35
+    ]
+  ],
+  "speedMps": 1.5,
+  "eyeHeightM": 1.7,
+  "lookAheadM": 0.5,
+  "durationS": 20,
+  "warmupS": 2,
+  "seed": 45063,
+  "density": "off"
+}
