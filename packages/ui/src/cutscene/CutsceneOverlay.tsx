@@ -38,10 +38,17 @@ export interface SkipSource {
   pointerId?: number;
 }
 
-/** Sends `cutscene.skip` at most once per showing, whichever input comes first. */
+/**
+ * Sends `cutscene.skip` at most once per showing, whichever deliberate input comes first (R-ENG-04: key, button or tap; BD-FU-B03):
+ * an Escape press that is not a key repeat, the edge of gamepad B, a click on the skip button, or a tap: a press that began on the
+ * overlay while it showed and is let go there. The release of a press that began before the overlay came up (a finger kept on the
+ * touch stick, a mouse drag, the click that started the game) is not a skip, and neither is an untrusted (script-made) event.
+ */
 export class SkipController {
   private sent = false;
   private padWasDown = true;
+  /** The pointer whose press began on the overlay during this showing. */
+  private pressed: number | null = null;
   constructor(
     private readonly send: (cmd: UiCommand) => void,
     private readonly onSkip?: (s: SkipSource) => void,
@@ -49,8 +56,9 @@ export class SkipController {
 
   reset(): void {
     this.sent = false;
-    // A B button held while the clip starts does not count as a press.
+    // A B button held while the clip starts does not count as a press, nor does a pointer pressed before it.
     this.padWasDown = true;
+    this.pressed = null;
   }
   skip(source: SkipSource): void {
     if (this.sent) return;
@@ -58,8 +66,9 @@ export class SkipController {
     this.onSkip?.(source);
     this.send({ t: 'cutscene.skip' });
   }
-  key(e: { key: string; isTrusted?: boolean }): void {
-    if (e.key === 'Escape') this.skip({ input: 'key', event: 'keydown', ...(e.isTrusted !== undefined ? { trusted: e.isTrusted } : {}) });
+  key(e: { key: string; isTrusted?: boolean; repeat?: boolean }): void {
+    if (e.key !== 'Escape' || e.repeat === true || e.isTrusted === false) return;
+    this.skip({ input: 'key', event: 'keydown', ...(e.isTrusted !== undefined ? { trusted: e.isTrusted } : {}) });
   }
   /** Feed the pressed state of the pad buttons every frame; the edge of B skips. */
   pad(pressed: ArrayLike<boolean>): void {
@@ -67,15 +76,31 @@ export class SkipController {
     if (down && !this.padWasDown) this.skip({ input: 'pad' });
     this.padWasDown = down;
   }
+  /** A whole tap (press and release on the overlay). */
   tap(source: Omit<SkipSource, 'input'> = {}): void {
     this.skip({ input: 'tap', ...source });
+  }
+  /** `pointerdown` on the overlay: the primary button of a mouse, or a touch or pen contact. */
+  pointerDown(e: PointerLike): void {
+    if (e.isTrusted === false || (e.button !== undefined && e.button !== 0)) return;
+    this.pressed = e.pointerId ?? 0;
+  }
+  /** `pointerup` on the overlay: a tap only when the same pointer's press began here during this showing. */
+  pointerUp(e: PointerLike): void {
+    const id = e.pointerId ?? 0;
+    if (this.pressed === null || this.pressed !== id || e.isTrusted === false) return;
+    this.pressed = null;
+    this.tap(describe(e));
+  }
+  pointerCancel(e: PointerLike): void {
+    if (this.pressed === (e.pointerId ?? 0)) this.pressed = null;
   }
   button(source: Omit<SkipSource, 'input'> = {}): void {
     this.skip({ input: 'button', ...source });
   }
 }
 
-type PointerLike = { type: string; pointerType?: string; isTrusted?: boolean; pointerId?: number };
+export type PointerLike = { type: string; pointerType?: string; isTrusted?: boolean; pointerId?: number; button?: number };
 const describe = (e: PointerLike): Omit<SkipSource, 'input'> => ({
   event: e.type,
   ...(e.pointerType !== undefined ? { pointerType: e.pointerType } : {}),
@@ -85,14 +110,22 @@ const describe = (e: PointerLike): Omit<SkipSource, 'input'> => ({
 
 export interface CutsceneOverlayProps {
   view: OverlayView;
-  onTap(s: Omit<SkipSource, 'input'>): void;
+  onPointerDown(e: PointerLike): void;
+  onPointerUp(e: PointerLike): void;
+  onPointerCancel(e: PointerLike): void;
   onButton(s: Omit<SkipSource, 'input'>): void;
 }
 
 export function CutsceneOverlay(props: CutsceneOverlayProps) {
   const { view } = props;
   return (
-    <div class="dv-cutscene" data-testid="cutscene-overlay" onPointerUp={(e) => props.onTap(describe(e))}>
+    <div
+      class="dv-cutscene"
+      data-testid="cutscene-overlay"
+      onPointerDown={(e) => props.onPointerDown(e)}
+      onPointerUp={(e) => props.onPointerUp(e)}
+      onPointerCancel={(e) => props.onPointerCancel(e)}
+    >
       {view.chip ? (
         <div class="dv-cutscene-chip" data-testid="cutscene-ai-chip">
           <span>{t('cutscene.ai')}</span>
@@ -105,6 +138,7 @@ export function CutsceneOverlay(props: CutsceneOverlayProps) {
         data-testid="cutscene-skip"
         data-fid="cutscene.skip"
         aria-label={t('cutscene.skip')}
+        onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}
         onClick={(e) => props.onButton(describe(e))}
       >
@@ -167,7 +201,16 @@ export function mountCutsceneOverlay(root: Element, opts: OverlayMountOptions): 
     const sig = `${view.chip}|${view.credit}|${view.cue}`;
     if (sig === last) return;
     last = sig;
-    render(<CutsceneOverlay view={view} onTap={(d) => skip.tap(d)} onButton={(d) => skip.button(d)} />, root);
+    render(
+      <CutsceneOverlay
+        view={view}
+        onPointerDown={(e) => skip.pointerDown(e)}
+        onPointerUp={(e) => skip.pointerUp(e)}
+        onPointerCancel={(e) => skip.pointerCancel(e)}
+        onButton={(d) => skip.button(d)}
+      />,
+      root,
+    );
   };
   const poll = (): void => {
     for (const p of pads()) {

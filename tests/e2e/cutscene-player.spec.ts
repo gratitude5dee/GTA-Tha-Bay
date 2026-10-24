@@ -57,7 +57,7 @@ const MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
 type Route27 = 'absent' | 'ready' | null;
 
 /** Boots the sample mission. Route 27 is mocked before the first request when `route` is given. */
-async function boot(page: Page, route: Route27, query = ''): Promise<string[]> {
+async function boot(page: Page, route: Route27, query = '', o: { holdPointer?: boolean } = {}): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   if (route !== null) {
@@ -77,7 +77,15 @@ async function boot(page: Page, route: Route27, query = ''): Promise<string[]> {
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.cutscene !== undefined && (window as unknown as W).__dvBridge.mission !== undefined, undefined, { timeout: 60_000 });
   // The player's first gesture (DL-715 as amended): a trusted click on the Title's Start runs the product's FirstGestureUnlock. The
   // held boot mission, and so the beat whose clock AC-8 reads, starts only after it and after the world reveal (qa/mission-gate.ts).
-  await page.getByTestId('title-start').click();
+  if (o.holdPointer) {
+    // The same trusted click on Start, then a press that the player keeps held (a finger on the touch stick, a mouse drag) while
+    // the mission starts and its clip comes up (BD-FU-B03).
+    const box = await page.getByTestId('title-start').boundingBox();
+    if (!box) throw new Error('no Start button');
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(SMALL_VIEWPORT.width / 2, SMALL_VIEWPORT.height / 2);
+    await page.mouse.down();
+  } else await page.getByTestId('title-start').click();
   await page.waitForFunction(() => (window as unknown as W).__dvBridge.missionGate?.state().state !== 'waiting', undefined, { timeout: 120_000 });
   const gate = await page.evaluate(() => (window as unknown as W).__dvBridge.missionGate?.state());
   expect(gate, `the boot mission did not start: ${gate?.reason ?? 'no mission gate on the page'}`).toMatchObject({ state: 'released', waiting: [] });
@@ -194,6 +202,27 @@ test.describe('cutscene player @cutscene', () => {
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
     expect(skipInputs(await log(page))).toEqual(['key:keydown']);
     expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
+    expect(errors).toEqual([]);
+  });
+
+  test('a press held from before the clip does not skip it when it is let go; a tap on the clip does @cutscene', async ({ page }) => {
+    await page.goto('about:blank');
+    test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
+    const errors = await boot(page, null, '&beats=video', { holdPointer: true });
+    await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    // the press began before the clip covered the screen: letting it go over the overlay is not a skip (section D7, R-ENG-04)
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    expect(skipInputs(await log(page))).toEqual([]);
+    expect(answer(await log(page), 'done')).toBeUndefined();
+    expect(await cut(page, (c) => c.hasVideo())).toBe(true);
+    // a whole tap on the clip skips it
+    await page.mouse.down();
+    await page.mouse.up();
+    await expect.poll(async () => answer(await log(page), 'done') !== undefined, { timeout: 30_000, intervals: [100] }).toBe(true);
+    expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
+    expect(skipInputs(await log(page))).toEqual(['tap:pointerup']);
+    await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
     expect(errors).toEqual([]);
   });
 
