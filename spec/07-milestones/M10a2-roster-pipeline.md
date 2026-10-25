@@ -24,7 +24,7 @@ Slots whose souls are real-derived stay `blocked:research` until Q-19 and Q-25 a
 ## Scope in
 - **The Coast set first** (DL-OWN-05, DL-737; `10-ui-pages.md` §2.8 rule 6), as the batch's first slug `pc-coast`, Standard tier, on the character line.
   - The `sheet` stage takes the owner's sheet `content/characters/pc-coast/sheet.png` (provenance origin `owner-supplied`, with the owner's statement of origin) as its first-party reference. H1 picks the candidate closest to it, and the owner signs H1 and H3.
-  - Then mesh, the `bay_rig_v1` rig, optimize, verify and publish, split into the six creator rows `body-coast`, `face-coast`, `hair-coast`, `top-coast-hoodie`, `bottom-coast-jeans` and `shoes-coast-sneakers` (`character/pc-<slot>-coast` and `portrait/pc-<slot>-coast`). Append them to the catalog with new indices, so `AppearanceV1` stays byte-equal, and point `content/ui/creator/defaults.json` at them.
+  - Then mesh, the `bay_rig_v1` rig, optimize, verify and publish, split into the six creator rows `body-coast`, `face-coast`, `hair-coast`, `top-coast-hoodie`, `bottom-coast-jeans` and `shoes-coast-sneakers` (`character/pc-<slot>-coast` and `portrait/pc-<slot>-coast`). Set `model` on those six rows (the DL-737 fix appended them with new indices and pointed `content/ui/creator/defaults.json` at them; `AppearanceV1` stays byte-equal).
   - The look stays stylized, as the sheet draws it: textured afro, red ear tips, short beard, black cotton hoodie with drawstrings, dark jeans, grey sneakers, 1.75 m. Only the protagonist is stylized.
   - The sheet is never a video reference (03-story-cutscenes.md: the protagonist never appears in a generated clip).
 - **Plan the batch** with `--tier all`.
