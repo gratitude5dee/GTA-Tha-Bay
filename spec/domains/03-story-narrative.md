@@ -11,7 +11,7 @@
 - **The city process.** A fictional *Curb Allocation Board* is auctioning curb rights. Act 1 ends with the Yard's street named *Lot #1*. Act 3 ends with the auction suspended after a public broadcast and a hearing.
 - **The money.** Fog Index Capital funds the robotaxi company and also offers the player seed money for a community ride co-op (the tycoon hook). Its double play is the Act 2 reveal.
 - **Tone.** Warm, comic and satirical: hyphy car culture against hypergrowth. The city is the joke's straight man and is always recognizable. No firearms, gore, drug use or sexual content (D-30, Q-GD-07). Pursuits end in busts and fines, never deaths.
-- **Protagonist.** The player's created character, raised at the Yard. The default callsign is the loc key `story.protagonist.callsign` ("Dee"), so it can be renamed. Motive: keep the Yard's street and its people.
+- **Protagonist.** The player's created character, raised at the Yard. The default name and callsign are "Coast" (`content/ui/creator/defaults.json`, DL-OWN-05), so they can be renamed, and the default look is the owner's stylized Coast design (DL-737). Motive: keep the Yard's street and its people.
 - **Originality guardrails.** No Rockstar characters, places, mission names or plots. Tech-launch missions are social, stealth or exposure missions, never assassinations (the "Friend Request" beat is on the avoid list). There is no protagonist switching, no heist planning board and no territory painting [research/gamedesign-decomposition.md §10].
 
 ## B2. Factions and cast
