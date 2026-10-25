@@ -89,6 +89,9 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
   // QA: the standing filler a spec talks to, and when its knock-down ends
   let qaFiller: { key: string; handle: number; bumpUntil: number } | null = null;
   let qaSerial = 0;
+  let cmdCount = 0;
+  let lastCmd = '';
+  let bound = false;
 
   const speakerOf = (owner: string, tags: readonly string[]): string => {
     if (tags.includes('who:player')) return 'player';
@@ -239,6 +242,7 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       a: p.sim.counts.a, b: p.sim.counts.b, c: p.sim.counts.c, peakA: p.sim.peakA, cap: p.sim.cap,
       steps: { a: p.sim.totalSteps.a, b: p.sim.totalSteps.b }, barks: { played: p.barks.played, dropped: p.barks.dropped, audible: p.barks.audible() },
       talks: p.talk.begun, knots: p.knots.done, intents: p.intents.written,
+      cmds: cmdCount, lastCmd, bound, filler: qaFiller ? qaFiller.handle : 0, grants: p.entities.grants,
       npcs: p.sim.agents.slice(0, 12).map((a) => ({
         id: a.id, lod: 'ABC'[a.lod] as string, block: a.block, who: ['talk', 'hold', 'flee', 'intent', 'greet', 'schedule'][a.winner] as string,
         x: Math.round(a.x), z: Math.round(a.z),
@@ -314,6 +318,8 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
 
   function command(name: string, args: JsonObject | null): void {
     if (!parts) return;
+    cmdCount++;
+    lastCmd = name;
     const a = args ?? {};
     switch (name) {
       case 'flags':
@@ -455,6 +461,7 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
 
     bind(e: NpcHostEnv): void {
       host = e;
+      bound = e.interaction !== null;
       if (parts) e.interaction?.register(parts.talk);
     },
 

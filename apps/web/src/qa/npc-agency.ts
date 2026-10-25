@@ -26,6 +26,7 @@ interface DebugView {
   steps: { a: number; b: number };
   barks: { played: number; dropped: number; audible: number };
   talks: number; knots: number; intents: number;
+  cmds: number; lastCmd: string; bound: boolean; filler: number; grants: number;
   npcs: { id: string; lod: string; block: number; who: string; x: number; z: number }[];
 }
 

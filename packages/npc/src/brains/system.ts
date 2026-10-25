@@ -51,6 +51,8 @@ export class NpcEntities {
   private readonly handles: number[] = [];
   private readonly lastAnim = new Map<number, number>();
   private strings: EcsWorld['strings'];
+  /** Talk prompts given to pedestrians so far (QA panel). */
+  grants = 0;
 
   constructor(private readonly ecs: EcsWorld) {
     this.strings = ecs.strings;
@@ -259,6 +261,7 @@ export class NpcEntities {
       const has = ecs.hasId(id, Interactable);
       if (d2 <= talk2) {
         if (!has) {
+          this.grants++;
           ecs.commands.add(H(h), Interactable, {
             kind: INTERACT_KIND.Talk, radius: 2.5, coneDeg: 140, priority: -1, prompt: this.strings.intern('interact.talk'),
           });

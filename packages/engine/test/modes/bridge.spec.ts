@@ -80,6 +80,10 @@ describe('UiBridge coalescing and the ViewModelSource', () => {
     expect(isUiCommand({ t: 'save.request', reason: 'nope' })).toBe(false);
     expect(isUiCommand({ t: 'sandbox.set', path: 'sandbox.a', v: true })).toBe(true);
     expect(isUiCommand({ t: 'unknown' })).toBe(false);
+    // the reserved owners of mode.cmd: the phone apps and the NPC runtime (M06c)
+    expect(isUiCommand({ t: 'mode.cmd', mode: 'phone', name: 'ride.list' })).toBe(true);
+    expect(isUiCommand({ t: 'mode.cmd', mode: 'npc', name: 'intent', args: { npcId: 'ro-batista' } })).toBe(true);
+    expect(isUiCommand({ t: 'mode.cmd', mode: 'nobody', name: 'intent' })).toBe(false);
     const sent: unknown[] = [];
     const s = new UiCommandSender(() => ({ sendUi: (c) => (sent.push(c), true) }));
     expect(s.send({ t: 'mode.quit' })).toBe(true);
