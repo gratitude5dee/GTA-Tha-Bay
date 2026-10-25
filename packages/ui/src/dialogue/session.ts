@@ -177,6 +177,8 @@ export class DialogueSession {
   private committed = '';
   private streaming = '';
   private voiced = false;
+  /** A `meta` event came in this turn: the stream is the model's. Lines without one are ink (the runtime plays ink with no `meta`). */
+  private sawMeta = false;
   private selfHarmTurn = false;
   private runId = 0;
 
@@ -253,6 +255,7 @@ export class DialogueSession {
     this.committed = '';
     this.streaming = '';
     this.voiced = false;
+    this.sawMeta = false;
     this.reveal = new LineReveal({ npcId, nowMs: this.nowMs, audio: this.o.audio ?? null });
     this.abort = new AbortController();
     this.set({ busy: true, shown: '', full: '', revealing: false, fallback: false, turn: null, reported: false, closing: false });
@@ -355,15 +358,18 @@ export class DialogueSession {
   private fold(e: DialogueEvent): void {
     switch (e.event) {
       case 'meta': {
+        this.sawMeta = true;
         this.voiced = e.data.voice !== 'text' && (this.o.voiceOn?.() ?? true);
         const turn: DialogueTurnRef = { npcId: e.data.npcId, encounterId: e.data.encounterId, turnIndex: e.data.turnIndex };
         this.set({ turn, badge: e.data.disclosure.aiCharacter, ...(e.data.safety === 'crisis' ? { card: { kind: 'safety', resources: false } as DialogueCard } : {}) });
         break;
       }
       case 'line.delta':
+        if (!this.sawMeta && !this.view.fallback) this.set({ fallback: true });
         if (typeof e.data.text === 'string') this.streaming += e.data.text;
         break;
       case 'line.done':
+        if (!this.sawMeta && !this.view.fallback) this.set({ fallback: true });
         this.committed = this.committed === '' ? e.data.text : `${this.committed} ${e.data.text}`;
         this.streaming = '';
         this.cue(e.data.text);

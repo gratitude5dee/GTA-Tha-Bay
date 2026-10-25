@@ -103,6 +103,7 @@ export async function installNpcQa(
   audio: NpcQaAudio | null = null,
   startAfter: Promise<void> = Promise.resolve(),
   vm: NpcQaVm | null = null,
+  emit: ((name: 'npc.turn.client' | 'npc.encounter.client', props: Record<string, string | number | boolean>) => void) | null = null,
 ): Promise<NpcBridge> {
   const [{ createNpcRuntime }, { installNpcBridge, mountNpcOverlay }, { TtsPlayer, LipSyncDriver }] = await Promise.all([
     import('@dv/npc/client'),
@@ -129,7 +130,15 @@ export async function installNpcQa(
     };
     requestAnimationFrame(frame);
   }
+  // The runtime's telemetry goes to the platform client, and a copy stays here for `__dvBridge.npc.telemetry()` (the e2e reads it).
+  const seen: { name: string; props: Record<string, string | number | boolean> }[] = [];
   const runtime = createNpcRuntime({
+    telemetry: {
+      emit: (name, props) => {
+        seen.push({ name, props });
+        emit?.(name, props);
+      },
+    },
     auth: async () => {
       if (override !== null) return { Authorization: override };
       const service = await identity.ready;
@@ -143,7 +152,7 @@ export async function installNpcQa(
   });
   // M06a5: with a view-model store the real dialogue panel (`DialogueBubble`, mounted by the shell) takes the conversation. The bridge opens it
   // through `sys.dialogue.open`, the session runs the turns, and `hud.subtitle` carries each line. Without a store the box talks to the runtime alone.
-  const hooks: NpcBridgeHooks = { setAuthHeader: (h) => (override = h), onVoice: (on) => (on ? audio?.unlock() : player?.stop(NPC_ID)) };
+  const hooks: NpcBridgeHooks = { telemetry: () => seen, setAuthHeader: (h) => (override = h), onVoice: (on) => (on ? audio?.unlock() : player?.stop(NPC_ID)) };
   if (vm !== null) {
     const { debugContext } = await import('@dv/npc/debug');
     const key = DIALOGUE_OPEN_KEY as never;

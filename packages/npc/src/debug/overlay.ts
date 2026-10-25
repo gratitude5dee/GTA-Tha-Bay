@@ -28,6 +28,10 @@ export interface NpcBridge {
   /** One turn through the runtime. `turn` defaults to a greeting. */
   talk(npcId?: string, turn?: NPCDialogueRequest['turn']): Promise<DebugTurnResult>;
   last(): DebugTurnResult | null;
+  /** M06a5: opens the dialogue panel for the NPC without a turn (the player then picks a choice). A no-op where the page has no panel. */
+  open(npcId?: string): void;
+  /** M06a5: the `npc.*` telemetry events this page's runtime emitted (counts and enums only), newest last. */
+  telemetry(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   /** Ends the encounter with the NPC (the next turn opens a new one). */
   end(npcId?: string): void;
   /** Subscribes to changes of the shown state; returns the unsubscribe. */
@@ -45,6 +49,8 @@ export interface NpcBridge {
 export interface NpcBridgeHooks {
   setAuthHeader?: (header: string | null) => void;
   onVoice?: (on: boolean) => void;
+  /** The telemetry events the page's runtime emitted, for the bridge to show. */
+  telemetry?: () => readonly { name: string; props: Record<string, string | number | boolean> }[];
   /** Called before each bridge turn: open the dialogue panel for the NPC (the page patches `sys.dialogue.open`). */
   openPanel?: (npcId: string) => void;
   /** Runs the turn in place of `runtime.talk` (the panel's session does, so it sees the same events). A null result means the turn did not run. */
@@ -123,6 +129,8 @@ export function installNpcBridge(
       return last;
     },
     last: () => last,
+    open: (npcId = DEBUG_NPC_ID) => hooks.openPanel?.(npcId),
+    telemetry: () => hooks.telemetry?.() ?? [],
     end: (npcId = DEBUG_NPC_ID) => runtime.endEncounter(npcId),
     onChange(fn) {
       listeners.add(fn);

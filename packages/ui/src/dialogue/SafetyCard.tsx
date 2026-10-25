@@ -4,9 +4,34 @@
  */
 import { t } from '../i18n/index.ts';
 
+/** Tab and Shift+Tab stay on the card's two buttons while it is up (the rest of the panel is inert). */
+function trapTab(e: KeyboardEvent): void {
+  if (e.key !== 'Tab') return;
+  const card = e.currentTarget as HTMLElement;
+  const stops = [...card.querySelectorAll<HTMLElement>('button:not([disabled])')];
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  if (!first || !last) return;
+  const at = document.activeElement;
+  if (e.shiftKey && at === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && at === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
 export function SafetyCard(props: { resources: boolean; onClose(): void; onResources(): void }) {
   return (
-    <section class="dv-dlg-card dv-dlg-safety" data-testid="dialogue-safety" role="alertdialog" aria-labelledby="dv-dlg-safety-title" aria-describedby="dv-dlg-safety-body">
+    <section
+      class="dv-dlg-card dv-dlg-safety"
+      data-testid="dialogue-safety"
+      role="alertdialog"
+      aria-labelledby="dv-dlg-safety-title"
+      aria-describedby="dv-dlg-safety-body"
+      onKeyDown={trapTab}
+    >
       <h3 id="dv-dlg-safety-title" class="dv-dlg-card-title">
         {t('dialogue.safety.title')}
       </h3>

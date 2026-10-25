@@ -1,0 +1,45 @@
+event: meta
+data: {"encounterId":"0198aaaa-bbbb-7ccc-8ddd-eeeeffff0001","turnIndex":0,"npcId":"npc_test","soulVersion":1,"model":"haiku","voice":"text","turnsLeft":4,"disclosure":{"aiCharacter":true,"disclaimer":"none"},"gov":0}
+
+event: line.delta
+data: {"seq":0,"text":"Welcome"}
+
+event: line.delta
+data: {"seq":1,"text":" to"}
+
+event: line.delta
+data: {"seq":2,"text":" the"}
+
+event: line.delta
+data: {"seq":3,"text":" lot."}
+
+event: line.delta
+data: {"seq":4,"text":" The"}
+
+event: line.delta
+data: {"seq":5,"text":" checklist"}
+
+event: line.delta
+data: {"seq":6,"text":" is"}
+
+event: line.delta
+data: {"seq":7,"text":" open,"}
+
+event: line.delta
+data: {"seq":8,"text":" so"}
+
+event: line.delta
+data: {"seq":9,"text":" go"}
+
+event: line.delta
+data: {"seq":10,"text":" ahead."}
+
+event: line.done
+data: {"text":"Welcome to the lot. The checklist is open, so go ahead.","words":11}
+
+event: effects
+data: {"mood":"neutral","endConversation":true}
+
+event: done
+data: {"costMicros":312,"turnsLeft":0,"closed":true}
+

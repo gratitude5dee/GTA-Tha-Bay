@@ -119,7 +119,7 @@ describe('the offline paths (R-NPC-05)', () => {
     const { session } = makeSession({}, new FakeRuntime(() => inkTurn(['Good day. Please confirm the lot is clear.'])));
     session.open('npc_test');
     await session.choose('greet');
-    expect(session.state()).toMatchObject({ full: 'Good day. Please confirm the lot is clear.', badge: true, busy: false, card: null });
+    expect(session.state()).toMatchObject({ full: 'Good day. Please confirm the lot is clear.', badge: true, busy: false, card: null, fallback: true });
   });
 
   it('a runtime that throws leaves the panel as it was, with no error state', async () => {
