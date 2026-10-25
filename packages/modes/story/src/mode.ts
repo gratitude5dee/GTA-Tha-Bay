@@ -10,7 +10,7 @@ import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import { WORLD_STANDIN_BAKE, type StoryWrapEnv } from '@dv/engine/sim';
 import { resolveMission } from './compiler/resolve.ts';
 import type { CompileError } from './compiler/types.ts';
-import { readCheckpoint } from './vm/checkpoint.ts';
+import { readCheckpoint, SEAT_WAIT_TICKS } from './vm/checkpoint.ts';
 import { MissionRuntime } from './vm/runtime.ts';
 import { Actors } from './vm/actors.ts';
 import type { VehicleDriver } from './vm/tasks.ts';
@@ -206,6 +206,13 @@ export class StoryController {
    * headless): the ground is there, and the checkpoint is restored at once.
    */
   private resuming: { id: string; cp: MissionCheckpointV1; ticket: PrestreamTicket | null; started: number; hintAt: number } | null = null;
+  /**
+   * The pre-stream ticket of a restored checkpoint, still held while the runtime finishes the restore (BD-FIX-SPAWN-12): a seated player
+   * is placed only once the deferred cast-vehicle spawn exists (`MissionRuntime.restorePending`), so until then nothing else keeps the
+   * saved pose's tiles in, and a streaming pass could evict them and drop their colliders. Released once `restorePending` clears, at
+   * `until` (`SEAT_WAIT_TICKS` after the restore, when the runtime gives up a seat that never came), or when the mission stops.
+   */
+  private heldTicket: { ticket: PrestreamTicket; until: number } | null = null;
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -345,8 +352,19 @@ export class StoryController {
       if (this.story) this.places.tick(ctx);
     }
     const rt = this.rt;
-    if (!rt) return;
+    if (!rt) {
+      this.releaseHeld();
+      return;
+    }
     if (rt.active) rt.tick(ctx);
+    const held = this.heldTicket;
+    if (held && (!rt.active || rt.restorePending === null || ctx.tick >= held.until)) this.releaseHeld();
+  }
+
+  /** Lets the pre-stream of a restored checkpoint go (see `heldTicket`). */
+  private releaseHeld(): void {
+    this.heldTicket?.ticket.release();
+    this.heldTicket = null;
   }
 
   /** Starts a catalog mission by id (the Jobs app, a trigger). A mission already running is never replaced. */
@@ -453,13 +471,20 @@ export class StoryController {
     if (!r) return false;
     const t = r.ticket;
     if (t === null || (t.ready() && ctx.physics.groundY(r.cp.player.x, r.cp.player.z) !== null)) {
-      t?.release();
       this.resuming = null;
       const store = this.store;
       const entry = store?.get(r.id);
-      if (!store || !entry) return false;
+      if (!store || !entry) {
+        t?.release();
+        return false;
+      }
       this.startFailed.delete(r.id);
-      return this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true }).ok;
+      const ok = this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true }).ok;
+      // the tiles stay pinned until the runtime has written the rest of the restore (a seat in a cast vehicle spawned next tick)
+      this.releaseHeld();
+      if (t && ok && this.rt?.active === true && this.rt.restorePending !== null) this.heldTicket = { ticket: t, until: ctx.tick + SEAT_WAIT_TICKS };
+      else t?.release();
+      return ok;
     }
     if (ctx.tick - r.started >= PLACE_BUDGET_TICKS) {
       this.failResume(ctx, r);
@@ -486,6 +511,7 @@ export class StoryController {
   private cancelResume(): void {
     this.resuming?.ticket?.release();
     this.resuming = null;
+    this.releaseHeld();
   }
 
   private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {

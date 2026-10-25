@@ -439,3 +439,66 @@ export function unseatDriver(
   });
   return true;
 }
+
+/**
+ * Seats `rider` at the wheel of `vehicle` at once, like `seatDriver`, after taking it out of any other vehicle it rides in first
+ * (`unseatDriver`; BD-FIX-SPAWN-12): a mission resumed while the player drives another car (DL-736) must not leave that car with the
+ * player still booked as its driver. A rider walking up to another vehicle (on foot, Waiting) gives that booking up too. When the seat is
+ * taken the rider is left out of every vehicle and false is returned: the caller sets it down beside the car (`setDownBeside`).
+ */
+export function reseatDriver(
+  ecs: EcsApi, backend: VehiclePhysics, store: VehicleStore, services: Pick<EngineServices, 'camera' | 'events'>, rider: EntityHandle, vehicle: EntityHandle, tick: number,
+): boolean {
+  const did = ecs.resolve(rider);
+  const vid = ecs.resolve(vehicle);
+  if (did === null || vid === null) return false;
+  const co = ecs.store(Control);
+  const current = co.target[did] as number;
+  if (co.owner[did] === CONTROL_OWNER.Vehicle && current !== vid) {
+    unseatDriver(ecs, backend, store, services, rider, tick);
+  } else if (co.owner[did] === CONTROL_OWNER.OnFoot && phaseOf(co.pending[did] as number) === CONTROL_PHASE.Waiting && current !== 0 && current !== vid) {
+    const rt = store.rt.get(current);
+    if (rt && rt.driver === did) rt.driver = 0;
+    co.target[did] = 0;
+    co.pending[did] = packPending(CONTROL_PHASE.Ready, CONTROL_OWNER.None);
+  }
+  return seatDriver(ecs, backend, store, services, rider, vehicle, tick);
+}
+
+/**
+ * Sets `rider` down on foot beside `vehicle` at once (BD-FIX-SPAWN-12): a resumed checkpoint whose seat could not be taken (DL-736). Out
+ * of any vehicle first (`unseatDriver`); then the capsule is placed where the normal exit would put it (`findExitPoint`: the driver side
+ * first, `trackM / 2 + 0.9` m from the centre line, then the passenger side and the rings, with a clear ray from the car and ground under
+ * the spot), facing the car's way, colliding and shown, so it never overlaps the car's collider. With no free spot the driver-side point
+ * is taken anyway, at the car's height. False when `rider` or `vehicle` is gone.
+ */
+export function setDownBeside(
+  ecs: EcsApi, backend: VehiclePhysics, store: VehicleStore, services: Pick<EngineServices, 'camera' | 'events'>, rider: EntityHandle, vehicle: EntityHandle,
+  tick: number, config: CharacterConfig = PHYSICS_CONFIG.character,
+): boolean {
+  const did = ecs.resolve(rider);
+  const vid = ecs.resolve(vehicle);
+  if (did === null || vid === null || !(ecs as unknown as EcsWorld).hasId(vid, BodyRef)) return false;
+  const co = ecs.store(Control);
+  if (co.owner[did] === CONTROL_OWNER.Vehicle) unseatDriver(ecs, backend, store, services, rider, tick);
+  const rt = store.rt.get(vid) ?? store.ensure(vid, ecs.strings.get(ecs.store(Vehicle).handling[vid] as number));
+  const pose = poseOf(backend, ecs.store(BodyRef).body[vid] as number, new Float64Array(13), newPose());
+  const spot: Vec3 = [0, 0, 0];
+  if (!findExitPoint(backend, pose, rt, spot)) exitCandidates(pose, rt.profile, 0, spot);
+  const world = ecs as unknown as EcsWorld;
+  const tr = ecs.store(Transform);
+  const ve = ecs.store(Velocity);
+  const yaw = datan2(-pose.fx, -pose.fz);
+  tr.px[did] = spot[0]; tr.py[did] = spot[1]; tr.pz[did] = spot[2];
+  tr.qx[did] = 0; tr.qy[did] = dsin(yaw / 2); tr.qz[did] = 0; tr.qw[did] = dcos(yaw / 2);
+  ve.vx[did] = 0; ve.vy[did] = 0; ve.vz[did] = 0; ve.wx[did] = 0; ve.wy[did] = 0; ve.wz[did] = 0;
+  if (world.hasId(did, BodyRef)) {
+    const body = ecs.store(BodyRef).body[did] as number;
+    const target: Vec3 = [spot[0], spot[1] + capsuleCentreOffset(config), spot[2]];
+    backend.setBodyPose(body, target, identity);
+    backend.setKinematicTarget(body, target, identity);
+    backend.setBodyGroups(body, GROUPS.character);
+  }
+  if (world.hasId(did, RenderKey)) ecs.store(RenderKey).visible[did] = 1;
+  return true;
+}
