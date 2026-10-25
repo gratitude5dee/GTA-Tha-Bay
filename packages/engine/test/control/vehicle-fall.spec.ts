@@ -16,6 +16,7 @@ import { isDriving, requestDriverTeleport, requestPlayerMove, ridingVehicle } fr
 import { CONTROL_OWNER, CONTROL_REASON, CONTROL_STATE } from '../../src/sim/control/states.ts';
 import { BodyRef, Control, Transform } from '../../src/sim/ecs/components.ts';
 import type { VehiclePhysics } from '../../src/sim/physics/backend.ts';
+import { RESPAWN_FADE_TICKS } from '../../src/sim/vehicle/vehicle-system.ts';
 import type { WorldBoundsPort } from '../../src/sim/world/index.ts';
 import { createVehicleWorld, drive, playerControl, view, type VehicleWorld } from '../vehicle-sim.ts';
 
@@ -271,6 +272,35 @@ describe('below-the-world net for a vehicle with the player aboard (DL-734, DL-7
     drive(w, VEHICLE_RESCUE_FADE_TICKS + 5);
     expect(f.moves).toHaveLength(0);
     expect(fades(w).map((x) => x[0])).toEqual(['in']);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a car that stalls in the water while out of the world is the water rule\'s: no move of the net, one fade-in, the shore respawn (BD-FIX-SPAWN-10)', async () => {
+    const shore: ShoreNode = { id: 'sn.t', x: 120, y: 0, z: 60, nx: 0, nz: 1 };
+    const { w, f } = await settled({ shore });
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 2);
+    // the net's rescue fade is out and its move is due VEHICLE_RESCUE_FADE_TICKS after the request
+    expect(fades(w).map((x) => x[0])).toEqual(['out']);
+    const rt = w.mod.store.rt.get(w.sim.ecs.resolve(w.vehicle) as number);
+    if (!rt) throw new Error('no vehicle runtime');
+    // the car stalls in the water before that move (the water wall's verdict, with its own fade out)
+    rt.wet = { wetTicks: rt.wet.wetTicks, stalled: true };
+    rt.respawnFade = 0;
+    w.sim.services.events.push({ t: 'world.teleport', tick: w.sim.tick, a: w.player, s: 'out' });
+    drive(w, RESPAWN_FADE_TICKS + VEHICLE_RECOVER_RETRY_TICKS);
+    // the net never moved it: the water rule respawned it at the shore and brought the screen back once
+    expect(f.moves).toHaveLength(0);
+    expect(f.teleportAsks).toBe(0);
+    expect(fades(w).map((x) => x[0])).toEqual(['out', 'in']);
+    expect(rt.wet.stalled).toBe(false);
+    const v = view(w);
+    expect(Math.abs(v.x - shore.x)).toBeLessThan(0.5);
+    expect(v.z).toBeLessThan(shore.z);
+    expect(v.z).toBeGreaterThan(shore.z - 20);
+    expect(v.y).toBeGreaterThan(0);
+    expect(v.contacts).toBeGreaterThan(0);
+    expect(playerControl(w).owner).toBe(CONTROL_OWNER.Vehicle);
     w.sim.dispose();
   }, 60_000);
 

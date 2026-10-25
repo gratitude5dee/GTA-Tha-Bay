@@ -9,6 +9,7 @@ import type { MissionIR } from '@dv/shared';
 import { at, circle, defineMission, markerTrigger, npc, phoneTrigger, stage, waitFor } from '../src/authoring/index.ts';
 import type { CatalogPayload } from '../src/missions/store.ts';
 import { PLACE_ANSWER_TICKS, PLACE_BUDGET_TICKS, PLACE_HINT_AFTER_TICKS, PLACE_HINT_EVERY_TICKS, PLACE_RETRY_FIRST_TICKS, PLACE_RETRY_MAX_TICKS, placeRetryGap, StoryController } from '../src/mode.ts';
+import { CHECKPOINT_SCHEMA } from '../src/vm/constants.ts';
 import { flatResolver, ll, makeHarness, type Harness } from './harness.ts';
 
 const START = { x: 2000, z: 3000 };
@@ -484,5 +485,89 @@ describe('repair S3-R2 (BD-FIX-SPAWN-08)', () => {
       expect(after).toEqual([]);
       expect(shown.some((t) => t.text === '')).toBe(false);
     }
+  });
+});
+
+/** A saved `activeMission` for `id`: a whole checkpoint at stage 0 with the player at `player`, of `version` and `bake`. */
+const savedMission = (id: string, version: number, bake: string, player: { x: number; z: number }): NonNullable<StorySlice['activeMission']> =>
+  ({
+    id,
+    checkpoint: {
+      schema: CHECKPOINT_SCHEMA,
+      data: { missionId: id, version, worldBake: bake, stage: 0, attempt: 1, seed: 1, rng: [1, 2, 3, 4], elapsedSec: 0, flags: {}, objectivesDone: [], talkResults: {}, player: { x: player.x, y: 0, z: player.z, yaw: 0, health: 1 }, cast: {}, walletDeltaCents: 0 },
+    },
+  }) as unknown as NonNullable<StorySlice['activeMission']>;
+
+describe('repair S4-R1 (BD-FIX-SPAWN-10): a dropped checkpoint never starts its mission where the player stands (DL-734)', () => {
+  for (const [what, version, bake] of [
+    ['another world bake (a rebake)', 1, 'some-old-bake'],
+    ['another mission version', 99, 'test-bake'],
+  ] as const) {
+    it(`a saved first mission whose checkpoint is of ${what} moves the player to its authored start before it begins`, async () => {
+      const { h, c, asked, run } = setup();
+      h.story.activeMission = savedMission('m.t.first', version, bake, { x: 0, z: 0 });
+      (h.story.missions as Record<string, unknown>)['m.t.first'] = { state: 'active' };
+      h.put(h.player, 0, 0, 0);
+      await run(40);
+      // the checkpoint is dropped and nothing starts in place: the trigger asks for the move to the Yard instead
+      expect(h.story.activeMission).toBeNull();
+      expect(h.story.missions['m.t.first']?.state).toBe('available');
+      expect(c.rt?.active ?? false).toBe(false);
+      expect(h.calls.telemetry.filter((t) => t.name === 'mission.start')).toHaveLength(0);
+      expect(h.calls.saves).not.toContain('checkpoint');
+      expect(asked).toHaveLength(1);
+      expect(asked[0]!.kind).toBe('respawn');
+      const to = asked[0]!.to as { x: number; z: number };
+      expect(to.x).toBeCloseTo(START.x, 3);
+      expect(to.z).toBeCloseTo(START.z, 3);
+      // the mission begins once the player stands at its start, fresh (stage 0, attempt 1), not from the dropped checkpoint
+      await run(120);
+      expect(c.rt?.active ?? false).toBe(false);
+      h.put(h.player, START.x, START.z, 4);
+      asked[0]!.answer(ok());
+      await run(16);
+      expect(c.rt?.active).toBe(true);
+      expect(c.rt?.missionId).toBe('m.t.first');
+      expect(c.rt?.stageIndex).toBe(0);
+      expect(asked).toHaveLength(1);
+    });
+  }
+
+  it('a saved first mission whose checkpoint was dropped on a gray-box world stays available with mission.startUnreachable, not started in place', async () => {
+    const { h, c, asked, shown, run } = setup(undefined, { bake: 'graybox' });
+    h.story.activeMission = savedMission('m.t.first', 1, 'some-old-bake', { x: 0, z: 0 });
+    h.put(h.player, 0, 0, 0);
+    await run(40);
+    expect(h.story.activeMission).toBeNull();
+    expect(c.rt?.active ?? false).toBe(false);
+    expect(asked).toHaveLength(0);
+    expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(1);
+    expect(jobRow(h, 'm.t.first')).toMatchObject({ state: 'available', retry: true });
+  });
+
+  it('a saved marker mission whose checkpoint was dropped waits for its marker, and starts when the player walks into it', async () => {
+    const { h, c, asked, run } = setup(undefined, { missions: [marked, phoned] });
+    h.story.activeMission = savedMission('m.t.marker', 1, 'some-old-bake', { x: 0, z: 0 });
+    h.put(h.player, 0, 0, 0);
+    await run(40);
+    expect(h.story.activeMission).toBeNull();
+    expect(h.story.missions['m.t.marker']?.state).toBe('available');
+    expect(c.rt?.active ?? false).toBe(false);
+    expect(asked).toHaveLength(0);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+    expect(asked).toHaveLength(0);
+  });
+
+  it('a saved mission whose checkpoint matches this version and world bake still continues from that checkpoint', async () => {
+    const { h, c, asked, run } = setup();
+    h.story.activeMission = savedMission('m.t.first', 1, 'test-bake', { x: START.x + 5, z: START.z });
+    h.put(h.player, 0, 0, 0);
+    await run(16);
+    expect(asked).toHaveLength(0);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.first');
   });
 });

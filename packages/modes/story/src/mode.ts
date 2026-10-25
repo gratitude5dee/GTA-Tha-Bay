@@ -361,8 +361,10 @@ export class StoryController {
 
   /**
    * A mission that was running when the game was saved (`StorySlice.activeMission`, written at a checkpoint) continues from that
-   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake is dropped by `begin`, which
-   * leaves the mission `available` again. Tried once per session.
+   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake (a rebake changes the bake id)
+   * is dropped here and the mission is `available` again, and nothing starts: the trigger and the far start of `checkTriggers` (or a
+   * marker, or the Jobs app) start it at its authored start, never where the player stands (DL-734; BD-FIX-SPAWN-10). Tried once per
+   * session.
    */
   private resumeSaved(ctx: ModeContext, store: MissionStore, story: StorySlice): boolean {
     const saved = story.activeMission;
@@ -371,6 +373,12 @@ export class StoryController {
     const entry = store.get(saved.id);
     if (!entry) {
       story.activeMission = null;
+      return false;
+    }
+    if (!readCheckpoint(saved, entry.ir.id, entry.ir.version, ctx.world.resolver.bake)) {
+      story.activeMission = null;
+      const row = story.missions[entry.ir.id];
+      if (row?.state !== 'passed') story.missions[entry.ir.id] = { state: 'available', ...(row?.bestSec !== undefined ? { bestSec: row.bestSec } : {}) };
       return false;
     }
     this.clearStartMarks(ctx);
@@ -385,7 +393,7 @@ export class StoryController {
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
       // the first auto mission starts at its authored start (a new game's Yard), whether or not it was started before (quit, or a
-      // checkpoint dropped after a rebake): move the player there first, and start it once the player stands on the ground there (DL-734).
+      // checkpoint dropped after a rebake, which `resumeSaved` leaves to this pass): move the player there first, and start it once the player stands on the ground there (DL-734).
       // A chained auto mission has no place in its start (`farStartFor` answers null) and begins where the player is.
       const far = this.farStartFor(ctx, due.ir.id);
       if (far) {

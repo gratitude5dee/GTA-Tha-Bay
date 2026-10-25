@@ -206,7 +206,9 @@ export function vehicleRespawnPose(api: WorldApi, bounds: WorldBoundsPort | null
  * player on the ground in the same tick, before the on-foot controller could take the falling car under the capsule for ground
  * (`control.recover` `s: 'gave-up'`, then the on-foot net's own; DL-735 e). A vehicle a mode places itself
  * (`EngineServices.vehicleFallClaim`: the race director resets its car to the last gate) is left to that mode. An ambient vehicle with no
- * player aboard is the traffic's (it despawns one under `play.minY`); other cars are left alone. Without a baked world
+ * player aboard is the traffic's (it despawns one under `play.minY`); other cars are left alone. A car stalled in the water
+ * (`VehicleRuntime.wet.stalled`) is the water rule's stall respawn, with its longer fade (DL-735 b): the net does not move it, and a
+ * rescue fade already out is left for the water rule's `in` (BD-FIX-SPAWN-10). Without a baked world
  * (`services.world.api` null) the system does nothing, so the gray-box scenes and their hashes are unchanged.
  *
  * Its only bookkeeping, which flights have had their `control.recover` and which rescue fades are out, is not sim state and nothing new is
@@ -241,6 +243,12 @@ export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): Sys
         const id = co.target[pid] as number;
         const rt = opts.store.rt.get(id);
         if (!rt || rt.airTicks < FALL_RECOVER_TICKS) continue;
+        // a car stalled in the water is the water rule's (4.1 a): its own fade and shore respawn, and its `in` restores the screen, so
+        // a rescue fade of this net that is out is handed over to it without an `in` of its own (BD-FIX-SPAWN-10)
+        if (rt.wet.stalled) {
+          fading.delete(id);
+          continue;
+        }
         const vh = ecs.handle(id as EntityId);
         if (!ecs.has(vh, Vehicle) || !ecs.has(vh, Transform)) continue;
         const ph = ecs.handle(pid as EntityId);
