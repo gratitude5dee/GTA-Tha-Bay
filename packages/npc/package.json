@@ -9,7 +9,9 @@
     "./ink": "./src/ink/ink-runner.ts",
     "./debug": "./src/debug/overlay.ts",
     "./voice": "./src/voice.ts",
-    "./sim": "./src/brains/module.ts"
+    "./sim": "./src/brains/module.ts",
+    "./intent": "./src/client/intent-driver.ts",
+    "./flags": "./src/client/flags-feed.ts"
   },
   "scripts": {
     "test": "tsx ../../tools/ci/run.ts vitest --pkg packages/npc"

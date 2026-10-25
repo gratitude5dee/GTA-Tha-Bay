@@ -69,6 +69,11 @@ export class TalkHandler implements InteractionHandler {
 
   constructor(private readonly d: TalkDeps) {}
 
+  /** Only NPCs and filler pedestrians are ours; a mission's talkable keeps its own flow. */
+  accepts(ctx: InteractionContext, target: EntityHandle): boolean {
+    return this.d.classify(ctx, target) !== null;
+  }
+
   canInteract(ctx: InteractionContext, _actor: EntityHandle, target: EntityHandle): true | string {
     const t = this.d.classify(ctx, target);
     if (!t) return TALK_REASON.killed;

@@ -27,6 +27,8 @@ const BODY_ASSET = (n: number): string => `character/ped.ambient.${String.fromCh
 const NPC_OUTFITS = [3, 11, 0, 8, 9, 17] as const;
 
 export const NPC_PREFAB = 'npc.named';
+/** QA only: a pedestrian that only stands where it was put, so a spec can talk to one (`mode.cmd npc qa.filler`). */
+export const QA_FILLER_PREFAB = 'npc.qa.filler';
 
 export const H = (n: number): EntityHandle => n as EntityHandle;
 
@@ -73,6 +75,50 @@ export class NpcEntities {
         { def: NpcLod },
       ],
     });
+    this.ecs.definePrefab({
+      id: QA_FILLER_PREFAB,
+      components: [
+        { def: Transform, init: { qw: 1 } },
+        { def: RenderKey, init: { asset: this.strings.intern(BODY_ASSET(0)), visible: 1 } },
+        { def: Anim },
+        { def: Ambient },
+      ],
+    });
+  }
+
+  /** Stands a QA filler `ahead` metres in front of the player. Returns its key, or null without a player. */
+  spawnQaFiller(slot: number, ahead: number): { key: StableKey; handle: number } | null {
+    const ecs = this.ecs;
+    const ids = ecs.query([LocalPlayer, Transform]);
+    const pid = ids[0];
+    if (pid === undefined) return null;
+    const tr = ecs.store(Transform);
+    const qx = tr.qx[pid] as number;
+    const qy = tr.qy[pid] as number;
+    const qz = tr.qz[pid] as number;
+    const qw = tr.qw[pid] as number;
+    const fx = -2 * (qx * qz + qw * qy);
+    const fz = -(1 - 2 * (qx * qx + qy * qy));
+    const len = dsqrt(fx * fx + fz * fz) || 1;
+    const x = (tr.px[pid] as number) + (fx / len) * ahead;
+    const z = (tr.pz[pid] as number) + (fz / len) * ahead;
+    const key = `amb:npc-qa:${slot}` as StableKey;
+    const handle = ecs.commands.spawn(
+      QA_FILLER_PREFAB,
+      {
+        'Transform.px': x, 'Transform.py': tr.py[pid] as number, 'Transform.pz': z,
+        'Ambient.cell': this.strings.intern('npc-qa'), 'Ambient.slot': slot,
+      },
+      key,
+    ) as unknown as number;
+    return { key, handle };
+  }
+
+  /** QA: sets the anim state of an entity (the ragdoll of a knocked-down pedestrian is 12). */
+  setAnim(handle: number, state: number): void {
+    const id = this.ecs.resolve(H(handle));
+    if (id === null || !this.ecs.hasId(id, Anim)) return;
+    this.ecs.store(Anim).state[id] = state;
   }
 
   /** The entity of an agent, 0 before it is spawned. */

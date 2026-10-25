@@ -86,6 +86,9 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
   const scratchBarks: PedBark[] = [];
   let env: BrainEnv = { tick: 0, clockT: 0, player: null, trust: () => 0 };
   let lastDebug = -1000;
+  // QA: the standing filler a spec talks to, and when its knock-down ends
+  let qaFiller: { key: string; handle: number; bumpUntil: number } | null = null;
+  let qaSerial = 0;
 
   const speakerOf = (owner: string, tags: readonly string[]): string => {
     if (tags.includes('who:player')) return 'player';
@@ -216,6 +219,11 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
     const req = p.intents.next();
     if (req) host?.ui.patch('sys.npc.intents', req as unknown as JsonObject);
 
+    if (qaFiller && qaFiller.bumpUntil > 0 && tick >= qaFiller.bumpUntil) {
+      p.entities.setAnim(qaFiller.handle, 0);
+      qaFiller.bumpUntil = 0;
+    }
+
     p.barks.update(tick);
     p.knots.update(tick);
     p.lane.update(tick);
@@ -339,6 +347,21 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
           const ped = parts.entities.nearestPed(env.player, BRAIN_CONFIG.barks.radiusM - 5);
           if (ped) barkFor(env.tick, { ...ped, tag });
         }
+        return;
+      }
+      case 'qa.filler': {
+        // QA builds only: a pedestrian that stands still `ahead` metres in front of the player, whose key and anim a spec controls
+        if (!ctx?.runtime.env.qa) return;
+        const ahead = typeof a['ahead'] === 'number' ? Math.min(6, Math.max(0.8, a['ahead'])) : 1.6;
+        const made = parts.entities.spawnQaFiller(300 + (qaSerial++ % 100), ahead);
+        if (made) qaFiller = { key: made.key, handle: made.handle, bumpUntil: 0 };
+        return;
+      }
+      case 'qa.bump': {
+        // QA builds only: the standing filler is knocked down for two seconds (the pedestrian layer's ragdoll anim), which the bark watcher hears
+        if (!ctx?.runtime.env.qa || !qaFiller) return;
+        parts.entities.setAnim(qaFiller.handle, 12);
+        qaFiller.bumpUntil = env.tick + 120;
         return;
       }
       case 'event': {

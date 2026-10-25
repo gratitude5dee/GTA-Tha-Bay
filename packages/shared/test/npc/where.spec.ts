@@ -10,7 +10,7 @@ const pois: Record<string, Vec3> = { [HOME]: [0, 0, 0], [SHOP]: [100, 0, 0], [BA
 const poi = (id: string): Vec3 | null => pois[id] ?? null;
 
 const block = (from: string, to: string, activity: ScheduleBlock['activity'], place: string): ScheduleBlock =>
-  ({ days: 'daily', from, to, activity, place, interruptible: true, priority: 5 });
+  ({ days: 'daily', from, to, activity, place: place as ScheduleBlock['place'], interruptible: true, priority: 5 });
 
 // Sleep at home across midnight (22:00 to 06:00), a commute to the shop 06:00 to 07:00, work to 18:00, a commute to the bar to 19:00,
 // socialize to 22:00.
