@@ -4,6 +4,7 @@ import type { EngineHandle } from '@dv/engine/client/boot';
 import { readLastSave } from '@dv/engine/client/save-status';
 import { SaveServiceImpl, type SlotInfo } from '@dv/engine/save';
 import type { LastSaveStatus, PlatformSettings, ProfileId, QualityTierId, SlotId } from '@dv/shared';
+import { createOfflinePort } from './offline-port.ts';
 import type { EnginePort, PlatformPort, SavesPort, SlotSummary, StorageInfo } from '@dv/ui';
 
 /**
@@ -101,8 +102,16 @@ export function createPlatformPort(
     const sample = { fps: s.fps, tier: platform.quality.tier.id };
     for (const cb of [...statSubs]) cb(sample);
   });
+  const offline = platform.assets
+    ? createOfflinePort({
+        assets: platform.assets,
+        storage: typeof navigator !== 'undefined' ? navigator.storage : null,
+        emit: (name, props) => platform.telemetry.emit(name, props),
+      })
+    : null;
   return {
     settings: () => current,
+    ...(offline ? { offline } : {}),
     onFrameStats: (cb) => {
       statSubs.add(cb);
       offFrames ??= platform.host.addFrameListener({ before: (time) => feed.before(time) });

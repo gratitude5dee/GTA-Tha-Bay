@@ -1,6 +1,7 @@
 import type { QualityTierId } from '@dv/shared';
 import { AssetNotFound } from './store/catalog-client.ts';
 import type { Priority } from './store/lanes.ts';
+import type { DownloadPlan } from './store/store.ts';
 import type { TabMode } from './store/tab-lock.ts';
 import { PackUnavailable, type PackRef, type StorageUsage } from './store/types.ts';
 import type {
@@ -194,8 +195,11 @@ export class AssetClient {
   evictByTag(tag: string): Promise<{ removed: number }> {
     return this.call('evictByTag', { tag });
   }
-  async downloadAll(onProgress: (done: number, total: number) => void): Promise<void> {
-    await this.call('downloadAll', { tier: this.o.tier() }, { progress: onProgress });
+  downloadPlan(): Promise<DownloadPlan> {
+    return this.call('downloadPlan', { tier: this.o.tier() });
+  }
+  async downloadAll(onProgress: (done: number, total: number) => void, o: { signal?: AbortSignal } = {}): Promise<void> {
+    await this.call('downloadAll', { tier: this.o.tier() }, { progress: onProgress, ...(o.signal ? { signal: o.signal } : {}) });
   }
   async clear(): Promise<void> {
     await this.call('clear', {});

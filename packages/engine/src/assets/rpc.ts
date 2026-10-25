@@ -2,6 +2,7 @@ import type { QualityTierId } from '@dv/shared';
 import type { CatalogFailure } from './store/catalog-client.ts';
 import type { Priority } from './store/lanes.ts';
 import type { TabMode } from './store/tab-lock.ts';
+import type { DownloadPlan } from './store/store.ts';
 import type { PackFailure, PackRef, StorageUsage } from './store/types.ts';
 
 /**
@@ -66,6 +67,7 @@ export interface RpcOps {
   gc: [Record<string, never>, { removed: number; freedMB: number }];
   usage: [Record<string, never>, StorageUsage];
   evictByTag: [{ tag: string }, { removed: number }];
+  downloadPlan: [{ tier: QualityTierId }, DownloadPlan];
   downloadAll: [{ tier: QualityTierId }, null];
   clear: [Record<string, never>, null];
   mode: [Record<string, never>, TabMode];

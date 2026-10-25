@@ -168,6 +168,36 @@ export interface SavesPort {
 
 export interface StorageInfo { usage: number; quota: number; persisted: boolean | null }
 
+/** What a city download would take on this device (M04b4). Sizes come from the catalog at run time. */
+export interface OfflinePlan {
+  totalBytes: number;
+  files: number;
+  missingBytes: number;
+  missingFiles: number;
+  /** Free quota in bytes; null when the browser gives no estimate. */
+  freeBytes: number | null;
+  fits: boolean;
+  shortfallBytes: number;
+  store: 'opfs' | 'memory-fallback';
+  /** False in a read-only second tab. */
+  writable: boolean;
+}
+export type OfflineJobState = 'running' | 'done' | 'cancelled' | 'failed';
+export interface OfflineJob { done: number; total: number; state: OfflineJobState; reason?: string }
+
+/** The city download as the Settings page uses it. The job lives in the port, so leaving the page neither stops nor loses it. */
+export interface OfflinePort {
+  /** Null while the catalog is not ready. */
+  plan(): Promise<OfflinePlan | null>;
+  downloaded(): Promise<{ bytes: number; files: number }>;
+  /** Starts a download, or returns the running one. Resolves when the job ends. */
+  start(): Promise<OfflineJob>;
+  cancel(): void;
+  job(): OfflineJob | null;
+  onJob(cb: (j: OfflineJob) => void): () => void;
+  clear(): Promise<void>;
+}
+
 /** The device-scoped platform settings and the quality service, as the Settings page and the Terms card use them. */
 export interface PlatformPort {
   settings(): PlatformSettings;
@@ -179,6 +209,8 @@ export interface PlatformPort {
   rerunBenchmark?(): Promise<void>;
   storage(): Promise<StorageInfo>;
   requestPersist?(): Promise<boolean>;
+  /** The city download for offline play (M04b4). Absent where the pack store is not wired. */
+  offline?: OfflinePort;
   /** The consent that governs telemetry now; the shell calls it with the stored value when Terms are accepted. */
   applyConsent(c: PlatformSettings['telemetryConsent']): void;
   /** Emits a telemetry event (the platform client drops it without consent). */

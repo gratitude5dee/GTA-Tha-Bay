@@ -347,12 +347,19 @@ export class AssetService {
         return { result: await this.store.usage() };
       case 'evictByTag':
         return { result: await this.store.evictByTag((msg.p as RpcOps['evictByTag'][0]).tag) };
+      case 'downloadPlan': {
+        const p = msg.p as RpcOps['downloadPlan'][0];
+        const state = await this.catalog.load();
+        if (state !== 'ready') throw new AssetNotFound('catalog', `catalog ${state}`);
+        return { result: await this.store.downloadPlan(this.catalog.resolveAll(p.tier)) };
+      }
       case 'downloadAll': {
         const p = msg.p as RpcOps['downloadAll'][0];
         const state = await this.catalog.load();
         if (state !== 'ready') throw new AssetNotFound('catalog', `catalog ${state}`);
         await this.store.downloadAll(this.catalog.resolveAll(p.tier), (done, total) =>
           this.d.post({ t: 'event', name: 'progress', id: msg.id, done, total }),
+          signal,
         );
         return { result: null };
       }

@@ -23,7 +23,7 @@ export { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, detuneCents } from
 export type { VoiceClip, VoicePreview, VoicePreviewDeps } from './creator/voice-preview.ts';
 export { loadPrefs, memoryPrefs, defaultPrefs } from './shell/prefs.ts';
 export { LEGAL_DOCS, frameFor, hrefFor, PAGES } from './shell/registry.ts';
-export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo } from './shell/types.ts';
+export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo, OfflineJob, OfflinePlan, OfflinePort } from './shell/types.ts';
 
 export interface ShellHandle {
   readonly core: ShellCore;
