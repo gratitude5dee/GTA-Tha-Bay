@@ -19,7 +19,7 @@ const plan = (over: Partial<OfflinePlan> = {}): OfflinePlan => ({
   ...over,
 });
 
-function env(offline: SettingsEnv['offline']): SettingsEnv {
+function env(offline: Exclude<SettingsEnv['offline'], undefined>): SettingsEnv {
   return {
     xrCapable: false, deviceClass: 'desktop', tierChoices: [], tierLine: 'desktop (auto)', backend: 'webgl2', storage: null,
     installable: false, ios: false, standalone: false, build: 'x', updateReady: false, ageStatus: '-', offline,
