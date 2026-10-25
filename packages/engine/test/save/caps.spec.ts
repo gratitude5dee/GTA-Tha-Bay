@@ -35,9 +35,9 @@ describe.each<StoreKind>(['memory', 'idb'])('engine/save.caps (%s store)', (kind
 
     const store2 = await newStore(kind);
     const s2 = await openSvc(store2);
-    expect('id' in (await s2.createProfile('Dee'))).toBe(true);
-    expect(await s2.createProfile('dEE')).toMatchObject({ ok: false, error: 'NAME_TAKEN' });
-    expect(await s2.createProfile('  dee ')).toMatchObject({ ok: false, error: 'NAME_TAKEN' });
+    expect('id' in (await s2.createProfile('Coast'))).toBe(true);
+    expect(await s2.createProfile('cOAST')).toMatchObject({ ok: false, error: 'NAME_TAKEN' });
+    expect(await s2.createProfile('  coast ')).toMatchObject({ ok: false, error: 'NAME_TAKEN' });
     expect((await s2.listProfiles()).length).toBe(1);
   });
 });

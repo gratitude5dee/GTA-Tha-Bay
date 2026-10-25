@@ -22,7 +22,7 @@ export { soulVersionProblem } from './version.ts';
 export type { SoulHashes } from './version.ts';
 export {
   validateSoul, validateRoster, validateRosterBundle, validateNpcTurn, validateNpcIntent, validateNpcSummary,
-  validateDialogueRequest, validateVoiceCatalog, validateBarkPool, formatIssue,
+  validateDialogueRequest, validateVoiceCatalog, validateBarkPool, validateSoulLlm, formatIssue,
 } from './validate.ts';
 export type { SchemaIssue } from './validate.ts';
 export {
@@ -49,3 +49,8 @@ export type { RawMemoryWrite, SummaryPatchX } from './memory.ts';
 export { whereIs, pointAlong, elapsedInBlock } from './where.ts';
 export type { Vec3, PoiPos, PedRouteFn, WhereIsResult } from './where.ts';
 export { situationHash, normalizeSituation, intentCacheKey, bucketDistance, DISTANCE_BUCKET_M } from './situation-hash.ts';
+// M06b1: the NPC builder's deterministic soul writer and its lints.
+export { assembleSoul, writeSoulMd, deriveInk, cleanSectionText, exampleLinesText, BUILDER_SECTIONS } from './soul-write.ts';
+export type { LlmSoul, BuilderServerFields, AssembledSoul } from './soul-write.ts';
+export { lintBuilderSoul } from './builder-lint.ts';
+export type { BuilderLintEnv, BuilderLintResult } from './builder-lint.ts';

@@ -35,6 +35,19 @@ insert into consent_record (id, subject_id, signatory_name, signatory_capacity, 
   values ('cr1', 'ls1', 'Test Person', 'self', '{marketing}', '{image}', 'test', current_date, 'on request', false, 'k', repeat('a', 64),
   '00000000-0000-7000-8000-0000000000a1', now());
 insert into consent_event (consent_id, kind, actor) values ('cr1', 'granted', 't');
+-- M06b1: the 0004 tables.
+insert into moderation_item (id, subject_kind, subject_id, owner_profile_id) values ('00000000-0000-7000-8000-0000000000b1', 'npc_draft', 'd1', '00000000-0000-7000-8000-0000000000a1');
+insert into moderation_signal (item_id, source, source_version, verdict) values ('00000000-0000-7000-8000-0000000000b1', 'names_lint', 'x', 'allow');
+insert into moderation_case (id, item_id, queue, reason, opened_by, sla_due_at, subject_snapshot)
+  values ('00000000-0000-7000-8000-0000000000b2', '00000000-0000-7000-8000-0000000000b1', 'P2_REVIEW', 'r', 'auto:test', now() + interval '72 hours', '{}');
+insert into moderation_decision (case_id, decided_by, role, action, policy_code) values ('00000000-0000-7000-8000-0000000000b2', '00000000-0000-7000-8000-0000000000a1', 'reviewer', 'dismiss', 'p');
+insert into user_report (id, target_kind, target_id, category) values ('00000000-0000-7000-8000-0000000000b3', 'npc_soul', 'u_abcdefgh', 'other');
+insert into enforcement_action (profile_id, kind, policy_code) values ('00000000-0000-7000-8000-0000000000a1', 'strike', 'p');
+insert into uploads (id, profile_id, purpose, r2_key, content_type, declared_bytes)
+  values ('00000000-0000-7000-8000-0000000000b4', '00000000-0000-7000-8000-0000000000a1', 'npc_image', 'k', 'image/png', 1);
+insert into npc_draft (id, npc_id, owner_profile_id, fields) values ('00000000-0000-7000-8000-0000000000b5', 'u_abcdefgh', '00000000-0000-7000-8000-0000000000a1', '{}');
+insert into npc_soul (npc_id, soul_version, owner_profile_id, soul_md, compiled_json, prompt_r2_key, prompt_sha256, status)
+  values ('u_abcdefgh', 1, '00000000-0000-7000-8000-0000000000a1', 'x', '{}', 'souls/u_abcdefgh/1/soul.prompt.txt', repeat('a', 64), 'private');
 
 -- Rows a role can read from one table; a missing privilege counts as none.
 create function public._visible_rows(t regclass) returns bigint language plpgsql as $$

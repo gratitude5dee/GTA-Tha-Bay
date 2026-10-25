@@ -17,6 +17,7 @@ import { handleMedia } from './routes/media.ts';
 import { handleDeleteMe as handleForgetMe, handleExport, handleMe as handleIdentityMe } from './routes/me.ts';
 import { handleBrowserReport } from './routes/reports-browser.ts';
 import { handleNpc } from './routes/npc-talk.ts';
+import { handleNpcBuilder } from './npc-builder/routes.ts';
 import { handleForgetNpcMemory } from './routes/me-npc-memory.ts';
 import { handleRoster } from './routes/roster.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
@@ -59,6 +60,8 @@ const ROUTES: readonly Route[] = [
   { methods: ['DELETE'], path: '/api/v1/me/npc-memory', handler: handleForgetNpcMemory },
   // M06a3: route 31, POST /api/v1/npc/:npcId/talk (SSE).
   { methods: '*', path: '/api/v1/npc', prefix: true, handler: handleNpc },
+  // M06b1: route 33, the P0 sub-paths of /api/v1/npc-builder/drafts (the community list and the P1/P2 paths answer tier_required or feature_disabled).
+  { methods: '*', path: '/api/v1/npc-builder', prefix: true, handler: handleNpcBuilder },
 ];
 
 /** Test routes are loaded behind a build-time constant so the production bundle does not contain them. */

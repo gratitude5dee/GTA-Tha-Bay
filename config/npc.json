@@ -59,5 +59,11 @@
     "voicedLinesPerDay": { "p0": 60, "linked": 200 },
     "costCapMicrosPerDay": { "p0": 50000, "linked": 150000 }
   },
-  "cacheTtls": { "promptBlockSeconds": 3600, "historySeconds": 300, "intentSeconds": 600, "promptIsolateLru": 64 }
+  "cacheTtls": { "promptBlockSeconds": 3600, "historySeconds": 300, "intentSeconds": 600, "promptIsolateLru": 64 },
+  "builder": {
+    "rulesVersion": 1,
+    "moderation": { "openai": "on", "openaiModel": "omni-moderation-latest", "classifierModel": "claude-haiku-5-5", "llamaGuardModel": "@cf/meta/llama-guard-3-8b" },
+    "soul": { "model": "claude-sonnet-5-5", "thinking": "adaptive", "effort": "medium" },
+    "preview": { "model": "claude-haiku-5-5", "maxTokens": 512, "voiceRef": null }
+  }
 }

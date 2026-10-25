@@ -28,6 +28,16 @@ export const NPC_GUARDRAILS = {
   playTokensPerNet: 50,
   signupsPerNet: 3,
   builderTextPerDraftMs: 3600000,
+  builder: {
+    liveDraftsP0: 3,
+    liveDraftsLinked: 10,
+    previewTurnsPerDraftPerDay: 20,
+    backstoryCharsMax: 20000,
+    draftRetentionDays: 180,
+    soulMaxTokens: 8000,
+    sexualMinorsMilli: 200,
+    selfHarmIntentMilli: 500,
+  },
   encounter: {
     turnCap: 12,
     turnCapHard: 20,

@@ -33,5 +33,6 @@ export const validateNpcSummary = make('validateNpcSummary');
 export const validateDialogueRequest = make('validateDialogueRequest');
 export const validateVoiceCatalog = make('validateVoiceCatalog');
 export const validateBarkPool = make('validateBarkPool');
+export const validateSoulLlm = make('validateSoulLlm');
 
 export const formatIssue = (i: SchemaIssue): string => `${i.path === '' ? '/' : i.path} ${i.message}`;

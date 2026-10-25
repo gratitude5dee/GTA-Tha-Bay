@@ -793,6 +793,30 @@
       ],
       "additionalProperties": false
     },
+    "npc.builder.step": {
+      "type": "object",
+      "description": "One step of the NPC builder finished (M06b1; written by the Worker). Enums only: no draft id, no text.",
+      "properties": {
+        "step": {
+          "enum": [
+            "create",
+            "validate",
+            "soul",
+            "probes",
+            "preview",
+            "private_talk"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "step",
+        "ok"
+      ],
+      "additionalProperties": false
+    },
     "genai.cost": {
       "type": "object",
       "description": "Server-only (a settled model call; never accepted from clients). Enums and numbers only.",

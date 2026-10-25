@@ -139,6 +139,49 @@ export class PlayerQuotaDO extends DurableObject<Env> implements PlayerQuota {
     }
   }
 
+  /**
+   * Gives a reservation back (M06b1): the work it paid for never started, so the player does not lose the day's count or the hour of the
+   * one-generation-per-draft rule. Unknown or already settled reservations change nothing.
+   */
+  release(reservationId: string): Promise<void> {
+    const row = this.sql().exec<{ kind: string; npc_id: string; settled: number; day: string }>('SELECT kind, npc_id, settled, day FROM reservations WHERE id = ?', reservationId).toArray()[0];
+    if (row === undefined || row.settled === 1) return Promise.resolve();
+    this.ctx.storage.transactionSync(() => {
+      this.sql().exec('DELETE FROM reservations WHERE id = ?', reservationId);
+      this.add(row.day, row.kind, '', -1);
+      if (row.kind === 'turn' && row.npc_id !== '') this.add(row.day, 'turn', row.npc_id, -1);
+    });
+    return Promise.resolve();
+  }
+
+  /**
+   * A counter scoped to one id with a daily cap, for limits that are not a reservation kind (M06b1: preview turns per draft per day, scope = the
+   * draft id). Atomic like `take`; a refusal writes the `quota.block` event.
+   */
+  takeScoped(kind: string, scope: string, cap: number): Promise<{ ok: boolean; n: number }> {
+    const day = utcDay(now());
+    return Promise.resolve(
+      this.ctx.storage.transactionSync(() => {
+        this.rollover(day);
+        const n = this.count(day, kind, scope);
+        if (n >= cap) {
+          this.block(kind, 'scope_cap', 'player', 'local');
+          return { ok: false, n };
+        }
+        this.add(day, kind, scope, 1);
+        return { ok: true, n: n + 1 };
+      }),
+    );
+  }
+
+  /** What the builder shows of a draft's limits (M06b1): soul generations reserved today, whether this draft's hour is taken, preview turns used today. */
+  builderUsage(draftId: string): Promise<{ soulToday: number; hourTaken: boolean; previewToday: number }> {
+    const day = utcDay(now());
+    const since = now() - NPC_GUARDRAILS.builderTextPerDraftMs;
+    const recent = this.sql().exec('SELECT 1 FROM reservations WHERE kind = ? AND npc_id = ? AND at > ? LIMIT 1', 'builder_text', draftId, since).toArray();
+    return Promise.resolve({ soulToday: this.count(day, 'builder_text'), hourTaken: recent.length > 0, previewToday: this.count(day, 'builder_preview', draftId) });
+  }
+
   /** Today's counters: `turn`, `voice_line`, ... (reservations made), `cost_micros`, and `npc:<id>` (turns per NPC). */
   usage(): Promise<Record<string, number>> {
     const day = utcDay(now());

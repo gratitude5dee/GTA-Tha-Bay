@@ -11,6 +11,7 @@
 <symbol id="cr-body-10" viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="10" r="5"/><rect x="18.5" y="17" width="11" height="22" rx="4"/><rect x="18.5" y="37" width="4.5" height="8"/><rect x="25" y="37" width="4.5" height="8"/></symbol>
 <symbol id="cr-body-11" viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="10" r="5"/><rect x="17" y="17" width="14" height="25" rx="4"/><rect x="17" y="40" width="6" height="8"/><rect x="25" y="40" width="6" height="8"/></symbol>
 <symbol id="cr-body-12" viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="10" r="5"/><rect x="15.5" y="17" width="17" height="28" rx="4"/><rect x="15.5" y="43" width="7.5" height="8"/><rect x="25" y="43" width="7.5" height="8"/></symbol>
+<symbol id="cr-body-13" viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="9" r="7"/><path d="M15 18 Q24 15 33 18 L33 38 H15 Z"/><rect x="16" y="37" width="7" height="9" rx="1"/><rect x="25" y="37" width="7" height="9" rx="1"/></symbol>
 <symbol id="cr-face-1" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="11" ry="14"/><circle cx="20" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="28" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="21" y="30" width="6" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-face-2" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="12" ry="15"/><circle cx="19" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="29" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="20" y="31" width="8" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-face-3" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="13" ry="16"/><circle cx="18" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="30" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="21" y="32" width="6" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
@@ -35,6 +36,7 @@
 <symbol id="cr-face-22" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="11" ry="15"/><circle cx="20" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="28" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="20" y="30" width="8" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-face-23" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="12" ry="16"/><circle cx="19" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="29" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="21" y="31" width="6" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-face-24" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="24" rx="13" ry="17"/><circle cx="18" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="30" cy="22" r="1.8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="20" y="32" width="8" height="1.6" rx=".8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
+<symbol id="cr-face-25" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="23" rx="14" ry="16"/><circle cx="18" cy="21" r="2.2" fill="var(--dv-card-bg,#0b0f17)"/><circle cx="30" cy="21" r="2.2" fill="var(--dv-card-bg,#0b0f17)"/><path d="M14 30 Q24 44 34 30 Q24 36 14 30 Z" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-hair-1" viewBox="0 0 48 48" fill="currentColor"><path d="M10 28 C10 12 38 12 38 28 L34 26 C34 18 14 18 14 26 Z"/><rect x="9" y="26" width="5" height="14" rx="2"/><rect x="34" y="26" width="5" height="14" rx="2"/></symbol>
 <symbol id="cr-hair-2" viewBox="0 0 48 48" fill="currentColor"><path d="M10 28 C10 10 38 10 38 28 L34 26 C34 18 14 18 14 26 Z"/></symbol>
 <symbol id="cr-hair-3" viewBox="0 0 48 48" fill="currentColor"><path d="M10 28 C10 8 38 8 38 28 L34 26 C34 18 14 18 14 26 Z"/></symbol>
@@ -51,6 +53,7 @@
 <symbol id="cr-hair-14" viewBox="0 0 48 48" fill="currentColor"><path d="M10 28 C10 10 38 10 38 28 L34 26 C34 18 14 18 14 26 Z"/></symbol>
 <symbol id="cr-hair-15" viewBox="0 0 48 48" fill="currentColor"><path d="M10 28 C10 8 38 8 38 28 L34 26 C34 18 14 18 14 26 Z"/></symbol>
 <symbol id="cr-hair-16" viewBox="0 0 48 48" fill="currentColor"><ellipse cx="24" cy="26" rx="13" ry="15" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+<symbol id="cr-hair-17" viewBox="0 0 48 48" fill="currentColor"><circle cx="24" cy="20" r="15"/><circle cx="12" cy="16" r="6"/><circle cx="36" cy="16" r="6"/><circle cx="24" cy="7" r="6"/></symbol>
 <symbol id="cr-top-1" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 18 L14 21 L16 18 L16 40 L32 40 L32 18 L34 21 L40 18 L32 8 Q24 14 16 8 Z"/></symbol>
 <symbol id="cr-top-2" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 21 L14 24 L16 18 L16 40 L32 40 L32 18 L34 24 L40 21 L32 8 Q24 14 16 8 Z"/></symbol>
 <symbol id="cr-top-3" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 24 L14 27 L16 18 L16 40 L32 40 L32 18 L34 27 L40 24 L32 8 Q24 14 16 8 Z"/></symbol>
@@ -63,6 +66,7 @@
 <symbol id="cr-top-10" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 18 L14 21 L16 18 L16 40 L32 40 L32 18 L34 21 L40 18 L32 8 Q24 14 16 8 Z"/></symbol>
 <symbol id="cr-top-11" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 21 L14 24 L16 18 L16 40 L32 40 L32 18 L34 24 L40 21 L32 8 Q24 14 16 8 Z"/></symbol>
 <symbol id="cr-top-12" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 24 L14 27 L16 18 L16 40 L32 40 L32 18 L34 27 L40 24 L32 8 Q24 14 16 8 Z"/></symbol>
+<symbol id="cr-top-13" viewBox="0 0 48 48" fill="currentColor"><path d="M16 8 L8 26 L14 28 L16 20 L16 42 L32 42 L32 20 L34 28 L40 26 L32 8 Q24 16 16 8 Z"/><path d="M18 8 Q24 2 30 8 Q24 13 18 8 Z" fill="var(--dv-card-bg,#0b0f17)"/><rect x="21" y="12" width="1.2" height="8" fill="var(--dv-card-bg,#0b0f17)"/><rect x="25.8" y="12" width="1.2" height="8" fill="var(--dv-card-bg,#0b0f17)"/></symbol>
 <symbol id="cr-bottom-1" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 40 H27 L24 20 L21 40 H12 Z"/></symbol>
 <symbol id="cr-bottom-2" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 32 H28 L24 20 L20 32 H12 Z"/></symbol>
 <symbol id="cr-bottom-3" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 40 H29 L24 20 L19 40 H12 Z"/></symbol>
@@ -71,12 +75,14 @@
 <symbol id="cr-bottom-6" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 32 H29 L24 20 L19 32 H12 Z"/></symbol>
 <symbol id="cr-bottom-7" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 40 H27 L24 20 L21 40 H12 Z"/></symbol>
 <symbol id="cr-bottom-8" viewBox="0 0 48 48" fill="currentColor"><path d="M14 8 H34 L36 32 H28 L24 20 L20 32 H12 Z"/></symbol>
+<symbol id="cr-bottom-9" viewBox="0 0 48 48" fill="currentColor"><path d="M14 6 H34 L36 42 H27 L24 18 L21 42 H12 Z"/></symbol>
 <symbol id="cr-shoes-1" viewBox="0 0 48 48" fill="currentColor"><path d="M8 30 L20 28 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
 <symbol id="cr-shoes-2" viewBox="0 0 48 48" fill="currentColor"><path d="M8 28 L20 26 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
 <symbol id="cr-shoes-3" viewBox="0 0 48 48" fill="currentColor"><path d="M8 26 L20 24 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
 <symbol id="cr-shoes-4" viewBox="0 0 48 48" fill="currentColor"><path d="M8 30 L20 28 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
 <symbol id="cr-shoes-5" viewBox="0 0 48 48" fill="currentColor"><path d="M8 28 L20 26 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
 <symbol id="cr-shoes-6" viewBox="0 0 48 48" fill="currentColor"><path d="M8 26 L20 24 L24 34 L40 36 Q42 40 38 40 H10 Q6 40 8 36 Z"/></symbol>
+<symbol id="cr-shoes-7" viewBox="0 0 48 48" fill="currentColor"><path d="M8 24 L20 22 L25 31 L40 33 Q43 36 40 37 H10 Q6 37 8 33 Z"/><rect x="7" y="37" width="35" height="4" rx="2" opacity=".55"/></symbol>
 <symbol id="cr-accessory-1" viewBox="0 0 48 48" fill="currentColor"><path d="M12 24 Q24 6 36 24 Z"/><rect x="10" y="24" width="28" height="3" rx="1.5"/></symbol>
 <symbol id="cr-accessory-2" viewBox="0 0 48 48" fill="currentColor"><path d="M12 28 Q12 10 24 10 Q36 10 36 28 Z"/></symbol>
 <symbol id="cr-accessory-3" viewBox="0 0 48 48" fill="currentColor"><rect x="8" y="20" width="14" height="8" rx="3"/><rect x="26" y="20" width="14" height="8" rx="3"/><rect x="21" y="22" width="6" height="2"/></symbol>

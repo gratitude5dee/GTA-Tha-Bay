@@ -43,8 +43,9 @@ describe('route 31, the happy path', () => {
     expect(done).toEqual({ costMicros: 348, turnsLeft: 5, closed: false });
     expect(costs).toEqual([{ vendor: 'anthropic', model: 'claude-haiku-5-5', usdMicros: 348, cacheHit: false, tier: 'local' }]);
     expect(t.h.logs.filter((l) => l.includes('genai.cost.unpriced'))).toEqual([]);
-    // the async moderation hook ran (and says it is not built yet)
-    expect(t.h.logs).toContain('moderation: lands in M06b1');
+    // the async moderation (M06b1) ran in fixture mode and found nothing: no stub line, no case
+    expect(t.h.logs).not.toContain('moderation: lands in M06b1');
+    expect(t.h.port.moderationCases()).toEqual([]);
   });
 
   it('proposes an offered mission, clamps affinity and counts the memory write', async () => {

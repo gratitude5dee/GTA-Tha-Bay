@@ -223,7 +223,8 @@ type NewStep = 'name' | 'creator' | 'intro';
 
 export function NewGamePage(_props: PageProps) {
   const { shell, ctx } = useShell();
-  const [name, setName] = useState('');
+  // The name field starts with the creator default (DL-OWN-05: "Coast", from content/ui/creator/defaults.json); the player may rename.
+  const [name, setName] = useState(() => defaultAvatar().name);
   const [step, setStep] = useState<NewStep>('name');
   const [busy, setBusy] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);

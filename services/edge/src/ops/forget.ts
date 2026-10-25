@@ -50,6 +50,12 @@ export async function runForget(env: Env, deps: Pick<AppDeps, 'data' | 'log'>, p
     await env.PRIVATE.delete(batch);
     r2Deleted += batch.length;
   }
+  // M06b1: the PRIVATE objects of the player's user NPCs (the rows go with the profile).
+  for (const key of await port.builder.soulKeys(profileId)) {
+    const base = key.replace(/\/soul\.prompt\.txt$/, '');
+    await env.PRIVATE.delete([`${base}/soul.prompt.txt`, `${base}/soul.compiled.json`, `${base}/soul.ink`]);
+    r2Deleted += 3;
+  }
   for (const prefix of profilePrefixes(profileId)) r2Deleted += await deletePrefix(env.PRIVATE, prefix);
   for (const h of handlers) await h.forget(env, profileId);
   const purged = await port.maintenance.purgeProfile(profileId);

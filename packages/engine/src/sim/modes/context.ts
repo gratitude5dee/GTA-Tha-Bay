@@ -37,6 +37,11 @@ export interface ContextPorts {
   combat?: CombatApi | null;
   /** Sets the input of a script-driven vehicle (NPC cars of a mission). Reaches the mode as `ctx.vehicleAi`, which is not part of C06 (BD-M05a1-04). */
   vehicleAi?: VehicleAiPort | null;
+  /**
+   * Seats the local player at the wheel of a vehicle at once (`seatDriver`): a mission checkpoint saved with the player in a cast vehicle
+   * is resumed with the player seated (DL-736). Reaches the mode as `ctx.vehicleSeat`, which is not part of C06.
+   */
+  vehicleSeat?: VehicleSeatPort | null;
   /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
   garage?: GaragePort | null;
   wardrobe?: WardrobePort | null;
@@ -64,6 +69,19 @@ export interface WardrobePort {
 
 export interface VehicleAiPort {
   drive(h: EntityHandle, input: { throttle: number; brake: number; steer: number; handbrake: boolean }): boolean;
+}
+
+export interface VehicleSeatPort {
+  /**
+   * Seats `rider` at the wheel of `vehicle` in the Active state, without the entering sequence, out of any other vehicle it rides in first
+   * (`reseatDriver`); false when either is gone or the seat is taken.
+   */
+  seat(rider: EntityHandle, vehicle: EntityHandle): boolean;
+  /**
+   * Sets `rider` down on foot beside `vehicle` at once, where the normal exit would put it, never overlapping the car's collider
+   * (`setDownBeside`; BD-FIX-SPAWN-12: a resumed seat that could not be taken); false when either is gone.
+   */
+  setDown(rider: EntityHandle, vehicle: EntityHandle): boolean;
 }
 
 function missing<T extends object>(service: string, milestone: string, methods: readonly string[]): T {
@@ -135,6 +153,7 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
     startChild: (child, args) => p.startChild(id, child, args),
   };
   if (p.vehicleAi) (ctx as ModeContext & { vehicleAi: VehicleAiPort }).vehicleAi = p.vehicleAi;
+  if (p.vehicleSeat) (ctx as ModeContext & { vehicleSeat: VehicleSeatPort }).vehicleSeat = p.vehicleSeat;
   if (p.garage) (ctx as ModeContext & { garage: GaragePort }).garage = p.garage;
   if (p.wardrobe) (ctx as ModeContext & { wardrobe: WardrobePort }).wardrobe = p.wardrobe;
   return ctx;

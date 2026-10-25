@@ -238,7 +238,8 @@ export class WorldSim {
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
     // QA: the perf scenario drives the traffic (and so the residency it needs) from the camera; the statics feed keeps the player's focus
     if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(this.api?.ambient?.focusOverride ?? focus);
-    const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
+    // a teleport's destination, else a held pre-stream's point (a checkpoint resume waiting for its ground, DL-736): its colliders too
+    const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } }) ?? this.prestreamDest();
     this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
     if (st.added) {
@@ -269,6 +270,12 @@ export class WorldSim {
       void this.store.preload(this.teleportKeys.map((key) => ({ level: 'p0' as const, key })));
     }
     return this.teleportTo;
+  }
+
+  /** The point of a held `WorldServices.prestream` as a still focus for the statics feed, or null (none held, or no world services). */
+  private prestreamDest(): Focus | null {
+    const p = this.api?.teleport.prestreamFocus() ?? null;
+    return p ? { x: p.x, z: p.z, vx: 0, vz: 0 } : null;
   }
 
   /** Posts `world.status` when the unavailable, failed or ready counts changed. */

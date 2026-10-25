@@ -51,7 +51,10 @@ export function tintColor(h: number, s: number, l: number): number {
 }
 
 export function mannequinParams(a: PlayerAvatar, cat: CreatorCatalog = CATALOG): MannequinParams {
-  const tint = (slot: 'top' | 'bottom' | 'shoes', id: string, s: number, l: number): number => tintColor(findPart(cat, slot, id)?.tint ?? 0, s, l);
+  const tint = (slot: 'top' | 'bottom' | 'shoes', id: string, s: number, l: number): number => {
+    const part = findPart(cat, slot, id);
+    return part?.color !== undefined ? hex(part.color) : tintColor(part?.tint ?? 0, s, l);
+  };
   return {
     heightScale: 0.92 + 0.16 * a.body.height,
     buildScale: 0.9 + 0.28 * a.body.build,
