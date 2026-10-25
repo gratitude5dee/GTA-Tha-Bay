@@ -17,7 +17,7 @@
 .dv-dlg-head { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--dv-space-2); }
 .dv-dlg-close { grid-column: 2; grid-row: 1; }
 .dv-dlg-speaker { margin: 0; font-family: var(--dv-font-display); font-size: var(--dv-text-lg); overflow-wrap: anywhere; }
-.dv-dlg-speaker:focus-visible, .dv-dlg-line:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 2px; }
+.dv-dlg-speaker:focus-visible, .dv-dlg-line:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 0.125rem; }
 .dv-dlg-badge {
   display: inline-flex; align-items: center; gap: var(--dv-space-1); padding: var(--dv-space-1) var(--dv-space-2);
   border: 1px solid var(--dv-color-accent); border-radius: var(--dv-radius-lg); background: var(--dv-color-surface-raised);
@@ -34,7 +34,7 @@
   transition: background-color var(--dv-motion-fast) linear, border-color var(--dv-motion-fast) linear;
 }
 .dv-dlg-btn:hover { border-color: var(--dv-color-text); }
-.dv-dlg-btn:focus-visible, .dv-dlg-input:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 2px; }
+.dv-dlg-btn:focus-visible, .dv-dlg-input:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 0.125rem; }
 .dv-dlg-btn[aria-disabled='true'] { opacity: 0.6; cursor: wait; }
 .dv-dlg-primary { background: var(--dv-color-accent); border-color: var(--dv-color-accent); color: var(--dv-color-accent-contrast); }
 .dv-dlg-showfull { justify-self: start; }
