@@ -3,6 +3,7 @@
  * data-driven `ScreenDef` (XR-capable), drawn by `DomScreen`; each row carries a scope badge ("This profile" or "This device").
  */
 import { h, type FunctionComponent } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
 import type { ControlsSettings, JsonValue, ProfileSettings } from '@dv/shared';
 import { lk, t } from '../../i18n/index.ts';
 import { ScreenHost } from '../../screen/dom-screen.tsx';
@@ -10,7 +11,7 @@ import type { ScreenDef, SettingRef, UiAction } from '../../screen/types.ts';
 import { Link, useShell } from '../../shell/context.tsx';
 import { currentFullscreen, toggleFullscreen, useFullscreenTick, type FullscreenDoc, type FullscreenState } from '../../shell/fullscreen.ts';
 import { defaultPrefs } from '../../shell/prefs.ts';
-import type { PageProps, ShellApi, ShellContext, StorageInfo, UiPrefs } from '../../shell/types.ts';
+import type { OfflineJob, OfflinePlan, PageProps, ShellApi, ShellContext, StorageInfo, UiPrefs } from '../../shell/types.ts';
 import { useAsync } from '../../kit/widgets.tsx';
 import { accessibilityScreen, audioScreen, cutscenesScreen, npcScreen, subtitlesScreen } from './audio-access.ts';
 import { ControlsPanel } from './controls.tsx';
@@ -35,6 +36,8 @@ export interface SettingsEnv {
   framePacer?: boolean;
   /** The full-screen button of Graphics: present only when available. */
   fullscreen?: FullscreenState;
+  /** The city download (M04b4). Null or absent: the offline rows are disabled with "size not available yet". */
+  offline?: { plan: OfflinePlan | null; downloaded: { bytes: number; files: number }; job: OfflineJob | null } | null;
 }
 
 const EMPTY_CONTROLS: ControlsSettings = {
@@ -114,7 +117,7 @@ function copy(text: string): void {
   void navigator.clipboard?.writeText(text).catch(() => undefined);
 }
 
-export function buildEnv(ctx: ShellContext, storage: StorageInfo | null): SettingsEnv {
+export function buildEnv(ctx: ShellContext, storage: StorageInfo | null, offline: SettingsEnv['offline'] = null): SettingsEnv {
   const p = ctx.platform;
   const info = p?.tierInfo() ?? { tier: 'desktop', source: 'auto', backend: 'webgl2' };
   const att = ctx.props.prefs.get().age;
@@ -133,6 +136,7 @@ export function buildEnv(ctx: ShellContext, storage: StorageInfo | null): Settin
     ageStatus: att.attestedAt ? new Date(att.attestedAt).toLocaleDateString() : '-',
     framePacer: p?.framePacer === true,
     fullscreen: currentFullscreen(p?.deviceClass ?? 'desktop'),
+    offline,
   };
 }
 
@@ -141,10 +145,26 @@ export function SettingsPage(props: PageProps) {
   useFullscreenTick();
   const cat = CATEGORIES.some((c) => c.id === props.params['cat']) ? (props.params['cat'] as string) : 'graphics';
   const storage = useAsync(() => (ctx.platform ? ctx.platform.storage() : Promise.resolve(null)), [cat === 'install']);
-  const env = buildEnv(ctx, storage.data ?? null);
+  const offlinePort = ctx.platform?.offline;
+  const offlineData = useAsync(async () => {
+    if (cat !== 'install' || !offlinePort) return null;
+    const [plan, downloaded] = await Promise.all([offlinePort.plan(), offlinePort.downloaded()]);
+    return { plan, downloaded };
+  }, [cat === 'install', offlinePort]);
+  const [job, setJob] = useState<OfflineJob | null>(() => offlinePort?.job() ?? null);
+  useEffect(() => {
+    if (!offlinePort) return undefined;
+    setJob(offlinePort.job());
+    return offlinePort.onJob((j) => {
+      setJob({ ...j });
+      if (j.state !== 'running') offlineData.reload();
+    });
+  }, [offlinePort]);
+  const offline = offlinePort && offlineData.data ? { ...offlineData.data, job } : null;
+  const env = buildEnv(ctx, storage.data ?? null, offline);
   const screen = categoryScreen(cat, env);
   const binder = ctx.binder;
-  const run = (action: UiAction, rowId?: string): void => runAction(action, rowId, { cat, ctx, shell, storageReload: storage.reload });
+  const run = (action: UiAction, rowId?: string): void => runAction(action, rowId, { cat, ctx, shell, storageReload: storage.reload, offlineReload: offlineData.reload });
   const nav = h(
     'nav',
     { class: 'dv-settings-nav', 'aria-label': t('nav.settings'), 'data-testid': 'settings-nav' },
@@ -165,9 +185,9 @@ export function SettingsPage(props: PageProps) {
   );
 }
 
-interface RunDeps { cat: string; ctx: ShellContext; shell: ShellApi; storageReload(): void }
+export interface RunDeps { cat: string; ctx: ShellContext; shell: ShellApi; storageReload(): void; offlineReload?(): void }
 
-function runAction(action: UiAction, _rowId: string | undefined, d: RunDeps): void {
+export function runAction(action: UiAction, _rowId: string | undefined, d: RunDeps): void {
   const { ctx, shell } = d;
   if ('back' in action) return shell.back();
   if ('nav' in action) return shell.navigate(action.nav, action.params);
@@ -193,6 +213,30 @@ function runAction(action: UiAction, _rowId: string | undefined, d: RunDeps): vo
     case 'persist':
       void ctx.platform?.requestPersist?.().then(d.storageReload);
       return;
+    case 'offline':
+      void ctx.platform?.offline?.start().catch(() => undefined);
+      return;
+    case 'offline-cancel':
+      ctx.platform?.offline?.cancel();
+      return;
+    case 'clear': {
+      const offline = ctx.platform?.offline;
+      if (!offline) return;
+      void shell
+        .confirm({
+          titleKey: lk('settings.storage.clear.title'),
+          bodyKey: lk('settings.storage.clear.body'),
+          confirmKey: lk('settings.storage.clear.confirm'),
+          danger: true,
+        })
+        .then(async (ok) => {
+          if (!ok) return;
+          await offline.clear();
+          d.offlineReload?.();
+          d.storageReload();
+        });
+      return;
+    }
     case 'copy-tier':
       copy(JSON.stringify(ctx.platform?.tierInfo() ?? {}));
       return;
