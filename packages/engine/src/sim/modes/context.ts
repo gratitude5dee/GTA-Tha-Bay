@@ -70,8 +70,16 @@ export interface VehicleAiPort {
 }
 
 export interface VehicleSeatPort {
-  /** Seats `rider` at the wheel of `vehicle` in the Active state, without the entering sequence; false when either is gone or the seat is taken. */
+  /**
+   * Seats `rider` at the wheel of `vehicle` in the Active state, without the entering sequence, out of any other vehicle it rides in first
+   * (`reseatDriver`); false when either is gone or the seat is taken.
+   */
   seat(rider: EntityHandle, vehicle: EntityHandle): boolean;
+  /**
+   * Sets `rider` down on foot beside `vehicle` at once, where the normal exit would put it, never overlapping the car's collider
+   * (`setDownBeside`; BD-FIX-SPAWN-12: a resumed seat that could not be taken); false when either is gone.
+   */
+  setDown(rider: EntityHandle, vehicle: EntityHandle): boolean;
 }
 
 function missing<T extends object>(service: string, milestone: string, methods: readonly string[]): T {

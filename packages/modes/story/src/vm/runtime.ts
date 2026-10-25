@@ -9,7 +9,7 @@
  * every timer equal. The only RNG is the stream seeded for the attempt. Nothing reads wall time. Sim code under the C02 lint.
  */
 import {
-  Fnv64, Rng, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
+  Fnv64, Rng, dcos, dsin, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
   type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type VehicleInstance, type WeatherPreset,
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
@@ -48,6 +48,16 @@ const SAY_MIN_TICKS = 90;
 const SAY_TICKS_PER_CHAR = 3.6;
 const MARKER_UPDATE_EVERY = 4;
 const EVENT_LOG_MAX = 50;
+/**
+ * A resumed seat that could not be taken, on a seat port without `setDown`: the player is set down this far to the left of the car's
+ * centre (the driver side), metres; the normal exit's first ring (BD-FIX-SPAWN-12).
+ */
+export const SET_DOWN_SIDE_M = 2.2;
+/** `ctx.vehicleSeat` as the runtime reads it (an engine port, not part of C06): `setDown` is optional so an older port still works. */
+interface SeatPortLike {
+  seat(rider: EntityHandle, vehicle: EntityHandle): boolean;
+  setDown?(rider: EntityHandle, vehicle: EntityHandle): boolean;
+}
 
 interface Beat {
   id: number;
@@ -437,8 +447,10 @@ export class MissionRuntime implements OpHost {
 
   /**
    * The rest of a resumed save (DL-736), on the first tick its entities exist: the cast's saved health, and the player put back at the
-   * saved pose and seated in the cast vehicle it was saved in (`ctx.vehicleSeat`). With no seat port, or no vehicle by `until`, the
-   * player is set down on foot at the saved pose.
+   * saved pose and seated in the cast vehicle it was saved in (`ctx.vehicleSeat`, which first takes the player out of any other vehicle it
+   * drives). A seat that cannot be taken sets the player down on foot beside the car, where the normal exit would (`setDown`), never inside
+   * its collider, and notes `resume.seatFailed` (BD-FIX-SPAWN-12). With no seat port, or no vehicle by `until`, the player is set down
+   * on foot at the saved pose.
    */
   private applyRestorePending(): void {
     const p = this.restorePending;
@@ -454,12 +466,12 @@ export class MissionRuntime implements OpHost {
     if (seat) {
       const ph = a.player();
       const vh = a.cast(seat.vehicle);
-      const port = (this.ctx as ModeContext & { vehicleSeat?: { seat(rider: EntityHandle, vehicle: EntityHandle): boolean } | null }).vehicleSeat;
+      const port = (this.ctx as ModeContext & { vehicleSeat?: SeatPortLike | null }).vehicleSeat;
       if (ph === null) {
         p.seat = null;
       } else if (vh !== null && port) {
         a.place(ph, seat.pos, seat.yaw);
-        if (a.playerVehicle() !== vh) port.seat(ph, vh);
+        if (a.playerVehicle() !== vh && !port.seat(ph, vh)) this.setDownBeside(port, ph, vh, seat.vehicle);
         p.seat = null;
       } else if (!port || this.ctx.tick >= seat.until) {
         a.place(ph, seat.pos, seat.yaw);
@@ -467,6 +479,26 @@ export class MissionRuntime implements OpHost {
       }
     }
     if (p.health.size === 0 && p.seat === null) this.restorePending = null;
+  }
+
+  /**
+   * A resumed seat that could not be taken (BD-FIX-SPAWN-12): the player stands beside the car on foot, never inside its collider. The
+   * engine port puts it where the normal exit would (`setDown`); a port without it gets the driver-side point `SET_DOWN_SIDE_M` from the
+   * car's centre, on its left (the driver side), facing the car's way.
+   */
+  private setDownBeside(port: SeatPortLike, ph: EntityHandle, vh: EntityHandle, vehicle: string): void {
+    const a = this.actors;
+    let how = 'port';
+    if (typeof port.setDown !== 'function' || !port.setDown(ph, vh)) {
+      how = 'side';
+      const vp = a.posOf(vh);
+      if (vp) {
+        const yaw = a.yawOf(vh);
+        // forward is (-sin yaw, -cos yaw), right (cos yaw, -sin yaw): the driver side is to the left
+        a.place(ph, [vp[0] - dcos(yaw) * SET_DOWN_SIDE_M, vp[1], vp[2] + dsin(yaw) * SET_DOWN_SIDE_M], yaw);
+      }
+    }
+    this.noteEvent('resume.seatFailed', { vehicle, how });
   }
 
   /** Throws the previous mission's state away (threads, cast, markers, zones) without side effects on the world policies. */

@@ -83,6 +83,8 @@ test.describe('story save and resume @story-resume', () => {
     expect(await mission(page, (m) => m.jump(5))).toBe(true);
     await expect.poll(async () => (await state(page))?.stageId, { timeout: 30_000 }).toBe('tow_home');
     await expect.poll(() => lastSave(page), { timeout: 60_000, intervals: [250, 500, 1000] }).toEqual({ reason: 'checkpoint', ok: true });
+    // the mission start wrote a checkpoint save too, so the confirmed save above may be that one: wait for the stage-5 one itself
+    await expect.poll(async () => (await savedSlice(page)).stage, { timeout: 60_000, intervals: [250, 500, 1000] }).toBe(5);
     const walletBefore = await cash(page);
     const savedBefore = await savedSlice(page);
     expect(savedBefore).toMatchObject({ flag: 7, active: 'm.a1.01', stage: 5 });
