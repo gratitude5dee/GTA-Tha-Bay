@@ -28,7 +28,7 @@ export interface LlmSoul {
   };
   personality: SoulFrontmatter['personality'];
   knowledge: { knows: string[]; doesNotKnow: string[]; era: string };
-  locations: { home: string; hangouts: string[] };
+  locations: { home: SoulFrontmatter['locations']['home']; hangouts: SoulFrontmatter['locations']['hangouts'] };
   schedule: ScheduleBlock[];
   goals: string[];
   visual_brief: string;
@@ -57,7 +57,7 @@ export interface BuilderServerFields {
   /** The draft's chosen district; the soul lives there. */
   district: string;
   /** `voice/<id>` of a t1 synthetic voice from the catalog, or null for a text-only NPC. */
-  voiceRef: string | null;
+  voiceRef: SoulFrontmatter['voice']['voiceRef'];
   heightM: number;
   /** The model id and the UTC date (YYYY-MM-DD) of the generation, for provenance. */
   model: string;

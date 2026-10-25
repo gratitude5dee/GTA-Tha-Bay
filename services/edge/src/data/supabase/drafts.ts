@@ -88,7 +88,11 @@ export function builder(db: Db, now: () => number = Date.now): BuilderStore {
       return draftRow(rows[0] as unknown as DraftDb);
     },
     async deleteDraft(id, owner) {
-      return must('npc_draft', await db.from('npc_draft').delete().eq('id', id).eq('owner_profile_id', owner).select('id')).length > 0;
+      const row = mustMaybe('npc_draft', await db.from('npc_draft').select('npc_id').eq('id', id).eq('owner_profile_id', owner).maybeSingle());
+      if (row === null) return null;
+      const souls = must('npc_soul', await db.from('npc_soul').delete().eq('npc_id', row.npc_id).eq('owner_profile_id', owner).select('prompt_r2_key'));
+      must('npc_draft', await db.from('npc_draft').delete().eq('id', id).eq('owner_profile_id', owner).select('id'));
+      return { promptKeys: souls.map((x) => x.prompt_r2_key) };
     },
     async putSoul(s) {
       must(

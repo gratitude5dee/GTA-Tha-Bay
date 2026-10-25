@@ -246,7 +246,8 @@ export interface BuilderStore {
     patch: DraftPatch,
     guard?: { ifRev?: number | null; fromStates?: readonly NpcDraftRow['state'][] | null; bumpRev?: boolean },
   ): Promise<NpcDraftRow | 'conflict' | 'state' | null>;
-  deleteDraft(id: string, ownerProfileId: string): Promise<boolean>;
+  /** Deletes the owner's draft with the souls written for it; returns the PRIVATE keys of those souls, or null when the owner has no such draft. */
+  deleteDraft(id: string, ownerProfileId: string): Promise<{ promptKeys: string[] } | null>;
   /** Inserts a soul version, or replaces the row of the same (npcId, soulVersion). */
   putSoul(s: NpcSoulInsert): Promise<void>;
   /** The soul version, or the newest version when `soulVersion` is omitted. */

@@ -382,9 +382,16 @@ export class InMemoryDataPort implements ServerDataPort {
     },
     deleteDraft: (id, owner) => {
       const r = this.draftRows.get(id);
-      if (r === undefined || r.owner_profile_id !== owner) return Promise.resolve(false);
+      if (r === undefined || r.owner_profile_id !== owner) return Promise.resolve(null);
       this.draftRows.delete(id);
-      return Promise.resolve(true);
+      const promptKeys: string[] = [];
+      for (const [k, so] of [...this.soulRows]) {
+        if (so.npc_id === r.npc_id && so.owner_profile_id === owner) {
+          promptKeys.push(so.prompt_r2_key);
+          this.soulRows.delete(k);
+        }
+      }
+      return Promise.resolve({ promptKeys });
     },
     putSoul: (sRow) => {
       if (!this.profileRows.has(sRow.ownerProfileId)) return Promise.reject(new Error('npc_soul: no such profile'));
