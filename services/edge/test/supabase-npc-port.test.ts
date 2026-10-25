@@ -169,7 +169,7 @@ describe('roster, audit and maintenance over PostgREST', () => {
     expect(s.requests).toHaveLength(1);
 
     const rows = await p.maintenance.exportRows(PID);
-    expect(Object.keys(rows).sort()).toEqual(['age_assurance', 'device_keys', 'encounter_transcripts', 'identities', 'npc_memory', 'npc_relationship', 'profiles']);
+    expect(Object.keys(rows).sort()).toEqual(['age_assurance', 'device_keys', 'encounter_transcripts', 'identities', 'npc_draft', 'npc_memory', 'npc_relationship', 'npc_soul', 'profiles']);
     const selects = s.requests.slice(1).map((r) => `${r.path}:${r.query.get('select')}`).join('\n');
     expect(selects).not.toContain('embedding');
     expect(selects).not.toContain('token_hash');

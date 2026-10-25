@@ -20,8 +20,8 @@ describe('GET /api/v1/boot', () => {
     expect('modsUi' in body.hosts).toBe(false);
     const flags = Object.entries(body.flags);
     expect(flags.length).toBe(14);
-    // staging and previews switch npc.dialogue on (M06a3); every other flag is off
-    expect(flags.filter(([, v]) => v).map(([k]) => k)).toEqual(['npc.dialogue']);
+    // staging and previews switch npc.dialogue on (M06a3) and npc.builder (M06b1); every other flag is off
+    expect(flags.filter(([, v]) => v).map(([k]) => k)).toEqual(['npc.dialogue', 'npc.builder']);
     expect(body.flags['mods.enabled']).toBe(false);
     // LEGAL_CONTACT is not set in the staging vars, so route 58 would refuse every sign-up (M00e item 8).
     expect(body.flags['auth.password']).toBe(false);
@@ -82,7 +82,7 @@ describe('GET /api/v1/boot', () => {
     };
     for (const block of [wrangler, wrangler.env.staging]) {
       expect(block.secrets.required).toContain('SUPABASE_SECRET_KEY');
-      expect(block.triggers.crons).toEqual(['10 3 * * *', '20 3 * * *', '30 3 * * *']); // M06a1 adds the memory and stub-profile retention crons
+      expect(block.triggers.crons).toEqual(['10 3 * * *', '20 3 * * *', '30 3 * * *', '40 3 * * *']); // M06a1 adds the memory and stub-profile retention crons, M06b1 the builder-draft purge
     }
     // tha-bay-staging has no publishable key in config/supabase.projects.json yet, so previews still carry no Supabase vars.
     expect(wrangler.previews.triggers).toBeUndefined();

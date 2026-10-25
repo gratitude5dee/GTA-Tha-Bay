@@ -112,6 +112,8 @@ export async function installNpcQa(
   ]);
   const local = new URLSearchParams(location.search).get('npc') === 'local';
   let bridge: NpcBridge | null = null;
+  // M06b1: user NPCs made through the builder (soul version by id); the runtime asks for these versions on route 31.
+  const userNpcs = new Map<string, number>();
   let override: string | null = local ? 'PlayToken local-fixture' : null;
   // Voice (M06a4): the TtsPlayer plays the stream's audio chunks on the voice bus; the LipSyncDriver lights the mouth cell in the panel, once per frame.
   let overlayMouth: LipSyncTarget | null = null;
@@ -145,7 +147,7 @@ export async function installNpcQa(
       return service === null ? null : service.authHeader();
     },
     ...(local ? { fetch: localFixtureFetch(fetch.bind(globalThis)) } : {}),
-    soulVersionOf: (id) => (INK[id] !== undefined ? ((soulsIndex as { souls: Record<string, { soulVersion: number }> }).souls[id]?.soulVersion ?? 1) : null),
+    soulVersionOf: (id) => (INK[id] !== undefined ? ((soulsIndex as { souls: Record<string, { soulVersion: number }> }).souls[id]?.soulVersion ?? 1) : (userNpcs.get(id) ?? null)),
     loadInk: (id) => (INK[id] !== undefined ? Promise.resolve(INK[id] as string) : Promise.reject(new Error(`no ink bundled for ${id}`))),
     onResponse: (res) => bridge?.noteResponse(res),
     ...(player === null ? {} : { voice: player, settings: () => ({ aiDialogue: true, voice: 'all' as const }) }),
@@ -175,6 +177,26 @@ export async function installNpcQa(
   }
   bridge = installNpcBridge(runtime, hooks);
   overlayMouth = mountNpcOverlay(bridge, document.body, NPC_ID).mouth;
+  // M06b1: `bridge.useUserNpc(id, soulVersion)` for tests, and the builder QA (button, `bridge.buildTestNpc()`) in the same box.
+  Object.assign(bridge, { useUserNpc: (id: string, soulVersion: number) => void userNpcs.set(id, soulVersion) });
+  const { installBuilderQa } = await import('./npc-builder.ts');
+  const statusLine = (text: string): void => {
+    const el = document.querySelector('[data-testid="npc-builder-status"]');
+    if (el !== null) el.textContent = text;
+  };
+  installBuilderQa(
+    bridge,
+    {
+      auth: async () => {
+        if (override !== null) return override;
+        const service = await identity.ready;
+        const h = service === null ? null : await service.authHeader();
+        return h?.Authorization ?? null;
+      },
+      register: (id, v) => void userNpcs.set(id, v),
+    },
+    statusLine,
+  );
   void startAfter.then(() => runtime.start());
   return bridge;
 }
