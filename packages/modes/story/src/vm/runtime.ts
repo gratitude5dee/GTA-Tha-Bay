@@ -125,6 +125,12 @@ export class MissionRuntime implements OpHost {
   private driverFn: (() => VehicleDriver | null) | null = null;
   private firstCp: MissionCheckpointV1 | null = null;
   private restarted = false;
+  /**
+   * What a resumed save still has to write once the cast it names exists (`restoreCheckpoint` with `load`; DL-736): a cast spawn is a
+   * deferred ECS command, so the cast's health, and the player seated in the cast vehicle it was saved in, are applied on the first tick
+   * the entity is there. `until` is the tick after which a seat that never came is given up and the player is set down on foot as saved.
+   */
+  restorePending: { health: Map<string, number>; seat: { vehicle: string; pos: Vec3; yaw: number; until: number } | null } | null = null;
 
   readonly predEnv: PredEnv;
 
@@ -390,9 +396,10 @@ export class MissionRuntime implements OpHost {
     this.opts.log?.(`mission ${this.ir.id} start attempt ${o.attempt}`);
     this.telemetry('mission.start', 0);
     if (o.from) {
-      this.spawnStartCast();
+      // a resumed save spawns its cast where it was saved (restoreCheckpoint); a retry still has its cast and moves it
+      if (o.load !== true) this.spawnStartCast();
       this.firstCp = carry?.first ?? null;
-      restoreCheckpoint(this, o.from);
+      restoreCheckpoint(this, o.from, o.load === true);
       this.startThreads();
       this.phase = 'stage';
       this.enterStage(o.from.stage, true);
@@ -428,8 +435,43 @@ export class MissionRuntime implements OpHost {
     this.enterStage(0, false);
   }
 
+  /**
+   * The rest of a resumed save (DL-736), on the first tick its entities exist: the cast's saved health, and the player put back at the
+   * saved pose and seated in the cast vehicle it was saved in (`ctx.vehicleSeat`). With no seat port, or no vehicle by `until`, the
+   * player is set down on foot at the saved pose.
+   */
+  private applyRestorePending(): void {
+    const p = this.restorePending;
+    if (!p) return;
+    const a = this.actors;
+    for (const [name, frac] of [...p.health]) {
+      const h = a.cast(name);
+      if (h === null) continue;
+      a.setHealth(h, frac);
+      p.health.delete(name);
+    }
+    const seat = p.seat;
+    if (seat) {
+      const ph = a.player();
+      const vh = a.cast(seat.vehicle);
+      const port = (this.ctx as ModeContext & { vehicleSeat?: { seat(rider: EntityHandle, vehicle: EntityHandle): boolean } | null }).vehicleSeat;
+      if (ph === null) {
+        p.seat = null;
+      } else if (vh !== null && port) {
+        a.place(ph, seat.pos, seat.yaw);
+        if (a.playerVehicle() !== vh) port.seat(ph, vh);
+        p.seat = null;
+      } else if (!port || this.ctx.tick >= seat.until) {
+        a.place(ph, seat.pos, seat.yaw);
+        p.seat = null;
+      }
+    }
+    if (p.health.size === 0 && p.seat === null) this.restorePending = null;
+  }
+
   /** Throws the previous mission's state away (threads, cast, markers, zones) without side effects on the world policies. */
   private resetAll(): void {
+    this.restorePending = null;
     this.killThreads();
     this.tasks.clear();
     this.clearMarkers();
@@ -539,6 +581,7 @@ export class MissionRuntime implements OpHost {
   tick(ctx: ModeContext): void {
     this.bind(ctx);
     if (!this.ir) return;
+    if (this.restorePending) this.applyRestorePending();
     this.applyCommands();
     if (this.restarted) {
       // a retry just put the world back: the clock stands at the checkpoint for this tick

@@ -123,6 +123,14 @@ export class PromotionBook {
     return true;
   }
 
+  /** Removes the promotion of `key` before it runs out (its car is gone: DL-736); false when there is none. */
+  remove(key: string): boolean {
+    const i = this.list.findIndex((p) => p.key === key);
+    if (i < 0) return false;
+    this.list.splice(i, 1);
+    return true;
+  }
+
   /** Removes and returns the promotions that ran out at `tick` (oldest first). */
   expire(tick: number): Promotion[] {
     const out: Promotion[] = [];
