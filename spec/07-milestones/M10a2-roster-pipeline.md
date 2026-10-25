@@ -18,9 +18,15 @@ Slots whose souls are real-derived stay `blocked:research` until Q-19 and Q-25 a
 ## Depends on
 - **M10a1**: `assets:gen plan/run/gate/ledger`, optimize, retarget, verify, publish, the ledger, the canary.
 - **M08b1**: the eight kits, `content/fighter/roster.json`, `check:fighter`, the tier and fame-domain gates.
+- **M04b2** (merged): the creator catalog `content/ui/creator/catalog.json` and `defaults.json` that the Coast set extends (DL-737).
 - Contracts: C07 1.1 (`VARIANT_FALLBACK`, provenance, lock file, `likeness` block, `assetTier`), C04 1.1 (`bay_rig_v1`, `HUMANOID_BONES`, fighter `AnimStateId` 160–207 consumed via clips).
 
 ## Scope in
+- **The Coast set first** (DL-OWN-05, DL-737; `10-ui-pages.md` §2.8 rule 6), as the batch's first slug `pc-coast`, Standard tier, on the character line.
+  - The `sheet` stage takes the owner's sheet `content/characters/pc-coast/sheet.png` (provenance origin `owner-supplied`, with the owner's statement of origin) as its first-party reference. H1 picks the candidate closest to it, and the owner signs H1 and H3.
+  - Then mesh, the `bay_rig_v1` rig, optimize, verify and publish, split into the six creator rows `body-coast`, `face-coast`, `hair-coast`, `top-coast-hoodie`, `bottom-coast-jeans` and `shoes-coast-sneakers` (`character/pc-<slot>-coast` and `portrait/pc-<slot>-coast`). Append them to the catalog with new indices, so `AppearanceV1` stays byte-equal, and point `content/ui/creator/defaults.json` at them.
+  - The look stays stylized, as the sheet draws it: textured afro, red ear tips, short beard, black cotton hoodie with drawstrings, dark jeans, grey sneakers, 1.75 m. Only the protagonist is stylized.
+  - The sheet is never a video reference (03-story-cutscenes.md: the protagonist never appears in a generated clip).
 - **Plan the batch** with `--tier all`.
   - Eligible: every `active` roster entry with `pipeline: standard` or `lean`, `research ≠ pending`, compiled soul present and every gate verdict `ok`.
   - Reserved: fighter slots whose subject is real-derived, listed as `blocked:research`.
