@@ -23,9 +23,30 @@ test.describe('creator @creator', () => {
     await waitForEngineReady(page);
     await expect.poll(() => vm(page, 'sys.profile').then((v) => v != null), { timeout: 90_000 }).toBe(true);
     await page.getByTestId('nav-new').click();
-    await page.getByTestId('new-name').fill('Dee Test');
+    // DL-OWN-05: the name field starts with the creator default "Coast" (content/ui/creator/defaults.json).
+    await expect(page.getByTestId('new-name')).toHaveValue('Coast');
+    await page.getByTestId('new-name').fill('Coast Test');
     await page.getByTestId('new-continue').click();
     await expect(page.getByTestId('creator')).toBeVisible({ timeout: 30_000 });
+
+    // DL-737, 10-ui-pages.md 2.8 rule 6: the Coast card leads each tab and is selected; the callsign defaults to Coast.
+    const firstCard = (slot: string) => page.getByTestId(`creator-grid-${slot}`).locator('[role="radio"]').first();
+    await expect(firstCard('body')).toHaveAttribute('data-testid', 'creator-card-body-coast');
+    await expect(firstCard('body')).toHaveAttribute('aria-checked', 'true');
+    await page.getByTestId('tab-creator-face').click();
+    await expect(firstCard('face')).toHaveAttribute('data-testid', 'creator-card-face-coast');
+    await expect(firstCard('face')).toHaveAttribute('aria-checked', 'true');
+    await page.getByTestId('tab-creator-hair').click();
+    await expect(firstCard('hair')).toHaveAttribute('data-testid', 'creator-card-hair-coast');
+    await page.getByTestId('tab-creator-outfit').click();
+    for (const [slot, id] of [['top', 'top-coast-hoodie'], ['bottom', 'bottom-coast-jeans'], ['shoes', 'shoes-coast-sneakers']] as const) {
+      await expect(firstCard(slot)).toHaveAttribute('data-testid', `creator-card-${id}`);
+      await expect(firstCard(slot)).toHaveAttribute('aria-checked', 'true');
+    }
+    await page.getByTestId('tab-creator-name').click();
+    await expect(page.getByTestId('creator-callsign')).toHaveValue('Coast');
+    // Picking a realistic body below leaves the Coast face for the realistic default (checked in the stored avatar).
+    await page.getByTestId('tab-creator-body').click();
 
     // Body, hair, outfit and voice.
     await page.getByTestId('creator-card-body-broad').click();
@@ -55,15 +76,16 @@ test.describe('creator @creator', () => {
     await expect(page.getByTestId('creator-name-error')).not.toHaveText('');
     await page.getByTestId('creator-name').fill('');
     await expect(page.getByTestId('creator-name-error')).not.toHaveText('');
-    await page.getByTestId('creator-name').fill('Dee Test');
+    await page.getByTestId('creator-name').fill('Coast Test');
     await expect(page.getByTestId('creator-name-error')).toHaveText('');
 
     const since = await pageNow(page);
     await page.getByTestId('btn-creator-done').click();
     await expect(page.getByTestId('new-creator')).toBeVisible();
-    await expect.poll(() => vm(page, 'sys.avatar').then((v) => (v as { name?: string } | undefined)?.name), { timeout: 30_000 }).toBe('Dee Test');
+    await expect.poll(() => vm(page, 'sys.avatar').then((v) => (v as { name?: string } | undefined)?.name), { timeout: 30_000 }).toBe('Coast Test');
     const stored = (await vm(page, 'sys.avatar')) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(stored['body'].preset).toBe('body-broad');
+    expect(stored['face'].preset).toBe('face-sunset');
     expect(stored['hair']).toEqual({ style: 'hair-waves', color: 4 });
     expect(stored['outfit']).toMatchObject({ top: 'top-bomber', accessory: 'acc-shades' });
     expect(stored['voice'].id).toBe('voice-deep');
@@ -72,7 +94,7 @@ test.describe('creator @creator', () => {
 
     await page.reload();
     await waitForEngineReady(page);
-    await expect.poll(() => vm(page, 'sys.avatar').then((v) => (v as { name?: string } | undefined)?.name), { timeout: 90_000 }).toBe('Dee Test');
+    await expect.poll(() => vm(page, 'sys.avatar').then((v) => (v as { name?: string } | undefined)?.name), { timeout: 90_000 }).toBe('Coast Test');
     expect(await vm(page, 'sys.avatar')).toEqual(stored);
   });
 });

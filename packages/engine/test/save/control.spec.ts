@@ -50,12 +50,12 @@ describe('engine/save.control (SimControlMessage and the write port)', () => {
     const ctl = new SaveControl({ service: async () => svc, collect: () => null });
     // The idle menu's core save: the capability is raised for the post and lowered by the next tick, which can run before the flush.
     ctl.setCapability('story');
-    ctl.post('core', { avatar: { name: 'Dee Test' } }, 'manual');
+    ctl.post('core', { avatar: { name: 'Coast Test' } }, 'manual');
     ctl.setCapability('sandbox');
     ctl.post('sandbox', sandboxData(3), 'interval');
     expect(await ctl.flush()).toBe(2);
     expect(ctl.failures).toEqual([]);
-    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Dee Test' } });
+    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Coast Test' } });
     // A write posted under a capability that does not allow its slot is still refused.
     ctl.post('core', { avatar: null }, 'manual');
     expect(await ctl.flush()).toBe(0);
@@ -75,13 +75,13 @@ describe('engine/save.control (SimControlMessage and the write port)', () => {
     };
     const ctl = new SaveControl({ service: async () => writer, collect: () => null });
     ctl.setCapability('story');
-    ctl.post('core', { avatar: { name: 'Dee Test' } }, 'manual');
+    ctl.post('core', { avatar: { name: 'Coast Test' } }, 'manual');
     ctl.setCapability('sandbox');
     expect(await ctl.flush()).toBe(1);
     expect(caps).toEqual(['sandbox', 'story', 'sandbox']);
     // the raised capability did not outlive the flush: a direct write of the core slot is refused again
     expect(await svc.write('core', { avatar: null }, 'manual')).toMatchObject({ ok: false, error: 'NOT_ALLOWED' });
-    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Dee Test' } });
+    expect((await svc.load(p.id)).core).toMatchObject({ avatar: { name: 'Coast Test' } });
   });
 
   it('SimRuntime hands save.request to the installed SaveControl between ticks and posts ctl.result', async () => {

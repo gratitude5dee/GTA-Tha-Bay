@@ -76,6 +76,7 @@ Rules: (1) tiles for Story and Sandbox have `unlock: null` and are always `ready
 3. The preview builds one skinned mesh set on `bay_rig_v1` with morph targets; budget ≤ 40k triangles and ≤ 3 textures at 1,024 px on `mobile` (design value †). Parts resolve through C07 variants (`VARIANT_FALLBACK`) like any asset.
 4. `AppearanceV1` (§4.2) is produced by the same module for C11 `EV Joined`/`Appearance`.
 5. Creator parts are C07 assets: `character/pc-<slot>-<id>` for meshes and `portrait/pc-<slot>-<id>` for cards (assumption on S05; listed in `unverified`).
+6. **The Coast set is the default** (DL-OWN-05, DL-737). It is the protagonist's stylized default look, built from the owner's character sheet: rows `body-coast`, `face-coast`, `hair-coast`, `top-coast-hoodie`, `bottom-coast-jeans` and `shoes-coast-sneakers`, the first card of each tab, tagged `starter`, appended with new indices so `AppearanceV1` is unchanged. `body-coast` and `face-coast` are a linked pair: picking either selects both, and picking another body or face row leaves both for the slot defaults of the realistic kit. Coast hair and outfit rows fit any body. Only the protagonist is stylized; the cast, pedestrians and the city keep the realistic look.
 
 ### 2.9 Settings (R-UI-02, R-ENG-04)
 
