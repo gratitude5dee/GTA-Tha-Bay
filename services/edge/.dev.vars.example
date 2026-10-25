@@ -1,4 +1,8 @@
-# Names only; copy to .dev.vars (git-ignored) and fill in values. Never commit values.
+# Names only; copy to .dev.vars (git-ignored, as are .dev.vars.* and .env*) and fill in values. Never commit values.
+# Never put a production value here: the top-level and staging configs name the production SUPABASE_URL. Use local or test values only.
+# BD-FIX-SEC-02: every deny-listed name of tools/ci/secret-env.ts in this file (all the secrets below) reaches no Worker by default:
+# `pnpm dev` and `pnpm dev:edge` pass it on empty, `pnpm check:workers` binds it empty, and the e2e web server and check:pipeline read no
+# env file at all. Only `DV_ALLOW_LIVE_SECRETS=1 pnpm dev:edge` (or `pnpm dev`) passes these values to the local Worker, with a warning.
 # PLAY_TOKEN_HMAC = "<kid>:<base64url of 32 random bytes>", e.g. "k1:" + `openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`
 PLAY_TOKEN_HMAC=
 # PLAY_TOKEN_HMAC_PREV=
@@ -9,6 +13,7 @@ FAL_KEY=
 QUOTA_NET_SALT_SECRET=
 # M06a3: `pnpm dev` already runs the Worker on recorded streams (--var ANTHROPIC_MODE:fixture). For `pnpm dev:edge`, or to call the real model, set these
 # (.dev.vars overrides the wrangler vars). Live mode needs the key of the Anthropic workspace npc-runtime; AIG_BASE is the gateway gw-dialogue, unset = direct API.
+# The key reaches the Worker only with DV_ALLOW_LIVE_SECRETS=1 (see the top of this file).
 # ANTHROPIC_MODE=fixture
 # FLAGS_JSON={"npc.dialogue":true}
 ANTHROPIC_API_KEY=

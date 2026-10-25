@@ -371,8 +371,8 @@ jobs:
         env:
           DV_SKIP_BUILD: '1'
         run: |
-          pnpm check:headers -- --serve http://localhost:8788
-          pnpm check:coi -- --serve http://localhost:8788
+          pnpm check:headers -- --serve http://localhost:8790
+          pnpm check:coi -- --serve http://localhost:8790
       - name: e2e, every other tag (DV_WORLD=synth build)
         run: pnpm check:e2e -- --project=${{ matrix.project }} --grep-invert "$GRAYBOX_GREP" --shard=${{ matrix.shard }}/4 --pass-with-no-tests
         env:

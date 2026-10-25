@@ -5,7 +5,7 @@ import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import type { NpcBridge } from '../../packages/npc/src/debug/overlay.ts';
 import { createHmac } from 'node:crypto';
-import { scrubbedEnv } from '../../tools/ci/secret-env.ts';
+import { NO_ENV_FILE, scrubbedEnv } from '../../tools/ci/secret-env.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 
 /**
@@ -19,7 +19,7 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  *  3. The page talks to the private NPC through `__dvBridge.npc.talk`: the line streams into the dialogue panel with the AI badge text.
  * The Worker side of every rule is proved by `pnpm check:workers -- npc-builder`; this spec proves the pieces fit end to end in a browser.
  */
-const PORT = Number(process.env['DV_E2E_PORT'] ?? 8788) + 1;
+const PORT = Number(process.env['DV_E2E_PORT'] ?? 8790) + 1;
 // The request.cf file the main config writes for the local Worker (playwright.config.ts, BD-FIX-CI-02): the geo gate sees the country in it.
 const E2E_CF_PATH = path.resolve(`test-results/e2e-cf.${(process.env['DV_E2E_COUNTRY'] ?? 'US').toUpperCase()}.json`);
 const ORIGIN = `http://localhost:${PORT}`;
@@ -61,7 +61,9 @@ test.beforeAll(async () => {
   const env: NodeJS.ProcessEnv = { ...scrubbedEnv(process.env, { label: 'npc-builder', force: true }), WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH };
   worker = spawn(
     'pnpm',
-    ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--local', '--env', 'staging', '--port', String(PORT), '--persist-to', persist, '--var', `PLAY_TOKEN_HMAC:${SECRET}`],
+    // --env-file NO_ENV_FILE: no services/edge/.dev.vars(.staging) or .env file is read either (BD-FIX-SEC-02); the staging config names the
+    // production SUPABASE_URL.
+    ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--local', '--env', 'staging', '--port', String(PORT), '--persist-to', persist, '--env-file', NO_ENV_FILE, '--var', `PLAY_TOKEN_HMAC:${SECRET}`],
     { env, stdio: 'ignore', detached: true },
   );
   await waitHealthy();

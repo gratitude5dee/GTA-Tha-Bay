@@ -244,7 +244,7 @@ const camYawFor = (dx: number, dz: number): number => {
 
 test.describe('boundary toast @ui-boundary-toast', () => {
   test.describe.configure({ timeout: 600_000 });
-  test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${process.env.DV_E2E_PORT ?? 8788}`, localStorage: [{ name: 'dv-qa-play', value: 'sandbox' }] }] } });
+  test.use({ storageState: { cookies: [], origins: [{ origin: `http://localhost:${process.env.DV_E2E_PORT ?? 8790}`, localStorage: [{ name: 'dv-qa-play', value: 'sandbox' }] }] } });
 
   test('walking out toward a county line shows the toast once, in the toast region, with the en.json text @ui-boundary-toast', async ({ page }) => {
     await page.setViewportSize(SMALL_VIEWPORT);

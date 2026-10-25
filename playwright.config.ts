@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
-import { scrubProcessEnv, WORKER_LOCAL_SECRETS } from './tools/ci/secret-env.ts';
+import { NO_ENV_FILE, scrubProcessEnv, WORKER_LOCAL_SECRETS } from './tools/ci/secret-env.ts';
 import { enterTmpRoot, tmpRootEnv } from './tools/ci/tmp-root.ts';
 
 // BD-FIX-TMP-01: the runner, its workers, the web server (QA build and wrangler dev) and every spec work inside one per-run temporary
@@ -20,7 +20,12 @@ const SWIFTSHADER_WEBGPU = [
 ];
 
 // Parallel Builders on one machine set DV_E2E_PORT so that each run serves its own build (a reused server would be someone else's).
-const PORT = Number(process.env.DV_E2E_PORT ?? 8788);
+// BD-FIX-SEC-02: the default is 8790, off the 8788 of `pnpm dev` and `pnpm dev:edge`, and a server already listening is never reused
+// (webServer.reuseExistingServer below): a reused Worker is one this config did not start, so it may hold live secrets. The value is put
+// back into the environment so that the workers and the specs that build their own origin (hud.spec.ts, npc-builder.spec.ts) agree.
+export const E2E_DEFAULT_PORT = 8790;
+const PORT = Number(process.env.DV_E2E_PORT ?? E2E_DEFAULT_PORT);
+process.env.DV_E2E_PORT = String(PORT);
 
 // The country the local Worker sees (BD-FIX-CI-02). wrangler dev (miniflare) fills `request.cf` from https://workers.cloudflare.com/cf.json,
 // that is from the machine's egress location, so a runner outside the US would hit the US-only geo gate (451 region_blocked) on
@@ -57,7 +62,9 @@ export const QA_PLAY_STORAGE = {
 
 // CI downloads the build artifact first and sets DV_SKIP_BUILD=1.
 // --local: the Workers AI binding (M06a4) is remote-only; without it wrangler would need CLOUDFLARE_API_TOKEN to start. env.AI then fails on use and the Worker degrades to text.
-const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --local --port ${PORT}`;
+// --env-file NO_ENV_FILE (BD-FIX-SEC-02): wrangler reads neither services/edge/.dev.vars nor any .env file, which may hold live secrets
+// (as on the CI runner, where none exists); the process environment it still reads is scrubbed above.
+const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --local --port ${PORT} --env-file ${NO_ENV_FILE}`;
 const command = process.env.DV_SKIP_BUILD === '1' ? START_WORKER : `VITE_DV_QA=1 pnpm build && ${START_WORKER}`;
 
 // Tests tagged @quarantine (flaky on 3 of the last 10 main runs, 13-qa section 5) never gate; the nightly full run sets DV_E2E_QUARANTINE=1.
@@ -90,7 +97,8 @@ export default defineConfig({
   webServer: {
     command,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse (BD-FIX-SEC-02): a server already on the port fails the run instead ("is already used"); stop it or set DV_E2E_PORT.
+    reuseExistingServer: false,
     timeout: 300_000,
     stdout: 'ignore',
     stderr: 'pipe',

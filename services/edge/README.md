@@ -17,7 +17,7 @@ The `tha-bay-web` Worker (and `tha-bay-web-staging`): static assets, the `/api/v
 
 | Command | Does |
 |---|---|
-| `pnpm dev:edge` | `wrangler dev` on port 8788 |
+| `pnpm dev:edge` | `wrangler dev` on port 8788 (`tools/ci/dev.ts --edge`): no deny-listed secret from the shell or from `.dev.vars`/`.env` unless `DV_ALLOW_LIVE_SECRETS=1` (BD-FIX-SEC-02) |
 | `pnpm check:workers [-- <suite>]` | Workers-runtime tests (`services/edge/test`) |
 | `pnpm check:prod-routes` | dry-run bundle; no `/_test/` route in production |
 | `pnpm deploy:prod -- --env staging` | versions upload, 0 % smoke, 100 %, rollback on failure (needs Cloudflare credentials) |

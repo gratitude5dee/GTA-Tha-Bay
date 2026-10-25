@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPlatformProxy } from 'wrangler';
-import { scrubProcessEnv } from '../../../tools/ci/secret-env.ts';
+import { NO_ENV_FILE, scrubProcessEnv } from '../../../tools/ci/secret-env.ts';
 import {
   FAL_DONE_EVENT,
   GENAI_REGISTRY,
@@ -88,11 +88,13 @@ async function main(): Promise<void> {
   const configPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../edge/wrangler.jsonc');
   // remoteBindings: false keeps every binding local (wrangler's GetPlatformProxyOptions; default true). Without it the
   // remote-only Workers AI `ai` binding (M06a4) starts a remote proxy session, which needs CLOUDFLARE_API_TOKEN (BD-FIX-CI4-E01).
+  // envFiles: NO_ENV_FILE alone: the proxy reads neither services/edge/.dev.vars nor any .env file, which may hold live secrets (BD-FIX-SEC-02).
   const proxy = await getPlatformProxy<{ MEDIA: R2Bucket; PRIVATE: R2Bucket }>({
     configPath,
     environment: 'staging',
     persist: false,
     remoteBindings: false,
+    envFiles: [NO_ENV_FILE],
   });
   try {
     const { MEDIA, PRIVATE } = proxy.env;
