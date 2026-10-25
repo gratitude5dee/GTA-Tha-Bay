@@ -17,9 +17,34 @@ export function reportOutcome(reason: ReportReason): { kind: 'legal'; doc: 'dmca
   return reason === 'copyright' ? { kind: 'legal', doc: 'dmca' } : { kind: 'ack' };
 }
 
-export function ReportButton(props: { target: string; label?: string }) {
+/**
+ * With `onReport` (M06a5) the dialog lists `categories` instead of the four reasons and hands the pick to the caller, which files the C12
+ * `ReportReq`; the label of a category is `report.category.<value>`. Without it, the stub flow above runs.
+ */
+export function ReportButton(props: { target: string; label?: string; categories?: readonly string[]; onReport?: (category: string) => void | Promise<unknown> }) {
   const { shell } = useShell();
   const open = (): void => {
+    const pick = props.onReport;
+    const categories = props.categories;
+    if (pick && categories) {
+      void shell
+        .modal<string>({
+          titleKey: 'report.title',
+          body: (close) => (
+            <div class="dv-form" data-testid="report-dialog" data-target={props.target}>
+              <p>{t('report.lead.live')}</p>
+              {categories.map((c) => (
+                <Button key={c} id={`report-${c}`} label={t(`report.category.${c}`)} onPress={() => close(c)} />
+              ))}
+            </div>
+          ),
+        })
+        .then((category) => {
+          if (!category) return;
+          void Promise.resolve(pick(category)).then(() => shell.toast({ id: 'report.thanks', kind: 'success', text: 'report.thanks' }));
+        });
+      return;
+    }
     void shell
       .modal<ReportReason>({
         titleKey: 'report.title',
