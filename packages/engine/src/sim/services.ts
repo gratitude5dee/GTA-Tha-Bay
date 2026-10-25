@@ -1,8 +1,8 @@
-import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
+import { RngStreams, type EntityHandle, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import { ForwardingFareSink } from './modes/economy.ts';
-import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import type { PhysicsSystemsBackend, Vec3 } from './physics/backend.ts';
 import { noFlags, type SandboxFlags } from './sandbox-flags.ts';
 import type { VehicleDebugContext } from './vehicle/debug.ts';
 import type { WorldClock } from './world/clock.ts';
@@ -52,6 +52,25 @@ export interface EngineServices extends SimServices {
   ride: RidePort | null;
   /** The sandbox's session-only body flags (M04e4); all off outside a sandbox session. Engine-internal, in no contract. */
   sandboxFlags: SandboxFlags;
+  /**
+   * Moves the vehicle `rider` rides in (at the wheel or as a passenger), with everybody aboard, onto the static ground under (x, y, z),
+   * facing `yaw` (DL-734: the world's teleport keeps a driver in the vehicle on a drivable edge; DL-735 c: the below-the-world rescue moves a
+   * passenger with the car like a driver). Set by `registerVehicleSystems`; null in a sim without vehicles. Engine-internal, in no
+   * contract; it holds no state, so nothing is hashed.
+   */
+  vehicleMove: ((rider: EntityHandle, pos: Vec3, yaw: number) => { ok: true } | { ok: false; reason: string }) | null;
+  /**
+   * Takes `rider` out of the vehicle it rides in at once (`unseatDriver`): the teleport's move to a target off the drivable edges, which
+   * moves the player on foot (02-world-maps.md 5 step 4), and the vehicle net's last resort (4.1 d: the car stays behind). Set by
+   * `registerVehicleSystems`; null in a sim without vehicles. Engine-internal, in no contract; it holds no state.
+   */
+  vehicleUnseat: ((driver: EntityHandle, tick: number) => boolean) | null;
+  /**
+   * True for a vehicle a mode puts back itself when it falls out of the world (BD-FIX-SPAWN-07: the race director resets its car to the
+   * last gate while a race runs); the below-the-world net then leaves that vehicle alone. Null when no mode claims any. Engine-internal,
+   * in no contract; it holds no state, so nothing is hashed.
+   */
+  vehicleFallClaim: ((vehicle: EntityHandle) => boolean) | null;
 }
 
 /** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
@@ -103,6 +122,9 @@ export function createSimServices(seed: number): EngineServices {
     fareSink: new ForwardingFareSink(),
     ride: null,
     sandboxFlags: noFlags(),
+    vehicleMove: null,
+    vehicleUnseat: null,
+    vehicleFallClaim: null,
   };
 }
 

@@ -142,3 +142,42 @@ describe('telemetry', () => {
     expect(finishProps({ kind: 'sprint' }, 'dnf', 70_000, 1, 0)).toEqual({ raceKind: 'sprint', outcome: 'dnf', durBucket: '60-120', place: 1, medals: 0 });
   });
 });
+
+describe('a race car out of the world (DL-734; BD-FIX-SPAWN-07)', () => {
+  it('goes back to the last gate through the race respawn once it has been in the air 2 s out of the world, with no penalty', () => {
+    const { port, events, session } = makeSession();
+    let tick = 0;
+    session.command('ready');
+    for (; session.state().phase !== 'Running' && tick < 1000; tick++) session.step(frame(tick), tick);
+    port.speed = 30;
+    while (session.state().gate < 2 && tick < 3000) {
+      port.s += port.speed / 60;
+      session.step(frame(tick, { throttle: 100 }), tick++);
+    }
+    const placedBefore = port.placed.length;
+    const penaltyBefore = session.state().penaltyMs;
+    // under the world but not yet 2 s in the air: nothing
+    port.under = true;
+    port.air = 119;
+    session.step(frame(tick), tick++);
+    expect(port.placed).toHaveLength(placedBefore);
+    port.air = 120;
+    session.step(frame(tick), tick++);
+    expect(port.placed).toHaveLength(placedBefore + 1);
+    const at = port.placed[port.placed.length - 1]!.pos;
+    // gate 1 of the 600 m straight with 3 gates sits at s 200 (z -200)
+    expect(at[2]).toBeCloseTo(-200, 0);
+    expect(events.filter((e) => e.t === 'race.respawn')).toHaveLength(1);
+    expect(session.state().penaltyMs).toBe(penaltyBefore);
+    expect(session.state().phase).toBe('Running');
+    // and it races on from the gate
+    port.speed = 30;
+    for (let i = 0; i < 30; i++) {
+      port.s += port.speed / 60;
+      session.step(frame(tick, { throttle: 100 }), tick++);
+    }
+    expect(events.some((e) => e.t === 'race.wrongway')).toBe(false);
+    expect(port.placed).toHaveLength(placedBefore + 1);
+  });
+});
+

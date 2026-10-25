@@ -82,6 +82,8 @@ export function createRacingModule(): RacingModule {
       const port = createEnginePort({
         ecs: sim.ecs, backend: sim.backend, services: sim.services, store: vc.store as never, prefabs, tick: () => sim.core.tick,
       });
+      // while a race runs the director puts its car back on the last gate when it falls out of the world; the engine net leaves it be
+      sim.services.vehicleFallClaim = (h) => session !== null && session.director.phase === 'Running' && h === port.carHandle();
       setRacingHost({
         port,
         profile: ctx.cfg.profile === 'canonical' ? 'canonical' : 'local',

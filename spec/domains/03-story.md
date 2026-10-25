@@ -214,6 +214,7 @@ stateDiagram-v2
 | Failure | Behavior |
 |---|---|
 | Unresolved reference after a world rebake | mission disabled with `E_REF_*` in Jobs; saved `activeMission` dropped; telemetry `mission.fail {reason: 'unresolved'}` |
+| Start far from the player (auto or Jobs trigger, more than 300 m; DL-734) | the mission stays `available` while `TeleportApi.request('respawn', start)` moves the player (02-world-maps.md §5); it enters `starting` only after an `ok`, and no other trigger fires meanwhile. Transient answers (`notLoaded`, `busy`, no answer in 30 s) are retried with a doubling gap (60 to 600 ticks) for up to 3 min of sim time, with the non-blocking hint `mission.startLoading`. A hard refusal, the budget running out, or a gray-box world leaves it `available`, never started elsewhere: warning toast `mission.startUnreachable`, telemetry `mission.fail {reason: 'unresolved'}`, and Jobs keeps a Start action that runs the move again with a fresh budget |
 | Op budget exceeded 60 ticks in a row | abort to `failed`, `fail.reason.script_error`, `err.sim` |
 | Talk network failure, quota, kill, timeout | ink path with the same choices (C §C7) |
 | Mode cannot start or is killed | stub objective (C §C8) |

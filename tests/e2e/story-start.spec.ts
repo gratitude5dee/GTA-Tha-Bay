@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { enuFromLatLng } from '../../packages/shared/src/index.ts';
+import { enuFromLatLng, latLngFromEnu } from '../../packages/shared/src/index.ts';
 import type { MissionBridge } from '../../packages/modes/story/src/debug/bridge.ts';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
 import { act, observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
@@ -15,6 +15,8 @@ import { act, observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts
  *  1. `?play=story&story=1`: m.a1.01 starts within a bounded time; whenever it is active the player is within the teleport's search
  *     radius of the Yard; once it runs the player is grounded on the resident ground and stays there; the cast stands near.
  *  2. The safety net: a player pushed under the terrain is back on the ground within 3 s of sim time.
+ *  3. The vehicle net (DL-734, DL-735, BD-FIX-SPAWN-05, -09): a driven car 25 m under the terrain respawns, with its driver, on the nearest
+ *     road within 3 s of sim time, through the ownership machine's move with the teleport's own fade (never `TeleportApi.request`).
  */
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -142,6 +144,80 @@ test.describe('story start @story-start', () => {
     expect(ticks).toBeLessThanOrEqual(3 * 60);
     const after = (await observe(page)).player!;
     expect(Math.hypot(after.pos[0] - before.pos[0], after.pos[2] - before.pos[2])).toBeLessThanOrEqual(60);
+    expect(errors).toEqual([]);
+  });
+
+  test('a driven car 25 m under the terrain is back on a road, with its driver, within 3 s of sim time @story-start', async ({ page }) => {
+    const errors = await boot(page, 'debug=1&tier=mobile-low', false);
+    await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
+    await expect.poll(async () => {
+      const pl = (await observe(page)).player;
+      return pl !== null && pl.grounded && pl.control === 100;
+    }, { timeout: 120_000, intervals: [250] }).toBe(true);
+    // the road graph must be there for the net to find a road (it arrives after the first chunks)
+    await expect.poll(async () => ((await page.evaluate(() => (window as unknown as W).__dvBridge.world.call('state'))) as { topology?: boolean } | null)?.topology ?? false, { timeout: 120_000, intervals: [500, 1000] }).toBe(true);
+    const before = (await observe(page)).player!;
+    const cx = before.pos[0] + 4, cz = before.pos[2];
+    const gy = await groundY(page, cx, cz);
+    expect(gy).not.toBeNull();
+
+    // a sedan 25 m under the ground at the player's side, with the player seated at its wheel at once (the existing QA hooks)
+    type EB = { __dvBridge: { engine: { spawn(p: string, at: [number, number, number], yaw: number): Promise<{ ok: boolean; handle?: number } | null>; vehicleOp(op: string, h?: number): Promise<{ ok: boolean } | null> } } };
+    const sunkY = (gy as number) - 25;
+    const car = await page.evaluate(([x, y, z]) => (window as unknown as EB).__dvBridge.engine.spawn('vehicle.sedan', [x, y, z], 0), [cx, sunkY, cz] as const);
+    expect(car?.ok, JSON.stringify(car)).toBe(true);
+    const seat = await page.evaluate((h) => (window as unknown as EB).__dvBridge.engine.vehicleOp('seat', h), car?.handle ?? 0);
+    expect(seat?.ok, JSON.stringify(seat)).toBe(true);
+
+    // sim time is the tick of the snapshot the car's pose comes from: from the first snapshot of the driven car under the ground ...
+    let sunkTick = -1;
+    let sunkPos: number[] = [];
+    await expect
+      .poll(async () => {
+        const o = await observe(page);
+        const v = o.vehicle as { pos: number[] } | null;
+        if (o.player?.owner === 2 && v && (v.pos[1] as number) < (gy as number) - 20) {
+          sunkTick = o.tick;
+          sunkPos = v.pos;
+        }
+        return sunkTick >= 0;
+      }, { timeout: 30_000, intervals: [20] })
+      .toBe(true);
+    // ... to the first one after the net moved it (up by more than 15 m, or across): observe alone, so the samples stay close together
+    let backTick = -1;
+    let backPos: number[] = [];
+    await expect
+      .poll(async () => {
+        const o = await observe(page);
+        const v = o.vehicle as { pos: number[] } | null;
+        if (o.player?.owner === 2 && v && ((v.pos[1] as number) > (gy as number) - 10 || Math.hypot((v.pos[0] as number) - (sunkPos[0] as number), (v.pos[2] as number) - (sunkPos[2] as number)) > 2)) {
+          backTick = o.tick;
+          backPos = v.pos;
+          return true;
+        }
+        return false;
+      }, { timeout: 60_000, intervals: [20] })
+      .toBe(true);
+    const ticks = backTick - sunkTick;
+    console.log(`story-start car: under the ground at tick ${sunkTick}, back at tick ${backTick} (${(ticks / 60).toFixed(2)} s of sim time) at ${backPos.map((n) => n.toFixed(1)).join(', ')}`);
+    expect(ticks).toBeLessThanOrEqual(3 * 60);
+
+    // back on a road: on the resident ground there, within 4 m of a drivable edge line, the player still at the wheel
+    const backGround = await groundY(page, backPos[0] as number, backPos[2] as number);
+    expect(backGround, 'the ground under the recovered car is resident').not.toBeNull();
+    expect((backPos[1] as number) - (backGround as number), `car ${(backPos[1] as number).toFixed(2)} on the ground ${(backGround as number).toFixed(2)}`).toBeGreaterThan(-0.5);
+    expect((backPos[1] as number) - (backGround as number)).toBeLessThan(2.5);
+    const ll = latLngFromEnu(backPos[0] as number, backPos[2] as number);
+    const snap = (await page.evaluate((a) => (window as unknown as W).__dvBridge.world.call('snap', a), { at: ll, snap: 'road' })) as { distM: number } | null;
+    expect(snap, 'a road within 25 m').not.toBeNull();
+    expect(snap!.distM, 'the car stands on the road (lane 0 lies about 2 m off the edge line)').toBeLessThanOrEqual(4);
+    await page.waitForTimeout(1000);
+    const later = await observe(page);
+    expect(later.player?.owner, 'the player still drives').toBe(2);
+    const lv = later.vehicle as { pos: number[] } | null;
+    expect(lv, 'the car is still there').not.toBeNull();
+    const lg = await groundY(page, lv!.pos[0] as number, lv!.pos[2] as number);
+    expect(Math.abs((lv!.pos[1] as number) - (lg as number)), 'the car stays on the ground').toBeLessThan(2.5);
     expect(errors).toEqual([]);
   });
 });

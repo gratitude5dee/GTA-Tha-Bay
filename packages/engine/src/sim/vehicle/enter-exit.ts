@@ -35,6 +35,8 @@ export const DRIVER_SYNC_ID = 'engine.vehicle.driver-sync';
 
 /** Driver seat in the body frame: left of centre (x < 0), slightly behind it. */
 export const SEAT_LOCAL: Readonly<Vec3> = [-0.4, -0.35, 0.15];
+/** The front passenger seat in the body frame: the driver seat mirrored to the right of centre (BD-FIX-SPAWN-09). */
+export const PASSENGER_SEAT_LOCAL: Readonly<Vec3> = [0.4, -0.35, 0.15];
 /** The player must be within this distance of a door point to enter, metres. */
 export const ENTER_REACH_M = 3.6;
 /** Exit is refused above this speed, m/s. */
@@ -282,7 +284,7 @@ export function enterExitSystem(opts: EnterExitOptions): SystemDef {
         if (phase === CONTROL_PHASE.Leaving) {
           if (tick - since < cfg.leaveSettleTicks) continue;
           const rt = store.rt.get(vid);
-          if (rt) rt.driver = 0;
+          if (rt && rt.driver === id) rt.driver = 0;   // a passenger leaving keeps the driver at the wheel
           co.target[id] = 0;
           opts.services.camera.reason = 'player';
           opts.services.camera.target = 0;
@@ -293,7 +295,11 @@ export function enterExitSystem(opts: EnterExitOptions): SystemDef {
   };
 }
 
-/** Puts the driver's capsule at the seat of the vehicle it drives, after the physics step (stage PhysicsPost). */
+/**
+ * Puts the driver's capsule at the seat of the vehicle it drives, after the physics step (stage PhysicsPost), and a player riding as a
+ * passenger (owner Vehicle, state 202) at the passenger seat (`PASSENGER_SEAT_LOCAL`), so a passenger moves with the car like a driver
+ * (DL-735 c).
+ */
 export function driverSyncSystem(opts: Pick<EnterExitOptions, 'backend' | 'store' | 'config'>): SystemDef {
   const { backend, store } = opts;
   const cfg = opts.config ?? PHYSICS_CONFIG.character;
@@ -328,8 +334,40 @@ export function driverSyncSystem(opts: Pick<EnterExitOptions, 'backend' | 'store
         backend.setBodyPose(bodies[d] as number, target, identity);
         backend.setKinematicTarget(bodies[d] as number, target, identity);
       }
+      const riders = ecs.query([PlayerControlled, Control, BodyRef]);
+      for (let i = 0; i < riders.length; i++) {
+        const p = riders[i] as number;
+        if (co.owner[p] !== CONTROL_OWNER.Vehicle || co.state[p] !== CONTROL_STATE.passenger) continue;
+        if (phaseOf(co.pending[p] as number) === CONTROL_PHASE.Leaving) continue;
+        const vid = co.target[p] as number;
+        if (vid === 0 || !(ecs as unknown as EcsWorld).hasId(vid, BodyRef)) continue;
+        carryToSeat(ecs, backend, vid, p, PASSENGER_SEAT_LOCAL, cfg);
+      }
     },
   };
+}
+
+/**
+ * Puts the capsule of `rider` at the local point `local` of vehicle `vid` (dense ids), facing the vehicle's way, moving with it: what the
+ * driver-sync system does for the driver, for a player riding as a passenger (DL-735 c; no engine path seats a passenger yet, state 202
+ * is set by whoever makes one).
+ */
+export function carryToSeat(
+  ecs: EcsApi, backend: VehiclePhysics, vid: number, rider: number, local: Readonly<Vec3>, config: CharacterConfig = PHYSICS_CONFIG.character,
+): void {
+  const bodies = ecs.store(BodyRef).body;
+  const pose = poseOf(backend, bodies[vid] as number, new Float64Array(13), newPose());
+  const seat = toWorld(pose, local, [0, 0, 0]);
+  const tr = ecs.store(Transform);
+  const ve = ecs.store(Velocity);
+  tr.px[rider] = seat[0]; tr.py[rider] = seat[1]; tr.pz[rider] = seat[2];
+  const yaw = datan2(-pose.fx, -pose.fz);
+  tr.qx[rider] = 0; tr.qy[rider] = dsin(yaw / 2); tr.qz[rider] = 0; tr.qw[rider] = dcos(yaw / 2);
+  ve.vx[rider] = pose.vx; ve.vy[rider] = pose.vy; ve.vz[rider] = pose.vz;
+  if (!(ecs as unknown as EcsWorld).hasId(rider, BodyRef)) return;
+  const target: Vec3 = [seat[0], seat[1] + capsuleCentreOffset(config), seat[2]];
+  backend.setBodyPose(bodies[rider] as number, target, identity);
+  backend.setKinematicTarget(bodies[rider] as number, target, identity);
 }
 
 /**
@@ -355,5 +393,49 @@ export function seatDriver(
   if ((ecs as unknown as EcsWorld).hasId(did, RenderKey)) ecs.store(RenderKey).visible[did] = 0;
   services.camera.reason = 'vehicle';
   services.camera.target = vehicle;
+  return true;
+}
+
+/**
+ * Takes `driver` out of the vehicle it drives at once, without the leaving sequence (DL-734; 02-world-maps.md 5 step 4: a driver keeps
+ * the vehicle only when the teleport's target lies on a drivable edge, so for any other target the player is moved on foot; and the
+ * below-the-world net's last resort for a car it cannot place). The opposite of `seatDriver`: the driver is the on-foot owner, idle and
+ * ready for the ownership machine's teleport, its capsule collides again, is shown, stands still where the seat was, and the camera follows
+ * it. The vehicle stays where it is, with nobody at the wheel. A player riding as a passenger (owner Vehicle, state 202) is taken out the
+ * same way and the vehicle keeps its driver (DL-735 c). False when `driver` is not aboard a vehicle.
+ */
+export function unseatDriver(
+  ecs: EcsApi, backend: VehiclePhysics, store: VehicleStore, services: Pick<EngineServices, 'camera' | 'events'>, driver: EntityHandle, tick: number,
+): boolean {
+  const did = ecs.resolve(driver);
+  if (did === null) return false;
+  const co = ecs.store(Control);
+  if (co.owner[did] !== CONTROL_OWNER.Vehicle) return false;
+  const vid = co.target[did] as number;
+  const rt = store.rt.get(vid);
+  if (rt && rt.driver === did) rt.driver = 0;
+  const from = phaseOf(co.pending[did] as number);
+  co.target[did] = 0;
+  co.owner[did] = CONTROL_OWNER.OnFoot;
+  co.state[did] = CONTROL_STATE.idle;
+  co.sinceTick[did] = tick;
+  co.pending[did] = packPending(CONTROL_PHASE.Ready, CONTROL_OWNER.None);
+  const world = ecs as unknown as EcsWorld;
+  const ve = ecs.store(Velocity);
+  ve.vx[did] = 0; ve.vy[did] = 0; ve.vz[did] = 0; ve.wx[did] = 0; ve.wy[did] = 0; ve.wz[did] = 0;
+  if (world.hasId(did, BodyRef)) backend.setBodyGroups(ecs.store(BodyRef).body[did] as number, GROUPS.character);
+  if (world.hasId(did, RenderKey)) ecs.store(RenderKey).visible[did] = 1;
+  if (world.hasId(did, CharacterBody)) ecs.store(CharacterBody).grounded[did] = 0;
+  if (world.hasId(did, Anim)) {
+    const an = ecs.store(Anim);
+    an.state[did] = animStateOf(CONTROL_STATE.idle);
+    an.sinceTick[did] = tick;
+  }
+  services.camera.reason = 'player';
+  services.camera.target = 0;
+  services.events.push({
+    t: 'control.transition', tick, a: driver, n: CONTROL_STATE.idle,
+    s: `${OWNER_NAMES[CONTROL_OWNER.OnFoot]} ${PHASE_NAMES[from]}>${PHASE_NAMES[CONTROL_PHASE.Ready]} unseat`,
+  });
   return true;
 }

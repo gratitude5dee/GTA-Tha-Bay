@@ -67,23 +67,44 @@ const MAX_MESSAGES = 60;
 /** A new game moves the player to the first auto mission's start only when it is farther than this from it. */
 const AUTO_PLACE_MIN_M = 300;
 /**
- * The move to the first auto mission's start (BD-FIX-SPAWN-01) is a `TeleportApi.request('respawn', ...)`: pre-streamed, placed on resident
- * ground, faded. A transient answer (the destination is still streaming, the player is still settling from the boot spawn, or no answer in
- * time) is asked again, first `PLACE_RETRY_FIRST_TICKS` later, the gap doubling up to `PLACE_RETRY_MAX_TICKS`, for as long as the wait is
- * shorter than `PLACE_BUDGET_TICKS`; only a hard refusal, or a transient answer once that budget is spent, leaves the mission unstarted.
- * Every limit counts sim ticks (60 Hz), never the wall clock (C02).
+ * The move to a far authored start (BD-FIX-SPAWN-01, DL-734) is a `TeleportApi.request('respawn', ...)`: pre-streamed, placed on
+ * resident ground, faded. A transient answer (the destination is still streaming, the player is still settling from the boot spawn, or no
+ * answer in time) is asked again, first `PLACE_RETRY_FIRST_TICKS` later, the gap doubling up to `PLACE_RETRY_MAX_TICKS` (60, 120, 240,
+ * 480, 600, 600, ... ticks). The budget is checked when a retry is scheduled and again when it would be sent: no request goes out once
+ * `PLACE_BUDGET_TICKS` (10,800 ticks, 3 min) have passed since the first one. The last request may be sent just inside the budget and is
+ * then given its `PLACE_ANSWER_TICKS`, so in the worst case the wait ends 10,800 + 1,800 = 12,600 ticks (3.5 min) after the first request.
+ * Only a hard refusal, or a transient answer once the budget is spent, leaves the mission unstarted. Every limit counts sim ticks (60 Hz),
+ * never the wall clock (C02).
  */
-const PLACE_RETRY_FIRST_TICKS = 60;
-const PLACE_RETRY_MAX_TICKS = 600;
+export const PLACE_RETRY_FIRST_TICKS = 60;
+export const PLACE_RETRY_MAX_TICKS = 600;
 /** The teleport answers within its own limits (8 s of pre-stream, 15 s of move); past this (30 s) the request counts as a timeout. */
-const PLACE_ANSWER_TICKS = 1800;
-/** No new request is asked once the wait for the start has lasted this long (3 min); the request then in flight is the last one. */
-const PLACE_BUDGET_TICKS = 10800;
-/** The loading hint (`mission.startLoading`) shows once the wait has lasted 5 s, then at most once every 20 s. */
-const PLACE_HINT_AFTER_TICKS = 300;
-const PLACE_HINT_EVERY_TICKS = 1200;
+export const PLACE_ANSWER_TICKS = 1800;
+/** No request is sent once the wait for the start has lasted this long (3 min); the request then in flight is the last one. */
+export const PLACE_BUDGET_TICKS = 10800;
+/**
+ * The loading hint (`mission.startLoading`) shows once the wait has lasted 5 s, then again every 20 s while the wait lasts (DL-735 d). Each
+ * one is an ordinary sim toast, which the shell shows for 5 s (`SIM_TOAST_TTL_MS`; at most 6 s), so it leaves the screen by itself: nothing
+ * ever takes it off, and no toast is sent when the wait ends (C06 `UiBridge` has no dismiss call).
+ */
+export const PLACE_HINT_AFTER_TICKS = 300;
+export const PLACE_HINT_EVERY_TICKS = 1200;
 const TELEPORT_TRANSIENT = new Set(['world.teleport.notLoaded', 'world.teleport.busy']);
+
+/** The gap before the next request of the move to a far start, after `tries` requests: 60, 120, 240, 480, then 600 ticks. */
+export function placeRetryGap(tries: number): number {
+  let gap = PLACE_RETRY_FIRST_TICKS;
+  for (let i = 1; i < tries && gap < PLACE_RETRY_MAX_TICKS; i++) gap *= 2;
+  return gap < PLACE_RETRY_MAX_TICKS ? gap : PLACE_RETRY_MAX_TICKS;
+}
 const sq = (n: number): number => n * n;
+
+/** A mission's authored start on the ground plane: ENU metres, and the yaw the player faces there (radians). */
+export interface StartPose {
+  x: number;
+  z: number;
+  yaw: number;
+}
 
 /** The local player's position on the ground plane, or null while it does not exist. */
 function playerXZ(ctx: ModeContext): [number, number] | null {
@@ -140,12 +161,14 @@ export class StoryController {
   /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
   private teleportRestore: (() => void) | null = null;
   /**
-   * A new game's move to the start of its first auto mission (BD-FIX-SPAWN-01): the mission starts only once the teleport has put the
-   * player on resident ground there. `result` is filled by the teleport's promise; `started` is the tick of the first request, `asked` of
+   * The move to a far authored start (BD-FIX-SPAWN-01, DL-734: a new game's first auto mission, or any Jobs Start more than 300 m from its
+   * start): the mission starts only once the teleport has put the player on resident ground there. `result` is filled by the teleport's promise; `started` is the tick of the first request, `asked` of
    * the current one, `retryAt` of the next one; `hintAt` is the tick of the last loading hint (-1: none yet).
    */
   private placing: {
     id: string;
+    /** The authored start the player is moved to (ENU metres and radians): a marker's placement, or the new game's `CatalogPayload.autoStart`. */
+    at: StartPose;
     tries: number;
     started: number;
     asked: number;
@@ -153,8 +176,15 @@ export class StoryController {
     hintAt: number;
     result: TeleportResult | null;
     serial: number;
+    /** The reason of the last transient answer, for the toast when the budget runs out before the next request. */
+    lastReason: string;
   } | null = null;
   private placeSerial = 0;
+  /**
+   * Missions whose far start could not be reached this session (DL-734): they stay `available`, and the Jobs app offers a Start action
+   * (`JobRow.retry`) that runs the move again with a fresh budget.
+   */
+  private readonly startFailed = new Set<string>();
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -196,7 +226,8 @@ export class StoryController {
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
-    this.placing = null;
+    this.cancelPlacing();
+    this.startFailed.clear();
     this.triedTrigger.clear();
     this.startMarks.clear();
     this.startPos.clear();
@@ -300,7 +331,7 @@ export class StoryController {
   startById(id: string, ctx: ModeContext): BeginResult | null {
     const store = this.store;
     const entry = store?.get(id);
-    if (!store || !entry || this.pending || this.rt?.active) return null;
+    if (!store || !entry || this.pending || this.rt?.active || this.placing) return null;
     this.clearStartMarks(ctx);
     return this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines });
   }
@@ -321,7 +352,7 @@ export class StoryController {
 
   /** `mode.story.jobs`, when the rows changed since the last patch. */
   private publishJobs(ctx: ModeContext, store: MissionStore, story: StorySlice, activeId: string | null): void {
-    const rows: JobRow[] = store.rows(story, ctx, activeId);
+    const rows: JobRow[] = store.rows(story, ctx, activeId, this.startFailed);
     const json = JSON.stringify(rows);
     if (json === this.jobsJson) return;
     this.jobsJson = json;
@@ -330,8 +361,10 @@ export class StoryController {
 
   /**
    * A mission that was running when the game was saved (`StorySlice.activeMission`, written at a checkpoint) continues from that
-   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake is dropped by `begin`, which
-   * leaves the mission `available` again. Tried once per session.
+   * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake (a rebake changes the bake id)
+   * is dropped here and the mission is `available` again, and nothing starts: the trigger and the far start of `checkTriggers` (or a
+   * marker, or the Jobs app) start it at its authored start, never where the player stands (DL-734; BD-FIX-SPAWN-10). Tried once per
+   * session.
    */
   private resumeSaved(ctx: ModeContext, store: MissionStore, story: StorySlice): boolean {
     const saved = story.activeMission;
@@ -340,6 +373,12 @@ export class StoryController {
     const entry = store.get(saved.id);
     if (!entry) {
       story.activeMission = null;
+      return false;
+    }
+    if (!readCheckpoint(saved, entry.ir.id, entry.ir.version, ctx.world.resolver.bake)) {
+      story.activeMission = null;
+      const row = story.missions[entry.ir.id];
+      if (row?.state !== 'passed') story.missions[entry.ir.id] = { state: 'available', ...(row?.bestSec !== undefined ? { bestSec: row.bestSec } : {}) };
       return false;
     }
     this.clearStartMarks(ctx);
@@ -353,11 +392,12 @@ export class StoryController {
     if (this.resumeSaved(ctx, store, story)) return;
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
-      // a new game starts at the Yard: move the player there first, and start the mission once it stands on the ground there
-      if (store.autoStart && Object.keys(story.missions).length === 0 && this.farFrom(ctx, store.autoStart)) {
-        this.clearStartMarks(ctx);
-        this.placing = { id: due.ir.id, tries: 0, started: ctx.tick, asked: ctx.tick, retryAt: ctx.tick, hintAt: -1, result: null, serial: 0 };
-        this.stepPlacing(ctx);
+      // the first auto mission starts at its authored start (a new game's Yard), whether or not it was started before (quit, or a
+      // checkpoint dropped after a rebake, which `resumeSaved` leaves to this pass): move the player there first, and start it once the player stands on the ground there (DL-734).
+      // A chained auto mission has no place in its start (`farStartFor` answers null) and begins where the player is.
+      const far = this.farStartFor(ctx, due.ir.id);
+      if (far) {
+        this.beginPlacing(ctx, due.ir.id, far);
         return;
       }
       this.triedTrigger.add(due.ir.id);
@@ -434,57 +474,103 @@ export class StoryController {
     for (const id of [...this.startMarks.keys()]) this.removeStartMark(ctx, id);
   }
 
-  /** True when the player is farther than `AUTO_PLACE_MIN_M` from the new game's start (or does not exist yet). */
-  private farFrom(ctx: ModeContext, at: { lat: number; lng: number }): boolean {
-    const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+  /** True when the player is farther than `AUTO_PLACE_MIN_M` from `at` (or does not exist yet). */
+  private farFrom(ctx: ModeContext, at: StartPose): boolean {
     const p = playerXZ(ctx);
-    return !p || sq(p[0] - e[0]) + sq(p[1] - e[2]) >= AUTO_PLACE_MIN_M * AUTO_PLACE_MIN_M;
+    return !p || sq(p[0] - at.x) + sq(p[1] - at.z) >= AUTO_PLACE_MIN_M * AUTO_PLACE_MIN_M;
   }
 
   /**
-   * One step of a new game's move to the Yard (BD-FIX-SPAWN-01). The player is never put down where the ground is not resident (the
+   * A mission's authored start, or null when it has none (DL-734; 03-story.md section 5): a `marker` mission starts at its marker's
+   * placement, and the catalog's first `auto` mission (a new game's first mission) at `CatalogPayload.autoStart`. A `phone` mission, a
+   * chained `auto` mission and a `mode` mission have no place in their start (C09 `MissionStart`), so they start where the player is.
+   */
+  private authoredStart(ctx: ModeContext, id: string): StartPose | null {
+    const store = this.store;
+    const entry = store?.get(id);
+    if (!store || !entry) return null;
+    const s = entry.ir.start;
+    if (s.k === 'marker') {
+      const pl = s.at;
+      const yaw = ((pl.yawDeg ?? 0) * Math.PI) / 180;
+      if (Array.isArray(pl.at)) {
+        const e = ctx.world.resolver.toEnu({ lat: pl.at[0], lng: pl.at[1] });
+        return { x: e[0], z: e[2], yaw };
+      }
+      const lm = ctx.world.resolver.landmark(pl.at.landmark);
+      return lm ? { x: lm.enu[0], z: lm.enu[2], yaw } : null;
+    }
+    if (s.k === 'auto' && store.autoStart && store.entries.find((e) => e.ir.start.k === 'auto') === entry) {
+      const at = store.autoStart;
+      const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+      return { x: e[0], z: e[2], yaw: (at.yawDeg * Math.PI) / 180 };
+    }
+    return null;
+  }
+
+  /**
+   * The far start a mission is moved to before it begins (DL-734; 03-story.md section 5, 'Start far from the player'), or null when it
+   * begins where the player is: its authored start (`authoredStart`) while the player is farther than `AUTO_PLACE_MIN_M` from it. Both
+   * the auto trigger of a new game and a Start from the Jobs app ask this, so a mission never begins away from its authored start; on a
+   * gray-box world (the stand-in refuses every teleport) a far start is `mission.startUnreachable` and the Jobs row keeps its Start.
+   */
+  private farStartFor(ctx: ModeContext, id: string): StartPose | null {
+    const at = this.authoredStart(ctx, id);
+    return at && this.farFrom(ctx, at) ? at : null;
+  }
+
+  /** Starts a move to a far start with a fresh budget; the mission starts once the teleport has put the player there. */
+  private beginPlacing(ctx: ModeContext, id: string, at: StartPose): void {
+    this.clearStartMarks(ctx);
+    this.placing = { id, at, tries: 0, started: ctx.tick, asked: ctx.tick, retryAt: ctx.tick, hintAt: -1, result: null, serial: 0, lastReason: 'not-loaded' };
+    this.stepPlacing(ctx);
+  }
+
+  /**
+   * One step of a move to a far start (BD-FIX-SPAWN-01, DL-734). The player is never put down where the ground is not resident (the
    * void under the city): the world's teleport pre-streams the destination, places the player on its ground and only then answers. On
    * `ok` the mission starts. A transient answer (`notLoaded`, `busy`, or no answer within `PLACE_ANSWER_TICKS`) is asked again, spaced
-   * out, while the wait is inside `PLACE_BUDGET_TICKS`, and a non-blocking hint says the area is still loading. A hard refusal (water,
-   * blocked, out of bounds, forbidden), a gray-box world (no baked world: its stand-in refuses every teleport), or a transient answer once
-   * the budget is spent leaves the mission unstarted: a toast says why, and telemetry records `mission.fail {reason: 'unresolved'}`
-   * (03-story.md: an unresolvable start disables it).
+   * out, while the wait is inside `PLACE_BUDGET_TICKS` (checked when the retry is scheduled and when it would be sent), and a non-blocking
+   * hint says the area is still loading. A hard refusal (water, blocked, out of bounds, forbidden), a gray-box world (no baked world: its
+   * stand-in refuses every teleport), or a transient answer once the budget is spent leaves the mission `available`: a toast says why,
+   * telemetry records `mission.fail {reason: 'unresolved'}`, and the Jobs app offers a Start that tries again (03-story.md section 5).
    */
   private stepPlacing(ctx: ModeContext): void {
     const pl = this.placing;
-    const store = this.store;
-    if (!pl || !store?.autoStart) {
-      this.placing = null;
-      return;
-    }
-    if (ctx.world.resolver.bake === WORLD_STANDIN_BAKE) return this.failPlacing(ctx, pl.id, 'no-world');
+    if (!pl) return;
+    if (ctx.world.resolver.bake === WORLD_STANDIN_BAKE) return this.failPlacing(ctx, pl, 'no-world');
     const r = pl.result;
     if (r === null) {
       if (pl.serial !== 0 && ctx.tick - pl.asked < PLACE_ANSWER_TICKS) return this.hintPlacing(ctx, pl);
       if (pl.serial !== 0) pl.result = { ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded' };
-      else if (ctx.tick >= pl.retryAt) return this.askPlace(ctx, pl, store.autoStart);
-      else return this.hintPlacing(ctx, pl);
+      else if (ctx.tick < pl.retryAt) return this.hintPlacing(ctx, pl);
+      // the budget is looked at again when the retry would go out: no request is sent after it
+      else if (pl.tries > 0 && ctx.tick - pl.started >= PLACE_BUDGET_TICKS) return this.failPlacing(ctx, pl, pl.lastReason);
+      else return this.askPlace(ctx, pl);
     }
     const res = pl.result as TeleportResult;
     if (res.ok) {
       this.placing = null;
-      this.triedTrigger.add(pl.id);
+      this.startFailed.delete(pl.id);
+      this.markTried(pl.id);
       this.startById(pl.id, ctx);
       return;
     }
     if (TELEPORT_TRANSIENT.has(res.messageKey) && ctx.tick - pl.started < PLACE_BUDGET_TICKS) {
-      let gap = PLACE_RETRY_FIRST_TICKS;
-      for (let i = 1; i < pl.tries && gap < PLACE_RETRY_MAX_TICKS; i++) gap *= 2;
+      pl.lastReason = res.reason;
       pl.result = null;
       pl.serial = 0;
-      pl.retryAt = ctx.tick + (gap < PLACE_RETRY_MAX_TICKS ? gap : PLACE_RETRY_MAX_TICKS);
+      pl.retryAt = ctx.tick + placeRetryGap(pl.tries);
       this.hintPlacing(ctx, pl);
       return;
     }
-    this.failPlacing(ctx, pl.id, res.reason);
+    this.failPlacing(ctx, pl, res.reason);
   }
 
-  /** The non-blocking loading hint while a new game waits for its start: after `PLACE_HINT_AFTER_TICKS`, once per `PLACE_HINT_EVERY_TICKS`. */
+  /**
+   * The non-blocking loading hint while the move waits for its start: after `PLACE_HINT_AFTER_TICKS`, then once per
+   * `PLACE_HINT_EVERY_TICKS` while the wait lasts; each one leaves the screen after the shell's short sim toast time (DL-735 d).
+   */
   private hintPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
     if (ctx.tick - pl.started < PLACE_HINT_AFTER_TICKS) return;
     if (pl.hintAt >= 0 && ctx.tick - pl.hintAt < PLACE_HINT_EVERY_TICKS) return;
@@ -492,23 +578,42 @@ export class StoryController {
     ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: 'mission.startLoading' });
   }
 
-  /** The new game's start cannot be reached: the mission stays unstarted for this session. */
-  private failPlacing(ctx: ModeContext, id: string, reason: string): void {
-    this.placing = null;
-    this.triedTrigger.add(id);
-    ctx.telemetry.emit('mission.fail', { mid: id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
-    ctx.ui.toast({ id: `mission:${id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason } });
+  /**
+   * A move to a far start ended (started or unreachable): an `auto` mission counts as tried by its trigger, as on the near path of
+   * `checkTriggers`, so the trigger does not run the move again every pass this session. A `marker` mission stays triggerable by its
+   * marker, as after a near Jobs Start (`startById` leaves it unset): walking into a marker whose far start failed, or into it again
+   * after a quit, starts it.
+   */
+  private markTried(id: string): void {
+    if (this.store?.get(id)?.ir.start.k === 'auto') this.triedTrigger.add(id);
   }
 
-  private askPlace(ctx: ModeContext, pl: NonNullable<StoryController['placing']>, at: { lat: number; lng: number; yawDeg: number }): void {
-    const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+  /** Drops a move in flight (the mode exits or attaches again); its last loading hint runs out by itself. */
+  private cancelPlacing(): void {
+    this.placing = null;
+  }
+
+  /** The far start cannot be reached: the mission stays `available` and the Jobs app offers to try again. */
+  private failPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>, reason: string): void {
+    const id = pl.id;
+    this.placing = null;
+    this.markTried(id);
+    this.startFailed.add(id);
+    ctx.telemetry.emit('mission.fail', { mid: id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
+    ctx.ui.toast({ id: `mission:${id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason } });
+    // the Jobs row offers its Start action at once, not at the next list pass
+    if (this.store && this.story) this.publishJobs(ctx, this.store, this.story, null);
+  }
+
+  private askPlace(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
+    const at = pl.at;
     const serial = ++this.placeSerial;
     pl.serial = serial;
     pl.tries++;
     pl.asked = ctx.tick;
     let req: Promise<TeleportResult>;
     try {
-      req = ctx.world.teleport.request('respawn', { x: e[0], z: e[2], yaw: (at.yawDeg * Math.PI) / 180 });
+      req = ctx.world.teleport.request('respawn', { x: at.x, z: at.z, yaw: at.yaw });
     } catch {
       req = Promise.resolve({ ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded' });
     }
@@ -555,8 +660,15 @@ export class StoryController {
     const a = msg.args ?? {};
     if (msg.name === 'mission.start') {
       if (typeof a['id'] === 'string') {
-        const res = this.startById(a['id'], _ctx);
-        if (res === null) _ctx.ui.toast({ id: `mission:start:${a['id']}`, kind: 'warning', text: 'jobs.busy' });
+        const id = a['id'];
+        // DL-734: a mission whose authored start is more than 300 m away is first a move there, with a fresh budget
+        const far = this.farStartFor(_ctx, id);
+        if (far && !this.pending && !this.rt?.active && !this.placing) {
+          this.beginPlacing(_ctx, id, far);
+          return;
+        }
+        const res = this.startById(id, _ctx);
+        if (res === null) _ctx.ui.toast({ id: `mission:start:${id}`, kind: 'warning', text: 'jobs.busy' });
       }
       return;
     }
@@ -635,7 +747,7 @@ export class StoryController {
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
-    this.placing = null;
+    this.cancelPlacing();
     this.teleportRestore?.();
     this.teleportRestore = null;
     const rt = this.rt;

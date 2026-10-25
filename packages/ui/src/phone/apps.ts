@@ -343,15 +343,21 @@ export interface MissionJob {
   needs?: string;
   medals?: number;
   bestSec?: number;
+  /** DL-734: the far start of this available mission could not be reached; the row offers Start, which tries the move again. */
+  retry?: boolean;
 }
 
-/** The Jobs rows of the missions: id `mis:<missionId>`; only an available or passed mission can be started (a replay). */
+/**
+ * The Jobs rows of the missions: id `mis:<missionId>`; only an available or passed mission can be started (a replay). A mission whose far
+ * start could not be reached (`retry`, DL-734) carries the Start badge and says why; pressing it sends the same `mission.start`.
+ */
 export function missionRows(jobs: readonly MissionJob[]): ListRow[] {
   return jobs.map((j) => {
     const state = t(`phone.jobs.state.${j.state}`);
     const row: ListRow = { id: `mis:${j.id}`, text: j.title, detail: state };
     if (j.state === 'locked') return { ...row, disabled: true, hint: j.needs ? t('phone.jobs.needs', { mission: j.needs }) : state };
     if (j.state === 'active') return { ...row, disabled: true, hint: state };
+    if (j.state === 'available' && j.retry === true) return { ...row, detail: t('phone.jobs.retry'), badge: t('phone.jobs.start') };
     return row;
   });
 }
