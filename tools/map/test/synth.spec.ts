@@ -1,5 +1,4 @@
-import { mkdtempSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { GRID_MIN_M, enuFromLatLng } from '../../../packages/shared/src/index.ts';
@@ -11,6 +10,10 @@ import { readRawLock } from '../src/raw-lock.ts';
 import { distToSynthWater, generateSynth, inSynthLand, synthHeight } from '../src/sources/synth.ts';
 import { readJsonl } from '../src/sources/socrata.ts';
 import landmarks from './fixtures/landmarks.seed.json' with { type: 'json' };
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const cfg = loadSynth();
 
@@ -58,7 +61,7 @@ describe('synth.deterministic', () => {
   // downtown chunk block (264-265 x 250-253) plus a margin tile: the 1,500-per-chunk band
   const box = { minX: 1920, minZ: -1664, maxX: 2432, maxZ: -640 };
   const gen = (): { dir: string; hashes: Record<string, string> } => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-synth-'));
+    const dir = tempDir('dv-synth-');
     generateSynth(cfg, loadSources(), 'synth', { outDir: dir, box });
     const hashes: Record<string, string> = {};
     const walk = (d: string, rel: string): void => {

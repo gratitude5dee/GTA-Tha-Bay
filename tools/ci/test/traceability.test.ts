@@ -1,10 +1,14 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseRIds } from '../md-parse.ts';
 import { buildTrace, openGates, statusText, type TraceRow } from '../trace.ts';
 import { repoRoot } from '../run.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const fx = (name: string): string => path.join(repoRoot, 'tools', 'ci', 'fixtures', 'trace', name);
 const row = (r: ReturnType<typeof buildTrace>, rid: string): TraceRow => r.rows.find((x) => x.rid === rid) as TraceRow;
@@ -72,7 +76,7 @@ describe('traceability fixtures (AC-4, AC-13)', () => {
   });
 
   it('seen-on-device falls back to tested when the device report breaks its budget', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-trace-'));
+    const dir = tempDir('dv-trace-');
     cpSync(fx('seen-on-device'), dir, { recursive: true });
     const over = readFileSync(path.join(repoRoot, 'tools', 'ci', 'fixtures', 'perf', 'over.json'), 'utf8');
     writeFileSync(path.join(dir, 'docs', 'device-runs', 'M90', 'iphone15', 'perf.json'), over);
@@ -83,7 +87,7 @@ describe('traceability fixtures (AC-4, AC-13)', () => {
     const r = row(buildTrace({ root: fx('blocked') }), 'R-IP-01');
     expect(r.status).toBe('blocked');
     expect(statusText(r)).toBe('blocked (Q-23)');
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-trace-'));
+    const dir = tempDir('dv-trace-');
     cpSync(fx('blocked'), dir, { recursive: true });
     writeFileSync(path.join(dir, 'docs', 'legal', 'launch-gates.json'), JSON.stringify([{ id: 'Q-23a', status: 'pass' }]));
     expect(row(buildTrace({ root: dir }), 'R-IP-01').status).toBe('tested');

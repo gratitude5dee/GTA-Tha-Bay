@@ -1,5 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync, readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +6,10 @@ import { decodeP0 } from '../../../packages/shared/src/index.ts';
 import { diffHashes, grayboxHashes, runFixture } from '../src/cli.ts';
 import { GRAYBOX_BAKE_ID, GRAYBOX_FILES, buildGraybox, encodeGraybox } from '../src/fixtures/graybox.ts';
 import { sha256Hex } from '../../ci/lib/common.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const dir = fileURLToPath(new URL('../../../tests/fixtures/world/civic-graybox/', import.meta.url));
 const committed = (n: string): Buffer => readFileSync(dir + n);
@@ -48,7 +51,7 @@ describe('map:fixture graybox --check', () => {
   });
 
   it('exits 1 and names the file when a hash byte is changed in a temp copy', () => {
-    const tmp = mkdtempSync(path.join(tmpdir(), 'dv-graybox-'));
+    const tmp = tempDir('dv-graybox-');
     const file = path.join(tmp, 'hashes.json');
     const text = committed('hashes.json').toString('utf8');
     const at = text.indexOf('p0-64-64.pack') + 'p0-64-64.pack": "'.length;
@@ -63,7 +66,7 @@ describe('map:fixture graybox --check', () => {
   });
 
   it('writes the packs and hashes.json into --out, then checks clean against them', () => {
-    const tmp = mkdtempSync(path.join(tmpdir(), 'dv-graybox-out-'));
+    const tmp = tempDir('dv-graybox-out-');
     vi.spyOn(console, 'log').mockImplementation(() => {});
     expect(runFixture(['graybox', '--out', tmp])).toBe(0);
     expect(readdirSync(tmp).sort()).toEqual(['hashes.json', 'l0-64-64.pack', 'p0-64-64.pack']);
