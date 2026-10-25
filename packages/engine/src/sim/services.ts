@@ -58,6 +58,12 @@ export interface EngineServices extends SimServices {
    * Engine-internal, in no contract; it holds no state, so nothing is hashed.
    */
   vehicleMove: ((driver: EntityHandle, pos: Vec3, yaw: number) => { ok: true } | { ok: false; reason: string }) | null;
+  /**
+   * True for a vehicle a mode puts back itself when it falls out of the world (BD-FIX-SPAWN-07: the race director resets its car to the
+   * last gate while a race runs); the below-the-world net then leaves that vehicle alone. Null when no mode claims any. Engine-internal,
+   * in no contract; it holds no state, so nothing is hashed.
+   */
+  vehicleFallClaim: ((vehicle: EntityHandle) => boolean) | null;
 }
 
 /** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
@@ -110,6 +116,7 @@ export function createSimServices(seed: number): EngineServices {
     ride: null,
     sandboxFlags: noFlags(),
     vehicleMove: null,
+    vehicleFallClaim: null,
   };
 }
 

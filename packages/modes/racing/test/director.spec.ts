@@ -107,6 +107,27 @@ describe('race director', () => {
     expect(d.penaltyMs).toBe(5000);
   });
 
+  it('a car out of the world goes back to the last gate without a penalty, and the fall is no gate and no wrong way (BD-FIX-SPAWN-07)', () => {
+    const d = new RaceDirector(def, { cfg, seed: 7 });
+    const { go } = toGo(d);
+    let t = go + 1;
+    for (let s = 0; s < 210; s += 2) d.tick(base(t++, { front: [0, 0, -(s + 2)], speedMps: 30 }));
+    expect(d.ref.lastGate).toBe(1);
+    const gate = d.ref.gate;
+    const events: DirectorEvent[] = [];
+    // through a collision gap: 25 m under the road, then flagged after 2 s in the air
+    for (let i = 0; i < 30; i++) events.push(...d.tick(base(t++, { front: [0, -25 - i, -212], speedMps: 0 })));
+    events.push(...d.tick(base(t++, { front: [0, -60, -212], fell: true })));
+    expect(events.filter((e) => e.t === 'race.reset')).toEqual([{ t: 'race.reset', reason: 'fell', at: 1, penaltyMs: 0 }]);
+    expect(d.penaltyMs).toBe(0);
+    // put back on gate 1 (s 200): the jump from under the world is not read as a gate crossing or a wrong-way run
+    d.placed();
+    for (let i = 0; i < 5; i++) events.push(...d.tick(base(t++, { front: [0, 0, -200 - i * 0.5], speedMps: 5 })));
+    expect(events.some((e) => e.t === 'race.gate' || e.t === 'race.wrongway' || e.t === 'race.respawn')).toBe(false);
+    expect(d.ref.gate).toBe(gate);
+    expect(d.phase).toBe('Running');
+  });
+
   it('a held reset (1 s) also resets with +5 s', () => {
     const d = new RaceDirector(def, { cfg, seed: 7 });
     const { go } = toGo(d);

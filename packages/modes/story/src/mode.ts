@@ -67,7 +67,7 @@ const MAX_MESSAGES = 60;
 /** A new game moves the player to the first auto mission's start only when it is farther than this from it. */
 const AUTO_PLACE_MIN_M = 300;
 /**
- * The move to the first auto mission's start (BD-FIX-SPAWN-01, DL-734) is a `TeleportApi.request('respawn', ...)`: pre-streamed, placed on
+ * The move to a far authored start (BD-FIX-SPAWN-01, DL-734) is a `TeleportApi.request('respawn', ...)`: pre-streamed, placed on
  * resident ground, faded. A transient answer (the destination is still streaming, the player is still settling from the boot spawn, or no
  * answer in time) is asked again, first `PLACE_RETRY_FIRST_TICKS` later, the gap doubling up to `PLACE_RETRY_MAX_TICKS` (60, 120, 240,
  * 480, 600, 600, ... ticks). The budget is checked when a retry is scheduled and again when it would be sent: no request goes out once
@@ -94,6 +94,13 @@ export function placeRetryGap(tries: number): number {
   return gap < PLACE_RETRY_MAX_TICKS ? gap : PLACE_RETRY_MAX_TICKS;
 }
 const sq = (n: number): number => n * n;
+
+/** A mission's authored start on the ground plane: ENU metres, and the yaw the player faces there (radians). */
+export interface StartPose {
+  x: number;
+  z: number;
+  yaw: number;
+}
 
 /** The local player's position on the ground plane, or null while it does not exist. */
 function playerXZ(ctx: ModeContext): [number, number] | null {
@@ -150,14 +157,14 @@ export class StoryController {
   /** The teleport policy that was in place before the story rule (M05c2); put back on exit. */
   private teleportRestore: (() => void) | null = null;
   /**
-   * A new game's move to the start of its first auto mission (BD-FIX-SPAWN-01): the mission starts only once the teleport has put the
-   * player on resident ground there. `result` is filled by the teleport's promise; `started` is the tick of the first request, `asked` of
+   * The move to a far authored start (BD-FIX-SPAWN-01, DL-734: a new game's first auto mission, or any Jobs Start more than 300 m from its
+   * start): the mission starts only once the teleport has put the player on resident ground there. `result` is filled by the teleport's promise; `started` is the tick of the first request, `asked` of
    * the current one, `retryAt` of the next one; `hintAt` is the tick of the last loading hint (-1: none yet).
    */
   private placing: {
     id: string;
-    /** The start the player is moved to (the new game's start, `CatalogPayload.autoStart`). */
-    at: { lat: number; lng: number; yawDeg: number };
+    /** The authored start the player is moved to (ENU metres and radians): a marker's placement, or the new game's `CatalogPayload.autoStart`. */
+    at: StartPose;
     tries: number;
     started: number;
     asked: number;
@@ -374,8 +381,9 @@ export class StoryController {
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
       // a new game starts at the Yard: move the player there first, and start the mission once it stands on the ground there
-      if (store.autoStart && Object.keys(story.missions).length === 0 && this.farFrom(ctx, store.autoStart)) {
-        this.beginPlacing(ctx, due.ir.id, store.autoStart);
+      const far = Object.keys(story.missions).length === 0 ? this.farStartFor(ctx, due.ir.id) : null;
+      if (far) {
+        this.beginPlacing(ctx, due.ir.id, far);
         return;
       }
       this.triedTrigger.add(due.ir.id);
@@ -452,27 +460,53 @@ export class StoryController {
     for (const id of [...this.startMarks.keys()]) this.removeStartMark(ctx, id);
   }
 
-  /** True when the player is farther than `AUTO_PLACE_MIN_M` from the new game's start (or does not exist yet). */
-  private farFrom(ctx: ModeContext, at: { lat: number; lng: number }): boolean {
-    const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+  /** True when the player is farther than `AUTO_PLACE_MIN_M` from `at` (or does not exist yet). */
+  private farFrom(ctx: ModeContext, at: StartPose): boolean {
     const p = playerXZ(ctx);
-    return !p || sq(p[0] - e[0]) + sq(p[1] - e[2]) >= AUTO_PLACE_MIN_M * AUTO_PLACE_MIN_M;
+    return !p || sq(p[0] - at.x) + sq(p[1] - at.z) >= AUTO_PLACE_MIN_M * AUTO_PLACE_MIN_M;
   }
 
   /**
-   * The far start a Start from the Jobs app moves the player to first (DL-734), or null when the mission starts where the player is: a
-   * mission whose far start failed this session, while the player is farther than `AUTO_PLACE_MIN_M` from it. Other missions keep the
-   * M05c1 Jobs start (with the triggers on, the auto trigger has made the first move before the phone can open; a QA scene with the
-   * triggers off starts missions where the player stands, as the gray-box `@story` tests do).
+   * A mission's authored start, or null when it has none (DL-734; 03-story.md section 5): a `marker` mission starts at its marker's
+   * placement, and the catalog's first `auto` mission (a new game's first mission) at `CatalogPayload.autoStart`. A `phone` mission, a
+   * chained `auto` mission and a `mode` mission have no place in their start (C09 `MissionStart`), so they start where the player is.
    */
-  private farStartFor(ctx: ModeContext, id: string): { lat: number; lng: number; yawDeg: number } | null {
-    const at = this.store?.autoStart;
-    if (!at || !this.startFailed.has(id) || !this.store?.get(id)) return null;
-    return this.farFrom(ctx, at) ? at : null;
+  private authoredStart(ctx: ModeContext, id: string): StartPose | null {
+    const store = this.store;
+    const entry = store?.get(id);
+    if (!store || !entry) return null;
+    const s = entry.ir.start;
+    if (s.k === 'marker') {
+      const pl = s.at;
+      const yaw = ((pl.yawDeg ?? 0) * Math.PI) / 180;
+      if (Array.isArray(pl.at)) {
+        const e = ctx.world.resolver.toEnu({ lat: pl.at[0], lng: pl.at[1] });
+        return { x: e[0], z: e[2], yaw };
+      }
+      const lm = ctx.world.resolver.landmark(pl.at.landmark);
+      return lm ? { x: lm.enu[0], z: lm.enu[2], yaw } : null;
+    }
+    if (s.k === 'auto' && store.autoStart && store.entries.find((e) => e.ir.start.k === 'auto') === entry) {
+      const at = store.autoStart;
+      const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
+      return { x: e[0], z: e[2], yaw: (at.yawDeg * Math.PI) / 180 };
+    }
+    return null;
+  }
+
+  /**
+   * The far start a mission is moved to before it begins (DL-734; 03-story.md section 5, 'Start far from the player'), or null when it
+   * begins where the player is: its authored start (`authoredStart`) while the player is farther than `AUTO_PLACE_MIN_M` from it. Both
+   * the auto trigger of a new game and a Start from the Jobs app ask this, so a mission never begins away from its authored start; on a
+   * gray-box world (the stand-in refuses every teleport) a far start is `mission.startUnreachable` and the Jobs row keeps its Start.
+   */
+  private farStartFor(ctx: ModeContext, id: string): StartPose | null {
+    const at = this.authoredStart(ctx, id);
+    return at && this.farFrom(ctx, at) ? at : null;
   }
 
   /** Starts a move to a far start with a fresh budget; the mission starts once the teleport has put the player there. */
-  private beginPlacing(ctx: ModeContext, id: string, at: { lat: number; lng: number; yawDeg: number }): void {
+  private beginPlacing(ctx: ModeContext, id: string, at: StartPose): void {
     this.clearStartMarks(ctx);
     this.placing = { id, at, tries: 0, started: ctx.tick, asked: ctx.tick, retryAt: ctx.tick, hintAt: -1, result: null, serial: 0, lastReason: 'not-loaded' };
     this.stepPlacing(ctx);
@@ -552,14 +586,13 @@ export class StoryController {
 
   private askPlace(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
     const at = pl.at;
-    const e = ctx.world.resolver.toEnu({ lat: at.lat, lng: at.lng });
     const serial = ++this.placeSerial;
     pl.serial = serial;
     pl.tries++;
     pl.asked = ctx.tick;
     let req: Promise<TeleportResult>;
     try {
-      req = ctx.world.teleport.request('respawn', { x: e[0], z: e[2], yaw: (at.yawDeg * Math.PI) / 180 });
+      req = ctx.world.teleport.request('respawn', { x: at.x, z: at.z, yaw: at.yaw });
     } catch {
       req = Promise.resolve({ ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded' });
     }
@@ -607,7 +640,7 @@ export class StoryController {
     if (msg.name === 'mission.start') {
       if (typeof a['id'] === 'string') {
         const id = a['id'];
-        // DL-734: a far start (one that failed this session, or a new game's first mission) is first a move, with a fresh budget
+        // DL-734: a mission whose authored start is more than 300 m away is first a move there, with a fresh budget
         const far = this.farStartFor(_ctx, id);
         if (far && !this.pending && !this.rt?.active && !this.placing) {
           this.beginPlacing(_ctx, id, far);

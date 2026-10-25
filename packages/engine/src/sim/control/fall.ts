@@ -65,8 +65,7 @@ export function fallRecoverySystem(opts: FallRecoveryOptions): SystemDef {
         const x = tr.px[id] as number;
         const y = tr.py[id] as number;
         const z = tr.pz[id] as number;
-        const lowest = api.query.groundY(x, z, LOWEST_HINT);
-        const why = y < FALL_FLOOR_Y ? 'below-bounds' : lowest !== null && y < lowest - FALL_BELOW_M ? 'below-ground' : null;
+        const why = outOfWorld(api, x, y, z);
         if (why === null) continue;
         const walk = api.query.nearestWalkable(x, z, FALL_SEARCH_M);
         const top = walk ? null : api.query.groundY(x, z);
@@ -84,46 +83,114 @@ export function fallRecoverySystem(opts: FallRecoveryOptions): SystemDef {
 export const VEHICLE_FALL_RECOVERY_ID = 'engine.control.vehicle-fall-recovery';
 /** How far from a fallen vehicle the nearest drivable edge is looked for, metres. */
 export const VEHICLE_ROAD_SEARCH_M = 250;
-/** A refused or lost request for a fallen vehicle is asked again this many ticks later (1 s). */
+/** Requests for a fallen vehicle are this many ticks apart (1 s), counted on its `VehicleRuntime.airTicks` from `FALL_RECOVER_TICKS`. */
 export const VEHICLE_RECOVER_RETRY_TICKS = 60;
+/**
+ * The net gives up on a fallen vehicle after this many requests (30 s of retries) and says so once (`control.recover` `s: 'gave-up'`), so
+ * a refusal that never changes cannot loop for the rest of the session. A new flight (the car touched ground again) starts a new count.
+ */
+export const VEHICLE_RECOVER_MAX_TRIES = 30;
+/**
+ * A lane centre is skipped as a respawn point when a resident surface lies more than this above it (an elevated deck: the teleport places
+ * on the highest surface, so the car would land on the deck, off the lane, and the driver rule would refuse the move), metres.
+ */
+export const VEHICLE_DECK_GAP_M = 2.5;
+/** A road-adjacent shore node is moved onto the lane centre of a drivable edge this close to it (the world's `SHORE_ROAD_M`), metres. */
+const SHORE_ROAD_M = 15;
 /** Metres the respawn point is put inland of a shore node (the water wall's value in `vehicle-system.ts`). */
 const SHORE_INLAND_M = 3;
 
 export interface VehicleFallRecoveryOptions {
-  services: Pick<EngineServices, 'world' | 'events'>;
+  services: Pick<EngineServices, 'world' | 'events' | 'vehicleFallClaim'>;
   store: VehicleStore;
 }
 
-/** Where a fallen vehicle respawns: the lane centre of the nearest drivable edge, else the water wall's road-adjacent shore node. */
-export function vehicleRespawnPose(api: WorldApi, bounds: WorldBoundsPort | null, x: number, z: number, out: Float64Array): { x: number; z: number; yaw: number } | null {
-  const hit = api.graph.nearestEdge(x, z, undefined, VEHICLE_ROAD_SEARCH_M);
-  if (hit) {
-    api.graph.laneCentre({ edge: hit.edge, s: hit.s, lane: 0 }, out);
-    const lx = out[0] as number;
-    const lz = out[2] as number;
-    const yaw = out[3] as number;
-    if (Number.isFinite(lx) && Number.isFinite(lz) && Number.isFinite(yaw)) return { x: lx, z: lz, yaw };
-  }
-  const shore = bounds?.nearestShore(x, z, true) ?? null;
-  if (shore) return { x: shore.x - shore.nx * SHORE_INLAND_M, z: shore.z - shore.nz * SHORE_INLAND_M, yaw: datan2(shore.nx, shore.nz) };
-  return null;
+/** Why a body at (x, y, z) is out of the world (02-world-maps.md 4.1 d), or null: under the play box floor, or under the lowest resident surface. */
+export function outOfWorld(api: WorldApi, x: number, y: number, z: number): 'below-bounds' | 'below-ground' | null {
+  if (y < FALL_FLOOR_Y) return 'below-bounds';
+  const lowest = api.query.groundY(x, z, LOWEST_HINT);
+  return lowest !== null && y < lowest - FALL_BELOW_M ? 'below-ground' : null;
+}
+
+export interface RespawnPose {
+  x: number;
+  z: number;
+  yaw: number;
 }
 
 /**
- * The below-the-world net for a driven vehicle (02-world-maps.md 4.1 d, DL-734; BD-FIX-SPAWN-05). The local player's vehicle, with the
- * player at its wheel, that has been in the air (no wheel contact, `VehicleRuntime.airTicks`) for `FALL_RECOVER_TICKS` while it is under
- * the floor of the play box or more than `FALL_BELOW_M` under the lowest resident surface at its (x, z), respawns with its driver at the
- * nearest road-adjacent point: the lane centre of the nearest drivable edge within `VEHICLE_ROAD_SEARCH_M`, else the water wall's
- * road-adjacent shore node. The move is `TeleportApi.request('respawn', ...)` (02-world-maps.md 5): its fade (`world.teleport` out,
- * then in) is the screen fade the water wall uses, and its move keeps the driver in the vehicle on a drivable edge
- * (`requestDriverTeleport`, then `placeVehicle`, the water wall's placement). The SimEvent `control.recover` (`s`: `below-bounds` or
- * `below-ground`) is pushed once per fall. A request that is refused or lost is asked again every `VEHICLE_RECOVER_RETRY_TICKS` while the
- * vehicle is still out of the world. Without a baked world (`services.world.api` null) the system does nothing, so the gray-box scenes
- * and their hashes are unchanged; its own bookkeeping only paces the requests and is not sim state, so nothing new is hashed.
+ * A lane centre the teleport can put a driven car on: finite, not in a water cell (the teleport rejects water cells whatever deck spans
+ * them) and with no resident surface more than `VEHICLE_DECK_GAP_M` above it (the teleport places on the highest surface).
+ */
+function laneUsable(api: WorldApi, out: Float64Array): RespawnPose | null {
+  const lx = out[0] as number;
+  const ly = out[1] as number;
+  const lz = out[2] as number;
+  const yaw = out[3] as number;
+  if (!Number.isFinite(lx) || !Number.isFinite(lz) || !Number.isFinite(yaw)) return null;
+  if (api.query.isWater(lx, lz)) return null;
+  const top = api.query.groundY(lx, lz);
+  if (top !== null && Number.isFinite(ly) && top - ly > VEHICLE_DECK_GAP_M) return null;
+  return { x: lx, z: lz, yaw };
+}
+
+/**
+ * Where a fallen vehicle may respawn, best first (02-world-maps.md 4.1 d, read as BD-FIX-SPAWN-05 and BD-FIX-SPAWN-07): (1) the lane centre
+ * of the nearest drivable edge within `VEHICLE_ROAD_SEARCH_M`, looked for at the height of the top surface over the fall; (2) the water
+ * wall's nearest road-adjacent `ShoreNode`: the lane centre of the drivable edge beside it, else the point `SHORE_INLAND_M` inland of it,
+ * facing inland. A lane in a water cell or under a deck is skipped (`laneUsable`), and so is an inland point in water.
+ */
+export function vehicleRespawnCandidates(api: WorldApi, bounds: WorldBoundsPort | null, x: number, z: number, out: Float64Array): RespawnPose[] {
+  const found: RespawnPose[] = [];
+  const top = api.query.groundY(x, z);
+  const hit = api.graph.nearestEdge(x, z, top ?? undefined, VEHICLE_ROAD_SEARCH_M);
+  if (hit) {
+    api.graph.laneCentre({ edge: hit.edge, s: hit.s, lane: 0 }, out);
+    const p = laneUsable(api, out);
+    if (p) found.push(p);
+  }
+  const shore = bounds?.nearestShore(x, z, true) ?? null;
+  if (shore) {
+    const ix = shore.x - shore.nx * SHORE_INLAND_M;
+    const iz = shore.z - shore.nz * SHORE_INLAND_M;
+    const near = api.graph.nearestEdge(ix, iz, undefined, SHORE_ROAD_M);
+    let p: RespawnPose | null = null;
+    if (near) {
+      api.graph.laneCentre({ edge: near.edge, s: near.s, lane: 0 }, out);
+      p = laneUsable(api, out);
+    }
+    if (!p && !api.query.isWater(ix, iz)) p = { x: ix, z: iz, yaw: datan2(shore.nx, shore.nz) };
+    const q = p;
+    if (q && !found.some((f) => f.x === q.x && f.z === q.z)) found.push(q);
+  }
+  return found;
+}
+
+/** The best respawn point of `vehicleRespawnCandidates`, or null when there is none. */
+export function vehicleRespawnPose(api: WorldApi, bounds: WorldBoundsPort | null, x: number, z: number, out: Float64Array): RespawnPose | null {
+  return vehicleRespawnCandidates(api, bounds, x, z, out)[0] ?? null;
+}
+
+/**
+ * The below-the-world net for a driven vehicle (02-world-maps.md 4.1 d, DL-734; BD-FIX-SPAWN-05, BD-FIX-SPAWN-07). The local player's
+ * vehicle, with the player at its wheel, that has been in the air (no wheel contact, `VehicleRuntime.airTicks`) for `FALL_RECOVER_TICKS`
+ * while it is out of the world (`outOfWorld`) respawns with its driver at a road-adjacent point (`vehicleRespawnCandidates`). The move is
+ * `TeleportApi.request('respawn', ...)` (02-world-maps.md 5): its fade (`world.teleport` out, then in) is the teleport's, and its move keeps
+ * the driver in the vehicle on a drivable edge (`requestDriverTeleport`, then `placeVehicle`, the water wall's placement). The SimEvent
+ * `control.recover` (`s`: `below-bounds` or `below-ground`) is pushed once per fall.
+ *
+ * Requests go out on the flight's own clock, at `airTicks` = 120, 180, 240, ... (`VEHICLE_RECOVER_RETRY_TICKS` apart), so the pacing is
+ * hashed, saved sim state and a save loaded mid-fall asks on the same ticks. Request k takes candidate k mod n, so a refusal that will not
+ * change for one point (`water`, `blocked`) does not hold back the other; after `VEHICLE_RECOVER_MAX_TRIES` requests the net gives up on
+ * that flight (`control.recover` `s: 'gave-up'`, once). A vehicle a mode places itself (`EngineServices.vehicleFallClaim`: the race
+ * director resets its car to the last gate) is left to that mode. Without a baked world (`services.world.api` null) the system does
+ * nothing, so the gray-box scenes and their hashes are unchanged. Its bookkeeping (which flights have had their `control.recover`) is not
+ * sim state and nothing new is hashed; the entry of a vehicle that is not falling on a tick (landed, lost its driver, despawned) is
+ * dropped on that tick.
  */
 export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): SystemDef {
-  /** Per vehicle (dense id) while it is out of the world: the first tick it may ask (again). */
-  const due = new Map<number, number>();
+  /** Vehicles (dense id) whose current flight has had its `control.recover`, with the tick they were last seen falling. */
+  const told = new Map<number, number>();
   const lane = new Float64Array(4);
   return {
     id: VEHICLE_FALL_RECOVERY_ID, owner: 'S01', stage: SimStage.Control, order: -8,
@@ -132,33 +199,31 @@ export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): Sys
       const api = services.world.api;
       if (!api) return;
       const ids = ecs.query([Vehicle, Transform]);
-      if (ids.length === 0) {
-        due.clear();
-        return;
-      }
       const tr = ecs.store(Transform);
       for (let i = 0; i < ids.length; i++) {
         const id = ids[i] as number;
         const rt = opts.store.rt.get(id);
         const driver = rt ? rt.driver : 0;
-        if (!rt || driver === 0 || rt.airTicks < FALL_RECOVER_TICKS || !ecs.has(ecs.handle(driver as EntityId), LocalPlayer)) {
-          due.delete(id);
-          continue;
-        }
+        if (!rt || driver === 0 || rt.airTicks < FALL_RECOVER_TICKS) continue;
+        const dh = ecs.handle(driver as EntityId);
+        if (!ecs.has(dh, LocalPlayer)) continue;
+        const claim = services.vehicleFallClaim;
+        if (claim && claim(ecs.handle(id as EntityId))) continue;
         const x = tr.px[id] as number;
-        const y = tr.py[id] as number;
         const z = tr.pz[id] as number;
-        const lowest = api.query.groundY(x, z, LOWEST_HINT);
-        const why = y < FALL_FLOOR_Y ? 'below-bounds' : lowest !== null && y < lowest - FALL_BELOW_M ? 'below-ground' : null;
-        if (why === null) {
-          due.delete(id);
+        const why = outOfWorld(api, x, tr.py[id] as number, z);
+        if (why === null) continue;
+        if (!told.has(id)) services.events.push({ t: 'control.recover', tick, a: dh, s: why });
+        told.set(id, tick);
+        const since = rt.airTicks - FALL_RECOVER_TICKS;
+        if (since % VEHICLE_RECOVER_RETRY_TICKS !== 0) continue;
+        const k = since / VEHICLE_RECOVER_RETRY_TICKS;
+        if (k >= VEHICLE_RECOVER_MAX_TRIES) {
+          if (k === VEHICLE_RECOVER_MAX_TRIES) services.events.push({ t: 'control.recover', tick, a: dh, s: 'gave-up' });
           continue;
         }
-        const at = due.get(id);
-        if (at !== undefined && tick < at) continue;
-        due.set(id, tick + VEHICLE_RECOVER_RETRY_TICKS);
-        if (at === undefined) services.events.push({ t: 'control.recover', tick, a: ecs.handle(driver as EntityId), s: why });
-        const to = vehicleRespawnPose(api, services.world.bounds, x, z, lane);
+        const cands = vehicleRespawnCandidates(api, services.world.bounds, x, z, lane);
+        const to = cands.length > 0 ? cands[k % cands.length] : undefined;
         if (!to) continue;
         let req: Promise<unknown>;
         try {
@@ -168,6 +233,8 @@ export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): Sys
         }
         void req.then(undefined, () => undefined);
       }
+      // a vehicle not seen falling this tick (landed, lost its driver, despawned) starts a new flight next time
+      for (const [id, at] of told) if (at !== tick) told.delete(id);
     },
   };
 }

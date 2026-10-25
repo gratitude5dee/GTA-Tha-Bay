@@ -5,7 +5,8 @@
  */
 import type { StorySlice, TeleportKind, TeleportResult, TeleportTarget } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
-import { at, circle, defineMission, npc, stage, waitFor } from '../src/authoring/index.ts';
+import type { MissionIR } from '@dv/shared';
+import { at, circle, defineMission, markerTrigger, npc, phoneTrigger, stage, waitFor } from '../src/authoring/index.ts';
 import type { CatalogPayload } from '../src/missions/store.ts';
 import { PLACE_ANSWER_TICKS, PLACE_BUDGET_TICKS, PLACE_RETRY_FIRST_TICKS, PLACE_RETRY_MAX_TICKS, placeRetryGap, StoryController } from '../src/mode.ts';
 import { flatResolver, ll, makeHarness, type Harness } from './harness.ts';
@@ -38,7 +39,7 @@ interface Setup {
   run(ticks: number): Promise<void>;
 }
 
-function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: string } = {}): Setup {
+function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: string; missions?: MissionIR[]; triggers?: boolean } = {}): Setup {
   const h = makeHarness();
   if (opts.bake !== undefined) (h.ctx.world as unknown as { resolver: unknown }).resolver = flatResolver(opts.bake);
   const asked: Asked[] = [];
@@ -54,7 +55,7 @@ function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: str
     candidates: () => [],
   };
   const [lat, lng] = ll(START.x, START.z);
-  const payload: CatalogPayload = { missions: [mission], directors: [], cutscenes: [], lines: {}, names: {}, autoStart: { lat, lng, yawDeg: 90 }, triggers: true };
+  const payload: CatalogPayload = { missions: opts.missions ?? [mission], directors: [], cutscenes: [], lines: {}, names: {}, autoStart: { lat, lng, yawDeg: 90 }, triggers: opts.triggers ?? true };
   const c = new StoryController({ qa: false, bootConfig: () => ({ story: payload }) });
   c.attach(h.ctx, h.story as unknown as StorySlice);
   const run = async (ticks: number): Promise<void> => {
@@ -293,5 +294,90 @@ describe('new game start (BD-FIX-SPAWN-01)', () => {
     expect(asked).toHaveLength(0);
     expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(2);
     expect(jobRow(h, 'm.t.first')?.retry).toBe(true);
+  });
+});
+
+/** A marker mission whose marker is `MARK` (far from the player at the origin), and a phone mission (no place in its start). */
+const MARK = { x: -1500, z: 2500 };
+const marked = defineMission({
+  id: 'm.t.marker',
+  version: 1,
+  district: 'd3',
+  start: markerTrigger(at(...ll(MARK.x, MARK.z), { yawDeg: 180 }), 8),
+  cast: {},
+  zones: { z: circle(...ll(MARK.x, MARK.z), 5) },
+  stages: [stage('a', [waitFor(6000, { id: 'long' })])],
+});
+const phoned = defineMission({
+  id: 'm.t.phone',
+  version: 1,
+  district: 'd3',
+  start: phoneTrigger('npc_test'),
+  cast: {},
+  zones: { z: circle(...ll(10, 10), 5) },
+  stages: [stage('a', [waitFor(6000, { id: 'long' })])],
+});
+
+describe('a Jobs Start never begins a mission away from its authored start (DL-734, 03-story.md section 5)', () => {
+  it('a marker mission more than 300 m away moves the player to its marker first, though its start never failed', async () => {
+    const { h, c, asked, jobsStart, run } = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await run(16);
+    expect(asked).toHaveLength(0);
+    jobsStart('m.t.marker');
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    const to = asked[0]!.to as { x: number; z: number; yaw: number };
+    expect(to.x).toBeCloseTo(MARK.x, 3);
+    expect(to.z).toBeCloseTo(MARK.z, 3);
+    expect(to.yaw).toBeCloseTo(Math.PI, 6);
+    await run(120);
+    expect(c.rt).toBeNull();
+    h.put(h.player, MARK.x, MARK.z, 4);
+    asked[0]!.answer({ ok: true, x: MARK.x, y: 4, z: MARK.z, yaw: Math.PI });
+    await run(16);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('a marker mission within 300 m, and a phone mission (no place in its start), begin at once without a teleport', async () => {
+    const near = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await near.run(16);
+    near.h.put(near.h.player, MARK.x + 150, MARK.z - 150, 0);
+    near.jobsStart('m.t.marker');
+    expect(near.asked).toHaveLength(0);
+    expect(near.c.rt?.missionId).toBe('m.t.marker');
+
+    const phone = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await phone.run(16);
+    phone.jobsStart('m.t.phone');
+    expect(phone.asked).toHaveLength(0);
+    expect(phone.c.rt?.missionId).toBe('m.t.phone');
+  });
+
+  it('the first auto mission pressed in Jobs before its trigger ran (the triggers off) moves the player to the new game start first', async () => {
+    const { h, c, asked, jobsStart, run } = setup(undefined, { triggers: false });
+    await run(16);
+    expect(asked).toHaveLength(0);
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(1);
+    const to = asked[0]!.to as { x: number; z: number };
+    expect(to.x).toBeCloseTo(START.x, 3);
+    expect(to.z).toBeCloseTo(START.z, 3);
+    expect(c.rt).toBeNull();
+    h.put(h.player, START.x, START.z, 4);
+    asked[0]!.answer(ok());
+    await run(16);
+    expect(c.rt?.missionId).toBe('m.t.first');
+  });
+
+  it('a far marker mission on a gray-box world stays available with mission.startUnreachable and a Start action', async () => {
+    const { h, c, asked, shown, jobsStart, run } = setup(undefined, { missions: [marked, phoned], triggers: false, bake: 'graybox' });
+    await run(16);
+    jobsStart('m.t.marker');
+    expect(asked).toHaveLength(0);
+    expect(c.rt).toBeNull();
+    expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(1);
+    expect(jobRow(h, 'm.t.marker')).toMatchObject({ state: 'available', retry: true });
+    expect(fails(h)).toEqual(['unresolved']);
   });
 });

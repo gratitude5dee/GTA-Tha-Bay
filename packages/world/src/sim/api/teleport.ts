@@ -10,7 +10,8 @@
  *  3. place: the highest ground at the target (heightfield, slabs, hoods); water and building footprints are rejected by taking
  *     the nearest valid point within 40 m (`water` or `blocked` when there is none);
  *  4. fade out (up to 200 ms), then the engine's ownership machine moves the player (Control 700, wait for colliders 701);
- *  5. fade in, and the request resolves with where the player stands.
+ *  5. fade in, and the request resolves with where the player stands. Every request that faded out fades in again, also when the engine
+ *     refuses the move in step 4 or the move times out.
  * Fares of fast travel are worked out from `config/world/transit.json` and recorded, not charged, until the economy exists (M04a2).
  * Pure; C02 lint applies.
  */
@@ -275,7 +276,11 @@ export class TeleportService implements TeleportApi {
       if (tick - job.phaseStart < FADE_TICKS) return;
       const p = job.place as { x: number; y: number; z: number };
       const begun = this.d.host.begin(p.x, p.y, p.z, job.to.yaw);
-      if (!begun.ok) return this.finish(job, fail('blocked', TELEPORT_MSG.busy));
+      if (!begun.ok) {
+        // the screen went dark for a move the engine refused: bring it back, or a caller that retries keeps it black (BD-FIX-SPAWN-07)
+        this.d.host.fade('in');
+        return this.finish(job, fail('blocked', TELEPORT_MSG.busy));
+      }
       job.phase = 'move';
       job.phaseStart = tick;
       return;

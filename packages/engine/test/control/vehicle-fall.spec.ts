@@ -7,7 +7,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { EdgeId, ShoreNode, TeleportKind, TeleportResult, TeleportTarget, WorldApi } from '@dv/shared';
-import { FALL_FLOOR_Y, FALL_RECOVER_TICKS, VEHICLE_RECOVER_RETRY_TICKS, VEHICLE_ROAD_SEARCH_M, vehicleRespawnPose } from '../../src/sim/control/fall.ts';
+import {
+  FALL_FLOOR_Y, FALL_RECOVER_TICKS, VEHICLE_DECK_GAP_M, VEHICLE_RECOVER_MAX_TRIES, VEHICLE_RECOVER_RETRY_TICKS, VEHICLE_ROAD_SEARCH_M,
+  vehicleRespawnCandidates, vehicleRespawnPose,
+} from '../../src/sim/control/fall.ts';
 import { isDriving, requestDriverTeleport } from '../../src/sim/control/ownership.ts';
 import { CONTROL_OWNER, CONTROL_REASON } from '../../src/sim/control/states.ts';
 import { BodyRef, Transform } from '../../src/sim/ecs/components.ts';
@@ -27,19 +30,38 @@ interface Fake {
   /** What the teleport's move answered, per request. */
   moves: { tick: number; to: { x: number; z: number; yaw: number }; r: { ok: boolean; reason?: string } }[];
   edgeAsks: number;
+  /** The top surface `groundY(x, z)` answers there (a deck over the road), when set; else `ground`. */
+  top?: (x: number, z: number) => number | null;
+  /** Water cells, when set (the teleport refuses them). */
+  water?: (x: number, z: number) => boolean;
+  /** The road-adjacent shore node `bounds.nearestShore` answers, when set (the world's bounds port is installed then). */
+  shore?: ShoreNode;
+  /** The lane centre beside the shore node (the 15 m search from it), when set. */
+  shoreRoad?: { x: number; z: number; yaw: number };
+  /** The teleport's answer for a target, when set: a refusal moves nothing (the world's `TeleportService` validation and placement). */
+  refuse?: (to: { x: number; z: number }) => TeleportResult | null;
 }
 
 function fakeWorld(w: VehicleWorld, f: Fake): WorldApi {
   return {
-    query: { groundY: () => f.ground, nearestWalkable: () => null },
+    query: {
+      groundY: (x: number, z: number, hint?: number) => (hint === undefined && f.top ? f.top(x, z) : f.ground),
+      isWater: (x: number, z: number) => f.water?.(x, z) ?? false,
+      nearestWalkable: () => null,
+    },
     graph: {
       nearestEdge: (_x: number, _z: number, _y: number | undefined, maxM: number) => {
         f.edgeAsks++;
-        expect(maxM).toBe(VEHICLE_ROAD_SEARCH_M);
+        if (maxM !== VEHICLE_ROAD_SEARCH_M) {
+          // the search beside a road-adjacent shore node: only with a shore node installed
+          expect(f.shore).toBeDefined();
+          expect(maxM).toBe(15);
+          return f.shoreRoad ? { edge: 8 as EdgeId, s: 1, distM: 4 } : null;
+        }
         return f.road ? { edge: 7 as EdgeId, s: 3, distM: 5 } : null;
       },
-      laneCentre: (_e: unknown, out: Float64Array) => {
-        const r = f.road as { x: number; z: number; yaw: number };
+      laneCentre: (e: { edge: EdgeId }, out: Float64Array) => {
+        const r = (e.edge === 8 ? f.shoreRoad : f.road) as { x: number; z: number; yaw: number };
         out[0] = r.x; out[1] = 0; out[2] = r.z; out[3] = r.yaw;
       },
     },
@@ -48,6 +70,11 @@ function fakeWorld(w: VehicleWorld, f: Fake): WorldApi {
       request: (kind: TeleportKind, to: TeleportTarget): Promise<TeleportResult> => {
         expect(kind).toBe('respawn');
         const t = to as { x: number; z: number; yaw: number };
+        const no = f.refuse?.(t) ?? null;
+        if (no) {
+          f.moves.push({ tick: w.sim.tick, to: t, r: { ok: false, reason: no.ok ? 'ok' : no.reason } });
+          return Promise.resolve(no);
+        }
         const r = requestDriverTeleport(w.sim.ecs, w.sim.services, w.player, [t.x, 0, t.z], t.yaw);
         f.moves.push({ tick: w.sim.tick, to: t, r });
         return Promise.resolve(r.ok ? { ok: true, x: t.x, y: 0, z: t.z, yaw: t.yaw } : { ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
@@ -72,6 +99,10 @@ async function settled(f: Partial<Fake> = {}): Promise<{ w: VehicleWorld; f: Fak
   const w = await createVehicleWorld({ pos: [0, 0, 0] });
   const fake: Fake = { ground: 0, road: ROAD, moves: [], edgeAsks: 0, ...f };
   w.sim.services.world.api = fakeWorld(w, fake);
+  if (fake.shore) {
+    // the water wall reads the depth every tick: dry land here
+    w.sim.services.world.bounds = { nearestShore: (_x: number, _z: number, road: boolean) => (road ? fake.shore ?? null : null), waterDepth: () => 0, onClosureChange: () => () => undefined } as unknown as WorldBoundsPort;
+  }
   drive(w, 60);
   expect(view(w).contacts).toBeGreaterThan(0);
   expect(isDriving(w.sim.ecs, w.player)).toBe(true);
@@ -202,6 +233,7 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     const shore: ShoreNode = { id: 'sn.t', x: 5, y: 0, z: 40, nx: 1, nz: 0 };
     const bounds = { nearestShore: (_x: number, _z: number, road: boolean) => (road ? shore : null) } as unknown as WorldBoundsPort;
     const api = (road: boolean): WorldApi => ({
+      query: { groundY: () => null, isWater: () => false },
       graph: {
         nearestEdge: () => (road ? { edge: 1 as EdgeId, s: 0, distM: 1 } : null),
         laneCentre: (_e: unknown, o: Float64Array) => { o[0] = 1; o[1] = 2; o[2] = 3; o[3] = 0.5; },
@@ -214,6 +246,93 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     expect(-Math.sin(p?.yaw ?? 0)).toBeCloseTo(-1, 6);   // facing inland, -X
     expect(vehicleRespawnPose(api(false), null, 0, 0, out)).toBeNull();
   });
+
+  it('a refusal that never changes for the road point does not hold the car: the next request takes the shore point (BD-FIX-SPAWN-07)', async () => {
+    const shore: ShoreNode = { id: 'sn.t', x: 120, y: 0, z: 60, nx: 0, nz: 1 };
+    const SHORE_LANE = { x: 118, z: 50, yaw: 0 };
+    const { w, f } = await settled({
+      shore, shoreRoad: SHORE_LANE,
+      // the world refuses the nearest lane every time (a bridge deck over water with no dry point within 40 m)
+      refuse: (to) => (to.x === ROAD.x && to.z === ROAD.z ? { ok: false, reason: 'water', messageKey: 'world.teleport.water' } : null),
+    });
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + VEHICLE_RECOVER_RETRY_TICKS + 5);
+    expect(f.moves.map((m) => [m.to.x, m.to.z, m.r.ok])).toEqual([[ROAD.x, ROAD.z, false], [SHORE_LANE.x, SHORE_LANE.z, true]]);
+    expect(f.moves[1]!.tick - f.moves[0]!.tick).toBe(VEHICLE_RECOVER_RETRY_TICKS);
+    drive(w, 30);
+    expect(Math.hypot(view(w).x - SHORE_LANE.x, view(w).z - SHORE_LANE.z)).toBeLessThan(0.5);
+    expect(view(w).contacts).toBeGreaterThan(0);
+    expect(playerControl(w).owner).toBe(CONTROL_OWNER.Vehicle);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s)).toEqual(['below-ground']);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('gives up after the last try with one control.recover gave-up, and asks nothing more for that flight (BD-FIX-SPAWN-07)', async () => {
+    const { w, f } = await settled({ refuse: () => ({ ok: false, reason: 'blocked', messageKey: 'world.teleport.blocked' }) });
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + VEHICLE_RECOVER_MAX_TRIES * VEHICLE_RECOVER_RETRY_TICKS + 5);
+    expect(f.moves).toHaveLength(VEHICLE_RECOVER_MAX_TRIES);
+    for (let k = 1; k < f.moves.length; k++) expect(f.moves[k]!.tick - f.moves[k - 1]!.tick).toBe(VEHICLE_RECOVER_RETRY_TICKS);
+    drive(w, 5 * VEHICLE_RECOVER_RETRY_TICKS);
+    expect(f.moves).toHaveLength(VEHICLE_RECOVER_MAX_TRIES);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s)).toEqual(['below-ground', 'gave-up']);
+    w.sim.dispose();
+  }, 120_000);
+
+  it('a lane under a deck or in a water cell is skipped for the shore node beside a road (BD-FIX-SPAWN-07)', () => {
+    const out = new Float64Array(4);
+    const shore: ShoreNode = { id: 'sn.t', x: 120, y: 0, z: 60, nx: 0, nz: 1 };
+    const bounds = { nearestShore: () => shore } as unknown as WorldBoundsPort;
+    const f: Fake = { ground: 0, road: ROAD, moves: [], edgeAsks: 0, shore, shoreRoad: { x: 118, z: 50, yaw: 0 } };
+    const api = fakeWorld(null as unknown as VehicleWorld, f);
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([ROAD, f.shoreRoad]);
+    // a deck 8 m over the nearest lane: the teleport would land the car on the deck, off the lane
+    f.top = (x, z) => (x === ROAD.x && z === ROAD.z ? VEHICLE_DECK_GAP_M + 5.5 : 0);
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([f.shoreRoad]);
+    // a deck just inside the gap (a kerb, a ramp) does not count
+    f.top = (x, z) => (x === ROAD.x && z === ROAD.z ? VEHICLE_DECK_GAP_M - 0.5 : 0);
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([ROAD, f.shoreRoad]);
+    delete f.top;
+    // the nearest lane is in a water cell (a bridge): skipped; no lane beside the shore node, so the point inland of it, facing inland
+    f.water = (x, z) => x === ROAD.x && z === ROAD.z;
+    delete f.shoreRoad;
+    const c = vehicleRespawnCandidates(api, bounds, 0, 0, out);
+    expect(c).toHaveLength(1);
+    expect(c[0]!.x).toBe(120);
+    expect(c[0]!.z).toBe(57);
+    expect(-Math.cos(c[0]!.yaw)).toBeCloseTo(-1, 6);   // forward (-sin, -cos) points -Z, inland
+    // the inland point is in water too: nothing to offer
+    f.water = () => true;
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([]);
+  });
+
+  it('leaves a car a mode claims to the mode (the race director resets its own car, BD-FIX-SPAWN-07)', async () => {
+    const { w, f } = await settled();
+    let claimed = true;
+    w.sim.services.vehicleFallClaim = (h) => claimed && h === w.vehicle;
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 2 * VEHICLE_RECOVER_RETRY_TICKS);
+    expect(f.moves).toHaveLength(0);
+    expect(w.sim.services.events.drain().some((e) => e.t === 'control.recover')).toBe(false);
+    // the race ends: the net takes the car on its next request tick
+    claimed = false;
+    drive(w, VEHICLE_RECOVER_RETRY_TICKS + 5);
+    expect(f.moves.map((m) => m.r.ok)).toEqual([true]);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a new flight after a landing gets its own control.recover and its own count (BD-FIX-SPAWN-07)', async () => {
+    const { w, f } = await settled();
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 30);
+    expect(f.moves).toHaveLength(1);
+    drive(w, 60);
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 30);
+    expect(f.moves.map((m) => m.r.ok)).toEqual([true, true]);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s)).toEqual(['below-ground', 'below-ground']);
+    w.sim.dispose();
+  }, 60_000);
 
   it('is deterministic: the same run twice gives the same state hash', async () => {
     const run = async (): Promise<string> => {

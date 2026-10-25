@@ -156,6 +156,30 @@ describe('TeleportApi placement', () => {
     expect(busy.r).toEqual({ ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
   });
 
+  it('fades back in when the engine refuses the move after the fade-out, so a retrying caller never leaves the screen dark (BD-FIX-SPAWN-07)', async () => {
+    const rg = await rig({});
+    rg.host.refuse = 'busy';
+    for (let n = 1; n <= 3; n++) {
+      const { r } = await go(rg, 'respawn', { x: 30, z: 30 });
+      expect(r).toEqual({ ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
+      expect(rg.host.fades).toHaveLength(2 * n);
+      expect(rg.host.fades.slice(-2)).toEqual(['out', 'in']);
+      expect(rg.w.teleport.busy).toBe(false);
+    }
+    expect(rg.host.begun).toEqual([]);
+    expect(rg.host.pos).toEqual([0, 5, 0]);
+  });
+
+  it('a respawn is not heat-gated: the below-the-world net recovers a player in a pursuit (BD-FIX-SPAWN-07)', async () => {
+    const rg = await rig({});
+    rg.policy.heat = 3;
+    const sandbox = await go(rg, 'sandbox', { x: 30, z: 30 });
+    expect(sandbox.r).toEqual({ ok: false, reason: 'heat', messageKey: 'world.teleport.heat' });
+    const { r } = await go(rg, 'respawn', { x: 30, z: 30 });
+    expect(r).toMatchObject({ ok: true, x: 30, z: 30 });
+    expect(rg.host.fades).toEqual(['out', 'in']);
+  });
+
   it('takes one request at a time', async () => {
     const rg = await rig({});
     const first = rg.w.teleport.request('sandbox', { x: 10, z: 10 });
