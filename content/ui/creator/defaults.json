@@ -1,25 +1,25 @@
 {
   "v": 1,
-  "name": "Rookie",
-  "callsign": "Rookie",
+  "name": "Coast",
+  "callsign": "Coast",
   "body": {
-    "preset": "body-lean",
+    "preset": "body-coast",
     "height": 0.5,
     "build": 0.5
   },
   "face": {
-    "preset": "face-sunset",
+    "preset": "face-coast",
     "morphs": {}
   },
-  "skinTone": 3,
+  "skinTone": 6,
   "hair": {
-    "style": "hair-buzz",
-    "color": 1
+    "style": "hair-coast",
+    "color": 0
   },
   "outfit": {
-    "top": "top-hoodie",
-    "bottom": "bottom-jeans",
-    "shoes": "shoes-sneakers"
+    "top": "top-coast-hoodie",
+    "bottom": "bottom-coast-jeans",
+    "shoes": "shoes-coast-sneakers"
   },
   "voice": {
     "id": "voice-bay-smooth",
