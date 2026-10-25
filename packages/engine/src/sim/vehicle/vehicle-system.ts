@@ -18,6 +18,7 @@ import type { VehiclePhysics } from '../physics/backend.ts';
 import { PHYSICS_POST_ID, physicsStepSystem, PHYSICS_STEP_ID } from '../physics/systems.ts';
 import type { SimCore } from '../loop/sim-core.ts';
 import type { EngineServices } from '../services.ts';
+import { isSessionCar } from '../sandbox-flags.ts';
 import { CONTROL_OWNER, CONTROL_PHASE, phaseOf } from '../control/states.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
 import { RaycastVehicleSim } from './raycast-vehicle.ts';
@@ -108,6 +109,8 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
   /** Applies one impact to the damage component of vehicle `id`. */
   const hurt = (id: number, rt: VehicleRuntime, impact: Impact): void => {
+    // the sandbox's dent-proof cars (M04e4): only session cars, and only while the flag is on
+    if (services.sandboxFlags.carNoDamage && isSessionCar(ecs.keyOf(ecs.handle(id as EntityId)))) return;
     const dmg = ecs.store(VehicleDamage);
     const next = applyImpact(
       rt.profile,

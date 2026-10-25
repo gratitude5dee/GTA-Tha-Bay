@@ -74,6 +74,7 @@ function registered(): { name: string; screen: ScreenDef }[] {
 
 const sandboxEnv: PhoneEnv = {
   mode: 'sandbox', jobs: [], cashCents: 0, garage: [], ride: undefined, heat: 1, neverWanted: false, appRows: [],
+  sandboxPlayer: { godMode: true, superJump: false, carNoDamage: true, car: 'near', online: false },
   sandboxTeleport: { positions: [{ name: 'pos-1', x: 10, z: -20 }, { name: 'pos-2', x: 30, z: 40 }], previous: true },
   sandboxVehicles: {
     catalog: [
@@ -90,7 +91,7 @@ describe('ui-screen-parity: the Sandbox app tabs (M04e1 AC-9, M04e2 AC-7)', () =
   for (const online of [false, true]) {
     for (const tab of ['player', 'weather', 'time', 'world', 'teleport', 'vehicles', 'display']) {
       it(`${tab}${online ? ' (online)' : ''}: DomScreen and CanvasScreen list the same focusables in the same order`, () => {
-        const screen = appScreen('sandbox', { ...sandboxEnv, sandboxWorld: { ...sandboxEnv.sandboxWorld!, online }, sandboxVehicles: { ...sandboxEnv.sandboxVehicles!, online } });
+        const screen = appScreen('sandbox', { ...sandboxEnv, sandboxWorld: { ...sandboxEnv.sandboxWorld!, online }, sandboxVehicles: { ...sandboxEnv.sandboxVehicles!, online }, sandboxPlayer: { ...sandboxEnv.sandboxPlayer!, online } });
         const ctx = ctxWith(tab);
         const dom = domFocus(DomScreen({ screen, ctx }));
         const canvas = new CanvasScreen(screen, ctx).focusOrder();

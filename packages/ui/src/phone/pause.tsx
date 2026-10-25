@@ -15,7 +15,7 @@ import { useShell } from '../shell/context.tsx';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
 import { messagePress, type PhoneMessage } from './messages.tsx';
-import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxTeleportView, type SandboxVehiclesView, type SandboxWorldView } from './apps.ts';
+import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxPlayerView, type SandboxTeleportView, type SandboxVehiclesView, type SandboxWorldView } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
@@ -132,6 +132,7 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
     sandboxWorld: ctx.vm<JsonValue>('mode.sandbox.world') as unknown as SandboxWorldView | undefined,
     sandboxTeleport: ctx.vm<JsonValue>('mode.sandbox.teleport') as unknown as SandboxTeleportView | undefined,
     sandboxVehicles: ctx.vm<JsonValue>('mode.sandbox.vehicles') as unknown as SandboxVehiclesView | undefined,
+    sandboxPlayer: ctx.vm<JsonValue>('mode.sandbox.player') as unknown as SandboxPlayerView | undefined,
     hideHud: toggles?.['sandbox.display.hideHud'] === true,
     hideMinimap: toggles?.['sandbox.display.hideMinimap'] === true,
     appRows: [],

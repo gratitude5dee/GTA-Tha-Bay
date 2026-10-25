@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { appScreen, homeScreen, placeName, stepHour, type PhoneEnv, type SandboxVehiclesView, type SandboxWorldView } from '../src/phone/apps.ts';
+import { appScreen, homeScreen, placeName, stepHour, type PhoneEnv, type SandboxPlayerView, type SandboxVehiclesView, type SandboxWorldView } from '../src/phone/apps.ts';
 import { PHONE_APPS, appDef, visibleApps } from '../src/phone/registry.ts';
 import { pauseScreen } from '../src/phone/pause.tsx';
 import type { ScreenDef, Widget } from '../src/screen/types.ts';
 import en from '../../../content/ui/i18n/en.json';
 
 const cat = en as Record<string, string>;
+const sandboxCars = (): SandboxVehiclesView => ({
+  catalog: [
+    { prefab: 'vehicle.compact', cls: 'D', nameKey: 'sandbox.car.compact' },
+    { prefab: 'vehicle.kestrel-quill', cls: 'C', nameKey: 'sandbox.car.kestrel-quill' },
+  ],
+  owned: [{ key: 'veh:sbx0', nameKey: 'sandbox.car.compact' }], cap: 8, pending: null, online: false,
+});
 const env = (over: Partial<PhoneEnv> = {}): PhoneEnv => ({
   mode: 'story', jobs: [], cashCents: 125000, garage: [], ride: undefined, heat: 0, neverWanted: false, appRows: [], ...over,
 });
@@ -132,7 +139,11 @@ describe('phone registry (AC-6)', () => {
       expect(bs.length).toBeGreaterThan(3);
       for (const x of bs) expect(x.disabled, x.id).toBe('sandbox.refuse.online');
     }
-    for (const x of buttonsIn(s, 'player')) expect(x.disabled).toBeUndefined();
+    // the heat buttons are untouched; the body buttons of M04e4 follow the same online rule
+    for (const x of buttonsIn(s, 'player')) {
+      if (x.id.startsWith('heat-') || x.id === 'never-wanted') expect(x.disabled, x.id).toBeUndefined();
+      else expect(x.disabled, x.id).toBe('sandbox.refuse.online');
+    }
     const on = buttonsIn(appScreen('sandbox', env({ sandboxWorld: world() })), 'world');
     for (const x of on) expect(x.disabled).toBeUndefined();
   });
@@ -160,7 +171,7 @@ describe('phone registry (AC-6)', () => {
       const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars() }));
       const w = tab(s);
       const heads = w.filter((x): x is Extract<Widget, { k: 'heading' }> => x.k === 'heading' && x.level === 2).map((x) => x.text);
-      expect(heads).toEqual(['D', 'C', 'B', 'A', 'S', 'R'].map((c) => `phone.sandbox.class.${c}`));
+      expect(heads).toEqual(['phone.sandbox.car.mine', ...['D', 'C', 'B', 'A', 'S', 'R'].map((c) => `phone.sandbox.class.${c}`)]);
       const by = (id: string) => w.find((x): x is Extract<Widget, { k: 'button' }> => x.k === 'button' && x.id === id)!;
       expect(by('car-kestrel-quill').label).toBe('phone.sandbox.car.place');
       expect(by('car-kestrel-quill').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.spawn', args: { prefab: 'vehicle.kestrel-quill', seat: 'none' } } });
@@ -180,12 +191,65 @@ describe('phone registry (AC-6)', () => {
       const bs = tab(s).filter((x): x is Extract<Widget, { k: 'button' }> => x.k === 'button');
       expect(bs.length).toBeGreaterThan(10);
       for (const x of bs) expect(x.disabled, x.id).toBe('sandbox.refuse.online');
-      for (const x of buttonsIn(appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars() })), 'vehicles')) expect(x.disabled).toBeUndefined();
+      const carActs = ['car-repair', 'car-upright', 'car-dismiss'];
+      for (const x of buttonsIn(appScreen('sandbox', env({ sandboxWorld: world(), sandboxVehicles: cars() })), 'vehicles')) {
+        if (!carActs.includes(x.id)) expect(x.disabled, x.id).toBeUndefined();
+      }
     });
 
     it('without a view model the tab shows the count and the clear button only', () => {
       const w = tab(appScreen('sandbox', env({ mode: 'sandbox' })));
-      expect(w.map((x) => (x.k === 'button' ? x.id : x.k))).toEqual(['text', 'car-clear']);
+      expect(w.map((x) => (x.k === 'button' ? x.id : x.k))).toEqual(['heading', 'car-repair', 'car-upright', 'car-dismiss', 'car-nodamage', 'text', 'car-clear']);
+    });
+  });
+
+  describe('Player and car actions (M04e4 AC-7)', () => {
+    const sp = (over: Partial<SandboxPlayerView> = {}): SandboxPlayerView => ({ godMode: false, superJump: false, carNoDamage: false, car: 'near', online: false, ...over });
+    const ids = (s: ScreenDef, tab: string): string[] => buttonsIn(s, tab).map((x) => x.id);
+    const byId = (s: ScreenDef, tab: string, id: string) => buttonsIn(s, tab).find((x) => x.id === id)!;
+
+    it('the player tab holds the body buttons after the heat rows, with their commands', () => {
+      const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxPlayer: sp({ superJump: true }) }));
+      const all = ids(s, 'player');
+      expect(all.slice(-3)).toEqual(['sandbox-godmode', 'sandbox-superjump', 'sandbox-restore']);
+      expect(all.slice(0, 7)).toEqual(['heat-0', 'heat-1', 'heat-2', 'heat-3', 'heat-4', 'heat-5', 'never-wanted']);
+      expect(byId(s, 'player', 'sandbox-godmode').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.player.godMode', v: true } });
+      expect(byId(s, 'player', 'sandbox-godmode').label).toBe('phone.sandbox.player.godOff');
+      expect(byId(s, 'player', 'sandbox-godmode').style).toBe('secondary');
+      expect(byId(s, 'player', 'sandbox-superjump').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.player.superJump', v: false } });
+      expect(byId(s, 'player', 'sandbox-superjump').label).toBe('phone.sandbox.player.jumpOn');
+      expect(byId(s, 'player', 'sandbox-superjump').style).toBe('primary');
+      expect(byId(s, 'player', 'sandbox-restore').onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'player.restore' } });
+    });
+
+    it('the cars tab holds the heading and the four controls before the class list', () => {
+      const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxPlayer: sp({ carNoDamage: true }), sandboxVehicles: sandboxCars() }));
+      const w = tabsOf(s).tabs.find((x) => x.id === 'vehicles')!.children;
+      expect(w[0]).toMatchObject({ k: 'heading', text: 'phone.sandbox.car.mine', level: 2 });
+      expect(w.slice(1, 5).map((x) => (x.k === 'button' ? x.id : x.k))).toEqual(['car-repair', 'car-upright', 'car-dismiss', 'car-nodamage']);
+      expect(w[5]).toMatchObject({ k: 'heading', text: 'phone.sandbox.class.D' });
+      for (const [id, name] of [['car-repair', 'vehicle.repair'], ['car-upright', 'vehicle.upright'], ['car-dismiss', 'vehicle.dismiss']] as const) {
+        expect(byId(s, 'vehicles', id).onPress).toEqual({ cmd: { t: 'mode.cmd', mode: 'sandbox', name } });
+        expect(byId(s, 'vehicles', id).disabled).toBeUndefined();
+      }
+      expect(byId(s, 'vehicles', 'car-nodamage').onPress).toEqual({ cmd: { t: 'sandbox.set', path: 'sandbox.vehicle.noDamage', v: false } });
+      expect(byId(s, 'vehicles', 'car-nodamage').label).toBe('phone.sandbox.car.noDentOn');
+      expect(byId(s, 'vehicles', 'car-nodamage').style).toBe('primary');
+    });
+
+    it('with no car the three car buttons say so; online every new button says that instead', () => {
+      const none = appScreen('sandbox', env({ sandboxWorld: world(), sandboxPlayer: sp({ car: 'none' }), sandboxVehicles: sandboxCars() }));
+      for (const id of ['car-repair', 'car-upright', 'car-dismiss']) expect(byId(none, 'vehicles', id).disabled, id).toBe('sandbox.refuse.needCar');
+      expect(byId(none, 'vehicles', 'car-nodamage').disabled).toBeUndefined();
+      for (const id of ['sandbox-godmode', 'sandbox-superjump', 'sandbox-restore']) expect(byId(none, 'player', id).disabled, id).toBeUndefined();
+      const online = appScreen('sandbox', env({ sandboxWorld: world(), sandboxPlayer: sp({ car: 'none', online: true }), sandboxVehicles: sandboxCars() }));
+      for (const id of ['car-repair', 'car-upright', 'car-dismiss', 'car-nodamage']) expect(byId(online, 'vehicles', id).disabled, id).toBe('sandbox.refuse.online');
+      for (const id of ['sandbox-godmode', 'sandbox-superjump', 'sandbox-restore']) expect(byId(online, 'player', id).disabled, id).toBe('sandbox.refuse.online');
+    });
+
+    it('every new label is in the English catalog', () => {
+      const s = appScreen('sandbox', env({ sandboxWorld: world(), sandboxPlayer: sp({ godMode: true, superJump: true, carNoDamage: true }), sandboxVehicles: sandboxCars() }));
+      for (const tab of ['player', 'vehicles']) for (const x of buttonsIn(s, tab)) if (/^(sandbox-(god|super|rest)|car-(repair|upright|dismiss|nodamage))/.test(x.id)) expect(cat[x.label], x.id).toBeTypeOf('string');
     });
   });
 

@@ -5,6 +5,8 @@ import {
 } from './sandbox-world.ts';
 import { createSandboxVehicles } from './sandbox-vehicles.ts';
 import type { SandboxVehiclePort } from '../sandbox-vehicle-port.ts';
+import type { SandboxBodyPort } from '../sandbox-body-port.ts';
+import { applyBodySetting, createSandboxBody, isBodyPath } from './sandbox-body.ts';
 import { enterTeleport, exitTeleport, runTeleportAction, type Pose } from './sandbox-teleport.ts';
 
 export function defaultSandbox(): SandboxSlice {
@@ -34,6 +36,8 @@ export interface SandboxEnv {
   waypoint?(): { x: number; z: number } | null;
   /** The engine side of the car spawner (M04e3). Absent or null: no world, so a car request is refused with `sandbox.refuse.noSpot`. */
   vehicles?(): SandboxVehiclePort | null;
+  /** The engine side of the Player and car-action tools (M04e4). Absent or null: the toggles stay off and the car actions are refused. */
+  body?(): SandboxBodyPort | null;
 }
 
 /** Pushes the toggles to the view model (`mode.sandbox.toggles`). */
@@ -45,11 +49,13 @@ export function publishToggles(ctx: Pick<ModeContext, 'ui'>, s: SandboxSlice): v
  * Applies one sandbox toggle (`UiCommand sandbox.set`): writes `SandboxSlice.toggles`, publishes them, and acts on the ones this
  * milestone knows. The heat lock caps the heat at 0 (`PursuitApi.capHeat`); a build without the pursuit director keeps the value only.
  */
-export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: boolean | number, port: SandboxWorldPort | null = null): boolean {
+export function applyToggle(ctx: ModeContext, s: SandboxSlice, path: string, v: boolean | number, port: SandboxWorldPort | null = null, body: SandboxBodyPort | null = null): boolean {
   if (sandboxOnline(ctx)) return false;
   if (!/^sandbox\.[a-zA-Z0-9_.]{1,80}$/.test(path)) return false;
   // The weather, time and world paths have one storage place each and one effect (M04e1).
   if (isWorldPath(path)) return applyWorldSetting(ctx, s, path, v, port, false);
+  // The body toggles are session flags, never stored (M04e4).
+  if (isBodyPath(path)) return applyBodySetting(ctx, path, v, body);
   if (!(path in s.toggles) && Object.keys(s.toggles).length >= MAX_TOGGLES) return false;
   s.toggles[path] = v;
   publishToggles(ctx, s);
@@ -82,6 +88,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
   /** `sandboxOnline` at the previous tick: a change releases or re-applies the world effects. */
   let wasOnline = false;
   const cars = createSandboxVehicles(() => env.vehicles?.() ?? null);
+  const bodyTools = createSandboxBody(() => env.body?.() ?? null, cars);
   let n = 0;
   let shownHour = -1;
   return {
@@ -96,10 +103,12 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
       }
       publishWorld(ctx, env.sandbox(), wasOnline);
       cars.enter(ctx, wasOnline);
+      bodyTools.enter(ctx, wasOnline);
     },
     tick(ctx) {
       const on = sandboxOnline(ctx);
       cars.tick(ctx, on);
+      bodyTools.tick(ctx, on);
       // The Time tab shows the hour of the last `mode.sandbox.world`: refresh it twice a second when it moved a tenth of an hour.
       if (on === wasOnline && ++n % 30 === 0) {
         const h = Math.round(liveHour(ctx, env.sandbox()) * 10);
@@ -116,6 +125,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
       publishWorld(ctx, env.sandbox(), on);
     },
     exit(ctx) {
+      bodyTools.exit(ctx);
       cars.exit(ctx);
       exitTeleport(ctx);
       releaseWorld(ctx, env.sandbox(), port());
@@ -131,6 +141,7 @@ export function sandboxSim(env: SandboxEnv): GameModeSim<JsonObject> {
       runSandboxAction(ctx, env.sandbox(), e, port(), sandboxOnline(ctx));
       runTeleportAction(ctx, env.sandbox(), e, env, sandboxOnline(ctx));
       cars.onEvent(ctx, e, sandboxOnline(ctx));
+      bodyTools.onEvent(ctx, e, sandboxOnline(ctx));
     },
   };
 }

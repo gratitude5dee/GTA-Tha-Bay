@@ -64,7 +64,8 @@ interface Pending {
 
 type Seat = 'none' | 'driver';
 
-function parse(e: SimEvent): { name: string; args: JsonObject } | null {
+/** The `mode.cmd {mode: 'sandbox'}` event as `{name, args}`, or null for any other event. */
+export function parseSandboxCmd(e: SimEvent): { name: string; args: JsonObject } | null {
   if (e.t !== 'mode.cmd' || e.s === undefined) return null;
   let msg: { mode?: unknown; name?: unknown; args?: unknown };
   try {
@@ -86,6 +87,10 @@ export interface SandboxVehicles {
   exit(ctx: ModeContext): void;
   /** Runs `vehicle.spawn` and `vehicle.clear`; any other event is ignored. */
   onEvent(ctx: ModeContext, e: SimEvent, online: boolean): void;
+  /** The handles of the cars this session placed, in placement order (M04e4). */
+  handles(): readonly EntityHandle[];
+  /** Retires one owned car and drops it from the list (M04e4); false when `h` is not owned. */
+  dismiss(ctx: ModeContext, h: EntityHandle, online: boolean): boolean;
 }
 
 export function createSandboxVehicles(port: () => SandboxVehiclePort | null): SandboxVehicles {
@@ -231,8 +236,20 @@ export function createSandboxVehicles(port: () => SandboxVehiclePort | null): Sa
       publish(ctx, false);
     },
 
+    handles: () => owned.map((o) => o.h),
+
+    dismiss(ctx, h, online) {
+      const i = owned.findIndex((o) => o.h === h);
+      if (i < 0) return false;
+      const [gone] = owned.splice(i, 1);
+      const p = port();
+      if (gone) guard(() => p?.retire(gone.h), undefined);
+      publish(ctx, online);
+      return true;
+    },
+
     onEvent(ctx, e, online) {
-      const m = parse(e);
+      const m = parseSandboxCmd(e);
       if (m === null || online || !(VEHICLE_ACTIONS as readonly string[]).includes(m.name)) return;
       if (m.name === 'vehicle.clear') {
         retireAll();

@@ -89,6 +89,14 @@ export class SimCore {
     this.resources.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   }
 
+  /** Drops a resource registered with `addResource`; false when none has that name. The `rng` resource stays. */
+  removeResource(name: string): boolean {
+    const i = this.resources.findIndex((x) => x.name === name);
+    if (i < 0 || name === 'rng') return false;
+    this.resources.splice(i, 1);
+    return true;
+  }
+
   /**
    * World speed of a sandbox session (M04e1). Only the numbers of ticks a frame pays for change: `SIM_DT` and the state do not.
    * Throws `TimeScaleError` unless `s` is one of the allowed scales.
