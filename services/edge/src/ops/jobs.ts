@@ -4,6 +4,7 @@ import type { Env } from '../env.ts';
 import { runExport } from './export.ts';
 import { runForget } from './forget.ts';
 import { runSummarize } from '../npc/summarize.ts';
+import { handleBuilderBatch } from '../npc-builder/queue.ts';
 import type { JobMessage } from './queue.ts';
 
 /**
@@ -51,6 +52,10 @@ export async function handleQueueBatch(batch: MessageBatch<unknown>, env: Env, d
         m.retry({ delaySeconds: 30 });
       }
     }
+    return;
+  }
+  if (batch.queue.startsWith('tha-bay-npc-builder')) {
+    await handleBuilderBatch(batch, env, deps);
     return;
   }
   deps.log(JSON.stringify({ event: 'queue.unknown' }));

@@ -6,13 +6,14 @@ import {
   rejectLater,
   type DeviceCodeStore,
   type ForumStore,
-  type ModerationStore,
   type ServerDataPort,
   type UgcStore,
 } from '@dv/shared/data-port';
 import { createServiceClient, type SupabaseConfig } from './client.ts';
 import { catalog, cutscenes } from './cutscenes.ts';
+import { builder } from './drafts.ts';
 import { ledger } from './ledger.ts';
+import { moderation } from './moderation.ts';
 import { maintenance } from './maintenance.ts';
 import { npcMemory } from './npc-memory.ts';
 import { profiles } from './profiles.ts';
@@ -46,7 +47,8 @@ export function supabaseDataPort(cfg: SupabaseConfig): ServerDataPort {
     catalog: catalog(db),
     ugc: later<UgcStore>('M13a2'),
     forum: later<ForumStore>('M13b1'),
-    moderation: later<ModerationStore>('M06b1'),
+    moderation: moderation(db),
+    builder: builder(db),
     ledger: ledger(db, defaultEnv),
     roster: roster(db),
     audit: audit(db),

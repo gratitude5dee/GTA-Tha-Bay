@@ -10,6 +10,9 @@ const EXPORT_COLUMNS: Record<string, { key: string; columns: string }> = {
   age_assurance: { key: 'profile_id', columns: 'declared_bracket,declared_at,signal_source,signal_bracket,signal_at,effective_bracket,blocked,updated_at' },
   npc_relationship: { key: 'profile_id', columns: 'npc_id,affinity,trust,flags,encounters,summary,soul_version,last_seen_at' },
   npc_memory: { key: 'profile_id', columns: 'id,npc_id,scope,kind,text,importance,game_time,source,created_at,last_accessed_at,expires_at' },
+  // M06b1: the builder's drafts (with the backstory the player wrote) and private souls.
+  npc_draft: { key: 'owner_profile_id', columns: 'id,npc_id,state,rev,fields,backstory,attestation,moderation,publishable,soul_md,lint,probes,created_at,updated_at' },
+  npc_soul: { key: 'owner_profile_id', columns: 'npc_id,soul_version,soul_md,status,published_at,created_at' },
   encounter_transcripts: { key: 'profile_id', columns: 'encounter_id,npc_id,r2_key,turns,usd_micros,closed_at,expires_at' },
 };
 

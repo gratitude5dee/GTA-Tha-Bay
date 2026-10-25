@@ -41,6 +41,18 @@ npc:
   signupsPerNet: 3
   # builder_text: one reservation per draft per hour.
   builderTextPerDraftMs: 3600000
+  # M06b1: the NPC builder (spec/domains/04-npc-builder.md sections C1 and C5). Soul generations are builder_text reservations: builderText above is
+  # the per-day count and builderTextPerDraftMs the one-per-draft-per-hour rule. Scores are per mille (200 = 0.20).
+  builder:
+    liveDraftsP0: 3
+    liveDraftsLinked: 10
+    previewTurnsPerDraftPerDay: 20
+    backstoryCharsMax: 20000
+    draftRetentionDays: 180
+    soulMaxTokens: 8000
+    # OpenAI sexual/minors at or above this opens a P0 CSAM-text case; self-harm/intent at or above the second sets the crisis flag.
+    sexualMinorsMilli: 200
+    selfHarmIntentMilli: 500
   encounter:
     turnCap: 12
     turnCapHard: 20

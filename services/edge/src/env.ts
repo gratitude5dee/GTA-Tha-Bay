@@ -81,6 +81,14 @@ export interface Env {
   AIG_ENV?: string | undefined;
   /** Workers AI (M06a4): `@cf/baai/bge-m3` embeddings for NPC memory and Aura text-to-speech. No key. Absent: memory and voice are skipped. */
   AI?: Ai | undefined;
+  /** Background jobs of the NPC builder (queue tha-bay-npc-builder, M06b1): validate, soul generation, probes. Absent (and in Previews): the job runs inline. */
+  BUILDER?: Queue<unknown> | undefined;
+  /** `live` calls OpenAI moderation and Workers AI Llama Guard; anything else replays fixtures. Production must be `live` (check:prod-routes). */
+  MODERATION_MODE?: string | undefined;
+  /** OpenAI key for `/v1/moderations` (Worker secret, M06b1). Absent in live mode: validation falls back to Llama Guard. */
+  OPENAI_MODERATION_API_KEY?: string | undefined;
+  /** Anthropic key of the workspace `npc-builder` (Worker secret, M06b1): builder classifier, soul generation, preview and probes. Absent in live mode: the soul job answers upstream_unavailable. */
+  ANTHROPIC_BUILDER_KEY?: string | undefined;
   /** ElevenLabs key for the t2 voice tier (Worker secret, optional; Q-20 keeps t2 off). Absent: t2 is never selected. */
   ELEVENLABS_API_KEY?: string | undefined;
 }

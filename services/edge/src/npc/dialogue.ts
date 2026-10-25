@@ -12,6 +12,9 @@ import type { Ctx } from '../router.ts';
 import { writeServerEvent } from '../telemetry/server.ts';
 import { UUIDV7_PATTERN, uuidv7 } from '../uuidv7.ts';
 import type { BeginResult, EncounterDO } from './EncounterDO.ts';
+import { builderPort } from '../npc-builder/port.ts';
+import { isUserNpcId, userSoulVersionFor } from '../npc-builder/private.ts';
+import { stepEvent } from '../npc-builder/jobs.ts';
 import { LineScanner } from './scanner.ts';
 import { assemblePrompt, asHaikuRequest, type AssembledPrompt, type HistoryMessage } from './prompt.ts';
 import { clampMaxTokens, offlineReason, routeModel, type RoutedModel } from './router.ts';
@@ -44,7 +47,7 @@ export async function drainTalk(): Promise<void> {
   while (inflight.size > 0) await Promise.allSettled([...inflight]);
 }
 
-interface TurnState {
+export interface TurnState {
   /** The validated memory writes of the turn (at most 2); stored after the stream by MemoryService (M06a4). */
   memoryWrites: RawMemoryWrite[];
   usage: Usage | null;
@@ -93,7 +96,7 @@ function sleep(timing: Timing, ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-interface TurnRun {
+export interface TurnRun {
   ctx: Ctx;
   upstream: Upstream;
   assembled: AssembledPrompt;
@@ -113,7 +116,7 @@ interface TurnRun {
 const fallback = (reason: FallbackReason, knot: InkKnot): DialogueEvent => ({ event: 'fallback', data: { reason, knot } });
 
 /** The events of one turn after `meta`: `line.delta`*, `line.done`, `effects`, `done`, or a `fallback`. The 4 s first-token rule is the transport's. */
-async function* turnEvents(r: TurnRun, signal: AbortSignal): AsyncGenerator<DialogueEvent> {
+export async function* turnEvents(r: TurnRun, signal: AbortSignal): AsyncGenerator<DialogueEvent> {
   const timing = currentTiming();
   const t0 = timing.now();
   const windowMs = NPC_GUARDRAILS.encounter.firstTokenMs;
@@ -275,7 +278,15 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
   let loaded: LoadedSoul | null;
   let blockA: string | null;
   try {
-    const cur = await activeSoulVersion(env, npcId);
+    let cur: number | null;
+    if (isUserNpcId(npcId)) {
+      // A user NPC (M06b1): a `private` soul answers its owner only, a `published` one anyone; for everybody else it does not exist.
+      if ((await activeKillSwitches(env, ['ks:npc_builder'], now())).has('ks:npc_builder')) return apiError('feature_disabled', 'The character builder is off.', requestId);
+      const bp = builderPort(env, deps);
+      cur = bp === null ? null : await userSoulVersionFor(bp.port, pid, npcId);
+    } else {
+      cur = await activeSoulVersion(env, npcId);
+    }
     if (cur === null) return apiError('not_found', 'No such character.', requestId);
     if (req.soulVersion !== cur && req.soulVersion !== cur - 1) {
       return apiError('conflict', 'The character has changed; reload the roster.', requestId, { details: { reason: 'soul_version', soulVersion: cur } });
@@ -327,6 +338,7 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
     return apiError('conflict', begun.reason === 'busy' ? 'The character is still answering.' : 'This conversation is over.', requestId, { details: { reason: begun.reason } });
   }
   const turnIndex = begun.turnIndex;
+  if (isUserNpcId(npcId)) stepEvent(env, 'private_talk', true);
 
   const routed = routeModel({ roles: compiled.roles, dialogue: compiled.dialogue }, gov, ks);
   const est = NPC_GUARDRAILS.estimates.turnUsdMicros * (routed.tier === 'sonnet' ? SONNET_ESTIMATE_FACTOR : 1);
@@ -413,7 +425,7 @@ export async function talk(ctx: Ctx, npcId: string): Promise<Response> {
         await settle(micros);
         writeServerEvent(env, 'genai.cost', { vendor: 'anthropic', model: costMicros(u, state.model).label, usdMicros: micros, cacheHit: u.cacheRead > 0, tier: 'local' }, now());
         if (state.closed) await stub.close();
-        await moderation.check(deps, { npcId, text: pre.text, flagCrisis: () => stub.flagSafety() });
+        await moderation.check(deps, { npcId, text: pre.text, flagCrisis: () => stub.flagSafety(), env, profileId: pid, encounterId, turnIndex, closeEncounter: () => stub.close() });
         // Memory writes of the turn (paraphrased, scrubbed, no quotes of the player, near-duplicates only refresh), inside the waitUntil work.
         if (state.memoryWrites.length > 0) {
           await writeMemory(env, deps.data(env), {

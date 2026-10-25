@@ -33,7 +33,7 @@ describe('deploy.ts', () => {
   });
 
   it('maps the Worker secrets from the environment into the secrets file (DL-679, M06a1): keys only asserted, absent ones left out', () => {
-    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY']);
+    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY']);
     const full = buildSecretsJson({ PLAY_TOKEN_HMAC: 'k1:aaaa', PLAY_TOKEN_HMAC_PREV: 'k0:bbbb', QUOTA_NET_SALT_SECRET: 'salt', SUPABASE_SECRET_KEY: 'sb_secret_x', UNRELATED: 'x' });
     expect(Object.keys(JSON.parse(full.json) as object).sort()).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY']);
     expect(full.missing).toEqual([]);
@@ -53,7 +53,7 @@ describe('deploy.ts', () => {
   });
 
   it('bootstrap creates the four queues of the web Worker, every name tha-bay-*', () => {
-    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging']);
+    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-npc-builder', 'tha-bay-jobs-staging', 'tha-bay-spend-staging', 'tha-bay-npc-builder-staging']);
   });
 
   it('finds a preview URL in JSON, NDJSON and plain wrangler output', () => {

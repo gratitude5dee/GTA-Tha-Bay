@@ -4,7 +4,7 @@
   "title": "config/npc.json (04-npc-contracts.md section B9)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "routing", "caps", "lod", "throttles", "quotas", "cacheTtls"],
+  "required": ["schema", "routing", "caps", "lod", "throttles", "quotas", "cacheTtls", "builder"],
   "properties": {
     "schema": { "const": "npc-config/1" },
     "routing": {
@@ -145,6 +145,37 @@
         "historySeconds": { "type": "integer", "minimum": 1 },
         "intentSeconds": { "type": "integer", "minimum": 1 },
         "promptIsolateLru": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "builder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rulesVersion", "moderation", "soul", "preview"],
+      "properties": {
+        "rulesVersion": { "type": "integer", "minimum": 1 },
+        "moderation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["openai", "openaiModel", "classifierModel", "llamaGuardModel"],
+          "properties": {
+            "openai": { "enum": ["on", "off"] },
+            "openaiModel": { "const": "omni-moderation-latest" },
+            "classifierModel": { "const": "claude-haiku-5-5" },
+            "llamaGuardModel": { "const": "@cf/meta/llama-guard-3-8b" }
+          }
+        },
+        "soul": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "thinking", "effort"],
+          "properties": { "model": { "const": "claude-sonnet-5-5" }, "thinking": { "const": "adaptive" }, "effort": { "enum": ["low", "medium", "high"] } }
+        },
+        "preview": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "maxTokens", "voiceRef"],
+          "properties": { "model": { "const": "claude-haiku-5-5" }, "maxTokens": { "type": "integer", "minimum": 1, "maximum": 512 }, "voiceRef": { "type": ["string", "null"] } }
+        }
       }
     }
   },

@@ -113,11 +113,12 @@ describe('stub-profiles (03:30): local profiles unseen for 180 days, and soft-de
 });
 
 describe('the crons', () => {
-  it('map the three expressions to their jobs, with the 03:10 run keeping catalog-sync and ledger-export', () => {
+  it('map the four expressions to their jobs, with the 03:10 run keeping catalog-sync and ledger-export', () => {
     expect(CRON_SCHEDULE).toEqual({
       '10 3 * * *': ['catalog-sync', 'ledger-export', 'transcripts'],
       '20 3 * * *': ['memory'],
       '30 3 * * *': ['stub-profiles'],
+      '40 3 * * *': ['builder-drafts'],
     });
   });
 

@@ -42,6 +42,18 @@ export function selectUpstream(env: Pick<Env, 'ANTHROPIC_MODE' | 'ANTHROPIC_API_
   return liveUpstream(key, env.AIG_BASE);
 }
 
+/**
+ * The upstream of the NPC builder (M06b1): the same two implementations, with the key of the Anthropic workspace `npc-builder`
+ * (`ANTHROPIC_BUILDER_KEY`). Null when live mode has no key. Tests share the `setUpstreamForTests` override.
+ */
+export function selectBuilderUpstream(env: Pick<Env, 'ANTHROPIC_MODE' | 'ANTHROPIC_BUILDER_KEY' | 'AIG_BASE'>): Upstream | null {
+  if (override !== null) return override;
+  if (anthropicMode(env) === 'fixture') return fixtureUpstream(currentTiming());
+  const key = env.ANTHROPIC_BUILDER_KEY;
+  if (key === undefined || key === '') return null;
+  return liveUpstream(key, env.AIG_BASE);
+}
+
 interface ErrorLike {
   status?: unknown;
   message?: unknown;
@@ -64,7 +76,7 @@ export function toUpstreamError(e: unknown): unknown {
   });
 }
 
-function liveUpstream(apiKey: string, baseURL: string | undefined): Upstream {
+export function liveUpstream(apiKey: string, baseURL: string | undefined): Upstream {
   return {
     mode: 'live',
     async *stream(call, signal) {
