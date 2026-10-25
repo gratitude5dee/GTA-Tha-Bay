@@ -4,6 +4,7 @@ import {
   AutosavePolicy, EconomyImpl, ModeEventBus, ModeHost, UnlockRegistryImpl, bindModeSave, builtinDescriptors, builtinUnlockDefs, createCommandDispatcher, freshSlices,
   type AutosaveGameState, type CommandDeps, type SessionSlices,
 } from '../../src/sim/modes/index.ts';
+import type { SandboxVehiclePort } from '../../src/sim/modes/sandbox-vehicle-port.ts';
 import { createWaypointMemo, type Pose, type SandboxWorldPort, type WaypointMemo } from '../../src/sim/modes/builtin/index.ts';
 
 export interface Posted {
@@ -51,6 +52,10 @@ export interface RigOptions {
   sandboxWorld?: () => SandboxWorldPort | null;
   /** The local player's pose for the sandbox and the dispatcher (M04e2). Absent: no player (null). */
   playerPose?: () => Pose | null;
+  /** The engine side of the sandbox's car spawner (M04e3). Absent: null, as on a build without the vehicle module. */
+  sandboxVehicles?: SandboxVehiclePort;
+  /** What `ctx.assets.ready` answers (M04e3). The default keeps `() => true`. */
+  assetsReady?: (refs: string[]) => boolean;
 }
 
 /** A sim-free harness: the real ModeHost, registry, economy, bridge and policy on fake ports. */
@@ -73,7 +78,7 @@ export function makeRig(o: RigOptions = {}): Rig {
   const unlocks = new UnlockRegistryImpl({ core: () => slices.core, ui, saveUnlock: () => void holder.host?.autosave.request('unlock'), telemetry: tel as never });
   unlocks.register(builtinUnlockDefs());
   const economy = new EconomyImpl({ wallet: () => slices.story.wallet, tick: () => tick.n, clockT: () => clockT.t, ui });
-  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: o.playerPose ?? (() => null), waypoint: () => waypoint.get(), ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
+  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: o.playerPose ?? (() => null), waypoint: () => waypoint.get(), ...(o.sandboxVehicles ? { vehicles: () => o.sandboxVehicles as SandboxVehiclePort } : {}), ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
   const byId = new Map(descriptors.map((d) => [d.id, d]));
   const host = new ModeHost({
     descriptors: [...byId.values()],
@@ -93,7 +98,7 @@ export function makeRig(o: RigOptions = {}): Rig {
       economy,
       events: bus,
       ui,
-      assets: { request: () => undefined, ready: () => true },
+      assets: { request: () => undefined, ready: (refs) => (o.assetsReady ? o.assetsReady(refs) : true) },
       telemetry: tel as never,
       // Lazy: `world()` is called only when a mode reads a member of `ctx.world`.
       world: (o.world ? new Proxy({}, { get: (_t, k) => (o.world?.() as unknown as Record<string | symbol, unknown>)[k] }) : {}) as never,

@@ -8,6 +8,7 @@
 import type { JsonObject, JsonValue, ModeContext, SandboxSlice, SimEvent, WeatherPreset } from '@dv/shared';
 import { CLOCK_CONFIG, WEATHER_PRESETS } from '../../world/clock.ts';
 import { TELEPORT_ACTIONS } from './sandbox-teleport.ts';
+import { VEHICLE_ACTIONS } from './sandbox-vehicles.ts';
 
 /** What the sandbox needs of the engine beyond C06: the weather hold and the world speed (both engine-internal). */
 export interface SandboxWorldPort {
@@ -33,7 +34,7 @@ export const SANDBOX_OWNER = 'sandbox';
 export const WORLD_VM = 'mode.sandbox.world';
 
 /** The action names `mode.cmd {mode: 'sandbox'}` understands. */
-export const SANDBOX_ACTIONS = ['time.shortcut', 'time.sync', 'world.reset', ...TELEPORT_ACTIONS] as const;
+export const SANDBOX_ACTIONS = ['time.shortcut', 'time.sync', 'world.reset', ...TELEPORT_ACTIONS, ...VEHICLE_ACTIONS] as const;
 export type SandboxAction = (typeof SANDBOX_ACTIONS)[number];
 
 /** True for a path this module owns (valid or not): the generic toggle behaviour never sees them. */
@@ -235,7 +236,7 @@ export function runSandboxAction(ctx: ModeContext, s: SandboxSlice, e: SimEvent,
       publishWorld(ctx, s, online);
       return;
     default:
-      // the teleport and spot actions run in `sandbox-teleport.ts` (M04e2)
+      // the teleport and spot actions run in `sandbox-teleport.ts` (M04e2), the car actions in `sandbox-vehicles.ts` (M04e3)
       return;
   }
 }
