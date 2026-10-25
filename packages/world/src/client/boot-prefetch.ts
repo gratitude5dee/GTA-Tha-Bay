@@ -92,6 +92,8 @@ export interface PrefetchReport {
   planned: number;
   missingAtStart: number;
   needBytes: number;
+  /** Refs handed to the asset worker's `prefetch` (0 when skipped, off or still waiting). */
+  sent: number;
   /** `performance.now()` when the download was queued; null before. */
   startedMs: number | null;
   /** Sum of what the two `promote` calls reported moving. */
@@ -126,6 +128,7 @@ export class BootPrefetch {
   private missing: { now: string[]; soon: string[] } = { now: [], soon: [] };
   private missingAtStart = 0;
   private needBytes = 0;
+  private sent = 0;
   private startedMs: number | null = null;
   private promoted = 0;
   private promotedMs: number | null = null;
@@ -147,6 +150,11 @@ export class BootPrefetch {
     return this.stateValue;
   }
 
+  /** The planned refs (QA bridge and tests). */
+  get planned(): BootPrefetchPlan {
+    return { now: [...this.plan.now], soon: [...this.plan.soon] };
+  }
+
   /**
    * Called once at the world reveal. While the shell is in a menu: reads the Save-Data hint, the storage estimate, the store kind and the
    * tab mode, applies the gate and queues the plan at `idle`. Past the menu (the QA play bypass, or play started first): queues the plan
@@ -162,6 +170,7 @@ export class BootPrefetch {
         this.startedMs = this.now();
         this.missing = { now, soon };
         this.missingAtStart = now.length + soon.length;
+        this.sent = now.length + soon.length;
         await this.o.assets.prefetch([...now, ...soon], 'soon');
         return;
       }
@@ -172,6 +181,7 @@ export class BootPrefetch {
         this.startedMs = this.now();
         this.missing = { now, soon };
         this.missingAtStart = now.length + soon.length;
+        this.sent = now.length + soon.length;
         await this.o.assets.prefetch([...now, ...soon], 'soon');
         return;
       }
@@ -183,6 +193,7 @@ export class BootPrefetch {
       this.stateValue = 'running';
       this.startedMs = this.now();
       const queue = [...this.missing.now, ...this.missing.soon];
+      this.sent = queue.length;
       if (queue.length > 0) await this.o.assets.prefetch(queue, 'idle');
       if (this.promoteAsked) await this.promote();
     } catch {
@@ -256,6 +267,7 @@ export class BootPrefetch {
       planned: this.plan.now.length + this.plan.soon.length,
       missingAtStart: this.missingAtStart,
       needBytes: this.needBytes,
+      sent: this.sent,
       startedMs: this.startedMs === null ? null : Math.round(this.startedMs),
       promoted: this.promoted,
       promotedMs: this.promotedMs === null ? null : Math.round(this.promotedMs),

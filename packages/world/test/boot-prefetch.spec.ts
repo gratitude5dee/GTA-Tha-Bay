@@ -106,13 +106,13 @@ describe('BootPrefetch', () => {
     const { assets, calls } = fakeAssets({ have: new Set(['world_pack/p0-3']) });
     const p = mk(assets);
     expect(p.state).toBe('waiting');
-    expect(p.report()).toMatchObject({ state: 'waiting', planned: 7, startedMs: null, promoted: 0, startToPlayMs: null });
+    expect(p.report()).toMatchObject({ state: 'waiting', planned: 7, sent: 0, startedMs: null, promoted: 0, startToPlayMs: null });
     await p.start();
     expect(p.state).toBe('running');
     expect(calls).toEqual([
       { op: 'prefetch', priority: 'idle', targets: ['world_pack/p0-2', 'world_pack/l0-2', 'world_pack/l1-1', 'world_pack/l1-2', 'world_pack/l2-1', 'world_pack/far-bay-massing'] },
     ]);
-    expect(p.report()).toMatchObject({ planned: 7, missingAtStart: 6, needBytes: 12 * MB });
+    expect(p.report()).toMatchObject({ planned: 7, missingAtStart: 6, needBytes: 12 * MB, sent: 6 });
     await p.start();
     expect(calls).toHaveLength(1);
   });
@@ -129,6 +129,7 @@ describe('BootPrefetch', () => {
       expect(p.report().state, name).toBe('skipped');
       expect(p.report().skipped, name).toBe(name);
       expect(a.calls, name).toEqual([]);
+      expect(p.report().sent, name).toBe(0);
       expect(await p.promote()).toBe(0);
       expect(a.calls, name).toEqual([]);
     }
@@ -138,7 +139,7 @@ describe('BootPrefetch', () => {
     const { assets, calls } = fakeAssets();
     const p = mk(assets, { menu: () => false });
     await p.start();
-    expect(p.report()).toMatchObject({ state: 'direct', skipped: null });
+    expect(p.report()).toMatchObject({ state: 'direct', skipped: null, sent: 7 });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({ op: 'prefetch', priority: 'soon' });
     expect(calls[0]?.targets).toHaveLength(7);

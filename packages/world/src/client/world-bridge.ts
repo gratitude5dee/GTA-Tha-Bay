@@ -44,6 +44,8 @@ export interface WorldBridge {
   boot(): BootReport;
   /** M02f2: the speculative boot download (state, skip reason, counts, promotion and the time from mode start to the first play); null before the world is prepared. */
   prefetch(): PrefetchReport | null;
+  /** M02f2: the refs the boot prefetch plans (`now`: the rings, `soon`: l1, l2, far); null before the world is prepared. */
+  prefetchPlan(): { now: string[]; soon: string[] } | null;
   /** The units the current focus and plan want at a level. */
   wanted(level: Level): ChunkKey[];
   plan(): StreamingPlan;
@@ -203,12 +205,13 @@ async function call(op: string, args?: Record<string, unknown>, timeoutMs = 30_0
   return null;
 }
 
-export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetch?: { report(): PrefetchReport }): WorldBridge {
+export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetch?: { report(): PrefetchReport; planned: { now: string[]; soon: string[] } }): WorldBridge {
   const bridge: WorldBridge = {
     chunks: () => view.chunks(),
     backdrop: () => view.backdropInfo(),
     boot: () => view.bootReport(),
     prefetch: () => prefetch?.report() ?? null,
+    prefetchPlan: () => prefetch?.planned ?? null,
     wanted: (level) => view.wanted(level),
     plan: () => view.store.plan,
     tier: () => tier,
