@@ -82,9 +82,13 @@ export const PLACE_RETRY_MAX_TICKS = 600;
 export const PLACE_ANSWER_TICKS = 1800;
 /** No request is sent once the wait for the start has lasted this long (3 min); the request then in flight is the last one. */
 export const PLACE_BUDGET_TICKS = 10800;
-/** The loading hint (`mission.startLoading`) shows once the wait has lasted 5 s, then at most once every 20 s. */
-const PLACE_HINT_AFTER_TICKS = 300;
-const PLACE_HINT_EVERY_TICKS = 1200;
+/**
+ * The loading hint (`mission.startLoading`) shows once the wait has lasted 5 s, then again every 20 s while the wait lasts (DL-735 d). Each
+ * one is an ordinary sim toast, which the shell shows for 5 s (`SIM_TOAST_TTL_MS`; at most 6 s), so it leaves the screen by itself: nothing
+ * ever takes it off, and no toast is sent when the wait ends (C06 `UiBridge` has no dismiss call).
+ */
+export const PLACE_HINT_AFTER_TICKS = 300;
+export const PLACE_HINT_EVERY_TICKS = 1200;
 const TELEPORT_TRANSIENT = new Set(['world.teleport.notLoaded', 'world.teleport.busy']);
 
 /** The gap before the next request of the move to a far start, after `tries` requests: 60, 120, 240, 480, then 600 ticks. */
@@ -222,7 +226,7 @@ export class StoryController {
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
-    this.cancelPlacing(ctx);
+    this.cancelPlacing();
     this.startFailed.clear();
     this.triedTrigger.clear();
     this.startMarks.clear();
@@ -539,7 +543,6 @@ export class StoryController {
     const res = pl.result as TeleportResult;
     if (res.ok) {
       this.placing = null;
-      this.dismissHint(ctx, pl);
       this.startFailed.delete(pl.id);
       this.markTried(pl.id);
       this.startById(pl.id, ctx);
@@ -556,21 +559,15 @@ export class StoryController {
     this.failPlacing(ctx, pl, res.reason);
   }
 
-  /** The non-blocking loading hint while the move waits for its start: after `PLACE_HINT_AFTER_TICKS`, once per `PLACE_HINT_EVERY_TICKS`. */
+  /**
+   * The non-blocking loading hint while the move waits for its start: after `PLACE_HINT_AFTER_TICKS`, then once per
+   * `PLACE_HINT_EVERY_TICKS` while the wait lasts; each one leaves the screen after the shell's short sim toast time (DL-735 d).
+   */
   private hintPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
     if (ctx.tick - pl.started < PLACE_HINT_AFTER_TICKS) return;
     if (pl.hintAt >= 0 && ctx.tick - pl.hintAt < PLACE_HINT_EVERY_TICKS) return;
     pl.hintAt = ctx.tick;
     ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: 'mission.startLoading' });
-  }
-
-  /**
-   * Takes the loading hint off the screen once the wait is over (the mission starts, or its start is unreachable). `UiBridge` has no
-   * dismiss call, so the story sends the hint's id again with an empty text, which the shell reads as a dismiss (BD-FIX-SPAWN-04).
-   */
-  private dismissHint(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
-    if (pl.hintAt < 0) return;
-    ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: '' });
   }
 
   /**
@@ -583,18 +580,15 @@ export class StoryController {
     if (this.store?.get(id)?.ir.start.k === 'auto') this.triedTrigger.add(id);
   }
 
-  /** Drops a move in flight (the mode exits or attaches again) and takes its loading hint off the screen. */
-  private cancelPlacing(ctx: ModeContext): void {
-    const pl = this.placing;
+  /** Drops a move in flight (the mode exits or attaches again); its last loading hint runs out by itself. */
+  private cancelPlacing(): void {
     this.placing = null;
-    if (pl) this.dismissHint(ctx, pl);
   }
 
   /** The far start cannot be reached: the mission stays `available` and the Jobs app offers to try again. */
   private failPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>, reason: string): void {
     const id = pl.id;
     this.placing = null;
-    this.dismissHint(ctx, pl);
     this.markTried(id);
     this.startFailed.add(id);
     ctx.telemetry.emit('mission.fail', { mid: id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
@@ -745,7 +739,7 @@ export class StoryController {
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
-    this.cancelPlacing(ctx);
+    this.cancelPlacing();
     this.teleportRestore?.();
     this.teleportRestore = null;
     const rt = this.rt;

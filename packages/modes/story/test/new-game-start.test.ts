@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import type { MissionIR } from '@dv/shared';
 import { at, circle, defineMission, markerTrigger, npc, phoneTrigger, stage, waitFor } from '../src/authoring/index.ts';
 import type { CatalogPayload } from '../src/missions/store.ts';
-import { PLACE_ANSWER_TICKS, PLACE_BUDGET_TICKS, PLACE_RETRY_FIRST_TICKS, PLACE_RETRY_MAX_TICKS, placeRetryGap, StoryController } from '../src/mode.ts';
+import { PLACE_ANSWER_TICKS, PLACE_BUDGET_TICKS, PLACE_HINT_AFTER_TICKS, PLACE_HINT_EVERY_TICKS, PLACE_RETRY_FIRST_TICKS, PLACE_RETRY_MAX_TICKS, placeRetryGap, StoryController } from '../src/mode.ts';
 import { flatResolver, ll, makeHarness, type Harness } from './harness.ts';
 
 const START = { x: 2000, z: 3000 };
@@ -211,25 +211,44 @@ describe('new game start (BD-FIX-SPAWN-01)', () => {
     expect([1, 2, 3, 4, 5, 6, 20].map(placeRetryGap)).toEqual([60, 120, 240, 480, 600, 600, 600]);
   });
 
-  it('takes the loading hint off the screen when the mission starts', async () => {
+  it('re-posts the loading hint every 20 s while the wait lasts and sends nothing when the mission starts (DL-735 d)', async () => {
     const { c, shown, run } = setup((n) => (n <= 4 ? notLoaded() : ok()));
     await run(2000);
     expect(c.rt?.active).toBe(true);
-    const loading = shown.filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
-    expect(loading.length).toBeGreaterThanOrEqual(2);
-    expect(loading.slice(0, -1).every((t) => t === LOADING)).toBe(true);
-    expect(loading[loading.length - 1]).toBe('');   // the dismiss: the hint's id with an empty text
+    const loading = shown.filter((t) => t.id === 'mission:m.t.first:loading');
+    expect(loading.length).toBeGreaterThanOrEqual(1);
+    // every hint is the hint: no toast takes it off the screen (it runs out after the shell's short sim toast time)
+    expect(loading.every((t) => t.text === LOADING)).toBe(true);
+    expect(shown.some((t) => t.text === '')).toBe(false);
+    // none after the mission started
+    await run(2 * PLACE_HINT_EVERY_TICKS);
+    expect(shown.filter((t) => t.id === 'mission:m.t.first:loading')).toHaveLength(loading.length);
   });
 
-  it('takes the loading hint off the screen when the start turns out unreachable', async () => {
+  it('hints first after 5 s of waiting and then exactly every 20 s for as long as the wait lasts (DL-735 d)', async () => {
+    const { c, shown, run } = setup(notLoaded);
+    await run(PLACE_HINT_AFTER_TICKS + 4 * PLACE_HINT_EVERY_TICKS + 2 * PASS);
+    expect(c.rt).toBeNull();
+    const ticks = shown.filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.tick);
+    expect(ticks.length).toBe(5);
+    expect(ticks[0]!).toBeGreaterThanOrEqual(PLACE_HINT_AFTER_TICKS);
+    expect(ticks[0]!).toBeLessThan(PLACE_HINT_AFTER_TICKS + PASS);
+    for (let i = 1; i < ticks.length; i++) {
+      expect(ticks[i]! - ticks[i - 1]!).toBeGreaterThanOrEqual(PLACE_HINT_EVERY_TICKS);
+      expect(ticks[i]! - ticks[i - 1]!).toBeLessThan(PLACE_HINT_EVERY_TICKS + PASS);
+    }
+    expect(shown.every((t) => t.text === LOADING)).toBe(true);
+  });
+
+  it('sends no toast for the hint when the start turns out unreachable: the warning follows the last hint (DL-735 d)', async () => {
     const { shown, run } = setup((n) => (n <= 3 ? notLoaded() : { ok: false, reason: 'water', messageKey: 'world.teleport.water' }));
     await run(1500);
     const texts = shown.map((t) => `${t.id}=${t.text}`);
-    const dismiss = texts.indexOf('mission:m.t.first:loading=');
     const warn = texts.indexOf(`mission:m.t.first:start=${UNREACHABLE}`);
     expect(texts).toContain(`mission:m.t.first:loading=${LOADING}`);
-    expect(dismiss).toBeGreaterThanOrEqual(0);
-    expect(warn).toBeGreaterThan(dismiss);
+    expect(warn).toBeGreaterThan(texts.lastIndexOf(`mission:m.t.first:loading=${LOADING}`));
+    expect(texts.filter((t) => t.startsWith('mission:m.t.first:loading=')).every((t) => t === `mission:m.t.first:loading=${LOADING}`)).toBe(true);
+    expect(shown.some((t) => t.text === '')).toBe(false);
   });
 
   it('an unreachable start stays available with a Start action in Jobs, which runs the move again with a fresh budget (DL-734)', async () => {
@@ -451,7 +470,7 @@ describe('repair S3-R2 (BD-FIX-SPAWN-08)', () => {
     expect(c.rt?.missionId).toBe('m.t.marker');
   });
 
-  it('takes the loading hint off the screen when the mode exits, or attaches again, while the move runs', async () => {
+  it('stops the loading hint when the mode exits, or attaches again, while the move runs, and sends no toast for it (DL-735 d)', async () => {
     for (const how of ['exit', 'attach'] as const) {
       const { h, c, shown, run } = setup(notLoaded);
       await run(700);
@@ -462,7 +481,8 @@ describe('repair S3-R2 (BD-FIX-SPAWN-08)', () => {
       if (how === 'exit') c.exit(h.ctx, 'quit');
       else c.attach(h.ctx, h.story as unknown as StorySlice);
       const after = h.calls.toasts.slice(before).filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
-      expect(after).toEqual(['']);
+      expect(after).toEqual([]);
+      expect(shown.some((t) => t.text === '')).toBe(false);
     }
   });
 });

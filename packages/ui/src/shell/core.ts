@@ -17,6 +17,12 @@ import type {
 /** A toast the sim raised (`UiBridge.toast`), as the engine hands it over. */
 export interface SimToast { id: string; kind: string; text: string; params?: Record<string, string | number> }
 
+/**
+ * How long the shell shows a sim toast that is not an unlock, ms. Short on purpose (DL-735 d: at most 6 s): C06 `UiBridge` has no dismiss
+ * call, so a sim hint that lasts (the story's `mission.startLoading`) is re-posted while its condition holds and runs out by itself.
+ */
+export const SIM_TOAST_TTL_MS = 5000;
+
 /** Maps a sim toast to a shell toast. An unlock toast becomes "New mode unlocked: <title>" with an Open action. */
 export function simToastToSpec(rec: SimToast): ToastSpec {
   if (rec.kind === 'unlock') {
@@ -31,7 +37,7 @@ export function simToastToSpec(rec: SimToast): ToastSpec {
     };
   }
   const kind = rec.kind === 'warning' || rec.kind === 'error' || rec.kind === 'success' ? rec.kind : 'info';
-  return { id: rec.id, kind, text: rec.text, ...(rec.params ? { params: rec.params } : {}), ttlMs: 5000, icon: toastIcon(kind) };
+  return { id: rec.id, kind, text: rec.text, ...(rec.params ? { params: rec.params } : {}), ttlMs: SIM_TOAST_TTL_MS, icon: toastIcon(kind) };
 }
 
 export interface ModalEntry {
@@ -397,15 +403,8 @@ export class ShellCore implements ShellApi {
     this.engine.sendUi(slot ? { t: 'mode.start', id, slot } : { t: 'mode.start', id });
   }
 
-  /**
-   * Toasts from the sim. A refused `mode.start` while Loading returns to the menu. A toast with an empty text takes the toast of that id
-   * off the screen (`UiBridge` has no dismiss call; the story's loading hint uses it once the wait is over, BD-FIX-SPAWN-04).
-   */
+  /** Toasts from the sim. A refused `mode.start` while Loading returns to the menu. */
   onEngineToast(rec: SimToast): void {
-    if (rec.text === '') {
-      this.toastStore.dismiss(rec.id);
-      return;
-    }
     this.toastStore.push(simToastToSpec(rec));
     if (rec.id.startsWith('mode:') && this.state === 'Loading') this.fire('modeFailed');
     if (rec.id === 'unlock' || rec.kind === 'unlock') this.touch();

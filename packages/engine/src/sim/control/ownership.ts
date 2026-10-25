@@ -1,5 +1,5 @@
 import { SimStage, type EcsApi, type EntityHandle, type EntityId, type SystemDef } from '@dv/shared';
-import { Anim, BodyRef, CharacterBody, Control, Transform, Velocity } from '../ecs/components.ts';
+import { Anim, BodyRef, CharacterBody, Control, PlayerControlled, Transform, Velocity } from '../ecs/components.ts';
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
 import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
 import { GROUP_BIT } from '../physics/groups.ts';
@@ -61,18 +61,17 @@ export function requestTeleport(ecs: EcsApi, services: Pick<EngineServices, 'con
 }
 
 /**
- * Asks to move the entity `h` drives, with `h` at its wheel, onto the ground at `pos` facing `yaw` (DL-734; 02-world-maps.md 5 step 4: a
- * driver keeps the vehicle when the target lies on a drivable edge, which the world's teleport checks before it calls this). Accepted
- * only while `h` drives (owner Vehicle, phase Active) and no on-foot teleport runs; the vehicle module makes the move at once
- * (`EngineServices.vehicleMove`), or refuses with `engine.control.groundNotLoaded` where no static collider is under the target yet.
+ * Asks to move the vehicle `h` rides in, at its wheel or as a passenger, with `h` aboard, onto the ground at `pos` facing `yaw` (DL-734;
+ * 02-world-maps.md 5 step 4: a driver keeps the vehicle when the target lies on a drivable edge, which the caller checks; DL-735 c: a
+ * passenger is moved with the car like a driver). Accepted only while `h` rides (owner Vehicle, phase Active) and no on-foot teleport
+ * runs; the vehicle module makes the move at once (`EngineServices.vehicleMove`), or refuses with `engine.control.groundNotLoaded` where
+ * no static collider is under the target yet.
  */
 export function requestDriverTeleport(
   ecs: EcsApi, services: Pick<EngineServices, 'control' | 'vehicleMove'>, h: EntityHandle, pos: Vec3, yaw: number,
 ): RequestResult {
-  const id = ecs.resolve(h);
-  if (id === null) return { ok: false, reason: CONTROL_REASON.wrongOwner };
-  const co = ecs.store(Control);
-  if (co.owner[id] !== CONTROL_OWNER.Vehicle || phaseOf(co.pending[id] as number) !== CONTROL_PHASE.Active) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  if (ecs.resolve(h) === null) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  if (ridingVehicle(ecs, h) === 0) return { ok: false, reason: CONTROL_REASON.wrongOwner };
   if (services.control.teleportActive) return { ok: false, reason: CONTROL_REASON.busy };
   const move = services.vehicleMove;
   if (!move) return { ok: false, reason: CONTROL_REASON.wrongOwner };
@@ -80,16 +79,18 @@ export function requestDriverTeleport(
 }
 
 /**
- * Asks to move the player `h` to `pos` facing `yaw` the way the world's teleport moves it (02-world-maps.md 5 step 4; DL-734): on foot,
- * the ownership machine's teleport (`requestTeleport`); at the wheel with `onRoad` (the target lies on a drivable edge), the vehicle
- * with its driver (`requestDriverTeleport`); at the wheel with a target off the drivable edges (a marker on a plaza or a pavement), the
- * driver gets out at once (`EngineServices.vehicleUnseat`) and is moved on foot, so such a move is never refused for driving. A move
- * refused for another reason (`busy`, no driver seat service) changes nothing.
+ * Asks to move the player `h` to `pos` facing `yaw` through the ownership machine (02-world-maps.md 5 step 4; DL-734, DL-735): on foot,
+ * the ownership machine's teleport (`requestTeleport`); aboard a vehicle (at the wheel or as a passenger) with `onRoad` (the target lies
+ * on a drivable edge), the vehicle with the player (`requestDriverTeleport`); aboard with a target off the drivable edges (a marker on a
+ * plaza or a pavement), the player gets out at once (`EngineServices.vehicleUnseat`) and is moved on foot, so such a move is never
+ * refused for riding. A move refused for another reason (`busy`, no seat service) changes nothing. The world's teleport calls it after its
+ * own checks; the below-the-world nets call it (or `requestTeleport`) directly, because a rescue must never be refused by mode rules,
+ * heat or a cooldown (DL-735 a).
  */
 export function requestPlayerMove(
   ecs: EcsApi, services: Pick<EngineServices, 'control' | 'vehicleMove' | 'vehicleUnseat'>, h: EntityHandle, pos: Vec3, yaw: number, tick: number, onRoad: boolean,
 ): RequestResult {
-  if (!isDriving(ecs, h)) return requestTeleport(ecs, services, h, pos, tick);
+  if (ridingVehicle(ecs, h) === 0) return requestTeleport(ecs, services, h, pos, tick);
   if (onRoad) return requestDriverTeleport(ecs, services, h, pos, yaw);
   if (services.control.teleportActive) return { ok: false, reason: CONTROL_REASON.busy };
   const unseat = services.vehicleUnseat;
@@ -97,12 +98,35 @@ export function requestPlayerMove(
   return requestTeleport(ecs, services, h, pos, tick);
 }
 
-/** True while `h` drives a vehicle (owner Vehicle, phase Active). */
+/** The vehicle (dense id) `h` rides in, at the wheel or as a passenger (owner Vehicle, phase Active), or 0. */
+export function ridingVehicle(ecs: EcsApi, h: EntityHandle): number {
+  const id = ecs.resolve(h);
+  if (id === null) return 0;
+  const co = ecs.store(Control);
+  if (co.owner[id] !== CONTROL_OWNER.Vehicle || phaseOf(co.pending[id] as number) !== CONTROL_PHASE.Active) return 0;
+  return co.target[id] as number;
+}
+
+/** True while `h` drives a vehicle (owner Vehicle, phase Active, not riding as a passenger). */
 export function isDriving(ecs: EcsApi, h: EntityHandle): boolean {
   const id = ecs.resolve(h);
-  if (id === null) return false;
+  if (id === null || ridingVehicle(ecs, h) === 0) return false;
+  return ecs.store(Control).state[id] !== CONTROL_STATE.passenger;
+}
+
+/**
+ * True when a player is aboard vehicle `vid` (dense id): a player-controlled entity whose `Control` owner is Vehicle with that target, at
+ * the wheel or as a passenger, entering or leaving. The traffic's despawn of an ambient vehicle under the world (02-world-maps.md 4.1 d,
+ * DL-735 c) leaves such a vehicle to the vehicle net.
+ */
+export function vehicleHasPlayer(ecs: EcsApi, vid: number): boolean {
+  const ids = ecs.query([PlayerControlled, Control]);
   const co = ecs.store(Control);
-  return co.owner[id] === CONTROL_OWNER.Vehicle && phaseOf(co.pending[id] as number) === CONTROL_PHASE.Active;
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i] as number;
+    if (co.owner[id] === CONTROL_OWNER.Vehicle && co.target[id] === vid) return true;
+  }
+  return false;
 }
 
 /**

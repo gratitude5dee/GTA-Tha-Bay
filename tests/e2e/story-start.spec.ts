@@ -15,8 +15,8 @@ import { act, observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts
  *  1. `?play=story&story=1`: m.a1.01 starts within a bounded time; whenever it is active the player is within the teleport's search
  *     radius of the Yard; once it runs the player is grounded on the resident ground and stays there; the cast stands near.
  *  2. The safety net: a player pushed under the terrain is back on the ground within 3 s of sim time.
- *  3. The vehicle net (DL-734, BD-FIX-SPAWN-05): a driven car 25 m under the terrain respawns, with its driver, on the nearest road within
- *     3 s of sim time, through the world's teleport.
+ *  3. The vehicle net (DL-734, DL-735, BD-FIX-SPAWN-05, -09): a driven car 25 m under the terrain respawns, with its driver, on the nearest
+ *     road within 3 s of sim time, through the ownership machine's move with the teleport's own fade (never `TeleportApi.request`).
  */
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -183,7 +183,7 @@ test.describe('story start @story-start', () => {
         return sunkTick >= 0;
       }, { timeout: 30_000, intervals: [20] })
       .toBe(true);
-    // ... to the first one after the teleport moved it (up by more than 15 m, or across): observe alone, so the samples stay close together
+    // ... to the first one after the net moved it (up by more than 15 m, or across): observe alone, so the samples stay close together
     let backTick = -1;
     let backPos: number[] = [];
     await expect
