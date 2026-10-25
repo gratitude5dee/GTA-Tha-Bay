@@ -3,6 +3,7 @@ import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import { ForwardingFareSink } from './modes/economy.ts';
 import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import { noFlags, type SandboxFlags } from './sandbox-flags.ts';
 import type { VehicleDebugContext } from './vehicle/debug.ts';
 import type { WorldClock } from './world/clock.ts';
 import { createWorldHub, type WorldHub } from './world/index.ts';
@@ -49,6 +50,8 @@ export interface EngineServices extends SimServices {
    * dispatcher turns `mode.cmd phone.ride*` into calls on it.
    */
   ride: RidePort | null;
+  /** The sandbox's session-only body flags (M04e4); all off outside a sandbox session. Engine-internal, in no contract. */
+  sandboxFlags: SandboxFlags;
 }
 
 /** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
@@ -99,6 +102,7 @@ export function createSimServices(seed: number): EngineServices {
     vehicleCtx: null,
     fareSink: new ForwardingFareSink(),
     ride: null,
+    sandboxFlags: noFlags(),
   };
 }
 

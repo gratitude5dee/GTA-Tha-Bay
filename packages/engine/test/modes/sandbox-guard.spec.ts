@@ -59,8 +59,8 @@ describe('sandbox rooms guard', () => {
     expect(pursuit.capHeat).not.toHaveBeenCalled();
     expect(pursuit.clear).not.toHaveBeenCalled();
     // The toggles, the teleport tab's view model (M04e2), then (M04e1) the world controls with `online: true`, so the phone greys them out,
-    // and the Cars tab's view model (M04e3) with `online: true` and no car.
-    expect(patch).toHaveBeenCalledTimes(4);
+    // and the Cars tab's view model (M04e3) with `online: true` and no car, then the Player tab's flags (M04e4).
+    expect(patch).toHaveBeenCalledTimes(5);
     expect(patch.mock.calls[0]?.[0]).toBe('mode.sandbox.toggles');
     expect(patch).toHaveBeenCalledWith('mode.sandbox.toggles', toggles);
     expect(patch.mock.calls[1]?.[0]).toBe('mode.sandbox.teleport');
@@ -68,6 +68,8 @@ describe('sandbox rooms guard', () => {
     expect((patch.mock.calls[2]?.[1] as { online: boolean }).online).toBe(true);
     expect(patch.mock.calls[3]?.[0]).toBe('mode.sandbox.vehicles');
     expect(patch.mock.calls[3]?.[1]).toMatchObject({ owned: [], online: true, cap: 8 });
+    expect(patch.mock.calls[4]?.[0]).toBe('mode.sandbox.player');
+    expect(patch.mock.calls[4]?.[1]).toEqual({ godMode: false, superJump: false, carNoDamage: false, car: 'none', online: true });
   });
 
   it.each(['shipped', 'optional'] as const)('follows ctx.net live whatever the descriptor says (%s) (AC-4)', async (variant) => {

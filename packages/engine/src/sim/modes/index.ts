@@ -36,6 +36,7 @@ import { CONVOY_PREFABS, STORY_PREFABS, type PrefabRegistry } from '../prefabs/r
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
 import { CombatImpl } from '../combat/combat.ts';
+import { createSandboxBodyPort, type SandboxBodyPort } from './sandbox-body-port.ts';
 import { createSandboxVehiclePort, type SandboxVehiclePortImpl } from './sandbox-vehicle-port.ts';
 import type { EcsWorld } from '../ecs/world.ts';
 import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
@@ -351,6 +352,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           }
         },
         emit: (t, tk, a, b, move, damage, ko) => void services.events.push({ t, tick: tk, a, b, n: damage, s: `${move}|${ko ? 1 : 0}` }),
+        // "Can't get hurt" in the sandbox (M04e4): only the local player, only while the flag is on.
+        immune: (victim) => services.sandboxFlags.godMode && (s.ecs as unknown as EcsApi).has(victim, LocalPlayer),
       });
       garage = createGarageService({
         list: () => live.core.garage,
@@ -396,6 +399,23 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         return sandboxCars;
       };
 
+      // The sandbox's body tools (M04e4): built at the first request, on a build that has the vehicle module.
+      let sandboxBodyPort: SandboxBodyPort | null = null;
+      const sandboxBody = (): SandboxBodyPort | null => {
+        if (sandboxBodyPort) return sandboxBodyPort;
+        const vc = services.vehicleCtx;
+        if (!vc) return null;
+        sandboxBodyPort = createSandboxBodyPort({
+          ecs: s.ecs as unknown as EcsWorld,
+          services,
+          backend: vc.backend,
+          store: vc.store,
+          physics,
+          resources: { add: (r) => s.core.addResource(r), remove: (name) => void s.core.removeResource(name) },
+        });
+        return sandboxBodyPort;
+      };
+
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
       const storyEnv: StoryWrapEnv = {
@@ -420,6 +440,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         playerPose,
         waypoint: () => waypointMemo.get(),
         vehicles: sandboxVehicles,
+        body: sandboxBody,
         ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
       })) descriptors.set(d.id, d);
       for (const d of opts.descriptors ?? []) descriptors.set(d.id, d);
@@ -535,6 +556,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         },
         world: () => (services.world.api ?? standin),
         sandboxWorld: () => sandboxWorld,
+        body: sandboxBody,
         waypoint: waypointMemo,
         playerPose,
         ride: () => services.ride,
