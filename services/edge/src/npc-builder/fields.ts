@@ -18,7 +18,6 @@ export function cleanBackstory(s: string): string {
     s
       .normalize('NFC')
       .replace(/\r\n?/g, '\n')
-      // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f​-‏‪-‮⁠-⁤⁦-⁩﻿]/gu, ' ')
       .replace(/\t/g, ' '),
   );

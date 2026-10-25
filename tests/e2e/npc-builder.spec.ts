@@ -75,14 +75,18 @@ test.afterAll(() => {
   if (persist !== '') rmSync(persist, { recursive: true, force: true });
 });
 
-async function api(request: APIRequestContext, tok: string, method: 'get' | 'post' | 'put', p: string, data?: unknown): Promise<{ status: number; json: any; text: string }> {
+interface Json {
+  [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+async function api(request: APIRequestContext, tok: string, method: 'get' | 'post' | 'put', p: string, data?: unknown): Promise<{ status: number; json: Json; text: string }> {
   const res = await request.fetch(`${ORIGIN}/api/v1/npc-builder${p}`, {
     method,
     headers: { Authorization: `PlayToken ${tok}`, ...(data === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(data === undefined ? {} : { data: JSON.stringify(data) }),
   });
   const text = await res.text();
-  let json: any = null;
+  let json: Json = {};
   try {
     json = JSON.parse(text);
   } catch {
@@ -91,11 +95,11 @@ async function api(request: APIRequestContext, tok: string, method: 'get' | 'pos
   return { status: res.status(), json, text };
 }
 
-async function poll(request: APIRequestContext, tok: string, id: string, until: (state: string) => boolean, ms = 120_000): Promise<any> {
+async function poll(request: APIRequestContext, tok: string, id: string, until: (state: string) => boolean, ms = 120_000): Promise<Json> {
   const end = Date.now() + ms;
   for (;;) {
     const v = (await api(request, tok, 'get', `/drafts/${id}`)).json;
-    if (until(v.state) || Date.now() > end) return v;
+    if (until(String(v['state'])) || Date.now() > end) return v;
     await new Promise((r) => setTimeout(r, 1000));
   }
 }

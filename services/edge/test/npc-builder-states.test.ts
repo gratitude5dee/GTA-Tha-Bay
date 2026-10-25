@@ -10,7 +10,10 @@ import { BACKSTORY, FIELDS, builderSetup, type Builder } from './builder-helpers
 let b: Builder;
 afterEach(() => b.dispose());
 
-const body = (res: Response): Promise<Record<string, any>> => res.json() as Promise<Record<string, any>>;
+interface ErrBody {
+  error: { code: string; details: { state?: string; reason?: string; rev?: number; lint: { rule: string }[] } };
+}
+const body = (res: Response): Promise<ErrBody> => res.json() as Promise<ErrBody>;
 
 /** Records the state each write puts a draft in, in order. */
 function watchStates(builder: Builder): string[] {
@@ -130,7 +133,7 @@ describe('draft state machine', () => {
     // an edit that still points at the missing place is refused with the lint issues and changes nothing
     const refused = await b.api('PUT', `/drafts/${d.id}`, { rev: d.rev, soulEdits: { frontmatter: { shortBio: 'Fine.' } } });
     expect(refused.status).toBe(400);
-    expect((await body(refused)).error.details.lint.some((i: { rule: string }) => i.rule === 'L2')).toBe(true);
+    expect((await body(refused)).error.details.lint.some((i) => i.rule === 'L2')).toBe(true);
     expect((await b.get(d.id)).rev).toBe(d.rev);
     // the author puts the schedule right: the soul passes, becomes soul_ready, and the probes run on it
     const seen = watchStates(b);

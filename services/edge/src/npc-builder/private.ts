@@ -1,6 +1,6 @@
 import { sha256Hex } from '@dv/shared';
 import type { CompiledSoul } from '@dv/shared/contracts/c10-npc';
-import type { NpcDraftRow, ServerDataPort } from '@dv/shared/data-port';
+import type { Json, NpcDraftRow, ServerDataPort } from '@dv/shared/data-port';
 import { compileSoul, deriveInk, parseSoul } from '@dv/shared/npc';
 import { now } from '../clock.ts';
 import type { Env } from '../env.ts';
@@ -47,7 +47,7 @@ export async function promoteToPrivate(env: Pick<Env, 'PRIVATE'>, port: ServerDa
     soulVersion: version,
     ownerProfileId: draft.owner_profile_id,
     soulMd: md,
-    compiledJson: c.compiled as unknown as NonNullable<import('@dv/shared/data-port').Json>,
+    compiledJson: c.compiled as unknown as NonNullable<Json>,
     promptR2Key: c.compiled.prompt.key,
     promptSha256: c.compiled.prompt.sha256,
     status: 'private',
