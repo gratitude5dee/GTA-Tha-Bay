@@ -287,6 +287,11 @@ export class NpcEntities {
     }
   }
 
+  /** QA: the anim state the bark watcher last saw for `handle` (-1 before its first pass), so a spec bumps only an entity the watcher has seen standing. */
+  seenAnim(handle: number): number {
+    return this.lastAnim.get(handle) ?? -1;
+  }
+
   /** Whether the pedestrian under `target` is too busy to talk: knocked down or running. */
   fillerBusy(target: EntityHandle): boolean {
     const id = this.ecs.resolve(target);

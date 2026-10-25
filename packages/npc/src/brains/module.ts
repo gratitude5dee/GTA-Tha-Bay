@@ -266,7 +266,7 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       a: p.sim.counts.a, b: p.sim.counts.b, c: p.sim.counts.c, peakA: p.sim.peakA, cap: p.sim.cap,
       steps: { a: p.sim.totalSteps.a, b: p.sim.totalSteps.b }, barks: { played: p.barks.played, dropped: p.barks.dropped, audible: p.barks.audible() },
       talks: p.talk.begun, knots: p.knots.done, intents: p.intents.written,
-      cmds: cmdCount, lastCmd, bound, filler: qaFiller ? qaFiller.handle : 0, grants: p.entities.grants,
+      cmds: cmdCount, lastCmd, bound, filler: qaFiller ? qaFiller.handle : 0, fillerSeen: qaFiller ? p.entities.seenAnim(qaFiller.handle) : -1, grants: p.entities.grants,
       perf: {
         ticks: perf.ticks, aMax: perf.aMax, bMax: perf.bMax, cMax: perf.cMax,
         brainMsMean: perf.ticks > 0 ? perf.brainMsSum / perf.ticks : 0, brainMsMax: perf.brainMsMax,
@@ -402,7 +402,8 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       }
       case 'qa.bump': {
         // QA builds only: the standing filler is knocked down for two seconds (the pedestrian layer's ragdoll anim), which the bark watcher hears
-        if (!ctx?.runtime.env.qa || !qaFiller) return;
+        // A bump while the pedestrian is still down is ignored (it would only push the recovery later, and the watcher sees no new knock-down).
+        if (!ctx?.runtime.env.qa || !qaFiller || qaFiller.bumpUntil > 0) return;
         parts.entities.setAnim(qaFiller.handle, 12);
         qaFiller.bumpUntil = env.tick + 120;
         return;

@@ -104,16 +104,17 @@ test.describe('NPC agency and barks @npc-barks', () => {
     const sub = await agency(page, (a) => a.subtitle());
     expect(sub?.text.length ?? 0).toBeGreaterThan(2);
     expect(sub?.speaker).toMatch(/passerby|vendor|founder|rapper|officer/);
-    // up again, down again: inside the 20 s cooldown of the entity, so it is dropped, not played
-    // (a slow sim, as on the software WebGPU runner, may still have the pedestrian down after 2.6 s, so bump again until a drop shows)
-    await page.waitForTimeout(2600);
+    // up again, down again: inside the 20 s cooldown of the entity, so it is dropped, not played. The knock-down lasts 120 sim ticks, which
+    // is more than 2 s on a slow runner (software WebGPU), so no wall-clock wait is right: bump only once the bark watcher has seen the
+    // pedestrian standing again (`fillerSeen` 0), as often as it takes. A bump while it is down is ignored by the sim.
     await expect
       .poll(
         async () => {
-          await agency(page, (a) => a.bump());
+          const d = await agency(page, (a) => a.debug());
+          if (d && d.fillerSeen === 0) await agency(page, (a) => a.bump());
           return (await agency(page, (a) => a.debug()))?.barks.dropped ?? 0;
         },
-        { timeout: 45_000, intervals: [1500, 2000] },
+        { timeout: 90_000, intervals: [500, 1000] },
       )
       .toBeGreaterThanOrEqual(1);
     expect((await agency(page, (a) => a.debug()))?.barks.played).toBe(1);

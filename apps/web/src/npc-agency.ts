@@ -21,6 +21,9 @@ export interface AgencyOptions {
   startAfter: Promise<void>;
 }
 
+/** Milliseconds between the age screen settling and the first read of the roster flags. */
+const FEED_DELAY_MS = 20_000;
+
 const send = (engine: AgencyEngine, name: string, args: Record<string, unknown>): void =>
   engine.sendUi({ t: 'mode.cmd', mode: 'npc' as never, name, args: args as never });
 
@@ -38,22 +41,30 @@ export async function installNpcAgency(o: AgencyOptions): Promise<{ stop(): void
   const detach = attachIntentDriver(o.engine.vm, driver);
   let feed: { stop(): void } | null = null;
   let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   void o.startAfter.then(() => {
     if (stopped) return;
-    feed = startFlagsFeed({
-      send: (flags) => send(o.engine, 'flags', { killed: flags.killed as never }),
-      onVisible: (fn) => {
-        const h = (): void => {
-          if (document.visibilityState === 'visible') fn();
-        };
-        document.addEventListener('visibilitychange', h);
-        return () => document.removeEventListener('visibilitychange', h);
-      },
-    });
+    // The first read waits `FEED_DELAY_MS` after the age screen: the boot of the world is the busiest second of the page, and the kill flags
+    // are not needed for it (a `spawn`-killed NPC is removed a moment later, and the route's own cache is 60 s or more).
+    timer = setTimeout(() => {
+      timer = null;
+      if (stopped) return;
+      feed = startFlagsFeed({
+        send: (flags) => send(o.engine, 'flags', { killed: flags.killed as never }),
+        onVisible: (fn) => {
+          const h = (): void => {
+            if (document.visibilityState === 'visible') fn();
+          };
+          document.addEventListener('visibilitychange', h);
+          return () => document.removeEventListener('visibilitychange', h);
+        },
+      });
+    }, FEED_DELAY_MS);
   });
   return {
     stop() {
       stopped = true;
+      if (timer !== null) clearTimeout(timer);
       detach();
       feed?.stop();
     },
