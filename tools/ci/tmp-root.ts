@@ -19,23 +19,22 @@
  * never turns containment off and never adopts a folder nobody would remove.
  *
  * Interrupts: run.ts and check-workers.ts start their tool with an asynchronous spawn (`spawnInTmpRoot`), so their event loop stays
- * free: tsx's signal relay gets its acknowledgement, SIGINT, SIGTERM and SIGHUP are forwarded to the tool, and once the tool has exited
- * and the processes it left in the root have stopped (Vitest's fork workers outlive an interrupted Vitest main process for a moment and
- * would recreate folders in a removed root), the root is removed. tsx still SIGKILLs its child when the acknowledgement misses its
- * 30 ms window (seen once under a load of about 14 on 4 vCPUs), and nothing catches SIGKILL, so every creator also starts a guard
- * (`tools/ci/tmp-root-guard.ts`): a detached process in a session of its own, so Ctrl-C and a group SIGKILL do not reach it, that holds
- * the read end of a pipe whose write end only the creator has. When the creator dies by any means the pipe closes; the guard then
- * drains and removes the root (a no-op after a normal cleanup). Last, every creator first sweeps stale roots directly in its temp
- * folder: `dv-<label>-<pid>-XXXXXX` folders owned by this user whose marker names this PID namespace and whose pid is no longer alive.
- * A root from another PID namespace (a container or sandbox sharing /tmp, where `process.kill(pid, 0)` cannot see the creator), a live
- * pid's root, an unmarked folder and anything that fails the name are never touched. Removal touches only a real folder with the
- * per-run name directly inside the expected parent.
+ * free and tsx's signal relay gets its acknowledgement. SIGINT, SIGTERM and SIGHUP are forwarded to that one child; once it has exited,
+ * the root is removed and the exit code is the child's (128 + signal when a signal ended it). Nothing here ever signals a process it
+ * did not start: what the child started is the child's tool's business (the tool stops its own workers).
+ *
+ * Stale roots: nothing catches SIGKILL, so a run killed that way (or by a hard timeout or the OOM killer) leaves its root behind, and the
+ * next run's creator removes it: before making its own root it sweeps the `dv-<label>-<pid>-XXXXXX` folders directly in its temp folder
+ * that are owned by this user and whose marker shows a creator that cannot be alive: the same PID namespace and the same pid with that
+ * pid dead (`process.kill(pid, 0)` throws ESRCH), or an earlier boot of this machine (another Linux boot id). A root from another PID
+ * namespace of this boot (a container or sandbox sharing /tmp, where `process.kill(pid, 0)` cannot see the creator), a live pid's root,
+ * an unmarked folder and anything that fails the name are never touched. Removal touches only a real folder with the per-run name
+ * directly inside the expected parent.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { lstatSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 /** The environment variable that names the active per-run root. */
 export const TMP_ROOT_ENV = 'DV_TEST_TMP_ROOT';
@@ -43,7 +42,7 @@ export const TMP_ROOT_ENV = 'DV_TEST_TMP_ROOT';
 export const TMP_VARS = ['TMPDIR', 'TEMP', 'TMP'] as const;
 /** Basename of a per-run root: `dv-<label>-<pid>-` plus mkdtemp's six characters (group 1 is the creator's pid). */
 export const TMP_ROOT_NAME = /^dv-[a-z0-9]+-(\d+)-[A-Za-z0-9]{6}$/;
-/** The signals run.ts and check-workers.ts forward to their tool before removing the root. */
+/** The signals run.ts and check-workers.ts forward to their own child before removing the root. */
 export const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
 /** The marker file every per-run root carries: JSON `{ ns, pid, label }` (see `runtimeIdentity`). */
 export const TMP_ROOT_MARKER = '.dv-tmp-root';
@@ -53,8 +52,8 @@ let identity: string | null | undefined;
 /**
  * The identity of the PID namespace this process runs in, or null when it cannot be read. `process.kill(pid, 0)` only answers for pids
  * of this namespace, so a root may be judged by its pid only when its marker carries the same identity. Linux:
- * `linux:<boot_id or hostname>:<readlink /proc/self/ns/pid>` (the boot id keeps a namespace inode reused after a reboot apart); other
- * systems have no PID namespaces: `<platform>:<hostname>`.
+ * `linux:<boot_id or hostname>:<readlink /proc/self/ns/pid>` (the boot id keeps a namespace inode reused after a reboot apart, and
+ * marks roots of earlier boots as stale, see `bootId`); other systems have no PID namespaces: `<platform>:<hostname>`.
  */
 export function runtimeIdentity(): string | null {
   if (identity !== undefined) return identity;
@@ -72,6 +71,17 @@ export function runtimeIdentity(): string | null {
     identity = null;
   }
   return identity;
+}
+
+const BOOT_ID = /^linux:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):/;
+
+/**
+ * The Linux boot id inside a `runtimeIdentity` string, or null when it has none (another system, or the hostname fallback used where
+ * /proc/sys/kernel/random/boot_id cannot be read). Every PID namespace of one boot shares the boot id, so a marker with another one was
+ * written before the last reboot and its creator cannot be alive.
+ */
+export function bootId(ns: string | null): string | null {
+  return (ns === null ? null : BOOT_ID.exec(ns)?.[1]) ?? null;
 }
 
 /** The marker of the per-run root `root` (namespace identity and creator pid), or null when it is missing or unreadable. */
@@ -156,7 +166,7 @@ export function checkTmpRoot(p: string): string | null {
   if (st.isSymbolicLink() || !st.isDirectory()) return 'not a real folder';
   const marker = readTmpRootMarker(p);
   if (marker === null) return `no readable ${TMP_ROOT_MARKER} marker (not made by tools/ci/tmp-root.ts)`;
-  if (marker.ns !== runtimeIdentity()) return 'made in another PID namespace (a container or sandbox sharing the temp folder)';
+  if (marker.ns !== runtimeIdentity()) return 'made in another PID namespace or an earlier boot';
   const pid = Number(name[1]);
   if (marker.pid !== pid) return `its marker names pid ${marker.pid}, not ${pid}`;
   if (pid !== process.pid && !pidAlive(pid)) return `its creator (pid ${pid}) is not running: a root left by an earlier run`;
@@ -173,16 +183,28 @@ export function pidAlive(pid: number): boolean {
   }
 }
 
+/**
+ * True when the creator recorded in a root's marker cannot be alive, judged from this namespace `ns`: the marker names the same pid as
+ * the folder and either this PID namespace with that pid dead, or another Linux boot (both identities carry a boot id and they differ).
+ */
+function creatorGone(marker: { ns: string | null; pid: number }, pid: number, ns: string): boolean {
+  if (marker.pid !== pid) return false;
+  if (marker.ns === ns) return !pidAlive(pid);
+  const ours = bootId(ns);
+  const theirs = bootId(marker.ns);
+  return ours !== null && theirs !== null && ours !== theirs;
+}
+
 const sweepWarned = new Set<string>();
 
 /**
  * Removes the per-run roots left directly in `base` (default `os.tmpdir()`) by runs that died without cleaning up (SIGKILL, a hard
- * timeout, a guard that could not start): every real folder named `dv-<label>-<pid>-XXXXXX`, owned by this user, whose marker names
- * this PID namespace (`runtimeIdentity`) and the same pid, and whose pid is not alive (`process.kill(pid, 0)` throws ESRCH). Skipped
- * without a word: anything that fails the name, files, symlinks, other users' folders, folders without a readable marker and roots made
- * in another PID namespace (a container or sandbox that shares the temp folder: its live pids are invisible here, so its root would look
- * stale). A live pid's root is never touched, and nothing is swept when this namespace cannot be identified. Removal goes through
- * `removeTmpRoot`, so its realpath and name guards apply; a removal that fails is reported once per process. Returns the removed paths.
+ * timeout, a reboot): every real folder named `dv-<label>-<pid>-XXXXXX`, owned by this user, whose marker names the same pid and whose
+ * creator cannot be alive (`creatorGone`: this PID namespace and the pid dead, or an earlier boot). Skipped without a word: anything that
+ * fails the name, files, symlinks, other users' folders, folders without a readable marker, live pids' roots and roots made in another
+ * PID namespace of this boot (a container or sandbox that shares the temp folder: its live pids are invisible here, so its root would
+ * look stale). Nothing is swept when this namespace cannot be identified. Removal goes through `removeTmpRoot`, so its realpath and name
+ * guards apply; a removal that fails is reported once per process. Returns the removed paths.
  */
 export function sweepStaleTmpRoots(base: string = os.tmpdir()): string[] {
   const ns = runtimeIdentity();
@@ -208,7 +230,7 @@ export function sweepStaleTmpRoots(base: string = os.tmpdir()): string[] {
       continue;
     }
     const marker = readTmpRootMarker(abs);
-    if (marker === null || marker.ns !== ns || marker.pid !== pid || pidAlive(pid)) continue;
+    if (marker === null || !creatorGone(marker, pid, ns)) continue;
     try {
       removeTmpRoot(abs, real);
       removed.push(abs);
@@ -222,45 +244,14 @@ export function sweepStaleTmpRoots(base: string = os.tmpdir()): string[] {
   return removed;
 }
 
-/** The guard program (see the header): `node tools/ci/tmp-root-guard.ts <root> <parent>`, its stdin a pipe from the creator. */
-export const GUARD_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'tmp-root-guard.ts');
-
-/**
- * Starts the guard for `root`: a detached process (a session of its own, so Ctrl-C and a group kill miss it) that waits for its stdin
- * to close, which happens when this process dies by any means or calls the returned `release()`, then drains and removes the root.
- * Its environment is the one from before the root was entered, so it is never mistaken for a process working in the root. Node runs the
- * TypeScript file directly (type stripping; built in from Node 22.18, behind the flag before that); where that fails the guard just
- * exits and the next run's sweep is the fallback.
- */
-function startGuard(root: string, parent: string): () => void {
-  let child: ChildProcess;
-  try {
-    child = spawn(process.execPath, ['--experimental-strip-types', '--no-warnings', GUARD_SCRIPT, root, parent], {
-      cwd: parent,
-      detached: true,
-      stdio: ['pipe', 'ignore', 'ignore'],
-      env: { ...process.env },
-    });
-  } catch {
-    return () => {};
-  }
-  const stdin = child.stdin;
-  child.on('error', () => {});
-  stdin?.on('error', () => {});
-  // Neither the process nor the pipe keeps this event loop alive; the pipe's write end closes when this process exits.
-  child.unref();
-  (stdin as unknown as { unref?: () => void } | null)?.unref?.();
-  return () => stdin?.destroy();
-}
-
 /**
  * Makes this process (and everything it starts from now on) use a per-run root. Reuses the root named by `DV_TEST_TMP_ROOT` when it is
  * a valid one (`checkTmpRoot`); an invalid value is ignored with a warning (when TMPDIR names that same folder, the fresh root goes next
- * to it rather than inside it). Otherwise sweeps stale roots of dead runs from the temp folder, creates a fresh root, starts its guard
- * (unless `guard: false`), sets `DV_TEST_TMP_ROOT`, TMPDIR, TEMP and TMP, and registers a removal at process exit as a backstop for
- * runners that never reach their teardown.
+ * to it rather than inside it). Otherwise sweeps stale roots of dead runs from the temp folder, creates a fresh root, sets
+ * `DV_TEST_TMP_ROOT`, TMPDIR, TEMP and TMP, and registers a removal at process exit as a backstop for runners that never reach their
+ * teardown.
  */
-export function enterTmpRoot(label: string, opts: { guard?: boolean } = {}): TmpRoot {
+export function enterTmpRoot(label: string): TmpRoot {
   const inherited = process.env[TMP_ROOT_ENV];
   let base = os.tmpdir();
   if (inherited) {
@@ -279,7 +270,6 @@ export function enterTmpRoot(label: string, opts: { guard?: boolean } = {}): Tmp
   sweepStaleTmpRoots(base);
   const saved = Object.fromEntries([TMP_ROOT_ENV, ...TMP_VARS].map((k) => [k, process.env[k]]));
   const created = createTmpRoot(label, base);
-  const release = opts.guard === false ? () => {} : startGuard(created.root, path.dirname(created.root));
   for (const [k, v] of Object.entries(tmpRootEnv(created.root))) process.env[k] = v;
   let done = false;
   const cleanup = (): void => {
@@ -290,19 +280,15 @@ export function enterTmpRoot(label: string, opts: { guard?: boolean } = {}): Tmp
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
-    try {
-      created.cleanup();
-    } finally {
-      release();
-    }
+    created.cleanup();
   };
   process.on('exit', cleanup);
   return { root: created.root, owned: true, cleanup };
 }
 
 /** Runs `fn` inside a per-run root (see `enterTmpRoot`) and cleans up afterwards, also when `fn` throws. */
-export function withTmpRoot<T>(label: string, fn: (root: string) => T, opts: { guard?: boolean } = {}): T {
-  const t = enterTmpRoot(label, opts);
+export function withTmpRoot<T>(label: string, fn: (root: string) => T): T {
+  const t = enterTmpRoot(label);
   try {
     return fn(t.root);
   } finally {
@@ -311,87 +297,10 @@ export function withTmpRoot<T>(label: string, fn: (root: string) => T, opts: { g
 }
 
 /**
- * Pids of the live processes that work in `root`: the descendants of a tool started in it. A process counts when its start-up
- * environment names `root` in `DV_TEST_TMP_ROOT`, TMPDIR, TEMP or TMP (so one that scrubbed the first but kept TMPDIR still counts), or
- * when its working folder is inside `root`. Linux only, from /proc; elsewhere an empty list, so no drain happens there and a straggler
- * that writes into the root after its removal leaves it to the guard or the next run's sweep. Left out: this process, its direct
- * children (the tool is one and has exited; any other, such as tsx's esbuild service, was started before the root existed), zombies,
- * and processes this user cannot read. A descendant that dropped all four variables and works outside the root is not found.
- */
-export function processesInRoot(root: string): number[] {
-  if (process.platform !== 'linux') return [];
-  let entries: string[];
-  try {
-    entries = readdirSync('/proc');
-  } catch {
-    return [];
-  }
-  const needles = [TMP_ROOT_ENV, ...TMP_VARS].map((k) => Buffer.from(`\0${k}=${root}\0`));
-  const inside = `${root}${path.sep}`;
-  const pids: number[] = [];
-  for (const e of entries) {
-    const pid = Number(e);
-    if (!Number.isSafeInteger(pid) || pid <= 0 || pid === process.pid) continue;
-    try {
-      const env = Buffer.concat([Buffer.from([0]), readFileSync(`/proc/${e}/environ`)]);
-      if (!needles.some((n) => env.includes(n))) {
-        const cwd = readlinkSync(`/proc/${e}/cwd`);
-        if (cwd !== root && !cwd.startsWith(inside)) continue;
-      }
-      // /proc/<pid>/stat: "<pid> (<comm>) <state> <ppid> ..."; comm may hold spaces and parentheses, so split after the last ')'.
-      const stat = readFileSync(`/proc/${e}/stat`, 'utf8');
-      const [state, ppid] = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
-      if (state === 'Z' || Number(ppid) === process.pid) continue;
-      pids.push(pid);
-    } catch {
-      // Gone already, or another user's process.
-    }
-  }
-  return pids;
-}
-
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-function killQuietly(pid: number, sig: NodeJS.Signals): void {
-  try {
-    process.kill(pid, sig);
-  } catch {
-    // Exited meanwhile.
-  }
-}
-
-/**
- * Waits until no process still works in `root` (see `processesInRoot`), so removing it is final: after an interrupt, Vitest's fork
- * workers outlive the Vitest main process for a moment and would otherwise recreate folders inside a removed root. Survivors get SIGTERM
- * after `graceMs` (at once when `hurry()` turns true, e.g. after a second Ctrl-C), then SIGKILL two seconds later.
- */
-export async function drainRoot(root: string, opts: { graceMs?: number; hurry?: () => boolean; name?: string } = {}): Promise<void> {
-  const grace = opts.graceMs ?? 5000;
-  const start = Date.now();
-  let termAt = 0;
-  for (;;) {
-    const left = processesInRoot(root);
-    if (left.length === 0) return;
-    const now = Date.now();
-    if (termAt === 0 && (now - start >= grace || opts.hurry?.() === true)) {
-      termAt = now;
-      console.warn(`${opts.name ?? 'tmp-root'}: stopping ${left.length} leftover process(es) still using ${root}: ${left.join(' ')}`);
-      for (const pid of left) killQuietly(pid, 'SIGTERM');
-    } else if (termAt !== 0 && now - termAt >= 2000) {
-      for (const pid of left) killQuietly(pid, 'SIGKILL');
-      await sleep(200);
-      return;
-    }
-    await sleep(50);
-  }
-}
-
-/**
  * Runs `cmd` asynchronously inside a per-run root (see `enterTmpRoot`) and resolves with its exit code, or 128 + the signal number when
- * a signal ended it. Because the event loop stays free while the tool runs, tsx's signal relay is acknowledged; SIGINT, SIGTERM and
- * SIGHUP are forwarded to the tool. Once the tool has exited, the processes it left that still work in the root are drained
- * (`drainRoot`) and the root is removed, both only when this call created the root: a root reused from `DV_TEST_TMP_ROOT` belongs to an
- * enclosing run whose processes still use it. Used by run.ts and check-workers.ts.
+ * a signal ended it. Because the event loop stays free while the tool runs, tsx's signal relay is acknowledged. SIGINT, SIGTERM and
+ * SIGHUP are forwarded to this one child and to no other process; once it has exited, the root is removed (only when this call created
+ * it: a root reused from `DV_TEST_TMP_ROOT` belongs to an enclosing run, which removes it). Used by run.ts and check-workers.ts.
  */
 export function spawnInTmpRoot(
   label: string,
@@ -404,35 +313,26 @@ export function spawnInTmpRoot(
   return new Promise<number>((resolve) => {
     let child: ChildProcess | undefined;
     let settled = false;
-    let hurry = false;
     const forward = (sig: NodeJS.Signals): void => {
-      if (child && child.exitCode === null && child.signalCode === null) {
-        try {
-          child.kill(sig);
-        } catch {
-          // The tool exited between the check and the kill; its exit handler finishes the run.
-        }
-      } else {
-        hurry = true; // A signal while draining: stop the leftovers now.
+      if (!child || child.exitCode !== null || child.signalCode !== null) return;
+      try {
+        child.kill(sig);
+      } catch {
+        // The child exited between the check and the kill; its exit handler finishes the run.
       }
     };
-    // The listeners stay until the root is gone: with none, tsx's preflight would exit this process on a signal mid-drain.
+    // While a listener is registered, a signal does not end this process: it waits for its child, then removes the root.
     for (const s of FORWARDED_SIGNALS) process.on(s, forward);
     const finish = (code: number): void => {
       if (settled) return;
       settled = true;
-      // Only the owner drains: a reused root (run.ts started inside another run) is still in use by the processes of that run.
-      void (t.owned ? drainRoot(t.root, { hurry: () => hurry, name }) : Promise.resolve())
-        .catch((err: unknown) => console.warn(`${name}: could not drain ${t.root}: ${(err as Error).message}`))
-        .then(() => {
-          try {
-            t.cleanup();
-          } catch (err) {
-            console.error(`${name}: ${(err as Error).message}`);
-          }
-          for (const s of FORWARDED_SIGNALS) process.off(s, forward);
-          resolve(code);
-        });
+      try {
+        t.cleanup();
+      } catch (err) {
+        console.error(`${name}: ${(err as Error).message}`);
+      }
+      for (const s of FORWARDED_SIGNALS) process.off(s, forward);
+      resolve(code);
     };
     try {
       child = spawn(cmd, [...argv], { stdio: 'inherit', cwd: opts.cwd, env: { ...process.env, ...opts.env } });

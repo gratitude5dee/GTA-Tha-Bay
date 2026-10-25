@@ -107,8 +107,8 @@ async function main(): Promise<number> {
   }
   // BD-FIX-TMP-01: the tool and everything it starts work inside one per-run temporary root, removed when the tool exits (pass, fail or
   // interrupt). The spawn is asynchronous so the event loop stays free: tsx's signal relay is acknowledged (a blocked loop got run.ts
-  // SIGKILLed on Ctrl-C and the root leaked), SIGINT, SIGTERM and SIGHUP are forwarded to the tool, and the exit code is the tool's
-  // (128 + signal when a signal ended it).
+  // SIGKILLed on Ctrl-C and the root leaked), SIGINT, SIGTERM and SIGHUP are forwarded to the tool (and to no other process), and the
+  // exit code is the tool's (128 + signal when a signal ended it).
   return spawnInTmpRoot(tmpLabel(tool), bin, rest, { cwd: repoRoot, name: 'run.ts' });
 }
 

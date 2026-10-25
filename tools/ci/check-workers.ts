@@ -14,7 +14,7 @@ import { spawnInTmpRoot } from './tmp-root.ts';
 export function main(argv: string[]): Promise<number> {
   // BD-FIX-TMP-01: Vitest, workerd and Miniflare work inside one per-run temporary root, removed when the run ends (pass, fail or
   // interrupt). The asynchronous spawn keeps the event loop free, so tsx's signal relay is acknowledged and SIGINT, SIGTERM and SIGHUP
-  // are forwarded to the run before the root is removed. Vitest starts from services/edge/node_modules/.bin (its shim execs node), with
+  // are forwarded to Vitest, and to no other process, before the root is removed. Vitest starts from services/edge/node_modules/.bin (its shim execs node), with
   // that folder first on PATH as `pnpm exec` would put it, so a forwarded signal reaches Vitest itself rather than a pnpm in between.
   const cwd = path.join(repoRoot, 'services/edge');
   const binDir = path.join(cwd, 'node_modules', '.bin');
