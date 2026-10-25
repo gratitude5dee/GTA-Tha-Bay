@@ -9,11 +9,10 @@
  * Usage: tsx tools/ci/run.ts <tool> [args...]   (<tool> is a binary in node_modules/.bin)
  * In-house scripts import args() and parse its result.
  */
-import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { withTmpRoot } from './tmp-root.ts';
+import { spawnInTmpRoot } from './tmp-root.ts';
 
 /** Drops the first literal `--` from an argument list (and only the first). */
 export function dropDashDash(list: readonly string[]): string[] {
@@ -84,7 +83,7 @@ export function unmatchedNames(base: string, names: readonly string[], specs: re
   return names.filter((n) => !specs.some((s) => s.includes(`${base}${n}`)));
 }
 
-function main(): never {
+async function main(): Promise<number> {
   const [tool, ...rest0] = args();
   if (tool === 'vitest') {
     const sel = pkgSelection(rest0);
@@ -92,32 +91,25 @@ function main(): never {
       const missing = unmatchedNames(sel.base, sel.names, listSpecs(sel.dir));
       if (missing.length > 0) {
         for (const n of missing) console.error(`run.ts: no spec under ${sel.dir}/test matches ${n}`);
-        process.exit(1);
+        return 1;
       }
     }
   }
   const rest = tool === 'vitest' ? vitestArgs(rest0) : rest0;
   if (!tool) {
     console.error('usage: tsx tools/ci/run.ts <tool> [args...]');
-    process.exit(2);
+    return 2;
   }
   const bin = path.join(repoRoot, 'node_modules', '.bin', tool);
   if (!existsSync(bin)) {
     console.error(`run.ts: ${bin} not found; run pnpm install`);
-    process.exit(2);
+    return 2;
   }
-  // BD-FIX-TMP-01: the tool and everything it starts work inside one per-run temporary root, removed when the tool exits (pass or
-  // fail). Ctrl-C reaches the tool through the process group; the no-op handler keeps run.ts alive until the tool has exited, so the
-  // removal still runs.
-  const keepAlive = (): void => {};
-  process.on('SIGINT', keepAlive);
-  const res = withTmpRoot(tmpLabel(tool), () => spawnSync(bin, rest, { stdio: 'inherit', cwd: repoRoot, env: process.env }));
-  process.off('SIGINT', keepAlive);
-  if (res.error) {
-    console.error(`run.ts: failed to start ${tool}: ${res.error.message}`);
-    process.exit(1);
-  }
-  process.exit(res.status ?? 1);
+  // BD-FIX-TMP-01: the tool and everything it starts work inside one per-run temporary root, removed when the tool exits (pass, fail or
+  // interrupt). The spawn is asynchronous so the event loop stays free: tsx's signal relay is acknowledged (a blocked loop got run.ts
+  // SIGKILLed on Ctrl-C and the root leaked), SIGINT, SIGTERM and SIGHUP are forwarded to the tool, and the exit code is the tool's
+  // (128 + signal when a signal ended it).
+  return spawnInTmpRoot(tmpLabel(tool), bin, rest, { cwd: repoRoot, name: 'run.ts' });
 }
 
 /** The per-run root label for a tool name (`dv-<label>-<pid>-XXXXXX`). */
@@ -125,4 +117,4 @@ export function tmpLabel(tool: string): string {
   return tool.toLowerCase().replace(/[^a-z0-9]/g, '') || 'run';
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) void main().then((code) => process.exit(code));
