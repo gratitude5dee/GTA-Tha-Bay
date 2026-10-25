@@ -6,6 +6,7 @@ import type { LandmarksReport, LandmarkSwapEvent } from './chunks/landmark-layer
 import type { LumaOptions, LumaSample, SkyInfo } from './sky/sky-view.ts';
 import type { LookReport } from './look/look-view.ts';
 import { mountWorldControls } from './world-controls.ts';
+import type { PrefetchReport } from './boot-prefetch.ts';
 import type { BootReport, ChunksReport, WorldView } from './world-view.ts';
 import type { TrafficInfo } from './traffic/instances.ts';
 import type { PedInfo } from './peds/instances.ts';
@@ -41,6 +42,8 @@ export interface WorldBridge {
   backdrop(): BackdropInfo;
   /** Whether the world is revealed, when, and the bytes downloaded before the reveal (AC-8). */
   boot(): BootReport;
+  /** M02f2: the speculative boot download (state, skip reason, counts, promotion and the time from mode start to the first play); null before the world is prepared. */
+  prefetch(): PrefetchReport | null;
   /** The units the current focus and plan want at a level. */
   wanted(level: Level): ChunkKey[];
   plan(): StreamingPlan;
@@ -200,11 +203,12 @@ async function call(op: string, args?: Record<string, unknown>, timeoutMs = 30_0
   return null;
 }
 
-export function installWorldBridge(view: WorldView, tier: QualityTierId): WorldBridge {
+export function installWorldBridge(view: WorldView, tier: QualityTierId, prefetch?: { report(): PrefetchReport }): WorldBridge {
   const bridge: WorldBridge = {
     chunks: () => view.chunks(),
     backdrop: () => view.backdropInfo(),
     boot: () => view.bootReport(),
+    prefetch: () => prefetch?.report() ?? null,
     wanted: (level) => view.wanted(level),
     plan: () => view.store.plan,
     tier: () => tier,

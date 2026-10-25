@@ -27,6 +27,7 @@
     "./assets/client": "./src/assets/client.ts",
     "./assets/spawn": "./src/assets/spawn.ts",
     "./assets/types": "./src/assets/store/types.ts",
+    "./assets/quota": "./src/assets/store/quota.ts",
     "./workers/asset-core": "./src/workers/asset-core.ts",
     "./workers/sim-worker-core": "./src/workers/sim-worker-core.ts",
     "./platform/perf": "./src/platform/perf/scenario-runner.ts",

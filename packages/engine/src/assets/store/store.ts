@@ -1,4 +1,5 @@
 import { FetchFailure } from './fetch-retry.ts';
+import { DOWNLOAD_ALL_QUOTA_FACTOR, quotaFits } from './quota.ts';
 import { IDLE_LANE, PRIORITY_RANK, type Priority } from './lanes.ts';
 import type { FileStore, IndexStore, PackRow, QuotaEstimate } from './ports.ts';
 import { PackUnavailable, type PackRef, type StorageUsage, type WorldPackStore } from './types.ts';
@@ -10,7 +11,6 @@ export const MEMORY_FALLBACK_CAP_BYTES = 48 * MIB;
 /** `WORLD_CACHE_SOFT_CAP_MB` (11-platform-pwa.md section 5, rule 3). */
 export const SOFT_CAP_MOBILE_MB = 600;
 export const SOFT_CAP_DESKTOP_MB = 2048;
-export const DOWNLOAD_ALL_QUOTA_FACTOR = 1.2;
 /** How many pack gets a city download keeps in flight at once. */
 export const DOWNLOAD_ALL_CONCURRENCY = 4;
 /** How many `soon` (or `now`) prefetched packs the store keeps between start and end at once; the lanes cap them further. */
@@ -28,10 +28,7 @@ export interface DownloadPlan {
   shortfallBytes: number;
 }
 
-/** The one rule for "is there room": free quota must cover 1.2 x the missing bytes. No estimate counts as room. */
-export function quotaFits(freeBytes: number | null, missingBytes: number): boolean {
-  return freeBytes === null || freeBytes >= DOWNLOAD_ALL_QUOTA_FACTOR * missingBytes;
-}
+export { DOWNLOAD_ALL_QUOTA_FACTOR, quotaFits };
 
 export function softCapBytes(mobileOrXr: boolean): number {
   return (mobileOrXr ? SOFT_CAP_MOBILE_MB : SOFT_CAP_DESKTOP_MB) * MIB;

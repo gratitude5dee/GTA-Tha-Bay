@@ -42,6 +42,8 @@ const qaPlay = QA && (flags.play === 'sandbox' || flags.play === 'story') ? ({ m
 const want = { play: qaPlay !== null || flags.debug, paused: false, view: qaPlay !== null || flags.debug };
 let canvasRef: HTMLCanvasElement | null = null;
 let engineRef: EngineHandle | null = null;
+// The speculative boot download of the baked world (M02f2); set once the world is prepared.
+let bootPrefetch: { promote(): Promise<number>; markPlay(): void } | null = null;
 const applyView = (): void => {
   document.documentElement.classList.toggle('dv-playing', want.view);
   document.documentElement.classList.add('dv-world');
@@ -50,8 +52,10 @@ const applyView = (): void => {
 const hooks: ShellHooks = {
   play: (on) => {
     want.play = on;
+    if (on) bootPrefetch?.markPlay();
     engineRef?.setPlay(on);
   },
+  modeStart: () => void bootPrefetch?.promote(),
   setPaused: (p) => {
     want.paused = p;
     engineRef?.setPaused(p);
@@ -238,12 +242,17 @@ async function boot(): Promise<void> {
           postLevel: platform.quality.dynamic.postLevel,
         },
         labels: { redownload: t('world.redownload'), offline: t('world.offline') },
+        // The rest of the boot set downloads at idle priority behind the menu once the world is revealed (M02f2); `?prefetch=0` (QA builds)
+        // turns that off for the start-to-play comparison of the demo.
+        menu: () => !want.play,
+        prefetch: !(QA && new URLSearchParams(location.search).get('prefetch') === '0'),
         container,
         emit: (name, props) => platform.telemetry.emit(name, props),
         qa: QA,
         // The neighbourhood banner (M02c2): the HUD shows `hud.area` { key: 'nhood.<slug>' }, at most once per 3 s.
         onArea: (p) => engineRef?.vm.setLocal('hud.area', { key: p.key, name: p.slug }),
       });
+      bootPrefetch = prepared.prefetch;
       const layer = prepared.view.map;
       if (layer) {
         mapPort = {
@@ -459,7 +468,7 @@ async function boot(): Promise<void> {
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});
-    if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id);
+    if (prepared && qaChunks.world) (await qaChunks.world).installWorldBridge(prepared.view, platform.quality.tier.id, prepared.prefetch);
     // ?racing=1 (M07a1): __dvBridge.racing; ?racing=demo also starts the straight demo race at once.
     if (flags.racing) {
       const racing = (await import('@dv/mode-racing/qa/bridge')).installRacingBridge();
