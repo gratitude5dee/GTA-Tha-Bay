@@ -397,8 +397,15 @@ export class ShellCore implements ShellApi {
     this.engine.sendUi(slot ? { t: 'mode.start', id, slot } : { t: 'mode.start', id });
   }
 
-  /** Toasts from the sim. A refused `mode.start` while Loading returns to the menu. */
+  /**
+   * Toasts from the sim. A refused `mode.start` while Loading returns to the menu. A toast with an empty text takes the toast of that id
+   * off the screen (`UiBridge` has no dismiss call; the story's loading hint uses it once the wait is over, BD-FIX-SPAWN-04).
+   */
   onEngineToast(rec: SimToast): void {
+    if (rec.text === '') {
+      this.toastStore.dismiss(rec.id);
+      return;
+    }
     this.toastStore.push(simToastToSpec(rec));
     if (rec.id.startsWith('mode:') && this.state === 'Loading') this.fire('modeFailed');
     if (rec.id === 'unlock' || rec.kind === 'unlock') this.touch();

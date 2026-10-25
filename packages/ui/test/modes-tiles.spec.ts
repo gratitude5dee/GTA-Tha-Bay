@@ -94,4 +94,20 @@ describe('mode tiles (AC-8)', () => {
     expect(core.toastStore.list.filter((x) => x.kind === 'unlock')).toHaveLength(1);
     expect(simToastToSpec({ id: 'x', kind: 'warning', text: 'mode.comingSoon' }).kind).toBe('warning');
   });
+
+  it('a sim toast with an empty text takes the toast of that id off the screen (BD-FIX-SPAWN-04)', () => {
+    const hooks: ShellHooks = { play: () => undefined, setPaused: () => undefined, view: () => undefined, reload: () => undefined };
+    const props: ShellProps = {
+      diagnostics: () => '', unsupported: false, update: null, initialPath: '/', prefs: memoryPrefs(defaultPrefs()), qa: false, qaPlay: null, unlockAllFlag: false, hooks, build: 't',
+    };
+    const core = new ShellCore(props);
+    core.onEngineToast({ id: 'mission:m.a1.01:loading', kind: 'info', text: 'mission.startLoading' });
+    core.onEngineToast({ id: 'other', kind: 'info', text: 'jobs.busy' });
+    expect(core.toastStore.list.map((x) => x.id)).toEqual(['mission:m.a1.01:loading', 'other']);
+    core.onEngineToast({ id: 'mission:m.a1.01:loading', kind: 'info', text: '' });
+    expect(core.toastStore.list.map((x) => x.id)).toEqual(['other']);
+    // nothing to dismiss: nothing happens, and no empty toast is ever shown
+    core.onEngineToast({ id: 'gone', kind: 'info', text: '' });
+    expect(core.toastStore.list.map((x) => x.text)).toEqual(['jobs.busy']);
+  });
 });
