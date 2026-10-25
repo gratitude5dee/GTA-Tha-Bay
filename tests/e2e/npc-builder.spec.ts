@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import type { NpcBridge } from '../../packages/npc/src/debug/overlay.ts';
-import { mint } from '../../services/edge/src/id/playtoken.ts';
+import { createHmac } from 'node:crypto';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 
 /**
@@ -32,10 +32,13 @@ type W = { __dvBridge: { npc: NpcBridge & { useUserNpc(id: string, v: number): v
 let worker: ChildProcess | null = null;
 let persist = '';
 
+// Mints a `pt1.<claims>.<mac>` play token in the format of services/edge/src/id/playtoken.ts (HMAC-SHA256 over `pt1.<claims>`; the e2e project does not
+// compile the Worker's sources, so the few lines are repeated here).
 async function token(pid: string): Promise<string> {
-  const t = await mint({ PLAY_TOKEN_HMAC: SECRET }, { pid, dkt: `dkt-${pid}`, age: '18p', iat: Date.now(), exp: Date.now() + 3_600_000 });
-  if (t === null) throw new Error('mint failed');
-  return t;
+  const claims = { v: 1, pid, dkt: `dkt-${pid}`, age: '18p', iat: Date.now(), exp: Date.now() + 3_600_000, kid: 'k1' };
+  const head = `pt1.${Buffer.from(JSON.stringify(claims)).toString('base64url')}`;
+  const mac = createHmac('sha256', Buffer.from(SECRET.slice(3), 'base64url')).update(head).digest('base64url');
+  return `${head}.${mac}`;
 }
 
 async function waitHealthy(): Promise<void> {
