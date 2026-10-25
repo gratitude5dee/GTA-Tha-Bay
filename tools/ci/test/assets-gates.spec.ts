@@ -1,7 +1,5 @@
 /** AC-4 and AC-5 of M01d: each asset-gate rule on a temp-copy fixture, and the repository itself passes. */
 import { rmSync, unlinkSync } from 'node:fs';
-import { mkdtempSync } from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { readLock } from '../../assets/src/lock.ts';
@@ -10,6 +8,10 @@ import { runCheckAssets } from '../check-assets.ts';
 import { toolsRoot } from '../lib/common.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
 import { writeThirdPartyLicences } from '../third-party-licenses.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const roots: string[] = [];
 function repo(): string {
@@ -142,7 +144,7 @@ describe('check:assets (M01d rules)', () => {
 describe('provenance:check with lock variants (AC-5)', () => {
   it('fails naming the hash when a lock variant has no record, and the repository passes', () => {
     const root = repo();
-    const dist = mkdtempSync(path.join(os.tmpdir(), 'dv-dist-'));
+    const dist = tempDir('dv-dist-');
     roots.push(dist);
     expect(runProvenanceCheck({ root, dist }).findings).toEqual([]);
     const lock = readLock(root);

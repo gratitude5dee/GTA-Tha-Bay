@@ -47,6 +47,11 @@ export interface JobRow {
   needs?: string;
   medals?: number;
   bestSec?: number;
+  /**
+   * DL-734: the mission's far start could not be reached this session (the teleport refused it or the time ran out). The mission stays
+   * `available`, and the Jobs app shows a Start action that runs the move to the start again.
+   */
+  retry?: true;
 }
 
 /** The part of `PredEnv` a start condition may read: the story slice, the clock, the wallet, the unlocks. The rest is false. */
@@ -122,7 +127,7 @@ export class MissionStore {
     return undefined;
   }
 
-  rows(story: StorySlice, ctx: ModeContext, activeId: string | null): JobRow[] {
+  rows(story: StorySlice, ctx: ModeContext, activeId: string | null, startFailed: ReadonlySet<string> = new Set()): JobRow[] {
     return this.entries.map(({ ir }) => {
       const rec = story.missions[ir.id];
       const state: JobState = ir.id === activeId ? 'active' : rec?.state === 'passed' ? 'passed' : this.open(ir, story, ctx) ? 'available' : 'locked';
@@ -139,6 +144,7 @@ export class MissionStore {
       }
       if (rec?.medals !== undefined) row.medals = rec.medals;
       if (rec?.bestSec !== undefined) row.bestSec = rec.bestSec;
+      if (state === 'available' && startFailed.has(ir.id)) row.retry = true;
       return row;
     });
   }

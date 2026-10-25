@@ -1,8 +1,11 @@
-import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { decodeL0, decodeP0, type RenderChunk, type SimChunk } from '../../../packages/shared/src/index.ts';
 import { runBake, type BakeResult } from '../src/bake.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 export interface ExcerptBake {
   result: BakeResult;
@@ -17,7 +20,7 @@ let memo: Promise<ExcerptBake> | null = null;
 /** Bakes the committed civic-excerpt once per test file into temporary roots and decodes its packs. */
 export function bakeExcerpt(): Promise<ExcerptBake> {
   memo ??= (async () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'dv-map-test-'));
+    const root = tempDir('dv-map-test-');
     const result = await runBake({ area: 'civic-excerpt', outRoot: path.join(root, 'world'), cacheRoot: path.join(root, 'cache'), log: () => {}, writeLatest: false });
     const outDir = result.outDir;
     const sim: SimChunk[] = [];

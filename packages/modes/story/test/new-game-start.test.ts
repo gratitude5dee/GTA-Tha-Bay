@@ -5,9 +5,11 @@
  */
 import type { StorySlice, TeleportKind, TeleportResult, TeleportTarget } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
-import { at, circle, defineMission, npc, stage, waitFor } from '../src/authoring/index.ts';
+import type { MissionIR } from '@dv/shared';
+import { at, circle, defineMission, markerTrigger, npc, phoneTrigger, stage, waitFor } from '../src/authoring/index.ts';
 import type { CatalogPayload } from '../src/missions/store.ts';
-import { StoryController } from '../src/mode.ts';
+import { PLACE_ANSWER_TICKS, PLACE_BUDGET_TICKS, PLACE_HINT_AFTER_TICKS, PLACE_HINT_EVERY_TICKS, PLACE_RETRY_FIRST_TICKS, PLACE_RETRY_MAX_TICKS, placeRetryGap, StoryController } from '../src/mode.ts';
+import { CHECKPOINT_SCHEMA } from '../src/vm/constants.ts';
 import { flatResolver, ll, makeHarness, type Harness } from './harness.ts';
 
 const START = { x: 2000, z: 3000 };
@@ -32,15 +34,17 @@ interface Setup {
   c: StoryController;
   asked: Asked[];
   /** The tick of every toast, by its text key, in the order shown. */
-  shown: { tick: number; text: string }[];
+  shown: { tick: number; text: string; id: string }[];
+  /** Sends the Jobs app's `mission.start` for `id` (a press on its row). */
+  jobsStart(id: string): void;
   run(ticks: number): Promise<void>;
 }
 
-function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: string } = {}): Setup {
+function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: string; missions?: MissionIR[]; triggers?: boolean } = {}): Setup {
   const h = makeHarness();
   if (opts.bake !== undefined) (h.ctx.world as unknown as { resolver: unknown }).resolver = flatResolver(opts.bake);
   const asked: Asked[] = [];
-  const shown: { tick: number; text: string }[] = [];
+  const shown: { tick: number; text: string; id: string }[] = [];
   (h.ctx.world as unknown as { teleport: unknown }).teleport = {
     request: (kind: TeleportKind, to: TeleportTarget) =>
       new Promise<TeleportResult>((resolve) => {
@@ -52,25 +56,36 @@ function setup(answer?: (n: number) => TeleportResult | null, opts: { bake?: str
     candidates: () => [],
   };
   const [lat, lng] = ll(START.x, START.z);
-  const payload: CatalogPayload = { missions: [mission], directors: [], cutscenes: [], lines: {}, names: {}, autoStart: { lat, lng, yawDeg: 90 }, triggers: true };
+  const payload: CatalogPayload = { missions: opts.missions ?? [mission], directors: [], cutscenes: [], lines: {}, names: {}, autoStart: { lat, lng, yawDeg: 90 }, triggers: opts.triggers ?? true };
   const c = new StoryController({ qa: false, bootConfig: () => ({ story: payload }) });
   c.attach(h.ctx, h.story as unknown as StorySlice);
   const run = async (ticks: number): Promise<void> => {
     for (let i = 0; i < ticks; i++) {
       const before = h.calls.toasts.length;
       c.advance(h.ctx);
-      for (const t of h.calls.toasts.slice(before)) shown.push({ tick: h.tickNo.n, text: t.text });
+      for (const t of h.calls.toasts.slice(before)) shown.push({ tick: h.tickNo.n, text: t.text, id: t.id });
       h.tickNo.n++;
       await Promise.resolve();
     }
   };
-  return { h, c, asked, shown, run };
+  const jobsStart = (id: string): void => {
+    const before = h.calls.toasts.length;
+    c.onEvent(h.ctx, { t: 'mode.cmd', tick: h.tickNo.n, s: JSON.stringify({ mode: 'story', name: 'mission.start', args: { id } }) });
+    for (const t of h.calls.toasts.slice(before)) shown.push({ tick: h.tickNo.n, text: t.text, id: t.id });
+  };
+  return { h, c, asked, shown, jobsStart, run };
 }
 
 const notLoaded = (): TeleportResult => ({ ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded' });
 const fails = (h: Harness): unknown[] => h.calls.telemetry.filter((t) => t.name === 'mission.fail').map((t) => t.props['reason']);
 /** About 3 minutes of sim time (60 Hz), the retry budget of the move to the start. */
 const BUDGET_TICKS = 10800;
+/** The trigger pass runs every 15 ticks: an answer is looked at, and a retry sent, on the first pass at or after it is due. */
+const PASS = 15;
+const LOADING = 'mission.startLoading';
+const UNREACHABLE = 'mission.startUnreachable';
+type JobRowLike = { id: string; state: string; retry?: boolean };
+const jobRow = (h: Harness, id: string): JobRowLike | undefined => ((h.vm.get('mode.story.jobs') ?? []) as unknown as JobRowLike[]).find((r) => r.id === id);
 
 const ok = (): TeleportResult => ({ ok: true, x: START.x, y: 4, z: START.z, yaw: 0 });
 
@@ -126,6 +141,19 @@ describe('new game start (BD-FIX-SPAWN-01)', () => {
     expect(texts.filter((t) => t === 'mission.startUnreachable')).toHaveLength(1);
     expect(texts[texts.length - 1]).toBe('mission.startUnreachable');
     expect(fails(h)).toEqual(['unresolved']);
+    // the retries: the gap after each answer doubles from 60 up to 600 ticks and stays there (each ask waits one trigger pass for
+    // the answer, then the gap, both on 15-tick passes)
+    const gaps = asked.slice(1).map((a, i) => a.tick - asked[i]!.tick - PASS);
+    const want = gaps.map((_, i) => Math.min(PLACE_RETRY_FIRST_TICKS * 2 ** i, PLACE_RETRY_MAX_TICKS));
+    expect(gaps).toEqual(want);
+    expect(want.slice(0, 6)).toEqual([60, 120, 240, 480, 600, 600]);
+    expect(gaps.filter((g) => g === PLACE_RETRY_MAX_TICKS).length).toBeGreaterThan(10);
+    // no request goes out once the budget is spent: the last one leaves inside it, and the wait ends within budget + one answer time
+    const first = asked[0]!.tick;
+    for (const a of asked) expect(a.tick - first).toBeLessThan(PLACE_BUDGET_TICKS);
+    const failedAt = shown.find((t) => t.text === UNREACHABLE)!.tick;
+    expect(failedAt - first).toBeGreaterThanOrEqual(PLACE_BUDGET_TICKS);
+    expect(failedAt - first).toBeLessThanOrEqual(PLACE_BUDGET_TICKS + PLACE_ANSWER_TICKS);
     // the hint: never more often than once every 20 s (1,200 ticks)
     const hints = shown.filter((t) => t.text === 'mission.startLoading').map((t) => t.tick);
     expect(hints.length).toBeGreaterThanOrEqual(8);
@@ -178,5 +206,368 @@ describe('new game start (BD-FIX-SPAWN-01)', () => {
     await run(16);
     expect(asked).toHaveLength(0);
     expect(c.rt?.active).toBe(true);
+  });
+
+  it('the retry gap doubles from 60 to 600 ticks', () => {
+    expect([1, 2, 3, 4, 5, 6, 20].map(placeRetryGap)).toEqual([60, 120, 240, 480, 600, 600, 600]);
+  });
+
+  it('re-posts the loading hint every 20 s while the wait lasts and sends nothing when the mission starts (DL-735 d)', async () => {
+    const { c, shown, run } = setup((n) => (n <= 4 ? notLoaded() : ok()));
+    await run(2000);
+    expect(c.rt?.active).toBe(true);
+    const loading = shown.filter((t) => t.id === 'mission:m.t.first:loading');
+    expect(loading.length).toBeGreaterThanOrEqual(1);
+    // every hint is the hint: no toast takes it off the screen (it runs out after the shell's short sim toast time)
+    expect(loading.every((t) => t.text === LOADING)).toBe(true);
+    expect(shown.some((t) => t.text === '')).toBe(false);
+    // none after the mission started
+    await run(2 * PLACE_HINT_EVERY_TICKS);
+    expect(shown.filter((t) => t.id === 'mission:m.t.first:loading')).toHaveLength(loading.length);
+  });
+
+  it('hints first after 5 s of waiting and then exactly every 20 s for as long as the wait lasts (DL-735 d)', async () => {
+    const { c, shown, run } = setup(notLoaded);
+    await run(PLACE_HINT_AFTER_TICKS + 4 * PLACE_HINT_EVERY_TICKS + 2 * PASS);
+    expect(c.rt).toBeNull();
+    const ticks = shown.filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.tick);
+    expect(ticks.length).toBe(5);
+    expect(ticks[0]!).toBeGreaterThanOrEqual(PLACE_HINT_AFTER_TICKS);
+    expect(ticks[0]!).toBeLessThan(PLACE_HINT_AFTER_TICKS + PASS);
+    for (let i = 1; i < ticks.length; i++) {
+      expect(ticks[i]! - ticks[i - 1]!).toBeGreaterThanOrEqual(PLACE_HINT_EVERY_TICKS);
+      expect(ticks[i]! - ticks[i - 1]!).toBeLessThan(PLACE_HINT_EVERY_TICKS + PASS);
+    }
+    expect(shown.every((t) => t.text === LOADING)).toBe(true);
+  });
+
+  it('sends no toast for the hint when the start turns out unreachable: the warning follows the last hint (DL-735 d)', async () => {
+    const { shown, run } = setup((n) => (n <= 3 ? notLoaded() : { ok: false, reason: 'water', messageKey: 'world.teleport.water' }));
+    await run(1500);
+    const texts = shown.map((t) => `${t.id}=${t.text}`);
+    const warn = texts.indexOf(`mission:m.t.first:start=${UNREACHABLE}`);
+    expect(texts).toContain(`mission:m.t.first:loading=${LOADING}`);
+    expect(warn).toBeGreaterThan(texts.lastIndexOf(`mission:m.t.first:loading=${LOADING}`));
+    expect(texts.filter((t) => t.startsWith('mission:m.t.first:loading=')).every((t) => t === `mission:m.t.first:loading=${LOADING}`)).toBe(true);
+    expect(shown.some((t) => t.text === '')).toBe(false);
+  });
+
+  it('an unreachable start stays available with a Start action in Jobs, which runs the move again with a fresh budget (DL-734)', async () => {
+    let refuse = true;
+    const { h, c, asked, shown, jobsStart, run } = setup(() => (refuse ? { ok: false, reason: 'blocked', messageKey: 'world.teleport.blocked' } : null));
+    await run(60);
+    expect(asked).toHaveLength(1);
+    expect(c.rt).toBeNull();
+    expect(fails(h)).toEqual(['unresolved']);
+    expect(jobRow(h, 'm.t.first')).toMatchObject({ state: 'available', retry: true });
+    expect(h.story.missions['m.t.first']?.state ?? 'available').toBe('available');
+    // the auto trigger does not try again on its own
+    await run(600);
+    expect(asked).toHaveLength(1);
+
+    // Start in Jobs: a new request at once, then the same waiting rules from a fresh budget
+    refuse = false;
+    const pressed = h.tickNo.n;
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(2);
+    expect(asked[1]!.kind).toBe('respawn');
+    expect(asked[1]!.tick).toBe(pressed);
+    // a second press while it moves: busy, no third request
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(2);
+    expect(shown[shown.length - 1]?.text).toBe('jobs.busy');
+    // the teleport arrives: the mission starts and the row loses its Start action
+    await run(30);
+    expect(c.rt).toBeNull();
+    h.put(h.player, START.x, START.z, 4);
+    asked[1]!.answer(ok());
+    await run(31);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.first');
+    expect(jobRow(h, 'm.t.first')?.retry).toBeUndefined();
+    expect(fails(h)).toEqual(['unresolved']);
+  });
+
+  it('a Jobs Start after the budget ran out gets a whole new budget', async () => {
+    const { h, c, asked, jobsStart, run } = setup(notLoaded);
+    await run(BUDGET_TICKS + 1900);
+    expect(c.rt).toBeNull();
+    expect(jobRow(h, 'm.t.first')?.retry).toBe(true);
+    const before = asked.length;
+    const pressed = h.tickNo.n;
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(before + 1);
+    // still asking well past one budget after the first request, because the budget counts from the press
+    await run(BUDGET_TICKS - 900);
+    expect(c.rt).toBeNull();
+    expect(asked[asked.length - 1]!.tick - pressed).toBeGreaterThan(BUDGET_TICKS - 1600);
+    expect(fails(h)).toEqual(['unresolved']);
+    await run(2700);
+    expect(fails(h)).toEqual(['unresolved', 'unresolved']);
+  });
+
+  it('a Jobs Start on a gray-box world refuses again with the toast and keeps the Start action', async () => {
+    const { h, asked, shown, jobsStart, run } = setup(notLoaded, { bake: 'graybox' });
+    await run(16);
+    expect(jobRow(h, 'm.t.first')?.retry).toBe(true);
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(0);
+    expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(2);
+    expect(jobRow(h, 'm.t.first')?.retry).toBe(true);
+  });
+});
+
+/** A marker mission whose marker is `MARK` (far from the player at the origin), and a phone mission (no place in its start). */
+const MARK = { x: -1500, z: 2500 };
+const marked = defineMission({
+  id: 'm.t.marker',
+  version: 1,
+  district: 'd3',
+  start: markerTrigger(at(...ll(MARK.x, MARK.z), { yawDeg: 180 }), 8),
+  cast: {},
+  zones: { z: circle(...ll(MARK.x, MARK.z), 5) },
+  stages: [stage('a', [waitFor(6000, { id: 'long' })])],
+});
+const phoned = defineMission({
+  id: 'm.t.phone',
+  version: 1,
+  district: 'd3',
+  start: phoneTrigger('npc_test'),
+  cast: {},
+  zones: { z: circle(...ll(10, 10), 5) },
+  stages: [stage('a', [waitFor(6000, { id: 'long' })])],
+});
+
+describe('a Jobs Start never begins a mission away from its authored start (DL-734, 03-story.md section 5)', () => {
+  it('a marker mission more than 300 m away moves the player to its marker first, though its start never failed', async () => {
+    const { h, c, asked, jobsStart, run } = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await run(16);
+    expect(asked).toHaveLength(0);
+    jobsStart('m.t.marker');
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    const to = asked[0]!.to as { x: number; z: number; yaw: number };
+    expect(to.x).toBeCloseTo(MARK.x, 3);
+    expect(to.z).toBeCloseTo(MARK.z, 3);
+    expect(to.yaw).toBeCloseTo(Math.PI, 6);
+    await run(120);
+    expect(c.rt).toBeNull();
+    h.put(h.player, MARK.x, MARK.z, 4);
+    asked[0]!.answer({ ok: true, x: MARK.x, y: 4, z: MARK.z, yaw: Math.PI });
+    await run(16);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('a marker mission within 300 m, and a phone mission (no place in its start), begin at once without a teleport', async () => {
+    const near = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await near.run(16);
+    near.h.put(near.h.player, MARK.x + 150, MARK.z - 150, 0);
+    near.jobsStart('m.t.marker');
+    expect(near.asked).toHaveLength(0);
+    expect(near.c.rt?.missionId).toBe('m.t.marker');
+
+    const phone = setup(undefined, { missions: [marked, phoned], triggers: false });
+    await phone.run(16);
+    phone.jobsStart('m.t.phone');
+    expect(phone.asked).toHaveLength(0);
+    expect(phone.c.rt?.missionId).toBe('m.t.phone');
+  });
+
+  it('the first auto mission pressed in Jobs before its trigger ran (the triggers off) moves the player to the new game start first', async () => {
+    const { h, c, asked, jobsStart, run } = setup(undefined, { triggers: false });
+    await run(16);
+    expect(asked).toHaveLength(0);
+    jobsStart('m.t.first');
+    expect(asked).toHaveLength(1);
+    const to = asked[0]!.to as { x: number; z: number };
+    expect(to.x).toBeCloseTo(START.x, 3);
+    expect(to.z).toBeCloseTo(START.z, 3);
+    expect(c.rt).toBeNull();
+    h.put(h.player, START.x, START.z, 4);
+    asked[0]!.answer(ok());
+    await run(16);
+    expect(c.rt?.missionId).toBe('m.t.first');
+  });
+
+  it('a far marker mission on a gray-box world stays available with mission.startUnreachable and a Start action', async () => {
+    const { h, c, asked, shown, jobsStart, run } = setup(undefined, { missions: [marked, phoned], triggers: false, bake: 'graybox' });
+    await run(16);
+    jobsStart('m.t.marker');
+    expect(asked).toHaveLength(0);
+    expect(c.rt).toBeNull();
+    expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(1);
+    expect(jobRow(h, 'm.t.marker')).toMatchObject({ state: 'available', retry: true });
+    expect(fails(h)).toEqual(['unresolved']);
+  });
+});
+
+describe('repair S3-R2 (BD-FIX-SPAWN-08)', () => {
+  it('the auto trigger moves the player to the start of a first mission that was started once and not passed (a quit, a dropped checkpoint)', async () => {
+    const { h, c, asked, run } = setup();
+    // begin() wrote the row the first time the mission started; the player then quit and reloaded, standing at the boot spawn
+    (h.story.missions as Record<string, unknown>)['m.t.first'] = { state: 'available' };
+    await run(40);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    const to = asked[0]!.to as { x: number; z: number };
+    expect(to.x).toBeCloseTo(START.x, 3);
+    expect(to.z).toBeCloseTo(START.z, 3);
+    expect(c.rt?.active ?? false).toBe(false);
+    h.put(h.player, START.x, START.z, 4);
+    asked[0]!.answer(ok());
+    await run(16);
+    expect(c.rt?.missionId).toBe('m.t.first');
+  });
+
+  it('a story-mode re-entry (attach again) moves the player to that start too, not a start where the player stands', async () => {
+    const { h, c, asked, run } = setup();
+    h.put(h.player, START.x, START.z, 4);
+    await run(16);
+    expect(asked).toHaveLength(0);
+    expect(c.rt?.missionId).toBe('m.t.first');
+    c.exit(h.ctx, 'quit');
+    expect(h.story.missions['m.t.first']?.state ?? 'available').toBe('available');
+    // back at the boot spawn, the mode enters again
+    h.put(h.player, 0, 0, 0);
+    c.attach(h.ctx, h.story as unknown as StorySlice);
+    await run(40);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    expect(c.rt?.active ?? false).toBe(false);
+  });
+
+  it('a marker whose far Jobs Start failed still starts its mission when the player walks into it', async () => {
+    const { h, c, asked, jobsStart, run } = setup(() => ({ ok: false, reason: 'blocked', messageKey: 'world.teleport.blocked' }), { missions: [marked, phoned] });
+    await run(16);
+    jobsStart('m.t.marker');
+    await run(16);
+    expect(asked).toHaveLength(1);
+    expect(c.rt).toBeNull();
+    expect(jobRow(h, 'm.t.marker')?.retry).toBe(true);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('after a far Jobs Start that succeeded and a quit, the marker starts the mission again, as after a near Jobs Start', async () => {
+    const { h, c, asked, jobsStart, run } = setup(() => ({ ok: true, x: MARK.x, y: 0, z: MARK.z, yaw: Math.PI }), { missions: [marked, phoned] });
+    await run(16);
+    jobsStart('m.t.marker');
+    h.put(h.player, MARK.x, MARK.z, 0);
+    await run(16);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+    c.rt?.abort('quit');
+    // walk out of the marker and back in
+    h.put(h.player, MARK.x + 50, MARK.z, 0);
+    await run(31);
+    expect(c.rt?.active ?? false).toBe(false);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('stops the loading hint when the mode exits, or attaches again, while the move runs, and sends no toast for it (DL-735 d)', async () => {
+    for (const how of ['exit', 'attach'] as const) {
+      const { h, c, shown, run } = setup(notLoaded);
+      await run(700);
+      const hints = shown.filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
+      expect(hints).toContain(LOADING);
+      expect(hints[hints.length - 1]).toBe(LOADING);
+      const before = h.calls.toasts.length;
+      if (how === 'exit') c.exit(h.ctx, 'quit');
+      else c.attach(h.ctx, h.story as unknown as StorySlice);
+      const after = h.calls.toasts.slice(before).filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
+      expect(after).toEqual([]);
+      expect(shown.some((t) => t.text === '')).toBe(false);
+    }
+  });
+});
+
+/** A saved `activeMission` for `id`: a whole checkpoint at stage 0 with the player at `player`, of `version` and `bake`. */
+const savedMission = (id: string, version: number, bake: string, player: { x: number; z: number }): NonNullable<StorySlice['activeMission']> =>
+  ({
+    id,
+    checkpoint: {
+      schema: CHECKPOINT_SCHEMA,
+      data: { missionId: id, version, worldBake: bake, stage: 0, attempt: 1, seed: 1, rng: [1, 2, 3, 4], elapsedSec: 0, flags: {}, objectivesDone: [], talkResults: {}, player: { x: player.x, y: 0, z: player.z, yaw: 0, health: 1 }, cast: {}, walletDeltaCents: 0 },
+    },
+  }) as unknown as NonNullable<StorySlice['activeMission']>;
+
+describe('repair S4-R1 (BD-FIX-SPAWN-10): a dropped checkpoint never starts its mission where the player stands (DL-734)', () => {
+  for (const [what, version, bake] of [
+    ['another world bake (a rebake)', 1, 'some-old-bake'],
+    ['another mission version', 99, 'test-bake'],
+  ] as const) {
+    it(`a saved first mission whose checkpoint is of ${what} moves the player to its authored start before it begins`, async () => {
+      const { h, c, asked, run } = setup();
+      h.story.activeMission = savedMission('m.t.first', version, bake, { x: 0, z: 0 });
+      (h.story.missions as Record<string, unknown>)['m.t.first'] = { state: 'active' };
+      h.put(h.player, 0, 0, 0);
+      await run(40);
+      // the checkpoint is dropped and nothing starts in place: the trigger asks for the move to the Yard instead
+      expect(h.story.activeMission).toBeNull();
+      expect(h.story.missions['m.t.first']?.state).toBe('available');
+      expect(c.rt?.active ?? false).toBe(false);
+      expect(h.calls.telemetry.filter((t) => t.name === 'mission.start')).toHaveLength(0);
+      expect(h.calls.saves).not.toContain('checkpoint');
+      expect(asked).toHaveLength(1);
+      expect(asked[0]!.kind).toBe('respawn');
+      const to = asked[0]!.to as { x: number; z: number };
+      expect(to.x).toBeCloseTo(START.x, 3);
+      expect(to.z).toBeCloseTo(START.z, 3);
+      // the mission begins once the player stands at its start, fresh (stage 0, attempt 1), not from the dropped checkpoint
+      await run(120);
+      expect(c.rt?.active ?? false).toBe(false);
+      h.put(h.player, START.x, START.z, 4);
+      asked[0]!.answer(ok());
+      await run(16);
+      expect(c.rt?.active).toBe(true);
+      expect(c.rt?.missionId).toBe('m.t.first');
+      expect(c.rt?.stageIndex).toBe(0);
+      expect(asked).toHaveLength(1);
+    });
+  }
+
+  it('a saved first mission whose checkpoint was dropped on a gray-box world stays available with mission.startUnreachable, not started in place', async () => {
+    const { h, c, asked, shown, run } = setup(undefined, { bake: 'graybox' });
+    h.story.activeMission = savedMission('m.t.first', 1, 'some-old-bake', { x: 0, z: 0 });
+    h.put(h.player, 0, 0, 0);
+    await run(40);
+    expect(h.story.activeMission).toBeNull();
+    expect(c.rt?.active ?? false).toBe(false);
+    expect(asked).toHaveLength(0);
+    expect(shown.filter((t) => t.text === UNREACHABLE)).toHaveLength(1);
+    expect(jobRow(h, 'm.t.first')).toMatchObject({ state: 'available', retry: true });
+  });
+
+  it('a saved marker mission whose checkpoint was dropped waits for its marker, and starts when the player walks into it', async () => {
+    const { h, c, asked, run } = setup(undefined, { missions: [marked, phoned] });
+    h.story.activeMission = savedMission('m.t.marker', 1, 'some-old-bake', { x: 0, z: 0 });
+    h.put(h.player, 0, 0, 0);
+    await run(40);
+    expect(h.story.activeMission).toBeNull();
+    expect(h.story.missions['m.t.marker']?.state).toBe('available');
+    expect(c.rt?.active ?? false).toBe(false);
+    expect(asked).toHaveLength(0);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+    expect(asked).toHaveLength(0);
+  });
+
+  it('a saved mission whose checkpoint matches this version and world bake still continues from that checkpoint', async () => {
+    const { h, c, asked, run } = setup();
+    h.story.activeMission = savedMission('m.t.first', 1, 'test-bake', { x: START.x + 5, z: START.z });
+    h.put(h.player, 0, 0, 0);
+    await run(16);
+    expect(asked).toHaveLength(0);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.first');
   });
 });

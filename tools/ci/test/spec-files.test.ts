@@ -1,14 +1,17 @@
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { repoRoot } from '../run.ts';
 import { checkSpecFiles, retiredUIds, wordCount, type FindingKind } from '../spec-files.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const okRoot = path.join(repoRoot, 'tools', 'ci', 'fixtures', 'spec-files', 'ok');
 
 function variant(edit: (dir: string) => void): ReturnType<typeof checkSpecFiles> {
-  const dir = mkdtempSync(path.join(tmpdir(), 'dv-spec-'));
+  const dir = tempDir('dv-spec-');
   cpSync(okRoot, dir, { recursive: true });
   edit(dir);
   return checkSpecFiles({ root: dir, strict: true });

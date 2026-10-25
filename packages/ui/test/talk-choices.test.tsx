@@ -64,4 +64,19 @@ describe('Jobs rows of the missions', () => {
     ]);
     expect(rows[3]?.hint).toBe('Finish Surge Pricing first');
   });
+
+  it('a mission whose far start could not be reached keeps a Start action that sends mission.start again (DL-734)', () => {
+    const rows = missionRows([
+      { id: 'm.a1.01', title: 'Jump Start', state: 'available', trigger: 'auto', retry: true },
+      { id: 'm.a1.02', title: 'Surge Pricing', state: 'available', trigger: 'phone' },
+      { id: 'm.a1.03', title: 'Sideshow Sunday', state: 'locked', trigger: 'marker', retry: true },
+    ]);
+    expect(rows[0]).toMatchObject({ id: 'mis:m.a1.01', text: 'Jump Start', badge: 'Start', detail: 'Last time we could not get you to its starting point. Start tries again.' });
+    expect(rows[0]?.disabled).toBeUndefined();
+    expect(rows[1]?.badge).toBeUndefined();
+    expect(rows[1]?.detail).toBe('Ready');
+    // only an available mission offers it
+    expect(rows[2]).toMatchObject({ disabled: true, detail: 'Locked' });
+    expect(rows[2]?.badge).toBeUndefined();
+  });
 });

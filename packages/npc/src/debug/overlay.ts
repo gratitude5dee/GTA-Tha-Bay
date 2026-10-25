@@ -1,9 +1,10 @@
 /**
  * The NPC debug overlay and bridge (M06a3; QA builds only). `window.__dvBridge.npc.talk(npcId, turn)` runs one turn through the real
- * NpcRuntime, and a small DOM panel shows what it does: the AI badge from `meta.disclosure`, the streamed line, where the answer came
- * from (live model, recorded fixture, or ink) and the event order. It is the stand-in for the dialogue panel of M06a5, and talks to
- * `npc_test` by default. Plain DOM with a `data-testid` on each part, like the other QA panels. Reached only through a dynamic import
- * behind `VITE_DV_QA === '1'`, so a production build does not contain it.
+ * NpcRuntime, and a small DOM box shows what it does: the AI badge from `meta.disclosure`, the streamed line, where the answer came
+ * from (live model, recorded fixture, or ink) and the event order. It talks to `npc_test` by default. Since M06a5 the real dialogue
+ * panel (`DialogueBubble`) opens for every bridge turn, and this box hides while the panel is up (`html[data-dv-dialogue="open"]`).
+ * Plain DOM with a `data-testid` on each part, like the other QA panels. Reached only through a dynamic import behind
+ * `VITE_DV_QA === '1'`, so a production build does not contain it.
  */
 import type { DialogueEvent, NPCDialogueContext, NPCDialogueRequest } from '@dv/shared/contracts/c10-npc';
 import type { NpcRuntime } from '../client/runtime.ts';
@@ -27,6 +28,10 @@ export interface NpcBridge {
   /** One turn through the runtime. `turn` defaults to a greeting. */
   talk(npcId?: string, turn?: NPCDialogueRequest['turn']): Promise<DebugTurnResult>;
   last(): DebugTurnResult | null;
+  /** M06a5: opens the dialogue panel for the NPC without a turn (the player then picks a choice). A no-op where the page has no panel. */
+  open(npcId?: string): void;
+  /** M06a5: the `npc.*` telemetry events this page's runtime emitted (counts and enums only), newest last. */
+  telemetry(): readonly { name: string; props: Record<string, string | number | boolean> }[];
   /** Ends the encounter with the NPC (the next turn opens a new one). */
   end(npcId?: string): void;
   /** Subscribes to changes of the shown state; returns the unsubscribe. */
@@ -38,6 +43,23 @@ export interface NpcBridge {
   /** M06a4: ask for a voiced answer (`context.voice = 'auto'`) on the next turns. Default off. */
   setVoice(on: boolean): void;
   voiceOn(): boolean;
+}
+
+/** What the page can add to the bridge: the real panel (M06a5) opens for a turn and runs it, so the QA box and the panel share one conversation. */
+export interface NpcBridgeHooks {
+  setAuthHeader?: (header: string | null) => void;
+  onVoice?: (on: boolean) => void;
+  /** The telemetry events the page's runtime emitted, for the bridge to show. */
+  telemetry?: () => readonly { name: string; props: Record<string, string | number | boolean> }[];
+  /** Called before each bridge turn: open the dialogue panel for the NPC (the page patches `sys.dialogue.open`). */
+  openPanel?: (npcId: string) => void;
+  /** Runs the turn in place of `runtime.talk` (the panel's session does, so it sees the same events). A null result means the turn did not run. */
+  runTurn?: (
+    npcId: string,
+    turn: NPCDialogueRequest['turn'],
+    ctx: NPCDialogueContext,
+    on: (e: DialogueEvent) => void,
+  ) => Promise<{ encounterId: string | null; source: 'llm' | 'ink' } | null>;
 }
 
 export const DEBUG_NPC_ID = 'npc_test';
@@ -64,7 +86,7 @@ export function debugContext(voice: NPCDialogueContext['voice'] = 'off'): NPCDia
 
 export function installNpcBridge(
   runtime: NpcRuntime,
-  hooks: { setAuthHeader?: (header: string | null) => void; onVoice?: (on: boolean) => void } = {},
+  hooks: NpcBridgeHooks = {},
   target: { __dvBridge?: Record<string, unknown> } = window as never,
 ): NpcBridge {
   const listeners = new Set<() => void>();
@@ -99,12 +121,16 @@ export function installNpcBridge(
         listeners.forEach((fn) => fn());
       };
       listeners.forEach((fn) => fn());
-      const r = await runtime.talk(npcId, turn, debugContext(voice ? 'auto' : 'off'), on);
+      hooks.openPanel?.(npcId);
+      const ctx = debugContext(voice ? 'auto' : 'off');
+      const r = (hooks.runTurn === undefined ? await runtime.talk(npcId, turn, ctx, on) : await hooks.runTurn(npcId, turn, ctx, on)) ?? { encounterId: null, source: 'ink' as const };
       last = { npcId, source: r.source, mode, encounterId: r.encounterId, text: shown(), events, aiCharacter: ai };
       listeners.forEach((fn) => fn());
       return last;
     },
     last: () => last,
+    open: (npcId = DEBUG_NPC_ID) => hooks.openPanel?.(npcId),
+    telemetry: () => hooks.telemetry?.() ?? [],
     end: (npcId = DEBUG_NPC_ID) => runtime.endEncounter(npcId),
     onChange(fn) {
       listeners.add(fn);
@@ -271,9 +297,18 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
     meta.textContent = `${sourceLabel(r)} · ${r.events.map((e) => e.event).join(' ')}`;
   };
   const off = bridge.onChange(render);
+  // M06a5: the real panel is up -> this box steps aside (it comes back when the panel closes).
+  const html = document.documentElement;
+  const sync = (): void => {
+    root.hidden = html.dataset['dvDialogue'] === 'open';
+  };
+  sync();
+  const watch = typeof MutationObserver === 'undefined' ? null : new MutationObserver(sync);
+  watch?.observe(html, { attributes: true, attributeFilter: ['data-dv-dialogue'] });
   return {
     mouth,
     dispose() {
+      watch?.disconnect();
       off();
       root.remove();
       style.remove();

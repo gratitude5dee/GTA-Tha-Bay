@@ -15,5 +15,6 @@ export default defineConfig({
     }),
   ],
   // test/db holds the tests that need a database: they run under check:db (vitest.db.config.ts), not here.
-  test: { include: ['test/**/*.test.ts'], exclude: ['test/db/**'] },
+  // BD-FIX-TMP-01: one per-run temporary root for the run, removed at teardown (reused when check:workers already made one).
+  test: { include: ['test/**/*.test.ts'], exclude: ['test/db/**'], globalSetup: ['../../tools/ci/vitest-tmp-root.ts'] },
 });

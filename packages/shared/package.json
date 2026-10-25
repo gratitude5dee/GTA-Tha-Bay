@@ -12,6 +12,7 @@
     "./data-port": "./src/data-port.ts",
     "./data-port.memory": "./src/data-port.memory.ts",
     "./npc/memory": "./src/npc/memory.ts",
+    "./npc/safety-lists": "./src/npc/safety-lists.ts",
     "./zip": "./src/zip.ts",
     "./schemas/*": "./schemas/*",
     "./npc": "./src/npc/index.ts",

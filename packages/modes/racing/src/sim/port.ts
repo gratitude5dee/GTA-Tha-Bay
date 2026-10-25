@@ -62,4 +62,9 @@ export interface RaceWorldPort {
   groundY(x: number, z: number): number | null;
   /** Removes the car and puts the player back on foot beside where it stood. */
   release(): void;
+  /**
+   * Optional: (x, y, z) is out of the world (02-world-maps.md 4.1 d; the engine's `outOfWorld` over the baked world). A port without it, or
+   * without a baked world, never says so, and the race keeps its other reset rules.
+   */
+  outOfWorld?(x: number, y: number, z: number): boolean;
 }

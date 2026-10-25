@@ -8,7 +8,7 @@
  * follow). Damage is the race model's: `setDamage` overwrites the `VehicleDamage` component the handling step reads.
  */
 import {
-  BodyRef, Control, LocalPlayer, packPending, CONTROL_OWNER, CONTROL_PHASE, GROUP_BIT, seatDriver, Transform, Vehicle, VehicleDamage, Velocity,
+  BodyRef, Control, LocalPlayer, outOfWorld, packPending, CONTROL_OWNER, CONTROL_PHASE, GROUP_BIT, seatDriver, Transform, Vehicle, VehicleDamage, Velocity,
   type EngineServices, type PrefabRegistry, type RapierBackend, type VehicleStore, type EcsWorld,
 } from '@dv/engine/sim';
 import { datan2, dcos, dsin, dsqrt, PI, type DamageState, type EntityHandle } from '@dv/shared';
@@ -50,6 +50,10 @@ export function createEnginePort(d: EnginePortDeps): RaceWorldPort & { carHandle
     carHandle: () => car,
     collidersReady: (x, z) => groundRay(x, z) !== null,
     groundY: groundRay,
+    outOfWorld(x, y, z) {
+      const api = services.world.api;
+      return api !== null && outOfWorld(api, x, y, z) !== null;
+    },
 
     spawnCar(prefabId, pos, yaw) {
       if (car === NO_HANDLE) {
