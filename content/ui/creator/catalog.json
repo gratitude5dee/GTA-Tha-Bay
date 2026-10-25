@@ -1,6 +1,6 @@
 {
  "v": 1,
- "rev": 1,
+ "rev": 2,
  "slots": {
   "body": [
    {
@@ -106,6 +106,17 @@
     "tags": [],
     "icon": "body-12",
     "tint": 0.9166666666666666
+   },
+   {
+    "id": "body-coast",
+    "index": 13,
+    "titleKey": "creator.part.body.coast",
+    "tags": [
+     "starter",
+     "coast",
+     "pair:coast"
+    ],
+    "icon": "body-13"
    }
   ],
   "face": [
@@ -308,6 +319,17 @@
     "tags": [],
     "icon": "face-24",
     "tint": 0.9583333333333334
+   },
+   {
+    "id": "face-coast",
+    "index": 25,
+    "titleKey": "creator.part.face.coast",
+    "tags": [
+     "starter",
+     "coast",
+     "pair:coast"
+    ],
+    "icon": "face-25"
    }
   ],
   "hair": [
@@ -446,6 +468,16 @@
     "tags": [],
     "icon": "hair-16",
     "tint": 0.9375
+   },
+   {
+    "id": "hair-coast",
+    "index": 17,
+    "titleKey": "creator.part.hair.coast",
+    "tags": [
+     "starter",
+     "coast"
+    ],
+    "icon": "hair-17"
    }
   ],
   "top": [
@@ -552,6 +584,17 @@
     "tags": [],
     "icon": "top-12",
     "tint": 0.9166666666666666
+   },
+   {
+    "id": "top-coast-hoodie",
+    "index": 13,
+    "titleKey": "creator.part.top.coast-hoodie",
+    "tags": [
+     "starter",
+     "coast"
+    ],
+    "icon": "top-13",
+    "color": "#141414"
    }
   ],
   "bottom": [
@@ -626,6 +669,17 @@
     "tags": [],
     "icon": "bottom-8",
     "tint": 0.875
+   },
+   {
+    "id": "bottom-coast-jeans",
+    "index": 9,
+    "titleKey": "creator.part.bottom.coast-jeans",
+    "tags": [
+     "starter",
+     "coast"
+    ],
+    "icon": "bottom-9",
+    "color": "#262c3f"
    }
   ],
   "shoes": [
@@ -684,6 +738,17 @@
     "tags": [],
     "icon": "shoes-6",
     "tint": 0.8333333333333334
+   },
+   {
+    "id": "shoes-coast-sneakers",
+    "index": 7,
+    "titleKey": "creator.part.shoes.coast-sneakers",
+    "tags": [
+     "starter",
+     "coast"
+    ],
+    "icon": "shoes-7",
+    "color": "#8b8e93"
    }
   ],
   "accessory": [
@@ -1043,26 +1108,26 @@
  ],
  "defaults": {
   "v": 1,
-  "name": "Rookie",
-  "callsign": "Rookie",
+  "name": "Coast",
+  "callsign": "Coast",
   "body": {
-   "preset": "body-lean",
+   "preset": "body-coast",
    "height": 0.5,
    "build": 0.5
   },
   "face": {
-   "preset": "face-sunset",
+   "preset": "face-coast",
    "morphs": {}
   },
-  "skinTone": 3,
+  "skinTone": 6,
   "hair": {
-   "style": "hair-buzz",
-   "color": 1
+   "style": "hair-coast",
+   "color": 0
   },
   "outfit": {
-   "top": "top-hoodie",
-   "bottom": "bottom-jeans",
-   "shoes": "shoes-sneakers"
+   "top": "top-coast-hoodie",
+   "bottom": "bottom-coast-jeans",
+   "shoes": "shoes-coast-sneakers"
   },
   "voice": {
    "id": "voice-bay-smooth",

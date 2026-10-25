@@ -16,6 +16,7 @@
     "unlock": { "type": "string" },
     "retired": { "type": "boolean" },
     "tint": { "type": "number", "minimum": 0, "maximum": 1, "description": "mannequin variant hue for parts without a model" },
+    "color": { "type": "string", "pattern": "^#[0-9a-f]{6}$", "description": "mannequin colour for parts without a model; overrides tint (DL-737)" },
     "icon": { "type": "string", "description": "symbol id in assets/creator-kit/icons.svg" }
   }
 }
