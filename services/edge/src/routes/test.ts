@@ -6,6 +6,7 @@ import { CRON_JOBS, JOBS, runJobs, type JobName } from '../ops/scheduled.ts';
 import { authenticatePlayer } from '../id/tofu.ts';
 import type { EncounterDO, TurnUsage } from '../npc/EncounterDO.ts';
 import { auraSpeak } from '../npc/ai.ts';
+import { drainBuilder } from '../npc-builder/queue.ts';
 import { UUIDV7_PATTERN } from '../uuidv7.ts';
 import type { Ctx, Route } from '../router.ts';
 
@@ -108,6 +109,14 @@ async function handleNpcTts(ctx: Ctx): Promise<Response> {
   return json({ model, speaker, ok: true, bytes: r.bytes.length, ms: r.ms, container: sniffAudio(r.bytes), head: Array.from(r.bytes.subarray(0, 4)) });
 }
 
+/**
+ * POST /api/v1/_test/builder/drain (M06b1): waits for the NPC builder jobs that ran inline in this isolate (a Preview, `wrangler dev`, a Worker with
+ * no queue bound), so a test can poll one request later without sleeping. Where the Queue `npc-builder` is bound its consumer does the work.
+ */
+async function handleBuilderDrain(): Promise<Response> {
+  return json({ drained: await drainBuilder() });
+}
+
 export const TEST_ROUTES: readonly Route[] = [
   { methods: ['GET'], path: '/api/v1/_test/echo-country', handler: handleEchoCountry },
   { methods: ['GET'], path: '/api/v1/_test/fal-jwks', handler: handleFalJwks },
@@ -116,4 +125,5 @@ export const TEST_ROUTES: readonly Route[] = [
   { methods: ['POST'], path: '/api/v1/_test/drain-queue', handler: handleDrainQueue },
   { methods: ['GET'], path: '/api/v1/_test/npc/usage', handler: handleNpcUsage },
   { methods: ['POST'], path: '/api/v1/_test/npc/tts', handler: handleNpcTts },
+  { methods: ['POST'], path: '/api/v1/_test/builder/drain', handler: handleBuilderDrain },
 ];

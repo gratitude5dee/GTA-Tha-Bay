@@ -20,3 +20,6 @@ export interface BuilderData {
 
 export const BUILDER = data as unknown as BuilderData;
 
+
+/** `FixtureRequest.npcId` of the builder's own model calls (classifier, soul writer, judge); the intent names the call. */
+export const BUILDER_FIXTURE_NPC = '_builder';

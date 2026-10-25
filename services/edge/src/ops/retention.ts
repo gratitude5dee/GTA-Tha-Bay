@@ -1,3 +1,4 @@
+import { NPC_GUARDRAILS } from '@dv/shared';
 import { MEMORY_TTL_MS } from '@dv/shared/npc/memory';
 import type { AppDeps } from '../deps.ts';
 import type { Env } from '../env.ts';
@@ -10,6 +11,7 @@ import type { JobResult } from './catalog-sync.ts';
  *   03:10 `transcripts`     encounter_transcripts rows past expires_at (closed_at + 30 d) and their PRIVATE objects; exports older than 7 days
  *   03:20 `memory`          npc_memory past expires_at (180 d after last access) and npc_relationship unseen for 180 d
  *   03:30 `stub-profiles`   tier 'local' profiles unseen for 180 d, and soft-deleted profiles the forget job missed; each goes through the forget steps
+ *   03:40 `builder-drafts`  unpublished NPC builder drafts 180 d after their last update, with their private souls (M06b1)
  * A fresh row or object is never touched. Log lines carry counts only.
  */
 const BATCH = 500;
@@ -69,4 +71,30 @@ export async function runStubProfileRetention(env: Env, deps: Pick<AppDeps, 'dat
   }
   deps.log(JSON.stringify({ event: 'retention.stub_profiles', profiles }));
   return { job: 'stub-profiles', ran: true, profiles };
+}
+
+/**
+ * 03:40 `builder-drafts` (M06b1): drafts that were never published, 180 days after their last update (04-npc-builder.md section C2), with the
+ * private souls written for them and those souls' PRIVATE objects. Published and in-review drafts are never touched.
+ */
+export async function runBuilderDraftRetention(env: Env, deps: Pick<AppDeps, 'data' | 'log' | 'now'>): Promise<JobResult> {
+  const port = deps.data(env);
+  if (port === null) return { job: 'builder-drafts', ran: false, skipped: 'no_database' };
+  const cutoff = deps.now() - NPC_GUARDRAILS.builder.draftRetentionDays * 86_400_000;
+  let drafts = 0;
+  let objects = 0;
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const gone = await port.builder.purgeStaleDrafts(cutoff, 100);
+    for (const g of gone) {
+      for (const key of g.promptKeys) {
+        const base = key.replace(/\/soul\.prompt\.txt$/, '');
+        await env.PRIVATE.delete([`${base}/soul.prompt.txt`, `${base}/soul.compiled.json`, `${base}/soul.ink`]);
+        objects += 3;
+      }
+    }
+    drafts += gone.length;
+    if (gone.length < 100) break;
+  }
+  deps.log(JSON.stringify({ event: 'retention.builder-drafts', drafts, objects }));
+  return { job: 'builder-drafts', ran: true, drafts, objects };
 }

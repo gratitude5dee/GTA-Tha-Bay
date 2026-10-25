@@ -13,7 +13,7 @@ import { writeServerEvent } from '../telemetry/server.ts';
  * (`builder-classify`, `builder-soul`, `builder-repair`, `builder-judge:<probe>`; probe turns use `probe:<name>`) and the draft's NPC id or
  * `_builder` in `npcId`, so a test chooses the answer per call. Nothing here logs a prompt, a backstory or an answer.
  */
-export const BUILDER_FIXTURE_NPC = '_builder';
+export { BUILDER_FIXTURE_NPC } from './bundle.ts';
 
 export interface ModelAnswer {
   text: string;

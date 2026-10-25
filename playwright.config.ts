@@ -32,7 +32,7 @@ writeFileSync(E2E_CF_PATH, `${JSON.stringify({ country: E2E_COUNTRY, colo: 'LOCA
 // (hud.spec.ts:19) saw "Failed to load resource: ... 503". A name the shell holds is passed on empty (every route treats an empty secret
 // as absent); a name it does not hold stays unset, so CI, where none is set, sees exactly what it saw before.
 // Keep equal to `secrets.required` of the top-level config (tools/ci/test/workflows.test.ts checks it).
-export const E2E_UNSET_SECRETS = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY'] as const;
+export const E2E_UNSET_SECRETS = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY'] as const;
 const unsetSecrets: Record<string, string> = Object.fromEntries(E2E_UNSET_SECRETS.filter((k) => process.env[k] !== undefined).map((k) => [k, '']));
 
 // The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with

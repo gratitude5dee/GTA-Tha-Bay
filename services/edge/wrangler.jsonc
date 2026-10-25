@@ -40,11 +40,14 @@
   "queues": {
     "producers": [
       { "binding": "JOBS", "queue": "tha-bay-jobs" },
-      { "binding": "SPEND", "queue": "tha-bay-spend" }
+      { "binding": "SPEND", "queue": "tha-bay-spend" },
+      { "binding": "BUILDER", "queue": "tha-bay-npc-builder" }
     ],
     "consumers": [
       { "queue": "tha-bay-jobs", "max_batch_size": 50 },
-      { "queue": "tha-bay-spend", "max_batch_size": 100, "max_batch_timeout": 5 }
+      { "queue": "tha-bay-spend", "max_batch_size": 100, "max_batch_timeout": 5 },
+      // M06b1: the NPC builder's jobs (validation, soul generation with its probes). A soul job can run for minutes, so batches hold one job.
+      { "queue": "tha-bay-npc-builder", "max_batch_size": 1, "max_retries": 3 }
     ]
   },
   "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
@@ -74,6 +77,8 @@
     // Dialogue stays off in production until the operator flips npc.dialogue with route 47 (after M06a5). Mode must be "live" here (check:prod-routes).
     "FLAGS_JSON": "{}",
     "ANTHROPIC_MODE": "live",
+    // M06b1: OpenAI moderation and Workers AI Llama Guard for the NPC builder and the chat check; "live" here (check:prod-routes), fixtures elsewhere.
+    "MODERATION_MODE": "live",
     // AIG_BASE (AI Gateway gw-dialogue, https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic) is set by the operator once the gateway exists;
     // unset, calls go to the Anthropic API directly (U-NPC-02 fallback). AIG_ENV is optional ("synthetic" for the M14b1 T4 run).
     "FAL_MODE": "live",
@@ -94,10 +99,11 @@
   ],
   // The service-path database key (M05d). Required where the Worker is deployed; local dev and tests run without it (no database: the static fallback applies).
   // PLAY_TOKEN_HMAC is first required here (M04b3 left it out, DL-679); a version upload without it fails instead of skipping.
-  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET", "ANTHROPIC_API_KEY"] },
-  // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1).
+  // M06b1: OPENAI_MODERATION_API_KEY (absent: Llama Guard) and ANTHROPIC_BUILDER_KEY (workspace npc-builder; absent: the soul job answers upstream_unavailable).
+  "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET", "ANTHROPIC_API_KEY", "OPENAI_MODERATION_API_KEY", "ANTHROPIC_BUILDER_KEY"] },
+  // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1); 03:40 unpublished builder drafts (M06b1).
   // Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in there.
-  "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
+  "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *", "40 3 * * *"] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
@@ -134,16 +140,18 @@
       "queues": {
         "producers": [
           { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
-          { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+          { "binding": "SPEND", "queue": "tha-bay-spend-staging" },
+          { "binding": "BUILDER", "queue": "tha-bay-npc-builder-staging" }
         ],
         "consumers": [
           { "queue": "tha-bay-jobs-staging", "max_batch_size": 50 },
-          { "queue": "tha-bay-spend-staging", "max_batch_size": 100, "max_batch_timeout": 5 }
+          { "queue": "tha-bay-spend-staging", "max_batch_size": 100, "max_batch_timeout": 5 },
+          { "queue": "tha-bay-npc-builder-staging", "max_batch_size": 1, "max_retries": 3 }
         ]
       },
       // ANTHROPIC_API_KEY is not required in staging: it runs ANTHROPIC_MODE=fixture. Add it here when staging goes live (M06a3 AC-12).
       "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
-      "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *"] },
+      "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *", "40 3 * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "ai": { "binding": "AI" },
       "observability": {
@@ -166,8 +174,9 @@
         // placeholder until Q-15: R2 custom domain, no workers.dev form
         "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
         // npc.dialogue is on in staging; recorded streams answer until the operator sets ANTHROPIC_MODE=live and the key.
-        "FLAGS_JSON": "{\"npc.dialogue\":true}",
+        "FLAGS_JSON": "{\"npc.dialogue\":true,\"npc.builder\":true}",
         "ANTHROPIC_MODE": "fixture",
+        "MODERATION_MODE": "fixture",
         "FAL_MODE": "mock",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
@@ -206,7 +215,8 @@
     "queues": {
       "producers": [
         { "binding": "JOBS", "queue": "tha-bay-jobs-staging" },
-        { "binding": "SPEND", "queue": "tha-bay-spend-staging" }
+        { "binding": "SPEND", "queue": "tha-bay-spend-staging" },
+        { "binding": "BUILDER", "queue": "tha-bay-npc-builder-staging" }
       ]
     },
     "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
@@ -225,8 +235,9 @@
       "MEDIA_ROUTE": "on",
       // placeholder until Q-15: R2 custom domain, no workers.dev form
       "HOST_UGC": "https://tha-bay-ugc-staging.workers.dev",
-      "FLAGS_JSON": "{\"npc.dialogue\":true}",
+      "FLAGS_JSON": "{\"npc.dialogue\":true,\"npc.builder\":true}",
       "ANTHROPIC_MODE": "fixture",
+      "MODERATION_MODE": "fixture",
       "FAL_MODE": "mock"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
       // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to

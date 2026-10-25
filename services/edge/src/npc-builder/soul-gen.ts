@@ -99,7 +99,7 @@ export async function runSoul(jc: JobCtx, draftId: string, jobId: string, reserv
       if (attempt === 1) {
         messages.push({ role: 'assistant', content: previous }, { role: 'user', content: `${BUILDER.prompts.repair}\n\nProblems:\n${repairNote(issues)}` });
       }
-      const ans = await callModel(jc.env, up, body(messages), { npcId: BUILDER_FIXTURE_NPC, intent: attempt === 0 ? 'builder-soul' : 'builder-repair', hero: true });
+      const ans = await callModel(jc.env, up, body(messages), { npcId: BUILDER_FIXTURE_NPC, intent: `${attempt === 0 ? 'builder-soul' : 'builder-repair'}:${fields.district}`, hero: true });
       calls++;
       spent += ans.micros;
       previous = ans.text;

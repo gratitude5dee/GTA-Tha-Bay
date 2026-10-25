@@ -29,6 +29,9 @@ export function setBuilderSinkForTests(fn: ((job: BuilderJob) => void) | null): 
   sink = fn;
 }
 
+/** How many inline jobs are running in this isolate (tests drive their virtual clock while it is above zero). */
+export const pendingBuilderJobs = (): number => inflight.size;
+
 /** Waits for every inline job started in this isolate (tests and the staging `drain` route). Returns how many there were. */
 export async function drainBuilder(): Promise<number> {
   let n = 0;

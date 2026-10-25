@@ -1,3 +1,4 @@
+import { builderDefaultFixture } from '../npc-builder/fixture-defaults.ts';
 import { UpstreamError, type StreamEvent, type Timing, type Upstream } from './upstream-types.ts';
 
 /**
@@ -180,6 +181,9 @@ const TEXT_LINE = 'Copy that. This answer is a recorded fixture, not a live mode
 
 /** The recorded-style stream a Worker in fixture mode answers with when no test chose another one. */
 export function defaultFixtureText(req: FixtureRequest): string {
+  // M06b1: the NPC builder's own calls and the replies of user NPCs (npc-builder/fixture-defaults.ts).
+  const builder = builderDefaultFixture(req);
+  if (builder !== null) return builder;
   // M06a4: the summarize consumer asks with intent `summary` (npc-summary-1.0) and `summary-compress` ({ summary }).
   if (req.intent === 'summary') {
     return buildStream({

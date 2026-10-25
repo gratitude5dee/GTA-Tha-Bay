@@ -153,17 +153,24 @@ describe('check:prod-routes', () => {
   });
 
   it('flags a mock prod FAL_MODE and an enabled define', () => {
-    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
+    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
     expect(prodConfigProblems(bad)).toHaveLength(2);
-    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
+    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
     expect(prodConfigProblems(good)).toEqual([]);
   });
 
   it('flags a production ANTHROPIC_MODE that is fixture or unset (M06a3)', () => {
     const base = (mode: string): string => `{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod"${mode} }, "define": { "__DV_TEST_ROUTES__": "false" } }`;
-    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "fixture"'))).toEqual([expect.stringContaining('ANTHROPIC_MODE')]);
-    expect(prodConfigProblems(base(''))).toEqual([expect.stringContaining('unset')]);
-    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "live"'))).toEqual([]);
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "fixture", "MODERATION_MODE": "live"'))).toEqual([expect.stringContaining('ANTHROPIC_MODE')]);
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "live"'))).toEqual([expect.stringContaining('unset')]);
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live"'))).toEqual([]);
+  });
+
+  it('flags a production MODERATION_MODE that is fixture or unset (M06b1)', () => {
+    const base = (mode: string): string => `{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live"${mode} }, "define": { "__DV_TEST_ROUTES__": "false" } }`;
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "fixture"'))).toEqual([expect.stringContaining('MODERATION_MODE')]);
+    expect(prodConfigProblems(base(''))).toEqual([expect.stringContaining('MODERATION_MODE')]);
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "live"'))).toEqual([]);
   });
 });
 
