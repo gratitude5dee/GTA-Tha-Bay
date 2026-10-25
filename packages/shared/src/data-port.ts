@@ -79,6 +79,14 @@ export type RelationshipRow = MsRow<PublicTables['npc_relationship']['Row'], 'la
 export type RosterFlagRow = MsRow<PublicTables['roster_flag']['Row'], 'set_at'>;
 /** One row of `encounter_transcripts` (the index of a transcript object in PRIVATE), M06a1. */
 export type TranscriptRow = MsRow<PublicTables['encounter_transcripts']['Row'], 'closed_at' | 'expires_at'>;
+/** One row of `npc_draft` (the NPC builder's working copy of a character, 04-npc-builder.md section C2), M06b1. */
+export type NpcDraftRow = MsRow<PublicTables['npc_draft']['Row'], 'created_at' | 'updated_at'>;
+/** One row of `npc_soul` (a user NPC's compiled soul version; the prompt itself lives in PRIVATE), M06b1. */
+export type NpcSoulRow = MsRow<PublicTables['npc_soul']['Row'], 'published_at' | 'created_at'>;
+/** One row of `moderation_signal` (one automated check), M06b1. */
+export type ModerationSignalRow = MsRow<PublicTables['moderation_signal']['Row'], 'created_at'>;
+/** One row of `moderation_case`, M06b1. */
+export type ModerationCaseRow = MsRow<PublicTables['moderation_case']['Row'], 'sla_due_at' | 'statutory_due_at' | 'created_at' | 'closed_at'>;
 
 // ---- Store interfaces: one method per route of section 2.4. Argument and result shapes are widened by the owner milestone. ----
 
@@ -120,14 +128,133 @@ export interface ForumStore {
   createPost(ctx: Ctx, threadId: string, post: unknown): Promise<unknown>;
   vote(ctx: Ctx, vote: unknown): Promise<unknown>;
 }
-/** Routes 41, 43, 44, 45, M06b1. */
+/** The `mod_subject` and `mod_state` enums (C12 1.1 `ModSubject`, migration 0004). */
+export type ModSubjectKind = Database['public']['Enums']['mod_subject'];
+export type ModItemState = Database['public']['Enums']['mod_state'];
+/** The queues of `moderation_case.queue` (research/gap-trust-safety-tooling.md section 6.5). */
+export type ModerationQueue = 'P0_CSAM' | 'P0_NCII' | 'P1_SAFETY' | 'P1_LEGAL' | 'P2_REVIEW' | 'P3_REVIEW' | 'APPEAL';
+/** Hours to the internal SLA target of a queue, computed at insert (section 6.5: CSAM 4 h to confirmation, NCII 48 h, safety 1 h, legal 24 h, P2 72 h, P3 5 d, appeals 7 d). */
+export const MODERATION_SLA_HOURS: Readonly<Record<ModerationQueue, number>> = {
+  P0_CSAM: 4,
+  P0_NCII: 48,
+  P1_SAFETY: 1,
+  P1_LEGAL: 24,
+  P2_REVIEW: 72,
+  P3_REVIEW: 120,
+  APPEAL: 168,
+};
+export interface ModerationSignalInput {
+  /** `names_lint | openai_omni | haiku_text | llama_guard | ...` (research section 6.8). */
+  source: string;
+  /** The model id or rules version. */
+  sourceVersion: string;
+  verdict: 'allow' | 'review' | 'block' | 'quarantine' | 'error';
+  scores: Record<string, unknown>;
+  latencyMs?: number;
+}
+export interface ModerationCaseInput {
+  /** Minted in the Worker. */
+  id: string;
+  itemId: string | null;
+  queue: ModerationQueue;
+  reason: string;
+  /** `auto:<source>`, `report`, `legal` or a profile id. */
+  openedBy: string;
+  /** What a reviewer sees even after later edits (09-backend-db.md section 3.4). */
+  snapshot: Record<string, unknown>;
+}
+/**
+ * Moderation tables. M06b1 implements the members it uses (an item per subject, its automated signals, a case, and the reads that prove
+ * them). The report, decision, evidence, hash-bank and takedown members belong to M06b2 and M13d1 and reject with NotImplementedError
+ * until then (routes 41, 43, 44, 45); both ports spread `laterModeration()` for them.
+ */
 export interface ModerationStore {
+  /** The id of the moderation item of a subject; creates it with `newId` when the subject has none. */
+  ensureItem(subject: { kind: ModSubjectKind; id: string; ownerProfileId: string; newId: string }): Promise<string>;
+  setItemState(itemId: string, state: ModItemState): Promise<void>;
+  /** Appends signals (the table is append-only). */
+  recordSignals(itemId: string, signals: readonly ModerationSignalInput[]): Promise<void>;
+  /** Opens a case; `sla_due_at` is computed here from the queue and the clock. */
+  openCase(c: ModerationCaseInput): Promise<ModerationCaseRow>;
+  /** Every signal recorded for the draft's item, oldest first (empty when the draft has none). */
+  draftVerdicts(draftId: string): Promise<ModerationSignalRow[]>;
+  /** Cases opened about a subject, oldest first. */
+  casesFor(kind: ModSubjectKind, subjectId: string): Promise<ModerationCaseRow[]>;
   report(ctx: Ctx, report: unknown): Promise<unknown>;
   listCases(ctx: Ctx, query: unknown): Promise<unknown>;
   decide(ctx: Ctx, caseId: string, decision: unknown): Promise<unknown>;
   evidence(ctx: Ctx, id: string): Promise<unknown>;
   hashBank(ctx: Ctx, bank: string, entries: unknown): Promise<unknown>;
   takedowns(ctx: Ctx): Promise<unknown>;
+}
+/** The members of ModerationStore that land after M06b1. */
+export function laterModeration(): Pick<ModerationStore, 'report' | 'listCases' | 'decide' | 'evidence' | 'hashBank' | 'takedowns'> {
+  return {
+    report: rejectLater('M06b2'),
+    listCases: rejectLater('M06b2'),
+    decide: rejectLater('M06b2'),
+    evidence: rejectLater('M13d1'),
+    hashBank: rejectLater('M13d1'),
+    takedowns: rejectLater('M13d1'),
+  };
+}
+
+/** Columns of a draft that a patch may change. */
+export interface DraftPatch {
+  state?: NpcDraftRow['state'];
+  fields?: NpcDraftRow['fields'];
+  backstory?: string;
+  moderation?: NpcDraftRow['moderation'];
+  publishable?: boolean;
+  soul_md?: string | null;
+  lint?: NpcDraftRow['lint'];
+  probes?: NpcDraftRow['probes'];
+  jobs?: NpcDraftRow['jobs'];
+  soul_version?: number | null;
+}
+export interface DraftInsert {
+  id: string;
+  npcId: string;
+  ownerProfileId: string;
+  fields: NpcDraftRow['fields'];
+  attestation: 'original';
+}
+export interface NpcSoulInsert {
+  npcId: string;
+  soulVersion: number;
+  ownerProfileId: string;
+  soulMd: string;
+  compiledJson: NpcSoulRow['compiled_json'];
+  promptR2Key: string;
+  promptSha256: string;
+  status: NpcSoulRow['status'];
+}
+/** The NPC builder's tables, `npc_draft` and `npc_soul` (M06b1; added beyond C12 section 2.6 like `maintenance`). */
+export interface BuilderStore {
+  /** Creates a draft when the owner holds fewer than `maxLive` drafts; 'limit' otherwise. */
+  createDraft(d: DraftInsert, maxLive: number): Promise<NpcDraftRow | 'limit'>;
+  getDraft(id: string): Promise<NpcDraftRow | null>;
+  /** The owner's drafts, newest update first. */
+  listDrafts(ownerProfileId: string): Promise<NpcDraftRow[]>;
+  /**
+   * Applies `patch` when the row still has revision `ifRev` (absent or null: no check) and is in one of `fromStates` (absent or null: any).
+   * `bumpRev` adds one to `rev` (an edit by the author). Returns the new row, 'conflict' (stale rev), 'state' (not in `fromStates`), or
+   * null (no such draft).
+   */
+  updateDraft(
+    id: string,
+    patch: DraftPatch,
+    guard?: { ifRev?: number | null; fromStates?: readonly NpcDraftRow['state'][] | null; bumpRev?: boolean },
+  ): Promise<NpcDraftRow | 'conflict' | 'state' | null>;
+  deleteDraft(id: string, ownerProfileId: string): Promise<boolean>;
+  /** Inserts a soul version, or replaces the row of the same (npcId, soulVersion). */
+  putSoul(s: NpcSoulInsert): Promise<void>;
+  /** The soul version, or the newest version when `soulVersion` is omitted. */
+  getSoul(npcId: string, soulVersion?: number): Promise<NpcSoulRow | null>;
+  /** PRIVATE keys of the souls of a profile (for the forget job). */
+  soulKeys(ownerProfileId: string): Promise<string[]>;
+  /** Deletes unpublished drafts last updated before `beforeMs` (at most `limit`) with their private souls; returns what it removed. */
+  purgeStaleDrafts(beforeMs: number, limit: number): Promise<{ npcId: string; promptKeys: string[] }[]>;
 }
 /** Route 46 request as the store takes it: `standIn` is resolved by the caller. */
 export type KillRequest = Required<Pick<KillReq, 'standIn'>> & Omit<KillReq, 'standIn'>;
@@ -244,6 +371,8 @@ export interface ServerDataPort extends DataPort {
   catalog: CatalogStore;
   audit: AuditStore;
   maintenance: MaintenanceStore;
+  /** The NPC builder's drafts and souls (M06b1). */
+  builder: BuilderStore;
 }
 
 /**
