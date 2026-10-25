@@ -77,6 +77,9 @@ async function startNewGame(page: Page, name: string): Promise<void> {
   await page.getByTestId('btn-new-start').click();
 }
 
+/** WebKit on Linux has no OPFS the asset worker can use, so its pack store is the memory fallback: the gate then skips for `memory` first. */
+const storeIsMemory = (page: Page): Promise<boolean> => page.evaluate(() => (window as unknown as B).__dvBridge.assets.storeKind() === 'memory-fallback');
+
 const count = (log: Hit[], url: string): number => log.filter((h) => h.url === url).length;
 
 test.describe('boot prefetch @world-prefetch', () => {
@@ -93,24 +96,28 @@ test.describe('boot prefetch @world-prefetch', () => {
     await passGates(page);
     await waitForEngineReady(page);
     await waitRevealed(page);
-    await expect.poll(() => prefetchState(page), { timeout: 120_000 }).toBe('running');
+    const memory = await storeIsMemory(page);
+    await expect.poll(() => prefetchState(page), { timeout: 120_000 }).toBe(memory ? 'skipped' : 'running');
 
     const plan = await plannedUrls(page);
     const planned = [...plan.now, ...plan.soon];
     expect(planned.length).toBeGreaterThan(0);
-    // Nothing speculative before the reveal: the controller queued its download after the instant the view revealed.
-    const at = await revealPerf(page);
-    expect(at).toBeDefined();
     const started = await page.evaluate(() => (window as unknown as B).__dvBridge.world.prefetch());
-    expect(started?.startedMs).not.toBeNull();
-    expect(started?.startedMs as number).toBeGreaterThanOrEqual(Math.floor(at as number));
-    expect(started?.sent).toBe(started?.missingAtStart);
-    expect(started?.sent).toBeGreaterThan(0);
-
-    // The idle lane carries the download while the menu stays open.
-    await expect
-      .poll(async () => (await page.evaluate(() => (window as unknown as B).__dvBridge.assets.lanes())).peak['idle'] ?? 0, { timeout: 120_000 })
-      .toBeGreaterThanOrEqual(1);
+    if (memory) {
+      expect(started).toMatchObject({ state: 'skipped', skipped: 'memory', sent: 0, startedMs: null });
+    } else {
+      // Nothing speculative before the reveal: the controller queued its download after the instant the view revealed.
+      const at = await revealPerf(page);
+      expect(at).toBeDefined();
+      expect(started?.startedMs).not.toBeNull();
+      expect(started?.startedMs as number).toBeGreaterThanOrEqual(Math.floor(at as number));
+      expect(started?.sent).toBe(started?.missingAtStart);
+      expect(started?.sent).toBeGreaterThan(0);
+      // The idle lane carries the download while the menu stays open.
+      await expect
+        .poll(async () => (await page.evaluate(() => (window as unknown as B).__dvBridge.assets.lanes())).peak['idle'] ?? 0, { timeout: 120_000 })
+        .toBeGreaterThanOrEqual(1);
+    }
     const lanes = await page.evaluate(() => (window as unknown as B).__dvBridge.assets.lanes());
     console.log(`world-prefetch menu: peak=${JSON.stringify(lanes.peak)} planned=${planned.length} requested=${new Set(log.filter((h) => planned.includes(h.url)).map((h) => h.url)).size}`);
 
@@ -123,7 +130,7 @@ test.describe('boot prefetch @world-prefetch', () => {
 
     const report = await page.evaluate(() => (window as unknown as B).__dvBridge.world.prefetch());
     console.log(`world-prefetch report: ${JSON.stringify(report)}`);
-    expect(report?.state).toBe('running');
+    expect(report?.state).toBe(memory ? 'skipped' : 'running');
     expect(report?.planned).toBe(planned.length);
     expect(report?.planned).toBeGreaterThan(0);
     expect(report?.promoted).toBeGreaterThanOrEqual(0);
@@ -167,7 +174,9 @@ test.describe('boot prefetch gate @world-prefetch-skip', () => {
         await waitRevealed(page);
         await expect.poll(() => prefetchState(page), { timeout: 120_000 }).toBe('skipped');
         const report = await page.evaluate(() => (window as unknown as B).__dvBridge.world.prefetch());
-        expect(report?.skipped).toBe(c.why);
+        // The memory fallback outranks the other reasons (the unit spec covers the order).
+        const why = (await storeIsMemory(page)) ? 'memory' : c.why;
+        expect(report?.skipped).toBe(why);
         expect(report?.needBytes).toBeGreaterThan(0);
 
         // Nothing was handed to the asset worker, and the idle download never started. (The streamer's own demand for the rings is not the
@@ -176,7 +185,7 @@ test.describe('boot prefetch gate @world-prefetch-skip', () => {
         expect(report?.startedMs).toBeNull();
         await page.waitForTimeout(2_000);
         const again = await page.evaluate(() => (window as unknown as B).__dvBridge.world.prefetch());
-        expect(again).toMatchObject({ state: 'skipped', skipped: c.why, sent: 0, promoted: 0 });
+        expect(again).toMatchObject({ state: 'skipped', skipped: why, sent: 0, promoted: 0 });
         expect(log.length).toBeGreaterThan(0);
       });
     }
