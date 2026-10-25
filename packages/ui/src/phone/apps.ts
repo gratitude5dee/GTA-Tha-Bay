@@ -45,6 +45,15 @@ export interface SandboxVehiclesView {
   online: boolean;
 }
 
+/** `mode.sandbox.player` (M04e4): the session-only body toggles, and whether a session car is driven or within reach. */
+export interface SandboxPlayerView {
+  godMode: boolean;
+  superJump: boolean;
+  carNoDamage: boolean;
+  car: 'none' | 'near' | 'driving';
+  online: boolean;
+}
+
 /** The class order of the Cars tab: the racing classes from everyday to robotaxi. */
 export const SANDBOX_CAR_CLASSES: readonly string[] = ['D', 'C', 'B', 'A', 'S', 'R'];
 
@@ -85,6 +94,8 @@ export interface PhoneEnv {
   sandboxTeleport?: SandboxTeleportView | undefined;
   /** `mode.sandbox.vehicles`; absent until the sandbox has published it. */
   sandboxVehicles?: SandboxVehiclesView | undefined;
+  /** `mode.sandbox.player` (M04e4); absent until the sandbox has published it. */
+  sandboxPlayer?: SandboxPlayerView | undefined;
   /** The Display tab's stored toggles (`SandboxSlice.toggles`). */
   hideHud?: boolean;
   hideMinimap?: boolean;
@@ -129,6 +140,8 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
   const off = w.online ? { disabled: lk('sandbox.refuse.online') } : {};
   const set = (path: string, v: boolean | number): UiAction => ({ cmd: { t: 'sandbox.set', path, v } });
   const btn = (id: string, label: LocKey, on: boolean, onPress: UiAction): Widget => ({ k: 'button', id, label, style: on ? 'primary' : 'secondary', onPress, ...off });
+  const sp = env.sandboxPlayer ?? { godMode: false, superJump: false, carNoDamage: false, car: 'none' as const, online: false };
+  const bodyOff = sp.online || w.online ? { disabled: lk('sandbox.refuse.online') } : {};
   const heat = (n: number): Widget => ({
     k: 'button', id: `heat-${n}`, label: lk(`phone.sandbox.heat${n}`), style: env.heat === n ? 'primary' : 'secondary', onPress: set('sandbox.player.heat', n),
   });
@@ -139,6 +152,10 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
       k: 'button', id: 'never-wanted', label: lk(env.neverWanted ? 'phone.sandbox.neverOn' : 'phone.sandbox.neverOff'), style: env.neverWanted ? 'primary' : 'secondary',
       onPress: set('sandbox.player.neverWanted', !env.neverWanted),
     },
+    // The body toggles and "patch me up" (M04e4): session-only, greyed out online.
+    { k: 'button', id: 'sandbox-godmode', label: lk(sp.godMode ? 'phone.sandbox.player.godOn' : 'phone.sandbox.player.godOff'), style: sp.godMode ? 'primary' : 'secondary', onPress: set('sandbox.player.godMode', !sp.godMode), ...bodyOff },
+    { k: 'button', id: 'sandbox-superjump', label: lk(sp.superJump ? 'phone.sandbox.player.jumpOn' : 'phone.sandbox.player.jumpOff'), style: sp.superJump ? 'primary' : 'secondary', onPress: set('sandbox.player.superJump', !sp.superJump), ...bodyOff },
+    { k: 'button', id: 'sandbox-restore', label: lk('phone.sandbox.player.restore'), style: 'secondary', onPress: { cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'player.restore' } }, ...bodyOff },
   ];
   const weather: Widget[] = [
     { k: 'heading', text: lk('phone.sandbox.weather'), level: 2 },
@@ -193,7 +210,21 @@ function sandboxScreen(env: PhoneEnv): ScreenDef {
   const cv = env.sandboxVehicles ?? { catalog: [], owned: [], cap: 8, pending: null, online: false };
   const carOff = cv.online || w.online ? { disabled: lk('sandbox.refuse.online') } : {};
   const spawnCar = (prefab: string, seat: 'none' | 'driver'): UiAction => ({ cmd: { t: 'mode.cmd', mode: 'sandbox', name: 'vehicle.spawn', args: { prefab, seat } } });
-  const cars: Widget[] = [];
+  // The session car the player drives or stands beside (M04e4): the three actions need one, and the dent-proof toggle does not.
+  const carAct = (id: string, label: string, name: string): Widget => ({
+    k: 'button', id, label: lk(label), style: 'secondary', onPress: { cmd: { t: 'mode.cmd', mode: 'sandbox', name } },
+    ...(sp.online || cv.online || w.online ? { disabled: lk('sandbox.refuse.online') } : sp.car === 'none' ? { disabled: lk('sandbox.refuse.needCar') } : {}),
+  });
+  const cars: Widget[] = [
+    { k: 'heading', text: lk('phone.sandbox.car.mine'), level: 2 },
+    carAct('car-repair', 'phone.sandbox.car.repair', 'vehicle.repair'),
+    carAct('car-upright', 'phone.sandbox.car.upright', 'vehicle.upright'),
+    carAct('car-dismiss', 'phone.sandbox.car.dismiss', 'vehicle.dismiss'),
+    {
+      k: 'button', id: 'car-nodamage', label: lk(sp.carNoDamage ? 'phone.sandbox.car.noDentOn' : 'phone.sandbox.car.noDentOff'), style: sp.carNoDamage ? 'primary' : 'secondary',
+      onPress: set('sandbox.vehicle.noDamage', !sp.carNoDamage), ...(sp.online || cv.online || w.online ? { disabled: lk('sandbox.refuse.online') } : {}),
+    },
+  ];
   for (const cls of SANDBOX_CAR_CLASSES) {
     const inClass = cv.catalog.filter((c) => c.cls === cls);
     if (inClass.length === 0) continue;
