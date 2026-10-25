@@ -76,17 +76,25 @@ test.describe('offline download', () => {
 
     // Every entry that resolves for this tier, with the catalog's own numbers.
     const entries = await catalogEntries(request);
-    const resolvable: Array<{ ref: string; bytes: number; sha256: string; worldPack: boolean }> = [];
-    for (const [ref, e] of Object.entries(entries)) {
-      const r = await page.evaluate(async (ref) => {
+    // One page.evaluate per phase, never one per ref: on the software-GL projects the engine keeps the page's main thread busy, so
+    // every round trip costs about 0.3 s and 440 refs times three loops alone would outlast the test timeout.
+    const refs = Object.keys(entries);
+    const resolved = await page.evaluate(async (list) => {
+      const out: Array<{ ref: string; bytes: number; sha256: string } | null> = [];
+      for (const ref of list) {
         try {
           const p = await (window as unknown as W).__dvBridge.assets.resolve(ref);
-          return { bytes: p.bytes, sha256: p.sha256 };
+          out.push({ ref, bytes: p.bytes, sha256: p.sha256 });
         } catch {
-          return null;
+          out.push(null);
         }
-      }, ref);
-      if (r) resolvable.push({ ref, ...r, worldPack: e.kind === 'world_pack' });
+      }
+      return out;
+    }, refs);
+    const resolvable: Array<{ ref: string; bytes: number; sha256: string; worldPack: boolean }> = [];
+    for (const r of resolved) {
+      const e = r ? entries[r.ref] : undefined;
+      if (r && e) resolvable.push({ ...r, worldPack: e.kind === 'world_pack' });
     }
     expect(resolvable.filter((r) => r.worldPack).length, 'the plan must hold at least one world-pack ref').toBeGreaterThan(0);
     const sum = resolvable.reduce((n, r) => n + r.bytes, 0);
@@ -102,17 +110,30 @@ test.describe('offline download', () => {
     await download.click();
     await expect(page.getByText(messages['settings.storage.offline.done'] as string)).toBeVisible();
 
-    for (const r of resolvable) {
-      expect(await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.has(ref), r.ref), `has(${r.ref})`).toBe(true);
-    }
+    const missing = await page.evaluate(async (list) => {
+      const out: string[] = [];
+      for (let i = 0; i < list.length; i += 32) {
+        const chunk = list.slice(i, i + 32);
+        const held = await Promise.all(chunk.map((ref) => (window as unknown as W).__dvBridge.assets.has(ref)));
+        chunk.forEach((ref, k) => void (held[k] || out.push(ref)));
+      }
+      return out;
+    }, resolvable.map((r) => r.ref));
+    expect(missing, 'refs the store does not hold after the download').toEqual([]);
 
     // The network now fails for good, in the same session: every world pack still reads from the store.
     const before = (await page.evaluate(() => (window as unknown as W).__dvBridge.assets.stats())).network;
     await page.evaluate(() => (window as unknown as W).__dvBridge.assets.injectFaults({ status: 'network', times: 100000 }));
-    for (const r of resolvable.filter((x) => x.worldPack)) {
-      const got = await page.evaluate((ref) => (window as unknown as W).__dvBridge.assets.get(ref), r.ref);
-      expect(got.sha256, `get(${r.ref})`).toBe(r.sha256);
-    }
+    const wrong = await page.evaluate(async (list) => {
+      const out: string[] = [];
+      for (let i = 0; i < list.length; i += 32) {
+        const chunk = list.slice(i, i + 32);
+        const got = await Promise.all(chunk.map(({ ref }) => (window as unknown as W).__dvBridge.assets.get(ref)));
+        chunk.forEach(({ ref, sha256 }, k) => void (got[k]?.sha256 === sha256 || out.push(`${ref}: ${got[k]?.sha256}`)));
+      }
+      return out;
+    }, resolvable.filter((x) => x.worldPack).map((x) => ({ ref: x.ref, sha256: x.sha256 })));
+    expect(wrong, 'world packs whose bytes differ from the catalog while the network fails').toEqual([]);
     expect((await page.evaluate(() => (window as unknown as W).__dvBridge.assets.stats())).network).toBe(before);
     await page.evaluate(() => (window as unknown as W).__dvBridge.assets.clearFaults());
 
