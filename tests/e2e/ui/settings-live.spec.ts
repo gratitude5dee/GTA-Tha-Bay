@@ -104,7 +104,7 @@ test.describe('settings that do something @ui-settings-live', () => {
 
     // AC-8: over 5 s the channel carries fps signals, at most two in any second.
     await page.waitForTimeout(5_000);
-    const sig = await page.evaluate(() => (window as unknown as { __sig: Array<{ at: number; msg: { kind?: string; ref?: string } }> }).__sig);
+    const sig = await page.evaluate(() => (window as unknown as { __sig: Array<{ at: number; msg: { kind?: string; ref?: string; v?: number } }> }).__sig);
     const fps = sig.filter((s) => s.msg.kind === 'fps').map((s) => s.at);
     expect(fps.length).toBeGreaterThanOrEqual(1);
     for (const at of fps) expect(fps.filter((x) => x >= at && x < at + 1000).length).toBeLessThanOrEqual(2);
@@ -148,7 +148,7 @@ test.describe('full screen @ui-fullscreen', () => {
       Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => current });
       Element.prototype.requestFullscreen = function (this: Element) {
         w.__fs.requests += 1;
-        current = this;
+        current = [this][0] as Element;
         document.dispatchEvent(new Event('fullscreenchange'));
         return Promise.resolve();
       };

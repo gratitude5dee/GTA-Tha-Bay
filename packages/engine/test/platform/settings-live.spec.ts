@@ -4,7 +4,7 @@ import { FpsFeed } from '../../src/platform/perf/fps-feed.ts';
 import { effectiveRenderScale } from '../../src/platform/render-scale.ts';
 import { DEFAULT_SETTINGS, createMemoryStore, normalizeSettings } from '../../src/platform/platform-store.ts';
 import { TIERS } from '../../src/platform/tier-config.ts';
-import { FakeRenderer, fakeFactory } from './fakes.ts';
+import { fakeFactory, type FakeRenderer } from './fakes.ts';
 
 describe('effectiveRenderScale (M04b5 AC-1)', () => {
   it('auto plays at full size and lets the backdrop run softer', () => {
@@ -34,7 +34,7 @@ describe('RendererHost.resize with a render scale (M04b5 AC-1)', () => {
     h.tier = tier;
     const ratios: number[] = [];
     const renderer = factory.state.renderers[0] as FakeRenderer;
-    renderer.setPixelRatio = (r: number) => void ratios.push(r);
+    (renderer as unknown as { setPixelRatio(r: number): void }).setPixelRatio = (r: number) => void ratios.push(r);
     const dpr = (globalThis as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
     h.resize(1200, 800, 0.5);
     h.resize(1200, 800, 1);

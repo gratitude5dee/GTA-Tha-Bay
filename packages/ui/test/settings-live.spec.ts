@@ -127,7 +127,7 @@ describe('full screen (M04b5 AC-5)', () => {
     expect(fullscreenAvailable(fakeDoc(), 'desktop')).toBe(true);
     expect(fullscreenAvailable(fakeDoc(), 'mobile')).toBe(true);
     expect(fullscreenAvailable(fakeDoc({ fullscreenEnabled: false }), 'desktop')).toBe(false);
-    expect(fullscreenAvailable(fakeDoc({ fullscreenEnabled: undefined }), 'desktop')).toBe(false);
+    expect(fullscreenAvailable(fakeDoc({ fullscreenEnabled: undefined } as unknown as Partial<FullscreenDoc>), 'desktop')).toBe(false);
     expect(fullscreenAvailable(fakeDoc(), 'xr')).toBe(false);
     expect(fullscreenAvailable(null, 'desktop')).toBe(false);
     expect(fullscreenState(fakeDoc({ fullscreenElement: {} }), 'desktop')).toEqual({ available: true, active: true });
