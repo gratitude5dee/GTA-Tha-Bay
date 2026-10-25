@@ -199,6 +199,15 @@ export function defaultFixtureText(req: FixtureRequest): string {
   if (req.intent === 'summary-compress') {
     return buildStream({ model: req.model, answer: { summary: 'The player has visited the lot several times and is polite and reliable.' }, inputTokens: 600, outputTokens: 40 });
   }
+  // M06c: route 32 asks with intent `intent` (npc-intent-1.0). A Worker in fixture mode keeps every hero to the schedule.
+  if (req.intent === 'intent') {
+    return buildStream({
+      model: req.model,
+      answer: { goal: 'continue_schedule', target: null, urgency: 'low', bark: null, until: 'next_block' },
+      inputTokens: 520,
+      outputTokens: 24,
+    });
+  }
   const first = req.turnIndex === 0;
   return buildStream({
     model: req.model,
