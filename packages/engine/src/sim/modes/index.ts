@@ -19,7 +19,7 @@ import { Control, LocalPlayer, Transform } from '../ecs/components.ts';
 import type { SimModule, SimModuleContext } from '../runtime.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { requestTeleport } from '../control/ownership.ts';
-import { seatDriver } from '../vehicle/enter-exit.ts';
+import { reseatDriver, setDownBeside } from '../vehicle/enter-exit.ts';
 import type { PursuitModule } from '../pursuit/module.ts';
 import type { ModeSaveBinding, SaveWritePort } from '../save-port.ts';
 import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
@@ -524,11 +524,16 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
               return true;
             },
           },
-          // A resumed checkpoint seats the player in the cast vehicle it was saved in (DL-736, `ctx.vehicleSeat`).
+          // A resumed checkpoint seats the player in the cast vehicle it was saved in (DL-736, `ctx.vehicleSeat`): out of any other vehicle
+          // first, and set down beside the car when the seat cannot be taken (BD-FIX-SPAWN-12).
           vehicleSeat: {
             seat: (rider, veh) => {
               const vc = services.vehicleCtx;
-              return vc ? seatDriver(s.ecs, vc.backend, vc.store, services, rider, veh, tick()) : false;
+              return vc ? reseatDriver(s.ecs, vc.backend, vc.store, services, rider, veh, tick()) : false;
+            },
+            setDown: (rider, veh) => {
+              const vc = services.vehicleCtx;
+              return vc ? setDownBeside(s.ecs, vc.backend, vc.store, services, rider, veh, tick()) : false;
             },
           },
         },
