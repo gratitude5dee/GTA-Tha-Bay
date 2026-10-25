@@ -16,6 +16,7 @@ import { existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { QualityTierId } from '../../packages/shared/src/index.ts';
 import { args, repoRoot } from './run.ts';
+import { scrubbedEnv } from './secret-env.ts';
 import { isMain } from './lib/common.ts';
 import { verifyFile } from './perf-verify.ts';
 import { laneLimits } from '../../packages/engine/src/assets/store/lanes.ts';
@@ -240,9 +241,11 @@ function main(): void {
         }
       }
     }
+    // BD-FIX-SEC-01: Playwright, its web server and the browsers start without a live secret (tools/ci/secret-env.ts).
+    const baseEnv = scrubbedEnv(process.env, { label: 'check:perf' });
     for (const scenario of scenarios) {
       const env = {
-        ...process.env,
+        ...baseEnv,
         DV_PERF_SCENARIO: scenario,
         ...(flag('--duration') ? { DV_PERF_DURATION_S: flag('--duration') as string } : {}),
         ...(flag('--warmup') ? { DV_PERF_WARMUP_S: flag('--warmup') as string } : {}),

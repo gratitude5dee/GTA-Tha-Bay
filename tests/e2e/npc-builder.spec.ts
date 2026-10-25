@@ -5,6 +5,7 @@ import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import type { NpcBridge } from '../../packages/npc/src/debug/overlay.ts';
 import { createHmac } from 'node:crypto';
+import { scrubbedEnv } from '../../tools/ci/secret-env.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 
 /**
@@ -21,7 +22,6 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
 const PORT = Number(process.env['DV_E2E_PORT'] ?? 8788) + 1;
 // The request.cf file the main config writes for the local Worker (playwright.config.ts, BD-FIX-CI-02): the geo gate sees the country in it.
 const E2E_CF_PATH = path.resolve(`test-results/e2e-cf.${(process.env['DV_E2E_COUNTRY'] ?? 'US').toUpperCase()}.json`);
-const SECRET_NAMES = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY'];
 const ORIGIN = `http://localhost:${PORT}`;
 const SECRET = `k1:${Buffer.from(new Uint8Array(32).fill(7)).toString('base64url')}`;
 const PID = '0198aaaa-bbbb-7ccc-8ddd-0000000000b1';
@@ -56,9 +56,9 @@ async function waitHealthy(): Promise<void> {
 
 test.beforeAll(async () => {
   persist = mkdtempSync(path.join(tmpdir(), 'dv-builder-e2e-'));
-  const env: NodeJS.ProcessEnv = { ...process.env, WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH };
-  // The shell may hold production values; the Worker under test gets none of them (see playwright.config.ts, E2E_UNSET_SECRETS).
-  for (const k of [...SECRET_NAMES, 'FAL_KEY', 'SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_API_TOKEN']) delete env[k];
+  // The shell may hold production values; the Worker under test gets none of them, not even with DV_ALLOW_LIVE_SECRETS=1 (it has its own
+  // test-only PLAY_TOKEN_HMAC): every secret name of tools/ci/secret-env.ts is removed (BD-FIX-SEC-01).
+  const env: NodeJS.ProcessEnv = { ...scrubbedEnv(process.env, { label: 'npc-builder', force: true }), WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH };
   worker = spawn(
     'pnpm',
     ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--local', '--env', 'staging', '--port', String(PORT), '--persist-to', persist, '--var', `PLAY_TOKEN_HMAC:${SECRET}`],

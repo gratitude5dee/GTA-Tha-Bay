@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
+import { scrubProcessEnv, WORKER_LOCAL_SECRETS } from './tools/ci/secret-env.ts';
 import { enterTmpRoot, tmpRootEnv } from './tools/ci/tmp-root.ts';
 
 // BD-FIX-TMP-01: the runner, its workers, the web server (QA build and wrangler dev) and every spec work inside one per-run temporary
@@ -39,7 +40,12 @@ writeFileSync(E2E_CF_PATH, `${JSON.stringify({ country: E2E_COUNTRY, colo: 'LOCA
 // (hud.spec.ts:19) saw "Failed to load resource: ... 503". A name the shell holds is passed on empty (every route treats an empty secret
 // as absent); a name it does not hold stays unset, so CI, where none is set, sees exactly what it saw before.
 // Keep equal to `secrets.required` of the top-level config (tools/ci/test/workflows.test.ts checks it).
-export const E2E_UNSET_SECRETS = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY'] as const;
+// BD-FIX-SEC-01: the list lives in tools/ci/secret-env.ts (one source of truth). Before that, at config load, every secret name of that
+// module is removed from this runner's own environment, so the web server (Playwright merges process.env into webServer.env), the
+// workers (forked with process.env) and every spec start without them; tools/ci/run.ts already did the same for `check:e2e`. With the
+// operator's opt-in (DV_ALLOW_LIVE_SECRETS=1) the names stay, and the Worker's own names below are still passed on empty.
+scrubProcessEnv({ label: 'playwright' });
+export const E2E_UNSET_SECRETS = WORKER_LOCAL_SECRETS;
 const unsetSecrets: Record<string, string> = Object.fromEntries(E2E_UNSET_SECRETS.filter((k) => process.env[k] !== undefined).map((k) => [k, '']));
 
 // The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with

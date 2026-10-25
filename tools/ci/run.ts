@@ -12,6 +12,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { scrubProcessEnv } from './secret-env.ts';
 import { spawnInTmpRoot } from './tmp-root.ts';
 
 /** Drops the first literal `--` from an argument list (and only the first). */
@@ -105,12 +106,17 @@ async function main(): Promise<number> {
     console.error(`run.ts: ${bin} not found; run pnpm install`);
     return 2;
   }
+  // BD-FIX-SEC-01: the test runners and everything they start (workers, web server, spawned CLIs) never inherit a live secret.
+  if (TEST_RUNNERS.has(tool)) scrubProcessEnv({ label: 'run.ts' });
   // BD-FIX-TMP-01: the tool and everything it starts work inside one per-run temporary root, removed when the tool exits (pass, fail or
   // interrupt). The spawn is asynchronous so the event loop stays free: tsx's signal relay is acknowledged (a blocked loop got run.ts
   // SIGKILLed on Ctrl-C and the root leaked), SIGINT, SIGTERM and SIGHUP are forwarded to the tool (and to no other process), and the
   // exit code is the tool's (128 + signal when a signal ended it).
   return spawnInTmpRoot(tmpLabel(tool), bin, rest, { cwd: repoRoot, name: 'run.ts' });
 }
+
+/** The tools run.ts starts without the secret names of tools/ci/secret-env.ts (BD-FIX-SEC-01). */
+export const TEST_RUNNERS: ReadonlySet<string> = new Set(['vitest', 'playwright']);
 
 /** The per-run root label for a tool name (`dv-<label>-<pid>-XXXXXX`). */
 export function tmpLabel(tool: string): string {

@@ -1,9 +1,14 @@
 import { cloudflareTest } from '@cloudflare/vitest-plugin';
 import { defineConfig } from 'vitest/config';
+import { scrubProcessEnv } from '../../tools/ci/secret-env.ts';
 
 
 // Workers-runtime tests (check:workers). The Worker runs in workerd with the vars below and an in-memory AE stub
 // supplied by each test; test routes are compiled in, as in staging and previews.
+// BD-FIX-SEC-01: a run started directly drops the live secret names before the pool (workerd, Miniflare, wrangler's `secrets.required`)
+// reads the environment (tools/ci/secret-env.ts; DV_ALLOW_LIVE_SECRETS=1 opts in).
+scrubProcessEnv({ label: 'check:workers vitest' });
+
 export default defineConfig({
   define: { __DV_TEST_ROUTES__: 'true' },
   plugins: [

@@ -11,6 +11,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getPlatformProxy } from 'wrangler';
+import { scrubProcessEnv } from '../../../tools/ci/secret-env.ts';
 import {
   FAL_DONE_EVENT,
   GENAI_REGISTRY,
@@ -80,6 +81,8 @@ function makeShim(events: { wake: (payload: unknown) => void; wait: (ms: number)
 }
 
 async function main(): Promise<void> {
+  // BD-FIX-SEC-01: the Miniflare proxy (edge wrangler config) and the spawned Vitest start without a live secret.
+  scrubProcessEnv({ label: 'check:pipeline' });
   process.env['WRANGLER_LOG'] ??= 'error'; // the edge config binds Durable Objects that a Node proxy cannot host; only R2 is used
   // The R2 buckets come from the edge Worker's own wrangler config (Miniflare under the hood, nothing persisted).
   const configPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../edge/wrangler.jsonc');
