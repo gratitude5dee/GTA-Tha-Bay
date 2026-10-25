@@ -6,13 +6,17 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { repoRoot, tmpLabel } from '../run.ts';
 import {
   TMP_ROOT_ENV,
+  TMP_ROOT_MARKER,
   TMP_ROOT_NAME,
   TMP_VARS,
   checkTmpRoot,
   createTmpRoot,
   enterTmpRoot,
   pidAlive,
+  processesInRoot,
+  readTmpRootMarker,
   removeTmpRoot,
+  runtimeIdentity,
   sweepStaleTmpRoots,
   withTmpRoot,
 } from '../tmp-root.ts';
@@ -28,6 +32,19 @@ const scratch = (prefix: string): string => {
   made.push(d);
   return d;
 };
+
+/** Writes a per-run root marker into `dir`, as createTmpRoot does (`ns` defaults to this PID namespace). */
+const writeMarker = (dir: string, pid: number, ns: string | null = runtimeIdentity()): void =>
+  writeFileSync(path.join(dir, TMP_ROOT_MARKER), JSON.stringify({ ns, pid, label: 'unit' }));
+
+/** The pid of a child that has been spawned and reaped, so no process has it (checked; a reused pid fails the calling test). */
+function deadPid(): number {
+  const reaped = spawnSync(process.execPath, ['-e', '']);
+  expect(reaped.status).toBe(0);
+  const pid = reaped.pid as number;
+  expect(pidAlive(pid), `pid ${pid} was reused before the check; rerun`).toBe(false);
+  return pid;
+}
 
 /** Runs `fn` with DV_TEST_TMP_ROOT unset, so enterTmpRoot creates a root of its own (nested in the current one), then restores it. */
 function withoutInherited<T>(fn: () => T): T {
@@ -71,6 +88,10 @@ describe('tmp-root helpers', () => {
     const t = createTmpRoot('unit', base);
     expect(path.dirname(t.root)).toBe(base);
     expect(path.basename(t.root)).toMatch(new RegExp(`^dv-unit-${process.pid}-[A-Za-z0-9]{6}$`));
+    // The marker ties the root to its creator and to this PID namespace (what the sweep and checkTmpRoot read).
+    expect(runtimeIdentity()).toBeTruthy();
+    expect(readTmpRootMarker(t.root)).toEqual({ ns: runtimeIdentity(), pid: process.pid });
+    expect(checkTmpRoot(t.root)).toBeNull();
     mkdirSync(path.join(t.root, 'a', 'b'), { recursive: true });
     writeFileSync(path.join(t.root, 'a', 'b', 'f.txt'), 'x');
     t.cleanup();
@@ -197,8 +218,11 @@ async function waitFor<T>(what: string, ms: number, fn: () => T | undefined): Pr
 describe('an interrupted run removes its per-run root', () => {
   const PROBE = 'tools/ci/test/tmp-root.probe.spec.ts';
 
-  /** One round; `target` is the whole process group (Ctrl-C in a terminal) or run.ts alone (its pid is in the root's name). */
-  async function interruptRound(target: 'group' | 'run.ts', round: number): Promise<void> {
+  /**
+   * One round; `target` is the whole process group (Ctrl-C in a terminal), run.ts alone (its pid is in the root's name), or a SIGKILL
+   * of run.ts (what tsx's relay does when the acknowledgement misses its 30 ms window), which only the root's guard can clean up.
+   */
+  async function interruptRound(target: 'group' | 'run.ts' | 'run.ts SIGKILL', round: number): Promise<void> {
     const base = scratch('dv-intr-');
     const out = path.join(base, 'probe.json');
     const env: NodeJS.ProcessEnv = {
@@ -236,13 +260,18 @@ describe('an interrupted run removes its per-run root', () => {
       expect(name, path.basename(rec.root)).not.toBeNull();
       expect(existsSync(rec.dir)).toBe(true);
       if (target === 'group') process.kill(-pgid, 'SIGINT');
-      else process.kill(Number(name?.[1]), 'SIGINT');
+      else process.kill(Number(name?.[1]), target === 'run.ts' ? 'SIGINT' : 'SIGKILL');
       const res = await Promise.race([
         exited,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${tag}: no exit 30 s after SIGINT:\n${log}`)), 30_000)),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${tag}: no exit 30 s after the signal:\n${log}`)), 30_000)),
       ]);
       expect(res.code === 0, `${tag}: an interrupted run must not report success:\n${log}`).toBe(false);
+      if (target === 'run.ts SIGKILL') {
+        // tsx exits as soon as run.ts dies; Vitest and its worker live on as orphans until the guard stops them (5 s grace, SIGTERM).
+        await waitFor(`the guard to remove ${rec.root} (${tag})`, 30_000, () => (existsSync(rec.root) ? undefined : true));
+      }
       expect(existsSync(rec.root), `${tag}: per-run root ${rec.root} left behind:\n${log}`).toBe(false);
+      expect(processesInRoot(rec.root), `${tag}: processes still working in the removed root`).toEqual([]);
       expect(readdirSync(base).filter((n) => !/^tsx-\d+$/.test(n))).toEqual(['probe.json']);
     } finally {
       try {
@@ -261,6 +290,12 @@ describe('an interrupted run removes its per-run root', () => {
   // keeps recreating its folder, before it removes the root (with a blocking spawn the signal was ignored and the run went on).
   it('SIGINT to run.ts alone is forwarded, and the root goes only after the orphaned worker has stopped', async () => {
     await interruptRound('run.ts', 1);
+  }, 120_000);
+
+  // Nothing catches SIGKILL: the guard, a detached process holding a pipe from run.ts, sees the pipe close, stops the orphans and
+  // removes the root.
+  it('SIGKILL to run.ts: the root\'s guard stops the orphaned run and removes the root', async () => {
+    await interruptRound('run.ts SIGKILL', 1);
   }, 120_000);
 
   // A run.ts started inside this run (unit-collect.test.ts does that) reuses this run's root: it must neither stop the processes that
@@ -293,40 +328,145 @@ describe('an interrupted run removes its per-run root', () => {
 describe('stale-root sweep and outside DV_TEST_TMP_ROOT values', () => {
   it('sweepStaleTmpRoots removes a dead pid\'s root, keeps a live pid\'s root and never touches what fails the name', () => {
     const base = scratch('dv-sweep-');
-    const reaped = spawnSync(process.execPath, ['-e', '']);
-    const dead = reaped.pid as number;
-    expect(reaped.status).toBe(0);
-    expect(pidAlive(dead), `pid ${dead} was reused before the sweep; rerun`).toBe(false);
+    const dead = deadPid();
     expect(pidAlive(process.pid)).toBe(true);
 
     const deadRoot = path.join(base, `dv-unit-${dead}-abc123`);
     mkdirSync(path.join(deadRoot, 'nested'), { recursive: true });
     writeFileSync(path.join(deadRoot, 'nested', 'f.txt'), 'x');
+    writeMarker(deadRoot, dead);
     const liveRoot = path.join(base, `dv-unit-${process.pid}-def456`);
     mkdirSync(liveRoot);
+    writeMarker(liveRoot, process.pid);
     const badName = path.join(base, `dv-unit-${dead}-abc`);
     mkdirSync(badName);
+    writeMarker(badName, dead);
     const oldStyle = path.join(base, 'dv-map-test-abc123');
     mkdirSync(oldStyle);
     const aFile = path.join(base, `dv-unit-${dead}-file00`);
     writeFileSync(aFile, 'a file, not a root');
     const target = scratch('dv-target-');
     writeFileSync(path.join(target, 'keep.txt'), 'keep');
+    writeMarker(target, dead);
     const link = path.join(base, `dv-unit-${dead}-link00`);
     symlinkSync(target, link);
+    // Review fix (part 3): a root made in another PID namespace (a container or sandbox sharing the temp folder) is judged by a pid this
+    // namespace cannot see, so its marker keeps it; so does a folder with no marker or with a marker for another pid.
+    const foreign = path.join(base, `dv-unit-${dead}-frgn00`);
+    mkdirSync(foreign);
+    writeMarker(foreign, dead, 'linux:00000000-0000-0000-0000-000000000000:pid:[1]');
+    const unmarked = path.join(base, `dv-unit-${dead}-nomark`);
+    mkdirSync(unmarked);
+    const otherPid = path.join(base, `dv-unit-${dead}-other0`);
+    mkdirSync(otherPid);
+    writeMarker(otherPid, process.pid);
 
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     let removed: string[];
+    let warnings: string[];
     try {
       removed = sweepStaleTmpRoots(base);
+      warnings = warn.mock.calls.map((c) => String(c[0]));
     } finally {
       warn.mockRestore();
     }
     expect(removed).toEqual([deadRoot]);
+    // What it skips (a file, a symlink, unmarked or foreign folders) it skips without a word, so no run warns about them forever.
+    expect(warnings.filter((w) => w.includes('left in place'))).toEqual([]);
     expect(existsSync(deadRoot)).toBe(false);
-    for (const kept of [liveRoot, badName, oldStyle, aFile, link]) expect(existsSync(kept), kept).toBe(true);
+    for (const kept of [liveRoot, badName, oldStyle, aFile, link, foreign, unmarked, otherPid]) expect(existsSync(kept), kept).toBe(true);
     expect(readFileSync(path.join(target, 'keep.txt'), 'utf8')).toBe('keep');
   });
+
+  // The reviewer's reproduction: a live run in its own PID namespace (`unshare --pid --fork --mount-proc`, as a container or sandbox
+  // would be) whose root sits in a temp folder this namespace shares. Its creator's pid is not alive here, so before the marker the
+  // sweep removed the root mid-run; now the sweep must keep it and checkTmpRoot must refuse to adopt it.
+  const UNSHARE = ['--pid', '--fork', '--mount-proc', '--kill-child'];
+  const unshareWorks = process.platform === 'linux' && spawnSync('unshare', [...UNSHARE, 'true']).status === 0;
+  it.skipIf(!unshareWorks)('a live run in another PID namespace keeps its root (unshare --pid)', async () => {
+    const base = scratch('dv-pidns-');
+    const out = path.join(base, 'root.txt');
+    // Pids count from 1 in the new namespace. The namespace's first process uses up pids until its next child gets one at or above
+    // `from`, chosen so that this namespace has no process on it or on the next 200, then that child creates the root and stays alive.
+    let from = 300;
+    while (Array.from({ length: 200 }, (_, i) => from + i).some((p) => pidAlive(p))) from += 200;
+    const creator = [
+      `const m = await import(${JSON.stringify(path.join(repoRoot, 'tools/ci/tmp-root.ts'))});`,
+      `const t = m.createTmpRoot('unit', ${JSON.stringify(base)});`,
+      `(await import('node:fs')).writeFileSync(${JSON.stringify(out)}, t.root);`,
+      'setInterval(() => {}, 1000);',
+    ].join('\n');
+    const init = [
+      "const { spawn, spawnSync } = require('node:child_process');",
+      `while ((spawnSync('true').pid ?? 0) < ${from - 1});`,
+      `const c = spawn(process.execPath, ['--experimental-strip-types', '--no-warnings', '--input-type=module', '-e', ${JSON.stringify(creator)}], { stdio: 'inherit' });`,
+      "c.on('exit', (code) => process.exit(code ?? 1));",
+    ].join('\n');
+    const child = spawn('unshare', [...UNSHARE, process.execPath, '-e', init], { stdio: ['ignore', 'ignore', 'pipe'] });
+    let err = '';
+    child.stderr.on('data', (b: Buffer) => (err += b.toString()));
+    try {
+      const root = await waitFor('the root made in the other namespace', 30_000, () => {
+        if (child.exitCode !== null) throw new Error(`the namespaced run exited (${child.exitCode}):\n${err}`);
+        try {
+          return readFileSync(out, 'utf8') || undefined;
+        } catch {
+          return undefined;
+        }
+      });
+      const pid = Number(TMP_ROOT_NAME.exec(path.basename(root))?.[1]);
+      const marker = readTmpRootMarker(root);
+      expect(marker?.pid).toBe(pid);
+      expect(marker?.ns).not.toBe(runtimeIdentity());
+      // Seen from here the creator is dead, which is exactly what made the old sweep remove a live run's root: only the marker tells.
+      expect(pid).toBeGreaterThanOrEqual(from);
+      expect(pidAlive(pid), `pid ${pid} is in use in this namespace too; the check proves nothing, rerun`).toBe(false);
+      expect(sweepStaleTmpRoots(base)).toEqual([]);
+      expect(existsSync(root)).toBe(true);
+      expect(checkTmpRoot(root)).toMatch(/another PID namespace/);
+    } finally {
+      child.kill('SIGKILL');
+    }
+  }, 60_000);
+
+  it('processesInRoot finds a process that kept only TMPDIR, or only its working folder, in the root', async () => {
+    const root = scratch('dv-procs-');
+    // Grandchildren (direct children are left out by design): one with a scrubbed environment but TMPDIR, one with an empty one in the root.
+    const code = [
+      "const { spawn } = require('node:child_process');",
+      `const a = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { env: { TMPDIR: ${JSON.stringify(root)} }, stdio: 'ignore' });`,
+      `const b = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { env: {}, cwd: ${JSON.stringify(root)}, stdio: 'ignore' });`,
+      'console.log(JSON.stringify([a.pid, b.pid]));',
+      'setTimeout(() => {}, 60000);',
+    ].join('\n');
+    const starter = spawn(process.execPath, ['-e', code], { stdio: ['ignore', 'pipe', 'ignore'] });
+    let stdout = '';
+    starter.stdout.on('data', (b: Buffer) => (stdout += b.toString()));
+    const parsed = (): number[] | undefined => {
+      try {
+        return JSON.parse(stdout) as number[];
+      } catch {
+        return undefined;
+      }
+    };
+    try {
+      const pids = await waitFor('the two grandchildren', 30_000, parsed);
+      await waitFor('both found in the root', 30_000, () => {
+        const found = processesInRoot(root);
+        return pids.every((p) => found.includes(p)) ? true : undefined;
+      });
+      expect(processesInRoot(root)).not.toContain(starter.pid);
+    } finally {
+      for (const p of parsed() ?? []) {
+        try {
+          process.kill(p, 'SIGKILL');
+        } catch {
+          // Gone.
+        }
+      }
+      starter.kill('SIGKILL');
+    }
+  }, 60_000);
 
   it('removeTmpRoot refuses a symlink or a file that carries a per-run name', () => {
     const base = scratch('dv-base-');
@@ -344,8 +484,28 @@ describe('stale-root sweep and outside DV_TEST_TMP_ROOT values', () => {
 
   it('enterTmpRoot ignores an invalid DV_TEST_TMP_ROOT with a warning and makes a fresh root', () => {
     const plain = scratch('dv-plain-');
+    // Review fix (part 3): existing per-run-named folders that must not be adopted either: a root whose creator is dead (left by an
+    // earlier run and still exported in a shell), a folder without a marker, and a root made in another PID namespace.
+    const dead = deadPid();
+    const leaked = path.join(plain, `dv-unit-${dead}-leaked`);
+    mkdirSync(leaked);
+    writeMarker(leaked, dead);
+    const unmarked = path.join(plain, `dv-unit-${process.pid}-nomark`);
+    mkdirSync(unmarked);
+    const foreign = path.join(plain, `dv-unit-${process.pid}-frgn00`);
+    mkdirSync(foreign);
+    writeMarker(foreign, process.pid, 'linux:00000000-0000-0000-0000-000000000000:pid:[1]');
     // The file-system root, the system temp folder, an existing folder with another name, a per-run name that does not exist, a relative path.
-    const invalid = ['/', ...(existsSync('/tmp') ? ['/tmp'] : []), plain, path.join(plain, 'dv-unit-1-abcdef'), 'dv-unit-1-abcdef'];
+    const invalid = [
+      '/',
+      ...(existsSync('/tmp') ? ['/tmp'] : []),
+      plain,
+      path.join(plain, 'dv-unit-1-abcdef'),
+      'dv-unit-1-abcdef',
+      leaked,
+      unmarked,
+      foreign,
+    ];
     for (const value of invalid) {
       expect(checkTmpRoot(value), value).not.toBeNull();
       const saved = Object.fromEntries([TMP_ROOT_ENV, ...TMP_VARS].map((k) => [k, process.env[k]]));
@@ -374,5 +534,34 @@ describe('stale-root sweep and outside DV_TEST_TMP_ROOT values', () => {
       }
     }
     expect(existsSync(plain)).toBe(true);
+    for (const kept of [leaked, unmarked, foreign]) expect(existsSync(kept), kept).toBe(true);
+  });
+
+  it('a leaked root exported with TMPDIR pointing into it: the fresh root goes next to it and the sweep removes the leaked one', () => {
+    const parent = scratch('dv-leak-');
+    const dead = deadPid();
+    const leaked = path.join(parent, `dv-unit-${dead}-leaked`);
+    mkdirSync(path.join(leaked, 'fixture'), { recursive: true });
+    writeMarker(leaked, dead);
+    const saved = Object.fromEntries([TMP_ROOT_ENV, ...TMP_VARS].map((k) => [k, process.env[k]]));
+    for (const k of [TMP_ROOT_ENV, ...TMP_VARS]) process.env[k] = leaked;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const t = enterTmpRoot('unit', { guard: false });
+      expect(warn.mock.calls.some((c) => String(c[0]).includes(`ignoring ${TMP_ROOT_ENV}=${leaked}`))).toBe(true);
+      expect(t.owned).toBe(true);
+      expect(path.dirname(t.root)).toBe(parent);
+      expect(existsSync(leaked)).toBe(false);
+      expect(os.tmpdir()).toBe(t.root);
+      t.cleanup();
+      expect(existsSync(t.root)).toBe(false);
+      expect(readdirSync(parent)).toEqual([]);
+    } finally {
+      warn.mockRestore();
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
   });
 });
