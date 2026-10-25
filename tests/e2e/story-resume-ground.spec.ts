@@ -13,6 +13,10 @@ import { observe, SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  * m.a1.01 starts (the far start moves the player to the Yard), the player stands idle there, the mission is moved to its checkpoint stage,
  * and once the checkpoint save is confirmed the page is reloaded. The mission continues at that stage with the player grounded at the
  * saved pose (within 1 m), and the player is never under the ground: not before the restore, and not over the 300 ticks after it.
+ *
+ * The seated case (BD-FIX-SPAWN-12): the player is seated at the wheel of the m.a1.01 tow truck (the QA `vehicleOp('seat')`) before the
+ * checkpoint jump, so the checkpoint names the truck; after the reload the player resumes seated in it (owner Vehicle, driving), within 1 m
+ * of the saved pose, and the truck is never under the ground over the 300 ticks after the seat.
  */
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -37,13 +41,25 @@ const lastSave = (page: Page): Promise<{ reason: string; ok: boolean } | null> =
     const s = (await (window as unknown as W).__dvBridge.engine.save.list())[0]?.lastSave;
     return s ? { reason: s.reason, ok: s.ok } : null;
   });
-/** The saved checkpoint of `story:auto` (the QA save bridge reads the real `dv-saves` database): its stage and the player pose in it. */
-const savedCheckpoint = (page: Page): Promise<{ active: string | null; stage: number | null; player: Pose | null }> =>
+/** The saved checkpoint of `story:auto` (the QA save bridge reads the real `dv-saves` database): its stage, the player pose and the cast vehicle it sits in. */
+const savedCheckpoint = (page: Page): Promise<{ active: string | null; stage: number | null; player: Pose | null; vehicle: string | null }> =>
   page.evaluate(async () => {
     const s = (await (window as unknown as W).__dvBridge.engine.save.load()).game.story['auto'];
-    const cp = s?.activeMission?.checkpoint.data as { stage?: number; player?: { x: number; y: number; z: number } } | undefined;
-    return { active: s?.activeMission?.id ?? null, stage: cp?.stage ?? null, player: cp?.player ? { x: cp.player.x, y: cp.player.y, z: cp.player.z } : null };
+    const cp = s?.activeMission?.checkpoint.data as { stage?: number; player?: { x: number; y: number; z: number; vehicle?: string } } | undefined;
+    return {
+      active: s?.activeMission?.id ?? null, stage: cp?.stage ?? null, player: cp?.player ? { x: cp.player.x, y: cp.player.y, z: cp.player.z } : null,
+      vehicle: cp?.player?.vehicle ?? null,
+    };
   });
+/** `vehicleOp` of the engine bridge (the existing QA vehicle hooks): `state` answers for the nearest vehicle, or the one the player drives. */
+const vehicleOp = (page: Page, op: string, target?: number): Promise<Record<string, unknown> | null> =>
+  page.evaluate(([o, t]) => (window as unknown as W).__dvBridge.engine.vehicleOp(o as 'state', t as number | undefined), [op, target] as const);
+/** The stable key of an entity (the QA inspector; no handle: the vehicle the player drives, else the player). */
+const keyOf = async (page: Page, handle?: number): Promise<string | null> =>
+  ((await page.evaluate((h) => (window as unknown as W).__dvBridge.engine.tools.inspect(h), handle)) as { key?: string | null } | null)?.key ?? null;
+const TOW_KEY = 'mis:m.a1.01:tow';
+const OWNER_VEHICLE = 2;
+const DRIVING = 201;
 
 async function waitForBridges(page: Page): Promise<void> {
   await waitForEngine(page);
@@ -75,6 +91,8 @@ test.describe('checkpoint resume on the ground @story-resume-ground', () => {
     expect(await mission(page, (m) => m.jump(5))).toBe(true);
     await expect.poll(async () => (await state(page))?.stageId, { timeout: 30_000 }).toBe('tow_home');
     await expect.poll(() => lastSave(page), { timeout: 60_000, intervals: [250, 500, 1000] }).toEqual({ reason: 'checkpoint', ok: true });
+    // the mission start wrote a checkpoint save too, so the confirmed save above may be that one: wait for the stage-5 one itself
+    await expect.poll(async () => (await savedCheckpoint(page)).stage, { timeout: 60_000, intervals: [250, 500, 1000] }).toBe(5);
     const cp = await savedCheckpoint(page);
     expect(cp).toMatchObject({ active: 'm.a1.01', stage: 5 });
     const saved = cp.player as Pose;
@@ -122,6 +140,80 @@ test.describe('checkpoint resume on the ground @story-resume-ground', () => {
     console.log(`story-resume-ground: saved (${saved.x.toFixed(2)}, ${saved.y.toFixed(2)}, ${saved.z.toFixed(2)}), farthest ${farthest.toFixed(3)} m, lowest ${lowest.toFixed(3)} m over the ground`);
     expect(farthest, 'the player stood at the saved pose').toBeLessThanOrEqual(AT_SAVED_M);
     expect(lowest, 'the player never sank under the ground').toBeGreaterThan(-ON_GROUND_M);
+    expect((await state(page))?.stageId).toBe('tow_home');
+    expect(errors).toEqual([]);
+  });
+
+  test('a reload resumes a player saved at the wheel of the m.a1.01 tow truck seated, at the saved pose, the truck never under the ground @story-resume-ground', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await page.goto(`/?${FLAGS}`);
+    await waitForBridges(page);
+
+    await expect.poll(async () => (await state(page))?.phase, { timeout: 150_000, intervals: [500] }).toBe('stage');
+    expect((await state(page))?.mission).toBe('m.a1.01');
+    await expect.poll(async () => {
+      const pl = (await observe(page)).player;
+      return pl !== null && pl.grounded && pl.control === IDLE;
+    }, { timeout: 60_000, intervals: [250] }).toBe(true);
+
+    // the tow truck stands by the Yard gate: the vehicle nearest to the player there, named by its cast key
+    let tow = 0;
+    await expect.poll(async () => {
+      const st = await vehicleOp(page, 'state');
+      const h = (st?.vehicle as { handle?: number } | null | undefined)?.handle ?? 0;
+      tow = h !== 0 && (await keyOf(page, h)) === TOW_KEY ? h : 0;
+      return tow !== 0;
+    }, { timeout: 30_000, intervals: [250, 500] }).toBe(true);
+    // seated at its wheel at once (the existing QA seat), then the checkpoint stage writes the checkpoint with the player in it
+    expect((await vehicleOp(page, 'seat', tow))?.ok).toBe(true);
+    await expect.poll(async () => (await observe(page)).player?.owner, { timeout: 10_000 }).toBe(OWNER_VEHICLE);
+    expect(await keyOf(page)).toBe(TOW_KEY);
+    expect(await mission(page, (m) => m.jump(5))).toBe(true);
+    await expect.poll(async () => (await state(page))?.stageId, { timeout: 30_000 }).toBe('tow_home');
+    await expect.poll(() => lastSave(page), { timeout: 60_000, intervals: [250, 500, 1000] }).toEqual({ reason: 'checkpoint', ok: true });
+    // the mission start wrote a checkpoint save too, so the confirmed save above may be that one: wait for the stage-5 one itself
+    await expect.poll(async () => (await savedCheckpoint(page)).stage, { timeout: 60_000, intervals: [250, 500, 1000] }).toBe(5);
+    const cp = await savedCheckpoint(page);
+    expect(cp).toMatchObject({ active: 'm.a1.01', stage: 5, vehicle: 'tow' });
+    const saved = cp.player as Pose;
+    expect(saved).not.toBeNull();
+
+    await page.reload();
+    await waitForBridges(page);
+    await expect
+      .poll(async () => {
+        const s = await state(page);
+        return s?.mission === 'm.a1.01' && s.phase === 'stage' ? s.stageId : (s?.phase ?? 'none');
+      }, { timeout: 180_000, intervals: [100] })
+      .toBe('tow_home');
+
+    // the seat follows the truck's spawn by a tick or so: from the first snapshot with the player seated, for 300 ticks
+    await expect.poll(async () => (await observe(page)).player?.owner, { timeout: 30_000, intervals: [50] }).toBe(OWNER_VEHICLE);
+    expect(await keyOf(page), 'the player drives the tow truck').toBe(TOW_KEY);
+    const startTick = (await observe(page)).tick;
+    let lowestCar = Infinity;
+    let farthest = 0;
+    for (;;) {
+      const o = await observe(page);
+      const p = o.player;
+      expect(p, 'the player exists').not.toBeNull();
+      expect(p!.owner, `seated at tick ${o.tick}`).toBe(OWNER_VEHICLE);
+      const v = o.vehicle;
+      expect(v, `the player drives a vehicle at tick ${o.tick}`).not.toBeNull();
+      expect(v!.state, `driving at tick ${o.tick}`).toBe(DRIVING);
+      const gy = await groundY(page, v!.pos[0], v!.pos[2]);
+      expect(gy, `the ground under the truck at ${v!.pos.map((n) => n.toFixed(1)).join(', ')} is resident`).not.toBeNull();
+      lowestCar = Math.min(lowestCar, v!.pos[1] - (gy as number));
+      farthest = Math.max(farthest, Math.hypot(p!.pos[0] - saved.x, p!.pos[1] - saved.y, p!.pos[2] - saved.z));
+      if (o.tick - startTick >= 300) break;
+      await page.waitForTimeout(200);
+    }
+    console.log(`story-resume-ground seated: saved (${saved.x.toFixed(2)}, ${saved.y.toFixed(2)}, ${saved.z.toFixed(2)}), farthest ${farthest.toFixed(3)} m, truck lowest ${lowestCar.toFixed(3)} m over the ground`);
+    expect(farthest, 'the seated player stayed at the saved pose').toBeLessThanOrEqual(AT_SAVED_M);
+    expect(lowestCar, 'the truck never went under the ground').toBeGreaterThan(0);
+    expect(await keyOf(page)).toBe(TOW_KEY);
     expect((await state(page))?.stageId).toBe('tow_home');
     expect(errors).toEqual([]);
   });

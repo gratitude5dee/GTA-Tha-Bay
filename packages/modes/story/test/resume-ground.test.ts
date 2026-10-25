@@ -12,6 +12,8 @@ import { at, circle, defineMission, npc, phoneTrigger, stage, vehicle, waitFor }
 import type { CatalogPayload } from '../src/missions/store.ts';
 import { PLACE_BUDGET_TICKS, PLACE_HINT_AFTER_TICKS, PLACE_HINT_EVERY_TICKS, StoryController } from '../src/mode.ts';
 import { CHECKPOINT_SCHEMA } from '../src/vm/constants.ts';
+import { SEAT_WAIT_TICKS } from '../src/vm/checkpoint.ts';
+import { SET_DOWN_SIDE_M } from '../src/vm/runtime.ts';
 import { ll, makeHarness, seatPlayer, type Harness } from './harness.ts';
 
 const ID = 'm.t.resume';
@@ -19,6 +21,8 @@ const ID = 'm.t.resume';
 const SAVED = { x: 2400, y: 3.5, z: -1800, yaw: 1.25 };
 const CAR = { x: 2402, y: 3.2, z: -1801, yaw: 1.25 };
 const PAL = { x: 2410, y: 3.4, z: -1795, yaw: -0.5 };
+/** Where the fake port's `setDown` puts the player, from the car's centre (a stand-in for the engine's exit point). */
+const PORT_SIDE = { x: -1.79, z: 0.4 };
 const mission = defineMission({
   id: ID,
   version: 1,
@@ -50,12 +54,22 @@ interface Setup {
   ground: { resident: boolean; collider: boolean };
   prestreams: { x: number; z: number; released: boolean }[];
   seats: { rider: EntityHandle; vehicle: EntityHandle }[];
+  setDowns: { rider: EntityHandle; vehicle: EntityHandle }[];
   shown: { tick: number; text: string }[];
   jobsStart(id: string): void;
   run(ticks: number): Promise<void>;
 }
 
-function setup(o: { seated?: boolean; seatPort?: boolean } = {}): Setup {
+function setup(o: {
+  seated?: boolean;
+  seatPort?: boolean;
+  /** What the fake seat port's `seat` answers (default: it seats and answers true). */
+  seatOk?: boolean;
+  /** The fake port's `setDown`: absent (an older port) or one that records the call and puts the player beside the car. */
+  setDown?: boolean;
+  /** The cast car's spawn never lands (its entity is gone again within the same flush). */
+  noCar?: boolean;
+} = {}): Setup {
   const ground = { resident: false, collider: false };
   const h = makeHarness({ groundY: (x, z) => (Math.hypot(x - SAVED.x, z - SAVED.z) < 400 ? (ground.collider ? 3 : null) : 0) });
   const prestreams: Setup['prestreams'] = [];
@@ -70,13 +84,32 @@ function setup(o: { seated?: boolean; seatPort?: boolean } = {}): Setup {
     };
   };
   const seats: Setup['seats'] = [];
+  const setDowns: Setup['setDowns'] = [];
   if (o.seatPort !== false) {
     (h.ctx as unknown as { vehicleSeat: unknown }).vehicleSeat = {
       seat: (rider: EntityHandle, veh: EntityHandle) => {
         seats.push({ rider, vehicle: veh });
+        if (o.seatOk === false) return false;
         seatPlayer(h, veh);
         return true;
       },
+      ...(o.setDown === true
+        ? {
+            setDown: (rider: EntityHandle, veh: EntityHandle) => {
+              setDowns.push({ rider, vehicle: veh });
+              h.put(rider, CAR.x + PORT_SIDE.x, CAR.z + PORT_SIDE.z, CAR.y);
+              return true;
+            },
+          }
+        : {}),
+    };
+  }
+  if (o.noCar === true) {
+    const spawn = h.ctx.prefabs.spawn.bind(h.ctx.prefabs);
+    (h.ctx.prefabs as unknown as { spawn: unknown }).spawn = (id: string, at: never, key?: never): EntityHandle => {
+      const e = spawn(id, at, key);
+      if (key === `mis:${ID}:car`) h.ecs.commands.despawn(e);
+      return e;
     };
   }
   h.story.activeMission = saved(o.seated === true);
@@ -100,7 +133,7 @@ function setup(o: { seated?: boolean; seatPort?: boolean } = {}): Setup {
     c.onEvent(h.ctx, { t: 'mode.cmd', tick: h.tickNo.n, s: JSON.stringify({ mode: 'story', name: 'mission.start', args: { id } }) });
     for (const t of h.calls.toasts.slice(before)) shown.push({ tick: h.tickNo.n, text: t.text });
   };
-  return { h, c, ground, prestreams, seats, shown, jobsStart, run };
+  return { h, c, ground, prestreams, seats, setDowns, shown, jobsStart, run };
 }
 
 const pose = (h: Harness, e: EntityHandle): [number, number, number] => {
@@ -227,6 +260,87 @@ describe('checkpoint resume waits for its ground (DL-736)', () => {
     await run(16);
     expect(c.rt?.active).toBe(true);
     expect(pose(h, h.player)).toEqual([SAVED.x, SAVED.y, SAVED.z]);
+  });
+
+  it('a seated resume keeps the pre-stream until the player is seated in the cast car spawned the next tick (BD-FIX-SPAWN-12)', async () => {
+    const { c, ground, prestreams, seats, run } = setup({ seated: true });
+    ground.resident = true;
+    ground.collider = true;
+    // tick 0: the trigger pass restores the checkpoint; the cast car is a deferred spawn, so the seat is still to come
+    await run(1);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.restorePending?.seat?.vehicle).toBe('car');
+    expect(seats).toHaveLength(0);
+    expect(prestreams[0]!.released).toBe(false);
+    // tick 1: the car exists, the player is seated, and only then are the tiles let go
+    await run(1);
+    expect(seats).toHaveLength(1);
+    expect(c.rt?.restorePending).toBeNull();
+    expect(prestreams[0]!.released).toBe(true);
+  });
+
+  it('a seat whose car never comes holds the pre-stream for SEAT_WAIT_TICKS, then sets the player down at the saved pose and lets go', async () => {
+    const { h, c, ground, prestreams, seats, run } = setup({ seated: true, noCar: true });
+    ground.resident = true;
+    ground.collider = true;
+    await run(1);
+    expect(c.rt?.active).toBe(true);
+    await run(SEAT_WAIT_TICKS - 1);
+    // tick SEAT_WAIT_TICKS - 1: still waiting for the car, still pinned
+    expect(c.rt?.restorePending?.seat).not.toBeNull();
+    expect(prestreams[0]!.released).toBe(false);
+    await run(1);
+    expect(c.rt?.restorePending).toBeNull();
+    expect(prestreams[0]!.released).toBe(true);
+    expect(seats).toHaveLength(0);
+    expect(pose(h, h.player)).toEqual([SAVED.x, SAVED.y, SAVED.z]);
+  });
+
+  it('a mode exit before the seat is written releases the held pre-stream', async () => {
+    const { h, c, ground, prestreams, run } = setup({ seated: true, noCar: true });
+    ground.resident = true;
+    ground.collider = true;
+    await run(2);
+    expect(prestreams[0]!.released).toBe(false);
+    c.exit(h.ctx, 'quit');
+    expect(prestreams[0]!.released).toBe(true);
+  });
+
+  it('a seat the port refuses sets the player down on foot beside the car through the port, with a debug event (BD-FIX-SPAWN-12)', async () => {
+    const { h, c, ground, seats, setDowns, run } = setup({ seated: true, seatOk: false, setDown: true });
+    ground.resident = true;
+    ground.collider = true;
+    await run(20);
+    expect(c.rt?.active).toBe(true);
+    const car = h.at(`mis:${ID}:car`);
+    expect(seats).toEqual([{ rider: h.player, vehicle: car }]);
+    expect(setDowns).toEqual([{ rider: h.player, vehicle: car }]);
+    expect(c.rt?.actors.playerVehicle()).toBeNull();
+    const p = pose(h, h.player);
+    expect(p).toEqual([CAR.x + PORT_SIDE.x, CAR.y, CAR.z + PORT_SIDE.z]);
+    expect(c.rt?.eventLog.filter((e) => e.t === 'resume.seatFailed').map((e) => e.data)).toEqual([{ vehicle: 'car', how: 'port' }]);
+    // asked once, not every tick
+    await run(60);
+    expect(seats).toHaveLength(1);
+    expect(setDowns).toHaveLength(1);
+  });
+
+  it('a refused seat on a port without setDown puts the player SET_DOWN_SIDE_M to the car\'s left, clear of it, never at the saved seat pose', async () => {
+    const { h, c, ground, run } = setup({ seated: true, seatOk: false });
+    ground.resident = true;
+    ground.collider = true;
+    await run(20);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.actors.playerVehicle()).toBeNull();
+    const p = pose(h, h.player);
+    const car = pose(h, h.at(`mis:${ID}:car`));
+    expect(Math.hypot(p[0] - car[0], p[2] - car[2])).toBeCloseTo(SET_DOWN_SIDE_M, 6);
+    expect(p).not.toEqual([SAVED.x, SAVED.y, SAVED.z]);
+    // the left of a car facing yaw (forward (-sin, -cos)) is (-cos, +sin)
+    const yaw = c.rt?.actors.yawOf(h.at(`mis:${ID}:car`)) ?? 0;
+    expect(p[0]).toBeCloseTo(car[0] - Math.cos(yaw) * SET_DOWN_SIDE_M, 6);
+    expect(p[2]).toBeCloseTo(car[2] + Math.sin(yaw) * SET_DOWN_SIDE_M, 6);
+    expect(c.rt?.eventLog.filter((e) => e.t === 'resume.seatFailed').map((e) => e.data)).toEqual([{ vehicle: 'car', how: 'side' }]);
   });
 
   it('a mode exit while it waits releases the pre-stream and keeps the checkpoint', async () => {
