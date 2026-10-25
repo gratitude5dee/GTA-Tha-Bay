@@ -22,7 +22,7 @@ export function normalizeSituation(s: NPCIntentRequest['situation']): Record<str
     poiId: s.poiId,
     activeBlock: s.activeBlock,
     nearby,
-    events: [...s.events].sort(),
+    events: [...s.events].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
     relation: { trust: s.relation.trust, met: s.relation.met },
   };
 }

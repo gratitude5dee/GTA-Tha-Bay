@@ -298,7 +298,7 @@ export class BrainSim {
       if (a.lod === LOD.C || !a.placed) {
         const w = this.scheduled(a, env.clockT);
         a.x = w.pos[0];
-        a.y = w.pos[1];
+        if (!a.grounded) a.y = w.pos[1];
         a.z = w.pos[2];
         a.placed = true;
         a.vx = 0;
@@ -334,7 +334,10 @@ export class BrainSim {
 
   private groundOf(a: NpcAgent, fallback: number): void {
     const g = this.world.groundY?.(a.x, a.z);
-    a.y = typeof g === 'number' ? g : fallback;
+    if (typeof g === 'number') {
+      a.y = g;
+      a.grounded = true;
+    } else if (!a.grounded) a.y = fallback;
   }
 
   /** Full brain: schedule, utility, behaviour tree. */
@@ -427,7 +430,7 @@ export class BrainSim {
   hash(h: Fnv64): void {
     h.u32(this.agents.length);
     for (const a of this.agents) {
-      h.str(a.id).u8(a.enabled ? 1 : 0).u8(a.lod).u8(a.placed ? 1 : 0);
+      h.str(a.id).u8(a.enabled ? 1 : 0).u8(a.lod).u8(a.placed ? 1 : 0).u8(a.grounded ? 1 : 0);
       h.f64(a.x).f64(a.y).f64(a.z).f64(a.yaw).f64(a.vx).f64(a.vz);
       h.u32(a.block >>> 0).u32(a.gameDay >>> 0).u8(a.winner).u32(a.tree >>> 0);
       for (let i = 0; i < a.stack.length; i++) h.u8(a.stack[i] as number);
@@ -456,6 +459,7 @@ export class BrainSim {
       w.u8(a.enabled ? 1 : 0);
       w.u8(a.lod);
       w.u8(a.placed ? 1 : 0);
+      w.u8(a.grounded ? 1 : 0);
       w.f64(a.x); w.f64(a.y); w.f64(a.z); w.f64(a.yaw); w.f64(a.vx); w.f64(a.vz);
       w.i32(a.block); w.i32(a.gameDay); w.u8(a.winner); w.i32(a.tree);
       for (let i = 0; i < a.stack.length; i++) w.u8(a.stack[i] as number);
@@ -488,6 +492,7 @@ export class BrainSim {
       sink.enabled = r.u8() !== 0;
       sink.lod = r.u8() as LodTier;
       sink.placed = r.u8() !== 0;
+      sink.grounded = r.u8() !== 0;
       sink.x = r.f64(); sink.y = r.f64(); sink.z = r.f64(); sink.yaw = r.f64(); sink.vx = r.f64(); sink.vz = r.f64();
       sink.block = r.i32(); sink.gameDay = r.i32(); sink.winner = r.u8() as UtilityKind; sink.tree = r.i32();
       for (let i = 0; i < sink.stack.length; i++) sink.stack[i] = r.u8();

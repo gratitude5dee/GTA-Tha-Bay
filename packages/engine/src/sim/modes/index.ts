@@ -39,6 +39,7 @@ import { CombatImpl } from '../combat/combat.ts';
 import { createSandboxBodyPort, type SandboxBodyPort } from './sandbox-body-port.ts';
 import { createSandboxVehiclePort, type SandboxVehiclePortImpl } from './sandbox-vehicle-port.ts';
 import type { EcsWorld } from '../ecs/world.ts';
+import type { InteractionHandler } from '../interaction/interaction.ts';
 import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
 
 export * from './host.ts';
@@ -50,6 +51,7 @@ export * from './autosave.ts';
 export * from './capability-bind.ts';
 export * from './commands.ts';
 export * from './stubs.ts';
+export * from './npc-port.ts';
 export * from './world-standin.ts';
 export { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory, applyToggle, NEVER_WANTED, COMING_SOON_IDS } from './builtin/index.ts';
 export { defaultSettings } from './settings-defaults.ts';
@@ -495,6 +497,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           scheduler: sched,
           timeline: timelineSvc,
           combat,
+          // The NPC runtime of the session (M06c): bound below once the host exists; a session without it keeps the stub.
+          npc: () => services.npc.port?.api() ?? null,
           garage: {
             add: (instance) => garageAdd(live.core.garage, instance),
             count: () => live.core.garage.length,
@@ -560,6 +564,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         waypoint: waypointMemo,
         playerPose,
         ride: () => services.ride,
+        npc: () => services.npc.port,
         garage: () => garage,
         selectProfile: (id) => {
           void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
@@ -573,6 +578,17 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           const r = requestTeleport(s.ecs, services, s.ecs.byKey('player:0'), [x, y, z], tick());
           return r.ok;
         },
+      });
+      // Bind the NPC runtime (M06c): it patches the bridge, sends its events on the mode bus, records hero intents on the timeline and
+      // registers the Talk handler on the interaction service.
+      services.npc.port?.bind({
+        ui: bridge,
+        events: bus,
+        timeline: timelineSvc,
+        tick,
+        clockT: () => services.clock?.now().t ?? tick(),
+        trust: (npcId) => live.story.npcRelations[npcId]?.trust ?? 0,
+        interaction: (services.vehicleCtx?.interaction as unknown as { register(h: InteractionHandler): void } | undefined) ?? null,
       });
       runtime.uiCommand = (cmd) => module.command(cmd);
       runtime.uiOutbox = (): UiOut | null => bridge.takeOutbox();

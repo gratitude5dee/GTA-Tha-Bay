@@ -62,6 +62,8 @@ export class NpcAgent {
   enabled = true;
   /** True once the NPC has a position from `whereIs`. */
   placed = false;
+  /** True once `y` came from the ground query: a later miss (the tile is not resident) keeps it. */
+  grounded = false;
   block = -1;
   gameDay = -1;
   winner: UtilityKind = UTILITY.Schedule;

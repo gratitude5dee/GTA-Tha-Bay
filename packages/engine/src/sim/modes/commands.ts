@@ -7,6 +7,7 @@ import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
 import type { GarageService } from '../garage/garage.ts';
+import type { NpcHostPort } from './npc-port.ts';
 
 export interface CommandDeps {
   host: ModeHost;
@@ -31,6 +32,8 @@ export interface CommandDeps {
   onPause?(on: boolean): void;
   /** The phone's Ride app (M04b2): the transit system's port, or null while no baked world runs. */
   ride?(): RidePort | null;
+  /** The NPC runtime (M06c): `mode.cmd` with the reserved owner `npc` goes to it (roster flags, hero intents, the end of a conversation, a bark). */
+  npc?(): NpcHostPort | null;
   /** The garage module (M05c1): `garage.call` and `garage.favorite` go to it. Without one both raise `garage.refuse.noWorld` and change nothing. */
   garage?(): GarageService | null;
   /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
@@ -139,6 +142,10 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         d.events.emit({ t: 'cutscene.state', tick: d.tick(), s: JSON.stringify({ playId: cmd.playId, item: cmd.item, state: cmd.state, trigger: cmd.trigger, outcome: cmd.outcome }) });
         return;
       case 'mode.cmd':
+        if ((cmd.mode as string) === 'npc') {
+          d.npc?.()?.command(cmd.name, cmd.args ?? null);
+          return;
+        }
         if ((cmd.mode as string) === 'phone') {
           phoneCommand(d, cmd.name, cmd.args ?? null, toast, online);
           return;

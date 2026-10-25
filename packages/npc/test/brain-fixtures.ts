@@ -13,9 +13,9 @@ export const SEED = 0xc0ffee;
 export const CLOCK_PER_TICK = 1;
 export const HOUR = 7200;
 
-export const homeOf = (i: number): string => `poi.test.home-${String(i).padStart(2, '0')}`;
-export const workOf = (i: number): string => `poi.test.work-${String(i).padStart(2, '0')}`;
-export const parkOf = (i: number): string => `poi.test.park-${String(i % 3)}`;
+export const homeOf = (i: number): `poi.${string}` => `poi.test.home-${String(i).padStart(2, '0')}`;
+export const workOf = (i: number): `poi.${string}` => `poi.test.work-${String(i).padStart(2, '0')}`;
+export const parkOf = (i: number): `poi.${string}` => `poi.test.park-${String(i % 3)}`;
 
 /** Invented places: homes on a row at z = 10, workplaces on a row at z = 70, three parks far to the east. */
 export function placeAt(id: string): Vec3 | null {

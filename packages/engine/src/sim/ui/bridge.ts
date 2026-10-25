@@ -25,8 +25,17 @@ export class SimUiBridge implements UiBridge {
   /** Totals, for the bridge QA. */
   sent = { patches: 0, toasts: 0 };
 
+  /** The last value patched per key (null once deleted), so a system can tell whether its own patch is still the one on screen (M06c). */
+  private readonly last = new Map<VmKey, JsonValue | null>();
+
   patch(k: VmKey, v: JsonValue | null): void {
+    this.last.set(k, v);
     this.coalescer.push(k, v);
+  }
+
+  /** The last value anyone patched for `k`, undefined when none was. */
+  peek(k: VmKey): JsonValue | null | undefined {
+    return this.last.get(k);
   }
 
   toast(t: { id: string; kind: ToastKind; text: string; params?: Record<string, string | number> }): void {
