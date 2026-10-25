@@ -19,7 +19,10 @@ import { PHYSICS_POST_ID, physicsStepSystem, PHYSICS_STEP_ID } from '../physics/
 import type { SimCore } from '../loop/sim-core.ts';
 import type { EngineServices } from '../services.ts';
 import { isSessionCar } from '../sandbox-flags.ts';
-import { CONTROL_OWNER, CONTROL_PHASE, phaseOf } from '../control/states.ts';
+import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_REASON, phaseOf } from '../control/states.ts';
+import { vehicleFallRecoverySystem } from '../control/fall.ts';
+import { GROUP_BIT } from '../physics/groups.ts';
+import type { Vec3 } from '../physics/backend.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
 import { RaycastVehicleSim } from './raycast-vehicle.ts';
 import type { WheelPath } from './wheel-path.ts';
@@ -280,10 +283,20 @@ function respawnAtShore(
   const tr = w.store(Transform);
   const shore = bounds.nearestShore(tr.px[id] as number, tr.pz[id] as number, true);
   if (!shore) return;
-  const x = shore.x - shore.nx * SHORE_INLAND_M;
-  const z = shore.z - shore.nz * SHORE_INLAND_M;
-  const yaw = datan2(shore.nx, shore.nz);
-  const y = shore.y + rt.profile.cgHeightM + 0.4;
+  placeVehicle(backend, rt, w, id, shore.x - shore.nx * SHORE_INLAND_M, shore.y, shore.z - shore.nz * SHORE_INLAND_M, datan2(shore.nx, shore.nz));
+}
+
+/**
+ * Puts vehicle `id` upright on the ground at (x, groundY, z), facing `yaw` (forward is (-sin yaw, -cos yaw)), at rest: the water wall's
+ * respawn (02-world-maps.md 4.1 a) and the world teleport's move of a driven vehicle (4.1 d, DL-734) both place it this way. The driver
+ * follows the seat in the same tick's PhysicsPost (`engine.vehicle.driver-sync`).
+ */
+export function placeVehicle(
+  backend: Pick<VehiclePhysics, 'setBodyPose' | 'setBodyVelocity'>, rt: VehicleRuntime, w: { store: EcsWorld['store'] }, id: number,
+  x: number, groundY: number, z: number, yaw: number,
+): void {
+  const tr = w.store(Transform);
+  const y = groundY + rt.profile.cgHeightM + 0.4;
   const body = w.store(BodyRef).body[id] as number;
   backend.setBodyPose(body, [x, y, z], [0, dsin(yaw / 2), 0, dcos(yaw / 2)]);
   backend.setBodyVelocity(body, [0, 0, 0], [0, 0, 0]);
@@ -293,6 +306,35 @@ function respawnAtShore(
   rt.lastVx = 0;
   rt.lastVz = 0;
   rt.impactAcc = 0;
+}
+
+/** The ground probe of a driven-vehicle move starts this far above the target height and reaches this far below it, metres. */
+const MOVE_PROBE_UP_M = 3;
+const MOVE_PROBE_DOWN_M = 6;
+const DOWN: Vec3 = [0, -1, 0];
+
+/**
+ * `EngineServices.vehicleMove` (DL-734): moves the vehicle `driver` drives onto the static ground near (x, y, z) at once, with the
+ * driver, and clears its flight and water counters. Refused (`engine.control.groundNotLoaded`) when no static collider lies under the
+ * target yet, so a car is never put down over ground whose colliders are still on their way.
+ */
+function vehicleMover(backend: VehiclePhysics, store: VehicleStore, ecs: EcsWorld): NonNullable<EngineServices['vehicleMove']> {
+  const from: Vec3 = [0, 0, 0];
+  return (driver, pos, yaw) => {
+    const did = ecs.resolve(driver);
+    if (did === null) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+    const vid = ecs.store(Control).target[did] as number;
+    const rt = store.rt.get(vid);
+    if (!rt || rt.driver !== did || !ecs.has(ecs.handle(vid as EntityId), BodyRef)) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+    from[0] = pos[0]; from[1] = pos[1] + MOVE_PROBE_UP_M; from[2] = pos[2];
+    const hit = backend.castRay(from, DOWN, MOVE_PROBE_UP_M + MOVE_PROBE_DOWN_M, GROUP_BIT.static);
+    if (!hit) return { ok: false, reason: CONTROL_REASON.groundNotLoaded };
+    placeVehicle(backend, rt, ecs, vid, pos[0], from[1] - hit.toi, pos[2], yaw);
+    rt.airTicks = 0;
+    rt.wet = { wetTicks: 0, stalled: false };
+    rt.respawnFade = 0;
+    return { ok: true };
+  };
 }
 
 /**
@@ -305,6 +347,9 @@ export function registerVehicleSystems(core: SimCore, backend: VehiclePhysics, s
   core.addSystem(physicsStepSystem(backend, { substeps: sys.substeps, beforeSubstep: sys.beforeSubstep }));
   for (const s of sys.systems) core.addSystem(s);
   core.addResource(vehicleResource(sys.store));
+  // the below-the-world net for a driven vehicle and the teleport's move that it asks for (02-world-maps.md 4.1 d, DL-734)
+  core.services.vehicleMove = vehicleMover(backend, sys.store, core.ecs);
+  core.addSystem(vehicleFallRecoverySystem({ services: core.services, store: sys.store }));
   return sys;
 }
 

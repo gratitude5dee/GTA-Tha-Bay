@@ -61,6 +61,33 @@ export function requestTeleport(ecs: EcsApi, services: Pick<EngineServices, 'con
 }
 
 /**
+ * Asks to move the entity `h` drives, with `h` at its wheel, onto the ground at `pos` facing `yaw` (DL-734; 02-world-maps.md 5 step 4: a
+ * driver keeps the vehicle when the target lies on a drivable edge, which the world's teleport checks before it calls this). Accepted
+ * only while `h` drives (owner Vehicle, phase Active) and no on-foot teleport runs; the vehicle module makes the move at once
+ * (`EngineServices.vehicleMove`), or refuses with `engine.control.groundNotLoaded` where no static collider is under the target yet.
+ */
+export function requestDriverTeleport(
+  ecs: EcsApi, services: Pick<EngineServices, 'control' | 'vehicleMove'>, h: EntityHandle, pos: Vec3, yaw: number,
+): RequestResult {
+  const id = ecs.resolve(h);
+  if (id === null) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  const co = ecs.store(Control);
+  if (co.owner[id] !== CONTROL_OWNER.Vehicle || phaseOf(co.pending[id] as number) !== CONTROL_PHASE.Active) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  if (services.control.teleportActive) return { ok: false, reason: CONTROL_REASON.busy };
+  const move = services.vehicleMove;
+  if (!move) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  return move(h, pos, yaw);
+}
+
+/** True while `h` drives a vehicle (owner Vehicle, phase Active). */
+export function isDriving(ecs: EcsApi, h: EntityHandle): boolean {
+  const id = ecs.resolve(h);
+  if (id === null) return false;
+  const co = ecs.store(Control);
+  return co.owner[id] === CONTROL_OWNER.Vehicle && phaseOf(co.pending[id] as number) === CONTROL_PHASE.Active;
+}
+
+/**
  * The ownership state machine (stage Control; spec/domains/01-engine.md section 2.5).
  *
  *   Ready, Waiting, Entering, Active, Leaving (Delegated is reserved for swim and climb).

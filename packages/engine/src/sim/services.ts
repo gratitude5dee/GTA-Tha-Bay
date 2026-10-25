@@ -1,8 +1,8 @@
-import { RngStreams, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
+import { RngStreams, type EntityHandle, type Fnv64, type InputFrame, type SimServices } from '@dv/shared';
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import { ForwardingFareSink } from './modes/economy.ts';
-import type { PhysicsSystemsBackend } from './physics/backend.ts';
+import type { PhysicsSystemsBackend, Vec3 } from './physics/backend.ts';
 import { noFlags, type SandboxFlags } from './sandbox-flags.ts';
 import type { VehicleDebugContext } from './vehicle/debug.ts';
 import type { WorldClock } from './world/clock.ts';
@@ -52,6 +52,12 @@ export interface EngineServices extends SimServices {
   ride: RidePort | null;
   /** The sandbox's session-only body flags (M04e4); all off outside a sandbox session. Engine-internal, in no contract. */
   sandboxFlags: SandboxFlags;
+  /**
+   * Moves the vehicle `driver` drives, with its driver, onto the static ground under (x, y, z), facing `yaw` (DL-734: the world's
+   * teleport keeps a driver in the vehicle on a drivable edge). Set by `registerVehicleSystems`; null in a sim without vehicles.
+   * Engine-internal, in no contract; it holds no state, so nothing is hashed.
+   */
+  vehicleMove: ((driver: EntityHandle, pos: Vec3, yaw: number) => { ok: true } | { ok: false; reason: string }) | null;
 }
 
 /** What the phone's Ride app can ask of the transit system. The refusal carries the precondition's message key and moves nobody. */
@@ -103,6 +109,7 @@ export function createSimServices(seed: number): EngineServices {
     fareSink: new ForwardingFareSink(),
     ride: null,
     sandboxFlags: noFlags(),
+    vehicleMove: null,
   };
 }
 
