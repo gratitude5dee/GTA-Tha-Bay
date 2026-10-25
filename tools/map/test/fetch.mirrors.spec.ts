@@ -1,12 +1,15 @@
 /** S0 OSM mirrors (DL-703): primary fails, the first mirror serves, the lock names it. Fetcher injected; no network. */
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadSources, validateSources, type SourcesConfig } from '../src/config.ts';
 import { ensureOsmPbf, osmRoutes, type OsmDownloader } from '../src/sources/osm.ts';
 import { runFetch } from '../src/stages/s0-fetch.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const cfg = loadSources();
 const osm = cfg.sources.find((s) => s.id === 'osm')!;
@@ -20,7 +23,7 @@ function downloader(failing: string[], calls: string[]): OsmDownloader {
     writeFileSync(file, BYTES);
   };
 }
-const tmp = (): string => mkdtempSync(path.join(tmpdir(), 'dv-osm-'));
+const tmp = (): string => tempDir('dv-osm-');
 
 describe('sources.json mirrors (DL-703)', () => {
   it('keeps Geofabrik as primary and lists BBBike then the openstreetmap.fr state extract', () => {

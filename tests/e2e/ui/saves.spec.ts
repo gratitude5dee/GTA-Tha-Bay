@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
@@ -35,6 +35,8 @@ test.describe('saves @ui-saves', () => {
     // Import it as a new profile.
     await page.getByTestId('import-new').setInputFiles(file);
     await expect(cards).toHaveCount(2);
+    // BD-FIX-TMP-01: the export folder goes once the import has read it (the per-run root catches it if the test fails first).
+    rmSync(dir, { recursive: true, force: true });
     const imported = cards.filter({ has: page.locator('[data-testid^="undo-"]') });
     await expect(imported).toHaveCount(1);
 

@@ -1,5 +1,4 @@
-import { cpSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { schemaValidator, toolsRoot } from '../../ci/lib/common.ts';
@@ -9,6 +8,10 @@ import { publishPack } from '../src/pack/publish.ts';
 import { validateLandmarkSeeds, validateLandmarksInBake } from '../src/verify/landmarks.ts';
 import { MIN_COUNTS, countsByKind, validatePoiSeeds, validatePoisInBake } from '../src/verify/pois.ts';
 import { bakeExcerpt } from './helpers.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const content = loadContentWorld();
 const fails = (fs: { level: string }[]): { level: string }[] => fs.filter((f) => f.level === 'fail');
@@ -124,7 +127,7 @@ describe('content-world in the packed database (AC-10, DL-677)', () => {
   it('lists the content-world stamp in every derived record, with its own authored ODbL record', async () => {
     const b = await bakeExcerpt();
     const cfg = loadSources();
-    const target = mkdtempSync(path.join(tmpdir(), 'dv-places-'));
+    const target = tempDir('dv-places-');
     const r = await publishPack({ bakeDir: b.outDir, target: { kind: 'dir', path: target }, cfg, log: () => {} });
     expect(r.code).toBe(0);
     const stamp = r.packed.records.find((x) => x.origin === 'authored' && x.license === 'ODbL-1.0');
@@ -137,7 +140,7 @@ describe('content-world in the packed database (AC-10, DL-677)', () => {
   }, 60_000);
 
   it('changes the content-world sha256 when one POI name changes, and only then', () => {
-    const copy = mkdtempSync(path.join(tmpdir(), 'dv-content-'));
+    const copy = tempDir('dv-content-');
     cpSync(CONTENT_DIR, copy, { recursive: true });
     expect(contentWorldSha(copy)).toBe(contentWorldSha());
     const file = path.join(copy, 'pois.json');

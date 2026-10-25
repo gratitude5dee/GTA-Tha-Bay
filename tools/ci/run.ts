@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { withTmpRoot } from './tmp-root.ts';
 
 /** Drops the first literal `--` from an argument list (and only the first). */
 export function dropDashDash(list: readonly string[]): string[] {
@@ -105,12 +106,23 @@ function main(): never {
     console.error(`run.ts: ${bin} not found; run pnpm install`);
     process.exit(2);
   }
-  const res = spawnSync(bin, rest, { stdio: 'inherit', cwd: repoRoot, env: process.env });
+  // BD-FIX-TMP-01: the tool and everything it starts work inside one per-run temporary root, removed when the tool exits (pass or
+  // fail). Ctrl-C reaches the tool through the process group; the no-op handler keeps run.ts alive until the tool has exited, so the
+  // removal still runs.
+  const keepAlive = (): void => {};
+  process.on('SIGINT', keepAlive);
+  const res = withTmpRoot(tmpLabel(tool), () => spawnSync(bin, rest, { stdio: 'inherit', cwd: repoRoot, env: process.env }));
+  process.off('SIGINT', keepAlive);
   if (res.error) {
     console.error(`run.ts: failed to start ${tool}: ${res.error.message}`);
     process.exit(1);
   }
   process.exit(res.status ?? 1);
+}
+
+/** The per-run root label for a tool name (`dv-<label>-<pid>-XXXXXX`). */
+export function tmpLabel(tool: string): string {
+  return tool.toLowerCase().replace(/[^a-z0-9]/g, '') || 'run';
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

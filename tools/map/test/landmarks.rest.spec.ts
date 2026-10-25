@@ -2,8 +2,7 @@
  * M02d2: the 25 recipes of rows 13 to 37 (nine majors, sixteen minors): class budgets, falling counts, determinism, the shared kit
  * parts they added and the catalog completeness gate of `map:landmarks`.
  */
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { readJson, toolsRoot } from '../../ci/lib/common.ts';
@@ -18,6 +17,10 @@ import { annulus, fence, flatDisc, flatRect, palm, tree } from '../src/landmarks
 import { Geo } from '../src/landmarks/kit/primitives.ts';
 import { RECIPES } from '../src/landmarks/index.ts';
 import { validateLandmarkAssets, validateLandmarkSeeds } from '../src/verify/landmarks.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const MAJORS = [
   'lm.painted-ladies', 'lm.china-basin-ballpark', 'lm.mission-bay-arena', 'lm.pier-39', 'lm.fort-point', 'lm.grace-cathedral',
@@ -185,7 +188,7 @@ describe('the catalog completeness gate (map:landmarks, content mode)', () => {
   });
 
   it('fails when a variant file is gone or the class tag is wrong', () => {
-    const root = mkdtempSync(path.join(tmpdir(), 'dv-lm-'));
+    const root = tempDir('dv-lm-');
     try {
       const dir = path.join(root, 'assets/src/building/lm.coit-tower');
       mkdirSync(dir, { recursive: true });

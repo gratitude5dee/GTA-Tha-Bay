@@ -9,13 +9,17 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { args, repoRoot } from './run.ts';
+import { withTmpRoot } from './tmp-root.ts';
 
 export function main(argv: string[]): number {
-  const res = spawnSync('pnpm', ['exec', 'vitest', 'run', ...argv], {
-    cwd: path.join(repoRoot, 'services/edge'),
-    stdio: 'inherit',
-    env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
-  });
+  // BD-FIX-TMP-01: Vitest, workerd and Miniflare work inside one per-run temporary root, removed when the run ends.
+  const res = withTmpRoot('workers', () =>
+    spawnSync('pnpm', ['exec', 'vitest', 'run', ...argv], {
+      cwd: path.join(repoRoot, 'services/edge'),
+      stdio: 'inherit',
+      env: { ...process.env, WRANGLER_SEND_METRICS: 'false' },
+    }),
+  );
   if (res.error) {
     console.error(`check:workers failed to start: ${res.error.message}`);
     return 1;

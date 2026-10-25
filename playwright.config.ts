@@ -2,6 +2,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
+import { enterTmpRoot, tmpRootEnv } from './tools/ci/tmp-root.ts';
+
+// BD-FIX-TMP-01: the runner, its workers, the web server (QA build and wrangler dev) and every spec work inside one per-run temporary
+// root (TMPDIR/TEMP/TMP). It is made here, at config load, because Playwright starts the web server before globalSetup; the runner
+// process that made it removes it when it exits (after the web server has stopped), pass or fail. Workers load this config again,
+// find DV_TEST_TMP_ROOT set and reuse the root; so does a run started by tools/ci/run.ts, which then removes it itself.
+export const E2E_TMP_ROOT = enterTmpRoot('pw').root;
 
 // SwiftShader WebGPU on a GPU-less runner [research/gap-ci-cd-release-assets.md section 4.1].
 const SWIFTSHADER_WEBGPU = [
@@ -55,6 +62,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   // Keep test-results/ itself (gpu-probe.*.json, preview-url.txt) out of Playwright's per-run cleanup.
   outputDir: 'test-results/pw',
+  // Fails the run before any test when the per-run temporary root is not in effect (BD-FIX-TMP-01).
+  globalSetup: './tests/support/tmp-root.setup.ts',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -79,7 +88,7 @@ export default defineConfig({
     timeout: 300_000,
     stdout: 'ignore',
     stderr: 'pipe',
-    env: { ...unsetSecrets, WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
+    env: { ...unsetSecrets, ...tmpRootEnv(E2E_TMP_ROOT), WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
   },
   projects: [
     {
