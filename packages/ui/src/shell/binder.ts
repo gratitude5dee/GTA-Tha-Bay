@@ -27,6 +27,8 @@ export interface BinderDeps {
   prefs: PrefsStore;
   setTimer?(fn: () => void, ms: number): unknown;
   clearTimer?(h: unknown): void;
+  /** Called once per player write, after `set` (the shell's signal stream, M04b5). */
+  signal?(ref: SettingRef, value: JsonValue): void;
   /** Called when a profile value was set locally, so the page shows it before the sim echoes it. */
   changed?(): void;
 }
@@ -94,6 +96,12 @@ export class SettingsBinder implements SettingsBinderApi {
   }
 
   set(ref: SettingRef, value: JsonValue): void {
+    this.write(ref, value);
+    // One signal per player write: the `xr.reduceMotion` mirror inside `write` and `setControls` emit none.
+    this.d.signal?.(ref, value);
+  }
+
+  private write(ref: SettingRef, value: JsonValue): void {
     if (ref.scope === 'profile') {
       this.profile(ref.path, value);
       // `reduceMotion` of the XR comfort block mirrors the accessibility switch in the same write (S11 field comment).

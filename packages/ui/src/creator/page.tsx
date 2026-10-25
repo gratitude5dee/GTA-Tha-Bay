@@ -252,6 +252,8 @@ export function CreatorEditor(props: CreatorEditorProps) {
                 <input
                   class="dv-input"
                   data-testid="creator-name"
+                  data-ui-skip=""
+                  translate={false}
                   data-fid="creator.name"
                   value={name}
                   maxLength={NAME_MAX * 2}
@@ -271,6 +273,8 @@ export function CreatorEditor(props: CreatorEditorProps) {
                 <input
                   class="dv-input"
                   data-testid="creator-callsign"
+                  data-ui-skip=""
+                  translate={false}
                   data-fid="creator.callsign"
                   value={callsign}
                   maxLength={NAME_MAX * 2}

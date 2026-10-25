@@ -8,6 +8,7 @@ import { lk, t } from '../../i18n/index.ts';
 import { ScreenHost } from '../../screen/dom-screen.tsx';
 import type { ScreenDef, SettingRef, UiAction } from '../../screen/types.ts';
 import { Link, useShell } from '../../shell/context.tsx';
+import { currentFullscreen, toggleFullscreen, useFullscreenTick, type FullscreenDoc, type FullscreenState } from '../../shell/fullscreen.ts';
 import { defaultPrefs } from '../../shell/prefs.ts';
 import type { PageProps, ShellApi, ShellContext, StorageInfo, UiPrefs } from '../../shell/types.ts';
 import { useAsync } from '../../kit/widgets.tsx';
@@ -30,6 +31,10 @@ export interface SettingsEnv {
   build: string;
   updateReady: boolean;
   ageStatus: string;
+  /** M11a1's FramePacer exists: the frame-cap row is enabled. Absent or false: disabled with its reason. */
+  framePacer?: boolean;
+  /** The full-screen button of Graphics: present only when available. */
+  fullscreen?: FullscreenState;
 }
 
 const EMPTY_CONTROLS: ControlsSettings = {
@@ -126,11 +131,14 @@ export function buildEnv(ctx: ShellContext, storage: StorageInfo | null): Settin
     build: ctx.props.build,
     updateReady: ctx.props.update?.updateAvailable ?? false,
     ageStatus: att.attestedAt ? new Date(att.attestedAt).toLocaleDateString() : '-',
+    framePacer: p?.framePacer === true,
+    fullscreen: currentFullscreen(p?.deviceClass ?? 'desktop'),
   };
 }
 
 export function SettingsPage(props: PageProps) {
   const { shell, ctx } = useShell();
+  useFullscreenTick();
   const cat = CATEGORIES.some((c) => c.id === props.params['cat']) ? (props.params['cat'] as string) : 'graphics';
   const storage = useAsync(() => (ctx.platform ? ctx.platform.storage() : Promise.resolve(null)), [cat === 'install']);
   const env = buildEnv(ctx, storage.data ?? null);
@@ -171,6 +179,10 @@ function runAction(action: UiAction, _rowId: string | undefined, d: RunDeps): vo
   switch (action.call) {
     case 'reset':
       resetCategory(String(arg), (r, v) => ctx.binder.set(r, v));
+      return;
+    case 'fullscreen':
+      // Synchronous, inside the press: the browser wants the gesture on the call stack.
+      toggleFullscreen(document as FullscreenDoc, () => shell.toast({ id: 'fullscreen.failed', kind: 'warning', text: lk('settings.fullscreen.failed') }));
       return;
     case 'benchmark':
       void ctx.platform?.rerunBenchmark?.();

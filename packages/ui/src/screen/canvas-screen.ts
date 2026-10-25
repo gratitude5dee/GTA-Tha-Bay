@@ -73,7 +73,7 @@ export function layoutScreen(screen: ScreenDef, ctx: ScreenCtx, width: number): 
         y += 36;
         const cw = inner / w.options.length;
         w.options.forEach((o, i) => {
-          items.push({ fid: `choice.${w.id}.${i}`, rect: { x: PAD + cw * i, y, w: cw - 8, h: ROW }, widget: w, label: t(o.label), sub: i, on: cur !== undefined && same(cur, o.value) });
+          items.push({ fid: `choice.${w.id}.${i}`, rect: { x: PAD + cw * i, y, w: cw - 8, h: ROW }, widget: w, label: t(o.label), sub: i, on: cur !== undefined && same(cur, o.value), disabled: w.disabled !== undefined });
         });
         y += ROW + 8;
         return;

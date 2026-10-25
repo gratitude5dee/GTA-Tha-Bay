@@ -35,7 +35,7 @@ export type Widget =
   | { k: 'button'; id: string; label: LocKey; icon?: string; style: 'primary' | 'secondary' | 'danger'; onPress: UiAction; disabled?: LocKey }
   | { k: 'toggle'; id: string; label: LocKey; bind: SettingRef; hint?: LocKey; disabled?: LocKey }
   | { k: 'slider'; id: string; label: LocKey; bind: SettingRef; min: number; max: number; step: number; unit?: string }
-  | { k: 'choice'; id: string; label: LocKey; bind: SettingRef; options: { value: JsonValue; label: LocKey }[] }
+  | { k: 'choice'; id: string; label: LocKey; bind: SettingRef; options: { value: JsonValue; label: LocKey }[]; disabled?: LocKey }
   | { k: 'list'; id: string; rows: ListRow[]; onPress: UiAction; empty: LocKey }
   | { k: 'tabs'; id: string; tabs: { id: string; label: LocKey; children: Widget[] }[] }
   | { k: 'progress'; value: number; label?: LocKey }

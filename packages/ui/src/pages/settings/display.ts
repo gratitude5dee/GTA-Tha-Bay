@@ -16,7 +16,12 @@ export function graphicsScreen(env: SettingsEnv): ScreenDef {
       { k: 'choice', id: 'tier', label: lk('settings.graphics.tier'), bind: { scope: 'device', path: 'tierOverride' }, options: [{ value: 'auto', label: lk('settings.auto') }, ...tiers] },
       { k: 'text', text: lk('settings.graphics.tier.note'), tone: 'muted' },
       { k: 'toggle', id: 'compat', label: lk('settings.graphics.compat'), hint: lk('settings.graphics.compat.hint'), bind: { scope: 'device', path: 'compatibilityMode' } },
-      { k: 'choice', id: 'fps', label: lk('settings.graphics.fps'), bind: { scope: 'device', path: 'fpsCap' }, options: [{ value: 'auto', label: lk('settings.auto') }, { value: 30, label: lk('settings.fps.30') }, { value: 60, label: lk('settings.fps.60') }] },
+      {
+        k: 'choice', id: 'fps', label: lk('settings.graphics.fps'), bind: { scope: 'device', path: 'fpsCap' },
+        options: [{ value: 'auto', label: lk('settings.auto') }, { value: 30, label: lk('settings.fps.30') }, { value: 60, label: lk('settings.fps.60') }],
+        // The cap needs M11a1's FramePacer; the stored value is kept and never reset (M04b5).
+        ...(env.framePacer === true ? {} : { disabled: lk('settings.graphics.fps.later') }),
+      },
       {
         k: 'choice', id: 'scale', label: lk('settings.graphics.scale'), bind: { scope: 'device', path: 'renderScale' },
         options: [{ value: 'auto', label: lk('settings.auto') }, { value: 0.5, label: lk('settings.scale.50') }, { value: 0.65, label: lk('settings.scale.65') }, { value: 0.8, label: lk('settings.scale.80') }, { value: 1, label: lk('settings.scale.100') }],
@@ -27,6 +32,9 @@ export function graphicsScreen(env: SettingsEnv): ScreenDef {
       { k: 'toggle', id: 'datasaver', label: lk('settings.graphics.datasaver'), bind: { scope: 'device', path: 'dataSaver' } },
       { k: 'toggle', id: 'fps-counter', label: lk('settings.graphics.fpscounter'), bind: { scope: 'ui', path: 'showFps' } },
       { k: 'button', id: 'benchmark', label: lk('settings.graphics.benchmark'), style: 'secondary', onPress: { call: 'benchmark' } },
+      ...(env.fullscreen?.available
+        ? [{ k: 'button' as const, id: 'fullscreen', label: lk(env.fullscreen.active ? 'settings.fullscreen.exit' : 'settings.fullscreen.enter'), style: 'secondary' as const, onPress: { call: 'fullscreen' } }]
+        : []),
       reset('graphics'),
     ],
   };

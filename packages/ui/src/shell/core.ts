@@ -5,6 +5,7 @@ import { lk, setLang, t } from '../i18n/index.ts';
 import { ToastStore, toastIcon } from '../kit/widgets.tsx';
 import { resolveLayout } from '../hud/touch.ts';
 import { SettingsBinder } from './binder.ts';
+import { defaultOverlayHooks, type OverlayHooks } from './overlay-hooks.ts';
 import { InstanceGuard, type ChannelLike } from './banners.tsx';
 import { defaultGateCtx } from './gates.ts';
 import { transition, type ShellEvent } from './machine.ts';
@@ -59,6 +60,8 @@ export class ShellCore implements ShellApi {
   readonly toastStore = new ToastStore();
   readonly gate: GateCtx;
   readonly binder: SettingsBinder;
+  /** The read-only signal stream: `dv-shell` window events and the `dv-shell` channel (M04b5). */
+  readonly overlay: OverlayHooks;
   readonly guard: InstanceGuard;
   modals: ModalEntry[] = [];
   noSave = false;
@@ -79,6 +82,7 @@ export class ShellCore implements ShellApi {
   private pageSince = 0;
   private lastPage: PageId | null = null;
   private lastRunningMode = false;
+  private offFrameStats: (() => void) | null = null;
 
   constructor(readonly props: ShellProps, channel: ChannelLike | null = null) {
     const prefs = props.prefs.get();
@@ -86,7 +90,9 @@ export class ShellCore implements ShellApi {
     this.state = props.unsupported ? 'Unsupported' : props.qaPlay ? 'InMode' : prefs.age.blocked ? 'Blocked' : 'Booting';
     this.gate = { ...defaultGateCtx(), flags: { ...(props.flags ?? {}) }, attested: prefs.age.attested === '18p' || props.qaPlay !== null };
     setLang(prefs.lang);
+    this.overlay = props.overlay ?? defaultOverlayHooks();
     this.binder = new SettingsBinder({
+      signal: (ref, value) => this.overlay.setting(ref, value),
       base: () => this.settings(),
       sendUi: (c) => this.sendUi(c),
       platform: () => this.platform,
@@ -136,6 +142,7 @@ export class ShellCore implements ShellApi {
     this.offVm = engine.vm.subscribe('sys.*', (_v, k) => this.onVm(k));
     this.onVm('sys.mode');
     this.onVm('sys.unlocks');
+    this.onVm('sys.profile');
     this.syncTouch();
     this.armBypass();
     this.touch();
@@ -148,7 +155,11 @@ export class ShellCore implements ShellApi {
   }
 
   attachPlatform(p: PlatformPort | null): void {
+    this.offFrameStats?.();
+    this.offFrameStats = null;
     this.platform = p;
+    // The `fps` signal flows whether or not the chip is shown.
+    this.offFrameStats = p?.onFrameStats?.((s) => this.overlay.fps(s.fps, s.tier)) ?? null;
     this.touch();
   }
 
@@ -164,6 +175,9 @@ export class ShellCore implements ShellApi {
       this.armBypass();
     } else if (key === 'sys.mode') {
       this.onModeState();
+    } else if (key === 'sys.profile') {
+      const id = (this.engine?.vm.get('sys.profile') as { id?: unknown } | undefined)?.id;
+      if (typeof id === 'string') this.overlay.profile(id);
     }
     this.touch();
   }
@@ -261,6 +275,7 @@ export class ShellCore implements ShellApi {
     if (next === this.state) return;
     const prev = this.state;
     this.state = next;
+    this.overlay.state(next);
     if (next !== 'Loading' && this.loadTimer !== null) {
       clearTimeout(this.loadTimer as ReturnType<typeof setTimeout>);
       this.loadTimer = null;
@@ -416,6 +431,7 @@ export class ShellCore implements ShellApi {
     if (this.frame?.id === 'settings' && id === 'settings') history.replaceState({ dv: 1 }, '', href);
     else history.pushState({ dv: 1 }, '', href);
     this.frame = next;
+    this.overlay.page(id);
     this.pageChanged();
     this.touch();
   }
@@ -533,6 +549,9 @@ export class ShellCore implements ShellApi {
 
   dispose(): void {
     this.offVm?.();
+    this.offFrameStats?.();
+    this.offFrameStats = null;
+    this.overlay.dispose();
     this.guard.stop();
     if (this.loadTimer !== null) clearTimeout(this.loadTimer as ReturnType<typeof setTimeout>);
   }

@@ -146,6 +146,9 @@ function showReadOnlyNotice(): void {
 async function boot(): Promise<void> {
   const container = document.createElement('div');
   container.id = 'dv-engine';
+  // Translators and accessibility tools skip the canvas container (M04b5, 10-ui-hud-xr.md section 2.14 rule 5).
+  container.setAttribute('data-ui-skip', '');
+  container.setAttribute('translate', 'no');
   document.body.append(container);
   const canvas = document.createElement('canvas');
   canvas.id = 'dv-engine-canvas';
@@ -186,7 +189,10 @@ async function boot(): Promise<void> {
   void import('@dv/engine/client/creator-stage').then((m) => {
     creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
   });
-  platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props));
+  platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props), {
+    // The player's render scale reaches the canvas at once (M04b5); the engine may not exist yet, and takes the stored value at boot.
+    onChange: (next) => engineRef?.setRenderScale(next.renderScale),
+  });
   shell.attachPlatform(platformPort);
   applyPendingConsent();
 
@@ -404,6 +410,7 @@ async function boot(): Promise<void> {
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
     engine.setPaused(want.paused);
+    engine.setRenderScale(platformPort?.settings().renderScale ?? platform.settings.renderScale);
     shell.attachEngine(createEnginePort(engine));
   }
   // The governor's atmosphereLevel knob drives the sky (M02b2): clouds, rain streak counts and decals follow it.

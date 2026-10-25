@@ -7,7 +7,7 @@ import { RenderBudgetMeter } from './perf/meter.ts';
 import type { MemoryCounters } from './perf/probe.ts';
 import { PerfScenarioRunner, type RunInfo, type WorldScenarioDriver } from './perf/scenario-runner.ts';
 import type { QaFlags } from './qa-flags.ts';
-import { THREE_REVISION } from './renderer-host.ts';
+import { pixelRatioFor, THREE_REVISION } from './renderer-host.ts';
 
 /**
  * QA-only GPU, XR and perf bridge. Reachable only through a dynamic import guarded by `import.meta.env.VITE_DV_QA === '1'`
@@ -55,6 +55,8 @@ export interface PlatformBridge {
   signals(): DeviceSignals;
   /** Counters from `renderer.info.memory` plus registered wasm bytes. */
   memory(): MemoryCounters;
+  /** The drawing-buffer sizing now (M04b5): `pixelRatio` as the renderer holds it, `budgetRatio` the tier's own ratio at scale 1. */
+  resolution(): { cssW: number; cssH: number; dpr: number; pixelRatio: number; budgetRatio: number };
   /** Flat frames drawn and frames the GPU pacer held back (QA builds on WebGL2, BD-FIX-CI7-F03). */
   pacing(): { frames: number; held: number };
   gpuProbe(): Promise<GpuProbeResult>;
@@ -321,6 +323,13 @@ export function installPlatformBridge(platform: Platform, flags: QaFlags, opts: 
     signals: () => platform.profile.signals,
     memory: () => platform.memory(),
     pacing: () => ({ frames: host.frames, held: host.pacedFrames }),
+    resolution: () => {
+      const canvas = host.currentCanvas;
+      const cssW = Math.max(1, canvas.clientWidth);
+      const cssH = Math.max(1, canvas.clientHeight);
+      const dpr = (globalThis as { devicePixelRatio?: number }).devicePixelRatio ?? 1;
+      return { cssW, cssH, dpr, pixelRatio: host.renderer.getPixelRatio(), budgetRatio: pixelRatioFor(platform.quality.tier, cssW, cssH, dpr, 1) };
+    },
 
     async gpuProbe() {
       if (lastProbe) return lastProbe;

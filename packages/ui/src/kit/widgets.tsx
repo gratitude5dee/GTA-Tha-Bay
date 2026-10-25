@@ -105,11 +105,13 @@ export function Slider(props: { id: string; label: string; value: number; min: n
   );
 }
 
-export function Choice(props: { id: string; label: string; options: { key: string; label: string; on: boolean }[]; scope?: 'profile' | 'device' | 'ui'; onPick(index: number): void }) {
+export function Choice(props: { id: string; label: string; options: { key: string; label: string; on: boolean }[]; scope?: 'profile' | 'device' | 'ui'; disabledReason?: string | undefined; onPick(index: number): void }) {
+  const off = props.disabledReason !== undefined;
   return (
-    <div class="dv-row" role="radiogroup" aria-labelledby={`lbl-${props.id}`}>
+    <div class="dv-row" role="radiogroup" aria-labelledby={`lbl-${props.id}`} aria-disabled={off ? 'true' : undefined}>
       <div class="dv-row-text">
         <span id={`lbl-${props.id}`}>{props.label}</span>
+        {off ? <small data-testid={`reason-${props.id}`}>{props.disabledReason}</small> : null}
       </div>
       {props.scope ? <ScopeBadge scope={props.scope} /> : null}
       <div class="dv-segmented">
@@ -123,7 +125,11 @@ export function Choice(props: { id: string; label: string; options: { key: strin
             data-testid={`choice-${props.id}-${o.key}`}
             aria-checked={o.on ? 'true' : 'false'}
             tabIndex={o.on ? 0 : -1}
-            onClick={() => props.onPick(i)}
+            aria-disabled={off ? 'true' : undefined}
+            title={props.disabledReason}
+            onClick={() => {
+              if (!off) props.onPick(i);
+            }}
           >
             {o.label}
           </button>

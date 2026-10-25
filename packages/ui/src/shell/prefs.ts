@@ -45,6 +45,8 @@ export function normalizePrefs(raw: unknown): UiPrefs {
   const age = (r.age ?? {}) as Partial<UiPrefs['age']>;
   const terms = r.terms as Partial<NonNullable<UiPrefs['terms']>> | null | undefined;
   return {
+    // Keys this build does not know (a newer build wrote them) ride along, so `set` and `persist` write them back (M04b5).
+    ...(raw as Record<string, unknown>),
     ...d,
     lang: typeof r.lang === 'string' ? r.lang : null,
     uiScale: clamp(r.uiScale, 0.85, 1.5, d.uiScale),

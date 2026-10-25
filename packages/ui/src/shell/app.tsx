@@ -4,6 +4,7 @@ import { BRAND } from '../../../../config/brand.ts';
 import { t } from '../i18n/index.ts';
 import { FocusManager } from '../kit/focus.ts';
 import { ConfirmBody, Dialog, ToastHost, type ToastItem } from '../kit/widgets.tsx';
+import { FpsChip } from '../hud/fps-chip.tsx';
 import { StoryHud } from '../hud/story-hud.tsx';
 import { CoachMark, InstallChip } from '../onboarding/coach-mark.tsx';
 import { RotateOverlay } from '../onboarding/rotate.tsx';
@@ -179,6 +180,7 @@ export function ShellApp(props: { core: ShellCore }) {
         </>
       ) : null}
       <AttributionSplash />
+      {core.props.prefs.get().showFps ? <FpsChip /> : null}
       <ToastHost store={core.toastStore} announce={core.props.prefs.get().announce} onAction={toastAction} />
       {core.modals.map((m) =>
         m.confirm ? (
