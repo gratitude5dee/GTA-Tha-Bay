@@ -19,8 +19,8 @@ export function laneLimits(mobileOrXr: boolean): LaneLimits {
 
 export interface LaneHandle<T> {
   promise: Promise<T>;
-  /** Moves a job that is still queued to a higher-priority lane; a running job is unaffected. */
-  promote(to: Priority): void;
+  /** Moves a job that is still queued to a higher-priority lane; a running job is unaffected. True when it moved (M02f2). */
+  promote(to: Priority): boolean;
 }
 
 interface Job {
@@ -30,6 +30,8 @@ interface Job {
 
 const ORDER: readonly Priority[] = ['now', 'soon', 'idle'];
 const RANK: Record<Priority, number> = { now: 0, soon: 1, idle: 2 };
+/** Lower is more urgent (M02f2: the store's deferred prefetches order themselves the same way). */
+export const PRIORITY_RANK: Readonly<Record<Priority, number>> = RANK;
 
 export class Lanes {
   readonly limits: LaneLimits;
@@ -76,14 +78,15 @@ export class Lanes {
     return {
       promise,
       promote: (to) => {
-        if (started || RANK[to] >= RANK[job.priority]) return;
+        if (started || RANK[to] >= RANK[job.priority]) return false;
         const q = this.queues[job.priority];
         const i = q.indexOf(job);
-        if (i < 0) return;
+        if (i < 0) return false;
         q.splice(i, 1);
         job.priority = to;
         this.queues[to].push(job);
         this.pump();
+        return true;
       },
     };
   }

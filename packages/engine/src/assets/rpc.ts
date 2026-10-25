@@ -44,6 +44,8 @@ export interface StatsResult {
   inflightPeak: number;
   /** How many times the requests in flight rose from 0 to 1 (busy periods, M02f1). */
   waves: number;
+  /** Prefetch batches that stopped on a quota failure (M02f2). */
+  prefetchStops: number;
 }
 
 export type CatalogStateName = 'idle' | 'loading' | 'ready' | 'invalid' | 'disabled' | 'unavailable';
@@ -62,6 +64,8 @@ export interface RpcOps {
   has: [{ target: Target; tier: QualityTierId }, boolean];
   resolve: [{ ref: string; tier: QualityTierId }, PackRef];
   prefetch: [{ targets: Target[]; tier: QualityTierId; priority: 'soon' | 'idle' }, null];
+  /** M02f2: raises the lane of the targets that still wait; resolves with how many moved. */
+  promote: [{ targets: Target[]; tier: QualityTierId; priority: 'now' | 'soon' }, number];
   pin: [{ targets: Target[]; tier: QualityTierId }, null];
   unpinAll: [Record<string, never>, null];
   gc: [Record<string, never>, { removed: number; freedMB: number }];
