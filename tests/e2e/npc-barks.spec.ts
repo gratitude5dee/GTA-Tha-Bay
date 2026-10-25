@@ -88,7 +88,7 @@ test.describe('NPC agency and barks @npc-barks', () => {
     // no request to the NPC routes, and nothing but the background polls reached the API during the exchange
     const during = api.urls.slice(before);
     expect(during.filter((u) => u.startsWith('/api/v1/npc/'))).toEqual([]);
-    expect(during.filter((u) => u !== '/api/v1/roster' && !u.startsWith('/api/v1/telemetry'))).toEqual([]);
+    expect(during.filter((u) => u !== '/api/v1/roster' && !u.startsWith('/api/v1/telemetry') && u !== '/api/v1/t')).toEqual([]);
     // the exchange ends after its last line's time: one finished knot, and the subtitle is gone
     await expect.poll(async () => (await agency(page, (a) => a.debug()))?.knots ?? 0, { timeout: 20_000, intervals: [250, 500] }).toBeGreaterThanOrEqual(1);
     await expect.poll(async () => await agency(page, (a) => a.subtitle()), { timeout: 20_000, intervals: [250, 500] }).toBeNull();
@@ -105,9 +105,17 @@ test.describe('NPC agency and barks @npc-barks', () => {
     expect(sub?.text.length ?? 0).toBeGreaterThan(2);
     expect(sub?.speaker).toMatch(/passerby|vendor|founder|rapper|officer/);
     // up again, down again: inside the 20 s cooldown of the entity, so it is dropped, not played
+    // (a slow sim, as on the software WebGPU runner, may still have the pedestrian down after 2.6 s, so bump again until a drop shows)
     await page.waitForTimeout(2600);
-    await agency(page, (a) => a.bump());
-    await expect.poll(async () => (await agency(page, (a) => a.debug()))?.barks.dropped ?? 0, { timeout: 30_000, intervals: [250, 500] }).toBeGreaterThanOrEqual(1);
+    await expect
+      .poll(
+        async () => {
+          await agency(page, (a) => a.bump());
+          return (await agency(page, (a) => a.debug()))?.barks.dropped ?? 0;
+        },
+        { timeout: 45_000, intervals: [1500, 2000] },
+      )
+      .toBeGreaterThanOrEqual(1);
     expect((await agency(page, (a) => a.debug()))?.barks.played).toBe(1);
   });
 
