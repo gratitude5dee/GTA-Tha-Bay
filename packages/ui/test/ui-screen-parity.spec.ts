@@ -45,6 +45,7 @@ const fixture: ScreenDef = {
     { k: 'toggle', id: 't', label: 'settings.camera.shake', bind: { scope: 'profile', path: 'camera.shake' } },
     { k: 'slider', id: 's', label: 'settings.camera.fov', bind: { scope: 'profile', path: 'camera.fovDeg' }, min: 60, max: 100, step: 5 },
     { k: 'choice', id: 'c', label: 'settings.camera.mode', bind: { scope: 'profile', path: 'camera.defaultMode' }, options: [{ value: 'tp', label: 'settings.camera.tp' }, { value: 'fp', label: 'settings.camera.fp' }] },
+    { k: 'choice', id: 'cd', label: 'settings.graphics.fps', bind: { scope: 'device', path: 'fpsCap' }, disabled: 'settings.graphics.fps.later', options: [{ value: 'auto', label: 'settings.auto' }, { value: 30, label: 'settings.fps.30' }] },
     { k: 'list', id: 'l', rows: [{ id: 'r1', text: 'one' }, { id: 'r2', text: 'two', disabled: true }], onPress: { call: 'x' }, empty: 'load.empty' },
     { k: 'list', id: 'empty', rows: [], onPress: { call: 'x' }, empty: 'load.empty' },
     {
