@@ -1,7 +1,7 @@
 /**
  * The below-the-world rule for ambient vehicles (02-world-maps.md 4.1 d, DL-735 c; BD-FIX-SPAWN-09): a vehicle the traffic made (a promoted
  * agent, or the wreck it became) that is under `play.minY` with no player aboard is despawned through the traffic's own despawn of its
- * vehicles; a car above `play.minY` is left alone, and so is one with the player aboard (the engine's vehicle net takes that one).
+ * vehicles, the agent's promotion record included (DL-736); a car above `play.minY` is left alone, and so is one with the player aboard (the engine's vehicle net takes that one).
  * The real ECS, Rapier and vehicle module, as in `traffic.promotion.spec.ts`.
  */
 import { describe, expect, it } from 'vitest';
@@ -105,9 +105,15 @@ describe('ambient vehicles under the world (DL-735 c)', () => {
     w.sim.step(20);
     expect(w.sim.ecs.byKey(key)).not.toBe(0);
     // under the floor of the play box with nobody aboard: gone within one brain step (every second tick)
+    expect(w.traffic.sim.promotions.has('amb:9/256/256:60')).toBe(true);
+    const despawns = w.traffic.sim.stats.despawns;
     drop(w, key, w.minY - 5);
     w.sim.step(3);
     expect(w.sim.ecs.byKey(key)).toBe(0);
+    // the full traffic despawn (DL-736): the agent's promotion record goes with the car, and it counts as a despawn
+    expect(w.traffic.sim.promotions.has('amb:9/256/256:60')).toBe(false);
+    expect(w.traffic.sim.promotions.count).toBe(0);
+    expect(w.traffic.sim.stats.despawns).toBe(despawns + 1);
     // the traffic forgot it: the promotion running out later finds nothing to turn into a wreck, and nothing breaks
     w.sim.step(PROMOTED_TICKS + 10);
     expect(w.sim.ecs.byKey(key)).toBe(0);

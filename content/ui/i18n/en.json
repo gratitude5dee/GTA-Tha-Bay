@@ -1163,7 +1163,7 @@
   "phone.messages.back": "All chats",
   "jobs.busy": "Finish or quit the mission you are on first.",
   "mission.disabled": "This job cannot start here ({code} at {pointer}).",
-  "mission.startLoading": "Still loading the streets around your first job. Hang tight, it starts once you're there.",
+  "mission.startLoading": "The streets where this job picks up are still loading. Hold on, it gets going once the ground is there.",
   "mission.startUnreachable": "This job cannot start: its starting point cannot be reached in this world ({reason}).",
   "talk.gate.mood": "Not in the mood yet",
   "talk.gate.trust": "Needs more trust ({need})",

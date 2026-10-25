@@ -5,7 +5,7 @@
  * whose IR the page puts in the boot payload). The mission store, the Jobs app and the markers that start a mission come with
  * M05c1. Sim code under the C02 lint.
  */
-import type { GameModeSim, JsonValue, MissionIR, ModeContext, ModeExitReason, Placement, SimEvent, StorySlice, TeleportResult } from '@dv/shared';
+import type { GameModeSim, JsonValue, MissionCheckpointV1, MissionIR, ModeContext, ModeExitReason, Placement, SimEvent, StorySlice, TeleportResult } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
 import { WORLD_STANDIN_BAKE, type StoryWrapEnv } from '@dv/engine/sim';
 import { resolveMission } from './compiler/resolve.ts';
@@ -49,7 +49,10 @@ export interface BeginOptions {
   stage?: number;
   /** Replaces the story seed in the mission seed (QA `?seed=`). */
   seed?: number;
-  /** Continue from the saved checkpoint when it matches this version and world bake. Default: start fresh. */
+  /**
+   * Continue from the saved checkpoint when it matches this version and world bake (a saved game after a load or a mode re-entry: the
+   * cast spawns at its saved poses and a seated player is seated again, DL-736). Default: start fresh.
+   */
   resume?: boolean;
   flags?: Partial<RuntimeFlags>;
   directors?: readonly DirectorScript[];
@@ -90,6 +93,17 @@ export const PLACE_BUDGET_TICKS = 10800;
 export const PLACE_HINT_AFTER_TICKS = 300;
 export const PLACE_HINT_EVERY_TICKS = 1200;
 const TELEPORT_TRANSIENT = new Set(['world.teleport.notLoaded', 'world.teleport.busy']);
+
+/**
+ * The world's pre-stream alone (`WorldServices.prestream` of `@dv/world`, 02-world-maps.md 5 step 2; not a C08 `WorldApi` member, so it
+ * is read structurally): the `p0` chunk at a point and its one-chunk ring as `needNow`, pinned until released. Absent on the gray-box
+ * stand-in and on a headless host, whose ground is always there.
+ */
+export interface PrestreamTicket {
+  ready(): boolean;
+  release(): void;
+}
+type PrestreamWorld = { prestream?: (x: number, z: number) => PrestreamTicket };
 
 /** The gap before the next request of the move to a far start, after `tries` requests: 60, 120, 240, 480, then 600 ticks. */
 export function placeRetryGap(tries: number): number {
@@ -185,6 +199,13 @@ export class StoryController {
    * (`JobRow.retry`) that runs the move again with a fresh budget.
    */
   private readonly startFailed = new Set<string>();
+  /**
+   * A saved checkpoint waiting for its ground (DL-736; 03-story.md section 5, 'Resume from a saved checkpoint'): it is restored only once
+   * the saved player pose's `p0` tile and its one-tile ring are resident and a static collider is under the pose, within the far start's
+   * budget (`PLACE_BUDGET_TICKS`, with the `mission.startLoading` hint). `ticket` is null where the world has no pre-stream (gray-box,
+   * headless): the ground is there, and the checkpoint is restored at once.
+   */
+  private resuming: { id: string; cp: MissionCheckpointV1; ticket: PrestreamTicket | null; started: number; hintAt: number } | null = null;
 
   constructor(private readonly env: StoryWrapEnv) {}
 
@@ -227,6 +248,7 @@ export class StoryController {
     this.rt = null;
     this.pending = null;
     this.cancelPlacing();
+    this.cancelResume();
     this.startFailed.clear();
     this.triedTrigger.clear();
     this.startMarks.clear();
@@ -296,7 +318,7 @@ export class StoryController {
     this.rt = rt;
     const storySeed = story.world.seed;
     const seed = missionDeps().missionSeed(o.seed ?? storySeed, ir.id, 1);
-    rt.start(res, { attempt: 1, seed, ...(o.resume === true && cp ? { from: cp } : {}) });
+    rt.start(res, { attempt: 1, seed, ...(o.resume === true && cp ? { from: cp, load: true } : {}) });
     if (o.stage !== undefined && o.stage > 0) rt.jumpTo(o.stage);
     return { ok: true };
   }
@@ -331,7 +353,7 @@ export class StoryController {
   startById(id: string, ctx: ModeContext): BeginResult | null {
     const store = this.store;
     const entry = store?.get(id);
-    if (!store || !entry || this.pending || this.rt?.active || this.placing) return null;
+    if (!store || !entry || this.pending || this.rt?.active || this.placing || this.resuming) return null;
     this.clearStartMarks(ctx);
     return this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines });
   }
@@ -340,8 +362,9 @@ export class StoryController {
   private triggers(ctx: ModeContext, store: MissionStore): void {
     const story = this.story;
     if (!story || ctx.tick % TRIGGER_EVERY !== 0) return;
-    const busy = this.pending !== null || this.rt?.active === true || this.placing !== null;
+    const busy = this.pending !== null || this.rt?.active === true || this.placing !== null || this.resuming !== null;
     if (this.placing) this.stepPlacing(ctx);
+    if (this.resuming) this.stepResume(ctx);
     if (busy) {
       if (this.startMarks.size > 0) this.clearStartMarks(ctx);
     } else {
@@ -363,8 +386,8 @@ export class StoryController {
    * A mission that was running when the game was saved (`StorySlice.activeMission`, written at a checkpoint) continues from that
    * checkpoint once the mode is back: before any trigger. A checkpoint of another version or world bake (a rebake changes the bake id)
    * is dropped here and the mission is `available` again, and nothing starts: the trigger and the far start of `checkTriggers` (or a
-   * marker, or the Jobs app) start it at its authored start, never where the player stands (DL-734; BD-FIX-SPAWN-10). Tried once per
-   * session.
+   * marker, or the Jobs app) start it at its authored start, never where the player stands (DL-734; BD-FIX-SPAWN-10). A matching
+   * checkpoint waits for the ground under its saved pose first (`beginResume`, DL-736). Tried once per session.
    */
   private resumeSaved(ctx: ModeContext, store: MissionStore, story: StorySlice): boolean {
     const saved = story.activeMission;
@@ -383,8 +406,86 @@ export class StoryController {
     }
     this.clearStartMarks(ctx);
     this.triedTrigger.add(saved.id);
-    const res = this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true });
-    return res.ok;
+    // busy from here: the mission runs, or waits for its ground (a wait that runs out keeps the checkpoint and the Jobs Start)
+    this.beginResume(ctx, saved.id);
+    return this.resuming !== null || this.rt?.active === true;
+  }
+
+  /** The matching checkpoint of the saved `activeMission` for `id`, or null (none, another mission, another version or bake). */
+  private savedCheckpoint(ctx: ModeContext, id: string): MissionCheckpointV1 | null {
+    const story = this.story;
+    const entry = this.store?.get(id);
+    if (!story || !entry || story.activeMission?.id !== id) return null;
+    return readCheckpoint(story.activeMission, entry.ir.id, entry.ir.version, ctx.world.resolver.bake);
+  }
+
+  /**
+   * Starts the wait for a saved checkpoint's ground with a fresh budget (DL-736): the saved player pose's `p0` tile and its ring are
+   * pre-streamed (`WorldServices.prestream`), and `stepResume` restores the checkpoint once they are resident. False when there is no
+   * matching checkpoint; otherwise whether the mission already runs again.
+   */
+  private beginResume(ctx: ModeContext, id: string): boolean {
+    const cp = this.savedCheckpoint(ctx, id);
+    if (!cp) return false;
+    this.cancelResume();
+    const port = (ctx.world as unknown as PrestreamWorld).prestream;
+    let ticket: PrestreamTicket | null = null;
+    if (typeof port === 'function') {
+      try {
+        ticket = port(cp.player.x, cp.player.z);
+      } catch {
+        ticket = null;
+      }
+    }
+    this.resuming = { id, cp, ticket, started: ctx.tick, hintAt: -1 };
+    return this.stepResume(ctx);
+  }
+
+  /**
+   * One step of the wait for a saved checkpoint's ground (DL-736). Once the saved pose's tiles are resident and a static collider is
+   * under it, the checkpoint is restored as saved (`begin` with `resume`: the player and the cast poses written as saved, a seated player
+   * seated again, no placement search). Once `PLACE_BUDGET_TICKS` have passed the checkpoint is kept, the mission stays `available`
+   * with `mission.startUnreachable`, and the next load or a Jobs Start tries again; meanwhile the `mission.startLoading` hint shows as
+   * for a far start. Every limit counts sim ticks (C02). True once the mission runs again.
+   */
+  private stepResume(ctx: ModeContext): boolean {
+    const r = this.resuming;
+    if (!r) return false;
+    const t = r.ticket;
+    if (t === null || (t.ready() && ctx.physics.groundY(r.cp.player.x, r.cp.player.z) !== null)) {
+      t?.release();
+      this.resuming = null;
+      const store = this.store;
+      const entry = store?.get(r.id);
+      if (!store || !entry) return false;
+      this.startFailed.delete(r.id);
+      return this.begin(entry.ir, { directors: entry.directors, cutscenes: entry.cutscenes, lines: store.lines, resume: true }).ok;
+    }
+    if (ctx.tick - r.started >= PLACE_BUDGET_TICKS) {
+      this.failResume(ctx, r);
+      return false;
+    }
+    this.hintWait(ctx, r);
+    return false;
+  }
+
+  /** The saved checkpoint's ground did not come within the budget: keep the checkpoint; the mission is `available` with a Jobs Start. */
+  private failResume(ctx: ModeContext, r: NonNullable<StoryController['resuming']>): void {
+    r.ticket?.release();
+    this.resuming = null;
+    const story = this.story;
+    const row = story?.missions[r.id];
+    if (story && row?.state !== 'passed') story.missions[r.id] = { state: 'available', ...(row?.bestSec !== undefined ? { bestSec: row.bestSec } : {}) };
+    this.startFailed.add(r.id);
+    ctx.telemetry.emit('mission.fail', { mid: r.id, stage: r.cp.stage, sec: 0, attempt: r.cp.attempt, reason: 'unresolved' });
+    ctx.ui.toast({ id: `mission:${r.id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason: 'not-loaded' } });
+    if (this.store && this.story) this.publishJobs(ctx, this.store, this.story, null);
+  }
+
+  /** Drops a wait for a checkpoint's ground (the mode exits or attaches again); the checkpoint stays saved. */
+  private cancelResume(): void {
+    this.resuming?.ticket?.release();
+    this.resuming = null;
   }
 
   private checkTriggers(ctx: ModeContext, store: MissionStore, story: StorySlice): void {
@@ -572,10 +673,15 @@ export class StoryController {
    * `PLACE_HINT_EVERY_TICKS` while the wait lasts; each one leaves the screen after the shell's short sim toast time (DL-735 d).
    */
   private hintPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
-    if (ctx.tick - pl.started < PLACE_HINT_AFTER_TICKS) return;
-    if (pl.hintAt >= 0 && ctx.tick - pl.hintAt < PLACE_HINT_EVERY_TICKS) return;
-    pl.hintAt = ctx.tick;
-    ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: 'mission.startLoading' });
+    this.hintWait(ctx, pl);
+  }
+
+  /** The loading hint of a wait (a far start, or a checkpoint's ground, DL-736): the same ticks and the same toast. */
+  private hintWait(ctx: ModeContext, w: { id: string; started: number; hintAt: number }): void {
+    if (ctx.tick - w.started < PLACE_HINT_AFTER_TICKS) return;
+    if (w.hintAt >= 0 && ctx.tick - w.hintAt < PLACE_HINT_EVERY_TICKS) return;
+    w.hintAt = ctx.tick;
+    ctx.ui.toast({ id: `mission:${w.id}:loading`, kind: 'info', text: 'mission.startLoading' });
   }
 
   /**
@@ -661,9 +767,16 @@ export class StoryController {
     if (msg.name === 'mission.start') {
       if (typeof a['id'] === 'string') {
         const id = a['id'];
+        const idle = !this.pending && !this.rt?.active && !this.placing && !this.resuming;
+        // DL-736: a kept checkpoint of this mission (its ground did not come last time) is waited for again, with a fresh budget
+        if (idle && this.savedCheckpoint(_ctx, id)) {
+          this.clearStartMarks(_ctx);
+          this.beginResume(_ctx, id);
+          return;
+        }
         // DL-734: a mission whose authored start is more than 300 m away is first a move there, with a fresh budget
         const far = this.farStartFor(_ctx, id);
-        if (far && !this.pending && !this.rt?.active && !this.placing) {
+        if (far && idle) {
           this.beginPlacing(_ctx, id, far);
           return;
         }
@@ -748,6 +861,7 @@ export class StoryController {
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
     this.cancelPlacing();
+    this.cancelResume();
     this.teleportRestore?.();
     this.teleportRestore = null;
     const rt = this.rt;
