@@ -1,5 +1,8 @@
 /* The dialogue panel (M06a5). Design tokens only: colours, spacing, radii and motion come from tokens.css; sizes are rem so `uiScale` scales them. */
-.dv-dlg-host { position: fixed; inset: 0; z-index: var(--dv-z-toast); pointer-events: none; }
+/* Above the HUD and toasts, below modal dialogs (the report dialog). The shell root is a stacking context (z-index 1, or 6 while playing), so while a
+   conversation is open it rises above the QA debug panels that sit beside it in the body (z-index 34 to 35); in a production build there are none. */
+html[data-dv-dialogue='open'] body #app { z-index: 40; }
+.dv-dlg-host { position: fixed; inset: 0; z-index: calc(var(--dv-z-overlay) - 1); pointer-events: none; }
 .dv-dlg {
   pointer-events: auto;
   position: absolute; inset-inline: 0; inset-block-end: 0; margin-inline: auto;
@@ -12,10 +15,11 @@
   /* desktop: a side panel at the end edge instead of a bottom sheet */
   .dv-dlg { inset-inline: auto var(--dv-space-4); inset-block-end: var(--dv-space-4); margin-inline: 0; inline-size: 26rem; border-block-end: 1px solid var(--dv-color-surface-raised); border-radius: var(--dv-radius-lg); }
 }
-.dv-dlg-body { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--dv-space-2) var(--dv-space-3); align-items: start; }
-.dv-dlg-body > * { grid-column: 1 / -1; min-inline-size: 0; }
-.dv-dlg-head { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--dv-space-2); }
-.dv-dlg-close { grid-column: 2; grid-row: 1; }
+/* One column. Close is last in the document (the focus order ends there) and sits over the end of the first row; the header leaves room for it. */
+.dv-dlg-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-2); align-items: start; }
+.dv-dlg-body > * { min-inline-size: 0; }
+.dv-dlg-head { grid-row: 1; grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--dv-space-2); padding-inline-end: 6rem; min-block-size: 2.75rem; }
+.dv-dlg-close { grid-row: 1; grid-column: 1; justify-self: end; align-self: start; }
 .dv-dlg-speaker { margin: 0; font-family: var(--dv-font-display); font-size: var(--dv-text-lg); overflow-wrap: anywhere; }
 .dv-dlg-speaker:focus-visible, .dv-dlg-line:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 0.125rem; }
 .dv-dlg-badge {
@@ -38,13 +42,13 @@
 .dv-dlg-btn[aria-disabled='true'] { opacity: 0.6; cursor: wait; }
 .dv-dlg-primary { background: var(--dv-color-accent); border-color: var(--dv-color-accent); color: var(--dv-color-accent-contrast); }
 .dv-dlg-showfull { justify-self: start; }
-.dv-dlg-choices { display: grid; gap: var(--dv-space-2); }
+.dv-dlg-choices { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-2); }
 .dv-dlg-intents { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--dv-space-2); }
-.dv-dlg-type { display: grid; gap: var(--dv-space-1); }
+.dv-dlg-type { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-1); }
 .dv-dlg-label { font-size: var(--dv-text-sm); color: var(--dv-color-text-muted); }
 .dv-dlg-typerow { display: flex; gap: var(--dv-space-2); }
 .dv-dlg-input {
-  box-sizing: border-box; flex: 1 1 auto; min-inline-size: 0; min-block-size: 2.75rem; padding-inline: var(--dv-space-3);
+  box-sizing: border-box; flex: 1 1 auto; inline-size: 100%; min-inline-size: 0; min-block-size: 2.75rem; padding-inline: var(--dv-space-3);
   border: 1px solid var(--dv-color-text-muted); border-radius: var(--dv-radius-md); background: var(--dv-color-bg); color: var(--dv-color-text); font: inherit;
 }
 .dv-dlg-report { display: flex; align-items: center; }

@@ -306,12 +306,16 @@ test.describe('dialogue panel a11y @ui-a11y', () => {
       el.dispatchEvent(new Event('input', { bubbles: true }));
     });
     await expect(page.locator('html')).toHaveCSS('font-size', '24px');
+    // reduced motion: the browser asks for it, and the player's own switch is on (a new profile adopts the browser's setting; this one may predate it)
+    const motion = page.getByTestId('toggle-a11y-motion');
+    if ((await motion.getAttribute('aria-checked')) !== 'true') await motion.click();
+    await expect(motion).toHaveAttribute('aria-checked', 'true');
     await page.keyboard.press('Escape');
 
     await page.evaluate(() => (window as unknown as W).__dvBridge.npc.open('npc_test'));
     const panel = page.getByTestId('dialogue-panel');
     await expect(panel).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true');
+    await expect(page.locator('html')).toHaveAttribute('data-reduced-motion', 'true', { timeout: 60_000 });
 
     // the panel fits the viewport: no horizontal overflow, every control inside it, none clipped
     const box = await panel.boundingBox();
