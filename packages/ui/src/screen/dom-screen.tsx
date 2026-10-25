@@ -64,6 +64,7 @@ function widget(w: Widget, ctx: ScreenCtx, key: string): ComponentChildren {
           id={w.id}
           label={t(w.label)}
           scope={w.bind.scope}
+          disabledReason={w.disabled ? t(w.disabled) : undefined}
           options={w.options.map((o, i) => ({ key: String(i), label: t(o.label), on: cur !== undefined && same(cur, o.value) }))}
           onPick={(i) => {
             const o = w.options[i];

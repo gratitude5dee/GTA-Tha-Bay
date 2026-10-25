@@ -10,6 +10,7 @@ import type { MapPort } from '../phone/map-port.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
 import type { ShellEvent } from './machine.ts';
+import type { OverlayHooks } from './overlay-hooks.ts';
 
 export type { LocKey } from '../i18n/index.ts';
 
@@ -184,6 +185,10 @@ export interface PlatformPort {
   emit(name: 'ui.page' | 'ui.onboard', props: Record<string, string | number | boolean>): void;
   deviceClass: 'desktop' | 'mobile' | 'xr';
   xrCapable: boolean;
+  /** True once M11a1's FramePacer exists; until then the frame-cap row is disabled with its reason (M04b5). */
+  framePacer?: boolean;
+  /** Frame-rate samples, about once a second (the FPS chip, the `fps` shell signal). Returns the unsubscribe. */
+  onFrameStats?(cb: (s: { fps: number; tier: string }) => void): () => void;
   install?: { canPrompt(): boolean; prompt(): Promise<void>; isIos: boolean; standalone: boolean };
 }
 
@@ -237,6 +242,8 @@ export interface ShellProps {
   onConsent?: (consent: PlatformSettings['telemetryConsent']) => void;
   /** The build id for the Title and About. */
   build: string;
+  /** The read-only signal stream (M04b5); tests pass fakes, the app leaves it out for the window and `BroadcastChannel`. */
+  overlay?: OverlayHooks;
   /** Flags the app knows before the engine (BootConfig.flags once fetched). */
   flags?: Record<string, boolean>;
   /** `?touch=1` (QA builds) forces the touch layer; the rotate overlay follows it. */

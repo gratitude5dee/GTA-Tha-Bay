@@ -12,6 +12,7 @@ import type { ListRow, ScreenDef, UiAction } from '../screen/types.ts';
 import { garageCards, cardAction } from '../pages/garage.tsx';
 import { buildTiles, tileRows, type ModeTile } from '../pages/modes.ts';
 import { useShell } from '../shell/context.tsx';
+import { currentFullscreen, toggleFullscreen, useFullscreenTick, type FullscreenDoc, type FullscreenState } from '../shell/fullscreen.ts';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
 import { messagePress, type PhoneMessage } from './messages.tsx';
@@ -25,6 +26,8 @@ export interface PauseEnv {
   lastSave: string | null;
   /** Another tab owns the profile. */
   otherTab: boolean;
+  /** The full-screen button: present only when available (M04b5). */
+  fullscreen?: FullscreenState;
 }
 
 export function pauseScreen(env: PauseEnv): ScreenDef {
@@ -40,6 +43,9 @@ export function pauseScreen(env: PauseEnv): ScreenDef {
       { k: 'button', id: 'pause-load', label: lk('pause.load'), style: 'secondary', onPress: { call: 'pause.load' }, disabled: lk('pause.load.menu') },
       { k: 'button', id: 'pause-phone', label: lk('pause.phone'), style: 'secondary', onPress: { nav: 'phone' } },
       { k: 'button', id: 'pause-settings', label: lk('nav.settings'), style: 'secondary', onPress: { nav: 'settings', params: { cat: 'graphics' } } },
+      ...(env.fullscreen?.available
+        ? [{ k: 'button' as const, id: 'pause-fullscreen', label: lk(env.fullscreen.active ? 'settings.fullscreen.exit' : 'settings.fullscreen.enter'), style: 'secondary' as const, onPress: { call: 'pause.fullscreen' } }]
+        : []),
       { k: 'button', id: 'pause-help', label: lk('nav.help'), style: 'secondary', onPress: { nav: 'help' } },
       { k: 'button', id: 'pause-report', label: lk('pause.report'), style: 'secondary', onPress: { call: 'pause.report' } },
       { k: 'button', id: 'pause-quit', label: lk('pause.quit'), style: 'danger', onPress: { call: 'pause.quit' } },
@@ -66,8 +72,9 @@ export function PausePage(_props: PageProps) {
     };
   }, [ctx.saves, ctx.profile?.id]);
   useVmRedraw(ctx);
+  useFullscreenTick();
   const atSafehouse = ctx.vm<JsonValue>('hud.safehouse') === true;
-  const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab });
+  const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab, fullscreen: currentFullscreen(ctx.platform?.deviceClass ?? 'desktop') });
   return h('main', { class: 'dv-page dv-pause', 'data-testid': 'pause' }, h(ScreenHost, {
     screen,
     get: () => undefined,
@@ -79,6 +86,9 @@ export function PausePage(_props: PageProps) {
       } else if ('nav' in action) shell.navigate(action.nav, action.params);
       else if ('call' in action) {
         if (action.call === 'pause.resume') ctx.fire('resume');
+        else if (action.call === 'pause.fullscreen') {
+          toggleFullscreen(document as FullscreenDoc, () => shell.toast({ id: 'fullscreen.failed', kind: 'warning', text: lk('settings.fullscreen.failed') }));
+        }
         else if (action.call === 'pause.report') {
           void navigator.clipboard?.writeText(ctx.props.diagnostics()).then(() => setCopied(true), () => setCopied(false));
         } else if (action.call === 'pause.quit') {

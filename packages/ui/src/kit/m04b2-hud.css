@@ -89,3 +89,12 @@
 
 /* ---- phone and pause */
 .dv-phone, .dv-pause, .dv-garage { max-inline-size: 36rem; }
+
+/* M04b5: the frame-rate chip sits top right inside the safe area, above the HUD layer; a disabled choice reads as unavailable. */
+.dv-fpschip {
+  position: fixed; z-index: calc(var(--dv-z-hud) + 1); pointer-events: none;
+  inset-block-start: max(env(safe-area-inset-top), 0.5rem); inset-inline-end: max(env(safe-area-inset-right), 0.5rem);
+  padding: 0.15em 0.55em; border-radius: 0.5em; background: rgb(8 12 22 / 0.72); border: 1px solid rgb(255 255 255 / 0.18);
+  color: var(--dv-color-text); font-family: var(--dv-font-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums;
+}
+.dv-seg[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
