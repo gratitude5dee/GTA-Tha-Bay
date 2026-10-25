@@ -5,6 +5,7 @@ import {
   type AutosaveGameState, type CommandDeps, type SessionSlices,
 } from '../../src/sim/modes/index.ts';
 import type { SandboxVehiclePort } from '../../src/sim/modes/sandbox-vehicle-port.ts';
+import type { SandboxBodyPort } from '../../src/sim/modes/sandbox-body-port.ts';
 import { createWaypointMemo, type Pose, type SandboxWorldPort, type WaypointMemo } from '../../src/sim/modes/builtin/index.ts';
 
 export interface Posted {
@@ -54,6 +55,8 @@ export interface RigOptions {
   playerPose?: () => Pose | null;
   /** The engine side of the sandbox's car spawner (M04e3). Absent: null, as on a build without the vehicle module. */
   sandboxVehicles?: SandboxVehiclePort;
+  /** The engine side of the sandbox's body tools (M04e4). Absent: null, as on a build without the vehicle module. */
+  sandboxBody?: SandboxBodyPort;
   /** What `ctx.assets.ready` answers (M04e3). The default keeps `() => true`. */
   assetsReady?: (refs: string[]) => boolean;
 }
@@ -78,7 +81,7 @@ export function makeRig(o: RigOptions = {}): Rig {
   const unlocks = new UnlockRegistryImpl({ core: () => slices.core, ui, saveUnlock: () => void holder.host?.autosave.request('unlock'), telemetry: tel as never });
   unlocks.register(builtinUnlockDefs());
   const economy = new EconomyImpl({ wallet: () => slices.story.wallet, tick: () => tick.n, clockT: () => clockT.t, ui });
-  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: o.playerPose ?? (() => null), waypoint: () => waypoint.get(), ...(o.sandboxVehicles ? { vehicles: () => o.sandboxVehicles as SandboxVehiclePort } : {}), ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
+  const descriptors = [...(o.builtin === false ? [] : builtinDescriptors({ story: () => slices.story, sandbox: () => slices.sandbox, playerPose: o.playerPose ?? (() => null), waypoint: () => waypoint.get(), ...(o.sandboxVehicles ? { vehicles: () => o.sandboxVehicles as SandboxVehiclePort } : {}), ...(o.sandboxBody ? { body: () => o.sandboxBody as SandboxBodyPort } : {}), ...(o.sandboxWorld ? { world: o.sandboxWorld } : {}) })), ...(o.descriptors ?? [])];
   const byId = new Map(descriptors.map((d) => [d.id, d]));
   const host = new ModeHost({
     descriptors: [...byId.values()],
@@ -124,6 +127,7 @@ export function makeRig(o: RigOptions = {}): Rig {
     ...(o.playerPose ? { playerPose: o.playerPose } : {}),
     ...(o.teleport ? { teleport: o.teleport } : {}),
     ...(o.sandboxWorld ? { sandboxWorld: o.sandboxWorld } : {}),
+    ...(o.sandboxBody ? { body: () => o.sandboxBody as SandboxBodyPort } : {}),
   });
   return {
     host, slices, ui, unlocks, economy, events, posted, telemetry, restarts, game, clockT, tick, dispatch, capabilitySet, waypoint,
