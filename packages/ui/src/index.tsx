@@ -11,6 +11,7 @@ import './kit/m04b2.css';
 import './kit/m04b2-hud.css';
 import './kit/m05c1-talk.css';
 import './kit/m02c2-map.css';
+import './dialogue/dialogue.css';
 import { ShellApp } from './shell/app.tsx';
 import type { ChannelLike } from './shell/banners.tsx';
 import { ShellCore, type SimToast } from './shell/core.ts';
@@ -18,12 +19,13 @@ import type { EnginePort, PlatformPort, SavesPort, ShellProps } from './shell/ty
 
 export { t, lk, setLang, plural, formatNumber, formatDate, registerTexts, contentText } from './i18n/index.ts';
 export type { LocKey } from './i18n/index.ts';
+export * from './dialogue/index.ts';
 export type { CreatorStagePort, MannequinParams } from './creator/stage.ts';
 export { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, detuneCents } from './creator/voice-preview.ts';
 export type { VoiceClip, VoicePreview, VoicePreviewDeps } from './creator/voice-preview.ts';
 export { loadPrefs, memoryPrefs, defaultPrefs } from './shell/prefs.ts';
 export { LEGAL_DOCS, frameFor, hrefFor, PAGES } from './shell/registry.ts';
-export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo } from './shell/types.ts';
+export type { EnginePort, PlatformPort, SavesPort, ShellHooks, ShellProps, UiPrefs, PrefsStore, SlotSummary, StorageInfo, OfflineJob, OfflinePlan, OfflinePort } from './shell/types.ts';
 
 export interface ShellHandle {
   readonly core: ShellCore;

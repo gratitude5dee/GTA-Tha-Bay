@@ -1,10 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ARCHIVES } from '../pw-install.ts';
 import { repoRoot } from '../run.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const wf = (name: string): string => readFileSync(path.join(repoRoot, '.github', 'workflows', name), 'utf8');
 
@@ -139,7 +142,7 @@ describe('ci.yml (AC-8)', () => {
     const all = (r: string | null): (string | null)[] => Array.from({ length: shards }, () => r);
     const withAt = (i: number, r: string | null): (string | null)[] => all('success').map((v, j) => (j === i ? r : v));
     const run = (results: (string | null)[], build = 'success'): { code: number; out: string } => {
-      const dir = mkdtempSync(path.join(tmpdir(), 'dv-e2e-agg-'));
+      const dir = tempDir('dv-e2e-agg-');
       try {
         mkdirSync(path.join(dir, 'e2e-result'));
         results.forEach((r, i) => {

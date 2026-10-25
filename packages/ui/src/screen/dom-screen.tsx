@@ -31,7 +31,7 @@ function widget(w: Widget, ctx: ScreenCtx, key: string): ComponentChildren {
           id={w.id}
           label={t(w.label)}
           style={w.style}
-          disabledReason={w.disabled ? t(w.disabled) : undefined}
+          disabledReason={w.disabled ? t(w.disabled, w.disabledParams as Record<string, string | number> | undefined) : undefined}
           icon={w.icon}
           onPress={() => ctx.run(w.onPress)}
         />
@@ -88,7 +88,7 @@ function widget(w: Widget, ctx: ScreenCtx, key: string): ComponentChildren {
       );
     }
     case 'progress':
-      return <Progress key={key} value={w.value} label={w.label ? t(w.label) : undefined} />;
+      return <Progress key={key} value={w.value} label={w.label ? t(w.label, w.params as Record<string, string | number> | undefined) : undefined} />;
     case 'image':
       return <div key={key} class="dv-image" role="img" aria-label={t(w.alt)} data-asset={w.asset} />;
     case 'table':

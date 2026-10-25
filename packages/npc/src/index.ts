@@ -15,7 +15,7 @@ export { validateTurn, normalizeTurnJson, prefilterPlayerText, inkKnotFor } from
 export type { ExecutorScene, ExecutorSoul, NpcTurnOutput, ValidatedTurn } from '@dv/shared/npc';
 // M06a4: voice and lip-sync.
 export { TtsPlayer } from './tts/tts-player.ts';
-export type { TtsAudioHost, TtsContext, TtsPlayerOptions } from './tts/tts-player.ts';
+export type { LineClock, TtsAudioHost, TtsContext, TtsPlayerOptions } from './tts/tts-player.ts';
 export { LipSyncDriver, HOLD_MS, MAX_SPEAKERS } from './lipsync/driver.ts';
 export type { LipSyncOptions, LipSyncSource, LipSyncTarget } from './lipsync/driver.ts';
 export { atlasTarget, cellUv, ATLAS_GRID, JAW_OPEN, MAX_JAW_RAD } from './lipsync/atlas.ts';

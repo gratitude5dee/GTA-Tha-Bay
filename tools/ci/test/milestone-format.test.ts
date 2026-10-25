@@ -1,11 +1,14 @@
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MILESTONE_HEADINGS } from '../../../packages/shared/src/contracts/c15-milestone.ts';
 import { L7_FILE_EXCEPTIONS, lintMilestones, writeReport } from '../milestone-lint.ts';
 import { inferOracle, parseMilestone, parsePnpmPiece } from '../md-parse.ts';
 import { repoRoot } from '../run.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const specDir = path.join(repoRoot, 'spec', '07-milestones');
 const fixDir = path.join(repoRoot, 'tools', 'ci', 'fixtures', 'milestones');
@@ -57,7 +60,7 @@ describe('C15 lint fixtures (AC-3)', () => {
   });
 
   it('a PENDING file reports its errors as warnings that keep the rule id and does not fail', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-ms-'));
+    const dir = tempDir('dv-ms-');
     cpSync(fixDir, dir, { recursive: true });
     const readme = readFileSync(path.join(dir, 'README.md'), 'utf8').replace('| bad-ac-no-proof | READY |', '| bad-ac-no-proof | PENDING |');
     writeFileSync(path.join(dir, 'README.md'), readme);

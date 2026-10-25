@@ -1,0 +1,68 @@
+/* The dialogue panel (M06a5). Design tokens only: colours, spacing, radii and motion come from tokens.css; sizes are rem so `uiScale` scales them. */
+/* Above the HUD and toasts, below modal dialogs (the report dialog). The shell root is a stacking context (z-index 1, or 6 while playing), so while a
+   conversation is open it rises above the QA debug panels that sit beside it in the body (z-index 34 to 35); in a production build there are none. */
+html[data-dv-dialogue='open'] body #app { z-index: 40; }
+.dv-dlg-host { position: fixed; inset: 0; z-index: calc(var(--dv-z-overlay) - 1); pointer-events: none; }
+.dv-dlg {
+  pointer-events: auto;
+  position: absolute; inset-inline: 0; inset-block-end: 0; margin-inline: auto;
+  box-sizing: border-box; inline-size: min(100%, 40rem); max-block-size: 60vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--dv-space-3) var(--dv-space-4) max(var(--dv-space-3), env(safe-area-inset-bottom));
+  background: var(--dv-color-surface); color: var(--dv-color-text); font-family: var(--dv-font-text); font-size: var(--dv-text-md);
+  border: 1px solid var(--dv-color-surface-raised); border-block-end: 0; border-radius: var(--dv-radius-lg) var(--dv-radius-lg) 0 0;
+}
+@media (min-width: 64rem) {
+  /* desktop: a side panel at the end edge instead of a bottom sheet */
+  .dv-dlg { inset-inline: auto var(--dv-space-4); inset-block-end: var(--dv-space-4); margin-inline: 0; inline-size: 26rem; border-block-end: 1px solid var(--dv-color-surface-raised); border-radius: var(--dv-radius-lg); }
+}
+/* One column. Close is last in the document (the focus order ends there) and sits over the end of the first row; the header leaves room for it. */
+.dv-dlg-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-2); align-items: start; }
+.dv-dlg-body > * { min-inline-size: 0; }
+.dv-dlg-head { grid-row: 1; grid-column: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--dv-space-2); padding-inline-end: 6rem; min-block-size: 2.75rem; }
+.dv-dlg-close { grid-row: 1; grid-column: 1; justify-self: end; align-self: start; }
+.dv-dlg-speaker { margin: 0; font-family: var(--dv-font-display); font-size: var(--dv-text-lg); overflow-wrap: anywhere; }
+.dv-dlg-speaker:focus-visible, .dv-dlg-line:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 0.125rem; }
+.dv-dlg-badge {
+  display: inline-flex; align-items: center; gap: var(--dv-space-1); padding: var(--dv-space-1) var(--dv-space-2);
+  border: 1px solid var(--dv-color-accent); border-radius: var(--dv-radius-lg); background: var(--dv-color-surface-raised);
+  color: var(--dv-color-text); font-size: var(--dv-text-sm); font-weight: 700; white-space: nowrap;
+}
+.dv-dlg-badge-icon { color: var(--dv-color-accent); }
+.dv-dlg-line { margin: 0; min-block-size: 3.5rem; max-block-size: 30vh; overflow-y: auto; font-size: var(--dv-text-md); line-height: 1.45; overflow-wrap: anywhere; }
+.dv-dlg-wait { color: var(--dv-color-text-muted); }
+.dv-dlg-btn {
+  box-sizing: border-box; min-block-size: 2.75rem; min-inline-size: 2.75rem; padding-inline: var(--dv-space-4);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--dv-space-2);
+  border: 1px solid var(--dv-color-text-muted); border-radius: var(--dv-radius-md); background: var(--dv-color-surface-raised); color: var(--dv-color-text);
+  font: inherit; font-weight: 600; cursor: pointer;
+  transition: background-color var(--dv-motion-fast) linear, border-color var(--dv-motion-fast) linear;
+}
+.dv-dlg-btn:hover { border-color: var(--dv-color-text); }
+.dv-dlg-btn:focus-visible, .dv-dlg-input:focus-visible { outline: 2px solid var(--dv-color-focus); outline-offset: 0.125rem; }
+.dv-dlg-btn[aria-disabled='true'] { opacity: 0.6; cursor: wait; }
+.dv-dlg-primary { background: var(--dv-color-accent); border-color: var(--dv-color-accent); color: var(--dv-color-accent-contrast); }
+.dv-dlg-showfull { justify-self: start; }
+.dv-dlg-choices { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-2); }
+.dv-dlg-intents { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--dv-space-2); }
+.dv-dlg-type { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--dv-space-1); }
+.dv-dlg-label { font-size: var(--dv-text-sm); color: var(--dv-color-text-muted); }
+.dv-dlg-typerow { display: flex; gap: var(--dv-space-2); }
+.dv-dlg-input {
+  box-sizing: border-box; flex: 1 1 auto; inline-size: 100%; min-inline-size: 0; min-block-size: 2.75rem; padding-inline: var(--dv-space-3);
+  border: 1px solid var(--dv-color-text-muted); border-radius: var(--dv-radius-md); background: var(--dv-color-bg); color: var(--dv-color-text); font: inherit;
+}
+.dv-dlg-report { display: flex; align-items: center; }
+.dv-dlg-reported { color: var(--dv-color-text-muted); font-size: var(--dv-text-sm); }
+.dv-dlg-card {
+  display: grid; gap: var(--dv-space-2); padding: var(--dv-space-3); margin-block-end: var(--dv-space-2);
+  border: 1px solid var(--dv-color-accent); border-radius: var(--dv-radius-md); background: var(--dv-color-surface-raised);
+}
+.dv-dlg-safety { border-color: var(--dv-color-danger); }
+.dv-dlg-card-title { margin: 0; font-size: var(--dv-text-md); }
+.dv-dlg-card-text { margin: 0; line-height: 1.45; overflow-wrap: anywhere; }
+.dv-dlg-row { display: flex; flex-wrap: wrap; gap: var(--dv-space-2); }
+/* the minimap steps aside while the panel is up */
+html[data-dv-dialogue='open'] .dv-minimap { visibility: hidden; }
+/* reduced motion: no transition at all (the rule elsewhere caps them at 150 ms) */
+[data-reduced-motion='true'] .dv-dlg-btn { transition: none; }
+@media (prefers-reduced-motion: reduce) { .dv-dlg-btn { transition: none; } }

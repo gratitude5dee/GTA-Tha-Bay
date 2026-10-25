@@ -34,10 +34,77 @@ export function installScreen(env: SettingsEnv): ScreenDef {
     { k: 'text', text: lk('settings.storage.usage'), params: { used, quota }, tone: 'muted' },
     { k: 'text', text: env.storage?.persisted ? lk('settings.storage.persisted') : lk('settings.storage.notPersisted'), tone: 'muted' },
     { k: 'button', id: 'persist', label: lk('settings.storage.persist'), style: 'secondary', onPress: { call: 'persist' } },
-    { k: 'button', id: 'offline', label: lk('settings.storage.offline'), style: 'secondary', disabled: lk('settings.later'), onPress: { call: 'offline' } },
-    { k: 'button', id: 'clear', label: lk('settings.storage.clear'), style: 'danger', disabled: lk('settings.later'), onPress: { call: 'clear' } },
   );
+  children.push(...offlineRows(env));
   return { id: 'settings-install', title: lk('settings.install'), children };
+}
+
+const MIB = 1024 * 1024;
+/** Megabytes with one decimal, as text for a string parameter. */
+export function mbText(bytes: number): string {
+  return (bytes / MIB).toFixed(1);
+}
+
+/** The offline-download rows of Install and storage (M04b4): size, button, progress, result, caveat, downloaded, clear. */
+function offlineRows(env: SettingsEnv): Widget[] {
+  const o = env.offline ?? null;
+  const plan = o?.plan ?? null;
+  const job = o?.job ?? null;
+  const running = job?.state === 'running';
+  const out: Widget[] = [];
+  out.push(
+    plan
+      ? { k: 'text', text: lk('settings.storage.offline.size'), params: { total: mbText(plan.totalBytes), missing: mbText(plan.missingBytes) }, tone: 'muted' }
+      : { k: 'text', text: lk('settings.storage.offline.size.none'), tone: 'muted' },
+  );
+  let reason: string | null = null;
+  let reasonParams: Record<string, string> | undefined;
+  if (running) reason = lk('settings.storage.offline.disabled.running');
+  else if (!plan) reason = lk('settings.storage.offline.disabled.size');
+  else if (plan.store !== 'opfs') reason = lk('settings.storage.offline.disabled.store');
+  else if (!plan.writable) reason = lk('settings.storage.offline.disabled.tab');
+  else if (!plan.fits) {
+    reason = lk('settings.storage.offline.disabled.space');
+    reasonParams = { short: mbText(plan.shortfallBytes) };
+  }
+  out.push({
+    k: 'button',
+    id: 'offline',
+    label: lk('settings.storage.offline'),
+    style: 'secondary',
+    onPress: { call: 'offline' },
+    ...(reason ? { disabled: reason } : {}),
+    ...(reasonParams ? { disabledParams: reasonParams } : {}),
+  });
+  if (running && job) {
+    out.push(
+      { k: 'progress', value: job.total > 0 ? job.done / job.total : 0, label: lk('settings.storage.offline.progress'), params: { done: job.done, total: job.total } },
+      { k: 'text', text: lk('settings.storage.offline.progress'), params: { done: job.done, total: job.total }, tone: 'muted' },
+      { k: 'button', id: 'offline-cancel', label: lk('settings.storage.offline.cancel'), style: 'secondary', onPress: { call: 'offline-cancel' } },
+    );
+  } else if (job) {
+    if (job.state === 'done') out.push({ k: 'text', text: lk('settings.storage.offline.done'), tone: 'normal' });
+    else if (job.state === 'cancelled') out.push({ k: 'text', text: lk('settings.storage.offline.stopped'), params: { done: job.done, total: job.total }, tone: 'normal' });
+    else out.push({ k: 'text', text: job.reason === 'quota' ? lk('settings.storage.offline.failed.quota') : lk('settings.storage.offline.failed.other'), tone: 'warning' });
+  }
+  out.push(
+    { k: 'text', text: lk('settings.storage.offline.caveat'), tone: 'muted' },
+    {
+      k: 'text',
+      text: lk('settings.storage.offline.downloaded'),
+      params: { mb: mbText(o?.downloaded.bytes ?? 0), files: o?.downloaded.files ?? 0 },
+      tone: 'muted',
+    },
+  );
+  const clearReason = !o
+    ? lk('settings.storage.offline.disabled.size')
+    : running
+      ? lk('settings.storage.clear.disabled.running')
+      : plan && !plan.writable
+        ? lk('settings.storage.offline.disabled.tab')
+        : null;
+  out.push({ k: 'button', id: 'clear', label: lk('settings.storage.clear'), style: 'danger', onPress: { call: 'clear' }, ...(clearReason ? { disabled: clearReason } : {}) });
+  return out;
 }
 
 export function aboutScreen(env: SettingsEnv): ScreenDef {

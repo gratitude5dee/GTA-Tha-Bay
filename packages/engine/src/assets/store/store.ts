@@ -11,6 +11,25 @@ export const MEMORY_FALLBACK_CAP_BYTES = 48 * MIB;
 export const SOFT_CAP_MOBILE_MB = 600;
 export const SOFT_CAP_DESKTOP_MB = 2048;
 export const DOWNLOAD_ALL_QUOTA_FACTOR = 1.2;
+/** How many pack gets a city download keeps in flight at once. */
+export const DOWNLOAD_ALL_CONCURRENCY = 4;
+
+/** What a city download would need and whether the device has room for it. Not a contract. */
+export interface DownloadPlan {
+  totalBytes: number;
+  files: number;
+  missingBytes: number;
+  missingFiles: number;
+  /** `quota - usage` from the store's estimate; null when the browser gives none. */
+  freeBytes: number | null;
+  fits: boolean;
+  shortfallBytes: number;
+}
+
+/** The one rule for "is there room": free quota must cover 1.2 x the missing bytes. No estimate counts as room. */
+export function quotaFits(freeBytes: number | null, missingBytes: number): boolean {
+  return freeBytes === null || freeBytes >= DOWNLOAD_ALL_QUOTA_FACTOR * missingBytes;
+}
 
 export function softCapBytes(mobileOrXr: boolean): number {
   return (mobileOrXr ? SOFT_CAP_MOBILE_MB : SOFT_CAP_DESKTOP_MB) * MIB;
@@ -331,25 +350,63 @@ export class PackStore implements WorldPackStore {
     };
   }
 
-  async downloadAll(refs: readonly PackRef[], onProgress: (done: number, total: number) => void): Promise<void> {
+  /** Totals, what is still missing and whether it fits, from the same predicate `downloadAll` uses. */
+  async downloadPlan(refs: readonly PackRef[]): Promise<DownloadPlan> {
     const present = await Promise.all(refs.map((r) => this.has(r.sha256)));
     const missing = refs.filter((_, i) => !present[i]);
-    const need = missing.reduce((n, r) => n + r.bytes, 0);
+    const missingBytes = missing.reduce((n, r) => n + r.bytes, 0);
+    const est = await this.estimateFn();
+    const freeBytes = est ? est.quota - est.usage : null;
+    let fits = quotaFits(freeBytes, missingBytes);
+    if (this.kind === 'memory-fallback' && missingBytes > this.softCapBytes) fits = false;
+    const shortfallBytes = freeBytes === null ? 0 : Math.max(0, Math.ceil(DOWNLOAD_ALL_QUOTA_FACTOR * missingBytes) - freeBytes);
+    return {
+      totalBytes: refs.reduce((n, r) => n + r.bytes, 0),
+      files: refs.length,
+      missingBytes,
+      missingFiles: missing.length,
+      freeBytes,
+      fits,
+      shortfallBytes,
+    };
+  }
+
+  /**
+   * Fetches every missing pack through a pool of `DOWNLOAD_ALL_CONCURRENCY` gets. After `signal` aborts no new get starts and the call
+   * rejects with `PackUnavailable('aborted')`; packs already committed stay. The optional third parameter exists on the class only.
+   */
+  async downloadAll(refs: readonly PackRef[], onProgress: (done: number, total: number) => void, signal?: AbortSignal): Promise<void> {
+    const present = await Promise.all(refs.map((r) => this.has(r.sha256)));
+    const missing = refs.filter((_, i) => !present[i]);
     const first = missing[0];
     if (first) {
-      const est = await this.estimateFn();
-      if (est && est.quota - est.usage < DOWNLOAD_ALL_QUOTA_FACTOR * need) throw new PackUnavailable('quota', first);
-      if (this.kind === 'memory-fallback' && need > this.softCapBytes) throw new PackUnavailable('quota', first);
+      const plan = await this.downloadPlan(refs);
+      if (!plan.fits) throw new PackUnavailable('quota', first);
     }
     let done = refs.length - missing.length;
     onProgress(done, refs.length);
-    await Promise.all(
-      missing.map(async (ref) => {
-        await this.get(ref, { priority: 'soon' });
+    let next = 0;
+    let failure: unknown = null;
+    const worker = async (): Promise<void> => {
+      while (failure === null && next < missing.length) {
+        const ref = missing[next++] as PackRef;
+        if (signal?.aborted) {
+          failure = new PackUnavailable('aborted', ref);
+          return;
+        }
+        try {
+          await this.get(ref, { priority: 'soon', ...(signal ? { signal } : {}) });
+        } catch (e) {
+          failure ??= e;
+          return;
+        }
         done++;
         onProgress(done, refs.length);
-      }),
-    );
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(DOWNLOAD_ALL_CONCURRENCY, missing.length) }, worker));
+    if (failure !== null) throw failure;
+    if (signal?.aborted && done < refs.length && first) throw new PackUnavailable('aborted', first);
   }
 
   async evictByTag(tag: string): Promise<{ removed: number }> {

@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,10 @@ import { ATTRIBUTION_PATH, attributionFor, buildAttribution, terrariumAccessDate
 import { fetchBuffer } from '../src/sources/net.ts';
 import { fillCommand, osmCommands, runFetch } from '../src/stages/s0-fetch.ts';
 import { stableJson } from '../src/util.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 // The denied host is assembled from fragments so no file in the repository contains it (license:scan, DL-506, scans
 // tools/ for the literal host; the tools/ci/fixtures/ exemption does not reach this directory). The fixture file spells
@@ -127,7 +131,7 @@ describe('sources.schema.json (DL-676)', () => {
 
 describe('map:fetch', () => {
   it('prints SKIP offline for every source of sf and writes nothing (AC-7)', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-fetch-'));
+    const dir = tempDir('dv-fetch-');
     const rawDir = path.join(dir, 'raw');
     const contentDir = path.join(dir, 'content');
     const lines: string[] = [];
