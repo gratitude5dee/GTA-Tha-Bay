@@ -59,6 +59,12 @@ export interface EngineServices extends SimServices {
    */
   vehicleMove: ((driver: EntityHandle, pos: Vec3, yaw: number) => { ok: true } | { ok: false; reason: string }) | null;
   /**
+   * Takes `driver` out of the vehicle it drives at once (`unseatDriver`): the teleport's move to a target off the drivable edges, which
+   * moves a driver on foot (02-world-maps.md 5 step 4), and the vehicle net's last resort. Set by `registerVehicleSystems`; null in a sim
+   * without vehicles. Engine-internal, in no contract; it holds no state.
+   */
+  vehicleUnseat: ((driver: EntityHandle, tick: number) => boolean) | null;
+  /**
    * True for a vehicle a mode puts back itself when it falls out of the world (BD-FIX-SPAWN-07: the race director resets its car to the
    * last gate while a race runs); the below-the-world net then leaves that vehicle alone. Null when no mode claims any. Engine-internal,
    * in no contract; it holds no state, so nothing is hashed.
@@ -116,6 +122,7 @@ export function createSimServices(seed: number): EngineServices {
     ride: null,
     sandboxFlags: noFlags(),
     vehicleMove: null,
+    vehicleUnseat: null,
     vehicleFallClaim: null,
   };
 }

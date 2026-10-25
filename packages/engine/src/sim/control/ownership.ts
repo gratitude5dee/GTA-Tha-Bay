@@ -79,6 +79,24 @@ export function requestDriverTeleport(
   return move(h, pos, yaw);
 }
 
+/**
+ * Asks to move the player `h` to `pos` facing `yaw` the way the world's teleport moves it (02-world-maps.md 5 step 4; DL-734): on foot,
+ * the ownership machine's teleport (`requestTeleport`); at the wheel with `onRoad` (the target lies on a drivable edge), the vehicle
+ * with its driver (`requestDriverTeleport`); at the wheel with a target off the drivable edges (a marker on a plaza or a pavement), the
+ * driver gets out at once (`EngineServices.vehicleUnseat`) and is moved on foot, so such a move is never refused for driving. A move
+ * refused for another reason (`busy`, no driver seat service) changes nothing.
+ */
+export function requestPlayerMove(
+  ecs: EcsApi, services: Pick<EngineServices, 'control' | 'vehicleMove' | 'vehicleUnseat'>, h: EntityHandle, pos: Vec3, yaw: number, tick: number, onRoad: boolean,
+): RequestResult {
+  if (!isDriving(ecs, h)) return requestTeleport(ecs, services, h, pos, tick);
+  if (onRoad) return requestDriverTeleport(ecs, services, h, pos, yaw);
+  if (services.control.teleportActive) return { ok: false, reason: CONTROL_REASON.busy };
+  const unseat = services.vehicleUnseat;
+  if (!unseat || !unseat(h, tick)) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+  return requestTeleport(ecs, services, h, pos, tick);
+}
+
 /** True while `h` drives a vehicle (owner Vehicle, phase Active). */
 export function isDriving(ecs: EcsApi, h: EntityHandle): boolean {
   const id = ecs.resolve(h);

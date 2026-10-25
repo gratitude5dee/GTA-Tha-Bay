@@ -1,4 +1,4 @@
-import { datan2, SimStage, type EntityId, type SystemDef, type WorldApi } from '@dv/shared';
+import { SimStage, type EntityId, type SystemDef, type WorldApi } from '@dv/shared';
 import boundsJson from '../../../../../config/world.bounds.json';
 import { CharacterBody, Control, LocalPlayer, PlayerControlled, Transform, Vehicle } from '../ecs/components.ts';
 import type { EngineServices } from '../services.ts';
@@ -86,8 +86,11 @@ export const VEHICLE_ROAD_SEARCH_M = 250;
 /** Requests for a fallen vehicle are this many ticks apart (1 s), counted on its `VehicleRuntime.airTicks` from `FALL_RECOVER_TICKS`. */
 export const VEHICLE_RECOVER_RETRY_TICKS = 60;
 /**
- * The net gives up on a fallen vehicle after this many requests (30 s of retries) and says so once (`control.recover` `s: 'gave-up'`), so
- * a refusal that never changes cannot loop for the rest of the session. A new flight (the car touched ground again) starts a new count.
+ * After this many requests (30 s of retries) the net stops asking for the car and hands its driver to the on-foot net: the driver gets
+ * out at once (`EngineServices.vehicleUnseat`) and the on-foot net, which ends at a target at y 150 m that the 701 probe settles once
+ * colliders arrive, puts the player back on the ground (`control.recover` `s: 'gave-up'`, once). The same happens at once when there is no
+ * respawn point at all. So a car the net cannot place never keeps its driver falling for the rest of the session. A new flight (the car
+ * touched ground again) starts a new count.
  */
 export const VEHICLE_RECOVER_MAX_TRIES = 30;
 /**
@@ -97,11 +100,11 @@ export const VEHICLE_RECOVER_MAX_TRIES = 30;
 export const VEHICLE_DECK_GAP_M = 2.5;
 /** A road-adjacent shore node is moved onto the lane centre of a drivable edge this close to it (the world's `SHORE_ROAD_M`), metres. */
 const SHORE_ROAD_M = 15;
-/** Metres the respawn point is put inland of a shore node (the water wall's value in `vehicle-system.ts`). */
+/** Metres the lane search beside a shore node starts inland of it (the water wall's value in `vehicle-system.ts`). */
 const SHORE_INLAND_M = 3;
 
 export interface VehicleFallRecoveryOptions {
-  services: Pick<EngineServices, 'world' | 'events' | 'vehicleFallClaim'>;
+  services: Pick<EngineServices, 'world' | 'events' | 'vehicleFallClaim' | 'vehicleUnseat'>;
   store: VehicleStore;
 }
 
@@ -135,10 +138,12 @@ function laneUsable(api: WorldApi, out: Float64Array): RespawnPose | null {
 }
 
 /**
- * Where a fallen vehicle may respawn, best first (02-world-maps.md 4.1 d, read as BD-FIX-SPAWN-05 and BD-FIX-SPAWN-07): (1) the lane centre
- * of the nearest drivable edge within `VEHICLE_ROAD_SEARCH_M`, looked for at the height of the top surface over the fall; (2) the water
- * wall's nearest road-adjacent `ShoreNode`: the lane centre of the drivable edge beside it, else the point `SHORE_INLAND_M` inland of it,
- * facing inland. A lane in a water cell or under a deck is skipped (`laneUsable`), and so is an inland point in water.
+ * Where a fallen vehicle may respawn, best first (02-world-maps.md 4.1 d, read as BD-FIX-SPAWN-05, BD-FIX-SPAWN-07 and BD-FIX-SPAWN-08):
+ * (1) the lane centre of the nearest drivable edge within `VEHICLE_ROAD_SEARCH_M`, looked for at the height of the top surface over the
+ * fall; (2) the lane centre of the drivable edge within `SHORE_ROAD_M` of the water wall's nearest road-adjacent `ShoreNode`. Only lane
+ * centres: the world's teleport moves a driver with the vehicle only to a target on a drivable edge (`TeleportHost.begin`, 8 m), so a
+ * point off the roads (the shore node's inland point) would be a move on foot, not a respawn with the car. A lane in a water cell or
+ * under a deck is skipped (`laneUsable`). No candidate: the net hands the driver to the on-foot net (`VEHICLE_RECOVER_MAX_TRIES`).
  */
 export function vehicleRespawnCandidates(api: WorldApi, bounds: WorldBoundsPort | null, x: number, z: number, out: Float64Array): RespawnPose[] {
   const found: RespawnPose[] = [];
@@ -154,14 +159,11 @@ export function vehicleRespawnCandidates(api: WorldApi, bounds: WorldBoundsPort 
     const ix = shore.x - shore.nx * SHORE_INLAND_M;
     const iz = shore.z - shore.nz * SHORE_INLAND_M;
     const near = api.graph.nearestEdge(ix, iz, undefined, SHORE_ROAD_M);
-    let p: RespawnPose | null = null;
     if (near) {
       api.graph.laneCentre({ edge: near.edge, s: near.s, lane: 0 }, out);
-      p = laneUsable(api, out);
+      const q = laneUsable(api, out);
+      if (q && !found.some((f) => f.x === q.x && f.z === q.z)) found.push(q);
     }
-    if (!p && !api.query.isWater(ix, iz)) p = { x: ix, z: iz, yaw: datan2(shore.nx, shore.nz) };
-    const q = p;
-    if (q && !found.some((f) => f.x === q.x && f.z === q.z)) found.push(q);
   }
   return found;
 }
@@ -172,29 +174,38 @@ export function vehicleRespawnPose(api: WorldApi, bounds: WorldBoundsPort | null
 }
 
 /**
- * The below-the-world net for a driven vehicle (02-world-maps.md 4.1 d, DL-734; BD-FIX-SPAWN-05, BD-FIX-SPAWN-07). The local player's
- * vehicle, with the player at its wheel, that has been in the air (no wheel contact, `VehicleRuntime.airTicks`) for `FALL_RECOVER_TICKS`
- * while it is out of the world (`outOfWorld`) respawns with its driver at a road-adjacent point (`vehicleRespawnCandidates`). The move is
- * `TeleportApi.request('respawn', ...)` (02-world-maps.md 5): its fade (`world.teleport` out, then in) is the teleport's, and its move keeps
- * the driver in the vehicle on a drivable edge (`requestDriverTeleport`, then `placeVehicle`, the water wall's placement). The SimEvent
- * `control.recover` (`s`: `below-bounds` or `below-ground`) is pushed once per fall.
+ * The below-the-world net for a driven vehicle (02-world-maps.md 4.1 d, DL-734; BD-FIX-SPAWN-05, BD-FIX-SPAWN-07, BD-FIX-SPAWN-08). The
+ * local player's vehicle, with the player at its wheel, that has been in the air (no wheel contact, `VehicleRuntime.airTicks`) for
+ * `FALL_RECOVER_TICKS` while it is out of the world (`outOfWorld`) respawns with its driver at a road-adjacent lane centre
+ * (`vehicleRespawnCandidates`). The move is `TeleportApi.request('respawn', ...)` (02-world-maps.md 5): its fade (`world.teleport` out,
+ * then in) is the teleport's, and its move keeps the driver in the vehicle on a drivable edge (`requestPlayerMove`, then `placeVehicle`,
+ * the water wall's placement). The SimEvent `control.recover` (`s`: `below-bounds` or `below-ground`) is pushed once per fall.
  *
  * Requests go out on the flight's own clock, at `airTicks` = 120, 180, 240, ... (`VEHICLE_RECOVER_RETRY_TICKS` apart), so the pacing is
  * hashed, saved sim state and a save loaded mid-fall asks on the same ticks. Request k takes candidate k mod n, so a refusal that will not
- * change for one point (`water`, `blocked`) does not hold back the other; after `VEHICLE_RECOVER_MAX_TRIES` requests the net gives up on
- * that flight (`control.recover` `s: 'gave-up'`, once). A vehicle a mode places itself (`EngineServices.vehicleFallClaim`: the race
- * director resets its car to the last gate) is left to that mode. Without a baked world (`services.world.api` null) the system does
- * nothing, so the gray-box scenes and their hashes are unchanged. Its bookkeeping (which flights have had their `control.recover`) is not
- * sim state and nothing new is hashed; the entry of a vehicle that is not falling on a tick (landed, lost its driver, despawned) is
- * dropped on that tick.
+ * change for one point (`water`, `blocked`) does not hold back the other. After `VEHICLE_RECOVER_MAX_TRIES` requests, or at once when there
+ * is no candidate, the driver gets out (`EngineServices.vehicleUnseat`) and its capsule counts as `FALL_RECOVER_TICKS` in the air, so the
+ * on-foot net (`fallRecoverySystem`, order -9, after this system's -11) puts the player on the ground in the same tick, before the on-foot
+ * controller could take the falling car under the capsule for ground (`control.recover` `s: 'gave-up'`, then the on-foot net's own). A vehicle a mode places itself (`EngineServices.vehicleFallClaim`: the race director resets its car to the last gate) is
+ * left to that mode. Without a baked world (`services.world.api` null) the system does nothing, so the gray-box scenes and their hashes
+ * are unchanged.
+ *
+ * Its only bookkeeping, which flights have had their `control.recover`, is not sim state and nothing new is hashed: an entry is dropped on
+ * the first tick its vehicle is not falling (landed, lost its driver, despawned), and when a tick does not follow the last one it ran (a
+ * save was loaded, or the first tick of a session) a vehicle already past its first request is counted as told, so a load mid-fall does
+ * not push `control.recover` a second time.
  */
 export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): SystemDef {
   /** Vehicles (dense id) whose current flight has had its `control.recover`, with the tick they were last seen falling. */
   const told = new Map<number, number>();
   const lane = new Float64Array(4);
+  let lastTick = -2;
   return {
-    id: VEHICLE_FALL_RECOVERY_ID, owner: 'S01', stage: SimStage.Control, order: -8,
+    id: VEHICLE_FALL_RECOVERY_ID, owner: 'S01', stage: SimStage.Control, order: -11,
     run: ({ ecs, tick }) => {
+      const resumed = tick !== lastTick + 1;
+      lastTick = tick;
+      if (resumed) told.clear();
       const services = opts.services;
       const api = services.world.api;
       if (!api) return;
@@ -213,18 +224,23 @@ export function vehicleFallRecoverySystem(opts: VehicleFallRecoveryOptions): Sys
         const z = tr.pz[id] as number;
         const why = outOfWorld(api, x, tr.py[id] as number, z);
         if (why === null) continue;
-        if (!told.has(id)) services.events.push({ t: 'control.recover', tick, a: dh, s: why });
-        told.set(id, tick);
         const since = rt.airTicks - FALL_RECOVER_TICKS;
+        // a load mid-fall (or the first tick of a session) counts a flight past its first request as told already
+        if (!told.has(id) && !(resumed && since > 0)) services.events.push({ t: 'control.recover', tick, a: dh, s: why });
+        told.set(id, tick);
         if (since % VEHICLE_RECOVER_RETRY_TICKS !== 0) continue;
         const k = since / VEHICLE_RECOVER_RETRY_TICKS;
-        if (k >= VEHICLE_RECOVER_MAX_TRIES) {
-          if (k === VEHICLE_RECOVER_MAX_TRIES) services.events.push({ t: 'control.recover', tick, a: dh, s: 'gave-up' });
+        const cands = k < VEHICLE_RECOVER_MAX_TRIES ? vehicleRespawnCandidates(api, services.world.bounds, x, z, lane) : [];
+        const to = cands.length > 0 ? cands[k % cands.length] : undefined;
+        if (!to) {
+          // no respawn point, or the last try is spent: the driver gets out and the on-foot net (order -9) takes it this tick
+          if (k > VEHICLE_RECOVER_MAX_TRIES) continue;
+          const out = services.vehicleUnseat?.(dh, tick) === true;
+          if (out && ecs.has(dh, CharacterBody)) ecs.store(CharacterBody).airTicks[driver] = FALL_RECOVER_TICKS;
+          // without a seat service (a sim without vehicles cannot get here) the net says so once, on its last try
+          if (out || k === VEHICLE_RECOVER_MAX_TRIES) services.events.push({ t: 'control.recover', tick, a: dh, s: 'gave-up' });
           continue;
         }
-        const cands = vehicleRespawnCandidates(api, services.world.bounds, x, z, lane);
-        const to = cands.length > 0 ? cands[k % cands.length] : undefined;
-        if (!to) continue;
         let req: Promise<unknown>;
         try {
           req = api.teleport.request('respawn', { x: to.x, z: to.z, yaw: to.yaw });

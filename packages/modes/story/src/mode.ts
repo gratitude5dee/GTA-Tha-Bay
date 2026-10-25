@@ -222,7 +222,7 @@ export class StoryController {
     this.rt?.dispose();
     this.rt = null;
     this.pending = null;
-    this.placing = null;
+    this.cancelPlacing(ctx);
     this.startFailed.clear();
     this.triedTrigger.clear();
     this.startMarks.clear();
@@ -380,8 +380,10 @@ export class StoryController {
     if (this.resumeSaved(ctx, store, story)) return;
     const due = store.autoDue(story, ctx);
     if (due && !this.triedTrigger.has(due.ir.id)) {
-      // a new game starts at the Yard: move the player there first, and start the mission once it stands on the ground there
-      const far = Object.keys(story.missions).length === 0 ? this.farStartFor(ctx, due.ir.id) : null;
+      // the first auto mission starts at its authored start (a new game's Yard), whether or not it was started before (quit, or a
+      // checkpoint dropped after a rebake): move the player there first, and start it once the player stands on the ground there (DL-734).
+      // A chained auto mission has no place in its start (`farStartFor` answers null) and begins where the player is.
+      const far = this.farStartFor(ctx, due.ir.id);
       if (far) {
         this.beginPlacing(ctx, due.ir.id, far);
         return;
@@ -539,7 +541,7 @@ export class StoryController {
       this.placing = null;
       this.dismissHint(ctx, pl);
       this.startFailed.delete(pl.id);
-      this.triedTrigger.add(pl.id);
+      this.markTried(pl.id);
       this.startById(pl.id, ctx);
       return;
     }
@@ -571,12 +573,29 @@ export class StoryController {
     ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: '' });
   }
 
+  /**
+   * A move to a far start ended (started or unreachable): an `auto` mission counts as tried by its trigger, as on the near path of
+   * `checkTriggers`, so the trigger does not run the move again every pass this session. A `marker` mission stays triggerable by its
+   * marker, as after a near Jobs Start (`startById` leaves it unset): walking into a marker whose far start failed, or into it again
+   * after a quit, starts it.
+   */
+  private markTried(id: string): void {
+    if (this.store?.get(id)?.ir.start.k === 'auto') this.triedTrigger.add(id);
+  }
+
+  /** Drops a move in flight (the mode exits or attaches again) and takes its loading hint off the screen. */
+  private cancelPlacing(ctx: ModeContext): void {
+    const pl = this.placing;
+    this.placing = null;
+    if (pl) this.dismissHint(ctx, pl);
+  }
+
   /** The far start cannot be reached: the mission stays `available` and the Jobs app offers to try again. */
   private failPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>, reason: string): void {
     const id = pl.id;
     this.placing = null;
     this.dismissHint(ctx, pl);
-    this.triedTrigger.add(id);
+    this.markTried(id);
     this.startFailed.add(id);
     ctx.telemetry.emit('mission.fail', { mid: id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
     ctx.ui.toast({ id: `mission:${id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason } });
@@ -726,7 +745,7 @@ export class StoryController {
 
   exit(ctx: ModeContext, reason: ModeExitReason): void {
     this.pending = null;
-    this.placing = null;
+    this.cancelPlacing(ctx);
     this.teleportRestore?.();
     this.teleportRestore = null;
     const rt = this.rt;

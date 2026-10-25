@@ -381,3 +381,88 @@ describe('a Jobs Start never begins a mission away from its authored start (DL-7
     expect(fails(h)).toEqual(['unresolved']);
   });
 });
+
+describe('repair S3-R2 (BD-FIX-SPAWN-08)', () => {
+  it('the auto trigger moves the player to the start of a first mission that was started once and not passed (a quit, a dropped checkpoint)', async () => {
+    const { h, c, asked, run } = setup();
+    // begin() wrote the row the first time the mission started; the player then quit and reloaded, standing at the boot spawn
+    (h.story.missions as Record<string, unknown>)['m.t.first'] = { state: 'available' };
+    await run(40);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    const to = asked[0]!.to as { x: number; z: number };
+    expect(to.x).toBeCloseTo(START.x, 3);
+    expect(to.z).toBeCloseTo(START.z, 3);
+    expect(c.rt?.active ?? false).toBe(false);
+    h.put(h.player, START.x, START.z, 4);
+    asked[0]!.answer(ok());
+    await run(16);
+    expect(c.rt?.missionId).toBe('m.t.first');
+  });
+
+  it('a story-mode re-entry (attach again) moves the player to that start too, not a start where the player stands', async () => {
+    const { h, c, asked, run } = setup();
+    h.put(h.player, START.x, START.z, 4);
+    await run(16);
+    expect(asked).toHaveLength(0);
+    expect(c.rt?.missionId).toBe('m.t.first');
+    c.exit(h.ctx, 'quit');
+    expect(h.story.missions['m.t.first']?.state ?? 'available').toBe('available');
+    // back at the boot spawn, the mode enters again
+    h.put(h.player, 0, 0, 0);
+    c.attach(h.ctx, h.story as unknown as StorySlice);
+    await run(40);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.kind).toBe('respawn');
+    expect(c.rt?.active ?? false).toBe(false);
+  });
+
+  it('a marker whose far Jobs Start failed still starts its mission when the player walks into it', async () => {
+    const { h, c, asked, jobsStart, run } = setup(() => ({ ok: false, reason: 'blocked', messageKey: 'world.teleport.blocked' }), { missions: [marked, phoned] });
+    await run(16);
+    jobsStart('m.t.marker');
+    await run(16);
+    expect(asked).toHaveLength(1);
+    expect(c.rt).toBeNull();
+    expect(jobRow(h, 'm.t.marker')?.retry).toBe(true);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('after a far Jobs Start that succeeded and a quit, the marker starts the mission again, as after a near Jobs Start', async () => {
+    const { h, c, asked, jobsStart, run } = setup(() => ({ ok: true, x: MARK.x, y: 0, z: MARK.z, yaw: Math.PI }), { missions: [marked, phoned] });
+    await run(16);
+    jobsStart('m.t.marker');
+    h.put(h.player, MARK.x, MARK.z, 0);
+    await run(16);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+    c.rt?.abort('quit');
+    // walk out of the marker and back in
+    h.put(h.player, MARK.x + 50, MARK.z, 0);
+    await run(31);
+    expect(c.rt?.active ?? false).toBe(false);
+    h.put(h.player, MARK.x + 2, MARK.z, 0);
+    await run(31);
+    expect(asked).toHaveLength(1);
+    expect(c.rt?.active).toBe(true);
+    expect(c.rt?.missionId).toBe('m.t.marker');
+  });
+
+  it('takes the loading hint off the screen when the mode exits, or attaches again, while the move runs', async () => {
+    for (const how of ['exit', 'attach'] as const) {
+      const { h, c, shown, run } = setup(notLoaded);
+      await run(700);
+      const hints = shown.filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
+      expect(hints).toContain(LOADING);
+      expect(hints[hints.length - 1]).toBe(LOADING);
+      const before = h.calls.toasts.length;
+      if (how === 'exit') c.exit(h.ctx, 'quit');
+      else c.attach(h.ctx, h.story as unknown as StorySlice);
+      const after = h.calls.toasts.slice(before).filter((t) => t.id === 'mission:m.t.first:loading').map((t) => t.text);
+      expect(after).toEqual(['']);
+    }
+  });
+});

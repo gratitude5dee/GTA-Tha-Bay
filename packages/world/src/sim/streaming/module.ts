@@ -12,7 +12,7 @@
  * session without a world runs and hashes as a session without the module.
  */
 import { SimStage, decodeDistrictGrid, decodeGraph, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef, type WorldIndex } from '@dv/shared';
-import { GROUP_BIT, isDriving, playerSide, requestDriverTeleport, requestTeleport,type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { GROUP_BIT, playerSide, requestPlayerMove, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
@@ -454,10 +454,10 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
     begin: (x, y, z, yaw) => {
       try {
         const h = sim.ecs.byKey('player:0');
-        // a driver keeps the vehicle only when the target lies on a drivable edge (02-world-maps.md 5 step 4; DL-734's vehicle net)
-        const r = isDriving(sim.ecs, h)
-          ? (world.api?.graph.nearestEdge(x, z, y, DRIVER_KEEPS_VEHICLE_M) ? requestDriverTeleport(sim.ecs, sim.services, h, [x, y, z], yaw) : { ok: false })
-          : requestTeleport(sim.ecs, sim.services, h, [x, y, z], sim.core.tick);
+        // a driver keeps the vehicle only when the target lies on a drivable edge, and is moved on foot otherwise (02-world-maps.md 5
+        // step 4; DL-734): a far Jobs Start while driving to a marker on a plaza is a move on foot, not a refusal the story retries
+        const onRoad = world.api?.graph.nearestEdge(x, z, y, DRIVER_KEEPS_VEHICLE_M) != null;
+        const r = requestPlayerMove(sim.ecs, sim.services, h, [x, y, z], yaw, sim.core.tick, onRoad);
         return r.ok ? { ok: true } : { ok: false, reason: 'busy' };
       } catch {
         return { ok: false, reason: 'no-player' };

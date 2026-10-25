@@ -11,7 +11,7 @@ import {
   FALL_FLOOR_Y, FALL_RECOVER_TICKS, VEHICLE_DECK_GAP_M, VEHICLE_RECOVER_MAX_TRIES, VEHICLE_RECOVER_RETRY_TICKS, VEHICLE_ROAD_SEARCH_M,
   vehicleRespawnCandidates, vehicleRespawnPose,
 } from '../../src/sim/control/fall.ts';
-import { isDriving, requestDriverTeleport } from '../../src/sim/control/ownership.ts';
+import { isDriving, requestDriverTeleport, requestPlayerMove } from '../../src/sim/control/ownership.ts';
 import { CONTROL_OWNER, CONTROL_REASON } from '../../src/sim/control/states.ts';
 import { BodyRef, Transform } from '../../src/sim/ecs/components.ts';
 import type { VehiclePhysics } from '../../src/sim/physics/backend.ts';
@@ -42,6 +42,12 @@ interface Fake {
   refuse?: (to: { x: number; z: number }) => TeleportResult | null;
 }
 
+/** The world host's driver rule (`TeleportHost.begin`): the target lies within 8 m of a drivable edge the fake graph knows. */
+const DRIVER_KEEPS_VEHICLE_M = 8;
+function onRoad(f: Fake, to: { x: number; z: number }): boolean {
+  return [f.road, f.shoreRoad].some((r) => r !== null && r !== undefined && Math.hypot(r.x - to.x, r.z - to.z) <= DRIVER_KEEPS_VEHICLE_M);
+}
+
 function fakeWorld(w: VehicleWorld, f: Fake): WorldApi {
   return {
     query: {
@@ -66,7 +72,7 @@ function fakeWorld(w: VehicleWorld, f: Fake): WorldApi {
       },
     },
     teleport: {
-      // the world teleport after its pre-stream and fade: the host moves a driver with the vehicle
+      // the world teleport after its pre-stream and fade: the host moves a driver with the vehicle on a drivable edge, else on foot
       request: (kind: TeleportKind, to: TeleportTarget): Promise<TeleportResult> => {
         expect(kind).toBe('respawn');
         const t = to as { x: number; z: number; yaw: number };
@@ -75,7 +81,7 @@ function fakeWorld(w: VehicleWorld, f: Fake): WorldApi {
           f.moves.push({ tick: w.sim.tick, to: t, r: { ok: false, reason: no.ok ? 'ok' : no.reason } });
           return Promise.resolve(no);
         }
-        const r = requestDriverTeleport(w.sim.ecs, w.sim.services, w.player, [t.x, 0, t.z], t.yaw);
+        const r = requestPlayerMove(w.sim.ecs, w.sim.services, w.player, [t.x, 0, t.z], t.yaw, w.sim.tick, onRoad(f, t));
         f.moves.push({ tick: w.sim.tick, to: t, r });
         return Promise.resolve(r.ok ? { ok: true, x: t.x, y: 0, z: t.z, yaw: t.yaw } : { ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
       },
@@ -228,7 +234,7 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     w.sim.dispose();
   }, 60_000);
 
-  it('the respawn point: the nearest lane centre, else the water wall\'s road-adjacent shore node facing inland', () => {
+  it('the respawn point: the nearest lane centre, else the lane beside the water wall\'s road-adjacent shore node, never a point off the roads', () => {
     const out = new Float64Array(4);
     const shore: ShoreNode = { id: 'sn.t', x: 5, y: 0, z: 40, nx: 1, nz: 0 };
     const bounds = { nearestShore: (_x: number, _z: number, road: boolean) => (road ? shore : null) } as unknown as WorldBoundsPort;
@@ -240,10 +246,9 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
       },
     } as unknown as WorldApi);
     expect(vehicleRespawnPose(api(true), bounds, 0, 0, out)).toEqual({ x: 1, z: 3, yaw: 0.5 });
-    const p = vehicleRespawnPose(api(false), bounds, 0, 0, out);
-    expect(p?.x).toBe(2);
-    expect(p?.z).toBe(40);
-    expect(-Math.sin(p?.yaw ?? 0)).toBeCloseTo(-1, 6);   // facing inland, -X
+    // no drivable edge near the fall nor beside the shore node: the shore node's inland point would be a move on foot (the world's driver
+    // rule needs a target within 8 m of a drivable edge), so there is no respawn point and the net hands the driver to the on-foot net
+    expect(vehicleRespawnPose(api(false), bounds, 0, 0, out)).toBeNull();
     expect(vehicleRespawnPose(api(false), null, 0, 0, out)).toBeNull();
   });
 
@@ -267,7 +272,7 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     w.sim.dispose();
   }, 60_000);
 
-  it('gives up after the last try with one control.recover gave-up, and asks nothing more for that flight (BD-FIX-SPAWN-07)', async () => {
+  it('after the last try the driver gets out and the on-foot net puts the player on the ground; nothing more is asked for the car (BD-FIX-SPAWN-08)', async () => {
     const { w, f } = await settled({ refuse: () => ({ ok: false, reason: 'blocked', messageKey: 'world.teleport.blocked' }) });
     sink(w, -25);
     drive(w, FALL_RECOVER_TICKS + VEHICLE_RECOVER_MAX_TRIES * VEHICLE_RECOVER_RETRY_TICKS + 5);
@@ -275,9 +280,87 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     for (let k = 1; k < f.moves.length; k++) expect(f.moves[k]!.tick - f.moves[k - 1]!.tick).toBe(VEHICLE_RECOVER_RETRY_TICKS);
     drive(w, 5 * VEHICLE_RECOVER_RETRY_TICKS);
     expect(f.moves).toHaveLength(VEHICLE_RECOVER_MAX_TRIES);
-    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s)).toEqual(['below-ground', 'gave-up']);
+    // the vehicle net says it gave up, then the on-foot net (no walkable point, the top of the ground at the fall) brings the player back
+    const rec = w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s);
+    expect(rec.slice(0, 2)).toEqual(['below-ground', 'gave-up']);
+    expect(rec.slice(2)).toEqual(['below-bounds']);
+    expect(isDriving(w.sim.ecs, w.player)).toBe(false);
+    expect(playerControl(w).owner).toBe(CONTROL_OWNER.OnFoot);
+    const d = driverPos(w);
+    expect(d[1]).toBeGreaterThan(-1);
+    expect(d[1]).toBeLessThan(2);
+    const id = w.sim.ecs.resolve(w.vehicle) as number;
+    expect(w.mod.store.rt.get(id)?.driver).toBe(0);
     w.sim.dispose();
   }, 120_000);
+
+  it('with no respawn point at all the driver gets out on the first request tick and the on-foot net takes over (BD-FIX-SPAWN-08)', async () => {
+    const { w, f } = await settled();
+    f.road = null;
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 60);
+    expect(f.moves).toHaveLength(0);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover').map((e) => e.s)).toEqual(['below-ground', 'gave-up', 'below-ground']);
+    expect(playerControl(w).owner).toBe(CONTROL_OWNER.OnFoot);
+    const d = driverPos(w);
+    expect(d[1]).toBeGreaterThan(-1);
+    expect(d[1]).toBeLessThan(2);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a save loaded mid-fall does not push control.recover a second time, and asks on the same ticks (BD-FIX-SPAWN-08)', async () => {
+    const { w, f } = await settled({ road: VOID });
+    sink(w, -25);
+    drive(w, FALL_RECOVER_TICKS + 10);
+    expect(f.moves).toHaveLength(1);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover')).toHaveLength(1);
+    const snap = w.sim.snapshot();
+    const at = w.sim.tick;
+    drive(w, 30);
+    w.sim.restore(snap);
+    expect(w.sim.tick).toBe(at);
+    w.sim.services.events.drain();
+    const before = f.moves.length;
+    drive(w, VEHICLE_RECOVER_RETRY_TICKS);
+    expect(w.sim.services.events.drain().filter((e) => e.t === 'control.recover')).toHaveLength(0);
+    // the next request goes out on the flight's own clock: 60 ticks after the first
+    expect(f.moves.length).toBe(before + 1);
+    expect(f.moves[f.moves.length - 1]!.tick - f.moves[0]!.tick).toBe(VEHICLE_RECOVER_RETRY_TICKS);
+    w.sim.dispose();
+  }, 60_000);
+
+  it('a far Jobs Start while the player drives, to a marker off the roads: the move gets the driver out and moves the player on foot (BD-FIX-SPAWN-08)', async () => {
+    const { w } = await settled();
+    const id = w.sim.ecs.resolve(w.vehicle) as number;
+    const car = view(w);
+    // a plaza 300 m away, on the oracle plane, more than 8 m from any drivable edge: the world host's driver rule says off the road
+    const PLAZA = { x: 300, z: 40 };
+    const r = requestPlayerMove(w.sim.ecs, w.sim.services, w.player, [PLAZA.x, 0, PLAZA.z], 0, w.sim.tick, false);
+    expect(r).toEqual({ ok: true });
+    expect(isDriving(w.sim.ecs, w.player)).toBe(false);
+    drive(w, 60);
+    expect(playerControl(w).owner).toBe(CONTROL_OWNER.OnFoot);
+    const d = driverPos(w);
+    expect(Math.hypot(d[0] - PLAZA.x, d[2] - PLAZA.z)).toBeLessThan(1.5);
+    expect(d[1]).toBeGreaterThan(-1);
+    expect(d[1]).toBeLessThan(2);
+    // the car stayed where it was, with nobody at the wheel
+    expect(w.mod.store.rt.get(id)?.driver).toBe(0);
+    expect(Math.hypot(view(w).x - car.x, view(w).z - car.z)).toBeLessThan(2);
+    // on a drivable edge the driver keeps the car (02-world-maps.md 5 step 4)
+    const { w: w2 } = await settled();
+    expect(requestPlayerMove(w2.sim.ecs, w2.sim.services, w2.player, [ROAD.x, 0, ROAD.z], ROAD.yaw, w2.sim.tick, true)).toEqual({ ok: true });
+    drive(w2, 30);
+    expect(playerControl(w2).owner).toBe(CONTROL_OWNER.Vehicle);
+    expect(Math.hypot(view(w2).x - ROAD.x, view(w2).z - ROAD.z)).toBeLessThan(0.5);
+    // a move while another runs is refused before anything changes: the driver stays seated
+    w2.sim.services.control.teleportActive = true;
+    expect(requestPlayerMove(w2.sim.ecs, w2.sim.services, w2.player, [PLAZA.x, 0, PLAZA.z], 0, w2.sim.tick, false)).toEqual({ ok: false, reason: CONTROL_REASON.busy });
+    expect(isDriving(w2.sim.ecs, w2.player)).toBe(true);
+    w2.sim.services.control.teleportActive = false;
+    w.sim.dispose();
+    w2.sim.dispose();
+  }, 60_000);
 
   it('a lane under a deck or in a water cell is skipped for the shore node beside a road (BD-FIX-SPAWN-07)', () => {
     const out = new Float64Array(4);
@@ -293,16 +376,16 @@ describe('below-the-world net for a driven vehicle (DL-734)', () => {
     f.top = (x, z) => (x === ROAD.x && z === ROAD.z ? VEHICLE_DECK_GAP_M - 0.5 : 0);
     expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([ROAD, f.shoreRoad]);
     delete f.top;
-    // the nearest lane is in a water cell (a bridge): skipped; no lane beside the shore node, so the point inland of it, facing inland
+    // the nearest lane is in a water cell (a bridge): skipped for the lane beside the shore node
     f.water = (x, z) => x === ROAD.x && z === ROAD.z;
-    delete f.shoreRoad;
-    const c = vehicleRespawnCandidates(api, bounds, 0, 0, out);
-    expect(c).toHaveLength(1);
-    expect(c[0]!.x).toBe(120);
-    expect(c[0]!.z).toBe(57);
-    expect(-Math.cos(c[0]!.yaw)).toBeCloseTo(-1, 6);   // forward (-sin, -cos) points -Z, inland
-    // the inland point is in water too: nothing to offer
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([f.shoreRoad]);
+    // the lane beside the shore node is in water too
     f.water = () => true;
+    expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([]);
+    // no lane beside the shore node: no point inland of it either (it lies off the drivable edges)
+    delete f.water;
+    f.top = (x, z) => (x === ROAD.x && z === ROAD.z ? VEHICLE_DECK_GAP_M + 5.5 : 0);
+    delete f.shoreRoad;
     expect(vehicleRespawnCandidates(api, bounds, 0, 0, out)).toEqual([]);
   });
 

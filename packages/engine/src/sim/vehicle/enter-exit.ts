@@ -357,3 +357,46 @@ export function seatDriver(
   services.camera.target = vehicle;
   return true;
 }
+
+/**
+ * Takes `driver` out of the vehicle it drives at once, without the leaving sequence (DL-734; 02-world-maps.md 5 step 4: a driver keeps
+ * the vehicle only when the teleport's target lies on a drivable edge, so for any other target the player is moved on foot; and the
+ * below-the-world net's last resort for a car it cannot place). The opposite of `seatDriver`: the driver is the on-foot owner, idle and
+ * ready for the ownership machine's teleport, its capsule collides again, is shown, stands still where the seat was, and the camera follows
+ * it. The vehicle stays where it is, with nobody at the wheel. False when `driver` does not drive.
+ */
+export function unseatDriver(
+  ecs: EcsApi, backend: VehiclePhysics, store: VehicleStore, services: Pick<EngineServices, 'camera' | 'events'>, driver: EntityHandle, tick: number,
+): boolean {
+  const did = ecs.resolve(driver);
+  if (did === null) return false;
+  const co = ecs.store(Control);
+  if (co.owner[did] !== CONTROL_OWNER.Vehicle) return false;
+  const vid = co.target[did] as number;
+  const rt = store.rt.get(vid);
+  if (rt && rt.driver === did) rt.driver = 0;
+  const from = phaseOf(co.pending[did] as number);
+  co.target[did] = 0;
+  co.owner[did] = CONTROL_OWNER.OnFoot;
+  co.state[did] = CONTROL_STATE.idle;
+  co.sinceTick[did] = tick;
+  co.pending[did] = packPending(CONTROL_PHASE.Ready, CONTROL_OWNER.None);
+  const world = ecs as unknown as EcsWorld;
+  const ve = ecs.store(Velocity);
+  ve.vx[did] = 0; ve.vy[did] = 0; ve.vz[did] = 0; ve.wx[did] = 0; ve.wy[did] = 0; ve.wz[did] = 0;
+  if (world.hasId(did, BodyRef)) backend.setBodyGroups(ecs.store(BodyRef).body[did] as number, GROUPS.character);
+  if (world.hasId(did, RenderKey)) ecs.store(RenderKey).visible[did] = 1;
+  if (world.hasId(did, CharacterBody)) ecs.store(CharacterBody).grounded[did] = 0;
+  if (world.hasId(did, Anim)) {
+    const an = ecs.store(Anim);
+    an.state[did] = animStateOf(CONTROL_STATE.idle);
+    an.sinceTick[did] = tick;
+  }
+  services.camera.reason = 'player';
+  services.camera.target = 0;
+  services.events.push({
+    t: 'control.transition', tick, a: driver, n: CONTROL_STATE.idle,
+    s: `${OWNER_NAMES[CONTROL_OWNER.OnFoot]} ${PHASE_NAMES[from]}>${PHASE_NAMES[CONTROL_PHASE.Ready]} unseat`,
+  });
+  return true;
+}

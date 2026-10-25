@@ -26,6 +26,7 @@ import type { Vec3 } from '../physics/backend.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
 import { RaycastVehicleSim } from './raycast-vehicle.ts';
 import type { WheelPath } from './wheel-path.ts';
+import { unseatDriver } from './enter-exit.ts';
 
 export const VEHICLE_INPUT_ID = 'engine.vehicle.input';
 export const VEHICLE_POST_ID = 'engine.vehicle.post';
@@ -349,6 +350,7 @@ export function registerVehicleSystems(core: SimCore, backend: VehiclePhysics, s
   core.addResource(vehicleResource(sys.store));
   // the below-the-world net for a driven vehicle and the teleport's move that it asks for (02-world-maps.md 4.1 d, DL-734)
   core.services.vehicleMove = vehicleMover(backend, sys.store, core.ecs);
+  core.services.vehicleUnseat = (driver, tick) => unseatDriver(core.ecs, backend, sys.store, core.services, driver, tick);
   core.addSystem(vehicleFallRecoverySystem({ services: core.services, store: sys.store }));
   return sys;
 }
