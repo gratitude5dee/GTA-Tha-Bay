@@ -1,6 +1,7 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
 import { SANDBOX_REFUSE_ONLINE, applyToggle } from './builtin/sandbox.ts';
 import type { SandboxWorldPort } from './builtin/sandbox-world.ts';
+import type { SandboxBodyPort } from './sandbox-body-port.ts';
 import { POSITION_MISSING, sandboxGo, type Pose, type WaypointMemo } from './builtin/sandbox-teleport.ts';
 import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
@@ -18,6 +19,8 @@ export interface CommandDeps {
   world(): WorldApi;
   /** The weather hold and the world speed of the sandbox (M04e1), or null without a running sim. */
   sandboxWorld?(): SandboxWorldPort | null;
+  /** The body tools' engine port (M04e4): the three Player and car toggles set flags through it. */
+  body?(): SandboxBodyPort | null;
   /** Moves the player to a point (the ownership machine's teleport); false when it is refused. The sandbox no longer uses it (M04e2). */
   teleport?(x: number, y: number, z: number): boolean;
   /** The map pin the player dropped (M04e2): `phone.waypoint` sets it and `map.waypoint.clear` clears it. */
@@ -108,7 +111,7 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
           return;
         }
         const ctx = d.sandboxContext();
-        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v, d.sandboxWorld?.() ?? null);
+        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v, d.sandboxWorld?.() ?? null, d.body?.() ?? null);
         return;
       }
       case 'sandbox.teleport': {
