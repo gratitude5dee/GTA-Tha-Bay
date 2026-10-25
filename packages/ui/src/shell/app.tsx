@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { JsonValue, PwaUpdateController } from '@dv/shared';
 import { BRAND } from '../../../../config/brand.ts';
 import { t } from '../i18n/index.ts';
+import { dialogueBack } from '../dialogue/session.ts';
+import { DialoguePanel } from '../dialogue/DialogueBubble.tsx';
 import { FocusManager } from '../kit/focus.ts';
 import { ConfirmBody, Dialog, ToastHost, type ToastItem } from '../kit/widgets.tsx';
 import { FpsChip } from '../hud/fps-chip.tsx';
@@ -111,7 +113,11 @@ export function ShellApp(props: { core: ShellCore }) {
     addEventListener('offline', setOnline);
     setOnline();
     const root = document.getElementById('app') ?? document.body;
-    const focus = new FocusManager({ root, onBack: () => core.back(), escapeBacks: () => core.escapeBacks(), active: () => !(core.state === 'InMode' && core.frame === null) });
+    // Back (Esc, Backspace, the pad's B) closes an open dialogue first (M06a5).
+    const onBack = (): void => {
+      if (!dialogueBack()) core.back();
+    };
+    const focus = new FocusManager({ root, onBack, escapeBacks: () => core.escapeBacks(), active: () => !(core.state === 'InMode' && core.frame === null) });
     // Leave Booting after the first paint.
     const boot = setTimeout(() => core.ready(), 0);
     return () => {
@@ -180,6 +186,7 @@ export function ShellApp(props: { core: ShellCore }) {
         </>
       ) : null}
       <AttributionSplash />
+      <DialoguePanel />
       {core.props.prefs.get().showFps ? <FpsChip /> : null}
       <ToastHost store={core.toastStore} announce={core.props.prefs.get().announce} onAction={toastAction} />
       {core.modals.map((m) =>

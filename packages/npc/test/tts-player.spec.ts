@@ -113,6 +113,30 @@ describe('TtsPlayer playing a line', () => {
     expect(host.unducks).toEqual(['voice']);
   });
 
+  it('M06a5: clock() gives the scheduled window of the line on the audio clock: none before the first sentence, complete once closed, none after the line ends', async () => {
+    const { host, player } = setup();
+    const ctx = host.context!;
+    ctx.currentTime = 2;
+    player.beginLine('npc_a', 't1');
+    expect(player.clock('npc_a')).toBeNull();
+    player.push('npc_a', chunk(0, 1000, true)); // 1 s
+    await settle(player);
+    ctx.currentTime = 2.5;
+    const open = player.clock('npc_a')!;
+    expect(open.startS).toBeCloseTo(2.02, 6);
+    expect(open.endS).toBeCloseTo(3.02, 6);
+    expect(open.nowS).toBe(2.5);
+    expect(open.complete).toBe(false);
+    player.push('npc_a', chunk(1, 500, true)); // 0.5 s more
+    player.endLine('npc_a');
+    await settle(player);
+    expect(player.clock('npc_a')).toMatchObject({ complete: true });
+    expect(player.clock('npc_a')!.endS).toBeCloseTo(3.52, 6);
+    for (const src of host.context!.sources) src.onended?.();
+    expect(player.clock('npc_a')).toBeNull();
+    expect(player.clock('nobody')).toBeNull();
+  });
+
   it('copies 16 kHz PCM into an AudioBuffer instead of decoding it, and drops a sentence that will not decode', async () => {
     const { host, player } = setup();
     const ctx = host.context!;
