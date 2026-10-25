@@ -50,6 +50,11 @@ export interface InteractionContext {
 
 export interface InteractionHandler {
   kind: InteractKind;
+  /**
+   * Optional (M06c): whether the handler takes this entity at all. An entity it declines is not a candidate, so it shows no prompt, not
+   * even a refused one. The Talk handler of the NPC runtime owns `npc:` and `amb:` entities only; a mission's talkable keeps its own flow.
+   */
+  accepts?(ctx: InteractionContext, target: EntityHandle): boolean;
   canInteract(ctx: InteractionContext, actor: EntityHandle, target: EntityHandle): true | string;
   begin(ctx: InteractionContext, actor: EntityHandle, target: EntityHandle): void;
 }
@@ -163,10 +168,13 @@ export class InteractionService implements InteractionApi {
     let best = -1;
     let bestScore = -Infinity;
     let bestHandle = 0;
+    const ictx: InteractionContext = { ecs, services: this.services, tick };
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i] as number;
       const kind = ia.kind[id] as number;
       if (this.disabled.has(kind) || !this.handlers.has(kind) || (ia.cooldown[id] as number) > 0) continue;
+      const h = this.handlers.get(kind) as InteractionHandler;
+      if (h.accepts !== undefined && !h.accepts(ictx, ecs.handle(id as EntityId))) continue;
       const radius = (ia.radius[id] as number) > 0 ? (ia.radius[id] as number) : DEFAULT_RADIUS_M;
       const cone = (ia.coneDeg[id] as number) > 0 ? (ia.coneDeg[id] as number) : DEFAULT_CONE_DEG;
       const n = anchorsOf(ecs, id, this.anchors);
@@ -210,7 +218,7 @@ export class InteractionService implements InteractionApi {
     const handler = this.handlers.get(kind) as InteractionHandler;
     const target = ecs.handle(best as EntityId);
     const actor = ecs.handle(pid as EntityId);
-    const ctx: InteractionContext = { ecs, services: this.services, tick };
+    const ctx = ictx;
     const can = handler.canInteract(ctx, actor, target);
     const hold = ((ia.flags[best] as number) & 1) !== 0;
     if (this.heldTarget !== target) {

@@ -28,7 +28,20 @@
     "rosterLeanMax": 12,
     "lodABrains": { "desktop-ultra": 8, "desktop": 8, "xr-visionpro": 8, "xr-quest": 6, "mobile": 4, "mobile-low": 3 }
   },
-  "lod": { "aRadiusM": 60, "bRadiusM": 250, "aEveryAiTicks": 3, "bEveryAiTicks": 15 },
+  "lod": { "aRadiusM": 60, "bRadiusM": 250, "aEveryAiTicks": 3, "bEveryAiTicks": 15, "hysteresisM": 6 },
+  "brains": {
+    "walkMps": 1.4, "runMps": 3.0, "arriveM": 1.2, "snapLagM": 40, "lookRadiusM": 6,
+    "threatRadiusM": 30, "threatHoldS": 8, "fleeS": 6, "fleeMinM": 20,
+    "scheduleBase": 0.5, "priorityStep": 0.05, "greetMax": 0.7, "holdScore": 0.99, "talkScore": 1.0,
+    "intentScore": { "low": 0.45, "med": 0.65, "high": 0.85 },
+    "animSeconds": { "min": 4, "max": 12 }, "sleepSeconds": { "min": 30, "max": 90 },
+    "smartObjectSlots": 2, "wanderM": 4
+  },
+  "barks": {
+    "entityCooldownS": 20, "tagCooldownS": 60, "maxAudible": 2, "radiusM": 25, "subtitleMinS": 1.5, "subtitlePerCharS": 0.06,
+    "fillerTalkRadiusM": 3, "fillerTalkCooldownS": 8
+  },
+  "intent": { "clientTimeoutMs": 8000, "maxNearby": 8, "offTiers": ["mobile-low"] },
   "throttles": {
     "firstTokenTimeoutMs": 4000,
     "turnCadenceMs": 1500,

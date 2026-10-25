@@ -179,7 +179,7 @@ const GOLDEN_SHOTS: { tier: string; shot: string }[] = [
 /** The 256 x 144 canvas of the page after `shot(id)` has presented its frame. The debug panel is hidden so the picture is the canvas alone. */
 async function captureShot(page: Page, tier: string, shot: string): Promise<Rgba> {
   await bootWorld(page, tier as QualityTierId, '', GOLDEN_VIEWPORT);
-  await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
+  await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
   // M03b1/M03b2 integration: the ambient traffic, pedestrians and transit vehicles move between two captures, so the goldens are taken
   // without them (their groups are hidden; the goldens predate them). The groups are children of the scene, so the shadow pass skips them too.
   await page.evaluate(() => {
@@ -272,7 +272,7 @@ test.describe('look before and after @look-compare', () => {
       // Boot and place the shot at the small size (the software renderer needs seconds per frame at 960 x 540 and the shot waits for
       // many frames), then grow the viewport for the capture only: the aspect is 16:9 in both, so the frustum and the residents stay.
       await bootWorld(page, 'desktop', '', GOLDEN_VIEWPORT);
-      await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
+      await page.addStyleTag({ content: '.dv-hud, .dv-sim-panel, .dv-sky-controls, .dv-pursuit, .dv-modes, .dv-mission, .dv-npcdbg, .dv-npcagency, [data-dv-xr-smoke], [data-dv-world-controls] { display: none !important }' });
       const tiles: Rgba[] = [];
       const means: Record<string, number> = {};
       for (const id of COMPARE_SHOTS) {

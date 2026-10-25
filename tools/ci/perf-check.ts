@@ -132,6 +132,30 @@ export function verifyBoot(file: string, _tier: QualityTierId): string[] {
   return out;
 }
 
+/** Scenarios that report the named-NPC brains (M06c): their `PerfReport.counts` carries the `npcBrains*` figures and `verifyNpc` judges them. */
+export const NPC_SCENARIOS: readonly string[] = ['npc-mission-crowd'];
+
+/**
+ * The brain half of the scenario `npc-mission-crowd` (M06c, AC-9): at least one brain ran at LOD A (a build without the agency cannot
+ * pass), the brains at LOD A never exceeded the tier cap `caps.lodABrains` of `config/npc.json`, and the cost figures are present and
+ * finite (they are reported, not asserted, because SwiftShader times are not a budget). Returns the failure lines.
+ */
+export function verifyNpc(file: string, tier: QualityTierId): string[] {
+  const cfg = JSON.parse(readFileSync(path.join(repoRoot, 'config', 'npc.json'), 'utf8')) as { caps: { lodABrains: Record<string, number> } };
+  const cap = cfg.caps.lodABrains[tier];
+  if (cap === undefined) return [`FAIL  no caps.lodABrains row for tier ${tier} in config/npc.json`];
+  const c = (JSON.parse(readFileSync(file, 'utf8')) as { counts?: Record<string, unknown> }).counts ?? {};
+  const num = (k: string): number | null => (typeof c[k] === 'number' && Number.isFinite(c[k]) ? (c[k] as number) : null);
+  const missing = ['npcBrainsAMax', 'npcBrainsBMax', 'npcBrainMsMean', 'npcBrainMsMax', 'npcBrainTicks'].filter((k) => num(k) === null);
+  if (missing.length > 0) return [`FAIL  NPC brain figures missing: ${missing.join(', ')}`];
+  const out: string[] = [];
+  const a = num('npcBrainsAMax') as number;
+  if (a < 1) out.push('FAIL  no NPC brain ran at LOD A during the run');
+  if (a > cap) out.push(`FAIL  LOD A brains ${a} > the ${tier} cap ${cap} (config/npc.json caps.lodABrains)`);
+  if ((num('npcBrainTicks') as number) < 1) out.push('FAIL  the NPC brains were not measured (0 ticks)');
+  return out;
+}
+
 /** One instanced mesh draws every archetype (compact, sedan, rideshare, robotaxi, van, truck, pickup, cruiser). */
 export const TRAFFIC_DRAWS_MAX = 1;
 
@@ -168,6 +192,13 @@ export function checkReports(root: string, scenarios: readonly string[] = PERF_S
           const bad = verifyBoot(file, tier);
           if (bad.length > 0) ok = false;
           for (const l of bad) lines.push(`        ${l}`);
+        }
+        if (NPC_SCENARIOS.includes(scenario)) {
+          const bad = verifyNpc(file, tier);
+          if (bad.length > 0) ok = false;
+          for (const l of bad) lines.push(`        ${l}`);
+          const c = (JSON.parse(readFileSync(file, 'utf8')) as { counts: Record<string, number> }).counts;
+          lines.push(`        brains A<=${String(c['npcBrainsAMax'])} B<=${String(c['npcBrainsBMax'])}  brain ms/tick mean ${(c['npcBrainMsMean'] ?? 0).toFixed(3)} max ${(c['npcBrainMsMax'] ?? 0).toFixed(3)} over ${String(c['npcBrainTicks'])} ticks`);
         }
         if (TRAFFIC_SCENARIOS.includes(scenario)) {
           const tf = trafficPath(root, scenario, project, tier);

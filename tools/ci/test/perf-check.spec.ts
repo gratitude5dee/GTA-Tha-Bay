@@ -10,7 +10,7 @@ import path from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { PerfReport } from '../../../packages/shared/src/index.ts';
 import { repoRoot } from '../run.ts';
-import { BOOT_SCENARIOS, EXTRA_SCENARIOS, FLAT_TIERS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyBoot, verifyPeds, verifyTraffic } from '../perf-check.ts';
+import { BOOT_SCENARIOS, EXTRA_SCENARIOS, FLAT_TIERS, NPC_SCENARIOS, PERF_PROJECTS, PERF_SCENARIOS, TRAFFIC_SCENARIOS, NEAR_PED_CAP, checkReports, reportPath, selectScenarios, trafficPath, verifyBoot, verifyNpc, verifyPeds, verifyTraffic } from '../perf-check.ts';
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-perf-check-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
@@ -26,6 +26,10 @@ const trafficOf = (tier: string, share: number): Record<string, unknown> => ({ s
 /** A boot block that passes `verifyBoot` for the fixture's device class (`iphone`: lane sum 18). */
 const bootOf = (): NonNullable<PerfReport['boot']> => ({ warmBootToPlayableS: null, coldDownloadMB: 1.23, requests: 6, bytes: 1_230_000, revealMs: 1500, waves: 2, inflightPeak: 5 });
 
+/** The brain figures of the scenario `npc-mission-crowd` that pass `verifyNpc` for a tier: LOD A at its cap. */
+const npcCap = (tier: string): number => (JSON.parse(readFileSync(path.join(repoRoot, 'config', 'npc.json'), 'utf8')) as { caps: { lodABrains: Record<string, number> } }).caps.lodABrains[tier] ?? 0;
+const npcCounts = (tier: string): Partial<PerfReport['counts']> => ({ npcBrainsAMax: npcCap(tier), npcBrainsBMax: 5, npcBrainMsMean: 0.04, npcBrainMsMax: 0.3, npcBrainTicks: 120 });
+
 function write(root: string, scenarios: readonly string[]): void {
   mkdirSync(path.join(root, 'test-results'), { recursive: true });
   for (const scenario of scenarios) {
@@ -34,6 +38,7 @@ function write(root: string, scenarios: readonly string[]): void {
         const b = budgets.tiers[tier]?.render as { maxRenderObjects: number; maxTriangles: number };
         const r: PerfReport = { ...fixture, tier, counts: { ...fixture.counts, renderObjectsMax: Math.floor(b.maxRenderObjects * 0.5), trianglesMax: Math.floor(b.maxTriangles * 0.5) } };
         if (BOOT_SCENARIOS.includes(scenario)) r.boot = { ...r.boot, ...bootOf() };
+        if (NPC_SCENARIOS.includes(scenario)) r.counts = { ...r.counts, ...npcCounts(tier) };
         writeFileSync(reportPath(root, scenario, project, tier), JSON.stringify(r));
         if (TRAFFIC_SCENARIOS.includes(scenario)) writeFileSync(trafficPath(root, scenario, project, tier), JSON.stringify(trafficOf(tier, 0.5)));
       }
@@ -212,5 +217,27 @@ describe('the boot scenario (M02f1, AC-4)', () => {
     expect(verifyBoot(put('ms', { revealMs: 0 }), 'mobile').join('\n')).toContain('revealMs');
     expect(verifyBoot(put('wave', { waves: 0 }), 'mobile').join('\n')).toContain('waves 0');
     expect(verifyBoot(put('nobytes', { bytes: 0, coldDownloadMB: 0 }), 'mobile').join('\n')).toContain('bytes 0');
+  });
+});
+
+describe('verifyNpc (M06c AC-9)', () => {
+  const put = (name: string, counts: Record<string, unknown>): string => {
+    const f = path.join(tmp, name);
+    writeFileSync(f, JSON.stringify({ ...fixture, counts: { ...fixture.counts, ...counts } }));
+    return f;
+  };
+
+  it('registers the scenario and passes brains at the tier cap', () => {
+    expect(NPC_SCENARIOS).toEqual(['npc-mission-crowd']);
+    expect(PERF_SCENARIOS).toContain('npc-mission-crowd');
+    for (const tier of FLAT_TIERS) expect(verifyNpc(put(`npc-ok-${tier}.json`, npcCounts(tier)), tier)).toEqual([]);
+  });
+
+  it('fails a LOD-A count over the tier cap, no brain at A, missing or non-finite figures and an unmeasured run', () => {
+    expect(verifyNpc(put('npc-over.json', { ...npcCounts('mobile-low'), npcBrainsAMax: npcCap('mobile-low') + 1 }), 'mobile-low').join('\n')).toMatch(/> the mobile-low cap 3/);
+    expect(verifyNpc(put('npc-none.json', { ...npcCounts('desktop'), npcBrainsAMax: 0 }), 'desktop').join('\n')).toMatch(/no NPC brain ran at LOD A/);
+    expect(verifyNpc(put('npc-missing.json', { npcBrainsAMax: 2 }), 'desktop').join('\n')).toMatch(/figures missing/);
+    expect(verifyNpc(put('npc-nan.json', { ...npcCounts('desktop'), npcBrainMsMean: null }), 'desktop').join('\n')).toMatch(/npcBrainMsMean/);
+    expect(verifyNpc(put('npc-zero.json', { ...npcCounts('desktop'), npcBrainTicks: 0 }), 'desktop').join('\n')).toMatch(/0 ticks/);
   });
 });

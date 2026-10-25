@@ -34,7 +34,7 @@ describe('request checks', () => {
     expect((await post({ ...request(), extra: 1 })).status).toBe(400);
     const get = await t.h.api('/api/v1/npc/npc_test/talk');
     expect(get.status).toBe(405);
-    const other = await t.h.api('/api/v1/npc/npc_test/intent', { method: 'POST' });
+    const other = await t.h.api('/api/v1/npc/npc_test/nothing', { method: 'POST' });
     expect(other.status).toBe(404);
   });
 

@@ -45,6 +45,8 @@ export interface ContextPorts {
   /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
   garage?: GaragePort | null;
   wardrobe?: WardrobePort | null;
+  /** The NPC runtime (M06c): read live on every call. Absent, or null, keeps the `NotYetAvailable` stub. */
+  npc?: (() => ModeContext['npc'] | null) | null;
   /** The room session (M12b2 binds it). Read live on every access, so a room joined after the mode started is seen at the next command. Absent in single player: `ctx.net` is null (M04e0). */
   net?: (() => ModeContext['net']) | null;
 }
@@ -107,7 +109,16 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
   const scheduler = p.scheduler ?? schedulerStub();
   const timeline = p.timeline ?? timelineStub();
   const combat = p.combat ?? combatStub();
-  const npc = npcStub();
+  const stubNpc = npcStub();
+  const npcOf = p.npc;
+  // Read live: the NPC runtime binds when the session starts, after the first contexts may have been built.
+  const npc: ModeContext['npc'] = npcOf
+    ? {
+        whereIs: (id) => (npcOf() ?? stubNpc).whereIs(id),
+        isKilled: (id, scope) => (npcOf() ?? stubNpc).isKilled(id, scope),
+        playKnot: (id, knot, playId) => (npcOf() ?? stubNpc).playKnot(id, knot, playId),
+      }
+    : stubNpc;
   const ctx: ModeContext = {
     get tick() {
       return p.tick();

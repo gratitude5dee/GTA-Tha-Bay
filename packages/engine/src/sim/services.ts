@@ -2,6 +2,7 @@ import { RngStreams, type EntityHandle, type Fnv64, type InputFrame, type SimSer
 import type { ByteReader, ByteWriter } from './bytes.ts';
 import { SimEventLog } from './events.ts';
 import { ForwardingFareSink } from './modes/economy.ts';
+import { createNpcHub, type NpcHub } from './modes/npc-port.ts';
 import type { PhysicsSystemsBackend, Vec3 } from './physics/backend.ts';
 import { noFlags, type SandboxFlags } from './sandbox-flags.ts';
 import type { VehicleDebugContext } from './vehicle/debug.ts';
@@ -52,6 +53,8 @@ export interface EngineServices extends SimServices {
   ride: RidePort | null;
   /** The sandbox's session-only body flags (M04e4); all off outside a sandbox session. Engine-internal, in no contract. */
   sandboxFlags: SandboxFlags;
+  /** The NPC runtime (M06c): the NPC sim module registers its port here; null while the session has none. */
+  readonly npc: NpcHub;
   /**
    * Moves the vehicle `rider` rides in (at the wheel or as a passenger), with everybody aboard, onto the static ground under (x, y, z),
    * facing `yaw` (DL-734: the world's teleport keeps a driver in the vehicle on a drivable edge; DL-735 c: the below-the-world rescue moves a
@@ -122,6 +125,7 @@ export function createSimServices(seed: number): EngineServices {
     fareSink: new ForwardingFareSink(),
     ride: null,
     sandboxFlags: noFlags(),
+    npc: createNpcHub(),
     vehicleMove: null,
     vehicleUnseat: null,
     vehicleFallClaim: null,

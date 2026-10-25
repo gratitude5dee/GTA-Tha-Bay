@@ -69,6 +69,17 @@ export function dayIntervals(schedule: readonly ScheduleBlock[]): DayInterval[][
   return days;
 }
 
+/** Intervals by schedule array: souls are immutable once compiled, and `scheduleAt` runs every brain step (M06c). */
+const intervalCache = new WeakMap<readonly ScheduleBlock[], DayInterval[][]>();
+function intervalsOf(schedule: readonly ScheduleBlock[]): DayInterval[][] {
+  let v = intervalCache.get(schedule);
+  if (v === undefined) {
+    v = dayIntervals(schedule);
+    intervalCache.set(schedule, v);
+  }
+  return v;
+}
+
 /**
  * The schedule block active at `clockT`. When blocks overlap (the lint forbids it) the higher priority wins, then the
  * lower index; when nothing covers the minute the first block is returned.
@@ -77,7 +88,7 @@ export function scheduleAt(s: Pick<CompiledSoulPublic, 'schedule'>, clockT: numb
   const first = s.schedule[0];
   if (!first) throw new Error('scheduleAt: the soul has no schedule');
   const minute = minuteOfDay(clockT);
-  const list = dayIntervals(s.schedule)[weekdayOf(clockT)] ?? [];
+  const list = intervalsOf(s.schedule)[weekdayOf(clockT)] ?? [];
   let best = -1;
   for (const iv of list) {
     if (minute < iv.from || minute >= iv.to) continue;

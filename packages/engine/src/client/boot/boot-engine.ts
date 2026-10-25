@@ -319,6 +319,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
   // QA `?racing=1`: the sim worker boots the racing module (M07a1).
   if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+  // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
+  if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 
   const banner = document.createElement('div');
   banner.className = 'dv-engine-banner';

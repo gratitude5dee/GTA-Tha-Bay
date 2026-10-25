@@ -98,7 +98,71 @@
         "aRadiusM": { "type": "number", "exclusiveMinimum": 0 },
         "bRadiusM": { "type": "number", "exclusiveMinimum": 0 },
         "aEveryAiTicks": { "type": "integer", "minimum": 1 },
-        "bEveryAiTicks": { "type": "integer", "minimum": 1 }
+        "bEveryAiTicks": { "type": "integer", "minimum": 1 },
+        "hysteresisM": { "type": "number", "minimum": 0 }
+      }
+    },
+    "brains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "walkMps", "runMps", "arriveM", "snapLagM", "lookRadiusM", "threatRadiusM", "threatHoldS", "fleeS", "fleeMinM", "scheduleBase", "priorityStep",
+        "greetMax", "holdScore", "talkScore", "intentScore", "animSeconds", "sleepSeconds", "smartObjectSlots", "wanderM"
+      ],
+      "properties": {
+        "walkMps": { "type": "number", "exclusiveMinimum": 0 },
+        "runMps": { "type": "number", "exclusiveMinimum": 0 },
+        "arriveM": { "type": "number", "exclusiveMinimum": 0 },
+        "snapLagM": { "type": "number", "exclusiveMinimum": 0 },
+        "lookRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "threatRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "threatHoldS": { "type": "number", "exclusiveMinimum": 0 },
+        "fleeS": { "type": "number", "exclusiveMinimum": 0 },
+        "fleeMinM": { "type": "number", "exclusiveMinimum": 0 },
+        "scheduleBase": { "type": "number", "minimum": 0, "maximum": 1 },
+        "priorityStep": { "type": "number", "minimum": 0, "maximum": 1 },
+        "greetMax": { "type": "number", "minimum": 0, "maximum": 1 },
+        "holdScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "talkScore": { "type": "number", "minimum": 0, "maximum": 1 },
+        "intentScore": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["low", "med", "high"],
+          "properties": {
+            "low": { "type": "number", "minimum": 0, "maximum": 1 },
+            "med": { "type": "number", "minimum": 0, "maximum": 1 },
+            "high": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "animSeconds": { "$ref": "#/$defs/secondsRange" },
+        "sleepSeconds": { "$ref": "#/$defs/secondsRange" },
+        "smartObjectSlots": { "type": "integer", "minimum": 1 },
+        "wanderM": { "type": "number", "minimum": 0 }
+      }
+    },
+    "barks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entityCooldownS", "tagCooldownS", "maxAudible", "radiusM", "subtitleMinS", "subtitlePerCharS", "fillerTalkRadiusM", "fillerTalkCooldownS"],
+      "properties": {
+        "entityCooldownS": { "type": "number", "minimum": 0 },
+        "tagCooldownS": { "type": "number", "minimum": 0 },
+        "maxAudible": { "type": "integer", "minimum": 1 },
+        "radiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "subtitleMinS": { "type": "number", "minimum": 0 },
+        "subtitlePerCharS": { "type": "number", "minimum": 0 },
+        "fillerTalkRadiusM": { "type": "number", "exclusiveMinimum": 0 },
+        "fillerTalkCooldownS": { "type": "number", "minimum": 0 }
+      }
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientTimeoutMs", "maxNearby", "offTiers"],
+      "properties": {
+        "clientTimeoutMs": { "type": "integer", "minimum": 1 },
+        "maxNearby": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "offTiers": { "type": "array", "items": { "enum": ["desktop-ultra", "desktop", "xr-visionpro", "xr-quest", "mobile", "mobile-low"] } }
       }
     },
     "throttles": {
@@ -180,6 +244,12 @@
     }
   },
   "$defs": {
+    "secondsRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": { "min": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } }
+    },
     "byPhase": {
       "type": "object",
       "additionalProperties": false,

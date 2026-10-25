@@ -82,7 +82,12 @@
         "gpuDrawCmdsMax": { "type": ["number", "null"], "minimum": 0 },
         "trianglesMax": { "type": "number", "minimum": 0 },
         "texturesMB": { "type": "number", "minimum": 0 },
-        "gpuResourcesMB": { "type": "number", "minimum": 0 }
+        "gpuResourcesMB": { "type": "number", "minimum": 0 },
+        "npcBrainsAMax": { "type": "integer", "minimum": 0 },
+        "npcBrainsBMax": { "type": "integer", "minimum": 0 },
+        "npcBrainMsMean": { "type": "number", "minimum": 0 },
+        "npcBrainMsMax": { "type": "number", "minimum": 0 },
+        "npcBrainTicks": { "type": "integer", "minimum": 0 }
       }
     },
     "memory": {

@@ -412,6 +412,10 @@ async function boot(): Promise<void> {
     engine.setPaused(want.paused);
     engine.setRenderScale(platformPort?.settings().renderScale ?? platform.settings.renderScale);
     shell.attachEngine(createEnginePort(engine));
+    // The NPC agency (M06c): the hero intent driver and the roster-flag feed. Silent until the age screen has passed; a failure here never stops the game.
+    void import('./npc-agency.ts')
+      .then((m) => m.installNpcAgency({ engine, identity, tier: () => platform.quality.tier.id, startAfter: attestedGate }))
+      .catch((e: unknown) => console.warn('npc agency failed', e));
   }
   // The governor's atmosphereLevel knob drives the sky (M02b2): clouds, rain streak counts and decals follow it.
   if (prepared) {
@@ -445,6 +449,8 @@ async function boot(): Promise<void> {
       const w = window as unknown as { __dvBridge?: Record<string, unknown> };
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
+    // The NPC agency panel and __dvBridge.npcAgency (M06c): what the named NPCs are doing, plus helpers for the bark spec.
+    if (engine) void import('./qa/npc-agency.ts').then((m) => m.installNpcAgencyQa(engine as never)).catch((e: unknown) => console.warn('npc agency qa failed', e));
     // The NPC dialogue panel (M06a3): window.__dvBridge.npc and a "Talk to npc_test" box, QA builds only. Failure here never stops the game.
     // Its runtime polls route 30 (`GET /api/v1/roster`) from start(), so the poll waits for the age screen: nothing goes to the Worker API
     // before that (10-ui-pages.md 2.4, M04b1 AC-2; BD-FIX-CI5-G02). An attested device opens the gate at load.
