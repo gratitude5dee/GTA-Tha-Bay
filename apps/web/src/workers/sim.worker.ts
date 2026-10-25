@@ -23,7 +23,7 @@ import { npcModuleOptions } from './npc-data.ts';
 
 const racing = createRacingModule();
 // The named NPCs (M06c): schedules, utility, behaviour trees, barks, the Talk handler and ModeContext.npc. Inert without a baked world.
-const npc = createNpcModule(npcModuleOptions());
+const npc = createNpcModule({ ...npcModuleOptions(), clock: () => performance.now() });
 
 // The pursuit director (M03c) is inert until the world services and the vehicle module exist, and unhashed until it is first touched.
 // The story mode (M05a1) wraps the engine's free roam with the mission runtime; the engine never imports the mode package.

@@ -66,6 +66,8 @@ export interface QaFlags {
   readonly racingDemo: boolean;
   /** ?tycoon=1 mounts the Business Tycoon QA panel and the bridge `tycoon` (M09a1); the mode itself starts from the panel. */
   readonly tycoon: boolean;
+  /** ?npcCast=<n> stands n named NPCs at the hub (the roster plus clones, at most 64); the perf scenario `npc-mission-crowd` uses 12 (M06c). */
+  readonly npcCast: number;
   /** ?net=<id> slows the pack fetches on purpose with a profile of `config/perf/net-profiles.json`; anything else reads as null (M02f1, C13 1.2). */
   readonly net: string | null;
 }
@@ -103,6 +105,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   racing: false,
   racingDemo: false,
   tycoon: false,
+  npcCast: 0,
   net: null,
 });
 
@@ -188,6 +191,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     racing: q.get('racing') === '1' || q.get('racing') === 'demo',
     racingDemo: q.get('racing') === 'demo',
     tycoon: q.get('tycoon') === '1',
+    npcCast: Math.min(64, nonNegInt(q.get('npcCast')) ?? 0),
     net: NET_PROFILE_IDS.find((id) => id === q.get('net')) ?? null,
   };
 }

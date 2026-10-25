@@ -27,8 +27,11 @@ interface DebugView {
   barks: { played: number; dropped: number; audible: number };
   talks: number; knots: number; intents: number;
   cmds: number; lastCmd: string; bound: boolean; filler: number; grants: number;
+  perf?: { ticks: number; aMax: number; bMax: number; cMax: number; brainMsMean: number; brainMsMax: number; sysMsMean: number; sysMsMax: number };
   npcs: { id: string; lod: string; block: number; who: string; x: number; z: number }[];
 }
+
+export type AgencyDebugView = DebugView;
 
 export interface AgencyQaBridge {
   debug(): DebugView | null;
@@ -37,6 +40,8 @@ export interface AgencyQaBridge {
   bark(tag: string): void;
   subtitle(): { speaker?: string; text: string } | null;
   apiCalls(): number;
+  /** Starts a new measurement window of the brain cost and the LOD maxima (the perf scenario `npc-mission-crowd`). */
+  perfReset(): void;
 }
 
 const cmd = (engine: AgencyQaEngine, name: string, args?: Record<string, unknown>): void =>
@@ -75,6 +80,7 @@ export function installNpcAgencyQa(engine: AgencyQaEngine): AgencyQaBridge {
     bark: (tag) => cmd(engine, 'bark', { tag }),
     subtitle: () => (engine.vm.get('hud.subtitle') as { speaker?: string; text: string } | undefined) ?? null,
     apiCalls: () => api,
+    perfReset: () => cmd(engine, 'perf.reset'),
   };
   const w = window as unknown as { __dvBridge?: Record<string, unknown> };
   w.__dvBridge = { ...(w.__dvBridge ?? {}), npcAgency: bridge };

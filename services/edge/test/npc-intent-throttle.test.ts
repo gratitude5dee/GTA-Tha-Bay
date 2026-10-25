@@ -209,14 +209,15 @@ describe('route 32: the request itself', () => {
   it('validates every field of the situation', () => {
     const good = req();
     expect(typeof parseIntentRequest(good)).toBe('object');
-    for (const [name, mutate] of Object.entries({
+    const mutations: Record<string, (r: Record<string, unknown>) => void> = {
       trigger: (r: Record<string, unknown>) => void (r['trigger'] = 'whenever'),
       chunkKey: (r: Record<string, unknown>) => void ((r['situation'] as Record<string, unknown>)['chunkKey'] = '9/x/y'),
       poiId: (r: Record<string, unknown>) => void ((r['situation'] as Record<string, unknown>)['poiId'] = 'somewhere'),
       events: (r: Record<string, unknown>) => void ((r['situation'] as Record<string, unknown>)['events'] = ['party']),
       relation: (r: Record<string, unknown>) => void ((r['situation'] as Record<string, unknown>)['relation'] = { trust: 'high', met: true }),
       distance: (r: Record<string, unknown>) => void ((r['situation'] as Record<string, unknown>)['nearby'] = [{ key: 'player:0', kind: 'player', distM: -1 }]),
-    })) {
+    };
+    for (const [name, mutate] of Object.entries(mutations)) {
       const copy = JSON.parse(JSON.stringify(good)) as Record<string, unknown>;
       mutate(copy);
       expect(typeof parseIntentRequest(copy), name).toBe('string');

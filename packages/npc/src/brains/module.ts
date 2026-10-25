@@ -38,6 +38,11 @@ export interface NpcModuleOptions {
   /** ENU `[x, z]` of POIs the baked table lacks (`content/npcs/poi.stub.json` `positions`). */
   stubPois?: Readonly<Record<string, readonly [number, number]>>;
   pools?: BarkPools;
+  /**
+   * A millisecond clock for the cost readings of the perf scenario (`performance.now`, passed by the worker entry; sim code has no clock).
+   * Absent: the readings stay 0.
+   */
+  clock?: () => number;
 }
 
 export interface NpcModule extends SimModule, NpcHostPort {
@@ -89,6 +94,8 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
   // QA: the standing filler a spec talks to, and when its knock-down ends
   let qaFiller: { key: string; handle: number; bumpUntil: number } | null = null;
   let qaSerial = 0;
+  // perf scenario readings (M06c AC-9): brain steps per window, brain cost per sim tick, and the whole system's
+  const perf = { ticks: 0, brainMsSum: 0, brainMsMax: 0, sysMsSum: 0, sysMsMax: 0, aMax: 0, bMax: 0, cMax: 0 };
   let cmdCount = 0;
   let lastCmd = '';
   let bound = false;
@@ -189,8 +196,11 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
     const p = parts;
     const c = ctx;
     if (!p || !c) return;
+    const clock = opts.clock;
+    const t0 = clock ? clock() : 0;
     env = { tick, clockT: clockT(), player: p.entities.player(), trust: (id) => host?.trust(id) ?? 0 };
     p.sim.tick(env);
+    const t1 = clock ? clock() : 0;
     p.entities.ensure(p.sim);
     p.entities.sync(p.sim, (a) => {
       const pl = env.player;
@@ -231,6 +241,20 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
     p.knots.update(tick);
     p.lane.update(tick);
 
+    if (clock) {
+      const t2 = clock();
+      const brain = t1 - t0;
+      const sys = t2 - t0;
+      perf.ticks++;
+      perf.brainMsSum += brain;
+      perf.sysMsSum += sys;
+      if (brain > perf.brainMsMax) perf.brainMsMax = brain;
+      if (sys > perf.sysMsMax) perf.sysMsMax = sys;
+    }
+    if (p.sim.counts.a > perf.aMax) perf.aMax = p.sim.counts.a;
+    if (p.sim.counts.b > perf.bMax) perf.bMax = p.sim.counts.b;
+    if (p.sim.counts.c > perf.cMax) perf.cMax = p.sim.counts.c;
+
     if (c.runtime.env.qa && tick - lastDebug >= 30) {
       lastDebug = tick;
       host?.ui.patch('sys.npc.debug', debugView(p));
@@ -243,6 +267,11 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       steps: { a: p.sim.totalSteps.a, b: p.sim.totalSteps.b }, barks: { played: p.barks.played, dropped: p.barks.dropped, audible: p.barks.audible() },
       talks: p.talk.begun, knots: p.knots.done, intents: p.intents.written,
       cmds: cmdCount, lastCmd, bound, filler: qaFiller ? qaFiller.handle : 0, grants: p.entities.grants,
+      perf: {
+        ticks: perf.ticks, aMax: perf.aMax, bMax: perf.bMax, cMax: perf.cMax,
+        brainMsMean: perf.ticks > 0 ? perf.brainMsSum / perf.ticks : 0, brainMsMax: perf.brainMsMax,
+        sysMsMean: perf.ticks > 0 ? perf.sysMsSum / perf.ticks : 0, sysMsMax: perf.sysMsMax,
+      },
       npcs: p.sim.agents.slice(0, 12).map((a) => ({
         id: a.id, lod: 'ABC'[a.lod] as string, block: a.block, who: ['talk', 'hold', 'flee', 'intent', 'greet', 'schedule'][a.winner] as string,
         x: Math.round(a.x), z: Math.round(a.z),
@@ -355,6 +384,14 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
         }
         return;
       }
+      case 'perf.reset': {
+        // QA builds only: starts a new measurement window for the perf scenario (`npc-mission-crowd`)
+        if (!ctx?.runtime.env.qa) return;
+        perf.ticks = 0; perf.brainMsSum = 0; perf.brainMsMax = 0; perf.sysMsSum = 0; perf.sysMsMax = 0;
+        perf.aMax = parts.sim.counts.a; perf.bMax = parts.sim.counts.b; perf.cMax = parts.sim.counts.c;
+        lastDebug = -1000;
+        return;
+      }
       case 'qa.filler': {
         // QA builds only: a pedestrian that stands still `ahead` metres in front of the player, whose key and anim a spec controls
         if (!ctx?.runtime.env.qa) return;
@@ -408,6 +445,16 @@ export function createNpcModule(opts: NpcModuleOptions): NpcModule {
       const cfg = BRAIN_CONFIG;
       const sim = new BrainSim({ seed: c.cfg.seed, world: world(), cap: lodCap(c.cfg.tier), cfg });
       for (const soul of opts.roster) if (soul.status === 'active') sim.add(soul);
+      // QA `?npcCast=<n>` (the perf scenario `npc-mission-crowd`): extra NPCs cloned from the roster, with the same schedules and places, so a hub
+      // holds n named NPCs. They are never heroes, so they ask for no intents.
+      const cast = c.boot.config['npcCast'];
+      const base = opts.roster.filter((r) => r.status === 'active');
+      if (c.runtime.env.qa && typeof cast === 'number' && cast > sim.agents.length && base.length > 0) {
+        for (let i = sim.agents.length; i < Math.min(64, cast); i++) {
+          const t = base[i % base.length] as CompiledSoulPublic;
+          sim.add({ ...t, id: `crowd_${String(i).padStart(2, '0')}`, name: `Crowd ${i}`, roles: { ...t.roles, hero: false } });
+        }
+      }
       const rng = c.sim.services.rng.get('npc:barks');
       const barks = new BarkSystem({ pools, rng, cfg: cfg.barks, emit: emitBark });
       const lane = new SubtitleLane({

@@ -6,6 +6,7 @@ import routeFerryOceanBeach from '../../../../../config/perf/paths/route-ferry-o
 import downtownRush from '../../../../../config/perf/paths/downtown-rush.json';
 import bootCityhall from '../../../../../config/perf/paths/boot-cityhall.json';
 import storyChase from '../../../../../config/perf/paths/story-chase.json';
+import npcMissionCrowd from '../../../../../config/perf/paths/npc-mission-crowd.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -76,6 +77,7 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'downtown-rush': downtownRush as unknown as RoutePath,
   'boot-cityhall': bootCityhall as unknown as RoutePath,
   'story-chase': storyChase as unknown as RoutePath,
+  'npc-mission-crowd': npcMissionCrowd as unknown as RoutePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
@@ -84,6 +86,7 @@ export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'downtown-rush': 'config/perf/paths/downtown-rush.json',
   'boot-cityhall': 'config/perf/paths/boot-cityhall.json',
   'story-chase': 'config/perf/paths/story-chase.json',
+  'npc-mission-crowd': 'config/perf/paths/npc-mission-crowd.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */

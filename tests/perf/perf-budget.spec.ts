@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.ts';
 import { storyChase } from './scenarios/story-chase.ts';
+import { npcMissionCrowd } from './scenarios/npc-mission-crowd.ts';
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
@@ -15,7 +16,7 @@ const SCENARIO = process.env.DV_PERF_SCENARIO ?? 'graybox-walk';
 /** Scenarios that show the ambient traffic (M03b1): they also write a `.traffic.json` the counts check judges. */
 const TRAFFIC = new Set(['downtown-rush']);
 /** Scenarios whose page runs a part of the game (a URL suffix and a setup after the world is up; tests/perf/scenarios/*.ts). */
-const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: Page): Promise<void> }> = { 'story-chase': storyChase };
+const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: Page): Promise<void>; collect?(page: Page, report: PerfReport): Promise<void> }> = { 'story-chase': storyChase, 'npc-mission-crowd': npcMissionCrowd };
 const PAGE = PAGE_SCENARIOS[SCENARIO];
 const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
@@ -59,6 +60,9 @@ for (const tier of TIERS) {
     const report = (await page.evaluate(
       `window.__dvBridge.platform.perf.run(${JSON.stringify(SCENARIO)}, { durationS: ${DURATION_S}, warmupS: ${WARMUP_S} })`,
     )) as PerfReport;
+
+    // M06c: a scenario may add figures only its page knows (the NPC brains' LOD maxima and cost) to the counts before the report is written
+    if (PAGE?.collect) await PAGE.collect(page, report);
 
     mkdirSync('test-results', { recursive: true });
     const file = `test-results/perf.${SCENARIO}.${testInfo.project.name}.${tier}.json`;
