@@ -49,7 +49,7 @@ describe('deploy.ts', () => {
   });
 
   it('bootstrap creates the four queues of the web Worker, every name tha-bay-*', () => {
-    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging']);
+    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-npc-builder', 'tha-bay-jobs-staging', 'tha-bay-spend-staging', 'tha-bay-npc-builder-staging']);
   });
 
   it('finds a preview URL in JSON, NDJSON and plain wrangler output', () => {

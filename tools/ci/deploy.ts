@@ -405,8 +405,8 @@ and set workers_dev to false there:
   "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ]
 and replace the HOST_* vars (HOST_MEDIA is the Worker's own /media route, DL-713; HOST_UGC is still a placeholder; a media.<domain> replaces the route's value). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
 
-/** Queues of the web Worker (M06a1); `wrangler queues create` is repeated safely, an existing queue is not an error. */
-export const QUEUE_NAMES = ['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging'] as const;
+/** Queues of the web Worker (M06a1; the NPC builder's `tha-bay-npc-builder` is M06b1); `wrangler queues create` is repeated safely, an existing queue is not an error. */
+export const QUEUE_NAMES = ['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-npc-builder', 'tha-bay-jobs-staging', 'tha-bay-spend-staging', 'tha-bay-npc-builder-staging'] as const;
 
 function ensureQueues(): number {
   for (const name of QUEUE_NAMES) {

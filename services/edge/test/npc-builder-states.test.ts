@@ -1,4 +1,7 @@
+import { createMessageBatch } from 'cloudflare:test';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { Env } from '../src/env.ts';
+import { env as testEnv } from 'cloudflare:test';
 import type { DraftView } from '@dv/shared/npc';
 import { buildStream } from '../src/npc/upstream-fixture.ts';
 import { defaultLlmSoul } from '../src/npc-builder/fixture-defaults.ts';
@@ -145,6 +148,18 @@ describe('draft state machine', () => {
     expect(healthy.state).toBe('private');
     expect(healthy.lint).toEqual([]);
     expect(seen).toEqual(['soul_ready', 'probing', 'private']);
+  });
+
+  it('the queue consumer runs a validate job and acknowledges it', async () => {
+    b = await builderSetup();
+    const d = await b.create();
+    await b.t.h.port.builder.updateDraft(d.id, { state: 'validating' }, { fromStates: ['draft'] });
+    const batch = createMessageBatch('tha-bay-npc-builder-staging', [{ id: 'q1', timestamp: new Date(), attempts: 1, body: { type: 'validate', draftId: d.id, jobId: '0198aaaa-bbbb-7ccc-8ddd-eeeeffff0001' } }]);
+    await b.t.h.app.queue(batch, testEnv as unknown as Env);
+    expect((await b.get(d.id)).state).toBe('text_ok');
+    // a job for a draft that is no longer where the job expects it is a no-op, not an error
+    await b.t.h.app.queue(createMessageBatch('tha-bay-npc-builder-staging', [{ id: 'q2', timestamp: new Date(), attempts: 1, body: { type: 'validate', draftId: d.id, jobId: '0198aaaa-bbbb-7ccc-8ddd-eeeeffff0002' } }]), testEnv as unknown as Env);
+    expect((await b.get(d.id)).state).toBe('text_ok');
   });
 
   it('only the owner sees a draft; another player gets not_found', async () => {
