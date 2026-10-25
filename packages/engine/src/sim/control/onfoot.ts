@@ -1,5 +1,6 @@
 import { dcos, datan2, dsin, dsqrt, normalizeAngle, SimButton, SimStage, SIM_DT, TWO_PI, type EntityId, type InputFrame, type SystemDef } from '@dv/shared';
 import type { EngineServices } from '../services.ts';
+import { SUPER_JUMP_APEX_M } from '../sandbox-flags.ts';
 import { Anim, BodyRef, CharacterBody, Control, PlayerControlled, Transform, Velocity } from '../ecs/components.ts';
 import type { PhysicsSystemsBackend, Vec3 } from '../physics/backend.ts';
 import { PHYSICS_CONFIG, type CharacterConfig } from '../physics/config.ts';
@@ -12,7 +13,7 @@ export const ONFOOT_ID = 'engine.control.onfoot';
 export interface OnFootOptions {
   backend: PhysicsSystemsBackend;
   /** Supplies player 0's InputFrame (`services.input`); `events` receives the `foot.step` audio cues. */
-  services: Pick<EngineServices, 'input'> & Partial<Pick<EngineServices, 'events'>>;
+  services: Pick<EngineServices, 'input'> & Partial<Pick<EngineServices, 'events' | 'sandboxFlags'>>;
   /** Vaults in progress. Without a store the controller never vaults (the earlier scenarios and their goldens). */
   vault?: VaultStore;
   /** Defaults to the `character` block of config/physics.json. */
@@ -56,6 +57,7 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
   const cfg = opts.config ?? PHYSICS_CONFIG.character;
   const g = -PHYSICS_CONFIG.gravity[1];
   const jumpV0 = dsqrt(2 * g * cfg.jumpApexM);
+  const superJumpV0 = dsqrt(2 * g * SUPER_JUMP_APEX_M);
   const centre = capsuleCentreOffset(cfg);
   const moveOpts = { autostepM: cfg.autostepM, snapToGroundM: cfg.snapToGroundM, maxSlopeDeg: cfg.maxSlopeDeg, slide: cfg.slide };
   // In the air the character does not auto-step: a jump (apex 1.0 m) plus a 0.4 m step would otherwise clear a 1.4 m obstacle
@@ -216,7 +218,7 @@ export function onFootSystem(opts: OnFootOptions): SystemDef {
             continue;
           }
         }
-        if (jumping) vy = jumpV0;
+        if (jumping) vy = services.sandboxFlags?.superJump === true ? superJumpV0 : jumpV0;
         let dy = 0;
         if (jumping || !wasGrounded) {
           dy = (vy - 0.5 * g * SIM_DT) * SIM_DT;
