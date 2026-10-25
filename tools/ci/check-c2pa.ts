@@ -1,7 +1,11 @@
 /**
  * check:c2pa — provenance gate for shipped generated cutscenes (spec/domains/05-assets-pipeline.md section 9, M05b1).
  *
- *   tsx tools/ci/check-c2pa.ts [--index <cutscene-index.json>] [--manifests <dir>]
+ *   tsx tools/ci/check-c2pa.ts [--index <cutscene-index.json>] [--manifests <dir>] [--env prod|staging]
+ *
+ * `--env prod` (M05c3) reads the manifests as production outputs: `provenance.resigned: true` is then required whatever the licence
+ * status. The default run also checks the committed fixtures of `tools/ci/fixtures/c2pa` (the mock prewarm output passes, an
+ * unsigned production manifest and one without `aiGenerated` fail).
  *
  * For every entry of the shipped cutscene index (C07 asset `data/cutscene-index`, written by M05b2's index builder) it reads
  * `<manifests>/<key>/manifest.json` and fails when the manifest

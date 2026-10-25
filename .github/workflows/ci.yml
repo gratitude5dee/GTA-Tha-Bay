@@ -128,6 +128,9 @@ jobs:
       - run: pnpm check:unit -- --reporter=default --reporter=json --outputFile.json=tests/reports/vitest.json
       - run: pnpm check:workers
       # M05b1: one mock cutscene job end to end, then the same key again (0 FalPort calls). Never calls fal.
+      # M05c3: the Transcoder Container's server test runs real ffmpeg (the image pins 7:6.1.1-3ubuntu5; the runner's package is close enough
+      # for the structural checks) and skips with a printed reason when it is missing.
+      - run: command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg)
       - run: pnpm check:pipeline
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()

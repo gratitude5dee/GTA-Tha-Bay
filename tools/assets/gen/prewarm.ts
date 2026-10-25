@@ -13,7 +13,7 @@ import type { CutsceneRequest } from '../../../packages/shared/src/contracts/c09
 import type { CutsceneStatus } from '../../../packages/shared/src/api/v1.ts';
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
 import { estimateRequest, usd } from './estimate.ts';
-import { endpointMatches, missingSheets, providerGate, resignGuard, type ResignProbe, type SheetsLock } from './gates.ts';
+import { EMPTY_SHEETS, endpointMatches, missingSheets, parseSheetsLock, providerGate, resignGuard, type ResignProbe, type SheetsLock } from './gates.ts';
 import { renderReport, type ReportRow } from './report.ts';
 
 export type RowStatus = 'planned' | 'ready' | 'sheet_missing' | 'over_line' | 'stale_endpoint';
@@ -114,9 +114,7 @@ function loadRegistry(o: PrewarmOptions, p: PrewarmPorts): GenAiRegistry {
 
 function loadSheets(o: PrewarmOptions, p: PrewarmPorts): SheetsLock {
   const text = p.readText(o.sheetsFile ?? p.defaults.sheets);
-  if (text === null) return { schema: 'sheets-lock/1', sheets: {} };
-  const raw = JSON.parse(text) as SheetsLock;
-  return raw;
+  return text === null ? EMPTY_SHEETS : parseSheetsLock(text);
 }
 
 /** The refs of the group, in index order. */
