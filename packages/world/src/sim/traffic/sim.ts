@@ -822,6 +822,17 @@ export class TrafficSim {
 
   // ---- despawn and spawn -------------------------------------------------------------------------------------------------
 
+  /**
+   * The despawn of a promoted agent whose vehicle the engine side removed before its promotion ran out (a car under `play.minY`,
+   * 02-world-maps.md 4.1 d; DL-735 c, DL-736): its record leaves the promotion book, so the cap and the slot are free again and no wreck
+   * follows, and it counts as a despawn like `remove`. False when the key has no promotion (already a wreck, or never promoted).
+   */
+  despawnPromoted(key: string): boolean {
+    if (!this.promotions.remove(key)) return false;
+    this.stats.despawns++;
+    return true;
+  }
+
   remove(a: Agent, why: string): void {
     this.agents.remove(a);
     this.stats.despawns++;

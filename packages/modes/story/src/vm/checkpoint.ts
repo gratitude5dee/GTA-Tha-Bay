@@ -81,8 +81,16 @@ export function readCheckpoint(active: { id: string; checkpoint: { schema: numbe
   return cp.version === version && cp.worldBake === bake ? cp : null;
 }
 
-/** Puts the world and the mission state back to what `cp` holds. The stage's threads are restarted by the caller. */
-export function restoreCheckpoint(rt: MissionRuntime, cp: MissionCheckpointV1): void {
+/** Ticks a resumed save waits for the cast vehicle it seats the player in before it sets the player down on foot instead (DL-736). */
+export const SEAT_WAIT_TICKS = 30;
+
+/**
+ * Puts the world and the mission state back to what `cp` holds. The stage's threads are restarted by the caller. With `load` (a saved
+ * game resumed after a load, DL-736) the cast is spawned at its saved poses and the player and the cast are written as saved, with no
+ * placement search; the cast's health, and the player seated in the cast vehicle `cp.player.vehicle`, follow on the first tick those
+ * entities exist (`MissionRuntime.restorePending`), since a spawn is a deferred ECS command.
+ */
+export function restoreCheckpoint(rt: MissionRuntime, cp: MissionCheckpointV1, load = false): void {
   const a = rt.actors;
   const story = rt.story();
 
@@ -97,6 +105,7 @@ export function restoreCheckpoint(rt: MissionRuntime, cp: MissionCheckpointV1): 
     if (k.startsWith(CARRY_PREFIX)) rt.carriedSet.add(k.slice(CARRY_PREFIX.length));
   }
 
+  const pending: NonNullable<MissionRuntime['restorePending']> = { health: new Map(), seat: null };
   // cast
   for (const name of Object.keys(rt.ir.cast).sort(byStr) as CastName[]) {
     const c = cp.cast[name];
@@ -111,15 +120,21 @@ export function restoreCheckpoint(rt: MissionRuntime, cp: MissionCheckpointV1): 
     if (h !== null && c.x !== undefined && c.y !== undefined && c.z !== undefined) {
       a.place(h, [c.x, c.y, c.z], c.yaw ?? 0);
       if (c.health !== undefined) a.setHealth(h, c.health);
+    } else if (h === null && load && c.health !== undefined) {
+      pending.health.set(name, c.health);
     }
   }
 
-  // the player
+  // the player: as saved; a player saved in a cast vehicle is put back in its seat once the vehicle exists
   const ph = a.player();
   if (ph !== null) {
-    a.place(ph, [cp.player.x, cp.player.y, cp.player.z], cp.player.yaw);
+    const pos: [number, number, number] = [cp.player.x, cp.player.y, cp.player.z];
+    const inCast = load && cp.player.vehicle !== undefined && rt.castRt.has(cp.player.vehicle) && !rt.carriedSet.has(cp.player.vehicle);
+    if (inCast) pending.seat = { vehicle: cp.player.vehicle as string, pos, yaw: cp.player.yaw, until: rt.ctx.tick + SEAT_WAIT_TICKS };
+    else a.place(ph, pos, cp.player.yaw);
     a.setHealth(ph, cp.player.health);
   }
+  rt.restorePending = pending.health.size > 0 || pending.seat !== null ? pending : null;
 
   // wallet: whatever the mission credited after the checkpoint is taken back
   const surplus = rt.walletDelta - cp.walletDeltaCents;

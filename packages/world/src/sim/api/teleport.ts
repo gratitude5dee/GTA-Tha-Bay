@@ -85,6 +85,18 @@ export interface PreStream {
   exists(level: 'p0', key: ChunkKey): boolean;
 }
 
+/**
+ * The pre-stream of step 2 alone (DL-736; 03-story.md section 5, 'Resume from a saved checkpoint'): the `p0` chunk at a point and the
+ * ring of chunks around it, requested as `needNow` and pinned, with no placement, fade or move. A saved checkpoint pose is restored only
+ * once `ready()` answers true. Not a C08 member: the story mode reaches it through `WorldServices.prestream`.
+ */
+export interface PrestreamTicket {
+  /** True once the chunk under the point and every chunk of its ring that the bake has are resident. */
+  ready(): boolean;
+  /** Drops the pins (idempotent). */
+  release(): void;
+}
+
 export interface FareRecord {
   tick: number;
   to: string;
@@ -161,6 +173,8 @@ export class TeleportService implements TeleportApi {
   readonly fares: FareRecord[] = [];
   policy: TeleportPolicy;
   private job: Job | null = null;
+  /** The points of the pre-streams held now (`prestream`), oldest first. */
+  private readonly prestreams = new Set<{ x: number; z: number }>();
   private lastFastTravel: number | null = null;
   private readonly cfg: TransitConfig;
 
@@ -193,16 +207,7 @@ export class TeleportService implements TeleportApi {
     if (this.job) return Promise.resolve(fail('blocked', TELEPORT_MSG.busy));
     return new Promise<TeleportResult>((resolve) => {
       const t = early.to;
-      const here = parseChunkKey(chunkKeyAt(9, t.x, t.z));
-      const keys: ChunkKey[] = [];
-      if (here) {
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const key = `9/${here.x + dx}/${here.y + dy}` as ChunkKey;
-            if (this.d.stream.exists('p0', key)) keys.push(key);
-          }
-        }
-      }
+      const keys = this.ringKeys(t.x, t.z);
       const at = this.d.host.playerPos();
       const job: Job = { kind, to: t, started: this.d.now(), keys, from: at ? [at[0], at[2]] : null, streamed: false, phase: 'stream', phaseStart: this.d.now(), place: null, resolve };
       this.job = job;
@@ -210,6 +215,52 @@ export class TeleportService implements TeleportApi {
         job.streamed = true;
       });
     });
+  }
+
+  /** The `p0` chunk at (x, z) and its one-chunk ring, those the bake has (step 2's set). */
+  private ringKeys(x: number, z: number): ChunkKey[] {
+    const here = parseChunkKey(chunkKeyAt(9, x, z));
+    const keys: ChunkKey[] = [];
+    if (!here) return keys;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const key = `9/${here.x + dx}/${here.y + dy}` as ChunkKey;
+        if (this.d.stream.exists('p0', key)) keys.push(key);
+      }
+    }
+    return keys;
+  }
+
+  /**
+   * Step 2 alone (DL-736): requests the `p0` chunk at (x, z) and its ring as `needNow` and pins them, for a caller that writes a pose it
+   * already knows to be valid (a saved checkpoint) and only needs the ground there first. No validation, placement, fade or move, so no
+   * mode rule, heat or cooldown applies; the caller keeps its own budget (sim ticks) and releases the ticket when it is done or gives up.
+   */
+  prestream(x: number, z: number): PrestreamTicket {
+    const keys = this.ringKeys(x, z);
+    const centre = chunkKeyAt(9, x, z);
+    void this.d.stream.preload(keys.map((key) => ({ level: 'p0' as const, key })));
+    const point = { x, z };
+    this.prestreams.add(point);
+    let held = true;
+    return {
+      ready: () => held && this.d.query.chunkReady(centre) && keys.every((k) => this.d.query.chunkReady(k)),
+      release: () => {
+        if (!held) return;
+        held = false;
+        this.prestreams.delete(point);
+        this.d.stream.unpin('p0', keys);
+      },
+    };
+  }
+
+  /**
+   * The point of the oldest pre-stream still held, or null: the streaming module feeds the static colliders around it after the
+   * player's own (as it does for a teleport's destination), so the ground under a pose that is about to be written is there to stand on.
+   */
+  prestreamFocus(): { x: number; z: number } | null {
+    const first = this.prestreams.values().next();
+    return first.done === true ? null : first.value;
   }
 
   private validate(kind: TeleportKind, to: TeleportTarget): { to: Resolved } | Fail {

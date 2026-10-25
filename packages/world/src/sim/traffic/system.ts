@@ -263,8 +263,10 @@ export class AmbientTraffic {
 
   /**
    * The below-the-world rule for ambient vehicles (02-world-maps.md 4.1 d, DL-735 c): a vehicle the traffic made (a promoted agent, or the
-   * wreck it became) that is under `play.minY` with no player aboard is despawned the way the traffic despawns its wrecks
-   * (`prefabs.despawn`, and the traffic forgets it). One with a player aboard, as driver or passenger, is the engine's vehicle net's
+   * wreck it became) that is under `play.minY` with no player aboard is despawned through the traffic's full despawn (DL-736): a promoted
+   * car's agent record leaves the sim's promotion book (`TrafficSim.despawnPromoted`, so the promotion cap and the slot are free again and
+   * no wreck follows), the traffic forgets the vehicle and `prefabs.despawn` removes it; a wreck (its promotion already over) is forgotten
+   * and despawned the way `sweepWrecks` does. One with a player aboard, as driver or passenger, is the engine's vehicle net's
    * (`vehicleHasPlayer`); a car above `play.minY` is left alone, wherever it is. Runs on every brain step; it touches nothing while every
    * ambient vehicle is above the floor, so scenes where none falls hash as before.
    */
@@ -280,6 +282,7 @@ export class AmbientTraffic {
     for (const [key, h] of [...this.vehicles]) {
       if (!fallen(h)) continue;
       this.vehicles.delete(key);
+      this.sim.despawnPromoted(key);
       ctx.prefabs.despawn(h);
     }
     for (let i = this.wrecks.length - 1; i >= 0; i--) {

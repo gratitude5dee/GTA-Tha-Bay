@@ -94,6 +94,47 @@ describe('TeleportApi pre-stream', () => {
   });
 });
 
+describe('WorldServices.prestream (DL-736: the pre-stream of step 2 alone, for a checkpoint resume)', () => {
+  it('asks for the chunk under the point and its ring as needNow, is ready only once all of them are resident, and unpins on release', async () => {
+    const asked: ChunkKey[] = [];
+    const N = '9/257/255' as ChunkKey;
+    const chunks = [chunkOf(K, none, { heightM: 5 }), chunkOf(E, none, { heightM: 5 }), chunkOf(N, none, { heightM: 5 })];
+    const store = storeOf(chunks, { deliver: (k) => { asked.push(k); return false; }, known: [K, E, N] });
+    const w = createWorldApi(store, indexOf(), { tick: () => 0 }, {});
+    const t = w.prestream(200, 0);
+    // chunk 9/257/256 and its neighbours the bake has: 9/256/256, 9/257/255; nothing resident yet
+    expect(new Set(asked)).toEqual(new Set([E, K, N]));
+    expect(t.ready()).toBe(false);
+    store.settle('p0', E, { ok: true, payload: chunks[1]! });
+    expect(t.ready()).toBe(false);
+    store.settle('p0', K, { ok: true, payload: chunks[0]! });
+    expect(t.ready()).toBe(false);
+    store.settle('p0', N, { ok: true, payload: chunks[2]! });
+    expect(t.ready()).toBe(true);
+    // pinned until released: the units are kept whatever the focus; after release the ticket answers false
+    const pins = (store as unknown as { pinned: Set<string> }).pinned;
+    expect(pins.size).toBe(3);
+    // the streaming module feeds the colliders around the held point (as for a teleport's destination) until it is released
+    expect(w.teleport.prestreamFocus()).toEqual({ x: 200, z: 0 });
+    t.release();
+    expect(w.teleport.prestreamFocus()).toBeNull();
+    t.release();
+    expect(pins.size).toBe(0);
+    expect(t.ready()).toBe(false);
+    // it validates, places, fades and moves nothing: the teleport stays idle
+    expect(w.teleport.busy).toBe(false);
+  });
+
+  it('a point whose chunk the bake does not have is never ready', async () => {
+    const store = storeOf([chunkOf(K, none, { heightM: 5 })]);
+    await loadAll(store, [K]);
+    const w = createWorldApi(store, indexOf(), { tick: () => 0 }, {});
+    const t = w.prestream(5000, 5000);
+    expect(t.ready()).toBe(false);
+    t.release();
+  });
+});
+
 describe('TeleportApi placement', () => {
   it('lands on the target when it is clear, fades out and in, and reports where the player stands', async () => {
     const rg = await rig({});
