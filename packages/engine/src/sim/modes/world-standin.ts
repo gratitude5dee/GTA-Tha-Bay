@@ -1,5 +1,8 @@
 import { PI, enuFromLatLng, type MapBlip, type TeleportResult, type WorldApi } from '@dv/shared';
 
+/** `WorldResolver.bake` of the stand-in: a mode reads it to know there is no baked world (every teleport is refused for good). */
+export const WORLD_STANDIN_BAKE = 'graybox';
+
 export interface WorldStandinDeps {
   /** Ground height from the colliders that are resident (the M01f gray-box chunks); null where there is none. */
   groundY(x: number, z: number): number | null;
@@ -72,7 +75,7 @@ export function createWorldStandin(deps: WorldStandinDeps): WorldApi {
     // The gray-box resolver (M05a1): the C08 frame and the resident ground. `ground` and `none` placements resolve (a ground
     // placement needs a resident collider under it); `road` and `sidewalk` need the graph this build does not have, so they do not.
     resolver: {
-      bake: 'graybox',
+      bake: WORLD_STANDIN_BAKE,
       toEnu: (ll) => {
         const p = enuFromLatLng(ll.lat, ll.lng);
         return [p.x, deps.groundY(p.x, p.z) ?? 0, p.z];
