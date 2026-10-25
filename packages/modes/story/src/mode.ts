@@ -7,7 +7,7 @@
  */
 import type { GameModeSim, JsonValue, MissionIR, ModeContext, ModeExitReason, Placement, SimEvent, StorySlice, TeleportResult } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
-import type { StoryWrapEnv } from '@dv/engine/sim';
+import { WORLD_STANDIN_BAKE, type StoryWrapEnv } from '@dv/engine/sim';
 import { resolveMission } from './compiler/resolve.ts';
 import type { CompileError } from './compiler/types.ts';
 import { readCheckpoint } from './vm/checkpoint.ts';
@@ -68,13 +68,20 @@ const MAX_MESSAGES = 60;
 const AUTO_PLACE_MIN_M = 300;
 /**
  * The move to the first auto mission's start (BD-FIX-SPAWN-01) is a `TeleportApi.request('respawn', ...)`: pre-streamed, placed on resident
- * ground, faded. A refusal that can clear by itself (the destination is still streaming, or the player is still settling from the boot
- * spawn) is asked again this many times, `PLACE_RETRY_TICKS` apart; any other refusal, or the last one, leaves the mission unstarted.
+ * ground, faded. A transient answer (the destination is still streaming, the player is still settling from the boot spawn, or no answer in
+ * time) is asked again, first `PLACE_RETRY_FIRST_TICKS` later, the gap doubling up to `PLACE_RETRY_MAX_TICKS`, for as long as the wait is
+ * shorter than `PLACE_BUDGET_TICKS`; only a hard refusal, or a transient answer once that budget is spent, leaves the mission unstarted.
+ * Every limit counts sim ticks (60 Hz), never the wall clock (C02).
  */
-const PLACE_TRIES = 5;
-const PLACE_RETRY_TICKS = 60;
-/** The teleport answers within its own limits (8 s of pre-stream, 15 s of move); past this the request counts as `not-loaded`. */
-const PLACE_GIVE_UP_TICKS = 1800;
+const PLACE_RETRY_FIRST_TICKS = 60;
+const PLACE_RETRY_MAX_TICKS = 600;
+/** The teleport answers within its own limits (8 s of pre-stream, 15 s of move); past this (30 s) the request counts as a timeout. */
+const PLACE_ANSWER_TICKS = 1800;
+/** No new request is asked once the wait for the start has lasted this long (3 min); the request then in flight is the last one. */
+const PLACE_BUDGET_TICKS = 10800;
+/** The loading hint (`mission.startLoading`) shows once the wait has lasted 5 s, then at most once every 20 s. */
+const PLACE_HINT_AFTER_TICKS = 300;
+const PLACE_HINT_EVERY_TICKS = 1200;
 const TELEPORT_TRANSIENT = new Set(['world.teleport.notLoaded', 'world.teleport.busy']);
 const sq = (n: number): number => n * n;
 
@@ -134,9 +141,19 @@ export class StoryController {
   private teleportRestore: (() => void) | null = null;
   /**
    * A new game's move to the start of its first auto mission (BD-FIX-SPAWN-01): the mission starts only once the teleport has put the
-   * player on resident ground there. `result` is filled by the teleport's promise; `retryAt` is the tick of the next try.
+   * player on resident ground there. `result` is filled by the teleport's promise; `started` is the tick of the first request, `asked` of
+   * the current one, `retryAt` of the next one; `hintAt` is the tick of the last loading hint (-1: none yet).
    */
-  private placing: { id: string; tries: number; asked: number; retryAt: number; result: TeleportResult | null; serial: number } | null = null;
+  private placing: {
+    id: string;
+    tries: number;
+    started: number;
+    asked: number;
+    retryAt: number;
+    hintAt: number;
+    result: TeleportResult | null;
+    serial: number;
+  } | null = null;
   private placeSerial = 0;
 
   constructor(private readonly env: StoryWrapEnv) {}
@@ -339,7 +356,7 @@ export class StoryController {
       // a new game starts at the Yard: move the player there first, and start the mission once it stands on the ground there
       if (store.autoStart && Object.keys(story.missions).length === 0 && this.farFrom(ctx, store.autoStart)) {
         this.clearStartMarks(ctx);
-        this.placing = { id: due.ir.id, tries: 0, asked: ctx.tick, retryAt: ctx.tick, result: null, serial: 0 };
+        this.placing = { id: due.ir.id, tries: 0, started: ctx.tick, asked: ctx.tick, retryAt: ctx.tick, hintAt: -1, result: null, serial: 0 };
         this.stepPlacing(ctx);
         return;
       }
@@ -427,8 +444,11 @@ export class StoryController {
   /**
    * One step of a new game's move to the Yard (BD-FIX-SPAWN-01). The player is never put down where the ground is not resident (the
    * void under the city): the world's teleport pre-streams the destination, places the player on its ground and only then answers. On
-   * `ok` the mission starts; on a refusal that can clear (`notLoaded`, `busy`) it asks again; on any other refusal the mission does not
-   * start, a toast says why, and telemetry records `mission.fail {reason: 'unresolved'}` (03-story.md: an unresolvable start disables it).
+   * `ok` the mission starts. A transient answer (`notLoaded`, `busy`, or no answer within `PLACE_ANSWER_TICKS`) is asked again, spaced
+   * out, while the wait is inside `PLACE_BUDGET_TICKS`, and a non-blocking hint says the area is still loading. A hard refusal (water,
+   * blocked, out of bounds, forbidden), a gray-box world (no baked world: its stand-in refuses every teleport), or a transient answer once
+   * the budget is spent leaves the mission unstarted: a toast says why, and telemetry records `mission.fail {reason: 'unresolved'}`
+   * (03-story.md: an unresolvable start disables it).
    */
   private stepPlacing(ctx: ModeContext): void {
     const pl = this.placing;
@@ -437,12 +457,13 @@ export class StoryController {
       this.placing = null;
       return;
     }
+    if (ctx.world.resolver.bake === WORLD_STANDIN_BAKE) return this.failPlacing(ctx, pl.id, 'no-world');
     const r = pl.result;
     if (r === null) {
-      if (pl.serial !== 0 && ctx.tick - pl.asked < PLACE_GIVE_UP_TICKS) return;
+      if (pl.serial !== 0 && ctx.tick - pl.asked < PLACE_ANSWER_TICKS) return this.hintPlacing(ctx, pl);
       if (pl.serial !== 0) pl.result = { ok: false, reason: 'not-loaded', messageKey: 'world.teleport.notLoaded' };
       else if (ctx.tick >= pl.retryAt) return this.askPlace(ctx, pl, store.autoStart);
-      else return;
+      else return this.hintPlacing(ctx, pl);
     }
     const res = pl.result as TeleportResult;
     if (res.ok) {
@@ -451,16 +472,32 @@ export class StoryController {
       this.startById(pl.id, ctx);
       return;
     }
-    if (TELEPORT_TRANSIENT.has(res.messageKey) && pl.tries < PLACE_TRIES) {
+    if (TELEPORT_TRANSIENT.has(res.messageKey) && ctx.tick - pl.started < PLACE_BUDGET_TICKS) {
+      let gap = PLACE_RETRY_FIRST_TICKS;
+      for (let i = 1; i < pl.tries && gap < PLACE_RETRY_MAX_TICKS; i++) gap *= 2;
       pl.result = null;
       pl.serial = 0;
-      pl.retryAt = ctx.tick + PLACE_RETRY_TICKS;
+      pl.retryAt = ctx.tick + (gap < PLACE_RETRY_MAX_TICKS ? gap : PLACE_RETRY_MAX_TICKS);
+      this.hintPlacing(ctx, pl);
       return;
     }
+    this.failPlacing(ctx, pl.id, res.reason);
+  }
+
+  /** The non-blocking loading hint while a new game waits for its start: after `PLACE_HINT_AFTER_TICKS`, once per `PLACE_HINT_EVERY_TICKS`. */
+  private hintPlacing(ctx: ModeContext, pl: NonNullable<StoryController['placing']>): void {
+    if (ctx.tick - pl.started < PLACE_HINT_AFTER_TICKS) return;
+    if (pl.hintAt >= 0 && ctx.tick - pl.hintAt < PLACE_HINT_EVERY_TICKS) return;
+    pl.hintAt = ctx.tick;
+    ctx.ui.toast({ id: `mission:${pl.id}:loading`, kind: 'info', text: 'mission.startLoading' });
+  }
+
+  /** The new game's start cannot be reached: the mission stays unstarted for this session. */
+  private failPlacing(ctx: ModeContext, id: string, reason: string): void {
     this.placing = null;
-    this.triedTrigger.add(pl.id);
-    ctx.telemetry.emit('mission.fail', { mid: pl.id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
-    ctx.ui.toast({ id: `mission:${pl.id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason: res.reason } });
+    this.triedTrigger.add(id);
+    ctx.telemetry.emit('mission.fail', { mid: id, stage: 0, sec: 0, attempt: 1, reason: 'unresolved' });
+    ctx.ui.toast({ id: `mission:${id}:start`, kind: 'warning', text: 'mission.startUnreachable', params: { reason } });
   }
 
   private askPlace(ctx: ModeContext, pl: NonNullable<StoryController['placing']>, at: { lat: number; lng: number; yawDeg: number }): void {
