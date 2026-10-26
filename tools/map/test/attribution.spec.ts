@@ -50,7 +50,10 @@ describe('attribution.world.json (AC-6)', () => {
     expect(by.get('terrarium')!.text).toContain('United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.');
     expect(by.get('terrarium')!.text).toContain('Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration');
     for (const e of by.values()) {
-      expect(Object.keys(e).sort()).toEqual(['id', 'licence', 'licenceUrl', 'source', 'surfaces', 'text']);
+      // offerUrl is the optional release field of the OSM row only (DL-695), an https URL when present
+      const offer = e.id === 'osm' && 'offerUrl' in e ? ['offerUrl'] : [];
+      expect(Object.keys(e).sort()).toEqual(['id', 'licence', 'licenceUrl', ...offer, 'source', 'surfaces', 'text']);
+      if (offer.length > 0) expect((e as { offerUrl?: string }).offerUrl).toMatch(/^https:\/\//);
       expect(e.surfaces.length).toBeGreaterThan(0);
     }
   });

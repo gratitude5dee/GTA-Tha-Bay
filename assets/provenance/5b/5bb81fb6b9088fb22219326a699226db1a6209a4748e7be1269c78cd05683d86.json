@@ -1,0 +1,29 @@
+{
+  "ai_generated": false,
+  "attribution": "City and County of San Francisco",
+  "authors": [
+    "studio:datasf-streets"
+  ],
+  "created_at": "2026-10-19T14:24:54Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "data",
+  "license": "PDDL-1.0",
+  "origin": "open_data",
+  "paths": [
+    "raw/sf/3psu-pn9h.jsonl"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "5bb81fb6b9088fb22219326a699226db1a6209a4748e7be1269c78cd05683d86",
+  "source": {
+    "dataset_id": "3psu-pn9h",
+    "retrieved": "2026-10-19T14:24:54Z",
+    "url": "https://data.sf.gov/resource/3psu-pn9h.json"
+  },
+  "status": "active"
+}

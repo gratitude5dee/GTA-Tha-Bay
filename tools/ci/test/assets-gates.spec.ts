@@ -146,6 +146,8 @@ describe('provenance:check with lock variants (AC-5)', () => {
     const root = repo();
     const dist = tempDir('dv-dist-');
     roots.push(dist);
+    // as the last step of pnpm build: credits.json holds the attributions of every record (the copied world records included, DL-662)
+    runProvenanceCheck({ root, dist, emitCredits: true, emitOnly: true });
     expect(runProvenanceCheck({ root, dist }).findings).toEqual([]);
     const lock = readLock(root);
     const h = lock?.entries['texture/asset-smoke']?.variants.desktop as string;
@@ -153,6 +155,7 @@ describe('provenance:check with lock variants (AC-5)', () => {
     const f = runProvenanceCheck({ root, dist }).findings;
     expect(f.some((x) => x.rule === 'no-record' && x.detail.includes(h))).toBe(true);
     writeThirdPartyLicences(toolsRoot, path.join(dist, 'third-party-licenses.txt')); // as pnpm build does (M00f item 1)
+    runProvenanceCheck({ root: toolsRoot, dist, emitCredits: true, emitOnly: true }); // the last step of pnpm build writes credits.json (DL-662)
     const real = runProvenanceCheck({ root: toolsRoot, dist });
     expect(real.findings).toEqual([]);
   });

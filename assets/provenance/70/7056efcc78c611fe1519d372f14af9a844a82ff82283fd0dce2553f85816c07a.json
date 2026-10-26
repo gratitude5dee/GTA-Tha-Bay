@@ -1,0 +1,29 @@
+{
+  "ai_generated": false,
+  "attribution": "City and County of San Francisco",
+  "authors": [
+    "studio:datasf-neighborhoods"
+  ],
+  "created_at": "2026-10-19T14:24:55Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "data",
+  "license": "PDDL-1.0",
+  "origin": "open_data",
+  "paths": [
+    "raw/sf/j2bu-swwd.jsonl"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "7056efcc78c611fe1519d372f14af9a844a82ff82283fd0dce2553f85816c07a",
+  "source": {
+    "dataset_id": "j2bu-swwd",
+    "retrieved": "2026-10-19T14:24:55Z",
+    "url": "https://data.sf.gov/resource/j2bu-swwd.json"
+  },
+  "status": "active"
+}

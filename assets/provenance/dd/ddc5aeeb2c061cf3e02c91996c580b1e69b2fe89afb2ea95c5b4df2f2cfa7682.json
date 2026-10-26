@@ -1,0 +1,29 @@
+{
+  "ai_generated": false,
+  "attribution": "© OpenStreetMap contributors",
+  "authors": [
+    "studio:osm"
+  ],
+  "created_at": "2026-10-19T14:30:08Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "data",
+  "license": "ODbL-1.0",
+  "origin": "open_data",
+  "paths": [
+    "raw/sf/osm.geojsonl"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+  "source": {
+    "dataset_id": null,
+    "retrieved": "2026-10-19T14:30:08Z",
+    "url": "https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf"
+  },
+  "status": "active"
+}

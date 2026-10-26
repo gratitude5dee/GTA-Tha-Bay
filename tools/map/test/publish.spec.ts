@@ -2,6 +2,7 @@ import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync 
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolveVariant, type AssetManifest } from '../../../packages/shared/src/assets/c07.ts';
+import { checkRecord } from '../../../packages/shared/src/assets/gates/provenance.ts';
 import { TIERS } from '../../assets/src/verify.ts';
 import { rootRecord } from '../../assets/src/lock.ts';
 import { repoRoot } from '../../ci/run.ts';
@@ -63,6 +64,8 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     expect(records.filter((x) => x.origin === 'derived')).toHaveLength(nBlobs);
     expect(records.filter((x) => x.origin === 'open_data')).toHaveLength(5);
     expect(records.filter((x) => x.origin === 'authored')).toHaveLength(6); // the synthetic OSM, street, stop, pattern and address parts and content-world
+    // every record passes the provenance gate's record rules (the content-world stamp is ODbL and needs its attribution)
+    for (const rec of r.packed.records) expect(checkRecord(rec, { recordLicenses: ['*'], release: true }), rec.sha256).toEqual([]);
 
     for (const m of r.packed.manifests) {
       const blob = r.packed.blobs.find((x) => x.ref === `${m.kind}/${m.id}`)!;

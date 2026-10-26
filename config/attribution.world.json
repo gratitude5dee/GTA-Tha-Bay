@@ -82,6 +82,7 @@
       "id": "osm",
       "licence": "ODbL-1.0",
       "licenceUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "offerUrl": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
       "source": "OpenStreetMap via Geofabrik NorCal extract and osmium",
       "surfaces": [
         "boot-splash",
