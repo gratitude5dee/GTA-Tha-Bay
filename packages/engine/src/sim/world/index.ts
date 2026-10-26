@@ -21,8 +21,8 @@ export interface WorldBoundsPort {
   sealedPortals(): readonly string[];
   /** The shore node closest to (x, z); `roadAdjacent` keeps only those within reach of a road. */
   nearestShore(x: number, z: number, roadAdjacent: boolean): ShoreNode | null;
-  /** Depth of the water over the terrain at (x, z), metres; 0 on land or where the ground is not loaded. */
-  waterDepth(x: number, z: number): number;
+  /** Depth of the water over the terrain at (x, z), metres; 0 on land or where the ground is not loaded, and 0 for a body at height `y` that stands on a bridge deck (M05c2). */
+  waterDepth(x: number, z: number, y?: number): number;
   /** Called with `{edges, closed, by}` whenever an owner closes or reopens edges (barrier props, DL-663). Returns the unsubscribe. */
   onClosureChange(cb: (e: { edges: readonly EdgeId[]; closed: boolean; by: string }) => void): () => void;
 }
@@ -33,7 +33,7 @@ export interface WorldHub {
   bounds: WorldBoundsPort | null;
   /** The chunk tags (hiding spots, choke points) the pursuit director reads (M03c); null until the world module registers them. */
   tags: WorldTagsPort | null;
-  /** The wanted level now, set by the modes module from the pursuit director (M04b2): fast travel and the sandbox teleport refuse above 0. */
+  /** The heat level now, set by the modes module from the pursuit director (M04b2): fast travel and the sandbox teleport refuse above 0. */
   heat: (() => number) | null;
 }
 

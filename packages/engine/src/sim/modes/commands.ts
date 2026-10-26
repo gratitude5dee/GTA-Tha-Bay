@@ -1,9 +1,13 @@
 import type { JsonObject, ModeContext, ProfileSettings, SimEventBus, UiBridge, UiCommand, WorldApi } from '@dv/shared';
-import { applyToggle } from './builtin/sandbox.ts';
+import { SANDBOX_REFUSE_ONLINE, applyToggle } from './builtin/sandbox.ts';
+import type { SandboxWorldPort } from './builtin/sandbox-world.ts';
+import type { SandboxBodyPort } from './sandbox-body-port.ts';
+import { POSITION_MISSING, sandboxGo, type Pose, type WaypointMemo } from './builtin/sandbox-teleport.ts';
 import type { RidePort } from '../services.ts';
 import type { ModeHost, SessionSlices } from './host.ts';
 import { applySettings } from '../input/remap-persist.ts';
 import type { GarageService } from '../garage/garage.ts';
+import type { NpcHostPort } from './npc-port.ts';
 
 export interface CommandDeps {
   host: ModeHost;
@@ -14,12 +18,22 @@ export interface CommandDeps {
   /** The context of the running `sandbox` mode, or null when another mode (or none) runs. */
   sandboxContext(): ModeContext | null;
   world(): WorldApi;
-  /** Moves the player to a point (the ownership machine's teleport); false when it is refused. */
+  /** The weather hold and the world speed of the sandbox (M04e1), or null without a running sim. */
+  sandboxWorld?(): SandboxWorldPort | null;
+  /** The body tools' engine port (M04e4): the three Player and car toggles set flags through it. */
+  body?(): SandboxBodyPort | null;
+  /** Moves the player to a point (the ownership machine's teleport); false when it is refused. The sandbox no longer uses it (M04e2). */
   teleport?(x: number, y: number, z: number): boolean;
+  /** The map pin the player dropped (M04e2): `phone.waypoint` sets it and `map.waypoint.clear` clears it. */
+  waypoint?: WaypointMemo;
+  /** The local player's feet and heading, or null (M04e2): "back" remembers the pose read before a jump. */
+  playerPose?(): Pose | null;
   /** The page pauses itself; the sim only learns of it (QA and later the HUD). */
   onPause?(on: boolean): void;
   /** The phone's Ride app (M04b2): the transit system's port, or null while no baked world runs. */
   ride?(): RidePort | null;
+  /** The NPC runtime (M06c): `mode.cmd` with the reserved owner `npc` goes to it (roster flags, hero intents, the end of a conversation, a bark). */
+  npc?(): NpcHostPort | null;
   /** The garage module (M05c1): `garage.call` and `garage.favorite` go to it. Without one both raise `garage.refuse.noWorld` and change nothing. */
   garage?(): GarageService | null;
   /** Loads another profile's slices into the session (M04b1). Only called while no mode runs. */
@@ -41,6 +55,9 @@ export function settingsView(s: ProfileSettings): JsonObject {
 export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => void {
   const toast = (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>): void =>
     d.ui.toast({ id, kind, text, ...(params ? { params } : {}) });
+  /** True while any running mode's context has a room session (M04e0): the sandbox tools are refused then. */
+  const online = (): boolean => d.host.stack.entries.some((e) => e.ctx.net !== null);
+  const refuseOnline = (): void => toast(SANDBOX_REFUSE_ONLINE, 'warning', SANDBOX_REFUSE_ONLINE);
   return (cmd) => {
     switch (cmd.t) {
       case 'mode.start': {
@@ -92,18 +109,29 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         return;
       }
       case 'sandbox.set': {
+        if (online()) {
+          refuseOnline();
+          return;
+        }
         const ctx = d.sandboxContext();
-        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v);
+        if (ctx) applyToggle(ctx, d.slices().sandbox, cmd.path, cmd.v, d.sandboxWorld?.() ?? null, d.body?.() ?? null);
         return;
       }
       case 'sandbox.teleport': {
-        if (!d.sandboxContext()) return;
+        if (online()) {
+          refuseOnline();
+          return;
+        }
+        const ctx = d.sandboxContext();
+        if (!ctx) return;
         const p = d.slices().sandbox.savedPositions.find((s) => s.name === cmd.name);
-        if (!p || !d.teleport?.(p.x, p.y, p.z)) toast('sandbox.teleport', 'warning', 'world.teleport.notLoaded');
+        if (!p) toast(POSITION_MISSING, 'warning', POSITION_MISSING);
+        else sandboxGo(ctx, { x: p.x, z: p.z, yaw: p.yaw }, goEnv(d), d.slices().sandbox);
         return;
       }
       case 'phone.waypoint':
         // the waypoint is the GPS target too (M02c2, 02-world-maps.md 3.3): the route is planned at the next Publish
+        d.waypoint?.set(cmd.x, cmd.z);
         d.world().map.setWaypoint(cmd.x, cmd.z);
         d.world().map.setRoute({ x: cmd.x, z: cmd.z });
         return;
@@ -114,8 +142,16 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
         d.events.emit({ t: 'cutscene.state', tick: d.tick(), s: JSON.stringify({ playId: cmd.playId, item: cmd.item, state: cmd.state, trigger: cmd.trigger, outcome: cmd.outcome }) });
         return;
       case 'mode.cmd':
+        if ((cmd.mode as string) === 'npc') {
+          d.npc?.()?.command(cmd.name, cmd.args ?? null);
+          return;
+        }
         if ((cmd.mode as string) === 'phone') {
-          phoneCommand(d, cmd.name, cmd.args ?? null, toast);
+          phoneCommand(d, cmd.name, cmd.args ?? null, toast, online);
+          return;
+        }
+        if ((cmd.mode as string) === 'sandbox' && online()) {
+          refuseOnline();
           return;
         }
         d.events.emit({ t: 'mode.cmd', tick: d.tick(), s: JSON.stringify({ mode: cmd.mode, name: cmd.name, args: cmd.args ?? null }) });
@@ -124,24 +160,36 @@ export function createCommandDispatcher(d: CommandDeps): (cmd: UiCommand) => voi
   };
 }
 
+/** What `sandboxGo` reads of the engine: the pose and the pin. */
+function goEnv(d: CommandDeps): { playerPose?(): Pose | null; waypoint?(): { x: number; z: number } | null } {
+  return {
+    ...(d.playerPose ? { playerPose: d.playerPose } : {}),
+    ...(d.waypoint ? { waypoint: () => d.waypoint?.get() ?? null } : {}),
+  };
+}
+
 /** Phone commands ride `mode.cmd` with the reserved owner `phone` (C06 leaves `mode.cmd` to the owner named in `mode`). */
-function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void): void {
+function phoneCommand(d: CommandDeps, name: string, args: JsonObject | null, toast: (id: string, kind: 'info' | 'warning', text: string, params?: Record<string, string | number>) => void, online: () => boolean): void {
   // The Map app's commands (M02c2): clear the waypoint and its route, and fast travel to a point (sandbox only; it is the `sandbox` teleport of the world API).
   if (name === 'map.waypoint.clear') {
+    d.waypoint?.clear();
     d.world().map.clearWaypoint();
     d.world().map.setRoute(null);
     return;
   }
   if (name === 'map.travel') {
     const x = args?.['x'], z = args?.['z'];
+    if (online()) {
+      toast(SANDBOX_REFUSE_ONLINE, 'warning', SANDBOX_REFUSE_ONLINE);
+      return;
+    }
     if (typeof x !== 'number' || typeof z !== 'number') return;
-    if (!d.sandboxContext()) {
+    const ctx = d.sandboxContext();
+    if (!ctx) {
       toast('map.travel', 'warning', 'map.travel.sandboxOnly');
       return;
     }
-    void d.world().teleport.request('sandbox', { x, z }).then((r) => {
-      if (!r.ok) toast('map.travel', 'warning', r.messageKey);
-    });
+    sandboxGo(ctx, { x, z }, goEnv(d), d.slices().sandbox);
     return;
   }
   const ride = d.ride?.() ?? null;

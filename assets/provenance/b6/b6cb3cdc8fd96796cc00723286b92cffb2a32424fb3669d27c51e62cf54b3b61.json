@@ -1,0 +1,24 @@
+{
+  "ai_generated": false,
+  "attribution": "Dee-Verse authored world seeds (content/world), contributed to the ODbL database",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "created_at": "2026-10-19T00:00:00Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "data",
+  "license": "ODbL-1.0",
+  "origin": "authored",
+  "paths": [
+    "content/world/*.json"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "b6cb3cdc8fd96796cc00723286b92cffb2a32424fb3669d27c51e62cf54b3b61",
+  "status": "active"
+}

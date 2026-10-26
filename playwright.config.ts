@@ -2,6 +2,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
+import { NO_ENV_FILE, scrubProcessEnv, WORKER_LOCAL_SECRETS } from './tools/ci/secret-env.ts';
+import { enterTmpRoot, tmpRootEnv } from './tools/ci/tmp-root.ts';
+
+// BD-FIX-TMP-01: the runner, its workers, the web server (QA build and wrangler dev) and every spec work inside one per-run temporary
+// root (TMPDIR/TEMP/TMP). It is made here, at config load, because Playwright starts the web server before globalSetup; the runner
+// process that made it removes it when it exits (after the web server has stopped), pass or fail. Workers load this config again,
+// find DV_TEST_TMP_ROOT set and reuse the root; so does a run started by tools/ci/run.ts, which then removes it itself.
+export const E2E_TMP_ROOT = enterTmpRoot('pw').root;
 
 // SwiftShader WebGPU on a GPU-less runner [research/gap-ci-cd-release-assets.md section 4.1].
 const SWIFTSHADER_WEBGPU = [
@@ -12,7 +20,12 @@ const SWIFTSHADER_WEBGPU = [
 ];
 
 // Parallel Builders on one machine set DV_E2E_PORT so that each run serves its own build (a reused server would be someone else's).
-const PORT = Number(process.env.DV_E2E_PORT ?? 8788);
+// BD-FIX-SEC-02: the default is 8790, off the 8788 of `pnpm dev` and `pnpm dev:edge`, and a server already listening is never reused
+// (webServer.reuseExistingServer below): a reused Worker is one this config did not start, so it may hold live secrets. The value is put
+// back into the environment so that the workers and the specs that build their own origin (hud.spec.ts, npc-builder.spec.ts) agree.
+export const E2E_DEFAULT_PORT = 8790;
+const PORT = Number(process.env.DV_E2E_PORT ?? E2E_DEFAULT_PORT);
+process.env.DV_E2E_PORT = String(PORT);
 
 // The country the local Worker sees (BD-FIX-CI-02). wrangler dev (miniflare) fills `request.cf` from https://workers.cloudflare.com/cf.json,
 // that is from the machine's egress location, so a runner outside the US would hit the US-only geo gate (451 region_blocked) on
@@ -32,7 +45,12 @@ writeFileSync(E2E_CF_PATH, `${JSON.stringify({ country: E2E_COUNTRY, colo: 'LOCA
 // (hud.spec.ts:19) saw "Failed to load resource: ... 503". A name the shell holds is passed on empty (every route treats an empty secret
 // as absent); a name it does not hold stays unset, so CI, where none is set, sees exactly what it saw before.
 // Keep equal to `secrets.required` of the top-level config (tools/ci/test/workflows.test.ts checks it).
-export const E2E_UNSET_SECRETS = ['SUPABASE_SECRET_KEY', 'PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'ANTHROPIC_API_KEY'] as const;
+// BD-FIX-SEC-01: the list lives in tools/ci/secret-env.ts (one source of truth). Before that, at config load, every secret name of that
+// module is removed from this runner's own environment, so the web server (Playwright merges process.env into webServer.env), the
+// workers (forked with process.env) and every spec start without them; tools/ci/run.ts already did the same for `check:e2e`. With the
+// operator's opt-in (DV_ALLOW_LIVE_SECRETS=1) the names stay, and the Worker's own names below are still passed on empty.
+scrubProcessEnv({ label: 'playwright' });
+export const E2E_UNSET_SECRETS = WORKER_LOCAL_SECRETS;
 const unsetSecrets: Record<string, string> = Object.fromEntries(E2E_UNSET_SECRETS.filter((k) => process.env[k] !== undefined).map((k) => [k, '']));
 
 // The QA play bypass (M04b1, DL-650): every spec loads straight into play unless it opts out with
@@ -44,7 +62,9 @@ export const QA_PLAY_STORAGE = {
 
 // CI downloads the build artifact first and sets DV_SKIP_BUILD=1.
 // --local: the Workers AI binding (M06a4) is remote-only; without it wrangler would need CLOUDFLARE_API_TOKEN to start. env.AI then fails on use and the Worker degrades to text.
-const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --local --port ${PORT}`;
+// --env-file NO_ENV_FILE (BD-FIX-SEC-02): wrangler reads neither services/edge/.dev.vars nor any .env file, which may hold live secrets
+// (as on the CI runner, where none exists); the process environment it still reads is scrubbed above.
+const START_WORKER = `pnpm --filter @dv/edge exec wrangler dev --local --port ${PORT} --env-file ${NO_ENV_FILE}`;
 const command = process.env.DV_SKIP_BUILD === '1' ? START_WORKER : `VITE_DV_QA=1 pnpm build && ${START_WORKER}`;
 
 // Tests tagged @quarantine (flaky on 3 of the last 10 main runs, 13-qa section 5) never gate; the nightly full run sets DV_E2E_QUARANTINE=1.
@@ -55,6 +75,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   // Keep test-results/ itself (gpu-probe.*.json, preview-url.txt) out of Playwright's per-run cleanup.
   outputDir: 'test-results/pw',
+  // Fails the run before any test when the per-run temporary root is not in effect (BD-FIX-TMP-01).
+  globalSetup: './tests/support/tmp-root.setup.ts',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -75,11 +97,12 @@ export default defineConfig({
   webServer: {
     command,
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse (BD-FIX-SEC-02): a server already on the port fails the run instead ("is already used"); stop it or set DV_E2E_PORT.
+    reuseExistingServer: false,
     timeout: 300_000,
     stdout: 'ignore',
     stderr: 'pipe',
-    env: { ...unsetSecrets, WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
+    env: { ...unsetSecrets, ...tmpRootEnv(E2E_TMP_ROOT), WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH },
   },
   projects: [
     {

@@ -18,12 +18,16 @@ export interface FakeCar extends RaceWorldPort {
   impacts: CarImpact[];
   upY: number;
   released: boolean;
+  /** Ticks the car has been in the air (`CarReadout.airTicks`). */
+  air: number;
+  /** The car is out of the world (`outOfWorld` answers true for any point). */
+  under: boolean;
 }
 
 export function fakePort(def: RaceDef, o: { ready?: () => boolean } = {}): FakeCar {
   const car: FakeCar = {
     speed: 0, s: 0, placed: [], spawned: [], damage: null, nitro: { on: false, charge: 0 }, command: { throttle: 0, brake: 0, steer: 0, handbrake: true },
-    impacts: [], upY: 1, released: false,
+    impacts: [], upY: 1, released: false, air: 0, under: false,
     collidersReady: () => (o.ready ? o.ready() : true),
     groundY: () => 0,
     spawnCar(prefab, pos) {
@@ -35,7 +39,7 @@ export function fakePort(def: RaceDef, o: { ready?: () => boolean } = {}): FakeC
       const p = routePoint(def, car.s);
       return {
         pos: [p.x, p.y + 0.5, p.z], front: [p.x + p.tx * 1.3, p.y, p.z + p.tz * 1.3], yaw: 0, speedMps: car.speed, vel: [p.tx * car.speed, 0, p.tz * car.speed],
-        upY: car.upY, airTicks: 0, gear: car.speed > 1 ? 2 : 0, rpm: 3000 + car.speed * 60, slipDeg: 0,
+        upY: car.upY, airTicks: car.air, gear: car.speed > 1 ? 2 : 0, rpm: 3000 + car.speed * 60, slipDeg: 0,
       };
     },
     place(pos) {
@@ -43,6 +47,8 @@ export function fakePort(def: RaceDef, o: { ready?: () => boolean } = {}): FakeC
       // back to the nearest route position of the placement (z runs along the fixture route)
       car.s = Math.max(0, -pos[2]);
       car.speed = 0;
+      car.air = 0;
+      car.under = false;
     },
     drive(c) {
       car.command = c;
@@ -61,6 +67,7 @@ export function fakePort(def: RaceDef, o: { ready?: () => boolean } = {}): FakeC
     release() {
       car.released = true;
     },
+    outOfWorld: () => car.under,
   };
   return car;
 }

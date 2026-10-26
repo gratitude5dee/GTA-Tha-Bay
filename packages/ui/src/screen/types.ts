@@ -32,13 +32,13 @@ export interface ListRow {
 export type Widget =
   | { k: 'heading'; text: LocKey; level: 1 | 2 | 3 }
   | { k: 'text'; text: LocKey; params?: Record<string, JsonValue>; tone?: 'normal' | 'muted' | 'warning' }
-  | { k: 'button'; id: string; label: LocKey; icon?: string; style: 'primary' | 'secondary' | 'danger'; onPress: UiAction; disabled?: LocKey }
+  | { k: 'button'; id: string; label: LocKey; icon?: string; style: 'primary' | 'secondary' | 'danger'; onPress: UiAction; disabled?: LocKey; disabledParams?: Record<string, JsonValue> }
   | { k: 'toggle'; id: string; label: LocKey; bind: SettingRef; hint?: LocKey; disabled?: LocKey }
   | { k: 'slider'; id: string; label: LocKey; bind: SettingRef; min: number; max: number; step: number; unit?: string }
-  | { k: 'choice'; id: string; label: LocKey; bind: SettingRef; options: { value: JsonValue; label: LocKey }[] }
+  | { k: 'choice'; id: string; label: LocKey; bind: SettingRef; options: { value: JsonValue; label: LocKey }[]; disabled?: LocKey }
   | { k: 'list'; id: string; rows: ListRow[]; onPress: UiAction; empty: LocKey }
   | { k: 'tabs'; id: string; tabs: { id: string; label: LocKey; children: Widget[] }[] }
-  | { k: 'progress'; value: number; label?: LocKey }
+  | { k: 'progress'; value: number; label?: LocKey; params?: Record<string, JsonValue> }
   | { k: 'image'; asset: string; alt: LocKey }
   | { k: 'table'; columns: LocKey[]; rows: string[][] }
   | { k: 'spacer'; size: 1 | 2 | 3 };

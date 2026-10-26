@@ -1,9 +1,12 @@
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SCHEMA_DIR, compare, dtoNames, generate } from '../check-api.ts';
 import { repoRoot } from '../run.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 describe('check:api (M05d)', () => {
   it('lists the exported interfaces and type aliases of a source, not its constants', () => {
@@ -18,7 +21,7 @@ describe('check:api (M05d)', () => {
   });
 
   it('reports a missing, a changed and a stale schema file', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-api-'));
+    const dir = tempDir('dv-api-');
     writeFileSync(path.join(dir, 'Same.schema.json'), '{}\n');
     writeFileSync(path.join(dir, 'Changed.schema.json'), '{"old":true}\n');
     writeFileSync(path.join(dir, 'Gone.schema.json'), '{}\n');
@@ -31,7 +34,7 @@ describe('check:api (M05d)', () => {
   });
 
   it('a field added to a DTO changes its schema', () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-api-src-'));
+    const dir = tempDir('dv-api-src-');
     const src = path.join(dir, 'v1.ts');
     writeFileSync(src, 'export interface Req { a: string }\n');
     writeFileSync(path.join(dir, 'tsconfig.base.json'), JSON.stringify({ compilerOptions: { strict: true } }));

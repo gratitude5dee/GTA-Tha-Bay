@@ -259,6 +259,64 @@ describe('QA play bypass', () => {
     expect(e.sent).toHaveLength(1);
     expect(set).not.toHaveBeenCalled();
   });
+  it('a world that cannot be loaded shows the world-load error page on a mode start instead of entering it (BD-FU-A02)', () => {
+    const core = new ShellCore(props({}));
+    core.ready();
+    core.state = 'Menu';
+    const e = fakeEngine();
+    core.attachEngine(e.port);
+    core.worldUnavailable('catalog-404');
+    expect(core.frame).toBeNull();
+    core.startMode('story');
+    expect(e.sent).toEqual([]);
+    expect(core.state).toBe('Menu');
+    expect(core.frame).toEqual({ id: 'error', params: { kind: 'world-load', detail: 'catalog-404' } });
+    expect(core.currentPage()).toBe('error');
+    // Back returns to the menu; the next start shows the error again.
+    vi.stubGlobal('history', { state: null, replaceState: () => undefined, back: () => undefined });
+    core.back();
+    vi.unstubAllGlobals();
+    expect(core.frame).toBeNull();
+    core.startMode('sandbox');
+    expect(core.frame?.id).toBe('error');
+    expect(e.sent).toEqual([]);
+  });
+  it('a world failure found while a mode runs shows the error at once; without one the mode starts', () => {
+    const running = new ShellCore(props({ qaPlay: { mode: 'sandbox' } }));
+    running.worldUnavailable('index-http');
+    expect(running.frame).toEqual({ id: 'error', params: { kind: 'world-load', detail: 'index-http' } });
+    const fine = new ShellCore(props({}));
+    fine.ready();
+    fine.state = 'Menu';
+    const e = fakeEngine();
+    fine.attachEngine(e.port);
+    fine.startMode('story');
+    expect(e.sent).toEqual([{ t: 'mode.start', id: 'story' }]);
+    expect(fine.frame).toBeNull();
+  });
+  it('a resume from Pause closes a page left open over it, so the next Escape reaches the engine alone (M04e2, BD-M04e2-07)', () => {
+    const h = hooks();
+    const core = new ShellCore(props({ qaPlay: { mode: 'sandbox' }, hooks: h }));
+    expect(core.state).toBe('InMode');
+    core.fire('pause');
+    expect(core.state).toBe('Paused');
+    vi.stubGlobal('history', { state: null, pushState: () => undefined, replaceState: vi.fn(), back: vi.fn() });
+    core.navigate('phone');
+    expect(core.frame?.id).toBe('phone');
+    const before = h.log.length;
+    core.fire('resume');
+    const hist = (globalThis as unknown as { history: { replaceState: ReturnType<typeof vi.fn>; back: ReturnType<typeof vi.fn> } }).history;
+    vi.unstubAllGlobals();
+    expect(core.state).toBe('InMode');
+    expect(core.frame).toBeNull();
+    expect(h.log.slice(before)).toContain('paused:false');
+    expect(hist.replaceState).toHaveBeenCalledWith(null, '', '/');
+    expect(hist.back).not.toHaveBeenCalled();
+  });
+  it('the world-load kind has its text and a retry label', () => {
+    expect(t('error.kind.world-load')).not.toBe('error.kind.world-load');
+    expect(t('error.retry')).not.toBe('error.retry');
+  });
   it('without the bypass the shell starts on Title', () => {
     const core = new ShellCore(props({}));
     core.ready();

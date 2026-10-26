@@ -1,8 +1,11 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
-import os from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { checkAll, main, manifestFindings } from '../check-c2pa.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const SHA = 'a'.repeat(64);
 const good = (over: Record<string, unknown> = {}, licence: Record<string, unknown> = { status: 'cleared' }) => ({
@@ -66,7 +69,7 @@ describe('check:c2pa command', () => {
   });
 
   it('passes a shipped index of good manifests and fails one with a bad manifest', () => {
-    const dir = mkdtempSync(path.join(os.tmpdir(), 'dv-c2pa-'));
+    const dir = tempDir('dv-c2pa-');
     const write = (key: string, m: unknown): void => {
       mkdirSync(path.join(dir, 'm', key), { recursive: true });
       writeFileSync(path.join(dir, 'm', key, 'manifest.json'), JSON.stringify(m));

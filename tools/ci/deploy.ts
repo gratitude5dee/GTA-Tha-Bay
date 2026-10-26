@@ -312,8 +312,9 @@ export function resolveDoLifecycle(env: NodeJS.ProcessEnv, values: ProdFlags): b
  * `PLAY_TOKEN_HMAC` and `QUOTA_NET_SALT_SECRET` are in the Worker's `secrets.required` (M06a1), `PLAY_TOKEN_HMAC_PREV` is optional (rotation window).
  * `SUPABASE_SECRET_KEY` (M05d, `sb_secret_…`) is in `secrets.required` of both configs; it rides here too, so a deploy never depends on a hand-set secret.
  * `ANTHROPIC_API_KEY` (M06a3, workspace `npc-runtime`) is required by the production config only; staging runs recorded streams.
+ * `OPENAI_MODERATION_API_KEY` and `ANTHROPIC_BUILDER_KEY` (M06b1, workspace `npc-builder`) follow the same rule.
  */
-export const WORKER_SECRETS = ['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY'] as const;
+export const WORKER_SECRETS = ['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY'] as const;
 const REQUIRED_WORKER_SECRETS: readonly (typeof WORKER_SECRETS)[number][] = ['PLAY_TOKEN_HMAC', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY'];
 
 export function buildSecretsJson(env: NodeJS.ProcessEnv): { json: string; missing: string[] } {
@@ -404,8 +405,8 @@ and set workers_dev to false there:
   "routes": [ { "pattern": "<domain>", "custom_domain": true }, { "pattern": "id.<domain>", "custom_domain": true } ]
 and replace the HOST_* vars (HOST_MEDIA is the Worker's own /media route, DL-713; HOST_UGC is still a placeholder; a media.<domain> replaces the route's value). The version-affinity Transform Rule is created before the first gradual split (M12a).`;
 
-/** Queues of the web Worker (M06a1); `wrangler queues create` is repeated safely, an existing queue is not an error. */
-export const QUEUE_NAMES = ['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging'] as const;
+/** Queues of the web Worker (M06a1; the NPC builder's `tha-bay-npc-builder` is M06b1); `wrangler queues create` is repeated safely, an existing queue is not an error. */
+export const QUEUE_NAMES = ['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-npc-builder', 'tha-bay-jobs-staging', 'tha-bay-spend-staging', 'tha-bay-npc-builder-staging'] as const;
 
 function ensureQueues(): number {
   for (const name of QUEUE_NAMES) {

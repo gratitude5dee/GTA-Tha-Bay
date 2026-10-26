@@ -1,0 +1,25 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.08.gate": "That is the depot gate. Get one clear photo of the plates on the fence and the sensor racks behind them.",
+    "line.m.a1.08.lurk": "Quiet now. The mapping cars come by on the hour. Listen for the hum.",
+    "line.m.a1.08.patrol": "The depot called it in. A patrol is on you. Lose it and head for home.",
+    "line.m.a1.08.plant": "A second car is leaving the depot. Pull up close and hold there. My dongle only needs a few seconds of the bumper.",
+    "line.m.a1.08.planted": "Dongle is in. That car will now tell us where it has been. Get out of there.",
+    "line.m.a1.08.scanner.1": "They map the same blocks every night. Tonight we map them back.",
+    "line.m.a1.08.start": "Patch here, on the encrypted line. The Halcyon mapping cars run dark at night. Get a car and wait by the Yard gate.",
+    "line.m.a1.08.tail": "There it goes. Stay back, stay in sight, and do not let it lose you.",
+    "mission.m.a1.08.fail.busted": "The patrol caught you.",
+    "mission.m.a1.08.fail.ko": "You went down.",
+    "mission.m.a1.08.fail.ride": "Your car is wrecked. Start again.",
+    "mission.m.a1.08.obj.chase_scanner": "Pull up close to the second mapping car",
+    "mission.m.a1.08.obj.enter_ride": "Get a car and wait at the Yard gate",
+    "mission.m.a1.08.obj.enter_ride_again": "Get back in the car",
+    "mission.m.a1.08.obj.escape_patrol": "Lose the patrol",
+    "mission.m.a1.08.obj.follow_scanner": "Follow the mapping car to its depot",
+    "mission.m.a1.08.obj.photo_gate": "Photograph the depot gate",
+    "mission.m.a1.08.obj.wait_car": "Wait for the mapping car",
+    "mission.m.a1.08.title": "Dead Pixels"
+  }
+}

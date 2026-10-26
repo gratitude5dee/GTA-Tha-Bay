@@ -3,6 +3,10 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildSecretsJson, main, parsePreviewUrl, PREVIEW_URL_FILE, previewCommands, QUEUE_NAMES, stripJsonc, WORKER_SECRETS, workerNames } from '../deploy.ts';
 import { dropDashDash, repoRoot } from '../run.ts';
+import { useTempDirs } from '../test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 describe('deploy.ts', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -29,7 +33,7 @@ describe('deploy.ts', () => {
   });
 
   it('maps the Worker secrets from the environment into the secrets file (DL-679, M06a1): keys only asserted, absent ones left out', () => {
-    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY']);
+    expect(WORKER_SECRETS).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_MODERATION_API_KEY', 'ANTHROPIC_BUILDER_KEY']);
     const full = buildSecretsJson({ PLAY_TOKEN_HMAC: 'k1:aaaa', PLAY_TOKEN_HMAC_PREV: 'k0:bbbb', QUOTA_NET_SALT_SECRET: 'salt', SUPABASE_SECRET_KEY: 'sb_secret_x', UNRELATED: 'x' });
     expect(Object.keys(JSON.parse(full.json) as object).sort()).toEqual(['PLAY_TOKEN_HMAC', 'PLAY_TOKEN_HMAC_PREV', 'QUOTA_NET_SALT_SECRET', 'SUPABASE_SECRET_KEY']);
     expect(full.missing).toEqual([]);
@@ -49,7 +53,7 @@ describe('deploy.ts', () => {
   });
 
   it('bootstrap creates the four queues of the web Worker, every name tha-bay-*', () => {
-    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-jobs-staging', 'tha-bay-spend-staging']);
+    expect([...QUEUE_NAMES]).toEqual(['tha-bay-jobs', 'tha-bay-spend', 'tha-bay-npc-builder', 'tha-bay-jobs-staging', 'tha-bay-spend-staging', 'tha-bay-npc-builder-staging']);
   });
 
   it('finds a preview URL in JSON, NDJSON and plain wrangler output', () => {
@@ -64,8 +68,6 @@ describe('deploy.ts', () => {
 // ---- the world release (M02c2, AC-13; DL-661, DL-670, DL-688, DL-695) ---------------------------------------------------------------
 
 import { createHash } from 'node:crypto';
-import { mkdtempSync } from 'node:fs';
-import os from 'node:os';
 import { worldReleaseWarnings } from '../check-assets.ts';
 import { runProd, type Deps, type ProdOptions } from '../deploy-prod.ts';
 import { odblOffer } from '../odbl-offer.ts';
@@ -211,7 +213,7 @@ describe('the world release of deploy:prod (AC-13)', () => {
   });
 
   it('passes the odblOffer check on a build whose own step ran the emitter (fixture checkout on disk)', () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'dv-rel-emit-'));
+    const root = tempDir('dv-rel-emit-');
     cpSync(path.join(repoRoot, 'config'), path.join(root, 'config'), { recursive: true });
     const { files } = checkout();
     for (const [rel, text] of files) {
@@ -249,7 +251,7 @@ describe('the world release of deploy:prod (AC-13)', () => {
   });
 
   it('check:assets prints the stale-lock warning and exits 0 while release.json names sf', () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), 'dv-rel-'));
+    const root = tempDir('dv-rel-');
     const { files } = checkout();
     files.set(ASSETS_LOCK, '{"schema":"asset-lock/1","entries":{"a/b":{}}}');
     for (const [rel, text] of files) {

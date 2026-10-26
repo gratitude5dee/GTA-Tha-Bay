@@ -1,12 +1,12 @@
 /**
- * C13 platform contract, version 1.1.0. Sections 4.1 and 4.2 of spec/domains/11-platform.md are copied
+ * C13 platform contract, version 1.2.0. Sections 4.1 and 4.2 of spec/domains/11-platform.md are copied
  * without changes. The 4.6 types that QualityService refers to (DeviceSignals, DeviceProfile, TierDecision,
  * PlatformSettings) follow so the file compiles. M01c completes section 4.6 (the 1.1 `dev?` member of PlatformSettings);
  * classifyDevice lives in classify.ts, PerfScenario and PerfReport in perf.ts. Owner: S11. Change only through the Architect.
  */
 
 // packages/shared/src/platform/c13.ts
-export const C13_VERSION = '1.1.0' as const;            // semver; 1.1 additions: 11-platform-pwa.md §11
+export const C13_VERSION = '1.2.0' as const;            // semver; 1.1 additions: 11-platform-pwa.md §11; 1.2 (DL-725): PerfReport.boot boot figures, QaFlags.net
 
 export type QualityTierId =
   | 'desktop-ultra' | 'desktop' | 'mobile' | 'mobile-low' | 'xr-quest' | 'xr-visionpro';

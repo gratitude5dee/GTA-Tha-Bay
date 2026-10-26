@@ -7,6 +7,7 @@ import {
   rejectLater,
   type AuditEntry,
   type AuditStore,
+  type BuilderStore,
   type CatalogInput,
   type CatalogRow,
   type CatalogStore,
@@ -17,7 +18,13 @@ import {
   type ForumStore,
   type LedgerStore,
   type MaintenanceStore,
+  type ModItemState,
+  type ModSubjectKind,
+  type ModerationCaseRow,
+  type ModerationSignalRow,
   type ModerationStore,
+  type NpcDraftRow,
+  type NpcSoulRow,
   type ProfileRow,
   type RelationshipRow,
   type RosterFlagRow,
@@ -25,6 +32,8 @@ import {
   type ServerDataPort,
   type TranscriptRow,
   type UgcStore,
+  MODERATION_SLA_HOURS,
+  laterModeration,
 } from './data-port.ts';
 import type { MemoryHit } from './contracts/c10-npc.ts';
 import { buildRosterFlags, cosine, MEMORY_TTL_MS, mergeSummary, NIL_UUID, scoreMemory } from './npc/memory.ts';
@@ -60,6 +69,9 @@ interface KeyBinding {
   revoked: boolean;
 }
 
+/** Draft states whose draft the 180-day purge may delete: nothing that is, or is being, published. */
+const UNPUBLISHED: ReadonlySet<string> = new Set(['draft', 'validating', 'rejected_auto', 'text_ok', 'soul_generating', 'soul_failed', 'soul_ready', 'probing', 'private']);
+
 const sameCatalogFields = (a: CatalogInput, b: CatalogInput): boolean =>
   a.template_id === b.template_id &&
   a.template_ver === b.template_ver &&
@@ -84,6 +96,12 @@ export class InMemoryDataPort implements ServerDataPort {
   private readonly rosterRows = new Map<string, RosterFlagRow>();
   private readonly transcriptRows = new Map<string, TranscriptRow>();
   private readonly auditEntries: (AuditEntry & { at: number })[] = [];
+  private readonly draftRows = new Map<string, NpcDraftRow>();
+  private readonly soulRows = new Map<string, NpcSoulRow>(); // npc|version
+  private readonly modItems = new Map<string, { id: string; kind: ModSubjectKind; subjectId: string; owner: string; state: ModItemState }>();
+  private readonly modSignals: (ModerationSignalRow & { itemId: string })[] = [];
+  private readonly modCases: ModerationCaseRow[] = [];
+  private nextSignalId = 1;
 
   constructor(private readonly options: InMemoryOptions = {}) {
     this.clock = options.now ?? (() => this.tick++);
@@ -252,7 +270,177 @@ export class InMemoryDataPort implements ServerDataPort {
 
   readonly ugc: UgcStore = later<UgcStore>('M13a2');
   readonly forum: ForumStore = later<ForumStore>('M13b1');
-  readonly moderation: ModerationStore = later<ModerationStore>('M06b1');
+  readonly moderation: ModerationStore = {
+    ensureItem: (subject) => {
+      for (const it of this.modItems.values()) if (it.kind === subject.kind && it.subjectId === subject.id) return Promise.resolve(it.id);
+      this.modItems.set(subject.newId, { id: subject.newId, kind: subject.kind, subjectId: subject.id, owner: subject.ownerProfileId, state: 'received' });
+      return Promise.resolve(subject.newId);
+    },
+    setItemState: (itemId, state) => {
+      const it = this.modItems.get(itemId);
+      if (it !== undefined) it.state = state;
+      return Promise.resolve();
+    },
+    recordSignals: (itemId, signals) => {
+      if (!this.modItems.has(itemId)) return Promise.reject(new Error('moderation_signal: no such item'));
+      for (const g of signals) {
+        this.modSignals.push({
+          id: this.nextSignalId++,
+          itemId,
+          item_id: itemId,
+          source: g.source,
+          source_version: g.sourceVersion,
+          verdict: g.verdict,
+          scores: g.scores as ModerationSignalRow['scores'],
+          latency_ms: g.latencyMs ?? null,
+          created_at: this.clock(),
+        });
+      }
+      return Promise.resolve();
+    },
+    openCase: (c) => {
+      const now = this.clock();
+      const row: ModerationCaseRow = {
+        id: c.id,
+        item_id: c.itemId,
+        queue: c.queue,
+        reason: c.reason,
+        opened_by: c.openedBy,
+        sla_due_at: now + MODERATION_SLA_HOURS[c.queue] * 3_600_000,
+        statutory_due_at: null,
+        status: 'open',
+        assignee: null,
+        created_at: now,
+        closed_at: null,
+        subject_snapshot: c.snapshot as ModerationCaseRow['subject_snapshot'],
+      };
+      this.modCases.push(row);
+      return Promise.resolve({ ...row });
+    },
+    draftVerdicts: (draftId) => {
+      const ids = [...this.modItems.values()].filter((i) => i.kind === 'npc_draft' && i.subjectId === draftId).map((i) => i.id);
+      return Promise.resolve(this.modSignals.filter((g) => ids.includes(g.itemId)).map(({ itemId: _i, ...g }) => ({ ...g })));
+    },
+    casesFor: (kind, subjectId) => {
+      const ids = [...this.modItems.values()].filter((i) => i.kind === kind && i.subjectId === subjectId).map((i) => i.id);
+      return Promise.resolve(this.modCases.filter((c) => c.item_id !== null && ids.includes(c.item_id)).map((c) => ({ ...c })));
+    },
+    ...laterModeration(),
+  };
+
+  readonly builder: BuilderStore = {
+    createDraft: (d, maxLive) => {
+      if (!this.profileRows.has(d.ownerProfileId)) return Promise.reject(new Error('npc_draft: no such profile'));
+      const live = [...this.draftRows.values()].filter((r) => r.owner_profile_id === d.ownerProfileId).length;
+      if (live >= maxLive) return Promise.resolve('limit');
+      if ([...this.draftRows.values()].some((r) => r.npc_id === d.npcId)) return Promise.reject(new Error('npc_draft: duplicate npc id'));
+      const now = this.clock();
+      const row: NpcDraftRow = {
+        id: d.id,
+        npc_id: d.npcId,
+        owner_profile_id: d.ownerProfileId,
+        state: 'draft',
+        rev: 1,
+        fields: d.fields,
+        backstory: '',
+        image_upload_ids: [],
+        image_descriptions: [],
+        attestation: d.attestation,
+        moderation: {},
+        publishable: true,
+        soul_md: null,
+        lint: [],
+        probes: null,
+        jobs: [],
+        soul_version: null,
+        created_at: now,
+        updated_at: now,
+      };
+      this.draftRows.set(row.id, row);
+      return Promise.resolve(structuredClone(row));
+    },
+    getDraft: (id) => {
+      const r = this.draftRows.get(id);
+      return Promise.resolve(r === undefined ? null : structuredClone(r));
+    },
+    listDrafts: (owner) =>
+      Promise.resolve(
+        [...this.draftRows.values()]
+          .filter((r) => r.owner_profile_id === owner)
+          .sort((a, b) => b.updated_at - a.updated_at)
+          .map((r) => structuredClone(r)),
+      ),
+    updateDraft: (id, patch, guard = {}) => {
+      const r = this.draftRows.get(id);
+      if (r === undefined) return Promise.resolve(null);
+      if (guard.fromStates != null && !guard.fromStates.includes(r.state)) return Promise.resolve('state');
+      if (guard.ifRev != null && guard.ifRev !== r.rev) return Promise.resolve('conflict');
+      Object.assign(r, structuredClone(patch));
+      if (guard.bumpRev === true) r.rev += 1;
+      r.updated_at = this.clock();
+      return Promise.resolve(structuredClone(r));
+    },
+    deleteDraft: (id, owner) => {
+      const r = this.draftRows.get(id);
+      if (r === undefined || r.owner_profile_id !== owner) return Promise.resolve(null);
+      this.draftRows.delete(id);
+      const promptKeys: string[] = [];
+      for (const [k, so] of [...this.soulRows]) {
+        if (so.npc_id === r.npc_id && so.owner_profile_id === owner) {
+          promptKeys.push(so.prompt_r2_key);
+          this.soulRows.delete(k);
+        }
+      }
+      return Promise.resolve({ promptKeys });
+    },
+    putSoul: (sRow) => {
+      if (!this.profileRows.has(sRow.ownerProfileId)) return Promise.reject(new Error('npc_soul: no such profile'));
+      this.soulRows.set(`${sRow.npcId}|${sRow.soulVersion}`, {
+        npc_id: sRow.npcId,
+        soul_version: sRow.soulVersion,
+        origin: 'user',
+        owner_profile_id: sRow.ownerProfileId,
+        soul_md: sRow.soulMd,
+        compiled_json: sRow.compiledJson,
+        prompt_r2_key: sRow.promptR2Key,
+        prompt_sha256: sRow.promptSha256,
+        status: sRow.status,
+        published_at: null,
+        created_at: this.clock(),
+      });
+      return Promise.resolve();
+    },
+    getSoul: (npcId, version) => {
+      let best: NpcSoulRow | null = null;
+      for (const r of this.soulRows.values()) {
+        if (r.npc_id !== npcId) continue;
+        if (version !== undefined) {
+          if (r.soul_version === version) best = r;
+        } else if (best === null || r.soul_version > best.soul_version) best = r;
+      }
+      return Promise.resolve(best === null ? null : structuredClone(best));
+    },
+    soulKeys: (owner) => Promise.resolve([...this.soulRows.values()].filter((r) => r.owner_profile_id === owner).map((r) => r.prompt_r2_key)),
+    purgeStaleDrafts: (beforeMs, limit) => {
+      const stale = [...this.draftRows.values()]
+        .filter((r) => r.updated_at < beforeMs && UNPUBLISHED.has(r.state))
+        .sort((a, b) => a.updated_at - b.updated_at)
+        .slice(0, limit);
+      const out: { npcId: string; promptKeys: string[] }[] = [];
+      for (const r of stale) {
+        this.draftRows.delete(r.id);
+        const keys: string[] = [];
+        for (const [k, so] of [...this.soulRows]) {
+          if (so.npc_id === r.npc_id && so.status === 'private') {
+            keys.push(so.prompt_r2_key);
+            this.soulRows.delete(k);
+          }
+        }
+        out.push({ npcId: r.npc_id, promptKeys: keys });
+      }
+      return Promise.resolve(out);
+    },
+  };
   readonly roster: RosterStore = {
     flags: () => Promise.resolve(buildRosterFlags([...this.rosterRows.values()])),
     kill: (ctx, npcId, req) => {
@@ -290,6 +478,27 @@ export class InMemoryDataPort implements ServerDataPort {
   memories(): readonly Omit<MemoryRow, 'embedding'>[] {
     return this.memoryRows.map(({ embedding: _e, ...rest }) => rest);
   }
+  /** Draft rows (test helper). */
+  drafts(): readonly NpcDraftRow[] {
+    return [...this.draftRows.values()];
+  }
+  /** Soul rows (test helper). */
+  souls(): readonly NpcSoulRow[] {
+    return [...this.soulRows.values()];
+  }
+  /** Moderation cases in the order they were opened (test helper). */
+  moderationCases(): readonly ModerationCaseRow[] {
+    return this.modCases;
+  }
+  /** Moderation signals in the order they were recorded (test helper). */
+  moderationSignals(): readonly ModerationSignalRow[] {
+    return this.modSignals;
+  }
+  /** Moves a draft's `updated_at` (test helper for the 180-day purge). */
+  ageDraft(id: string, updatedAt: number): void {
+    const r = this.draftRows.get(id);
+    if (r !== undefined) r.updated_at = updatedAt;
+  }
   /** Seeds a relationship row (test helper). */
   seedRelationship(row: RelationshipRow): void {
     this.relationshipRows.set(`${row.profile_id}|${row.npc_id}`, row);
@@ -318,6 +527,8 @@ export class InMemoryDataPort implements ServerDataPort {
     add('npc_memory', this.memoryRows.filter((m) => m.profile_id === pid).length);
     add('npc_relationship', [...this.relationshipRows.values()].filter((r) => r.profile_id === pid).length);
     add('encounter_transcripts', [...this.transcriptRows.values()].filter((r) => r.profile_id === pid).length);
+    add('npc_draft', [...this.draftRows.values()].filter((r) => r.owner_profile_id === pid).length);
+    add('npc_soul', [...this.soulRows.values()].filter((r) => r.owner_profile_id === pid).length);
     add('device_keys', (this.bindings.get(pid) ?? []).length);
     return out;
   }
@@ -374,6 +585,8 @@ export class InMemoryDataPort implements ServerDataPort {
       for (let i = this.memoryRows.length - 1; i >= 0; i--) if ((this.memoryRows[i] as MemoryRow).profile_id === pid) this.memoryRows.splice(i, 1);
       for (const [k, r] of [...this.relationshipRows]) if (r.profile_id === pid) this.relationshipRows.delete(k);
       for (const [k, t] of [...this.transcriptRows]) if (t.profile_id === pid) this.transcriptRows.delete(k);
+      for (const [k, d] of [...this.draftRows]) if (d.owner_profile_id === pid) this.draftRows.delete(k);
+      for (const [k, so] of [...this.soulRows]) if (so.owner_profile_id === pid) this.soulRows.delete(k);
       return Promise.resolve(existed);
     },
     exportRows: (pid) => {
@@ -384,6 +597,8 @@ export class InMemoryDataPort implements ServerDataPort {
       rows['npc_relationship'] = [...this.relationshipRows.values()].filter((r) => r.profile_id === pid).map((r) => ({ ...r }));
       rows['npc_memory'] = this.memories().filter((m) => m.profile_id === pid).map((m) => ({ ...m }));
       rows['encounter_transcripts'] = [...this.transcriptRows.values()].filter((t) => t.profile_id === pid).map((t) => ({ ...t }));
+      rows['npc_draft'] = [...this.draftRows.values()].filter((d) => d.owner_profile_id === pid).map((d) => structuredClone(d));
+      rows['npc_soul'] = [...this.soulRows.values()].filter((so) => so.owner_profile_id === pid).map((so) => structuredClone(so));
       return Promise.resolve(rows);
     },
     nearestMemory: (pid, npcId, q, window = 64) => {

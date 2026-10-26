@@ -79,12 +79,17 @@ export interface NpcGuardrails {
   playTokensPerNet: number;
   signupsPerNet: number;
   builderTextPerDraftMs: number;
+  builder: Record<(typeof BUILDER_KEYS)[number], number>;
   encounter: Record<'turnCap' | 'turnCapHard' | 'cadenceMs' | 'idleCloseMs' | 'firstTokenMs' | 'transcriptRetentionDays' | 'indexStaleMs', number>;
   roster: Record<'isolateCacheMs' | 'pollMs', number>;
   estimates: Record<'turnUsdMicros' | 'voiceLineUsdMicros' | 'builderTextUsdMicros', number>;
 }
 
 const QUOTA_KEYS = ['turns', 'perNpc', 'voiceLines', 'costCapUsdMicros', 'builderText', 'builderJob', 'uploads', 'posts', 'reports'] as const;
+const BUILDER_KEYS = [
+  'liveDraftsP0', 'liveDraftsLinked', 'previewTurnsPerDraftPerDay', 'backstoryCharsMax', 'draftRetentionDays', 'soulMaxTokens', 'sexualMinorsMilli',
+  'selfHarmIntentMilli',
+] as const;
 const ENCOUNTER_KEYS = ['turnCap', 'turnCapHard', 'cadenceMs', 'idleCloseMs', 'firstTokenMs', 'transcriptRetentionDays', 'indexStaleMs'] as const;
 const ROSTER_KEYS = ['isolateCacheMs', 'pollMs'] as const;
 const ESTIMATE_KEYS = ['turnUsdMicros', 'voiceLineUsdMicros', 'builderTextUsdMicros'] as const;
@@ -112,6 +117,7 @@ export function npcSection(text: string): NpcGuardrails {
   return {
     quotas: { p0: intMap(quotas['p0'], QUOTA_KEYS, 'npc.quotas.p0'), linked: intMap(quotas['linked'], QUOTA_KEYS, 'npc.quotas.linked') },
     ...top,
+    builder: intMap(npc['builder'], BUILDER_KEYS, 'npc.builder'),
     encounter,
     roster: intMap(npc['roster'], ROSTER_KEYS, 'npc.roster'),
     estimates: intMap(npc['estimates'], ESTIMATE_KEYS, 'npc.estimates'),

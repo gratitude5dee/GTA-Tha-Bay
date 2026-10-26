@@ -1,9 +1,11 @@
 import type { QualityTierId } from '@dv/shared';
 import { AssetNotFound } from './store/catalog-client.ts';
 import type { Priority } from './store/lanes.ts';
+import type { DownloadPlan } from './store/store.ts';
 import type { TabMode } from './store/tab-lock.ts';
 import { PackUnavailable, type PackRef, type StorageUsage } from './store/types.ts';
 import type {
+  CatalogInfo,
   CatalogStateName,
   FromWorker,
   InitParams,
@@ -193,8 +195,11 @@ export class AssetClient {
   evictByTag(tag: string): Promise<{ removed: number }> {
     return this.call('evictByTag', { tag });
   }
-  async downloadAll(onProgress: (done: number, total: number) => void): Promise<void> {
-    await this.call('downloadAll', { tier: this.o.tier() }, { progress: onProgress });
+  downloadPlan(): Promise<DownloadPlan> {
+    return this.call('downloadPlan', { tier: this.o.tier() });
+  }
+  async downloadAll(onProgress: (done: number, total: number) => void, o: { signal?: AbortSignal } = {}): Promise<void> {
+    await this.call('downloadAll', { tier: this.o.tier() }, { progress: onProgress, ...(o.signal ? { signal: o.signal } : {}) });
   }
   async clear(): Promise<void> {
     await this.call('clear', {});
@@ -203,8 +208,14 @@ export class AssetClient {
     this.catalogStateValue = await this.call('catalog', {});
     return this.catalogStateValue;
   }
-  stats(): Promise<StatsResult> {
-    return this.call('stats', {});
+  /** `loadCatalog()` plus, for an `unavailable` catalog, the request that failed and why. */
+  async catalogInfo(): Promise<CatalogInfo> {
+    const info = await this.call('catalogInfo', {});
+    this.catalogStateValue = info.state;
+    return info;
+  }
+  stats(o: { resetPeak?: boolean } = {}): Promise<StatsResult> {
+    return this.call('stats', o);
   }
   qa(name: string, args?: unknown): Promise<unknown> {
     return this.call('qa', { name, args: args ?? null });

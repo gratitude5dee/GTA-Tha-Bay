@@ -13,9 +13,9 @@ import type { Env } from '../env.ts';
  *  - `outputNameHit`: the NameRegistry check of the model's `line` (real names and aliases fail unless the soul is `consented` with
  *    scope `name` for that subject). The real-side list never enters the repository (R-NAME-1): it is the PRIVATE object `names/real.json`
  *    (`{"schema":"names/1","entries":[{"id","real","aliases"}]}`), put there by the operator, read through a 60 s isolate cache. Absent: no check.
- *  - `moderation`: the asynchronous moderation of player text (OpenAI omni-moderation, Llama Guard fallback) is an interface here and
- *    logs `moderation: lands in M06b1`. M06b1 replaces the default and may call `flagCrisis`, which sets `pendingSafety` on the
- *    encounter so the next turn's `meta` carries `safety: 'crisis'` (C10 1.1, DL-226).
+ *  - `moderation`: the asynchronous moderation of player text (OpenAI omni-moderation, Llama Guard fallback; M06b1, npc-builder/chat-moderation.ts).
+ *    It may call `flagCrisis`, which sets `pendingSafety` on the encounter so the next turn's `meta` carries `safety: 'crisis'` (C10 1.1, DL-226),
+ *    and it ends the encounter and opens a P0 CSAM-text case when the player's text crosses the thresholds.
  */
 export const preFilter = (text: string | undefined): PrefilterResult => prefilterPlayerText(text);
 
@@ -43,6 +43,11 @@ async function realMatchers(env: Pick<Env, 'PRIVATE'>): Promise<{ entries: reado
   return registry;
 }
 
+/** The real-side entries (PRIVATE `names/real.json`, 60 s isolate cache); empty when the object is absent. The NPC builder lints with them (M06b1). */
+export async function loadRealNames(env: Pick<Env, 'PRIVATE'>): Promise<readonly NameEntry[]> {
+  return (await realMatchers(env)).entries;
+}
+
 /** True when `line` holds a real-side name or alias that this soul may not say. */
 export async function outputNameHit(env: Pick<Env, 'PRIVATE'>, line: string, soul: Pick<CompiledSoul, 'tier' | 'likeness'>): Promise<boolean> {
   const { entries, matchers } = await realMatchers(env);
@@ -60,16 +65,24 @@ export interface ModerationInput {
   text: string;
   /** Sets `pendingSafety` on the encounter. */
   flagCrisis(): Promise<void>;
+  /** M06b1: what the asynchronous check needs to open a case and end the encounter. */
+  env?: Env;
+  profileId?: string;
+  encounterId?: string;
+  turnIndex?: number;
+  /** Ends the encounter (EncounterDO.close). */
+  closeEncounter?(): Promise<void>;
 }
 
 export interface Moderation {
-  check(deps: Pick<AppDeps, 'logOnce'>, input: ModerationInput): Promise<void>;
+  check(deps: Pick<AppDeps, 'logOnce' | 'log' | 'data'>, input: ModerationInput): Promise<void>;
 }
 
+/** The asynchronous moderation of player text (M06b1): OpenAI omni-moderation with Llama Guard as the fallback, in npc-builder/chat-moderation.ts. */
 export const defaultModeration: Moderation = {
-  check(deps) {
-    deps.logOnce('npc-moderation', 'moderation: lands in M06b1');
-    return Promise.resolve();
+  async check(deps, input) {
+    const { moderatePlayerText } = await import('../npc-builder/chat-moderation.ts');
+    await moderatePlayerText(deps, input);
   },
 };
 

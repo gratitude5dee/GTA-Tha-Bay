@@ -37,6 +37,8 @@ export interface CreatorPart {
   retired?: boolean;
   /** Mannequin variant hue (0..1) for parts without a model. */
   tint?: number;
+  /** Mannequin colour `#rrggbb` for parts without a model; overrides `tint` (the Coast palette, DL-737). */
+  color?: string;
   /** Symbol id in `assets/creator-kit/icons.svg`. */
   icon?: string;
 }
@@ -76,6 +78,44 @@ export function findPart(cat: CreatorCatalog, slot: CreatorSlot, id: string | un
 
 export function partByIndex(cat: CreatorCatalog, slot: CreatorSlot, index: number): CreatorPart | undefined {
   return cat.slots[slot].find((p) => p.index === index);
+}
+
+/**
+ * Card order of a tab (10-ui-pages.md 2.8 rule 6): the slot's default part leads, the other live parts follow in catalog order. Rows are
+ * appended with new indices (AppearanceV1 stays byte-equal), so the order is a display rule, never a renumbering.
+ */
+export function cardsOf(cat: CreatorCatalog, slot: CreatorSlot): CreatorPart[] {
+  const live = partsOf(cat, slot);
+  const lead = slot === 'accessory' ? undefined : slotDefault(cat, slot);
+  const first = live.find((p) => p.id === lead);
+  return first ? [first, ...live.filter((p) => p !== first)] : live;
+}
+
+/** Linked body and face rows (rule 6): a `pair:<id>` tag on one body row and one face row. A stylized head never sits on a realistic body. */
+const PAIR_PREFIX = 'pair:';
+type PairSlot = 'body' | 'face';
+const isPairSlot = (slot: CreatorSlot): slot is PairSlot => slot === 'body' || slot === 'face';
+const otherOf = (slot: PairSlot): PairSlot => (slot === 'body' ? 'face' : 'body');
+
+export function pairOf(part: CreatorPart | undefined): string | undefined {
+  return part?.tags.find((t) => t.startsWith(PAIR_PREFIX))?.slice(PAIR_PREFIX.length);
+}
+
+/** The live partner of a linked row in the other pair slot, or undefined for an unlinked row. */
+export function pairPartner(cat: CreatorCatalog, slot: PairSlot, id: PartId): PartId | undefined {
+  const pair = pairOf(findPart(cat, slot, id));
+  if (pair === undefined) return undefined;
+  return partsOf(cat, otherOf(slot)).find((p) => pairOf(p) === pair)?.id;
+}
+
+/** The realistic kit's slot default: the first live row of the slot that belongs to no linked pair (body-lean, face-sunset). */
+export function realisticDefault(cat: CreatorCatalog, slot: PairSlot): PartId | undefined {
+  return partsOf(cat, slot).find((p) => pairOf(p) === undefined)?.id;
+}
+
+/** True when the avatar's body and face are not a half pair (both linked to the same pair, or both unlinked). */
+export function pairConsistent(a: PlayerAvatar, cat: CreatorCatalog = CATALOG): boolean {
+  return pairOf(findPart(cat, 'body', a.body.preset)) === pairOf(findPart(cat, 'face', a.face.preset));
 }
 
 /** The default part of a slot: the catalog default's part when it is live, else the first live part. */
@@ -144,6 +184,12 @@ export function normalizeAvatar(raw: unknown, cat: CreatorCatalog = CATALOG): No
     voice: { id: pick('voice', voice['id']) ?? '', pitch: clamp(voice['pitch'], -1, 1, 0) },
     fightStyle: pick('fightStyle', r['fightStyle']) ?? '',
   };
+  // Rule 6: a half pair is repaired. A linked body brings its face; a linked face on an unlinked body leaves for the realistic face.
+  if (!pairConsistent(avatar, cat)) {
+    const partner = pairPartner(cat, 'body', avatar.body.preset);
+    avatar.face.preset = partner ?? realisticDefault(cat, 'face') ?? avatar.face.preset;
+    fallbacks.push('face');
+  }
   return { avatar, fallbacks };
 }
 
@@ -166,6 +212,22 @@ export function withPart(a: PlayerAvatar, slot: CreatorSlot, id: PartId | undefi
       break;
     default: next.outfit[slot] = id ?? a.outfit[slot];
   }
+  return next;
+}
+
+/**
+ * A card pick in the creator (rule 6): like `withPart`, plus the body and face link. Picking a linked row selects its partner too;
+ * picking an unlinked body or face row while a pair is set keeps the picked row and sets the other slot to the realistic kit's default.
+ * Hair and outfit rows fit any body.
+ */
+export function pickPart(a: PlayerAvatar, slot: CreatorSlot, id: PartId | undefined, cat: CreatorCatalog = CATALOG): PlayerAvatar {
+  const next = withPart(a, slot, id);
+  if (!isPairSlot(slot) || id === undefined) return next;
+  const other = otherOf(slot);
+  const partner = pairPartner(cat, slot, id);
+  if (partner !== undefined) return withPart(next, other, partner);
+  const otherId = partOf(next, other);
+  if (pairOf(findPart(cat, other, otherId)) !== undefined) return withPart(next, other, realisticDefault(cat, other));
   return next;
 }
 
@@ -201,10 +263,16 @@ export function randomize(a: PlayerAvatar, rand: () => number, cat: CreatorCatal
   };
   const morphs: Partial<Record<MorphId, number>> = {};
   for (const m of cat.morphs) if (rand() < 0.4) morphs[m.id] = Math.round((rand() * 2 - 1) * 100) / 100;
+  // Rule 6: the linked pair is drawn only as a pair. The face draw always consumes one number, so the stream length does not depend on it.
+  const body = pickOf('body');
+  const faceDraw = rand();
+  const partner = pairPartner(cat, 'body', body);
+  const faces = partsOf(cat, 'face').filter((p) => pairOf(p) === undefined);
+  const face = partner ?? (faces[Math.floor(faceDraw * faces.length)] ?? faces[0])?.id ?? '';
   const out: PlayerAvatar = {
     ...structuredClone(a),
-    body: { preset: pickOf('body'), height: Math.round(rand() * 100) / 100, build: Math.round(rand() * 100) / 100 },
-    face: { preset: pickOf('face'), morphs },
+    body: { preset: body, height: Math.round(rand() * 100) / 100, build: Math.round(rand() * 100) / 100 },
+    face: { preset: face, morphs },
     skinTone: Math.floor(rand() * cat.palettes.skin.length),
     hair: { style: pickOf('hair'), color: Math.floor(rand() * cat.palettes.hair.length) },
     outfit: { top: pickOf('top'), bottom: pickOf('bottom'), shoes: pickOf('shoes') },

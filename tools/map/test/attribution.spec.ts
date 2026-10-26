@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,10 @@ import { ATTRIBUTION_PATH, attributionFor, buildAttribution, terrariumAccessDate
 import { fetchBuffer } from '../src/sources/net.ts';
 import { fillCommand, osmCommands, runFetch } from '../src/stages/s0-fetch.ts';
 import { stableJson } from '../src/util.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 // The denied host is assembled from fragments so no file in the repository contains it (license:scan, DL-506, scans
 // tools/ for the literal host; the tools/ci/fixtures/ exemption does not reach this directory). The fixture file spells
@@ -46,7 +50,10 @@ describe('attribution.world.json (AC-6)', () => {
     expect(by.get('terrarium')!.text).toContain('United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey.');
     expect(by.get('terrarium')!.text).toContain('Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration');
     for (const e of by.values()) {
-      expect(Object.keys(e).sort()).toEqual(['id', 'licence', 'licenceUrl', 'source', 'surfaces', 'text']);
+      // offerUrl is the optional release field of the OSM row only (DL-695), an https URL when present
+      const offer = e.id === 'osm' && 'offerUrl' in e ? ['offerUrl'] : [];
+      expect(Object.keys(e).sort()).toEqual(['id', 'licence', 'licenceUrl', ...offer, 'source', 'surfaces', 'text']);
+      if (offer.length > 0) expect((e as { offerUrl?: string }).offerUrl).toMatch(/^https:\/\//);
       expect(e.surfaces.length).toBeGreaterThan(0);
     }
   });
@@ -127,7 +134,7 @@ describe('sources.schema.json (DL-676)', () => {
 
 describe('map:fetch', () => {
   it('prints SKIP offline for every source of sf and writes nothing (AC-7)', async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), 'dv-fetch-'));
+    const dir = tempDir('dv-fetch-');
     const rawDir = path.join(dir, 'raw');
     const contentDir = path.join(dir, 'content');
     const lines: string[] = [];

@@ -12,7 +12,7 @@ import { contentTypeOf } from '../../../../packages/shared/src/assets/content-ty
 import type { ProvenanceRecord } from '../../../../packages/shared/src/assets/provenance.ts';
 import { rootRecord } from '../../../assets/src/lock.ts';
 import { TOOL_NAME, TOOL_VERSION, type SourcesConfig } from '../config.ts';
-import { CONTENT_STAMP_ID } from '../content.ts';
+import { CONTENT_ATTRIBUTION, CONTENT_STAMP_ID } from '../content.ts';
 import { readRawLock, type RawLockFile } from '../raw-lock.ts';
 import { cmp, stableJson, writeEnsured } from '../util.ts';
 
@@ -41,6 +41,8 @@ function contentStampRecord(s: RawLockFile['sources'][number]): ProvenanceRecord
     kind: 'data',
     origin: 'authored',
     license: s.licence,
+    // an ODbL record needs an attribution (provenance gate rule attribution-missing); the raw lock's C08 stamp carries the same line
+    attribution: CONTENT_ATTRIBUTION,
     authors: [AUTHOR],
     derived_from: [],
     review: [],

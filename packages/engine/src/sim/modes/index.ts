@@ -19,23 +19,28 @@ import { Control, LocalPlayer, Transform } from '../ecs/components.ts';
 import type { SimModule, SimModuleContext } from '../runtime.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { requestTeleport } from '../control/ownership.ts';
+import { reseatDriver, setDownBeside } from '../vehicle/enter-exit.ts';
 import type { PursuitModule } from '../pursuit/module.ts';
 import type { ModeSaveBinding, SaveWritePort } from '../save-port.ts';
 import { SimUiBridge, type UiOut } from '../ui/bridge.ts';
 import { SimSchedulerImpl } from '../script/scheduler.ts';
 import { TimelineRecorderImpl } from '../script/timeline.ts';
 import { ZoneServiceImpl } from '../script/zones.ts';
-import { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory } from './builtin/index.ts';
+import { builtinDescriptors, builtinUnlockDefs, createWaypointMemo, defaultSandbox, defaultStory, type SandboxWorldPort } from './builtin/index.ts';
 import { bindModeSave } from './capability-bind.ts';
 import { createCommandDispatcher, settingsView } from './commands.ts';
 import { ModeEventBus, ModeHost, type SessionSlices } from './host.ts';
 import { EconomyImpl, economyWallet, type ForwardingFareSink } from './economy.ts';
 import { NotYetAvailable } from './stubs.ts';
 import { createWorldStandin } from './world-standin.ts';
-import { STORY_PREFABS, type PrefabRegistry } from '../prefabs/registry.ts';
+import { CONVOY_PREFABS, STORY_PREFABS, type PrefabRegistry } from '../prefabs/registry.ts';
 import { UnlockRegistryImpl } from './unlocks.ts';
 import { defaultSettings } from './settings-defaults.ts';
 import { CombatImpl } from '../combat/combat.ts';
+import { createSandboxBodyPort, type SandboxBodyPort } from './sandbox-body-port.ts';
+import { createSandboxVehiclePort, type SandboxVehiclePortImpl } from './sandbox-vehicle-port.ts';
+import type { EcsWorld } from '../ecs/world.ts';
+import type { InteractionHandler } from '../interaction/interaction.ts';
 import { createGarageService, garageAdd, garageRecolor, garageSlots, type GarageService } from '../garage/garage.ts';
 
 export * from './host.ts';
@@ -47,6 +52,7 @@ export * from './autosave.ts';
 export * from './capability-bind.ts';
 export * from './commands.ts';
 export * from './stubs.ts';
+export * from './npc-port.ts';
 export * from './world-standin.ts';
 export { builtinDescriptors, builtinUnlockDefs, defaultSandbox, defaultStory, applyToggle, NEVER_WANTED, COMING_SOON_IDS } from './builtin/index.ts';
 export { defaultSettings } from './settings-defaults.ts';
@@ -127,15 +133,17 @@ export function boundaryToast(ui: UiBridge, e: SimEvent): boolean {
 
 /**
  * The prefab service a mode sees (M05a1): the vehicle module's registry, plus the two prefabs the mission VM spawns (`ped.actor`,
- * `marker.beam`), which are loaded at the first spawn of either. Loading them at boot would intern their strings and change the
+ * `marker.beam`), which are loaded at the first spawn of either, and the scripted cars `convoy.*` (M05c2), loaded at the first spawn of one. Loading them at boot would intern their strings and change the
  * `Key` ids of every session, and with them the state hash of a session that never runs a mission.
  */
 export function withStoryPrefabs(reg: PrefabRegistry | null): PrefabService | null {
   if (!reg) return null;
   const story = new Set(STORY_PREFABS.map((d) => d.id));
+  const convoy = new Set(CONVOY_PREFABS.map((d) => d.id));
   return {
     spawn: (id, at, key, init) => {
       if (story.has(id) && !reg.has(id)) reg.load(STORY_PREFABS);
+      if (convoy.has(id) && !reg.has(id)) reg.load(CONVOY_PREFABS);
       return reg.spawn(id, { pos: at.pos, yaw: at.yaw }, key, init);
     },
     despawn: (h) => reg.despawn(h),
@@ -163,6 +171,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
   let script: ScriptServices | null = null;
   let combat: CombatImpl | null = null;
   let garage: GarageService | null = null;
+  let sandboxCars: SandboxVehiclePortImpl | null = null;
   let dispatch: ((cmd: UiCommand) => void) | null = null;
   let reply: ((name: string, data: unknown) => void) | null = null;
   let qaHandler: ModesQaHandler | null = null;
@@ -176,6 +185,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         run: () => host?.tick(),
       },
       // The script services (M05a1) run after the mode host's tick: zone watchers, then the threads, then the timeline samples.
+      // Cars the sandbox is taking away wait here for their driver to get out (M04e3); with nothing queued the system does nothing.
+      { id: 'engine.modes.sandbox-retire', owner: 'S01', stage: SimStage.Script, order: 2, run: ({ tick }) => sandboxCars?.update(tick) },
       { id: 'engine.script.zones', owner: 'S01', stage: SimStage.Script, order: 5, run: ({ tick }) => script?.zones.update(tick) },
       { id: 'engine.script.threads', owner: 'S01', stage: SimStage.Script, order: 10, run: ({ tick }) => script?.scheduler.run(tick) },
       { id: 'engine.script.timeline', owner: 'S01', stage: SimStage.Script, order: 90, run: ({ tick }) => script?.timeline.update(tick) },
@@ -344,6 +355,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           }
         },
         emit: (t, tk, a, b, move, damage, ko) => void services.events.push({ t, tick: tk, a, b, n: damage, s: `${move}|${ko ? 1 : 0}` }),
+        // "Can't get hurt" in the sandbox (M04e4): only the local player, only while the flag is on.
+        immune: (victim) => services.sandboxFlags.godMode && (s.ecs as unknown as EcsApi).has(victim, LocalPlayer),
       });
       garage = createGarageService({
         list: () => live.core.garage,
@@ -366,6 +379,46 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
         },
       });
 
+      // The sandbox's car spawner (M04e3): built at the first request, on a build that has the vehicle module.
+      const sandboxVehicles = (): SandboxVehiclePortImpl | null => {
+        if (sandboxCars) return sandboxCars;
+        const vc = services.vehicleCtx;
+        if (!vc) return null;
+        sandboxCars = createSandboxVehiclePort({
+          ecs: s.ecs as unknown as EcsWorld,
+          backend: vc.backend,
+          services,
+          store: vc.store,
+          prefabs: vc.prefabs,
+          physics,
+          tick,
+          graph: () => services.world.api?.graph ?? null,
+          player: () => {
+            const pose = playerPose();
+            if (!pose) return null;
+            return { x: pose.x, y: pose.y, z: pose.z, camYaw: ((services.input?.camYaw ?? 0) * 2 * Math.PI) / 65536 };
+          },
+        });
+        return sandboxCars;
+      };
+
+      // The sandbox's body tools (M04e4): built at the first request, on a build that has the vehicle module.
+      let sandboxBodyPort: SandboxBodyPort | null = null;
+      const sandboxBody = (): SandboxBodyPort | null => {
+        if (sandboxBodyPort) return sandboxBodyPort;
+        const vc = services.vehicleCtx;
+        if (!vc) return null;
+        sandboxBodyPort = createSandboxBodyPort({
+          ecs: s.ecs as unknown as EcsWorld,
+          services,
+          backend: vc.backend,
+          store: vc.store,
+          physics,
+          resources: { add: (r) => s.core.addResource(r), remove: (name) => void s.core.removeResource(name) },
+        });
+        return sandboxBodyPort;
+      };
+
       const descriptors = new Map<string, GameModeDescriptor>();
       const wrapStory = opts.wrapStory;
       const storyEnv: StoryWrapEnv = {
@@ -376,10 +429,21 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           if (runtime.env.qa) runtime.bot = bot;
         },
       };
+      // The sandbox's weather hold and world speed (M04e1): engine-internal calls, in no contract.
+      const sandboxWorld: SandboxWorldPort = {
+        holdWeather: (w) => services.clock?.holdWeather(w),
+        setTimeScale: (sc) => s.core.setSandboxScale(sc),
+      };
+      // The map pin the sandbox's "jump to my map pin" reads; C08 `MapApi` has no getter (M04e2).
+      const waypointMemo = createWaypointMemo();
       for (const d of builtinDescriptors({
         story: () => live.story,
         sandbox: () => live.sandbox,
+        world: () => sandboxWorld,
         playerPose,
+        waypoint: () => waypointMemo.get(),
+        vehicles: sandboxVehicles,
+        body: sandboxBody,
         ...(wrapStory ? { wrapStory: (free: GameModeSim) => wrapStory(free, storyEnv) } : {}),
       })) descriptors.set(d.id, d);
       for (const d of opts.descriptors ?? []) descriptors.set(d.id, d);
@@ -434,6 +498,8 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           scheduler: sched,
           timeline: timelineSvc,
           combat,
+          // The NPC runtime of the session (M06c): bound below once the host exists; a session without it keeps the stub.
+          npc: () => services.npc.port?.api() ?? null,
           garage: {
             add: (instance) => garageAdd(live.core.garage, instance),
             count: () => live.core.garage.length,
@@ -460,6 +526,18 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
               rt.input.steer = q(input.steer, -1, 1);
               rt.input.handbrake = input.handbrake;
               return true;
+            },
+          },
+          // A resumed checkpoint seats the player in the cast vehicle it was saved in (DL-736, `ctx.vehicleSeat`): out of any other vehicle
+          // first, and set down beside the car when the seat cannot be taken (BD-FIX-SPAWN-12).
+          vehicleSeat: {
+            seat: (rider, veh) => {
+              const vc = services.vehicleCtx;
+              return vc ? reseatDriver(s.ecs, vc.backend, vc.store, services, rider, veh, tick()) : false;
+            },
+            setDown: (rider, veh) => {
+              const vc = services.vehicleCtx;
+              return vc ? setDownBeside(s.ecs, vc.backend, vc.store, services, rider, veh, tick()) : false;
             },
           },
         },
@@ -494,7 +572,12 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           return e ? e.ctx : null;
         },
         world: () => (services.world.api ?? standin),
+        sandboxWorld: () => sandboxWorld,
+        body: sandboxBody,
+        waypoint: waypointMemo,
+        playerPose,
         ride: () => services.ride,
+        npc: () => services.npc.port,
         garage: () => garage,
         selectProfile: (id) => {
           void (opts.loadSlices?.(id) ?? Promise.reject(new Error('no profile store')))
@@ -508,6 +591,17 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
           const r = requestTeleport(s.ecs, services, s.ecs.byKey('player:0'), [x, y, z], tick());
           return r.ok;
         },
+      });
+      // Bind the NPC runtime (M06c): it patches the bridge, sends its events on the mode bus, records hero intents on the timeline and
+      // registers the Talk handler on the interaction service.
+      services.npc.port?.bind({
+        ui: bridge,
+        events: bus,
+        timeline: timelineSvc,
+        tick,
+        clockT: () => services.clock?.now().t ?? tick(),
+        trust: (npcId) => live.story.npcRelations[npcId]?.trust ?? 0,
+        interaction: (services.vehicleCtx?.interaction as unknown as { register(h: InteractionHandler): void } | undefined) ?? null,
       });
       runtime.uiCommand = (cmd) => module.command(cmd);
       runtime.uiOutbox = (): UiOut | null => bridge.takeOutbox();

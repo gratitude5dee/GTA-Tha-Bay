@@ -6,6 +6,10 @@ export interface QuotaRpc {
   reserve(r: ReserveRequest): Promise<ReserveResult>;
   settle(reservationId: string, actualMicros: number, meta?: SettleMeta): Promise<void>;
   usage(): Promise<Record<string, number>>;
+  /** M06b1. */
+  release(reservationId: string): Promise<void>;
+  takeScoped(kind: string, scope: string, cap: number): Promise<{ ok: boolean; n: number }>;
+  builderUsage(draftId: string): Promise<{ soulToday: number; hourTaken: boolean; previewToday: number }>;
   take(kind: NetKind, cap: number): Promise<{ ok: boolean; n: number }>;
   peek(kind: NetKind, cap?: number): Promise<number>;
   bump(kind: NetKind): Promise<number>;

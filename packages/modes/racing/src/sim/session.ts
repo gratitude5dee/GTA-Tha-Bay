@@ -72,6 +72,8 @@ export interface SessionState {
 }
 
 const bit = (f: InputFrame, b: number): boolean => (f.buttons & (1 << b)) !== 0;
+/** A car out of the world counts as fallen after this many ticks in the air: the engine net's `FALL_RECOVER_TICKS` (2 s, DL-734). */
+const FALL_AIR_TICKS = 120;
 
 export class RaceSession {
   readonly director: RaceDirector;
@@ -223,6 +225,8 @@ export class RaceSession {
       exit: this.exitNow,
       movedFromGridM: moved,
       totaled,
+      // DL-734's below-the-world rule, which the engine's net leaves to the race while it runs (`EngineServices.vehicleFallClaim`)
+      fell: car.airTicks >= FALL_AIR_TICKS && port.outOfWorld?.(car.pos[0], car.pos[1], car.pos[2]) === true,
     };
     this.startNow = false;
     this.retryNow = false;

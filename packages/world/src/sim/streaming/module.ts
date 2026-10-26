@@ -12,7 +12,7 @@
  * session without a world runs and hashes as a session without the module.
  */
 import { SimStage, decodeDistrictGrid, decodeGraph, decodeP0, type ChunkKey, type SimChunk, type SystemContext, type SystemDef, type WorldIndex } from '@dv/shared';
-import { GROUP_BIT, playerSide, requestTeleport, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
+import { GROUP_BIT, playerSide, requestPlayerMove, type DebugCommand, type EcsWorld, type PhysicsSystemsBackend, type SimEventLog, type SimModule, type SimModuleContext, type SimResource } from '@dv/engine/sim';
 import { ChunkStore, packOf, type FailReason, type LoadRequest } from './chunk-store.ts';
 import { rankUnits } from './priority.ts';
 import { WORLD_PORT, type PackErrorReason, type PackReply, type PackRequest, type WorldSimConfig } from './channel.ts';
@@ -38,6 +38,8 @@ const SIM_HZ = 60;
 /** After this many ticks the streaming pass runs every `PASS_EVERY` ticks instead of every tick. */
 const BOOT_TICKS = 180;
 const PASS_EVERY = 5;
+/** The teleport moves a driver with the vehicle when its target is this close to a drivable edge (a lane centre of a wide road lies off the edge line), metres. */
+const DRIVER_KEEPS_VEHICLE_M = 8;
 
 /** What the module needs of a `MessagePort` (the sim tsconfig has no DOM lib). */
 export interface PackPort {
@@ -236,7 +238,8 @@ export class WorldSim {
     const focus: Focus = pl ? { x: pl.pos[0], z: pl.pos[2], vx: pl.vel[0], vz: pl.vel[2] } : this.spawnFocus;
     // QA: the perf scenario drives the traffic (and so the residency it needs) from the camera; the statics feed keeps the player's focus
     if (ctx.tick < BOOT_TICKS || ctx.tick % PASS_EVERY === 0) this.store.want(this.api?.ambient?.focusOverride ?? focus);
-    const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } });
+    // a teleport's destination, else a held pre-stream's point (a checkpoint resume waiting for its ground, DL-736): its colliders too
+    const dest = this.followTeleport(ctx.services as unknown as { control?: { teleportActive: boolean; teleportX: number; teleportZ: number } }) ?? this.prestreamDest();
     this.api?.step(ctx.tick, pl ? { x: pl.pos[0], z: pl.pos[2] } : null);
     const st = this.feeder.step(this.store, focus, this.store.plan.physicsM, dest);
     if (st.added) {
@@ -267,6 +270,12 @@ export class WorldSim {
       void this.store.preload(this.teleportKeys.map((key) => ({ level: 'p0' as const, key })));
     }
     return this.teleportTo;
+  }
+
+  /** The point of a held `WorldServices.prestream` as a still focus for the statics feed, or null (none held, or no world services). */
+  private prestreamDest(): Focus | null {
+    const p = this.api?.teleport.prestreamFocus() ?? null;
+    return p ? { x: p.x, z: p.z, vx: 0, vz: 0 } : null;
   }
 
   /** Posts `world.status` when the unavailable, failed or ready counts changed. */
@@ -449,9 +458,13 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
       const p = playerSide(sim.ecs as unknown as EcsWorld);
       return p ? [p.pos[0], p.pos[1], p.pos[2]] : null;
     },
-    begin: (x, y, z) => {
+    begin: (x, y, z, yaw) => {
       try {
-        const r = requestTeleport(sim.ecs, sim.services, sim.ecs.byKey('player:0'), [x, y, z], sim.core.tick);
+        const h = sim.ecs.byKey('player:0');
+        // a driver keeps the vehicle only when the target lies on a drivable edge, and is moved on foot otherwise (02-world-maps.md 5
+        // step 4; DL-734): a far Jobs Start while driving to a marker on a plaza is a move on foot, not a refusal the story retries
+        const onRoad = world.api?.graph.nearestEdge(x, z, y, DRIVER_KEEPS_VEHICLE_M) != null;
+        const r = requestPlayerMove(sim.ecs, sim.services, h, [x, y, z], yaw, sim.core.tick, onRoad);
         return r.ok ? { ok: true } : { ok: false, reason: 'busy' };
       } catch {
         return { ok: false, reason: 'no-player' };
@@ -463,7 +476,7 @@ function installWorldServices(ctx: SimModuleContext, world: WorldSim, index: Wor
   const api = createWorldApi(world.store, index, { tick: () => sim.core.tick }, {
     blackout,
     host,
-    // The teleport policy reads the wanted level the modes module hands to the hub (M04b2): heat 1 refuses fast travel.
+    // The teleport policy reads the heat level the modes module hands to the hub (M04b2): heat 1 refuses fast travel.
     policy: { allowed: () => true, heat: () => sim.services.world.heat?.() ?? 0 },
     onBoundary: (e) => events.push({ t: 'world.boundary', tick: e.tick, s: e.s }),
     onBarrierChange: (key) => void world.feeder.refresh(key, world.store),

@@ -1,0 +1,23 @@
+{
+  "schema": "lines/1",
+  "lang": "en",
+  "text": {
+    "line.m.a1.11.msg": "Market night. I will talk you through the trucks once you have said hello to the raffle guest.",
+    "line.m.a1.11.patrol": "The tow companies called it in. A patrol is rolling on you. Lose it and go home.",
+    "line.m.a1.11.start": "X Ramos on the dispatch line. The market is full tonight and the guest of honor is drawing tickets. Say hello, then keep your eyes on the curb.",
+    "line.m.a1.11.talk.raffle.open": "Ticket number seven thousand and one! Come over, there is a prize with your name on it, and I promise it is not a parking ticket.",
+    "line.m.a1.11.trucks": "Three Halcyon compliance trucks just pulled out to clear the stalls. Get a car and block every one of them in before the market is gone.",
+    "mission.m.a1.11.fail.busted": "The patrol caught you.",
+    "mission.m.a1.11.fail.ko": "You went down.",
+    "mission.m.a1.11.fail.ride": "Your car is wrecked. Start again.",
+    "mission.m.a1.11.obj.box_a": "Box in the first compliance truck",
+    "mission.m.a1.11.obj.box_b": "Box in the second compliance truck",
+    "mission.m.a1.11.obj.box_c": "Box in the third compliance truck",
+    "mission.m.a1.11.obj.enter_ride": "Grab a car at the end of the market",
+    "mission.m.a1.11.obj.escape_patrol": "Lose the patrol",
+    "mission.m.a1.11.obj.talk_raffle": "Say thanks to the guest of honor",
+    "mission.m.a1.11.talk.raffle.intent": "Thank the guest for the raffle",
+    "mission.m.a1.11.talk.raffle.thanks": "Thanks, the whole block loves the raffle",
+    "mission.m.a1.11.title": "Night Market"
+  }
+}

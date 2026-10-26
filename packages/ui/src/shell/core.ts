@@ -5,6 +5,7 @@ import { lk, setLang, t } from '../i18n/index.ts';
 import { ToastStore, toastIcon } from '../kit/widgets.tsx';
 import { resolveLayout } from '../hud/touch.ts';
 import { SettingsBinder } from './binder.ts';
+import { defaultOverlayHooks, type OverlayHooks } from './overlay-hooks.ts';
 import { InstanceGuard, type ChannelLike } from './banners.tsx';
 import { defaultGateCtx } from './gates.ts';
 import { transition, type ShellEvent } from './machine.ts';
@@ -15,6 +16,12 @@ import type {
 
 /** A toast the sim raised (`UiBridge.toast`), as the engine hands it over. */
 export interface SimToast { id: string; kind: string; text: string; params?: Record<string, string | number> }
+
+/**
+ * How long the shell shows a sim toast that is not an unlock, ms. Short on purpose (DL-735 d: at most 6 s): C06 `UiBridge` has no dismiss
+ * call, so a sim hint that lasts (the story's `mission.startLoading`) is re-posted while its condition holds and runs out by itself.
+ */
+export const SIM_TOAST_TTL_MS = 5000;
 
 /** Maps a sim toast to a shell toast. An unlock toast becomes "New mode unlocked: <title>" with an Open action. */
 export function simToastToSpec(rec: SimToast): ToastSpec {
@@ -30,7 +37,7 @@ export function simToastToSpec(rec: SimToast): ToastSpec {
     };
   }
   const kind = rec.kind === 'warning' || rec.kind === 'error' || rec.kind === 'success' ? rec.kind : 'info';
-  return { id: rec.id, kind, text: rec.text, ...(rec.params ? { params: rec.params } : {}), ttlMs: 5000, icon: toastIcon(kind) };
+  return { id: rec.id, kind, text: rec.text, ...(rec.params ? { params: rec.params } : {}), ttlMs: SIM_TOAST_TTL_MS, icon: toastIcon(kind) };
 }
 
 export interface ModalEntry {
@@ -59,9 +66,17 @@ export class ShellCore implements ShellApi {
   readonly toastStore = new ToastStore();
   readonly gate: GateCtx;
   readonly binder: SettingsBinder;
+  /** The read-only signal stream: `dv-shell` window events and the `dv-shell` channel (M04b5). */
+  readonly overlay: OverlayHooks;
   readonly guard: InstanceGuard;
   modals: ModalEntry[] = [];
   noSave = false;
+  /**
+   * The world-load error (BD-FU-A02): the detail code (`catalog-404`, `index-http`, ...) once the page has found that the asset catalog
+   * or the world index it names cannot be loaded after the fetch layer's retry policy. A mode start then shows the error page, with a
+   * retry, instead of entering an empty world. Null while the world loads, or when the failure is the offline path (M11a2).
+   */
+  worldError: string | null = null;
   /** Incremented on every change the view should redraw for. */
   version = 0;
   /** What the QA play bypass still has to do: send `mode.start` once the sim has published its modes. */
@@ -73,6 +88,7 @@ export class ShellCore implements ShellApi {
   private pageSince = 0;
   private lastPage: PageId | null = null;
   private lastRunningMode = false;
+  private offFrameStats: (() => void) | null = null;
 
   constructor(readonly props: ShellProps, channel: ChannelLike | null = null) {
     const prefs = props.prefs.get();
@@ -80,7 +96,9 @@ export class ShellCore implements ShellApi {
     this.state = props.unsupported ? 'Unsupported' : props.qaPlay ? 'InMode' : prefs.age.blocked ? 'Blocked' : 'Booting';
     this.gate = { ...defaultGateCtx(), flags: { ...(props.flags ?? {}) }, attested: prefs.age.attested === '18p' || props.qaPlay !== null };
     setLang(prefs.lang);
+    this.overlay = props.overlay ?? defaultOverlayHooks();
     this.binder = new SettingsBinder({
+      signal: (ref, value) => this.overlay.setting(ref, value),
       base: () => this.settings(),
       sendUi: (c) => this.sendUi(c),
       platform: () => this.platform,
@@ -130,6 +148,7 @@ export class ShellCore implements ShellApi {
     this.offVm = engine.vm.subscribe('sys.*', (_v, k) => this.onVm(k));
     this.onVm('sys.mode');
     this.onVm('sys.unlocks');
+    this.onVm('sys.profile');
     this.syncTouch();
     this.armBypass();
     this.touch();
@@ -142,7 +161,11 @@ export class ShellCore implements ShellApi {
   }
 
   attachPlatform(p: PlatformPort | null): void {
+    this.offFrameStats?.();
+    this.offFrameStats = null;
     this.platform = p;
+    // The `fps` signal flows whether or not the chip is shown.
+    this.offFrameStats = p?.onFrameStats?.((s) => this.overlay.fps(s.fps, s.tier)) ?? null;
     this.touch();
   }
 
@@ -158,6 +181,9 @@ export class ShellCore implements ShellApi {
       this.armBypass();
     } else if (key === 'sys.mode') {
       this.onModeState();
+    } else if (key === 'sys.profile') {
+      const id = (this.engine?.vm.get('sys.profile') as { id?: unknown } | undefined)?.id;
+      if (typeof id === 'string') this.overlay.profile(id);
     }
     this.touch();
   }
@@ -237,10 +263,25 @@ export class ShellCore implements ShellApi {
   fire(t: ShellEvent['t']): void {
     const prefs = this.props.prefs.get();
     const next = transition(this.state, { t } as ShellEvent, { prefs, termsVersion: TERMS_VERSION });
-    if (t === 'resume' && this.state === 'Paused') this.props.hooks.setPaused(false);
+    if (t === 'resume' && this.state === 'Paused') {
+      // A page still open over Pause (the phone, after a jump from its Sandbox app, M04e2) closes with the resume: left behind it kept
+      // Escape for the focus manager (`back()` -> history.back() -> a popstate that pauses the running game) and the engine's own Pause
+      // toggle at once, and the two cancelled out (BD-M04e2-07). No history.back() here: its popstate would land in InMode and pause.
+      if (this.frame) {
+        this.frame = null;
+        try {
+          history.replaceState(null, '', '/');
+        } catch {
+          // no History in a test environment
+        }
+        this.pageChanged();
+      }
+      this.props.hooks.setPaused(false);
+    }
     if (next === this.state) return;
     const prev = this.state;
     this.state = next;
+    this.overlay.state(next);
     if (next !== 'Loading' && this.loadTimer !== null) {
       clearTimeout(this.loadTimer as ReturnType<typeof setTimeout>);
       this.loadTimer = null;
@@ -325,9 +366,28 @@ export class ShellCore implements ShellApi {
     if (this.state === 'Paused') this.navigate('phone');
   }
 
+  /** The page found that the world cannot be loaded (BD-FU-A02). A mode that is already loading or running shows the error at once. */
+  worldUnavailable(detail: string): void {
+    this.worldError = detail;
+    if (this.state === 'Loading' || this.state === 'InMode' || this.state === 'Paused') this.showWorldError();
+    this.touch();
+  }
+
+  /** The error page of kind `world-load` over the current state; Back returns to it, Retry reloads the page. */
+  private showWorldError(): void {
+    this.frame = { id: 'error', params: { kind: 'world-load', detail: this.worldError ?? '' } };
+    this.pageChanged();
+    this.touch();
+  }
+
   startMode(id: GameModeId, slot?: SlotId): void {
     if (!this.engine) {
       this.toast({ id: 'engine.notReady', kind: 'warning', text: lk('engine.notReady') });
+      return;
+    }
+    // A world that cannot be loaded is never entered: the error page says so and offers a retry (BD-FU-A02).
+    if (this.worldError !== null) {
+      this.showWorldError();
       return;
     }
     // The page that started the mode (New Game, Continue, Modes) closes: the loading screen, then the HUD, take its place.
@@ -377,6 +437,7 @@ export class ShellCore implements ShellApi {
     if (this.frame?.id === 'settings' && id === 'settings') history.replaceState({ dv: 1 }, '', href);
     else history.pushState({ dv: 1 }, '', href);
     this.frame = next;
+    this.overlay.page(id);
     this.pageChanged();
     this.touch();
   }
@@ -494,6 +555,9 @@ export class ShellCore implements ShellApi {
 
   dispose(): void {
     this.offVm?.();
+    this.offFrameStats?.();
+    this.offFrameStats = null;
+    this.overlay.dispose();
     this.guard.stop();
     if (this.loadTimer !== null) clearTimeout(this.loadTimer as ReturnType<typeof setTimeout>);
   }

@@ -7,6 +7,8 @@
  * M07a1 adds racing: the descriptor that replaces the `comingSoon` stub, its unlock rows and the racing sim module, which is inert
  * unless the boot payload says `racing: true` (QA `?racing=1`; M07a2 turns it on for players).
  *
+ * M06c adds the NPC agency module (named NPCs, barks, Talk, `ModeContext.npc`), inert unless the boot payload carries a baked world.
+ *
  * M09a1 replaces the tycoon `comingSoon` stub with the real descriptor (still `comingSoon`); `unlock.tycoon` is a row of config/unlocks.json.
  */
 import { createPursuitModule } from '@dv/engine/sim';
@@ -16,12 +18,16 @@ import { racingDescriptor, racingUnlockDefs } from '@dv/mode-racing';
 import { tycoonDescriptor } from '@dv/mode-tycoon';
 import { createRacingModule } from '@dv/mode-racing/sim/module';
 import { worldStreamingModule } from '@dv/world/sim/module';
+import { createNpcModule } from '@dv/npc/sim';
+import { npcModuleOptions } from './npc-data.ts';
 
 const racing = createRacingModule();
+// The named NPCs (M06c): schedules, utility, behaviour trees, barks, the Talk handler and ModeContext.npc. Inert without a baked world.
+const npc = createNpcModule({ ...npcModuleOptions(), clock: () => performance.now() });
 
 // The pursuit director (M03c) is inert until the world services and the vehicle module exist, and unhashed until it is first touched.
 // The story mode (M05a1) wraps the engine's free roam with the mission runtime; the engine never imports the mode package.
-runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule(), racing], {
+runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule(), racing, npc], {
   wrapStory,
   descriptors: [racingDescriptor(), tycoonDescriptor()],
   unlockDefs: [...racingUnlockDefs(), ...storyUnlockDefs()],

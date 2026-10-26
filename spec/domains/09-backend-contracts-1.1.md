@@ -46,6 +46,7 @@ export type FeatureFlag = /* 1.0 members */ | 'mods.enabled' | 'mods.script' | '
 | Migration 0003 `match_npc_memories` | recency scale 518,400 (72 game hours in C06 half-seconds), not `72*3600`; consequence of DL-058 | S04 |
 | Migration 0007 | adds `forum_threads.mod_id`, `forum_boards.min_tier` value `staff`, `experiences.world_version` (C08 bakeId), `experiences.mod_sha256`; `mod_versions.state` uses C14 `ModVersionState`, `experiences.moderation_state` uses C17 `ExperienceModeration`; DTOs expose `mods.slug` as `ModId`, database UUIDs never leave the server | S12 |
 | Secrets and bindings (`09-backend-ops.md` §6) | `ANTHROPIC_BUILDER_KEY` (npc-builder workspace), `ANTHROPIC_EVALS_KEY` (ci-evals), `OPENAI_MODERATION_API_KEY`; Queue `npc-builder` | S04 |
+| `MEDIA_ROUTE` var of `tha-bay-web` (DL-713, DL-724; not a C12 shape) | `on` serves `/media/`; `throttle` also applies the `RL_MEDIA` Rate Limiting binding (429 with `Retry-After`); `off` answers 503; switched only by a version deploy or rollback (M01d3) | Architect |
 | `config/net.speedcaps.json` (C11 validation, owner S09, S06 tunes) | per-class rows in m/s: foot 12, D 58, C 77, B 89, A 105, S 119, R 63, police 73, default 95; C11 shape unchanged | S06 CCP-8 |
 
 ## 4. C16 1.1 — telemetry names

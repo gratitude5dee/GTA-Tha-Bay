@@ -1,6 +1,6 @@
 {
   "schema": "npc-poi-stub/1",
-  "note": "Stand-in for the C08 POI table until packages/world exports it (M02c1). Lint L2 reads this file when the table is absent.",
+  "note": "Stand-in for the C08 POI table until packages/world exports it (M02c1). Lint L2 reads this file when the table is absent. M06c: `positions` gives each stub POI an ENU [x, z] near City Hall so the brains have somewhere to walk; a POI the baked table has wins over its stub position.",
   "pois": [
     "poi.bayview.sound-garage",
     "poi.hayes-valley.stoop-plaza",
@@ -16,5 +16,20 @@
     "poi.tenderloin.noodle-counter",
     "poi.tenderloin.studio-eleven"
   ],
+  "positions": {
+    "poi.bayview.sound-garage": [60, 30],
+    "poi.hayes-valley.stoop-plaza": [-30, 20],
+    "poi.marina.green-run": [90, -40],
+    "poi.mission.24th-st.apt-ro": [-60, 45],
+    "poi.castro-upper-market.dolores-park": [-45, 5],
+    "poi.mission.shop-batista": [35, -45],
+    "poi.potrero-hill.test-bench": [8, -42],
+    "poi.potrero-hill.test-lot": [14, -50],
+    "poi.soma.coffee-cart-4th": [-45, -40],
+    "poi.soma.founders-loft": [75, 55],
+    "poi.soma.pitch-night-hall": [100, 10],
+    "poi.tenderloin.noodle-counter": [-20, -35],
+    "poi.tenderloin.studio-eleven": [-80, 10]
+  },
   "districts": ["bayview", "hayes-valley", "marina", "mission", "potrero-hill", "soma", "tenderloin"]
 }

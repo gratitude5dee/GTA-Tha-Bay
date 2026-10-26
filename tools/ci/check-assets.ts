@@ -30,6 +30,7 @@ const CONFIG_SCHEMAS: [file: string, schema: string][] = [
   ['config/names.json', 'names-1'],
   ['config/consent-index.json', 'consent-index-1'],
   ['config/genai-endpoints.json', 'genai-endpoints-1'],
+  ['content/vehicles/sandbox-catalog.json', 'sandbox-catalog-1'],
 ];
 
 interface TermsIndex { entries: { id: string; path: string | null }[] }

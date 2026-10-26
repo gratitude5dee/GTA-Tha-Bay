@@ -1,12 +1,15 @@
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runBake, runRepro, synthFresh } from '../src/bake.ts';
 import { CIVIC_FIXTURE_DIR, loadSources, loadSynth, type SourcesConfig } from '../src/config.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const roots = (): { outRoot: string; cacheRoot: string } => {
-  const r = mkdtempSync(path.join(tmpdir(), 'dv-repro-'));
+  const r = tempDir('dv-repro-');
   return { outRoot: path.join(r, 'world'), cacheRoot: path.join(r, 'cache') };
 };
 const quiet = (): void => {};
@@ -61,14 +64,14 @@ describe('bake stages and the stage cache', () => {
   }, 60_000);
 
   it('refuses a raw snapshot that no longer matches raw.lock.json', async () => {
-    const raw = mkdtempSync(path.join(tmpdir(), 'dv-raw-'));
+    const raw = tempDir('dv-raw-');
     cpSync(CIVIC_FIXTURE_DIR, raw, { recursive: true });
     writeFileSync(path.join(raw, 'tkzw-k3nq.jsonl'), '{"treeid":"x","species":"y","latitude":"37.78","longitude":"-122.42"}\n');
     await expect(runBake({ area: 'civic-excerpt', ...roots(), rawDir: raw, log: quiet })).rejects.toThrow(/tkzw-k3nq.*sha256/);
   });
 
   it('changes the bake id when a source hash changes', async () => {
-    const raw = mkdtempSync(path.join(tmpdir(), 'dv-raw-'));
+    const raw = tempDir('dv-raw-');
     cpSync(CIVIC_FIXTURE_DIR, raw, { recursive: true });
     const a = await runBake({ area: 'civic-excerpt', ...roots(), rawDir: raw, log: quiet });
     const lockPath = path.join(raw, 'raw.lock.json');
@@ -84,7 +87,7 @@ describe('bake stages and the stage cache', () => {
   }, 60_000);
 
   it('knows when synth sources are stale', () => {
-    const raw = mkdtempSync(path.join(tmpdir(), 'dv-synth-fresh-'));
+    const raw = tempDir('dv-synth-fresh-');
     expect(synthFresh(raw, loadSynth(), loadSources(), 'synth')).toBe(false);
   });
 });

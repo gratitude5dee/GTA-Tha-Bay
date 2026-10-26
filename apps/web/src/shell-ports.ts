@@ -1,8 +1,10 @@
 import type { Platform } from '@dv/engine';
+import { FpsFeed } from '@dv/engine/platform/fps-feed';
 import type { EngineHandle } from '@dv/engine/client/boot';
 import { readLastSave } from '@dv/engine/client/save-status';
 import { SaveServiceImpl, type SlotInfo } from '@dv/engine/save';
 import type { LastSaveStatus, PlatformSettings, ProfileId, QualityTierId, SlotId } from '@dv/shared';
+import { createOfflinePort } from './offline-port.ts';
 import type { EnginePort, PlatformPort, SavesPort, SlotSummary, StorageInfo } from '@dv/ui';
 
 /**
@@ -77,7 +79,11 @@ interface InstallPromptEvent extends Event {
 }
 
 /** The device-scoped side: `PlatformSettings` in `dv-platform`, the quality service, storage, and the install prompt. */
-export function createPlatformPort(platform: Platform, emit: (name: 'ui.page' | 'ui.onboard', props: Record<string, string | number | boolean>) => void): PlatformPort {
+export function createPlatformPort(
+  platform: Platform,
+  emit: (name: 'ui.page' | 'ui.onboard', props: Record<string, string | number | boolean>) => void,
+  opts: { onChange?: (next: PlatformSettings) => void } = {},
+): PlatformPort {
   let current: PlatformSettings = platform.settings;
   let deferred: InstallPromptEvent | null = null;
   addEventListener('beforeinstallprompt', (e) => {
@@ -89,12 +95,40 @@ export function createPlatformPort(platform: Platform, emit: (name: 'ui.page' | 
   const standalone = matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true;
   const cls = platform.profile.class;
   const deviceClass = cls === 'quest' || cls === 'avp' ? 'xr' : cls === 'iphone' || cls === 'ipad' || cls === 'android' ? 'mobile' : 'desktop';
+  // One frame listener serves every subscriber of the frame stats; it is installed with the first and removed with the last.
+  const statSubs = new Set<(s: { fps: number; tier: string }) => void>();
+  let offFrames: (() => void) | null = null;
+  const feed = new FpsFeed((s) => {
+    const sample = { fps: s.fps, tier: platform.quality.tier.id };
+    for (const cb of [...statSubs]) cb(sample);
+  });
+  const offline = platform.assets
+    ? createOfflinePort({
+        assets: platform.assets,
+        storage: typeof navigator !== 'undefined' ? navigator.storage : null,
+        emit: (name, props) => platform.telemetry.emit(name, props),
+      })
+    : null;
   return {
     settings: () => current,
+    ...(offline ? { offline } : {}),
+    onFrameStats: (cb) => {
+      statSubs.add(cb);
+      offFrames ??= platform.host.addFrameListener({ before: (time) => feed.before(time) });
+      return () => {
+        statSubs.delete(cb);
+        if (statSubs.size === 0 && offFrames) {
+          offFrames();
+          offFrames = null;
+          feed.reset();
+        }
+      };
+    },
     update: async (patch) => {
       const next = { ...current, ...patch, v: 1 as const };
       const tierChanged = patch.tierOverride !== undefined && patch.tierOverride !== current.tierOverride;
       current = next;
+      opts.onChange?.(next);
       await platform.store.putSettings(next);
       if (patch.telemetryConsent) platform.telemetry.setConsent(patch.telemetryConsent);
       // An explicit tier is requested now and applies at the next safe point; "auto" is re-decided at the next boot.

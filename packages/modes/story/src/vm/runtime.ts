@@ -9,7 +9,7 @@
  * every timer equal. The only RNG is the stream seeded for the attempt. Nothing reads wall time. Sim code under the C02 lint.
  */
 import {
-  Fnv64, Rng, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
+  Fnv64, Rng, dcos, dsin, type EntityHandle, type JsonObject, type JsonValue, type MissionCheckpointV1, type MissionIR, type MissionPhase, type ModeContext,
   type Op, type Pred, type SimEvent, type StableKey, type StageDef, type StorySlice, type TalkDef, type ThreadCtx, type ThreadYield, type UnlockEventId, type VehicleInstance, type WeatherPreset,
 } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
@@ -48,6 +48,16 @@ const SAY_MIN_TICKS = 90;
 const SAY_TICKS_PER_CHAR = 3.6;
 const MARKER_UPDATE_EVERY = 4;
 const EVENT_LOG_MAX = 50;
+/**
+ * A resumed seat that could not be taken, on a seat port without `setDown`: the player is set down this far to the left of the car's
+ * centre (the driver side), metres; the normal exit's first ring (BD-FIX-SPAWN-12).
+ */
+export const SET_DOWN_SIDE_M = 2.2;
+/** `ctx.vehicleSeat` as the runtime reads it (an engine port, not part of C06): `setDown` is optional so an older port still works. */
+interface SeatPortLike {
+  seat(rider: EntityHandle, vehicle: EntityHandle): boolean;
+  setDown?(rider: EntityHandle, vehicle: EntityHandle): boolean;
+}
 
 interface Beat {
   id: number;
@@ -125,6 +135,12 @@ export class MissionRuntime implements OpHost {
   private driverFn: (() => VehicleDriver | null) | null = null;
   private firstCp: MissionCheckpointV1 | null = null;
   private restarted = false;
+  /**
+   * What a resumed save still has to write once the cast it names exists (`restoreCheckpoint` with `load`; DL-736): a cast spawn is a
+   * deferred ECS command, so the cast's health, and the player seated in the cast vehicle it was saved in, are applied on the first tick
+   * the entity is there. `until` is the tick after which a seat that never came is given up and the player is set down on foot as saved.
+   */
+  restorePending: { health: Map<string, number>; seat: { vehicle: string; pos: Vec3; yaw: number; until: number } | null } | null = null;
 
   readonly predEnv: PredEnv;
 
@@ -137,6 +153,7 @@ export class MissionRuntime implements OpHost {
       zoneCenter: (z) => this.zoneCenter(z),
       zoneInside: (z, h) => this.zoneInsideHandle(z, h),
       driver: () => this.driverFn?.() ?? null,
+      pace: (cast) => this.paceOf(cast),
     });
     this.predEnv = this.makePredEnv();
     this.director = new DirectorSystem({
@@ -166,6 +183,25 @@ export class MissionRuntime implements OpHost {
   // ---------------------------------------------------------------- binding and queries
 
   /** The engine's vehicle driver for NPC cars; without it `driveTo` moves the car in a straight line. */
+  /** Clears the heat the player's current car carries (the body shop of m.a1.09). */
+  private respray(): void {
+    const h = this.actors.playerVehicle();
+    if (h === null) return;
+    const key = soft(() => this.ctx.ecs.keyOf(h));
+    if (typeof key === 'string') soft(() => this.ctx.pursuit.respray(key));
+  }
+
+  /** How far behind a car the player may fall before the car eases off: set by the `follow` or `chase` objective that names it (M05c2). */
+  private paceOf(cast: string): { slowAboveM: number; floorAtM: number; floor: number } | null {
+    for (const o of this.objectives.values()) {
+      if (o.state !== 'active') continue;
+      const d = o.def;
+      if (d.k === 'follow' && d.target === cast) return { slowAboveM: d.band[1] * 0.5, floorAtM: d.band[1] * 0.9, floor: 0 };
+      if (d.k === 'chase' && d.target === cast) return { slowAboveM: Math.max(25, d.catchDist * 4), floorAtM: Math.max(60, d.catchDist * 10), floor: 0.35 };
+    }
+    return null;
+  }
+
   setDriver(fn: (() => VehicleDriver | null) | null): void {
     this.driverFn = fn;
   }
@@ -370,9 +406,10 @@ export class MissionRuntime implements OpHost {
     this.opts.log?.(`mission ${this.ir.id} start attempt ${o.attempt}`);
     this.telemetry('mission.start', 0);
     if (o.from) {
-      this.spawnStartCast();
+      // a resumed save spawns its cast where it was saved (restoreCheckpoint); a retry still has its cast and moves it
+      if (o.load !== true) this.spawnStartCast();
       this.firstCp = carry?.first ?? null;
-      restoreCheckpoint(this, o.from);
+      restoreCheckpoint(this, o.from, o.load === true);
       this.startThreads();
       this.phase = 'stage';
       this.enterStage(o.from.stage, true);
@@ -408,8 +445,65 @@ export class MissionRuntime implements OpHost {
     this.enterStage(0, false);
   }
 
+  /**
+   * The rest of a resumed save (DL-736), on the first tick its entities exist: the cast's saved health, and the player put back at the
+   * saved pose and seated in the cast vehicle it was saved in (`ctx.vehicleSeat`, which first takes the player out of any other vehicle it
+   * drives). A seat that cannot be taken sets the player down on foot beside the car, where the normal exit would (`setDown`), never inside
+   * its collider, and notes `resume.seatFailed` (BD-FIX-SPAWN-12). With no seat port, or no vehicle by `until`, the player is set down
+   * on foot at the saved pose.
+   */
+  private applyRestorePending(): void {
+    const p = this.restorePending;
+    if (!p) return;
+    const a = this.actors;
+    for (const [name, frac] of [...p.health]) {
+      const h = a.cast(name);
+      if (h === null) continue;
+      a.setHealth(h, frac);
+      p.health.delete(name);
+    }
+    const seat = p.seat;
+    if (seat) {
+      const ph = a.player();
+      const vh = a.cast(seat.vehicle);
+      const port = (this.ctx as ModeContext & { vehicleSeat?: SeatPortLike | null }).vehicleSeat;
+      if (ph === null) {
+        p.seat = null;
+      } else if (vh !== null && port) {
+        a.place(ph, seat.pos, seat.yaw);
+        if (a.playerVehicle() !== vh && !port.seat(ph, vh)) this.setDownBeside(port, ph, vh, seat.vehicle);
+        p.seat = null;
+      } else if (!port || this.ctx.tick >= seat.until) {
+        a.place(ph, seat.pos, seat.yaw);
+        p.seat = null;
+      }
+    }
+    if (p.health.size === 0 && p.seat === null) this.restorePending = null;
+  }
+
+  /**
+   * A resumed seat that could not be taken (BD-FIX-SPAWN-12): the player stands beside the car on foot, never inside its collider. The
+   * engine port puts it where the normal exit would (`setDown`); a port without it gets the driver-side point `SET_DOWN_SIDE_M` from the
+   * car's centre, on its left (the driver side), facing the car's way.
+   */
+  private setDownBeside(port: SeatPortLike, ph: EntityHandle, vh: EntityHandle, vehicle: string): void {
+    const a = this.actors;
+    let how = 'port';
+    if (typeof port.setDown !== 'function' || !port.setDown(ph, vh)) {
+      how = 'side';
+      const vp = a.posOf(vh);
+      if (vp) {
+        const yaw = a.yawOf(vh);
+        // forward is (-sin yaw, -cos yaw), right (cos yaw, -sin yaw): the driver side is to the left
+        a.place(ph, [vp[0] - dcos(yaw) * SET_DOWN_SIDE_M, vp[1], vp[2] + dsin(yaw) * SET_DOWN_SIDE_M], yaw);
+      }
+    }
+    this.noteEvent('resume.seatFailed', { vehicle, how });
+  }
+
   /** Throws the previous mission's state away (threads, cast, markers, zones) without side effects on the world policies. */
   private resetAll(): void {
+    this.restorePending = null;
     this.killThreads();
     this.tasks.clear();
     this.clearMarkers();
@@ -519,6 +613,7 @@ export class MissionRuntime implements OpHost {
   tick(ctx: ModeContext): void {
     this.bind(ctx);
     if (!this.ir) return;
+    if (this.restorePending) this.applyRestorePending();
     this.applyCommands();
     if (this.restarted) {
       // a retry just put the world back: the clock stands at the checkpoint for this tick
@@ -890,6 +985,11 @@ export class MissionRuntime implements OpHost {
     this.opts.story().flags[key] = value;
     this.touchedFlags.add(key);
     this.noteEvent('flag', { key, value });
+    // the one flag that is a slice field: a story mission moves the campaign on by setting `story.act` (never back down, M05c2)
+    if (key === 'story.act' && (value === 2 || value === 3)) {
+      const story = this.opts.story();
+      if (value > story.act) story.act = value;
+    }
   }
 
   soulOf(cast: string): string {
@@ -1074,6 +1174,7 @@ export class MissionRuntime implements OpHost {
       }
       case 'text':
         this.noteEvent('text', { from: op.from, line: op.line });
+        this.opts.onText?.(op.from, op.line, this.ctx.tick);
         this.ctx.ui.toast({ id: `${this.scope()}:text:${op.line}`, kind: 'info', text: op.line });
         return;
       case 'marker':
@@ -1125,6 +1226,8 @@ export class MissionRuntime implements OpHost {
         return;
       case 'emit':
         this.noteEvent(op.event);
+        // a body shop job: the player's car loses the heat it carries (C06 `PursuitApi.respray`, M05c2)
+        if (op.event === 'vehicle.respray') this.respray();
         return;
       case 'pass':
         this.pendingEnd ??= { k: 'pass' };

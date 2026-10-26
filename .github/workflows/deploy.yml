@@ -122,6 +122,8 @@ jobs:
           QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_MODERATION_API_KEY: ${{ secrets.OPENAI_MODERATION_API_KEY }}
+          ANTHROPIC_BUILDER_KEY: ${{ secrets.ANTHROPIC_BUILDER_KEY }}
         run: pnpm deploy:prod -- --env staging --auto-lifecycle
       # M05d: the two routes every client calls first, on the staging host, after the deploy.
       - name: Staging smoke suite
@@ -169,6 +171,8 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Sensitivity gate (every sensitivity-read mission needs a recorded read of its current version, M05c2)
+        run: pnpm missions:build -- --release
       - name: Versions upload (wrangler deploy for a Durable Object lifecycle change), 0 % smoke, 100 %, rollback on failure
         env:
           DV_EVENT_BEFORE: ${{ github.event.before }}
@@ -179,4 +183,6 @@ jobs:
           QUOTA_NET_SALT_SECRET: ${{ secrets.QUOTA_NET_SALT_SECRET }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_MODERATION_API_KEY: ${{ secrets.OPENAI_MODERATION_API_KEY }}
+          ANTHROPIC_BUILDER_KEY: ${{ secrets.ANTHROPIC_BUILDER_KEY }}
         run: pnpm deploy:prod -- --auto-lifecycle

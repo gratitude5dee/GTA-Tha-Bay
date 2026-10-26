@@ -1,0 +1,3695 @@
+{
+  "schema": "asset-lock/1",
+  "entries": {
+    "data/district-grid.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "fd4d2495ab3c71fd7113486b299d9048d0ac8f4d21884969a584bc54a84edc92"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "data/transit-routes.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "8d48359e68a268c2d4fd2b839e45147c1df44d736743b448b2852798041e20e9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "data/world-index": {
+      "rev": 1,
+      "variants": {
+        "default": "a72b1a26f0245b8f700eb7eec1c3c8c0487cfcb9fe6f6a5ab70189c3b2f76c62"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "map_data/sf-geocode.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "936f0d880626e5b79b4c2ae965812851e932845859160ded642932ad167c19a4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "map_data/sf-graph.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "da3947e4b4a0fe81856973efd82b362b01d67350f94e07b401e1ee4bc096f822"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "map_data/sf-map-bldg.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "366684fa103f795dc8a46f95f89edab084a0048d04b459523aa4d30b7c3c9a17"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "map_data/sf-map.v1": {
+      "rev": 1,
+      "variants": {
+        "default": "c4626dc71dbf318a5b859cbd7854530eb1239a289f6aa89935d03c0d72bae06f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "texture/far-bay-cards": {
+      "rev": 1,
+      "variants": {
+        "default": "344236267c3da4e69683d24cae7929c857d7ca0d4c93c4deafb40dba7e01c975"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/far-bay-dem": {
+      "rev": 1,
+      "variants": {
+        "default": "09a7e64dc1c31b6e2900c4dc5d2ae7ca15d9c8e78156a19cd89bf87285a92616"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/far-bay-massing": {
+      "rev": 1,
+      "variants": {
+        "default": "de4b056e7383c68652930f4b76301be295fb09cbf9394e026441089c7b27e844"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-54-57": {
+      "rev": 1,
+      "variants": {
+        "default": "bb67d6dda7002809f812c599cfd97059aa0244cf454380fc5878fb4578d15a9d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-54-58": {
+      "rev": 1,
+      "variants": {
+        "default": "978c5e5cf1a31cbd2bebca3e436c1a7f22d698db7bd9bd42e9cca7ac59b2f1c3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-54-59": {
+      "rev": 1,
+      "variants": {
+        "default": "34f53a4b91ec63fd597609750f4ae2218c15011733068c07e3a79ea22445e7ae"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-55-57": {
+      "rev": 1,
+      "variants": {
+        "default": "a3573de4daa1c54f05ceb7497539d69df22013fee423365c512647aa1ea3c1bc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-55-58": {
+      "rev": 1,
+      "variants": {
+        "default": "1be291ff80a6751ee3f90281f80eec8e5a2448c901479d623a65606e9c2fea13"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-55-59": {
+      "rev": 1,
+      "variants": {
+        "default": "ad0a1db819cb71a935c5ec80fed69b57a1cb096b10859973e6cbf76ec36724f7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-55-63": {
+      "rev": 1,
+      "variants": {
+        "default": "7c9519e10c98f08e7e9f2fe5afda7cd537b742ed8e8e12f297d155c1fa50178c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-55-64": {
+      "rev": 1,
+      "variants": {
+        "default": "a9b402c7446929a86ddfc44bc736115d45febbb1c2bc0fc8b54169aff3b27957"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-57": {
+      "rev": 1,
+      "variants": {
+        "default": "e4b027f0fa13b5c93c0017401b3a3772a2e0eed77f7db65b43195182892d29ac"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-58": {
+      "rev": 1,
+      "variants": {
+        "default": "6fc2b118d364b8d68f48f98157fddd5807ba31f4efe8f5da2b89b091e699cc5c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-59": {
+      "rev": 1,
+      "variants": {
+        "default": "525091c4694c2fc860059128445c696a627b77e9d361d0b721a9b0b317df336d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-62": {
+      "rev": 1,
+      "variants": {
+        "default": "01c2f649f4d56f314331b4d08afc0452d9a060eae23f9842095705ed276fcc5c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-63": {
+      "rev": 1,
+      "variants": {
+        "default": "11b909ba373caf5a386f9dd76b708684ff27cc9f513647bb3b15903ba0e72f24"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-64": {
+      "rev": 1,
+      "variants": {
+        "default": "3a72e1e11b56d26f8b25cb8117f280e76ee7707ac57a1e70e47f4fb0147617ee"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-65": {
+      "rev": 1,
+      "variants": {
+        "default": "749099ed0d0f0300654da5660010de3e4053a8016c0bf66ee0f090ef90eeb0a8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-66": {
+      "rev": 1,
+      "variants": {
+        "default": "641563145410d0e75b8fead96edb4d08d760a9e2fcca0da51e20dc27149d3792"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-67": {
+      "rev": 1,
+      "variants": {
+        "default": "eb679a7d64c480bc99e008eb1dabcb10579ce1072cf81867c2b0c0249edfc930"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-68": {
+      "rev": 1,
+      "variants": {
+        "default": "755f240cda51a518e10891603b4307af190f8b35bb08f96702bcdd28a639de26"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-69": {
+      "rev": 1,
+      "variants": {
+        "default": "8c47e001bcb1a023bc2c757378bf376e53a9bee902ee429efd88fcad88c39517"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-70": {
+      "rev": 1,
+      "variants": {
+        "default": "12673f52fa8b8de5c26f2f2bb07f634a67b75d15b2a4147f10446e26e94a3ac4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-71": {
+      "rev": 1,
+      "variants": {
+        "default": "0e3f3bdbeed4a01105d4cf91301a1f9c391387161b84daf4a5b42a6ee8062124"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-56-72": {
+      "rev": 1,
+      "variants": {
+        "default": "b7f50e36511ee4d375f1937f0dfbe074c577029a7ddff0eb66d02c9fec2f3347"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-57": {
+      "rev": 1,
+      "variants": {
+        "default": "c365ef80f268350fc4cc0f7e78bf3a262cc7cea5203266a984e92dff4614c3c8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-58": {
+      "rev": 1,
+      "variants": {
+        "default": "4419722fe5c21f37c29f0a7e2cf57906793994e2ab4b5067f62b1ec04f181661"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-59": {
+      "rev": 1,
+      "variants": {
+        "default": "aca57daf46899c5c234007a4562c93b50160889742c710b4874f4f092fa00997"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-63": {
+      "rev": 1,
+      "variants": {
+        "default": "5850856732f22eedc6abf1d0857674614a3509f97f4956dc5b0db0a74a64db9c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-64": {
+      "rev": 1,
+      "variants": {
+        "default": "922716a5bd86d86de5e1ad31238120ec54485b40ad9c0b6551af282c130e0f90"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-65": {
+      "rev": 1,
+      "variants": {
+        "default": "0336e9fa1b19343702d529e5c98ee3272951d62af3175fbc31d1530155ace3c4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-66": {
+      "rev": 1,
+      "variants": {
+        "default": "d0aa32084b43a23f26527c04fc92f2e0e2c263d6588d12c64c26cf34f12fb974"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-67": {
+      "rev": 1,
+      "variants": {
+        "default": "b2c065b6ed6be2c545da034bfe8bd3714ba6d32043361429ad394313fd871761"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-68": {
+      "rev": 1,
+      "variants": {
+        "default": "c63015f156c51978fc62932eef8f58e10df3cb1aa5c7663f1db1c20b19b451fd"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-69": {
+      "rev": 1,
+      "variants": {
+        "default": "ecda10a95044c04041fb371181b7e9f41e59a5d9bd3139e5fd603b1a18d32c0d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-70": {
+      "rev": 1,
+      "variants": {
+        "default": "2e99027767a99b82cddfdad907db2a798977f386a648eb62c818dc1c517d7d1c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-71": {
+      "rev": 1,
+      "variants": {
+        "default": "24306b564e10618685817fee465f81ad85505919d02114c790884304966d343d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-57-72": {
+      "rev": 1,
+      "variants": {
+        "default": "bd92e2647f4c5487061465c6216873cda5ac07ac9907e64c50b6feff2739234d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-57": {
+      "rev": 1,
+      "variants": {
+        "default": "b15f4c033b99059cca756319f03f4552492884ef2fef9c09b547e638e95dbf05"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-58": {
+      "rev": 1,
+      "variants": {
+        "default": "3df68a87342245584e5676fa7c731532e3aab100d6970132847d844f9f9296ed"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-59": {
+      "rev": 1,
+      "variants": {
+        "default": "34af015e467b503544afcd152452d27a654a41a185d9a2e7a897f9a5db0938be"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-61": {
+      "rev": 1,
+      "variants": {
+        "default": "23d9d2933366d81a6cab11bfc128f94322a8b2ab2fa220df8c3fc697d7baeb1e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-62": {
+      "rev": 1,
+      "variants": {
+        "default": "bd18320728d802c4c93e36d12ec8afdccf50c1868e1d25c771e9c02f8796992f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-63": {
+      "rev": 1,
+      "variants": {
+        "default": "1ea65db36a64a17350827f8c00d2b6edde6d607a5a580b16a0dc7bde08374edb"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-64": {
+      "rev": 1,
+      "variants": {
+        "default": "50a33e281b0f174092b8783c360db88c306359998f0b39e9772c1631e50629c2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-65": {
+      "rev": 1,
+      "variants": {
+        "default": "e46a8d869f69d4697223620c1b7c1bd527cb9c280136ab87b2e605749c02508f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-66": {
+      "rev": 1,
+      "variants": {
+        "default": "e1e201e5c526b98a4071ab1dc51e5baa0985a3bdc6d2048734a15863ab4ec8d5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-67": {
+      "rev": 1,
+      "variants": {
+        "default": "05903e1cb5731ec4ad20a41cdaf9fc80de5655092261106f3696843d2348e38f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-68": {
+      "rev": 1,
+      "variants": {
+        "default": "11b17f70f5ad4df09a19961cf037f92c453b32dad590f7dd0a10cd7efd0a53fe"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-69": {
+      "rev": 1,
+      "variants": {
+        "default": "88f5033aeec3212465d0c75896875967d2e6c550ba6960649d117512313d80b5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-70": {
+      "rev": 1,
+      "variants": {
+        "default": "7312681bc46f0eac63772b1ec36d5395eb722f40ce017e354f70b4d929f5928f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-71": {
+      "rev": 1,
+      "variants": {
+        "default": "c36296b0c78a5382ef7cc4bce81432b23ed242189e009fc8dd21fde72245a638"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-58-72": {
+      "rev": 1,
+      "variants": {
+        "default": "0ab76552cf94100b03feb12019e332142328b7512d006d31f67ffdf7ecd75ac2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-57": {
+      "rev": 1,
+      "variants": {
+        "default": "314dcab5efd9b1eb7270068c024e8ceeb4355452c9c0b3cbb0940c87c445b027"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-58": {
+      "rev": 1,
+      "variants": {
+        "default": "687e6f9808a49238d29af91b12cc1694febeaada810b6bdfb08e3b2d84afef1a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-59": {
+      "rev": 1,
+      "variants": {
+        "default": "70f725e23e0b1086a998b5ea51d45d1d0952499adbfc9f9f32716b6685120142"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-60": {
+      "rev": 1,
+      "variants": {
+        "default": "a7dc4cd0f9ddd86abff770b8b8f8a6ae715a4dba0e651cca16af523d618a96f3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-61": {
+      "rev": 1,
+      "variants": {
+        "default": "1ad1c9213d201985e3c65d4704088aecbd0d6a11cb5d9bd7fc3a00749a877b65"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-62": {
+      "rev": 1,
+      "variants": {
+        "default": "6254924eef9c4cbd10a03fefc4e411ad119d5af1996e3eb3688480f354f65ee7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-63": {
+      "rev": 1,
+      "variants": {
+        "default": "d2898567a860b70c254a461a187810d40ab402b275b47311eec312c127d2e9ac"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-64": {
+      "rev": 1,
+      "variants": {
+        "default": "6ed99ec2b94816f216b3667ee9977647b8f8a9ba0dd24ef22edc8fe6eb39bdf9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-65": {
+      "rev": 1,
+      "variants": {
+        "default": "f75e8e6ccc04d2943e510b48d009c385b2f61bfdde87f497bf9113a4ab06890c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-66": {
+      "rev": 1,
+      "variants": {
+        "default": "efaa22a55e0655813094e356c4869d37e8f09f2fc0acf0d11a35f11090431a7f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-67": {
+      "rev": 1,
+      "variants": {
+        "default": "f5db96e60e7ba8c2fc6634a4be7ea5844775ecdcc9001bb02fda5181060347a3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-68": {
+      "rev": 1,
+      "variants": {
+        "default": "b0135971194a360a03f1fc6aacfe34579673f4ab506712b9013af4bb16ca3695"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-69": {
+      "rev": 1,
+      "variants": {
+        "default": "db5d6df7b5b8502c758b76101439ee79a2b73f620e44c7053ef55ca42fa4c878"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-70": {
+      "rev": 1,
+      "variants": {
+        "default": "1ca07d74bc389d8d256846c4df69bfadeae4c8aef2ad924ad46345fdd75bee1b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-71": {
+      "rev": 1,
+      "variants": {
+        "default": "f06d96c868d50ab7774c3648f248239d148a7bdf5a7bcccfe6c6eebf642b263e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-59-72": {
+      "rev": 1,
+      "variants": {
+        "default": "b9ba7491bd57bda5f466dcafe252b89bc4d0129678e116ab1e0ea0ad5bb42e57"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-61": {
+      "rev": 1,
+      "variants": {
+        "default": "7cfc933878832b05a5178e6e093f8cfdd89a3c01625d32f2bf652da57c1d72c4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-62": {
+      "rev": 1,
+      "variants": {
+        "default": "9b7a4c976db529219e2bf9d7f3e2e4562bdc0bf128160d0162ab64e6d346100f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-63": {
+      "rev": 1,
+      "variants": {
+        "default": "bcb3ff435deaac6aa065bd7e7ec0fae6a8d04bf19423ccff3ff98ccf4b37b3a3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-64": {
+      "rev": 1,
+      "variants": {
+        "default": "7474542fbfdbfd6486504e6dd9b5a9bc57fb8e22e6bc681b0c2393076a3aad7d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-65": {
+      "rev": 1,
+      "variants": {
+        "default": "b2a5ab8b452d38802a918a001cacbea27ab38f0492a8c2fc6668330d08d3fd3c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-66": {
+      "rev": 1,
+      "variants": {
+        "default": "3b788738073c2856a67f1703de2f073e3dd03b7e7efdc7ed9d5c571d39b151e7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-67": {
+      "rev": 1,
+      "variants": {
+        "default": "45d2850b59932e2e9c2abb2bc3180c9917fbfdb34205574fdead95ed8f3e6363"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-68": {
+      "rev": 1,
+      "variants": {
+        "default": "a345b8be41e382e60046d2b07afc52a07024d39665a83263b3c199cb03ec3451"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-69": {
+      "rev": 1,
+      "variants": {
+        "default": "c233d9291b9f4bb7b53dab42e185da05c8c29446653a8cabde67b76b9e7f4170"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-70": {
+      "rev": 1,
+      "variants": {
+        "default": "550e3ab3c21a521a4ac4b9300c0ab0d0321000afc9d7df72d8caf0276008acaa"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-71": {
+      "rev": 1,
+      "variants": {
+        "default": "1ff4b576a1574c242b70a2928e8dad14c291bdb254eb07f89b59ecf51ac60f1e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-60-72": {
+      "rev": 1,
+      "variants": {
+        "default": "8d744dc839cf44261a3daff758f8b0d5c5316e7f128c5b251cde6e08148c8b40"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-61": {
+      "rev": 1,
+      "variants": {
+        "default": "06bbc5fa80d69e52c5a614de8ac1f791b3c9c07c09be330f4b79ae53b9c8be5a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-62": {
+      "rev": 1,
+      "variants": {
+        "default": "007787c9784a56f3aa35f357194f123cd79339c6a33fdf0bc6e32c5c63698011"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-63": {
+      "rev": 1,
+      "variants": {
+        "default": "c63c7e026458accb065bdb4ea3a7fe928da5265bc8e230dfcc73fb04a0d5a693"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-64": {
+      "rev": 1,
+      "variants": {
+        "default": "2aa35d068033b628a0eecf0a23cf7d5af850021271a07ce3e97402ba2e034d02"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-65": {
+      "rev": 1,
+      "variants": {
+        "default": "dd81b62ba5a6d4b624bb7a386ec6b87b3caf4ae51bd6884341e5872b720cf913"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-66": {
+      "rev": 1,
+      "variants": {
+        "default": "57cc2c009655cbd94a2d84050901c1355be95cde362f66694049b87dde5d75cc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-67": {
+      "rev": 1,
+      "variants": {
+        "default": "6e39737c5c9ca39cc994450d1e55418a3533827a5bf38be9d2990db354080abe"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-68": {
+      "rev": 1,
+      "variants": {
+        "default": "abc4cebf3cb2925bdcccbfa35d29edc31082ebcad51c652d87da7d0487b30f64"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-69": {
+      "rev": 1,
+      "variants": {
+        "default": "676e47f6906e0b52a439782782a4e9b3f0621752eafb6f40517226004622e761"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-70": {
+      "rev": 1,
+      "variants": {
+        "default": "4736dc6424c08672bb8b473e69ab89b58dacc9383204ad071c573d6220ddedd1"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-71": {
+      "rev": 1,
+      "variants": {
+        "default": "ebe4b1146e16cdf56bfea078b081e4dc3bb204ef96ef38c0a00fb1640fef4eb6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-61-72": {
+      "rev": 1,
+      "variants": {
+        "default": "751cd9ce6b8ff2a78a154a24ebf1f8419334412e8120d6f1d7c6c395d8412568"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-60": {
+      "rev": 1,
+      "variants": {
+        "default": "ed2c2e4a0b353c0cd94584d410ec9118abd871eb18e8d77ce8e58faca803b89b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-61": {
+      "rev": 1,
+      "variants": {
+        "default": "54a67701781b08509d30fac8a8efb975d35355c4944cea1fcfaa5af1046d07a2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-62": {
+      "rev": 1,
+      "variants": {
+        "default": "2ad05372ded9452a237bb1cb1dc699235eb0d15d0c4e7007ec2fbed6ea3cd9f1"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-63": {
+      "rev": 1,
+      "variants": {
+        "default": "fe151a30230c2a893a67bd965a772006959fb9e5e0ab94ee5d377cec40274737"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-64": {
+      "rev": 1,
+      "variants": {
+        "default": "3204730f7bff1a21d57ae79886ac8aa075191324be2cb1ffeaa4db33f2f6d7e9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-65": {
+      "rev": 1,
+      "variants": {
+        "default": "a56d8a437b5fc484a17847171cf1d0d40daf7718250d30b276bcb0613e8fb758"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-66": {
+      "rev": 1,
+      "variants": {
+        "default": "9400350a812603c7668f68890ba50a2f5f8d36f4c3b5485afee2fdabad6ecc37"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-67": {
+      "rev": 1,
+      "variants": {
+        "default": "1a727e05d4269dce14a84e6708a40817c3fef581c46983fc20c5bfa29e262f31"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-68": {
+      "rev": 1,
+      "variants": {
+        "default": "9625c7fdcb54ca4a18f0638777846ed637395e9e84d77457d9085ce2346e0806"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-69": {
+      "rev": 1,
+      "variants": {
+        "default": "36aad34e4abaecb664afaccde2263d6822cc62ed2a4587921c4cf1c157cedf91"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-70": {
+      "rev": 1,
+      "variants": {
+        "default": "9f3394f772074b109428e59b5746c11218fc5ea13f7ac458c4748b1f7370671a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-71": {
+      "rev": 1,
+      "variants": {
+        "default": "7164dcf88739d53005fd2b255854dcd60677d73919d9c785728491c20492cc4e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-62-72": {
+      "rev": 1,
+      "variants": {
+        "default": "46852f89b816c6b80901fa9282072e6cc53d1c636d5fbe06db93cff3b2f5be6a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-58": {
+      "rev": 1,
+      "variants": {
+        "default": "fdaa70fb98723f7bc0677b3b00c401da3fc4b11087e56865caa264b826c1d61a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-59": {
+      "rev": 1,
+      "variants": {
+        "default": "b292ef5d60e6f33430b9d0d8ebf1208a421c09550768175c048bf5c42492ef5f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-60": {
+      "rev": 1,
+      "variants": {
+        "default": "3fc1d0af6540d5137cde928009d9c3d713c0107364d551b0688973c1913858a0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-61": {
+      "rev": 1,
+      "variants": {
+        "default": "17394667ab55ceb189559ae09e5b7e5dd738fd98678b8e94563f04f0d0815289"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-62": {
+      "rev": 1,
+      "variants": {
+        "default": "7c5fe47be331796e0c4906e8e86c71aa950d0671bb40d91f6fdbcb18ed452c45"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-63": {
+      "rev": 1,
+      "variants": {
+        "default": "f7e0df6dc3e8bcb25ad6a95632f926b3005fdaf2fa95f07537751617d8060505"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-64": {
+      "rev": 1,
+      "variants": {
+        "default": "f840d45dc3b1d6429cbb6ee49e017bc5bc8ec037e1d524b3ef975c48929f6232"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-65": {
+      "rev": 1,
+      "variants": {
+        "default": "a32b1c00da631aead77a31fe843befefbee4844311a97a1ed1dfcabb95031e64"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-66": {
+      "rev": 1,
+      "variants": {
+        "default": "82fc8a3109cbe842e267e20511f25df523e331a2876f715eb68827c7fdbdae49"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-67": {
+      "rev": 1,
+      "variants": {
+        "default": "b491365c34cd1c9229afbd30c8a81f6a680d9f65f8977968dfd7ff8cab044c11"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-68": {
+      "rev": 1,
+      "variants": {
+        "default": "85f17650094a608147c04fc0b51d2924d9181629260cba1bad617666a11bd020"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-69": {
+      "rev": 1,
+      "variants": {
+        "default": "8b6c46f0c51af5e197bb9505bcd38eef681a5bc38505de94ae8d92737b93aa9f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-70": {
+      "rev": 1,
+      "variants": {
+        "default": "8bcd4450596a8351bdda03414ec6e3b2c16fb737d3551b2034d22e38b1bdfc17"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-71": {
+      "rev": 1,
+      "variants": {
+        "default": "a0f6929bda6619752a71ecdba0d7534fb2e937a16a13cc01db77b6db2e668a9c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-63-72": {
+      "rev": 1,
+      "variants": {
+        "default": "00d125adc479f56629d6dbb7ef08bea7f6fa531ed64654f8c9203ea2f5b8ac7c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-58": {
+      "rev": 1,
+      "variants": {
+        "default": "c7519ff35113bfd306c38105c70591fd5d4ba21925a14ded9fedf0a955309550"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-59": {
+      "rev": 1,
+      "variants": {
+        "default": "6a469571ba35146ccde1eb03d561da7c95b163887c5b468c44dfc1f73e918641"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-60": {
+      "rev": 1,
+      "variants": {
+        "default": "6e02a1f4ca618d3ba1ebe08ace09b6679ad3b79bc08eee6b1a3ca8477c33b30e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-61": {
+      "rev": 1,
+      "variants": {
+        "default": "de83e71d0d2bea98efe0d509b7c3d705882ddcbe5453f439344c1d8b47433bdc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-62": {
+      "rev": 1,
+      "variants": {
+        "default": "57ad6e38c2c3f0730d70c4b8c7f3304323841be50199b01cda395813f116d507"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-63": {
+      "rev": 1,
+      "variants": {
+        "default": "573787dfaf2bd51a1df680ee11f93b63e4176bce8c432e4528b9a35cbc70d43e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-64": {
+      "rev": 1,
+      "variants": {
+        "default": "25b90a90317ba5556d6b9a64870949a0d6ce8f5c35de167357a70cda73328d15"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-65": {
+      "rev": 1,
+      "variants": {
+        "default": "b044413ceb33eedaf0e57d4d560fbb78fd56ec73380417b88563b829c94f8b0e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-66": {
+      "rev": 1,
+      "variants": {
+        "default": "36a1bd1b9ae4e56984b4750f337f87b839d5a71f7327bc2947e3fdcb7ee6b41b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-67": {
+      "rev": 1,
+      "variants": {
+        "default": "766102493ff2fbab27ed6c6c0f85ba8d2eedc2fe2d4d7fd51d9abf15df1e0cc4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-68": {
+      "rev": 1,
+      "variants": {
+        "default": "dc8c1b7b7b8a7d3718b4413d5853a453825c6b64e1e87bd482e24cdeec357eb6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-69": {
+      "rev": 1,
+      "variants": {
+        "default": "c7bf9c3ea3eb0bef18cec2897c6b27c2bb6a086c52f2f56f4ecb83f75fa223e9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-70": {
+      "rev": 1,
+      "variants": {
+        "default": "58501a1e5e7e1180701ff9e53d4756ea9d1d46a1885518ae965007ab869e8ed5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-71": {
+      "rev": 1,
+      "variants": {
+        "default": "8f7102befd7997bfe64d98568ef01faf62adf8b54be1c88104ab138d01450f7e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-64-72": {
+      "rev": 1,
+      "variants": {
+        "default": "85e9c0185b0b6553395888536359b69a2fc18bc5bf2874b6ec9ca8fb46c60923"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-60": {
+      "rev": 1,
+      "variants": {
+        "default": "ce9789cfa9ea152f19e2c725e92546793644374ab3f29d5e18a24d18c75924ff"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-61": {
+      "rev": 1,
+      "variants": {
+        "default": "d852cf6984f6c02b4cd510cdfe4fe7af099309ac2494af93196589380df3f14a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-62": {
+      "rev": 1,
+      "variants": {
+        "default": "e95432f2751fd6e3a37dfce8b90022193d9e12fdf685288175fc25c58cc1aa1f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-63": {
+      "rev": 1,
+      "variants": {
+        "default": "90528c640a11938b5da11101fb4d37d45f86e1fbb5f3436769def64f749a3ed6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-64": {
+      "rev": 1,
+      "variants": {
+        "default": "8450c77abffb505312c1e9628f4fe77187f7f6542f4ee427e7cf73a28e354cc3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-65": {
+      "rev": 1,
+      "variants": {
+        "default": "917494bdf83bf689b7f269b82225a42d4856ceb1e4df50c579b3f0c24c73084e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-66": {
+      "rev": 1,
+      "variants": {
+        "default": "235332ec080efef133b895c7f9e2f073f7afb7a8782f46684917b3beb9c614e5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-67": {
+      "rev": 1,
+      "variants": {
+        "default": "0d3f9bf6ca65e53fd0664fbca921aa2d690a2de5cba5fc696c54b61c3aaea97e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-68": {
+      "rev": 1,
+      "variants": {
+        "default": "d5eb13cb69f14e681ccf587435d7d26b1b9740e446bfdad0e9f63929f8c06368"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-69": {
+      "rev": 1,
+      "variants": {
+        "default": "8f23bff3b73fff439d1ede754821682faaaf1af46966e3d2c60fea2341886806"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-70": {
+      "rev": 1,
+      "variants": {
+        "default": "9519a899f1dea637aeff8149108a9e15cab295eccd90ca0980bc163b5f5972dd"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-71": {
+      "rev": 1,
+      "variants": {
+        "default": "8e73ddda38ca0a07ccb8f9482629b6994d9b3322afb1fa1b3b4cdddc46e67737"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-65-72": {
+      "rev": 1,
+      "variants": {
+        "default": "de81ea2e83c4843870054bea9030af122a1622735645e9d26d382f4079f86828"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-61": {
+      "rev": 1,
+      "variants": {
+        "default": "67b7079ffabe16636b0fec12a6df0c674c5772ff948faa0cdf04b1f318d8155b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-62": {
+      "rev": 1,
+      "variants": {
+        "default": "20cfb15ae3dda816a0fccd13caedcda208ca3250296665916be424b89f0d297b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-63": {
+      "rev": 1,
+      "variants": {
+        "default": "f8afceae5581c1903ff5b91f9fd29621896d42859f28cafc8d36c98223d907ef"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-64": {
+      "rev": 1,
+      "variants": {
+        "default": "64ac994464038dc4b8bbe375e62702b7f981d7b800cec4cea0e1bf45c326d41f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-65": {
+      "rev": 1,
+      "variants": {
+        "default": "c123da1b92b3a6784b7abe3b1e892482726a5d75171dc7b882e9e3ef93e065e3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-66": {
+      "rev": 1,
+      "variants": {
+        "default": "ba8161991dce6e4f465cb7ebc96b09c7188987cb1184eb5871f9394a7f97d9eb"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-67": {
+      "rev": 1,
+      "variants": {
+        "default": "2608e78f65b1ee22ea0b74acc44bd1718a87b81d45f12ded4dc9030f648a096a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-68": {
+      "rev": 1,
+      "variants": {
+        "default": "c94ca9162886d3995aa31d5dde7045b11b31752501a74f4ed30330621005fd93"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-69": {
+      "rev": 1,
+      "variants": {
+        "default": "3ac0332c79883c8f7b5913a910d9a9e7dcaa08786870a48f28c5e99bc90479c4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-70": {
+      "rev": 1,
+      "variants": {
+        "default": "da13b39c5e7fc4e8152d9dc760a8d583904780beedeea3a50167b607dd0cf32c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-71": {
+      "rev": 1,
+      "variants": {
+        "default": "a0d861bb51469bb47bc4e6b85bbbf1cbb4700a8eaa01bfccbda447c953c79eb8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-66-72": {
+      "rev": 1,
+      "variants": {
+        "default": "6991fe5346b4b06a0bedbdaab68cb9068735449d643a87dd259f29cc4cd25219"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-58": {
+      "rev": 1,
+      "variants": {
+        "default": "bcb9662ee3ceeefe34a470cb944da69e0e746734c2c3e8668f98fb7aff8678a8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-59": {
+      "rev": 1,
+      "variants": {
+        "default": "70de61a160220633bf355c04df88fe98ee508e5e5d9cb461465c873584c3d5e2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-61": {
+      "rev": 1,
+      "variants": {
+        "default": "10d98489a0480d39f9c4d4a64b1e1ddca6c09c369b07f5dcb541d2dc8c36184e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-62": {
+      "rev": 1,
+      "variants": {
+        "default": "44872cb605a9f43865e8a4254c8b27966a5b897d84d32a909325b6bdc72470f5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-63": {
+      "rev": 1,
+      "variants": {
+        "default": "8f26d50cc4fbdc1bb7a88e18c20dbfda2376944e78378e3d8da33ae06ec07096"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-64": {
+      "rev": 1,
+      "variants": {
+        "default": "f74a1acdb67ff0fe193d58686817dbd8fad080d3a45c33710fb592e90823c0b8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-65": {
+      "rev": 1,
+      "variants": {
+        "default": "b2b6aa21a6e2506eb35b72d16a4bb13b529b6cb5280ed061f36fb95ecb2b917c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-66": {
+      "rev": 1,
+      "variants": {
+        "default": "b5f3db2220e7b3d5d78bc953bc6ab4450e9017feb1a2b829840513a4b375d7a2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-67": {
+      "rev": 1,
+      "variants": {
+        "default": "bfa364b08889eb205d4ff57ee17d9e51265cb80065796d0c4107ad92173482c7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-68": {
+      "rev": 1,
+      "variants": {
+        "default": "257c7df7e74e0fa2309789f10941d3739edf5bbdd501da23caad01d29c10cdbb"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-69": {
+      "rev": 1,
+      "variants": {
+        "default": "da311bdbaad987c31363d925cb941e6ec7aeea444248cb455807d3464e959358"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-70": {
+      "rev": 1,
+      "variants": {
+        "default": "1317aaf7a2a87bc3c9250b8f8cff591bfa9864635181bb833ae12345f6edc11a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-67-71": {
+      "rev": 1,
+      "variants": {
+        "default": "5e15b41045c1422b52e22114ab463d59b77beefd90fc9f46011ff228bcfb35d6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-58": {
+      "rev": 1,
+      "variants": {
+        "default": "4da17c2734046d94c4ca52619931ba2b4aaf366ca54e416539add56b45850e2d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-59": {
+      "rev": 1,
+      "variants": {
+        "default": "0aa2959530ee1817bb675f2c965bcfe437df8da9001e394477862b9eabd2d63a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-60": {
+      "rev": 1,
+      "variants": {
+        "default": "758fa598a82056e84a160d42add47eb4dfa967a554b7346edea5a0cd37ac6485"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-61": {
+      "rev": 1,
+      "variants": {
+        "default": "e2a41894b203eea55b285332949c0069ca167c34f0ed4334568529ec52259b02"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-67": {
+      "rev": 1,
+      "variants": {
+        "default": "562892b3775f2bb708e58bb8c9978e98abcc74c99e0d2c48a223f2abd71431d3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-68": {
+      "rev": 1,
+      "variants": {
+        "default": "9e394fd1caca71455224dc9d1291b11cbc93184805b69df7063b5429d1afb86f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-69": {
+      "rev": 1,
+      "variants": {
+        "default": "aa0b627ff1a676d0d00f57d52b12e8b4da0786c90c6d06eca65a6bf1ca0decba"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-70": {
+      "rev": 1,
+      "variants": {
+        "default": "85632f4f79c9241c668dd4ea361837d8dd9124f2ac646a5a1140fb9ec2634b86"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-68-71": {
+      "rev": 1,
+      "variants": {
+        "default": "326a64c7dd1c30aabc080a81c74c36833f205b229f7cc01e1a7fbcabed82ee4b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-59": {
+      "rev": 1,
+      "variants": {
+        "default": "5e0008c7a6c6afb72970ddd51289ed4e0e0bcb719e2b2cd4822fab5febec897a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-60": {
+      "rev": 1,
+      "variants": {
+        "default": "308dbf845d210e44e1ff59247f449b7583fb1d1480a668fd65ee749027e60289"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-61": {
+      "rev": 1,
+      "variants": {
+        "default": "e86f813c6322722ffa7af31f204ee0a4a81e86ce538c40397696f9d33449e806"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-69": {
+      "rev": 1,
+      "variants": {
+        "default": "90f2b20b19a33842b7236b1031065cb82bb6f7aad4ec30d2c979e7bda1ae8505"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-70": {
+      "rev": 1,
+      "variants": {
+        "default": "c89a44d1661157e110c0edddfe30f423161133bbe7e34fa493de15af2a2fde31"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-69-71": {
+      "rev": 1,
+      "variants": {
+        "default": "81f140ea10728d3a3a4da3280710af205294110a6d20ec3594c3f5d033ec74be"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l0-70-59": {
+      "rev": 1,
+      "variants": {
+        "default": "bb4f2aa28132aca0ecf9ef1cc1b4dbf7a2f51ef2ee31c1d84f907914913e9a0f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-13-14": {
+      "rev": 1,
+      "variants": {
+        "default": "1108c99229bf2aaafbd0cd3f2461363697f477e68641b55411b046a3b1bbbc35"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-13-15": {
+      "rev": 1,
+      "variants": {
+        "default": "310406f4f0434025b4f4d8a9e2361d2ff3a61697f1d4cafe9d5b101bd306acc7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-13-16": {
+      "rev": 1,
+      "variants": {
+        "default": "e9bef75d55d9514116f872b616bab8635def1bb21cf8ddeaaac27633b213dd33"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-14-14": {
+      "rev": 1,
+      "variants": {
+        "default": "c6368f2edc76a2b52ece26e0c54bac8523f73691b1ba11cd88805abd9dea0b9c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-14-15": {
+      "rev": 1,
+      "variants": {
+        "default": "f547df8820fa18e9dd75be65ef1c8392f94a33b6d748884479103c863a264a6e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-14-16": {
+      "rev": 1,
+      "variants": {
+        "default": "7e3820d21c9651f8ee3bad4582fec6c3a24f3e16e8a8b5c2c0c504df43b15cf7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-14-17": {
+      "rev": 1,
+      "variants": {
+        "default": "b116e052f24cc023551bbcb34dcb84324b301ca6df33e310658c34e2a1b6e669"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-14-18": {
+      "rev": 1,
+      "variants": {
+        "default": "c93095feeeeae62baa0405955e65a300939fbfa4a2bd56e294a9ffe33175f269"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-15-14": {
+      "rev": 1,
+      "variants": {
+        "default": "ebfa7a71564ae4bcb1ded3ec6291051c122406822bb79461d870754add994f9f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-15-15": {
+      "rev": 1,
+      "variants": {
+        "default": "e9b376e3348379745d2ee8a1aa9ee4d993fd3fed68ce9f27f82168530da300e6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-15-16": {
+      "rev": 1,
+      "variants": {
+        "default": "f3b81320193abf172af6cc5fcbc3ef078204c99c34f7b08b208076734da0f06d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-15-17": {
+      "rev": 1,
+      "variants": {
+        "default": "6494dbbc1fe408de056f4128db49bced6f78a7c3d49bdc728e53b47a1e7debc8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-15-18": {
+      "rev": 1,
+      "variants": {
+        "default": "759a977855f5ae2a777207885654e2c126551c65cc120e7aedbfce8a840df811"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-16-14": {
+      "rev": 1,
+      "variants": {
+        "default": "a5e6dfe4c13eedab9fc168e9b252f18fb82231b1b787195a8f798743eb67d307"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-16-15": {
+      "rev": 1,
+      "variants": {
+        "default": "5cdfa0608ac311dd6cf2bcff4551bd227b49a2fb2fd5d02bc0b4ae31c60740ed"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-16-16": {
+      "rev": 1,
+      "variants": {
+        "default": "ea74b16eddda7d1a29a732638b6bb47e9c9f8fb33be4a00d57355c01a12a41fd"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-16-17": {
+      "rev": 1,
+      "variants": {
+        "default": "3d09cb5d4c942254604cefad5657e6243c4ae939781213f54dd7bb98f0446639"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-16-18": {
+      "rev": 1,
+      "variants": {
+        "default": "f6c84dc1782d4d1cffb5ad05213451a129e6ca3e972f4904b78052062df3c344"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-17-14": {
+      "rev": 1,
+      "variants": {
+        "default": "fa6447473764d910b393792dca2fc80eebba495cc626b6a48b66d6e8cd327594"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-17-15": {
+      "rev": 1,
+      "variants": {
+        "default": "cdee53fa4e044af4e5e5df8a0c6e897e50bb5042beaa3beffcb747dadce3b9c2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-17-16": {
+      "rev": 1,
+      "variants": {
+        "default": "81ca37bf1182606fd132866b0fc31699a90c17eccac2e9b74499c1fc50099d9b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l1-17-17": {
+      "rev": 1,
+      "variants": {
+        "default": "0811a987e771f13f65132982bfc95714562979b96d80f915b634e9c5f4f7d50d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l2-3-3": {
+      "rev": 1,
+      "variants": {
+        "default": "848fc85f994bfecec4646f354cca574e2cc60a68fe2aae7bc7c18dd7559f84bf"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l2-3-4": {
+      "rev": 1,
+      "variants": {
+        "default": "944a6afbfbb3f28e8687ecf12509f1b6f8b78e182ccb1ef106352d00319f0ce6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l2-4-3": {
+      "rev": 1,
+      "variants": {
+        "default": "48d9ee9a070fc5d59186c3f7e22902936d6ef7c388b77a8d2d679bbc598176ea"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/l2-4-4": {
+      "rev": 1,
+      "variants": {
+        "default": "1f933bfb76a7a02aff6b0922c2b07d614b4fa47b420e9e3fb57f35cb3d58343a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-54-57": {
+      "rev": 1,
+      "variants": {
+        "default": "488e86d53e7a7ec64b3d47adc04cd64a98e24e22ee4015a67f4e304e5678bf35"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-54-58": {
+      "rev": 1,
+      "variants": {
+        "default": "714e3dffb3dd149ef1e2ffbc7577dec3cdf8e5367fe5ccd3b25d05c4914aeb05"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-54-59": {
+      "rev": 1,
+      "variants": {
+        "default": "20bc55bdf3bdabafb80bbc583fad01f550a434d82912096a4abcd5c010a82484"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-55-57": {
+      "rev": 1,
+      "variants": {
+        "default": "57c5ba11d29a1118812aa6189777b2c427aa917bc2b8f0564ab00423b0b58195"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-55-58": {
+      "rev": 1,
+      "variants": {
+        "default": "e703ba35996aceee6904bcb82ecce995b9576de10220fac173516e1810ba83a9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-55-59": {
+      "rev": 1,
+      "variants": {
+        "default": "c363cc495733731ea4c8feabb2f557d4eff788f62dbf85e86b826a5047a3910c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-55-63": {
+      "rev": 1,
+      "variants": {
+        "default": "e073106f9a657f6e1552125faaa1c5d9585fb7006c71a5f52894132f990051b6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-55-64": {
+      "rev": 1,
+      "variants": {
+        "default": "90616419238c8bd07c3eb86964c27cd1b7af961ed943f4bfae9ddb641cd246ae"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-57": {
+      "rev": 1,
+      "variants": {
+        "default": "caba65c06a3bdeb2696589cf07d36e1df152f9f7fbbde275fd54578a78292871"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-58": {
+      "rev": 1,
+      "variants": {
+        "default": "90079954a7488fc11b02c22084abeb75b338661901b32ce33147ec0093f97b0e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-59": {
+      "rev": 1,
+      "variants": {
+        "default": "0d09956fad0402a39ad69cdd81307afc7b4e4ccb3e59a925398441b5a65f4854"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-62": {
+      "rev": 1,
+      "variants": {
+        "default": "284f17ce2eae3316f6be2f5a052624d2820191746b9debf5dd0f906bb8bf36d7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-63": {
+      "rev": 1,
+      "variants": {
+        "default": "42296a7bf5bc362a0c945e516cf4ed20254ee9c5475c2f0b476cf7e30ac49108"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-64": {
+      "rev": 1,
+      "variants": {
+        "default": "3e52533a9be16c7c042ed78df10fa6040ec2c7fd7d6a0a63dc309047a1fc445e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-65": {
+      "rev": 1,
+      "variants": {
+        "default": "58576c7f18644058ce61daa64779676aeb8c34f0e8e7868e64b833d6e9822ccf"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-66": {
+      "rev": 1,
+      "variants": {
+        "default": "8213757921ca0c1b9d93a86cd345b8676f1b92ceb416fc422d673793b97b69b1"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-67": {
+      "rev": 1,
+      "variants": {
+        "default": "eca1601d3f91e9970aae1fb3ce31fc90fca18e4de6d5e4af3117228c708aebcc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-68": {
+      "rev": 1,
+      "variants": {
+        "default": "4ce73f3408ed8f71af5338a3a95eebd3b8dfe684e5a6f9cbb8f53c8b4d61732c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-69": {
+      "rev": 1,
+      "variants": {
+        "default": "4ff62fc4ddf84385695427bdc2b02dcae40aef5c3df22819a6ee3e501462e474"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-70": {
+      "rev": 1,
+      "variants": {
+        "default": "ba7717916073dd792d278e369eb300d97330e250ed9b6b69fabb2305f63aadaf"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-71": {
+      "rev": 1,
+      "variants": {
+        "default": "0bd8aedbbd5476884256f4e49d575a9cc51e4bc4a04134f6b572779713814849"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-56-72": {
+      "rev": 1,
+      "variants": {
+        "default": "7df5f203502649e24cfd210a8877c08d7cfc1845fdbf404c40d4d4031ce51768"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-57": {
+      "rev": 1,
+      "variants": {
+        "default": "60ce61847ec4c9397179c91698d29a2fd327bc30882e4ae115188a11d3fb6ca8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-58": {
+      "rev": 1,
+      "variants": {
+        "default": "3d6f6807921c1ee801859178df73cbd42d7b50ed30fef1d4814c37c472e7fb19"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-59": {
+      "rev": 1,
+      "variants": {
+        "default": "d9e2f1520b4155ddee90bdd7f50a90fb9953811a453654e0a2060fe76564bfa5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-63": {
+      "rev": 1,
+      "variants": {
+        "default": "3f0203927113b17e7d79d564d15f32988c3d6b000551b445f7aecee3dd4b598b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-64": {
+      "rev": 1,
+      "variants": {
+        "default": "2f1f15c582caa1116c8d24372ea6bbe851777757e97d3eabaabaedf1b9e51692"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-65": {
+      "rev": 1,
+      "variants": {
+        "default": "57336839e658147bd306509bef200b2360ee2795b4b1bc07de2641c222a1763e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-66": {
+      "rev": 1,
+      "variants": {
+        "default": "01410d1b186feb58c86df3f75d692b4e75f0856ee083a612750f0f26318873ce"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-67": {
+      "rev": 1,
+      "variants": {
+        "default": "d8ab3f4c051daf2a295c3459d42bcbad1d2a9ea7c16908cc47725218d13dee87"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-68": {
+      "rev": 1,
+      "variants": {
+        "default": "b3fe9b9332cf02360899d3611442af03ea649a211c07218eaeb85a3fd4bb5eab"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-69": {
+      "rev": 1,
+      "variants": {
+        "default": "4d38596cc9c6951e698dd05de0499bdc5503e7c9867ed5110f30ca09e0c68de5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-70": {
+      "rev": 1,
+      "variants": {
+        "default": "f648dcd5176e8a0532ae48815e46015ae45440fd8b0dbb6fbd3dd20069668e80"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-71": {
+      "rev": 1,
+      "variants": {
+        "default": "acd1a500fdd93ce63152f2c03200020e614c254d088a09aa8d344a60a5bf8dd8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-57-72": {
+      "rev": 1,
+      "variants": {
+        "default": "f080f9ef947f538ed0812ca4d4197d6a99e1f420a3b2419873cab7302c8b4a32"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-57": {
+      "rev": 1,
+      "variants": {
+        "default": "7191d1cadb89b9ae8c76081929f5b1ead05bf94e86a07d7aac89fae460733605"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-58": {
+      "rev": 1,
+      "variants": {
+        "default": "95e138dc74b773e0419e65f5f8a89fa073f76c4e29d04060f8618042e4419208"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-59": {
+      "rev": 1,
+      "variants": {
+        "default": "ea0b04af7678aed681c3453d6b799a02fc446df85fa2638a1d6e8c98f456f12f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-61": {
+      "rev": 1,
+      "variants": {
+        "default": "7bb4f7b7bb92d14ce743da54661eed8a6489b0dcbf986033323f2963e7355b9f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-62": {
+      "rev": 1,
+      "variants": {
+        "default": "579774da057897e0bdf8902f57a56bbb849ec646d06b34000fb5799c6ae5b961"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-63": {
+      "rev": 1,
+      "variants": {
+        "default": "f3b2235cd2f81320456d57e5262057e426a68351d4d02a83ee681eca69f4c588"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-64": {
+      "rev": 1,
+      "variants": {
+        "default": "696d4568c9a6a98cd79eefe5e56374cdb55635b6a0169a0d5ce2ccc117eff247"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-65": {
+      "rev": 1,
+      "variants": {
+        "default": "492081c8b89273eeacfcf01f84693e767b4e5393ca4e7a33e98984a92b8cb8dc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-66": {
+      "rev": 1,
+      "variants": {
+        "default": "d1439f7b7e64f1ab95432175daadfafdff9d86cc720919cddc4ce34ab146dfde"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-67": {
+      "rev": 1,
+      "variants": {
+        "default": "11348785f99c909a94dd1434ae46c24e312a559d33f63fdfca3a7f4a00b0bd95"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-68": {
+      "rev": 1,
+      "variants": {
+        "default": "87d046c02bc6a32f0ba8e96973854bbf0da02d993063374b196b4d2c618f70f1"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-69": {
+      "rev": 1,
+      "variants": {
+        "default": "72aac90fb79ac61db5c7b7ac255a396bed5be9e8ad1e70251d59ed9e662bb14f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-70": {
+      "rev": 1,
+      "variants": {
+        "default": "9f5881d7c743a719752f04bc7ecd88191f0b13bf9d6f116fec01ab2ab80272fd"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-71": {
+      "rev": 1,
+      "variants": {
+        "default": "48c715dff5321cd43372164a7f2caa57f56a91e3481655d2cf8450bd809548d2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-58-72": {
+      "rev": 1,
+      "variants": {
+        "default": "7a786f6e54c4cc7b704d55caee7686de461f64458f621b5a78f1846e7ba18270"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-57": {
+      "rev": 1,
+      "variants": {
+        "default": "7b9a25c9d3759d1d452ed3693094a274acf0bb2b16c93f7015e1324d2e978bf5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-58": {
+      "rev": 1,
+      "variants": {
+        "default": "c51a2cef4f9673ffb8ac3c3065809352417b965973c2e00ceaeea5dda4c10b62"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-59": {
+      "rev": 1,
+      "variants": {
+        "default": "f76cd6987de65afade23f90d9c838e27325722ea5352505879a3e4c41c5d2aaa"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-60": {
+      "rev": 1,
+      "variants": {
+        "default": "1d9d874b307ce2b3d0afb4d6857321e932ddc6ae6af6a8d687c6356675aa7fc0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-61": {
+      "rev": 1,
+      "variants": {
+        "default": "d039859e7d1420e831c6b2a02a8086e377f17783997b68b3ea3a8cbff4777a4b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-62": {
+      "rev": 1,
+      "variants": {
+        "default": "16c186480696d8f093ac116ccdaedf54a27d09e0eb404d85ff03c0e7df9a73b3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-63": {
+      "rev": 1,
+      "variants": {
+        "default": "c02f497a41e9471b5047df54f5fc76635a4749a14e269db99654405acca5a2a7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-64": {
+      "rev": 1,
+      "variants": {
+        "default": "6210f3e551de8f85f5048ad17961967e652a904e24ed76e8d8cd0fa5af9eafdb"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-65": {
+      "rev": 1,
+      "variants": {
+        "default": "55076c33ee6af167c7eeb917475e4521a78ba87c83d608067b14b52653e55682"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-66": {
+      "rev": 1,
+      "variants": {
+        "default": "f5c207ae36c4665e9b553834c3229fdc7bd43357867e656648369c85685c80a4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-67": {
+      "rev": 1,
+      "variants": {
+        "default": "c3cb9da8adc7d1bc6adf46a4d9a2b745cc20f99bc53c2839edca6e87d6136b25"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-68": {
+      "rev": 1,
+      "variants": {
+        "default": "3bb2f826359f0ef77f502b20e17c49f9b0e26d63010fafb9597f3177cc4fa137"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-69": {
+      "rev": 1,
+      "variants": {
+        "default": "0659029077d3425b32122f021e73c3b6ef85bff500efa1760406de6451486f0c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-70": {
+      "rev": 1,
+      "variants": {
+        "default": "41cb8a1acfa12af38fd0ddc5239bfb8f176d62187c58aa033aa61b527e752103"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-71": {
+      "rev": 1,
+      "variants": {
+        "default": "0f8aed1de938e4834e00a967f797486b8f97bc721ebd108218d3d720f12d7e7e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-59-72": {
+      "rev": 1,
+      "variants": {
+        "default": "8e25b6b59623397930c95a3b9cb5c41d0c3321c00afca985e99d2672fb419c07"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-61": {
+      "rev": 1,
+      "variants": {
+        "default": "e733bc2ea7486b1a4d5200c30e6d5660ac04f7832e7fc8c9dfbe8fc058c8644d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-62": {
+      "rev": 1,
+      "variants": {
+        "default": "6578e96d8ba7e30e4810ee8e80e4536fcd378c75094b281e7b9b60338c3b6502"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-63": {
+      "rev": 1,
+      "variants": {
+        "default": "f220001c2fe0128365d208f2f414c17f4c5c82c7e190c38b52c57a21c6a792e4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-64": {
+      "rev": 1,
+      "variants": {
+        "default": "328f37a4d0eeb1560066e091164129565a6cc30f0779a17460fa76f7cd8915c4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-65": {
+      "rev": 1,
+      "variants": {
+        "default": "71b0a5fa224347ad4e793e59f4427faae3b06a34dd1b7782ce21dc82e1174de0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-66": {
+      "rev": 1,
+      "variants": {
+        "default": "13873bb10b2d65146cf064a1af957a2af2b3629197a3cd3758dcd386fe4561a1"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-67": {
+      "rev": 1,
+      "variants": {
+        "default": "1134318097058265456d481808b46b50567ebdce1a39b0d68be84879c1eb6152"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-68": {
+      "rev": 1,
+      "variants": {
+        "default": "049c2cb4998748ad1716eb6d952de5b39e3c2e9c3a309d7a667c659a60b9d193"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-69": {
+      "rev": 1,
+      "variants": {
+        "default": "221e906efb565dc83983ddeaa3f477bfeeaa25fb79566a4cfc102df9ba495658"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-70": {
+      "rev": 1,
+      "variants": {
+        "default": "cf6efc2495a5f0bcc696e84be3fb80deea3a2661f750771a989fda9e6f8aa7b6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-71": {
+      "rev": 1,
+      "variants": {
+        "default": "a4ec1605f40d2afd4ef51cd9f30d82fcadc70680b3cfec8c73b83035af519ea5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-60-72": {
+      "rev": 1,
+      "variants": {
+        "default": "f507029d5c963b97193b0f664d8d730531dee5bbec9b55b1ad13b62fc80a3dce"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-61": {
+      "rev": 1,
+      "variants": {
+        "default": "95fa6bb2b425870f58ab2361828fab523577b60914ed26ec1f77e5ce82a2ca3e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-62": {
+      "rev": 1,
+      "variants": {
+        "default": "ffbcc34ce5a7c286b36183d266a7923440e38a3350d5a0cd0901345303158802"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-63": {
+      "rev": 1,
+      "variants": {
+        "default": "1b09073fc8eb0a4c86bcc6fa1b8e440660e9b5ff68d28da1abb58e8f336896e2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-64": {
+      "rev": 1,
+      "variants": {
+        "default": "96192af5f46e66367486e966aee23c061417b3f248043ca88e065dfae57cdd49"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-65": {
+      "rev": 1,
+      "variants": {
+        "default": "dcbe97949ab1ff106c79060e6dd08b6e2aba9ba239a6c277f45fa03a0ea07ec9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-66": {
+      "rev": 1,
+      "variants": {
+        "default": "cfd6a58388604f3fc89015c0e4575a257529546398e62594f5bb1cc767b977c5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-67": {
+      "rev": 1,
+      "variants": {
+        "default": "caed9d4bc2447f29623be1afa6924da12e3536c08f6a452d9f286f9f4c21a3f2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-68": {
+      "rev": 1,
+      "variants": {
+        "default": "2acb837b67790b002b32c9771fbc4b99c8174c84df57243b3afb1ae908119fbf"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-69": {
+      "rev": 1,
+      "variants": {
+        "default": "c186b1fc23a2d84776841c4464bbc6731148a7c20b4865e3c6b8bd767ca775c3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-70": {
+      "rev": 1,
+      "variants": {
+        "default": "2937af3ca89bc69396f1eebdb559ec210dfa9f2d117483d8b2f4e245a01eea84"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-71": {
+      "rev": 1,
+      "variants": {
+        "default": "ec6bd239dca10093544c8d6545a37eaef21162c31fb32f083cda015c6f7f695a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-61-72": {
+      "rev": 1,
+      "variants": {
+        "default": "aaa0c4b7f52da159bfa3c5034b2b988bda61c297dac690d1c5dd557ca37bc6a9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-60": {
+      "rev": 1,
+      "variants": {
+        "default": "1d7608c18c4a41638e4db24409dba58287abb6dcf1d5873b09ceaa5875fbc412"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-61": {
+      "rev": 1,
+      "variants": {
+        "default": "3b55379772b30016c049288e1d0ec3ce3f18e66763c24f49aac655b655b71a21"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-62": {
+      "rev": 1,
+      "variants": {
+        "default": "b7529b209bf46cca4185bc1c1acc4c57b28f8c7ccbb29a003d6def2b8d9a1756"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-63": {
+      "rev": 1,
+      "variants": {
+        "default": "21a166eaa0984e42795bae99df3eb93a5c245fb3f5b2665064dce843c6ac9ce9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-64": {
+      "rev": 1,
+      "variants": {
+        "default": "7ad26b0cbdd3a3c93b375ca3a31f833703bc223bbff15d89e7ed20fd1f9c9846"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-65": {
+      "rev": 1,
+      "variants": {
+        "default": "2af5e0d3fc5a7833d03cfa6a3695d04f381db96742c4229a4eec54a47de93b45"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-66": {
+      "rev": 1,
+      "variants": {
+        "default": "abce0d54e15a18334e72fb97f1d72901194606036e3f2bd6d05643ff1a3dd5f2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-67": {
+      "rev": 1,
+      "variants": {
+        "default": "5b02e3559d5681fcdadd654695eac8968d80fa8c4a81a559231fc46d4d7b01cd"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-68": {
+      "rev": 1,
+      "variants": {
+        "default": "0d642453a87e7e64c99a556b1d9dd637e8c29682a184fd53b7eaf87df455c620"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-69": {
+      "rev": 1,
+      "variants": {
+        "default": "eb6debed3f0c7a9329c40637a7d9738e36dafb408c1d27d7c8ab2a61b37e522b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-70": {
+      "rev": 1,
+      "variants": {
+        "default": "c5fc7d4a2cfbd6a2aadadc0476b41446bce06733b67d0efb8bf92c528837834c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-71": {
+      "rev": 1,
+      "variants": {
+        "default": "56b8c2d41836bd3b2b0f8e39f338003b49815dc2f68324cbefb9840e10c12a3f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-62-72": {
+      "rev": 1,
+      "variants": {
+        "default": "bc9676be8e4c7e2a3f7025e124ac8bf4c8adb2e5e25f408e5468f2d5ccf7eb38"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-58": {
+      "rev": 1,
+      "variants": {
+        "default": "eb0767d929a25183520b3c5571ed98db53d908b21ce4e3e1ef88923b74fd67a4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-59": {
+      "rev": 1,
+      "variants": {
+        "default": "e4a3f0796ad3f45e7ae4190b748cffd564626acce393851231668b6c9b4d3fc6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-60": {
+      "rev": 1,
+      "variants": {
+        "default": "2ad480e9da4338f95d732be1cf9983b7023714b195949b0992d1be18f296fb8b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-61": {
+      "rev": 1,
+      "variants": {
+        "default": "8b00384b043fb3bfe341bd6491cd6a05f5998edd434e9cfdcb4904462ddbad90"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-62": {
+      "rev": 1,
+      "variants": {
+        "default": "8558802d4519a6786d6405383c7cbe45bc91376c832b7ae879a8252d6edf5b7d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-63": {
+      "rev": 1,
+      "variants": {
+        "default": "8094e5a02062eecf6e3501ed005c70d429fe2abc9b064e159125bb3ff6105e2e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-64": {
+      "rev": 1,
+      "variants": {
+        "default": "e14100fe678bf4a94b7af1050fd8d7bf9d08bc4b5155227f1d6202d07a64dbd0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-65": {
+      "rev": 1,
+      "variants": {
+        "default": "39ef0d5f52c48b232a02c8e54c9e5c4ebd8fa28890022b4c500f1fbffdf5d5aa"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-66": {
+      "rev": 1,
+      "variants": {
+        "default": "f289655235e90fa036bd819afdf2cc88262ecf279757e14ef136af7d0296824a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-67": {
+      "rev": 1,
+      "variants": {
+        "default": "d963892e8d226c40e3f6c117c85868638005729f632da1f786fc3b44020569be"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-68": {
+      "rev": 1,
+      "variants": {
+        "default": "c534ad94cc836b6221fc3d3a021feebe11191f095ea7902fc21b1c95d2f4b074"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-69": {
+      "rev": 1,
+      "variants": {
+        "default": "455cbe7c9b81f9445bfc3350d5e04259edc18ac567fca89f566bd9dd0e041aae"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-70": {
+      "rev": 1,
+      "variants": {
+        "default": "c47b3775e57bff5d8b22f61eb84745368af81dfcc4f91fcd80c9c7fc2c3b14da"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-71": {
+      "rev": 1,
+      "variants": {
+        "default": "065f02af922c5c74075069fb20a5c90178cddd97b6a138f84ae539c52557f6d0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-63-72": {
+      "rev": 1,
+      "variants": {
+        "default": "8186f6d968f3f3035be3731135818b38336fe3487df0f203a203c61a4344793f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-58": {
+      "rev": 1,
+      "variants": {
+        "default": "17bfe4c576257017bfd186e16d5633cbcc6588d3c862c61e6216234873156331"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-59": {
+      "rev": 1,
+      "variants": {
+        "default": "396db7509829dfba36e0a1d31371e7a61a2511a6861f4fa1af9c5619685374c3"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-60": {
+      "rev": 1,
+      "variants": {
+        "default": "ec05fe498cfdfe6a7cf82a808bd237f05e2541f1d9b402eb503537867b612e43"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-61": {
+      "rev": 1,
+      "variants": {
+        "default": "1db8bbb3cf420c8c9f7fbbf5fa4f923bbc6419efe6051511bd097958bd858773"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-62": {
+      "rev": 1,
+      "variants": {
+        "default": "7bcd099d52736f721ac2a768a720da9f165a97a899e7f570a8e9564cf09e7e5c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-63": {
+      "rev": 1,
+      "variants": {
+        "default": "51e35c0da4788c6bd7223402499e56a0f81a1bdbd1fabbe2720961debd27dad6"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-64": {
+      "rev": 1,
+      "variants": {
+        "default": "500f187247902e1c4b5ed9eacfac0a320cbf5d4427d9bd824d6801c418b610be"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-65": {
+      "rev": 1,
+      "variants": {
+        "default": "e0896e3b29d1faf5eed12684c973926425e303988072ee3e43261b41765ac589"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-66": {
+      "rev": 1,
+      "variants": {
+        "default": "f457e247f26c713545cd08a39baa1a2971ccf4568a987bd9fdf99f1f1ad63206"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-67": {
+      "rev": 1,
+      "variants": {
+        "default": "9acbedf36668552fa91412dd2cd71f4d5709b8e5b9e6bc3270b894d31fa2155f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-68": {
+      "rev": 1,
+      "variants": {
+        "default": "eae9ca7defc7b1d926d7b0ceb829f1b3ecde66adcd98a7318dad9ef5807cb01f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-69": {
+      "rev": 1,
+      "variants": {
+        "default": "bb4a0eda69208b9daaa5ebd6086e3637154726dceade745416aefa1662f2f015"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-70": {
+      "rev": 1,
+      "variants": {
+        "default": "a46623fbd7b99627b8df78cf0b255b0f4fe9b6e5ea1a8d05b5f853abecf84104"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-71": {
+      "rev": 1,
+      "variants": {
+        "default": "2086618f1fc7a8ff290551649a18796995e71d95b8e0808f66244e551674c494"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-64-72": {
+      "rev": 1,
+      "variants": {
+        "default": "5be4ebb1c99d9aabb152a558d946bd2106a48b30669312a5a64c4e140033d4af"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-60": {
+      "rev": 1,
+      "variants": {
+        "default": "ae8145785d74895bcf1b9bd8d64bb3e5cfc3731842a85bdab536d51b6045a77d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-61": {
+      "rev": 1,
+      "variants": {
+        "default": "0363341a2f6b985faf0a6e59925e7c7914d51f21823941cc6e0a999a0d8dd480"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-62": {
+      "rev": 1,
+      "variants": {
+        "default": "d3a1a71382b64388dd5e1f7fd9ece285b5fd3a92bd0af06cd305705cb517638c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-63": {
+      "rev": 1,
+      "variants": {
+        "default": "054e7c75ddeb20659d151f5b6f43914dbf9aa64a37159d4f8b4ab2f361891dc4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-64": {
+      "rev": 1,
+      "variants": {
+        "default": "43d8c8d6ddafcc1a46dad8efafc347c0b6d55c9289e2ef89346819d1d88b0259"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-65": {
+      "rev": 1,
+      "variants": {
+        "default": "d210f5e050bbf8cd8ee23b33db855e2df1e5f5fc971d4f34412cd404a3b9d678"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-66": {
+      "rev": 1,
+      "variants": {
+        "default": "704f1ab93d6159a0b73c7991323146c5567ad0c278c65d6818d595816ed34180"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-67": {
+      "rev": 1,
+      "variants": {
+        "default": "edd5758509dbdb1203599c1f7a86dc9eee1669006964291d039679753564da4c"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-68": {
+      "rev": 1,
+      "variants": {
+        "default": "b22b3b84b490691c082efbc84f11867df6015173396944cdea394848a21ee33d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-69": {
+      "rev": 1,
+      "variants": {
+        "default": "94caade069caa08778f884f835d0b320a6f68bd089117d50aab7c40e270a551e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-70": {
+      "rev": 1,
+      "variants": {
+        "default": "4f97368075b949ec64ad3658adc9a22c6f8266b1ece8856b0688b5518ad5ecbc"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-71": {
+      "rev": 1,
+      "variants": {
+        "default": "15b93e0f67438db48d758b35fded3bff11609cab77b62875ba7c803668cbc60a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-65-72": {
+      "rev": 1,
+      "variants": {
+        "default": "56d16244199fb3f5442ba3b6310397946731ad65e789fe98cdebd50c6af6a369"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-61": {
+      "rev": 1,
+      "variants": {
+        "default": "47c09b5ee90a3dd8a972c29ca39152e1186f356493afecf6e9ca1a034ba74ea4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-62": {
+      "rev": 1,
+      "variants": {
+        "default": "be16c49814f8e52cf5e852b7c343f353b0a7e3411354d747fd2613063719c791"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-63": {
+      "rev": 1,
+      "variants": {
+        "default": "6cac872cdedb2b7ada3accf5fd9d5b4aaa87d3a63d7e53f65ec18e29cfe43162"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-64": {
+      "rev": 1,
+      "variants": {
+        "default": "da452dc792e48eb42e9dc8d837e2813bdbc6c302f4e8dddadbd7b1e0b63e5c1f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-65": {
+      "rev": 1,
+      "variants": {
+        "default": "981a11919e60e74f75b4eec3a6a173a5229ef5c862c9933d91fd7719378fb159"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-66": {
+      "rev": 1,
+      "variants": {
+        "default": "5eb999b829a347f0e6e8ee166f1a10435d540b3e6e1446bf877a81748e3a83ed"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-67": {
+      "rev": 1,
+      "variants": {
+        "default": "c3a553e73c52d58071209ed261cae1befc38318154b3824743533e020c54c395"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-68": {
+      "rev": 1,
+      "variants": {
+        "default": "f5dc87a2af88bc76a8499c57771ce72694ba7f747a87516f65d70d50c71dd1ce"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-69": {
+      "rev": 1,
+      "variants": {
+        "default": "e01c61c9d68543402ac084fa6bd12c6730d21bea66b08044211935f135995944"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-70": {
+      "rev": 1,
+      "variants": {
+        "default": "a12fe09a9644ad0512fa708b820169d6bc7060f87bf7fb3ffd8c287f0b04d44d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-71": {
+      "rev": 1,
+      "variants": {
+        "default": "049e4ca6798534545087510c55f58a3849f46b64c8438c0c6c40506d664709ba"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-66-72": {
+      "rev": 1,
+      "variants": {
+        "default": "a8bfe601b46eff63c2c550c535bc9567caa5ea264b00e4cc0b2ca8886d691607"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-58": {
+      "rev": 1,
+      "variants": {
+        "default": "398f74d219886a0c994495dda79ab9d47506c01634eb9864d933bd48b3bc391f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-59": {
+      "rev": 1,
+      "variants": {
+        "default": "efeab3b68d7345f1cd0d4eb5669c2461e9ef9e46a7d0c765fb4ee87b1631a916"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-61": {
+      "rev": 1,
+      "variants": {
+        "default": "c71e912855656ca1e498ca007439d6a4ff6a118e86ef5f30c5e033de2af720c0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-62": {
+      "rev": 1,
+      "variants": {
+        "default": "43f276aa03216a9320c9f44c83181e7c374753ae8a894d65b9d9f66276a84623"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-63": {
+      "rev": 1,
+      "variants": {
+        "default": "e16f251e50b997a60dff1e158491a4f05056d71d41c302948acfe0d826ff231a"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-64": {
+      "rev": 1,
+      "variants": {
+        "default": "4b82d2be6dca3dca2a14c16307216cec11b5d88a2820ca5aaa030cb5190ec0ad"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-65": {
+      "rev": 1,
+      "variants": {
+        "default": "2d6704b79eea77f5801c52a99c4700bb6c1c9f696f3b1130d6e12d829e0841d8"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-66": {
+      "rev": 1,
+      "variants": {
+        "default": "b3223864adcaa4b4b81d499859e7bd901b220832c00584bb6c129443c1b87b1e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-67": {
+      "rev": 1,
+      "variants": {
+        "default": "343d99c21f979a17824e24b8cac7c2f69f02e5a5267478b9a0694a60d6ecb296"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-68": {
+      "rev": 1,
+      "variants": {
+        "default": "409a56c1337d2fa952f432df7f5a1291a59d0c62abd8e963621f5797ee81426f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-69": {
+      "rev": 1,
+      "variants": {
+        "default": "5cc5eb2078bf1072d7cc553dc40bb38dbf09825c10290694ce4ba465fe4b70df"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-70": {
+      "rev": 1,
+      "variants": {
+        "default": "7f9d95b67a759e77c682f93272604cff0bda06685b21948dcab3fa38f7090994"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-67-71": {
+      "rev": 1,
+      "variants": {
+        "default": "96bd9eec8a6a0d114d935a96a78d552d7854128790ace526e8b40cf0b5e6aca4"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-58": {
+      "rev": 1,
+      "variants": {
+        "default": "13c741d8fb21fabf93f19a7148607f3512e1736237cb47566a3f5d3a0cee785b"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-59": {
+      "rev": 1,
+      "variants": {
+        "default": "5faeedfc153a11e45dea086b90f1decba2e98ac0bbf361f6e52986c88172de2e"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-60": {
+      "rev": 1,
+      "variants": {
+        "default": "34c355b9a8dd7a58349ec69dc743a9d691b4b5d177da93b9a42de0e5e78c16f7"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-61": {
+      "rev": 1,
+      "variants": {
+        "default": "76ac5fb3f0ede61a6249e9fe8aa49c508bcccf189c17f234eea22f4aaa7ec016"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-67": {
+      "rev": 1,
+      "variants": {
+        "default": "ec567532bd1b803a69e57255bed3f12aa392a7610015fd1217eaffa092b2d28d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-68": {
+      "rev": 1,
+      "variants": {
+        "default": "353e321a801258831954599b7c3e9d13318e3595be5c58b89ce53905868f1a11"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-69": {
+      "rev": 1,
+      "variants": {
+        "default": "9f35fc517a9326802e4280fd12cc123ae9856d36554fb70a76ca324ed8e341ec"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-70": {
+      "rev": 1,
+      "variants": {
+        "default": "195d73f0f169519fca1549ed432cb3011346fe06a375c282b79ee2a954b37f7f"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-68-71": {
+      "rev": 1,
+      "variants": {
+        "default": "08b163dc6f36341207a256255f516fde35f07a51ddb2770cb995f4e7223c82fe"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-59": {
+      "rev": 1,
+      "variants": {
+        "default": "e2bd80c6f33f8679114f2333857ec1b51f6dfa9687ae6fdedfd56f6df71a8242"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-60": {
+      "rev": 1,
+      "variants": {
+        "default": "9182ffb5c308662fe7cfd81921f2a3cd74843db882cab302057cb670a7bc6ba9"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-61": {
+      "rev": 1,
+      "variants": {
+        "default": "db9ae9ef9ecbb491a252464dc9df88d2f29c31d12583011cdcd04637e06c9f6d"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-69": {
+      "rev": 1,
+      "variants": {
+        "default": "49a709499b15a2a8c118e83fae7e997027aa0b6a79569a5de793f6e4fa630ca2"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-70": {
+      "rev": 1,
+      "variants": {
+        "default": "1da5851a4e01fc935eaf039c38d0093ff53df3aa1166c4ab89f2004db31b62d5"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-69-71": {
+      "rev": 1,
+      "variants": {
+        "default": "772a307e00ae9178c5c017ac152541f9768de67be60c1a1d3cb1d0d14a0fe518"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    },
+    "world_pack/p0-70-59": {
+      "rev": 1,
+      "variants": {
+        "default": "5f66aa22a9d40d2bc4cd9813e83b7305915e8bb3e2466678818735a210d0eaf0"
+      },
+      "root": "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+      "approved_by": "map-pack",
+      "approved_at": "2026-10-26T08:11:00Z"
+    }
+  }
+}

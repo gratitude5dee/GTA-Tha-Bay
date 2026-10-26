@@ -21,6 +21,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { formatFinding, lintMigrations, type LintFinding, type MigrationFile } from './lib/db-lint.ts';
 import { args, repoRoot } from './run.ts';
+import { scrubProcessEnv } from './secret-env.ts';
 
 export const MIGRATIONS_DIR = 'supabase/migrations';
 export const TESTS_DIR = 'supabase/tests';
@@ -199,6 +200,9 @@ export function runPlainPostgres(url: string, run: Runner = defaultRun, keep = f
 }
 
 export function main(argv: string[], run: Runner = defaultRun): number {
+  // BD-FIX-SEC-01: the local harness (supabase CLI, psql, the DataPort contract run) starts without a live secret; the contract run
+  // gets the local stack's DV_DB_API_URL and DV_DB_SECRET_KEY, which the scrub keeps (tools/ci/secret-env.ts).
+  scrubProcessEnv({ label: 'check:db' });
   const { values } = parseArgs({
     args: argv,
     options: { 'lint-only': { type: 'boolean', default: false }, 'pg-url': { type: 'string' }, keep: { type: 'boolean', default: false } },

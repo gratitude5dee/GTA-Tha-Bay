@@ -37,8 +37,8 @@ export const STATUS: Record<string, StatusDef> = {
   warning: { id: 'warning', tone: 'warning', icon: '▲', textKey: lk('hud.status.warning') },
   objective: { id: 'objective', tone: 'objective', icon: '◆', textKey: lk('hud.status.objective') },
   neutral: { id: 'neutral', tone: 'neutral', icon: '●', textKey: lk('hud.status.neutral') },
-  'heat.clear': { id: 'heat.clear', tone: 'neutral', icon: '☆', textKey: lk('hud.heat.clear') },
-  'heat.wanted': { id: 'heat.wanted', tone: 'danger', icon: '★', textKey: lk('hud.heat.wanted') },
+  'heat.clear': { id: 'heat.clear', tone: 'neutral', icon: '▯', textKey: lk('hud.heat.clear') },
+  'heat.wanted': { id: 'heat.wanted', tone: 'danger', icon: '▮', textKey: lk('hud.heat.wanted') },
   'heat.searching': { id: 'heat.searching', tone: 'warning', icon: '◎', textKey: lk('hud.heat.searching') },
   'heat.cooldown': { id: 'heat.cooldown', tone: 'friendly', icon: '↻', textKey: lk('hud.heat.cooldown') },
   'heat.scripted': { id: 'heat.scripted', tone: 'danger', icon: '✦', textKey: lk('hud.heat.scripted') },
@@ -105,3 +105,24 @@ export const HUD_MOTION: readonly HudMotion[] = [
 ];
 
 export const flashesPerSecond = (m: HudMotion): number => (m.flashesPerPeriod * 1000) / m.periodMs;
+
+// ---- the sandbox's Display tab (M04e2)
+
+/** What `hudHidden` hides: the four corner regions and the two parts of `bc` that are not subtitles. Region `c` and the subtitles never hide. */
+export interface HudHide { tl: boolean; tr: boolean; bl: boolean; br: boolean; tip: boolean; prompt: boolean }
+
+/** The toggle paths of the Display tab; `SandboxSlice.toggles` is their only store. */
+export const HIDE_HUD = 'sandbox.display.hideHud';
+export const HIDE_MINIMAP = 'sandbox.display.hideMinimap';
+
+/**
+ * Which HUD parts the sandbox's Display toggles hide. Only a single-player sandbox obeys them: any other mode ignores the toggles, and
+ * so does an online session, where every Display control is disabled and a player could not bring the HUD back.
+ */
+export function hudHidden(mode: string | null | undefined, toggles: Readonly<Record<string, boolean | number>> | null | undefined, online: boolean): HudHide {
+  const none: HudHide = { tl: false, tr: false, bl: false, br: false, tip: false, prompt: false };
+  if (mode !== 'sandbox' || online) return none;
+  const hud = toggles?.[HIDE_HUD] === true;
+  const map = toggles?.[HIDE_MINIMAP] === true;
+  return { tl: hud, tr: hud, bl: hud || map, br: hud, tip: hud, prompt: hud };
+}

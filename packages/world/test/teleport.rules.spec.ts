@@ -94,6 +94,47 @@ describe('TeleportApi pre-stream', () => {
   });
 });
 
+describe('WorldServices.prestream (DL-736: the pre-stream of step 2 alone, for a checkpoint resume)', () => {
+  it('asks for the chunk under the point and its ring as needNow, is ready only once all of them are resident, and unpins on release', async () => {
+    const asked: ChunkKey[] = [];
+    const N = '9/257/255' as ChunkKey;
+    const chunks = [chunkOf(K, none, { heightM: 5 }), chunkOf(E, none, { heightM: 5 }), chunkOf(N, none, { heightM: 5 })];
+    const store = storeOf(chunks, { deliver: (k) => { asked.push(k); return false; }, known: [K, E, N] });
+    const w = createWorldApi(store, indexOf(), { tick: () => 0 }, {});
+    const t = w.prestream(200, 0);
+    // chunk 9/257/256 and its neighbours the bake has: 9/256/256, 9/257/255; nothing resident yet
+    expect(new Set(asked)).toEqual(new Set([E, K, N]));
+    expect(t.ready()).toBe(false);
+    store.settle('p0', E, { ok: true, payload: chunks[1]! });
+    expect(t.ready()).toBe(false);
+    store.settle('p0', K, { ok: true, payload: chunks[0]! });
+    expect(t.ready()).toBe(false);
+    store.settle('p0', N, { ok: true, payload: chunks[2]! });
+    expect(t.ready()).toBe(true);
+    // pinned until released: the units are kept whatever the focus; after release the ticket answers false
+    const pins = (store as unknown as { pinned: Set<string> }).pinned;
+    expect(pins.size).toBe(3);
+    // the streaming module feeds the colliders around the held point (as for a teleport's destination) until it is released
+    expect(w.teleport.prestreamFocus()).toEqual({ x: 200, z: 0 });
+    t.release();
+    expect(w.teleport.prestreamFocus()).toBeNull();
+    t.release();
+    expect(pins.size).toBe(0);
+    expect(t.ready()).toBe(false);
+    // it validates, places, fades and moves nothing: the teleport stays idle
+    expect(w.teleport.busy).toBe(false);
+  });
+
+  it('a point whose chunk the bake does not have is never ready', async () => {
+    const store = storeOf([chunkOf(K, none, { heightM: 5 })]);
+    await loadAll(store, [K]);
+    const w = createWorldApi(store, indexOf(), { tick: () => 0 }, {});
+    const t = w.prestream(5000, 5000);
+    expect(t.ready()).toBe(false);
+    t.release();
+  });
+});
+
 describe('TeleportApi placement', () => {
   it('lands on the target when it is clear, fades out and in, and reports where the player stands', async () => {
     const rg = await rig({});
@@ -156,6 +197,30 @@ describe('TeleportApi placement', () => {
     expect(busy.r).toEqual({ ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
   });
 
+  it('fades back in when the engine refuses the move after the fade-out, so a retrying caller never leaves the screen dark (BD-FIX-SPAWN-07)', async () => {
+    const rg = await rig({});
+    rg.host.refuse = 'busy';
+    for (let n = 1; n <= 3; n++) {
+      const { r } = await go(rg, 'respawn', { x: 30, z: 30 });
+      expect(r).toEqual({ ok: false, reason: 'blocked', messageKey: 'world.teleport.busy' });
+      expect(rg.host.fades).toHaveLength(2 * n);
+      expect(rg.host.fades.slice(-2)).toEqual(['out', 'in']);
+      expect(rg.w.teleport.busy).toBe(false);
+    }
+    expect(rg.host.begun).toEqual([]);
+    expect(rg.host.pos).toEqual([0, 5, 0]);
+  });
+
+  it('a respawn is not heat-gated: the below-the-world net recovers a player in a pursuit (BD-FIX-SPAWN-07)', async () => {
+    const rg = await rig({});
+    rg.policy.heat = 3;
+    const sandbox = await go(rg, 'sandbox', { x: 30, z: 30 });
+    expect(sandbox.r).toEqual({ ok: false, reason: 'heat', messageKey: 'world.teleport.heat' });
+    const { r } = await go(rg, 'respawn', { x: 30, z: 30 });
+    expect(r).toMatchObject({ ok: true, x: 30, z: 30 });
+    expect(rg.host.fades).toEqual(['out', 'in']);
+  });
+
   it('takes one request at a time', async () => {
     const rg = await rig({});
     const first = rg.w.teleport.request('sandbox', { x: 10, z: 10 });
@@ -179,6 +244,18 @@ describe('TeleportApi validation', () => {
     expect((await go(rg, 'sandbox', { x: 20000, z: 0 })).r).toMatchObject({ reason: 'forbidden-in-mode', messageKey: 'world.teleport.forbidden' });
     expect(SANDBOX_POLICY.allowed('sandbox')).toBe(true);
     expect(SANDBOX_POLICY.heat()).toBe(0);
+  });
+
+  it('asks the optional policy.deny once the target is resolved and refuses with its key (M05c2)', async () => {
+    const rg = await rig({});
+    const seen: { kind: string; x: number; z: number }[] = [];
+    (rg.w.teleport.policy as TeleportPolicy).deny = (kind, t) => {
+      seen.push({ kind, x: t.x, z: t.z });
+      return t.x > 100 ? 'story.fastTravel.locked' : null;
+    };
+    expect((await go(rg, 'fast-travel', { x: 200, z: 0 })).r).toEqual({ ok: false, reason: 'forbidden-in-mode', messageKey: 'story.fastTravel.locked' });
+    expect((await go(rg, 'sandbox', { x: 60, z: 0 })).r?.ok).toBe(true);
+    expect(seen).toEqual([{ kind: 'fast-travel', x: 200, z: 0 }, { kind: 'sandbox', x: 60, z: 0 }]);
   });
 
   it('allows a second fast travel only after 30 s, and records the fares', async () => {

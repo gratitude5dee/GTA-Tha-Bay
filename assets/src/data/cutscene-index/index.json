@@ -1,5 +1,5 @@
 {
-  "builtAt": 1792697781070,
+  "builtAt": 1792842859822,
   "entries": [
     {
       "audio": "generated-ambient",
@@ -180,6 +180,171 @@
       "ref": "cut.story.m.a1.06.antenna"
     },
     {
+      "audio": "generated-ambient",
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 6800,
+          "kind": "dialogue",
+          "line": "line.m.a1.08.scanner.1",
+          "speaker": "patch",
+          "startMs": 700
+        }
+      ],
+      "durationMs": 8000,
+      "fallback": "m.a1.08.scanner",
+      "key": "de5bb2ca4ab0395f7c1f6115a60fe218666d36269bde80032d4b2c925cb7e0f8",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 155518404,
+        "stage": "beat.cut.story.m.a1.08.scanner@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.08.scanner"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [
+        {
+          "id": "imani_hart",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 9000,
+          "kind": "dialogue",
+          "line": "line.m.a1.10.steps.1",
+          "speaker": "imani_hart",
+          "startMs": 1500
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.a1.10.steps",
+      "key": "b209c46693b2c5c9a917dba87807cba8ecc16bad063c2dd4afbe4bd1836d5b00",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "imani_hart",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 2940374587,
+        "stage": "beat.cut.story.m.a1.10.steps@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.10.steps"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [
+        {
+          "id": "whitney_arlo",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 12800,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.arrival.1",
+          "speaker": "whitney_arlo",
+          "startMs": 8000
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.a1.12.arrival",
+      "key": "c4e82f4d98dfcc371fc5a92f22bf597f96e461e82397efab900e8cb61877b1cd",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "whitney_arlo",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 62042025,
+        "stage": "beat.cut.story.m.a1.12.arrival@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.12.arrival"
+    },
+    {
+      "audio": "generated-ambient",
+      "characters": [
+        {
+          "id": "corwin_hale",
+          "soulVersion": 1,
+          "tier": "original"
+        },
+        {
+          "id": "dana_voss",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 6500,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.lot-one.1",
+          "speaker": "corwin_hale",
+          "startMs": 1200
+        },
+        {
+          "endMs": 12500,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.lot-one.2",
+          "speaker": "dana_voss",
+          "startMs": 8000
+        }
+      ],
+      "durationMs": 14000,
+      "fallback": "m.a1.12.lot-one",
+      "key": "85bfc096da6b99653bfb31b7721b26c899c7ca311d0e4fd38629a62b421b72bc",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "corwin_hale",
+            "likenessTier": "original",
+            "soulVersion": 1
+          },
+          {
+            "id": "dana_voss",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 3163431942,
+        "stage": "beat.cut.story.m.a1.12.lot-one@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "provider": "h3.partner",
+      "ref": "cut.story.m.a1.12.lot-one"
+    },
+    {
       "audio": "engine",
       "characters": [
         {
@@ -227,6 +392,6 @@
       "ref": "cut.story.m.dev.sample.intro"
     }
   ],
-  "release": "dev",
+  "release": "act1",
   "schema": "cutscene-index/1"
 }

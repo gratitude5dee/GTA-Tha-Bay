@@ -20,7 +20,7 @@ interface World {
   sha: string;
 }
 
-async function world(): Promise<World> {
+async function world(o: { extraPacks?: number; hold?: Promise<void> } = {}): Promise<World> {
   const bytes = bytesOf(9, 20_000);
   const sha = await sha256Hex(bytes);
   const entry: AssetManifest = {
@@ -35,17 +35,30 @@ async function world(): Promise<World> {
     visibility: 'public',
     tags: ['fixture'],
   };
-  const catalog: AssetCatalog = { schema: 'asset-catalog/1', c07: '1.1.0', buildId: 'b', gitSha: '0'.repeat(40), createdAt: 0, entries: { 'world_pack/p0-64-64': entry } };
+  const entries: Record<string, AssetManifest> = { 'world_pack/p0-64-64': entry };
+  const bodies = new Map<string, Uint8Array>([[`https://media.test/${entry.variants.default?.key}`, bytes]]);
+  for (let i = 1; i <= (o.extraPacks ?? 0); i++) {
+    const b = bytesOf(40 + i, 5_000 * i);
+    const h = await sha256Hex(b);
+    const key = `assets/world_pack/p${i}-64-64/default.${h.slice(0, 12)}.pack`;
+    entries[`world_pack/p${i}-64-64`] = { ...entry, id: `p${i}-64-64`, variants: { default: { ...(entry.variants.default as NonNullable<typeof entry.variants.default>), key, sha256: h, bytes: b.byteLength } } };
+    bodies.set(`https://media.test/${key}`, b);
+  }
+  const catalog: AssetCatalog = { schema: 'asset-catalog/1', c07: '1.1.0', buildId: 'b', gitSha: '0'.repeat(40), createdAt: 0, entries };
   const cbytes = enc.encode(JSON.stringify(catalog));
   const csha = await sha256Hex(cbytes);
   const pointer = { schema: 'asset-catalog-pointer/1', sha256: csha, key: `manifests/assets-${csha}.json`, bytes: cbytes.byteLength };
   const requests: string[] = [];
-  const fetchFn = (url: string): Promise<Response> => {
+  const fetchFn = async (url: string): Promise<Response> => {
     requests.push(url);
+    const body = bodies.get(url);
+    if (body) {
+      await o.hold;
+      return new Response(body as BodyInit);
+    }
     if (url.endsWith('/api/v1/boot')) return Promise.resolve(Response.json({ hosts: { media: 'https://media.test' } }));
     if (url.endsWith('/asset-catalog.json')) return Promise.resolve(Response.json(pointer));
     if (url === `https://media.test/${pointer.key}`) return Promise.resolve(new Response(cbytes as BodyInit));
-    if (url === `https://media.test/${entry.variants.default?.key}`) return Promise.resolve(new Response(bytes as BodyInit));
     return Promise.resolve(new Response(null, { status: 404 }));
   };
 
@@ -64,7 +77,7 @@ async function world(): Promise<World> {
     onmessage: null,
   };
   toClient = (m) => port.onmessage?.({ data: m });
-  const client = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false }, { tier: () => 'desktop' });
+  const client = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false, net: null }, { tier: () => 'desktop' });
   return { client, svc, requests, events: client.errLog, packRef: 'world_pack/p0-64-64', bytes, sha };
 }
 
@@ -175,12 +188,57 @@ describe('AssetClient over AssetService (in-process loopback)', () => {
     expect(err).not.toBeInstanceOf(PackUnavailable);
   });
 
+  it('downloadPlan sums the catalog; downloadAll with a signal that fires on the first progress event rejects as aborted (M04b4)', async () => {
+    let release: () => void = () => undefined;
+    const hold = new Promise<void>((res) => (release = res));
+    const w = await world({ extraPacks: 5, hold });
+    const plan = await w.client.downloadPlan();
+    let sum = 0;
+    for (const ref of ['world_pack/p0-64-64', ...[1, 2, 3, 4, 5].map((i) => `world_pack/p${i}-64-64`)]) sum += (await w.client.resolve(ref)).bytes;
+    expect(plan).toMatchObject({ totalBytes: sum, files: 6, missingBytes: sum, missingFiles: 6, fits: true, shortfallBytes: 0 });
+
+    const ac = new AbortController();
+    const progress: Array<[number, number]> = [];
+    const err = await w.client
+      .downloadAll(
+        (d, t) => {
+          progress.push([d, t]);
+          ac.abort();
+        },
+        { signal: ac.signal },
+      )
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(PackUnavailable);
+    expect(err).toMatchObject({ name: 'PackUnavailable', reason: 'aborted' });
+    expect(progress[0]).toEqual([0, 6]);
+    release();
+  });
+
+  it('catalogInfo reports a catalog the media host does not serve, once, as err.asset {http, catalog} (BD-FU-A02)', async () => {
+    let toClient: ((m: FromWorker) => void) | null = null;
+    const pointer = { schema: 'asset-catalog-pointer/1', sha256: 'a'.repeat(64), key: `manifests/assets-${'a'.repeat(64)}.json`, bytes: 10 };
+    const fetchFn = (url: string): Promise<Response> => {
+      if (url.endsWith('/api/v1/boot')) return Promise.resolve(Response.json({ hosts: { media: 'https://media.test' } }));
+      if (url.endsWith('/asset-catalog.json')) return Promise.resolve(Response.json(pointer));
+      return Promise.resolve(new Response(null, { status: 404 }));
+    };
+    const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: fetchFn, channel: null, tabId: 't', sleep: () => Promise.resolve(), online: () => true });
+    const port: WorkerPort = { postMessage: (m) => void svc.handle(m), onmessage: null };
+    toClient = (m) => port.onmessage?.({ data: m });
+    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: false, net: null }, { tier: () => 'desktop' });
+    const info = await c.catalogInfo();
+    expect(info).toEqual({ state: 'unavailable', failure: { stage: 'catalog', url: `https://media.test/${pointer.key}`, status: 404, offline: false } });
+    expect(c.catalogState).toBe('unavailable');
+    expect(await c.loadCatalog()).toBe('unavailable');
+    expect(c.errLog).toEqual([{ reason: 'http', kind: 'catalog' }]);
+  });
+
   it('without a qa handler the qa op is refused', async () => {
     let toClient: ((m: FromWorker) => void) | null = null;
     const svc = new AssetService({ post: (m) => queueMicrotask(() => toClient?.(m)), makePorts: () => Promise.resolve(memoryPorts()), fetch: () => Promise.reject(new Error('x')), channel: null, tabId: 't' });
     const port: WorkerPort = { postMessage: (m) => void svc.handle(m), onmessage: null };
     toClient = (m) => port.onmessage?.({ data: m });
-    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: true }, { tier: () => 'mobile' });
+    const c = await AssetClient.start(port, { origin: 'https://app.test', localMedia: null, mobileOrXr: true, net: null }, { tier: () => 'mobile' });
     await expect(c.qa('files')).rejects.toThrow('not-supported');
     expect(await c.loadCatalog()).toBe('disabled');
   });

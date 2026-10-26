@@ -17,6 +17,11 @@
 .dv-hud-bc { position: absolute; inset-inline: 25%; inset-block-end: max(env(safe-area-inset-bottom), 1.5em); align-items: center; justify-content: flex-end; }
 .dv-hud-c { position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); }
 .dv-hud-region:empty { display: none; }
+/* The sandbox's Display tab (M04e2): a hidden region keeps its place, fades in 150 ms and does not fade under reduced motion. */
+.dv-hud-region { transition: opacity 150ms linear; }
+.dv-hud-region[data-hidden='true'] { visibility: hidden; opacity: 0; transition: opacity 150ms linear, visibility 0s linear 150ms; }
+[data-reduced-motion='true'] .dv-hud-region, [data-reduced-motion='true'] .dv-hud-region[data-hidden='true'] { transition: none; }
+@media (prefers-reduced-motion: reduce) { .dv-hud-region, .dv-hud-region[data-hidden='true'] { transition: none; } }
 .dv-hud [data-tone='friendly'] { --dv-tone: var(--dv-sem-friendly, #3ddc84); }
 .dv-hud [data-tone='danger'] { --dv-tone: var(--dv-sem-danger, #ff4d4d); }
 .dv-hud [data-tone='warning'] { --dv-tone: var(--dv-sem-warning, #ffd23f); }
@@ -84,3 +89,12 @@
 
 /* ---- phone and pause */
 .dv-phone, .dv-pause, .dv-garage { max-inline-size: 36rem; }
+
+/* M04b5: the frame-rate chip sits top right inside the safe area, above the HUD layer; a disabled choice reads as unavailable. */
+.dv-fpschip {
+  position: fixed; z-index: calc(var(--dv-z-hud) + 1); pointer-events: none;
+  inset-block-start: max(env(safe-area-inset-top), 0.5rem); inset-inline-end: max(env(safe-area-inset-right), 0.5rem);
+  padding: 0.15em 0.55em; border-radius: 0.5em; background: rgb(8 12 22 / 0.72); border: 1px solid rgb(255 255 255 / 0.18);
+  color: var(--dv-color-text); font-family: var(--dv-font-mono); font-size: 0.8rem; font-variant-numeric: tabular-nums;
+}
+.dv-seg[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }

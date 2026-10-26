@@ -1,0 +1,55 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 9000,
+      "kind": "dialogue",
+      "line": "line.m.a1.10.steps.1",
+      "speaker": "imani_hart",
+      "startMs": 1500
+    }
+  ],
+  "durationSec": 14,
+  "id": "m.a1.10.steps",
+  "letterbox": true,
+  "marks": {
+    "plaza_wide": {
+      "at": [
+        37.77985,
+        -122.418
+      ],
+      "yawDeg": 250
+    },
+    "steps_close": {
+      "at": [
+        37.77935,
+        -122.41845
+      ],
+      "yawDeg": 265
+    }
+  },
+  "schema": "director/1",
+  "seed": 2141570316,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "plaza_wide",
+      "lens": "wide",
+      "move": "push-in",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 7,
+      "from": "steps_close",
+      "lens": "normal",
+      "preset": "single",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "plaza_wide",
+    "yawDeg": 250
+  }
+}

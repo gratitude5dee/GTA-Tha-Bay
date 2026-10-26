@@ -29,6 +29,9 @@ export const HALF_SECONDS_PER_MINUTE = 120;
 /** The u16 range of `WeatherState.blend`. */
 export const BLEND_MAX = 65_535;
 
+/** `changeAtT` of a clock whose weather is held (M04e1): no change is ever due, so the schedule draws nothing. */
+export const HOLD_T = Number.MAX_SAFE_INTEGER;
+
 export const WEATHER_PRESETS: readonly WeatherPreset[] = ['clear', 'karl-fog', 'overcast', 'rain', 'smoke', 'golden'];
 
 type Curve = readonly (readonly [number, number])[];
@@ -42,6 +45,8 @@ export interface ClockConfig {
   hourBias: readonly { preset: WeatherPreset; fromHour: number; toHour: number; mul: number }[];
   night: Curve;
   dark: Curve;
+  /** Phone shortcuts that follow the marine-layer day (M04e1): an hour and, optionally, a held preset. */
+  sandboxShortcuts?: readonly { id: string; hour: number; weather?: WeatherPreset }[];
 }
 
 export const CLOCK_CONFIG: ClockConfig = clockJson as unknown as ClockConfig;
@@ -159,6 +164,13 @@ export class WorldClock implements WorldClockApi {
    */
   forceWeather(w: WeatherPreset, blendSec: number): void {
     if (this.lockedBy !== null) return;
+    if (this.held) {
+      // A held clock swaps the preset at once and stays held.
+      this.current = w;
+      this.next = w;
+      this.blendStartT = this.t;
+      return;
+    }
     if (!(blendSec > 0)) {
       this.current = w;
       this.next = w;
@@ -171,6 +183,27 @@ export class WorldClock implements WorldClockApi {
     this.next = w;
     this.blendStartT = this.t;
     this.changeAtT = this.t + Math.max(1, Math.round(blendSec * 2));
+  }
+
+  /** True while a preset is held (`changeAtT` is the sentinel). */
+  get held(): boolean {
+    return this.changeAtT === HOLD_T;
+  }
+
+  /**
+   * Engine-internal (not on `WorldClockApi`). `w` holds that preset until released: `current = next = w`, no change is ever due and
+   * the `weather` stream is not drawn from. `null` releases a hold with one `schedule` call (two draws); it does nothing when the
+   * clock is not held.
+   */
+  holdWeather(w: WeatherPreset | null): void {
+    if (w === null) {
+      if (this.held) this.schedule(this.t);
+      return;
+    }
+    this.current = w;
+    this.next = w;
+    this.blendStartT = this.t;
+    this.changeAtT = HOLD_T;
   }
 
   // ---- the tick ----------------------------------------------------------------------------------------------------------
@@ -225,12 +258,13 @@ export class WorldClock implements WorldClockApi {
     const to = day * HALF_SECONDS_PER_DAY + Math.round(hh * HALF_SECONDS_PER_HOUR);
     const delta = to - this.t;
     this.t = to;
-    this.changeAtT += delta;
+    if (this.changeAtT !== HOLD_T) this.changeAtT += delta;
     this.blendStartT += delta;
   }
 
   /** u16 blend of `current` to `next` at the present time. */
   private blend(): number {
+    if (this.changeAtT === HOLD_T) return 0;
     if (this.t <= this.blendStartT) return 0;
     if (this.t >= this.changeAtT) return BLEND_MAX;
     return Math.round(((this.t - this.blendStartT) / (this.changeAtT - this.blendStartT)) * BLEND_MAX);

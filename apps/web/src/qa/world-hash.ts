@@ -148,7 +148,7 @@ async function runScenario(def: Def): Promise<HashResult> {
   };
 
   print('starting sim.worker');
-  await host.start(cfg, { strings: [], prefabs: [], config: { scenario: 'baked-world', spawn, spawnYaw: pose.yaw, world } });
+  await host.start(cfg, { strings: [], prefabs: [], config: { scenario: 'baked-world', spawn, spawnYaw: pose.yaw, world, npc: false } });
 
   // residency rule: request, receive and pin the set before tick 0
   const keys = preloadKeys(index, pose.x, pose.z);

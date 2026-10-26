@@ -37,9 +37,18 @@ export interface ContextPorts {
   combat?: CombatApi | null;
   /** Sets the input of a script-driven vehicle (NPC cars of a mission). Reaches the mode as `ctx.vehicleAi`, which is not part of C06 (BD-M05a1-04). */
   vehicleAi?: VehicleAiPort | null;
+  /**
+   * Seats the local player at the wheel of a vehicle at once (`seatDriver`): a mission checkpoint saved with the player in a cast vehicle
+   * is resumed with the player seated (DL-736). Reaches the mode as `ctx.vehicleSeat`, which is not part of C06.
+   */
+  vehicleSeat?: VehicleSeatPort | null;
   /** The garage (M05c1): a story reward car lands through it. Reaches the mode as `ctx.garage`, which is not part of C06 (BD-M05c1). */
   garage?: GaragePort | null;
   wardrobe?: WardrobePort | null;
+  /** The NPC runtime (M06c): read live on every call. Absent, or null, keeps the `NotYetAvailable` stub. */
+  npc?: (() => ModeContext['npc'] | null) | null;
+  /** The room session (M12b2 binds it). Read live on every access, so a room joined after the mode started is seen at the next command. Absent in single player: `ctx.net` is null (M04e0). */
+  net?: (() => ModeContext['net']) | null;
 }
 
 export interface GaragePort {
@@ -62,6 +71,19 @@ export interface VehicleAiPort {
   drive(h: EntityHandle, input: { throttle: number; brake: number; steer: number; handbrake: boolean }): boolean;
 }
 
+export interface VehicleSeatPort {
+  /**
+   * Seats `rider` at the wheel of `vehicle` in the Active state, without the entering sequence, out of any other vehicle it rides in first
+   * (`reseatDriver`); false when either is gone or the seat is taken.
+   */
+  seat(rider: EntityHandle, vehicle: EntityHandle): boolean;
+  /**
+   * Sets `rider` down on foot beside `vehicle` at once, where the normal exit would put it, never overlapping the car's collider
+   * (`setDownBeside`; BD-FIX-SPAWN-12: a resumed seat that could not be taken); false when either is gone.
+   */
+  setDown(rider: EntityHandle, vehicle: EntityHandle): boolean;
+}
+
 function missing<T extends object>(service: string, milestone: string, methods: readonly string[]): T {
   const o: Record<string, unknown> = {};
   for (const m of methods) {
@@ -76,7 +98,7 @@ function missing<T extends object>(service: string, milestone: string, methods: 
  * The only capability surface of a mode (C06 rule 7). One context per stack entry, so `rng` is prefixed with that mode's id and
  * `startChild` knows its parent. `tick` reads the sim tick live. Members whose services have not landed throw `NotYetAvailable`
  * when called, naming the milestone: zones, scheduler and timeline M05a1 (real services since M05a1; the stubs remain for a context built without them), combat (real since M05c1), npc M06a3; and, on a build that has
- * none, the clock (M02b2), the pursuit director (M03c) and the interaction service (M03a1). `net` is null (single player).
+ * none, the clock (M02b2), the pursuit director (M03c) and the interaction service (M03a1). `net` is null (single player) unless a `net` port says otherwise (M04e0).
  */
 export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeOrigin): ModeContext {
   const clock = p.clock ?? missing<WorldClockApi>('clock', 'M02b2', ['now', 'env', 'setHour', 'pause', 'lock', 'unlock', 'forceWeather']);
@@ -87,7 +109,16 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
   const scheduler = p.scheduler ?? schedulerStub();
   const timeline = p.timeline ?? timelineStub();
   const combat = p.combat ?? combatStub();
-  const npc = npcStub();
+  const stubNpc = npcStub();
+  const npcOf = p.npc;
+  // Read live: the NPC runtime binds when the session starts, after the first contexts may have been built.
+  const npc: ModeContext['npc'] = npcOf
+    ? {
+        whereIs: (id) => (npcOf() ?? stubNpc).whereIs(id),
+        isKilled: (id, scope) => (npcOf() ?? stubNpc).isKilled(id, scope),
+        playKnot: (id, knot, playId) => (npcOf() ?? stubNpc).playKnot(id, knot, playId),
+      }
+    : stubNpc;
   const ctx: ModeContext = {
     get tick() {
       return p.tick();
@@ -114,12 +145,15 @@ export function createModeContext(p: ContextPorts, id: GameModeId, origin: ModeO
     assets: p.assets,
     save: { request: (reason) => p.saveRequest(reason) },
     telemetry: p.telemetry,
-    net: null,
+    get net() {
+      return p.net?.() ?? null;
+    },
     world: p.world,
     npc,
     startChild: (child, args) => p.startChild(id, child, args),
   };
   if (p.vehicleAi) (ctx as ModeContext & { vehicleAi: VehicleAiPort }).vehicleAi = p.vehicleAi;
+  if (p.vehicleSeat) (ctx as ModeContext & { vehicleSeat: VehicleSeatPort }).vehicleSeat = p.vehicleSeat;
   if (p.garage) (ctx as ModeContext & { garage: GaragePort }).garage = p.garage;
   if (p.wardrobe) (ctx as ModeContext & { wardrobe: WardrobePort }).wardrobe = p.wardrobe;
   return ctx;

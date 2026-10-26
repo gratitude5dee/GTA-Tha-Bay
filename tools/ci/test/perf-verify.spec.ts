@@ -178,6 +178,8 @@ describe('check:perf aggregation (AC-8)', () => {
           const r = readJson<PerfReport>(fx('ok.json'));
           r.tier = tier;
           r.counts = { ...r.counts, renderObjectsMax: Math.floor(b.render.maxRenderObjects * 0.8), trianglesMax: Math.floor(b.render.maxTriangles * 0.8) };
+          if (scenario === 'boot-cityhall') r.boot = { ...r.boot, coldDownloadMB: 1.23, requests: 6, bytes: 1_230_000, revealMs: 1500, waves: 2, inflightPeak: 5 };
+          if (scenario === 'npc-mission-crowd') r.counts = { ...r.counts, npcBrainsAMax: 2, npcBrainsBMax: 4, npcBrainMsMean: 0.05, npcBrainMsMax: 0.4, npcBrainTicks: 100 };
           mutate(project, tier, r, scenario);
           writeFileSync(path.join(root, 'test-results', `perf.${scenario}.${project}.${tier}.json`), JSON.stringify(r));
           if (scenario === 'downtown-rush') {
@@ -190,7 +192,7 @@ describe('check:perf aggregation (AC-8)', () => {
   }
 
   it('the registered scenarios are the data file ids, and --scenario selects one of them, graybox-walk, or fails', () => {
-    expect(PERF_SCENARIOS).toEqual(['walk-civic-center', 'route-ferry-ocean-beach', 'downtown-rush']);
+    expect(PERF_SCENARIOS).toEqual(['walk-civic-center', 'route-ferry-ocean-beach', 'downtown-rush', 'boot-cityhall', 'story-chase', 'npc-mission-crowd']);
     expect(selectScenarios(undefined)).toEqual([...PERF_SCENARIOS]);
     expect(selectScenarios('route-ferry-ocean-beach')).toEqual(['route-ferry-ocean-beach']);
     expect(selectScenarios('graybox-walk')).toEqual(['graybox-walk']);

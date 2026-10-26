@@ -93,6 +93,19 @@ interface Line {
   playing: number;
   lipsync: boolean;
   text: string;
+  /** The audio-context time the first sentence starts (M06a5: the dialogue bubble reveals text against it). */
+  firstStartS: number | null;
+  /** Sentences whose decode and scheduling have not finished. */
+  decoding: number;
+}
+
+/** The scheduled window of a line's audio on the audio-context clock. */
+export interface LineClock {
+  startS: number;
+  endS: number;
+  nowS: number;
+  /** The line is closed and every sentence is scheduled: `endS` is final. */
+  complete: boolean;
 }
 
 function fromBase64(b64: string): Uint8Array {
@@ -158,7 +171,20 @@ export class TtsPlayer {
       playing: 0,
       lipsync: false,
       text,
+      firstStartS: null,
+      decoding: 0,
     });
+  }
+
+  /**
+   * Where the audio of an NPC's line is on the audio clock, or null before its first sentence is scheduled and after the line ended
+   * (M06a5: the bubble shows text no faster than this window plays).
+   */
+  clock(npcId: string): LineClock | null {
+    const line = this.lines.get(npcId);
+    const ctx = this.ready();
+    if (line === undefined || ctx === null || line.firstStartS === null) return null;
+    return { startS: line.firstStartS, endS: line.nextStart, nowS: ctx.currentTime, complete: line.closed && line.decoding <= 0 };
   }
 
   /** The text of the line so far (the `line.delta` text); its vowel density steers the t1 mouth shapes. */
@@ -190,9 +216,15 @@ export class TtsPlayer {
     const bytes = join(s.chunks);
     line.sentences.delete(chunk.sentence);
     const codec = s.codec;
-    const job = line.chain.then(() => this.schedule(line, bytes, codec, chunk.alignment)).catch(() => {
-      this.dropped++;
-    });
+    line.decoding++;
+    const job = line.chain
+      .then(() => this.schedule(line, bytes, codec, chunk.alignment))
+      .catch(() => {
+        this.dropped++;
+      })
+      .finally(() => {
+        line.decoding--;
+      });
     line.chain = job;
     this.track(job);
   }
@@ -290,6 +322,7 @@ export class TtsPlayer {
     src.connect(line.gain);
     const startAt = Math.max(ctx.currentTime + 0.02, line.nextStart);
     line.nextStart = startAt + buffer.duration;
+    line.firstStartS ??= startAt;
     line.playing++;
     src.onended = () => {
       line.playing--;

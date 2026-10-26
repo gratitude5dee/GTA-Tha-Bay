@@ -1,4 +1,4 @@
-import { classifyDevice, type TelemetryBatch } from '@dv/shared';
+import { C13_VERSION, classifyDevice, type TelemetryBatch } from '@dv/shared';
 import { describe, expect, it } from 'vitest';
 import { createPlatform } from '../../src/platform/create-platform.ts';
 import { createMemoryStore } from '../../src/platform/platform-store.ts';
@@ -254,7 +254,7 @@ describe('abnormal-exit boots end to end (AC-9)', () => {
       build: 'b1',
       uaHash: iphone.uaHash,
       adapterHash: iphone.adapterHash,
-      c13: '1.1.0',
+      c13: C13_VERSION,
     });
 
     // Boot 1 follows a running record (a light one).

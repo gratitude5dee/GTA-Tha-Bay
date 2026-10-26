@@ -44,6 +44,11 @@ export interface DirectorTick {
   movedFromGridM: number;
   /** The damage model took the body to 0 this tick. */
   totaled: boolean;
+  /**
+   * The car has been in the air for 2 s out of the world (02-world-maps.md 4.1 d: under the play box floor or more than 3 m under the
+   * lowest resident surface). While the race runs the director resets it to the last gate itself (BD-FIX-SPAWN-07). Absent: false.
+   */
+  fell?: boolean;
 }
 
 export type DirectorEvent =
@@ -52,7 +57,7 @@ export type DirectorEvent =
   | { t: 'race.go'; tick: number }
   | { t: 'race.jumpstart'; penaltyMs: number }
   | { t: 'race.perfectstart'; pct: number }
-  | { t: 'race.reset'; reason: 'held' | 'flipped' | 'stuck'; at: number; penaltyMs: number }
+  | { t: 'race.reset'; reason: 'held' | 'flipped' | 'stuck' | 'fell'; at: number; penaltyMs: number }
   | { t: 'race.results'; outcome: 'finish' | 'dnf'; ms: number; reason?: string }
   | { t: 'race.grid'; attempt: number };
 
@@ -201,12 +206,14 @@ export class RaceDirector {
     this.resetHeldTicks = i.resetHeld ? this.resetHeldTicks + 1 : 0;
     this.flipTicks = i.upY < 0.3 ? this.flipTicks + 1 : 0;
     this.stuckTicks = i.speedMps < 1 && i.throttle > 0.5 ? this.stuckTicks + 1 : 0;
-    let why: 'held' | 'flipped' | 'stuck' | null = null;
-    if (this.resetHeldTicks >= Math.round(cfg.resetHoldSec / SIM_DT)) why = 'held';
+    let why: 'held' | 'flipped' | 'stuck' | 'fell' | null = null;
+    // out of the world (a placement or collision gap, not the driver's doing): back to the last gate without a penalty
+    if (i.fell === true) why = 'fell';
+    else if (this.resetHeldTicks >= Math.round(cfg.resetHoldSec / SIM_DT)) why = 'held';
     else if (this.flipTicks >= Math.round(cfg.flipResetSec / SIM_DT)) why = 'flipped';
     else if (this.stuckTicks >= Math.round(cfg.stuckResetSec / SIM_DT)) why = 'stuck';
     if (why) {
-      const ms = Math.round(cfg.resetPenaltySec * 1000);
+      const ms = why === 'fell' ? 0 : Math.round(cfg.resetPenaltySec * 1000);
       this.penaltyMs += ms;
       if (this.ref.timeLeftMs !== null) this.ref.timeLeftMs = Math.max(0, this.ref.timeLeftMs - ms);
       const at = this.ref.lastGate < 0 ? 0 : this.ref.lastGate;

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import { compileStringMatcher, scanText as scanBrandText, type IpDenylistConfig 
 import { evaluate, type Change } from '../check-do-migrations.ts';
 import { findTestRouteStrings, prodConfigProblems } from '../check-prod-routes.ts';
 import { scanDir, scanText } from '../check-secrets.ts';
-import { overrideHeader, smoke } from '../check-smoke.ts';
+import { mediaEnvOf, overrideHeader, smoke, smokeMediaEnv } from '../check-smoke.ts';
 import {
   parseCurrentVersion,
   parseVersionId,
@@ -152,35 +153,117 @@ describe('check:prod-routes', () => {
   });
 
   it('flags a mock prod FAL_MODE and an enabled define', () => {
-    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
+    const bad = '{ "vars": { "FAL_MODE": "mock", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "true" } }';
     expect(prodConfigProblems(bad)).toHaveLength(2);
-    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
+    const good = '{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live" }, "define": { "__DV_TEST_ROUTES__": "false" } }';
     expect(prodConfigProblems(good)).toEqual([]);
   });
 
   it('flags a production ANTHROPIC_MODE that is fixture or unset (M06a3)', () => {
     const base = (mode: string): string => `{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod"${mode} }, "define": { "__DV_TEST_ROUTES__": "false" } }`;
-    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "fixture"'))).toEqual([expect.stringContaining('ANTHROPIC_MODE')]);
-    expect(prodConfigProblems(base(''))).toEqual([expect.stringContaining('unset')]);
-    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "live"'))).toEqual([]);
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "fixture", "MODERATION_MODE": "live"'))).toEqual([expect.stringContaining('ANTHROPIC_MODE')]);
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "live"'))).toEqual([expect.stringContaining('unset')]);
+    expect(prodConfigProblems(base(', "ANTHROPIC_MODE": "live", "MODERATION_MODE": "live"'))).toEqual([]);
+  });
+
+  it('flags a production MODERATION_MODE that is fixture or unset (M06b1)', () => {
+    const base = (mode: string): string => `{ "vars": { "FAL_MODE": "live", "ENVIRONMENT": "prod", "ANTHROPIC_MODE": "live"${mode} }, "define": { "__DV_TEST_ROUTES__": "false" } }`;
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "fixture"'))).toEqual([expect.stringContaining('MODERATION_MODE')]);
+    expect(prodConfigProblems(base(''))).toEqual([expect.stringContaining('MODERATION_MODE')]);
+    expect(prodConfigProblems(base(', "MODERATION_MODE": "live"'))).toEqual([]);
   });
 });
 
 describe('check:smoke', () => {
   const isolated = { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp', 'Cross-Origin-Resource-Policy': 'same-origin' };
 
-  it('sends the version override header and passes on a healthy worker', async () => {
-    const seen: Array<Record<string, string>> = [];
-    const fetchImpl = (async (input: URL | RequestInfo, init?: RequestInit) => {
-      seen.push(init?.headers as Record<string, string>);
-      const isHealth = String(input).endsWith('/api/v1/health');
-      return new Response(isHealth ? '{"ok":true}' : '<html></html>', {
-        headers: { ...isolated, ...(isHealth ? { 'X-Request-Id': '0198aaaa-bbbb-7ccc-8ddd-eeeeffff0000' } : {}) },
-      });
+  /** A catalog with a world index, its pointer, and the media objects a published deploy serves (BD-FU-A03). */
+  const catalogBody = JSON.stringify({
+    schema: 'asset-catalog/1',
+    entries: { 'data/world-index': { variants: { default: { key: 'assets/data/world-index/default.aaaaaaaaaaaa.json' } } } },
+  });
+  const catalogSha = createHash('sha256').update(catalogBody).digest('hex');
+  const pointer = { schema: 'asset-catalog-pointer/1', sha256: catalogSha, key: `manifests/assets-${catalogSha}.json`, bytes: Buffer.byteLength(catalogBody) };
+  const published: Record<string, string> = {
+    [`/media/${pointer.key}`]: catalogBody,
+    '/media/assets/data/world-index/default.aaaaaaaaaaaa.json': '{}',
+  };
+
+  /** A healthy Worker; `media` overrides what the media route answers for a path (a status, or a body). */
+  function worker(media: Record<string, number | string> = {}, seen: Array<{ path: string; method: string; headers: Record<string, string> }> = []): typeof fetch {
+    return (async (input: URL | RequestInfo, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      seen.push({ path, method: init?.method ?? 'GET', headers: init?.headers as Record<string, string> });
+      if (path === '/api/v1/health') return new Response('{"ok":true}', { headers: { ...isolated, 'X-Request-Id': '0198aaaa-bbbb-7ccc-8ddd-eeeeffff0000' } });
+      if (path === '/asset-catalog.json') return Response.json(pointer, { headers: isolated });
+      if (path.startsWith('/media/')) {
+        const over = media[path];
+        if (typeof over === 'number') return new Response(null, { status: over, headers: { 'Access-Control-Allow-Origin': '*' } });
+        const body = over ?? published[path];
+        return body === undefined ? new Response(null, { status: 404 }) : new Response(init?.method === 'HEAD' ? null : body);
+      }
+      return new Response('<html></html>', { headers: isolated });
     }) as typeof fetch;
+  }
+
+  it('sends the version override header and passes on a healthy worker', async () => {
+    const seen: Array<{ path: string; method: string; headers: Record<string, string> }> = [];
+    const fetchImpl = worker({}, seen);
     expect(await smoke('https://x.test', { version: 'v-new', worker: 'tha-bay-web-staging', fetchImpl })).toEqual([]);
-    expect(seen.every((h) => h['Cloudflare-Workers-Version-Overrides'] === 'tha-bay-web-staging="v-new"')).toBe(true);
+    expect(seen.every((r) => r.headers['Cloudflare-Workers-Version-Overrides'] === 'tha-bay-web-staging="v-new"')).toBe(true);
+    // The catalog the pointer names is fetched, and the world index it lists is checked with HEAD.
+    expect(seen.map((r) => `${r.method} ${r.path}`)).toEqual(
+      expect.arrayContaining(['GET /asset-catalog.json', `GET /media/${pointer.key}`, 'HEAD /media/assets/data/world-index/default.aaaaaaaaaaaa.json']),
+    );
     expect(overrideHeader('tha-bay-web', 'abc')).toBe('tha-bay-web="abc"');
+  });
+
+  it('fails when the deployed pointer names a catalog the media route does not serve, and names the operator step (BD-FU-A03)', async () => {
+    const staging = await smoke('https://x.test', { worker: 'tha-bay-web-staging', fetchImpl: worker({ [`/media/${pointer.key}`]: 404 }) });
+    expect(staging).toHaveLength(1);
+    expect(staging[0]).toContain(`names ${pointer.key}, but GET /media/${pointer.key} answered 404`);
+    expect(staging[0]).toContain('pnpm assets:publish -- --env staging');
+    const prod = await smoke('https://x.test', { worker: 'tha-bay-web', fetchImpl: worker({ [`/media/${pointer.key}`]: 404 }) });
+    expect(prod[0]).toContain('pnpm assets:publish -- --env prod');
+    expect(mediaEnvOf('tha-bay-web-staging')).toBe('staging');
+    expect(mediaEnvOf('tha-bay-web')).toBe('prod');
+  });
+
+  it('without --worker, names the env from the URL host: a staging or preview host is staging, any other says "staging or prod"', async () => {
+    const missing = { [`/media/${pointer.key}`]: 404 };
+    // A Workers Preview URL is the staging Worker (review note on BD-FU-A03).
+    const preview = await smoke('https://pr-12-tha-bay-web-staging.me.workers.dev', { fetchImpl: worker(missing) });
+    expect(preview[0]).toContain('pnpm assets:publish -- --env staging');
+    expect(preview[0]).not.toContain('--env prod');
+    const custom = await smoke('https://play.example.test', { fetchImpl: worker(missing) });
+    expect(custom[0]).toContain('pnpm assets:publish -- --env <staging or prod>');
+    expect(custom[0]).toContain('pass --worker to name it');
+    expect(smokeMediaEnv('https://pr-7-tha-bay-web-staging.me.workers.dev')).toBe('staging');
+    expect(smokeMediaEnv('https://THA-BAY-WEB-STAGING.me.workers.dev/')).toBe('staging');
+    expect(smokeMediaEnv('https://tha-bay-web.me.workers.dev')).toBe('staging or prod');
+    expect(smokeMediaEnv('http://localhost:8788')).toBe('staging or prod');
+    expect(smokeMediaEnv('not a url')).toBe('staging or prod');
+    // --worker wins over the host.
+    expect(smokeMediaEnv('https://pr-7-tha-bay-web-staging.me.workers.dev', 'tha-bay-web')).toBe('prod');
+    expect(smokeMediaEnv('https://play.example.test', 'tha-bay-web-staging')).toBe('staging');
+  });
+
+  it('fails on catalog bytes that do not match the pointer, a missing world index object, or a pointer that is not served', async () => {
+    const tampered = await smoke('https://x.test', { fetchImpl: worker({ [`/media/${pointer.key}`]: catalogBody.replace('world-index', 'world-indey') }) });
+    expect(tampered).toEqual([expect.stringContaining('/asset-catalog.json wants')]);
+    const noIndex = await smoke('https://x.test', { fetchImpl: worker({ '/media/assets/data/world-index/default.aaaaaaaaaaaa.json': 404 }) });
+    expect(noIndex).toEqual([expect.stringContaining('data/world-index variant assets/data/world-index/default.aaaaaaaaaaaa.json answered HEAD 404')]);
+    const healthy = worker();
+    const noPointer = (async (input: URL | RequestInfo, init?: RequestInit) =>
+      new URL(String(input)).pathname === '/asset-catalog.json' ? new Response('<html></html>', { headers: isolated }) : healthy(input, init)) as typeof fetch;
+    expect(await smoke('https://x.test', { fetchImpl: noPointer })).toEqual(['/asset-catalog.json is not an asset-catalog-pointer/1']);
+  });
+
+  it('a 503 from the media route (its kill switch) is a warning, not a failure', async () => {
+    const warnings: string[] = [];
+    const problems = await smoke('https://x.test', { fetchImpl: worker({ [`/media/${pointer.key}`]: 503 }), warn: (m) => warnings.push(m) });
+    expect(problems).toEqual([]);
+    expect(warnings).toEqual([expect.stringContaining('MEDIA_ROUTE')]);
   });
 
   it('reports missing isolation headers and a bad request id', async () => {

@@ -25,7 +25,7 @@ import { PlaceIndexImpl, type LabelFn } from './places.ts';
 import { PortalRuntime } from './portals.ts';
 import { WorldQueryImpl, type ChunkSource } from './query.ts';
 import { WorldResolverImpl } from './resolver.ts';
-import { SANDBOX_POLICY, TeleportService, type PreStream, type TeleportHost, type TeleportPolicy, type TransitConfig } from './teleport.ts';
+import { SANDBOX_POLICY, TeleportService, type PreStream, type PrestreamTicket, type TeleportHost, type TeleportPolicy, type TransitConfig } from './teleport.ts';
 
 /** The chunk store the services read: residency, the pre-stream and the residency events. `ChunkStore<SimChunk>` fits. */
 export interface WorldStore extends ChunkSource, PreStream {
@@ -86,6 +86,12 @@ export interface WorldServices extends WorldApi {
   flushMap(tick: number): MapPatch | null;
   /** Hashed resources: densities and closures, portals. (The blackout is registered by its owner.) */
   resources(): SimResource[];
+  /**
+   * The teleport's pre-stream alone (02-world-maps.md 5 step 2; DL-736): the `p0` chunk at (x, z) and its ring as `needNow`, pinned until
+   * the ticket is released. The story mode's checkpoint resume waits on it before it writes the saved poses. Not a C08 `WorldApi` member;
+   * a mode reaches it through `ModeContext.world` on a baked world (the gray-box stand-in has none).
+   */
+  prestream(x: number, z: number): PrestreamTicket;
   /** Respawn pose at the nearest shore node, for the vehicle water wall (`TeleportApi.request('respawn', pose)`). */
   shoreRespawn(x: number, z: number, roadAdjacent: boolean): { x: number; z: number; yaw: number } | null;
   dispose(): void;
@@ -140,7 +146,7 @@ export function createWorldApi(store: WorldStore, index: WorldIndex, clock: { ti
     release: (by) => portals.release(by),
     sealedPortals: () => portals.sealed(),
     nearestShore: (x, z, roadAdjacent) => nearestShoreNode(store, store.residentKeys('p0'), x, z, roadAdjacent, graph),
-    waterDepth: (x, z) => query.waterDepth(x, z),
+    waterDepth: (x, z, y) => query.waterDepth(x, z, y),
     onClosureChange: (cb) => traffic.onClosureChange(cb),
   };
 
@@ -164,6 +170,7 @@ export function createWorldApi(store: WorldStore, index: WorldIndex, clock: { ti
       return out;
     },
     flushMap: (tick) => map.flush(tick),
+    prestream: (x, z) => teleport.prestream(x, z),
     resources: () => [traffic.resource(), portals.resource()],
     shoreRespawn(x, z, roadAdjacent) {
       const n = bounds.nearestShore(x, z, roadAdjacent);

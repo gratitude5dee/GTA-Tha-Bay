@@ -44,7 +44,7 @@ Not here yet: vehicles (M03a1), saves (M04a). M01b2 adds the gray-box block, tou
 - Flags (QA only): `?profile=canonical` (deterministic-compat build), `?transport=pm` (force the postMessage fallback), `?debug=1` (the canvas fills the window: click it for Pointer Lock; WASD, Shift, Space, V camera, C shoulder, Esc or P pause).
 - M01b1 adds to `observe()`: `player { pos, vel, control, owner, grounded }` and `camera { mode, allowedDistance, lastToggleRefused, locked }`; `act()` takes `debug.teleport { pos }`, `debug.ragdoll` and `debug.camera.lock { on }`.
 - `/qa/determinism.html` (QA builds) runs the golden vectors and the 10,000-tick scenarios `physics-drop` and `walk-drop` in `sim.worker` and prints the final hashes; `pnpm check:e2e -- --project=webkit-webgl2 --grep @determinism` compares them with `test/golden/determinism.{physics-drop,walk-drop}.json`.
-- `DV_E2E_PORT=<port>` moves the Playwright web server off 8788, which parallel Builders on one machine need.
+- `DV_E2E_PORT=<port>` moves the Playwright web server off its default 8790 (never 8788, the port of `pnpm dev`; a server already listening is never reused), which parallel Builders on one machine need.
 
 ## Gray-box block, touch, tools (M01b2)
 

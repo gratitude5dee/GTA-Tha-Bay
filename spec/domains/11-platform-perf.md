@@ -17,7 +17,7 @@
 
 ```ts
 export interface PerfScenario {
-  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'fight-stage' | 'xr-walk'
+  id: string;                         // 'graybox-walk' (S01 engine graybox, pre-world, DL-065) | 'walk-civic-center' | 'route-ferry-ocean-beach' | 'downtown-rush' | 'fight-stage' | 'xr-walk' | 'boot-cityhall' (M02f1)
   pathRef: string;                    // camera path file owned by the scenario's milestone (S02, S06, S07)
   durationS: number; warmupS: number; seed: number;
   density: 'off' | 'nominal';         // traffic and peds at the tier budget
@@ -33,7 +33,8 @@ export interface PerfReport {
             trianglesMax: number; texturesMB: number; gpuResourcesMB: number };   // per view-pass
   memory: { accountedHeapMBMax: number; mediaMBMax: number; webContentEstMB: number | null };
   dynamic: { minRenderScale: number; downgrades: number; upgrades: number; tierChanges: number };
-  boot: { warmBootToPlayableS: number | null; coldDownloadMB: number | null };
+  boot: { warmBootToPlayableS: number | null; coldDownloadMB: number | null;
+          requests?: number; bytes?: number; revealMs?: number; waves?: number; inflightPeak?: number }; // C13 1.2, M02f1 (DL-725)
   errors: { gpuLost: number; uncaptured: number; js: number };
 }
 export interface Expectation { metric: string; op: '<=' | '>=' | '==' ; value: number | string | boolean }
@@ -47,6 +48,8 @@ export interface DeviceChecklist {
 
 QA flags (`QaFlags`, the single parser owned by S11, parsed only when `VITE_DV_QA=1`, i.e. dev, test and preview builds): platform `?tier=`, `?gl=1`, `?gpu=1`, `?perf=1`, `?governor=off`, `?limits=name:value`, `?xr-emulate=quest3`, `?scenario=<id>`; engine (S01, passed through to `sim.worker`) `?debug=1`, `?seed=`, `?profile=canonical`, `?mission=`, `?stage=`, `?unlockAll=1` (DL-064); shell (S10, M04b1) `?play=sandbox|story|off` (QA play bypass: in-memory attestation, Terms and throwaway profile, then `mode.start`; read from the QA-only `localStorage` key `dv-qa-play` when the URL has no `play`; `?scenario=` implies `sandbox`; DL-650). Production builds ignore all URL flags.
 
+C13 1.2 (DL-725, M02f1) adds `QaFlags.net: string | null` (`?net=<profile>`, a QA-only pack-layer shaper whose profiles live in `config/perf/net-profiles.json`; production builds contain no shaper code) and the optional `PerfReport.boot` fields above; `boot.inflightPeak` and `boot.waves` come from new in-flight counting in `FetchRetry`.
+
 ## 5. Runtime: what is measured and how
 
 **Frame time.** Flat tiers: `requestAnimationFrame` timestamp deltas of *rendered* frames; XR: `XRFrame` deltas. GPU timers only if `trackTimestamp` works (Safari support `UNVERIFIED`; never required).
@@ -56,6 +59,8 @@ QA flags (`QaFlags`, the single parser owned by S11, parsed only when `VITE_DV_Q
 **Memory.** `MemoryBudget` accounted bytes (part A §5.6); nightly Chromium cross-check with `performance.measureUserAgentSpecificMemory()` (needs isolation; informational). iPhone process memory is not observable, so the memory-bomb page and the heartbeat give the empirical ceiling.
 
 **Boot.** Cold download MB = sum of response bytes for the first-district boot set on an empty cache (Playwright network accounting, automated); warm boot seconds to the reveal gate are measured on devices only.
+
+**Player settings and the governor (DL-727).** A fixed `PlatformSettings.renderScale` (M04b5) pins `DynamicQuality.renderScale`: the governor skips that knob and starts at the next one in the `11-platform.md` §5.5 order. `fpsCap` sets `targetFps = min(tier targetFps, fpsCap)`, and the governor never raises it. XR ignores both. M11a1 AC-11 proves the pin and enables the frame-cap row.
 
 **Budgets as tests** (every row of part A §4.5 has a check):
 

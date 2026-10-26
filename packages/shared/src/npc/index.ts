@@ -1,6 +1,6 @@
 /**
  * Pure NPC helpers of C10 (04-npc.md section 3). No IO: file reading, inkjs and network calls live in tools/soul.
- * `whereIs` lands in M06c. `executor` and `safety-lists` are M06a3.
+ * `whereIs` and the intent cache key are M06c. `executor` and `safety-lists` are M06a3.
  */
 export * from '../contracts/c10-npc.ts';
 export * from '../contracts/c10-npc-builder.ts';
@@ -22,7 +22,7 @@ export { soulVersionProblem } from './version.ts';
 export type { SoulHashes } from './version.ts';
 export {
   validateSoul, validateRoster, validateRosterBundle, validateNpcTurn, validateNpcIntent, validateNpcSummary,
-  validateDialogueRequest, validateVoiceCatalog, validateBarkPool, formatIssue,
+  validateDialogueRequest, validateVoiceCatalog, validateBarkPool, validateSoulLlm, formatIssue,
 } from './validate.ts';
 export type { SchemaIssue } from './validate.ts';
 export {
@@ -45,3 +45,12 @@ export {
   clampPatch, filterMemoryWrites, isReflectionEncounter, quotesPlayer,
 } from './memory.ts';
 export type { RawMemoryWrite, SummaryPatchX } from './memory.ts';
+// M06c: where a named NPC is without a brain tick, and the intent cache key.
+export { whereIs, pointAlong, elapsedInBlock } from './where.ts';
+export type { Vec3, PoiPos, PedRouteFn, WhereIsResult } from './where.ts';
+export { situationHash, normalizeSituation, intentCacheKey, bucketDistance, DISTANCE_BUCKET_M } from './situation-hash.ts';
+// M06b1: the NPC builder's deterministic soul writer and its lints.
+export { assembleSoul, writeSoulMd, deriveInk, cleanSectionText, exampleLinesText, BUILDER_SECTIONS } from './soul-write.ts';
+export type { LlmSoul, BuilderServerFields, AssembledSoul } from './soul-write.ts';
+export { lintBuilderSoul } from './builder-lint.ts';
+export type { BuilderLintEnv, BuilderLintResult } from './builder-lint.ts';

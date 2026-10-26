@@ -6,6 +6,8 @@ import { storyDescriptor, storyFreeroamSim, type StoryFreeroamEnv } from './stor
 export { defaultSandbox, applyToggle, NEVER_WANTED } from './sandbox.ts';
 export { defaultStory } from './story-freeroam.ts';
 export { COMING_SOON_IDS } from './coming-soon.ts';
+export { SANDBOX_ACTIONS, type SandboxWorldPort } from './sandbox-world.ts';
+export { createWaypointMemo, sandboxGo, type WaypointMemo, type Pose, type TeleportEnv } from './sandbox-teleport.ts';
 
 export type BuiltinEnv = StoryFreeroamEnv & SandboxEnv & {
   /** Replaces the story sim (M05a1); the argument is the free-roam sim of this milestone's engine. */

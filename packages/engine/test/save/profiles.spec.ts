@@ -18,7 +18,7 @@ describe('engine/save.profiles helpers', () => {
 
   it('uniqueName appends a counter', () => {
     const p = (name: string) => ({ id: name as never, name, createdAt: 0, updatedAt: 0, playtimeSec: 0, lastSave: null, deviceId: '' });
-    expect(uniqueName([p('Dee'), p('Dee (2)')], 'dee')).toBe('dee (3)');
+    expect(uniqueName([p('Coast'), p('Coast (2)')], 'coast')).toBe('coast (3)');
   });
 });
 

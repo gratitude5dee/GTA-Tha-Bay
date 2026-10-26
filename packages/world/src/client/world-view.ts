@@ -52,7 +52,7 @@ export interface WorldViewLabels {
 }
 
 export interface AssetsLike extends JobClient {
-  stats(): Promise<{ bytes: number; network: number; retries: number }>;
+  stats(o?: { resetPeak?: boolean }): Promise<{ bytes: number; network: number; retries: number; waves?: number; inflightPeak?: number }>;
   /**
    * Network bytes downloaded as of the latest asset reply handled on this thread (`AssetClient.bytesSeen`), read synchronously at the
    * reveal. Absent: the reveal asks `stats()`, whose answer comes a worker round trip later and counts what arrived in between.
@@ -90,6 +90,10 @@ export interface WorldViewOptions {
   container: HTMLElement;
   /** `stats().bytes` before the boot downloads started; the cold-download figure counts from here. */
   bytesBase?: number;
+  /** M02f1: `performance.now()` when `prepareWorld` started; `BootReport.bootRevealMs` counts from here (the world index request is inside it). */
+  bootStartMs?: number;
+  /** M02f1: the `stats({ resetPeak: true })` answer taken at that start: requests and waves of the boot are the change since it. */
+  statsBase?: { network: number; waves: number };
   /** Telemetry: `world.stream` once a minute (the platform samples 10 %). */
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
   /** Epoch-free millisecond clock (`performance.now`). */
@@ -125,6 +129,16 @@ export interface BootReport {
   /** Bytes downloaded (network) from the start of the world boot to the reveal. */
   bytesBeforeReveal: number | null;
   tier: QualityTierId;
+  /** M02f1: from the start of `prepareWorld` (before the world index request) to the reveal; null until revealed or without a start time. */
+  bootRevealMs: number | null;
+  /** M02f1: network requests since the boot started; null until the stats answer after the reveal arrives. */
+  requests: number | null;
+  /** M02f1: the boot's body bytes; equals `bytesBeforeReveal`. */
+  bytes: number | null;
+  /** M02f1: busy periods of the fetch layer since the boot started (sequential round trips that nothing overlapped). */
+  waves: number | null;
+  /** M02f1: most requests in flight at once since the boot started. */
+  inflightPeak: number | null;
 }
 
 /** L0 chunks this close to the focus upload before anything coarse (about the first ring of chunks). */
@@ -205,6 +219,8 @@ export class WorldView implements WorldLayer {
   private startMs = 0;
   private bytesAtStart = 0;
   private bytesBeforeReveal: number | null = null;
+  private bootRevealMs: number | null = null;
+  private bootFigures: { requests: number; waves: number; inflightPeak: number } | null = null;
   private commitMs: number[] = [];
   private lastTelemetry = 0;
   private bytesAtTelemetry = 0;
@@ -717,7 +733,40 @@ export class WorldView implements WorldLayer {
       setTimeout(() => this.veil?.remove(), 700);
     }
     document.documentElement.dataset.dvWorld = 'revealed';
+    if (this.o.bootStartMs !== undefined) this.bootRevealMs = Math.max(1, Math.round(this.now() - this.o.bootStartMs));
+    void this.readBootFigures();
     for (const w of this.revealWaiters.splice(0)) w();
+  }
+
+  /**
+   * M02f1: after the reveal, asks the asset worker for the request counts and writes the boot figures into `data-dv-boot` (every build:
+   * tier and counts only, no ids, no positions). The answer arrives a round trip after the reveal; every consumer treats the figures as
+   * bounds, so that skew changes none of them.
+   */
+  private async readBootFigures(): Promise<void> {
+    const base = this.o.statsBase;
+    if (!base || this.bootRevealMs === null) return;
+    try {
+      const s = await this.o.assets.stats();
+      if (this.disposed) return;
+      this.bootFigures = {
+        requests: Math.max(0, s.network - base.network),
+        waves: Math.max(0, (s.waves ?? base.waves) - base.waves),
+        inflightPeak: s.inflightPeak ?? 0,
+      };
+      const bytes = this.bytesBeforeReveal ?? Math.max(0, s.bytes - this.bytesAtStart);
+      if (this.bytesBeforeReveal === null) this.bytesBeforeReveal = bytes;
+      document.documentElement.dataset['dvBoot'] = JSON.stringify({
+        tier: this.o.tier,
+        requests: this.bootFigures.requests,
+        bytes,
+        revealMs: this.bootRevealMs,
+        waves: this.bootFigures.waves,
+        inflightPeak: this.bootFigures.inflightPeak,
+      });
+    } catch {
+      /* the figures stay null */
+    }
   }
 
   private makeOverlays(): void {
@@ -853,7 +902,18 @@ export class WorldView implements WorldLayer {
   }
 
   bootReport(): BootReport {
-    return { revealed: this.revealed, revealMs: this.revealMs, bytesBeforeReveal: this.bytesBeforeReveal, tier: this.o.tier };
+    const f = this.bootFigures;
+    return {
+      revealed: this.revealed,
+      revealMs: this.revealMs,
+      bytesBeforeReveal: this.bytesBeforeReveal,
+      tier: this.o.tier,
+      bootRevealMs: this.bootRevealMs,
+      requests: f?.requests ?? null,
+      bytes: f ? this.bytesBeforeReveal : null,
+      waves: f?.waves ?? null,
+      inflightPeak: f?.inflightPeak ?? null,
+    };
   }
 
   /** The units the current focus and plan want at a level (the ring test of @world-route). */
@@ -929,7 +989,13 @@ export class WorldView implements WorldLayer {
         this.setFocus(null);
         this.trafficLink?.focus(null);
         this.trafficLink?.density(1);
-        return { coldDownloadMB: this.bytesBeforeReveal === null ? null : Math.round((this.bytesBeforeReveal / 1_000_000) * 100) / 100 };
+        const f = this.bootFigures;
+        return {
+          coldDownloadMB: this.bytesBeforeReveal === null ? null : Math.round((this.bytesBeforeReveal / 1_000_000) * 100) / 100,
+          ...(f && this.bootRevealMs !== null && this.bytesBeforeReveal !== null
+            ? { boot: { requests: f.requests, bytes: this.bytesBeforeReveal, revealMs: this.bootRevealMs, waves: f.waves, inflightPeak: f.inflightPeak } }
+            : {}),
+        };
       },
     };
   }

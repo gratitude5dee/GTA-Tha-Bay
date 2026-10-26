@@ -28,6 +28,8 @@ function obs(over: Partial<MissionObs> = {}): MissionObs {
     sec: 1,
     heat: 0,
     me: { pos: [0, 0, 0], yaw: 0, speed: 0, vehicle: null },
+    units: [],
+    others: [],
     objectives: [],
     zones: {},
     cast: {},

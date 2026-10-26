@@ -54,7 +54,7 @@ export function StatusChip(props: { status: StatusDef; icon?: string; label?: st
 
 // ---- heat
 
-/** Five stars, a distinct scripted-6 icon, the phase text and a ring for the cooldown progress (C06 `HeatState`). */
+/** Five heat bars, a distinct scripted-6 icon, the phase text and a ring for the cooldown progress (C06 `HeatState`). */
 export function HeatStars(props: { heat: HudHeat | undefined }) {
   const h = props.heat;
   const level = h?.level ?? 0;
@@ -66,7 +66,7 @@ export function HeatStars(props: { heat: HudHeat | undefined }) {
     <div class="dv-heat" data-testid="hud-heat" data-level={level} data-phase={h?.phase ?? 'clear'} role="group" aria-label={t('hud.heat.label')}>
       <span class="dv-stars" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((i) => (
-          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}>{i <= lit ? '★' : '☆'}</span>
+          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}>{i <= lit ? '▮' : '▯'}</span>
         ))}
         {level >= 6 ? <span class="dv-star dv-star-script" data-testid="hud-heat-scripted">{'✦'}</span> : null}
       </span>
@@ -100,7 +100,7 @@ export function Wallet(props: { wallet: HudWallet | undefined }) {
   return (
     <div class="dv-wallet" data-testid="hud-wallet" data-changed={changed ? '1' : '0'} aria-label={t('hud.wallet.label')}>
       <span class="dv-schip-icon" aria-hidden="true">$</span>
-      <span data-testid="hud-wallet-value">{w ? dollars(w.cashCents) : t('hud.empty')}</span>
+      <span data-testid="hud-wallet-value" data-ui-skip="" translate={false}>{w ? dollars(w.cashCents) : t('hud.empty')}</span>
     </div>
   );
 }
@@ -108,7 +108,7 @@ export function Wallet(props: { wallet: HudWallet | undefined }) {
 export function ClockWeather(props: { clock: HudClock | undefined }) {
   const c = props.clock;
   return (
-    <div class="dv-clock" data-testid="hud-clock" aria-label={t('hud.clock.label')}>
+    <div class="dv-clock" data-testid="hud-clock" data-ui-skip="" translate={false} aria-label={t('hud.clock.label')}>
       <span class="dv-schip-icon" aria-hidden="true">{'◔'}</span>
       <span data-testid="hud-clock-value">{c ? clockText(c.hour) : t('hud.empty')}</span>
       {c ? <span class="dv-muted" data-testid="hud-weather">{t(`hud.weather.${c.weather}`)}</span> : null}
@@ -171,7 +171,7 @@ export function InteractionPrompt() {
   const glyph = blocked ? '' : promptGlyph(prompt.kind, device);
   return (
     <div class={`dv-prompt dv-prompt-ui${blocked ? ' dv-prompt-blocked' : ''}`} data-testid="hud-prompt" data-kind={prompt.kind} data-blocked={blocked ? '1' : '0'} role="status" aria-live="polite">
-      {blocked ? <span class="dv-schip-icon" aria-hidden="true">{'⛔'}</span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph">{glyph}</kbd> : null}
+      {blocked ? <span class="dv-schip-icon" aria-hidden="true">{'⛔'}</span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph" data-ui-skip="" translate={false}>{glyph}</kbd> : null}
       <span data-testid="hud-prompt-text">{t(promptTextKey(prompt))}</span>
       {prompt.hold && !blocked ? (
         <span class="dv-hold" aria-hidden="true"><span ref={fill} class="dv-hold-fill" style={{ inlineSize: `${Math.round(prompt.progress * 100)}%` }} /></span>

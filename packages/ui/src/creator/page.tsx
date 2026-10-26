@@ -12,7 +12,7 @@ import { Button, Slider, Tabs } from '../kit/widgets.tsx';
 import { useShell } from '../shell/context.tsx';
 import type { PageProps } from '../shell/types.ts';
 import {
-  CATALOG, EditHistory, NAME_MAX, checkName, defaultAvatar, mulberry32, normalizeAvatar, partOf, partsOf, randomize, withPart,
+  CATALOG, EditHistory, NAME_MAX, cardsOf, checkName, defaultAvatar, mulberry32, normalizeAvatar, partOf, pickPart, randomize,
   type CreatorPart, type CreatorSlot, type NameProblem, type PlayerAvatar,
 } from './catalog.ts';
 import { encodeAppearance } from './appearance.ts';
@@ -114,7 +114,7 @@ export function CreatorEditor(props: CreatorEditorProps) {
     h.push(next, key, performance.now());
     redraw((n) => n + 1);
   };
-  const pick = (slot: CreatorSlot, id: string | undefined): void => apply(withPart(a, slot, id));
+  const pick = (slot: CreatorSlot, id: string | undefined): void => apply(pickPart(a, slot, id));
 
   // Stage: show the current look; the drag rotates the turntable; reduced motion stops the spin.
   const params = useMemo(() => mannequinParams(a), [a]);
@@ -147,7 +147,7 @@ export function CreatorEditor(props: CreatorEditorProps) {
   const cards = (slot: CreatorSlot, optional = false) => (
     <div class="dv-parts" role="radiogroup" aria-label={t(`creator.slot.${slot}`)} data-testid={`creator-grid-${slot}`}>
       {optional ? <NoneCard on={partOf(a, slot) === undefined} onPick={() => pick(slot, undefined)} /> : null}
-      {partsOf(CATALOG, slot).map((p) => (
+      {cardsOf(CATALOG, slot).map((p) => (
         <PartCard key={p.id} part={p} slot={slot} on={partOf(a, slot) === p.id} onPick={() => pick(slot, p.id)} />
       ))}
     </div>
@@ -252,6 +252,8 @@ export function CreatorEditor(props: CreatorEditorProps) {
                 <input
                   class="dv-input"
                   data-testid="creator-name"
+                  data-ui-skip=""
+                  translate={false}
                   data-fid="creator.name"
                   value={name}
                   maxLength={NAME_MAX * 2}
@@ -271,6 +273,8 @@ export function CreatorEditor(props: CreatorEditorProps) {
                 <input
                   class="dv-input"
                   data-testid="creator-callsign"
+                  data-ui-skip=""
+                  translate={false}
                   data-fid="creator.callsign"
                   value={callsign}
                   maxLength={NAME_MAX * 2}

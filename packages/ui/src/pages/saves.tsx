@@ -223,7 +223,8 @@ type NewStep = 'name' | 'creator' | 'intro';
 
 export function NewGamePage(_props: PageProps) {
   const { shell, ctx } = useShell();
-  const [name, setName] = useState('');
+  // The name field starts with the creator default (DL-OWN-05: "Coast", from content/ui/creator/defaults.json); the player may rename.
+  const [name, setName] = useState(() => defaultAvatar().name);
   const [step, setStep] = useState<NewStep>('name');
   const [busy, setBusy] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -416,7 +417,7 @@ function ProfileCard(props: { p: ProfileMeta; ctx: ShellContext; shell: ShellApi
   const used = usage.data ?? 0;
   return (
     <section class="dv-card" data-testid={`profile-card-${p.name}`} data-profile-id={p.id}>
-      <h2>
+      <h2 data-ui-skip="" translate={false}>
         {p.name} {active ? <span class="dv-badge" data-testid="active-badge">{t('profile.active')}</span> : null}
       </h2>
       <p class="dv-muted">
@@ -459,7 +460,7 @@ function RenameBody(props: { initial: string; onDone(v: string | null): void }) 
         props.onDone(v.normalize('NFC').trim());
       }}
     >
-      <input class="dv-input" data-testid="rename-input" maxLength={SAVE_LIMITS.nameMax} value={v} onInput={(e) => setV((e.currentTarget as HTMLInputElement).value)} />
+      <input class="dv-input" data-testid="rename-input" data-ui-skip="" translate={false} maxLength={SAVE_LIMITS.nameMax} value={v} onInput={(e) => setV((e.currentTarget as HTMLInputElement).value)} />
       <div class="dv-actions">
         <button type="button" class="dv-btn dv-btn-secondary" onClick={() => props.onDone(null)}>{t('common.cancel')}</button>
         <button type="submit" class="dv-btn dv-btn-primary" data-testid="rename-ok">{t('common.ok')}</button>

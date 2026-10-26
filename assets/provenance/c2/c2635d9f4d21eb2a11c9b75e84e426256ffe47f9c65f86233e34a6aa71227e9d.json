@@ -1,0 +1,29 @@
+{
+  "ai_generated": false,
+  "attribution": "City and County of San Francisco",
+  "authors": [
+    "studio:datasf-addresses"
+  ],
+  "created_at": "2026-10-19T14:26:08Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "data",
+  "license": "PDDL-1.0",
+  "origin": "open_data",
+  "paths": [
+    "raw/sf/ramy-di5m.jsonl"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "c2635d9f4d21eb2a11c9b75e84e426256ffe47f9c65f86233e34a6aa71227e9d",
+  "source": {
+    "dataset_id": "ramy-di5m",
+    "retrieved": "2026-10-19T14:26:08Z",
+    "url": "https://data.sf.gov/resource/ramy-di5m.json"
+  },
+  "status": "active"
+}

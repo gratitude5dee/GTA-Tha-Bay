@@ -1,5 +1,5 @@
 import {
-  ClientAction, type ControlsSettings, type JsonValue, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
+  ClientAction, type ControlsSettings, type JsonValue, type PlatformSettings, type UiCommand, type BinderTarget, type BootPayload, type FrameSignal, type InputFrame, type LoopStats, type QualityTierId, type SimConfig,
   type SimProfile,
 } from '@dv/shared';
 import { SimHostImpl, type WorkerLike } from '../../sim/sim-host.ts';
@@ -39,6 +39,7 @@ import type { XrSmoke, XrSystemLike } from '../xr/smoke.ts';
 import type { XrPanelsLite } from '../xr/panels.ts';
 import type { QaFlags } from '../../platform/qa-flags.ts';
 import type { RendererHost } from '../../platform/renderer-host.ts';
+import { effectiveRenderScale } from '../../platform/render-scale.ts';
 import type { WorldBoot } from './world-layer.ts';
 
 export interface BootEngineOptions {
@@ -194,6 +195,8 @@ export interface EngineHandle {
   qaResults(): Record<string, unknown>;
   /** Input reaches the game (true) or the world is a backdrop (false). */
   setPlay(on: boolean): void;
+  /** The player's render scale (M04b5): multiplied onto the tier's resolution caps for the flat canvas. */
+  setRenderScale(s: PlatformSettings['renderScale']): void;
   /** Ends the XR smoke session, if one runs. */
   endXr(): Promise<void>;
   /** The vehicle camera (M03a1): the bridge cycles and reads it. */
@@ -316,6 +319,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
   // QA `?racing=1`: the sim worker boots the racing module (M07a1).
   if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+  // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
+  if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 
   const banner = document.createElement('div');
   banner.className = 'dv-engine-banner';
@@ -545,10 +550,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let askSerial = 0;
 
   /** Resolution while the title is up is lower; play restores it. */
+  let userScale: PlatformSettings['renderScale'] = 'auto';
   const applyScale = (): void => {
     if (!hostScene || !hostScene.ready) return;
     const c = hostScene.currentCanvas;
-    hostScene.resize(Math.max(1, c.clientWidth), Math.max(1, c.clientHeight), playing ? 1 : BACKDROP_RENDER_SCALE);
+    hostScene.resize(Math.max(1, c.clientWidth), Math.max(1, c.clientHeight), effectiveRenderScale(userScale, playing, BACKDROP_RENDER_SCALE));
   };
 
   const neutralFrame = (tick: number): InputFrame => ({
@@ -910,6 +916,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!on && document.pointerLockElement) document.exitPointerLock?.();
     applyScale();
   };
+  const setRenderScale = (scale: PlatformSettings['renderScale']): void => {
+    if (userScale === scale) return;
+    userScale = scale;
+    applyScale();
+  };
   const onResize = (): void => applyScale();
   addEventListener('resize', onResize);
   cleanups.push(() => removeEventListener('resize', onResize));
@@ -1018,6 +1029,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     },
     qaResults: () => Object.fromEntries(host.qaResults),
     setPlay,
+    setRenderScale,
     vehicleCamera: vcam,
     get tools() {
       return inspector && physicsDraw ? { inspector, physics: physicsDraw } : null;

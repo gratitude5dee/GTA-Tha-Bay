@@ -1,0 +1,55 @@
+{
+  "actions": [],
+  "actors": [],
+  "cues": [
+    {
+      "endMs": 12800,
+      "kind": "dialogue",
+      "line": "line.m.a1.12.arrival.1",
+      "speaker": "whitney_arlo",
+      "startMs": 8000
+    }
+  ],
+  "durationSec": 14,
+  "id": "m.a1.12.arrival",
+  "letterbox": true,
+  "marks": {
+    "gate_wide": {
+      "at": [
+        37.7361,
+        -122.3882
+      ],
+      "yawDeg": 320
+    },
+    "light_close": {
+      "at": [
+        37.73635,
+        -122.3885
+      ],
+      "yawDeg": 40
+    }
+  },
+  "schema": "director/1",
+  "seed": 2966566892,
+  "shots": [
+    {
+      "atSec": 0,
+      "from": "gate_wide",
+      "lens": "wide",
+      "preset": "establish",
+      "subject": "player"
+    },
+    {
+      "atSec": 7,
+      "from": "light_close",
+      "lens": "tele",
+      "move": "push-in",
+      "preset": "single",
+      "subject": "player"
+    }
+  ],
+  "xrVantage": {
+    "mark": "gate_wide",
+    "yawDeg": 320
+  }
+}

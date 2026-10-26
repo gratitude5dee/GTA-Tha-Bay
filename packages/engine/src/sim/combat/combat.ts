@@ -38,6 +38,8 @@ export interface CombatPorts {
   report?(kind: 'assault', at: [number, number, number]): void;
   /** A hit as a sim event, for the timeline and the page. */
   emit?(t: string, tick: number, attacker: EntityHandle, victim: EntityHandle, move: string, damage: number, ko: boolean): void;
+  /** True when `victim` cannot be hurt (the sandbox's "can't get hurt", M04e4). The hit still happens as an event, with damage 0. */
+  immune?(victim: EntityHandle): boolean;
 }
 
 interface Active {
@@ -219,6 +221,12 @@ export class CombatImpl implements CombatApi {
     const ecs = this.p.ecs;
     const hp = ecs.store(Health);
     const tr = ecs.store(Transform);
+    if (this.p.immune?.(victim)) {
+      this.p.emit?.('combat.hit', tick, attacker, victim, move.id, 0, false);
+      const e0: HitEvent = { attacker, victim, move: move.id, damage: 0, ko: false };
+      for (const cb of [...this.listeners]) cb(e0);
+      return;
+    }
     let next = (hp.hp[v] as number) - move.damage;
     let ko = move.id === 'takedown';
     if (next <= 0) {

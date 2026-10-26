@@ -44,6 +44,8 @@ export interface RuntimeOptions {
   storySeed?(): number;
   /** The display text of a line id, for the duration of a `say` (the length of the text decides how long it holds). Default: the id. */
   lineText?(id: string): string;
+  /** A `text` op ran (a phone message from a soul, M05c2): the story mode keeps the session's threads for the Messages app. */
+  onText?(from: string, line: string, tick: number): void;
   log?(line: string): void;
 }
 
@@ -59,6 +61,11 @@ export interface StartOptions {
   attempt: number;
   seed: number;
   from?: MissionCheckpointV1;
+  /**
+   * Set when `from` is a saved game's checkpoint resumed after a load or a mode re-entry (DL-736), never by a retry: the cast is spawned
+   * at its saved poses (not first at its authored spawns), and a player saved in a cast vehicle is seated in it once it exists.
+   */
+  load?: boolean;
   /** Set by a retry only. */
   carry?: Carry;
 }

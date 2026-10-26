@@ -1,8 +1,8 @@
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpSync, existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { resolveVariant, type AssetManifest } from '../../../packages/shared/src/assets/c07.ts';
+import { checkRecord } from '../../../packages/shared/src/assets/gates/provenance.ts';
 import { TIERS } from '../../assets/src/verify.ts';
 import { rootRecord } from '../../assets/src/lock.ts';
 import { repoRoot } from '../../ci/run.ts';
@@ -13,6 +13,10 @@ import { packBake } from '../src/pack/index.ts';
 import { parseTarget, publishPack, worldLock } from '../src/pack/publish.ts';
 import { loadSources } from '../src/config.ts';
 import { bakeExcerpt } from './helpers.ts';
+import { useTempDirs } from '../../ci/test-tmp.ts';
+
+// BD-FIX-TMP-01: temp folders made here are removed after the last test of this file.
+const tempDir = useTempDirs();
 
 const lockFile = path.join(repoRoot, 'assets', 'assets.lock.json');
 const cfg = loadSources();
@@ -33,7 +37,7 @@ function walkFiles(dir: string): string[] {
 describe('map:pack to a directory target (civic-excerpt)', () => {
   it('writes one manifest and one valid provenance record per pack, a fragment, and the blobs at their keys', async () => {
     const b = await bakeExcerpt();
-    const target = mkdtempSync(path.join(tmpdir(), 'dv-pack-'));
+    const target = tempDir('dv-pack-');
     const lockBefore = sha256Hex(readFileSync(lockFile));
     const logs: string[] = [];
     const r = await publishPack({ bakeDir: b.outDir, target: { kind: 'dir', path: target }, cfg, log: (l) => logs.push(l) });
@@ -60,6 +64,8 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     expect(records.filter((x) => x.origin === 'derived')).toHaveLength(nBlobs);
     expect(records.filter((x) => x.origin === 'open_data')).toHaveLength(5);
     expect(records.filter((x) => x.origin === 'authored')).toHaveLength(6); // the synthetic OSM, street, stop, pattern and address parts and content-world
+    // every record passes the provenance gate's record rules (the content-world stamp is ODbL and needs its attribution)
+    for (const rec of r.packed.records) expect(checkRecord(rec, { recordLicenses: ['*'], release: true }), rec.sha256).toEqual([]);
 
     for (const m of r.packed.manifests) {
       const blob = r.packed.blobs.find((x) => x.ref === `${m.kind}/${m.id}`)!;
@@ -79,7 +85,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
 
   it('resolves every world_pack ref in catalog.fragment.json through default for all six tiers', async () => {
     const b = await bakeExcerpt();
-    const target = mkdtempSync(path.join(tmpdir(), 'dv-pack-'));
+    const target = tempDir('dv-pack-');
     await publishPack({ bakeDir: b.outDir, target: { kind: 'dir', path: target }, cfg, log: () => {} });
     const fragment = JSON.parse(readFileSync(path.join(b.outDir, 'catalog.fragment.json'), 'utf8')) as { bakeId: string; entries: AssetManifest[] };
     expect(fragment.bakeId).toBe(b.result.bakeId);
@@ -91,7 +97,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
 
   it('is a no-op the second time and byte-identical across packings', async () => {
     const b = await bakeExcerpt();
-    const target = mkdtempSync(path.join(tmpdir(), 'dv-pack-'));
+    const target = tempDir('dv-pack-');
     const a = packBake(b.outDir, cfg);
     await publishPack({ bakeDir: b.outDir, target: { kind: 'dir', path: target }, cfg, log: () => {} });
     const first = readFileSync(path.join(b.outDir, 'catalog.fragment.json'), 'utf8');
@@ -111,7 +117,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
 
   it('as the sf bake: SKIPs without secrets, and with a stub rclone writes assets/world/sf.lock.json and records only', async () => {
     const b = await bakeExcerpt();
-    const copy = mkdtempSync(path.join(tmpdir(), 'dv-sf-'));
+    const copy = tempDir('dv-sf-');
     cpSync(b.outDir, copy, { recursive: true });
     const rep = JSON.parse(readFileSync(path.join(copy, 'bake-report.json'), 'utf8')) as Record<string, unknown>;
     writeFileSync(path.join(copy, 'bake-report.json'), JSON.stringify({ ...rep, area: 'sf' }));
@@ -121,7 +127,7 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
     expect(skipped.skipped).toMatch(/R2_ACCESS_KEY_ID/);
     expect(logs.join('\n')).toMatch(/^SKIP map:pack r2:staging: .*R2_ACCESS_KEY_ID.* not set/m);
 
-    const root = mkdtempSync(path.join(tmpdir(), 'dv-sf-root-'));
+    const root = tempDir('dv-sf-root-');
     const calls: string[][] = [];
     const run = (_cmd: string, args: string[]): { status: number; stdout: string; stderr: string } => {
       calls.push(args);
@@ -161,8 +167,8 @@ describe('map:pack to a directory target (civic-excerpt)', () => {
 
   it('finds a bake by id, by area pointer and refuses junk', () => {
     expect(resolveBake({ bake: 'nothex' })).toMatch(/64 lowercase hex/);
-    expect(resolveBake({ bake: 'a'.repeat(64) }, mkdtempSync(path.join(tmpdir(), 'dv-none-')))).toMatch(/no finished bake/);
-    expect(resolveBake({}, mkdtempSync(path.join(tmpdir(), 'dv-none-')))).toMatch(/no latest.json/);
+    expect(resolveBake({ bake: 'a'.repeat(64) }, tempDir('dv-none-'))).toMatch(/no finished bake/);
+    expect(resolveBake({}, tempDir('dv-none-'))).toMatch(/no latest.json/);
   });
 });
 
@@ -171,7 +177,7 @@ describe('map:pack on the synth bake (AC-5; needs pnpm map:build -- --area synth
   const run = bake ? it : it.skip;
 
   run('writes one manifest and one valid record per pack and leaves assets.lock.json unchanged', async () => {
-    const target = mkdtempSync(path.join(tmpdir(), 'dv-pack-synth-'));
+    const target = tempDir('dv-pack-synth-');
     const lockBefore = sha256Hex(readFileSync(lockFile));
     const r = await publishPack({ bakeDir: bake!.dir, target: { kind: 'dir', path: target }, cfg, log: () => {} });
     expect(r.code).toBe(0);

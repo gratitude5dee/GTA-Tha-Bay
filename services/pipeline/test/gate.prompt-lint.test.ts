@@ -3,6 +3,7 @@
  * (`config/names-real.json`, DL-240). Runs under Node against Miniflare's R2 (the edge Worker's own bucket bindings), the way
  * `pnpm check:pipeline` does; `check:pipeline` runs this file.
  */
+import { devNull } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { getPlatformProxy } from 'wrangler';
@@ -35,7 +36,9 @@ beforeAll(async () => {
   process.env['WRANGLER_LOG'] ??= 'error';
   const configPath = path.resolve(import.meta.dirname, '../../edge/wrangler.jsonc');
   // remoteBindings: false: the remote-only Workers AI binding must not start a remote proxy session (BD-FIX-CI4-E01).
-  proxy = await getPlatformProxy({ configPath, environment: 'staging', persist: false, remoteBindings: false });
+  // envFiles: the null device alone (tools/ci/secret-env.ts NO_ENV_FILE): no services/edge/.dev.vars or .env file, which may hold live
+  // secrets, is read (BD-FIX-SEC-02).
+  proxy = await getPlatformProxy({ configPath, environment: 'staging', persist: false, remoteBindings: false, envFiles: [devNull] });
 });
 afterAll(async () => {
   await proxy.dispose();

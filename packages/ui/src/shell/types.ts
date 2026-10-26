@@ -10,6 +10,7 @@ import type { MapPort } from '../phone/map-port.ts';
 import type { ScreenDef } from '../screen/types.ts';
 import type { SettingsBinderApi } from './binder.ts';
 import type { ShellEvent } from './machine.ts';
+import type { OverlayHooks } from './overlay-hooks.ts';
 
 export type { LocKey } from '../i18n/index.ts';
 
@@ -167,6 +168,36 @@ export interface SavesPort {
 
 export interface StorageInfo { usage: number; quota: number; persisted: boolean | null }
 
+/** What a city download would take on this device (M04b4). Sizes come from the catalog at run time. */
+export interface OfflinePlan {
+  totalBytes: number;
+  files: number;
+  missingBytes: number;
+  missingFiles: number;
+  /** Free quota in bytes; null when the browser gives no estimate. */
+  freeBytes: number | null;
+  fits: boolean;
+  shortfallBytes: number;
+  store: 'opfs' | 'memory-fallback';
+  /** False in a read-only second tab. */
+  writable: boolean;
+}
+export type OfflineJobState = 'running' | 'done' | 'cancelled' | 'failed';
+export interface OfflineJob { done: number; total: number; state: OfflineJobState; reason?: string }
+
+/** The city download as the Settings page uses it. The job lives in the port, so leaving the page neither stops nor loses it. */
+export interface OfflinePort {
+  /** Null while the catalog is not ready. */
+  plan(): Promise<OfflinePlan | null>;
+  downloaded(): Promise<{ bytes: number; files: number }>;
+  /** Starts a download, or returns the running one. Resolves when the job ends. */
+  start(): Promise<OfflineJob>;
+  cancel(): void;
+  job(): OfflineJob | null;
+  onJob(cb: (j: OfflineJob) => void): () => void;
+  clear(): Promise<void>;
+}
+
 /** The device-scoped platform settings and the quality service, as the Settings page and the Terms card use them. */
 export interface PlatformPort {
   settings(): PlatformSettings;
@@ -178,12 +209,18 @@ export interface PlatformPort {
   rerunBenchmark?(): Promise<void>;
   storage(): Promise<StorageInfo>;
   requestPersist?(): Promise<boolean>;
+  /** The city download for offline play (M04b4). Absent where the pack store is not wired. */
+  offline?: OfflinePort;
   /** The consent that governs telemetry now; the shell calls it with the stored value when Terms are accepted. */
   applyConsent(c: PlatformSettings['telemetryConsent']): void;
   /** Emits a telemetry event (the platform client drops it without consent). */
   emit(name: 'ui.page' | 'ui.onboard', props: Record<string, string | number | boolean>): void;
   deviceClass: 'desktop' | 'mobile' | 'xr';
   xrCapable: boolean;
+  /** True once M11a1's FramePacer exists; until then the frame-cap row is disabled with its reason (M04b5). */
+  framePacer?: boolean;
+  /** Frame-rate samples, about once a second (the FPS chip, the `fps` shell signal). Returns the unsubscribe. */
+  onFrameStats?(cb: (s: { fps: number; tier: string }) => void): () => void;
   install?: { canPrompt(): boolean; prompt(): Promise<void>; isIos: boolean; standalone: boolean };
 }
 
@@ -237,6 +274,8 @@ export interface ShellProps {
   onConsent?: (consent: PlatformSettings['telemetryConsent']) => void;
   /** The build id for the Title and About. */
   build: string;
+  /** The read-only signal stream (M04b5); tests pass fakes, the app leaves it out for the window and `BroadcastChannel`. */
+  overlay?: OverlayHooks;
   /** Flags the app knows before the engine (BootConfig.flags once fetched). */
   flags?: Record<string, boolean>;
   /** `?touch=1` (QA builds) forces the touch layer; the rotate overlay follows it. */

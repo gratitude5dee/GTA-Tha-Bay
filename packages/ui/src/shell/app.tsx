@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import type { PwaUpdateController } from '@dv/shared';
+import type { JsonValue, PwaUpdateController } from '@dv/shared';
 import { BRAND } from '../../../../config/brand.ts';
 import { t } from '../i18n/index.ts';
+import { dialogueBack } from '../dialogue/session.ts';
+import { DialoguePanel } from '../dialogue/DialogueBubble.tsx';
 import { FocusManager } from '../kit/focus.ts';
 import { ConfirmBody, Dialog, ToastHost, type ToastItem } from '../kit/widgets.tsx';
+import { FpsChip } from '../hud/fps-chip.tsx';
 import { StoryHud } from '../hud/story-hud.tsx';
 import { CoachMark, InstallChip } from '../onboarding/coach-mark.tsx';
 import { RotateOverlay } from '../onboarding/rotate.tsx';
+import { createSandboxClockSync } from '../phone/sandbox-sync.ts';
 import { Banners } from './banners.tsx';
 import { AttributionSplash } from './attribution-splash.tsx';
 import type { ShellCore } from './core.ts';
@@ -109,7 +113,11 @@ export function ShellApp(props: { core: ShellCore }) {
     addEventListener('offline', setOnline);
     setOnline();
     const root = document.getElementById('app') ?? document.body;
-    const focus = new FocusManager({ root, onBack: () => core.back(), escapeBacks: () => core.escapeBacks(), active: () => !(core.state === 'InMode' && core.frame === null) });
+    // Back (Esc, Backspace, the pad's B) closes an open dialogue first (M06a5).
+    const onBack = (): void => {
+      if (!dialogueBack()) core.back();
+    };
+    const focus = new FocusManager({ root, onBack, escapeBacks: () => core.escapeBacks(), active: () => !(core.state === 'InMode' && core.frame === null) });
     // Leave Booting after the first paint.
     const boot = setTimeout(() => core.ready(), 0);
     return () => {
@@ -123,6 +131,22 @@ export function ShellApp(props: { core: ShellCore }) {
     };
   }, [core]);
   useEffect(() => applyPrefs(core));
+  // "Match my clock" (M04e1): while the sandbox keeps the sync on and the session is offline, the device's time of day goes to the sim once a minute.
+  const engine = ctx.engine;
+  useEffect(() => {
+    if (!engine) return undefined;
+    const sync = createSandboxClockSync({ send: (cmd) => void ctx.sendUi(cmd), now: () => new Date() });
+    const read = (): void => {
+      const w = ctx.vm<JsonValue>('mode.sandbox.world') as unknown as { sync?: boolean; online?: boolean } | undefined;
+      sync.update({ sandbox: ctx.mode.stack[0]?.id === 'sandbox', sync: w?.sync === true, online: w?.online === true });
+    };
+    const offs = [engine.vm.subscribe('mode.*', read), engine.vm.subscribe('sys.*', read)];
+    read();
+    return () => {
+      offs.forEach((off) => off());
+      sync.dispose();
+    };
+  }, [engine]);
 
   const pageId = core.currentPage();
   const def = pageDef(pageId === 'unsupported' ? 'boot' : pageId);
@@ -162,6 +186,8 @@ export function ShellApp(props: { core: ShellCore }) {
         </>
       ) : null}
       <AttributionSplash />
+      <DialoguePanel />
+      {core.props.prefs.get().showFps ? <FpsChip /> : null}
       <ToastHost store={core.toastStore} announce={core.props.prefs.get().announce} onAction={toastAction} />
       {core.modals.map((m) =>
         m.confirm ? (

@@ -270,6 +270,103 @@ export function runDataPortContract(name: string, make: () => Promise<ContractTa
       expect((await port.npcMemory.topK(pid, npc, unit(1), 10, 10)).map((h) => h.text)).toEqual(['fresh']);
     });
 
+    it('builder: createDraft stops at the live limit, updateDraft guards revision and state, souls keep versions, deleteDraft names the files', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const mk = (): { id: string; npcId: string } => ({ id: uuid(), npcId: `u_${uuid().replaceAll('-', '').slice(0, 16)}` });
+      const a = mk();
+      const fields = { name: 'Contract Test' } as never;
+      const first = await port.builder.createDraft({ id: a.id, npcId: a.npcId, ownerProfileId: pid, fields, attestation: 'original' }, 2);
+      if (first === 'limit') throw new Error('first draft refused');
+      expect(first).toMatchObject({ id: a.id, state: 'draft', rev: 1, backstory: '', publishable: true, soul_md: null });
+      const b = mk();
+      expect(await port.builder.createDraft({ id: b.id, npcId: b.npcId, ownerProfileId: pid, fields, attestation: 'original' }, 2)).not.toBe('limit');
+      const c = mk();
+      expect(await port.builder.createDraft({ id: c.id, npcId: c.npcId, ownerProfileId: pid, fields, attestation: 'original' }, 2)).toBe('limit');
+      expect((await port.builder.listDrafts(pid)).map((d) => d.id).sort()).toEqual([a.id, b.id].sort());
+
+      const edited = await port.builder.updateDraft(a.id, { backstory: 'a story' }, { ifRev: 1, fromStates: ['draft'], bumpRev: true });
+      expect(edited).toMatchObject({ rev: 2, backstory: 'a story' });
+      expect(await port.builder.updateDraft(a.id, { backstory: 'x' }, { ifRev: 1 })).toBe('conflict');
+      expect(await port.builder.updateDraft(a.id, { state: 'validating' }, { fromStates: ['text_ok'] })).toBe('state');
+      expect(await port.builder.updateDraft(uuid(), { backstory: 'x' })).toBeNull();
+      const moved = await port.builder.updateDraft(a.id, { state: 'validating' }, { fromStates: ['draft'] });
+      expect(moved).toMatchObject({ state: 'validating', rev: 2 });
+      expect((await port.builder.getDraft(a.id))?.state).toBe('validating');
+
+      const soul = (version: number, status: 'private' | 'published' = 'private'): Parameters<typeof port.builder.putSoul>[0] => ({
+        npcId: a.npcId,
+        soulVersion: version,
+        ownerProfileId: pid,
+        soulMd: 'md',
+        compiledJson: { id: a.npcId } as never,
+        promptR2Key: `souls/${a.npcId}/${version}/soul.prompt.txt`,
+        promptSha256: hex64(),
+        status,
+      });
+      await port.builder.putSoul(soul(1));
+      await port.builder.putSoul(soul(2));
+      await port.builder.putSoul(soul(2, 'published'));
+      expect((await port.builder.getSoul(a.npcId))?.soul_version).toBe(2);
+      expect((await port.builder.getSoul(a.npcId, 1))?.status).toBe('private');
+      expect((await port.builder.getSoul(a.npcId, 2))?.status).toBe('published');
+      expect(await port.builder.getSoul('u_0000000000000000')).toBeNull();
+      expect((await port.builder.soulKeys(pid)).sort()).toEqual([soul(1).promptR2Key, soul(2).promptR2Key]);
+
+      expect(await port.builder.deleteDraft(a.id, uuid())).toBeNull(); // not the owner's
+      const gone = await port.builder.deleteDraft(a.id, pid);
+      expect(gone?.promptKeys.sort()).toEqual([soul(1).promptR2Key, soul(2).promptR2Key]);
+      expect(await port.builder.getDraft(a.id)).toBeNull();
+      expect(await port.builder.getSoul(a.npcId)).toBeNull();
+    });
+
+    it('builder: purgeStaleDrafts removes only unpublished drafts older than the cutoff, with their private souls', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const fields = { name: 'Old One' } as never;
+      const old = { id: uuid(), npcId: `u_${uuid().replaceAll('-', '').slice(0, 16)}` };
+      const live = { id: uuid(), npcId: `u_${uuid().replaceAll('-', '').slice(0, 16)}` };
+      await port.builder.createDraft({ id: old.id, npcId: old.npcId, ownerProfileId: pid, fields, attestation: 'original' }, 5);
+      await port.builder.putSoul({ npcId: old.npcId, soulVersion: 1, ownerProfileId: pid, soulMd: 'md', compiledJson: {} as never, promptR2Key: `souls/${old.npcId}/1/soul.prompt.txt`, promptSha256: hex64(), status: 'private' });
+      await port.builder.createDraft({ id: live.id, npcId: live.npcId, ownerProfileId: pid, fields, attestation: 'original' }, 5);
+      await port.builder.updateDraft(live.id, { state: 'published' });
+      const future = Date.now() + 3650 * 86_400_000;
+      const removed = await port.builder.purgeStaleDrafts(future, 500);
+      expect(removed.map((r) => r.npcId)).toContain(old.npcId);
+      expect(removed.find((r) => r.npcId === old.npcId)?.promptKeys).toEqual([`souls/${old.npcId}/1/soul.prompt.txt`]);
+      expect(removed.map((r) => r.npcId)).not.toContain(live.npcId);
+      expect(await port.builder.getDraft(old.id)).toBeNull();
+      expect(await port.builder.getDraft(live.id)).not.toBeNull();
+      expect(await port.builder.getSoul(old.npcId)).toBeNull();
+    });
+
+    it('moderation: one item per subject, appended signals, a case with a computed SLA and a snapshot', async () => {
+      const { port } = await make();
+      const pid = uuid();
+      await port.profiles.ensureLocal(pid, hex64());
+      const draftId = uuid();
+      const item = await port.moderation.ensureItem({ kind: 'npc_draft', id: draftId, ownerProfileId: pid, newId: uuid() });
+      expect(await port.moderation.ensureItem({ kind: 'npc_draft', id: draftId, ownerProfileId: pid, newId: uuid() })).toBe(item);
+      expect(await port.moderation.draftVerdicts(draftId)).toEqual([]);
+      await port.moderation.recordSignals(item, [
+        { source: 'names_lint', sourceVersion: 'registry', verdict: 'allow', scores: { hits: 0 } },
+        { source: 'openai_omni', sourceVersion: 'omni-moderation-latest', verdict: 'quarantine', scores: { 'sexual/minors': 0.25 }, latencyMs: 12 },
+      ]);
+      const signals = await port.moderation.draftVerdicts(draftId);
+      expect(signals.map((s) => s.source)).toEqual(['names_lint', 'openai_omni']);
+      expect(signals[1]).toMatchObject({ verdict: 'quarantine', scores: { 'sexual/minors': 0.25 }, latency_ms: 12, source_version: 'omni-moderation-latest' });
+      await port.moderation.setItemState(item, 'quarantined');
+      const caseId = uuid();
+      const opened = await port.moderation.openCase({ id: caseId, itemId: item, queue: 'P0_CSAM', reason: 'text_csam', openedBy: 'auto:openai_omni', snapshot: { draftId, source: 'openai_omni' } });
+      expect(opened).toMatchObject({ id: caseId, queue: 'P0_CSAM', status: 'open', reason: 'text_csam', opened_by: 'auto:openai_omni' });
+      expect(opened.sla_due_at - opened.created_at).toBe(4 * 3_600_000);
+      expect(opened.subject_snapshot).toEqual({ draftId, source: 'openai_omni' });
+      expect((await port.moderation.casesFor('npc_draft', draftId)).map((x) => x.id)).toEqual([caseId]);
+      expect(await port.moderation.casesFor('npc_draft', uuid())).toEqual([]);
+    });
+
     it('every member owned by a later milestone rejects with NotImplementedError naming it', async () => {
       const { port } = await make();
       const ctx = ctxOf(uuid());
@@ -285,7 +382,8 @@ export function runDataPortContract(name: string, make: () => Promise<ContractTa
         ['M12c', () => port.leaderboards.top('racing.x.time', 10)],
         ['M13a2', () => port.ugc.getMod('x')],
         ['M13b1', () => port.forum.listThreads({})],
-        ['M06b1', () => port.moderation.listCases(ctx, {})],
+        ['M06b2', () => port.moderation.listCases(ctx, {})],
+        ['M13d1', () => port.moderation.hashBank(ctx, 'x', [])],
       ];
       for (const [milestone, call] of cases) {
         const err: unknown = await call().then(

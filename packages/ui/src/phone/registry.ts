@@ -46,7 +46,7 @@ const app = (id: string, icon: string, milestone: string, extra: Partial<PhoneAp
 
 export const PHONE_APPS: readonly PhoneAppDef[] = [
   app('map', '▦', 'M02c2'),
-  app('messages', '✉', 'M05c2', { comingSoon: true }),
+  app('messages', '✉', 'M05c2'),
   app('jobs', '⚑', 'M04b2'),
   app('garage', '⚙', 'M04b2'),
   app('ride', '⇄', 'M04b2'),

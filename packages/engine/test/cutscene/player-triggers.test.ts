@@ -10,7 +10,7 @@ import { renditionCandidates } from '../../src/client/cutscene/hosts.ts';
 import { ambientAllowed, AudioSync, nudgeFor } from '../../src/client/cutscene/audio-sync.ts';
 import type { MseClass, MseInstance, MseSourceBuffer } from '../../src/client/cutscene/sequence.ts';
 import { CUTSCENE_CONFIG } from '../../src/client/cutscene/triggers.ts';
-import { KEY_A, KEY_B, KEY_C, entry, manifest, rig, settle, type Rig } from './fakes.ts';
+import { FakeVideo, KEY_A, KEY_B, KEY_C, entry, manifest, rig, settle, type Rig } from './fakes.ts';
 
 const REF_A = 'cut.a' as CutsceneRefId;
 const REF_B = 'cut.b' as CutsceneRefId;
@@ -547,6 +547,50 @@ describe('what covers the world while a clip is resolved and pre-rolled (section
   });
 });
 
+describe('early returns release what holds the world (BD-FU-B01)', () => {
+  it('play() with no clip lets the armed frame go and draws the world again', async () => {
+    const r = rig();
+    const p = player(r);
+    // the hold that request() and playSequence() take while a ref resolves
+    r.host.holdFrame();
+    expect(r.host.held).toBe('frame');
+    expect(await p.play('7', [])).toEqual({ path: 'fallback', skipped: false, trigger: 'not_ready' });
+    expect(r.host.held).toBeNull();
+    expect(r.host.holds).toEqual(['frame', 'drawn']);
+    expect(p.playing).toEqual([]);
+  });
+
+  it('play() with a clip this player did not prepare, or with no element source, lets the armed frame go', async () => {
+    const foreign = {
+      key: KEY_A, width: 1, height: 1, durationMs: 1000, cues: [], degraded: false, aiGenerated: true as const, posterUrl: 'p', lastUrl: 'l',
+    };
+    for (const clip of [
+      { ...foreign, source: { kind: 'element' as const, video: new FakeVideo() as unknown as HTMLVideoElement } },
+      { ...foreign, source: { kind: 'decoder' as const, url: 'u', codec: 'c' } },
+    ]) {
+      const r = rig();
+      const p = player(r);
+      r.host.holdFrame();
+      expect(await p.play('7', [clip])).toEqual({ path: 'fallback', skipped: false, trigger: 'not_ready' });
+      expect(r.host.held).toBeNull();
+      expect(r.host.holds).toEqual(['frame', 'drawn']);
+      expect(r.host.log).toEqual([]);
+    }
+  });
+
+  it('a clip of another play that is on screen stays up', async () => {
+    const r = rig();
+    const p = player(r);
+    const run = p.request('7', [REF_A], ['dir.a']);
+    await settle();
+    expect(r.host.log).toEqual(['show']);
+    expect(await p.play('8', [])).toMatchObject({ trigger: 'not_ready' });
+    expect(r.host.shown).not.toBeNull();
+    r.pool[0]!.end();
+    await run;
+  });
+});
+
 describe('prefetch', () => {
   it('looks at most 2 refs ahead on mobile tiers and answers the next prepare from the cache', async () => {
     const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B), entry('cut.c', KEY_C)]);
@@ -634,6 +678,101 @@ describe('sequence', () => {
     expect(outs).toEqual([{ path: 'video', skipped: true }, { path: 'fallback', skipped: true }]);
     expect(r.free.size).toBe(3);
     expect(r.budget.held()).toEqual([]);
+  });
+
+  it('a later item that fails under the previous clip uncovers the world for its in-engine beat (BD-FU-B02)', async () => {
+    const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B)]);
+    r.manualFallback = true;
+    // the second clip never reaches its first frame
+    r.pool[1]!.noFrame = true;
+    const p = player(r);
+    const run = p.playSequence('9', [{ ref: REF_A, fallback: 'dir.a' }, { ref: REF_B, fallback: 'dir.b' }]);
+    await settle();
+    r.pool[0]!.end();
+    await settle();
+    // back to back: the first clip still covers the screen while the second pre-rolls under it
+    expect(r.host.shown).toBe(r.pool[0]);
+    expect(r.answers()).toEqual([{ item: 0, state: 'video' }]);
+    await r.clock.advance(2500);
+    expect(r.answers()).toEqual([{ item: 0, state: 'video' }, { item: 1, state: 'fallback', trigger: 'start_stall' }]);
+    // the host is down (the DOM host restarts the loop and resumes the sim) and the cues run over the live world
+    expect(r.host.visible).toBe(false);
+    expect(r.host.cuesOn).toBe(true);
+    expect(r.host.log).toEqual(['show', 'hide', 'showCues']);
+    r.simDone('9', 1);
+    const outs = await run;
+    expect(outs).toEqual([{ path: 'video', skipped: false }, { path: 'fallback', skipped: false, trigger: 'start_stall' }]);
+    expect(r.done()).toHaveLength(1);
+    expect(r.free.size).toBe(3);
+    expect(r.budget.held()).toEqual([]);
+  });
+
+  it('a later item that fails on a decode error under the previous clip uncovers the world too', async () => {
+    const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B)]);
+    r.manualFallback = true;
+    r.pool[1]!.loadError = 3;
+    const p = player(r);
+    const run = p.playSequence('9', [{ ref: REF_A, fallback: 'dir.a' }, { ref: REF_B, fallback: 'dir.b' }]);
+    await settle();
+    r.pool[0]!.end();
+    await settle();
+    expect(r.answers()).toEqual([{ item: 0, state: 'video' }, { item: 1, state: 'fallback', trigger: 'media_error' }]);
+    expect(r.host.visible).toBe(false);
+    expect(r.host.cuesOn).toBe(true);
+    r.simDone('9', 1);
+    await run;
+    expect(r.free.size).toBe(3);
+  });
+
+  it('uncovering after a failed middle item leaves the next clip, pre-rolled meanwhile, intact', async () => {
+    const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B), entry('cut.c', KEY_C)]);
+    r.pool[1]!.noFrame = true;
+    const p = player(r);
+    const run = p.playSequence('9', [{ ref: REF_A, fallback: 'dir.a' }, { ref: REF_B, fallback: 'dir.b' }, { ref: REF_C, fallback: 'dir.c' }]);
+    await settle();
+    r.pool[0]!.end();
+    await settle();
+    // the third clip loads while the first still covers the screen: not into the element on screen
+    const third = r.pool.find((v) => v.src.includes(KEY_C));
+    expect(third).toBeDefined();
+    expect(third).not.toBe(r.host.shown);
+    await r.clock.advance(2500);
+    await settle();
+    expect(r.answers()).toEqual([
+      { item: 0, state: 'video' },
+      { item: 1, state: 'fallback', trigger: 'start_stall' },
+      { item: 2, state: 'video' },
+    ]);
+    third!.end();
+    expect((await run).map((o) => o.trigger ?? o.path)).toEqual(['video', 'start_stall', 'video']);
+    expect(r.free.size).toBe(3);
+  });
+
+  it('the element of a clip that still covers the screen goes back to the pool only once the next clip replaces it', async () => {
+    const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B), entry('cut.c', KEY_C)]);
+    const acquired: { video: unknown; onScreen: boolean }[] = [];
+    const real = r.deps.unlock.acquireVideo;
+    r.deps.unlock = {
+      ...r.deps.unlock,
+      acquireVideo: () => {
+        const v = real();
+        acquired.push({ video: v, onScreen: v !== null && v === r.host.shown });
+        return v;
+      },
+    };
+    const p = player(r);
+    const run = p.playSequence('9', [{ ref: REF_A, fallback: 'dir.a' }, { ref: REF_B, fallback: 'dir.b' }, { ref: REF_C, fallback: 'dir.c' }]);
+    await settle();
+    r.pool.find((v) => v.src.includes(KEY_A))!.end();
+    await settle();
+    r.pool.find((v) => v.src.includes(KEY_B))!.end();
+    await settle();
+    r.pool.find((v) => v.src.includes(KEY_C))!.end();
+    expect((await run).map((o) => o.path)).toEqual(['video', 'video', 'video']);
+    expect(acquired).toHaveLength(3);
+    expect(acquired.filter((a) => a.onScreen)).toEqual([]);
+    expect(r.host.log).toEqual(['show', 'show', 'show', 'hide']);
+    expect(r.free.size).toBe(3);
   });
 
   describe('MSE sequence mode', () => {

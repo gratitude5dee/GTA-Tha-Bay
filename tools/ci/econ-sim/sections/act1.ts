@@ -1,12 +1,12 @@
 /**
- * Section `act1` (M05c1): the first half of Act 1, missions m.a1.01 to m.a1.06, one mission per game week. Income is read from the
+ * Section `act1` (M05c1, completed by M05c2): all of Act 1, missions m.a1.01 to m.a1.12, one mission per game week. Income is read from the
  * compiled missions (`assets/src/data/mission.<id>/mission.json`, what `pnpm missions:build` wrote): each mission's `rewards.cashCents`
  * in the week it is passed, plus the $1,000 `give` of the m.a1.05 win when the draw says the player won (a coin flip). Sinks are the
  * policies' weekly share of the balance, which is what a shop spend is at this level (the shop table itself is proven in
  * `packages/modes/story/test/shops.test.ts`).
  *
- * The exact probes pin the numbers the spec states: 870,000 cents without the win, 970,000 with it, Street Cred 90, Tech Clout 30, a
- * mission reward credited once across a retry (the key `mis:<id>:reward`), and no policy ever below zero.
+ * The exact probes pin the numbers the spec states: 2,570,000 cents without the win, 2,670,000 with it, Street Cred 200, Tech Clout 70, a
+ * mission reward credited once across a retry (the key `mis:<id>:reward`), and no policy ever below zero. (M05c1 pinned the first six missions at 870,000 / 970,000, Street Cred 90, Tech Clout 30; the six of M05c2 add 1,700,000 cents, Street Cred 110 and Tech Clout 40.)
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -25,7 +25,7 @@ interface MissionRewards {
 }
 
 const DATA = path.join(toolsRoot, 'assets', 'src', 'data');
-const ACT1 = ['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06'] as const;
+const ACT1 = ['m.a1.01', 'm.a1.02', 'm.a1.03', 'm.a1.04', 'm.a1.05', 'm.a1.06', 'm.a1.07', 'm.a1.08', 'm.a1.09', 'm.a1.10', 'm.a1.11', 'm.a1.12'] as const;
 
 function collectGives(node: unknown, into: Record<string, number>): void {
   if (Array.isArray(node)) {
@@ -76,7 +76,7 @@ export const ACT1_SECTION: EconSection = {
       l.credit('mis:m.a1.01:reward', first);
       return l.balance;
     },
-    // no policy goes below zero over the six weeks, whatever the draws
+    // no policy goes below zero over the twelve weeks, whatever the draws
     lowestBalance: (deps: ModelDeps) => {
       let lowest = 0;
       for (const p of POLICIES) {

@@ -14,6 +14,7 @@ import type { CutsceneGlue } from './cutscene.ts';
 import { createEnginePort, createPlatformPort, createSavesPort } from './shell-ports.ts';
 import './engine.css';
 import { afterWindowLoad, createPwaUpdateController, isRegistration } from './pwa-update.ts';
+import { catalogFailureCode, worldIndexFailureCode } from './world-failure.ts';
 // The M01f gray-box fixture packs, as hashed static files (M01e replaces this with the pack store).
 import grayboxL0Url from '../../../tests/fixtures/world/civic-graybox/l0-64-64.pack?url';
 import grayboxP0Url from '../../../tests/fixtures/world/civic-graybox/p0-64-64.pack?url';
@@ -145,6 +146,9 @@ function showReadOnlyNotice(): void {
 async function boot(): Promise<void> {
   const container = document.createElement('div');
   container.id = 'dv-engine';
+  // Translators and accessibility tools skip the canvas container (M04b5, 10-ui-hud-xr.md section 2.14 rule 5).
+  container.setAttribute('data-ui-skip', '');
+  container.setAttribute('translate', 'no');
   document.body.append(container);
   const canvas = document.createElement('canvas');
   canvas.id = 'dv-engine-canvas';
@@ -185,7 +189,10 @@ async function boot(): Promise<void> {
   void import('@dv/engine/client/creator-stage').then((m) => {
     creatorStage = m.createCreatorStage(platform.host) as unknown as CreatorStagePort;
   });
-  platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props));
+  platformPort = createPlatformPort(platform, (name, props) => platform.telemetry.emit(name, props), {
+    // The player's render scale reaches the canvas at once (M04b5); the engine may not exist yet, and takes the stored value at boot.
+    onChange: (next) => engineRef?.setRenderScale(next.renderScale),
+  });
   shell.attachPlatform(platformPort);
   applyPendingConsent();
 
@@ -203,7 +210,11 @@ async function boot(): Promise<void> {
   const headless = flags.probe !== null;
   // The boot rule (M02b1, DL-668): a catalog with data/world-index boots the baked world, the gray-box Civic Center block otherwise;
   // an explicit ?world=<id> (QA builds only) wins and boots that engine scenario on the gray-box path.
-  const choice = bootChoice(flags.world, !headless && assets !== null && (await hasWorldIndex(assets)));
+  const catalog = !headless && assets !== null ? await assets.catalogInfo().catch(() => null) : null;
+  const choice = bootChoice(flags.world, catalog?.state === 'ready' && assets !== null && (await hasWorldIndex(assets)));
+  // The world-load error (BD-FU-A02): a catalog, or the world index it names, that the fetch layer could not deliver is said on the
+  // error page, with a retry, when the player starts a mode, instead of an empty world. Only the default boot rule asks (no ?world=).
+  let worldFailure = flags.world === null ? catalogFailureCode(catalog) : null;
   let prepared: PreparedWorld | null = null;
   if (choice === 'baked' && assets) {
     try {
@@ -244,7 +255,12 @@ async function boot(): Promise<void> {
       }
     } catch (error) {
       console.error('the baked world could not be prepared', error);
+      worldFailure = worldIndexFailureCode(error);
     }
+  }
+  if (worldFailure !== null) {
+    console.error(`the world cannot be loaded (${worldFailure})`, catalog?.failure?.url ?? '');
+    shell.worldUnavailable(worldFailure);
   }
   // The chunks the page needs once the engine is up start loading now, all at once, before the engine starts its render loop. An
   // `await import()` taken after that waits for a frame, and a software-GL frame at the desktop tiers takes seconds, so one import after
@@ -394,7 +410,12 @@ async function boot(): Promise<void> {
   if (engine) {
     platform.bindEngine({ setPaused: (p) => engine.setPaused(p), resetClock: () => engine.resetClock() });
     engine.setPaused(want.paused);
+    engine.setRenderScale(platformPort?.settings().renderScale ?? platform.settings.renderScale);
     shell.attachEngine(createEnginePort(engine));
+    // The NPC agency (M06c): the hero intent driver and the roster-flag feed. Silent until the age screen has passed; a failure here never stops the game.
+    void import('./npc-agency.ts')
+      .then((m) => m.installNpcAgency({ engine, identity, tier: () => platform.quality.tier.id, startAfter: attestedGate }))
+      .catch((e: unknown) => console.warn('npc agency failed', e));
   }
   // The governor's atmosphereLevel knob drives the sky (M02b2): clouds, rain streak counts and decals follow it.
   if (prepared) {
@@ -428,11 +449,13 @@ async function boot(): Promise<void> {
       const w = window as unknown as { __dvBridge?: Record<string, unknown> };
       w.__dvBridge = { ...(w.__dvBridge ?? {}), ui };
     }
+    // The NPC agency panel and __dvBridge.npcAgency (M06c): what the named NPCs are doing, plus helpers for the bark spec.
+    if (engine) void import('./qa/npc-agency.ts').then((m) => m.installNpcAgencyQa(engine as never)).catch((e: unknown) => console.warn('npc agency qa failed', e));
     // The NPC dialogue panel (M06a3): window.__dvBridge.npc and a "Talk to npc_test" box, QA builds only. Failure here never stops the game.
     // Its runtime polls route 30 (`GET /api/v1/roster`) from start(), so the poll waits for the age screen: nothing goes to the Worker API
     // before that (10-ui-pages.md 2.4, M04b1 AC-2; BD-FIX-CI5-G02). An attested device opens the gate at load.
     const npcAudio = !engine?.audioService ? null : { host: engine.audioService as unknown as TtsAudioHost, unlock: () => engine.audioUnlock() };
-    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate)).catch((e: unknown) => console.warn('npc qa panel failed', e));
+    void import('./qa/npc.ts').then((m) => m.installNpcQa(identity, npcAudio, attestedGate, engine ? (engine.vm as never) : null, (name, props) => platform.telemetry.emit(name, props))).catch((e: unknown) => console.warn('npc qa panel failed', e));
     if (assets) installAssetsBridge(assets);
     document.documentElement.dataset.dvEngine = 'ready';
     const bridge = installPlatformBridge(platform, flags, prepared ? { worldDriver: () => (prepared as PreparedWorld).view.scenarioDriver() } : {});

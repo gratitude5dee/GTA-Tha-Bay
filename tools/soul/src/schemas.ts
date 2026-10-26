@@ -28,6 +28,8 @@ export const VALIDATORS: Record<string, { file: string; fragment?: string }> = {
   validateDialogueRequest: { file: 'dialogue-request-1.0.schema.json' },
   validateVoiceCatalog: { file: 'voice-catalog-1.0.schema.json' },
   validateBarkPool: { file: 'bark-pool-1.0.schema.json' },
+  // M06b1: the structured output of the builder's soul generation (04-npc-builder.md section C4).
+  validateSoulLlm: { file: 'soul-1.0.llm.schema.json' },
 };
 
 type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
@@ -95,6 +97,8 @@ export function generateValidators(root: string): string {
   const files = [...new Set(Object.values(VALIDATORS).map((v) => v.file))].sort();
   for (const f of files) {
     const schema = readJson(root, `${SCHEMA_DIR}/${f}`);
+    // The generated LLM schema carries no $id (structured outputs reject it); the validator gets one from its file name.
+    if (schema.$id === undefined) schema.$id = f.replace(/\.schema\.json$/, '');
     ajv.addSchema(schema as object);
     ids.set(f, String(schema.$id));
   }

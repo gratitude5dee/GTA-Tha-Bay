@@ -9,6 +9,7 @@
  *  - Near agents (within 80 m, the tier's cap, nearest first) get a kinematic box body; `PhysicsPre` moves it from `Transform`.
  *  - A near agent hit by a vehicle at 3 m/s or more becomes the real vehicle prefab (M03a1) with the exchange of momentum, rolls free for 8 s
  *    and is then a wreck that holds its handbrake and is removed after 10 s out of sight.
+ *  - A promoted car or wreck under `play.minY` with no player aboard is despawned at once (02-world-maps.md 4.1 d, DL-735 c).
  *
  * Sim code; C02 lint applies.
  */
@@ -16,7 +17,7 @@ import {
   NULL_HANDLE, SimStage, dcos, dsin, dsqrt, type EntityHandle, type EntityId, type SimConfig, type StableKey, type SystemDef,
 } from '@dv/shared';
 import {
-  Ambient, Anim, BodyRef, CharacterBody, GROUPS, GROUP_BIT, LocalPlayer, RenderKey, Robotaxi, Transform, Vehicle, Velocity, playerSide,
+  Ambient, Anim, BodyRef, CharacterBody, GROUPS, GROUP_BIT, LocalPlayer, RenderKey, Robotaxi, Transform, Vehicle, Velocity, playerSide, vehicleHasPlayer,
   type EcsWorld, type EngineServices, type SimResource, type VehiclePhysics,
 } from '@dv/engine/sim';
 import type { ByteReader, ByteWriter } from '@dv/engine/sim';
@@ -260,6 +261,38 @@ export class AmbientTraffic {
     }
   }
 
+  /**
+   * The below-the-world rule for ambient vehicles (02-world-maps.md 4.1 d, DL-735 c): a vehicle the traffic made (a promoted agent, or the
+   * wreck it became) that is under `play.minY` with no player aboard is despawned through the traffic's full despawn (DL-736): a promoted
+   * car's agent record leaves the sim's promotion book (`TrafficSim.despawnPromoted`, so the promotion cap and the slot are free again and
+   * no wreck follows), the traffic forgets the vehicle and `prefabs.despawn` removes it; a wreck (its promotion already over) is forgotten
+   * and despawned the way `sweepWrecks` does. One with a player aboard, as driver or passenger, is the engine's vehicle net's
+   * (`vehicleHasPlayer`); a car above `play.minY` is left alone, wherever it is. Runs on every brain step; it touches nothing while every
+   * ambient vehicle is above the floor, so scenes where none falls hash as before.
+   */
+  private sweepFallen(): void {
+    const ctx = this.deps.services.vehicleCtx;
+    if (!ctx || (this.vehicles.size === 0 && this.wrecks.length === 0)) return;
+    const floor = this.deps.world.play.minY;
+    const tr = this.ecs.store(Transform);
+    const fallen = (h: EntityHandle): boolean => {
+      const id = this.ecs.resolve(h);
+      return id !== null && (tr.py[id] as number) < floor && !vehicleHasPlayer(this.ecs, id);
+    };
+    for (const [key, h] of [...this.vehicles]) {
+      if (!fallen(h)) continue;
+      this.vehicles.delete(key);
+      this.sim.despawnPromoted(key);
+      ctx.prefabs.despawn(h);
+    }
+    for (let i = this.wrecks.length - 1; i >= 0; i--) {
+      const w = this.wrecks[i] as Wreck;
+      if (!fallen(w.handle)) continue;
+      this.wrecks.splice(i, 1);
+      ctx.prefabs.despawn(w.handle);
+    }
+  }
+
   // ---- the system --------------------------------------------------------------------------------------------------------
 
   private clear(ax: number, ay: number, az: number, bx: number, by: number, bz: number): boolean {
@@ -302,6 +335,7 @@ export class AmbientTraffic {
     this.sim.step({ tick, focus, env: { hour: env.hour, weather: env.weather }, obstacles: this.obstacles, movers: this.movers, sirens: this.sirenSource ? this.sirenSource() : NO_SIRENS });
     this.sync(focus);
     this.sweepWrecks(focus);
+    this.sweepFallen();
   }
 
   /** Obstacles and movers: the vehicles and the player on foot near the focus that are not part of the traffic. */

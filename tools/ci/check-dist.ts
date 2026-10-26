@@ -7,8 +7,9 @@
  *   tsx tools/ci/check-dist.ts icons   [--dist <dir>]
  *   tsx tools/ci/check-dist.ts limits  [--dist <dir>]   Workers static-asset limits only (25 MiB per file, 20,000 files; F-018)
  *
- * --serve <url>  runs the Playwright webServer command (or reuses a server already listening on that
- *                port), waits for the port, checks, then stops what it started.
+ * --serve <url>  runs the Playwright webServer command on the port of <url>, waits for the port, checks, then stops what it started.
+ *                A server already listening on that port is refused, never reused (BD-FIX-SEC-02: it may be a `pnpm dev` Worker holding
+ *                live secrets); to check a server you started yourself, pass its <url> without --serve.
  * --from <file>  reads the URL from the file; prints SKIP and exits 0 when the file does not exist.
  */
 import { spawn } from 'node:child_process';
@@ -18,6 +19,7 @@ import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { parseArgs } from 'node:util';
 import { args, repoRoot } from './run.ts';
+import { scrubProcessEnv } from './secret-env.ts';
 import { ASSET_COUNT_LIMIT, ASSET_FILE_LIMIT_BYTES, MIB, assetLimitFailures, assetStats, listFiles } from './lib/asset-limits.ts';
 import { checkModuleIds } from './lib/module-ids.ts';
 
@@ -69,9 +71,13 @@ async function webServerCommand(): Promise<{ command: string; timeout: number; e
 async function withServer<T>(url: string, fn: () => Promise<T>): Promise<T> {
   const u = new URL(url);
   if (await isListening(u)) {
-    console.log(`reusing the server already listening on ${u.host}`);
-    return fn();
+    throw new Error(
+      `a server is already listening on ${u.host}; --serve never reuses one (BD-FIX-SEC-02: it may hold live secrets). Stop it, pick a free port, or pass the URL without --serve to check that server.`,
+    );
   }
+  // The web server starts without a live secret (BD-FIX-SEC-01) and on the port of <url> (playwright.config.ts reads DV_E2E_PORT).
+  scrubProcessEnv({ label: `check-dist --serve` });
+  process.env['DV_E2E_PORT'] = u.port || '80';
   const { command, timeout, env } = await webServerCommand();
   console.log(`starting: ${command}`);
   const child = spawn('sh', ['-c', command], { cwd: repoRoot, detached: true, env: { ...process.env, ...env }, stdio: ['ignore', 'inherit', 'inherit'] });
@@ -254,6 +260,8 @@ function distDir(value: string | undefined): string {
 
 /** Identifiers of the engine QA harness (M04d, AC-9). */
 export const QA_HARNESS_IDS = ['CanonicalRunner', 'BotDriver', 'registerBot'] as const;
+/** The QA network shaper (M02f1): its error messages carry this marker; production chunks hold none, a QA build holds it. */
+export const NET_SHAPER_IDS = ['dv-net-shaper'] as const;
 /** The story autoplayer and the headless missions scenario (M05a2, AC-11): strings in their messages, absent from production chunks. */
 export const STORY_QA_IDS = ['story.autoplayer', "suite 'missions'"] as const;
 
@@ -303,6 +311,9 @@ function checkBundle(dist: string, forbidQa: boolean, moduleIdsFile?: string): v
   const harness = QA_HARNESS_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
   if (hasBridge) expect(harness.length === QA_HARNESS_IDS.length, 'the QA build contains the QA harness', `missing: ${QA_HARNESS_IDS.filter((id) => !harness.includes(id)).join(', ')}`);
   else expect(harness.length === 0, 'production chunks contain no CanonicalRunner, BotDriver or registerBot', `found: ${harness.join(', ')}`);
+  const shaper = NET_SHAPER_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
+  if (hasBridge) expect(shaper.length === NET_SHAPER_IDS.length, 'the QA build contains the QA network shaper', `missing: ${NET_SHAPER_IDS.filter((id) => !shaper.includes(id)).join(', ')}`);
+  else expect(shaper.length === 0, 'production chunks contain no QA network shaper', `found: ${shaper.join(', ')}`);
   if (!hasBridge) {
     const story = STORY_QA_IDS.filter((id) => js.some((f) => readFileSync(f, 'utf8').includes(id)));
     expect(story.length === 0, 'production chunks contain no story autoplayer or missions scenario', `found: ${story.join(', ')}`);

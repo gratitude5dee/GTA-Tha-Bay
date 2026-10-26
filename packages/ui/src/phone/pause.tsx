@@ -12,9 +12,11 @@ import type { ListRow, ScreenDef, UiAction } from '../screen/types.ts';
 import { garageCards, cardAction } from '../pages/garage.tsx';
 import { buildTiles, tileRows, type ModeTile } from '../pages/modes.ts';
 import { useShell } from '../shell/context.tsx';
+import { currentFullscreen, toggleFullscreen, useFullscreenTick, type FullscreenDoc, type FullscreenState } from '../shell/fullscreen.ts';
 import type { PageProps, ShellContext } from '../shell/types.ts';
 import { appDef, visibleApps } from './registry.ts';
-import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination } from './apps.ts';
+import { messagePress, type PhoneMessage } from './messages.tsx';
+import { homeScreen, missionRows, type MissionJob, type PhoneEnv, type RideDestination, type SandboxPlayerView, type SandboxTeleportView, type SandboxVehiclesView, type SandboxWorldView } from './apps.ts';
 import { MapApp } from './map-app.tsx';
 
 export interface PauseEnv {
@@ -24,6 +26,8 @@ export interface PauseEnv {
   lastSave: string | null;
   /** Another tab owns the profile. */
   otherTab: boolean;
+  /** The full-screen button: present only when available (M04b5). */
+  fullscreen?: FullscreenState;
 }
 
 export function pauseScreen(env: PauseEnv): ScreenDef {
@@ -39,6 +43,9 @@ export function pauseScreen(env: PauseEnv): ScreenDef {
       { k: 'button', id: 'pause-load', label: lk('pause.load'), style: 'secondary', onPress: { call: 'pause.load' }, disabled: lk('pause.load.menu') },
       { k: 'button', id: 'pause-phone', label: lk('pause.phone'), style: 'secondary', onPress: { nav: 'phone' } },
       { k: 'button', id: 'pause-settings', label: lk('nav.settings'), style: 'secondary', onPress: { nav: 'settings', params: { cat: 'graphics' } } },
+      ...(env.fullscreen?.available
+        ? [{ k: 'button' as const, id: 'pause-fullscreen', label: lk(env.fullscreen.active ? 'settings.fullscreen.exit' : 'settings.fullscreen.enter'), style: 'secondary' as const, onPress: { call: 'pause.fullscreen' } }]
+        : []),
       { k: 'button', id: 'pause-help', label: lk('nav.help'), style: 'secondary', onPress: { nav: 'help' } },
       { k: 'button', id: 'pause-report', label: lk('pause.report'), style: 'secondary', onPress: { call: 'pause.report' } },
       { k: 'button', id: 'pause-quit', label: lk('pause.quit'), style: 'danger', onPress: { call: 'pause.quit' } },
@@ -65,8 +72,9 @@ export function PausePage(_props: PageProps) {
     };
   }, [ctx.saves, ctx.profile?.id]);
   useVmRedraw(ctx);
+  useFullscreenTick();
   const atSafehouse = ctx.vm<JsonValue>('hud.safehouse') === true;
-  const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab });
+  const screen = pauseScreen({ atSafehouse, lastSave: copied ? t('error.copied') : last, otherTab: ctx.otherTab, fullscreen: currentFullscreen(ctx.platform?.deviceClass ?? 'desktop') });
   return h('main', { class: 'dv-page dv-pause', 'data-testid': 'pause' }, h(ScreenHost, {
     screen,
     get: () => undefined,
@@ -78,6 +86,9 @@ export function PausePage(_props: PageProps) {
       } else if ('nav' in action) shell.navigate(action.nav, action.params);
       else if ('call' in action) {
         if (action.call === 'pause.resume') ctx.fire('resume');
+        else if (action.call === 'pause.fullscreen') {
+          toggleFullscreen(document as FullscreenDoc, () => shell.toast({ id: 'fullscreen.failed', kind: 'warning', text: lk('settings.fullscreen.failed') }));
+        }
         else if (action.call === 'pause.report') {
           void navigator.clipboard?.writeText(ctx.props.diagnostics()).then(() => setCopied(true), () => setCopied(false));
         } else if (action.call === 'pause.quit') {
@@ -114,16 +125,26 @@ export function usePhoneEnv(ctx: ShellContext): PhoneEnv {
   const wallet = ctx.vm<JsonValue>('hud.wallet') as unknown as { cashCents?: number } | undefined;
   const heat = ctx.vm<JsonValue>('hud.heat') as unknown as { level?: number } | undefined;
   const toggles = ctx.vm<JsonValue>('mode.sandbox.toggles') as unknown as Record<string, boolean | number> | undefined;
+  const jobList = ((ctx.vm<JsonValue>('mode.story.jobs') as unknown as MissionJob[] | undefined) ?? []).filter((j) => typeof j?.id === 'string');
+  const messages = ((ctx.vm<JsonValue>('mode.story.messages') as unknown as PhoneMessage[] | undefined) ?? []).filter((m) => typeof m?.from === 'string' && typeof m?.text === 'string');
   return {
     mode,
     jobs: tileRows(views),
-    missions: missionRows(((ctx.vm<JsonValue>('mode.story.jobs') as unknown as MissionJob[] | undefined) ?? []).filter((j) => typeof j?.id === 'string')),
+    missions: missionRows(jobList),
+    jobList,
+    messages,
     cashCents: wallet?.cashCents,
     garage: garageCards(ctx.vm<JsonValue>('sys.garage')),
     ride,
     // The toggle is published at once; the snapshot's heat waits for the next tick, and the phone pauses the sim.
     heat: typeof toggles?.['sandbox.player.heat'] === 'number' ? (toggles['sandbox.player.heat'] as number) : (heat?.level ?? 0),
     neverWanted: toggles?.['sandbox.player.neverWanted'] === true,
+    sandboxWorld: ctx.vm<JsonValue>('mode.sandbox.world') as unknown as SandboxWorldView | undefined,
+    sandboxTeleport: ctx.vm<JsonValue>('mode.sandbox.teleport') as unknown as SandboxTeleportView | undefined,
+    sandboxVehicles: ctx.vm<JsonValue>('mode.sandbox.vehicles') as unknown as SandboxVehiclesView | undefined,
+    sandboxPlayer: ctx.vm<JsonValue>('mode.sandbox.player') as unknown as SandboxPlayerView | undefined,
+    hideHud: toggles?.['sandbox.display.hideHud'] === true,
+    hideMinimap: toggles?.['sandbox.display.hideMinimap'] === true,
     appRows: [],
   };
 }
@@ -132,8 +153,12 @@ export function PhonePage(props: PageProps) {
   const { shell, ctx } = useShell();
   const [app, setApp] = useState<string | null>(props.params['app'] ?? null);
   const [lastPick, setLastPick] = useState<string | null>(null);
+  // The Sandbox app's spot list: false goes to the spot, true forgets it (M04e2).
+  const [forgetting, setForgetting] = useState(false);
+  const [thread, setThread] = useState<string | null>(null);
+  const [focusJob, setFocusJob] = useState<string | null>(null);
   useVmRedraw(ctx);
-  const env = usePhoneEnv(ctx);
+  const env = { ...usePhoneEnv(ctx), forgetting };
   const apps = useMemo(() => visibleApps({ mode: env.mode }), [env.mode]);
   // The Ride app asks the sim for its destinations each time it opens.
   useEffect(() => {
@@ -157,7 +182,7 @@ export function PhonePage(props: PageProps) {
     });
   }
   const def = app ? appDef(app) : undefined;
-  const screen = def ? def.screen({ ...env, appRows }) : homeScreen({ appRows });
+  const screen = def ? def.screen({ ...env, appRows, thread, focusJob }) : homeScreen({ appRows });
   return h('main', { class: 'dv-page dv-phone', 'data-testid': 'phone', 'data-app': app ?? 'home' }, h(ScreenHost, {
     screen,
     get: () => undefined,
@@ -172,6 +197,21 @@ export function PhonePage(props: PageProps) {
         switch (action.call) {
           case 'phone.home':
             setApp(null);
+            setThread(null);
+            setFocusJob(null);
+            break;
+          case 'phone.message.open':
+          case 'phone.message.offer': {
+            const press = rowId ? messagePress(rowId) : null;
+            if (press?.kind === 'thread') setThread(press.from);
+            else if (press?.kind === 'offer') {
+              setFocusJob(press.missionId);
+              setApp('jobs');
+            }
+            break;
+          }
+          case 'phone.message.back':
+            setThread(null);
             break;
           case 'phone.open': {
             const d = rowId ? appDef(rowId) : undefined;
@@ -188,6 +228,30 @@ export function PhonePage(props: PageProps) {
               ctx.sendUi({ t: 'mode.cmd', mode: 'story', name: 'mission.start', args: { id: rowId.slice(4) } });
               shell.back();
             } else if (rowId) ctx.startMode(rowId as never);
+            break;
+          case 'sandbox.landmark':
+            if (rowId) {
+              ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.landmark', args: { id: rowId } });
+              ctx.fire('resume');
+            }
+            break;
+          case 'sandbox.waypoint':
+            ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.waypoint' });
+            ctx.fire('resume');
+            break;
+          case 'sandbox.back':
+            ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'teleport.back' });
+            ctx.fire('resume');
+            break;
+          case 'sandbox.forget':
+            setForgetting((f) => !f);
+            break;
+          case 'sandbox.spot':
+            if (rowId && forgetting) ctx.sendUi({ t: 'mode.cmd', mode: 'sandbox', name: 'position.delete', args: { name: rowId } });
+            else if (rowId) {
+              ctx.sendUi({ t: 'sandbox.teleport', name: rowId });
+              ctx.fire('resume');
+            }
             break;
           case 'garage.card': {
             const cmd = rowId ? cardAction(rowId) : null;

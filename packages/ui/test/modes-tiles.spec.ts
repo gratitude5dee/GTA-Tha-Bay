@@ -1,9 +1,9 @@
 import type { VNode } from 'preact';
 import { describe, expect, it, vi } from 'vitest';
-import { ListBox } from '../src/kit/widgets.tsx';
+import { ListBox, ToastStore } from '../src/kit/widgets.tsx';
 import { buildTiles, tileRows, tileState, type ModeTile, type TileEnv } from '../src/pages/modes.ts';
 import { defaultPrefs, memoryPrefs } from '../src/shell/prefs.ts';
-import { ShellCore, simToastToSpec } from '../src/shell/core.ts';
+import { ShellCore, SIM_TOAST_TTL_MS, simToastToSpec } from '../src/shell/core.ts';
 import type { ShellHooks, ShellProps } from '../src/shell/types.ts';
 
 const tile = (over: Partial<ModeTile> & Pick<ModeTile, 'id'>): ModeTile => ({
@@ -93,5 +93,44 @@ describe('mode tiles (AC-8)', () => {
     core.onEngineToast(rec);
     expect(core.toastStore.list.filter((x) => x.kind === 'unlock')).toHaveLength(1);
     expect(simToastToSpec({ id: 'x', kind: 'warning', text: 'mode.comingSoon' }).kind).toBe('warning');
+  });
+
+  it('the story loading hint is a short sim toast that runs out by itself, and a re-post replaces it (DL-735 d)', () => {
+    const spec = simToastToSpec({ id: 'mission:m.a1.01:loading', kind: 'info', text: 'mission.startLoading' });
+    expect(spec.kind).toBe('info');
+    expect(spec.ttlMs).toBe(SIM_TOAST_TTL_MS);
+    expect(spec.ttlMs).toBeLessThanOrEqual(6000);
+    const now = { ms: 0 };
+    const store = new ToastStore(() => now.ms);
+    store.push(spec);
+    store.push(simToastToSpec({ id: 'other', kind: 'info', text: 'jobs.busy' }));
+    now.ms = SIM_TOAST_TTL_MS - 1;
+    store.expire();
+    expect(store.list.map((x) => x.id)).toEqual(['mission:m.a1.01:loading', 'other']);
+    now.ms = SIM_TOAST_TTL_MS;
+    store.expire();
+    expect(store.list).toEqual([]);
+    // the story posts it again 20 s later while the wait lasts: one toast of that id, shown afresh
+    now.ms = 20_000;
+    store.push(spec);
+    store.push(spec);
+    expect(store.list.map((x) => [x.id, x.at])).toEqual([['mission:m.a1.01:loading', 20_000]]);
+    now.ms = 20_000 + SIM_TOAST_TTL_MS;
+    store.expire();
+    expect(store.list).toEqual([]);
+  });
+
+  it('every sim toast reaches the screen as sent: there is no dismiss convention (DL-735 d)', () => {
+    const hooks: ShellHooks = { play: () => undefined, setPaused: () => undefined, view: () => undefined, reload: () => undefined };
+    const props: ShellProps = {
+      diagnostics: () => '', unsupported: false, update: null, initialPath: '/', prefs: memoryPrefs(defaultPrefs()), qa: false, qaPlay: null, unlockAllFlag: false, hooks, build: 't',
+    };
+    const core = new ShellCore(props);
+    core.onEngineToast({ id: 'mission:m.a1.01:loading', kind: 'info', text: 'mission.startLoading' });
+    core.onEngineToast({ id: 'mission:m.a1.01:start', kind: 'warning', text: 'mission.startUnreachable', params: { reason: 'water' } });
+    expect(core.toastStore.list.map((x) => [x.id, x.text, x.ttlMs])).toEqual([
+      ['mission:m.a1.01:loading', 'mission.startLoading', SIM_TOAST_TTL_MS],
+      ['mission:m.a1.01:start', 'mission.startUnreachable', SIM_TOAST_TTL_MS],
+    ]);
   });
 });

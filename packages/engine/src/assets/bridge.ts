@@ -1,6 +1,6 @@
 import type { AssetClient } from './client.ts';
 import type { Priority } from './store/lanes.ts';
-import { sha256Hex } from './store/store.ts';
+import { sha256Hex, type DownloadPlan } from './store/store.ts';
 import type { PackRef } from './store/types.ts';
 
 /**
@@ -13,7 +13,7 @@ export interface AssetsBridge {
   has(target: string | PackRef): Promise<boolean>;
   resolve(ref: string): Promise<PackRef>;
   usage(): ReturnType<AssetClient['usage']>;
-  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number; bytes: number }>;
+  stats(): Promise<{ network: number; hits: number; retries: number; evictions: number; bytes: number; inflightPeak: number; waves: number }>;
   configure(o: { softCapBytes: number | null }): Promise<void>;
   injectFaults(o: { status: number | 'network' | 'corrupt'; times: number; match?: string }): Promise<void>;
   clearFaults(): Promise<void>;
@@ -33,6 +33,7 @@ export interface AssetsBridge {
   unpinAll(): Promise<void>;
   evictByTag(tag: string): Promise<{ removed: number }>;
   gc(): Promise<{ removed: number; freedMB: number }>;
+  downloadPlan(): Promise<DownloadPlan>;
   downloadAll(): Promise<{ done: number; total: number }>;
   clear(): Promise<void>;
   /** Waits until queued store writes (pins, commits) are finished. */
@@ -68,6 +69,7 @@ export function installAssetsBridge(client: AssetClient): AssetsBridge {
     unpinAll: () => client.unpinAll(),
     evictByTag: (tag) => client.evictByTag(tag),
     gc: () => client.gc(),
+    downloadPlan: () => client.downloadPlan(),
     async downloadAll() {
       let last = { done: 0, total: 0 };
       await client.downloadAll((done, total) => {

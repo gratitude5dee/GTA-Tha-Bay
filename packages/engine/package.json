@@ -9,6 +9,7 @@
     "./headless": "./src/headless/index.ts",
     "./platform": "./src/platform/index.ts",
     "./platform/probe": "./src/platform/probe.ts",
+    "./platform/fps-feed": "./src/platform/perf/fps-feed.ts",
     "./platform/renderer-host": "./src/platform/renderer-host.ts",
     "./platform/bomb-gpu": "./src/platform/perf/bomb-gpu.ts",
     "./client/boot": "./src/client/boot/boot-engine.ts",

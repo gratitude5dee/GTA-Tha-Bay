@@ -181,8 +181,8 @@ export function isUiCommand(p: unknown): p is UiCommand {
     case 'phone.waypoint': return isNum(p['x']) && isNum(p['z']);
     case 'cutscene.skip': return true;
     case 'cutscene.state': return typeof p['playId'] === 'string' && typeof p['state'] === 'string';
-    // `phone` is the reserved owner of the phone apps' commands (M04b2)
-    case 'mode.cmd': return typeof p['mode'] === 'string' && (p['mode'] === 'phone' || MODE_IDS.test(p['mode'])) && typeof p['name'] === 'string' && p['name'].length <= 48 && (p['args'] === undefined || isObject(p['args']));
+    // `phone` is the reserved owner of the phone apps' commands (M04b2), `npc` of the NPC runtime's (roster flags, hero intents, M06c)
+    case 'mode.cmd': return typeof p['mode'] === 'string' && (p['mode'] === 'phone' || p['mode'] === 'npc' || MODE_IDS.test(p['mode'])) && typeof p['name'] === 'string' && p['name'].length <= 48 && (p['args'] === undefined || isObject(p['args']));
     default: return false;
   }
 }

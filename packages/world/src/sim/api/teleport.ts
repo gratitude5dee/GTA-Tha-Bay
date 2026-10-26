@@ -10,7 +10,8 @@
  *  3. place: the highest ground at the target (heightfield, slabs, hoods); water and building footprints are rejected by taking
  *     the nearest valid point within 40 m (`water` or `blocked` when there is none);
  *  4. fade out (up to 200 ms), then the engine's ownership machine moves the player (Control 700, wait for colliders 701);
- *  5. fade in, and the request resolves with where the player stands.
+ *  5. fade in, and the request resolves with where the player stands. Every request that faded out fades in again, also when the engine
+ *     refuses the move in step 4 or the move times out.
  * Fares of fast travel are worked out from `config/world/transit.json` and recorded, not charged, until the economy exists (M04a2).
  * Pure; C02 lint applies.
  */
@@ -63,12 +64,17 @@ export interface TeleportHost {
   fade(dir: 'out' | 'in'): void;
 }
 
-/** The hooks mode rules and the wanted level plug into (default: a sandbox session with no heat). */
+/** The hooks mode rules and the heat level plug into (default: a sandbox session with no heat). */
 export interface TeleportPolicy {
   /** Whether the session's mode allows this kind of teleport (story rules: M05c2). */
   allowed(kind: TeleportKind): boolean;
-  /** Wanted level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
+  /** Heat level; fast travel and sandbox teleport need 0 (pursuit: M03c). */
   heat(): number;
+  /**
+   * Optional, checked once the target is resolved: a message key refuses the request as `forbidden-in-mode` with that key (story
+   * fast travel: only outside a mission, only into an unlocked district, M05c2). Absent or null lets the request go on.
+   */
+  deny?(kind: TeleportKind, target: { x: number; z: number; id: string | null }): string | null;
 }
 export const SANDBOX_POLICY: TeleportPolicy = { allowed: () => true, heat: () => 0 };
 
@@ -77,6 +83,18 @@ export interface PreStream {
   preload(keys: readonly { level: 'p0'; key: ChunkKey }[]): Promise<void>;
   unpin(level: 'p0', keys: readonly ChunkKey[]): void;
   exists(level: 'p0', key: ChunkKey): boolean;
+}
+
+/**
+ * The pre-stream of step 2 alone (DL-736; 03-story.md section 5, 'Resume from a saved checkpoint'): the `p0` chunk at a point and the
+ * ring of chunks around it, requested as `needNow` and pinned, with no placement, fade or move. A saved checkpoint pose is restored only
+ * once `ready()` answers true. Not a C08 member: the story mode reaches it through `WorldServices.prestream`.
+ */
+export interface PrestreamTicket {
+  /** True once the chunk under the point and every chunk of its ring that the bake has are resident. */
+  ready(): boolean;
+  /** Drops the pins (idempotent). */
+  release(): void;
 }
 
 export interface FareRecord {
@@ -155,6 +173,8 @@ export class TeleportService implements TeleportApi {
   readonly fares: FareRecord[] = [];
   policy: TeleportPolicy;
   private job: Job | null = null;
+  /** The points of the pre-streams held now (`prestream`), oldest first. */
+  private readonly prestreams = new Set<{ x: number; z: number }>();
   private lastFastTravel: number | null = null;
   private readonly cfg: TransitConfig;
 
@@ -187,16 +207,7 @@ export class TeleportService implements TeleportApi {
     if (this.job) return Promise.resolve(fail('blocked', TELEPORT_MSG.busy));
     return new Promise<TeleportResult>((resolve) => {
       const t = early.to;
-      const here = parseChunkKey(chunkKeyAt(9, t.x, t.z));
-      const keys: ChunkKey[] = [];
-      if (here) {
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const key = `9/${here.x + dx}/${here.y + dy}` as ChunkKey;
-            if (this.d.stream.exists('p0', key)) keys.push(key);
-          }
-        }
-      }
+      const keys = this.ringKeys(t.x, t.z);
       const at = this.d.host.playerPos();
       const job: Job = { kind, to: t, started: this.d.now(), keys, from: at ? [at[0], at[2]] : null, streamed: false, phase: 'stream', phaseStart: this.d.now(), place: null, resolve };
       this.job = job;
@@ -206,11 +217,59 @@ export class TeleportService implements TeleportApi {
     });
   }
 
+  /** The `p0` chunk at (x, z) and its one-chunk ring, those the bake has (step 2's set). */
+  private ringKeys(x: number, z: number): ChunkKey[] {
+    const here = parseChunkKey(chunkKeyAt(9, x, z));
+    const keys: ChunkKey[] = [];
+    if (!here) return keys;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const key = `9/${here.x + dx}/${here.y + dy}` as ChunkKey;
+        if (this.d.stream.exists('p0', key)) keys.push(key);
+      }
+    }
+    return keys;
+  }
+
+  /**
+   * Step 2 alone (DL-736): requests the `p0` chunk at (x, z) and its ring as `needNow` and pins them, for a caller that writes a pose it
+   * already knows to be valid (a saved checkpoint) and only needs the ground there first. No validation, placement, fade or move, so no
+   * mode rule, heat or cooldown applies; the caller keeps its own budget (sim ticks) and releases the ticket when it is done or gives up.
+   */
+  prestream(x: number, z: number): PrestreamTicket {
+    const keys = this.ringKeys(x, z);
+    const centre = chunkKeyAt(9, x, z);
+    void this.d.stream.preload(keys.map((key) => ({ level: 'p0' as const, key })));
+    const point = { x, z };
+    this.prestreams.add(point);
+    let held = true;
+    return {
+      ready: () => held && this.d.query.chunkReady(centre) && keys.every((k) => this.d.query.chunkReady(k)),
+      release: () => {
+        if (!held) return;
+        held = false;
+        this.prestreams.delete(point);
+        this.d.stream.unpin('p0', keys);
+      },
+    };
+  }
+
+  /**
+   * The point of the oldest pre-stream still held, or null: the streaming module feeds the static colliders around it after the
+   * player's own (as it does for a teleport's destination), so the ground under a pose that is about to be written is there to stand on.
+   */
+  prestreamFocus(): { x: number; z: number } | null {
+    const first = this.prestreams.values().next();
+    return first.done === true ? null : first.value;
+  }
+
   private validate(kind: TeleportKind, to: TeleportTarget): { to: Resolved } | Fail {
     if (!this.policy.allowed(kind)) return fail('forbidden-in-mode', TELEPORT_MSG.forbidden);
     if ((kind === 'fast-travel' || kind === 'sandbox') && this.policy.heat() > 0) return fail('heat', TELEPORT_MSG.heat);
     const t = this.resolve(kind, to);
     if (!t) return fail('blocked', TELEPORT_MSG.unknownTarget);
+    const denied = this.policy.deny?.(kind, { x: t.x, z: t.z, id: t.id }) ?? null;
+    if (denied !== null) return fail('forbidden-in-mode', denied);
     const p = this.d.play;
     if (!(t.x >= p.minX && t.x <= p.maxX && t.z >= p.minZ && t.z <= p.maxZ)) return fail('out-of-bounds', TELEPORT_MSG.outOfBounds);
     if (kind === 'fast-travel' && this.lastFastTravel !== null && this.d.now() - this.lastFastTravel < this.cfg.cooldown.fastTravelS * 60) {
@@ -268,7 +327,11 @@ export class TeleportService implements TeleportApi {
       if (tick - job.phaseStart < FADE_TICKS) return;
       const p = job.place as { x: number; y: number; z: number };
       const begun = this.d.host.begin(p.x, p.y, p.z, job.to.yaw);
-      if (!begun.ok) return this.finish(job, fail('blocked', TELEPORT_MSG.busy));
+      if (!begun.ok) {
+        // the screen went dark for a move the engine refused: bring it back, or a caller that retries keeps it black (BD-FIX-SPAWN-07)
+        this.d.host.fade('in');
+        return this.finish(job, fail('blocked', TELEPORT_MSG.busy));
+      }
       job.phase = 'move';
       job.phaseStart = tick;
       return;

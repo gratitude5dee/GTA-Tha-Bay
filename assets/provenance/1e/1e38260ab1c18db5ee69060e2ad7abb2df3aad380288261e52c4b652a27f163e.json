@@ -1,0 +1,28 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "1e38260ab1c18db5ee69060e2ad7abb2df3aad380288261e52c4b652a27f163e",
+  "paths": [
+    "assets/creator-kit/icons.svg"
+  ],
+  "kind": "ui",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "tool": {
+    "name": "procedural SVG sprite (M04b2 creator kit; Coast cards, DL-737)",
+    "version": "1.1.0",
+    "args_sha256": "34d224b194d67597ec89d7e3fb72edaa8dba03de86fa36b22f7dfa9d7c47cd02"
+  },
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-22T00:00:00Z"
+}

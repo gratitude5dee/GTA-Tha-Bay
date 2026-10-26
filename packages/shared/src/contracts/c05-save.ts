@@ -17,7 +17,7 @@ export type SlotId =
   | `mod:${string}`;                                                    // C14 mod id, sandbox-only data
 
 export const SAVE_LIMITS = {
-  maxProfiles: 64, nameMin: 1, nameMax: 80,          // Grand-V profile limits
+  maxProfiles: 64, nameMin: 1, nameMax: 80,          // our design values (DL-732), within profileMaxBytes
   recordMaxBytes: 2 * 1024 * 1024,                    // per slot record (canonical JSON UTF-8)
   profileMaxBytes: 16 * 1024 * 1024,                  // all live records of a profile
   storyTargetBytes: 256 * 1024,                       // budget; warn in CI above this
@@ -91,7 +91,7 @@ export interface SandboxSlice {                       // schema 1; never read by
   savedPositions: { name: string; x: number; y: number; z: number; yaw: number /* ENU, as StorySlice.position */ }[];
   clock: { hour: number; paused: boolean; syncSystemTime: boolean };
   weather: WeatherPreset;
-  presets: JsonObject[];                              // M13 JSON presets (≤ 512 ops each)
+  presets: JsonObject[];                              // JSON presets; post-v1, stays empty in v1 (DL-730); the per-preset op cap is set from our record budget (recordMaxBytes) when presets are specified, not here (DL-732)
 }
 
 export interface ProfileSettings {                    // schema 1; device-level graphics and telemetry consent live with S11 (IndexedDB dv-platform), never here

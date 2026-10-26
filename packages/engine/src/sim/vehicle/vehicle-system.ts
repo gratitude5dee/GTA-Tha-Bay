@@ -18,10 +18,15 @@ import type { VehiclePhysics } from '../physics/backend.ts';
 import { PHYSICS_POST_ID, physicsStepSystem, PHYSICS_STEP_ID } from '../physics/systems.ts';
 import type { SimCore } from '../loop/sim-core.ts';
 import type { EngineServices } from '../services.ts';
-import { CONTROL_OWNER, CONTROL_PHASE, phaseOf } from '../control/states.ts';
+import { isSessionCar } from '../sandbox-flags.ts';
+import { CONTROL_OWNER, CONTROL_PHASE, CONTROL_REASON, CONTROL_STATE, phaseOf } from '../control/states.ts';
+import { vehicleFallRecoverySystem } from '../control/fall.ts';
+import { GROUP_BIT } from '../physics/groups.ts';
+import type { Vec3 } from '../physics/backend.ts';
 import { VehicleStore, vehicleResource, type VehicleInput, type VehicleRuntime } from './components.ts';
 import { RaycastVehicleSim } from './raycast-vehicle.ts';
 import type { WheelPath } from './wheel-path.ts';
+import { unseatDriver } from './enter-exit.ts';
 
 export const VEHICLE_INPUT_ID = 'engine.vehicle.input';
 export const VEHICLE_POST_ID = 'engine.vehicle.post';
@@ -108,6 +113,8 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
   /** Applies one impact to the damage component of vehicle `id`. */
   const hurt = (id: number, rt: VehicleRuntime, impact: Impact): void => {
+    // the sandbox's dent-proof cars (M04e4): only session cars, and only while the flag is on
+    if (services.sandboxFlags.carNoDamage && isSessionCar(ecs.keyOf(ecs.handle(id as EntityId)))) return;
     const dmg = ecs.store(VehicleDamage);
     const next = applyImpact(
       rt.profile,
@@ -213,7 +220,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
         // water wall (02-world-maps.md 4.1 a): depth at the wheels
         if (bounds) {
-          const depth = wheelWaterDepth(bounds, rt, tr.px[id] as number, tr.pz[id] as number, tr.qy[id] as number, tr.qw[id] as number);
+          const depth = wheelWaterDepth(bounds, rt, tr.px[id] as number, tr.py[id] as number, tr.pz[id] as number, tr.qy[id] as number, tr.qw[id] as number);
           if (!rt.wet.stalled) {
             const r = waterWall(rt.wet, depth, 1);
             rt.wet = r.state;
@@ -245,7 +252,7 @@ export function createVehicleSystems(opts: VehicleSystemOptions): VehicleSystems
 
 /** Deepest water over any of the four wheel positions, metres. */
 function wheelWaterDepth(
-  bounds: NonNullable<EngineServices['world']['bounds']>, rt: VehicleRuntime, px: number, pz: number, qy: number, qw: number,
+  bounds: NonNullable<EngineServices['world']['bounds']>, rt: VehicleRuntime, px: number, py: number, pz: number, qy: number, qw: number,
 ): number {
   const p = rt.profile;
   const yaw = 2 * datan2(qy, qw);
@@ -261,7 +268,8 @@ function wheelWaterDepth(
     // local (lx, lz) with forward -Z: world = pos + (lx * c + lz * s, -lx * s + lz * c)
     const x = px + lx * c + lz * s;
     const z = pz - lx * s + lz * c;
-    const d = bounds.waterDepth(x, z);
+    // the car's height lets the world tell a bridge deck from the water under it (M05c2)
+    const d = bounds.waterDepth(x, z, py);
     if (d > deepest) deepest = d;
   }
   return deepest;
@@ -276,10 +284,21 @@ function respawnAtShore(
   const tr = w.store(Transform);
   const shore = bounds.nearestShore(tr.px[id] as number, tr.pz[id] as number, true);
   if (!shore) return;
-  const x = shore.x - shore.nx * SHORE_INLAND_M;
-  const z = shore.z - shore.nz * SHORE_INLAND_M;
-  const yaw = datan2(shore.nx, shore.nz);
-  const y = shore.y + rt.profile.cgHeightM + 0.4;
+  placeVehicle(backend, rt, w, id, shore.x - shore.nx * SHORE_INLAND_M, shore.y, shore.z - shore.nz * SHORE_INLAND_M, datan2(shore.nx, shore.nz));
+}
+
+/**
+ * Puts vehicle `id` upright on the ground at (x, groundY, z), facing `yaw` (forward is (-sin yaw, -cos yaw)), at rest: the water wall's
+ * respawn (02-world-maps.md 4.1 a) and the ownership machine's vehicle move (`EngineServices.vehicleMove`: the world teleport's move of a
+ * driver, 5 step 4, and the below-the-world rescue, 4.1 d) both place it this way; only the placement is shared, each keeps its own fade
+ * (DL-735 b). The driver follows the seat in the same tick's PhysicsPost (`engine.vehicle.driver-sync`).
+ */
+export function placeVehicle(
+  backend: Pick<VehiclePhysics, 'setBodyPose' | 'setBodyVelocity'>, rt: VehicleRuntime, w: { store: EcsWorld['store'] }, id: number,
+  x: number, groundY: number, z: number, yaw: number,
+): void {
+  const tr = w.store(Transform);
+  const y = groundY + rt.profile.cgHeightM + 0.4;
   const body = w.store(BodyRef).body[id] as number;
   backend.setBodyPose(body, [x, y, z], [0, dsin(yaw / 2), 0, dcos(yaw / 2)]);
   backend.setBodyVelocity(body, [0, 0, 0], [0, 0, 0]);
@@ -289,6 +308,39 @@ function respawnAtShore(
   rt.lastVx = 0;
   rt.lastVz = 0;
   rt.impactAcc = 0;
+}
+
+/** The ground probe of a driven-vehicle move starts this far above the target height and reaches this far below it, metres. */
+const MOVE_PROBE_UP_M = 3;
+const MOVE_PROBE_DOWN_M = 6;
+const DOWN: Vec3 = [0, -1, 0];
+
+/**
+ * `EngineServices.vehicleMove` (DL-734, DL-735 c): moves the vehicle `rider` rides in, at its wheel or as a passenger, onto the static
+ * ground near (x, y, z) at once, with everybody aboard, and clears its flight and water counters. The driver and a passenger follow
+ * their seats in the same tick's PhysicsPost (`engine.vehicle.driver-sync`). Refused
+ * (`engine.control.groundNotLoaded`) when no static collider lies under the target yet, so a car is never put down over ground whose
+ * colliders are still on their way.
+ */
+function vehicleMover(backend: VehiclePhysics, store: VehicleStore, ecs: EcsWorld): NonNullable<EngineServices['vehicleMove']> {
+  const from: Vec3 = [0, 0, 0];
+  return (rider, pos, yaw) => {
+    const did = ecs.resolve(rider);
+    if (did === null) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+    const co = ecs.store(Control);
+    const vid = co.target[did] as number;
+    const rt = store.rt.get(vid);
+    const passenger = co.state[did] === CONTROL_STATE.passenger;
+    if (!rt || (rt.driver !== did && !passenger) || !ecs.has(ecs.handle(vid as EntityId), BodyRef)) return { ok: false, reason: CONTROL_REASON.wrongOwner };
+    from[0] = pos[0]; from[1] = pos[1] + MOVE_PROBE_UP_M; from[2] = pos[2];
+    const hit = backend.castRay(from, DOWN, MOVE_PROBE_UP_M + MOVE_PROBE_DOWN_M, GROUP_BIT.static);
+    if (!hit) return { ok: false, reason: CONTROL_REASON.groundNotLoaded };
+    placeVehicle(backend, rt, ecs, vid, pos[0], from[1] - hit.toi, pos[2], yaw);
+    rt.airTicks = 0;
+    rt.wet = { wetTicks: 0, stalled: false };
+    rt.respawnFade = 0;
+    return { ok: true };
+  };
 }
 
 /**
@@ -301,6 +353,11 @@ export function registerVehicleSystems(core: SimCore, backend: VehiclePhysics, s
   core.addSystem(physicsStepSystem(backend, { substeps: sys.substeps, beforeSubstep: sys.beforeSubstep }));
   for (const s of sys.systems) core.addSystem(s);
   core.addResource(vehicleResource(sys.store));
+  // the below-the-world net for a vehicle with the player aboard and the ownership machine's vehicle move it calls (02-world-maps.md 4.1 d,
+  // DL-734, DL-735), which the world's teleport also uses for a driver
+  core.services.vehicleMove = vehicleMover(backend, sys.store, core.ecs);
+  core.services.vehicleUnseat = (driver, tick) => unseatDriver(core.ecs, backend, sys.store, core.services, driver, tick);
+  core.addSystem(vehicleFallRecoverySystem({ services: core.services, store: sys.store }));
   return sys;
 }
 
