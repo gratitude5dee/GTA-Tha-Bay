@@ -13,7 +13,9 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 interface LogEntry {
   at: number;
-  k: 'request' | 'cmd' | 'done' | 'play' | 'skip';
+  k: 'request' | 'cmd' | 'done' | 'play' | 'skip' | 'next-host';
+  /** `k: 'next-host'`: the trigger that moved the clip to the next pooled element (BD-FIX-CUTFLAKE-01). */
+  trigger?: string;
   n?: number;
   refs?: (string | null)[];
   cmd?: { t: string; playId?: string; state?: string; trigger?: string; item?: number; outcome?: { path: string; skipped: boolean; trigger?: string } };
@@ -223,6 +225,33 @@ test.describe('cutscene player @cutscene', () => {
     expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
     expect(skipInputs(await log(page))).toEqual(['tap:pointerup']);
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
+    expect(errors).toEqual([]);
+  });
+
+  test('a clip whose first element cannot decode it plays on the next pooled element @cutscene', async ({ page }) => {
+    await page.goto('about:blank');
+    test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
+    // The first load of the rendition answers bytes no decoder takes (section D7: `codec` and `media_error` go to the next host before
+    // the fallback; BD-FIX-CUTFLAKE-01). Every later request of it gets the real file.
+    let broken = 0;
+    await page.route('**/media-local/cutscenes/fixture-a/v768.mp4', (r: Route) => {
+      if (broken > 0) return r.fallback();
+      broken++;
+      return r.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(4096, 0x5a) });
+    });
+    const errors = await boot(page, null, '&beats=video');
+    await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    const entries = await log(page);
+    expect(broken).toBe(1);
+    expect(entries.filter((e) => e.k === 'next-host').map((e) => e.trigger)).toEqual([
+      expect.stringMatching(/^(codec|media_error)$/),
+    ]);
+    expect(answer(entries, 'video')).toBeDefined();
+    expect(answer(entries, 'fallback')).toBeUndefined();
+    await page.keyboard.press('Escape');
+    await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
+    expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
+    expect((await log(page)).filter((e) => e.k === 'play').map((e) => e.props)).toEqual([expect.objectContaining({ path: 'video', fallback: false })]);
     expect(errors).toEqual([]);
   });
 
