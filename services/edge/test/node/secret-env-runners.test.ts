@@ -92,7 +92,10 @@ function probe(cmd: string, argv: string[], extra: Record<string, string> = {}):
     maxBuffer: 64 * 1024 * 1024,
   });
   const seen = existsSync(out) ? (JSON.parse(readFileSync(out, 'utf8')) as { seen: string[] }).seen : null;
-  return { status: r.status, output: `${r.stdout}\n${r.stderr}`, seen };
+  // CI forces colour (FORCE_COLOR), so strip ANSI escapes before the text assertions match on the runner's summary lines.
+  const ansi = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+  const plain = (s: string): string => s.replace(ansi, '');
+  return { status: r.status, output: plain(`${r.stdout}\n${r.stderr}`), seen };
 }
 
 const PROBE_SPEC = 'tools/ci/test/secret-env-probe';
