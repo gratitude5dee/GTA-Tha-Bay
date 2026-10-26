@@ -1,0 +1,41 @@
+{
+  "ai_generated": false,
+  "attribution": "3DEP data courtesy of the U.S. Geological Survey. United States 3DEP (formerly NED) and global GMTED2010 and SRTM terrain data courtesy of the U.S. Geological Survey. Global ETOPO1 terrain data U.S. National Oceanic and Atmospheric Administration; City and County of San Francisco; City and County of San Francisco, SF Public Works; City and County of San Francisco, SFMTA; © OpenStreetMap contributors",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "created_at": "2026-10-19T14:30:08Z",
+  "derived_from": [
+    "ddc5aeeb2c061cf3e02c91996c580b1e69b2fe89afb2ea95c5b4df2f2cfa7682",
+    "b6cb3cdc8fd96796cc00723286b92cffb2a32424fb3669d27c51e62cf54b3b61",
+    "c2635d9f4d21eb2a11c9b75e84e426256ffe47f9c65f86233e34a6aa71227e9d",
+    "83ad5a2e3205dd0e64793db567426fe9ed5964b5c0d624c6ea1d4d51b8765f3e",
+    "7056efcc78c611fe1519d372f14af9a844a82ff82283fd0dce2553f85816c07a",
+    "8599e753c52ef3071fec93a5e49789acaba46d60cd3a02254d03606dc73d3f68",
+    "5bb81fb6b9088fb22219326a699226db1a6209a4748e7be1269c78cd05683d86",
+    "e203d11e1519ae9059a67839976a7d83475deef11e19b98df18289fcaf7473da",
+    "232c12ee880f9cb00845b8e005282b6772ab598367d95893bff5eb208a59a2ee",
+    "501afabd1d8e3abf48b7263ec6f5b2c5413984296498272802cbbf513d7fe455",
+    "2d39437a9fe9f2bc0eb229e04c40c12485d2a11a293c305bc5875c85af662674"
+  ],
+  "ip_checks": {
+    "signatures": "n/a",
+    "similarity": "n/a",
+    "strings": "n/a"
+  },
+  "kind": "world_pack",
+  "license": "ODbL-1.0",
+  "origin": "derived",
+  "paths": [
+    "assets/world_pack/l0-60-69/default.c233d9291b9f.pack"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "c233d9291b9f4bb7b53dab42e185da05c8c29446653a8cabde67b76b9e7f4170",
+  "status": "active",
+  "tool": {
+    "args_sha256": "bdda9882b79776cfb79eda357692a120f500226cc11cbbca35628a008620fa56",
+    "name": "tools/map",
+    "version": "0.3.1"
+  }
+}

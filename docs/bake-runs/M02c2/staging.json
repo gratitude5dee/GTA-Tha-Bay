@@ -1,0 +1,66 @@
+{
+  "schema": "bake-run/1",
+  "milestone": "M02c2",
+  "ac": "AC-14 (staging world release, operator steps up to the PR; merge, deploy.yml staging deploy, check:smoke and the browser checks follow the merge)",
+  "operator": "Architect release run 2026-10-26",
+  "date": "2026-10-26",
+  "area": "sf",
+  "bakeId": "bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae",
+  "baseCommit": "26f021f3caea72d21aa1a54d19a4d050b5edc46c",
+  "baseBranch": "claude/release-op-pointer",
+  "toolchain": { "node": "v22.22.0", "pnpm": "12.14.0", "rclone": "v1.75.2" },
+  "rawSnapshot": {
+    "lock": "content/world/raw.lock.sf.json",
+    "retrieved": "2026-10-19",
+    "note": "the cached snapshot's own raw.lock.json still carries the pre-DL-664 source ids datasf-muni-routes and datasf-muni-stops (same sha256 as sfmta-patterns and sfmta-stops); the bake read the snapshot files unchanged through a worktree overlay whose raw.lock.json is a copy of the committed content/world/raw.lock.sf.json, so no raw byte was refetched or modified"
+  },
+  "locks": {
+    "assets/assets.lock.json": "8ba0b2c9c8a1f9af96d2778d9571d75f66662a34f6f32cc3d9bdf57ea270e639",
+    "assets/world/sf.lock.json": "30214f41fa038dbc6d9ef1cc3a602e3d21335d1e04b54fc3fdc4b70755c4bd52",
+    "dataWorldIndex": "a72b1a26f0245b8f700eb7eec1c3c8c0487cfcb9fe6f6a5ab70189c3b2f76c62"
+  },
+  "pointer": {
+    "file": "assets/world/pointer.staging.json",
+    "key": "manifests/assets-61166a3428f47899c0b31eb81110072cde8c0047c6b19c43045a25b6c59ae78c.json",
+    "sha256": "61166a3428f47899c0b31eb81110072cde8c0047c6b19c43045a25b6c59ae78c",
+    "bytes": 315226,
+    "buildId": "8c6c61100bd3f872"
+  },
+  "bucket": "tha-bay-media-staging",
+  "offerUrl": "https://tha-bay-web-staging.gratitude-8f4.workers.dev/media/odbl/bf9c29c4ba5369f9de50aef5b9c1845dad637837443e9c640775f794e0d1a9ae/index.json",
+  "offer": {
+    "index": "200 application/json, schema odbl-offer/1, licence ODbL-1.0, 410 world packs listed",
+    "bake-scripts.tar.gz": { "sha256": "0f8d1d545ba1ffa10b7c278eedb9ed4fbc9ad1b9be9a8989fe945b2bc83ce64d", "bytes": 357723, "http": 200 },
+    "sf.lock.json": { "sha256": "30214f41fa038dbc6d9ef1cc3a602e3d21335d1e04b54fc3fdc4b70755c4bd52", "bytes": 133723, "http": 200 }
+  },
+  "commands": [
+    { "cmd": "pnpm map:build -- --area sf --repro", "start": "2026-10-26T08:00:30Z", "end": "2026-10-26T08:09:41Z", "result": "repro: 414 outputs identical across both runs; s12, s13 and s14 gates PASS (WARN only: s8.connectivity, s9.tag-limit, s9.breakers, s10.arrival-far, s13.pack-warn)" },
+    { "cmd": "pnpm map:pack -- --target r2:staging", "start": "2026-10-26T08:10:13Z", "end": "2026-10-26T08:11:00Z", "result": "map:pack ok: 410 new objects of 410 at r2:tha-bay-media-staging; wrote assets/world/sf.lock.json and 421 provenance records" },
+    { "cmd": "pnpm assets:publish -- --env staging --world assets/world/sf.lock.json --pointer-out assets/world/pointer.staging.json", "start": "2026-10-26T08:11:14Z", "end": "2026-10-26T08:11:26Z", "result": "verify ok (77 assets, 153 blobs); world merged: 408 added, 2 replaced (world_pack/l0-64-64, world_pack/p0-64-64); assets:publish ok: env=staging target=r2:tha-bay-media-staging build=8c6c61100bd3f872 uploaded 4 of 152 objects" },
+    { "cmd": "pnpm map:build -- --area civic-excerpt", "start": "2026-10-26T08:11:57Z", "end": "2026-10-26T08:12:01Z", "result": "map:build ok: bake 40e3b4e776fb (rewrote config/attribution.world.json with the OSM offerUrl)" },
+    { "cmd": "pnpm provenance:check", "result": "ok (573 files checked), assets/world/sf.lock.json in the ship set" }
+  ],
+  "stageMs": { "water": 23479, "terrain": 19309, "roads": 11068, "junctions": 5139, "grading": 5885, "buildings": 25309, "ped": 42439, "tags": 8874, "places": 80978, "district-grid": 5, "lod": 23036, "map": 15730, "pack": 19960 },
+  "spotChecks": {
+    "manifest": "GET /media/manifests/assets-61166a34….json 200, 315226 B, sha256 matches the pointer; data/world-index resolves to a72b1a26f024",
+    "worldPacks": "GET /media/assets/world_pack/p0-64-64/default.500f18724790.pack 200 (Range 0-1023: 206), p0-60-61 200, data/world-index 200; COEP require-corp, CORP cross-origin"
+  },
+  "fixes": [
+    "tools/map/src/pack/index.ts: the content-world stamp record (authored, ODbL-1.0) now carries the attribution the raw lock's stamp already had; without it provenance:check failed attribution-missing on assets/provenance/b6/b6cb3cdc….json. Only that record changed; the packs, the world lock and the uploaded objects are unaffected. The offer's bake-scripts.tar.gz was archived before this one-line record fix. tools/map/test/publish.spec.ts now runs the gate's checkRecord on every packed record.",
+    "tools/ci/test/assets-gates.spec.ts: the repository case writes credits.json first, as the last step of pnpm build does (DL-662); the copied world records carry attributions the empty temp dist never credited",
+    "tools/map/test/attribution.spec.ts: the key list allows the optional OSM offerUrl (DL-695) and requires it to be https"
+  ],
+  "checks": {
+    "pnpm lint": "exit 0",
+    "pnpm typecheck": "exit 0",
+    "pnpm check:assets": "check:assets: ok (703 files checked), no stale-lock warning",
+    "pnpm check:unit -- tools/assets tools/map tools/ci": "Test Files 92 passed | 1 skipped (93); Tests 967 passed | 8 skipped (975)",
+    "deploy.test.ts world release and odblOffer cases": "12 passed",
+    "world-release.ts on this checkout (read-only)": "staging: staleLockMessage null, prepareWorldRelease null (would copy the pointer over both committed pointers), checkOdblOffer on apps/web/dist/credits.json null; production: release null"
+  },
+  "pending": [
+    "merge the PR that sets staging: \"sf\", then deploy.yml deploys staging",
+    "pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev",
+    "desktop browser on the staging URL: boots sf at City Hall, pack requests same-origin 200 or 206, splash OSM line 3 s, credits list the world entries, the ODbL notice and the offer URL"
+  ]
+}
