@@ -9,17 +9,18 @@
  *
  * No live secret by default (BD-FIX-SEC-02). The top-level config names the production SUPABASE_URL and lists SUPABASE_SECRET_KEY in
  * `secrets.required`, which wrangler loads from the process environment and from services/edge/.dev.vars or .env by itself. So every name of
- * tools/ci/secret-env.ts is removed from the environment the children get, and every such name an env file holds is passed on empty
- * (`--var NAME:`; every route treats an empty secret as absent), each with a loud stderr line naming the names (never a value).
- * DV_ALLOW_LIVE_SECRETS=1 passes them through, with a warning.
+ * tools/ci/secret-env.ts is removed from the environment the children get, and every known Worker secret name (tools/ci/worker-secrets.ts,
+ * computed from deploy.ts, wrangler.jsonc and env.ts) is ALWAYS passed on empty (`--var NAME:`; every route treats an empty secret as
+ * absent), whatever an env file holds. An env file with deny-listed names only adds a loud stderr line naming them (never a value).
+ * Only the exact opt-in DV_ALLOW_LIVE_SECRETS=1 skips both, with a warning.
  *
  * Ctrl-C stops both; if either exits, the other is stopped and the exit code is passed on.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { repoRoot } from './run.ts';
-import { envFileSecretOverrides, scrubbedEnv, wranglerVarArgs } from './secret-env.ts';
+import { scrubbedEnv, wranglerVarArgs } from './secret-env.ts';
+import { EDGE_DIR, workerSecretBlanks } from './worker-secrets.ts';
 
 /** The port `pnpm dev` and `pnpm dev:edge` serve the Worker on (apps/web/vite.config.ts proxies /api to it). The e2e default is elsewhere. */
 export const DEV_EDGE_PORT = 8788;
@@ -32,14 +33,14 @@ export interface DevPlan {
 }
 
 /**
- * What `pnpm dev` (edgeOnly false) or `pnpm dev:edge` (edgeOnly true) starts. `edgeDir` is the Worker's config folder, whose env files are
- * read for names only; `log` receives the stderr lines.
+ * What `pnpm dev` (edgeOnly false) or `pnpm dev:edge` (edgeOnly true) starts. `envFileDir` is the folder whose env files are scanned for
+ * the warning line only (default services/edge); `log` receives the stderr lines. The opt-in is read from `env`.
  */
-export function devPlan(opts: { edgeOnly: boolean; env: Readonly<Record<string, string | undefined>>; edgeDir?: string; log?: (line: string) => void }): DevPlan {
+export function devPlan(opts: { edgeOnly: boolean; env: Readonly<Record<string, string | undefined>>; envFileDir?: string; log?: (line: string) => void }): DevPlan {
   const label = opts.edgeOnly ? 'dev:edge' : 'dev';
   const log = opts.log;
   const env = { ...scrubbedEnv(opts.env, { label, ...(log ? { log } : {}) }), WRANGLER_SEND_METRICS: 'false', ...(opts.edgeOnly ? {} : { VITE_DV_QA: '1' }) };
-  const blanks = envFileSecretOverrides(opts.edgeDir ?? path.join(repoRoot, 'services/edge'), { label, ...(log ? { log } : {}) });
+  const blanks = workerSecretBlanks({ label, env: opts.env, envFileDir: opts.envFileDir ?? EDGE_DIR, ...(log ? { log } : {}) });
   const fixture = opts.edgeOnly ? [] : ['--var', 'ANTHROPIC_MODE:fixture', '--var', 'FLAGS_JSON:{"npc.dialogue":true}'];
   return { env, wrangler: ['dev', '--local', '--port', String(DEV_EDGE_PORT), ...fixture, ...wranglerVarArgs(blanks)] };
 }

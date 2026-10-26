@@ -27,9 +27,11 @@
  *   - the e2e web server (playwright.config.ts), the second Worker of tests/e2e/npc-builder.spec.ts and check:pipeline's
  *     getPlatformProxy load no env file at all (`--env-file` / `envFiles` set to NO_ENV_FILE), as on the CI runner;
  *   - check:workers (services/edge/vitest.config.ts; the plugin has no env-file option) and `pnpm dev` / `pnpm dev:edge` (tools/ci/dev.ts)
- *     bind every deny-listed name an env file holds to the empty string (Miniflare bindings, `--var NAME:`), with a loud stderr line
- *     naming the file and the names; every route treats an empty secret as absent. DV_ALLOW_LIVE_SECRETS=1 passes them through, with
- *     the warning.
+ *     ALWAYS bind every known Worker secret name to the empty string (Miniflare bindings, `--var NAME:`); the names come from
+ *     tools/ci/worker-secrets.ts, computed from deploy.ts WORKER_SECRETS, the wrangler secrets.required lists and env.ts. Every route
+ *     treats an empty secret as absent. Only DV_ALLOW_LIVE_SECRETS=1 skips the blanking, with the warning. The env files decide nothing:
+ *     they are scanned only to print a loud line naming the file and the deny-listed names it holds (secretEnvFiles, envFileLine), with
+ *     line endings normalised as wrangler's dotenv does.
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -70,6 +72,10 @@ export const SECRET_ENV_NAMES = [
   'AWS_ACCESS_KEY_ID',
   'AWS_SECRET_ACCESS_KEY',
   'AWS_SESSION_TOKEN',
+  // GitHub tokens (K2-R1): CI passes GH_TOKEN only to deploy tools (`deploy:preview --sweep-closed`, the Preview comment's `gh` step),
+  // which are not test runners (tools/ci/test/secret-env.test.ts keeps it so); a token in a developer's shell never reaches a test.
+  'GH_TOKEN',
+  'GITHUB_TOKEN',
 ] as const;
 
 /**
@@ -173,12 +179,13 @@ export function isWorkerEnvFileName(name: string): boolean {
 }
 
 /**
- * The deny-listed names that a dotenv text assigns a non-empty value to (names only; values are never returned). Over-matching is safe:
- * every name found is only ever blanked.
+ * The deny-listed names that a dotenv text assigns a non-empty value to (names only; values are never returned), for the warning line
+ * only: what a Worker gets never depends on it. Line endings are normalised as wrangler's dotenv does (`\r\n` and a bare `\r` both end a
+ * line), so a file saved with bare carriage returns is named too.
  */
 export function secretNamesInDotenv(text: string): string[] {
   const names = new Set<string>();
-  for (const line of text.split(/\r?\n/)) {
+  for (const line of text.replace(/\r\n?/g, '\n').split('\n')) {
     const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.-]*)\s*[=:]\s*(.*)$/.exec(line);
     if (!m || !isSecretEnvName(m[1] ?? '')) continue;
     const value = (m[2] ?? '').trim();
@@ -214,24 +221,11 @@ export function secretEnvFiles(dir: string): EnvFileSecrets[] {
   return out;
 }
 
-/** The loud stderr line for an env file whose deny-listed names are blanked (names only). */
+/** The loud stderr line for an env file that holds deny-listed names (names only); `blanked` is false only under the opt-in. */
 export function envFileLine(label: string, hit: EnvFileSecrets, blanked: boolean): string {
   return blanked
-    ? `${label}: WARNING ${hit.file} holds ${hit.names.length} deny-listed secret name(s): ${hit.names.join(', ')}. The Worker gets them empty (BD-FIX-SEC-02). Never put production values in that file; ${ALLOW_LIVE_SECRETS_ENV}=1 passes them through.`
+    ? `${label}: WARNING ${hit.file} holds ${hit.names.length} deny-listed secret name(s): ${hit.names.join(', ')}. The Worker gets every secret empty whatever the file holds (BD-FIX-SEC-02). Never put production values in that file; ${ALLOW_LIVE_SECRETS_ENV}=1 passes them through.`
     : `${label}: WARNING ${ALLOW_LIVE_SECRETS_ENV}=1: ${hit.file} holds ${hit.names.length} live secret name(s) that reach the Worker: ${hit.names.join(', ')}. Tests and local Workers can now call production services.`;
-}
-
-/**
- * The bindings that blank every deny-listed name an env file in `dir` holds: `{ NAME: '' }` per name, merged over the bindings wrangler
- * loads. Empty when no file holds one, and under the opt-in (then with the warning). Prints one loud line per file that holds names.
- */
-export function envFileSecretOverrides(dir: string, opts: ScrubOptions): Record<string, string> {
-  const log = opts.log ?? stderr;
-  const hits = secretEnvFiles(dir);
-  const allowed = !opts.force && liveSecretsAllowed(process.env);
-  if (!opts.force) for (const hit of hits) log(envFileLine(opts.label, hit, !allowed));
-  if (allowed) return {};
-  return Object.fromEntries(hits.flatMap((h) => h.names).map((k) => [k, '']));
 }
 
 /** wrangler `--var NAME:` arguments for `overrides` (each value is empty, so `NAME:` binds the empty string). */

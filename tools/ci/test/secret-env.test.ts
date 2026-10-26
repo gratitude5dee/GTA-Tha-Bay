@@ -1,5 +1,4 @@
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -9,7 +8,6 @@ import { repoRoot } from '../run.ts';
 import {
   ALLOW_LIVE_SECRETS_ENV,
   envFileLine,
-  envFileSecretOverrides,
   isSecretEnvName,
   isWorkerEnvFileName,
   liveSecretsAllowed,
@@ -23,103 +21,37 @@ import {
   wranglerVarArgs,
 } from '../secret-env.ts';
 import { useTempDirs } from '../test-tmp.ts';
+import { envTsSecretFields, workerSecretBlanks, workerSecretNames, workerSecretSources, wranglerRequiredSecrets, wranglerVarNames } from '../worker-secrets.ts';
+import { FAKE, FAKE_NAMES, fakeEnv } from './secret-env-fixtures.ts';
 
-// BD-FIX-SEC-01: no test run sees a live secret unless DV_ALLOW_LIVE_SECRETS=1.
+// BD-FIX-SEC-01: no test run sees a live secret unless DV_ALLOW_LIVE_SECRETS=1. The fast, pure cases live here (`check:unit`); the
+// nested-runner probes (run.ts vitest, a direct vitest, check:workers with workerd, temporary services/edge env files) are in
+// services/edge/test/node/secret-env-runners.test.ts, which the check:workers job runs (K2-R1).
 const tempDir = useTempDirs();
 
-/** An obviously fake value; never a real secret. */
-const FAKE = 'test-not-a-secret';
-
-/** Every name the incident, CLAUDE.md "Secrets", deploy.ts and the workflows name (plus a few of each prefix). */
-const FAKE_NAMES = [
-  'FAL_KEY',
-  'SUPABASE_SECRET_KEY',
-  'SUPABASE_ACCESS_TOKEN',
-  'SUPABASE_DB_PASSWORD',
-  'SUPABASE_DB_PASSWORD_STAGING',
-  'SUPABASE_PROJECT_ID',
-  'SUPABASE_PROJECT_ID_PRODUCTION',
-  'SUPABASE_PROJECT_ID_STAGING',
-  'SUPABASE_URL',
-  'PLAY_TOKEN_HMAC',
-  'PLAY_TOKEN_HMAC_PREV',
-  'QUOTA_NET_SALT_SECRET',
-  'ANTHROPIC_API_KEY',
-  'ANTHROPIC_BUILDER_KEY',
-  'ANTHROPIC_EVALS_KEY',
-  'OPENAI_MODERATION_API_KEY',
-  'INTERNAL_HMAC',
-  'ID_SIGNING_JWK_CURRENT',
-  'ID_SIGNING_JWK_NEXT',
-  'R2_ACCESS_KEY_ID',
-  'R2_SECRET_ACCESS_KEY',
-  'R2_PRIVATE_ACCESS_KEY_ID',
-  'R2_PRIVATE_SECRET_ACCESS_KEY',
-  'CLOUDFLARE_API_TOKEN',
-  'CLOUDFLARE_ACCOUNT_ID',
-  'DV_NAMES_REAL_JSON',
-  'OPS_TOKEN',
-  'ELEVENLABS_API_KEY',
-  'AWS_ACCESS_KEY_ID',
-  'AWS_SECRET_ACCESS_KEY',
-  'AWS_SESSION_TOKEN',
-] as const;
-
-const fakeEnv = (): Record<string, string> => Object.fromEntries(FAKE_NAMES.map((k) => [k, FAKE]));
-const tsx = path.join(repoRoot, 'node_modules', '.bin', 'tsx');
-/** The parent's environment without the opt-in, so a developer's own DV_ALLOW_LIVE_SECRETS never changes what these specs prove. */
-const baseEnv = (): NodeJS.ProcessEnv => {
-  const env = { ...process.env };
-  delete env[ALLOW_LIVE_SECRETS_ENV];
-  return env;
-};
-
 const EDGE_DIR = path.join(repoRoot, 'services/edge');
+const edgeConfigText = (): string => readFileSync(path.join(EDGE_DIR, 'wrangler.jsonc'), 'utf8');
+const envTsText = (): string => readFileSync(path.join(EDGE_DIR, 'src/env.ts'), 'utf8');
 
-/**
- * The secret-like fields of the Worker's Env interface (services/edge/src/env.ts): a name ending in KEY, TOKEN, SECRET or PASSWORD or
- * holding a SECRET, HMAC, JWK or TOKEN segment, or a field whose doc comment calls it a secret (AUTH_PASSWORD_SIGNUP, an on/off switch,
- * is none of these).
- */
-function envTsSecretFields(): string[] {
-  const lines = readFileSync(path.join(EDGE_DIR, 'src/env.ts'), 'utf8').split('\n');
-  const out: string[] = [];
-  let doc = '';
-  for (const line of lines) {
-    if (/^\s*\/\*\*/.test(line)) doc = '';
-    if (/^\s*(\/\*\*|\*)/.test(line)) doc += line;
-    const m = /^\s{2}([A-Z][A-Z0-9_]*)\??:/.exec(line);
-    if (!m) continue;
-    const name = m[1] ?? '';
-    const parts = name.split('_');
-    const named = ['KEY', 'TOKEN', 'SECRET', 'PASSWORD'].includes(parts[parts.length - 1] ?? '') || parts.some((p) => ['SECRET', 'HMAC', 'JWK', 'TOKEN'].includes(p));
-    if (named || /\bsecret\b/i.test(doc.replace(/not a secret|non-secret/gi, ''))) out.push(name);
-    doc = '';
-  }
-  return out;
-}
+/** The names a probe env file holds: the Worker's own secrets (what wrangler binds from a file) plus every secret-like Env field (no var). */
+const ENV_FILE_NAMES = [...new Set([...WORKER_LOCAL_SECRETS, ...envTsSecretFields(envTsText(), wranglerVarNames(edgeConfigText()))])].sort();
 
-/** The env files in services/edge that a probe must not clobber or be shadowed by (the developer's own). */
-const ownEdgeEnvFiles = (): string[] => readdirSync(EDGE_DIR).filter(isWorkerEnvFileName);
-
-/** Writes `name` in services/edge with a fake value for every name of `names`, runs `fn`, and always removes the file again. */
-function withEdgeEnvFile<T>(name: string, names: readonly string[], fn: () => T): T {
-  const file = path.join(EDGE_DIR, name);
-  if (existsSync(file)) throw new Error(`${file} exists; the probe never overwrites a developer's env file`);
-  writeFileSync(file, `# BD-FIX-SEC-02 probe, removed by tools/ci/test/secret-env.test.ts\n${names.map((k) => `${k}=${FAKE}`).join('\n')}\n`);
+/** Runs `fn` with DV_ALLOW_LIVE_SECRETS set to `value` (or unset) in this process, and restores it. */
+function withOptIn<T>(value: string | undefined, fn: () => T): T {
+  const saved = process.env[ALLOW_LIVE_SECRETS_ENV];
   try {
+    if (value === undefined) delete process.env[ALLOW_LIVE_SECRETS_ENV];
+    else process.env[ALLOW_LIVE_SECRETS_ENV] = value;
     return fn();
   } finally {
-    rmSync(file, { force: true });
+    if (saved === undefined) delete process.env[ALLOW_LIVE_SECRETS_ENV];
+    else process.env[ALLOW_LIVE_SECRETS_ENV] = saved;
   }
 }
-
-/** The names a probe env file holds: the Worker's own secrets (what wrangler binds from a file) plus every secret-like Env field. */
-const ENV_FILE_NAMES = [...new Set([...WORKER_LOCAL_SECRETS, ...envTsSecretFields()])].sort();
 
 describe('the deny-list', () => {
   it('covers every fake name, every deploy.ts WORKER_SECRETS name and every secrets.required name of the edge config', () => {
-    const cfg = JSON.parse(stripJsonc(readFileSync(path.join(repoRoot, 'services/edge/wrangler.jsonc'), 'utf8'))) as {
+    const cfg = JSON.parse(stripJsonc(edgeConfigText())) as {
       secrets?: { required?: string[] };
       env?: Record<string, { secrets?: { required?: string[] } }>;
     };
@@ -130,13 +62,15 @@ describe('the deny-list', () => {
   });
 
   it('covers every secret-like field of the Worker Env (services/edge/src/env.ts), OPS_TOKEN and ELEVENLABS_API_KEY included', () => {
-    const fields = envTsSecretFields();
+    const fields = envTsSecretFields(envTsText());
     for (const k of ['OPS_TOKEN', 'ELEVENLABS_API_KEY', 'SUPABASE_SECRET_KEY', 'FAL_KEY', 'PLAY_TOKEN_HMAC_PREV', 'ANTHROPIC_BUILDER_KEY']) expect(fields, k).toContain(k);
     for (const k of fields) expect(isSecretEnvName(k), k).toBe(true);
   });
 
-  it('denies the default credential names of S3-compatible SDKs', () => {
-    for (const k of ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']) expect(isSecretEnvName(k), k).toBe(true);
+  it('denies the default credential names of S3-compatible SDKs and the GitHub tokens', () => {
+    for (const k of ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN']) expect(isSecretEnvName(k), k).toBe(true);
+    const out = scrubbedEnv({ GH_TOKEN: FAKE, GITHUB_TOKEN: FAKE, PATH: '/usr/bin' }, { label: 't', log: () => undefined });
+    expect(out).toEqual({ PATH: '/usr/bin' });
   });
 
   it('keeps what the runners and the local harnesses need', () => {
@@ -155,6 +89,32 @@ describe('the deny-list', () => {
     const steps = lines.flatMap((l, i) => (l.includes('DV_NAMES_REAL_JSON: ${{') ? [lines.slice(Math.max(0, i - 3), i).join('\n')] : []));
     expect(steps.length).toBeGreaterThan(0);
     for (const s of steps) expect(s).not.toMatch(/check:(unit|e2e|perf|workers|db|pipeline)|vitest|playwright/);
+  });
+
+  // K2-R1: GH_TOKEN / GITHUB_TOKEN are set only as the env of a single step that runs a deploy tool or the gh CLI, never at the workflow
+  // or job level (where every step, test runners included, would inherit it). Checked in every workflow (ci.yml, preview.yml, nightly.yml…).
+  it('every workflow passes GH_TOKEN and GITHUB_TOKEN only to deploy tools and gh steps, never to a test runner', () => {
+    const dir = path.join(repoRoot, '.github', 'workflows');
+    let seen = 0;
+    for (const f of readdirSync(dir).filter((n) => /\.ya?ml$/.test(n))) {
+      const lines = readFileSync(path.join(dir, f), 'utf8').split('\n');
+      lines.forEach((l, i) => {
+        const m = /^( *)(GH_TOKEN|GITHUB_TOKEN):/.exec(l);
+        if (!m) return;
+        seen++;
+        const where = `${f}:${i + 1}`;
+        // Step-level env entries sit at 10 spaces (`      - ` steps, `        env:`); job-level at 6, workflow-level at 2.
+        expect(m[1]?.length, `${where}: ${m[2]} only in a step's env`).toBe(10);
+        let start = i;
+        while (start > 0 && !/^ {6}- /.test(lines[start] ?? '')) start--;
+        let end = i + 1;
+        while (end < lines.length && !/^ {6}- /.test(lines[end] ?? '') && !/^ {0,5}\S/.test(lines[end] ?? '')) end++;
+        const step = lines.slice(start, end).filter((s) => !s.trimStart().startsWith('#')).join('\n');
+        expect(step, `${where}: the step runs a deploy tool or gh`).toMatch(/pnpm deploy:|^\s+gh |\bgh pr /m);
+        expect(step, `${where}: never a test runner`).not.toMatch(/check:|vitest|playwright|test:/);
+      });
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 });
 
@@ -201,6 +161,40 @@ describe('scrubbedEnv', () => {
   });
 });
 
+describe('the known Worker secret names (tools/ci/worker-secrets.ts, BD-FIX-SEC-02)', () => {
+  it('are the union of deploy.ts WORKER_SECRETS, every secrets.required list and the secret-like env.ts fields, all deny-listed', () => {
+    const names = workerSecretNames();
+    const src = workerSecretSources();
+    expect(src.required).toEqual(wranglerRequiredSecrets(edgeConfigText()));
+    expect(names).toEqual([...new Set([...WORKER_SECRETS, ...src.required, ...src.envTs])].sort());
+    for (const k of [...WORKER_SECRETS, ...WORKER_LOCAL_SECRETS, 'OPS_TOKEN', 'ELEVENLABS_API_KEY', 'FAL_KEY', 'PLAY_TOKEN_HMAC_PREV']) expect(names, k).toContain(k);
+    for (const k of names) expect(isSecretEnvName(k), k).toBe(true);
+  });
+
+  it('read both secrets.required lists (top level and staging) and leave out what the config sets as a var', () => {
+    const cfg = JSON.parse(stripJsonc(edgeConfigText())) as { secrets: { required: string[] }; env: { staging: { secrets: { required: string[] } } } };
+    const required = wranglerRequiredSecrets(edgeConfigText());
+    for (const k of [...cfg.secrets.required, ...cfg.env.staging.secrets.required]) expect(required, k).toContain(k);
+    const vars = wranglerVarNames(edgeConfigText());
+    for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'ENVIRONMENT']) expect(vars, k).toContain(k);
+    const names = workerSecretNames();
+    for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'AUTH_PASSWORD_SIGNUP', 'LEGAL_CONTACT', 'ANTHROPIC_MODE', 'FLAGS_JSON']) expect(names, k).not.toContain(k);
+  });
+
+  it('are computed, not copied: a new secret in any one source is picked up', () => {
+    const dir = tempDir('dv-worker-secrets-');
+    mkdirSync(path.join(dir, 'src'));
+    const cfg = edgeConfigText().replace('"secrets": { "required": [', '"secrets": { "required": ["DV_NEW_REQUIRED_SECRET", ');
+    expect(cfg).not.toBe(edgeConfigText());
+    writeFileSync(path.join(dir, 'wrangler.jsonc'), cfg);
+    writeFileSync(path.join(dir, 'src/env.ts'), envTsText().replace('export interface Env {\n', 'export interface Env {\n  /** A new Worker secret. */\n  NEW_WEBHOOK_SECRET?: string | undefined;\n'));
+    const names = workerSecretNames(dir);
+    expect(names).toContain('DV_NEW_REQUIRED_SECRET');
+    expect(names).toContain('NEW_WEBHOOK_SECRET');
+    for (const k of workerSecretNames()) expect(names, k).toContain(k);
+  });
+});
+
 describe('env files beside the Worker config (BD-FIX-SEC-02)', () => {
   it('knows the file names wrangler reads, and never an example', () => {
     for (const f of ['.dev.vars', '.dev.vars.staging', '.env', '.env.local', '.env.staging', '.env.staging.local']) expect(isWorkerEnvFileName(f), f).toBe(true);
@@ -208,7 +202,7 @@ describe('env files beside the Worker config (BD-FIX-SEC-02)', () => {
   });
 
   it('reads deny-listed names with a value from dotenv text, never a value, and skips empty ones and the rest', () => {
-    const text = [
+    const lines = [
       '# SUPABASE_SECRET_KEY=commented',
       'SUPABASE_SECRET_KEY=sb_secret_x',
       'export OPS_TOKEN = "abc"',
@@ -218,39 +212,71 @@ describe('env files beside the Worker config (BD-FIX-SEC-02)', () => {
       'QUOTA_NET_SALT_SECRET= # empty, then a comment',
       'FLAGS_JSON={"npc.dialogue":true}',
       'AWS_SECRET_ACCESS_KEY: yaml-style',
-    ].join('\n');
-    expect(secretNamesInDotenv(text)).toEqual(['AWS_SECRET_ACCESS_KEY', 'OPS_TOKEN', 'SUPABASE_SECRET_KEY']);
+    ];
+    const want = ['AWS_SECRET_ACCESS_KEY', 'OPS_TOKEN', 'SUPABASE_SECRET_KEY'];
+    expect(secretNamesInDotenv(lines.join('\n'))).toEqual(want);
+    // Line endings as wrangler's dotenv normalises them: \r\n, and a bare \r (K2-R1; split on \r?\n saw one line and no name).
+    expect(secretNamesInDotenv(lines.join('\r\n'))).toEqual(want);
+    expect(secretNamesInDotenv(lines.join('\r'))).toEqual(want);
+    expect(secretNamesInDotenv(`SUPABASE_SECRET_KEY=${FAKE}\rOPS_TOKEN=${FAKE}\r`)).toEqual(['OPS_TOKEN', 'SUPABASE_SECRET_KEY']);
   });
 
-  it('finds every env file that holds a name, blanks the names with a loud line (names only), and passes them under the opt-in', () => {
+  it('finds every env file that holds a name for the warning line (bare-CR files included), names only', () => {
     const dir = tempDir('dv-envfiles-');
     writeFileSync(path.join(dir, '.dev.vars'), `SUPABASE_SECRET_KEY=${FAKE}\nFLAGS_JSON={}\n`);
-    writeFileSync(path.join(dir, '.env.staging'), `OPS_TOKEN=${FAKE}\n`);
+    writeFileSync(path.join(dir, '.dev.vars.staging'), `# bare CR\rPLAY_TOKEN_HMAC=${FAKE}\rANTHROPIC_API_KEY=${FAKE}\r`);
+    writeFileSync(path.join(dir, '.env.staging'), `OPS_TOKEN=${FAKE}\r\n`);
     writeFileSync(path.join(dir, '.dev.vars.example'), `FAL_KEY=${FAKE}\n`);
     writeFileSync(path.join(dir, '.env.local'), 'SUPABASE_SECRET_KEY=\n');
-    const hits = secretEnvFiles(dir);
-    expect(hits.map((h) => [path.basename(h.file), h.names])).toEqual([
+    expect(secretEnvFiles(dir).map((h) => [path.basename(h.file), h.names])).toEqual([
       ['.dev.vars', ['SUPABASE_SECRET_KEY']],
+      ['.dev.vars.staging', ['ANTHROPIC_API_KEY', 'PLAY_TOKEN_HMAC']],
       ['.env.staging', ['OPS_TOKEN']],
     ]);
+  });
+
+  it('workerSecretBlanks binds every known secret empty whatever the env files hold, warns per file, and only the exact opt-in skips it', () => {
+    const all = Object.fromEntries(workerSecretNames().map((k) => [k, '']));
+    expect(Object.keys(all).length).toBeGreaterThan(5);
+    const empty = tempDir('dv-envfiles-none-');
     const lines: string[] = [];
-    const saved = process.env[ALLOW_LIVE_SECRETS_ENV];
-    try {
-      delete process.env[ALLOW_LIVE_SECRETS_ENV];
-      expect(envFileSecretOverrides(dir, { label: 't', log: (l) => lines.push(l) })).toEqual({ SUPABASE_SECRET_KEY: '', OPS_TOKEN: '' });
+    const log = (l: string): void => void lines.push(l);
+    withOptIn(undefined, () => {
+      // No env file at all: still every name, and no line.
+      expect(workerSecretBlanks({ label: 't', envFileDir: empty, log })).toEqual(all);
+      expect(lines).toEqual([]);
+      // A file with one name, a bare-CR file with others: the bindings do not change; one loud line per file, names only.
+      const dir = tempDir('dv-envfiles-');
+      writeFileSync(path.join(dir, '.dev.vars'), `SUPABASE_SECRET_KEY=${FAKE}\n`);
+      writeFileSync(path.join(dir, '.env'), `OPS_TOKEN=${FAKE}\rFAL_KEY=${FAKE}\r`);
+      expect(workerSecretBlanks({ label: 't', envFileDir: dir, log })).toEqual(all);
+      const hits = secretEnvFiles(dir);
+      expect(hits.map((h) => h.names)).toEqual([['SUPABASE_SECRET_KEY'], ['FAL_KEY', 'OPS_TOKEN']]);
       expect(lines).toEqual(hits.map((h) => envFileLine('t', h, true)));
       for (const l of lines) expect(l).not.toContain(FAKE);
-      process.env[ALLOW_LIVE_SECRETS_ENV] = '1';
+      // A file that wrangler would read but no scan understands (no deny-listed name found): still every name.
+      writeFileSync(path.join(empty, '.dev.vars'), ` SUPABASE_SECRET_KEY${' '}=${FAKE}\n`);
+      expect(workerSecretBlanks({ label: 't', envFileDir: empty, log: () => undefined })).toEqual(all);
+      // Anything but exactly `1` is not the opt-in.
+      expect(workerSecretBlanks({ label: 't', envFileDir: dir, log: () => undefined, env: { [ALLOW_LIVE_SECRETS_ENV]: 'true' } })).toEqual(all);
+      // The opt-in: nothing is blanked, and every file line is the warning.
       lines.length = 0;
-      expect(envFileSecretOverrides(dir, { label: 't', log: (l) => lines.push(l) })).toEqual({});
+      expect(workerSecretBlanks({ label: 't', envFileDir: dir, log, env: { [ALLOW_LIVE_SECRETS_ENV]: '1' } })).toEqual({});
       expect(lines).toEqual(hits.map((h) => envFileLine('t', h, false)));
       expect(lines[0]).toContain(`WARNING ${ALLOW_LIVE_SECRETS_ENV}=1`);
-    } finally {
-      if (saved === undefined) delete process.env[ALLOW_LIVE_SECRETS_ENV];
-      else process.env[ALLOW_LIVE_SECRETS_ENV] = saved;
-    }
-    expect(envFileSecretOverrides(tempDir('dv-envfiles-empty-'), { label: 't', log: (l) => lines.push(l) })).toEqual({});
+      // `force` blanks even under the opt-in.
+      expect(workerSecretBlanks({ label: 't', envFileDir: dir, log: () => undefined, env: { [ALLOW_LIVE_SECRETS_ENV]: '1' }, force: true })).toEqual(all);
+    });
+    // The default environment is process.env.
+    withOptIn('1', () => expect(workerSecretBlanks({ label: 't', envFileDir: empty, log: () => undefined })).toEqual({}));
     expect(wranglerVarArgs({ SUPABASE_SECRET_KEY: '', OPS_TOKEN: '' })).toEqual(['--var', 'OPS_TOKEN:', '--var', 'SUPABASE_SECRET_KEY:']);
+  });
+
+  it('check:workers (services/edge/vitest.config.ts) binds workerSecretBlanks, not a list of its own', () => {
+    const text = readFileSync(path.join(EDGE_DIR, 'vitest.config.ts'), 'utf8');
+    expect(text).toContain("const secretBlanks = workerSecretBlanks({ label: 'check:workers vitest' });");
+    expect(text).toContain('miniflare: { bindings: secretBlanks }');
+    expect(text).toContain("exclude: ['test/db/**', 'test/node/**']");
   });
 
   it('NO_ENV_FILE as the only env file: wrangler loads neither .dev.vars nor .env (and does without it, so the probe is not vacuous)', () => {
@@ -258,13 +284,14 @@ describe('env files beside the Worker config (BD-FIX-SEC-02)', () => {
       unstable_getVarsForDev: (configPath: string, envFiles: string[] | undefined, vars: Record<string, string>, env: string | undefined, silent: boolean, secrets: { required: string[] }) => Record<string, { value?: unknown }>;
     };
     const fakeIn = (vars: Record<string, { value?: unknown }>): string[] => Object.keys(vars).filter((k) => vars[k]?.value === FAKE).sort();
-    for (const file of ['.dev.vars', '.dev.vars.staging', '.env', '.env.staging']) {
+    for (const [file, eol] of [['.dev.vars', '\n'], ['.dev.vars', '\r'], ['.dev.vars.staging', '\n'], ['.env', '\n'], ['.env', '\r'], ['.env.staging', '\n']] as const) {
       const dir = tempDir('dv-envfile-probe-');
-      writeFileSync(path.join(dir, file), ENV_FILE_NAMES.map((k) => `${k}=${FAKE}`).join('\n'));
+      writeFileSync(path.join(dir, file), ENV_FILE_NAMES.map((k) => `${k}=${FAKE}`).join(eol));
       const configPath = path.join(dir, 'wrangler.jsonc');
       const secrets = { required: [...WORKER_LOCAL_SECRETS] };
-      expect(fakeIn(wrangler.unstable_getVarsForDev(configPath, undefined, {}, 'staging', true, secrets)), file).toEqual([...WORKER_LOCAL_SECRETS].sort());
-      expect(fakeIn(wrangler.unstable_getVarsForDev(configPath, [NO_ENV_FILE], {}, 'staging', true, secrets)), file).toEqual([]);
+      const label = `${file} ${JSON.stringify(eol)}`;
+      expect(fakeIn(wrangler.unstable_getVarsForDev(configPath, undefined, {}, 'staging', true, secrets)), label).toEqual([...WORKER_LOCAL_SECRETS].sort());
+      expect(fakeIn(wrangler.unstable_getVarsForDev(configPath, [NO_ENV_FILE], {}, 'staging', true, secrets)), label).toEqual([]);
     }
   });
 
@@ -285,119 +312,36 @@ describe('env files beside the Worker config (BD-FIX-SEC-02)', () => {
     expect(readFileSync(path.join(repoRoot, 'services/pipeline/test/gate.prompt-lint.test.ts'), 'utf8')).toContain('envFiles: [devNull]');
   });
 
-  it('pnpm dev and pnpm dev:edge: no deny-listed name from the shell, and every one an env file holds is passed on empty', () => {
+  it('pnpm dev and pnpm dev:edge: no deny-listed name from the shell, and every known Worker secret is passed on empty, env file or not', () => {
     const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) as { scripts: Record<string, string> };
     expect(pkg.scripts['dev']).toBe('tsx tools/ci/dev.ts');
     expect(pkg.scripts['dev:edge']).toBe('tsx tools/ci/dev.ts --edge');
+    const blanks = wranglerVarArgs(Object.fromEntries(workerSecretNames().map((k) => [k, '']))).join(' ');
+    expect(blanks).toContain('--var OPS_TOKEN: --var PLAY_TOKEN_HMAC: --var PLAY_TOKEN_HMAC_PREV: --var QUOTA_NET_SALT_SECRET: --var SUPABASE_SECRET_KEY:');
     const dir = tempDir('dv-dev-plan-');
-    writeFileSync(path.join(dir, '.dev.vars'), `SUPABASE_SECRET_KEY=${FAKE}\nPLAY_TOKEN_HMAC=${FAKE}\nFLAGS_JSON={}\n`);
+    writeFileSync(path.join(dir, '.dev.vars'), `SUPABASE_SECRET_KEY=${FAKE}\rPLAY_TOKEN_HMAC=${FAKE}\rFLAGS_JSON={}\r`);
     writeFileSync(path.join(dir, '.env'), `OPS_TOKEN=${FAKE}\n`);
-    for (const edgeOnly of [false, true]) {
-      const lines: string[] = [];
-      const plan = devPlan({ edgeOnly, env: { ...fakeEnv(), PATH: '/usr/bin' }, edgeDir: dir, log: (l) => lines.push(l) });
-      expect(secretNamesIn(plan.env)).toEqual([]);
-      expect(plan.env['PATH']).toBe('/usr/bin');
-      expect(plan.wrangler.slice(0, 4)).toEqual(['dev', '--local', '--port', String(DEV_EDGE_PORT)]);
-      expect(plan.wrangler.join(' ')).toContain('--var OPS_TOKEN: --var PLAY_TOKEN_HMAC: --var SUPABASE_SECRET_KEY:');
-      expect(plan.wrangler.includes('ANTHROPIC_MODE:fixture')).toBe(!edgeOnly);
-      expect(lines.join('\n')).not.toContain(FAKE);
-      expect(lines).toHaveLength(3); // the scrub line and one line per env file
+    for (const [envFileDir, fileLines] of [[dir, 2], [tempDir('dv-dev-plan-none-'), 0]] as const) {
+      for (const edgeOnly of [false, true]) {
+        const lines: string[] = [];
+        const plan = devPlan({ edgeOnly, env: { ...fakeEnv(), PATH: '/usr/bin' }, envFileDir, log: (l) => lines.push(l) });
+        expect(secretNamesIn(plan.env)).toEqual([]);
+        expect(plan.env['PATH']).toBe('/usr/bin');
+        expect(plan.wrangler.slice(0, 4)).toEqual(['dev', '--local', '--port', String(DEV_EDGE_PORT)]);
+        expect(plan.wrangler.join(' ')).toContain(blanks);
+        expect(plan.wrangler.includes('ANTHROPIC_MODE:fixture')).toBe(!edgeOnly);
+        expect(lines.join('\n')).not.toContain(FAKE);
+        expect(lines).toHaveLength(1 + fileLines); // the scrub line and one line per env file
+      }
     }
     const lines: string[] = [];
-    const saved = process.env[ALLOW_LIVE_SECRETS_ENV];
-    try {
-      process.env[ALLOW_LIVE_SECRETS_ENV] = '1';
-      const plan = devPlan({ edgeOnly: true, env: { ...fakeEnv(), [ALLOW_LIVE_SECRETS_ENV]: '1' }, edgeDir: dir, log: (l) => lines.push(l) });
+    // The opt-in comes from the env the plan is given (process.env in `pnpm dev`).
+    withOptIn(undefined, () => {
+      const plan = devPlan({ edgeOnly: true, env: { ...fakeEnv(), [ALLOW_LIVE_SECRETS_ENV]: '1' }, envFileDir: dir, log: (l) => lines.push(l) });
       expect(secretNamesIn(plan.env)).toEqual([...FAKE_NAMES].sort());
       expect(plan.wrangler.join(' ')).not.toContain('--var');
+      expect(lines.length).toBe(3);
       expect(lines.every((l) => l.includes(`WARNING ${ALLOW_LIVE_SECRETS_ENV}=1`))).toBe(true);
-    } finally {
-      if (saved === undefined) delete process.env[ALLOW_LIVE_SECRETS_ENV];
-      else process.env[ALLOW_LIVE_SECRETS_ENV] = saved;
-    }
+    });
   });
-});
-
-/**
- * The nested runs start at low CPU priority where `nice` exists (BD-FIX-SEC-02): each is a Vitest, often with workerd, beside the rest of
- * the suite, and load-sensitive specs (the tycoon self-tests) share the 2-vCPU runner. The exit status is the probe's own.
- */
-const NICE = process.platform !== 'win32' && existsSync('/usr/bin/nice') ? '/usr/bin/nice' : null;
-
-/** Starts `cmd` with fake values for every denied name; the probe spec writes the names it saw to a file. */
-function probe(cmd: string, argv: string[], extra: Record<string, string> = {}): { status: number | null; output: string; seen: string[] | null } {
-  const out = path.join(tempDir('dv-secret-probe-'), 'seen.json');
-  const r = spawnSync(NICE ?? cmd, NICE ? ['-n', '10', cmd, ...argv] : argv, {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: { ...baseEnv(), ...fakeEnv(), DV_SECRET_PROBE: '1', DV_SECRET_PROBE_OUT: out, ...extra },
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  const seen = existsSync(out) ? (JSON.parse(readFileSync(out, 'utf8')) as { seen: string[] }).seen : null;
-  return { status: r.status, output: `${r.stdout}\n${r.stderr}`, seen };
-}
-
-const PROBE_SPEC = 'tools/ci/test/secret-env-probe';
-
-describe('the test runners (spawned with a fake value for every denied name)', () => {
-  it('tsx tools/ci/run.ts vitest run <probe>: the probe sees none, and the scrub line names them', () => {
-    const r = probe(tsx, ['tools/ci/run.ts', 'vitest', 'run', PROBE_SPEC], { DV_SECRET_PROBE_EXPECT: 'none' });
-    expect(r.status, r.output).toBe(0);
-    expect(r.seen).toEqual([]);
-    expect(r.output).toContain(scrubLine('run.ts', [...FAKE_NAMES].sort()));
-    expect(r.output).not.toContain(FAKE);
-  }, 180_000);
-
-  it('vitest started directly (no run.ts): the root config and setup file still scrub', () => {
-    const r = probe(path.join(repoRoot, 'node_modules', '.bin', 'vitest'), ['run', PROBE_SPEC], { DV_SECRET_PROBE_EXPECT: 'none' });
-    expect(r.status, r.output).toBe(0);
-    expect(r.seen).toEqual([]);
-    expect(r.output).toContain(scrubLine('vitest', [...FAKE_NAMES].sort()));
-  }, 180_000);
-
-  it('DV_ALLOW_LIVE_SECRETS=1 passes every name through, with the warning', () => {
-    const r = probe(tsx, ['tools/ci/run.ts', 'vitest', 'run', PROBE_SPEC], { DV_SECRET_PROBE_EXPECT: 'all', [ALLOW_LIVE_SECRETS_ENV]: '1', DV_LIVE_SECRETS_WARNED: '1' });
-    expect(r.status, r.output).toBe(0);
-    expect(r.seen).toEqual([...FAKE_NAMES].sort());
-    expect(r.output).toContain(`run.ts: WARNING ${ALLOW_LIVE_SECRETS_ENV}=1`);
-    expect(r.output).not.toContain(FAKE);
-  }, 180_000);
-
-  it('tsx tools/ci/check-workers.ts <probe>: no Worker binding carries a shell value (and the probe catches one under the opt-in)', () => {
-    const r = probe(tsx, ['tools/ci/check-workers.ts', 'secret-env-probe']);
-    expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain(scrubLine('check:workers', [...FAKE_NAMES].sort()));
-    expect(r.output).toMatch(/Test Files\s+1 passed/);
-    // Proof that the probe is not vacuous: with the opt-in, wrangler loads `secrets.required` from the shell and the probe fails.
-    const leak = probe(tsx, ['tools/ci/check-workers.ts', 'secret-env-probe'], { [ALLOW_LIVE_SECRETS_ENV]: '1' });
-    expect(leak.status, leak.output).not.toBe(0);
-    expect(leak.output).toContain(`check:workers: WARNING ${ALLOW_LIVE_SECRETS_ENV}=1`);
-  }, 300_000);
-
-  // BD-FIX-SEC-02: wrangler also loads `secrets.required` from services/edge/.dev.vars, or (without one) from .env. The probe writes a
-  // temporary file there (never over a developer's own, which would also shadow it; the run then skips) and removes it at once.
-  it.skipIf(ownEdgeEnvFiles().length > 0)(
-    'check-workers.ts <probe> with a temporary services/edge/.dev.vars, then .env: the Worker gets every name empty (and the file leaks under the opt-in)',
-    () => {
-      withEdgeEnvFile('.dev.vars', ENV_FILE_NAMES, () => {
-        const r = probe(tsx, ['tools/ci/check-workers.ts', 'secret-env-probe']);
-        expect(r.status, r.output).toBe(0);
-        expect(r.output).toContain(envFileLine('check:workers vitest', { file: 'services/edge/.dev.vars', names: ENV_FILE_NAMES }, true));
-        expect(r.output).toMatch(/Test Files\s+1 passed/);
-        expect(r.output).not.toContain(FAKE);
-        // Not vacuous: under the opt-in the file's values reach the Worker and the probe fails.
-        const leak = probe(tsx, ['tools/ci/check-workers.ts', 'secret-env-probe'], { [ALLOW_LIVE_SECRETS_ENV]: '1' });
-        expect(leak.status, leak.output).not.toBe(0);
-        expect(leak.output).toContain(envFileLine('check:workers vitest', { file: 'services/edge/.dev.vars', names: ENV_FILE_NAMES }, false));
-      });
-      withEdgeEnvFile('.env', ENV_FILE_NAMES, () => {
-        const r = probe(tsx, ['tools/ci/check-workers.ts', 'secret-env-probe']);
-        expect(r.status, r.output).toBe(0);
-        expect(r.output).toContain(envFileLine('check:workers vitest', { file: 'services/edge/.env', names: ENV_FILE_NAMES }, true));
-        expect(r.output).toMatch(/Test Files\s+1 passed/);
-      });
-      expect(ownEdgeEnvFiles()).toEqual([]);
-    },
-    600_000,
-  );
 });

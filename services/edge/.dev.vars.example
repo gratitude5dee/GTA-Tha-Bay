@@ -1,8 +1,9 @@
 # Names only; copy to .dev.vars (git-ignored, as are .dev.vars.* and .env*) and fill in values. Never commit values.
 # Never put a production value here: the top-level and staging configs name the production SUPABASE_URL. Use local or test values only.
-# BD-FIX-SEC-02: every deny-listed name of tools/ci/secret-env.ts in this file (all the secrets below) reaches no Worker by default:
-# `pnpm dev` and `pnpm dev:edge` pass it on empty, `pnpm check:workers` binds it empty, and the e2e web server and check:pipeline read no
-# env file at all. Only `DV_ALLOW_LIVE_SECRETS=1 pnpm dev:edge` (or `pnpm dev`) passes these values to the local Worker, with a warning.
+# BD-FIX-SEC-02: no Worker secret in this file (all the secrets below) reaches a Worker by default, whatever this file holds:
+# `pnpm dev` and `pnpm dev:edge` pass every known Worker secret on empty, `pnpm check:workers` binds every one empty (the names come
+# from tools/ci/worker-secrets.ts), and the e2e web server and check:pipeline read no env file at all. Only
+# `DV_ALLOW_LIVE_SECRETS=1 pnpm dev:edge` (or `pnpm dev`) passes these values to the local Worker, with a warning.
 # PLAY_TOKEN_HMAC = "<kid>:<base64url of 32 random bytes>", e.g. "k1:" + `openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`
 PLAY_TOKEN_HMAC=
 # PLAY_TOKEN_HMAC_PREV=

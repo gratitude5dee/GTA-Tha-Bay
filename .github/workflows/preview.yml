@@ -31,7 +31,6 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       PR_NUMBER: ${{ github.event.pull_request.number }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -119,6 +118,9 @@ jobs:
       - run: pnpm check:headers -- --from test-results/preview-url.txt
       - run: pnpm check:coi -- --from test-results/preview-url.txt
       - name: Comment the Preview URL
+        # K2-R1: GH_TOKEN reaches only this gh step, never the build, deploy or check steps (tools/ci/test/secret-env.test.ts).
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -f test-results/preview-url.txt ]; then
             body="Preview: $(cat test-results/preview-url.txt)"

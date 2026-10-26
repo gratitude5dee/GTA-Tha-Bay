@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
+import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
@@ -41,12 +42,41 @@ async function token(pid: string): Promise<string> {
   return `${head}.${mac}`;
 }
 
+/** True when something accepts TCP connections on `port` of the loopback (IPv4 or IPv6; wrangler binds `localhost`). */
+async function listening(port: number): Promise<boolean> {
+  const one = (host: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      const socket = net.connect({ host, port });
+      socket.setTimeout(2000);
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.once('timeout', () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.once('error', () => resolve(false));
+    });
+  return (await Promise.all(['127.0.0.1', '::1'].map(one))).some(Boolean);
+}
+
+/** Exit of the spawned Worker, once it has exited (code or signal); null while it runs. */
+let exited: string | null = null;
+const exitOf = (): string | null => exited;
+
 async function waitHealthy(): Promise<void> {
   const end = Date.now() + 150_000;
   for (;;) {
+    // K2-R1: a Worker that died (a busy port, a config error) is a failure at once, never a server someone else answers with.
+    if (exitOf() !== null) throw new Error(`the builder Worker exited before it was healthy (${exitOf()}) on ${ORIGIN}`);
     try {
-      if ((await fetch(`${ORIGIN}/api/v1/health`)).ok) return;
-    } catch {
+      if ((await fetch(`${ORIGIN}/api/v1/health`)).ok) {
+        if (exitOf() !== null) throw new Error(`the builder Worker exited before it was healthy (${exitOf()}) on ${ORIGIN}`);
+        return;
+      }
+    } catch (err) {
+      if (exitOf() !== null) throw err;
       // not up yet
     }
     if (Date.now() > end) throw new Error(`the builder Worker did not start on ${ORIGIN}`);
@@ -54,11 +84,46 @@ async function waitHealthy(): Promise<void> {
   }
 }
 
+/**
+ * Stops the Worker's whole process group (pnpm, wrangler, workerd; the child leads it, `detached`): SIGTERM, then SIGKILL after 10 s,
+ * and a final SIGKILL to the group for anything left behind even when pnpm itself already exited.
+ */
+async function stopWorker(): Promise<void> {
+  const child = worker;
+  worker = null;
+  if (child?.pid === undefined) return;
+  const pid = child.pid;
+  const gone = exitOf() !== null ? Promise.resolve() : new Promise<void>((resolve) => child.once('exit', () => resolve()));
+  const kill = (sig: NodeJS.Signals): void => {
+    try {
+      process.kill(-pid, sig);
+    } catch {
+      try {
+        if (exitOf() === null) child.kill(sig);
+      } catch {
+        // already gone
+      }
+    }
+  };
+  kill('SIGTERM');
+  const timer = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 10_000));
+  if ((await Promise.race([gone.then(() => 'gone' as const), timer])) === 'timeout') {
+    kill('SIGKILL');
+    await Promise.race([gone, new Promise((r) => setTimeout(r, 5_000))]);
+  }
+  kill('SIGKILL');
+}
+
 test.beforeAll(async () => {
+  // K2-R1: never talk to a server this spec did not start (it could be a `pnpm dev` Worker or another run's, possibly with live secrets).
+  if (await listening(PORT)) {
+    throw new Error(`port ${PORT} (DV_E2E_PORT+1) is already listening; @npc-builder starts its own Worker there and never reuses one. Stop that server or set DV_E2E_PORT.`);
+  }
   persist = mkdtempSync(path.join(tmpdir(), 'dv-builder-e2e-'));
   // The shell may hold production values; the Worker under test gets none of them, not even with DV_ALLOW_LIVE_SECRETS=1 (it has its own
   // test-only PLAY_TOKEN_HMAC): every secret name of tools/ci/secret-env.ts is removed (BD-FIX-SEC-01).
   const env: NodeJS.ProcessEnv = { ...scrubbedEnv(process.env, { label: 'npc-builder', force: true }), WRANGLER_SEND_METRICS: 'false', CLOUDFLARE_CF_FETCH_PATH: E2E_CF_PATH };
+  exited = null;
   worker = spawn(
     'pnpm',
     // --env-file NO_ENV_FILE: no services/edge/.dev.vars(.staging) or .env file is read either (BD-FIX-SEC-02); the staging config names the
@@ -66,17 +131,22 @@ test.beforeAll(async () => {
     ['--filter', '@dv/edge', 'exec', 'wrangler', 'dev', '--local', '--env', 'staging', '--port', String(PORT), '--persist-to', persist, '--env-file', NO_ENV_FILE, '--var', `PLAY_TOKEN_HMAC:${SECRET}`],
     { env, stdio: 'ignore', detached: true },
   );
-  await waitHealthy();
+  worker.once('exit', (code, signal) => {
+    exited = signal ? `signal ${signal}` : `code ${code}`;
+  });
+  worker.once('error', (err) => {
+    exited ??= `spawn error ${err.message}`;
+  });
+  try {
+    await waitHealthy();
+  } catch (err) {
+    await stopWorker();
+    throw err;
+  }
 });
 
-test.afterAll(() => {
-  if (worker?.pid !== undefined) {
-    try {
-      process.kill(-worker.pid, 'SIGTERM');
-    } catch {
-      worker.kill('SIGTERM');
-    }
-  }
+test.afterAll(async () => {
+  await stopWorker();
   if (persist !== '') rmSync(persist, { recursive: true, force: true });
 });
 
