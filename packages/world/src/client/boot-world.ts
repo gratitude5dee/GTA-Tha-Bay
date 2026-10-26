@@ -10,6 +10,7 @@ import { WORLD_PORT, type WorldSimConfig } from '../sim/streaming/channel.ts';
 import { bootSet, groundHeightAt, spawnPose, type BootSet } from '../sim/streaming/boot.ts';
 import type { LandmarkSpot } from './chunks/landmark-layer.ts';
 import { WorldView, type WorldViewLabels } from './world-view.ts';
+import { BootPrefetch } from './boot-prefetch.ts';
 import type { AreaBannerPatch } from './map/banner.ts';
 
 /** Whether the catalog resolves `data/world-index` (the boot rule's second input). False without a catalog or a world in it. */
@@ -35,6 +36,10 @@ export interface PrepareWorldOptions {
   container: HTMLElement;
   emit?: (name: 'world.stream', props: { residentL0: number; missCount: number; uploadP95Ms: number; bytesMB: number }) => void;
   qa?: boolean;
+  /** M02f2: true while the shell is not in play (Title, menu); the speculative boot download waits for the reveal and then runs at idle priority only then. */
+  menu?: () => boolean;
+  /** M02f2: false for `?prefetch=0` (QA builds), which requests no speculative pack at all. */
+  prefetch?: boolean;
   /** M02c2: called for each neighbourhood banner (`nhood.<slug>`); the app patches `hud.area`. */
   onArea?: (p: AreaBannerPatch) => void;
 }
@@ -59,6 +64,8 @@ export interface PreparedWorld {
   view: WorldView;
   index: WorldIndex;
   set: BootSet;
+  /** M02f2: the speculative part of the boot set (started at the reveal) and its promotion at mode start. */
+  prefetch: BootPrefetch;
 }
 
 /** Height above the ground the player is placed at; the ownership machine settles it onto the heightfield. */
@@ -126,7 +133,6 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
   // Warm and pin the boot set: the packs of the first district are never evicted while the session runs (11-platform-pwa.md 5).
   const all = [...set.p0, ...set.l0, ...set.l1, ...set.l2, ...set.far];
   await assets.pin(all);
-  void assets.prefetch([...set.l1, ...set.l2, ...set.far], 'soon').catch(() => undefined);
   // The spawn tile's p0: its ground height places the player.
   const spawnPack = set.p0[0];
   if (!spawnPack) throw new Error('the world index has no p0 tile under the spawn point');
@@ -190,5 +196,8 @@ export async function prepareWorld(o: PrepareWorldOptions): Promise<PreparedWorl
     },
     layer: view,
   };
-  return { boot, view, index, set };
+  // M02f2: nothing speculative starts before the reveal. In a menu the rest of the boot set goes at idle priority; past the menu it goes at soon.
+  const prefetch = new BootPrefetch({ assets, set, enabled: o.prefetch !== false, menu: o.menu ?? ((): boolean => false) });
+  void view.whenRevealed().then(() => prefetch.start());
+  return { boot, view, index, set, prefetch };
 }

@@ -79,7 +79,7 @@ function defaultSleep(ms: number, signal: AbortSignal): Promise<void> {
 
 interface InFlight {
   promise: Promise<Uint8Array>;
-  promote(to: Priority): void;
+  promote(to: Priority): boolean;
   controller: AbortController;
   waiters: number;
 }
@@ -116,6 +116,14 @@ export class FetchRetry {
   /** True while a request for this URL is queued or running. */
   isInFlight(url: string): boolean {
     return this.inflight.has(url);
+  }
+
+  /**
+   * Raises the lane of the request for `url` while it is still queued (M02f2). True when it moved up; false when the URL is not in
+   * flight, its job already runs, or it already sits in `to` or a higher lane. A running request keeps the priority hint it started with.
+   */
+  promote(url: string, to: Priority): boolean {
+    return this.inflight.get(url)?.promote(to) ?? false;
   }
 
   /**

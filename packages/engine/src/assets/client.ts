@@ -180,6 +180,10 @@ export class AssetClient {
   async prefetch(targets: Target[], priority: 'soon' | 'idle'): Promise<void> {
     await this.call('prefetch', { targets, tier: this.o.tier(), priority });
   }
+  /** M02f2: raises the lane of the targets that still wait (a queued fetch, a prefetch not yet started); resolves with how many moved. */
+  promote(targets: Target[], priority: 'now' | 'soon'): Promise<number> {
+    return this.call('promote', { targets, tier: this.o.tier(), priority });
+  }
   async pin(targets: Target[]): Promise<void> {
     await this.call('pin', { targets, tier: this.o.tier() });
   }

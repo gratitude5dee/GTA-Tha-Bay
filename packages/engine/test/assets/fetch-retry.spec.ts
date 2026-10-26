@@ -110,6 +110,39 @@ describe('FetchRetry', () => {
     expect(done.filter((u) => u.endsWith('/x'))).toHaveLength(1);
   });
 
+  it('promote(url, to) moves a queued idle request ahead; a running or unknown URL returns false and changes nothing (M02f2)', async () => {
+    const body = bytesOf(5, 16);
+    const gates = new Map<string, () => void>();
+    const started: string[] = [];
+    const h = harness((url) => {
+      started.push(url);
+      return new Promise<Response>((resolve) => gates.set(url, () => resolve(ok(body))));
+    });
+    // The idle lane holds two running fillers; url1 and url2 wait behind them.
+    const fillers = ['f1', 'f2'].map((n) => h.fr.fetchBytes(`https://m.test/${n}`, { priority: 'idle' }));
+    const first = h.fr.fetchBytes('https://m.test/url1', { priority: 'idle' });
+    const second = h.fr.fetchBytes('https://m.test/url2', { priority: 'idle' });
+    await Promise.resolve();
+    expect(started).toEqual(['https://m.test/f1', 'https://m.test/f2']);
+    expect(h.lanes.queued().idle).toBe(2);
+
+    expect(h.fr.promote('https://m.test/f1', 'now')).toBe(false); // running
+    expect(h.fr.promote('https://m.test/nobody', 'now')).toBe(false); // unknown
+    expect(h.lanes.queued().idle).toBe(2);
+    expect(h.fr.promote('https://m.test/url2', 'now')).toBe(true);
+    expect(h.fr.promote('https://m.test/url2', 'now')).toBe(false); // already running
+    await Promise.resolve();
+    expect(started).toEqual(['https://m.test/f1', 'https://m.test/f2', 'https://m.test/url2']);
+    expect(h.lanes.queued()).toEqual({ now: 0, soon: 0, idle: 1 });
+
+    for (const g of [...gates.values()]) g();
+    await new Promise((r) => setTimeout(r, 0));
+    gates.get('https://m.test/url1')?.();
+    await Promise.all([...fillers, first, second]);
+    expect(started.indexOf('https://m.test/url2')).toBeLessThan(started.indexOf('https://m.test/url1'));
+    expect(h.fr.promote('https://m.test/url1', 'now')).toBe(false); // finished
+  });
+
   it('lane occupancy never exceeds 8, LANES and 2', async () => {
     let release!: () => void;
     const gate = new Promise<void>((r) => (release = r));
