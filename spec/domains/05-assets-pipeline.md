@@ -100,6 +100,8 @@ On container failure after retries, Media Transformations produces a poster and 
 
 ## 7. Vehicles, props, environment kits: sourcing
 
+**Owner update (DL-OWN-06, 2026-10-26):** besides the defaults in the table below, licensed third-party models and textures (CC0, CC-BY 4.0, or a licence allowing modification and public commercial redistribution, each with a licence snapshot) and fal-generated 3D within the $100 cap are admitted for every non-character row. Game rips, real logos and trade dress, scans of people and reproduced public art stay excluded.
+
 Rules: fictional makes, models and operators only, with altered silhouettes and badges; never Rockstar's fictional makes (seeded in `ip:strings`); robotaxi operator is "Halcyon Mobility"; no murals or public art reproduced [research/legal-ip-likeness.md §6]. A third-party CC0 or CC-BY pack is admitted only after (a) a licence-page snapshot in `docs/legal/licenses/<pack>.md` with its SHA-256, (b) per-file provenance records, (c) attribution lines in `credits.json`, (d) a vision and `ip:strings` pass for brands and logos. The catalogues Poly Haven, ambientCG, Kenney, Quaternius and Freesound are search starting points only; their terms are UNVERIFIED (U10).
 
 | Category | Default source | Why | Human gate |

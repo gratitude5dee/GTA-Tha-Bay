@@ -41,6 +41,7 @@ Architect: Claude Opus 5.5 (`claude-opus-5-5`). Started 2026-10-18. Shared conte
 | DL-OWN-03 | Reuse from the example repositories (2026-10-19) | narrowed to what the licences allow: register `docs/legal/third-party-reuse.json`; Atlas and a universal-modder subset vendored by operator or Architect; Mapbox CLI dev-time only pending Q-44 | ADR-REUSE-01, D-31 |
 | DL-OWN-04 | Owner-merged PR #1: password accounts on Supabase Auth (2026-10-19) | accepted as a credential beside the spine; production sign-up behind `AUTH_PASSWORD_SIGNUP` until M00e's checks are live, sign-in and staging sign-up stay on (Q-43, DL-601); conformance in M00e | ADR-ACCT-01, D-32 |
 | DL-OWN-05 | Protagonist name and look (2026-10-25) | default name and callsign "Coast"; default look from the owner's stylized character sheet, stylized protagonist only; Coast creator set built first in M10a2 | DL-737 |
+| DL-OWN-06 | Art sources for the realistic look (2026-10-26) | Q-39 answered: licensed third-party models and textures (CC0, CC-BY, or an equivalent licence with a snapshot; Sketchfab and SF-specific models included) and fal-generated 3D within the unchanged $100 cap, beside authored art; no game rips, logos, scans of people or public art | DL-OWN-06 |
 
 Owner questions Q-13…Q-19 (Wave 1) and **Q-20…Q-25** (Waves 2–4: voice ceiling, sensitivity read, npm publication, counsel list, animation staffing, private content repo) carry defaults in `spec/99-open-questions.md`.
 
