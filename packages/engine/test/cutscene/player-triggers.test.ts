@@ -281,18 +281,61 @@ describe('play: the triggers during playback', () => {
     expect(CUTSCENE_CONFIG.tapToPlayMs).toBe(3000);
   });
 
-  it('media_error and codec: a decode error before the first frame', async () => {
+  it('media_error and codec: a decode error before the first frame on every element falls back', async () => {
     const decode = rig();
-    decode.pool[0]!.loadError = 4;
+    for (const v of decode.pool) v.loadError = 4;
     const p = player(decode);
     const prep = (await p.prepare('1', [REF_A])) as { clips: Parameters<CutscenePlayerImpl['play']>[1] };
     expect(await p.play('1', prep.clips)).toEqual({ path: 'fallback', skipped: false, trigger: 'codec' });
     expectPlayEvent(decode, { path: 'fallback', trigger: 'codec', fallback: true });
+    expect(decode.telemetry.filter((e) => e.name === 'cutscene.play')).toHaveLength(1);
+    expect(decode.answers()).toEqual([{ state: 'fallback', trigger: 'codec' }]);
+    expect(decode.free.size).toBe(3);
     const net = rig();
-    net.pool[0]!.loadError = 2;
+    for (const v of net.pool) v.loadError = 2;
     const q = player(net);
     const prepQ = (await q.prepare('1', [REF_A])) as { clips: Parameters<CutscenePlayerImpl['play']>[1] };
     expect(await q.play('1', prepQ.clips)).toEqual({ path: 'fallback', skipped: false, trigger: 'media_error' });
+    expect(net.free.size).toBe(3);
+  });
+
+  it('media_error and codec: the next host first (section D7), a fresh pooled element loads the same rendition (BD-FIX-CUTFLAKE-01)', async () => {
+    for (const code of [4, 2]) {
+      const r = rig();
+      r.pool[0]!.loadError = code;
+      const moved: string[] = [];
+      r.deps.onNextHost = (trigger, playId) => void moved.push(`${playId}:${trigger}`);
+      const p = player(r);
+      const prep = (await p.prepare('1', [REF_A])) as { clips: Parameters<CutscenePlayerImpl['play']>[1] };
+      const playing = p.play('1', prep.clips);
+      await settle();
+      expect(moved).toEqual([`1:${code === 4 ? 'codec' : 'media_error'}`]);
+      const url = r.pool[1]!.src;
+      expect(url).toMatch(/\.mp4$/);
+      expect(r.pool[1]!.muted).toBe(true);
+      expect(r.pool[1]!.poster).toMatch(/poster\.webp$/);
+      // the failed element dropped its decoder and is free again; the next one shows the clip
+      expect(r.pool[0]!.src).toBe('');
+      expect(r.free.has(r.pool[0]!)).toBe(true);
+      expect(r.host.shown).toBe(r.pool[1]);
+      expect(r.answers()).toEqual([{ state: 'video' }]);
+      r.pool[1]!.end();
+      expect(await playing).toEqual({ path: 'video', skipped: false });
+      expectPlayEvent(r, { path: 'video', fallback: false });
+      expect(r.telemetry.filter((e) => e.name === 'cutscene.play')).toHaveLength(1);
+      expect(r.free.size).toBe(3);
+    }
+  });
+
+  it('media_error and codec: with no free element for the next host the clip falls back at once', async () => {
+    const r = rig();
+    r.pool[0]!.loadError = 4;
+    r.free.delete(r.pool[1]!);
+    r.free.delete(r.pool[2]!);
+    const p = player(r);
+    const prep = (await p.prepare('1', [REF_A])) as { clips: Parameters<CutscenePlayerImpl['play']>[1] };
+    expect(await p.play('1', prep.clips)).toEqual({ path: 'fallback', skipped: false, trigger: 'codec' });
+    expect(r.free.has(r.pool[0]!)).toBe(true);
   });
 
   it('media_error: a decode error while the clip shows holds last.webp and finishes in-engine', async () => {
@@ -710,7 +753,9 @@ describe('sequence', () => {
   it('a later item that fails on a decode error under the previous clip uncovers the world too', async () => {
     const r = rig([entry('cut.a', KEY_A), entry('cut.b', KEY_B)]);
     r.manualFallback = true;
+    // the item's element and the next host's (the third pooled element) both fail (BD-FIX-CUTFLAKE-01)
     r.pool[1]!.loadError = 3;
+    r.pool[2]!.loadError = 3;
     const p = player(r);
     const run = p.playSequence('9', [{ ref: REF_A, fallback: 'dir.a' }, { ref: REF_B, fallback: 'dir.b' }]);
     await settle();

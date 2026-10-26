@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
+import { serveMediaRanges } from './media-ranges.ts';
 
 /**
  * M04c AC-6 (@cutscene): the flat cutscene path on the QA page /qa/cutscene-spike.html. The assertions read
@@ -26,6 +27,8 @@ async function open(page: Page): Promise<void> {
 }
 
 test.describe('@cutscene', () => {
+  // The fixture renditions answer `Range` as the production media route does; the local Worker's asset server does not (BD-FIX-CUTFLAKE-01).
+  test.beforeEach(async ({ page }) => serveMediaRanges(page));
   test('before the gesture: fallback not_permitted; after it: pool of 3, video plays, cue and chip show, skip within 300 ms', async ({ page }, info) => {
     await open(page);
 
