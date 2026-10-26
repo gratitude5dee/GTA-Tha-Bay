@@ -12,7 +12,7 @@
   "rawSnapshot": {
     "lock": "content/world/raw.lock.sf.json",
     "retrieved": "2026-10-19",
-    "note": "the cached snapshot's own raw.lock.json still carries the pre-DL-664 source ids datasf-muni-routes and datasf-muni-stops (same sha256 as sfmta-patterns and sfmta-stops); the bake read the snapshot files unchanged through a worktree overlay whose raw.lock.json is a copy of the committed content/world/raw.lock.sf.json, so no raw byte was refetched or modified"
+    "note": "the cached snapshot's own raw.lock.json still carries the two transit source ids that DL-664 renamed to sfmta-patterns and sfmta-stops (same sha256); the bake read the snapshot files unchanged through a worktree overlay whose raw.lock.json is a copy of the committed content/world/raw.lock.sf.json, so no raw byte was refetched or modified"
   },
   "locks": {
     "assets/assets.lock.json": "8ba0b2c9c8a1f9af96d2778d9571d75f66662a34f6f32cc3d9bdf57ea270e639",
