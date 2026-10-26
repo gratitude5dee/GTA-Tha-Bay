@@ -32,10 +32,12 @@
   background: rgb(8 12 22 / 0.72); border: 1px solid rgb(255 255 255 / 0.18); max-inline-size: 100%;
 }
 .dv-schip { color: var(--dv-tone, var(--dv-color-text)); border-color: var(--dv-tone, transparent); font-weight: 600; }
-.dv-schip-icon { font-weight: 700; color: var(--dv-tone, currentColor); }
+.dv-schip-icon { display: inline-flex; align-items: center; font-weight: 700; color: var(--dv-tone, currentColor); }
 .dv-heat { display: flex; align-items: center; gap: 0.5em; flex-wrap: wrap; justify-content: flex-end; }
-.dv-stars { display: inline-flex; gap: 0.1em; font-size: 1.3em; }
-.dv-star { color: var(--dv-sem-neutral, #f0f2f7); opacity: 0.6; }
+/* Five rising SVG bars on a dark plate (BD-FIX-GLYPH-01): an unlit bar is a dim solid bar, not an outlined box. */
+.dv-stars { display: inline-flex; align-items: flex-end; gap: 0.15em; font-size: 1.3em; padding: 0.2em 0.4em; border-radius: 0.5em; background: rgb(8 12 22 / 0.72); }
+.dv-star { display: inline-flex; color: var(--dv-sem-neutral, #f0f2f7); opacity: 0.3; }
+.dv-svg-icon.dv-heat-bar { inline-size: 0.5em; }
 .dv-star-on { color: var(--dv-tone, var(--dv-sem-danger)); opacity: 1; }
 .dv-star-script { color: var(--dv-sem-danger, #ff4d4d); }
 .dv-heat[data-phase='searching'] .dv-star-on { animation: dv-hud-blink 1.2s steps(1, end) infinite; }

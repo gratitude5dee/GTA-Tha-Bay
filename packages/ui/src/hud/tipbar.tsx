@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { JsonValue } from '@dv/shared';
 import { t } from '../i18n/index.ts';
+import { Icon } from '../kit/icons.tsx';
 import { HINTS, TipEngine, hintKey } from '../onboarding/tips.ts';
 import { useShell } from '../shell/context.tsx';
 import type { HudPrompt } from './model.ts';
@@ -55,7 +56,7 @@ export function TipBar() {
   if (!hint) return null;
   return (
     <div class="dv-tip" role="status" data-testid="hud-tip" data-hint={hint.id}>
-      <span class="dv-schip-icon" aria-hidden="true">{'ℹ'}</span>
+      <span class="dv-schip-icon" aria-hidden="true"><Icon name="info" /></span>
       <span>{t(hintKey(hint, device))}</span>
     </div>
   );
