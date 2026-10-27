@@ -307,13 +307,27 @@ async function captureOwnerShot(page: Page, shot: string): Promise<Rgba> {
     const b = (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void }; world: WorldBridge } }).__dvBridge;
     b.engine.setPaused(true);
     type G = { group: { visible: boolean } } | null;
-    const view = b.world.internals().view as unknown as { traffic: G; peds: G; transit: G; host: { scene: { children: { userData: Record<string, unknown>; visible: boolean }[] } } };
+    const view = b.world.internals().view as unknown as { traffic: G; peds: G; transit: G; host: { scene: { children: { userData: Record<string, unknown>; traverse(f: (o: { layers: { set(n: number): void } }) => void): void }[] } } };
     for (const r of [view.traffic, view.peds, view.transit]) if (r) r.group.visible = false;
-    for (const c of view.host.scene.children) if (c.userData['dvActor'] === 'avatar') c.visible = false;
+    // the pool writes `visible` of every actor each frame, so the avatars leave the picture by layer (the camera draws layer 0 only)
+    for (const c of view.host.scene.children) if (c.userData['dvActor'] === 'avatar') c.traverse((o) => o.layers.set(31));
   });
   await frames(page, 3);
-  const img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
-  await page.evaluate(() => (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void } } }).__dvBridge.engine.setPaused(false));
+  // the sky's blend and the exposure settle over a few presented frames: the picture counts once two consecutive frames agree
+  let img = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+  for (let i = 0; i < 8; i++) {
+    await frames(page, 2);
+    const next = decodePng(await page.locator('#dv-engine-canvas').screenshot());
+    const same = identical(img, next);
+    img = next;
+    if (same) break;
+  }
+  await page.evaluate(() => {
+    const b = (window as unknown as { __dvBridge: { engine: { setPaused(p: boolean): void }; world: WorldBridge } }).__dvBridge;
+    const view = b.world.internals().view as unknown as { host: { scene: { children: { userData: Record<string, unknown>; traverse(f: (o: { layers: { set(n: number): void } }) => void): void }[] } } };
+    for (const c of view.host.scene.children) if (c.userData['dvActor'] === 'avatar') c.traverse((o) => o.layers.set(0));
+    b.engine.setPaused(false);
+  });
   return img;
 }
 
