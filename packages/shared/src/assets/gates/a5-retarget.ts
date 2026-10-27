@@ -1,4 +1,5 @@
 /** Gate A5 (spec/domains/05-assets-pipeline.md section 2, S05 values): a retargeted looping clip keeps the hips in place and ends where it began. Pure. */
+import { dhypot } from '../../detmath.ts';
 import { finding, type GateFinding } from './types.ts';
 
 export const A5_HIP_DRIFT_FRACTION = 0.03;
@@ -19,7 +20,7 @@ export function hipDrift(hips: readonly (readonly [number, number, number])[]): 
   if (a === undefined || b === undefined) return 0;
   const dx = b[0] - a[0];
   const dz = b[2] - a[2];
-  return Math.sqrt(dx * dx + dz * dz);
+  return dhypot(dx, dz);
 }
 
 export function checkA5Retarget(file: string, s: RetargetStats): GateFinding[] {

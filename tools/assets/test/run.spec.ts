@@ -59,5 +59,7 @@ describe('assets:gen run guards (AC-3)', () => {
     expect(parseRunArgs(['--slug', 'a', '--until', 'rig']).until).toBe('rig');
     expect(() => parseRunArgs(['--slug', 'a', '--until', 'fly'])).toThrow(/--until/);
     expect(() => parseRunArgs([])).toThrow(/--slug/);
+    expect(parseRunArgs(['--slug', 'a', '--retake', 'mesh,rig', '--attempt', '2'])).toMatchObject({ retake: ['mesh', 'rig'], attempt: 2 });
+    expect(() => parseRunArgs(['--slug', 'a', '--retake', 'crops'])).toThrow(/unknown stage crops/);
   });
 });

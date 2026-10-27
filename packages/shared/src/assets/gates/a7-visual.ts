@@ -1,4 +1,5 @@
 /** Gate A7 (spec/domains/05-assets-pipeline.md section 2, S05 values): turntable SSIM of mid and lo against hi, and no black or empty frame. Pure. */
+import { dsqrt } from '../../detmath.ts';
 import { finding, type GateFinding } from './types.ts';
 
 export const A7_SSIM_MID = 0.93;
@@ -30,7 +31,7 @@ export function frameStats(luma: ArrayLike<number>): FrameStats {
     const d = (luma[i] as number) - mean;
     v += d * d;
   }
-  return { meanLuma: mean, stdLuma: Math.sqrt(v / n) };
+  return { meanLuma: mean, stdLuma: dsqrt(v / n) };
 }
 
 /**

@@ -217,7 +217,7 @@ export function stageParams(subject: CharacterSubject, stage: PaidStage, plan: S
       return { ...base, num_images: plan.units, quality: 'high', background: 'opaque', image_size: { width: 1024, height: 1024 }, output_format: 'png' };
     case 'mesh':
       return subject.pipeline === 'lean'
-        ? { ...base, texture: 'standard' }
+        ? { ...base, texture: 'standard', face_limit: targetTris(subject.hero) }
         : {
             ...base,
             pose_mode: 't-pose', target_polycount: targetTris(subject.hero), topology: 'triangle', should_remesh: true, enable_pbr: true,

@@ -2,7 +2,7 @@
  * Measurements of a GLB for the character gates (M10a1): the glTF validator, triangle count, bounding-box height, facing, texture size,
  * skin and rig statistics. The verdicts are the pure cores in `packages/shared/src/assets/gates/` (A3, A4); this file only measures.
  */
-import { Document, ImageUtils, NodeIO, getBounds, type Node } from '@gltf-transform/core';
+import { ImageUtils, NodeIO, getBounds, type Document, type Node } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import validator from 'gltf-validator';
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer';

@@ -163,3 +163,19 @@ export async function makeHarness(o: HarnessOptions = {}): Promise<Harness> {
 }
 
 export type { PipelineTier };
+
+/** Answers every human gate of a Standard character in order and runs it to the end; returns the last outcome. */
+export async function walkStandard(h: Harness, choose: { sheet?: number; mesh?: number } = {}): Promise<RunOutcome> {
+  await h.decide('H0');
+  await h.run('sheet');
+  await h.decide('H1', { choose: choose.sheet ?? 1 });
+  await h.run('mesh');
+  await h.decide('H2', { choose: 1, atlas: 1 });
+  await h.run('mesh');
+  await h.decide('H3', { choose: choose.mesh ?? 1 });
+  await h.run('rig');
+  await h.decide('H4', { data: { jaw: false, fingers: false } });
+  await h.run('publish');
+  await h.decide('H5');
+  return h.run('publish');
+}

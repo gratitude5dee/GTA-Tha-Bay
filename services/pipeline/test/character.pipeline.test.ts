@@ -203,6 +203,23 @@ describe('character pipeline, Standard tier (AC-4)', () => {
   });
 });
 
+describe('character pipeline, retakes', () => {
+  it('a retake of a stage is a new seed and so a new job key: it calls again and the first result stays', async () => {
+    const h = await makeHarness();
+    await h.decide('H0');
+    await h.run('sheet');
+    expect(h.submits).toHaveLength(1);
+    h.cfg.attempts = { sheet: 1 };
+    const again = await h.run('sheet');
+    expect(again.falCalls).toBe(1);
+    expect(h.submits).toHaveLength(2);
+    const run = await loadRun(h.blob, h.subject, '2026-10-27T00:00:00Z');
+    expect(run.jobs.sheet).toHaveLength(2);
+    h.cfg.attempts = {};
+    expect((await h.run('sheet')).falCalls).toBe(0);
+  });
+});
+
 describe('character pipeline, kill and gate refusals', () => {
   it('stops with KILLED when the character is killed between mesh and rig, and no later stage starts', async () => {
     const h = await makeHarness({ subject: { tier: 'parody', standIn: 'character/standin_rapper' } });

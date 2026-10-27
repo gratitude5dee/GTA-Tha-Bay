@@ -15,6 +15,7 @@ import { recordMap, type AssetLock } from './lock.ts';
 import { createDirUploader } from './uploader-dir.ts';
 import { createRcloneUploader, rclonePreflight, spawnRunner, type ClassFiles, type Runner, type Uploader } from './uploader-rclone.ts';
 import { POINTER_EDGE, POINTER_WEB, verifyAssets } from './verify.ts';
+import { verifySlug } from './verify-slug.ts';
 // The pointer copies are checked by check:assets, not by verify: verify must pass before the first pointer exists.
 
 export interface HeadResult { ok: boolean; status: number; contentLength: string | null; contentType: string | null; contentEncoding: string | null }
@@ -47,6 +48,8 @@ export interface PublishOptions {
   archive?: ((outFile: string) => number) | undefined;
   /** `HOST_MEDIA` for the printed offer URL (default `MEDIA_ORIGIN`, else the Worker config of `root`). */
   mediaOrigin?: string | undefined;
+  /** M10a1: one character. Its own gates (A4, A6, A7, A8, likeness) must pass before anything is uploaded. */
+  slug?: string | undefined;
 }
 export interface PublishResult { code: number; uploaded: number; total: number; skipped?: string; buildId?: string; offerUrl?: string }
 
@@ -180,6 +183,15 @@ export async function publishAssets(o: PublishOptions): Promise<PublishResult> {
     for (const f of v.findings) log(formatFinding(f));
     log(`assets:publish: verify FAILED (${v.findings.length} findings); nothing uploaded`);
     return { code: 1, uploaded: 0, total: 0 };
+  }
+  if (o.slug !== undefined) {
+    const sv = await verifySlug(o.root, o.slug);
+    for (const n of sv.notes) log(`verify ${o.slug}: ${n}`);
+    if (sv.findings.length > 0) {
+      for (const f of sv.findings) log(formatFinding(f));
+      log(`assets:publish: ${o.slug} FAILED its character gates (${sv.findings.length} findings); nothing uploaded`);
+      return { code: 1, uploaded: 0, total: 0 };
+    }
   }
   let build: CatalogBuild = v.build;
   log(`verify ok (${Object.keys(build.catalog.entries).length} assets, ${build.blobs.length} blobs, build ${build.catalog.buildId})`);

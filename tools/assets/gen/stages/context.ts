@@ -103,7 +103,7 @@ export class StageContext {
     const plan = this.deps.plans.get(stage);
     if (plan === undefined) throw new Error(`the ${this.subject.pipeline} pipeline has no ${stage} stage`);
     return buildStageJob({
-      subject: this.subject, stage, plan, candidate,
+      subject: this.subject, stage, plan, candidate, attempt: this.deps.cfg.attempts?.[stage] ?? 0,
       inputs: files.map((f) => ({ role: f.role, sha256: sha256(f.bytes), origin: f.origin })),
       registry: this.deps.cfg.registry, requestedBy: this.deps.cfg.requestedBy, runId: this.run.runId,
       env: this.deps.cfg.mode === 'live' ? 'production' : 'test',

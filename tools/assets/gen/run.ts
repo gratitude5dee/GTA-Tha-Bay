@@ -17,7 +17,7 @@ import type { ConsentIndex } from '../../../packages/shared/src/assets/gates/ind
 import { compileRealNames } from '../../../packages/shared/src/assets/gates/names.ts';
 import { GENAI_GUARDRAILS } from '../../../packages/shared/src/genai/guardrails.generated.ts';
 import { PROMPT_LINT_CONFIG } from '../../../services/pipeline/src/registry.ts';
-import { stagePlans, estimateMicros, type CharacterSubject, type UntilStage } from '../../../services/pipeline/src/steps/character.ts';
+import { PAID_STAGES, stagePlans, estimateMicros, type CharacterSubject, type PaidStage, type UntilStage } from '../../../services/pipeline/src/steps/character.ts';
 import { heldVision } from '../../../services/pipeline/src/steps/gates.ts';
 import type { RosterEntry } from '../../../services/pipeline/src/ports.ts';
 import { runCharacter, type ExecutorConfig, type ExecutorPorts, type RunOutcome, type RunUntil } from './executor.ts';
@@ -39,6 +39,8 @@ export interface RunArgs {
   live: boolean;
   by: string;
   withMoves: boolean;
+  retake: PaidStage[];
+  attempt: number;
   styleBible: string;
   roster: string | undefined;
   registry: string | undefined;
@@ -51,13 +53,18 @@ export function parseRunArgs(argv: readonly string[]): RunArgs {
     args: [...argv],
     options: {
       slug: { type: 'string' }, until: { type: 'string', default: 'sheet' }, live: { type: 'boolean', default: false }, by: { type: 'string', default: 'art-lead' },
-      'with-moves': { type: 'boolean', default: false }, 'style-bible': { type: 'string', default: DEFAULT_STYLE_BIBLE },
+      'with-moves': { type: 'boolean', default: false }, retake: { type: 'string' }, attempt: { type: 'string', default: '1' }, 'style-bible': { type: 'string', default: DEFAULT_STYLE_BIBLE },
       roster: { type: 'string' }, registry: { type: 'string' }, ledger: { type: 'string' }, kill: { type: 'string' },
     },
   });
   if (!values.slug) throw new Error('--slug <slug> is required');
   if (!['sheet', 'mesh', 'rig', 'publish'].includes(values.until as string)) throw new Error('--until must be sheet, mesh, rig or publish');
+  const retake = (values.retake ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  for (const r of retake) if (!PAID_STAGES.includes(r as PaidStage)) throw new Error(`--retake names an unknown stage ${r} (${PAID_STAGES.join(', ')})`);
+  const attempt = Number(values.attempt);
+  if (!Number.isInteger(attempt) || attempt < 1) throw new Error('--attempt must be a positive integer');
   return {
+    retake: retake as PaidStage[], attempt,
     slug: values.slug, until: values.until as RunUntil, live: values.live, by: values.by as string, withMoves: values['with-moves'], styleBible: values['style-bible'] as string,
     roster: values.roster, registry: values.registry, ledger: values.ledger, kill: values.kill,
   };
@@ -156,6 +163,7 @@ function buildLive(d: RunDeps) {
     const consent = JSON.parse(readFileSync(abs('config/consent-index.json'), 'utf8')) as ConsentIndex;
     const terms = readFileSync(abs(TERMS_FILE));
     const cfg: ExecutorConfig = {
+      attempts: Object.fromEntries(a.retake.map((st) => [st, a.attempt])),
       registry: w.registry, gate: { falMode: 'live', environment: 'dev', registry: w.registry }, mode: 'live', requestedBy: a.by,
       styleBible: existsSync(sb) ? { id: a.styleBible, bytes: new Uint8Array(readFileSync(sb)) } : null, refs,
       rig: BAY_RIG, limits: row.fidelity as ExecutorConfig['limits'], withMoves: a.withMoves, textLint: (t) => !matchers.some((m) => m.re.test(t)), ktx: ktxTool(),

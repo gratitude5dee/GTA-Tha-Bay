@@ -55,6 +55,8 @@ export interface ExecutorConfig {
   rig: RigFamily;
   limits: Readonly<Record<'hi' | 'mid' | 'lo', FidelityLimits>>;
   withMoves?: boolean;
+  /** A retake of a stage is a new seed and so a new job key (`run --retake mesh --attempt 1`); costs again. */
+  attempts?: Partial<Record<PaidStage, number>>;
   /** Names lint over text read out of an image (true when the text passes). */
   textLint: (text: string) => boolean;
   ktx?: KtxPort | null;
