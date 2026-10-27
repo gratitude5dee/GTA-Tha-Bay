@@ -8,7 +8,7 @@ After this session the game is a WebXR port, not an XR smoke test. A gesture-bou
 - R-ENG-04: XR comfort baseline: teleport and snap 30° by default, vignette only while moving, quantized velocity, seated mode, dominant hand, no head-locked UI and no camera shake.
 
 ## Depends on
-- **M01c** (`RendererHost` with `installXrFallback` stub, `classifyDevice` with Quest and Vision Pro rules, XR tiers' `XrTierConfig`, `perf:verify`, `perf:checklist`). **M04b2** (`UiSurface` skeleton with an IWER test panel, wrist and phone registry). **M11a1** (governor `xr: true` rule and the next-entry framebuffer scale request; DL-219).
+- **M01c** (`RendererHost` with `installXrFallback` stub, `classifyDevice` with Quest and Vision Pro rules, XR tiers' `XrTierConfig`, `perf:verify`, `perf:checklist`). **M04b2** (`UiSurface` skeleton with an IWER test panel, wrist and phone registry). **M11a1** (governor `xr: true` rule and the next-entry framebuffer scale request; DL-219). **M02h8** (the `xr` look profile, the multiview check on Quest and `shadowsOff` for `xr-visionpro` until this milestone's Vision Pro run; both edit the XR render path, so they never run at once, DL-741).
 - Also used: M00 (`xr-quest3` project, IWER 2.6.0, `enterForTest`), M01b2 (XR smoke button, `xr` camera mode, `FrameSignal` per XR frame), M04a1 (C05 `ProfileSettings.xr` and the `XrComfortSettings` type file).
 - Contracts: C13 1.1.0 (`XrTierConfig`, `XrComfortSettings`, `XrPanels` with registration, `RendererHost.installXrFallback`), C03 1.1.0 (`DeviceKind` `xr-controller` / `xr-hand` / `xr-transient`, control ids), C04 1.1.0 (`XRRigParams`, `CameraMode 'xr'`), C02 1.1.0 (`FrameSignal`, `SimServices.xrPoses`), C16 1.1.0 (`xr.session`).
 
