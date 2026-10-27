@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.rap-hyphy-elder",
+  "variants": {
+    "default": "assets/src/portrait/graybox.rap-hyphy-elder/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-hyphy-elder"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

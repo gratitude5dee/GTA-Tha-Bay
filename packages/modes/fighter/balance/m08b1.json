@@ -1,0 +1,107 @@
+{
+  "v": 1,
+  "build": "m08b1",
+  "level": 2,
+  "bouts": 1000,
+  "seed": 20261025,
+  "boutsPlayed": 56000,
+  "slots": [
+    "RAP_HYPHY_ELDER",
+    "RAP_LYRICIST",
+    "RAP_NEW_WAVE",
+    "TECH_VISIONARY",
+    "TECH_HACKER",
+    "ATH_SHOOTER",
+    "ATH_POWER_BACK",
+    "INFLUENCER"
+  ],
+  "winRatePct": [
+    [
+      null,
+      39.7,
+      40.4,
+      57.7,
+      46.8,
+      46.7,
+      49.4,
+      39.7
+    ],
+    [
+      60.4,
+      null,
+      51.3,
+      49.4,
+      55.3,
+      40.6,
+      45.8,
+      57.2
+    ],
+    [
+      59.7,
+      48.8,
+      null,
+      58.7,
+      54,
+      42.8,
+      62.1,
+      53.7
+    ],
+    [
+      42.4,
+      50.6,
+      41.4,
+      null,
+      47.5,
+      47.2,
+      61,
+      48.6
+    ],
+    [
+      53.2,
+      44.8,
+      46.1,
+      52.6,
+      null,
+      59.1,
+      50.8,
+      45.3
+    ],
+    [
+      53.3,
+      59.4,
+      57.3,
+      52.8,
+      40.9,
+      null,
+      40,
+      50.6
+    ],
+    [
+      50.6,
+      54.3,
+      37.9,
+      39.1,
+      49.2,
+      60,
+      null,
+      49.1
+    ],
+    [
+      60.3,
+      42.8,
+      46.4,
+      51.5,
+      54.8,
+      49.5,
+      50.9,
+      null
+    ]
+  ],
+  "meanTicks": 4778,
+  "koPct": 99.8,
+  "timeoutPct": 0.2,
+  "checkPerBout": 0.48,
+  "clearPerBout": 4.97,
+  "shutdownPerBout": 1,
+  "outOfRange": []
+}

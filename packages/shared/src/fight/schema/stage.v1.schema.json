@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/fight/stage.v1.schema.json",
+  "title": "Fight stage v1 (StageDef, FX5)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "nameKey", "district", "landmarkRefs", "scene", "halfWidth", "camera", "tags", "hazards", "music", "ambience", "crowd"],
+  "properties": {
+    "id": { "enum": ["powell_turntable", "ferry_plaza", "dolores_slope", "bayview_cranes", "alcatraz_yard", "mission_bay_court", "lombard_switchbacks", "coit_top", "ggpark_bandshell", "twin_peaks_night"] },
+    "nameKey": { "type": "string", "minLength": 1 },
+    "district": { "type": "string", "pattern": "^d[0-9]+$" },
+    "landmarkRefs": { "type": "array", "items": { "type": "string", "pattern": "^(building|prop)/[a-z0-9][a-z0-9._-]{1,62}$" } },
+    "scene": {
+      "type": "object", "additionalProperties": false, "required": ["day", "night"],
+      "properties": { "day": { "type": "string", "pattern": "^prop/[a-z0-9][a-z0-9._-]{1,62}$" }, "night": { "type": "string", "pattern": "^prop/[a-z0-9][a-z0-9._-]{1,62}$" } }
+    },
+    "halfWidth": { "type": "integer", "minimum": 3000, "maximum": 8000 },
+    "camera": {
+      "type": "object", "additionalProperties": false, "required": ["minD", "maxD", "a", "b", "fovDeg", "height", "damping"],
+      "properties": {
+        "minD": { "type": "integer", "minimum": 1000 }, "maxD": { "type": "integer", "minimum": 1000 }, "a": { "type": "integer" }, "b": { "type": "integer" },
+        "fovDeg": { "type": "number", "minimum": 20, "maximum": 80 }, "height": { "type": "integer" }, "damping": { "type": "number", "minimum": 0 }
+      }
+    },
+    "tags": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{1,31}$" }, "uniqueItems": true },
+    "hazards": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["id", "defaultOn"], "properties": { "id": { "type": "string" }, "defaultOn": { "const": false } } } },
+    "music": { "type": "string", "pattern": "^audio_music/[a-z0-9][a-z0-9._-]{1,62}$" },
+    "ambience": { "type": "string", "pattern": "^audio_sfx/[a-z0-9][a-z0-9._-]{1,62}$" },
+    "crowd": { "enum": ["none", "sparse", "dense"] }
+  }
+}

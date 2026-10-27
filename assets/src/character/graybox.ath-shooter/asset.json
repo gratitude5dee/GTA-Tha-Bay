@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.ath-shooter",
+  "variants": {
+    "default": "assets/src/character/graybox.ath-shooter/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.ath-shooter-moves",
+    "portrait/graybox.ath-shooter"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:ath-shooter"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "ath-shooter",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.ath-shooter-moves"
+    ],
+    "portrait": "portrait/graybox.ath-shooter"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

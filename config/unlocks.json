@@ -76,6 +76,22 @@
       }
     },
     {
+      "id": "unlock.fighter.roster",
+      "titleKey": "unlock.fighter.roster.title",
+      "source": "base",
+      "grants": {
+        "fighters": [
+          "dev_hyphy_elder",
+          "dev_lyricist",
+          "dev_visionary",
+          "dev_hacker",
+          "dev_shooter",
+          "dev_power_back",
+          "dev_influencer"
+        ]
+      }
+    },
+    {
       "id": "unlock.district.d1",
       "titleKey": "unlock.district.d1.title",
       "source": "base",

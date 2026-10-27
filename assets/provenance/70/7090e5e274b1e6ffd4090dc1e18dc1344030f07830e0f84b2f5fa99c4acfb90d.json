@@ -1,0 +1,30 @@
+{
+  "ai_generated": false,
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "created_at": "2026-10-25T00:00:00Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "kind": "anim",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "origin": "authored",
+  "paths": [
+    "assets/src/anim/graybox.ath-power-back-moves/default.glb"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "7090e5e274b1e6ffd4090dc1e18dc1344030f07830e0f84b2f5fa99c4acfb90d",
+  "status": "active"
+}

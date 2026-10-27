@@ -1,0 +1,1271 @@
+{
+  "schema": "npc-roster-bundle/1",
+  "rosterVersion": 1,
+  "souls": [
+    {
+      "schema": "soul-public/1",
+      "id": "canary-mc",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Canary MC",
+      "shortBio": "Tenderloin studio rat with a bright flow and a faster mouth. Battles anyone who asks nicely and a few who do not.",
+      "archetype": "rapper",
+      "tags": [
+        "rapper",
+        "fighter",
+        "tenderloin",
+        "studio"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.7,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "tenderloin",
+          "hayes-valley"
+        ],
+        "home": "poi.tenderloin.studio-eleven",
+        "hangouts": [
+          "poi.hayes-valley.stoop-plaza",
+          "poi.tenderloin.noodle-counter"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "09:00",
+          "activity": "sleep",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "09:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.tenderloin.noodle-counter",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "record",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "perform",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "perform",
+        "record",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.05
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 4,
+          "speed": 8,
+          "defense": 4,
+          "reach": 5,
+          "meterGain": 7
+        }
+      },
+      "assets": {
+        "model": "character/canary-mc",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.canary-mc",
+        "barks": null
+      },
+      "fighter": {
+        "style": "trickster",
+        "specials": [
+          {
+            "id": "canary_chirp",
+            "name": "Chirp",
+            "input": "236P",
+            "desc": "A short rhyme thrown like a dart; stuns for a beat if it lands."
+          },
+          {
+            "id": "static_burst",
+            "name": "Static Burst",
+            "input": "214K",
+            "desc": "A feedback squeal that knocks a rushing opponent back."
+          }
+        ],
+        "super": {
+          "id": "crowd_surge",
+          "name": "Crowd Surge",
+          "input": "236236P",
+          "desc": "The whole block chants back; a wide hit that builds with the meter."
+        },
+        "finisher": {
+          "id": "last_call",
+          "name": "Last Call",
+          "input": "super then P",
+          "desc": "One final line, delivered on the one."
+        },
+        "introQuote": "Sing it back.",
+        "winQuotes": [
+          "You got the first verse. I got the encore.",
+          "Write that one down."
+        ],
+        "taunts": [
+          "Two bars and you're cooked.",
+          "Is that your flow or your WiFi?"
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_hyphy_elder",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Uncle Ferris Dune",
+      "shortBio": "Bayview garage-party veteran who still moves faster than the kids. Stands in the elder rushdown slot until a real-derived character is cleared.",
+      "archetype": "rapper",
+      "tags": [
+        "rapper",
+        "fighter",
+        "bayview",
+        "elder"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.82,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "bayview"
+        ],
+        "home": "poi.bayview.sound-garage",
+        "hangouts": [
+          "poi.hayes-valley.stoop-plaza",
+          "poi.bayview.sound-garage"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "socialize",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "perform",
+          "place": "poi.bayview.sound-garage",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "socialize",
+        "perform",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.1
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 7,
+          "speed": 9,
+          "defense": 4,
+          "reach": 5,
+          "meterGain": 6
+        }
+      },
+      "assets": {
+        "model": "character/dev_hyphy_elder",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_hyphy_elder",
+        "barks": null
+      },
+      "fighter": {
+        "style": "rushdown",
+        "specials": [
+          {
+            "id": "slang_wave",
+            "name": "Slang Wave",
+            "input": "236P",
+            "desc": "A wavy speech-bubble sigil that drifts toward the opponent."
+          },
+          {
+            "id": "skid_dash",
+            "name": "Skid Dash",
+            "input": "214K",
+            "desc": "A low slide that ends in a quick strike."
+          },
+          {
+            "id": "frenzy",
+            "name": "Frenzy",
+            "input": "22P",
+            "desc": "Costs a stock of Hype; for a while he moves and strikes faster."
+          }
+        ],
+        "super": {
+          "id": "turf_rush",
+          "name": "Turf Rush",
+          "input": "236236P",
+          "desc": "A three-hit rush across the whole stage."
+        },
+        "finisher": {
+          "id": "sigil_storm",
+          "name": "Sigil Storm",
+          "input": "super then P",
+          "desc": "A swarm of cartoon sigils spells a word above the loser."
+        },
+        "introQuote": "Slide, do not stall.",
+        "winQuotes": [
+          "Knees loose, young blood. Run it again?",
+          "You had the moves. I had the years."
+        ],
+        "taunts": [
+          "Is that your fast or your warm-up?",
+          "Keep up, I am just stretching."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_lyricist",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Odessa Quill",
+      "shortBio": "Tenderloin wordsmith who writes in pencil and performs in ink. Holds the veteran zoner slot until a real-derived character is cleared.",
+      "archetype": "rapper",
+      "tags": [
+        "rapper",
+        "fighter",
+        "tenderloin",
+        "writer"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.74,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "tenderloin"
+        ],
+        "home": "poi.tenderloin.studio-eleven",
+        "hangouts": [
+          "poi.tenderloin.noodle-counter",
+          "poi.hayes-valley.stoop-plaza"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.tenderloin.noodle-counter",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "record",
+          "place": "poi.tenderloin.studio-eleven",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "perform",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "record",
+        "perform",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 0.95
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 5,
+          "speed": 5,
+          "defense": 6,
+          "reach": 8,
+          "meterGain": 7
+        }
+      },
+      "assets": {
+        "model": "character/dev_lyricist",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_lyricist",
+        "barks": null
+      },
+      "fighter": {
+        "style": "zoner",
+        "specials": [
+          {
+            "id": "word_salvo",
+            "name": "Word Salvo",
+            "input": "236P",
+            "desc": "Three speech-bubble shots in a row."
+          },
+          {
+            "id": "rewind",
+            "name": "Rewind",
+            "input": "214K",
+            "desc": "A hop backward that leaves a bubble in the air."
+          },
+          {
+            "id": "hard_stop",
+            "name": "Hard Stop",
+            "input": "623P",
+            "desc": "A rising anti-air with a period at the end."
+          }
+        ],
+        "super": {
+          "id": "wall_of_words",
+          "name": "Wall of Words",
+          "input": "236236P",
+          "desc": "A slow wall of bubbles that crushes the space ahead."
+        },
+        "finisher": {
+          "id": "strikethrough",
+          "name": "Strikethrough",
+          "input": "super then P",
+          "desc": "A giant strikethrough line crosses out the loser."
+        },
+        "introQuote": "Final draft.",
+        "winQuotes": [
+          "Edited and approved.",
+          "Good first draft. Try a second."
+        ],
+        "taunts": [
+          "Your timing needs a rewrite.",
+          "I have crossed out better."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_visionary",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Ansel Verge",
+      "shortBio": "Soma founder who talks in roadmaps and is followed by two small drones. Holds the visionary setplay slot until a real-derived character is cleared.",
+      "archetype": "founder",
+      "tags": [
+        "founder",
+        "fighter",
+        "soma",
+        "startup"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.8,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "soma"
+        ],
+        "home": "poi.soma.founders-loft",
+        "hangouts": [
+          "poi.soma.pitch-night-hall",
+          "poi.soma.coffee-cart-4th"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.soma.founders-loft",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.soma.pitch-night-hall",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "work",
+          "place": "poi.soma.founders-loft",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "pitch",
+          "place": "poi.soma.coffee-cart-4th",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "work",
+        "pitch",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 4,
+          "speed": 5,
+          "defense": 5,
+          "reach": 8,
+          "meterGain": 8
+        }
+      },
+      "assets": {
+        "model": "character/dev_visionary",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_visionary",
+        "barks": null
+      },
+      "fighter": {
+        "style": "trickster",
+        "specials": [
+          {
+            "id": "dispatch_agent",
+            "name": "Dispatch Agent",
+            "input": "236P",
+            "desc": "Sends a small drone to hover and fire."
+          },
+          {
+            "id": "pivot",
+            "name": "Pivot",
+            "input": "214K",
+            "desc": "A teleport across the stage, once a round, for a stock of Hype."
+          },
+          {
+            "id": "recall",
+            "name": "Recall",
+            "input": "623P",
+            "desc": "Calls the drones back as a shield that blocks one hit."
+          }
+        ],
+        "super": {
+          "id": "roadmap_rush",
+          "name": "Roadmap Rush",
+          "input": "236236P",
+          "desc": "A rush while a crew of helpers fires from the side."
+        },
+        "finisher": {
+          "id": "term_sheet_blizzard",
+          "name": "Term-Sheet Blizzard",
+          "input": "super then P",
+          "desc": "Paper rains over the loser."
+        },
+        "introQuote": "Ship the plan.",
+        "winQuotes": [
+          "That was the best phase of the plan.",
+          "Milestone reached. Thank you for your time."
+        ],
+        "taunts": [
+          "This is on the roadmap.",
+          "You are behind schedule."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_hacker",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Rhea Patchwell",
+      "shortBio": "Potrero Hill tinkerer who answers a blow with a patch. Holds the counter-fighter slot until a real-derived character is cleared.",
+      "archetype": "other",
+      "tags": [
+        "tinkerer",
+        "fighter",
+        "potrero-hill",
+        "repair"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.68,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "potrero-hill"
+        ],
+        "home": "poi.potrero-hill.test-bench",
+        "hangouts": [
+          "poi.potrero-hill.test-lot",
+          "poi.soma.coffee-cart-4th"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.potrero-hill.test-bench",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.potrero-hill.test-lot",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "work",
+          "place": "poi.potrero-hill.test-bench",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "socialize",
+          "place": "poi.soma.coffee-cart-4th",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "repair",
+        "teach",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.05
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 5,
+          "speed": 8,
+          "defense": 6,
+          "reach": 5,
+          "meterGain": 7
+        }
+      },
+      "assets": {
+        "model": "character/dev_hacker",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_hacker",
+        "barks": null
+      },
+      "fighter": {
+        "style": "trickster",
+        "specials": [
+          {
+            "id": "patch",
+            "name": "Patch",
+            "input": "236P",
+            "desc": "A short stance that absorbs one strike and answers at once."
+          },
+          {
+            "id": "glitch_step",
+            "name": "Glitch Step",
+            "input": "214K",
+            "desc": "A jumpy advance that skips a few frames."
+          },
+          {
+            "id": "echo",
+            "name": "Echo",
+            "input": "623P",
+            "desc": "Fires a copy of a shot at reduced strength."
+          }
+        ],
+        "super": {
+          "id": "hotfix_barrage",
+          "name": "Hotfix Barrage",
+          "input": "236236P",
+          "desc": "A rapid string of strikes."
+        },
+        "finisher": {
+          "id": "blue_screen",
+          "name": "Blue Screen",
+          "input": "super then P",
+          "desc": "A fake error panel drops over the loser."
+        },
+        "introQuote": "Patch and go.",
+        "winQuotes": [
+          "Fixed. You are welcome.",
+          "Good fight. I am keeping the notes."
+        ],
+        "taunts": [
+          "I found your bug.",
+          "Try turning your guard off and on."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_shooter",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Tobias Marlow",
+      "shortBio": "Marina runner who lobs bright gumballs from across the park. Holds the long-range arc slot until a real-derived character is cleared.",
+      "archetype": "athlete",
+      "tags": [
+        "athlete",
+        "fighter",
+        "marina",
+        "gumball"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 2,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "marina"
+        ],
+        "home": "poi.marina.green-run",
+        "hangouts": [
+          "poi.castro-upper-market.dolores-park",
+          "poi.marina.green-run"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.marina.green-run",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.castro-upper-market.dolores-park",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "train",
+          "place": "poi.marina.green-run",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "socialize",
+          "place": "poi.marina.green-run",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "train",
+        "socialize",
+        "trash_talk"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 0.95
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 5,
+          "speed": 6,
+          "defense": 5,
+          "reach": 9,
+          "meterGain": 6
+        }
+      },
+      "assets": {
+        "model": "character/dev_shooter",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_shooter",
+        "barks": null
+      },
+      "fighter": {
+        "style": "zoner",
+        "specials": [
+          {
+            "id": "arc_shot",
+            "name": "Arc Shot",
+            "input": "236P",
+            "desc": "A gumball lob; hold the button for a bigger one."
+          },
+          {
+            "id": "backstep_fade",
+            "name": "Backstep Fade",
+            "input": "214K",
+            "desc": "A quick step backward that dodges strikes."
+          },
+          {
+            "id": "lob_cover",
+            "name": "Lob Cover",
+            "input": "22P",
+            "desc": "A steep lob that covers the space above."
+          }
+        ],
+        "super": {
+          "id": "triple_arc",
+          "name": "Triple Arc",
+          "input": "236236P",
+          "desc": "Three big gumball arcs in a row."
+        },
+        "finisher": {
+          "id": "gumball_avalanche",
+          "name": "Gumball Avalanche",
+          "input": "super then P",
+          "desc": "A heap of gumballs buries the loser."
+        },
+        "introQuote": "High and happy.",
+        "winQuotes": [
+          "Great arc. Want a gumball?",
+          "You made me work. I love that."
+        ],
+        "taunts": [
+          "Too low, try higher.",
+          "Catch this one."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_power_back",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Aurelio Stone",
+      "shortBio": "Retired runner who still fills a doorway and moves like a landslide. Holds the armored grappler slot until a real-derived character is cleared.",
+      "archetype": "athlete",
+      "tags": [
+        "athlete",
+        "fighter",
+        "mission",
+        "grappler"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 2,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "mission"
+        ],
+        "home": "poi.mission.shop-batista",
+        "hangouts": [
+          "poi.castro-upper-market.dolores-park",
+          "poi.mission.24th-st.apt-ro"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.mission.shop-batista",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.castro-upper-market.dolores-park",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "train",
+          "place": "poi.mission.shop-batista",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "work",
+          "place": "poi.mission.24th-st.apt-ro",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "train",
+        "work",
+        "trash_talk"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 0.9
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 9,
+          "speed": 3,
+          "defense": 8,
+          "reach": 5,
+          "meterGain": 5
+        }
+      },
+      "assets": {
+        "model": "character/dev_power_back",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_power_back",
+        "barks": null
+      },
+      "fighter": {
+        "style": "grappler",
+        "specials": [
+          {
+            "id": "shoulder_charge",
+            "name": "Shoulder Charge",
+            "input": "236P",
+            "desc": "An armored advance that shrugs off one hit."
+          },
+          {
+            "id": "collar_toss",
+            "name": "Collar Toss",
+            "input": "63214P",
+            "desc": "A command grab and throw."
+          },
+          {
+            "id": "brace",
+            "name": "Brace",
+            "input": "22P",
+            "desc": "A planted stance that absorbs two hits."
+          }
+        ],
+        "super": {
+          "id": "wrecking_run",
+          "name": "Wrecking Run",
+          "input": "236236P",
+          "desc": "An armored three-hit rush."
+        },
+        "finisher": {
+          "id": "cushion_collapse",
+          "name": "Cushion Collapse",
+          "input": "super then P",
+          "desc": "A pile of cartoon cushions buries the loser."
+        },
+        "introQuote": "Brace yourself.",
+        "winQuotes": [
+          "Good fight. Sit down, rest.",
+          "You are tougher than you look."
+        ],
+        "taunts": [
+          "Still standing? Good.",
+          "I am not going anywhere."
+        ]
+      }
+    },
+    {
+      "schema": "soul-public/1",
+      "id": "dev_influencer",
+      "soulVersion": 1,
+      "status": "active",
+      "origin": "first_party",
+      "name": "Pia Lumen",
+      "shortBio": "Hayes Valley trend-chaser whose mood changes with the polls. Holds the buff-cycling slot until a real-derived character is cleared.",
+      "archetype": "influencer",
+      "tags": [
+        "influencer",
+        "fighter",
+        "hayes-valley",
+        "trendy"
+      ],
+      "tier": "fictionalized",
+      "basis": "original",
+      "disclaimer": "fictional",
+      "fameDomain": [],
+      "marketingAllowed": true,
+      "ugcCameo": true,
+      "standIn": null,
+      "heightM": 1.72,
+      "moves": [],
+      "roles": {
+        "hero": false,
+        "questGiver": true,
+        "vendor": false,
+        "fighter": true,
+        "tycoonActor": false,
+        "racer": false
+      },
+      "locations": {
+        "districts": [
+          "hayes-valley"
+        ],
+        "home": "poi.hayes-valley.stoop-plaza",
+        "hangouts": [
+          "poi.castro-upper-market.dolores-park",
+          "poi.soma.coffee-cart-4th"
+        ]
+      },
+      "schedule": [
+        {
+          "days": "daily",
+          "from": "00:00",
+          "to": "08:00",
+          "activity": "sleep",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": false,
+          "priority": 9
+        },
+        {
+          "days": "daily",
+          "from": "08:00",
+          "to": "12:00",
+          "activity": "eat",
+          "place": "poi.castro-upper-market.dolores-park",
+          "interruptible": true,
+          "priority": 3
+        },
+        {
+          "days": "daily",
+          "from": "12:00",
+          "to": "18:00",
+          "activity": "socialize",
+          "place": "poi.hayes-valley.stoop-plaza",
+          "interruptible": true,
+          "priority": 5
+        },
+        {
+          "days": "daily",
+          "from": "18:00",
+          "to": "24:00",
+          "activity": "hustle",
+          "place": "poi.soma.coffee-cart-4th",
+          "interruptible": true,
+          "priority": 6
+        }
+      ],
+      "goals": [
+        "socialize",
+        "hustle",
+        "trash_talk",
+        "train"
+      ],
+      "voice": {
+        "tier": "t1",
+        "voiceRef": "voice/aura-orion",
+        "speed": 1.1
+      },
+      "dialogue": {
+        "modelTier": "haiku",
+        "maxTurnsPerEncounter": 12
+      },
+      "stats": {
+        "fighter": {
+          "power": 5,
+          "speed": 7,
+          "defense": 4,
+          "reach": 6,
+          "meterGain": 8
+        }
+      },
+      "assets": {
+        "model": "character/dev_influencer",
+        "rig": "rig/bay_rig_v1",
+        "anim": [],
+        "portrait": null,
+        "mouthAtlas": null,
+        "voice": "voice/aura-orion",
+        "ink": "data/ink.dev_influencer",
+        "barks": null
+      },
+      "fighter": {
+        "style": "trickster",
+        "specials": [
+          {
+            "id": "hot_take",
+            "name": "Hot Take",
+            "input": "236P",
+            "desc": "A short, quick shot."
+          },
+          {
+            "id": "swap_places",
+            "name": "Swap Places",
+            "input": "214K",
+            "desc": "Trades sides with the opponent, once a round."
+          },
+          {
+            "id": "poll_pop",
+            "name": "Poll Pop",
+            "input": "22P",
+            "desc": "Bursts a zone of confetti in front of her."
+          }
+        ],
+        "super": {
+          "id": "viral_moment",
+          "name": "Viral Moment",
+          "input": "236236P",
+          "desc": "A three-hit rush with a crowd cheer."
+        },
+        "finisher": {
+          "id": "notification_flood",
+          "name": "Notification Flood",
+          "input": "super then P",
+          "desc": "A flood of cartoon badges buries the loser."
+        },
+        "introQuote": "Vote me up.",
+        "winQuotes": [
+          "The vote is in. Thanks for playing.",
+          "You were great. Same time next week?"
+        ],
+        "taunts": [
+          "Trending: you losing.",
+          "Pick one: dodge or fall."
+        ]
+      }
+    }
+  ]
+}

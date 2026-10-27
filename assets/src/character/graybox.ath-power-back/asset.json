@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.ath-power-back",
+  "variants": {
+    "default": "assets/src/character/graybox.ath-power-back/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.ath-power-back-moves",
+    "portrait/graybox.ath-power-back"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:ath-power-back"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "ath-power-back",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.ath-power-back-moves"
+    ],
+    "portrait": "portrait/graybox.ath-power-back"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

@@ -50,6 +50,12 @@ function pickRow(doc: Document, m: MenuVm, slot: 0 | 1, send: Send): HTMLElement
     list.append(b);
   }
   row.append(list);
+  const card = m.fighters.find((f) => f.id === chosen)?.card;
+  if (card) {
+    const p = node(doc, 'p', 'dvf-note dvf-likeness', tt(card));
+    p.dataset['testid'] = `card-${slot}`;
+    row.append(p);
+  }
   return row;
 }
 
@@ -61,6 +67,12 @@ function select(doc: Document, m: MenuVm, send: Send): HTMLElement {
   cols.append(pickRow(doc, m, 0, send));
   if (m.kind !== 'training') cols.append(pickRow(doc, m, 1, send));
   c.append(cols);
+  if (m.kind !== 'training' && m.talk.pre !== '') {
+    const t = node(doc, 'p', 'dvf-note dvf-talk', m.talk.pre);
+    t.dataset['testid'] = 'talk-pre';
+    t.setAttribute('role', 'status');
+    c.append(t);
+  }
   const opts = node(doc, 'div', 'dvf-opts');
   const group = (label: string, ...items: HTMLElement[]): void => {
     const g = node(doc, 'div', 'dvf-opt');
@@ -122,6 +134,11 @@ function results(doc: Document, m: MenuVm, send: Send): HTMLElement {
   if (r) {
     c.append(node(doc, 'p', '', tt('fighter.ui.result.line', { a: r.rounds[0], b: r.rounds[1], sec: r.durationSec })));
     c.append(node(doc, 'p', 'dvf-note', tt('fighter.ui.result.xp', { xp: r.xp })));
+    if (r.outcome === 'win' && m.talk.post !== '') {
+      const t = node(doc, 'p', 'dvf-note dvf-talk', m.talk.post);
+      t.dataset['testid'] = 'talk-post';
+      c.append(t);
+    }
   }
   const actions = node(doc, 'div', 'dvf-actions');
   if (m.origin === 'menu') {

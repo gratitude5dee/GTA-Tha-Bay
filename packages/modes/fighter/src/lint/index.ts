@@ -2,11 +2,13 @@
  * `fighter:lint` (FC11): the frame-data lint. Pure functions over parsed JSON, so the tests and the CLI share them.
  * Rules: schema; derived advantage recomputed (and compared with FX3 for the reference kit); startup >= 3; recovery >= 1;
  * boxes inside +-4,000 u; every hit overlaps some hurtbox; reachable inputs; no name collisions; cancel-graph loop search
- * (> 40 hits or > 70 % of health on one touch). The fame-domain rule arrives in M08b1.
+ * (> 40 hits or > 70 % of health on one touch); with a `LintOptions`, the fame-domain rule (whole-word match of move ids, tags, name
+ * keys, projectile ids and cue names against `config/fame-domains.json`, FX4.1), the habit ids and the gimmick pairing (M08b1).
  */
 import Ajv2020 from 'ajv/dist/2020.js';
 import type { ErrorObject } from 'ajv';
-import { FB, capsulesOverlap, derivedAdvantage } from '@dv/shared/fight';
+import { FB, capsulesOverlap, derivedAdvantage, domainsFor, kitFameHits } from '@dv/shared/fight';
+import type { FameConfig } from '@dv/shared/fight';
 import type { Capsule2, FighterDef, FightTuning, HitDef, MoveDef } from '@dv/shared/fight';
 import kitSchema from '../../../../shared/src/fight/schema/kit.v1.schema.json';
 import tuningSchema from '../../../../shared/src/fight/schema/tuning.v1.schema.json';
@@ -14,7 +16,7 @@ import replaySchema from '../../../../shared/src/fight/schema/replay.v1.schema.j
 
 export type LintRule =
   | 'schema' | 'startup-min' | 'recovery-min' | 'box-bounds' | 'hit-no-overlap' | 'hit-window' | 'unreachable-input'
-  | 'name-collision' | 'combo-loop' | 'fx3-reference' | 'cancel-range' | 'spawn-ref' | 'auto-ref' | 'tuning';
+  | 'name-collision' | 'combo-loop' | 'fx3-reference' | 'cancel-range' | 'spawn-ref' | 'auto-ref' | 'tuning' | 'fame-domain' | 'habit' | 'gimmick';
 
 export interface LintIssue { rule: LintRule; where: string; message: string }
 
@@ -111,6 +113,16 @@ function hitIssues(k: FighterDef): LintIssue[] {
     if (m.hits.length > 0 && m.active < 1) out.push({ rule: 'hit-window', where: m.id, message: 'a move with hits needs at least one active frame' });
   }
   k.projectiles.forEach((p, i) => {
+    if (p.behavior === 'orbit' || p.behavior === 'summon') {
+      // A drone or crew member carries no hit of its own; what it fires must exist and must itself be a striking projectile.
+      for (const id of p.child?.defs ?? []) {
+        const c = k.projectiles.find((q) => q.id === id);
+        if (c === undefined) out.push({ rule: 'spawn-ref', where: `projectiles[${i}].child`, message: `unknown projectile ${id}` });
+        else if (c.behavior === 'orbit' || c.behavior === 'summon') out.push({ rule: 'spawn-ref', where: `projectiles[${i}].child`, message: `${id} is an entity, not a shot` });
+      }
+      if (p.hit.damage > 0 || p.hit.boxes.length > 0) out.push({ rule: 'hit-window', where: `projectiles[${i}]`, message: 'a drone or crew member does not strike itself' });
+      return;
+    }
     if (p.hit.boxes.length === 0 || !reaches(k, p.hit.boxes, 0, 2000, 100)) out.push({ rule: 'hit-no-overlap', where: `projectiles[${i}]`, message: 'a projectile hit must reach a hurtbox' });
   });
   return out;
@@ -196,14 +208,19 @@ function stanceOf(m: MoveDef): number { return m.kind === 'air' ? 2 : m.input.t 
 function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
   const moves = [...k.moves, ...k.supers];
   const edges = new Map<string, string[]>();
+  // `string` kits may cancel one special into another, at most STRING_MAX times per touch (the engine counts it): those edges are
+  // kept apart so the cycle search ignores them and the path walk spends at most STRING_MAX of them.
+  const stringKit = k.gimmick?.id === 'string';
+  const sEdges = new Map<string, string[]>();
   for (const m of moves) {
-    const to = new Set<string>();
+    const to = new Set<string>(), sto = new Set<string>();
     for (const c of m.cancels) {
       if (c.into === 'chain') for (const n of moves) if (n.kind === 'normal' && strength(n) > strength(m) && stanceOf(n) === stanceOf(m)) to.add(n.id);
-      if (c.into === 'special') for (const n of moves) if (n.kind === 'special' || n.kind === 'super') to.add(n.id);
+      if (c.into === 'special') for (const n of moves) if (n.kind === 'special' || n.kind === 'super') (stringKit && m.kind === 'special' && n.kind === 'special' ? sto : to).add(n.id);
       if (c.into === 'super') for (const n of moves) if (n.kind === 'super') to.add(n.id);
     }
     edges.set(m.id, [...to].sort());
+    sEdges.set(m.id, [...sto].sort());
   }
   const byId = new Map(moves.map((m) => [m.id, m]));
   const out: LintIssue[] = [];
@@ -224,7 +241,7 @@ function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
   // longest / heaviest path with scaling
   const maxHealth = k.health;
   let worstHits = 0, worstDmg = 0, worstPath = '';
-  const walk = (id: string, hits: number, dmg: number, path: string): void => {
+  const walk = (id: string, hits: number, dmg: number, path: string, strung = 0): void => {
     const m = byId.get(id) as MoveDef;
     let h = hits, d = dmg;
     for (const hh of m.hits) {
@@ -236,7 +253,8 @@ function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
     const p = path === '' ? id : `${path} > ${id}`;
     if (h > worstHits) { worstHits = h; if (h > tuning.MAX_COMBO_HITS) worstPath = p; }
     if (d > worstDmg) { worstDmg = d; if (d > 0.7 * maxHealth) worstPath = p; }
-    for (const n of edges.get(id) ?? []) walk(n, h, d, p);
+    for (const n of edges.get(id) ?? []) walk(n, h, d, p, strung);
+    if (strung < 2) for (const n of sEdges.get(id) ?? []) walk(n, h, d, p, strung + 1);
   };
   for (const m of moves) walk(m.id, 0, 0, '');
   if (worstHits > tuning.MAX_COMBO_HITS) out.push({ rule: 'combo-loop', where: worstPath, message: `a touch can reach ${worstHits} hits (limit ${tuning.MAX_COMBO_HITS})` });
@@ -276,11 +294,61 @@ function fx3Issues(k: FighterDef): LintIssue[] {
   return out;
 }
 
+// ---- fame domain, habits, gimmick (M08b1) -------------------------------------------------------------------------
+export interface LintOptions {
+  /** `config/fame-domains.json`; without it the fame-domain rule does not run. */
+  fame?: FameConfig;
+  /** Fame domains the slot's bound soul declares (C10 `CompiledSoulPublic.fameDomain`), on top of the ones the slot reserves. */
+  soulDomains?: readonly string[];
+  /** The habit ids of `content/fighter/ai/habits.json`; without them the habit rule does not run. */
+  habits?: ReadonlySet<string>;
+}
+
+const GIMMICKS = new Set(['frenzy', 'string', 'pulse', 'agents', 'patch', 'charge', 'armor', 'poll']);
+
+function fameIssues(k: FighterDef, o: LintOptions): LintIssue[] {
+  if (o.fame === undefined) return [];
+  const domains = domainsFor(o.fame, k.slot, o.soulDomains ?? []);
+  return kitFameHits(k, o.fame, domains).map((h) => ({
+    rule: 'fame-domain' as const, where: h.where, message: `"${h.text}" contains "${h.keyword}", a word of the ${h.domain} fame domain reserved for ${k.slot}`,
+  }));
+}
+
+function habitIssues(k: FighterDef, o: LintOptions): LintIssue[] {
+  const out: LintIssue[] = [];
+  if (o.habits !== undefined) {
+    const seen = new Set<string>();
+    for (const h of k.ai.habits) {
+      if (!o.habits.has(h)) out.push({ rule: 'habit', where: 'ai.habits', message: `unknown habit ${h}` });
+      if (seen.has(h)) out.push({ rule: 'habit', where: 'ai.habits', message: `habit ${h} listed twice` });
+      seen.add(h);
+    }
+    if (k.ai.habits.length > 0 && k.ai.habits.length < 12) out.push({ rule: 'habit', where: 'ai.habits', message: `a kit lists all 12 habits or none (${k.ai.habits.length})` });
+  }
+  return out;
+}
+
+function gimmickIssues(k: FighterDef): LintIssue[] {
+  const out: LintIssue[] = [];
+  if (k.gimmick === undefined) return out;
+  if (!GIMMICKS.has(k.gimmick.id)) out.push({ rule: 'gimmick', where: 'gimmick.id', message: `unknown gimmick ${k.gimmick.id}` });
+  const tags = (t: string): MoveDef[] => [...k.moves, ...k.supers].filter((m) => m.tags.includes(t));
+  if (k.gimmick.id === 'charge' && tags('charge').length === 0) out.push({ rule: 'gimmick', where: 'gimmick', message: 'the charge gimmick needs a move tagged charge' });
+  if (k.gimmick.id === 'frenzy' && !k.moves.some((m) => m.id === 'frenzy')) out.push({ rule: 'gimmick', where: 'gimmick', message: 'the frenzy gimmick needs a move with the id frenzy' });
+  if (k.gimmick.id === 'agents' && !k.projectiles.some((p) => p.behavior === 'orbit')) out.push({ rule: 'gimmick', where: 'gimmick', message: 'the agents gimmick needs an orbit projectile' });
+  if (k.gimmick.id === 'patch' && tags('counter').length === 0) out.push({ rule: 'gimmick', where: 'gimmick', message: 'the patch gimmick needs a move tagged counter' });
+  for (const m of [...k.moves, ...k.supers]) {
+    if ((m.tags.includes('swap') || m.tags.includes('teleport')) && !m.tags.includes('once')) out.push({ rule: 'gimmick', where: m.id, message: 'swap and teleport moves are once per round: tag them once' });
+  }
+  return out;
+}
+
 /** All rules over one kit. Schema errors stop the rest (the data would not be trustworthy). */
-export function lintKit(json: unknown, tuning: FightTuning): LintIssue[] {
+export function lintKit(json: unknown, tuning: FightTuning, opts: LintOptions = {}): LintIssue[] {
   if (!validateKit(json)) return fmt(validateKit.errors);
   const k = json as unknown as FighterDef;
   return [
     ...frameIssues(k), ...boundsIssues(k), ...hitIssues(k), ...reachIssues(k), ...nameIssues(k), ...loopIssues(k, tuning), ...fx3Issues(k),
+    ...fameIssues(k, opts), ...habitIssues(k, opts), ...gimmickIssues(k),
   ];
 }

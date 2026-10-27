@@ -1,6 +1,87 @@
 {
   "schema": "asset-lock/1",
   "entries": {
+    "anim/graybox.ath-power-back-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "7090e5e274b1e6ffd4090dc1e18dc1344030f07830e0f84b2f5fa99c4acfb90d"
+      },
+      "root": "7090e5e274b1e6ffd4090dc1e18dc1344030f07830e0f84b2f5fa99c4acfb90d",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.ath-shooter-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "7ba1d9801ce1909df667ef247679b1e48210ddd21ae2d2b92a8311025db6818f"
+      },
+      "root": "7ba1d9801ce1909df667ef247679b1e48210ddd21ae2d2b92a8311025db6818f",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.fighter-base": {
+      "rev": 1,
+      "variants": {
+        "default": "54de0d99c1a03af4940a97e7428967953c207cfd83b5d0887db5b3bd1037772d"
+      },
+      "root": "54de0d99c1a03af4940a97e7428967953c207cfd83b5d0887db5b3bd1037772d",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.influencer-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "6ddd1c9dc88ad2511d768187fe03ff39227eafc3525f2412148c134366fc6b17"
+      },
+      "root": "6ddd1c9dc88ad2511d768187fe03ff39227eafc3525f2412148c134366fc6b17",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.rap-hyphy-elder-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "fc0ba63709c55f98abc85daf96a92808b652085e06f1b597c135301db343a773"
+      },
+      "root": "fc0ba63709c55f98abc85daf96a92808b652085e06f1b597c135301db343a773",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.rap-lyricist-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "1e79a5b5f8d7b44e2b5cd2f55cc42911ccea598f8d29352ef3ce81166e4cfcb8"
+      },
+      "root": "1e79a5b5f8d7b44e2b5cd2f55cc42911ccea598f8d29352ef3ce81166e4cfcb8",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.rap-new-wave-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "49735a5939725d985a2c785ad53497336cc2313d1c2177dae36003f32a2c9fd8"
+      },
+      "root": "49735a5939725d985a2c785ad53497336cc2313d1c2177dae36003f32a2c9fd8",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.tech-hacker-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "b5b9666c63a50eec9a4324f8dfdc7b383320a82eaac18797f3d4aafd40adab5c"
+      },
+      "root": "b5b9666c63a50eec9a4324f8dfdc7b383320a82eaac18797f3d4aafd40adab5c",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "anim/graybox.tech-visionary-moves": {
+      "rev": 1,
+      "variants": {
+        "default": "ea62e4afe37f09d45f1eb772f57c8753bc70ac1100a6112cdafdbe55d64e70f7"
+      },
+      "root": "ea62e4afe37f09d45f1eb772f57c8753bc70ac1100a6112cdafdbe55d64e70f7",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
     "building/lm.alcatraz": {
       "rev": 1,
       "variants": {
@@ -408,6 +489,87 @@
       "approved_by": "m02d2-builder",
       "approved_at": "2026-10-20T00:22:12Z"
     },
+    "character/graybox.ath-power-back": {
+      "rev": 1,
+      "variants": {
+        "default": "e2fd1d3597aabcb89213f34ceb8517db36e7e04df5e85c2b667e1405c882da85"
+      },
+      "root": "e2fd1d3597aabcb89213f34ceb8517db36e7e04df5e85c2b667e1405c882da85",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.ath-shooter": {
+      "rev": 1,
+      "variants": {
+        "default": "4f7dcf89addde852e0b12653a485e84f6a9b1a2f0cc8dfbe65abff73ea201019"
+      },
+      "root": "4f7dcf89addde852e0b12653a485e84f6a9b1a2f0cc8dfbe65abff73ea201019",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.influencer": {
+      "rev": 1,
+      "variants": {
+        "default": "a48a3757c147431293fcb7cd0c097b9675ec8e2dab237ccf7432eaa014648598"
+      },
+      "root": "a48a3757c147431293fcb7cd0c097b9675ec8e2dab237ccf7432eaa014648598",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.rap-hyphy-elder": {
+      "rev": 1,
+      "variants": {
+        "default": "ace674830fd02c5d43562bffef279c58fb41ed0162c81d721e07530b5feaaadd"
+      },
+      "root": "ace674830fd02c5d43562bffef279c58fb41ed0162c81d721e07530b5feaaadd",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.rap-lyricist": {
+      "rev": 1,
+      "variants": {
+        "default": "0095b9f7e30a63f2b15c663407fa42a3be409d9fb32544dcba60363d0ca8a9be"
+      },
+      "root": "0095b9f7e30a63f2b15c663407fa42a3be409d9fb32544dcba60363d0ca8a9be",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.rap-new-wave": {
+      "rev": 1,
+      "variants": {
+        "default": "33012b18d65c7ce7c0f1db6e4752ffeba5b821b80f250da2a9da757fc680edf4"
+      },
+      "root": "33012b18d65c7ce7c0f1db6e4752ffeba5b821b80f250da2a9da757fc680edf4",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.standin": {
+      "rev": 1,
+      "variants": {
+        "default": "fb83d68c9d11e5f2f352cac7c80284fff3d8b5acb4d83fa8a42d01288523360d"
+      },
+      "root": "fb83d68c9d11e5f2f352cac7c80284fff3d8b5acb4d83fa8a42d01288523360d",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.tech-hacker": {
+      "rev": 1,
+      "variants": {
+        "default": "082e438052a95e10875eba7cf08fef37626d21f14cb22d60a6d6b281317318d4"
+      },
+      "root": "082e438052a95e10875eba7cf08fef37626d21f14cb22d60a6d6b281317318d4",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "character/graybox.tech-visionary": {
+      "rev": 1,
+      "variants": {
+        "default": "eb9395139bcef36c5d5d55afb519fef776ca6858c4dd2b4bc10ff77e178d3eb9"
+      },
+      "root": "eb9395139bcef36c5d5d55afb519fef776ca6858c4dd2b4bc10ff77e178d3eb9",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
     "data/asset-smoke": {
       "rev": 1,
       "variants": {
@@ -724,13 +886,13 @@
       "approved_at": "2026-10-22T23:59:55Z"
     },
     "data/npc-roster": {
-      "rev": 2,
+      "rev": 3,
       "variants": {
-        "default": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2"
+        "default": "03e5df3b97d86779ccb1e9d701f56e5c06335e390af81be34c9ec7c70d9d0900"
       },
-      "root": "0f44a75bf0a5ae49f396bb2faa870c5ff832e814ab76af8b578ac29d125be3c2",
-      "approved_by": "m02a2-sf-fix-builder",
-      "approved_at": "2026-10-19T17:35:08Z"
+      "root": "03e5df3b97d86779ccb1e9d701f56e5c06335e390af81be34c9ec7c70d9d0900",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:54:26Z"
     },
     "data/story.index": {
       "rev": 4,
@@ -740,6 +902,87 @@
       "root": "796785eab5e245f2eb57083e5a252027c528294f02a3abe249086e53f19d139a",
       "approved_by": "m05c2-builder",
       "approved_at": "2026-10-24T12:04:52Z"
+    },
+    "portrait/graybox.ath-power-back": {
+      "rev": 1,
+      "variants": {
+        "default": "9bf3179006f0abe975251d771fe95def1c8dca6cd92cbbc089458d31522a7e5e"
+      },
+      "root": "9bf3179006f0abe975251d771fe95def1c8dca6cd92cbbc089458d31522a7e5e",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.ath-shooter": {
+      "rev": 1,
+      "variants": {
+        "default": "c32934f435a99957a67d8b4dcca6aaca7a027ee92ea7dcd4646215857d7d3ecd"
+      },
+      "root": "c32934f435a99957a67d8b4dcca6aaca7a027ee92ea7dcd4646215857d7d3ecd",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.influencer": {
+      "rev": 1,
+      "variants": {
+        "default": "669b5fdf6b813a25b7f1529a06b1713ec52f373c7cbd531107002f755662627c"
+      },
+      "root": "669b5fdf6b813a25b7f1529a06b1713ec52f373c7cbd531107002f755662627c",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.rap-hyphy-elder": {
+      "rev": 1,
+      "variants": {
+        "default": "bbd209add753a5b611364e9acb3fc94f1e97abe2c77b3c2e4d4f3dead01ba79c"
+      },
+      "root": "bbd209add753a5b611364e9acb3fc94f1e97abe2c77b3c2e4d4f3dead01ba79c",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.rap-lyricist": {
+      "rev": 1,
+      "variants": {
+        "default": "e5c49c49989c0ce210c4c1f328f08c17b0d4d914115453d86c380f3bc68d2cea"
+      },
+      "root": "e5c49c49989c0ce210c4c1f328f08c17b0d4d914115453d86c380f3bc68d2cea",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.rap-new-wave": {
+      "rev": 1,
+      "variants": {
+        "default": "ff08642da8f6882e53b640cb94a2863a2956dddfcfea997771b26de27583104e"
+      },
+      "root": "ff08642da8f6882e53b640cb94a2863a2956dddfcfea997771b26de27583104e",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.standin": {
+      "rev": 1,
+      "variants": {
+        "default": "1f90fe6dcac5fb76bed55ffcf96cdd580f28341acc4c1bd14f0f8ba249d41be7"
+      },
+      "root": "1f90fe6dcac5fb76bed55ffcf96cdd580f28341acc4c1bd14f0f8ba249d41be7",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.tech-hacker": {
+      "rev": 1,
+      "variants": {
+        "default": "343550396f71aa4a6d9e3ab00804e01e7a8e1ac681ee74f41d2ff75e1b6200b9"
+      },
+      "root": "343550396f71aa4a6d9e3ab00804e01e7a8e1ac681ee74f41d2ff75e1b6200b9",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
+    },
+    "portrait/graybox.tech-visionary": {
+      "rev": 1,
+      "variants": {
+        "default": "e7d5ac4ef642346a79bdae49eb727e2b354892596fc5e908ffa70f34ec069105"
+      },
+      "root": "e7d5ac4ef642346a79bdae49eb727e2b354892596fc5e908ffa70f34ec069105",
+      "approved_by": "m08b1-builder",
+      "approved_at": "2026-10-27T14:38:06Z"
     },
     "texture/asset-smoke": {
       "rev": 1,

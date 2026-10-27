@@ -1,10 +1,11 @@
 // packages/shared/src/fight/meters.ts — FC7: Hype, Composure, Rattled. `o` is the fighter's word offset.
 import { FF } from './buffer.ts';
 import type { Ctx } from './ctx.ts';
+import { scaledHype } from './gimmicks.ts';
 
 export function addHype(c: Ctx, buf: Int32Array, o: number, n: number): void {
   if (n === 0) return;
-  const v = (buf[o + FF.Hype] as number) + n;
+  const v = (buf[o + FF.Hype] as number) + scaledHype(c, buf, o, n);
   buf[o + FF.Hype] = v > c.tun.HYPE_MAX ? c.tun.HYPE_MAX : v < 0 ? 0 : v;
 }
 

@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.influencer",
+  "variants": {
+    "default": "assets/src/character/graybox.influencer/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.influencer-moves",
+    "portrait/graybox.influencer"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:influencer"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "influencer",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.influencer-moves"
+    ],
+    "portrait": "portrait/graybox.influencer"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

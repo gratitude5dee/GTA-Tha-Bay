@@ -18,7 +18,8 @@ const lintFx = async (rel: string, env: LintEnv = mkEnv()) => (await lintFiles(r
 describe('npc:lint on the shipped souls (AC-1)', () => {
   it('passes the five souls', async () => {
     const files = discoverSouls(repoRoot);
-    expect(files.map((f) => f.split('/')[2]).sort()).toEqual(['canary-mc', 'npc_test', 'ro-batista', 'standin_founder', 'standin_rapper']);
+    // the five original souls, plus the seven fighter development souls (M08b1, content/npcs/fighters-dev/<slot>/soul.md)
+    expect(files.map((f) => f.split('/')[2]).sort()).toEqual(['canary-mc', ...Array(7).fill('fighters-dev'), 'npc_test', 'ro-batista', 'standin_founder', 'standin_rapper']);
     const { issues } = await lintFiles(repoRoot, files, mkEnv());
     expect(issues).toEqual([]);
   });

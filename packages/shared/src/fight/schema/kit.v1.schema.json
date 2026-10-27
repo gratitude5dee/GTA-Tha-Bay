@@ -138,7 +138,9 @@
         "hit": { "$ref": "#/$defs/hit" }, "power": { "type": "integer", "minimum": 0 },
         "sine": { "type": "object", "additionalProperties": false, "required": ["amp", "period"], "properties": { "amp": { "type": "integer" }, "period": { "type": "integer", "minimum": 1 } } },
         "arc": { "type": "object", "additionalProperties": false, "required": ["vy", "gravity"], "properties": { "vy": { "type": "integer" }, "gravity": { "type": "integer" } } },
-        "summon": { "type": "object", "additionalProperties": false, "required": ["moveSet", "hypeCost"], "properties": { "moveSet": { "type": "string" }, "hypeCost": { "type": "integer" } } }
+        "summon": { "type": "object", "additionalProperties": false, "required": ["moveSet", "hypeCost"], "properties": { "moveSet": { "type": "string" }, "hypeCost": { "type": "integer" } } },
+        "orbit": { "type": "object", "additionalProperties": false, "required": ["radius", "period", "height"], "properties": { "radius": { "type": "integer", "minimum": 0 }, "period": { "type": "integer", "minimum": 1 }, "height": { "type": "integer" } } },
+        "child": { "type": "object", "additionalProperties": false, "required": ["defs", "every", "first"], "properties": { "defs": { "type": "array", "minItems": 1, "items": { "type": "string" } }, "every": { "type": "integer", "minimum": 1 }, "first": { "type": "integer", "minimum": 0 } } }
       }
     }
   }

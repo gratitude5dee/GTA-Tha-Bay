@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.rap-new-wave",
+  "variants": {
+    "default": "assets/src/character/graybox.rap-new-wave/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.rap-new-wave-moves",
+    "portrait/graybox.rap-new-wave"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-new-wave"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "rap-new-wave",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.rap-new-wave-moves"
+    ],
+    "portrait": "portrait/graybox.rap-new-wave"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

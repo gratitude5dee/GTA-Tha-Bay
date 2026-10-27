@@ -12,6 +12,7 @@ import { checkLikenessRecord, scanFaceDetector } from '../../packages/shared/src
 import { finding, isStringScanAllowlisted, type GateFinding } from '../../packages/shared/src/assets/gates/types.ts';
 import type { ProvenanceRecord } from '../../packages/shared/src/assets/provenance.ts';
 import { args } from './run.ts';
+import { runRosterGate } from './likeness-gate/roster.ts';
 import { defaultDist, isMain, listDist, listTree, loadConfigs, loadRecords, report, schemaValidator, toolsRoot } from './lib/common.ts';
 
 const GATE = 'likeness:gate';
@@ -36,6 +37,9 @@ export function runLikenessGate(opts: LikenessGateOptions): { findings: GateFind
     const paths = Array.isArray(rec.paths) ? rec.paths : [file];
     findings.push(...checkLikenessRecord({ ...rec, paths }, cfg.consent, opts.now).map((f) => ({ ...f, file })));
   }
+  // M08b1: the fighter roster (tier equality, stand-ins, fame-domain exclusion; FX4.1).
+  const roster = runRosterGate(opts.root);
+  findings.push(...roster.findings);
   const terms = cfg.denylist.faceDetectorTerms;
   const tree = listTree(opts.root).filter((f) => !isStringScanAllowlisted(f));
   for (const rel of tree) {
@@ -47,7 +51,7 @@ export function runLikenessGate(opts: LikenessGateOptions): { findings: GateFind
     const bytes = readFileSync(path.join(opts.dist, rel));
     if (!looksBinary(bytes)) findings.push(...scanFaceDetector(`dist/${rel}`, stripEncodedBlobs(bytes.toString('utf8')), terms));
   }
-  return { findings, scanned: records.length + tree.length + dist.length };
+  return { findings, scanned: records.length + tree.length + dist.length + roster.scanned };
 }
 
 function main(): void {

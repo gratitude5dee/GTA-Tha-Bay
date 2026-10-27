@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.rap-lyricist",
+  "variants": {
+    "default": "assets/src/character/graybox.rap-lyricist/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.rap-lyricist-moves",
+    "portrait/graybox.rap-lyricist"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-lyricist"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "rap-lyricist",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.rap-lyricist-moves"
+    ],
+    "portrait": "portrait/graybox.rap-lyricist"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

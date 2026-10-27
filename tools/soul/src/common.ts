@@ -39,6 +39,14 @@ export function discoverSouls(root: string): string[] {
       if (existsSync(f) && statSync(f).isFile()) out.push(`${base}/${name}/soul.md`);
     }
   }
+  // The development souls of the fighter slots (M08b1) sit one level deeper, under content/npcs/fighters-dev/<slot>/.
+  const dev = path.join(root, PUBLIC_NPC_DIR, 'fighters-dev');
+  if (existsSync(dev)) {
+    for (const name of readdirSync(dev).sort()) {
+      const f = path.join(dev, name, 'soul.md');
+      if (existsSync(f) && statSync(f).isFile()) out.push(`${PUBLIC_NPC_DIR}/fighters-dev/${name}/soul.md`);
+    }
+  }
   return out;
 }
 

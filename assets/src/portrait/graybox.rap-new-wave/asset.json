@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.rap-new-wave",
+  "variants": {
+    "default": "assets/src/portrait/graybox.rap-new-wave/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-new-wave"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}
