@@ -201,12 +201,12 @@ Package-local `pnpm --filter @dv/<pkg> <script>` is allowed when `check:unit` (o
 
 | Name | Holder | Purpose | From |
 |---|---|---|---|
-| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub repository secrets (§8 store rule); shell locally | Workers deploy, previews (Workers Editor scope) | M00 |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub repository secrets (§8 store rule); shell locally | Workers deploy, previews (Workers Editor scope); the account id also forms the R2 S3 endpoint for M01d's rclone uploader (`rclonePreflight`), including M05c3's `--finish` in the operator shell | M00 |
 | `DV_NAMES_REAL_JSON` | GitHub, CI only | real-side name registry for `names:lint` | M00b |
 | `FAL_KEY` | operator / art lead only (Q-17); Worker secret for the production pipeline (M05c3); never CI | spike, live prewarm and paid batches with `--live`; CI runs `FAL_MODE=mock` | M00c, M05c3, M10a1 |
 | `C2PA_CERT_CHAIN_PEM`, `C2PA_KEY_PEM` | operator workstation shell only (Workers Free has no Container, DL-745); never CI or a Worker | `assets:gen prewarm --finish` re-signs renditions; absent: `SKIP … not set`, and a `prod` finish refuses before upload | M05c3, M10b |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed (bucket-scoped); Worker secret for presigning from M06b2 | rclone publish, presign | M01d |
-| `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` | operator shell only (R2 API token scoped to `tha-bay-private-{staging,prod}`; DL-287) | `map:fetch -- --archive` raw snapshot upload | M02a1 |
+| `R2_PRIVATE_ACCESS_KEY_ID`, `R2_PRIVATE_SECRET_ACCESS_KEY` | operator shell only (R2 API token scoped to `tha-bay-private-{staging,prod}`, read and write; DL-287) | `map:fetch -- --archive` raw snapshot upload; `assets:gen prewarm --finish` reads `cutscenes-orig/<key>/` and writes `out/<runId>/` and `finish.json` there, never MEDIA (with `CLOUDFLARE_ACCOUNT_ID` for the S3 endpoint and `OPS_TOKEN` for route 28; DL-748) | M02a1, M05c3 |
 | `SOCRATA_APP_TOKEN` (optional) | operator shell only | DataSF Socrata requests in `map:fetch`; absent → unauthenticated | M02a1 |
 | `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` | GitHub repository secrets, `_STAGING`/`_PRODUCTION` suffixed where they differ | `db:push`, `auth:tpa`, staging tests | M05d |
 | `ANTHROPIC_API_KEY` | Worker secret (workspace `npc-runtime`) | dialogue; `test:staging -- npc-cache` | M06a3 |

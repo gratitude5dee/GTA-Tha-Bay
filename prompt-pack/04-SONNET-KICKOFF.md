@@ -125,7 +125,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 45. M02f1 · stream-measure · 0.6 · M02b1, M01d2, M02c2 · AC-8 only: the M02c2 AC-14 staging `sf` release; Q-13 desktop Mac and iPhone 15
 46. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · the M02c2 AC-14 staging `sf` release (AC-7 to AC-9; DL-670, DL-713); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
 47. M05d · data-spine-supabase · 1 · M05b1, M00e · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
-48. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap; `--finish`: pinned `ffmpeg`, `C2PA_CERT_CHAIN_PEM`/`C2PA_KEY_PEM` (operator); no Container on Workers Free (DL-745; do not merge `claude/release-do-lifecycle-3`)
+48. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap; `--finish`: pinned `ffmpeg`, `C2PA_CERT_CHAIN_PEM`/`C2PA_KEY_PEM`, `R2_PRIVATE_*` pair, `CLOUDFLARE_ACCOUNT_ID` (operator); no Container on Workers Free (DL-745; do not merge `claude/release-do-lifecycle-3`)
 49. M04e1 · sandbox-world-controls · 0.8 · M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 · none
 50. M04e2 · sandbox-teleport-display · 0.7 · M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 · none
 51. M04e3 · sandbox-vehicle-spawner · 0.8 · M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 · none
