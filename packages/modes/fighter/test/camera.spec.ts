@@ -62,8 +62,8 @@ describe('the fight camera', () => {
   it('the directive is a locked cinematic side shot placed above the city', () => {
     const d = toDirective(planCamera(at(-300, 300), cam, newCamState(), false));
     expect(d.mode).toBe('cinematic');
-    expect(d.shot.kind).toBe('side');
+    expect(d.shot?.kind).toBe('side');
     expect(d.lockPlayerToggle).toBe(true);
-    expect(d.shot.pos[1]).toBeGreaterThan(ARENA_ORIGIN[1]);
+    expect(d.shot?.pos?.[1] as number).toBeGreaterThan(ARENA_ORIGIN[1]);
   });
 });

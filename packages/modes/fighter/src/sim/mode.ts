@@ -186,7 +186,11 @@ export class FighterSession {
     if (this.replay) {
       return [this.replay.in0[tick] ?? 0, this.replay.in1[tick] ?? 0];
     }
-    if (this.manual) return this.qaInputs;
+    if (this.manual) {
+      // A QA match drives both slots by hand; in Training the dummy plays slot 1 as soon as it is set to anything but `stand`.
+      const t = this.training;
+      return t && t.dummy !== 'stand' ? [this.qaInputs[0] as number, t.dummyWord(m, 0)] : this.qaInputs;
+    }
     const c0 = this.cpus[0];
     const w0 = c0 ? c0.input(m.buf, tick) : this.humanWord(0);
     let w1 = 0;
