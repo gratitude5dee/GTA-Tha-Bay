@@ -129,6 +129,12 @@ export interface LumaOptions {
  */
 export const LUMA_SKY_TIME_S = 0;
 
+/**
+ * The sky clock a held shot (`freezeTime`, the M02e look shots) renders at, seconds: the clock's origin, like `LUMA_SKY_TIME_S` and the
+ * physical sky's clouds at zero speed, not a tuned phase (BD-FIX-LOOKGOLD-01).
+ */
+export const SHOT_SKY_TIME_S = 0;
+
 export class SkyView {
   config: SkyConfig;
   readonly nodes: SkyNodes;
@@ -145,7 +151,7 @@ export class SkyView {
   private input: SkyInput = DEFAULT_INPUT;
   private wet = 0;
   private rainOverride: number | null = null;
-  /** QA (M02e `shot()`): the page time of the sky's clouds and rain, held while the look clock is frozen. */
+  /** QA (M02e `shot()`): the sky clock of the clouds and rain (`SHOT_SKY_TIME_S`) while the look clock is frozen, else null. */
   private frozenTime: number | null = null;
   private lastNow = -1;
   private lastLampMs = Number.NEGATIVE_INFINITY;
@@ -212,9 +218,14 @@ export class SkyView {
     return this.dome;
   }
 
-  /** Holds the sky's own clock (painted clouds, rain streaks) at its current value, or releases it: stills for goldens. */
+  /**
+   * Holds the sky's own clock (painted clouds, star twinkle, rain streaks) at `SHOT_SKY_TIME_S`, or releases it: stills for goldens.
+   * The held value is fixed, not the clock's value at the call, so a shot shows the same painted clouds however long the page ran
+   * before it, as the look clock and the physical sky's clouds already do (BD-FIX-LOOKGOLD-01: held at the page age, the dome's clouds
+   * of the mobile noon-street golden drifted with the boot time and failed the tolerance on slow runners).
+   */
   freezeTime(on: boolean): void {
-    this.frozenTime = on ? this.nodes.uTime.value : null;
+    this.frozenTime = on ? SHOT_SKY_TIME_S : null;
   }
 
   /** Forces the rain intensity (0..255) whatever the weather says; null returns to the preset (QA debug panel). */
