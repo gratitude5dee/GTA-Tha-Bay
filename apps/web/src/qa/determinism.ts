@@ -13,6 +13,9 @@ import fixtureP0Url from '../../../../tests/fixtures/world/civic-graybox/p0-64-6
 import fixtureHashes from '../../../../tests/fixtures/world/civic-graybox/hashes.json';
 // The racing suite's ground: the route corridor of the sprint, committed next to race.json (M07a1, BD-M07a1-04).
 import corridorUrl from '../../../../content/races/sf.sprint.ferry-ocean-beach/corridor.bin?url';
+// M07a2: the circuit of the 3-car suite
+import circuitCorridorUrl from '../../../../content/races/sf.circuit.embarcadero-vanness/corridor.bin?url';
+const CORRIDOR_URLS: Readonly<Record<string, string>> = { 'sf.sprint.ferry-ocean-beach': corridorUrl, 'sf.circuit.embarcadero-vanness': circuitCorridorUrl };
 // The missions suite's mission: the compiled bundle of the sample, bundled with the page (M05a2).
 import { qaMissionBundle } from './missions.ts';
 
@@ -93,7 +96,7 @@ function fromBase64Url(text: string): string {
  */
 async function runSpec(spec: RunSpec): Promise<StateHashTrace> {
   const bytes = new Uint8Array(await (await fetch(fixtureP0Url)).arrayBuffer());
-  const corridor = spec.suite === 'racing' ? new Uint8Array(await (await fetch(corridorUrl)).arrayBuffer()) : null;
+  const corridor = spec.suite === 'racing' ? new Uint8Array(await (await fetch(CORRIDOR_URLS[spec.scenario] ?? corridorUrl)).arrayBuffer()) : null;
   const bundle = spec.suite === 'missions' ? qaMissionBundle(spec.scenario) : null;
   if (spec.suite === 'missions' && !bundle) throw new Error(`the page has no bundle for mission ${spec.scenario}`);
   const mission = bundle ? new TextEncoder().encode(JSON.stringify(bundle)) : null;
