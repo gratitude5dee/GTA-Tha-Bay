@@ -82,6 +82,13 @@ export function installFighterBridge(): FighterBridge {
       const started = (await bridge.start({ kind: 'replay', replay: text })) as { ok?: boolean } | null;
       if (!started || started.ok !== true) return null;
       const deadline = Date.now() + timeoutMs;
+      // The mode enters on a later tick than the one that took the start; a `run` sent before that finds no session. Wait for it.
+      for (;;) {
+        const s = (await bridge.state()) as { ok?: boolean } | null;
+        if (s && s.ok === true) break;
+        if (Date.now() > deadline) return null;
+        await new Promise((r) => setTimeout(r, 25));
+      }
       // total ticks of the replay: the longest of the two input streams is what the sim plays; ask the sim to run a generous number
       await bridge.run(100_000);
       for (;;) {

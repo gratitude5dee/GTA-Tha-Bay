@@ -21,7 +21,7 @@ type Bridge = {
 };
 interface Fighter { x: number; state: number; move: number; moveFrame: number }
 interface Meter { move: string; S: number; A: number; R: number; result: string; adv: number | null; measured: number | null }
-interface State { match: { phase: number; tick: number; fighters: Fighter[]; training: { meter: Meter | null; dummy: string; recLen: number; recording: boolean } | null } | null }
+interface State { ok?: boolean; match: { phase: number; tick: number; fighters: Fighter[]; training: { meter: Meter | null; dummy: string; recLen: number; recording: boolean } | null } | null }
 
 
 test.use({ viewport: { width: 960, height: 540 } });
@@ -39,6 +39,7 @@ test.describe('fighter training @fighter-training', () => {
     await page.evaluate(async () => {
       const b = (window as unknown as { __dvBridge: Bridge }).__dvBridge.fighter;
       await b.start({ kind: 'training', manual: true });
+      for (let i = 0; i < 400 && !(await b.state())?.ok; i++) await new Promise((r) => setTimeout(r, 25));
       let s = await b.step(300, 0, 0);
       for (let i = 0; i < 40 && s?.match?.phase !== 3; i++) s = await b.step(60, 0, 0);
       for (let i = 0; i < 200; i++) {

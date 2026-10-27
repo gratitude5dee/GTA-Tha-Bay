@@ -76,15 +76,12 @@ test.describe('fighter touch @fighter-touch', () => {
         const [me, foe] = m.fighters as [Fighter, Fighter];
         const gap = Math.abs(foe.x - me.x);
         const wantDir = foe.x > me.x ? 1 : -1;
-        if (gap > 700) {
-          if (!stickDown) { await touch(page, 'down', 1, 100, 250, '.dv-touch'); stickDown = true; }
-          await touch(page, 'move', 1, 100 + wantDir * 70, 250, '.dv-touch');
-        } else if (stickDown) {
-          await touch(page, 'up', 1, 100, 250, '.dv-touch');
-          stickDown = false;
-        }
-        if (gap <= 700) {
-          const id = ['special', 'l', 'h', 'special', 'l'][n++ % 5] as string;
+        // The stick leans toward the opponent the whole time: far away it walks in, close in it makes SP the forward special (Uplift).
+        if (!stickDown) { await touch(page, 'down', 1, 100, 250, '.dv-touch'); stickDown = true; }
+        await touch(page, 'move', 1, 100 + wantDir * 70, 250, '.dv-touch');
+        if (gap <= 650) {
+          // Special first: tap only SP until one has landed, then mix in L and H.
+          const id = specialHits === 0 ? 'special' : (['special', 'l', 'h', 'special', 'l'][n++ % 5] as string);
           await touch(page, 'down', 2, 700, 320, `[data-dv-btn="${id}"]`);
           await page.waitForTimeout(70);
           await touch(page, 'up', 2, 700, 320, `[data-dv-btn="${id}"]`);
