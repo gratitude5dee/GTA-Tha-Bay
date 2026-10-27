@@ -22,6 +22,7 @@ import { groundHeightAt } from '../../../packages/world/src/sim/streaming/boot.t
 import { WORLD_PORT, type PackReply, type PackRequest, type WorldSimConfig } from '../../../packages/world/src/sim/streaming/channel.ts';
 import { createWorldStreamingModule } from '../../../packages/world/src/sim/streaming/module.ts';
 import { preloadKeys } from '../../../packages/world/src/sim/traffic/scenario.ts';
+import { headlessFighterDescriptor } from '../../../packages/modes/fighter/src/qa/headless.ts';
 import { createStoryMode, type StoryController } from '../../../packages/modes/story/src/mode.ts';
 import { observeMission, type MissionObs } from '../../../packages/modes/story/src/autoplay/observe.ts';
 import { resolveMission } from '../../../packages/modes/story/src/compiler/resolve.ts';
@@ -131,7 +132,10 @@ async function loadSf(o: SfLoaderOptions, spec: RunSpec, env: ScenarioEnv): Prom
   const holder: { controller: StoryController | null } = { controller: null };
   const mod = createWorldStreamingModule();
   const pursuit = createPursuitModule();
+  // M08a2: the real fighter plays the bout hook (the bot plays the player's side); the `?hooks=stub` flag still takes the stub.
   const modes = createModesModule({
+    // the loop has no turns for promises, so the sim half answers at once (headless descriptor)
+    descriptors: [headlessFighterDescriptor()],
     ...(o.unlockDefs ? { unlockDefs: [...o.unlockDefs] } : {}),
     wrapStory: (free, senv) => {
       const m = createStoryMode(free, senv, { headless: true });

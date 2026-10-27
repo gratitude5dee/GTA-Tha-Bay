@@ -347,6 +347,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../engine
+      '@dv/mode-fighter':
+        specifier: workspace:*
+        version: link:../fighter
       '@dv/shared':
         specifier: workspace:*
         version: link:../../shared

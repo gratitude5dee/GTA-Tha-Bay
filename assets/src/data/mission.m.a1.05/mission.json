@@ -174,7 +174,7 @@
         {
           "id": "wait_crowd",
           "k": "wait",
-          "sec": 4,
+          "sec": 9,
           "text": "mission.m.a1.05.obj.wait_crowd"
         }
       ]

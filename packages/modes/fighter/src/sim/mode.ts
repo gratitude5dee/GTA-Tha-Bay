@@ -499,6 +499,7 @@ export class FighterSession {
 
 export const fighterSim: GameModeSim = {
   enter(ctx: ModeContext, args: ModeEnterArgs, slice: JsonObject | null): void {
+    // The unlock of the bout hook's first encounter (`unlock.fighter`) is emitted by the mode host when the child begins (FX8.2).
     const s = new FighterSession(ctx, args, slice);
     active = s;
     getFighterHost().attach(() => s.digest());
