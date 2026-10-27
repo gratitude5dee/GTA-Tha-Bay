@@ -2,7 +2,7 @@
   "slot": "ATH_SHOOTER",
   "kit": "ath_shooter",
   "archetype": "zoner-arc",
-  "health": 10000,
+  "health": 10174,
   "walk": {
     "f": 58,
     "b": 50
@@ -113,7 +113,7 @@
               }
             ],
             "group": 0,
-            "damage": 300,
+            "damage": 365,
             "chipPermille": 0,
             "hitstun": 13,
             "blockstun": 10,
@@ -198,7 +198,7 @@
               }
             ],
             "group": 0,
-            "damage": 600,
+            "damage": 730,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -284,7 +284,7 @@
               }
             ],
             "group": 0,
-            "damage": 900,
+            "damage": 1100,
             "chipPermille": 0,
             "hitstun": 23,
             "blockstun": 16,
@@ -362,7 +362,7 @@
               }
             ],
             "group": 0,
-            "damage": 250,
+            "damage": 305,
             "chipPermille": 0,
             "hitstun": 12,
             "blockstun": 10,
@@ -448,7 +448,7 @@
               }
             ],
             "group": 0,
-            "damage": 550,
+            "damage": 670,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -526,7 +526,7 @@
               }
             ],
             "group": 0,
-            "damage": 800,
+            "damage": 975,
             "chipPermille": 0,
             "hitstun": 0,
             "blockstun": 16,
@@ -588,7 +588,7 @@
               }
             ],
             "group": 0,
-            "damage": 650,
+            "damage": 795,
             "chipPermille": 0,
             "hitstun": 18,
             "blockstun": 14,
@@ -638,7 +638,7 @@
           "hit": {
             "boxes": [],
             "group": 0,
-            "damage": 1000,
+            "damage": 1220,
             "chipPermille": 0,
             "hitstun": 24,
             "blockstun": 0,
@@ -1132,7 +1132,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 700,
+        "damage": 855,
         "boxes": [
           {
             "x1": -150,

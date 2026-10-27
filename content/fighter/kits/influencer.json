@@ -2,7 +2,7 @@
   "slot": "INFLUENCER",
   "kit": "influencer",
   "archetype": "buff-mixup",
-  "health": 10000,
+  "health": 10022,
   "walk": {
     "f": 66,
     "b": 52
@@ -113,7 +113,7 @@
               }
             ],
             "group": 0,
-            "damage": 300,
+            "damage": 310,
             "chipPermille": 0,
             "hitstun": 13,
             "blockstun": 10,
@@ -198,7 +198,7 @@
               }
             ],
             "group": 0,
-            "damage": 600,
+            "damage": 625,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -284,7 +284,7 @@
               }
             ],
             "group": 0,
-            "damage": 900,
+            "damage": 935,
             "chipPermille": 0,
             "hitstun": 23,
             "blockstun": 16,
@@ -362,7 +362,7 @@
               }
             ],
             "group": 0,
-            "damage": 250,
+            "damage": 260,
             "chipPermille": 0,
             "hitstun": 12,
             "blockstun": 10,
@@ -448,7 +448,7 @@
               }
             ],
             "group": 0,
-            "damage": 550,
+            "damage": 570,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -526,7 +526,7 @@
               }
             ],
             "group": 0,
-            "damage": 800,
+            "damage": 830,
             "chipPermille": 0,
             "hitstun": 0,
             "blockstun": 16,
@@ -588,7 +588,7 @@
               }
             ],
             "group": 0,
-            "damage": 650,
+            "damage": 675,
             "chipPermille": 0,
             "hitstun": 18,
             "blockstun": 14,
@@ -638,7 +638,7 @@
           "hit": {
             "boxes": [],
             "group": 0,
-            "damage": 1000,
+            "damage": 1040,
             "chipPermille": 0,
             "hitstun": 24,
             "blockstun": 0,
@@ -1076,7 +1076,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 450,
+        "damage": 470,
         "boxes": [
           {
             "x1": -150,
@@ -1117,7 +1117,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 450,
+        "damage": 470,
         "boxes": [
           {
             "x1": -150,
@@ -1158,7 +1158,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 700,
+        "damage": 730,
         "boxes": [
           {
             "x1": -350,
