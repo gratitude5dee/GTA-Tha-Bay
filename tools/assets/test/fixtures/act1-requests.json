@@ -1,0 +1,533 @@
+{
+  "schema": "cutscene-requests/1",
+  "release": "fixture-act1",
+  "requests": [
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 759600,
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 7200,
+          "kind": "dialogue",
+          "line": "line.m.a1.01.dawn.1",
+          "speaker": "odessa_calloway",
+          "startMs": 600
+        }
+      ],
+      "hook": "story.establish",
+      "key": "5d520f3942ed02af1f2ac3541e256008f213ab84495b45ae620bff7b9833bb3d",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 237807443,
+        "stage": "beat.cut.story.m.a1.01.dawn@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.01.dawn",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 8,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of an industrial shipyard on a bay shore, tall dockside cranes, a rolling-door garage with an amber tow truck parked in front, at dawn, in light fog. Mood: quiet and expectant.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow push-in at crane height, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of an industrial shipyard on a bay shore, tall dockside cranes, a rolling-door garage with an amber tow truck parked in front, at dawn, in light fog. Mood: quiet and expectant.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow push-in at crane height, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": []
+        }
+      ],
+      "templateSha256": "450b7cc160786a3149325f5a7f7fbda4ddb67404c2bc7f9504a75cac57e26636"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 1339200,
+      "characters": [
+        {
+          "id": "tavi_okafor",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 6000,
+          "kind": "dialogue",
+          "line": "line.m.a1.03.raid.1",
+          "speaker": "tavi_okafor",
+          "startMs": 1500
+        },
+        {
+          "endMs": 12500,
+          "kind": "dialogue",
+          "line": "line.m.a1.03.raid.2",
+          "speaker": "tavi_okafor",
+          "startMs": 8000
+        }
+      ],
+      "hook": "story.beat",
+      "key": "7c22cb30d6a173c4d55f4ecdcdecf60346b30bc08e4e6fb95a44c8d6cae383ef",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "tavi_okafor",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 1687856682,
+        "stage": "beat.cut.story.m.a1.03.raid@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.03.raid",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a fenced industrial lot at night, tire smoke drifting through headlights, a few parked cars in a loose ring, a harbor crane in the fog behind, at night, in light fog. Mood: tense and chaotic.\nCharacters in frame: a lean young driver in a cropped varsity jacket and gloves with bright orange stitching, a confident grin.\nShot one: cars circle and spin in tire smoke while a crowd cheers. Camera: handheld push-in on the smoke.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a fenced industrial lot at night, tire smoke drifting through headlights, a few parked cars in a loose ring, a harbor crane in the fog behind, at night, in light fog. Mood: tense and chaotic.\nCharacters in frame: a lean young driver in a cropped varsity jacket and gloves with bright orange stitching, a confident grin.\nShot one: cars circle and spin in tire smoke while a crowd cheers. Camera: handheld push-in on the smoke.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": [
+            "tavi_okafor"
+          ]
+        },
+        {
+          "camera": "static",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a fenced industrial lot at night, tire smoke drifting through headlights, a few parked cars in a loose ring, a harbor crane in the fog behind, at night, in light fog. Mood: tense and chaotic.\nCharacters in frame: a lean young driver in a cropped varsity jacket and gloves with bright orange stitching, a confident grin.\nShot two: patrol lights flood the lot and the crowd scatters in every direction. Camera: whip pan to the patrol lights.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a fenced industrial lot at night, tire smoke drifting through headlights, a few parked cars in a loose ring, a harbor crane in the fog behind, at night, in light fog. Mood: tense and chaotic.\nCharacters in frame: a lean young driver in a cropped varsity jacket and gloves with bright orange stitching, a confident grin.\nShot two: patrol lights flood the lot and the crowd scatters in every direction. Camera: whip pan to the patrol lights.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s2",
+          "subjects": [
+            "tavi_okafor"
+          ]
+        }
+      ],
+      "templateSha256": "7c17d93f3372e6d5991f2b2809d977ba1ce5f72b1b97b51f43d412cdfedd94f1"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 1339200,
+      "characters": [
+        {
+          "id": "corwin_hale",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 7000,
+          "kind": "dialogue",
+          "line": "line.m.a1.04.keynote.1",
+          "speaker": "corwin_hale",
+          "startMs": 1200
+        },
+        {
+          "endMs": 12800,
+          "kind": "dialogue",
+          "line": "line.m.a1.04.keynote.2",
+          "speaker": "corwin_hale",
+          "startMs": 8000
+        }
+      ],
+      "hook": "story.beat",
+      "key": "f9df78eb4d54793c0085aa437ab2e6d88d4d2d95c88a640101afde3063358150",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "corwin_hale",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 1957685826,
+        "stage": "beat.cut.story.m.a1.04.keynote@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.04.keynote",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a bright launch stage in a glass office atrium, a large curved screen above the stage, rows of standing guests, at night, under a clear sky. Mood: polished and ominous.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile.\nShot one: a city curb map on the big screen splits into glowing numbered lots. Camera: slow dolly toward the stage.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a bright launch stage in a glass office atrium, a large curved screen above the stage, rows of standing guests, at night, under a clear sky. Mood: polished and ominous.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile.\nShot one: a city curb map on the big screen splits into glowing numbered lots. Camera: slow dolly toward the stage.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": [
+            "corwin_hale"
+          ]
+        },
+        {
+          "camera": "static",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a bright launch stage in a glass office atrium, a large curved screen above the stage, rows of standing guests, at night, under a clear sky. Mood: polished and ominous.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile.\nShot two: the executive raises one hand toward the screen. Camera: close shot on the raised hand.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a bright launch stage in a glass office atrium, a large curved screen above the stage, rows of standing guests, at night, under a clear sky. Mood: polished and ominous.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile.\nShot two: the executive raises one hand toward the screen. Camera: close shot on the raised hand.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s2",
+          "subjects": [
+            "corwin_hale"
+          ]
+        }
+      ],
+      "templateSha256": "7c17d93f3372e6d5991f2b2809d977ba1ce5f72b1b97b51f43d412cdfedd94f1"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 759600,
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 7000,
+          "kind": "dialogue",
+          "line": "line.m.a1.05.ring.1",
+          "speaker": "standin_rap_elder",
+          "startMs": 800
+        }
+      ],
+      "hook": "story.establish",
+      "key": "48c2676c03089118904ef1d1b3e099af9f630663244e8145d926ed232932e832",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 3918657841,
+        "stage": "beat.cut.story.m.a1.05.ring@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.05.ring",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 8,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a busy downtown plaza at dusk with a round cable-car turntable at its centre, storefronts and string lights around, at dusk, under a clear sky. Mood: electric and communal.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow push-in on the crowd ring, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a busy downtown plaza at dusk with a round cable-car turntable at its centre, storefronts and string lights around, at dusk, under a clear sky. Mood: electric and communal.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow push-in on the crowd ring, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": []
+        }
+      ],
+      "templateSha256": "450b7cc160786a3149325f5a7f7fbda4ddb67404c2bc7f9504a75cac57e26636"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 759600,
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 6800,
+          "kind": "dialogue",
+          "line": "line.m.a1.06.antenna.1",
+          "speaker": "saint_static",
+          "startMs": 700
+        }
+      ],
+      "hook": "story.establish",
+      "key": "dff496d5df556ae4d3c49a119e640c3aa7f112f4851e5fbf48e25e046ecd9f42",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 380274034,
+        "stage": "beat.cut.story.m.a1.06.antenna@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.06.antenna",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 8,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a grassy hilltop above a dense city grid at night, a scaffold mast with small lights, a parked van beside it, at night, under a clear sky. Mood: hopeful and defiant.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow crane up the antenna, then hold on the city lights.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a grassy hilltop above a dense city grid at night, a scaffold mast with small lights, a parked van beside it, at night, under a clear sky. Mood: hopeful and defiant.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow crane up the antenna, then hold on the city lights.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": []
+        }
+      ],
+      "templateSha256": "450b7cc160786a3149325f5a7f7fbda4ddb67404c2bc7f9504a75cac57e26636"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 759600,
+      "characters": [],
+      "cues": [
+        {
+          "endMs": 6800,
+          "kind": "dialogue",
+          "line": "line.m.a1.08.scanner.1",
+          "speaker": "patch",
+          "startMs": 700
+        }
+      ],
+      "hook": "story.establish",
+      "key": "de5bb2ca4ab0395f7c1f6115a60fe218666d36269bde80032d4b2c925cb7e0f8",
+      "keyInput": {
+        "characters": [],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 155518404,
+        "stage": "beat.cut.story.m.a1.08.scanner@1",
+        "style": "bay-cel@1",
+        "template": "story.establish@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.08.scanner",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 8,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a foggy waterfront boulevard at night with wet pavement, low warehouses and tall street lamps glowing in the mist, at night, in light fog. Mood: eerie and watchful.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow tracking move alongside the car, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. An establishing view of a foggy waterfront boulevard at night with wet pavement, low warehouses and tall street lamps glowing in the mist, at night, in light fog. Mood: eerie and watchful.\nSmall figures go about their day in the background, softly out of focus.\nCamera: slow tracking move alongside the car, then hold.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": []
+        }
+      ],
+      "templateSha256": "450b7cc160786a3149325f5a7f7fbda4ddb67404c2bc7f9504a75cac57e26636"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 1339200,
+      "characters": [
+        {
+          "id": "imani_hart",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 9000,
+          "kind": "dialogue",
+          "line": "line.m.a1.10.steps.1",
+          "speaker": "imani_hart",
+          "startMs": 1500
+        }
+      ],
+      "hook": "story.beat",
+      "key": "b209c46693b2c5c9a917dba87807cba8ecc16bad063c2dd4afbe4bd1836d5b00",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "imani_hart",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 2940374587,
+        "stage": "beat.cut.story.m.a1.10.steps@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.10.steps",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. the wide stone steps and arched doors of a grand domed civic hall, with a paved plaza and tall trees in front, at dusk, under a clear sky. Mood: hopeful and determined.\nCharacters in frame: a calm civic supervisor in a plum blazer with a lanyard of keys, reading glasses pushed up into short gray curls.\nShot one: neighbors of every age gather on the wide stone steps of a domed civic hall. Camera: slow push-in on the gathering crowd.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. the wide stone steps and arched doors of a grand domed civic hall, with a paved plaza and tall trees in front, at dusk, under a clear sky. Mood: hopeful and determined.\nCharacters in frame: a calm civic supervisor in a plum blazer with a lanyard of keys, reading glasses pushed up into short gray curls.\nShot one: neighbors of every age gather on the wide stone steps of a domed civic hall. Camera: slow push-in on the gathering crowd.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": [
+            "imani_hart"
+          ]
+        },
+        {
+          "camera": "static",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. the wide stone steps and arched doors of a grand domed civic hall, with a paved plaza and tall trees in front, at dusk, under a clear sky. Mood: hopeful and determined.\nCharacters in frame: a calm civic supervisor in a plum blazer with a lanyard of keys, reading glasses pushed up into short gray curls.\nShot two: the tall doors swing open and the crowd begins to file inside. Camera: steady wide shot of the open doors.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. the wide stone steps and arched doors of a grand domed civic hall, with a paved plaza and tall trees in front, at dusk, under a clear sky. Mood: hopeful and determined.\nCharacters in frame: a calm civic supervisor in a plum blazer with a lanyard of keys, reading glasses pushed up into short gray curls.\nShot two: the tall doors swing open and the crowd begins to file inside. Camera: steady wide shot of the open doors.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s2",
+          "subjects": [
+            "imani_hart"
+          ]
+        }
+      ],
+      "templateSha256": "7c17d93f3372e6d5991f2b2809d977ba1ce5f72b1b97b51f43d412cdfedd94f1"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 1339200,
+      "characters": [
+        {
+          "id": "whitney_arlo",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 12800,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.arrival.1",
+          "speaker": "whitney_arlo",
+          "startMs": 8000
+        }
+      ],
+      "hook": "story.beat",
+      "key": "c4e82f4d98dfcc371fc5a92f22bf597f96e461e82397efab900e8cb61877b1cd",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "whitney_arlo",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 62042025,
+        "stage": "beat.cut.story.m.a1.12.arrival@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.12.arrival",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a floodlit rolling-door garage gate on an industrial shipyard street at night, tall cranes faint in the dark behind, at night, under a clear sky. Mood: quiet and uneasy.\nCharacters in frame: a partner at an investment firm in a long camel coat and crisp white sneakers, a slim phone held like a clipboard.\nShot one: a black car pulls up at a floodlit garage gate and idles. Camera: static wide shot of the gate.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a floodlit rolling-door garage gate on an industrial shipyard street at night, tall cranes faint in the dark behind, at night, under a clear sky. Mood: quiet and uneasy.\nCharacters in frame: a partner at an investment firm in a long camel coat and crisp white sneakers, a slim phone held like a clipboard.\nShot one: a black car pulls up at a floodlit garage gate and idles. Camera: static wide shot of the gate.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": [
+            "whitney_arlo"
+          ]
+        },
+        {
+          "camera": "static",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a floodlit rolling-door garage gate on an industrial shipyard street at night, tall cranes faint in the dark behind, at night, under a clear sky. Mood: quiet and uneasy.\nCharacters in frame: a partner at an investment firm in a long camel coat and crisp white sneakers, a slim phone held like a clipboard.\nShot two: a partner in a long coat steps out under the floodlight and looks up at the gate. Camera: slow push-in on the figure in the light.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a floodlit rolling-door garage gate on an industrial shipyard street at night, tall cranes faint in the dark behind, at night, under a clear sky. Mood: quiet and uneasy.\nCharacters in frame: a partner at an investment firm in a long camel coat and crisp white sneakers, a slim phone held like a clipboard.\nShot two: a partner in a long coat steps out under the floodlight and looks up at the gate. Camera: slow push-in on the figure in the light.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s2",
+          "subjects": [
+            "whitney_arlo"
+          ]
+        }
+      ],
+      "templateSha256": "7c17d93f3372e6d5991f2b2809d977ba1ce5f72b1b97b51f43d412cdfedd94f1"
+    },
+    {
+      "audio": "generated-ambient",
+      "budgetUsdMicros": 1339200,
+      "characters": [
+        {
+          "id": "corwin_hale",
+          "soulVersion": 1,
+          "tier": "original"
+        },
+        {
+          "id": "dana_voss",
+          "soulVersion": 1,
+          "tier": "original"
+        }
+      ],
+      "cues": [
+        {
+          "endMs": 6500,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.lot-one.1",
+          "speaker": "corwin_hale",
+          "startMs": 1200
+        },
+        {
+          "endMs": 12500,
+          "kind": "dialogue",
+          "line": "line.m.a1.12.lot-one.2",
+          "speaker": "dana_voss",
+          "startMs": 8000
+        }
+      ],
+      "hook": "story.beat",
+      "key": "85bfc096da6b99653bfb31b7721b26c899c7ca311d0e4fd38629a62b421b72bc",
+      "keyInput": {
+        "characters": [
+          {
+            "id": "corwin_hale",
+            "likenessTier": "original",
+            "soulVersion": 1
+          },
+          {
+            "id": "dana_voss",
+            "likenessTier": "original",
+            "soulVersion": 1
+          }
+        ],
+        "endpoint": "minimax/h3/image-to-video@unpinned",
+        "inputHashes": [],
+        "move": null,
+        "seed": 3163431942,
+        "stage": "beat.cut.story.m.a1.12.lot-one@1",
+        "style": "bay-cel@1",
+        "template": "story.beat@1"
+      },
+      "priority": 1,
+      "ref": "cut.story.m.a1.12.lot-one",
+      "schema": "cutscene-request/1",
+      "shots": [
+        {
+          "camera": "push-in",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a wide downtown plaza at dusk beneath a giant public screen, with a glass arena and a dark parking garage at one side, at dusk, under a clear sky. Mood: cold and menacing.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile. a broad-shouldered security chief in a dark utility jacket with silver trim, a watch with a large face.\nShot one: a giant public screen above a plaza lights up with a street map split into numbered lots. Camera: slow tilt up the screen.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a wide downtown plaza at dusk beneath a giant public screen, with a glass arena and a dark parking garage at one side, at dusk, under a clear sky. Mood: cold and menacing.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile. a broad-shouldered security chief in a dark utility jacket with silver trim, a watch with a large face.\nShot one: a giant public screen above a plaza lights up with a street map split into numbered lots. Camera: slow tilt up the screen.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s1",
+          "subjects": [
+            "corwin_hale",
+            "dana_voss"
+          ]
+        },
+        {
+          "camera": "static",
+          "durationS": 7,
+          "inputs": [],
+          "keyframePrompt": "Still image, the first frame of the shot. Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a wide downtown plaza at dusk beneath a giant public screen, with a glass arena and a dark parking garage at one side, at dusk, under a clear sky. Mood: cold and menacing.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile. a broad-shouldered security chief in a dark utility jacket with silver trim, a watch with a large face.\nShot two: dark security vehicles roll out of a garage in a tight line. Camera: low tracking shot beside the rolling vehicles.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "prompt": "Cel-shaded animation frame, clean ink outlines, soft painted gradients, warm coastal light, flat bold colour shapes. a wide downtown plaza at dusk beneath a giant public screen, with a glass arena and a dark parking garage at one side, at dusk, under a clear sky. Mood: cold and menacing.\nCharacters in frame: a tall executive in a charcoal blazer over a plain white shirt, a clip-on microphone, a polished smile. a broad-shouldered security chief in a dark utility jacket with silver trim, a watch with a large face.\nShot two: dark security vehicles roll out of a garage in a tight line. Camera: low tracking shot beside the rolling vehicles.\nNo text, no letters, no logos, no numbers on clothing or signs.\n",
+          "shotId": "s2",
+          "subjects": [
+            "corwin_hale",
+            "dana_voss"
+          ]
+        }
+      ],
+      "templateSha256": "7c17d93f3372e6d5991f2b2809d977ba1ce5f72b1b97b51f43d412cdfedd94f1"
+    }
+  ]
+}

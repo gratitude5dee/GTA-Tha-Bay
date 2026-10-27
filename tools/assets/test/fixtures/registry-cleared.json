@@ -1,0 +1,203 @@
+{
+  "schema": "genai-endpoints/1",
+  "checkedAt": "2026-10-18",
+  "endpoints": {},
+  "videoProviders": {
+    "h3.partner": {
+      "key": "h3.partner",
+      "endpoints": {
+        "i2v": "minimax/h3/image-to-video",
+        "ref2v": "minimax/h3/reference-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "cleared",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.06,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "h3.maxTurbo": {
+      "key": "h3.maxTurbo",
+      "endpoints": {
+        "i2v": "minimax/h3-max-turbo/image-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "blocked",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.04,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "h3.max": {
+      "key": "h3.max",
+      "endpoints": {
+        "i2v": "minimax/h3-max/image-to-video",
+        "ref2v": "minimax/h3-max/reference-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "blocked",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.08,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "ltx25.fast": {
+      "key": "ltx25.fast",
+      "endpoints": {
+        "i2v": "lightricks/ltx-2.5/image-to-video/fast"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "pending",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "unknown",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.09,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    },
+    "gemini.omniFlash11": {
+      "key": "gemini.omniFlash11",
+      "endpoints": {
+        "ref2v": "google/gemini-omni-flash/v1.1/reference-to-video"
+      },
+      "caps": {
+        "minS": 6,
+        "maxS": 10,
+        "res": [
+          "768P"
+        ],
+        "firstLastFrame": false,
+        "maxRefImages": 0,
+        "nativeAudio": false
+      },
+      "licence": {
+        "gate": "ADR-GENAI-01",
+        "status": "pending",
+        "usCommercialOutputs": "unknown",
+        "under18Audience": "forbidden",
+        "endUserMode": "internal-pipeline-only",
+        "duties": {
+          "perClipAiLabel": true,
+          "keepC2pa": true
+        },
+        "evidence": []
+      },
+      "price": {
+        "usdPerS": 0.1,
+        "resolution": "768P",
+        "checkedAt": "2026-10-18"
+      }
+    }
+  },
+  "banned": [
+    {
+      "id": "minimax/h3-max/recast",
+      "match": "exact",
+      "reason": "recast edits a person in existing footage"
+    },
+    {
+      "id": "face-swap",
+      "match": "prefix",
+      "reason": "any endpoint with face-swap in its id, matched anywhere in the id"
+    },
+    {
+      "id": "bytedance/seedance-2.5/image-to-video",
+      "match": "exact",
+      "reason": "not licence-cleared for this product"
+    },
+    {
+      "id": "fal-ai/veo3",
+      "match": "prefix",
+      "reason": "deprecated"
+    }
+  ],
+  "defaults": {
+    "videoProvider": "h3.partner",
+    "videoFallbackOrder": [
+      "ltx25.fast",
+      "gemini.omniFlash11"
+    ]
+  }
+}

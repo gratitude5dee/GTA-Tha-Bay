@@ -88,4 +88,46 @@ describe('check:c2pa command', () => {
     expect(badRun.code).toBe(1);
     expect(badRun.out).toContain('resign-missing');
   });
+
+  it('prints the fixture self-test on the default run (M05c3)', () => {
+    const r = run([]);
+    expect(r.code).toBe(0);
+    expect(r.out).toContain('check:c2pa fixtures ok: 3');
+  });
+});
+
+describe('check:c2pa production rules (M05c3 AC-6)', () => {
+  const fixtures = path.join(import.meta.dirname, '../fixtures/c2pa');
+  const run = (argv: string[]): { code: number; out: string } => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const code = main(argv);
+    const out = [...log.mock.calls, ...err.mock.calls].map((c) => c.join(' ')).join('\n');
+    log.mockRestore();
+    err.mockRestore();
+    return { code, out };
+  };
+
+  it('a production manifest needs resigned: true whatever its licence status', () => {
+    const m = good({ resigned: false }, { status: 'pending' });
+    expect(manifestFindings('k', m)).toEqual([]);
+    expect(manifestFindings('k', m, { env: 'prod' }).map((f) => f.rule)).toEqual(['resign-missing']);
+    expect(manifestFindings('k', m, { env: 'staging' })).toEqual([]);
+    expect(manifestFindings('k', good({}, { status: 'pending' }), { env: 'prod' })).toEqual([]);
+  });
+
+  it('fails the unsigned production fixture and the fixture without aiGenerated, and passes the mock prewarm output', () => {
+    const manifests = path.join(fixtures, 'manifests');
+    const bad = run(['--env', 'prod', '--index', path.join(fixtures, 'index-fail.json'), '--manifests', manifests]);
+    expect(bad.code).toBe(1);
+    expect(bad.out).toContain('resign-missing');
+    expect(bad.out).toContain('ai-generated-missing');
+    const ok = run(['--env', 'prod', '--index', path.join(fixtures, 'index-pass.json'), '--manifests', manifests]);
+    expect(ok.code).toBe(0);
+    expect(ok.out).toContain('1 shipped cutscene');
+  });
+
+  it('rejects an unknown --env', () => {
+    expect(run(['--env', 'moon']).code).toBe(2);
+  });
 });

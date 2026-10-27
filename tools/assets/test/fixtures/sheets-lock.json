@@ -1,0 +1,34 @@
+{
+  "schema": "sheets-lock/1",
+  "sheets": {
+    "corwin_hale": {
+      "approved": false,
+      "crops": []
+    },
+    "dana_voss": {
+      "approved": false,
+      "crops": []
+    },
+    "imani_hart": {
+      "approved": true,
+      "crops": [
+        "650385bea313d482ccfcd917594f3e1be27a9e4e01aa1ca3ebf1f65efddbc6dd",
+        "c8326738a354c8bbdea69bd31e99e159a9f1ac29e4932599014c9299625add5f"
+      ]
+    },
+    "tavi_okafor": {
+      "approved": true,
+      "crops": [
+        "5944ab88c8390de40e5946b9fe7052646a15115d4964906ebd8c2f99f4f7d287",
+        "ba100be612c5b13fa27bddb88ad86b40268bf57836dc56fa4861d2307fd04fd5"
+      ]
+    },
+    "whitney_arlo": {
+      "approved": true,
+      "crops": [
+        "f77d14cdb6459e0f779c28ec659f5af4d78dee7bff408fb2f0535ed96fb9386f",
+        "c2c0af1be1160bd900b8ee0a1e5c1d9136c7ccbbf515b82b0e02f076811c0747"
+      ]
+    }
+  }
+}

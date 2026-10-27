@@ -1,0 +1,13 @@
+{
+  "schema": "cutscene-index/1",
+  "release": "fixture",
+  "builtAt": 0,
+  "entries": [
+    {
+      "key": "prod-unsigned"
+    },
+    {
+      "key": "no-ai-flag"
+    }
+  ]
+}
