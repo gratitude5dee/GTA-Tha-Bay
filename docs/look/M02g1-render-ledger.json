@@ -1,0 +1,52 @@
+{
+  "commit": "local",
+  "bakeId": "3537499f7cc5c17703cea67785128b51f3262dc2d693a344409c031cb9f33136",
+  "tiers": {
+    "desktop-ultra": {
+      "baseline": 228,
+      "after": 331,
+      "perLayer": {
+        "grade": 0,
+        "haze": 0,
+        "blob": 1,
+        "casters": 102,
+        "skyReflect": 0,
+        "windows": 0
+      }
+    },
+    "desktop": {
+      "baseline": 276,
+      "after": 379,
+      "perLayer": {
+        "grade": 0,
+        "haze": 0,
+        "blob": 1,
+        "casters": 102,
+        "skyReflect": 0,
+        "windows": 0
+      }
+    },
+    "mobile": {
+      "baseline": 158,
+      "after": 159,
+      "perLayer": {
+        "grade": 0,
+        "haze": 0,
+        "blob": 1,
+        "skyReflect": 0,
+        "windows": 0
+      }
+    },
+    "mobile-low": {
+      "baseline": 86,
+      "after": 87,
+      "perLayer": {
+        "grade": 0,
+        "haze": 0,
+        "blob": 1,
+        "skyReflect": 0,
+        "windows": 0
+      }
+    }
+  }
+}

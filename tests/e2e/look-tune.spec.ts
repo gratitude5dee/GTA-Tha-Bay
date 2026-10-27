@@ -187,7 +187,8 @@ test.describe('look ledger @look-ledger', () => {
 
   for (const tier of ['desktop-ultra', 'desktop', 'mobile', 'mobile-low'] as const) {
     test(`${tier}: each layer toggled on a held frame; the baseline is every layer off @look-ledger`, async ({ page }) => {
-      await bootWorld(page, tier, '&perf=1');
+      // no `perf=1`: with it `live()` returns the last frame the loop measured, and a held frame would never change
+      await bootWorld(page, tier);
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
       // `mobile-low`: the `fog-west` shot looks down a street of the synth world with 87 render objects (the spawn's street has 116 with
@@ -212,8 +213,9 @@ test.describe('look ledger @look-ledger', () => {
       await world(page, (w) => w.hold(false));
 
       // the blob is one render object; the colour and light layers add none; the casters add shadow passes per casting object
-      expect(perLayer['blob'], 'blob').toBeLessThanOrEqual(1);
-      expect(perLayer['blob'], 'blob').toBeGreaterThanOrEqual(0);
+      // the blobs are one instanced mesh: exactly one render object while any is drawn (traffic is resident, so some are)
+      expect((await world(page, (w) => w.look()))?.blobs ?? 0, 'blobs drawn').toBeGreaterThan(0);
+      expect(perLayer['blob'], 'blob').toBe(1);
       for (const id of ['grade', 'haze', 'skyReflect', 'windows']) if (id in perLayer) expect(perLayer[id], id).toBe(0);
       if (!layers.includes('casters')) expect(after).toBeLessThanOrEqual(baseline + 1);
       if (tier === 'mobile-low') {
@@ -245,7 +247,7 @@ test.describe('look ledger @look-ledger', () => {
       expect(t, `${tier} is in the ledger`).toBeDefined();
       if (!t) continue;
       expect(t.after).toBeGreaterThanOrEqual(t.baseline);
-      expect(t.perLayer['blob'] ?? 0).toBeLessThanOrEqual(1);
+      if ('blob' in t.perLayer) expect(t.perLayer['blob'], `${tier} blob`).toBe(1);
       expect(Object.keys(t.perLayer).sort()).toEqual([...layersOf(tier)].sort());
     }
     expect(ledger.tiers['mobile-low']?.after ?? 0).toBeLessThanOrEqual(100);
