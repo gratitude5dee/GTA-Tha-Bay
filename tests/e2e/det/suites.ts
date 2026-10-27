@@ -40,7 +40,8 @@ export const DET_SUITES: readonly DetSuite[] = [
     ],
   },
   { tag: '@racing-det', runs: [{ name: 'racing.line on sf.sprint.ferry-ocean-beach', spec: racingSpec(), golden: racingTraceFile(RACING_GOLDEN.line) }] },
-  { tag: '@fighter-hash', pending: 'M08a1' },
+  // M08a2: the golden .dvfight replays run inside the sim worker (__dvBridge.fighter.replay) and must match every checkpoint
+  { tag: '@fighter-hash', ownSpec: 'tests/e2e/fighter-hash.spec.ts' },
   { tag: '@world-hash', ownSpec: 'tests/e2e/world-hash.spec.ts' },
   // M09a1: the pure tycoon core replays recorded runs in the page (__dvBridge.tycoon.runDet) against tests/golden/tycoon/det-001.json
   { tag: '@tycoon-det', ownSpec: 'tests/e2e/tycoon/tycoon-det.spec.ts' },

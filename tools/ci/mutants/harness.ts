@@ -22,6 +22,8 @@ import { DEFAULT_MISSION_DEPS, registerStoryQa, setMissionDeps, type MissionDeps
 import { runCheck } from '../missions/check.ts';
 import { DEFAULT_MODEL_DEPS, type ModelDeps } from '../econ-sim/model.ts';
 import { toolsRoot } from '../lib/common.ts';
+import { FightCore, NULL_SINK, decodeInputs as decodeFightInputs, decodeReplay as decodeFightReplay, hashBuffer as hashFightBuffer } from '../../../packages/shared/src/fight/index.ts';
+import { loadPack as loadFighterPack } from '../../../packages/modes/fighter/src/pack-files.ts';
 
 export interface SuiteResult {
   pass: boolean;
@@ -160,7 +162,46 @@ export const TYCOON: MutantSuite<TycoonDeps> = {
   },
 };
 
-export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING, MISSIONS, TYCOON] as const;
+/** The knobs of the `fighter` suite (M08a2): how many frames late the inputs reach the core, and the seed the match RNG gets. */
+export interface FighterDeps {
+  inputDelay: number;
+  matchSeed(seed: number): number;
+}
+
+/**
+ * `fighter` (M08a2): every golden `.dvfight` of the mode is re-simulated by the same loop as `fighter:replay` and the page suite
+ * `@fighter-hash`; each 60-tick checkpoint and the final result must equal the recording. The two knobs are the mutants: inputs
+ * one frame late, and a match RNG seeded from another stream.
+ */
+export const FIGHTER: MutantSuite<FighterDeps> = {
+  id: 'fighter',
+  base: { inputDelay: 0, matchSeed: (s) => s },
+  async run(deps) {
+    const dir = path.join(toolsRoot, 'packages', 'modes', 'fighter', 'golden');
+    const pack = loadFighterPack(toolsRoot);
+    const bad: string[] = [];
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.dvfight')).sort()) {
+      const r = decodeFightReplay(readFileSync(path.join(dir, f), 'utf8'));
+      const in0 = decodeFightInputs(r.inputs[0]), in1 = decodeFightInputs(r.inputs[1]);
+      const sim = new FightCore();
+      const buf = sim.init(pack, r.rules, deps.matchSeed(r.seed), r.lineup);
+      let first = -1;
+      for (let t = 0; t < in0.length && first < 0; t++) {
+        const d = t - deps.inputDelay;
+        sim.step(buf, d < 0 ? 0 : (in0[d] as number), d < 0 ? 0 : (in1[d] as number), NULL_SINK);
+        if ((t + 1) % r.checkpoints.every === 0) {
+          const want = r.checkpoints.hashes[(t + 1) / r.checkpoints.every - 1];
+          const got = hashFightBuffer(buf);
+          if (!want || want[0] !== got[0] || want[1] !== got[1]) first = t + 1;
+        }
+      }
+      if (first >= 0) bad.push(`${f}: first bad checkpoint at tick ${first}`);
+    }
+    return { pass: bad.length === 0, detail: bad.length ? bad.join('; ') : 'every golden replays to its checkpoints' };
+  },
+};
+
+export const MUTANT_SUITES = [ENGINE_LINES, ECON, RACING, MISSIONS, TYCOON, FIGHTER] as const;
 
 export function mutantFiles(suite: string): string[] {
   const dir = path.join(toolsRoot, 'tools', 'ci', 'mutants', suite);
