@@ -131,7 +131,7 @@ services/
 tools/
   map/               SF bake and map:* (src/, schemas/) (S02)
   assets/            assets:* and genai:* CLIs: catalog, verify, lock, publish, seed, gen/, cutscene-index/, plates/, spike/, pose-vendor (S05);
-                     recipes/ + import/ (final art and audio, M10d1, M10d3, M10e), final.ts (`assets:final`, M10d2, M10e), audio-qa (M10e)
+                     recipes/ + import/ (final art and audio, M10d0, M10d1, M10d4, M10d3, M10e), final.ts (`assets:final`, M10d2, M10e), audio-qa (M10e)
   ci/                run.ts, deploy.ts, check-*.ts, milestone-lint, trace, spec-files, perf-*, release-gate, launch-gate, checklists/,
                      econ-sim/, tycoon-sim/, missions/, mutants/, fixtures/, schemas/, verifiers.lock.json (S05, S11, S13)
   cli/               @dv/cli — `dv` binary and `thabay-mcp` for modders and agents (M13a1, M13a6, M13c3)
@@ -139,7 +139,7 @@ tools/
   soul/              npc:* CLIs (M06a2, M06a4, M10c)
   fighter/           QA-only move-timeline editor; reserved by A-01, built by no v1 milestone (kits are JSON checked by fighter:lint)
 config/              brand.ts, terms.ts (TERMS_VERSION, M00e), tier-budgets.json, platform-flags.json, perf/paths/, world/, ui/, input/, schemas/, genai-endpoints.json,
-                     guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d3, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
+                     guardrails.yaml, cloudflare.resources.json, art-placeholders.json (M10d1–M10d4, M10e), per-domain tuning (physics, pursuit, racing, fighter, tycoon, npc, voice, legal, mod limits)
 content/             authored originals: missions/<id>/, story/ (acts, cast), npcs/ (souls, ink), cutscenes/, prompts/, races/, racing/,
                      vehicles/, fighter/, tycoon/, world/, audio/, legal/, ui/ (i18n/en.json from M04b1, creator, help)
 content-private/     private mount (Q-25): real-derived souls, research layer; never published
@@ -281,7 +281,7 @@ sequenceDiagram
     P->>H: UiCommand cutscene.state {state: fallback}; sim runs the DirectorScript with subtitles (R-CUT-03)
   end
 ```
-Mixed sequences use `CutscenePlayer.playSequence`, which decides per item (C09, DL-081); both paths leave identical mission state (`03-story-cutscenes.md` §D7). The AI-disclosure chip shows for the whole clip (DL-232). Generation never runs on the player's path: `pnpm assets:gen prewarm` (M05c3) or the catalog triggers `GenJobWorkflow` (gate → cache-check → budget-reserve → acquire → submit → wait/poll → copy → transcode → captions → qa → re-gate → record), which writes `manifest.json` last [`05-assets.md` §5.1; `05-assets-pipeline.md` §6]. Pieces land in order: player spike and `c09-cutscene.ts` (M04c), `CutsceneJobDO`, governor, workflow on `MockFalPort` and C2PA check (M05b1), index and story glue (M05b2), Transcoder Container and first live prewarm ≤ $16 (M05c3), fighter clips ≤ $24 and `KillPurgeWorkflow` (M10b), XR hosts (M11b4). Budget refusals and kill switches never block cache hits (D-28).
+Mixed sequences use `CutscenePlayer.playSequence`, which decides per item (C09, DL-081); both paths leave identical mission state (`03-story-cutscenes.md` §D7). The AI-disclosure chip shows for the whole clip (DL-232). Generation never runs on the player's path: `pnpm assets:gen prewarm` (M05c3) or the catalog triggers `GenJobWorkflow` (gate → cache-check → budget-reserve → acquire → submit → wait/poll → copy → transcode → captions → qa → re-gate → record), which writes `manifest.json` last [`05-assets.md` §5.1; `05-assets-pipeline.md` §6]. Pieces land in order: player spike and `c09-cutscene.ts` (M04c), `CutsceneJobDO`, governor, workflow on `MockFalPort` and C2PA check (M05b1), index and story glue (M05b2), Transcoder Container and first live prewarm ≤ $16 (M05c3), fighter clips within the rest of the $38 cutscene line after Act 1 and `KillPurgeWorkflow` (M10b, DL-741), XR hosts (M11b4). Budget refusals and kill switches never block cache hits (D-28).
 
 ### 4.4 NPC dialogue (R-NPC-05)
 
@@ -462,7 +462,8 @@ Run order and dependencies: `spec/07-milestones/_PLAN.md` §1–§3; file status
 | NPC runtime, agency, builder | M06a1–M06c, M06b1–M06b4 |
 | Racing, fighter, pose, tycoon | M07a1–M07b2, M08a1–M08c2, M09a1–M09b2 |
 | Roster pipeline, QA gates and kill drill, roster souls | M10a1–M10c |
-| Final v1 art (ambient vehicles, peds, creator parts; player cars and fight stages; city surfaces, `assets:final`) and final audio | M10d1, M10d3, M10d2 (run order, DL-390, DL-460); M10e (DL-500) |
+| Street realism (look tune and fixes, markings, curbs, ground cover, vegetation, furniture and parked cars, façade detail, XR look and TRAA) | M02g1, M02g2, M02h1–M02h7, M02h8 (DL-OWN-07, DL-739) |
+| Final v1 art (licence admission and PBR sets; ambient vehicles and props; peds and creator parts; player cars and fight stages; city surfaces, `assets:final`) and final audio | M10d0, M10d1, M10d4, M10d3, M10d2 (run order, DL-390, DL-460, DL-739); M10e (DL-500) |
 | iPhone hardening, WebXR | M11a1–M11a2, M11b1–M11b4 |
 | P1 identity, rooms, online, leaderboards | M12a1–M12e |
 | Mods, forum, publish, legal | M13a1–M13d2 |

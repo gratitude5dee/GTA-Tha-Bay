@@ -19,7 +19,7 @@ After this session the platform adapts to the device while the game runs, and th
   - Signals: EMA of frame ms (α = 0.06) and p90 over 120 frames.
   - Downgrade when p90 > budget × 1.15 for 2 s. Upgrade when p90 < budget × 0.70 for 10 s. At most one change per 5 s and one upgrade per 30 s.
   - Knob order: `renderScale` in 10 % steps → `shadowDistanceScale` → `buildingDistanceScale` → `lodBias` → `crowdDensity` → `postLevel` → `atmosphereLevel` → `textureMipBias` → `foveation` (XR) → `targetFps`. Floors and ceilings come from `QualityTier.dynamic`, and changes are published through `QualityService.onDynamicChange`.
-  - `postLevel` follows M02e's `postNodes` semantics (1 drops GTAO, 0 also drops bloom and uses FXAA, 3 adds `optionalPost`); when the governor ships, this milestone raises `look.json` `postLevelCap` from 2 to 3 (a config edit, DL-704).
+  - `postLevel` follows M02e's `postNodes` semantics (1 drops GTAO, 0 also drops bloom and uses FXAA, 3 adds `optionalPost`); `look.json` `postLevelCap` stays 2 here; M02h8 raises it to 3 with the TRAA goldens (DL-740 moves the edit from this file).
   - With `xr: true` the governor never touches `renderScale` and records a "next-entry framebuffer scale" request instead (M11b1 consumes it).
   - Tier demotion only after every knob has been at its floor for 20 s, at the next safe point, via `setTier(next, 'governor-demotion')`.
   - `?governor=off` (parsed but inert since M01c) now disables it.
