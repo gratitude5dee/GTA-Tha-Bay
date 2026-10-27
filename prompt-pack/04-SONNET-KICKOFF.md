@@ -3,7 +3,7 @@
 > Operator notes: run `claude-sonnet-5-5` in Claude Code inside the repo, one milestone per session, `output_config.effort = "medium"` for routine milestones and `"high"` for M01/M02/M05/M06/M12. Adaptive thinking on (default). The Architect customizes the `<milestones>` block before handoff. Paste the `<builder_prompt>` block as the first message of each session, replacing `<<MILESTONE>>` with the milestone file's stem (e.g. `M00-bootstrap-ci-pwa-on-workers`).
 
 ## Operator prerequisites (do these once, before the first Builder session)
-- **Cloudflare account on Workers Paid** ($5/month; static-asset requests free, ≤ 25 MiB per file; F-018 in `research/INDEX.md`). Needed from M00.
+- **Cloudflare account on Workers Free** (owner decision DL-OWN-08, 2026-10-27, superseding "Workers Paid from M00"): static-asset requests free and unlimited, ≤ 25 MiB per file, 20,000 files per version; 10 ms CPU per request; 100,000 Worker requests a day; no Containers, Tail Workers or Logpush (F-018; limits in `spec/03-decisions-and-facts-2.md` §8; rules in `spec/domains/09-backend-ops.md` §1.4). Upgrading to Workers Paid is an owner decision, never a Builder step; rows that need it say so in their gate.
 - **Cloudflare API token** (account token with an expiry): Workers Scripts: Edit (Workers, Previews, Durable Object classes), Workers R2 Storage: Edit, Workers KV Storage: Edit, Durable Objects: Edit where the token UI lists it separately; add Zone › Workers Routes: Edit only once a custom domain exists (Q-15). Plus the **Account ID**.
 - **One-time Worker bootstrap:** after M00 merges, run `pnpm deploy:bootstrap` once locally with an Admin-capable Cloudflare token (creating a Worker needs product-level Admin; `wrangler versions upload` and `wrangler preview` cannot create one [research/gap-ci-cd-release-assets.md]). It creates `tha-bay-web-staging` and `tha-bay-web`; `preview.yml` (M00 AC-14) and `deploy.yml` (M00a AC-10) need them.
 - **GitHub repository secrets** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; repository variable `DEPLOY_ALLOWED_ACTORS` (M00a); after M00b, branch protection requiring the `ci.yml` jobs `static`, `unit`, `build`, `e2e (chromium-webgl2)` and `ip`. Do not also connect Workers Builds (double deploys).
@@ -125,7 +125,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 45. M02f1 · stream-measure · 0.6 · M02b1, M01d2, M02c2 · AC-8 only: the M02c2 AC-14 staging `sf` release; Q-13 desktop Mac and iPhone 15
 46. M05c2 · act1-vertical-slice · 1 · M05c1, M03b2 · the M02c2 AC-14 staging `sf` release (AC-7 to AC-9; DL-670, DL-713); Q-13 iPhone 15 and desktop Mac (AC-8, AC-9); Q-21 sensitivity read (public release only); optional `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` (plate upload)
 47. M05d · data-spine-supabase · 1 · M05b1, M00e · Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY`
-48. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap
+48. M05c3 · act1-prewarm · 0.7 · M05c2, M05d · ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), `OPS_TOKEN`, prepaid balance ≤ cap; `--finish`: pinned `ffmpeg`, `C2PA_CERT_CHAIN_PEM`/`C2PA_KEY_PEM` (operator); no Container on Workers Free (DL-745; do not merge `claude/release-do-lifecycle-3`)
 49. M04e1 · sandbox-world-controls · 0.8 · M04e5, M04e0, M04b2, M02b2, M03b1, M03b2 · none
 50. M04e2 · sandbox-teleport-display · 0.7 · M04e1, M04e5, M04e0, M02c1, M02c2, M04b2, M04a2 · none
 51. M04e3 · sandbox-vehicle-spawner · 0.8 · M04e1, M04e5, M04e0, M03a1, M07a1, M05c1 · none
@@ -194,7 +194,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 114. M12b1 · rooms-core-protocol-v2 · 1 · M12a1, M05c2, M04a2, M04e0 · `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`; `pnpm deploy:bootstrap` for the new Worker; R-ROLL-01: M05c2 deployed to staging with its ACs passing
 115. M12b2 · rooms-core-protocol-v2 · 1 · M12b1, M04e3 · staging; Q-13 desktop Mac, Chrome and Safari (AC-9)
 116. M12c1 · rooms-hardening-presence-loadtest · 1 · M12b2 · `SUPABASE_SECRET_KEY` (rooms Worker), `CI_STAFF_DEVICE_JWK`
-117. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location; `INTERNAL_HMAC`, `OPENAI_MODERATION_API_KEY`, `CI_STAFF_DEVICE_JWK`
+117. M12c2 · rooms-hardening-presence-loadtest · 1 · M12c1 · staging; operator machine as the second location; AC-10 staging load run needs Workers Paid (owner, DL-746); `INTERNAL_HMAC`, `OPENAI_MODERATION_API_KEY`, `CI_STAFF_DEVICE_JWK`
 118. M12d · online-page-invites · 0.3 · M12c1, M04b1 · none
 119. M12e · mode-leaderboards · 1 · M12c2, M07b1, M09a2 · none
 120. M13a1 · mod-sdk-manifest-validators · 1 · M04a2, M01d, M00e · none
@@ -217,7 +217,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 137. M14c · a11y-audit-i18n-gate · 0.5 · M13d2, M13b4, M12d, M06b3, M11b3 · none
 138. M14b1 · launch-hardening-guardrails · 1 · M13d1, M06a4, M05b1 · `ANTHROPIC_ADMIN_KEY`, `FAL_KEY_BILLING`, `ALERT_HMAC`, `ALERT_WEBHOOK_URL`, `CI_STAFF_DEVICE_JWK`; Anthropic workspace `synthetic`
 139. M14b2 · launch-hardening-guardrails · 1 · M14b1, M12c2 · staging; `CI_STAFF_DEVICE_JWK`, `OPS_TOKEN`, `CF_API_TOKEN_CACHE`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`; staging `ANTHROPIC_API_KEY` (workspace `synthetic`)
-140. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only)
+140. M14b3 · launch-hardening-guardrails · 1 · M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · Q-13, Q-15, Q-18, Q-21, Q-23 (release only); Workers Paid before public traffic or production multiplayer (owner, DL-OWN-08)
 141. M14a · thirdweb-siwe-link · 1 · M14b3, M12a1 · Thirdweb Growth plan ($99/month, F-059) owner approval; Q-13 iPhone 15 and Mac (AC-10); `VITE_THIRDWEB_CLIENT_ID`; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID` (`db:push`)
 142. M15a · bay-expansion-framework · 1 · M14a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`
 143. M15b · oakland-core · 1 · M15a · post-v1; per-area source licence check and attribution (R-MAP-02); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` for `assets:publish`; Q-13 iPhone 15 (AC-9)

@@ -46,7 +46,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
   - `approve`: `published`. Visibility is the requested one if `ugc.publish` is true, else `private`. Copy the archive to `ugc-public/ugc/published/<sha256>.zip`. If the visibility is not `private`, call `ensureLinkedThread`.
   - `reject`: `rejected` (appeal window 7 days; the queue arrives in M13d1).
   - `remove`: `removed`, deletes the public object, adds a revocation entry that route 53 lists (reason from the policy code).
-- `services/pipeline/rebake/workflow.ts` (`RebakeRevalidationWorkflow`). A daily cron starts it for placements whose `world_version` differs from the current `bakeId`; it re-runs stage 14 and `compat.world`, then sets `needs_update` (pin removed) or updates `world_version`. Workflow binding in `wrangler.jsonc` (not a DO class); Previews have no own Workflows, so steps are tested directly.
+- `services/pipeline/rebake/workflow.ts` (`RebakeRevalidationWorkflow`). A daily dispatcher job (M13c1's single cron per Worker; no new expression, DL-746) starts it for placements whose `world_version` differs from the current `bakeId`; it re-runs stage 14 and `compat.world`, then sets `needs_update` (pin removed) or updates `world_version`. Workflow binding in `wrangler.jsonc` (not a DO class); Previews have no own Workflows, so steps are tested directly.
 
 ## Scope out
 - Legal takedowns, the appeals queue, route 45 and `hash_bank_entry` → M13d1 (until then `HashBankPort` is a fixture bank in tests and empty when deployed).
@@ -57,7 +57,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 ## Deliverables
 - `services/edge/src/publish/{route36,route37,auth,limits,decisions,promote,upload-purposes}.ts`; `services/edge/src/ugc/mod-scan/{pipeline,stream,stages-local,hash-bank,strings,text,images,hygiene,case}.ts`; `services/edge/src/mods/anchor-rules.ts`; router rows 36–37; route 43 handler extension.
 - `packages/shared/src/mod/publish-state.ts` with `publish-state.test.ts`.
-- `services/pipeline/rebake/{workflow,cron}.ts`; `services/edge/wrangler.jsonc` (Workflow binding, cron, repeated under `previews` where allowed).
+- `services/pipeline/rebake/{workflow,cron}.ts`; `services/edge/wrangler.jsonc` (Workflow binding, repeated under `previews` where allowed; no new cron expression).
 - `services/edge/test/{mod-publish-route,mod-upload-purposes,mod-scan-quarantine,mod-scan-parity,anchor-rules,publish-flag,revocation-list,rebake-revalidation}.test.ts` (`anchor-rules` extends M13b2's file); fixtures: archives built from M13a1's corpus, a fixture hash bank, a fixture mask with a residential layer, recorded classifier responses.
 - Secrets: none new. `OPENAI_MODERATION_API_KEY` (M06b1) and `ANTHROPIC_API_KEY` (M06a3, classifier) are reused. Absent → stages 12–13 record `error: 'not_configured'` and route the item to human review, never to `published`; tests use recordings. `PHOTODNA_KEY` waits for Q-16 (M13d1).
 
@@ -94,7 +94,7 @@ Publishing a mod or experience version works end to end on the server. Route 36 
 1 session; ≈ 38 files; risk **medium-high**. Stage adapters are mostly glue over M13a1, M06b1, M06b2 and M13b2.
 
 ## Risks & fallbacks
-- **Archive size versus Worker memory and CPU** (U-BE-13 for queue consumers): stream entries and hash incrementally. If a 128 MiB fixture exceeds the limits, archives above the measured safe size get a `review` signal and wait for a human, and the Builder records the measured size. Never skip stages 1–4.
+- **Archive size versus Worker memory and CPU** (U-BE-13 for queue consumers; on Workers Free consumer CPU is UNVERIFIED and may be 10 ms, Workflow steps are 10 ms, `spec/03-decisions-and-facts-2.md` §8, RISK-31): stream entries and hash incrementally; each Workflow step stays I/O-bound (`09-backend-ops.md` §1.4). If a 128 MiB fixture exceeds the limits, archives above the measured safe size get a `review` signal and wait for a human, and the Builder records the measured size. Never skip stages 1–4.
 - **PDQ unavailable in the Worker**: SHA-256 only (AC-1 uses SHA-256); PDQ waits for M13d1's sweep.
 - **Workflow config key rejected** by the pinned wrangler: run the same steps as a cron-driven queue job and log a Builder decision; AC-9 tests the steps directly.
 - **`ugc.<domain>` cache** (Q-15 open): no custom domain means no cache, so removal is a delete; purge joins with the domain.

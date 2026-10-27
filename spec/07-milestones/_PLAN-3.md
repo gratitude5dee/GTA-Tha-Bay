@@ -42,7 +42,7 @@
 ### M12c2 · rooms-hardening-presence-loadtest — 1 · risk H · S09, S13 (split 2 of 2)
 - **Goal:** migration 0006 progress and leaderboard tables with route 20 (`ProgressDelta`), route 21 transport with an empty validator registry (DL-183), opt-in moderated chat with `chat_turn` report evidence (DL-239), load bots (`tests/load/rooms.ts`, `13-qa.md` §3.10); `rooms.capMax` stays off in v1 (32 players need a 32-bot run, DL-239).
 - **R** R-ROLL-02, R-ENG-02 · **Dep** M12c1 · **Read** `09-backend-db.md` §3 (0006); `09-backend.md` §9; `13-qa.md` §3.10 · **Out** `tests/load`, `supabase/migrations/0006_online.sql` · **C** C11 1.0, C12 1.2 (`ProgressDelta`, `LeaderboardSubmit`)
-- **Gate** staging; operator machine as the second location · **Proof** `pnpm load:rooms -- --bots 16 --minutes 30` (tick p99 ≤ 10 ms, zero overload); `pnpm check:db`
+- **Gate** staging; operator machine as the second location; the staging load run (AC-10) needs Workers Paid (owner, DL-OWN-08, DL-746) · **Proof** `pnpm load:rooms -- --bots 16 --minutes 30` (tick p99 ≤ 10 ms, zero overload; on Free: `--target local` only); `pnpm check:db`
 
 ### M12d · online-page-invites — 0.3 · risk L · S10
 - **Goal:** online page, invites, presence, chat panel (default off), nameplates.
@@ -114,7 +114,7 @@
 ### M13c1 · device-code-publish-login — 0.8 · risk M · S09, S10
 - **Goal:** device-code login (route 10, RFC 8628) and `/link` approval page; publish identity before M14a per the DL-145 ADR; route 11 OpenAI flow behind `AUTH_OPENAI_WEB` (off unless OpenAI grants a client).
 - **R** R-AUTH-03, R-MOD-02 · **Dep** M12a1, M04b1, M13a2 (`device_codes` in 0007) · **Read** `12-modding-publish.md` C§2; `09-backend-contracts.md` §2.4 rows 10–11 · **Out** `services/edge/src/id/device-code`, `packages/ui/src/pages/link` · **C** C12 1.2 (CLI `AccessClaims`)
-- **Gate** DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted · **Proof** `pnpm check:workers -- device-code`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @link`
+- **Gate** DL-145 ADR; `OPENAI_OIDC_CLIENT_SECRET` only if granted · **Also** one dispatcher cron per Worker (DL-746) · **Proof** `pnpm check:workers -- device-code`; `pnpm check:workers -- scheduled-dispatch`; `pnpm check:e2e -- --project=chromium-webgl2 --grep @link`
 
 ### M13c2 · publish-pipeline-server — 1 · risk M · S12
 - **Goal:** server scan stages, routes 36 and 37 POST, publish state machine, anchor validator, rebake Workflow, revocation; `ugc.publish` stays false in production.
@@ -161,7 +161,7 @@
 ### M14b3 · launch-hardening-guardrails — 1 · risk H · S13, S05, S06 (split 3 of 3)
 - **Goal:** release-candidate gate: DoD audit H1–H10, trace report with no empty row, full device pass, `ip:history`, `ip:similarity` (Zone R), terms watch, names knock-out applied (DN-S06-02), sign-offs recorded in `docs/legal/launch-gates.json` (Q-18, Q-21, Q-23), the `art-final` gate (DL-390; audio rules from M10e, DL-500), flag-flip checklist, `release.yml`.
 - **R** R-IP-01/02, R-ENG-01/02/04, R-PLAT-05 · **Dep** M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, M13a7, M13b2, M13b3, M08c2, M06c, M06a5, M05c3, M02d2, M02b2 · **Read** `13-qa-critics.md` §2; `spec/08-test-and-ci.md` §3.3, §5.7; `05-assets-pipeline.md` §9 · **Out** `.github/workflows/release.yml`, `docs/legal/launch-gates.json`, `docs/device-runs/M14b3/` · **C** C15 1.1
-- **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
+- **Gate** Q-13, Q-15, Q-18, Q-21, Q-23 (release only); Workers Paid before public traffic or production multiplayer (owner, DL-OWN-08, DL-746) · **Proof** `pnpm check:unit -- tools/ci` (launch-gate record complete; trace has no empty row); `pnpm ip:history`; `pnpm names:lint`; manual `M14b3-*` device pass then `pnpm perf:verify`
 
 ### M14a · thirdweb-siwe-link — 1 · risk M · S09 (+S10) · **last v1 milestone (R-AUTH-02)**
 - **Goal:** migration 0009, SIWE nonce and verify (route 12), merge requests (13), Thirdweb adapter behind the single `IdentityService` interface, link page, `/link` registry entry and a linked-publish proof (DL-349); re-run the release gate subset.

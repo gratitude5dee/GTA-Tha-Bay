@@ -149,7 +149,7 @@ How to see it:
 - **`@world-sky` gates fail:** tune grade data; gate changes go to the Architect.
 
 ## Notes for the Builder
-- **M05c3 is not a dependency (DL-742).** It is held on an owner gate. The `cut.story.m.a1.01.dawn` key and `beats.lock.json` that AC-9 holds unchanged are already on `claude/build` (M05b2, M05c2). Whichever of this milestone and M05c3 merges second re-runs AC-9 at its rebase.
+- **M05c3 is not a dependency (DL-742).** It was held on an owner gate until DL-OWN-08 gave it a Workers Free path (DL-745, DL-747); it stays out of Depends on. The `cut.story.m.a1.01.dawn` key and `beats.lock.json` that AC-9 holds unchanged are already on `claude/build` (M05b2, M05c2). Whichever of this milestone and M05c3 merges second re-runs AC-9 at its rebase.
 - Read `11-platform.md` §4.4, §5.1, `01-engine-save-modes.md` (clock), `03-story-missions.md` §C3, `03-story-cutscenes.md` §D3.4, M02e, and the study's render audit (items 0, 2, 3, 5, 9).
 - Verify `PCFSoftShadowMap` in `three@0.186.1` (spec/03 §7). The target image is never committed, sampled or sent to fal. Clock: 30 game s per real s.
 - Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14; SKIP locally); AC-13 needs the `sf` bake, AC-14 Q-13. Branch `m02g1-look-tune`.

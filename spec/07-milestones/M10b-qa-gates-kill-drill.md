@@ -132,4 +132,5 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   5. prewarm grouping and cap;
   6. the `test:ops` runner;
   7. the runbook.
+- **Workers Free (DL-OWN-08, DL-746; `09-backend-ops.md` §1.4).** The fighter prewarm runs M05c3's off-edge path: the Worker hands each key off after `copy-orig`, and the operator's `pnpm assets:gen prewarm -- --release <tag> --env prod --finish` transcodes, re-signs and publishes (DL-745); no Container. `KillPurgeWorkflow` steps stay I/O-bound (list, copy, delete, purge calls; 10 ms CPU per step on Free) and the drill's step count stays far inside 3,000 steps a day.
 - **Workflow binding.** It needs its own deploy, but it is not a Durable Object class, so `check:do-migrations` does not label this PR `do-lifecycle`. Confirm with the check.

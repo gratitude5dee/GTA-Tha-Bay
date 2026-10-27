@@ -1,7 +1,7 @@
 # M05c3 — act1-prewarm
 
 ## Goal
-Act 1's cutscene refs are either generated once and cached, or shipped as fallback-only, and neither path can overspend. `pnpm assets:gen prewarm` exists. It reads the release's private `cutscene-requests.json`, walks group G1 (the 9 Act 1 refs, `03-story-cutscenes.md` §D9.1), computes each key's estimate, and stops before the running estimate passes this milestone's line of **$16** (DN-S13-02, DL-209). Without `--live` it prints the dry-run plan. With `--live` it submits only misses through route 28, and only when the registry names a `cleared` provider (ADR-GENAI-01) and every character's sheet crops exist. C2PA re-signing is switched on for production runs, and the release cutscene index records which Act 1 refs are generated and which stay in-engine. If no provider is cleared, which is the default while Q-30 stands, nothing is spent and Act 1 ships fallback-only, fully playable (R-CUT-03).
+Act 1's cutscene refs are either generated once and cached, or shipped as fallback-only, and neither path can overspend. `pnpm assets:gen prewarm` exists. It reads the release's private `cutscene-requests.json`, walks group G1 (the 9 Act 1 refs, `03-story-cutscenes.md` §D9.1), computes each key's estimate, and stops before the running estimate passes this milestone's line of **$16** (DN-S13-02, DL-209). Without `--live` it prints the dry-run plan. With `--live` it submits only misses through route 28, and only when the registry names a `cleared` provider (ADR-GENAI-01) and every character's sheet crops exist. On Workers Free (DL-OWN-08) the Worker runs only the fal-facing steps; the operator's `prewarm --finish` transcodes with the pinned `cut@1` ladder and `ffmpeg`, re-signs (C2PA) and publishes each clip off-edge, manifest last (DL-745). C2PA re-signing is switched on for production runs, and the release cutscene index records which Act 1 refs are generated and which stay in-engine. If no provider is cleared, which is the default while Q-30 stands, nothing is spent and Act 1 ships fallback-only, fully playable (R-CUT-03).
 
 ## Requirements
 - R-CUT-01: Act 1 clips come from a cleared provider through the backend, stored in R2 under the deterministic key, generated at most once per key, and labelled AI-generated; otherwise the fallback chain applies.
@@ -12,7 +12,7 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
 - **M05c2** (act1-vertical-slice): Act 1 refs, plates, `cutscene-requests.json` and index for the release tag.
 - **M05d** (data-spine-supabase): `cutscene_catalog` sync, `genai_ledger` export, `budget_program` fal row.
 - Earlier, through those: M05b1 (`GenJobWorkflow`, `MockFalPort`, route 28, `check:pipeline`, `check:c2pa`, pinned C2PA tool) and M05b2 (`cutsceneKey`, `assets:cutscene-index`).
-- Contracts: C09 1.0 (`CutsceneRequest`, `CutsceneIndex`, `CutsceneManifest`), C07 1.1 (`GenJob`, registry `videoProviders`, `ProvenanceRecord`), C12 1.1 (route 28, `BudgetGovernor`).
+- Contracts: C09 1.0 (`CutsceneRequest`, `CutsceneIndex`, `CutsceneManifest`), C07 1.1 (`GenJob`, registry `videoProviders`, `ProvenanceRecord`), C12 1.1 (routes 27–28, `CutsceneStatus`, `BudgetGovernor`). M05b1's internal ports (`TranscodePort`, `SignPort`, `JobSinkPort` in `services/pipeline/src/ports.ts`) are not contracts; their shapes stay as M05b1 left them.
 
 ## Scope in
 - `assets:gen` CLI entry with the `prewarm` subcommand. Every other subcommand (`plan`, `run`, `gate`) prints `pending: lands in M10a1` and exits 0.
@@ -20,14 +20,19 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
   1. Load `cutscene-requests.json` for the tag (PRIVATE artifact from M05c2) and keep the G1 refs in index order.
   2. **Provider gate:** pick the provider by the C07 registry rule (`05-assets.md` §4.5). If none has `status: cleared`, print `blocked: no cleared provider (ADR-GENAI-01)`, make 0 network calls, and exit 0.
   3. **Sheet gate:** a recipe-K ref whose characters lack approved sheet crops (PRIVATE `sheets/<slug>/` lock entries) is `skip: sheet_missing`, estimate $0.
-  4. **Cache check:** HEAD `cutscenes/<key>/manifest.json` on the target media host. A ready key is `skip: ready`.
+  4. **Cache check:** HEAD `cutscenes/<key>/manifest.json` on the target media host. A ready key is `skip: ready`. On a miss, route 27 `pending` (a job running or handed off, below) is `skip: pending` at $0, so a handed-off key is never paid for twice.
   5. **Estimate** per ref, by the §D9.1 formula: shots × seconds × provider $/s × 1.5, plus shots × 1.5 × 39,600 micros for recipe-K keyframes. Accumulate, and stop before the running total would pass `--cap-micros` (default 16,000,000). The rest is `skip: over_line`.
   6. Print the plan table (ref, key prefix, status, estimate, running total) and the headroom left in the programme (`budget_program.cap` − `ledger.sumUsdMicros('fal')`).
-  7. With `--live`: `POST /api/v1/admin/cutscenes/prewarm {keys[]}` (`OPS_TOKEN`) for the planned keys only. Poll route 27 until every key is `ready` or `failed`. `--report` prints the ledger delta for this run from `genai_ledger`.
+  7. With `--live`: `POST /api/v1/admin/cutscenes/prewarm {keys[]}` (`OPS_TOKEN`) for the planned keys only. Poll route 27 until every key is `ready`, `failed` or handed off (`handoff.json` present, below). `--report` prints the ledger delta for this run from `genai_ledger`.
+  8. `--finish`: the off-edge half, below.
 - Production pipeline config: `C2PA_RESIGN=1` for `prod` (step `resign`, `05-assets-pipeline.md` §6 step 9). `prewarm --env prod --live` refuses to run when the Worker's `/boot` build has it off.
 - After a live run, rebuild the release index with `assets:cutscene-index` (M05b2). Ready keys become entries. Non-ready refs keep their DirectorScript and are listed in `docs/releases/<tag>/cutscenes.md` (generated by `prewarm --report`).
 - A mock scenario `prewarm-act1` added to `check:pipeline` (Miniflare + `MockFalPort`): the first run submits the planned keys and the second makes 0 `FalPort` calls.
-- **Transcoder Container** (DL-232; DL-041 named the binding, no milestone owned it, and the first live run is this milestone's AC-9): `services/pipeline/transcoder/` with the `cut@1` `ladder.sh` of `05-assets-pipeline.md` §6 step 6, a `Dockerfile` that pins its tool versions (recorded in `spec/03`), and the real `TranscodePort` adapter behind the `TRANSCODER` binding in `services/edge/wrangler.jsonc`. The wrangler `containers` keys are UNVERIFIED (U-BE-3): check them against the schema; if the binding cannot be declared, live runs take the §6 fallback (Media Transformations poster and `p720` with `degraded: true`) and the report says so. CI keeps `MockTranscodePort`; the adapter's request mapping is unit-tested against a stub container.
+- **Off-edge finish on Workers Free (DL-745, replacing the Transcoder Container of DL-232; Containers need Workers Paid, `spec/03-decisions-and-facts-2.md` §8).** Var `TRANSCODE_MODE` in `services/edge/wrangler.jsonc`: `offedge` in production, staging and previews; `mock` in tests (the full in-Worker path with `MockTranscodePort`, as M05b1 runs it today).
+  - **Worker side (`offedge`):** `GenJobWorkflow` runs `05-assets-pipeline.md` §6 steps 1–5 as M05b1 built them, with two changes for the 10 ms step CPU: `copy-orig` streams the fal output body into `PRIVATE cutscenes-orig/<key>/orig.mp4` without buffering or hashing it, and no Worker step hashes a buffer larger than 65,536 bytes (keyframe and orig hashes move to `--finish`). Then a `handoff` step settles the fal spend in the ledger, writes `PRIVATE cutscenes-orig/<key>/handoff.json` (job key, plan and shot mapping, request id, provider, `characters[]`, licence block, spend) and ends the job without a manifest. `CutsceneJobDO` remembers the hand-off: route 27 answers `pending`, and route 28 for that key starts no job.
+  - **Operator side:** `prewarm --finish --release <tag> --env staging|prod` lists `handoff.json` objects without a ready manifest, fetches each `orig.mp4` with M01d's rclone uploader (`tools/assets/src/uploader-rclone.ts`, the S3 API), and runs §6 steps 6–12 on the workstation through M05b1's ports: `FfmpegTranscodePort` (Node) runs `services/pipeline/transcoder/ladder.sh` (`cut@1`, unchanged) with `ffmpeg` and `ffprobe` as separate processes (DL-629) and refuses unless `ffmpeg -version` reports the pinned version recorded in `spec/03` §7; `qa-gate` uses `ffprobe` frame counts plus black-frame, freeze and loudness checks; `C2paNodeSignPort` re-signs each rendition with the pinned `@contentauth/c2pa-node` (spec/03 §7) from `C2PA_CERT_CHAIN_PEM` and `C2PA_KEY_PEM` in the operator's shell; `subs` writes the scripted VTT; `publish` uploads renditions, poster, last frame and subtitles to `MEDIA cutscenes/<key>/` and `manifest.json` last, built by the same manifest builder the Workflow uses; `record` writes the provenance records. Captions are not run off-edge: the manifest carries no `a.m4a` (engine audio, which C09 allows), so no speech-bearing audio is exposed before H7. `--finish --env prod` refuses before any upload when the signing credentials are absent. Test inputs: `--local <orig.mp4> --out <dir>` (no R2, no Worker).
+  - **Not used on Free:** the Media Transformations fallback of §6 (its URL form needs a zone, and the `media` binding's plan availability is UNVERIFIED); a clip whose ladder fails stays a miss and plays its DirectorScript.
+  - **Post-upgrade option (owner gate, upgrade to Workers Paid):** the `TRANSCODER` Container (`TRANSCODE_MODE=container`) built on `claude/build-m05c3` and its lifecycle release `claude/release-do-lifecycle-3` (DO class `TranscoderContainer`, tag `web-v3`) are **parked, not merged**: a deployed migration tag cannot be rolled back, and a `containers` key fails on Free. The ladder script stays at its path so the Container can reuse it. CI keeps `MockTranscodePort` either way.
 
 ## Scope out
 - Fighter finishers and face-offs (G2, G3; the rest of the $38 line after Act 1, DL-740, DL-741): M10b. Acts 2–3 and racing intros stay in-engine in v1 (DL-173).
@@ -36,18 +41,20 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
 
 ## Deliverables
 - `tools/assets/gen/{cli.ts, prewarm.ts, estimate.ts, gates.ts, report.ts}`, `tools/assets/test/{prewarm.spec.ts, estimate.spec.ts}` and `tools/assets/test/fixtures/{registry-none.json, registry-cleared.json, act1-requests.json, sheets-lock.json}` (no cleared provider; `h3.partner` cleared; the 9 G1 refs; a sheet lock with two characters missing).
-- `services/pipeline/test/prewarm-act1.test.ts` (scenario in `check:pipeline`).
-- `services/edge/wrangler.jsonc`: `C2PA_RESIGN` var (`"1"` in `prod`, `"0"` in staging and previews); `/boot` exposes nothing new.
+- `services/pipeline/test/prewarm-act1.test.ts` (scenario in `check:pipeline`) and `services/pipeline/test/prewarm-act1-offedge.test.ts` (scenario `prewarm-act1-offedge`).
+- `services/edge/wrangler.jsonc`: `C2PA_RESIGN` var (`"1"` in `prod`, `"0"` in staging and previews) and `TRANSCODE_MODE` (`"offedge"` in every environment); no `containers` key, no `TRANSCODER` binding, no new Durable Object class or migration tag; `/boot` exposes nothing new.
 - `tools/ci/check-c2pa.ts` fixture additions: a `prod` manifest with `resigned: false` must fail.
 - `docs/releases/README.md` (how `--report` files are produced).
-- `services/pipeline/transcoder/{Dockerfile, ladder.sh, server.ts}`, `services/pipeline/src/transcode.ts` (real `TranscodePort`), `services/pipeline/test/transcode-port.test.ts`; `TRANSCODER` container binding in `services/edge/wrangler.jsonc`.
+- `services/pipeline/transcoder/ladder.sh` (recipe `cut@1`); edits to `services/pipeline/src/steps/cutscene.ts` (streamed `copy-orig`, `handoff`) and `services/pipeline/src/env.ts` (`TRANSCODE_MODE`).
+- `tools/assets/gen/{finish.ts, ffmpeg-port.ts, c2pa-sign-port.ts}`, `tools/assets/test/finish.spec.ts`, `tools/ci/test/wrangler-free.test.ts` (no `containers`, `TRANSCODER`, `cpu_ms`, `tail_consumers` or `logpush` key in any environment).
 - Root script: **`assets:gen`** (`tools/ci/run.ts assets-gen`).
-- About 19 files.
+- About 22 files.
 
 ## Interfaces
 - C09 1.0 read only: `CutsceneRequest`, `CutsceneIndex`, `CutsceneManifest.provenance.resigned`.
 - C07 1.1: registry `videoProviders`, the `assertCallable` gate, `GenJob.budgetUsdMicros`.
-- C12 1.1: routes 27–28; `BudgetGovernor.reserve/settle` (the Worker side, unchanged).
+- C12 1.1: routes 27–28 (`CutsceneStatus.state` `pending` for a handed-off key; shapes unchanged); `BudgetGovernor.reserve/settle` (the Worker side, unchanged).
+- Internal: `TranscodePort`, `SignPort` (M05b1) implemented a second time in Node by the finish adapters; `JobSinkPort` gains no field (the hand-off is `CutsceneJobDO` state).
 - No contract change.
 
 ## Acceptance criteria
@@ -59,33 +66,42 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
 - AC-6 Given a production-environment manifest fixture with `resigned: false`, and one without `aiGenerated` When `check:c2pa` runs Then both fail, and the mock-prewarm outputs (re-signed with the pinned tool) pass — proof: `pnpm check:c2pa`
 - AC-7 Given a request for the `prod` env When the Worker reports `C2PA_RESIGN` off Then `prewarm --env prod --live` refuses before any submission — proof: `pnpm check:unit -- tools/assets/test/prewarm.spec.ts`
 - AC-8 Given the release index after a run with no cleared provider When the game plays Act 1 Then every Act 1 ref resolves to its in-engine DirectorScript, and the cutscene e2e is green — proof: `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene`
-- AC-9 Given ADR-GENAI-01 records a `cleared` provider, the Act 1 cast sheet crops are approved, the Worker holds `FAL_KEY`, and the fal prepaid balance stays within the programme cap When the operator runs the live prewarm and then re-runs it Then the ledger delta for kind `cutscene` is ≤ 16,000,000 micros, the second run plans 0 submissions, and `check:c2pa` passes on the release — proof: manual: operator workstation, `pnpm assets:gen prewarm -- --release <tag> --env prod`, review the plan, add `--live --report`, then re-run without `--live`; followed by `pnpm check:c2pa`
+- AC-9 Given the Miniflare pipeline with `MockFalPort` and `TRANSCODE_MODE=offedge` When `prewarm-act1-offedge` runs Then each planned job ends after `copy-orig` with `orig.mp4` and `handoff.json` under `PRIVATE cutscenes-orig/<key>/`, no `manifest.json` in MEDIA, route 27 answers `pending`, a spy on `sha256Hex` records no input above 65,536 bytes, and a second route 28 call for the same keys starts no job and makes 0 `FalPort` calls — proof: `pnpm check:pipeline`
+- AC-10 Given two handed-off fixture keys, `MockTranscodePort`, `MockSignPort` and a stub uploader When `prewarm --finish` runs Then every rendition, the poster, the last frame and the subtitles are uploaded before `manifest.json`, the manifest names `v768` and `v540` with `provenance.resigned: true`, `aiGenerated: true` and the orig SHA-256, a `--env prod` run without `C2PA_CERT_CHAIN_PEM` refuses before any upload, and the ladder runner hands a stub `ffmpeg` exactly the `cut@1` arguments and refuses a stub that reports another version — proof: `pnpm check:unit -- tools/assets/test/finish.spec.ts`
+- AC-11 Given the branch When the Worker configuration and migrations are checked Then no environment declares `containers`, `TRANSCODER`, `limits.cpu_ms`, `tail_consumers` or `logpush`, `TRANSCODE_MODE` is `offedge` in every environment, and no Durable Object class or migration tag is added — proof: `pnpm check:unit -- tools/ci/test/wrangler-free.test.ts && pnpm check:do-migrations`
+- AC-12 Given the pinned `ffmpeg` and `ffprobe` on the operator workstation and a test C2PA credential in the shell When `pnpm assets:gen prewarm -- --finish --local tests/fixtures/cutscenes/<id>/v768.mp4 --out .genai/work/cut1-fixture` runs Then `ffprobe` reports `v768` as H.264 High at level 4.0 and `v540` at 540 lines, both with a keyframe every 24 frames, and `pnpm check:c2pa -- --manifests .genai/work/cut1-fixture` passes — proof: manual: operator workstation, the commands above; the output goes into the PR report
+- AC-13 Given ADR-GENAI-01 records a `cleared` provider, the Act 1 cast sheet crops are approved, the Worker holds `FAL_KEY`, and the fal prepaid balance stays within the programme cap When the operator runs the live prewarm, then `--finish`, and then re-runs the prewarm Then the ledger delta for kind `cutscene` is ≤ 16,000,000 micros, the second run plans 0 submissions, and `check:c2pa` passes on the release — proof: manual: operator workstation, `pnpm assets:gen prewarm -- --release <tag> --env prod`, review the plan, add `--live --report`, then `pnpm assets:gen prewarm -- --release <tag> --env prod --finish`, then re-run without `--live`; followed by `pnpm check:c2pa`
 
 ## Test plan
 - **Unit:** `tools/assets/prewarm` (provider gate, sheet gate, ready skip, `--live` refusal, C2PA guard), `tools/assets/estimate` (formula vectors per provider price row) — `pnpm check:unit -- tools/assets`.
-- **Pipeline (Miniflare):** `prewarm-act1` — `pnpm check:pipeline`.
+- **Pipeline (Miniflare):** `prewarm-act1` and `prewarm-act1-offedge` — `pnpm check:pipeline`.
+- **Finish (unit, stubs):** `pnpm check:unit -- tools/assets/test/finish.spec.ts`; Free-plan config guard `tools/ci/test/wrangler-free.test.ts`.
 - **Gate:** `pnpm check:c2pa`.
 - **E2E:** `@cutscene` on `chromium-webgl2` (fallback path for every Act 1 ref without a clip).
-- **Operator:** AC-9 when the owner gates are met; otherwise the report records "fallback-only".
+- **Operator:** AC-12 on the fixture clip (needs no provider or key); AC-13 when the owner gates are met; otherwise the report records "fallback-only".
 
 ## Demo script
 1. Run the AC-4 command: read the plan. Swap in `registry-none.json`: `blocked: no cleared provider`.
 2. `pnpm check:pipeline`: the second `prewarm-act1` run shows 0 calls.
 3. `pnpm check:c2pa`: the unsigned prod fixture fails, the mock outputs pass.
 4. `pnpm check:e2e -- --project=chromium-webgl2 --grep @cutscene`: Act 1 refs fall back cleanly.
+5. AC-12 on the operator workstation: the fixture clip goes through `cut@1` and the re-signer, and `check:c2pa` passes.
 
 ## Effort
-0.7 Builder session; about 19 files; risk **medium** (owner gates decide whether any money moves; the code path is small; the container config keys are unverified).
+0.7 Builder session; about 22 files; risk **medium** (owner gates decide whether any money moves; the code path is small; the Container files of the first build are dropped and its ladder and signer code moves into the Node finish adapters, DL-745).
 
 ## Risks & fallbacks
-- **No cleared provider (default, Q-30):** the milestone is complete with a fallback-only Act 1. AC-9 is reported as "Blocked on: ADR-GENAI-01 / Q-30", and `docs/releases/<tag>/cutscenes.md` lists all 9 refs as in-engine.
+- **No cleared provider (default, Q-30):** the milestone is complete with a fallback-only Act 1. AC-13 is reported as "Blocked on: ADR-GENAI-01 / Q-30", and `docs/releases/<tag>/cutscenes.md` lists all 9 refs as in-engine.
 - **Sheet crops absent (M10a not run yet):** G1 refs are `sheet_missing`. Re-run after M10a2 with the same cap minus what was already spent (`--cap-micros` = 16,000,000 − ledger delta).
 - **Billing of refused or errored requests is UNVERIFIED (U-COST-3):** the plan assumes they are billed. The ledger settles from billing events, and any loss comes out of the $2 buffer, never out of M10b's share of the cutscene line (DL-740, DL-741).
+- **Workflow step CPU on Free (10 ms, RISK-31):** the Worker steps are I/O-bound by design (AC-9); on the first live run the operator reads the dashboard metric "Exceeded CPU Time Limits" for `tha-bay-web` and records it in the report; a step that exceeds it moves to `--finish`.
+- **A handed-off key is never finished** (operator away): it stays `pending` and plays its DirectorScript; `handoff.json` and `orig.mp4` stay in PRIVATE and the next `--finish` picks them up; the spend is already settled, so nothing is paid again.
 - **H3-family US licence (U-AST-16) unresolved:** production refuses `pending` providers by registry rule. Previs jobs never feed the release index (CI fails an index that references `previs/`).
 
 ## Notes for the Builder
 - Read first: `05-assets-pipeline.md` §6 and §11–§12; `03-story-cutscenes.md` §D5 and §D9–§D9.1; `spec/06-asset-pipeline.md` §12; `docs/decisions/ADR-GENAI-01-video-model-licence-gate.md`.
-- **Owner and secret gates:** ADR-GENAI-01 `cleared` (owner, Q-30); `FAL_KEY` as a Worker secret for the production pipeline, held per Q-17 and never in CI; `OPS_TOKEN` for route 28; prepaid fal balance topped up only within the remaining programme cap, auto-recharge off (DL-OWN-01). Any missing → `SKIP … <VAR> not set`, exit 0, list under "Blocked on".
+- **Workers Free (DL-OWN-08, DL-745):** start from current `main`, not from `claude/build-m05c3` (built on an older base without the `BUILDER` queue, `MODERATION_MODE` and the 03:40 cron); reuse its CLI, estimate, gates, report and fixtures, and move its `ladder.sh` and the signer code of `transcoder/server.ts` into the finish adapters. Do not merge `claude/release-do-lifecycle-3`. Rules: `09-backend-ops.md` §1.4.
+- **Owner and secret gates:** ADR-GENAI-01 `cleared` (owner, Q-30); `C2PA_CERT_CHAIN_PEM` and `C2PA_KEY_PEM` in the operator's shell for `--finish` (never in CI or the Worker); `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` with read on PRIVATE and write on MEDIA for `--finish`; `FAL_KEY` as a Worker secret for the production pipeline, held per Q-17 and never in CI; `OPS_TOKEN` for route 28; prepaid fal balance topped up only within the remaining programme cap, auto-recharge off (DL-OWN-01). Any missing → `SKIP … <VAR> not set`, exit 0, list under "Blocked on".
 - CI never runs live fal (`FAL_MODE=mock`). The CLI has no code path that calls fal directly. It only calls our Worker.
 - Do not change key inputs. The key is S03's `cutsceneKey` (C09); `endpoint@pinnedUpdatedAt` comes from the registry.
 - Branch `m05c3-act1-prewarm`.
