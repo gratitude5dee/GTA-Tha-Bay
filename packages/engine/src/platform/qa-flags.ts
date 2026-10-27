@@ -67,6 +67,8 @@ export interface QaFlags {
   /** ?fighter=1|versus|training|demo boots the fighter sim module (components 1280 to 1283) and the QA bridge `fighter` (M08a2); `versus` (or `demo`) and `training` also start that match by themselves. */
   readonly fighter: boolean;
   readonly fighterStart: 'versus' | 'training' | null;
+  /** ?fighter=demo: the CPU plays both sides (attract mode), so the arena moves with no input. */
+  readonly fighterDemo: boolean;
   /** ?tycoon=1 mounts the Business Tycoon QA panel and the bridge `tycoon` (M09a1); the mode itself starts from the panel. */
   readonly tycoon: boolean;
   /** ?npcCast=<n> stands n named NPCs at the hub (the roster plus clones, at most 64); the perf scenario `npc-mission-crowd` uses 12 (M06c). */
@@ -109,6 +111,7 @@ export const NO_QA_FLAGS: QaFlags = Object.freeze({
   racingDemo: false,
   fighter: false,
   fighterStart: null,
+  fighterDemo: false,
   tycoon: false,
   npcCast: 0,
   net: null,
@@ -197,6 +200,7 @@ export function parseQaFlags(search: string, enabled: boolean = isQaBuild(), sto
     racingDemo: q.get('racing') === 'demo',
     fighter: ['1', 'versus', 'training', 'demo'].includes(q.get('fighter') ?? ''),
     fighterStart: q.get('fighter') === 'training' ? 'training' : q.get('fighter') === 'versus' || q.get('fighter') === 'demo' ? 'versus' : null,
+    fighterDemo: q.get('fighter') === 'demo',
     tycoon: q.get('tycoon') === '1',
     npcCast: Math.min(64, nonNegInt(q.get('npcCast')) ?? 0),
     net: NET_PROFILE_IDS.find((id) => id === q.get('net')) ?? null,

@@ -73,6 +73,8 @@ export class FighterSession {
   private replay: { r: DvFightReplay; in0: Uint16Array; in1: Uint16Array; bad: number | null; checked: number } | null = null;
   private moveListText: MenuVm['moveList'] = [];
   private lastView = '';
+  /** Slot 0's inputs as `[word, tick it began]`, for the input display. */
+  private readonly hist: number[][] = [];
 
   constructor(readonly ctx: ModeContext, args: ModeEnterArgs, slice: JsonObject | null) {
     const p = (args.params ?? {}) as FighterEnterParams;
@@ -155,6 +157,7 @@ export class FighterSession {
     this.resultTick = -1;
     this.exitRequested = false;
     this.paused = false;
+    this.hist.length = 0;
     const m = new FighterMatch({ pack, rules, seed, lineup, stage: this.sel.stage });
     this.match = m;
     this.cam = newCamState();
@@ -200,6 +203,8 @@ export class FighterSession {
     if (!m) return;
     const [i0, i1] = this.inputs(m);
     m.step(i0, i1);
+    const last = this.hist[this.hist.length - 1];
+    if (!last || last[0] !== i0) { this.hist.push([i0, m.tick]); if (this.hist.length > 12) this.hist.shift(); }
     this.training?.observe(m, i0);
     advanceCam(m.buf, this.cam);
     if (this.replay) this.checkReplay(m);
@@ -334,6 +339,7 @@ export class FighterSession {
       cpu: [this.cpus[0] ? this.cpus[0].level : -1, this.cpus[1] ? this.cpus[1].level : -1],
       ids: [m.setup.lineup[0].fighterId, m.setup.lineup[1].fighterId],
       reducedMotion: this.reducedMotion, paused: this.paused, freeze,
+      ...(this.slice.settings.inputDisplay || this.training ? { inputs: this.hist.map((h) => [h[0] as number, m.tick - (h[1] as number)]) } : {}),
     });
     const json = view as unknown as JsonObject;
     // A paused or finished match repeats itself; send it once.

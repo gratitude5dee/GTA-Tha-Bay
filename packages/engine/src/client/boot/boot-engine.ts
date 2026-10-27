@@ -26,6 +26,7 @@ import {
 } from '../input/index.ts';
 import touchLayoutJson from '../../../../../config/input/touch/default-right.json';
 import racingTouchLayoutJson from '../../../../../config/input/touch/vehicle-racing.json';
+import fighterTouchLayoutJson from '../../../../../config/input/touch/fighter-simple.json';
 import { ENGINE_TIERS } from '../anim/lod.ts';
 import { AUDIO_CONFIG, AudioServiceImpl, type AudioContextLike } from '../audio/audio-service.ts';
 import { createFirstGestureUnlock, type FirstGestureUnlock } from '../../platform/media/first-gesture.ts';
@@ -773,10 +774,24 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     pad.attach(window as unknown as BinderTarget);
     touchBinder.attach(overlay.root as unknown as BinderTarget);
     // A mode with its own touch layout (racing, M07a1) swaps it in while it is the root of the mode stack.
+    // The fighter (M08a2) brings its own layout and the `fighter` input context while it runs, as the root mode or embedded in the story.
+    let fightingCtx = false;
     cleanups.push(vm.subscribe('sys.mode', (v) => {
-      const rootMode = (v as { stack?: { id: string }[] } | undefined)?.stack?.[0]?.id;
-      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : null;
+      const stack = (v as { stack?: { id: string }[] } | undefined)?.stack ?? [];
+      const rootMode = stack[0]?.id;
+      const fighting = stack.some((e) => e.id === 'fighter');
+      modeTouch = rootMode === 'racing' ? (racingTouchLayoutJson as unknown as TouchLayout) : fighting ? (fighterTouchLayoutJson as unknown as TouchLayout) : null;
       applyTouch();
+      if (router && fighting !== fightingCtx) {
+        fightingCtx = fighting;
+        if (fighting) router.push('fighter');
+        else router.pop('fighter');
+      }
+    }));
+    // The scheme the fighter menu holds picks the binding files of the `fighter` context (C03 1.1 `fighterScheme`).
+    cleanups.push(vm.subscribe('mode.fighter.menu', (v) => {
+      const scheme = (v as { scheme?: string } | undefined)?.scheme;
+      if (scheme === 'classic' || scheme === 'simple') router?.setFighterScheme(scheme);
     }));
     overlay.setEnabled(playing);
     cleanups.push(() => kbm.detach(), () => pad.detach(), () => touchBinder?.detach(), () => overlay?.dispose());

@@ -26,7 +26,7 @@
         "dy": 24
       },
       "sizePx": 68,
-      "icon": "attack",
+      "icon": "fight-l",
       "label": "touch.fighter.light"
     },
     {
@@ -39,7 +39,7 @@
         "dy": 70
       },
       "sizePx": 68,
-      "icon": "attack",
+      "icon": "fight-h",
       "label": "touch.fighter.heavy"
     },
     {
@@ -52,7 +52,7 @@
         "dy": 70
       },
       "sizePx": 68,
-      "icon": "special",
+      "icon": "fight-sp",
       "label": "touch.fighter.special"
     },
     {
@@ -65,7 +65,7 @@
         "dy": 112
       },
       "sizePx": 60,
-      "icon": "attack",
+      "icon": "fight-as",
       "label": "touch.fighter.assist"
     },
     {
@@ -78,7 +78,7 @@
         "dy": 150
       },
       "sizePx": 56,
-      "icon": "nitro",
+      "icon": "fight-hy",
       "label": "touch.fighter.hype"
     },
     {
@@ -91,7 +91,7 @@
         "dy": 150
       },
       "sizePx": 52,
-      "icon": "enter",
+      "icon": "fight-dash",
       "label": "touch.fighter.dash"
     },
     {

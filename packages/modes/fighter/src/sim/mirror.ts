@@ -100,6 +100,8 @@ const row = (m: FighterMatch, s: 0 | 1): FighterRow => [
 export interface ViewExtras {
   stage: string; night: boolean; scheme: [number, number]; cpu: [number, number]; ids: [string, string];
   reducedMotion: boolean; paused: boolean; freeze: number;
+  /** The input history of slot 0 for the optional input display, or undefined. */
+  inputs?: number[][];
 }
 
 /** The view model of this tick (`mode.fighter.view`). */
@@ -124,6 +126,8 @@ export function buildView(m: FighterMatch, plan: CamPlan, x: ViewExtras): FightV
     sc: x.scheme, cpu: x.cpu, id: x.ids,
     rm: x.reducedMotion ? 1 : 0,
     pa: x.paused ? 1 : 0,
+    rtw: m.setup.rules.roundsToWin, tmx: m.setup.rules.timerFrames, wn: m.winner,
+    ...(x.inputs ? { ih: x.inputs } : {}),
   };
 }
 

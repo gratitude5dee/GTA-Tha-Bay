@@ -35,6 +35,10 @@ export interface FightView {
   rm: number;
   /** Paused. */
   pa: number;
+  /** Rounds to win, timer length in frames (0 = none), the match winner slot (-1 until decided). */
+  rtw: number; tmx: number; wn: number;
+  /** Input display (optional): slot 0's last inputs as `[FighterInput word, frames held]`, newest last. */
+  ih?: number[][];
 }
 
 export interface MenuVm {
