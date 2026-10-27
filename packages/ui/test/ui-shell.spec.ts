@@ -294,6 +294,21 @@ describe('QA play bypass', () => {
     expect(e.sent).toEqual([{ t: 'mode.start', id: 'story' }]);
     expect(fine.frame).toBeNull();
   });
+  it('the modeStart hook runs once, with the mode id, before mode.start is sent, and not at all without an engine (M02f2)', () => {
+    const e = fakeEngine();
+    const seen: Array<{ id: string; sentBefore: number }> = [];
+    const h = { ...hooks(), modeStart: (id: string) => void seen.push({ id, sentBefore: e.sent.length }) };
+    const core = new ShellCore(props({ hooks: h as ShellHooks }));
+    core.ready();
+    core.state = 'Menu';
+    core.startMode('story');
+    expect(seen).toEqual([]);
+    expect(core.toastStore.list.map((x) => x.id)).toContain('engine.notReady');
+    core.attachEngine(e.port);
+    core.startMode('story');
+    expect(seen).toEqual([{ id: 'story', sentBefore: 0 }]);
+    expect(e.sent).toEqual([{ t: 'mode.start', id: 'story' }]);
+  });
   it('a resume from Pause closes a page left open over it, so the next Escape reaches the engine alone (M04e2, BD-M04e2-07)', () => {
     const h = hooks();
     const core = new ShellCore(props({ qaPlay: { mode: 'sandbox' }, hooks: h }));

@@ -399,6 +399,7 @@ export class ShellCore implements ShellApi {
         // no History in a test environment
       }
     }
+    this.props.hooks.modeStart?.(id);
     this.fire('startMode');
     this.engine.sendUi(slot ? { t: 'mode.start', id, slot } : { t: 'mode.start', id });
   }
