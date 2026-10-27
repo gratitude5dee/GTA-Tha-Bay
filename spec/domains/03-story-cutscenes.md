@@ -355,7 +355,7 @@ Clips are internal assets. Nothing generated is visible to players until it pass
 
 ## D9. Prewarm lists, counts and cost
 
-Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls. **DL-OWN-01:** the lists below are index refs, each with an in-engine fallback. The owner's USD 100 fal cap leaves $40 for video, so generation covers only the subset in §D9.1 and every other ref plays its DirectorScript.
+Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls. **DL-OWN-01:** the lists below are index refs, each with an in-engine fallback. The owner's USD 100 fal cap leaves $38 for video (DL-OWN-07), so generation covers only the subset in §D9.1 and every other ref plays its DirectorScript.
 
 | P | List | Refs (clips) | Seconds | Milestone |
 |---|---|---|---|---|
@@ -388,11 +388,11 @@ The player fighter and user NPCs are in-engine only (§D1).
 | `ltx25.fast` $0.09/s (720p) | $168.21 | $269.73 | same | [research/genai-pipeline-fal.md §A] |
 | `gemini.omniFlash11` $0.10/s (720p) | $186.90 | $299.70 | same | [research/genai-pipeline-fal.md §A] |
 
-These are list-price totals for generating every ref. They do not fit the $40 cutscene line (DL-OWN-01), so v1 generates the §D9.1 subset. Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). N = 12 is not generated in v1.
+These are list-price totals for generating every ref. They do not fit the $38 cutscene line (DL-OWN-07), so v1 generates the §D9.1 subset. Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). N = 12 is not generated in v1.
 
 ### D9.1 v1 generation line (DL-OWN-01, DL-173)
 
-The cutscene line is $40 of the owner's USD 100 fal cap (spike $10, characters $42, buffer $8). `pnpm assets:gen prewarm` walks the groups below in order and stops before the running estimate would pass **$38**; the last $2 is headroom for rerolls beyond the 1.5× allowance (§D8 retakes). Estimate per clip = shots × seconds × provider $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K keyframes; recipe R clips carry no keyframe. Prices are the §D9 list prices.
+The cutscene line is $38 of the owner's USD 100 fal cap (DL-OWN-07: spike $4, characters $42, vehicles and props $14, buffer $2). `pnpm assets:gen prewarm` walks the groups below in order and stops before the running estimate would pass **$38**; rerolls beyond the 1.5× allowance (§D8 retakes) come from the $2 buffer with owner sign-off (DL-740). Estimate per clip = shots × seconds × provider $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K keyframes; recipe R clips carry no keyframe. Prices are the §D9 list prices.
 
 | Group | Content | Recipe | `h3.partner` | `ltx25.fast` | `gemini.omniFlash11` |
 |---|---|---|---|---|---|
