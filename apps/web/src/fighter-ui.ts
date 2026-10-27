@@ -64,6 +64,7 @@ export function installFighterUi(opts: {
           stage.frame(dt);
         },
       }));
+      document.documentElement.setAttribute('data-dv-fighter', '');
       running = { ui, root, stage, offs };
     } finally {
       starting = false;
@@ -79,6 +80,7 @@ export function installFighterUi(opts: {
     r.stage.dispose();
     r.ui.unmount();
     r.root.remove();
+    document.documentElement.removeAttribute('data-dv-fighter');
   };
 
   const sync = (): void => {

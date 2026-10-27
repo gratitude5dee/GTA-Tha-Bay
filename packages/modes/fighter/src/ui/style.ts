@@ -5,6 +5,8 @@
  * meter also differs by shape (bars, diamonds, squares, a hatch for Rattled), so colour is never the only cue (FX9).
  */
 export const FIGHTER_CSS = `
+/* While the arena is up the world's own overlays (HUD, heat, mission and QA panels) stay out of the way; the page sets the flag. */
+html[data-dv-fighter] :is(.dv-hud,.dv-pursuit,.dv-modes,.dv-mission,.dv-npcagency,.dv-npcdbg){display:none!important}
 .dvf{position:fixed;inset:0;z-index:12;pointer-events:none;font-family:var(--dv-font-text,system-ui,sans-serif);color:var(--dv-color-text,#f2f5fb);
  --dvf-hp:#3ddc97;--dvf-hp-low:#ff6b6b;--dvf-hype:#ffc83d;--dvf-comp:#5ab4ff;--dvf-rattle:#ff6b6b;--dvf-bg:rgba(8,14,28,.72);--dvf-line:rgba(255,255,255,.28)}
 .dvf[data-palette=deutan]{--dvf-hp:#4aa3ff;--dvf-hp-low:#ffb000;--dvf-hype:#ffd23f;--dvf-comp:#c9a0ff;--dvf-rattle:#ffb000}
