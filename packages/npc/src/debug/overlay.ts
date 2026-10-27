@@ -184,6 +184,7 @@ export function mountNpcOverlay(bridge: NpcBridge, container: HTMLElement = docu
   document.head.append(style);
   const root = document.createElement('div');
   root.className = 'dv-npcdbg';
+  root.dataset['dvQa'] = '';
   root.dataset['testid'] = 'npc-overlay';
   root.setAttribute('role', 'group');
   root.setAttribute('aria-label', 'NPC dialogue debug');

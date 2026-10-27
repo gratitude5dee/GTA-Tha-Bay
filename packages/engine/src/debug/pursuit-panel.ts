@@ -43,6 +43,7 @@ export class PursuitPanel {
     document.head.append(this.style);
     const root = document.createElement('div');
     root.className = 'dv-pursuit';
+    root.dataset['dvQa'] = '';
     root.dataset['testid'] = 'pursuit-panel';
     root.setAttribute('role', 'group');
     root.setAttribute('aria-label', 'Pursuit debug');
