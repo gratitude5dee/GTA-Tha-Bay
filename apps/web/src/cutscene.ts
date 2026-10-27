@@ -53,6 +53,8 @@ export type CutsceneLogEntry = { at: number } & (
   | { k: 'play'; props: Record<string, unknown> }
   /** The input that asked for a skip, and the plays it ended (BD-FU-B03). */
   | { k: 'skip'; source: SkipSource; plays: string[] }
+  /** A clip that failed before its first frame was loaded into the next pooled element (BD-FIX-CUTFLAKE-01). */
+  | { k: 'next-host'; trigger: string; playId: string }
 );
 
 type DistributiveOmit<T, K extends string> = T extends unknown ? Omit<T, K> : never;
@@ -178,6 +180,7 @@ export function installCutscenes(engine: EngineHandle, platform: Platform, o: Cu
     },
     tapLabel: () => t('cutscene.tapToPlay'),
     force: () => (o.qa && (o.beats === 'fallback' || o.beats === 'video') ? o.beats : null),
+    onNextHost: (trigger, playId) => note({ k: 'next-host', trigger, playId }),
     warm: (urls) => {
       for (const u of urls) void fetch(u, { priority: 'low' } as RequestInit).catch(() => undefined);
     },

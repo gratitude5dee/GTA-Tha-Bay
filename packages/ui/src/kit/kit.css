@@ -511,3 +511,13 @@
     flex: 0 0 auto;
   }
 }
+
+/* Inline SVG icons of the kit (kit/icons.tsx): 1em square, painted in currentColor, never a font glyph (BD-FIX-GLYPH-01). */
+.dv-svg-icon {
+  display: inline-block;
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
+  vertical-align: -0.125em;
+  overflow: visible;
+}

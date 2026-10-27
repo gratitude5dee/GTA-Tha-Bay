@@ -58,6 +58,8 @@ export interface PlayerDeps extends ResolveDeps {
   warm?(urls: readonly string[]): void;
   /** How long a clip may hold the screen beyond its length before the player ends it (a lost `ended` event). Default 2000. */
   graceMs?: number;
+  /** A clip moved to the next host after this trigger before its first frame (the QA log reads it; BD-FIX-CUTFLAKE-01). */
+  onNextHost?(trigger: FallbackTrigger, playId: string): void;
 }
 
 type Cue = { startMs: number; endMs: number; text: string };
@@ -433,11 +435,13 @@ export class CutscenePlayerImpl implements CutscenePlayer {
   ): Promise<CutsceneOutcome> {
     const { deps } = this;
     const info = this.internals.get(clip);
-    const video = clip.source.kind === 'element' ? clip.source.video : null;
-    if (!info || video === null) {
+    const prepared = clip.source.kind === 'element' ? clip.source.video : null;
+    if (!info || prepared === null) {
       await this.letGo(playId, o.sendDone);
       return fallbackOutcome('not_ready');
     }
+    // `let`: a decode or load error before the first frame moves the clip to the next pooled element (`nextHost`).
+    let video: HTMLVideoElement = prepared;
     const act = this.begin(playId);
     const { timers, host, overlay } = deps;
     const cfg = deps.cfg;
@@ -544,7 +548,18 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       host.holdPoster(clip.posterUrl);
       postered = host.visible;
     }
-    const first = await this.firstFrame(video, Math.max(0, until - timers.now()));
+    let first = await this.firstFrame(video, Math.max(0, until - timers.now()));
+    if ((first === 'codec' || first === 'media_error') && !over) {
+      // Section D7, trigger table: `media_error` and `codec` go to the next host before the fallback. On the flat host the chain is
+      // ping-pong elements, so the clip is loaded once more into another pooled element inside the same answer window (a decoder
+      // pipeline that failed to start, as WebKit's on a loaded Linux runner, BD-FIX-CUTFLAKE-01). With no free element, it falls back.
+      const next = this.nextHost(video, info.picked.url, clip.posterUrl);
+      if (next !== null) {
+        deps.onNextHost?.(first, playId);
+        video = next;
+        first = await this.firstFrame(video, Math.max(0, until - timers.now()));
+      }
+    }
     if (first !== 'ok') {
       await failEarly(first);
       return done;
@@ -614,6 +629,24 @@ export class CutscenePlayerImpl implements CutscenePlayer {
       video.addEventListener('error', onErr);
       watch.arm(ms, () => settle('start_stall'));
     });
+  }
+
+  /**
+   * The next host of the flat chain (section D7 trigger table, `media_error` and `codec`): another pooled element loads the same
+   * rendition, and the failed element drops its decoder and goes back to the pool. The budget slot stays with the clip. Null, with
+   * nothing changed, when no element is free.
+   */
+  private nextHost(failed: HTMLVideoElement, url: string, posterUrl: string): HTMLVideoElement | null {
+    const next = this.deps.unlock.acquireVideo();
+    if (next === null) return null;
+    failed.removeAttribute('src');
+    failed.load();
+    this.deps.unlock.releaseVideo(failed);
+    next.muted = true;
+    next.poster = posterUrl;
+    next.src = url;
+    next.load();
+    return next;
   }
 
   private async startPlayback(video: HTMLVideoElement): Promise<true | 'not_permitted' | 'media_error'> {
