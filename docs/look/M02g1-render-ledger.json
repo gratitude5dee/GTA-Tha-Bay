@@ -48,5 +48,9 @@
         "windows": 0
       }
     }
+  },
+  "xr": {
+    "baseline": 80,
+    "after": 80
   }
 }
