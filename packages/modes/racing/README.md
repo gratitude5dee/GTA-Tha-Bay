@@ -1,6 +1,6 @@
 # @dv/mode-racing
 
-The racing game mode (M07a1): a race on real San Francisco streets, from the grid to the results card. The descriptor is still `comingSoon` (M07a2 flips it); a QA build starts a race through `__dvBridge.racing`.
+The racing game mode (M07a1): a race on real San Francisco streets, from the grid to the results card. The descriptor is `available` since M07a2; a QA build also starts a race through `__dvBridge.racing`.
 
 ## Layout
 

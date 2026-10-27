@@ -11,7 +11,7 @@ import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
  *  1. resume mid-mission: a flag is set and m.a1.01 is moved to its checkpoint stage; once the checkpoint save is confirmed the page is
  *     reloaded, and the mission continues at that stage with the same flag and the same wallet.
  *  2. m.a1.03 runs to its raid (the racing hook, played as its stub under `?hooks=stub`) and passes, the page is reloaded and plays on:
- *     `CoreSlice.unlocks` holds `unlock.racing`, the Racing tile is unlocked and `comingSoon`, Fighter and Tycoon stay locked, and the
+ *     `CoreSlice.unlocks` holds `unlock.racing`, the Racing tile is unlocked and `available`, Fighter and Tycoon stay locked, and the
  *     unlock toast showed once (not again after the reload).
  */
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -101,7 +101,7 @@ test.describe('story save and resume @story-resume', () => {
     expect(errors).toEqual([]);
   });
 
-  test('m.a1.03 passes, a reload plays on: Racing is unlocked and comingSoon, Fighter and Tycoon are locked, and the unlock toast showed once @story-resume', async ({ page }) => {
+  test('m.a1.03 passes, a reload plays on: Racing is unlocked and available, Fighter and Tycoon are locked, and the unlock toast showed once @story-resume', async ({ page }) => {
     await watchToasts(page);
     const errors = await boot(page);
     await expect.poll(async () => (await state(page))?.phase, { timeout: 120_000, intervals: [500] }).toBe('stage');
@@ -133,7 +133,7 @@ test.describe('story save and resume @story-resume', () => {
     // (`tileState` of packages/ui/src/pages/modes.ts, proven in packages/ui/test/modes-tiles.spec.ts)
     const modes = (await vm(page, 'sys.modes')) as { id: string; unlock: string | null; status: 'available' | 'comingSoon' }[];
     const tile = (id: string) => modes.find((m) => m.id === id);
-    expect(tile('racing')?.status).toBe('comingSoon');
+    expect(tile('racing')?.status).toBe('available');
     expect(tile('racing')?.unlock).toBe('unlock.racing');
     expect(unlocks.includes(tile('racing')?.unlock ?? '')).toBe(true);
     for (const id of ['fighter', 'tycoon']) {

@@ -4,7 +4,7 @@ export { ensureRacingLoader, RACING_SUITE, DEFAULT_CAR, corridorChunks, type Rac
 export { createRacingPursuitDriver, ensureRacingPursuitBot, PursuitBrain, RACING_PURSUIT_DRIVER_ID, PURSUIT_EVENT, standStillFrame, routeMetreOf } from './pursuit-bot.ts';
 export { runPursuitRig, runPursuitPar, RigHost, RigWorld, RoutePort, FOG_SIGHT_M, CORNER_RAD, type PursuitRigOptions, type PursuitRigResult } from './pursuit-rig.ts';
 export { decodeCorridor, decodeCorridorRaw, encodeCorridorRaw, type Corridor } from './corridor.ts';
-export { racingSpec, RACING_GOLDEN, RACING_SEED, racingTraceFile } from './specs.ts';
+export { racingSpec, race3Spec, RACE3_ID, RACE3_REPLAY, RACING_GOLDEN, RACING_SEED, racingTraceFile } from './specs.ts';
 
 import { ensureRacingBot } from './line-driver.ts';
 import { ensureRacingPursuitBot } from './pursuit-bot.ts';
