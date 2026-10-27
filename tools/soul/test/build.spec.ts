@@ -12,7 +12,7 @@ import { inkJsonProblems } from '../src/ink.ts';
 import { normalize } from '../src/normalize.ts';
 import { runSchemas } from '../src/schemas.ts';
 import { summarize } from '../src/summarize.ts';
-import { repoRoot, shippedSoul } from '../../../packages/shared/test/npc/helpers/souls.ts';
+import { readText, repoRoot, shippedSoul } from '../../../packages/shared/test/npc/helpers/souls.ts';
 
 const tmpDirs: string[] = [];
 const tmp = (): string => {
@@ -47,7 +47,7 @@ const rules = (r: RosterInput): string[] => [...new Set(checkRoster(r).map((i) =
 
 describe('checkRoster R1-R7 (AC-6)', () => {
   it('passes the shipped roster', () => {
-    const souls = new Map(roManifest.entries.map((e) => [e.id, parseSoul(shippedSoul(e.id)).front]));
+    const souls = new Map(roManifest.entries.map((e) => [e.id, parseSoul(readText(e.soul)).front]));
     expect(checkRoster({ manifest: roManifest, souls, soulFileExists: () => true, baseline: null, caps })).toEqual([]);
   });
 

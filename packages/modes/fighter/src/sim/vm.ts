@@ -54,6 +54,8 @@ export interface MenuVm {
   inputDisplay: boolean;
   /** The pause screen's move list for the player's scheme, once per open. */
   moveList: { id: string; nameKey: string; input: string; S: number; A: number; R: number; advHit: number | null; advBlock: number | null }[];
+  /** Authored trash talk for the picked pair (`talk.json`): the line before the bout, and the winner's line once it is over. */
+  talk: { pre: string; post: string };
   results: null | { outcome: 'win' | 'lose'; rounds: [number, number]; durationSec: number; xp: number };
   /** Unlocked fighters, for the select screen. */
   origin: 'menu' | 'story';

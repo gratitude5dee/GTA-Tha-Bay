@@ -1,6 +1,6 @@
 // M08b1 AC-6 (gimmicks): frenzy, string, pulse, agents, patch, charge, armor and poll on the committed kits.
 import { describe, expect, it } from 'vitest';
-import { FF, FM, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW, RNG_FIGHT } from '../../src/fight/buffer.ts';
+import { FF, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW, RNG_FIGHT } from '../../src/fight/buffer.ts';
 import { rngNext } from '../../src/fight/hash.ts';
 import { spawnProjectile } from '../../src/fight/projectiles.ts';
 import { St } from '../../src/fight/states.ts';
@@ -236,7 +236,7 @@ describe('poll (INFLUENCER)', () => {
     const c = duel('TECH_HACKER', 'ATH_POWER_BACK', { seed: 11 }), d = duel('INFLUENCER', 'ATH_POWER_BACK', { seed: 11 });
     rngNext(c.buf, RNG_FIGHT); rngNext(c.buf, RNG_FIGHT);
     expect([0, 1, 2, 3].map((i) => c.buf[RNG_FIGHT + i])).toEqual([0, 1, 2, 3].map((i) => d.buf[RNG_FIGHT + i]));
-    void FM;
+
   });
   it('buff 0 adds 50 % to Hype gains, buff 1 walks 15 % faster, buff 2 absorbs one strike', () => {
     const pickBuff = (want: number): Rig => {

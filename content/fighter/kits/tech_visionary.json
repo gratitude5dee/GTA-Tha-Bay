@@ -2,7 +2,7 @@
   "slot": "TECH_VISIONARY",
   "kit": "tech_visionary",
   "archetype": "setplay-drones",
-  "health": 9838,
+  "health": 9688,
   "walk": {
     "f": 60,
     "b": 46
@@ -113,7 +113,7 @@
               }
             ],
             "group": 0,
-            "damage": 235,
+            "damage": 255,
             "chipPermille": 0,
             "hitstun": 13,
             "blockstun": 10,
@@ -198,7 +198,7 @@
               }
             ],
             "group": 0,
-            "damage": 470,
+            "damage": 510,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -284,7 +284,7 @@
               }
             ],
             "group": 0,
-            "damage": 700,
+            "damage": 765,
             "chipPermille": 0,
             "hitstun": 23,
             "blockstun": 16,
@@ -362,7 +362,7 @@
               }
             ],
             "group": 0,
-            "damage": 195,
+            "damage": 215,
             "chipPermille": 0,
             "hitstun": 12,
             "blockstun": 10,
@@ -448,7 +448,7 @@
               }
             ],
             "group": 0,
-            "damage": 430,
+            "damage": 470,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -526,7 +526,7 @@
               }
             ],
             "group": 0,
-            "damage": 625,
+            "damage": 680,
             "chipPermille": 0,
             "hitstun": 0,
             "blockstun": 16,
@@ -588,7 +588,7 @@
               }
             ],
             "group": 0,
-            "damage": 505,
+            "damage": 555,
             "chipPermille": 0,
             "hitstun": 18,
             "blockstun": 14,
@@ -638,7 +638,7 @@
           "hit": {
             "boxes": [],
             "group": 0,
-            "damage": 780,
+            "damage": 850,
             "chipPermille": 0,
             "hitstun": 24,
             "blockstun": 0,
@@ -1217,7 +1217,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 235,
+        "damage": 170,
         "boxes": [
           {
             "x1": -100,
@@ -1258,7 +1258,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 275,
+        "damage": 200,
         "boxes": [
           {
             "x1": -120,

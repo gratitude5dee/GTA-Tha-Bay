@@ -2,7 +2,7 @@
   "slot": "RAP_HYPHY_ELDER",
   "kit": "rap_hyphy_elder",
   "archetype": "rushdown",
-  "health": 10010,
+  "health": 9997,
   "walk": {
     "f": 80,
     "b": 58

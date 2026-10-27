@@ -1,34 +1,37 @@
 {
  "RAP_HYPHY_ELDER": {
   "dmg": 102,
-  "health": 10010
+  "health": 9997
  },
  "RAP_LYRICIST": {
-  "dmg": 87,
-  "health": 9905
+  "dmg": 100,
+  "health": 9899,
+  "proj": 50
  },
  "RAP_NEW_WAVE": {
-  "dmg": 139,
-  "health": 10283
+  "dmg": 151,
+  "health": 10405
  },
  "TECH_VISIONARY": {
-  "dmg": 78,
-  "health": 9838
+  "dmg": 85,
+  "health": 9688,
+  "proj": 57
  },
  "TECH_HACKER": {
-  "dmg": 106,
-  "health": 10028
+  "dmg": 110,
+  "health": 10063
  },
  "ATH_SHOOTER": {
-  "dmg": 122,
-  "health": 10174
+  "dmg": 121,
+  "health": 10148
  },
  "ATH_POWER_BACK": {
-  "dmg": 61,
-  "health": 9677
+  "dmg": 62,
+  "health": 9692
  },
  "INFLUENCER": {
-  "dmg": 104,
-  "health": 10022
+  "dmg": 110,
+  "health": 10024,
+  "proj": 104
  }
 }

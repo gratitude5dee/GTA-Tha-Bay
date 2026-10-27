@@ -2,7 +2,7 @@
   "slot": "ATH_SHOOTER",
   "kit": "ath_shooter",
   "archetype": "zoner-arc",
-  "health": 10174,
+  "health": 10148,
   "walk": {
     "f": 58,
     "b": 50
@@ -198,7 +198,7 @@
               }
             ],
             "group": 0,
-            "damage": 730,
+            "damage": 725,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -284,7 +284,7 @@
               }
             ],
             "group": 0,
-            "damage": 1100,
+            "damage": 1090,
             "chipPermille": 0,
             "hitstun": 23,
             "blockstun": 16,
@@ -448,7 +448,7 @@
               }
             ],
             "group": 0,
-            "damage": 670,
+            "damage": 665,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -526,7 +526,7 @@
               }
             ],
             "group": 0,
-            "damage": 975,
+            "damage": 970,
             "chipPermille": 0,
             "hitstun": 0,
             "blockstun": 16,
@@ -588,7 +588,7 @@
               }
             ],
             "group": 0,
-            "damage": 795,
+            "damage": 785,
             "chipPermille": 0,
             "hitstun": 18,
             "blockstun": 14,
@@ -638,7 +638,7 @@
           "hit": {
             "boxes": [],
             "group": 0,
-            "damage": 1220,
+            "damage": 1210,
             "chipPermille": 0,
             "hitstun": 24,
             "blockstun": 0,
@@ -1132,7 +1132,7 @@
           "spark": "special",
           "cue": "hit.special"
         },
-        "damage": 855,
+        "damage": 845,
         "boxes": [
           {
             "x1": -150,

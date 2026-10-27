@@ -37,6 +37,11 @@ function dropFixtureAssets(root: string): void {
   const buildingDir = path.join(root, 'assets', 'src', 'building');
   rmSync(buildingDir, { recursive: true, force: true });
   for (const ref of Object.keys(lock.entries)) if (ref.startsWith('building/')) delete lock.entries[ref];
+  // M08b1: the gray-box fighter models, portraits and move sets are built by the fighter generators and tested in packages/modes/fighter.
+  for (const kind of ['anim', 'character', 'portrait']) {
+    rmSync(path.join(root, 'assets', 'src', kind), { recursive: true, force: true });
+    for (const ref of Object.keys(lock.entries)) if (ref.startsWith(`${kind}/`)) delete lock.entries[ref];
+  }
   writeFileSync(lockFile, `${JSON.stringify(lock, null, 2)}\n`);
 }
 

@@ -87,11 +87,15 @@ describe('the Showstopper is 3,200 at a 50 % minimum scale and the player kit is
 });
 
 describe('shipped names are original (FX2 name hygiene)', () => {
-  const research = ['go dumb', 'freestyle', 'stiff arm', 'chat vote', 'beat drop', '3-point', 'three-point'];
-  it('no move id, name key or tag carries a research name', () => {
+  // The research names FX2 replaced are in config/ip-denylist.json (terms); the specs read them from there.
+  const terms = read<{ terms: string[] }>('config/ip-denylist.json').terms.map((t) => t.toLowerCase().replace(/[-_]/g, ' '));
+  it('the denylist carries the replaced research names', () => {
+    expect(terms.length).toBeGreaterThanOrEqual(25);
+  });
+  it('no move id, name key or tag carries a denylisted term', () => {
     for (const [slot, k] of kits) {
       const text = [...k.moves, ...k.supers, k.shutdown, k.taunt].flatMap((m) => [m.id, m.nameKey, ...m.tags]).join(' ').toLowerCase().replace(/[_-]/g, ' ');
-      for (const r of research) expect(text.includes(r), `${slot}: ${r}`).toBe(false);
+      for (const r of terms) expect(text.includes(r), `${slot}: ${r}`).toBe(false);
     }
   });
   it('the replaced names are the shipped ones', () => {

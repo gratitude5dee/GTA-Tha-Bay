@@ -36,7 +36,7 @@ export interface FameHit { where: string; text: string; keyword: string; domain:
 
 /** The domains in force for a slot: the slot's reserved ones plus the ones the bound soul declares. */
 export function domainsFor(cfg: FameConfig, slot: string, soulDomains: readonly string[] = []): string[] {
-  return [...new Set([...(cfg.slots[slot] ?? []), ...soulDomains])].sort();
+  return [...new Set([...(cfg.slots[slot] ?? []), ...soulDomains])].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
 function movesOf(k: FighterDef): MoveDef[] { return [...k.moves, ...k.supers, k.shutdown, k.taunt]; }

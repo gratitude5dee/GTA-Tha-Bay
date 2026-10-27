@@ -2,7 +2,7 @@
   "slot": "RAP_NEW_WAVE",
   "kit": "rap_new_wave",
   "archetype": "zoner-trap",
-  "health": 10283,
+  "health": 10405,
   "walk": {
     "f": 70,
     "b": 55
@@ -113,7 +113,7 @@
               }
             ],
             "group": 0,
-            "damage": 415,
+            "damage": 455,
             "chipPermille": 0,
             "hitstun": 13,
             "blockstun": 10,
@@ -198,7 +198,7 @@
               }
             ],
             "group": 0,
-            "damage": 835,
+            "damage": 905,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -284,7 +284,7 @@
               }
             ],
             "group": 0,
-            "damage": 1250,
+            "damage": 1360,
             "chipPermille": 0,
             "hitstun": 23,
             "blockstun": 16,
@@ -362,7 +362,7 @@
               }
             ],
             "group": 0,
-            "damage": 350,
+            "damage": 380,
             "chipPermille": 0,
             "hitstun": 12,
             "blockstun": 10,
@@ -448,7 +448,7 @@
               }
             ],
             "group": 0,
-            "damage": 765,
+            "damage": 830,
             "chipPermille": 0,
             "hitstun": 19,
             "blockstun": 13,
@@ -526,7 +526,7 @@
               }
             ],
             "group": 0,
-            "damage": 1110,
+            "damage": 1210,
             "chipPermille": 0,
             "hitstun": 0,
             "blockstun": 16,
@@ -588,7 +588,7 @@
               }
             ],
             "group": 0,
-            "damage": 905,
+            "damage": 980,
             "chipPermille": 0,
             "hitstun": 18,
             "blockstun": 14,
@@ -638,7 +638,7 @@
           "hit": {
             "boxes": [],
             "group": 0,
-            "damage": 1390,
+            "damage": 1510,
             "chipPermille": 0,
             "hitstun": 24,
             "blockstun": 0,
@@ -740,7 +740,7 @@
               }
             ],
             "group": 0,
-            "damage": 695,
+            "damage": 755,
             "chipPermille": 0,
             "hitstun": 22,
             "blockstun": 15,
@@ -1172,7 +1172,7 @@
           }
         ],
         "group": 0,
-        "damage": 555,
+        "damage": 605,
         "chipPermille": 0,
         "hitstun": 20,
         "blockstun": 14,
@@ -1213,7 +1213,7 @@
           }
         ],
         "group": 0,
-        "damage": 1110,
+        "damage": 1210,
         "chipPermille": 0,
         "hitstun": 24,
         "blockstun": 16,
