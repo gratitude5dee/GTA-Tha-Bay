@@ -112,6 +112,8 @@ export interface SessionState {
   /** Entities the session made besides the player's car (rivals and the ghost). */
   puppets: number;
   endHash: string | null;
+  /** M07a2: the police director's heat in a pursuit event, else null. */
+  pursuit: { level: number; phase: string; cooldown01: number } | null;
 }
 
 /** What one finished attempt left: the mode folds it into the slice once. */
@@ -245,6 +247,7 @@ export class RaceSession {
       ghostRunning: this.ghostRunner !== null && this.ghostRunner.spawned,
       puppets: this.puppetIds.length + (this.ghostRunner?.spawned ? 1 : 0),
       endHash: this.endHashHex,
+      pursuit: this.d.pursuit && this.d.pursuit.running ? this.d.pursuit.snapshot() : null,
     };
   }
 

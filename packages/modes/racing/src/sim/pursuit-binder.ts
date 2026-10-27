@@ -111,6 +111,12 @@ export class PursuitBinder {
     }
   }
 
+  /** The director's heat as the bot and the HUD see it: level, phase and the cooldown fill 0..1. */
+  snapshot(): { level: number; phase: string; cooldown01: number } {
+    const st = this.api.state();
+    return { level: st.level, phase: st.phase, cooldown01: st.cooldown };
+  }
+
   bountyCents(): number {
     return Math.round(this.points) * this.rules.bounty.centsPerPoint;
   }

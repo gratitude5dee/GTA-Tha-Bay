@@ -1,5 +1,6 @@
 /**
- * The race validator (M07a1; 06-racing-data.md 4.2.1): rules V1 to V11 and V13 to V15. V12 (the par bot) is M07a2.
+ * The race validator (M07a1, M07a2; 06-racing-data.md 4.2.1): rules V1 to V15. V12 (the par bot) checks here that the par and its hash
+ * are present; `pnpm map:races par -- --check` re-runs the bot and reproduces them (M07a2).
  *
  * Rules that need the road graph (V1, V2, V7, V9 water) run when a bake is open and are skipped otherwise; the rest read only
  * the source and `race.json` and run everywhere (the fallback of the milestone's risk list, BD-M07a1-05). `source` rules (V10,
@@ -158,6 +159,9 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
     }
     if (out) f.push(err(9, 'a route point lies outside config/world.bounds.json play'));
 
+    // V12: the par and the hash of the headless canonical bot are present (the bot itself runs in `map:races par`)
+    if (!(def.parSec > 0) || !/^[0-9a-f]{16}$/.test(def.parBotHash)) f.push(err(12, `parSec ${def.parSec} and parBotHash ${def.parBotHash}: run pnpm map:races par`));
+
     // V13: size
     const bytes = inp.json !== undefined ? Buffer.byteLength(inp.json) : Buffer.byteLength(JSON.stringify(def));
     if (bytes > MAX_JSON_BYTES) f.push(err(13, `race.json is ${bytes} bytes (limit ${MAX_JSON_BYTES})`));
@@ -170,6 +174,12 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
         const b = (def.route[i] as RaceDef['route'][number]).edgeIds[0] as number;
         if (!bg.net.has(a) || !bg.net.has(b)) f.push(err(1, `edge ${a} or ${b} is not in the bake`));
         else if (bg.net.to(a) !== bg.net.from(b)) f.push(err(1, `edge ${a} does not lead into edge ${b}`));
+      }
+      // V2 (a warning): the route turns round on the street it is on, which a one-way street does not allow
+      for (let i = 1; i < def.route.length; i++) {
+        const a = (def.route[i - 1] as RaceDef['route'][number]).edgeIds.at(-1) as number;
+        const b = (def.route[i] as RaceDef['route'][number]).edgeIds[0] as number;
+        if (bg.net.has(a) && bg.net.has(b) && bg.net.isReverseOf(b, a)) f.push({ rule: 'V2', level: 'warn', message: `the route turns back on edge ${a} (a U-turn on its own street)` });
       }
       if (def.worldBake !== bg.bakeId) f.push(err(1, `compiled for bake ${def.worldBake.slice(0, 12)}, the open bake is ${bg.bakeId.slice(0, 12)}`));
       // V7: a circuit with traffic closes its side streets

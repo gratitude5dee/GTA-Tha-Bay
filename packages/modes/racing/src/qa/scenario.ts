@@ -60,6 +60,9 @@ export interface RacingObservation {
   speed: number;
   gate: number;
   outcome: string | null;
+  /** The police director's heat in a pursuit event (M07a2), else absent. */
+  heat?: number;
+  heatPhase?: string;
 }
 
 async function loadRacing(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScenario & { session: RaceSession; def: RaceDef; events: { t: string; tick: number; n?: number | undefined; s?: string | undefined }[] }> {
@@ -132,6 +135,7 @@ async function loadRacing(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScenar
     const o: RacingObservation = {
       phase: st.phase, tick: st.tick, s: st.s, x: car2 ? car2.pos[0] : 0, z: car2 ? car2.pos[2] : 0, yaw: car2 ? car2.yaw : 0,
       speed: car2 ? car2.speedMps : 0, gate: st.gate, outcome: st.outcome,
+      ...(st.pursuit ? { heat: st.pursuit.level, heatPhase: st.pursuit.phase } : {}),
     };
     return o as unknown as Record<string, unknown>;
   };
