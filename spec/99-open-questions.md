@@ -117,7 +117,7 @@ The world rows U-W1 onward are in `spec/99-open-questions-2.md` §2 (moved for t
 | U-BE-20 | `wrangler deployments status --json` field names | `tools/ci/deploy.ts` | M00a R&F | `versions list --json`; else stop before deploy | none |
 | U-BE-21 | DO restarts scoped to the deploying script | split Workers | M12c1 AC-12 | split Workers anyway | none |
 | U-BE-22 | `wrangler preview` validates `secrets.required` like `deploy` and `versions upload` (research verifies only those two [research/gap-ci-cd-release-assets.md §0 item 4]) | `deploy:preview` after a secret joins `secrets.required` (DL-679) | M06a1 N (first Preview with `PLAY_TOKEN_HMAC` required) | set the Preview base secret with `wrangler preview base-config secret put` before the PR | none |
-| U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $8 buffer absorbs it; recharge off | none |
+| U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $2 buffer absorbs it (DL-OWN-07); recharge off | none |
 | U-COST-2 | fal concurrency stays 2 under $100 total | batch plan | M10a1; M10a2 | batches of two | none |
 | U-COST-3 | fal bills refused or errored requests | ledger | M05c3 R&F; M00c | assume billed; loss from the buffer | none |
 | U-COST-4 | per-MAU usage and $25/h review rate | 10-cost-model | M14b1 (re-measure after launch) | research proposals | none |

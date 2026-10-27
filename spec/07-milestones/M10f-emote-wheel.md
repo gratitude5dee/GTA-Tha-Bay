@@ -9,7 +9,7 @@ After this session the player can express themselves in free roam. Holding the e
 - R-IP-01 (support): every clip, name and icon is original. There is no motion capture, no likeness, and no choreography or emote name taken from a game, an artist or a video.
 
 ## Depends on
-- **M10d1** (art-integration): final bodies on `bay_rig_v1`, which are the creator parts and the ped kit. The clips are authored and checked against them.
+- **M10d4** (art-integration, DL-739): final bodies on `bay_rig_v1`, which are the creator parts and the ped kit; through it **M10d1**. The clips are authored and checked against them.
 - **M04b2** (creator-phone-hud-kit):
   - the `'sandbox'` case of `appScreen` in `packages/ui/src/phone/apps.ts`, and `visibleApps` in `packages/ui/src/phone/registry.ts` (l.62, imported by `pause.tsx` l.16);
   - the `call` switch in `packages/ui/src/phone/pause.tsx`, which already sends `mode.cmd` with the reserved owner `phone`;
@@ -195,7 +195,7 @@ After this session the player can express themselves in free roam. Holding the e
 0.6 Builder session; about 37 files; risk **low** to **medium**: clip quality from pose functions, and the one-shot timing between the sim and the mixer.
 
 ## Risks & fallbacks
-- **Code-built clips look stiff on the M10d1 bodies:** ship the four core slots (`wave`, `two-step`, `phone`, `sit`, the gamedesign §7.7 set) and set the other four `enabled: false`. The wheel greys them out and AC-3 covers a disabled slot. Record a BD row.
+- **Code-built clips look stiff on the M10d4 bodies:** ship the four core slots (`wave`, `two-step`, `phone`, `sit`, the gamedesign §7.7 set) and set the other four `enabled: false`. The wheel greys them out and AC-3 covers a disabled slot. Record a BD row.
 - **`pad:b5` collides with a later default binding:** the action is remappable (AC-7). Change the default in `defaults.gamepad.json` only, with a BD row.
 - **A phone-started emote does not replay from recorded input,** because commands are not input frames. The wheel path replays exactly. Phone starts are presentation only and change no hashed state except `Control.state`, which a replay re-derives. Document this in the BD row.
 - **The mixer and the sim disagree on a one-shot's end:** the sim's `ticks` is authoritative. The animator clamps the clip at its last frame until the state leaves 21.

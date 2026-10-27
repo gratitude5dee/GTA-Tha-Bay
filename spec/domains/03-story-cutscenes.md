@@ -392,7 +392,7 @@ These are list-price totals for generating every ref. They do not fit the $40 cu
 
 ### D9.1 v1 generation line (DL-OWN-01, DL-173)
 
-The cutscene line is $40 of the owner's USD 100 fal cap (spike $10, characters $42, buffer $8). `pnpm assets:gen prewarm` walks the groups below in order and stops before the running estimate would pass **$38**; the last $2 is headroom for rerolls beyond the 1.5× allowance (§D8 retakes). Estimate per clip = shots × seconds × provider $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K keyframes; recipe R clips carry no keyframe. Prices are the §D9 list prices.
+The cutscene line is $38 of the owner's USD 100 fal cap (DL-OWN-07: spike $4, characters $42, vehicles and props $14, buffer $2). `pnpm assets:gen prewarm` walks the groups below in order and stops before the running estimate would pass **$38**; rerolls beyond the 1.5× allowance (§D8 retakes) come from the $2 buffer with owner sign-off (DL-740). Estimate per clip = shots × seconds × provider $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K keyframes; recipe R clips carry no keyframe. Prices are the §D9 list prices.
 
 | Group | Content | Recipe | `h3.partner` | `ltx25.fast` | `gemini.omniFlash11` |
 |---|---|---|---|---|---|

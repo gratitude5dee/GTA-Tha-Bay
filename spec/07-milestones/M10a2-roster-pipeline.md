@@ -34,7 +34,7 @@ Slots whose souls are real-derived stay `blocked:research` until Q-19 and Q-25 a
 - **Run stages 2–5** for the eligible slugs, two jobs at a time (fal default concurrency).
   - The run stops at the H1, H3 and H4 human gates.
   - Unattended runs never cross a human gate.
-  - A rejected candidate stays in `.genai/work/` and is re-run with a new seed only from the $8 buffer with owner sign-off (Q-26).
+  - A rejected candidate stays in `.genai/work/` and is re-run with a new seed only from the $2 buffer (DL-OWN-07) with owner sign-off (Q-26).
 - **Optimize, verify and publish per slug.**
   - Each slug gets three fidelities within `config/asset-budgets.json` (Hero/fighter rows for Standard, Named-NPC rows for Lean), plus `portrait/<slug>` and `mouth_atlas` (Standard only; Lean is jaw-only per §1).
   - The provenance chain has the `likeness` block.

@@ -6,7 +6,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 2. **The drill** three ways: a local e2e on `npc_test` with a simulated 24 h clock, a Workers-runtime suite, and a staging run (`test:ops -- --suite kill-drill`) measuring live removal within 60 s and the public purge.
 3. **Gate hardening:** a negative fixture per `GateCode`, a re-gate before `record` (kill or consent expiry between stages aborts), and a release check that every fighter and story ref has an in-engine fallback.
 4. **Prewarm idempotence** for story and fighter refs (second run, zero calls).
-5. **Fighter prewarm** of G2 (8 Shutdown, 8 Showstopper) then G3 face-offs in `content/fighter/cutscenes.json` order, capped at 24,000,000 micros (DL-209), only through an ADR-GENAI-01 `cleared` provider; otherwise zero spend and every ref plays its fallback.
+5. **Fighter prewarm** of G2 (8 Shutdown, 8 Showstopper) then G3 face-offs in `content/fighter/cutscenes.json` order, capped at 22,000,000 micros (DL-209, DL-740), only through an ADR-GENAI-01 `cleared` provider; otherwise zero spend and every ref plays its fallback.
 
 ## Requirements
 - R-NPC-04: the live kill-switch removes a character from play within 60 s and from public storage within 24 h, with stand-ins.
@@ -48,7 +48,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   - `ks:genai:all`, `ks:fal` and `gov:level` refuse new submits while a cache hit is still served.
 - **Release check.** `check:assets` fails a release whose fighter or story refs lack an in-engine fallback (FX6.6).
 - **Fighter prewarm.**
-  - `assets:gen prewarm --release <tag> --priority 2 --cap-micros 24000000 [--live]`.
+  - `assets:gen prewarm --release <tag> --priority 2 --cap-micros 22000000 [--live]`.
   - Walk G2 then G3 and stop before the running estimate (shots × seconds × $/s × 1.5, plus keyframes for recipe K) would pass the cap.
   - The provider is the first `cleared` one by the A-08 selection rule. With none cleared the run prints `refused: ENDPOINT_NOT_CLEARED`, spends zero, and every ref keeps its fallback.
   - Outputs are re-signed (C2PA) and pass `check:c2pa`.
@@ -88,10 +88,10 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 - AC-3 Given staging with `OPS_TOKEN` and `CF_API_TOKEN_CACHE` When the staging drill runs Then live removal is measured at 60 s or less (one location suffices because KV is off the live path, DL-557; the report also states the analytic bound `boundMs` = 10 s server cache + 30 s client poll + one request), every probe shows 404 with `CF-Cache-Status` not `HIT`, the restore brings `npc_test` back, and `tests/reports/ops/kill-drill.json` is written with `env`, `ranAt`, `removalMs` and `boundMs`; without the cache token the purge step is reported `skipped` and the suite exits 0 — proof: `pnpm test:ops -- --suite kill-drill`
 - AC-4 Given one fixture per `GateCode` When the gate suite runs Then each fixture yields exactly its code; a kill set between `mesh` and `rig` gives `aborted_killed` with nothing recorded; a consent `term_end` passing between stages gives `CONSENT_EXPIRED`; with `ks:fal` on, a new submit is refused while a cached result is still served — proof: `pnpm check:unit -- packages/shared/src/assets/gates && pnpm check:pipeline`
 - AC-5 Given mock providers and the story and fighter refs When the prewarm runs twice Then the first run submits only misses and the second makes zero `FalPort` calls; a roster `run` after the M10a2 batch also makes zero calls — proof: `pnpm check:pipeline`
-- AC-6 Given a registry where no video provider is `cleared` When the fighter prewarm runs with `--live` Then it prints `refused: ENDPOINT_NOT_CLEARED`, spends zero micros and leaves every ref on its fallback; given a mock `cleared` provider and `--cap-micros 24000000`, it walks G2 then G3 and stops before the running estimate passes the cap — proof: `pnpm check:pipeline`
+- AC-6 Given a registry where no video provider is `cleared` When the fighter prewarm runs with `--live` Then it prints `refused: ENDPOINT_NOT_CLEARED`, spends zero micros and leaves every ref on its fallback; given a mock `cleared` provider and `--cap-micros 22000000`, it walks G2 then G3 and stops before the running estimate passes the cap — proof: `pnpm check:pipeline`
 - AC-7 Given a release fixture whose fighter ref has no DirectorScript fallback When the asset gate runs Then it fails naming the ref; the real index passes — proof: `pnpm check:assets`
 - AC-8 Given mock prewarm outputs and a fixture rendition without re-sign When the C2PA gate runs Then the re-signed outputs pass and the fixture fails — proof: `pnpm check:c2pa`
-- AC-9 Given ADR-GENAI-01 `cleared` for a provider, the operator's `FAL_KEY` and a prepaid balance not above the remaining cap When the operator runs the dry run and then `pnpm assets:gen -- prewarm --release <tag> --priority 2 --cap-micros 24000000 --live` Then the cutscene line added by this run is at most 24,000,000 micros, every generated manifest is written last with `aiGenerated: true`, and a second run makes zero calls; if no provider is cleared, the run records the refusal and zero spend — proof: manual: operator workstation, attach the dry-run output, `pnpm assets:gen -- ledger --line cutscenes` and the second-run log to the PR
+- AC-9 Given ADR-GENAI-01 `cleared` for a provider, the operator's `FAL_KEY` and a prepaid balance not above the remaining cap When the operator runs the dry run and then `pnpm assets:gen -- prewarm --release <tag> --priority 2 --cap-micros 22000000 --live` Then the cutscene line added by this run is at most 22,000,000 micros, every generated manifest is written last with `aiGenerated: true`, and a second run makes zero calls; if no provider is cleared, the run records the refusal and zero spend — proof: manual: operator workstation, attach the dry-run output, `pnpm assets:gen -- ledger --line cutscenes` and the second-run log to the PR
 - AC-10 Given the branch When the Workers suites and the production-route check run and the Preview deploys Then all pass and no `_test` route exists in the production build — proof: `pnpm check:workers && pnpm check:prod-routes && pnpm deploy:preview`
 
 ## Test plan
@@ -105,7 +105,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
 1. `pnpm check:e2e -- --project=chromium-webgl2 --grep @kill-drill`: watch the trace as `npc_test` disappears and the stand-in spawns.
 2. `pnpm check:workers -- kill-purge`: the step log shows quarantine before delete.
 3. On staging: `pnpm test:ops -- --suite kill-drill`, then read `tests/reports/ops/kill-drill.json` (removal time, probes, restore).
-4. `pnpm assets:gen -- prewarm --release <tag> --priority 2 --cap-micros 24000000`: the dry run lists G2 and G3 and the estimate; with no cleared provider it prints the refusal.
+4. `pnpm assets:gen -- prewarm --release <tag> --priority 2 --cap-micros 22000000`: the dry run lists G2 and G3 and the estimate; with no cleared provider it prints the refusal.
 
 ## Effort
 1 Builder session; about 30 files; risk **medium**. The staging drill depends on deployed bindings and tokens. Everything else is CI-provable.
@@ -123,7 +123,7 @@ After this session the genAI pipeline is hardened and its kill-switch is drilled
   - `CF_API_TOKEN_CACHE`: GitHub repository secret (`08-test-and-ci.md` §8 store rule), also used for the staging drill.
   - `FAL_KEY`: operator only; never CI.
   - `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`: deploys.
-  - Owner gates: ADR-GENAI-01 provider clearance for any paid prewarm; DL-209 sets the $24 line, and Q-14 keeps the cap final.
+  - Owner gates: ADR-GENAI-01 provider clearance for any paid prewarm; DL-209 and DL-740 set the $22 line, and Q-14 keeps the cap final.
 - Order of work:
   1. gate fixtures and re-gate;
   2. the workflow and its Workers suite;

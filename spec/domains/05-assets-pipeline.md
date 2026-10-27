@@ -175,17 +175,18 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 | 15 s cutscene (3 shots, 1.5×) | Turbo $1.06 · H3 partner $1.35 · H3 Max ref $1.80 · LTX $2.18 · Gemini $2.25 | |
 | Full video set as first planned (100 story + 222 fighter clips = 3,915 s; superseded by DL-OWN-01, not a v1 plan) | H3 partner $234.9 · Turbo $156.6 · LTX (6 s minimum, 4,248 s) $382.3 · Gemini 720p $391.5 | |
 
-**One-off fal programme (DL-OWN-01: hard cap USD 100 total; replaces the $1,000 programme of G3; DL-171).** Unit prices above are list prices; v1 spend is limited by these lines, not by what the pipeline could generate.
+**One-off fal programme (DL-OWN-01: hard cap USD 100 total; replaces the $1,000 programme of G3; DL-171; allocation of DL-OWN-01 superseded by DL-OWN-07, 2026-10-26).** Unit prices above are list prices; v1 spend is limited by these lines, not by what the pipeline could generate.
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 11 steps: one test character, one keyframe, three video clips (no `blocked` provider, DL-286) | $3.76 |
+| Spike (M00c) | $4 | 11 steps: one test character, one keyframe, three video clips (no `blocked` provider, DL-286) | $3.76 |
 | Characters (M10a1, M10a2) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
-| Cutscenes (M05c3, M10b) | $40 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
-| Buffer | $8 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172); at most one voice design or three vehicle bodies, only with owner sign-off | $0 planned |
-| **Total** | **$100** | | **≈ $83 planned** |
+| Cutscenes (M05c3 ≤ $16, M10b ≤ $22) | $38 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
+| Vehicles and props (M10d1, M10d3) | $14 | M10d1: ≤ 2 traffic bodies (`sedan`, `pickup`) from 4 image-edit views of its own recipe blockout plus 2 multiview-to-3D candidates each (≤ 1,704,000 micros); M10d3: player cars or props by the same route within the rest; `lineCapMicros('vehiclesProps')` (M10d0) | ≤ $14 |
+| Buffer | $2 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172), cutscene retakes beyond 1.5×; only with owner sign-off | $0 planned |
+| **Total** | **$100** | | **≈ $97 planned at most** |
 
-Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated vehicle bodies, generated props and textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
+Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
 
 The ledger enforces the cap: `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms at 50 / 80 / 100 % ($50 / $80 / $100), hard stop at 100 %. The fal prepaid balance is topped up in tranches that never exceed the remaining cap, with auto-recharge off; `FAL_MODE=mock` is the dev and CI default; every paid job needs `--live` and prints a dry-run estimate first. R2 storage for all generated media is about 1 GB (S05 estimate, inside the free tier, F-023); transcode ≈ $0.001 per clip.
 

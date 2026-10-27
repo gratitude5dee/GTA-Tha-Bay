@@ -68,7 +68,7 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M10a1, M10a2 | F-017, F-042, F-044, F-045, F-046, F-047, F-048 | sheet, mesh and rig prices; webhook; glTF pipeline; cap | U-AST-1, U-AST-2, U-AST-17 |
 | M10b | F-023, F-043, F-047, F-048 | prefix purge; C2PA re-sign inputs; idempotent prewarm; cap | U-BE-10 |
 | M10c | F-025, F-046, F-051 | Workers AI and MiniMax voice prices; ElevenLabs terms | — |
-| M10d1 | F-017 | KTX2 and meshopt tooling for the art-pass assets (DL-390, DL-547) | U-AST-10 (CC0 catalogue terms; the licence snapshot is the evidence) |
+| M10d1 | F-017, F-047, F-048 | KTX2 and meshopt tooling for vehicles and props; fal queue and cap for ≤ 2 generated bodies on the vehicles-and-props line, prices as the file cites from `research/genai-pipeline-fal.md` (DL-390, DL-547, DL-740) | U-AST-10 (CC0 catalogue terms; the licence snapshot is the evidence) |
 | M10d2 | F-017 | KTX2 facade atlas and skyline cards (DL-390, DL-547) | U-PLT-8 (takram atmosphere on r186, AC-9 record) |
 | M10d3 | F-017 | KTX2 and meshopt tooling for player cars and fight stages (DL-460, DL-547) | U-AST-10 |
 | M10e | F-018, F-025 | 25 MiB per static file; Workers AI voice render through the M10c route (DL-500, DL-547) | U-AST-10, U-AST-11 (sound-effects endpoint terms), U-AST-14 (bark container on iOS) |
@@ -113,6 +113,9 @@ Milestone ids are the register in `spec/00-plan.md` (final per `spec/.wave5-note
 | M02f1 | F-023 | pack GETs through the Worker media route on staging (DL-713) | U-W8 (restated, DL-722), U-W18 (protocol and time to first byte, informational) |
 | M02f2 | none | idle-lane prefetch over existing pack GETs | U-W17 (Save-Data hint, feature-detected) |
 | M10f | none | original code-built clips on `bay_rig_v1`; no capture, likeness or external choreography | — |
+| M02g1, M02g2, M02h1 to M02h8 | F-001, F-002 | TSL nodes on both backends; each `three@0.186.1` export a file names (`PCFSoftShadowMap`, `bumpMap`, `InstancedMesh` partial updates, TRAA, multiview) is checked in the tarball before use and recorded in §7 (DL-739) | OSM tag meanings for cover and woods (M02h3, M02h5), recorded in §7 by the Builder |
+| M10d0 | F-017 | KTX2 PBR sets and four dated licence snapshots (DL-OWN-06, DL-740) | U-AST-10 (closed for the four packs by M10d0) |
+| M10d4 | F-017 | KTX2 and meshopt tooling for ped bodies, outfits and creator parts (DL-739) | U-AST-10 (snapshot from M10d0) |
 
 Rows that say "none" depend on no external system: their proofs are repository commands over pure code or authored data.
 

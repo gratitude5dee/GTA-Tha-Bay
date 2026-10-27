@@ -136,24 +136,22 @@
 - **R** R-NPC-01, R-IP-02 · **Dep** M10a2, M06a4, M06c, M05c2 · **Read** `04-npc-contracts.md` B5–B6, B8; `04-npc.md` §5.7 · **Out** `content/npcs`, `content-private/` (mount) · **C** C10 1.1
 - **Gate** Q-19, Q-25 (canary only while open), Q-20 · **Proof** `pnpm npc:lint`; `pnpm likeness:gate`; `pnpm check:missions -- --act 1`
 
-### M10d1 · art-integration — 1 · risk M · S05 (+S02, S10) (split 1 of 3; DL-390, DL-460)
-- **Goal:** final v1 art for traffic (10), police (6) and robotaxi bodies, remaining gray-box prefab props, the ped kit (8 bodies × 20 outfits on `bay_rig_v1`) and the creator-kit `character/pc-*` and `portrait/pc-*` parts, with provenance; placeholder registry `config/art-placeholders.json`; recipe fallback when no art is supplied (Q-39).
-- **R** R-MAP-04, R-UI-01, R-IP-01, R-MODE-02 (s) · **Dep** M05c2, M03b2, M04b2 · **Read** file `M10d1-…md`; `05-assets-pipeline.md` §3, §4, §7, §14; `02-world-living.md` §2.6, §4.5; `10-ui-pages.md` §2.8 · **Out** `assets/`, `config/art-placeholders.json`, `packages/world/src/client/{traffic,peds}`, `packages/ui/src/creator` · **C** C07 1.1, C04 1.1, C13 1.1
-- **Gate** Q-39, Q-24 (defaults apply) · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `DV_WORLD=synth pnpm check:perf -- --scenario downtown-rush --fail`; `@art-city`, `@art-creator`
+### M10d0, M10d1, M10d4 · art admission and art integration (DL-OWN-07, DL-739)
+The one-session M10d1 is split into M10d1 (vehicles, props, the placeholder registry) and M10d4 (pedestrians, creator parts), after the new M10d0 `art-admission`; their rows are in `_PLAN-3.md` § Look program.
 
 ### M10f · emote-wheel — 0.6 · risk M · S01 (+S10) (study set, DL-716, DL-718)
 - **Goal:** holding `SimButton.Emote` opens a wheel of eight original code-built clips played as `AnimStateId` 21, decided in the sim from the `InputFrame`; an Emotes list in the Sandbox app; closed in missions and while `net` is set (DL-719).
-- **R** R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M10d1, M04b2, M04e5 · **Read** file `M10f-emote-wheel.md`; `01-engine-contracts.md` (C03 `Emote`, C04 `AnimStateId`) · **Out** `packages/engine/src/sim/control/emote.ts`, `packages/engine/src/client/anim/emote-clips.ts`, `config/emotes.json`, `packages/ui/src/hud/emote-wheel.tsx` · **C** C01 1.0, C03 1.1, C04 1.1, C06 1.1 (read)
+- **R** R-UI-03 (s), R-ENG-04 (s), R-IP-01 (s) · **Dep** M10d4, M04b2, M04e5 · **Read** file `M10f-emote-wheel.md`; `01-engine-contracts.md` (C03 `Emote`, C04 `AnimStateId`) · **Out** `packages/engine/src/sim/control/emote.ts`, `packages/engine/src/client/anim/emote-clips.ts`, `config/emotes.json`, `packages/ui/src/hud/emote-wheel.tsx` · **C** C01 1.0, C03 1.1, C04 1.1, C06 1.1 (read)
 - **Gate** Q-13 iPhone 15 (manual touch run) · **Proof** `pnpm check:unit -- packages/engine/test/control.emote.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @emote`; manual `M10f/iphone`
 
-### M10d3 · art-integration — 1 · risk M · S05 (+S06, S07) (split 2 of 3, runs before M10d2; DL-460)
-- **Goal:** final v1 art for the 14 player cars with prefabs (`vehicle/<slug>` on the §7 node contract plus the `06-racing-content.md` C.8 nodes: cockpit, steering wheel, thrusters, `_dent`), the six fight-stage dioramas `prop/stage-<id>-{day,night}`, and a creator-kit body for any fighter M10a2 leaves on its gray-box capsule; fills the `owner: 'M10d3'` registry rows; recipe fallback when no art is supplied (Q-39).
-- **R** R-MODE-02, R-MODE-03, R-IP-01 · **Dep** M10d1, M07b2, M08b2, M10a2 · **Read** file `M10d3-…md`; `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4, FX5 · **Out** `assets/`, `content/fighter/{stages,roster.json}`, `config/art-placeholders.json`, `tools/assets/src/recipes` · **C** C07 1.1, C04 1.1, C13 1.1, C06 1.1
+### M10d3 · art-integration — 1 · risk M · S05 (+S06, S07) (runs after M10d4, before M10d2; DL-460, DL-739)
+- **Goal:** final v1 art for the 14 player cars with prefabs (`vehicle/<slug>` on the §7 node contract plus the `06-racing-content.md` C.8 nodes: cockpit, steering wheel, thrusters, `_dent`), the six fight-stage dioramas `prop/stage-<id>-{day,night}`, and a creator-kit body for any fighter M10a2 leaves on its gray-box capsule; fills the `owner: 'M10d3'` registry rows; vetted licensed bases or generated bodies within the vehicles-and-props line (DL-740), recipe fallback.
+- **R** R-MODE-02, R-MODE-03, R-IP-01 · **Dep** M10d4, M07b2, M08b2, M10a2 · **Read** file `M10d3-…md`; `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4, FX5 · **Out** `assets/`, `content/fighter/{stages,roster.json}`, `config/art-placeholders.json`, `tools/assets/src/recipes` · **C** C07 1.1, C04 1.1, C13 1.1, C06 1.1
 - **Gate** Q-39, Q-24 (defaults apply) · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `pnpm check:fighter`; `pnpm check:perf -- --scenario fight-stage --fail`; `@art-cars`, `@art-stages`
 
-### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (split 3 of 3; DL-390, DL-460)
-- **Goal:** KTX2 facade atlas, rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
-- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d1, M10d3, M02d2, M02e (façade node, DL-704) · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
+### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (DL-390, DL-460, DL-739)
+- **Goal:** KTX2 facade atlas (desktop and a `mobile` variant, DL-740), rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
+- **R** R-MAP-01, R-MAP-02 (s), R-MODE-02 (s), R-IP-01 · **Dep** M10d4, M10d3, M02d2, M02e (façade node, DL-704) · **Read** file `M10d2-…md`; `02-world-maps.md` §4; `02-world-bake.md` §6, §7; `02-world-living.md` §6 · **Out** `tools/map/src/far`, `tools/assets/src/final.ts`, `packages/world/src/client/{chunks,sky}` · **C** C07 1.1, C08 1.0, C13 1.1
 - **Gate** Q-39 (default applies) · **Proof** `pnpm assets:final`; `pnpm map:landmarks -- --build --check`; `DV_WORLD=synth pnpm check:perf -- --scenario route-ferry-ocean-beach --fail`; `@art-skyline`, `@art-ultra`
 
 ### M05e1 · story-act2-part1 — 1 · risk M · S03 (+S08 event host)

@@ -28,7 +28,7 @@ After this session Culture Wars is content-complete for v1, with in-engine prese
 - `check:assets` rule: a fighter ref without a fallback fails (FX6.6).
 
 ## Scope out
-- Generating or prewarming any clip, sheets, `assets:gen prewarm`: M10b (≤ $24 of the $40 cutscene line, DN-S13-02), gated by ADR-GENAI-01 and `FAL_KEY` (Q-17).
+- Generating or prewarming any clip, sheets, `assets:gen prewarm`: M10b (≤ $22 of the $38 cutscene line, DN-S13-02, DL-740), gated by ADR-GENAI-01 and `FAL_KEY` (Q-17).
 - Real models and signature clips: M10a1–M10a2. Kill drill end to end: M10b. Backlog stages: post-M10. Fighter XR rules and panels: M11b2; XR cutscene playback (hosts, vantage, subtitle plane): M11b4 (DL-229).
 
 ## Deliverables

@@ -1,7 +1,7 @@
 # M10d3 — art-integration
 
 ## Goal
-After this session the drivable player cars and the fight stages are final v1 art instead of gray-box stand-ins. **Split boundary (M10d, third id; runs between M10d1 and M10d2, DL-460):** M10d1 covers traffic, police, robotaxi, props, peds, creator parts and the placeholder registry `config/art-placeholders.json`; this session covers the 14 player cars of `06-racing-content.md` C.1 that have prefabs (the 13 cars of M07a1 and M07b1 plus `ondine-pico`), the six fight stages of `07-fighter-content.md` FX5 and the fighter-model fallback; M10d2 covers the city surfaces and the `assets:final` scan, which therefore sees these rows filled. Each car renders a real body with an original livery on the C07 vehicle node contract extended by C.8 (cockpit, steering wheel, thrusters, `_dent`), so M07b2's VR-7 cockpits and VR-8 dents run on final meshes; each stage ships final `prop/stage-<id>-{day,night}` dioramas; any roster slot that M10a2 left on its gray-box capsule gets a creator-kit body. Every new file has provenance, passes the IP gates and stays inside the tier and stage budgets.
+After this session the drivable player cars and the fight stages are final v1 art instead of gray-box stand-ins. **Split boundary (M10d, third id; runs between M10d4 and M10d2, DL-460, DL-739):** M10d1 covers traffic, police, robotaxi, props and the placeholder registry `config/art-placeholders.json`, M10d4 peds and creator parts; this session covers the 14 player cars of `06-racing-content.md` C.1 that have prefabs (the 13 cars of M07a1 and M07b1 plus `ondine-pico`), the six fight stages of `07-fighter-content.md` FX5 and the fighter-model fallback; M10d2 covers the city surfaces and the `assets:final` scan, which therefore sees these rows filled. Each car renders a real body with an original livery on the C07 vehicle node contract extended by C.8 (cockpit, steering wheel, thrusters, `_dent`), so M07b2's VR-7 cockpits and VR-8 dents run on final meshes; each stage ships final `prop/stage-<id>-{day,night}` dioramas; any roster slot that M10a2 left on its gray-box capsule gets a creator-kit body. Every new file has provenance, passes the IP gates and stays inside the tier and stage budgets.
 
 ## Requirements
 - R-MODE-02: player cars (supercars, the rocket roadster, the robotaxi) have final bodies, cockpits and dent-ready meshes for the `desktop-ultra` look.
@@ -9,7 +9,7 @@ After this session the drivable player cars and the fight stages are final v1 ar
 - R-IP-01: every new asset has a provenance record, an admitted licence and passes `ip:strings` and `names:lint`.
 
 ## Depends on
-- **M10d1:** `config/art-placeholders.json` and schema (with the three `owner: 'M10d3'` seed rows), the recipe route in `tools/assets/src/recipes/`, the creator-kit `character/pc-*` parts on `bay_rig_v1`.
+- **M10d4** (DL-739): the creator-kit `character/pc-*` parts on `bay_rig_v1`. Through it **M10d1**: `config/art-placeholders.json` and schema (with the three `owner: 'M10d3'` seed rows), the recipe route in `tools/assets/src/recipes/`, the vetted import route and `lineCapMicros('vehiclesProps')` (M10d0).
 - **M07b2:** garage, livery (`texture/<id>` + hue + plate), VR-7 cockpit and VR-8 `_dent` nodes in `packages/modes/racing/src/client/`; through it **M07b1** and **M07a1** (14 prefabs `assets/prefabs/vehicle.<slug>.json` on `vehicle/graybox.<slug>` stand-ins with the C.8 nodes as proxies, handling JSON).
 - **M08b2:** six `content/fighter/stages/<id>.json` on `prop/graybox.stage-<id>-{day,night}` stand-ins, `fight-stage` scenario cycling the stages; through it **M08b1** (roster, `check:fighter`) and **M08a2** (`powell_turntable`, capsule fighters `character/graybox.<slug>`).
 - **M10a2:** generated fighter models; slugs it lists as `pending` keep `character/graybox.<slug>` until this session.
@@ -17,14 +17,14 @@ After this session the drivable player cars and the fight stages are final v1 ar
 - Owner: Q-39 (art sourcing), Q-24 (art lead time). The default applies when they stay open.
 
 ## Scope in
-- **Sourcing** (`05-assets-pipeline.md` §7 "Race and hero cars" and "Landmarks" rows; Q-39 default): authored bodies or verified CC0/CC-BY bases with original liveries, admitted only with licence snapshot, per-file provenance, `credits.json` lines and a vision and `ip:strings` pass, exactly as in M10d1. No fal or other genAI meshes here (DL-OWN-01); the §7 Meshy buffer route is not used. If the owner supplies no source files by the start of the session, the Builder writes deterministic recipes `tools/assets/src/recipes/{race-car.ts, stage.ts}` with `authored` provenance at the same AssetIds and says so in the report.
+- **Sourcing** (`05-assets-pipeline.md` §7 "Race and hero cars" and "Landmarks" rows; Q-39 default): authored bodies or verified CC0/CC-BY bases with original liveries, admitted only with licence snapshot, per-file provenance, `credits.json` lines and a vision and `ip:strings` pass, exactly as in M10d1. Generated bodies are allowed within the vehicles-and-props line (DL-OWN-07 (3), DL-740): M10d1's route (four image-edit views of this milestone's recipe blockout, then multiview-to-3D candidates, H6 picks), live only with `FAL_KEY` and `--live`, refused by the ledger above what M10d1 left of `lineCapMicros('vehiclesProps')` (12,296,000 micros at most); the §7 Meshy buffer route is not used. If the owner supplies no source files by the start of the session, the Builder writes deterministic recipes `tools/assets/src/recipes/{race-car.ts, stage.ts}` with `authored` provenance at the same AssetIds and says so in the report.
 - **Player cars:** `vehicle/<slug>` for `ondine-pico`, `ondine-nimbus`, `kestrel-quill`, `kestrel-finch`, `tidewater-neap`, `brackenridge-rasp`, `brackenridge-drayman`, `tidewater-spring`, `aurelian-sorrel`, `aurelian-meridian`, `aurelian-halberd`, `aurelian-apogee`, `solenne-skip`, `halcyon-cormorant` (fictional makes; operator "Halcyon Mobility"), each with `desktop`/`mobile`/`mobile-low` variants. Nodes: the §7 contract (`body`, `wheel_fl|fr|rl|rr`, `steer_fl|fr`, `light_head_l|r`, `light_brake_l|r`, `collider_hull` ≤ 64 vertices, `fictionalMake`) plus the C.8 extension: `cockpit` (`desktop` and `mobile` only), `steering_wheel`, `anchor_driver`, `anchor_hood`, `exhaust_l|r`, `thruster_fl|fr|rl|rr` (`solenne-skip` only) and the `_dent` vertex attribute (0..1) on `body`. H6 checks of §7 hold (wheel spin axis, steer pivot, no interior at `lo`, hull within 5 cm). Base liveries take M07b2's hue and plate. Each prefab `vehicle.<slug>.json` points `render.asset` at `vehicle/<slug>` (`vehicle.ondine-pico` moves off M10d1's traffic body); `anchors.ts` resolves the nodes.
 - **Stages:** `prop/stage-<id>-day` and `prop/stage-<id>-night` for `powell_turntable`, `ferry_plaza`, `dolores_slope`, `bayview_cranes`, `alcatraz_yard`, `mission_bay_court`, built over open-data massing and the stage's `landmarkRefs` (A-05), original art, no landmark used as a logo, no mural or public art, fictional venue names; `alcatraz_yard` in museum state (`07-fighter-content.md` FX4.6). Budgets per the FX5 stage-budget table (≤ 60 % of the tier's render objects and triangles, ≤ 50 % of its texture MB). `content/fighter/stages/<id>.json` `scene` switches to the final refs.
-- **Fighter-model fallback:** every `assets.model` or `standIn.assets.model` in `content/fighter/roster.json` still on `character/graybox.<slug>` after M10a2 gets `character/kit.<slug>`, assembled from M10d1 creator-kit parts on `bay_rig_v1` (no likeness; the fighter's `standIn` and tier rules are unchanged); the report lists those slugs.
+- **Fighter-model fallback:** every `assets.model` or `standIn.assets.model` in `content/fighter/roster.json` still on `character/graybox.<slug>` after M10a2 gets `character/kit.<slug>`, assembled from M10d4 creator-kit parts on `bay_rig_v1` (no likeness; the fighter's `standIn` and tier rules are unchanged); the report lists those slugs.
 - **Registry:** fill `replacedBy` for the three `owner: 'M10d3'` rows (player cars, stages, fighter models).
 
 ## Scope out
-- Traffic, police, ambient robotaxi, props, peds, creator parts: M10d1. Facade atlas, skyline cards, landmark pass, atmosphere, the `assets:final` scan: M10d2. The `art-final` gate: M14b3.
+- Traffic, police, ambient robotaxi, props: M10d1. Peds, creator parts: M10d4. Facade atlas, skyline cards, landmark pass, atmosphere, the `assets:final` scan: M10d2. The `art-final` gate: M14b3.
 - Generated fighter characters and fighter animation: M10a1–M10a2, M08b1 (Q-24). Backlog stages (`lombard_switchbacks` and the others in FX5): not v1.
 - Device calibration with final art: the M14b3 release device pass.
 
@@ -52,7 +52,7 @@ After this session the drivable player cars and the fight stages are final v1 ar
 ## Test plan
 - **Unit:** `tools/assets` (`race-car.nodes`, `stage.budget`, `fighter-kit`, recipe determinism if used), `packages/modes/racing` (`car-art`), `packages/modes/fighter` (`stage-art`).
 - **Gates:** `assets:catalog`, `assets:verify`, `check:assets`, `provenance:check`, `names:lint`, `ip:strings`, `ip:signatures`, `check:fighter`.
-- **E2E / perf:** `@art-cars`, `@art-stages` on `chromium-webgl2`; `fight-stage` in fail mode. M07a1–M07b2, M08a2–M08b2 and M10d1 tags stay green.
+- **E2E / perf:** `@art-cars`, `@art-stages` on `chromium-webgl2`; `fight-stage` in fail mode. M07a1–M07b2, M08a2–M08b2, M10d1 and M10d4 tags stay green.
 - **Manual:** AC-8 review.
 
 ## Demo script
@@ -69,6 +69,6 @@ After this session the drivable player cars and the fight stages are final v1 ar
 - **Session runs long:** cars of classes A, S and R and the six stages first, then the other cars, then the fighter fallback; an unfinished row keeps `replacedBy: []`, AC-2 fails, and the rest becomes a follow-up file through the Architect.
 
 ## Notes for the Builder
-- Read first: `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4.6, FX5 and the asset table; the M07a1, M07b1, M07b2, M08a2, M08b2 and M10d1 files.
+- Read first: `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4.6, FX5 and the asset table; the M07a1, M07b1, M07b2, M08a2, M08b2, M10d1 and M10d4 files.
 - Facts: F-017 (KTX2 tooling). The CC0 catalogue terms are UNVERIFIED (U10) and stay out of every AC; the licence snapshot is the evidence.
 - Secrets: none. No genAI spend. Owner gates: Q-39 and Q-24 (defaults apply). Branch `m10d3-art-integration`.

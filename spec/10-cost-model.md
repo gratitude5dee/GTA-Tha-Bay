@@ -68,13 +68,14 @@ fal has no spend cap and locks an account below a balance threshold (F-048), so 
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 11 steps (DL-286) | $3.76 |
+| Spike (M00c) | $4 | 11 steps (DL-286; cap from DL-OWN-07) | $3.76 |
 | Characters (M10a, M10b) | $42 | 8 Standard fighters × $3.67 + 12 Lean × $1.05 | $41.96 |
-| Cutscenes (M05c3, M10b) | $40 | greedy priority list stopping at a $38 running estimate | $37.60 |
-| Buffer | $8 | rejects, rig 422s, extra clips; voice design or vehicle bodies only with owner sign-off (Q-26) | $0 |
-| **Total** | **$100** | | **≈ $83** |
+| Cutscenes (M05c3, M10b) | $38 | greedy priority list stopping at a $38 running estimate | $37.60 |
+| Vehicles and props (M10d1, M10d3) | $14 | ≤ 2 traffic bodies in M10d1 (≤ $1.70); player cars or props in M10d3 within the rest (DL-OWN-07) | ≤ $14 |
+| Buffer | $2 | rejects, rig 422s, extra clips, retakes beyond the 1.5× allowance; only with owner sign-off (Q-26) | $0 |
+| **Total** | **$100** | | **≈ $97** with the vehicles line spent |
 
-Not bought with fal in v1: voice designs (Workers AI Aura or MeloTTS), generated cars and props, stand-ins (authored creator-kit bodies), player-triggered NPC looks, the 12-fighter target. Non-fal one-off work for 60 souls (normalization ≈ $5, barks ≈ $9, bark TTS ≈ $30) is billed to Anthropic and Workers AI (`04-npc-builder.md` §C7).
+Not bought with fal in v1: voice designs (Workers AI Aura or MeloTTS), generated cars and props beyond the $14 line, stand-ins (authored creator-kit bodies), player-triggered NPC looks, the 12-fighter target. Non-fal one-off work for 60 souls (normalization ≈ $5, barks ≈ $9, bark TTS ≈ $30) is billed to Anthropic and Workers AI (`04-npc-builder.md` §C7).
 
 **Which hooks get generated clips** (N = 8 fighters; provider `h3.partner` at $0.06/s; 1.5× retakes included; `03-story-cutscenes.md` §D9.1):
 

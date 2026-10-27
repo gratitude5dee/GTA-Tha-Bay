@@ -30,7 +30,7 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
 - **Transcoder Container** (DL-232; DL-041 named the binding, no milestone owned it, and the first live run is this milestone's AC-9): `services/pipeline/transcoder/` with the `cut@1` `ladder.sh` of `05-assets-pipeline.md` §6 step 6, a `Dockerfile` that pins its tool versions (recorded in `spec/03`), and the real `TranscodePort` adapter behind the `TRANSCODER` binding in `services/edge/wrangler.jsonc`. The wrangler `containers` keys are UNVERIFIED (U-BE-3): check them against the schema; if the binding cannot be declared, live runs take the §6 fallback (Media Transformations poster and `p720` with `degraded: true`) and the report says so. CI keeps `MockTranscodePort`; the adapter's request mapping is unit-tested against a stub container.
 
 ## Scope out
-- Fighter finishers and face-offs (G2, G3; ≤ $24): M10b. Acts 2–3 and racing intros stay in-engine in v1 (DL-173).
+- Fighter finishers and face-offs (G2, G3; ≤ $22, DL-740): M10b. Acts 2–3 and racing intros stay in-engine in v1 (DL-173).
 - Lean sheet crops for the Act 1 cast: produced by the character line in M10a1/M10a2. Until then the G1 refs are `sheet_missing`. The re-run after M10a2 is an operator step carried by M10b (DL-232); ready keys are not re-generated.
 - `assets:gen plan|run|gate` and roster automation: M10a1. Kill purge and prefix purge: M10b.
 
@@ -80,7 +80,7 @@ Act 1's cutscene refs are either generated once and cached, or shipped as fallba
 ## Risks & fallbacks
 - **No cleared provider (default, Q-30):** the milestone is complete with a fallback-only Act 1. AC-9 is reported as "Blocked on: ADR-GENAI-01 / Q-30", and `docs/releases/<tag>/cutscenes.md` lists all 9 refs as in-engine.
 - **Sheet crops absent (M10a not run yet):** G1 refs are `sheet_missing`. Re-run after M10a2 with the same cap minus what was already spent (`--cap-micros` = 16,000,000 − ledger delta).
-- **Billing of refused or errored requests is UNVERIFIED (U-COST-3):** the plan assumes they are billed. The ledger settles from billing events, and any loss comes out of the $8 buffer, never out of the $24 M10b line.
+- **Billing of refused or errored requests is UNVERIFIED (U-COST-3):** the plan assumes they are billed. The ledger settles from billing events, and any loss comes out of the $2 buffer, never out of the $22 M10b line (DL-740).
 - **H3-family US licence (U-AST-16) unresolved:** production refuses `pending` providers by registry rule. Previs jobs never feed the release index (CI fails an index that references `previs/`).
 
 ## Notes for the Builder

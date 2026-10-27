@@ -118,10 +118,11 @@ Inputs: research/INDEX.md §6 (unit list prices), `09-backend-ops.md` §5.4 (inf
 
 | Bucket | Cap | Milestone gate |
 |---|---|---|
-| Spike | ≤ $10 | M00c ledger ≤ 10,000,000 micros |
+| Spike | ≤ $4 (DL-OWN-07) | M00c ledger ≤ 4,000,000 micros (operator run with `DV_SPIKE_CAP_MICROS=4000000`, DL-740) |
 | Characters | ≤ $42 (≤ 8 Standard + ≤ 12 Lean) | M10a1 canary ≈ $7.3; M10a2 total ≤ 42,000,000 micros |
-| Cutscenes | ≤ $40 | M05c3 ≤ $16; M10b ≤ $24 (DN-S13-02); everything else in-engine (R-CUT-03) |
-| Buffer | $8 | owner-approved M06b4 jobs and retakes |
+| Cutscenes | ≤ $38 | M05c3 ≤ $16; M10b ≤ $22 (DN-S13-02, DL-740); everything else in-engine (R-CUT-03) |
+| Vehicles and props | ≤ $14 | M10d1 ≤ 1,704,000 micros; M10d3 the rest (DL-740) |
+| Buffer | $2 | owner-approved M06b4 jobs and retakes |
 
 Recurring stays G3 ($500/month; Anthropic $350, voice $100, moderation $25, buffer $25) with governor levels L1–L3 and per-player quotas. Add CI cost: public repos run free on standard runners; a private repo pays per minute, and the informational macOS nightly probe is about $11/month [research/gap-ci-cd-release-assets.md §5].
 
