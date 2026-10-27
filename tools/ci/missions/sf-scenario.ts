@@ -13,7 +13,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { chunkKeyAt, enuFromLatLng, type InputFrame, type SimChunk, type UnlockDef, type WorldIndex, type BotInput, decodeP0 } from '../../../packages/shared/src/index.ts';
+import { chunkKeyAt, enuFromLatLng, type InputFrame, type GameModeDescriptor, type SimChunk, type UnlockDef, type WorldIndex, type BotInput, decodeP0 } from '../../../packages/shared/src/index.ts';
 import {
   SimRuntime, attachSabWorker, bakedWorldConfig, createModesModule, createPursuitModule, createSabMain, type SimModule, type SimRuntimeEnv,
 } from '../../../packages/engine/src/sim/index.ts';
@@ -22,6 +22,9 @@ import { groundHeightAt } from '../../../packages/world/src/sim/streaming/boot.t
 import { WORLD_PORT, type PackReply, type PackRequest, type WorldSimConfig } from '../../../packages/world/src/sim/streaming/channel.ts';
 import { createWorldStreamingModule } from '../../../packages/world/src/sim/streaming/module.ts';
 import { preloadKeys } from '../../../packages/world/src/sim/traffic/scenario.ts';
+import { racingDescriptor } from '../../../packages/modes/racing/src/index.ts';
+import { racingSim } from '../../../packages/modes/racing/src/sim/mode.ts';
+import { createRacingModule, racePursuitLoaders } from '../../../packages/modes/racing/src/sim/module.ts';
 import { createStoryMode, type StoryController } from '../../../packages/modes/story/src/mode.ts';
 import { observeMission, type MissionObs } from '../../../packages/modes/story/src/autoplay/observe.ts';
 import { resolveMission } from '../../../packages/modes/story/src/compiler/resolve.ts';
@@ -93,6 +96,16 @@ function chunksAround(bake: SfBake, x: number, z: number, rings: number): SimChu
   return out;
 }
 
+/**
+ * The racing descriptor for a headless story run. The runner steps without yielding, so a lazy `import()` of the mode's sim half would
+ * never settle while the child waits in Loading; this one answers `.then` at once, with the sim half the worker would have imported.
+ */
+function racingChild(): GameModeDescriptor {
+  const d = racingDescriptor();
+  const now = { then: (ok: (m: { default: typeof racingSim }) => void) => void ok({ default: racingSim }) };
+  return { ...d, sim: () => now as unknown as ReturnType<GameModeDescriptor['sim']> };
+}
+
 const NEUTRAL: InputFrame = { tick: 0, buttons: 0, pressed: 0, released: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, camPitch: 0, context: 0, device: 7 };
 const MAX_WARMUP_TICKS = 1200;
 const turn = (): Promise<void> => new Promise((r) => setImmediate(r));
@@ -130,9 +143,12 @@ async function loadSf(o: SfLoaderOptions, spec: RunSpec, env: ScenarioEnv): Prom
 
   const holder: { controller: StoryController | null } = { controller: null };
   const mod = createWorldStreamingModule();
-  const pursuit = createPursuitModule();
+  // M07a2: the racing module and descriptor, so a mission's racing hook plays the real child race (the child bot is `racing.child`)
+  const pursuit = createPursuitModule({ ...racePursuitLoaders() });
+  const racing = createRacingModule({ wallMs: () => 0, buildId: 'qa' });
   const modes = createModesModule({
     ...(o.unlockDefs ? { unlockDefs: [...o.unlockDefs] } : {}),
+    descriptors: [racingChild()],
     wrapStory: (free, senv) => {
       const m = createStoryMode(free, senv, { headless: true });
       holder.controller = m.controller;
@@ -145,13 +161,13 @@ async function loadSf(o: SfLoaderOptions, spec: RunSpec, env: ScenarioEnv): Prom
     now: () => 0,
     blockFor: () => {},
     qa: true,
-    modules: [mod, pursuit, modes] as SimModule[],
+    modules: [mod, pursuit, racing, modes] as SimModule[],
     ports: { [WORLD_PORT]: new SyncLoader(bake.dir) },
     ...(env.retry ? { retry: env.retry as never } : {}),
   };
   const runtime = new SimRuntime(transport, rtEnv);
   const cfg = { ...bakedWorldConfig('canonical', 0, bake.bakeId), seed: spec.seed };
-  await runtime.boot(cfg, { strings: [], prefabs: [], config: { scenario: 'baked-world', spawn, spawnYaw: yaw, parked: false, world: worldConfigOf(bake, spawn) } });
+  await runtime.boot(cfg, { strings: [], prefabs: [], config: { scenario: 'baked-world', racing: true, spawn, spawnYaw: yaw, parked: false, world: worldConfigOf(bake, spawn) } });
   const sim = runtime.sim;
   const state = mod.state;
   if (!sim || !state) throw new Error('the world module did not start');

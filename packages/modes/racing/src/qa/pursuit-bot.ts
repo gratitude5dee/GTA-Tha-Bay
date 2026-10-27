@@ -9,7 +9,7 @@
  *
  * Params: `raceId` (default the Bayview pursuit), `vehicle` (default the starter loaner).
  */
-import { centreline, dsqrt, type HandlingProfile, type InputFrame, type RaceDef } from '@dv/shared';
+import { centreline, dsqrt, projectToRoute, type HandlingProfile, type InputFrame, type RaceDef } from '@dv/shared';
 import { registerBot, registeredBots, type BotContext, type BotDriver } from '@dv/engine/qa';
 import { LOANER_CAR, raceCar } from '../cars.ts';
 import { raceDef } from '../races.ts';
@@ -40,6 +40,8 @@ export class PursuitBrain {
   readonly spotS: number;
   readonly spotRadiusM: number;
   private readonly mem: LineMemory = { prevSteer: 0 };
+  /** Progress along the route, from the car's position: a pursuit event has no referee, so the session's own `s` stands still. */
+  private sWin = 0;
 
   constructor(readonly def: RaceDef, readonly prof: HandlingProfile) {
     const spot = def.hidingSpots?.[0];
@@ -61,7 +63,8 @@ export class PursuitBrain {
     if (o.phase !== 'Running') return base;
     // stop a little inside the spot's near edge so the whole car is in it
     const stopAt = Math.max(0, this.spotS - this.spotRadiusM * 0.25);
-    const c = driveLine(this.def, this.prof, this.plan, { x: o.x, z: o.z, yaw: o.yaw, speed: o.speed, s: o.s }, this.mem, { stopAtS: stopAt });
+    this.sWin = projectToRoute(this.def, [o.x, 0, o.z], Math.max(0, this.sWin - 2)).s;
+    const c = driveLine(this.def, this.prof, this.plan, { x: o.x, z: o.z, yaw: o.yaw, speed: o.speed, s: this.sWin }, this.mem, { stopAtS: stopAt });
     return { ...base, throttle: Math.round(c.throttle * 127), brake: Math.round(c.brake * 127), steer: c.steer };
   }
 }

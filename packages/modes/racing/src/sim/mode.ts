@@ -25,7 +25,9 @@ import { applyRun, readRacingSlice, type RacingSlice, type RunRecord } from './s
 let active: RaceSession | null = null;
 export const activeSession = (): RaceSession | null => active;
 
-interface Held { session: RaceSession; host: RacingHost; slice: RacingSlice; embedded: boolean; raceId: string }
+interface Held { session: RaceSession; host: RacingHost; slice: RacingSlice; embedded: boolean; raceId: string; resultsTicks: number }
+/** A story-embedded race leaves its results card by itself after this long (4 s): the story has no button for it. */
+const EMBEDDED_RESULTS_TICKS = 240;
 let held: Held | null = null;
 
 /** The slice of the running mode (QA and tests). */
@@ -77,7 +79,7 @@ export const racingSim: GameModeSim = {
     });
     host.attach(session);
     ctx.input.push('vehicle');
-    held = { session, host, slice, embedded, raceId: def.id };
+    held = { session, host, slice, embedded, raceId: def.id, resultsTicks: 0 };
     active = session;
   },
 
@@ -98,6 +100,7 @@ export const racingSim: GameModeSim = {
       h.session.markNewBest(out.newBest);
       ctx.save.request('modeExit');
     }
+    if (h.embedded && h.session.director.phase === 'Results' && ++h.resultsTicks >= EMBEDDED_RESULTS_TICKS) h.session.command('exit');
     if (h.session.finished || (h.session.exitRequested && h.session.director.phase === 'Results')) {
       ctx.events.emit({ t: 'mode.exit.request', tick: ctx.tick, s: 'completed' });
     }

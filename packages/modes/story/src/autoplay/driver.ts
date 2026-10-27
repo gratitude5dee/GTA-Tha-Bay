@@ -8,7 +8,7 @@
  * Sim code under the C02 lint; the registration at the bottom is a QA entry (`@dv/mode-story/qa`).
  */
 import type { InputFrame } from '@dv/shared';
-import type { BotContext, BotDriver } from '@dv/engine/qa';
+import { getChildBot, type BotContext, type BotDriver } from '@dv/engine/qa';
 import { deriveGoal, pickObjective, type Goal } from './goals.ts';
 import type { MissionObs } from './observe.ts';
 import { decide, newMem, type Control, type Mem } from './policies.ts';
@@ -46,12 +46,17 @@ export function createStoryAutoplayer(): BotDriver & { view(): AutoplayerView } 
   let last: MissionObs | null = null;
   let skip = 0;
   let view: AutoplayerView = { objective: null, goal: 'idle' };
+  // the bot of a child mode while a hook runs it for real (M07a2)
+  let child: { key: string; bot: BotDriver } | null = null;
+  let ctxKept: BotContext | null = null;
 
   return {
     id: STORY_AUTOPLAYER_ID,
     device: 'bot',
     init(ctx: BotContext, params?: Record<string, unknown>): void {
       observe = ctx.observe;
+      ctxKept = ctx;
+      child = null;
       rng = ctx.rng('bot');
       mem = newMem();
       prev = 0;
@@ -64,6 +69,22 @@ export function createStoryAutoplayer(): BotDriver & { view(): AutoplayerView } 
       if (!observe || !rng) throw new Error(`driver '${STORY_AUTOPLAYER_ID}' used before init`);
       const obs = observe() as unknown as MissionObs;
       last = obs;
+      if (process.env['DV_DIAG_RACING'] === '1' && tick === 17100) { const row: string[] = []; for (let zz = 3600; zz >= 3440; zz -= 5) row.push(`${zz}:${obs.groundY(2821, zz)?.toFixed(1) ?? 'x'}`); console.log('DIAGG', row.join(' ')); }
+      if (process.env['DV_DIAG_RACING'] === '1' && tick >= 17100 && tick <= 17230 && tick % 10 === 0) console.log('DIAGU', tick, 'me', obs.me.pos.map(Math.round).join(','), 'others', obs.others.slice(0, 4).map((o) => `${o.police ? 'P' : 'T'}${o.pos.map(Math.round).join(',')}`).join(' '), 'units', obs.units.slice(0, 3).map((o) => o.pos.map(Math.round).join(',')).join(' '));
+      if (process.env['DV_DIAG_RACING'] === '1' && tick % 600 === 0) console.log('DIAGS', tick, obs.stageId, obs.phase, JSON.stringify(obs.child), obs.objectives.map((o) => o.id).join(','));
+      if (obs.child) {
+        const key = `${obs.child.mode}/${obs.child.defId ?? ''}`;
+        if (!child || child.key !== key) {
+          const bot = getChildBot(obs.child.mode, obs.child.defId);
+          child = bot && ctxKept ? { key, bot } : null;
+          if (child && ctxKept) child.bot.init(ctxKept, { raceId: obs.child.defId ?? undefined });
+        }
+        if (child) {
+          prev = 0;
+          view = { objective: null, goal: `child ${child.key}` };
+          return child.bot.frame(tick);
+        }
+      } else child = null;
       let c: Control = { buttons: 0, moveX: 0, moveY: 0, throttle: 0, brake: 0, steer: 0, camYaw: 0, context: 0 };
       if (obs.phase === 'stage' && tick >= skip) {
         const o = pickObjective(obs);
