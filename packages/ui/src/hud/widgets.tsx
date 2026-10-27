@@ -1,12 +1,14 @@
 /**
  * The shared HUD widgets (10-ui-hud-xr.md 2.10). Every status widget pairs colour with an icon, a shape or text; data comes from the
  * `hud.*` view-model keys. Low-rate values go through state; high-rate values (the prompt's hold progress, the speed) update
- * `textContent` or a style through refs so the tree is not re-rendered per frame.
+ * `textContent` or a style through refs so the tree is not re-rendered per frame. Icons are the kit's inline SVGs, never font glyphs
+ * (BD-FIX-GLYPH-01).
  */
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { JsonValue, VmKey } from '@dv/shared';
 import { contentText, t } from '../i18n/index.ts';
+import { HeatBar, Icon, type IconId } from '../kit/icons.tsx';
 import { useShell } from '../shell/context.tsx';
 import {
   STATUS, clockText, dollars, heatStatus, litStars, promptGlyph, promptTextKey,
@@ -41,11 +43,11 @@ export function LiveText<T extends JsonValue>(props: { vmKey: string; format(v: 
 }
 
 /** One status: an icon, text and the semantic colour. A chip without an icon does not type-check, which is the lint of 2.13 rule 4. */
-export function StatusChip(props: { status: StatusDef; icon?: string; label?: string; testId?: string; extra?: ComponentChildren }) {
+export function StatusChip(props: { status: StatusDef; icon?: IconId; label?: string; testId?: string; extra?: ComponentChildren }) {
   const s = props.status;
   return (
     <span class="dv-schip" data-tone={s.tone} data-status={s.id} data-testid={props.testId}>
-      <span class="dv-schip-icon" aria-hidden="true">{props.icon ?? s.icon}</span>
+      <span class="dv-schip-icon" aria-hidden="true"><Icon name={props.icon ?? s.icon} /></span>
       <span class="dv-schip-text">{props.label ?? t(s.textKey)}</span>
       {props.extra}
     </span>
@@ -66,9 +68,9 @@ export function HeatStars(props: { heat: HudHeat | undefined }) {
     <div class="dv-heat" data-testid="hud-heat" data-level={level} data-phase={h?.phase ?? 'clear'} role="group" aria-label={t('hud.heat.label')}>
       <span class="dv-stars" aria-hidden="true">
         {[1, 2, 3, 4, 5].map((i) => (
-          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}>{i <= lit ? '▮' : '▯'}</span>
+          <span key={i} class={i <= lit ? 'dv-star dv-star-on' : 'dv-star'} data-tone={i <= lit ? status.tone : 'neutral'}><HeatBar index={i} lit={i <= lit} /></span>
         ))}
-        {level >= 6 ? <span class="dv-star dv-star-script" data-testid="hud-heat-scripted">{'✦'}</span> : null}
+        {level >= 6 ? <span class="dv-star dv-star-script" data-testid="hud-heat-scripted"><Icon name="spark" /></span> : null}
       </span>
       <StatusChip status={status} testId="hud-heat-phase" label={level >= 6 ? t('hud.heat.scripted') : level > 0 ? t('hud.heat.level', { level }) + ' · ' + t(status.textKey) : t(status.textKey)} />
       {cooling ? (
@@ -109,7 +111,7 @@ export function ClockWeather(props: { clock: HudClock | undefined }) {
   const c = props.clock;
   return (
     <div class="dv-clock" data-testid="hud-clock" data-ui-skip="" translate={false} aria-label={t('hud.clock.label')}>
-      <span class="dv-schip-icon" aria-hidden="true">{'◔'}</span>
+      <span class="dv-schip-icon" aria-hidden="true"><Icon name="clock" /></span>
       <span data-testid="hud-clock-value">{c ? clockText(c.hour) : t('hud.empty')}</span>
       {c ? <span class="dv-muted" data-testid="hud-weather">{t(`hud.weather.${c.weather}`)}</span> : null}
     </div>
@@ -171,7 +173,7 @@ export function InteractionPrompt() {
   const glyph = blocked ? '' : promptGlyph(prompt.kind, device);
   return (
     <div class={`dv-prompt dv-prompt-ui${blocked ? ' dv-prompt-blocked' : ''}`} data-testid="hud-prompt" data-kind={prompt.kind} data-blocked={blocked ? '1' : '0'} role="status" aria-live="polite">
-      {blocked ? <span class="dv-schip-icon" aria-hidden="true">{'⛔'}</span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph" data-ui-skip="" translate={false}>{glyph}</kbd> : null}
+      {blocked ? <span class="dv-schip-icon" aria-hidden="true"><Icon name="blocked" /></span> : glyph ? <kbd class="dv-glyph" data-testid="hud-prompt-glyph" data-ui-skip="" translate={false}>{glyph}</kbd> : null}
       <span data-testid="hud-prompt-text">{t(promptTextKey(prompt))}</span>
       {prompt.hold && !blocked ? (
         <span class="dv-hold" aria-hidden="true"><span ref={fill} class="dv-hold-fill" style={{ inlineSize: `${Math.round(prompt.progress * 100)}%` }} /></span>
@@ -203,11 +205,11 @@ export function VehicleCluster(props: { veh: HudVehicle | undefined; units: 'mph
 
 export const gearText = (g: number): string => (g < 0 ? 'R' : g === 0 ? 'N' : String(g));
 
-export function MeterBar(props: { id: string; label: string; value: number; max: number; tone?: StatusDef['tone']; icon?: string }) {
+export function MeterBar(props: { id: string; label: string; value: number; max: number; tone?: StatusDef['tone']; icon?: IconId }) {
   const pct = props.max > 0 ? Math.round(Math.max(0, Math.min(1, props.value / props.max)) * 100) : 0;
   return (
     <div class="dv-meter" data-tone={props.tone ?? 'neutral'} data-testid={`hud-meter-${props.id}`}>
-      <span class="dv-schip-icon" aria-hidden="true">{props.icon ?? '■'}</span>
+      <span class="dv-schip-icon" aria-hidden="true"><Icon name={props.icon ?? 'bar'} /></span>
       <span class="dv-meter-label">{props.label}</span>
       <span class="dv-meter-bar" role="progressbar" aria-valuemin={0} aria-valuemax={props.max} aria-valuenow={props.value} aria-label={props.label}>
         <span class="dv-meter-fill" style={{ inlineSize: `${pct}%` }} />
@@ -223,7 +225,7 @@ export function HealthBar(props: { health: { hp: number; max: number } | undefin
   const low = h.hp / Math.max(1, h.max) <= 0.25;
   return (
     <div class="dv-health" data-low={low ? '1' : '0'} data-testid="hud-health">
-      <MeterBar id="health" label={t('hud.health.label')} value={h.hp} max={h.max} tone={low ? 'danger' : 'friendly'} icon={'♥'} />
+      <MeterBar id="health" label={t('hud.health.label')} value={h.hp} max={h.max} tone={low ? 'danger' : 'friendly'} icon="heart" />
       {low ? <StatusChip status={STATUS['health.low'] as StatusDef} testId="hud-health-low" /> : null}
     </div>
   );
@@ -264,5 +266,5 @@ export function NetStatus(props: { ok: boolean | undefined }) {
 }
 
 export function SandboxChip() {
-  return <div class="dv-sandbox-chip" data-testid="hud-sandbox"><StatusChip status={STATUS['warning'] as StatusDef} icon={'⚒'} label={t('hud.sandbox')} /></div>;
+  return <div class="dv-sandbox-chip" data-testid="hud-sandbox"><StatusChip status={STATUS['warning'] as StatusDef} icon="wrench" label={t('hud.sandbox')} /></div>;
 }

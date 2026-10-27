@@ -4,6 +4,7 @@
  */
 import palettesJson from '../../../../config/ui/palettes.json';
 import { lk } from '../i18n/index.ts';
+import type { IconId } from '../kit/icons.tsx';
 import type { Palette, PaletteId, SemanticToken } from './cvd.ts';
 
 export const PALETTES = (palettesJson as { palettes: Record<PaletteId, Palette> }).palettes;
@@ -29,26 +30,30 @@ export interface HudVehicle { kph: number; gear: number; rpm: number }
 
 // ---- status table: every state carries an icon and a text key besides its colour
 
-export interface StatusDef { id: string; tone: SemanticToken; icon: string; textKey: string }
+/**
+ * `icon` names an inline SVG of the kit (`kit/icons.tsx`), never a font glyph: the app ships no font, and the system fallback for
+ * symbols such as U+25AF differs per browser, so the heat row painted .notdef boxes on staging (BD-FIX-GLYPH-01).
+ */
+export interface StatusDef { id: string; tone: SemanticToken; icon: IconId; textKey: string }
 
 export const STATUS: Record<string, StatusDef> = {
-  friendly: { id: 'friendly', tone: 'friendly', icon: '✓', textKey: lk('hud.status.friendly') },
-  danger: { id: 'danger', tone: 'danger', icon: '✖', textKey: lk('hud.status.danger') },
-  warning: { id: 'warning', tone: 'warning', icon: '▲', textKey: lk('hud.status.warning') },
-  objective: { id: 'objective', tone: 'objective', icon: '◆', textKey: lk('hud.status.objective') },
-  neutral: { id: 'neutral', tone: 'neutral', icon: '●', textKey: lk('hud.status.neutral') },
-  'heat.clear': { id: 'heat.clear', tone: 'neutral', icon: '▯', textKey: lk('hud.heat.clear') },
-  'heat.wanted': { id: 'heat.wanted', tone: 'danger', icon: '▮', textKey: lk('hud.heat.wanted') },
-  'heat.searching': { id: 'heat.searching', tone: 'warning', icon: '◎', textKey: lk('hud.heat.searching') },
-  'heat.cooldown': { id: 'heat.cooldown', tone: 'friendly', icon: '↻', textKey: lk('hud.heat.cooldown') },
-  'heat.scripted': { id: 'heat.scripted', tone: 'danger', icon: '✦', textKey: lk('hud.heat.scripted') },
-  'health.ok': { id: 'health.ok', tone: 'friendly', icon: '♥', textKey: lk('hud.health.ok') },
-  'health.low': { id: 'health.low', tone: 'danger', icon: '♥', textKey: lk('hud.health.low') },
-  'net.ok': { id: 'net.ok', tone: 'friendly', icon: '▲', textKey: lk('hud.net.ok') },
-  'net.bad': { id: 'net.bad', tone: 'danger', icon: '✖', textKey: lk('hud.net.bad') },
-  'save.saving': { id: 'save.saving', tone: 'neutral', icon: '…', textKey: lk('hud.save.saving') },
-  'save.saved': { id: 'save.saved', tone: 'friendly', icon: '✓', textKey: lk('hud.save.saved') },
-  'save.failed': { id: 'save.failed', tone: 'danger', icon: '✖', textKey: lk('hud.save.failed') },
+  friendly: { id: 'friendly', tone: 'friendly', icon: 'check', textKey: lk('hud.status.friendly') },
+  danger: { id: 'danger', tone: 'danger', icon: 'cross', textKey: lk('hud.status.danger') },
+  warning: { id: 'warning', tone: 'warning', icon: 'warning', textKey: lk('hud.status.warning') },
+  objective: { id: 'objective', tone: 'objective', icon: 'diamond', textKey: lk('hud.status.objective') },
+  neutral: { id: 'neutral', tone: 'neutral', icon: 'dot', textKey: lk('hud.status.neutral') },
+  'heat.clear': { id: 'heat.clear', tone: 'neutral', icon: 'shield', textKey: lk('hud.heat.clear') },
+  'heat.wanted': { id: 'heat.wanted', tone: 'danger', icon: 'siren', textKey: lk('hud.heat.wanted') },
+  'heat.searching': { id: 'heat.searching', tone: 'warning', icon: 'search', textKey: lk('hud.heat.searching') },
+  'heat.cooldown': { id: 'heat.cooldown', tone: 'friendly', icon: 'cooldown', textKey: lk('hud.heat.cooldown') },
+  'heat.scripted': { id: 'heat.scripted', tone: 'danger', icon: 'spark', textKey: lk('hud.heat.scripted') },
+  'health.ok': { id: 'health.ok', tone: 'friendly', icon: 'heart', textKey: lk('hud.health.ok') },
+  'health.low': { id: 'health.low', tone: 'danger', icon: 'heart', textKey: lk('hud.health.low') },
+  'net.ok': { id: 'net.ok', tone: 'friendly', icon: 'signal', textKey: lk('hud.net.ok') },
+  'net.bad': { id: 'net.bad', tone: 'danger', icon: 'cross', textKey: lk('hud.net.bad') },
+  'save.saving': { id: 'save.saving', tone: 'neutral', icon: 'ellipsis', textKey: lk('hud.save.saving') },
+  'save.saved': { id: 'save.saved', tone: 'friendly', icon: 'check', textKey: lk('hud.save.saved') },
+  'save.failed': { id: 'save.failed', tone: 'danger', icon: 'cross', textKey: lk('hud.save.failed') },
 };
 
 /** Which status a heat value shows: the level 6 is the scripted pursuit (distinct icon), the phase names the rest. */

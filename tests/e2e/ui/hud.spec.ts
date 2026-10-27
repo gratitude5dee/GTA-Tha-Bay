@@ -80,6 +80,54 @@ test.describe('hud @ui-hud', () => {
     expect(max).toBeLessThanOrEqual(300);
     expect(errors).toEqual([]);
   });
+
+  // BD-FIX-GLYPH-01: staging showed "▯▯▯▯▯" for the heat row and a box in the Clear chip. The app ships no font, so a symbol
+  // character falls back to a system font the browser may not have (.notdef), and U+25AF looks like .notdef even where it exists.
+  // Every HUD icon slot now holds an inline SVG and no text, and every HUD text node stays inside printable ASCII and Latin-1.
+  test('the heat row and the Clear chip draw SVG icons, never symbol glyphs; their names stay as text @ui-hud', async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize(SMALL_VIEWPORT);
+    await hideQaPanels(page);
+    await page.goto('/?debug=1');
+    await waitForEngine(page);
+    await expect(page.getByTestId('hud')).toBeVisible({ timeout: 60_000 });
+    const heat = page.getByTestId('hud-heat');
+    await expect(heat).toHaveAttribute('data-level', '0');
+
+    // Five bars, each an SVG with a painted box and no text.
+    const bars = heat.locator('.dv-star');
+    await expect(bars).toHaveCount(5);
+    for (let i = 0; i < 5; i++) {
+      const bar = bars.nth(i);
+      expect((await bar.textContent())?.trim(), `bar ${i + 1} has no text glyph`).toBe('');
+      const svg = bar.locator('svg[data-icon="heat-bar"]');
+      await expect(svg).toHaveCount(1);
+      const box = await svg.boundingBox();
+      expect(box && box.width > 2 && box.height > 8, `bar ${i + 1} box ${JSON.stringify(box)}`).toBe(true);
+    }
+
+    // The Clear chip: an SVG shield in the icon slot, and "Clear" as its text (the accessible name of the state).
+    const chip = page.getByTestId('hud-heat-phase');
+    await expect(chip).toHaveText('Clear');
+    const icon = chip.locator('.dv-schip-icon');
+    expect((await icon.textContent())?.trim()).toBe('');
+    await expect(icon.locator('svg[data-icon="shield"]')).toBeVisible();
+    await expect(heat).toHaveAttribute('aria-label', /\S/);
+
+    // No status-chip icon slot carries text (the wallet's ASCII "$" is a character of every font), and no HUD text node uses a
+    // character outside the fonts every target browser ships.
+    const bad = await page.evaluate(() => {
+      const hud = document.querySelector('[data-testid="hud"]');
+      const out: string[] = [];
+      if (!hud) return ['no hud'];
+      for (const el of hud.querySelectorAll('.dv-schip .dv-schip-icon, .dv-star')) if ((el.textContent ?? '').trim() !== '') out.push(`icon text ${JSON.stringify(el.textContent)}`);
+      const walk = document.createTreeWalker(hud, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) if (!/^[ -~ -ÿ\s]*$/u.test(n.nodeValue ?? '')) out.push(`text ${JSON.stringify(n.nodeValue)}`);
+      return out;
+    });
+    expect(bad).toEqual([]);
+    await heat.screenshot({ path: testInfo.outputPath('hud-heat-glyphs.png') });
+  });
 });
 
 test.describe('reduced motion @ui-motion', () => {

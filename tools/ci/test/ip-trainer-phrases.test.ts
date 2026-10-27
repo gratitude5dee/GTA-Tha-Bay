@@ -97,12 +97,14 @@ describe('new English wording (AC-2)', () => {
   });
 
   it('heat bars replace the star glyphs', () => {
-    expect(STATUS['heat.clear']?.icon).toBe('▯');
-    expect(STATUS['heat.wanted']?.icon).toBe('▮');
+    // BD-FIX-GLYPH-01: the bars and the two heat icons are the kit's inline SVGs; the U+25AE/U+25AF characters the milestone named
+    // rendered as .notdef boxes on staging, so neither they nor the star glyphs appear in the HUD sources.
+    expect(STATUS['heat.clear']?.icon).toBe('shield');
+    expect(STATUS['heat.wanted']?.icon).toBe('siren');
+    expect(read('packages/ui/src/hud/widgets.tsx')).toContain('<HeatBar ');
     for (const f of ['packages/ui/src/hud/model.ts', 'packages/ui/src/hud/widgets.tsx']) {
       const text = read(f);
-      expect(text.includes('★'), f).toBe(false);
-      expect(text.includes('☆'), f).toBe(false);
+      for (const ch of ['★', '☆', '▮', '▯']) expect(text.includes(ch), `${f} ${ch}`).toBe(false);
     }
   });
 });
