@@ -1,6 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { fileURLToPath } from 'node:url';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import type { MissionBridge } from '../../packages/modes/story/src/debug/bridge.ts';
 import { SMALL_VIEWPORT, waitForEngine } from './engine-helpers.ts';
+import { serveMediaRanges } from './media-ranges.ts';
 
 /**
  * M05b2 AC-8 and AC-9 (@cutscene): the CutscenePlayer on the game page. The intro beat of the sample mission is a generated cutscene with
@@ -13,7 +18,9 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 interface LogEntry {
   at: number;
-  k: 'request' | 'cmd' | 'done' | 'play' | 'skip';
+  k: 'request' | 'cmd' | 'done' | 'play' | 'skip' | 'next-host';
+  /** `k: 'next-host'`: the trigger that moved the clip to the next pooled element (BD-FIX-CUTFLAKE-01). */
+  trigger?: string;
   n?: number;
   refs?: (string | null)[];
   cmd?: { t: string; playId?: string; state?: string; trigger?: string; item?: number; outcome?: { path: string; skipped: boolean; trigger?: string } };
@@ -57,7 +64,7 @@ const MANIFEST = '/media-local/cutscenes/fixture-a/manifest.json';
 type Route27 = 'absent' | 'ready' | null;
 
 /** Boots the sample mission. Route 27 is mocked before the first request when `route` is given. */
-async function boot(page: Page, route: Route27, query = '', o: { holdPointer?: boolean } = {}): Promise<string[]> {
+async function boot(page: Page, route: Route27, query = '', o: { holdPointer?: boolean; manifestUrl?: string } = {}): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   if (route !== null) {
@@ -67,7 +74,7 @@ async function boot(page: Page, route: Route27, query = '', o: { holdPointer?: b
       return r.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(route === 'absent' ? { key, state: 'absent', reason: 'not_in_catalog' } : { key, state: 'ready', manifestUrl: `${origin}${MANIFEST}` }),
+        body: JSON.stringify(route === 'absent' ? { key, state: 'absent', reason: 'not_in_catalog' } : { key, state: 'ready', manifestUrl: o.manifestUrl ?? `${origin}${MANIFEST}` }),
       });
     });
   }
@@ -100,9 +107,63 @@ async function canPlayFixture(page: Page): Promise<boolean> {
   });
 }
 
+const FIXTURE_DIR = fileURLToPath(new URL('../../apps/web/dist/media-local/cutscenes/fixture-a/', import.meta.url));
+const FIXTURE_TYPES: Record<string, string> = { json: 'application/json', mp4: 'video/mp4', webm: 'video/webm', webp: 'image/webp', vtt: 'text/vtt' };
+
+/**
+ * A second origin that serves the built fixture clip as a loaded runner's local Worker does (BD-FIX-CUTFLAKE-01): it ignores `Range`
+ * (200 and the whole file, like the static-asset server of `wrangler dev`) and sends each file in 64 KB pieces 30 ms apart, so the
+ * clip is still arriving after the browser has parsed its `moov`. It records every `Range` header it is sent.
+ */
+async function slowClipHost(): Promise<{ origin: string; ranges: string[]; close: () => Promise<void> }> {
+  const ranges: string[] = [];
+  const server = createServer((req, res) => {
+    const name = (req.url ?? '/').split('?')[0]?.replace(/^\/+/, '') ?? '';
+    const type = FIXTURE_TYPES[name.split('.').pop() ?? ''];
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Cross-Origin-Resource-Policy': 'cross-origin' };
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, { ...cors, 'Access-Control-Allow-Headers': 'Range' }).end();
+      return;
+    }
+    if (!/^[\w.-]+$/.test(name) || type === undefined) {
+      res.writeHead(404, cors).end();
+      return;
+    }
+    if (typeof req.headers.range === 'string') ranges.push(req.headers.range);
+    const body = readFileSync(`${FIXTURE_DIR}${name}`);
+    res.writeHead(200, { ...cors, 'Content-Type': type, 'Content-Length': String(body.length) });
+    let at = 0;
+    const next = (): void => {
+      if (res.destroyed) return;
+      if (at >= body.length) {
+        res.end();
+        return;
+      }
+      res.write(body.subarray(at, at + 65_536));
+      at += 65_536;
+      setTimeout(next, 30);
+    };
+    next();
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    origin: `http://127.0.0.1:${port}`,
+    ranges,
+    close: () =>
+      new Promise<void>((resolve) => {
+        server.closeAllConnections();
+        server.close(() => resolve());
+      }),
+  };
+}
+
 test.describe('cutscene player @cutscene', () => {
   // A clip that is slow to its first frame on a loaded runner falls back (start_stall, section D7); one retry keeps the video tests honest.
   test.describe.configure({ timeout: 240_000, retries: 1 });
+  // The clip renditions answer `Range` as the production media route does; the local Worker's asset server does not (BD-FIX-CUTFLAKE-01).
+  // Registered before each test's own routes, which take precedence and reach it through `route.fallback()`.
+  test.beforeEach(async ({ page }) => serveMediaRanges(page));
   // A failed try keeps what the player did (requests, answers, telemetry) and its state beside the trace, which records neither.
   test.afterEach(async ({ page }, info) => {
     if (info.status === info.expectedStatus) return;
@@ -224,6 +285,58 @@ test.describe('cutscene player @cutscene', () => {
     expect(skipInputs(await log(page))).toEqual(['tap:pointerup']);
     await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
     expect(errors).toEqual([]);
+  });
+
+  test('a clip whose first element cannot decode it plays on the next pooled element @cutscene', async ({ page }) => {
+    await page.goto('about:blank');
+    test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
+    // The first load of the rendition answers bytes no decoder takes (section D7: `codec` and `media_error` go to the next host before
+    // the fallback; BD-FIX-CUTFLAKE-01). Every later request of it gets the real file.
+    let broken = 0;
+    await page.route('**/media-local/cutscenes/fixture-a/v768.mp4', (r: Route) => {
+      if (broken > 0) return r.fallback();
+      broken++;
+      return r.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.alloc(4096, 0x5a) });
+    });
+    const errors = await boot(page, null, '&beats=video');
+    await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+    const entries = await log(page);
+    expect(broken).toBe(1);
+    expect(entries.filter((e) => e.k === 'next-host').map((e) => e.trigger)).toEqual([
+      expect.stringMatching(/^(codec|media_error)$/),
+    ]);
+    expect(answer(entries, 'video')).toBeDefined();
+    expect(answer(entries, 'fallback')).toBeUndefined();
+    await page.keyboard.press('Escape');
+    await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
+    expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
+    expect((await log(page)).filter((e) => e.k === 'play').map((e) => e.props)).toEqual([expect.objectContaining({ path: 'video', fallback: false })]);
+    expect(errors).toEqual([]);
+  });
+
+  test('a clip that is still arriving plays: a ranged read of its tail gets those bytes, not the whole file @cutscene', async ({ page }) => {
+    await page.goto('about:blank');
+    test.skip(!(await canPlayFixture(page)), 'this browser plays neither fixture codec');
+    // WebKit's demuxer reads the `mfro` box at the end of the fragmented MP4 with `Range: bytes=<size-16>-` while the file is still
+    // arriving; a 200 with the whole file fails the load (`codec`), as on CI run 40368522267 (BD-FIX-CUTFLAKE-01).
+    const host = await slowClipHost();
+    try {
+      const errors = await boot(page, 'ready', '', { manifestUrl: `${host.origin}/manifest.json` });
+      await expect.poll(() => cut(page, (c) => c.hasVideo()), { timeout: 60_000, intervals: [100] }).toBe(true);
+      const entries = await log(page);
+      expect(answer(entries, 'video')).toBeDefined();
+      expect(answer(entries, 'fallback')).toBeUndefined();
+      expect(entries.filter((e) => e.k === 'next-host')).toEqual([]);
+      // the browser did read the clip in ranges (Chromium from byte 0, WebKit the tail), so the case above was exercised
+      expect(host.ranges.length).toBeGreaterThan(0);
+      test.info().annotations.push({ type: 'ranges', description: host.ranges.join(' ') });
+      await page.keyboard.press('Escape');
+      await expect.poll(() => phase(page), { timeout: 60_000 }).toBe('stage');
+      expect(answer(await log(page), 'done')?.cmd?.outcome).toMatchObject({ path: 'video', skipped: true });
+      expect(errors).toEqual([]);
+    } finally {
+      await host.close();
+    }
   });
 
   test('a stall injected after 1 s: the overlay holds last.webp and the fallback finishes the beat @cutscene', async ({ page }) => {
