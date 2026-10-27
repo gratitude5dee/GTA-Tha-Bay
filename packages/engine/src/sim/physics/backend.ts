@@ -85,6 +85,8 @@ export interface PhysicsBackend {
 export interface PhysicsSystemsBackend extends PhysicsBackend {
   bodyKind(id: number): BodyKind | null;
   readonly bodyCount: number;
+  /** The shape a body was created with (box: half extents). Optional: a backend without it makes the vehicle camera use its default distance (M02g1). */
+  bodyShape?(id: number): { shape: BodyDesc['shape']; dims: number[] } | null;
 }
 
 /**

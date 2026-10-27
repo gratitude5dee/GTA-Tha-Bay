@@ -38,6 +38,8 @@ export interface Calls {
   unlocks: { id: string; src: { kind: string; ref: string }; isNew: boolean }[];
   clockLocks: string[];
   clockUnlocks: string[];
+  /** Every clock call in order: `lock:<hour>:<weather>`, `unlock`, `force:<weather>:<blendSec>` (M02g1). */
+  clockOps: string[];
   density: { kind: string; mult: number; by: string }[];
   trafficReleased: string[];
   heat: string[];
@@ -94,7 +96,7 @@ export function makeHarness(o: HarnessOptions = {}): Harness {
 
   const tickNo = { n: 0 };
   const tick = (): number => tickNo.n;
-  const calls: Calls = { unlocks: [], clockLocks: [], clockUnlocks: [], density: [], trafficReleased: [], heat: [], telemetry: [], saves: [], camera: [], children: [], toasts: [], blips: new Map() };
+  const calls: Calls = { unlocks: [], clockLocks: [], clockUnlocks: [], clockOps: [], density: [], trafficReleased: [], heat: [], telemetry: [], saves: [], camera: [], children: [], toasts: [], blips: new Map() };
   const vm = new Map<string, JsonValue | null>();
   const bus = new ModeEventBus(() => undefined);
   const rng = new RngStreams(7);
@@ -125,9 +127,15 @@ export function makeHarness(o: HarnessOptions = {}): Harness {
       env: () => ({ hour: 12, night: 0, dark: 0, weather: 'clear', next: 'clear', blend: 0, fogBankM: 0, rain: 0 }),
       setHour: () => undefined,
       pause: () => undefined,
-      lock: (by: string) => void calls.clockLocks.push(by),
-      unlock: (by: string) => void calls.clockUnlocks.push(by),
-      forceWeather: () => undefined,
+      lock: (by: string, hour?: number, weather?: string) => {
+        calls.clockLocks.push(by);
+        calls.clockOps.push(`lock:${hour ?? '-'}:${weather ?? '-'}`);
+      },
+      unlock: (by: string) => {
+        calls.clockUnlocks.push(by);
+        calls.clockOps.push('unlock');
+      },
+      forceWeather: (w: string, sec: number) => void calls.clockOps.push(`force:${w}:${sec}`),
     },
     pursuit: {
       state: () => ({ level: pursuit.level, phase: pursuit.phase }),

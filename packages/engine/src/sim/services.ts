@@ -107,6 +107,12 @@ export interface CameraDirectiveState {
   /** Collision result along the tp offset for the right and the left shoulder, metres from the anchor. Derived. */
   allowedRight: number;
   allowedLeft: number;
+  /**
+   * M02g1: the chase distance and the anchor height of the followed vehicle, from the half extents of its physics body (derived by the
+   * camera collision system each tick, not simulation state: neither is hashed or checkpointed). Absent: the defaults of `collision.ts`.
+   */
+  chaseM?: number;
+  anchorUpM?: number;
 }
 
 export function createSimServices(seed: number): EngineServices {

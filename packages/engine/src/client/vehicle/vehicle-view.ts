@@ -13,9 +13,22 @@ import {
 import { handlingById } from '../../sim/vehicle/presets.ts';
 import { resolveAnchors, type VehicleAnchors } from './anchors.ts';
 
+/**
+ * A part of a vehicle that the chase camera can look through (M02g1): the tow boom. It has materials of its own, so fading it does not
+ * touch any other vehicle; `centre` and `radius` are in the vehicle's frame (origin at its centre of gravity).
+ */
+export interface Attachment {
+  node: Object3D;
+  materials: MeshStandardNodeMaterial[];
+  centre: readonly [number, number, number];
+  radius: number;
+}
+
 /** A drawn thing the pool keeps per entity and advances each frame. */
 export interface DrawnThing {
   root: Object3D;
+  /** The parts that fade when they come between the chase camera and the vehicle (render-only). */
+  attachments?: Attachment[];
   /** `speed`: signed forward speed, m/s; `steer`: the steer input, -1 (left) .. 1 (right). */
   update(dtSec: number, speed: number, steer: number): void;
   anchors?: VehicleAnchors;
@@ -36,6 +49,8 @@ interface Archetype {
   stripe?: number;
   roof?: 'lightbar' | 'dome' | 'sign';
   cargo?: { length: number; height: number; z: number; color: number };
+  /** A tow boom over the bed (M02g1): a mast and an angled arm that the chase camera fades when they are in the way. */
+  boom?: boolean;
 }
 
 export const ARCHETYPES: Readonly<Record<string, Archetype>> = {
@@ -44,7 +59,7 @@ export const ARCHETYPES: Readonly<Record<string, Archetype>> = {
   rideshare: { hp: 'hp.rideshare', length: 4.6, width: 1.85, bodyH: 0.64, cabinLength: 2.6, cabinH: 0.58, cabinZ: 0.2, color: 0x1fb5a0, roof: 'sign' },
   van: { hp: 'hp.van', length: 5.4, width: 2.0, bodyH: 1.2, cabinLength: 3.6, cabinH: 0.6, cabinZ: 0.5, color: 0xf0f0ec },
   truck: { hp: 'hp.truck', length: 6.5, width: 2.3, bodyH: 0.95, cabinLength: 1.9, cabinH: 0.75, cabinZ: -1.9, color: 0xe07b24, cargo: { length: 3.9, height: 1.5, z: 1.0, color: 0xc9c9c4 } },
-  pickup: { hp: 'hp.pickup', length: 5.3, width: 2.0, bodyH: 0.78, cabinLength: 2.1, cabinH: 0.62, cabinZ: -0.4, color: 0x4f9a54 },
+  pickup: { hp: 'hp.pickup', length: 5.3, width: 2.0, bodyH: 0.78, cabinLength: 2.1, cabinH: 0.62, cabinZ: -0.4, color: 0x4f9a54, boom: true },
   cruiser: { hp: 'hp.police-cruiser', length: 5.0, width: 1.9, bodyH: 0.64, cabinLength: 2.7, cabinH: 0.56, cabinZ: 0.2, color: 0x16181c, stripe: 0xf4f4f4, roof: 'lightbar' },
   suv: { hp: 'hp.police-suv', length: 4.9, width: 2.0, bodyH: 0.86, cabinLength: 3.2, cabinH: 0.66, cabinZ: 0.3, color: 0x1b1f24, stripe: 0xf4f4f4, roof: 'lightbar' },
   // the race cars of M07a1, one per class; final bodies land in M10d3 (DL-460)
@@ -187,6 +202,27 @@ export function buildGrayboxVehicle(a: GrayboxAssets, archetype: string): DrawnT
     const c = arch.cargo;
     body.add(mesh(a, a.box(arch.width * 0.98, c.height, c.length), c.color, 0, -cg + CLEARANCE + arch.bodyH + c.height / 2, c.z));
   }
+  let attachments: Attachment[] | undefined;
+  if (arch.boom) {
+    // The tow boom stands over the bed behind the cabin: a mast and an arm that leans back, in its own materials (the camera fades them).
+    const boom = named(new Group(), 'attach_boom');
+    const mats: MeshStandardNodeMaterial[] = [];
+    const part = (w: number, h: number, l: number, x: number, y: number, z: number, color: number, rotX = 0): void => {
+      const m = new MeshStandardNodeMaterial({ color, roughness: 0.6, metalness: 0.2, transparent: true, opacity: 1 });
+      mats.push(m);
+      const o = new Mesh(a.box(w, h, l), m);
+      o.position.set(x, y, z);
+      o.rotation.x = rotX;
+      boom.add(o);
+    };
+    const deck = -cg + CLEARANCE + arch.bodyH;
+    const bedZ = arch.cabinZ + arch.cabinLength / 2 + 0.7;
+    part(0.22, 1.5, 0.22, 0, deck + 0.75, bedZ, 0xe3a21a);
+    part(0.16, 0.16, 2.4, 0, deck + 1.55, bedZ + 0.95, 0xe3a21a, -0.2);
+    part(0.1, 0.5, 0.1, 0, deck + 1.3, bedZ + 2.0, 0x2b2f35);
+    body.add(boom);
+    attachments = [{ node: boom, materials: mats, centre: [0, deck + 1.1, bedZ + 0.8], radius: 1.7 }];
+  }
   const roofY = cabY + arch.cabinH / 2 + 0.06;
   if (arch.roof === 'lightbar') {
     body.add(mesh(a, a.box(0.5, 0.12, 0.3), 0xe02c2c, -0.3, roofY + 0.06, arch.cabinZ, 0xe02c2c));
@@ -238,6 +274,7 @@ export function buildGrayboxVehicle(a: GrayboxAssets, archetype: string): DrawnT
   return {
     root,
     anchors,
+    ...(attachments ? { attachments } : {}),
     update(dt, speed, steerInput) {
       angle -= (speed / r) * dt;
       for (const w of spin) w.rotation.x = angle;

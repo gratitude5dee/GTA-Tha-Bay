@@ -1,4 +1,4 @@
-import { BoxGeometry, Group, Mesh, MeshStandardNodeMaterial, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
+import { BoxGeometry, Group, Mesh, MeshStandardNodeMaterial, Vector3, type BufferGeometry, type Object3D, type Scene } from 'three/webgpu';
 import { AnimLod, ENGINE_TIERS } from '../anim/lod.ts';
 import { buildPlaceholderRig, MannequinAnimator, type PlaceholderRig } from '../anim/placeholder-rig.ts';
 import { buildGrayboxThing, GrayboxAssets, isGrayboxThing, type DrawnThing } from '../vehicle/vehicle-view.ts';
@@ -108,6 +108,44 @@ export class ObjectPool {
     return this.avatars.get(handle)?.animator;
   }
 
+  private readonly attachOpacity = new Map<number, number>();
+  private readonly tmp = new Vector3();
+
+  /**
+   * M02g1: the parts of the followed vehicle that stand between the chase camera and its anchor (the tow boom) fade out, render-only: the
+   * sim, the physics and the camera ray are untouched. The part fades when the segment from the camera to the anchor passes within its
+   * radius of its centre, and eases back when it does not (10 per second). Returns the lowest opacity of the vehicle's attachments, 1 for
+   * a vehicle that has none or an unknown handle.
+   */
+  fadeAttachments(handle: number, cam: { x: number; y: number; z: number }, anchor: { x: number; y: number; z: number }, dtSec: number): number {
+    const thing = this.things.get(handle);
+    const parts = thing?.attachments;
+    if (!thing || !parts || parts.length === 0) return 1;
+    thing.root.updateWorldMatrix(true, false);
+    let lowest = 1;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      if (!p) continue;
+      const c = this.tmp.set(p.centre[0], p.centre[1], p.centre[2]);
+      thing.root.localToWorld(c);
+      // distance from c to the segment cam -> anchor
+      const sx = anchor.x - cam.x, sy = anchor.y - cam.y, sz = anchor.z - cam.z;
+      const len2 = sx * sx + sy * sy + sz * sz;
+      let t = len2 > 0 ? ((c.x - cam.x) * sx + (c.y - cam.y) * sy + (c.z - cam.z) * sz) / len2 : 0;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const d = Math.hypot(cam.x + sx * t - c.x, cam.y + sy * t - c.y, cam.z + sz * t - c.z);
+      const target = d < p.radius ? 0.12 : 1;
+      const key = handle * 8 + i;
+      const cur = this.attachOpacity.get(key) ?? 1;
+      const next = cur + (target - cur) * Math.min(1, Math.max(0, dtSec) * 10);
+      this.attachOpacity.set(key, next);
+      for (const m of p.materials) m.opacity = next;
+      p.node.visible = next > 0.03;
+      if (next < lowest) lowest = next;
+    }
+    return lowest;
+  }
+
   /** Sets the anim LOD bands of the tier (config/engine-tiers.json). */
   setLodBands(bands: { fullHzWithinM: number; halfHzWithinM: number; quarterHzWithinM: number }): void {
     this.lod.setBands(bands);
@@ -172,6 +210,7 @@ export class ObjectPool {
       this.scene.remove(mesh);
       this.meshes.delete(handle);
       this.seen.delete(handle);
+      for (const a of this.things.get(handle)?.attachments ?? []) for (const m of a.materials) m.dispose();
       this.things.delete(handle);
       this.disposeAvatar(handle);
     }

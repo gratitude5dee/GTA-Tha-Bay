@@ -147,7 +147,7 @@
       "onEnter": [
         {
           "lock": {
-            "hour": 6,
+            "hour": 6.5,
             "weather": "karl-fog"
           },
           "op": "clock"
@@ -172,6 +172,13 @@
         }
       ],
       "onEnter": [
+        {
+          "lock": {
+            "weather": "clear"
+          },
+          "op": "clock",
+          "unlock": true
+        },
         {
           "cast": [
             "pod_car"
@@ -277,7 +284,7 @@
   "unlocks": [
     "unlock.district.d3"
   ],
-  "version": 1,
+  "version": 2,
   "worldBake": "cdcdef7c1117755bff5f9fa6fc55d401ce76974a80571737e94258634cca740d",
   "zones": {
     "stall": {

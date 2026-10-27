@@ -19,7 +19,7 @@ import type { ObjectPool } from '../snapshot/object-pool.ts';
 import { CameraRigImpl, type CameraLike } from '../camera/rig.ts';
 import { CONTROL_OWNER } from '../../sim/control/states.ts';
 import type { PursuitSide } from '../snapshot/reader.ts';
-import { headingOf, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
+import { headingOf, horizonFromTop, VehicleCamera, type VehiclePose } from '../vehicle/vehicle-camera.ts';
 import {
   GamepadBinder, InputRouterImpl, KbmBinder, pitchToI16, TouchBinder, writeInputFrame, yawToU16,
   type GamepadLike, type PointerLockTarget, type TouchLayout,
@@ -164,7 +164,13 @@ export interface EngineObservation {
   /** The heat (side key `pursuit`, M03c); null at level 0. */
   pursuit: PursuitSide | null;
   /** The vehicle camera: which of the five views, whether it drives the draw camera now, and where the last frame put it. */
-  vehicleCamera: { view: string; active: boolean; x: number; y: number; z: number; distance: number };
+  vehicleCamera: {
+    view: string; active: boolean; x: number; y: number; z: number; distance: number;
+    /** M02g1: the far chase distance the sim published for the followed vehicle, its anchor height, the camera pitch, and where the horizon falls (share of the picture from the top). */
+    farM: number | null; anchorUpM: number | null; pitch: number; horizon: number; attachOpacity: number;
+  };
+  /** M02g1: the player's view angles (what the sim gets as `camYaw`/`camPitch`) and the heading of the player's mesh, for the camera checks. */
+  look: { yaw: number; pitch: number; playerHeading: number | null };
   /** QA tools (M03a1): the entity inspector and the physics wireframe. */
   tools: { inspector: boolean; inspectorComponents: string[]; physics: boolean; physicsBodies: number; physicsShapes: string[] } | null;
 }
@@ -401,6 +407,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let drivingCtx = false;
   let snapBehind = false;
   let idleSec = 0;
+  // M02g1: after a teleport or a respawn (`world.teleport` `in`) the view turns to the player's heading for a few frames.
+  let alignYawUntil = -1;
+  let lastAttachOpacity = 1;
   let inspector: Inspector | null = null;
   let physicsDraw: PhysicsDraw | null = null;
   let physicsPoll = 0;
@@ -478,6 +487,10 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         }
         if (e.t === 'audio.cue' && e.s) audio?.play({ tick: e.tick, cue: e.s, bus: AUDIO_CONFIG.footstep.bus, ...(e.a !== undefined ? { entity: e.a } : {}) });
         else if (e.t === 'world.chunk') chunksLoaded = Math.max(chunksLoaded, e.n ?? 0);
+        else if (e.t === 'world.teleport' && e.s === 'in') {
+          alignYawUntil = frames + 12;
+          if (drivingCtx) snapBehind = true;
+        }
       }
     },
   });
@@ -602,6 +615,11 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
     if (!recovering && host.view && view.update(host.view)) {
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
+    // M02g1: a teleport or a respawn turns the view to the player's heading (the camera stood where it looked before the move).
+    if (alignYawUntil >= frames && !drivingCtx && view.camera?.follow) {
+      const pose = targetFull(view.camera.follow.target);
+      if (pose) look.yaw = headingOf(pose);
+    }
     mirrorHud();
     pursuitUi?.update(view.pursuit);
     if (physicsDraw?.visible) {
@@ -628,12 +646,17 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         vcam.recentre(look, heading, idleSec, dtSec);
         vcam.update({
           camera: rig.camera, pose: vpose, look, allowed: view.camera?.allowedDistance ?? null, dtSec, idleSec,
+          ...(vfollow.offset[2] > 0 ? { farM: vfollow.offset[2] } : {}),
+          ...(view.camera?.chaseAnchorUp !== undefined ? { anchorUpM: view.camera.chaseAnchorUp } : {}),
           drawDistanceM: (tier?.budget.world.buildingDrawDistanceM ?? FALLBACK_DRAW_DISTANCE_M) + (worldBoot ? (tier?.budget.world.altitudeBoostM ?? 0) : 0),
         });
         if (pool) {
           pool.hiddenHandle = null;
           pool.fadeHandle = null;
           pool.fadeOpacity = 1;
+          // M02g1: the vehicle's own attachments (the tow boom) fade while they stand between the camera and the vehicle.
+          const up = view.camera?.chaseAnchorUp ?? 0.9;
+          lastAttachOpacity = pool.fadeAttachments(vfollow.target, { x: vcam.last.x, y: vcam.last.y, z: vcam.last.z }, { x: vpose.x, y: vpose.y + up, z: vpose.z }, dtSec);
         }
         if (xrSmoke) xrSmoke.update();
         xrPanels?.update(nowMs / 1000);
@@ -987,7 +1010,18 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
         vehicle: view.vehicle,
         prompt: view.prompt,
         pursuit: view.pursuit,
-        vehicleCamera: { view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance },
+        vehicleCamera: {
+          view: vcam.view, active: drivingCtx, x: vcam.last.x, y: vcam.last.y, z: vcam.last.z, distance: vcam.last.distance,
+          farM: drivingCtx && view.camera?.follow ? view.camera.follow.offset[2] : null,
+          anchorUpM: drivingCtx ? view.camera?.chaseAnchorUp ?? null : null,
+          pitch: look.pitch,
+          horizon: horizonFromTop(look.pitch, 70),
+          attachOpacity: lastAttachOpacity,
+        },
+        look: {
+          yaw: look.yaw, pitch: look.pitch,
+          playerHeading: view.camera?.follow ? ((): number | null => { const p = targetFull(view.camera.follow.target); return p ? headingOf(p) : null; })() : null,
+        },
         tools: inspector && physicsDraw
           ? {
               inspector: inspector.visible, inspectorComponents: inspector.components, physics: physicsDraw.visible,
