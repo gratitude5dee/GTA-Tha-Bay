@@ -13,9 +13,12 @@ const root = (p: string): string => fileURLToPath(new URL(`../../../${p}`, impor
 const json = <T>(p: string): T => JSON.parse(readFileSync(root(p), 'utf8')) as T;
 
 const ajv = new Ajv2020({ allErrors: true, strict: true });
+const compiled = new Map<string, ReturnType<typeof ajv.compile>>();
 function validator(schemaPath: string) {
-  const v = ajv.compile(json<object>(schemaPath));
-  return (data: unknown): string[] => (v(data) ? [] : (v.errors ?? []).map((e) => `${e.instancePath} ${e.message}`));
+  let v = compiled.get(schemaPath);
+  if (!v) { v = ajv.compile(json<object>(schemaPath)); compiled.set(schemaPath, v); }
+  const check = v;
+  return (data: unknown): string[] => (check(data) ? [] : (check.errors ?? []).map((e) => `${e.instancePath} ${e.message}`));
 }
 
 describe('config/input (AC-1)', () => {
@@ -72,6 +75,39 @@ describe('config/input (AC-1)', () => {
     expect(DEFAULT_MAPS).toContain(DEFAULT_TOUCH_MAP);
     const router = new InputRouterImpl({ maps: DEFAULT_MAPS });
     expect(router.top()).toBe('onFoot');
+  });
+});
+
+describe('config/input fighter bindings (M08a2 AC-6)', () => {
+  const files = ['kbm', 'pad', 'touch'].flatMap((d) => ['classic', 'simple'].map((s) => `config/input/defaults.${d}.fighter-${s}.json`));
+
+  it('all six binding files and the fighter touch layout validate', () => {
+    const check = validator('config/schemas/input-map.schema.json');
+    for (const f of files) expect(check(json(f)), f).toEqual([]);
+    expect(validator('config/schemas/touch-layout.schema.json')(json('config/input/touch/fighter-simple.json'))).toEqual([]);
+  });
+
+  it('every file binds the fighter context, a light attack and Pause', () => {
+    for (const f of files) {
+      const m = json<InputMap>(f);
+      const ctx = m.contexts.fighter ?? {};
+      expect(ctx['client.Pause'], `${f} pause`).toBeDefined();
+      expect(ctx['sim.Attack'], `${f} light`).toBeDefined();
+    }
+  });
+
+  it('every touch binding points at a widget of the fighter layout', () => {
+    const layout = json<TouchLayout>('config/input/touch/fighter-simple.json');
+    const ids = new Set([...layout.widgets.map((w) => w.id), 'moveRight', 'moveLeft', 'moveUp', 'moveDown']);
+    // Touch is the Simple layout (FC5.4: the six-button Classic set is for keyboard and pad).
+    for (const s of ['simple']) {
+      const m = json<InputMap>(`config/input/defaults.touch.fighter-${s}.json`);
+      for (const bindings of Object.values(m.contexts.fighter ?? {})) {
+        for (const b of bindings ?? []) {
+          if (b.control.startsWith('touch:btn:')) expect(ids.has(b.control.slice('touch:btn:'.length)), b.control).toBe(true);
+        }
+      }
+    }
   });
 });
 
