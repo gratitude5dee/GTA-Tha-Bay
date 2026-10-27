@@ -1,7 +1,8 @@
 /**
- * M05c3 AC-1, AC-3, AC-4, AC-7, AC-9: the prewarm gates, the plan and the `--live` refusals over fake ports (no network, no fal).
+ * M05c3 AC-1, AC-3, AC-4, AC-7 and M05c4 AC-4: the prewarm gates, the plan, the `--live` refusals and the live submission over fake ports
+ * (no network, no fal).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import type { CutsceneStatus } from '../../../packages/shared/src/api/v1.ts';
@@ -9,7 +10,8 @@ import type { CutsceneRequest } from '../../../packages/shared/src/contracts/c09
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
 import { main } from '../gen/cli.ts';
 import { DEFAULT_CAP_MICROS } from '../gen/estimate.ts';
-import { NO_PROVIDER_LINE, NO_TRANSCODER_LINE, parseSheetsLock, providerGate } from '../gen/gates.ts';
+import { NO_PROVIDER_LINE, parseSheetsLock, providerGate } from '../gen/gates.ts';
+import type { Runner } from '../src/uploader-rclone.ts';
 import { runPrewarm, type LedgerPort, type PrewarmOptions, type PrewarmPorts } from '../gen/prewarm.ts';
 
 const fx = (f: string): string => path.join(import.meta.dirname, 'fixtures', f);
@@ -29,8 +31,23 @@ interface Harness {
   calls: string[];
 }
 
-function harness(o: { ready?: readonly string[]; pending?: readonly string[]; ledger?: { cap: number; spent: number } | null; resign?: boolean | null } = {}): Harness {
-  const h: Harness = { ports: undefined as unknown as PrewarmPorts, logs: [], files: new Map(), calls: [] };
+interface HarnessOptions {
+  ready?: readonly string[];
+  pending?: readonly string[];
+  ledger?: { cap: number; spent: number } | null;
+  resign?: boolean | null;
+  /** Keys that have a `handoff.json` (the private-bucket check is wired when this is set, even empty). */
+  handoff?: readonly string[];
+  /** Route 28 is wired (OPS_TOKEN set). After it, route 27 answers the state given here for each submitted key. */
+  submit?: { after: 'ready' | 'pending' | 'failed' };
+  /** After the submission every submitted key has a handoff.json (the Worker handed it off). */
+  handoffAfterSubmit?: boolean;
+}
+
+function harness(o: HarnessOptions = {}): Harness & { submitted: string[][]; sleeps: number[] } {
+  const h = { ports: undefined as unknown as PrewarmPorts, logs: [] as string[], files: new Map<string, string>(), calls: [] as string[], submitted: [] as string[][], sleeps: [] as number[] };
+  let submittedYet = false;
+  let now = 1_000_000;
   const ready = new Set(o.ready ?? []);
   const pending = new Set(o.pending ?? []);
   const ledger: LedgerPort | null =
@@ -38,7 +55,7 @@ function harness(o: { ready?: readonly string[]; pending?: readonly string[]; le
       ? null
       : {
           capMicros: () => Promise.resolve(void h.calls.push('ledger')).then(() => (o.ledger ?? { cap: 100_000_000 }).cap),
-          spentMicros: () => Promise.resolve((o.ledger ?? { spent: 0 }).spent),
+          spentMicros: (_v: string, kind?: string) => Promise.resolve(((o.ledger ?? { spent: 0 }) as { spent: number }).spent + (kind === 'cutscene' && submittedYet ? 14_700_000 : 0)),
         };
   h.ports = {
     log: (l) => h.logs.push(l),
@@ -57,9 +74,24 @@ function harness(o: { ready?: readonly string[]; pending?: readonly string[]; le
     },
     status: (key) => {
       h.calls.push(`status:${key}`);
-      return Promise.resolve({ key, state: pending.has(key) ? 'pending' : 'absent' } as CutsceneStatus);
+      const after = submittedYet && h.submitted.flat().includes(key) ? o.submit?.after : undefined;
+      return Promise.resolve({ key, state: after ?? (pending.has(key) ? 'pending' : 'absent') } as CutsceneStatus);
     },
     ledger,
+    ...(o.submit !== undefined
+      ? {
+          submit: (keys: string[]) => {
+            h.calls.push(`submit:${keys.length}`);
+            h.submitted.push(keys);
+            submittedYet = true;
+            return Promise.resolve(keys.map((key) => ({ key, state: 'pending' }) as CutsceneStatus));
+          },
+        }
+      : {}),
+    ...(o.handoff !== undefined
+      ? { hasHandoff: (key: string) => (h.calls.push(`handoff:${key}`), Promise.resolve(o.handoff!.includes(key) || (o.handoffAfterSubmit === true && submittedYet && h.submitted.flat().includes(key)))) }
+      : {}),
+    clock: { now: () => now, sleep: (ms: number) => (h.sleeps.push(ms), (now += ms), Promise.resolve()) },
     resign: { resignOn: () => Promise.resolve(o.resign === undefined ? true : o.resign) },
     defaults: { requests: (r) => `.private/releases/${r}/cutscene-requests.json`, registry: 'config/genai-endpoints.json', sheets: '.private/sheets.lock.json', reportFile: (r) => `docs/releases/${r}/cutscenes.md` },
   };
@@ -219,7 +251,6 @@ describe('C2PA guard (AC-7)', () => {
       const r = await runPrewarm({ ...base, env: 'prod', live: true }, h.ports);
       expect(r.code).toBe(1);
       expect(h.logs.join('\n')).toMatch(/refused: C2PA_RESIGN is (off|not set) in the prod Worker build/);
-      expect(h.logs).not.toContain(NO_TRANSCODER_LINE);
       expect(h.calls).toEqual([]);
     }
   });
@@ -235,40 +266,133 @@ describe('C2PA guard (AC-7)', () => {
     );
     expect(code).toBe(1);
     expect(logs.join('\n')).toMatch(/refused: C2PA_RESIGN is off in the prod Worker build/);
-    expect(logs).not.toContain(NO_TRANSCODER_LINE);
     expect(fetchSpy).toHaveBeenCalledTimes(0);
   });
 
   it('staging --live is not guarded by it', async () => {
-    const h = harness({ resign: false });
+    const h = harness({ resign: false, submit: { after: 'pending' }, handoff: [] });
     const r = await runPrewarm({ ...base, env: 'staging', live: true }, h.ports);
     expect(r.code).toBe(0);
-    expect(h.logs).toEqual([NO_TRANSCODER_LINE]);
+    expect(h.submitted).toHaveLength(1);
   });
 });
 
-describe('--live on Workers Free (AC-9)', () => {
-  it.each(['staging', 'prod'] as const)('%s: cleared provider, sheets present, C2PA_RESIGN on: the transcoder refusal, 0 network calls, exit 0', async (env) => {
-    const h = harness({ resign: true });
-    const r = await runPrewarm({ ...base, env, live: true }, h.ports);
+describe('--live submits the plan and hands off (M05c4 AC-4)', () => {
+  const allSheets = JSON.stringify({ schema: 'sheets-lock/1', sheets: Object.fromEntries(requests.flatMap((r) => r.characters.map((c) => [c.id, { approved: true, crops: ['a'.repeat(64)] }] as const))) });
+  const live: PrewarmOptions = { ...base, live: true, sheetsFile: 'all-sheets.json', report: true };
+  const keys = requests.map((r) => r.key);
+  const withSheets = <T extends Harness>(h: T): T => (h.files.set('all-sheets.json', allSheets), h);
+
+  it('one route 28 call carries exactly the planned keys; the key with a handoff.json is skip: pending at $0; no transcoder refusal', async () => {
+    const h = withSheets(harness({ submit: { after: 'ready' }, handoff: [keys[0]!] }));
+    const r = await runPrewarm(live, h.ports);
     expect(r.code).toBe(0);
-    expect(h.logs).toEqual([NO_TRANSCODER_LINE]);
-    expect(h.calls).toEqual([]);
-    expect(NO_TRANSCODER_LINE).toBe('blocked: no transcoder on Workers Free; lands in M05c4');
+    expect(r.plan!.rows[0]).toMatchObject({ key: keys[0], status: 'pending', estimateMicros: 0 });
+    expect(r.plan!.rows[0]!.detail).toMatch(/handed off/);
+    expect(h.submitted).toEqual([keys.slice(1)]);
+    expect(h.logs.join('\n')).toContain('skip: pending');
+    expect(h.logs.join('\n')).not.toMatch(/no transcoder/);
+    expect(h.logs.join('\n')).toContain('live: ready 8, handed off 0, failed 0, still pending 0');
+    // the run's ledger delta (fal, kind cutscene) is printed and lands in the report
+    expect(h.logs.join('\n')).toContain('ledger delta (fal, kind cutscene): 14700000 micros');
+    expect(h.files.get('docs/releases/fixture-act1/cutscenes.md')).toContain('Ledger delta of the live run (fal, kind cutscene): 14700000 micros');
+    expect(h.files.get('docs/releases/fixture-act1/cutscenes.md')).toContain('Generated clips: 8 of 9');
   });
 
-  it.each(['staging', 'prod'] as const)('%s through the CLI and the repository Worker configuration: 0 fetch calls, exit 0', async (env) => {
-    const fetchSpy = failFetch();
-    const logs: string[] = [];
-    const code = await main(
-      ['prewarm', '--release', 'fixture-act1', '--requests', fx('act1-requests.json'), '--registry', fx('registry-cleared.json'), '--sheets', fx('sheets-lock.json'), '--env', env, '--live'],
-      { OPS_TOKEN: 'staff-token-for-test', FAL_KEY: 'must-never-be-read' },
-      fetchSpy as unknown as typeof fetch,
-      (l) => logs.push(l),
-    );
-    // staging runs with C2PA_RESIGN "0", which the guard ignores; prod has "1" in services/edge/wrangler.jsonc
-    expect(logs).toEqual([NO_TRANSCODER_LINE]);
-    expect(code).toBe(0);
-    expect(fetchSpy).toHaveBeenCalledTimes(0);
+  it('keys that were handed off end the poll: handed off count, the --finish hint, a report note, exit 0', async () => {
+    const h = withSheets(harness({ submit: { after: 'pending' }, handoff: [], handoffAfterSubmit: true }));
+    const r = await runPrewarm(live, h.ports);
+    expect(r.code).toBe(0);
+    expect(h.submitted).toEqual([keys]);
+    expect(h.logs.join('\n')).toContain('live: ready 0, handed off 9, failed 0, still pending 0');
+    expect(h.logs.join('\n')).toMatch(/next: pnpm assets:gen prewarm -- --release fixture-act1 --env staging --finish/);
+    expect(h.files.get('docs/releases/fixture-act1/cutscenes.md')).toContain('handed off, waits for --finish');
+    expect(h.sleeps).toEqual([]); // the hand-off was there at the first look
+  });
+
+  it('without the private-bucket pair the poll stops after 30 minutes and prints the keys for --finish', async () => {
+    const h = withSheets(harness({ submit: { after: 'pending' } })); // hasHandoff is not wired
+    const r = await runPrewarm(live, h.ports);
+    expect(r.code).toBe(0);
+    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBe(30 * 60 * 1000);
+    expect(h.logs.join('\n')).toContain('live: ready 0, handed off 0, failed 0, still pending 9');
+    expect(h.logs.join('\n')).toContain('still pending after the poll limit');
+  });
+
+  it('a failed key makes the run exit 1', async () => {
+    const h = withSheets(harness({ submit: { after: 'failed' }, handoff: [] }));
+    expect((await runPrewarm(live, h.ports)).code).toBe(1);
+    expect(h.logs.join('\n')).toContain('failed 9');
+  });
+
+  it('without OPS_TOKEN it prints a SKIP line and submits nothing', async () => {
+    const h = withSheets(harness({ handoff: [] }));
+    const r = await runPrewarm(live, h.ports);
+    expect(r.code).toBe(0);
+    expect(h.submitted).toEqual([]);
+    expect(h.logs).toContain('SKIP live: OPS_TOKEN not set; nothing was submitted');
+  });
+
+  it('refuses when the plan costs more than the programme has left, and when every key is already done there is nothing to submit', async () => {
+    const poor = withSheets(harness({ submit: { after: 'ready' }, ledger: { cap: 100_000_000, spent: 95_000_000 } }));
+    const r = await runPrewarm(live, poor.ports);
+    expect(r.code).toBe(1);
+    expect(poor.submitted).toEqual([]);
+    expect(poor.logs.join('\n')).toMatch(/refused: the plan costs \d+ micros, over the 5000000 micros left/);
+    const done = withSheets(harness({ submit: { after: 'ready' }, ready: keys }));
+    expect((await runPrewarm(live, done.ports)).code).toBe(0);
+    expect(done.submitted).toEqual([]);
+    expect(done.logs.join('\n')).toContain('live: nothing to submit');
+  });
+
+  it.each(['staging', 'prod'] as const)('%s through the CLI against a stub Worker: one POST with the planned keys, the handoff.json key skipped', async (env) => {
+    const sheets = path.join(import.meta.dirname, 'fixtures', '.tmp-all-sheets.json');
+    // the stub Worker: nothing is published, route 27 says absent until route 28 has been called, then ready
+    const state = { posts: [] as { auth: string | null; keys: string[] }[], heads: 0 };
+    const fetchStub = vi.fn((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = String(input);
+      const method = init?.method ?? 'GET';
+      if (method === 'HEAD') {
+        state.heads++;
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      if (url.includes('/api/v1/admin/cutscenes/prewarm')) {
+        const body = JSON.parse(String(init?.body)) as { keys: string[] };
+        state.posts.push({ auth: new Headers(init?.headers).get('Authorization'), keys: body.keys });
+        return Promise.resolve(new Response(JSON.stringify({ keys: body.keys.map((key) => ({ key, state: 'pending' })) }), { status: 202 }));
+      }
+      const key = url.split('/api/v1/cutscenes/')[1]!;
+      return Promise.resolve(new Response(JSON.stringify({ key, state: state.posts.length > 0 ? 'ready' : 'absent' }), { status: 200 }));
+    });
+    const rclone: Runner = (cmd, args) => {
+      if (cmd !== 'rclone') return { status: 127, stdout: '', stderr: 'not rclone' };
+      if (args[0] === 'version') return { status: 0, stdout: 'rclone v1.75.2', stderr: '' };
+      // lsf of r2:<bucket>/cutscenes-orig/<key>/
+      expect(args.slice(0, 3)).toEqual(['lsf', '-R', '--files-only']);
+      const target = args[3]!;
+      expect(target).toMatch(new RegExp(`^r2:tha-bay-private-${env === 'prod' ? 'prod' : 'staging'}/cutscenes-orig/[0-9a-f]{64}/$`));
+      return target.includes(keys[0]!) ? { status: 0, stdout: 'handoff.json\norig.mp4\n', stderr: '' } : { status: 3, stdout: '', stderr: 'directory not found' };
+    };
+    writeFileSync(sheets, allSheets);
+    try {
+      const logs: string[] = [];
+      const code = await main(
+        ['prewarm', '--release', 'fixture-act1', '--requests', fx('act1-requests.json'), '--registry', fx('registry-cleared.json'), '--sheets', sheets, '--env', env, '--live'],
+        { OPS_TOKEN: 'staff-token-for-test', FAL_KEY: 'must-never-be-read', R2_PRIVATE_ACCESS_KEY_ID: 'priv-id', R2_PRIVATE_SECRET_ACCESS_KEY: 'priv-secret', CLOUDFLARE_ACCOUNT_ID: 'acct' },
+        fetchStub as unknown as typeof fetch,
+        (l) => logs.push(l),
+        { run: rclone, clock: { now: () => 0, sleep: () => Promise.resolve() } },
+      );
+      // staging runs with C2PA_RESIGN "0", which the guard ignores; prod has "1" in services/edge/wrangler.jsonc
+      expect(code).toBe(0);
+      expect(state.posts).toHaveLength(1);
+      expect(state.posts[0]).toEqual({ auth: 'Bearer staff-token-for-test', keys: keys.slice(1) });
+      expect(logs.join('\n')).toContain('skip: pending');
+      expect(logs.join('\n')).not.toMatch(/no transcoder/);
+      expect(logs.join('\n')).toContain('live: ready 8');
+    } finally {
+      rmSync(sheets, { force: true });
+    }
   });
 });
+

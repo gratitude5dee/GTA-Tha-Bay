@@ -3,6 +3,9 @@
  * No environment declares a Container, a TRANSCODER binding, `limits.cpu_ms`, a Tail Worker or Logpush; each environment has at
  * most 40 `vars` (Free allows 64 variables per Worker, secrets included); `C2PA_RESIGN` is "1" in production and "0" in staging
  * and previews; and the migration tags are the two that exist today.
+ *
+ * M05c4 AC-3: `TRANSCODE_MODE` is `offedge` in every environment whose `FAL_MODE` is `live` (production) and `mock` in every environment
+ * whose `FAL_MODE` is `mock` (staging and previews), so the pairing live + mock cannot ship (the pipeline refuses it at run time, AC-2).
  */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -62,6 +65,19 @@ describe.each(wranglerFiles)('%s on Workers Free (AC-10)', (file) => {
   it('C2PA_RESIGN is "1" in production and "0" in staging and previews', () => {
     const by = Object.fromEntries(envs.map((e) => [e.name.replace(`${file} `, ''), ((e.config['vars'] as Dict | undefined) ?? {})['C2PA_RESIGN']]));
     expect(by).toEqual({ '(production)': '1', 'env.staging': '0', previews: '0' });
+  });
+
+  it('TRANSCODE_MODE is offedge where FAL_MODE is live and mock where FAL_MODE is mock (M05c4 AC-3)', () => {
+    const modes = envs.map((e) => {
+      const vars = (e.config['vars'] as Dict | undefined) ?? {};
+      return [e.name.replace(`${file} `, ''), vars['FAL_MODE'], vars['TRANSCODE_MODE']];
+    });
+    expect(modes).toEqual([
+      ['(production)', 'live', 'offedge'],
+      ['env.staging', 'mock', 'mock'],
+      ['previews', 'mock', 'mock'],
+    ]);
+    for (const [, fal, transcode] of modes) expect(transcode).toBe(fal === 'live' ? 'offedge' : 'mock');
   });
 
   it('adds no migration tag and no Durable Object class beyond web-v1 and web-v2', () => {

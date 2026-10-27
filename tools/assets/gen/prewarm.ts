@@ -1,21 +1,22 @@
 /**
- * `pnpm assets:gen prewarm` (M05c3): plan the generation of Act 1's cutscene clips (group G1 of
- * spec/domains/03-story-cutscenes.md section D9.1) inside a hard line of USD 16, and write the release's cutscene report.
+ * `pnpm assets:gen prewarm` (M05c3, M05c4): plan the generation of Act 1's cutscene clips (group G1 of
+ * spec/domains/03-story-cutscenes.md section D9.1) inside a hard line of USD 16, submit the plan with `--live`, and write the
+ * release's cutscene report.
  *
- * The CLI never calls fal and in M05c3 it never submits anything: `--live` stops at a refusal because Workers Free has no
- * transcoder (DL-OWN-08, DL-750); M05c4 replaces that step with the submission and hand-off. Everything with a side effect
- * (network, files, ledger) goes through `PrewarmPorts`, so the tests run it with none of them.
+ * The CLI never calls fal. `--live` posts the planned keys to route 28 of our Worker (`OPS_TOKEN`), which runs the fal-facing steps and
+ * hands each output off (Workers Free has no transcoder, DL-OWN-08); `--finish` (finish.ts) then transcodes and re-signs on the
+ * operator's workstation. Everything with a side effect (network, files, ledger) goes through `PrewarmPorts`, so the tests run it with none.
  *
- * Order of checks, each before the next can touch the network: flags, provider gate (ADR-GENAI-01), C2PA guard, the
- * `--live` refusal; then the sheet gate, cache check (HEAD, then route 27, R-ENG-03), estimate against the line and the
- * programme headroom.
+ * Order of checks, each before the next can touch the network: flags, provider gate (ADR-GENAI-01), C2PA guard; then the sheet gate,
+ * cache check (HEAD, route 27 and `handoff.json`, R-ENG-03), estimate against the line and the programme headroom; then, with `--live`,
+ * the submission.
  */
 import type { CutsceneRequest } from '../../../packages/shared/src/contracts/c09-cutscene.ts';
 import type { CutsceneStatus } from '../../../packages/shared/src/api/v1.ts';
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
 import { estimateRequest, usd } from './estimate.ts';
-import { EMPTY_SHEETS, NO_TRANSCODER_LINE, endpointMatches, missingSheets, parseSheetsLock, providerGate, resignGuard, type ResignProbe, type SheetsLock } from './gates.ts';
-import { renderReport, type ReportRow } from './report.ts';
+import { EMPTY_SHEETS, endpointMatches, missingSheets, parseSheetsLock, providerGate, resignGuard, type ResignProbe, type SheetsLock } from './gates.ts';
+import { renderReport, type ReportInput, type ReportRow } from './report.ts';
 
 export type RowStatus = 'planned' | 'ready' | 'pending' | 'sheet_missing' | 'over_line' | 'stale_endpoint';
 
@@ -59,8 +60,8 @@ export interface PrewarmOptions {
 export interface LedgerPort {
   /** The programme cap of a vendor (`budget_program.cap_usd_micros`), or null when no row exists. */
   capMicros(vendor: string): Promise<number | null>;
-  /** Sum of `genai_ledger.usd_micros` for a vendor. */
-  spentMicros(vendor: string): Promise<number>;
+  /** Sum of `genai_ledger.usd_micros` for a vendor, or for one kind of it (`cutscene`). */
+  spentMicros(vendor: string, kind?: string): Promise<number>;
 }
 
 export interface PrewarmPorts {
@@ -75,6 +76,15 @@ export interface PrewarmPorts {
   /** Null when the database is not reachable from here. */
   ledger: LedgerPort | null;
   resign: ResignProbe;
+  /**
+   * `--live` (M05c4): one call to route 28 with the keys, answering the per-key states. Null when `OPS_TOKEN` is not set: the run then
+   * prints a SKIP line and submits nothing.
+   */
+  submit?: ((keys: string[]) => Promise<CutsceneStatus[]>) | null;
+  /** True when `PRIVATE cutscenes-orig/<key>/handoff.json` exists. Null without the private-bucket pair (`R2_PRIVATE_*`). */
+  hasHandoff?: ((key: string) => Promise<boolean>) | null;
+  /** Test inputs for the poll loop; default: the system clock. */
+  clock?: { now(): number; sleep(ms: number): Promise<void> };
   /** The request and registry defaults. */
   defaults: { requests(release: string): string; registry: string; sheets: string; reportFile(release: string): string };
 }
@@ -121,6 +131,8 @@ export interface PlanInputs {
   isReady: (key: string) => Promise<boolean>;
   /** Route 27 for a key whose manifest is absent; null skips the check. */
   status: ((key: string) => Promise<CutsceneStatus>) | null;
+  /** A key with a `handoff.json` was paid for already and waits for `--finish`: it is `skip: pending` at $0 (M05c4). */
+  hasHandoff?: ((key: string) => Promise<boolean>) | null;
   offline: boolean;
 }
 
@@ -140,6 +152,10 @@ export async function buildPlan(i: PlanInputs): Promise<Plan> {
     if (!i.offline) {
       if (await i.isReady(req.key)) {
         rows.push(row('ready', 0));
+        continue;
+      }
+      if (i.hasHandoff && (await i.hasHandoff(req.key))) {
+        rows.push(row('pending', 0, 'handed off: run --finish'));
         continue;
       }
       if (i.status !== null && (await i.status(req.key)).state === 'pending') {
@@ -192,9 +208,50 @@ export interface RunResult {
 }
 
 /** Writes `docs/releases/<tag>/cutscenes.md`. */
-function writeReport(o: PrewarmOptions, p: PrewarmPorts, rows: ReportRow[], provider: string | null): void {
-  p.writeText(p.defaults.reportFile(o.release), renderReport({ release: o.release, provider, rows }));
+function writeReport(o: PrewarmOptions, p: PrewarmPorts, rows: ReportRow[], provider: string | null, ledgerDelta?: ReportInput['ledgerDelta']): void {
+  p.writeText(p.defaults.reportFile(o.release), renderReport({ release: o.release, provider, rows, ...(ledgerDelta !== undefined ? { ledgerDelta } : {}) }));
   p.log(`report: ${p.defaults.reportFile(o.release)}`);
+}
+
+/** How a live key ended for the run: `ready` (a manifest), `handed_off` (waits for --finish), `failed` (failed or blocked), `pending` (still going when the poll stopped). */
+export type LiveOutcome = 'ready' | 'handed_off' | 'failed' | 'pending';
+
+export const POLL_INTERVAL_MS = 30_000;
+/** Without the private-bucket pair the run cannot see a hand-off, so it stops polling after this long and prints the keys for `--finish`. */
+export const POLL_LIMIT_NO_PRIVATE_MS = 30 * 60 * 1000;
+/** With the pair every key ends in a manifest, a hand-off or a failure; this only bounds a run that would otherwise never return. */
+export const POLL_LIMIT_MS = 4 * 60 * 60 * 1000;
+
+const realClock = { now: (): number => Date.now(), sleep: (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms)) };
+
+/** `--live`: route 28 for the planned keys, then route 27 until each is ready or failed, or has its handoff.json. */
+async function submitAndPoll(keys: string[], p: PrewarmPorts, log: (l: string) => void): Promise<Map<string, LiveOutcome>> {
+  const clock = p.clock ?? realClock;
+  const out = new Map<string, LiveOutcome>();
+  const answered = await p.submit!(keys);
+  const counts = new Map<string, number>();
+  for (const st of answered) counts.set(st.state, (counts.get(st.state) ?? 0) + 1);
+  log(`route 28: ${keys.length} key(s) submitted (${[...counts].map(([s, n]) => `${s} ${n}`).join(', ')})`);
+  const open = new Set(keys);
+  const limit = p.hasHandoff ? POLL_LIMIT_MS : POLL_LIMIT_NO_PRIVATE_MS;
+  const started = clock.now();
+  for (;;) {
+    for (const key of [...open]) {
+      const st = p.status ? await p.status(key) : null;
+      if (st?.state === 'ready') out.set(key, 'ready');
+      else if (st?.state === 'failed' || st?.state === 'blocked') out.set(key, 'failed');
+      else if (p.hasHandoff && (await p.hasHandoff(key))) out.set(key, 'handed_off');
+      else continue;
+      open.delete(key);
+    }
+    if (open.size === 0) break;
+    if (clock.now() - started >= limit) {
+      for (const key of open) out.set(key, 'pending');
+      break;
+    }
+    await clock.sleep(POLL_INTERVAL_MS);
+  }
+  return out;
 }
 
 export async function runPrewarm(o: PrewarmOptions, p: PrewarmPorts): Promise<RunResult> {
@@ -218,23 +275,24 @@ export async function runPrewarm(o: PrewarmOptions, p: PrewarmPorts): Promise<Ru
     return { code: 0 };
   }
 
-  // 2. C2PA guard, 3. no transcoder on Workers Free: both read files only, so both come before the first network call
+  // 2. C2PA guard: reads files only, so it comes before the first network call
   if (o.live) {
     const guard = await resignGuard(o.env, true, p.resign);
     if (!guard.ok) {
       p.log(guard.line);
       return { code: 1 };
     }
-    p.log(NO_TRANSCODER_LINE);
-    return { code: 0 };
   }
 
-  const plan = await buildPlan({ requests, registry, sheets: loadSheets(o, p), capMicros: o.capMicros, isReady: (k) => p.isReady(k), status: p.status, offline: o.offline });
+  if (o.live && !o.offline && !p.hasHandoff) p.log('SKIP handoff check: the private-bucket pair (R2_PRIVATE_*), CLOUDFLARE_ACCOUNT_ID or rclone is missing; a key handed off earlier is still skipped by route 27 while its state holds');
+  const plan = await buildPlan({
+    requests, registry, sheets: loadSheets(o, p), capMicros: o.capMicros, isReady: (k) => p.isReady(k), status: p.status, hasHandoff: p.hasHandoff ?? null, offline: o.offline,
+  });
   for (const line of formatPlan(plan)) p.log(line);
 
   // programme headroom (omitted offline)
+  let headroom: number | null = null;
   if (!o.offline) {
-    let headroom: number | null = null;
     if (p.ledger !== null) {
       const cap = await p.ledger.capMicros('fal');
       if (cap !== null) headroom = cap - (await p.ledger.spentMicros('fal'));
@@ -242,15 +300,49 @@ export async function runPrewarm(o: PrewarmOptions, p: PrewarmPorts): Promise<Ru
     p.log(headroom === null ? 'SKIP headroom: SUPABASE_SECRET_KEY (and SUPABASE_URL) not set; headroom: unknown (no ledger access from here)' : `headroom: ${headroom} micros (${usd(headroom)}) left in the fal programme`);
   }
 
+  // 3. --live: submit exactly the planned keys through route 28, then wait for each to be ready, failed or handed off
+  let outcomes: Map<string, LiveOutcome> | null = null;
+  let ledgerDelta: ReportInput['ledgerDelta'];
+  let code = 0;
+  if (o.live) {
+    const planned = plan.rows.filter((r) => r.status === 'planned').map((r) => r.key);
+    if (planned.length === 0) {
+      p.log('live: nothing to submit (every key is ready, pending, or held back by a gate)');
+    } else if (headroom !== null && plan.totalMicros > headroom) {
+      p.log(`refused: the plan costs ${plan.totalMicros} micros, over the ${headroom} micros left in the fal programme; nothing was submitted`);
+      return { code: 1, plan };
+    } else if (!p.submit) {
+      p.log('SKIP live: OPS_TOKEN not set; nothing was submitted');
+    } else {
+      const before = p.ledger !== null ? await p.ledger.spentMicros('fal', 'cutscene') : null;
+      outcomes = await submitAndPoll(planned, p, p.log);
+      const count = (s: LiveOutcome): string[] => [...outcomes!].filter(([, v]) => v === s).map(([k]) => k);
+      p.log(`live: ready ${count('ready').length}, handed off ${count('handed_off').length}, failed ${count('failed').length}, still pending ${count('pending').length}`);
+      if (count('handed_off').length > 0) p.log(`next: pnpm assets:gen prewarm -- --release ${o.release} --env ${o.env} --finish   (${count('handed_off').length} key(s) wait for the off-edge finish)`);
+      if (count('pending').length > 0) p.log(`still pending after the poll limit; pass them to --finish when their handoff.json exists: ${count('pending').map((k) => k.slice(0, 12)).join(', ')}`);
+      if (count('failed').length > 0) code = 1;
+      if (before !== null) {
+        const after = await p.ledger!.spentMicros('fal', 'cutscene');
+        ledgerDelta = { kind: 'cutscene', micros: after - before };
+        p.log(`ledger delta (fal, kind cutscene): ${after - before} micros (${usd(after - before)}); genai_ledger is exported nightly, so a delta of 0 can mean the export has not run yet`);
+      } else {
+        p.log('SKIP ledger delta: SUPABASE_SECRET_KEY (and SUPABASE_URL) not set');
+      }
+    }
+  }
+
   if (o.report) {
     // Every ref plays its DirectorScript unless its manifest is already published.
     const rows: ReportRow[] = requests.map((r) => {
       const row = plan.rows.find((x) => x.key === r.key);
-      if (row?.status === 'ready') return { ref: r.ref, key: r.key, generated: true, note: '' };
-      const why = row?.status === 'sheet_missing' ? `sheet missing: ${row.detail ?? ''}` : (row?.status ?? 'not planned').replace('_', ' ');
+      const live = outcomes?.get(r.key);
+      if (row?.status === 'ready' || live === 'ready') return { ref: r.ref, key: r.key, generated: true, note: '' };
+      if (live === 'handed_off') return { ref: r.ref, key: r.key, generated: false, note: 'handed off, waits for --finish' };
+      if (live === 'failed') return { ref: r.ref, key: r.key, generated: false, note: 'generation failed' };
+      const why = row?.status === 'sheet_missing' ? `sheet missing: ${row.detail ?? ''}` : row?.status === 'pending' && row.detail ? row.detail : (row?.status ?? 'not planned').replace('_', ' ');
       return { ref: r.ref, key: r.key, generated: false, note: why };
     });
-    writeReport(o, p, rows, plan.providerKey);
+    writeReport(o, p, rows, plan.providerKey, ledgerDelta);
   }
-  return { code: 0, plan };
+  return { code, plan };
 }

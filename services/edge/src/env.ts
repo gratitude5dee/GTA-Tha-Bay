@@ -44,6 +44,8 @@ export interface Env {
   /** JSON object of FeatureFlag to boolean; unknown keys are ignored. */
   FLAGS_JSON: string;
   FAL_MODE: string;
+  /** `offedge` (production: transcode and re-sign run on the operator's workstation, M05c4) or `mock` (staging, previews, tests). Absent: follows FAL_MODE. */
+  TRANSCODE_MODE?: string | undefined;
   /** fal.ai key (secret) — absent in staging mock mode and local dev. */
   FAL_KEY?: string | undefined;
   /** Supabase project URL, e.g. https://<ref>.supabase.co (var, non-secret). */
