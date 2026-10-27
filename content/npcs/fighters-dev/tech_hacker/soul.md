@@ -2,7 +2,7 @@
 schema: soul/1.0
 id: dev_hacker
 soulVersion: 1
-status: active
+status: draft
 origin: first_party
 ownerProfileId: null
 name: "Rhea Patchwell"

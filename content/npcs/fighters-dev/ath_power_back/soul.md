@@ -2,7 +2,7 @@
 schema: soul/1.0
 id: dev_power_back
 soulVersion: 1
-status: active
+status: draft
 origin: first_party
 ownerProfileId: null
 name: "Aurelio Stone"

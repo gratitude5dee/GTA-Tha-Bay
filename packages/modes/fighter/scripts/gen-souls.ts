@@ -333,7 +333,7 @@ function soul(d: Dev): string {
 schema: soul/1.0
 id: ${d.id}
 soulVersion: 1
-status: active
+status: draft
 origin: first_party
 ownerProfileId: null
 name: ${q(d.name)}

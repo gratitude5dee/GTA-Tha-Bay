@@ -1,11 +1,189 @@
 {
   "schema": "npc-roster/1",
-  "rosterVersion": 1,
+  "rosterVersion": 2,
   "entries": [
-    { "id": "npc_test", "soul": "content/npcs/npc_test/soul.md", "status": "active", "tier": "fictionalized", "basis": "original", "hero": false, "pipeline": "none", "priority": 9, "research": "none", "standIn": null, "modes": ["story"] },
-    { "id": "ro-batista", "soul": "content/npcs/ro-batista/soul.md", "status": "active", "tier": "fictionalized", "basis": "original", "hero": true, "pipeline": "none", "priority": 1, "research": "none", "standIn": null, "modes": ["story", "racing"] },
-    { "id": "canary-mc", "soul": "content/npcs/canary-mc/soul.md", "status": "active", "tier": "fictionalized", "basis": "original", "hero": false, "pipeline": "standard", "priority": 2, "research": "none", "standIn": null, "modes": ["story", "fighter"] },
-    { "id": "standin_founder", "soul": "content/npcs/standin_founder/soul.md", "status": "active", "tier": "fictionalized", "basis": "original", "hero": false, "pipeline": "lean", "priority": 3, "research": "none", "standIn": null, "modes": ["story", "tycoon"] },
-    { "id": "standin_rapper", "soul": "content/npcs/standin_rapper/soul.md", "status": "active", "tier": "fictionalized", "basis": "original", "hero": false, "pipeline": "lean", "priority": 4, "research": "none", "standIn": null, "modes": ["story"] }
+    {
+      "id": "npc_test",
+      "soul": "content/npcs/npc_test/soul.md",
+      "status": "active",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "story"
+      ]
+    },
+    {
+      "id": "ro-batista",
+      "soul": "content/npcs/ro-batista/soul.md",
+      "status": "active",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": true,
+      "pipeline": "none",
+      "priority": 1,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "story",
+        "racing"
+      ]
+    },
+    {
+      "id": "canary-mc",
+      "soul": "content/npcs/canary-mc/soul.md",
+      "status": "active",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "standard",
+      "priority": 2,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "story",
+        "fighter"
+      ]
+    },
+    {
+      "id": "standin_founder",
+      "soul": "content/npcs/standin_founder/soul.md",
+      "status": "active",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "lean",
+      "priority": 3,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "story",
+        "tycoon"
+      ]
+    },
+    {
+      "id": "standin_rapper",
+      "soul": "content/npcs/standin_rapper/soul.md",
+      "status": "active",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "lean",
+      "priority": 4,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "story"
+      ]
+    },
+    {
+      "id": "dev_hyphy_elder",
+      "soul": "content/npcs/fighters-dev/rap_hyphy_elder/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_lyricist",
+      "soul": "content/npcs/fighters-dev/rap_lyricist/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_visionary",
+      "soul": "content/npcs/fighters-dev/tech_visionary/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_hacker",
+      "soul": "content/npcs/fighters-dev/tech_hacker/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_shooter",
+      "soul": "content/npcs/fighters-dev/ath_shooter/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_power_back",
+      "soul": "content/npcs/fighters-dev/ath_power_back/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    },
+    {
+      "id": "dev_influencer",
+      "soul": "content/npcs/fighters-dev/influencer/soul.md",
+      "status": "draft",
+      "tier": "fictionalized",
+      "basis": "original",
+      "hero": false,
+      "pipeline": "none",
+      "priority": 9,
+      "research": "none",
+      "standIn": null,
+      "modes": [
+        "fighter"
+      ]
+    }
   ]
 }
