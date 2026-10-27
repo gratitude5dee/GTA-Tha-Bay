@@ -15,6 +15,10 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # M10a1 (DL-OWN-01): every job runs the generation pipeline on its mock; no workflow holds or passes a fal key.
+  FAL_MODE: mock
+
 jobs:
   preview:
     if: github.event.pull_request.head.repo.full_name == github.repository && github.event.action != 'closed'

@@ -11,6 +11,7 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
+import { parseArgs } from 'node:util';
 import { assetTier, type NpcRosterEntry, type NpcRosterManifest, type SoulFrontmatter } from '../../../packages/shared/src/contracts/c10-npc.ts';
 import { parseSoul } from '../../../packages/shared/src/npc/parse.ts';
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
@@ -19,7 +20,7 @@ import type { RosterEntry } from '../../../services/pipeline/src/ports.ts';
 import {
   STANDARD_ESTIMATE_LIMIT_MICROS, buildStageJob, estimateMicros, stagePlans, type CharacterSubject, type PaidStage, type PipelineTier, type StagePlan,
 } from '../../../services/pipeline/src/steps/character.ts';
-import { DEFAULT_CAPS, capRefusal, totals, usd, type LedgerRow, type LineCaps } from './ledger.ts';
+import { DEFAULT_CAPS, LEDGER_FILE, capRefusal, readLedger, totals, usd, type LedgerRow, type LineCaps } from './ledger.ts';
 import { mapRoster } from './ports.ts';
 
 export interface LoadedEntry {
@@ -127,10 +128,14 @@ export async function planBatch(i: PlanInput): Promise<PlanResult> {
     }
     const plans = stagePlans(e.subject, i.registry, { withMoves: i.withMoves === true });
     const est = estimateMicros(plans);
-    const sheetPlan = plans[0] as StagePlan;
-    const stages = plans.map((p) => ({ ...p, planKey: buildStageJob({ subject: e.subject as CharacterSubject, stage: p.stage as PaidStage, plan: p, inputs: [], registry: i.registry, requestedBy: 'plan' }).jobKey }));
-    const sheetJob = buildStageJob({ subject: e.subject, stage: 'sheet', plan: sheetPlan, inputs: [], registry: i.registry, requestedBy: 'plan' });
-    const v = await assertStageAllowed(sheetJob, 'tier-check', ports, i.gate);
+    const jobs = plans.map((p) => ({ p, job: buildStageJob({ subject: e.subject as CharacterSubject, stage: p.stage as PaidStage, plan: p, inputs: [], registry: i.registry, requestedBy: 'plan' }) }));
+    const stages = jobs.map(({ p, job }) => ({ ...p, planKey: job.jobKey }));
+    // Every paid stage is gated, so a Lean row whose rigger or mesher is still `pending` in the registry shows it here.
+    let v: Awaited<ReturnType<typeof assertStageAllowed>> = { ok: true };
+    for (const { job } of jobs) {
+      v = await assertStageAllowed(job, 'tier-check', ports, i.gate);
+      if (!v.ok) break;
+    }
     const verdict = v.ok ? 'ok' : v.code;
     let status: PlanRow['status'] = 'ok';
     let reason = '';
@@ -139,7 +144,7 @@ export async function planBatch(i: PlanInput): Promise<PlanResult> {
       reason = 'blocked:research';
     } else if (!v.ok) {
       status = 'blocked';
-      reason = `blocked:${v.code}`;
+      reason = `blocked:${v.code} (${v.detail})`;
     } else if (e.subject.pipeline === 'standard' && est > STANDARD_ESTIMATE_LIMIT_MICROS) {
       status = 'refused';
       reason = `refused: the Standard estimate ${est.toLocaleString('en-US')} micros passes ${STANDARD_ESTIMATE_LIMIT_MICROS.toLocaleString('en-US')} (DL-172); the buffer funds it only with owner sign-off`;
@@ -168,4 +173,64 @@ export function renderPlan(r: PlanResult): string[] {
   out.push(`batch ${usd(r.batchMicros)} (${r.batchMicros.toLocaleString('en-US')} micros, blocked entries reserved)`);
   out.push(r.refused ?? 'batch within the characters line and the programme cap');
   return out;
+}
+
+// -- command ------------------------------------------------------------------------------------------------------------------
+
+export const ROSTER_FILE = 'content/npcs/roster.json';
+export const REGISTRY_FILE = 'config/genai-endpoints.json';
+export const KILL_FILE = '.genai/kill.json';
+export const NAMES_REAL_FILE = '.private/names-real.json';
+
+export interface World {
+  roster: NpcRosterManifest;
+  entries: LoadedEntry[];
+  registry: GenAiRegistry;
+  ledgerRows: LedgerRow[];
+  /** Real-side names for the prompt lint, or null when `.private/names-real.json` is absent. */
+  realNames: string[] | null;
+  kill: KillFlags;
+}
+
+export interface WorldFiles {
+  roster?: string | undefined;
+  registry?: string | undefined;
+  ledger?: string | undefined;
+  kill?: string | undefined;
+}
+
+const readJsonIf = <T>(file: string): T | null => (existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as T) : null);
+
+/** The roster, the registry, the ledger and the kill flags of a repository root. Reads files only. */
+export function loadWorld(root: string, f: WorldFiles = {}): World {
+  const abs = (p: string): string => path.resolve(root, p);
+  const roster = JSON.parse(readFileSync(abs(f.roster ?? ROSTER_FILE), 'utf8')) as NpcRosterManifest;
+  const registry = JSON.parse(readFileSync(abs(f.registry ?? REGISTRY_FILE), 'utf8')) as GenAiRegistry;
+  const kill = readJsonIf<KillFlags>(abs(f.kill ?? KILL_FILE)) ?? {};
+  const names = readJsonIf<{ entries?: { real?: unknown; aliases?: unknown }[] }>(abs(NAMES_REAL_FILE));
+  const realNames = names === null ? null : (names.entries ?? []).flatMap((e) => [...(typeof e.real === 'string' ? [e.real] : []), ...(Array.isArray(e.aliases) ? e.aliases.filter((a): a is string => typeof a === 'string') : [])]);
+  return { roster, entries: loadEntries(root, roster, kill), registry, ledgerRows: readLedger(abs(f.ledger ?? LEDGER_FILE)), realNames, kill };
+}
+
+export async function planCommand(argv: readonly string[], env: NodeJS.ProcessEnv, log: (l: string) => void, root: string): Promise<number> {
+  const { values } = parseArgs({
+    args: [...argv],
+    options: {
+      roster: { type: 'string' }, tier: { type: 'string', default: 'standard' }, slugs: { type: 'string' }, 'with-moves': { type: 'boolean', default: false },
+      ledger: { type: 'string' }, registry: { type: 'string' }, kill: { type: 'string' },
+    },
+  });
+  if (values.tier !== 'standard' && values.tier !== 'lean' && values.tier !== 'all') {
+    log('assets:gen plan: --tier must be standard, lean or all');
+    return 2;
+  }
+  const w = loadWorld(root, { roster: values.roster, registry: values.registry, ledger: values.ledger, kill: values.kill });
+  if (w.realNames === null) log(`SKIP prompt-lint real-side names: ${NAMES_REAL_FILE} is not present (the public lists apply)`);
+  const result = await planBatch({
+    entries: w.entries, tier: values.tier, ...(values.slugs !== undefined ? { slugs: values.slugs.split(',').map((x) => x.trim()).filter(Boolean) } : {}),
+    registry: w.registry, ledgerRows: w.ledgerRows, gate: { falMode: env['FAL_MODE'] === 'live' ? 'live' : 'mock', environment: 'dev', registry: w.registry, log }, realNames: w.realNames,
+    withMoves: values['with-moves'],
+  });
+  for (const line of renderPlan(result)) log(line);
+  return result.refused !== null || result.rows.some((r) => r.status === 'refused') ? 1 : 0;
 }

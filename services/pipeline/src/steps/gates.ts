@@ -150,7 +150,7 @@ export interface A8Input {
   recordLicenses: readonly string[];
   consent: ConsentIndex;
   nowIso: string;
-  /** The run used `MockFalPort`: records carry executor `mock` by design and the mock rule is skipped (they can never be published). */
+  /** The run used `MockFalPort`: records carry executor `mock` and env `test` by design, so those two rules are skipped (provenance:check still refuses them, they can never be published). */
   mock: boolean;
 }
 
@@ -162,7 +162,7 @@ export function evaluateA8(i: A8Input, at: string): GateReport {
   }
   for (const r of i.records) {
     for (const x of checkRecord(r, { recordLicenses: i.recordLicenses, release: false })) {
-      if (i.mock && x.rule === 'mock-reference') continue;
+      if (i.mock && (x.rule === 'mock-reference' || x.rule === 'env-not-production')) continue;
       out.push(x);
     }
     out.push(...checkLikenessRecord(r, i.consent, i.nowIso));
@@ -184,7 +184,7 @@ export function evaluateA8(i: A8Input, at: string): GateReport {
     const root = rootOf(r);
     if (root === null || root.origin !== 'generated') out.push(finding('A8', r.paths[0] ?? r.sha256, 'root', 'the derivation chain does not end in a generated root'));
   }
-  return gateReport('A8', 'publish', 'records', out, at, i.mock ? ['mock run: records carry executor mock and cannot pass provenance:check'] : []);
+  return gateReport('A8', 'publish', 'records', out, at, i.mock ? ['mock run: records carry executor mock and env test, and cannot pass provenance:check'] : []);
 }
 
 // -- H1 checklist ---------------------------------------------------------------------------------------------------------------

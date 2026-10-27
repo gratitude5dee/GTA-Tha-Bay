@@ -8,6 +8,7 @@
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { parseArgs } from 'node:util';
 import { GENAI_GUARDRAILS } from '../../../packages/shared/src/genai/guardrails.generated.ts';
 
 export type LedgerLine = keyof typeof GENAI_GUARDRAILS.lines;
@@ -149,4 +150,52 @@ export function renderLedger(rows: readonly LedgerRow[], only: LedgerLine | null
   if (only === null) out.push(`  ${'program'.padEnd(14)} ${usd(t.total).padStart(8)} of ${usd(caps.program).padStart(8)}  (${Math.round((t.total / caps.program) * 100)} %)  ${t.total.toLocaleString('en-US')} micros`);
   out.push(...alarms(t, caps).filter((a) => only === null || a.includes(`the ${only} line`) || a.includes('the program')));
   return out;
+}
+
+/**
+ * assets:gen ledger [--line characters|cutscenes|spike|buffer|vehiclesProps] [--seed] [--import <file>] [--file <ledger>]
+ * `--seed` writes the spike row from `research/genai-spike/ledger.json` once; `--import` appends rows by reference.
+ */
+export function ledgerCommand(argv: readonly string[], root: string, log: (l: string) => void, nowMs: number): number {
+  let values;
+  try {
+    values = parseArgs({ args: [...argv], options: { line: { type: 'string' }, seed: { type: 'boolean', default: false }, import: { type: 'string' }, file: { type: 'string' } } }).values;
+  } catch (e) {
+    log(`assets:gen ledger: ${(e as Error).message}`);
+    return 2;
+  }
+  const only = values.line === undefined ? null : (values.line as LedgerLine);
+  if (only !== null && !LEDGER_LINES.includes(only)) {
+    log(`assets:gen ledger: --line must be one of ${LEDGER_LINES.join(', ')}`);
+    return 2;
+  }
+  const file = path.resolve(root, values.file ?? LEDGER_FILE);
+  let rows = readLedger(file);
+  if (values.seed) {
+    if (rows.some((r) => r.kind === 'seed' && r.ref === SPIKE_LEDGER_FILE)) log('seed: the spike row is already in the ledger');
+    else {
+      const spike = path.resolve(root, SPIKE_LEDGER_FILE);
+      if (!existsSync(spike)) {
+        log(`assets:gen ledger: ${SPIKE_LEDGER_FILE} does not exist`);
+        return 1;
+      }
+      const row = spikeSeedRow(readFileSync(spike, 'utf8'), nowMs);
+      appendRow(file, row);
+      log(`seed: spike row of ${usd(row.usdMicros)} written`);
+    }
+    rows = readLedger(file);
+  }
+  if (values.import !== undefined) {
+    try {
+      const { added, skipped } = importRows(rows, readFileSync(path.resolve(root, values.import), 'utf8'), nowMs);
+      for (const r of added) appendRow(file, r);
+      log(`import: ${added.length} row(s) added, ${skipped.length} already present`);
+    } catch (e) {
+      log(`assets:gen ledger: ${(e as Error).message}`);
+      return 1;
+    }
+    rows = readLedger(file);
+  }
+  for (const line of renderLedger(rows, only)) log(line);
+  return 0;
 }
