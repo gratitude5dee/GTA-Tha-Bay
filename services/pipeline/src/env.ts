@@ -103,12 +103,20 @@ export function r2Blob(env: Pick<PipelineEnv, 'MEDIA' | 'PRIVATE'>): BlobPort {
         ...(meta?.custom !== undefined ? { customMetadata: meta.custom } : {}),
       });
     },
-    async putStream(b, key, body, _size, meta) {
-      // R2 accepts a stream whose length is known: a fetch body with a Content-Length, or an R2 object body.
-      await bucket(b).put(key, body, {
+    async putStream(b, key, body, size, meta) {
+      // R2 accepts only a stream of known length. A FixedLengthStream gives any source one, and also fails the write when the source
+      // delivers a different number of bytes than the server announced. Both pipe ends are I/O only: nothing is buffered or hashed.
+      const opts = {
         ...(httpMeta(meta) !== undefined ? { httpMetadata: httpMeta(meta)! } : {}),
         ...(meta?.custom !== undefined ? { customMetadata: meta.custom } : {}),
-      });
+      };
+      if (typeof FixedLengthStream !== 'function') {
+        await bucket(b).put(key, body, opts); // a runtime without it (the Node proxy of the tests) takes the stream as it comes
+        return;
+      }
+      const fixed = new FixedLengthStream(size);
+      const piped = body.pipeTo(fixed.writable);
+      await Promise.all([bucket(b).put(key, fixed.readable, opts), piped]);
     },
     async copy(from, to, meta, expectBytes) {
       const src = await bucket(from.bucket).get(from.key);

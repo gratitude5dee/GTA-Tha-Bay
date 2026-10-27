@@ -1,6 +1,6 @@
 /**
  * M05c3 AC-5 (`prewarm-act1`, part of `pnpm check:pipeline`): the prewarm plan over the Miniflare pipeline and `MockFalPort`.
- * The CLI itself submits nothing on Workers Free (`--live` refuses until M05c4), so the scenario plays the operator's part:
+ * The scenario plays route 28's part (M05c4 gave the CLI's `--live` a submission of its own, covered by tools/assets/test/prewarm.spec.ts):
  * run 1 plans the nine Act 1 keys, submits exactly the planned keys through a stand-in for route 28 (the in-Worker mock path
  * M05b1 runs: single-flight object, Workflow stages, `MockFalPort`), and every key ends with a manifest written last. Run 2 finds
  * every manifest by HEAD, plans nothing, and so makes 0 FalPort calls and 0 route 28 submissions. Runs under Node against
@@ -17,7 +17,6 @@ import {
 } from '../src/core.ts';
 import { buildCutsceneJob } from '../../edge/src/cutscenes/job.ts';
 import { manifestFindings } from '../../../tools/ci/check-c2pa.ts';
-import { NO_TRANSCODER_LINE } from '../../../tools/assets/gen/gates.ts';
 import { runPrewarm, type PrewarmOptions, type PrewarmPorts } from '../../../tools/assets/gen/prewarm.ts';
 
 const fx = (f: string): string => path.join(import.meta.dirname, '../../../tools/assets/test/fixtures', f);
@@ -170,11 +169,14 @@ describe('prewarm-act1 over MockFalPort', () => {
     expect(recorder.count('submit')).toBe(9);
     expect(files.get('docs/releases/fixture-act1/cutscenes.md')).toContain('Generated clips: 9 of 9');
 
-    // the CLI path itself submits nothing on Workers Free
+    // M05c4: the CLI's own `--live` run submits only what is planned; with every key ready there is nothing to submit
     logs.length = 0;
+    let submissions = 0;
+    ports.submit = () => (submissions++, Promise.resolve([]));
     const live = await runPrewarm({ ...options, live: true }, ports);
     expect(live.code).toBe(0);
-    expect(logs).toEqual([NO_TRANSCODER_LINE]);
+    expect(logs).toContain('live: nothing to submit (every key is ready, pending, or held back by a gate)');
+    expect(submissions).toBe(0);
     expect(counts.falCalls).toBe(callsAfterRun1);
   }, 120_000);
 });

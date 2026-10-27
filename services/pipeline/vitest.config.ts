@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { scrubProcessEnv } from '../../tools/ci/secret-env.ts';
 
@@ -8,6 +9,9 @@ import { scrubProcessEnv } from '../../tools/ci/secret-env.ts';
 scrubProcessEnv({ label: 'pipeline vitest' });
 
 export default defineConfig({
+  // M05c4: the off-edge scenarios construct the real CutsceneJobDO of services/edge in Node over a fake DurableObjectState;
+  // its `cloudflare:workers` import resolves to a stub.
+  resolve: { alias: { 'cloudflare:workers': path.resolve(import.meta.dirname, 'test/stubs/cloudflare-workers.ts') } },
   test: {
     include: ['test/**/*.test.ts'],
     environment: 'node',

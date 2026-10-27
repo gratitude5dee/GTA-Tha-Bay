@@ -7,8 +7,6 @@ import type { GenAiRegistry, VideoProviderEntry } from '../../../packages/shared
 import { selectProvider } from '../cutscene-index/build.ts';
 
 export const NO_PROVIDER_LINE = 'blocked: no cleared provider (ADR-GENAI-01)';
-/** Workers Free has no transcoder, so a live job would pay fal and then fail at `transcode` (DL-OWN-08, DL-750). */
-export const NO_TRANSCODER_LINE = 'blocked: no transcoder on Workers Free; lands in M05c4';
 
 export type ProviderGate = { ok: true; key: string; entry: VideoProviderEntry } | { ok: false; line: string };
 

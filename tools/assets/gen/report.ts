@@ -15,6 +15,8 @@ export interface ReportInput {
   /** Registry provider key, or null when none was cleared. */
   provider: string | null;
   rows: readonly ReportRow[];
+  /** A `--live` run's change of the fal ledger for one kind (M05c4); absent for a plan. */
+  ledgerDelta?: { kind: string; micros: number };
 }
 
 export function renderReport(i: ReportInput): string {
@@ -27,6 +29,7 @@ export function renderReport(i: ReportInput): string {
     `- Provider: ${i.provider ?? 'none cleared (ADR-GENAI-01); Act 1 ships fallback-only'}`,
     `- Generated clips: ${generated} of ${i.rows.length}`,
     `- In-engine (DirectorScript with subtitles): ${i.rows.length - generated} of ${i.rows.length}`,
+    ...(i.ledgerDelta ? [`- Ledger delta of the live run (fal, kind ${i.ledgerDelta.kind}): ${i.ledgerDelta.micros} micros`] : []),
     '',
     '| Ref | Key | Plays | Note |',
     '|---|---|---|---|',

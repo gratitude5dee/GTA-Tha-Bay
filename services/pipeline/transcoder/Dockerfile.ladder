@@ -1,0 +1,14 @@
+# The off-edge `cut@1` ladder for operators who are not on Ubuntu 24.04 (M05c4, DL-748, DL-750): `ladder.sh` runs inside this image
+# through `pnpm assets:gen prewarm -- --finish --ffmpeg docker`. No Node, no server, no secrets; the C2PA re-signer runs on the host.
+#   ffmpeg 7:6.1.1-3ubuntu5  the version the recipe was measured with (research/gap-cutscene-delivery-playback.md section 2.4);
+#                            pinned in spec/03-decisions-and-facts.md section 7. `ffprobe` ships in the same package.
+# Build (the CLI does this when the image is missing):
+#   docker build -t dv-ladder:cut1 -f services/pipeline/transcoder/Dockerfile.ladder services/pipeline/transcoder
+# The base image is pinned by tag; pin its digest when the operator builds the image (`docker buildx imagetools inspect ubuntu:24.04`).
+FROM ubuntu:24.04
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg=7:6.1.1-3ubuntu5 \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
