@@ -20,7 +20,7 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
   - `register(prefix, validator)`, where `validator(board, body: unknown, env) → {ok: true, value, verified, verifier, replay: Uint8Array} | {ok: false, reason}`.
   - `racing.` and `tycoon.` are registered; `fighter.` stays unregistered (`feature_disabled`).
   - Accepted rows go through `DataPort.leaderboards.submit`. The replay bytes are stored in the private R2 bucket under `lb/<board>/<sha256>.bin`.
-  - The KV cache `lb:<board>` (30 s) is invalidated on accept.
+  - The 30 s `lb:<board>` cache (isolate memory since DL-746; no KV write on a timer on Workers Free) is dropped on accept in the accepting isolate; other isolates refresh within 30 s.
 - **Racing plausibility** (`packages/shared/src/racing/verify/plausible.ts`, pure, for boards `racing.<raceId>.time|score`):
   - the board's `raceId` equals `body.raceId`, and `raceVersion` and `worldBake` equal the bundled race index;
   - `replaySha256` equals SHA-256 of the decoded `replayB64`, and the decoded sizes are within `REPLAY_LIMITS`;
@@ -95,7 +95,7 @@ Leaderboards stop answering `feature_disabled`. Route 21's validator registry, d
 1 session; ≈ 30 hand-written files. Risk medium: route 21 transport assumptions (DL-183), Worker CPU for tycoon replays, and RoomDO activity plumbing from M12c1.
 
 ## Risks & fallbacks
-- If M12c2 shipped no route 21 transport (its file and `_PLAN-3.md` row include it since DL-219/DL-183): add the GET and submit handlers here, exactly per `spec/05-api-and-realtime.md` route 21 (KV `lb:<board>` 30 s, `feature_disabled` for unregistered prefixes), and log a Builder decision.
+- If M12c2 shipped no route 21 transport (its file and `_PLAN-3.md` row include it since DL-219/DL-183): add the GET and submit handlers here, exactly per `spec/05-api-and-realtime.md` route 21 (the 30 s `lb:<board>` cache in isolate memory, DL-746; `feature_disabled` for unregistered prefixes), and log a Builder decision.
 - Tycoon `verifyRun` exceeds the Worker CPU limit for long runs: cap the daily preset at the weeks M09a2's balance file allows, and reject bodies with more `ChoiceRecord`s than the 16 KiB envelope holds. If a real run still times out in `wrangler dev`, move the check to a `JOBS` queue consumer (row pending → verified) and report the change.
 - Race rewards go through route 20 with `ProgressDelta.kind = 'race'` (C12 1.2). If the purse table is not ready, record the result in `EV Activity` only and commit no reward; multiplayer purses are not needed for the Multiplayer checkpoint.
 - The compiled race index is too large for the rooms bundle: bundle only sprint and circuit races, which is what the activity needs.

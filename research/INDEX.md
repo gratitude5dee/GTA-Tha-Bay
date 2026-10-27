@@ -4,7 +4,7 @@ Consolidates every report in `research/`; adds no new facts. Binding owner updat
 
 ## 1. Decision summary
 
-1. **Host on Workers + static assets (no Pages), Workers Paid from M00** — SPA mode, `run_worker_first: ["/api/*"]`, COOP/COEP/CORP in `_headers` and on Worker responses; R2 media on `media.<domain>` with CORS; `/account/*` non-isolated — [stack-cloudflare-backend, repos-webport]
+1. **Host on Workers + static assets (no Pages), Workers Paid from M00** (plan superseded 2026-10-27 by DL-OWN-08: Workers Free until the owner upgrades; F-018) — SPA mode, `run_worker_first: ["/api/*"]`, COOP/COEP/CORP in `_headers` and on Worker responses; R2 media on `media.<domain>` with CORS; `/account/*` non-isolated — [stack-cloudflare-backend, repos-webport]
 2. **G1: Supabase `us-west-1` (Postgres + RLS + pgvector); Convex is the documented alternative** — West region (Convex has none), relational data; cost parity, so cost doesn't decide; Convex prices UNVERIFIED. Switch cost 5–7 sessions under the `DataPort` rule (no supabase-js in the client, all data via `/api/v1`); +4–6 if it leaks — [stack-cloudflare-backend §8]
 3. **Identity spine = Worker OIDC issuer (ES256, `kid`, `role`, `sub=profile_id`)** — one JWT for DOs, Supabase Custom OIDC (Management API) and Convex `customJwt`; avoids unverified anon→Web3 linking and the 30/h/IP anon limit. *Disagreement:* backend report used Supabase anon as spine; resolved for auth §1.2, anon kept as fallback — [auth-ugc-input-maps, stack-cloudflare-backend]
 4. **Auth: P0 local (M00–M11, HMAC play token) → P1 device-registered (M12) → P2 ChatGPT link (M13c) → P3 Thirdweb (M14a)** — fixes C12 order (R-AUTH-02). Thirdweb = SIWE-linked EOA, no `guest`, no 4337, only after Growth ($99/mo) — [auth-ugc-input-maps §1–2]
@@ -58,7 +58,7 @@ All rows checked 2026-10-18 (date column). CF = developers.cloudflare.com; BCD =
 | F-015 | R3F 9.8.2 peer `react <19.4`; v10 alpha | registry.npmjs.org/@react-three/fiber | 2026-10-18 | high | S01 |
 | F-016 | Pins: vite 8.3.4, vite-plugin-pwa 2.0.0, TS 6.0.3 (typescript-eslint needs < 6.1), wrangler 4.151.1, supabase-js 2.118.0 | registry.npmjs.org | 2026-10-18 | high | all |
 | F-017 | gltf-transform 4.5.1 meshopt default; needs KTX-Software ≥ 4.4.0 (4.4.2 stable) | unpkg.com/@gltf-transform/cli@4.5.1 | 2026-10-18 | high | S05 |
-| F-018 | Workers Paid $5; static asset requests free; no egress; 25 MiB/file | CF /workers/platform/pricing/ ; /limits/ | 2026-10-18 | high | S09 |
+| F-018 | Workers Paid $5; static asset requests free and unlimited; no egress; 25 MiB/file. Amended 2026-10-27 (DL-OWN-08, DL-744): the account stays on Workers Free (10 ms CPU per request, 100,000 Worker requests a day, 20,000 asset files per version); the Free limits are `spec/03-decisions-and-facts-2.md` §8 | CF /workers/platform/pricing/ ; /limits/ ; /workers/static-assets/billing-and-limitations/ | 2026-10-18; 2026-10-27 | high | S09 |
 | F-019 | `_headers` not applied to Worker responses; CF ignores Range when decompressing | CF /workers/static-assets/headers/ ; /cache/reference/range-requests/ | 2026-10-18 | high | S05,S09 |
 | F-020 | DO: 32,768 hibernatable sockets; attachment ≤ 16 KiB; ~500–1,000 req/s; deploys restart DOs | CF /durable-objects/ | 2026-10-18 | high | S09 |
 | F-021 | DO: +$0.15/M req; $12.50/M GB-s at 128 MB; WS in 20:1, out free; `setAlarm` = row write | CF /durable-objects/platform/pricing/ | 2026-10-18 | high | S09,S13 |

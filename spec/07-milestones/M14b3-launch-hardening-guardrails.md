@@ -146,6 +146,7 @@ M14b2, M14c, M05f2, M10c, M10d2, M10d3, M10e, M11a2, M11b4, M12e, M13c3, M06b4, 
 - **`ip:history` finds a hit:** stop and report the commit; rewriting history is the owner's call.
 
 ## Notes for the Builder
+- **Workers plan (DL-OWN-08, DL-746).** The account is on Workers Free (`spec/03-decisions-and-facts-2.md` §8). Before the public release, the launch-gate record names the owner's plan decision: Workers Paid, or the owner's written acceptance of the Free daily caps for launch traffic with production multiplayer (`mp.enabled`) off (RISK-32, RISK-35). Neither is a Builder step; without it the release is "Blocked on: owner plan decision".
 - Earlier deliverables used: M10d2 (`artFinal()`, `config/art-placeholders.json`), M10e (audio rules 4–5, `content/audio/needs.json`), M00d (milestone lint, `trace.ts`, `spec-files.ts`, `workflows.test.ts`, `perf:verify --auto`), M01c (`perf:checklist`), M00b (IP gates, terms snapshots), M05c2 (sensitivity check).
 - Read first: `13-qa-critics.md` §2; `13-qa.md` §3.7, §3.11, §8; `spec/08-test-and-ci.md` §3.2–§3.3, §4, §5.6–§5.7, §6; `05-assets-pipeline.md` §9; `spec/99-open-questions.md` Q-13…Q-30; DL-211, DL-213.
 - Facts: F-041, F-042 (terms inputs), F-067 (franchise mark), F-053 (ODbL share-alike for the derived database), F-013 (Quest budgets). Recorded on devices, never asserted: the U-items named in AC-10…AC-11.

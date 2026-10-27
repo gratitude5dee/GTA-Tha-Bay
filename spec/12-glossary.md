@@ -51,7 +51,7 @@
 **P0–P3**: auth phases: local, device-registered, ChatGPT-linked, Thirdweb-linked.  
 **Par bot**: racing bot setting a route's target time.  
 **Play token**: HMAC-signed P0 token bound to a device key.  
-**Prewarm**: staff batch generating cutscene clips ahead of play (M05c3, M10b).  
+**Prewarm**: staff batch generating cutscene clips ahead of play (M05c3 plan, M05c4 live run and off-edge finish, M10b).  
 **Provenance record**: per-file origin, licence, generator and likeness record; CI refuses files without one.  
 **R2**: Cloudflare object storage for assets, clips and UGC.  
 **Render object**: unit of draw budgets (D-09).  

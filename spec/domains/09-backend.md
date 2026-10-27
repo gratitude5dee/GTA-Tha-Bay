@@ -12,7 +12,7 @@ S09 owns the Cloudflare edge (Workers, Durable Objects, R2, KV, Queues, Workflow
 
 | R-ID | How S09 serves it | Sections |
 |---|---|---|
-| R-PLAT-01 | Workers + static assets (SPA), Workers Paid from M00, COOP/COEP/CORP, R2 media domains | §2.1, Part 4 §1 |
+| R-PLAT-01 | Workers + static assets (SPA), Workers Free until upgraded (DL-OWN-08; Part 4 §1.4), COOP/COEP/CORP, R2 media domains | §2.1, Part 4 §1 |
 | R-ROLL-01 | single-player needs no account or server state; every online feature is optional and degrades to offline | §2.3, §8 |
 | R-ROLL-02 | `RoomDO` + `DirectoryDO` + `PresenceDO`, protocol v2, persistence on Supabase | §3.1, C11 |
 | R-AUTH-01 | P0 local profile + HMAC play token; P1 device registration at M12a | §2.4, C12 §2.3 |
@@ -246,7 +246,7 @@ Server tick (50 ms): drain inputs → validate poses → resolve `ACT` in arriva
 ## 7. Verified facts used
 | F / source | Fact | Used for |
 |---|---|---|
-| F-018 | Workers Paid $5; static asset requests free; no egress; 25 MiB/file | hosting, cost |
+| F-018 | Workers Paid $5 (account on Free, DL-OWN-08); static asset requests free; no egress; 25 MiB/file | hosting, cost |
 | F-019 | `_headers` not applied to Worker responses; Cloudflare ignores Range when it must decompress | headers in code; identity encoding |
 | F-020 | 32,768 hibernatable sockets; attachment ≤ 16 KiB; ~500–1,000 req/s; deploys restart DOs | room cap, attachments, drain |
 | F-021 | DO $0.15/M requests, $12.50/M GB-s at 128 MB; WS in 20:1, out free; `setAlarm` = row write | tick design, cost |

@@ -39,7 +39,7 @@
   "analytics": { "binding": "ANALYTICS_SQL" },                                                                           // † (Wrangler ≥ 4.145.0)
   "ai": { "binding": "AI" },
   "ratelimits": [ /* one entry per class in §3.1, e.g. { "name": "RL_TALK", "namespace_id": "1001", "simple": { "limit": 4, "period": 10 } }; M00e: RL_AUTH {10, 60}, RL_AUTH_USER {5, 60} */ ],  // †
-  "triggers": { "crons": ["*/5 * * * *", "10 3 * * *", "0 * * * *"] },        // SLA pager + recon; retention; hourly expiries
+  "triggers": { "crons": ["*/5 * * * *"] },        // one dispatcher per Worker (§1.4 rule 3, BD-FIX-CRON-01): 03:10–03:40 jobs, later expiry, retention, SLA pager, recon
   "observability": { "enabled": true, "logs": { "enabled": true, "head_sampling_rate": 0.25, "invocation_logs": true },
                      "traces": { "enabled": true, "head_sampling_rate": 0.05 }, "issues": { "enabled": true } },          // †
   "vars": { "ENVIRONMENT": "prod", "GEO_ALLOW": "US", "PUBLIC_ORIGIN": "https://<domain>", "ID_ISSUER": "https://id.<domain>",
@@ -54,7 +54,7 @@
                    no SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP until M05d (M00e item 8, DL-621) */ }
 }
 ```
-Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6).
+Each new migration tag ships in its own PR labelled `do-lifecycle`, containing only the class skeleton, the export and the tag (deployed with `wrangler deploy`); the logic follows in a normal PR. S05 adds two bindings to `tha-bay-web` in M05b: Workflow `KILL_WF` → `KillPurgeWorkflow` and Container `TRANSCODER` for `services/pipeline/transcoder/` (Container and Workflow config keys are checked against the wrangler schema in M00, S05 U6). Amended 2026-10-27 (DL-OWN-08, DL-745): Containers need Workers Paid, so `TRANSCODER` is not declared; M05c4 transcodes off-edge (§1.4; split from M05c3 by DL-750) and the Container is the post-upgrade option, parked on `claude/release-do-lifecycle-3`.
 
 `services/rooms/wrangler.jsonc` mirrors it with: route `rt.<domain>`; DO bindings `ROOM`, `DIRECTORY`, `PRESENCE`; migration `rooms-v1` `new_sqlite_classes: ["RoomDO","DirectoryDO","PresenceDO"]` (M12b); `FLAGS` KV; `AE` dataset; `RL_ROOMS`; observability `logs.head_sampling_rate: 0.001`, `invocation_logs: false` (an unsampled busy room would ingest ≈ 830 GB of logs a month after the 2026-12-01 pricing change [research/gap-observability-cost-guardrails.md §1.3]); secrets `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC`, `SUPABASE_SECRET_KEY`; vars `ID_ISSUER`, `GEO_ALLOW`, `BUILD_ID` (set by CI), `CAP` (16).
 
@@ -69,6 +69,14 @@ Each new migration tag ships in its own PR labelled `do-lifecycle`, containing o
 **Live state (Architect observation 2026-10-19, DL-512).** `tha-bay-web` and `tha-bay-web-staging` exist on workers.dev subdomain `gratitude-8f4` (`https://tha-bay-web[-staging].gratitude-8f4.workers.dev`); the rooms Workers come with M12b1. Supabase project `tha-bay`, ref `jwvvllhxuvwkrynmnchb`, region `us-west-1` (G1), created 2026-10-19, is the **prod** project; its plan was not observed. As merged, the staging vars point at it too, so staging sign-ups (routes 58–60, ADR-ACCT-01) land in the production user table; this is accepted until M05d's `tha-bay-staging` exists (RISK-28, DL-603). No Supabase var is removed (Q-43, DL-601); previews get none (M00e item 8), and production sign-up waits behind `AUTH_PASSWORD_SIGNUP` until M00e's checks are live. M05d records both refs in `config/supabase.projects.json`; until then they are in `config/cloudflare.resources.json`.
 
 Inside a Preview, Queue consumers, Cron Triggers and production routes do not run and Workflow bindings point at an existing Workflow; every queue/cron feature therefore has a `/api/v1/_test/*` route (compiled out of prod, proven by `check:prod-routes`) [research/gap-ci-cd-release-assets.md §1.5].
+
+### 1.4 Living on Workers Free (DL-OWN-08, DL-744)
+The account stays on Workers Free until the owner upgrades; the limits are `spec/03-decisions-and-facts-2.md` §8 (read 2026-10-27). Rules for every milestone from DL-744 on:
+1. **No Paid-only feature** without an owner gate in its kickoff row: no Containers, Tail Workers, Logpush or `limits.cpu_ms`. Durable Objects stay SQLite-backed (`new_sqlite_classes`). A Worker holds at most 64 variables, secrets and text vars together (§8), so a milestone that adds a var or secret counts both against the `spec/08-test-and-ci.md` §8 list.
+2. **CPU 10 ms** per request, cron invocation and Workflow step: request handlers, cron handlers and Workflow steps stay I/O-bound. Work that hashes, transcodes, parses or re-encodes large bodies runs in the client, on the operator or CI machine (separate processes such as `ffmpeg`, DL-629), or in a Queue consumer only after consumer CPU on Free is verified (UNVERIFIED, §8). A Worker step hashes nothing larger than 64 KiB.
+3. **One cron per Worker.** The account allows 5 Cron Triggers (what counts is UNVERIFIED). Since BD-FIX-CRON-01 (2026-10-27) each Worker has a single dispatcher expression (`*/5 * * * *`, `services/edge/src/ops/scheduled.ts`) with a `SCHEDULE` table keyed by UTC minute (03:10–03:40 today); a tick runs the row of its own minute, every job is idempotent, and a missed tick gets no catch-up, as with the old daily expressions. M13c1 and later milestones add rows (expiry, rebake, restore, SLA pager, alerts, recon) and may move to window semantics (jobs whose slot falls in the 5-minute window) with the tests to match. After the operator applies the trigger, no rollback goes below the version that carries the dispatcher (`docs/runbooks/workers-free.md`); a dispatcher run stays I/O-bound (reads, deletes, enqueues, Durable Object calls), so it fits 10 ms. Staging keeps the same dispatcher; Previews use `/api/v1/_test/run-scheduled`. A job that needs a 1-minute cadence waits for the upgrade (owner gate).
+4. **Daily caps are shared** by production, staging, Previews and every run against a deployed Worker: 100,000 Worker requests (media and `/api/*`), 100,000 DO requests, 10,000 Queue operations, 1,000 KV writes, 3,000 Workflow steps, 100,000 Analytics Engine points and 10,000 Analytics Engine read queries, 10,000 Workers AI Neurons. Workflow executions count against the 100,000 daily Worker requests ("shared with Workers daily limit", §8). A scheduled job that queries Analytics Engine budgets its queries for every environment that runs it (M14b1). Hot paths cache in isolate memory instead of writing KV on a timer (for example `lb:<board>`, M12c2, M12e); load tests against staging (M12c2 AC-10) and public multiplayer wait for the upgrade (owner gate, RISK-31…RISK-35).
+5. **Observability** uses Workers Logs and Analytics Engine only; the Logs sampling rates in §1.2 stay.
 
 ## 2. CI/CD (spec/03 D-27)
 GitHub Actions, actions pinned by SHA, `runs-on: ubuntu-24.04`, `permissions: contents: read` by default [research/gap-ci-cd-release-assets.md R3]. Backend-relevant scripts (root `package.json`; S13 owns the full list):
@@ -183,7 +191,7 @@ export interface SpendEvent { ts: number; vendor: Vendor; model: string; kind: s
 ### 5.4 Infrastructure cost (list prices; consolidate in spec/10)
 | Item | 1k MAU | 10k MAU | 100k MAU | Source |
 |---|---|---|---|---|
-| Cloudflare (Workers Paid base $5, DO, R2, Queues, AE) | ≈ $6 | ≈ $30 | ≈ $300 | [research/stack-cloudflare-backend.md §9] |
+| Cloudflare (Workers Paid base $5, DO, R2, Queues, AE; $0 while on Workers Free, DL-OWN-08, until the free daily caps bind, §1.4) | ≈ $6 | ≈ $30 | ≈ $300 | [research/stack-cloudflare-backend.md §9] |
 | Supabase Pro + compute | ≈ $25 | ≈ $30 | ≈ $90–100 | same |
 | Logs/traces after 2026-12-01 (rooms sampled 0.001) | $0 | $0 | ≈ $4.54 | [research/gap-observability-cost-guardrails.md §1.3] |
 | Full 16-player room-hour | ≈ $0.014 | | | [research/stack-cloudflare-backend.md §4.7] |
@@ -204,7 +212,7 @@ Names follow `CLAUDE.md` and `spec/08-test-and-ci.md` §8 (DL-210, amended at th
 | `SUPABASE_SECRET_KEY` (`sb_secret_…`) | web, rooms | M05d / M12b1 | 90 d |
 | `ID_SIGNING_JWK_CURRENT`, `ID_SIGNING_JWK_NEXT` (ES256 private JWK) | web | M12a1 | 90 d, ≥ 30 min overlap |
 | `ROOM_TICKET_HMAC`, `ROOM_RESUME_HMAC`, `INTERNAL_HMAC` | rooms (+ web for ticket/internal) | M12b1 | 90 d |
-| `FAL_KEY` (held per Q-17; operator CLI and the Worker's production pipeline; never CI, which runs `FAL_MODE=mock`), `FAL_KEY_BILLING` | operator (M00c, M10a1); web (M05c3); web (billing) | M00c, M05c3, M10a1 / M14b1 | 90 d expiry set at creation |
+| `FAL_KEY` (held per Q-17; operator CLI and the Worker's production pipeline; never CI, which runs `FAL_MODE=mock`), `FAL_KEY_BILLING` | operator (M00c, M10a1); web (M05c4); web (billing) | M00c, M05c4, M10a1 / M14b1 | 90 d expiry set at creation |
 | `ANTHROPIC_API_KEY` (workspace `npc-runtime`), `ANTHROPIC_BUILDER_KEY` (`npc-builder`), `ANTHROPIC_EVALS_KEY` (`ci-evals`, GitHub), `ANTHROPIC_ADMIN_KEY` (Usage API) | web; GitHub for evals | M06a3 / M06b1 / M06a4 / M14b1 | 90 d |
 | `ELEVENLABS_API_KEY` (service account, `character_limit`; t2 voices off until Q-20) | web | M06a4 | 90 d |
 | `OPENAI_MODERATION_API_KEY` | web | M06b1 | 90 d |
