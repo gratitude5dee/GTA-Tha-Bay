@@ -320,6 +320,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   // Racing is on for every session (M07a2: the mode is `available`, the menu and the story hook start races); the sim worker boots the
   // racing module, which registers its components and the engine port. `?racing=1` (QA) still opens `__dvBridge.racing` (M07a1).
   boot = { ...boot, config: { ...boot.config, racing: true } };
+  // QA `?hooks=stub|bot`: the story mode runs the mode hooks of every mission it starts that way (`?mission=<id>` carries it in its own block).
+  if (opts.qa && opts.flags.hooks !== null) boot = { ...boot, config: { ...boot.config, hooks: opts.flags.hooks } };
   // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
   if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 

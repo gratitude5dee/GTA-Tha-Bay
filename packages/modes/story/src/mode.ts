@@ -269,6 +269,17 @@ export class StoryController {
     if (this.store) this.publishJobs(ctx, this.store, story, null);
   }
 
+  /**
+   * QA `?hooks=stub|bot` without `?mission=<id>`: the page puts the flag in `BootPayload.config.hooks`, and every mission the player
+   * starts (Jobs, a trigger, a resume) runs its mode hooks the way the flag says. Racing is `available` from M07a2, so a hook that used
+   * to fall back to its stub because the mode was `comingSoon` now starts the real child unless a test asks for the stub (BD-M07a2-10).
+   */
+  private qaBootFlags(): Partial<RuntimeFlags> {
+    if (!this.env.qa || (import.meta.env as { VITE_DV_QA?: string } | undefined)?.VITE_DV_QA !== '1') return {};
+    const h = this.env.bootConfig()['hooks'];
+    return h === 'stub' || h === 'bot' || h === 'real' ? { hooks: h } : {};
+  }
+
   /** `?mission=<id>` in a QA build: the page put the IR in the boot payload. */
   qaAutostart(): void {
     if (import.meta.env.VITE_DV_QA !== '1' || !this.env.qa || !this.ctx) return;
@@ -288,7 +299,7 @@ export class StoryController {
   begin(ir: MissionIR, o: BeginOptions = {}): BeginResult {
     const ctx = this.ctx as ModeContext;
     const story = this.story as StorySlice;
-    this.flags = { ...DEFAULT_FLAGS, ...(o.flags ?? {}) };
+    this.flags = { ...DEFAULT_FLAGS, ...this.qaBootFlags(), ...(o.flags ?? {}) };
     this.directors = new Map((o.directors ?? []).map((d) => [d.id, d]));
     this.cutscenes = new Map((o.cutscenes ?? []).map((c) => [c.id, { fallback: c.fallback }]));
     this.lines = o.lines ?? {};

@@ -17,7 +17,7 @@ permissions:
 env:
   # M02b1 (DL-546, DL-680): the e2e tags that need the gray-box scene or the absence of a world run on a build without DV_WORLD; every
   # other tag runs on the DV_WORLD=synth build. The one committed copy is tests/e2e/graybox-grep.txt (a unit test keeps them equal).
-  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch'
+  GRAYBOX_GREP: '@graybox|@pack-|@touch|@vehicle( |$)|@boot|@fp-tp|@perf-meter|@ui-hud|@modes( |$)|@mission-debug|@mission-autoplay|@story( |$)|@racing-touch|@racing-vs'
 
 # Actions are pinned by commit SHA (research/gap-ci-cd-release-assets.md section 1.1).
 # actions/checkout            v7.0.1  3d3c42e5aac5ba805825da76410c181273ba90b1

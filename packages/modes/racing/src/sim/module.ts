@@ -90,7 +90,12 @@ export function createRacingModule(opts: RacingModuleOptions = {}): RacingModule
       if (!racingEnabled(ctx.boot)) return;
       const { sim } = ctx;
       const vc = sim.services.vehicleCtx;
-      if (!vc) throw new Error('racing: the vehicle module is not registered in this sim');
+      if (!vc) {
+        // worlds without a vehicle module (the gray-box test worlds) have nothing to race with: stay inert, so the boot never fails
+        // on the always-on `racing` flag (BD-M07a2-09); `racingSim.enter` then refuses with its own error if a race is asked for
+        setRacingHost(null);
+        return;
+      }
       const prefabs = vc.prefabs as unknown as PrefabRegistry;
       prefabs.load(RACE_CAR_PREFABS);
       prefabs.load(PUPPET_PREFABS);
