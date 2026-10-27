@@ -103,9 +103,11 @@
   // PLAY_TOKEN_HMAC is first required here (M04b3 left it out, DL-679); a version upload without it fails instead of skipping.
   // M06b1: OPENAI_MODERATION_API_KEY (absent: Llama Guard) and ANTHROPIC_BUILDER_KEY (workspace npc-builder; absent: the soul job answers upstream_unavailable).
   "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET", "ANTHROPIC_API_KEY", "OPENAI_MODERATION_API_KEY", "ANTHROPIC_BUILDER_KEY"] },
-  // 03:10 UTC catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1); 03:40 unpublished builder drafts (M06b1).
-  // Previews run no Cron Triggers; /api/v1/_test/run-scheduled stands in there.
-  "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *", "40 3 * * *"] },
+  // One dispatcher cron per Worker (BD-FIX-CRON-01, DL-746; Workers Free allows 5 Cron Triggers per account). src/ops/scheduled.ts SCHEDULE runs, by
+  // the tick's UTC time: 03:10 catalog-sync, ledger-export, transcript retention; 03:20 memory retention; 03:30 stub profiles (M05d, M06a1);
+  // 03:40 unpublished builder drafts (M06b1). versions upload does not apply trigger changes: the operator runs `wrangler triggers deploy`
+  // (docs/runbooks/workers-free.md). Previews run no Cron Triggers; /api/v1/_test/run-scheduled (?job= or ?at=HH:MM) stands in there.
+  "triggers": { "crons": ["*/5 * * * *"] },
   "env": {
     "staging": {
       "name": "tha-bay-web-staging",
@@ -153,7 +155,8 @@
       },
       // ANTHROPIC_API_KEY is not required in staging: it runs ANTHROPIC_MODE=fixture. Add it here when staging goes live (M06a3 AC-12).
       "secrets": { "required": ["SUPABASE_SECRET_KEY", "PLAY_TOKEN_HMAC", "QUOTA_NET_SALT_SECRET"] },
-      "triggers": { "crons": ["10 3 * * *", "20 3 * * *", "30 3 * * *", "40 3 * * *"] },
+      // The same single dispatcher cron as production (BD-FIX-CRON-01): with it the account holds 2 Cron Triggers, not 8.
+      "triggers": { "crons": ["*/5 * * * *"] },
       "analytics_engine_datasets": [{ "binding": "AE", "dataset": "tha_bay_telemetry" }],
       "ai": { "binding": "AI" },
       "observability": {

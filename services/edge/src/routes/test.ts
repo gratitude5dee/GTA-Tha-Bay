@@ -2,7 +2,7 @@ import { mockJwks } from '@dv/pipeline/core';
 import type { GovLevel, SpendEvent, Vendor } from '@dv/shared';
 import { apiError, json } from '../errors.ts';
 import { requestCountry } from '../geo.ts';
-import { CRON_JOBS, JOBS, runJobs, type JobName } from '../ops/scheduled.ts';
+import { CRON_JOBS, JOBS, SCHEDULE, dueJobs, runJobs, slotOf, type JobName } from '../ops/scheduled.ts';
 import { authenticatePlayer } from '../id/tofu.ts';
 import type { EncounterDO, TurnUsage } from '../npc/EncounterDO.ts';
 import { auraSpeak } from '../npc/ai.ts';
@@ -43,12 +43,21 @@ async function handleSpend({ request, env, requestId }: Ctx): Promise<Response> 
 }
 
 /**
- * Runs the scheduled jobs the way the cron would (Previews run no Cron Triggers): `?job=catalog-sync|ledger-export|keepalive`, or the
- * two cron jobs when `job` is absent or `all`. The SLA pager and reconciliation jobs arrive with M06a and M14b.
+ * Runs the scheduled jobs the way the dispatcher would (Previews run no Cron Triggers): `?job=<name>` runs one job of `JOBS`;
+ * `?at=HH:MM` (UTC) runs what the dispatcher tick of that slot runs (BD-FIX-CRON-01; `03:10` is catalog-sync, ledger-export and transcripts,
+ * a slot with no row runs nothing); neither, or `job=all`, runs catalog-sync and ledger-export. `job` and `at` together are a bad_request.
  */
 async function handleRunScheduled({ url, env, deps, requestId }: Ctx): Promise<Response> {
   const job = url.searchParams.get('job');
+  const at = url.searchParams.get('at');
   let names: readonly JobName[];
+  if (at !== null) {
+    if (job !== null) return apiError('bad_request', 'Give job or at, not both.', requestId);
+    const m = /^([01][0-9]|2[0-3]):([0-5][0-9])$/.exec(at);
+    if (!m) return apiError('bad_request', 'at is HH:MM (UTC).', requestId, { details: { slots: Object.keys(SCHEDULE) } });
+    const t = (Number(m[1]) * 60 + Number(m[2])) * 60_000;
+    return json({ slot: slotOf(t), ran: await runJobs(env, deps, dueJobs(t)) });
+  }
   if (job === null || job === 'all') names = CRON_JOBS;
   else if (Object.hasOwn(JOBS, job)) names = [job as JobName];
   else return apiError('bad_request', 'Unknown job.', requestId, { details: { jobs: Object.keys(JOBS) } });

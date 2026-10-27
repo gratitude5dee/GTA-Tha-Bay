@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BootConfig } from '@dv/shared';
+import { DISPATCH_CRON } from '../src/ops/scheduled.ts';
 import { parseFlags } from '../src/routes/boot.ts';
 import pointer from '../src/generated/asset-catalog.json' with { type: 'json' };
 import wranglerRaw from '../wrangler.jsonc?raw';
@@ -73,7 +74,7 @@ describe('GET /api/v1/boot', () => {
     for (const k of ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'AUTH_PASSWORD_SIGNUP']) expect(wrangler.previews.vars[k]).toBeUndefined();
   });
 
-  it('M05d: the daily cron and the database secret are declared where the Worker is deployed, and previews run no cron', () => {
+  it('M05d: the dispatcher cron and the database secret are declared where the Worker is deployed, and previews run no cron', () => {
     const wrangler = parseJsonc(wranglerRaw) as {
       secrets: { required: string[] };
       triggers: { crons: string[] };
@@ -82,7 +83,8 @@ describe('GET /api/v1/boot', () => {
     };
     for (const block of [wrangler, wrangler.env.staging]) {
       expect(block.secrets.required).toContain('SUPABASE_SECRET_KEY');
-      expect(block.triggers.crons).toEqual(['10 3 * * *', '20 3 * * *', '30 3 * * *', '40 3 * * *']); // M06a1 adds the memory and stub-profile retention crons, M06b1 the builder-draft purge
+      // BD-FIX-CRON-01: one dispatcher expression per Worker (Workers Free: 5 Cron Triggers per account); the jobs live in SCHEDULE.
+      expect(block.triggers.crons).toEqual([DISPATCH_CRON]);
     }
     // tha-bay-staging has no publishable key in config/supabase.projects.json yet, so previews still carry no Supabase vars.
     expect(wrangler.previews.triggers).toBeUndefined();

@@ -34,7 +34,7 @@ Scope: the database behind `tha-bay-web` (ADR-0008, G1). Single-player never tou
 
 ## 4. Scheduled jobs
 
-The Cron Trigger `10 3 * * *` (UTC) runs `catalog-sync` (the shipped cutscene index into `cutscene_catalog`) and then `ledger-export` (settled `BudgetGovernorDO` rows into `genai_ledger`). Both are idempotent. After the first deploy of a fresh project `cutscene_catalog` is empty until the cron runs; on staging, run it at once with `POST /api/v1/_test/run-scheduled?job=catalog-sync` and, to check the export, `?job=ledger-export`. In production, route 27 answers `not_in_catalog` for index keys until the 03:10 run.
+The 03:10 UTC tick of the dispatcher Cron Trigger (`*/5 * * * *`, BD-FIX-CRON-01, `docs/runbooks/workers-free.md`) runs `catalog-sync` (the shipped cutscene index into `cutscene_catalog`) and then `ledger-export` (settled `BudgetGovernorDO` rows into `genai_ledger`). Both are idempotent. After the first deploy of a fresh project `cutscene_catalog` is empty until the cron runs; on staging, run it at once with `POST /api/v1/_test/run-scheduled?job=catalog-sync` and, to check the export, `?job=ledger-export`. In production, route 27 answers `not_in_catalog` for index keys until the 03:10 run.
 
 ## 5. Keep-alive and pause recovery
 
