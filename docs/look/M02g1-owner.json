@@ -1,0 +1,7 @@
+{
+  "$comment": "M02g1 Step 0 (look study, DL-OWN-07): the browser and tier of the owner's boot record (DL-725). The operator copies the owner's record here; until then the milestone's default stands: Safari on the desktop tier. A mobile or mobile-low tier here is checked first everywhere.",
+  "schema": "look-owner/1",
+  "browser": "safari",
+  "tier": "desktop",
+  "source": "default"
+}

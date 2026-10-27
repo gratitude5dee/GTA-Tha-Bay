@@ -139,11 +139,8 @@ export class BlobShadows {
   /** The layer on or off (QA `setLookLayer`, the profile). Off draws nothing and costs no render object. */
   setEnabled(on: boolean): void {
     this.on = on;
-    if (!on) {
-      this.count = 0;
-      this.mesh.count = 0;
-      this.mesh.visible = false;
-    }
+    // The instances of the last frame stay in the buffer, so switching back on draws them at once (a held frame needs no feed).
+    this.mesh.visible = on && this.mesh.count > 0;
   }
 
   /** The darkness of the core: the sun's strength by day, a faint contact shadow by night. */
@@ -191,7 +188,7 @@ export class BlobShadows {
   }
 
   info(): BlobInfo {
-    return { count: this.on ? this.count : 0, objects: this.on && this.count > 0 ? 1 : 0, strength: this.uStrength.value, cap: this.cap };
+    return { count: this.on ? this.mesh.count : 0, objects: this.on && this.mesh.count > 0 ? 1 : 0, strength: this.uStrength.value, cap: this.cap };
   }
 
   dispose(): void {

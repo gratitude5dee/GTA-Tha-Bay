@@ -134,16 +134,13 @@ describe('BlobShadows', () => {
     expect(count()).toBe(1);
     expect(b.info()).toMatchObject({ count: 20, objects: 1 });
     b.setEnabled(false);
-    b.begin();
     b.feed(frame([pose(1, 2, 0, 0, -3)]));
-    b.commit();
     expect(count()).toBe(0);
     expect(b.info()).toMatchObject({ count: 0, objects: 0 });
+    // switching back on draws the instances that are still in the buffer, with no new frame
     b.setEnabled(true);
-    b.begin();
-    b.feed(frame([pose(1, 2, 0, 0, -3)]));
-    b.commit();
     expect(count()).toBe(1);
+    expect(b.info().count).toBeGreaterThan(0);
     b.dispose();
     expect(scene.children).toHaveLength(0);
   });

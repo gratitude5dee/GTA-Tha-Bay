@@ -425,7 +425,7 @@ export class LookView {
   /** M02g1: the pose loop for the blob shadows, once a frame after the traffic and the pedestrians drew. */
   feedBlobs(f: Pick<WorldFrame, 'poses' | 'poseCount' | 'poseKeys' | 'camera'>): void {
     const b = this.blobs;
-    if (!b || !this.on) return;
+    if (!b || !this.on || !b.enabled) return;
     b.begin();
     b.feed(f);
     b.commit();

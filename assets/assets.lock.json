@@ -598,13 +598,13 @@
       "approved_at": "2026-10-24T12:04:52Z"
     },
     "data/mission.m.a1.01": {
-      "rev": 1,
+      "rev": 2,
       "variants": {
-        "default": "38c6bf56c19fd0b5f7135232d83996e941f8e4bcd28391935851887dc43f2bcc"
+        "default": "c106e143ba3ff6a8aec9c21351403c3eb8a7339320847e7d29d2018e7cf59212"
       },
-      "root": "38c6bf56c19fd0b5f7135232d83996e941f8e4bcd28391935851887dc43f2bcc",
-      "approved_by": "m05c1-builder",
-      "approved_at": "2026-10-22T20:08:06Z"
+      "root": "c106e143ba3ff6a8aec9c21351403c3eb8a7339320847e7d29d2018e7cf59212",
+      "approved_by": "m02g1-builder",
+      "approved_at": "2026-10-27T14:37:46Z"
     },
     "data/mission.m.a1.02": {
       "rev": 2,
@@ -733,13 +733,13 @@
       "approved_at": "2026-10-19T17:35:08Z"
     },
     "data/story.index": {
-      "rev": 4,
+      "rev": 5,
       "variants": {
-        "default": "796785eab5e245f2eb57083e5a252027c528294f02a3abe249086e53f19d139a"
+        "default": "2ffe86e1cafb0df3ced527559cea028b533a598020f96250d57a8affdd5732e1"
       },
-      "root": "796785eab5e245f2eb57083e5a252027c528294f02a3abe249086e53f19d139a",
-      "approved_by": "m05c2-builder",
-      "approved_at": "2026-10-24T12:04:52Z"
+      "root": "2ffe86e1cafb0df3ced527559cea028b533a598020f96250d57a8affdd5732e1",
+      "approved_by": "m02g1-builder",
+      "approved_at": "2026-10-27T14:37:46Z"
     },
     "texture/asset-smoke": {
       "rev": 1,
