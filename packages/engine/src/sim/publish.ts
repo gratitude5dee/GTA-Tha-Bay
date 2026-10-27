@@ -85,6 +85,13 @@ export interface PlayerSide {
   control: number;
   owner: number;
   grounded: boolean;
+  /**
+   * The last water respawn (DL-753): its number this session and the inland yaw the page turns the camera to when the number changes.
+   * Absent until the first one (the runtime adds it from `ControlShared`).
+   */
+  respawn?: { seq: number; yaw: number };
+  /** True while the movement input is latched after a water respawn (DL-753); absent otherwise. */
+  latched?: boolean;
 }
 
 /** `pl` for the first entity tagged LocalPlayer, or null when there is none. */

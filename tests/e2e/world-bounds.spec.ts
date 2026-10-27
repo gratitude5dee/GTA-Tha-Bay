@@ -8,6 +8,7 @@ import { act, observe, SMALL_VIEWPORT, waitForEngine, type Obs } from './engine-
  * M02c1 world edges in a real browser, on a `DV_WORLD=synth` QA build (AC-12; `@world-bounds`):
  *
  *  - a player walked into the water of the south coast is in Swim and is respawned on the shore within 3 s, where it then stands still;
+ *    with forward held through the respawn it faces inland and waits there until the stick is let go (DL-753);
  *  - a player teleported 100 m inside a county-line edge and walked outward by bot input gets `world.boundary` (`countyLine`) once,
  *    stops at the barrier, and the fog far plane ramps toward 0.4 at the line (the toast itself is M04b2's: the key is in en.json);
  *  - the play bounds plus 50 m are a wall in the physics world (a ray finds its face on every side).
@@ -165,6 +166,79 @@ test.describe('world edges @world', () => {
     expect(Math.hypot(then.pos[0] - first.pos[0], then.pos[2] - first.pos[2])).toBeLessThan(0.01);
     expect((await call<{ isWater: boolean }>(page, 'query', { x: then.pos[0], z: then.pos[2] })).isWater).toBe(false);
     await stopWalking(page);
+  });
+
+  // DL-753 (02-world-maps.md 4.1 a): forward held through the whole water respawn. One bot script holds the stick toward the sea for 40 s:
+  // into the water, through the swim, the fade and the respawn. The player is put back facing inland, the page's camera turns inland
+  // with it, and the held stick moves nothing; once the stick is free the latch lets go, and the keyboard's W (real input, along the
+  // page's camera) walks the player inland, away from the water.
+  test('forward held through a water respawn: the player waits on the shore pose facing inland until released, then walks inland @world-bounds', async ({ page }) => {
+    await boot(page);
+    const s = await toTheCoast(page);
+    expect((await observe(page)).play).toBe(true);
+    const seq0 = (await observe(page)).player?.respawn?.seq ?? 0;
+    expect(await walk(page, camYawFor(s.nx, s.nz), 40)).toBe(true);
+
+    // the respawn: the sim records it when the fade-in starts
+    const seen: { back: Obs | null } = { back: null };
+    await expect
+      .poll(async () => {
+        const o = await observe(page);
+        if ((o.player?.respawn?.seq ?? 0) > seq0) seen.back = o;
+        return seen.back !== null;
+      }, { timeout: 120_000, intervals: [100, 200, 500] })
+      .toBe(true);
+    const back = seen.back as unknown as Obs;
+    const respawn = back.player!.respawn!;
+    // the shore node 2 m seaward of where the player stands, along the published yaw: the player is on its pose, facing along its normal
+    const pose = { x: back.player!.pos[0], z: back.player!.pos[2] };
+    const node = (await call<{ node: ShoreNode }>(page, 'shore', { x: pose.x + 2 * Math.sin(respawn.yaw), z: pose.z + 2 * Math.cos(respawn.yaw) })).node;
+    expect(Math.hypot(node.x - node.nx * 2 - pose.x, node.z - node.nz * 2 - pose.z)).toBeLessThan(0.01);
+    const inland = Math.atan2(node.nx, node.nz);
+    const angleTo = (a: number, b: number): number => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+    expect(angleTo(respawn.yaw, inland)).toBeLessThan(1e-6);
+
+    // 2 s of sim time later, and once more a second after that, with the stick still held toward the sea
+    const tick0 = back.stats.tick;
+    const looks: Obs[] = [];
+    for (const wait of [120, 180]) {
+      await expect.poll(async () => (await observe(page)).stats.tick, { timeout: 120_000, intervals: [200, 500] }).toBeGreaterThanOrEqual(tick0 + wait);
+      looks.push(await observe(page));
+    }
+    for (const o of looks) {
+      const p = o.player!;
+      expect(p.owner).toBe(CONTROL_OWNER_ONFOOT);
+      expect(p.control).toBe(CONTROL_STATE_IDLE);
+      expect(p.latched).toBe(true);
+      expect(Math.hypot(p.pos[0] - pose.x, p.pos[2] - pose.z)).toBeLessThanOrEqual(0.5);
+      // the page's camera looks inland too (the same yaw the keyboard's W walks along)
+      expect(angleTo(o.camera!.yaw, inland)).toBeLessThan(1e-3);
+    }
+    const [first, then] = looks as [Obs, Obs];
+    expect(Math.hypot(then.player!.pos[0] - first.player!.pos[0], then.player!.pos[2] - first.player!.pos[2])).toBeLessThan(0.01);
+    console.log(`world-bounds water latch: respawned at tick ${tick0}, held 3 s at ${then.player!.pos.map((v) => v.toFixed(3)).join(', ')}, pose ${pose.x}, ${pose.z}`);
+
+    // the stick is let go: the next frame is centred and the latch lets go
+    await stopWalking(page);
+    await expect.poll(async () => (await observe(page)).player?.latched ?? false, { timeout: 60_000, intervals: [100, 200, 500] }).toBe(false);
+
+    // W walks the player along the camera, inland, away from the water
+    await page.keyboard.down('KeyW');
+    try {
+      await expect
+        .poll(async () => {
+          const p = (await observe(page)).player!;
+          return (p.pos[0] - pose.x) * -node.nx + (p.pos[2] - pose.z) * -node.nz;
+        }, { timeout: 60_000, intervals: [100, 200, 500] })
+        .toBeGreaterThan(2);
+    } finally {
+      await page.keyboard.up('KeyW');
+    }
+    const walked = (await observe(page)).player!;
+    expect(walked.owner).toBe(CONTROL_OWNER_ONFOOT);
+    expect(Math.abs((walked.pos[0] - pose.x) * node.nz - (walked.pos[2] - pose.z) * node.nx)).toBeLessThan(1);   // straight inland
+    expect((await call<{ isWater: boolean }>(page, 'query', { x: walked.pos[0], z: walked.pos[2] })).isWater).toBe(false);
+    expect((await observe(page)).player?.respawn?.seq).toBe(respawn.seq);    // no second trip into the water
   });
 
   test('walked outward from 100 m inside a county-line edge: one boundary event, a barrier stops the player, the fog closes in @world-bounds', async ({ page }) => {

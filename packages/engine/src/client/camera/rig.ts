@@ -344,6 +344,11 @@ export class CameraRigImpl implements CameraRig {
     this.blend = this.blendFrom + (to - this.blendFrom) * k;
   }
 
+  /** Places the camera at its follow point and the current look at once on the next update, with no smoothing (a water respawn, DL-753). */
+  snap(): void {
+    this.snapNext = true;
+  }
+
   private setMode(m: CameraMode): void {
     if (m === this._mode) return;
     this._mode = m;
