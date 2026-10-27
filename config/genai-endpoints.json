@@ -260,6 +260,50 @@
       ],
       "acceptsFaceRefs": false,
       "termsSnapshot": "none"
+    },
+    "tripo3d/h3.1/multiview-to-3d": {
+      "vendor": "fal",
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "pinnedUpdatedAt": null,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md",
+      "status": "pending",
+      "id": "tripo3d/h3.1/multiview-to-3d",
+      "role": "mesh_alt",
+      "price": {
+        "usd": 0.3,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "Lean tier mesh, standard textures; 2 to 4 views in the order front, left, back, right [research/genai-pipeline-fal.md section 3.1]. pending until genai:liveness confirms the id (M10a1, BD-M10a1-02)"
+      }
+    },
+    "fal-ai/meshy/rigging": {
+      "vendor": "fal",
+      "licenseType": "commercial",
+      "tiers": [
+        "original",
+        "fictionalized",
+        "parody",
+        "consented"
+      ],
+      "acceptsFaceRefs": false,
+      "pinnedUpdatedAt": null,
+      "termsSnapshot": "docs/legal/vendor-terms/fal-tos-2026-10-18.md",
+      "status": "pending",
+      "id": "fal-ai/meshy/rigging",
+      "role": "rig",
+      "price": {
+        "usd": 0.2,
+        "per": "gen",
+        "checkedAt": "2026-10-18",
+        "note": "Lean tier rig; walking and running clips included, $0.12 more with enable_animation [F-045]. pending until genai:liveness confirms the id (M10a1, BD-M10a1-02)"
+      }
     }
   },
   "videoProviders": {
