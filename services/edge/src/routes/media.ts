@@ -1,5 +1,9 @@
 import { contentTypeOf, isMediaKey } from '@dv/shared';
+import { now } from '../clock.ts';
 import type { Env } from '../env.ts';
+import { dailySalt, netHashOf } from '../id/nethash.ts';
+import { allowed } from '../ratelimit.ts';
+import { parseRangeHeader, servedRange } from './media-range.ts';
 
 /**
  * Public R2 media through the app Worker (M01d2, DL-713): GET, HEAD and OPTIONS on /media/<key>, from the MEDIA binding only.
@@ -8,28 +12,8 @@ import type { Env } from '../env.ts';
 
 const ALLOW = 'GET, HEAD, OPTIONS';
 const PREFIX = '/media/';
-
-type RangeSpec = { offset: number; length?: number } | { suffix: number };
-type RangeParse = { ok: true; range: RangeSpec } | { ok: false };
-
-/** One `bytes=a-b`, `bytes=a-` or `bytes=-n` against a known size. Anything else, or unsatisfiable, is not ok. */
-export function parseRange(header: string, size: number): RangeParse {
-  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
-  if (!m) return { ok: false };
-  const [, a = '', b = ''] = m;
-  if (a === '' && b === '') return { ok: false };
-  if (a === '') {
-    const n = Number(b);
-    if (!Number.isSafeInteger(n) || n <= 0 || size === 0) return { ok: false };
-    return { ok: true, range: { suffix: Math.min(n, size) } };
-  }
-  const start = Number(a);
-  if (!Number.isSafeInteger(start) || start >= size) return { ok: false };
-  if (b === '') return { ok: true, range: { offset: start } };
-  const end = Number(b);
-  if (!Number.isSafeInteger(end) || end < start) return { ok: false };
-  return { ok: true, range: { offset: start, length: Math.min(end, size - 1) - start + 1 } };
-}
+/** The R2 error code InvalidRange ends the exception message (spec/03 section 6, row M01d3). */
+const INVALID_RANGE = /\(10039\)\s*$/;
 
 function baseHeaders(): Headers {
   const h = new Headers();
@@ -72,6 +56,24 @@ function hasConditional(request: Request): boolean {
   return request.headers.has('If-None-Match') || request.headers.has('If-Modified-Since');
 }
 
+/** A rejected or unsatisfiable range: the only path that calls `head`, for the size in `Content-Range`. */
+async function unsatisfiable(env: Env, key: string): Promise<Response> {
+  const head = await env.MEDIA.head(key);
+  if (head === null) return plain(404, {}, true);
+  return plain(416, { 'Content-Range': `bytes */${head.size}` }, true);
+}
+
+/** Under "throttle": the per-network incident limit (RL_MEDIA). True when the request must be refused. Fails open. */
+async function throttled(request: Request, env: Env): Promise<boolean> {
+  if (!env.RL_MEDIA) return false;
+  try {
+    const key = netHashOf(request.headers.get('CF-Connecting-IP'), await dailySalt(env.QUOTA_NET_SALT_SECRET, now()));
+    return !(await allowed(env.RL_MEDIA, key));
+  } catch {
+    return false;
+  }
+}
+
 export async function handleMedia(request: Request, env: Env, url: URL): Promise<Response> {
   try {
     if (env.MEDIA_ROUTE === 'off') return plain(503, { 'Retry-After': '300' }, true);
@@ -87,23 +89,25 @@ export async function handleMedia(request: Request, env: Env, url: URL): Promise
     }
     if (method !== 'GET' && method !== 'HEAD') return plain(405, { Allow: ALLOW });
 
+    if (env.MEDIA_ROUTE === 'throttle' && (await throttled(request, env))) {
+      return plain(429, { 'Retry-After': '10' }, true);
+    }
+
     // The raw path after /media/, never decoded: '%' is not in the grammar.
     const key = url.pathname.slice(PREFIX.length);
     if (!isMediaKey(key)) return plain(404, {}, true);
 
-    const rangeHeader = method === 'GET' ? request.headers.get('Range') : null;
-    let range: RangeSpec | undefined;
-    let size = 0;
-    if (rangeHeader !== null) {
-      const head = await env.MEDIA.head(key);
-      if (head === null) return plain(404, {}, true);
-      size = head.size;
-      const parsed = parseRange(rangeHeader, size);
-      if (!parsed.ok) return plain(416, { 'Content-Range': `bytes */${size}` }, true);
-      range = parsed.range;
-    }
+    const spec = method === 'GET' && request.headers.has('Range') ? parseRangeHeader(request.headers.get('Range') ?? '') : null;
+    if (method === 'GET' && request.headers.has('Range') && spec === null) return unsatisfiable(env, key);
 
-    const obj = await env.MEDIA.get(key, range ? { onlyIf: request.headers, range } : { onlyIf: request.headers });
+    let obj: R2Object | null;
+    try {
+      obj = await env.MEDIA.get(key, spec ? { onlyIf: request.headers, range: spec } : { onlyIf: request.headers });
+    } catch (err) {
+      // InvalidRange (10039) is the one expected failure of a ranged read; the size comes from one head, as for a rejected header.
+      if (spec && INVALID_RANGE.test(err instanceof Error ? err.message : '')) return unsatisfiable(env, key);
+      throw err;
+    }
     if (obj === null) return plain(404, {}, true);
     const headers = objectHeaders(obj, key);
     if (!('body' in obj) || !(obj as R2ObjectBody).body) {
@@ -116,18 +120,14 @@ export async function handleMedia(request: Request, env: Env, url: URL): Promise
       headers.set('Content-Length', String(body.size));
       return new Response(null, { status: 200, headers });
     }
-    if (range) {
-      let start: number;
-      let length: number;
-      if ('suffix' in range) {
-        length = range.suffix;
-        start = size - length;
-      } else {
-        start = range.offset;
-        length = range.length ?? size - start;
+    if (spec) {
+      const served = servedRange(spec, body.size);
+      if (!served) {
+        // Dropped unread: cancelling the stream logs a workerd error (BD-M01d2-01).
+        return plain(416, { 'Content-Range': `bytes */${body.size}` }, true);
       }
-      headers.set('Content-Range', `bytes ${start}-${start + length - 1}/${size}`);
-      headers.set('Content-Length', String(length));
+      headers.set('Content-Range', `bytes ${served.start}-${served.end}/${body.size}`);
+      headers.set('Content-Length', String(served.length));
       return new Response(body.body, { status: 206, headers });
     }
     headers.set('Content-Length', String(body.size));

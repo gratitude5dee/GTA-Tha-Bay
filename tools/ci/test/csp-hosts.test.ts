@@ -32,6 +32,21 @@ describe('CSP hosts of the static _headers build', () => {
     expect(raw.match(/"MEDIA_ROUTE": "on"/g)).toHaveLength(3);
   });
 
+  it('RL_MEDIA is bound at 1000 per 10 s with a distinct namespace id in all three blocks (M01d3)', () => {
+    type Limit = { name: string; namespace_id: string; simple: { limit: number; period: number } };
+    const w = wrangler as unknown as { ratelimits: Limit[]; env: { staging: { ratelimits: Limit[] } }; previews: { ratelimits: Limit[] } };
+    const blocks = [w.ratelimits, w.env.staging.ratelimits, w.previews.ratelimits];
+    const ids = blocks.map((list) => {
+      const own = list.filter((r) => r.name === 'RL_MEDIA');
+      expect(own).toHaveLength(1);
+      expect(own[0]?.simple).toEqual({ limit: 1000, period: 10 });
+      return own[0]?.namespace_id;
+    });
+    expect(new Set(ids).size).toBe(3);
+    const all = blocks.flat();
+    for (const id of ids) expect(all.filter((r) => r.namespace_id === id)).toHaveLength(1);
+  });
+
   it('mirror the HOST_* vars of services/edge/wrangler.jsonc', () => {
     expect(STAGING_CSP_HOSTS).toEqual(hosts(wrangler.env.staging.vars));
     expect(PROD_CSP_HOSTS).toEqual(hosts(wrangler.vars));
