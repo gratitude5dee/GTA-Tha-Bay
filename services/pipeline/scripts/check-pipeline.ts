@@ -53,6 +53,7 @@ function countingFal(inner: MockFalPort): { fal: FalPort; calls: () => number } 
       result: wrap(inner.result.bind(inner)),
       cancel: wrap(inner.cancel.bind(inner)),
       fetchFile: wrap(inner.fetchFile.bind(inner)),
+      fetchStream: wrap(inner.fetchStream.bind(inner)),
       keyframe: wrap(inner.keyframe.bind(inner)),
     },
   };
@@ -154,6 +155,7 @@ async function main(): Promise<void> {
       sink: {
         complete: (r) => Promise.resolve(void sink.completed.push(r.manifestKey)),
         fail: (e) => Promise.resolve(void sink.failed.push(e)),
+        handoff: () => Promise.resolve(),
       },
     };
     const ctx = { ports, gate: { falMode: 'mock' as const, environment: 'dev', registry: GENAI_REGISTRY }, instanceId, hostApi: 'https://api.test', mock: true };

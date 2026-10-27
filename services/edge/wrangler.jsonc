@@ -82,6 +82,9 @@
     // AIG_BASE (AI Gateway gw-dialogue, https://gateway.ai.cloudflare.com/v1/<account>/gw-dialogue/anthropic) is set by the operator once the gateway exists;
     // unset, calls go to the Anthropic API directly (U-NPC-02 fallback). AIG_ENV is optional ("synthetic" for the M14b1 T4 run).
     "FAL_MODE": "live",
+    // Where a generated clip is transcoded and re-signed (M05c4, DL-745): "offedge" = the operator's `assets:gen prewarm --finish`; the Worker stops at the hand-off.
+    // It follows FAL_MODE (live: offedge, mock: mock); the pairing live + mock is refused (check:pipeline AC-2, tools/ci/test/wrangler-free.test.ts).
+    "TRANSCODE_MODE": "offedge",
     // Supabase project tha-bay (us-west-1): URL and anon/publishable key are public by design.
     // Service-role key rides as the SUPABASE_SECRET_KEY secret; FAL_KEY as a secret.
     "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
@@ -186,6 +189,7 @@
         "ANTHROPIC_MODE": "fixture",
         "MODERATION_MODE": "fixture",
         "FAL_MODE": "mock",
+        "TRANSCODE_MODE": "mock",
         "SUPABASE_URL": "https://jwvvllhxuvwkrynmnchb.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_SLW2rR4klluMCMhS5Mey1g_1XTZ_Oar",
         // Owner testing: staging sign-up is open. Route 58 also needs LEGAL_CONTACT (operator-supplied, not set here; DL-635).
@@ -249,6 +253,7 @@
       "ANTHROPIC_MODE": "fixture",
       "MODERATION_MODE": "fixture",
       "FAL_MODE": "mock",
+      "TRANSCODE_MODE": "mock",
       "C2PA_RESIGN": "0"
       // No SUPABASE_URL, SUPABASE_ANON_KEY or AUTH_PASSWORD_SIGNUP: routes 58-62, 64 and 65 answer feature_disabled in previews (M00e, DL-601).
       // M05d: SKIP staging Supabase vars: publishable key not provided (tha-bay-staging does not exist yet). When the operator adds it to

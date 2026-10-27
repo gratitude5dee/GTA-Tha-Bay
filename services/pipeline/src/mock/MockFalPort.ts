@@ -35,6 +35,8 @@ export interface MockFalOptions {
   dropWebhook?: () => boolean | Promise<boolean>;
   /** Delay before the webhook is posted, in milliseconds. */
   webhookDelayMs?: number;
+  /** Test hook: the bytes `fetchStream` serves instead of the fixture clip. */
+  streamBytes?: () => Uint8Array;
 }
 
 const hex = (buf: ArrayBuffer): string => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -98,6 +100,19 @@ export class MockFalPort implements FalPort {
   fetchFile(url: string): Promise<Uint8Array> {
     if (!url.startsWith('mock://fal/')) return Promise.reject(new Error(`MockFalPort cannot fetch ${url}`));
     return Promise.resolve(fixtureBytes('orig.mp4'));
+  }
+
+  /** A body that is `bytes` long: the fixture clip by default, or what `streamBytes` supplies (a test that needs a large output). */
+  fetchStream(url: string): Promise<{ body: ReadableStream<Uint8Array>; size: number | null; contentType: string }> {
+    if (!url.startsWith('mock://fal/')) return Promise.reject(new Error(`MockFalPort cannot fetch ${url}`));
+    const bytes = this.o.streamBytes?.() ?? fixtureBytes('orig.mp4');
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(bytes);
+        controller.close();
+      },
+    });
+    return Promise.resolve({ body, size: bytes.length, contentType: 'video/mp4' });
   }
 
   async keyframe(job: { jobKey: string; shotId: string; prompt: string }): Promise<{ sha256: string }> {

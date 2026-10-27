@@ -11,6 +11,8 @@ allowBuilds:
   workerd: true
   sharp: true
   supabase: true
+  # The prebuilt native module ships in the package (dist/index.node, spec/03 section 7); its postinstall only fetches a fallback build, so it never runs (M05c4).
+  '@contentauth/c2pa-node': false
 
 minimumReleaseAgeExclude:
   - '@cloudflare/workers-types@5.20261018.1'

@@ -221,6 +221,14 @@ export class LiveFalPort implements FalPort {
     return new Uint8Array(await res.arrayBuffer());
   }
 
+  async fetchStream(url: string): Promise<{ body: ReadableStream<Uint8Array>; size: number | null; contentType: string }> {
+    const res = await this.opts.fetch(url);
+    if (!res.ok || res.body === null) throw new Error(`fal file ${res.status}`);
+    const len = res.headers.get('Content-Length');
+    const size = len !== null && /^\d+$/.test(len) ? Number(len) : null;
+    return { body: res.body, size, contentType: res.headers.get('Content-Type') ?? 'video/mp4' };
+  }
+
   keyframe(): Promise<{ sha256: string }> {
     return Promise.reject(new Error('LiveFalPort.keyframe lands with the first live run (M05c3)'));
   }

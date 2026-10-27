@@ -85,7 +85,7 @@ describe('prewarm-act1 over MockFalPort', () => {
       const count = <A extends unknown[], R>(f: (...a: A) => R) => (...a: A): R => (counts.falCalls++, f(...a));
       const fal: FalPort = {
         submit: count(inner.submit.bind(inner)), status: count(inner.status.bind(inner)), result: count(inner.result.bind(inner)),
-        cancel: count(inner.cancel.bind(inner)), fetchFile: count(inner.fetchFile.bind(inner)), keyframe: count(inner.keyframe.bind(inner)),
+        cancel: count(inner.cancel.bind(inner)), fetchFile: count(inner.fetchFile.bind(inner)), fetchStream: count(inner.fetchStream.bind(inner)), keyframe: count(inner.keyframe.bind(inner)),
       };
       const slots = new Set<string>();
       const ports: GenPorts = {
@@ -97,7 +97,7 @@ describe('prewarm-act1 over MockFalPort', () => {
         transcode: new MockTranscodePort(),
         sign: new MockSignPort(),
         falGate: { acquire: (id) => Promise.resolve(slots.size < 2 && (slots.add(id), true)), release: (id) => Promise.resolve(void slots.delete(id)) },
-        sink: { complete: () => Promise.resolve(), fail: () => Promise.resolve() },
+        sink: { complete: () => Promise.resolve(), fail: () => Promise.resolve(), handoff: () => Promise.resolve() },
       };
       const out = await runCutsceneJob(shim(events), { ports, gate: { falMode: 'mock', environment: 'dev', registry: GENAI_REGISTRY }, instanceId, hostApi: 'https://api.test', mock: true }, job);
       outcomes.set(key, { writes: out.writes, status: out.status });

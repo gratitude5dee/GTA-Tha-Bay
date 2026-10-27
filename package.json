@@ -102,6 +102,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
+    "@contentauth/c2pa-node": "0.9.10",
     "@gltf-transform/core": "4.5.1",
     "@gltf-transform/extensions": "4.5.1",
     "@gltf-transform/functions": "4.5.1",
