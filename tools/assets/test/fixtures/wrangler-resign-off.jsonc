@@ -1,0 +1,6 @@
+// A Worker build with C2PA re-signing off in production (M05c3 AC-7). Only the parts the prewarm guard reads.
+{
+  "name": "tha-bay-web",
+  "vars": { "ENVIRONMENT": "prod", "HOST_API": "https://prod.invalid", "HOST_MEDIA": "https://prod.invalid/media", "C2PA_RESIGN": "0" },
+  "env": { "staging": { "vars": { "ENVIRONMENT": "staging", "HOST_API": "https://staging.invalid", "HOST_MEDIA": "https://staging.invalid/media", "C2PA_RESIGN": "0" } } }
+}

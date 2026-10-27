@@ -1,7 +1,11 @@
 /**
  * check:c2pa — provenance gate for shipped generated cutscenes (spec/domains/05-assets-pipeline.md section 9, M05b1).
  *
- *   tsx tools/ci/check-c2pa.ts [--index <cutscene-index.json>] [--manifests <dir>]
+ *   tsx tools/ci/check-c2pa.ts [--index <cutscene-index.json>] [--manifests <dir>] [--env prod|staging]
+ *
+ * `--env prod` (M05c3) reads the manifests as production outputs: `provenance.resigned: true` is then required whatever the licence
+ * status. The default run also checks the committed fixtures of `tools/ci/fixtures/c2pa` (the mock prewarm output passes, an
+ * unsigned production manifest and one without `aiGenerated` fail).
  *
  * For every entry of the shipped cutscene index (C07 asset `data/cutscene-index`, written by M05b2's index builder) it reads
  * `<manifests>/<key>/manifest.json` and fails when the manifest
@@ -26,7 +30,12 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-export function manifestFindings(key: string, manifest: unknown): C2paFinding[] {
+export interface ManifestOptions {
+  /** `prod`: the manifest is a production-environment output, so it must be re-signed whatever its licence status says (M05c3). */
+  env?: 'prod' | 'staging';
+}
+
+export function manifestFindings(key: string, manifest: unknown, opts: ManifestOptions = {}): C2paFinding[] {
   if (!isRecord(manifest) || !isRecord(manifest['provenance'])) {
     return [{ key, rule: 'manifest-invalid', detail: 'the manifest has no provenance object' }];
   }
@@ -39,8 +48,12 @@ export function manifestFindings(key: string, manifest: unknown): C2paFinding[] 
     out.push({ key, rule: 'ai-generated-missing', detail: 'provenance.aiGenerated must be true' });
   }
   const licence = isRecord(manifest['licence']) ? manifest['licence'] : {};
-  if (licence['status'] === 'cleared' && prov['resigned'] !== true) {
-    out.push({ key, rule: 'resign-missing', detail: 'a cleared licence needs provenance.resigned: true (renditions re-signed with our C2PA claim)' });
+  if ((licence['status'] === 'cleared' || opts.env === 'prod') && prov['resigned'] !== true) {
+    out.push({
+      key,
+      rule: 'resign-missing',
+      detail: `${opts.env === 'prod' ? 'a production manifest' : 'a cleared licence'} needs provenance.resigned: true (renditions re-signed with our C2PA claim)`,
+    });
   }
   return out;
 }
@@ -55,7 +68,7 @@ export function indexKeys(index: unknown): string[] {
   return index['entries'].flatMap((e) => (isRecord(e) && typeof e['key'] === 'string' ? [e['key']] : []));
 }
 
-export function checkAll(index: unknown, readManifest: (key: string) => unknown): { count: number; findings: C2paFinding[] } {
+export function checkAll(index: unknown, readManifest: (key: string) => unknown, opts: ManifestOptions = {}): { count: number; findings: C2paFinding[] } {
   const keys = [...new Set(indexKeys(index))];
   const findings: C2paFinding[] = [];
   for (const key of keys) {
@@ -66,17 +79,58 @@ export function checkAll(index: unknown, readManifest: (key: string) => unknown)
       findings.push({ key, rule: 'manifest-missing', detail: e instanceof Error ? e.message : String(e) });
       continue;
     }
-    findings.push(...manifestFindings(key, manifest));
+    findings.push(...manifestFindings(key, manifest, opts));
   }
   return { count: keys.length, findings };
+}
+
+const FIXTURES_DIR = 'tools/ci/fixtures/c2pa';
+
+interface Expectations {
+  fixtures: { manifest: string; env?: 'prod' | 'staging'; expect: C2paFinding['rule'][] }[];
+}
+
+/**
+ * The rules checked against committed fixtures (M05c3 AC-6): the output of the mock prewarm (fixture renditions re-signed once
+ * with the pinned C2PA tool) passes as a production manifest; a production manifest with `resigned: false` and one without
+ * `aiGenerated` each trip exactly the rule named in `expectations.json`. Returns the problems with the expectations themselves.
+ */
+export function selfTest(root: string = repoRoot): { problems: string[]; checked: number } {
+  const dir = path.join(root, FIXTURES_DIR);
+  const file = path.join(dir, 'expectations.json');
+  if (!existsSync(file)) return { problems: [], checked: 0 };
+  const exp = JSON.parse(readFileSync(file, 'utf8')) as Expectations;
+  const problems: string[] = [];
+  for (const f of exp.fixtures) {
+    const manifest: unknown = JSON.parse(readFileSync(path.join(dir, 'manifests', f.manifest, 'manifest.json'), 'utf8'));
+    const got = manifestFindings(f.manifest, manifest, f.env ? { env: f.env } : {}).map((x) => x.rule).sort();
+    const want = [...f.expect].sort();
+    if (JSON.stringify(got) !== JSON.stringify(want)) problems.push(`fixture ${f.manifest}: expected [${want.join(', ')}], got [${got.join(', ')}]`);
+  }
+  return { problems, checked: exp.fixtures.length };
 }
 
 export function main(argv: string[]): number {
   const { values } = parseArgs({
     args: argv,
-    options: { index: { type: 'string' }, manifests: { type: 'string' } },
+    options: { index: { type: 'string' }, manifests: { type: 'string' }, env: { type: 'string' } },
     allowPositionals: true,
   });
+  if (values.env !== undefined && values.env !== 'prod' && values.env !== 'staging') {
+    console.error('check:c2pa: --env must be prod or staging');
+    return 2;
+  }
+  const opts: ManifestOptions = values.env ? { env: values.env } : {};
+  // The fixture self-test runs on the default invocation; an explicit --index or --manifests checks only what it names.
+  const explicit = values.index !== undefined || values.manifests !== undefined;
+  if (!explicit) {
+    const st = selfTest();
+    if (st.problems.length > 0) {
+      for (const p of st.problems) console.error(`check:c2pa FAIL ${p}`);
+      return 1;
+    }
+    if (st.checked > 0) console.log(`check:c2pa fixtures ok: ${st.checked} (the mock prewarm output passes; an unsigned production manifest and one without aiGenerated fail)`);
+  }
   const indexPath = path.resolve(repoRoot, values.index ?? 'content/cutscenes/cutscene-index.json');
   const manifestsDir = path.resolve(repoRoot, values.manifests ?? 'assets/cutscenes');
   if (!existsSync(indexPath)) {
@@ -84,7 +138,7 @@ export function main(argv: string[]): number {
     return 0;
   }
   const index: unknown = JSON.parse(readFileSync(indexPath, 'utf8'));
-  const { count, findings } = checkAll(index, (key) => JSON.parse(readFileSync(path.join(manifestsDir, key, 'manifest.json'), 'utf8')));
+  const { count, findings } = checkAll(index, (key) => JSON.parse(readFileSync(path.join(manifestsDir, key, 'manifest.json'), 'utf8')), opts);
   if (count === 0) {
     console.log('check:c2pa: 0 shipped cutscenes (the index has no entries)');
     return 0;
