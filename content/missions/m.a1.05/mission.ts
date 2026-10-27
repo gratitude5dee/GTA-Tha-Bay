@@ -32,7 +32,8 @@ export default defineMission({
   stages: [
     stage('plaza', [goto('plaza', { id: 'goto_plaza', onFoot: true })], { onEnter: [say('radio', 'line.m.a1.05.start')] }),
     stage('ring', [goto('ring', { id: 'goto_ring', onFoot: true })], { onEnter: [beat({ cutscene: 'cut.story.m.a1.05.ring' })] }),
-    stage('crowd', [waitFor(4, { id: 'wait_crowd' })]),
+    // The crowd gathers for 9 s: the bout is a child mode and runs outside the mission clock, so this keeps the mission inside its 10 s lower band with the real fighter.
+    stage('crowd', [waitFor(9, { id: 'wait_crowd' })]),
     stage(
       'signup',
       [

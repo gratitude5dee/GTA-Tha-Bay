@@ -58,7 +58,11 @@
       "titleKey": "unlock.fighter.title",
       "source": "base",
       "grants": {
-        "menuTile": "fighter"
+        "menuTile": "fighter",
+        "fighters": [
+          "player",
+          "standin_rap_new_wave"
+        ]
       }
     },
     {

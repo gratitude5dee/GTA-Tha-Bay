@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@dv/engine": "workspace:*",
+    "@dv/mode-fighter": "workspace:*",
     "@dv/shared": "workspace:*",
     "ajv": "^8.20.0"
   }

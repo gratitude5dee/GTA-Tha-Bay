@@ -861,6 +861,51 @@
         "tier"
       ],
       "additionalProperties": false
+    },
+    "fight.end": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "versus",
+            "training",
+            "story",
+            "arcade",
+            "replay"
+          ]
+        },
+        "scheme": {
+          "enum": [
+            "classic",
+            "simple"
+          ]
+        },
+        "cpu": {
+          "type": "number"
+        },
+        "rounds": {
+          "type": "number"
+        },
+        "winnerSlot": {
+          "type": "number"
+        },
+        "durationS": {
+          "type": "number"
+        },
+        "pose": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "scheme",
+        "cpu",
+        "rounds",
+        "winnerSlot",
+        "durationS",
+        "pose"
+      ],
+      "additionalProperties": false
     }
   }
 }

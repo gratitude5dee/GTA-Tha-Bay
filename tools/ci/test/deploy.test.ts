@@ -251,19 +251,33 @@ describe('the world release of deploy:prod (AC-13)', () => {
   });
 
   it('check:assets prints the stale-lock warning and exits 0 while release.json names sf', () => {
-    const root = tempDir('dv-rel-');
-    const { files } = checkout();
-    files.set(ASSETS_LOCK, '{"schema":"asset-lock/1","entries":{"a/b":{}}}');
-    for (const [rel, text] of files) {
-      mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
-      writeFileSync(path.join(root, rel), text);
-    }
-    const w = worldReleaseWarnings(root);
+    // Proved on trees built here, never on the committed repository: its release.json and lock change with every content
+    // milestone (a mission data asset moves assets.lock.json), so a test on the live files fails whenever staging lags (BD-M08a2-15).
+    const write = (root: string, files: Map<string, string>): void => {
+      for (const [rel, text] of files) {
+        mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+        writeFileSync(path.join(root, rel), text);
+      }
+    };
+    const movedLock = '{"schema":"asset-lock/1","entries":{"a/b":{}}}';
+    const stale = tempDir('dv-rel-');
+    const staleFiles = checkout().files;
+    staleFiles.set(ASSETS_LOCK, movedLock);
+    write(stale, staleFiles);
+    const w = worldReleaseWarnings(stale);
     expect(w).toHaveLength(1);
     expect(w[0]).toContain('re-run assets:publish --world');
-    // the committed repository has release.json at null: no warning
-    expect(worldReleaseWarnings(repoRoot)).toEqual([]);
-    rmSync(root, { recursive: true, force: true });
+    // a pointer built from the current locks: no warning
+    const current = tempDir('dv-rel-');
+    write(current, checkout().files);
+    expect(worldReleaseWarnings(current)).toEqual([]);
+    // release.json at null: no warning, whatever the locks say
+    const none = tempDir('dv-rel-');
+    const noneFiles = checkout({ 'config/world/release.json': JSON.stringify({ schema: 'world-release/1', staging: null, production: null }) }).files;
+    noneFiles.set(ASSETS_LOCK, movedLock);
+    write(none, noneFiles);
+    expect(worldReleaseWarnings(none)).toEqual([]);
+    for (const r of [stale, current, none]) rmSync(r, { recursive: true, force: true });
   });
 });
 

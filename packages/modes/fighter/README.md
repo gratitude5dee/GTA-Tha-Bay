@@ -1,6 +1,6 @@
 # @dv/mode-fighter
 
-The Culture Wars fighter. **M08a1** (this package today) holds the tools around the pure fight core; the mode itself (descriptor, ECS mirror, camera, HUD, Training, CPU, device schemes, stage) is M08a2.
+The Culture Wars fighter. **M08a1** holds the tools around the pure fight core; **M08a2** is the mode itself: descriptor, sim session, ECS mirror, side camera, gray-box presenter and stage, HUD and screens, Training, the CPU, and the device schemes.
 
 ## Where things live
 
@@ -13,7 +13,11 @@ The Culture Wars fighter. **M08a1** (this package today) holds the tools around 
 | `src/qa/script-driver.ts` | `fighter.script`: the C03 `BotInput` (`device: 'bot'`) from a seeded script |
 | `scripts/{lint,replay,make-goldens}.ts` | the CLIs |
 | `golden/vs-001.dvfight`, `golden/vs-002.dvfight` | the golden replays (every 60-tick checkpoint hash) |
-| `test/` | lint, replay and driver specs; `fixtures/kits/bad-*.json` fail one lint rule each |
+| `src/sim/` | the mode (C02 lint): `mode.ts` (session, commands), `match.ts`, `cpu/` (FC10 levels), `training.ts`, `camera.ts`, `mirror.ts` (ECS 1280-1283), `slice.ts`, `module.ts` (`SimModule`) |
+| `src/ui/` | the UI half: `presenter.ts` (frame-locked clips on `bay_rig_v1`), `graybox.ts` (fighters and the `powell_turntable` arena), `hud.ts`, `menus.ts`, `training.ts` |
+| `src/qa/` | QA only: `bridge.ts` (`__dvBridge.fighter`), `debug.ts` (sim ops), `cpu-driver.ts` (`fighter.cpu`), `headless.ts` (the missions runner's descriptor) |
+| `content/fighter/{kits,stages,bouts}` | kits `player` and `rap_new_wave`, stage `powell_turntable`, bout `bout.a5` |
+| `test/` | lint, replay, driver, cpu, schemes, camera, slice, descriptor, story-bout specs; `fixtures/kits/bad-*.json` fail one lint rule each |
 
 ## Commands
 
@@ -33,10 +37,36 @@ DV_UPDATE_GOLDEN=1 pnpm --filter @dv/mode-fighter exec tsx scripts/make-goldens.
 DV_UPDATE_GOLDEN=1 pnpm check:unit -- packages/shared/test/fight/hash-vectors   # packages/shared/test/golden/fight/hash.v1.json
 ```
 
+## See it (M08a2)
+
+Build a QA build with the gray-box world and open one of these paths (the QA flags exist only when `VITE_DV_QA=1`):
+
+```bash
+DV_WORLD=synth pnpm build   # a QA build with the synthetic city; `pnpm dev` also serves QA builds
+# then open, on the dev or preview server:
+#   /?fighter=demo       two CPUs (Hard against Hard) on the Powell turntable, restarts when it ends: the default look
+#   /?fighter=versus     you (slot 0, keyboard, pad or touch) against the CPU
+#   /?fighter=training   Training: frame meter, box overlay, record and playback dummy, reset and refill
+#   /?fighter=1          only the bridge, `__dvBridge.fighter` (state, step, replay, cmd) and `__dvBridge.fighterStage`
+# add &touch=1 for the touch layout, &world=walk-drop for the gray-box world instead of the city
+```
+
+Keyboard (Classic): arrows or WASD to move, jump and crouch; `U I O` light, medium, heavy punch; `J K L` light, medium, heavy kick; `Space` Hype; `Shift` dash; `B` block; `T` taunt; `Esc` or `P` pause. Simple scheme: `J` light, `K` heavy, `L` special (hold forward or down for the other two specials), `;` assist, the same movement, Hype, dash and pause. The pause screen lists the move list for the scheme in use.
+
+```bash
+pnpm --filter @dv/mode-fighter fighter:bench     # 3 x 10,000 CPU-vs-CPU steps: step p99 <= 0.10 ms, snapshot + restore <= 0.1 ms
+pnpm check:e2e -- --project=chromium-webgl2 --grep @fighter-training
+pnpm check:e2e -- --project=webkit-webgl2 --grep "@fighter-hash|@fighter-touch"
+pnpm check:perf -- --scenario fight-stage --fail
+pnpm check:missions -- --mission m.a1.05           # needs the sf bake (dist/world); the real bout plays under the bot
+```
+
 ## Rules of the data
 
 `onHit` and `onBlock` are derived, never authored: `advHit = hitstun - (A + R - 1)`, `advBlock = blockstun - (A + R - 1)`. A kit that carries them fails the schema. Startup counts the first active frame. Builder decisions: `spec/11-decision-log-builder.md` rows `BD-M08a1-*`.
 
 ## Status
+
+M08a2: the mode is playable (`status: available`, behind `unlock.fighter`, granted by the first story bout `m.a1.05`). Not done here: `pnpm deploy:preview` (no Cloudflare token), the device ACs (phone and Quest), and the plumbing of `autoBlockStoryFights` and of a second pad device (BD-M08a2-06, -07). Builder decisions: `BD-M08a2-*`.
 
 M08a1 is complete for the runnable ACs; `pnpm deploy:preview` (AC-11) needs the Cloudflare token and was not run here. The PR needs the `golden-update` label (new goldens: `golden/*.dvfight`, `packages/shared/test/golden/fight/hash.v1.json`, and the refreshed `goldens-package` hash in `tools/ci/verifiers.lock.json`).

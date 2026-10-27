@@ -5,6 +5,7 @@ import settingsV1 from './schema/settings.v1.schema.json';
 import storyV1 from './schema/story.v1.schema.json';
 import sandboxV1 from './schema/sandbox.v1.schema.json';
 import tycoonV1 from '../../../../shared/schemas/tycoon/slice-1.schema.json';
+import fighterV1 from '../../../../shared/schemas/fighter/slice-1.schema.json';
 import vehicleInstanceV1 from '../../../../shared/schemas/racing/vehicle-instance.v1.schema.json';
 import { validateSchema, type JsonSchema } from './validate.ts';
 
@@ -37,6 +38,8 @@ export const SLICE_SCHEMAS: Partial<Record<SliceKind, Record<number, JsonSchema>
   sandbox: { 1: sandboxV1 as unknown as JsonSchema },
   // M09a1: the tycoon slice schema is owned by the shared tycoon core (packages/shared/schemas/tycoon).
   tycoon: { 1: tycoonV1 as unknown as JsonSchema },
+  // M08a2: the fighter slice schema is owned by the fighter mode (packages/shared/schemas/fighter).
+  fighter: { 1: fighterV1 as unknown as JsonSchema },
 };
 
 /** The schema version this build writes for each kind. */

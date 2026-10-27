@@ -44,6 +44,7 @@ export class ModesPanel {
     document.head.append(this.style);
     const root = document.createElement('div');
     root.className = 'dv-modes';
+    root.dataset['dvQa'] = '';
     root.dataset['testid'] = 'modes-panel';
     root.setAttribute('role', 'group');
     root.setAttribute('aria-label', 'Modes debug');

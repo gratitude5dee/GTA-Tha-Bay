@@ -6,14 +6,28 @@
   "exports": {
     ".": "./src/index.ts",
     "./lint": "./src/lint/index.ts",
-    "./qa": "./src/qa/index.ts"
+    "./qa": "./src/qa/index.ts",
+    "./qa/bridge": "./src/qa/bridge.ts",
+    "./sim/mode": "./src/sim/mode.ts",
+    "./sim/module": "./src/sim/module.ts",
+    "./ui": "./src/ui/index.ts",
+    "./ui/presenter": "./src/ui/presenter.ts",
+    "./components": "./src/components.ts",
+    "./qa/debug": "./src/qa/debug.ts",
+    "./qa/headless": "./src/qa/headless.ts"
   },
   "scripts": {
     "test": "tsx ../../../tools/ci/run.ts vitest --pkg packages/modes/fighter",
     "fighter:lint": "tsx scripts/lint.ts",
-    "fighter:replay": "tsx scripts/replay.ts"
+    "fighter:replay": "tsx scripts/replay.ts",
+    "fighter:bench": "tsx scripts/bench.ts"
   },
   "dependencies": {
-    "@dv/shared": "workspace:*"
+    "@dv/engine": "workspace:*",
+    "@dv/shared": "workspace:*",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@types/three": "0.186.0"
   }
 }

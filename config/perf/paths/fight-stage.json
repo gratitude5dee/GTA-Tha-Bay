@@ -1,0 +1,9 @@
+{
+  "$comment": "M08a2 path for the scenario 'fight-stage' (07-fighter.md section 3, DL-656 part 4): a scripted CPU-vs-CPU round (Hard against Hard, the QA demo ?fighter=demo) on the Powell turntable arena under the fighter's own side camera; the runner does not move the camera (kind 'stage'), so the counts say what the arena and both gray-box fighters draw. The budget row is the tier's. 60 s with 8 s of warm-up. Needs no streamed city (the page runs on the gray-box world).",
+  "id": "fight-stage",
+  "kind": "stage",
+  "durationS": 60,
+  "warmupS": 8,
+  "seed": 12648430,
+  "density": "off"
+}

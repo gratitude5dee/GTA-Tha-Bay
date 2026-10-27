@@ -21,6 +21,7 @@ import {
 import { registerScenarioLoader, type LoadedScenario, type RunSpec, type ScenarioEnv } from '@dv/engine/qa';
 import { SIM_DT, readHeader, type MissionIR } from '@dv/shared';
 import type { DirectorScript } from '@dv/shared/contracts/c09-cutscene';
+import { headlessFighterDescriptor } from '@dv/mode-fighter/qa/headless';
 import { createStoryMode, type StoryController } from './mode.ts';
 import { observeMission, type MissionObs } from './autoplay/observe.ts';
 import { resolveMission } from './compiler/resolve.ts';
@@ -108,7 +109,10 @@ async function loadMissions(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScen
   }, env.retry ? { backend: { retry: env.retry } } : {});
 
   installClock(sim.core);
+  // M08a2: the real fighter plays the bout hook (the bot plays slot 0); without it the hook takes its stub path.
   const modes = createModesModule({
+    // the loop has no turns for promises, so the sim half answers at once (headless descriptor)
+    descriptors: [headlessFighterDescriptor()],
     wrapStory: (free, senv) => {
       const m = createStoryMode(free, senv, { headless: true });
       holder.controller = m.controller;

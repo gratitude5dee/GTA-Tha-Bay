@@ -232,6 +232,9 @@ importers:
       '@dv/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@dv/mode-fighter':
+        specifier: workspace:*
+        version: link:../../packages/modes/fighter
       '@dv/mode-racing':
         specifier: workspace:*
         version: link:../../packages/modes/racing
@@ -316,9 +319,19 @@ importers:
 
   packages/modes/fighter:
     dependencies:
+      '@dv/engine':
+        specifier: workspace:*
+        version: link:../../engine
       '@dv/shared':
         specifier: workspace:*
         version: link:../../shared
+      three:
+        specifier: 0.186.1
+        version: 0.186.1
+    devDependencies:
+      '@types/three':
+        specifier: 0.186.0
+        version: 0.186.0
 
   packages/modes/racing:
     dependencies:
@@ -334,6 +347,9 @@ importers:
       '@dv/engine':
         specifier: workspace:*
         version: link:../../engine
+      '@dv/mode-fighter':
+        specifier: workspace:*
+        version: link:../fighter
       '@dv/shared':
         specifier: workspace:*
         version: link:../../shared

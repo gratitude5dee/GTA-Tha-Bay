@@ -1,6 +1,6 @@
 {
   "schema": "provenance/1.0",
-  "sha256": "844b1a5a2242087b8e21f65d86224c3cd0c01286c372319fb4edb1e2b1588cd7",
+  "sha256": "13565a13b7ac55d119b38c92b7e761aa10bb626fbee4a7d5d981908e288738e0",
   "paths": [
     "assets/src/data/mission.m.a1.05/mission.json"
   ],
@@ -19,5 +19,5 @@
   },
   "ai_generated": false,
   "status": "active",
-  "created_at": "2026-10-22T20:47:43Z"
+  "created_at": "2026-10-27T06:20:33Z"
 }

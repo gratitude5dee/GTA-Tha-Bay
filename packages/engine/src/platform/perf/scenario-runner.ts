@@ -7,6 +7,7 @@ import downtownRush from '../../../../../config/perf/paths/downtown-rush.json';
 import bootCityhall from '../../../../../config/perf/paths/boot-cityhall.json';
 import storyChase from '../../../../../config/perf/paths/story-chase.json';
 import npcMissionCrowd from '../../../../../config/perf/paths/npc-mission-crowd.json';
+import fightStage from '../../../../../config/perf/paths/fight-stage.json';
 import { buildBenchmarkScene } from '../benchmark.ts';
 import type { FrameListener, RendererHost } from '../renderer-host.ts';
 import { RenderBudgetMeter } from './meter.ts';
@@ -50,7 +51,19 @@ export interface RoutePath {
   seed: number;
   density: 'off' | 'nominal';
 }
-export type ScenarioPath = OrbitPath | RoutePath;
+/**
+ * A stage path (M08a2): no camera of the runner's own. The mode that the page started (the fight arena, driven by its own camera
+ * directive) frames the shot, and the run counts what that frame draws. Needs no world driver.
+ */
+export interface StagePath {
+  id: string;
+  kind: 'stage';
+  durationS: number;
+  warmupS: number;
+  seed: number;
+  density: 'off' | 'nominal';
+}
+export type ScenarioPath = OrbitPath | RoutePath | StagePath;
 
 /**
  * The world half of a route scenario, implemented by the app over `@dv/world` (the engine never imports it): it moves the stream focus
@@ -78,6 +91,7 @@ export const SCENARIO_PATHS: Readonly<Record<string, ScenarioPath>> & { readonly
   'boot-cityhall': bootCityhall as unknown as RoutePath,
   'story-chase': storyChase as unknown as RoutePath,
   'npc-mission-crowd': npcMissionCrowd as unknown as RoutePath,
+  'fight-stage': fightStage as unknown as StagePath,
 };
 export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'graybox-walk': 'config/perf/paths/graybox-walk.json',
@@ -87,6 +101,7 @@ export const SCENARIO_PATH_REFS: Readonly<Record<string, string>> = {
   'boot-cityhall': 'config/perf/paths/boot-cityhall.json',
   'story-chase': 'config/perf/paths/story-chase.json',
   'npc-mission-crowd': 'config/perf/paths/npc-mission-crowd.json',
+  'fight-stage': 'config/perf/paths/fight-stage.json',
 };
 
 /** Position, unit heading and total length of a route at distance `s` from its start (clamped to the ends). */
@@ -186,6 +201,7 @@ export class PerfScenarioRunner {
     const scenario = scenarioOf(path, opts.durationS, opts.warmupS);
     const route = path.kind === 'route' ? path : null;
     const orbit = path.kind === 'orbit' ? path : null;
+    const stage = path.kind === 'stage';
     const driver = route ? (this.d.worldDriver?.() ?? null) : null;
     if (route && !driver) {
       this.running = false;
@@ -257,7 +273,9 @@ export class PerfScenarioRunner {
       },
       after: (time) => {
         if (!measuring) return;
-        meter.measure(scene, camera, bench ? 0 : host.shadowPasses, host.backdrop && !bench ? [host.backdrop] : []);
+        // Stage paths (M08a2): the mode's arena is the host's menu scene, so what the loop draws is what counts.
+        const drawn = stage ? host.active : { scene, camera };
+        meter.measure(drawn.scene, drawn.camera, bench ? 0 : stage && host.menuActive ? 0 : host.shadowPasses, host.backdrop && !bench && !(stage && host.menuActive) ? [host.backdrop] : []);
         infoTrianglesMax = Math.max(infoTrianglesMax, info.render.triangles);
         infoDrawMax = Math.max(infoDrawMax, info.render.drawCalls);
         const m = readMemory(info, this.d.wasm);

@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import type { PerfReport, QualityTierId } from '../../packages/shared/src/index.ts';
 import { storyChase } from './scenarios/story-chase.ts';
 import { npcMissionCrowd } from './scenarios/npc-mission-crowd.ts';
+import { fightStage } from './scenarios/fight-stage.ts';
 
 /**
  * check:perf (11-platform-perf.md section 9, spec 8). For each flat tier, run the canned scenario on the QA build and write
@@ -16,7 +17,7 @@ const SCENARIO = process.env.DV_PERF_SCENARIO ?? 'graybox-walk';
 /** Scenarios that show the ambient traffic (M03b1): they also write a `.traffic.json` the counts check judges. */
 const TRAFFIC = new Set(['downtown-rush']);
 /** Scenarios whose page runs a part of the game (a URL suffix and a setup after the world is up; tests/perf/scenarios/*.ts). */
-const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: Page): Promise<void>; collect?(page: Page, report: PerfReport): Promise<void> }> = { 'story-chase': storyChase, 'npc-mission-crowd': npcMissionCrowd };
+const PAGE_SCENARIOS: Record<string, { query: string; timeoutMs: number; setup(page: Page): Promise<void>; collect?(page: Page, report: PerfReport): Promise<void> }> = { 'story-chase': storyChase, 'npc-mission-crowd': npcMissionCrowd, 'fight-stage': fightStage };
 const PAGE = PAGE_SCENARIOS[SCENARIO];
 const DURATION_S = Number(process.env.DV_PERF_DURATION_S ?? 6);
 const WARMUP_S = Number(process.env.DV_PERF_WARMUP_S ?? 2);
@@ -44,6 +45,9 @@ for (const tier of TIERS) {
         x.__pedSamples = [];
         x.__pedTimer = window.setInterval(() => x.__pedSamples?.push({ ped: x.__dvBridge.world.peds(), transit: x.__dvBridge.world.transit(), traffic: x.__dvBridge.world.traffic() }), 250);
       });
+    } else if (SCENARIO === 'fight-stage') {
+      // M08a2: the arena needs no streamed city; the page runs the QA demo on the gray-box world.
+      await fightStage.setup(page);
     } else if (SCENARIO !== 'graybox-walk') {
       // M02b2 (AC-7): the world scenarios run at the sky's most expensive look: 21:30 with rain (night lights, streaks, overlay, wet).
       await page.waitForFunction(() => (window as unknown as { __dvBridge?: { world?: unknown } }).__dvBridge?.world !== undefined, undefined, { timeout: 150_000 });

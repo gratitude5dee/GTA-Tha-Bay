@@ -48,6 +48,7 @@ const cmd = (engine: AgencyQaEngine, name: string, args?: Record<string, unknown
 export function installNpcAgencyQa(engine: AgencyQaEngine): AgencyQaBridge {
   const box = document.createElement('div');
   box.className = 'dv-npcagency';
+  box.dataset['dvQa'] = '';
   box.setAttribute('data-testid', 'npc-agency-panel');
   box.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:60;max-width:300px;padding:6px 8px;font:11px/1.35 ui-monospace,monospace;color:#e8f0ff;background:rgba(10,14,24,.78);border-radius:6px;pointer-events:none;white-space:pre';
   box.textContent = 'NPC agency: waiting for the world';
