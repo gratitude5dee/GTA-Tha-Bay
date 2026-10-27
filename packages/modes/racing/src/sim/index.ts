@@ -16,3 +16,4 @@ export * from './results.ts';
 export * from './slice.ts';
 export * from './pursuit-binder.ts';
 export * from './pose.ts';
+export * from './rivals.ts';

@@ -12,8 +12,8 @@
  * Inputs section (BD-M07a2-01): `varint tickCount`, then a bit stream. One word per tick packs
  * steer i8 | throttle u7 << 8 | brake u7 << 15 | buttons u6 << 22 (`REPLAY_BUTTON`: handbrake, nitro, ability, lookBehind, reset, ready),
  * the fields a race reads. Per tick: 1 bit "same as the tick before" (a run of equal frames costs one bit a tick); otherwise a
- * 4-bit mask (steer, throttle, brake, buttons), then a signed Exp-Golomb delta for each changed analog field and 6 raw bits for
- * the buttons. The first tick is compared with a neutral frame.
+ * mask of the fields that changed (steer alone costs 1 bit, steer and throttle 2, throttle alone 3, any other set 8), then a signed
+ * Exp-Golomb delta for each changed analog field and 6 raw bits for the buttons. The first tick is compared with a neutral frame.
  *
  * Track section: `u8 stride` (ticks between samples, 3 = 20 Hz), `varint lead` (ticks from the first sample to GO), `varint sampleCount`, then per sample zigzag-varint deltas of
  * x and z in 2 cm, y in 4 cm and yaw in 1/65536 turn (wrapped to i16), and speed as one byte (kph / 2, clamped). The decoded
@@ -228,7 +228,15 @@ export function encodeInputs(words: readonly number[]): Uint8Array {
     const db = replayBrake(w) - replayBrake(prev);
     const bt = replayButtons(w);
     const dbt = bt !== replayButtons(prev);
-    bw.bits((ds !== 0 ? 8 : 0) | (dt !== 0 ? 4 : 0) | (db !== 0 ? 2 : 0) | (dbt ? 1 : 0), 4);
+    const mask = (ds !== 0 ? 8 : 0) | (dt !== 0 ? 4 : 0) | (db !== 0 ? 2 : 0) | (dbt ? 1 : 0);
+    // the usual changes are short: steer alone '0', steer and throttle '10', throttle alone '110'; anything else '1110' and the mask
+    if (mask === 8) bw.bit(0);
+    else if (mask === 12) bw.bits(0b10, 2);
+    else if (mask === 4) bw.bits(0b110, 3);
+    else {
+      bw.bits(0b1110, 4);
+      bw.bits(mask, 4);
+    }
     if (ds !== 0) bw.sgolomb(ds);
     if (dt !== 0) bw.sgolomb(dt);
     if (db !== 0) bw.sgolomb(db);
@@ -251,7 +259,14 @@ export function decodeInputs(b: Uint8Array): Uint32Array {
   let prev = 0;
   for (let i = 0; i < n; i++) {
     if (br.bit() === 1) {
-      const mask = br.bits(4);
+      let mask: number;
+      if (br.bit() === 0) mask = 8;
+      else if (br.bit() === 0) mask = 12;
+      else if (br.bit() === 0) mask = 4;
+      else {
+        if (br.bit() !== 0) throw new ReplayFormatError('bad mask code');
+        mask = br.bits(4);
+      }
       if (mask & 8) steer += br.sgolomb();
       if (mask & 4) thr += br.sgolomb();
       if (mask & 2) brk += br.sgolomb();

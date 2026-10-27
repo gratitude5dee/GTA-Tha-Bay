@@ -343,6 +343,21 @@ export function compileRace(source: RaceSource, bg: BakeGraph): Compiled {
     ringEnu: z.ring.map((r) => { const p = waypointEnu(r as never); return [round(p.x, 2), round(p.z, 2)] as [number, number]; }),
   }));
 
+  // jump zones: a crest where the grade drops by more than 12 percentage points across a 25 m sample (06-racing-data.md 4.2.1 V4)
+  const jumpZones: { s0: number; s1: number }[] = [];
+  for (let j = 1; j + 1 < elevation.length; j++) {
+    const a = elevation[j - 1] as { s: number; y: number };
+    const b = elevation[j] as { s: number; y: number };
+    const c = elevation[j + 1] as { s: number; y: number };
+    const g1 = (b.y - a.y) / Math.max(1, b.s - a.s);
+    const g2 = (c.y - b.y) / Math.max(1, c.s - b.s);
+    if (g1 - g2 > 0.12) jumpZones.push({ s0: round(b.s - 12.5, 1), s1: round(b.s + 12.5, 1) });
+  }
+  const hidingSpots = (source.hidingSpots ?? []).map((h) => {
+    const p = waypointEnu(h.at as never);
+    return { x: round(p.x, 1), z: round(p.z, 1), radiusM: h.radiusM };
+  });
+
   const parSec = Math.round((lengthM / PAR_MPS) * 10) / 10;
   const def: RaceDef = {
     schema: 1,
@@ -375,7 +390,8 @@ export function compileRace(source: RaceSource, bg: BakeGraph): Compiled {
     closures,
     zones,
     grid,
-    jumpZones: [],
+    jumpZones,
+    ...(hidingSpots.length > 0 ? { hidingSpots } : {}),
     line: { stepM: STEP_M, curvature, offsetCm: new Array<number>(samples.length).fill(0), start, dxz },
     parSec,
     parBotHash: 'pending',
@@ -389,7 +405,7 @@ export function raceJson(def: RaceDef): string {
   const order: (keyof RaceDef)[] = [
     'schema', 'id', 'version', 'kind', 'titleKey', 'district', 'laps', 'closedLoop', 'hour', 'weather', 'traffic', 'peds', 'opponents', 'classLimit', 'loaner',
     'police', 'rubberBand', 'rewards', 'unlocks', 'xr', 'story', 'worldBake', 'waypoints', 'route', 'routeLenM', 'elevation', 'gates', 'closures', 'zones',
-    'grid', 'jumpZones', 'line', 'parSec', 'parBotHash', 'medals',
+    'grid', 'jumpZones', 'hidingSpots', 'line', 'parSec', 'parBotHash', 'medals',
   ];
   const lines: string[] = [];
   for (const k of order) {

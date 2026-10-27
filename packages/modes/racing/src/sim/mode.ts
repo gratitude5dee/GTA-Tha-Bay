@@ -11,13 +11,13 @@
  * embedded run (story hook) is `local`, shows no ghost, keeps no records and pays nothing itself: the mission pays its rewards.
  */
 import type { Difficulty, GameModeSim, JsonObject, ModeContext, ModeEnterArgs, ModeExitReason, ModeResult, SimEvent } from '@dv/shared';
-import { raceCar, LOANER_CAR, type RaceCar } from '../cars.ts';
+import { raceCar, LOANER_CAR } from '../cars.ts';
 import { RACING_CONFIG } from '../config.ts';
 import { DEFAULT_RACE, raceDef } from '../races.ts';
-import type { RivalSpec } from './ai-driver.ts';
 import { getRacingHost, type RacingHost } from './host.ts';
 import { HUD_VM_KEY, hudToJson } from './hud-vm.ts';
 import { PursuitBinder } from './pursuit-binder.ts';
+import { rivalSpecs } from './rivals.ts';
 import { RaceSession } from './session.ts';
 import { applyRun, readRacingSlice, type RacingSlice, type RunRecord } from './slice.ts';
 
@@ -32,17 +32,6 @@ let held: Held | null = null;
 export const activeSlice = (): RacingSlice | null => held?.slice ?? null;
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
-
-/** Rival `skill` moves with the difficulty: -0.15 easy, 0 normal, +0.10 hard (06-racing-content.md C.6). */
-const SKILL_ADJUST: Record<Difficulty, number> = { easy: -0.15, normal: 0, hard: 0.1 };
-
-export function rivalSpecs(def: { opponents: { driverId: string; vehicleDef: string; skill: number }[] }, difficulty: Difficulty): RivalSpec[] {
-  return def.opponents.map((o) => {
-    const car: RaceCar = raceCar(o.vehicleDef) ?? (raceCar(LOANER_CAR) as RaceCar);
-    const skill = Math.max(0, Math.min(1, o.skill + SKILL_ADJUST[difficulty]));
-    return { driverId: o.driverId, vehicleDef: car.vehicleDef, skill, profile: car.profile };
-  });
-}
 
 export const racingSim: GameModeSim = {
   enter(ctx: ModeContext, args: ModeEnterArgs, sliceIn?: JsonObject | null): void {

@@ -210,6 +210,13 @@ export function refereeStep(
       out.push({ t: 'race.lap', lap: st.lap, ms: msBetween(st.startTick, tick) });
       st.lap++;
       st.gate = def.gates[0]?.kind === 'start' ? 1 : 0;
+      // a closed route: the car is at the start of the polyline again, so the projection, the furthest progress and the respawn gate
+      // go back with it (without this the wrap reads as 'a whole lap the wrong way' and sends the car back across the line, M07a2)
+      st.s = 0;
+      st.sWindow = 0;
+      st.sBest = 0;
+      st.wrongWayTicks = 0;
+      st.lastGate = def.gates[0]?.kind === 'start' ? 0 : -1;
     } else if (g.kind === 'finish' || st.gate >= def.gates.length) {
       st.finished = true;
       out.push({ t: 'race.finish', ms: msBetween(st.startTick, tick), tick });

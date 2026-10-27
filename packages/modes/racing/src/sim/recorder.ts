@@ -50,6 +50,11 @@ export class ReplayRecorder {
     return this.words.length;
   }
 
+  /** Bytes the inputs section would take now (QA and the size tests). */
+  inputBytes(): number {
+    return encodeInputs(this.words).length;
+  }
+
   /** One tick: the input frame, whether the player pressed ready this tick, and the car pose (null while there is none). */
   record(f: InputFrame, ready: boolean, pose: { x: number; y: number; z: number; yaw: number; speedMps: number } | null): void {
     if (!this.active) return;

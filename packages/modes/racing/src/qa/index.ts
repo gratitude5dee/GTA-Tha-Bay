@@ -12,3 +12,4 @@ export function registerRacingQa(): void {
   ensureRacingLoader();
   ensureRacingBot();
 }
+export { runHeadless, replayFrames, frameFromWord, type HeadlessRun, type HeadlessOptions } from './headless.ts';

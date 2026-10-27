@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
-  isLandmarkPoint, type RaceDef, type RaceSource, type RaceValidationReport, type VehicleClass,
+  centreline, isLandmarkPoint, type RaceDef, type RaceSource, type RaceValidationReport, type VehicleClass,
 } from '../../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../../ci/lib/common.ts';
 import { loadContentWorld } from '../content.ts';
@@ -101,14 +101,20 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
     }
     stats.maxGradePct = Math.round(maxGrade * 10) / 10;
 
-    // V5: a circuit closes within 15 m and 25 degrees
+    // V5: a circuit closes within 15 m and 25 degrees (the first and the last point of the racing line; the start gate sits behind the
+    // grid, so the gates of a 3-car grid are further apart than the loop is open)
     if (def.kind === 'circuit') {
-      const first = def.gates[0];
-      const last = def.gates[def.gates.length - 1];
-      if (first && last) {
-        const d = Math.hypot(first.at[0] - last.at[0], first.at[2] - last.at[2]);
-        const dot = first.tangent[0] * last.tangent[0] + first.tangent[1] * last.tangent[1];
-        const deg = (Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI;
+      const cl = centreline(def);
+      const n = cl.length / 2;
+      if (n >= 3) {
+        const x0 = cl[0] as number, z0 = cl[1] as number;
+        const x1 = cl[2 * n - 2] as number, z1 = cl[2 * n - 1] as number;
+        const d = Math.hypot(x1 - x0, z1 - z0);
+        const h0 = Math.atan2((cl[3] as number) - z0, (cl[2] as number) - x0);
+        const h1 = Math.atan2(z1 - (cl[2 * n - 3] as number), x1 - (cl[2 * n - 4] as number));
+        let dh = Math.abs(h1 - h0);
+        if (dh > Math.PI) dh = 2 * Math.PI - dh;
+        const deg = (dh * 180) / Math.PI;
         if (d > 15 || deg > 25) f.push(err(5, `the circuit ends ${d.toFixed(1)} m and ${deg.toFixed(0)} degrees off its start (limits 15 m, 25 degrees)`));
       }
     }

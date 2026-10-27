@@ -17,7 +17,9 @@ import { dhypot, routePoint, SimStage, SIM_DT, type InputFrame, type RaceDef } f
 import { RACING_CONFIG } from '../config.ts';
 import { LOANER_CAR, raceCar } from '../cars.ts';
 import { RACING_COMPONENTS } from '../components.ts';
+import { PUPPET_PREFABS } from '../prefabs.ts';
 import { raceDef } from '../races.ts';
+import { rivalSpecs } from '../sim/rivals.ts';
 import { createEnginePort } from '../sim/engine-port.ts';
 import { RaceSession } from '../sim/session.ts';
 import { decodeCorridor, type Corridor } from './corridor.ts';
@@ -92,6 +94,8 @@ async function loadRacing(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScenar
         prefabs.load(ENGINE_PREFABS);
         const mod = registerVehicleModule(core, backend, prefabs);
         prefabs.load(RACE_CAR_PREFABS);
+        // the rivals are puppets; a race without opponents loads none, so its string table (and its golden) is what M07a1 recorded
+        if (def.opponents.length > 0) prefabs.load(PUPPET_PREFABS);
         prefabs.spawn('player.default', { pos: [gp.x, gp.y + 3, gp.z], yaw: 0 }, 'player:0');
         const port = createEnginePort({ ecs, backend, services, store: mod.store, prefabs, tick: () => core.tick });
         const session = new RaceSession({
@@ -104,6 +108,11 @@ async function loadRacing(spec: RunSpec, env: ScenarioEnv): Promise<LoadedScenar
           telemetry: { emit: () => undefined },
           seed: spec.seed,
           simProfile: 'canonical',
+          rivals: rivalSpecs(def, 'normal'),
+          ...(typeof params['ghost'] === 'object' && params['ghost'] !== null ? { ghost: params['ghost'] as never } : {}),
+          buildId: 'qa',
+          vehiclePriceCents: car.priceCents,
+          ...(typeof params['noRivals'] === 'boolean' && params['noRivals'] ? { rivals: [] } : {}),
         });
         holder.session = session;
         core.addResource({ name: 'racing.session', hash: (h) => session.hashInto(h), save() {}, load() {} });

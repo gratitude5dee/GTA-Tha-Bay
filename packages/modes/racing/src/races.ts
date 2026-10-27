@@ -1,10 +1,13 @@
 /**
  * The compiled races the mode can run, bundled so the sim worker needs no fetch (`content/races/<id>/race.json`, written by
- * `pnpm map:races compile`). M07a1 ships one; the other VS races and the pursuit arrive in M07a2.
+ * `pnpm map:races compile`). M07a1 shipped the sprint; M07a2 adds the circuit, the downhill and the pursuit (the VS races).
  */
 import { straightRaceDef, type RaceDef, type RaceId } from '@dv/shared';
 import { DEFAULT_RACE } from './race-ids.ts';
 import ferryOceanBeach from '../../../../content/races/sf.sprint.ferry-ocean-beach/race.json';
+import embarcaderoVanness from '../../../../content/races/sf.circuit.embarcadero-vanness/race.json';
+import twinPeaksMission from '../../../../content/races/sf.downhill.twin-peaks-mission/race.json';
+import bayviewEscape from '../../../../content/races/sf.pursuit.bayview-escape/race.json';
 
 /**
  * QA only: a straight 180 m sprint north along the street of the gray-box block (x = 96, from z = 190), the default QA scene.
@@ -29,6 +32,9 @@ function demoRace(): RaceDef {
 
 export const RACE_DEFS: Readonly<Record<RaceId, RaceDef>> = {
   'sf.sprint.ferry-ocean-beach': ferryOceanBeach as unknown as RaceDef,
+  'sf.circuit.embarcadero-vanness': embarcaderoVanness as unknown as RaceDef,
+  'sf.downhill.twin-peaks-mission': twinPeaksMission as unknown as RaceDef,
+  'sf.pursuit.bayview-escape': bayviewEscape as unknown as RaceDef,
   [DEMO_RACE]: demoRace(),
 };
 
@@ -37,3 +43,6 @@ export { DEFAULT_RACE };
 export function raceDef(id: RaceId): RaceDef | null {
   return RACE_DEFS[id] ?? null;
 }
+
+/** The events the menu offers, in order (the standalone list; M07b1 adds the rest of C.5). */
+export const MENU_RACES: readonly RaceId[] = ['sf.sprint.ferry-ocean-beach', 'sf.circuit.embarcadero-vanness', 'sf.downhill.twin-peaks-mission', 'sf.pursuit.bayview-escape'];
