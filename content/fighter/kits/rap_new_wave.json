@@ -1289,7 +1289,20 @@
       12,
       26
     ],
-    "habits": []
+    "habits": [
+      "walk_in",
+      "fireball_zone",
+      "block_reach",
+      "poke_neutral",
+      "anti_air",
+      "punish_unsafe",
+      "check_parry",
+      "throw_close",
+      "heavy_bait",
+      "dash_in",
+      "jump_in",
+      "super_spend"
+    ]
   },
   "gimmick": {
     "id": "pulse",

@@ -381,6 +381,7 @@ function fixSalvo(d: FighterDef): void {
 /** rap_new_wave.json is the M08a2 kit; its pristine copy lives in scripts/base and only the balance knobs are applied on top. */
 function newWave(): FighterDef {
   const d = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'base', 'rap_new_wave.json'), 'utf8')) as FighterDef;
+  d.ai.habits = habits(['walk_in', 'fireball_zone', 'block_reach', 'poke_neutral', 'anti_air', 'punish_unsafe']);
   applyKnobs(d);
   return d;
 }

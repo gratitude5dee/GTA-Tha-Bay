@@ -1,0 +1,41 @@
+{
+  "note": "a parody entry without a stand-in",
+  "roster": [
+    {
+      "slot": "TECH_HACKER",
+      "kit": "tech_hacker",
+      "fighterId": "dev_hacker",
+      "soulVersion": 1,
+      "expectedTier": "parody",
+      "assets": {
+        "model": "character/graybox.tech-hacker",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.tech-hacker-moves",
+        "portrait": "portrait/graybox.tech-hacker"
+      },
+      "homeStage": "powell_turntable",
+      "v1": true
+    }
+  ],
+  "souls": [
+    {
+      "id": "dev_hacker",
+      "soulVersion": 1,
+      "tier": "parody",
+      "fameDomain": []
+    }
+  ],
+  "stages": [
+    {
+      "id": "powell_turntable",
+      "tags": [
+        "turntable",
+        "cable_car",
+        "street"
+      ]
+    }
+  ],
+  "expect": [
+    "roster-standin-missing"
+  ]
+}
