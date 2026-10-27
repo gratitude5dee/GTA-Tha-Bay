@@ -167,6 +167,9 @@ export class RaceSession {
   private puppetIds: number[] = [];
   private puppetsReady = false;
   private ghostRunner: GhostRunner | null = null;
+  private ghostPlaced: GhostEntry | null = null;
+  /** The keys of ghost entities alternate, so a replacement never meets the key of the entity just removed. */
+  private ghostSerial = 0;
   private place = 1;
   private finishedPlace = 0;
   private finishTick = -1;
@@ -439,7 +442,7 @@ export class RaceSession {
     this.recorder?.begin(tick + 1);
     this.d.pursuit?.stop();
     this.moveRivals();
-    this.ghostRunner?.step(-1);
+    if (this.puppetsReady) this.placeGhost();
   }
 
   private gridY(): number {
@@ -465,11 +468,27 @@ export class RaceSession {
         if (id !== 0) this.puppetIds[i] = id;
       });
     }
+    this.placeGhost();
+  }
+
+  /** One ghost entity for the best run so far: replaces the one of the last attempt (a retry shows the run just made if it was better). */
+  private placeGhost(): void {
+    const pp = this.d.port.puppets;
+    if (!pp) return;
     const g = this.ghostBest;
+    // the same ghost as before: back to the grid, no new entity
+    if (this.ghostRunner && this.ghostPlaced === g) {
+      this.ghostRunner.step(-1);
+      return;
+    }
+    this.ghostRunner?.despawn();
+    this.ghostRunner = null;
+    this.ghostPlaced = null;
     if (g && g.trackB64.length > 0 && !this.d.embedded) {
       try {
-        this.ghostRunner = new GhostRunner(new GhostPlayer(g), pp, ghostPrefabOf(g.vehicleDef), 'veh:race.g0');
+        this.ghostRunner = new GhostRunner(new GhostPlayer(g), pp, ghostPrefabOf(g.vehicleDef), `veh:race.g${this.ghostSerial++ % 2}`);
         this.ghostRunner.step(-1);
+        this.ghostPlaced = g;
       } catch {
         this.ghostRunner = null;
       }
@@ -601,7 +620,7 @@ export class RaceSession {
         finishTick, this.gateTicks, hash, dir.goTick >= 0 ? Math.max(0, dir.goTick - rec.startTick) : 0,
       )
       : null;
-    const canGhost = outcome === 'finish' && run !== null && d.def.kind !== 'pursuit' && d.embedded !== true && d.simProfile === 'canonical';
+    const canGhost = outcome === 'finish' && run !== null && d.def.kind !== 'pursuit' && d.embedded !== true;
     const entry = canGhost && run ? ghostFromRun(run, e.ms, d.nowMs ? d.nowMs() : 0) : null;
     if (entry) this.ghostBest = betterGhost(this.ghostBest ?? undefined, entry);
     const rec2: AttemptRecord = {

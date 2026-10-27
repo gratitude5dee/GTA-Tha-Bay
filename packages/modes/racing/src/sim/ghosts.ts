@@ -21,7 +21,8 @@ export function ghostFromRun(run: RecordedRun, ms: number, savedAt: number): Gho
   const full = decodeReplay(run.bytes);
   const h = full.h;
   const trackBytes = full.track ? encodeTrack(full.track, h.trackEvery ?? 3, h.trackLead ?? 0) : new Uint8Array(0);
-  const inputsOnly = full.inputs ? encodeReplay({ ...h }, Array.from(full.inputs), null) : null;
+  // a `local` run is not exact, so its ghost keeps the track only (06-racing.md 2.11)
+  const inputsOnly = full.inputs && h.profile === 'canonical' ? encodeReplay({ ...h }, Array.from(full.inputs), null) : null;
   return {
     vehicleDef: h.vehicleDef,
     ms,
