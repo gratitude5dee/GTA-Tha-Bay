@@ -213,6 +213,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm npc:schemas -- --check
       - run: pnpm npc:lint
+      # M08b1: the fighter content CI (kits, roster, tier and fame-domain gates, goldens, the 28-pair balance smoke).
+      - run: pnpm check:fighter
         env:
           DV_NAMES_REAL_JSON: ${{ secrets.DV_NAMES_REAL_JSON }}
       # M06a4: the in-character evals in replay mode: hand-written synthetic recordings keyed by the request body, deterministic checks only
