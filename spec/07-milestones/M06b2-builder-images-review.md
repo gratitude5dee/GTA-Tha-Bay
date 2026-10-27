@@ -85,6 +85,7 @@ The NPC builder backend gains everything after the private text builder of M06b1
 ## Notes for the Builder
 - Read first: `04-npc-builder.md` §C1, §C3, §C5, §C10; `09-backend-db.md` §3.4, §4; `spec/05-api-and-realtime.md` §1.2, §3 (routes 33, 34, 41, 43); `09-backend-ops.md` §3; DL-175, DL-182, DL-OWN-01.
 - Order: bindings and bootstrap → route 34 → scan consumer (hash, classify, describe) → images sub-route → submit and snapshot → route 43 → community → route 41 (`npc_soul`, then `chat_turn`) → capability flag → e2e.
+- **Workers Free (DL-OWN-08, DL-746):** Queue consumer CPU on Free is UNVERIFIED (`spec/03-decisions-and-facts-2.md` §8, RISK-31). Hash the image as a stream; on the AC-11 staging upload read the dashboard metric "Exceeded CPU Time Limits" for the consumer and record it in the report; if a 10 MiB image exceeds it, lower the route 34 size cap to the measured safe size and record a Builder decision. Each scanned image costs at least 3 of the 10,000 daily Queue operations.
 - Previews run no queue consumers: test the consumer by direct invocation in Workers tests and through `/_test/drain-queue` on staging.
 - Never log image bytes, descriptions of quarantined items, or the query string of a presigned URL.
 - Branch `m06b2-builder-images-review`.

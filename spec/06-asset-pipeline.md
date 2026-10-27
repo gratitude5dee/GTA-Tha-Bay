@@ -113,7 +113,7 @@ interface CutsceneKeyInput {                       // exactly these eight proper
 
 **5.4 Index.** `tools/assets cutscene-index` builds `data/cutscene-index` (public) and `cutscene-requests.json` (private). Per ref it keeps the desired key if ready, else the previous release's key while characters, `soulVersion`, tier and provider are unchanged and nothing is killed, else the desired key (the clip plays its DirectorScript until prewarm completes).
 
-**5.5 Generated in v1.** The cutscene line is $40 of the USD 100 cap. `pnpm assets:gen prewarm` walks `03-story-cutscenes.md` §D9.1 in order and stops at a $38 running estimate: G1 the 9 Act 1 refs, G2 the 8 Shutdown and 8 Showstopper clips, G3 face-offs. On `h3.partner` that is 46 clips (398 s, $37.60); the other 109 of 155 refs play their DirectorScript. Per clip: shots × seconds × $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K.
+**5.5 Generated in v1.** The cutscene line is $38 of the USD 100 cap (DL-OWN-07). `pnpm assets:gen prewarm` walks `03-story-cutscenes.md` §D9.1 in order and stops at a $38 running estimate: G1 the 9 Act 1 refs, G2 the 8 Shutdown and 8 Showstopper clips, G3 face-offs. On `h3.partner` that is 46 clips (398 s, $37.60); the other 109 of 155 refs play their DirectorScript. Per clip: shots × seconds × $/s × 1.5, plus shots × 1.5 × $0.0396 for recipe K.
 
 ## 6. C07 manifest and R2 layout
 
@@ -202,7 +202,7 @@ A Standard character already pays for two mesh candidates; a third attempt, a re
 
 The Standard figure is S05's ($3.67, programmatic crops), not research's $3.73 (DL-172): 8 × 3.67 + 12 × 1.05 = $41.96 ≤ $42.
 
-**Program (DL-OWN-01).** Spike ≤ $10 (11 steps, $3.76 planned, DL-286) · characters ≤ $42 · cutscenes ≤ $40 ($37.60 planned) · buffer $8 → about $83 planned. `BudgetPort` reserves and settles through `BudgetGovernorDO` (vendor `fal`) into `genai_ledger` (`job_id` = `jobKey`). `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms 0.5 / 0.8 / 1.0, hard stop at 100 %; the `budget_program` row mirrors it and a nightly check compares them. Every run has a `budgetUsdMicros`. The fal prepaid balance is topped up per phase, cumulative top-ups ≤ $100, auto-recharge off; fal has no spend cap and locks below a balance threshold (F-048; threshold UNVERIFIED, U-COST-1). CI never runs live fal; `run` and `prewarm` print a dry-run estimate and refuse to spend without `--live`. The repo-audited spend record is `assets/ledger/fal-spend.jsonl` (M10a1: seeded from the M00c spike ledger, imports `genai_ledger` rows of Worker-run jobs; DL-234).
+**Program (DL-OWN-01, split by DL-OWN-07).** Spike ≤ $4 (11 steps, $3.76 planned, DL-286) · characters ≤ $42 · cutscenes ≤ $38 ($37.60 planned) · vehicles and props ≤ $14 (M10d1, M10d3) · buffer $2 → at most ≈ $97 planned. `BudgetPort` reserves and settles through `BudgetGovernorDO` (vendor `fal`) into `genai_ledger` (`job_id` = `jobKey`). `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms 0.5 / 0.8 / 1.0, hard stop at 100 %; the `budget_program` row mirrors it and a nightly check compares them. Every run has a `budgetUsdMicros`. The fal prepaid balance is topped up per phase, cumulative top-ups ≤ $100, auto-recharge off; fal has no spend cap and locks below a balance threshold (F-048; threshold UNVERIFIED, U-COST-1). CI never runs live fal; `run` and `prewarm` print a dry-run estimate and refuse to spend without `--live`. The repo-audited spend record is `assets/ledger/fal-spend.jsonl` (M10a1: seeded from the M00c spike ledger, imports `genai_ledger` rows of Worker-run jobs; DL-234).
 
 ## 12. Roster and prewarm runbook (M10a1 canary, M10a2 batch, M05c3 Act 1)
 
@@ -231,7 +231,7 @@ pnpm assets:kill --npc <id> --scope all --ticket <id> --stage    # staging drill
 
 ## 13. Milestones and tests
 
-M00b registry, schemas, gates · M00c spike (≤ $10) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm, `assets:gen`, Transcoder Container · M08b2 fighter refs · M10a1 roster automation, retarget tool, canary, repo ledger `assets/ledger/fal-spend.jsonl` · M10a2 batch · M10b idempotent prewarm, Act 1 re-run, kill drill · M14b `ip:history`, terms-watch, counsel.
+M00b registry, schemas, gates · M00c spike (≤ $4, DL-740) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm plan, `assets:gen` · M05c4 off-edge finish (`--finish`, hand-off, publish phase; no Container on Workers Free, DL-745, DL-750) · M08b2 fighter refs · M10a1 roster automation, retarget tool, canary, repo ledger `assets/ledger/fal-spend.jsonl` · M10a2 batch · M10b idempotent prewarm, Act 1 re-run, kill drill · M14b `ip:history`, terms-watch, counsel.
 
 ```
 pnpm check:unit -- packages/shared services/pipeline tools/assets

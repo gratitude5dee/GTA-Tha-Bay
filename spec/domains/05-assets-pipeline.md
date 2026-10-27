@@ -96,18 +96,20 @@ The `style_prompt` and design prompt never name or describe a real person, accen
 11. `publish`: write `cutscenes/<key>/manifest.json` last (S03's `CutsceneManifest`, `provenance.aiGenerated: true`, plus `licence.{gate,status,termsSnapshotSha256[],clearedBy,clearedAt}` and `characters[]` for purge).
 12. `record`: provenance records for `orig.mp4` (generated) and each rendition (derived); `gen_job` row and ledger settle.
 
-On container failure after retries, Media Transformations produces a poster and the rendition `p720` (720p progressive MP4) with `degraded: true` (C09 fixed line, DL-072). Prewarm: `pnpm assets:gen prewarm --release <tag>` computes every key from S03's `CutsceneRef` index, HEADs, and submits only misses; a second run makes zero vendor calls; CI fails a release whose refs lack both a cleared asset and an in-engine fallback.
+**On Workers Free (DL-OWN-08, DL-745, DL-748)** there is no Container. The Worker runs steps 1–5 (`copy-orig` streamed, unhashed) and a `handoff` step that leaves the key in the stored `CutsceneJobDO` state `handed_off` (route 27 `pending`; no watchdog, re-arm or unquarantine clears it). The operator's `assets:gen prewarm --finish` runs steps 6 and 8–10 off-edge with the same `ladder.sh`, the pinned `ffmpeg` and the pinned re-signer, and uploads the results with `finish.json` to PRIVATE. Route 28 then starts a publish phase in the Worker, which re-runs the `resign` gate (kill state, consent, licence) and copies the files to MEDIA, writing the manifest last (steps 11–12) (M05c4, split from M05c3 by DL-750; until M05c4 merges, M05c3's `prewarm --live` refuses and nothing is spent). The Container is the post-upgrade option. With a Container only: on its failure after retries, Media Transformations produces a poster and the rendition `p720` (720p progressive MP4) with `degraded: true` (C09 fixed line, DL-072); this fallback is not used on Free (its URL form needs a zone). Prewarm: `pnpm assets:gen prewarm --release <tag>` computes every key from S03's `CutsceneRef` index, HEADs, and submits only misses; a second run makes zero vendor calls; CI fails a release whose refs lack both a cleared asset and an in-engine fallback.
 
 ## 7. Vehicles, props, environment kits: sourcing
+
+**Owner update (DL-OWN-06, 2026-10-26):** besides the defaults in the table below, licensed third-party models and textures (CC0, CC-BY 4.0, or a licence allowing modification and public commercial redistribution, each with a licence snapshot) and fal-generated 3D within the $100 cap are admitted for every non-character row. Game rips, real logos and trade dress, scans of people and reproduced public art stay excluded.
 
 Rules: fictional makes, models and operators only, with altered silhouettes and badges; never Rockstar's fictional makes (seeded in `ip:strings`); robotaxi operator is "Halcyon Mobility"; no murals or public art reproduced [research/legal-ip-likeness.md §6]. A third-party CC0 or CC-BY pack is admitted only after (a) a licence-page snapshot in `docs/legal/licenses/<pack>.md` with its SHA-256, (b) per-file provenance records, (c) attribution lines in `credits.json`, (d) a vision and `ip:strings` pass for brands and logos. The catalogues Poly Haven, ambientCG, Kenney, Quaternius and Freesound are search starting points only; their terms are UNVERIFIED (U10).
 
 | Category | Default source | Why | Human gate |
 |---|---|---|---|
 | Hero and named characters | generated (§1) | R-NPC-02 | H1–H5 |
-| Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with generated outfit textures | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
-| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; the Sunburst concept → Meshy body → Blender route ($2.48 per body) is buffer-only, at most three bodies (DL-OWN-01) | AI output is one fused mesh; wheels must rotate | H6, M10d3 (gray-box `vehicle/graybox.<slug>` in M07a1/M07b1; DL-460) |
-| Traffic (10) and police (6) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
+| Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with outfits from code recipes (M10d4; no fal) | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
+| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; generated bodies within the $14 vehicles-and-props line by M10d1's route (image-edit views of a recipe blockout, then multiview-to-3D, H6 picks; DL-OWN-07, DL-740); the old Meshy buffer route is retired | AI output is one fused mesh; wheels must rotate | H6, M10d3 (gray-box `vehicle/graybox.<slug>` in M07a1/M07b1; DL-460) |
+| Traffic and police (the 8 `ARCHETYPES`, DL-739) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
 | Props, barriers, cones, street furniture | verified CC0 or authored; no AI meshes | clean topology, cheap | licence check |
 | Landmarks (≥ 25) | hand-authored over open-data massing (A-05, S02) | accuracy | S02 |
 | Facade, ground, PBR sets | verified CC0 sets; generated seamless tiles only from the buffer, after a tile test | | A2 on tiles |
@@ -173,17 +175,18 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 | 15 s cutscene (3 shots, 1.5×) | Turbo $1.06 · H3 partner $1.35 · H3 Max ref $1.80 · LTX $2.18 · Gemini $2.25 | |
 | Full video set as first planned (100 story + 222 fighter clips = 3,915 s; superseded by DL-OWN-01, not a v1 plan) | H3 partner $234.9 · Turbo $156.6 · LTX (6 s minimum, 4,248 s) $382.3 · Gemini 720p $391.5 | |
 
-**One-off fal programme (DL-OWN-01: hard cap USD 100 total; replaces the $1,000 programme of G3; DL-171).** Unit prices above are list prices; v1 spend is limited by these lines, not by what the pipeline could generate.
+**One-off fal programme (DL-OWN-01: hard cap USD 100 total; replaces the $1,000 programme of G3; DL-171; allocation of DL-OWN-01 superseded by DL-OWN-07, 2026-10-26).** Unit prices above are list prices; v1 spend is limited by these lines, not by what the pipeline could generate.
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $10 | 11 steps: one test character, one keyframe, three video clips (no `blocked` provider, DL-286) | $3.76 |
+| Spike (M00c) | $4 | 11 callable steps: one test character, one keyframe, three video clips; `plan.json` lists 13 ($4.36), and the two `blocked` H3 Max steps are refused before the ledger reserves (DL-286, DL-741) | $3.76 |
 | Characters (M10a1, M10a2) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
-| Cutscenes (M05c3, M10b) | $40 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
-| Buffer | $8 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172); at most one voice design or three vehicle bodies, only with owner sign-off | $0 planned |
-| **Total** | **$100** | | **≈ $83 planned** |
+| Cutscenes (M05c3 ≤ $16, M10b the rest after Act 1) | $38 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
+| Vehicles and props (M10d1, M10d3) | $14 | M10d1: ≤ 2 traffic bodies (`sedan`, `pickup`) from 4 image-edit views of its own recipe blockout plus 2 multiview-to-3D candidates each (≤ 1,704,000 micros); M10d3: player cars or props by the same route within the rest; `lineCapMicros('vehiclesProps')` (M10d0) | ≤ $14 |
+| Buffer | $2 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172), cutscene retakes beyond 1.5×; only with owner sign-off | $0 planned |
+| **Total** | **$100** | | **≈ $97 planned at most** |
 
-Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated vehicle bodies, generated props and textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
+Not funded by fal in v1: voice designs (v1 voices use Workers AI Aura or MeloTTS), generated textures, player-triggered NPC looks (DL-175), the 12-fighter target, Acts 2–3 and racing-intro clips. Stand-ins are authored creator-kit or crowd base bodies, not fal output (DL-180). The superseded programme (60 Standard characters, 24 voices, 36 vehicle bodies, 3,915 s of video, $897.6 on `h3.partner`) is not a plan.
 
 The ledger enforces the cap: `config/guardrails.yaml` `genai.programCapUsdMicros` = 100,000,000, alarms at 50 / 80 / 100 % ($50 / $80 / $100), hard stop at 100 %. The fal prepaid balance is topped up in tranches that never exceed the remaining cap, with auto-recharge off; `FAL_MODE=mock` is the dev and CI default; every paid job needs `--live` and prints a dry-run estimate first. R2 storage for all generated media is about 1 GB (S05 estimate, inside the free tier, F-023); transcode ≈ $0.001 per clip.
 
@@ -216,7 +219,7 @@ Steps:
 5. **Optimize and verify** locally (stages 6–7); failures return to H4 or stage 4 with the rejected candidate kept.
 6. **Publish** per slug; merge lock PRs after H5; run `pnpm assets:catalog` (M01d) to produce the immutable catalog and pointer (DL-230).
 7. **Idempotence check.** Re-run `plan`: it must list zero outstanding jobs and `run` must make zero `FalPort` calls (M10b AC).
-8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $40 cutscene line (`03-story-cutscenes.md` §D9.1).
+8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $38 cutscene line (DL-740) (`03-story-cutscenes.md` §D9.1).
 9. **Close-out:** reconcile spend with the fal dashboard, record cost per slug from `genai_ledger` (`job_id` = `jobKey`), snapshot the registry.
 10. **Rollback:** a rejected character is `killed` through §10 in staging, then re-run from stage 2 with a new seed; old candidates stay in `work/` for audit.
 

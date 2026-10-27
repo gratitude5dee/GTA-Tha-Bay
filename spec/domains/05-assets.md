@@ -437,7 +437,7 @@ Pipeline consequence: characters are authored once at `hi` and decimated; XR clo
 | Milestone | S05 slice | Stubbed first | Sessions |
 |---|---|---|---|
 | **M00b** (new, split of M00) `ip-provenance-gates` | schema, `provenance:check`, `ip:signatures/extensions/strings`, `license:scan`, `names:lint` (display side), `likeness:gate` unit rules, `config/*.json`, vendor-terms snapshots, bad-fixture tests | `ip:similarity` (separate runner, S13), real-side names (secret) | 1 |
-| **M00c** (new) `genai-spike` | ≤ $10 spend (DL-OWN-01): one Standard character, one keyframe, three video clips from `pending` providers (no `blocked` H3 Max/Turbo, DL-286); probe bone names, C2PA, codecs, refusal behaviour; results to `research/`; resolves U1–U4, U8 | none | 1 |
+| **M00c** (new) `genai-spike` | ≤ $4 spend (DL-OWN-07): one Standard character, one keyframe, three video clips from `pending` providers (no `blocked` H3 Max/Turbo, DL-286); probe bone names, C2PA, codecs, refusal behaviour; results to `research/`; resolves U1–U4, U8 | none | 1 |
 | **M01d** (new) `assets-publish` | catalog builder, `assets:verify/publish/lock`, `credits`, `resolveVariant`, rclone upload with HEAD verify | no generated assets yet; fixtures only | 1 |
 | **M05b** | `GenJobWorkflow`, ports, `MockExecutor`, webhook verify, `FalGateDO`, ledger, cutscene steps with container stub | live fal calls blocked until ADR-GENAI-01 `cleared` | 1–2 (shared with S03) |
 | **M05c** | Act 1 cutscene prewarm via the registry's cleared provider; `check:c2pa` | n/a | 0.5 |

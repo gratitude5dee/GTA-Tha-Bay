@@ -26,7 +26,7 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
     - a `P0_NCII` case, a page, and a copy-sweep job.
   - DMCA: a `P1_LEGAL` case (internal target 24 h). Counter-notice: linked to its takedown, it schedules a restore 10–14 business days out (10 used) unless staff record a court-action notice.
 - `services/edge/src/legal/sweep.ts` (`UGC_SCAN` kind `copy_sweep`): content keys are SHA-256 addressed, so the sweep finds every row referencing the target's hashes (forum attachments, mod archives, experience thumbnails, NPC images; PDQ near-duplicates where M06b2 stored them), disables each, and writes `copies_found` and `copy_sweep_job`.
-- `services/edge/src/ops/sla-pager.ts`: a cron every 5 minutes.
+- `services/edge/src/ops/sla-pager.ts`: a dispatcher job every 5 minutes (M13c1's single cron per Worker; no new expression on Workers Free, DL-746).
   - Pages: P0 cases unassigned for more than 15 minutes; NCII at intake, 24 h and 36 h; escalation to `admin` at 40 h; any queue past `sla_due_at`.
   - One page per (case, threshold), recorded in `audit_log` (action `page`) and as an AE point. When `ALERT_WEBHOOK_URL` is set it also posts there (the formal sink arrives with M14b1).
   - No email provider exists in v1. `requester_notified_at` is set when the trust lead records the notice through a case decision whose `user_notice_template` is set, and the NCII pager keeps paging until it is.
@@ -38,7 +38,7 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
   - `GET /admin/evidence/:id` (`mod:trust_lead`) streams only after its `audit_log` insert commits; a failed insert → `internal`, no bytes.
 - `services/edge/src/admin/{hash-banks,takedowns}.ts`: route 45.
   - `POST /admin/hash-banks/:bank` (banks `removed_takedown`, `rejected_real_person`, `roster_press`, `ncii_request`; `hash_type` `sha256|pdq|md5`); an NCII or DMCA `remove` adds the target's hashes automatically. `GET /admin/takedowns` lists requests with both clocks. M13c2's `HashBankPort` now reads `hash_bank_entry`.
-- Restore cron (daily): counter-notices past their date without a court-action note restore the target (`restored_at`, state back, revocation removed) and record the decision.
+- Restore job (daily, through the same dispatcher): counter-notices past their date without a court-action note restore the target (`restored_at`, state back, revocation removed) and record the decision.
 - Buckets: `legal-evidence-<env>` (no public route; locks `ncmec/` 400 days, `legal_hold/` indefinite) and locks on `ugc-quarantine-<env>` (`csam/` 400 days, `other/` 90 days). `EVIDENCE` binding in `wrangler.jsonc` and `previews`. `pnpm deploy:bootstrap` creates buckets and locks idempotently; the operator runs it before this branch deploys (a binding to a missing bucket fails the deploy).
 
 ## Scope out
@@ -50,9 +50,9 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 ## Deliverables
 - `supabase/migrations/0008_legal.sql`; pgTAP `supabase/tests/legal_server_only.sql` (also asserts the `preserve_until` expression); `packages/shared/src/db.gen.ts`.
 - `packages/shared/src/api/v1.ts`: `DmcaNoticeReq`, `CounterNoticeReq`, `NciiReq`, `NcmecRecordReq`, `HashBankAddReq`, `TakedownRow` (request and response bodies of routes 42–45, which C12's table leaves to "the same file"; the version is unchanged).
-- `services/edge/src/legal/{intake,validate,disable,sweep,restore}.ts`; `services/edge/src/admin/{cases,ncmec,evidence,hash-banks,takedowns}.ts`; `services/edge/src/ops/sla-pager.ts`; `services/edge/src/ugc/mod-scan/hash-bank.ts` (DB-backed); router rows 42–45; cron entries.
+- `services/edge/src/legal/{intake,validate,disable,sweep,restore}.ts`; `services/edge/src/admin/{cases,ncmec,evidence,hash-banks,takedowns}.ts`; `services/edge/src/ops/sla-pager.ts`; `services/edge/src/ugc/mod-scan/hash-bank.ts` (DB-backed); router rows 42–45; dispatcher job entries.
 - `services/edge/test/{legal-intake,ncii-clock,copy-sweep,dmca-flow,evidence-audit,ncmec-record,hash-banks,cases-queues}.test.ts`; `report-threshold` kept green.
-- `tools/ci/deploy.ts` (`bootstrap` creates the legal and quarantine buckets and applies the lock rules); `services/edge/wrangler.jsonc` (`EVIDENCE` binding, crons).
+- `tools/ci/deploy.ts` (`bootstrap` creates the legal and quarantine buckets and applies the lock rules); `services/edge/wrangler.jsonc` (`EVIDENCE` binding; no new cron expression).
 - Secrets and gates: Q-16 owner filings (NCMEC ESP registration, PhotoDNA application, DMCA agent designation, Cloudflare CSAM-tool ticket). `NCMEC_API_CREDENTIALS` and `PHOTODNA_KEY` only after approval; absent → the web-form path and own banks, with `SKIP … not set` at boot. `ALERT_WEBHOOK_URL` is optional until M14b1.
 
 ## Interfaces
@@ -88,6 +88,7 @@ The trust-and-safety backend that public UGC needs. Migration 0008 adds takedown
 1 session; ≈ 36 files; risk **high**: statutory clocks, audit-before-stream ordering and many disable paths.
 
 ## Risks & fallbacks
+- **Bucket locks on Workers Free**: the R2 bucket-lock page states no plan (UNVERIFIED, `spec/03-decisions-and-facts-2.md` §8); if the account refuses a lock rule, `bootstrap` takes the same `MANUAL:` path below and the report lists it under "Blocked on".
 - **Bucket-lock command**: lock rules are a documented R2 feature [research/gap-trust-safety-tooling.md Verified facts], but the wrangler subcommand is not in the ledger. If the pinned wrangler lacks it, `bootstrap` prints the exact rule set and stops with `MANUAL:`. The operator applies the rules, and the Builder records how.
 - **Migration order**: `0008_legal.sql` follows `0007_ugc_forum.sql` (no other files in between, DL-228). If the staging dry run lists anything other than `0008_legal.sql` as pending, stop before merge and report.
 - **PDQ hashes absent**: the sweep uses SHA-256 only, `copies_found` counts exact copies, and a Builder note lists near-duplicate coverage as pending Q-16 (HMA).

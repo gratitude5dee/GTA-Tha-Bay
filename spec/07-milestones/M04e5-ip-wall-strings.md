@@ -3,7 +3,7 @@
 ## Goal
 After this session no shipped string reuses the wording of the sandbox-trainer checklist in `research/repos-grand-v.md` §3. That checklist comes from GPL-3.0 trainer strings, so its rows may guide which features we build, never what we write (§5, rec 20). CI now stops that wording from coming back. Three things change:
 - The teleport refusal, the control-reason English default, the HUD and phone heat labels, and the QA pursuit panel's toggle label get our own wording.
-- The heat HUD drops the star row and its phase word, a presentation that belongs to another publisher's series: heat shows as five gauge bars (`▮` lit, `▯` unlit), the phone's level buttons read "Heat 1" … "Heat 5", and the active phase reads "Pursued".
+- The heat HUD drops the star row and its phase word, a presentation that belongs to another publisher's series: heat shows as five gauge bars drawn as inline SVG icons from the UI kit (lit and dim bars; DL-738), the phone's level buttons read "Heat 1" … "Heat 5", and the active phase reads "Pursued".
 - Code comments that use the trainer's heat phrases get our "heat" vocabulary.
 - `config/ip-denylist.json` gains three `patterns` entries (`trainer-status`, `trainer-heat`, `trainer-menu`) that the existing `ip:strings` scan applies to the tracked tree and to `apps/web/dist`. A guard test also keeps the bare heat word and star counts out of the English catalog.
 
@@ -40,7 +40,7 @@ Identifiers (`sandbox.player.neverWanted`, `NEVER_WANTED`, `neverWanted()`, `eng
   | `en.json` l.839 | `phone.sandbox.neverOff` | `Heat lock: off` |
   | `pursuit-panel.ts` l.78 (QA build only) | checkbox label text | `heat lock` |
 
-- **Heat glyphs** (`packages/ui/src/hud/`): `STATUS['heat.clear'].icon` becomes `▯` and `STATUS['heat.wanted'].icon` becomes `▮` (`model.ts` l.40-41); `HeatStars` draws `▮` for a lit bar and `▯` for an unlit one (`widgets.tsx` l.69), and its l.57 comment says "five heat bars". The component name, the class names (`dv-star`, `dv-star-on`, `dv-star-script`), the test ids, the heat phase ids and C06 `HeatState` stay as they are: they are identifiers, and `tests/e2e/ui/hud.spec.ts` counts `.dv-star-on`. The five heat icons stay distinct (`hud-status.spec.ts` l.40).
+- **Heat glyphs** (`packages/ui/src/hud/`): `STATUS['heat.clear'].icon` and `STATUS['heat.wanted'].icon` name kit SVG icons (`shield`, `siren`; DL-738, BD-FIX-GLYPH-01), and `HeatStars` draws five SVG bars, lit or dim (`widgets.tsx`); no HUD icon is a text glyph, and its l.57 comment says "five heat bars". The component name, the class names (`dv-star`, `dv-star-on`, `dv-star-script`), the test ids, the heat phase ids and C06 `HeatState` stay as they are: they are identifiers, and `tests/e2e/ui/hud.spec.ts` counts `.dv-star-on`. The five heat icons stay distinct (`hud-status.spec.ts` l.40).
 
 - **Tests that spell the old value:**
   - `packages/engine/test/control.ownership.spec.ts` l.49 and `tools/map/test/config.transit.spec.ts` l.29 assert the new string.
@@ -87,7 +87,7 @@ Identifiers (`sandbox.player.neverWanted`, `NEVER_WANTED`, `neverWanted()`, `eng
   - `CONTROL_REASON_EN[CONTROL_REASON.groundNotLoaded]` equals `en['world.teleport.notLoaded']`;
   - `scanText` with the matcher compiled from the real config finds no `str-pattern:trainer-*` hit in any `en.json` value;
   - no `en.json` value matches `/\bwanted\b/i` or `/\bstars?\b/i`;
-  - `STATUS['heat.clear'].icon` is `▯`, `STATUS['heat.wanted'].icon` is `▮`, and `packages/ui/src/hud/{model.ts, widgets.tsx}` hold no U+2605 or U+2606
+  - `STATUS['heat.clear'].icon` and `STATUS['heat.wanted'].icon` are kit SVG icon ids, and `packages/ui/src/hud/**` holds no U+2605, U+2606, U+25AE or U+25AF (DL-738)
 
   — proof: `pnpm check:unit -- tools/ci/test/ip-trainer-phrases.test.ts packages/ui/test/hud-status.spec.ts`
 - AC-3 Given a temp root with a copy of `config/` When `runIpScan({ modes: ['strings'] })` runs Then:

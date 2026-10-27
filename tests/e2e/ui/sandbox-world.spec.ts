@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../../packages/world/src/client/world-bridge.ts';
-import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
-import { hideQaPanels } from './helpers.ts';
+import { bootSandbox } from './sandbox-helpers.ts';
 
 /**
  * M04e1 AC-12 (@sandbox-world): the Sandbox app's Weather, Time and World tabs on the synth world (the QA play bypass starts the
@@ -9,17 +8,6 @@ import { hideQaPanels } from './helpers.ts';
  * `DV_WORLD=synth` (`pnpm dev`), open `/?tier=mobile-low`, press Escape, then Phone, then Sandbox, and use the Weather, Time and World tabs.
  */
 type W = { __dvBridge: { world: WorldBridge; engine: { modes: { send(c: object): boolean } } } };
-
-async function bootSynth(page: Page): Promise<void> {
-  // The QA pursuit and mission panels sit over the left edge of every page in a 480 x 270 viewport; the menu specs hide them (BD-M04e1-07).
-  await hideQaPanels(page);
-  await page.setViewportSize(SMALL_VIEWPORT);
-  await page.goto('/?tier=mobile-low');
-  await waitForEngine(page);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 120_000 }).toBe(true);
-}
 
 const sky = (page: Page): Promise<{ hour: number; weather: string; next: string; windowFactor: number } | null> =>
   page.evaluate(() => {
@@ -50,7 +38,7 @@ test.describe('sandbox world controls @sandbox-world', () => {
   test('Rain holds, Golden hour sets the hour, Blackout dims the windows and quitting puts it back @sandbox-world', async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await bootSynth(page);
+    await bootSandbox(page);
     await expect(page.getByTestId('hud')).toBeVisible();
 
     // Weather: Rain stays Rain.
