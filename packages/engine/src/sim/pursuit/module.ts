@@ -18,6 +18,7 @@ import type { SimModule, SimModuleContext } from '../runtime.ts';
 import type { DebugCommand } from '../transport/envelope.ts';
 import { DEFAULT_PURSUIT_CONFIG } from './config.ts';
 import { PursuitDirector } from './director.ts';
+import type { RacePursuitRules } from './race-rules.ts';
 import { EcsPursuitHost } from './host.ts';
 import { MemoryWallet, type WalletPort } from './ports.ts';
 import { pursuitWorldFrom } from './world-port.ts';
@@ -44,6 +45,8 @@ export interface PursuitModuleOptions {
   config?: PursuitConfig;
   /** Resolves `PursuitProfile.configRef`. */
   loadConfig?: (ref: string) => PursuitConfig | null;
+  /** Resolves the `race` block of `PursuitProfile.configRef` (M07a2). */
+  loadRace?: (ref: string) => RacePursuitRules | null;
 }
 
 export interface PursuitModule extends SimModule {
@@ -103,6 +106,7 @@ export function createPursuitModule(opts: PursuitModuleOptions = {}): PursuitMod
       // streams are created on the first draw: a director nobody touches leaves the RNG resource (and so the state hash) as it was
       rng: { pursuit: { range: (a, b) => services.rng.get('pursuit').range(a, b) }, police: { range: (a, b) => services.rng.get('police').range(a, b) } },
       ...(opts.loadConfig ? { loadConfig: opts.loadConfig } : {}),
+      ...(opts.loadRace ? { loadRace: opts.loadRace } : {}),
     });
     director.onActivate = () => {
       try {

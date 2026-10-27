@@ -4,6 +4,8 @@
  * boot payload carries a world (`BootPayload.config.world`). With the world index in that payload (M02c1) the module also builds the
  * `WorldApi` (graph, traffic, map, teleport, query, places, resolver) and registers it, with the `WorldBoundsPort`, on `services.world`.
  *
+ * M07a2 turns racing on for every session: the descriptor is `available`, and the pursuit module resolves `config/pursuit.race.json`.
+ *
  * M07a1 adds racing: the descriptor that replaces the `comingSoon` stub, its unlock rows and the racing sim module, which is inert
  * unless the boot payload says `racing: true` (QA `?racing=1`; M07a2 turns it on for players).
  *
@@ -16,18 +18,18 @@ import { runSimWorker, type WorkerScope } from '@dv/engine/workers/sim-worker-co
 import { storyUnlockDefs, wrapStory } from '@dv/mode-story';
 import { racingDescriptor, racingUnlockDefs } from '@dv/mode-racing';
 import { tycoonDescriptor } from '@dv/mode-tycoon';
-import { createRacingModule } from '@dv/mode-racing/sim/module';
+import { createRacingModule, racePursuitLoaders } from '@dv/mode-racing/sim/module';
 import { worldStreamingModule } from '@dv/world/sim/module';
 import { createNpcModule } from '@dv/npc/sim';
 import { npcModuleOptions } from './npc-data.ts';
 
-const racing = createRacingModule();
+const racing = createRacingModule({ wallMs: () => Date.now(), buildId: import.meta.env.VITE_DV_BUILD ?? 'dev' });
 // The named NPCs (M06c): schedules, utility, behaviour trees, barks, the Talk handler and ModeContext.npc. Inert without a baked world.
 const npc = createNpcModule({ ...npcModuleOptions(), clock: () => performance.now() });
 
 // The pursuit director (M03c) is inert until the world services and the vehicle module exist, and unhashed until it is first touched.
 // The story mode (M05a1) wraps the engine's free roam with the mission runtime; the engine never imports the mode package.
-runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule(), racing, npc], {
+runSimWorker(self as unknown as WorkerScope, [worldStreamingModule, createPursuitModule({ ...racePursuitLoaders() }), racing, npc], {
   wrapStory,
   descriptors: [racingDescriptor(), tycoonDescriptor()],
   unlockDefs: [...racingUnlockDefs(), ...storyUnlockDefs()],

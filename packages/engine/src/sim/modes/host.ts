@@ -15,6 +15,8 @@ export interface SessionSlices {
   story: StorySlice;
   sandbox: SandboxSlice;
   settings: ProfileSettings;
+  /** M07a2: the slices of the standalone modes (`mode:racing` and so on) as loaded; a mode reads its own in `enter` and the host keeps it current on each save. */
+  modes?: { racing?: JsonObject | null; fighter?: JsonObject | null; tycoon?: JsonObject | null };
   /** The open profile, when a SaveService supplied the slices (published as `sys.profile`; M04b1). */
   profile?: { id: string; name: string; hasStory: boolean };
 }
@@ -288,6 +290,9 @@ export class ModeHost {
     const s = this.d.slices();
     if (d.saveSlot === 'story:auto') return s.story as unknown as JsonObject;
     if (d.saveSlot === 'sandbox') return s.sandbox as unknown as JsonObject;
+    if (d.saveSlot === 'mode:racing') return s.modes?.racing ?? null;
+    if (d.saveSlot === 'mode:fighter') return s.modes?.fighter ?? null;
+    if (d.saveSlot === 'mode:tycoon') return s.modes?.tycoon ?? null;
     return null;
   }
 
@@ -416,7 +421,11 @@ export class ModeHost {
       out.push({ slot: 'sandbox', data: own ?? s.sandbox });
     } else if (cap?.startsWith('standalone:')) {
       out.push({ slot: 'core', data: s.core });
-      if (own && root.desc.saveSlot) out.push({ slot: root.desc.saveSlot as SlotId, data: own });
+      if (own && root.desc.saveSlot) {
+        out.push({ slot: root.desc.saveSlot as SlotId, data: own });
+        const kind = String(root.desc.saveSlot).slice('mode:'.length) as 'racing' | 'fighter' | 'tycoon';
+        if (kind === 'racing' || kind === 'fighter' || kind === 'tycoon') (s.modes ??= {})[kind] = own;
+      }
     } else if (cap?.startsWith('exp:') && own) {
       out.push({ slot: `mod:${cap.slice(4)}`, data: own });
     }

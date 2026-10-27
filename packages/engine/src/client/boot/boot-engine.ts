@@ -317,8 +317,9 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
 
   // QA `?unlockAll=1`: unlocks in memory only; the sim ignores it unless it was started as a QA build (M04a2).
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
-  // QA `?racing=1`: the sim worker boots the racing module (M07a1).
-  if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+  // Racing is on for every session (M07a2: the mode is `available`, the menu and the story hook start races); the sim worker boots the
+  // racing module, which registers its components and the engine port. `?racing=1` (QA) still opens `__dvBridge.racing` (M07a1).
+  boot = { ...boot, config: { ...boot.config, racing: true } };
   // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
   if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 

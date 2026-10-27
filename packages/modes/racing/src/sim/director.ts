@@ -67,6 +67,11 @@ export interface DirectorOptions {
   timeLimitMs?: number | null;
   /** The session seed; `seedFor(attempt)` derives the stream seed of each attempt. */
   seed: number;
+  /**
+   * A pursuit event (M07a2): there is no route to follow, so the referee does not run (no gates, no wrong way, no finish line);
+   * the event ends through `endExternal` when the police director says evade, survive or bust. The reset rules still apply.
+   */
+  freeRoam?: boolean;
 }
 
 export interface RaceResult { outcome: 'finish' | 'dnf'; ms: number; reason?: string; place: number; of: number }
@@ -181,7 +186,7 @@ export class RaceDirector {
 
     // the referee: gates, wrong way, clock
     const prev = this.prev ?? i.front;
-    const evs = refereeStep(this.def, this.ref, prev, i.front, i.speedMps, i.tick, this.rules);
+    const evs = this.o.freeRoam ? [] : refereeStep(this.def, this.ref, prev, i.front, i.speedMps, i.tick, this.rules);
     this.prev = i.front;
     for (const e of evs) {
       if (e.t === 'race.finish') {
@@ -229,6 +234,17 @@ export class RaceDirector {
   }
 
   private prev: readonly [number, number, number] | null = null;
+
+  /** Ends a running event from outside the referee (a pursuit's evade, survive or bust); no-op outside Running. */
+  endExternal(outcome: 'finish' | 'dnf', tick: number, reason?: 'time' | 'totaled' | 'busted' | 'abandon'): DirectorEvent[] {
+    if (this.phase !== 'Running') return [];
+    const out: DirectorEvent[] = [];
+    const ms = this.timerMs(tick);
+    if (outcome === 'finish') out.push({ t: 'race.finish', ms, tick });
+    else out.push({ t: 'race.dnf', reason: reason ?? 'abandon' });
+    this.finish({ outcome, ms, ...(reason !== undefined ? { reason } : {}), place: 1, of: 1 }, out);
+    return out;
+  }
 
   private finish(r: RaceResult, out: DirectorEvent[]): void {
     this.result = r;

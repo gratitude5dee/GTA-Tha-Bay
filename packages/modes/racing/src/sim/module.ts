@@ -12,10 +12,13 @@ import {
 } from '@dv/engine/sim';
 import type { BootPayload, ComponentDef } from '@dv/shared';
 import { RACING_COMPONENTS } from '../components.ts';
+import { PUPPET_PREFABS } from '../prefabs.ts';
 import { createEnginePort } from './engine-port.ts';
 import { setRacingHost } from './host.ts';
 import { activeSession } from './mode.ts';
 import type { RaceSession } from './session.ts';
+
+export { racePursuitLoaders } from './pursuit-binder.ts';
 
 export const RACING_MODULE_ID = 'mode.racing';
 
@@ -39,7 +42,13 @@ export interface RacingModule extends SimModule {
   installQa(h: RacingQaHandler): void;
 }
 
-export function createRacingModule(): RacingModule {
+export interface RacingModuleOptions {
+  /** Wall clock for records (the worker passes `Date.now`; the sim has no clock). */
+  wallMs?: () => number;
+  buildId?: string;
+}
+
+export function createRacingModule(opts: RacingModuleOptions = {}): RacingModule {
   let session: RaceSession | null = null;
   let registered = false;
   let cx: SimModuleContext | null = null;
@@ -79,6 +88,7 @@ export function createRacingModule(): RacingModule {
       if (!vc) throw new Error('racing: the vehicle module is not registered in this sim');
       const prefabs = vc.prefabs as unknown as PrefabRegistry;
       prefabs.load(RACE_CAR_PREFABS);
+      prefabs.load(PUPPET_PREFABS);
       const port = createEnginePort({
         ecs: sim.ecs, backend: sim.backend, services: sim.services, store: vc.store as never, prefabs, tick: () => sim.core.tick,
       });
@@ -88,6 +98,8 @@ export function createRacingModule(): RacingModule {
         port,
         profile: ctx.cfg.profile === 'canonical' ? 'canonical' : 'local',
         seed: ctx.cfg.seed,
+        buildId: opts.buildId ?? 'dev',
+        ...(opts.wallMs ? { wallMs: opts.wallMs } : {}),
         attach(s) {
           session = s;
           if (s && !registered) {

@@ -30,6 +30,8 @@ export interface PlayerView {
   vehicleKey: string | null;
   /** On foot and held by an officer (the grapple bust). */
   grappled: boolean;
+  /** M07a2: top speed of the car the player drives, m/s (the race rules cap police units at a share of it); absent on foot. */
+  topMps?: number;
 }
 
 export type UnitRole = 'cruiser' | 'suv' | 'heli' | 'named';
