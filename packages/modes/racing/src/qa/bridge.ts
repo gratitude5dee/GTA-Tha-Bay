@@ -8,8 +8,9 @@
  *   await __dvBridge.racing.state()   // phase, gate, place, timer, the event log
  *   __dvBridge.racing.hud()           // the RaceHudVm of the last frame: speed, gear, nitro, place, gate, timer
  *   await __dvBridge.racing.cmd('ready' | 'retry' | 'exit') · await __dvBridge.racing.quit()
+ *   await __dvBridge.racing.bot(true)   // the line bot drives to the finish (M07a2) · await __dvBridge.racing.slice()   // best times and ghosts
  */
-import { DEMO_RACE } from '../races.ts';
+import { DEFAULT_RACE, DEMO_RACE } from '../races.ts';
 import type { RaceHudVm } from '../sim/hud-vm.ts';
 import { HUD_VM_KEY } from '../sim/hud-vm.ts';
 import { renderHud } from '../ui/index.ts';
@@ -36,6 +37,10 @@ export interface RacingBridge {
   hud(): unknown;
   cmd(name: 'ready' | 'retry' | 'exit'): Promise<Record<string, unknown> | null>;
   quit(): Promise<Record<string, unknown> | null>;
+  /** The racing slice of the running mode (best times, medals, ghosts), QA. */
+  slice(): Promise<Record<string, unknown> | null>;
+  /** Puts the line bot on the player's car (`on` true) or takes it off; the bot drives the race on the sim worker's input source. */
+  bot(on: boolean, opts?: { raceId?: string; vehicle?: string }): Promise<Record<string, unknown> | null>;
   /** Puts charge in the nitro tank (QA shortcut for a drift or a perfect start). */
   fillNitro(amount?: number): Promise<Record<string, unknown> | null>;
 }
@@ -81,8 +86,10 @@ export function installRacingBridge(): RacingBridge {
     if (!e) throw new Error('racing bridge: __dvBridge.engine is not installed');
     return e;
   };
+  let lastRace: string = DEFAULT_RACE;
   const bridge: RacingBridge = {
     start: async (raceId, opts = {}) => {
+      lastRace = raceId ?? DEFAULT_RACE;
       const e = engine();
       e.setPlay(true);
       return e.modes.call('racing.start', { ...(raceId ? { raceId } : {}), ...opts });
@@ -92,6 +99,8 @@ export function installRacingBridge(): RacingBridge {
     hud: () => engine().modes.vm('mode.racing.hud'),
     cmd: (name) => engine().modes.call('racing.cmd', { name }),
     quit: () => engine().modes.call('racing.quit'),
+    slice: () => engine().modes.call('racing.slice'),
+    bot: (on, opts = {}) => engine().modes.call('racing.bot', { on, raceId: lastRace, ...opts }),
     fillNitro: (amount = 50) => engine().modes.call('racing.fill', { amount }),
   };
   mountQaHud(() => w.__dvBridge && (w.__dvBridge['engine'] as EngineLike | undefined)?.modes.vm(HUD_VM_KEY));

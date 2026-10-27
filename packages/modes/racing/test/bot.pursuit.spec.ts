@@ -84,7 +84,7 @@ describe('racing.pursuit on the Bayview escape', () => {
     const r = runPursuitRig({
       def, vehicleDef: CAR, seed: 1, maxTicks: 60 * 60 * 3, frame: (_o, t) => standStillFrame(t),
       probe: ({ director }) => {
-        const w = director.deps.wallet;
+        const w = (director as unknown as { deps: { wallet: { cash(): number } } }).deps.wallet;
         debits = 1_000_000 - w.cash();
       },
     });

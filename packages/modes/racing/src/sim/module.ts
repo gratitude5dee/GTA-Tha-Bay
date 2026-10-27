@@ -10,12 +10,13 @@
 import {
   MODES_MODULE_ID, RACE_CAR_PREFABS, type DebugCommand, type ModesModule, type PrefabRegistry, type SimModule, type SimModuleContext, type SimResource,
 } from '@dv/engine/sim';
-import type { BootPayload, ComponentDef } from '@dv/shared';
+import type { BootPayload, BotInput, ComponentDef } from '@dv/shared';
 import { RACING_COMPONENTS } from '../components.ts';
 import { PUPPET_PREFABS } from '../prefabs.ts';
 import { createEnginePort } from './engine-port.ts';
 import { setRacingHost } from './host.ts';
-import { activeSession } from './mode.ts';
+import { activeSession, activeSlice } from './mode.ts';
+import type { RacingSlice } from './slice.ts';
 import type { RaceSession } from './session.ts';
 
 export { racePursuitLoaders } from './pursuit-binder.ts';
@@ -28,6 +29,10 @@ export const racingEnabled = (boot: BootPayload): boolean => boot.config['racing
 export interface RacingQaContext {
   host: ReturnType<ModesModule['host']>;
   session: RaceSession | null;
+  /** The slice of the running mode (a copy of the record the save would write), or null. */
+  slice: RacingSlice | null;
+  /** Installs (null removes) the sim worker's bot input source; QA builds only (M07a2: the live line bot of `@racing-vs`). */
+  setBot(bot: BotInput | null): void;
 }
 /**
  * The QA handler gets a plain `send(name, data)` and names its own answer (`modes.reply.<id>`), the way the engine's `ModesQaHandler`
@@ -76,7 +81,7 @@ export function createRacingModule(opts: RacingModuleOptions = {}): RacingModule
       if (!qaHandler || !cx || cmd.t !== 'debug.modes' || !cmd.op.startsWith('racing.')) return;
       const c = cx;
       const modes = (c.runtime.env.modules ?? []).find((m) => m.id === MODES_MODULE_ID) as ModesModule | undefined;
-      qaHandler({ host: modes?.host() ?? null, session: activeSession() }, cmd, (name, data) => {
+      qaHandler({ host: modes?.host() ?? null, session: activeSession(), slice: activeSlice(), setBot: (b) => { if (c.runtime.env.qa) c.runtime.bot = b; } }, cmd, (name, data) => {
         void c.runtime.transport.postEvent({ v: 1, t: 'qa', seq: 0, p: { name, data } });
       });
     },

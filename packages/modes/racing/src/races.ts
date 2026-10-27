@@ -24,6 +24,11 @@ function demoRace(): RaceDef {
     ...d,
     id: DEMO_RACE,
     titleKey: 'race.demo.straight',
+    // two rivals, so the default QA scene shows the AI field (M07a2); the grid of three needs the 24 m width
+    opponents: [
+      { driverId: 'rival.switchback', vehicleDef: 'vehicle.brackenridge-rasp', skill: 0.55 },
+      { driverId: 'rival.cable-car-cleo', vehicleDef: 'vehicle.kestrel-quill', skill: 0.45 },
+    ],
     line: { ...d.line, start: [DEMO_AT.x * 10, DEMO_AT.z * 10] },
     elevation: d.elevation.map((e) => ({ s: e.s, y: DEMO_AT.y })),
     gates: d.gates.map((g) => ({ ...g, at: [g.at[0] + DEMO_AT.x, DEMO_AT.y, g.at[2] + DEMO_AT.z] as [number, number, number] })),
