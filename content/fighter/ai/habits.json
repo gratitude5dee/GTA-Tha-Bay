@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "habits": [
+    { "id": "walk_in", "desc": "Close the distance on foot; back away when crowded." },
+    { "id": "poke_neutral", "desc": "Throw out quick normals when the opponent is inside poke range." },
+    { "id": "block_reach", "desc": "Guard when an attack is active in reach or a shot is incoming; hold a counter stance." },
+    { "id": "anti_air", "desc": "Answer a jump with the kit's anti-air." },
+    { "id": "punish_unsafe", "desc": "Hit back at a move that was blocked unsafe or whiffed." },
+    { "id": "throw_close", "desc": "Throw or grab at point-blank range." },
+    { "id": "fireball_zone", "desc": "Fire shots, drones and traps from range; set off own traps up close." },
+    { "id": "heavy_bait", "desc": "Use heavy normals and special strikes to bait and trade." },
+    { "id": "dash_in", "desc": "Dash forward from far away; dash back or use an escape tool when cornered." },
+    { "id": "jump_in", "desc": "Jump in from mid range." },
+    { "id": "super_spend", "desc": "Spend Hype on EX moves and supers, install buffs, and taunt to build Hype when safe." },
+    { "id": "check_parry", "desc": "Spend Composure on a Check against an active attack and on Clear the Air out of a combo." }
+  ]
+}

@@ -27,7 +27,17 @@ export interface MoveInfo {
   spawns: boolean;
   cost: number;
   macro: readonly MacroStep[];
+  /** The EX script (two buttons of the input's group), or null when the move has no EX version. */
+  exMacro: readonly MacroStep[] | null;
+  /** The move is held on its charge frame while the button stays down (gimmick `charge`). */
+  charge: boolean;
+  role: MoveRole;
+  /** Tags of the move (the gimmick moves are told apart by them). */
+  tags: readonly string[];
 }
+
+/** What the CPU uses a move for (FC10.2 candidate classes). */
+export type MoveRole = 'normal' | 'throw' | 'grab' | 'proj' | 'sstrike' | 'install' | 'stance' | 'escape' | 'trigger' | 'super' | 'other';
 
 export interface KitInfo {
   def: FighterDef;
@@ -39,6 +49,15 @@ export interface KitInfo {
   projectiles: number[];
   antiAir: number[];
   supers: number[];
+  /** Special strikes that are not anti-airs (dashes, charges, advances). */
+  strikers: number[];
+  grabs: number[];
+  installs: number[];
+  stances: number[];
+  escapes: number[];
+  triggers: number[];
+  /** The kit gimmick id (`frenzy`, `string`, ...), or ''. */
+  gimmick: string;
 }
 
 const DIGITS: Record<string, number[]> = {
@@ -47,6 +66,23 @@ const DIGITS: Record<string, number[]> = {
 };
 
 const lowestBit = (mask: number): number => mask & -mask;
+
+/** The two lowest buttons of one group in the mask: an EX press. */
+function exButtons(mask: number): number {
+  const lo = mask & -mask;
+  const rest = mask & ~lo;
+  const nxt = rest & -rest;
+  return nxt === 0 ? lo : lo | nxt;
+}
+
+function exMacroOf(m: CMove): MacroStep[] | null {
+  if (!m.hasEx) return null;
+  const p = m.def.input;
+  if (p.t !== 'motion' && p.t !== 'charge') return null;
+  const steps = macroOf(m);
+  (steps[steps.length - 1] as MacroStep).b = exButtons(p.buttons);
+  return steps;
+}
 
 function macroOf(m: CMove): MacroStep[] {
   const p = m.def.input;
@@ -81,6 +117,21 @@ export function kitInfo(def: FighterDef, tuning: FightTuning): KitInfo {
     const first = m.hits[0];
     const adv = first ? derivedAdvantage(m.def, first) : { advHit: null, advBlock: null };
     const low = m.hits.some((h) => h.guard === 'low');
+    const tags = m.def.tags;
+    const spawnsTrigger = (m.def.spawn ?? []).some((sp) => sp.def.endsWith(':trigger'));
+    let role: MoveRole = 'other';
+    if (m.cls === Cls.Super) role = 'super';
+    else if (m.def.kind === 'throw') role = 'throw';
+    else if (m.def.kind === 'normal' || m.def.kind === 'air') role = 'normal';
+    else if (m.def.kind === 'special') {
+      if (tags.includes('install')) role = 'install';
+      else if (tags.includes('stance') || tags.includes('shield') || tags.includes('counter')) role = 'stance';
+      else if (tags.includes('teleport') || tags.includes('swap')) role = 'escape';
+      else if (spawnsTrigger) role = 'trigger';
+      else if (m.hits.some((h) => h.guard === 'throw')) role = 'grab';
+      else if ((m.def.spawn ?? []).length > 0) role = 'proj';
+      else if (m.hits.length > 0) role = 'sstrike';
+    }
     return {
       idx: m.idx, id: m.def.id, kind: m.def.kind, cls: m.cls,
       S: m.S, A: m.A, R: m.R, T: m.T,
@@ -92,15 +143,23 @@ export function kitInfo(def: FighterDef, tuning: FightTuning): KitInfo {
       spawns: (m.def.spawn ?? []).length > 0,
       cost: m.cost,
       macro: macroOf(m),
+      exMacro: exMacroOf(m),
+      charge: tags.includes('charge'),
+      role, tags,
     };
   });
   const usable = (i: MoveInfo): boolean => i.kind !== 'shutdown' && i.kind !== 'taunt' && i.kind !== 'auto' && i.kind !== 'air';
   const pokes = moves.filter((i) => usable(i) && i.cls === Cls.Normal && i.S <= 8).map((i) => i.idx);
   const heavies = moves.filter((i) => usable(i) && i.cls === Cls.Normal && i.S > 8).map((i) => i.idx);
-  const projectiles = moves.filter((i) => usable(i) && i.spawns && i.cls === Cls.Special && i.macro[0] !== undefined && i.id !== 'detonate').map((i) => i.idx);
-  const antiAir = moves.filter((i) => usable(i) && i.launches && i.invulnStrike).map((i) => i.idx);
+  const ofRole = (r: MoveRole): number[] => moves.filter((i) => i.role === r).map((i) => i.idx);
+  const projectiles = ofRole('proj');
+  const antiAir = moves.filter((i) => usable(i) && i.launches && i.invulnStrike && i.role !== 'super').map((i) => i.idx);
   const supers = moves.filter((i) => i.cls === Cls.Super).map((i) => i.idx);
-  return { def, moves, throwIdx: ck.throwIdx, pokes, heavies, projectiles, antiAir, supers };
+  const strikers = moves.filter((i) => i.role === 'sstrike' && !antiAir.includes(i.idx)).map((i) => i.idx);
+  return {
+    def, moves, throwIdx: ck.throwIdx, pokes, heavies, projectiles, antiAir, supers, strikers, grabs: ofRole('grab'), installs: ofRole('install'),
+    stances: ofRole('stance'), escapes: ofRole('escape'), triggers: ofRole('trigger'), gimmick: def.gimmick?.id ?? '',
+  };
 }
 
 /** FighterInput bits of a numpad direction for a fighter facing `facing` (+1 faces right). */

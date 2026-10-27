@@ -93,7 +93,8 @@ export function gimmickMoveStart(c: Ctx, buf: Int32Array, i: number, m: CMove, c
   const o = FIGHTER_BASE[i] as number;
   switch (kitOf(c, i).gim) {
     case Gim.Frenzy:
-      if (m.def.id === 'frenzy') { buf[o + FF.Gimmick0] = FRENZY_FRAMES; buf[o + FF.Gimmick1] = 1; }
+      // The start tick itself runs the upkeep once, so 360 frames are left after it.
+      if (m.def.id === 'frenzy') { buf[o + FF.Gimmick0] = FRENZY_FRAMES + 1; buf[o + FF.Gimmick1] = 1; }
       break;
     case Gim.String:
       if (!cancel) buf[o + FF.Gimmick0] = 0;

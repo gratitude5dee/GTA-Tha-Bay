@@ -4,7 +4,7 @@
 // turning it into its `:ex` def (the burst) with that def's life and hits. Other behaviours (sine, arc, orbit, summon) land in
 // M08b1: `sine` (SINE64 path), `arc` (parabola, lands), `orbit` (a drone on ORBIT radius around its owner, max ORBIT_CAP, fires child defs)
 // and `summon` (a crew member that stays where it was called and plays a cyclic list of child defs for its life).
-import { FF, FIGHTER_BASE, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW } from './buffer.ts';
+import { FF, FIGHTER_BASE, FM, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW } from './buffer.ts';
 import type { Ctx } from './ctx.ts';
 import { kitOf } from './ctx.ts';
 import type { Capsule2 } from './types.ts';
@@ -80,10 +80,21 @@ function place(c: Ctx, buf: Int32Array, owner: number, pi: number, ex: boolean, 
     buf[b + PW.OriginY] = y;
     buf[b + PW.Aux] = 0;
     // A second drone starts half a turn behind the first.
-    buf[b + PW.Aux2] = proj.behavior === ORBIT && countKind(c, buf, owner, ORBIT) % 2 === 1 ? 32 : 0;
+    buf[b + PW.Aux2] = proj.behavior === ORBIT ? otherPhase(buf, owner, p) : 0;
     return true;
   }
   return false;
+}
+
+/** The second drone circles half a turn behind the first: its phase is the other's plus 32. */
+function otherPhase(buf: Int32Array, owner: number, self: number): number {
+  for (let q = 0; q < PROJ_MAX; q++) {
+    const b = PROJ_BASE + q * PROJ_WORDS;
+    if (q !== self && (buf[b + PW.Owner] as number) === owner + 1 && (buf[b + PW.Life] as number) > 0 && (buf[b + PW.Def] as number) === (buf[PROJ_BASE + self * PROJ_WORDS + PW.Def] as number)) {
+      return ((buf[b + PW.Aux2] as number) + 32) & 63;
+    }
+  }
+  return 0;
 }
 
 function behaviorOf(c: Ctx, buf: Int32Array, p: number): number {
@@ -187,12 +198,15 @@ function fireChild(c: Ctx, buf: Int32Array, b: number, owner: number, proj: { de
   buf[b + PW.Aux] = k + 1;
   const pi = proj.childIdx[k % proj.childIdx.length] as number;
   if (pi < 0) return;
-  place(c, buf, owner === 1 ? 1 : 0, pi, false, buf[b + PW.X] as number, buf[b + PW.Y] as number, buf[b + PW.Dir] as number);
+  if (c.pendN >= 16) return;
+  const n = c.pendN++;
+  c.pendOwner[n] = owner === 1 ? 1 : 0; c.pendDef[n] = pi; c.pendX[n] = buf[b + PW.X] as number; c.pendY[n] = buf[b + PW.Y] as number; c.pendDir[n] = buf[b + PW.Dir] as number;
 }
 
 /** One tick: move, age, expire, then clash (higher power wins, equal destroys both). */
 export function stepProjectiles(c: Ctx, buf: Int32Array): void {
   const limit = c.tun.STAGE_HALF_WIDTH + 3000;
+  c.pendN = 0;
   for (let p = 0; p < PROJ_MAX; p++) {
     const b = PROJ_BASE + p * PROJ_WORDS;
     if ((buf[b + PW.Owner] as number) === 0) continue;
@@ -207,7 +221,7 @@ export function stepProjectiles(c: Ctx, buf: Int32Array): void {
     if (proj !== undefined && beh === ORBIT) {
       const oo = FIGHTER_BASE[owner === 1 ? 1 : 0] as number;
       const spec = proj.def.orbit ?? { radius: 600, period: 120, height: 1400 };
-      const ang = Math.trunc((frame * 64) / spec.period) + (buf[b + PW.Aux2] as number);
+      const ang = Math.trunc(((buf[FM.Tick] as number) * 64) / spec.period) + (buf[b + PW.Aux2] as number);
       buf[b + PW.X] = (buf[oo + FF.X] as number) + Math.trunc((cos64(ang) * spec.radius) / 127);
       buf[b + PW.Y] = (buf[oo + FF.Y] as number) + spec.height + Math.trunc((sin64(ang) * (spec.radius >> 1)) / 127);
       fireChild(c, buf, b, owner, proj, frame);
@@ -227,6 +241,8 @@ export function stepProjectiles(c: Ctx, buf: Int32Array): void {
     const x = buf[b + PW.X] as number;
     if ((buf[b + PW.Life] as number) <= 0 || x > limit || x < -limit) free(buf, p);
   }
+  for (let k = 0; k < c.pendN; k++) place(c, buf, c.pendOwner[k] as number, c.pendDef[k] as number, false, c.pendX[k] as number, c.pendY[k] as number, c.pendDir[k] as number);
+  c.pendN = 0;
   for (let p = 0; p < PROJ_MAX; p++) {
     const bp = PROJ_BASE + p * PROJ_WORDS;
     const op = buf[bp + PW.Owner] as number;

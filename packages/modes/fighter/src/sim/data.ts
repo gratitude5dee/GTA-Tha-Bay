@@ -8,6 +8,13 @@ import type { FighterDef, FightTuning, FrameDataPack } from '@dv/shared/fight';
 import tuningJson from '../../../../../config/fighter.tuning.json';
 import playerKit from '../../../../../content/fighter/kits/player.json';
 import rapNewWaveKit from '../../../../../content/fighter/kits/rap_new_wave.json';
+import rapHyphyElderKit from '../../../../../content/fighter/kits/rap_hyphy_elder.json';
+import rapLyricistKit from '../../../../../content/fighter/kits/rap_lyricist.json';
+import techVisionaryKit from '../../../../../content/fighter/kits/tech_visionary.json';
+import techHackerKit from '../../../../../content/fighter/kits/tech_hacker.json';
+import athShooterKit from '../../../../../content/fighter/kits/ath_shooter.json';
+import athPowerBackKit from '../../../../../content/fighter/kits/ath_power_back.json';
+import influencerKit from '../../../../../content/fighter/kits/influencer.json';
 import powellTurntable from '../../../../../content/fighter/stages/powell_turntable.json';
 import boutA5 from '../../../../../content/fighter/bouts/bout.a5.json';
 import type { BoutDef, RosterEntry, StageDef, StageId } from '../types.ts';
@@ -34,11 +41,11 @@ export const stageDef = (id: StageId | string | undefined): StageDef => STAGES[(
 
 let cached: FrameDataPack | null = null;
 
-/** The frame-data pack of the two kits; built once (hash = canonical sha256, FC2). */
+/** The frame-data pack of the nine kits (the eight roster fighters and the player); built once (hash = canonical sha256, FC2). */
 export function fighterPack(): FrameDataPack {
   if (cached) return cached;
   const kits: Record<string, FighterDef> = {};
-  for (const k of [playerKit, rapNewWaveKit] as unknown as FighterDef[]) kits[k.slot] = k;
+  for (const k of [playerKit, rapNewWaveKit, rapHyphyElderKit, rapLyricistKit, techVisionaryKit, techHackerKit, athShooterKit, athPowerBackKit, influencerKit] as unknown as FighterDef[]) kits[k.slot] = k;
   cached = buildPack(kits, tuningJson as unknown as FightTuning);
   return cached;
 }
