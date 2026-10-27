@@ -22,7 +22,7 @@ import { handleForgetNpcMemory } from './routes/me-npc-memory.ts';
 import { handleRoster } from './routes/roster.ts';
 import { handleTelemetry } from './routes/telemetry.ts';
 import { handleQueueBatch } from './ops/jobs.ts';
-import { CRON_JOBS, CRON_SCHEDULE, runJobs } from './ops/scheduled.ts';
+import { dueJobs, runJobs, slotOf } from './ops/scheduled.ts';
 import { uuidv7 } from './uuidv7.ts';
 
 export { BudgetGovernorDO } from './budget/BudgetGovernorDO.ts';
@@ -125,10 +125,16 @@ export function createApp(overrides: { adminPath?: AdminPath } & Partial<Omit<Ap
     queue(batch, env) {
       return handleQueueBatch(batch, env, deps);
     },
-    /** Cron `10 3 * * *` (M05d): catalog-sync, then ledger-export. Cron Triggers do not run in Previews; the staging-only test route for scheduled jobs stands in there. */
+    /**
+     * The dispatcher (BD-FIX-CRON-01): one Cron Trigger per Worker (`*\/5 * * * *`) runs the `SCHEDULE` row of the tick's UTC slot, chosen by
+     * `scheduledTime`; a tick with nothing due returns without I/O or a log line. Cron Triggers do not run in Previews; the staging-only test
+     * route for scheduled jobs stands in there.
+     */
     scheduled(controller, env, ctx) {
-      const jobs = CRON_SCHEDULE[controller.cron] ?? CRON_JOBS;
-      ctx.waitUntil(runJobs(env, deps, jobs).then((results) => deps.log(JSON.stringify({ event: 'cron.done', cron: controller.cron, results }))));
+      const jobs = dueJobs(controller.scheduledTime);
+      if (jobs.length === 0) return Promise.resolve();
+      const slot = slotOf(controller.scheduledTime);
+      ctx.waitUntil(runJobs(env, deps, jobs).then((results) => deps.log(JSON.stringify({ event: 'cron.done', cron: controller.cron, slot, results }))));
       return Promise.resolve();
     },
   };

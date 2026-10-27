@@ -65,11 +65,11 @@ describe('catalog-sync (AC-6)', () => {
     expect(((await res.json()) as { keys: unknown[] }).keys).toEqual([{ key: indexKey('a'), state: 'absent', reason: 'not_in_catalog' }]);
   });
 
-  it('the daily cron runs catalog-sync and then ledger-export', async () => {
+  it('the 03:10 UTC dispatcher tick runs catalog-sync and then ledger-export', async () => {
     const port = new InMemoryDataPort();
     const app = createApp({ data: () => port, cutsceneIndex: () => indexOf(['a', 'b']) });
     const pending: Promise<unknown>[] = [];
-    await app.scheduled({} as ScheduledController, { ...(env as unknown as Env), ...LIVE }, { waitUntil: (p: Promise<unknown>) => void pending.push(p), passThroughOnException() {} } as unknown as ExecutionContext);
+    await app.scheduled({ cron: '*/5 * * * *', scheduledTime: Date.UTC(2026, 9, 27, 3, 10) } as ScheduledController,{ ...(env as unknown as Env), ...LIVE }, { waitUntil: (p: Promise<unknown>) => void pending.push(p), passThroughOnException() {} } as unknown as ExecutionContext);
     await Promise.all(pending);
     expect(await port.catalog.keys()).toHaveLength(2);
   });
