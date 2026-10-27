@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { expect as baseExpect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../../packages/world/src/client/world-bridge.ts';
-import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
-import { hideQaPanels } from './helpers.ts';
+import { observe } from '../engine-helpers.ts';
+import { bootSandbox, closeSandboxPhone as closePhone, fadeIns, jumpEnded, openSandboxTab as openTab } from './sandbox-helpers.ts';
 
 /**
  * M04e2 AC-9 (@sandbox-teleport): the Sandbox app's Go places and Screen tabs on the synth world (the QA play bypass starts the
@@ -15,40 +15,6 @@ const expect = baseExpect.configure({ timeout: 30_000 });
 type W = { __dvBridge: { world: WorldBridge; engine: { modes: { send(c: object): boolean } } } };
 const messages = JSON.parse(readFileSync(new URL('../../../content/ui/i18n/en.json', import.meta.url), 'utf8')) as Record<string, string>;
 
-async function bootSynth(page: Page): Promise<void> {
-  await hideQaPanels(page);
-  await page.setViewportSize(SMALL_VIEWPORT);
-  await page.goto('/?tier=mobile-low');
-  await waitForEngine(page);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 120_000 }).toBe(true);
-}
-
-type Tab = 'teleport' | 'display';
-
-async function openTab(page: Page, tab: Tab): Promise<void> {
-  await page.keyboard.press('Escape');
-  await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-  // Each action gets a budget that a loaded runner can meet: on the shared CI machines (2 workers, software GL) one round trip to the
-  // page takes about a second, and a click needs several (scroll, hit test, move, down, up). A 2 s click budget never fit, so every retry
-  // was cancelled half way and the loop ran out its 60 s (BD-M04e2-08). The loop stays for a Phone press that lands before the Pause page
-  // has settled, and only presses Phone while the phone is not showing. (A jump from the phone used to leave the phone page open over the
-  // running game, so the next Escape paused and resumed at once: BD-M04e2-07.)
-  await expect(async () => {
-    if (!(await page.getByTestId('phone').isVisible())) await page.getByTestId('btn-pause-phone').click({ timeout: 20_000 });
-    await page.getByTestId('row-phone-apps-sandbox').click({ timeout: 20_000 });
-  }).toPass({ timeout: 180_000 });
-  await page.getByTestId(`tab-sandbox-tabs-${tab}`).click();
-}
-
-/** From an app back to the game: the phone's home, its close button, then Resume. */
-async function closePhone(page: Page): Promise<void> {
-  await page.getByTestId('btn-phone-home').click();
-  await page.getByTestId('btn-phone-close').click();
-  await page.getByTestId('btn-pause-resume').click();
-}
-
 const pos = async (page: Page): Promise<{ x: number; y: number; z: number }> => {
   const p = (await observe(page)).player!.pos;
   return { x: p[0], y: p[1], z: p[2] };
@@ -56,10 +22,6 @@ const pos = async (page: Page): Promise<{ x: number; y: number; z: number }> => 
 const dist = (a: { x: number; z: number }, b: { x: number; z: number }): number => Math.hypot(a.x - b.x, a.z - b.z);
 
 const refusals: string[] = [];
-
-/** Fade-ins so far: every landed teleport ends in one (a refusal fades nothing). */
-const fadeIns = (page: Page): Promise<number> =>
-  page.evaluate(() => (window as unknown as W).__dvBridge.world.fade().log.filter((d: string) => d === 'in').length);
 
 /** Presses a landmark row and waits for the jump (a fade-in ended) or the refusal toast. Returns true when it landed. */
 async function goLandmark(page: Page, id: string): Promise<boolean> {
@@ -95,7 +57,7 @@ test.describe('sandbox teleport and display @sandbox-teleport', () => {
   test('Go places jumps, remembers spots, goes back, refuses at heat, and Screen tucks the HUD away @sandbox-teleport', async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await bootSynth(page);
+    await bootSandbox(page);
     await expect(page.getByTestId('hud')).toBeVisible();
     const candidates = (await page.evaluate(() => (window as unknown as W).__dvBridge.world.call('candidates', { kind: 'sandbox' }))) as { id: string; x: number; z: number }[];
     const arrival = new Map(candidates.map((c) => [c.id, c]));
@@ -122,15 +84,19 @@ test.describe('sandbox teleport and display @sandbox-teleport', () => {
     const second = await goFirst(page, others);
     const secondPose = await pos(page);
     expect(dist(secondPose, remembered)).toBeGreaterThan(5);
+    const spotFades = await fadeIns(page);
     await openTab(page, 'teleport');
     await page.getByTestId('row-sandbox-spots-pos-1').click();
+    await jumpEnded(page, spotFades);
     await expect.poll(async () => dist(await pos(page), remembered), { timeout: 60_000, intervals: [500, 1000] }).toBeLessThanOrEqual(3);
 
     // Back: returns to the pose the player stood at before the last successful jump (the second landmark's landing).
     expect(dist(beforeSpotJump, secondPose)).toBeGreaterThan(0);
     await openTab(page, 'teleport');
     await expect(page.getByTestId('btn-sandbox-back')).toBeEnabled();
+    const backFades = await fadeIns(page);
     await page.getByTestId('btn-sandbox-back').click();
+    await jumpEnded(page, backFades);
     await expect.poll(async () => dist(await pos(page), secondPose), { timeout: 60_000, intervals: [500, 1000] }).toBeLessThanOrEqual(3);
     expect(second).not.toBe(first);
 

@@ -1,7 +1,7 @@
 import { expect as baseExpect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../../packages/world/src/client/world-bridge.ts';
-import { observe, SMALL_VIEWPORT, waitForEngine } from '../engine-helpers.ts';
-import { hideQaPanels } from './helpers.ts';
+import { observe } from '../engine-helpers.ts';
+import { bootSandbox, closeSandboxPhone as closePhone, openSandboxTab, waitTicks } from './sandbox-helpers.ts';
 
 /**
  * M04e3 AC-10 (@sandbox-vehicles): the Sandbox app's Cars tab on the synth world (the QA play bypass starts the sandbox; this tag runs in
@@ -27,33 +27,6 @@ interface VehicleReply {
   vehicle: { handle: number; speed: number; handling: string | null; pos: [number, number, number] } | null;
 }
 
-async function bootSynth(page: Page): Promise<void> {
-  await hideQaPanels(page);
-  await page.setViewportSize(SMALL_VIEWPORT);
-  await page.goto('/?tier=mobile-low');
-  await waitForEngine(page);
-  await page.waitForFunction(() => (window as unknown as Partial<W>).__dvBridge?.world !== undefined, undefined, { timeout: 120_000 });
-  await page.waitForFunction(() => (window as unknown as W).__dvBridge.world.boot().revealed, undefined, { timeout: 180_000 });
-  await expect.poll(async () => (await observe(page)).player?.grounded, { timeout: 120_000 }).toBe(true);
-}
-
-async function openCars(page: Page): Promise<void> {
-  await page.keyboard.press('Escape');
-  await expect(page.getByTestId('btn-pause-resume')).toBeVisible();
-  // Budgets as in the teleport spec: a click needs several round trips, and a loaded runner takes about a second for each (BD-M04e2-08).
-  await expect(async () => {
-    if (!(await page.getByTestId('phone').isVisible())) await page.getByTestId('btn-pause-phone').click({ timeout: 20_000 });
-    await page.getByTestId('row-phone-apps-sandbox').click({ timeout: 20_000 });
-  }).toPass({ timeout: 180_000 });
-  await page.getByTestId('tab-sandbox-tabs-vehicles').click();
-}
-
-async function closePhone(page: Page): Promise<void> {
-  await page.getByTestId('btn-phone-home').click();
-  await page.getByTestId('btn-phone-close').click();
-  await page.getByTestId('btn-pause-resume').click();
-}
-
 const state = (page: Page, target?: number): Promise<VehicleReply | null> =>
   page.evaluate((t) => (window as unknown as W).__dvBridge.engine.vehicleOp('state', t), target);
 
@@ -63,11 +36,11 @@ test.describe('sandbox cars @sandbox-vehicles', () => {
   test('Put one here and drive places a car ahead, seats the player, drives, and quitting takes it away @sandbox-vehicles', async ({ page }, testInfo) => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await bootSynth(page);
+    await bootSandbox(page);
     await expect(page.getByTestId('hud')).toBeVisible();
     const before = (await observe(page)).player!.pos;
 
-    await openCars(page);
+    await openSandboxTab(page, 'vehicles');
     // the six class headings and the twelve cars are on the tab
     await expect(page.getByTestId('btn-car-kestrel-quill-drive')).toBeVisible();
     await expect(page.getByTestId('btn-car-clear')).toBeVisible();
@@ -87,9 +60,10 @@ test.describe('sandbox cars @sandbox-vehicles', () => {
     const handle = placed.vehicle!.handle;
     await page.screenshot({ path: testInfo.outputPath('sandbox-cars-placed.png') });
 
-    // drive: W held for 3 s
+    // drive: W held for 3 s of game time (180 ticks; on a busy runner the sim runs slower than the clock, BD-FIX-SBXWGPU-01)
+    const t0 = (await observe(page)).tick;
     await page.keyboard.down('KeyW');
-    await page.waitForTimeout(3_000);
+    await waitTicks(page, t0, 180);
     const moving = (await state(page))!;
     await page.keyboard.up('KeyW');
     expect(moving.vehicle?.speed ?? 0).toBeGreaterThan(2);
