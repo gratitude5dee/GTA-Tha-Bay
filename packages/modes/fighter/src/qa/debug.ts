@@ -13,7 +13,7 @@ import type { FighterSession } from '../sim/mode.ts';
 /** What `fighter.state` answers: enough for a spec to read a frame, a meter or a hash without the DOM. */
 export function stateOf(s: FighterSession): Record<string, unknown> {
   const m = s.match;
-  const out: Record<string, unknown> = { screen: s.screen, paused: s.paused, sel: s.sel, bot: s.bot, manual: s.manual, result: s.result };
+  const out: Record<string, unknown> = { screen: s.screen, paused: s.paused, sel: s.sel, bot: s.bot, manual: s.manual, result: s.result, stats: s.stats };
   if (!m) return { ok: true, ...out, match: null };
   const [lo, hi] = m.hash();
   const f = (slot: 0 | 1): Record<string, number> => ({

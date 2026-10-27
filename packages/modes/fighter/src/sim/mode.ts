@@ -8,7 +8,7 @@
  * `kind` the match starts at once; with neither the hub opens. `exit` returns the `ModeResult` (FX8.4). Sim code under the C02 lint.
  */
 import type { GameModeSim, JsonObject, ModeContext, ModeEnterArgs, ModeExitReason, ModeResult, SimEvent } from '@dv/shared';
-import { decodeInputs, decodeReplay, fromInputFrame, hashBuffer } from '@dv/shared/fight';
+import { FF, decodeInputs, decodeReplay, fromInputFrame, hashBuffer } from '@dv/shared/fight';
 import type { DvFightReplay, FightRules, FighterDef, FighterLoadout, FightTuning, SchemeId } from '@dv/shared/fight';
 import { advanceCam, newCamState, planCamera, toDirective, type CamState } from './camera.ts';
 import { CpuDriver, kitInfo, type KitInfo } from './cpu/index.ts';
@@ -70,6 +70,8 @@ export class FighterSession {
   /** QA: inputs set by the bridge, and steps left to take (manual mode). */
   qaInputs: [number, number] = [0, 0];
   pendingSteps = 0;
+  /** Hits landed per slot and how many of them came from a special or super (an EX flag or a special-class move); QA reads it. */
+  readonly stats = { hits: [0, 0], specialHits: [0, 0] };
   private replay: { r: DvFightReplay; in0: Uint16Array; in1: Uint16Array; bad: number | null; checked: number } | null = null;
   private moveListText: MenuVm['moveList'] = [];
   private lastView = '';
@@ -158,6 +160,7 @@ export class FighterSession {
     this.exitRequested = false;
     this.paused = false;
     this.hist.length = 0;
+    this.stats.hits[0] = 0; this.stats.hits[1] = 0; this.stats.specialHits[0] = 0; this.stats.specialHits[1] = 0;
     const m = new FighterMatch({ pack, rules, seed, lineup, stage: this.sel.stage });
     this.match = m;
     this.cam = newCamState();
@@ -207,11 +210,25 @@ export class FighterSession {
     if (!m) return;
     const [i0, i1] = this.inputs(m);
     m.step(i0, i1);
+    this.tally(m);
     const last = this.hist[this.hist.length - 1];
     if (!last || last[0] !== i0) { this.hist.push([i0, m.tick]); if (this.hist.length > 12) this.hist.shift(); }
     this.training?.observe(m, i0);
     advanceCam(m.buf, this.cam);
     if (this.replay) this.checkReplay(m);
+  }
+
+  private tally(m: FighterMatch): void {
+    const ev = m.events;
+    for (let i = 0; i < ev.n; i++) {
+      if (ev.kind[i] !== 0) continue;
+      const a = ev.slot[i] === 1 ? 1 : 0;
+      this.stats.hits[a] = (this.stats.hits[a] as number) + 1;
+      const mv = m.w(a, FF.Move);
+      const slot = a === 0 ? this.sel.p1 : this.sel.p2;
+      const kind = mv >= 0 ? this.kit(rosterEntry(slot)?.slot ?? 'PLAYER_FIGHTER').def.moves[mv]?.kind : undefined;
+      if (ev.b[i] === 2 || kind === 'special' || kind === 'super') this.stats.specialHits[a] = (this.stats.specialHits[a] as number) + 1;
+    }
   }
 
   /** The live match hash for the engine resource (`fighter.match`). */
