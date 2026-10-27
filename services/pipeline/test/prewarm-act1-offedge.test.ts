@@ -10,11 +10,12 @@
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { getPlatformProxy } from 'wrangler';
+import type * as SharedModule from '@dv/shared';
 import { Harness } from './helpers/offedge-harness.ts';
 
 const hashed = vi.hoisted(() => ({ sizes: [] as number[] }));
 vi.mock('@dv/shared', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@dv/shared')>();
+  const actual = await importOriginal<typeof SharedModule>();
   return {
     ...actual,
     sha256Hex: (input: string | Uint8Array): string => {

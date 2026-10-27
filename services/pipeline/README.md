@@ -1,12 +1,12 @@
 # @dv/pipeline
 
-Generative-AI job pipeline, compiled into the `tha-bay-web` Worker (no cross-Worker binding: a Preview's service bindings call production). M05b1 delivers the `cutscene_shot` job over mocks; the live run waits for ADR-GENAI-01 `cleared` and M05c3.
+Generative-AI job pipeline, compiled into the `tha-bay-web` Worker (no cross-Worker binding: a Preview's service bindings call production). M05b1 delivers the `cutscene_shot` job over mocks; the live run waits for ADR-GENAI-01 `cleared`. On Workers Free (M05c4) the Worker stops a live job at the hand-off (`TRANSCODE_MODE=offedge`) and the operator finishes it with `pnpm assets:gen prewarm -- --finish` (see `docs/releases/README.md`); `transcoder/ladder.sh` is recipe `cut@1` and `transcoder/Dockerfile.ladder` its Docker form.
 
 | Path | What it is |
 |---|---|
 | `src/ports.ts` | `FalPort`, `BlobPort`, `RosterPort`, `BudgetPort`, `FlagsPort`, `ClockPort`, `TranscodePort`, `SignPort`, `FalGatePort`, `JobSinkPort`. Port results are plain data, so step results stay JSON and under 1 MiB. |
 | `src/gate.ts` | `assertStageAllowed` / `evaluateGate`: tier, kill state, provider status, prompt lint, then (from `budget-reserve` on) kill switches and the governor level. Production and `FAL_MODE=live` need a `cleared` provider. |
-| `src/steps/cutscene.ts` | `runCutsceneJob(step, ctx, job)`: gate, cache-check, budget-reserve, acquire, keyframes, plan, submit, wait, poll, copy-orig, transcode, captions, qa-gate, resign, subs, publish (manifest last), record. Runs over a real `WorkflowStep` or the shim in `check:pipeline`. |
+| `src/steps/cutscene.ts` | `runCutsceneJob(step, ctx, job)`: gate, cache-check, budget-reserve, acquire, keyframes, plan, submit, wait, poll, copy-orig, transcode, captions, qa-gate, resign, subs, publish (manifest last), record. With `transcodeMode: 'offedge'` it ends after `copy-orig` and a `handoff` step; `runPublishPhase` (job phase `publish`) later copies the operator's finished files into MEDIA, manifest last. Runs over a real `WorkflowStep` or the shim in `check:pipeline`. |
 | `src/workflow.ts` | `GenJobWorkflow` (needs `cloudflare:workers`). |
 | `src/do/FalGateDO.ts` | Semaphore sized by `genai.falConcurrency`; slots carry a TTL; release always runs. |
 | `src/fal.ts` | `verifyFalWebhook` (ED25519, JWKS cached at most 24 h, +-300 s), `handleFalWebhook` (route 29), `LiveFalPort`. |
