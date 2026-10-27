@@ -68,7 +68,7 @@ describe('deploy.ts', () => {
 // ---- the world release (M02c2, AC-13; DL-661, DL-670, DL-688, DL-695) ---------------------------------------------------------------
 
 import { createHash } from 'node:crypto';
-import { worldReleaseWarnings } from '../check-assets.ts';
+import { releaseStrict, worldReleaseWarnings } from '../check-assets.ts';
 import { runProd, type Deps, type ProdOptions } from '../deploy-prod.ts';
 import { odblOffer } from '../odbl-offer.ts';
 import { runProvenanceCheck } from '../provenance-check.ts';
@@ -186,6 +186,7 @@ describe('the world release of deploy:prod (AC-13)', () => {
     expect(r.code).toBe(1);
     expect(r.message).toMatch(/^world release staging: pointer built from lock [0-9a-f]{12}\+[0-9a-f]{12}, current lock [0-9a-f]{12}\+[0-9a-f]{12}; re-run assets:publish --world$/);
     expect(log).not.toContain('build');
+    expect(log.some((l) => l.includes('versions upload') || l.includes('wrangler deploy'))).toBe(false);
     expect(staleLockMessage(io, 'staging')).toBe(r.message);
   });
 
@@ -261,9 +262,47 @@ describe('the world release of deploy:prod (AC-13)', () => {
     const w = worldReleaseWarnings(root);
     expect(w).toHaveLength(1);
     expect(w[0]).toContain('re-run assets:publish --world');
-    // the committed repository has release.json at null: no warning
-    expect(worldReleaseWarnings(repoRoot)).toEqual([]);
+    // BD-FIX-REL-02: no assertion on the live repository (its pointer may trail an integration branch's locks); fixtures only.
+    // release.json at null for both keys: no warning even with the stale lock
+    writeFileSync(path.join(root, 'config/world/release.json'), JSON.stringify({ schema: 'world-release/1', staging: null, production: null }));
+    expect(worldReleaseWarnings(root)).toEqual([]);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it('check:assets passes with no warning when the pointer meta matches the current locks', () => {
+    const root = tempDir('dv-rel-');
+    for (const [rel, text] of checkout().files) {
+      mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+      writeFileSync(path.join(root, rel), text);
+    }
+    expect(worldReleaseWarnings(root)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('check:assets --release-strict exits 1 with the same message on a stale pointer and 0 otherwise (BD-FIX-REL-02)', () => {
+    const write = (root: string, files: Map<string, string>): void => {
+      for (const [rel, text] of files) {
+        mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+        writeFileSync(path.join(root, rel), text);
+      }
+    };
+    const fresh = tempDir('dv-rel-');
+    write(fresh, checkout().files);
+    expect(releaseStrict(fresh).code).toBe(0);
+
+    const stale = tempDir('dv-rel-');
+    const { io, files } = checkout();
+    files.set(ASSETS_LOCK, '{"schema":"asset-lock/1","entries":{"fighter/new":{}}}');
+    write(stale, files);
+    const r = releaseStrict(stale);
+    expect(r.code).toBe(1);
+    expect(r.lines[0]).toBe(`check:assets: error: ${staleLockMessage(io, 'staging')}`);
+    expect(r.lines.at(-1)).toMatch(/^check:assets: FAIL \(release-strict: 1 stale world pointer\)$/);
+    // the same stale lock with release.json at null: nothing to guard
+    writeFileSync(path.join(stale, 'config/world/release.json'), JSON.stringify({ schema: 'world-release/1', staging: null, production: null }));
+    expect(releaseStrict(stale).code).toBe(0);
+    rmSync(fresh, { recursive: true, force: true });
+    rmSync(stale, { recursive: true, force: true });
   });
 });
 

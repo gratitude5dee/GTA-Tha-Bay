@@ -4,7 +4,11 @@
  * ship-set file size (25 MiB) and world-pack size (4 MiB). M01d adds the catalog, lock-file, fidelity, dependency,
  * budget and pointer rules (tools/assets/src/verify.ts).
  *
- *   tsx tools/ci/check-assets.ts [--root <dir>] [--dist <dir>]
+ *   tsx tools/ci/check-assets.ts [--root <dir>] [--dist <dir>] [--release-strict]
+ *
+ * The stale world pointer (DL-688) is a warning with exit 0 by default, so integration branches do not need a publish to R2.
+ * `--release-strict` (BD-FIX-REL-02) runs only that check and exits 1 with the same message: CI runs it on pull requests into
+ * `main`, where staging deploys from, and `deploy:prod` refuses the same condition before it builds (tools/ci/world-release.ts).
  */
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -48,6 +52,13 @@ export function worldReleaseWarnings(root: string): string[] {
     if (m) out.push(m);
   }
   return out;
+}
+
+/** `--release-strict` (BD-FIX-REL-02): each stale-pointer message as an error line; exit 1 when there is one. */
+export function releaseStrict(root: string): { code: 0 | 1; lines: string[] } {
+  const w = worldReleaseWarnings(root);
+  if (w.length === 0) return { code: 0, lines: [`${GATE}: ok (release-strict: every world pointer that release.json names matches the current locks)`] };
+  return { code: 1, lines: [...w.map((m) => `${GATE}: error: ${m}`), `${GATE}: FAIL (release-strict: ${w.length} stale world pointer${w.length === 1 ? '' : 's'})`] };
 }
 
 export function runCheckAssets(opts: { root: string; dist: string; verify?: VerifyOptions }): { findings: GateFinding[]; scanned: number } {
@@ -113,8 +124,13 @@ export function runCheckAssets(opts: { root: string; dist: string; verify?: Veri
 }
 
 function main(): void {
-  const { values } = parseArgs({ args: args(), options: { root: { type: 'string' }, dist: { type: 'string' } } });
+  const { values } = parseArgs({ args: args(), options: { root: { type: 'string' }, dist: { type: 'string' }, 'release-strict': { type: 'boolean' } } });
   const root = path.resolve(values.root ?? toolsRoot);
+  if (values['release-strict']) {
+    const r = releaseStrict(root);
+    for (const l of r.lines) console.log(l);
+    process.exit(r.code);
+  }
   const dist = path.resolve(values.dist ?? defaultDist(root));
   if (!existsSync(dist)) console.log(`${GATE}: note: ${dist} does not exist, ship-set size check skipped`);
   const { findings, scanned } = runCheckAssets({ root, dist });
