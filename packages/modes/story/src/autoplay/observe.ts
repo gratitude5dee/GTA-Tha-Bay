@@ -64,6 +64,8 @@ export interface MissionObs {
   cast: Record<string, CastView>;
   /** The stub objective of each mode hook, by hook id: the bot plays a hook through its stub (M05c1). */
   hookStubs: Record<string, ObjectiveDef>;
+  /** The child mode a hook is running for real (M07a2): its mode id and race or bout id, else null. */
+  child: { mode: string; defId: string | null } | null;
   /** Positions of the landmarks that active `photo` objectives name. */
   landmarks: Record<string, Vec3>;
   /** Police cars on the map (pursuit): position and horizontal velocity, nearest the player first (M05c2). */
@@ -196,6 +198,10 @@ export function observeMission(rt: MissionRuntime, ctx: ModeContext): MissionObs
     zones,
     cast,
     hookStubs: Object.fromEntries((rt.ir?.modeHooks ?? []).map((h) => [h.id, h.stub])),
+    child: ((): MissionObs['child'] => {
+      const hook = rt.activeHook === null ? undefined : rt.ir?.modeHooks?.find((h) => h.id === rt.activeHook);
+      return hook ? { mode: hook.mode, defId: hook.defId ?? null } : null;
+    })(),
     landmarks,
     units,
     others,

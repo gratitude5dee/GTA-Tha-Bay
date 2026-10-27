@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tha-bay.dev/schemas/config/pursuit-race.schema.json",
+  "title": "config/pursuit.race.json (06-racing-data.md 4.6; M07a2)",
+  "description": "The racing differences of the pursuit: it extends config/pursuit.json and adds the race block. The roadblock and spikes blocks are optional until M07b1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "extends", "race"],
+  "properties": {
+    "$comment": { "type": "string" },
+    "schema": { "const": 1 },
+    "extends": { "const": "config/pursuit.json" },
+    "race": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unitSpeedOfPlayerTop", "catchUp", "bounty", "evade"],
+      "properties": {
+        "unitSpeedOfPlayerTop": {
+          "type": "array", "minItems": 6, "maxItems": 6,
+          "items": { "type": "number", "minimum": 0, "maximum": 1.06 }
+        },
+        "catchUp": {
+          "type": "object", "additionalProperties": false,
+          "required": ["farM", "boost", "spawnBehindM", "outOfViewOnly"],
+          "properties": {
+            "farM": { "type": "number", "exclusiveMinimum": 0 },
+            "boost": { "type": "number", "minimum": 1, "maximum": 2 },
+            "spawnBehindM": { "type": "number", "minimum": 0 },
+            "outOfViewOnly": { "type": "boolean" }
+          }
+        },
+        "bounty": {
+          "type": "object", "additionalProperties": false,
+          "required": ["perSecAtHeat", "perTakedown", "centsPerPoint"],
+          "properties": {
+            "perSecAtHeat": { "type": "number", "minimum": 0 },
+            "perTakedown": { "type": "number", "minimum": 0 },
+            "centsPerPoint": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "evade": {
+          "type": "object", "additionalProperties": false,
+          "required": ["bustMinHeat", "repairFeePct"],
+          "properties": {
+            "bustMinHeat": { "type": "integer", "minimum": 0, "maximum": 6 },
+            "repairFeePct": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "roadblock": { "type": "object" },
+        "spikes": { "type": "object" }
+      }
+    }
+  }
+}

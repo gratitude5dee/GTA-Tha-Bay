@@ -54,6 +54,8 @@ export interface RaceSource {
   unlocks?: string[];
   xr: 'full' | 'none';
   story?: { hookId: string };
+  /** M07a2 (BD-M07a2-05): where a pursuit's bot hides and the director's search runs cold (a C08 `hidingSpots` tag near the route). */
+  hidingSpots?: { at: RacePoint; radiusM: number }[];
 }
 
 export interface GateDef {
@@ -69,7 +71,7 @@ export interface GateDef {
 }
 
 /** content/races/<id>/race.json: compiled, committed, hash-pinned. The runtime loads this. */
-export interface RaceDef extends Omit<RaceSource, 'waypoints' | 'via' | 'gateOverrides' | 'closures' | 'zones'> {
+export interface RaceDef extends Omit<RaceSource, 'waypoints' | 'via' | 'gateOverrides' | 'closures' | 'zones' | 'hidingSpots'> {
   /** C08 bake id the route was compiled on. */
   worldBake: string;
   waypoints: RacePoint[];
@@ -82,6 +84,8 @@ export interface RaceDef extends Omit<RaceSource, 'waypoints' | 'via' | 'gateOve
   zones: { id: string; kind: 'drift' | 'sideshow' | 'finish'; ringEnu: [number, number][] }[];
   grid: { s: number; lane: number; offsetM: number }[];
   jumpZones: { s0: number; s1: number }[];
+  /** M07a2: the authored hiding spots, ENU metres. */
+  hidingSpots?: { x: number; z: number; radiusM: number }[];
   line: {
     stepM: 5;
     /** 1e-4 1/m, i16. */

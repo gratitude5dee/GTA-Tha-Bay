@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "id": "sf.circuit.embarcadero-vanness",
+  "version": 1,
+  "kind": "circuit",
+  "titleKey": "race.sf.circuit.embarcadero-vanness.title",
+  "district": "d5",
+  "waypoints": [
+    { "lat": 37.79762, "lng": -122.39609 },
+    { "lat": 37.80277, "lng": -122.40065 },
+    { "lat": 37.80185, "lng": -122.40172 },
+    { "lat": 37.79515, "lng": -122.39664 },
+    { "lat": 37.79762, "lng": -122.39609 }
+  ],
+  "laps": 3,
+  "closedLoop": true,
+  "hour": 18,
+  "weather": "clear",
+  "traffic": "off",
+  "peds": "sidewalk",
+  "opponents": [
+    { "driverId": "rival.switchback", "vehicleDef": "vehicle.brackenridge-rasp", "skill": 0.62 },
+    { "driverId": "rival.cable-car-cleo", "vehicleDef": "vehicle.kestrel-quill", "skill": 0.48 }
+  ],
+  "classLimit": ["C", "B"],
+  "loaner": "vehicle.kestrel-quill",
+  "police": { "enabled": false, "startHeat": 0, "maxHeat": 0 },
+  "rubberBand": 0.6,
+  "rewards": [
+    { "kind": "cash", "place": 1, "cents": 700000 },
+    { "kind": "rep", "place": 1, "rep": 150 }
+  ],
+  "xr": "full"
+}

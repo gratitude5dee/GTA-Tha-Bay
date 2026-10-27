@@ -7,6 +7,7 @@ import sandboxV1 from './schema/sandbox.v1.schema.json';
 import tycoonV1 from '../../../../shared/schemas/tycoon/slice-1.schema.json';
 import fighterV1 from '../../../../shared/schemas/fighter/slice-1.schema.json';
 import vehicleInstanceV1 from '../../../../shared/schemas/racing/vehicle-instance.v1.schema.json';
+import racingV1 from '../../../../shared/schemas/racing/racing-slice.schema.json';
 import { validateSchema, type JsonSchema } from './validate.ts';
 
 /** Schemas a slice schema may `$ref` by `$id`. The built-in validator has no `$ref`, so `inlineRefs` resolves them when the table below is built. */
@@ -40,6 +41,8 @@ export const SLICE_SCHEMAS: Partial<Record<SliceKind, Record<number, JsonSchema>
   tycoon: { 1: tycoonV1 as unknown as JsonSchema },
   // M08a2: the fighter slice schema is owned by the fighter mode (packages/shared/schemas/fighter).
   fighter: { 1: fighterV1 as unknown as JsonSchema },
+  // M07a2: the racing slice (rep, purse, records, ghosts) is owned by the racing mode (packages/shared/schemas/racing).
+  racing: { 1: racingV1 as unknown as JsonSchema },
 };
 
 /** The schema version this build writes for each kind. */

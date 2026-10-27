@@ -2,8 +2,10 @@
  * `pnpm map:races compile|validate [-- <raceId>]` (M07a1; 06-racing.md 2.7).
  *
  *   map:races compile  [<raceId>] [--area sf]   source.json + the bake -> race.json (+ corridor.bin); needs a finished bake
- *   map:races validate [<raceId>] [--json]      V1 to V11, V13 to V15 on every race, or one; without a bake the rules that need
+ *   map:races validate [<raceId>] [--json]      V1 to V15 on every race, or one; without a bake the rules that need
  *                                               the road graph are skipped and the run says so
+ *   map:races par [<raceId>...] [--check]       the par bot (M07a2): writes parSec, parBotHash and the medals, or with --check
+ *                                               re-runs it and compares (+-15 % and the end hash)
  *
  * Races live in `content/races/<id>/{source.json, race.json, corridor.bin}`. Exit 0 when every race passes, 1 on a finding or an
  * error, 2 on a usage error. A missing bake is not an error for `validate` (it prints SKIP for the graph rules); `compile` needs it.
@@ -94,12 +96,13 @@ export function runValidate(argv: readonly string[]): number {
   return reports.every((r) => r.ok) ? 0 : 1;
 }
 
-export function main(argv: readonly string[]): number {
+export async function main(argv: readonly string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   if (cmd === 'compile') return runCompile(rest);
   if (cmd === 'validate') return runValidate(rest);
-  console.error('usage: map:races compile|validate [-- <raceId>] [--area sf] [--json]');
+  if (cmd === 'par') return (await import('./par.ts')).runPar(rest);
+  console.error('usage: map:races compile|validate|par [-- <raceId>] [--area sf] [--json] [--check]');
   return 2;
 }
 
-if (isMain(import.meta.url)) process.exit(main(args()));
+if (isMain(import.meta.url)) void main(args()).then((code) => process.exit(code));

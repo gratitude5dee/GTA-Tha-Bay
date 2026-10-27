@@ -6,6 +6,7 @@
  * Positions are ENU metres (+X east, +Y up, -Z north); `yaw` follows the engine convention (0 faces -Z).
  */
 import type { DamageState } from '@dv/shared';
+import type { Pose } from './pose.ts';
 
 export interface CarReadout {
   /** Body centre. */
@@ -41,6 +42,16 @@ export interface CarImpact {
   frontal: boolean;
 }
 
+/**
+ * Kinematic stand-ins for the cars that are not the player's: the rivals (M2 point masses) and the ghosts. A puppet has a transform
+ * and a model and no physics body, so it cannot move the live car (D-S06-05). `spawn` returns an id (0 when it could not be made).
+ */
+export interface PuppetPort {
+  spawn(prefab: string, key: string, pose: Pose): number;
+  move(id: number, pose: Pose): void;
+  remove(id: number): void;
+}
+
 export interface RaceWorldPort {
   /** Colliders under (x, z) are in the working set. */
   collidersReady(x: number, z: number): boolean;
@@ -67,4 +78,11 @@ export interface RaceWorldPort {
    * without a baked world, never says so, and the race keeps its other reset rules.
    */
   outOfWorld?(x: number, y: number, z: number): boolean;
+  /** Optional: where rivals and ghosts are drawn. A port without it runs them as numbers only (the headless fake). */
+  puppets?: PuppetPort;
+  /**
+   * Optional: the vehicle components of the player's car, fed to the hash in C02 rule 7 order (`endHash`). A port without it
+   * contributes nothing and the hash covers the race state alone.
+   */
+  hashCar?(h: { u32(v: number): unknown; f64(v: number): unknown }): void;
 }

@@ -2,8 +2,8 @@
  * `@dv/mode-racing` (M07a1): the racing mode's descriptor and the data the shell needs without loading the sim half. The sim
  * half (`./sim/mode.ts`) and the UI half (`./ui/index.ts`) are lazy imports, as C06 asks, so the main chunk carries neither.
  *
- * The descriptor is `comingSoon` on purpose: M07a2 flips it to `available` together with the story hook. A QA build starts a
- * race through the bridge (`__dvBridge.racing.start`), which the mode host honours only when `qa` is true.
+ * The descriptor is `available` since M07a2 (it was `comingSoon` in M07a1); the tile is locked until `unlock.racing`, which the
+ * sideshow mission m.a1.03 grants. A QA build also starts a race through the bridge (`__dvBridge.racing.start`).
  */
 import type { GameModeDescriptor, UnlockDef } from '@dv/shared';
 import unlocksJson from '../../../../config/unlocks.json';
@@ -23,7 +23,7 @@ export function racingDescriptor(): GameModeDescriptor {
     version: 1,
     titleKey: 'mode.racing.title',
     tile: { art: 'ui/mode-racing', order: 2 },
-    status: 'comingSoon',
+    status: 'available',
     unlock: 'unlock.racing',
     standalone: true,
     embeddable: true,

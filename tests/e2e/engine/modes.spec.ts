@@ -42,9 +42,9 @@ test.describe('modes @modes', () => {
 
     const listing = (await modes(page, (m) => m.list())) as { modes: { id: string; status: string; order: number; unlocked: boolean }[] };
     // M09a2 (spec/07-milestones/M09a2-tycoon-events-balance.md, "Mode availability"): a QA build lists tycoon as `available` but
-    // locked until `?unlockAll=1` or the story unlock (M09b2); racing is still `comingSoon` here and fighter is `available` since M08a2.
+    // locked until `?unlockAll=1` or the story unlock (M09b2); racing is `available` since M07a2 and fighter since M08a2.
     expect(listing.modes.map((m) => [m.id, m.status, m.order])).toEqual([
-      ['story', 'available', 1], ['racing', 'comingSoon', 2], ['fighter', 'available', 3], ['tycoon', 'available', 4], ['sandbox', 'available', 5],
+      ['story', 'available', 1], ['racing', 'available', 2], ['fighter', 'available', 3], ['tycoon', 'available', 4], ['sandbox', 'available', 5],
     ]);
     expect(listing.modes.find((m) => m.id === 'tycoon')?.unlocked).toBe(false);
 

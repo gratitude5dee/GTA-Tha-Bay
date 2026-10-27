@@ -1,5 +1,6 @@
 /**
- * The race validator (M07a1; 06-racing-data.md 4.2.1): rules V1 to V11 and V13 to V15. V12 (the par bot) is M07a2.
+ * The race validator (M07a1, M07a2; 06-racing-data.md 4.2.1): rules V1 to V15. V12 (the par bot) checks here that the par and its hash
+ * are present; `pnpm map:races par -- --check` re-runs the bot and reproduces them (M07a2).
  *
  * Rules that need the road graph (V1, V2, V7, V9 water) run when a bake is open and are skipped otherwise; the rest read only
  * the source and `race.json` and run everywhere (the fallback of the milestone's risk list, BD-M07a1-05). `source` rules (V10,
@@ -9,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {
-  isLandmarkPoint, type RaceDef, type RaceSource, type RaceValidationReport, type VehicleClass,
+  centreline, isLandmarkPoint, type RaceDef, type RaceSource, type RaceValidationReport, type VehicleClass,
 } from '../../../../packages/shared/src/index.ts';
 import { toolsRoot } from '../../../ci/lib/common.ts';
 import { loadContentWorld } from '../content.ts';
@@ -101,14 +102,20 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
     }
     stats.maxGradePct = Math.round(maxGrade * 10) / 10;
 
-    // V5: a circuit closes within 15 m and 25 degrees
+    // V5: a circuit closes within 15 m and 25 degrees (the first and the last point of the racing line; the start gate sits behind the
+    // grid, so the gates of a 3-car grid are further apart than the loop is open)
     if (def.kind === 'circuit') {
-      const first = def.gates[0];
-      const last = def.gates[def.gates.length - 1];
-      if (first && last) {
-        const d = Math.hypot(first.at[0] - last.at[0], first.at[2] - last.at[2]);
-        const dot = first.tangent[0] * last.tangent[0] + first.tangent[1] * last.tangent[1];
-        const deg = (Math.acos(Math.max(-1, Math.min(1, dot))) * 180) / Math.PI;
+      const cl = centreline(def);
+      const n = cl.length / 2;
+      if (n >= 3) {
+        const x0 = cl[0] as number, z0 = cl[1] as number;
+        const x1 = cl[2 * n - 2] as number, z1 = cl[2 * n - 1] as number;
+        const d = Math.hypot(x1 - x0, z1 - z0);
+        const h0 = Math.atan2((cl[3] as number) - z0, (cl[2] as number) - x0);
+        const h1 = Math.atan2(z1 - (cl[2 * n - 3] as number), x1 - (cl[2 * n - 4] as number));
+        let dh = Math.abs(h1 - h0);
+        if (dh > Math.PI) dh = 2 * Math.PI - dh;
+        const deg = (dh * 180) / Math.PI;
         if (d > 15 || deg > 25) f.push(err(5, `the circuit ends ${d.toFixed(1)} m and ${deg.toFixed(0)} degrees off its start (limits 15 m, 25 degrees)`));
       }
     }
@@ -152,6 +159,9 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
     }
     if (out) f.push(err(9, 'a route point lies outside config/world.bounds.json play'));
 
+    // V12: the par and the hash of the headless canonical bot are present (the bot itself runs in `map:races par`)
+    if (!(def.parSec > 0) || !/^[0-9a-f]{16}$/.test(def.parBotHash)) f.push(err(12, `parSec ${def.parSec} and parBotHash ${def.parBotHash}: run pnpm map:races par`));
+
     // V13: size
     const bytes = inp.json !== undefined ? Buffer.byteLength(inp.json) : Buffer.byteLength(JSON.stringify(def));
     if (bytes > MAX_JSON_BYTES) f.push(err(13, `race.json is ${bytes} bytes (limit ${MAX_JSON_BYTES})`));
@@ -164,6 +174,12 @@ export function validateRace(inp: ValidateInput): RaceValidationReport {
         const b = (def.route[i] as RaceDef['route'][number]).edgeIds[0] as number;
         if (!bg.net.has(a) || !bg.net.has(b)) f.push(err(1, `edge ${a} or ${b} is not in the bake`));
         else if (bg.net.to(a) !== bg.net.from(b)) f.push(err(1, `edge ${a} does not lead into edge ${b}`));
+      }
+      // V2 (a warning): the route turns round on the street it is on, which a one-way street does not allow
+      for (let i = 1; i < def.route.length; i++) {
+        const a = (def.route[i - 1] as RaceDef['route'][number]).edgeIds.at(-1) as number;
+        const b = (def.route[i] as RaceDef['route'][number]).edgeIds[0] as number;
+        if (bg.net.has(a) && bg.net.has(b) && bg.net.isReverseOf(b, a)) f.push({ rule: 'V2', level: 'warn', message: `the route turns back on edge ${a} (a U-turn on its own street)` });
       }
       if (def.worldBake !== bg.bakeId) f.push(err(1, `compiled for bake ${def.worldBake.slice(0, 12)}, the open bake is ${bg.bakeId.slice(0, 12)}`));
       // V7: a circuit with traffic closes its side streets

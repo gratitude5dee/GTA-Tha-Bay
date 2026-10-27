@@ -31,6 +31,10 @@ export interface RaceHudVm {
   phase: string;
   /** Ticks left in the countdown, 0 outside it. */
   countdown: number;
+  /** M07a2: the results card, set from Results on (place, time, medal, what the run paid). */
+  results: { outcome: 'finish' | 'dnf'; place: number; of: number; ms: number; medals: number; newBest: boolean; cashCents: number; rep: number; reason: string | null } | null;
+  /** M07a2: a ghost is running beside the car. */
+  ghost: boolean;
 }
 
 export const HUD_VM_KEY = 'mode.racing.hud' as const;
@@ -58,6 +62,9 @@ export interface HudInputs {
   phase: string;
   countdown: number;
   govern?: boolean;
+  heat?: RaceHudVm['heat'];
+  results?: RaceHudVm['results'];
+  ghost?: boolean;
 }
 
 const round = (x: number, d = 1000): number => Math.round(x * d) / d;
@@ -79,7 +86,7 @@ export function buildHud(i: HudInputs): RaceHudVm {
     timerMs: i.timerMs,
     timeLeftMs: i.timeLeftMs === null ? null : Math.round(i.timeLeftMs),
     split: i.split,
-    heat: null,
+    heat: i.heat ?? null,
     damage: { body: round(i.damage.body), engine: round(i.damage.engine), tires: i.damage.tires.map((t) => round(t)) },
     hop: null,
     govern: i.govern ?? false,
@@ -88,6 +95,8 @@ export function buildHud(i: HudInputs): RaceHudVm {
     prompt: i.prompt,
     phase: i.phase,
     countdown: i.countdown,
+    results: i.results ?? null,
+    ghost: i.ghost ?? false,
   };
 }
 

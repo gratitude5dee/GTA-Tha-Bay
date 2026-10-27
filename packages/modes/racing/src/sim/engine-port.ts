@@ -11,8 +11,8 @@ import {
   BodyRef, Control, LocalPlayer, outOfWorld, packPending, CONTROL_OWNER, CONTROL_PHASE, GROUP_BIT, seatDriver, Transform, Vehicle, VehicleDamage, Velocity,
   type EngineServices, type PrefabRegistry, type RapierBackend, type VehicleStore, type EcsWorld,
 } from '@dv/engine/sim';
-import { datan2, dcos, dsin, dsqrt, PI, type DamageState, type EntityHandle } from '@dv/shared';
-import type { CarCommand, CarImpact, CarReadout, RaceWorldPort } from './port.ts';
+import { datan2, dcos, dsin, dsqrt, PI, type DamageState, type EntityHandle, type StableKey } from '@dv/shared';
+import type { CarCommand, CarImpact, CarReadout, PuppetPort, RaceWorldPort } from './port.ts';
 
 export interface EnginePortDeps {
   ecs: EcsWorld;
@@ -46,7 +46,41 @@ export function createEnginePort(d: EnginePortDeps): RaceWorldPort & { carHandle
 
   const carId = (): number | null => (car === NO_HANDLE ? null : ecs.resolve(car));
 
+  // puppets: rivals and ghosts, entities with a transform and a model and no body (D-S06-05). Spawn commands apply at the end of the
+  // stage, so a puppet is moved from the tick after it was made.
+  const puppetHandles = new Map<number, EntityHandle>();
+  const puppets: PuppetPort = {
+    spawn(prefab, key, pose) {
+      const h = prefabs.spawn(prefab, { pos: [pose.x, pose.y, pose.z], yaw: pose.yaw }, key as StableKey);
+      puppetHandles.set(h as number, h);
+      return h as number;
+    },
+    move(id, pose) {
+      const h = puppetHandles.get(id);
+      const vid = h === undefined ? null : ecs.resolve(h);
+      if (vid === null) return;
+      const tr = ecs.store(Transform);
+      tr.px[vid] = pose.x; tr.py[vid] = pose.y; tr.pz[vid] = pose.z;
+      tr.qx[vid] = 0; tr.qy[vid] = dsin(pose.yaw / 2); tr.qz[vid] = 0; tr.qw[vid] = dcos(pose.yaw / 2);
+    },
+    remove(id) {
+      const h = puppetHandles.get(id);
+      if (h === undefined) return;
+      puppetHandles.delete(id);
+      prefabs.despawn(h);
+    },
+  };
+
   return {
+    puppets,
+    hashCar(h) {
+      const vid = carId();
+      if (vid === null) return;
+      const tr = ecs.store(Transform);
+      const ve = ecs.store(Velocity);
+      for (const v of [tr.px, tr.py, tr.pz, tr.qx, tr.qy, tr.qz, tr.qw, ve.vx, ve.vy, ve.vz, ve.wx, ve.wy, ve.wz]) h.f64(v[vid] as number);
+      h.f64(ecs.store(Vehicle).speed[vid] as number);
+    },
     carHandle: () => car,
     collidersReady: (x, z) => groundRay(x, z) !== null,
     groundY: groundRay,
@@ -189,6 +223,8 @@ export function createEnginePort(d: EnginePortDeps): RaceWorldPort & { carHandle
       }
       seated = false;
       car = NO_HANDLE;
+      for (const h of [...puppetHandles.values()]) prefabs.despawn(h);
+      puppetHandles.clear();
     },
   };
 }

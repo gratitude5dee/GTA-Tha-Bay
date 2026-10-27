@@ -2,7 +2,8 @@
  * `map:races validate` (M07a1): the committed ferry sprint passes, and each rule V1 to V11 and V13 to V15 has one broken fixture
  * (`fixtures/races/V<n>.source.json`) that fails with exactly that rule. A fixture is a patch of the committed race: JSON paths to
  * new values over `source.json` (`sourcePatch`) and `race.json` (`defPatch`). V1 and V7 read the road graph, so those fixtures
- * carry a `stub` standing in for an open bake (no bake is needed here). V2 (snap) is a compile error, V12 (par bot) is M07a2.
+ * carry a `stub` standing in for an open bake (no bake is needed here). V2 is a warning, so its fixture is listed with `level: 'warn'` and the
+ * report stays ok; V12 checks the par fields (the bot that reproduces them is `map:races par -- --check`, M07a2).
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -23,7 +24,8 @@ interface Fixture {
   sourcePatch?: Record<string, unknown>;
   defPatch?: Record<string, unknown>;
   jsonPadBytes?: number;
-  stub?: { to: number; from: number; out: number[] };
+  level?: 'warn' | 'error';
+  stub?: { to: number; from: number; out: number[]; reverse?: boolean };
 }
 
 /** Sets `value` at a JSON path like `/gates/1/widthM` in a deep copy. */
@@ -39,7 +41,7 @@ function patched<T>(base: T, patch: Record<string, unknown> | undefined): T {
 }
 
 const stubBake = (def: RaceDef, s: NonNullable<Fixture['stub']>): BakeGraph =>
-  ({ bakeId: def.worldBake, net: { has: () => true, to: () => s.to, from: () => s.from, out: () => s.out, isReverseOf: () => false } }) as unknown as BakeGraph;
+  ({ bakeId: def.worldBake, net: { has: () => true, to: () => s.to, from: () => s.from, out: () => s.out, isReverseOf: () => s.reverse === true } }) as unknown as BakeGraph;
 
 const baseSource = read<RaceSource>(path.join(RACE, 'source.json'));
 const baseDef = read<RaceDef>(path.join(RACE, 'race.json'));
@@ -62,8 +64,8 @@ describe('map:races validate', () => {
 
   const files = readdirSync(FIXTURES).filter((f) => /^V\d+\.source\.json$/.test(f)).sort((a, b) => Number.parseInt(a.slice(1), 10) - Number.parseInt(b.slice(1), 10));
 
-  it('has a fixture for every rule V1, V3 to V11 and V13 to V15', () => {
-    expect(files.map((f) => f.split('.')[0])).toEqual(['V1', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 'V11', 'V13', 'V14', 'V15']);
+  it('has a fixture for every rule V1 to V15', () => {
+    expect(files.map((f) => f.split('.')[0])).toEqual(['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 'V11', 'V12', 'V13', 'V14', 'V15']);
   });
 
   for (const file of files) {
@@ -73,9 +75,12 @@ describe('map:races validate', () => {
       const def = patched(baseDef, fx.defPatch);
       const json = fx.jsonPadBytes ? baseJson + ' '.repeat(fx.jsonPadBytes) : baseJson;
       const r = validateRace({ source, def, json, bg: fx.stub ? stubBake(def, fx.stub) : null });
-      const rules = [...new Set(r.findings.filter((f) => f.level === 'error').map((f) => f.rule))].sort();
+      const level = fx.level ?? 'error';
+      const rules = [...new Set(r.findings.filter((f) => f.level === level).map((f) => f.rule))].sort();
       expect(rules).toEqual([...fx.expect].sort());
-      expect(r.ok).toBe(false);
+      // an error fails the report; a warning is reported and leaves it ok
+      expect(r.ok).toBe(level === 'warn');
+      if (level === 'warn') expect(r.findings.some((f) => f.level === 'error')).toBe(false);
     });
   }
 });

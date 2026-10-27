@@ -1,0 +1,11 @@
+{
+  "$comment": "Pursuit rules of racing events (06-racing.md 2.6, 06-racing-content.md C.11; M07a2). Extends config/pursuit.json. unitSpeedOfPlayerTop is the share of the player's top speed a police unit may reach at heat 0 to 5; no unit exceeds 1.06. The roadblock and spikes blocks arrive with M07b1, so race pursuits plan no blocks yet. Design values: the owner may tune them.",
+  "schema": 1,
+  "extends": "config/pursuit.json",
+  "race": {
+    "unitSpeedOfPlayerTop": [0, 0.92, 0.97, 1.0, 1.03, 1.06],
+    "catchUp": { "farM": 200, "boost": 1.15, "spawnBehindM": 120, "outOfViewOnly": true },
+    "bounty": { "perSecAtHeat": 10, "perTakedown": 500, "centsPerPoint": 10 },
+    "evade": { "bustMinHeat": 1, "repairFeePct": 5 }
+  }
+}

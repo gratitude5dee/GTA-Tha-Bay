@@ -1,0 +1,10 @@
+{
+  "rule": "V12",
+  "expect": [
+    "V12"
+  ],
+  "note": "no par bot result: the hash is still the placeholder",
+  "defPatch": {
+    "/parBotHash": "pending"
+  }
+}

@@ -16,6 +16,7 @@
 import { dcos, dsin, dsqrt } from '@dv/shared';
 import type { Fnv64, HeatLevel, PursuitConfig, StableKey, Tactic } from '@dv/shared';
 import { TICKS_PER_SEC, type RngLike } from './heat.ts';
+import { unitSpeedLimit, type RacePursuitRules } from './race-rules.ts';
 import type { DriveInput, LanePoint, PlayerView, PursuitHost, PursuitWorld, UnitRole, UnitView, Vec3, VehicleDamagePort } from './ports.ts';
 import { boxHeld, boxInTarget, rollingBlockTarget, suvRamTarget } from './tactics/boxin.ts';
 import { clamp, dist2, driveToward, followSpeed, forwardOf, hold, pathTarget, UNIT_MAX_SPEED, type SteerTarget } from './tactics/follow.ts';
@@ -163,6 +164,8 @@ export class Dispatcher {
   punctures = 0;
   /** Units removed for driving off the loaded ground. */
   lost = 0;
+  /** M07a2: the race rules of a `{kind: 'race'}` profile (null in the story): a unit at its speed limit lifts the throttle. */
+  raceRules: RacePursuitRules | null = null;
 
   constructor(
     public cfg: PursuitConfig,
@@ -691,6 +694,15 @@ export class Dispatcher {
         const t = this.chaseTarget(u, v, i);
         if (t) driveToward(v, t, out);
         else hold(out);
+      }
+      // the race rules: no unit goes faster than its share of the player's top speed (a unit far behind and unseen may catch up)
+      if (this.raceRules) {
+        const far = u.mode !== 'roadblock' && !u.sees && dist2(v.pos[0], v.pos[2], i.player.pos[0], i.player.pos[2]) > this.raceRules.catchUp.farM;
+        const lim = unitSpeedLimit(this.raceRules, i.level, i.player.topMps, far);
+        if (lim !== null && v.speed > lim) {
+          out.throttle = 0;
+          if (out.brake < 0.3) out.brake = 0.3;
+        }
       }
       // a siren unit keeps its flashers on (render state only); nothing to write here
       this.host.drive(u.id, out);
