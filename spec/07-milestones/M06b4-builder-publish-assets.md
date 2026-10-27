@@ -43,7 +43,7 @@ A linked 18+ player can ask for a custom 3D look for a private NPC draft through
 ## Scope out
 - Any player-triggered generation, a public `GenJob` route, or a non-zero `builder_job` quota: not in v1 (DL-175, DL-205).
 - Voice designs and t2 voices for user NPCs (schema forbids; Q-20).
-- Spending the $8 buffer: each approval is the owner's call and needs the written note (Q-26 default: unspent).
+- Spending the $2 buffer (DL-OWN-07): each approval is the owner's call and needs the written note (Q-26 default: unspent).
 
 ## Deliverables
 - `services/edge/src/npc-builder/{assets,assets-decision}.ts`; route 33 and 43 router edits; `InMemoryDataPort` support for `gen_run`/`gen_job` writes.

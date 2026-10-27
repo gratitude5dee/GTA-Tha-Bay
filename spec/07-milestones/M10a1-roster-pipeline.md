@@ -50,7 +50,7 @@ After this session the R-NPC-02 character pipeline is an automated CLI. `pnpm as
 - `packages/shared/src/rig/bay_rig_v1.json`: the alias table.
 - Fixtures: `services/pipeline/test/fixtures/fal/character/*.json` (recorded responses, JSON only), plus a test helper `tools/assets/test/helpers/mannequin.ts` that builds a procedural skinned GLB with the 22 `HUMANOID_BONES`.
 - Tests: `tools/assets/test/{plan.spec.ts, run.spec.ts, ledger.spec.ts, optimize.spec.ts, retarget.spec.ts}`, `packages/shared/src/assets/gates/gates.spec.ts` and `services/pipeline/test/character.pipeline.test.ts` (part of `check:pipeline`).
-- `assets/ledger/fal-spend.jsonl`, `content/npcs/roster.json` (pipeline fields), `config/guardrails.yaml` (`genai.lines` caps in micros: spike 10,000,000; characters 42,000,000; cutscenes 40,000,000; buffer 8,000,000).
+- `assets/ledger/fal-spend.jsonl`, `content/npcs/roster.json` (pipeline fields), `config/guardrails.yaml` (`genai.lines` caps in micros, DL-OWN-07: spike 4,000,000; characters 42,000,000; cutscenes 38,000,000; vehiclesProps 14,000,000; buffer 2,000,000).
 - Root scripts **`assets:gen`** (extended), **`assets:optimize`**, **`assets:retarget`**, all under the `assets:*` family. `.gitignore` adds `.genai/`.
 - `docs/runbooks/roster-batch.md`: the `05-assets-pipeline.md` §12 steps as commands.
 - About 38 files.
@@ -92,7 +92,7 @@ After this session the R-NPC-02 character pipeline is an automated CLI. `pnpm as
 
 ## Risks & fallbacks
 - **Meshy bone names differ from the alias table** (U-AST-1): use M00c's recorded probe. If the spike was skipped, probe the canary's first rig output with `--probe-bones` and review the generated aliases before publish. A4 never passes on a guessed table.
-- **`image_urls` order sensitivity** (U-AST-2): send crops front, left, back, right; if H3 rejects both meshes, a reseed comes from the $8 buffer only with owner sign-off (Q-26).
+- **`image_urls` order sensitivity** (U-AST-2): send crops front, left, back, right; if H3 rejects both meshes, a reseed comes from the $2 buffer only with owner sign-off (Q-26).
 - **Extra-reference cost** (U7, assumed $0.01): the plan uses registry prices. The ledger records actual settles, and the weekly reconcile against the fal dashboard catches drift.
 - **No `ANTHROPIC_API_KEY`:** A1 and A2 become human-held checks, and the review record says so.
 
