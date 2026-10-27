@@ -20,7 +20,8 @@
     "test": "tsx ../../../tools/ci/run.ts vitest --pkg packages/modes/fighter",
     "fighter:lint": "tsx scripts/lint.ts",
     "fighter:replay": "tsx scripts/replay.ts",
-    "fighter:bench": "tsx scripts/bench.ts"
+    "fighter:bench": "tsx scripts/bench.ts",
+    "fighter:gen-kits": "tsx scripts/gen-kits.ts"
   },
   "dependencies": {
     "@dv/engine": "workspace:*",

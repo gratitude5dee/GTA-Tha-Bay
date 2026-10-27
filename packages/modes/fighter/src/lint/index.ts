@@ -111,6 +111,16 @@ function hitIssues(k: FighterDef): LintIssue[] {
     if (m.hits.length > 0 && m.active < 1) out.push({ rule: 'hit-window', where: m.id, message: 'a move with hits needs at least one active frame' });
   }
   k.projectiles.forEach((p, i) => {
+    if (p.behavior === 'orbit' || p.behavior === 'summon') {
+      // A drone or crew member carries no hit of its own; what it fires must exist and must itself be a striking projectile.
+      for (const id of p.child?.defs ?? []) {
+        const c = k.projectiles.find((q) => q.id === id);
+        if (c === undefined) out.push({ rule: 'spawn-ref', where: `projectiles[${i}].child`, message: `unknown projectile ${id}` });
+        else if (c.behavior === 'orbit' || c.behavior === 'summon') out.push({ rule: 'spawn-ref', where: `projectiles[${i}].child`, message: `${id} is an entity, not a shot` });
+      }
+      if (p.hit.damage > 0 || p.hit.boxes.length > 0) out.push({ rule: 'hit-window', where: `projectiles[${i}]`, message: 'a drone or crew member does not strike itself' });
+      return;
+    }
     if (p.hit.boxes.length === 0 || !reaches(k, p.hit.boxes, 0, 2000, 100)) out.push({ rule: 'hit-no-overlap', where: `projectiles[${i}]`, message: 'a projectile hit must reach a hurtbox' });
   });
   return out;
@@ -196,14 +206,19 @@ function stanceOf(m: MoveDef): number { return m.kind === 'air' ? 2 : m.input.t 
 function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
   const moves = [...k.moves, ...k.supers];
   const edges = new Map<string, string[]>();
+  // `string` kits may cancel one special into another, at most STRING_MAX times per touch (the engine counts it): those edges are
+  // kept apart so the cycle search ignores them and the path walk spends at most STRING_MAX of them.
+  const stringKit = k.gimmick?.id === 'string';
+  const sEdges = new Map<string, string[]>();
   for (const m of moves) {
-    const to = new Set<string>();
+    const to = new Set<string>(), sto = new Set<string>();
     for (const c of m.cancels) {
       if (c.into === 'chain') for (const n of moves) if (n.kind === 'normal' && strength(n) > strength(m) && stanceOf(n) === stanceOf(m)) to.add(n.id);
-      if (c.into === 'special') for (const n of moves) if (n.kind === 'special' || n.kind === 'super') to.add(n.id);
+      if (c.into === 'special') for (const n of moves) if (n.kind === 'special' || n.kind === 'super') (stringKit && m.kind === 'special' && n.kind === 'special' ? sto : to).add(n.id);
       if (c.into === 'super') for (const n of moves) if (n.kind === 'super') to.add(n.id);
     }
     edges.set(m.id, [...to].sort());
+    sEdges.set(m.id, [...sto].sort());
   }
   const byId = new Map(moves.map((m) => [m.id, m]));
   const out: LintIssue[] = [];
@@ -224,7 +239,7 @@ function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
   // longest / heaviest path with scaling
   const maxHealth = k.health;
   let worstHits = 0, worstDmg = 0, worstPath = '';
-  const walk = (id: string, hits: number, dmg: number, path: string): void => {
+  const walk = (id: string, hits: number, dmg: number, path: string, strung = 0): void => {
     const m = byId.get(id) as MoveDef;
     let h = hits, d = dmg;
     for (const hh of m.hits) {
@@ -236,7 +251,8 @@ function loopIssues(k: FighterDef, tuning: FightTuning): LintIssue[] {
     const p = path === '' ? id : `${path} > ${id}`;
     if (h > worstHits) { worstHits = h; if (h > tuning.MAX_COMBO_HITS) worstPath = p; }
     if (d > worstDmg) { worstDmg = d; if (d > 0.7 * maxHealth) worstPath = p; }
-    for (const n of edges.get(id) ?? []) walk(n, h, d, p);
+    for (const n of edges.get(id) ?? []) walk(n, h, d, p, strung);
+    if (strung < 2) for (const n of sEdges.get(id) ?? []) walk(n, h, d, p, strung + 1);
   };
   for (const m of moves) walk(m.id, 0, 0, '');
   if (worstHits > tuning.MAX_COMBO_HITS) out.push({ rule: 'combo-loop', where: worstPath, message: `a touch can reach ${worstHits} hits (limit ${tuning.MAX_COMBO_HITS})` });
