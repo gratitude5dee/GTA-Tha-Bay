@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
-  FB, FF, FIGHTER_BASE, FM, FightCore, Phase, St, buildPack, decodeInputs, decodeReplay, encodeInputs, encodeReplay, verifyReplay,
+  FB, FF, FIGHTER_BASE, FM, FightCore, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW, Phase, St, buildPack, decodeInputs, decodeReplay, encodeInputs, encodeReplay, verifyReplay,
 } from '@dv/shared/fight';
 import type { FighterDef, FightEvent } from '@dv/shared/fight';
 import { loadPack } from '../src/pack-files.ts';
@@ -17,12 +17,13 @@ const golden = (n: string): string => path.join(here, '..', 'golden', n);
 const pack = loadPack(root);
 const text1 = readFileSync(golden('vs-001.dvfight'), 'utf8');
 const text2 = readFileSync(golden('vs-002.dvfight'), 'utf8');
+const text3 = readFileSync(golden('vs-003.dvfight'), 'utf8');
 const tmp = mkdtempSync(path.join(tmpdir(), 'dv-replay-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
 describe('golden replays', () => {
-  it('both pass the replay schema and re-simulate to every checkpoint', () => {
-    for (const t of [text1, text2]) {
+  it('all three pass the replay schema and re-simulate to every checkpoint', () => {
+    for (const t of [text1, text2, text3]) {
       expect(lintReplay(JSON.parse(t) as unknown)).toEqual([]);
       const rep = decodeReplay(t);
       expect(rep.frameDataHash).toBe(pack.hash);
@@ -84,9 +85,32 @@ describe('golden replays', () => {
     expect(t.timeUp).toBe(1);
     expect(t.ko).toBe(0);
   });
+  it('vs-003 covers drones, sine shots, arcs of three levels, armor and a summon (shooter against visionary)', () => {
+    const rep = decodeReplay(text3);
+    expect(rep.lineup.map((l) => l.slot)).toEqual(['ATH_SHOOTER', 'TECH_VISIONARY']);
+    const sim = new FightCore();
+    const buf = sim.init(pack, rep.rules, rep.seed, rep.lineup);
+    const a = decodeInputs(rep.inputs[0]), b = decodeInputs(rep.inputs[1]);
+    const seen = new Set<string>();
+    let armorHits = 0;
+    const sink = { push(e: FightEvent): void { if (e.kind === 'hit' && e.b === 2 && e.slot === 0) armorHits++; } };
+    for (let i = 0; i < a.length; i++) {
+      sim.step(buf, a[i] as number, b[i] as number, sink);
+      for (let p = 0; p < PROJ_MAX; p++) {
+        const base = PROJ_BASE + p * PROJ_WORDS;
+        const owner = (buf[base + PW.Owner] as number) - 1;
+        if (owner < 0) continue;
+        const def = pack.kits[rep.lineup[owner as 0 | 1].slot].projectiles[buf[base + PW.Def] as number];
+        if (def) seen.add(def.id);
+      }
+    }
+    for (const id of ['agent', 'agentShot', 'arc1', 'arc2', 'arc3', 'crew', 'crewShot']) expect(seen.has(id), id).toBe(true);
+    expect(armorHits).toBeGreaterThanOrEqual(1);
+  });
   it('the files are stored in canonical form (encode of decode is byte-identical)', () => {
     expect(encodeReplay(decodeReplay(text1)) + '\n').toBe(text1);
     expect(encodeReplay(decodeReplay(text2)) + '\n').toBe(text2);
+    expect(encodeReplay(decodeReplay(text3)) + '\n').toBe(text3);
   });
 });
 

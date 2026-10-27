@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.influencer",
+  "variants": {
+    "default": "assets/src/portrait/graybox.influencer/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:influencer"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

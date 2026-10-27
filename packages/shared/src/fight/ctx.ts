@@ -25,6 +25,8 @@ export interface Ctx {
   cN: number; cAtk: Int32Array; cKind: Int32Array; cIdx: Int32Array; cHitNo: Int32Array; cHit: (HitDef | null)[];
   cMv: (CMove | null)[]; cEx: Int32Array; cSimple: Int32Array;
   throwReach: [number, number];
+  // child shots fired by a drone or crew member this tick, placed after the projectile pass (so a new shot is not stepped in its birth tick)
+  pendN: number; pendOwner: Int32Array; pendDef: Int32Array; pendX: Int32Array; pendY: Int32Array; pendDir: Int32Array;
 }
 
 export const SCHEME_CLASSIC = 0, SCHEME_SIMPLE = 1, SCHEME_POSE = 2;
@@ -45,6 +47,7 @@ export function newCtx(pack: CompiledPack, rules: FightRules, kit: [CKit, CKit],
     cHitNo: new Int32Array(MAX_CAND), cHit: hits,
     cMv: mvs, cEx: new Int32Array(MAX_CAND), cSimple: new Int32Array(MAX_CAND),
     throwReach: [900, 900],
+    pendN: 0, pendOwner: new Int32Array(16), pendDef: new Int32Array(16), pendX: new Int32Array(16), pendY: new Int32Array(16), pendDir: new Int32Array(16),
   };
 }
 

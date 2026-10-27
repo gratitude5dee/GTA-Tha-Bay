@@ -21,6 +21,9 @@ import {
   MODE_FIGHT, MODE_FINISH, MODE_FINISH_START, MODE_NONE, MODE_REACT, afterFight, inputLocked, phaseTick, resetRound,
 } from './rounds.ts';
 import { hashBuffer, rngSeed } from './hash.ts';
+import {
+  chargeHoldFrame, chargeLevel, gimmickMoveStart, gimmickTick, moveAllowed, scaledSpeed, specialCancelOk, startupSkip, CHARGE_MAX,
+} from './gimmicks.ts';
 
 const g = (b: Int32Array, i: number): number => b[i] as number;
 const ALL = (1 << Cls.Normal) | (1 << Cls.Command) | (1 << Cls.Special) | (1 << Cls.Super);
@@ -87,7 +90,7 @@ function pickClassic(c: Ctx, buf: Int32Array, tick: number, i: number, clsMask: 
     if (((clsMask >> m.cls) & 1) === 0 || m.air !== air || !schemeOk(m, sc)) continue;
     if (sc !== SCHEME_CLASSIC && (m.cls === Cls.Special || m.cls === Cls.Super || m.pat === 3)) continue;   // Simple reaches these through SP, HY, L+H
     if (chainStr >= 0 && !(m.def.kind === 'normal' && m.strength > chainStr && m.stance === chainStance)) continue;
-    if (m.cost > hype) continue;
+    if (m.cost > hype || !moveAllowed(c, buf, i, m)) continue;
     const r = matchMove(buf, rb, tick, m, pp, ps);
     if (r === 0) continue;
     // Inside the best class the freshest completion wins (a 236236 with no meter throws the fireball, not the 623 it also contains),
@@ -128,7 +131,7 @@ function pickSimple(c: Ctx, buf: Int32Array, tick: number, i: number, clsMask: n
       const mi = kit.simpleSpecial[slot] as number;
       if (mi < 0) break;
       const m = kit.moves[mi] as CMove;
-      if (m.cost > hype) break;
+      if (m.cost > hype || !moveAllowed(c, buf, i, m)) break;
       const exAsk = (ringInput(buf, rb, tick, a) & FB.AS) !== 0;
       c.iEx[i] = exAsk && m.hasEx && hype >= m.cost + c.tun.STOCK ? 1 : 0;
       return mi;
@@ -196,7 +199,7 @@ function computeIntent(c: Ctx, buf: Int32Array, tick: number, i: number): void {
       if (mf < e.from || mf > e.to) continue;
       if (!e.on.includes(res === 1 ? 'hit' : res === 2 ? 'block' : 'whiff')) continue;
       if (e.into === 'chain') { mask |= 1 << Cls.Normal; chain = true; }
-      else if (e.into === 'special') mask |= 1 << Cls.Special;
+      else if (e.into === 'special') { if (specialCancelOk(c, buf, i, s === St.Special)) mask |= 1 << Cls.Special; }
       else if (e.into === 'super') mask |= 1 << Cls.Super;
       else if (e.into === 'jump') jump = true;
       else dash = true;
@@ -227,6 +230,7 @@ function toIdle(buf: Int32Array, o: number): void {
 function startMove(c: Ctx, buf: Int32Array, tick: number, i: number, mi: number, ex: boolean, simple: boolean, auto = false): void {
   const o = FIGHTER_BASE[i] as number;
   const m = kitOf(c, i).moves[mi] as CMove;
+  const prevS = g(buf, o + FF.State);
   const cost = m.cost + (ex ? c.tun.STOCK : 0);
   buf[o + FF.Hype] = Math.max(0, g(buf, o + FF.Hype) - cost);
   const k = m.def.kind;
@@ -238,6 +242,8 @@ function startMove(c: Ctx, buf: Int32Array, tick: number, i: number, mi: number,
   buf[o + FF.BufAge] = tick; buf[o + FF.BufMove] = 0;
   buf[o + FF.ChargeBack] = 0; buf[o + FF.ChargeDown] = 0; buf[o + FF.DashFrames] = 0;
   if (auto) buf[o + FF.AiMacroStep] = 0;
+  gimmickMoveStart(c, buf, i, m, isMoveState(prevS) && prevS !== St.Taunt && prevS !== St.Shutdown, prevS === St.Special);
+  buf[o + FF.MoveFrame] = startupSkip(c, buf, i, m);
   if (k === 'super') {
     c.freeze = Math.max(c.freeze, c.tun.SUPER_FREEZE);
     emit(c, tick, 'super', i as 0 | 1, g(buf, o + FF.X), g(buf, o + FF.Y), mi, ex ? 1 : 0);
@@ -300,6 +306,13 @@ function runMove(c: Ctx, buf: Int32Array, tick: number, i: number, o: number, s:
   let m = kitOf(c, i).moves[g(buf, o + FF.Move)];
   if (m === undefined) { toIdle(buf, o); return; }
   if (s === St.Auto && autoStep(c, buf, i, o, m)) m = kitOf(c, i).moves[g(buf, o + FF.Move)] as CMove;
+  // Charge (ath_shooter): the move waits on its hold frame while the button stays down, up to CHARGE_MAX frames.
+  const hold = chargeHoldFrame(c, i, m);
+  if (hold >= 0 && g(buf, o + FF.MoveFrame) === hold && g(buf, o + FF.Gimmick0) < CHARGE_MAX
+    && (ringInput(buf, RING_BASE[i] as number, tick, 0) & m.mask) !== 0) {
+    buf[o + FF.Gimmick0] = g(buf, o + FF.Gimmick0) + 1;
+    return;
+  }
   const mf = g(buf, o + FF.MoveFrame) + 1;
   buf[o + FF.MoveFrame] = mf;
   const f = g(buf, o + FF.Facing);
@@ -319,10 +332,29 @@ function runMove(c: Ctx, buf: Int32Array, tick: number, i: number, o: number, s:
   for (let k = 0; k < m.spawnFrame.length; k++) {
     if ((m.spawnFrame[k] as number) !== mf) continue;
     const ex = g(buf, o + FF.Ex) !== 0;
-    spawnProjectile(c, buf, i, m.spawnProj[k] as number, ex, m.spawnOx[k] as number, m.spawnOy[k] as number);
+    const pi = (m.spawnProj[k] as number) + (hold >= 0 ? chargeLevel(buf, o) - 1 : 0);
+    spawnProjectile(c, buf, i, pi, ex, m.spawnOx[k] as number, m.spawnOy[k] as number);
   }
+  if (mf === m.S && m.def.tags.length > 0) moveTags(c, buf, i, o, m);
   if (mf >= m.T) finishMove(c, buf, i, o, m, s);
   void tick;
+}
+
+/** Tagged position moves fire on their first active frame: `swap` trades places with the opponent, `teleport` jumps forward (stage-clamped). */
+function moveTags(c: Ctx, buf: Int32Array, i: number, o: number, m: CMove): void {
+  const tags = m.def.tags;
+  const ov = FIGHTER_BASE[1 - i] as number;
+  const used = tags.includes('once');
+  if (tags.includes('swap')) {
+    const x = g(buf, o + FF.X);
+    buf[o + FF.X] = g(buf, ov + FF.X); buf[ov + FF.X] = x;
+    buf[o + FF.Facing] = -g(buf, o + FF.Facing); buf[ov + FF.Facing] = -g(buf, ov + FF.Facing);
+  } else if (tags.includes('teleport')) {
+    const lim = c.tun.STAGE_HALF_WIDTH;
+    const nx = g(buf, o + FF.X) + g(buf, o + FF.Facing) * 1800;
+    buf[o + FF.X] = nx > lim ? lim : nx < -lim ? -lim : nx;
+  }
+  if (used) buf[o + FF.OnceMask] = g(buf, o + FF.OnceMask) | 1;
 }
 
 function applyIntent(c: Ctx, buf: Int32Array, tick: number, i: number, o: number): void {
@@ -369,15 +401,16 @@ function advance(c: Ctx, buf: Int32Array, tick: number, i: number): void {
     case St.Idle: case St.WalkF: case St.WalkB: case St.Crouch: case St.CrouchDown: case St.StandUp: {
       const d = ringDir(buf, RING_BASE[i] as number, tick, 0);
       if (dirHas(d, 2)) buf[o + FF.State] = St.Crouch;
-      else if (dirHas(d, 6)) { buf[o + FF.State] = St.WalkF; buf[o + FF.X] = g(buf, o + FF.X) + f * kit.walk.f; }
-      else if (dirHas(d, 4)) { buf[o + FF.State] = St.WalkB; buf[o + FF.X] = g(buf, o + FF.X) - f * kit.walk.b; }
+      else if (dirHas(d, 6)) { buf[o + FF.State] = St.WalkF; buf[o + FF.X] = g(buf, o + FF.X) + f * scaledSpeed(c, buf, i, kit.walk.f); }
+      else if (dirHas(d, 4)) { buf[o + FF.State] = St.WalkB; buf[o + FF.X] = g(buf, o + FF.X) - f * scaledSpeed(c, buf, i, kit.walk.b); }
       else buf[o + FF.State] = St.Idle;
       break;
     }
     case St.DashF: case St.DashB: {
       const spec = s === St.DashF ? kit.dash.f : kit.dash.b;
       const k = sf - 1;
-      const step = Math.trunc((spec.dist * (k + 1)) / spec.frames) - Math.trunc((spec.dist * k) / spec.frames);
+      const dist = scaledSpeed(c, buf, i, spec.dist);
+      const step = Math.trunc((dist * (k + 1)) / spec.frames) - Math.trunc((dist * k) / spec.frames);
       buf[o + FF.X] = g(buf, o + FF.X) + (s === St.DashF ? f : -f) * step;
       buf[o + FF.DashFrames] = g(buf, o + FF.DashFrames) - 1;
       if (sf >= spec.frames) { toIdle(buf, o); buf[o + FF.DashFrames] = s === St.DashF ? -t.DASH_IMPLY : 0; }
@@ -535,7 +568,7 @@ function fightTick(c: Ctx, buf: Int32Array, tick: number, mode: number): void {
       if (g(buf, o + FF.Hitstop) < c.freeze) buf[o + FF.Hitstop] = c.freeze;
     }
   }
-  if (live) stepProjectiles(c, buf);
+  if (live) { gimmickTick(c, buf, 0); gimmickTick(c, buf, 1); stepProjectiles(c, buf); }
   computeInvuln(c, buf, 0);
   computeInvuln(c, buf, 1);
   if (live) { detect(c, buf); resolve(c, buf, tick); }

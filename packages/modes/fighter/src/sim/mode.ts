@@ -12,6 +12,7 @@ import { FF, decodeInputs, decodeReplay, fromInputFrame, hashBuffer } from '@dv/
 import type { DvFightReplay, FightRules, FighterDef, FighterLoadout, FightTuning, SchemeId } from '@dv/shared/fight';
 import { advanceCam, newCamState, planCamera, toDirective, type CamState } from './camera.ts';
 import { CpuDriver, kitInfo, type KitInfo } from './cpu/index.ts';
+import { talkLine } from './talk.ts';
 import { BOUTS, DEFAULT_STAGE, ROSTER, fighterPack, rosterBySlot, rosterEntry, stageDef } from './data.ts';
 import { getFighterHost } from './host.ts';
 import { FighterMatch } from './match.ts';
@@ -21,6 +22,12 @@ import { addXp, sliceFromJson, sliceToJson, withUnlocks, migrateSlice, type Figh
 import { DUMMY_MODES, TrainingState, type DummyMode } from './training.ts';
 import { VM_MENU, VM_REPLAY, VM_TRAIN, VM_VIEW, type MenuVm, type ReplayVm } from './vm.ts';
 import type { BoutDef, CpuLevel, EnterKind, FighterEnterParams, StageId } from '../types.ts';
+
+/** The pairings the attract mode (`?fighter=demo`) steps through: drones against arcs, sine shots against string cancels, armor against patch, poll against pulse. */
+const DEMO_PAIRS: readonly (readonly [string, string])[] = [
+  ['dev_visionary', 'dev_shooter'], ['dev_hyphy_elder', 'dev_lyricist'], ['dev_power_back', 'dev_hacker'], ['dev_influencer', 'standin_rap_new_wave'],
+];
+let demoCounter = 0;
 
 /** Frames after `MatchEnd` begins at which the results card opens (`MATCH_END` in the tuning table). */
 const RESULTS_AUTO_EXIT_TICKS = 150;
@@ -101,6 +108,11 @@ export class FighterSession {
     if (p.stage) this.sel.stage = p.stage;
     if (p.night !== undefined) this.sel.night = p.night;
     this.bot = p.bot === true;
+    // Attract mode (`?fighter=demo`): with no pair named, each run shows the next pairing of the v1 roster, so the new kits all get seen.
+    if (this.bot && !this.bout && !p.fighters) {
+      const pair = DEMO_PAIRS[demoCounter++ % DEMO_PAIRS.length] as readonly [string, string];
+      this.sel.p1 = pair[0]; this.sel.p2 = pair[1];
+    }
     this.manual = p.manual === true;
     this.reducedMotion = p.reducedMotion === true;
     this.moveListText = this.currentMoveList();
@@ -382,9 +394,16 @@ export class FighterSession {
       p1: s.p1, p2: s.p2, stage: s.stage, night: s.night, cpu: s.cpu, scheme: s.scheme, rounds: s.rounds,
       inputDisplay: this.slice.settings.inputDisplay,
       moveList: this.screen === 'match' && this.paused ? this.moveListText : [],
+      talk: this.talkFor(),
       results: this.result ? { outcome: this.result.outcome, rounds: this.result.rounds, durationSec: this.result.durationSec, xp: this.result.xp } : null,
       origin: this.origin,
     };
+  }
+
+  /** The pre- and post-fight line of the picked pair; the post line is the winner's (the player's side when the player won). */
+  private talkFor(): { pre: string; post: string } {
+    const a = rosterEntry(this.sel.p1)?.slot ?? 'PLAYER_FIGHTER', b = rosterEntry(this.sel.p2)?.slot ?? 'PLAYER_FIGHTER';
+    return { pre: talkLine(a, b, 'pre'), post: talkLine(a, b, 'post') };
   }
 
   publishMenu(force = false): void {

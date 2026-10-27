@@ -13,6 +13,9 @@ export class MacroPlayer {
   private at = 0;
   /** The word held after the script ends, until the next decision (walk, block); 0 = neutral. */
   hold = 0;
+  /** Scripts started, and how many the execution error damaged (a step dropped) or delayed. */
+  starts = 0;
+  errors = 0;
 
   get active(): boolean { return this.at < this.words.length; }
   get remaining(): number { return this.words.length - this.at; }
@@ -24,7 +27,9 @@ export class MacroPlayer {
     const words: number[] = [];
     let list = steps;
     let delay = 0;
+    this.starts++;
     if (errorPct > 0 && rng.nextFloat() * 100 < errorPct) {
+      this.errors++;
       if (steps.length > 1 && rng.nextFloat() < 0.5) {
         const drop = Math.min(steps.length - 2, Math.trunc(rng.nextFloat() * (steps.length - 1)));
         list = steps.filter((_, i) => i !== drop);

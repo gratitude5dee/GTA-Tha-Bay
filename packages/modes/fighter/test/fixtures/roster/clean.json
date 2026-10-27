@@ -1,0 +1,48 @@
+{
+  "note": "a consistent roster row: tier equals the soul's, a stand-in is present, no fame-domain overlap",
+  "roster": [
+    {
+      "slot": "TECH_HACKER",
+      "kit": "tech_hacker",
+      "fighterId": "dev_hacker",
+      "soulVersion": 1,
+      "expectedTier": "fictionalized",
+      "assets": {
+        "model": "character/graybox.tech-hacker",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.tech-hacker-moves",
+        "portrait": "portrait/graybox.tech-hacker"
+      },
+      "standIn": {
+        "fighterId": "standin_tech_hacker",
+        "assets": {
+          "model": "character/graybox.standin",
+          "animBase": "anim/graybox.fighter-base",
+          "animMoves": "anim/graybox.tech-hacker-moves",
+          "portrait": "portrait/graybox.standin"
+        }
+      },
+      "homeStage": "powell_turntable",
+      "v1": true
+    }
+  ],
+  "souls": [
+    {
+      "id": "dev_hacker",
+      "soulVersion": 1,
+      "tier": "fictionalized",
+      "fameDomain": []
+    }
+  ],
+  "stages": [
+    {
+      "id": "powell_turntable",
+      "tags": [
+        "turntable",
+        "cable_car",
+        "street"
+      ]
+    }
+  ],
+  "expect": []
+}

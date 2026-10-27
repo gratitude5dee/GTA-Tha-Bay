@@ -19,6 +19,8 @@ export const enum FF {                       // per-fighter word index (offset =
   ClearUsed, TauntTimer, ComboDamage, LastHitBy, CounterFlag, AiGoal, AiTimer, AiMacro, AiMacroStep,
   // 48..63: M08a1 uses these reserved words (BD-M08a1-03); the rest stay reserved.
   PushLeft = 48, PushTimer, Stun, AirKind, MoveHype, InvulnKind, ThrowTech, RiseQuick,
+  // M08b1 (BD-M08b1-01): bit 0 = a `once` tagged move (swap, teleport) was used this round.
+  OnceMask = 56,
 }
 export const enum FM {                       // match header words
   Tick, Phase, PhaseFrame, Round, RoundsWon0, RoundsWon1, Timer, Winner, SlowDiv, CinematicLeft, ShutdownWho,
@@ -28,7 +30,7 @@ export const enum FM {                       // match header words
 export const HASH_SKIP_WORD = 15;
 
 /** Projectile word indices (16 words per entry). */
-export const enum PW { Owner, Def, X, Y, VX, VY, Life, Hits, Frame, Dir, Ex, Cool, Hitstop, OriginY }
+export const enum PW { Owner, Def, X, Y, VX, VY, Life, Hits, Frame, Dir, Ex, Cool, Hitstop, OriginY, Aux, Aux2 }
 
 export const enum Phase { Load, Intro, Ready, Fight, Ko, TimeUp, Shutdown, Cinematic, RoundEnd, MatchEnd }
 /** RulesFlags bits. */

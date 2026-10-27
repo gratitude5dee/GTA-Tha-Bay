@@ -40,3 +40,5 @@ tests/tycoon/report.json
 
 # Work files of assets:gen (M05c4): the --finish --local fixture run writes here.
 .genai/
+packages/modes/fighter/balance/tune.json
+packages/modes/fighter/balance/dev.json

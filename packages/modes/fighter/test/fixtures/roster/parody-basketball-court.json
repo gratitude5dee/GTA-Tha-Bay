@@ -1,0 +1,51 @@
+{
+  "note": "a parody soul with fameDomain basketball on a home stage tagged arena_court",
+  "roster": [
+    {
+      "slot": "ATH_SHOOTER",
+      "kit": "ath_shooter",
+      "fighterId": "dev_shooter",
+      "soulVersion": 1,
+      "expectedTier": "parody",
+      "assets": {
+        "model": "character/graybox.ath-shooter",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.ath-shooter-moves",
+        "portrait": "portrait/graybox.ath-shooter"
+      },
+      "standIn": {
+        "fighterId": "standin_ath_shooter",
+        "assets": {
+          "model": "character/graybox.standin",
+          "animBase": "anim/graybox.fighter-base",
+          "animMoves": "anim/graybox.ath-shooter-moves",
+          "portrait": "portrait/graybox.standin"
+        }
+      },
+      "homeStage": "mission_bay_court",
+      "v1": true
+    }
+  ],
+  "souls": [
+    {
+      "id": "dev_shooter",
+      "soulVersion": 1,
+      "tier": "parody",
+      "fameDomain": [
+        "basketball"
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "id": "mission_bay_court",
+      "tags": [
+        "arena_court",
+        "waterfront"
+      ]
+    }
+  ],
+  "expect": [
+    "roster-fame-stage"
+  ]
+}

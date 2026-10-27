@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.tech-visionary",
+  "variants": {
+    "default": "assets/src/character/graybox.tech-visionary/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.tech-visionary-moves",
+    "portrait/graybox.tech-visionary"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:tech-visionary"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "tech-visionary",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.tech-visionary-moves"
+    ],
+    "portrait": "portrait/graybox.tech-visionary"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

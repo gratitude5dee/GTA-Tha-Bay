@@ -4,7 +4,8 @@
  */
 import type { FighterDef, InputPattern, MoveDef } from '@dv/shared/fight';
 import { derivedAdvantage } from '@dv/shared/fight';
-import { ROSTER, STAGES } from './data.ts';
+import { ROSTER, STAGES, loadedFighterOf } from './data.ts';
+import { disclaimerKey } from './roster.ts';
 import type { MenuVm } from './vm.ts';
 
 const BUTTON_NAMES: [number, string][] = [[16, 'LP'], [32, 'MP'], [64, 'HP'], [128, 'LK'], [256, 'MK'], [512, 'HK'], [8192, 'TA']];
@@ -56,7 +57,10 @@ export function moveList(def: FighterDef, scheme: 'classic' | 'simple'): MenuVm[
 }
 
 export const fighterRows = (unlocked: readonly string[]): MenuVm['fighters'] =>
-  ROSTER.map((r) => ({ id: r.id, nameKey: r.nameKey, locked: !unlocked.includes(r.id) }));
+  ROSTER.map((r) => {
+    const lf = loadedFighterOf(r.id);
+    return { id: r.id, nameKey: r.nameKey, locked: !unlocked.includes(r.id), card: lf ? disclaimerKey(lf.tier) : null };
+  });
 
 export const stageRows = (): MenuVm['stages'] =>
   Object.values(STAGES).map((s) => ({ id: (s as { id: string }).id, nameKey: (s as { nameKey: string }).nameKey }));

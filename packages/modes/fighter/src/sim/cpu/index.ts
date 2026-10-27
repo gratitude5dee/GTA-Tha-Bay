@@ -12,10 +12,12 @@ import type { CpuLevel } from '../../types.ts';
 import { decide, type Decision } from './decide.ts';
 import { AI_DIVISOR, DECISION_MIN, DECISION_SPREAD, DECISION_STEP, levelParams, reactionRange, type CpuLevelParams } from './levels.ts';
 import { MacroPlayer, blockWord } from './macro.ts';
-import { dirBits, type KitInfo } from './moves.ts';
+import { dirBits, type KitInfo, type MacroStep } from './moves.ts';
 import { Perception } from './perception.ts';
+import { enabledHabits } from './habits.ts';
 
 export { CPU_LEVELS, levelParams } from './levels.ts';
+export { DEFAULT_HABITS } from './habits.ts';
 export { kitInfo } from './moves.ts';
 export type { KitInfo, MoveInfo } from './moves.ts';
 
@@ -38,6 +40,10 @@ export class CpuDriver {
   private readonly kit: KitInfo;
   private readonly oppKit: KitInfo;
   private readonly ai: AiProfile;
+  /** The habits this level knows: the first 3 / 5 / 8 / 12 of the kit's list. */
+  readonly habits: ReadonlySet<string>;
+  /** How often each habit proposed the action that was played (QA and the level tests). */
+  readonly habitCounts = new Map<string, number>();
   private nextAt = 0;
   /** Ticks at which a decision was made (QA and the tests; the last 256). */
   readonly decisionTicks: number[] = [];
@@ -53,6 +59,7 @@ export class CpuDriver {
     this.kit = o.kit;
     this.oppKit = o.oppKit;
     this.ai = o.ai ?? o.kit.def.ai;
+    this.habits = enabledHabits(this.ai.habits, this.params.habits);
     this.perception = new Perception(o.slot);
     this.rng = new Rng(splitmix32((o.seed ^ fnv32(`cpu:${o.slot}`)) | 0));
   }
@@ -72,8 +79,10 @@ export class CpuDriver {
     const percept = this.perception.at(tick, this.delay);
     const d = decide({
       me: this.slot, buf, kit: this.kit, oppKit: this.oppKit, ai: this.ai, level: this.params, rng: this.rng, percept, delay: this.delay,
+      habits: this.habits,
     });
     this.last = d;
+    if (d.habit !== '') this.habitCounts.set(d.habit, (this.habitCounts.get(d.habit) ?? 0) + 1);
     if (d.punish) this.punishes++;
     this.decisionTicks.push(tick);
     if (this.decisionTicks.length > 256) this.decisionTicks.shift();
@@ -93,15 +102,28 @@ export class CpuDriver {
       case 'jumpF': this.macro.start([{ d: 9, b: 0, n: 1 }], facing, 0, this.rng); break;
       case 'dashF': this.macro.start([{ d: 6, b: 0, n: 1 }, { d: 5, b: 0, n: 1 }, { d: 6, b: 0, n: 1 }], facing, err, this.rng); break;
       case 'dashB': this.macro.start([{ d: 4, b: 0, n: 1 }, { d: 5, b: 0, n: 1 }, { d: 4, b: 0, n: 1 }], facing, err, this.rng); break;
-      case 'jumpIn': this.macro.start([{ d: 9, b: 0, n: 1 }, { d: 5, b: 0, n: 12 }, { d: 5, b: FB.MP, n: 2 }], facing, 0, this.rng); break;
-      case 'taunt': this.macro.start([{ d: 5, b: FB.TA, n: 2 }], facing, 0, this.rng); break;
+      case 'jumpIn': this.macro.start([{ d: 9, b: 0, n: 1 }, { d: 5, b: 0, n: 12 }, { d: 5, b: FB.MP, n: 2 }], facing, err, this.rng); break;
+      case 'taunt': this.macro.start([{ d: 5, b: FB.TA, n: 2 }], facing, err, this.rng); break;
+      case 'check': this.macro.start([{ d: 5, b: FB.MP | FB.MK, n: 2 }], facing, err, this.rng); break;
+      case 'clear': this.macro.start([{ d: 5, b: FB.HP | FB.HK, n: 2 }], facing, err, this.rng); break;
       case 'move': {
         const m = this.kit.moves[d.move];
-        if (m) this.macro.start(m.macro, facing, err, this.rng);
+        if (!m) break;
+        let steps: readonly MacroStep[] = d.ex && m.exMacro !== null ? m.exMacro : m.macro;
+        // A charge move is held on its charge frame: a short, a medium or a long hold.
+        if (m.charge) {
+          const hold = [2, 18, 32][Math.min(2, Math.trunc(this.rng.nextFloat() * 3))] as number;
+          const last = steps[steps.length - 1] as MacroStep;
+          steps = [...steps.slice(0, -1), { ...last, n: hold }];
+        }
+        this.macro.start(steps, facing, err, this.rng);
         break;
       }
     }
   }
+
+  /** Macro scripts started and how many of them were damaged or delayed by the level's execution error. */
+  execStats(): { starts: number; errors: number } { return { starts: this.macro.starts, errors: this.macro.errors }; }
 
   /** Forgets everything (a new round or a rematch). */
   reset(): void {

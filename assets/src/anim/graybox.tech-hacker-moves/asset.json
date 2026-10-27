@@ -1,0 +1,23 @@
+{
+  "kind": "anim",
+  "id": "graybox.tech-hacker-moves",
+  "variants": {
+    "default": "assets/src/anim/graybox.tech-hacker-moves/default.glb"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:tech-hacker"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

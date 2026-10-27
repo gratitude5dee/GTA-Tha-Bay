@@ -208,7 +208,7 @@
         },
         "soul": {
           "type": "string",
-          "pattern": "^content(-private)?/npcs/[a-z0-9_-]+/soul\\.md$"
+          "pattern": "^content(-private)?/npcs/(fighters-dev/)?[a-z0-9_-]+/soul\\.md$"
         },
         "status": {
           "enum": [
