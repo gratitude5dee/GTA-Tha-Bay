@@ -59,6 +59,12 @@ async function setup(opts: { held?: boolean; window?: number } = {}) {
 
 const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
+/** Polls until `ok()` holds (real timers; hashing and commits take a loaded runner more than one macrotask). */
+async function until(ok: () => boolean, ms = 5000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!ok() && Date.now() < end) await new Promise<void>((r) => setTimeout(r, 5));
+}
+
 describe('PackStore prefetch promotion (M02f2)', () => {
   it('join: a now get of a started idle prefetch makes one fetch and promotes the fetcher request', async () => {
     const { fetcher, store, packs, a, b, c } = await setup();
@@ -95,6 +101,7 @@ describe('PackStore prefetch promotion (M02f2)', () => {
     fetcher.release();
     await tick();
     await store.settled();
+    await until(() => fetcher.started.length >= 3);
     expect(fetcher.started.map((s) => s.url).sort()).toEqual([a.url, b.url, c.url].sort());
     expect(fetcher.started.find((s) => s.url === c.url)?.priority).toBe('idle');
   });
@@ -104,6 +111,7 @@ describe('PackStore prefetch promotion (M02f2)', () => {
     files.limitBytes = 0; // every write throws QuotaExceededError; no row exists to evict
     store.prefetch([a, b, c], 'idle');
     await tick();
+    await until(() => events.includes('commit-failed:quota') && store.stats.prefetchStops >= 1);
     await tick();
     expect(fetcher.started.map((s) => s.url)).toEqual([a.url]);
     expect(events).toContain('commit-failed:quota');
