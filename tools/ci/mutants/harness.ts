@@ -12,9 +12,11 @@ import { readGolden, sameTrace } from '../../../packages/engine/src/qa/golden.ts
 import { readFixturePacks } from '../../../packages/engine/src/qa/node.ts';
 import { createCanonicalRunner, DEFAULT_DEPS, type RunnerDeps } from '../../../packages/engine/src/qa/runner.ts';
 import { readFileSync } from 'node:fs';
-import { newRefereeState, refereeStep, straightRaceDef, type RaceEvent } from '../../../packages/shared/src/index.ts';
+import { decodeReplay, newRefereeState, refereeStep, replayMismatch, straightRaceDef, type InputFrame, type RaceEvent } from '../../../packages/shared/src/index.ts';
 import { RACING_GOLDEN, racingSpec } from '../../../packages/modes/racing/src/qa/specs.ts';
 import { registerRacingQa } from '../../../packages/modes/racing/src/qa/index.ts';
+import { replayFrames, runHeadless } from '../../../packages/modes/racing/src/qa/headless.ts';
+import { ReplayViewer } from '../../../packages/modes/racing/src/replay/viewer.ts';
 import { runEconSuite } from '../econ-sim/index.ts';
 import { runSuite } from '../tycoon-sim/cli.ts';
 import type { Policy } from '../tycoon-sim/policies.ts';
@@ -68,9 +70,32 @@ export const ECON: MutantSuite<ModelDeps> = {
   },
 };
 
-/** The knobs of the `racing` suite: the runner's (bot stream, skipped ticks) and the referee that counts gates. */
+/**
+ * The knobs of the `racing` suite: the runner's (bot stream, skipped ticks), the referee that counts gates, and the two rules of a
+ * replay (M07a2): whether the frame source of a re-simulation drops the frame at index `i` (`replayTickSkip`) and how a header is
+ * compared with the running build (`replayMismatch`).
+ */
 export interface RacingDeps extends RunnerDeps {
   referee: typeof refereeStep;
+  replayTickSkip(i: number): boolean;
+  replayMismatch: typeof replayMismatch;
+}
+
+let downhill: Promise<{ bytes: Uint8Array; finishTick: number | null; gateTicks: number[]; endHash: string; spec: ReturnType<typeof racingSpec>; corridor: Uint8Array }> | null = null;
+
+/** The recorded race the replay checks re-simulate: the Twin Peaks downhill with the line bot (recorded once per process). */
+function recordedDownhill(): NonNullable<typeof downhill> {
+  downhill ??= (async () => {
+    const id = 'sf.downhill.twin-peaks-mission';
+    const corridor = new Uint8Array(readFileSync(path.join(toolsRoot, 'content', 'races', id, 'corridor.bin')));
+    const spec = racingSpec({ raceId: id, maxTicks: 12_000 });
+    const run = await runHeadless(spec, corridor);
+    const a = run.attempt;
+    run.dispose();
+    if (!a || !a.run || !a.run.hasInputs) throw new Error('racing mutant suite: the downhill recording has no inputs');
+    return { bytes: a.run.bytes, finishTick: a.finishTick, gateTicks: a.gateTicks, endHash: a.endHash, spec, corridor };
+  })();
+  return downhill;
 }
 
 /**
@@ -80,7 +105,7 @@ export interface RacingDeps extends RunnerDeps {
  */
 export const RACING: MutantSuite<RacingDeps> = {
   id: 'racing',
-  base: { ...DEFAULT_DEPS, referee: refereeStep },
+  base: { ...DEFAULT_DEPS, referee: refereeStep, replayTickSkip: () => false, replayMismatch },
   async run(deps) {
     registerRacingQa();
     const corridor = new Uint8Array(readFileSync(path.join(toolsRoot, 'content', 'races', 'sf.sprint.ferry-ocean-beach', 'corridor.bin')));
@@ -98,7 +123,29 @@ export const RACING: MutantSuite<RacingDeps> = {
     for (let s = 0, t = 1; s < 1010; s += 2, t++) events.push(...deps.referee(def, st, at(s, x(s)), at(s + 2, x(s + 2)), 20, t));
     const gates = events.filter((e) => e.t === 'race.gate').map((e) => (e as { i: number }).i);
     if (gates.join(',') !== '1,2') bad.push(`a skipped gate 3 gave gates ${gates.join(',') || 'none'}`);
-    return { pass: bad.length === 0, detail: bad.length ? bad.join('; ') : 'matches the golden; the skipped gate is not counted' };
+
+    // (c) a recorded run re-simulated from its inputs reproduces its finish tick, gate ticks and end hash
+    const rec = await recordedDownhill();
+    const decoded = decodeReplay(rec.bytes);
+    const again = await runHeadless(rec.spec, rec.corridor, {
+      frames: (session) => {
+        const src = replayFrames(decoded, session);
+        let n = 0;
+        return (tick): InputFrame => {
+          if (deps.replayTickSkip(n++)) src(tick);
+          return src(tick);
+        };
+      },
+    });
+    const b = again.attempt;
+    again.dispose();
+    if (!b || b.finishTick !== rec.finishTick || b.endHash !== rec.endHash || b.gateTicks.join() !== rec.gateTicks.join()) bad.push('the re-simulated replay differs from the recorded run');
+
+    // (d) a header of another handlingRev is not trusted: the viewer plays the track
+    const h = decoded.h;
+    const v = new ReplayViewer(rec.bytes, { handlingRev: h.handlingRev + 1, buildId: h.buildId, worldBake: h.worldBake }, { emit: () => undefined }, { mismatch: deps.replayMismatch });
+    if (v.mode !== 'track' || v.reason !== 'handlingRev') bad.push('a replay of another handlingRev was not flagged');
+    return { pass: bad.length === 0, detail: bad.length ? bad.join('; ') : 'matches the golden; the skipped gate is not counted; the replay re-simulates and a wrong handlingRev is flagged' };
   },
 };
 

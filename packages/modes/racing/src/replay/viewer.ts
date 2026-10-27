@@ -34,7 +34,8 @@ export class ReplayViewer {
   private current: 'exact' | 'track';
   private failure: VerifyFailure | null = null;
 
-  constructor(bytes: Uint8Array, cur: ReplayContext, private readonly tel: ViewerTelemetry) {
+  /** `opts.mismatch` replaces the header check (the mutant suites; nothing else sets it). */
+  constructor(bytes: Uint8Array, cur: ReplayContext, private readonly tel: ViewerTelemetry, opts: { mismatch?: typeof replayMismatch } = {}) {
     let d: DecodedReplay | null = null;
     try {
       d = decodeReplay(bytes);
@@ -42,7 +43,7 @@ export class ReplayViewer {
       d = null;
     }
     this.decoded = d;
-    this.mismatch = d ? replayMismatch(d.h, cur) : [];
+    this.mismatch = d ? (opts.mismatch ?? replayMismatch)(d.h, cur) : [];
     const exact = d !== null && this.mismatch.length === 0 && d.inputs !== null && d.h.profile === 'canonical';
     this.current = exact ? 'exact' : 'track';
     if (d === null) this.fail('format');
