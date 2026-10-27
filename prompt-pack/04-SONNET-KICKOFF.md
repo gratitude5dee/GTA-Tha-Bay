@@ -134,7 +134,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 54. M04b4 · offline-download-ui · 0.3 · M01e, M04b1 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy)
 55. M02f2 · boot-prefetch · 0.5 · M01e, M02b1, M04b1, M04a2 · none
 56. M01d3 · media-route-tuning · 0.4 · M01d2, M00e · AC-8 only: a staging deploy by the operator (`deploy.yml`)
-57. M02g1 · look-tune · 1 · M02e, M02f2, M01c, M05c2, M05c3 · the look study committed (`_PLAN.md` §0 rule 10); AC-13 the operator's `sf` bake; AC-14 Q-13 iPhone 15; the operator copies the owner's boot record (Step 0); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14)
+57. M02g1 · look-tune · 1 · M02e, M02f2, M01c, M05c2 · the look study committed (`_PLAN.md` §0 rule 10); AC-13 the operator's `sf` bake; AC-14 Q-13 iPhone 15; the operator copies the owner's boot record (Step 0); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14)
 58. M02g2 · look-fixes · 0.7 · M02g1, M02d2 · AC-12 operator staging republish, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 59. M02h1 · street-markings · 1 · M02g2, M02a2 · AC-12 Q-13 iPhone 15; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 60. M02h2 · curbs-sidewalks · 1 · M02h1 · AC-11 operator staging check, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`

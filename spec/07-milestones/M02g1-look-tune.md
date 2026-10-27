@@ -22,7 +22,6 @@ m.a1.01 keeps its dawn intro and releases the clock at the `truck` stage, so the
 - **M02f2:** shares `world-view.ts`, `world-bridge.ts`, `boot-world.ts`.
 - **M01c:** `RendererHost` (`PCFShadowMap`, `renderer-host.ts:4`), `RenderBudgetMeter`, probe `live()` (`platform/probe.ts:69`), `check:perf`, `perf:verify`.
 - **M05c2:** m.a1.01, `?play=story&story=1`, `@story-start`, `mission.jump`.
-- **M05c3:** the Act 1 prewarm, `beats.lock.json` and the `cut.story.m.a1.01.dawn` key that AC-9 holds unchanged (DL-741).
 - **The look study** (capture frames, render audit, art-source study) committed to the repository before this session starts (`_PLAN.md` §0 rule 10).
 - Contracts: C13 1.2, C04 1.1, C06 1.1, C08 1.0, unchanged; C09 1.1 (06 v1.5, DL-741), which this session lands.
 
@@ -150,6 +149,7 @@ How to see it:
 - **`@world-sky` gates fail:** tune grade data; gate changes go to the Architect.
 
 ## Notes for the Builder
+- **M05c3 is not a dependency (DL-742).** It is held on an owner gate. The `cut.story.m.a1.01.dawn` key and `beats.lock.json` that AC-9 holds unchanged are already on `claude/build` (M05b2, M05c2). Whichever of this milestone and M05c3 merges second re-runs AC-9 at its rebase.
 - Read `11-platform.md` §4.4, §5.1, `01-engine-save-modes.md` (clock), `03-story-missions.md` §C3, `03-story-cutscenes.md` §D3.4, M02e, and the study's render audit (items 0, 2, 3, 5, 9).
 - Verify `PCFSoftShadowMap` in `three@0.186.1` (spec/03 §7). The target image is never committed, sampled or sent to fal. Clock: 30 game s per real s.
 - Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14; SKIP locally); AC-13 needs the `sf` bake, AC-14 Q-13. Branch `m02g1-look-tune`.

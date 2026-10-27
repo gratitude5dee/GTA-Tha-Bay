@@ -86,7 +86,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 54 | M04b4 | offline-download-ui | 0.3 | M01e, M04b1 | READY | `M04b4-offline-download-ui.md` |
 | 55 | M02f2 | boot-prefetch | 0.5 | M01e, M02b1, M04b1, M04a2 | READY | `M02f2-boot-prefetch.md` |
 | 56 | M01d3 | media-route-tuning | 0.4 | M01d2, M00e | READY | `M01d3-media-route-tuning.md` |
-| 57 | M02g1 | look-tune | 1 | M02e, M02f2, M01c, M05c2, M05c3 | READY | `M02g1-look-tune.md` |
+| 57 | M02g1 | look-tune | 1 | M02e, M02f2, M01c, M05c2 | READY | `M02g1-look-tune.md` |
 | 58 | M02g2 | look-fixes | 0.7 | M02g1, M02d2 | READY | `M02g2-look-fixes.md` |
 | 59 | M02h1 | street-markings | 1 | M02g2, M02a2 | READY | `M02h1-street-markings.md` |
 | 60 | M02h2 | curbs-sidewalks | 1 | M02h1 | READY | `M02h2-curbs-sidewalks.md` |
