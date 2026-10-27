@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.tech-visionary",
+  "variants": {
+    "default": "assets/src/portrait/graybox.tech-visionary/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:tech-visionary"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

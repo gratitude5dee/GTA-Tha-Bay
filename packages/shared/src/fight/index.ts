@@ -10,4 +10,5 @@ export { hashBuffer, hashHex, rngNext, rngSeed } from './hash.ts';
 export { decodeInputs, decodeReplay, encodeInputs, encodeReplay, recordReplay, verifyReplay } from './replay.ts';
 export type { DvFightReplay, VerifyResult } from './replay.ts';
 export { capsulesOverlap, segDistSq } from './hit.ts';
+export * from './fame.ts';
 export { MODE_FIGHT, MODE_NONE, MODE_REACT } from './rounds.ts';

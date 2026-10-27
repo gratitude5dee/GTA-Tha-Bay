@@ -1,0 +1,23 @@
+{
+  "kind": "anim",
+  "id": "graybox.ath-power-back-moves",
+  "variants": {
+    "default": "assets/src/anim/graybox.ath-power-back-moves/default.glb"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:ath-power-back"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

@@ -50,6 +50,12 @@ function pickRow(doc: Document, m: MenuVm, slot: 0 | 1, send: Send): HTMLElement
     list.append(b);
   }
   row.append(list);
+  const card = m.fighters.find((f) => f.id === chosen)?.card;
+  if (card) {
+    const p = node(doc, 'p', 'dvf-note dvf-likeness', tt(card));
+    p.dataset['testid'] = `card-${slot}`;
+    row.append(p);
+  }
   return row;
 }
 

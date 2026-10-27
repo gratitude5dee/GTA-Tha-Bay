@@ -1,0 +1,40 @@
+{
+  "kind": "character",
+  "id": "graybox.standin",
+  "variants": {
+    "default": "assets/src/character/graybox.standin/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "portrait/graybox.standin"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:standin"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "standin",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base"
+    ],
+    "portrait": "portrait/graybox.standin"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

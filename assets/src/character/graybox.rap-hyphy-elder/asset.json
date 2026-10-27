@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.rap-hyphy-elder",
+  "variants": {
+    "default": "assets/src/character/graybox.rap-hyphy-elder/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.rap-hyphy-elder-moves",
+    "portrait/graybox.rap-hyphy-elder"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-hyphy-elder"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "rap-hyphy-elder",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.rap-hyphy-elder-moves"
+    ],
+    "portrait": "portrait/graybox.rap-hyphy-elder"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

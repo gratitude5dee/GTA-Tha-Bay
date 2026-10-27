@@ -23,7 +23,8 @@
     "fighter:bench": "tsx scripts/bench.ts",
     "fighter:gen-kits": "tsx scripts/gen-kits.ts",
     "fighter:balance": "tsx scripts/balance.ts",
-    "fighter:gen-souls": "tsx scripts/gen-souls.ts"
+    "fighter:gen-souls": "tsx scripts/gen-souls.ts",
+    "fighter:gen-graybox": "tsx scripts/gen-graybox.ts"
   },
   "dependencies": {
     "@dv/engine": "workspace:*",

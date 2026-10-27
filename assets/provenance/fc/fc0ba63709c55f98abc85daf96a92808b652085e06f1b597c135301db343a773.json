@@ -1,0 +1,30 @@
+{
+  "ai_generated": false,
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "created_at": "2026-10-25T00:00:00Z",
+  "derived_from": [],
+  "ip_checks": {
+    "signatures": "n/a",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "kind": "anim",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "likeness": {
+    "subject_id": null,
+    "tier": "original",
+    "face_reference_used": false,
+    "voice_mode": "none",
+    "photoreal": false
+  },
+  "origin": "authored",
+  "paths": [
+    "assets/src/anim/graybox.rap-hyphy-elder-moves/default.glb"
+  ],
+  "review": [],
+  "schema": "provenance/1.0",
+  "sha256": "fc0ba63709c55f98abc85daf96a92808b652085e06f1b597c135301db343a773",
+  "status": "active"
+}

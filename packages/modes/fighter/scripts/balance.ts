@@ -98,13 +98,11 @@ async function main(): Promise<void> {
   const n = slots.length;
   const wins: number[][] = slots.map(() => slots.map(() => 0));
   const games: number[][] = slots.map(() => slots.map(() => 0));
-  const sideWins: number[][][] = slots.map(() => slots.map(() => [0, 0]));
   let ticks = 0, total = 0, ko = 0, checks = 0, clears = 0, shutdowns = 0;
   for (const t of results) {
     const score = t.wins + t.draws / 2;
     wins[t.a]![t.b]! += score; wins[t.b]![t.a]! += t.n - score;
     games[t.a]![t.b]! += t.n; games[t.b]![t.a]! += t.n;
-    (sideWins[t.a]![t.b] as number[])[t.side] += score;
     ticks += t.ticks; total += t.n; ko += t.ko; checks += t.checks; clears += t.clears; shutdowns += t.shutdowns;
   }
   const matrix = slots.map((_, a) => slots.map((__, b) => (a === b || games[a]![b] === 0 ? null : Math.round((1000 * (wins[a]![b] as number)) / (games[a]![b] as number)) / 10)));

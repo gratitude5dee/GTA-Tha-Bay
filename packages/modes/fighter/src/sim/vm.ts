@@ -47,7 +47,8 @@ export interface MenuVm {
   screen: 'hub' | 'select' | 'match' | 'results';
   kind: 'versus' | 'training' | 'story' | 'arcade' | 'replay';
   paused: boolean;
-  fighters: { id: string; nameKey: string; locked: boolean }[];
+  /** `card`: the i18n key of the likeness card shown under the pick (FX4.3), or null (the player's own avatar). */
+  fighters: { id: string; nameKey: string; locked: boolean; card: string | null }[];
   stages: { id: string; nameKey: string }[];
   p1: string; p2: string; stage: string; night: boolean; cpu: number; scheme: 'classic' | 'simple'; rounds: number;
   inputDisplay: boolean;

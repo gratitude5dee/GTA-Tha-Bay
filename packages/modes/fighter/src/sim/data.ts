@@ -4,7 +4,7 @@
  * the C02 lint.
  */
 import { buildPack } from '@dv/shared/fight';
-import type { FighterDef, FightTuning, FrameDataPack } from '@dv/shared/fight';
+import type { FameConfig, FighterDef, FightTuning, FrameDataPack, RosterEntry as RosterRow } from '@dv/shared/fight';
 import tuningJson from '../../../../../config/fighter.tuning.json';
 import playerKit from '../../../../../content/fighter/kits/player.json';
 import rapNewWaveKit from '../../../../../content/fighter/kits/rap_new_wave.json';
@@ -17,13 +17,43 @@ import athPowerBackKit from '../../../../../content/fighter/kits/ath_power_back.
 import influencerKit from '../../../../../content/fighter/kits/influencer.json';
 import powellTurntable from '../../../../../content/fighter/stages/powell_turntable.json';
 import boutA5 from '../../../../../content/fighter/bouts/bout.a5.json';
+import rosterJson from '../../../../../content/fighter/roster.json';
+import devSoulBundle from '../../../../../content/npcs/fighters-dev/bundle.json';
+import fameJson from '../../../../../config/fame-domains.json';
 import type { BoutDef, RosterEntry, StageDef, StageId } from '../types.ts';
+import { loadRoster } from './roster.ts';
+import type { LoadedFighter, RosterIssue, SoulLite } from './roster.ts';
 
 /** The two gray-box fighters of VS-Fighter. The ids are the unlock grants (`config/unlocks.json`); the second is the stand-in of the roster slot. */
 export const ROSTER: readonly RosterEntry[] = [
   { id: 'player', slot: 'PLAYER_FIGHTER', nameKey: 'fighter.name.player', colors: { body: 0x2f6fdd, trim: 0xf2c14e } },
   { id: 'standin_rap_new_wave', slot: 'RAP_NEW_WAVE', nameKey: 'fighter.name.standin_rap_new_wave', colors: { body: 0xd2467a, trim: 0x3ad6c2 } },
+  // The other six slots of the v1 roster (M08b1): ids are the development souls' ids; the colours match the gray-box assets.
+  { id: 'dev_hyphy_elder', slot: 'RAP_HYPHY_ELDER', nameKey: 'fighter.name.dev_hyphy_elder', colors: { body: 0xe8873a, trim: 0xf6d86b } },
+  { id: 'dev_lyricist', slot: 'RAP_LYRICIST', nameKey: 'fighter.name.dev_lyricist', colors: { body: 0x3f8f6b, trim: 0xd9e6df } },
+  { id: 'dev_visionary', slot: 'TECH_VISIONARY', nameKey: 'fighter.name.dev_visionary', colors: { body: 0x2b4a7a, trim: 0xc9d6ea } },
+  { id: 'dev_hacker', slot: 'TECH_HACKER', nameKey: 'fighter.name.dev_hacker', colors: { body: 0xe0c53a, trim: 0x2fb7b0 } },
+  { id: 'dev_shooter', slot: 'ATH_SHOOTER', nameKey: 'fighter.name.dev_shooter', colors: { body: 0x5fd0a5, trim: 0xffffff } },
+  { id: 'dev_power_back', slot: 'ATH_POWER_BACK', nameKey: 'fighter.name.dev_power_back', colors: { body: 0xa45a36, trim: 0xd8c8ae } },
+  { id: 'dev_influencer', slot: 'INFLUENCER', nameKey: 'fighter.name.dev_influencer', colors: { body: 0xee7766, trim: 0xffd6c9 } },
 ];
+
+/** `content/fighter/roster.json` bound to the compiled public souls of the development bundle; the tier of each fighter is the soul's (FX4.1). */
+export const FAME: FameConfig = fameJson as unknown as FameConfig;
+export const ROSTER_ENTRIES: readonly RosterRow[] = rosterJson as unknown as RosterRow[];
+let loaded: { fighters: LoadedFighter[]; issues: RosterIssue[] } | null = null;
+export function fighterRoster(): { fighters: LoadedFighter[]; issues: RosterIssue[] } {
+  if (loaded) return loaded;
+  const souls = new Map<string, SoulLite>();
+  for (const s of (devSoulBundle as unknown as { souls: SoulLite[] }).souls) souls.set(s.id, s);
+  loaded = loadRoster(ROSTER_ENTRIES, souls, FAME);
+  return loaded;
+}
+/** The loaded fighter of a UI roster id (`player` has none: it is the player's own avatar). */
+export const loadedFighterOf = (id: string): LoadedFighter | undefined => {
+  const slot = ROSTER.find((r) => r.id === id)?.slot;
+  return slot === undefined ? undefined : fighterRoster().fighters.find((f) => f.slot === slot);
+};
 
 export const rosterEntry = (id: string): RosterEntry | undefined => ROSTER.find((r) => r.id === id);
 export const rosterBySlot = (slot: string): RosterEntry | undefined => ROSTER.find((r) => r.slot === slot);

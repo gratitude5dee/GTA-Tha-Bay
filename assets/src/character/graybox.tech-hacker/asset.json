@@ -1,0 +1,42 @@
+{
+  "kind": "character",
+  "id": "graybox.tech-hacker",
+  "variants": {
+    "default": "assets/src/character/graybox.tech-hacker/default.glb"
+  },
+  "deps": [
+    "anim/graybox.fighter-base",
+    "anim/graybox.tech-hacker-moves",
+    "portrait/graybox.tech-hacker"
+  ],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:tech-hacker"
+  ],
+  "extras": {
+    "t": "character",
+    "npcId": "tech-hacker",
+    "rigFamily": "bay_rig_v1",
+    "heightM": 1.78,
+    "bones": {
+      "jaw": false,
+      "fingers": false
+    },
+    "animSets": [
+      "anim/graybox.fighter-base",
+      "anim/graybox.tech-hacker-moves"
+    ],
+    "portrait": "portrait/graybox.tech-hacker"
+  },
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.tha-bay.invalid/fight/roster.v1.schema.json",
+  "title": "Fighter roster v1 (RosterEntry[], FX1)",
+  "type": "array",
+  "minItems": 1,
+  "items": { "$ref": "#/$defs/entry" },
+  "$defs": {
+    "assetRef": { "type": "string", "pattern": "^(character|anim|portrait|voice|rig)/[a-z0-9][a-z0-9._-]{1,62}$" },
+    "assets": {
+      "type": "object", "additionalProperties": false, "required": ["model", "animBase", "animMoves", "portrait"],
+      "properties": {
+        "model": { "$ref": "#/$defs/assetRef" }, "animBase": { "$ref": "#/$defs/assetRef" }, "animMoves": { "$ref": "#/$defs/assetRef" },
+        "portrait": { "$ref": "#/$defs/assetRef" }, "voice": { "$ref": "#/$defs/assetRef" }
+      }
+    },
+    "entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slot", "kit", "fighterId", "soulVersion", "expectedTier", "assets", "standIn", "homeStage", "v1"],
+      "properties": {
+        "slot": { "enum": ["PLAYER_FIGHTER", "RAP_HYPHY_ELDER", "RAP_LYRICIST", "RAP_NEW_WAVE", "RAP_COLLECTIVE", "TECH_VISIONARY", "TECH_HACKER", "TECH_VC", "ATH_SHOOTER", "ATH_POWER_BACK", "INFLUENCER"] },
+        "kit": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,40}$" },
+        "fighterId": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{2,47}$" },
+        "soulVersion": { "type": "integer", "minimum": 1 },
+        "expectedTier": { "enum": ["consented", "parody", "fictionalized", "original"] },
+        "assets": { "$ref": "#/$defs/assets" },
+        "standIn": {
+          "type": "object", "additionalProperties": false, "required": ["fighterId", "assets"],
+          "properties": { "fighterId": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{2,47}$" }, "assets": { "$ref": "#/$defs/assets" } }
+        },
+        "homeStage": { "type": "string", "pattern": "^[a-z][a-z0-9_]{2,40}$" },
+        "v1": { "type": "boolean" }
+      }
+    }
+  }
+}

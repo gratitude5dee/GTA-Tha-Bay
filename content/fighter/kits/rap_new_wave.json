@@ -1098,7 +1098,7 @@
       ],
       "cancels": [],
       "tags": [
-        "placeholder"
+        "showstopper"
       ],
       "hypeCost": 3000
     }
@@ -1122,7 +1122,7 @@
     "invuln": [],
     "cancels": [],
     "tags": [
-      "placeholder"
+      "finisher"
     ]
   },
   "taunt": {
@@ -1145,7 +1145,7 @@
     "invuln": [],
     "cancels": [],
     "tags": [
-      "placeholder"
+      "taunt"
     ]
   },
   "autoCombo": [

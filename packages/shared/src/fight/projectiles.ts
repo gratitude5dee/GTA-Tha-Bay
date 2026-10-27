@@ -59,7 +59,8 @@ function place(c: Ctx, buf: Int32Array, owner: number, pi: number, ex: boolean, 
   } else if (proj.behavior === SUMMON) {
     limitKind(c, buf, owner, SUMMON, SUMMON_CAP);
   }
-  if (countOwned(buf, owner) >= OWNER_CAP) return false;
+  // The cap of four counts shots; drones and crew members have their own caps (ORBIT_CAP, SUMMON_CAP) and do not take a shot's place.
+  if (proj.behavior !== ORBIT && proj.behavior !== SUMMON && countOwned(buf, owner) - countKind(c, buf, owner, ORBIT) - countKind(c, buf, owner, SUMMON) >= OWNER_CAP) return false;
   for (let p = 0; p < PROJ_MAX; p++) {
     const b = PROJ_BASE + p * PROJ_WORDS;
     if ((buf[b + PW.Owner] as number) !== 0) continue;

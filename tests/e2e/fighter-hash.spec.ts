@@ -29,7 +29,7 @@ function nodeFinalHash(text: string): [number, number] {
 test.describe('fighter determinism @fighter-hash', () => {
   test('the goldens replay to their checkpoints in the sim worker @fighter-hash', async ({ page, browserName }, testInfo) => {
     test.setTimeout(240_000);
-    expect(files.length).toBeGreaterThanOrEqual(2);
+    expect(files.length).toBeGreaterThanOrEqual(3);   // vs-001, vs-002 and vs-003 (M08b1)
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('/?fighter=1&world=walk-drop');

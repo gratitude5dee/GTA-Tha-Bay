@@ -9,7 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { args } from '../../../../tools/ci/run.ts';
 import type { FighterDef, FightTuning } from '@dv/shared/fight';
 import { kitTable, lintKit, lintTuning } from '../src/lint/index.ts';
-import type { LintIssue } from '../src/lint/index.ts';
+import type { LintIssue, LintOptions } from '../src/lint/index.ts';
+import { loadFameOptions } from '../src/lint/options.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 const argv = args();
@@ -34,10 +35,12 @@ report('config/fighter.tuning.json', tuningIssues);
 const tuning = tuningJson as FightTuning;
 
 const kitDir = path.join(root, 'content', 'fighter', 'kits');
+const fameOptions = loadFameOptions(root);
+const optionsFor = (kit: unknown): LintOptions => fameOptions((kit as { slot?: string }).slot ?? '');
 const list = files.length > 0 ? files.map((f) => path.resolve(f)) : readdirSync(kitDir).filter((f) => f.endsWith('.json')).sort().map((f) => path.join(kitDir, f));
 for (const file of list) {
   const json = read(file);
-  const issues = tuningIssues.length > 0 ? [] : lintKit(json, tuning);
+  const issues = tuningIssues.length > 0 ? [] : lintKit(json, tuning, optionsFor(json));
   report(path.relative(root, file), issues);
   if (issues.length === 0 && !quiet) {
     const rows = kitTable(json as FighterDef);

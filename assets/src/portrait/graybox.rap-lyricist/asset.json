@@ -1,0 +1,23 @@
+{
+  "kind": "portrait",
+  "id": "graybox.rap-lyricist",
+  "variants": {
+    "default": "assets/src/portrait/graybox.rap-lyricist/default.png"
+  },
+  "deps": [],
+  "tags": [
+    "fighter",
+    "graybox",
+    "char:rap-lyricist"
+  ],
+  "likeness": {
+    "tier": "original",
+    "subjectId": null,
+    "faceReferenceUsed": false,
+    "voiceMode": "none",
+    "photoreal": false,
+    "disclaimer": "none"
+  },
+  "status": "active",
+  "visibility": "public"
+}

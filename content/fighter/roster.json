@@ -1,0 +1,194 @@
+[
+  {
+    "slot": "RAP_HYPHY_ELDER",
+    "kit": "rap_hyphy_elder",
+    "fighterId": "dev_hyphy_elder",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.rap-hyphy-elder",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.rap-hyphy-elder-moves",
+      "portrait": "portrait/graybox.rap-hyphy-elder"
+    },
+    "standIn": {
+      "fighterId": "standin_rap_hyphy_elder",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.rap-hyphy-elder-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "RAP_LYRICIST",
+    "kit": "rap_lyricist",
+    "fighterId": "dev_lyricist",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.rap-lyricist",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.rap-lyricist-moves",
+      "portrait": "portrait/graybox.rap-lyricist"
+    },
+    "standIn": {
+      "fighterId": "standin_rap_lyricist",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.rap-lyricist-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "RAP_NEW_WAVE",
+    "kit": "rap_new_wave",
+    "fighterId": "canary-mc",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.rap-new-wave",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.rap-new-wave-moves",
+      "portrait": "portrait/graybox.rap-new-wave"
+    },
+    "standIn": {
+      "fighterId": "standin_rap_new_wave",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.rap-new-wave-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "TECH_VISIONARY",
+    "kit": "tech_visionary",
+    "fighterId": "dev_visionary",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.tech-visionary",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.tech-visionary-moves",
+      "portrait": "portrait/graybox.tech-visionary"
+    },
+    "standIn": {
+      "fighterId": "standin_tech_visionary",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.tech-visionary-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "TECH_HACKER",
+    "kit": "tech_hacker",
+    "fighterId": "dev_hacker",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.tech-hacker",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.tech-hacker-moves",
+      "portrait": "portrait/graybox.tech-hacker"
+    },
+    "standIn": {
+      "fighterId": "standin_tech_hacker",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.tech-hacker-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "ATH_SHOOTER",
+    "kit": "ath_shooter",
+    "fighterId": "dev_shooter",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.ath-shooter",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.ath-shooter-moves",
+      "portrait": "portrait/graybox.ath-shooter"
+    },
+    "standIn": {
+      "fighterId": "standin_ath_shooter",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.ath-shooter-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "ATH_POWER_BACK",
+    "kit": "ath_power_back",
+    "fighterId": "dev_power_back",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.ath-power-back",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.ath-power-back-moves",
+      "portrait": "portrait/graybox.ath-power-back"
+    },
+    "standIn": {
+      "fighterId": "standin_ath_power_back",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.ath-power-back-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  },
+  {
+    "slot": "INFLUENCER",
+    "kit": "influencer",
+    "fighterId": "dev_influencer",
+    "soulVersion": 1,
+    "expectedTier": "fictionalized",
+    "assets": {
+      "model": "character/graybox.influencer",
+      "animBase": "anim/graybox.fighter-base",
+      "animMoves": "anim/graybox.influencer-moves",
+      "portrait": "portrait/graybox.influencer"
+    },
+    "standIn": {
+      "fighterId": "standin_influencer",
+      "assets": {
+        "model": "character/graybox.standin",
+        "animBase": "anim/graybox.fighter-base",
+        "animMoves": "anim/graybox.influencer-moves",
+        "portrait": "portrait/graybox.standin"
+      }
+    },
+    "homeStage": "powell_turntable",
+    "v1": true
+  }
+]
