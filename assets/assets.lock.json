@@ -886,13 +886,13 @@
       "approved_at": "2026-10-22T23:59:55Z"
     },
     "data/npc-roster": {
-      "rev": 3,
+      "rev": 4,
       "variants": {
-        "default": "03e5df3b97d86779ccb1e9d701f56e5c06335e390af81be34c9ec7c70d9d0900"
+        "default": "d7679f6214a3a2658e28e07402e5f6b7d6ed54b6259eaf109928c7b8bdfcb35e"
       },
-      "root": "03e5df3b97d86779ccb1e9d701f56e5c06335e390af81be34c9ec7c70d9d0900",
-      "approved_by": "m08b1-builder",
-      "approved_at": "2026-10-27T14:54:26Z"
+      "root": "d7679f6214a3a2658e28e07402e5f6b7d6ed54b6259eaf109928c7b8bdfcb35e",
+      "approved_by": "m10a1-builder",
+      "approved_at": "2026-10-27T21:16:28Z"
     },
     "data/story.index": {
       "rev": 4,

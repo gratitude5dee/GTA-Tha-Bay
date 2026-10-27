@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { NpcRosterEntry } from '../../../packages/shared/src/contracts/c10-npc.ts';
 import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.ts';
 import { GENAI_REGISTRY } from '../../../services/pipeline/src/registry.ts';
+import { LEAN_PENDING_ENDPOINTS } from '../../../services/pipeline/src/steps/character.ts';
 import type { CharacterSubject } from '../../../services/pipeline/src/steps/character.ts';
 import { repoRoot } from '../../ci/run.ts';
 import { main } from '../gen/cli.ts';
@@ -96,9 +97,11 @@ describe('assets:gen plan refusals (AC-2)', () => {
     expect(r.rows[0]?.reason).toMatch(/^blocked:soul/);
   });
 
-  it('shows the Lean mesher and rigger as blocked while their registry rows are pending', async () => {
+  it('shows the Lean mesher and rigger as blocked while they are pending (not yet in the registry file)', async () => {
     const lean = entry('lean-one', { pipeline: 'lean' }, { pipeline: 'lean' });
     const r = await planBatch({ entries: [lean], tier: 'lean', registry: GENAI_REGISTRY, ledgerRows: [], gate: { falMode: 'mock', environment: 'dev', registry: GENAI_REGISTRY, lintPrompt: () => ({ ok: true }) } });
     expect(r.rows[0]?.reason).toMatch(/^blocked:ENDPOINT_NOT_CLEARED/);
+    expect(Object.keys(LEAN_PENDING_ENDPOINTS)).toEqual(['tripo3d/h3.1/multiview-to-3d', 'fal-ai/meshy/rigging']);
+    expect(GENAI_REGISTRY.endpoints['tripo3d/h3.1/multiview-to-3d']).toBeUndefined();
   });
 });

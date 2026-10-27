@@ -18,7 +18,7 @@ import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.
 import { assertStageAllowed, type GateConfig } from '../../../services/pipeline/src/gate.ts';
 import type { RosterEntry } from '../../../services/pipeline/src/ports.ts';
 import {
-  STANDARD_ESTIMATE_LIMIT_MICROS, buildStageJob, estimateMicros, stagePlans, type CharacterSubject, type PaidStage, type PipelineTier, type StagePlan,
+  STANDARD_ESTIMATE_LIMIT_MICROS, buildStageJob, estimateMicros, stagePlans, withLeanEndpoints, type CharacterSubject, type PaidStage, type PipelineTier, type StagePlan,
 } from '../../../services/pipeline/src/steps/character.ts';
 import { DEFAULT_CAPS, LEDGER_FILE, capRefusal, readLedger, totals, usd, type LedgerRow, type LineCaps } from './ledger.ts';
 import { mapRoster } from './ports.ts';
@@ -101,7 +101,9 @@ export interface PlanInput {
   adrState?: string;
 }
 
-export async function planBatch(i: PlanInput): Promise<PlanResult> {
+export async function planBatch(input: PlanInput): Promise<PlanResult> {
+  const registry = withLeanEndpoints(input.registry);
+  const i: PlanInput = { ...input, registry, gate: { ...input.gate, registry } };
   const caps = i.caps ?? DEFAULT_CAPS;
   const t = totals(i.ledgerRows);
   const rows: PlanRow[] = [];

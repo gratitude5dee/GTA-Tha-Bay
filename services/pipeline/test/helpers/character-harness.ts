@@ -15,7 +15,7 @@ import { buildMannequin } from '../../../../tools/assets/test/helpers/mannequin.
 import { GENAI_REGISTRY, PROMPT_LINT_CONFIG } from '../../src/registry.ts';
 import { MemoryRecorder, MockFalPort, type MockCharacterAnswer } from '../../src/mock/MockFalPort.ts';
 import type { CharacterFalPort, CharacterSubject, HumanGateId, PipelineTier, ReviewEntry } from '../../src/steps/character.ts';
-import { stageSeed } from '../../src/steps/character.ts';
+import { stageSeed, withLeanEndpoints } from '../../src/steps/character.ts';
 import type { RosterEntry } from '../../src/ports.ts';
 import { heldVision, type VisionPort } from '../../src/steps/gates.ts';
 
@@ -144,7 +144,7 @@ export async function makeHarness(o: HarnessOptions = {}): Promise<Harness> {
   const row = budgets.rows.find((r) => r.id === (subject.hero ? 'character-hero' : 'character-npc'));
   const publisher: PublishPort = { write: (rel, b) => void published.set(rel, b), exists: (rel) => published.has(rel) };
   const cfg: ExecutorConfig = {
-    registry: GENAI_REGISTRY, gate: { falMode: 'mock', environment: 'dev', registry: GENAI_REGISTRY, lint: PROMPT_LINT_CONFIG }, mode: o.mode ?? 'mock', requestedBy: 'art-lead',
+    registry: withLeanEndpoints(GENAI_REGISTRY), gate: { falMode: 'mock', environment: 'dev', registry: withLeanEndpoints(GENAI_REGISTRY), lint: PROMPT_LINT_CONFIG }, mode: o.mode ?? 'mock', requestedBy: 'art-lead',
     styleBible: o.withStyleBible === false ? null : { id: 'bay-cel@1', bytes: squarePng(256, 5) }, refs: [],
     rig: BAY_RIG, limits: row?.fidelity as ExecutorConfig['limits'], textLint: () => true, ktx: null,
     consent: { schema: 'consent-index/1', entries: [] }, recordLicenses: ['LicenseRef-DeeVerse-Owned'],

@@ -16,10 +16,10 @@ import type { GenAiRegistry } from '../../../packages/shared/src/genai/registry.
 import { assertStageAllowed, type GateConfig, type GateStage } from '../../../services/pipeline/src/gate.ts';
 import type { BlobPort, BudgetPort, ClockPort, FlagsPort, NamePort, RosterPort } from '../../../services/pipeline/src/ports.ts';
 import {
-  GATE_AFTER, approvedDecision, decisionOf, estimateMicros, newRun, reportKey, runKey, stagePlans,
+  approvedDecision, decisionOf, estimateMicros, newRun, runKey, stagePlans,
   type CharacterFalPort, type CharacterStage, type CharacterSubject, type HumanGateId, type PaidStage, type ReviewEntry, type RunRecord, type StagePlan, type UntilStage,
 } from '../../../services/pipeline/src/steps/character.ts';
-import { gateReport, type GateReport, type VisionPort } from '../../../services/pipeline/src/steps/gates.ts';
+import { gateReport, type VisionPort } from '../../../services/pipeline/src/steps/gates.ts';
 import type { KtxPort } from '../src/optimize.ts';
 import { isoNow } from './ledger.ts';
 import { StageContext, type StageDeps } from './stages/context.ts';
@@ -213,6 +213,3 @@ export async function runCharacter(ports: ExecutorPorts, cfg: ExecutorConfig, su
   const d5 = decisionOf(run, 'H5');
   return done({ status: 'complete', stage: 'publish', detail: `published ${subject.slug}; H5 by ${d5?.by ?? '?'} (${pub.summary})` });
 }
-
-export { GATE_AFTER, reportKey };
-export type { GateReport };

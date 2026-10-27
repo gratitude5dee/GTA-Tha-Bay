@@ -49,6 +49,31 @@ export const STANDARD_ESTIMATE_LIMIT_MICROS = 3_730_000;
 export const LEAN_MESH_KEY = 'tripo3d/h3.1/multiview-to-3d';
 export const LEAN_RIG_KEY = 'fal-ai/meshy/rigging';
 
+/**
+ * The two Lean-tier endpoints that spec section 1 (Lean column) and section 11 name and that `config/genai-endpoints.json` does not hold yet
+ * (BD-M10a1-02). They are `pending`, so the gate refuses them in production. The registry file takes them once `genai:liveness` has recorded a
+ * fixture for each id (the liveness unit test requires one per fal endpoint, and a fixture is a recorded public-registry answer, which this
+ * milestone did not fetch); until then every caller reads the registry through `withLeanEndpoints`.
+ */
+export const LEAN_PENDING_ENDPOINTS: Readonly<Record<string, EndpointEntry>> = {
+  [LEAN_MESH_KEY]: {
+    id: LEAN_MESH_KEY, vendor: 'fal', role: 'mesh_alt', status: 'pending', pinnedUpdatedAt: null, licenseType: 'commercial', acceptsFaceRefs: false,
+    tiers: ['original', 'fictionalized', 'parody', 'consented'], termsSnapshot: 'docs/legal/vendor-terms/fal-tos-2026-10-18.md',
+    price: { usd: 0.3, per: 'gen', checkedAt: '2026-10-18', note: 'Lean tier mesh, standard textures; 2 to 4 views in the order front, left, back, right [research/genai-pipeline-fal.md section 3.1]' },
+  },
+  [LEAN_RIG_KEY]: {
+    id: LEAN_RIG_KEY, vendor: 'fal', role: 'rig', status: 'pending', pinnedUpdatedAt: null, licenseType: 'commercial', acceptsFaceRefs: false,
+    tiers: ['original', 'fictionalized', 'parody', 'consented'], termsSnapshot: 'docs/legal/vendor-terms/fal-tos-2026-10-18.md',
+    price: { usd: 0.2, per: 'gen', checkedAt: '2026-10-18', note: 'Lean tier rig; walking and running clips included, $0.12 more with enable_animation [F-045]' },
+  },
+};
+
+/** The registry with the Lean endpoints added when it does not hold them. */
+export function withLeanEndpoints<R extends Pick<GenAiRegistry, 'endpoints'>>(reg: R): R {
+  const missing = Object.entries(LEAN_PENDING_ENDPOINTS).filter(([k]) => reg.endpoints[k] === undefined);
+  return missing.length === 0 ? reg : { ...reg, endpoints: { ...reg.endpoints, ...Object.fromEntries(missing) } };
+}
+
 /** Target triangles sent to the mesher: hero and fighter 30,000, named NPC 12,000 (spec section 1, stage 4). */
 export const targetTris = (hero: boolean): number => (hero ? 30_000 : 12_000);
 
@@ -103,7 +128,8 @@ export interface PlanOptions {
 }
 
 /** The paid stages of one character with their price. Zero vendor calls. */
-export function stagePlans(subject: Pick<CharacterSubject, 'pipeline' | 'moves'>, reg: Pick<GenAiRegistry, 'endpoints'>, opts: PlanOptions = {}): StagePlan[] {
+export function stagePlans(subject: Pick<CharacterSubject, 'pipeline' | 'moves'>, registry: Pick<GenAiRegistry, 'endpoints'>, opts: PlanOptions = {}): StagePlan[] {
+  const reg = withLeanEndpoints(registry);
   const plans: StagePlan[] = [];
   const add = (stage: PaidStage, e: EndpointEntry, units: number, unitMicros: number, note: string): void => {
     plans.push({ stage, endpointKey: e.id, endpointId: e.id, units, unitMicros, totalMicros: units * unitMicros, note });
@@ -235,7 +261,7 @@ export function buildStageJob(i: BuildJobInput): GenJob {
   const tpl = fillTemplate(templateFor(stage, subject.pipeline), subject.visualBrief);
   const seed = stageSeed(subject.slug, stage, i.candidate ?? 0, i.attempt ?? 0);
   const params = { ...stageParams(subject, stage, plan, seed), ...(stage === 'mesh' && subject.pipeline === 'standard' ? { texture_prompt: tpl.text.slice(0, 600) } : {}), ...(i.params ?? {}) };
-  const endpoint = i.registry.endpoints[plan.endpointKey];
+  const endpoint = withLeanEndpoints(i.registry).endpoints[plan.endpointKey];
   if (endpoint === undefined) throw new Error(`the registry has no endpoint ${plan.endpointKey}`);
   const inputs: InputFile[] = i.inputs.map((f) => ({ role: f.role, sha256: f.sha256, origin: f.origin, realHumanVisible: f.realHumanVisible === true }));
   const key = jobKey({
