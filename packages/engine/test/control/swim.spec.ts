@@ -5,7 +5,8 @@ import { SWIM_RESPAWN_TICKS } from '../../src/sim/control/swim.ts';
 import type { WorldBoundsPort } from '../../src/sim/world/index.ts';
 import { PHYSICS_CONFIG } from '../../src/sim/physics/config.ts';
 import { WALK_COURSE } from '../fixtures/world-boxes.ts';
-import { createWalkSim, hold, player } from '../walk-sim.ts';
+import { LocalPlayer, Velocity } from '../../src/sim/ecs/components.ts';
+import { createWalkSim, hold, player, YAW } from '../walk-sim.ts';
 
 const START: [number, number, number] = [-100, 0, WALK_COURSE.flatLaneZ];
 const CHEST = PHYSICS_CONFIG.character.chestY;
@@ -61,6 +62,35 @@ describe('swim owner (Control 800)', () => {
     expect(p.grounded).toBe(true);
     expect(port.asked.length).toBeGreaterThan(0);
     expect(port.asked[0]![2]).toBe(false);   // on foot: any shore, not only road-adjacent
+    sim.dispose();
+  });
+
+  // BD-FIX-WATERRESPAWN-01: what the e2e walk relies on. A stick held while swimming moves nothing, and once the stick is free a player put
+  // back on the shore stands at the respawn point, velocity cleared, with no drift.
+  it('ignores a stick held while swimming, and leaves the respawned player still at the shore point once the stick is free', async () => {
+    const sim = await createWalkSim({ spawn: START });
+    sim.services.world.bounds = fakePort();
+    hold(sim, 1, {});
+    expect(player(sim).owner).toBe(CONTROL_OWNER.Swim);
+    const inWater = player(sim);
+    hold(sim, 45, { moveY: -127, camYaw: YAW.west });
+    expect([player(sim).x, player(sim).z]).toEqual([inWater.x, inWater.z]);
+
+    let arrived = false;
+    for (let i = 0; i < 160 && !arrived; i++) {
+      hold(sim, 1, {});
+      const p = player(sim);
+      arrived = p.owner === CONTROL_OWNER.OnFoot && p.state === CONTROL_STATE.idle && Math.abs(p.x - 32) < 0.1;
+    }
+    expect(arrived).toBe(true);
+    for (let i = 0; i < 120; i++) {
+      hold(sim, 1, {});
+      const p = player(sim);
+      expect([p.x, p.z, p.state, p.owner]).toEqual([32, -90, CONTROL_STATE.idle, CONTROL_OWNER.OnFoot]);
+    }
+    const id = sim.ecs.query([LocalPlayer])[0] as number;
+    const ve = sim.ecs.store(Velocity);
+    expect([ve.vx[id], ve.vz[id]]).toEqual([0, 0]);
     sim.dispose();
   });
 
