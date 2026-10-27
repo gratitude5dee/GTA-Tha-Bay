@@ -355,7 +355,7 @@ Clips are internal assets. Nothing generated is visible to players until it pass
 
 ## D9. Prewarm lists, counts and cost
 
-Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls. **DL-OWN-01:** the lists below are index refs, each with an in-engine fallback. The owner's USD 100 fal cap leaves $40 for video, so generation covers only the subset in §D9.1 and every other ref plays its DirectorScript.
+Prewarm lists are generated from the index by priority. `pnpm assets:gen prewarm --release <tag> --priority <p>` (S05) HEADs each key and submits only misses; a second run makes zero vendor calls. **DL-OWN-01:** the lists below are index refs, each with an in-engine fallback. The owner's USD 100 fal cap leaves $38 for video (DL-OWN-07), so generation covers only the subset in §D9.1 and every other ref plays its DirectorScript.
 
 | P | List | Refs (clips) | Seconds | Milestone |
 |---|---|---|---|---|

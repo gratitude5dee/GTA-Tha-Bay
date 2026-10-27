@@ -15,7 +15,7 @@
 9. **Edge ownership.** An edge belongs to the chunk that contains its `from` node. Its segment geometry is stored once, with the lower-id direction. Cross-chunk edges are visible once both chunks are resident; the always-resident topology asset `map_data/sf-graph.v1` (nodes, edges, lengths, classes, flags, no geometry) serves long routes.
 10. **Lanes.** Right-hand traffic. Lane 0 is the rightmost lane of a directed edge. Lateral offset from the segment centreline, positive to the travel direction's right: two-way `medianM/2 + (lane + 0.5) × laneWidthM`; one-way `(lane + 0.5 − lanes/2) × laneWidthM`. Parked cars sit at `widthM/2 − 1.15 m` on `parkingSides` (2.3 m parking lane assumed).
 11. **Signals** are pure: `signalAspect(program, tick, movement, blackout)`. No per-signal state is hashed; `blackout` is a hashed sim resource owned by `TrafficControl`.
-12. **Render objects.** Per chunk at most six: `terrain`, `buildings`, `roads`, `vegetation` (one instanced mesh), `furniture` (one batch), `extras` (set dressing from tags). One `BundleGroup`, `static = true`; re-recorded only on a LOD swap or a landmark proxy swap. Landmark glTFs are not chunk objects: they live in a separate `LandmarkLayer` with their own budget (clarification P3). Reading (DL-740, no shape change): a few global instanced pools outside the chunk bundles (vegetation, M02h4; furniture and parked dressing, M02h6) stand in for the per-chunk `vegetation` and `furniture` objects and are counted by the per-profile render-object ledger; parked dressing is render-only and outside `CrowdLimits`.
+12. **Render objects.** Per chunk at most six: `terrain`, `buildings`, `roads`, `vegetation` (one instanced mesh), `furniture` (one batch), `extras` (set dressing from tags). One `BundleGroup`, `static = true`; re-recorded only on a LOD swap or a landmark proxy swap. Landmark glTFs are not chunk objects: they live in a separate `LandmarkLayer` with their own budget (clarification P3). **C08 1.1** (DL-741, §8): a few global instanced pools outside the chunk bundles (vegetation, M02h4; furniture and parked dressing, M02h6) stand in for the per-chunk `vegetation` and `furniture` objects and are counted by the per-profile render-object ledger; parked dressing is render-only and outside `CrowdLimits`.
 13. **Upload.** At most one chunk upload per frame on every tier; on `mobile-low` and `xr-quest` at most 2 MB per frame (C13 `WorldLimits`). A chunk is uploaded whole.
 14. **Spawn tables.** Keyed by `(cellKey, slot)`. Slot ranges are fixed: traffic 0–255, pedestrians 256–511, parked cars 512–767, transit vehicles 768–831, boats 832–863, aircraft 864–895. A tier runs the prefix `0 … densityCap − 1` of each range (C01 rule 5) and the current `activeSlots` inside it. `capacity` in the table is the `desktop-ultra` peak.
 15. **Tags** follow 06 §4.4: `hidingSpots`, `pursuitBreakers`, `chokePoints`, `jumpZones`, `portals`, `shoreNodes`, `teleportNodes`. The bake derives most of them from data; authored lists add the rest (`02-world-bake.md` §4, stage S9).
@@ -293,8 +293,8 @@ Little-endian. Coordinates inside a chunk are `i16` in 0.1 m relative to the chu
 | 11 | SPAWN | p0 | `u8 profile, u16 trafficSlots, u16 pedSlots, u16 nParked, parked (u16 slot, u32 seg, u16 sDm, i8 side, i8 yawJitter)` |
 | 12 | GROUND | p0 | `u8[64×64]` `GroundClass` per 4 m cell |
 | 20 | BUILDING | l0 | `i16 baseDm, u16 hDm, u8 kind, u8 roof (2 bits) \| palette (6 bits), u16 seed, u8 proxyOf, u8 n, n × (i16 dx, i16 dz)` |
-| 21 | LANDUSE | l0 | polygons: `u8 class, u8 n, n × (i16, i16)` (park, grass, sand, plaza, rock; water edges; cover codes 17–23 = 16 + `CoverClass` from M02h3, same layout, DL-740) |
-| 22 | TREE | l0 | `i16 dx, i16 dz, u8 scale, u8 species` (from bake tool 0.4.0 `species` holds a `TreeForm`: 0–4 from M02h4, `Shrub` 5 and `Hedge` 6 and the bit-7 scatter flag from M02h5; DL-740, no shape change) |
+| 21 | LANDUSE | l0 | polygons: `u8 class, u8 n, n × (i16, i16)` (park, grass, sand, plaza, rock; water edges; C08 1.1: cover codes 17–23 = 16 + `CoverClass`, same layout, §8) |
+| 22 | TREE | l0 | `i16 dx, i16 dz, u8 scale, u8 species` (C08 1.1: `species` holds a `TreeForm`, §8) |
 | 23 | LAMP | l0 | `i16 dx, i16 dz, u8 yaw` |
 | 24 | FURNITURE | l0 | `i16 dx, i16 dz, u8 yaw, u8 type` |
 | 25 | LMREF | l0 | `u8 landmarkIndex` per landmark touching the chunk |
@@ -337,4 +337,17 @@ Config files (JSON Schema in `tools/map/schemas/`, validated by `check:unit`): `
 
 ## 7. Versioning
 
-`C08_VERSION` follows 06 §4.1 rule 2. Additive fields (new tag types, new section ids, new `AreaRecord`s) bump the minor version and old loaders skip unknown sections. A change to the grid, slot ranges, `EdgeId` assignment or section layouts is breaking: major bump, an ADR, and one release in which the loader accepts both pack versions. `DVWP` `version` and `C08_VERSION` change together.
+`C08_VERSION` follows 06 §4.1 rule 2. Additive fields (new tag types, new section ids, new `AreaRecord`s) bump the minor version and old loaders skip unknown sections. A change to the grid, slot ranges, `EdgeId` assignment or section layouts is breaking: major bump, an ADR, and one release in which the loader accepts both pack versions. `DVWP` `version` and `C08_VERSION` change together on a major bump; a minor bump keeps `DVWP` 1.
+
+## 8. C08 1.1 (DL-741; 06 v1.5)
+
+A minor bump: no field, record or section is added, removed or resized; three meanings change, and a reader takes them from `WorldIndex.c08`, which the bake writes from `C08_VERSION` (`tools/map/src/stages/s13-pack.ts`), never from the bake tool version.
+
+| Item | `c08: '1.0.0'` | `c08: '1.1.0'` | Lands in |
+|---|---|---|---|
+| Record 22 TREE `u8 species`, `RenderChunk.trees` species lane | species index | `TreeForm` (`packages/shared/src/world/tree-form.ts`): 0–4 tree forms, `Shrub` 5, `Hedge` 6; bit 7 = scatter flag (low 7 bits are the form) | M02h4 (forms 0–4), M02h5 (5, 6, bit 7) |
+| Record 21 LANDUSE `u8 class` | park, grass, sand, plaza, rock, water edges | the same, plus cover codes 17–23 = 16 + `CoverClass`; a 1.0 reader skips classes above 16 | M02h3 (writes `C08_VERSION = '1.1.0'`) |
+| Rule 12 render objects | six per chunk | six per chunk, or fewer with global instanced pools for vegetation, furniture and parked dressing, counted per profile by the render-object ledger; parked dressing is render-only and outside `CrowdLimits` | M02h4 (vegetation pool), M02h6 (furniture and parked pools) |
+
+Tree forms and cover never enter a sim hash. Packs and the client ship in one release under one `bakeId` (§1 rule 16), so a mismatch is only possible in a QA build that mixes bakes; there an unknown form draws the default form and an unknown class is skipped.
+

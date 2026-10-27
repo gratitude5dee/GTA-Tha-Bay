@@ -19,7 +19,7 @@ Code only: $0 fal, no asset or dependency, no contract shape change.
 - **M02g2:** grounded trees (`treeRecords` `y`, eave cap), far-tree hiding (`tree.drawM`), `look().vegetation`, `docs/look/M02g2-render-ledger.json`.
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h3 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
 - Through M02g2: M02g1 (desktop tree casters within `dynamicCasterRadiusM`, `setLookLayer`, ledger shape, `@look-owner`), M02e (profiles, `shot()`, `@look-golden`), M02b1 (mesher, unit bundles), M02a2 (S3, synth source).
-- Contracts: C08 1.0 (`RenderChunk.trees` `x,z,scale,species`; record 22 TREE `u8 species`) and C13 1.2 (`TierBudget`), read with unchanged shape.
+- Contracts: C08 1.1 (DL-741; `RenderChunk.trees` `x,z,scale,species`; record 22 TREE `u8 species` holds a `TreeForm`; rule 12 vegetation pool) and C13 1.2 (`TierBudget`), shapes unchanged.
 
 ## Scope in
 † marks a design value in config.
@@ -66,9 +66,9 @@ Baseline: the newest ledger on the default branch at rebase (`baselineFrom`); `x
 - No new script or dependency; ≈ 23 code files.
 
 ## Interfaces
-- C08 1.0 keeps its shape; from bake tool `0.4.0` the TREE byte carries a `TreeForm`. DL-740 confirms it and adds the record-22 note to `02-world-contracts.md` (a 1.0 reading, no shape change). Packs and client ship together (an old pack draws random forms).
+- C08 1.1 (`02-world-contracts.md` §8, DL-741) keeps the shape; when `WorldIndex.c08` is `'1.1.0'` the TREE byte carries a `TreeForm` (forms 0–4 here), and a `'1.0.0'` index keeps the species meaning. Packs and client ship together under one `bakeId`.
 - `TreeForm`, forms, pools, the `trees` stride, `look().vegetation` and the ledger are S02 internals.
-- Contract change proposals: no shape change. The C08 field meaning above is confirmed by DL-740 (record-22 note in `02-world-contracts.md`).
+- Contract change proposals: none beyond C08 1.1, which the Architect has made (DL-741).
 
 ## Acceptance criteria
 - AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 and no new file holds GLSL, `ShaderMaterial`, `alphaTest` or `transparent: true` — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
@@ -77,7 +77,7 @@ Baseline: the newest ledger on the default branch at rebase (`baselineFrom`); `x
 - AC-4 Given 200 scripted unit adds, removals and `drawM` crossings When `trees.pool` runs Then each drawn unit's instances appear once in the prefix, `count` is the sum of drawn ranges, freed ranges are reused, capacity only doubles, only `near` pools cast and hold only units within `dynamicCasterRadiusM`, and pool counts are 10/5/2 — proof: `pnpm check:unit -- packages/world/test/trees.pool.spec.ts`
 - AC-5 Given a QA `synth` build When `@world-trees` runs at `desktop`, `mobile` and `mobile-low` on `chromium-webgl2` and `webkit-webgl2` Then `look().vegetation` reports `full`/`lite`/`low` with 10/5/2 pools and all five forms, `wind > 0` only at `desktop`, `drawn` after a 2 km teleport and back equals the resident units' instances within `drawM`, and `world.treeForms: false` reports one cone pool — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-trees && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-trees`
 - AC-6 Given the regenerated goldens (`golden-update` label) When `@look-golden` and `@look-owner` run Then every shot, `trees-street` at `desktop` and `mobile-low` included, is within M02e's tolerance, and two `trees-street` captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
-- AC-7 Given the same build When the earlier suites run Then `@world-look`, `@look-tune`, `@look-fixes`, `@world-landmarks`, `@world-stream`, `@world-backdrop` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-tune|@look-fixes|@world-landmarks|@world-stream|@world-backdrop" && DV_WORLD=synth pnpm check:e2e:xr`
+- AC-7 Given the same build When the earlier suites run Then `@world-look`, `@look-tune`, `@look-fixes`, `@world-landmarks`, `@world-route`, `@world-backdrop` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-tune|@look-fixes|@world-landmarks|@world-route|@world-backdrop" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-8 Given every perf scenario in fail mode and the committed ledger When `@trees-ledger` runs, flat and in the `@xr` case Then every tier is in budget (shadow passes counted), `mobile-low` is ≤ 100 objects with a delta ≤ +2 and ≤ 48 triangles per tree, `legacy` and `xr` deltas are ≤ 0, and `desktop` is ≤ +40 — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @trees-ledger && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-9 Given the branch When the asset, IP and licence gates run Then they pass with no new asset, provenance record, licence entry or dependency — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm license:scan`
 - AC-10 Given the production build When it is verified and deployed to a Preview Then it succeeds, `__dvBridge` is absent and the header checks pass — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`

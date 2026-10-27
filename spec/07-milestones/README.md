@@ -21,7 +21,7 @@ A READY file is **frozen once a Builder starts it** (the moment its branch `m<id
 - **Runs next: M00e** `owner-account-hardening` (row 14; formerly the owner PR #1 follow-up list, DL-605; `_PLAN.md` §0 rule 7, Q-43; M00a, M00b and M01c are merged into `claude/build`). No milestone that touches `services/edge/src`, `services/edge/test` or `services/edge/wrangler.jsonc` starts before it has merged (M05d and M13a1 name it in Depends on); milestones already executing (M00…M01f) merge as before, and M05b1 (started 2026-10-19) merges after it in run order.
 - **Already executing: M00d** `qa-spec-gates` (row 13; branch `claude/build-m00d`, frozen since it started; its PR sets the row to IN PROGRESS; not gated by rule 7, it writes only a docs `services/edge/README.md`) merges as before (DL-648).
 - **Study set (owner request 2026-10-23, DL-716, order amended by DL-732; `_PLAN.md` §0 rule 9):** M04e5, M04e0 and M02f1 (rows 43–45) run before M05c2; M04e1–M04e4, M04b5, M04b4, M02f2 and M01d3 (rows 49–56) run after M05c3; M07b3 follows M07b2 and M10f follows M10d4 (DL-739). M04e0 must merge before M12b1 starts; M04e5 is in the Depends on of every later sandbox file. M02f1, M04b5, M04b4 and M02f2 share files and run one at a time in that order.
-- **Look program (owner decision 2026-10-26, DL-OWN-07, DL-739; `_PLAN.md` §0 rule 10):** M02g1–M02g2 (Phase 0) and M02h1–M02h7 (Phase 1) are rows 57–65, after M01d3, and run one at a time in that order (shared files and a chained render-object ledger); M10d0, M10d1 (vehicles and props) and M10d4 (pedestrians and creator parts) are rows 92–94, before M10f, and replace the one-session M10d1; M02h8 (XR look, TRAA) is row 104, after M11a1.
+- **Look program (owner decision 2026-10-26, DL-OWN-07, DL-739; `_PLAN.md` §0 rule 10):** M02g1–M02g2 (Phase 0) and M02h1–M02h7 (Phase 1) are rows 57–65, after M01d3, and run one at a time in that order (shared files and a chained render-object ledger); M10d0, M10d1 (vehicles and props) and M10d4 (pedestrians and creator parts) are rows 92–94, before M10f, and replace the one-session M10d1; M02h8 (XR look, TRAA) is row 104, after M11a1 and before M11b1, which names it in Depends on (DL-741); the look study must be committed before M02g1 starts.
 - **Then: M00f** `third-party-reuse-gates` (row 15, needs M00d; formerly the reuse-gates follow-up list, DL-605; `_PLAN.md` §0 rule 8): a gate for no milestone; nothing is vendored into `third_party/` before it merges (DL-607).
 
 ## Table (READY 148, of which 12 frozen (executing); 141 v1 milestones ≈ 126.0 sessions + 7 post-v1 = 133.0 sessions; M10d1–M10d2 added by DL-390, M10d3 by DL-460, M10e by DL-500, M00e–M00f by DL-605, M02e by DL-704, M01d2 by DL-713, the study set M04e0–M04e5, M04b4, M04b5, M02f1, M02f2, M01d3, M07b3 and M10f by DL-716, the look program M02g1–M02g2, M02h1–M02h8, M10d0 and M10d4 (with M10d1 split) by DL-739; the conditional M01d4 is not listed, DL-723)
@@ -86,7 +86,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 54 | M04b4 | offline-download-ui | 0.3 | M01e, M04b1 | READY | `M04b4-offline-download-ui.md` |
 | 55 | M02f2 | boot-prefetch | 0.5 | M01e, M02b1, M04b1, M04a2 | READY | `M02f2-boot-prefetch.md` |
 | 56 | M01d3 | media-route-tuning | 0.4 | M01d2, M00e | READY | `M01d3-media-route-tuning.md` |
-| 57 | M02g1 | look-tune | 1 | M02e, M02f2, M01c, M05c2 | READY | `M02g1-look-tune.md` |
+| 57 | M02g1 | look-tune | 1 | M02e, M02f2, M01c, M05c2, M05c3 | READY | `M02g1-look-tune.md` |
 | 58 | M02g2 | look-fixes | 0.7 | M02g1, M02d2 | READY | `M02g2-look-fixes.md` |
 | 59 | M02h1 | street-markings | 1 | M02g2, M02a2 | READY | `M02h1-street-markings.md` |
 | 60 | M02h2 | curbs-sidewalks | 1 | M02h1 | READY | `M02h2-curbs-sidewalks.md` |
@@ -123,7 +123,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 91 | M10c | roster-souls-ink-barks | 1 | M10a2, M06a4, M06c, M05c2 | READY | `M10c-roster-souls-ink-barks.md` |
 | 92 | M10d0 | art-admission | 1 | M00f, M01d, M02h7, M10a1 | READY | `M10d0-art-admission.md` |
 | 93 | M10d1 | art-integration | 1 | M10d0, M05c2, M03b2, M04b2, M02h6 | READY | `M10d1-art-integration.md` |
-| 94 | M10d4 | art-integration | 1 | M10d1, M10d0, M03b2, M04b2 | READY | `M10d4-art-integration.md` |
+| 94 | M10d4 | art-integration | 1 | M10d1, M10d0, M03b2, M04b2, M10a2 | READY | `M10d4-art-integration.md` |
 | 95 | M10f | emote-wheel | 0.6 | M10d4, M04b2, M04e5 | READY | `M10f-emote-wheel.md` |
 | 96 | M10d3 | art-integration | 1 | M10d4, M07b2, M08b2, M10a2 | READY | `M10d3-art-integration.md` |
 | 97 | M10d2 | art-integration | 1 | M10d4, M10d3, M02d2, M02e | READY | `M10d2-art-integration.md` |
@@ -135,7 +135,7 @@ Reconciled by the Architect on 2026-10-18 (`spec/11-decision-log-3.md` DL-218…
 | 103 | M11a1 | iphone-hardening-governor | 1 | M02b1, M03b1, M07a2, M04b5 | READY | `M11a1-iphone-hardening-governor.md` |
 | 104 | M02h8 | xr-look-traa | 0.8 | M11a1, M02h7 | READY | `M02h8-xr-look-traa.md` |
 | 105 | M11a2 | iphone-hardening-governor | 1 | M11a1 | READY | `M11a2-iphone-hardening-governor.md` |
-| 106 | M11b1 | webxr-port | 1 | M01c, M04b2, M11a1 | READY | `M11b1-webxr-port.md` |
+| 106 | M11b1 | webxr-port | 1 | M01c, M04b2, M11a1, M02h8 | READY | `M11b1-webxr-port.md` |
 | 107 | M11b3 | xr-ui-panels-comfort | 0.8 | M11b1, M06a5, M04e1, M04e4 | READY | `M11b3-xr-ui-panels-comfort.md` |
 | 108 | M11b2 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b1, M07b2, M08b2, M11b3 | READY | `M11b2-per-mode-xr-and-xr-cutscenes.md` |
 | 109 | M11b4 | per-mode-xr-and-xr-cutscenes | 0.7 | M11b2, M09b1, M05b2 | READY | `M11b4-per-mode-xr-and-xr-cutscenes.md` |

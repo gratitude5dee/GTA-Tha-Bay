@@ -14,7 +14,7 @@ After this session the land between streets is no longer one grey paved plain. T
 - **M02a2:** S5 roads (driveways leave the graph, `roadclass.json:21`), S7 grading, S13 packs, `synth` sources.
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h2 (`Lot`/`Plaza`, surface ids 38–41, the ledger chain).
 - Merged context: M02g1 (`setLookLayer`, ledger, `@look-owner`), M02e (`surf`, `shot()`), M02c2 AC-14 (staging world release).
-- Contracts: C08 1.0 and C13 1.2, read only.
+- Contracts: C08 1.1 (DL-741: this session lands it, LANDUSE cover codes 17–23) and C13 1.2 (read only).
 
 ## Scope in
 † = design value in `config/world/cover.json`, `mesher.json` or `look.json` and their schemas.
@@ -58,7 +58,7 @@ Evidence: look study (2026-10-26) frames `desktop-03-third-st-bayview-1300-clear
 - **Edits:**
   - `tools/map/src/{stages/s13-pack.ts, pack/encode.ts, bake.ts, sources/synth.ts}`;
   - `tools/map/src/config.ts` (`cover.json` in `configHashesOf`);
-  - `packages/shared/src/world/pack-codec.ts`, `packages/shared/src/index.ts`;
+  - `packages/shared/src/world/{pack-codec.ts, c08.ts}` (`C08_VERSION = '1.1.0'`, DL-741), `packages/shared/src/index.ts`;
   - `packages/world/src/client/{jobs.ts, world-bridge.ts}`, `chunks/{mesher.ts, chunk-renderer.ts}`, `look/{surfaces.ts, ground.ts, config.ts, look-materials.ts}`;
   - `packages/engine/src/platform/tier-config.ts`.
 - **Tests:** `tools/map/test/{cover, pack.roundtrip}.spec.ts`, `packages/shared/test/world.cover-codec.spec.ts`, `packages/world/test/cover.mesher.spec.ts`, `tests/e2e/world-cover.spec.ts` (`@world-cover`, `@cover-ledger`, `@xr @cover-ledger`).
@@ -66,19 +66,19 @@ Evidence: look study (2026-10-26) frames `desktop-03-third-st-bayview-1300-clear
 - About 23 code files. No new script, dependency or asset.
 
 ## Interfaces
-- C08 1.0 and C13 1.2 are read and keep their shapes; `CoverClass`, the codec, the surface ids, config and bridge fields are S02 internals.
-- Contract change proposals: none. DL-740 confirms the C08 §4 reading: section 21's class list gains the cover codes 17–23 in the same layout (a note in `02-world-contracts.md`, no shape change).
+- C08 1.1 (`02-world-contracts.md` §8, 06 v1.5, DL-741): this session writes `C08_VERSION = '1.1.0'`, so `WorldIndex.c08` reads `'1.1.0'`, and section 21's class list gains the cover codes 17–23 in the same layout; `DVWP` stays 1. C13 1.2 is read. `CoverClass`, the codec, the surface ids, config and bridge fields are S02 internals.
+- Contract change proposals: none beyond C08 1.1, which the Architect has made.
 
 ## Acceptance criteria
 - AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 and no new file holds GLSL or `ShaderMaterial` — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
 - AC-2 Given hand-built rasters When the cover cases run Then the seven rules and their order hold, protected classes never change, a driveway is one cell wide, `mixed` is within ±0.02 of `mixedShare` on 1 km², and `buildPacks` with cover on and off differs only in GROUND on base-`Paved` cells — proof: `pnpm check:unit -- tools/map`
-- AC-3 Given random grids and the `synth` packs When the codec cases run Then the cover round-trips exactly, `decodeL0` returns identical chunks with and without section 21, and a pack without it decodes to all `none` — proof: `pnpm check:unit -- packages/shared`
+- AC-3 Given random grids and the `synth` packs When the codec cases run Then the cover round-trips exactly, `decodeL0` returns identical chunks with and without section 21, a pack without it decodes to all `none`, the `synth` `WorldIndex.c08` is `'1.1.0'`, and a 1.0 index with classes above 16 skips them — proof: `pnpm check:unit -- packages/shared`
 - AC-4 Given the `synth` sources When the bake runs twice Then the outputs are identical, the `bakeId` is new, every class has ≥ 50 cells and no l0 pack exceeds 2.5 MiB — proof: `pnpm map:build -- --area synth --repro && pnpm check:unit -- tools/map`
 - AC-5 Given the `synth` bake When the mesher runs twice per profile with cover on and off Then runs are byte-identical, posts carry their `cover.*` ids, cover-off output equals the parent commit's, vertex, triangle and object counts match on and off, and no `mobile-low` L0 unit exceeds 2 MiB — proof: `pnpm map:build -- --area synth && pnpm check:unit -- packages/world/test/cover.mesher.spec.ts`
 - AC-6 Given a QA `synth` build When `@world-cover` opens `?tier=desktop`, `mobile` and `mobile-low` on `chromium-webgl2` and `webkit-webgl2` Then `look().cover.cells` is > 0 for all seven classes across `yard-street` and `hill-scrub`, and the `cover` layer toggle changes the `yard-street` frame's mean |Δ| by ≥ 0.02 and leaves render objects unchanged — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-cover && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-cover`
 - AC-7 Given the look goldens regenerated for the new `synth` `bakeId` (`golden-update` label), plus both shots at `desktop` and `mobile-low` When `@look-golden` and `@look-owner` run Then every shot is within M02e's tolerance — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-8 Given every perf scenario in fail mode and the ledger When `@cover-ledger` runs flat and in the `@xr` case Then every tier stays in budget, `mobile-low` stays ≤ 100 render objects, object and triangle deltas are 0 for `desktop`, `mobile`, `mobile-low` and `legacy`, and `xr` equals its baseline — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @cover-ledger && DV_WORLD=synth pnpm check:e2e:xr`
-- AC-9 Given the same build When the earlier suites run Then `@world-hash` passes with no golden regenerated, and `@world-look`, `@world-sky`, `@world-stream`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-hash|@world-look|@world-sky|@world-stream|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
+- AC-9 Given the same build When the earlier suites run Then `@world-hash` passes with no golden regenerated, and `@world-look`, `@world-sky`, `@world-route`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-hash|@world-look|@world-sky|@world-route|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-10 Given the branch When the asset and IP gates run Then they pass with no new asset or licence entry — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings`
 - AC-11 Given the production build When it is verified and deployed to a Preview Then it succeeds and `__dvBridge` is absent — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 - AC-12 Given an operator workstation with the M02a1 `sf` snapshot and the media R2 secrets When the operator re-bakes and publishes `sf` to staging Then `--repro` is identical, the report gives cells per class, no l0 pack exceeds 2.5 MiB, the staging catalog names the new `bakeId`, both checks pass, and New Game to the m.a1.01 truck stage in Safari and Chrome shows yards, driveways and scrub (cover-off and cover-on frames in `docs/look/M02h3-sf/`) — proof: manual: operator workstation and a desktop Mac (Safari, Chrome), `pnpm map:build -- --area sf --repro`, `pnpm map:pack -- --area sf --target r2:staging`, `pnpm assets:publish -- --env staging --world assets/world/sf.lock.json --pointer-out assets/world/pointer.staging.json`, update `offerUrl` and attribution, merge, `pnpm deploy:prod -- --env staging`, record `docs/bake-runs/M02h3/staging.json`, then `pnpm provenance:check && pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev`

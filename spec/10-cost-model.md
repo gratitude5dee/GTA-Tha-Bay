@@ -68,7 +68,7 @@ fal has no spend cap and locks an account below a balance threshold (F-048), so 
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $4 | 11 steps (DL-286; cap from DL-OWN-07) | $3.76 |
+| Spike (M00c) | $4 | 11 callable steps of the 13 in `plan.json` ($4.36 listed; V2 and V4 hit `blocked` endpoints and are refused before the ledger reserves, DL-286, DL-741; cap from DL-OWN-07) | $3.76 |
 | Characters (M10a, M10b) | $42 | 8 Standard fighters × $3.67 + 12 Lean × $1.05 | $41.96 |
 | Cutscenes (M05c3, M10b) | $38 | greedy priority list stopping at a $38 running estimate | $37.60 |
 | Vehicles and props (M10d1, M10d3) | $14 | ≤ 2 traffic bodies in M10d1 (≤ $1.70); player cars or props in M10d3 within the rest (DL-OWN-07) | ≤ $14 |

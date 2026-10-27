@@ -188,7 +188,7 @@ Phase 0–1 rows sit in block B (rows 57–65, after M01d3) and run one at a tim
 
 ### M02g1 · look-tune — 1 · risk H · S02 (+S11, S03) (Phase 0 A)
 - **Goal:** per-weather grade and haze, Karl fog no longer replacing the sky, blob shadows on every flat tier and desktop casters, analytic `skyReflect`, a fitted chase camera, dawn window ratio, real asphalt albedo; m.a1.01 releases the clock at `truck`, so fog burns off on the first drive (the dawn clip key is unchanged, AC-9).
-- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-04, R-PLAT-05 (s), R-ENG-02 · **Dep** M02e, M02f2, M01c, M05c2 · **Read** file `M02g1-look-tune.md`; `11-platform.md` §4.4, §5.1; `03-story-missions.md` §C3; DL-740 (C09 reading) · **Out** `packages/world/src/client/look/{grade,sky-reflect,blob-shadows,windows}.ts`, `packages/engine/src/platform/post`, `content/missions/m.a1.01/mission.ts`, `docs/look/M02g1-*` · **C** C13 1.2, C04 1.1, C06 1.1, C08 1.0, C09 1.0 (read)
+- **R** R-MAP-01, R-MAP-04, R-PLAT-03, R-PLAT-04, R-PLAT-05 (s), R-ENG-02 · **Dep** M02e, M02f2, M01c, M05c2, M05c3 (AC-9 checks its dawn key and `beats.lock`, DL-741) · **Read** file `M02g1-look-tune.md`; `11-platform.md` §4.4, §5.1; `03-story-missions.md` §C3; DL-740 (C09 reading) · **Out** `packages/world/src/client/look/{grade,sky-reflect,blob-shadows,windows}.ts`, `packages/engine/src/platform/post`, `content/missions/m.a1.01/mission.ts`, `docs/look/M02g1-*` · **C** C13 1.2, C04 1.1, C06 1.1, C08 1.0, C09 1.0 (read)
 - **Gate** AC-13 operator `sf` bake, AC-14 Q-13 iPhone 15 · **Proof** `@look-tune`, `@look-ledger`, `@look-owner`, `@story-burnoff`; `pnpm missions:build -- --check`; `DV_WORLD=synth pnpm check:perf -- --fail`
 
 ### M02g2 · look-fixes — 0.7 · risk M · S02 (+S11) (Phase 0 B)
@@ -242,8 +242,8 @@ Phase 0–1 rows sit in block B (rows 57–65, after M01d3) and run one at a tim
 - **Gate** optional `FAL_KEY` after a live M00c spike; AC-11 manual review · **Proof** `pnpm check:unit -- tools/assets`; `pnpm check:assets`; `@art-city`, `@art-ledger`
 
 ### M10d4 · art-integration — 1 · risk H · S05 (+S10) (Phase 3, split 2 of 2 of the earlier M10d1; DL-739)
-- **Goal:** 8 realistic adult ped bodies × 20 original outfits on `bay_rig_v1` from vetted CC0 bases with library clips; a `model` and portrait for every realistic creator row (Coast rows keep their place for M10a2); +0 render objects.
-- **R** R-MAP-04, R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d1, M10d0, M03b2, M04b2 · **Read** file `M10d4-art-integration.md`; `05-assets-pipeline.md` §3, §4, §14; `10-ui-pages.md` §2.8 · **Out** `packages/world/src/client/peds`, `packages/ui/src/creator`, `content/ui/creator/catalog.json` · **C** C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read)
+- **Goal:** 8 realistic adult ped bodies × 20 original outfits on `bay_rig_v1` from vetted CC0 bases with library clips; a `model` and portrait for every realistic creator row (the Coast rows keep M10a2's models, with a `fallbackPart` for its SKIP path); +0 render objects.
+- **R** R-MAP-04, R-UI-01, R-IP-01, R-IP-02, R-ENG-02 · **Dep** M10d1, M10d0, M03b2, M04b2, M10a2 (the Coast models, `assets:retarget`; DL-741) · **Read** file `M10d4-art-integration.md`; `05-assets-pipeline.md` §3, §4, §14; `10-ui-pages.md` §2.8 · **Out** `packages/world/src/client/peds`, `packages/ui/src/creator`, `content/ui/creator/catalog.json` · **C** C04 1.1, C07 1.1, C13 1.2, C11 1.0 (read)
 - **Gate** AC-11 manual review; Q-24 · **Proof** `@art-peds`, `@art-creator`, `@peds-ledger`; `pnpm provenance:check`
 
 ### M02h8 · xr-look-traa — 0.8 · risk M · S11 (+S02) (Phase 5)

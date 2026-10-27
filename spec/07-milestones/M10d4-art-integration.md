@@ -3,7 +3,7 @@
 ## Goal
 After this session pedestrians and the creator kit are final v1 art, not mannequins. **Split boundary (DL-OWN-07 Phase 3, split 2 of 2 of the earlier one-session M10d1, DL-739):** M10d1 did vehicles, props and the registry; this session does pedestrians and creator parts; M10d3 does player cars and stages; M10d2 does surfaces.
 
-Pedestrians become 8 realistic adult bodies × 20 original outfits on `bay_rig_v1`, from vetted CC0 bases (Quaternius, admitted by M10d0) with Universal Animation Library clips. Every realistic creator row gets a `model` and a portrait; the six Coast rows (DL-737) keep their place, and M10a2 gives them models. Ledger: +0 render objects per profile.
+Pedestrians become 8 realistic adult bodies × 20 original outfits on `bay_rig_v1`, from vetted CC0 bases (Quaternius, admitted by M10d0) with Universal Animation Library clips. Every realistic creator row gets a `model` and a portrait. The six Coast rows (DL-737) already have their models from M10a2 (row 89, merged before this session); this session only checks them and gives each a `fallbackPart` for the case where M10a2 left one without a `model`. Ledger: +0 render objects per profile.
 
 Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-low-01-creator.png`); look study item 14; art-source study "Pedestrian bodies". On `claude/build`: `peds/mannequin.ts:5`, `peds/instances.ts:6` and `:367–368`, `tools/ci/perf-check.ts:69–72`, `packages/ui/src/creator/stage.ts:4`.
 
@@ -16,7 +16,8 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 
 ## Depends on
 - **M10d1:** `config/art-placeholders.json` (`M10d4` rows), `tools/assets/src/lod.ts`.
-- **M10d0:** `quaternius` snapshot, vetting checklist, intake records, `credits.json` `art[]`.
+- **M10d0:** `quaternius` snapshot, vetting checklist, intake records, `credits.json` `art[]`, `tools/assets/src/import/cli.ts` and the root script `assets:import`.
+- **M10a2** (through it **M10a1**): the six Coast rows with `model` and `portrait` (`character/pc-<slot>-coast`), and the root script `assets:retarget` (`tools/assets/src/retarget.ts`, M10a1) with its flags.
 - **M03b2:** `PedRenderer`, `PED_ASSETS`, `PED_PALETTE`, `world.peds()`.
 - **M04b2:** creator catalog and schema, `CreatorStage`, `AppearanceV1` goldens.
 - Run order: after M02g1 (blobs, ledger, WebKit golden).
@@ -31,12 +32,12 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 - **Ped kit:** `character/ped.body.{a..h}` (base + proportions + face); `character/ped.outfit.{01..20}` from the creator recipes; `prop/ped.far.{a..h}` rigid ≤ 300 triangles with baked `aSwing`/`aPivot` for the existing TSL gait; `texture/ped.atlas` per tier (`atlas.ts`) with a `PED_PALETTE` mask; `anim/ped.moves` (states 0–3, Library clips mapped by name; a state with no match keeps its placeholder clip, BD row).
 - **Renderer** (`peds/kit.ts`, `config/world/ped-art.json`): a near ped merges body and outfit into **one** `SkinnedMesh` with one material; far is one `InstancedMesh` per body. Sim keys `character/ped.ambient.*` map to the kit in config; sim and hashes are unchanged. Caps (24 / 16 / 12 / 8 / 6) and `CrowdLimits` are unchanged; the mannequin remains only as the load-failure fallback; `anim/clip-source.ts` picks file clips or placeholders.
 - **Creator kit:**
-  - `character/pc-<slot>-<id>` and `portrait/pc-<slot>-<id>` for every Body (12), Face (24), Hair (16), top (12), bottom (8), shoes (6) and accessory (8) row except the six Coast rows, which gain `fallbackPart` (new optional field in `wardrobe-item.v1.schema.json`: a same-slot row, tinted with the Coast row's `color`).
+  - `character/pc-<slot>-<id>` and `portrait/pc-<slot>-<id>` for every Body (12), Face (24), Hair (16), top (12), bottom (8), shoes (6) and accessory (8) row except the six Coast rows, which M10a2 modelled. The Coast rows gain `fallbackPart` (new optional field in `wardrobe-item.v1.schema.json`: a same-slot realistic row, tinted with the Coast row's `color`), used only while a Coast row has no `model`.
   - `avatar/assemble.ts` (engine) builds the preview: one skeleton, three atlases (`texture/pc.{skin,cloth,hair}`), face morphs.
-  - The Coast body–face pair keeps the whole figure on the mannequin path until M10a2. On a realistic body, Coast hair or clothes draw their `fallbackPart`.
+  - Coast rows (M10a2's models, `10-ui-pages.md` §2.8 rule 6): the Coast body–face pair renders its own models, and Coast hair and clothes draw their own models on any body, since all parts share `bay_rig_v1`. **If M10a2 left a Coast row without `model`** (its SKIP path: no `FAL_KEY`, the operator batch still pending, or `pc-coast` listed `pending`), that row draws its `fallbackPart`, and the Coast body–face pair without models stays on the mannequin path; the report names those rows, and M10a2's follow-up commit sets them later with no change here.
   - `StageParams.parts: {slot, ref, path: 'model'|'fallback'|'mannequin'}[]`; `AppearanceV1` unchanged.
   - Portraits: `@art-portraits` with `DV_ART_WRITE=1` captures 256² cards, `assets:import -- portraits` encodes them; `derived_from` holds the part's sha256.
-- **Registry:** fill `replacedBy` for the `M10d4` rows; add row `creator-coast` (`owner: 'M10a2'`, the six Coast rows) and the `M10a2` owner value to the schema.
+- **Registry:** fill `replacedBy` for the `M10d4` rows (ped mannequins, creator rows without `model`). The Coast rows are not registry rows: they are M10a2's, and its batch report tracks them (DL-741).
 - **Budgets** (`config/asset-budgets.json`, †):
 
 | Row | Tag | Tris hi / mid / lo | Materials | Texture |
@@ -58,12 +59,12 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 - **Bridge (QA):** `world.peds().art` `{bodies, near, far, clips, textureBytes}`; creator `state.parts`.
 
 ## Scope out
-- Coast models, the on-foot player body from creator parts, NPC and fighter models: M10a2, M10d3.
+- Coast models: M10a2 (merged). The on-foot player and mission-actor bodies (`prop/graybox.capsule` in `player.default` and `ped.actor`) and the fighter-model fallback: M10d3, from this session's parts. NPC and fighter models: M10a2.
 - Vehicles: M10d1. Surfaces: M10d2. XR profile: M02h8. Emotes: M10f.
 
 ## Deliverables
-- Root script **`assets:retarget`** (`tsx tools/assets/src/retarget.ts`, §4 flags `--rig bay_rig_v1 --clips <glb> --to <slug>`; M10a1 extends it) and **`assets:import`** subcommands `characters [--check]`, `portraits [--check]`; `package.json`.
-- `tools/assets/src/{retarget.ts, atlas.ts, import/character.ts, import/cli.ts, recipes/wear.ts, recipes/head.ts}`; `tools/assets/test/{import.character, recipes.people, retarget}.spec.ts`.
+- Edits to existing root scripts: **`assets:import`** (M10d0's `tools/assets/src/import/cli.ts`) gains the subcommands `characters [--check]` and `portraits [--check]`; **`assets:retarget`** (M10a1's `tools/assets/src/retarget.ts`, flags `--rig bay_rig_v1 --clips <glb> --to <slug>` unchanged) gains a `--map <json>` option that maps Library clip names to ped states. No new root script; `package.json` unchanged.
+- New `tools/assets/src/{atlas.ts, import/character.ts, recipes/wear.ts, recipes/head.ts}`; edits to `import/cli.ts`, `retarget.ts`; tests `tools/assets/test/{import.character, recipes.people}.spec.ts` and new cases in M10a1's `retarget.spec.ts`.
 - `content/art/people.json`, `config/world/ped-art.json`, schemas `config/schemas/{art-people, ped-art}.schema.json`; edits to `config/{asset-budgets.json, art-placeholders.json, schemas/art-placeholders.schema.json}`, `docs/legal/licenses/packs.json` (`quaternius` → `use: 'import'`); `docs/legal/art-vetting/M10d4.json`.
 - `packages/world/src/client/peds/kit.ts`; edits to `peds/{instances.ts, mannequin.ts}`, `world-bridge.ts`; `packages/world/test/peds.kit.spec.ts`.
 - `packages/engine/src/client/{avatar/assemble.ts, anim/clip-source.ts}`; edit `creator-stage.ts`; `packages/engine/test/avatar.assemble.spec.ts`.
@@ -78,13 +79,13 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
 
 ## Acceptance criteria
 - AC-1 Given the branch When install, typecheck, lint, unit tests and build run Then all exit 0 with no GLSL — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
-- AC-2 Given `config/art-placeholders.json` When its test runs Then every `M10d4` row's `replacedBy` is non-empty and resolves, `creator-coast` names exactly the six Coast rows with owner `M10a2`, and a fixture with an empty `M10d4` row fails naming its id — proof: `pnpm check:unit -- tools/assets`
+- AC-2 Given `config/art-placeholders.json` When its test runs Then every `M10d4` row's `replacedBy` is non-empty and resolves, no row matches a Coast row, the owner enum is unchanged (`M10d1`, `M10d4`, `M10d2`, `M10d3`), and a fixture with an empty `M10d4` row fails naming its id — proof: `pnpm check:unit -- tools/assets`
 - AC-3 Given the new assets When the asset gates run Then:
   - each has three variants within its budget row;
   - recipe and atlas outputs are byte-identical across two runs;
   - each Quaternius-derived file has a `derived` record with `changes`, a licensed root, an intake record and an approved vetting review, and credits carry the courtesy line.
   — proof: `pnpm assets:import -- characters --check && pnpm assets:catalog && pnpm assets:verify && pnpm check:assets && pnpm provenance:check`
-- AC-4 Given every person asset and file name When the IP and likeness gates run Then all pass, every record has tier `original`, no outfit holds text or a mark, and the target image's signature is absent — proof: `pnpm names:lint && pnpm ip:strings && pnpm ip:signatures && pnpm ip:extensions && pnpm likeness:gate`
+- AC-4 Given every person asset and file name When the IP and likeness gates run Then all pass, every record has tier `original`, and no outfit holds text or a mark — proof: `pnpm names:lint && pnpm ip:strings && pnpm ip:signatures && pnpm ip:extensions && pnpm likeness:gate`
 - AC-5 Given each body and part When the rig and clip tests run Then:
   - it binds to the 22 bones with rest pose within 1 cm of `BONE_REST` and ≤ 4 influences, and passes the adult check;
   - `anim/ped.moves` passes A5 (idle hip drift ≤ 3 % of `heightM`, end pose ≤ 1 cm) and placeholder clips still play;
@@ -97,7 +98,7 @@ Evidence: capture study "Pedestrians and player" (`staging-prod-autotier-mobile-
   — proof: `pnpm check:unit -- packages/world`
 - AC-7 Given the creator catalog When the creator and assembly tests run Then:
   - every non-Coast Body, Face, Hair, top, bottom, shoes and accessory row has a resolving `model` and `portrait`;
-  - Coast rows keep their indices, have no `model` and a valid `fallbackPart`; the Coast pair renders `mannequin`, Coast hair on a realistic body `fallback`;
+  - Coast rows keep their indices and have a valid same-slot `fallbackPart`; where M10a2 set `model` it resolves, the Coast pair renders `model` and Coast hair on a realistic body renders `model`; a fixture catalog with the Coast `model` fields removed renders the pair `mannequin` and Coast hair on a realistic body `fallback`;
   - faces carry all 24 morph targets; the `mid` preview is ≤ 40,000 triangles with ≤ 3 textures;
   - `AppearanceV1` golden vectors are byte-equal to M04b2's.
   — proof: `pnpm check:unit -- packages/ui packages/engine`
@@ -119,10 +120,10 @@ How to see it:
 1. `pnpm map:build -- --area synth && DV_WORLD=synth pnpm dev`, open `/?debug=1&tier=desktop`.
 2. `__dvBridge.world.teleport('lm.ferry-building')`, then `__dvBridge.world.call('crowd', { n: 12 })`; `__dvBridge.world.peds()` shows `art.near: 'kit'`.
 3. Reload `/?debug=1&tier=mobile-low&gl=1`: ≤ 6 near peds.
-4. New Game: Coast leads each tab as a mannequin; pick `body-athletic` for a realistic body with Coast hair via `fallbackPart`.
+4. New Game: Coast leads each tab with M10a2's stylized model; pick `body-athletic` for a realistic body still wearing Coast hair and the hoodie.
 
 ## Effort
-1 Builder session; ≈ 34 hand-written files plus generated assets; risk **high** (skinning, 86 creator parts, realism ceiling). Order: intake, ped kit, ledger, creator parts, portraits, goldens.
+1 Builder session; ≈ 32 hand-written files plus generated assets; risk **high** (skinning, 80 creator parts, realism ceiling). Order: intake, ped kit, ledger, creator parts, portraits, goldens. The on-foot capsule goes to M10d3 (DL-741), which keeps this session inside L7.
 
 ## Risks & fallbacks
 - **Bases read stylized:** remodel; MakeHuman only with its ADR.

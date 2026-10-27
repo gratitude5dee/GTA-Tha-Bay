@@ -20,7 +20,7 @@ Code only: $0 fal, no asset, no contract shape change.
 - **M02h4:** `TreeForm`, `tree-forms.json`, 6-float tree records, per-unit pools (10/5/2), `look().vegetation`, bake tool `0.4.0`.
 - **M02h3:** `CoverClass` (`yard`, `scrub`, `park`), `s13-cover.ts`, the `sf` publish route of its AC-12.
 - Through them: M02g2, M02g1 (ledger, `@look-owner`), M02e (`shot()`), M02a2.
-- Contracts: C08 1.0 (record 22 TREE `i16 dx, i16 dz, u8 scale, u8 species`; `RenderChunk.trees`) and C13 1.2, read unchanged.
+- Contracts: C08 1.1 (DL-741; record 22 TREE `i16 dx, i16 dz, u8 scale, u8 species` as a `TreeForm`; `RenderChunk.trees`) and C13 1.2, shapes unchanged.
 
 ## Scope in
 † = design value in `config/world/vegetation.json` (bake) or `look.json` `vegetation` (client), with schemas.
@@ -65,7 +65,7 @@ Code: `sources.json:168` fetches only `natural=coastline,water,tree`; `s3-water.
 - No new script (`--only`, `--no-download` are `map:fetch` flags), dependency or asset; ≈ 25 code files.
 
 ## Interfaces
-- C08 1.0 and C13 1.2 keep their shapes. The TREE `species` byte, re-purposed by M02h4, gains `Shrub 5`, `Hedge 6` and the bit-7 scatter flag; DL-740 confirms it with M02h4's reading in the record-22 note. Packs and client ship together.
+- C08 1.1 and C13 1.2 keep their shapes. The `TreeForm` byte of C08 1.1 (`02-world-contracts.md` §8) gains its `Shrub 5`, `Hedge 6` and bit-7 scatter values here (DL-741). Packs and client ship together.
 - Contract change proposals: none to shapes.
 
 ## Acceptance criteria
@@ -85,7 +85,7 @@ Code: `sources.json:168` fetches only `natural=coastline,water,tree`; `s3-water.
   - — proof: `pnpm map:build -- --area synth && pnpm check:unit -- packages/world`
 - AC-5 Given a QA `synth` build When `@world-scatter` runs `shot('park-forest')` at `desktop`, `mobile` and `mobile-low` on `chromium-webgl2` and `webkit-webgl2` Then `look().vegetation` reports impostors, shrubs and hedges > 0 and band writes within the cap; the `scatter` layer toggle changes mean |Δ| by ≥ 0.02; `world.scatter: false` reports no scatter instances or impostor pool — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-scatter && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-scatter`
 - AC-6 Given goldens regenerated for the new synth `bakeId` (`golden-update` label), `park-forest` at `desktop` and `mobile-low` included When `@look-golden` and `@look-owner` run Then every shot is within M02e's tolerance and two `park-forest` captures are byte-identical — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @look-golden && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
-- AC-7 Given the same build When the earlier suites run Then `@world-hash` passes with no golden regenerated, and `@world-trees`, `@world-cover`, `@world-look`, `@world-stream`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-hash|@world-trees|@world-cover|@world-look|@world-stream|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
+- AC-7 Given the same build When the earlier suites run Then `@world-hash` passes with no golden regenerated, and `@world-trees`, `@world-cover`, `@world-look`, `@world-route`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-hash|@world-trees|@world-cover|@world-look|@world-route|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-8 Given every perf scenario in fail mode and the committed ledger When `@scatter-ledger` runs flat and in the `@xr` case Then every tier is in budget (shadow passes counted), object deltas are ≤ +4 `desktop`, ≤ +3 `mobile`, ≤ +1 `mobile-low` (≤ 100 total), `legacy` and `xr` equal their baseline, and `park-forest` vegetation triangles are ≤ 1.2M / 250k / 60k — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @scatter-ledger && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-9 Given the branch When the asset, IP and licence gates run Then they pass with no new asset, provenance record, licence entry or dependency — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm license:scan`
 - AC-10 Given the production build When it is verified and deployed to a Preview Then it succeeds, `__dvBridge` is absent and the header checks pass — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`

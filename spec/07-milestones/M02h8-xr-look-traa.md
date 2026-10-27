@@ -19,7 +19,7 @@ $0 fal, no asset, no contract change. A Quest 3 operator pass decides the Quest 
 - **M11a1:** `QualityGovernor` (`postLevel` ceiling 3), `platform.governor.state()`; the `postLevelCap` raise moved from M11a1 to this file (DL-740).
 - **M02h7:** the `min` wall path, with glass via `skyReflect`, which `xr` takes.
 - Also used, merged earlier: M02e (`LookProfile`, `createLookMaterials`, `PostStack`, `postNodes`, `@look-golden`), M02g1 (`grade.ts`, `sky-reflect.ts`, `blob-shadows.ts`, `layers`, ledger shape), M02g2 (vertex AO), M02h1 (`flat` markings, legacy XR roads material), M02h4 (`low` crowns), M01b2 (XR smoke, `?xr-emulate=quest3`).
-- Contracts: C13 1.2 (`TierFeatures`, `RenderLimits.viewPasses`, `multiview`, `DynamicQuality.postLevel`) and C08 1.0, read only.
+- Contracts: C13 1.2 (`TierFeatures`, `RenderLimits.viewPasses`, `multiview`, `DynamicQuality.postLevel`) and C08 1.1 (DL-741), read only.
 
 ## Scope in
 - **Profile type** (`look/config.ts:10`): `'full' | 'lite' | 'min' | 'xr' | 'legacy'`. The schema enum gains `xr` (`world-look.schema.json:11`). `lookErrors` adds two rules: `xr` only on the two XR tiers, and `legacy` valid on every tier.
@@ -80,7 +80,7 @@ $0 fal, no asset, no contract change. A Quest 3 operator pass decides the Quest 
 - Data (not counted): `look.json`, schema, `look-shots.json` (`traa-graze`), goldens, `docs/look/M02h8-*`, checklist, spec/03 and BD rows. No new script or dependency.
 
 ## Interfaces
-- C13 1.2 and C08 1.0 unchanged. `xr` is an S02 `LookProfile` value; `shadowsOff`, `postLevelCap` and `?look=` are look data and app QA parsing.
+- C13 1.2 and C08 1.1 unchanged. `xr` is an S02 `LookProfile` value; `shadowsOff`, `postLevelCap` and `?look=` are look data and app QA parsing.
 - Contract change proposals: none.
 
 ## Acceptance criteria

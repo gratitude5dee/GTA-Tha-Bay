@@ -120,7 +120,7 @@ Inputs: research/INDEX.md §6 (unit list prices), `09-backend-ops.md` §5.4 (inf
 |---|---|---|
 | Spike | ≤ $4 (DL-OWN-07) | M00c ledger ≤ 4,000,000 micros (operator run with `DV_SPIKE_CAP_MICROS=4000000`, DL-740) |
 | Characters | ≤ $42 (≤ 8 Standard + ≤ 12 Lean) | M10a1 canary ≈ $7.3; M10a2 total ≤ 42,000,000 micros |
-| Cutscenes | ≤ $38 | M05c3 ≤ $16; M10b ≤ $22 (DN-S13-02, DL-740); everything else in-engine (R-CUT-03) |
+| Cutscenes | ≤ $38 | M05c3 ≤ $16; M10b the rest after Act 1, at least $22 (DN-S13-02, DL-740, DL-741); everything else in-engine (R-CUT-03) |
 | Vehicles and props | ≤ $14 | M10d1 ≤ 1,704,000 micros; M10d3 the rest (DL-740) |
 | Buffer | $2 | owner-approved M06b4 jobs and retakes |
 

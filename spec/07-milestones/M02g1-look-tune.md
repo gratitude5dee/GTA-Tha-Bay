@@ -22,7 +22,9 @@ m.a1.01 keeps its dawn intro and releases the clock at the `truck` stage, so the
 - **M02f2:** shares `world-view.ts`, `world-bridge.ts`, `boot-world.ts`.
 - **M01c:** `RendererHost` (`PCFShadowMap`, `renderer-host.ts:4`), `RenderBudgetMeter`, probe `live()` (`platform/probe.ts:69`), `check:perf`, `perf:verify`.
 - **M05c2:** m.a1.01, `?play=story&story=1`, `@story-start`, `mission.jump`.
-- Contracts: C13 1.2, C04 1.1, C06 1.1, C08 1.0, C09 1.0, all unchanged.
+- **M05c3:** the Act 1 prewarm, `beats.lock.json` and the `cut.story.m.a1.01.dawn` key that AC-9 holds unchanged (DL-741).
+- **The look study** (capture frames, render audit, art-source study) committed to the repository before this session starts (`_PLAN.md` §0 rule 10).
+- Contracts: C13 1.2, C04 1.1, C06 1.1, C08 1.0, unchanged; C09 1.1 (06 v1.5, DL-741), which this session lands.
 
 ## Scope in
 - **Step 0 (first commit):**
@@ -52,6 +54,7 @@ m.a1.01 keeps its dawn intro and releases the clock at the `truck` stage, so the
   - `content/missions/m.a1.01/mission.ts:34`: the `to_gate` lock keeps `karl-fog`, hour 6 → 6.5 † (range 6-7, still dawn).
   - `truck` `onEnter` adds `clock({ unlock: true, lock: { weather: 'clear' } })`.
   - `vm/runtime.ts:1208-1212`: `unlock` plus `lock.weather` without `hour` runs `unlock`, then `forceWeather(weather, defaultBlendGameMinutes × 60)` (16 s real); other combinations are unchanged.
+  - Resume and retry (check first how a restore brings the clock back today; m.a1.08, m.a1.10 and m.a1.11 also lock the clock in a stage `onEnter`): if the fog could return, restoring a checkpoint re-applies, in order, the `clock` ops of the `onEnter` lists of the stages before the checkpoint stage (`vm/checkpoint.ts` restore path; the `MissionCheckpointV1` bytes and hashes are unchanged), so a save resumed at `tow_home` (the checkpoint stage) or a checkpoint retry there comes back released and `clear`, never fogged; a fail-retry to `'start'` re-runs `to_gate` and its dawn lock. BD row; any other mission whose resume changes is named in the report with its `check:missions` result.
   - `version` → 2, then `missions:build`; stages unchanged.
 - **Bridge (QA):** `look()` adds `layers`, `blobs`, `dynamicCasters` and `skyReflect`; `setLookLayer(id, on)`.
 - **Ledger:** `docs/look/M02g1-render-ledger.json` `{commit, bakeId, tiers: {<tier>: {baseline, after, perLayer}}, xr}`, written with `DV_LOOK_WRITE=1`, else checked. Plan: blob +1 per flat tier, desktop casters ≈ +3 per casting object, other layers 0, `legacy` 0.
@@ -63,13 +66,14 @@ m.a1.01 keeps its dawn intro and releases the clock at the `truck` stage, so the
 ## Deliverables
 - Engine: `packages/engine/src/platform/post/{nodes.ts, stack.ts}`, `platform/renderer-host.ts`, `sim/camera/collision.ts`, `client/camera/rig.ts`, `client/vehicle/vehicle-view.ts`; tests `packages/engine/test/platform/post-grade.spec.ts`, `packages/engine/test/camera-chase.spec.ts`.
 - World: new `packages/world/src/client/look/{grade.ts, sky-reflect.ts, blob-shadows.ts, windows.ts}`; edits `look/{config.ts, shadows.ts, facade.ts, water.ts, look-view.ts}`, `sky/fog.ts`, `traffic/instances.ts`, `peds/instances.ts`, `chunks/chunk-renderer.ts`, `world-bridge.ts`; tests `packages/world/test/{look.tune.spec.ts, look.blob.spec.ts, look.windows.spec.ts}`.
-- Story: `content/missions/m.a1.01/mission.ts`, `packages/modes/story/src/vm/runtime.ts`, `packages/modes/story/test/clock-burnoff.spec.ts`.
+- Story: `content/missions/m.a1.01/mission.ts`, `packages/modes/story/src/vm/{runtime.ts, checkpoint.ts}`, `packages/shared/src/contracts/c09-mission.ts` (`C09_VERSION`), `packages/modes/story/test/clock-burnoff.spec.ts`.
 - E2E: `tests/e2e/{look-tune.spec.ts, story-burnoff.spec.ts, cam-chase.spec.ts, world-look.spec.ts}`.
 - Data (not counted): `look.json` and schema, `look-shots.json`, `mission.m.a1.01` with provenance, goldens, `docs/look/M02g1-*`, `tools/ci/checklists/M02g1-iphone15.json`, BD rows. No new script or dependency.
 
 ## Interfaces
 - C13 1.2 `blob`, C04 1.1 `FollowParams.offset` values, C06 1.1 `unlock`/`forceWeather`, C08 1.0: no shape change; `LookFile`, `setGrade` and bridge fields are internal.
-- Contract change proposals: none of shape. DL-740 confirms one C09 1.0 reading: `clock` with `unlock` plus `lock.weather` and no `hour` means release, then blend (§C3). No mission uses it today.
+- C09 1.1 (DL-741): `clock` with `unlock` plus `lock.weather` and no `hour` means release, then blend (`03-story-missions.md` §C3); before, it unlocked and re-locked, and no mission on `claude/build` used it. This session writes `C09_VERSION = '1.1.0'` in `packages/shared/src/contracts/c09-mission.ts`; no IR, schema or cutscene key changes.
+- Contract change proposals: none beyond C09 1.1, which the Architect has made.
 
 ## Acceptance criteria
 - AC-1 Given the branch When install, typecheck, lint (C02), unit tests and build run Then all exit 0 with no GLSL — proof: `pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm check:unit && pnpm build`
@@ -111,6 +115,7 @@ m.a1.01 keeps its dawn intro and releases the clock at the `truck` stage, so the
   - the clock is unlocked at the `truck` start;
   - within 1,800 game s, `env().weather` is `clear` with the blend done, and the hour is ≥ 06:30 with the sun on;
   - every other `clock` combination is unchanged;
+  - a save resumed at `tow_home` and a checkpoint retry at `tow_home` report the clock unlocked and `env().weather` `clear` within one blend; a fail-retry to `'start'` reports the `karl-fog` lock at 06:30 again;
   - `@story-start` passes.
   - — proof: `pnpm check:unit -- packages/modes/story && pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@story-burnoff|@story-start"`
 - AC-9 Given the sources When the compiled output is checked Then:
@@ -140,7 +145,7 @@ How to see it:
 
 ## Risks & fallbacks
 - **`mobile-low` baseline already at 100:** turn the blob off there through `layers` (data). Never raise a budget.
-- **The C09 reading is declined:** `to_stall` `onEnter` runs `clock({ lock: { weather: 'clear' } })` then `clock({ unlock: true })` behind the chase-camera cut. The burn-off becomes a cut, and the report says so.
+- **C09 1.1 is withdrawn by the Architect:** `to_stall` `onEnter` runs `clock({ lock: { weather: 'clear' } })` then `clock({ unlock: true })` behind the chase-camera cut. The burn-off becomes a cut, and the report says so.
 - **WebKit golden flaky:** `@look-owner` moves to nightly; the PR suite asserts bridge state (DL row).
 - **`@world-sky` gates fail:** tune grade data; gate changes go to the Architect.
 

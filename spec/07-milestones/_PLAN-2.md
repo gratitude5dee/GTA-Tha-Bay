@@ -127,7 +127,7 @@
 - **Gate** as M10a1; Q-24 · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero outstanding jobs); `pnpm check:assets`; `pnpm check:fighter` (every slot resolves on six tiers); manual ledger ≤ 42,000,000 micros
 
 ### M10b · qa-gates-kill-drill — 1 · risk M · S05 (+fighter prewarm)
-- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill (`KillPurgeWorkflow`, `KILL_WF`), fighter intro/finisher prewarm ≤ $24 (DN-S13-02) via a `cleared` provider, and the operator re-run of M05c3's Act 1 prewarm once the M10a2 sheets exist (DL-232).
+- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill (`KillPurgeWorkflow`, `KILL_WF`), fighter intro/finisher prewarm within the rest of the $38 cutscene line after Act 1 (DN-S13-02, DL-741) via a `cleared` provider, and the operator re-run of M05c3's Act 1 prewarm once the M10a2 sheets exist (DL-232).
 - **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` (runner, `suites/kill-drill`) · **C** C07 1.1, C12 1.1 (route 46)
 - **Gate** `CF_API_TOKEN_CACHE`; ADR-GENAI-01 `cleared` for paid prewarm · **Proof** `pnpm check:e2e -- --grep @kill-drill`; `pnpm test:ops -- --suite kill-drill`; `pnpm check:pipeline` (second prewarm: zero calls)
 
@@ -145,9 +145,9 @@ The one-session M10d1 is split into M10d1 (vehicles, props, the placeholder regi
 - **Gate** Q-13 iPhone 15 (manual touch run) · **Proof** `pnpm check:unit -- packages/engine/test/control.emote.spec.ts`; `pnpm check:e2e -- --project=webkit-webgl2 --grep @emote`; manual `M10f/iphone`
 
 ### M10d3 · art-integration — 1 · risk M · S05 (+S06, S07) (runs after M10d4, before M10d2; DL-460, DL-739)
-- **Goal:** final v1 art for the 14 player cars with prefabs (`vehicle/<slug>` on the §7 node contract plus the `06-racing-content.md` C.8 nodes: cockpit, steering wheel, thrusters, `_dent`), the six fight-stage dioramas `prop/stage-<id>-{day,night}`, and a creator-kit body for any fighter M10a2 leaves on its gray-box capsule; fills the `owner: 'M10d3'` registry rows; vetted licensed bases or generated bodies within the vehicles-and-props line (DL-740), recipe fallback.
-- **R** R-MODE-02, R-MODE-03, R-IP-01 · **Dep** M10d4, M07b2, M08b2, M10a2 · **Read** file `M10d3-…md`; `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4, FX5 · **Out** `assets/`, `content/fighter/{stages,roster.json}`, `config/art-placeholders.json`, `tools/assets/src/recipes` · **C** C07 1.1, C04 1.1, C13 1.1, C06 1.1
-- **Gate** Q-39, Q-24 (defaults apply) · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `pnpm check:fighter`; `pnpm check:perf -- --scenario fight-stage --fail`; `@art-cars`, `@art-stages`
+- **Goal:** final v1 art for the 14 player cars with prefabs (`vehicle/<slug>` on the §7 node contract plus the `06-racing-content.md` C.8 nodes: cockpit, steering wheel, thrusters, `_dent`), the six fight-stage dioramas `prop/stage-<id>-{day,night}`, a creator-kit body for any fighter M10a2 leaves on its gray-box capsule, and the on-foot player and mission actors off `prop/graybox.capsule` (DL-741); fills the four `owner: 'M10d3'` registry rows; vetted licensed bases or generated bodies within the vehicles-and-props line (DL-740), recipe fallback.
+- **R** R-MODE-02, R-MODE-03, R-IP-01 · **Dep** M10d4, M07b2, M08b2, M10a2 · **Read** file `M10d3-…md`; `05-assets-pipeline.md` §3, §4, §7; `06-racing-content.md` C.1, C.8, C.10; `07-fighter-content.md` FX4, FX5 · **Out** `assets/`, `content/fighter/{stages,roster.json}`, `config/art-placeholders.json`, `tools/assets/src/recipes`, `packages/engine/src/client/{avatar,snapshot}` · **C** C07 1.1, C04 1.1, C13 1.1, C06 1.1, C05 1.1 and C11 1.0 (read)
+- **Gate** Q-39, Q-24 (defaults apply); optional `FAL_KEY` · **Proof** `pnpm provenance:check`; `pnpm check:assets`; `pnpm check:fighter`; `pnpm assets:vehicle -- --check`; `pnpm check:perf -- --scenario fight-stage --fail`; `@art-cars`, `@art-stages`, `@art-player`
 
 ### M10d2 · art-integration — 1 · risk M · S02 (+S05, S11) (DL-390, DL-460, DL-739)
 - **Goal:** KTX2 facade atlas (desktop and a `mobile` variant, DL-740), rasterized `texture/far-bay-cards`, landmark art pass at the same AssetIds where files are supplied, `desktop-ultra` atmosphere adapter and clouds behind a flag, and the `assets:final` placeholder scan that M14b3's `art-final` gate computes.
@@ -191,7 +191,7 @@ The one-session M10d1 is split into M10d1 (vehicles, props, the placeholder regi
 
 ### M11b1 · webxr-port — 1 · risk H · S11
 - **Goal:** XR session and renderer swap, locomotion, comfort, XR input, panel base, IWER e2e, `xr-walk`.
-- **R** R-PLAT-02, R-ENG-04 · **Dep** M01c, M04b2, M11a1 (governor XR rule) · **Read** `11-platform-xr.md` §2–§5 · **Out** `packages/engine/src/platform/xr` · **C** C13 1.1 (`XrPanels`, `XrComfortSettings`), C04 1.1
+- **R** R-PLAT-02, R-ENG-04 · **Dep** M01c, M04b2, M11a1 (governor XR rule), M02h8 (the `xr` look profile and multiview check; shared XR render files, DL-741) · **Read** `11-platform-xr.md` §2–§5 · **Out** `packages/engine/src/platform/xr` · **C** C13 1.1 (`XrPanels`, `XrComfortSettings`), C04 1.1
 - **Gate** Q-13 devices · **Proof** `pnpm check:e2e:xr` (session, input routing, comfort); `pnpm check:unit -- packages/engine/src/platform` (gesture rule); manual `M11b1-{quest3,visionpro}`
 
 ### M11b3 · xr-ui-panels-comfort — 0.8 · risk M · S10

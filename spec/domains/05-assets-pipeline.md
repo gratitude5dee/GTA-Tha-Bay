@@ -107,9 +107,9 @@ Rules: fictional makes, models and operators only, with altered silhouettes and 
 | Category | Default source | Why | Human gate |
 |---|---|---|---|
 | Hero and named characters | generated (§1) | R-NPC-02 | H1–H5 |
-| Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with generated outfit textures | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
-| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; the Sunburst concept → Meshy body → Blender route ($2.48 per body) is buffer-only, at most three bodies (DL-OWN-01) | AI output is one fused mesh; wheels must rotate | H6, M10d3 (gray-box `vehicle/graybox.<slug>` in M07a1/M07b1; DL-460) |
-| Traffic (10) and police (6) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
+| Crowd peds (8 bodies × 20 outfits, palette swaps) | authored base meshes, or verified CC0 bases, with outfits from code recipes (M10d4; no fal) | a modular kit needs one skeleton and swappable parts; generation cannot guarantee it; no real likeness | art lead, M03b |
+| Race and hero cars (~20) | authored in Blender or built on a verified CC0 base with original livery; generated bodies within the $14 vehicles-and-props line by M10d1's route (image-edit views of a recipe blockout, then multiview-to-3D, H6 picks; DL-OWN-07, DL-740); the old Meshy buffer route is retired | AI output is one fused mesh; wheels must rotate | H6, M10d3 (gray-box `vehicle/graybox.<slug>` in M07a1/M07b1; DL-460) |
+| Traffic and police (the 8 `ARCHETYPES`, DL-739) | authored low-poly or verified CC0 base with original livery; generated livery textures | instancing needs a few thousand tris | art lead, M03b |
 | Props, barriers, cones, street furniture | verified CC0 or authored; no AI meshes | clean topology, cheap | licence check |
 | Landmarks (≥ 25) | hand-authored over open-data massing (A-05, S02) | accuracy | S02 |
 | Facade, ground, PBR sets | verified CC0 sets; generated seamless tiles only from the buffer, after a tile test | | A2 on tiles |
@@ -179,9 +179,9 @@ List prices, 2026-10-18; (A) assumptions: three extra reference inputs per sheet
 
 | Line | Cap | Content | Estimate |
 |---|---|---|---|
-| Spike (M00c) | $4 | 11 steps: one test character, one keyframe, three video clips (no `blocked` provider, DL-286) | $3.76 |
+| Spike (M00c) | $4 | 11 callable steps: one test character, one keyframe, three video clips; `plan.json` lists 13 ($4.36), and the two `blocked` H3 Max steps are refused before the ledger reserves (DL-286, DL-741) | $3.76 |
 | Characters (M10a1, M10a2) | $42 | 8 Standard fighter models at $3.67 + 12 Lean models at $1.05 | $41.96 |
-| Cutscenes (M05c3 ≤ $16, M10b ≤ $22) | $38 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
+| Cutscenes (M05c3 ≤ $16, M10b the rest after Act 1) | $38 | priority list of `03-story-cutscenes.md` §D9.1: 46 clips, 398 s on `h3.partner` | ≈ $37.6 |
 | Vehicles and props (M10d1, M10d3) | $14 | M10d1: ≤ 2 traffic bodies (`sedan`, `pickup`) from 4 image-edit views of its own recipe blockout plus 2 multiview-to-3D candidates each (≤ 1,704,000 micros); M10d3: player cars or props by the same route within the rest; `lineCapMicros('vehiclesProps')` (M10d0) | ≤ $14 |
 | Buffer | $2 | rejects, rig 422 retries, extra Meshy clips at $0.12, Standard jobs above $3.67 (DL-172), cutscene retakes beyond 1.5×; only with owner sign-off | $0 planned |
 | **Total** | **$100** | | **≈ $97 planned at most** |

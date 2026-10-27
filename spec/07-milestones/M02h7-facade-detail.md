@@ -14,7 +14,7 @@ After this session SF buildings stop reading as boxes with a printed window grid
 - **M02g2:** depth-bias rules, footprint fades, `tests/support/flicker.ts`, the ledger chain.
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h6 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
 - Through M02g2: M02g1 (`look/sky-reflect.ts`, `look/windows.ts`, `setLookLayer`, ledger shape, `@look-owner`) and M02e (`facade.ts`, `FacadeAtlasHook`, `surf`/`facade` arrays, `shot()`, `@look-golden`).
-- Contracts: C08 1.0 and C13 1.2, read only.
+- Contracts: C08 1.1 (DL-741) and C13 1.2, read only.
 
 ## Scope in
 † = design value in `config/world/look.json` (`facadeKit`) or `mesher.json` (`kit`), tuned here.
@@ -51,7 +51,7 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
 - Data (not counted): `look.json`, `mesher.json`, schemas, shots, goldens in `tests/e2e/golden/facade/`, flicker baseline, ledger, BD rows. No new script, dependency or asset.
 
 ## Interfaces
-- C08 1.0 (`BuildingRecord`, `SimChunk.segments`) and C13 1.2 (`TierBudget`) read unchanged. `FacadeAtlasHook` keeps its shape; the seam, flags, `Awning`, `kitTriangles`, config keys and bridge field are S02 internals.
+- C08 1.1 (`BuildingRecord`, `SimChunk.segments`) and C13 1.2 (`TierBudget`) read unchanged. `FacadeAtlasHook` keeps its shape; the seam, flags, `Awning`, `kitTriangles`, config keys and bridge field are S02 internals.
 - Contract change proposals: none.
 
 ## Acceptance criteria
@@ -69,7 +69,7 @@ Evidence: capture study "Buildings and facades" (frame `desktop-02`, Market & 4t
   - the `facade-graze` pair flickers at most 10 % over its committed baseline — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @world-facade && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @world-facade`
 - AC-5 Given committed facade goldens (`golden-update` label) When `@facade-golden` (three shots × `desktop`, `mobile`, `mobile-low`) and the regenerated `@look-golden` run on `chromium-webgl2` and `@look-owner` on `webkit-webgl2` Then every shot is within M02e's tolerance, repeats are byte-identical, and a different synth `bakeId` fails naming both — proof: `pnpm map:build -- --area synth && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@facade-golden|@look-golden" && DV_WORLD=synth pnpm check:e2e -- --project=webkit-webgl2 --grep @look-owner`
 - AC-6 Given every perf scenario in fail mode and the committed ledger When `@facade-ledger` runs flat and in the `@xr` case Then every tier is in budget, the object delta is 0 on all four profiles, `mobile-low` stays ≤ 100, `xr` `after` equals `baseline`, and building triangles grow ≤ 35 % (`desktop`), ≤ 20 % (`mobile`), 0 (`mobile-low`) — proof: `DV_WORLD=synth pnpm check:perf -- --fail && DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep @facade-ledger && DV_WORLD=synth pnpm check:e2e:xr`
-- AC-7 Given the same build When the earlier suites run Then `@world-look`, `@look-tune`, `@look-fixes`, `@world-landmarks`, `@world-sky`, `@world-stream`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-tune|@look-fixes|@world-landmarks|@world-sky|@world-stream|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
+- AC-7 Given the same build When the earlier suites run Then `@world-look`, `@look-tune`, `@look-fixes`, `@world-landmarks`, `@world-sky`, `@world-route`, `@world-boot-size` and the XR smoke pass — proof: `DV_WORLD=synth pnpm check:e2e -- --project=chromium-webgl2 --grep "@world-look|@look-tune|@look-fixes|@world-landmarks|@world-sky|@world-route|@world-boot-size" && DV_WORLD=synth pnpm check:e2e:xr`
 - AC-8 Given the branch When the asset and IP gates run Then they pass with no new asset, provenance record or licence entry — proof: `pnpm assets:catalog && pnpm check:assets && pnpm provenance:check && pnpm ip:strings && pnpm names:lint`
 - AC-9 Given the production build When it is verified and deployed to a Preview Then it succeeds, `__dvBridge` is absent and the header checks pass — proof: `pnpm build && pnpm --filter @dv/web verify:dist && pnpm deploy:preview`
 - AC-10 Given the merged default branch republished to staging When the operator plays New Game to the m.a1.01 truck stage and drives a commercial street of the `sf` bake in Safari and Chrome Then storefronts, awnings and bays read, no sign shows text or a logo, and before/after frames are in `docs/look/M02h7-sf/` — proof: manual: desktop Mac (Safari and Chrome), `pnpm deploy:prod -- --env staging`, `pnpm check:smoke -- https://tha-bay-web-staging.gratitude-8f4.workers.dev`, frames and `notes.json` committed

@@ -134,7 +134,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 54. M04b4 · offline-download-ui · 0.3 · M01e, M04b1 · none (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` for the preview deploy)
 55. M02f2 · boot-prefetch · 0.5 · M01e, M02b1, M04b1, M04a2 · none
 56. M01d3 · media-route-tuning · 0.4 · M01d2, M00e · AC-8 only: a staging deploy by the operator (`deploy.yml`)
-57. M02g1 · look-tune · 1 · M02e, M02f2, M01c, M05c2 · AC-13 the operator's `sf` bake; AC-14 Q-13 iPhone 15; the operator copies the owner's boot record (Step 0); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14)
+57. M02g1 · look-tune · 1 · M02e, M02f2, M01c, M05c2, M05c3 · the look study committed (`_PLAN.md` §0 rule 10); AC-13 the operator's `sf` bake; AC-14 Q-13 iPhone 15; the operator copies the owner's boot record (Step 0); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-14)
 58. M02g2 · look-fixes · 0.7 · M02g1, M02d2 · AC-12 operator staging republish, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 59. M02h1 · street-markings · 1 · M02g2, M02a2 · AC-12 Q-13 iPhone 15; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 60. M02h2 · curbs-sidewalks · 1 · M02h1 · AC-11 operator staging check, desktop Mac (Safari, Chrome); `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
@@ -171,9 +171,9 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 91. M10c · roster-souls-ink-barks · 1 · M10a2, M06a4, M06c, M05c2 · Q-19, Q-25 (canary only while open), Q-20; `ANTHROPIC_API_KEY`, `SUPABASE_SECRET_KEY`
 92. M10d0 · art-admission · 1 · M00f, M01d, M02h7, M10a1 · AC-13 Q-13 iPhone 15; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-12, AC-13)
 93. M10d1 · art-integration · 1 · M10d0, M05c2, M03b2, M04b2, M02h6 · optional `FAL_KEY` (≤ 2 generated bodies on the vehicles-and-props line, after a live M00c spike; else `SKIP`); AC-11 manual desktop review; DL-OWN-06 sources
-94. M10d4 · art-integration · 1 · M10d1, M10d0, M03b2, M04b2 · AC-11 manual desktop review; Q-24; no secrets
+94. M10d4 · art-integration · 1 · M10d1, M10d0, M03b2, M04b2, M10a2 · AC-11 manual desktop review; Q-24; no secrets
 95. M10f · emote-wheel · 0.6 · M10d4, M04b2, M04e5 · Q-13 iPhone 15 (manual touch run)
-96. M10d3 · art-integration · 1 · M10d4, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24
+96. M10d3 · art-integration · 1 · M10d4, M07b2, M08b2, M10a2 · Q-39 art sourcing (default: recipe fallback), Q-24; optional `FAL_KEY` (generated bodies within what M10d1 left of the vehicles-and-props line, after a live M00c spike; else `SKIP`)
 97. M10d2 · art-integration · 1 · M10d4, M10d3, M02d2, M02e · Q-39 art sourcing (default: recipes stay)
 98. M05e1 · story-act2-part1 · 1 · M05c2, M07a2, M08b2, M09b2, M07b1 · Q-21 for release
 99. M05e2 · story-act2-part2 · 1 · M05e1 · Q-21 for release
@@ -183,7 +183,7 @@ All milestone files are READY, in run order (id · slug · sessions · depends o
 103. M11a1 · iphone-hardening-governor · 1 · M02b1, M03b1, M07a2, M04b5 · none
 104. M02h8 · xr-look-traa · 0.8 · M11a1, M02h7 · AC-11 Q-13 Quest 3; `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (AC-10, AC-11)
 105. M11a2 · iphone-hardening-governor · 1 · M11a1 · Q-13 devices
-106. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1 · Q-13 devices
+106. M11b1 · webxr-port · 1 · M01c, M04b2, M11a1, M02h8 · Q-13 devices
 107. M11b3 · xr-ui-panels-comfort · 0.8 · M11b1, M06a5, M04e1, M04e4 · none
 108. M11b2 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b1, M07b2, M08b2, M11b3 · none
 109. M11b4 · per-mode-xr-and-xr-cutscenes · 0.7 · M11b2, M09b1, M05b2 · Q-13 devices

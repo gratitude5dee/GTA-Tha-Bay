@@ -1,6 +1,6 @@
 # ADR-0015 — Cost controls
 
-**Status:** accepted · **Date:** 2026-10-18 · **Decides:** spec/03 D-28, gated decision G3, owner decision DL-OWN-01; R-ENG-03
+**Status:** accepted · **Date:** 2026-10-18 · **Decides:** spec/03 D-28, gated decision G3, owner decision DL-OWN-01; R-ENG-03 · **Amended 2026-10-26:** the fal split below is superseded by DL-OWN-07 (spike $4, characters $42, cutscenes $38, vehicles and props $14, buffer $2; `_PLAN.md` §0 rule 5, DL-740, DL-741); the $100 cap and its enforcement stand
 
 ## Context
 Several vendors bill per use and some cannot be capped by the vendor. fal.ai has no spend cap and locks an account below a balance threshold [F-048]. Cloudflare AI Gateway spend limits are eventually consistent [F-028]. Anthropic caps monthly spend by tier (Start $500) and rate-limits at 1,000 requests per minute on Start [F-037]. ElevenLabs keys accept a monthly `character_limit` [F-052]. List prices: Haiku 5.5 $0.10/$0.50 and Sonnet 5.5 $2/$10 per million tokens [F-034]. On 2026-10-18 the owner fixed the fal budget at **USD 100 total** (DL-OWN-01), replacing the earlier $1,000 one-off figure.

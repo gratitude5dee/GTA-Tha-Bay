@@ -15,7 +15,7 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
 - **Run order (`_PLAN.md` §0 rule 10):** after M02h5 (Phase 1 rows share `mesher.ts`, `surfaces.ts`, `look.json`, `look-shots.json` and the ledger chain).
 - **M03b1:** `TrafficRenderer` (`carGeometry`, material, `aTint`, `aLights`), `parkedPose`, `slotUnit`, `density.json` `tierFactors.parked`.
 - Merged context: M02g1 (`layers`, `setLookLayer`, blob layer, ledger shape), M02e (profiles, `shot()`, `@look-golden`), M02b2 (lamps, blackout), M02b1 (mesher, upload gate).
-- Contracts: C08 1.0, C13 1.2, C06 1.1 (read).
+- Contracts: C08 1.1 (rule 12 pools, DL-741), C13 1.2, C06 1.1 (read).
 
 ## Scope in
 - **Placement:** pure `placeFurniture(sim, cfg): Float32Array` in `packages/shared/src/world/furniture.ts` (C02 lint, detmath, seeds from `ctrU32(worldSeed, …)`). It returns `x, z, yaw, type` records in the `RenderChunk.furniture` frame, with `type` a u8 from `config/world/furniture.json`. Rules (design values †):
@@ -71,9 +71,9 @@ After this session the M02h2 sidewalks carry signal masts with live aspects, sto
 - No new script, dependency, asset or provenance record. BD rows.
 
 ## Interfaces
-- C08 1.0 is read and unchanged. `RenderChunk.furniture` keeps `x, z, yaw, type`, with a u8 table in S02 config. C13 1.2 budgets are read, and `CrowdLimits` still bounds sim cars only. C06 1.1 is unchanged. `WorldFrame.simTick` is engine-internal.
-- Contract change proposals: none. DL-740 confirms three readings:
-  1. global pools satisfy C08 rule 12 ("furniture (one batch)") and replace `02-world.md` §5's per-chunk `BatchedMesh` caps;
+- C08 1.1 (`02-world-contracts.md` §8): rule 12 global pools for furniture and parked dressing; shapes unchanged. `RenderChunk.furniture` keeps `x, z, yaw, type`, with a u8 table in S02 config. C13 1.2 budgets are read, and `CrowdLimits` still bounds sim cars only. C06 1.1 is unchanged. `WorldFrame.simTick` is engine-internal.
+- Contract change proposals: none beyond C08 1.1 (DL-741). DL-740 and DL-741 settle three points:
+  1. global pools satisfy C08 1.1 rule 12 and replace `02-world.md` §5's per-chunk `BatchedMesh` caps;
   2. mesher-time fill in v1, the bake fill kept off;
   3. dressing sits outside `CrowdLimits`.
 
