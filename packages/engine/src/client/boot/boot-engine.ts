@@ -145,6 +145,8 @@ export interface EngineObservation {
     mode: string; allowedDistance: number | null; lastToggleRefused: boolean; locked: boolean; opacity: number; near: number; far: number;
     /** World position of the draw camera, ENU metres. */
     pos: [number, number, number];
+    /** The player's view yaw, radians (the `camYaw` the page sends; forward is (-sin yaw, -cos yaw)). */
+    yaw: number;
   } | null;
   /** The gray-box block (M01b2); null for the other scenarios. */
   world: GrayboxInfo | null;
@@ -407,6 +409,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   let drivingCtx = false;
   let snapBehind = false;
   let idleSec = 0;
+  /** The last water respawn the camera has turned for (DL-753); null until the page has seen the player. */
+  let respawnSeen: number | null = null;
   let inspector: Inspector | null = null;
   let physicsDraw: PhysicsDraw | null = null;
   let physicsPoll = 0;
@@ -609,6 +613,19 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
       pool?.sync(view.poses, view.count, (k) => view.keys.get(k), dtSec, camPos);
     }
     mirrorHud();
+    // A water respawn turns the view inland, the way the sim turned the player (DL-753): on foot the look takes the yaw at once (the
+    // veil is down), in a vehicle the chase camera snaps behind the car, which the sim put down facing inland.
+    if (view.player) {
+      const seq = view.player.respawn?.seq ?? 0;
+      if (respawnSeen !== null && seq !== respawnSeen && view.player.respawn) {
+        if (view.player.owner === CONTROL_OWNER.Vehicle) snapBehind = true;
+        else {
+          look.yaw = view.player.respawn.yaw;
+          rig?.snap();
+        }
+      }
+      respawnSeen = seq;
+    }
     pursuitUi?.update(view.pursuit);
     if (physicsDraw?.visible) {
       physicsDraw.sync(view.poses, view.count);
@@ -991,6 +1008,7 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
               near: cam?.near ?? 0,
               far: cam?.far ?? 0,
               pos: cam ? [cam.position.x, cam.position.y, cam.position.z] : [0, 0, 0],
+              yaw: look.yaw,
             }
           : null,
         world: world ? world.info() : null,

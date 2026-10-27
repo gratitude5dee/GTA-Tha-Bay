@@ -159,7 +159,12 @@ export class SimRuntime {
       const cam = publishedCamera(sim.services);
       if (cam) side['cam'] = cam;
       const pl = playerSide(sim.ecs);
-      if (pl) side['pl'] = pl;
+      if (pl) {
+        const c = sim.services.control;
+        if (c.respawnSeq !== 0) pl.respawn = { seq: c.respawnSeq, yaw: c.respawnYaw };
+        if (c.moveLatch) pl.latched = true;
+        side['pl'] = pl;
+      }
       for (const [key, provide] of sim.services.side) {
         const v = provide();
         if (v !== null && v !== undefined) side[key] = v;
