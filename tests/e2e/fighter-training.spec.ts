@@ -23,7 +23,6 @@ interface Fighter { x: number; state: number; move: number; moveFrame: number }
 interface Meter { move: string; S: number; A: number; R: number; result: string; adv: number | null; measured: number | null }
 interface State { match: { phase: number; tick: number; fighters: Fighter[]; training: { meter: Meter | null; dummy: string; recLen: number; recording: boolean } | null } | null }
 
-const bridge = (): Bridge => (window as unknown as { __dvBridge: Bridge }).__dvBridge;
 
 test.use({ viewport: { width: 960, height: 540 } });
 

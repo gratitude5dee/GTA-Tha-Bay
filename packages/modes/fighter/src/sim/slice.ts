@@ -41,7 +41,8 @@ export function defaultSlice(): FighterSlice {
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const ID_RE = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
-const sortedUnique = (a: string[]): string[] => [...new Set(a)].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0));
+const byCode = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0);
+const sortedUnique = (a: string[]): string[] => [...new Set(a)].sort(byCode);
 const diff = (v: unknown, d: Difficulty): Difficulty => (v === 0 || v === 1 || v === 2 || v === 3 ? v : d);
 
 /** Reads a saved slice; null or a broken object gives the defaults, a broken field its default. */
@@ -53,14 +54,14 @@ export function sliceFromJson(raw: JsonObject | null): FighterSlice {
     out.unlockedFighters = sortedUnique([...STARTER_FIGHTERS, ...(r['unlockedFighters'] as unknown[]).filter((x): x is string => typeof x === 'string' && ID_RE.test(x))]);
   }
   if (isObj(r['fighterXp'])) {
-    for (const k of Object.keys(r['fighterXp']).sort()) {
+    for (const k of Object.keys(r['fighterXp']).sort(byCode)) {
       const v = (r['fighterXp'] as Record<string, unknown>)[k];
       if (ID_RE.test(k) && typeof v === 'number' && Number.isFinite(v)) out.fighterXp[k] = Math.max(0, Math.min(MAX_XP, Math.trunc(v)));
     }
   }
   if (Array.isArray(r['cosmetics'])) out.cosmetics = sortedUnique((r['cosmetics'] as unknown[]).filter((x): x is string => typeof x === 'string' && ID_RE.test(x)));
   if (isObj(r['arcade'])) {
-    for (const k of Object.keys(r['arcade']).sort()) {
+    for (const k of Object.keys(r['arcade']).sort(byCode)) {
       const a = (r['arcade'] as Record<string, unknown>)[k];
       if (!ID_RE.test(k) || !isObj(a) || typeof a['cleared'] !== 'boolean') continue;
       const row: FighterSlice['arcade'][string] = { cleared: a['cleared'] };
@@ -77,7 +78,7 @@ export function sliceFromJson(raw: JsonObject | null): FighterSlice {
     if (s['cinematics'] === 'off' || s['cinematics'] === 'first' || s['cinematics'] === 'always') out.settings.cinematics = s['cinematics'];
     if (typeof s['hybridPose'] === 'boolean') out.settings.hybridPose = s['hybridPose'];
     if (isObj(s['seenReveal'])) {
-      for (const k of Object.keys(s['seenReveal']).sort()) if (ID_RE.test(k) && typeof (s['seenReveal'] as Record<string, unknown>)[k] === 'boolean') out.settings.seenReveal[k] = (s['seenReveal'] as Record<string, boolean>)[k] as boolean;
+      for (const k of Object.keys(s['seenReveal']).sort(byCode)) if (ID_RE.test(k) && typeof (s['seenReveal'] as Record<string, unknown>)[k] === 'boolean') out.settings.seenReveal[k] = (s['seenReveal'] as Record<string, boolean>)[k] as boolean;
     }
   }
   const ll = r['lastLoadout'];
@@ -90,14 +91,14 @@ export function sliceFromJson(raw: JsonObject | null): FighterSlice {
 /** The slice as the JSON the save service stores (keys in a fixed order; arrays sorted). */
 export function sliceToJson(s: FighterSlice): JsonObject {
   const arcade: Record<string, JsonValue> = {};
-  for (const k of Object.keys(s.arcade).sort()) {
+  for (const k of Object.keys(s.arcade).sort(byCode)) {
     const a = s.arcade[k] as FighterSlice['arcade'][string];
     arcade[k] = { cleared: a.cleared, ...(a.bestTimeSec !== undefined ? { bestTimeSec: a.bestTimeSec } : {}), ...(a.bestDifficulty !== undefined ? { bestDifficulty: a.bestDifficulty } : {}) };
   }
   const xp: Record<string, number> = {};
-  for (const k of Object.keys(s.fighterXp).sort()) xp[k] = s.fighterXp[k] as number;
+  for (const k of Object.keys(s.fighterXp).sort(byCode)) xp[k] = s.fighterXp[k] as number;
   const seen: Record<string, boolean> = {};
-  for (const k of Object.keys(s.settings.seenReveal).sort()) seen[k] = s.settings.seenReveal[k] as boolean;
+  for (const k of Object.keys(s.settings.seenReveal).sort(byCode)) seen[k] = s.settings.seenReveal[k] as boolean;
   return {
     schema: 1,
     unlockedFighters: sortedUnique(s.unlockedFighters),

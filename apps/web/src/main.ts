@@ -8,6 +8,7 @@ import { hasWorldIndex, prepareWorld, type PreparedWorld } from '@dv/world/clien
 import platformFlags from '../../../config/platform-flags.json';
 import { createVoicePreview, creatorVoiceRef, CREATOR_VOICES, loadPrefs, memoryPrefs, defaultPrefs, mountShell, registerTexts, t, type CreatorStagePort, type PrefsStore, type ShellHandle, type ShellHooks, type ShellProps, type VoicePreview } from '@dv/ui';
 import type { TtsAudioHost } from '@dv/npc/voice';
+import type { FighterUiHandle } from './fighter-ui.ts';
 import { TERMS_VERSION } from '../../../config/terms.ts';
 import { installIdentityBridge, wireIdentity } from './identity.ts';
 import type { CutsceneGlue } from './cutscene.ts';
@@ -383,7 +384,7 @@ async function boot(): Promise<void> {
     });
   }
   // Culture Wars (M08a2): the HUD, the screens and the arena while the fighter runs. A failure here never stops the game.
-  let fighterUi: import('./fighter-ui.ts').FighterUiHandle | null = null;
+  let fighterUi: FighterUiHandle | null = null;
   if (engine) {
     void import('./fighter-ui.ts')
       .then((m) => {
