@@ -231,7 +231,7 @@ pnpm assets:kill --npc <id> --scope all --ticket <id> --stage    # staging drill
 
 ## 13. Milestones and tests
 
-M00b registry, schemas, gates · M00c spike (≤ $10) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm, `assets:gen`, Transcoder Container · M08b2 fighter refs · M10a1 roster automation, retarget tool, canary, repo ledger `assets/ledger/fal-spend.jsonl` · M10a2 batch · M10b idempotent prewarm, Act 1 re-run, kill drill · M14b `ip:history`, terms-watch, counsel.
+M00b registry, schemas, gates · M00c spike (≤ $4, DL-740) · M01d catalog, publish, lock · M05b `GenJobWorkflow`, mock, webhook, `FalGateDO`, `check:c2pa` · M05c3 Act 1 prewarm, `assets:gen`, Transcoder Container · M08b2 fighter refs · M10a1 roster automation, retarget tool, canary, repo ledger `assets/ledger/fal-spend.jsonl` · M10a2 batch · M10b idempotent prewarm, Act 1 re-run, kill drill · M14b `ip:history`, terms-watch, counsel.
 
 ```
 pnpm check:unit -- packages/shared services/pipeline tools/assets

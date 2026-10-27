@@ -388,7 +388,7 @@ The player fighter and user NPCs are in-engine only (§D1).
 | `ltx25.fast` $0.09/s (720p) | $168.21 | $269.73 | same | [research/genai-pipeline-fal.md §A] |
 | `gemini.omniFlash11` $0.10/s (720p) | $186.90 | $299.70 | same | [research/genai-pipeline-fal.md §A] |
 
-These are list-price totals for generating every ref. They do not fit the $40 cutscene line (DL-OWN-01), so v1 generates the §D9.1 subset. Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). N = 12 is not generated in v1.
+These are list-price totals for generating every ref. They do not fit the $38 cutscene line (DL-OWN-07), so v1 generates the §D9.1 subset. Transcode runs about $0.001 per clip and Whisper $0.000513 per audio minute [research/gap-cutscene-delivery-playback.md §0, §6]. Recurring generation spend in public play is $0 (G3). N = 12 is not generated in v1.
 
 ### D9.1 v1 generation line (DL-OWN-01, DL-173)
 

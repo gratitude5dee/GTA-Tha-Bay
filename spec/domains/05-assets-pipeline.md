@@ -219,7 +219,7 @@ Steps:
 5. **Optimize and verify** locally (stages 6–7); failures return to H4 or stage 4 with the rejected candidate kept.
 6. **Publish** per slug; merge lock PRs after H5; run `pnpm assets:catalog` (M01d) to produce the immutable catalog and pointer (DL-230).
 7. **Idempotence check.** Re-run `plan`: it must list zero outstanding jobs and `run` must make zero `FalPort` calls (M10b AC).
-8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $40 cutscene line (`03-story-cutscenes.md` §D9.1).
+8. **Prewarm cutscenes** for the release tag (§6) once the provider is `cleared`; the prewarm stops at the $38 cutscene line (DL-740) (`03-story-cutscenes.md` §D9.1).
 9. **Close-out:** reconcile spend with the fal dashboard, record cost per slug from `genai_ledger` (`job_id` = `jobKey`), snapshot the registry.
 10. **Rollback:** a rejected character is `killed` through §10 in staging, then re-run from stage 2 with a new seed; old candidates stay in `work/` for audit.
 

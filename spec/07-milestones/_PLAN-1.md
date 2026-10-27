@@ -21,9 +21,9 @@
 - **Gate** `DV_NAMES_REAL_JSON` (CI only, optional) · **Proof** `pnpm provenance:check`; `pnpm ip:signatures`; `pnpm names:lint`; `pnpm genai:liveness`
 
 ### M00c · genai-spike — 1 · risk M · S05
-- **Goal:** budget-capped CLI spike (≤ $10, DL-OWN-01) through sheet → mesh → rig and three cutscene shots; records the U-items it can.
+- **Goal:** budget-capped CLI spike (≤ $4 since DL-OWN-07: the code cap stays $10 and the operator runs it with `DV_SPIKE_CAP_MICROS=4000000`, DL-740) through sheet → mesh → rig and three cutscene shots; records the U-items it can.
 - **R** R-NPC-02, R-CUT-01, R-ENG-03 · **Dep** M00b, M00a · **Read** file `M00c-genai-spike.md` · **Out** `tools/assets/spike/`, `research/genai-spike-results.md` · **C** C07 1.1
-- **Gate** `FAL_KEY` (previs, operator, Q-17), ≥ $10 prepaid · **Proof** `pnpm genai:spike -- --plan`; `env -u FAL_KEY pnpm genai:spike -- --run`; `pnpm genai:spike -- --verify`
+- **Gate** `FAL_KEY` (previs, operator, Q-17), ≥ $4 prepaid · **Proof** `pnpm genai:spike -- --plan`; `env -u FAL_KEY pnpm genai:spike -- --run`; `pnpm genai:spike -- --verify`
 
 ### M01a1 · loop-ecs-detmath-physics — 1 · risk M · S01
 - **Goal:** pure deterministic core in Node: C01–C03 files, detmath, RNG streams, hashing, canonical JSON, ECS, `SimCore`, headless host, lint bans.
@@ -290,6 +290,6 @@
 - **Gate** Supabase Pro `us-west-1` (G1) for production; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_ID`, `SUPABASE_SECRET_KEY` · **Proof** `pnpm check:db && pnpm check:db:types`; `pnpm check:unit -- packages/shared` (DataPort contract on the in-memory port)
 
 ### M05c3 · act1-prewarm — 0.7 · risk M · S05
-- **Goal:** `assets:gen` with its `prewarm` subcommand (M10a1 adds `plan`/`run`/`gate`); prewarm Act 1 cutscenes through a `cleared` provider within ≤ $16 of the $40 cutscene cap (DN-S13-02); otherwise ship fallback-only; C2PA re-sign; the real Transcoder Container and `TRANSCODER` binding for the first live run (DL-232).
+- **Goal:** `assets:gen` with its `prewarm` subcommand (M10a1 adds `plan`/`run`/`gate`); prewarm Act 1 cutscenes through a `cleared` provider within ≤ $16 of the $38 cutscene cap (DN-S13-02, DL-740); otherwise ship fallback-only; C2PA re-sign; the real Transcoder Container and `TRANSCODER` binding for the first live run (DL-232).
 - **R** R-CUT-01, R-ENG-03 · **Dep** M05c2, M05d · **Read** `05-assets-pipeline.md` §6, §11–§12; `03-story-cutscenes.md` §D9 · **Out** `tools/assets/gen`, `services/pipeline/transcoder`, `assets/cutscenes` index entries · **C** C09 1.0, C07 1.1
 - **Gate** ADR-GENAI-01 `cleared` (owner), `FAL_KEY` (operator), prepaid balance ≤ cap · **Proof** `pnpm check:pipeline` (mock prewarm: second run 0 calls); `pnpm check:c2pa`; manual operator `pnpm assets:gen prewarm --release <tag>` with ledger ≤ 16,000,000 micros
