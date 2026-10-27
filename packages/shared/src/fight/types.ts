@@ -58,6 +58,8 @@ export interface ProjectileDef {
   sine?: { amp: U; period: number };                            // 'sine' path via SINE64
   arc?: { vy: U; gravity: U };
   summon?: { moveSet: string; hypeCost: number };               // 'summon' (crew assist): scripted move list
+  orbit?: { radius: U; period: number; height: U };             // 'orbit' (drone): circles the point `height` above its owner
+  child?: { defs: string[]; every: number; first: number };      // an orbit or summon entity fires these defs in turn, one every `every` frames from frame `first`
 }
 export interface FighterDef {                                   // a KIT: frame data bound to a slot, not to a person
   slot: FighterSlotId; kit: string; archetype: string;
@@ -115,3 +117,15 @@ export interface FightTuning {
 
 /** Content-compiled, immutable per build: its SHA-256 (canonicalize + sha256Hex, C09 helpers) is `frameDataHash`. */
 export interface FrameDataPack { v: typeof FIGHT_DATA_VERSION; kits: Record<FighterSlotId, FighterDef>; tuning: FightTuning; hash: string }
+
+// ---- roster (FX1, M08b1) --------------------------------------------------------------------------------------------------
+export type RosterTier = 'consented' | 'parody' | 'fictionalized' | 'original';
+export interface RosterAssets { model: string; animBase: string; animMoves: string; portrait: string; voice?: string }   // C07 `<kind>/<id>` AssetRefs
+/** One row of `content/fighter/roster.json` (schema roster.v1.schema.json). The tier is read from the compiled soul; `expectedTier` is only compared by CI. */
+export interface RosterEntry {
+  slot: FighterSlotId; kit: string; fighterId: FighterId; soulVersion: number;
+  expectedTier: RosterTier;
+  assets: RosterAssets;
+  standIn: { fighterId: FighterId; assets: RosterAssets };
+  homeStage: string; v1: boolean;
+}

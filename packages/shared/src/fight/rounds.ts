@@ -7,6 +7,7 @@ import { emit, kitOf } from './ctx.ts';
 import { FB_ATTACK, FB } from './input.ts';
 import { risingAt } from './motion.ts';
 import { clearProjectiles } from './projectiles.ts';
+import { gimmickRoundStart } from './gimmicks.ts';
 import { St } from './states.ts';
 
 /** What the fighters do on this tick. */
@@ -34,6 +35,8 @@ export function resetRound(c: Ctx, buf: Int32Array, sudden: boolean): void {
     buf[o + FF.BufAge] = -1;
     buf[o + FF.CheckTimer] = t.COMP_IDLE;
   }
+  gimmickRoundStart(c, buf, 0);
+  gimmickRoundStart(c, buf, 1);
   clearProjectiles(buf);
   buf[FM.Timer] = sudden ? t.SUDDEN : c.rules.timerFrames;
   buf[FM.SlowDiv] = 1;

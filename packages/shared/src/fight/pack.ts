@@ -5,6 +5,7 @@ import { sha256Hex } from '../hash.ts';
 import type { FighterDef, FighterSlotId, FightTuning, FrameDataPack, HitDef, InputPattern, MoveDef, ProjectileDef } from './types.ts';
 import { FIGHT_DATA_VERSION } from './types.ts';
 import { FB } from './input.ts';
+import { gimmickCode } from './gimmicks.ts';
 
 /** hash = sha256Hex(canonicalize(pack without hash)) (FC2 `FrameDataPack`). */
 export function packHash(pack: Omit<FrameDataPack, 'hash'> | FrameDataPack): string {
@@ -41,13 +42,14 @@ export interface CMove {
   simpleSlot: number;                    // 0..2 for Simple special 1/2/3 (neutral / 6 / 2), else -1
   sch: number;                           // scheme bits: 1 classic, 2 simple, 4 pose
 }
-export interface CProj { def: ProjectileDef; idx: number; id: string; exIdx: number; behavior: number }
+export interface CProj { def: ProjectileDef; idx: number; id: string; exIdx: number; behavior: number; childIdx: Int32Array }
 export interface CKit {
   def: FighterDef; moves: CMove[]; projs: CProj[];
   parseOrder: Int32Array;                // classic parse order: class desc, complexity desc, kit order
   throwIdx: number; tauntIdx: number; shutdownIdx: number;
   autoIdx: Int32Array; simpleSpecial: Int32Array;   // [special1, special2, special3] move indices or -1
   superL2: number; superL3: number;
+  gim: number;                           // Gim code of the kit gimmick (gimmicks.ts)
 }
 export interface CompiledPack { pack: FrameDataPack; tuning: FightTuning; kits: Map<string, CKit> }
 
@@ -132,8 +134,11 @@ function compileMove(def: MoveDef, idx: number, _kit: FighterDef, projs: CProj[]
 const BEHAVIORS = ['linear', 'sine', 'arc', 'trap', 'orbit', 'summon'];
 
 export function compileKit(def: FighterDef, tun: FightTuning): CKit {
-  const projs: CProj[] = def.projectiles.map((p, i) => ({ def: p, idx: i, id: p.id, exIdx: -1, behavior: BEHAVIORS.indexOf(p.behavior) }));
-  for (const p of projs) p.exIdx = projs.findIndex((q) => q.id === `${p.id}:ex`);
+  const projs: CProj[] = def.projectiles.map((p, i) => ({ def: p, idx: i, id: p.id, exIdx: -1, behavior: BEHAVIORS.indexOf(p.behavior), childIdx: new Int32Array(0) }));
+  for (const p of projs) {
+    p.exIdx = projs.findIndex((q) => q.id === `${p.id}:ex`);
+    p.childIdx = Int32Array.from((p.def.child?.defs ?? []).map((id) => projs.findIndex((q) => q.id === id)));
+  }
   const moves: CMove[] = [];
   def.moves.forEach((m) => moves.push(compileMove(m, moves.length, def, projs, false, tun)));
   def.supers.forEach((m) => moves.push(compileMove(m, moves.length, def, projs, true, tun)));
@@ -157,6 +162,7 @@ export function compileKit(def: FighterDef, tun: FightTuning): CKit {
     def, moves, projs, parseOrder: Int32Array.from(order), throwIdx, tauntIdx, shutdownIdx,
     autoIdx: Int32Array.from(def.autoCombo.map(byId).filter((i) => i >= 0)), simpleSpecial,
     superL2: l2 ? l2.idx : -1, superL3: l3 ? l3.idx : -1,
+    gim: gimmickCode(def.gimmick?.id),
   };
 }
 
