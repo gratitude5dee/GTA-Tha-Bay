@@ -246,8 +246,8 @@ export async function runFinish(o: FinishOptions, p: FinishPorts): Promise<Finis
     for (const key of todo) {
       const handoffRaw = remote.readJson(handoffKeyOf(key));
       const parsed = handoffRaw === null ? null : parseHandoff(JSON.stringify(handoffRaw));
-      if (parsed === null || !parsed.ok) {
-        p.log(`failed ${key.slice(0, 12)}: ${parsed === null ? 'handoff.json vanished' : parsed.error}`);
+      if (parsed === null || !parsed.ok || parsed.value.key !== key) {
+        p.log(`failed ${key.slice(0, 12)}: ${parsed === null ? 'handoff.json vanished' : !parsed.ok ? parsed.error : 'handoff.json names another key'}`);
         code = 1;
         continue;
       }
