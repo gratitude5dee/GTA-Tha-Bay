@@ -43,7 +43,6 @@ export function createRacingChildBot(defId: string | null): BotDriver {
     },
     frame(tick: number): InputFrame {
       const s = activeSession();
-      if (s && process.env['DV_DIAG_RACING'] === '1' && tick % 30 === 0) { const st = s.state(); console.log('DIAG', tick, st.phase, 's', Math.round(st.s), 'v', Math.round(st.speedMps), 'car', st.car ? st.car.pos.map((n) => Math.round(n)).join(',') : '-', 'heat', st.pursuit ? `${st.pursuit.level}/${st.pursuit.phase}/${st.pursuit.cooldown01.toFixed(2)}` : '-', 'dmg', JSON.stringify(st.damage), 'out', st.outcome); }
       return s ? inner.frame(tick) : idle(tick);
     },
     done: () => inner.done(),

@@ -69,9 +69,6 @@ export function createStoryAutoplayer(): BotDriver & { view(): AutoplayerView } 
       if (!observe || !rng) throw new Error(`driver '${STORY_AUTOPLAYER_ID}' used before init`);
       const obs = observe() as unknown as MissionObs;
       last = obs;
-      if (process.env['DV_DIAG_RACING'] === '1' && tick === 17100) { const row: string[] = []; for (let zz = 3600; zz >= 3440; zz -= 5) row.push(`${zz}:${obs.groundY(2821, zz)?.toFixed(1) ?? 'x'}`); console.log('DIAGG', row.join(' ')); }
-      if (process.env['DV_DIAG_RACING'] === '1' && tick >= 17100 && tick <= 17230 && tick % 10 === 0) console.log('DIAGU', tick, 'me', obs.me.pos.map(Math.round).join(','), 'others', obs.others.slice(0, 4).map((o) => `${o.police ? 'P' : 'T'}${o.pos.map(Math.round).join(',')}`).join(' '), 'units', obs.units.slice(0, 3).map((o) => o.pos.map(Math.round).join(',')).join(' '));
-      if (process.env['DV_DIAG_RACING'] === '1' && tick % 600 === 0) console.log('DIAGS', tick, obs.stageId, obs.phase, JSON.stringify(obs.child), obs.objectives.map((o) => o.id).join(','));
       if (obs.child) {
         const key = `${obs.child.mode}/${obs.child.defId ?? ''}`;
         if (!child || child.key !== key) {

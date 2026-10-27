@@ -6,51 +6,22 @@
   "titleKey": "race.sf.pursuit.bayview-escape.title",
   "district": "d3",
   "waypoints": [
-    {
-      "lat": 37.73639,
-      "lng": -122.3886
-    },
-    {
-      "lat": 37.7225,
-      "lng": -122.394
-    }
+    { "lat": 37.73639, "lng": -122.3886 },
+    { "lat": 37.75136, "lng": -122.39194 }
   ],
   "hour": 14,
   "weather": "karl-fog",
   "traffic": "light",
   "peds": "sidewalk",
   "opponents": [],
-  "classLimit": [
-    "D"
-  ],
+  "classLimit": ["D"],
   "loaner": "vehicle.ondine-pico",
-  "police": {
-    "enabled": true,
-    "startHeat": 2,
-    "maxHeat": 3,
-    "success": "evade"
-  },
+  "police": { "enabled": true, "startHeat": 2, "maxHeat": 3, "success": "evade" },
   "rubberBand": 0,
   "rewards": [
-    {
-      "kind": "cash",
-      "place": 1,
-      "cents": 120000
-    },
-    {
-      "kind": "rep",
-      "place": 1,
-      "rep": 80
-    }
+    { "kind": "cash", "place": 1, "cents": 120000 },
+    { "kind": "rep", "place": 1, "rep": 80 }
   ],
   "xr": "full",
-  "hidingSpots": [
-    {
-      "at": {
-        "lat": 37.7225,
-        "lng": -122.394
-      },
-      "radiusM": 6
-    }
-  ]
+  "hidingSpots": [{ "at": { "lat": 37.75136, "lng": -122.39194 }, "radiusM": 6 }]
 }
