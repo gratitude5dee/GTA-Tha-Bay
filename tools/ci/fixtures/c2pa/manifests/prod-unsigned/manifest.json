@@ -1,0 +1,53 @@
+{
+  "schema": "cutscene-asset/1",
+  "key": "prod-unsigned",
+  "recipe": "cut@1",
+  "fps": 24,
+  "frames": 48,
+  "width": 128,
+  "height": 72,
+  "renditions": {
+    "v768": {
+      "file": "v768.mp4",
+      "bytes": 21133,
+      "sha256": "12f7cace84b8e041665a65145779354f2a15cbea20fd16e7eda0ecadfe94d1e9",
+      "codecs": "avc1.42c00a",
+      "kbps": 85
+    },
+    "v540": {
+      "file": "v540.mp4",
+      "bytes": 15856,
+      "sha256": "31484548ec4489a2081b0e36a7865569983ce40870694d53ee4f6adfe094f8de",
+      "codecs": "avc1.42c00a",
+      "kbps": 63
+    }
+  },
+  "poster": "poster.webp",
+  "last": "last.webp",
+  "subs": {},
+  "shots": [
+    {
+      "shotId": "s1",
+      "startFrame": 0,
+      "frames": 48
+    }
+  ],
+  "characters": [],
+  "licence": {
+    "gate": "ADR-GENAI-01",
+    "provider": "h3.partner",
+    "status": "pending",
+    "termsSnapshotSha256": []
+  },
+  "provenance": {
+    "endpoint": "minimax/h3/image-to-video",
+    "pinnedUpdatedAt": "",
+    "requestIds": [
+      "fixture"
+    ],
+    "origSha256": "1c32f18f95cf0075107e465b973bd32e083abeb5dac0d17ba3a674e54bffe9a4",
+    "c2pa": "absent",
+    "resigned": false,
+    "aiGenerated": true
+  }
+}

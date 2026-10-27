@@ -194,9 +194,9 @@ async function main(): Promise<void> {
     await proxy.dispose();
   }
 
-  // M05b2: the gate's prompt lint over the PRIVATE names object (AC-11), in Node over Miniflare's R2.
+  // M05b2: the gate's prompt lint over the PRIVATE names object (AC-11); M05c3: the prewarm-act1 scenario (AC-5). Both run in Node over Miniflare's R2.
   const lint = spawnSync('pnpm', ['exec', 'vitest', 'run', '--root', 'services/pipeline'], { cwd: repoRootDir, stdio: 'inherit' });
-  check(lint.status === 0, 'gate.prompt-lint: the gate lints the filled prompt with the real-side names from PRIVATE');
+  check(lint.status === 0, 'gate.prompt-lint and prewarm-act1: the gate lints the filled prompt with the real-side names from PRIVATE; the Act 1 plan submits its keys once and the second run makes 0 calls');
 
   if (failures.length > 0) {
     console.error(`check:pipeline FAIL ${failures.length} check(s)`);
