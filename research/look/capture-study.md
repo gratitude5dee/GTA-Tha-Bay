@@ -313,8 +313,8 @@ All frames are in `docs/look/study/`. Desktop frames are 1600 × 900 (`chromium-
 | `mobile-low-03-third-st-bayview-1300-clear.png` | Third Street at `mobile-low` |
 | `staging-prod-autotier-mobile-low-00-menu.png` | the staging main menu (build id in the footer) |
 | `staging-prod-autotier-mobile-low-01-creator.png` | the creator with the Coast defaults as a mannequin ("Pedestrians and player") |
-| `staging-prod-autotier-mobile-low-02-intro.png` | the New Game intro over the running world: asphalt sparkle at `mobile-low` ("Roads and markings") |
-| `staging-prod-autotier-mobile-low-03-play-02.png` | about 30 s after Start at the m.a1.01 opening; the floating dark slab at the top edge of the sky ("Buildings: roof and depth bugs"), box cars, a cone tree taller than the buildings |
+| `staging-prod-autotier-mobile-low-02-intro.png` | the New Game intro over the running world: noise-aliasing sparkle on the ground at `mobile-low` (in the 2026-10-27 re-capture, dark speckle on the light paving at the lower right) ("Roads and markings") |
+| `staging-prod-autotier-mobile-low-03-play-02.png` | about 30 s after Start at the m.a1.01 opening (in the 2026-10-27 re-capture inside the opening cutscene, with its Skip button); the floating dark slab at the top edge of the sky ("Buildings: roof and depth bugs"), box cars, a cone tree taller than the buildings |
 | `staging-prod-autotier-mobile-low-03-play-11.png` | about 120 s after Start (in the 2026-10-27 re-capture still the opening cutscene, with its Skip button): the same view, slab, cones and box cars |
 | `staging-prod-autotier-mobile-low-05-turn.png` | after a walk and a camera turn: the play HUD at 06:00 Fog with the `▯` heat-row and Clear glyphs ("HUD and UI"), the yellow tow-truck boom, a cone tree, lit windows on every floor at dawn |
 | `contact-sheet.png` | grid of the desktop, fog and `mobile-low` frames plus one staging frame, labelled |
