@@ -8,7 +8,7 @@
  *
  * Sim code under the C02 lint.
  */
-import { NULL_HANDLE, datan2, dsqrt, dsin, dcos, type EntityHandle, type EntityId, type StableKey } from '@dv/shared';
+import { CLASS_ENVELOPE, NULL_HANDLE, datan2, dsqrt, dsin, dcos, type EntityHandle, type EntityId, type StableKey } from '@dv/shared';
 import { Control, LocalPlayer, Police, Transform, Vehicle, VehicleDamage, Velocity } from '../ecs/components.ts';
 import type { EcsWorld } from '../ecs/world.ts';
 import { CONTROL_OWNER } from '../control/states.ts';
@@ -68,12 +68,15 @@ export class EcsPursuitHost implements PursuitHost, VehicleDamagePort {
     let id = pid;
     let onFoot = true;
     let vehicleKey: string | null = null;
+    let topMps: number | undefined;
     if (co.owner[pid] === CONTROL_OWNER.Vehicle) {
       const vid = co.target[pid] as number;
       if (ecs.hasId(vid, Vehicle)) {
         id = vid;
         onFoot = false;
         vehicleKey = ecs.keyOf(ecs.handle(vid as EntityId));
+        const rt = this.d.store.rt.get(vid);
+        if (rt) topMps = CLASS_ENVELOPE[rt.profile.class].topKph[1] / 3.6;
       }
     }
     const vx = ve.vx[id] as number, vy = ve.vy[id] as number, vz = ve.vz[id] as number;
@@ -85,6 +88,7 @@ export class EcsPursuitHost implements PursuitHost, VehicleDamagePort {
       onFoot,
       vehicleKey,
       grappled: false,
+      ...(topMps !== undefined ? { topMps } : {}),
     };
   }
 

@@ -1,5 +1,5 @@
 /**
- * AC-12: in a production-mode registry racing is `comingSoon`, its lazy imports resolve, `unlock.racing` and the four class
+ * AC-12: in a production-mode registry racing is `available`, its lazy imports resolve, `unlock.racing` and the four class
  * unlocks validate, and starting from the menu is refused; the QA start works only when the host is a QA host.
  * Also the config schema (`config/racing.json`) and the C01/C04 id blocks.
  */
@@ -27,8 +27,8 @@ describe('racing descriptor', () => {
     expect(d.requires.physics).toBe(true);
   });
 
-  it('is comingSoon, and its lazy sim and ui imports resolve', async () => {
-    expect(d.status).toBe('comingSoon');
+  it('is available (M07a2), and its lazy sim and ui imports resolve', async () => {
+    expect(d.status).toBe('available');
     const sim = (await d.sim()).default;
     expect(typeof sim.enter).toBe('function');
     expect(typeof sim.tick).toBe('function');
@@ -39,16 +39,17 @@ describe('racing descriptor', () => {
     expect(ui.inputContexts).toEqual(['vehicle']);
   });
 
-  it('starting from the menu is refused in a production host, also after the unlock; the QA start needs a QA host', () => {
+  it('starting from the menu is refused while locked and accepted after the unlock; the QA start needs a QA host', () => {
     const prod = makeRig({ qa: false, descriptors: [racingDescriptor()] });
     prod.unlocks.register(racingUnlockDefs());
-    expect(prod.host.start('racing')).toEqual({ ok: false, reason: 'coming-soon' });
-    prod.unlocks.emit('unlock.racing', { kind: 'debug', ref: '' });
-    expect(prod.host.start('racing')).toEqual({ ok: false, reason: 'coming-soon' });
+    expect(prod.host.start('racing')).toEqual({ ok: false, reason: 'locked' });
     expect(prod.host.startQa('racing')).toEqual({ ok: false, reason: 'unknown' });
     expect(prod.host.state).toBe('Idle');
+    prod.unlocks.emit('unlock.racing', { kind: 'debug', ref: '' });
+    expect(prod.host.start('racing').ok).toBe(true);
+    expect(prod.host.stack.root?.id).toBe('racing');
     const qa = makeRig({ qa: true, descriptors: [racingDescriptor()] });
-    expect(qa.host.start('racing')).toEqual({ ok: false, reason: 'coming-soon' });
+    expect(qa.host.start('racing')).toEqual({ ok: false, reason: 'locked' });
     expect(qa.host.startQa('racing', { defId: 'sf.sprint.ferry-ocean-beach' })).toEqual({ ok: true });
     expect(qa.host.state).toBe('Loading');
     expect(qa.host.stack.root?.id).toBe('racing');

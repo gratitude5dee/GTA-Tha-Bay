@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "693081bea20e1202a85093459238c2b8e4bf8636110a2382f8bd5aeafb95bd70",
+  "paths": [
+    "content/races/sf.downhill.twin-peaks-mission/corridor.bin"
+  ],
+  "kind": "world_pack",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-25T00:00:00Z"
+}

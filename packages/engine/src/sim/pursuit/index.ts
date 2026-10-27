@@ -1,4 +1,5 @@
 export * from './config.ts';
+export * from './race-rules.ts';
 export { MemoryWallet } from './ports.ts';
 export type { DriveInput, LanePoint, PlayerView, PursuitHost, PursuitWorld, RoadHit, RoutePath, UnitRole, UnitView, VehicleDamagePort, VehicleView, WalletPort, WorldTagsPort } from './ports.ts';
 export * from './heat.ts';

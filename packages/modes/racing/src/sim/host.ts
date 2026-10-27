@@ -14,6 +14,10 @@ export interface RacingHost {
   /** The sim profile the session runs under (`canonical` or `local`). */
   profile: 'local' | 'canonical';
   seed: number;
+  /** Build id for replay headers (`VITE_DV_BUILD`); 'dev' when the host has none. */
+  buildId: string;
+  /** Wall clock in epoch ms for ghost and record times; the sim has none of its own, the worker injects it. */
+  wallMs?: () => number;
 }
 
 let current: RacingHost | null = null;

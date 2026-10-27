@@ -155,7 +155,7 @@ describe('SimModule hook (AC-13)', () => {
   it('apps/web composes the world module into sim.worker and qa/determinism with runSimWorker; the determinism branch builds its own sims', () => {
     const read = (p: string): string => readFileSync(new URL(`../../../${p}`, import.meta.url), 'utf8');
     const worker = read('apps/web/src/workers/sim.worker.ts');
-    expect(worker).toMatch(/runSimWorker\(\s*self[^)]*\[\s*worldStreamingModule\s*(,\s*createPursuitModule\(\)\s*)?(,\s*racing\s*)?(,\s*fighter\s*)?(,\s*npc\s*)?\]/);
+    expect(worker).toMatch(/runSimWorker\(\s*self[^)]*\[\s*worldStreamingModule\s*(,\s*createPursuitModule\((\{[^}]*\})?\)\s*)?(,\s*racing\s*)?(,\s*fighter\s*)?(,\s*npc\s*)?\]/);
     const det = read('apps/web/src/qa/determinism.ts');
     expect(det).toMatch(/workers\/sim\.worker\.ts/);
     const core = read('packages/engine/src/workers/sim-worker-core.ts');

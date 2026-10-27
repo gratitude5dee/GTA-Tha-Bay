@@ -7,7 +7,7 @@
       "closedBy": "a bot that goes round queued traffic (kerb or lane change), or a fare limit measured against the robotaxi's ETA as the spec words it"
     },
     "m.a1.03": {
-      "reason": "Seed 1 passes. On seeds 2 and 3 the raid escape at heat 2 ends with the car wrecked or the bot busted: the cruisers pit the bot's car in the Yard's narrow streets and it loses seconds to a three-point turn.",
+      "reason": "The raid is now the real racing hook (sf.pursuit.bayview-escape, M07a2) played by the racing.child bot, and it cannot finish: the route crosses Islais Creek at Illinois Street where the bake has no driveable deck, and the first 250 m climb 11 percent (BD-M07a2-05). Before M07a2 the stub passed on seed 1 only.",
       "closedBy": "evasive driving in a pursuit (steering away from the cruisers' approach line, reversing out at once when boxed in)"
     },
     "m.a1.06": {

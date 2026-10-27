@@ -44,3 +44,24 @@ export function registeredBots(): string[] {
 export function unregisterBot(id: string): void {
   registry.delete(id);
 }
+
+/**
+ * Child-mode bots (M07a2): the bot that plays a mode the story started as a child (`ModeContext.startChild`) while the story
+ * autoplayer is on the controls. A mode registers one factory for its id (QA entries only); the autoplayer asks for it when a mission
+ * hook runs the real mode (`hooks: 'bot'`), hands it the hook's `defId`, and uses its frames for as long as the child runs. The child
+ * bot reads its own mode's state (it is given no observation by the story), so the story package imports nothing of the mode.
+ */
+export type ChildBotFactory = (defId: string | null) => BotDriver;
+
+const childRegistry = new Map<string, ChildBotFactory>();
+
+/** Registers the child bot of a mode id; a second registration of the same id is ignored (QA entry points call this once per process). */
+export function registerChildBot(modeId: string, factory: ChildBotFactory): void {
+  if (!childRegistry.has(modeId)) childRegistry.set(modeId, factory);
+}
+
+/** The child bot of a mode, or null when the mode registered none. */
+export function getChildBot(modeId: string, defId: string | null): BotDriver | null {
+  const f = childRegistry.get(modeId);
+  return f ? f(defId) : null;
+}

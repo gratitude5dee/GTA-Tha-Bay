@@ -1,0 +1,23 @@
+{
+  "schema": "provenance/1.0",
+  "sha256": "506d0fc06c45a29107318fb66f56d7dcd1a5ce41f16a8ddc25b1dcf7a17d623f",
+  "paths": [
+    "content/races/sf.pursuit.bayview-escape/corridor.bin"
+  ],
+  "kind": "world_pack",
+  "origin": "authored",
+  "license": "LicenseRef-DeeVerse-Owned",
+  "authors": [
+    "studio:dee-verse"
+  ],
+  "derived_from": [],
+  "review": [],
+  "ip_checks": {
+    "signatures": "pass",
+    "strings": "n/a",
+    "similarity": "n/a"
+  },
+  "ai_generated": false,
+  "status": "active",
+  "created_at": "2026-10-25T00:00:00Z"
+}

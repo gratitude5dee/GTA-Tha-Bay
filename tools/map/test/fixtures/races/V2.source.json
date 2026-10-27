@@ -1,0 +1,14 @@
+{
+  "rule": "V2",
+  "expect": [
+    "V2"
+  ],
+  "level": "warn",
+  "note": "the route turns back on the street it is on (a U-turn where a one-way street allows none): a warning, not a failure",
+  "stub": {
+    "to": 5,
+    "from": 5,
+    "out": [],
+    "reverse": true
+  }
+}
