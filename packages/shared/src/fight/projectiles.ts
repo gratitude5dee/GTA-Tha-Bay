@@ -1,5 +1,8 @@
 // packages/shared/src/fight/projectiles.ts — FC9: the pool of 16, the `linear` behaviour and the clash rule.
-// Other behaviours (sine, arc, trap, orbit, summon) land in M08a2 / M08b1; until then they move like `linear`.
+// `trap` (M08a2): a stationary zone that lives `life` frames and connects `hits` times; at most TRAP_CAP per owner (placing a third
+// frees the oldest). A `trap` def whose id ends with `:trigger` is the trigger: spawning it fires no projectile and sets every own live trap off,
+// turning it into its `:ex` def (the burst) with that def's life and hits. Other behaviours (sine, arc, orbit, summon) land in
+// M08b1; until then they move like `linear`.
 import { FF, FIGHTER_BASE, PROJ_BASE, PROJ_MAX, PROJ_WORDS, PW } from './buffer.ts';
 import type { Ctx } from './ctx.ts';
 import { kitOf } from './ctx.ts';
@@ -7,6 +10,8 @@ import type { Capsule2 } from './types.ts';
 import { capsulesOverlap } from './hit.ts';
 
 export const OWNER_CAP = 4;
+export const TRAP_CAP = 2;
+const TRAP = 3;   // index of 'trap' in pack.ts BEHAVIORS
 
 export function clearProjectiles(buf: Int32Array): void {
   buf.fill(0, PROJ_BASE, PROJ_BASE + PROJ_MAX * PROJ_WORDS);
@@ -26,6 +31,10 @@ export function spawnProjectile(c: Ctx, buf: Int32Array, owner: number, pi: numb
   const proj = kitOf(c, owner).projs[pi];
   if (proj === undefined || countOwned(buf, owner) >= OWNER_CAP) return false;
   const use = ex && proj.exIdx >= 0 ? (kitOf(c, owner).projs[proj.exIdx] as typeof proj) : proj;
+  if (proj.behavior === TRAP) {
+    if (isTrigger(proj.id)) { detonate(c, buf, owner); return true; }
+    limitTraps(c, buf, owner);
+  }
   for (let p = 0; p < PROJ_MAX; p++) {
     const b = PROJ_BASE + p * PROJ_WORDS;
     if ((buf[b + PW.Owner] as number) !== 0) continue;
@@ -34,7 +43,7 @@ export function spawnProjectile(c: Ctx, buf: Int32Array, owner: number, pi: numb
     buf[b + PW.Def] = proj.idx;
     buf[b + PW.X] = (buf[o + FF.X] as number) + f * ox;
     buf[b + PW.Y] = (buf[o + FF.Y] as number) + oy;
-    buf[b + PW.VX] = f * use.def.speed;
+    buf[b + PW.VX] = proj.behavior === TRAP ? 0 : f * use.def.speed;
     buf[b + PW.VY] = 0;
     buf[b + PW.Life] = use.def.life;
     buf[b + PW.Hits] = use.def.hits;
@@ -47,6 +56,46 @@ export function spawnProjectile(c: Ctx, buf: Int32Array, owner: number, pi: numb
     return true;
   }
   return false;
+}
+
+const isTrigger = (id: string): boolean => id.endsWith(':trigger');
+
+function isTrap(c: Ctx, buf: Int32Array, p: number): boolean {
+  const b = PROJ_BASE + p * PROJ_WORDS;
+  const owner = (buf[b + PW.Owner] as number) - 1;
+  if (owner < 0) return false;
+  const pd = kitOf(c, owner === 1 ? 1 : 0).projs[buf[b + PW.Def] as number];
+  return pd !== undefined && pd.behavior === TRAP && !isTrigger(pd.id);
+}
+
+/** Placing a trap beyond TRAP_CAP frees the owner's oldest (the one with the least life left). */
+function limitTraps(c: Ctx, buf: Int32Array, owner: number): void {
+  let n = 0, oldest = -1, least = 0x7fffffff;
+  for (let p = 0; p < PROJ_MAX; p++) {
+    const b = PROJ_BASE + p * PROJ_WORDS;
+    if ((buf[b + PW.Owner] as number) !== owner + 1 || !isTrap(c, buf, p)) continue;
+    n++;
+    const life = buf[b + PW.Life] as number;
+    if (life < least) { least = life; oldest = p; }
+  }
+  if (n >= TRAP_CAP && oldest >= 0) free(buf, oldest);
+}
+
+/** The trigger: every live trap of `owner` becomes its burst (`:ex` def), live for that def's life and hits. */
+function detonate(c: Ctx, buf: Int32Array, owner: number): void {
+  const kit = kitOf(c, owner);
+  for (let p = 0; p < PROJ_MAX; p++) {
+    const b = PROJ_BASE + p * PROJ_WORDS;
+    if ((buf[b + PW.Owner] as number) !== owner + 1 || !isTrap(c, buf, p) || (buf[b + PW.Ex] as number) !== 0) continue;
+    const base = kit.projs[buf[b + PW.Def] as number];
+    if (base === undefined || base.exIdx < 0) continue;
+    const burst = kit.projs[base.exIdx] as typeof base;
+    buf[b + PW.Ex] = 1;
+    buf[b + PW.Life] = burst.def.life;
+    buf[b + PW.Hits] = burst.def.hits;
+    buf[b + PW.Frame] = 0;
+    buf[b + PW.Cool] = 0;
+  }
 }
 
 function free(buf: Int32Array, p: number): void {
