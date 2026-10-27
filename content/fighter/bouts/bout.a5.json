@@ -1,0 +1,10 @@
+{
+  "id": "bout.a5",
+  "p1": "player",
+  "p2": "RAP_NEW_WAVE",
+  "stage": "powell_turntable",
+  "cpu": 1,
+  "rules": { "roundsToWin": 2, "timerFrames": 3600, "shutdowns": false, "cinematics": "off" },
+  "exhibition": true,
+  "reward": { "cashCents": 0, "streetCred": 0, "xp": 50 }
+}

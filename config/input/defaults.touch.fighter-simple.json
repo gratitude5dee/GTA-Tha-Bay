@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "device": "touch",
+  "contexts": {
+    "fighter": {
+      "axis.MoveX": [
+        {
+          "control": "touch:btn:moveRight",
+          "scale": 1
+        },
+        {
+          "control": "touch:btn:moveLeft",
+          "scale": -1
+        }
+      ],
+      "axis.MoveY": [
+        {
+          "control": "touch:btn:moveUp",
+          "scale": 1
+        },
+        {
+          "control": "touch:btn:moveDown",
+          "scale": -1
+        }
+      ],
+      "sim.Handbrake": [
+        {
+          "control": "touch:btn:hype"
+        }
+      ],
+      "sim.Interact": [
+        {
+          "control": "touch:btn:dash"
+        }
+      ],
+      "client.Pause": [
+        {
+          "control": "touch:btn:pause"
+        }
+      ],
+      "sim.Attack": [
+        {
+          "control": "touch:btn:l"
+        }
+      ],
+      "sim.FightHeavy": [
+        {
+          "control": "touch:btn:h"
+        }
+      ],
+      "sim.Special": [
+        {
+          "control": "touch:btn:special"
+        }
+      ],
+      "sim.FightAssist": [
+        {
+          "control": "touch:btn:assist"
+        }
+      ]
+    }
+  }
+}

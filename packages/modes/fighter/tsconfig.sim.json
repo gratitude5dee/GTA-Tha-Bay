@@ -4,6 +4,6 @@
     "lib": ["ES2023"],
     "types": []
   },
-  "include": ["../../shared/src/fight/**/*.ts", "../../shared/src/contracts/dom-media.d.ts"],
-  "exclude": ["../../shared/src/fight/**/*.test.ts"]
+  "include": ["src/sim/**/*.ts", "src/anim-states.ts", "../../shared/src/fight/**/*.ts", "../../shared/src/contracts/dom-media.d.ts"],
+  "exclude": ["src/sim/**/*.test.ts", "../../shared/src/fight/**/*.test.ts"]
 }

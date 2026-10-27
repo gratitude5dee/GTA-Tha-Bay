@@ -1,0 +1,51 @@
+{
+  "$id": "https://dv.local/schema/save/fighter.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FighterSlice schema 1 (slot mode:fighter)",
+  "type": "object",
+  "properties": {
+    "schema": { "const": 1 },
+    "unlockedFighters": { "type": "array", "maxItems": 64, "items": { "type": "string", "maxLength": 64 } },
+    "fighterXp": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 1000000 } },
+    "cosmetics": { "type": "array", "maxItems": 256, "items": { "type": "string", "maxLength": 64 } },
+    "arcade": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "cleared": { "type": "boolean" },
+          "bestTimeSec": { "type": "integer", "minimum": 0 },
+          "bestDifficulty": { "type": "integer", "minimum": 0, "maximum": 3 }
+        },
+        "required": ["cleared"],
+        "additionalProperties": false
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "scheme": { "enum": ["classic", "simple"] },
+        "inputDisplay": { "type": "boolean" },
+        "difficulty": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "cinematics": { "enum": ["off", "first", "always"] },
+        "seenReveal": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "hybridPose": { "type": "boolean" }
+      },
+      "required": ["scheme", "inputDisplay", "difficulty", "cinematics", "seenReveal", "hybridPose"],
+      "additionalProperties": false
+    },
+    "lastLoadout": {
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "properties": { "slot": { "type": "string", "maxLength": 64 }, "costume": { "type": "integer", "minimum": 0, "maximum": 15 } },
+          "required": ["slot", "costume"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": ["schema", "unlockedFighters", "fighterXp", "cosmetics", "arcade", "settings", "lastLoadout"],
+  "additionalProperties": false
+}

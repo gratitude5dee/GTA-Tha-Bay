@@ -4,7 +4,7 @@ import {
   type InputFrame, type InputMap, type InputRouter, type RawInputState,
 } from '@dv/shared';
 import {
-  DEFAULT_CONTROLS, DEFAULT_MAPS, MOUSE_RAD_PER_PX, PAD_RAD_PER_SEC, PITCH_LIMIT,
+  DEFAULT_CONTROLS, DEFAULT_MAPS, FIGHTER_MAPS, MOUSE_RAD_PER_PX, PAD_RAD_PER_SEC, PITCH_LIMIT,
 } from './defaults.ts';
 import { TOUCH_LOOK_RAD_PER_DRAG_PX } from './touch.ts';
 import { GestureTracker } from './gestures.ts';
@@ -99,10 +99,14 @@ export class InputRouterImpl implements InputRouter {
   private readonly listeners = new Set<(a: ClientAction, phase: 'pressed' | 'released') => void>();
   private prevButtons = 0;
   private poseHybrid = false;
+  /** The scheme whose `fighter` bindings are merged in (M08a2); only a router on the default maps carries them. */
+  private fighterScheme: 'classic' | 'simple';
+  private readonly withFighterMaps: boolean;
   private capture: { device: DeviceKind; finish: (c: ControlId | null) => void } | null = null;
 
   constructor(opts: RouterOptions = {}) {
     this.maps = opts.maps ?? DEFAULT_MAPS;
+    this.withFighterMaps = opts.maps === undefined;
     this.binders = opts.binders ?? [];
     this.raw = opts.raw ?? createRawInputState();
     this.nowFn = opts.now ?? ((): number => performance.now());
@@ -111,6 +115,7 @@ export class InputRouterImpl implements InputRouter {
       return (): void => clearTimeout(h);
     });
     this.settings = opts.settings ?? DEFAULT_CONTROLS;
+    this.fighterScheme = this.settings.fighterScheme ?? 'simple';
     this.compile();
   }
 
@@ -146,6 +151,17 @@ export class InputRouterImpl implements InputRouter {
   setOverrides(s: ControlsSettings): void {
     this.settings = s;
     this.compile();
+  }
+
+  /** Chooses the fighter binding files (`classic` or `simple`) and recompiles; a no-op on a router with custom maps. */
+  setFighterScheme(scheme: 'classic' | 'simple'): void {
+    if (scheme === this.fighterScheme) return;
+    this.fighterScheme = scheme;
+    this.compile();
+  }
+
+  get fighterSchemeOn(): 'classic' | 'simple' {
+    return this.fighterScheme;
   }
 
   setPoseHybrid(on: boolean): void {
@@ -379,7 +395,8 @@ export class InputRouterImpl implements InputRouter {
     const pauseDefaults: Binding[] = [];
     const seenPause = new Set<string>();
 
-    for (const map of this.maps) {
+    const all = this.withFighterMaps ? [...this.maps, ...FIGHTER_MAPS[this.fighterScheme]] : this.maps;
+    for (const map of all) {
       const overrides = this.settings.overrides[map.device] ?? {};
       for (const [ctxKey, base] of Object.entries(map.contexts)) {
         const ctx = ctxKey as InputContextId;

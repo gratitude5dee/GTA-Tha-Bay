@@ -471,7 +471,7 @@ export function createModesModule(opts: ModesModuleOptions = {}): ModesModule {
             },
           },
           input: {
-            frame: () => services.input ?? ZERO_FRAME(tick()),
+            frame: (player) => (player === 1 ? (services.input1 ?? ZERO_FRAME(tick())) : (services.input ?? ZERO_FRAME(tick()))),
             push: (c) => {
               contexts.push(c);
               bridge.patch('sys.inputContext', [...contexts]);

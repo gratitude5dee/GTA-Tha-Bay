@@ -1,0 +1,111 @@
+{
+  "v": 1,
+  "id": "fighter-simple",
+  "nameKey": "touch.layout.fighterSimple",
+  "context": "fighter",
+  "handed": "right",
+  "widgets": [
+    {
+      "id": "move",
+      "kind": "stick",
+      "role": "move",
+      "zone": {
+        "x": 0.02,
+        "y": 0.1,
+        "w": 0.4,
+        "h": 0.9
+      }
+    },
+    {
+      "id": "l",
+      "kind": "button",
+      "action": "sim.Attack",
+      "at": {
+        "corner": "br",
+        "dx": 150,
+        "dy": 24
+      },
+      "sizePx": 68,
+      "icon": "attack",
+      "label": "touch.fighter.light"
+    },
+    {
+      "id": "h",
+      "kind": "button",
+      "action": "sim.FightHeavy",
+      "at": {
+        "corner": "br",
+        "dx": 226,
+        "dy": 70
+      },
+      "sizePx": 68,
+      "icon": "attack",
+      "label": "touch.fighter.heavy"
+    },
+    {
+      "id": "special",
+      "kind": "button",
+      "action": "sim.Special",
+      "at": {
+        "corner": "br",
+        "dx": 70,
+        "dy": 70
+      },
+      "sizePx": 68,
+      "icon": "special",
+      "label": "touch.fighter.special"
+    },
+    {
+      "id": "assist",
+      "kind": "button",
+      "action": "sim.FightAssist",
+      "at": {
+        "corner": "br",
+        "dx": 150,
+        "dy": 112
+      },
+      "sizePx": 60,
+      "icon": "attack",
+      "label": "touch.fighter.assist"
+    },
+    {
+      "id": "hype",
+      "kind": "button",
+      "action": "sim.Handbrake",
+      "at": {
+        "corner": "br",
+        "dx": 24,
+        "dy": 150
+      },
+      "sizePx": 56,
+      "icon": "nitro",
+      "label": "touch.fighter.hype"
+    },
+    {
+      "id": "dash",
+      "kind": "button",
+      "action": "sim.Interact",
+      "at": {
+        "corner": "br",
+        "dx": 226,
+        "dy": 150
+      },
+      "sizePx": 52,
+      "icon": "enter",
+      "label": "touch.fighter.dash"
+    },
+    {
+      "id": "pause",
+      "kind": "button",
+      "action": "client.Pause",
+      "at": {
+        "corner": "tr",
+        "dx": 16,
+        "dy": 16
+      },
+      "sizePx": 48,
+      "icon": "pause",
+      "label": "touch.pause"
+    }
+  ]
+}

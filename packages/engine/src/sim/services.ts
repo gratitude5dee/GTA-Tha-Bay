@@ -25,6 +25,8 @@ export interface EngineServices extends SimServices {
   readonly rng: RngStreams;
   /** Player 0's quantized input for the tick about to run (C02 determinism rule 4); null when there is none. */
   input: InputFrame | null;
+  /** Player 1's input (a second pad, local Versus; M08a2). Nothing sets it yet, so `ModeContext.input.frame(1)` reads neutral until the router carries a second device. */
+  input1?: InputFrame | null;
   /** The physics backend once the session has one (M01a2); null in physics-free sims. */
   physics: PhysicsSystemsBackend | null;
   /** Facts for the page and other systems (ownership transitions). Drained by the host once per frame. */

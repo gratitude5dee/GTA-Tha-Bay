@@ -134,6 +134,7 @@ export function runSimWorker(scope: WorkerScope, modules: readonly SimModule[], 
           story: game.story.auto ?? defaultStory(),
           sandbox: game.sandbox ?? defaultSandbox(),
           profile: { id: pick.id, name: game.profile.name, hasStory: game.story.auto !== undefined },
+          modes: game.modes,
         };
       },
     });

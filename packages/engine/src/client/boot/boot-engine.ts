@@ -319,6 +319,8 @@ export async function bootEngine(opts: BootEngineOptions): Promise<EngineHandle>
   if (opts.qa && opts.flags.unlockAll) boot = { ...boot, config: { ...boot.config, unlockAll: true } };
   // QA `?racing=1`: the sim worker boots the racing module (M07a1).
   if (opts.qa && opts.flags.racing) boot = { ...boot, config: { ...boot.config, racing: true } };
+  // The fighter module (M08a2): the ECS mirror of a match (components 1280 to 1283). A player's build always has it; a QA build only with `?fighter=...`.
+  if (!opts.qa || opts.flags.fighter) boot = { ...boot, config: { ...boot.config, fighter: true } };
   // QA `?npcCast=<n>`: the NPC agency module stands n named NPCs at the hub (the perf scenario npc-mission-crowd, M06c).
   if (opts.qa && opts.flags.npcCast > 0) boot = { ...boot, config: { ...boot.config, npcCast: opts.flags.npcCast } };
 
