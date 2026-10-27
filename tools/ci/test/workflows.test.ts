@@ -34,6 +34,14 @@ describe('ci.yml (AC-8)', () => {
     for (const s of ['check:agents', 'check:telemetry', 'check:skills', 'check:rollout']) expect(jobs['static'], s).toContain(`pnpm ${s}`);
   });
 
+  it('static runs check:assets --release-strict only on pull requests into main (BD-FIX-REL-02)', () => {
+    const step = stepsOf(jobs['static'] ?? '').find((s) => s.includes('--release-strict')) ?? '';
+    expect(step).toContain('run: pnpm check:assets -- --release-strict');
+    expect(step).toContain("if: github.event_name == 'pull_request' && github.base_ref == 'main'");
+    // integration jobs keep the warning-only form
+    expect(jobs['ip']).toMatch(/run: pnpm check:assets\n/);
+  });
+
   it('has a device-runs job filtered to docs/device-runs/** and docs/device-spike/** that judges reports with perf:verify --auto', () => {
     const job = jobs['device-runs'];
     expect(job).toBeDefined();

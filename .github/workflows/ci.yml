@@ -56,6 +56,11 @@ jobs:
       - run: pnpm check:rollout
         env:
           GITHUB_HEAD_REF: ${{ github.head_ref }}
+      # BD-FIX-REL-02: a pull request into main (staging deploys from main) fails while the staging world pointer trails the locks;
+      # integration branches only warn (check:assets in the ip job). The Architect republishes (assets:publish --world) first.
+      - name: Staging world pointer matches the locks (PR into main)
+        if: github.event_name == 'pull_request' && github.base_ref == 'main'
+        run: pnpm check:assets -- --release-strict
 
   # M05d: the database checks, on a pull request only when it touches the schema, the DataPort or the scripts around them (a push to
   # main or claude/build always runs them). They need Docker: ubuntu-24.04 has it. `check:db` starts the Supabase local stack, lints
