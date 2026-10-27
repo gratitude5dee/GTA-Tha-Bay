@@ -93,7 +93,7 @@ The world rows U-W1 onward are in `spec/99-open-questions-2.md` §2 (moved for t
 | U-AST-13 | basis_universal XUASTC with three's transcoder | 05-assets §5 | M01d | not used | none |
 | U-AST-14 | iOS decodes Ogg Opus via `decodeAudioData` | barks, TTS | M00c AC-9 (container); M06a4 R&F; M10c | AAC or mp3 | none |
 | U-AST-15 | pinned C2PA signing tool and version | `check:c2pa` | M05b1 Scope (recorded in `spec/03`) | `check:c2pa` blocks release | none |
-| U-AST-16 | H3-family US licence (ADR-GENAI-01) | 03-story; 07-fighter FX6 | M05c3 AC-9 (runs only when `cleared`, Q-30) | fallback chain; in-engine clips | M05c3 AC-9 |
+| U-AST-16 | H3-family US licence (ADR-GENAI-01) | 03-story; 07-fighter FX6 | M05c4 AC-9 (runs only when `cleared`, Q-30; DL-750) | fallback chain; in-engine clips | M05c4 AC-9 |
 | U-AST-17 | art-lead effort: 20–40 min per character; ≈ 160 fighter clip tasks | 05-assets; 07-fighter FX7 | M00c AC-9; M10a1; M10a2 R&F | estimate only; library clips (Q-24) | none |
 | U-AST-18 | Workers AI terms or AUP URL (no ledger fact; F-025 is prices only) | `vendorTerms` `workers_ai`; vendor-terms index | M13d2 Scope (`pending-manual` until recorded in `spec/03`) | entry shows "pending review"; `Q-23f` | none |
 | U-BE-1 | cross-origin WebSocket from a COEP page to `rt.<domain>` | 09-backend §2 | M12b2 AC-9 | same-origin `/rt` (Q-BE-02 fallback) | none |
@@ -119,7 +119,7 @@ The world rows U-W1 onward are in `spec/99-open-questions-2.md` §2 (moved for t
 | U-BE-22 | `wrangler preview` validates `secrets.required` like `deploy` and `versions upload` (research verifies only those two [research/gap-ci-cd-release-assets.md §0 item 4]) | `deploy:preview` after a secret joins `secrets.required` (DL-679) | M06a1 N (first Preview with `PLAY_TOKEN_HMAC` required) | set the Preview base secret with `wrangler preview base-config secret put` before the PR | none |
 | U-COST-1 | fal minimum top-up, lock threshold, last dollars spendable | DL-OWN-01 tranches | M00c | $2 buffer absorbs it (DL-OWN-07); recharge off | none |
 | U-COST-2 | fal concurrency stays 2 under $100 total | batch plan | M10a1; M10a2 | batches of two | none |
-| U-COST-3 | fal bills refused or errored requests | ledger | M05c3 R&F; M00c | assume billed; loss from the buffer | none |
+| U-COST-3 | fal bills refused or errored requests | ledger | M05c4 R&F; M00c | assume billed; loss from the buffer | none |
 | U-COST-4 | per-MAU usage and $25/h review rate | 10-cost-model | M14b1 (re-measure after launch) | research proposals | none |
 | U-COST-5 | per-request fal billing is retrievable for reconciliation | ledger | M10a2 R&F | weekly dashboard reconcile; record drift | none |
 | U-API-1 | full CSP on Safari 26, Quest Browser, visionOS; mod `srcdoc` frame under CSP and COEP (no isolation, no `SharedArrayBuffer`) | spec/05 §1.3; 12-modding §2.5 | M05b1 AC-11 (Report-Only); M13a5 AC-6, AC-9; M14b3 AC-10 | Report-Only until M14b2 enforces; frame keeps its own CSP; `mods.ui` off | none |

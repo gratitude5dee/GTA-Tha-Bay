@@ -127,8 +127,8 @@
 - **Gate** as M10a1; Q-24 · **Proof** `pnpm assets:gen plan --roster <manifest> --tier standard` (zero outstanding jobs); `pnpm check:assets`; `pnpm check:fighter` (every slot resolves on six tiers); manual ledger ≤ 42,000,000 micros
 
 ### M10b · qa-gates-kill-drill — 1 · risk M · S05 (+fighter prewarm)
-- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill (`KillPurgeWorkflow`, `KILL_WF`), fighter intro/finisher prewarm within the rest of the $38 cutscene line after Act 1 (DN-S13-02, DL-741) via a `cleared` provider, and the operator re-run of M05c3's Act 1 prewarm once the M10a2 sheets exist (DL-232).
-- **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` (runner, `suites/kill-drill`) · **C** C07 1.1, C12 1.1 (route 46)
+- **Goal:** gate hardening, prewarm idempotence, kill-switch purge drill (`KillPurgeWorkflow`, `KILL_WF`), fighter intro/finisher prewarm within the rest of the $38 cutscene line after Act 1 (DN-S13-02, DL-741) via a `cleared` provider, and the operator re-run of M05c3's Act 1 prewarm once the M10a2 sheets exist (DL-232); both live runs finish through M05c4's `--finish` (DL-750).
+- **R** R-NPC-04, R-IP-02, R-CUT-01, R-ENG-03 · **Dep** M10a2, M08b2, M06a3, M05c4 · **Read** `05-assets-pipeline.md` §10, §12; `07-fighter-content.md` FX6 · **Out** `services/pipeline/kill`, `tools/ops` (runner, `suites/kill-drill`) · **C** C07 1.1, C12 1.1 (route 46)
 - **Gate** `CF_API_TOKEN_CACHE`; ADR-GENAI-01 `cleared` for paid prewarm · **Proof** `pnpm check:e2e -- --grep @kill-drill`; `pnpm test:ops -- --suite kill-drill`; `pnpm check:pipeline` (second prewarm: zero calls)
 
 ### M10c · roster-souls-ink-barks — 1 · risk M · S04
