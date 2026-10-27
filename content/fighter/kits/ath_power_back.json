@@ -1162,12 +1162,12 @@
       "block_reach",
       "heavy_bait",
       "punish_unsafe",
+      "check_parry",
       "anti_air",
       "fireball_zone",
       "dash_in",
       "jump_in",
-      "super_spend",
-      "check_parry"
+      "super_spend"
     ]
   }
 }

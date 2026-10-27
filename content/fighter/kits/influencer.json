@@ -1195,12 +1195,12 @@
       "throw_close",
       "fireball_zone",
       "jump_in",
+      "check_parry",
       "anti_air",
       "punish_unsafe",
       "heavy_bait",
       "dash_in",
-      "super_spend",
-      "check_parry"
+      "super_spend"
     ]
   }
 }

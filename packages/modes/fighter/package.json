@@ -21,7 +21,8 @@
     "fighter:lint": "tsx scripts/lint.ts",
     "fighter:replay": "tsx scripts/replay.ts",
     "fighter:bench": "tsx scripts/bench.ts",
-    "fighter:gen-kits": "tsx scripts/gen-kits.ts"
+    "fighter:gen-kits": "tsx scripts/gen-kits.ts",
+    "fighter:balance": "tsx scripts/balance.ts"
   },
   "dependencies": {
     "@dv/engine": "workspace:*",

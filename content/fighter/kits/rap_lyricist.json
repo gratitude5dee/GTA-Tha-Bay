@@ -1285,12 +1285,12 @@
       "anti_air",
       "poke_neutral",
       "punish_unsafe",
+      "check_parry",
       "throw_close",
       "heavy_bait",
       "dash_in",
       "jump_in",
-      "super_spend",
-      "check_parry"
+      "super_spend"
     ]
   }
 }

@@ -66,10 +66,10 @@ export function playBout(cache: KitCache, a: FighterSlotId, b: FighterSlotId, se
     const tick = m.tick;
     const i0 = d0.input(m.buf, tick), i1 = d1.input(m.buf, tick);
     m.step(i0, i1);
-    for (let k = 0; k < m.events.n; k++) if (m.events.kind[k] === 2) checks++;
     for (let s = 0; s < 2; s++) {
       const st = m.buf[(FIGHTER_BASE[s] as number) + FF.State] as number;
       if (st === St.Clear && prev[s] !== St.Clear) clears++;
+      if (st === St.Check && prev[s] !== St.Check) checks++;
       prev[s] = st;
     }
     const ph = m.phase;

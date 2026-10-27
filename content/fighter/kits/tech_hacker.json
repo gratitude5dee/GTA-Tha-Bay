@@ -1238,12 +1238,12 @@
       "punish_unsafe",
       "anti_air",
       "throw_close",
+      "check_parry",
       "fireball_zone",
       "heavy_bait",
       "dash_in",
       "jump_in",
-      "super_spend",
-      "check_parry"
+      "super_spend"
     ]
   }
 }

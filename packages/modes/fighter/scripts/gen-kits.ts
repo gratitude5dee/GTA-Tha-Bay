@@ -141,8 +141,9 @@ interface Spec {
   dash?: FighterDef['dash'];
 }
 
-const HABITS_STD = ['walk_in', 'poke_neutral', 'block_reach', 'anti_air', 'punish_unsafe', 'throw_close', 'fireball_zone', 'heavy_bait', 'dash_in', 'jump_in', 'super_spend', 'check_parry'];
-const habits = (first: string[]): string[] => [...first, ...HABITS_STD.filter((h) => !first.includes(h))].slice(0, 12);
+const HABITS_STD = ['walk_in', 'poke_neutral', 'block_reach', 'anti_air', 'punish_unsafe', 'throw_close', 'fireball_zone', 'heavy_bait', 'dash_in', 'jump_in', 'super_spend'];
+/** The kit's six signature habits, then Check and Clear (so Hard, with eight, has them), then the rest in the default order: twelve in all. */
+const habits = (first: string[]): string[] => [...first, 'check_parry', ...HABITS_STD.filter((h) => !first.includes(h))].slice(0, 12);
 
 // ---- the seven kits -----------------------------------------------------------------------------------------------
 function hyphy(): Spec {
@@ -339,6 +340,23 @@ function influencer(): Spec {
   };
 }
 
+// ---- balance knobs (scripts/kit-knobs.json, written by the tuning loop) -------------------------------------------------------------
+interface Knobs { health?: number; dmg?: number; proj?: number; walk?: number }
+const knobsFile = path.join(path.dirname(fileURLToPath(import.meta.url)), 'kit-knobs.json');
+let knobs: Record<string, Knobs> = {};
+try { knobs = JSON.parse(readFileSync(knobsFile, 'utf8')) as Record<string, Knobs>; } catch { /* none yet */ }
+const scaleDmg = (h: HitDef, pct: number): void => { h.damage = Math.max(1, Math.round((h.damage * pct) / 100 / 5) * 5); };
+/** Applies the knobs of a slot: health, damage of normals, specials and the throw, damage of shots (the Arc Shot levels stay 600 / 900 / 1,300), walk speed. */
+function applyKnobs(d: FighterDef): void {
+  const k = knobs[d.slot];
+  if (k === undefined) return;
+  if (k.health !== undefined) d.health = k.health;
+  if (k.walk !== undefined) { d.walk = { f: Math.round((d.walk.f * k.walk) / 100), b: Math.round((d.walk.b * k.walk) / 100) }; }
+  if (k.dmg !== undefined) for (const m of d.moves) for (const h of m.hits) scaleDmg(h.hit, k.dmg);
+  const pp = k.proj ?? k.dmg;
+  if (pp !== undefined) for (const p of d.projectiles) if (p.hit.damage > 0 && !p.id.startsWith('arc')) scaleDmg(p.hit, pp);
+}
+
 // ---- assembly ------------------------------------------------------------------------------------------------------
 function build(s: Spec): FighterDef {
   const shutdown = JSON.parse(JSON.stringify(base.shutdown)) as MoveDef;
@@ -360,13 +378,20 @@ function fixSalvo(d: FighterDef): void {
   for (const p of d.projectiles) if (p.id === 'wall') p.hit.multi = { every: 8, max: 4 };
 }
 
+/** rap_new_wave.json is the M08a2 kit; its pristine copy lives in scripts/base and only the balance knobs are applied on top. */
+function newWave(): FighterDef {
+  const d = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'base', 'rap_new_wave.json'), 'utf8')) as FighterDef;
+  applyKnobs(d);
+  return d;
+}
+
 function main(): void {
   const check = args().includes('--check');
   let bad = 0;
-  for (const s of specs) {
-    const def = build(s);
-    fixSalvo(def);
-    const file = path.join(kitDir, `${s.kit}.json`);
+  const all: { file: string; def: FighterDef }[] = [{ file: 'rap_new_wave', def: newWave() }];
+  for (const s of specs) { const def = build(s); fixSalvo(def); applyKnobs(def); all.push({ file: s.kit, def }); }
+  for (const { file: name, def } of all) {
+    const file = path.join(kitDir, `${name}.json`);
     const text = `${JSON.stringify(def, null, 2)}\n`;
     if (check) {
       let cur = '';

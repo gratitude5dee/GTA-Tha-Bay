@@ -1214,12 +1214,12 @@
       "block_reach",
       "jump_in",
       "throw_close",
+      "check_parry",
       "anti_air",
       "punish_unsafe",
       "fireball_zone",
       "heavy_bait",
-      "super_spend",
-      "check_parry"
+      "super_spend"
     ]
   }
 }
