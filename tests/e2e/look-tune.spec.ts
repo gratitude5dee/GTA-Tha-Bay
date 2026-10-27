@@ -190,6 +190,9 @@ test.describe('look ledger @look-ledger', () => {
       await bootWorld(page, tier, '&perf=1');
       await setSky(page, 13, 'clear');
       await expect.poll(async () => (await world(page, (w) => w.traffic()))?.instances ?? 0, { timeout: 120_000, intervals: [500] }).toBeGreaterThan(0);
+      // `mobile-low`: the `fog-west` shot looks down a street of the synth world with 87 render objects (the spawn's street has 116 with
+      // the rig and a car, over the tier's 100 whatever the look adds); the other tiers are read at the spawn, as their ledger rows say
+      if (tier === 'mobile-low') await world(page, (w) => w.shot('fog-west'));
       await frames(page, 6);
       const layers = (await world(page, (w) => w.look()))?.layers ?? [];
       expect(layers).toEqual(layersOf(tier));

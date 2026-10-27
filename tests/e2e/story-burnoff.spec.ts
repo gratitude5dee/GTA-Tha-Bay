@@ -72,13 +72,13 @@ test.describe('story burn-off @story-burnoff', () => {
     await expect.poll(async () => (await mstate(page))?.stageId, { timeout: 60_000, intervals: [250] }).toBe('truck');
     const start = (await sky(page)) as Sky;
 
-    // within 1,800 game seconds the weather is clear and the blend is done
+    // within 1,800 game seconds the weather is clear (`current` takes the preset when the blend ends; `next` is then the schedule's draw)
     let clearAt = -1;
     await expect
       .poll(
         async () => {
           const s = await sky(page);
-          if (s && s.weather === 'clear' && s.next === 'clear') {
+          if (s && s.weather === 'clear') {
             clearAt = s.hour;
             return true;
           }
@@ -128,7 +128,7 @@ test.describe('story burn-off @story-burnoff', () => {
     await expect
       .poll(async () => {
         const s = await sky(page);
-        return s !== null && s.weather === 'clear' && s.next === 'clear';
+        return s !== null && s.weather === 'clear';
       }, { timeout: 300_000, intervals: [250] })
       .toBe(true);
     expect(errors).toEqual([]);

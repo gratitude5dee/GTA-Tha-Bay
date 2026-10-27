@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import type { WorldBridge } from '../../packages/world/src/client/world-bridge.ts';
-import { act, observe, SMALL_VIEWPORT, waitForEngine, type Obs } from './engine-helpers.ts';
+import { observe, SMALL_VIEWPORT, waitForEngine, type Obs } from './engine-helpers.ts';
 
 /**
  * M02g1 AC-7 in a real browser, on a `DV_WORLD=synth` QA build (`@cam-chase`, outside the graybox half of CI).
@@ -14,6 +14,7 @@ type W = { __dvBridge: { world: WorldBridge; engine: Bridge } };
 interface Reply { ok: boolean; handle?: number; reason?: string; [k: string]: unknown }
 interface Bridge {
   spawn(prefab: string, at: [number, number, number], yaw?: number): Promise<Reply | null>;
+  vehicleOp(op: string, target?: number): Promise<Reply | null>;
   vehicleCamera: { views(): string[]; view(): string; set(v: string): void; cycle(): string; last(): { x: number; y: number; z: number; distance: number; view: string } };
 }
 const bridge = <T>(page: Page, fn: (b: Bridge) => T | Promise<T>): Promise<T> => page.evaluate(`(${fn.toString()})(window.__dvBridge.engine)`) as Promise<T>;
@@ -40,7 +41,7 @@ async function bootWorld(page: Page): Promise<string[]> {
   return errors;
 }
 
-/** Spawns `prefab` 6 m east of the player on the ground, stands the player at its driver door and gets in. */
+/** Spawns `prefab` 6 m east of the player on the ground and seats the player in it. */
 async function driveNew(page: Page, prefab: keyof typeof LENGTH_M): Promise<Obs> {
   const p = (await observe(page)).player as NonNullable<Obs['player']>;
   const cx = p.pos[0] + 6, cz = p.pos[2];
@@ -49,9 +50,9 @@ async function driveNew(page: Page, prefab: keyof typeof LENGTH_M): Promise<Obs>
   const gy = await groundAt(page, cx, cz);
   const spawned = (await page.evaluate(([pf, x, y, z]) => (window as unknown as W).__dvBridge.engine.spawn(pf as string, [x as number, y as number, z as number], 0), [prefab, cx, gy + 0.8, cz] as const)) as Reply | null;
   expect(spawned?.ok, JSON.stringify(spawned)).toBe(true);
-  expect(await act(page, { t: 'debug.teleport', pos: [cx - 3.2, await groundAt(page, cx - 3.2, cz), cz] })).toBe(true);
-  await expect.poll(async () => (await observe(page)).prompt?.kind, { timeout: 60_000 }).toBe(1);
-  await page.keyboard.press('KeyF');
+  // seated at once (the bridge's `seat` op, as the vehicle world runs do), the prompt and F are `@vehicle`'s business
+  const seat = await page.evaluate((h) => (window as unknown as W).__dvBridge.engine.vehicleOp('seat', h), spawned?.handle ?? 0);
+  expect(seat?.ok, JSON.stringify(seat)).toBe(true);
   await expect.poll(async () => (await observe(page)).vehicleCamera.active, { timeout: 60_000 }).toBe(true);
   return observe(page);
 }
